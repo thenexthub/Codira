@@ -29,9 +29,9 @@
 #include "language/Frontend/FrontendOptions.h"
 #include "language/Frontend/MakeStyleDependencies.h"
 #include "language/Option/Options.h"
-#include "clang/CAS/CASOptions.h"
-#include "clang/CAS/IncludeTree.h"
-#include "clang/Frontend/CompileJobCacheResult.h"
+#include "language/Core/CAS/CASOptions.h"
+#include "language/Core/CAS/IncludeTree.h"
+#include "language/Core/Frontend/CompileJobCacheResult.h"
 #include "toolchain/CAS/BuiltinUnifiedCASDatabases.h"
 #include "toolchain/CAS/CASFileSystem.h"
 #include "toolchain/CAS/HierarchicalTreeBuilder.h"
@@ -91,22 +91,22 @@ Error cas::CachedResultLoader::replay(CallbackTy Callback) {
     }
   }
   {
-    clang::cas::CompileJobResultSchema Schema(CAS);
+    language::Core::cas::CompileJobResultSchema Schema(CAS);
     if (Schema.isRootNode(*ResultProxy)) {
       auto Result = Schema.load(OutputRef);
       if (!Result)
         return Result.takeError();
       if (auto Err = Result->forEachOutput(
-          [&](clang::cas::CompileJobCacheResult::Output Output) -> Error {
+          [&](language::Core::cas::CompileJobCacheResult::Output Output) -> Error {
             file_types::ID OutputKind = file_types::ID::TY_INVALID;
             switch (Output.Kind) {
-            case clang::cas::CompileJobCacheResult::OutputKind::MainOutput:
+            case language::Core::cas::CompileJobCacheResult::OutputKind::MainOutput:
               OutputKind = file_types::ID::TY_ClangModuleFile;
               break;
-            case clang::cas::CompileJobCacheResult::OutputKind::Dependencies:
+            case language::Core::cas::CompileJobCacheResult::OutputKind::Dependencies:
               OutputKind = file_types::ID::TY_Dependencies;
               break;
-            case clang::cas::CompileJobCacheResult::OutputKind::
+            case language::Core::cas::CompileJobCacheResult::OutputKind::
                 SerializedDiagnostics:
               OutputKind = file_types::ID::TY_CachedDiagnostics;
               break;
@@ -467,7 +467,7 @@ createCASFileSystem(ObjectStore &CAS, const std::string &IncludeTree,
     auto Ref = CAS.getReference(*ID);
     if (!Ref)
       return createCASObjectNotFoundError(*ID);
-    auto IT = clang::cas::IncludeTreeRoot::get(CAS, *Ref);
+    auto IT = language::Core::cas::IncludeTreeRoot::get(CAS, *Ref);
     if (!IT)
       return IT.takeError();
 
@@ -475,7 +475,7 @@ createCASFileSystem(ObjectStore &CAS, const std::string &IncludeTree,
     if (!ITF)
       return ITF.takeError();
 
-    auto ITFS = clang::cas::createIncludeTreeFileSystem(*ITF);
+    auto ITFS = language::Core::cas::createIncludeTreeFileSystem(*ITF);
     if (!ITFS)
       return ITFS.takeError();
 
@@ -490,11 +490,11 @@ createCASFileSystem(ObjectStore &CAS, const std::string &IncludeTree,
     auto Ref = CAS.getReference(*ID);
     if (!Ref)
       return createCASObjectNotFoundError(*ID);
-    auto ITF = clang::cas::IncludeTree::FileList::get(CAS, *Ref);
+    auto ITF = language::Core::cas::IncludeTree::FileList::get(CAS, *Ref);
     if (!ITF)
       return ITF.takeError();
 
-    auto ITFS = clang::cas::createIncludeTreeFileSystem(*ITF);
+    auto ITFS = language::Core::cas::createIncludeTreeFileSystem(*ITF);
     if (!ITFS)
       return ITFS.takeError();
 

@@ -48,7 +48,7 @@
 #include "language/SILOptimizer/Utils/CanonicalizeOSSALifetime.h"
 #include "language/SILOptimizer/Utils/InstructionDeleter.h"
 #include "language/SILOptimizer/Utils/SILSSAUpdater.h"
-#include "clang/AST/DeclTemplate.h"
+#include "language/Core/AST/DeclTemplate.h"
 #include "toolchain/ADT/ArrayRef.h"
 #include "toolchain/ADT/IntervalMap.h"
 #include "toolchain/ADT/PointerIntPair.h"

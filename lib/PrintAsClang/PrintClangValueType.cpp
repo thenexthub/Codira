@@ -553,7 +553,7 @@ void ClangValueTypePrinter::printClangTypeCodiraGenericTraits(
     DeclAndTypePrinter &declAndTypePrinter) {
   assert(typeDecl->hasClangNode());
   // Do not reference unspecialized templates.
-  if (isa<clang::ClassTemplateDecl>(typeDecl->getClangDecl()))
+  if (isa<language::Core::ClassTemplateDecl>(typeDecl->getClangDecl()))
     return;
   auto typeMetadataFunc = irgen::LinkEntity::forTypeMetadataAccessFunction(
       typeDecl->getDeclaredInterfaceType()->getCanonicalType());

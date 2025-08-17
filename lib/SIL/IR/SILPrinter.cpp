@@ -47,8 +47,8 @@
 #include "language/SIL/SILVisitor.h"
 #include "language/SIL/TerminatorUtils.h"
 #include "language/Strings.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Decl.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Decl.h"
 #include "toolchain/ADT/APFloat.h"
 #include "toolchain/ADT/APInt.h"
 #include "toolchain/ADT/DenseMap.h"
@@ -3523,9 +3523,9 @@ static void printSerializedKind(toolchain::raw_ostream &OS, SerializedKind_t kin
 }
 
 static void printClangQualifiedNameCommentIfPresent(toolchain::raw_ostream &OS,
-                                                    const clang::Decl *decl) {
+                                                    const language::Core::Decl *decl) {
   if (decl) {
-    if (auto namedDecl = dyn_cast_or_null<clang::NamedDecl>(decl)) {
+    if (auto namedDecl = dyn_cast_or_null<language::Core::NamedDecl>(decl)) {
       OS << "// clang name: ";
       namedDecl->printQualifiedName(OS);
       OS << "\n";

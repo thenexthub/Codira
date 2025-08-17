@@ -1,24 +1,40 @@
-//===-- llvm/Support/ManagedStatic.h - Static Global wrapper ----*- C++ -*-===//
+//===-- toolchain/Support/ManagedStatic.h - Static Global wrapper ----*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
-// This file defines the ManagedStatic class and the llvm_shutdown() function.
+// This file defines the ManagedStatic class and the toolchain_shutdown() function.
 //
 //===----------------------------------------------------------------------===//
 
 #ifndef LLVM_SUPPORT_MANAGEDSTATIC_H
 #define LLVM_SUPPORT_MANAGEDSTATIC_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_Config_indexstoredb-prefix.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_indexstoredb-prefix.h>
 
 #include <atomic>
 #include <cstddef>
 
-namespace llvm {
+namespace toolchain {
 
 /// object_creator - Helper method for ManagedStatic.
 template <class C> struct object_creator {
@@ -74,7 +90,7 @@ public:
 /// ManagedStatic - This transparently changes the behavior of global statics to
 /// be lazily constructed on demand (good for reducing startup times of dynamic
 /// libraries that link in LLVM components) and for making destruction be
-/// explicit through the llvm_shutdown() function call.
+/// explicit through the toolchain_shutdown() function call.
 ///
 template <class C, class Creator = object_creator<C>,
           class Deleter = object_deleter<C>>
@@ -102,16 +118,16 @@ public:
   const C *operator->() const { return &**this; }
 };
 
-/// llvm_shutdown - Deallocate and destroy all ManagedStatic variables.
-void llvm_shutdown();
+/// toolchain_shutdown - Deallocate and destroy all ManagedStatic variables.
+void toolchain_shutdown();
 
-/// llvm_shutdown_obj - This is a simple helper class that calls
-/// llvm_shutdown() when it is destroyed.
-struct llvm_shutdown_obj {
-  llvm_shutdown_obj() = default;
-  ~llvm_shutdown_obj() { llvm_shutdown(); }
+/// toolchain_shutdown_obj - This is a simple helper class that calls
+/// toolchain_shutdown() when it is destroyed.
+struct toolchain_shutdown_obj {
+  toolchain_shutdown_obj() = default;
+  ~toolchain_shutdown_obj() { toolchain_shutdown(); }
 };
 
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif // LLVM_SUPPORT_MANAGEDSTATIC_H

@@ -17,7 +17,7 @@
 #include "language/IDE/ImportDepth.h"
 #include "language/AST/Module.h"
 #include "language/Basic/Assertions.h"
-#include "clang/Basic/Module.h"
+#include "language/Core/Basic/Module.h"
 
 #include <deque>
 
@@ -61,7 +61,7 @@ ImportDepth::ImportDepth(ASTContext &context,
       continue;
 
     // Insert new module:depth mapping.
-    const clang::Module *CM = module->findUnderlyingClangModule();
+    const language::Core::Module *CM = module->findUnderlyingClangModule();
     if (CM) {
       depths[CM->getFullModuleName()] = depth;
     } else {
@@ -75,7 +75,7 @@ ImportDepth::ImportDepth(ASTContext &context,
       uint8_t next = std::max(depth, uint8_t(depth + 1)); // unsigned wrap
 
       // Implicitly imported sub-modules get the same depth as their parent.
-      if (const clang::Module *CMI =
+      if (const language::Core::Module *CMI =
               import.importedModule->findUnderlyingClangModule())
         if (CM && CMI->isSubModuleOf(CM))
           next = depth;

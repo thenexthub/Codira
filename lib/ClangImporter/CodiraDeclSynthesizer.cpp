@@ -25,8 +25,8 @@
 #include "language/AST/Pattern.h"
 #include "language/AST/Stmt.h"
 #include "language/Basic/Assertions.h"
-#include "clang/AST/Mangle.h"
-#include "clang/Sema/DelayedDiagnostic.h"
+#include "language/Core/AST/Mangle.h"
+#include "language/Core/Sema/DelayedDiagnostic.h"
 
 using namespace language;
 using namespace importer;
@@ -201,7 +201,7 @@ Type CodiraDeclSynthesizer::getConstantLiteralType(
 
 ValueDecl *CodiraDeclSynthesizer::createConstant(Identifier name,
                                                 DeclContext *dc, Type type,
-                                                const clang::APValue &value,
+                                                const language::Core::APValue &value,
                                                 ConstantConvertKind convertKind,
                                                 bool isStatic, ClangNode ClangN,
                                                 AccessLevel access) {
@@ -210,25 +210,25 @@ ValueDecl *CodiraDeclSynthesizer::createConstant(Identifier name,
   // Create the integer literal value.
   Expr *expr = nullptr;
   switch (value.getKind()) {
-  case clang::APValue::AddrLabelDiff:
-  case clang::APValue::Array:
-  case clang::APValue::ComplexFloat:
-  case clang::APValue::ComplexInt:
-  case clang::APValue::FixedPoint:
-  case clang::APValue::Indeterminate:
-  case clang::APValue::LValue:
-  case clang::APValue::MemberPointer:
-  case clang::APValue::None:
-  case clang::APValue::Struct:
-  case clang::APValue::Union:
-  case clang::APValue::Vector:
+  case language::Core::APValue::AddrLabelDiff:
+  case language::Core::APValue::Array:
+  case language::Core::APValue::ComplexFloat:
+  case language::Core::APValue::ComplexInt:
+  case language::Core::APValue::FixedPoint:
+  case language::Core::APValue::Indeterminate:
+  case language::Core::APValue::LValue:
+  case language::Core::APValue::MemberPointer:
+  case language::Core::APValue::None:
+  case language::Core::APValue::Struct:
+  case language::Core::APValue::Union:
+  case language::Core::APValue::Vector:
     toolchain_unreachable("Unhandled APValue kind");
 
-  case clang::APValue::Float:
-  case clang::APValue::Int: {
+  case language::Core::APValue::Float:
+  case language::Core::APValue::Int: {
     // Print the value.
     toolchain::SmallString<16> printedValueBuf;
-    if (value.getKind() == clang::APValue::Int) {
+    if (value.getKind() == language::Core::APValue::Int) {
       value.getInt().toString(printedValueBuf);
     } else {
       assert(value.getFloat().isFinite() && "can't handle infinities or NaNs");
@@ -245,12 +245,12 @@ ValueDecl *CodiraDeclSynthesizer::createConstant(Identifier name,
 
     // Create the expression node.
     StringRef printedValueCopy(context.AllocateCopy(printedValue));
-    if (value.getKind() == clang::APValue::Int) {
+    if (value.getKind() == language::Core::APValue::Int) {
       bool isBool = type->getCanonicalType()->isBool();
       // Check if "type" is a C++ enum with an underlying type of "bool".
       if (!isBool && type->getStructOrBoundGenericStruct() &&
           type->getStructOrBoundGenericStruct()->getClangDecl()) {
-        if (auto enumDecl = dyn_cast<clang::EnumDecl>(
+        if (auto enumDecl = dyn_cast<language::Core::EnumDecl>(
                 type->getStructOrBoundGenericStruct()->getClangDecl())) {
           isBool = enumDecl->getIntegerType()->isBooleanType();
         }
@@ -547,7 +547,7 @@ synthesizeValueConstructorBody(AbstractFunctionDecl *afd, void *context) {
     for (unsigned i = 0, e = members.size(); i < e; ++i) {
       auto var = members[i];
 
-      if (isa_and_nonnull<clang::IndirectFieldDecl>(var->getClangDecl()))
+      if (isa_and_nonnull<language::Core::IndirectFieldDecl>(var->getClangDecl()))
         continue;
 
       if (var->hasStorage() == (pass != 0)) {
@@ -605,10 +605,10 @@ ConstructorDecl *CodiraDeclSynthesizer::createValueConstructor(
     if (var->hasClangNode()) {
       // TODO create value constructor with indirect fields instead of the
       // generated __Anonymous_field.
-      if (isa<clang::IndirectFieldDecl>(var->getClangDecl()))
+      if (isa<language::Core::IndirectFieldDecl>(var->getClangDecl()))
         continue;
 
-      if (auto clangField = dyn_cast<clang::FieldDecl>(var->getClangDecl()))
+      if (auto clangField = dyn_cast<language::Core::FieldDecl>(var->getClangDecl()))
         if (clangField->isAnonymousStructOrUnion() ||
             clangField->getDeclName().isEmpty())
           generateParamName = false;
@@ -962,8 +962,8 @@ CodiraDeclSynthesizer::makeUnionFieldAccessors(
   return {getterDecl, setterDecl};
 }
 
-static clang::DeclarationName
-getAccessorDeclarationName(clang::ASTContext &Ctx, NominalTypeDecl *structDecl,
+static language::Core::DeclarationName
+getAccessorDeclarationName(language::Core::ASTContext &Ctx, NominalTypeDecl *structDecl,
                            VarDecl *fieldDecl, const char *suffix) {
   std::string id;
   toolchain::raw_string_ostream IdStream(id);
@@ -971,13 +971,13 @@ getAccessorDeclarationName(clang::ASTContext &Ctx, NominalTypeDecl *structDecl,
   IdStream << "$" << mangler.mangleDeclAsUSR(structDecl, "") << "$"
            << fieldDecl->getName() << "$" << suffix;
 
-  return clang::DeclarationName(&Ctx.Idents.get(IdStream.str()));
+  return language::Core::DeclarationName(&Ctx.Idents.get(IdStream.str()));
 }
 
 std::pair<FuncDecl *, FuncDecl *> CodiraDeclSynthesizer::makeBitFieldAccessors(
-    clang::RecordDecl *structDecl, NominalTypeDecl *importedStructDecl,
-    clang::FieldDecl *fieldDecl, VarDecl *importedFieldDecl) {
-  clang::ASTContext &Ctx = ImporterImpl.getClangASTContext();
+    language::Core::RecordDecl *structDecl, NominalTypeDecl *importedStructDecl,
+    language::Core::FieldDecl *fieldDecl, VarDecl *importedFieldDecl) {
+  language::Core::ASTContext &Ctx = ImporterImpl.getClangASTContext();
 
   // Getter: static inline FieldType get(RecordType self);
   auto recordType = Ctx.getRecordType(structDecl);
@@ -988,12 +988,12 @@ std::pair<FuncDecl *, FuncDecl *> CodiraDeclSynthesizer::makeBitFieldAccessors(
                                                 importedFieldDecl, "getter");
   auto cGetterType =
       Ctx.getFunctionType(fieldDecl->getType(), recordType,
-                          clang::FunctionProtoType::ExtProtoInfo());
+                          language::Core::FunctionProtoType::ExtProtoInfo());
   auto cGetterTypeInfo = Ctx.getTrivialTypeSourceInfo(cGetterType);
-  auto cGetterDecl = clang::FunctionDecl::Create(
-      Ctx, structDecl->getDeclContext(), clang::SourceLocation(),
-      clang::SourceLocation(), cGetterName, cGetterType, cGetterTypeInfo,
-      clang::SC_Static);
+  auto cGetterDecl = language::Core::FunctionDecl::Create(
+      Ctx, structDecl->getDeclContext(), language::Core::SourceLocation(),
+      language::Core::SourceLocation(), cGetterName, cGetterType, cGetterTypeInfo,
+      language::Core::SC_Static);
   cGetterDecl->setImplicit();
   cGetterDecl->setImplicitlyInline();
   assert(!cGetterDecl->isExternallyVisible());
@@ -1002,20 +1002,20 @@ std::pair<FuncDecl *, FuncDecl *> CodiraDeclSynthesizer::makeBitFieldAccessors(
                                         importedFieldDecl, cGetterDecl);
 
   // Setter: static inline void set(FieldType newValue, RecordType *self);
-  SmallVector<clang::QualType, 8> cSetterParamTypes;
+  SmallVector<language::Core::QualType, 8> cSetterParamTypes;
   cSetterParamTypes.push_back(fieldType);
   cSetterParamTypes.push_back(recordPointerType);
 
   auto cSetterName = getAccessorDeclarationName(Ctx, importedStructDecl,
                                                 importedFieldDecl, "setter");
   auto cSetterType = Ctx.getFunctionType(
-      Ctx.VoidTy, cSetterParamTypes, clang::FunctionProtoType::ExtProtoInfo());
+      Ctx.VoidTy, cSetterParamTypes, language::Core::FunctionProtoType::ExtProtoInfo());
   auto cSetterTypeInfo = Ctx.getTrivialTypeSourceInfo(cSetterType);
 
-  auto cSetterDecl = clang::FunctionDecl::Create(
-      Ctx, structDecl->getDeclContext(), clang::SourceLocation(),
-      clang::SourceLocation(), cSetterName, cSetterType, cSetterTypeInfo,
-      clang::SC_Static);
+  auto cSetterDecl = language::Core::FunctionDecl::Create(
+      Ctx, structDecl->getDeclContext(), language::Core::SourceLocation(),
+      language::Core::SourceLocation(), cSetterName, cSetterType, cSetterTypeInfo,
+      language::Core::SC_Static);
   cSetterDecl->setImplicit();
   cSetterDecl->setImplicitlyInline();
   assert(!cSetterDecl->isExternallyVisible());
@@ -1029,62 +1029,62 @@ std::pair<FuncDecl *, FuncDecl *> CodiraDeclSynthesizer::makeBitFieldAccessors(
   {
     auto cGetterSelfId = nullptr;
     auto recordTypeInfo = Ctx.getTrivialTypeSourceInfo(recordType);
-    auto cGetterSelf = clang::ParmVarDecl::Create(
-        Ctx, cGetterDecl, clang::SourceLocation(), clang::SourceLocation(),
-        cGetterSelfId, recordType, recordTypeInfo, clang::SC_None, nullptr);
+    auto cGetterSelf = language::Core::ParmVarDecl::Create(
+        Ctx, cGetterDecl, language::Core::SourceLocation(), language::Core::SourceLocation(),
+        cGetterSelfId, recordType, recordTypeInfo, language::Core::SC_None, nullptr);
     cGetterSelf->setImplicit();
     cGetterDecl->setParams(cGetterSelf);
 
     auto cGetterSelfExpr = new (Ctx)
-        clang::DeclRefExpr(Ctx, cGetterSelf, false, recordType,
-                           clang::VK_PRValue, clang::SourceLocation());
-    auto cGetterExpr = clang::MemberExpr::CreateImplicit(
+        language::Core::DeclRefExpr(Ctx, cGetterSelf, false, recordType,
+                           language::Core::VK_PRValue, language::Core::SourceLocation());
+    auto cGetterExpr = language::Core::MemberExpr::CreateImplicit(
         Ctx, cGetterSelfExpr,
-        /*isarrow=*/false, fieldDecl, fieldType, clang::VK_PRValue,
-        clang::OK_BitField);
+        /*isarrow=*/false, fieldDecl, fieldType, language::Core::VK_PRValue,
+        language::Core::OK_BitField);
 
-    auto cGetterBody = clang::ReturnStmt::Create(Ctx, clang::SourceLocation(),
+    auto cGetterBody = language::Core::ReturnStmt::Create(Ctx, language::Core::SourceLocation(),
                                                  cGetterExpr, nullptr);
     cGetterDecl->setBody(cGetterBody);
   }
 
   // Synthesize the setter body
   {
-    SmallVector<clang::ParmVarDecl *, 2> cSetterParams;
+    SmallVector<language::Core::ParmVarDecl *, 2> cSetterParams;
     auto fieldTypeInfo = Ctx.getTrivialTypeSourceInfo(fieldType);
-    auto cSetterValue = clang::ParmVarDecl::Create(
-        Ctx, cSetterDecl, clang::SourceLocation(), clang::SourceLocation(),
-        /* nameID? */ nullptr, fieldType, fieldTypeInfo, clang::SC_None,
+    auto cSetterValue = language::Core::ParmVarDecl::Create(
+        Ctx, cSetterDecl, language::Core::SourceLocation(), language::Core::SourceLocation(),
+        /* nameID? */ nullptr, fieldType, fieldTypeInfo, language::Core::SC_None,
         nullptr);
     cSetterValue->setImplicit();
     cSetterParams.push_back(cSetterValue);
     auto recordPointerTypeInfo =
         Ctx.getTrivialTypeSourceInfo(recordPointerType);
-    auto cSetterSelf = clang::ParmVarDecl::Create(
-        Ctx, cSetterDecl, clang::SourceLocation(), clang::SourceLocation(),
+    auto cSetterSelf = language::Core::ParmVarDecl::Create(
+        Ctx, cSetterDecl, language::Core::SourceLocation(), language::Core::SourceLocation(),
         /* nameID? */ nullptr, recordPointerType, recordPointerTypeInfo,
-        clang::SC_None, nullptr);
+        language::Core::SC_None, nullptr);
     cSetterSelf->setImplicit();
     cSetterParams.push_back(cSetterSelf);
     cSetterDecl->setParams(cSetterParams);
 
     auto cSetterSelfExpr = new (Ctx)
-        clang::DeclRefExpr(Ctx, cSetterSelf, false, recordPointerType,
-                           clang::VK_PRValue, clang::SourceLocation());
+        language::Core::DeclRefExpr(Ctx, cSetterSelf, false, recordPointerType,
+                           language::Core::VK_PRValue, language::Core::SourceLocation());
 
-    auto cSetterMemberExpr = clang::MemberExpr::CreateImplicit(
+    auto cSetterMemberExpr = language::Core::MemberExpr::CreateImplicit(
         Ctx, cSetterSelfExpr,
-        /*isarrow=*/true, fieldDecl, fieldType, clang::VK_LValue,
-        clang::OK_BitField);
+        /*isarrow=*/true, fieldDecl, fieldType, language::Core::VK_LValue,
+        language::Core::OK_BitField);
 
     auto cSetterValueExpr = new (Ctx)
-        clang::DeclRefExpr(Ctx, cSetterValue, false, fieldType,
-                           clang::VK_PRValue, clang::SourceLocation());
+        language::Core::DeclRefExpr(Ctx, cSetterValue, false, fieldType,
+                           language::Core::VK_PRValue, language::Core::SourceLocation());
 
-    auto cSetterExpr = clang::BinaryOperator::Create(
-        Ctx, cSetterMemberExpr, cSetterValueExpr, clang::BO_Assign, fieldType,
-        clang::VK_PRValue, clang::OK_Ordinary, clang::SourceLocation(),
-        clang::FPOptionsOverride());
+    auto cSetterExpr = language::Core::BinaryOperator::Create(
+        Ctx, cSetterMemberExpr, cSetterValueExpr, language::Core::BO_Assign, fieldType,
+        language::Core::VK_PRValue, language::Core::OK_Ordinary, language::Core::SourceLocation(),
+        language::Core::FPOptionsOverride());
 
     cSetterDecl->setBody(cSetterExpr);
   }
@@ -1180,7 +1180,7 @@ synthesizeIndirectFieldSetterBody(AbstractFunctionDecl *afd, void *context) {
 
 std::pair<AccessorDecl *, AccessorDecl *>
 CodiraDeclSynthesizer::makeIndirectFieldAccessors(
-    const clang::IndirectFieldDecl *indirectField, ArrayRef<VarDecl *> members,
+    const language::Core::IndirectFieldDecl *indirectField, ArrayRef<VarDecl *> members,
     NominalTypeDecl *importedStructDecl, VarDecl *importedFieldDecl) {
   auto &C = ImporterImpl.CodiraContext;
 
@@ -2030,9 +2030,9 @@ synthesizeOperatorMethodBody(AbstractFunctionDecl *afd, void *context) {
   return {body, /*isTypeChecked*/ true};
 }
 
-clang::CXXMethodDecl *CodiraDeclSynthesizer::synthesizeCXXForwardingMethod(
-    const clang::CXXRecordDecl *derivedClass,
-    const clang::CXXRecordDecl *baseClass, const clang::CXXMethodDecl *method,
+language::Core::CXXMethodDecl *CodiraDeclSynthesizer::synthesizeCXXForwardingMethod(
+    const language::Core::CXXRecordDecl *derivedClass,
+    const language::Core::CXXRecordDecl *baseClass, const language::Core::CXXMethodDecl *method,
     ForwardingMethodKind forwardingMethodKind,
     ReferenceReturnTypeBehaviorForBaseMethodSynthesis
         referenceReturnTypeBehavior,
@@ -2042,10 +2042,10 @@ clang::CXXMethodDecl *CodiraDeclSynthesizer::synthesizeCXXForwardingMethod(
   auto &clangSema = ImporterImpl.getClangSema();
   assert(!method->isStatic() ||
          method->getNameInfo().getName().getCXXOverloadedOperator() ==
-             clang::OO_Call);
+             language::Core::OO_Call);
 
   // Create a new method in the derived class that calls the base method.
-  clang::DeclarationName name = method->getNameInfo().getName();
+  language::Core::DeclarationName name = method->getNameInfo().getName();
   if (name.isIdentifier()) {
     std::string newName;
     toolchain::raw_string_ostream os(newName);
@@ -2053,24 +2053,24 @@ clang::CXXMethodDecl *CodiraDeclSynthesizer::synthesizeCXXForwardingMethod(
                ? "__synthesizedVirtualCall_"
                : "__synthesizedBaseCall_")
        << name.getAsIdentifierInfo()->getName();
-    name = clang::DeclarationName(
+    name = language::Core::DeclarationName(
         &ImporterImpl.getClangPreprocessor().getIdentifierTable().get(
             os.str()));
-  } else if (name.getCXXOverloadedOperator() == clang::OO_Subscript) {
-    name = clang::DeclarationName(
+  } else if (name.getCXXOverloadedOperator() == language::Core::OO_Subscript) {
+    name = language::Core::DeclarationName(
         &ImporterImpl.getClangPreprocessor().getIdentifierTable().get(
             (forwardingMethodKind == ForwardingMethodKind::Virtual
                  ? "__synthesizedVirtualCall_operatorSubscript"
                  : "__synthesizedBaseCall_operatorSubscript")));
-  } else if (name.getCXXOverloadedOperator() == clang::OO_Star) {
-    name = clang::DeclarationName(
+  } else if (name.getCXXOverloadedOperator() == language::Core::OO_Star) {
+    name = language::Core::DeclarationName(
         &ImporterImpl.getClangPreprocessor().getIdentifierTable().get(
             (forwardingMethodKind == ForwardingMethodKind::Virtual
                  ? "__synthesizedVirtualCall_operatorStar"
                  : "__synthesizedBaseCall_operatorStar")));
-  } else if (name.getCXXOverloadedOperator() == clang::OO_Call) {
+  } else if (name.getCXXOverloadedOperator() == language::Core::OO_Call) {
     assert(forwardingMethodKind != ForwardingMethodKind::Virtual);
-    name = clang::DeclarationName(
+    name = language::Core::DeclarationName(
         &ImporterImpl.getClangPreprocessor().getIdentifierTable().get(
             "__synthesizedBaseCall_operatorCall"));
   }
@@ -2080,7 +2080,7 @@ clang::CXXMethodDecl *CodiraDeclSynthesizer::synthesizeCXXForwardingMethod(
   // derived-to-base call is invoked from Codira's subscript getter.
   if (referenceReturnTypeBehavior !=
       ReferenceReturnTypeBehaviorForBaseMethodSynthesis::KeepReference) {
-    if (const auto *fpt = methodType->getAs<clang::FunctionProtoType>()) {
+    if (const auto *fpt = methodType->getAs<language::Core::FunctionProtoType>()) {
       auto retType = fpt->getReturnType();
       if (retType->isReferenceType() &&
           (referenceReturnTypeBehavior ==
@@ -2101,7 +2101,7 @@ clang::CXXMethodDecl *CodiraDeclSynthesizer::synthesizeCXXForwardingMethod(
   // derived-to-base call is invoked from Codira's subscript getter.
   bool castThisToNonConstThis = false;
   if (forceConstQualifier) {
-    if (const auto *fpt = methodType->getAs<clang::FunctionProtoType>()) {
+    if (const auto *fpt = methodType->getAs<language::Core::FunctionProtoType>()) {
       auto info = fpt->getExtProtoInfo();
       if (!info.TypeQuals.hasConst()) {
         info.TypeQuals.addConst();
@@ -2111,30 +2111,30 @@ clang::CXXMethodDecl *CodiraDeclSynthesizer::synthesizeCXXForwardingMethod(
       }
     }
   }
-  auto newMethod = clang::CXXMethodDecl::Create(
-      clangCtx, const_cast<clang::CXXRecordDecl *>(derivedClass),
+  auto newMethod = language::Core::CXXMethodDecl::Create(
+      clangCtx, const_cast<language::Core::CXXRecordDecl *>(derivedClass),
       method->getSourceRange().getBegin(),
-      clang::DeclarationNameInfo(name, clang::SourceLocation()), methodType,
+      language::Core::DeclarationNameInfo(name, language::Core::SourceLocation()), methodType,
       method->getTypeSourceInfo(),
-      method->isStatic() ? clang::SC_None : method->getStorageClass(),
+      method->isStatic() ? language::Core::SC_None : method->getStorageClass(),
       method->UsesFPIntrin(), /*isInline=*/true, method->getConstexprKind(),
       method->getSourceRange().getEnd());
   newMethod->setImplicit();
   newMethod->setImplicitlyInline();
-  newMethod->setAccess(clang::AccessSpecifier::AS_public);
-  newMethod->addAttr(clang::NoDebugAttr::CreateImplicit(clangCtx));
-  if (method->hasAttr<clang::CFReturnsRetainedAttr>()) {
+  newMethod->setAccess(language::Core::AccessSpecifier::AS_public);
+  newMethod->addAttr(language::Core::NoDebugAttr::CreateImplicit(clangCtx));
+  if (method->hasAttr<language::Core::CFReturnsRetainedAttr>()) {
     // Return an FRT field at +1 if the base method also follows this
     // convention.
-    newMethod->addAttr(clang::CFReturnsRetainedAttr::CreateImplicit(clangCtx));
+    newMethod->addAttr(language::Core::CFReturnsRetainedAttr::CreateImplicit(clangCtx));
   }
-  if (auto languageNameAttr = method->getAttr<clang::CodiraNameAttr>())
+  if (auto languageNameAttr = method->getAttr<language::Core::CodiraNameAttr>())
     newMethod->addAttr(languageNameAttr->clone(clangCtx));
 
-  toolchain::SmallVector<clang::ParmVarDecl *, 4> params;
+  toolchain::SmallVector<language::Core::ParmVarDecl *, 4> params;
   for (size_t i = 0; i < method->getNumParams(); ++i) {
     const auto &param = *method->getParamDecl(i);
-    params.push_back(clang::ParmVarDecl::Create(
+    params.push_back(language::Core::ParmVarDecl::Create(
         clangCtx, newMethod, param.getSourceRange().getBegin(),
         param.getLocation(), param.getIdentifier(), param.getType(),
         param.getTypeSourceInfo(), param.getStorageClass(),
@@ -2142,28 +2142,28 @@ clang::CXXMethodDecl *CodiraDeclSynthesizer::synthesizeCXXForwardingMethod(
   }
   newMethod->setParams(params);
 
-  clang::Sema::SynthesizedFunctionScope scope(clangSema, newMethod);
+  language::Core::Sema::SynthesizedFunctionScope scope(clangSema, newMethod);
 
   // Create a new Clang diagnostic pool to capture any diagnostics
   // emitted during the construction of the method.
-  clang::sema::DelayedDiagnosticPool diagPool{
+  language::Core::sema::DelayedDiagnosticPool diagPool{
       clangSema.DelayedDiagnostics.getCurrentPool()};
   auto diagState = clangSema.DelayedDiagnostics.push(diagPool);
 
   // Construct the method's body.
-  clang::Expr *thisExpr = clang::CXXThisExpr::Create(
-      clangCtx, clang::SourceLocation(), newMethod->getThisType(),
+  language::Core::Expr *thisExpr = language::Core::CXXThisExpr::Create(
+      clangCtx, language::Core::SourceLocation(), newMethod->getThisType(),
       /*IsImplicit=*/false);
   if (castThisToNonConstThis) {
     auto baseClassPtr =
         clangCtx.getPointerType(clangCtx.getRecordType(derivedClass));
-    clang::CastKind Kind;
-    clang::CXXCastPath Path;
+    language::Core::CastKind Kind;
+    language::Core::CXXCastPath Path;
     clangSema.CheckPointerConversion(thisExpr, baseClassPtr, Kind, Path,
                                      /*IgnoreBaseAccess=*/false,
                                      /*Diagnose=*/true);
     auto conv = clangSema.ImpCastExprToType(thisExpr, baseClassPtr, Kind,
-                                            clang::VK_PRValue, &Path);
+                                            language::Core::VK_PRValue, &Path);
     if (!conv.isUsable())
       return nullptr;
     thisExpr = conv.get();
@@ -2171,34 +2171,34 @@ clang::CXXMethodDecl *CodiraDeclSynthesizer::synthesizeCXXForwardingMethod(
 
   auto memberExprTy =
       (method->isStatic() && method->getOverloadedOperator() ==
-                                 clang::OverloadedOperatorKind::OO_Call)
+                                 language::Core::OverloadedOperatorKind::OO_Call)
           ? method->getType()
           : clangCtx.BoundMemberTy;
   auto memberExpr = clangSema.BuildMemberExpr(
-      thisExpr, /*isArrow=*/true, clang::SourceLocation(),
-      clang::NestedNameSpecifierLoc(), clang::SourceLocation(),
-      const_cast<clang::CXXMethodDecl *>(method),
-      clang::DeclAccessPair::make(const_cast<clang::CXXMethodDecl *>(method),
-                                  clang::AS_public),
+      thisExpr, /*isArrow=*/true, language::Core::SourceLocation(),
+      language::Core::NestedNameSpecifierLoc(), language::Core::SourceLocation(),
+      const_cast<language::Core::CXXMethodDecl *>(method),
+      language::Core::DeclAccessPair::make(const_cast<language::Core::CXXMethodDecl *>(method),
+                                  language::Core::AS_public),
       /*HadMultipleCandidates=*/false, method->getNameInfo(),
-      memberExprTy, clang::VK_PRValue, clang::OK_Ordinary);
-  toolchain::SmallVector<clang::Expr *, 4> args;
+      memberExprTy, language::Core::VK_PRValue, language::Core::OK_Ordinary);
+  toolchain::SmallVector<language::Core::Expr *, 4> args;
   for (size_t i = 0; i < newMethod->getNumParams(); ++i) {
     auto *param = newMethod->getParamDecl(i);
     auto type = param->getType();
     if (type->isReferenceType())
       type = type->getPointeeType();
-    args.push_back(new (clangCtx) clang::DeclRefExpr(
-        clangCtx, param, false, type, clang::ExprValueKind::VK_LValue,
-        clang::SourceLocation()));
+    args.push_back(new (clangCtx) language::Core::DeclRefExpr(
+        clangCtx, param, false, type, language::Core::ExprValueKind::VK_LValue,
+        language::Core::SourceLocation()));
   }
   auto memberCall = clangSema.BuildCallExpr(
-      nullptr, memberExpr, clang::SourceLocation(), args,
-      clang::SourceLocation());
+      nullptr, memberExpr, language::Core::SourceLocation(), args,
+      language::Core::SourceLocation());
   if (!memberCall.isUsable())
     return nullptr;
   auto returnStmt =
-      clangSema.BuildReturnStmt(clang::SourceLocation(), memberCall.get())
+      clangSema.BuildReturnStmt(language::Core::SourceLocation(), memberCall.get())
           .get();
 
   // Check if there were any Clang errors during the construction
@@ -2213,12 +2213,12 @@ clang::CXXMethodDecl *CodiraDeclSynthesizer::synthesizeCXXForwardingMethod(
 
 FuncDecl *
 CodiraDeclSynthesizer::makeOperator(FuncDecl *operatorMethod,
-                                   clang::OverloadedOperatorKind opKind) {
-  assert(opKind != clang::OverloadedOperatorKind::OO_None &&
+                                   language::Core::OverloadedOperatorKind opKind) {
+  assert(opKind != language::Core::OverloadedOperatorKind::OO_None &&
          "expected a C++ operator");
 
   auto &ctx = ImporterImpl.CodiraContext;
-  auto opName = clang::getOperatorSpelling(opKind);
+  auto opName = language::Core::getOperatorSpelling(opKind);
   auto paramList = operatorMethod->getParameters();
   auto genericParamList = operatorMethod->getGenericParams();
 
@@ -2286,7 +2286,7 @@ CodiraDeclSynthesizer::makeOperator(FuncDecl *operatorMethod,
 // MARK: C++ virtual methods
 
 FuncDecl *CodiraDeclSynthesizer::makeVirtualMethod(
-    const clang::CXXMethodDecl *clangMethodDecl) {
+    const language::Core::CXXMethodDecl *clangMethodDecl) {
   auto clangDC = clangMethodDecl->getParent();
   auto &ctx = ImporterImpl.CodiraContext;
 
@@ -2306,7 +2306,7 @@ FuncDecl *CodiraDeclSynthesizer::makeVirtualMethod(
 // MARK: C++ operators
 
 FuncDecl *CodiraDeclSynthesizer::makeInstanceToStaticOperatorCallMethod(
-    const clang::CXXMethodDecl *clangMethodDecl) {
+    const language::Core::CXXMethodDecl *clangMethodDecl) {
   auto clangDC = clangMethodDecl->getParent();
   auto &ctx = ImporterImpl.CodiraContext;
 
@@ -2316,7 +2316,7 @@ FuncDecl *CodiraDeclSynthesizer::makeInstanceToStaticOperatorCallMethod(
       clangDC, clangDC, clangMethodDecl, ForwardingMethodKind::Base,
       ReferenceReturnTypeBehaviorForBaseMethodSynthesis::KeepReference,
       /*forceConstQualifier*/ true);
-  newMethod->addAttr(clang::CodiraNameAttr::CreateImplicit(
+  newMethod->addAttr(language::Core::CodiraNameAttr::CreateImplicit(
       clangMethodDecl->getASTContext(), "callAsFunction"));
 
   auto result = dyn_cast_or_null<FuncDecl>(
@@ -2365,12 +2365,12 @@ CodiraDeclSynthesizer::makeComputedPropertyFromCXXMethods(FuncDecl *getter,
   auto &ctx = ImporterImpl.CodiraContext;
   auto dc = getter->getDeclContext();
 
-  assert(isa<clang::CXXMethodDecl>(getter->getClangDecl()) &&
-         (!setter || isa<clang::CXXMethodDecl>(setter->getClangDecl())) &&
+  assert(isa<language::Core::CXXMethodDecl>(getter->getClangDecl()) &&
+         (!setter || isa<language::Core::CXXMethodDecl>(setter->getClangDecl())) &&
          "Functions passed to makeProperty must be imported C++ method decls.");
 
   CXXMethodBridging bridgingInfo(
-      cast<clang::CXXMethodDecl>(getter->getClangDecl()));
+      cast<language::Core::CXXMethodDecl>(getter->getClangDecl()));
   assert(bridgingInfo.classify() == CXXMethodBridging::Kind::getter);
 
   auto importedName = bridgingInfo.importNameAsCamelCaseName();
@@ -2436,42 +2436,42 @@ CodiraDeclSynthesizer::makeComputedPropertyFromCXXMethods(FuncDecl *getter,
 static std::pair<BraceStmt *, bool>
 synthesizeDefaultArgumentBody(AbstractFunctionDecl *afd, void *context) {
   auto funcDecl = cast<FuncDecl>(afd);
-  auto clangParam = static_cast<const clang::ParmVarDecl *>(context);
-  auto clangFuncDecl = cast<clang::FunctionDecl>(clangParam->getDeclContext());
+  auto clangParam = static_cast<const language::Core::ParmVarDecl *>(context);
+  auto clangFuncDecl = cast<language::Core::FunctionDecl>(clangParam->getDeclContext());
 
   ASTContext &ctx = funcDecl->getASTContext();
-  clang::ASTContext &clangCtx = clangParam->getASTContext();
-  clang::Sema &clangSema = ctx.getClangModuleLoader()->getClangSema();
+  language::Core::ASTContext &clangCtx = clangParam->getASTContext();
+  language::Core::Sema &clangSema = ctx.getClangModuleLoader()->getClangSema();
 
-  auto clangDeclName = clang::DeclarationName(
+  auto clangDeclName = language::Core::DeclarationName(
       &clangCtx.Idents.get(("__cxx" + funcDecl->getNameStr()).str()));
   auto clangDeclContext = clangCtx.getTranslationUnitDecl();
 
   // The following also instantiates the default argument if needed.
   auto defaultArgCallExpr = clangSema.BuildCXXDefaultArgExpr(
-      clang::SourceLocation(), const_cast<clang::FunctionDecl *>(clangFuncDecl),
-      const_cast<clang::ParmVarDecl *>(clangParam));
+      language::Core::SourceLocation(), const_cast<language::Core::FunctionDecl *>(clangFuncDecl),
+      const_cast<language::Core::ParmVarDecl *>(clangParam));
   if (!defaultArgCallExpr.isUsable())
     return {nullptr, /*isTypeChecked=*/true};
 
   // The following requires the default argument to be instantiated.
-  clang::QualType clangParamTy = clangParam->getDefaultArg()->getType();
-  clang::QualType funcTy = clangCtx.getFunctionType(
-      clangParamTy, {}, clang::FunctionProtoType::ExtProtoInfo());
+  language::Core::QualType clangParamTy = clangParam->getDefaultArg()->getType();
+  language::Core::QualType funcTy = clangCtx.getFunctionType(
+      clangParamTy, {}, language::Core::FunctionProtoType::ExtProtoInfo());
 
   // Synthesize `return {default expr};`.
-  auto defaultArgReturnStmt = clang::ReturnStmt::Create(
-      clangCtx, clang::SourceLocation(), defaultArgCallExpr.get(), nullptr);
+  auto defaultArgReturnStmt = language::Core::ReturnStmt::Create(
+      clangCtx, language::Core::SourceLocation(), defaultArgCallExpr.get(), nullptr);
 
   // Synthesize `ParamTy __cxx__defaultArg_XYZ() { return {default expr}; }`.
-  auto defaultArgFuncDecl = clang::FunctionDecl::Create(
-      clangCtx, clangDeclContext, clang::SourceLocation(),
-      clang::SourceLocation(), clangDeclName, funcTy,
+  auto defaultArgFuncDecl = language::Core::FunctionDecl::Create(
+      clangCtx, clangDeclContext, language::Core::SourceLocation(),
+      language::Core::SourceLocation(), clangDeclName, funcTy,
       clangCtx.getTrivialTypeSourceInfo(clangParamTy),
-      clang::StorageClass::SC_Static);
+      language::Core::StorageClass::SC_Static);
   defaultArgFuncDecl->setImplicit();
   defaultArgFuncDecl->setImplicitlyInline();
-  defaultArgFuncDecl->setAccess(clang::AccessSpecifier::AS_public);
+  defaultArgFuncDecl->setAccess(language::Core::AccessSpecifier::AS_public);
   defaultArgFuncDecl->setBody(defaultArgReturnStmt);
 
   // Import `fn __cxx__defaultArg_XYZ() -> ParamTY` into Codira.
@@ -2499,7 +2499,7 @@ synthesizeDefaultArgumentBody(AbstractFunctionDecl *afd, void *context) {
 }
 
 CallExpr *
-CodiraDeclSynthesizer::makeDefaultArgument(const clang::ParmVarDecl *param,
+CodiraDeclSynthesizer::makeDefaultArgument(const language::Core::ParmVarDecl *param,
                                           const language::Type &languageParamTy,
                                           SourceLoc paramLoc) {
   assert(param->hasDefaultArg() && "must have a C++ default argument");
@@ -2509,18 +2509,18 @@ CodiraDeclSynthesizer::makeDefaultArgument(const clang::ParmVarDecl *param,
     return nullptr;
 
   ASTContext &ctx = ImporterImpl.CodiraContext;
-  clang::ASTContext &clangCtx = param->getASTContext();
+  language::Core::ASTContext &clangCtx = param->getASTContext();
   auto clangFunc =
-      cast<clang::FunctionDecl>(param->getParentFunctionOrMethod());
-  if (isa<clang::CXXConstructorDecl>(clangFunc))
+      cast<language::Core::FunctionDecl>(param->getParentFunctionOrMethod());
+  if (isa<language::Core::CXXConstructorDecl>(clangFunc))
     // TODO: support default arguments of constructors
     // (https://github.com/apple/language/issues/70124)
     return nullptr;
 
   std::string s;
   toolchain::raw_string_ostream os(s);
-  std::unique_ptr<clang::ItaniumMangleContext> mangler{
-      clang::ItaniumMangleContext::create(clangCtx, clangCtx.getDiagnostics())};
+  std::unique_ptr<language::Core::ItaniumMangleContext> mangler{
+      language::Core::ItaniumMangleContext::create(clangCtx, clangCtx.getDiagnostics())};
   os << "__defaultArg_" << param->getFunctionScopeIndex() << "_";
   ImporterImpl.getMangledName(mangler.get(), clangFunc, os);
 
@@ -2553,23 +2553,23 @@ CodiraDeclSynthesizer::makeDefaultArgument(const clang::ParmVarDecl *param,
 
 // MARK: C++ foreign reference type constructors
 
-toolchain::SmallVector<clang::CXXMethodDecl *, 4>
+toolchain::SmallVector<language::Core::CXXMethodDecl *, 4>
 CodiraDeclSynthesizer::synthesizeStaticFactoryForCXXForeignRef(
-    const clang::CXXRecordDecl *cxxRecordDecl) {
+    const language::Core::CXXRecordDecl *cxxRecordDecl) {
 
   if (cxxRecordDecl->isAbstract())
     return {};
 
-  clang::ASTContext &clangCtx = cxxRecordDecl->getASTContext();
-  clang::Sema &clangSema = ImporterImpl.getClangSema();
+  language::Core::ASTContext &clangCtx = cxxRecordDecl->getASTContext();
+  language::Core::Sema &clangSema = ImporterImpl.getClangSema();
 
-  clang::QualType cxxRecordTy = clangCtx.getRecordType(cxxRecordDecl);
-  clang::SourceLocation cxxRecordDeclLoc = cxxRecordDecl->getLocation();
+  language::Core::QualType cxxRecordTy = clangCtx.getRecordType(cxxRecordDecl);
+  language::Core::SourceLocation cxxRecordDeclLoc = cxxRecordDecl->getLocation();
 
-  toolchain::SmallVector<clang::CXXConstructorDecl *, 4> ctorDeclsForSynth;
-  for (clang::CXXConstructorDecl *ctorDecl : cxxRecordDecl->ctors()) {
-    if (ctorDecl->isDeleted() || ctorDecl->getAccess() == clang::AS_private ||
-        ctorDecl->getAccess() == clang::AS_protected ||
+  toolchain::SmallVector<language::Core::CXXConstructorDecl *, 4> ctorDeclsForSynth;
+  for (language::Core::CXXConstructorDecl *ctorDecl : cxxRecordDecl->ctors()) {
+    if (ctorDecl->isDeleted() || ctorDecl->getAccess() == language::Core::AS_private ||
+        ctorDecl->getAccess() == language::Core::AS_protected ||
         ctorDecl->isCopyOrMoveConstructor() || ctorDecl->isVariadic())
       continue;
 
@@ -2585,36 +2585,36 @@ CodiraDeclSynthesizer::synthesizeStaticFactoryForCXXForeignRef(
   if (ctorDeclsForSynth.empty())
     return {};
 
-  clang::FunctionDecl *operatorNew = nullptr;
-  clang::FunctionDecl *operatorDelete = nullptr;
+  language::Core::FunctionDecl *operatorNew = nullptr;
+  language::Core::FunctionDecl *operatorDelete = nullptr;
   bool passAlignment = false;
-  clang::Sema::SFINAETrap trap(clangSema);
+  language::Core::Sema::SFINAETrap trap(clangSema);
   bool findingAllocFuncFailed = clangSema.FindAllocationFunctions(
-      cxxRecordDeclLoc, clang::SourceRange(), clang::Sema::AFS_Both,
-      clang::Sema::AFS_Both, cxxRecordTy, /*IsArray=*/false, passAlignment,
-      clang::MultiExprArg(), operatorNew, operatorDelete,
+      cxxRecordDeclLoc, language::Core::SourceRange(), language::Core::Sema::AFS_Both,
+      language::Core::Sema::AFS_Both, cxxRecordTy, /*IsArray=*/false, passAlignment,
+      language::Core::MultiExprArg(), operatorNew, operatorDelete,
       /*Diagnose=*/false);
   if (trap.hasErrorOccurred() || findingAllocFuncFailed || !operatorNew ||
       operatorNew->isDeleted() ||
-      operatorNew->getAccess() == clang::AS_private ||
-      operatorNew->getAccess() == clang::AS_protected)
+      operatorNew->getAccess() == language::Core::AS_private ||
+      operatorNew->getAccess() == language::Core::AS_protected)
     return {};
 
-  clang::QualType cxxRecordPtrTy = clangCtx.getPointerType(cxxRecordTy);
+  language::Core::QualType cxxRecordPtrTy = clangCtx.getPointerType(cxxRecordTy);
   // Adding `_Nonnull` to the return type of synthesized static factory
   bool nullabilityCannotBeAdded =
       clangSema.CheckImplicitNullabilityTypeSpecifier(
-          cxxRecordPtrTy, clang::NullabilityKind::NonNull, cxxRecordDeclLoc,
+          cxxRecordPtrTy, language::Core::NullabilityKind::NonNull, cxxRecordDeclLoc,
           /*isParam=*/false, /*OverrideExisting=*/true);
   assert(!nullabilityCannotBeAdded &&
          "Failed to add _Nonnull specifier to synthesized "
          "static factory's return type");
 
-  clang::IdentifierTable &clangIdents = clangCtx.Idents;
+  language::Core::IdentifierTable &clangIdents = clangCtx.Idents;
 
-  toolchain::SmallVector<clang::CXXMethodDecl *, 4> synthesizedFactories;
+  toolchain::SmallVector<language::Core::CXXMethodDecl *, 4> synthesizedFactories;
   unsigned int selectedCtorDeclCounter = 0;
-  for (clang::CXXConstructorDecl *selectedCtorDecl : ctorDeclsForSynth) {
+  for (language::Core::CXXConstructorDecl *selectedCtorDecl : ctorDeclsForSynth) {
     unsigned int ctorParamCount = selectedCtorDecl->getNumParams();
     selectedCtorDeclCounter++;
 
@@ -2622,41 +2622,41 @@ CodiraDeclSynthesizer::synthesizeStaticFactoryForCXXForeignRef(
     if (ctorParamCount > 0)
       funcName += "_" + std::to_string(ctorParamCount) + "_params";
     funcName += "_" + std::to_string(selectedCtorDeclCounter);
-    clang::IdentifierInfo *funcNameToSynth = &clangIdents.get(funcName);
+    language::Core::IdentifierInfo *funcNameToSynth = &clangIdents.get(funcName);
 
     auto ctorFunctionProtoTy =
-        selectedCtorDecl->getType()->getAs<clang::FunctionProtoType>();
-    clang::ArrayRef<clang::QualType> paramTypes =
+        selectedCtorDecl->getType()->getAs<language::Core::FunctionProtoType>();
+    language::Core::ArrayRef<language::Core::QualType> paramTypes =
         ctorFunctionProtoTy->getParamTypes();
-    clang::FunctionProtoType::ExtProtoInfo EPI;
-    clang::QualType funcTypeToSynth =
+    language::Core::FunctionProtoType::ExtProtoInfo EPI;
+    language::Core::QualType funcTypeToSynth =
         clangCtx.getFunctionType(cxxRecordPtrTy, paramTypes, EPI);
 
-    clang::CXXMethodDecl *synthCxxMethodDecl = clang::CXXMethodDecl::Create(
-        clangCtx, const_cast<clang::CXXRecordDecl *>(cxxRecordDecl),
+    language::Core::CXXMethodDecl *synthCxxMethodDecl = language::Core::CXXMethodDecl::Create(
+        clangCtx, const_cast<language::Core::CXXRecordDecl *>(cxxRecordDecl),
         cxxRecordDeclLoc,
-        clang::DeclarationNameInfo(funcNameToSynth, cxxRecordDeclLoc),
+        language::Core::DeclarationNameInfo(funcNameToSynth, cxxRecordDeclLoc),
         funcTypeToSynth, clangCtx.getTrivialTypeSourceInfo(funcTypeToSynth),
-        clang::SC_Static, /*UsesFPIntrin=*/false, /*isInline=*/true,
-        clang::ConstexprSpecKind::Unspecified, cxxRecordDeclLoc);
+        language::Core::SC_Static, /*UsesFPIntrin=*/false, /*isInline=*/true,
+        language::Core::ConstexprSpecKind::Unspecified, cxxRecordDeclLoc);
     assert(
         synthCxxMethodDecl &&
         "Unable to synthesize static factory for c++ foreign reference type");
-    synthCxxMethodDecl->setAccess(clang::AccessSpecifier::AS_public);
+    synthCxxMethodDecl->setAccess(language::Core::AccessSpecifier::AS_public);
 
-    toolchain::SmallVector<clang::ParmVarDecl *, 4> synthParams;
+    toolchain::SmallVector<language::Core::ParmVarDecl *, 4> synthParams;
     for (unsigned int i = 0; i < ctorParamCount; ++i) {
       auto *origParam = selectedCtorDecl->getParamDecl(i);
-      clang::IdentifierInfo *paramIdent = origParam->getIdentifier();
+      language::Core::IdentifierInfo *paramIdent = origParam->getIdentifier();
       if (!paramIdent) {
         std::string dummyName = "__unnamed_param_" + std::to_string(i);
         paramIdent = &clangIdents.get(dummyName);
       }
-      auto *param = clang::ParmVarDecl::Create(
+      auto *param = language::Core::ParmVarDecl::Create(
           clangCtx, synthCxxMethodDecl, cxxRecordDeclLoc, cxxRecordDeclLoc,
           paramIdent, origParam->getType(),
           clangCtx.getTrivialTypeSourceInfo(origParam->getType()),
-          clang::SC_None, /*DefArg=*/nullptr);
+          language::Core::SC_None, /*DefArg=*/nullptr);
       param->setIsUsed();
       synthParams.push_back(param);
     }
@@ -2664,7 +2664,7 @@ CodiraDeclSynthesizer::synthesizeStaticFactoryForCXXForeignRef(
 
     if (!hasImmortalAttrs(cxxRecordDecl)) {
       synthCxxMethodDecl->addAttr(
-          clang::CodiraAttrAttr::Create(clangCtx, "returns_retained"));
+          language::Core::CodiraAttrAttr::Create(clangCtx, "returns_retained"));
     }
 
     std::string languageInitStr = "init(";
@@ -2678,69 +2678,69 @@ CodiraDeclSynthesizer::synthesizeStaticFactoryForCXXForeignRef(
     }
     languageInitStr += ")";
     synthCxxMethodDecl->addAttr(
-        clang::CodiraNameAttr::Create(clangCtx, languageInitStr));
+        language::Core::CodiraNameAttr::Create(clangCtx, languageInitStr));
 
-    toolchain::SmallVector<clang::Expr *, 4> ctorArgs;
+    toolchain::SmallVector<language::Core::Expr *, 4> ctorArgs;
     for (auto *param : synthParams) {
-      clang::QualType paramTy = param->getType();
-      clang::QualType exprTy = paramTy.getNonReferenceType();
-      clang::Expr *argExpr = clang::DeclRefExpr::Create(
-          clangCtx, clang::NestedNameSpecifierLoc(), cxxRecordDeclLoc, param,
+      language::Core::QualType paramTy = param->getType();
+      language::Core::QualType exprTy = paramTy.getNonReferenceType();
+      language::Core::Expr *argExpr = language::Core::DeclRefExpr::Create(
+          clangCtx, language::Core::NestedNameSpecifierLoc(), cxxRecordDeclLoc, param,
           /*RefersToEnclosingVariableOrCapture=*/false, cxxRecordDeclLoc,
-          exprTy, clang::VK_LValue);
+          exprTy, language::Core::VK_LValue);
       if (paramTy->isRValueReferenceType()) {
         argExpr = clangSema
                       .BuildCXXNamedCast(
-                          cxxRecordDeclLoc, clang::tok::kw_static_cast,
+                          cxxRecordDeclLoc, language::Core::tok::kw_static_cast,
                           clangCtx.getTrivialTypeSourceInfo(paramTy), argExpr,
-                          clang::SourceRange(), clang::SourceRange())
+                          language::Core::SourceRange(), language::Core::SourceRange())
                       .get();
       }
       ctorArgs.push_back(argExpr);
     }
-    toolchain::SmallVector<clang::Expr *, 4> ctorArgsToAdd;
+    toolchain::SmallVector<language::Core::Expr *, 4> ctorArgsToAdd;
 
     if (clangSema.CompleteConstructorCall(selectedCtorDecl, cxxRecordTy,
                                           ctorArgs, cxxRecordDeclLoc,
                                           ctorArgsToAdd))
       continue;
 
-    clang::ExprResult synthCtorExprResult = clangSema.BuildCXXConstructExpr(
+    language::Core::ExprResult synthCtorExprResult = clangSema.BuildCXXConstructExpr(
         cxxRecordDeclLoc, cxxRecordTy, selectedCtorDecl,
         /*Elidable=*/false, ctorArgsToAdd,
         /*HadMultipleCandidates=*/false,
         /*IsListInitialization=*/false,
         /*IsStdInitListInitialization=*/false,
-        /*RequiresZeroInit=*/false, clang::CXXConstructionKind::Complete,
-        clang::SourceRange(cxxRecordDeclLoc, cxxRecordDeclLoc));
+        /*RequiresZeroInit=*/false, language::Core::CXXConstructionKind::Complete,
+        language::Core::SourceRange(cxxRecordDeclLoc, cxxRecordDeclLoc));
     assert(!synthCtorExprResult.isInvalid() &&
            "Unable to synthesize constructor expression for c++ foreign "
            "reference type");
-    clang::Expr *synthCtorExpr = synthCtorExprResult.get();
+    language::Core::Expr *synthCtorExpr = synthCtorExprResult.get();
 
-    clang::ExprResult synthNewExprResult = clangSema.BuildCXXNew(
-        clang::SourceRange(), /*UseGlobal=*/false, clang::SourceLocation(), {},
-        clang::SourceLocation(), clang::SourceRange(), cxxRecordTy,
+    language::Core::ExprResult synthNewExprResult = clangSema.BuildCXXNew(
+        language::Core::SourceRange(), /*UseGlobal=*/false, language::Core::SourceLocation(), {},
+        language::Core::SourceLocation(), language::Core::SourceRange(), cxxRecordTy,
         clangCtx.getTrivialTypeSourceInfo(cxxRecordTy), std::nullopt,
-        clang::SourceRange(cxxRecordDeclLoc, cxxRecordDeclLoc), synthCtorExpr);
+        language::Core::SourceRange(cxxRecordDeclLoc, cxxRecordDeclLoc), synthCtorExpr);
     assert(
         !synthNewExprResult.isInvalid() &&
         "Unable to synthesize `new` expression for c++ foreign reference type");
-    auto *synthNewExpr = cast<clang::CXXNewExpr>(synthNewExprResult.get());
+    auto *synthNewExpr = cast<language::Core::CXXNewExpr>(synthNewExprResult.get());
 
-    clang::ReturnStmt *synthRetStmt = clang::ReturnStmt::Create(
+    language::Core::ReturnStmt *synthRetStmt = language::Core::ReturnStmt::Create(
         clangCtx, cxxRecordDeclLoc, synthNewExpr, /*NRVOCandidate=*/nullptr);
     assert(synthRetStmt && "Unable to synthesize return statement for "
                            "static factory of c++ foreign reference type");
 
-    clang::CompoundStmt *synthFuncBody = clang::CompoundStmt::Create(
-        clangCtx, {synthRetStmt}, clang::FPOptionsOverride(), cxxRecordDeclLoc,
+    language::Core::CompoundStmt *synthFuncBody = language::Core::CompoundStmt::Create(
+        clangCtx, {synthRetStmt}, language::Core::FPOptionsOverride(), cxxRecordDeclLoc,
         cxxRecordDeclLoc);
     assert(synthRetStmt && "Unable to synthesize function body for static "
                            "factory of c++ foreign reference type");
 
     synthCxxMethodDecl->setBody(synthFuncBody);
-    synthCxxMethodDecl->addAttr(clang::NoDebugAttr::CreateImplicit(clangCtx));
+    synthCxxMethodDecl->addAttr(language::Core::NoDebugAttr::CreateImplicit(clangCtx));
 
     synthCxxMethodDecl->setImplicit();
     synthCxxMethodDecl->setImplicitlyInline();
@@ -2754,10 +2754,10 @@ CodiraDeclSynthesizer::synthesizeStaticFactoryForCXXForeignRef(
 static std::pair<BraceStmt *, bool>
 synthesizeAvailabilityDomainPredicateBody(AbstractFunctionDecl *afd,
                                           void *context) {
-  auto clangVarDecl = static_cast<const clang::VarDecl *>(context);
-  clang::ASTContext &clangCtx = clangVarDecl->getASTContext();
+  auto clangVarDecl = static_cast<const language::Core::VarDecl *>(context);
+  language::Core::ASTContext &clangCtx = clangVarDecl->getASTContext();
   auto domainInfo =
-      clangCtx.getFeatureAvailInfo(const_cast<clang::VarDecl *>(clangVarDecl));
+      clangCtx.getFeatureAvailInfo(const_cast<language::Core::VarDecl *>(clangVarDecl));
   ASSERT(domainInfo.second.Call);
 
   auto funcDecl = cast<FuncDecl>(afd);
@@ -2767,22 +2767,22 @@ synthesizeAvailabilityDomainPredicateBody(AbstractFunctionDecl *afd,
   // Clang provided the predicate function decl directly, rather than a call
   // expression that must be wrapped in a function.
   // Synthesize `return {domain predicate expression}`.
-  auto clangHelperReturnStmt = clang::ReturnStmt::Create(
-      clangCtx, clang::SourceLocation(), domainInfo.second.Call, nullptr);
+  auto clangHelperReturnStmt = language::Core::ReturnStmt::Create(
+      clangCtx, language::Core::SourceLocation(), domainInfo.second.Call, nullptr);
 
   // Synthesize `int __XYZ_isAvailable() { return {predicate expr}; }`.
-  auto clangDeclName = clang::DeclarationName(
+  auto clangDeclName = language::Core::DeclarationName(
       &clangCtx.Idents.get("__" + domainInfo.first.str() + "_isAvailable"));
   auto clangDeclContext = clangCtx.getTranslationUnitDecl();
-  clang::QualType funcTy =
+  language::Core::QualType funcTy =
       clangCtx.getFunctionType(domainInfo.second.Call->getType(), {},
-                               clang::FunctionProtoType::ExtProtoInfo());
+                               language::Core::FunctionProtoType::ExtProtoInfo());
 
-  auto clangHelperFuncDecl = clang::FunctionDecl::Create(
-      clangCtx, clangDeclContext, clang::SourceLocation(),
-      clang::SourceLocation(), clangDeclName, funcTy,
+  auto clangHelperFuncDecl = language::Core::FunctionDecl::Create(
+      clangCtx, clangDeclContext, language::Core::SourceLocation(),
+      language::Core::SourceLocation(), clangDeclName, funcTy,
       clangCtx.getTrivialTypeSourceInfo(funcTy),
-      clang::StorageClass::SC_Static);
+      language::Core::StorageClass::SC_Static);
   clangHelperFuncDecl->setImplicit();
   clangHelperFuncDecl->setImplicitlyInline();
   clangHelperFuncDecl->setBody(clangHelperReturnStmt);
@@ -2816,18 +2816,18 @@ synthesizeAvailabilityDomainPredicateBody(AbstractFunctionDecl *afd,
 }
 
 FuncDecl *CodiraDeclSynthesizer::makeAvailabilityDomainPredicate(
-    const clang::VarDecl *var) {
+    const language::Core::VarDecl *var) {
   ASTContext &ctx = ImporterImpl.CodiraContext;
-  clang::ASTContext &clangCtx = var->getASTContext();
+  language::Core::ASTContext &clangCtx = var->getASTContext();
   auto featureInfo =
-      clangCtx.getFeatureAvailInfo(const_cast<clang::VarDecl *>(var));
+      clangCtx.getFeatureAvailInfo(const_cast<language::Core::VarDecl *>(var));
 
   // If the decl doesn't represent and availability domain, skip it.
   if (featureInfo.first.empty())
     return nullptr;
 
   // Only dynamic availability domains require a predicate function.
-  if (featureInfo.second.Kind != clang::FeatureAvailKind::Dynamic)
+  if (featureInfo.second.Kind != language::Core::FeatureAvailKind::Dynamic)
     return nullptr;
 
   if (!featureInfo.second.Call)

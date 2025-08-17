@@ -23,8 +23,8 @@
 #define LANGUAGE_IRGEN_IRGEN_H
 
 #include "toolchain/Support/DataTypes.h"
-#include "clang/AST/CharUnits.h"
-#include "clang/CodeGen/ConstantInitFuture.h"
+#include "language/Core/AST/CharUnits.h"
+#include "language/Core/CodeGen/ConstantInitFuture.h"
 #include "language/AST/ResilienceExpansion.h"
 #include "language/SIL/AbstractionPattern.h"
 #include <cassert>
@@ -41,7 +41,7 @@ namespace language {
 namespace irgen {
   using Lowering::AbstractionPattern;
   class ConstantInitBuilder;
-  using clang::CodeGen::ConstantInitFuture;
+  using language::Core::CodeGen::ConstantInitFuture;
   class IRGenFunction;
 
 /// In IRGen, we use Codira's ClusteredBitVector data structure to
@@ -307,7 +307,7 @@ public:
   explicit Alignment(int_type Value) : Shift(toolchain::Log2_64(Value)) {
     assert(toolchain::isPowerOf2_64(Value));
   }
-  explicit Alignment(clang::CharUnits value) : Alignment(value.getQuantity()) {}
+  explicit Alignment(language::Core::CharUnits value) : Alignment(value.getQuantity()) {}
 
   constexpr int_type getValue() const { return int_type(1) << Shift; }
   constexpr int_type getMaskValue() const { return getValue() - 1; }
@@ -317,11 +317,11 @@ public:
 
   unsigned log2() const { return Shift; }
 
-  operator clang::CharUnits() const {
+  operator language::Core::CharUnits() const {
     return asCharUnits();
   }
-  clang::CharUnits asCharUnits() const {
-    return clang::CharUnits::fromQuantity(getValue());
+  language::Core::CharUnits asCharUnits() const {
+    return language::Core::CharUnits::fromQuantity(getValue());
   }
 
   explicit operator toolchain::MaybeAlign() const { return toolchain::MaybeAlign(getValue()); }
@@ -419,11 +419,11 @@ public:
     return toolchain::Log2_64(Value);
   }
 
-  operator clang::CharUnits() const {
+  operator language::Core::CharUnits() const {
     return asCharUnits();
   }
-  clang::CharUnits asCharUnits() const {
-    return clang::CharUnits::fromQuantity(getValue());
+  language::Core::CharUnits asCharUnits() const {
+    return language::Core::CharUnits::fromQuantity(getValue());
   }
 
   friend bool operator< (Size L, Size R) { return L.Value <  R.Value; }

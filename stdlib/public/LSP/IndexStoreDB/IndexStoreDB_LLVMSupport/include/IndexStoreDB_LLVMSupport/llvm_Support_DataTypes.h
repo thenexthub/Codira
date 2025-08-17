@@ -26,7 +26,7 @@
 #ifndef SUPPORT_DATATYPES_H
 #define SUPPORT_DATATYPES_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_Config_indexstoredb-prefix.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_indexstoredb-prefix.h>
 
 #define HAVE_INTTYPES_H 1
 #define HAVE_STDINT_H 1
@@ -55,7 +55,7 @@
 #include <sys/types.h>
 
 #ifdef _AIX
-#include <IndexStoreDB_LLVMSupport/llvm_Support_AIXDataTypesFix.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_AIXDataTypesFix.h>
 #endif
 
 /* Handle incorrect definition of uint64_t as u_int64_t */

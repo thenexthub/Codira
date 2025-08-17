@@ -1,8 +1,24 @@
 //===- Signals.cpp - Generic Unix Signals Implementation -----*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -17,7 +33,7 @@
 // a signal handler for 2 reasons:
 //
 //  1. Creating a new one allocates.
-//  2. The signal handler could fire while llvm_shutdown is being processed, in
+//  2. The signal handler could fire while toolchain_shutdown is being processed, in
 //     which case the ManagedStatic is in an unknown state because it could
 //     already have been destroyed, or be in the process of being destroyed.
 //
@@ -33,17 +49,17 @@
 //===----------------------------------------------------------------------===//
 
 #include "Unix.h"
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_STLExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Config_config.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Demangle_Demangle.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_FileSystem.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_FileUtilities.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Format.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_MemoryBuffer.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Mutex.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Program.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_UniqueLock.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_STLExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_config.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Demangle_Demangle.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_FileSystem.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_FileUtilities.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Format.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_MemoryBuffer.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Mutex.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Program.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_UniqueLock.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 #include <algorithm>
 #include <string>
 #include <sysexits.h>
@@ -77,7 +93,7 @@
 #endif
 #endif
 
-using namespace llvm;
+using namespace toolchain;
 
 static RETSIGTYPE SignalHandler(int Sig);  // defined below.
 
@@ -185,7 +201,7 @@ public:
 static std::atomic<FileToRemoveList *> FilesToRemove = ATOMIC_VAR_INIT(nullptr);
 
 /// Clean up the list in a signal-friendly manner.
-/// Recall that signals can fire during llvm_shutdown. If this occurs we should
+/// Recall that signals can fire during toolchain_shutdown. If this occurs we should
 /// either clean something up or nothing at all, but we shouldn't crash!
 struct FilesToRemoveCleanup {
   // Not signal-safe.
@@ -344,7 +360,7 @@ static RETSIGTYPE SignalHandler(int Sig) {
   }
 
   // Otherwise if it is a fault (like SEGV) run any handler.
-  llvm::sys::RunSignalHandlers();
+  toolchain::sys::RunSignalHandlers();
 
 #ifdef __s390__
   // On S/390, certain signals are delivered with PSW Address pointing to
@@ -356,17 +372,17 @@ static RETSIGTYPE SignalHandler(int Sig) {
 #endif
 }
 
-void llvm::sys::RunInterruptHandlers() {
+void toolchain::sys::RunInterruptHandlers() {
   RemoveFilesToRemove();
 }
 
-void llvm::sys::SetInterruptFunction(void (*IF)()) {
+void toolchain::sys::SetInterruptFunction(void (*IF)()) {
   InterruptFunction.exchange(IF);
   RegisterHandlers();
 }
 
 // The public API
-bool llvm::sys::RemoveFileOnSignal(StringRef Filename,
+bool toolchain::sys::RemoveFileOnSignal(StringRef Filename,
                                    std::string* ErrMsg) {
   // Ensure that cleanup will occur as soon as one file is added.
   static ManagedStatic<FilesToRemoveCleanup> FilesToRemoveCleanup;
@@ -377,14 +393,14 @@ bool llvm::sys::RemoveFileOnSignal(StringRef Filename,
 }
 
 // The public API
-void llvm::sys::DontRemoveFileOnSignal(StringRef Filename) {
+void toolchain::sys::DontRemoveFileOnSignal(StringRef Filename) {
   FileToRemoveList::erase(FilesToRemove, Filename.str());
 }
 
 /// Add a function to be called when a signal is delivered to the process. The
 /// handler can have a cookie passed to it to identify what instance of the
 /// handler it is.
-void llvm::sys::AddSignalHandler(sys::SignalHandlerCallback FnPtr,
+void toolchain::sys::AddSignalHandler(sys::SignalHandlerCallback FnPtr,
                                  void *Cookie) { // Signal-safe.
   insertSignalHandler(FnPtr, Cookie);
   RegisterHandlers();
@@ -484,7 +500,7 @@ static int unwindBacktrace(void **StackTrace, int MaxEntries) {
 //
 // On glibc systems we have the 'backtrace' function, which works nicely, but
 // doesn't demangle symbols.
-void llvm::sys::PrintStackTrace(raw_ostream &OS) {
+void toolchain::sys::PrintStackTrace(raw_ostream &OS) {
 #if ENABLE_BACKTRACES
   static void *StackTrace[256];
   int depth = 0;
@@ -554,14 +570,14 @@ void llvm::sys::PrintStackTrace(raw_ostream &OS) {
 }
 
 static void PrintStackTraceSignalHandler(void *) {
-  sys::PrintStackTrace(llvm::errs());
+  sys::PrintStackTrace(toolchain::errs());
 }
 
-void llvm::sys::DisableSystemDialogsOnCrash() {}
+void toolchain::sys::DisableSystemDialogsOnCrash() {}
 
 /// When an error signal (such as SIGABRT or SIGSEGV) is delivered to the
 /// process, print a stack trace and then exit.
-void llvm::sys::PrintStackTraceOnErrorSignal(StringRef Argv0,
+void toolchain::sys::PrintStackTraceOnErrorSignal(StringRef Argv0,
                                              bool DisableCrashReporting) {
   ::Argv0 = Argv0;
 

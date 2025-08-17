@@ -54,36 +54,36 @@ bool CFPointeeInfo::isKnownCFTypeName(StringRef name) {
 
 /// Classify a potential CF typedef.
 CFPointeeInfo
-CFPointeeInfo::classifyTypedef(const clang::TypedefNameDecl *typedefDecl) {
-  clang::QualType type = typedefDecl->getUnderlyingType();
+CFPointeeInfo::classifyTypedef(const language::Core::TypedefNameDecl *typedefDecl) {
+  language::Core::QualType type = typedefDecl->getUnderlyingType();
 
-  if (auto elaborated = type->getAs<clang::ElaboratedType>())
+  if (auto elaborated = type->getAs<language::Core::ElaboratedType>())
     type = elaborated->desugar();
 
-  if (auto subTypedef = type->getAs<clang::TypedefType>()) {
+  if (auto subTypedef = type->getAs<language::Core::TypedefType>()) {
     if (classifyTypedef(subTypedef->getDecl()))
       return forTypedef(subTypedef->getDecl());
     return forInvalid();
   }
 
-  if (auto ptr = type->getAs<clang::PointerType>()) {
+  if (auto ptr = type->getAs<language::Core::PointerType>()) {
     auto pointee = ptr->getPointeeType();
 
     // Must be 'const' or nothing.
-    clang::Qualifiers quals = pointee.getQualifiers();
+    language::Core::Qualifiers quals = pointee.getQualifiers();
     bool isConst = quals.hasConst();
     quals.removeConst();
     if (quals.empty()) {
-      if (auto record = pointee->getAs<clang::RecordType>()) {
+      if (auto record = pointee->getAs<language::Core::RecordType>()) {
         auto recordDecl = record->getDecl();
-        if (recordDecl->hasAttr<clang::ObjCBridgeAttr>() ||
-            recordDecl->hasAttr<clang::ObjCBridgeMutableAttr>() ||
-            recordDecl->hasAttr<clang::ObjCBridgeRelatedAttr>() ||
+        if (recordDecl->hasAttr<language::Core::ObjCBridgeAttr>() ||
+            recordDecl->hasAttr<language::Core::ObjCBridgeMutableAttr>() ||
+            recordDecl->hasAttr<language::Core::ObjCBridgeRelatedAttr>() ||
             isKnownCFTypeName(typedefDecl->getName())) {
           return forRecord(isConst, record->getDecl());
         }
       } else if (pointee->isVoidType()) {
-        if (typedefDecl->hasAttr<clang::ObjCBridgeAttr>() ||
+        if (typedefDecl->hasAttr<language::Core::ObjCBridgeAttr>() ||
             isKnownCFTypeName(typedefDecl->getName())) {
           return isConst ? forConstVoid() : forVoid();
         }
@@ -95,14 +95,14 @@ CFPointeeInfo::classifyTypedef(const clang::TypedefNameDecl *typedefDecl) {
 }
 
 bool importer::isCFTypeDecl(
-       const clang::TypedefNameDecl *Decl) {
+       const language::Core::TypedefNameDecl *Decl) {
   if (CFPointeeInfo::classifyTypedef(Decl))
     return true;
   return false;
 }
 
 StringRef importer::getCFTypeName(
-            const clang::TypedefNameDecl *decl) {
+            const language::Core::TypedefNameDecl *decl) {
   if (auto pointee = CFPointeeInfo::classifyTypedef(decl)) {
     auto name = decl->getName();
     if (pointee.isRecord() || pointee.isTypedef())

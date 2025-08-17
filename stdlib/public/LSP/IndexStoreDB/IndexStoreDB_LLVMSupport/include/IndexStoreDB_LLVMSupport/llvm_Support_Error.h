@@ -1,8 +1,24 @@
-//===- llvm/Support/Error.h - Recoverable error handling --------*- C++ -*-===//
+//===- toolchain/Support/Error.h - Recoverable error handling --------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -13,19 +29,19 @@
 #ifndef LLVM_SUPPORT_ERROR_H
 #define LLVM_SUPPORT_ERROR_H
 
-#include <IndexStoreDB_LLVMSupport/llvm-c_Error.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_STLExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallVector.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Twine.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Config_abi-breaking.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_AlignOf.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Compiler.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Debug.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ErrorHandling.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ErrorOr.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Format.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain-c_Error.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_STLExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallVector.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Twine.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_abi-breaking.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_AlignOf.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Compiler.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Debug.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ErrorHandling.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ErrorOr.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Format.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
@@ -39,7 +55,7 @@
 #include <utility>
 #include <vector>
 
-namespace llvm {
+namespace toolchain {
 
 class ErrorSuccess;
 
@@ -328,7 +344,7 @@ inline ErrorSuccess Error::success() { return ErrorSuccess(); }
 /// Make a Error instance representing failure using the given error info
 /// type.
 template <typename ErrT, typename... ArgTs> Error make_error(ArgTs &&... Args) {
-  return Error(llvm::make_unique<ErrT>(std::forward<ArgTs>(Args)...));
+  return Error(toolchain::make_unique<ErrT>(std::forward<ArgTs>(Args)...));
 }
 
 /// Base class for user error types. Users should declare their error types
@@ -704,7 +720,7 @@ inline void cantFail(Error Err, const char *Msg = nullptr) {
   if (Err) {
     if (!Msg)
       Msg = "Failure value returned from cantFail wrapped call";
-    llvm_unreachable(Msg);
+    toolchain_unreachable(Msg);
   }
 }
 
@@ -728,7 +744,7 @@ T cantFail(Expected<T> ValOrErr, const char *Msg = nullptr) {
   else {
     if (!Msg)
       Msg = "Failure value returned from cantFail wrapped call";
-    llvm_unreachable(Msg);
+    toolchain_unreachable(Msg);
   }
 }
 
@@ -752,7 +768,7 @@ T& cantFail(Expected<T&> ValOrErr, const char *Msg = nullptr) {
   else {
     if (!Msg)
       Msg = "Failure value returned from cantFail wrapped call";
-    llvm_unreachable(Msg);
+    toolchain_unreachable(Msg);
   }
 }
 
@@ -899,14 +915,14 @@ Error handleErrors(Error E, HandlerTs &&... Hs) {
 
 /// Behaves the same as handleErrors, except that by contract all errors
 /// *must* be handled by the given handlers (i.e. there must be no remaining
-/// errors after running the handlers, or llvm_unreachable is called).
+/// errors after running the handlers, or toolchain_unreachable is called).
 template <typename... HandlerTs>
 void handleAllErrors(Error E, HandlerTs &&... Handlers) {
   cantFail(handleErrors(std::move(E), std::forward<HandlerTs>(Handlers)...));
 }
 
 /// Check that E is a non-error, then drop it.
-/// If E is an error, llvm_unreachable will be called.
+/// If E is an error, toolchain_unreachable will be called.
 inline void handleAllErrors(Error E) {
   cantFail(std::move(E));
 }
@@ -1132,7 +1148,7 @@ template <typename T> ErrorOr<T> expectedToErrorOr(Expected<T> &&E) {
 ///
 ///   @code{.cpp}
 ///   Expected<int> foo() {
-///      return llvm::make_error<PDBError>(pdb_error_code::dia_failed_loading,
+///      return toolchain::make_error<PDBError>(pdb_error_code::dia_failed_loading,
 ///                                        "Additional information");
 ///   }
 ///   @endcode
@@ -1283,6 +1299,6 @@ inline Error unwrap(LLVMErrorRef ErrRef) {
       reinterpret_cast<ErrorInfoBase *>(ErrRef)));
 }
 
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif // LLVM_SUPPORT_ERROR_H

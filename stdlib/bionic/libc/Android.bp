@@ -650,7 +650,7 @@ cc_library_static {
         },
         x86_64: {
             srcs: [
-                // x86_64 has custom/llvm-libc implementations of all of these.
+                // x86_64 has custom/toolchain-libc implementations of all of these.
             ],
         },
     },
@@ -1232,7 +1232,7 @@ cc_library_static {
     generated_headers: ["generated_android_ids"],
 
     whole_static_libs: [
-        "//external/llvm-libc:llvmlibc",
+        "//external/toolchain-libc:toolchainlibc",
         "libsystemproperties",
         "libicu4x_bionic",
     ],
@@ -1774,7 +1774,7 @@ cc_library_headers {
         "//apex_available:platform",
         "//apex_available:anyapex",
     ],
-    // used by most APEXes indirectly via libunwind_llvm
+    // used by most APEXes indirectly via libunwind_toolchain
     min_sdk_version: "apex_inherit",
 
     no_libcrt: true,
@@ -1785,7 +1785,7 @@ cc_library_headers {
     // with an sdk_version must have a lower sdk_version. By setting sdk_version
     // to 1 we let targets with an sdk_version that need to depend on the libc
     // headers but cannot depend on libc itself due to circular dependencies
-    // (such as libunwind_llvm) depend on the headers. Setting sdk_version to 1
+    // (such as libunwind_toolchain) depend on the headers. Setting sdk_version to 1
     // is correct because the headers can support any sdk_version.
     sdk_version: "1",
 
@@ -1829,7 +1829,7 @@ cc_library_headers {
         "//apex_available:platform",
         "//apex_available:anyapex",
     ],
-    // used by most APEXes indirectly via libunwind_llvm
+    // used by most APEXes indirectly via libunwind_toolchain
     min_sdk_version: "apex_inherit",
     visibility: [
         "//bionic:__subpackages__", // visible to bionic
@@ -1837,8 +1837,8 @@ cc_library_headers {
         "//external/arm-optimized-routines",
         "//external/gwp_asan",
         "//external/jemalloc_new",
-        "//external/libunwind_llvm",
-        "//external/llvm-libc",
+        "//external/libunwind_toolchain",
+        "//external/toolchain-libc",
         "//external/scudo",
         "//system/core/property_service/libpropertyinfoparser",
         "//system/extras/toolchain-extras",
@@ -2184,7 +2184,7 @@ cc_library_static {
         },
     },
     whole_static_libs: [
-        "//external/llvm-libc:llvmlibc",
+        "//external/toolchain-libc:toolchainlibc",
         "libarm-optimized-routines-mem",
         "libc_netbsd",
     ],

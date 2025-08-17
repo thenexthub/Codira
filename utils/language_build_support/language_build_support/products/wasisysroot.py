@@ -15,7 +15,7 @@ import os
 import sys
 
 from . import cmake_product
-from . import llvm
+from . import toolchain
 from . import product
 from .. import shell
 
@@ -55,21 +55,21 @@ class WASILibc(product.Product):
 
         if self.args.build_runtime_with_host_compiler:
             clang_path = self.toolchain.cc
-            ar_path = self.toolchain.llvm_ar
-            nm_path = self.toolchain.llvm_nm
+            ar_path = self.toolchain.toolchain_ar
+            nm_path = self.toolchain.toolchain_nm
 
             if not ar_path:
-                print(f"error: `llvm-ar` not found for LLVM toolchain at {clang_path}, "
-                "select a toolchain that has `llvm-ar` included", file=sys.stderr)
+                print(f"error: `toolchain-ar` not found for LLVM toolchain at {clang_path}, "
+                "select a toolchain that has `toolchain-ar` included", file=sys.stderr)
                 sys.exit(1)
         else:
-            llvm_build_bin_dir = os.path.join(
-                '..', build_root, '%s-%s' % ('llvm', host_target), 'bin')
-            llvm_tools_path = self.args.native_llvm_tools_path or llvm_build_bin_dir
-            clang_tools_path = self.args.native_clang_tools_path or llvm_build_bin_dir
+            toolchain_build_bin_dir = os.path.join(
+                '..', build_root, '%s-%s' % ('toolchain', host_target), 'bin')
+            toolchain_tools_path = self.args.native_toolchain_tools_path or toolchain_build_bin_dir
+            clang_tools_path = self.args.native_clang_tools_path or toolchain_build_bin_dir
             clang_path = os.path.join(clang_tools_path, 'clang')
-            ar_path = os.path.join(llvm_tools_path, 'llvm-ar')
-            nm_path = os.path.join(llvm_tools_path, 'llvm-nm')
+            ar_path = os.path.join(toolchain_tools_path, 'toolchain-ar')
+            nm_path = os.path.join(toolchain_tools_path, 'toolchain-nm')
 
         build_jobs = self.args.build_jobs or multiprocessing.cpu_count()
 
@@ -93,7 +93,7 @@ class WASILibc(product.Product):
 
     @classmethod
     def get_dependencies(cls):
-        return [llvm.LLVM]
+        return [toolchain.LLVM]
 
     @classmethod
     def sysroot_build_path(cls, build_root, host_target, target_triple):
@@ -117,7 +117,7 @@ class WASILibc(product.Product):
 class WasmLLVMRuntimeLibs(cmake_product.CMakeProduct):
     @classmethod
     def product_source_name(cls):
-        return os.path.join("llvm-project", "runtimes")
+        return os.path.join("toolchain-project", "runtimes")
 
     @classmethod
     def is_build_script_impl_product(cls):
@@ -156,20 +156,20 @@ class WasmLLVMRuntimeLibs(cmake_product.CMakeProduct):
         if self.args.build_runtime_with_host_compiler:
             cc_path = self.toolchain.cc
             cxx_path = self.toolchain.cxx
-            ar_path = self.toolchain.llvm_ar
-            ranlib_path = self.toolchain.llvm_ranlib
+            ar_path = self.toolchain.toolchain_ar
+            ranlib_path = self.toolchain.toolchain_ranlib
 
             if not ar_path:
-                print(f"error: `llvm-ar` not found for LLVM toolchain at {cc_path}, "
-                "select a toolchain that has `llvm-ar` included", file=sys.stderr)
+                print(f"error: `toolchain-ar` not found for LLVM toolchain at {cc_path}, "
+                "select a toolchain that has `toolchain-ar` included", file=sys.stderr)
                 sys.exit(1)
         else:
-            llvm_build_bin_dir = os.path.join(
-                '..', build_root, '%s-%s' % ('llvm', host_target), 'bin')
-            llvm_tools_path = cmake.args.native_llvm_tools_path or llvm_build_bin_dir
-            clang_tools_path = cmake.args.native_clang_tools_path or llvm_build_bin_dir
-            ar_path = os.path.join(llvm_tools_path, 'llvm-ar')
-            ranlib_path = os.path.join(llvm_tools_path, 'llvm-ranlib')
+            toolchain_build_bin_dir = os.path.join(
+                '..', build_root, '%s-%s' % ('toolchain', host_target), 'bin')
+            toolchain_tools_path = cmake.args.native_toolchain_tools_path or toolchain_build_bin_dir
+            clang_tools_path = cmake.args.native_clang_tools_path or toolchain_build_bin_dir
+            ar_path = os.path.join(toolchain_tools_path, 'toolchain-ar')
+            ranlib_path = os.path.join(toolchain_tools_path, 'toolchain-ranlib')
             cc_path = os.path.join(clang_tools_path, 'clang')
             cxx_path = os.path.join(clang_tools_path, 'clang++')
 
@@ -258,4 +258,4 @@ class WasmLLVMRuntimeLibs(cmake_product.CMakeProduct):
 
     @classmethod
     def get_dependencies(cls):
-        return [WASILibc, llvm.LLVM]
+        return [WASILibc, toolchain.LLVM]

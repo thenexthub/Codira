@@ -23,12 +23,12 @@
 
 #include "language/AST/ASTContext.h"
 #include "language/AST/Decl.h"
-#include "clang/Lex/Preprocessor.h"
-#include "clang/Sema/Sema.h"
+#include "language/Core/Lex/Preprocessor.h"
+#include "language/Core/Sema/Sema.h"
 #include "toolchain/ADT/APSInt.h"
 #include "toolchain/ADT/DenseMap.h"
 
-namespace clang {
+namespace language::Core {
 class EnumDecl;
 class Preprocessor;
 class MacroInfo;
@@ -74,7 +74,7 @@ class EnumInfo {
 public:
   EnumInfo() = default;
 
-  EnumInfo(const clang::EnumDecl *decl, clang::Preprocessor &pp) {
+  EnumInfo(const language::Core::EnumDecl *decl, language::Core::Preprocessor &pp) {
     classifyEnum(decl, pp);
     determineConstantNamePrefix(decl);
   }
@@ -104,33 +104,33 @@ public:
   }
 
 private:
-  void determineConstantNamePrefix(const clang::EnumDecl *);
-  void classifyEnum(const clang::EnumDecl *, clang::Preprocessor &);
+  void determineConstantNamePrefix(const language::Core::EnumDecl *);
+  void classifyEnum(const language::Core::EnumDecl *, language::Core::Preprocessor &);
 };
 
 /// Provide a cache of enum infos, so that we don't have to re-calculate their
 /// information.
 class EnumInfoCache {
-  clang::Preprocessor &clangPP;
+  language::Core::Preprocessor &clangPP;
 
-  toolchain::DenseMap<const clang::EnumDecl *, EnumInfo> enumInfos;
+  toolchain::DenseMap<const language::Core::EnumDecl *, EnumInfo> enumInfos;
 
   // Never copy
   EnumInfoCache(const EnumInfoCache &) = delete;
   EnumInfoCache &operator = (const EnumInfoCache &) = delete;
 
 public:
-  explicit EnumInfoCache(clang::Preprocessor &cpp) : clangPP(cpp) {}
+  explicit EnumInfoCache(language::Core::Preprocessor &cpp) : clangPP(cpp) {}
 
-  EnumInfo getEnumInfo(const clang::EnumDecl *decl);
+  EnumInfo getEnumInfo(const language::Core::EnumDecl *decl);
 
-  EnumKind getEnumKind(const clang::EnumDecl *decl) {
+  EnumKind getEnumKind(const language::Core::EnumDecl *decl) {
     return getEnumInfo(decl).getKind();
   }
 
   /// The prefix to be stripped from the names of the enum constants within the
   /// given enum.
-  StringRef getEnumConstantNamePrefix(const clang::EnumDecl *decl) {
+  StringRef getEnumConstantNamePrefix(const language::Core::EnumDecl *decl) {
     return getEnumInfo(decl).getConstantNamePrefix();
   }
 };
@@ -168,10 +168,10 @@ StringRef getCommonPluralPrefix(StringRef singular, StringRef plural);
 
 /// Returns the underlying integer type of an enum. If clang treats the type as
 /// an elaborated type, an unwrapped type is returned.
-const clang::Type *getUnderlyingType(const clang::EnumDecl *decl);
+const language::Core::Type *getUnderlyingType(const language::Core::EnumDecl *decl);
 
-inline bool isCFOptionsMacro(const clang::NamedDecl *decl,
-                             clang::Preprocessor &preprocessor) {
+inline bool isCFOptionsMacro(const language::Core::NamedDecl *decl,
+                             language::Core::Preprocessor &preprocessor) {
   auto loc = decl->getEndLoc();
   if (!loc.isMacroID())
     return false;

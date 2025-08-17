@@ -38,11 +38,11 @@
 #include "language/SIL/SILModule.h"
 #include "language/SIL/SILType.h"
 #include "language/SIL/AbstractionPatternGenerators.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Attr.h"
-#include "clang/AST/DeclCXX.h"
-#include "clang/AST/DeclObjC.h"
-#include "clang/Analysis/DomainSpecific/CocoaConventions.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Attr.h"
+#include "language/Core/AST/DeclCXX.h"
+#include "language/Core/AST/DeclObjC.h"
+#include "language/Core/Analysis/DomainSpecific/CocoaConventions.h"
 #include "toolchain/Support/CommandLine.h"
 #include "toolchain/Support/Compiler.h"
 #include "toolchain/Support/Debug.h"
@@ -1355,7 +1355,7 @@ public:
   // LANGUAGE_SHARED_REFERENCE type.
   std::optional<ResultConvention>
   getCxxRefConventionWithAttrs(const TypeLowering &tl,
-                               const clang::Decl *decl) const {
+                               const language::Core::Decl *decl) const {
     if (!tl.getLoweredType().isForeignReferenceType())
       return std::nullopt;
 
@@ -1491,7 +1491,7 @@ public:
 };
 
 static bool isClangTypeMoreIndirectThanSubstType(TypeConverter &TC,
-                                                 const clang::Type *clangTy,
+                                                 const language::Core::Type *clangTy,
                                                  CanType substTy) {
   // A const pointer argument might have been imported as
   // UnsafePointer, COpaquePointer, or a CF foreign class.
@@ -1517,7 +1517,7 @@ static bool isClangTypeMoreIndirectThanSubstType(TypeConverter &TC,
       // imported as methods.
       return false;
 
-    if (clangTy->getPointeeType()->getAs<clang::RecordType>()) {
+    if (clangTy->getPointeeType()->getAs<language::Core::RecordType>()) {
       // Foreign reference types
       if (substTy->getClassOrBoundGenericClass()) {
         return false;
@@ -1525,8 +1525,8 @@ static bool isClangTypeMoreIndirectThanSubstType(TypeConverter &TC,
     }
 
     // language_newtypes are always passed directly
-    if (auto typedefTy = clangTy->getAs<clang::TypedefType>()) {
-      if (typedefTy->getDecl()->getAttr<clang::CodiraNewTypeAttr>())
+    if (auto typedefTy = clangTy->getAs<language::Core::TypedefType>()) {
+      if (typedefTy->getDecl()->getAttr<language::Core::CodiraNewTypeAttr>())
         return false;
     }
 
@@ -2837,7 +2837,7 @@ static CanSILFunctionType getSILFunctionType(
     : false;
 
   auto silRep = extInfoBuilder.getRepresentation();
-  const clang::Type *clangType = extInfoBuilder.getClangTypeInfo().getType();
+  const language::Core::Type *clangType = extInfoBuilder.getClangTypeInfo().getType();
   if (shouldStoreClangType(silRep) && !clangType) {
     // If we have invalid code in the source like
     //     do { let x = 0; let _ : @convention(c) () -> Int = { x } }
@@ -3513,7 +3513,7 @@ CanSILFunctionType language::buildSILFunctionThunkType(
 //                          Foreign SILFunctionTypes
 //===----------------------------------------------------------------------===//
 
-static bool isCFTypedef(const TypeLowering &tl, clang::QualType type) {
+static bool isCFTypedef(const TypeLowering &tl, language::Core::QualType type) {
   // If we imported a C pointer type as a non-trivial type, it was
   // a foreign class type.
   return !tl.isTrivial() && type->isPointerType();
@@ -3523,7 +3523,7 @@ static bool isCFTypedef(const TypeLowering &tl, clang::QualType type) {
 /// indirectly, deduce the convention for it.
 ///
 /// Generally, whether the parameter is +1 is handled before this.
-static ParameterConvention getIndirectCParameterConvention(clang::QualType type) {
+static ParameterConvention getIndirectCParameterConvention(language::Core::QualType type) {
   // Non-trivial C++ types would be Indirect_Inout (at least in Itanium).
   // A trivial const * parameter in C should be considered @in.
   if (importer::isCxxConstReferenceType(type.getTypePtr()))
@@ -3543,7 +3543,7 @@ static ParameterConvention getIndirectCParameterConvention(clang::QualType type)
 ///
 /// Generally, whether the parameter is +1 is handled before this.
 static ParameterConvention
-getIndirectCParameterConvention(const clang::ParmVarDecl *param) {
+getIndirectCParameterConvention(const language::Core::ParmVarDecl *param) {
   return getIndirectCParameterConvention(param->getType());
 }
 
@@ -3551,7 +3551,7 @@ getIndirectCParameterConvention(const clang::ParmVarDecl *param) {
 /// directly, deduce the convention for it.
 ///
 /// Generally, whether the parameter is +1 is handled before this.
-static ParameterConvention getDirectCParameterConvention(clang::QualType type) {
+static ParameterConvention getDirectCParameterConvention(language::Core::QualType type) {
   if (auto *cxxRecord = type->getAsCXXRecordDecl()) {
     // Directly passed non-trivially destroyed C++ record is consumed by the
     // callee.
@@ -3564,9 +3564,9 @@ static ParameterConvention getDirectCParameterConvention(clang::QualType type) {
 /// Given a C parameter declaration whose type is passed directly,
 /// deduce the convention for it.
 static ParameterConvention
-getDirectCParameterConvention(const clang::ParmVarDecl *param) {
-  if (param->hasAttr<clang::NSConsumedAttr>() ||
-      param->hasAttr<clang::CFConsumedAttr>())
+getDirectCParameterConvention(const language::Core::ParmVarDecl *param) {
+  if (param->hasAttr<language::Core::NSConsumedAttr>() ||
+      param->hasAttr<language::Core::CFConsumedAttr>())
     return ParameterConvention::Direct_Owned;
   return getDirectCParameterConvention(param->getType());
 }
@@ -3577,12 +3577,12 @@ const auto ObjCSelfConvention = ParameterConvention::Direct_Unowned;
 namespace {
 
 class ObjCMethodConventions : public Conventions {
-  const clang::ObjCMethodDecl *Method;
+  const language::Core::ObjCMethodDecl *Method;
 
 public:
-  const clang::ObjCMethodDecl *getMethod() const { return Method; }
+  const language::Core::ObjCMethodDecl *getMethod() const { return Method; }
 
-  ObjCMethodConventions(const clang::ObjCMethodDecl *method)
+  ObjCMethodConventions(const language::Core::ObjCMethodDecl *method)
     : Conventions(ConventionsKind::ObjCMethod), Method(method) {}
 
   ParameterConvention getIndirectParameter(unsigned index,
@@ -3610,22 +3610,22 @@ public:
   /// family.  Unfortunately, Clang's getMethodFamily() never
   /// considers a method to be in a special family if its result
   /// doesn't satisfy isObjCRetainable().
-  clang::ObjCMethodFamily getMethodFamilyForCFResult() const {
+  language::Core::ObjCMethodFamily getMethodFamilyForCFResult() const {
     // Trust an explicit attribute.
-    if (auto attr = Method->getAttr<clang::ObjCMethodFamilyAttr>()) {
+    if (auto attr = Method->getAttr<language::Core::ObjCMethodFamilyAttr>()) {
       switch (attr->getFamily()) {
-      case clang::ObjCMethodFamilyAttr::OMF_None:
-        return clang::OMF_None;
-      case clang::ObjCMethodFamilyAttr::OMF_alloc:
-        return clang::OMF_alloc;
-      case clang::ObjCMethodFamilyAttr::OMF_copy:
-        return clang::OMF_copy;
-      case clang::ObjCMethodFamilyAttr::OMF_init:
-        return clang::OMF_init;
-      case clang::ObjCMethodFamilyAttr::OMF_mutableCopy:
-        return clang::OMF_mutableCopy;
-      case clang::ObjCMethodFamilyAttr::OMF_new:
-        return clang::OMF_new;
+      case language::Core::ObjCMethodFamilyAttr::OMF_None:
+        return language::Core::OMF_None;
+      case language::Core::ObjCMethodFamilyAttr::OMF_alloc:
+        return language::Core::OMF_alloc;
+      case language::Core::ObjCMethodFamilyAttr::OMF_copy:
+        return language::Core::OMF_copy;
+      case language::Core::ObjCMethodFamilyAttr::OMF_init:
+        return language::Core::OMF_init;
+      case language::Core::ObjCMethodFamilyAttr::OMF_mutableCopy:
+        return language::Core::OMF_mutableCopy;
+      case language::Core::ObjCMethodFamilyAttr::OMF_new:
+        return language::Core::OMF_new;
       }
       toolchain_unreachable("bad attribute value");
     }
@@ -3635,25 +3635,25 @@ public:
 
   bool isImplicitPlusOneCFResult() const {
     switch (getMethodFamilyForCFResult()) {
-    case clang::OMF_None:
-    case clang::OMF_dealloc:
-    case clang::OMF_finalize:
-    case clang::OMF_retain:
-    case clang::OMF_release:
-    case clang::OMF_autorelease:
-    case clang::OMF_retainCount:
-    case clang::OMF_self:
-    case clang::OMF_initialize:
-    case clang::OMF_performSelector:
+    case language::Core::OMF_None:
+    case language::Core::OMF_dealloc:
+    case language::Core::OMF_finalize:
+    case language::Core::OMF_retain:
+    case language::Core::OMF_release:
+    case language::Core::OMF_autorelease:
+    case language::Core::OMF_retainCount:
+    case language::Core::OMF_self:
+    case language::Core::OMF_initialize:
+    case language::Core::OMF_performSelector:
       return false;
 
-    case clang::OMF_alloc:
-    case clang::OMF_new:
-    case clang::OMF_mutableCopy:
-    case clang::OMF_copy:
+    case language::Core::OMF_alloc:
+    case language::Core::OMF_new:
+    case language::Core::OMF_mutableCopy:
+    case language::Core::OMF_copy:
       return true;
 
-    case clang::OMF_init:
+    case language::Core::OMF_init:
       return Method->isInstanceMethod();
     }
     toolchain_unreachable("bad method family");
@@ -3663,7 +3663,7 @@ public:
     // If we imported the result as something trivial, we need to
     // use one of the unowned conventions.
     if (tl.isTrivial()) {
-      if (Method->hasAttr<clang::ObjCReturnsInnerPointerAttr>())
+      if (Method->hasAttr<language::Core::ObjCReturnsInnerPointerAttr>())
         return ResultConvention::UnownedInnerPointer;
 
       auto type = tl.getLoweredType();
@@ -3680,7 +3680,7 @@ public:
     // the presence of ns_returns_retained, because Clang will add
     // that implicitly based on the method family.
     if (resultType->isObjCRetainableType()) {
-      if (Method->hasAttr<clang::NSReturnsRetainedAttr>())
+      if (Method->hasAttr<language::Core::NSReturnsRetainedAttr>())
         return ResultConvention::Owned;
       return ResultConvention::Autoreleased;
     }
@@ -3692,9 +3692,9 @@ public:
     assert(isCFTypedef(tl, resultType));
 
     // Trust the explicit attributes.
-    if (Method->hasAttr<clang::CFReturnsRetainedAttr>())
+    if (Method->hasAttr<language::Core::CFReturnsRetainedAttr>())
       return ResultConvention::Owned;
-    if (Method->hasAttr<clang::CFReturnsNotRetainedAttr>())
+    if (Method->hasAttr<language::Core::CFReturnsNotRetainedAttr>())
       return ResultConvention::Autoreleased;
 
     // Otherwise, infer based on the method family.
@@ -3710,7 +3710,7 @@ public:
 
   ParameterConvention
   getDirectSelfParameter(const AbstractionPattern &type) const override {
-    if (Method->hasAttr<clang::NSConsumesSelfAttr>())
+    if (Method->hasAttr<language::Core::NSConsumesSelfAttr>())
       return ParameterConvention::Direct_Owned;
 
     // The caller is supposed to take responsibility for ensuring
@@ -3730,21 +3730,21 @@ public:
 
 /// Conventions based on a C function type.
 class CFunctionTypeConventions : public Conventions {
-  const clang::FunctionType *FnType;
+  const language::Core::FunctionType *FnType;
 
-  clang::QualType getParamType(unsigned i) const {
-    return FnType->castAs<clang::FunctionProtoType>()->getParamType(i);
+  language::Core::QualType getParamType(unsigned i) const {
+    return FnType->castAs<language::Core::FunctionProtoType>()->getParamType(i);
   }
 
 protected:
   /// Protected constructor for subclasses to override the kind passed to the
   /// super class.
   CFunctionTypeConventions(ConventionsKind kind,
-                           const clang::FunctionType *type)
+                           const language::Core::FunctionType *type)
     : Conventions(kind), FnType(type) {}
 
 public:
-  CFunctionTypeConventions(const clang::FunctionType *type)
+  CFunctionTypeConventions(const language::Core::FunctionType *type)
     : Conventions(ConventionsKind::CFunctionType), FnType(type) {}
 
   ParameterConvention getIndirectParameter(unsigned index,
@@ -3776,7 +3776,7 @@ public:
   ParameterConvention getDirectParameter(unsigned index,
                             const AbstractionPattern &type,
                            const TypeLowering &substTL) const override {
-    if (cast<clang::FunctionProtoType>(FnType)->isParamConsumed(index))
+    if (cast<language::Core::FunctionProtoType>(FnType)->isParamConsumed(index))
       return ParameterConvention::Direct_Owned;
     return getDirectCParameterConvention(getParamType(index));
   }
@@ -3824,18 +3824,18 @@ public:
 /// Conventions based on C function declarations.
 class CFunctionConventions : public CFunctionTypeConventions {
   using super = CFunctionTypeConventions;
-  const clang::FunctionDecl *TheDecl;
+  const language::Core::FunctionDecl *TheDecl;
 public:
-  CFunctionConventions(const clang::FunctionDecl *decl)
+  CFunctionConventions(const language::Core::FunctionDecl *decl)
     : CFunctionTypeConventions(ConventionsKind::CFunction,
-                               decl->getType()->castAs<clang::FunctionType>()),
+                               decl->getType()->castAs<language::Core::FunctionType>()),
       TheDecl(decl) {}
 
   ParameterConvention getDirectParameter(unsigned index,
                             const AbstractionPattern &type,
                             const TypeLowering &substTL) const override {
     if (auto param = TheDecl->getParamDecl(index))
-      if (param->hasAttr<clang::CFConsumedAttr>())
+      if (param->hasAttr<language::Core::CFConsumedAttr>())
         return ParameterConvention::Direct_Owned;
     return super::getDirectParameter(index, type, substTL);
   }
@@ -3848,7 +3848,7 @@ public:
     // C++ constructors return indirectly.
     // TODO: this may be different depending on the ABI, so we may have to
     // check with clang here.
-    if (isa<clang::CXXConstructorDecl>(TheDecl)) {
+    if (isa<language::Core::CXXConstructorDecl>(TheDecl)) {
       return ResultConvention::Indirect;
     }
 
@@ -3858,16 +3858,16 @@ public:
     if (isCFTypedef(tl, TheDecl->getReturnType())) {
       // The CF attributes aren't represented in the type, so we need
       // to check them here.
-      if (TheDecl->hasAttr<clang::CFReturnsRetainedAttr>()) {
+      if (TheDecl->hasAttr<language::Core::CFReturnsRetainedAttr>()) {
         return ResultConvention::Owned;
-      } else if (TheDecl->hasAttr<clang::CFReturnsNotRetainedAttr>()) {
+      } else if (TheDecl->hasAttr<language::Core::CFReturnsNotRetainedAttr>()) {
         // Probably not actually autoreleased.
         return ResultConvention::Autoreleased;
 
       // The CF Create/Copy rule only applies to functions that return
       // a CF-runtime type; it does not apply to methods, and it does
       // not apply to functions returning ObjC types.
-      } else if (clang::ento::coreFoundation::followsCreateRule(TheDecl)) {
+      } else if (language::Core::ento::coreFoundation::followsCreateRule(TheDecl)) {
         return ResultConvention::Owned;
       } else if (tl.getLoweredType().isForeignReferenceType()) {
         return ResultConvention::Unowned;
@@ -3889,14 +3889,14 @@ public:
 /// Conventions based on C++ method declarations.
 class CXXMethodConventions : public CFunctionTypeConventions {
   using super = CFunctionTypeConventions;
-  const clang::CXXMethodDecl *TheDecl;
+  const language::Core::CXXMethodDecl *TheDecl;
   bool isMutating;
 
 public:
-  CXXMethodConventions(const clang::CXXMethodDecl *decl, bool isMutating)
+  CXXMethodConventions(const language::Core::CXXMethodDecl *decl, bool isMutating)
       : CFunctionTypeConventions(
             ConventionsKind::CXXMethod,
-            decl->getType()->castAs<clang::FunctionType>()),
+            decl->getType()->castAs<language::Core::FunctionType>()),
         TheDecl(decl), isMutating(isMutating) {}
   ParameterConvention
   getIndirectSelfParameter(const AbstractionPattern &type) const override {
@@ -3915,7 +3915,7 @@ public:
     return super::getIndirectParameter(index, type, substTL);
   }
   ResultConvention getResult(const TypeLowering &resultTL) const override {
-    if (isa<clang::CXXConstructorDecl>(TheDecl)) {
+    if (isa<language::Core::CXXConstructorDecl>(TheDecl)) {
       // Represent the `this` pointer as an indirectly returned result.
       // This gets us most of the way towards representing the ABI of a
       // constructor correctly, but it's not guaranteed to be entirely correct.
@@ -3938,7 +3938,7 @@ public:
             getCxxRefConventionWithAttrs(resultTL, TheDecl))
       return *resultConventionOpt;
 
-    if (TheDecl->hasAttr<clang::CFReturnsRetainedAttr>() &&
+    if (TheDecl->hasAttr<language::Core::CFReturnsRetainedAttr>() &&
         resultTL.getLoweredType().isForeignReferenceType()) {
       return ResultConvention::Owned;
     }
@@ -3954,11 +3954,11 @@ public:
 /// Given that we have an imported Clang declaration, deduce the
 /// ownership conventions for calling it and build the SILFunctionType.
 static CanSILFunctionType getSILFunctionTypeForClangDecl(
-    TypeConverter &TC, const clang::Decl *clangDecl,
+    TypeConverter &TC, const language::Core::Decl *clangDecl,
     CanAnyFunctionType origType, CanAnyFunctionType substInterfaceType,
     SILExtInfoBuilder extInfoBuilder, const ForeignInfo &foreignInfo,
     std::optional<SILDeclRef> constant) {
-  if (auto method = dyn_cast<clang::ObjCMethodDecl>(clangDecl)) {
+  if (auto method = dyn_cast<language::Core::ObjCMethodDecl>(clangDecl)) {
     auto origPattern = AbstractionPattern::getObjCMethod(
         origType, method, foreignInfo.error, foreignInfo.async);
     return getSILFunctionType(
@@ -3967,10 +3967,10 @@ static CanSILFunctionType getSILFunctionTypeForClangDecl(
         constant, std::nullopt, ProtocolConformanceRef());
   }
 
-  if (auto method = dyn_cast<clang::CXXMethodDecl>(clangDecl)) {
+  if (auto method = dyn_cast<language::Core::CXXMethodDecl>(clangDecl)) {
     // Static methods and ctors should be lowered like plane functions
     // (case below).
-    if (!isa<clang::CXXConstructorDecl>(method) || method->isStatic()) {
+    if (!isa<language::Core::CXXConstructorDecl>(method) || method->isStatic()) {
       AbstractionPattern origPattern = AbstractionPattern::getCXXMethod(origType, method,
                                                                         foreignInfo.self);
       bool isMutating =
@@ -3983,7 +3983,7 @@ static CanSILFunctionType getSILFunctionTypeForClangDecl(
     }
   }
 
-  if (auto fn = dyn_cast<clang::FunctionDecl>(clangDecl)) {
+  if (auto fn = dyn_cast<language::Core::FunctionDecl>(clangDecl)) {
     auto clangType = fn->getType().getTypePtr();
     AbstractionPattern origPattern =
         foreignInfo.self.isImportAsMember()
@@ -4003,7 +4003,7 @@ static CanSILFunctionType getSILFunctionTypeForAbstractCFunction(
     TypeConverter &TC, AbstractionPattern origType,
     CanAnyFunctionType substType, SILExtInfoBuilder extInfoBuilder,
     std::optional<SILDeclRef> constant) {
-  const clang::Type *clangType = nullptr;
+  const language::Core::Type *clangType = nullptr;
 
   if (origType.isClangType())
     clangType = origType.getClangType();
@@ -4011,14 +4011,14 @@ static CanSILFunctionType getSILFunctionTypeForAbstractCFunction(
     clangType = extInfoBuilder.getClangTypeInfo().getType();
 
   if (clangType) {
-    const clang::FunctionType *fnType;
-    if (auto blockPtr = clangType->getAs<clang::BlockPointerType>()) {
-      fnType = blockPtr->getPointeeType()->castAs<clang::FunctionType>();
-    } else if (auto ptr = clangType->getAs<clang::PointerType>()) {
-      fnType = ptr->getPointeeType()->getAs<clang::FunctionType>();
-    } else if (auto ref = clangType->getAs<clang::ReferenceType>()) {
-      fnType = ref->getPointeeType()->getAs<clang::FunctionType>();
-    } else if (auto fn = clangType->getAs<clang::FunctionType>()) {
+    const language::Core::FunctionType *fnType;
+    if (auto blockPtr = clangType->getAs<language::Core::BlockPointerType>()) {
+      fnType = blockPtr->getPointeeType()->castAs<language::Core::FunctionType>();
+    } else if (auto ptr = clangType->getAs<language::Core::PointerType>()) {
+      fnType = ptr->getPointeeType()->getAs<language::Core::FunctionType>();
+    } else if (auto ref = clangType->getAs<language::Core::ReferenceType>()) {
+      fnType = ref->getPointeeType()->getAs<language::Core::FunctionType>();
+    } else if (auto fn = clangType->getAs<language::Core::FunctionType>()) {
       fnType = fn;
     } else {
       toolchain_unreachable("unexpected type imported as a function type");
@@ -4039,7 +4039,7 @@ static CanSILFunctionType getSILFunctionTypeForAbstractCFunction(
 }
 
 /// Try to find a clang method declaration for the given function.
-static const clang::Decl *findClangMethod(ValueDecl *method) {
+static const language::Core::Decl *findClangMethod(ValueDecl *method) {
   if (auto *methodFn = dyn_cast<FuncDecl>(method)) {
     if (auto *decl = methodFn->getClangDecl())
       return decl;
@@ -4218,7 +4218,7 @@ static CanSILFunctionType getSILFunctionTypeForObjCSelectorFamily(
       /*requirement subs*/ std::nullopt, ProtocolConformanceRef());
 }
 
-static bool isImporterGeneratedAccessor(const clang::Decl *clangDecl,
+static bool isImporterGeneratedAccessor(const language::Core::Decl *clangDecl,
                                         SILDeclRef constant) {
   // Must be an accessor.
   auto accessor = dyn_cast<AccessorDecl>(constant.getDecl());
@@ -4230,7 +4230,7 @@ static bool isImporterGeneratedAccessor(const clang::Decl *clangDecl,
     return false;
 
   // Must be imported from a function.
-  if (!isa<clang::FunctionDecl>(clangDecl))
+  if (!isa<language::Core::FunctionDecl>(clangDecl))
     return false;
 
   return true;
@@ -4250,18 +4250,18 @@ static CanSILFunctionType getUncachedSILFunctionTypeForConstant(
       SILExtInfo(extInfo, false).intoBuilder().withRepresentation(silRep);
 
   if (shouldStoreClangType(silRep)) {
-    const clang::Type *clangType = nullptr;
+    const language::Core::Type *clangType = nullptr;
     if (bridgedTypes.Pattern.isClangType()) {
       clangType = bridgedTypes.Pattern.getClangType();
     }
     if (clangType) {
       // According to [NOTE: ClangTypeInfo-contents], we need to wrap a function
-      // type in an additional clang::PointerType.
+      // type in an additional language::Core::PointerType.
       if (clangType->isFunctionType()) {
         clangType =
             static_cast<ClangImporter *>(TC.Context.getClangModuleLoader())
                 ->getClangASTContext()
-                .getPointerType(clang::QualType(clangType, 0))
+                .getPointerType(language::Core::QualType(clangType, 0))
                 .getTypePtr();
       }
       extInfoBuilder = extInfoBuilder.withClangFunctionType(clangType);
@@ -4374,8 +4374,8 @@ TypeConverter::getDeclRefRepresentation(SILDeclRef c) {
       return SILFunctionTypeRepresentation::CFunctionPointer;
 
     if (auto method =
-            dyn_cast_or_null<clang::CXXMethodDecl>(c.getDecl()->getClangDecl()))
-      return isa<clang::CXXConstructorDecl>(method) || method->isStatic()
+            dyn_cast_or_null<language::Core::CXXMethodDecl>(c.getDecl()->getClangDecl()))
+      return isa<language::Core::CXXConstructorDecl>(method) || method->isStatic()
                  ? SILFunctionTypeRepresentation::CFunctionPointer
                  : SILFunctionTypeRepresentation::CXXMethod;
 
@@ -4841,25 +4841,25 @@ getAbstractionPatternForConstant(ASTContext &ctx, SILDeclRef constant,
   auto bridgedFn = getBridgedFunction(constant);
   if (!bridgedFn)
     return AbstractionPattern(fnType);
-  const clang::Decl *clangDecl = bridgedFn->getClangDecl();
+  const language::Core::Decl *clangDecl = bridgedFn->getClangDecl();
   if (!clangDecl)
     return AbstractionPattern(fnType);
 
   // Don't implicitly turn non-optional results to optional if
   // we're going to apply a foreign error convention that checks
   // for nil results.
-  if (auto method = dyn_cast<clang::ObjCMethodDecl>(clangDecl)) {
+  if (auto method = dyn_cast<language::Core::ObjCMethodDecl>(clangDecl)) {
     assert(numParameterLists == 2 && "getting curried ObjC method type?");
     return AbstractionPattern::getCurriedObjCMethod(fnType, method,
                                       bridgedFn->getForeignErrorConvention(),
                                       bridgedFn->getForeignAsyncConvention());
-  } else if (auto value = dyn_cast<clang::ValueDecl>(clangDecl)) {
+  } else if (auto value = dyn_cast<language::Core::ValueDecl>(clangDecl)) {
     if (numParameterLists == 1) {
       // C function imported as a function.
       return AbstractionPattern(fnType, value->getType().getTypePtr());
     } else {
       assert(numParameterLists == 2);
-      if (isa<clang::CXXMethodDecl>(clangDecl)) {
+      if (isa<language::Core::CXXMethodDecl>(clangDecl)) {
         // C++ method.
         return AbstractionPattern::getCurriedCXXMethod(fnType, bridgedFn);
       } else {
@@ -4995,7 +4995,7 @@ TypeConverter::getLoweredFormalTypes(SILDeclRef constant,
 
   // If this is a C++ constructor, don't add the metatype "self" parameter
   // because we'll never use it and it will cause problems in IRGen.
-  if (isa_and_nonnull<clang::CXXConstructorDecl>(
+  if (isa_and_nonnull<language::Core::CXXConstructorDecl>(
           constant.getDecl()->getClangDecl())) {
     // But, make sure it is actually a metatype that we're not adding. If
     // changes to the self parameter are made in the future, this logic may

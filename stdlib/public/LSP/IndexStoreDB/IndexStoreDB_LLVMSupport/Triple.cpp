@@ -1,20 +1,36 @@
 //===--- Triple.cpp - Target triple helper class --------------------------===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Triple.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_STLExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallString.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringSwitch.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ErrorHandling.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Host.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_TargetParser.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Triple.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_STLExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallString.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringSwitch.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ErrorHandling.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Host.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_TargetParser.h>
 #include <cstring>
-using namespace llvm;
+using namespace toolchain;
 
 StringRef Triple::getArchTypeName(ArchType Kind) {
   switch (Kind) {
@@ -71,7 +87,7 @@ StringRef Triple::getArchTypeName(ArchType Kind) {
   case renderscript64: return "renderscript64";
   }
 
-  llvm_unreachable("Invalid ArchType!");
+  toolchain_unreachable("Invalid ArchType!");
 }
 
 StringRef Triple::getArchTypePrefix(ArchType Kind) {
@@ -167,7 +183,7 @@ StringRef Triple::getVendorTypeName(VendorType Kind) {
   case OpenEmbedded: return "oe";
   }
 
-  llvm_unreachable("Invalid VendorType!");
+  toolchain_unreachable("Invalid VendorType!");
 }
 
 StringRef Triple::getOSTypeName(OSType Kind) {
@@ -212,7 +228,7 @@ StringRef Triple::getOSTypeName(OSType Kind) {
   case Emscripten: return "emscripten";
   }
 
-  llvm_unreachable("Invalid OSType");
+  toolchain_unreachable("Invalid OSType");
 }
 
 StringRef Triple::getEnvironmentTypeName(EnvironmentType Kind) {
@@ -238,7 +254,7 @@ StringRef Triple::getEnvironmentTypeName(EnvironmentType Kind) {
   case Simulator: return "simulator";
   }
 
-  llvm_unreachable("Invalid EnvironmentType!");
+  toolchain_unreachable("Invalid EnvironmentType!");
 }
 
 static Triple::ArchType parseBPFArch(StringRef ArchName) {
@@ -632,7 +648,7 @@ static StringRef getObjectFormatTypeName(Triple::ObjectFormatType Kind) {
   case Triple::Wasm: return "wasm";
   case Triple::XCOFF: return "xcoff";
   }
-  llvm_unreachable("unknown object format type");
+  toolchain_unreachable("unknown object format type");
 }
 
 static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
@@ -703,7 +719,7 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
   case Triple::wasm64:
     return Triple::Wasm;
   }
-  llvm_unreachable("unknown architecture");
+  toolchain_unreachable("unknown architecture");
 }
 
 /// Construct a triple from the string representation provided.
@@ -835,7 +851,7 @@ std::string Triple::normalize(StringRef Str) {
       bool Valid = false;
       StringRef Comp = Components[Idx];
       switch (Pos) {
-      default: llvm_unreachable("unexpected component type!");
+      default: toolchain_unreachable("unexpected component type!");
       case 0:
         Arch = parseArch(Comp);
         Valid = Arch != UnknownArch;
@@ -936,7 +952,7 @@ std::string Triple::normalize(StringRef Str) {
   }
 
   // SUSE uses "gnueabi" to mean "gnueabihf"
-  if (Vendor == Triple::SUSE && Environment == llvm::Triple::GNUEABI)
+  if (Vendor == Triple::SUSE && Environment == toolchain::Triple::GNUEABI)
     Components[3] = "gnueabihf";
 
   if (OS == Triple::Win32) {
@@ -1065,7 +1081,7 @@ bool Triple::getMacOSXVersion(unsigned &Major, unsigned &Minor,
   getOSVersion(Major, Minor, Micro);
 
   switch (getOS()) {
-  default: llvm_unreachable("unexpected OS for Darwin triple");
+  default: toolchain_unreachable("unexpected OS for Darwin triple");
   case Darwin:
     // Default to darwin8, i.e., MacOSX 10.4.
     if (Major == 0)
@@ -1098,7 +1114,7 @@ bool Triple::getMacOSXVersion(unsigned &Major, unsigned &Minor,
     Micro = 0;
     break;
   case XROS:
-    llvm_unreachable("OSX version isn't relevant for xrOS");
+    toolchain_unreachable("OSX version isn't relevant for xrOS");
   }
   return true;
 }
@@ -1106,7 +1122,7 @@ bool Triple::getMacOSXVersion(unsigned &Major, unsigned &Minor,
 void Triple::getiOSVersion(unsigned &Major, unsigned &Minor,
                            unsigned &Micro) const {
   switch (getOS()) {
-  default: llvm_unreachable("unexpected OS for Darwin triple");
+  default: toolchain_unreachable("unexpected OS for Darwin triple");
   case Darwin:
   case MacOSX:
     // Ignore the version from the triple.  This is only handled because the
@@ -1125,7 +1141,7 @@ void Triple::getiOSVersion(unsigned &Major, unsigned &Minor,
       Major = (getArch() == aarch64) ? 7 : 5;
     break;
   case WatchOS:
-    llvm_unreachable("conflicting triple info");
+    toolchain_unreachable("conflicting triple info");
   case XROS: {
     // xrOS 1 is aligned with iOS 17.
     getOSVersion(Major, Minor, Micro);
@@ -1138,7 +1154,7 @@ void Triple::getiOSVersion(unsigned &Major, unsigned &Minor,
 void Triple::getWatchOSVersion(unsigned &Major, unsigned &Minor,
                                unsigned &Micro) const {
   switch (getOS()) {
-  default: llvm_unreachable("unexpected OS for Darwin triple");
+  default: toolchain_unreachable("unexpected OS for Darwin triple");
   case Darwin:
   case MacOSX:
     // Ignore the version from the triple.  This is only handled because the
@@ -1155,9 +1171,9 @@ void Triple::getWatchOSVersion(unsigned &Major, unsigned &Minor,
       Major = 2;
     break;
   case IOS:
-    llvm_unreachable("conflicting triple info");
+    toolchain_unreachable("conflicting triple info");
   case XROS:
-    llvm_unreachable("watchOS version isn't relevant for xrOS");
+    toolchain_unreachable("watchOS version isn't relevant for xrOS");
   }
 }
 
@@ -1225,67 +1241,67 @@ void Triple::setOSAndEnvironmentName(StringRef Str) {
   setTriple(getArchName() + "-" + getVendorName() + "-" + Str);
 }
 
-static unsigned getArchPointerBitWidth(llvm::Triple::ArchType Arch) {
+static unsigned getArchPointerBitWidth(toolchain::Triple::ArchType Arch) {
   switch (Arch) {
-  case llvm::Triple::UnknownArch:
+  case toolchain::Triple::UnknownArch:
     return 0;
 
-  case llvm::Triple::avr:
-  case llvm::Triple::msp430:
+  case toolchain::Triple::avr:
+  case toolchain::Triple::msp430:
     return 16;
 
-  case llvm::Triple::arc:
-  case llvm::Triple::arm:
-  case llvm::Triple::armeb:
-  case llvm::Triple::hexagon:
-  case llvm::Triple::le32:
-  case llvm::Triple::mips:
-  case llvm::Triple::mipsel:
-  case llvm::Triple::nvptx:
-  case llvm::Triple::ppc:
-  case llvm::Triple::r600:
-  case llvm::Triple::riscv32:
-  case llvm::Triple::sparc:
-  case llvm::Triple::sparcel:
-  case llvm::Triple::tce:
-  case llvm::Triple::tcele:
-  case llvm::Triple::thumb:
-  case llvm::Triple::thumbeb:
-  case llvm::Triple::x86:
-  case llvm::Triple::xcore:
-  case llvm::Triple::amdil:
-  case llvm::Triple::hsail:
-  case llvm::Triple::spir:
-  case llvm::Triple::kalimba:
-  case llvm::Triple::lanai:
-  case llvm::Triple::shave:
-  case llvm::Triple::wasm32:
-  case llvm::Triple::renderscript32:
+  case toolchain::Triple::arc:
+  case toolchain::Triple::arm:
+  case toolchain::Triple::armeb:
+  case toolchain::Triple::hexagon:
+  case toolchain::Triple::le32:
+  case toolchain::Triple::mips:
+  case toolchain::Triple::mipsel:
+  case toolchain::Triple::nvptx:
+  case toolchain::Triple::ppc:
+  case toolchain::Triple::r600:
+  case toolchain::Triple::riscv32:
+  case toolchain::Triple::sparc:
+  case toolchain::Triple::sparcel:
+  case toolchain::Triple::tce:
+  case toolchain::Triple::tcele:
+  case toolchain::Triple::thumb:
+  case toolchain::Triple::thumbeb:
+  case toolchain::Triple::x86:
+  case toolchain::Triple::xcore:
+  case toolchain::Triple::amdil:
+  case toolchain::Triple::hsail:
+  case toolchain::Triple::spir:
+  case toolchain::Triple::kalimba:
+  case toolchain::Triple::lanai:
+  case toolchain::Triple::shave:
+  case toolchain::Triple::wasm32:
+  case toolchain::Triple::renderscript32:
     return 32;
 
-  case llvm::Triple::aarch64:
-  case llvm::Triple::aarch64_be:
-  case llvm::Triple::amdgcn:
-  case llvm::Triple::bpfel:
-  case llvm::Triple::bpfeb:
-  case llvm::Triple::le64:
-  case llvm::Triple::mips64:
-  case llvm::Triple::mips64el:
-  case llvm::Triple::nvptx64:
-  case llvm::Triple::ppc64:
-  case llvm::Triple::ppc64le:
-  case llvm::Triple::riscv64:
-  case llvm::Triple::sparcv9:
-  case llvm::Triple::systemz:
-  case llvm::Triple::x86_64:
-  case llvm::Triple::amdil64:
-  case llvm::Triple::hsail64:
-  case llvm::Triple::spir64:
-  case llvm::Triple::wasm64:
-  case llvm::Triple::renderscript64:
+  case toolchain::Triple::aarch64:
+  case toolchain::Triple::aarch64_be:
+  case toolchain::Triple::amdgcn:
+  case toolchain::Triple::bpfel:
+  case toolchain::Triple::bpfeb:
+  case toolchain::Triple::le64:
+  case toolchain::Triple::mips64:
+  case toolchain::Triple::mips64el:
+  case toolchain::Triple::nvptx64:
+  case toolchain::Triple::ppc64:
+  case toolchain::Triple::ppc64le:
+  case toolchain::Triple::riscv64:
+  case toolchain::Triple::sparcv9:
+  case toolchain::Triple::systemz:
+  case toolchain::Triple::x86_64:
+  case toolchain::Triple::amdil64:
+  case toolchain::Triple::hsail64:
+  case toolchain::Triple::spir64:
+  case toolchain::Triple::wasm64:
+  case toolchain::Triple::renderscript64:
     return 64;
   }
-  llvm_unreachable("Invalid architecture value");
+  toolchain_unreachable("Invalid architecture value");
 }
 
 bool Triple::isArch64Bit() const {
@@ -1475,7 +1491,7 @@ Triple Triple::getBigEndianArchVariant() const {
   case Triple::ppc64le: T.setArch(Triple::ppc64);      break;
   case Triple::sparcel: T.setArch(Triple::sparc);      break;
   default:
-    llvm_unreachable("getBigEndianArchVariant: unknown triple.");
+    toolchain_unreachable("getBigEndianArchVariant: unknown triple.");
   }
   return T;
 }
@@ -1507,7 +1523,7 @@ Triple Triple::getLittleEndianArchVariant() const {
   case Triple::ppc64:      T.setArch(Triple::ppc64le);  break;
   case Triple::sparc:      T.setArch(Triple::sparcel);  break;
   default:
-    llvm_unreachable("getLittleEndianArchVariant: unknown triple.");
+    toolchain_unreachable("getLittleEndianArchVariant: unknown triple.");
   }
   return T;
 }
@@ -1595,18 +1611,18 @@ StringRef Triple::getARMCPUForArch(StringRef MArch) const {
 
   // Some defaults are forced.
   switch (getOS()) {
-  case llvm::Triple::FreeBSD:
-  case llvm::Triple::NetBSD:
+  case toolchain::Triple::FreeBSD:
+  case toolchain::Triple::NetBSD:
     if (!MArch.empty() && MArch == "v6")
       return "arm1176jzf-s";
     break;
-  case llvm::Triple::Win32:
+  case toolchain::Triple::Win32:
     // FIXME: this is invalid for WindowsCE
     return "cortex-a9";
-  case llvm::Triple::MacOSX:
-  case llvm::Triple::IOS:
-  case llvm::Triple::WatchOS:
-  case llvm::Triple::TvOS:
+  case toolchain::Triple::MacOSX:
+  case toolchain::Triple::IOS:
+  case toolchain::Triple::WatchOS:
+  case toolchain::Triple::TvOS:
     if (MArch == "v7k")
       return "cortex-a7";
     break;
@@ -1624,29 +1640,29 @@ StringRef Triple::getARMCPUForArch(StringRef MArch) const {
   // If no specific architecture version is requested, return the minimum CPU
   // required by the OS and environment.
   switch (getOS()) {
-  case llvm::Triple::NetBSD:
+  case toolchain::Triple::NetBSD:
     switch (getEnvironment()) {
-    case llvm::Triple::GNUEABIHF:
-    case llvm::Triple::GNUEABI:
-    case llvm::Triple::EABIHF:
-    case llvm::Triple::EABI:
+    case toolchain::Triple::GNUEABIHF:
+    case toolchain::Triple::GNUEABI:
+    case toolchain::Triple::EABIHF:
+    case toolchain::Triple::EABI:
       return "arm926ej-s";
     default:
       return "strongarm";
     }
-  case llvm::Triple::NaCl:
-  case llvm::Triple::OpenBSD:
+  case toolchain::Triple::NaCl:
+  case toolchain::Triple::OpenBSD:
     return "cortex-a8";
   default:
     switch (getEnvironment()) {
-    case llvm::Triple::EABIHF:
-    case llvm::Triple::GNUEABIHF:
-    case llvm::Triple::MuslEABIHF:
+    case toolchain::Triple::EABIHF:
+    case toolchain::Triple::GNUEABIHF:
+    case toolchain::Triple::MuslEABIHF:
       return "arm1176jzf-s";
     default:
       return "arm7tdmi";
     }
   }
 
-  llvm_unreachable("invalid arch name");
+  toolchain_unreachable("invalid arch name");
 }

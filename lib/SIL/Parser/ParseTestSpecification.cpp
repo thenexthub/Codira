@@ -537,7 +537,7 @@ private:
     if (!peekPrefix("%"))
       return SILValue();
     auto nameEnd = specification.find_if_not(
-        [](char c) { return clang::isAsciiIdentifierContinue(c); }, 1);
+        [](char c) { return language::Core::isAsciiIdentifierContinue(c); }, 1);
     if (nameEnd == StringRef::npos)
       nameEnd = specification.size();
     auto name = specification.take_front(nameEnd);

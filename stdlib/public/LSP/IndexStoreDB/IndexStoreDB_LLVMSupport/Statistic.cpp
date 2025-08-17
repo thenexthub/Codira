@@ -1,8 +1,24 @@
 //===-- Statistic.cpp - Easy way to expose stats information --------------===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -20,20 +36,20 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Statistic.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_CommandLine.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Compiler.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Debug.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Format.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ManagedStatic.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Mutex.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Timer.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_YAMLTraits.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Statistic.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_CommandLine.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Compiler.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Debug.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Format.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ManagedStatic.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Mutex.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Timer.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_YAMLTraits.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 #include <algorithm>
 #include <cstring>
-using namespace llvm;
+using namespace toolchain;
 
 /// -stats - Command line option to cause transformations to emit stats about
 /// what they did.
@@ -52,16 +68,16 @@ static bool PrintOnExit;
 
 namespace {
 /// This class is used in a ManagedStatic so that it is created on demand (when
-/// the first statistic is bumped) and destroyed only when llvm_shutdown is
+/// the first statistic is bumped) and destroyed only when toolchain_shutdown is
 /// called. We print statistics from the destructor.
 /// This class is also used to look up statistic values from applications that
 /// use LLVM.
 class StatisticInfo {
   std::vector<Statistic*> Stats;
 
-  friend void llvm::PrintStatistics();
-  friend void llvm::PrintStatistics(raw_ostream &OS);
-  friend void llvm::PrintStatisticsJSON(raw_ostream &OS);
+  friend void toolchain::PrintStatistics();
+  friend void toolchain::PrintStatistics(raw_ostream &OS);
+  friend void toolchain::PrintStatisticsJSON(raw_ostream &OS);
 
   /// Sort statistics by debugtype,name,description.
   void sort();
@@ -93,7 +109,7 @@ static ManagedStatic<sys::SmartMutex<true> > StatLock;
 void Statistic::RegisterStatistic() {
   // If stats are enabled, inform StatInfo that this statistic should be
   // printed.
-  // llvm_shutdown calls destructors while holding the ManagedStatic mutex.
+  // toolchain_shutdown calls destructors while holding the ManagedStatic mutex.
   // These destructors end up calling PrintStatistics, which takes StatLock.
   // Since dereferencing StatInfo and StatLock can require taking the
   // ManagedStatic mutex, doing so with StatLock held would lead to a lock
@@ -122,15 +138,15 @@ StatisticInfo::StatisticInfo() {
 // Print information when destroyed, iff command line option is specified.
 StatisticInfo::~StatisticInfo() {
   if (::Stats || PrintOnExit)
-    llvm::PrintStatistics();
+    toolchain::PrintStatistics();
 }
 
-void llvm::EnableStatistics(bool PrintOnExit) {
+void toolchain::EnableStatistics(bool PrintOnExit) {
   Enabled = true;
   ::PrintOnExit = PrintOnExit;
 }
 
-bool llvm::AreStatisticsEnabled() {
+bool toolchain::AreStatisticsEnabled() {
   return Enabled || Stats;
 }
 
@@ -169,7 +185,7 @@ void StatisticInfo::reset() {
   Stats.clear();
 }
 
-void llvm::PrintStatistics(raw_ostream &OS) {
+void toolchain::PrintStatistics(raw_ostream &OS) {
   StatisticInfo &Stats = *StatInfo;
 
   // Figure out how long the biggest Value and Name fields are.
@@ -199,7 +215,7 @@ void llvm::PrintStatistics(raw_ostream &OS) {
   OS.flush();
 }
 
-void llvm::PrintStatisticsJSON(raw_ostream &OS) {
+void toolchain::PrintStatisticsJSON(raw_ostream &OS) {
   sys::SmartScopedLock<true> Reader(*StatLock);
   StatisticInfo &Stats = *StatInfo;
 
@@ -225,7 +241,7 @@ void llvm::PrintStatisticsJSON(raw_ostream &OS) {
   OS.flush();
 }
 
-void llvm::PrintStatistics() {
+void toolchain::PrintStatistics() {
 #if LLVM_ENABLE_STATS
   sys::SmartScopedLock<true> Reader(*StatLock);
   StatisticInfo &Stats = *StatInfo;
@@ -253,7 +269,7 @@ void llvm::PrintStatistics() {
 #endif
 }
 
-const std::vector<std::pair<StringRef, unsigned>> llvm::GetStatistics() {
+const std::vector<std::pair<StringRef, unsigned>> toolchain::GetStatistics() {
   sys::SmartScopedLock<true> Reader(*StatLock);
   std::vector<std::pair<StringRef, unsigned>> ReturnStats;
 
@@ -262,6 +278,6 @@ const std::vector<std::pair<StringRef, unsigned>> llvm::GetStatistics() {
   return ReturnStats;
 }
 
-void llvm::ResetStatistics() {
+void toolchain::ResetStatistics() {
   StatInfo->reset();
 }

@@ -21,8 +21,8 @@
 #include "language/AST/NameLookup.h"
 #include "language/AST/NameLookupRequests.h"
 #include "language/Basic/Assertions.h"
-#include "clang/AST/Attr.h"
-#include "clang/AST/ExprCXX.h"
+#include "language/Core/AST/Attr.h"
+#include "language/Core/AST/ExprCXX.h"
 #include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
@@ -291,16 +291,16 @@ void ModuleNameLookup<LookupStrategy>::lookupInModule(
   bool hasPreferredOverload = false;
   for (auto decl : decls)
     if (const auto *clangDecl = decl->getClangDecl()) {
-      if (clangDecl->hasAttr<clang::EnableIfAttr>()) {
+      if (clangDecl->hasAttr<language::Core::EnableIfAttr>()) {
         // FIXME: at some point we might want to call into Clang to implement
         // the full enable_if semantics including the constant evaluation of the
         // conditions. For now, just look for the first enable_if(true, "...")
         // and assume all the rest of the enable_ifs evaluate to true.
         bool thisDeclHasPreferredOverload = false;
         for (auto clangAttr :
-             clangDecl->specific_attrs<clang::EnableIfAttr>()) {
+             clangDecl->specific_attrs<language::Core::EnableIfAttr>()) {
           if (auto litExpr =
-                  dyn_cast<clang::CXXBoolLiteralExpr>(clangAttr->getCond())) {
+                  dyn_cast<language::Core::CXXBoolLiteralExpr>(clangAttr->getCond())) {
             if (litExpr->getValue()) {
               thisDeclHasPreferredOverload = hasPreferredOverload = true;
               break;

@@ -37,7 +37,7 @@
 
 // This class keeps the contents of CFI shadow up-to-date with the current set of loaded libraries.
 // See the comment in CFIShadow.h for more context.
-// See documentation in http://clang.llvm.org/docs/ControlFlowIntegrityDesign.html#shared-library-support.
+// See documentation in http://clang.toolchain.org/docs/ControlFlowIntegrityDesign.html#shared-library-support.
 //
 // Shadow is mapped and initialized lazily as soon as the first CFI-enabled DSO is loaded.
 // It is updated after any library is loaded (but before any constructors are ran), and

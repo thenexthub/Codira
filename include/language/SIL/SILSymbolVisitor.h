@@ -139,7 +139,7 @@ template <typename F>
 void enumerateFunctionsForHasSymbol(SILModule &M, ValueDecl *D, F Handler) {
   // Handle clang decls separately.
   if (auto *clangDecl = D->getClangDecl()) {
-    if (isa<clang::FunctionDecl>(clangDecl))
+    if (isa<language::Core::FunctionDecl>(clangDecl))
       Handler(SILDeclRef(D).asForeign());
 
     return;

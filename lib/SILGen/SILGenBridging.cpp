@@ -35,7 +35,7 @@
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/SILUndef.h"
 #include "language/SIL/TypeLowering.h"
-#include "clang/AST/DeclObjC.h"
+#include "language/Core/AST/DeclObjC.h"
 
 using namespace language;
 using namespace Lowering;
@@ -2081,7 +2081,7 @@ static SILValue getThunkedForeignFunctionRef(SILGenFunction &SGF,
   if (foreignCI.SILFnType->getRepresentation() ==
       SILFunctionTypeRepresentation::ObjCMethod) {
     auto *objcDecl =
-        dyn_cast_or_null<clang::ObjCMethodDecl>(fd->getClangDecl());
+        dyn_cast_or_null<language::Core::ObjCMethodDecl>(fd->getClangDecl());
     const bool isObjCDirect = objcDecl && objcDecl->isDirectMethod();
     if (isObjCDirect) {
       auto *fn = SGF.SGM.getFunction(foreign, NotForDefinition);

@@ -44,13 +44,13 @@
 #include "language/Sema/IDETypeChecking.h"
 #include "language/SymbolGraphGen/SymbolGraphGen.h"
 
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/DeclObjC.h"
-#include "clang/Basic/CharInfo.h"
-#include "clang/Basic/Module.h"
-#include "clang/Basic/SourceManager.h"
-#include "clang/Index/USRGeneration.h"
-#include "clang/Lex/Lexer.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/DeclObjC.h"
+#include "language/Core/Basic/CharInfo.h"
+#include "language/Core/Basic/Module.h"
+#include "language/Core/Basic/SourceManager.h"
+#include "language/Core/Index/USRGeneration.h"
+#include "language/Core/Lex/Lexer.h"
 
 #include "toolchain/Support/Compiler.h"
 #include "toolchain/Support/MemoryBuffer.h"
@@ -849,29 +849,29 @@ static ArrayRef<T> copyAndClearArray(toolchain::BumpPtrAllocator &Allocator,
 static void setLocationInfoForClangNode(ClangNode ClangNode,
                                         ClangImporter *Importer,
                                         LocationInfo &Location) {
-  clang::ASTContext &ClangCtx = Importer->getClangASTContext();
-  clang::SourceManager &ClangSM = ClangCtx.getSourceManager();
+  language::Core::ASTContext &ClangCtx = Importer->getClangASTContext();
+  language::Core::SourceManager &ClangSM = ClangCtx.getSourceManager();
 
-  clang::SourceRange SR = ClangNode.getLocation();
+  language::Core::SourceRange SR = ClangNode.getLocation();
   if (auto MD =
-          dyn_cast_or_null<clang::ObjCMethodDecl>(ClangNode.getAsDecl())) {
-    SR = clang::SourceRange(MD->getSelectorStartLoc(),
+          dyn_cast_or_null<language::Core::ObjCMethodDecl>(ClangNode.getAsDecl())) {
+    SR = language::Core::SourceRange(MD->getSelectorStartLoc(),
                             MD->getDeclaratorEndLoc());
   }
 
-  clang::CharSourceRange CharRange =
-      clang::Lexer::makeFileCharRange(clang::CharSourceRange::getTokenRange(SR),
+  language::Core::CharSourceRange CharRange =
+      language::Core::Lexer::makeFileCharRange(language::Core::CharSourceRange::getTokenRange(SR),
                                       ClangSM, ClangCtx.getLangOpts());
   if (CharRange.isInvalid())
     return;
 
-  std::pair<clang::FileID, unsigned> Decomp =
+  std::pair<language::Core::FileID, unsigned> Decomp =
       ClangSM.getDecomposedLoc(CharRange.getBegin());
   if (!Decomp.first.isInvalid()) {
     if (auto FE = ClangSM.getFileEntryRefForID(Decomp.first)) {
       Location.Filename = FE->getName();
 
-      std::pair<clang::FileID, unsigned> EndDecomp =
+      std::pair<language::Core::FileID, unsigned> EndDecomp =
           ClangSM.getDecomposedLoc(CharRange.getEnd());
 
       Location.Offset = Decomp.second;
@@ -1158,15 +1158,15 @@ fillSymbolInfo(CursorSymbolInfo &Symbol, const DeclInfo &DInfo,
 
   ide::walkOverriddenDecls(
       DInfo.VD,
-      [&](toolchain::PointerUnion<const ValueDecl *, const clang::NamedDecl *> D) {
+      [&](toolchain::PointerUnion<const ValueDecl *, const language::Core::NamedDecl *> D) {
         // Could have junk in from previous failing USR print
         Buffer.clear();
         if (auto VD = D.dyn_cast<const ValueDecl *>()) {
           if (CodiraLangSupport::printUSR(VD, OS))
             return;
         } else {
-          if (clang::index::generateUSRForDecl(
-                  D.get<const clang::NamedDecl *>(), Buffer))
+          if (language::Core::index::generateUSRForDecl(
+                  D.get<const language::Core::NamedDecl *>(), Buffer))
             return;
         }
         Strings.push_back(copyAndClearString(Allocator, Buffer));
@@ -1373,34 +1373,34 @@ static bool passCursorInfoForDecl(
   return true;
 }
 
-static clang::DeclarationName
-getClangDeclarationName(const clang::NamedDecl *ND, NameTranslatingInfo &Info) {
+static language::Core::DeclarationName
+getClangDeclarationName(const language::Core::NamedDecl *ND, NameTranslatingInfo &Info) {
   auto &Ctx = ND->getASTContext();
   auto OrigName = ND->getDeclName();
   assert(CodiraLangSupport::getNameKindForUID(Info.NameKind) == NameKind::ObjC);
   if (Info.BaseName.empty() == Info.ArgNames.empty()) {
     // cannot have both.
-    return clang::DeclarationName();
+    return language::Core::DeclarationName();
   }
   if (!Info.BaseName.empty()) {
-    return clang::DeclarationName(&Ctx.Idents.get(Info.BaseName));
+    return language::Core::DeclarationName(&Ctx.Idents.get(Info.BaseName));
   } else {
     switch (OrigName.getNameKind()) {
-    case clang::DeclarationName::ObjCZeroArgSelector:
-    case clang::DeclarationName::ObjCOneArgSelector:
-    case clang::DeclarationName::ObjCMultiArgSelector:
+    case language::Core::DeclarationName::ObjCZeroArgSelector:
+    case language::Core::DeclarationName::ObjCOneArgSelector:
+    case language::Core::DeclarationName::ObjCMultiArgSelector:
       break;
     default:
-      return clang::DeclarationName();
+      return language::Core::DeclarationName();
     }
 
     auto OrigSel = OrigName.getObjCSelector();
     unsigned NumPieces = OrigSel.isUnarySelector() ? 1 : OrigSel.getNumArgs();
     if (Info.ArgNames.size() > NumPieces)
-      return clang::DeclarationName();
+      return language::Core::DeclarationName();
 
     ArrayRef<StringRef> Args = toolchain::ArrayRef(Info.ArgNames);
-    std::vector<const clang::IdentifierInfo *> Pieces;
+    std::vector<const language::Core::IdentifierInfo *> Pieces;
     for (unsigned i = 0; i < NumPieces; ++i) {
       if (i >= Info.ArgNames.size() || Info.ArgNames[i].empty()) {
         Pieces.push_back(OrigSel.getIdentifierInfoForSlot(i));
@@ -1409,7 +1409,7 @@ getClangDeclarationName(const clang::NamedDecl *ND, NameTranslatingInfo &Info) {
         Pieces.push_back(&Ctx.Idents.get(T.ends_with(":") ? T.drop_back() : T));
       }
     }
-    return clang::DeclarationName(
+    return language::Core::DeclarationName(
         Ctx.Selectors.getSelector(OrigSel.getNumArgs(), Pieces.data()));
   }
 }
@@ -1492,11 +1492,11 @@ static bool passNameInfoForDecl(
     ClangImporter *Importer = static_cast<ClangImporter *>(VD->getDeclContext()->
       getASTContext().getClangModuleLoader());
 
-    const clang::NamedDecl *Named = nullptr;
+    const language::Core::NamedDecl *Named = nullptr;
     auto *BaseDecl = VD;
 
     while (!Named && BaseDecl) {
-      Named = dyn_cast_or_null<clang::NamedDecl>(BaseDecl->getClangDecl());
+      Named = dyn_cast_or_null<language::Core::NamedDecl>(BaseDecl->getClangDecl());
       BaseDecl = BaseDecl->getOverriddenDecl();
     }
     if (!Named) {

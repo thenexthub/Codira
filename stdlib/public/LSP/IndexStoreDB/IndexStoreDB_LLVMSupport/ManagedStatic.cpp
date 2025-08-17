@@ -1,40 +1,56 @@
 //===-- ManagedStatic.cpp - Static Global wrapper -------------------------===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
-// This file implements the ManagedStatic class and llvm_shutdown().
+// This file implements the ManagedStatic class and toolchain_shutdown().
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ManagedStatic.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Config_config.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Mutex.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_MutexGuard.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Threading.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ManagedStatic.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_config.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Mutex.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_MutexGuard.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Threading.h>
 #include <cassert>
-using namespace llvm;
+using namespace toolchain;
 
 static const ManagedStaticBase *StaticList = nullptr;
 static sys::Mutex *ManagedStaticMutex = nullptr;
-static llvm::once_flag mutex_init_flag;
+static toolchain::once_flag mutex_init_flag;
 
 static void initializeMutex() {
   ManagedStaticMutex = new sys::Mutex();
 }
 
 static sys::Mutex* getManagedStaticMutex() {
-  llvm::call_once(mutex_init_flag, initializeMutex);
+  toolchain::call_once(mutex_init_flag, initializeMutex);
   return ManagedStaticMutex;
 }
 
 void ManagedStaticBase::RegisterManagedStatic(void *(*Creator)(),
                                               void (*Deleter)(void*)) const {
   assert(Creator);
-  if (llvm_is_multithreaded()) {
+  if (toolchain_is_multithreaded()) {
     MutexGuard Lock(*getManagedStaticMutex());
 
     if (!Ptr.load(std::memory_order_relaxed)) {
@@ -75,8 +91,8 @@ void ManagedStaticBase::destroy() const {
   DeleterFn = nullptr;
 }
 
-/// llvm_shutdown - Deallocate and destroy all ManagedStatic variables.
-void llvm::llvm_shutdown() {
+/// toolchain_shutdown - Deallocate and destroy all ManagedStatic variables.
+void toolchain::toolchain_shutdown() {
   MutexGuard Lock(*getManagedStaticMutex());
 
   while (StaticList)

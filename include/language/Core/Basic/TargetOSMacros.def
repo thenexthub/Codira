@@ -1,0 +1,75 @@
+//===--- TargetOSMacros.def - Target OS macros ------------------*- C++ -*-===//
+//
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
+//
+//===----------------------------------------------------------------------===//
+//
+// This file specifies the predefined TARGET_OS_* conditional macros.
+// A target macro `Name` should be defined if `Predicate` evaluates to true.
+// The macro expects `const toolchain::Triple &Triple` and the class `toolchain::Triple`
+// to be available for the predicate.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef TARGET_OS
+#define TARGET_OS(Name, Predicate)
+#endif
+
+// Windows targets.
+TARGET_OS(TARGET_OS_WIN32, Triple.isOSWindows())
+TARGET_OS(TARGET_OS_WINDOWS, Triple.isOSWindows())
+
+// Linux target.
+TARGET_OS(TARGET_OS_LINUX, Triple.isOSLinux())
+
+// Unix target.
+TARGET_OS(TARGET_OS_UNIX, Triple.isOSNetBSD() ||
+                          Triple.isOSFreeBSD() ||
+                          Triple.isOSOpenBSD() ||
+                          Triple.isOSSolaris())
+
+// Apple (Mac) targets.
+TARGET_OS(TARGET_OS_MAC, Triple.isOSDarwin())
+TARGET_OS(TARGET_OS_OSX, Triple.isMacOSX())
+TARGET_OS(TARGET_OS_IPHONE, Triple.isiOS() || Triple.isTvOS() ||
+                            Triple.isWatchOS() || Triple.isXROS())
+// Triple::isiOS() also includes tvOS
+TARGET_OS(TARGET_OS_IOS, Triple.getOS() == toolchain::Triple::IOS)
+TARGET_OS(TARGET_OS_TV, Triple.isTvOS())
+TARGET_OS(TARGET_OS_WATCH, Triple.isWatchOS())
+TARGET_OS(TARGET_OS_VISION, Triple.isXROS())
+TARGET_OS(TARGET_OS_DRIVERKIT, Triple.isDriverKit())
+TARGET_OS(TARGET_OS_MACCATALYST, Triple.isMacCatalystEnvironment())
+TARGET_OS(TARGET_OS_SIMULATOR, Triple.isSimulatorEnvironment())
+
+// Deprecated Apple target conditionals.
+TARGET_OS(TARGET_OS_EMBEDDED, (Triple.isiOS() || Triple.isTvOS() \
+                               || Triple.isWatchOS() || Triple.isXROS()) \
+                               && !Triple.isMacCatalystEnvironment() \
+                               && !Triple.isSimulatorEnvironment())
+TARGET_OS(TARGET_OS_NANO, Triple.isWatchOS())
+TARGET_OS(TARGET_IPHONE_SIMULATOR, Triple.isSimulatorEnvironment())
+TARGET_OS(TARGET_OS_UIKITFORMAC, Triple.isMacCatalystEnvironment())
+
+// UEFI target.
+TARGET_OS(TARGET_OS_UEFI, Triple.isUEFI())
+
+#undef TARGET_OS

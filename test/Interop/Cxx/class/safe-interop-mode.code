@@ -22,7 +22,7 @@ struct LANGUAGE_NONESCAPABLE View {
     __attribute__((language_attr("@lifetime(immortal)")))
     View() : member(nullptr) {}
     __attribute__((language_attr("@lifetime(copy p)")))
-    View(const int *p [[clang::lifetimebound]]) : member(p) {}
+    View(const int *p [[language::Core::lifetimebound]]) : member(p) {}
     View(const View&) = default;
 private:
     const int *member;
@@ -59,9 +59,9 @@ using VecOfInt = std::vector<int>;
 using SafeTuple = std::tuple<int, int, int>;
 using UnsafeTuple = std::tuple<int, int*, int>;
 
-View safeFunc(View v1 [[clang::noescape]], View v2 [[clang::lifetimebound]]);
+View safeFunc(View v1 [[language::Core::noescape]], View v2 [[language::Core::lifetimebound]]);
 // Second non-escapable type is not annotated in any way.
-void unsafeFunc(View v1 [[clang::noescape]], View v2);
+void unsafeFunc(View v1 [[language::Core::noescape]], View v2);
 
 class SharedObject {
 private:

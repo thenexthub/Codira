@@ -1,17 +1,33 @@
 //===- StringRef.h - Constant String Reference Wrapper ----------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 
 #ifndef LLVM_ADT_STRINGREF_H
 #define LLVM_ADT_STRINGREF_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_STLExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_iterator_range.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Compiler.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_STLExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_iterator_range.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Compiler.h>
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
@@ -21,7 +37,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace llvm {
+namespace toolchain {
 
   class APInt;
   class hash_code;
@@ -895,6 +911,6 @@ namespace llvm {
   LLVM_NODISCARD
   hash_code hash_value(StringRef S);
 
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif // LLVM_ADT_STRINGREF_H

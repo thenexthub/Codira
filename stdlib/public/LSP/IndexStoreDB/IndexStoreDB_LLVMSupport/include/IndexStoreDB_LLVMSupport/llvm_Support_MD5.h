@@ -28,13 +28,13 @@
 #ifndef LLVM_SUPPORT_MD5_H
 #define LLVM_SUPPORT_MD5_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallString.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Endian.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallString.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Endian.h>
 #include <array>
 #include <cstdint>
 
-namespace llvm {
+namespace toolchain {
 
 template <typename T> class ArrayRef;
 
@@ -117,6 +117,6 @@ inline uint64_t MD5Hash(StringRef Str) {
   return Result.low();
 }
 
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif // LLVM_SUPPORT_MD5_H

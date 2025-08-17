@@ -18,16 +18,16 @@
 #include <IndexStoreDB_Database/Database.h>
 #include <IndexStoreDB_Support/Logging.h>
 #include <IndexStoreDB_Support/Path.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_ArrayRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_FileSystem.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Path.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_ArrayRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_FileSystem.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Path.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 
 using namespace IndexStoreDB;
 using namespace IndexStoreDB::db;
 using namespace IndexStoreDB::index;
 using namespace indexstore;
-using namespace llvm;
+using namespace toolchain;
 
 static SymbolLanguage convertStoreLanguage(indexstore_symbol_language_t storeLang) {
   switch(storeLang) {
@@ -178,7 +178,7 @@ static SymbolRoleSet convertFromIndexStoreRoles(uint64_t Roles, const SymbolInfo
 
 
 StoreSymbolRecord::~StoreSymbolRecord() {
-  // llvm::errs() << "Destructing record: " << RecordName << '\n';
+  // toolchain::errs() << "Destructing record: " << RecordName << '\n';
 }
 
 std::shared_ptr<StoreSymbolRecord>

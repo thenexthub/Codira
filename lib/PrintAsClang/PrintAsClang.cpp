@@ -28,9 +28,9 @@
 #include "language/ClangImporter/ClangImporter.h"
 #include "language/Frontend/FrontendOptions.h"
 
-#include "clang/Basic/FileManager.h"
-#include "clang/Basic/Module.h"
-#include "clang/Lex/HeaderSearch.h"
+#include "language/Core/Basic/FileManager.h"
+#include "language/Core/Basic/Module.h"
+#include "language/Core/Lex/HeaderSearch.h"
 
 #include "toolchain/Support/FormatVariadic.h"
 #include "toolchain/Support/Path.h"
@@ -250,7 +250,7 @@ static int compareImportModulesByName(const ImportModuleTy *left,
   if (leftCodiraModule && rightCodiraModule)
     return leftCodiraModule->getName().compare(rightCodiraModule->getName());
 
-  auto *leftClangModule = left->get<const clang::Module *>();
+  auto *leftClangModule = left->get<const language::Core::Module *>();
   assert((isCxx || leftClangModule->isSubModule()) &&
          "top-level modules should use a normal language::ModuleDecl");
   if (rightCodiraModule) {
@@ -264,7 +264,7 @@ static int compareImportModulesByName(const ImportModuleTy *left,
     return 1;
   }
 
-  auto *rightClangModule = right->get<const clang::Module *>();
+  auto *rightClangModule = right->get<const language::Core::Module *>();
   assert((isCxx || rightClangModule->isSubModule()) &&
          "top-level modules should use a normal language::ModuleDecl");
 
@@ -298,9 +298,9 @@ static toolchain::SmallString<128> normalizePath(const toolchain::StringRef path
 // Clang frontend (FrontendAction.cpp)
 // Augment requiredTextualIncludes with the set of headers required.
 static void collectClangModuleHeaderIncludes(
-    const clang::Module *clangModule, clang::FileManager &fileManager,
+    const language::Core::Module *clangModule, language::Core::FileManager &fileManager,
     toolchain::SmallSet<toolchain::SmallString<128>, 10> &requiredTextualIncludes,
-    toolchain::SmallSet<const clang::Module *, 10> &visitedModules,
+    toolchain::SmallSet<const language::Core::Module *, 10> &visitedModules,
     const toolchain::SmallSet<toolchain::SmallString<128>, 10> &includeDirs,
     const toolchain::StringRef cwd) {
 
@@ -346,11 +346,11 @@ static void collectClangModuleHeaderIncludes(
     requiredTextualIncludes.insert(textualInclude);
   };
 
-  if (std::optional<clang::Module::Header> umbrellaHeader =
+  if (std::optional<language::Core::Module::Header> umbrellaHeader =
           clangModule->getUmbrellaHeaderAsWritten()) {
     addHeader(umbrellaHeader->Entry.getFileEntry().tryGetRealPathName(),
         umbrellaHeader->PathRelativeToRootModuleDirectory);
-  } else if (std::optional<clang::Module::DirectoryName> umbrellaDir =
+  } else if (std::optional<language::Core::Module::DirectoryName> umbrellaDir =
                  clangModule->getUmbrellaDirAsWritten()) {
     SmallString<128> nativeUmbrellaDirPath;
     std::error_code errorCode;
@@ -388,9 +388,9 @@ static void collectClangModuleHeaderIncludes(
       }
     }
   } else {
-    for (clang::Module::HeaderKind headerKind :
-         {clang::Module::HK_Normal, clang::Module::HK_Textual}) {
-      for (const clang::Module::Header &header :
+    for (language::Core::Module::HeaderKind headerKind :
+         {language::Core::Module::HK_Normal, language::Core::Module::HK_Textual}) {
+      for (const language::Core::Module::Header &header :
            clangModule->getHeaders(headerKind)) {
         addHeader(header.Entry.getFileEntry().tryGetRealPathName(),
                   header.PathRelativeToRootModuleDirectory);
@@ -411,7 +411,7 @@ static void
 writeImports(raw_ostream &out, toolchain::SmallPtrSetImpl<ImportModuleTy> &imports,
              ModuleDecl &M, StringRef bridgingHeader,
              const FrontendOptions &frontendOpts,
-             clang::HeaderSearch &clangHeaderSearchInfo,
+             language::Core::HeaderSearch &clangHeaderSearchInfo,
              const toolchain::StringMap<StringRef> &exposedModuleHeaderNames,
              bool useCxxImport = false,
              bool useNonModularIncludes = false) {
@@ -441,13 +441,13 @@ writeImports(raw_ostream &out, toolchain::SmallPtrSetImpl<ImportModuleTy> &impor
     return import->isClangHeaderImportModule();
   };
 
-  clang::FileSystemOptions fileSystemOptions;
-  clang::FileManager fileManager{fileSystemOptions};
+  language::Core::FileSystemOptions fileSystemOptions;
+  language::Core::FileManager fileManager{fileSystemOptions};
 
   toolchain::SmallSet<toolchain::SmallString<128>, 10>
       requiredTextualIncludes; // Only included without modules.
   toolchain::SmallVector<StringRef, 1> textualIncludes; // always included.
-  toolchain::SmallSet<const clang::Module *, 10> visitedModules;
+  toolchain::SmallSet<const language::Core::Module *, 10> visitedModules;
   toolchain::SmallSet<toolchain::SmallString<128>, 10> includeDirs;
 
   toolchain::vfs::FileSystem &fileSystem = fileManager.getVirtualFileSystem();
@@ -461,14 +461,14 @@ writeImports(raw_ostream &out, toolchain::SmallPtrSetImpl<ImportModuleTy> &impor
       includeDirs.insert(normalizePath(searchDir->getName()));
     }
 
-    const clang::Module *foundationModule = clangHeaderSearchInfo.lookupModule(
-        "Foundation", clang::SourceLocation(), false, false);
-    const clang::Module *darwinModule = clangHeaderSearchInfo.lookupModule(
-        "Darwin", clang::SourceLocation(), false, false);
+    const language::Core::Module *foundationModule = clangHeaderSearchInfo.lookupModule(
+        "Foundation", language::Core::SourceLocation(), false, false);
+    const language::Core::Module *darwinModule = clangHeaderSearchInfo.lookupModule(
+        "Darwin", language::Core::SourceLocation(), false, false);
 
-    std::function<void(const clang::Module *)>
+    std::function<void(const language::Core::Module *)>
         collectTransitiveSubmoduleClosure;
-    collectTransitiveSubmoduleClosure = [&](const clang::Module *module) {
+    collectTransitiveSubmoduleClosure = [&](const language::Core::Module *module) {
       if (!module)
         return;
 
@@ -506,14 +506,14 @@ writeImports(raw_ostream &out, toolchain::SmallPtrSetImpl<ImportModuleTy> &impor
       if (seenImports.insert(Name).second) {
         out << importDirective << ' ' << Name.str() << importDirectiveLineEnd;
         if (useNonModularIncludes) {
-          if (const clang::Module *underlyingClangModule =
+          if (const language::Core::Module *underlyingClangModule =
                   languageModule->findUnderlyingClangModule()) {
             collectClangModuleHeaderIncludes(
                 underlyingClangModule, fileManager, requiredTextualIncludes,
                 visitedModules, includeDirs, cwd.get());
           } else if ((underlyingClangModule =
                           clangHeaderSearchInfo.lookupModule(
-                              Name.str(), clang::SourceLocation(), true,
+                              Name.str(), language::Core::SourceLocation(), true,
                               true))) {
             collectClangModuleHeaderIncludes(
                 underlyingClangModule, fileManager, requiredTextualIncludes,
@@ -522,7 +522,7 @@ writeImports(raw_ostream &out, toolchain::SmallPtrSetImpl<ImportModuleTy> &impor
         }
       }
     } else {
-      const auto *clangModule = import.get<const clang::Module *>();
+      const auto *clangModule = import.get<const language::Core::Module *>();
       assert((useCxxImport || clangModule->isSubModule()) &&
              "top-level modules should use a normal language::ModuleDecl");
       out << importDirective << ' ';
@@ -613,7 +613,7 @@ bool language::printAsClangHeader(raw_ostream &os, ModuleDecl *M,
                                StringRef bridgingHeader,
                                const FrontendOptions &frontendOpts,
                                const IRGenOptions &irGenOpts,
-                               clang::HeaderSearch &clangHeaderSearchInfo) {
+                               language::Core::HeaderSearch &clangHeaderSearchInfo) {
   toolchain::PrettyStackTraceString trace("While generating Clang header");
 
   CodiraToClangInteropContext interopContext(*M, irGenOpts);

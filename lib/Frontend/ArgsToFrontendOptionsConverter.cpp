@@ -18,7 +18,7 @@
 
 #include "ArgsToFrontendInputsConverter.h"
 #include "ArgsToFrontendOutputsConverter.h"
-#include "clang/Driver/Driver.h"
+#include "language/Core/Driver/Driver.h"
 #include "language/AST/DiagnosticsFrontend.h"
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Platform.h"
@@ -82,7 +82,7 @@ bool ArgsToFrontendOptionsConverter::convert(
     Opts.ExplicitModulesOutputPath = A->getValue();
   } else {
     SmallString<128> defaultPath;
-    clang::driver::Driver::getDefaultModuleCachePath(defaultPath);
+    language::Core::driver::Driver::getDefaultModuleCachePath(defaultPath);
     Opts.ExplicitModulesOutputPath = defaultPath.str().str();
   }
   if (const Arg *A = Args.getLastArg(OPT_sdk_module_cache_path)) {

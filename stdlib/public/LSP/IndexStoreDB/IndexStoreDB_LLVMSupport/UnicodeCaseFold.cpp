@@ -11,9 +11,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Unicode.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Unicode.h>
 
-int llvm::sys::unicode::foldCharSimple(int C) {
+int toolchain::sys::unicode::foldCharSimple(int C) {
   if (C < 0x0041)
     return C;
   // 26 characters

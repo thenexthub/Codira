@@ -38,9 +38,9 @@
 #include "language/SIL/SILInstruction.h"
 #include "language/Strings.h"
 
-#include "clang/AST/Decl.h"
-#include "clang/AST/DeclObjC.h"
-#include "clang/Basic/Module.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/AST/DeclObjC.h"
+#include "language/Core/Basic/Module.h"
 
 #include "toolchain/Support/raw_ostream.h"
 
@@ -50,8 +50,8 @@ using namespace language::objc_translation;
 using DelayedMemberSet = DeclAndTypePrinter::DelayedMemberSet;
 
 /// Returns true if \p decl represents an <os/object.h> type.
-static bool isOSObjectType(const clang::Decl *decl) {
-  auto *named = dyn_cast_or_null<clang::NamedDecl>(decl);
+static bool isOSObjectType(const language::Core::Decl *decl) {
+  auto *named = dyn_cast_or_null<language::Core::NamedDecl>(decl);
   if (!named)
     return false;
   return !DeclAndTypePrinter::maybeGetOSObjectBaseName(named).empty();
@@ -384,7 +384,7 @@ class ModuleWriter {
   ModuleDecl &M;
 
   toolchain::DenseMap<const TypeDecl *, std::pair<EmissionState, bool>> seenTypes;
-  toolchain::DenseSet<const clang::Type *> seenClangTypes;
+  toolchain::DenseSet<const language::Core::Type *> seenClangTypes;
   std::vector<const Decl *> declsToWrite;
   DelayedMemberSet objcDelayedMembers;
   CxxDeclEmissionScope topLevelEmissionScope;
@@ -561,7 +561,7 @@ public:
 
   void emitReferencedClangTypeMetadata(const TypeDecl *typeDecl) {
     const auto *clangDecl = typeDecl->getClangDecl();
-    if (const auto *objCInt = dyn_cast<clang::ObjCInterfaceDecl>(clangDecl)) {
+    if (const auto *objCInt = dyn_cast<language::Core::ObjCInterfaceDecl>(clangDecl)) {
       auto clangType = clangDecl->getASTContext()
                            .getObjCInterfaceType(objCInt)
                            .getCanonicalType();
@@ -571,13 +571,13 @@ public:
                                                                 printer);
       return;
     }
-    if (!isa<clang::TypeDecl>(clangDecl))
+    if (!isa<language::Core::TypeDecl>(clangDecl))
       return;
     // Get the underlying clang type from a type alias decl or record decl.
     auto clangType = clangDecl->getASTContext()
-                         .getTypeDeclType(cast<clang::TypeDecl>(clangDecl))
+                         .getTypeDeclType(cast<language::Core::TypeDecl>(clangDecl))
                          .getCanonicalType();
-    if (!isa<clang::RecordType>(clangType.getTypePtr()))
+    if (!isa<language::Core::RecordType>(clangType.getTypePtr()))
       return;
     auto it = seenClangTypes.insert(clangType.getTypePtr());
     if (it.second)

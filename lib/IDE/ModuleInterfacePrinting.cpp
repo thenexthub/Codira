@@ -33,13 +33,13 @@
 #include "language/Parse/Token.h"
 #include "language/Subsystems.h"
 #include "language/Serialization/SerializedModuleLoader.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Decl.h"
-#include "clang/AST/DeclObjC.h"
-#include "clang/Basic/Module.h"
-#include "clang/Lex/Lexer.h"
-#include "clang/Lex/MacroInfo.h"
-#include "clang/Lex/Preprocessor.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/AST/DeclObjC.h"
+#include "language/Core/Basic/Module.h"
+#include "language/Core/Lex/Lexer.h"
+#include "language/Core/Lex/MacroInfo.h"
+#include "language/Core/Lex/Preprocessor.h"
 #include <algorithm>
 #include <memory>
 #include <queue>
@@ -49,7 +49,7 @@
 
 using namespace language;
 
-static const clang::Module *
+static const language::Core::Module *
 getUnderlyingClangModuleForImport(ImportDecl *Import) {
   if (auto *ClangMod = Import->getClangModule())
     return ClangMod;
@@ -328,7 +328,7 @@ static bool compareCodiraDecls(Decl *LHS, Decl *RHS) {
 }
 
 static bool shouldPrintImport(ImportDecl *ImportD, ModuleDecl *OrigMod,
-                              const clang::Module *OrigClangMod) {
+                              const language::Core::Module *OrigClangMod) {
   if (ImportD->getAttrs().hasAttribute<ImplementationOnlyAttr>())
     return false;
 
@@ -498,7 +498,7 @@ void language::ide::printModuleInterface(
        const PrintOptions &Options,
        const bool PrintSynthesizedExtensions) {
 
-  const clang::Module *TargetClangMod = TargetMod->findUnderlyingClangModule();
+  const language::Core::Module *TargetClangMod = TargetMod->findUnderlyingClangModule();
   ModuleDecl *TopLevelMod = TargetMod->getTopLevelModule();
   bool IsSubmodule = TargetMod != TopLevelMod;
 
@@ -516,8 +516,8 @@ void language::ide::printModuleInterface(
 
   SmallVector<ImportDecl *, 0> ImportDecls;
   SmallVector<Decl *, 0> CodiraDecls;
-  toolchain::DenseMap<const clang::Module *,
-                 SmallVector<std::pair<Decl *, clang::SourceLocation>, 0>>
+  toolchain::DenseMap<const language::Core::Module *,
+                 SmallVector<std::pair<Decl *, language::Core::SourceLocation>, 0>>
       ClangDecls;
 
   // Add exported modules that have the same public module name as this module
@@ -543,12 +543,12 @@ void language::ide::printModuleInterface(
   if (TargetClangMod) {
     // Add clang submodules if they're being visited
     if (TraversalOptions & ModuleTraversal::VisitSubmodules) {
-      SmallVector<const clang::Module *, 8> Worklist;
-      SmallPtrSet<const clang::Module *, 8> Visited;
+      SmallVector<const language::Core::Module *, 8> Worklist;
+      SmallPtrSet<const language::Core::Module *, 8> Visited;
       Worklist.push_back(TargetClangMod);
       Visited.insert(TargetClangMod);
       while (!Worklist.empty()) {
-        const clang::Module *CM = Worklist.pop_back_val();
+        const language::Core::Module *CM = Worklist.pop_back_val();
         if (!(TraversalOptions & ModuleTraversal::VisitHidden) &&
             CM->IsExplicit)
           continue;
@@ -561,7 +561,7 @@ void language::ide::printModuleInterface(
           }
         }
 
-        for (clang::Module *submodule : CM->submodules()) {
+        for (language::Core::Module *submodule : CM->submodules()) {
           if (Visited.insert(submodule).second) {
             Worklist.push_back(submodule);
           }
@@ -579,10 +579,10 @@ void language::ide::printModuleInterface(
 
   // Collect those submodules that are actually imported but have no import
   // decls in the module.
-  toolchain::SmallPtrSet<const clang::Module *, 16> NoImportSubModules;
+  toolchain::SmallPtrSet<const language::Core::Module *, 16> NoImportSubModules;
   if (TargetClangMod) {
     // Assume all submodules are missing.
-    for (clang::Module *submodule: TargetClangMod->submodules()) {
+    for (language::Core::Module *submodule: TargetClangMod->submodules()) {
       NoImportSubModules.insert(submodule);
     }
   }
@@ -635,7 +635,7 @@ void language::ide::printModuleInterface(
 
     auto addToClangDecls = [&](Decl *D, ClangNode CN) {
       assert(CN && "No Clang node here");
-      clang::SourceLocation Loc = CN.getLocation();
+      language::Core::SourceLocation Loc = CN.getLocation();
 
       auto *OwningModule = Importer.getClangOwningModule(CN);
       auto I = ClangDecls.find(OwningModule);
@@ -646,7 +646,7 @@ void language::ide::printModuleInterface(
 
     if (auto clangNode = getEffectiveClangNode(D)) {
       if (auto namespaceDecl =
-              dyn_cast_or_null<clang::NamespaceDecl>(clangNode.getAsDecl())) {
+              dyn_cast_or_null<language::Core::NamespaceDecl>(clangNode.getAsDecl())) {
         // An imported namespace decl will contain members from all redecls, so
         // make sure we add all the redecls.
         for (auto redecl : namespaceDecl->redecls()) {
@@ -655,7 +655,7 @@ void language::ide::printModuleInterface(
           // Namespace redecls may exist across mutliple modules. We want to
           // add the decl "D" to every module that has a redecl. But we only
           // want to add "D" once to prevent duplicate printing.
-          clang::SourceLocation loc = redecl->getLocation();
+          language::Core::SourceLocation loc = redecl->getLocation();
           assert(loc.isValid() &&
                  "expected a valid SourceLocation for a non-empty namespace");
           auto *owningModule = Importer.getClangOwningModule(redecl);
@@ -729,8 +729,8 @@ void language::ide::printModuleInterface(
   auto &ClangSourceManager = Importer.getClangASTContext().getSourceManager();
   for (auto &P : ClangDecls) {
     std::stable_sort(P.second.begin(), P.second.end(),
-                     [&](std::pair<Decl *, clang::SourceLocation> LHS,
-                         std::pair<Decl *, clang::SourceLocation> RHS) -> bool {
+                     [&](std::pair<Decl *, language::Core::SourceLocation> LHS,
+                         std::pair<Decl *, language::Core::SourceLocation> RHS) -> bool {
       return ClangSourceManager.isBeforeInTranslationUnit(LHS.second,
                                                           RHS.second);
     });
@@ -760,7 +760,7 @@ void language::ide::printModuleInterface(
   }
 
   {
-    using ModuleAndName = std::pair<const clang::Module *, std::string>;
+    using ModuleAndName = std::pair<const language::Core::Module *, std::string>;
     SmallVector<ModuleAndName, 8> ClangModules;
     for (auto P : ClangDecls) {
       ClangModules.push_back({ P.first, P.first->getFullModuleName() });

@@ -15,7 +15,7 @@ from . import curl
 from . import libcxx
 from . import libdispatch
 from . import libxml2
-from . import llvm
+from . import toolchain
 from . import product
 from . import language
 from . import zlib
@@ -49,7 +49,7 @@ class Foundation(product.Product):
     @classmethod
     def get_dependencies(cls):
         return [cmark.CMark,
-                llvm.LLVM,
+                toolchain.LLVM,
                 libcxx.LibCXX,
                 language.Swift,
                 libdispatch.LibDispatch,

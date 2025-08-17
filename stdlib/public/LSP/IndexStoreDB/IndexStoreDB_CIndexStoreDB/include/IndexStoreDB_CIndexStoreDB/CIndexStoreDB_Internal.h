@@ -13,13 +13,13 @@
 #ifndef INDEXSTOREDB_INTERNAL_H
 #define INDEXSTOREDB_INTERNAL_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_IntrusiveRefCntPtr.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_IntrusiveRefCntPtr.h>
 #include <utility>
 
 namespace IndexStoreDB {
 namespace internal {
 
-class ObjectBase : public llvm::ThreadSafeRefCountedBase<ObjectBase> {
+class ObjectBase : public toolchain::ThreadSafeRefCountedBase<ObjectBase> {
 public:
     virtual ~ObjectBase();
 };

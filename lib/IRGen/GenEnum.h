@@ -28,7 +28,7 @@ namespace toolchain {
   class Value;
 }
 
-namespace clang {
+namespace language::Core {
 namespace CodeGen {
 namespace languagecall {
   class CodiraAggLowering;
@@ -53,7 +53,7 @@ namespace irgen {
   class IRGenFunction;
   class MetadataDependencyCollector;
   class TypeConverter;
-  using clang::CodeGen::languagecall::CodiraAggLowering;
+  using language::Core::CodeGen::languagecall::CodiraAggLowering;
 
 /// Emit the dispatch branch(es) for an address-only enum.
 void emitSwitchAddressOnlyEnumDispatch(IRGenFunction &IGF,

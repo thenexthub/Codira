@@ -83,7 +83,7 @@ namespace irgen {
                                 const PointerAuthEntity &entity);
 
     static PointerAuthInfo emit(IRGenFunction &IGF,
-                                clang::PointerAuthQualifier pointerAuthQual,
+                                language::Core::PointerAuthQualifier pointerAuthQual,
                                 toolchain::Value *storageAddress);
 
     static PointerAuthInfo emit(IRGenFunction &IGF,

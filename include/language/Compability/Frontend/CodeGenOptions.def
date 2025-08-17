@@ -1,0 +1,76 @@
+//===--- CodeGenOptions.def - Code generation option database ----- C++ -*-===//
+//
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// Author: Tunjay Akbarli
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
+//
+//===----------------------------------------------------------------------===//
+//
+// This file defines the code generation options. Users of this file
+// must define the CODEGENOPT macro to make use of this information.
+//
+//===----------------------------------------------------------------------===//
+#ifndef CODEGENOPT
+#  error Define the CODEGENOPT macro to handle language options
+#endif
+
+#ifndef ENUM_CODEGENOPT
+#  define ENUM_CODEGENOPT(Name, Type, Bits, Default) \
+CODEGENOPT(Name, Bits, Default)
+#endif
+
+CODEGENOPT(OptimizationLevel, 2, 0) ///< The -O[0-3] option specified.
+
+CODEGENOPT(DebugPassManager, 1, 0) ///< Prints debug information for the new
+                                   ///< pass manager.
+
+
+/// Choose profile instrumenation kind or no instrumentation.
+ENUM_CODEGENOPT(ProfileInstr, toolchain::driver::ProfileInstrKind, 2, toolchain::driver::ProfileInstrKind::ProfileNone)
+/// Choose profile kind for PGO use compilation.
+ENUM_CODEGENOPT(ProfileUse, toolchain::driver::ProfileInstrKind, 2, toolchain::driver::ProfileInstrKind::ProfileNone)
+
+CODEGENOPT(InstrumentFunctions, 1, 0) ///< Set when -finstrument_functions is
+                                      ///< enabled on the compile step.
+
+CODEGENOPT(IsPIE, 1, 0) ///< PIE level is the same as PIC Level.
+CODEGENOPT(PICLevel, 2, 0) ///< PIC level of the LLVM module.
+CODEGENOPT(PrepareForFullLTO , 1, 0) ///< Set when -flto is enabled on the
+                                     ///< compile step.
+CODEGENOPT(PrepareForThinLTO , 1, 0) ///< Set when -flto=thin is enabled on the
+                                     ///< compile step.
+CODEGENOPT(StackArrays, 1, 0) ///< -fstack-arrays (enable the stack-arrays pass)
+CODEGENOPT(VectorizeLoop, 1, 0) ///< Enable loop vectorization.
+CODEGENOPT(VectorizeSLP, 1, 0) ///< Enable SLP vectorization.
+CODEGENOPT(InterchangeLoops, 1, 0) ///< Enable loop interchange.
+CODEGENOPT(LoopVersioning, 1, 0) ///< Enable loop versioning.
+CODEGENOPT(UnrollLoops, 1, 0) ///< Enable loop unrolling
+CODEGENOPT(AliasAnalysis, 1, 0) ///< Enable alias analysis pass
+
+CODEGENOPT(Underscoring, 1, 1)
+ENUM_CODEGENOPT(RelocationModel, toolchain::Reloc::Model, 3, toolchain::Reloc::PIC_) ///< Name of the relocation model to use.
+ENUM_CODEGENOPT(DebugInfo,  toolchain::codegenoptions::DebugInfoKind, 4,  toolchain::codegenoptions::NoDebugInfo) ///< Level of debug info to generate
+ENUM_CODEGENOPT(VecLib, toolchain::driver::VectorLibrary, 4, toolchain::driver::VectorLibrary::NoLibrary) ///< Vector functions library to use
+ENUM_CODEGENOPT(FramePointer, toolchain::FramePointerKind, 2, toolchain::FramePointerKind::None) ///< Enable the usage of frame pointers
+ENUM_CODEGENOPT(ComplexRange, ComplexRangeKind, 3, ComplexRangeKind::CX_Full) ///< Method for calculating complex number division
+
+ENUM_CODEGENOPT(DoConcurrentMapping, DoConcurrentMappingKind, 2, DoConcurrentMappingKind::DCMK_None) ///< Map `do concurrent` to OpenMP
+
+#undef CODEGENOPT
+#undef ENUM_CODEGENOPT

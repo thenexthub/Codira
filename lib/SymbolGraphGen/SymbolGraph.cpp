@@ -14,8 +14,8 @@
 
 //===----------------------------------------------------------------------===//
 
-#include "clang/AST/DeclObjC.h"
-#include "clang/Basic/Module.h"
+#include "language/Core/AST/DeclObjC.h"
+#include "language/Core/Basic/Module.h"
 #include "language/AST/ASTContext.h"
 #include "language/AST/Comment.h"
 #include "language/AST/Decl.h"

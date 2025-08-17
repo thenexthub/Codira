@@ -25,7 +25,7 @@
 #include "IRGen.h"
 #include "language/Basic/OptimizationMode.h"
 #include "language/SIL/SILLocation.h"
-#include "clang/AST/DeclCXX.h"
+#include "language/Core/AST/DeclCXX.h"
 #include "toolchain/IR/CallingConv.h"
 #include "toolchain/Support/CommandLine.h"
 
@@ -72,11 +72,11 @@ namespace irgen {
   /// See also comments in CXXMethodConventions in SIL/IR/SILFunctionType.cpp.
   toolchain::Constant *
   emitCXXConstructorThunkIfNeeded(IRGenModule &IGM, Signature signature,
-                                  const clang::CXXConstructorDecl *ctor,
+                                  const language::Core::CXXConstructorDecl *ctor,
                                   StringRef name, toolchain::Constant *ctorAddress);
 
   toolchain::CallBase *emitCXXConstructorCall(IRGenFunction &IGF,
-                                         const clang::CXXConstructorDecl *ctor,
+                                         const language::Core::CXXConstructorDecl *ctor,
                                          toolchain::FunctionType *ctorFnType,
                                          toolchain::Constant *ctorAddress,
                                          toolchain::ArrayRef<toolchain::Value *> args);

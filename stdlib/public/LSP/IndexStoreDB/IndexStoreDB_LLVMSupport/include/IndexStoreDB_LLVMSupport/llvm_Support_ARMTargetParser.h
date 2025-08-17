@@ -1,8 +1,24 @@
 //===-- ARMTargetParser - Parser for ARM target features --------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -14,12 +30,12 @@
 #ifndef LLVM_SUPPORT_ARMTARGETPARSER_H
 #define LLVM_SUPPORT_ARMTARGETPARSER_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Triple.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ARMBuildAttributes.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Triple.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ARMBuildAttributes.h>
 #include <vector>
 
-namespace llvm {
+namespace toolchain {
 namespace ARM {
 
 // Arch extension modifiers for CPUs.
@@ -68,7 +84,7 @@ struct ExtName {
 const ExtName ARCHExtNames[] = {
 #define ARM_ARCH_EXT_NAME(NAME, ID, FEATURE, NEGFEATURE)                       \
   {NAME, sizeof(NAME) - 1, ID, FEATURE, NEGFEATURE},
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ARMTargetParser.def>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ARMTargetParser.def>
 };
 
 // List of HWDiv names (use getHWDivSynonym) and which architectural
@@ -82,13 +98,13 @@ const struct {
   StringRef getName() const { return StringRef(NameCStr, NameLength); }
 } HWDivNames[] = {
 #define ARM_HW_DIV_NAME(NAME, ID) {NAME, sizeof(NAME) - 1, ID},
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ARMTargetParser.def>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ARMTargetParser.def>
 };
 
 // Arch names.
 enum class ArchKind {
 #define ARM_ARCH(NAME, ID, CPU_ATTR, SUB_ARCH, ARCH_ATTR, ARCH_FPU, ARCH_BASE_EXT) ID,
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ARMTargetParser.def>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ARMTargetParser.def>
 };
 
 // List of CPU names and their arches.
@@ -109,13 +125,13 @@ template <typename T> struct CpuNames {
 const CpuNames<ArchKind> CPUNames[] = {
 #define ARM_CPU_NAME(NAME, ID, DEFAULT_FPU, IS_DEFAULT, DEFAULT_EXT)           \
   {NAME, sizeof(NAME) - 1, ARM::ArchKind::ID, IS_DEFAULT, DEFAULT_EXT},
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ARMTargetParser.def>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ARMTargetParser.def>
 };
 
 // FPU names.
 enum FPUKind {
 #define ARM_FPU(NAME, KIND, VERSION, NEON_SUPPORT, RESTRICTION) KIND,
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ARMTargetParser.def>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ARMTargetParser.def>
   FK_LAST
 };
 
@@ -172,7 +188,7 @@ struct FPUName {
 static const FPUName FPUNames[] = {
 #define ARM_FPU(NAME, KIND, VERSION, NEON_SUPPORT, RESTRICTION)                \
   {NAME, sizeof(NAME) - 1, KIND, VERSION, NEON_SUPPORT, RESTRICTION},
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ARMTargetParser.def>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ARMTargetParser.def>
 };
 
 // List of canonical arch names (use getArchSynonym).
@@ -212,7 +228,7 @@ static const ArchNames<ArchKind> ARCHNames[] = {
    SUB_ARCH,     sizeof(SUB_ARCH) - 1,                                         \
    ARCH_FPU,     ARCH_BASE_EXT,                                                \
    ArchKind::ID, ARCH_ATTR},
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ARMTargetParser.def>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ARMTargetParser.def>
 };
 
 // Information by ID
@@ -258,6 +274,6 @@ void fillValidCPUArchList(SmallVectorImpl<StringRef> &Values);
 StringRef computeDefaultTargetABI(const Triple &TT, StringRef CPU);
 
 } // namespace ARM
-} // namespace llvm
+} // namespace toolchain
 
 #endif

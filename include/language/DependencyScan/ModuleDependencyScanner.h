@@ -19,7 +19,7 @@
 #include "language/AST/ModuleDependencies.h"
 #include "language/Frontend/ModuleInterfaceLoader.h"
 #include "language/Serialization/ScanningLoaders.h"
-#include "clang/Tooling/DependencyScanning/DependencyScanningTool.h"
+#include "language/Core/Tooling/DependencyScanning/DependencyScanningTool.h"
 #include "toolchain/CAS/CASReference.h"
 #include "toolchain/Support/ThreadPool.h"
 
@@ -46,7 +46,7 @@ private:
   /// Retrieve the module dependencies for the Clang module with the given name.
   ModuleDependencyVector scanFilesystemForClangModuleDependency(
       Identifier moduleName,
-      const toolchain::DenseSet<clang::tooling::dependencies::ModuleID>
+      const toolchain::DenseSet<language::Core::tooling::dependencies::ModuleID>
           &alreadySeenModules);
 
   /// Retrieve the module dependencies for the Codira module with the given name.
@@ -91,7 +91,7 @@ private:
   // An AST delegate for interface scanning.
   std::unique_ptr<InterfaceSubContextDelegateImpl> scanningASTDelegate;
   // The Clang scanner tool used by this worker.
-  clang::tooling::dependencies::DependencyScanningTool clangScanningTool;
+  language::Core::tooling::dependencies::DependencyScanningTool clangScanningTool;
   // Codira and Clang module loaders acting as scanners.
   std::unique_ptr<CodiraModuleScanner> languageModuleScannerLoader;
 

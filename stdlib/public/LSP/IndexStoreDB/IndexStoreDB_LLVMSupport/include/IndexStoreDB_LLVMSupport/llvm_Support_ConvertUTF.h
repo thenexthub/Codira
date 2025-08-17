@@ -1,7 +1,7 @@
 /*===--- ConvertUTF.h - Universal Character Names conversions ---------------===
  *
  * Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
- * See https://llvm.org/LICENSE.txt for license information.
+ * See https://toolchain.org/LICENSE.txt for license information.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  *
  *==------------------------------------------------------------------------==*/
@@ -89,16 +89,16 @@
 #ifndef LLVM_SUPPORT_CONVERTUTF_H
 #define LLVM_SUPPORT_CONVERTUTF_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_Config_indexstoredb-prefix.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_indexstoredb-prefix.h>
 
 #include <cstddef>
 #include <string>
 #include <system_error>
 
-// Wrap everything in namespace llvm so that programs can link with llvm and
+// Wrap everything in namespace toolchain so that programs can link with toolchain and
 // their own version of the unicode libraries.
 
-namespace llvm {
+namespace toolchain {
 
 /* ---------------------------------------------------------------------
     The following 4 definitions are compiler-specific.
@@ -195,14 +195,14 @@ class StringRef;
  * the first character which could not be converted.
  * \return true on success.
  */
-bool ConvertUTF8toWide(unsigned WideCharWidth, llvm::StringRef Source,
+bool ConvertUTF8toWide(unsigned WideCharWidth, toolchain::StringRef Source,
                        char *&ResultPtr, const UTF8 *&ErrorPtr);
 
 /**
 * Converts a UTF-8 StringRef to a std::wstring.
 * \return true on success.
 */
-bool ConvertUTF8toWide(llvm::StringRef Source, std::wstring &Result);
+bool ConvertUTF8toWide(toolchain::StringRef Source, std::wstring &Result);
 
 /**
 * Converts a UTF-8 C-string to a std::wstring.
@@ -303,6 +303,6 @@ std::error_code UTF16ToCurCP(const wchar_t *utf16, size_t utf16_len,
 } // namespace sys
 #endif
 
-} /* end namespace llvm */
+} /* end namespace toolchain */
 
 #endif

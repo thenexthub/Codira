@@ -18,7 +18,7 @@
 
 #include <IndexStoreDB_Support/LLVM.h>
 #include <IndexStoreDB_Support/Visibility.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
 #include <memory>
 
 namespace indexstore {

@@ -19,9 +19,9 @@
 
 #include "language/AST/ClangCodiraTypeCorrespondence.h"
 #include "language/Basic/Assertions.h"
-#include "clang/AST/Type.h"
+#include "language/Core/AST/Type.h"
 
-bool language::canImportAsOptional(const clang::Type *type) {
+bool language::canImportAsOptional(const language::Core::Type *type) {
   // Note: this mimics ImportHint::canImportAsOptional.
 
   // Includes CoreFoundation types such as CFStringRef (== struct CFString *).

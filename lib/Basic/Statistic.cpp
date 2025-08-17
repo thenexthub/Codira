@@ -17,8 +17,8 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Statistic.h"
 #include "language/Config.h"
-#include "clang/Basic/SourceLocation.h"
-#include "clang/Basic/SourceManager.h"
+#include "language/Core/Basic/SourceLocation.h"
+#include "language/Core/Basic/SourceManager.h"
 #include "toolchain/ADT/DenseMap.h"
 #include "toolchain/Config/config.h"
 #include "toolchain/Support/FileSystem.h"
@@ -322,7 +322,7 @@ UnifiedStatsReporter::UnifiedStatsReporter(StringRef ProgramName,
                                            StringRef OptType,
                                            StringRef Directory,
                                            SourceManager *SM,
-                                           clang::SourceManager *CSM,
+                                           language::Core::SourceManager *CSM,
                                            bool FineGrainedTimers,
                                            bool TraceEvents,
                                            bool ProfileEvents,
@@ -345,7 +345,7 @@ UnifiedStatsReporter::UnifiedStatsReporter(StringRef ProgramName,
                                            StringRef AuxName,
                                            StringRef Directory,
                                            SourceManager *SM,
-                                           clang::SourceManager *CSM,
+                                           language::Core::SourceManager *CSM,
                                            bool FineGrainedTimers,
                                            bool TraceEvents,
                                            bool ProfileEvents,

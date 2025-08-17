@@ -46,11 +46,11 @@
 #include "language/ClangImporter/ClangModule.h"
 #include "language/ClangImporter/CodiraAbstractBasicReader.h"
 #include "language/Serialization/SerializedModuleLoader.h"
-#include "clang/AST/DeclTemplate.h"
-#include "clang/AST/Attr.h"
-#include "clang/Basic/SourceManager.h"
-#include "clang/Basic/AttributeCommonInfo.h"
-#include "clang/Index/USRGeneration.h"
+#include "language/Core/AST/DeclTemplate.h"
+#include "language/Core/AST/Attr.h"
+#include "language/Core/Basic/SourceManager.h"
+#include "language/Core/Basic/AttributeCommonInfo.h"
+#include "language/Core/Index/USRGeneration.h"
 #include "toolchain/ADT/Statistic.h"
 #include "toolchain/Support/Compiler.h"
 #include "toolchain/Support/Debug.h"
@@ -273,7 +273,7 @@ ModularizationError::diagnose(const ModuleFile *MF,
                      declIsType, expectedModule,
                      expectedModule->getModuleSourceFilename());
 
-  const clang::Module *expectedUnderlying =
+  const language::Core::Module *expectedUnderlying =
                                    expectedModule->findUnderlyingClangModule();
   if (!expectedModule->isNonCodiraModule() &&
       expectedUnderlying) {
@@ -2631,10 +2631,10 @@ giveUpFastPath:
             if (!m->hasClangNode())
               continue;
             if (auto *ctd =
-                    dyn_cast<clang::ClassTemplateDecl>(m->getClangDecl())) {
+                    dyn_cast<language::Core::ClassTemplateDecl>(m->getClangDecl())) {
               for (const auto *spec : ctd->specializations()) {
                 toolchain::SmallString<128> buffer;
-                clang::index::generateUSRForDecl(spec, buffer);
+                language::Core::index::generateUSRForDecl(spec, buffer);
                 if (privateDiscriminator.str() == buffer) {
                   if (auto import = getContext()
                                         .getClangModuleLoader()
@@ -7371,7 +7371,7 @@ detail::function_deserializer::deserialize(ModuleFile &MF,
   if (!diffKind.has_value())
     return MF.diagnoseFatal();
 
-  const clang::Type *clangFunctionType = nullptr;
+  const language::Core::Type *clangFunctionType = nullptr;
   if (clangTypeID) {
     auto loadedClangType = MF.getClangType(clangTypeID);
     if (!loadedClangType)
@@ -7834,7 +7834,7 @@ Expected<Type> DESERIALIZE_TYPE(BOUND_GENERIC_TYPE)(
   }
 
   if (auto clangDecl = nominal->getClangDecl()) {
-    if (auto ctd = dyn_cast<clang::ClassTemplateDecl>(clangDecl)) {
+    if (auto ctd = dyn_cast<language::Core::ClassTemplateDecl>(clangDecl)) {
       auto clangImporter = static_cast<ClangImporter *>(
           nominal->getASTContext().getClangModuleLoader());
 
@@ -7843,14 +7843,14 @@ Expected<Type> DESERIALIZE_TYPE(BOUND_GENERIC_TYPE)(
         typesOfGenericArgs.push_back(arg);
       }
 
-      SmallVector<clang::TemplateArgument, 2> templateArguments;
+      SmallVector<language::Core::TemplateArgument, 2> templateArguments;
       std::unique_ptr<TemplateInstantiationError> error =
           MF.getContext().getClangTemplateArguments(
               ctd->getTemplateParameters(), typesOfGenericArgs,
               templateArguments);
 
       auto instantiation = clangImporter->instantiateCXXClassTemplate(
-          const_cast<clang::ClassTemplateDecl *>(ctd), templateArguments);
+          const_cast<language::Core::ClassTemplateDecl *>(ctd), templateArguments);
 
       instantiation->setTemplateInstantiationType(
           BoundGenericType::get(nominal, parentTy, genericArgs));
@@ -7954,7 +7954,7 @@ Expected<Type> DESERIALIZE_TYPE(SIL_FUNCTION_TYPE)(
   if (!diffKind.has_value())
     return MF.diagnoseFatal();
 
-  const clang::Type *clangFunctionType = nullptr;
+  const language::Core::Type *clangFunctionType = nullptr;
   if (clangFunctionTypeID) {
     auto clangType = MF.getClangType(clangFunctionTypeID);
     if (!clangType)
@@ -8408,17 +8408,17 @@ public:
     return MF.getIdentifier(IdentifierID(readUInt64()));
   }
 
-  clang::IdentifierInfo *readIdentifier() {
+  language::Core::IdentifierInfo *readIdentifier() {
     Identifier languageIdent = readCodiraIdentifier();
     return &getASTContext().Idents.get(languageIdent.str());
   }
 
-  clang::Stmt *readStmtRef() {
+  language::Core::Stmt *readStmtRef() {
     // Should only be allowed with null statements.
     return nullptr;
   }
 
-  clang::Decl *readDeclRef() {
+  language::Core::Decl *readDeclRef() {
     uint64_t refKind = readUInt64();
 
     // Null reference.
@@ -8427,7 +8427,7 @@ public:
     // Codira declaration.
     if (refKind == 1) {
       language::Decl *languageDecl = MF.getDecl(DeclID(readUInt64()));
-      return const_cast<clang::Decl*>(
+      return const_cast<language::Core::Decl*>(
         ClangLoader.resolveStableSerializationPath(languageDecl));
     }
 
@@ -8445,7 +8445,7 @@ public:
                             : Identifier();
         path.add(*kind, name);
       }
-      return const_cast<clang::Decl*>(
+      return const_cast<language::Core::Decl*>(
         ClangLoader.resolveStableSerializationPath(std::move(path)));
     }
 
@@ -8453,7 +8453,7 @@ public:
     return nullptr;
   }
 
-  const clang::Attr *readAttr() {
+  const language::Core::Attr *readAttr() {
     auto rawKind = readUInt32();
     if (!rawKind)
       return nullptr;
@@ -8465,13 +8465,13 @@ public:
     auto rangeEnd = readSourceLocation();
     auto scopeLoc = readSourceLocation();
 
-    auto parsedKind = readEnum<clang::AttributeCommonInfo::Kind>();
-    auto syntax = readEnum<clang::AttributeCommonInfo::Syntax>();
+    auto parsedKind = readEnum<language::Core::AttributeCommonInfo::Kind>();
+    auto syntax = readEnum<language::Core::AttributeCommonInfo::Syntax>();
     unsigned spellingListIndex = readUInt64();
 
     bool isRegularKeywordAttribute = readBool();
 
-    clang::AttributeCommonInfo info(
+    language::Core::AttributeCommonInfo info(
         name, scopeName, {rangeStart, rangeEnd}, scopeLoc, parsedKind,
         {syntax, spellingListIndex, /*IsAlignas=*/false,
          isRegularKeywordAttribute});
@@ -8482,8 +8482,8 @@ public:
     StringRef attribute = MF.getIdentifierText(readUInt64());
 
     auto *attr =
-        clang::CodiraAttrAttr::Create(getASTContext(), attribute.str(), info);
-    cast<clang::InheritableAttr>(attr)->setInherited(isInherited);
+        language::Core::CodiraAttrAttr::Create(getASTContext(), attribute.str(), info);
+    cast<language::Core::InheritableAttr>(attr)->setInherited(isInherited);
     attr->setImplicit(isImplicit);
     attr->setPackExpansion(isPackExpansion);
 
@@ -8498,14 +8498,14 @@ public:
   // "__ended_by(expr)".
   // Nothing to be done for now as we currently don't import
   // these types into Codira.
-  clang::TypeCoupledDeclRefInfo readTypeCoupledDeclRefInfo() {
+  language::Core::TypeCoupledDeclRefInfo readTypeCoupledDeclRefInfo() {
     toolchain_unreachable("TypeCoupledDeclRefInfo shouldn't be reached from language");
   }
 };
 
 } // end anonymous namespace
 
-toolchain::Expected<const clang::Type *>
+toolchain::Expected<const language::Core::Type *>
 ModuleFile::getClangType(ClangTypeID TID) {
   if (!getContext().LangOpts.UseClangFunctionTypes)
     return nullptr;

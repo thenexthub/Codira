@@ -48,8 +48,8 @@
 #include "language/ClangImporter/ClangModule.h"
 #include "language/Parse/Lexer.h"
 #include "language/Strings.h"
-#include "clang/AST/DeclObjC.h"
-#include "clang/Basic/Specifiers.h"
+#include "language/Core/AST/DeclObjC.h"
+#include "language/Core/Basic/Specifiers.h"
 #include "toolchain/ADT/DenseMap.h"
 #include "toolchain/ADT/TinyPtrVector.h"
 #include "toolchain/Support/Debug.h"
@@ -2173,7 +2173,7 @@ DirectLookupRequest::evaluate(Evaluator &evaluator,
   if (!Table.isLazilyComplete(name.getBaseName())) {
     DeclBaseName baseName(name.getBaseName());
 
-    if (isa_and_nonnull<clang::NamespaceDecl>(decl->getClangDecl())) {
+    if (isa_and_nonnull<language::Core::NamespaceDecl>(decl->getClangDecl())) {
       auto allFound = evaluateOrDefault(
           ctx.evaluator, CXXNamespaceMemberLookup({cast<EnumDecl>(decl), name}),
           {});
@@ -2196,7 +2196,7 @@ DirectLookupRequest::evaluate(Evaluator &evaluator,
         }
         return allFound;
       }
-    } else if (isa_and_nonnull<clang::RecordDecl>(decl->getClangDecl())) {
+    } else if (isa_and_nonnull<language::Core::RecordDecl>(decl->getClangDecl())) {
       auto allFound = evaluateOrDefault(
           ctx.evaluator,
           ClangRecordMemberLookup({cast<NominalTypeDecl>(decl), name}), {});
@@ -2887,10 +2887,10 @@ AnyObjectLookupRequest::evaluate(Evaluator &evaluator, const DeclContext *dc,
 
     // If the declaration is objc_direct, it cannot be called dynamically.
     if (auto clangDecl = decl->getClangDecl()) {
-      if (auto objCMethod = dyn_cast<clang::ObjCMethodDecl>(clangDecl)) {
+      if (auto objCMethod = dyn_cast<language::Core::ObjCMethodDecl>(clangDecl)) {
         if (objCMethod->isDirectMethod())
           continue;
-      } else if (auto objCProperty = dyn_cast<clang::ObjCPropertyDecl>(clangDecl)) {
+      } else if (auto objCProperty = dyn_cast<language::Core::ObjCPropertyDecl>(clangDecl)) {
         if (objCProperty->isDirectProperty())
           continue;
       }

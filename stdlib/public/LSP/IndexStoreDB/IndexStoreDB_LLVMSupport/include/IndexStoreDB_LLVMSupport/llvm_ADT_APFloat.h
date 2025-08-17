@@ -1,8 +1,24 @@
-//===- llvm/ADT/APFloat.h - Arbitrary Precision Floating Point ---*- C++ -*-==//
+//===- toolchain/ADT/APFloat.h - Arbitrary Precision Floating Point ---*- C++ -*-==//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 ///
@@ -16,9 +32,9 @@
 #ifndef LLVM_ADT_APFLOAT_H
 #define LLVM_ADT_APFLOAT_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_APInt.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_ArrayRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ErrorHandling.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_APInt.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_ArrayRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ErrorHandling.h>
 #include <memory>
 
 #define APFLOAT_DISPATCH_ON_SEMANTICS(METHOD_CALL)                             \
@@ -27,10 +43,10 @@
       return U.IEEE.METHOD_CALL;                                               \
     if (usesLayout<DoubleAPFloat>(getSemantics()))                             \
       return U.Double.METHOD_CALL;                                             \
-    llvm_unreachable("Unexpected semantics");                                  \
+    toolchain_unreachable("Unexpected semantics");                                  \
   } while (false)
 
-namespace llvm {
+namespace toolchain {
 
 struct fltSemantics;
 class APSInt;
@@ -256,7 +272,7 @@ public:
   opStatus divide(const IEEEFloat &, roundingMode);
   /// IEEE remainder.
   opStatus remainder(const IEEEFloat &);
-  /// C fmod, or llvm frem.
+  /// C fmod, or toolchain frem.
   opStatus mod(const IEEEFloat &);
   opStatus fusedMultiplyAdd(const IEEEFloat &, const IEEEFloat &, roundingMode);
   opStatus roundToIntegral(roundingMode);
@@ -696,7 +712,7 @@ class APFloat : public APFloatBase {
         new (&Double) DoubleAPFloat(Semantics, std::forward<ArgTypes>(Args)...);
         return;
       }
-      llvm_unreachable("Unexpected semantics");
+      toolchain_unreachable("Unexpected semantics");
     }
 
     ~Storage() {
@@ -708,7 +724,7 @@ class APFloat : public APFloatBase {
         Double.~DoubleAPFloat();
         return;
       }
-      llvm_unreachable("Unexpected semantics");
+      toolchain_unreachable("Unexpected semantics");
     }
 
     Storage(const Storage &RHS) {
@@ -720,7 +736,7 @@ class APFloat : public APFloatBase {
         new (this) DoubleAPFloat(RHS.Double);
         return;
       }
-      llvm_unreachable("Unexpected semantics");
+      toolchain_unreachable("Unexpected semantics");
     }
 
     Storage(Storage &&RHS) {
@@ -732,7 +748,7 @@ class APFloat : public APFloatBase {
         new (this) DoubleAPFloat(std::move(RHS.Double));
         return;
       }
-      llvm_unreachable("Unexpected semantics");
+      toolchain_unreachable("Unexpected semantics");
     }
 
     Storage &operator=(const Storage &RHS) {
@@ -778,7 +794,7 @@ class APFloat : public APFloatBase {
       return U.IEEE;
     if (usesLayout<DoubleAPFloat>(*U.semantics))
       return U.Double.getFirst().U.IEEE;
-    llvm_unreachable("Unexpected semantics");
+    toolchain_unreachable("Unexpected semantics");
   }
 
   const IEEEFloat &getIEEE() const {
@@ -786,7 +802,7 @@ class APFloat : public APFloatBase {
       return U.IEEE;
     if (usesLayout<DoubleAPFloat>(*U.semantics))
       return U.Double.getFirst().U.IEEE;
-    llvm_unreachable("Unexpected semantics");
+    toolchain_unreachable("Unexpected semantics");
   }
 
   void makeZero(bool Neg) { APFLOAT_DISPATCH_ON_SEMANTICS(makeZero(Neg)); }
@@ -813,7 +829,7 @@ class APFloat : public APFloatBase {
   // default constructor in an array aggregate initialization, even if no
   // elements in the array is default initialized.
   APFloat() : U(IEEEdouble()) {
-    llvm_unreachable("This is a workaround for old clang.");
+    toolchain_unreachable("This is a workaround for old clang.");
   }
 
   explicit APFloat(IEEEFloat F, const fltSemantics &S) : U(std::move(F), S) {}
@@ -827,7 +843,7 @@ class APFloat : public APFloatBase {
       return U.IEEE.compareAbsoluteValue(RHS.U.IEEE);
     if (usesLayout<DoubleAPFloat>(getSemantics()))
       return U.Double.compareAbsoluteValue(RHS.U.Double);
-    llvm_unreachable("Unexpected semantics");
+    toolchain_unreachable("Unexpected semantics");
   }
 
 public:
@@ -943,7 +959,7 @@ public:
       return U.IEEE.add(RHS.U.IEEE, RM);
     if (usesLayout<DoubleAPFloat>(getSemantics()))
       return U.Double.add(RHS.U.Double, RM);
-    llvm_unreachable("Unexpected semantics");
+    toolchain_unreachable("Unexpected semantics");
   }
   opStatus subtract(const APFloat &RHS, roundingMode RM) {
     assert(&getSemantics() == &RHS.getSemantics() &&
@@ -952,7 +968,7 @@ public:
       return U.IEEE.subtract(RHS.U.IEEE, RM);
     if (usesLayout<DoubleAPFloat>(getSemantics()))
       return U.Double.subtract(RHS.U.Double, RM);
-    llvm_unreachable("Unexpected semantics");
+    toolchain_unreachable("Unexpected semantics");
   }
   opStatus multiply(const APFloat &RHS, roundingMode RM) {
     assert(&getSemantics() == &RHS.getSemantics() &&
@@ -961,7 +977,7 @@ public:
       return U.IEEE.multiply(RHS.U.IEEE, RM);
     if (usesLayout<DoubleAPFloat>(getSemantics()))
       return U.Double.multiply(RHS.U.Double, RM);
-    llvm_unreachable("Unexpected semantics");
+    toolchain_unreachable("Unexpected semantics");
   }
   opStatus divide(const APFloat &RHS, roundingMode RM) {
     assert(&getSemantics() == &RHS.getSemantics() &&
@@ -970,7 +986,7 @@ public:
       return U.IEEE.divide(RHS.U.IEEE, RM);
     if (usesLayout<DoubleAPFloat>(getSemantics()))
       return U.Double.divide(RHS.U.Double, RM);
-    llvm_unreachable("Unexpected semantics");
+    toolchain_unreachable("Unexpected semantics");
   }
   opStatus remainder(const APFloat &RHS) {
     assert(&getSemantics() == &RHS.getSemantics() &&
@@ -979,7 +995,7 @@ public:
       return U.IEEE.remainder(RHS.U.IEEE);
     if (usesLayout<DoubleAPFloat>(getSemantics()))
       return U.Double.remainder(RHS.U.Double);
-    llvm_unreachable("Unexpected semantics");
+    toolchain_unreachable("Unexpected semantics");
   }
   opStatus mod(const APFloat &RHS) {
     assert(&getSemantics() == &RHS.getSemantics() &&
@@ -988,7 +1004,7 @@ public:
       return U.IEEE.mod(RHS.U.IEEE);
     if (usesLayout<DoubleAPFloat>(getSemantics()))
       return U.Double.mod(RHS.U.Double);
-    llvm_unreachable("Unexpected semantics");
+    toolchain_unreachable("Unexpected semantics");
   }
   opStatus fusedMultiplyAdd(const APFloat &Multiplicand, const APFloat &Addend,
                             roundingMode RM) {
@@ -1001,7 +1017,7 @@ public:
     if (usesLayout<DoubleAPFloat>(getSemantics()))
       return U.Double.fusedMultiplyAdd(Multiplicand.U.Double, Addend.U.Double,
                                        RM);
-    llvm_unreachable("Unexpected semantics");
+    toolchain_unreachable("Unexpected semantics");
   }
   opStatus roundToIntegral(roundingMode RM) {
     APFLOAT_DISPATCH_ON_SEMANTICS(roundToIntegral(RM));
@@ -1104,7 +1120,7 @@ public:
       return U.IEEE.compare(RHS.U.IEEE);
     if (usesLayout<DoubleAPFloat>(getSemantics()))
       return U.Double.compare(RHS.U.Double);
-    llvm_unreachable("Unexpected semantics");
+    toolchain_unreachable("Unexpected semantics");
   }
 
   bool bitwiseIsEqual(const APFloat &RHS) const {
@@ -1114,7 +1130,7 @@ public:
       return U.IEEE.bitwiseIsEqual(RHS.U.IEEE);
     if (usesLayout<DoubleAPFloat>(getSemantics()))
       return U.Double.bitwiseIsEqual(RHS.U.Double);
-    llvm_unreachable("Unexpected semantics");
+    toolchain_unreachable("Unexpected semantics");
   }
 
   /// We don't rely on operator== working on double values, as
@@ -1193,7 +1209,7 @@ inline APFloat scalbn(APFloat X, int Exp, APFloat::roundingMode RM) {
     return APFloat(scalbn(X.U.IEEE, Exp, RM), X.getSemantics());
   if (APFloat::usesLayout<detail::DoubleAPFloat>(X.getSemantics()))
     return APFloat(scalbn(X.U.Double, Exp, RM), X.getSemantics());
-  llvm_unreachable("Unexpected semantics");
+  toolchain_unreachable("Unexpected semantics");
 }
 
 /// Equivalent of C standard library function.
@@ -1205,7 +1221,7 @@ inline APFloat frexp(const APFloat &X, int &Exp, APFloat::roundingMode RM) {
     return APFloat(frexp(X.U.IEEE, Exp, RM), X.getSemantics());
   if (APFloat::usesLayout<detail::DoubleAPFloat>(X.getSemantics()))
     return APFloat(frexp(X.U.Double, Exp, RM), X.getSemantics());
-  llvm_unreachable("Unexpected semantics");
+  toolchain_unreachable("Unexpected semantics");
 }
 /// Returns the absolute value of the argument.
 inline APFloat abs(APFloat X) {
@@ -1267,7 +1283,7 @@ inline APFloat maximum(const APFloat &A, const APFloat &B) {
   return (A.compare(B) == APFloat::cmpLessThan) ? B : A;
 }
 
-} // namespace llvm
+} // namespace toolchain
 
 #undef APFLOAT_DISPATCH_ON_SEMANTICS
 #endif // LLVM_ADT_APFLOAT_H

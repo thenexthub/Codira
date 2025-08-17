@@ -23,11 +23,11 @@
 #include "language/AST/FileUnit.h"
 #include "language/Basic/Version.h"
 #include "language/ClangImporter/ClangImporter.h"
-#include "clang/AST/ExternalASTSource.h"
-#include "clang/Basic/ASTSourceDescriptor.h"
-#include "clang/Basic/Module.h"
+#include "language/Core/AST/ExternalASTSource.h"
+#include "language/Core/Basic/ASTSourceDescriptor.h"
+#include "language/Core/Basic/Module.h"
 
-namespace clang {
+namespace language::Core {
   class ASTContext;
   class Module;
 }
@@ -40,23 +40,23 @@ class ModuleLoader;
 /// Represents a Clang module that has been imported into Codira.
 class ClangModuleUnit final : public LoadedFile {
   ClangImporter::Implementation &owner;
-  const clang::Module *clangModule;
+  const language::Core::Module *clangModule;
   toolchain::PointerIntPair<ModuleDecl *, 1, bool> overlayModule;
   mutable std::optional<ArrayRef<ImportedModule>> importedModulesForLookup;
   /// The metadata of the underlying Clang module.
-  clang::ASTSourceDescriptor ASTSourceDescriptor;
+  language::Core::ASTSourceDescriptor ASTSourceDescriptor;
 
 public:
   /// True if the given Module contains an imported Clang module unit.
   static bool hasClangModule(ModuleDecl *M);
 
   ClangModuleUnit(ModuleDecl &M, ClangImporter::Implementation &owner,
-                  const clang::Module *clangModule);
+                  const language::Core::Module *clangModule);
 
   /// Retrieve the underlying Clang module.
   ///
   /// This will be null if the module unit represents the imported headers.
-  const clang::Module *getClangModule() const { return clangModule; }
+  const language::Core::Module *getClangModule() const { return clangModule; }
 
   /// Returns true if this is a top-level Clang module (not a submodule).
   bool isTopLevel() const;
@@ -125,15 +125,15 @@ public:
 
   virtual StringRef getLoadedFilename() const override;
 
-  virtual const clang::Module *getUnderlyingClangModule() const override {
+  virtual const language::Core::Module *getUnderlyingClangModule() const override {
     return getClangModule();
   }
 
-  clang::ASTContext &getClangASTContext() const;
+  language::Core::ASTContext &getClangASTContext() const;
 
   /// Returns the ASTSourceDescriptor of the associated Clang module if one
   /// exists.
-  std::optional<clang::ASTSourceDescriptor> getASTSourceDescriptor() const;
+  std::optional<language::Core::ASTSourceDescriptor> getASTSourceDescriptor() const;
 
   virtual StringRef getModuleDefiningPath() const override;
 

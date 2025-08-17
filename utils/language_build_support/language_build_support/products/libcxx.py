@@ -11,7 +11,7 @@
 # ----------------------------------------------------------------------------
 
 from . import cmark
-from . import llvm
+from . import toolchain
 from . import product
 
 
@@ -35,4 +35,4 @@ class LibCXX(product.Product):
     @classmethod
     def get_dependencies(cls):
         return [cmark.CMark,
-                llvm.LLVM]
+                toolchain.LLVM]

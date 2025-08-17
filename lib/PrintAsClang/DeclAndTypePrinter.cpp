@@ -47,13 +47,13 @@
 #include "language/Parse/Lexer.h"
 
 #include "CodiraToClangInteropContext.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Attr.h"
-#include "clang/AST/Decl.h"
-#include "clang/AST/DeclCXX.h"
-#include "clang/AST/DeclObjC.h"
-#include "clang/Basic/CharInfo.h"
-#include "clang/Basic/SourceManager.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Attr.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/AST/DeclCXX.h"
+#include "language/Core/AST/DeclObjC.h"
+#include "language/Core/Basic/CharInfo.h"
+#include "language/Core/Basic/SourceManager.h"
 #include "toolchain/Support/Casting.h"
 #include "toolchain/Support/raw_ostream.h"
 
@@ -108,7 +108,7 @@ static bool looksLikeInitMethod(ObjCSelector selector) {
   assert(!selectorPieces.empty());
   auto firstPiece = selectorPieces.front().str();
   if (!firstPiece.starts_with("init")) return false;
-  return !(firstPiece.size() > 4 && clang::isLowercase(firstPiece[4]));
+  return !(firstPiece.size() > 4 && language::Core::isLowercase(firstPiece[4]));
 }
 
 // Enters and leaves a new lexical scope when emitting
@@ -160,7 +160,7 @@ public:
 
   void maybePrintObjCGenericParameters(const ClassDecl *importedClass) {
     auto *clangDecl = importedClass->getClangDecl();
-    auto *objcClass = dyn_cast_or_null<clang::ObjCInterfaceDecl>(clangDecl);
+    auto *objcClass = dyn_cast_or_null<language::Core::ObjCInterfaceDecl>(clangDecl);
     if (!objcClass)
       return;
     if (!objcClass->getTypeParamList())
@@ -168,7 +168,7 @@ public:
     assert(objcClass->getTypeParamList()->size() != 0);
     os << "<";
     interleave(*objcClass->getTypeParamList(),
-               [this](const clang::ObjCTypeParamDecl *param) {
+               [this](const language::Core::ObjCTypeParamDecl *param) {
                  os << param->getName();
                },
                [this] { os << ", "; });
@@ -485,9 +485,9 @@ private:
     auto clangDecl = ntd->getClangDecl();
     if (!clangDecl)
       return false;
-    if (const auto *rd = dyn_cast<clang::RecordDecl>(clangDecl)) {
-      return !isa<clang::CXXRecordDecl>(rd) ||
-             cast<clang::CXXRecordDecl>(rd)->isPOD();
+    if (const auto *rd = dyn_cast<language::Core::RecordDecl>(clangDecl)) {
+      return !isa<language::Core::CXXRecordDecl>(rd) ||
+             cast<language::Core::CXXRecordDecl>(rd)->isPOD();
     }
     return false;
   }
@@ -989,7 +989,7 @@ private:
 
   void printSingleMethodParam(StringRef selectorPiece,
                               const ParamDecl *param,
-                              const clang::ParmVarDecl *clangParam,
+                              const language::Core::ParmVarDecl *clangParam,
                               bool forceNSUInteger) {
     os << selectorPiece << ":(";
     if (forceNSUInteger ||
@@ -1040,15 +1040,15 @@ private:
   }
 
   /// Returns true if \p clangTy is the typedef for NSUInteger.
-  bool isNSUInteger(clang::QualType clangTy) {
-    if (const auto* elaboratedTy = dyn_cast<clang::ElaboratedType>(clangTy)) {
+  bool isNSUInteger(language::Core::QualType clangTy) {
+    if (const auto* elaboratedTy = dyn_cast<language::Core::ElaboratedType>(clangTy)) {
       clangTy = elaboratedTy->desugar();
     }
-    const auto *typedefTy = dyn_cast<clang::TypedefType>(clangTy);
+    const auto *typedefTy = dyn_cast<language::Core::TypedefType>(clangTy);
     if (!typedefTy)
       return false;
 
-    const clang::IdentifierInfo *nameII = typedefTy->getDecl()->getIdentifier();
+    const language::Core::IdentifierInfo *nameII = typedefTy->getDecl()->getIdentifier();
     if (!nameII)
       return false;
     if (nameII->getName() != "NSUInteger")
@@ -1237,11 +1237,11 @@ private:
     else
       os << "- (";
 
-    const clang::ObjCMethodDecl *clangMethod = nullptr;
+    const language::Core::ObjCMethodDecl *clangMethod = nullptr;
     if (!isNSUIntegerSubscript) {
       if (const AbstractFunctionDecl *clangBase = findClangBase(AFD)) {
         clangMethod =
-            dyn_cast_or_null<clang::ObjCMethodDecl>(clangBase->getClangDecl());
+            dyn_cast_or_null<language::Core::ObjCMethodDecl>(clangBase->getClangDecl());
       }
     }
 
@@ -1339,7 +1339,7 @@ private:
         continue;
       }
 
-      const clang::ParmVarDecl *clangParam = nullptr;
+      const language::Core::ParmVarDecl *clangParam = nullptr;
       if (clangMethod)
         clangParam = clangMethod->parameters()[paramIndex];
 
@@ -2094,9 +2094,9 @@ private:
         os << "IBOutlet ";
     }
 
-    clang::QualType clangTy;
+    language::Core::QualType clangTy;
     if (const VarDecl *base = findClangBase(VD))
-      if (auto prop = dyn_cast<clang::ObjCPropertyDecl>(base->getClangDecl()))
+      if (auto prop = dyn_cast<language::Core::ObjCPropertyDecl>(base->getClangDecl()))
         clangTy = prop->getType();
 
     if (!clangTy.isNull() && isNSUInteger(clangTy)) {
@@ -2149,7 +2149,7 @@ private:
     bool isNSUIntegerSubscript = false;
     if (auto clangBase = findClangBase(SD)) {
       const auto *clangGetter =
-          cast<clang::ObjCMethodDecl>(clangBase->getClangDecl());
+          cast<language::Core::ObjCMethodDecl>(clangBase->getClangDecl());
       const auto *indexParam = clangGetter->parameters().front();
       isNSUIntegerSubscript = isNSUInteger(indexParam->getType());
     }
@@ -2174,7 +2174,7 @@ private:
     auto clangDecl = nominal->getClangDecl();
     if (!clangDecl) return false;
 
-    auto objcClass = dyn_cast<clang::ObjCInterfaceDecl>(clangDecl);
+    auto objcClass = dyn_cast<language::Core::ObjCInterfaceDecl>(clangDecl);
     if (!objcClass) return false;
 
     if (objcClass->getTypeParamList() == nullptr) return false;
@@ -2333,10 +2333,10 @@ private:
     os << "/* error */id";
   }
 
-  bool isClangPointerType(const clang::TypeDecl *clangTypeDecl) const {
+  bool isClangPointerType(const language::Core::TypeDecl *clangTypeDecl) const {
     ASTContext &ctx = getASTContext();
     auto &clangASTContext = ctx.getClangModuleLoader()->getClangASTContext();
-    clang::QualType clangTy = clangASTContext.getTypeDeclType(clangTypeDecl);
+    language::Core::QualType clangTy = clangASTContext.getTypeDeclType(clangTypeDecl);
     return language::canImportAsOptional(clangTy.getTypePtr());
   }
 
@@ -2347,7 +2347,7 @@ private:
       return false;
 
     if (auto *clangTypeDecl =
-          dyn_cast<clang::TypeDecl>(alias->getClangDecl())) {
+          dyn_cast<language::Core::TypeDecl>(alias->getClangDecl())) {
       assert(!alias->isGeneric()
              && "generic typealias backed by clang typedecl?");
 
@@ -2357,7 +2357,7 @@ private:
       if (isClangPointerType(clangTypeDecl))
         printNullability(optionalKind);
     } else if (auto *clangObjCClass
-               = dyn_cast<clang::ObjCInterfaceDecl>(alias->getClangDecl())){
+               = dyn_cast<language::Core::ObjCInterfaceDecl>(alias->getClangDecl())){
       assert(!alias->isGeneric()
              && "generic typealias backed by clang interface?");
 
@@ -2365,7 +2365,7 @@ private:
       printNullability(optionalKind);
     } else {
       auto *clangCompatAlias =
-      cast<clang::ObjCCompatibleAliasDecl>(alias->getClangDecl());
+      cast<language::Core::ObjCCompatibleAliasDecl>(alias->getClangDecl());
 
       os << clangCompatAlias->getName();
       if (!genericArgs.empty())
@@ -2403,7 +2403,7 @@ private:
       return;
     }
 
-    auto clangDecl = dyn_cast_or_null<clang::TagDecl>(NTD->getClangDecl());
+    auto clangDecl = dyn_cast_or_null<language::Core::TagDecl>(NTD->getClangDecl());
     if (!clangDecl)
       return;
 
@@ -2434,7 +2434,7 @@ private:
     os << getNameForObjC(SD);
 
     // Handle language_newtype applied to a pointer type.
-    if (auto *clangDecl = cast_or_null<clang::TypeDecl>(SD->getClangDecl()))
+    if (auto *clangDecl = cast_or_null<language::Core::TypeDecl>(SD->getClangDecl()))
       if (isClangPointerType(clangDecl))
         printNullability(optionalKind);
   }
@@ -2451,7 +2451,7 @@ private:
       auto *clangDecl = SD->getClangDecl();
       if (!clangDecl)
         return false;
-      return clangDecl->hasAttr<clang::CodiraNewTypeAttr>();
+      return clangDecl->hasAttr<language::Core::CodiraNewTypeAttr>();
     };
 
     // Use the type as bridged to Objective-C unless the element type is itself
@@ -2539,15 +2539,15 @@ private:
       return visitType(BGT, optionalKind);
 
     assert(CD->getClangDecl() && "objc generic class w/o clang node?!");
-    auto clangDecl = cast<clang::NamedDecl>(CD->getClangDecl());
-    if (isa<clang::ObjCInterfaceDecl>(clangDecl)) {
+    auto clangDecl = cast<language::Core::NamedDecl>(CD->getClangDecl());
+    if (isa<language::Core::ObjCInterfaceDecl>(clangDecl)) {
       os << clangDecl->getName();
     } else {
       maybePrintTagKeyword(CD);
       os << clangDecl->getName();
     }
     printGenericArgs(BGT);
-    if (isa<clang::ObjCInterfaceDecl>(clangDecl)) {
+    if (isa<language::Core::ObjCInterfaceDecl>(clangDecl)) {
       os << " *";
     }
     printNullability(optionalKind);
@@ -2583,14 +2583,14 @@ private:
                       std::optional<OptionalTypeKind> optionalKind) {
     const ClassDecl *CD = CT->getClassOrBoundGenericClass();
     assert(CD->isObjC() || CD->isForeignReferenceType());
-    auto clangDecl = dyn_cast_or_null<clang::NamedDecl>(CD->getClangDecl());
+    auto clangDecl = dyn_cast_or_null<language::Core::NamedDecl>(CD->getClangDecl());
     if (clangDecl) {
       // Hack for <os/object.h> types, which use classes in Codira but
       // protocols in Objective-C, and a typedef to hide the difference.
       StringRef osObjectName = maybeGetOSObjectBaseName(clangDecl);
       if (!osObjectName.empty()) {
         os << osObjectName << "_t";
-      } else if (isa<clang::ObjCInterfaceDecl>(clangDecl) ||
+      } else if (isa<language::Core::ObjCInterfaceDecl>(clangDecl) ||
                  CD->isForeignReferenceType()) {
         os << clangDecl->getName() << " *";
       } else {
@@ -2699,7 +2699,7 @@ private:
     }
 
     assert(decl->getClangDecl() && "can only handle imported ObjC generics");
-    os << cast<clang::ObjCTypeParamDecl>(decl->getClangDecl())->getName();
+    os << cast<language::Core::ObjCTypeParamDecl>(decl->getClangDecl())->getName();
     printNullability(optionalKind);
   }
 
@@ -3111,20 +3111,20 @@ const TypeDecl *DeclAndTypePrinter::getObjCTypeDecl(const TypeDecl* TD) {
 }
 
 StringRef
-DeclAndTypePrinter::maybeGetOSObjectBaseName(const clang::NamedDecl *decl) {
+DeclAndTypePrinter::maybeGetOSObjectBaseName(const language::Core::NamedDecl *decl) {
   StringRef name = decl->getName();
   if (!name.consume_front("OS_"))
     return StringRef();
 
-  clang::SourceLocation loc = decl->getLocation();
+  language::Core::SourceLocation loc = decl->getLocation();
   if (!loc.isMacroID())
     return StringRef();
 
   // Hack: check to see if the name came from a macro in <os/object.h>.
-  clang::SourceManager &sourceMgr = decl->getASTContext().getSourceManager();
-  clang::SourceLocation expansionLoc =
+  language::Core::SourceManager &sourceMgr = decl->getASTContext().getSourceManager();
+  language::Core::SourceLocation expansionLoc =
       sourceMgr.getImmediateExpansionRange(loc).getBegin();
-  clang::SourceLocation spellingLoc = sourceMgr.getSpellingLoc(expansionLoc);
+  language::Core::SourceLocation spellingLoc = sourceMgr.getSpellingLoc(expansionLoc);
 
   if (!sourceMgr.getFilename(spellingLoc).ends_with("/os/object.h"))
     return StringRef();

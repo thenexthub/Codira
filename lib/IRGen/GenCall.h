@@ -41,7 +41,7 @@ namespace toolchain {
   class Value;
 }
 
-namespace clang {
+namespace language::Core {
   template <class> class CanQual;
   class Type;
 }
@@ -183,7 +183,7 @@ namespace irgen {
 
   void emitClangExpandedParameter(IRGenFunction &IGF,
                                   Explosion &in, Explosion &out,
-                                  clang::CanQual<clang::Type> clangType,
+                                  language::Core::CanQual<language::Core::Type> clangType,
                                   SILType languageType,
                                   const LoadableTypeInfo &languageTI);
 

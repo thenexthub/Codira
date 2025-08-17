@@ -18,7 +18,7 @@ using IntSpan = std::span<const int>;
 
 class LANGUAGE_PRIVATE_FILEID("main/blessed.code") MyClass {
 private:
-    void takesSpan(IntSpan s [[clang::noescape]]) {}
+    void takesSpan(IntSpan s [[language::Core::noescape]]) {}
 };
 
 //--- Inputs/module.modulemap

@@ -97,7 +97,7 @@ for invoking `build-script-impl`.
             "--darwin-deployment-version-xros=%s" % (
                 args.darwin_deployment_version_xros),
             "--cmake", toolchain.cmake,
-            "--llvm-build-type", args.llvm_build_variant,
+            "--toolchain-build-type", args.toolchain_build_variant,
             "--language-build-type", args.language_build_variant,
             "--language-stdlib-build-type", args.language_stdlib_build_variant,
             "--lldb-build-type", args.lldb_build_variant,
@@ -273,7 +273,7 @@ for invoking `build-script-impl`.
         # if we are going to build them and install_all is set, we also install
         # them.
         conditional_subproject_configs = [
-            (args.build_llvm, "llvm"),
+            (args.build_toolchain, "toolchain"),
             (args.build_language, "language"),
             (args.build_foundation, "foundation"),
             (args.build_xctest, "xctest"),
@@ -371,9 +371,9 @@ for invoking `build-script-impl`.
             impl_args += [
                 "--native-clang-tools-path=%s" % args.native_clang_tools_path
             ]
-        if args.native_llvm_tools_path is not None:
+        if args.native_toolchain_tools_path is not None:
             impl_args += [
-                "--native-llvm-tools-path=%s" % args.native_llvm_tools_path
+                "--native-toolchain-tools-path=%s" % args.native_toolchain_tools_path
             ]
         if args.native_language_tools_path is not None:
             impl_args += [
@@ -411,13 +411,13 @@ for invoking `build-script-impl`.
 
         if args.lto_type is not None:
             impl_args += [
-                "--llvm-enable-lto=%s" % args.lto_type,
+                "--toolchain-enable-lto=%s" % args.lto_type,
                 "--language-tools-enable-lto=%s" % args.lto_type
             ]
-            if args.llvm_max_parallel_lto_link_jobs is not None:
+            if args.toolchain_max_parallel_lto_link_jobs is not None:
                 impl_args += [
-                    "--llvm-num-parallel-lto-link-jobs=%s" %
-                    min(args.llvm_max_parallel_lto_link_jobs, args.build_jobs)
+                    "--toolchain-num-parallel-lto-link-jobs=%s" %
+                    min(args.toolchain_max_parallel_lto_link_jobs, args.build_jobs)
                 ]
             if args.language_tools_max_parallel_lto_link_jobs is not None:
                 impl_args += [
@@ -446,7 +446,7 @@ for invoking `build-script-impl`.
             ]
 
         if args.lit_args:
-            impl_args += ["--llvm-lit-args=%s" % args.lit_args]
+            impl_args += ["--toolchain-lit-args=%s" % args.lit_args]
 
         if args.coverage_db:
             impl_args += [
@@ -463,9 +463,9 @@ for invoking `build-script-impl`.
                 "--language-install-components=language-syntax-lib"
             ]
 
-        if args.llvm_install_components:
+        if args.toolchain_install_components:
             impl_args += [
-                "--llvm-install-components=%s" % args.llvm_install_components
+                "--toolchain-install-components=%s" % args.toolchain_install_components
             ]
 
         if not args.build_lld:
@@ -493,15 +493,15 @@ for invoking `build-script-impl`.
                 "--skip-clean-llbuild"
             ]
 
-        if args.llvm_ninja_targets:
+        if args.toolchain_ninja_targets:
             impl_args += [
-                "--llvm-ninja-targets=%s" % ' '.join(args.llvm_ninja_targets)
+                "--toolchain-ninja-targets=%s" % ' '.join(args.toolchain_ninja_targets)
             ]
 
-        if args.llvm_ninja_targets_for_cross_compile_hosts:
+        if args.toolchain_ninja_targets_for_cross_compile_hosts:
             impl_args += [
-                "--llvm-ninja-targets-for-cross-compile-hosts=%s" %
-                ' '.join(args.llvm_ninja_targets_for_cross_compile_hosts)
+                "--toolchain-ninja-targets-for-cross-compile-hosts=%s" %
+                ' '.join(args.toolchain_ninja_targets_for_cross_compile_hosts)
             ]
 
         if args.darwin_symroot_path_filters:
@@ -619,11 +619,11 @@ product or not.
         builder.add_product(products.CMark,
                             is_enabled=self.args.build_cmark)
 
-        # If --skip-build-llvm is passed in, LLVM cannot be completely disabled, as
+        # If --skip-build-toolchain is passed in, LLVM cannot be completely disabled, as
         # Swift still needs a few LLVM targets like tblgen to be built for it to be
         # configured. Instead, handle this in the product for now.
         builder.add_product(products.LLVM,
-                            is_enabled=self.args.build_llvm or self.args.build_language or self.args.build_lldb)
+                            is_enabled=self.args.build_toolchain or self.args.build_language or self.args.build_lldb)
 
         builder.add_product(products.StaticLanguageLinuxConfig,
                             is_enabled=self.args.install_static_linux_config)

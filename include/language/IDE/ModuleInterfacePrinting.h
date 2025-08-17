@@ -25,7 +25,7 @@
 #include <string>
 #include <vector>
 
-namespace clang {
+namespace language::Core {
 class Module;
 }
 
@@ -82,7 +82,7 @@ void printCodiraSourceInterface(SourceFile &File, ASTPrinter &Printer,
 
 /// Print the symbolic Codira interface for a given imported clang module.
 void printSymbolicCodiraClangModuleInterface(ModuleDecl *M, ASTPrinter &Printer,
-                                            const clang::Module *clangModule);
+                                            const language::Core::Module *clangModule);
 
 } // namespace ide
 

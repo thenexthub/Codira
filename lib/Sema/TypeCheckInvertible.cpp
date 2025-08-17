@@ -318,7 +318,7 @@ bool StorageVisitor::visit(NominalTypeDecl *nominal, DeclContext *dc) {
 
     // If this is a C++ struct, walk the members of its base types.
     if (auto cxxRecordDecl =
-            dyn_cast_or_null<clang::CXXRecordDecl>(nominal->getClangDecl())) {
+            dyn_cast_or_null<language::Core::CXXRecordDecl>(nominal->getClangDecl())) {
       for (auto cxxBase : cxxRecordDecl->bases()) {
         if (auto cxxBaseDecl = cxxBase.getType()->getAsCXXRecordDecl()) {
           if (importer::isSymbolicCircularBase(cxxRecordDecl, cxxBaseDecl))

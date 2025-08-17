@@ -15,7 +15,7 @@
 
 #include <IndexStoreDB_Database/DatabaseError.h>
 #include "lmdb/lmdb++.h"
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 
 using namespace IndexStoreDB;
 using namespace IndexStoreDB::db;
@@ -42,7 +42,7 @@ const char* DatabaseError::what() const noexcept {
 
 std::string DatabaseError::description() const noexcept {
   std::string desc;
-  llvm::raw_string_ostream OS(desc);
+  toolchain::raw_string_ostream OS(desc);
   OS << origin() << ": " << what();
   return OS.str();
 }

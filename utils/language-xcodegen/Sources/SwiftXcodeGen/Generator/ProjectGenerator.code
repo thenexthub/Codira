@@ -574,7 +574,7 @@ fileprivate final class ProjectGenerator {
     // and the modules will be picked up from the DerivedData products.
     let subs = buildArgs.substitutePaths(
       for: .I, includeSubOptions: true) { include -> RelativePath? in
-      // NOTE: If llvm/clang ever start having language targets, this will need
+      // NOTE: If toolchain/clang ever start having language targets, this will need
       // changing to encompass the parent. For now, avoid copying the extra
       // files.
       guard let suffix = include.removingPrefix(buildDir.path) else {

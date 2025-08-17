@@ -38,7 +38,7 @@ _TEST_SOURCE_ROOT = "/tmp/source-root"
 _TEST_BUILD_ROOT = os.path.join(_TEST_SOURCE_ROOT, "build-root")
 _TEST_REPO_NAME = "language-project"
 
-_TEST_LLVM_PATH = os.path.join(_TEST_SOURCE_ROOT, "llvm")
+_TEST_LLVM_PATH = os.path.join(_TEST_SOURCE_ROOT, "toolchain")
 _TEST_SWIFT_PATH = os.path.join(_TEST_SOURCE_ROOT, _TEST_REPO_NAME)
 
 _TEST_STANDALONE_SOURCE_ROOT = "/tmp/standalone/source-root"
@@ -48,7 +48,7 @@ _TEST_STANDALONE_SWIFT_PATH = os.path.join(
 
 _TEST_UNIFIED_SOURCE_ROOT = "/tmp/unified/source-root"
 _TEST_UNIFIED_SWIFT_PATH = os.path.join(
-    _TEST_UNIFIED_SOURCE_ROOT, "llvm", "tools", _TEST_REPO_NAME
+    _TEST_UNIFIED_SOURCE_ROOT, "toolchain", "tools", _TEST_REPO_NAME
 )
 
 
@@ -84,21 +84,21 @@ class TestConstants(unittest.TestCase):
             self.assertTrue(os.path.exists(path))
 
     # ---------------------------------------------------------------------------------
-    # _is_llvm_checkout
+    # _is_toolchain_checkout
 
     @utils.requires_module("unittest.mock")
-    def test_is_llvm_checkout_invalid_checkout(self):
+    def test_is_toolchain_checkout_invalid_checkout(self):
         with mock.patch("os.path.exists") as mock_exists:
             mock_exists.return_value = False
 
-            self.assertFalse(constants._is_llvm_checkout(_TEST_LLVM_PATH))
+            self.assertFalse(constants._is_toolchain_checkout(_TEST_LLVM_PATH))
 
     @utils.requires_module("unittest.mock")
-    def test_is_llvm_checkout_valid_checkout(self):
+    def test_is_toolchain_checkout_valid_checkout(self):
         with mock.patch("os.path.exists") as mock_exists:
             mock_exists.return_value = True
 
-            self.assertTrue(constants._is_llvm_checkout(_TEST_LLVM_PATH))
+            self.assertTrue(constants._is_toolchain_checkout(_TEST_LLVM_PATH))
 
     # ----------------------------------------------------------------------------------
     # _is_language_checkout
@@ -134,7 +134,7 @@ class TestConstants(unittest.TestCase):
         )
 
     @utils.requires_module("unittest.mock")
-    @patch("build_language.constants._is_llvm_checkout", _mock_return(False))
+    @patch("build_language.constants._is_toolchain_checkout", _mock_return(False))
     @patch("build_language.constants._is_language_checkout", _mock_return(True))
     def test_get_language_source_root_standalone_build(self):
         self.assertEqual(
@@ -143,7 +143,7 @@ class TestConstants(unittest.TestCase):
         )
 
     @utils.requires_module("unittest.mock")
-    @patch("build_language.constants._is_llvm_checkout", _mock_return(True))
+    @patch("build_language.constants._is_toolchain_checkout", _mock_return(True))
     @patch("build_language.constants._is_language_checkout", _mock_return(True))
     def test_get_language_source_root_unified_build(self):
         self.assertEqual(

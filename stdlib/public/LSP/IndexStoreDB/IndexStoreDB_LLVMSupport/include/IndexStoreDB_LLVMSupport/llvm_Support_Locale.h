@@ -1,9 +1,9 @@
 #ifndef LLVM_SUPPORT_LOCALE_H
 #define LLVM_SUPPORT_LOCALE_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_Config_indexstoredb-prefix.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_indexstoredb-prefix.h>
 
-namespace llvm {
+namespace toolchain {
 class StringRef;
 
 namespace sys {

@@ -39,7 +39,7 @@
 #include "toolchain/Support/Path.h"
 #include "toolchain/Support/SaveAndRestore.h"
 
-namespace clang {
+namespace language::Core {
 class NamedDecl;
 class Type;
 }
@@ -1480,8 +1480,8 @@ namespace language {
     builder();
   }
 
-  void printClangDeclName(const clang::NamedDecl *ND, toolchain::raw_ostream &os);
-  void printClangTypeName(const clang::Type *Ty, toolchain::raw_ostream &os);
+  void printClangDeclName(const language::Core::NamedDecl *ND, toolchain::raw_ostream &os);
+  void printClangTypeName(const language::Core::Type *Ty, toolchain::raw_ostream &os);
 
   /// Temporary on-stack storage and unescaping for encoded diagnostic
   /// messages.

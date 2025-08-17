@@ -25,11 +25,11 @@
 #include "language/AST/USRGeneration.h"
 #include "language/Basic/Assertions.h"
 #include "language/Demangling/Demangler.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Attr.h"
-#include "clang/Index/USRGeneration.h"
-#include "clang/Lex/PreprocessingRecord.h"
-#include "clang/Lex/Preprocessor.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Attr.h"
+#include "language/Core/Index/USRGeneration.h"
+#include "language/Core/Lex/PreprocessingRecord.h"
+#include "language/Core/Lex/Preprocessor.h"
 #include "toolchain/ADT/SmallString.h"
 #include "toolchain/ADT/StringRef.h"
 #include "toolchain/Support/raw_ostream.h"
@@ -74,22 +74,22 @@ static bool printObjCUSRFragment(const ValueDecl *D, StringRef ObjCName,
     if (ExtContextD) {
       extContextName = ExtContextD->getModuleContext()->getNameStr();
     }
-    clang::index::generateUSRForObjCClass(ObjCName, OS,
+    language::Core::index::generateUSRForObjCClass(ObjCName, OS,
                                           ModuleName, extContextName);
   } else if (isa<ProtocolDecl>(D)) {
-    clang::index::generateUSRForObjCProtocol(ObjCName, OS, ModuleName);
+    language::Core::index::generateUSRForObjCProtocol(ObjCName, OS, ModuleName);
   } else if (isa<VarDecl>(D)) {
-    clang::index::generateUSRForObjCProperty(ObjCName, D->isStatic(), OS);
+    language::Core::index::generateUSRForObjCProperty(ObjCName, D->isStatic(), OS);
   } else if (isa<ConstructorDecl>(D)) {
     // init() is a class member in Codira, but an instance method in ObjC.
-    clang::index::generateUSRForObjCMethod(ObjCName, /*IsInstanceMethod=*/true,
+    language::Core::index::generateUSRForObjCMethod(ObjCName, /*IsInstanceMethod=*/true,
                                            OS);
   } else if (isa<AbstractFunctionDecl>(D)) {
-    clang::index::generateUSRForObjCMethod(ObjCName, D->isInstanceMember(), OS);
+    language::Core::index::generateUSRForObjCMethod(ObjCName, D->isInstanceMember(), OS);
   } else if (isa<EnumDecl>(D)) {
-    clang::index::generateUSRForGlobalEnum(ObjCName, OS, ModuleName);
+    language::Core::index::generateUSRForGlobalEnum(ObjCName, OS, ModuleName);
   } else if (isa<EnumElementDecl>(D)) {
-    clang::index::generateUSRForEnumConstant(ObjCName, OS);
+    language::Core::index::generateUSRForEnumConstant(ObjCName, OS);
   } else {
     toolchain_unreachable("Unexpected value decl");
   }
@@ -97,7 +97,7 @@ static bool printObjCUSRFragment(const ValueDecl *D, StringRef ObjCName,
 }
 
 static bool printObjCUSRContext(const Decl *D, raw_ostream &OS) {
-  OS << clang::index::getUSRSpacePrefix();
+  OS << language::Core::index::getUSRSpacePrefix();
   auto *DC = D->getDeclContext();
   if (auto *Parent = DC->getSelfNominalTypeDecl()) {
     auto *extContextD = dyn_cast<ExtensionDecl>(DC);
@@ -127,7 +127,7 @@ static bool printObjCUSRForAccessor(const AbstractStorageDecl *ASD,
   }
   assert(Selector);
   toolchain::SmallString<128> Buf;
-  clang::index::generateUSRForObjCMethod(Selector.getString(Buf),
+  language::Core::index::generateUSRForObjCMethod(Selector.getString(Buf),
                                          ASD->isInstanceMember(), OS);
   return false;
 }
@@ -217,10 +217,10 @@ language::USRGenerationRequest::evaluate(Evaluator &evaluator, const ValueDecl *
       if (!options.distinguishSynthesizedDecls) {
         return ClangN;
       }
-      if (auto *ClangEnumConst = dyn_cast<clang::EnumConstantDecl>(ClangD)) {
+      if (auto *ClangEnumConst = dyn_cast<language::Core::EnumConstantDecl>(ClangD)) {
         if (auto *ClangEnum =
-                dyn_cast<clang::EnumDecl>(ClangEnumConst->getDeclContext())) {
-          if (ClangEnum->hasAttr<clang::NSErrorDomainAttr>() && isa<VarDecl>(D))
+                dyn_cast<language::Core::EnumDecl>(ClangEnumConst->getDeclContext())) {
+          if (ClangEnum->hasAttr<language::Core::NSErrorDomainAttr>() && isa<VarDecl>(D))
             return ClangNode();
         }
       }
@@ -236,7 +236,7 @@ language::USRGenerationRequest::evaluate(Evaluator &evaluator, const ValueDecl *
 
   if (ClangNode ClangN = interpretAsClangNode(D)) {
     if (auto ClangD = ClangN.getAsDecl()) {
-      bool Ignore = clang::index::generateUSRForDecl(ClangD, Buffer);
+      bool Ignore = language::Core::index::generateUSRForDecl(ClangD, Buffer);
       if (!Ignore) {
         return std::string(Buffer.str());
       } else {
@@ -247,7 +247,7 @@ language::USRGenerationRequest::evaluate(Evaluator &evaluator, const ValueDecl *
     auto &Importer = *D->getASTContext().getClangModuleLoader();
 
     auto ClangMacroInfo = ClangN.getAsMacro();
-    bool Ignore = clang::index::generateUSRForMacro(
+    bool Ignore = language::Core::index::generateUSRForMacro(
         D->getBaseIdentifier().str(),
         ClangMacroInfo->getDefinitionLoc(),
         Importer.getClangASTContext().getSourceManager(), Buffer);
@@ -302,9 +302,9 @@ language::MangleLocalTypeDeclRequest::evaluate(Evaluator &evaluator,
 bool ide::printModuleUSR(ModuleEntity Mod, raw_ostream &OS) {
   if (auto *D = Mod.getAsCodiraModule()) {
     StringRef moduleName = D->getRealName().str();
-    return clang::index::generateFullUSRForTopLevelModuleName(moduleName, OS);
+    return language::Core::index::generateFullUSRForTopLevelModuleName(moduleName, OS);
   } else if (auto ClangM = Mod.getAsClangModule()) {
-    return clang::index::generateFullUSRForModule(ClangM, OS);
+    return language::Core::index::generateFullUSRForModule(ClangM, OS);
   } else {
     return true;
   }

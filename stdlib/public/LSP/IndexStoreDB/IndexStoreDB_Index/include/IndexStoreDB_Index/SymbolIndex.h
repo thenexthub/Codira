@@ -17,8 +17,8 @@
 #define INDEXSTOREDB_INDEX_SYMBOLINDEX_H
 
 #include <IndexStoreDB_Support/LLVM.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_OptionSet.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Chrono.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_OptionSet.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Chrono.h>
 #include <memory>
 
 namespace indexstore {
@@ -31,7 +31,7 @@ namespace IndexStoreDB {
   enum class SymbolRole : uint64_t;
   enum class SymbolKind : uint8_t;
   typedef std::shared_ptr<SymbolOccurrence> SymbolOccurrenceRef;
-  typedef llvm::OptionSet<SymbolRole> SymbolRoleSet;
+  typedef toolchain::OptionSet<SymbolRole> SymbolRoleSet;
 
 namespace db {
   class Database;
@@ -112,7 +112,7 @@ public:
   /// Returns the latest modification date of a unit that contains the given source file.
   ///
   /// If no unit containing the given source file exists, returns `None`.
-  llvm::Optional<llvm::sys::TimePoint<>> timestampOfLatestUnitForFile(CanonicalFilePathRef filePath);
+  toolchain::Optional<toolchain::sys::TimePoint<>> timestampOfLatestUnitForFile(CanonicalFilePathRef filePath);
 private:
   void *Impl; // A SymbolIndexImpl.
 };

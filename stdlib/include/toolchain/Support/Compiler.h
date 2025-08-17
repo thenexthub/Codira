@@ -157,8 +157,8 @@
 // The clang-tidy check bugprone-use-after-move recognizes this attribute as a
 // marker that a moved-from object has left the indeterminate state and can be
 // reused.
-#if TOOLCHAIN_HAS_CPP_ATTRIBUTE(clang::reinitializes)
-#define TOOLCHAIN_ATTRIBUTE_REINITIALIZES [[clang::reinitializes]]
+#if TOOLCHAIN_HAS_CPP_ATTRIBUTE(language::Core::reinitializes)
+#define TOOLCHAIN_ATTRIBUTE_REINITIALIZES [[language::Core::reinitializes]]
 #else
 #define TOOLCHAIN_ATTRIBUTE_REINITIALIZES
 #endif
@@ -264,17 +264,17 @@
 #define TOOLCHAIN_FALLTHROUGH [[gnu::fallthrough]]
 #elif __has_attribute(fallthrough)
 #define TOOLCHAIN_FALLTHROUGH __attribute__((fallthrough))
-#elif TOOLCHAIN_HAS_CPP_ATTRIBUTE(clang::fallthrough)
-#define TOOLCHAIN_FALLTHROUGH [[clang::fallthrough]]
+#elif TOOLCHAIN_HAS_CPP_ATTRIBUTE(language::Core::fallthrough)
+#define TOOLCHAIN_FALLTHROUGH [[language::Core::fallthrough]]
 #else
 #define TOOLCHAIN_FALLTHROUGH
 #endif
 
 /// TOOLCHAIN_REQUIRE_CONSTANT_INITIALIZATION - Apply this to globals to ensure that
 /// they are constant initialized.
-#if TOOLCHAIN_HAS_CPP_ATTRIBUTE(clang::require_constant_initialization)
+#if TOOLCHAIN_HAS_CPP_ATTRIBUTE(language::Core::require_constant_initialization)
 #define TOOLCHAIN_REQUIRE_CONSTANT_INITIALIZATION                                   \
-  [[clang::require_constant_initialization]]
+  [[language::Core::require_constant_initialization]]
 #else
 #define TOOLCHAIN_REQUIRE_CONSTANT_INITIALIZATION
 #endif

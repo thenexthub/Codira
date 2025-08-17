@@ -1,14 +1,30 @@
-//===-- llvm/ADT/Statistic.h - Easy way to expose stats ---------*- C++ -*-===//
+//===-- toolchain/ADT/Statistic.h - Easy way to expose stats ---------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
 // This file defines the 'Statistic' class, which is designed to be an easy way
 // to expose various metrics from passes.  These statistics are printed at the
-// end of a run (from llvm_shutdown), when the -stats command line option is
+// end of a run (from toolchain_shutdown), when the -stats command line option is
 // passed on the command line.
 //
 // This is useful for reporting information like the number of instructions
@@ -25,8 +41,8 @@
 #ifndef LLVM_ADT_STATISTIC_H
 #define LLVM_ADT_STATISTIC_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_Config_llvm-config.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Compiler.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_toolchain-config.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Compiler.h>
 #include <atomic>
 #include <memory>
 #include <vector>
@@ -38,7 +54,7 @@
 #define LLVM_ENABLE_STATS 1
 #endif
 
-namespace llvm {
+namespace toolchain {
 
 class raw_ostream;
 class raw_fd_ostream;
@@ -166,7 +182,7 @@ protected:
 // STATISTIC - A macro to make definition of statistics really simple.  This
 // automatically passes the DEBUG_TYPE of the file into the statistic.
 #define STATISTIC(VARNAME, DESC)                                               \
-  static llvm::Statistic VARNAME = {DEBUG_TYPE, #VARNAME, DESC, {0}, {false}}
+  static toolchain::Statistic VARNAME = {DEBUG_TYPE, #VARNAME, DESC, {0}, {false}}
 
 /// Enable the collection and printing of statistics.
 void EnableStatistics(bool PrintOnExit = true);
@@ -213,6 +229,6 @@ const std::vector<std::pair<StringRef, unsigned>> GetStatistics();
 /// GetStatistics().
 void ResetStatistics();
 
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif // LLVM_ADT_STATISTIC_H

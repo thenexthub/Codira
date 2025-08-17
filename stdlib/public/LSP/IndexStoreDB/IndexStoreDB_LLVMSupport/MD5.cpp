@@ -37,12 +37,12 @@
  * compile-time configuration.
  */
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_MD5.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_ArrayRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Endian.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Format.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_MD5.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_ArrayRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Endian.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Format.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 #include <array>
 #include <cstdint>
 #include <cstring>
@@ -72,7 +72,7 @@
        ((MD5_u32plus) ptr[(n) * 4 + 3] << 24))
 #define GET(n) (block[(n)])
 
-using namespace llvm;
+using namespace toolchain;
 
 /// This processes one or more 64-byte data blocks, but does NOT update
 ///the bit counters.  There are no alignment requirements.

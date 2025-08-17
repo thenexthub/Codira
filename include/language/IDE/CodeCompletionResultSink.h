@@ -56,7 +56,7 @@ public:
   std::vector<CodeCompletionResult *> Results;
 
   /// A single-element cache for module names stored in Allocator, keyed by a
-  /// clang::Module * or language::ModuleDecl *.
+  /// language::Core::Module * or language::ModuleDecl *.
   std::pair<void *, NullTerminatedStringRef> LastModule;
 
   CodeCompletionResultSink()

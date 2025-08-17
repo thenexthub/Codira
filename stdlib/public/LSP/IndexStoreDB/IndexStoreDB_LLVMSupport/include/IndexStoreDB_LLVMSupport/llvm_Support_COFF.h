@@ -1,4 +1,4 @@
-//===-- llvm/Support/COFF.h -------------------------------------*- C++ -*-===//
+//===-- toolchain/Support/COFF.h -------------------------------------*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -23,11 +23,11 @@
 #ifndef LLVM_SUPPORT_COFF_H
 #define LLVM_SUPPORT_COFF_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_DataTypes.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_DataTypes.h>
 #include <cassert>
 #include <cstring>
 
-namespace llvm {
+namespace toolchain {
 namespace COFF {
 
   // The maximum number of sections that a COFF object can have (inclusive).
@@ -675,6 +675,6 @@ namespace COFF {
   }
 
 } // End namespace COFF.
-} // End namespace llvm.
+} // End namespace toolchain.
 
 #endif

@@ -472,7 +472,7 @@ Type ASTBuilder::createFunctionType(
      || representation == FunctionTypeRepresentation::Block)
     && !flags.isEscaping();
 
-  const clang::Type *clangFunctionType = nullptr;
+  const language::Core::Type *clangFunctionType = nullptr;
   if (shouldStoreClangType(representation))
     clangFunctionType = Ctx.getClangFunctionType(funcParams, output,
                                                  representation);
@@ -705,7 +705,7 @@ Type ASTBuilder::createImplFunctionType(
     funcErrorResult.emplace(type, conv);
   }
 
-  const clang::Type *clangFnType = nullptr;
+  const language::Core::Type *clangFnType = nullptr;
   if (shouldStoreClangType(representation)) {
     assert(funcResults.size() <= 1 && funcYields.size() == 0 &&
            "C functions and blocks have at most 1 result and 0 yields.");

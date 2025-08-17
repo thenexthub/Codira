@@ -26,9 +26,9 @@
 #include "language/ClangImporter/ClangImporter.h"
 #include "toolchain/ADT/StringSet.h"
 
-namespace clang {
+namespace language::Core {
   class NamedDecl;
-} // end namespace clang
+} // end namespace language::Core
 
 namespace language {
 
@@ -156,7 +156,7 @@ public:
 
   /// Returns the name of an <os/object.h> type minus the leading "OS_",
   /// or an empty string if \p decl is not an <os/object.h> type.
-  static StringRef maybeGetOSObjectBaseName(const clang::NamedDecl *decl);
+  static StringRef maybeGetOSObjectBaseName(const language::Core::NamedDecl *decl);
 
   static std::pair<Type, OptionalTypeKind>
   getObjectTypeAndOptionality(const ValueDecl *D, Type ty);

@@ -20,9 +20,9 @@
 #include "language/AST/ModuleLoader.h"
 #include "language/AST/SubstitutionMap.h"
 #include "language/Basic/TaggedUnion.h"
-#include "clang/AST/DeclTemplate.h"
+#include "language/Core/AST/DeclTemplate.h"
 
-namespace clang {
+namespace language::Core {
 class ASTContext;
 class CompilerInstance;
 class Decl;
@@ -32,7 +32,7 @@ class Sema;
 class TargetInfo;
 class Type;
 class SourceLocation;
-} // namespace clang
+} // namespace language::Core
 
 namespace language {
 
@@ -50,7 +50,7 @@ class VisibleDeclConsumer;
 
 /// Represents the different namespaces for types in C.
 ///
-/// A simplified version of clang::Sema::LookupKind.
+/// A simplified version of language::Core::Sema::LookupKind.
 enum class ClangTypeKind {
   Typedef,
   ObjCClass = Typedef,
@@ -143,12 +143,12 @@ public:
   ///
   /// (The implementing `ClangImporter` class maintains separate Target info
   /// for use by IRGen/CodeGen clients)
-  virtual clang::TargetInfo &getModuleAvailabilityTarget() const = 0;
+  virtual language::Core::TargetInfo &getModuleAvailabilityTarget() const = 0;
 
-  virtual clang::ASTContext &getClangASTContext() const = 0;
-  virtual clang::Preprocessor &getClangPreprocessor() const = 0;
-  virtual clang::Sema &getClangSema() const = 0;
-  virtual const clang::CompilerInstance &getClangInstance() const = 0;
+  virtual language::Core::ASTContext &getClangASTContext() const = 0;
+  virtual language::Core::Preprocessor &getClangPreprocessor() const = 0;
+  virtual language::Core::Sema &getClangSema() const = 0;
+  virtual const language::Core::CompilerInstance &getClangInstance() const = 0;
   virtual void printStatistics() const = 0;
   virtual void dumpCodiraLookupTables() const = 0;
 
@@ -159,7 +159,7 @@ public:
   /// Retrieves the Codira wrapper for the given Clang module, creating
   /// it if necessary.
   virtual ModuleDecl *
-  getWrapperForModule(const clang::Module *mod,
+  getWrapperForModule(const language::Core::Module *mod,
                       bool returnOverlayIfPossible = false) const = 0;
 
   /// Adds a new search path to the Clang CompilerInstance, as if specified with
@@ -206,7 +206,7 @@ public:
                       toolchain::function_ref<void(TypeDecl *)> receiver) = 0;
 
   /// Imports a clang decl directly, rather than looking up its name.
-  virtual Decl *importDeclDirectly(const clang::NamedDecl *decl) = 0;
+  virtual Decl *importDeclDirectly(const language::Core::NamedDecl *decl) = 0;
 
   /// Clones an imported \param decl from its base class to its derived class
   /// \param newContext where it is inherited. Its access level is determined
@@ -234,13 +234,13 @@ public:
 
   /// Instantiate and import class template using given arguments.
   ///
-  /// This method will find the clang::ClassTemplateSpecialization decl if
+  /// This method will find the language::Core::ClassTemplateSpecialization decl if
   /// it already exists, or it will create one. Then it will import this
   /// decl the same way as we import typedeffed class templates - using
   /// the hidden struct prefixed with `__CxxTemplateInst`.
   virtual StructDecl *
-  instantiateCXXClassTemplate(clang::ClassTemplateDecl *decl,
-                      ArrayRef<clang::TemplateArgument> arguments) = 0;
+  instantiateCXXClassTemplate(language::Core::ClassTemplateDecl *decl,
+                      ArrayRef<language::Core::TemplateArgument> arguments) = 0;
 
   virtual ConcreteDeclRef
   getCXXFunctionTemplateSpecialization(SubstitutionMap subst,
@@ -249,21 +249,21 @@ public:
   /// Try to parse the string as a Clang function type.
   ///
   /// Returns null if there was a parsing failure.
-  virtual const clang::Type *parseClangFunctionType(StringRef type,
+  virtual const language::Core::Type *parseClangFunctionType(StringRef type,
                                                     SourceLoc loc) const = 0;
 
   /// Print the Clang type.
-  virtual void printClangType(const clang::Type *type,
+  virtual void printClangType(const language::Core::Type *type,
                               toolchain::raw_ostream &os) const = 0;
 
   /// Try to find a stable serialization path for the given declaration,
   /// if there is one.
   virtual StableSerializationPath
-  findStableSerializationPath(const clang::Decl *decl) const = 0;
+  findStableSerializationPath(const language::Core::Decl *decl) const = 0;
 
   /// Try to resolve a stable serialization path down to the original
   /// declaration.
-  virtual const clang::Decl *
+  virtual const language::Core::Decl *
   resolveStableSerializationPath(const StableSerializationPath &path) const = 0;
 
   /// Determine whether the given type is serializable.
@@ -288,28 +288,28 @@ public:
   /// least, it's probably best to use conservative predicates
   /// that work both ways so that language behavior doesn't differ
   /// based on subtleties like the target module interface format.
-  virtual bool isSerializable(const clang::Type *type,
+  virtual bool isSerializable(const language::Core::Type *type,
                               bool checkCanonical) const = 0;
 
-  virtual clang::FunctionDecl *
+  virtual language::Core::FunctionDecl *
   instantiateCXXFunctionTemplate(ASTContext &ctx,
-                                 clang::FunctionTemplateDecl *fn,
+                                 language::Core::FunctionTemplateDecl *fn,
                                  SubstitutionMap subst) = 0;
 
-  virtual bool isCXXMethodMutating(const clang::CXXMethodDecl *method) = 0;
+  virtual bool isCXXMethodMutating(const language::Core::CXXMethodDecl *method) = 0;
 
   virtual bool isUnsafeCXXMethod(const FuncDecl *fn) = 0;
 
-  virtual FuncDecl *getDefaultArgGenerator(const clang::ParmVarDecl *param) = 0;
+  virtual FuncDecl *getDefaultArgGenerator(const language::Core::ParmVarDecl *param) = 0;
 
   virtual FuncDecl *
-  getAvailabilityDomainPredicate(const clang::VarDecl *var) = 0;
+  getAvailabilityDomainPredicate(const language::Core::VarDecl *var) = 0;
 
   virtual std::optional<Type>
-  importFunctionReturnType(const clang::FunctionDecl *clangDecl,
+  importFunctionReturnType(const language::Core::FunctionDecl *clangDecl,
                            DeclContext *dc) = 0;
 
-  virtual Type importVarDeclType(const clang::VarDecl *clangDecl,
+  virtual Type importVarDeclType(const language::Core::VarDecl *clangDecl,
                                  VarDecl *languageDecl,
                                  DeclContext *dc) = 0;
 
@@ -318,20 +318,20 @@ public:
   /// \param clangModule The module, or null to indicate that we're talking
   /// about the directly-parsed headers.
   virtual CodiraLookupTable *
-  findLookupTable(const clang::Module *clangModule) = 0;
+  findLookupTable(const language::Core::Module *clangModule) = 0;
 
   virtual DeclName
-  importName(const clang::NamedDecl *D,
-             clang::DeclarationName givenName = clang::DeclarationName()) = 0;
+  importName(const language::Core::NamedDecl *D,
+             language::Core::DeclarationName givenName = language::Core::DeclarationName()) = 0;
 
   /// Determine the effective Clang context for the given Codira nominal type.
   virtual EffectiveClangContext getEffectiveClangContext(
       const NominalTypeDecl *nominal) = 0;
 
-  virtual const clang::TypedefType *
-  getTypeDefForCXXCFOptionsDefinition(const clang::Decl *candidateDecl) = 0;
+  virtual const language::Core::TypedefType *
+  getTypeDefForCXXCFOptionsDefinition(const language::Core::Decl *candidateDecl) = 0;
 
-  virtual SourceLoc importSourceLocation(clang::SourceLocation loc) = 0;
+  virtual SourceLoc importSourceLocation(language::Core::SourceLocation loc) = 0;
 
   /// Just like Decl::getClangNode() except we look through to the 'Code'
   /// enum of an error wrapper struct.

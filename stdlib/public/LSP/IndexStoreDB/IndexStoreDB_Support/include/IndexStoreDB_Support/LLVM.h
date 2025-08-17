@@ -24,13 +24,13 @@
 // Do not proliferate #includes here, require clients to #include their
 // dependencies.
 // Casting.h has complex templates that cannot be easily forward declared.
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Casting.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Casting.h>
 // None.h includes an enumerator that is desired & cannot be forward declared
 // without a definition of NoneType.
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_None.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_None.h>
 #include <memory>
 
-namespace llvm {
+namespace toolchain {
   // ADT's.
   class StringRef;
   class Twine;
@@ -74,30 +74,30 @@ namespace llvm {
 
 namespace IndexStoreDB {
   // Casting operators.
-  using llvm::isa;
-  using llvm::cast;
-  using llvm::dyn_cast;
-  using llvm::dyn_cast_or_null;
-  using llvm::cast_or_null;
+  using toolchain::isa;
+  using toolchain::cast;
+  using toolchain::dyn_cast;
+  using toolchain::dyn_cast_or_null;
+  using toolchain::cast_or_null;
 
   // ADT's.
-  using llvm::StringRef;
-  using llvm::Twine;
-  using llvm::ArrayRef;
-  using llvm::function_ref;
-  using llvm::SmallString;
-  using llvm::SmallVector;
-  using llvm::SmallVectorImpl;
-  using llvm::SaveAndRestore;
-  using llvm::Optional;
-  using llvm::None;
+  using toolchain::StringRef;
+  using toolchain::Twine;
+  using toolchain::ArrayRef;
+  using toolchain::function_ref;
+  using toolchain::SmallString;
+  using toolchain::SmallVector;
+  using toolchain::SmallVectorImpl;
+  using toolchain::SaveAndRestore;
+  using toolchain::Optional;
+  using toolchain::None;
 
   // Reference counting.
-  using llvm::IntrusiveRefCntPtr;
-  using llvm::IntrusiveRefCntPtrInfo;
+  using toolchain::IntrusiveRefCntPtr;
+  using toolchain::IntrusiveRefCntPtrInfo;
   template <typename T> class ThreadSafeRefCntPtr;
 
-  using llvm::raw_ostream;
+  using toolchain::raw_ostream;
 
   template <typename T>
   using RefPtr = IntrusiveRefCntPtr<T>;

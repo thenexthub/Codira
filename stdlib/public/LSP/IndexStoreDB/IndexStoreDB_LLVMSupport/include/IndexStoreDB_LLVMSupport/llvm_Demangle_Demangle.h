@@ -4,7 +4,7 @@
 #ifndef LLVM_DEMANGLE_DEMANGLE_H
 #define LLVM_DEMANGLE_DEMANGLE_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_Config_indexstoredb-prefix.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_indexstoredb-prefix.h>
 
 static inline char *itaniumDemangle(const char *mangled_name, char *buf,
                                     size_t *n, int *status) {

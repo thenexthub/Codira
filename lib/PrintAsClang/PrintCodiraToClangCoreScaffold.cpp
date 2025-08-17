@@ -23,8 +23,8 @@
 #include "language/Basic/Assertions.h"
 #include "language/IRGen/IRABIDetailsProvider.h"
 #include "language/IRGen/Linking.h"
-#include "clang/Basic/AddressSpaces.h"
-#include "clang/Basic/TargetInfo.h"
+#include "language/Core/Basic/AddressSpaces.h"
+#include "language/Core/Basic/TargetInfo.h"
 #include "toolchain/ADT/STLExtras.h"
 
 using namespace language;
@@ -183,9 +183,9 @@ void printPrimitiveGenericTypeTraits(raw_ostream &os, ASTContext &astContext,
   auto &clangTI =
       astContext.getClangModuleLoader()->getClangASTContext().getTargetInfo();
   bool isCodiraIntLong =
-      clangTI.getPtrDiffType(clang::LangAS::Default) == clang::TransferrableTargetInfo::SignedLong;
+      clangTI.getPtrDiffType(language::Core::LangAS::Default) == language::Core::TransferrableTargetInfo::SignedLong;
   bool isInt64Long =
-      clangTI.getInt64Type() == clang::TransferrableTargetInfo::SignedLong;
+      clangTI.getInt64Type() == language::Core::TransferrableTargetInfo::SignedLong;
   if (!(isCodiraIntLong && !isInt64Long))
     primTypesArray = primTypesArray.drop_back(2);
 

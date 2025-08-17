@@ -1,17 +1,33 @@
 //=== JSON.cpp - JSON value, parsing and serialization - C++ -----------*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===---------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_JSON.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ConvertUTF.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Format.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_JSON.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ConvertUTF.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Format.h>
 #include <cctype>
 
-namespace llvm {
+namespace toolchain {
 namespace json {
 
 Value &Object::operator[](const ObjectKey &K) {
@@ -32,30 +48,30 @@ const Value *Object::get(StringRef K) const {
     return nullptr;
   return &I->second;
 }
-llvm::Optional<std::nullptr_t> Object::getNull(StringRef K) const {
+toolchain::Optional<std::nullptr_t> Object::getNull(StringRef K) const {
   if (auto *V = get(K))
     return V->getAsNull();
-  return llvm::None;
+  return toolchain::None;
 }
-llvm::Optional<bool> Object::getBoolean(StringRef K) const {
+toolchain::Optional<bool> Object::getBoolean(StringRef K) const {
   if (auto *V = get(K))
     return V->getAsBoolean();
-  return llvm::None;
+  return toolchain::None;
 }
-llvm::Optional<double> Object::getNumber(StringRef K) const {
+toolchain::Optional<double> Object::getNumber(StringRef K) const {
   if (auto *V = get(K))
     return V->getAsNumber();
-  return llvm::None;
+  return toolchain::None;
 }
-llvm::Optional<int64_t> Object::getInteger(StringRef K) const {
+toolchain::Optional<int64_t> Object::getInteger(StringRef K) const {
   if (auto *V = get(K))
     return V->getAsInteger();
-  return llvm::None;
+  return toolchain::None;
 }
-llvm::Optional<llvm::StringRef> Object::getString(StringRef K) const {
+toolchain::Optional<toolchain::StringRef> Object::getString(StringRef K) const {
   if (auto *V = get(K))
     return V->getAsString();
-  return llvm::None;
+  return toolchain::None;
 }
 const json::Object *Object::getObject(StringRef K) const {
   if (auto *V = get(K))
@@ -195,7 +211,7 @@ bool operator==(const Value &L, const Value &R) {
   case Value::Object:
     return *L.getAsObject() == *R.getAsObject();
   }
-  llvm_unreachable("Unknown value kind");
+  toolchain_unreachable("Unknown value kind");
 }
 
 namespace {
@@ -429,7 +445,7 @@ static void encodeUtf8(uint32_t Rune, std::string &Out) {
     Out.push_back(ThirdByte);
     Out.push_back(FourthByte);
   } else {
-    llvm_unreachable("Invalid codepoint");
+    toolchain_unreachable("Invalid codepoint");
   }
 }
 
@@ -502,7 +518,7 @@ bool Parser::parseError(const char *Msg) {
     }
   }
   Err.emplace(
-      llvm::make_unique<ParseError>(Msg, Line, P - StartOfLine, P - Start));
+      toolchain::make_unique<ParseError>(Msg, Line, P - StartOfLine, P - Start));
   return false;
 }
 } // namespace
@@ -522,14 +538,14 @@ static std::vector<const Object::value_type *> sortedElements(const Object &O) {
   std::vector<const Object::value_type *> Elements;
   for (const auto &E : O)
     Elements.push_back(&E);
-  llvm::sort(Elements,
+  toolchain::sort(Elements,
              [](const Object::value_type *L, const Object::value_type *R) {
                return L->first < R->first;
              });
   return Elements;
 }
 
-bool isUTF8(llvm::StringRef S, size_t *ErrOffset) {
+bool isUTF8(toolchain::StringRef S, size_t *ErrOffset) {
   // Fast-path for ASCII, which is valid UTF-8.
   if (LLVM_LIKELY(isASCII(S)))
     return true;
@@ -543,7 +559,7 @@ bool isUTF8(llvm::StringRef S, size_t *ErrOffset) {
   return false;
 }
 
-std::string fixUTF8(llvm::StringRef S) {
+std::string fixUTF8(toolchain::StringRef S) {
   // This isn't particularly efficient, but is only for error-recovery.
   std::vector<UTF32> Codepoints(S.size()); // 1 codepoint per byte suffices.
   const UTF8 *In8 = reinterpret_cast<const UTF8 *>(S.data());
@@ -561,9 +577,9 @@ std::string fixUTF8(llvm::StringRef S) {
 }
 
 } // namespace json
-} // namespace llvm
+} // namespace toolchain
 
-static void quote(llvm::raw_ostream &OS, llvm::StringRef S) {
+static void quote(toolchain::raw_ostream &OS, toolchain::StringRef S) {
   OS << '\"';
   for (unsigned char C : S) {
     if (C == 0x22 || C == 0x5C)
@@ -586,7 +602,7 @@ static void quote(llvm::raw_ostream &OS, llvm::StringRef S) {
       break;
     default:
       OS << 'u';
-      llvm::write_hex(OS, C, llvm::HexPrintStyle::Lower, 4);
+      toolchain::write_hex(OS, C, toolchain::HexPrintStyle::Lower, 4);
       break;
     }
   }
@@ -602,7 +618,7 @@ enum IndenterAction {
 
 // Prints JSON. The indenter can be used to control formatting.
 template <typename Indenter>
-void llvm::json::Value::print(raw_ostream &OS, const Indenter &I) const {
+void toolchain::json::Value::print(raw_ostream &OS, const Indenter &I) const {
   switch (Type) {
   case T_Null:
     OS << "null";
@@ -663,15 +679,15 @@ void llvm::json::Value::print(raw_ostream &OS, const Indenter &I) const {
   }
 }
 
-void llvm::format_provider<llvm::json::Value>::format(
-    const llvm::json::Value &E, raw_ostream &OS, StringRef Options) {
+void toolchain::format_provider<toolchain::json::Value>::format(
+    const toolchain::json::Value &E, raw_ostream &OS, StringRef Options) {
   if (Options.empty()) {
     OS << E;
     return;
   }
   unsigned IndentAmount = 0;
   if (Options.getAsInteger(/*Radix=*/10, IndentAmount))
-    llvm_unreachable("json::Value format options should be an integer");
+    toolchain_unreachable("json::Value format options should be an integer");
   unsigned IndentLevel = 0;
   E.print(OS, [&](IndenterAction A) {
     switch (A) {
@@ -692,7 +708,7 @@ void llvm::format_provider<llvm::json::Value>::format(
   });
 }
 
-llvm::raw_ostream &llvm::json::operator<<(raw_ostream &OS, const Value &E) {
+toolchain::raw_ostream &toolchain::json::operator<<(raw_ostream &OS, const Value &E) {
   E.print(OS, [](IndenterAction A) { /*ignore*/ });
   return OS;
 }

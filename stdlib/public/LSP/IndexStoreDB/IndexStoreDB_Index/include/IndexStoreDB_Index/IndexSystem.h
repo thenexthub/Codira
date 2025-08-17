@@ -19,9 +19,9 @@
 #include <IndexStoreDB_Support/LLVM.h>
 #include <IndexStoreDB_Support/Visibility.h>
 #include <IndexStoreDB_Index/IndexStoreCXX.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_OptionSet.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Chrono.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_OptionSet.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Chrono.h>
 #include <memory>
 #include <string>
 #include <vector>
@@ -37,7 +37,7 @@ namespace IndexStoreDB {
   typedef std::shared_ptr<SymbolOccurrence> SymbolOccurrenceRef;
   typedef std::shared_ptr<Symbol> SymbolRef;
 
-  typedef llvm::OptionSet<SymbolRole> SymbolRoleSet;
+  typedef toolchain::OptionSet<SymbolRole> SymbolRoleSet;
 
 namespace index {
 
@@ -69,8 +69,8 @@ public:
                                              std::string &Error);
 
   bool isUnitOutOfDate(StringRef unitOutputPath, ArrayRef<StringRef> dirtyFiles);
-  bool isUnitOutOfDate(StringRef unitOutputPath, llvm::sys::TimePoint<> outOfDateModTime);
-  llvm::Optional<llvm::sys::TimePoint<>> timestampOfUnitForOutputPath(StringRef unitOutputPath);
+  bool isUnitOutOfDate(StringRef unitOutputPath, toolchain::sys::TimePoint<> outOfDateModTime);
+  toolchain::Optional<toolchain::sys::TimePoint<>> timestampOfUnitForOutputPath(StringRef unitOutputPath);
 
   /// Check whether any unit(s) containing \p file are out of date and if so,
   /// *synchronously* notify the delegate.
@@ -190,7 +190,7 @@ public:
   /// Returns the latest modification date of a unit that contains the given source file.
   ///
   /// If no unit containing the given source file exists, returns `None`.
-  llvm::Optional<llvm::sys::TimePoint<>> timestampOfLatestUnitForFile(StringRef filePath);
+  toolchain::Optional<toolchain::sys::TimePoint<>> timestampOfLatestUnitForFile(StringRef filePath);
 private:
   IndexSystem(void *Impl) : Impl(Impl) {}
 

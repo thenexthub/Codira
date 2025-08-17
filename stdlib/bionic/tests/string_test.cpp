@@ -1523,7 +1523,7 @@ TEST(STRING_TEST, mempcpy) {
 // clang depends on the fact that a memcpy where src and dst is the same
 // still operates correctly. This test verifies that this assumption
 // holds true.
-// See https://llvm.org/bugs/show_bug.cgi?id=11763 for more information.
+// See https://toolchain.org/bugs/show_bug.cgi?id=11763 for more information.
 static std::vector<uint8_t> g_memcpy_same_buffer;
 
 static void DoMemcpySameTest(uint8_t* buffer, size_t len) {

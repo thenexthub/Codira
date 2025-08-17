@@ -21,11 +21,11 @@
 #ifndef __LANGUAGE_ABI_DIGESTER_MODULE_NODES_H__
 #define __LANGUAGE_ABI_DIGESTER_MODULE_NODES_H__
 
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/DeclObjC.h"
-#include "clang/Lex/Preprocessor.h"
-#include "clang/Sema/Lookup.h"
-#include "clang/Sema/Sema.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/DeclObjC.h"
+#include "language/Core/Lex/Preprocessor.h"
+#include "language/Core/Sema/Lookup.h"
+#include "language/Core/Sema/Sema.h"
 #include "toolchain/ADT/TinyPtrVector.h"
 #include "toolchain/ADT/STLExtras.h"
 #include "toolchain/Support/CommandLine.h"

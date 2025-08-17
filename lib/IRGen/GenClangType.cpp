@@ -23,19 +23,19 @@
 #include "language/AST/ASTContext.h"
 #include "language/AST/Types.h"
 
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/CanonicalType.h"
-#include "clang/AST/Type.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/CanonicalType.h"
+#include "language/Core/AST/Type.h"
 
 using namespace language;
 using namespace irgen;
 
-clang::CanQualType IRGenModule::getClangType(CanType type) {
+language::Core::CanQualType IRGenModule::getClangType(CanType type) {
   auto *ty = type->getASTContext().getClangTypeForIRGen(type);
-  return ty ? ty->getCanonicalTypeUnqualified() : clang::CanQualType();
+  return ty ? ty->getCanonicalTypeUnqualified() : language::Core::CanQualType();
 }
 
-clang::CanQualType IRGenModule::getClangType(SILType type) {
+language::Core::CanQualType IRGenModule::getClangType(SILType type) {
   if (type.isForeignReferenceType())
     return getClangType(type.getASTType()
                             ->wrapInPointer(PTK_UnsafePointer)
@@ -43,7 +43,7 @@ clang::CanQualType IRGenModule::getClangType(SILType type) {
   return getClangType(type.getASTType());
 }
 
-clang::CanQualType IRGenModule::getClangType(SILParameterInfo params,
+language::Core::CanQualType IRGenModule::getClangType(SILParameterInfo params,
                                              CanSILFunctionType funcTy) {
   auto paramTy = params.getSILStorageType(getSILModule(), funcTy,
                                           getMaximalTypeExpansionContext());

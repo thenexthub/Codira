@@ -20,7 +20,7 @@
 #include <IndexStoreDB_Index/SymbolDataProvider.h>
 #include <IndexStoreDB_Database/IDCode.h>
 #include <IndexStoreDB_Index/IndexStoreCXX.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
 #include <string>
 
 namespace IndexStoreDB {

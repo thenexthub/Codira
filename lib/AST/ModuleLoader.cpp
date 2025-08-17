@@ -27,7 +27,7 @@
 #include "language/Basic/FileTypes.h"
 #include "language/Basic/Platform.h"
 #include "language/Basic/SourceManager.h"
-#include "clang/Frontend/Utils.h"
+#include "language/Core/Frontend/Utils.h"
 #include "language/ClangImporter/ClangImporter.h"
 
 namespace toolchain {
@@ -84,7 +84,7 @@ DependencyTracker::getMacroPluginDependencies() const {
   return macroPluginDeps.getArrayRef();
 }
 
-std::shared_ptr<clang::DependencyCollector>
+std::shared_ptr<language::Core::DependencyCollector>
 DependencyTracker::getClangCollector() {
   return clangCollector;
 }

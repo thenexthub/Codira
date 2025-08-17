@@ -34,8 +34,8 @@
 #include "language/IDETool/IDEInspectionInstance.h"
 #include "language/IDETool/SyntacticMacroExpansion.h"
 
-#include "clang/Lex/HeaderSearch.h"
-#include "clang/Lex/Preprocessor.h"
+#include "language/Core/Lex/HeaderSearch.h"
+#include "language/Core/Lex/Preprocessor.h"
 #include "toolchain/ADT/APInt.h"
 #include "toolchain/ADT/Hashing.h"
 #include "toolchain/Support/ConvertUTF.h"
@@ -1120,10 +1120,10 @@ void CodiraLangSupport::performWithParamsToCompletionLikeOperation(
 }
 
 CloseClangModuleFiles::~CloseClangModuleFiles() {
-  clang::Preprocessor &PP = loader.getClangPreprocessor();
-  clang::ModuleMap &ModMap = PP.getHeaderSearchInfo().getModuleMap();
+  language::Core::Preprocessor &PP = loader.getClangPreprocessor();
+  language::Core::ModuleMap &ModMap = PP.getHeaderSearchInfo().getModuleMap();
   for (auto I = ModMap.module_begin(), E = ModMap.module_end(); I != E; ++I) {
-    clang::Module *M = I->second;
+    language::Core::Module *M = I->second;
     if (!M->isSubModule() && M->getASTFile())
       M->getASTFile()->closeFile();
   }

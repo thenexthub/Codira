@@ -21,8 +21,8 @@
 #include "language/IDE/FuzzyStringMatcher.h"
 #include "language/IDE/ImportDepth.h"
 #include "language/Markup/XMLUtils.h"
-#include "clang/Basic/CharInfo.h"
-#include "clang/Basic/Module.h"
+#include "language/Core/Basic/CharInfo.h"
+#include "language/Core/Basic/Module.h"
 #include "toolchain/ADT/DenseSet.h"
 #include "toolchain/ADT/ilist.h"
 #include "toolchain/ADT/ilist_node.h"
@@ -234,10 +234,10 @@ public:
           while (i < name.size()) {
             char c = name[i];
             // FIXME: unicode
-            if (i > 0 && clang::isUppercase(c) &&
-                !clang::isUppercase(name[i - 1]))
+            if (i > 0 && language::Core::isUppercase(c) &&
+                !language::Core::isUppercase(name[i - 1]))
               break;
-            if (!clang::isAlphanumeric(c))
+            if (!language::Core::isAlphanumeric(c))
               break;
             ++i;
           }
@@ -1212,9 +1212,9 @@ NameStyle::NameStyle(StringRef name)
   };
 
   auto caseOf = [](char c) {
-    if (clang::isLowercase(c))
+    if (language::Core::isLowercase(c))
       return Lower;
-    if (clang::isUppercase(c))
+    if (language::Core::isUppercase(c))
       return Upper;
     return None;
   };

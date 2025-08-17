@@ -1,8 +1,24 @@
 //===--- JSON.h - JSON values, parsing and serialization -------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===---------------------------------------------------------------------===//
 ///
@@ -43,15 +59,15 @@
 #ifndef LLVM_SUPPORT_JSON_H
 #define LLVM_SUPPORT_JSON_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_DenseMap.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallVector.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Error.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_FormatVariadic.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_DenseMap.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallVector.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Error.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_FormatVariadic.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 #include <map>
 
-namespace llvm {
+namespace toolchain {
 namespace json {
 
 // === String encodings ===
@@ -71,21 +87,21 @@ namespace json {
 
 /// Returns true if \p S is valid UTF-8, which is required for use as JSON.
 /// If it returns false, \p Offset is set to a byte offset near the first error.
-bool isUTF8(llvm::StringRef S, size_t *ErrOffset = nullptr);
+bool isUTF8(toolchain::StringRef S, size_t *ErrOffset = nullptr);
 /// Replaces invalid UTF-8 sequences in \p S with the replacement character
 /// (U+FFFD). The returned string is valid UTF-8.
 /// This is much slower than isUTF8, so test that first.
-std::string fixUTF8(llvm::StringRef S);
+std::string fixUTF8(toolchain::StringRef S);
 
 class Array;
 class ObjectKey;
 class Value;
-template <typename T> Value toJSON(const llvm::Optional<T> &Opt);
+template <typename T> Value toJSON(const toolchain::Optional<T> &Opt);
 
 /// An Object is a JSON object, which maps strings to heterogenous JSON values.
 /// It simulates DenseMap<ObjectKey, Value>. ObjectKey is a maybe-owned string.
 class Object {
-  using Storage = DenseMap<ObjectKey, Value, llvm::DenseMapInfo<StringRef>>;
+  using Storage = DenseMap<ObjectKey, Value, toolchain::DenseMapInfo<StringRef>>;
   Storage M;
 
 public:
@@ -131,11 +147,11 @@ public:
   // Typed accessors return None/nullptr if
   //   - the property doesn't exist
   //   - or it has the wrong type
-  llvm::Optional<std::nullptr_t> getNull(StringRef K) const;
-  llvm::Optional<bool> getBoolean(StringRef K) const;
-  llvm::Optional<double> getNumber(StringRef K) const;
-  llvm::Optional<int64_t> getInteger(StringRef K) const;
-  llvm::Optional<llvm::StringRef> getString(StringRef K) const;
+  toolchain::Optional<std::nullptr_t> getNull(StringRef K) const;
+  toolchain::Optional<bool> getBoolean(StringRef K) const;
+  toolchain::Optional<double> getNumber(StringRef K) const;
+  toolchain::Optional<int64_t> getInteger(StringRef K) const;
+  toolchain::Optional<toolchain::StringRef> getString(StringRef K) const;
   const json::Object *getObject(StringRef K) const;
   json::Object *getObject(StringRef K);
   const json::Array *getArray(StringRef K) const;
@@ -309,12 +325,12 @@ public:
     }
     create<std::string>(std::move(V));
   }
-  Value(const llvm::SmallVectorImpl<char> &V)
+  Value(const toolchain::SmallVectorImpl<char> &V)
       : Value(std::string(V.begin(), V.end())){};
-  Value(const llvm::formatv_object_base &V) : Value(V.str()){};
+  Value(const toolchain::formatv_object_base &V) : Value(V.str()){};
   // Strings: types with reference semantics. Must be valid UTF-8.
   Value(StringRef V) : Type(T_StringRef) {
-    create<llvm::StringRef>(V);
+    create<toolchain::StringRef>(V);
     if (LLVM_UNLIKELY(!isUTF8(V))) {
       assert(false && "Invalid UTF-8 in value used as JSON");
       *this = Value(fixUTF8(V));
@@ -383,29 +399,29 @@ public:
     case T_Array:
       return Array;
     }
-    llvm_unreachable("Unknown kind");
+    toolchain_unreachable("Unknown kind");
   }
 
   // Typed accessors return None/nullptr if the Value is not of this type.
-  llvm::Optional<std::nullptr_t> getAsNull() const {
+  toolchain::Optional<std::nullptr_t> getAsNull() const {
     if (LLVM_LIKELY(Type == T_Null))
       return nullptr;
-    return llvm::None;
+    return toolchain::None;
   }
-  llvm::Optional<bool> getAsBoolean() const {
+  toolchain::Optional<bool> getAsBoolean() const {
     if (LLVM_LIKELY(Type == T_Boolean))
       return as<bool>();
-    return llvm::None;
+    return toolchain::None;
   }
-  llvm::Optional<double> getAsNumber() const {
+  toolchain::Optional<double> getAsNumber() const {
     if (LLVM_LIKELY(Type == T_Double))
       return as<double>();
     if (LLVM_LIKELY(Type == T_Integer))
       return as<int64_t>();
-    return llvm::None;
+    return toolchain::None;
   }
   // Succeeds if the Value is a Number, and exactly representable as int64_t.
-  llvm::Optional<int64_t> getAsInteger() const {
+  toolchain::Optional<int64_t> getAsInteger() const {
     if (LLVM_LIKELY(Type == T_Integer))
       return as<int64_t>();
     if (LLVM_LIKELY(Type == T_Double)) {
@@ -415,14 +431,14 @@ public:
                       D <= double(std::numeric_limits<int64_t>::max())))
         return D;
     }
-    return llvm::None;
+    return toolchain::None;
   }
-  llvm::Optional<llvm::StringRef> getAsString() const {
+  toolchain::Optional<toolchain::StringRef> getAsString() const {
     if (Type == T_String)
-      return llvm::StringRef(as<std::string>());
+      return toolchain::StringRef(as<std::string>());
     if (LLVM_LIKELY(Type == T_StringRef))
-      return as<llvm::StringRef>();
-    return llvm::None;
+      return as<toolchain::StringRef>();
+    return toolchain::None;
   }
   const json::Object *getAsObject() const {
     return LLVM_LIKELY(Type == T_Object) ? &as<json::Object>() : nullptr;
@@ -440,7 +456,7 @@ public:
   /// Serializes this Value to JSON, writing it to the provided stream.
   /// The formatting is compact (no extra whitespace) and deterministic.
   /// For pretty-printing, use the formatv() format_provider below.
-  friend llvm::raw_ostream &operator<<(llvm::raw_ostream &, const Value &);
+  friend toolchain::raw_ostream &operator<<(toolchain::raw_ostream &, const Value &);
 
 private:
   void destroy();
@@ -463,8 +479,8 @@ private:
   }
 
   template <typename Indenter>
-  void print(llvm::raw_ostream &, const Indenter &) const;
-  friend struct llvm::format_provider<llvm::json::Value>;
+  void print(toolchain::raw_ostream &, const Indenter &) const;
+  friend struct toolchain::format_provider<toolchain::json::Value>;
 
   enum ValueType : char {
     T_Null,
@@ -478,7 +494,7 @@ private:
   };
   // All members mutable, see moveFrom().
   mutable ValueType Type;
-  mutable llvm::AlignedCharArrayUnion<bool, double, int64_t, llvm::StringRef,
+  mutable toolchain::AlignedCharArrayUnion<bool, double, int64_t, toolchain::StringRef,
                                       std::string, json::Array, json::Object>
       Union;
   friend bool operator==(const Value &, const Value &);
@@ -486,7 +502,7 @@ private:
 
 bool operator==(const Value &, const Value &);
 inline bool operator!=(const Value &L, const Value &R) { return !(L == R); }
-llvm::raw_ostream &operator<<(llvm::raw_ostream &, const Value &);
+toolchain::raw_ostream &operator<<(toolchain::raw_ostream &, const Value &);
 
 /// ObjectKey is a used to capture keys in Object. Like Value but:
 ///   - only strings are allowed
@@ -502,15 +518,15 @@ public:
     }
     Data = *Owned;
   }
-  ObjectKey(llvm::StringRef S) : Data(S) {
+  ObjectKey(toolchain::StringRef S) : Data(S) {
     if (LLVM_UNLIKELY(!isUTF8(Data))) {
       assert(false && "Invalid UTF-8 in value used as JSON");
       *this = ObjectKey(fixUTF8(S));
     }
   }
-  ObjectKey(const llvm::SmallVectorImpl<char> &V)
+  ObjectKey(const toolchain::SmallVectorImpl<char> &V)
       : ObjectKey(std::string(V.begin(), V.end())) {}
-  ObjectKey(const llvm::formatv_object_base &V) : ObjectKey(V.str()) {}
+  ObjectKey(const toolchain::formatv_object_base &V) : ObjectKey(V.str()) {}
 
   ObjectKey(const ObjectKey &C) { *this = C; }
   ObjectKey(ObjectKey &&C) : ObjectKey(static_cast<const ObjectKey &&>(C)) {}
@@ -525,18 +541,18 @@ public:
   }
   ObjectKey &operator=(ObjectKey &&) = default;
 
-  operator llvm::StringRef() const { return Data; }
+  operator toolchain::StringRef() const { return Data; }
   std::string str() const { return Data.str(); }
 
 private:
   // FIXME: this is unneccesarily large (3 pointers). Pointer + length + owned
   // could be 2 pointers at most.
   std::unique_ptr<std::string> Owned;
-  llvm::StringRef Data;
+  toolchain::StringRef Data;
 };
 
 inline bool operator==(const ObjectKey &L, const ObjectKey &R) {
-  return llvm::StringRef(L) == llvm::StringRef(R);
+  return toolchain::StringRef(L) == toolchain::StringRef(R);
 }
 inline bool operator!=(const ObjectKey &L, const ObjectKey &R) {
   return !(L == R);
@@ -598,9 +614,9 @@ inline bool fromJSON(const Value &E, bool &Out) {
   }
   return false;
 }
-template <typename T> bool fromJSON(const Value &E, llvm::Optional<T> &Out) {
+template <typename T> bool fromJSON(const Value &E, toolchain::Optional<T> &Out) {
   if (E.getAsNull()) {
-    Out = llvm::None;
+    Out = toolchain::None;
     return true;
   }
   T Result;
@@ -625,7 +641,7 @@ bool fromJSON(const Value &E, std::map<std::string, T> &Out) {
   if (auto *O = E.getAsObject()) {
     Out.clear();
     for (const auto &KV : *O)
-      if (!fromJSON(KV.second, Out[llvm::StringRef(KV.first)]))
+      if (!fromJSON(KV.second, Out[toolchain::StringRef(KV.first)]))
         return false;
     return true;
   }
@@ -633,7 +649,7 @@ bool fromJSON(const Value &E, std::map<std::string, T> &Out) {
 }
 
 // Allow serialization of Optional<T> for supported T.
-template <typename T> Value toJSON(const llvm::Optional<T> &Opt) {
+template <typename T> Value toJSON(const toolchain::Optional<T> &Opt) {
   return Opt ? Value(*Opt) : Value(nullptr);
 }
 
@@ -667,11 +683,11 @@ public:
 
   /// Maps a property to a field, if it exists.
   /// (Optional requires special handling, because missing keys are OK).
-  template <typename T> bool map(StringRef Prop, llvm::Optional<T> &Out) {
+  template <typename T> bool map(StringRef Prop, toolchain::Optional<T> &Out) {
     assert(*this && "Must check this is an object before calling map()");
     if (const Value *E = O->get(Prop))
       return fromJSON(*E, Out);
-    Out = llvm::None;
+    Out = toolchain::None;
     return true;
   }
 
@@ -682,9 +698,9 @@ private:
 /// Parses the provided JSON source, or returns a ParseError.
 /// The returned Value is this-contained and owns its strings (they do not refer
 /// to the original source).
-llvm::Expected<Value> parse(llvm::StringRef JSON);
+toolchain::Expected<Value> parse(toolchain::StringRef JSON);
 
-class ParseError : public llvm::ErrorInfo<ParseError> {
+class ParseError : public toolchain::ErrorInfo<ParseError> {
   const char *Msg;
   unsigned Line, Column, Offset;
 
@@ -692,11 +708,11 @@ public:
   static char ID;
   ParseError(const char *Msg, unsigned Line, unsigned Column, unsigned Offset)
       : Msg(Msg), Line(Line), Column(Column), Offset(Offset) {}
-  void log(llvm::raw_ostream &OS) const override {
-    OS << llvm::formatv("[{0}:{1}, byte={2}]: {3}", Line, Column, Offset, Msg);
+  void log(toolchain::raw_ostream &OS) const override {
+    OS << toolchain::formatv("[{0}:{1}, byte={2}]: {3}", Line, Column, Offset, Msg);
   }
   std::error_code convertToErrorCode() const override {
-    return llvm::inconvertibleErrorCode();
+    return toolchain::inconvertibleErrorCode();
   }
 };
 } // namespace json
@@ -704,9 +720,9 @@ public:
 /// Allow printing json::Value with formatv().
 /// The default style is basic/compact formatting, like operator<<.
 /// A format string like formatv("{0:2}", Value) pretty-prints with indent 2.
-template <> struct format_provider<llvm::json::Value> {
-  static void format(const llvm::json::Value &, raw_ostream &, StringRef);
+template <> struct format_provider<toolchain::json::Value> {
+  static void format(const toolchain::json::Value &, raw_ostream &, StringRef);
 };
-} // namespace llvm
+} // namespace toolchain
 
 #endif

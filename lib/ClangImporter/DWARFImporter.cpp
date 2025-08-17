@@ -93,7 +93,7 @@ public:
 
   virtual StringRef getFilename() const override { return ""; }
 
-  virtual const clang::Module *getUnderlyingClangModule() const override {
+  virtual const language::Core::Module *getUnderlyingClangModule() const override {
     return nullptr;
   }
 
@@ -162,11 +162,11 @@ void ClangImporter::Implementation::lookupValueDWARF(
   if (!DWARFImporter)
     return;
 
-  SmallVector<clang::Decl *, 4> decls;
+  SmallVector<language::Core::Decl *, 4> decls;
   DWARFImporter->lookupValue(name.getBaseName().userFacingName(), std::nullopt,
                              inModule.str(), decls);
   for (auto *clangDecl : decls) {
-    auto *namedDecl = dyn_cast<clang::NamedDecl>(clangDecl);
+    auto *namedDecl = dyn_cast<language::Core::NamedDecl>(clangDecl);
     if (!namedDecl)
       continue;
     auto *languageDecl = cast_or_null<ValueDecl>(
@@ -189,15 +189,15 @@ void ClangImporter::Implementation::lookupTypeDeclDWARF(
     return;
 
   /// This function is invoked by ASTDemangler, which doesn't filter by module.
-  SmallVector<clang::Decl *, 1> decls;
+  SmallVector<language::Core::Decl *, 1> decls;
   DWARFImporter->lookupValue(rawName, kind, {}, decls);
   for (auto *clangDecl : decls) {
-    if (!isa<clang::TypeDecl>(clangDecl) &&
-        !isa<clang::ObjCContainerDecl>(clangDecl) &&
-        !isa<clang::ObjCCompatibleAliasDecl>(clangDecl)) {
+    if (!isa<language::Core::TypeDecl>(clangDecl) &&
+        !isa<language::Core::ObjCContainerDecl>(clangDecl) &&
+        !isa<language::Core::ObjCCompatibleAliasDecl>(clangDecl)) {
       continue;
     }
-    auto *namedDecl = cast<clang::NamedDecl>(clangDecl);
+    auto *namedDecl = cast<language::Core::NamedDecl>(clangDecl);
     Decl *importedDecl = cast_or_null<ValueDecl>(
         importDeclReal(namedDecl->getMostRecentDecl(), CurrentVersion));
 

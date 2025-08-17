@@ -121,10 +121,10 @@ DiagnosticArgument::DiagnosticArgument(IsolationSource IS)
 DiagnosticArgument::DiagnosticArgument(DiagnosticInfo *D)
     : Kind(DiagnosticArgumentKind::Diagnostic), DiagnosticVal(D) {}
 
-DiagnosticArgument::DiagnosticArgument(const clang::NamedDecl *ND)
+DiagnosticArgument::DiagnosticArgument(const language::Core::NamedDecl *ND)
     : Kind(DiagnosticArgumentKind::ClangDecl), ClangDecl(ND) {}
 
-DiagnosticArgument::DiagnosticArgument(const clang::Type *Ty)
+DiagnosticArgument::DiagnosticArgument(const language::Core::Type *Ty)
     : Kind(DiagnosticArgumentKind::ClangType), ClangType(Ty) {}
 
 DiagnosticArgumentKind DiagnosticArgument::getKind() const { return Kind; }
@@ -254,12 +254,12 @@ DiagnosticInfo *DiagnosticArgument::getAsDiagnostic() const {
   return DiagnosticVal;
 }
 
-const clang::NamedDecl *DiagnosticArgument::getAsClangDecl() const {
+const language::Core::NamedDecl *DiagnosticArgument::getAsClangDecl() const {
   ASSERT(Kind == DiagnosticArgumentKind::ClangDecl);
   return ClangDecl;
 }
 
-const clang::Type *DiagnosticArgument::getAsClangType() const {
+const language::Core::Type *DiagnosticArgument::getAsClangType() const {
   ASSERT(Kind == DiagnosticArgumentKind::ClangType);
   return ClangType;
 }

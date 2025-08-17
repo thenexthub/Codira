@@ -25,25 +25,25 @@
 #include "language/AST/ClangModuleLoader.h"
 #include "language/AST/Type.h"
 #include "language/AST/TypeVisitor.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Type.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Type.h"
 
 namespace language {
 
 /// Compute C types corresponding to Codira AST types.
 class ClangTypeConverter :
-    public TypeVisitor<ClangTypeConverter, clang::QualType> {
+    public TypeVisitor<ClangTypeConverter, language::Core::QualType> {
 
-  using super = TypeVisitor<ClangTypeConverter, clang::QualType>;
+  using super = TypeVisitor<ClangTypeConverter, language::Core::QualType>;
 
-  toolchain::DenseMap<Type, clang::QualType> Cache;
-  toolchain::DenseMap<const clang::Decl *, language::Decl *> ReversedExportMap;
+  toolchain::DenseMap<Type, language::Core::QualType> Cache;
+  toolchain::DenseMap<const language::Core::Decl *, language::Decl *> ReversedExportMap;
 
   bool StdlibTypesAreCached = false;
 
   ASTContext &Context;
 
-  clang::ASTContext &ClangASTContext;
+  language::Core::ASTContext &ClangASTContext;
 
   const toolchain::Triple Triple;
 
@@ -53,7 +53,7 @@ class ClangTypeConverter :
 public:
 
   /// Create a ClangTypeConverter.
-  ClangTypeConverter(ASTContext &ctx, clang::ASTContext &clangCtx,
+  ClangTypeConverter(ASTContext &ctx, language::Core::ASTContext &clangCtx,
                      toolchain::Triple triple)
     : Context(ctx), ClangASTContext(clangCtx), Triple(triple)
   {
@@ -75,20 +75,20 @@ public:
   ///
   /// Precondition: The representation argument must be C-compatible.
   template <bool templateArgument>
-  const clang::Type *getFunctionType(ArrayRef<AnyFunctionType::Param> params,
+  const language::Core::Type *getFunctionType(ArrayRef<AnyFunctionType::Param> params,
                                      Type resultTy,
                                      AnyFunctionType::Representation repr);
 
   /// Compute the C function type for a SIL function type.
   template <bool templateArgument>
-  const clang::Type *getFunctionType(ArrayRef<SILParameterInfo> params,
+  const language::Core::Type *getFunctionType(ArrayRef<SILParameterInfo> params,
                                      std::optional<SILResultInfo> result,
                                      SILFunctionType::Representation repr);
 
   /// Check whether the given Clang declaration is an export of a Codira
   /// declaration introduced by this converter, and if so, return the original
   /// Codira declaration.
-  Decl *getCodiraDeclForExportedClangDecl(const clang::Decl *decl) const;
+  Decl *getCodiraDeclForExportedClangDecl(const language::Core::Decl *decl) const;
 
   /// Translate Codira generic arguments to Clang C++ template arguments.
   ///
@@ -98,9 +98,9 @@ public:
   /// \returns nullptr if successful. If an error occurs, returns a list of
   /// types that couldn't be converted.
   std::unique_ptr<TemplateInstantiationError> getClangTemplateArguments(
-      const clang::TemplateParameterList *templateParams,
+      const language::Core::TemplateParameterList *templateParams,
       ArrayRef<Type> genericArgs,
-      SmallVectorImpl<clang::TemplateArgument> &templateArgs);
+      SmallVectorImpl<language::Core::TemplateArgument> &templateArgs);
 
 private:
   enum class PointerKind {
@@ -117,9 +117,9 @@ private:
 
   friend ASTContext; // HACK: expose `convert` method to ASTContext
 
-  clang::QualType convert(Type type);
+  language::Core::QualType convert(Type type);
 
-  clang::QualType convertMemberType(NominalTypeDecl *DC,
+  language::Core::QualType convertMemberType(NominalTypeDecl *DC,
                                     StringRef memberName);
 
   /// Convert Codira types that are used as C++ function template arguments.
@@ -127,51 +127,51 @@ private:
   /// C++ function templates can only be instantiated with types originally
   /// imported from Clang, and a handful of builtin Codira types (e.g., integers
   /// and floats).
-  clang::QualType convertTemplateArgument(Type type);
+  language::Core::QualType convertTemplateArgument(Type type);
 
-  clang::QualType convertClangDecl(Type type, const clang::Decl *decl);
-
-  template <bool templateArgument>
-  clang::QualType convertSIMDType(CanType scalarType, unsigned width);
+  language::Core::QualType convertClangDecl(Type type, const language::Core::Decl *decl);
 
   template <bool templateArgument>
-  clang::QualType convertPointerType(CanType pointeeType, PointerKind kind);
+  language::Core::QualType convertSIMDType(CanType scalarType, unsigned width);
+
+  template <bool templateArgument>
+  language::Core::QualType convertPointerType(CanType pointeeType, PointerKind kind);
 
   void registerExportedClangDecl(Decl *languageDecl,
-                                 const clang::Decl *clangDecl);
+                                 const language::Core::Decl *clangDecl);
 
-  clang::QualType reverseImportedTypeMapping(StructType *type);
-  clang::QualType reverseBuiltinTypeMapping(StructType *type);
+  language::Core::QualType reverseImportedTypeMapping(StructType *type);
+  language::Core::QualType reverseBuiltinTypeMapping(StructType *type);
 
-  friend TypeVisitor<ClangTypeConverter, clang::QualType>;
+  friend TypeVisitor<ClangTypeConverter, language::Core::QualType>;
 
-  clang::QualType visitStructType(StructType *type);
-  clang::QualType visitTupleType(TupleType *type);
-  clang::QualType visitMetatypeType(MetatypeType *type);
-  clang::QualType visitExistentialMetatypeType(ExistentialMetatypeType *type);
-  clang::QualType visitProtocolType(ProtocolType *type);
-  clang::QualType visitClassType(ClassType *type);
-  clang::QualType visitBoundGenericClassType(BoundGenericClassType *type);
-  clang::QualType visitBoundGenericType(BoundGenericType *type);
-  clang::QualType visitEnumType(EnumType *type);
+  language::Core::QualType visitStructType(StructType *type);
+  language::Core::QualType visitTupleType(TupleType *type);
+  language::Core::QualType visitMetatypeType(MetatypeType *type);
+  language::Core::QualType visitExistentialMetatypeType(ExistentialMetatypeType *type);
+  language::Core::QualType visitProtocolType(ProtocolType *type);
+  language::Core::QualType visitClassType(ClassType *type);
+  language::Core::QualType visitBoundGenericClassType(BoundGenericClassType *type);
+  language::Core::QualType visitBoundGenericType(BoundGenericType *type);
+  language::Core::QualType visitEnumType(EnumType *type);
   template <bool templateArgument = false>
-  clang::QualType visitFunctionType(FunctionType *type);
-  clang::QualType visitProtocolCompositionType(ProtocolCompositionType *type);
-  clang::QualType visitExistentialType(ExistentialType *type);
-  clang::QualType visitBuiltinRawPointerType(BuiltinRawPointerType *type);
-  clang::QualType visitBuiltinIntegerType(BuiltinIntegerType *type);
-  clang::QualType visitBuiltinFloatType(BuiltinFloatType *type);
-  clang::QualType visitBuiltinVectorType(BuiltinVectorType *type);
-  clang::QualType visitArchetypeType(ArchetypeType *type);
-  clang::QualType visitDependentMemberType(DependentMemberType *type);
+  language::Core::QualType visitFunctionType(FunctionType *type);
+  language::Core::QualType visitProtocolCompositionType(ProtocolCompositionType *type);
+  language::Core::QualType visitExistentialType(ExistentialType *type);
+  language::Core::QualType visitBuiltinRawPointerType(BuiltinRawPointerType *type);
+  language::Core::QualType visitBuiltinIntegerType(BuiltinIntegerType *type);
+  language::Core::QualType visitBuiltinFloatType(BuiltinFloatType *type);
+  language::Core::QualType visitBuiltinVectorType(BuiltinVectorType *type);
+  language::Core::QualType visitArchetypeType(ArchetypeType *type);
+  language::Core::QualType visitDependentMemberType(DependentMemberType *type);
   template <bool templateArgument = false>
-  clang::QualType visitSILFunctionType(SILFunctionType *type);
-  clang::QualType visitGenericTypeParamType(GenericTypeParamType *type);
-  clang::QualType visitDynamicSelfType(DynamicSelfType *type);
-  clang::QualType visitSILBlockStorageType(SILBlockStorageType *type);
-  clang::QualType visitSugarType(SugarType *type);
-  clang::QualType visitType(TypeBase *type);
-  clang::QualType visit(Type type);
+  language::Core::QualType visitSILFunctionType(SILFunctionType *type);
+  language::Core::QualType visitGenericTypeParamType(GenericTypeParamType *type);
+  language::Core::QualType visitDynamicSelfType(DynamicSelfType *type);
+  language::Core::QualType visitSILBlockStorageType(SILBlockStorageType *type);
+  language::Core::QualType visitSugarType(SugarType *type);
+  language::Core::QualType visitType(TypeBase *type);
+  language::Core::QualType visit(Type type);
 };
 
 } // end namespace language

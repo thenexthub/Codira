@@ -40,7 +40,7 @@ namespace toolchain {
   class MemoryBuffer;
 }
 
-namespace clang {
+namespace language::Core {
   class Module;
   class NamedDecl;
 }
@@ -94,7 +94,7 @@ SourceCompleteResult isSourceInputComplete(StringRef Text,
 /// conformances and clang declarations.
 void walkOverriddenDecls(const ValueDecl *VD,
                          toolchain::function_ref<void(toolchain::PointerUnion<
-                             const ValueDecl*, const clang::NamedDecl*>)> Fn);
+                             const ValueDecl*, const language::Core::NamedDecl*>)> Fn);
 
 void collectModuleNames(StringRef SDKPath, std::vector<std::string> &Modules);
 

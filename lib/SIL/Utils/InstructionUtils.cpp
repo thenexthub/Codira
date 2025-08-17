@@ -30,7 +30,7 @@
 #include "language/SIL/SILBuilder.h"
 #include "language/SIL/SILVisitor.h"
 
-#include "clang/AST/DeclObjC.h"
+#include "language/Core/AST/DeclObjC.h"
 #include "toolchain/Support/CommandLine.h"
 
 using namespace language;
@@ -1012,7 +1012,7 @@ RuntimeEffect language::getRuntimeEffect(SILInstruction *inst, SILType &impactTy
     case SILFunctionTypeRepresentation::ObjCMethod:
       if (auto *callee = as.getCalleeFunction()) {
         if (auto *clangDecl = callee->getClangDecl()) {
-          if (auto clangMethodDecl = dyn_cast<clang::ObjCMethodDecl>(clangDecl)) {
+          if (auto clangMethodDecl = dyn_cast<language::Core::ObjCMethodDecl>(clangDecl)) {
             if (clangMethodDecl->isDirectMethod()) {
               break;
             }

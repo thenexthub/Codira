@@ -18,8 +18,8 @@
 
 #include <IndexStoreDB_Support/LLVM.h>
 #include <IndexStoreDB_Support/Visibility.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallString.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Path.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallString.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Path.h>
 
 namespace IndexStoreDB {
   class CanonicalFilePathRef;
@@ -74,7 +74,7 @@ public:
     if (empty() || !other.Path.startswith(Path))
       return false;
     auto rest = other.Path.drop_front(size());
-    return !rest.empty() && llvm::sys::path::is_separator(rest.front());
+    return !rest.empty() && toolchain::sys::path::is_separator(rest.front());
   }
 };
 

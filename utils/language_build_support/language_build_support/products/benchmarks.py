@@ -18,7 +18,7 @@ from . import foundation
 from . import libcxx
 from . import libdispatch
 from . import llbuild
-from . import llvm
+from . import toolchain
 from . import product
 from . import language
 from . import languagepm
@@ -87,7 +87,7 @@ class Benchmarks(product.Product):
     @classmethod
     def get_dependencies(cls):
         return [cmark.CMark,
-                llvm.LLVM,
+                toolchain.LLVM,
                 libcxx.LibCXX,
                 language.Swift,
                 libdispatch.LibDispatch,

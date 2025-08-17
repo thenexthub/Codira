@@ -24,8 +24,8 @@
 #include "FileVisibilityChecker.h"
 
 #include <IndexStoreDB_Index/IndexStoreCXX.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Mutex.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Mutex.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 
 #include <atomic>
 #include <unordered_map>
@@ -35,7 +35,7 @@
 using namespace IndexStoreDB;
 using namespace IndexStoreDB::index;
 using namespace IndexStoreDB::db;
-using namespace llvm;
+using namespace toolchain;
 
 namespace {
 
@@ -108,7 +108,7 @@ public:
   /// Returns the latest modification date of a unit that contains the given source file.
   ///
   /// If no unit containing the given source file exists, returns `None`.
-  llvm::Optional<sys::TimePoint<>> timestampOfLatestUnitForFile(CanonicalFilePathRef filePath);
+  toolchain::Optional<sys::TimePoint<>> timestampOfLatestUnitForFile(CanonicalFilePathRef filePath);
 
 private:
   /// Returns all the providers in the index that contain test cases and satisfy `unitFilter`.
@@ -197,7 +197,7 @@ void SymbolIndexImpl::dumpProviderFileAssociations(raw_ostream &OS) {
   ReadTransaction reader(DBase);
   Optional<IDCode> prevProvCode;
   auto unitFilter = [](IDCode unitCode)->bool { return true; };
-  reader.foreachProviderAndFileCodeReference(unitFilter, [&](IDCode providerCode, IDCode pathCode, IDCode unitCode, llvm::sys::TimePoint<> modTime, IDCode moduleNameCode, bool isSystem) -> bool {
+  reader.foreachProviderAndFileCodeReference(unitFilter, [&](IDCode providerCode, IDCode pathCode, IDCode unitCode, toolchain::sys::TimePoint<> modTime, IDCode moduleNameCode, bool isSystem) -> bool {
     if (!prevProvCode.hasValue() || prevProvCode.getValue() != providerCode) {
       OS << reader.getProviderName(providerCode) << '\n';
       prevProvCode = providerCode;
@@ -205,7 +205,7 @@ void SymbolIndexImpl::dumpProviderFileAssociations(raw_ostream &OS) {
     auto path = reader.getFullFilePathFromCode(pathCode);
     auto unit = reader.getUnitInfo(unitCode);
     auto moduleName = reader.getModuleName(moduleNameCode);
-    auto seconds = llvm::sys::toTimeT(modTime);
+    auto seconds = toolchain::sys::toTimeT(modTime);
     OS << "---- " << path.getPath() << ", " << unit.UnitName << ", module: " << moduleName << ", sys: " << isSystem << ", " << seconds << '\n';
     return true;
   });
@@ -232,7 +232,7 @@ SymbolDataProviderRef SymbolIndexImpl::createProviderForCode(IDCode providerCode
       return false;
     return unitFilter(reader.getUnitInfo(unitCode));
   };
-  reader.getProviderFileCodeReferences(providerCode, unitCodeFilter, [&](IDCode pathCode, IDCode unitCode, llvm::sys::TimePoint<> modTime, IDCode moduleNameCode, bool isSystem) -> bool {
+  reader.getProviderFileCodeReferences(providerCode, unitCodeFilter, [&](IDCode pathCode, IDCode unitCode, toolchain::sys::TimePoint<> modTime, IDCode moduleNameCode, bool isSystem) -> bool {
     auto unitInfo = reader.getUnitInfo(unitCode);
     assert(!unitInfo.isInvalid());
 
@@ -244,7 +244,7 @@ SymbolDataProviderRef SymbolIndexImpl::createProviderForCode(IDCode providerCode
       sysroot = reader.getDirectoryFromCode(unitInfo.SysrootCode);
     }
     std::string pathString;
-    llvm::raw_string_ostream OS(pathString);
+    toolchain::raw_string_ostream OS(pathString);
     if (reader.getFullFilePathFromCode(pathCode, OS)) {
       FileAndTarget value{
         TimestampedPath{std::move(OS.str()), modTime, reader.getModuleName(moduleNameCode), isSystem, sysroot},
@@ -641,8 +641,8 @@ bool SymbolIndexImpl::foreachUnitTestSymbolOccurrence(const std::vector<SymbolDa
   return true;
 }
 
-llvm::Optional<sys::TimePoint<>> SymbolIndexImpl::timestampOfLatestUnitForFile(CanonicalFilePathRef filePath) {
-  llvm::Optional<sys::TimePoint<>> result;
+toolchain::Optional<sys::TimePoint<>> SymbolIndexImpl::timestampOfLatestUnitForFile(CanonicalFilePathRef filePath) {
+  toolchain::Optional<sys::TimePoint<>> result;
 
   ReadTransaction reader(DBase);
   IDCode filePathCode = reader.getFilePathCode(filePath);
@@ -766,6 +766,6 @@ bool SymbolIndex::foreachUnitTestSymbol(function_ref<bool(SymbolOccurrenceRef Oc
   return IMPL->foreachUnitTestSymbol(std::move(receiver));
 }
 
-llvm::Optional<llvm::sys::TimePoint<>> SymbolIndex::timestampOfLatestUnitForFile(CanonicalFilePathRef filePath) {
+toolchain::Optional<toolchain::sys::TimePoint<>> SymbolIndex::timestampOfLatestUnitForFile(CanonicalFilePathRef filePath) {
   return IMPL->timestampOfLatestUnitForFile(filePath);
 }

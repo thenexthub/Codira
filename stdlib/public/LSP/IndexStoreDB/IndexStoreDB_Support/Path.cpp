@@ -14,11 +14,11 @@
 //===----------------------------------------------------------------------===//
 
 #include <IndexStoreDB_Support/Path.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringMap.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Allocator.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Path.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_FileSystem.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Mutex.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringMap.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Allocator.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Path.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_FileSystem.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Mutex.h>
 #if defined(_WIN32)
 #include <Windows.h>
 #else
@@ -35,8 +35,8 @@ using namespace IndexStoreDB;
 
 namespace {
 class CanonicalPathCacheImpl {
-  llvm::StringMap<CanonicalFilePathRef, llvm::BumpPtrAllocator> CanonPaths;
-  mutable llvm::sys::Mutex StateMtx;
+  toolchain::StringMap<CanonicalFilePathRef, toolchain::BumpPtrAllocator> CanonPaths;
+  mutable toolchain::sys::Mutex StateMtx;
 
 public:
   CanonicalFilePath getCanonicalPath(StringRef Path,
@@ -50,7 +50,7 @@ CanonicalPathCacheImpl::getCanonicalPath(StringRef Path, StringRef WorkingDir) {
     return CanonicalFilePath();
 
   SmallString<256> AbsPath;
-  if (llvm::sys::path::is_absolute(Path)) {
+  if (toolchain::sys::path::is_absolute(Path)) {
     AbsPath = Path;
   } else {
     assert(!WorkingDir.empty() && "passed relative path without working-dir");
@@ -60,20 +60,20 @@ CanonicalPathCacheImpl::getCanonicalPath(StringRef Path, StringRef WorkingDir) {
   }
 
   {
-    llvm::sys::ScopedLock L(StateMtx);
+    toolchain::sys::ScopedLock L(StateMtx);
     auto It = CanonPaths.find(AbsPath);
     if (It != CanonPaths.end())
       return It->second;
   }
 
-  llvm::SmallString<PATH_MAX> Buffer;
-  if (llvm::sys::fs::real_path(AbsPath.c_str(), Buffer, false)) {
+  toolchain::SmallString<PATH_MAX> Buffer;
+  if (toolchain::sys::fs::real_path(AbsPath.c_str(), Buffer, false)) {
     return CanonicalFilePathRef::getAsCanonicalPath(AbsPath);
   }
   StringRef CanonPath = Buffer;
 
   {
-    llvm::sys::ScopedLock L(StateMtx);
+    toolchain::sys::ScopedLock L(StateMtx);
     auto Pair = CanonPaths.insert(std::make_pair(AbsPath.str(), CanonicalFilePathRef()));
     auto &It = Pair.first;
     bool WasInserted = Pair.second;

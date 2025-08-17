@@ -33,17 +33,17 @@
 #include "language/IRGen/Linking.h"
 #include "language/SIL/SILFunctionBuilder.h"
 #include "language/SIL/SILModule.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Attr.h"
-#include "clang/AST/CharUnits.h"
-#include "clang/AST/Decl.h"
-#include "clang/AST/DeclCXX.h"
-#include "clang/AST/GlobalDecl.h"
-#include "clang/AST/Mangle.h"
-#include "clang/AST/RecordLayout.h"
-#include "clang/CodeGen/CodeGenABITypes.h"
-#include "clang/CodeGen/CodiraCallingConv.h"
-#include "clang/Sema/Sema.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Attr.h"
+#include "language/Core/AST/CharUnits.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/AST/DeclCXX.h"
+#include "language/Core/AST/GlobalDecl.h"
+#include "language/Core/AST/Mangle.h"
+#include "language/Core/AST/RecordLayout.h"
+#include "language/Core/CodeGen/CodeGenABITypes.h"
+#include "language/Core/CodeGen/CodiraCallingConv.h"
+#include "language/Core/Sema/Sema.h"
 #include "toolchain/ADT/STLExtras.h"
 #include "toolchain/IR/DerivedTypes.h"
 #include "toolchain/IR/Function.h"
@@ -85,12 +85,12 @@ static StructTypeInfoKind getStructTypeInfoKind(const TypeInfo &type) {
 
 /// If this type has a CXXDestructorDecl, find it and return it. Otherwise,
 /// return nullptr.
-static clang::CXXDestructorDecl *getCXXDestructor(SILType type) {
+static language::Core::CXXDestructorDecl *getCXXDestructor(SILType type) {
   auto *structDecl = type.getStructOrBoundGenericStruct();
   if (!structDecl || !structDecl->getClangDecl())
     return nullptr;
-  const clang::CXXRecordDecl *cxxRecordDecl =
-      dyn_cast<clang::CXXRecordDecl>(structDecl->getClangDecl());
+  const language::Core::CXXRecordDecl *cxxRecordDecl =
+      dyn_cast<language::Core::CXXRecordDecl>(structDecl->getClangDecl());
   if (!cxxRecordDecl)
     return nullptr;
   return cxxRecordDecl->getDestructor();
@@ -372,14 +372,14 @@ namespace {
   class LoadableClangRecordTypeInfo final
       : public StructTypeInfoBase<LoadableClangRecordTypeInfo, LoadableTypeInfo,
                                   ClangFieldInfo> {
-    const clang::RecordDecl *ClangDecl;
+    const language::Core::RecordDecl *ClangDecl;
 
   public:
     LoadableClangRecordTypeInfo(ArrayRef<ClangFieldInfo> fields,
                                 unsigned explosionSize, toolchain::Type *storageType,
                                 Size size, SpareBitVector &&spareBits,
                                 Alignment align,
-                                const clang::RecordDecl *clangDecl)
+                                const language::Core::RecordDecl *clangDecl)
         : StructTypeInfoBase(StructTypeInfoKind::LoadableClangRecordTypeInfo,
                              fields, explosionSize, FieldsAreABIAccessible,
                              storageType, size, std::move(spareBits), align,
@@ -430,7 +430,7 @@ namespace {
 
     void addToAggLowering(IRGenModule &IGM, CodiraAggLowering &lowering,
                           Size offset) const override {
-      if (auto cxxRecordDecl = dyn_cast<clang::CXXRecordDecl>(ClangDecl)) {
+      if (auto cxxRecordDecl = dyn_cast<language::Core::CXXRecordDecl>(ClangDecl)) {
         for (auto base : getBasesAndOffsets(cxxRecordDecl)) {
           lowering.addTypedData(base.decl, base.offset.asCharUnits());
         }
@@ -455,15 +455,15 @@ namespace {
   class AddressOnlyPointerAuthRecordTypeInfo final
       : public StructTypeInfoBase<AddressOnlyPointerAuthRecordTypeInfo,
                                   FixedTypeInfo, ClangFieldInfo> {
-    const clang::RecordDecl *clangDecl;
+    const language::Core::RecordDecl *clangDecl;
 
     void emitCopyWithCopyFunction(IRGenFunction &IGF, SILType T, Address src,
                                   Address dst) const {
       auto *copyFunction =
-          clang::CodeGen::getNonTrivialCStructCopyAssignmentOperator(
+          language::Core::CodeGen::getNonTrivialCStructCopyAssignmentOperator(
               IGF.IGM.getClangCGM(), dst.getAlignment(), src.getAlignment(),
               /*isVolatile*/ false,
-              clang::QualType(clangDecl->getTypeForDecl(), 0));
+              language::Core::QualType(clangDecl->getTypeForDecl(), 0));
       auto *dstValue = dst.getAddress();
       auto *srcValue = src.getAddress();
       IGF.Builder.CreateCall(copyFunction->getFunctionType(), copyFunction,
@@ -474,7 +474,7 @@ namespace {
     AddressOnlyPointerAuthRecordTypeInfo(ArrayRef<ClangFieldInfo> fields,
                                          toolchain::Type *storageType, Size size,
                                          Alignment align,
-                                         const clang::RecordDecl *clangDecl)
+                                         const language::Core::RecordDecl *clangDecl)
         : StructTypeInfoBase(StructTypeInfoKind::AddressOnlyClangRecordTypeInfo,
                              fields, FieldsAreABIAccessible, storageType, size,
                              // We can't assume any spare bits in a C++ type
@@ -545,31 +545,31 @@ namespace {
   class AddressOnlyCXXClangRecordTypeInfo final
       : public StructTypeInfoBase<AddressOnlyCXXClangRecordTypeInfo,
                                   FixedTypeInfo, ClangFieldInfo> {
-    const clang::RecordDecl *ClangDecl;
+    const language::Core::RecordDecl *ClangDecl;
 
-    const clang::CXXConstructorDecl *findCopyConstructor() const {
-      const auto *cxxRecordDecl = dyn_cast<clang::CXXRecordDecl>(ClangDecl);
+    const language::Core::CXXConstructorDecl *findCopyConstructor() const {
+      const auto *cxxRecordDecl = dyn_cast<language::Core::CXXRecordDecl>(ClangDecl);
       if (!cxxRecordDecl)
         return nullptr;
       for (auto ctor : cxxRecordDecl->ctors()) {
         if (ctor->isCopyConstructor() &&
             // FIXME: Support default arguments (rdar://142414553)
             ctor->getNumParams() == 1 &&
-            ctor->getAccess() == clang::AS_public && !ctor->isDeleted())
+            ctor->getAccess() == language::Core::AS_public && !ctor->isDeleted())
           return ctor;
       }
       return nullptr;
     }
 
-    const clang::CXXConstructorDecl *findMoveConstructor() const {
-      const auto *cxxRecordDecl = dyn_cast<clang::CXXRecordDecl>(ClangDecl);
+    const language::Core::CXXConstructorDecl *findMoveConstructor() const {
+      const auto *cxxRecordDecl = dyn_cast<language::Core::CXXRecordDecl>(ClangDecl);
       if (!cxxRecordDecl)
         return nullptr;
       for (auto ctor : cxxRecordDecl->ctors()) {
         if (ctor->isMoveConstructor() &&
             // FIXME: Support default arguments (rdar://142414553)
             ctor->getNumParams() == 1 &&
-            ctor->getAccess() == clang::AS_public && !ctor->isDeleted())
+            ctor->getAccess() == language::Core::AS_public && !ctor->isDeleted())
           return ctor;
       }
       return nullptr;
@@ -617,11 +617,11 @@ namespace {
 
     void emitCopyWithCopyConstructor(
         IRGenFunction &IGF, SILType T,
-        const clang::CXXConstructorDecl *copyConstructor, toolchain::Value *src,
+        const language::Core::CXXConstructorDecl *copyConstructor, toolchain::Value *src,
         toolchain::Value *dest) const {
       auto fnType = createCXXCopyConstructorFunctionType(IGF, T);
       auto globalDecl =
-          clang::GlobalDecl(copyConstructor, clang::Ctor_Complete);
+          language::Core::GlobalDecl(copyConstructor, language::Core::Ctor_Complete);
       auto clangFnAddr =
           IGF.IGM.getAddrOfClangGlobalDecl(globalDecl, NotForDefinition);
       auto callee = cast<toolchain::Function>(clangFnAddr->stripPointerCasts());
@@ -650,7 +650,7 @@ namespace {
     AddressOnlyCXXClangRecordTypeInfo(ArrayRef<ClangFieldInfo> fields,
                                       toolchain::Type *storageType, Size size,
                                       Alignment align,
-                                      const clang::RecordDecl *clangDecl)
+                                      const language::Core::RecordDecl *clangDecl)
         : StructTypeInfoBase(StructTypeInfoKind::AddressOnlyClangRecordTypeInfo,
                              fields, FieldsAreABIAccessible, storageType, size,
                              // We can't assume any spare bits in a C++ type
@@ -682,7 +682,7 @@ namespace {
 
       IGF.IGM.ensureImplicitCXXDestructorBodyIsDefined(destructor);
 
-      clang::GlobalDecl destructorGlobalDecl(destructor, clang::Dtor_Complete);
+      language::Core::GlobalDecl destructorGlobalDecl(destructor, language::Core::Dtor_Complete);
       auto *destructorFnAddr =
           cast<toolchain::Function>(IGF.IGM.getAddrOfClangGlobalDecl(
               destructorGlobalDecl, NotForDefinition));
@@ -691,9 +691,9 @@ namespace {
       auto *thisArg = address.getAddress();
       args.push_back(thisArg);
       toolchain::Value *implicitParam =
-          clang::CodeGen::getCXXDestructorImplicitParam(
+          language::Core::CodeGen::getCXXDestructorImplicitParam(
               IGF.IGM.getClangCGM(), IGF.Builder.GetInsertBlock(),
-              IGF.Builder.GetInsertPoint(), destructor, clang::Dtor_Complete,
+              IGF.Builder.GetInsertPoint(), destructor, language::Core::Dtor_Complete,
               false, false);
       if (implicitParam) {
         implicitParam = IGF.coerceValue(implicitParam,
@@ -1310,9 +1310,9 @@ class ClangRecordLowering {
   IRGenModule &IGM;
   StructDecl *CodiraDecl;
   SILType CodiraType;
-  const clang::RecordDecl *ClangDecl;
-  const clang::ASTContext &ClangContext;
-  const clang::ASTRecordLayout &ClangLayout;
+  const language::Core::RecordDecl *ClangDecl;
+  const language::Core::ASTContext &ClangContext;
+  const language::Core::ASTRecordLayout &ClangLayout;
   const Size TotalStride;
   const Alignment TotalAlignment;
   SpareBitVector SpareBits;
@@ -1324,7 +1324,7 @@ class ClangRecordLowering {
   unsigned NextExplosionIndex = 0;
 public:
   ClangRecordLowering(IRGenModule &IGM, StructDecl *languageDecl,
-                      const clang::RecordDecl *clangDecl,
+                      const language::Core::RecordDecl *clangDecl,
                       SILType languageType)
     : IGM(IGM), CodiraDecl(languageDecl), CodiraType(languageType),
       ClangDecl(clangDecl), ClangContext(clangDecl->getASTContext()),
@@ -1365,13 +1365,13 @@ private:
   }
 
   static bool isImportOfClangField(VarDecl *languageField,
-                                   const clang::FieldDecl *clangField) {
+                                   const language::Core::FieldDecl *clangField) {
     assert(languageField->hasClangNode());
     return (languageField->getClangNode().castAsDecl() == clangField);
   }
 
-  void collectBases(const clang::RecordDecl *decl) {
-    if (auto cxxRecord = dyn_cast<clang::CXXRecordDecl>(decl)) {
+  void collectBases(const language::Core::RecordDecl *decl) {
+    if (auto cxxRecord = dyn_cast<language::Core::CXXRecordDecl>(decl)) {
       auto bases = getBasesAndOffsets(cxxRecord);
       for (auto base : bases) {
         SubobjectAdjustment += base.offset;
@@ -1382,7 +1382,7 @@ private:
     }
   }
 
-  void collectStructFields(const clang::RecordDecl *decl) {
+  void collectStructFields(const language::Core::RecordDecl *decl) {
     auto cfi = decl->field_begin(), cfe = decl->field_end();
     const auto &layout = ClangContext.getASTRecordLayout(decl);
     auto languageProperties = CodiraDecl->getStoredProperties();
@@ -1394,7 +1394,7 @@ private:
       sfi = languageProperties.end();
 
     while (cfi != cfe) {
-      const clang::FieldDecl *clangField = *cfi++;
+      const language::Core::FieldDecl *clangField = *cfi++;
 
       // Bitfields are currently never mapped, but that doesn't mean
       // we don't have to copy them.
@@ -1459,14 +1459,14 @@ private:
   }
 
   /// Place the next struct field at its appropriate offset.
-  void addStructField(const clang::FieldDecl *clangField,
-                      VarDecl *languageField, const clang::ASTRecordLayout &layout) {
+  void addStructField(const language::Core::FieldDecl *clangField,
+                      VarDecl *languageField, const language::Core::ASTRecordLayout &layout) {
     bool isZeroSized = clangField->isZeroSize(ClangContext);
     unsigned fieldOffset = layout.getFieldOffset(clangField->getFieldIndex());
     assert(!clangField->isBitField());
     Size offset( SubobjectAdjustment.getValue() + fieldOffset / 8);
-    std::optional<clang::CharUnits> dataSize;
-    if (clangField->hasAttr<clang::NoUniqueAddressAttr>()) {
+    std::optional<language::Core::CharUnits> dataSize;
+    if (clangField->hasAttr<language::Core::NoUniqueAddressAttr>()) {
       if (const auto *rd = clangField->getType()->getAsRecordDecl()) {
         // Clang can store the next field in the padding of this one.
         const auto &fieldLayout = ClangContext.getASTRecordLayout(rd);
@@ -1485,7 +1485,7 @@ private:
 
     // Otherwise, add it as an opaque blob.
     auto fieldTypeSize = ClangContext.getTypeSizeInChars(clangField->getType());
-    auto fieldSize = isZeroSized ? clang::CharUnits::Zero()
+    auto fieldSize = isZeroSized ? language::Core::CharUnits::Zero()
                                  : dataSize.value_or(fieldTypeSize);
     return addOpaqueField(offset, Size(fieldSize.getQuantity()));
   }
@@ -1737,20 +1737,20 @@ const TypeInfo *TypeConverter::convertStructType(TypeBase *key, CanType type,
 
   // Use different rules for types imported from C.
   if (D->hasClangNode()) {
-    const clang::Decl *clangDecl = D->getClangNode().getAsDecl();
+    const language::Core::Decl *clangDecl = D->getClangNode().getAsDecl();
     assert(clangDecl && "Codira struct from an imported C macro?");
 
-    if (auto clangRecord = dyn_cast<clang::RecordDecl>(clangDecl)) {
+    if (auto clangRecord = dyn_cast<language::Core::RecordDecl>(clangDecl)) {
       ClangRecordLowering lowering(IGM, D, clangRecord,
                                    SILType::getPrimitiveObjectType(type));
       lowering.collectRecordFields();
       return lowering.createTypeInfo(ty);
 
-    } else if (isa<clang::EnumDecl>(clangDecl)) {
+    } else if (isa<language::Core::EnumDecl>(clangDecl)) {
       // Fall back to Codira lowering for the enum's representation as a struct.
       assert(D->getStoredProperties().size() == 1 &&
              "Struct representation of a Clang enum should wrap one value");
-    } else if (clangDecl->hasAttr<clang::CodiraNewTypeAttr>()) {
+    } else if (clangDecl->hasAttr<language::Core::CodiraNewTypeAttr>()) {
       // Fall back to Codira lowering for the underlying type's
       // representation as a struct member.
       assert(D->getStoredProperties().size() == 1 &&

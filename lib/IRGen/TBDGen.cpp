@@ -44,7 +44,7 @@
 #include "language/SIL/SILWitnessTable.h"
 #include "language/SIL/SILWitnessVisitor.h"
 #include "language/SIL/TypeLowering.h"
-#include "clang/Basic/TargetInfo.h"
+#include "language/Core/Basic/TargetInfo.h"
 #include "toolchain/ADT/StringSet.h"
 #include "toolchain/ADT/StringSwitch.h"
 #include "toolchain/IR/Mangler.h"

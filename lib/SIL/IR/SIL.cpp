@@ -30,9 +30,9 @@
 #include "language/AST/ProtocolConformance.h"
 #include "language/Basic/Assertions.h"
 #include "language/ClangImporter/ClangModule.h"
-#include "clang/AST/Attr.h"
-#include "clang/AST/Decl.h"
-#include "clang/AST/DeclObjC.h"
+#include "language/Core/AST/Attr.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/AST/DeclObjC.h"
 
 using namespace language;
 

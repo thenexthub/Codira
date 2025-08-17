@@ -74,7 +74,7 @@
 #include "language/Strings.h"
 #include "language/Subsystems.h"
 #include "language/SymbolGraphGen/SymbolGraphOptions.h"
-#include "clang/AST/Type.h"
+#include "language/Core/AST/Type.h"
 #include "toolchain/ADT/DenseMap.h"
 #include "toolchain/ADT/IntrusiveRefCntPtr.h"
 #include "toolchain/ADT/STLExtras.h"
@@ -707,7 +707,7 @@ struct ASTContext::Implementation {
   /// The scratch context used to allocate intrinsic data on behalf of \c language::IntrinsicInfo
   std::unique_ptr<toolchain::LLVMContext> IntrinsicScratchContext;
 
-  mutable std::optional<std::unique_ptr<clang::DarwinSDKInfo>> SDKInfo;
+  mutable std::optional<std::unique_ptr<language::Core::DarwinSDKInfo>> SDKInfo;
 
   /// Memory allocation arena for the term rewriting system.
   std::unique_ptr<rewriting::RewriteContext> TheRewriteContext;
@@ -6561,7 +6561,7 @@ ClangTypeConverter &ASTContext::getClangTypeConverter() {
   return impl.Converter.value();
 }
 
-const clang::Type *
+const language::Core::Type *
 ASTContext::getClangFunctionType(ArrayRef<AnyFunctionType::Param> params,
                                  Type resultTy,
                                  FunctionTypeRepresentation trueRep) {
@@ -6569,7 +6569,7 @@ ASTContext::getClangFunctionType(ArrayRef<AnyFunctionType::Param> params,
       params, resultTy, trueRep);
 }
 
-const clang::Type *ASTContext::getCanonicalClangFunctionType(
+const language::Core::Type *ASTContext::getCanonicalClangFunctionType(
     ArrayRef<SILParameterInfo> params, std::optional<SILResultInfo> result,
     SILFunctionType::Representation trueRep) {
   auto *ty =
@@ -6580,9 +6580,9 @@ const clang::Type *ASTContext::getCanonicalClangFunctionType(
 
 std::unique_ptr<TemplateInstantiationError>
 ASTContext::getClangTemplateArguments(
-    const clang::TemplateParameterList *templateParams,
+    const language::Core::TemplateParameterList *templateParams,
     ArrayRef<Type> genericArgs,
-    SmallVectorImpl<clang::TemplateArgument> &templateArgs) {
+    SmallVectorImpl<language::Core::TemplateArgument> &templateArgs) {
   auto &impl = getImpl();
   if (!impl.Converter) {
     auto *cml = getClangModuleLoader();
@@ -6594,7 +6594,7 @@ ASTContext::getClangTemplateArguments(
 }
 
 const Decl *
-ASTContext::getCodiraDeclForExportedClangDecl(const clang::Decl *decl) {
+ASTContext::getCodiraDeclForExportedClangDecl(const language::Core::Decl *decl) {
   auto &impl = getImpl();
 
   // If we haven't exported anything yet, this must not be how we found
@@ -6604,7 +6604,7 @@ ASTContext::getCodiraDeclForExportedClangDecl(const clang::Decl *decl) {
   return impl.Converter->getCodiraDeclForExportedClangDecl(decl);
 }
 
-const clang::Type *
+const language::Core::Type *
 ASTContext::getClangTypeForIRGen(Type ty) {
   return getClangTypeConverter().convert(ty).getTypePtrOrNull();
 }
@@ -7077,9 +7077,9 @@ bool ASTContext::isASCIIString(StringRef s) const {
   return true;
 }
 
-clang::DarwinSDKInfo *ASTContext::getDarwinSDKInfo() const {
+language::Core::DarwinSDKInfo *ASTContext::getDarwinSDKInfo() const {
   if (!getImpl().SDKInfo) {
-    auto SDKInfoOrErr = clang::parseDarwinSDKInfo(*SourceMgr.getFileSystem(),
+    auto SDKInfoOrErr = language::Core::parseDarwinSDKInfo(*SourceMgr.getFileSystem(),
                                                   SearchPathOpts.SDKPath);
     if (!SDKInfoOrErr) {
       toolchain::handleAllErrors(SDKInfoOrErr.takeError(),
@@ -7090,17 +7090,17 @@ clang::DarwinSDKInfo *ASTContext::getDarwinSDKInfo() const {
     } else if (!*SDKInfoOrErr) {
       getImpl().SDKInfo.emplace();
     } else {
-      getImpl().SDKInfo.emplace(std::make_unique<clang::DarwinSDKInfo>(**SDKInfoOrErr));
+      getImpl().SDKInfo.emplace(std::make_unique<language::Core::DarwinSDKInfo>(**SDKInfoOrErr));
     }
   }
 
   return getImpl().SDKInfo->get();
 }
 
-const clang::DarwinSDKInfo::RelatedTargetVersionMapping
-*ASTContext::getAuxiliaryDarwinPlatformRemapInfo(clang::DarwinSDKInfo::OSEnvPair Kind) const {
+const language::Core::DarwinSDKInfo::RelatedTargetVersionMapping
+*ASTContext::getAuxiliaryDarwinPlatformRemapInfo(language::Core::DarwinSDKInfo::OSEnvPair Kind) const {
   if (SearchPathOpts.PlatformAvailabilityInheritanceMapPath) {
-    auto SDKInfoOrErr = clang::parseDarwinSDKInfo(
+    auto SDKInfoOrErr = language::Core::parseDarwinSDKInfo(
             *toolchain::vfs::getRealFileSystem(),
             *SearchPathOpts.PlatformAvailabilityInheritanceMapPath);
     if (!SDKInfoOrErr || !*SDKInfoOrErr) {

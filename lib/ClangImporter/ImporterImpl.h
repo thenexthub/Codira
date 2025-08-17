@@ -38,17 +38,17 @@
 #include "language/Basic/StringExtras.h"
 #include "language/ClangImporter/ClangImporter.h"
 #include "language/ClangImporter/ClangModule.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Decl.h"
-#include "clang/AST/DeclVisitor.h"
-#include "clang/AST/RecursiveASTVisitor.h"
-#include "clang/Basic/IdentifierTable.h"
-#include "clang/Basic/Specifiers.h"
-#include "clang/Basic/TargetInfo.h"
-#include "clang/Frontend/CompilerInstance.h"
-#include "clang/Lex/MacroInfo.h"
-#include "clang/Lex/Preprocessor.h"
-#include "clang/Serialization/ModuleFileExtension.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/AST/DeclVisitor.h"
+#include "language/Core/AST/RecursiveASTVisitor.h"
+#include "language/Core/Basic/IdentifierTable.h"
+#include "language/Core/Basic/Specifiers.h"
+#include "language/Core/Basic/TargetInfo.h"
+#include "language/Core/Frontend/CompilerInstance.h"
+#include "language/Core/Lex/MacroInfo.h"
+#include "language/Core/Lex/Preprocessor.h"
+#include "language/Core/Serialization/ModuleFileExtension.h"
 #include "toolchain/ADT/APSInt.h"
 #include "toolchain/ADT/DenseMap.h"
 #include "toolchain/ADT/Hashing.h"
@@ -70,7 +70,7 @@ class SmallBitVector;
 
 }
 
-namespace clang {
+namespace language::Core {
 class APValue;
 class DeclarationName;
 class MangleContext;
@@ -229,8 +229,8 @@ enum class ImportTypeAttr : uint8_t {
 /// Find and iterate over language attributes embedded in the type
 /// without looking through typealiases.
 void findCodiraAttributes(
-    clang::QualType type,
-    toolchain::function_ref<void(const clang::CodiraAttrAttr *)> callback);
+    language::Core::QualType type,
+    toolchain::function_ref<void(const language::Core::CodiraAttrAttr *)> callback);
 
 /// Attributes which were set on the declaration and affect how its type is
 /// imported.
@@ -243,7 +243,7 @@ using ImportTypeAttrs = OptionSet<ImportTypeAttr>;
 /// \param D The declaration to extract attributes from.
 /// \param isParam Is the declaration a function parameter? If so, additional
 ///        attributes will be imported.
-ImportTypeAttrs getImportTypeAttrs(const clang::Decl *D, bool isParam = false);
+ImportTypeAttrs getImportTypeAttrs(const language::Core::Decl *D, bool isParam = false);
 
 /// Extract concurrency related attributes from a type.
 ///
@@ -252,15 +252,15 @@ ImportTypeAttrs getImportTypeAttrs(const clang::Decl *D, bool isParam = false);
 /// \param attrs The list to add the new attributes to.
 /// \param type The type to extract attributes from.
 void getConcurrencyAttrs(ASTContext &CodiraContext, ImportTypeKind importKind,
-                         ImportTypeAttrs &attrs, clang::QualType type);
+                         ImportTypeAttrs &attrs, language::Core::QualType type);
 
 struct ImportDiagnostic {
   ImportDiagnosticTarget target;
   Diagnostic diag;
-  clang::SourceLocation loc;
+  language::Core::SourceLocation loc;
 
   ImportDiagnostic(ImportDiagnosticTarget target, const Diagnostic &diag,
-                   clang::SourceLocation loc)
+                   language::Core::SourceLocation loc)
       : target(target), diag(diag), loc(loc) {}
 
   bool operator==(const ImportDiagnostic &other) const {
@@ -275,8 +275,8 @@ struct ImportDiagnostic {
 /// In either case we end up losing sugar at some uses sites, so this is more
 /// about what the right default is.
 static inline Bridgeability
-getTypedefBridgeability(const clang::TypedefNameDecl *decl) {
-  if (decl->hasAttr<clang::CodiraBridgedTypedefAttr>() ||
+getTypedefBridgeability(const language::Core::TypedefNameDecl *decl) {
+  if (decl->hasAttr<language::Core::CodiraBridgedTypedefAttr>() ||
       decl->getUnderlyingType()->isBlockPointerType()) {
     return Bridgeability::Full;
   }
@@ -344,7 +344,7 @@ public:
   /// Returns true when the given declaration with the given deprecation
   /// should be included in the cutoff of imported deprecated APIs marked
   /// unavailable.
-  bool treatDeprecatedAsUnavailable(const clang::Decl *clangDecl,
+  bool treatDeprecatedAsUnavailable(const language::Core::Decl *clangDecl,
                                     const toolchain::VersionTuple &version,
                                     bool isAsync) const;
 
@@ -408,13 +408,13 @@ public:
 /// Wraps a Clang source location with additional optional information used to
 /// resolve it for diagnostics.
 struct HeaderLoc {
-  clang::SourceLocation clangLoc;
+  language::Core::SourceLocation clangLoc;
   SourceLoc fallbackLoc;
-  const clang::SourceManager *sourceMgr;
+  const language::Core::SourceManager *sourceMgr;
 
-  explicit HeaderLoc(clang::SourceLocation clangLoc,
+  explicit HeaderLoc(language::Core::SourceLocation clangLoc,
                      SourceLoc fallbackLoc = SourceLoc(),
-                     const clang::SourceManager *sourceMgr = nullptr)
+                     const language::Core::SourceManager *sourceMgr = nullptr)
     : clangLoc(clangLoc), fallbackLoc(fallbackLoc), sourceMgr(sourceMgr) {}
 };
 
@@ -444,19 +444,19 @@ public:
                  DWARFImporterDelegate *dwarfImporterDelegate);
   ~Implementation();
 
-  class DiagnosticWalker : public clang::RecursiveASTVisitor<DiagnosticWalker> {
+  class DiagnosticWalker : public language::Core::RecursiveASTVisitor<DiagnosticWalker> {
   public:
     DiagnosticWalker(ClangImporter::Implementation &Impl);
-    bool TraverseDecl(clang::Decl *D);
-    bool TraverseParmVarDecl(clang::ParmVarDecl *D);
-    bool VisitDecl(clang::Decl *D);
-    bool VisitMacro(const clang::MacroInfo *MI);
-    bool VisitObjCObjectPointerType(clang::ObjCObjectPointerType *T);
-    bool VisitType(clang::Type *T);
+    bool TraverseDecl(language::Core::Decl *D);
+    bool TraverseParmVarDecl(language::Core::ParmVarDecl *D);
+    bool VisitDecl(language::Core::Decl *D);
+    bool VisitMacro(const language::Core::MacroInfo *MI);
+    bool VisitObjCObjectPointerType(language::Core::ObjCObjectPointerType *T);
+    bool VisitType(language::Core::Type *T);
 
   private:
     Implementation &Impl;
-    clang::SourceLocation TypeReferenceSourceLocation;
+    language::Core::SourceLocation TypeReferenceSourceLocation;
   };
 
   /// Codira AST context.
@@ -472,9 +472,9 @@ public:
   std::unordered_set<ImportDiagnostic, ImportDiagnosticHasher>
       CollectedDiagnostics;
 
-  // Keeps track of `clang::RecordDecl`s where diagnostics have already been
+  // Keeps track of `language::Core::RecordDecl`s where diagnostics have already been
   // emitted due to failed LANGUAGE_SHARED_REFERENCE inference.
-  std::unordered_set<const clang::RecordDecl *> DiagnosedCxxRefDecls;
+  std::unordered_set<const language::Core::RecordDecl *> DiagnosedCxxRefDecls;
 
   const bool ImportForwardDeclarations;
   const bool DisableCodiraBridgeAttr;
@@ -483,7 +483,7 @@ public:
   const bool EnableClangSPI;
 
   bool IsReadingBridgingPCH;
-  toolchain::SmallVector<clang::serialization::SubmoduleID, 2> PCHImportedSubmodules;
+  toolchain::SmallVector<language::Core::serialization::SubmoduleID, 2> PCHImportedSubmodules;
 
   const Version CurrentVersion;
 
@@ -512,7 +512,7 @@ private:
   /// The fake buffer used to import modules.
   ///
   /// \see getNextIncludeLoc
-  clang::FileID DummyIncludeBuffer;
+  language::Core::FileID DummyIncludeBuffer;
 
   /// A count of the number of load module operations.
   ///
@@ -523,27 +523,27 @@ private:
   /// imports.
   ///
   /// These have to be unique and valid or Clang gets very confused.
-  clang::SourceLocation getNextIncludeLoc();
+  language::Core::SourceLocation getNextIncludeLoc();
 
   /// Used to avoid running the AST verifier over the same declarations.
   size_t VerifiedDeclsCounter = 0;
 
   /// Clang compiler invocation.
-  std::shared_ptr<clang::CompilerInvocation> Invocation;
+  std::shared_ptr<language::Core::CompilerInvocation> Invocation;
 
   /// Clang compiler instance, which is used to actually load Clang
   /// modules.
-  std::unique_ptr<clang::CompilerInstance> Instance;
+  std::unique_ptr<language::Core::CompilerInstance> Instance;
 
   /// Clang compiler action, which is used to actually run the
   /// parser.
-  std::unique_ptr<clang::FrontendAction> Action;
+  std::unique_ptr<language::Core::FrontendAction> Action;
 
   /// Clang parser, which is used to load textual headers.
-  std::unique_ptr<clang::Parser> Parser;
+  std::unique_ptr<language::Core::Parser> Parser;
 
   /// Clang parser, which is used to load textual headers.
-  std::unique_ptr<clang::MangleContext> Mangler;
+  std::unique_ptr<language::Core::MangleContext> Mangler;
 
   /// Clang arguments used to create the Clang invocation.
   std::vector<std::string> ClangArgs;
@@ -559,7 +559,7 @@ public:
   std::unique_ptr<CodiraLookupTable> BridgingHeaderLookupTable;
 
   /// Mapping of already-imported declarations.
-  toolchain::DenseMap<std::pair<const clang::Decl *, Version>, Decl *> ImportedDecls;
+  toolchain::DenseMap<std::pair<const language::Core::Decl *, Version>, Decl *> ImportedDecls;
 
   /// The set of "special" typedef-name declarations, which are
   /// mapped to specific Codira types.
@@ -570,26 +570,26 @@ public:
   /// when this is not the case, e.g., Objective-C's "BOOL" has an underlying
   /// type of "signed char", but is mapped to a special Codira struct type
   /// ObjCBool.
-  toolchain::SmallDenseMap<const clang::TypedefNameDecl *, MappedTypeNameKind, 16>
+  toolchain::SmallDenseMap<const language::Core::TypedefNameDecl *, MappedTypeNameKind, 16>
     SpecialTypedefNames;
 
   /// Provide a single extension point for any given type per clang
   /// submodule
-  toolchain::DenseMap<std::pair<NominalTypeDecl *, const clang::Module *>,
+  toolchain::DenseMap<std::pair<NominalTypeDecl *, const language::Core::Module *>,
                  ExtensionDecl *> extensionPoints;
 
   /// Typedefs that we should not be importing.  We should be importing
   /// underlying decls instead.
-  toolchain::DenseSet<const clang::Decl *> SuperfluousTypedefs;
+  toolchain::DenseSet<const language::Core::Decl *> SuperfluousTypedefs;
 
   /// Tag decls whose typedefs were imported instead.
   ///
   /// \sa SuperfluousTypedefs
-  toolchain::DenseSet<const clang::Decl *> DeclsWithSuperfluousTypedefs;
+  toolchain::DenseSet<const language::Core::Decl *> DeclsWithSuperfluousTypedefs;
 
   /// Mapping of already-imported declarations from protocols, which
   /// can (and do) get replicated into classes.
-  toolchain::DenseMap<std::tuple<const clang::Decl *, DeclContext *, Version>,
+  toolchain::DenseMap<std::tuple<const language::Core::Decl *, DeclContext *, Version>,
                  Decl *> ImportedProtocolDecls;
 
   /// Mapping from identifiers to the set of macros that have that name along
@@ -598,12 +598,12 @@ public:
   /// Multiple macro definitions can map to the same declaration if the
   /// macros are identically defined.
   toolchain::DenseMap<Identifier,
-                 SmallVector<std::pair<const clang::MacroInfo *, ValueDecl *>,
+                 SmallVector<std::pair<const language::Core::MacroInfo *, ValueDecl *>,
                              2>>
     ImportedMacros;
 
   // Mapping from macro to value for macros that expand to constant values.
-  toolchain::DenseMap<const clang::MacroInfo *, std::pair<clang::APValue, Type>>
+  toolchain::DenseMap<const language::Core::MacroInfo *, std::pair<language::Core::APValue, Type>>
     ImportedMacroConstants;
 
   // Mapping from imported types to their raw value types.
@@ -613,13 +613,13 @@ public:
   toolchain::DenseMap<Decl *, Decl *> ImplementationsByInterface;
   toolchain::DenseMap<Decl *, toolchain::TinyPtrVector<Decl*>> InterfacesByImplementation;
 
-  clang::CompilerInstance *getClangInstance() {
+  language::Core::CompilerInstance *getClangInstance() {
     return Instance.get();
   }
 
   /// Writes the mangled name of \p clangDecl to \p os.
-  void getMangledName(clang::MangleContext *mangler,
-                      const clang::NamedDecl *clangDecl, raw_ostream &os);
+  void getMangledName(language::Core::MangleContext *mangler,
+                      const language::Core::NamedDecl *clangDecl, raw_ostream &os);
 
   /// Whether the C++ interoperability compatibility version is at least
   /// 'major'.
@@ -637,21 +637,21 @@ private:
   /// than the underlying Codira compilation. This is the `TargetOptions`
   /// corresponding to the instantiating Codira compilation's triple. These are
   /// to be used by all IRGen/CodeGen clients of `ClangImporter`.
-  std::unique_ptr<clang::TargetInfo> CodeGenTargetInfo;
-  std::unique_ptr<clang::CodeGenOptions> CodeGenOpts;
+  std::unique_ptr<language::Core::TargetInfo> CodeGenTargetInfo;
+  std::unique_ptr<language::Core::CodeGenOptions> CodeGenOpts;
 
 public:
-  void setCodiraTargetInfo(clang::TargetInfo *CodiraTargetInfo) {
+  void setCodiraTargetInfo(language::Core::TargetInfo *CodiraTargetInfo) {
     CodeGenTargetInfo.reset(CodiraTargetInfo);
   }
-  clang::TargetInfo *getCodiraTargetInfo() const {
+  language::Core::TargetInfo *getCodiraTargetInfo() const {
     return CodeGenTargetInfo.get();
   }
 
-  void setCodiraCodeGenOptions(clang::CodeGenOptions *CodiraCodeGenOpts) {
+  void setCodiraCodeGenOptions(language::Core::CodeGenOptions *CodiraCodeGenOpts) {
     CodeGenOpts.reset(CodiraCodeGenOpts);
   }
-  clang::CodeGenOptions *getCodiraCodeGenOptions() const {
+  language::Core::CodeGenOptions *getCodiraCodeGenOptions() const {
     return CodeGenOpts.get();
   }
 
@@ -688,7 +688,7 @@ public:
   toolchain::MapVector<NominalTypeDecl *, std::pair<FuncDecl *, FuncDecl *>>
       cxxDereferenceOperators;
 
-  toolchain::SmallPtrSet<const clang::Decl *, 1> synthesizedAndAlwaysVisibleDecls;
+  toolchain::SmallPtrSet<const language::Core::Decl *, 1> synthesizedAndAlwaysVisibleDecls;
 
 private:
   // Keep track of the decls that were already cloned for this specific class.
@@ -699,9 +699,9 @@ private:
   toolchain::DenseMap<ValueDecl *, ValueDecl *> clonedMembers;
 
 public:
-  toolchain::DenseMap<const clang::ParmVarDecl*, FuncDecl*> defaultArgGenerators;
+  toolchain::DenseMap<const language::Core::ParmVarDecl*, FuncDecl*> defaultArgGenerators;
 
-  bool isDefaultArgSafeToImport(const clang::ParmVarDecl *param);
+  bool isDefaultArgSafeToImport(const language::Core::ParmVarDecl *param);
 
   ValueDecl *importBaseMemberDecl(ValueDecl *decl, DeclContext *newContext,
                                   ClangInheritanceInfo inheritance);
@@ -712,17 +712,17 @@ public:
 
   // Cache for already-specialized function templates and any thunks they may
   // have.
-  toolchain::DenseMap<clang::FunctionDecl *, ValueDecl *>
+  toolchain::DenseMap<language::Core::FunctionDecl *, ValueDecl *>
       specializedFunctionTemplates;
 
   /// Keeps track of the Clang functions that have been turned into
   /// properties.
-  toolchain::DenseMap<const clang::FunctionDecl *, VarDecl *> FunctionsAsProperties;
+  toolchain::DenseMap<const language::Core::FunctionDecl *, VarDecl *> FunctionsAsProperties;
 
-  importer::EnumInfo getEnumInfo(const clang::EnumDecl *decl) {
+  importer::EnumInfo getEnumInfo(const language::Core::EnumDecl *decl) {
     return getNameImporter().getEnumInfo(decl);
   }
-  importer::EnumKind getEnumKind(const clang::EnumDecl *decl) {
+  importer::EnumKind getEnumKind(const language::Core::EnumDecl *decl) {
     return getNameImporter().getEnumKind(decl);
   }
 
@@ -736,7 +736,7 @@ public:
   /// Keep track of initializer declarations that correspond to
   /// imported methods.
   toolchain::DenseMap<
-      std::tuple<const clang::ObjCMethodDecl *, const DeclContext *, Version>,
+      std::tuple<const language::Core::ObjCMethodDecl *, const DeclContext *, Version>,
       ConstructorDecl *> Constructors;
 
   /// Keep track of all initializers that have been imported into a
@@ -783,13 +783,13 @@ private:
 
 public:
   /// A map from Clang modules to their Codira wrapper modules.
-  toolchain::SmallDenseMap<const clang::Module *, ModuleInitPair, 16> ModuleWrappers;
+  toolchain::SmallDenseMap<const language::Core::Module *, ModuleInitPair, 16> ModuleWrappers;
 
   /// The module unit that contains declarations from imported headers.
   ClangModuleUnit *ImportedHeaderUnit = nullptr;
 
   /// The modules re-exported by imported headers.
-  toolchain::SmallVector<clang::Module *, 8> ImportedHeaderExports;
+  toolchain::SmallVector<language::Core::Module *, 8> ImportedHeaderExports;
 
   /// The modules that requested imported headers.
   ///
@@ -797,16 +797,16 @@ public:
   TinyPtrVector<ModuleDecl *> ImportedHeaderOwners;
 
   /// Clang's objectAtIndexedSubscript: selector.
-  clang::Selector objectAtIndexedSubscript;
+  language::Core::Selector objectAtIndexedSubscript;
 
   /// Clang's setObjectAt:indexedSubscript: selector.
-  clang::Selector setObjectAtIndexedSubscript;
+  language::Core::Selector setObjectAtIndexedSubscript;
 
   /// Clang's objectForKeyedSubscript: selector.
-  clang::Selector objectForKeyedSubscript;
+  language::Core::Selector objectForKeyedSubscript;
 
   /// Clang's setObject:forKeyedSubscript: selector.
-  clang::Selector setObjectForKeyedSubscript;
+  language::Core::Selector setObjectForKeyedSubscript;
 
 private:
   /// Records those modules that we have looked up.
@@ -824,7 +824,7 @@ public:
 
   /// The synthesized predicate functions for imported `VarDecl`s that represent
   /// availability domains.
-  toolchain::DenseMap<const clang::VarDecl *, FuncDecl *>
+  toolchain::DenseMap<const language::Core::VarDecl *, FuncDecl *>
       availabilityDomainPredicates;
 
 private:
@@ -844,17 +844,17 @@ public:
   }
 
   /// Tracks top level decls from the bridging header.
-  std::vector<clang::Decl *> BridgeHeaderTopLevelDecls;
-  std::vector<toolchain::PointerUnion<clang::ImportDecl *, ImportDecl *>>
+  std::vector<language::Core::Decl *> BridgeHeaderTopLevelDecls;
+  std::vector<toolchain::PointerUnion<language::Core::ImportDecl *, ImportDecl *>>
     BridgeHeaderTopLevelImports;
 
   /// Tracks macro definitions from the bridging header.
-  std::vector<clang::IdentifierInfo *> BridgeHeaderMacros;
+  std::vector<language::Core::IdentifierInfo *> BridgeHeaderMacros;
   /// Tracks included headers from the bridging header.
-  toolchain::DenseSet<clang::FileEntryRef> BridgeHeaderFiles;
+  toolchain::DenseSet<language::Core::FileEntryRef> BridgeHeaderFiles;
 
-  void addBridgeHeaderTopLevelDecls(clang::Decl *D);
-  bool shouldIgnoreBridgeHeaderTopLevelDecl(clang::Decl *D);
+  void addBridgeHeaderTopLevelDecls(language::Core::Decl *D);
+  bool shouldIgnoreBridgeHeaderTopLevelDecl(language::Core::Decl *D);
 
 private:
   /// When set, ClangImporter is disabled, and all requests go to the
@@ -875,7 +875,7 @@ private:
   /// The list of Clang modules found in the debug info.
   toolchain::DenseMap<Identifier, LoadedFile *> DWARFModuleUnits;
 
-  /// Load a module using the clang::CompilerInstance.
+  /// Load a module using the language::Core::CompilerInstance.
   ModuleDecl *loadModuleClang(SourceLoc importLoc,
                               ImportPath::Module path);
   
@@ -885,7 +885,7 @@ private:
                               ImportPath::Module path);
 
   /// Lookup a clang module.
-  clang::Module *lookupModule(StringRef moduleName);
+  language::Core::Module *lookupModule(StringRef moduleName);
 
 public:
   /// Load a module using either method.
@@ -912,21 +912,21 @@ public:
   }
 
   /// Retrieve the Clang AST context.
-  clang::ASTContext &getClangASTContext() const {
+  language::Core::ASTContext &getClangASTContext() const {
     return Instance->getASTContext();
   }
 
   /// Retrieve the Clang Sema object.
-  clang::Sema &getClangSema() const {
+  language::Core::Sema &getClangSema() const {
     return Instance->getSema();
   }
 
   /// Retrieve the Clang AST context.
-  clang::Preprocessor &getClangPreprocessor() const {
+  language::Core::Preprocessor &getClangPreprocessor() const {
     return Instance->getPreprocessor();
   }
   
-  clang::CodeGenOptions &getCodeGenOpts() const {
+  language::Core::CodeGenOptions &getCodeGenOpts() const {
     return Instance->getCodeGenOpts();
   }
 
@@ -942,7 +942,7 @@ public:
 
   /// Retrieve the imported module that should contain the given
   /// Clang decl.
-  ClangModuleUnit *getClangModuleForDecl(const clang::Decl *D,
+  ClangModuleUnit *getClangModuleForDecl(const language::Core::Decl *D,
                                          bool allowForwardDeclaration = false);
 
   /// Returns the module \p MI comes from, or \c None if \p MI does not have
@@ -950,15 +950,15 @@ public:
   ///
   /// The returned module may be null (but not \c None) if \p MI comes from
   /// an imported header.
-  const clang::Module *getClangOwningModule(ClangNode Node) const;
+  const language::Core::Module *getClangOwningModule(ClangNode Node) const;
 
   /// Whether NSUInteger can be imported as Int in certain contexts. If false,
   /// should always be imported as UInt.
   static bool shouldAllowNSUIntegerAsInt(bool isFromSystemModule,
-                                         const clang::NamedDecl *decl);
+                                         const language::Core::NamedDecl *decl);
 
   /// Converts the given Codira identifier for Clang.
-  clang::DeclarationName exportName(Identifier name);
+  language::Core::DeclarationName exportName(Identifier name);
 
   /// Imports the full name of the given Clang declaration into Codira.
   ///
@@ -966,10 +966,10 @@ public:
   /// so it should not be used when referencing Clang symbols.
   ///
   /// \param D The Clang declaration whose name should be imported.
-  importer::ImportedName importFullName(const clang::NamedDecl *D,
+  importer::ImportedName importFullName(const language::Core::NamedDecl *D,
                                         Version version,
-                                        clang::DeclarationName givenName =
-                                          clang::DeclarationName()) {
+                                        language::Core::DeclarationName givenName =
+                                          language::Core::DeclarationName()) {
     return getNameImporter().importName(D, version, givenName);
   }
 
@@ -1031,7 +1031,7 @@ public:
 
   void addImportDiagnostic(
       ImportDiagnosticTarget target, Diagnostic &&diag,
-      clang::SourceLocation loc);
+      language::Core::SourceLocation loc);
 
   /// Import the given Clang identifier into Codira.
   ///
@@ -1040,26 +1040,26 @@ public:
   /// \param removePrefix The prefix to remove from the Clang name to produce
   /// the Codira name. If the Clang name does not start with this prefix,
   /// nothing is removed.
-  Identifier importIdentifier(const clang::IdentifierInfo *identifier,
+  Identifier importIdentifier(const language::Core::IdentifierInfo *identifier,
                               StringRef removePrefix = "");
 
   /// Import an Objective-C selector.
-  ObjCSelector importSelector(clang::Selector selector);
+  ObjCSelector importSelector(language::Core::Selector selector);
 
   /// Import a Codira name as a Clang selector.
-  clang::Selector exportSelector(DeclName name, bool allowSimpleName = true);
+  language::Core::Selector exportSelector(DeclName name, bool allowSimpleName = true);
 
   /// Export a Codira Objective-C selector as a Clang Objective-C selector.
-  clang::Selector exportSelector(ObjCSelector selector);
+  language::Core::Selector exportSelector(ObjCSelector selector);
 
   /// Import the given Codira source location into Clang.
-  clang::SourceLocation exportSourceLoc(SourceLoc loc);
+  language::Core::SourceLocation exportSourceLoc(SourceLoc loc);
 
   /// Import the given Clang source location into Codira.
-  SourceLoc importSourceLoc(clang::SourceLocation loc);
+  SourceLoc importSourceLoc(language::Core::SourceLocation loc);
 
   /// Import the given Clang source range into Codira.
-  SourceRange importSourceRange(clang::SourceRange loc);
+  SourceRange importSourceRange(language::Core::SourceRange loc);
 
   /// Import the given Clang preprocessor macro as a Codira value decl.
   ///
@@ -1097,22 +1097,22 @@ public:
   /// \param MappedDecl The decl to attach attributes to.
   /// \param NewContext If present, the Clang node for the context the decl is
   /// being imported into, which may affect info from API notes.
-  void importAttributes(const clang::NamedDecl *ClangDecl, Decl *MappedDecl,
-                        const clang::ObjCContainerDecl *NewContext = nullptr);
+  void importAttributes(const language::Core::NamedDecl *ClangDecl, Decl *MappedDecl,
+                        const language::Core::ObjCContainerDecl *NewContext = nullptr);
 
   Type applyImportTypeAttrs(ImportTypeAttrs attrs, Type type,
                  toolchain::function_ref<void(Diagnostic &&)> addImportDiagnosticFn);
 
   /// If we already imported a given decl, return the corresponding Codira decl.
   /// Otherwise, return nullptr.
-  std::optional<Decl *> importDeclCached(const clang::NamedDecl *ClangDecl,
+  std::optional<Decl *> importDeclCached(const language::Core::NamedDecl *ClangDecl,
                                          Version version,
                                          bool UseCanonicalDecl = true);
 
-  Decl *importDeclImpl(const clang::NamedDecl *ClangDecl, Version version,
+  Decl *importDeclImpl(const language::Core::NamedDecl *ClangDecl, Version version,
                        bool &TypedefIsSuperfluous, bool &HadForwardDeclaration);
 
-  Decl *importDeclAndCacheImpl(const clang::NamedDecl *ClangDecl,
+  Decl *importDeclAndCacheImpl(const language::Core::NamedDecl *ClangDecl,
                                Version version,
                                bool SuperfluousTypedefsAreTransparent,
                                bool UseCanonicalDecl);
@@ -1123,7 +1123,7 @@ public:
   /// Unlike \c importDeclReal, this function for convenience transparently
   /// looks through superfluous typedefs and returns the imported underlying
   /// decl in that case.
-  Decl *importDecl(const clang::NamedDecl *ClangDecl, Version version,
+  Decl *importDecl(const language::Core::NamedDecl *ClangDecl, Version version,
                    bool UseCanonicalDecl = true) {
     return importDeclAndCacheImpl(ClangDecl, version,
                                   /*SuperfluousTypedefsAreTransparent=*/true,
@@ -1136,7 +1136,7 @@ public:
   ///
   /// \returns The imported declaration, or null if this declaration could
   /// not be represented in Codira.
-  Decl *importDeclReal(const clang::NamedDecl *ClangDecl, Version version,
+  Decl *importDeclReal(const language::Core::NamedDecl *ClangDecl, Version version,
                        bool useCanonicalDecl = true) {
     return importDeclAndCacheImpl(ClangDecl, version,
                                   /*SuperfluousTypedefsAreTransparent=*/false,
@@ -1149,13 +1149,13 @@ public:
   ///
   /// \returns The imported declaration, or null if this declaration could not
   /// be represented in Codira.
-  Decl *importMirroredDecl(const clang::NamedDecl *decl, DeclContext *dc,
+  Decl *importMirroredDecl(const language::Core::NamedDecl *decl, DeclContext *dc,
                            Version version, ProtocolDecl *proto);
 
-  void importInheritedConstructors(const clang::ObjCInterfaceDecl *curObjCClass,
+  void importInheritedConstructors(const language::Core::ObjCInterfaceDecl *curObjCClass,
                                    const ClassDecl *classDecl,
                                    SmallVectorImpl<Decl *> &newMembers);
-  void importMirroredProtocolMembers(const clang::ObjCContainerDecl *decl,
+  void importMirroredProtocolMembers(const language::Core::ObjCContainerDecl *decl,
                                      DeclContext *dc,
                                      std::optional<DeclBaseName> name,
                                      SmallVectorImpl<Decl *> &members);
@@ -1170,30 +1170,30 @@ public:
   ///
   /// \returns The imported declaration context, or null if it could not
   /// be converted.
-  DeclContext *importDeclContextImpl(const clang::Decl *ImportingDecl,
-                                     const clang::DeclContext *dc);
+  DeclContext *importDeclContextImpl(const language::Core::Decl *ImportingDecl,
+                                     const language::Core::DeclContext *dc);
 
 private:
   /// Declarations currently being imported by \c importDeclForDeclContext().
   /// Used to break cycles when a language_name attribute is circular in a way that
   /// can't be resolved, or there is some other cycle through
   /// \c importDeclContextOf().
-  toolchain::SmallVector<std::tuple<const clang::Decl *, StringRef,
-                               const clang::NamedDecl *, Version, bool>, 8>
+  toolchain::SmallVector<std::tuple<const language::Core::Decl *, StringRef,
+                               const language::Core::NamedDecl *, Version, bool>, 8>
       contextDeclsBeingImported;
 
   /// Records which contexts \c importDeclForDeclContext() has already warned
   /// were unimportable.
-  toolchain::SmallPtrSet<const clang::NamedDecl *, 4> contextDeclsWarnedAbout;
+  toolchain::SmallPtrSet<const language::Core::NamedDecl *, 4> contextDeclsWarnedAbout;
 
   /// Exactly equivalent to \c importDecl(), except with additional
   /// cycle-breaking code.
   ///
   /// \param writtenName The name that should be used for the declaration
   ///        in cycle diagnostics.
-  Decl *importDeclForDeclContext(const clang::Decl *ImportingDecl,
+  Decl *importDeclForDeclContext(const language::Core::Decl *ImportingDecl,
                                  StringRef writtenName,
-                                 const clang::NamedDecl *ClangDecl,
+                                 const language::Core::NamedDecl *ClangDecl,
                                  Version version,
                                  bool UseCanonicalDecl = true);
 
@@ -1205,12 +1205,12 @@ public:
   ///
   /// \returns The imported declaration context, or null if it could not
   /// be converted.
-  DeclContext *importDeclContextOf(const clang::Decl *D,
+  DeclContext *importDeclContextOf(const language::Core::Decl *D,
                                    EffectiveClangContext context);
 
   /// Determine whether the given declaration is considered
   /// 'unavailable' in Codira.
-  bool isUnavailableInCodira(const clang::Decl *decl) {
+  bool isUnavailableInCodira(const language::Core::Decl *decl) {
     return importer::isUnavailableInCodira(
         decl, &platformAvailability, CodiraContext.LangOpts.EnableObjCInterop);
   }
@@ -1257,11 +1257,11 @@ public:
 
   /// Retrieves the Codira wrapper for the given Clang module, creating
   /// it if necessary.
-  ClangModuleUnit *getWrapperForModule(const clang::Module *underlying,
+  ClangModuleUnit *getWrapperForModule(const language::Core::Module *underlying,
                                        SourceLoc importLoc = SourceLoc());
 
   /// Constructs a Codira module for the given Clang module.
-  ModuleDecl *finishLoadingClangModule(const clang::Module *clangModule,
+  ModuleDecl *finishLoadingClangModule(const language::Core::Module *clangModule,
                                        SourceLoc importLoc);
 
   /// Call finishLoadingClangModule on each deferred import collected
@@ -1298,8 +1298,8 @@ public:
 
   /// Determines whether the type declared by the given declaration
   /// is over-aligned.
-  bool isOverAligned(const clang::TypeDecl *typeDecl);
-  bool isOverAligned(clang::QualType type);
+  bool isOverAligned(const language::Core::TypeDecl *typeDecl);
+  bool isOverAligned(language::Core::QualType type);
 
   /// Determines whether the given Clang type is serializable in a
   /// Codira AST.  This should only be called after successfully importing
@@ -1311,11 +1311,11 @@ public:
   /// Note that this will only check the requested sugaring of the given
   /// type (depending on \c checkCanonical); the canonical type may be
   /// serializable even if the non-canonical type is not, or vice-versa.
-  bool isSerializable(clang::QualType type, bool checkCanonical);
+  bool isSerializable(language::Core::QualType type, bool checkCanonical);
 
   /// Try to find a stable Codira serialization path for the given Clang
   /// declaration.
-  StableSerializationPath findStableSerializationPath(const clang::Decl *decl);
+  StableSerializationPath findStableSerializationPath(const language::Core::Decl *decl);
 
   /// Look up and attempt to import a Clang declaration with
   /// the given name.
@@ -1373,7 +1373,7 @@ public:
   ///          the type cannot be represented in Codira, then the type
   ///          field will be null.
   ImportedType importType(
-      clang::QualType type, ImportTypeKind kind,
+      language::Core::QualType type, ImportTypeKind kind,
       toolchain::function_ref<void(Diagnostic &&)> addImportDiagnosticFn,
       bool allowNSUIntegerAsInt, Bridgeability topLevelBridgeability,
       ImportTypeAttrs attrs,
@@ -1391,7 +1391,7 @@ public:
   /// \returns The imported type, or null if this type could not be
   ///   represented in Codira.
   Type importTypeIgnoreIUO(
-      clang::QualType type, ImportTypeKind kind,
+      language::Core::QualType type, ImportTypeKind kind,
       toolchain::function_ref<void(Diagnostic &&)> addImportDiagnosticFn,
       bool allowNSUIntegerAsInt, Bridgeability topLevelBridgeability,
       ImportTypeAttrs attrs,
@@ -1426,8 +1426,8 @@ public:
   /// \param name The name of the function.
   /// \param[out] parameterList The parameters visible inside the function body.
   ImportedType importFunctionParamsAndReturnType(
-      DeclContext *dc, const clang::FunctionDecl *clangDecl,
-      ArrayRef<const clang::ParmVarDecl *> params, bool isVariadic,
+      DeclContext *dc, const language::Core::FunctionDecl *clangDecl,
+      ArrayRef<const language::Core::ParmVarDecl *> params, bool isVariadic,
       bool isFromSystemModule, DeclName name, ParameterList *&parameterList,
       ArrayRef<GenericTypeParamDecl *> genericParams);
 
@@ -1442,7 +1442,7 @@ public:
   /// \returns the imported function return type, or null if the type cannot be
   /// imported.
   ImportedType importFunctionReturnType(DeclContext *dc,
-                                        const clang::FunctionDecl *clangDecl,
+                                        const language::Core::FunctionDecl *clangDecl,
                                         bool allowNSUIntegerAsInt);
 
   /// Import the parameter list for a function
@@ -1457,8 +1457,8 @@ public:
   ///
   /// \returns The imported parameter list on success, or null on failure
   ParameterList *importFunctionParameterList(
-      DeclContext *dc, const clang::FunctionDecl *clangDecl,
-      ArrayRef<const clang::ParmVarDecl *> params, bool isVariadic,
+      DeclContext *dc, const language::Core::FunctionDecl *clangDecl,
+      ArrayRef<const language::Core::ParmVarDecl *> params, bool isVariadic,
       bool allowNSUIntegerAsInt, ArrayRef<Identifier> argNames,
       ArrayRef<GenericTypeParamDecl *> genericParams, Type resultType);
 
@@ -1504,20 +1504,20 @@ public:
   ///
   /// \returns The imported parameter result on success, or None on failure.
   std::optional<ImportParameterTypeResult> importParameterType(
-      DeclContext *dc, const clang::Decl *parent,
-      const clang::ParmVarDecl *param, OptionalTypeKind optionalityOfParam,
+      DeclContext *dc, const language::Core::Decl *parent,
+      const language::Core::ParmVarDecl *param, OptionalTypeKind optionalityOfParam,
       bool allowNSUIntegerAsInt, bool isNSDictionarySubscriptGetter,
       bool paramIsError, bool paramIsCompletionHandler,
       std::optional<unsigned> completionHandlerErrorParamIndex,
       ArrayRef<GenericTypeParamDecl *> genericParams,
       toolchain::function_ref<void(Diagnostic &&)> addImportDiagnosticFn);
 
-  ImportedType importPropertyType(const clang::ObjCPropertyDecl *clangDecl,
+  ImportedType importPropertyType(const language::Core::ObjCPropertyDecl *clangDecl,
                                   bool isFromSystemModule);
 
   /// Determines what the type of an effectful, computed read-only property
   /// would be, if the given method were imported as such a property.
-  ImportedType importEffectfulPropertyType(const clang::ObjCMethodDecl *decl,
+  ImportedType importEffectfulPropertyType(const language::Core::ObjCMethodDecl *decl,
                                             DeclContext *dc,
                                             importer::ImportedName name,
                                             bool isFromSystemModule);
@@ -1525,7 +1525,7 @@ public:
   /// Attempt to infer a default argument for a parameter with the
   /// given Clang \c type, \c baseName, and optionality.
   static ArgumentAttrs
-  inferDefaultArgument(clang::QualType type, OptionalTypeKind clangOptionality,
+  inferDefaultArgument(language::Core::QualType type, OptionalTypeKind clangOptionality,
                        DeclBaseName baseName, StringRef argumentLabel,
                        bool isFirstParameter, bool isLastParameter,
                        importer::NameImporter &nameImporter);
@@ -1554,8 +1554,8 @@ public:
   /// \returns the imported result type, or null if the type cannot be
   /// imported.
   ImportedType importMethodParamsAndReturnType(
-      const DeclContext *dc, const clang::ObjCMethodDecl *clangDecl,
-      ArrayRef<const clang::ParmVarDecl *> params, bool isVariadic,
+      const DeclContext *dc, const language::Core::ObjCMethodDecl *clangDecl,
+      ArrayRef<const language::Core::ParmVarDecl *> params, bool isVariadic,
       bool isFromSystemModule, ParameterList **bodyParams,
       importer::ImportedName importedName,
       std::optional<ForeignAsyncConvention> &asyncConv,
@@ -1581,8 +1581,8 @@ public:
   /// imported.
   ImportedType
   importAccessorParamsAndReturnType(const DeclContext *dc,
-                                    const clang::ObjCPropertyDecl *property,
-                                    const clang::ObjCMethodDecl *clangDecl,
+                                    const language::Core::ObjCPropertyDecl *property,
+                                    const language::Core::ObjCMethodDecl *clangDecl,
                                     bool isFromSystemModule,
                                     importer::ImportedName importedName,
                                     ParameterList **params);
@@ -1591,14 +1591,14 @@ public:
   /// that it has performed some non-trivial mapping of its underlying type
   /// based on the name of the typedef.
   std::optional<MappedTypeNameKind>
-  getSpecialTypedefKind(clang::TypedefNameDecl *decl);
+  getSpecialTypedefKind(language::Core::TypedefNameDecl *decl);
 
   /// Look up a name, accepting only typedef results.
-  const clang::TypedefNameDecl *lookupTypedef(clang::DeclarationName);
+  const language::Core::TypedefNameDecl *lookupTypedef(language::Core::DeclarationName);
 
   /// Return whether a global of the given type should be imported as a
   /// 'let' declaration as opposed to 'var'.
-  bool shouldImportGlobalAsLet(clang::QualType type);
+  bool shouldImportGlobalAsLet(language::Core::QualType type);
 
   /// Record the set of imported protocols for the given declaration,
   /// to be used by member loading.
@@ -1648,15 +1648,15 @@ public:
 private:
   void
   loadAllMembersOfObjcContainer(Decl *D,
-                                const clang::ObjCContainerDecl *objcContainer);
+                                const language::Core::ObjCContainerDecl *objcContainer);
   void loadAllMembersOfRecordDecl(NominalTypeDecl *languageDecl,
-                                  const clang::RecordDecl *clangRecord,
+                                  const language::Core::RecordDecl *clangRecord,
                                   ClangInheritanceInfo inheritance);
 
-  void collectMembersToAdd(const clang::ObjCContainerDecl *objcContainer,
+  void collectMembersToAdd(const language::Core::ObjCContainerDecl *objcContainer,
                            Decl *D, DeclContext *DC,
                            SmallVectorImpl<Decl *> &members);
-  void insertMembersAndAlternates(const clang::NamedDecl *nd,
+  void insertMembersAndAlternates(const language::Core::NamedDecl *nd,
                                   SmallVectorImpl<Decl *> &members,
                                   DeclContext *expectedDC = nullptr);
   void loadAllMembersIntoExtension(Decl *D, uint64_t extra);
@@ -1668,7 +1668,7 @@ private:
   /// ultimately added to \p ext. This matches the behavior of
   /// forEachDistinctName's callback.
   bool addMemberAndAlternatesToExtension(
-      clang::NamedDecl *decl, importer::ImportedName newName,
+      language::Core::NamedDecl *decl, importer::ImportedName newName,
       importer::ImportNameVersion nameVersion, ExtensionDecl *ext);
 
 public:
@@ -1740,9 +1740,9 @@ public:
 
     if constexpr (std::is_base_of_v<NominalTypeDecl, DeclTy>) {
       // Estimate brace locations.
-      clang::SourceLocation begin;
-      clang::SourceLocation end;
-      if (auto *td = dyn_cast_or_null<clang::TagDecl>(ClangN.getAsDecl())) {
+      language::Core::SourceLocation begin;
+      language::Core::SourceLocation end;
+      if (auto *td = dyn_cast_or_null<language::Core::TagDecl>(ClangN.getAsDecl())) {
         begin = td->getBraceRange().getBegin();
         end = td->getBraceRange().getEnd();
       } else {
@@ -1778,10 +1778,10 @@ public:
   ///
   /// \param clangModule The module, or null to indicate that we're talking
   /// about the directly-parsed headers.
-  CodiraLookupTable *findLookupTable(const clang::Module *clangModule);
+  CodiraLookupTable *findLookupTable(const language::Core::Module *clangModule);
 
   /// Find the lookup table that should contain the given Clang declaration.
-  CodiraLookupTable *findLookupTable(const clang::Decl *decl);
+  CodiraLookupTable *findLookupTable(const language::Core::Decl *decl);
 
   /// Visit each of the lookup tables in some deterministic order.
   ///
@@ -1796,7 +1796,7 @@ public:
   ///
   /// FIXME: this is an elaborate hack to badly reflect Clang's
   /// submodule visibility into Codira.
-  bool isVisibleClangEntry(const clang::NamedDecl *clangDecl);
+  bool isVisibleClangEntry(const language::Core::NamedDecl *clangDecl);
   bool isVisibleClangEntry(CodiraLookupTable::SingleEntry entry);
 
   /// Look for namespace-scope values with the given name in the given
@@ -1835,7 +1835,7 @@ public:
   /// Emit diagnostics for declarations named name that are members
   /// of the provided container.
   void diagnoseMemberValue(const DeclName &name,
-                           const clang::DeclContext *container);
+                           const language::Core::DeclContext *container);
 
   /// Emit any import diagnostics associated with the given Clang node.
   void diagnoseTargetDirectly(ImportDiagnosticTarget target);
@@ -1846,7 +1846,7 @@ private:
 
   bool emitDiagnosticsForTarget(
       ImportDiagnosticTarget target,
-      clang::SourceLocation fallbackLoc = clang::SourceLocation());
+      language::Core::SourceLocation fallbackLoc = language::Core::SourceLocation());
 
 public:
   /// Determine the effective Clang context for the given Codira nominal type.
@@ -1869,7 +1869,7 @@ public:
   /// The active name is always first, followed by the other names in the order
   /// of ImportNameVersion::forEachOtherImportNameVersion.
   void forEachDistinctName(
-      const clang::NamedDecl *decl,
+      const language::Core::NamedDecl *decl,
       toolchain::function_ref<bool(importer::ImportedName,
                               importer::ImportNameVersion)> action) {
     getNameImporter().forEachDistinctImportName(decl, CurrentVersion, action);
@@ -1900,12 +1900,12 @@ public:
 class ImportDiagnosticAdder {
   ClangImporter::Implementation &impl;
   ImportDiagnosticTarget target;
-  const clang::SourceLocation loc;
+  const language::Core::SourceLocation loc;
 
 public:
   ImportDiagnosticAdder(
       ClangImporter::Implementation &impl, ImportDiagnosticTarget target,
-      clang::SourceLocation loc)
+      language::Core::SourceLocation loc)
       : impl(impl), target(target), loc(loc) {}
 
   void operator () (Diagnostic &&diag) {
@@ -1917,29 +1917,29 @@ namespace importer {
 
 /// Returns true if the given C/C++ record should be imported as a reference
 /// type into Codira.
-bool recordHasReferenceSemantics(const clang::RecordDecl *decl,
+bool recordHasReferenceSemantics(const language::Core::RecordDecl *decl,
                                  ClangImporter::Implementation *importerImpl);
 
 /// Returns true if the given C/C++ reference type uses "immortal"
 /// retain/release functions.
-bool hasImmortalAttrs(const clang::RecordDecl *decl);
+bool hasImmortalAttrs(const language::Core::RecordDecl *decl);
 
 /// Whether this is a forward declaration of a type. We ignore forward
 /// declarations in certain cases, and instead process the real declarations.
-bool isForwardDeclOfType(const clang::Decl *decl);
+bool isForwardDeclOfType(const language::Core::Decl *decl);
 
 /// Whether we should suppress the import of the given Clang declaration.
-bool shouldSuppressDeclImport(const clang::Decl *decl);
+bool shouldSuppressDeclImport(const language::Core::Decl *decl);
 
 /// Identifies certain UIKit constants that used to have overlay equivalents,
 /// but are now renamed using the language_name attribute.
-bool isSpecialUIKitStructZeroProperty(const clang::NamedDecl *decl);
+bool isSpecialUIKitStructZeroProperty(const language::Core::NamedDecl *decl);
 
 /// \returns true if \p a has the same underlying type as \p b after removing
 /// any pointer/reference specifiers. Note that this does not currently look through
 /// nested types other than pointers or references.
-bool hasSameUnderlyingType(const clang::Type *a,
-                           const clang::TemplateTypeParmDecl *b);
+bool hasSameUnderlyingType(const language::Core::Type *a,
+                           const language::Core::TemplateTypeParmDecl *b);
 
 /// Add command-line arguments for a normal import of Clang code.
 void getNormalInvocationArguments(std::vector<std::string> &invocationArgStrs,
@@ -1977,7 +1977,7 @@ static T *castIgnoringCompatibilityAlias(Decl *D) {
   return cast_or_null<T>(D);
 }
 
-class CodiraNameLookupExtension : public clang::ModuleFileExtension {
+class CodiraNameLookupExtension : public language::Core::ModuleFileExtension {
   std::unique_ptr<CodiraLookupTable> &pchLookupTable;
   LookupTableMap &lookupTables;
   ASTContext &languageCtx;
@@ -1993,30 +1993,30 @@ public:
                            const PlatformAvailability &avail,
                            ClangImporter::Implementation *importerImpl)
       : // Update in response to D97702 landing.
-        clang::ModuleFileExtension(), pchLookupTable(pchLookupTable),
+        language::Core::ModuleFileExtension(), pchLookupTable(pchLookupTable),
         lookupTables(tables), languageCtx(ctx),
         buffersForDiagnostics(buffersForDiagnostics), availability(avail),
         importerImpl(importerImpl) {}
 
-  clang::ModuleFileExtensionMetadata getExtensionMetadata() const override;
+  language::Core::ModuleFileExtensionMetadata getExtensionMetadata() const override;
   void hashExtension(ExtensionHashBuilder &HBuilder) const override;
 
-  std::unique_ptr<clang::ModuleFileExtensionWriter>
-  createExtensionWriter(clang::ASTWriter &writer) override;
+  std::unique_ptr<language::Core::ModuleFileExtensionWriter>
+  createExtensionWriter(language::Core::ASTWriter &writer) override;
 
-  std::unique_ptr<clang::ModuleFileExtensionReader>
-  createExtensionReader(const clang::ModuleFileExtensionMetadata &metadata,
-                        clang::ASTReader &reader,
-                        clang::serialization::ModuleFile &mod,
+  std::unique_ptr<language::Core::ModuleFileExtensionReader>
+  createExtensionReader(const language::Core::ModuleFileExtensionMetadata &metadata,
+                        language::Core::ASTReader &reader,
+                        language::Core::serialization::ModuleFile &mod,
                         const toolchain::BitstreamCursor &stream) override;
 };
 
 /// Determines whether the given language_attr attribute describes the main
 /// actor.
-bool isMainActorAttr(const clang::CodiraAttrAttr *languageAttr);
+bool isMainActorAttr(const language::Core::CodiraAttrAttr *languageAttr);
 
 /// Determines whether the given language_attr controls mutability
-bool isMutabilityAttr(const clang::CodiraAttrAttr *languageAttr);
+bool isMutabilityAttr(const language::Core::CodiraAttrAttr *languageAttr);
 
 /// Apply an attribute to a function type.
 static inline Type applyToFunctionType(
@@ -2037,9 +2037,9 @@ static inline Type applyToFunctionType(
   return type;
 }
 
-inline std::optional<const clang::EnumDecl *>
+inline std::optional<const language::Core::EnumDecl *>
 findAnonymousEnumForTypedef(const ASTContext &ctx,
-                            const clang::TypedefType *typedefType) {
+                            const language::Core::TypedefType *typedefType) {
   auto *typedefDecl = typedefType->getDecl();
   auto *lookupTable = ctx.getClangModuleLoader()->findLookupTable(typedefDecl->getOwningModule());
 
@@ -2047,12 +2047,12 @@ findAnonymousEnumForTypedef(const ASTContext &ctx,
       SerializedCodiraName(typedefDecl->getName()), EffectiveClangContext());
 
   auto found = toolchain::find_if(foundDecls, [](CodiraLookupTable::SingleEntry decl) {
-    return decl.is<clang::NamedDecl *>() &&
-        isa<clang::EnumDecl>(decl.get<clang::NamedDecl *>());
+    return decl.is<language::Core::NamedDecl *>() &&
+        isa<language::Core::EnumDecl>(decl.get<language::Core::NamedDecl *>());
   });
 
   if (found != foundDecls.end())
-    return cast<clang::EnumDecl>(found->get<clang::NamedDecl *>());
+    return cast<language::Core::EnumDecl>(found->get<language::Core::NamedDecl *>());
 
   // If a language_private attribute has been attached to the enum, its name will
   // be prefixed with two underscores
@@ -2065,14 +2065,14 @@ findAnonymousEnumForTypedef(const ASTContext &ctx,
 
   auto languagePrivateFound =
       toolchain::find_if(foundDecls, [](CodiraLookupTable::SingleEntry decl) {
-        return decl.is<clang::NamedDecl *>() &&
-               isa<clang::EnumDecl>(decl.get<clang::NamedDecl *>()) &&
-               decl.get<clang::NamedDecl *>()
-                   ->hasAttr<clang::CodiraPrivateAttr>();
+        return decl.is<language::Core::NamedDecl *>() &&
+               isa<language::Core::EnumDecl>(decl.get<language::Core::NamedDecl *>()) &&
+               decl.get<language::Core::NamedDecl *>()
+                   ->hasAttr<language::Core::CodiraPrivateAttr>();
       });
 
   if (languagePrivateFound != foundDecls.end())
-    return cast<clang::EnumDecl>(languagePrivateFound->get<clang::NamedDecl *>());
+    return cast<language::Core::EnumDecl>(languagePrivateFound->get<language::Core::NamedDecl *>());
 
   return std::nullopt;
 }
@@ -2082,7 +2082,7 @@ findAnonymousEnumForTypedef(const ASTContext &ctx,
 ///
 /// Returns an empty identifier (internally, a nullptr) when \a op does not
 /// represent an actual operator, i.e., OO_None or NUM_OVERLOADED_OPERATORS.
-Identifier getOperatorName(ASTContext &ctx, clang::OverloadedOperatorKind op);
+Identifier getOperatorName(ASTContext &ctx, language::Core::OverloadedOperatorKind op);
 
 /// Construct the imported Codira name corresponding to an operator identifier,
 /// e.g., \c "__operatorPlus" for \c "+".
@@ -2091,37 +2091,37 @@ Identifier getOperatorName(ASTContext &ctx, clang::OverloadedOperatorKind op);
 /// correspond to an overloaded C++ operator.
 Identifier getOperatorName(ASTContext &ctx, Identifier op);
 
-bool hasOwnedValueAttr(const clang::RecordDecl *decl);
-bool hasUnsafeAPIAttr(const clang::Decl *decl);
-bool hasIteratorAPIAttr(const clang::Decl *decl);
+bool hasOwnedValueAttr(const language::Core::RecordDecl *decl);
+bool hasUnsafeAPIAttr(const language::Core::Decl *decl);
+bool hasIteratorAPIAttr(const language::Core::Decl *decl);
 
-bool hasNonEscapableAttr(const clang::RecordDecl *decl);
+bool hasNonEscapableAttr(const language::Core::RecordDecl *decl);
 
-bool hasEscapableAttr(const clang::RecordDecl *decl);
+bool hasEscapableAttr(const language::Core::RecordDecl *decl);
 
-bool isViewType(const clang::CXXRecordDecl *decl);
+bool isViewType(const language::Core::CXXRecordDecl *decl);
 
-inline const clang::Type *desugarIfElaborated(const clang::Type *type) {
-  if (auto elaborated = dyn_cast<clang::ElaboratedType>(type))
+inline const language::Core::Type *desugarIfElaborated(const language::Core::Type *type) {
+  if (auto elaborated = dyn_cast<language::Core::ElaboratedType>(type))
     return elaborated->desugar().getTypePtr();
   return type;
 }
 
-inline clang::QualType desugarIfElaborated(clang::QualType type) {
-  if (auto elaborated = dyn_cast<clang::ElaboratedType>(type))
+inline language::Core::QualType desugarIfElaborated(language::Core::QualType type) {
+  if (auto elaborated = dyn_cast<language::Core::ElaboratedType>(type))
     return elaborated->desugar();
   return type;
 }
 
-inline clang::QualType desugarIfBoundsAttributed(clang::QualType type) {
-  if (auto BAT = dyn_cast<clang::BoundsAttributedType>(type))
+inline language::Core::QualType desugarIfBoundsAttributed(language::Core::QualType type) {
+  if (auto BAT = dyn_cast<language::Core::BoundsAttributedType>(type))
     return BAT->desugar();
-  if (auto VT = dyn_cast<clang::ValueTerminatedType>(type))
+  if (auto VT = dyn_cast<language::Core::ValueTerminatedType>(type))
     return VT->desugar();
-  if (auto AT = dyn_cast<clang::AttributedType>(type))
+  if (auto AT = dyn_cast<language::Core::AttributedType>(type))
     switch (AT->getAttrKind()) {
-      case clang::attr::PtrUnsafeIndexable:
-      case clang::attr::PtrSingle:
+      case language::Core::attr::PtrUnsafeIndexable:
+      case language::Core::attr::PtrSingle:
         return AT->desugar();
       default:
         break;
@@ -2136,7 +2136,7 @@ inline clang::QualType desugarIfBoundsAttributed(clang::QualType type) {
 /// underlying enum type. Returns an empty ImportedType otherwise.
 ///
 /// If \a type is an elaborated type, it should be desugared first.
-ImportedType findOptionSetEnum(clang::QualType type,
+ImportedType findOptionSetEnum(language::Core::QualType type,
                                ClangImporter::Implementation &Impl);
 } // end namespace importer
 } // end namespace language

@@ -13,8 +13,8 @@ def __lldb_init_module(debugger, internal_dict):
     debugger.HandleCommand(f'type category define -e {category} -l c++')
 
     tName = 'lldbSwiftDataFormatters.SmallBitVectorSummaryProvider'
-    debugger.HandleCommand('type summary add -w llvm '
-                           f'-F {tName} -x "^llvm::SmallBitVector$"')
+    debugger.HandleCommand('type summary add -w toolchain '
+                           f'-F {tName} -x "^toolchain::SmallBitVector$"')
     debugger.HandleCommand(f'type summary add --expand --skip-references -w {category} '
                            '-F lldbSwiftDataFormatters.DemangleNodeSummaryProvider '
                            '-x "^language::Demangle::Node$"')

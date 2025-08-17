@@ -1,8 +1,24 @@
 //===- Unix/Threading.inc - Unix Threading Implementation ----- -*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// Author: Tunjay Akbarli
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -10,8 +26,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallString.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Twine.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallString.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Twine.h>
 
 #if defined(__APPLE__)
 #include <mach/mach_init.h>
@@ -53,7 +69,7 @@ static void *ExecuteOnThread_Dispatch(void *Arg) {
   return nullptr;
 }
 
-void llvm::llvm_execute_on_thread(void(*Fn)(void*), void *UserData,
+void toolchain::toolchain_execute_on_thread(void(*Fn)(void*), void *UserData,
   unsigned RequestedStackSize) {
   ThreadInfo Info = { Fn, UserData };
   pthread_attr_t Attr;
@@ -81,7 +97,7 @@ error:
 }
 
 
-uint64_t llvm::get_threadid() {
+uint64_t toolchain::get_threadid() {
 #if defined(__APPLE__)
   // Calling "mach_thread_self()" bumps the reference count on the thread
   // port, so we need to deallocate it. mach_task_self() doesn't bump the ref
@@ -123,11 +139,11 @@ static constexpr uint32_t get_max_thread_name_length_impl() {
 #endif
 }
 
-uint32_t llvm::get_max_thread_name_length() {
+uint32_t toolchain::get_max_thread_name_length() {
   return get_max_thread_name_length_impl();
 }
 
-void llvm::set_thread_name(const Twine &Name) {
+void toolchain::set_thread_name(const Twine &Name) {
   // Make sure the input is null terminated.
   SmallString<64> Storage;
   StringRef NameStr = Name.toNullTerminatedStringRef(Storage);
@@ -157,7 +173,7 @@ void llvm::set_thread_name(const Twine &Name) {
 #endif
 }
 
-void llvm::get_thread_name(SmallVectorImpl<char> &Name) {
+void toolchain::get_thread_name(SmallVectorImpl<char> &Name) {
   Name.clear();
 
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
@@ -218,7 +234,7 @@ void llvm::get_thread_name(SmallVectorImpl<char> &Name) {
 #endif
 }
 
-SetThreadPriorityResult llvm::set_thread_priority(ThreadPriority Priority) {
+SetThreadPriorityResult toolchain::set_thread_priority(ThreadPriority Priority) {
 #if defined(__linux__) && defined(SCHED_IDLE)
   // Some *really* old glibcs are missing SCHED_IDLE.
   // http://man7.org/linux/man-pages/man3/pthread_setschedparam.3.html

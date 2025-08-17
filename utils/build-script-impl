@@ -55,7 +55,7 @@ KNOWN_SETTINGS=(
     ## Build Mode Options
     enable-asan                                   ""                "enable Address Sanitizer"
     enable-ubsan                                  ""                "enable Undefined Behavior Sanitizer"
-    clang-profile-instr-use                       ""                "If set, profile file to use for clang PGO while building llvm/clang"
+    clang-profile-instr-use                       ""                "If set, profile file to use for clang PGO while building toolchain/clang"
     language-profile-instr-use                       ""                "If set, profile file to use for clang PGO while building language"
 
     ## Build Tool Settings
@@ -68,12 +68,12 @@ KNOWN_SETTINGS=(
     build-toolchain-only                          ""                "If set, only build the necessary tools to build an external toolchain"
     bootstrapping                                 ""                "the bootstrapping build mode for the language compiler modules"
     cmake-generator                               "Unix Makefiles"  "kind of build system to generate; see output of 'cmake --help' for choices"
-    llvm-num-parallel-lto-link-jobs               ""                "The number of parallel link jobs to use when compiling llvm"
+    toolchain-num-parallel-lto-link-jobs               ""                "The number of parallel link jobs to use when compiling toolchain"
     reconfigure                                   ""                "force a CMake configuration run even if CMakeCache.txt already exists"
     skip-reconfigure                              ""                "set to skip reconfigure"
     language-tools-num-parallel-lto-link-jobs        ""                "The number of parallel link jobs to use when compiling language tools"
     use-gold-linker                               ""                "Enable using the gold linker"
-    workspace                                     "${HOME}/src"     "source directory containing llvm, clang, language"
+    workspace                                     "${HOME}/src"     "source directory containing toolchain, clang, language"
     dsymutil-jobs                                 "1"               "number of parallel invocations of dsymutil"
     extra-dsymutil-args                           ""                "additional arguments to pass to dsymutil"
 
@@ -142,9 +142,9 @@ KNOWN_SETTINGS=(
     skip-build-linux                              ""                "set to skip building Swift stdlibs for Linux"
     skip-build-wasm                               ""                "set to skip building Swift stdlibs for WebAssembly"
     skip-build-benchmarks                         ""                "set to skip building Swift Benchmark Suite"
-    skip-build-clang-tools-extra                  ""                "set to skip building clang-tools-extra as part of llvm"
+    skip-build-clang-tools-extra                  ""                "set to skip building clang-tools-extra as part of toolchain"
     skip-build-compiler-rt                        ""                "set to skip building Compiler-RT"
-    skip-build-lld                                ""                "set to skip building lld as part of llvm (linux only)"
+    skip-build-lld                                ""                "set to skip building lld as part of toolchain (linux only)"
 
     ## Skip Test ...
     skip-test-benchmarks                          ""                "set to skip running Swift Benchmark Suite"
@@ -156,7 +156,7 @@ KNOWN_SETTINGS=(
     ninja-cmake-options                           ""                "CMake options used for all ninja targets"
 
     ## Build ...
-    build-llvm                                    "1"               "set to 1 to build LLVM and Clang"
+    build-toolchain                                    "1"               "set to 1 to build LLVM and Clang"
     build-sil-debugging-stdlib                    "0"               "set to 1 to build the Swift standard library with -sil-based-debuginfo to enable debugging and profiling on SIL level"
     build-language-clang-overlays                    "1"               "set to 1 to build the Swift overlays for the clang builtin modules"
     build-language-dynamic-sdk-overlay               ""                "set to 1 to build dynamic variants of the Swift SDK overlay"
@@ -196,13 +196,13 @@ KNOWN_SETTINGS=(
     lldb-configure-tests                          "1"               "if set, will make sure we configure LLDB's test target without running the tests"
 
     ## LLVM Options
-    llvm-enable-lto                               ""                "Must be set to one of 'thin' or 'full'"
-    llvm-enable-modules                           "0"               "enable building llvm using modules"
-    llvm-install-components                       ""                "a semicolon-separated list of LLVM components to install"
-    llvm-lit-args                                 ""                "If set, override the lit args passed to LLVM"
-    enable-llvm-assertions                        "1"               "set to enable llvm assertions"
-    llvm-ninja-targets                            ""                "list of ninja targets to build for LLVM"
-    llvm-ninja-targets-for-cross-compile-hosts    ""                "list of ninja targets to build for LLVM for hosts that are cross-compiled"
+    toolchain-enable-lto                               ""                "Must be set to one of 'thin' or 'full'"
+    toolchain-enable-modules                           "0"               "enable building toolchain using modules"
+    toolchain-install-components                       ""                "a semicolon-separated list of LLVM components to install"
+    toolchain-lit-args                                 ""                "If set, override the lit args passed to LLVM"
+    enable-toolchain-assertions                        "1"               "set to enable toolchain assertions"
+    toolchain-ninja-targets                            ""                "list of ninja targets to build for LLVM"
+    toolchain-ninja-targets-for-cross-compile-hosts    ""                "list of ninja targets to build for LLVM for hosts that are cross-compiled"
 
     ## Swift Options
     language-source-dirname                          ""                "The name of the Swift source directory"
@@ -282,7 +282,7 @@ KNOWN_SETTINGS=(
     test-installable-package                      ""                "whether to run post-packaging tests on the produced package"
     skip-local-build                              ""                "set to skip building for the current host (useful when crosscompiling)"
     test-paths                                    ""                "run tests located in specific directories and/or files"
-    native-llvm-tools-path                        ""                "directory that contains LLVM tools that are executable on the build machine"
+    native-toolchain-tools-path                        ""                "directory that contains LLVM tools that are executable on the build machine"
     native-clang-tools-path                       ""                "directory that contains Clang tools that are executable on the build machine"
     native-language-tools-path                       ""                "directory that contains Swift tools that are executable on the build machine"
     embed-bitcode-section                         "0"               "embed an LLVM bitcode section in stdlib/overlay binaries for supported platforms"
@@ -308,7 +308,7 @@ components=(
   curl
   llbuild
   lldb
-  llvm
+  toolchain
   static-foundation
   static-libdispatch
   language
@@ -396,7 +396,7 @@ function to_varname() {
     toupper "$(echo $1 | tr '-' '_')"
 }
 
-function is_llvm_lto_enabled() {
+function is_toolchain_lto_enabled() {
     if [[ "${LLVM_ENABLE_LTO}" == "thin" ]] ||
        [[ "${LLVM_ENABLE_LTO}" == "full" ]]; then
         echo "TRUE"
@@ -511,7 +511,7 @@ function verify_host_is_supported() {
 }
 
 function set_build_options_for_host() {
-    llvm_cmake_options=()
+    toolchain_cmake_options=()
     language_cmake_options=()
     lldb_cmake_options=()
     llbuild_cmake_options=()
@@ -522,7 +522,7 @@ function set_build_options_for_host() {
     local host="$1"
 
     # Hosts which can be cross-compiled must specify:
-    # SWIFT_HOST_TRIPLE and llvm_target_arch.
+    # SWIFT_HOST_TRIPLE and toolchain_target_arch.
     # Hosts which have differing platform names from their
     # SWIFT_HOST_VARIANT_* values should change them here as well.
 
@@ -541,43 +541,43 @@ function set_build_options_for_host() {
             # app, which the Termux build scripts pass in through a $PREFIX
             # variable.
             if [[ "${PREFIX}" ]] ; then
-                llvm_cmake_options+=(
+                toolchain_cmake_options+=(
                     -DCLANG_DEFAULT_LINKER:STRING="lld"
                     -DDEFAULT_SYSROOT:STRING="$(dirname ${PREFIX})"
                 )
             fi
             # Android doesn't support building all of compiler-rt yet.
             if [[ ! $(is_cross_tools_host "${host}") ]] ; then
-                llvm_cmake_options+=(
+                toolchain_cmake_options+=(
                     -DCOMPILER_RT_INCLUDE_TESTS:BOOL=FALSE
                 )
             fi
             case ${host} in
                 android-aarch64)
                     SWIFT_HOST_TRIPLE="aarch64-unknown-linux-android${ANDROID_API_LEVEL}"
-                    llvm_target_arch="AArch64"
+                    toolchain_target_arch="AArch64"
                     ;;
                 android-armv7)
                     SWIFT_HOST_TRIPLE="armv7-unknown-linux-androideabi${ANDROID_API_LEVEL}"
-                    llvm_target_arch="ARM"
+                    toolchain_target_arch="ARM"
                     ;;
                 android-x86_64)
                     SWIFT_HOST_TRIPLE="x86_64-unknown-linux-android${ANDROID_API_LEVEL}"
-                    llvm_target_arch="X86"
+                    toolchain_target_arch="X86"
                     ;;
             esac
             ;;
         linux-armv5)
             SWIFT_HOST_TRIPLE="armv5-unknown-linux-gnueabi"
-            llvm_target_arch="ARM"
+            toolchain_target_arch="ARM"
             ;;
         linux-armv6)
             SWIFT_HOST_TRIPLE="armv6-unknown-linux-gnueabihf"
-            llvm_target_arch="ARM"
+            toolchain_target_arch="ARM"
             ;;
         linux-armv7)
             SWIFT_HOST_TRIPLE="armv7-unknown-linux-gnueabihf"
-            llvm_target_arch="ARM"
+            toolchain_target_arch="ARM"
             ;;
         macosx-*            | \
         iphoneos-*          | \
@@ -591,14 +591,14 @@ function set_build_options_for_host() {
             case ${host} in
                 macosx-x86_64)
                     SWIFT_HOST_TRIPLE="x86_64-apple-macosx${DARWIN_DEPLOYMENT_VERSION_OSX}"
-                    llvm_target_arch=""
+                    toolchain_target_arch=""
 
                     SWIFT_HOST_VARIANT_SDK="OSX"
                     cmake_osx_deployment_target="${DARWIN_DEPLOYMENT_VERSION_OSX}"
                     ;;
                 macosx-arm64)
                     xcrun_sdk_name="macosx"
-                    llvm_target_arch="AArch64"
+                    toolchain_target_arch="AArch64"
                     SWIFT_HOST_TRIPLE="arm64-apple-macosx${DARWIN_DEPLOYMENT_VERSION_OSX}"
                     SWIFT_HOST_VARIANT="macosx"
                     SWIFT_HOST_VARIANT_SDK="OSX"
@@ -607,7 +607,7 @@ function set_build_options_for_host() {
                     ;;
                 macosx-arm64e)
                     xcrun_sdk_name="macosx"
-                    llvm_target_arch="AArch64"
+                    toolchain_target_arch="AArch64"
                     SWIFT_HOST_TRIPLE="arm64e-apple-macosx${DARWIN_DEPLOYMENT_VERSION_OSX}"
                     SWIFT_HOST_VARIANT="macosx"
                     SWIFT_HOST_VARIANT_SDK="OSX"
@@ -616,14 +616,14 @@ function set_build_options_for_host() {
                     ;;
                 iphonesimulator-x86_64)
                     SWIFT_HOST_TRIPLE="x86_64-apple-ios${DARWIN_DEPLOYMENT_VERSION_IOS}-simulator"
-                    llvm_target_arch="X86"
+                    toolchain_target_arch="X86"
 
                     SWIFT_HOST_VARIANT_SDK="IOS_SIMULATOR"
                     cmake_osx_deployment_target=""
                     ;;
                 iphonesimulator-arm64)
                     xcrun_sdk_name="iphonesimulator"
-                    llvm_target_arch="AArch64"
+                    toolchain_target_arch="AArch64"
                     SWIFT_HOST_TRIPLE="arm64-apple-ios${DARWIN_DEPLOYMENT_VERSION_IOS}-simulator"
                     SWIFT_HOST_VARIANT="iphonesimulator"
                     SWIFT_HOST_VARIANT_SDK="IOS_SIMULATOR"
@@ -633,28 +633,28 @@ function set_build_options_for_host() {
                     ;;
                 iphoneos-arm64)
                     SWIFT_HOST_TRIPLE="arm64-apple-ios${DARWIN_DEPLOYMENT_VERSION_IOS}"
-                    llvm_target_arch="AArch64"
+                    toolchain_target_arch="AArch64"
 
                     SWIFT_HOST_VARIANT_SDK="IOS"
                     cmake_osx_deployment_target=""
                     ;;
                 iphoneos-arm64e)
                     SWIFT_HOST_TRIPLE="arm64e-apple-ios${DARWIN_DEPLOYMENT_VERSION_IOS}"
-                    llvm_target_arch="AArch64"
+                    toolchain_target_arch="AArch64"
 
                     SWIFT_HOST_VARIANT_SDK="IOS"
                     cmake_osx_deployment_target=""
                     ;;
                 appletvsimulator-x86_64)
                     SWIFT_HOST_TRIPLE="x86_64-apple-tvos${DARWIN_DEPLOYMENT_VERSION_TVOS}-simulator"
-                    llvm_target_arch="X86"
+                    toolchain_target_arch="X86"
 
                     SWIFT_HOST_VARIANT_SDK="TVOS_SIMULATOR"
                     cmake_osx_deployment_target=""
                     ;;
                 appletvsimulator-arm64)
                     xcrun_sdk_name="appletvsimulator"
-                    llvm_target_arch="AArch64"
+                    toolchain_target_arch="AArch64"
                     SWIFT_HOST_TRIPLE="arm64-apple-tvos${DARWIN_DEPLOYMENT_VERSION_IOS}-simulator"
                     SWIFT_HOST_VARIANT="appletvsimulator"
                     SWIFT_HOST_VARIANT_SDK="TVOS_SIMULATOR"
@@ -664,21 +664,21 @@ function set_build_options_for_host() {
                     ;;
                 appletvos-arm64)
                     SWIFT_HOST_TRIPLE="arm64-apple-tvos${DARWIN_DEPLOYMENT_VERSION_TVOS}"
-                    llvm_target_arch="AArch64"
+                    toolchain_target_arch="AArch64"
 
                     SWIFT_HOST_VARIANT_SDK="TVOS"
                     cmake_osx_deployment_target=""
                     ;;
                 watchsimulator-x86_64)
                     SWIFT_HOST_TRIPLE="x86_64-apple-watchos${DARWIN_DEPLOYMENT_VERSION_WATCHOS}-simulator"
-                    llvm_target_arch="X86"
+                    toolchain_target_arch="X86"
 
                     SWIFT_HOST_VARIANT_SDK="WATCHOS_SIMULATOR"
                     cmake_osx_deployment_target=""
                     ;;
                 watchsimulator-arm64)
                     xcrun_sdk_name="watchsimulator"
-                    llvm_target_arch="AArch64"
+                    toolchain_target_arch="AArch64"
                     SWIFT_HOST_TRIPLE="arm64-apple-watchos${DARWIN_DEPLOYMENT_VERSION_IOS}-simulator"
                     SWIFT_HOST_VARIANT="watchsimulator"
                     SWIFT_HOST_VARIANT_SDK="WATCHOS_SIMULATOR"
@@ -688,35 +688,35 @@ function set_build_options_for_host() {
                     ;;
                 watchos-armv7k)
                     SWIFT_HOST_TRIPLE="armv7k-apple-watchos${DARWIN_DEPLOYMENT_VERSION_WATCHOS}"
-                    llvm_target_arch="ARM"
+                    toolchain_target_arch="ARM"
 
                     SWIFT_HOST_VARIANT_SDK="WATCHOS"
                     cmake_osx_deployment_target=""
                     ;;
                 watchos-arm64_32)
                     SWIFT_HOST_TRIPLE="arm64_32-apple-watchos${DARWIN_DEPLOYMENT_VERSION_WATCHOS}"
-                    llvm_target_arch="AArch64"
+                    toolchain_target_arch="AArch64"
 
                     SWIFT_HOST_VARIANT_SDK="WATCHOS"
                     cmake_osx_deployment_target=""
                     ;;
                 xrsimulator-arm64)
                     SWIFT_HOST_TRIPLE="arm64-apple-xros${DARWIN_DEPLOYMENT_VERSION_XROS}-simulator"
-                    llvm_target_arch="AArch64"
+                    toolchain_target_arch="AArch64"
 
                     SWIFT_HOST_VARIANT_SDK="XROS_SIMULATOR"
                     cmake_osx_deployment_target=""
                     ;;
                 xros-arm64)
                     SWIFT_HOST_TRIPLE="arm64-apple-xros${DARWIN_DEPLOYMENT_VERSION_XROS}"
-                    llvm_target_arch="AArch64"
+                    toolchain_target_arch="AArch64"
 
                     SWIFT_HOST_VARIANT_SDK="XROS"
                     cmake_osx_deployment_target=""
                     ;;
                 xros-arm64e)
                     SWIFT_HOST_TRIPLE="arm64e-apple-xros${DARWIN_DEPLOYMENT_VERSION_XROS}"
-                    llvm_target_arch="AArch64"
+                    toolchain_target_arch="AArch64"
 
                     SWIFT_HOST_VARIANT_SDK="XROS"
                     cmake_osx_deployment_target=""
@@ -741,7 +741,7 @@ function set_build_options_for_host() {
 
             cmake_os_sysroot="$(xcrun --sdk ${platform} --show-sdk-path)"
 
-            llvm_cmake_options=(
+            toolchain_cmake_options=(
                 -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING="${cmake_osx_deployment_target}"
                 -DCMAKE_OSX_SYSROOT:PATH="${cmake_os_sysroot}"
                 -DCOMPILER_RT_ENABLE_IOS:BOOL=FALSE
@@ -751,14 +751,14 @@ function set_build_options_for_host() {
                 -DLLVM_ENABLE_MODULES:BOOL="$(true_false ${LLVM_ENABLE_MODULES})"
                 -DCMAKE_OSX_ARCHITECTURES="${architecture}"
             )
-            if [[ $(is_llvm_lto_enabled) == "TRUE" ]]; then
-                llvm_cmake_options+=(
+            if [[ $(is_toolchain_lto_enabled) == "TRUE" ]]; then
+                toolchain_cmake_options+=(
                     "-DLLVM_PARALLEL_LINK_JOBS=${LLVM_NUM_PARALLEL_LTO_LINK_JOBS}"
                 )
             fi
 
             if [[ $(is_language_lto_enabled) == "TRUE" ]]; then
-                llvm_cmake_options+=(
+                toolchain_cmake_options+=(
                     -DLLVM_ENABLE_MODULE_DEBUGGING:BOOL=NO
                 )
 
@@ -813,13 +813,13 @@ function set_build_options_for_host() {
     #
     # *NOTE* Currently we do not support testing LLVM via build-script. But in a
     # future commit we will.
-    #for arg in "$(compute_cmake_llvm_tool_disable_flags)"; do
-    #    llvm_cmake_options+=( ${arg} )
+    #for arg in "$(compute_cmake_toolchain_tool_disable_flags)"; do
+    #    toolchain_cmake_options+=( ${arg} )
     #done
 
-    if [[ "${llvm_target_arch}" ]] ; then
-        llvm_cmake_options+=(
-            -DLLVM_TARGET_ARCH="${llvm_target_arch}"
+    if [[ "${toolchain_target_arch}" ]] ; then
+        toolchain_cmake_options+=(
+            -DLLVM_TARGET_ARCH="${toolchain_target_arch}"
         )
     fi
 
@@ -833,7 +833,7 @@ function set_build_options_for_host() {
             -DCMAKE_Swift_COMPILER_TARGET:STRING="${SWIFT_HOST_TRIPLE}"
         )
 
-        llvm_cmake_options+=(
+        toolchain_cmake_options+=(
             -DLLVM_HOST_TRIPLE:STRING="${SWIFT_HOST_TRIPLE}"
         )
         language_cmake_options+=(
@@ -849,7 +849,7 @@ function set_build_options_for_host() {
         -DSWIFT_HOST_VARIANT_ARCH="${SWIFT_HOST_VARIANT_ARCH}"
     )
 
-    llvm_cmake_options+=(
+    toolchain_cmake_options+=(
         -DLLVM_LIT_ARGS="${LLVM_LIT_ARGS} -j ${LIT_JOBS}"
     )
     language_cmake_options+=(
@@ -860,7 +860,7 @@ function set_build_options_for_host() {
     )
 
     if [[ "${CLANG_PROFILE_INSTR_USE}" ]]; then
-        llvm_cmake_options+=(
+        toolchain_cmake_options+=(
             -DLLVM_PROFDATA_FILE="${CLANG_PROFILE_INSTR_USE}"
         )
     fi
@@ -1068,11 +1068,11 @@ function xcrun_find_tool() {
   fi
 }
 
-function find_just_built_local_host_llvm_tool() {
+function find_just_built_local_host_toolchain_tool() {
   if [[ "${DRY_RUN}" ]]; then
     echo echo "$1"
   else
-    find $(build_directory "${LOCAL_HOST}" llvm) -name "$1" -type f -print
+    find $(build_directory "${LOCAL_HOST}" toolchain) -name "$1" -type f -print
   fi
 }
 
@@ -1223,9 +1223,9 @@ function host_has_darwin_symbols() {
 #
 NINJA_SOURCE_DIR="${WORKSPACE}/ninja"
 SWIFT_SOURCE_DIR="${WORKSPACE}/${SWIFT_SOURCE_DIRNAME}"
-LLVM_SOURCE_DIR="${WORKSPACE}/llvm-project/llvm"
+LLVM_SOURCE_DIR="${WORKSPACE}/toolchain-project/toolchain"
 CMARK_SOURCE_DIR="${WORKSPACE}/cmark"
-LLDB_SOURCE_DIR="${WORKSPACE}/llvm-project/lldb"
+LLDB_SOURCE_DIR="${WORKSPACE}/toolchain-project/lldb"
 LLBUILD_SOURCE_DIR="${WORKSPACE}/llbuild"
 STRESSTEST_PACKAGE_DIR="${WORKSPACE}/language-stress-tester"
 XCTEST_SOURCE_DIR="${WORKSPACE}/language-corelibs-xctest"
@@ -1236,7 +1236,7 @@ FOUNDATION_SWIFTFOUNDATION_SOURCE_DIR="${WORKSPACE}/language-foundation"
 FOUNDATION_SWIFTFOUNDATIONICU_SOURCE_DIR="${WORKSPACE}/language-foundation-icu"
 LIBDISPATCH_SOURCE_DIR="${WORKSPACE}/language-corelibs-libdispatch"
 LIBDISPATCH_STATIC_SOURCE_DIR="${WORKSPACE}/language-corelibs-libdispatch"
-LIBCXX_SOURCE_DIR="${WORKSPACE}/llvm-project/runtimes"
+LIBCXX_SOURCE_DIR="${WORKSPACE}/toolchain-project/runtimes"
 SWIFT_COLLECTIONS_SOURCE_DIR="${WORKSPACE}/language-collections"
 SWIFT_PATH_TO_STRING_PROCESSING_SOURCE="${WORKSPACE}/language-experimental-string-processing"
 SWIFTSYNTAX_SOURCE_DIR="${WORKSPACE}/language-syntax"
@@ -1358,10 +1358,10 @@ function common_cross_c_flags() {
     fi
 }
 
-function llvm_c_flags() {
+function toolchain_c_flags() {
     echo -n " $(common_cross_c_flags $1 ${LLVM_BUILD_TYPE})"
     if [[ $(is_cmake_debuginfo_build_type "${LLVM_BUILD_TYPE}") ]] ; then
-        if [[ $(is_llvm_lto_enabled) == "TRUE" ]] ; then
+        if [[ $(is_toolchain_lto_enabled) == "TRUE" ]] ; then
             echo -n " -gline-tables-only"
         else
             echo -n " -g"
@@ -1449,8 +1449,8 @@ for host in "${ALL_HOSTS[@]}"; do
             # Optionally use the freshly-built host copy of clang to build
             # for foreign hosts.
             common_cmake_options_host+=(
-                -DCMAKE_C_COMPILER="$(build_directory ${LOCAL_HOST} llvm)/bin/clang"
-                -DCMAKE_CXX_COMPILER="$(build_directory ${LOCAL_HOST} llvm)/bin/clang++"
+                -DCMAKE_C_COMPILER="$(build_directory ${LOCAL_HOST} toolchain)/bin/clang"
+                -DCMAKE_CXX_COMPILER="$(build_directory ${LOCAL_HOST} toolchain)/bin/clang++"
             )
         fi
 
@@ -1463,15 +1463,15 @@ for host in "${ALL_HOSTS[@]}"; do
         fi
 
         if [[ "${host}" == "openbsd-"* && -n "${OPENBSD_USE_TOOLCHAIN_FILE}" ]]; then
-            llvm_cmake_options=(
-                "${llvm_cmake_options[@]}"
+            toolchain_cmake_options=(
+                "${toolchain_cmake_options[@]}"
                 -DCMAKE_TOOLCHAIN_FILE="${OPENBSD_USE_TOOLCHAIN_FILE}"
             )
         fi
     fi
 
-    llvm_cmake_options=(
-        "${llvm_cmake_options[@]}"
+    toolchain_cmake_options=(
+        "${toolchain_cmake_options[@]}"
         -DCMAKE_INSTALL_PREFIX:PATH="$(get_host_install_prefix ${host})"
         -DINTERNAL_INSTALL_PREFIX="local"
     )
@@ -1480,8 +1480,8 @@ for host in "${ALL_HOSTS[@]}"; do
         if [[ $(is_cmake_debuginfo_build_type "${LLVM_BUILD_TYPE}") ]] ; then
             # On Linux build LLVM and subprojects with -gsplit-dwarf which is more
             # space/time efficient than -g on that platform.
-            llvm_cmake_options=(
-                "${llvm_cmake_options[@]}"
+            toolchain_cmake_options=(
+                "${toolchain_cmake_options[@]}"
                 -DLLVM_USE_SPLIT_DWARF:BOOL=YES
             )
         fi
@@ -1578,7 +1578,7 @@ for host in "${ALL_HOSTS[@]}"; do
             exit 1
         fi
     else
-        CLANG_BIN="$(build_directory_bin ${LOCAL_HOST} llvm)"
+        CLANG_BIN="$(build_directory_bin ${LOCAL_HOST} toolchain)"
     fi
 
     if [[ -f "${CLANG_BIN}/clang" ]] && [[ -z ${ENABLE_ASAN+x} ]]; then
@@ -1606,7 +1606,7 @@ for host in "${ALL_HOSTS[@]}"; do
 
         cmake_options=("${common_cmake_options_host[@]}")
 
-        llvm_build_dir=$(build_directory ${host} llvm)
+        toolchain_build_dir=$(build_directory ${host} toolchain)
         module_cache="${build_dir}/module-cache"
 
         # Add any specific cmake options specified by build-script
@@ -1620,7 +1620,7 @@ for host in "${ALL_HOSTS[@]}"; do
                 cmake_options=(
                     -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" -DLIBCXX_INSTALL_LIBRARY=OFF
                     "${cmake_options[@]}"
-                    "${llvm_cmake_options[@]}"
+                    "${toolchain_cmake_options[@]}"
                 )
                 ;;
 
@@ -1677,7 +1677,7 @@ for host in "${ALL_HOSTS[@]}"; do
                     )
                 fi
 
-                native_llvm_tools_path=""
+                native_toolchain_tools_path=""
                 native_clang_tools_path=""
                 native_language_tools_path=""
                 if [[ $(is_cross_tools_host ${host}) ]] ; then
@@ -1686,8 +1686,8 @@ for host in "${ALL_HOSTS[@]}"; do
                     build_perf_testsuite_this_time=false
                     build_tests_this_time=false
 
-                    native_llvm_tools_path="$(build_directory "${LOCAL_HOST}" llvm)/bin"
-                    native_clang_tools_path="$(build_directory "${LOCAL_HOST}" llvm)/bin"
+                    native_toolchain_tools_path="$(build_directory "${LOCAL_HOST}" toolchain)/bin"
+                    native_clang_tools_path="$(build_directory "${LOCAL_HOST}" toolchain)/bin"
                     native_language_tools_path="$(build_directory "${LOCAL_HOST}" language)/bin"
                 else
                     # FIXME: Why is the next line not using false_true?
@@ -1698,7 +1698,7 @@ for host in "${ALL_HOSTS[@]}"; do
                 if [[ $(is_cross_tools_host ${host}) ]] ; then
                     cmake_options=(
                         "${cmake_options[@]}"
-                        -DLLVM_TABLEGEN=$(build_directory "${LOCAL_HOST}" llvm)/bin/llvm-tblgen
+                        -DLLVM_TABLEGEN=$(build_directory "${LOCAL_HOST}" toolchain)/bin/toolchain-tblgen
                         -DSWIFT_INCLUDE_TEST_BINARIES:BOOL=FALSE
                         -DSWIFT_INCLUDE_TOOLS:BOOL=$(true_false "${CROSS_COMPILE_BUILD_SWIFT_TOOLS}")
                     )
@@ -1712,7 +1712,7 @@ for host in "${ALL_HOSTS[@]}"; do
                 # Command-line parameters override any autodetection that we
                 # might have done.
                 if [[ "${NATIVE_LLVM_TOOLS_PATH}" ]] ; then
-                    native_llvm_tools_path="${NATIVE_LLVM_TOOLS_PATH}"
+                    native_toolchain_tools_path="${NATIVE_LLVM_TOOLS_PATH}"
                 fi
                 if [[ "${NATIVE_CLANG_TOOLS_PATH}" ]] ; then
                     native_clang_tools_path="${NATIVE_CLANG_TOOLS_PATH}"
@@ -1776,7 +1776,7 @@ for host in "${ALL_HOSTS[@]}"; do
                     -DSWIFT_STDLIB_EXPERIMENTAL_HERMETIC_SEAL_AT_LINK:BOOL=$(true_false "${SWIFT_STDLIB_EXPERIMENTAL_HERMETIC_SEAL_AT_LINK}")
                     -DSWIFT_STDLIB_DISABLE_INSTANTIATION_CACHES:BOOL=$(true_false "${SWIFT_STDLIB_DISABLE_INSTANTIATION_CACHES}")
                     -DSWIFT_STDLIB_REFLECTION_METADATA:STRING="${SWIFT_STDLIB_REFLECTION_METADATA}"
-                    -DSWIFT_NATIVE_LLVM_TOOLS_PATH:STRING="${native_llvm_tools_path}"
+                    -DSWIFT_NATIVE_LLVM_TOOLS_PATH:STRING="${native_toolchain_tools_path}"
                     -DSWIFT_NATIVE_CLANG_TOOLS_PATH:STRING="${native_clang_tools_path}"
                     -DSWIFT_NATIVE_SWIFT_TOOLS_PATH:STRING="${native_language_tools_path}"
                     -DSWIFT_BUILD_CLANG_OVERLAYS:BOOL=$(true_false "${BUILD_SWIFT_CLANG_OVERLAYS}")
@@ -1829,8 +1829,8 @@ for host in "${ALL_HOSTS[@]}"; do
                 cmake_options=(
                     "${cmake_options[@]}"
                     -DCMAKE_INSTALL_PREFIX:PATH="$(get_host_install_prefix ${host})"
-                    -DClang_DIR:PATH=${llvm_build_dir}/lib/cmake/clang
-                    -DLLVM_DIR:PATH=${llvm_build_dir}/lib/cmake/llvm
+                    -DClang_DIR:PATH=${toolchain_build_dir}/lib/cmake/clang
+                    -DLLVM_DIR:PATH=${toolchain_build_dir}/lib/cmake/toolchain
                     -DSWIFT_PATH_TO_CMARK_SOURCE:PATH="${CMARK_SOURCE_DIR}"
                     -DSWIFT_PATH_TO_CMARK_BUILD:PATH="$(build_directory ${host} cmark)"
                     -DSWIFT_PATH_TO_LIBDISPATCH_SOURCE:PATH="${LIBDISPATCH_SOURCE_DIR}"
@@ -2151,15 +2151,15 @@ for host in "${ALL_HOSTS[@]}"; do
                 cmake_options=(
                     "${cmake_options[@]}"
                     -C${LLDB_SOURCE_DIR}/cmake/caches/${cmake_cache}
-                    -DCMAKE_C_FLAGS="$(llvm_c_flags ${host})"
-                    -DCMAKE_CXX_FLAGS="$(llvm_c_flags ${host})"
+                    -DCMAKE_C_FLAGS="$(toolchain_c_flags ${host})"
+                    -DCMAKE_CXX_FLAGS="$(toolchain_c_flags ${host})"
                     -DCMAKE_BUILD_TYPE:STRING="${LLDB_BUILD_TYPE}"
                     -DLLDB_SWIFTC:PATH=${SWIFTC_BIN}
                     -DLLDB_SWIFT_LIBS:PATH="$(build_directory ${LOCAL_HOST} language)/lib/language"
                     -DCMAKE_INSTALL_PREFIX:PATH="$(get_host_install_prefix ${host})"
                     -DLLDB_FRAMEWORK_INSTALL_DIR="$(get_host_install_prefix ${host})../System/Library/PrivateFrameworks"
-                    -DLLVM_DIR:PATH=${llvm_build_dir}/lib/cmake/llvm
-                    -DClang_DIR:PATH=${llvm_build_dir}/lib/cmake/clang
+                    -DLLVM_DIR:PATH=${toolchain_build_dir}/lib/cmake/toolchain
+                    -DClang_DIR:PATH=${toolchain_build_dir}/lib/cmake/clang
                     -DSwift_DIR:PATH=${language_build_dir}/lib/cmake/language
                     -DLLDB_ENABLE_CURSES=ON
                     -DLLDB_ENABLE_LIBEDIT=ON
@@ -2174,11 +2174,11 @@ for host in "${ALL_HOSTS[@]}"; do
                 if [[ $(is_cross_tools_host ${host}) ]] ; then
                     cmake_options=(
                         "${cmake_options[@]}"
-                        -DLLVM_TABLEGEN=$(build_directory "${LOCAL_HOST}" llvm)/bin/llvm-tblgen
-                        -DCLANG_TABLEGEN=$(build_directory "${LOCAL_HOST}" llvm)/bin/clang-tblgen
+                        -DLLVM_TABLEGEN=$(build_directory "${LOCAL_HOST}" toolchain)/bin/toolchain-tblgen
+                        -DCLANG_TABLEGEN=$(build_directory "${LOCAL_HOST}" toolchain)/bin/clang-tblgen
                         -DLLDB_TABLEGEN=$(build_directory "${LOCAL_HOST}" lldb)/bin/lldb-tblgen
                         -DLLDB_TABLEGEN_EXE=$(build_directory "${LOCAL_HOST}" lldb)/bin/lldb-tblgen
-                        -DLLVM_NATIVE_BUILD=$(build_directory "${LOCAL_HOST}" llvm)
+                        -DLLVM_NATIVE_BUILD=$(build_directory "${LOCAL_HOST}" toolchain)
                     )
                 fi
 
@@ -2213,7 +2213,7 @@ for host in "${ALL_HOSTS[@]}"; do
                     -DLLBUILD_SUPPORT_BINDINGS:=Swift
 
                     -DLIT_EXECUTABLE:PATH="${LLVM_SOURCE_DIR}/utils/lit/lit.py"
-                    -DFILECHECK_EXECUTABLE:PATH="$(build_directory_bin ${LOCAL_HOST} llvm)/FileCheck"
+                    -DFILECHECK_EXECUTABLE:PATH="$(build_directory_bin ${LOCAL_HOST} toolchain)/FileCheck"
                     -DSWIFTC_EXECUTABLE:PATH=${SWIFTC_BIN}
                     -DFOUNDATION_BUILD_DIR:PATH="$(build_directory ${host} foundation)"
                     -DLIBDISPATCH_BUILD_DIR:PATH="$(build_directory ${host} libdispatch)"
@@ -2313,13 +2313,13 @@ for host in "${ALL_HOSTS[@]}"; do
 
                     -Ddispatch_DIR=$(build_directory ${host} libdispatch)/cmake/modules
                     -DFoundation_DIR=$(build_directory ${host} foundation)/cmake/modules
-                    -DLLVM_DIR=$(build_directory ${host} llvm)/lib/cmake/llvm
+                    -DLLVM_DIR=$(build_directory ${host} toolchain)/lib/cmake/toolchain
 
                     -DXCTEST_PATH_TO_LIBDISPATCH_SOURCE:PATH=${LIBDISPATCH_SOURCE_DIR}
                     -DXCTEST_PATH_TO_LIBDISPATCH_BUILD:PATH=$(build_directory ${host} libdispatch)
                     -DXCTEST_PATH_TO_FOUNDATION_BUILD:PATH=${FOUNDATION_BUILD_DIR}
                     -DCMAKE_SWIFT_COMPILER:PATH=${SWIFTC_BIN}
-                    -DCMAKE_PREFIX_PATH:PATH=$(build_directory ${host} llvm)
+                    -DCMAKE_PREFIX_PATH:PATH=$(build_directory ${host} toolchain)
 
                     -DENABLE_TESTING=YES
                   )
@@ -2598,7 +2598,7 @@ for host in "${ALL_HOSTS[@]}"; do
     if [[ "${NATIVE_CLANG_TOOLS_PATH}" ]] ; then
         CLANG_BIN="${NATIVE_CLANG_TOOLS_PATH}"
     else
-        CLANG_BIN="$(build_directory_bin ${LOCAL_HOST} llvm)"
+        CLANG_BIN="$(build_directory_bin ${LOCAL_HOST} toolchain)"
     fi
 
     if [[ -f "${CLANG_BIN}/clang" ]] && [[ -z ${ENABLE_ASAN+x} ]]; then
@@ -2656,7 +2656,7 @@ for host in "${ALL_HOSTS[@]}"; do
                     echo "--- Can't execute tests for ${host}, skipping... ---"
                     continue
                 fi
-                llvm_build_dir=$(build_directory ${host} llvm)
+                toolchain_build_dir=$(build_directory ${host} toolchain)
                 lldb_build_dir=$(build_directory ${host} lldb)
                 results_dir="${lldb_build_dir}/test-results"
 
@@ -2682,13 +2682,13 @@ for host in "${ALL_HOSTS[@]}"; do
                 with_pushd ${lldb_build_dir} \
                     call ${NINJA_BIN} -j ${BUILD_JOBS} lldb-test-deps
                 with_pushd ${results_dir} \
-                    call "${llvm_build_dir}/bin/llvm-lit" \
+                    call "${toolchain_build_dir}/bin/toolchain-lit" \
                          "${lldb_build_dir}/test" \
                          ${LLVM_LIT_ARGS} ${LLVM_LIT_FILTER_ARG} \
                          --param dotest-args="--setting symbols.use-language-clangimporter=true"
                 echo "--- Rerun LLDB Swift API tests (Swift Config: DWARFImporter) ---"
                 with_pushd ${results_dir} \
-                    call "${llvm_build_dir}/bin/llvm-lit" \
+                    call "${toolchain_build_dir}/bin/toolchain-lit" \
                          "${lldb_build_dir}/test" \
                          ${LLVM_LIT_ARGS} ${FILTER_SWIFT_API_OPTION} \
                          --param dotest-args="--setting symbols.use-language-clangimporter=false"
@@ -2698,7 +2698,7 @@ for host in "${ALL_HOSTS[@]}"; do
                          "${LLDB_TEST_SWIFT_COMPATIBILITY}"
                     DOTEST_ARGS="-G language-history --language-compiler \"${LLDB_TEST_SWIFT_COMPATIBILITY}\""
                     with_pushd ${results_dir} \
-                       call "${llvm_build_dir}/bin/llvm-lit" \
+                       call "${toolchain_build_dir}/bin/toolchain-lit" \
                             "${lldb_build_dir}/test" \
                             ${LLVM_LIT_ARGS} \
                             --param dotest-args="${DOTEST_ARGS}" \
@@ -2858,7 +2858,7 @@ for host in "${ALL_HOSTS[@]}"; do
             exit 1
         fi
     else
-        CLANG_BIN="$(build_directory_bin ${LOCAL_HOST} llvm)"
+        CLANG_BIN="$(build_directory_bin ${LOCAL_HOST} toolchain)"
     fi
 
     if [[ -f "${CLANG_BIN}/clang" ]] && [[ -z ${ENABLE_ASAN+x} ]]; then
@@ -3060,7 +3060,7 @@ for host in "${ALL_HOSTS[@]}"; do
 
             dsymutil_path=
             if [[ -n "${DARWIN_INSTALL_EXTRACT_SYMBOLS_USE_JUST_BUILT_DSYMUTIL}" ]]; then
-                dsymutil_path=$(find_just_built_local_host_llvm_tool dsymutil)
+                dsymutil_path=$(find_just_built_local_host_toolchain_tool dsymutil)
             else
                 dsymutil_path=$(xcrun_find_tool dsymutil)
             fi
@@ -3206,7 +3206,7 @@ function build_and_test_installable_package() {
             fi
 
             LIT_EXECUTABLE_PATH="${LLVM_SOURCE_DIR}/utils/lit/lit.py"
-            LLVM_BIN_DIR="$(build_directory_bin ${LOCAL_HOST} llvm)"
+            LLVM_BIN_DIR="$(build_directory_bin ${LOCAL_HOST} toolchain)"
             echo "-- Test Installable Package --"
             call rm -rf "${PKG_TESTS_SANDBOX_PARENT}"
             call mkdir -p "${PKG_TESTS_SANDBOX}"
@@ -3217,7 +3217,7 @@ function build_and_test_installable_package() {
               TIMEOUT_ARGS=--timeout=600 # 10 minutes
             fi
             with_pushd "${PKG_TESTS_SOURCE_DIR}" \
-                call python3 "${LIT_EXECUTABLE_PATH}" . ${LLVM_LIT_ARGS} --param package-path="${PKG_TESTS_SANDBOX}" --param test-exec-root="${PKG_TESTS_TEMPS}" --param llvm-bin-dir="${LLVM_BIN_DIR}" ${TIMEOUT_ARGS}
+                call python3 "${LIT_EXECUTABLE_PATH}" . ${LLVM_LIT_ARGS} --param package-path="${PKG_TESTS_SANDBOX}" --param test-exec-root="${PKG_TESTS_TEMPS}" --param toolchain-bin-dir="${LLVM_BIN_DIR}" ${TIMEOUT_ARGS}
         fi
     fi
 }

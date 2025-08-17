@@ -31,7 +31,7 @@ logging.getLogger().addHandler(console)
 
 
 def parse_coverage_log(filepath):
-    """Return parsed coverage intervals from `llvm-profdata show` output at
+    """Return parsed coverage intervals from `toolchain-profdata show` output at
     `filepath`"""
     logging.info('Parsing: %s', filepath)
     test = os.path.basename(os.path.dirname(filepath)).rsplit('.', 1)[0]

@@ -3560,7 +3560,7 @@ bool SILParser::parseSpecificSILInstruction(SILBuilder &B,
       while ((nameStart = component.find_if([](char c) { return c == '%'; },
                                             offset)) != StringRef::npos) {
         auto nameEnd = component.find_if_not(
-            [](char c) { return clang::isAsciiIdentifierContinue(c); },
+            [](char c) { return language::Core::isAsciiIdentifierContinue(c); },
             nameStart + 1);
         if (nameEnd == StringRef::npos)
           nameEnd = component.size();

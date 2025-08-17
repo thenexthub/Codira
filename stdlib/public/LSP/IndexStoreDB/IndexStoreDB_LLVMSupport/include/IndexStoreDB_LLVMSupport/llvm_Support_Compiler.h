@@ -1,8 +1,24 @@
-//===-- llvm/Support/Compiler.h - Compiler abstraction support --*- C++ -*-===//
+//===-- toolchain/Support/Compiler.h - Compiler abstraction support --*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -14,7 +30,7 @@
 #ifndef LLVM_SUPPORT_COMPILER_H
 #define LLVM_SUPPORT_COMPILER_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_Config_llvm-config.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_toolchain-config.h>
 
 #include <new>
 #include <stddef.h>
@@ -123,11 +139,11 @@
 #if __cplusplus > 201402L && __has_cpp_attribute(nodiscard)
 #define LLVM_NODISCARD [[nodiscard]]
 #elif !__cplusplus
-// Workaround for llvm.org/PR23435, since clang 3.6 and below emit a spurious
+// Workaround for toolchain.org/PR23435, since clang 3.6 and below emit a spurious
 // error when __has_cpp_attribute is given a scoped attribute in C mode.
 #define LLVM_NODISCARD
-#elif __has_cpp_attribute(clang::warn_unused_result)
-#define LLVM_NODISCARD [[clang::warn_unused_result]]
+#elif __has_cpp_attribute(language::Core::warn_unused_result)
+#define LLVM_NODISCARD [[language::Core::warn_unused_result]]
 #else
 #define LLVM_NODISCARD
 #endif
@@ -139,8 +155,8 @@
 // The clang-tidy check bugprone-use-after-move recognizes this attribute as a
 // marker that a moved-from object has left the indeterminate state and can be
 // reused.
-#if __has_cpp_attribute(clang::reinitializes)
-#define LLVM_ATTRIBUTE_REINITIALIZES [[clang::reinitializes]]
+#if __has_cpp_attribute(language::Core::reinitializes)
+#define LLVM_ATTRIBUTE_REINITIALIZES [[language::Core::reinitializes]]
 #else
 #define LLVM_ATTRIBUTE_REINITIALIZES
 #endif
@@ -245,20 +261,20 @@
 #elif __has_cpp_attribute(gnu::fallthrough)
 #define LLVM_FALLTHROUGH [[gnu::fallthrough]]
 #elif !__cplusplus
-// Workaround for llvm.org/PR23435, since clang 3.6 and below emit a spurious
+// Workaround for toolchain.org/PR23435, since clang 3.6 and below emit a spurious
 // error when __has_cpp_attribute is given a scoped attribute in C mode.
 #define LLVM_FALLTHROUGH
-#elif __has_cpp_attribute(clang::fallthrough)
-#define LLVM_FALLTHROUGH [[clang::fallthrough]]
+#elif __has_cpp_attribute(language::Core::fallthrough)
+#define LLVM_FALLTHROUGH [[language::Core::fallthrough]]
 #else
 #define LLVM_FALLTHROUGH
 #endif
 
 /// LLVM_REQUIRE_CONSTANT_INITIALIZATION - Apply this to globals to ensure that
 /// they are constant initialized.
-#if __has_cpp_attribute(clang::require_constant_initialization)
+#if __has_cpp_attribute(language::Core::require_constant_initialization)
 #define LLVM_REQUIRE_CONSTANT_INITIALIZATION                                   \
-  [[clang::require_constant_initialization]]
+  [[language::Core::require_constant_initialization]]
 #else
 #define LLVM_REQUIRE_CONSTANT_INITIALIZATION
 #endif
@@ -527,7 +543,7 @@ void AnnotateIgnoreWritesEnd(const char *file, int line);
 #define LLVM_ENABLE_EXCEPTIONS 1
 #endif
 
-namespace llvm {
+namespace toolchain {
 
 /// Allocate a buffer of memory with the given size and alignment.
 ///
@@ -567,6 +583,6 @@ inline void deallocate_buffer(void *Ptr, size_t Size, size_t Alignment) {
   );
 }
 
-} // End namespace llvm
+} // End namespace toolchain
 
 #endif

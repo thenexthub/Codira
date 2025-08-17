@@ -1222,14 +1222,14 @@ public:
   }
 };
 
-/// clang::StmtIteratorBase
+/// language::Core::StmtIteratorBase
 class ProtectedIteratorBase {
 protected:
   int value;
   ProtectedIteratorBase() : value(0) {}
 };
 
-/// clang::StmtIteratorImpl
+/// language::Core::StmtIteratorImpl
 template <typename DERIVED>
 class ProtectedIteratorImpl : public ProtectedIteratorBase {
 protected:

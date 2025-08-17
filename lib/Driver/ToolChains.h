@@ -19,7 +19,7 @@
 
 #include "language/Basic/Toolchain.h"
 #include "language/Driver/ToolChain.h"
-#include "clang/Basic/DarwinSDKInfo.h"
+#include "language/Core/Basic/DarwinSDKInfo.h"
 #include "toolchain/Option/ArgList.h"
 #include "toolchain/Support/Compiler.h"
 
@@ -89,7 +89,7 @@ protected:
   /// Information about the SDK that the application is being built against.
   /// This information is only used by the linker, so it is only populated
   /// when there will be a linker job.
-  mutable std::optional<clang::DarwinSDKInfo> SDKInfo;
+  mutable std::optional<language::Core::DarwinSDKInfo> SDKInfo;
 
   const std::optional<toolchain::Triple> TargetVariant;
 

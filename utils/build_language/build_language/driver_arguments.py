@@ -73,8 +73,8 @@ def _apply_default_arguments(args):
     if args.build_variant is None:
         args.build_variant = 'Debug'
 
-    if args.llvm_build_variant is None:
-        args.llvm_build_variant = args.build_variant
+    if args.toolchain_build_variant is None:
+        args.toolchain_build_variant = args.build_variant
 
     if args.language_build_variant is None:
         args.language_build_variant = args.build_variant
@@ -117,8 +117,8 @@ def _apply_default_arguments(args):
     if args.cmark_assertions is None:
         args.cmark_assertions = args.assertions
 
-    if args.llvm_assertions is None:
-        args.llvm_assertions = args.assertions
+    if args.toolchain_assertions is None:
+        args.toolchain_assertions = args.assertions
 
     if args.language_assertions is None:
         args.language_assertions = args.assertions
@@ -465,7 +465,7 @@ def create_argument_parser():
     option('--native-clang-tools-path', store_path,
            help='the path to a directory that contains prebuilt Clang tools '
                 'that are executable on the host platform')
-    option('--native-llvm-tools-path', store_path,
+    option('--native-toolchain-tools-path', store_path,
            help='the path to a directory that contains prebuilt LLVM tools '
                 'that are executable on the host platform')
     option('--cmake-c-launcher', store_path(executable=True),
@@ -591,7 +591,7 @@ def create_argument_parser():
            const='full',
            default=None,
            metavar='LTO_TYPE',
-           help='use lto optimization on llvm/language tools. This does not '
+           help='use lto optimization on toolchain/language tools. This does not '
                 'imply using lto on the language standard library or runtime. '
                 'Options: thin, full. If no optional arg is provided, full is '
                 'chosen by default')
@@ -602,11 +602,11 @@ def create_argument_parser():
     option('--language-profile-instr-use', store_path,
            help='profile file to use for clang PGO while building language')
 
-    option('--llvm-max-parallel-lto-link-jobs', store_int,
+    option('--toolchain-max-parallel-lto-link-jobs', store_int,
            default=defaults.LLVM_MAX_PARALLEL_LTO_LINK_JOBS,
            metavar='COUNT',
            help='the maximum number of parallel link jobs to use when '
-                'compiling llvm')
+                'compiling toolchain')
 
     option('--language-tools-max-parallel-lto-link-jobs', store_int,
            default=defaults.SWIFT_MAX_PARALLEL_LTO_LINK_JOBS,
@@ -662,9 +662,9 @@ def create_argument_parser():
     option('--coverage-db', store_path,
            help='coverage database to use when prioritizing testing')
 
-    option('--llvm-install-components', store,
-           default=defaults.llvm_install_components(),
-           help='A semi-colon split list of llvm components to install')
+    option('--toolchain-install-components', store,
+           default=defaults.toolchain_install_components(),
+           help='A semi-colon split list of toolchain components to install')
 
     option('--bootstrapping', store('bootstrapping_mode'),
            choices=['hosttools', 'bootstrapping', 'bootstrapping-with-hostlibs'],
@@ -754,8 +754,8 @@ def create_argument_parser():
     option(['-b', '--llbuild'], toggle_true('build_llbuild'),
            help='build llbuild')
 
-    option('--install-llvm', toggle_true,
-           help='install llvm')
+    option('--install-toolchain', toggle_true,
+           help='install toolchain')
 
     option(['--install-back-deploy-concurrency'],
            toggle_true('install_backdeployconcurrency'),
@@ -900,19 +900,19 @@ def create_argument_parser():
            help='build the Ninja tool [deprecated: Ninja is built when necessary]')
 
     option(['--build-lld'], toggle_true('build_lld'), default=True,
-           help='build lld as part of llvm')
+           help='build lld as part of toolchain')
     option(['--skip-build-lld'], toggle_false('build_lld'),
-           help='skip building lld as part of llvm')
+           help='skip building lld as part of toolchain')
 
     option('--skip-build-clang-tools-extra',
            toggle_false('build_clang_tools_extra'),
            default=True,
-           help='skip building clang-tools-extra as part of llvm')
+           help='skip building clang-tools-extra as part of toolchain')
 
     option('--skip-build-compiler-rt',
            toggle_false('build_compiler_rt'),
            default=True,
-           help='skip building compiler-rt as part of llvm')
+           help='skip building compiler-rt as part of toolchain')
 
     # -------------------------------------------------------------------------
     in_group('Extra actions to perform before or in addition to building')
@@ -967,7 +967,7 @@ def create_argument_parser():
     # -------------------------------------------------------------------------
     in_group('Override build variant for a specific project')
 
-    option('--debug-llvm', store('llvm_build_variant'),
+    option('--debug-toolchain', store('toolchain_build_variant'),
            const='Debug',
            help='build the Debug variant of LLVM')
 
@@ -1045,10 +1045,10 @@ def create_argument_parser():
            const=True,
            help='enable assertions in CommonMark')
 
-    option('--llvm-assertions', store,
+    option('--toolchain-assertions', store,
            const=True,
            help='enable assertions in LLVM')
-    option('--no-llvm-assertions', store('llvm_assertions'),
+    option('--no-toolchain-assertions', store('toolchain_assertions'),
            const=False,
            help='disable assertions in LLVM')
 
@@ -1432,43 +1432,43 @@ def create_argument_parser():
     # -------------------------------------------------------------------------
     in_group('Build settings specific for LLVM')
 
-    option('--llvm-enable-modules', toggle_true('llvm_enable_modules'),
-           help='enable building llvm using modules')
+    option('--toolchain-enable-modules', toggle_true('toolchain_enable_modules'),
+           help='enable building toolchain using modules')
 
-    option('--llvm-targets-to-build', store,
+    option('--toolchain-targets-to-build', store,
            default='X86;ARM;AArch64;PowerPC;SystemZ;Mips;RISCV;WebAssembly;AVR',
            help='LLVM target generators to build')
 
-    option('--llvm-ninja-targets', append,
+    option('--toolchain-ninja-targets', append,
            type=argparse.ShellSplitType(),
            help='Space separated list of ninja targets to build for LLVM '
                 'instead of the default ones. Only supported when using '
                 'ninja to build. Can be called multiple times '
                 'to add multiple such options.')
 
-    option('--llvm-ninja-targets-for-cross-compile-hosts', append,
+    option('--toolchain-ninja-targets-for-cross-compile-hosts', append,
            type=argparse.ShellSplitType(),
            help='Space separated list of ninja targets to build for LLVM '
                 'in cross compile hosts instead of the ones specified in '
-                'llvm-ninja-targets (or the default ones). '
+                'toolchain-ninja-targets (or the default ones). '
                 'Can be called multiple times '
                 'to add multiple such options.')
 
     with mutually_exclusive_group():
-        set_defaults(llvm_include_tests=True)
+        set_defaults(toolchain_include_tests=True)
 
-        option('--no-llvm-include-tests', toggle_false('llvm_include_tests'),
+        option('--no-toolchain-include-tests', toggle_false('toolchain_include_tests'),
                help='do not generate testing targets for LLVM')
 
-        option('--llvm-include-tests', toggle_true('llvm_include_tests'),
+        option('--toolchain-include-tests', toggle_true('toolchain_include_tests'),
                help='generate testing targets for LLVM')
 
-    option('--llvm-cmake-options', append,
+    option('--toolchain-cmake-options', append,
            type=argparse.ShellSplitType(),
-           help='CMake options used for llvm in the form of comma '
+           help='CMake options used for toolchain in the form of comma '
                 'separated options "-DCMAKE_VAR1=YES,-DCMAKE_VAR2=/tmp". Can '
                 'be called multiple times to add multiple such options.')
-    option('--extra-llvm-cmake-options', append,
+    option('--extra-toolchain-cmake-options', append,
            type=argparse.ShellSplitType(),
            help='Pass additional CMake options to the LLVM build. '
                 'Can be passed multiple times to add multiple options. '
@@ -1587,11 +1587,11 @@ def create_argument_parser():
     # the user is running in install-all mode.
     option('--skip-build-cmark', toggle_false('build_cmark'),
            help='skip building cmark')
-    option('--skip-build-llvm', toggle_false('build_llvm'),
-           help='skip building llvm')
-    option('--build-llvm', toggle_true('_build_llvm'),
+    option('--skip-build-toolchain', toggle_false('build_toolchain'),
+           help='skip building toolchain')
+    option('--build-toolchain', toggle_true('_build_toolchain'),
            default=True,
-           help='build llvm and clang')
+           help='build toolchain and clang')
     option('--skip-build-language', toggle_false('build_language'),
            help='skip building language')
     option('--skip-build-libxml2', toggle_false('build_libxml2'),
@@ -1667,7 +1667,7 @@ SWIFT_SOURCE_ROOT: a directory containing the source for LLVM, Clang, Swift.
 
 'build-script' expects the sources to be laid out in the following way:
 
-   $SWIFT_SOURCE_ROOT/llvm-project
+   $SWIFT_SOURCE_ROOT/toolchain-project
                      /language
                      /llbuild                    (optional)
                      /languagepm                    (optional, requires llbuild)

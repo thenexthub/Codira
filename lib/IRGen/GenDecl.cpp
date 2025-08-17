@@ -43,11 +43,11 @@
 #include "language/SIL/SILDebugScope.h"
 #include "language/SIL/SILModule.h"
 #include "language/Subsystems.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/DeclCXX.h"
-#include "clang/AST/GlobalDecl.h"
-#include "clang/CodeGen/CodeGenABITypes.h"
-#include "clang/CodeGen/ModuleBuilder.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/DeclCXX.h"
+#include "language/Core/AST/GlobalDecl.h"
+#include "language/Core/CodeGen/CodeGenABITypes.h"
+#include "language/Core/CodeGen/ModuleBuilder.h"
 #include "toolchain/ADT/SmallSet.h"
 #include "toolchain/ADT/SmallString.h"
 #include "toolchain/IR/DerivedTypes.h"
@@ -2680,7 +2680,7 @@ Address IRGenModule::getAddrOfSILGlobalVariable(SILGlobalVariable *var,
   LinkInfo link = LinkInfo::get(*this, entity, forDefinition);
 
   if (auto clangDecl = var->getClangDecl()) {
-    auto addr = getAddrOfClangGlobalDecl(cast<clang::VarDecl>(clangDecl),
+    auto addr = getAddrOfClangGlobalDecl(cast<language::Core::VarDecl>(clangDecl),
                                          forDefinition);
 
     // Override the linkage computed by Clang if the decl is from another
@@ -2920,12 +2920,12 @@ static bool isReadOnlyFunction(SILFunction *f) {
   return false;
 }
 
-static clang::GlobalDecl getClangGlobalDeclForFunction(const clang::Decl *decl) {
-  if (auto ctor = dyn_cast<clang::CXXConstructorDecl>(decl))
-    return clang::GlobalDecl(ctor, clang::Ctor_Complete);
-  if (auto dtor = dyn_cast<clang::CXXDestructorDecl>(decl))
-    return clang::GlobalDecl(dtor, clang::Dtor_Complete);
-  return clang::GlobalDecl(cast<clang::FunctionDecl>(decl));
+static language::Core::GlobalDecl getClangGlobalDeclForFunction(const language::Core::Decl *decl) {
+  if (auto ctor = dyn_cast<language::Core::CXXConstructorDecl>(decl))
+    return language::Core::GlobalDecl(ctor, language::Core::Ctor_Complete);
+  if (auto dtor = dyn_cast<language::Core::CXXDestructorDecl>(decl))
+    return language::Core::GlobalDecl(dtor, language::Core::Dtor_Complete);
+  return language::Core::GlobalDecl(cast<language::Core::FunctionDecl>(decl));
 }
 
 static void addLLVMFunctionAttributes(SILFunction *f, Signature &signature) {
@@ -3416,7 +3416,7 @@ void IRGenModule::emitDynamicReplacementOriginalFunctionThunk(SILFunction *f) {
 
 toolchain::Constant *language::irgen::emitCXXConstructorThunkIfNeeded(
     IRGenModule &IGM, Signature signature,
-    const clang::CXXConstructorDecl *ctor, StringRef name,
+    const language::Core::CXXConstructorDecl *ctor, StringRef name,
     toolchain::Constant *ctorAddress) {
   toolchain::FunctionType *assumedFnType = signature.getType();
   auto *clangFunc = cast<toolchain::Function>(ctorAddress->stripPointerCasts());
@@ -3463,8 +3463,8 @@ toolchain::Constant *language::irgen::emitCXXConstructorThunkIfNeeded(
   }
 
   if (assumedFnType != ctorFnType) {
-    clang::CodeGen::ImplicitCXXConstructorArgs implicitArgs =
-        clang::CodeGen::getImplicitCXXConstructorArgs(IGM.ClangCodeGen->CGM(),
+    language::Core::CodeGen::ImplicitCXXConstructorArgs implicitArgs =
+        language::Core::CodeGen::getImplicitCXXConstructorArgs(IGM.ClangCodeGen->CGM(),
                                                       ctor);
     for (size_t i = 0; i < implicitArgs.Prefix.size(); ++i) {
       Args.insert(Args.begin() + 1 + i, implicitArgs.Prefix[i]);
@@ -3485,7 +3485,7 @@ toolchain::Constant *language::irgen::emitCXXConstructorThunkIfNeeded(
     // which sometimes means that Clang will synthesize a default constructor
     // for the C++ struct that does not zero out trivial fields of a struct.
     auto cxxRecord = ctor->getParent();
-    clang::ASTContext &ctx = cxxRecord->getASTContext();
+    language::Core::ASTContext &ctx = cxxRecord->getASTContext();
     auto typeSize = ctx.getTypeSizeInChars(ctx.getRecordType(cxxRecord));
     subIGF.Builder.CreateMemSet(Args[0],
                                 toolchain::ConstantInt::get(subIGF.IGM.Int8Ty, 0),
@@ -3505,12 +3505,12 @@ toolchain::Constant *language::irgen::emitCXXConstructorThunkIfNeeded(
 }
 
 toolchain::CallBase *language::irgen::emitCXXConstructorCall(
-    IRGenFunction &IGF, const clang::CXXConstructorDecl *ctor,
+    IRGenFunction &IGF, const language::Core::CXXConstructorDecl *ctor,
     toolchain::FunctionType *ctorFnType, toolchain::Constant *ctorAddress,
     toolchain::ArrayRef<toolchain::Value *> args) {
   bool canThrow =
       IGF.IGM.isForeignExceptionHandlingEnabled() &&
-      !IGF.IGM.isCxxNoThrow(const_cast<clang::CXXConstructorDecl *>(ctor));
+      !IGF.IGM.isCxxNoThrow(const_cast<language::Core::CXXConstructorDecl *>(ctor));
   if (!canThrow)
     return IGF.Builder.CreateCall(ctorFnType, ctorAddress, args);
   toolchain::CallBase *result;
@@ -3559,7 +3559,7 @@ toolchain::Function *IRGenModule::getAddrOfSILFunction(
       LinkEntity::forSILFunction(f, shouldCallPreviousImplementation);
 
   auto clangDecl = f->getClangDecl();
-  auto cxxCtor = dyn_cast_or_null<clang::CXXConstructorDecl>(clangDecl);
+  auto cxxCtor = dyn_cast_or_null<language::Core::CXXConstructorDecl>(clangDecl);
 
   // Check whether we've created the function already. If the function is a C++
   // constructor, don't return the constructor here as a thunk might be needed
@@ -3581,7 +3581,7 @@ toolchain::Function *IRGenModule::getAddrOfSILFunction(
   if (clangDecl) {
     // If we have an Objective-C Clang declaration, it must be a direct
     // method and we want to generate the IR declaration ourselves.
-    if (auto objcDecl = dyn_cast<clang::ObjCMethodDecl>(clangDecl)) {
+    if (auto objcDecl = dyn_cast<language::Core::ObjCMethodDecl>(clangDecl)) {
       isObjCDirect = true; 
       assert(objcDecl->isDirectMethod());
     } else {

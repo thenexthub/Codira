@@ -30,9 +30,9 @@
 #include "language/Driver/Job.h"
 #include "language/IDETool/CompilerInvocation.h"
 #include "language/Option/Options.h"
-#include "clang/Basic/DarwinSDKInfo.h"
-#include "clang/Basic/Version.h"
-#include "clang/Driver/Util.h"
+#include "language/Core/Basic/DarwinSDKInfo.h"
+#include "language/Core/Basic/Version.h"
+#include "language/Core/Driver/Util.h"
 #include "toolchain/ADT/StringSwitch.h"
 #include "toolchain/Option/Arg.h"
 #include "toolchain/Option/ArgList.h"
@@ -1010,7 +1010,7 @@ toolchains::Darwin::validateOutputInfo(DiagnosticEngine &diags,
                                        const OutputInfo &outputInfo) const {
   // If we have been provided with an SDK, go read the SDK information.
   if (!outputInfo.SDKPath.empty()) {
-    auto SDKInfoOrErr = clang::parseDarwinSDKInfo(
+    auto SDKInfoOrErr = language::Core::parseDarwinSDKInfo(
         *toolchain::vfs::getRealFileSystem(), outputInfo.SDKPath);
     if (SDKInfoOrErr) {
       SDKInfo = *SDKInfoOrErr;

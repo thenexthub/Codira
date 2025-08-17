@@ -17,7 +17,7 @@
 #include "language/Basic/FileSystem.h"
 
 #include "language/Basic/Assertions.h"
-#include "clang/Basic/FileManager.h"
+#include "language/Core/Basic/FileManager.h"
 #include "toolchain/ADT/SmallString.h"
 #include "toolchain/ADT/StringRef.h"
 #include "toolchain/ADT/Twine.h"
@@ -130,7 +130,7 @@ std::error_code language::atomicallyWritingToFile(
   namespace fs = toolchain::sys::fs;
 
   // FIXME: This is mostly a simplified version of
-  // clang::CompilerInstance::createOutputFile. It would be great to share the
+  // language::Core::CompilerInstance::createOutputFile. It would be great to share the
   // implementation.
   assert(!outputPath.empty());
 

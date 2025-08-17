@@ -526,7 +526,7 @@ class TestDriverArgumentParser(
         namespace = self.parse_default_args(['--assertions'])
 
         self.assertTrue(namespace.cmark_assertions)
-        self.assertTrue(namespace.llvm_assertions)
+        self.assertTrue(namespace.toolchain_assertions)
         self.assertTrue(namespace.language_assertions)
         self.assertTrue(namespace.language_stdlib_assertions)
 
@@ -549,7 +549,7 @@ class TestDriverArgumentParser(
         self.assertEqual(namespace.foundation_tests_build_variant, 'Debug')
         self.assertEqual(namespace.libdispatch_build_variant, 'Debug')
         self.assertEqual(namespace.lldb_build_variant, 'Debug')
-        self.assertEqual(namespace.llvm_build_variant, 'Debug')
+        self.assertEqual(namespace.toolchain_build_variant, 'Debug')
         self.assertEqual(namespace.language_build_variant, 'Debug')
         self.assertEqual(namespace.language_stdlib_build_variant, 'Debug')
 

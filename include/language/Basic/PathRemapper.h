@@ -29,7 +29,7 @@
 #define LANGUAGE_BASIC_PATHREMAPPER_H
 
 #include "language/Basic/Toolchain.h"
-#include "clang/Basic/PathRemapper.h"
+#include "language/Core/Basic/PathRemapper.h"
 #include "toolchain/ADT/SmallVector.h"
 #include "toolchain/ADT/Twine.h"
 
@@ -65,8 +65,8 @@ public:
 
   /// Returns the Clang PathRemapper equivalent, suitable for use with Clang
   /// APIs.
-  clang::PathRemapper asClangPathRemapper() const {
-    clang::PathRemapper Remapper;
+  language::Core::PathRemapper asClangPathRemapper() const {
+    language::Core::PathRemapper Remapper;
     for (const auto &Mapping : PathMappings)
       Remapper.addMapping(Mapping.first, Mapping.second);
     return Remapper;

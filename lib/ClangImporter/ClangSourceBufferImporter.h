@@ -19,7 +19,7 @@
 
 #include "language/Basic/Toolchain.h"
 #include "language/Basic/SourceLoc.h"
-#include "clang/Basic/SourceLocation.h"
+#include "language/Core/Basic/SourceLocation.h"
 #include "toolchain/ADT/DenseMap.h"
 #include "toolchain/ADT/IntrusiveRefCntPtr.h"
 #include "toolchain/ADT/SmallVector.h"
@@ -28,7 +28,7 @@ namespace toolchain {
 class MemoryBuffer;
 }
 
-namespace clang {
+namespace language::Core {
 class SourceManager;
 }
 
@@ -46,7 +46,7 @@ namespace importer {
 class ClangSourceBufferImporter {
   // This is not using SmallPtrSet or similar because we need the
   // IntrusiveRefCntPtr to stay a ref-counting pointer.
-  SmallVector<toolchain::IntrusiveRefCntPtr<const clang::SourceManager>, 4>
+  SmallVector<toolchain::IntrusiveRefCntPtr<const language::Core::SourceManager>, 4>
     sourceManagersWithDiagnostics;
   toolchain::DenseMap<const char *, unsigned> mirroredBuffers;
   SourceManager &languageSourceManager;
@@ -58,8 +58,8 @@ public:
   /// Returns a Codira source location that points into a Clang buffer.
   ///
   /// This will keep the Clang buffer alive as long as this object.
-  SourceLoc resolveSourceLocation(const clang::SourceManager &clangSrcMgr,
-                                  clang::SourceLocation clangLoc);
+  SourceLoc resolveSourceLocation(const language::Core::SourceManager &clangSrcMgr,
+                                  language::Core::SourceLocation clangLoc);
 };
 
 } // end namespace importer

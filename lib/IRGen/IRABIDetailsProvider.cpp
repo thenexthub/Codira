@@ -39,8 +39,8 @@
 #include "language/SIL/SILFunctionBuilder.h"
 #include "language/SIL/SILModule.h"
 #include "language/Subsystems.h"
-#include "clang/CodeGen/ModuleBuilder.h"
-#include "clang/CodeGen/CodiraCallingConv.h"
+#include "language/Core/CodeGen/ModuleBuilder.h"
+#include "language/Core/CodeGen/CodiraCallingConv.h"
 #include "toolchain/IR/DerivedTypes.h"
 
 using namespace language;
@@ -186,7 +186,7 @@ public:
         [&](const LoweredFunctionSignature::IndirectResultValue
                 &indirectResult) { ++signatureParamCount; },
         [&](const LoweredFunctionSignature::DirectParameter &param) {
-          param.enumerateRecordMembers([&](clang::CharUnits, clang::CharUnits,
+          param.enumerateRecordMembers([&](language::Core::CharUnits, language::Core::CharUnits,
                                            Type) { ++signatureParamCount; });
         },
         [&](const LoweredFunctionSignature::IndirectParameter &param) {
@@ -298,13 +298,13 @@ LoweredFunctionSignature::DirectResultType::DirectResultType(
     : owner(owner), typeDetails(typeDetails) {}
 
 bool LoweredFunctionSignature::DirectResultType::enumerateRecordMembers(
-    toolchain::function_ref<void(clang::CharUnits, clang::CharUnits, Type)> callback)
+    toolchain::function_ref<void(language::Core::CharUnits, language::Core::CharUnits, Type)> callback)
     const {
   auto &schema = typeDetails.nativeReturnValueSchema(owner.IGM);
   assert(!schema.requiresIndirect());
   bool hasError = false;
   schema.enumerateComponents(
-      [&](clang::CharUnits offset, clang::CharUnits end, toolchain::Type *type) {
+      [&](language::Core::CharUnits offset, language::Core::CharUnits end, toolchain::Type *type) {
         auto primitiveType = getPrimitiveTypeFromLLVMType(
             owner.IGM.getCodiraModule()->getASTContext(), type);
         if (!primitiveType) {
@@ -327,13 +327,13 @@ LoweredFunctionSignature::IndirectParameter::IndirectParameter(
     : paramDecl(paramDecl), convention(convention) {}
 
 bool LoweredFunctionSignature::DirectParameter::enumerateRecordMembers(
-    toolchain::function_ref<void(clang::CharUnits, clang::CharUnits, Type)> callback)
+    toolchain::function_ref<void(language::Core::CharUnits, language::Core::CharUnits, Type)> callback)
     const {
   auto &schema = typeDetails.nativeParameterValueSchema(owner.IGM);
   assert(!schema.requiresIndirect());
   bool hasError = false;
   schema.enumerateComponents(
-      [&](clang::CharUnits offset, clang::CharUnits end, toolchain::Type *type) {
+      [&](language::Core::CharUnits offset, language::Core::CharUnits end, toolchain::Type *type) {
         auto primitiveType = getPrimitiveTypeFromLLVMType(
             owner.IGM.getCodiraModule()->getASTContext(), type);
         if (!primitiveType) {

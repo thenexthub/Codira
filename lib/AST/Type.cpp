@@ -20,7 +20,7 @@
 
 #define DEBUG_TYPE "ast-types"
 
-#include "clang/AST/Type.h"
+#include "language/Core/AST/Type.h"
 #include "ForeignRepresentationInfo.h"
 #include "language/AST/ASTContext.h"
 #include "language/AST/ClangModuleLoader.h"
@@ -3113,7 +3113,7 @@ getForeignRepresentable(Type type, ForeignLanguage language,
         // Non-trivial C++ classes and structures are not
         // supported by @objc attribute, even though they can
         // be represented in Objective-C++.
-        if (auto *cxxRec = dyn_cast_or_null<clang::CXXRecordDecl>(
+        if (auto *cxxRec = dyn_cast_or_null<language::Core::CXXRecordDecl>(
                 nominal->getClangDecl())) {
           if (cxxRec->hasNonTrivialCopyConstructor() ||
               cxxRec->hasNonTrivialMoveConstructor() ||

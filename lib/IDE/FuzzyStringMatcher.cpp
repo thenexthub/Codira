@@ -16,16 +16,16 @@
 
 #include "language/Basic/Assertions.h"
 #include "language/IDE/FuzzyStringMatcher.h"
-#include "clang/Basic/CharInfo.h"
+#include "language/Core/Basic/CharInfo.h"
 #include "toolchain/ADT/ArrayRef.h"
 #include "toolchain/ADT/SmallString.h"
 
 using namespace language;
 using namespace language::ide;
-using clang::toUppercase;
-using clang::toLowercase;
-using clang::isUppercase;
-using clang::isLowercase;
+using language::Core::toUppercase;
+using language::Core::toLowercase;
+using language::Core::isUppercase;
+using language::Core::isLowercase;
 
 FuzzyStringMatcher::FuzzyStringMatcher(StringRef pattern_)
     : pattern(pattern_), charactersInPattern(1 << (sizeof(char) * 8)) {
@@ -118,7 +118,7 @@ populateTokenTable(SmallVectorImpl<Range> &tokens,
     // case word?  The uppercase character should start a new token.
     if (isTokenizingChar(prev) ||
         (isUppercase(current) && !isUppercase(prev)) ||
-        (clang::isDigit(current) && !clang::isDigit(prev))) {
+        (language::Core::isDigit(current) && !language::Core::isDigit(prev))) {
       tokens.push_back({start, cidx - start});
       start = cidx;
 

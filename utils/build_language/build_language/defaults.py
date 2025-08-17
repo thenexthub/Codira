@@ -84,7 +84,7 @@ def _system_memory():
     return None
 
 
-def _default_llvm_lto_link_jobs():
+def _default_toolchain_lto_link_jobs():
     """Use the formula (GB Memory - 3)/6.0GB to get the number of parallel
     link threads we can support. This gives the OS 3 GB of room to work with.
 
@@ -114,17 +114,17 @@ def _default_language_lto_link_jobs():
     return int((memory / 1000000000.0 - 3.0) / 8.0)
 
 
-LLVM_MAX_PARALLEL_LTO_LINK_JOBS = _default_llvm_lto_link_jobs()
+LLVM_MAX_PARALLEL_LTO_LINK_JOBS = _default_toolchain_lto_link_jobs()
 SWIFT_MAX_PARALLEL_LTO_LINK_JOBS = _default_language_lto_link_jobs()
 
 
-def llvm_install_components():
-    """Convenience function for getting the default llvm install components for
+def toolchain_install_components():
+    """Convenience function for getting the default toolchain install components for
     platforms.
     """
-    # llvm build product will take care of replacing compiler-rt with
+    # toolchain build product will take care of replacing compiler-rt with
     # builtins,runtimes if need be
-    components = ['llvm-ar', 'llvm-cov', 'llvm-profdata', 'IndexStore', 'clang',
+    components = ['toolchain-ar', 'toolchain-cov', 'toolchain-profdata', 'IndexStore', 'clang',
                   'clang-resource-headers', 'compiler-rt', 'clangd', 'LTO',
                   'lld']
     if os.sys.platform == 'darwin':

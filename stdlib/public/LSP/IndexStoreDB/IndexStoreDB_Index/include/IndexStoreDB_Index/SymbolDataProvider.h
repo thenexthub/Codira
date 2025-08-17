@@ -17,7 +17,7 @@
 #define INDEXSTOREDB_INDEX_SYMBOLDATAPROVIDER_H
 
 #include <IndexStoreDB_Support/LLVM.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_OptionSet.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_OptionSet.h>
 #include <memory>
 #include <vector>
 
@@ -29,7 +29,7 @@ namespace IndexStoreDB {
   enum class SymbolRole : uint64_t;
   typedef std::shared_ptr<Symbol> SymbolRef;
   typedef std::shared_ptr<SymbolOccurrence> SymbolOccurrenceRef;
-  typedef llvm::OptionSet<SymbolRole> SymbolRoleSet;
+  typedef toolchain::OptionSet<SymbolRole> SymbolRoleSet;
 
 namespace db {
   class IDCode;

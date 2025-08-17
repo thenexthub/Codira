@@ -54,7 +54,7 @@ implement the runtime for globals, which means builds from old versions
 of clang may no work with newer platform versions that support globals).
 `-fsanitize-memtag-mode` allows to choose between ASYNC and SYNC.
 
-This information can be queried using `llvm-readelf --memtag`.
+This information can be queried using `toolchain-readelf --memtag`.
 
 This information is [picked up by libc init] to decide whether to enable MTE.
 `-fsanitize-heap` controls both whether scudo tags allocations, and whether
@@ -208,26 +208,26 @@ and [in init] we set `BIONIC_MEMTAG_UPGRADE_SECS`, which gets handled by
 [libc startup].
 
 [SpecializeCommon]: https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/core/jni/com_android_internal_os_Zygote.cpp?q=f:frameworks%2Fbase%2Fcore%2Fjni%2Fcom_android_internal_os_Zygote.cpp%20%22%20mallopt(M_BIONIC_SET_HEAP_TAGGING_LEVEL,%22&ss=android%2Fplatform%2Fsuperproject%2Fmain
-[LLVM Project]: https://github.com/llvm/llvm-project/
+[LLVM Project]: https://github.com/toolchain/toolchain-project/
 [NDK]: https://android.googlesource.com/platform/ndk/
 [NDK legacy cmake toolchain]: https://android.googlesource.com/platform/ndk/+/refs/heads/main/build/cmake/android-legacy.toolchain.cmake#490
 [NDK new cmake toolchain]: https://android.googlesource.com/platform/ndk/+/refs/heads/main/build/cmake/flags.cmake#56
 [Soong]: https://cs.android.com/android/platform/superproject/main/+/main:build/soong/cc/sanitize.go?q=sanitize.go&ss=android%2Fplatform%2Fsuperproject%2Fmain
 [decideTaggingLevel]: https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/core/java/com/android/internal/os/Zygote.java?q=symbol:decideTaggingLevel
 [picked up by libc init]: https://cs.android.com/android/platform/superproject/main/+/main:bionic/libc/bionic/libc_init_mte.cpp?q=symbol:__get_tagging_level%20f:bionic
-[enables all three]: https://github.com/llvm/llvm-project/blob/e732d1ce86783b1d7fe30645fcb30434109505b9/clang/include/clang/Basic/Sanitizers.def#L62
-[passed in]: https://github.com/llvm/llvm-project/blob/ff2e619dfcd77328812a42d2ba2b11c3ff96f410/clang/lib/Driver/SanitizerArgs.cpp#L719
-[passed in by the clang driver]: https://github.com/llvm/llvm-project/blob/ff2e619dfcd77328812a42d2ba2b11c3ff96f410/clang/lib/Driver/ToolChains/CommonArgs.cpp#L1595
-[adding the Android-specific ELF note]: https://github.com/llvm/llvm-project/blob/435cb0dc5eca08cdd8d9ed0d887fa1693cc2bf33/lld/ELF/Driver.cpp#L1258
+[enables all three]: https://github.com/toolchain/toolchain-project/blob/e732d1ce86783b1d7fe30645fcb30434109505b9/clang/include/clang/Basic/Sanitizers.def#L62
+[passed in]: https://github.com/toolchain/toolchain-project/blob/ff2e619dfcd77328812a42d2ba2b11c3ff96f410/clang/lib/Driver/SanitizerArgs.cpp#L719
+[passed in by the clang driver]: https://github.com/toolchain/toolchain-project/blob/ff2e619dfcd77328812a42d2ba2b11c3ff96f410/clang/lib/Driver/ToolChains/CommonArgs.cpp#L1595
+[adding the Android-specific ELF note]: https://github.com/toolchain/toolchain-project/blob/435cb0dc5eca08cdd8d9ed0d887fa1693cc2bf33/lld/ELF/Driver.cpp#L1258
 [ELF standard]: https://github.com/ARM-software/abi-aa/blob/main/memtagabielf64/memtagabielf64.rst#6dynamic-section
-[add appropriate dynamic sections]: https://github.com/llvm/llvm-project/blob/7022498ac2f236e411e8a0f9a48669e754000a4b/lld/ELF/SyntheticSections.cpp#L1473
+[add appropriate dynamic sections]: https://github.com/toolchain/toolchain-project/blob/7022498ac2f236e411e8a0f9a48669e754000a4b/lld/ELF/SyntheticSections.cpp#L1473
 [storeTags]: https://cs.android.com/android/platform/superproject/main/+/main:external/scudo/standalone/memtag.h?q=f:scudo%20f:memtag.h%20function:storeTags
 [SAC page on MTE]: https://source.android.com/docs/security/test/memory-safety/arm-mte
 [NDK page on MTE]: https://developer.android.com/ndk/guides/arm-mte
-[AArch64StackTagging]: https://github.com/llvm/llvm-project/blob/main/llvm/lib/Target/AArch64/AArch64StackTagging.cpp
-[scudo's memtag.h]: https://github.com/llvm/llvm-project/blob/main/compiler-rt/lib/scudo/standalone/memtag.h
-[combined.h]: https://github.com/llvm/llvm-project/blob/main/compiler-rt/lib/scudo/standalone/combined.h
-[secondary.h]: https://github.com/llvm/llvm-project/blob/main/compiler-rt/lib/scudo/standalone/secondary.h
+[AArch64StackTagging]: https://github.com/toolchain/toolchain-project/blob/main/toolchain/lib/Target/AArch64/AArch64StackTagging.cpp
+[scudo's memtag.h]: https://github.com/toolchain/toolchain-project/blob/main/compiler-rt/lib/scudo/standalone/memtag.h
+[combined.h]: https://github.com/toolchain/toolchain-project/blob/main/compiler-rt/lib/scudo/standalone/combined.h
+[secondary.h]: https://github.com/toolchain/toolchain-project/blob/main/compiler-rt/lib/scudo/standalone/secondary.h
 [__pthread_internal_remap_stack_with_mte]: https://cs.android.com/android/platform/superproject/main/+/main:bionic/libc/bionic/pthread_internal.cpp?q=__pthread_internal_remap_stack_with_mte
 [stack script]: https://cs.android.com/android/platform/superproject/main/+/main:development/scripts/stack?q=stack
 [Android make]: https://cs.android.com/android/platform/superproject/main/+/main:build/make/core/config_sanitizers.mk

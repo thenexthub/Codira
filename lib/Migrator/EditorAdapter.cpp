@@ -19,7 +19,7 @@
 #include "language/Migrator/EditorAdapter.h"
 #include "language/Migrator/Replacement.h"
 #include "language/Parse/Lexer.h"
-#include "clang/Basic/SourceManager.h"
+#include "language/Core/Basic/SourceManager.h"
 
 using namespace language;
 using namespace language::migrator;
@@ -46,7 +46,7 @@ EditorAdapter::cacheReplacement(CharSourceRange Range, StringRef Text) const {
   return false;
 }
 
-clang::FileID
+language::Core::FileID
 EditorAdapter::getClangFileIDForCodiraBufferID(unsigned BufferID) const {
   /// Check if we already have a mapping for this BufferID.
   auto Found = CodiraToClangBufferMap.find(BufferID);
@@ -65,7 +65,7 @@ EditorAdapter::getClangFileIDForCodiraBufferID(unsigned BufferID) const {
   return NewFileID;
 }
 
-clang::SourceLocation
+language::Core::SourceLocation
 EditorAdapter::translateSourceLoc(SourceLoc CodiraLoc) const {
   unsigned CodiraBufferID, Offset;
   std::tie(CodiraBufferID, Offset) = getLocInfo(CodiraLoc);
@@ -74,18 +74,18 @@ EditorAdapter::translateSourceLoc(SourceLoc CodiraLoc) const {
   return ClangSrcMgr.getLocForStartOfFile(ClangFileID).getLocWithOffset(Offset);
 }
 
-clang::SourceRange
+language::Core::SourceRange
 EditorAdapter::translateSourceRange(SourceRange CodiraSourceRange) const {
   auto Start = translateSourceLoc(CodiraSourceRange.Start);
   auto End = translateSourceLoc(CodiraSourceRange.End);
-  return clang::SourceRange { Start, End };
+  return language::Core::SourceRange { Start, End };
 }
 
-clang::CharSourceRange EditorAdapter::
+language::Core::CharSourceRange EditorAdapter::
 translateCharSourceRange(CharSourceRange CodiraSourceSourceRange) const {
   auto ClangStartLoc = translateSourceLoc(CodiraSourceSourceRange.getStart());
   auto ClangEndLoc = translateSourceLoc(CodiraSourceSourceRange.getEnd());
-  return clang::CharSourceRange::getCharRange(ClangStartLoc, ClangEndLoc);
+  return language::Core::CharSourceRange::getCharRange(ClangStartLoc, ClangEndLoc);
 }
 
 bool EditorAdapter::insert(SourceLoc Loc, StringRef Text, bool AfterToken,

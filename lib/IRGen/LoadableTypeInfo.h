@@ -25,7 +25,7 @@
 
 #include "FixedTypeInfo.h"
 
-namespace clang {
+namespace language::Core {
 namespace CodeGen {
 namespace languagecall {
   class CodiraAggLowering;
@@ -37,7 +37,7 @@ namespace language {
 namespace irgen {
   class EnumPayload;
   class IRBuilder;
-  using clang::CodeGen::languagecall::CodiraAggLowering;
+  using language::Core::CodeGen::languagecall::CodiraAggLowering;
 
 struct LoadedRef {
   toolchain::PointerIntPair<toolchain::Value*, 1> ValAndNonNull;

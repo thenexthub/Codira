@@ -116,7 +116,7 @@ public:
                                  const ModuleDecl *moduleContext);
 
   /// Print out the C++ record qualifier for the given C++ record.
-  void printClangTypeReference(const clang::Decl *typeDecl);
+  void printClangTypeReference(const language::Core::Decl *typeDecl);
 
   /// Print out the C++ class access qualifier for the given Codira  type
   /// declaration.

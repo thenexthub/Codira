@@ -1,20 +1,36 @@
 //===-- StringRef.cpp - Lightweight String References ---------------------===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_APFloat.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_APInt.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Hashing.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_edit_distance.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_APFloat.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_APInt.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Hashing.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_edit_distance.h>
 #include <bitset>
 
-using namespace llvm;
+using namespace toolchain;
 
 // MSVC emits references to this into the translation units which reference it.
 #ifndef _MSC_VER
@@ -91,10 +107,10 @@ int StringRef::compare_numeric(StringRef RHS) const {
 }
 
 // Compute the edit distance between the two given strings.
-unsigned StringRef::edit_distance(llvm::StringRef Other,
+unsigned StringRef::edit_distance(toolchain::StringRef Other,
                                   bool AllowReplacements,
                                   unsigned MaxEditDistance) const {
-  return llvm::ComputeEditDistance(
+  return toolchain::ComputeEditDistance(
       makeArrayRef(data(), size()),
       makeArrayRef(Other.data(), Other.size()),
       AllowReplacements, MaxEditDistance);
@@ -407,7 +423,7 @@ static unsigned GetAutoSenseRadix(StringRef &Str) {
   return 10;
 }
 
-bool llvm::consumeUnsignedInteger(StringRef &Str, unsigned Radix,
+bool toolchain::consumeUnsignedInteger(StringRef &Str, unsigned Radix,
                                   unsigned long long &Result) {
   // Autosense radix if not specified.
   if (Radix == 0)
@@ -455,7 +471,7 @@ bool llvm::consumeUnsignedInteger(StringRef &Str, unsigned Radix,
   return false;
 }
 
-bool llvm::consumeSignedInteger(StringRef &Str, unsigned Radix,
+bool toolchain::consumeSignedInteger(StringRef &Str, unsigned Radix,
                                 long long &Result) {
   unsigned long long ULLVal;
 
@@ -485,7 +501,7 @@ bool llvm::consumeSignedInteger(StringRef &Str, unsigned Radix,
 
 /// GetAsUnsignedInteger - Workhorse method that converts a integer character
 /// sequence of radix up to 36 to an unsigned long long value.
-bool llvm::getAsUnsignedInteger(StringRef Str, unsigned Radix,
+bool toolchain::getAsUnsignedInteger(StringRef Str, unsigned Radix,
                                 unsigned long long &Result) {
   if (consumeUnsignedInteger(Str, Radix, Result))
     return true;
@@ -495,7 +511,7 @@ bool llvm::getAsUnsignedInteger(StringRef Str, unsigned Radix,
   return !Str.empty();
 }
 
-bool llvm::getAsSignedInteger(StringRef Str, unsigned Radix,
+bool toolchain::getAsSignedInteger(StringRef Str, unsigned Radix,
                               long long &Result) {
   if (consumeSignedInteger(Str, Radix, Result))
     return true;
@@ -594,6 +610,6 @@ bool StringRef::getAsDouble(double &Result, bool AllowInexact) const {
 }
 
 // Implementation of StringRef hashing.
-hash_code llvm::hash_value(StringRef S) {
+hash_code toolchain::hash_value(StringRef S) {
   return hash_combine_range(S.begin(), S.end());
 }

@@ -24,7 +24,7 @@
 #include "toolchain/ADT/PointerUnion.h"
 #include "toolchain/Support/SaveAndRestore.h"
 
-namespace clang {
+namespace language::Core {
   class Module;
 }
 

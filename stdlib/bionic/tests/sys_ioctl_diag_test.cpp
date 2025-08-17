@@ -17,7 +17,7 @@
 // This file makes uses of clang's built-in diagnostic checker.
 // While not officially supported by clang, it's used by clang for all of its
 // own diagnostic tests. Please see
-// https://clang.llvm.org/doxygen/classclang_1_1VerifyDiagnosticConsumer.html#details
+// https://clang.toolchain.org/doxygen/classclang_1_1VerifyDiagnosticConsumer.html#details
 // for details.
 
 // expected-no-diagnostics

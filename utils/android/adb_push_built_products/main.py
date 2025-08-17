@@ -79,7 +79,7 @@ def main():
         libcpp = os.path.join(args.ndk,
                               'sources',
                               'cxx-stl',
-                              'llvm-libc++',
+                              'toolchain-libc++',
                               'libs',
                               {
                                   'armv7': 'armeabi-v7a',

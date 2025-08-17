@@ -30,7 +30,7 @@
 #include "toolchain/Support/PrettyStackTrace.h"
 #include <optional>
 
-namespace clang {
+namespace language::Core {
   class Type;
   class ASTContext;
 }
@@ -175,12 +175,12 @@ public:
 /// PrettyStackTraceClangType - Observe that we are processing a
 /// specific Clang type.
 class PrettyStackTraceClangType : public toolchain::PrettyStackTraceEntry {
-  const clang::ASTContext &Context;
-  const clang::Type *TheType;
+  const language::Core::ASTContext &Context;
+  const language::Core::Type *TheType;
   const char *Action;
 public:
-  PrettyStackTraceClangType(clang::ASTContext &ctx,
-                            const char *action, const clang::Type *type)
+  PrettyStackTraceClangType(language::Core::ASTContext &ctx,
+                            const char *action, const language::Core::Type *type)
     : Context(ctx), TheType(type), Action(action) {}
   virtual void print(toolchain::raw_ostream &OS) const override;
 };

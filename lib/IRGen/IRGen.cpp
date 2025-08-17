@@ -52,8 +52,8 @@
 #include "language/SILOptimizer/PassManager/PassPipeline.h"
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/Subsystems.h"
-#include "clang/Basic/TargetInfo.h"
-#include "clang/Frontend/CompilerInstance.h"
+#include "language/Core/Basic/TargetInfo.h"
+#include "language/Core/Frontend/CompilerInstance.h"
 #include "toolchain/ADT/ScopeExit.h"
 #include "toolchain/ADT/StringSet.h"
 #include "toolchain/Analysis/AliasAnalysis.h"
@@ -182,7 +182,7 @@ language::getIRTargetOptions(const IRGenOptions &Opts, ASTContext &Ctx) {
     break;
   }
 
-  clang::TargetOptions &ClangOpts = Clang->getTargetInfo().getTargetOpts();
+  language::Core::TargetOptions &ClangOpts = Clang->getTargetInfo().getTargetOpts();
   return std::make_tuple(TargetOpts, ClangOpts.CPU, ClangOpts.Features, ClangOpts.Triple);
 }
 
@@ -805,10 +805,10 @@ bool language::compileAndWriteLLVM(
 }
 
 static void setPointerAuthOptions(PointerAuthOptions &opts,
-                                  const clang::PointerAuthOptions &clangOpts,
+                                  const language::Core::PointerAuthOptions &clangOpts,
                                   const IRGenOptions &irgenOpts) {
   // Intentionally do a slice-assignment to copy over the clang options.
-  static_cast<clang::PointerAuthOptions&>(opts) = clangOpts;
+  static_cast<language::Core::PointerAuthOptions&>(opts) = clangOpts;
 
   assert(clangOpts.FunctionPointers);
   if (clangOpts.FunctionPointers.getKind() != PointerAuthSchema::Kind::ARM8_3)

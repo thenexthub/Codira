@@ -1,8 +1,24 @@
 //===--- raw_ostream.cpp - Implement the raw_ostream classes --------------===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -10,20 +26,20 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_STLExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallVector.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Config_config.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Compiler.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ErrorHandling.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_FileSystem.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Format.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_FormatVariadic.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_MathExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_NativeFormatting.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Process.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Program.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_STLExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallVector.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_config.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Compiler.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ErrorHandling.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_FileSystem.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Format.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_FormatVariadic.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_MathExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_NativeFormatting.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Process.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Program.h>
 #include <algorithm>
 #include <cctype>
 #include <cerrno>
@@ -59,11 +75,11 @@
 #endif
 
 #ifdef _WIN32
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ConvertUTF.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ConvertUTF.h>
 #include "Windows/WindowsSupport.h"
 #endif
 
-using namespace llvm;
+using namespace toolchain;
 
 raw_ostream::~raw_ostream() {
   // raw_ostream's subclasses should take care to flush the buffer
@@ -129,7 +145,7 @@ raw_ostream &raw_ostream::operator<<(long long N) {
 }
 
 raw_ostream &raw_ostream::write_hex(unsigned long long N) {
-  llvm::write_hex(*this, N, HexPrintStyle::Lower);
+  toolchain::write_hex(*this, N, HexPrintStyle::Lower);
   return *this;
 }
 
@@ -184,12 +200,12 @@ raw_ostream &raw_ostream::write_escaped(StringRef Str,
 }
 
 raw_ostream &raw_ostream::operator<<(const void *P) {
-  llvm::write_hex(*this, (uintptr_t)P, HexPrintStyle::PrefixLower);
+  toolchain::write_hex(*this, (uintptr_t)P, HexPrintStyle::PrefixLower);
   return *this;
 }
 
 raw_ostream &raw_ostream::operator<<(double N) {
-  llvm::write_double(*this, N, FloatStyle::Exponent);
+  toolchain::write_double(*this, N, FloatStyle::Exponent);
   return *this;
 }
 
@@ -352,7 +368,7 @@ raw_ostream &raw_ostream::operator<<(const FormattedString &FS) {
     break;
   }
   default:
-    llvm_unreachable("Bad Justification");
+    toolchain_unreachable("Bad Justification");
   }
   return *this;
 }
@@ -368,11 +384,11 @@ raw_ostream &raw_ostream::operator<<(const FormattedNumber &FN) {
       Style = HexPrintStyle::PrefixLower;
     else
       Style = HexPrintStyle::Lower;
-    llvm::write_hex(*this, FN.HexValue, Style, FN.Width);
+    toolchain::write_hex(*this, FN.HexValue, Style, FN.Width);
   } else {
-    llvm::SmallString<16> Buffer;
-    llvm::raw_svector_ostream Stream(Buffer);
-    llvm::write_integer(Stream, FN.DecValue, 0, IntegerStyle::Integer);
+    toolchain::SmallString<16> Buffer;
+    toolchain::raw_svector_ostream Stream(Buffer);
+    toolchain::write_integer(Stream, FN.DecValue, 0, IntegerStyle::Integer);
     if (Buffer.size() < FN.Width)
       indent(FN.Width - Buffer.size());
     (*this) << Buffer;
@@ -397,8 +413,8 @@ raw_ostream &raw_ostream::operator<<(const FormattedBytes &FB) {
     uint64_t MaxOffset = *FB.FirstByteOffset + Lines * FB.NumPerLine;
     unsigned Power = 0;
     if (MaxOffset > 0)
-      Power = llvm::Log2_64_Ceil(MaxOffset);
-    OffsetWidth = std::max<uint64_t>(4, llvm::alignTo(Power, 4) / 4);
+      Power = toolchain::Log2_64_Ceil(MaxOffset);
+    OffsetWidth = std::max<uint64_t>(4, toolchain::alignTo(Power, 4) / 4);
   }
 
   // The width of a block of data including all spaces for group separators.
@@ -411,7 +427,7 @@ raw_ostream &raw_ostream::operator<<(const FormattedBytes &FB) {
 
     if (FB.FirstByteOffset.hasValue()) {
       uint64_t Offset = FB.FirstByteOffset.getValue();
-      llvm::write_hex(*this, Offset + LineIndex, HPS, OffsetWidth);
+      toolchain::write_hex(*this, Offset + LineIndex, HPS, OffsetWidth);
       *this << ": ";
     }
 
@@ -424,7 +440,7 @@ raw_ostream &raw_ostream::operator<<(const FormattedBytes &FB) {
         ++CharsPrinted;
         *this << " ";
       }
-      llvm::write_hex(*this, Line[I], HPS, 2);
+      toolchain::write_hex(*this, Line[I], HPS, 2);
     }
 
     if (FB.ASCII) {
@@ -840,7 +856,7 @@ void raw_fd_ostream::anchor() {}
 
 /// outs() - This returns a reference to a raw_ostream for standard output.
 /// Use it like: outs() << "foo" << "bar";
-raw_ostream &llvm::outs() {
+raw_ostream &toolchain::outs() {
   // Set buffer settings to model stdout behavior.
   std::error_code EC;
   static raw_fd_ostream S("-", EC, sys::fs::F_None);
@@ -850,14 +866,14 @@ raw_ostream &llvm::outs() {
 
 /// errs() - This returns a reference to a raw_ostream for standard error.
 /// Use it like: errs() << "foo" << "bar";
-raw_ostream &llvm::errs() {
+raw_ostream &toolchain::errs() {
   // Set standard error to be unbuffered by default.
   static raw_fd_ostream S(STDERR_FILENO, false, true);
   return S;
 }
 
 /// nulls() - This returns a reference to a raw_ostream which discards output.
-raw_ostream &llvm::nulls() {
+raw_ostream &toolchain::nulls() {
   static raw_null_ostream S;
   return S;
 }

@@ -60,10 +60,10 @@
 #include "language/Serialization/Serialization.h"
 #include "language/Serialization/SerializationOptions.h"
 #include "language/Strings.h"
-#include "clang/AST/DeclTemplate.h"
-#include "clang/Frontend/CompilerInstance.h"
-#include "clang/Index/USRGeneration.h"
-#include "clang/Serialization/ASTReader.h"
+#include "language/Core/AST/DeclTemplate.h"
+#include "language/Core/Frontend/CompilerInstance.h"
+#include "language/Core/Index/USRGeneration.h"
+#include "language/Core/Serialization/ASTReader.h"
 #include "toolchain/ADT/SmallSet.h"
 #include "toolchain/ADT/SmallString.h"
 #include "toolchain/ADT/StringExtras.h"
@@ -669,7 +669,7 @@ serialization::TypeID Serializer::addTypeRef(Type ty) {
   return TypesToSerialize.addRef(typeToSerialize);
 }
 
-serialization::ClangTypeID Serializer::addClangTypeRef(const clang::Type *ty) {
+serialization::ClangTypeID Serializer::addClangTypeRef(const language::Core::Type *ty) {
   if (!ty) return 0;
 
   // Try to serialize the non-canonical type, but fall back to the
@@ -2242,7 +2242,7 @@ getStableClangDeclPathComponentKind(
 
 static Identifier getClangTemplateSpecializationXRefDiscriminator(
     ASTContext &ctx, Identifier &name,
-    const clang::ClassTemplateSpecializationDecl *ctsd) {
+    const language::Core::ClassTemplateSpecializationDecl *ctsd) {
   auto it = name.str().find("<");
   if (it == StringRef::npos)
     return Identifier();
@@ -2252,7 +2252,7 @@ static Identifier getClangTemplateSpecializationXRefDiscriminator(
   // reference is deserialized.
   name = ctx.getIdentifier(name.str().substr(0, it));
   toolchain::SmallString<128> buffer;
-  clang::index::generateUSRForDecl(ctsd, buffer);
+  language::Core::index::generateUSRForDecl(ctsd, buffer);
   return ctx.getIdentifier(buffer.str());
 }
 
@@ -2314,7 +2314,7 @@ void Serializer::writeCrossReference(const DeclContext *DC, uint32_t pathLen) {
 
     Identifier name = generic->getName();
     if (generic->hasClangNode()) {
-      if (auto *ctsd = dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(
+      if (auto *ctsd = dyn_cast_or_null<language::Core::ClassTemplateSpecializationDecl>(
               generic->getClangDecl())) {
         assert(discriminator.empty());
         discriminator = getClangTemplateSpecializationXRefDiscriminator(
@@ -2496,7 +2496,7 @@ void Serializer::writeCrossReference(const Decl *D) {
 
     Identifier name = type->getName();
     if (type->hasClangNode()) {
-      if (auto *ctsd = dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(
+      if (auto *ctsd = dyn_cast_or_null<language::Core::ClassTemplateSpecializationDecl>(
               type->getClangDecl())) {
         assert(discriminator.empty());
         discriminator = getClangTemplateSpecializationXRefDiscriminator(
@@ -6205,7 +6205,7 @@ class ClangToCodiraBasicWriter :
   Serializer &S;
   SmallVectorImpl<uint64_t> &Record;
   using TypeWriter =
-    clang::serialization::AbstractTypeWriter<ClangToCodiraBasicWriter>;
+    language::Core::serialization::AbstractTypeWriter<ClangToCodiraBasicWriter>;
   TypeWriter Types;
 
   ClangModuleLoader *getClangLoader() {
@@ -6222,7 +6222,7 @@ public:
     Record.push_back(value);
   }
 
-  void writeIdentifier(const clang::IdentifierInfo *value) {
+  void writeIdentifier(const language::Core::IdentifierInfo *value) {
     IdentifierID id = 0;
     if (value) {
       id = S.addDeclBaseNameRef(
@@ -6231,7 +6231,7 @@ public:
     Record.push_back(id);
   }
 
-  void writeStmtRef(const clang::Stmt *stmt) {
+  void writeStmtRef(const language::Core::Stmt *stmt) {
     // The deserializer should always read null, and isSerializable
     // should be checking that we don't see a non-null statement here.
     if (stmt) {
@@ -6240,7 +6240,7 @@ public:
     }
   }
 
-  void writeDeclRef(const clang::Decl *decl) {
+  void writeDeclRef(const language::Core::Decl *decl) {
     if (!decl) {
       Record.push_back(/*no declaration*/ 0);
       return;
@@ -6272,8 +6272,8 @@ public:
     }
   }
 
-  void writeAttr(const clang::Attr *attr) {
-    auto *languageAttr = dyn_cast_or_null<clang::CodiraAttrAttr>(attr);
+  void writeAttr(const language::Core::Attr *attr) {
+    auto *languageAttr = dyn_cast_or_null<language::Core::CodiraAttrAttr>(attr);
     if (!languageAttr) {
       writeUInt32(/*no attribute*/0);
       return;
@@ -6303,14 +6303,14 @@ public:
   // "__ended_by(expr)".
   // Nothing to be done for now as we currently don't import
   // these types into Codira.
-  void writeTypeCoupledDeclRefInfo(clang::TypeCoupledDeclRefInfo info) {
+  void writeTypeCoupledDeclRefInfo(language::Core::TypeCoupledDeclRefInfo info) {
     toolchain_unreachable("TypeCoupledDeclRefInfo shouldn't be reached from language");
   }
 };
 
 }
 
-void Serializer::writeASTBlockEntity(const clang::Type *ty) {
+void Serializer::writeASTBlockEntity(const language::Core::Type *ty) {
   using namespace decls_block;
   auto &ctx = getASTContext().getClangModuleLoader()->getClangASTContext();
   PrettyStackTraceClangType traceRAII(ctx, "serializing clang type", ty);

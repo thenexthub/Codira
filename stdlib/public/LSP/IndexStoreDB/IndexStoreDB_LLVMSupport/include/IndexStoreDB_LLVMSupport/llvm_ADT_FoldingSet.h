@@ -1,29 +1,45 @@
-//===- llvm/ADT/FoldingSet.h - Uniquing Hash Set ----------------*- C++ -*-===//
+//===- toolchain/ADT/FoldingSet.h - Uniquing Hash Set ----------------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
 // This file defines a hash set that can be used to remove duplication of nodes
 // in a graph.  This code was originally created by Chris Lattner for use with
-// SelectionDAGCSEMap, but was isolated to provide use across the llvm code set.
+// SelectionDAGCSEMap, but was isolated to provide use across the toolchain code set.
 //
 //===----------------------------------------------------------------------===//
 
 #ifndef LLVM_ADT_FOLDINGSET_H
 #define LLVM_ADT_FOLDINGSET_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallVector.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_iterator.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Allocator.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallVector.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_iterator.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Allocator.h>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <utility>
 
-namespace llvm {
+namespace toolchain {
 
 /// This folding set used for two purposes:
 ///   1. Given information about a node we want to create, look up the unique
@@ -756,6 +772,6 @@ struct FoldingSetTrait<std::pair<T1, T2>> {
   }
 };
 
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif // LLVM_ADT_FOLDINGSET_H

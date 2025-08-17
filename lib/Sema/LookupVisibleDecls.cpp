@@ -20,7 +20,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "TypeChecker.h"
-#include "clang/AST/DeclObjC.h"
+#include "language/Core/AST/DeclObjC.h"
 #include "language/AST/ASTContext.h"
 #include "language/AST/ClangModuleLoader.h"
 #include "language/AST/ConformanceLookup.h"
@@ -40,8 +40,8 @@
 #include "language/ClangImporter/ClangImporterRequests.h"
 #include "language/Sema/IDETypeCheckingRequests.h"
 #include "language/Sema/IDETypeChecking.h"
-#include "clang/Basic/Module.h"
-#include "clang/Lex/Preprocessor.h"
+#include "language/Core/Basic/Module.h"
+#include "language/Core/Lex/Preprocessor.h"
 #include "toolchain/ADT/SetVector.h"
 #include <set>
 
@@ -325,10 +325,10 @@ static void doDynamicLookup(VisibleDeclConsumer &Consumer,
 
       // If the declaration is objc_direct, it cannot be called dynamically.
       if (auto clangDecl = D->getClangDecl()) {
-        if (auto objCMethod = dyn_cast<clang::ObjCMethodDecl>(clangDecl)) {
+        if (auto objCMethod = dyn_cast<language::Core::ObjCMethodDecl>(clangDecl)) {
           if (objCMethod->isDirectMethod())
             return;
-        } else if (auto objCProperty = dyn_cast<clang::ObjCPropertyDecl>(clangDecl)) {
+        } else if (auto objCProperty = dyn_cast<language::Core::ObjCPropertyDecl>(clangDecl)) {
           if (objCProperty->isDirectProperty())
             return;
         }
@@ -567,7 +567,7 @@ static void
 }
 
 static void lookupVisibleCxxNamespaceMemberDecls(
-    EnumDecl *languageDecl, const clang::NamespaceDecl *clangNamespace,
+    EnumDecl *languageDecl, const language::Core::NamespaceDecl *clangNamespace,
     VisibleDeclConsumer &Consumer, VisitedSet &Visited) {
   if (!Visited.insert(languageDecl).second)
     return;
@@ -584,10 +584,10 @@ static void lookupVisibleCxxNamespaceMemberDecls(
             {});
 
         for (auto found : allResults) {
-          auto clangMember = found.get<clang::NamedDecl *>();
+          auto clangMember = found.get<language::Core::NamedDecl *>();
           if (auto importedDecl =
                   ctx.getClangModuleLoader()->importDeclDirectly(
-                      cast<clang::NamedDecl>(clangMember))) {
+                      cast<language::Core::NamedDecl>(clangMember))) {
             if (addedMembers.insert(importedDecl).second) {
               if (importedDecl->getDeclContext()->getAsDecl() != languageDecl) {
                 return;
@@ -599,7 +599,7 @@ static void lookupVisibleCxxNamespaceMemberDecls(
         }
       };
 
-      auto namedDecl = dyn_cast<clang::NamedDecl>(member);
+      auto namedDecl = dyn_cast<language::Core::NamedDecl>(member);
       if (!namedDecl)
         continue;
       auto name = ctx.getClangModuleLoader()->importName(namedDecl);
@@ -609,7 +609,7 @@ static void lookupVisibleCxxNamespaceMemberDecls(
 
       // Unscoped enums could have their enumerators present
       // in the parent namespace.
-      if (auto *ed = dyn_cast<clang::EnumDecl>(member)) {
+      if (auto *ed = dyn_cast<language::Core::EnumDecl>(member)) {
         if (!ed->isScoped()) {
           for (const auto *ecd : ed->enumerators()) {
             auto name = ctx.getClangModuleLoader()->importName(ecd);
@@ -713,7 +713,7 @@ static void lookupVisibleMemberDeclsImpl(
   // Lookup members of C++ namespace without looking type members, as
   // C++ namespace uses lazy lookup.
   if (auto *ET = BaseTy->getAs<EnumType>()) {
-    if (auto *clangNamespace = dyn_cast_or_null<clang::NamespaceDecl>(
+    if (auto *clangNamespace = dyn_cast_or_null<language::Core::NamespaceDecl>(
             ET->getDecl()->getClangDecl())) {
       lookupVisibleCxxNamespaceMemberDecls(ET->getDecl(), clangNamespace,
                                            Consumer, Visited);

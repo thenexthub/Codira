@@ -20,7 +20,7 @@
 #import <CoreServices/CoreServices.h>
 
 using namespace IndexStoreDB;
-using namespace llvm;
+using namespace toolchain;
 
 struct FilePathWatcher::Implementation {
   FSEventStreamRef EventStream = nullptr;
@@ -126,7 +126,7 @@ void FilePathWatcher::Implementation::stopFSEventStream() {
 #else
 
 using namespace IndexStoreDB;
-using namespace llvm;
+using namespace toolchain;
 
 // TODO: implement for platforms without CoreServices.
 struct FilePathWatcher::Implementation {

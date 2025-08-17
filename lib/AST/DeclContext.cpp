@@ -36,7 +36,7 @@
 #include "language/Basic/SourceManager.h"
 #include "language/Basic/Statistic.h"
 #include "language/ClangImporter/ClangImporter.h"
-#include "clang/AST/ASTContext.h"
+#include "language/Core/AST/ASTContext.h"
 #include "toolchain/ADT/DenseMap.h"
 #include "toolchain/ADT/Statistic.h"
 #include "toolchain/Support/SaveAndRestore.h"
@@ -1499,21 +1499,21 @@ bool AccessScope::allowsPrivateAccess(const DeclContext *useDC, const DeclContex
     // with the specified FileID.
     auto clangDecl = sourceNTD->getDecl()->getClangDecl();
 
-    if (isa_and_nonnull<clang::EnumDecl>(clangDecl)) {
+    if (isa_and_nonnull<language::Core::EnumDecl>(clangDecl)) {
       // Consider:  class C { private: enum class E { M }; };
       // If sourceDC is a C++ enum (e.g, E), then we are looking at one of its
       // members (e.g., E.M). If this is the case, then we should consider
       // the LANGUAGE_PRIVATE_FILEID of its enclosing class decl (e.g., C), if any.
       // Doing so allows the nested private enum's members to inherit the access
       // of the nested enum type itself.
-      clangDecl = dyn_cast<clang::CXXRecordDecl>(clangDecl->getDeclContext());
+      clangDecl = dyn_cast<language::Core::CXXRecordDecl>(clangDecl->getDeclContext());
       sourceDC = sourceNTD->getDeclContext();
     }
 
-    if (!isa_and_nonnull<clang::CXXRecordDecl>(clangDecl))
+    if (!isa_and_nonnull<language::Core::CXXRecordDecl>(clangDecl))
       return false;
 
-    auto recordDecl = cast<clang::CXXRecordDecl>(clangDecl);
+    auto recordDecl = cast<language::Core::CXXRecordDecl>(clangDecl);
 
     // Diagnostics should enforce that there is at most LANGUAGE_PRIVATE_FILEID,
     // but this handles the case where there is more than anyway (whether that

@@ -1,0 +1,862 @@
+//===------ Interpreter.cpp - Incremental Compilation and Execution -------===//
+//
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
+//
+//===----------------------------------------------------------------------===//
+//
+// This file implements the component which performs incremental code
+// compilation and execution.
+//
+//===----------------------------------------------------------------------===//
+
+#include "DeviceOffload.h"
+#include "IncrementalExecutor.h"
+#include "IncrementalParser.h"
+#include "InterpreterUtils.h"
+#include "toolchain/Support/VirtualFileSystem.h"
+#ifdef __EMSCRIPTEN__
+#include "Wasm.h"
+#include <dlfcn.h>
+#endif // __EMSCRIPTEN__
+
+#include "language/Core/AST/ASTConsumer.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Mangle.h"
+#include "language/Core/AST/TypeVisitor.h"
+#include "language/Core/Basic/DiagnosticSema.h"
+#include "language/Core/Basic/TargetInfo.h"
+#include "language/Core/CodeGen/CodeGenAction.h"
+#include "language/Core/CodeGen/ModuleBuilder.h"
+#include "language/Core/CodeGen/ObjectFilePCHContainerWriter.h"
+#include "language/Core/Driver/Compilation.h"
+#include "language/Core/Driver/Driver.h"
+#include "language/Core/Driver/Job.h"
+#include "language/Core/Driver/Options.h"
+#include "language/Core/Driver/Tool.h"
+#include "language/Core/Frontend/CompilerInstance.h"
+#include "language/Core/Frontend/FrontendAction.h"
+#include "language/Core/Frontend/MultiplexConsumer.h"
+#include "language/Core/Frontend/TextDiagnosticBuffer.h"
+#include "language/Core/FrontendTool/Utils.h"
+#include "language/Core/Interpreter/Interpreter.h"
+#include "language/Core/Interpreter/Value.h"
+#include "language/Core/Lex/PreprocessorOptions.h"
+#include "language/Core/Sema/Lookup.h"
+#include "language/Core/Serialization/ObjectFilePCHContainerReader.h"
+#include "toolchain/ExecutionEngine/JITSymbol.h"
+#include "toolchain/ExecutionEngine/Orc/EPCDynamicLibrarySearchGenerator.h"
+#include "toolchain/ExecutionEngine/Orc/LLJIT.h"
+#include "toolchain/IR/Module.h"
+#include "toolchain/Support/Errc.h"
+#include "toolchain/Support/ErrorHandling.h"
+#include "toolchain/Support/raw_ostream.h"
+#include "toolchain/TargetParser/Host.h"
+#include "toolchain/Transforms/Utils/Cloning.h" // for CloneModule
+
+#define DEBUG_TYPE "clang-repl"
+
+using namespace language::Core;
+// FIXME: Figure out how to unify with namespace init_convenience from
+//        tools/clang-import-test/clang-import-test.cpp
+namespace {
+/// Retrieves the clang CC1 specific flags out of the compilation's jobs.
+/// \returns NULL on error.
+static toolchain::Expected<const toolchain::opt::ArgStringList *>
+GetCC1Arguments(DiagnosticsEngine *Diagnostics,
+                driver::Compilation *Compilation) {
+  // We expect to get back exactly one Command job, if we didn't something
+  // failed. Extract that job from the Compilation.
+  const driver::JobList &Jobs = Compilation->getJobs();
+  if (!Jobs.size() || !isa<driver::Command>(*Jobs.begin()))
+    return toolchain::createStringError(toolchain::errc::not_supported,
+                                   "Driver initialization failed. "
+                                   "Unable to create a driver job");
+
+  // The one job we find should be to invoke clang again.
+  const driver::Command *Cmd = cast<driver::Command>(&(*Jobs.begin()));
+  if (toolchain::StringRef(Cmd->getCreator().getName()) != "clang")
+    return toolchain::createStringError(toolchain::errc::not_supported,
+                                   "Driver initialization failed");
+
+  return &Cmd->getArguments();
+}
+
+static toolchain::Expected<std::unique_ptr<CompilerInstance>>
+CreateCI(const toolchain::opt::ArgStringList &Argv) {
+  std::unique_ptr<CompilerInstance> Clang(new CompilerInstance());
+
+  // Register the support for object-file-wrapped Clang modules.
+  // FIXME: Clang should register these container operations automatically.
+  auto PCHOps = Clang->getPCHContainerOperations();
+  PCHOps->registerWriter(std::make_unique<ObjectFilePCHContainerWriter>());
+  PCHOps->registerReader(std::make_unique<ObjectFilePCHContainerReader>());
+
+  // Buffer diagnostics from argument parsing so that we can output them using
+  // a well formed diagnostic object.
+  DiagnosticOptions DiagOpts;
+  TextDiagnosticBuffer *DiagsBuffer = new TextDiagnosticBuffer;
+  DiagnosticsEngine Diags(DiagnosticIDs::create(), DiagOpts, DiagsBuffer);
+  bool Success = CompilerInvocation::CreateFromArgs(
+      Clang->getInvocation(), toolchain::ArrayRef(Argv.begin(), Argv.size()), Diags);
+
+  // Infer the builtin include path if unspecified.
+  if (Clang->getHeaderSearchOpts().UseBuiltinIncludes &&
+      Clang->getHeaderSearchOpts().ResourceDir.empty())
+    Clang->getHeaderSearchOpts().ResourceDir =
+        CompilerInvocation::GetResourcesPath(Argv[0], nullptr);
+
+  // Create the actual diagnostics engine.
+  Clang->createDiagnostics(*toolchain::vfs::getRealFileSystem());
+  if (!Clang->hasDiagnostics())
+    return toolchain::createStringError(toolchain::errc::not_supported,
+                                   "Initialization failed. "
+                                   "Unable to create diagnostics engine");
+
+  DiagsBuffer->FlushDiagnostics(Clang->getDiagnostics());
+  if (!Success)
+    return toolchain::createStringError(toolchain::errc::not_supported,
+                                   "Initialization failed. "
+                                   "Unable to flush diagnostics");
+
+  // FIXME: Merge with CompilerInstance::ExecuteAction.
+  toolchain::MemoryBuffer *MB = toolchain::MemoryBuffer::getMemBuffer("").release();
+  Clang->getPreprocessorOpts().addRemappedFile("<<< inputs >>>", MB);
+
+  Clang->setTarget(TargetInfo::CreateTargetInfo(
+      Clang->getDiagnostics(), Clang->getInvocation().getTargetOpts()));
+  if (!Clang->hasTarget())
+    return toolchain::createStringError(toolchain::errc::not_supported,
+                                   "Initialization failed. "
+                                   "Target is missing");
+
+  Clang->getTarget().adjust(Clang->getDiagnostics(), Clang->getLangOpts(),
+                            Clang->getAuxTarget());
+
+  // Don't clear the AST before backend codegen since we do codegen multiple
+  // times, reusing the same AST.
+  Clang->getCodeGenOpts().ClearASTBeforeBackend = false;
+
+  Clang->getFrontendOpts().DisableFree = false;
+  Clang->getCodeGenOpts().DisableFree = false;
+  return std::move(Clang);
+}
+
+} // anonymous namespace
+
+namespace language::Core {
+
+toolchain::Expected<std::unique_ptr<CompilerInstance>>
+IncrementalCompilerBuilder::create(std::string TT,
+                                   std::vector<const char *> &ClangArgv) {
+
+  // If we don't know ClangArgv0 or the address of main() at this point, try
+  // to guess it anyway (it's possible on some platforms).
+  std::string MainExecutableName =
+      toolchain::sys::fs::getMainExecutable(nullptr, nullptr);
+
+  ClangArgv.insert(ClangArgv.begin(), MainExecutableName.c_str());
+
+  // Prepending -c to force the driver to do something if no action was
+  // specified. By prepending we allow users to override the default
+  // action and use other actions in incremental mode.
+  // FIXME: Print proper driver diagnostics if the driver flags are wrong.
+  // We do C++ by default; append right after argv[0] if no "-x" given
+  ClangArgv.insert(ClangArgv.end(), "-Xclang");
+  ClangArgv.insert(ClangArgv.end(), "-fincremental-extensions");
+  ClangArgv.insert(ClangArgv.end(), "-c");
+
+  // Put a dummy C++ file on to ensure there's at least one compile job for the
+  // driver to construct.
+  ClangArgv.push_back("<<< inputs >>>");
+
+  // Buffer diagnostics from argument parsing so that we can output them using a
+  // well formed diagnostic object.
+  std::unique_ptr<DiagnosticOptions> DiagOpts =
+      CreateAndPopulateDiagOpts(ClangArgv);
+  TextDiagnosticBuffer *DiagsBuffer = new TextDiagnosticBuffer;
+  DiagnosticsEngine Diags(DiagnosticIDs::create(), *DiagOpts, DiagsBuffer);
+
+  driver::Driver Driver(/*MainBinaryName=*/ClangArgv[0], TT, Diags);
+  Driver.setCheckInputsExist(false); // the input comes from mem buffers
+  toolchain::ArrayRef<const char *> RF = toolchain::ArrayRef(ClangArgv);
+  std::unique_ptr<driver::Compilation> Compilation(Driver.BuildCompilation(RF));
+
+  if (Compilation->getArgs().hasArg(driver::options::OPT_v))
+    Compilation->getJobs().Print(toolchain::errs(), "\n", /*Quote=*/false);
+
+  auto ErrOrCC1Args = GetCC1Arguments(&Diags, Compilation.get());
+  if (auto Err = ErrOrCC1Args.takeError())
+    return std::move(Err);
+
+  return CreateCI(**ErrOrCC1Args);
+}
+
+toolchain::Expected<std::unique_ptr<CompilerInstance>>
+IncrementalCompilerBuilder::CreateCpp() {
+  std::vector<const char *> Argv;
+  Argv.reserve(5 + 1 + UserArgs.size());
+  Argv.push_back("-xc++");
+#ifdef __EMSCRIPTEN__
+  Argv.push_back("-target");
+  Argv.push_back("wasm32-unknown-emscripten");
+  Argv.push_back("-fvisibility=default");
+#endif
+  toolchain::append_range(Argv, UserArgs);
+
+  std::string TT = TargetTriple ? *TargetTriple : toolchain::sys::getProcessTriple();
+  return IncrementalCompilerBuilder::create(TT, Argv);
+}
+
+toolchain::Expected<std::unique_ptr<CompilerInstance>>
+IncrementalCompilerBuilder::createCuda(bool device) {
+  std::vector<const char *> Argv;
+  Argv.reserve(5 + 4 + UserArgs.size());
+
+  Argv.push_back("-xcuda");
+  if (device)
+    Argv.push_back("--cuda-device-only");
+  else
+    Argv.push_back("--cuda-host-only");
+
+  std::string SDKPathArg = "--cuda-path=";
+  if (!CudaSDKPath.empty()) {
+    SDKPathArg += CudaSDKPath;
+    Argv.push_back(SDKPathArg.c_str());
+  }
+
+  std::string ArchArg = "--offload-arch=";
+  if (!OffloadArch.empty()) {
+    ArchArg += OffloadArch;
+    Argv.push_back(ArchArg.c_str());
+  }
+
+  toolchain::append_range(Argv, UserArgs);
+
+  std::string TT = TargetTriple ? *TargetTriple : toolchain::sys::getProcessTriple();
+  return IncrementalCompilerBuilder::create(TT, Argv);
+}
+
+toolchain::Expected<std::unique_ptr<CompilerInstance>>
+IncrementalCompilerBuilder::CreateCudaDevice() {
+  return IncrementalCompilerBuilder::createCuda(true);
+}
+
+toolchain::Expected<std::unique_ptr<CompilerInstance>>
+IncrementalCompilerBuilder::CreateCudaHost() {
+  return IncrementalCompilerBuilder::createCuda(false);
+}
+
+class InProcessPrintingASTConsumer final : public MultiplexConsumer {
+  Interpreter &Interp;
+
+public:
+  InProcessPrintingASTConsumer(std::unique_ptr<ASTConsumer> C, Interpreter &I)
+      : MultiplexConsumer(std::move(C)), Interp(I) {}
+  bool HandleTopLevelDecl(DeclGroupRef DGR) override final {
+    if (DGR.isNull())
+      return true;
+
+    for (Decl *D : DGR)
+      if (auto *TLSD = toolchain::dyn_cast<TopLevelStmtDecl>(D))
+        if (TLSD && TLSD->isSemiMissing()) {
+          auto ExprOrErr =
+              Interp.convertExprToValue(cast<Expr>(TLSD->getStmt()));
+          if (toolchain::Error E = ExprOrErr.takeError()) {
+            toolchain::logAllUnhandledErrors(std::move(E), toolchain::errs(),
+                                        "Value printing failed: ");
+            return false; // abort parsing
+          }
+          TLSD->setStmt(*ExprOrErr);
+        }
+
+    return MultiplexConsumer::HandleTopLevelDecl(DGR);
+  }
+};
+
+/// A custom action enabling the incremental processing functionality.
+///
+/// The usual \p FrontendAction expects one call to ExecuteAction and once it
+/// sees a call to \p EndSourceFile it deletes some of the important objects
+/// such as \p Preprocessor and \p Sema assuming no further input will come.
+///
+/// \p IncrementalAction ensures it keep its underlying action's objects alive
+/// as long as the \p IncrementalParser needs them.
+///
+class IncrementalAction : public WrapperFrontendAction {
+private:
+  bool IsTerminating = false;
+  Interpreter &Interp;
+  std::unique_ptr<ASTConsumer> Consumer;
+
+public:
+  IncrementalAction(CompilerInstance &CI, toolchain::LLVMContext &LLVMCtx,
+                    toolchain::Error &Err, Interpreter &I,
+                    std::unique_ptr<ASTConsumer> Consumer = nullptr)
+      : WrapperFrontendAction([&]() {
+          toolchain::ErrorAsOutParameter EAO(&Err);
+          std::unique_ptr<FrontendAction> Act;
+          switch (CI.getFrontendOpts().ProgramAction) {
+          default:
+            Err = toolchain::createStringError(
+                std::errc::state_not_recoverable,
+                "Driver initialization failed. "
+                "Incremental mode for action %d is not supported",
+                CI.getFrontendOpts().ProgramAction);
+            return Act;
+          case frontend::ASTDump:
+          case frontend::ASTPrint:
+          case frontend::ParseSyntaxOnly:
+            Act = CreateFrontendAction(CI);
+            break;
+          case frontend::PluginAction:
+          case frontend::EmitAssembly:
+          case frontend::EmitBC:
+          case frontend::EmitObj:
+          case frontend::PrintPreprocessedInput:
+          case frontend::EmitLLVMOnly:
+            Act.reset(new EmitLLVMOnlyAction(&LLVMCtx));
+            break;
+          }
+          return Act;
+        }()),
+        Interp(I), Consumer(std::move(Consumer)) {}
+  FrontendAction *getWrapped() const { return WrappedAction.get(); }
+  TranslationUnitKind getTranslationUnitKind() override {
+    return TU_Incremental;
+  }
+
+  std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI,
+                                                 StringRef InFile) override {
+    std::unique_ptr<ASTConsumer> C =
+        WrapperFrontendAction::CreateASTConsumer(CI, InFile);
+
+    if (Consumer) {
+      std::vector<std::unique_ptr<ASTConsumer>> Cs;
+      Cs.push_back(std::move(Consumer));
+      Cs.push_back(std::move(C));
+      return std::make_unique<MultiplexConsumer>(std::move(Cs));
+    }
+
+    return std::make_unique<InProcessPrintingASTConsumer>(std::move(C), Interp);
+  }
+
+  void ExecuteAction() override {
+    WrapperFrontendAction::ExecuteAction();
+    getCompilerInstance().getSema().CurContext = nullptr;
+  }
+
+  // Do not terminate after processing the input. This allows us to keep various
+  // clang objects alive and to incrementally grow the current TU.
+  void EndSourceFile() override {
+    // The WrappedAction can be nullptr if we issued an error in the ctor.
+    if (IsTerminating && getWrapped())
+      WrapperFrontendAction::EndSourceFile();
+  }
+
+  void FinalizeAction() {
+    assert(!IsTerminating && "Already finalized!");
+    IsTerminating = true;
+    EndSourceFile();
+  }
+};
+
+Interpreter::Interpreter(std::unique_ptr<CompilerInstance> Instance,
+                         toolchain::Error &ErrOut,
+                         std::unique_ptr<toolchain::orc::LLJITBuilder> JITBuilder,
+                         std::unique_ptr<language::Core::ASTConsumer> Consumer)
+    : JITBuilder(std::move(JITBuilder)) {
+  CI = std::move(Instance);
+  toolchain::ErrorAsOutParameter EAO(&ErrOut);
+  auto LLVMCtx = std::make_unique<toolchain::LLVMContext>();
+  TSCtx = std::make_unique<toolchain::orc::ThreadSafeContext>(std::move(LLVMCtx));
+
+  Act = TSCtx->withContextDo([&](toolchain::LLVMContext *Ctx) {
+    return std::make_unique<IncrementalAction>(*CI, *Ctx, ErrOut, *this,
+                                               std::move(Consumer));
+  });
+
+  if (ErrOut)
+    return;
+  CI->ExecuteAction(*Act);
+
+  IncrParser = std::make_unique<IncrementalParser>(*CI, ErrOut);
+
+  if (ErrOut)
+    return;
+
+  if (getCodeGen()) {
+    CachedInCodeGenModule = GenModule();
+    // The initial PTU is filled by `-include` or by CUDA includes
+    // automatically.
+    if (!CI->getPreprocessorOpts().Includes.empty()) {
+      // We can't really directly pass the CachedInCodeGenModule to the Jit
+      // because it will steal it, causing dangling references as explained in
+      // Interpreter::Execute
+      auto M = toolchain::CloneModule(*CachedInCodeGenModule);
+      ASTContext &C = CI->getASTContext();
+      RegisterPTU(C.getTranslationUnitDecl(), std::move(M));
+    }
+    if (toolchain::Error Err = CreateExecutor()) {
+      ErrOut = joinErrors(std::move(ErrOut), std::move(Err));
+      return;
+    }
+  }
+
+  // Not all frontends support code-generation, e.g. ast-dump actions don't
+  if (getCodeGen()) {
+    // Process the PTUs that came from initialization. For example -include will
+    // give us a header that's processed at initialization of the preprocessor.
+    for (PartialTranslationUnit &PTU : PTUs)
+      if (toolchain::Error Err = Execute(PTU)) {
+        ErrOut = joinErrors(std::move(ErrOut), std::move(Err));
+        return;
+      }
+  }
+}
+
+Interpreter::~Interpreter() {
+  IncrParser.reset();
+  Act->FinalizeAction();
+  if (DeviceParser)
+    DeviceParser.reset();
+  if (DeviceAct)
+    DeviceAct->FinalizeAction();
+  if (IncrExecutor) {
+    if (toolchain::Error Err = IncrExecutor->cleanUp())
+      toolchain::report_fatal_error(
+          toolchain::Twine("Failed to clean up IncrementalExecutor: ") +
+          toString(std::move(Err)));
+  }
+}
+
+// These better to put in a runtime header but we can't. This is because we
+// can't find the precise resource directory in unittests so we have to hard
+// code them.
+const char *const Runtimes = R"(
+    #define __CLANG_REPL__ 1
+#ifdef __cplusplus
+    #define EXTERN_C extern "C"
+    struct __clang_Interpreter_NewTag{} __ci_newtag;
+    void* operator new(__SIZE_TYPE__, void* __p, __clang_Interpreter_NewTag) noexcept;
+    template <class T, class = T (*)() /*disable for arrays*/>
+    void __clang_Interpreter_SetValueCopyArr(const T* Src, void* Placement, unsigned long Size) {
+      for (auto Idx = 0; Idx < Size; ++Idx)
+        new ((void*)(((T*)Placement) + Idx), __ci_newtag) T(Src[Idx]);
+    }
+    template <class T, unsigned long N>
+    void __clang_Interpreter_SetValueCopyArr(const T (*Src)[N], void* Placement, unsigned long Size) {
+      __clang_Interpreter_SetValueCopyArr(Src[0], Placement, Size);
+    }
+#else
+    #define EXTERN_C extern
+    EXTERN_C void *memcpy(void *restrict dst, const void *restrict src, __SIZE_TYPE__ n);
+    EXTERN_C inline void __clang_Interpreter_SetValueCopyArr(const void* Src, void* Placement, unsigned long Size) {
+      memcpy(Placement, Src, Size);
+    }
+#endif // __cplusplus
+  EXTERN_C void *__clang_Interpreter_SetValueWithAlloc(void*, void*, void*);
+  EXTERN_C void __clang_Interpreter_SetValueNoAlloc(void *This, void *OutVal, void *OpaqueType, ...);
+)";
+
+toolchain::Expected<std::unique_ptr<Interpreter>>
+Interpreter::create(std::unique_ptr<CompilerInstance> CI,
+                    std::unique_ptr<toolchain::orc::LLJITBuilder> JB) {
+  toolchain::Error Err = toolchain::Error::success();
+  auto Interp = std::unique_ptr<Interpreter>(
+      new Interpreter(std::move(CI), Err, JB ? std::move(JB) : nullptr));
+  if (Err)
+    return std::move(Err);
+
+  // Add runtime code and set a marker to hide it from user code. Undo will not
+  // go through that.
+  Err = Interp->ParseAndExecute(Runtimes);
+  if (Err)
+    return std::move(Err);
+
+  Interp->markUserCodeStart();
+
+  return std::move(Interp);
+}
+
+toolchain::Expected<std::unique_ptr<Interpreter>>
+Interpreter::createWithCUDA(std::unique_ptr<CompilerInstance> CI,
+                            std::unique_ptr<CompilerInstance> DCI) {
+  // avoid writing fat binary to disk using an in-memory virtual file system
+  toolchain::IntrusiveRefCntPtr<toolchain::vfs::InMemoryFileSystem> IMVFS =
+      std::make_unique<toolchain::vfs::InMemoryFileSystem>();
+  toolchain::IntrusiveRefCntPtr<toolchain::vfs::OverlayFileSystem> OverlayVFS =
+      std::make_unique<toolchain::vfs::OverlayFileSystem>(
+          toolchain::vfs::getRealFileSystem());
+  OverlayVFS->pushOverlay(IMVFS);
+  CI->createFileManager(OverlayVFS);
+
+  toolchain::Expected<std::unique_ptr<Interpreter>> InterpOrErr =
+      Interpreter::create(std::move(CI));
+  if (!InterpOrErr)
+    return InterpOrErr;
+
+  std::unique_ptr<Interpreter> Interp = std::move(*InterpOrErr);
+
+  toolchain::Error Err = toolchain::Error::success();
+
+  auto DeviceAct = Interp->TSCtx->withContextDo([&](toolchain::LLVMContext *Ctx) {
+    return std::make_unique<IncrementalAction>(*DCI, *Ctx, Err, *Interp);
+  });
+
+  if (Err)
+    return std::move(Err);
+
+  Interp->DeviceAct = std::move(DeviceAct);
+
+  DCI->ExecuteAction(*Interp->DeviceAct);
+
+  Interp->DeviceCI = std::move(DCI);
+
+  auto DeviceParser = std::make_unique<IncrementalCUDADeviceParser>(
+      *Interp->DeviceCI, *Interp->getCompilerInstance(), IMVFS, Err,
+      Interp->PTUs);
+
+  if (Err)
+    return std::move(Err);
+
+  Interp->DeviceParser = std::move(DeviceParser);
+  return std::move(Interp);
+}
+
+CompilerInstance *Interpreter::getCompilerInstance() { return CI.get(); }
+const CompilerInstance *Interpreter::getCompilerInstance() const {
+  return const_cast<Interpreter *>(this)->getCompilerInstance();
+}
+
+toolchain::Expected<toolchain::orc::LLJIT &> Interpreter::getExecutionEngine() {
+  if (!IncrExecutor) {
+    if (auto Err = CreateExecutor())
+      return std::move(Err);
+  }
+
+  return IncrExecutor->GetExecutionEngine();
+}
+
+ASTContext &Interpreter::getASTContext() {
+  return getCompilerInstance()->getASTContext();
+}
+
+const ASTContext &Interpreter::getASTContext() const {
+  return getCompilerInstance()->getASTContext();
+}
+
+void Interpreter::markUserCodeStart() {
+  assert(!InitPTUSize && "We only do this once");
+  InitPTUSize = PTUs.size();
+}
+
+size_t Interpreter::getEffectivePTUSize() const {
+  assert(PTUs.size() >= InitPTUSize && "empty PTU list?");
+  return PTUs.size() - InitPTUSize;
+}
+
+PartialTranslationUnit &
+Interpreter::RegisterPTU(TranslationUnitDecl *TU,
+                         std::unique_ptr<toolchain::Module> M /*={}*/,
+                         IncrementalAction *Action) {
+  PTUs.emplace_back(PartialTranslationUnit());
+  PartialTranslationUnit &LastPTU = PTUs.back();
+  LastPTU.TUPart = TU;
+
+  if (!M)
+    M = GenModule(Action);
+
+  assert((!getCodeGen(Action) || M) &&
+         "Must have a toolchain::Module at this point");
+
+  LastPTU.TheModule = std::move(M);
+  LLVM_DEBUG(toolchain::dbgs() << "compile-ptu " << PTUs.size() - 1
+                          << ": [TU=" << LastPTU.TUPart);
+  if (LastPTU.TheModule)
+    LLVM_DEBUG(toolchain::dbgs() << ", M=" << LastPTU.TheModule.get() << " ("
+                            << LastPTU.TheModule->getName() << ")");
+  LLVM_DEBUG(toolchain::dbgs() << "]\n");
+  return LastPTU;
+}
+
+toolchain::Expected<PartialTranslationUnit &>
+Interpreter::Parse(toolchain::StringRef Code) {
+  // If we have a device parser, parse it first. The generated code will be
+  // included in the host compilation
+  if (DeviceParser) {
+    toolchain::Expected<TranslationUnitDecl *> DeviceTU = DeviceParser->Parse(Code);
+    if (auto E = DeviceTU.takeError())
+      return std::move(E);
+
+    RegisterPTU(*DeviceTU, nullptr, DeviceAct.get());
+
+    toolchain::Expected<toolchain::StringRef> PTX = DeviceParser->GeneratePTX();
+    if (!PTX)
+      return PTX.takeError();
+
+    toolchain::Error Err = DeviceParser->GenerateFatbinary();
+    if (Err)
+      return std::move(Err);
+  }
+
+  // Tell the interpreter sliently ignore unused expressions since value
+  // printing could cause it.
+  getCompilerInstance()->getDiagnostics().setSeverity(
+      language::Core::diag::warn_unused_expr, diag::Severity::Ignored, SourceLocation());
+
+  toolchain::Expected<TranslationUnitDecl *> TuOrErr = IncrParser->Parse(Code);
+  if (!TuOrErr)
+    return TuOrErr.takeError();
+
+  PTUs.emplace_back(PartialTranslationUnit());
+  PartialTranslationUnit &LastPTU = PTUs.back();
+  LastPTU.TUPart = *TuOrErr;
+
+  if (std::unique_ptr<toolchain::Module> M = GenModule())
+    LastPTU.TheModule = std::move(M);
+
+  return LastPTU;
+}
+
+static toolchain::Expected<toolchain::orc::JITTargetMachineBuilder>
+createJITTargetMachineBuilder(const std::string &TT) {
+  if (TT == toolchain::sys::getProcessTriple())
+    // This fails immediately if the target backend is not registered
+    return toolchain::orc::JITTargetMachineBuilder::detectHost();
+
+  // If the target backend is not registered, LLJITBuilder::create() will fail
+  return toolchain::orc::JITTargetMachineBuilder(toolchain::Triple(TT));
+}
+
+toolchain::Expected<std::unique_ptr<toolchain::orc::LLJITBuilder>>
+Interpreter::createLLJITBuilder(
+    std::unique_ptr<toolchain::orc::ExecutorProcessControl> EPC,
+    toolchain::StringRef OrcRuntimePath) {
+  const std::string &TT = EPC->getTargetTriple().getTriple();
+  auto JTMB = createJITTargetMachineBuilder(TT);
+  if (!JTMB)
+    return JTMB.takeError();
+  auto JB = IncrementalExecutor::createDefaultJITBuilder(std::move(*JTMB));
+  if (!JB)
+    return JB.takeError();
+
+  (*JB)->setExecutorProcessControl(std::move(EPC));
+  (*JB)->setPlatformSetUp(
+      toolchain::orc::ExecutorNativePlatform(OrcRuntimePath.str()));
+
+  return std::move(*JB);
+}
+
+toolchain::Error Interpreter::CreateExecutor() {
+  if (IncrExecutor)
+    return toolchain::make_error<toolchain::StringError>("Operation failed. "
+                                               "Execution engine exists",
+                                               std::error_code());
+  if (!getCodeGen())
+    return toolchain::make_error<toolchain::StringError>("Operation failed. "
+                                               "No code generator available",
+                                               std::error_code());
+  if (!JITBuilder) {
+    const std::string &TT = getCompilerInstance()->getTargetOpts().Triple;
+    auto JTMB = createJITTargetMachineBuilder(TT);
+    if (!JTMB)
+      return JTMB.takeError();
+    auto JB = IncrementalExecutor::createDefaultJITBuilder(std::move(*JTMB));
+    if (!JB)
+      return JB.takeError();
+    JITBuilder = std::move(*JB);
+  }
+
+  toolchain::Error Err = toolchain::Error::success();
+#ifdef __EMSCRIPTEN__
+  auto Executor = std::make_unique<WasmIncrementalExecutor>(*TSCtx);
+#else
+  auto Executor =
+      std::make_unique<IncrementalExecutor>(*TSCtx, *JITBuilder, Err);
+#endif
+  if (!Err)
+    IncrExecutor = std::move(Executor);
+
+  return Err;
+}
+
+void Interpreter::ResetExecutor() { IncrExecutor.reset(); }
+
+toolchain::Error Interpreter::Execute(PartialTranslationUnit &T) {
+  assert(T.TheModule);
+  LLVM_DEBUG(
+      toolchain::dbgs() << "execute-ptu "
+                   << (toolchain::is_contained(PTUs, T)
+                           ? std::distance(PTUs.begin(), toolchain::find(PTUs, T))
+                           : -1)
+                   << ": [TU=" << T.TUPart << ", M=" << T.TheModule.get()
+                   << " (" << T.TheModule->getName() << ")]\n");
+  if (!IncrExecutor) {
+    auto Err = CreateExecutor();
+    if (Err)
+      return Err;
+  }
+  // FIXME: Add a callback to retain the toolchain::Module once the JIT is done.
+  if (auto Err = IncrExecutor->addModule(T))
+    return Err;
+
+  if (auto Err = IncrExecutor->runCtors())
+    return Err;
+
+  return toolchain::Error::success();
+}
+
+toolchain::Error Interpreter::ParseAndExecute(toolchain::StringRef Code, Value *V) {
+
+  auto PTU = Parse(Code);
+  if (!PTU)
+    return PTU.takeError();
+  if (PTU->TheModule)
+    if (toolchain::Error Err = Execute(*PTU))
+      return Err;
+
+  if (LastValue.isValid()) {
+    if (!V) {
+      LastValue.dump();
+      LastValue.clear();
+    } else
+      *V = std::move(LastValue);
+  }
+  return toolchain::Error::success();
+}
+
+toolchain::Expected<toolchain::orc::ExecutorAddr>
+Interpreter::getSymbolAddress(GlobalDecl GD) const {
+  if (!IncrExecutor)
+    return toolchain::make_error<toolchain::StringError>("Operation failed. "
+                                               "No execution engine",
+                                               std::error_code());
+  toolchain::StringRef MangledName = getCodeGen()->GetMangledName(GD);
+  return getSymbolAddress(MangledName);
+}
+
+toolchain::Expected<toolchain::orc::ExecutorAddr>
+Interpreter::getSymbolAddress(toolchain::StringRef IRName) const {
+  if (!IncrExecutor)
+    return toolchain::make_error<toolchain::StringError>("Operation failed. "
+                                               "No execution engine",
+                                               std::error_code());
+
+  return IncrExecutor->getSymbolAddress(IRName, IncrementalExecutor::IRName);
+}
+
+toolchain::Expected<toolchain::orc::ExecutorAddr>
+Interpreter::getSymbolAddressFromLinkerName(toolchain::StringRef Name) const {
+  if (!IncrExecutor)
+    return toolchain::make_error<toolchain::StringError>("Operation failed. "
+                                               "No execution engine",
+                                               std::error_code());
+
+  return IncrExecutor->getSymbolAddress(Name, IncrementalExecutor::LinkerName);
+}
+
+toolchain::Error Interpreter::Undo(unsigned N) {
+
+  if (getEffectivePTUSize() == 0) {
+    return toolchain::make_error<toolchain::StringError>("Operation failed. "
+                                               "No input left to undo",
+                                               std::error_code());
+  } else if (N > getEffectivePTUSize()) {
+    return toolchain::make_error<toolchain::StringError>(
+        toolchain::formatv(
+            "Operation failed. Wanted to undo {0} inputs, only have {1}.", N,
+            getEffectivePTUSize()),
+        std::error_code());
+  }
+
+  for (unsigned I = 0; I < N; I++) {
+    if (IncrExecutor) {
+      if (toolchain::Error Err = IncrExecutor->removeModule(PTUs.back()))
+        return Err;
+    }
+
+    IncrParser->CleanUpPTU(PTUs.back().TUPart);
+    PTUs.pop_back();
+  }
+  return toolchain::Error::success();
+}
+
+toolchain::Error Interpreter::LoadDynamicLibrary(const char *name) {
+#ifdef __EMSCRIPTEN__
+  void *handle = dlopen(name, RTLD_NOW | RTLD_GLOBAL);
+  if (!handle) {
+    toolchain::errs() << dlerror() << '\n';
+    return toolchain::make_error<toolchain::StringError>("Failed to load dynamic library",
+                                               toolchain::inconvertibleErrorCode());
+  }
+#else
+  auto EE = getExecutionEngine();
+  if (!EE)
+    return EE.takeError();
+
+  if (toolchain::Expected<
+          std::unique_ptr<toolchain::orc::EPCDynamicLibrarySearchGenerator>>
+          DLSG = toolchain::orc::EPCDynamicLibrarySearchGenerator::Load(
+              EE->getExecutionSession(), name))
+    // FIXME: Eventually we should put each library in its own JITDylib and
+    //        turn off process symbols by default.
+    EE->getProcessSymbolsJITDylib()->addGenerator(std::move(*DLSG));
+  else
+    return DLSG.takeError();
+#endif
+
+  return toolchain::Error::success();
+}
+
+std::unique_ptr<toolchain::Module>
+Interpreter::GenModule(IncrementalAction *Action) {
+  static unsigned ID = 0;
+  if (CodeGenerator *CG = getCodeGen(Action)) {
+    // Clang's CodeGen is designed to work with a single toolchain::Module. In many
+    // cases for convenience various CodeGen parts have a reference to the
+    // toolchain::Module (TheModule or Module) which does not change when a new
+    // module is pushed. However, the execution engine wants to take ownership
+    // of the module which does not map well to CodeGen's design. To work this
+    // around we created an empty module to make CodeGen happy. We should make
+    // sure it always stays empty.
+    assert(((!CachedInCodeGenModule ||
+             !getCompilerInstance()->getPreprocessorOpts().Includes.empty()) ||
+            ((CachedInCodeGenModule->empty() &&
+              CachedInCodeGenModule->global_empty() &&
+              CachedInCodeGenModule->alias_empty() &&
+              CachedInCodeGenModule->ifunc_empty()))) &&
+           "CodeGen wrote to a readonly module");
+    std::unique_ptr<toolchain::Module> M(CG->ReleaseModule());
+    CG->StartModule("incr_module_" + std::to_string(ID++), M->getContext());
+    return M;
+  }
+  return nullptr;
+}
+
+CodeGenerator *Interpreter::getCodeGen(IncrementalAction *Action) const {
+  if (!Action)
+    Action = Act.get();
+  FrontendAction *WrappedAct = Action->getWrapped();
+  if (!WrappedAct->hasIRSupport())
+    return nullptr;
+  return static_cast<CodeGenAction *>(WrappedAct)->getCodeGenerator();
+}
+} // end namespace language::Core

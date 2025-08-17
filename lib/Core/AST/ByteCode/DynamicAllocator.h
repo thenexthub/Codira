@@ -1,0 +1,134 @@
+//==--------- DynamicAllocator.h - Dynamic allocations ------------*- C++ -*-=//
+//
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef LANGUAGE_CORE_AST_INTERP_DYNAMIC_ALLOCATOR_H
+#define LANGUAGE_CORE_AST_INTERP_DYNAMIC_ALLOCATOR_H
+
+#include "Descriptor.h"
+#include "InterpBlock.h"
+#include "toolchain/ADT/SmallVector.h"
+#include "toolchain/ADT/iterator_range.h"
+#include "toolchain/Support/Allocator.h"
+
+namespace language::Core {
+class Expr;
+namespace interp {
+class Block;
+class InterpState;
+
+/// Manages dynamic memory allocations done during bytecode interpretation.
+///
+/// We manage allocations as a map from their new-expression to a list
+/// of allocations. This is called an AllocationSite. For each site, we
+/// record whether it was allocated using new or new[], the
+/// IsArrayAllocation flag.
+///
+/// For all array allocations, we need to allocate new Descriptor instances,
+/// so the DynamicAllocator has a toolchain::BumpPtrAllocator similar to Program.
+class DynamicAllocator final {
+public:
+  enum class Form : uint8_t {
+    NonArray,
+    Array,
+    Operator,
+  };
+
+private:
+  struct Allocation {
+    std::unique_ptr<std::byte[]> Memory;
+    Allocation(std::unique_ptr<std::byte[]> Memory)
+        : Memory(std::move(Memory)) {}
+    Block *block() const { return reinterpret_cast<Block *>(Memory.get()); }
+  };
+
+  struct AllocationSite {
+    toolchain::SmallVector<Allocation> Allocations;
+    Form AllocForm;
+
+    AllocationSite(std::unique_ptr<std::byte[]> Memory, Form AllocForm)
+        : AllocForm(AllocForm) {
+      Allocations.push_back({std::move(Memory)});
+    }
+
+    size_t size() const { return Allocations.size(); }
+    bool empty() const { return Allocations.empty(); }
+  };
+
+public:
+  DynamicAllocator() = default;
+  DynamicAllocator(DynamicAllocator &) = delete;
+  DynamicAllocator(DynamicAllocator &&) = delete;
+  ~DynamicAllocator();
+
+  void cleanup();
+
+  /// Allocate ONE element of the given descriptor.
+  Block *allocate(const Descriptor *D, unsigned EvalID, Form AllocForm);
+  /// Allocate \p NumElements primitive elements of the given type.
+  Block *allocate(const Expr *Source, PrimType T, size_t NumElements,
+                  unsigned EvalID, Form AllocForm);
+  /// Allocate \p NumElements elements of the given descriptor.
+  Block *allocate(const Descriptor *D, size_t NumElements, unsigned EvalID,
+                  Form AllocForm);
+
+  /// Deallocate the given source+block combination.
+  /// Returns \c true if anything has been deallocatd, \c false otherwise.
+  bool deallocate(const Expr *Source, const Block *BlockToDelete,
+                  InterpState &S);
+
+  /// Checks whether the allocation done at the given source is an array
+  /// allocation.
+  std::optional<Form> getAllocationForm(const Expr *Source) const {
+    if (auto It = AllocationSites.find(Source); It != AllocationSites.end())
+      return It->second.AllocForm;
+    return std::nullopt;
+  }
+
+  /// Allocation site iterator.
+  using const_virtual_iter =
+      toolchain::DenseMap<const Expr *, AllocationSite>::const_iterator;
+  toolchain::iterator_range<const_virtual_iter> allocation_sites() const {
+    return toolchain::make_range(AllocationSites.begin(), AllocationSites.end());
+  }
+
+  bool hasAllocations() const { return !AllocationSites.empty(); }
+
+private:
+  toolchain::DenseMap<const Expr *, AllocationSite> AllocationSites;
+  // Allocations that have already been deallocated but had pointers
+  // to them.
+  toolchain::SmallVector<Allocation> DeadAllocations;
+
+  using PoolAllocTy = toolchain::BumpPtrAllocator;
+  PoolAllocTy DescAllocator;
+
+  /// Allocates a new descriptor.
+  template <typename... Ts> Descriptor *allocateDescriptor(Ts &&...Args) {
+    return new (DescAllocator) Descriptor(std::forward<Ts>(Args)...);
+  }
+};
+
+} // namespace interp
+} // namespace language::Core
+#endif

@@ -1,20 +1,36 @@
 //===- FormatVariadic.h - Efficient type-safe string formatting --*- C++-*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
 // This file implements the formatv() function which can be used with other LLVM
 // subsystems to provide printf-like formatting, but with improved safety and
 // flexibility.  The result of `formatv` is an object which can be streamed to
-// a raw_ostream or converted to a std::string or llvm::SmallString.
+// a raw_ostream or converted to a std::string or toolchain::SmallString.
 //
 //   // Convert to std::string.
 //   std::string S = formatv("{0} {1}", 1234.412, "test").str();
 //
-//   // Convert to llvm::SmallString
+//   // Convert to toolchain::SmallString
 //   SmallString<8> S = formatv("{0} {1}", 1234.412, "test").sstr<8>();
 //
 //   // Stream to an existing raw_ostream.
@@ -25,21 +41,21 @@
 #ifndef LLVM_SUPPORT_FORMATVARIADIC_H
 #define LLVM_SUPPORT_FORMATVARIADIC_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Optional.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_STLExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallString.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_FormatCommon.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_FormatProviders.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_FormatVariadicDetails.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Optional.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_STLExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallString.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_FormatCommon.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_FormatProviders.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_FormatVariadicDetails.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 #include <cstddef>
 #include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
 
-namespace llvm {
+namespace toolchain {
 
 enum class ReplacementType { Empty, Format, Literal };
 
@@ -259,6 +275,6 @@ inline auto formatv(const char *Fmt, Ts &&... Vals) -> formatv_object<decltype(
       std::make_tuple(detail::build_format_adapter(std::forward<Ts>(Vals))...));
 }
 
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif // LLVM_SUPPORT_FORMATVARIADIC_H

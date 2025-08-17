@@ -1,0 +1,56 @@
+//===-- TypeLocNodes.def - Metadata about TypeLoc wrappers ------*- C++ -*-===//
+//
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
+//
+//===----------------------------------------------------------------------===//
+//
+//  This file defines the TypeLoc info database.  Each node is
+//  enumerated by providing its core name (e.g., "Pointer" for "PointerTypeLoc")
+//  and base class (e.g., "DeclaratorLoc").  All nodes except QualifiedTypeLoc
+//  are associated
+//
+//    TYPELOC(Class, Base) - A TypeLoc subclass.  If UNQUAL_TYPELOC is
+//      provided, there will be exactly one of these, Qualified.
+//
+//    UNQUAL_TYPELOC(Class, Base, Type) - An UnqualTypeLoc subclass.
+//
+//    ABSTRACT_TYPELOC(Class) - Refers to TypeSpecLoc and DeclaratorLoc.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef UNQUAL_TYPELOC
+#  define UNQUAL_TYPELOC(Class, Base) TYPELOC(Class, Base)
+#endif
+
+#ifndef ABSTRACT_TYPELOC
+#  define ABSTRACT_TYPELOC(Class, Base) UNQUAL_TYPELOC(Class, Base)
+#endif
+
+TYPELOC(Qualified, TypeLoc)
+#define TYPE(Class, Base) UNQUAL_TYPELOC(Class, Base##Loc)
+#define ABSTRACT_TYPE(Class, Base) ABSTRACT_TYPELOC(Class, Base##Loc)
+#include "language/Core/AST/TypeNodes.inc"
+
+#undef DECLARATOR_TYPELOC
+#undef TYPESPEC_TYPELOC
+#undef ABSTRACT_TYPELOC
+#undef UNQUAL_TYPELOC
+#undef TYPELOC

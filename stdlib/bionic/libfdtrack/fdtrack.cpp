@@ -69,7 +69,7 @@ static constexpr size_t kFdTableSize = 4096;
 static constexpr size_t kStackDepth = 32;
 
 static bool installed = false;
-static std::array<FdEntry, kFdTableSize> stack_traces [[clang::no_destroy]];
+static std::array<FdEntry, kFdTableSize> stack_traces [[language::Core::no_destroy]];
 static unwindstack::AndroidLocalUnwinder& Unwinder() {
   // Skip any initial frames from libfdtrack.so.
   // Also ignore frames from ART (http://b/236197847) because we'd rather spend

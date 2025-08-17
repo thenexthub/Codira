@@ -24,7 +24,7 @@ build() {
     alignment="-Wl,-z,max-page-size=16384"
   fi
 
-  $NDK21E/toolchains/llvm/prebuilt/linux-x86_64/bin/clang -O2 --target=$target \
+  $NDK21E/toolchains/toolchain/prebuilt/linux-x86_64/bin/clang -O2 --target=$target \
       -fpic -shared -o $arch/libtest_invalid-local-tls.so -fno-emulated-tls \
       $alignment -fuse-ld=gold test.c test2.c
 }

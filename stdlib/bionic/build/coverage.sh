@@ -19,8 +19,8 @@
 
 eval "$(cd ${ANDROID_BUILD_TOP}; build/soong/soong_ui.bash --dumpvars-mode --vars="TARGET_ARCH TARGET_ARCH_VARIANT")"
 
-LLVM_PROFDATA=${ANDROID_BUILD_TOP}/prebuilts/clang/host/linux-x86/llvm-binutils-stable/llvm-profdata
-LLVM_COV=${ANDROID_BUILD_TOP}/prebuilts/clang/host/linux-x86/llvm-binutils-stable/llvm-cov
+LLVM_PROFDATA=${ANDROID_BUILD_TOP}/prebuilts/clang/host/linux-x86/toolchain-binutils-stable/toolchain-profdata
+LLVM_COV=${ANDROID_BUILD_TOP}/prebuilts/clang/host/linux-x86/toolchain-binutils-stable/toolchain-cov
 
 DEVICE_TEST_DIR32=/data/local/tmp/bionic-coverage32
 DEVICE_TEST_DIR64=/data/local/tmp/bionic-coverage64

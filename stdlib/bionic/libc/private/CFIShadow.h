@@ -26,7 +26,7 @@ constexpr unsigned kLibraryAlignmentBits = 18;
 constexpr size_t kLibraryAlignment = 1UL << kLibraryAlignmentBits;
 
 // This class defines format of the shadow region for Control Flow Integrity support.
-// See documentation in http://clang.llvm.org/docs/ControlFlowIntegrityDesign.html#shared-library-support.
+// See documentation in http://clang.toolchain.org/docs/ControlFlowIntegrityDesign.html#shared-library-support.
 //
 // CFI shadow is effectively a very fast and specialized implementation of dladdr: given an address that
 // belongs to a shared library or an executable, it can find the address of a specific export in that

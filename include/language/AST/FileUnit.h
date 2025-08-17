@@ -333,7 +333,7 @@ public:
   }
 
   /// Returns the associated clang module if one exists.
-  virtual const clang::Module *getUnderlyingClangModule() const {
+  virtual const language::Core::Module *getUnderlyingClangModule() const {
     return nullptr;
   }
 

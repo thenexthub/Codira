@@ -44,16 +44,16 @@
 #include "language/ClangImporter/ClangModule.h"
 #include "language/Parse/Token.h"
 #include "language/Strings.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/DeclCXX.h"
-#include "clang/AST/DeclObjCCommon.h"
-#include "clang/AST/DeclTemplate.h"
-#include "clang/AST/ExprCXX.h"
-#include "clang/AST/TypeVisitor.h"
-#include "clang/Basic/Builtins.h"
-#include "clang/Lex/Preprocessor.h"
-#include "clang/Sema/Lookup.h"
-#include "clang/Sema/Sema.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/DeclCXX.h"
+#include "language/Core/AST/DeclObjCCommon.h"
+#include "language/Core/AST/DeclTemplate.h"
+#include "language/Core/AST/ExprCXX.h"
+#include "language/Core/AST/TypeVisitor.h"
+#include "language/Core/Basic/Builtins.h"
+#include "language/Core/Lex/Preprocessor.h"
+#include "language/Core/Sema/Lookup.h"
+#include "language/Core/Sema/Sema.h"
 #include "toolchain/ADT/SmallString.h"
 #include "toolchain/Support/Compiler.h"
 
@@ -62,26 +62,26 @@ using namespace importer;
 
 // XXX: This is to resolve the build dependency with Clang. Remove it once these
 // types actually land in Clang.
-namespace clang {
+namespace language::Core {
 class DynamicRangePointerType;
 class ValueTerminatedType;
 }
 
 /// Given that a type is the result of a special typedef import, was
 /// it originally a CF pointer?
-static bool isImportedCFPointer(clang::QualType clangType, Type type) {
+static bool isImportedCFPointer(language::Core::QualType clangType, Type type) {
   return (clangType->isPointerType() &&
           (type->is<ClassType>() || type->isClassExistentialType()));
 }
 
-bool ClangImporter::Implementation::isOverAligned(const clang::TypeDecl *decl) {
+bool ClangImporter::Implementation::isOverAligned(const language::Core::TypeDecl *decl) {
   auto type = getClangASTContext().getTypeDeclType(decl);
   return isOverAligned(type);
 }
 
-bool ClangImporter::Implementation::isOverAligned(clang::QualType type) {
+bool ClangImporter::Implementation::isOverAligned(language::Core::QualType type) {
   auto align = getClangASTContext().getTypeAlignInChars(type);
-  return align > clang::CharUnits::fromQuantity(MaximumAlignment);
+  return align > language::Core::CharUnits::fromQuantity(MaximumAlignment);
 }
 
 namespace {
@@ -182,7 +182,7 @@ namespace {
     explicit operator bool() const { return (bool) AbstractType; }
   };
 
-  static ImportResult importFunctionPointerLikeType(const clang::Type &type,
+  static ImportResult importFunctionPointerLikeType(const language::Core::Type &type,
                                                     const Type &pointeeType) {
     auto funcTy = pointeeType->castTo<FunctionType>();
     return {FunctionType::get(
@@ -198,7 +198,7 @@ namespace {
   }
 
   static ImportResult importOverAlignedFunctionPointerLikeType(
-      const clang::Type &type, ClangImporter::Implementation &Impl) {
+      const language::Core::Type &type, ClangImporter::Implementation &Impl) {
     auto opaquePointer = Impl.CodiraContext.getOpaquePointerDecl();
     if (!opaquePointer) {
       return Type();
@@ -209,27 +209,27 @@ namespace {
   }
 
   static bool
-  isDirectUseOfForeignReferenceType(clang::QualType clangPointeeType,
+  isDirectUseOfForeignReferenceType(language::Core::QualType clangPointeeType,
                                     Type languagePointeeType) {
      return languagePointeeType && languagePointeeType->isForeignReferenceType() &&
                !clangPointeeType->isPointerType();
    }
 
   class CodiraTypeConverter :
-    public clang::TypeVisitor<CodiraTypeConverter, ImportResult>
+    public language::Core::TypeVisitor<CodiraTypeConverter, ImportResult>
   {
     ClangImporter::Implementation &Impl;
     toolchain::function_ref<void(Diagnostic &&)> addImportDiagnostic;
     bool AllowNSUIntegerAsInt;
     Bridgeability Bridging;
-    const clang::FunctionType *CompletionHandlerType;
+    const language::Core::FunctionType *CompletionHandlerType;
     std::optional<unsigned> CompletionHandlerErrorParamIndex;
 
   public:
     CodiraTypeConverter(ClangImporter::Implementation &impl,
                        toolchain::function_ref<void(Diagnostic &&)> addDiag,
                        bool allowNSUIntegerAsInt, Bridgeability bridging,
-                       const clang::FunctionType *completionHandlerType,
+                       const language::Core::FunctionType *completionHandlerType,
                        std::optional<unsigned> completionHandlerErrorParamIndex)
         : Impl(impl), addImportDiagnostic(addDiag),
           AllowNSUIntegerAsInt(allowNSUIntegerAsInt), Bridging(bridging),
@@ -237,7 +237,7 @@ namespace {
           CompletionHandlerErrorParamIndex(completionHandlerErrorParamIndex) {}
 
     using TypeVisitor::Visit;
-    ImportResult Visit(clang::QualType type) {
+    ImportResult Visit(language::Core::QualType type) {
       PrettyStackTraceClangType trace(Impl.getClangASTContext(),
                                       "importing a clang type",
                                       type.getTypePtr());
@@ -250,9 +250,9 @@ namespace {
 
     // TODO(https://github.com/apple/language/issues/56206): Add support for dependent types.
 #define DEPENDENT_TYPE(Class, Base)                                            \
-  ImportResult Visit##Class##Type(const clang::Class##Type *) { return Impl.CodiraContext.getAnyExistentialType(); }
+  ImportResult Visit##Class##Type(const language::Core::Class##Type *) { return Impl.CodiraContext.getAnyExistentialType(); }
 #define TYPE(Class, Base)
-#include "clang/AST/TypeNodes.inc"
+#include "language/Core/AST/TypeNodes.inc"
 
     // Given a loaded type like CInt, look through the type alias sugar that the
     // stdlib uses to show the underlying type.  We want to import the signature
@@ -267,110 +267,110 @@ namespace {
       return T;
     }
 
-    ImportResult VisitBuiltinType(const clang::BuiltinType *type) {
+    ImportResult VisitBuiltinType(const language::Core::BuiltinType *type) {
       switch (type->getKind()) {
-      case clang::BuiltinType::Void:
+      case language::Core::BuiltinType::Void:
         return { Type(), ImportHint::Void };
 
 #define MAP_BUILTIN_TYPE(CLANG_BUILTIN_KIND, LANGUAGE_TYPE_NAME)             \
-      case clang::BuiltinType::CLANG_BUILTIN_KIND:                        \
+      case language::Core::BuiltinType::CLANG_BUILTIN_KIND:                        \
         return unwrapCType(Impl.getNamedCodiraType(Impl.getStdlibModule(), \
                                         #LANGUAGE_TYPE_NAME));
 #define MAP_BUILTIN_CCHAR_TYPE(CLANG_BUILTIN_KIND, LANGUAGE_TYPE_NAME)       \
-      case clang::BuiltinType::CLANG_BUILTIN_KIND:                        \
+      case language::Core::BuiltinType::CLANG_BUILTIN_KIND:                        \
         return Impl.getNamedCodiraType(Impl.getStdlibModule(), #LANGUAGE_TYPE_NAME);
 #include "language/ClangImporter/BuiltinMappedTypes.def"
 
       // Types that cannot be mapped into Codira, and probably won't ever be.
-      case clang::BuiltinType::Dependent:
-      case clang::BuiltinType::ARCUnbridgedCast:
-      case clang::BuiltinType::BoundMember:
-      case clang::BuiltinType::BuiltinFn:
-      case clang::BuiltinType::IncompleteMatrixIdx:
-      case clang::BuiltinType::Overload:
-      case clang::BuiltinType::PseudoObject:
-      case clang::BuiltinType::UnknownAny:
-      case clang::BuiltinType::UnresolvedTemplate:
+      case language::Core::BuiltinType::Dependent:
+      case language::Core::BuiltinType::ARCUnbridgedCast:
+      case language::Core::BuiltinType::BoundMember:
+      case language::Core::BuiltinType::BuiltinFn:
+      case language::Core::BuiltinType::IncompleteMatrixIdx:
+      case language::Core::BuiltinType::Overload:
+      case language::Core::BuiltinType::PseudoObject:
+      case language::Core::BuiltinType::UnknownAny:
+      case language::Core::BuiltinType::UnresolvedTemplate:
         return Type();
 
       // FIXME: Types that can be mapped, but aren't yet.
-      case clang::BuiltinType::ShortAccum:
-      case clang::BuiltinType::Accum:
-      case clang::BuiltinType::LongAccum:
-      case clang::BuiltinType::UShortAccum:
-      case clang::BuiltinType::UAccum:
-      case clang::BuiltinType::ULongAccum:
-      case clang::BuiltinType::ShortFract:
-      case clang::BuiltinType::Fract:
-      case clang::BuiltinType::LongFract:
-      case clang::BuiltinType::UShortFract:
-      case clang::BuiltinType::UFract:
-      case clang::BuiltinType::ULongFract:
-      case clang::BuiltinType::SatShortAccum:
-      case clang::BuiltinType::SatAccum:
-      case clang::BuiltinType::SatLongAccum:
-      case clang::BuiltinType::SatUShortAccum:
-      case clang::BuiltinType::SatUAccum:
-      case clang::BuiltinType::SatULongAccum:
-      case clang::BuiltinType::SatShortFract:
-      case clang::BuiltinType::SatFract:
-      case clang::BuiltinType::SatLongFract:
-      case clang::BuiltinType::SatUShortFract:
-      case clang::BuiltinType::SatUFract:
-      case clang::BuiltinType::SatULongFract:
-      case clang::BuiltinType::BFloat16:
-      case clang::BuiltinType::Float128:
-      case clang::BuiltinType::NullPtr:
-      case clang::BuiltinType::Ibm128:
+      case language::Core::BuiltinType::ShortAccum:
+      case language::Core::BuiltinType::Accum:
+      case language::Core::BuiltinType::LongAccum:
+      case language::Core::BuiltinType::UShortAccum:
+      case language::Core::BuiltinType::UAccum:
+      case language::Core::BuiltinType::ULongAccum:
+      case language::Core::BuiltinType::ShortFract:
+      case language::Core::BuiltinType::Fract:
+      case language::Core::BuiltinType::LongFract:
+      case language::Core::BuiltinType::UShortFract:
+      case language::Core::BuiltinType::UFract:
+      case language::Core::BuiltinType::ULongFract:
+      case language::Core::BuiltinType::SatShortAccum:
+      case language::Core::BuiltinType::SatAccum:
+      case language::Core::BuiltinType::SatLongAccum:
+      case language::Core::BuiltinType::SatUShortAccum:
+      case language::Core::BuiltinType::SatUAccum:
+      case language::Core::BuiltinType::SatULongAccum:
+      case language::Core::BuiltinType::SatShortFract:
+      case language::Core::BuiltinType::SatFract:
+      case language::Core::BuiltinType::SatLongFract:
+      case language::Core::BuiltinType::SatUShortFract:
+      case language::Core::BuiltinType::SatUFract:
+      case language::Core::BuiltinType::SatULongFract:
+      case language::Core::BuiltinType::BFloat16:
+      case language::Core::BuiltinType::Float128:
+      case language::Core::BuiltinType::NullPtr:
+      case language::Core::BuiltinType::Ibm128:
         return Type();
 
       // Objective-C types that aren't mapped directly; rather, pointers to
       // these types will be mapped.
-      case clang::BuiltinType::ObjCClass:
-      case clang::BuiltinType::ObjCId:
-      case clang::BuiltinType::ObjCSel:
+      case language::Core::BuiltinType::ObjCClass:
+      case language::Core::BuiltinType::ObjCId:
+      case language::Core::BuiltinType::ObjCSel:
         return Type();
 
       // OpenMP types that don't have Codira equivalents.
-      case clang::BuiltinType::ArraySection:
-      case clang::BuiltinType::OMPArrayShaping:
-      case clang::BuiltinType::OMPIterator:
+      case language::Core::BuiltinType::ArraySection:
+      case language::Core::BuiltinType::OMPArrayShaping:
+      case language::Core::BuiltinType::OMPIterator:
         return Type();
 
       // OpenCL builtin types that don't have Codira equivalents.
-      case clang::BuiltinType::OCLClkEvent:
-      case clang::BuiltinType::OCLEvent:
-      case clang::BuiltinType::OCLSampler:
-      case clang::BuiltinType::OCLQueue:
-      case clang::BuiltinType::OCLReserveID:
-#define IMAGE_TYPE(Name, Id, ...) case clang::BuiltinType::Id:
-#include "clang/Basic/OpenCLImageTypes.def"
-#define EXT_OPAQUE_TYPE(Name, Id, ...) case clang::BuiltinType::Id:
-#include "clang/Basic/OpenCLExtensionTypes.def"
+      case language::Core::BuiltinType::OCLClkEvent:
+      case language::Core::BuiltinType::OCLEvent:
+      case language::Core::BuiltinType::OCLSampler:
+      case language::Core::BuiltinType::OCLQueue:
+      case language::Core::BuiltinType::OCLReserveID:
+#define IMAGE_TYPE(Name, Id, ...) case language::Core::BuiltinType::Id:
+#include "language/Core/Basic/OpenCLImageTypes.def"
+#define EXT_OPAQUE_TYPE(Name, Id, ...) case language::Core::BuiltinType::Id:
+#include "language/Core/Basic/OpenCLExtensionTypes.def"
         return Type();
 
       // ARM SVE builtin types that don't have Codira equivalents.
-#define SVE_TYPE(Name, Id, ...) case clang::BuiltinType::Id:
-#include "clang/Basic/AArch64SVEACLETypes.def"
+#define SVE_TYPE(Name, Id, ...) case language::Core::BuiltinType::Id:
+#include "language/Core/Basic/AArch64SVEACLETypes.def"
         return Type();
 
       // PPC SVE builtin types that don't have Codira equivalents.
-#define PPC_VECTOR_TYPE(Name, Id, Size) case clang::BuiltinType::Id:
-#include "clang/Basic/PPCTypes.def"
+#define PPC_VECTOR_TYPE(Name, Id, Size) case language::Core::BuiltinType::Id:
+#include "language/Core/Basic/PPCTypes.def"
         return Type();
 
       // RISC-V V builtin types that don't have Codira equivalents.
-#define RVV_TYPE(Name, Id, Size) case clang::BuiltinType::Id:
-#include "clang/Basic/RISCVVTypes.def"
+#define RVV_TYPE(Name, Id, Size) case language::Core::BuiltinType::Id:
+#include "language/Core/Basic/RISCVVTypes.def"
         return Type();
 
-#define WASM_TYPE(Name, Id, Size) case clang::BuiltinType::Id:
-#include "clang/Basic/WebAssemblyReferenceTypes.def"
+#define WASM_TYPE(Name, Id, Size) case language::Core::BuiltinType::Id:
+#include "language/Core/Basic/WebAssemblyReferenceTypes.def"
         return Type();
 
       // AMDGPU builtin types that don't have Codira equivalents.
-#define AMDGPU_TYPE(Name, Id, SingletonId) case clang::BuiltinType::Id:
-#include "clang/Basic/AMDGPUTypes.def"
+#define AMDGPU_TYPE(Name, Id, SingletonId) case language::Core::BuiltinType::Id:
+#include "language/Core/Basic/AMDGPUTypes.def"
         return Type();
 
       }
@@ -378,75 +378,75 @@ namespace {
       toolchain_unreachable("Invalid BuiltinType.");
     }
 
-    ImportResult VisitBitIntType(const clang::BitIntType *type) {
+    ImportResult VisitBitIntType(const language::Core::BitIntType *type) {
       Impl.addImportDiagnostic(type, Diagnostic(diag::unsupported_builtin_type,
                                                 type->getTypeClassName()),
-                               clang::SourceLocation());
+                               language::Core::SourceLocation());
       // BitInt is not supported in Codira.
       return Type();
     }
 
-    ImportResult VisitPipeType(const clang::PipeType *type) {
+    ImportResult VisitPipeType(const language::Core::PipeType *type) {
       Impl.addImportDiagnostic(type, Diagnostic(diag::unsupported_builtin_type,
                                                 type->getTypeClassName()),
-                               clang::SourceLocation());
+                               language::Core::SourceLocation());
       // OpenCL types are not supported in Codira.
       return Type();
     }
 
-    ImportResult VisitMatrixType(const clang::MatrixType *ty) {
+    ImportResult VisitMatrixType(const language::Core::MatrixType *ty) {
       Impl.addImportDiagnostic(ty, Diagnostic(diag::unsupported_builtin_type,
                                               ty->getTypeClassName()),
-                               clang::SourceLocation());
+                               language::Core::SourceLocation());
       // Matrix types are not supported in Codira.
       return Type();
     }
 
-    ImportResult VisitComplexType(const clang::ComplexType *type) {
+    ImportResult VisitComplexType(const language::Core::ComplexType *type) {
       Impl.addImportDiagnostic(type, Diagnostic(diag::unsupported_builtin_type,
                                                 type->getTypeClassName()),
-                               clang::SourceLocation());
+                               language::Core::SourceLocation());
       // FIXME: Implement once Complex is in the library.
       return Type();
     }
 
-    ImportResult VisitAtomicType(const clang::AtomicType *type) {
+    ImportResult VisitAtomicType(const language::Core::AtomicType *type) {
       Impl.addImportDiagnostic(type, Diagnostic(diag::unsupported_builtin_type,
                                                 type->getTypeClassName()),
-                               clang::SourceLocation());
+                               language::Core::SourceLocation());
       // FIXME: handle pointers and fields of atomic type
       return Type();
     }
 
     ImportResult
-    VisitCountAttributedType(const clang::CountAttributedType *type) {
+    VisitCountAttributedType(const language::Core::CountAttributedType *type) {
       return Visit(type->desugar());
     }
 
     ImportResult VisitDynamicRangePointerType(
-        const clang::DynamicRangePointerType *type) {
+        const language::Core::DynamicRangePointerType *type) {
       // DynamicRangePointerType is a clang type representing a pointer with
       // an "ended_by" type attribute for -fbounds-safety.
       return Visit(type->desugar());
     }
 
     ImportResult VisitValueTerminatedType(
-        const clang::ValueTerminatedType *type) {
+        const language::Core::ValueTerminatedType *type) {
       // ValueTerminatedType is a clang type representing a pointer with
       // a "terminated_by" type attribute for -fbounds-safety.
       return Visit(type->desugar());
     }
 
-    ImportResult VisitMemberPointerType(const clang::MemberPointerType *type) {
+    ImportResult VisitMemberPointerType(const language::Core::MemberPointerType *type) {
       return Type();
     }
 
-    ImportResult VisitPointerType(const clang::PointerType *type) {
+    ImportResult VisitPointerType(const language::Core::PointerType *type) {
       auto pointeeQualType = type->getPointeeType();
       auto quals = pointeeQualType.getQualifiers();
 
       // Special case for NSZone*, which has its own Codira wrapper.
-      if (const clang::RecordType *pointee =
+      if (const language::Core::RecordType *pointee =
             pointeeQualType->getAsStructureType()) {
         if (pointee && !pointee->getDecl()->isCompleteDefinition() &&
             pointee->getDecl()->getName() == "_NSZone") {
@@ -534,8 +534,8 @@ namespace {
         pointerKind = PTK_UnsafePointer;
       } else {
         switch (quals.getObjCLifetime()) {
-        case clang::Qualifiers::OCL_Autoreleasing:
-        case clang::Qualifiers::OCL_ExplicitNone:
+        case language::Core::Qualifiers::OCL_Autoreleasing:
+        case language::Core::Qualifiers::OCL_ExplicitNone:
           // Mutable pointers with __autoreleasing or __unsafe_unretained
           // ownership map to AutoreleasingUnsafeMutablePointer<T>.
           pointerKind = PTK_AutoreleasingUnsafeMutablePointer;
@@ -546,12 +546,12 @@ namespace {
             return Type();
           break;
 
-        case clang::Qualifiers::OCL_Weak:
+        case language::Core::Qualifiers::OCL_Weak:
           // FIXME: We should refuse to import this.
           TOOLCHAIN_FALLTHROUGH;
 
-        case clang::Qualifiers::OCL_None:
-        case clang::Qualifiers::OCL_Strong:
+        case language::Core::Qualifiers::OCL_None:
+        case language::Core::Qualifiers::OCL_Strong:
           // All other mutable pointers map to UnsafeMutablePointer.
           pointerKind = PTK_UnsafeMutablePointer;
         }
@@ -565,7 +565,7 @@ namespace {
       }
     }
 
-    ImportResult VisitBlockPointerType(const clang::BlockPointerType *type) {
+    ImportResult VisitBlockPointerType(const language::Core::BlockPointerType *type) {
       // Block pointer types are mapped to function types.
       Type pointeeType = Visit(type->getPointeeType()).AbstractType;
       if (!pointeeType)
@@ -583,7 +583,7 @@ namespace {
       return { funcTy, ImportHint::Block };
     }
 
-    ImportResult VisitReferenceType(const clang::ReferenceType *type) {
+    ImportResult VisitReferenceType(const language::Core::ReferenceType *type) {
       auto pointeeQualType = type->getPointeeType();
       auto quals = pointeeQualType.getQualifiers();
       Type pointeeType =
@@ -625,20 +625,20 @@ namespace {
       return {pointerType, ImportHint::None};
     }
 
-    ImportResult VisitMemberPointer(const clang::MemberPointerType *type) {
+    ImportResult VisitMemberPointer(const language::Core::MemberPointerType *type) {
       // FIXME: Member function pointers can be mapped to curried functions,
       // but only when we can express the notion of a function that does
       // not capture anything from its enclosing context.
       return Type();
     }
 
-    ImportResult VisitArrayType(const clang::ArrayType *type) {
+    ImportResult VisitArrayType(const language::Core::ArrayType *type) {
       // FIXME: Array types will need to be mapped differently depending on
       // context.
       return Type();
     }
 
-    ImportResult VisitConstantArrayType(const clang::ConstantArrayType *type) {
+    ImportResult VisitConstantArrayType(const language::Core::ConstantArrayType *type) {
       // FIXME: Map to a real fixed-size Codira array type when we have those.
       // Importing as a tuple at least fills the right amount of space, and
       // we can cheese static-offset "indexing" using .$n operations.
@@ -664,7 +664,7 @@ namespace {
       return TupleType::get(elts, elementType->getASTContext());
     }
 
-    ImportResult VisitVectorType(const clang::VectorType *type) {
+    ImportResult VisitVectorType(const language::Core::VectorType *type) {
       // Get the imported element type and count.
       Type element = Impl.importTypeIgnoreIUO(
         type->getElementType(), ImportTypeKind::Abstract, addImportDiagnostic,
@@ -697,7 +697,7 @@ namespace {
       return Type();
     }
 
-    ImportResult VisitFunctionProtoType(const clang::FunctionProtoType *type) {
+    ImportResult VisitFunctionProtoType(const language::Core::FunctionProtoType *type) {
       // C-style variadic functions cannot be called from Codira.
       if (type->isVariadic())
         return Type();
@@ -771,7 +771,7 @@ namespace {
     }
 
     ImportResult
-    VisitFunctionNoProtoType(const clang::FunctionNoProtoType *type) {
+    VisitFunctionNoProtoType(const language::Core::FunctionNoProtoType *type) {
       // Import functions without prototypes as functions with no parameters.
       auto resultTy = Impl.importTypeIgnoreIUO(
           type->getReturnType(), ImportTypeKind::Result, addImportDiagnostic,
@@ -784,7 +784,7 @@ namespace {
       return FunctionType::get({}, resultTy, info);
     }
 
-    ImportResult VisitParenType(const clang::ParenType *type) {
+    ImportResult VisitParenType(const language::Core::ParenType *type) {
       auto inner = Visit(type->getInnerType());
       if (!inner)
         return Type();
@@ -798,19 +798,19 @@ namespace {
     /// This is different from a failure; it means the caller should try
     /// importing the underlying type instead.
     std::optional<ImportResult>
-    importObjCTypeParamDecl(const clang::ObjCTypeParamDecl *objcTypeParamDecl) {
+    importObjCTypeParamDecl(const language::Core::ObjCTypeParamDecl *objcTypeParamDecl) {
       // Pull the corresponding generic type parameter from the imported class.
       const auto *typeParamContext = objcTypeParamDecl->getDeclContext();
       GenericSignature genericSig;
       if (auto *category =
-            dyn_cast<clang::ObjCCategoryDecl>(typeParamContext)) {
+            dyn_cast<language::Core::ObjCCategoryDecl>(typeParamContext)) {
         auto ext = cast_or_null<ExtensionDecl>(
             Impl.importDecl(category, Impl.CurrentVersion));
         if (!ext)
           return ImportResult();
         genericSig = ext->getGenericSignature();
       } else if (auto *interface =
-          dyn_cast<clang::ObjCInterfaceDecl>(typeParamContext)) {
+          dyn_cast<language::Core::ObjCInterfaceDecl>(typeParamContext)) {
         auto cls = castIgnoringCompatibilityAlias<ClassDecl>(
             Impl.importDecl(interface, Impl.CurrentVersion));
         if (!cls)
@@ -832,7 +832,7 @@ namespace {
                           ImportHint::ObjCPointer);
     }
 
-    ImportResult VisitObjCTypeParamType(const clang::ObjCTypeParamType *type) {
+    ImportResult VisitObjCTypeParamType(const language::Core::ObjCTypeParamType *type) {
       // FIXME: This drops any added protocols on the floor, which is the whole
       // point of ObjCTypeParamType. Fixing this might be source-breaking,
       // though. rdar://problem/29763975
@@ -843,11 +843,11 @@ namespace {
       return Visit(type->getLocallyUnqualifiedSingleStepDesugaredType());
     }
 
-    ImportResult VisitTypedefType(const clang::TypedefType *type) {
+    ImportResult VisitTypedefType(const language::Core::TypedefType *type) {
       // If the underlying declaration is an Objective-C type parameter,
       // pull the corresponding generic type parameter from the imported class.
       if (auto *objcTypeParamDecl =
-            dyn_cast<clang::ObjCTypeParamDecl>(type->getDecl())) {
+            dyn_cast<language::Core::ObjCTypeParamDecl>(type->getDecl())) {
         if (auto result = importObjCTypeParamDecl(objcTypeParamDecl))
           return result.value();
         return Visit(type->getLocallyUnqualifiedSingleStepDesugaredType());
@@ -974,7 +974,7 @@ namespace {
 
     // TODO: add custom visitors for these types.
 #define MAYBE_SUGAR_TYPE(KIND)                                                 \
-    ImportResult Visit##KIND##Type(const clang::KIND##Type *type) {            \
+    ImportResult Visit##KIND##Type(const language::Core::KIND##Type *type) {            \
       if (type->isSugared())                                                   \
         return Visit(type->desugar());                                         \
       return Type();                                                           \
@@ -989,7 +989,7 @@ namespace {
 
     // These types are ALWAYS sugared.
 #define SUGAR_TYPE(KIND)                                                       \
-    ImportResult Visit##KIND##Type(const clang::KIND##Type *type) {            \
+    ImportResult Visit##KIND##Type(const language::Core::KIND##Type *type) {            \
       return Visit(type->desugar());                                           \
     }
     SUGAR_TYPE(MacroQualified)
@@ -1000,8 +1000,8 @@ namespace {
     SUGAR_TYPE(Using)
     SUGAR_TYPE(BTFTagAttributed)
 
-    ImportResult VisitDecayedType(const clang::DecayedType *type) {
-      clang::ASTContext &clangCtx = Impl.getClangASTContext();
+    ImportResult VisitDecayedType(const language::Core::DecayedType *type) {
+      language::Core::ASTContext &clangCtx = Impl.getClangASTContext();
       if (clangCtx.hasSameType(type->getOriginalType(),
                                clangCtx.getBuiltinVaListType())) {
         return {Impl.getNamedCodiraType(Impl.getStdlibModule(),
@@ -1011,7 +1011,7 @@ namespace {
       return Visit(type->desugar());
     }
 
-    ImportResult VisitRecordType(const clang::RecordType *type) {
+    ImportResult VisitRecordType(const language::Core::RecordType *type) {
       auto decl = dyn_cast_or_null<TypeDecl>(
           Impl.importDecl(type->getDecl(), Impl.CurrentVersion));
       if (!decl)
@@ -1020,7 +1020,7 @@ namespace {
       return decl->getDeclaredInterfaceType();
     }
 
-    ImportResult VisitEnumType(const clang::EnumType *type) {
+    ImportResult VisitEnumType(const language::Core::EnumType *type) {
       auto clangDecl = type->getDecl()->getDefinition();
       if (!clangDecl) {
         // FIXME: If the enum has a fixed underlying type, can we use that
@@ -1056,17 +1056,17 @@ namespace {
       toolchain_unreachable("Invalid EnumKind.");
     }
 
-    ImportResult VisitObjCObjectType(const clang::ObjCObjectType *type) {
+    ImportResult VisitObjCObjectType(const language::Core::ObjCObjectType *type) {
       // We only handle pointers to objects.
       return nullptr;
     }
 
     /// Map the Clang language_bridge attribute to a specific type.
-    Type mapCodiraBridgeAttr(const clang::NamedDecl *clangDecl) {
+    Type mapCodiraBridgeAttr(const language::Core::NamedDecl *clangDecl) {
       // Check whether there is a language_bridge attribute.
       if (Impl.DisableCodiraBridgeAttr)
         return Type();
-      auto bridgeAttr = clangDecl->getAttr<clang::CodiraBridgeAttr>();
+      auto bridgeAttr = clangDecl->getAttr<language::Core::CodiraBridgeAttr>();
       if (!bridgeAttr) return Type();
 
       // Determine the module and Codira declaration names.
@@ -1089,7 +1089,7 @@ namespace {
     }
 
     ImportResult
-    VisitObjCObjectPointerType(const clang::ObjCObjectPointerType *type) {
+    VisitObjCObjectPointerType(const language::Core::ObjCObjectPointerType *type) {
       Type importedType = Impl.CodiraContext.getAnyObjectType();
 
       if (!type->qual_empty()) {
@@ -1098,7 +1098,7 @@ namespace {
           if (!(*cp)->hasDefinition())
             Impl.addImportDiagnostic(
                 type, Diagnostic(diag::incomplete_protocol, *cp),
-                clang::SourceLocation());
+                language::Core::SourceLocation());
         }
       }
 
@@ -1110,7 +1110,7 @@ namespace {
         if (!imported && !objcClass->hasDefinition())
           Impl.addImportDiagnostic(
               type, Diagnostic(diag::incomplete_interface, objcClass),
-              clang::SourceLocation());
+              language::Core::SourceLocation());
 
         if (!imported)
           return nullptr;
@@ -1177,16 +1177,16 @@ namespace {
                 return {};
               }
 
-              SmallVector<clang::ObjCProtocolDecl *, 4> protocols{
+              SmallVector<language::Core::ObjCProtocolDecl *, 4> protocols{
                 type->qual_begin(), type->qual_end()
               };
               auto *clangProto =
-                  cast<clang::ObjCProtocolDecl>(nsObjectProto->getClangDecl());
+                  cast<language::Core::ObjCProtocolDecl>(nsObjectProto->getClangDecl());
               protocols.push_back(
-                  const_cast<clang::ObjCProtocolDecl *>(clangProto));
+                  const_cast<language::Core::ObjCProtocolDecl *>(clangProto));
 
-              clang::ASTContext &clangCtx = Impl.getClangASTContext();
-              clang::QualType protosOnlyType =
+              language::Core::ASTContext &clangCtx = Impl.getClangASTContext();
+              language::Core::QualType protosOnlyType =
                   clangCtx.getObjCObjectType(clangCtx.ObjCBuiltinIdTy,
                                              /*type args*/{},
                                              protocols,
@@ -1208,8 +1208,8 @@ namespace {
         if (bridgedType) {
           // Gather the type arguments.
           SmallVector<Type, 2> importedTypeArgs;
-          ArrayRef<clang::QualType> typeArgs = type->getTypeArgs();
-          SmallVector<clang::QualType, 2> typeArgsScratch;
+          ArrayRef<language::Core::QualType> typeArgs = type->getTypeArgs();
+          SmallVector<language::Core::QualType, 2> typeArgsScratch;
 
           // If we have an unspecialized form of a parameterized
           // Objective-C class type, fill in the defaults.
@@ -1325,7 +1325,7 @@ namespace {
       return { importedType, ImportHint::ObjCPointer };
     }
 
-    ImportResult VisitPackIndexingType(const clang::PackIndexingType *type) {
+    ImportResult VisitPackIndexingType(const language::Core::PackIndexingType *type) {
       return Type();
     }
   };
@@ -1400,7 +1400,7 @@ static Type getUnmanagedType(ClangImporter::Implementation &impl,
 static bool isNSString(Type type) {
   if (auto classType = type->getAs<ClassType>()) {
     if (auto clangDecl = classType->getDecl()->getClangDecl()) {
-      if (auto objcClass = dyn_cast<clang::ObjCInterfaceDecl>(clangDecl)) {
+      if (auto objcClass = dyn_cast<language::Core::ObjCInterfaceDecl>(clangDecl)) {
         return objcClass->getName() == "NSString";
       }
     }
@@ -1496,7 +1496,7 @@ static ImportedType adjustTypeForConcreteImport(
     toolchain::function_ref<void(Diagnostic &&)> addImportDiagnostic,
     ImportTypeAttrs attrs, OptionalTypeKind optKind,
     bool resugarNSErrorPointer,
-    clang::Qualifiers::ObjCLifetime objCLifetime) {
+    language::Core::Qualifiers::ObjCLifetime objCLifetime) {
   Type importedType = importResult.AbstractType;
   ImportHint hint = importResult.Hint;
 
@@ -1547,7 +1547,7 @@ static ImportedType adjustTypeForConcreteImport(
     if (canBridgeTypes(importKind) &&
         importKind != ImportTypeKind::PropertyWithReferenceSemantics &&
         !(importKind == ImportTypeKind::RecordField &&
-          objCLifetime <= clang::Qualifiers::OCL_ExplicitNone) &&
+          objCLifetime <= language::Core::Qualifiers::OCL_ExplicitNone) &&
         !(importKind == ImportTypeKind::Typedef &&
           bridging == Bridgeability::None)) {
       // id and Any can be bridged without Foundation. There would be
@@ -1591,7 +1591,7 @@ static ImportedType adjustTypeForConcreteImport(
     auto fTy = importedType->castTo<FunctionType>();
     FunctionType::ExtInfo einfo = fTy->getExtInfo();
     if (einfo.getRepresentation() != requiredFunctionTypeRepr) {
-      const clang::Type *clangType = nullptr;
+      const language::Core::Type *clangType = nullptr;
       if (shouldStoreClangType(requiredFunctionTypeRepr))
         clangType = fTy->getASTContext().getClangFunctionType(
             fTy->getParams(), fTy->getResult(), requiredFunctionTypeRepr);
@@ -1668,8 +1668,8 @@ static ImportedType adjustTypeForConcreteImport(
       !importedType->isForeignReferenceType()) {
     switch (objCLifetime) {
       // Wrap retainable struct fields in Unmanaged.
-      case clang::Qualifiers::OCL_None:
-      case clang::Qualifiers::OCL_ExplicitNone:
+      case language::Core::Qualifiers::OCL_None:
+      case language::Core::Qualifiers::OCL_ExplicitNone:
         // FIXME: This should apply to blocks as well, but Unmanaged is constrained
         // to AnyObject.
         if (importedType->isAnyClassReferenceType()) {
@@ -1679,14 +1679,14 @@ static ImportedType adjustTypeForConcreteImport(
       // FIXME: Eventually we might get C++-like support for strong pointers in
       // structs, at which point we should really be checking the lifetime
       // qualifiers.
-      case clang::Qualifiers::OCL_Strong:
+      case language::Core::Qualifiers::OCL_Strong:
         if (!impl.CodiraContext.LangOpts.EnableCXXInterop) {
           return {Type(), false};
         }
         break;
-      case clang::Qualifiers::OCL_Weak:
+      case language::Core::Qualifiers::OCL_Weak:
         return {Type(), false};
-      case clang::Qualifiers::OCL_Autoreleasing:
+      case language::Core::Qualifiers::OCL_Autoreleasing:
         toolchain_unreachable("invalid Objective-C lifetime");
     }
   }
@@ -1708,14 +1708,14 @@ static ImportedType adjustTypeForConcreteImport(
 }
 
 void language::findCodiraAttributes(
-    clang::QualType type,
-    toolchain::function_ref<void(const clang::CodiraAttrAttr *)> callback) {
-  std::function<clang::QualType(clang::QualType)> skipUnrelatedSugar =
-      [&](clang::QualType type) -> clang::QualType {
-    if (auto *MQT = dyn_cast<clang::MacroQualifiedType>(type))
+    language::Core::QualType type,
+    toolchain::function_ref<void(const language::Core::CodiraAttrAttr *)> callback) {
+  std::function<language::Core::QualType(language::Core::QualType)> skipUnrelatedSugar =
+      [&](language::Core::QualType type) -> language::Core::QualType {
+    if (auto *MQT = dyn_cast<language::Core::MacroQualifiedType>(type))
       return MQT->isSugared() ? skipUnrelatedSugar(MQT->desugar()) : type;
 
-    if (auto *ET = dyn_cast<clang::ElaboratedType>(type))
+    if (auto *ET = dyn_cast<language::Core::ElaboratedType>(type))
       return ET->isSugared() ? skipUnrelatedSugar(ET->desugar()) : type;
 
     return type;
@@ -1725,9 +1725,9 @@ void language::findCodiraAttributes(
 
   // Consider only immediate attributes, don't look through the typerefs
   // because they are imported separately.
-  while (const auto *AT = dyn_cast<clang::AttributedType>(type)) {
+  while (const auto *AT = dyn_cast<language::Core::AttributedType>(type)) {
     if (auto languageAttr =
-            dyn_cast_or_null<clang::CodiraAttrAttr>(AT->getAttr())) {
+            dyn_cast_or_null<language::Core::CodiraAttrAttr>(AT->getAttr())) {
       callback(languageAttr);
     }
     type = skipUnrelatedSugar(AT->getEquivalentType());
@@ -1736,7 +1736,7 @@ void language::findCodiraAttributes(
 
 void language::getConcurrencyAttrs(ASTContext &CodiraContext,
                                 ImportTypeKind importKind,
-                                ImportTypeAttrs &attrs, clang::QualType type) {
+                                ImportTypeAttrs &attrs, language::Core::QualType type) {
   bool isMainActor = false;
   bool isSendable = false;
   bool isNonSendable = false;
@@ -1744,7 +1744,7 @@ void language::getConcurrencyAttrs(ASTContext &CodiraContext,
 
   // Consider only immediate attributes, don't look through the typerefs
   // because they are imported separately.
-  findCodiraAttributes(type, [&](const clang::CodiraAttrAttr *attr) {
+  findCodiraAttributes(type, [&](const language::Core::CodiraAttrAttr *attr) {
     if (isMainActorAttr(attr)) {
       isMainActor = true;
       isSendable = true; // MainActor implies Sendable
@@ -1770,7 +1770,7 @@ void language::getConcurrencyAttrs(ASTContext &CodiraContext,
 }
 
 ImportedType ClangImporter::Implementation::importType(
-    clang::QualType type, ImportTypeKind importKind,
+    language::Core::QualType type, ImportTypeKind importKind,
     toolchain::function_ref<void(Diagnostic &&)> addImportDiagnosticFn,
     bool allowNSUIntegerAsInt, Bridgeability bridging, ImportTypeAttrs attrs,
     OptionalTypeKind optionality, bool resugarNSErrorPointer,
@@ -1819,17 +1819,17 @@ ImportedType ClangImporter::Implementation::importType(
 
   // If this is a completion handler parameter, record the function type whose
   // parameters will act as the results of the completion handler.
-  const clang::FunctionType *completionHandlerType = nullptr;
+  const language::Core::FunctionType *completionHandlerType = nullptr;
   if (completionHandlerErrorParamIndex) {
-    if (auto blockPtrType = type->getAs<clang::BlockPointerType>()) {
+    if (auto blockPtrType = type->getAs<language::Core::BlockPointerType>()) {
       completionHandlerType =
-          blockPtrType->getPointeeType()->castAs<clang::FunctionType>();
+          blockPtrType->getPointeeType()->castAs<language::Core::FunctionType>();
 
-      type = clang::QualType(blockPtrType, 0);
+      type = language::Core::QualType(blockPtrType, 0);
     }
   }
 
-  clang::Qualifiers::ObjCLifetime objCLifetime = type.getObjCLifetime();
+  language::Core::Qualifiers::ObjCLifetime objCLifetime = type.getObjCLifetime();
 
   // Perform abstract conversion, ignoring how the type is actually used.
   CodiraTypeConverter converter(
@@ -1847,7 +1847,7 @@ ImportedType ClangImporter::Implementation::importType(
 }
 
 Type ClangImporter::Implementation::importTypeIgnoreIUO(
-    clang::QualType type, ImportTypeKind importKind,
+    language::Core::QualType type, ImportTypeKind importKind,
     toolchain::function_ref<void(Diagnostic &&)> addImportDiagnosticFn,
     bool allowNSUIntegerAsInt, Bridgeability bridging, ImportTypeAttrs attrs,
     OptionalTypeKind optionality, bool resugarNSErrorPointer) {
@@ -1860,7 +1860,7 @@ Type ClangImporter::Implementation::importTypeIgnoreIUO(
 }
 
 bool ClangImporter::Implementation::shouldImportGlobalAsLet(
-       clang::QualType type)
+       language::Core::QualType type)
 {
   // Const variables should be imported as 'let'.
   if (type.isConstQualified()) {
@@ -1883,7 +1883,7 @@ static bool nameContainsUnsigned(StringRef name) {
 }
 
 bool ClangImporter::Implementation::shouldAllowNSUIntegerAsInt(
-    bool isFromSystemModule, const clang::NamedDecl *decl) {
+    bool isFromSystemModule, const language::Core::NamedDecl *decl) {
   if (isFromSystemModule)
     if (auto identInfo = decl->getIdentifier())
       return !nameContainsUnsigned(identInfo->getName());
@@ -1891,10 +1891,10 @@ bool ClangImporter::Implementation::shouldAllowNSUIntegerAsInt(
 }
 
 ImportedType ClangImporter::Implementation::importPropertyType(
-    const clang::ObjCPropertyDecl *decl, bool isFromSystemModule) {
+    const language::Core::ObjCPropertyDecl *decl, bool isFromSystemModule) {
   const auto assignOrUnsafeUnretained =
-      clang::ObjCPropertyAttribute::kind_assign |
-      clang::ObjCPropertyAttribute::kind_unsafe_unretained;
+      language::Core::ObjCPropertyAttribute::kind_assign |
+      language::Core::ObjCPropertyAttribute::kind_unsafe_unretained;
 
   ImportTypeKind importKind;
   // HACK: Certain decls are always imported using bridged types,
@@ -1903,7 +1903,7 @@ ImportedType ClangImporter::Implementation::importPropertyType(
     importKind = ImportTypeKind::Property;
   } else {
     switch (decl->getSetterKind()) {
-    case clang::ObjCPropertyDecl::Assign:
+    case language::Core::ObjCPropertyDecl::Assign:
       // If it's readonly, this might just be returned as a default.
       if (decl->isReadOnly() &&
           (decl->getPropertyAttributes() & assignOrUnsafeUnretained) == 0) {
@@ -1912,11 +1912,11 @@ ImportedType ClangImporter::Implementation::importPropertyType(
         importKind = ImportTypeKind::PropertyWithReferenceSemantics;
       }
       break;
-    case clang::ObjCPropertyDecl::Retain:
-    case clang::ObjCPropertyDecl::Copy:
+    case language::Core::ObjCPropertyDecl::Retain:
+    case language::Core::ObjCPropertyDecl::Copy:
       importKind = ImportTypeKind::Property;
       break;
-    case clang::ObjCPropertyDecl::Weak:
+    case language::Core::ObjCPropertyDecl::Weak:
       importKind = ImportTypeKind::PropertyWithReferenceSemantics;
       break;
     }
@@ -2145,7 +2145,7 @@ private:
 
 } // anonymous namespace
 
-ImportTypeAttrs language::getImportTypeAttrs(const clang::Decl *D, bool isParam) {
+ImportTypeAttrs language::getImportTypeAttrs(const language::Core::Decl *D, bool isParam) {
   ImportTypeAttrs attrs;
 
   bool sendableRequested = false;
@@ -2154,22 +2154,22 @@ ImportTypeAttrs language::getImportTypeAttrs(const clang::Decl *D, bool isParam)
   if (D->hasAttrs()) {
     for (auto attr : D->getAttrs()) {
       // Map __attribute__((noescape)) to @noescape.
-      if (isParam && isa<clang::NoEscapeAttr>(attr)) {
+      if (isParam && isa<language::Core::NoEscapeAttr>(attr)) {
         attrs |= ImportTypeAttr::NoEscape;
         continue;
       }
 
-      if (isa<clang::CFReturnsRetainedAttr>(attr)) {
+      if (isa<language::Core::CFReturnsRetainedAttr>(attr)) {
         attrs |= ImportTypeAttr::CFRetainedOutParameter;
         continue;
       }
 
-      if (isa<clang::CFReturnsNotRetainedAttr>(attr)) {
+      if (isa<language::Core::CFReturnsNotRetainedAttr>(attr)) {
         attrs |= ImportTypeAttr::CFUnretainedOutParameter;
         continue;
       }
 
-      auto languageAttr = dyn_cast<clang::CodiraAttrAttr>(attr);
+      auto languageAttr = dyn_cast<language::Core::CodiraAttrAttr>(attr);
       if (!languageAttr)
         continue;
 
@@ -2236,7 +2236,7 @@ applyImportTypeAttrs(ImportTypeAttrs attrs, Type type,
 }
 
 ImportedType ClangImporter::Implementation::importFunctionReturnType(
-    DeclContext *dc, const clang::FunctionDecl *clangDecl,
+    DeclContext *dc, const language::Core::FunctionDecl *clangDecl,
     bool allowNSUIntegerAsInt) {
 
   // Hardcode handling of certain result types for builtins.
@@ -2254,17 +2254,17 @@ ImportedType ClangImporter::Implementation::importFunctionReturnType(
   // the ownership convention is explicitly declared.
   assert(clangDecl && "expected to have a decl to import");
   bool isAuditedResult =
-    (clangDecl->hasAttr<clang::CFAuditedTransferAttr>() ||
-     clangDecl->hasAttr<clang::CFReturnsRetainedAttr>() ||
-     clangDecl->hasAttr<clang::CFReturnsNotRetainedAttr>());
+    (clangDecl->hasAttr<language::Core::CFAuditedTransferAttr>() ||
+     clangDecl->hasAttr<language::Core::CFReturnsRetainedAttr>() ||
+     clangDecl->hasAttr<language::Core::CFReturnsNotRetainedAttr>());
 
   // C++ operators +=, -=, *=, /= may return a reference to self. This is not
   // idiomatic in Codira, let's drop these return values.
-  clang::OverloadedOperatorKind op = clangDecl->getOverloadedOperator();
-  if ((op == clang::OverloadedOperatorKind::OO_PlusEqual ||
-       op == clang::OverloadedOperatorKind::OO_MinusEqual ||
-       op == clang::OverloadedOperatorKind::OO_StarEqual ||
-       op == clang::OverloadedOperatorKind::OO_SlashEqual) &&
+  language::Core::OverloadedOperatorKind op = clangDecl->getOverloadedOperator();
+  if ((op == language::Core::OverloadedOperatorKind::OO_PlusEqual ||
+       op == language::Core::OverloadedOperatorKind::OO_MinusEqual ||
+       op == language::Core::OverloadedOperatorKind::OO_StarEqual ||
+       op == language::Core::OverloadedOperatorKind::OO_SlashEqual) &&
       clangDecl->getReturnType()->isReferenceType()) {
     auto voidTy = CodiraContext.getVoidType();
     if (!voidTy)
@@ -2277,13 +2277,13 @@ ImportedType ClangImporter::Implementation::importFunctionReturnType(
 
   // Fix up optionality.
   OptionalTypeKind OptionalityOfReturn;
-  if (clangDecl->hasAttr<clang::ReturnsNonNullAttr>()) {
+  if (clangDecl->hasAttr<language::Core::ReturnsNonNullAttr>()) {
     OptionalityOfReturn = OTK_None;
   } else {
     OptionalityOfReturn = OTK_ImplicitlyUnwrappedOptional;
   }
 
-  clang::QualType returnType = desugarIfElaborated(clangDecl->getReturnType());
+  language::Core::QualType returnType = desugarIfElaborated(clangDecl->getReturnType());
   returnType = desugarIfBoundsAttributed(returnType);
   // In C interop mode, the return type of library builtin functions
   // like 'memcpy' from headers like 'string.h' drops
@@ -2299,16 +2299,16 @@ ImportedType ClangImporter::Implementation::importFunctionReturnType(
   // context that uses C++ interop. In order to avoid the x-ref resolution
   // failure, normalize the return type's nullability for builtin functions in
   // C++ interop mode, to match the imported type in C interop mode.
-  auto builtinContext = clang::Builtin::Context();
+  auto builtinContext = language::Core::Builtin::Context();
   if (CodiraContext.LangOpts.EnableCXXInterop && clangDecl->getBuiltinID() &&
       !builtinContext.isTSBuiltin(clangDecl->getBuiltinID()) &&
       builtinContext.isPredefinedLibFunction(
           clangDecl->getBuiltinID()) &&
       builtinContext.getHeaderName(clangDecl->getBuiltinID()) ==
           StringRef("string.h")) {
-    if (const auto ART = dyn_cast<clang::AttributedType>(returnType)) {
+    if (const auto ART = dyn_cast<language::Core::AttributedType>(returnType)) {
       if (ART->getImmediateNullability())
-        clang::AttributedType::stripOuterNullability(returnType);
+        language::Core::AttributedType::stripOuterNullability(returnType);
     }
   }
 
@@ -2355,7 +2355,7 @@ ImportedType ClangImporter::Implementation::importFunctionReturnType(
 
 static Type
 findGenericTypeInGenericDecls(ClangImporter::Implementation &impl,
-                              const clang::TemplateTypeParmType *templateParam,
+                              const language::Core::TemplateTypeParmType *templateParam,
                               ArrayRef<GenericTypeParamDecl *> genericParams,
                               ImportTypeAttrs attrs,
                               toolchain::function_ref<void(Diagnostic &&)> addDiag) {
@@ -2378,8 +2378,8 @@ findGenericTypeInGenericDecls(ClangImporter::Implementation &impl,
 }
 
 ImportedType ClangImporter::Implementation::importFunctionParamsAndReturnType(
-    DeclContext *dc, const clang::FunctionDecl *clangDecl,
-    ArrayRef<const clang::ParmVarDecl *> params, bool isVariadic,
+    DeclContext *dc, const language::Core::FunctionDecl *clangDecl,
+    ArrayRef<const language::Core::ParmVarDecl *> params, bool isVariadic,
     bool isFromSystemModule, DeclName name, ParameterList *&parameterList,
     ArrayRef<GenericTypeParamDecl *> genericParams) {
 
@@ -2390,22 +2390,22 @@ ImportedType ClangImporter::Implementation::importFunctionParamsAndReturnType(
   // heuristic for that is if it's not a record type).
   ImportDiagnosticAdder addDiag(*this, clangDecl,
                                 clangDecl->getSourceRange().getBegin());
-  clang::QualType returnType = desugarIfElaborated(clangDecl->getReturnType());
+  language::Core::QualType returnType = desugarIfElaborated(clangDecl->getReturnType());
   returnType = desugarIfBoundsAttributed(returnType);
 
   ImportedType importedType = importer::findOptionSetEnum(returnType, *this);
 
   if (auto templateType =
-          dyn_cast<clang::TemplateTypeParmType>(returnType)) {
+          dyn_cast<language::Core::TemplateTypeParmType>(returnType)) {
     importedType = {findGenericTypeInGenericDecls(
                         *this, templateType, genericParams,
                         getImportTypeAttrs(clangDecl), addDiag),
                     false};
-  } else if ((isa<clang::PointerType>(returnType) ||
-          isa<clang::ReferenceType>(returnType)) &&
-         isa<clang::TemplateTypeParmType>(returnType->getPointeeType())) {
+  } else if ((isa<language::Core::PointerType>(returnType) ||
+          isa<language::Core::ReferenceType>(returnType)) &&
+         isa<language::Core::TemplateTypeParmType>(returnType->getPointeeType())) {
     auto pointeeType = returnType->getPointeeType();
-    auto templateParamType = cast<clang::TemplateTypeParmType>(pointeeType);
+    auto templateParamType = cast<language::Core::TemplateTypeParmType>(pointeeType);
     PointerTypeKind pointerKind = pointeeType.getQualifiers().hasConst()
                                       ? PTK_UnsafePointer
                                       : PTK_UnsafeMutablePointer;
@@ -2416,8 +2416,8 @@ ImportedType ClangImporter::Implementation::importFunctionParamsAndReturnType(
     if (!genericPointerType)
       addDiag(Diagnostic(diag::bridged_pointer_type_not_found, pointerKind));
     importedType = {genericPointerType, false};
-  } else if (!(isa<clang::RecordType>(returnType) ||
-               isa<clang::TemplateSpecializationType>(returnType)) ||
+  } else if (!(isa<language::Core::RecordType>(returnType) ||
+               isa<language::Core::TemplateSpecializationType>(returnType)) ||
              // TODO: we currently don't lazily load operator return types, but
              // this should be trivial to add.
              clangDecl->isOverloadedOperator() ||
@@ -2450,7 +2450,7 @@ ImportedType ClangImporter::Implementation::importFunctionParamsAndReturnType(
 }
 
 static bool isParameterContextGlobalActorIsolated(DeclContext *dc,
-                                                  const clang::Decl *parent) {
+                                                  const language::Core::Decl *parent) {
   if (getActorIsolationOfContext(dc).isGlobalActor())
     return true;
 
@@ -2458,7 +2458,7 @@ static bool isParameterContextGlobalActorIsolated(DeclContext *dc,
     return false;
 
   for (const auto *attr : parent->getAttrs()) {
-    if (auto languageAttr = dyn_cast<clang::CodiraAttrAttr>(attr)) {
+    if (auto languageAttr = dyn_cast<language::Core::CodiraAttrAttr>(attr)) {
       if (isMainActorAttr(languageAttr))
         return true;
     }
@@ -2468,7 +2468,7 @@ static bool isParameterContextGlobalActorIsolated(DeclContext *dc,
 }
 
 static bool isSendableInferenceOnCompletionHandlerParameterAllowed(
-    DeclContext *dc, const clang::Decl *parent) {
+    DeclContext *dc, const language::Core::Decl *parent) {
   auto &C = dc->getASTContext();
   if (!C.LangOpts.hasFeature(Feature::SendableCompletionHandlers))
     return false;
@@ -2478,7 +2478,7 @@ static bool isSendableInferenceOnCompletionHandlerParameterAllowed(
 
 std::optional<ClangImporter::Implementation::ImportParameterTypeResult>
 ClangImporter::Implementation::importParameterType(
-    DeclContext *dc, const clang::Decl *parent, const clang::ParmVarDecl *param,
+    DeclContext *dc, const language::Core::Decl *parent, const language::Core::ParmVarDecl *param,
     OptionalTypeKind optionalityOfParam, bool allowNSUIntegerAsInt,
     bool isNSDictionarySubscriptGetter, bool paramIsError,
     bool paramIsCompletionHandler,
@@ -2490,9 +2490,9 @@ ClangImporter::Implementation::importParameterType(
 
   // If this type has a _Nullable/_Nonnull attribute, drop it, since we already
   // have that information in optionalityOfParam.
-  if (auto attributedTy = dyn_cast<clang::AttributedType>(paramTy)) {
+  if (auto attributedTy = dyn_cast<language::Core::AttributedType>(paramTy)) {
     if (attributedTy->getImmediateNullability())
-      clang::AttributedType::stripOuterNullability(paramTy);
+      language::Core::AttributedType::stripOuterNullability(paramTy);
   }
 
   ImportTypeKind importKind = paramIsCompletionHandler
@@ -2513,10 +2513,10 @@ ClangImporter::Implementation::importParameterType(
 
   if (auto optionSetEnum = importer::findOptionSetEnum(paramTy, *this)) {
     languageParamTy = optionSetEnum.getType();
-  } else if (isa<clang::PointerType>(paramTy) &&
-             isa<clang::TemplateTypeParmType>(paramTy->getPointeeType())) {
+  } else if (isa<language::Core::PointerType>(paramTy) &&
+             isa<language::Core::TemplateTypeParmType>(paramTy->getPointeeType())) {
     auto pointeeType = paramTy->getPointeeType();
-    auto templateParamType = cast<clang::TemplateTypeParmType>(pointeeType);
+    auto templateParamType = cast<language::Core::TemplateTypeParmType>(pointeeType);
     PointerTypeKind pointerKind = pointeeType.getQualifiers().hasConst()
                                       ? PTK_UnsafePointer
                                       : PTK_UnsafeMutablePointer;
@@ -2539,8 +2539,8 @@ ClangImporter::Implementation::importParameterType(
     case OTK_None:
       break;
     }
-  } else if (isa<clang::ReferenceType>(paramTy) &&
-             isa<clang::TemplateTypeParmType>(paramTy->getPointeeType())) {
+  } else if (isa<language::Core::ReferenceType>(paramTy) &&
+             isa<language::Core::TemplateTypeParmType>(paramTy->getPointeeType())) {
     // We don't support universal reference, bail.
     if (paramTy->isRValueReferenceType()) {
       addImportDiagnosticFn(Diagnostic(diag::rvalue_ref_params_not_imported));
@@ -2548,13 +2548,13 @@ ClangImporter::Implementation::importParameterType(
     }
 
     auto templateParamType =
-        cast<clang::TemplateTypeParmType>(paramTy->getPointeeType());
+        cast<language::Core::TemplateTypeParmType>(paramTy->getPointeeType());
     languageParamTy = findGenericTypeInGenericDecls(
         *this, templateParamType, genericParams, attrs, addImportDiagnosticFn);
     if (!paramTy->getPointeeType().isConstQualified())
       isInOut = true;
   } else if (auto *templateParamType =
-                 dyn_cast<clang::TemplateTypeParmType>(paramTy)) {
+                 dyn_cast<language::Core::TemplateTypeParmType>(paramTy)) {
     languageParamTy = findGenericTypeInGenericDecls(
         *this, templateParamType, genericParams, attrs, addImportDiagnosticFn);
   }
@@ -2652,13 +2652,13 @@ ClangImporter::Implementation::importParameterType(
 }
 
 bool ClangImporter::Implementation::isDefaultArgSafeToImport(
-    const clang::ParmVarDecl *param) {
+    const language::Core::ParmVarDecl *param) {
   // If the argument is explicitly marked as import_unsafe, import its default
   // expression regardless of the safety heuristics.
   if (hasUnsafeAPIAttr(param))
     return true;
 
-  auto functionDecl = cast<clang::FunctionDecl>(param->getDeclContext());
+  auto functionDecl = cast<language::Core::FunctionDecl>(param->getDeclContext());
 
   if (param->hasUninstantiatedDefaultArg() &&
       !functionDecl->getTemplateInstantiationPattern(
@@ -2666,16 +2666,16 @@ bool ClangImporter::Implementation::isDefaultArgSafeToImport(
     // HACK: Clang will crash while trying to instantiate this default arg.
     return false;
 
-  clang::CXXDefaultArgExpr *defaultArgExpr = nullptr;
+  language::Core::CXXDefaultArgExpr *defaultArgExpr = nullptr;
   // Try to instantiate the default expression.
   auto defaultArgExprResult = getClangSema().BuildCXXDefaultArgExpr(
-      clang::SourceLocation(), const_cast<clang::FunctionDecl *>(functionDecl),
-      const_cast<clang::ParmVarDecl *>(param));
+      language::Core::SourceLocation(), const_cast<language::Core::FunctionDecl *>(functionDecl),
+      const_cast<language::Core::ParmVarDecl *>(param));
   // If the default expression can't be instantiated, bail.
   if (!defaultArgExprResult.isUsable())
     return false;
   else
-    defaultArgExpr = cast<clang::CXXDefaultArgExpr>(defaultArgExprResult.get());
+    defaultArgExpr = cast<language::Core::CXXDefaultArgExpr>(defaultArgExprResult.get());
 
   // If the type of this parameter is a view type, do not import the
   // default expression, since we cannot guarantee the lifetime of the
@@ -2691,14 +2691,14 @@ bool ClangImporter::Implementation::isDefaultArgSafeToImport(
   // which might be unexpected and unsafe.
   if (param->getType()->isReferenceType() &&
       param->getType()->getPointeeType().isConstQualified()) {
-    if (isa<clang::MaterializeTemporaryExpr>(defaultArgExpr->getExpr()))
+    if (isa<language::Core::MaterializeTemporaryExpr>(defaultArgExpr->getExpr()))
       return false;
   }
   return true;
 }
 
 static ParamDecl *getParameterInfo(ClangImporter::Implementation *impl,
-                                   const clang::ParmVarDecl *param,
+                                   const language::Core::ParmVarDecl *param,
                                    const Identifier &name,
                                    const language::Type &languageParamTy,
                                    const bool isInOut, const bool isConsuming,
@@ -2718,7 +2718,7 @@ static ParamDecl *getParameterInfo(ClangImporter::Implementation *impl,
   // If SendingArgsAndResults are enabled and we have a sending argument,
   // set that the param was sending.
   if (ASTContext.LangOpts.hasFeature(Feature::SendingArgsAndResults)) {
-    if (auto *attr = param->getAttr<clang::CodiraAttrAttr>()) {
+    if (auto *attr = param->getAttr<language::Core::CodiraAttrAttr>()) {
       if (attr->getAttribute() == "sending") {
         paramInfo->setSending();
       }
@@ -2735,8 +2735,8 @@ static ParamDecl *getParameterInfo(ClangImporter::Implementation *impl,
 
   // Parameters of type const T& imported as T, make sure we borrow from them
   // when they have lifetime annotations.
-  bool isBorrowing = (param->getAttr<clang::LifetimeBoundAttr>() ||
-                      param->getAttr<clang::LifetimeCaptureByAttr>()) &&
+  bool isBorrowing = (param->getAttr<language::Core::LifetimeBoundAttr>() ||
+                      param->getAttr<language::Core::LifetimeCaptureByAttr>()) &&
                      param->getType()->isReferenceType();
   // Foreign references are already references so they don't need to be passed
   // as inout.
@@ -2754,7 +2754,7 @@ static ParamDecl *getParameterInfo(ClangImporter::Implementation *impl,
   // (https://github.com/apple/language/issues/70124)
   // TODO: support params with template parameters
   if (param->hasDefaultArg() && !isInOut &&
-      !isa<clang::CXXConstructorDecl>(param->getDeclContext()) &&
+      !isa<language::Core::CXXConstructorDecl>(param->getDeclContext()) &&
       impl->isDefaultArgSafeToImport(param) &&
       !param->isTemplated()) {
     CodiraDeclSynthesizer synthesizer(*impl);
@@ -2770,8 +2770,8 @@ static ParamDecl *getParameterInfo(ClangImporter::Implementation *impl,
 }
 
 ParameterList *ClangImporter::Implementation::importFunctionParameterList(
-    DeclContext *dc, const clang::FunctionDecl *clangDecl,
-    ArrayRef<const clang::ParmVarDecl *> params, bool isVariadic,
+    DeclContext *dc, const language::Core::FunctionDecl *clangDecl,
+    ArrayRef<const language::Core::ParmVarDecl *> params, bool isVariadic,
     bool allowNSUIntegerAsInt, ArrayRef<Identifier> argNames,
     ArrayRef<GenericTypeParamDecl *> genericParams, Type resultType) {
   // Import the parameters.
@@ -2829,7 +2829,7 @@ ParameterList *ClangImporter::Implementation::importFunctionParameterList(
       [params, resultType](GenericTypeParamDecl *genericParam,
                            bool shouldCheckResultType) -> bool {
     auto paramDecl = genericParam->getClangDecl();
-    auto templateTypeParam = cast<clang::TemplateTypeParmDecl>(paramDecl);
+    auto templateTypeParam = cast<language::Core::TemplateTypeParmDecl>(paramDecl);
     // TODO(https://github.com/apple/language/issues/56206): This won't work when we support importing dependent types.
     // We'll have to change this logic to traverse the type tree of the imported
     // Codira type (basically whatever ends up in the parameters variable).
@@ -2897,16 +2897,16 @@ ParameterList *ClangImporter::Implementation::importFunctionParameterList(
                                importSourceLoc(end));
 }
 
-static bool isObjCMethodResultAudited(const clang::Decl *decl) {
+static bool isObjCMethodResultAudited(const language::Core::Decl *decl) {
   if (!decl)
     return false;
-  return (decl->hasAttr<clang::CFReturnsRetainedAttr>() ||
-          decl->hasAttr<clang::CFReturnsNotRetainedAttr>() ||
-          decl->hasAttr<clang::ObjCReturnsInnerPointerAttr>());
+  return (decl->hasAttr<language::Core::CFReturnsRetainedAttr>() ||
+          decl->hasAttr<language::Core::CFReturnsNotRetainedAttr>() ||
+          decl->hasAttr<language::Core::ObjCReturnsInnerPointerAttr>());
 }
 
 ArgumentAttrs ClangImporter::Implementation::inferDefaultArgument(
-    clang::QualType type, OptionalTypeKind clangOptionality,
+    language::Core::QualType type, OptionalTypeKind clangOptionality,
     DeclBaseName baseName, StringRef argumentLabel, bool isFirstParameter,
     bool isLastParameter, NameImporter &nameImporter) {
   auto baseNameStr = baseName.userFacingName();
@@ -2915,7 +2915,7 @@ ArgumentAttrs ClangImporter::Implementation::inferDefaultArgument(
   if (isFirstParameter && camel_case::getFirstWord(baseNameStr) == "set")
     return DefaultArgumentKind::None;
 
-  if (auto elaboratedTy = type->getAs<clang::ElaboratedType>())
+  if (auto elaboratedTy = type->getAs<language::Core::ElaboratedType>())
     type = elaboratedTy->desugar();
 
   // Some nullable parameters default to 'nil'.
@@ -2926,9 +2926,9 @@ ArgumentAttrs ClangImporter::Implementation::inferDefaultArgument(
       return DefaultArgumentKind::NilLiteral;
 
     // NSZone parameters default to 'nil'.
-    if (auto ptrType = type->getAs<clang::PointerType>()) {
+    if (auto ptrType = type->getAs<language::Core::PointerType>()) {
       if (auto recType
-            = ptrType->getPointeeType()->getAs<clang::RecordType>()) {
+            = ptrType->getPointeeType()->getAs<language::Core::RecordType>()) {
         if (recType->isStructureOrClassType() &&
             recType->getDecl()->getName() == "_NSZone")
           return DefaultArgumentKind::NilLiteral;
@@ -2937,8 +2937,8 @@ ArgumentAttrs ClangImporter::Implementation::inferDefaultArgument(
   }
 
   // Option sets default to "[]" if they have "Options" in their name.
-  if (const clang::EnumType *enumTy = type->getAs<clang::EnumType>()) {
-    const clang::EnumDecl *enumDef = enumTy->getDecl()->getDefinition();
+  if (const language::Core::EnumType *enumTy = type->getAs<language::Core::EnumType>()) {
+    const language::Core::EnumDecl *enumDef = enumTy->getDecl()->getDefinition();
     if (enumDef && nameImporter.getEnumKind(enumDef) == EnumKind::Options) {
       auto enumName = enumDef->getName();
       for (auto word : toolchain::reverse(camel_case::getWords(enumName))) {
@@ -2946,8 +2946,8 @@ ArgumentAttrs ClangImporter::Implementation::inferDefaultArgument(
           return DefaultArgumentKind::EmptyArray;
       }
     }
-  } else if (const clang::TypedefType *typedefType =
-                 type->getAs<clang::TypedefType>()) {
+  } else if (const language::Core::TypedefType *typedefType =
+                 type->getAs<language::Core::TypedefType>()) {
     // Get the AvailabilityAttr that would be set from CF/NS_OPTIONS
     auto typedefDecl = typedefType->getDecl();
     if (importer::isUnavailableInCodira(typedefDecl, nullptr, true)) {
@@ -2970,7 +2970,7 @@ ArgumentAttrs ClangImporter::Implementation::inferDefaultArgument(
   // NSDictionary arguments default to [:] (or nil, if nullable) if "options",
   // "attributes", or "userInfo" occur in the argument label or (if there is no
   // argument label) at the end of the base name.
-  if (auto objcPtrTy = type->getAs<clang::ObjCObjectPointerType>()) {
+  if (auto objcPtrTy = type->getAs<language::Core::ObjCObjectPointerType>()) {
     if (auto objcClass = objcPtrTy->getInterfaceDecl()) {
       if (objcClass->getName() == "NSDictionary") {
         StringRef searchStr = argumentLabel;
@@ -3130,7 +3130,7 @@ static Type decomposeCompletionHandlerType(
 }
 
 ImportedType ClangImporter::Implementation::importEffectfulPropertyType(
-                                        const clang::ObjCMethodDecl *decl,
+                                        const language::Core::ObjCMethodDecl *decl,
                                         DeclContext *dc,
                                         importer::ImportedName name,
                                         bool isFromSystemModule) {
@@ -3177,8 +3177,8 @@ ImportedType ClangImporter::Implementation::importEffectfulPropertyType(
 }
 
 ImportedType ClangImporter::Implementation::importMethodParamsAndReturnType(
-    const DeclContext *dc, const clang::ObjCMethodDecl *clangDecl,
-    ArrayRef<const clang::ParmVarDecl *> params, bool isVariadic,
+    const DeclContext *dc, const language::Core::ObjCMethodDecl *clangDecl,
+    ArrayRef<const language::Core::ParmVarDecl *> params, bool isVariadic,
     bool isFromSystemModule, ParameterList **bodyParams,
     ImportedName importedName,
     std::optional<ForeignAsyncConvention> &asyncConvention,
@@ -3219,7 +3219,7 @@ ImportedType ClangImporter::Implementation::importMethodParamsAndReturnType(
     asyncInfo = importedName.getAsyncAlternateInfo();
 
   OptionalTypeKind OptionalityOfReturn;
-  if (clangDecl->hasAttr<clang::ReturnsNonNullAttr>()) {
+  if (clangDecl->hasAttr<language::Core::ReturnsNonNullAttr>()) {
     OptionalityOfReturn = OTK_None;
   } else {
     OptionalityOfReturn = OTK_ImplicitlyUnwrappedOptional;
@@ -3227,7 +3227,7 @@ ImportedType ClangImporter::Implementation::importMethodParamsAndReturnType(
 
   bool allowNSUIntegerAsIntInResult = isFromSystemModule;
   if (allowNSUIntegerAsIntInResult) {
-    clang::Selector sel = clangDecl->getSelector();
+    language::Core::Selector sel = clangDecl->getSelector();
     StringRef name = sel.getNameForSlot(0);
     if (!name.empty()) {
       allowNSUIntegerAsIntInResult = !nameContainsUnsigned(name);
@@ -3236,7 +3236,7 @@ ImportedType ClangImporter::Implementation::importMethodParamsAndReturnType(
 
   ImportDiagnosticAdder addImportDiag(*this, clangDecl,
                                       clangDecl->getLocation());
-  clang::QualType resultType = desugarIfElaborated(clangDecl->getReturnType());
+  language::Core::QualType resultType = desugarIfElaborated(clangDecl->getReturnType());
   ImportedType importedType = importer::findOptionSetEnum(resultType, *this);
   if (!importedType)
     importedType = importType(resultType, resultKind, addImportDiag,
@@ -3261,7 +3261,7 @@ ImportedType ClangImporter::Implementation::importMethodParamsAndReturnType(
   auto languageResultTy = importedType.getType();
 
   if (languageResultTy &&
-      clangDecl->getMethodFamily() == clang::OMF_performSelector) {
+      clangDecl->getMethodFamily() == language::Core::OMF_performSelector) {
     // performSelector methods that return 'id' should be imported into Codira
     // as returning Unmanaged<AnyObject>.
     Type nonOptionalTy = languageResultTy->getOptionalObjectType();
@@ -3340,7 +3340,7 @@ ImportedType ClangImporter::Implementation::importMethodParamsAndReturnType(
     bool allowNSUIntegerAsIntInParam = isFromSystemModule;
     if (allowNSUIntegerAsIntInParam) {
       StringRef name;
-      clang::Selector sel = clangDecl->getSelector();
+      language::Core::Selector sel = clangDecl->getSelector();
       if (nameIndex < sel.getNumArgs())
         name = sel.getNameForSlot(nameIndex);
       if (name.empty() && nameIndex == 0)
@@ -3472,7 +3472,7 @@ ImportedType ClangImporter::Implementation::importMethodParamsAndReturnType(
   // Form the parameter list.
   *bodyParams = ParameterList::create(CodiraContext, languageParams);
 
-  if (clangDecl->hasAttr<clang::NoReturnAttr>()) {
+  if (clangDecl->hasAttr<language::Core::NoReturnAttr>()) {
     origCodiraResultTy = CodiraContext.getNeverType()->getCanonicalType();
     languageResultTy = CodiraContext.getNeverType();
   }
@@ -3495,8 +3495,8 @@ ImportedType ClangImporter::Implementation::importMethodParamsAndReturnType(
 }
 
 ImportedType ClangImporter::Implementation::importAccessorParamsAndReturnType(
-    const DeclContext *dc, const clang::ObjCPropertyDecl *property,
-    const clang::ObjCMethodDecl *clangDecl, bool isFromSystemModule,
+    const DeclContext *dc, const language::Core::ObjCPropertyDecl *property,
+    const language::Core::ObjCMethodDecl *clangDecl, bool isFromSystemModule,
     ImportedName functionName, language::ParameterList **params) {
   // Note: We're using a pointer instead of a reference here to make it clear
   // at the call site that this is an out-parameter.
@@ -3538,7 +3538,7 @@ ImportedType ClangImporter::Implementation::importAccessorParamsAndReturnType(
     *params = ParameterList::createEmpty(CodiraContext);
     resultTy = propertyTy;
   } else {
-    const clang::ParmVarDecl *param = clangDecl->parameters().front();
+    const language::Core::ParmVarDecl *param = clangDecl->parameters().front();
     ImportedName fullBodyName = importFullName(param, CurrentVersion);
     Identifier bodyName = fullBodyName.getBaseIdentifier(CodiraContext);
     SourceLoc nameLoc = importSourceLoc(param->getLocation());
@@ -3632,8 +3632,8 @@ Decl *ClangImporter::Implementation::importDeclByName(StringRef name) {
 
   // Perform name lookup into the global scope.
   // FIXME: Map source locations over.
-  clang::LookupResult lookupResult(sema, clangName, clang::SourceLocation(),
-                                   clang::Sema::LookupOrdinaryName);
+  language::Core::LookupResult lookupResult(sema, clangName, language::Core::SourceLocation(),
+                                   language::Core::Sema::LookupOrdinaryName);
   lookupResult.setAllowHidden(true);
   if (!sema.LookupName(lookupResult, /*Scope=*/sema.TUScope)) {
     return nullptr;
@@ -3708,8 +3708,8 @@ static Type getNamedProtocolType(ClangImporter::Implementation &impl,
   assert(clangName);
 
   // Perform name lookup into the global scope.
-  clang::LookupResult lookupResult(sema, clangName, clang::SourceLocation(),
-                                   clang::Sema::LookupObjCProtocolName);
+  language::Core::LookupResult lookupResult(sema, clangName, language::Core::SourceLocation(),
+                                   language::Core::Sema::LookupObjCProtocolName);
   lookupResult.setAllowHidden(true);
   if (!sema.LookupName(lookupResult, /*Scope=*/sema.TUScope))
     return Type();

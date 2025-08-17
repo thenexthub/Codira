@@ -19,7 +19,7 @@
 
 #include "language/Basic/Toolchain.h"
 #include "language/Config.h"
-#include "clang/Basic/DarwinSDKInfo.h"
+#include "language/Core/Basic/DarwinSDKInfo.h"
 #include "toolchain/ADT/StringRef.h"
 #include <optional>
 
@@ -124,7 +124,7 @@ namespace language {
   getCodiraRuntimeCompatibilityVersionForTarget(const toolchain::Triple &Triple);
 
   /// Retrieve the target SDK version for the given SDKInfo and target triple.
-  toolchain::VersionTuple getTargetSDKVersion(clang::DarwinSDKInfo &SDKInfo,
+  toolchain::VersionTuple getTargetSDKVersion(language::Core::DarwinSDKInfo &SDKInfo,
                                          const toolchain::Triple &triple);
 
   /// Compute a target triple that is canonicalized using the passed triple.

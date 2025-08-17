@@ -39,8 +39,8 @@
 #include "language/Basic/Malloc.h"
 #include "language/Serialization/SerializationOptions.h"
 #include "language/SymbolGraphGen/SymbolGraphOptions.h"
-#include "clang/AST/DeclTemplate.h"
-#include "clang/Basic/DarwinSDKInfo.h"
+#include "language/Core/AST/DeclTemplate.h"
+#include "language/Core/Basic/DarwinSDKInfo.h"
 #include "toolchain/ADT/ArrayRef.h"
 #include "toolchain/ADT/DenseMap.h"
 #include "toolchain/ADT/IntrusiveRefCntPtr.h"
@@ -60,7 +60,7 @@
 #include <utility>
 #include <vector>
 
-namespace clang {
+namespace language::Core {
   class Decl;
   class MacroInfo;
   class Module;
@@ -853,14 +853,14 @@ public:
   /// \param params The function parameters.
   /// \param resultTy The Codira result type.
   /// \param trueRep The actual calling convention, which must be C-compatible.
-  const clang::Type *
+  const language::Core::Type *
   getClangFunctionType(ArrayRef<AnyFunctionType::Param> params, Type resultTy,
                        FunctionTypeRepresentation trueRep);
 
   /// Get the canonical Clang type corresponding to a SIL function type.
   ///
   /// SIL analog of \c ASTContext::getClangFunctionType .
-  const clang::Type *
+  const language::Core::Type *
   getCanonicalClangFunctionType(ArrayRef<SILParameterInfo> params,
                                 std::optional<SILResultInfo> result,
                                 SILFunctionType::Representation trueRep);
@@ -875,13 +875,13 @@ public:
   /// \returns nullptr if successful. If an error occurs, returns a list of
   /// types that couldn't be converted.
   std::unique_ptr<TemplateInstantiationError> getClangTemplateArguments(
-      const clang::TemplateParameterList *templateParams,
+      const language::Core::TemplateParameterList *templateParams,
       ArrayRef<Type> genericArgs,
-      SmallVectorImpl<clang::TemplateArgument> &templateArgs);
+      SmallVectorImpl<language::Core::TemplateArgument> &templateArgs);
 
   /// Get the Codira declaration that a Clang declaration was exported from,
   /// if applicable.
-  const Decl *getCodiraDeclForExportedClangDecl(const clang::Decl *decl);
+  const Decl *getCodiraDeclForExportedClangDecl(const language::Core::Decl *decl);
 
   /// General conversion method from Codira types -> Clang types.
   ///
@@ -889,7 +889,7 @@ public:
   /// IRGen. For converting function types, strongly prefer using one of the
   /// other methods instead, instead of manually iterating over parameters
   /// and results.
-  const clang::Type *getClangTypeForIRGen(Type ty);
+  const language::Core::Type *getClangTypeForIRGen(Type ty);
 
   /// Determine whether the given Codira type is representable in a
   /// given foreign language.
@@ -1032,9 +1032,9 @@ public:
 
   /// Test support utility for loading a platform remap file
   /// in case an SDK is not specified to the compilation.
-  const clang::DarwinSDKInfo::RelatedTargetVersionMapping *
+  const language::Core::DarwinSDKInfo::RelatedTargetVersionMapping *
   getAuxiliaryDarwinPlatformRemapInfo(
-      clang::DarwinSDKInfo::OSEnvPair Kind) const;
+      language::Core::DarwinSDKInfo::OSEnvPair Kind) const;
 
   //===--------------------------------------------------------------------===//
   // Diagnostics Helper functions
@@ -1622,7 +1622,7 @@ private:
   friend SILBoxType;
 
 public:
-  clang::DarwinSDKInfo *getDarwinSDKInfo() const;
+  language::Core::DarwinSDKInfo *getDarwinSDKInfo() const;
 
   /// Returns the availability domain corresponding to the target triple. If
   /// there isn't a `PlatformKind` associated with the current target triple,

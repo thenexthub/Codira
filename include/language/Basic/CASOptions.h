@@ -22,7 +22,7 @@
 #ifndef LANGUAGE_BASIC_CASOPTIONS_H
 #define LANGUAGE_BASIC_CASOPTIONS_H
 
-#include "clang/CAS/CASOptions.h"
+#include "language/Core/CAS/CASOptions.h"
 #include "toolchain/ADT/Hashing.h"
 
 namespace language {
@@ -42,7 +42,7 @@ public:
   bool ImportModuleFromCAS = false;
 
   /// CASOptions
-  clang::CASOptions CASOpts;
+  language::Core::CASOptions CASOpts;
 
   /// Clang Include Trees.
   std::string ClangIncludeTree;
@@ -75,7 +75,7 @@ public:
   toolchain::hash_code getPCHHashComponents() const {
     // The CASIDs are generated from scanner, thus not part of the hash since
     // they will always be empty when requested.
-    // TODO: Add frozen clang::CASOptions to the hash.
+    // TODO: Add frozen language::Core::CASOptions to the hash.
     return toolchain::hash_combine(EnableCaching);
   }
 

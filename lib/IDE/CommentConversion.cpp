@@ -27,10 +27,10 @@
 #include "language/Subsystems.h"
 #include "toolchain/Support/MemoryBuffer.h"
 #include "toolchain/Support/raw_ostream.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Comment.h"
-#include "clang/AST/Decl.h"
-#include "clang/Index/CommentToXML.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Comment.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/Index/CommentToXML.h"
 
 using namespace language::markup;
 using namespace language;
@@ -406,17 +406,17 @@ visitDocComment(const DocComment *DC, TypeOrExtensionDecl SynthesizedTarget) {
   OS << RootEndTag;
 }
 
-static bool getClangDocumentationCommentAsXML(const clang::Decl *D,
+static bool getClangDocumentationCommentAsXML(const language::Core::Decl *D,
                                               raw_ostream &OS) {
   const auto &ClangContext = D->getASTContext();
-  const clang::comments::FullComment *FC =
+  const language::Core::comments::FullComment *FC =
       ClangContext.getCommentForDecl(D, /*PP=*/nullptr);
   if (!FC)
     return false;
 
   // FIXME: hang the converter object somewhere so that it is persistent
   // between requests to this AST.
-  clang::index::CommentToXMLConverter Converter;
+  language::Core::index::CommentToXMLConverter Converter;
 
   toolchain::SmallString<1024> XML;
   Converter.convertCommentToXML(FC, XML, ClangContext);
@@ -530,17 +530,17 @@ bool ide::getDocumentationCommentAsXML(const Decl *D, raw_ostream &OS,
 bool ide::getRawDocumentationComment(const Decl *D, raw_ostream &OS) {
   ClangNode MaybeClangNode = D->getClangNode();
   if (MaybeClangNode) {
-    const clang::Decl *CD = MaybeClangNode.getAsDecl();
+    const language::Core::Decl *CD = MaybeClangNode.getAsDecl();
     if (!CD) {
       return false;
     }
-    const clang::ASTContext &ClangContext = CD->getASTContext();
-    const clang::comments::FullComment *FC =
+    const language::Core::ASTContext &ClangContext = CD->getASTContext();
+    const language::Core::comments::FullComment *FC =
       ClangContext.getCommentForDecl(CD, /*PP=*/nullptr);
     if (!FC) {
       return false;
     }
-    const clang::RawComment *rawComment = ClangContext.getRawCommentForAnyRedecl(FC->getDecl());
+    const language::Core::RawComment *rawComment = ClangContext.getRawCommentForAnyRedecl(FC->getDecl());
     if (!rawComment) {
       return false;
     }

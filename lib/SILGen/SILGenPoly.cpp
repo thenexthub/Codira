@@ -7494,7 +7494,7 @@ void SILGenFunction::emitProtocolWitness(
   //    @convention(c) () -> ()
   // . We do this by simply omitting the last params.
   // TODO: fix this for static C++ methods.
-  if (isa_and_nonnull<clang::CXXConstructorDecl>(
+  if (isa_and_nonnull<language::Core::CXXConstructorDecl>(
           witness.getDecl()->getClangDecl())) {
     origParams.pop_back();
     reqtSubstParams = reqtSubstParams.drop_back();

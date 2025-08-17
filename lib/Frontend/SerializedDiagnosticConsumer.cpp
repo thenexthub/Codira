@@ -18,7 +18,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "clang/Frontend/SerializedDiagnostics.h"
+#include "language/Core/Frontend/SerializedDiagnostics.h"
 
 #include "language/Frontend/SerializedDiagnosticConsumer.h"
 #include "language/AST/DiagnosticConsumer.h"
@@ -38,7 +38,7 @@
 #include "toolchain/Bitstream/BitstreamWriter.h"
 
 using namespace language;
-using namespace clang::serialized_diags;
+using namespace language::Core::serialized_diags;
 
 namespace {
 class AbbreviationMap {
@@ -391,16 +391,16 @@ void SerializedDiagnosticConsumer::addRangeToRecord(CharSourceRange Range,
 
 /// Map a Codira DiagnosticKind to the diagnostic level expected
 /// for serialized diagnostics.
-static clang::serialized_diags::Level getDiagnosticLevel(DiagnosticKind Kind) {
+static language::Core::serialized_diags::Level getDiagnosticLevel(DiagnosticKind Kind) {
   switch (Kind) {
   case DiagnosticKind::Error:
-    return clang::serialized_diags::Error;
+    return language::Core::serialized_diags::Error;
   case DiagnosticKind::Note:
-    return clang::serialized_diags::Note;
+    return language::Core::serialized_diags::Note;
   case DiagnosticKind::Warning:
-    return clang::serialized_diags::Warning;
+    return language::Core::serialized_diags::Warning;
   case DiagnosticKind::Remark:
-    return clang::serialized_diags::Remark;
+    return language::Core::serialized_diags::Remark;
   }
 
   toolchain_unreachable("Unhandled DiagnosticKind in switch.");
@@ -424,7 +424,7 @@ void SerializedDiagnosticConsumer::emitMetaBlock() {
   Stream.EnterSubblock(BLOCK_META, 3);
   Record.clear();
   Record.push_back(RECORD_VERSION);
-  Record.push_back(clang::serialized_diags::VersionNumber);
+  Record.push_back(language::Core::serialized_diags::VersionNumber);
   Stream.EmitRecordWithAbbrev(Abbrevs.get(RECORD_VERSION), Record);
   Stream.ExitBlock();
 }

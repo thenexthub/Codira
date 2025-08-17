@@ -35,7 +35,7 @@
 #include "toolchain/ADT/SmallString.h"
 #include "toolchain/Support/ErrorHandling.h"
 #include "toolchain/Support/Path.h"
-#include "clang/CodeGen/CodiraCallingConv.h"
+#include "language/Core/CodeGen/CodiraCallingConv.h"
 
 #include "BitPatternBuilder.h"
 #include "CallEmission.h"

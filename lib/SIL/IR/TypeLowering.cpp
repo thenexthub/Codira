@@ -47,8 +47,8 @@
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILModule.h"
 #include "language/SIL/Test.h"
-#include "clang/AST/Type.h"
-#include "clang/AST/Decl.h"
+#include "language/Core/AST/Type.h"
+#include "language/Core/AST/Decl.h"
 #include "toolchain/Support/Compiler.h"
 #include "toolchain/Support/Debug.h"
 
@@ -2527,7 +2527,7 @@ namespace {
       }
 
       if (auto *clangDecl = D->getClangDecl()) {
-        if (auto *recordDecl = dyn_cast<clang::RecordDecl>(clangDecl)) {
+        if (auto *recordDecl = dyn_cast<language::Core::RecordDecl>(clangDecl)) {
           // C unions are imported as opaque types. Therefore we have to assume
           // that a union contains a pointer.
           if (recordDecl->isOrContainsUnion())
@@ -3564,7 +3564,7 @@ TypeConverter::computeLoweredRValueType(TypeExpansionContext forExpansion,
       } else {
         baseExtInfo = substFnType->getExtInfo();
       }
-      const clang::Type *clangType = baseExtInfo.getClangTypeInfo().getType();
+      const language::Core::Type *clangType = baseExtInfo.getClangTypeInfo().getType();
       if (shouldStoreClangType(rep) && !clangType) {
         clangType = TC.Context.getClangFunctionType(
             substFnType->getParams(), substFnType->getResult(), rep);

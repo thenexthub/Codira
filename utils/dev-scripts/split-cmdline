@@ -282,7 +282,7 @@ def print_arg(arg, first, is_arg_param, cmd_name):
         "-localization-path",
         "-lto-library",
         "-meabi",
-        "-mllvm",
+        "-mtoolchain",
         "-mmlir",
         "-module",
         "-module-abi-name",
@@ -348,7 +348,7 @@ def print_arg(arg, first, is_arg_param, cmd_name):
     ] + [
         # This list contains options that do not appear in --help menus:
         "-Xfrontend",
-        "-Xllvm",
+        "-Xtoolchain",
         "-add_ast_path",
         "-arch",
         "-emit-ir",

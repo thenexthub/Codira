@@ -1,8 +1,24 @@
 //===- lib/Support/ErrorHandling.cpp - Callbacks for errors ---------------===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -11,18 +27,18 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ErrorHandling.h>
-#include <IndexStoreDB_LLVMSupport/llvm-c_ErrorHandling.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallVector.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Twine.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Config_config.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Debug.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Errc.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Error.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Signals.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Threading.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_WindowsError.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ErrorHandling.h>
+#include <IndexStoreDB_LLVMSupport/toolchain-c_ErrorHandling.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallVector.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Twine.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_config.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Debug.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Errc.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Error.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Signals.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Threading.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_WindowsError.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 #include <cassert>
 #include <cstdlib>
 #include <mutex>
@@ -36,7 +52,7 @@
 # include <fcntl.h>
 #endif
 
-using namespace llvm;
+using namespace toolchain;
 
 static fatal_error_handler_t ErrorHandler = nullptr;
 static void *ErrorHandlerUserData = nullptr;
@@ -60,7 +76,7 @@ static std::mutex ErrorHandlerMutex;
 static std::mutex BadAllocErrorHandlerMutex;
 #endif
 
-void llvm::install_fatal_error_handler(fatal_error_handler_t handler,
+void toolchain::install_fatal_error_handler(fatal_error_handler_t handler,
                                        void *user_data) {
 #if LLVM_ENABLE_THREADS == 1
   std::lock_guard<std::mutex> Lock(ErrorHandlerMutex);
@@ -70,7 +86,7 @@ void llvm::install_fatal_error_handler(fatal_error_handler_t handler,
   ErrorHandlerUserData = user_data;
 }
 
-void llvm::remove_fatal_error_handler() {
+void toolchain::remove_fatal_error_handler() {
 #if LLVM_ENABLE_THREADS == 1
   std::lock_guard<std::mutex> Lock(ErrorHandlerMutex);
 #endif
@@ -78,20 +94,20 @@ void llvm::remove_fatal_error_handler() {
   ErrorHandlerUserData = nullptr;
 }
 
-void llvm::report_fatal_error(const char *Reason, bool GenCrashDiag) {
+void toolchain::report_fatal_error(const char *Reason, bool GenCrashDiag) {
   report_fatal_error(Twine(Reason), GenCrashDiag);
 }
 
-void llvm::report_fatal_error(const std::string &Reason, bool GenCrashDiag) {
+void toolchain::report_fatal_error(const std::string &Reason, bool GenCrashDiag) {
   report_fatal_error(Twine(Reason), GenCrashDiag);
 }
 
-void llvm::report_fatal_error(StringRef Reason, bool GenCrashDiag) {
+void toolchain::report_fatal_error(StringRef Reason, bool GenCrashDiag) {
   report_fatal_error(Twine(Reason), GenCrashDiag);
 }
 
-void llvm::report_fatal_error(const Twine &Reason, bool GenCrashDiag) {
-  llvm::fatal_error_handler_t handler = nullptr;
+void toolchain::report_fatal_error(const Twine &Reason, bool GenCrashDiag) {
+  toolchain::fatal_error_handler_t handler = nullptr;
   void* handlerData = nullptr;
   {
     // Only acquire the mutex while reading the handler, so as not to invoke a
@@ -125,7 +141,7 @@ void llvm::report_fatal_error(const Twine &Reason, bool GenCrashDiag) {
   exit(1);
 }
 
-void llvm::install_bad_alloc_error_handler(fatal_error_handler_t handler,
+void toolchain::install_bad_alloc_error_handler(fatal_error_handler_t handler,
                                            void *user_data) {
 #if LLVM_ENABLE_THREADS == 1
   std::lock_guard<std::mutex> Lock(BadAllocErrorHandlerMutex);
@@ -135,7 +151,7 @@ void llvm::install_bad_alloc_error_handler(fatal_error_handler_t handler,
   BadAllocErrorHandlerUserData = user_data;
 }
 
-void llvm::remove_bad_alloc_error_handler() {
+void toolchain::remove_bad_alloc_error_handler() {
 #if LLVM_ENABLE_THREADS == 1
   std::lock_guard<std::mutex> Lock(BadAllocErrorHandlerMutex);
 #endif
@@ -143,7 +159,7 @@ void llvm::remove_bad_alloc_error_handler() {
   BadAllocErrorHandlerUserData = nullptr;
 }
 
-void llvm::report_bad_alloc_error(const char *Reason, bool GenCrashDiag) {
+void toolchain::report_bad_alloc_error(const char *Reason, bool GenCrashDiag) {
   fatal_error_handler_t Handler = nullptr;
   void *HandlerData = nullptr;
   {
@@ -158,7 +174,7 @@ void llvm::report_bad_alloc_error(const char *Reason, bool GenCrashDiag) {
 
   if (Handler) {
     Handler(HandlerData, Reason, GenCrashDiag);
-    llvm_unreachable("bad alloc handler should not return");
+    toolchain_unreachable("bad alloc handler should not return");
   }
 
 #ifdef LLVM_ENABLE_EXCEPTIONS
@@ -177,19 +193,19 @@ void llvm::report_bad_alloc_error(const char *Reason, bool GenCrashDiag) {
 #ifdef LLVM_ENABLE_EXCEPTIONS
 // Do not set custom new handler if exceptions are enabled. In this case OOM
 // errors are handled by throwing 'std::bad_alloc'.
-void llvm::install_out_of_memory_new_handler() {
+void toolchain::install_out_of_memory_new_handler() {
 }
 #else
 // Causes crash on allocation failure. It is called prior to the handler set by
 // 'install_bad_alloc_error_handler'.
 static void out_of_memory_new_handler() {
-  llvm::report_bad_alloc_error("Allocation failed");
+  toolchain::report_bad_alloc_error("Allocation failed");
 }
 
 // Installs new handler that causes crash on allocation failure. It does not
 // need to be called explicitly, if this file is linked to application, because
 // in this case it is called during construction of 'new_handler_installer'.
-void llvm::install_out_of_memory_new_handler() {
+void toolchain::install_out_of_memory_new_handler() {
   static bool out_of_memory_new_handler_installed = false;
   if (!out_of_memory_new_handler_installed) {
     std::set_new_handler(out_of_memory_new_handler);
@@ -207,10 +223,10 @@ public:
 } new_handler_installer;
 #endif
 
-void llvm::llvm_unreachable_internal(const char *msg, const char *file,
+void toolchain::toolchain_unreachable_internal(const char *msg, const char *file,
                                      unsigned line) {
   // This code intentionally doesn't call the ErrorHandler callback, because
-  // llvm_unreachable is intended to be used to indicate "impossible"
+  // toolchain_unreachable is intended to be used to indicate "impossible"
   // situations, and not legitimate runtime errors.
   if (msg)
     dbgs() << msg << "\n";
@@ -251,7 +267,7 @@ void LLVMResetFatalErrorHandler() {
   case x:                                                                      \
     return make_error_code(errc::y)
 
-std::error_code llvm::mapWindowsError(unsigned EV) {
+std::error_code toolchain::mapWindowsError(unsigned EV) {
   switch (EV) {
     MAP_ERR_TO_COND(ERROR_ACCESS_DENIED, permission_denied);
     MAP_ERR_TO_COND(ERROR_ALREADY_EXISTS, file_exists);

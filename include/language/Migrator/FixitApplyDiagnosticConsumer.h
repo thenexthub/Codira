@@ -25,7 +25,7 @@
 #include "language/Migrator/FixitFilter.h"
 #include "language/Migrator/Migrator.h"
 #include "language/Migrator/Replacement.h"
-#include "clang/Rewrite/Core/RewriteBuffer.h"
+#include "language/Core/Rewrite/Core/RewriteBuffer.h"
 #include "toolchain/ADT/SmallSet.h"
 
 namespace language {
@@ -41,7 +41,7 @@ struct Replacement;
 
 class FixitApplyDiagnosticConsumer final
   : public DiagnosticConsumer, public FixitFilter {
-  clang::RewriteBuffer RewriteBuf;
+  language::Core::RewriteBuffer RewriteBuf;
 
   /// The entire text of the input file.
   const StringRef Text;

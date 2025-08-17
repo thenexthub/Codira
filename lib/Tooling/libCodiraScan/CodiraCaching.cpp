@@ -33,8 +33,8 @@
 #include "language/Frontend/Frontend.h"
 #include "language/Frontend/MakeStyleDependencies.h"
 #include "language/Frontend/PrintingDiagnosticConsumer.h"
-#include "clang/CAS/CASOptions.h"
-#include "clang/Frontend/CompileJobCacheResult.h"
+#include "language/Core/CAS/CASOptions.h"
+#include "language/Core/Frontend/CompileJobCacheResult.h"
 #include "toolchain/ADT/ArrayRef.h"
 #include "toolchain/ADT/IntrusiveRefCntPtr.h"
 #include "toolchain/ADT/SmallVector.h"
@@ -66,7 +66,7 @@ public:
   createCodiraScanCAS(toolchain::StringRef Path);
 
   static toolchain::Expected<CodiraScanCAS *>
-  createCodiraScanCAS(clang::CASOptions &CASOpts);
+  createCodiraScanCAS(language::Core::CASOptions &CASOpts);
 
 private:
   CodiraScanCAS(std::shared_ptr<toolchain::cas::ObjectStore> CAS,
@@ -80,7 +80,7 @@ private:
 struct CodiraCachedCompilationHandle {
   CodiraCachedCompilationHandle(toolchain::cas::ObjectRef Key,
                                toolchain::cas::ObjectRef Output,
-                               clang::cas::CompileJobCacheResult &&Result,
+                               language::Core::cas::CompileJobCacheResult &&Result,
                                unsigned InputIndex, CodiraScanCAS &CAS)
       : Key(Key), Output(Output), InputIndex(InputIndex), Result(Result),
         DB(CAS) {}
@@ -95,7 +95,7 @@ struct CodiraCachedCompilationHandle {
   toolchain::cas::ObjectRef Output;
   unsigned InputIndex;
   std::variant<language::cas::CompileJobCacheResult,
-               clang::cas::CompileJobCacheResult>
+               language::Core::cas::CompileJobCacheResult>
       Result;
   CodiraScanCAS &DB;
 };
@@ -127,7 +127,7 @@ struct CodiraCachedReplayResult {
 };
 } // namespace
 
-DEFINE_SIMPLE_CONVERSION_FUNCTIONS(clang::CASOptions, languagescan_cas_options_t)
+DEFINE_SIMPLE_CONVERSION_FUNCTIONS(language::Core::CASOptions, languagescan_cas_options_t)
 DEFINE_SIMPLE_CONVERSION_FUNCTIONS(CodiraScanCAS, languagescan_cas_t)
 DEFINE_SIMPLE_CONVERSION_FUNCTIONS(CodiraCachedCompilationHandle,
                                    languagescan_cached_compilation_t)
@@ -141,7 +141,7 @@ DEFINE_SIMPLE_CONVERSION_FUNCTIONS(CodiraCachedReplayResult,
 //=== CAS Functions ----------------------------------------------------------//
 
 languagescan_cas_options_t languagescan_cas_options_create() {
-  clang::CASOptions *CASOpts = new clang::CASOptions();
+  language::Core::CASOptions *CASOpts = new language::Core::CASOptions();
   return wrap(CASOpts);
 }
 
@@ -170,7 +170,7 @@ bool languagescan_cas_options_set_plugin_option(languagescan_cas_options_t optio
 languagescan_cas_t
 languagescan_cas_create_from_options(languagescan_cas_options_t options,
                                   languagescan_string_ref_t *error) {
-  clang::CASOptions *opts = unwrap(options);
+  language::Core::CASOptions *opts = unwrap(options);
   auto cas = CodiraScanCAS::createCodiraScanCAS(*opts);
   if (!cas) {
     *error =
@@ -414,7 +414,7 @@ createCachedCompilation(CodiraScanCAS &CAS, const toolchain::cas::CASID &ID,
     }
   }
   {
-    clang::cas::CompileJobResultSchema Schema(CAS.getCAS());
+    language::Core::cas::CompileJobResultSchema Schema(CAS.getCAS());
     if (Schema.isRootNode(*Proxy)) {
       auto Result = Schema.load(Proxy->getRef());
       if (!Result)
@@ -514,7 +514,7 @@ unsigned languagescan_cached_compilation_get_num_outputs(
           std::get_if<language::cas::CompileJobCacheResult>(&Comp->Result))
     return Result->getNumOutputs();
 
-  auto *Result = std::get_if<clang::cas::CompileJobCacheResult>(&Comp->Result);
+  auto *Result = std::get_if<language::Core::cas::CompileJobCacheResult>(&Comp->Result);
   assert(Result && "unexpected variant");
   return Result->getNumOutputs();
 }
@@ -529,17 +529,17 @@ languagescan_cached_compilation_get_output(languagescan_cached_compilation_t id,
                                             Result->getOutput(idx).Kind,
                                             Comp->DB.getCAS()));
 
-  auto *Result = std::get_if<clang::cas::CompileJobCacheResult>(&Comp->Result);
+  auto *Result = std::get_if<language::Core::cas::CompileJobCacheResult>(&Comp->Result);
   assert(Result && "unexpected variant");
   language::file_types::ID Kind = language::file_types::TY_INVALID;
   switch (Result->getOutput(idx).Kind) {
-  case clang::cas::CompileJobCacheResult::OutputKind::MainOutput:
+  case language::Core::cas::CompileJobCacheResult::OutputKind::MainOutput:
     Kind = language::file_types::TY_ClangModuleFile;
     break;
-  case clang::cas::CompileJobCacheResult::OutputKind::Dependencies:
+  case language::Core::cas::CompileJobCacheResult::OutputKind::Dependencies:
     Kind = language::file_types::TY_Dependencies;
     break;
-  case clang::cas::CompileJobCacheResult::OutputKind::SerializedDiagnostics:
+  case language::Core::cas::CompileJobCacheResult::OutputKind::SerializedDiagnostics:
     Kind = language::file_types::TY_CachedDiagnostics;
     break;
   }
@@ -986,14 +986,14 @@ void languagescan_cache_cancellation_token_dispose(
 
 toolchain::Expected<CodiraScanCAS *>
 CodiraScanCAS::createCodiraScanCAS(toolchain::StringRef Path) {
-  clang::CASOptions Opts;
+  language::Core::CASOptions Opts;
   Opts.CASPath = Path;
 
   return createCodiraScanCAS(Opts);
 }
 
 toolchain::Expected<CodiraScanCAS *>
-CodiraScanCAS::createCodiraScanCAS(clang::CASOptions &CASOpts) {
+CodiraScanCAS::createCodiraScanCAS(language::Core::CASOptions &CASOpts) {
   auto DB = CASOpts.getOrCreateDatabases();
   if (!DB)
     return DB.takeError();

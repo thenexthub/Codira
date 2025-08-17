@@ -113,7 +113,7 @@
 #endif
 
 #if __has_attribute(musttail)
-#define LANGUAGE_MUSTTAIL [[clang::musttail]]
+#define LANGUAGE_MUSTTAIL [[language::Core::musttail]]
 #else
 #define LANGUAGE_MUSTTAIL
 #endif
@@ -236,8 +236,8 @@
 #define LANGUAGE_FALLTHROUGH [[fallthrough]]
 #elif __has_cpp_attribute(gnu::fallthrough)
 #define LANGUAGE_FALLTHROUGH [[gnu::fallthrough]]
-#elif __has_cpp_attribute(clang::fallthrough)
-#define LANGUAGE_FALLTHROUGH [[clang::fallthrough]]
+#elif __has_cpp_attribute(language::Core::fallthrough)
+#define LANGUAGE_FALLTHROUGH [[language::Core::fallthrough]]
 #elif __has_attribute(fallthrough)
 #define LANGUAGE_FALLTHROUGH __attribute__((__fallthrough__))
 #else
@@ -246,8 +246,8 @@
 
 #if __cplusplus > 201402l && __has_cpp_attribute(nodiscard)
 #define LANGUAGE_NODISCARD [[nodiscard]]
-#elif __has_cpp_attribute(clang::warn_unused_result)
-#define LANGUAGE_NODISCARD [[clang::warn_unused_result]]
+#elif __has_cpp_attribute(language::Core::warn_unused_result)
+#define LANGUAGE_NODISCARD [[language::Core::warn_unused_result]]
 #else
 #define LANGUAGE_NODISCARD
 #endif

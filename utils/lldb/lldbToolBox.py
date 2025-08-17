@@ -3,7 +3,7 @@ LLDB Helpers for working with the language compiler.
 
 Load into LLDB with 'command script import /path/to/lldbToolBox.py'
 
-This will also import LLVM data formatters as well, assuming that llvm is next
+This will also import LLVM data formatters as well, assuming that toolchain is next
 to the language checkout.
 """
 import argparse
@@ -18,14 +18,14 @@ import lldb
 REPO_BASE = os.path.abspath(os.path.join(__file__, os.pardir, os.pardir,
                                          os.pardir, os.pardir))
 SWIFT_REPO = os.path.join(REPO_BASE, "language")
-LLVM_REPO = os.path.join(REPO_BASE, "llvm-project")
-LLVM_DATAFORMATTER_PATH = os.path.join(LLVM_REPO, "llvm", "utils",
+LLVM_REPO = os.path.join(REPO_BASE, "toolchain-project")
+LLVM_DATAFORMATTER_PATH = os.path.join(LLVM_REPO, "toolchain", "utils",
                                        "lldbDataFormatters.py")
 SWIFT_DATAFORMATTER_PATH = os.path.join(SWIFT_REPO, "utils",
                                         "lldb", "lldbSwiftDataFormatters.py")
 
 
-def import_llvm_dataformatters(debugger):
+def import_toolchain_dataformatters(debugger):
     if not os.access(LLVM_DATAFORMATTER_PATH, os.F_OK):
         print("WARNING! Could not find LLVM data formatters!")
         return
@@ -130,7 +130,7 @@ def sequence(debugger, command, exec_ctx, result, internal_dict):
 
 
 def __lldb_init_module(debugger, internal_dict):
-    import_llvm_dataformatters(debugger)
+    import_toolchain_dataformatters(debugger)
     import_language_dataformatters(debugger)
     debugger.HandleCommand('command script add disassemble-asm-cfg '
                            '-f lldbToolBox.disassemble_asm_cfg')

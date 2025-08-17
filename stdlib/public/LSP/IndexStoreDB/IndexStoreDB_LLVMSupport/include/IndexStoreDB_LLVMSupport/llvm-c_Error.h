@@ -1,8 +1,8 @@
-/*===------- llvm-c/Error.h - llvm::Error class C Interface -------*- C -*-===*\
+/*===------- toolchain-c/Error.h - toolchain::Error class C Interface -------*- C -*-===*\
 |*                                                                            *|
 |* Part of the LLVM Project, under the Apache License v2.0 with LLVM          *|
 |* Exceptions.                                                                *|
-|* See https://llvm.org/LICENSE.txt for license information.                  *|
+|* See https://toolchain.org/LICENSE.txt for license information.                  *|
 |* SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception                    *|
 |*                                                                            *|
 |*===----------------------------------------------------------------------===*|
@@ -14,7 +14,7 @@
 #ifndef LLVM_C_ERROR_H
 #define LLVM_C_ERROR_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_Config_indexstoredb-prefix.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_indexstoredb-prefix.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -60,7 +60,7 @@ char *LLVMGetErrorMessage(LLVMErrorRef Err);
 void LLVMDisposeErrorMessage(char *ErrMsg);
 
 /**
- * Returns the type id for llvm StringError.
+ * Returns the type id for toolchain StringError.
  */
 LLVMErrorTypeId LLVMGetStringErrorTypeId();
 

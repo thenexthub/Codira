@@ -1538,7 +1538,7 @@ TEST(malloc, allocation_slack) {
 }
 
 // Regression test for b/206701345 -- scudo bug, MTE only.
-// Fix: https://reviews.llvm.org/D105261
+// Fix: https://reviews.toolchain.org/D105261
 // Fix: https://android-review.googlesource.com/c/platform/external/scudo/+/1763655
 TEST(malloc, realloc_mte_crash_b206701345) {
   // We want to hit in-place realloc at the very end of an mmap-ed region.  Not

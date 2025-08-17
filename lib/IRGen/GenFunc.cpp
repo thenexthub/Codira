@@ -84,9 +84,9 @@
 #include "language/Basic/Assertions.h"
 #include "language/ClangImporter/ClangImporter.h"
 #include "language/IRGen/Linking.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/Basic/CodeGenOptions.h"
-#include "clang/CodeGen/CodeGenABITypes.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/Basic/CodeGenOptions.h"
+#include "language/Core/CodeGen/CodeGenABITypes.h"
 #include "toolchain/ADT/StringSwitch.h"
 #include "toolchain/IR/Constants.h"
 #include "toolchain/IR/DerivedTypes.h"
@@ -140,7 +140,7 @@ namespace {
       : FormalType(formalType) {}
 
     Signature
-    getCXXConstructorSignature(const clang::CXXConstructorDecl *cxxCtorDecl,
+    getCXXConstructorSignature(const language::Core::CXXConstructorDecl *cxxCtorDecl,
                                IRGenModule &IGM) const;
     Signature getSignature(IRGenModule &IGM) const;
   };
@@ -687,7 +687,7 @@ Signature FuncSignatureInfo::getSignature(IRGenModule &IGM) const {
 }
 
 Signature FuncSignatureInfo::getCXXConstructorSignature(
-    const clang::CXXConstructorDecl *cxxCtorDecl, IRGenModule &IGM) const {
+    const language::Core::CXXConstructorDecl *cxxCtorDecl, IRGenModule &IGM) const {
   // If it's already been filled in, we're done.
   if (TheCXXConstructorSignature.isValid())
     return TheCXXConstructorSignature;
@@ -740,7 +740,7 @@ getFuncSignatureInfoForLowered(IRGenModule &IGM, CanSILFunctionType type) {
 
 Signature
 IRGenModule::getSignature(CanSILFunctionType type,
-                          const clang::CXXConstructorDecl *cxxCtorDecl) {
+                          const language::Core::CXXConstructorDecl *cxxCtorDecl) {
   return getSignature(type, FunctionPointerKind(type), /*forStaticCall*/ false,
                       cxxCtorDecl);
 }
@@ -748,7 +748,7 @@ IRGenModule::getSignature(CanSILFunctionType type,
 Signature
 IRGenModule::getSignature(CanSILFunctionType type, FunctionPointerKind kind,
                           bool forStaticCall,
-                          const clang::CXXConstructorDecl *cxxCtorDecl) {
+                          const language::Core::CXXConstructorDecl *cxxCtorDecl) {
   // Don't bother caching if we're working with a special kind.
   if (kind.isSpecial())
     return Signature::getUncached(*this, type, kind);
@@ -2796,7 +2796,7 @@ void irgen::emitBlockHeader(IRGenFunction &IGF,
   ConstantInitBuilder builder(IGF.IGM);
   auto descriptorFields = builder.beginStruct();
 
-  const clang::ASTContext &ASTContext = IGF.IGM.getClangASTContext();
+  const language::Core::ASTContext &ASTContext = IGF.IGM.getClangASTContext();
   toolchain::IntegerType *UnsignedLongTy =
       toolchain::IntegerType::get(IGF.IGM.getLLVMContext(),
                              ASTContext.getTypeSize(ASTContext.UnsignedLongTy));

@@ -25,9 +25,9 @@
 #include "language/Basic/SourceManager.h"
 #include "language/Basic/Unicode.h"
 #include "language/SymbolGraphGen/DocumentationCategory.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Decl.h"
-#include "clang/Basic/SourceManager.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/Basic/SourceManager.h"
 #include "AvailabilityMixin.h"
 #include "JSON.h"
 #include "Symbol.h"
@@ -301,11 +301,11 @@ StringRef getFileNameForDecl(const Decl *D) {
   return SourceM.getDisplayNameForLoc(Loc);
 }
 
-StringRef getFileNameForDecl(const clang::Decl *ClangD) {
+StringRef getFileNameForDecl(const language::Core::Decl *ClangD) {
   if (!ClangD) return StringRef{};
 
-  const clang::SourceManager &ClangSourceMgr = ClangD->getASTContext().getSourceManager();
-  clang::PresumedLoc Loc = ClangSourceMgr.getPresumedLoc(ClangD->getLocation());
+  const language::Core::SourceManager &ClangSourceMgr = ClangD->getASTContext().getSourceManager();
+  language::Core::PresumedLoc Loc = ClangSourceMgr.getPresumedLoc(ClangD->getLocation());
   if (Loc.isInvalid()) return StringRef{};
 
   return StringRef(Loc.getFilename());
@@ -326,8 +326,8 @@ void Symbol::serializeDocComment(toolchain::json::OStream &OS) const {
       return;
 
     if (auto *ClangD = ClangN.getAsDecl()) {
-      const clang::ASTContext &ClangContext = ClangD->getASTContext();
-      const clang::RawComment *RC =
+      const language::Core::ASTContext &ClangContext = ClangD->getASTContext();
+      const language::Core::RawComment *RC =
           ClangContext.getRawCommentForAnyRedecl(ClangD);
       if (!RC || !RC->isDocumentation())
         return;

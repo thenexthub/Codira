@@ -134,7 +134,7 @@ template <class T> using ArrayIterator = CollectionIterator<Array<T>, T>;
 // FIXME: This should apply to more than the Array type.
 template <class T>
 LANGUAGE_INLINE_THUNK cxxOverlay::ArrayIterator<T> begin(const Array<T> &array
-                                          [[clang::lifetimebound]]) {
+                                          [[language::Core::lifetimebound]]) {
   return cxxOverlay::ArrayIterator<T>(array);
 }
 

@@ -12,7 +12,7 @@ You can run using either `utils/generate-xcode` or the `language-xcodegen` scrip
 ./language-xcodegen <build dir>
 ```
 
-where `<build dir>` is the path to the build directory e.g `build/Ninja-RelWithDebInfoAssert`. This will by default create a `Swift.xcodeproj` in the parent directory (next to the `build` directory). Projects for LLVM, LLDB, and Clang may also be created by passing `--llvm`, `--lldb`, and `--clang` respectively. Workspaces of useful combinations will also be created (e.g Swift+LLVM, Clang+LLVM).
+where `<build dir>` is the path to the build directory e.g `build/Ninja-RelWithDebInfoAssert`. This will by default create a `Swift.xcodeproj` in the parent directory (next to the `build` directory). Projects for LLVM, LLDB, and Clang may also be created by passing `--toolchain`, `--lldb`, and `--clang` respectively. Workspaces of useful combinations will also be created (e.g Swift+LLVM, Clang+LLVM).
 
 For the full set of options, see the [Command usage](#command-usage) below.
 
@@ -39,7 +39,7 @@ LLVM PROJECTS:
   --clang-tools-extra/--no-clang-tools-extra
                           When generating a project for Clang, whether to include clang-tools-extra (default: --clang-tools-extra)
   --lldb/--no-lldb        Generate an xcodeproj for LLDB (default: --no-lldb)
-  --llvm/--no-llvm        Generate an xcodeproj for LLVM (default: --no-llvm)
+  --toolchain/--no-toolchain        Generate an xcodeproj for LLVM (default: --no-toolchain)
 
 SWIFT TARGETS:
   --language-targets/--no-language-targets

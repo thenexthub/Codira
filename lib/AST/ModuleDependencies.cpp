@@ -519,9 +519,9 @@ void ModuleDependencyInfo::setOutputPathAndHash(StringRef outputPath,
 
 CodiraDependencyScanningService::CodiraDependencyScanningService() {
   ClangScanningService.emplace(
-      clang::tooling::dependencies::ScanningMode::DependencyDirectivesScan,
-      clang::tooling::dependencies::ScanningOutputFormat::FullTree,
-      clang::CASOptions(),
+      language::Core::tooling::dependencies::ScanningMode::DependencyDirectivesScan,
+      language::Core::tooling::dependencies::ScanningOutputFormat::FullTree,
+      language::Core::CASOptions(),
       /* CAS (toolchain::cas::ObjectStore) */ nullptr,
       /* Cache (toolchain::cas::ActionCache) */ nullptr,
       /* SharedFS */ nullptr,
@@ -530,7 +530,7 @@ CodiraDependencyScanningService::CodiraDependencyScanningService() {
       // the build system to handle the optimization safely.
       // Codira can handle the working directory optimizaiton
       // already so it is safe to turn on all optimizations.
-      clang::tooling::dependencies::ScanningOptimizations::All);
+      language::Core::tooling::dependencies::ScanningOptimizations::All);
 }
 
 bool
@@ -654,15 +654,15 @@ bool CodiraDependencyScanningService::setupCachingDependencyScanningService(
   CASOpts = Instance.getInvocation().getCASOptions().CASOpts;
 
   ClangScanningService.emplace(
-      clang::tooling::dependencies::ScanningMode::DependencyDirectivesScan,
-      clang::tooling::dependencies::ScanningOutputFormat::FullIncludeTree,
+      language::Core::tooling::dependencies::ScanningMode::DependencyDirectivesScan,
+      language::Core::tooling::dependencies::ScanningOutputFormat::FullIncludeTree,
       Instance.getInvocation().getCASOptions().CASOpts,
       Instance.getSharedCASInstance(), Instance.getSharedCacheInstance(),
       /*CachingOnDiskFileSystem=*/nullptr,
       // The current working directory optimization (off by default)
       // should not impact CAS. We set the optization to all to be
       // consistent with the non-CAS case.
-      clang::tooling::dependencies::ScanningOptimizations::All);
+      language::Core::tooling::dependencies::ScanningOptimizations::All);
 
   return false;
 }
@@ -839,7 +839,7 @@ void ModuleDependenciesCache::recordDependencies(
 
     if (dep.first.Kind == ModuleDependencyKind::Clang) {
       auto clangModuleDetails = dep.second.getAsClangModule();
-      addSeenClangModule(clang::tooling::dependencies::ModuleID{
+      addSeenClangModule(language::Core::tooling::dependencies::ModuleID{
           dep.first.ModuleName, clangModuleDetails->contextHash});
     }
   }

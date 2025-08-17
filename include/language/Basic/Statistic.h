@@ -56,7 +56,7 @@
 // Generally we make one of these per-process: either early in the life of the
 // driver, or early in the life of the frontend.
 
-namespace clang {
+namespace language::Core {
   class Decl;
   class SourceManager;
 }
@@ -114,7 +114,7 @@ public:
     virtual void traceName(const void *Entity, raw_ostream &OS) const = 0;
     virtual void traceLoc(const void *Entity,
                           SourceManager *SourceMgr,
-                          clang::SourceManager *ClangSourceMgr,
+                          language::Core::SourceManager *ClangSourceMgr,
                           raw_ostream &OS) const = 0;
     virtual ~TraceFormatter();
   };
@@ -160,7 +160,7 @@ private:
   std::unique_ptr<toolchain::NamedRegionTimer> Timer;
 
   SourceManager *SourceMgr;
-  clang::SourceManager *ClangSourceMgr;
+  language::Core::SourceManager *ClangSourceMgr;
   std::optional<AlwaysOnDriverCounters> DriverCounters;
   std::optional<AlwaysOnFrontendCounters> FrontendCounters;
   std::optional<AlwaysOnFrontendCounters> LastTracedFrontendCounters;
@@ -189,7 +189,7 @@ private:
                        StringRef AuxName,
                        StringRef Directory,
                        SourceManager *SM,
-                       clang::SourceManager *CSM,
+                       language::Core::SourceManager *CSM,
                        bool FineGrainedTimers,
                        bool TraceEvents,
                        bool ProfileEvents,
@@ -204,7 +204,7 @@ public:
                        StringRef OptType,
                        StringRef Directory,
                        SourceManager *SM,
-                       clang::SourceManager *CSM,
+                       language::Core::SourceManager *CSM,
                        bool FineGrainedTimers,
                        bool TraceEvents,
                        bool ProfileEvents,
@@ -261,7 +261,7 @@ public:
   FrontendStatsTracer(UnifiedStatsReporter *Reporter, StringRef EventName,
                       const ProtocolConformance *P);
   FrontendStatsTracer(UnifiedStatsReporter *Reporter, StringRef EventName,
-                      const clang::Decl *D);
+                      const language::Core::Decl *D);
   FrontendStatsTracer(UnifiedStatsReporter *Reporter, StringRef EventName,
                       const Expr *E);
   FrontendStatsTracer(UnifiedStatsReporter *Reporter, StringRef EventName,
@@ -293,7 +293,7 @@ FrontendStatsTracer::getTraceFormatter<const ProtocolConformance *>();
 
 template <>
 const UnifiedStatsReporter::TraceFormatter *
-FrontendStatsTracer::getTraceFormatter<const clang::Decl *>();
+FrontendStatsTracer::getTraceFormatter<const language::Core::Decl *>();
 
 template <>
 const UnifiedStatsReporter::TraceFormatter *
@@ -339,8 +339,8 @@ inline FrontendStatsTracer::FrontendStatsTracer(UnifiedStatsReporter *R,
 
 inline FrontendStatsTracer::FrontendStatsTracer(UnifiedStatsReporter *R,
                                                 StringRef S,
-                                                const clang::Decl *D)
-    : FrontendStatsTracer(R, S, D, getTraceFormatter<const clang::Decl *>()) {}
+                                                const language::Core::Decl *D)
+    : FrontendStatsTracer(R, S, D, getTraceFormatter<const language::Core::Decl *>()) {}
 
 inline FrontendStatsTracer::FrontendStatsTracer(UnifiedStatsReporter *R,
                                                 StringRef S, const Expr *E)

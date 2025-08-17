@@ -33,8 +33,8 @@
 // instead. GCC defaults to -mtp=auto, which inlines this function with
 // -march=armv7-a. Clang does not yet implement -mtp=auto, and instead defaults
 // to -mtp=soft.
-//  - https://bugs.llvm.org/show_bug.cgi?id=38394.
-//  - https://reviews.llvm.org/D34878?id=114573.
+//  - https://bugs.toolchain.org/show_bug.cgi?id=38394.
+//  - https://reviews.toolchain.org/D34878?id=114573.
 //
 // This function must preserve every register except r0, ip, lr, and cpsr.
 //

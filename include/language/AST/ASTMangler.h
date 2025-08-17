@@ -26,7 +26,7 @@
 #include "language/Basic/TaggedUnion.h"
 #include <optional>
 
-namespace clang {
+namespace language::Core {
 class NamedDecl;
 class TypedefType;
 }
@@ -440,10 +440,10 @@ public:
   getSpecialManglingContext(const ValueDecl *decl, bool useObjCProtocolNames);
 
   static bool isCXXCFOptionsDefinition(const ValueDecl *decl);
-  static const clang::TypedefType *
+  static const language::Core::TypedefType *
   getTypeDefForCXXCFOptionsDefinition(const ValueDecl *decl);
 
-  static const clang::NamedDecl *getClangDeclForMangling(const ValueDecl *decl);
+  static const language::Core::NamedDecl *getClangDeclForMangling(const ValueDecl *decl);
 
   void appendExistentialLayout(
       const ExistentialLayout &layout, GenericSignature sig,

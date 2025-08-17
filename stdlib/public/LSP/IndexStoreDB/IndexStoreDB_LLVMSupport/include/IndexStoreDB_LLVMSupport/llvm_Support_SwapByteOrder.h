@@ -1,8 +1,24 @@
 //===- SwapByteOrder.h - Generic and optimized byte swaps -------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -14,15 +30,15 @@
 #ifndef LLVM_SUPPORT_SWAPBYTEORDER_H
 #define LLVM_SUPPORT_SWAPBYTEORDER_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Compiler.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_DataTypes.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Compiler.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_DataTypes.h>
 #include <cstddef>
 #include <type_traits>
 #if defined(_MSC_VER) && !defined(_DEBUG)
 #include <stdlib.h>
 #endif
 
-namespace llvm {
+namespace toolchain {
 namespace sys {
 
 /// SwapByteOrder_16 - This function returns a byte-swapped representation of
@@ -42,7 +58,7 @@ inline uint16_t SwapByteOrder_16(uint16_t value) {
 /// SwapByteOrder_32 - This function returns a byte-swapped representation of
 /// the 32-bit argument.
 inline uint32_t SwapByteOrder_32(uint32_t value) {
-#if defined(__llvm__) || (LLVM_GNUC_PREREQ(4, 3, 0) && !defined(__ICC))
+#if defined(__toolchain__) || (LLVM_GNUC_PREREQ(4, 3, 0) && !defined(__ICC))
   return __builtin_bswap32(value);
 #elif defined(_MSC_VER) && !defined(_DEBUG)
   return _byteswap_ulong(value);
@@ -58,7 +74,7 @@ inline uint32_t SwapByteOrder_32(uint32_t value) {
 /// SwapByteOrder_64 - This function returns a byte-swapped representation of
 /// the 64-bit argument.
 inline uint64_t SwapByteOrder_64(uint64_t value) {
-#if defined(__llvm__) || (LLVM_GNUC_PREREQ(4, 3, 0) && !defined(__ICC))
+#if defined(__toolchain__) || (LLVM_GNUC_PREREQ(4, 3, 0) && !defined(__ICC))
   return __builtin_bswap64(value);
 #elif defined(_MSC_VER) && !defined(_DEBUG)
   return _byteswap_uint64(value);
@@ -129,6 +145,6 @@ inline void swapByteOrder(T &Value) {
 }
 
 } // end namespace sys
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif

@@ -756,7 +756,7 @@ RequirementMatch language::matchWitness(
       }
 
       if (!req->isObjC() &&
-          !isa_and_nonnull<clang::CXXMethodDecl>(witness->getClangDecl()) &&
+          !isa_and_nonnull<language::Core::CXXMethodDecl>(witness->getClangDecl()) &&
           reqTypeIsIUO != witnessTypeIsIUO)
         return RequirementMatch(witness, MatchKind::TypeConflict, witnessType);
 

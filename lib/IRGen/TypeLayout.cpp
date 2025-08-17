@@ -327,7 +327,7 @@ public:
         B.addSize(*enumData.entry->fixedSize(IGM));
 
         SmallVector<
-            clang::CodeGen::ConstantAggregateBuilderBase::PlaceholderPosition,
+            language::Core::CodeGen::ConstantAggregateBuilderBase::PlaceholderPosition,
             4>
             offsetPlaceholders;
         for (auto *p : payloads) {

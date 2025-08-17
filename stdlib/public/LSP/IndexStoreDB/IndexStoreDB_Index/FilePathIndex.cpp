@@ -24,12 +24,12 @@
 #include "FileVisibilityChecker.h"
 
 #include <IndexStoreDB_Index/IndexStoreCXX.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_STLExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_ArrayRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringSet.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Path.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_STLExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_ArrayRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringSet.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Path.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 #include <unordered_set>
 #include <set>
 
@@ -37,7 +37,7 @@ using namespace IndexStoreDB;
 using namespace IndexStoreDB::db;
 using namespace IndexStoreDB::index;
 using namespace indexstore;
-using namespace llvm;
+using namespace toolchain;
 
 namespace {
 

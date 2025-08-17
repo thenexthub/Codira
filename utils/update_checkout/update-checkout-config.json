@@ -97,10 +97,10 @@
             "remote": { "id": "swiftlang/swift-experimental-string-processing" } },
         "swift-sdk-generator": {
             "remote": { "id": "swiftlang/swift-sdk-generator" } },
-        "swift-llvm-bindings": {
-            "remote": { "id": "swiftlang/swift-llvm-bindings" } },
-        "llvm-project": {
-            "remote": { "id": "swiftlang/llvm-project" } },
+        "swift-toolchain-bindings": {
+            "remote": { "id": "swiftlang/swift-toolchain-bindings" } },
+        "toolchain-project": {
+            "remote": { "id": "swiftlang/toolchain-project" } },
         "wasi-libc": {
             "remote": { "id": "WebAssembly/wasi-libc" } },
         "wasmkit": {
@@ -131,8 +131,8 @@
         "main": {
             "aliases": ["swift/main", "main", "stable/20240723"],
             "repos": {
-                "llvm-project": "stable/20240723",
-                "swift-llvm-bindings": "stable/20240723",
+                "toolchain-project": "stable/20240723",
+                "swift-toolchain-bindings": "stable/20240723",
                 "swift": "main",
                 "cmark": "gfm",
                 "llbuild": "main",
@@ -187,8 +187,8 @@
         "release/6.2": {
             "aliases": ["swift/release/6.2", "release/6.2"],
             "repos": {
-                "llvm-project": "swift/release/6.2",
-                "swift-llvm-bindings": "swift/release/6.2",
+                "toolchain-project": "swift/release/6.2",
+                "swift-toolchain-bindings": "swift/release/6.2",
                 "swift": "release/6.2",
                 "cmark": "gfm",
                 "llbuild": "release/6.2",
@@ -242,8 +242,8 @@
         "release/6.1.1": {
             "aliases": ["swift/release/6.1.1", "release/6.1.1"],
             "repos": {
-                "llvm-project": "swift/release/6.1.1",
-                "swift-llvm-bindings": "swift/release/6.1.1",
+                "toolchain-project": "swift/release/6.1.1",
+                "swift-toolchain-bindings": "swift/release/6.1.1",
                 "swift": "release/6.1.1",
                 "cmark": "release/6.1.1",
                 "llbuild": "release/6.1.1",
@@ -296,8 +296,8 @@
         "release/6.1": {
             "aliases": ["swift/release/6.1", "release/6.1"],
             "repos": {
-                "llvm-project": "swift/release/6.1",
-                "swift-llvm-bindings": "swift/release/6.1",
+                "toolchain-project": "swift/release/6.1",
+                "swift-toolchain-bindings": "swift/release/6.1",
                 "swift": "release/6.1",
                 "cmark": "release/6.1",
                 "llbuild": "release/6.1",
@@ -350,8 +350,8 @@
         "release/6.0": {
             "aliases": ["swift/release/6.0", "release/6.0"],
             "repos": {
-                "llvm-project": "swift/release/6.0",
-                "swift-llvm-bindings": "swift/release/6.0",
+                "toolchain-project": "swift/release/6.0",
+                "swift-toolchain-bindings": "swift/release/6.0",
                 "swift": "release/6.0",
                 "cmark": "release/6.0",
                 "llbuild": "release/6.0",
@@ -402,8 +402,8 @@
         "release/5.10": {
             "aliases": ["swift/release/5.10", "release/5.10"],
             "repos": {
-                "llvm-project": "swift/release/5.10",
-                "swift-llvm-bindings": "swift/release/5.10",
+                "toolchain-project": "swift/release/5.10",
+                "swift-toolchain-bindings": "swift/release/5.10",
                 "swift": "release/5.10",
                 "cmark": "release/5.10",
                 "llbuild": "release/5.10",
@@ -447,10 +447,10 @@
             }
         },
         "rebranch": {
-            "aliases": ["rebranch", "stable/21.x", "llvm.org/main"],
+            "aliases": ["rebranch", "stable/21.x", "toolchain.org/main"],
             "repos": {
-                "llvm-project": "stable/21.x",
-                "swift-llvm-bindings": "stable/21.x",
+                "toolchain-project": "stable/21.x",
+                "swift-toolchain-bindings": "stable/21.x",
                 "swift": "rebranch",
                 "cmark": "gfm",
                 "llbuild": "main",
@@ -507,8 +507,8 @@
                         "stable-next", "upstream",
                         "next-upstream", "upstream-with-swift"],
             "repos": {
-                "llvm-project": "next",
-                "swift-llvm-bindings": "llvm.org/main",
+                "toolchain-project": "next",
+                "swift-toolchain-bindings": "toolchain.org/main",
                 "swift": "next",
                 "cmark": "gfm",
                 "llbuild": "main",

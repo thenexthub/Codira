@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "IndexDatastore.h"
-#include "IndexStoreDB_LLVMSupport/llvm_ADT_None.h"
+#include "IndexStoreDB_LLVMSupport/toolchain_ADT_None.h"
 #include "StoreSymbolRecord.h"
 #include <IndexStoreDB_Core/Symbol.h>
 #include <IndexStoreDB_Index/FilePathIndex.h>
@@ -30,17 +30,17 @@
 #include <IndexStoreDB_Support/Concurrency.h>
 #include <IndexStoreDB_Support/Logging.h>
 #include <IndexStoreDB_Index/IndexStoreCXX.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_ArrayRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_DenseMap.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_STLExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringMap.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ErrorHandling.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Errc.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_FileSystem.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Mutex.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Path.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_ArrayRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_DenseMap.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_STLExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringMap.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ErrorHandling.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Errc.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_FileSystem.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Mutex.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Path.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 
 #include <dispatch/dispatch.h>
 #include <Block.h>
@@ -56,7 +56,7 @@ using namespace IndexStoreDB;
 using namespace IndexStoreDB::db;
 using namespace IndexStoreDB::index;
 using namespace indexstore;
-using namespace llvm;
+using namespace toolchain;
 using namespace std::chrono;
 
 static sys::TimePoint<> toTimePoint(timespec ts) {
@@ -97,8 +97,8 @@ struct UnitEventInfo {
 };
 
 struct PollUnitsState {
-  llvm::sys::Mutex pollMtx;
-  llvm::StringMap<sys::TimePoint<>> knownUnits;
+  toolchain::sys::Mutex pollMtx;
+  toolchain::StringMap<sys::TimePoint<>> knownUnits;
 };
 
 class StoreUnitRepo : public std::enable_shared_from_this<StoreUnitRepo> {
@@ -113,7 +113,7 @@ class StoreUnitRepo : public std::enable_shared_from_this<StoreUnitRepo> {
 
   PollUnitsState pollUnitsState;
 
-  mutable llvm::sys::Mutex StateMtx;
+  mutable toolchain::sys::Mutex StateMtx;
   std::unordered_map<IDCode, std::shared_ptr<UnitMonitor>> UnitMonitorsByCode;
 
   std::unordered_set<db::IDCode> ExplicitOutputUnitsSet;
@@ -178,8 +178,8 @@ public:
             std::string &Error);
 
   bool isUnitOutOfDate(StringRef unitOutputPath, ArrayRef<StringRef> dirtyFiles);
-  bool isUnitOutOfDate(StringRef unitOutputPath, llvm::sys::TimePoint<> outOfDateModTime);
-  llvm::Optional<sys::TimePoint<>> timestampOfUnitForOutputPath(StringRef unitOutputPath);
+  bool isUnitOutOfDate(StringRef unitOutputPath, toolchain::sys::TimePoint<> outOfDateModTime);
+  toolchain::Optional<sys::TimePoint<>> timestampOfUnitForOutputPath(StringRef unitOutputPath);
   void checkUnitContainingFileIsOutOfDate(StringRef file);
 
   void addUnitOutFilePaths(ArrayRef<StringRef> filePaths, bool waitForProcessing);
@@ -200,12 +200,12 @@ class UnitMonitor {
   std::string UnitName;
   sys::TimePoint<> ModTime;
 
-  mutable llvm::sys::Mutex StateMtx;
+  mutable toolchain::sys::Mutex StateMtx;
 
   /// Map of out-of-date file paths to their associated info. Note that the
   /// StringRef key references the string in the trigger, so must not outlive
   /// it. Access to this map should be guarded by \c StateMtx.
-  llvm::DenseMap<StringRef, OutOfDateFileTriggerRef> OutOfDateTriggers;
+  toolchain::DenseMap<StringRef, OutOfDateFileTriggerRef> OutOfDateTriggers;
 
   /// Retrieves an unordered list of out-of-date trigger files.
   std::vector<OutOfDateFileTriggerRef> getUnorderedOutOfDateTriggers() const;
@@ -243,7 +243,7 @@ namespace {
 /// A thread-safe deque object for UnitEventInfo objects.
 class UnitEventInfoDeque {
   std::deque<UnitEventInfo> EventsDequeue;
-  mutable llvm::sys::Mutex StateMtx;
+  mutable toolchain::sys::Mutex StateMtx;
 
 public:
   void addEvents(ArrayRef<UnitEventInfo> evts) {
@@ -765,8 +765,8 @@ void StoreUnitRepo::pollForUnitChangesAndWait(bool isInitialScan) {
   sys::ScopedLock L(pollUnitsState.pollMtx);
   std::vector<UnitEventInfo> events;
   {
-    llvm::StringMap<sys::TimePoint<>> knownUnits;
-    llvm::StringMap<sys::TimePoint<>> foundUnits;
+    toolchain::StringMap<sys::TimePoint<>> knownUnits;
+    toolchain::StringMap<sys::TimePoint<>> foundUnits;
 
     std::swap(knownUnits, pollUnitsState.knownUnits);
 
@@ -834,7 +834,7 @@ void StoreUnitRepo::onUnitOutOfDate(IDCode unitCode, StringRef unitName,
   CanonicalFilePath MainFilePath;
   std::string OutFileIdentifier;
   bool hasTestSymbols = false;
-  llvm::sys::TimePoint<> CurrModTime;
+  toolchain::sys::TimePoint<> CurrModTime;
   SmallVector<IDCode, 8> dependentUnits;
   {
     ReadTransaction reader(SymIndex->getDBase());
@@ -1132,14 +1132,14 @@ bool IndexDatastoreImpl::isUnitOutOfDate(StringRef unitOutputPath, sys::TimePoin
   return outOfDateModTime > unitModTime;
 }
 
-llvm::Optional<sys::TimePoint<>> IndexDatastoreImpl::timestampOfUnitForOutputPath(StringRef unitOutputPath) {
+toolchain::Optional<sys::TimePoint<>> IndexDatastoreImpl::timestampOfUnitForOutputPath(StringRef unitOutputPath) {
   SmallString<128> nameBuf;
   IdxStore->getUnitNameFromOutputPath(unitOutputPath, nameBuf);
   StringRef unitName = nameBuf.str();
   std::string error;
   auto optUnitModTime = IdxStore->getUnitModificationTime(unitName, error);
   if (!optUnitModTime)
-    return llvm::None;
+    return toolchain::None;
 
   return toTimePoint(optUnitModTime.getValue());
 }
@@ -1204,7 +1204,7 @@ bool IndexDatastore::isUnitOutOfDate(StringRef unitOutputPath, sys::TimePoint<> 
   return IMPL->isUnitOutOfDate(unitOutputPath, outOfDateModTime);
 }
 
-llvm::Optional<sys::TimePoint<>> IndexDatastore::timestampOfUnitForOutputPath(StringRef unitOutputPath) {
+toolchain::Optional<sys::TimePoint<>> IndexDatastore::timestampOfUnitForOutputPath(StringRef unitOutputPath) {
   return IMPL->timestampOfUnitForOutputPath(unitOutputPath);
 }
 

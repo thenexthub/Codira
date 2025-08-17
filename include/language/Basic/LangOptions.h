@@ -29,7 +29,7 @@
 #include "language/Basic/PlaygroundOption.h"
 #include "language/Basic/Version.h"
 #include "language/Config.h"
-#include "clang/CAS/CASOptions.h"
+#include "language/Core/CAS/CASOptions.h"
 #include "toolchain/ADT/ArrayRef.h"
 #include "toolchain/ADT/Hashing.h"
 #include "toolchain/ADT/SmallString.h"

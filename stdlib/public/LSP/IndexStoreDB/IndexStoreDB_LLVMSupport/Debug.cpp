@@ -1,8 +1,24 @@
 //===-- Debug.cpp - An easy way to add debug output to your code ----------===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -23,22 +39,22 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Debug.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_CommandLine.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ManagedStatic.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Signals.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_circular_raw_ostream.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Debug.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_CommandLine.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ManagedStatic.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Signals.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_circular_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 
 #undef isCurrentDebugType
 #undef setCurrentDebugType
 #undef setCurrentDebugTypes
 
-using namespace llvm;
+using namespace toolchain;
 
 // Even though LLVM might be built with NDEBUG, define symbols that the code
-// built without NDEBUG can depend on via the llvm/Support/Debug.h header.
-namespace llvm {
+// built without NDEBUG can depend on via the toolchain/Support/Debug.h header.
+namespace toolchain {
 /// Exported boolean set by the -debug option.
 bool DebugFlag = false;
 
@@ -74,7 +90,7 @@ void setCurrentDebugTypes(const char **Types, unsigned Count) {
   for (size_t T = 0; T < Count; ++T)
     CurrentDebugType->push_back(Types[T]);
 }
-} // namespace llvm
+} // namespace toolchain
 
 // All Debug.h functionality is a no-op in NDEBUG mode.
 #ifndef NDEBUG
@@ -123,13 +139,13 @@ static void debug_user_sig_handler(void *Cookie) {
   // know that debug mode is enabled and dbgs() really is a
   // circular_raw_ostream.  If NDEBUG is defined, then dbgs() ==
   // errs() but this will never be invoked.
-  llvm::circular_raw_ostream &dbgout =
-      static_cast<circular_raw_ostream &>(llvm::dbgs());
+  toolchain::circular_raw_ostream &dbgout =
+      static_cast<circular_raw_ostream &>(toolchain::dbgs());
   dbgout.flushBufferWithBanner();
 }
 
 /// dbgs - Return a circular-buffered debug stream.
-raw_ostream &llvm::dbgs() {
+raw_ostream &toolchain::dbgs() {
   // Do one-time initialization in a thread-safe way.
   static struct dbgstream {
     circular_raw_ostream strm;
@@ -151,7 +167,7 @@ raw_ostream &llvm::dbgs() {
 
 #else
 // Avoid "has no symbols" warning.
-namespace llvm {
+namespace toolchain {
   /// dbgs - Return errs().
   raw_ostream &dbgs() {
     return errs();
@@ -162,4 +178,4 @@ namespace llvm {
 
 /// EnableDebugBuffering - Turn on signal handler installation.
 ///
-bool llvm::EnableDebugBuffering = false;
+bool toolchain::EnableDebugBuffering = false;

@@ -14,10 +14,10 @@
 //===----------------------------------------------------------------------===//
 
 #include <IndexStoreDB_Core/Symbol.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_STLExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringSwitch.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ErrorHandling.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_STLExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringSwitch.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ErrorHandling.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 
 using namespace IndexStoreDB;
 
@@ -85,7 +85,7 @@ const char *IndexStoreDB::getSymbolKindString(SymbolKind kind) {
   case SymbolKind::Concept: return "concept";
   case SymbolKind::CommentTag: return "comment-tag";
   }
-  llvm_unreachable("Garbage symbol kind");
+  toolchain_unreachable("Garbage symbol kind");
 }
 
 void Symbol::print(raw_ostream &OS) const {
@@ -116,7 +116,7 @@ void SymbolOccurrence::print(raw_ostream &OS) const {
 
 
 void IndexStoreDB::applyForEachSymbolRole(SymbolRoleSet Roles,
-                                   llvm::function_ref<void(SymbolRole)> Fn) {
+                                   toolchain::function_ref<void(SymbolRole)> Fn) {
 #define APPLY_FOR_ROLE(Role) \
   if (Roles & SymbolRole::Role) \
     Fn(SymbolRole::Role)
@@ -177,8 +177,8 @@ void IndexStoreDB::printSymbolRoles(SymbolRoleSet Roles, raw_ostream &OS) {
 }
 
 Optional<SymbolProviderKind> IndexStoreDB::getSymbolProviderKindFromIdentifer(StringRef ident) {
-  return llvm::StringSwitch<Optional<SymbolProviderKind>>(ident)
+  return toolchain::StringSwitch<Optional<SymbolProviderKind>>(ident)
     .Case("clang", SymbolProviderKind::Clang)
     .Case("language", SymbolProviderKind::Swift)
-    .Default(llvm::None);
+    .Default(toolchain::None);
 }

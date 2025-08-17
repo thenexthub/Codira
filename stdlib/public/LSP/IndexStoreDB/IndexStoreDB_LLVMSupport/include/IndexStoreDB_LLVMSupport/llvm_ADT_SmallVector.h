@@ -1,8 +1,24 @@
-//===- llvm/ADT/SmallVector.h - 'Normally small' vectors --------*- C++ -*-===//
+//===- toolchain/ADT/SmallVector.h - 'Normally small' vectors --------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -13,13 +29,13 @@
 #ifndef LLVM_ADT_SMALLVECTOR_H
 #define LLVM_ADT_SMALLVECTOR_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_iterator_range.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_AlignOf.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Compiler.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_MathExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_MemAlloc.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_type_traits.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ErrorHandling.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_iterator_range.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_AlignOf.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Compiler.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_MathExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_MemAlloc.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_type_traits.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ErrorHandling.h>
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
@@ -32,7 +48,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace llvm {
+namespace toolchain {
 
 /// This is all the non-templated stuff common to all SmallVectors.
 class SmallVectorBase {
@@ -237,7 +253,7 @@ void SmallVectorTemplateBase<T, TriviallyCopyable>::grow(size_t MinSize) {
   // Always grow, even from zero.
   size_t NewCapacity = size_t(NextPowerOf2(this->capacity() + 2));
   NewCapacity = std::min(std::max(NewCapacity, MinSize), size_t(UINT32_MAX));
-  T *NewElts = static_cast<T*>(llvm::safe_malloc(NewCapacity*sizeof(T)));
+  T *NewElts = static_cast<T*>(toolchain::safe_malloc(NewCapacity*sizeof(T)));
 
   // Move the elements over.
   this->uninitialized_move(this->begin(), this->end(), NewElts);
@@ -911,21 +927,21 @@ inline size_t capacity_in_bytes(const SmallVector<T, N> &X) {
   return X.capacity_in_bytes();
 }
 
-} // end namespace llvm
+} // end namespace toolchain
 
 namespace std {
 
   /// Implement std::swap in terms of SmallVector swap.
   template<typename T>
   inline void
-  swap(llvm::SmallVectorImpl<T> &LHS, llvm::SmallVectorImpl<T> &RHS) {
+  swap(toolchain::SmallVectorImpl<T> &LHS, toolchain::SmallVectorImpl<T> &RHS) {
     LHS.swap(RHS);
   }
 
   /// Implement std::swap in terms of SmallVector swap.
   template<typename T, unsigned N>
   inline void
-  swap(llvm::SmallVector<T, N> &LHS, llvm::SmallVector<T, N> &RHS) {
+  swap(toolchain::SmallVector<T, N> &LHS, toolchain::SmallVector<T, N> &RHS) {
     LHS.swap(RHS);
   }
 

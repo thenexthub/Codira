@@ -14,4 +14,4 @@ language_install_in_component(PROGRAMS language-api-dump.py
 file(TO_CMAKE_PATH "${LLVM_BUILD_BINARY_DIR}/bin/FileCheck${CMAKE_EXECUTABLE_SUFFIX}" _SWIFT_UTILS_FILECHECK)
 language_install_in_component(PROGRAMS "${_SWIFT_UTILS_FILECHECK}"
                            DESTINATION bin
-                           COMPONENT llvm-toolchain-dev-tools)
+                           COMPONENT toolchain-toolchain-dev-tools)

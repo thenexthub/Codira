@@ -33,7 +33,7 @@
 #include "language/Parse/Token.h"
 #include "language/Config.h"
 #include "language/Subsystems.h"
-#include "clang/Basic/CharInfo.h"
+#include "language/Core/Basic/CharInfo.h"
 #include "toolchain/ADT/StringSwitch.h"
 #include "toolchain/Support/MemoryBuffer.h"
 #include <vector>
@@ -1571,10 +1571,10 @@ public:
     if (!advanceIf('-') || !advanceIf(' '))
       return std::nullopt;
 
-    if (ptr == end || !clang::isAsciiIdentifierContinue(*ptr))
+    if (ptr == end || !language::Core::isAsciiIdentifierContinue(*ptr))
       return std::nullopt;
     const char *identStart = ptr++;
-    while (advanceIf([](char c) { return clang::isAsciiIdentifierContinue(c); }))
+    while (advanceIf([](char c) { return language::Core::isAsciiIdentifierContinue(c); }))
       ;
     StringRef ident(identStart, ptr - identStart);
 

@@ -22,7 +22,7 @@
 #include "language/AST/ExtInfo.h"
 #include "language/Basic/Assertions.h"
 
-#include "clang/AST/Type.h"
+#include "language/Core/AST/Type.h"
 
 #include <optional>
 
@@ -55,7 +55,7 @@ void ClangTypeInfo::printType(ClangModuleLoader *cml,
 }
 
 void ClangTypeInfo::dump(toolchain::raw_ostream &os,
-                         const clang::ASTContext &ctx) const {
+                         const language::Core::ASTContext &ctx) const {
   if (type) {
     type->dump(os, ctx);
   } else {
@@ -67,7 +67,7 @@ void ClangTypeInfo::dump(toolchain::raw_ostream &os,
 
 std::optional<UnexpectedClangTypeError>
 UnexpectedClangTypeError::checkClangType(SILFunctionTypeRepresentation silRep,
-                                         const clang::Type *type,
+                                         const language::Core::Type *type,
                                          bool expectNonnullForCOrBlock,
                                          bool expectCanonical) {
 #ifdef NDEBUG

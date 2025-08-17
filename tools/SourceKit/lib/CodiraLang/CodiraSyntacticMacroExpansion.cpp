@@ -19,9 +19,9 @@
 #include "language/Frontend/PrintingDiagnosticConsumer.h"
 #include "language/IDE/TypeContextInfo.h"
 #include "language/IDETool/SyntacticMacroExpansion.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Comment.h"
-#include "clang/AST/Decl.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Comment.h"
+#include "language/Core/AST/Decl.h"
 
 using namespace SourceKit;
 using namespace language;

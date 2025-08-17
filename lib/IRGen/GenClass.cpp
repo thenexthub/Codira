@@ -40,10 +40,10 @@
 #include "language/SIL/SILModule.h"
 #include "language/SIL/SILType.h"
 #include "language/SIL/SILVTableVisitor.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Decl.h"
-#include "clang/AST/DeclObjC.h"
-#include "clang/AST/RecordLayout.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/AST/DeclObjC.h"
+#include "language/Core/AST/RecordLayout.h"
 #include "toolchain/ADT/SmallString.h"
 #include "toolchain/IR/DerivedTypes.h"
 #include "toolchain/IR/Function.h"
@@ -295,7 +295,7 @@ namespace {
     }
 
     void maybeAddCxxRecordBases(ClassDecl *cd) {
-      auto cxxRecord = dyn_cast_or_null<clang::CXXRecordDecl>(cd->getClangDecl());
+      auto cxxRecord = dyn_cast_or_null<language::Core::CXXRecordDecl>(cd->getClangDecl());
       if (!cxxRecord)
         return;
 
@@ -316,7 +316,7 @@ namespace {
       }
     }
 
-    void addPaddingBeforeClangField(const clang::FieldDecl *fd) {
+    void addPaddingBeforeClangField(const language::Core::FieldDecl *fd) {
       auto offset = Size(fd->getASTContext().toCharUnitsFromBits(
           fd->getASTContext().getFieldOffset(fd)).getQuantity());
 
@@ -389,7 +389,7 @@ namespace {
       for (auto decl :
            theClass->getStoredPropertiesAndMissingMemberPlaceholders()) {
         if (decl->getClangDecl())
-          if (auto clangField = cast<clang::FieldDecl>(decl->getClangDecl()))
+          if (auto clangField = cast<language::Core::FieldDecl>(decl->getClangDecl()))
             addPaddingBeforeClangField(clangField);
 
         if (auto var = dyn_cast<VarDecl>(decl)) {
@@ -2792,7 +2792,7 @@ toolchain::Constant *irgen::emitObjCProtocolData(IRGenModule &IGM,
       canUseClangEmission) {
     // Use the clang to generate the protocol metadata if there is a clang node.
     if (auto clangDecl = proto->getClangDecl()) {
-      if (auto objcMethodDecl = dyn_cast<clang::ObjCProtocolDecl>(clangDecl)) {
+      if (auto objcMethodDecl = dyn_cast<language::Core::ObjCProtocolDecl>(clangDecl)) {
         return IGM.emitClangProtocolObject(objcMethodDecl);
       }
     }

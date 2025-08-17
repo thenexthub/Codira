@@ -1011,7 +1011,7 @@ struct StmtTraceFormatter : public UnifiedStatsReporter::TraceFormatter {
     OS << Stmt::getKindName(S->getKind());
   }
   void traceLoc(const void *Entity, SourceManager *SM,
-                clang::SourceManager *CSM, raw_ostream &OS) const override {
+                language::Core::SourceManager *CSM, raw_ostream &OS) const override {
     if (!Entity)
       return;
     const Stmt *S = static_cast<const Stmt *>(Entity);

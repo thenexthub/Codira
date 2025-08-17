@@ -14,7 +14,7 @@ struct CountCopies2 {
 };
 
 struct MySmartPtr {
-    CountCopies2& operator*() const [[clang::lifetimebound]] { return *ptr; }
+    CountCopies2& operator*() const [[language::Core::lifetimebound]] { return *ptr; }
 
     CountCopies2* ptr;
 };

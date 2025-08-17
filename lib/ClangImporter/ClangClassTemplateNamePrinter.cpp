@@ -17,14 +17,14 @@
 #include "ClangClassTemplateNamePrinter.h"
 #include "ImporterImpl.h"
 #include "language/ClangImporter/ClangImporter.h"
-#include "clang/AST/TemplateArgumentVisitor.h"
-#include "clang/AST/TypeVisitor.h"
+#include "language/Core/AST/TemplateArgumentVisitor.h"
+#include "language/Core/AST/TypeVisitor.h"
 
 using namespace language;
 using namespace language::importer;
 
 struct TemplateInstantiationNamePrinter
-    : clang::TypeVisitor<TemplateInstantiationNamePrinter, std::string> {
+    : language::Core::TypeVisitor<TemplateInstantiationNamePrinter, std::string> {
   ASTContext &languageCtx;
   NameImporter *nameImporter;
   ImportNameVersion version;
@@ -38,20 +38,20 @@ struct TemplateInstantiationNamePrinter
       : languageCtx(languageCtx), nameImporter(nameImporter), version(version),
         importerImpl(importerImpl) {}
 
-  std::string VisitType(const clang::Type *type) {
+  std::string VisitType(const language::Core::Type *type) {
     // Print "_" as a fallback if we couldn't emit a more meaningful type name.
     return "_";
   }
 
-  std::string VisitBuiltinType(const clang::BuiltinType *type) {
+  std::string VisitBuiltinType(const language::Core::BuiltinType *type) {
     switch (type->getKind()) {
-    case clang::BuiltinType::Void:
+    case language::Core::BuiltinType::Void:
       return "Void";
-    case clang::BuiltinType::NullPtr:
+    case language::Core::BuiltinType::NullPtr:
       return "__cxxNullPtrT";
 
 #define MAP_BUILTIN_TYPE(CLANG_BUILTIN_KIND, LANGUAGE_TYPE_NAME)                  \
-    case clang::BuiltinType::CLANG_BUILTIN_KIND:                               \
+    case language::Core::BuiltinType::CLANG_BUILTIN_KIND:                               \
       return #LANGUAGE_TYPE_NAME;
 #include "language/ClangImporter/BuiltinMappedTypes.def"
     default:
@@ -61,9 +61,9 @@ struct TemplateInstantiationNamePrinter
     return VisitType(type);
   }
 
-  std::string VisitTagType(const clang::TagType *type) {
+  std::string VisitTagType(const language::Core::TagType *type) {
     auto tagDecl = type->getAsTagDecl();
-    if (auto namedArg = dyn_cast_or_null<clang::NamedDecl>(tagDecl)) {
+    if (auto namedArg = dyn_cast_or_null<language::Core::NamedDecl>(tagDecl)) {
       if (auto typeDefDecl = tagDecl->getTypedefNameForAnonDecl())
         namedArg = typeDefDecl;
       toolchain::SmallString<128> storage;
@@ -73,10 +73,10 @@ struct TemplateInstantiationNamePrinter
       std::vector<DeclName> qualifiedNameComponents;
       auto unqualifiedName = nameImporter->importName(namedArg, version);
       qualifiedNameComponents.push_back(unqualifiedName.getDeclName());
-      const clang::DeclContext *parentCtx =
+      const language::Core::DeclContext *parentCtx =
           unqualifiedName.getEffectiveContext().getAsDeclContext();
       while (parentCtx) {
-        if (auto namedParentDecl = dyn_cast<clang::NamedDecl>(parentCtx)) {
+        if (auto namedParentDecl = dyn_cast<language::Core::NamedDecl>(parentCtx)) {
           // If this component of the fully-qualified name is a decl that is
           // imported into Codira, remember its name.
           auto componentName =
@@ -98,7 +98,7 @@ struct TemplateInstantiationNamePrinter
     return "_";
   }
 
-  std::string VisitPointerType(const clang::PointerType *type) {
+  std::string VisitPointerType(const language::Core::PointerType *type) {
     std::string pointeeResult = Visit(type->getPointeeType().getTypePtr());
 
     enum class TagTypeDecorator { None, UnsafePointer, UnsafeMutablePointer };
@@ -108,7 +108,7 @@ struct TemplateInstantiationNamePrinter
     // in Codira.
     bool isReferenceType = false;
     if (auto tagDecl = type->getPointeeType()->getAsTagDecl()) {
-      if (auto *rd = dyn_cast<clang::RecordDecl>(tagDecl))
+      if (auto *rd = dyn_cast<language::Core::RecordDecl>(tagDecl))
         isReferenceType = recordHasReferenceSemantics(rd, importerImpl);
     }
 
@@ -134,13 +134,13 @@ struct TemplateInstantiationNamePrinter
     return buffer.str().str();
   }
 
-  std::string VisitFunctionProtoType(const clang::FunctionProtoType *type) {
+  std::string VisitFunctionProtoType(const language::Core::FunctionProtoType *type) {
     toolchain::SmallString<128> storage;
     toolchain::raw_svector_ostream buffer(storage);
 
     buffer << "((";
     toolchain::interleaveComma(type->getParamTypes(), buffer,
-                          [&](const clang::QualType &paramType) {
+                          [&](const language::Core::QualType &paramType) {
                             buffer << Visit(paramType.getTypePtr());
                           });
     buffer << ") -> ";
@@ -150,18 +150,18 @@ struct TemplateInstantiationNamePrinter
     return buffer.str().str();
   }
 
-  std::string VisitVectorType(const clang::VectorType *type) {
+  std::string VisitVectorType(const language::Core::VectorType *type) {
     return (Twine("SIMD") + std::to_string(type->getNumElements()) + "<" +
             Visit(type->getElementType().getTypePtr()) + ">")
         .str();
   }
 
-  std::string VisitArrayType(const clang::ArrayType *type) {
+  std::string VisitArrayType(const language::Core::ArrayType *type) {
     return (Twine("[") + Visit(type->getElementType().getTypePtr()) + "]")
         .str();
   }
 
-  std::string VisitConstantArrayType(const clang::ConstantArrayType *type) {
+  std::string VisitConstantArrayType(const language::Core::ConstantArrayType *type) {
     return (Twine("Vector<") + Visit(type->getElementType().getTypePtr()) +
             ", " + std::to_string(type->getSExtSize()) + ">")
         .str();
@@ -169,7 +169,7 @@ struct TemplateInstantiationNamePrinter
 };
 
 struct TemplateArgumentPrinter
-    : clang::ConstTemplateArgumentVisitor<TemplateArgumentPrinter, void,
+    : language::Core::ConstTemplateArgumentVisitor<TemplateArgumentPrinter, void,
                                           toolchain::raw_svector_ostream &> {
   TemplateInstantiationNamePrinter typePrinter;
 
@@ -178,13 +178,13 @@ struct TemplateArgumentPrinter
                           ClangImporter::Implementation *importerImpl)
       : typePrinter(languageCtx, nameImporter, version, importerImpl) {}
 
-  void VisitTemplateArgument(const clang::TemplateArgument &arg,
+  void VisitTemplateArgument(const language::Core::TemplateArgument &arg,
                              toolchain::raw_svector_ostream &buffer) {
     // Print "_" as a fallback if we couldn't emit a more meaningful type name.
     buffer << "_";
   }
 
-  void VisitTypeTemplateArgument(const clang::TemplateArgument &arg,
+  void VisitTypeTemplateArgument(const language::Core::TemplateArgument &arg,
                                  toolchain::raw_svector_ostream &buffer) {
     auto ty = arg.getAsType();
 
@@ -201,7 +201,7 @@ struct TemplateArgumentPrinter
       buffer << ">";
   }
 
-  void VisitIntegralTemplateArgument(const clang::TemplateArgument &arg,
+  void VisitIntegralTemplateArgument(const language::Core::TemplateArgument &arg,
                                      toolchain::raw_svector_ostream &buffer) {
     buffer << "_";
     if (arg.getIntegralType()->isBuiltinType()) {
@@ -215,17 +215,17 @@ struct TemplateArgumentPrinter
     value.print(buffer, arg.getIntegralType()->isSignedIntegerType());
   }
 
-  void VisitPackTemplateArgument(const clang::TemplateArgument &arg,
+  void VisitPackTemplateArgument(const language::Core::TemplateArgument &arg,
                                  toolchain::raw_svector_ostream &buffer) {
     VisitTemplateArgumentArray(arg.getPackAsArray(), buffer);
   }
 
-  void VisitTemplateArgumentArray(ArrayRef<clang::TemplateArgument> args,
+  void VisitTemplateArgumentArray(ArrayRef<language::Core::TemplateArgument> args,
                                   toolchain::raw_svector_ostream &buffer) {
     bool needsComma = false;
     for (auto &arg : args) {
       // Do not try to print empty packs.
-      if (arg.getKind() == clang::TemplateArgument::ArgKind::Pack &&
+      if (arg.getKind() == language::Core::TemplateArgument::ArgKind::Pack &&
           arg.getPackAsArray().empty())
         continue;
 
@@ -238,7 +238,7 @@ struct TemplateArgumentPrinter
 };
 
 std::string language::importer::printClassTemplateSpecializationName(
-    const clang::ClassTemplateSpecializationDecl *decl, ASTContext &languageCtx,
+    const language::Core::ClassTemplateSpecializationDecl *decl, ASTContext &languageCtx,
     NameImporter *nameImporter, ImportNameVersion version) {
   TemplateArgumentPrinter templateArgPrinter(languageCtx, nameImporter, version,
                                              nameImporter->getImporterImpl());

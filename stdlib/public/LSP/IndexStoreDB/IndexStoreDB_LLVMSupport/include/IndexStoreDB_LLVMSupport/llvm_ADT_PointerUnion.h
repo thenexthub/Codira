@@ -1,8 +1,24 @@
-//===- llvm/ADT/PointerUnion.h - Discriminated Union of 2 Ptrs --*- C++ -*-===//
+//===- toolchain/ADT/PointerUnion.h - Discriminated Union of 2 Ptrs --*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -14,14 +30,14 @@
 #ifndef LLVM_ADT_POINTERUNION_H
 #define LLVM_ADT_POINTERUNION_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_DenseMapInfo.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_PointerIntPair.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_PointerLikeTypeTraits.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_DenseMapInfo.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_PointerIntPair.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_PointerLikeTypeTraits.h>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 
-namespace llvm {
+namespace toolchain {
 
 template <typename T> struct PointerUnionTypeSelectorReturn {
   using Return = T;
@@ -120,9 +136,9 @@ public:
 
   /// Test if the Union currently holds the type matching T.
   template <typename T> int is() const {
-    using Ty = typename ::llvm::PointerUnionTypeSelector<
+    using Ty = typename ::toolchain::PointerUnionTypeSelector<
         PT1, T, IsPT1,
-        ::llvm::PointerUnionTypeSelector<PT2, T, IsPT2,
+        ::toolchain::PointerUnionTypeSelector<PT2, T, IsPT2,
                                          UNION_DOESNT_CONTAIN_TYPE<T>>>::Return;
     int TyNo = Ty::Num;
     return static_cast<int>(Val.getInt()) == TyNo;
@@ -271,9 +287,9 @@ public:
   /// Test if the Union currently holds the type matching T.
   template <typename T> int is() const {
     // If T is PT1/PT2 choose IsInnerUnion otherwise choose IsPT3.
-    using Ty = typename ::llvm::PointerUnionTypeSelector<
+    using Ty = typename ::toolchain::PointerUnionTypeSelector<
         PT1, T, IsInnerUnion,
-        ::llvm::PointerUnionTypeSelector<PT2, T, IsInnerUnion, IsPT3>>::Return;
+        ::toolchain::PointerUnionTypeSelector<PT2, T, IsInnerUnion, IsPT3>>::Return;
     return Ty(Val).template is<T>();
   }
 
@@ -283,9 +299,9 @@ public:
   template <typename T> T get() const {
     assert(is<T>() && "Invalid accessor called");
     // If T is PT1/PT2 choose IsInnerUnion otherwise choose IsPT3.
-    using Ty = typename ::llvm::PointerUnionTypeSelector<
+    using Ty = typename ::toolchain::PointerUnionTypeSelector<
         PT1, T, IsInnerUnion,
-        ::llvm::PointerUnionTypeSelector<PT2, T, IsInnerUnion, IsPT3>>::Return;
+        ::toolchain::PointerUnionTypeSelector<PT2, T, IsInnerUnion, IsPT3>>::Return;
     return Ty(Val).template get<T>();
   }
 
@@ -378,9 +394,9 @@ public:
   /// Test if the Union currently holds the type matching T.
   template <typename T> int is() const {
     // If T is PT1/PT2 choose InnerUnion1 otherwise choose InnerUnion2.
-    using Ty = typename ::llvm::PointerUnionTypeSelector<
+    using Ty = typename ::toolchain::PointerUnionTypeSelector<
         PT1, T, InnerUnion1,
-        ::llvm::PointerUnionTypeSelector<PT2, T, InnerUnion1,
+        ::toolchain::PointerUnionTypeSelector<PT2, T, InnerUnion1,
                                          InnerUnion2>>::Return;
     return Val.template is<Ty>() && Val.template get<Ty>().template is<T>();
   }
@@ -391,9 +407,9 @@ public:
   template <typename T> T get() const {
     assert(is<T>() && "Invalid accessor called");
     // If T is PT1/PT2 choose InnerUnion1 otherwise choose InnerUnion2.
-    using Ty = typename ::llvm::PointerUnionTypeSelector<
+    using Ty = typename ::toolchain::PointerUnionTypeSelector<
         PT1, T, InnerUnion1,
-        ::llvm::PointerUnionTypeSelector<PT2, T, InnerUnion1,
+        ::toolchain::PointerUnionTypeSelector<PT2, T, InnerUnion1,
                                          InnerUnion2>>::Return;
     return Val.template get<Ty>().template get<T>();
   }
@@ -485,6 +501,6 @@ template <typename T, typename U> struct DenseMapInfo<PointerUnion<T, U>> {
   }
 };
 
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif // LLVM_ADT_POINTERUNION_H

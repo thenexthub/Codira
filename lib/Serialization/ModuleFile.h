@@ -28,7 +28,7 @@
 #include "language/Basic/BasicSourceInfo.h"
 #include "language/Basic/Toolchain.h"
 #include "language/Serialization/Validation.h"
-#include "clang/AST/Type.h"
+#include "language/Core/AST/Type.h"
 #include "toolchain/ADT/ArrayRef.h"
 #include "toolchain/ADT/DenseMap.h"
 #include "toolchain/ADT/SetVector.h"
@@ -279,7 +279,7 @@ private:
   MutableArrayRef<Serialized<Type>> Types;
 
   /// Clang types referenced by this module.
-  MutableArrayRef<Serialized<const clang::Type *>> ClangTypes;
+  MutableArrayRef<Serialized<const language::Core::Type *>> ClangTypes;
 
   /// Generic signatures referenced by this module.
   MutableArrayRef<Serialized<GenericSignature>> GenericSignatures;
@@ -1009,7 +1009,7 @@ public:
   toolchain::Expected<Type> getTypeChecked(serialization::TypeID TID);
 
   /// Returns the Clang type with the given ID, deserializing it if needed.
-  toolchain::Expected<const clang::Type *>
+  toolchain::Expected<const language::Core::Type *>
   getClangType(serialization::ClangTypeID TID);
 
   /// Returns the base name with the given ID, deserializing it if needed.

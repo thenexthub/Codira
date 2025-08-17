@@ -29,11 +29,11 @@
 #include "language/Migrator/RewriteBufferEditsReceiver.h"
 #include "language/Parse/Lexer.h"
 #include "language/Sema/IDETypeChecking.h"
-#include "clang/Basic/Diagnostic.h"
-#include "clang/Basic/FileManager.h"
-#include "clang/Basic/SourceManager.h"
-#include "clang/Edit/EditedSource.h"
-#include "clang/Rewrite/Core/RewriteBuffer.h"
+#include "language/Core/Basic/Diagnostic.h"
+#include "language/Core/Basic/FileManager.h"
+#include "language/Core/Basic/SourceManager.h"
+#include "language/Core/Edit/EditedSource.h"
+#include "language/Core/Rewrite/Core/RewriteBuffer.h"
 #include "toolchain/Support/FileSystem.h"
 
 using namespace language;

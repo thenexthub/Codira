@@ -1528,7 +1528,7 @@ function Build-CMakeProject {
 
       Android {
         $AndroidNDKPath = Get-AndroidNDKPath
-        $AndroidPrebuiltRoot = "$AndroidNDKPath\toolchains\llvm\prebuilt\$($BuildPlatform.OS.ToString().ToLowerInvariant())-$($BuildPlatform.Architecture.LLVMName)"
+        $AndroidPrebuiltRoot = "$AndroidNDKPath\toolchains\toolchain\prebuilt\$($BuildPlatform.OS.ToString().ToLowerInvariant())-$($BuildPlatform.Architecture.LLVMName)"
         $AndroidSysroot = "$AndroidPrebuiltRoot\sysroot"
 
         Add-KeyValueIfNew $Defines CMAKE_ANDROID_API "$AndroidAPILevel"
@@ -1849,11 +1849,11 @@ function Build-CMark([Hashtable] $Platform) {
 
 function Build-BuildTools([Hashtable] $Platform) {
   Build-CMakeProject `
-    -Src $SourceCache\llvm-project\llvm `
+    -Src $SourceCache\toolchain-project\toolchain `
     -Bin (Get-ProjectBinaryCache $Platform BuildTools) `
     -Platform $Platform `
     -UseMSVCCompilers ASM_MASM,C,CXX `
-    -BuildTargets llvm-tblgen,clang-tblgen,clang-pseudo-gen,clang-tidy-confusable-chars-gen,lldb-tblgen,llvm-config,language-def-to-strings-converter,language-serialize-diagnostics,language-compatibility-symbols `
+    -BuildTargets toolchain-tblgen,clang-tblgen,clang-pseudo-gen,clang-tidy-confusable-chars-gen,lldb-tblgen,toolchain-config,language-def-to-strings-converter,language-serialize-diagnostics,language-compatibility-symbols `
     -Defines @{
       CMAKE_CROSSCOMPILING = "NO";
       CLANG_ENABLE_LIBXML2 = "NO";
@@ -1961,12 +1961,12 @@ function Get-CompilersDefines([Hashtable] $Platform, [string] $Variant, [switch]
     LLDB_PYTHON_RELATIVE_PATH = "lib/site-packages";
     LLDB_TABLEGEN = (Join-Path -Path $BuildTools -ChildPath "lldb-tblgen.exe");
     LLDB_TEST_MAKE = "$BinaryCache\GnuWin32Make-4.4.1\bin\make.exe";
-    LLVM_CONFIG_PATH = (Join-Path -Path $BuildTools -ChildPath "llvm-config.exe");
+    LLVM_CONFIG_PATH = (Join-Path -Path $BuildTools -ChildPath "toolchain-config.exe");
     LLVM_ENABLE_ASSERTIONS = $(if ($Variant -eq "Asserts") { "YES" } else { "NO" })
     LLVM_EXTERNAL_SWIFT_SOURCE_DIR = "$SourceCache\language";
     LLVM_HOST_TRIPLE = $Platform.Triple;
     LLVM_NATIVE_TOOL_DIR = $BuildTools;
-    LLVM_TABLEGEN = (Join-Path $BuildTools -ChildPath "llvm-tblgen.exe");
+    LLVM_TABLEGEN = (Join-Path $BuildTools -ChildPath "toolchain-tblgen.exe");
     LLVM_USE_HOST_TOOLS = "NO";
     Python3_EXECUTABLE = (Get-PythonExecutable);
     Python3_INCLUDE_DIR = "$PythonRoot\include";
@@ -1996,7 +1996,7 @@ function Get-CompilersDefines([Hashtable] $Platform, [string] $Variant, [switch]
 function Build-Compilers([Hashtable] $Platform, [string] $Variant) {
   New-Item -ItemType SymbolicLink -Path "$BinaryCache\$($HostPlatform.Triple)\compilers" -Target "$BinaryCache\5" -ErrorAction Ignore
   Build-CMakeProject `
-    -Src $SourceCache\llvm-project\llvm `
+    -Src $SourceCache\toolchain-project\toolchain `
     -Bin (Get-ProjectBinaryCache $Platform Compilers) `
     -InstallTo "$(Get-InstallDir $Platform)\Toolchains\$ProductVersion+$Variant\usr" `
     -Platform $Platform `
@@ -2019,7 +2019,7 @@ function Test-Compilers([Hashtable] $Platform, [string] $Variant, [switch] $Test
   Invoke-IsolatingEnvVars {
     $env:Path = "$(Get-CMarkBinaryCache $Platform)\src;$(Get-ProjectBinaryCache $BuildPlatform Compilers)\tools\language\libdispatch-windows-$($Platform.Architecture.LLVMName)-prefix\bin;$(Get-ProjectBinaryCache $BuildPlatform Compilers)\bin;$env:Path;$VSInstallRoot\DIA SDK\bin\$($HostPlatform.Architecture.VSName);$UnixToolsBinDir"
     $TestingDefines = Get-CompilersDefines $Platform $Variant -Test
-    if ($TestLLVM) { $Targets += @("check-llvm") }
+    if ($TestLLVM) { $Targets += @("check-toolchain") }
     if ($TestClang) { $Targets += @("check-clang") }
     if ($TestLLD) { $Targets += @("check-lld") }
     if ($TestSwift) { $Targets += @("check-language", "SwiftCompilerPlugin") }
@@ -2027,7 +2027,7 @@ function Test-Compilers([Hashtable] $Platform, [string] $Variant, [switch] $Test
       $Targets += @("check-lldb")
 
       # Override test filter for known issues in downstream LLDB
-      Load-LitTestOverrides $PSScriptRoot/windows-llvm-lit-test-overrides.txt
+      Load-LitTestOverrides $PSScriptRoot/windows-toolchain-lit-test-overrides.txt
 
       # Transitive dependency of _lldb.pyd
       $RuntimeBinaryCache = Get-ProjectBinaryCache $BuildPlatform Runtime
@@ -2050,9 +2050,9 @@ function Test-Compilers([Hashtable] $Platform, [string] $Variant, [switch] $Test
         LLDB_INCLUDE_TESTS = "YES";
         # Check for required Python modules in CMake
         LLDB_ENFORCE_STRICT_TEST_REQUIREMENTS = "YES";
-        # No watchpoint support on windows: https://github.com/llvm/llvm-project/issues/24820
+        # No watchpoint support on windows: https://github.com/toolchain/toolchain-project/issues/24820
         LLDB_TEST_USER_ARGS = "--skip-category=watchpoint";
-        # gtest sharding breaks llvm-lit's --xfail and LIT_XFAIL inputs: https://github.com/llvm/llvm-project/issues/102264
+        # gtest sharding breaks toolchain-lit's --xfail and LIT_XFAIL inputs: https://github.com/toolchain/toolchain-project/issues/102264
         LLVM_LIT_ARGS = "-v --no-gtest-sharding --time-tests";
         # LLDB Unit tests link against this library
         LLVM_UNITTEST_LINK_FLAGS = "$(Get-SwiftSDK Windows)\usr\lib\language\windows\$($Platform.Architecture.LLVMName)\languageCore.lib";
@@ -2064,7 +2064,7 @@ function Test-Compilers([Hashtable] $Platform, [string] $Variant, [switch] $Test
     }
 
     Build-CMakeProject `
-      -Src $SourceCache\llvm-project\llvm `
+      -Src $SourceCache\toolchain-project\toolchain `
       -Bin $(Get-ProjectBinaryCache $Platform Compilers) `
       -InstallTo "$($Platform.ToolchainInstallRoot)\usr" `
       -Platform $Platform `
@@ -2163,7 +2163,7 @@ function Build-mimalloc() {
 
 function Build-LLVM([Hashtable] $Platform) {
   Build-CMakeProject `
-    -Src $SourceCache\llvm-project\llvm `
+    -Src $SourceCache\toolchain-project\toolchain `
     -Bin (Get-ProjectBinaryCache $Platform LLVM) `
     -Platform $Platform `
     -UseBuiltCompilers C,CXX `
@@ -2174,36 +2174,36 @@ function Build-LLVM([Hashtable] $Platform) {
 
 function Build-Sanitizers([Hashtable] $Platform) {
   $LLVMTargetCache = $(Get-ProjectBinaryCache $Platform LLVM)
-  $LITVersionStr = $(Invoke-Program $(Get-PythonExecutable) "$LLVMTargetCache\bin\llvm-lit.py" --version)
+  $LITVersionStr = $(Invoke-Program $(Get-PythonExecutable) "$LLVMTargetCache\bin\toolchain-lit.py" --version)
   if (-not $ToBatch -and -not ($LITVersionStr -match "lit (\d+)\.\d+\.\d+.*")) {
-    throw "Unexpected version string '$LITVersionStr' output from llvm-lit.py"
+    throw "Unexpected version string '$LITVersionStr' output from toolchain-lit.py"
   }
   $LLVMVersionMajor = $Matches.1
   $InstallTo = "$($HostPlatform.ToolchainInstallRoot)\usr\lib\clang\$LLVMVersionMajor"
   Write-Host "Sanitizers SDK directory: $InstallTo"
 
   Build-CMakeProject `
-    -Src $SourceCache\llvm-project\compiler-rt\lib\builtins `
+    -Src $SourceCache\toolchain-project\compiler-rt\lib\builtins `
     -Bin "$(Get-ProjectBinaryCache $Platform ClangBuiltins)" `
     -InstallTo $InstallTo `
     -Platform $Platform `
     -UseBuiltCompilers ASM,C,CXX `
     -BuildTargets "install-compiler-rt" `
     -Defines (@{
-      LLVM_DIR = "$LLVMTargetCache\lib\cmake\llvm";
+      LLVM_DIR = "$LLVMTargetCache\lib\cmake\toolchain";
       LLVM_ENABLE_PER_TARGET_RUNTIME_DIR = "YES";
       COMPILER_RT_DEFAULT_TARGET_ONLY = "YES";
     })
 
   Build-CMakeProject `
-    -Src $SourceCache\llvm-project\compiler-rt `
+    -Src $SourceCache\toolchain-project\compiler-rt `
     -Bin "$(Get-ProjectBinaryCache $Platform ClangRuntime)" `
     -InstallTo $InstallTo `
     -Platform $Platform `
     -UseBuiltCompilers ASM,C,CXX `
     -BuildTargets "install-compiler-rt" `
     -Defines @{
-      LLVM_DIR = "$LLVMTargetCache\lib\cmake\llvm";
+      LLVM_DIR = "$LLVMTargetCache\lib\cmake\toolchain";
       LLVM_ENABLE_PER_TARGET_RUNTIME_DIR = "YES";
       COMPILER_RT_DEFAULT_TARGET_ONLY = "YES";
       COMPILER_RT_BUILD_BUILTINS = "NO";
@@ -2405,7 +2405,7 @@ function Build-Runtime([Hashtable] $Platform) {
     -SwiftSDK $null `
     -CacheScript $SourceCache\language\cmake\caches\Runtime-$($Platform.OS.ToString())-$($Platform.Architecture.LLVMName).cmake `
     -Defines ($PlatformDefines + @{
-      LLVM_DIR = "$(Get-ProjectBinaryCache $Platform LLVM)\lib\cmake\llvm";
+      LLVM_DIR = "$(Get-ProjectBinaryCache $Platform LLVM)\lib\cmake\toolchain";
       SWIFT_ENABLE_EXPERIMENTAL_CONCURRENCY = "YES";
       SWIFT_ENABLE_EXPERIMENTAL_CXX_INTEROP = "YES";
       SWIFT_ENABLE_EXPERIMENTAL_DIFFERENTIABLE_PROGRAMMING = "YES";
@@ -2430,7 +2430,7 @@ function Test-Runtime([Hashtable] $Platform) {
   }
   $CompilersBinaryCache = Get-ProjectBinaryCache $BuildPlatform Compilers
   if (-not (Test-Path "$CompilersBinaryCache\bin\FileCheck.exe")) {
-    # These will exist if we test any of llvm/clang/lldb/lld/language as well
+    # These will exist if we test any of toolchain/clang/lldb/lld/language as well
     throw "LIT test utilities not found in $CompilersBinaryCache\bin"
   }
 
@@ -2882,7 +2882,7 @@ function Test-XCTest {
         ENABLE_TESTING = "YES";
         dispatch_DIR = $(Get-ProjectCMakeModules $BuildPlatform Dispatch);
         Foundation_DIR = $(Get-ProjectCMakeModules $BuildPlatform DynamicFoundation);
-        LLVM_DIR = "$(Get-ProjectBinaryCache $BuildPlatform LLVM)\lib\cmake\llvm";
+        LLVM_DIR = "$(Get-ProjectBinaryCache $BuildPlatform LLVM)\lib\cmake\toolchain";
         XCTEST_PATH_TO_FOUNDATION_BUILD = $(Get-ProjectBinaryCache $BuildPlatform DynamicFoundation);
         XCTEST_PATH_TO_LIBDISPATCH_BUILD = $(Get-ProjectBinaryCache $BuildPlatform Dispatch);
         XCTEST_PATH_TO_LIBDISPATCH_SOURCE = "$SourceCache\language-corelibs-libdispatch";
@@ -3104,7 +3104,7 @@ function Build-LLBuild([Hashtable] $Platform) {
 }
 
 function Test-LLBuild {
-  # Build additional llvm executables needed by tests
+  # Build additional toolchain executables needed by tests
   Invoke-IsolatingEnvVars {
     Invoke-VsDevShell $BuildPlatform
     Invoke-Program $ninja -C (Get-ProjectBinaryCache $BuildPlatform BuildTools) FileCheck not
@@ -3112,7 +3112,7 @@ function Test-LLBuild {
 
   Invoke-IsolatingEnvVars {
     $env:Path = "$env:Path;$UnixToolsBinDir"
-    $env:AR = ([IO.Path]::Combine((Get-ProjectBinaryCache $BuildPlatform Compilers), "bin", "llvm-ar.exe"))
+    $env:AR = ([IO.Path]::Combine((Get-ProjectBinaryCache $BuildPlatform Compilers), "bin", "toolchain-ar.exe"))
     $env:CLANG = ([IO.Path]::Combine((Get-ProjectBinaryCache $BuildPlatform Compilers), "bin", "clang.exe"))
 
     Build-CMakeProject `
@@ -3126,7 +3126,7 @@ function Test-LLBuild {
       -Defines = @{
         BUILD_SHARED_LIBS = "YES";
         FILECHECK_EXECUTABLE = ([IO.Path]::Combine((Get-ProjectBinaryCache $BuildPlatform BuildTools), "bin", "FileCheck.exe"));
-        LIT_EXECUTABLE = "$SourceCache\llvm-project\llvm\utils\lit\lit.py";
+        LIT_EXECUTABLE = "$SourceCache\toolchain-project\toolchain\utils\lit\lit.py";
         LLBUILD_SUPPORT_BINDINGS = "Swift";
         SQLite3_INCLUDE_DIR = "$SourceCache\language-toolchain-sqlite\Sources\CSQLite\include";
         SQLite3_LIBRARY = "$(Get-ProjectBinaryCache $Platform SQLite)\SQLite3.lib";
@@ -3166,7 +3166,7 @@ function Build-Driver([Hashtable] $Platform) {
       SQLite3_INCLUDE_DIR = "$SourceCache\language-toolchain-sqlite\Sources\CSQLite\include";
       SQLite3_LIBRARY = "$(Get-ProjectBinaryCache $Platform SQLite)\SQLite3.lib";
       SWIFT_DRIVER_BUILD_TOOLS = "YES";
-      LLVM_DIR = "$(Get-ProjectBinaryCache $Platform Compilers)\lib\cmake\llvm";
+      LLVM_DIR = "$(Get-ProjectBinaryCache $Platform Compilers)\lib\cmake\toolchain";
       Clang_DIR = "$(Get-ProjectBinaryCache $Platform Compilers)\lib\cmake\clang";
       Swift_DIR = "$(Get-ProjectBinaryCache $Platform Compilers)\tools\language\lib\cmake\language";
     }
@@ -3792,13 +3792,13 @@ if ($Stage) {
 }
 
 if (-not $IsCrossCompiling) {
-  $CompilersTests = @("clang", "lld", "lldb", "llvm", "language")
+  $CompilersTests = @("clang", "lld", "lldb", "toolchain", "language")
   if ($Test | Where-Object { $CompilersTests -contains $_ }) {
     $Tests = @{
       "-TestClang" = $Test -contains "clang";
       "-TestLLD" = $Test -contains "lld";
       "-TestLLDB" = $Test -contains "lldb";
-      "-TestLLVM" = $Test -contains "llvm";
+      "-TestLLVM" = $Test -contains "toolchain";
       "-TestSwift" = $Test -contains "language";
     }
     Invoke-BuildStep Test-Compilers $HostPlatform -Variant "Asserts" $Tests

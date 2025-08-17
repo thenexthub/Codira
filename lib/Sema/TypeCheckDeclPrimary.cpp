@@ -68,7 +68,7 @@
 #include "language/Parse/Lexer.h"
 #include "language/Serialization/SerializedModuleLoader.h"
 #include "language/Strings.h"
-#include "clang/Basic/Module.h"
+#include "language/Core/Basic/Module.h"
 #include "toolchain/ADT/APFloat.h"
 #include "toolchain/ADT/APInt.h"
 #include "toolchain/ADT/APSInt.h"

@@ -47,7 +47,7 @@
 #include "language/Serialization/Validation.h"
 #include "language/Subsystems.h"
 #include "language/SymbolGraphGen/SymbolGraphOptions.h"
-#include "clang/Basic/FileManager.h"
+#include "language/Core/Basic/FileManager.h"
 #include "toolchain/ADT/IntrusiveRefCntPtr.h"
 #include "toolchain/ADT/SetVector.h"
 #include "toolchain/CAS/ActionCache.h"

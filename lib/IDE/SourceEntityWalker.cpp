@@ -30,7 +30,7 @@
 #include "language/Basic/Defer.h"
 #include "language/Basic/SourceManager.h"
 #include "language/Parse/Lexer.h"
-#include "clang/Basic/Module.h"
+#include "language/Core/Basic/Module.h"
 #include "language/IDE/SourceEntityWalker.h"
 #include "language/IDE/Utils.h"
 
@@ -97,7 +97,7 @@ private:
   bool handleClosureAttributes(ClosureExpr *E);
   bool handleTypeAttributes(AttributedTypeRepr *T);
   bool passModulePathElements(ImportPath::Module Path,
-                              const clang::Module *ClangMod);
+                              const language::Core::Module *ClangMod);
 
   bool passReference(ValueDecl *D, Type Ty, SourceLoc Loc, SourceRange Range,
                      ReferenceMetaData Data);
@@ -840,7 +840,7 @@ bool SemaAnnotator::handleImports(ImportDecl *Import) {
 
 bool SemaAnnotator::passModulePathElements(
     ImportPath::Module Path,
-    const clang::Module *ClangMod) {
+    const language::Core::Module *ClangMod) {
 
   assert(ClangMod && "can't passModulePathElements of null ClangMod");
 

@@ -27,7 +27,7 @@
 #include "toolchain/ADT/StringRef.h"
 #include "toolchain/ADT/StringSwitch.h"
 
-namespace clang {
+namespace language::Core {
 class Module;
 }
 
@@ -53,7 +53,7 @@ class CodeCompletionResultBuilder {
   CodeCompletionKeywordKind KeywordKind = CodeCompletionKeywordKind::None;
   unsigned CurrentNestingLevel = 0;
   SmallVector<CodeCompletionString::Chunk, 4> Chunks;
-  toolchain::PointerUnion<const ModuleDecl *, const clang::Module *>
+  toolchain::PointerUnion<const ModuleDecl *, const language::Core::Module *>
       CurrentModule;
   bool Cancelled = false;
   ContextFreeNotRecommendedReason ContextFreeNotRecReason =

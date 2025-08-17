@@ -1014,7 +1014,7 @@ struct TypeReprTraceFormatter : public UnifiedStatsReporter::TraceFormatter {
     TR->print(OS);
   }
   void traceLoc(const void *Entity, SourceManager *SM,
-                clang::SourceManager *CSM, raw_ostream &OS) const override {
+                language::Core::SourceManager *CSM, raw_ostream &OS) const override {
     if (!Entity)
       return;
     const TypeRepr *TR = static_cast<const TypeRepr *>(Entity);

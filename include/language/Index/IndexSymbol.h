@@ -18,7 +18,7 @@
 #define LANGUAGE_INDEX_INDEXSYMBOL_H
 
 #include "language/Basic/Toolchain.h"
-#include "clang/Index/IndexSymbol.h"
+#include "language/Core/Index/IndexSymbol.h"
 
 namespace language {
 class Decl;

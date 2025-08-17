@@ -21,7 +21,7 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Version.h"
 #include "language/Basic/Toolchain.h"
-#include "clang/Basic/CharInfo.h"
+#include "language/Core/Basic/CharInfo.h"
 #include "toolchain/ADT/SmallString.h"
 #include "toolchain/ADT/StringExtras.h"
 #include "toolchain/Support/raw_ostream.h"

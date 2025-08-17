@@ -1,4 +1,4 @@
-//===-- llvm/Support/Signposts.h - Interval debug annotations ---*- C++ -*-===//
+//===-- toolchain/Support/Signposts.h - Interval debug annotations ---*- C++ -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -17,9 +17,9 @@
 #ifndef LLVM_SUPPORT_SIGNPOSTS_H
 #define LLVM_SUPPORT_SIGNPOSTS_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_Config_indexstoredb-prefix.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_indexstoredb-prefix.h>
 
-namespace llvm {
+namespace toolchain {
 class SignpostEmitterImpl;
 class Timer;
 
@@ -40,6 +40,6 @@ public:
   void endTimerInterval(Timer *T);
 };
 
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif // ifndef LLVM_SUPPORT_SIGNPOSTS_H

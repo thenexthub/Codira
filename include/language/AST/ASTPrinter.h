@@ -22,7 +22,7 @@
 #include "language/Basic/UUID.h"
 #include "language/AST/Identifier.h"
 #include "language/AST/Decl.h"
-#include "clang/AST/Decl.h"
+#include "language/Core/AST/Decl.h"
 #include "toolchain/ADT/SmallString.h"
 #include "toolchain/ADT/StringRef.h"
 #include "toolchain/ADT/DenseSet.h"
@@ -139,7 +139,7 @@ class ASTPrinter {
   unsigned CurrentIndentation = 0;
   unsigned PendingNewlines = 0;
   TypeOrExtensionDecl SynthesizeTarget;
-  toolchain::SmallPtrSet<const clang::Decl *, 8> printedClangDecl;
+  toolchain::SmallPtrSet<const language::Core::Decl *, 8> printedClangDecl;
 
   void printTextImpl(StringRef Text);
 
@@ -365,7 +365,7 @@ public:
 
   /// Return true when the given redeclared clang decl is being printed for the
   /// first time.
-  bool shouldPrintRedeclaredClangDecl(const clang::Decl *d) {
+  bool shouldPrintRedeclaredClangDecl(const language::Core::Decl *d) {
     return printedClangDecl.insert(d).second;
   }
 

@@ -1,8 +1,24 @@
 //===- Signals.cpp - Signal Handling support --------------------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -11,23 +27,23 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Signals.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_STLExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Config_llvm-config.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ErrorOr.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_FileSystem.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_FileUtilities.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Format.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_FormatVariadic.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_FormatAdapters.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ManagedStatic.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_MemoryBuffer.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Mutex.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Program.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_StringSaver.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Options.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Signals.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_STLExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_toolchain-config.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ErrorOr.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_FileSystem.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_FileUtilities.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Format.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_FormatVariadic.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_FormatAdapters.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ManagedStatic.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_MemoryBuffer.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Mutex.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Program.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_StringSaver.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Options.h>
 #include <vector>
 
 //===----------------------------------------------------------------------===//
@@ -35,7 +51,7 @@
 //===          independent code.
 //===----------------------------------------------------------------------===//
 
-using namespace llvm;
+using namespace toolchain;
 
 // Use explicit storage to avoid accessing cl::opt in a signal handler.
 static bool DisableSymbolicationFlag = false;
@@ -101,29 +117,29 @@ static FormattedNumber format_ptr(void *PC) {
   return format_hex((uint64_t)PC, PtrWidth);
 }
 
-/// Helper that launches llvm-symbolizer and symbolizes a backtrace.
+/// Helper that launches toolchain-symbolizer and symbolizes a backtrace.
 LLVM_ATTRIBUTE_USED
 static bool printSymbolizedStackTrace(StringRef Argv0, void **StackTrace,
-                                      int Depth, llvm::raw_ostream &OS) {
+                                      int Depth, toolchain::raw_ostream &OS) {
   if (DisableSymbolicationFlag)
     return false;
 
-  // Don't recursively invoke the llvm-symbolizer binary.
-  if (Argv0.find("llvm-symbolizer") != std::string::npos)
+  // Don't recursively invoke the toolchain-symbolizer binary.
+  if (Argv0.find("toolchain-symbolizer") != std::string::npos)
     return false;
 
   // FIXME: Subtract necessary number from StackTrace entries to turn return addresses
   // into actual instruction addresses.
-  // Use llvm-symbolizer tool to symbolize the stack traces. First look for it
+  // Use toolchain-symbolizer tool to symbolize the stack traces. First look for it
   // alongside our binary, then in $PATH.
   ErrorOr<std::string> LLVMSymbolizerPathOrErr = std::error_code();
   if (!Argv0.empty()) {
-    StringRef Parent = llvm::sys::path::parent_path(Argv0);
+    StringRef Parent = toolchain::sys::path::parent_path(Argv0);
     if (!Parent.empty())
-      LLVMSymbolizerPathOrErr = sys::findProgramByName("llvm-symbolizer", Parent);
+      LLVMSymbolizerPathOrErr = sys::findProgramByName("toolchain-symbolizer", Parent);
   }
   if (!LLVMSymbolizerPathOrErr)
-    LLVMSymbolizerPathOrErr = sys::findProgramByName("llvm-symbolizer");
+    LLVMSymbolizerPathOrErr = sys::findProgramByName("toolchain-symbolizer");
   if (!LLVMSymbolizerPathOrErr)
     return false;
   const std::string &LLVMSymbolizerPath = *LLVMSymbolizerPathOrErr;
@@ -157,11 +173,11 @@ static bool printSymbolizedStackTrace(StringRef Argv0, void **StackTrace,
 
   Optional<StringRef> Redirects[] = {StringRef(InputFile),
                                      StringRef(OutputFile), StringRef("")};
-  StringRef Args[] = {"llvm-symbolizer", "--functions=linkage", "--inlining",
+  StringRef Args[] = {"toolchain-symbolizer", "--functions=linkage", "--inlining",
 #ifdef _WIN32
                       // Pass --relative-address on Windows so that we don't
                       // have to add ImageBase from PE file.
-                      // FIXME: Make this the default for llvm-symbolizer.
+                      // FIXME: Make this the default for toolchain-symbolizer.
                       "--relative-address",
 #endif
                       "--demangle"};

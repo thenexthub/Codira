@@ -15,8 +15,8 @@
 
 #include <IndexStoreDB_Index/IndexStoreLibraryProvider.h>
 #include <IndexStoreDB_Index/IndexStoreCXX.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ConvertUTF.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ConvertUTF.h>
 #if defined(_WIN32)
 #include <Windows.h>
 #else
@@ -47,7 +47,7 @@ IndexStoreLibraryRef GlobalIndexStoreLibraryProvider::getLibraryForStorePath(Str
 IndexStoreLibraryRef index::loadIndexStoreLibrary(std::string dylibPath,
                                                   std::string &error) {
 #if defined(_WIN32)
-  llvm::SmallVector<llvm::UTF16, 30> u16Path;
+  toolchain::SmallVector<toolchain::UTF16, 30> u16Path;
   if (!convertUTF8ToUTF16String(dylibPath, u16Path)) {
     error += "Failed to convert path: " + dylibPath + " to UTF-16";
     return nullptr;

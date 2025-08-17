@@ -61,7 +61,7 @@ class INDEXSTOREDB_EXPORT UnitDataImport {
   CanonicalFilePath MainFile;
   std::string OutFileIdentifier;
   CanonicalFilePath Sysroot;
-  llvm::sys::TimePoint<> ModTime;
+  toolchain::sys::TimePoint<> ModTime;
   Optional<bool> IsSystem;
   Optional<bool> HasTestSymbols;
   Optional<SymbolProviderKind> SymProviderKind;
@@ -83,7 +83,7 @@ class INDEXSTOREDB_EXPORT UnitDataImport {
   std::vector<UnitInfo::Provider> ProviderDepends;
 
 public:
-  UnitDataImport(ImportTransaction &import, StringRef unitName, llvm::sys::TimePoint<> modTime);
+  UnitDataImport(ImportTransaction &import, StringRef unitName, toolchain::sys::TimePoint<> modTime);
   ~UnitDataImport();
 
   IDCode getUnitCode() const { return UnitCode; }

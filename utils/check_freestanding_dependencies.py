@@ -15,7 +15,7 @@ import sys
 parser = argparse.ArgumentParser()
 parser.add_argument("--library", help="path to liblanguageCore.a to check")
 parser.add_argument("--vendor", help="flavor of the freestanding stdlib")
-parser.add_argument("--nm-path", help="path to llvm-nm binary to use")
+parser.add_argument("--nm-path", help="path to toolchain-nm binary to use")
 args = parser.parse_args()
 
 

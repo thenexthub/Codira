@@ -185,16 +185,16 @@ Have a place to checkout relevant toolchains, and checkout the relevant code:
 
 ```
 mkdir /opt/swift && cd /opt/swift
-git clone https://github.com/apple/llvm-project.git
+git clone https://github.com/apple/toolchain-project.git
 git clone https://github.com/apple/swift.git
 git clone https://github.com/apple/swift-corelibs-libdispatch.git
 git clone https://github.com/apple/swift-cmark.git cmark
 ```
 
 Make sure you checked out the right branch for all dependencies. For example,
-the `llvm-project` should check the branch starting with `swift`, such as
+the `toolchain-project` should check the branch starting with `swift`, such as
 `swift/release/5.3`. You should be able to find the correct branch with name
-`release/*` in all these projects except the `llvm-project`.
+`release/*` in all these projects except the `toolchain-project`.
 
 Go to `swift/utils`, and run:
 ```

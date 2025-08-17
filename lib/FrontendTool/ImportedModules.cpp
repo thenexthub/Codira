@@ -25,7 +25,7 @@
 #include "language/Basic/STLExtras.h"
 #include "language/ClangImporter/ClangImporter.h"
 #include "language/Frontend/FrontendOptions.h"
-#include "clang/Basic/Module.h"
+#include "language/Core/Basic/Module.h"
 #include "toolchain/ADT/SetVector.h"
 #include "toolchain/ADT/StringRef.h"
 #include "toolchain/Support/FileSystem.h"
@@ -33,11 +33,11 @@
 
 using namespace language;
 
-static StringRef getTopLevelName(const clang::Module *module) {
+static StringRef getTopLevelName(const language::Core::Module *module) {
   return module->getTopLevelModule()->Name;
 }
 
-static void findAllClangImports(const clang::Module *module,
+static void findAllClangImports(const language::Core::Module *module,
                                 toolchain::SetVector<StringRef> &modules) {
   for (auto imported : module->Imports) {
     modules.insert(getTopLevelName(imported));

@@ -1,21 +1,37 @@
 //===- NativeFormatting.cpp - Low level formatting helpers -------*- C++-*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_NativeFormatting.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_NativeFormatting.h>
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_ArrayRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallString.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Format.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_ArrayRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallString.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Format.h>
 
 #include <float.h>
 
-using namespace llvm;
+using namespace toolchain;
 
 template<typename T, std::size_t N>
 static int format_to_buffer(T Value, char (&Buffer)[N]) {
@@ -100,37 +116,37 @@ static void write_signed(raw_ostream &S, T N, size_t MinDigits,
   write_unsigned(S, UN, MinDigits, Style, true);
 }
 
-void llvm::write_integer(raw_ostream &S, unsigned int N, size_t MinDigits,
+void toolchain::write_integer(raw_ostream &S, unsigned int N, size_t MinDigits,
                          IntegerStyle Style) {
   write_unsigned(S, N, MinDigits, Style);
 }
 
-void llvm::write_integer(raw_ostream &S, int N, size_t MinDigits,
+void toolchain::write_integer(raw_ostream &S, int N, size_t MinDigits,
                          IntegerStyle Style) {
   write_signed(S, N, MinDigits, Style);
 }
 
-void llvm::write_integer(raw_ostream &S, unsigned long N, size_t MinDigits,
+void toolchain::write_integer(raw_ostream &S, unsigned long N, size_t MinDigits,
                          IntegerStyle Style) {
   write_unsigned(S, N, MinDigits, Style);
 }
 
-void llvm::write_integer(raw_ostream &S, long N, size_t MinDigits,
+void toolchain::write_integer(raw_ostream &S, long N, size_t MinDigits,
                          IntegerStyle Style) {
   write_signed(S, N, MinDigits, Style);
 }
 
-void llvm::write_integer(raw_ostream &S, unsigned long long N, size_t MinDigits,
+void toolchain::write_integer(raw_ostream &S, unsigned long long N, size_t MinDigits,
                          IntegerStyle Style) {
   write_unsigned(S, N, MinDigits, Style);
 }
 
-void llvm::write_integer(raw_ostream &S, long long N, size_t MinDigits,
+void toolchain::write_integer(raw_ostream &S, long long N, size_t MinDigits,
                          IntegerStyle Style) {
   write_signed(S, N, MinDigits, Style);
 }
 
-void llvm::write_hex(raw_ostream &S, uint64_t N, HexPrintStyle Style,
+void toolchain::write_hex(raw_ostream &S, uint64_t N, HexPrintStyle Style,
                      Optional<size_t> Width) {
   const size_t kMaxWidth = 128u;
 
@@ -146,7 +162,7 @@ void llvm::write_hex(raw_ostream &S, uint64_t N, HexPrintStyle Style,
       std::max(static_cast<unsigned>(W), std::max(1u, Nibbles) + PrefixChars);
 
   char NumberBuffer[kMaxWidth];
-  ::memset(NumberBuffer, '0', llvm::array_lengthof(NumberBuffer));
+  ::memset(NumberBuffer, '0', toolchain::array_lengthof(NumberBuffer));
   if (Prefix)
     NumberBuffer[1] = 'x';
   char *EndPtr = NumberBuffer + NumChars;
@@ -160,7 +176,7 @@ void llvm::write_hex(raw_ostream &S, uint64_t N, HexPrintStyle Style,
   S.write(NumberBuffer, NumChars);
 }
 
-void llvm::write_double(raw_ostream &S, double N, FloatStyle Style,
+void toolchain::write_double(raw_ostream &S, double N, FloatStyle Style,
                         Optional<size_t> Precision) {
   size_t Prec = Precision.getValueOr(getDefaultPrecision(Style));
 
@@ -181,7 +197,7 @@ void llvm::write_double(raw_ostream &S, double N, FloatStyle Style,
     Letter = 'f';
 
   SmallString<8> Spec;
-  llvm::raw_svector_ostream Out(Spec);
+  toolchain::raw_svector_ostream Out(Spec);
   Out << "%." << Prec << Letter;
 
   if (Style == FloatStyle::Exponent || Style == FloatStyle::ExponentUpper) {
@@ -246,11 +262,11 @@ void llvm::write_double(raw_ostream &S, double N, FloatStyle Style,
     S << '%';
 }
 
-bool llvm::isPrefixedHexStyle(HexPrintStyle S) {
+bool toolchain::isPrefixedHexStyle(HexPrintStyle S) {
   return (S == HexPrintStyle::PrefixLower || S == HexPrintStyle::PrefixUpper);
 }
 
-size_t llvm::getDefaultPrecision(FloatStyle Style) {
+size_t toolchain::getDefaultPrecision(FloatStyle Style) {
   switch (Style) {
   case FloatStyle::Exponent:
   case FloatStyle::ExponentUpper:

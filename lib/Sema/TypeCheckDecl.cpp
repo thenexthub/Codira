@@ -2146,8 +2146,8 @@ ResultTypeRequest::evaluate(Evaluator &evaluator, ValueDecl *decl) const {
   }
 
   if (!resultTyRepr && decl->getClangDecl() &&
-      isa<clang::FunctionDecl>(decl->getClangDecl())) {
-    auto clangFn = cast<clang::FunctionDecl>(decl->getClangDecl());
+      isa<language::Core::FunctionDecl>(decl->getClangDecl())) {
+    auto clangFn = cast<language::Core::FunctionDecl>(decl->getClangDecl());
     auto returnType = ctx.getClangModuleLoader()->importFunctionReturnType(
         clangFn, decl->getDeclContext());
     if (returnType)
@@ -2529,7 +2529,7 @@ InterfaceTypeRequest::evaluate(Evaluator &eval, ValueDecl *D) const {
     auto *VD = cast<VarDecl>(D);
 
     if (auto clangDecl = VD->getClangDecl()) {
-      auto clangVarDecl = cast<clang::VarDecl>(clangDecl);
+      auto clangVarDecl = cast<language::Core::VarDecl>(clangDecl);
 
       return VD->getASTContext().getClangModuleLoader()->importVarDeclType(
           clangVarDecl, VD, VD->getDeclContext());

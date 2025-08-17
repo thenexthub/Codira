@@ -629,7 +629,7 @@ language::canOpenExistentialCallArgument(ValueDecl *callee, unsigned paramIdx,
 
   // C++ function templates require specialization, which is not possible with
   // opened existential archetypes, so do not open.
-  if (isa_and_nonnull<clang::FunctionTemplateDecl>(callee->getClangDecl()))
+  if (isa_and_nonnull<language::Core::FunctionTemplateDecl>(callee->getClangDecl()))
     return std::nullopt;
 
   // The actual parameter type needs to involve a type variable, otherwise

@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #include <IndexStoreDB_Support/PatternMatching.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
 
 using namespace IndexStoreDB;
 

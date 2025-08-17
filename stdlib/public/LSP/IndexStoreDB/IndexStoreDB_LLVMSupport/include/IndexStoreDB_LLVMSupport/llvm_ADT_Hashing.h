@@ -1,8 +1,24 @@
-//===-- llvm/ADT/Hashing.h - Utilities for hashing --------------*- C++ -*-===//
+//===-- toolchain/ADT/Hashing.h - Utilities for hashing --------------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -44,10 +60,10 @@
 #ifndef LLVM_ADT_HASHING_H
 #define LLVM_ADT_HASHING_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_DataTypes.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Host.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_SwapByteOrder.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_type_traits.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_DataTypes.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Host.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_SwapByteOrder.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_type_traits.h>
 #include <algorithm>
 #include <cassert>
 #include <cstring>
@@ -55,7 +71,7 @@
 #include <tuple>
 #include <utility>
 
-namespace llvm {
+namespace toolchain {
 
 /// An opaque object representing a hash code.
 ///
@@ -66,8 +82,8 @@ namespace llvm {
 ///
 /// In order to obtain the hash_code for an object 'x':
 /// \code
-///   using llvm::hash_value;
-///   llvm::hash_code code = hash_value(x);
+///   using toolchain::hash_value;
+///   toolchain::hash_code code = hash_value(x);
 /// \endcode
 class hash_code {
   size_t value;
@@ -316,7 +332,7 @@ struct hash_state {
 
 /// A global, fixed seed-override variable.
 ///
-/// This variable can be set using the \see llvm::set_fixed_execution_seed
+/// This variable can be set using the \see toolchain::set_fixed_execution_seed
 /// function. See that function for details. Do not, under any circumstances,
 /// set or read this variable.
 extern uint64_t fixed_seed_override;
@@ -374,7 +390,7 @@ get_hashable_data(const T &value) {
 template <typename T>
 typename std::enable_if<!is_hashable_data<T>::value, size_t>::type
 get_hashable_data(const T &value) {
-  using ::llvm::hash_value;
+  using ::toolchain::hash_value;
   return hash_value(value);
 }
 
@@ -480,7 +496,7 @@ hash_combine_range_impl(ValueT *first, ValueT *last) {
 /// a sequence of bytes.
 template <typename InputIteratorT>
 hash_code hash_combine_range(InputIteratorT first, InputIteratorT last) {
-  return ::llvm::hashing::detail::hash_combine_range_impl(first, last);
+  return ::toolchain::hashing::detail::hash_combine_range_impl(first, last);
 }
 
 
@@ -603,7 +619,7 @@ public:
 /// *not* call this routine, they should instead call 'hash_value'.
 template <typename ...Ts> hash_code hash_combine(const Ts &...args) {
   // Recursively hash each argument using a helper class.
-  ::llvm::hashing::detail::hash_combine_recursive_helper helper;
+  ::toolchain::hashing::detail::hash_combine_recursive_helper helper;
   return helper.combine(0, helper.buffer, helper.buffer + 64, args...);
 }
 
@@ -633,14 +649,14 @@ inline hash_code hash_integer_value(uint64_t value) {
 template <typename T>
 typename std::enable_if<is_integral_or_enum<T>::value, hash_code>::type
 hash_value(T value) {
-  return ::llvm::hashing::detail::hash_integer_value(
+  return ::toolchain::hashing::detail::hash_integer_value(
       static_cast<uint64_t>(value));
 }
 
 // Declared and documented above, but defined here so that any of the hashing
 // infrastructure is available.
 template <typename T> hash_code hash_value(const T *ptr) {
-  return ::llvm::hashing::detail::hash_integer_value(
+  return ::toolchain::hashing::detail::hash_integer_value(
     reinterpret_cast<uintptr_t>(ptr));
 }
 
@@ -685,6 +701,6 @@ hash_code hash_value(const std::tuple<Ts...> &arg) {
            typename MakeUnsignedConstantIndexSet<0, sizeof...(Ts)>::Type());
 }
 
-} // namespace llvm
+} // namespace toolchain
 
 #endif

@@ -1,8 +1,8 @@
-/*===-- llvm-c/Support.h - Support C Interface --------------------*- C -*-===*\
+/*===-- toolchain-c/Support.h - Support C Interface --------------------*- C -*-===*\
 |*                                                                            *|
 |* Part of the LLVM Project, under the Apache License v2.0 with LLVM          *|
 |* Exceptions.                                                                *|
-|* See https://llvm.org/LICENSE.txt for license information.                  *|
+|* See https://toolchain.org/LICENSE.txt for license information.                  *|
 |* SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception                    *|
 |*                                                                            *|
 |*===----------------------------------------------------------------------===*|
@@ -14,8 +14,8 @@
 #ifndef LLVM_C_SUPPORT_H
 #define LLVM_C_SUPPORT_H
 
-#include <IndexStoreDB_LLVMSupport/llvm-c_DataTypes.h>
-#include <IndexStoreDB_LLVMSupport/llvm-c_Types.h>
+#include <IndexStoreDB_LLVMSupport/toolchain-c_DataTypes.h>
+#include <IndexStoreDB_LLVMSupport/toolchain-c_Types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,7 +27,7 @@ extern "C" {
  * cannot rely on any particular set of command line arguments being interpreted
  * the same way across LLVM versions.
  *
- * @see llvm::cl::ParseCommandLineOptions()
+ * @see toolchain::cl::ParseCommandLineOptions()
  */
 void LLVMParseCommandLineOptions(int argc, const char *const *argv,
                                  const char *Overview);

@@ -1,7 +1,7 @@
 /*===--- ConvertUTF.c - Universal Character Names conversions ---------------===
  *
  * Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
- * See https://llvm.org/LICENSE.txt for license information.
+ * See https://toolchain.org/LICENSE.txt for license information.
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  *
  *===------------------------------------------------------------------------=*/
@@ -45,7 +45,7 @@
 
 ------------------------------------------------------------------------ */
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ConvertUTF.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ConvertUTF.h>
 #ifdef CVTUTF_DEBUG
 #include <stdio.h>
 #endif
@@ -79,7 +79,7 @@
 
 ConvertUTF_DISABLE_WARNINGS
 
-namespace llvm {
+namespace toolchain {
 
 static const int halfShift  = 10; /* used for shifting by 10 bits */
 
@@ -733,6 +733,6 @@ ConversionResult ConvertUTF8toUTF32(const UTF8 **sourceStart,
 
    --------------------------------------------------------------------- */
 
-} // namespace llvm
+} // namespace toolchain
 
 ConvertUTF_RESTORE_WARNINGS

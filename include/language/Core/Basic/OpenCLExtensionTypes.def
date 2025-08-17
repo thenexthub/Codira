@@ -1,0 +1,56 @@
+//===-- OpenCLExtensionTypes.def - Metadata about BuiltinTypes --*- C++ -*-===//
+//
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
+//
+//===----------------------------------------------------------------------===//
+//  This file extends builtin types database with OpenCL extension types.
+//  Custom code should define this macro:
+//    EXT_OPAQUE_TYPE(Name, Id, Ext)
+
+#ifdef EXT_OPAQUE_TYPE
+
+#ifndef INTEL_SUBGROUP_AVC_TYPE
+#define INTEL_SUBGROUP_AVC_TYPE(Name, Id) \
+  EXT_OPAQUE_TYPE(intel_sub_group_avc_##Name, OCLIntelSubgroupAVC##Id, \
+    cl_intel_device_side_avc_motion_estimation)
+#endif
+
+#endif
+
+#ifdef INTEL_SUBGROUP_AVC_TYPE
+INTEL_SUBGROUP_AVC_TYPE(mce_payload_t, McePayload)
+INTEL_SUBGROUP_AVC_TYPE(ime_payload_t, ImePayload)
+INTEL_SUBGROUP_AVC_TYPE(ref_payload_t, RefPayload)
+INTEL_SUBGROUP_AVC_TYPE(sic_payload_t, SicPayload)
+INTEL_SUBGROUP_AVC_TYPE(mce_result_t, MceResult)
+INTEL_SUBGROUP_AVC_TYPE(ime_result_t, ImeResult)
+INTEL_SUBGROUP_AVC_TYPE(ref_result_t, RefResult)
+INTEL_SUBGROUP_AVC_TYPE(sic_result_t, SicResult)
+INTEL_SUBGROUP_AVC_TYPE(ime_result_single_reference_streamout_t, ImeResultSingleReferenceStreamout)
+INTEL_SUBGROUP_AVC_TYPE(ime_result_dual_reference_streamout_t, ImeResultDualReferenceStreamout)
+INTEL_SUBGROUP_AVC_TYPE(ime_single_reference_streamin_t, ImeSingleReferenceStreamin)
+INTEL_SUBGROUP_AVC_TYPE(ime_dual_reference_streamin_t, ImeDualReferenceStreamin)
+
+#undef INTEL_SUBGROUP_AVC_TYPE
+#endif // INTEL_SUBGROUP_AVC_TYPE
+
+#undef EXT_OPAQUE_TYPE
+

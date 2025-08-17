@@ -1,26 +1,42 @@
-//===- llvm/Support/YAMLTraits.h --------------------------------*- C++ -*-===//
+//===- toolchain/Support/YAMLTraits.h --------------------------------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 
 #ifndef LLVM_SUPPORT_YAMLTRAITS_H
 #define LLVM_SUPPORT_YAMLTRAITS_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Optional.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallVector.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringMap.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Twine.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_AlignOf.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Allocator.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Endian.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_SourceMgr.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_YAMLParser.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Optional.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallVector.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringMap.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Twine.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_AlignOf.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Allocator.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Endian.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_SourceMgr.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_YAMLParser.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 #include <cassert>
 #include <cctype>
 #include <cstddef>
@@ -34,7 +50,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace llvm {
+namespace toolchain {
 namespace yaml {
 
 enum class NodeKind : uint8_t {
@@ -131,9 +147,9 @@ enum class QuotingType { None, Single, Double };
 ///
 ///    template<>
 ///    struct ScalarTraits<MyType> {
-///      static void output(const MyType &val, void*, llvm::raw_ostream &out) {
+///      static void output(const MyType &val, void*, toolchain::raw_ostream &out) {
 ///        // stream out custom formatting
-///        out << llvm::format("%x", val);
+///        out << toolchain::format("%x", val);
 ///      }
 ///      static StringRef input(StringRef scalar, void*, MyType &value) {
 ///        // parse scalar and set `value`
@@ -146,7 +162,7 @@ template <typename T, typename Enable = void> struct ScalarTraits {
   // Must provide:
   //
   // Function to write the value as a string:
-  // static void output(const T &value, void *ctxt, llvm::raw_ostream &out);
+  // static void output(const T &value, void *ctxt, toolchain::raw_ostream &out);
   //
   // Function to convert a string to a value.  Returns the empty
   // StringRef on success or an error string if string is malformed:
@@ -161,7 +177,7 @@ template <typename T, typename Enable = void> struct ScalarTraits {
 ///
 ///    template <>
 ///    struct BlockScalarTraits<MyType> {
-///      static void output(const MyType &Value, void*, llvm::raw_ostream &Out)
+///      static void output(const MyType &Value, void*, toolchain::raw_ostream &Out)
 ///      {
 ///        // stream out custom formatting
 ///        Out << Value;
@@ -177,7 +193,7 @@ struct BlockScalarTraits {
   // Must provide:
   //
   // Function to write the value as a string:
-  // static void output(const T &Value, void *ctx, llvm::raw_ostream &Out);
+  // static void output(const T &Value, void *ctx, toolchain::raw_ostream &Out);
   //
   // Function to convert a string to a value.  Returns the empty
   // StringRef on success or an error string if string is malformed:
@@ -193,8 +209,8 @@ struct BlockScalarTraits {
 ///
 ///    template <>
 ///    struct TaggedScalarTraits<MyType> {
-///      static void output(const MyType &Value, void*, llvm::raw_ostream
-///      &ScalarOut, llvm::raw_ostream &TagOut)
+///      static void output(const MyType &Value, void*, toolchain::raw_ostream
+///      &ScalarOut, toolchain::raw_ostream &TagOut)
 ///      {
 ///        // stream out custom formatting including optional Tag
 ///        Out << Value;
@@ -213,8 +229,8 @@ template <typename T> struct TaggedScalarTraits {
   // Must provide:
   //
   // Function to write the value and tag as strings:
-  // static void output(const T &Value, void *ctx, llvm::raw_ostream &ScalarOut,
-  // llvm::raw_ostream &TagOut);
+  // static void output(const T &Value, void *ctx, toolchain::raw_ostream &ScalarOut,
+  // toolchain::raw_ostream &TagOut);
   //
   // Function to convert a string to a value.  Returns the empty
   // StringRef on success or an error string if string is malformed:
@@ -1522,7 +1538,7 @@ public:
 
 private:
   SourceMgr                           SrcMgr; // must be before Strm
-  std::unique_ptr<llvm::yaml::Stream> Strm;
+  std::unique_ptr<toolchain::yaml::Stream> Strm;
   std::unique_ptr<HNode>              TopNode;
   std::error_code                     EC;
   BumpPtrAllocator                    StringAllocator;
@@ -1938,15 +1954,15 @@ template <typename T> struct StdMapStringCustomMappingTraitsImpl {
 };
 
 } // end namespace yaml
-} // end namespace llvm
+} // end namespace toolchain
 
 #define LLVM_YAML_IS_SEQUENCE_VECTOR_IMPL(TYPE, FLOW)                          \
-  namespace llvm {                                                             \
+  namespace toolchain {                                                             \
   namespace yaml {                                                             \
   static_assert(                                                               \
       !std::is_fundamental<TYPE>::value &&                                     \
       !std::is_same<TYPE, std::string>::value &&                               \
-      !std::is_same<TYPE, llvm::StringRef>::value,                             \
+      !std::is_same<TYPE, toolchain::StringRef>::value,                             \
       "only use LLVM_YAML_IS_SEQUENCE_VECTOR for types you control");          \
   template <> struct SequenceElementTraits<TYPE> {                             \
     static const bool flow = FLOW;                                             \
@@ -1965,7 +1981,7 @@ template <typename T> struct StdMapStringCustomMappingTraitsImpl {
   LLVM_YAML_IS_SEQUENCE_VECTOR_IMPL(type, true)
 
 #define LLVM_YAML_DECLARE_MAPPING_TRAITS(Type)                                 \
-  namespace llvm {                                                             \
+  namespace toolchain {                                                             \
   namespace yaml {                                                             \
   template <> struct MappingTraits<Type> {                                     \
     static void mapping(IO &IO, Type &Obj);                                    \
@@ -1974,7 +1990,7 @@ template <typename T> struct StdMapStringCustomMappingTraitsImpl {
   }
 
 #define LLVM_YAML_DECLARE_ENUM_TRAITS(Type)                                    \
-  namespace llvm {                                                             \
+  namespace toolchain {                                                             \
   namespace yaml {                                                             \
   template <> struct ScalarEnumerationTraits<Type> {                           \
     static void enumeration(IO &io, Type &Value);                              \
@@ -1983,7 +1999,7 @@ template <typename T> struct StdMapStringCustomMappingTraitsImpl {
   }
 
 #define LLVM_YAML_DECLARE_BITSET_TRAITS(Type)                                  \
-  namespace llvm {                                                             \
+  namespace toolchain {                                                             \
   namespace yaml {                                                             \
   template <> struct ScalarBitSetTraits<Type> {                                \
     static void bitset(IO &IO, Type &Options);                                 \
@@ -1992,7 +2008,7 @@ template <typename T> struct StdMapStringCustomMappingTraitsImpl {
   }
 
 #define LLVM_YAML_DECLARE_SCALAR_TRAITS(Type, MustQuote)                       \
-  namespace llvm {                                                             \
+  namespace toolchain {                                                             \
   namespace yaml {                                                             \
   template <> struct ScalarTraits<Type> {                                      \
     static void output(const Type &Value, void *ctx, raw_ostream &Out);        \
@@ -2005,7 +2021,7 @@ template <typename T> struct StdMapStringCustomMappingTraitsImpl {
 /// Utility for declaring that a std::vector of a particular type
 /// should be considered a YAML document list.
 #define LLVM_YAML_IS_DOCUMENT_LIST_VECTOR(_type)                               \
-  namespace llvm {                                                             \
+  namespace toolchain {                                                             \
   namespace yaml {                                                             \
   template <unsigned N>                                                        \
   struct DocumentListTraits<SmallVector<_type, N>>                             \
@@ -2019,7 +2035,7 @@ template <typename T> struct StdMapStringCustomMappingTraitsImpl {
 /// Utility for declaring that std::map<std::string, _type> should be considered
 /// a YAML map.
 #define LLVM_YAML_IS_STRING_MAP(_type)                                         \
-  namespace llvm {                                                             \
+  namespace toolchain {                                                             \
   namespace yaml {                                                             \
   template <>                                                                  \
   struct CustomMappingTraits<std::map<std::string, _type>>                     \

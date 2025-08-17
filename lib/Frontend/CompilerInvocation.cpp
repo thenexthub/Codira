@@ -14,7 +14,7 @@
 
 //===----------------------------------------------------------------------===//
 
-#include "clang/Driver/Driver.h"
+#include "language/Core/Driver/Driver.h"
 #include "language/AST/SILOptions.h"
 #include "language/Basic/DiagnosticOptions.h"
 #include "language/Frontend/Frontend.h"
@@ -408,12 +408,12 @@ void CompilerInvocation::computeCXXStdlibOptions() {
     auto cxxDefaultStdlibKind = clangToolchain.GetDefaultCXXStdlibType();
 
     auto toCXXStdlibKind =
-        [](clang::driver::ToolChain::CXXStdlibType clangCXXStdlibType)
+        [](language::Core::driver::ToolChain::CXXStdlibType clangCXXStdlibType)
         -> CXXStdlibKind {
       switch (clangCXXStdlibType) {
-      case clang::driver::ToolChain::CST_Libcxx:
+      case language::Core::driver::ToolChain::CST_Libcxx:
         return CXXStdlibKind::Libcxx;
-      case clang::driver::ToolChain::CST_Libstdcxx:
+      case language::Core::driver::ToolChain::CST_Libstdcxx:
         return CXXStdlibKind::Libstdcxx;
       }
     };

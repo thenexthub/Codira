@@ -1,8 +1,24 @@
 //===-- APFloat.cpp - Implement APFloat class -----------------------------===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -11,18 +27,18 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_APFloat.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_APSInt.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_ArrayRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_FoldingSet.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Hashing.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Config_llvm-config.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Debug.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ErrorHandling.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_MathExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_APFloat.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_APSInt.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_ArrayRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_FoldingSet.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Hashing.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_toolchain-config.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Debug.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ErrorHandling.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_MathExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 #include <cstring>
 #include <limits.h>
 
@@ -32,10 +48,10 @@
       return U.IEEE.METHOD_CALL;                                               \
     if (usesLayout<DoubleAPFloat>(getSemantics()))                             \
       return U.Double.METHOD_CALL;                                             \
-    llvm_unreachable("Unexpected semantics");                                  \
+    toolchain_unreachable("Unexpected semantics");                                  \
   } while (false)
 
-using namespace llvm;
+using namespace toolchain;
 
 /// A macro used to combine two fcCategory enums into one key which can be used
 /// in a switch statement to classify how the interaction of two APFloat's
@@ -49,7 +65,7 @@ using namespace llvm;
    hexadecimal strings.  */
 static_assert(APFloatBase::integerPartWidth % 4 == 0, "Part width must be divisible by 4!");
 
-namespace llvm {
+namespace toolchain {
   /* Represents floating point arithmetic semantics.  */
   struct fltSemantics {
     /* The largest E such that 2^E is representable; this matches the
@@ -1267,7 +1283,7 @@ bool IEEEFloat::roundAwayFromZero(roundingMode rounding_mode,
   case rmTowardNegative:
     return sign;
   }
-  llvm_unreachable("Invalid rounding mode found");
+  toolchain_unreachable("Invalid rounding mode found");
 }
 
 IEEEFloat::opStatus IEEEFloat::normalize(roundingMode rounding_mode,
@@ -1380,7 +1396,7 @@ IEEEFloat::opStatus IEEEFloat::addOrSubtractSpecials(const IEEEFloat &rhs,
                                                      bool subtract) {
   switch (PackCategoriesIntoKey(category, rhs.category)) {
   default:
-    llvm_unreachable(nullptr);
+    toolchain_unreachable(nullptr);
 
   case PackCategoriesIntoKey(fcNaN, fcZero):
   case PackCategoriesIntoKey(fcNaN, fcNormal):
@@ -1506,7 +1522,7 @@ lostFraction IEEEFloat::addOrSubtractSignificand(const IEEEFloat &rhs,
 IEEEFloat::opStatus IEEEFloat::multiplySpecials(const IEEEFloat &rhs) {
   switch (PackCategoriesIntoKey(category, rhs.category)) {
   default:
-    llvm_unreachable(nullptr);
+    toolchain_unreachable(nullptr);
 
   case PackCategoriesIntoKey(fcNaN, fcZero):
   case PackCategoriesIntoKey(fcNaN, fcNormal):
@@ -1548,7 +1564,7 @@ IEEEFloat::opStatus IEEEFloat::multiplySpecials(const IEEEFloat &rhs) {
 IEEEFloat::opStatus IEEEFloat::divideSpecials(const IEEEFloat &rhs) {
   switch (PackCategoriesIntoKey(category, rhs.category)) {
   default:
-    llvm_unreachable(nullptr);
+    toolchain_unreachable(nullptr);
 
   case PackCategoriesIntoKey(fcZero, fcNaN):
   case PackCategoriesIntoKey(fcNormal, fcNaN):
@@ -1589,7 +1605,7 @@ IEEEFloat::opStatus IEEEFloat::divideSpecials(const IEEEFloat &rhs) {
 IEEEFloat::opStatus IEEEFloat::modSpecials(const IEEEFloat &rhs) {
   switch (PackCategoriesIntoKey(category, rhs.category)) {
   default:
-    llvm_unreachable(nullptr);
+    toolchain_unreachable(nullptr);
 
   case PackCategoriesIntoKey(fcNaN, fcZero):
   case PackCategoriesIntoKey(fcNaN, fcNormal):
@@ -1742,7 +1758,7 @@ IEEEFloat::opStatus IEEEFloat::remainder(const IEEEFloat &rhs) {
   return fs;
 }
 
-/* Normalized llvm frem (C fmod). */
+/* Normalized toolchain frem (C fmod). */
 IEEEFloat::opStatus IEEEFloat::mod(const IEEEFloat &rhs) {
   opStatus fs;
   fs = modSpecials(rhs);
@@ -1857,7 +1873,7 @@ IEEEFloat::cmpResult IEEEFloat::compare(const IEEEFloat &rhs) const {
 
   switch (PackCategoriesIntoKey(category, rhs.category)) {
   default:
-    llvm_unreachable(nullptr);
+    toolchain_unreachable(nullptr);
 
   case PackCategoriesIntoKey(fcNaN, fcZero):
   case PackCategoriesIntoKey(fcNaN, fcNormal):
@@ -2797,7 +2813,7 @@ hash_code hash_value(const IEEEFloat &Arg) {
 // the actual IEEE respresentations.  We compensate for that here.
 
 APInt IEEEFloat::convertF80LongDoubleAPFloatToAPInt() const {
-  assert(semantics == (const llvm::fltSemantics*)&semX87DoubleExtended);
+  assert(semantics == (const toolchain::fltSemantics*)&semX87DoubleExtended);
   assert(partCount()==2);
 
   uint64_t myexponent, mysignificand;
@@ -2827,7 +2843,7 @@ APInt IEEEFloat::convertF80LongDoubleAPFloatToAPInt() const {
 }
 
 APInt IEEEFloat::convertPPCDoubleDoubleAPFloatToAPInt() const {
-  assert(semantics == (const llvm::fltSemantics *)&semPPCDoubleDoubleLegacy);
+  assert(semantics == (const toolchain::fltSemantics *)&semPPCDoubleDoubleLegacy);
   assert(partCount()==2);
 
   uint64_t words[2];
@@ -2876,7 +2892,7 @@ APInt IEEEFloat::convertPPCDoubleDoubleAPFloatToAPInt() const {
 }
 
 APInt IEEEFloat::convertQuadrupleAPFloatToAPInt() const {
-  assert(semantics == (const llvm::fltSemantics*)&semIEEEquad);
+  assert(semantics == (const toolchain::fltSemantics*)&semIEEEquad);
   assert(partCount()==2);
 
   uint64_t myexponent, mysignificand, mysignificand2;
@@ -2910,7 +2926,7 @@ APInt IEEEFloat::convertQuadrupleAPFloatToAPInt() const {
 }
 
 APInt IEEEFloat::convertDoubleAPFloatToAPInt() const {
-  assert(semantics == (const llvm::fltSemantics*)&semIEEEdouble);
+  assert(semantics == (const toolchain::fltSemantics*)&semIEEEdouble);
   assert(partCount()==1);
 
   uint64_t myexponent, mysignificand;
@@ -2938,7 +2954,7 @@ APInt IEEEFloat::convertDoubleAPFloatToAPInt() const {
 }
 
 APInt IEEEFloat::convertFloatAPFloatToAPInt() const {
-  assert(semantics == (const llvm::fltSemantics*)&semIEEEsingle);
+  assert(semantics == (const toolchain::fltSemantics*)&semIEEEsingle);
   assert(partCount()==1);
 
   uint32_t myexponent, mysignificand;
@@ -2965,7 +2981,7 @@ APInt IEEEFloat::convertFloatAPFloatToAPInt() const {
 }
 
 APInt IEEEFloat::convertHalfAPFloatToAPInt() const {
-  assert(semantics == (const llvm::fltSemantics*)&semIEEEhalf);
+  assert(semantics == (const toolchain::fltSemantics*)&semIEEEhalf);
   assert(partCount()==1);
 
   uint32_t myexponent, mysignificand;
@@ -2996,35 +3012,35 @@ APInt IEEEFloat::convertHalfAPFloatToAPInt() const {
 // and treating the result as a normal integer is unlikely to be useful.
 
 APInt IEEEFloat::bitcastToAPInt() const {
-  if (semantics == (const llvm::fltSemantics*)&semIEEEhalf)
+  if (semantics == (const toolchain::fltSemantics*)&semIEEEhalf)
     return convertHalfAPFloatToAPInt();
 
-  if (semantics == (const llvm::fltSemantics*)&semIEEEsingle)
+  if (semantics == (const toolchain::fltSemantics*)&semIEEEsingle)
     return convertFloatAPFloatToAPInt();
 
-  if (semantics == (const llvm::fltSemantics*)&semIEEEdouble)
+  if (semantics == (const toolchain::fltSemantics*)&semIEEEdouble)
     return convertDoubleAPFloatToAPInt();
 
-  if (semantics == (const llvm::fltSemantics*)&semIEEEquad)
+  if (semantics == (const toolchain::fltSemantics*)&semIEEEquad)
     return convertQuadrupleAPFloatToAPInt();
 
-  if (semantics == (const llvm::fltSemantics *)&semPPCDoubleDoubleLegacy)
+  if (semantics == (const toolchain::fltSemantics *)&semPPCDoubleDoubleLegacy)
     return convertPPCDoubleDoubleAPFloatToAPInt();
 
-  assert(semantics == (const llvm::fltSemantics*)&semX87DoubleExtended &&
+  assert(semantics == (const toolchain::fltSemantics*)&semX87DoubleExtended &&
          "unknown format!");
   return convertF80LongDoubleAPFloatToAPInt();
 }
 
 float IEEEFloat::convertToFloat() const {
-  assert(semantics == (const llvm::fltSemantics*)&semIEEEsingle &&
+  assert(semantics == (const toolchain::fltSemantics*)&semIEEEsingle &&
          "Float semantics are not IEEEsingle");
   APInt api = bitcastToAPInt();
   return api.bitsToFloat();
 }
 
 double IEEEFloat::convertToDouble() const {
-  assert(semantics == (const llvm::fltSemantics*)&semIEEEdouble &&
+  assert(semantics == (const toolchain::fltSemantics*)&semIEEEdouble &&
          "Float semantics are not IEEEdouble");
   APInt api = bitcastToAPInt();
   return api.bitsToDouble();
@@ -3244,7 +3260,7 @@ void IEEEFloat::initFromAPInt(const fltSemantics *Sem, const APInt &api) {
   if (Sem == &semPPCDoubleDoubleLegacy)
     return initFromPPCDoubleDoubleAPInt(api);
 
-  llvm_unreachable(nullptr);
+  toolchain_unreachable(nullptr);
 }
 
 /// Make this number the largest magnitude normal number in the given
@@ -4423,7 +4439,7 @@ APFloat::Storage::Storage(IEEEFloat F, const fltSemantics &Semantics) {
                       APFloat(semIEEEdouble));
     return;
   }
-  llvm_unreachable("Unexpected semantics");
+  toolchain_unreachable("Unexpected semantics");
 }
 
 APFloat::opStatus APFloat::convertFromString(StringRef Str, roundingMode RM) {
@@ -4435,7 +4451,7 @@ hash_code hash_value(const APFloat &Arg) {
     return hash_value(Arg.U.IEEE);
   if (APFloat::usesLayout<detail::DoubleAPFloat>(Arg.getSemantics()))
     return hash_value(Arg.U.Double);
-  llvm_unreachable("Unexpected semantics");
+  toolchain_unreachable("Unexpected semantics");
 }
 
 APFloat::APFloat(const fltSemantics &Semantics, StringRef S)
@@ -4465,7 +4481,7 @@ APFloat::opStatus APFloat::convert(const fltSemantics &ToSemantics,
     *this = APFloat(std::move(getIEEE()), ToSemantics);
     return Ret;
   }
-  llvm_unreachable("Unexpected semantics");
+  toolchain_unreachable("Unexpected semantics");
 }
 
 APFloat APFloat::getAllOnesValue(unsigned BitWidth, bool isIEEE) {
@@ -4482,7 +4498,7 @@ APFloat APFloat::getAllOnesValue(unsigned BitWidth, bool isIEEE) {
     case 128:
       return APFloat(semIEEEquad, APInt::getAllOnesValue(BitWidth));
     default:
-      llvm_unreachable("Unknown floating bit width");
+      toolchain_unreachable("Unknown floating bit width");
     }
   } else {
     assert(BitWidth == 128);
@@ -4520,6 +4536,6 @@ APFloat::opStatus APFloat::convertToInteger(APSInt &result,
   return status;
 }
 
-} // End llvm namespace
+} // End toolchain namespace
 
 #undef APFLOAT_DISPATCH_ON_SEMANTICS

@@ -75,7 +75,7 @@ struct LLVMProjectOptions: ParsableArguments {
   var addLLDB: Bool = false
 
   @Flag(
-    name: .customLong("llvm"), inversion: .prefixedNo,
+    name: .customLong("toolchain"), inversion: .prefixedNo,
     help: "Generate an xcodeproj for LLVM"
   )
   var addLLVM: Bool = false

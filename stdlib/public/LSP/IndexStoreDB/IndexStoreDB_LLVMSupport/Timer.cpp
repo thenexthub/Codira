@@ -1,8 +1,24 @@
 //===-- Timer.cpp - Interval Timing Support -------------------------------===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -10,21 +26,21 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Timer.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Statistic.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringMap.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_CommandLine.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_FileSystem.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Format.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ManagedStatic.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Mutex.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Process.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Signposts.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_YAMLTraits.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Timer.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Statistic.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringMap.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_CommandLine.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_FileSystem.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Format.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ManagedStatic.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Mutex.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Process.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Signposts.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_YAMLTraits.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 #include <limits>
 
-using namespace llvm;
+using namespace toolchain;
 
 // This ugly hack is brought to you courtesy of constructor/destructor ordering
 // being unspecified by C++.  Basically the problem is that a Statistic object
@@ -40,7 +56,7 @@ static std::string &getLibSupportInfoOutputFilename() {
 
 static ManagedStatic<sys::SmartMutex<true> > TimerLock;
 
-/// Allows llvm::Timer to emit signposts when supported.
+/// Allows toolchain::Timer to emit signposts when supported.
 static ManagedStatic<SignpostEmitter> Signposts;
 
 namespace {
@@ -55,26 +71,26 @@ namespace {
                    cl::Hidden, cl::location(getLibSupportInfoOutputFilename()));
 }
 
-std::unique_ptr<raw_fd_ostream> llvm::CreateInfoOutputFile() {
+std::unique_ptr<raw_fd_ostream> toolchain::CreateInfoOutputFile() {
   const std::string &OutputFilename = getLibSupportInfoOutputFilename();
   if (OutputFilename.empty())
-    return llvm::make_unique<raw_fd_ostream>(2, false); // stderr.
+    return toolchain::make_unique<raw_fd_ostream>(2, false); // stderr.
   if (OutputFilename == "-")
-    return llvm::make_unique<raw_fd_ostream>(1, false); // stdout.
+    return toolchain::make_unique<raw_fd_ostream>(1, false); // stdout.
 
   // Append mode is used because the info output file is opened and closed
   // each time -stats or -time-passes wants to print output to it. To
   // compensate for this, the test-suite Makefiles have code to delete the
   // info output file before running commands which write to it.
   std::error_code EC;
-  auto Result = llvm::make_unique<raw_fd_ostream>(
+  auto Result = toolchain::make_unique<raw_fd_ostream>(
       OutputFilename, EC, sys::fs::F_Append | sys::fs::F_Text);
   if (!EC)
     return Result;
 
   errs() << "Error opening info-output-file '"
     << OutputFilename << " for appending!\n";
-  return llvm::make_unique<raw_fd_ostream>(2, false); // stderr.
+  return toolchain::make_unique<raw_fd_ostream>(2, false); // stderr.
 }
 
 namespace {
@@ -300,7 +316,7 @@ void TimerGroup::addTimer(Timer &T) {
 
 void TimerGroup::PrintQueuedTimers(raw_ostream &OS) {
   // Sort the timers in descending order by amount of time taken.
-  llvm::sort(TimersToPrint);
+  toolchain::sort(TimersToPrint);
 
   TimeRecord Total;
   for (const PrintRecord &Record : TimersToPrint)

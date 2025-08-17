@@ -263,7 +263,7 @@ Clang's frontend can do one of two things with `__builtin_object_size(p, n)`:
     impossible to know, so the default value is used, or the number of bytes at
     `p` can be known without optimizations.
 - Declare that the expression cannot form a constant, and lower it to
-  `@llvm.objectsize`, which is discussed in depth later.
+  `@toolchain.objectsize`, which is discussed in depth later.
 
 In the examples above, since `diagnose_if` is evaluated with context from the
 caller, Clang should be able to trivially determine that `buf` refers to a
@@ -346,7 +346,7 @@ function:
 ```
 
 If Clang's frontend cannot determine a value for `__builtin_object_size`, Clang
-lowers it to LLVM's `@llvm.objectsize` intrinsic. The `@llvm.objectsize`
+lowers it to LLVM's `@toolchain.objectsize` intrinsic. The `@toolchain.objectsize`
 invocation corresponding to `__builtin_object_size(p, 0)` is guaranteed to
 always fold to a constant value by the time LLVM emits machine code.
 
@@ -631,7 +631,7 @@ somewhat the case when we talk about `__builtin_object_size` and
 
 #### tl;dr
 `__builtin_object_size(p, N)` and `pass_object_size(N)`, where `(N & 1) == 1`,
-can only be accurately determined by Clang. LLVM's `@llvm.objectsize` intrinsic
+can only be accurately determined by Clang. LLVM's `@toolchain.objectsize` intrinsic
 ignores the value of `N & 1`, since handling `(N & 1) == 1` accurately requires
 data that's currently entirely inaccessible to LLVM, and that is difficult to
 preserve through LLVM's optimization passes.
@@ -682,7 +682,7 @@ assert(__builtin_object_size(p, 2) == 7);
 `__builtin_object_size(p, 0)` is more or less as simple as the example in the
 Background section directly above. When Clang attempts to evaluate
 `__builtin_object_size(p, 0);` and when LLVM tries to determine the result of a
-corresponding `@llvm.objectsize` call to, they search for the storage underlying
+corresponding `@toolchain.objectsize` call to, they search for the storage underlying
 the pointer in question. If that can be determined, Clang or LLVM can provide an
 answer; otherwise, they cannot.
 
@@ -834,7 +834,7 @@ the compiler output constant strings.
 [incompatible with stricter versions of FORTIFY checking]: https://godbolt.org/z/fGfEYxfnf
 [similar to C++11's `std::unique_ptr`]: https://stackoverflow.com/questions/58339165/why-can-a-t-be-passed-in-register-but-a-unique-ptrt-cannot
 [source for `mempcpy`]: https://android.googlesource.com/platform/bionic/+/refs/heads/android12-release/libc/include/string.h#55
-[the `diagnose_as_builtin` attribute]: https://releases.llvm.org/14.0.0/tools/clang/docs/AttributeReference.html#diagnose-as-builtin
-[the docs for `pass_object_size`]: https://releases.llvm.org/14.0.0/tools/clang/docs/AttributeReference.html#pass-object-size-pass-dynamic-object-size
-[this type-aware requirement poses problems for us]: https://github.com/llvm/llvm-project/issues/55742
+[the `diagnose_as_builtin` attribute]: https://releases.toolchain.org/14.0.0/tools/clang/docs/AttributeReference.html#diagnose-as-builtin
+[the docs for `pass_object_size`]: https://releases.toolchain.org/14.0.0/tools/clang/docs/AttributeReference.html#pass-object-size-pass-dynamic-object-size
+[this type-aware requirement poses problems for us]: https://github.com/toolchain/toolchain-project/issues/55742
 [unconditionally call `__open_2`]: https://android.googlesource.com/platform/bionic/+/refs/heads/android12-release/libc/bionic/open.cpp#70

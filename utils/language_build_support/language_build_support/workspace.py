@@ -47,9 +47,9 @@ def compute_build_subdir(args):
     if args.cmark_assertions:
         cmark_build_dir_label += "Assert"
 
-    llvm_build_dir_label = args.llvm_build_variant
-    if args.llvm_assertions:
-        llvm_build_dir_label += "Assert"
+    toolchain_build_dir_label = args.toolchain_build_variant
+    if args.toolchain_assertions:
+        toolchain_build_dir_label += "Assert"
 
     language_build_dir_label = args.language_build_variant
     if args.language_assertions:
@@ -62,35 +62,35 @@ def compute_build_subdir(args):
         language_stdlib_build_dir_label += "Assert"
 
     # FIXME: mangle LLDB build configuration into the directory name.
-    if (llvm_build_dir_label == language_build_dir_label and
-            llvm_build_dir_label == language_stdlib_build_dir_label and
+    if (toolchain_build_dir_label == language_build_dir_label and
+            toolchain_build_dir_label == language_stdlib_build_dir_label and
             language_build_dir_label == cmark_build_dir_label):
         # Use a simple directory name if all projects use the same build
         # type.
-        build_subdir += "-" + llvm_build_dir_label
-    elif (llvm_build_dir_label != language_build_dir_label and
-            llvm_build_dir_label == language_stdlib_build_dir_label and
+        build_subdir += "-" + toolchain_build_dir_label
+    elif (toolchain_build_dir_label != language_build_dir_label and
+            toolchain_build_dir_label == language_stdlib_build_dir_label and
             language_build_dir_label == cmark_build_dir_label):
         # Swift build type differs.
-        build_subdir += "-" + llvm_build_dir_label
+        build_subdir += "-" + toolchain_build_dir_label
         build_subdir += "+language-" + language_build_dir_label
-    elif (llvm_build_dir_label == language_build_dir_label and
-            llvm_build_dir_label != language_stdlib_build_dir_label and
+    elif (toolchain_build_dir_label == language_build_dir_label and
+            toolchain_build_dir_label != language_stdlib_build_dir_label and
             language_build_dir_label == cmark_build_dir_label):
         # Swift stdlib build type differs.
-        build_subdir += "-" + llvm_build_dir_label
+        build_subdir += "-" + toolchain_build_dir_label
         build_subdir += "+stdlib-" + language_stdlib_build_dir_label
-    elif (llvm_build_dir_label == language_build_dir_label and
-            llvm_build_dir_label == language_stdlib_build_dir_label and
+    elif (toolchain_build_dir_label == language_build_dir_label and
+            toolchain_build_dir_label == language_stdlib_build_dir_label and
             language_build_dir_label != cmark_build_dir_label):
         # cmark build type differs.
-        build_subdir += "-" + llvm_build_dir_label
+        build_subdir += "-" + toolchain_build_dir_label
         build_subdir += "+cmark-" + cmark_build_dir_label
     else:
         # We don't know how to create a short name, so just mangle in all
         # the information.
         build_subdir += "+cmark-" + cmark_build_dir_label
-        build_subdir += "+llvm-" + llvm_build_dir_label
+        build_subdir += "+toolchain-" + toolchain_build_dir_label
         build_subdir += "+language-" + language_build_dir_label
         build_subdir += "+stdlib-" + language_stdlib_build_dir_label
 

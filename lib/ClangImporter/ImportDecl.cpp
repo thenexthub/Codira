@@ -60,21 +60,21 @@
 #include "language/ClangImporter/ClangModule.h"
 #include "language/Parse/Lexer.h"
 #include "language/Strings.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Attr.h"
-#include "clang/AST/Decl.h"
-#include "clang/AST/DeclCXX.h"
-#include "clang/AST/DeclObjCCommon.h"
-#include "clang/AST/Expr.h"
-#include "clang/AST/PrettyPrinter.h"
-#include "clang/AST/RecordLayout.h"
-#include "clang/AST/RecursiveASTVisitor.h"
-#include "clang/AST/StmtVisitor.h"
-#include "clang/AST/Type.h"
-#include "clang/Basic/Specifiers.h"
-#include "clang/Basic/TargetInfo.h"
-#include "clang/Lex/Preprocessor.h"
-#include "clang/Sema/Lookup.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Attr.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/AST/DeclCXX.h"
+#include "language/Core/AST/DeclObjCCommon.h"
+#include "language/Core/AST/Expr.h"
+#include "language/Core/AST/PrettyPrinter.h"
+#include "language/Core/AST/RecordLayout.h"
+#include "language/Core/AST/RecursiveASTVisitor.h"
+#include "language/Core/AST/StmtVisitor.h"
+#include "language/Core/AST/Type.h"
+#include "language/Core/Basic/Specifiers.h"
+#include "language/Core/Basic/TargetInfo.h"
+#include "language/Core/Lex/Preprocessor.h"
+#include "language/Core/Sema/Lookup.h"
 
 #include "toolchain/ADT/STLExtras.h"
 #include "toolchain/ADT/SmallBitVector.h"
@@ -171,7 +171,7 @@ void ClangImporter::Implementation::makeComputed(AbstractStorageDecl *storage,
 }
 
 bool importer::recordHasReferenceSemantics(
-    const clang::RecordDecl *decl,
+    const language::Core::RecordDecl *decl,
     ClangImporter::Implementation *importerImpl) {
   // At this point decl might not be fully imported into Codira yet, which
   // means we might not have asked Clang to generate its implicit members, such
@@ -186,9 +186,9 @@ bool importer::recordHasReferenceSemantics(
   return semanticsKind == CxxRecordSemanticsKind::Reference;
 }
 
-bool importer::hasImmortalAttrs(const clang::RecordDecl *decl) {
+bool importer::hasImmortalAttrs(const language::Core::RecordDecl *decl) {
   return decl->hasAttrs() && toolchain::any_of(decl->getAttrs(), [](auto *attr) {
-           if (auto languageAttr = dyn_cast<clang::CodiraAttrAttr>(attr))
+           if (auto languageAttr = dyn_cast<language::Core::CodiraAttrAttr>(attr))
              return languageAttr->getAttribute() == "retain:immortal" ||
                     languageAttr->getAttribute() == "release:immortal";
            return false;
@@ -212,7 +212,7 @@ static bool verifyNameMapping(MappedTypeNameKind NameMapping,
 /// \returns A pair of a language type and its name that corresponds to a given
 /// C type.
 static std::pair<Type, StringRef>
-getCodiraStdlibType(const clang::TypedefNameDecl *D,
+getCodiraStdlibType(const language::Core::TypedefNameDecl *D,
                    Identifier Name,
                    ClangImporter::Implementation &Impl,
                    bool *IsError, MappedTypeNameKind &NameMapping) {
@@ -301,7 +301,7 @@ getCodiraStdlibType(const clang::TypedefNameDecl *D,
     return std::make_pair(Type(), "");
   } while (0);
 
-  clang::ASTContext &ClangCtx = Impl.getClangASTContext();
+  language::Core::ASTContext &ClangCtx = Impl.getClangASTContext();
 
   auto ClangType = D->getUnderlyingType();
 
@@ -371,19 +371,19 @@ getCodiraStdlibType(const clang::TypedefNameDecl *D,
 
   case MappedCTypeKind::VaList:
     switch (ClangCtx.getTargetInfo().getBuiltinVaListKind()) {
-      case clang::TargetInfo::CharPtrBuiltinVaList:
-      case clang::TargetInfo::VoidPtrBuiltinVaList:
-      case clang::TargetInfo::PowerABIBuiltinVaList:
-      case clang::TargetInfo::AAPCSABIBuiltinVaList:
-      case clang::TargetInfo::HexagonBuiltinVaList:
+      case language::Core::TargetInfo::CharPtrBuiltinVaList:
+      case language::Core::TargetInfo::VoidPtrBuiltinVaList:
+      case language::Core::TargetInfo::PowerABIBuiltinVaList:
+      case language::Core::TargetInfo::AAPCSABIBuiltinVaList:
+      case language::Core::TargetInfo::HexagonBuiltinVaList:
         assert(ClangCtx.getTypeSize(ClangCtx.VoidPtrTy) == ClangTypeSize &&
                "expected va_list type to be sizeof(void *)");
         break;
-      case clang::TargetInfo::AArch64ABIBuiltinVaList:
+      case language::Core::TargetInfo::AArch64ABIBuiltinVaList:
         break;
-      case clang::TargetInfo::PNaClABIBuiltinVaList:
-      case clang::TargetInfo::SystemZBuiltinVaList:
-      case clang::TargetInfo::X86_64ABIBuiltinVaList:
+      case language::Core::TargetInfo::PNaClABIBuiltinVaList:
+      case language::Core::TargetInfo::SystemZBuiltinVaList:
+      case language::Core::TargetInfo::X86_64ABIBuiltinVaList:
         return std::make_pair(Type(), "");
     }
     break;
@@ -459,11 +459,11 @@ getCodiraStdlibType(const clang::TypedefNameDecl *D,
   return std::make_pair(CodiraType, CodiraTypeName);
 }
 
-static bool isNSDictionaryMethod(const clang::ObjCMethodDecl *MD,
-                                 clang::Selector cmd) {
+static bool isNSDictionaryMethod(const language::Core::ObjCMethodDecl *MD,
+                                 language::Core::Selector cmd) {
   if (MD->getSelector() != cmd)
     return false;
-  if (isa<clang::ObjCProtocolDecl>(MD->getDeclContext()))
+  if (isa<language::Core::ObjCProtocolDecl>(MD->getDeclContext()))
     return false;
   if (MD->getClassInterface()->getName() != "NSDictionary")
     return false;
@@ -625,7 +625,7 @@ synthesizeErrorDomainGetterBody(AbstractFunctionDecl *afd, void *context) {
 /// _BridgedStoredNSError.
 /// \returns true on success, false on failure
 static bool addErrorDomain(NominalTypeDecl *languageDecl,
-                           clang::NamedDecl *errorDomainDecl,
+                           language::Core::NamedDecl *errorDomainDecl,
                            ClangImporter::Implementation &importer) {
   auto &C = importer.CodiraContext;
   auto languageValueDecl = dyn_cast_or_null<ValueDecl>(
@@ -680,18 +680,18 @@ static bool addErrorDomain(NominalTypeDecl *languageDecl,
                            StringRef errorDomainName,
                            ClangImporter::Implementation &importer) {
   auto &clangSema = importer.getClangSema();
-  clang::IdentifierInfo *errorDomainDeclName =
+  language::Core::IdentifierInfo *errorDomainDeclName =
     &clangSema.getASTContext().Idents.get(errorDomainName);
-  clang::LookupResult lookupResult(
-      clangSema, clang::DeclarationName(errorDomainDeclName),
-      clang::SourceLocation(), clang::Sema::LookupNameKind::LookupOrdinaryName);
+  language::Core::LookupResult lookupResult(
+      clangSema, language::Core::DeclarationName(errorDomainDeclName),
+      language::Core::SourceLocation(), language::Core::Sema::LookupNameKind::LookupOrdinaryName);
 
   if (!clangSema.LookupName(lookupResult, clangSema.TUScope)) {
     // Couldn't actually import it as an error enum, fall back to enum
     return false;
   }
 
-  auto clangNamedDecl = lookupResult.getAsSingle<clang::NamedDecl>();
+  auto clangNamedDecl = lookupResult.getAsSingle<language::Core::NamedDecl>();
   if (!clangNamedDecl) {
     // Couldn't actually import it as an error enum, fall back to enum
     return false;
@@ -701,8 +701,8 @@ static bool addErrorDomain(NominalTypeDecl *languageDecl,
 }
 
 /// Retrieve the property type as determined by the given accessor.
-static clang::QualType
-getAccessorPropertyType(const clang::FunctionDecl *accessor, bool isSetter,
+static language::Core::QualType
+getAccessorPropertyType(const language::Core::FunctionDecl *accessor, bool isSetter,
                         std::optional<unsigned> selfIndex) {
   // Simple case: the property type of the getter is in the return
   // type.
@@ -712,7 +712,7 @@ getAccessorPropertyType(const clang::FunctionDecl *accessor, bool isSetter,
   // parameters.
   unsigned numExpectedParams = selfIndex ? 2 : 1;
   if (accessor->getNumParams() != numExpectedParams)
-    return clang::QualType();
+    return language::Core::QualType();
 
   // Dig out the parameter for the value.
   unsigned valueIdx = selfIndex ? (1 - *selfIndex) : 0;
@@ -724,15 +724,15 @@ getAccessorPropertyType(const clang::FunctionDecl *accessor, bool isSetter,
 /// of this class as Codira generic type params.
 static bool
 shouldSuppressGenericParamsImport(const LangOptions &langOpts,
-                                  const clang::ObjCInterfaceDecl *decl) {
-  if (decl->hasAttr<clang::CodiraImportAsNonGenericAttr>())
+                                  const language::Core::ObjCInterfaceDecl *decl) {
+  if (decl->hasAttr<language::Core::CodiraImportAsNonGenericAttr>())
     return true;
 
   // FIXME: This check is only necessary to keep things working even without
   // the CodiraImportAsNonGeneric API note. Once we can guarantee that that
   // attribute is present in all contexts, we can remove this check.
-  auto isFromFoundationModule = [](const clang::Decl *decl) -> bool {
-    clang::Module *module = getClangSubmoduleForDecl(decl).value();
+  auto isFromFoundationModule = [](const language::Core::Decl *decl) -> bool {
+    language::Core::Module *module = getClangSubmoduleForDecl(decl).value();
     if (!module)
       return false;
     return module->getTopLevelModuleName() == "Foundation";
@@ -777,11 +777,11 @@ static bool shouldAlsoImportAsClassMethod(FuncDecl *method) {
   // There must not already be a class method with the same
   // selector.
   auto objcClass =
-      cast_or_null<clang::ObjCInterfaceDecl>(classDecl->getClangDecl());
+      cast_or_null<language::Core::ObjCInterfaceDecl>(classDecl->getClangDecl());
   if (!objcClass)
     return false;
 
-  auto objcMethod = cast_or_null<clang::ObjCMethodDecl>(method->getClangDecl());
+  auto objcMethod = cast_or_null<language::Core::ObjCMethodDecl>(method->getClangDecl());
   if (!objcMethod)
     return false;
   return !objcClass->getClassMethod(objcMethod->getSelector(),
@@ -789,17 +789,17 @@ static bool shouldAlsoImportAsClassMethod(FuncDecl *method) {
 }
 
 static bool
-classImplementsProtocol(const clang::ObjCInterfaceDecl *constInterface,
-                        const clang::ObjCProtocolDecl *constProto,
+classImplementsProtocol(const language::Core::ObjCInterfaceDecl *constInterface,
+                        const language::Core::ObjCProtocolDecl *constProto,
                         bool checkCategories) {
-  auto interface = const_cast<clang::ObjCInterfaceDecl *>(constInterface);
-  auto proto = const_cast<clang::ObjCProtocolDecl *>(constProto);
+  auto interface = const_cast<language::Core::ObjCInterfaceDecl *>(constInterface);
+  auto proto = const_cast<language::Core::ObjCProtocolDecl *>(constProto);
   return interface->ClassImplementsProtocol(proto, checkCategories);
 }
 
 static void
 applyPropertyOwnership(VarDecl *prop,
-                       clang::ObjCPropertyAttribute::Kind attrs) {
+                       language::Core::ObjCPropertyAttribute::Kind attrs) {
   Type ty = prop->getInterfaceType();
   if (auto innerTy = ty->getOptionalObjectType())
     ty = innerTy;
@@ -807,19 +807,19 @@ applyPropertyOwnership(VarDecl *prop,
     return;
 
   ASTContext &ctx = prop->getASTContext();
-  if (attrs & clang::ObjCPropertyAttribute::kind_copy) {
+  if (attrs & language::Core::ObjCPropertyAttribute::kind_copy) {
     prop->getAttrs().add(new (ctx) NSCopyingAttr(false));
     return;
   }
-  if (attrs & clang::ObjCPropertyAttribute::kind_weak) {
+  if (attrs & language::Core::ObjCPropertyAttribute::kind_weak) {
     prop->getAttrs().add(new (ctx)
                              ReferenceOwnershipAttr(ReferenceOwnership::Weak));
     prop->setInterfaceType(WeakStorageType::get(
         prop->getInterfaceType(), ctx));
     return;
   }
-  if ((attrs & clang::ObjCPropertyAttribute::kind_assign) ||
-      (attrs & clang::ObjCPropertyAttribute::kind_unsafe_unretained)) {
+  if ((attrs & language::Core::ObjCPropertyAttribute::kind_assign) ||
+      (attrs & language::Core::ObjCPropertyAttribute::kind_unsafe_unretained)) {
     prop->getAttrs().add(
         new (ctx) ReferenceOwnershipAttr(ReferenceOwnership::Unmanaged));
     prop->setInterfaceType(UnmanagedStorageType::get(
@@ -846,9 +846,9 @@ static bool isPrintLikeMethod(DeclName name, const DeclContext *dc) {
 }
 
 using MirroredMethodEntry =
-  std::tuple<const clang::ObjCMethodDecl*, ProtocolDecl*, bool /*isAsync*/>;
+  std::tuple<const language::Core::ObjCMethodDecl*, ProtocolDecl*, bool /*isAsync*/>;
 
-static bool areRecordFieldsComplete(const clang::CXXRecordDecl *decl) {
+static bool areRecordFieldsComplete(const language::Core::CXXRecordDecl *decl) {
   for (const auto *f : decl->fields()) {
     auto *fieldRecord = f->getType()->getAsCXXRecordDecl();
     if (fieldRecord) {
@@ -888,7 +888,7 @@ namespace {
   static std::pair<VarDecl *, bool>
   identifyNearestOverriddenDecl(ClangImporter::Implementation &Impl,
                                 DeclContext *dc,
-                                const clang::ObjCPropertyDecl *decl,
+                                const language::Core::ObjCPropertyDecl *decl,
                                 Identifier name,
                                 ClassDecl *subject) {
     bool foundMethod = false;
@@ -944,7 +944,7 @@ namespace {
   // or may not be identifiable.
   VarDecl *
   identifyPropertyRedeclarationPoint(ClangImporter::Implementation &Impl,
-                                     const clang::ObjCPropertyDecl *decl,
+                                     const language::Core::ObjCPropertyDecl *decl,
                                      ClassDecl *subject, Identifier name) {
     toolchain::SetVector<Decl *> lookup;
     // First, pull in all available members of the base class so we can catch
@@ -982,7 +982,7 @@ namespace {
   /// Convert Clang declarations into the corresponding Codira
   /// declarations.
   class CodiraDeclConverter
-    : public clang::ConstDeclVisitor<CodiraDeclConverter, Decl *>
+    : public language::Core::ConstDeclVisitor<CodiraDeclConverter, Decl *>
   {
     ClangImporter::Implementation &Impl;
     bool forwardDeclaration = false;
@@ -1019,9 +1019,9 @@ namespace {
     ///
     /// Note: Use this rather than calling Impl.importFullName directly!
     std::pair<ImportedName, std::optional<ImportedName>>
-    importFullName(const clang::NamedDecl *D) {
+    importFullName(const language::Core::NamedDecl *D) {
       ImportNameVersion canonicalVersion = getActiveCodiraVersion();
-      if (isa<clang::TypeDecl>(D) || isa<clang::ObjCContainerDecl>(D)) {
+      if (isa<language::Core::TypeDecl>(D) || isa<language::Core::ObjCContainerDecl>(D)) {
         canonicalVersion = ImportNameVersion::forTypes();
       }
 
@@ -1097,7 +1097,7 @@ namespace {
     /// anonymous type is imported as a nested type of the outer type, this
     /// generated name will most likely be unique.
     std::pair<ImportedName, std::optional<ImportedName>>
-    getClangDeclName(const clang::TagDecl *decl) {
+    getClangDeclName(const language::Core::TagDecl *decl) {
       // If we have a name for this declaration, use it.
       auto result = importFullName(decl);
       if (result.first)
@@ -1128,19 +1128,19 @@ namespace {
       return forwardDeclaration;
     }
 
-    Decl *VisitDecl(const clang::Decl *decl) {
+    Decl *VisitDecl(const language::Core::Decl *decl) {
       return nullptr;
     }
 
-    Decl *VisitTranslationUnitDecl(const clang::TranslationUnitDecl *decl) {
+    Decl *VisitTranslationUnitDecl(const language::Core::TranslationUnitDecl *decl) {
       // Note: translation units are handled specially by importDeclContext.
       return nullptr;
     }
 
-    Decl *VisitNamespaceDecl(const clang::NamespaceDecl *decl) {
+    Decl *VisitNamespaceDecl(const language::Core::NamespaceDecl *decl) {
       DeclContext *dc = nullptr;
       // Do not import namespace declarations marked as 'language_private'.
-      if (decl->hasAttr<clang::CodiraPrivateAttr>())
+      if (decl->hasAttr<language::Core::CodiraPrivateAttr>())
         return nullptr;
       // Workaround for os module declaring `namespace os` on Darwin, causing
       // name lookup issues. That namespace only declares utility functions that
@@ -1156,7 +1156,7 @@ namespace {
         dc = Impl.ImportedHeaderUnit;
       else {
         // This is a nested namespace, so just lookup it's parent normally.
-        auto parentNS = cast<clang::NamespaceDecl>(decl->getParent());
+        auto parentNS = cast<language::Core::NamespaceDecl>(decl->getParent());
         auto parent =
             Impl.importDecl(parentNS, getVersion(), /*UseCanonicalDecl*/ false);
         // The parent namespace might not be imported if it's `language_private`.
@@ -1191,19 +1191,19 @@ namespace {
         // Because a namespaces's decl context is the bridging header, make sure
         // we add them to the bridging header lookup table.
         addEntryToLookupTable(*Impl.BridgingHeaderLookupTable,
-                              const_cast<clang::NamespaceDecl *>(redecl),
+                              const_cast<language::Core::NamespaceDecl *>(redecl),
                               Impl.getNameImporter());
       }
 
       return enumDecl;
     }
 
-    Decl *VisitUsingDirectiveDecl(const clang::UsingDirectiveDecl *decl) {
+    Decl *VisitUsingDirectiveDecl(const language::Core::UsingDirectiveDecl *decl) {
       // Never imported.
       return nullptr;
     }
 
-    Decl *VisitNamespaceAliasDecl(const clang::NamespaceAliasDecl *decl) {
+    Decl *VisitNamespaceAliasDecl(const language::Core::NamespaceAliasDecl *decl) {
       ImportedName importedName;
       std::optional<ImportedName> correctCodiraName;
       std::tie(importedName, correctCodiraName) = importFullName(decl);
@@ -1243,12 +1243,12 @@ namespace {
       return result;
     }
 
-    Decl *VisitLabelDecl(const clang::LabelDecl *decl) {
+    Decl *VisitLabelDecl(const language::Core::LabelDecl *decl) {
       // Labels are function-local, and therefore never imported.
       return nullptr;
     }
 
-    ClassDecl *importCFClassType(const clang::TypedefNameDecl *decl,
+    ClassDecl *importCFClassType(const language::Core::TypedefNameDecl *decl,
                                  Identifier className, CFPointeeInfo info,
                                  EffectiveClangContext effectiveContext);
 
@@ -1327,17 +1327,17 @@ namespace {
 
     /// Create a typealias for the name of a Clang type declaration in an
     /// alternate version of Codira.
-    Decl *importCompatibilityTypeAlias(const clang::NamedDecl *decl,
+    Decl *importCompatibilityTypeAlias(const language::Core::NamedDecl *decl,
                                        ImportedName compatibilityName,
                                        ImportedName correctCodiraName);
 
     /// Create a language_newtype struct corresponding to a typedef. Returns
     /// nullptr if unable.
-    Decl *importCodiraNewtype(const clang::TypedefNameDecl *decl,
-                             clang::CodiraNewTypeAttr *newtypeAttr,
+    Decl *importCodiraNewtype(const language::Core::TypedefNameDecl *decl,
+                             language::Core::CodiraNewTypeAttr *newtypeAttr,
                              DeclContext *dc, Identifier name);
 
-    Decl *VisitTypedefNameDecl(const clang::TypedefNameDecl *Decl) {
+    Decl *VisitTypedefNameDecl(const language::Core::TypedefNameDecl *Decl) {
       ImportedName importedName;
       std::optional<ImportedName> correctCodiraName;
       std::tie(importedName, correctCodiraName) = importFullName(Decl);
@@ -1476,7 +1476,7 @@ namespace {
         // Note that the code below checks to see if the typedef allows
         // bridging, i.e. if the imported typealias should name a bridged type
         // or the original C type.
-        clang::QualType ClangType = Decl->getUnderlyingType();
+        language::Core::QualType ClangType = Decl->getUnderlyingType();
         CodiraType = Impl.importTypeIgnoreIUO(
             ClangType, ImportTypeKind::Typedef,
             ImportDiagnosticAdder(Impl, Decl, Decl->getLocation()),
@@ -1510,22 +1510,22 @@ namespace {
 
     Decl *
     VisitUnresolvedUsingTypenameDecl(const
-                                     clang::UnresolvedUsingTypenameDecl *decl) {
+                                     language::Core::UnresolvedUsingTypenameDecl *decl) {
       // Note: only occurs in templates.
       return nullptr;
     }
 
     /// Import an NS_ENUM constant as a case of a Codira enum.
-    Decl *importEnumCase(const clang::EnumConstantDecl *decl,
-                         const clang::EnumDecl *clangEnum,
+    Decl *importEnumCase(const language::Core::EnumConstantDecl *decl,
+                         const language::Core::EnumDecl *clangEnum,
                          EnumDecl *theEnum,
                          Decl *language3Decl = nullptr);
 
     /// Import an NS_OPTIONS constant as a static property of a Codira struct.
     ///
     /// This is also used to import enum case aliases.
-    Decl *importOptionConstant(const clang::EnumConstantDecl *decl,
-                               const clang::EnumDecl *clangEnum,
+    Decl *importOptionConstant(const language::Core::EnumConstantDecl *decl,
+                               const language::Core::EnumDecl *clangEnum,
                                NominalTypeDecl *theStruct);
 
     /// Import \p alias as an alias for the imported constant \p original.
@@ -1534,17 +1534,17 @@ namespace {
     /// statements. Changing the body here may require changing
     /// TypeCheckPattern.cpp as well.
     Decl *importEnumCaseAlias(Identifier name,
-                              const clang::EnumConstantDecl *alias,
+                              const language::Core::EnumConstantDecl *alias,
                               ValueDecl *original,
-                              const clang::EnumDecl *clangEnum,
+                              const language::Core::EnumDecl *clangEnum,
                               NominalTypeDecl *importedEnum,
                               DeclContext *importIntoDC = nullptr);
 
     NominalTypeDecl *importAsOptionSetType(DeclContext *dc,
                                            Identifier name,
-                                           const clang::EnumDecl *decl);
+                                           const language::Core::EnumDecl *decl);
 
-    Decl *VisitEnumDecl(const clang::EnumDecl *decl) {
+    Decl *VisitEnumDecl(const language::Core::EnumDecl *decl) {
       decl = decl->getDefinition();
       if (!decl) {
         forwardDeclaration = true;
@@ -1647,8 +1647,8 @@ namespace {
             (errorCodeProto =
                C.getProtocol(KnownProtocolKind::ErrorCodeProtocol))) {
           assert(
-              decl->getAccess() != clang::AS_private &&
-              decl->getAccess() != clang::AS_protected &&
+              decl->getAccess() != language::Core::AS_private &&
+              decl->getAccess() != language::Core::AS_protected &&
               "NSError enums shouldn't be defined as non-public C++ members");
           // Create the wrapper struct.
           errorWrapper =
@@ -1789,8 +1789,8 @@ namespace {
         // nested enum has been constructed.
         if (errorWrapper) {
           assert(
-              decl->getAccess() != clang::AS_private &&
-              decl->getAccess() != clang::AS_protected &&
+              decl->getAccess() != language::Core::AS_private &&
+              decl->getAccess() != language::Core::AS_protected &&
               "NSError enums shouldn't be defined as non-public C++ members");
           // Add the ErrorType alias:
           //   public typealias ErrorType
@@ -1827,7 +1827,7 @@ namespace {
       }
       }
 
-      const clang::EnumDecl *canonicalClangDecl = decl->getCanonicalDecl();
+      const language::Core::EnumDecl *canonicalClangDecl = decl->getCanonicalDecl();
       Impl.ImportedDecls[{canonicalClangDecl, getVersion()}] = result;
 
       // Import each of the enumerators.
@@ -1863,7 +1863,7 @@ namespace {
       /// be present here. (Potential raw value conflicts doesn't really matter
       /// for them because they will be imported as unavailable anyway.)
       toolchain::SmallDenseMap<toolchain::APSInt,
-                          PointerUnion<const clang::EnumConstantDecl *,
+                          PointerUnion<const language::Core::EnumConstantDecl *,
                                        EnumElementDecl *>, 8> canonicalEnumConstants;
 
       // Fill in `canonicalEnumConstants` if it will be used.
@@ -1883,7 +1883,7 @@ namespace {
           return importContext.getAsDeclContext() == canonicalClangDecl;
         case EffectiveClangContext::TypedefContext: {
           auto *typedefName = importContext.getTypedefName();
-          clang::QualType underlyingTy = typedefName->getUnderlyingType();
+          language::Core::QualType underlyingTy = typedefName->getUnderlyingType();
           return underlyingTy->getAsTagDecl() == canonicalClangDecl;
         }
         case EffectiveClangContext::UnresolvedContext:
@@ -1943,9 +1943,9 @@ namespace {
           } else {
             // Will initially be nullptr if `canonicalCaseIter` points to a
             // memoized result.
-            const clang::EnumConstantDecl *canonConstant =
+            const language::Core::EnumConstantDecl *canonConstant =
                 canonicalCaseIter->
-                  second.dyn_cast<const clang::EnumConstantDecl *>();
+                  second.dyn_cast<const language::Core::EnumConstantDecl *>();
 
             // First, either import the canonical constant for this case,
             // or extract the memoized result of a previous import (and use it
@@ -1962,7 +1962,7 @@ namespace {
               enumeratorDecl =
                   canonicalCaseIter->second.get<EnumElementDecl *>();
               canonConstant =
-                  cast<clang::EnumConstantDecl>(enumeratorDecl->getClangDecl());
+                  cast<language::Core::EnumConstantDecl>(enumeratorDecl->getClangDecl());
             }
 
             // If `constant` wasn't the `canonConstant`, import it as an alias.
@@ -2049,11 +2049,11 @@ namespace {
       return result;
     }
 
-    bool recordHasReferenceSemantics(const clang::RecordDecl *decl) {
+    bool recordHasReferenceSemantics(const language::Core::RecordDecl *decl) {
       return importer::recordHasReferenceSemantics(decl, &Impl);
     }
 
-    bool recordHasMoveOnlySemantics(const clang::RecordDecl *decl) {
+    bool recordHasMoveOnlySemantics(const language::Core::RecordDecl *decl) {
       auto semanticsKind = evaluateOrDefault(
           Impl.CodiraContext.evaluator,
           CxxRecordSemantics({decl, Impl.CodiraContext, &Impl}), {});
@@ -2077,7 +2077,7 @@ namespace {
       return;
     }
 
-    Decl *VisitRecordDecl(const clang::RecordDecl *decl) {
+    Decl *VisitRecordDecl(const language::Core::RecordDecl *decl) {
       // Track whether this record contains fields we can't reference in Codira
       // as stored properties.
       bool hasUnreferenceableStorage = false;
@@ -2139,13 +2139,13 @@ namespace {
       }
 
       auto isNonTrivialDueToAddressDiversifiedPtrAuth =
-          [](const clang::RecordDecl *decl) {
+          [](const language::Core::RecordDecl *decl) {
             for (auto *field : decl->fields()) {
               if (!field->getType().isNonTrivialToPrimitiveCopy()) {
                 continue;
               }
               if (field->getType().isNonTrivialToPrimitiveCopy() !=
-                  clang::QualType::PCK_PtrAuth) {
+                  language::Core::QualType::PCK_PtrAuth) {
                 return false;
               }
             }
@@ -2241,7 +2241,7 @@ namespace {
       // FIXME: Figure out what to do with superclasses in C++. One possible
       // solution would be to turn them into members and add conversion
       // functions.
-      if (auto cxxRecordDecl = dyn_cast<clang::CXXRecordDecl>(decl)) {
+      if (auto cxxRecordDecl = dyn_cast<language::Core::CXXRecordDecl>(decl)) {
         for (auto base : cxxRecordDecl->bases()) {
           if (auto *baseRecordDecl = base.getType()->getAsCXXRecordDecl()) {
             Impl.importDecl(baseRecordDecl, getVersion());
@@ -2252,17 +2252,17 @@ namespace {
       // We have to do this after populating ImportedDecls to avoid importing
       // the same decl multiple times. Also after we imported the bases.
       if (const auto *ctsd =
-              dyn_cast<clang::ClassTemplateSpecializationDecl>(decl)) {
+              dyn_cast<language::Core::ClassTemplateSpecializationDecl>(decl)) {
         for (auto arg : ctsd->getTemplateArgs().asArray()) {
-          toolchain::SmallVector<clang::TemplateArgument, 1> nonPackArgs;
-          if (arg.getKind() == clang::TemplateArgument::Pack) {
+          toolchain::SmallVector<language::Core::TemplateArgument, 1> nonPackArgs;
+          if (arg.getKind() == language::Core::TemplateArgument::Pack) {
             auto pack = arg.getPackAsArray();
             nonPackArgs.assign(pack.begin(), pack.end());
           } else {
             nonPackArgs.push_back(arg);
           }
           for (auto realArg : nonPackArgs) {
-            if (realArg.getKind() != clang::TemplateArgument::Type)
+            if (realArg.getKind() != language::Core::TemplateArgument::Type)
               continue;
             auto CodiraType = Impl.importTypeIgnoreIUO(
                 realArg.getAsType(), ImportTypeKind::Abstract,
@@ -2298,19 +2298,19 @@ namespace {
       // FIXME: Import anonymous union fields and support field access when
       // it is nested in a struct.
       for (auto m : decl->decls()) {
-        if (isa<clang::AccessSpecDecl>(m)) {
+        if (isa<language::Core::AccessSpecDecl>(m)) {
           // The presence of AccessSpecDecls themselves does not influence
           // whether we can generate a member-wise initializer.
           continue;
         }
 
-        if (auto friendDecl = dyn_cast<clang::FriendDecl>(m)) {
+        if (auto friendDecl = dyn_cast<language::Core::FriendDecl>(m)) {
           if (friendDecl->getFriendDecl()) {
             m = friendDecl->getFriendDecl();
           }
         }
 
-        auto nd = dyn_cast<clang::NamedDecl>(m);
+        auto nd = dyn_cast<language::Core::NamedDecl>(m);
         if (!nd) {
           // We couldn't import the member, so we can't reference it in Codira.
           hasUnreferenceableStorage = true;
@@ -2318,11 +2318,11 @@ namespace {
           continue;
         }
 
-        if (auto field = dyn_cast<clang::FieldDecl>(nd)) {
+        if (auto field = dyn_cast<language::Core::FieldDecl>(nd)) {
           // Non-nullable pointers can't be zero-initialized.
           if (auto nullability =
                   field->getType()->getNullability()) {
-            if (*nullability == clang::NullabilityKind::NonNull)
+            if (*nullability == language::Core::NullabilityKind::NonNull)
               hasZeroInitializableStorage = false;
           }
           // TODO: If we had the notion of a closed enum with no private
@@ -2341,9 +2341,9 @@ namespace {
         Decl *member = Impl.importDecl(nd, getActiveCodiraVersion());
 
         if (!member) {
-          if (!isa<clang::TypeDecl>(nd) && !isa<clang::FunctionDecl>(nd) &&
-              !isa<clang::TypeAliasTemplateDecl>(nd) &&
-              !isa<clang::FunctionTemplateDecl>(nd)) {
+          if (!isa<language::Core::TypeDecl>(nd) && !isa<language::Core::FunctionDecl>(nd) &&
+              !isa<language::Core::TypeAliasTemplateDecl>(nd) &&
+              !isa<language::Core::FunctionTemplateDecl>(nd)) {
             // We don't know what this member is.
             // Assume it may be important in C.
             hasUnreferenceableStorage = true;
@@ -2358,8 +2358,8 @@ namespace {
         if (isa<TypeDecl>(member)) {
           // TODO: we have a problem lazily looking up unnamed members, so we
           // add them here.
-          if (isa<clang::RecordDecl>(nd) &&
-              !cast<clang::RecordDecl>(nd)->hasNameForLinkage())
+          if (isa<language::Core::RecordDecl>(nd) &&
+              !cast<language::Core::RecordDecl>(nd)->hasNameForLinkage())
             result->addMemberToLookupTable(member);
           continue;
         }
@@ -2374,14 +2374,14 @@ namespace {
           continue;
         }
 
-        if (isa<VarDecl>(member) && isa<clang::CXXMethodDecl>(nd)) {
+        if (isa<VarDecl>(member) && isa<language::Core::CXXMethodDecl>(nd)) {
           result->addMember(member);
           continue;
         }
 
         auto *vd = cast<VarDecl>(member);
         if (!isNonEscapable) {
-          if (const auto *fd = dyn_cast<clang::FieldDecl>(nd))
+          if (const auto *fd = dyn_cast<language::Core::FieldDecl>(nd))
             if (evaluateOrDefault(
                     Impl.CodiraContext.evaluator,
                     ClangTypeEscapability({fd->getType().getTypePtr(), &Impl}),
@@ -2400,11 +2400,11 @@ namespace {
 
       bool hasReferenceableFields = !members.empty();
       for (auto member : members) {
-        auto nd = cast<clang::NamedDecl>(member->getClangDecl());
+        auto nd = cast<language::Core::NamedDecl>(member->getClangDecl());
         // Bitfields are imported as computed properties with Clang-generated
         // accessors.
         bool isBitField = false;
-        if (auto field = dyn_cast<clang::FieldDecl>(nd)) {
+        if (auto field = dyn_cast<language::Core::FieldDecl>(nd)) {
           if (field->isBitField()) {
             // We can't represent this struct completely in SIL anymore,
             // but we're still able to define a memberwise initializer.
@@ -2412,12 +2412,12 @@ namespace {
             isBitField = true;
 
             synthesizer.makeBitFieldAccessors(
-                const_cast<clang::RecordDecl *>(decl), result,
-                const_cast<clang::FieldDecl *>(field), member);
+                const_cast<language::Core::RecordDecl *>(decl), result,
+                const_cast<language::Core::FieldDecl *>(field), member);
           }
         }
 
-        if (auto ind = dyn_cast<clang::IndirectFieldDecl>(nd)) {
+        if (auto ind = dyn_cast<language::Core::IndirectFieldDecl>(nd)) {
           // Indirect fields are created as computed property accessible the
           // fields on the anonymous field from which they are injected.
           synthesizer.makeIndirectFieldAccessors(ind, members, result, member);
@@ -2450,8 +2450,8 @@ namespace {
           result->addMemberToLookupTable(member);
       }
 
-      const clang::CXXRecordDecl *cxxRecordDecl =
-          dyn_cast<clang::CXXRecordDecl>(decl);
+      const language::Core::CXXRecordDecl *cxxRecordDecl =
+          dyn_cast<language::Core::CXXRecordDecl>(decl);
       bool hasBaseClasses = cxxRecordDecl && !cxxRecordDecl->bases().empty();
       if (hasBaseClasses) {
         hasUnreferenceableStorage = true;
@@ -2540,13 +2540,13 @@ namespace {
               "Expected result to be a ClassDecl as it cannot be a StructDecl");
           // When we add full support for C foreign reference types then we
           // should synthesize static factories for them as well
-          if (auto *cxxRecordDecl = dyn_cast<clang::CXXRecordDecl>(decl)) {
+          if (auto *cxxRecordDecl = dyn_cast<language::Core::CXXRecordDecl>(decl)) {
             bool hasUserProvidedStaticFactory = toolchain::any_of(
                 cxxRecordDecl->methods(),
-                [](const clang::CXXMethodDecl *method) {
+                [](const language::Core::CXXMethodDecl *method) {
                   return method->isStatic() &&
                          toolchain::any_of(
-                             method->specific_attrs<clang::CodiraNameAttr>(),
+                             method->specific_attrs<language::Core::CodiraNameAttr>(),
                              [](const auto *attr) {
                                return attr->getName().starts_with("init(");
                              });
@@ -2583,7 +2583,7 @@ namespace {
           // Check if the given type is non-trivial to ensure we can
           // still perform the right copy/move/destroy even if it's
           // not an address-only type.
-          auto isNonTrivial = [](const clang::CXXRecordDecl *decl) -> bool {
+          auto isNonTrivial = [](const language::Core::CXXRecordDecl *decl) -> bool {
             return decl->hasNonTrivialCopyConstructor() ||
                    decl->hasNonTrivialMoveConstructor() ||
                    !decl->hasTrivialDestructor();
@@ -2618,7 +2618,7 @@ namespace {
           // add a computed property, because it will conflict with an existing
           // name and make both APIs unusable.
           CXXMethodBridging cxxMethodBridging(
-              cast<clang::CXXMethodDecl>(getter->getClangDecl()));
+              cast<language::Core::CXXMethodDecl>(getter->getClangDecl()));
           if (allMemberNames.contains(
                   cxxMethodBridging.importNameAsCamelCaseName()))
             continue;
@@ -2674,7 +2674,7 @@ namespace {
       return result;
     }
 
-    void validatePrivateFileIDAttributes(const clang::CXXRecordDecl *decl) {
+    void validatePrivateFileIDAttributes(const language::Core::CXXRecordDecl *decl) {
       auto anns = importer::getPrivateFileIDAttrs(decl);
 
       if (anns.size() > 1) {
@@ -2712,7 +2712,7 @@ namespace {
       }
     }
 
-    void validateForeignReferenceType(const clang::CXXRecordDecl *decl,
+    void validateForeignReferenceType(const language::Core::CXXRecordDecl *decl,
                                       ClassDecl *classDecl) {
 
       enum class RetainReleaseOperationKind {
@@ -2754,9 +2754,9 @@ namespace {
         // The parameter of the retain/release function should be pointer to the
         // same FRT or a base FRT.
         if (paramDecl != classDecl) {
-          if (const clang::Decl *paramClangDecl = paramDecl->getClangDecl()) {
+          if (const language::Core::Decl *paramClangDecl = paramDecl->getClangDecl()) {
             if (const auto *paramTypeDecl =
-                    dyn_cast<clang::CXXRecordDecl>(paramClangDecl)) {
+                    dyn_cast<language::Core::CXXRecordDecl>(paramClangDecl)) {
               if (decl->isDerivedFrom(paramTypeDecl)) {
                 return RetainReleaseOperationKind::valid;
               }
@@ -2899,7 +2899,7 @@ namespace {
       }
     }
 
-    Decl *VisitCXXRecordDecl(const clang::CXXRecordDecl *decl) {
+    Decl *VisitCXXRecordDecl(const language::Core::CXXRecordDecl *decl) {
       // This can be called from lldb without C++ interop being enabled: There
       // may be C++ declarations in imported modules, but the interface for
       // those modules may be a pure C or Objective-C interface.
@@ -2953,12 +2953,12 @@ namespace {
       if (!decl->isDependentContext() && areRecordFieldsComplete(decl)) {
         if (decl->hasInheritedConstructor()) {
           for (auto member : decl->decls()) {
-            if (auto usingDecl = dyn_cast<clang::UsingDecl>(member)) {
+            if (auto usingDecl = dyn_cast<language::Core::UsingDecl>(member)) {
               for (auto usingShadowDecl : usingDecl->shadows()) {
                 if (auto ctorUsingShadowDecl =
-                        dyn_cast<clang::ConstructorUsingShadowDecl>(
+                        dyn_cast<language::Core::ConstructorUsingShadowDecl>(
                             usingShadowDecl)) {
-                  auto baseCtorDecl = dyn_cast<clang::CXXConstructorDecl>(
+                  auto baseCtorDecl = dyn_cast<language::Core::CXXConstructorDecl>(
                       ctorUsingShadowDecl->getTargetDecl());
                   if (!baseCtorDecl || baseCtorDecl->isDeleted())
                     continue;
@@ -2975,34 +2975,34 @@ namespace {
           }
         }
         if (decl->needsImplicitDefaultConstructor()) {
-          clang::CXXConstructorDecl *ctor =
+          language::Core::CXXConstructorDecl *ctor =
               clangSema.DeclareImplicitDefaultConstructor(
-                  const_cast<clang::CXXRecordDecl *>(decl));
+                  const_cast<language::Core::CXXRecordDecl *>(decl));
           if (!ctor->isDeleted())
-            clangSema.DefineImplicitDefaultConstructor(clang::SourceLocation(),
+            clangSema.DefineImplicitDefaultConstructor(language::Core::SourceLocation(),
                                                        ctor);
         }
-        clang::CXXConstructorDecl *copyCtor = nullptr;
-        clang::CXXConstructorDecl *moveCtor = nullptr;
-        clang::CXXConstructorDecl *defaultCtor = nullptr;
+        language::Core::CXXConstructorDecl *copyCtor = nullptr;
+        language::Core::CXXConstructorDecl *moveCtor = nullptr;
+        language::Core::CXXConstructorDecl *defaultCtor = nullptr;
         if (decl->needsImplicitCopyConstructor()) {
           copyCtor = clangSema.DeclareImplicitCopyConstructor(
-              const_cast<clang::CXXRecordDecl *>(decl));
+              const_cast<language::Core::CXXRecordDecl *>(decl));
         }
         if (decl->needsImplicitMoveConstructor()) {
           moveCtor = clangSema.DeclareImplicitMoveConstructor(
-              const_cast<clang::CXXRecordDecl *>(decl));
+              const_cast<language::Core::CXXRecordDecl *>(decl));
         }
         if (decl->needsImplicitDefaultConstructor()) {
           defaultCtor = clangSema.DeclareImplicitDefaultConstructor(
-              const_cast<clang::CXXRecordDecl *>(decl));
+              const_cast<language::Core::CXXRecordDecl *>(decl));
         }
         // We may have a defaulted copy/move/default constructor that needs to
         // be defined. Try to find it.
         for (auto methods : decl->methods()) {
-          if (auto declCtor = dyn_cast<clang::CXXConstructorDecl>(methods)) {
+          if (auto declCtor = dyn_cast<language::Core::CXXConstructorDecl>(methods)) {
             if (declCtor->isDefaulted() &&
-                declCtor->getAccess() == clang::AS_public &&
+                declCtor->getAccess() == language::Core::AS_public &&
                 !declCtor->isDeleted() &&
                 // Note: we use "doesThisDeclarationHaveABody" here because
                 // that's what "DefineImplicitCopyConstructor" checks.
@@ -3021,22 +3021,22 @@ namespace {
           }
         }
         if (copyCtor) {
-          clangSema.DefineImplicitCopyConstructor(clang::SourceLocation(),
+          clangSema.DefineImplicitCopyConstructor(language::Core::SourceLocation(),
                                                   copyCtor);
         }
         if (moveCtor) {
-          clangSema.DefineImplicitMoveConstructor(clang::SourceLocation(),
+          clangSema.DefineImplicitMoveConstructor(language::Core::SourceLocation(),
                                                   moveCtor);
         }
         if (defaultCtor) {
-          clangSema.DefineImplicitDefaultConstructor(clang::SourceLocation(),
+          clangSema.DefineImplicitDefaultConstructor(language::Core::SourceLocation(),
                                                      defaultCtor);
         }
 
         if (decl->needsImplicitDestructor()) {
           auto dtor = clangSema.DeclareImplicitDestructor(
-              const_cast<clang::CXXRecordDecl *>(decl));
-          clangSema.DefineImplicitDestructor(clang::SourceLocation(), dtor);
+              const_cast<language::Core::CXXRecordDecl *>(decl));
+          clangSema.DefineImplicitDestructor(language::Core::SourceLocation(), dtor);
         }
       }
 
@@ -3083,7 +3083,7 @@ namespace {
       if (!result)
         return nullptr;
 
-      if (decl->hasAttr<clang::TrivialABIAttr>()) {
+      if (decl->hasAttr<language::Core::TrivialABIAttr>()) {
         // We cannot yet represent trivial_abi C++ records in Codira.
         // Clang tells us such type can be passed in registers, so
         // we avoid using AddressOnly type-layout for such type, which means
@@ -3143,10 +3143,10 @@ namespace {
 
     void
     addExplicitProtocolConformances(NominalTypeDecl *decl,
-                                    const clang::CXXRecordDecl *clangDecl) {
+                                    const language::Core::CXXRecordDecl *clangDecl) {
       // Propagate conforms_to attribute from public base classes.
       for (auto base : clangDecl->bases()) {
-        if (base.getAccessSpecifier() != clang::AccessSpecifier::AS_public)
+        if (base.getAccessSpecifier() != language::Core::AccessSpecifier::AS_public)
           continue;
         if (auto *baseClangDecl = base.getType()->getAsCXXRecordDecl())
           addExplicitProtocolConformances(decl, baseClangDecl);
@@ -3157,7 +3157,7 @@ namespace {
 
       ProtocolSet alreadyAdded;
       toolchain::for_each(clangDecl->getAttrs(), [&](auto *attr) {
-        if (auto languageAttr = dyn_cast<clang::CodiraAttrAttr>(attr)) {
+        if (auto languageAttr = dyn_cast<language::Core::CodiraAttrAttr>(attr)) {
           if (languageAttr->getAttribute().starts_with("conforms_to:"))
             addExplicitProtocolConformance(decl, languageAttr, alreadyAdded);
         }
@@ -3165,7 +3165,7 @@ namespace {
     }
 
     void addExplicitProtocolConformance(NominalTypeDecl *decl,
-                                        clang::CodiraAttrAttr *conformsToAttr,
+                                        language::Core::CodiraAttrAttr *conformsToAttr,
                                         ProtocolSet &alreadyAdded) {
       auto conformsToValue = conformsToAttr->getAttribute()
                                  .drop_front(StringRef("conforms_to:").size())
@@ -3224,11 +3224,11 @@ namespace {
     }
 
     bool isSpecializationDepthGreaterThan(
-        const clang::ClassTemplateSpecializationDecl *decl, unsigned maxDepth) {
+        const language::Core::ClassTemplateSpecializationDecl *decl, unsigned maxDepth) {
       for (auto arg : decl->getTemplateArgs().asArray()) {
-        if (arg.getKind() == clang::TemplateArgument::Type) {
+        if (arg.getKind() == language::Core::TemplateArgument::Type) {
           if (auto classSpec =
-                  dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(
+                  dyn_cast_or_null<language::Core::ClassTemplateSpecializationDecl>(
                       arg.getAsType()->getAsCXXRecordDecl())) {
             if (maxDepth == 0 ||
                 isSpecializationDepthGreaterThan(classSpec, maxDepth - 1))
@@ -3240,7 +3240,7 @@ namespace {
     }
 
     Decl *VisitClassTemplateSpecializationDecl(
-                 const clang::ClassTemplateSpecializationDecl *decl) {
+                 const language::Core::ClassTemplateSpecializationDecl *decl) {
       bool isPair = decl->getSpecializedTemplate()->isInStdNamespace() &&
                     decl->getSpecializedTemplate()->getName() == "pair";
 
@@ -3264,12 +3264,12 @@ namespace {
 
       // `decl->getDefinition()` can return nullptr before the call to sema and
       // return its definition afterwards.
-      clang::Sema &clangSema = Impl.getClangSema();
+      language::Core::Sema &clangSema = Impl.getClangSema();
       if (!decl->getDefinition()) {
         bool notInstantiated = clangSema.InstantiateClassTemplateSpecialization(
             decl->getLocation(),
-            const_cast<clang::ClassTemplateSpecializationDecl *>(decl),
-            clang::TemplateSpecializationKind::TSK_ImplicitInstantiation,
+            const_cast<language::Core::ClassTemplateSpecializationDecl *>(decl),
+            language::Core::TemplateSpecializationKind::TSK_ImplicitInstantiation,
             /*Complain*/ false);
         // If the template can't be instantiated, bail.
         if (notInstantiated)
@@ -3280,7 +3280,7 @@ namespace {
         // We don't import incomplete types.
         return nullptr;
       }
-      auto def = dyn_cast<clang::ClassTemplateSpecializationDecl>(
+      auto def = dyn_cast<language::Core::ClassTemplateSpecializationDecl>(
           decl->getDefinition());
       assert(def && "Class template instantiation didn't have definition");
 
@@ -3298,11 +3298,11 @@ namespace {
       // This cannot be done when building the lookup table,
       // because templates are instantiated lazily.
       for (auto member : def->decls()) {
-        if (auto friendDecl = dyn_cast<clang::FriendDecl>(member))
+        if (auto friendDecl = dyn_cast<language::Core::FriendDecl>(member))
           if (auto underlyingDecl = friendDecl->getFriendDecl())
             member = underlyingDecl;
 
-        if (auto method = dyn_cast<clang::FunctionDecl>(member)) {
+        if (auto method = dyn_cast<language::Core::FunctionDecl>(member)) {
           if (method->isOverloadedOperator()) {
             addEntryToLookupTable(*Impl.findLookupTable(decl), method,
                                   Impl.getNameImporter());
@@ -3314,18 +3314,18 @@ namespace {
     }
 
     Decl *VisitClassTemplatePartialSpecializationDecl(
-        const clang::ClassTemplatePartialSpecializationDecl *decl) {
+        const language::Core::ClassTemplatePartialSpecializationDecl *decl) {
       // Note: partial template specializations are not imported.
       return nullptr;
     }
 
-    Decl *VisitTemplateTypeParmDecl(const clang::TemplateTypeParmDecl *decl) {
+    Decl *VisitTemplateTypeParmDecl(const language::Core::TemplateTypeParmDecl *decl) {
       // Note: templates are not imported.
       return nullptr;
     }
 
-    Decl *VisitEnumConstantDecl(const clang::EnumConstantDecl *decl) {
-      auto clangEnum = cast<clang::EnumDecl>(decl->getDeclContext());
+    Decl *VisitEnumConstantDecl(const language::Core::EnumConstantDecl *decl) {
+      auto clangEnum = cast<language::Core::EnumDecl>(decl->getDeclContext());
 
       ImportedName importedName;
       std::optional<ImportedName> correctCodiraName;
@@ -3361,7 +3361,7 @@ namespace {
         // Create the global constant.
         bool isStatic = dc->isTypeContext();
         auto result = synthesizer.createConstant(
-            name, dc, type, clang::APValue(decl->getInitVal()),
+            name, dc, type, language::Core::APValue(decl->getInitVal()),
             enumKind == EnumKind::Unknown ? ConstantConvertKind::Construction
                                           : ConstantConvertKind::None,
             isStatic, decl,
@@ -3390,12 +3390,12 @@ namespace {
 
 
     Decl *
-    VisitUnresolvedUsingValueDecl(const clang::UnresolvedUsingValueDecl *decl) {
+    VisitUnresolvedUsingValueDecl(const language::Core::UnresolvedUsingValueDecl *decl) {
       // Note: templates are not imported.
       return nullptr;
     }
 
-    Decl *VisitIndirectFieldDecl(const clang::IndirectFieldDecl *decl) {
+    Decl *VisitIndirectFieldDecl(const language::Core::IndirectFieldDecl *decl) {
       ImportedName importedName;
       std::optional<ImportedName> correctCodiraName;
       std::tie(importedName, correctCodiraName) = importFullName(decl);
@@ -3411,7 +3411,7 @@ namespace {
       // If we encounter an IndirectFieldDecl, ensure that its parent is
       // importable before attempting to import it because they are dependent
       // when it comes to getter/setter generation.
-      if (auto parent = dyn_cast<clang::CXXRecordDecl>(
+      if (auto parent = dyn_cast<language::Core::CXXRecordDecl>(
               decl->getAnonField()->getParent())) {
         auto semanticsKind = evaluateOrDefault(
             Impl.CodiraContext.evaluator,
@@ -3455,7 +3455,7 @@ namespace {
     }
 
     ParameterList *
-    getNonSelfParamList(DeclContext *dc, const clang::FunctionDecl *decl,
+    getNonSelfParamList(DeclContext *dc, const language::Core::FunctionDecl *decl,
                         std::optional<unsigned> selfIdx,
                         ArrayRef<Identifier> argNames,
                         bool allowNSUIntegerAsInt, bool isAccessor,
@@ -3469,7 +3469,7 @@ namespace {
         assert(numParamsAdjusted == argNames.size() || isAccessor);
       }
 
-      SmallVector<const clang::ParmVarDecl *, 4> nonSelfParams;
+      SmallVector<const language::Core::ParmVarDecl *, 4> nonSelfParams;
       for (unsigned i = 0; i < decl->getNumParams(); ++i) {
         if (selfIdx && i == *selfIdx)
           continue;
@@ -3481,19 +3481,19 @@ namespace {
     }
 
     Decl *
-    importGlobalAsInitializer(const clang::FunctionDecl *decl, DeclName name,
+    importGlobalAsInitializer(const language::Core::FunctionDecl *decl, DeclName name,
                               DeclContext *dc, CtorInitializerKind initKind,
                               std::optional<ImportedName> correctCodiraName);
 
     /// Create an implicit property given the imported name of one of
     /// the accessors.
     VarDecl *getImplicitProperty(ImportedName importedName,
-                                 const clang::FunctionDecl *accessor);
+                                 const language::Core::FunctionDecl *accessor);
 
-    bool foreignReferenceTypePassedByRef(const clang::FunctionDecl *decl) {
+    bool foreignReferenceTypePassedByRef(const language::Core::FunctionDecl *decl) {
       bool anyParamPassesByVal =
           toolchain::any_of(decl->parameters(), [this, decl](auto *param) {
-            if (auto recordType = dyn_cast<clang::RecordType>(
+            if (auto recordType = dyn_cast<language::Core::RecordType>(
                     param->getType().getCanonicalType())) {
               if (recordHasReferenceSemantics(recordType->getDecl())) {
                 Impl.addImportDiagnostic(
@@ -3512,7 +3512,7 @@ namespace {
       if (anyParamPassesByVal)
         return true;
 
-      if (auto recordType = dyn_cast<clang::RecordType>(
+      if (auto recordType = dyn_cast<language::Core::RecordType>(
               decl->getReturnType().getCanonicalType())) {
         if (recordHasReferenceSemantics(recordType->getDecl())) {
           Impl.addImportDiagnostic(
@@ -3529,7 +3529,7 @@ namespace {
       return false;
     }
 
-    Decl *VisitFunctionDecl(const clang::FunctionDecl *decl) {
+    Decl *VisitFunctionDecl(const language::Core::FunctionDecl *decl) {
       // Import the name of the function.
       ImportedName importedName;
       std::optional<ImportedName> correctCodiraName;
@@ -3570,16 +3570,16 @@ namespace {
 
     /// Emit diagnostics for incorrect usage of LANGUAGE_RETURNS_RETAINED and
     /// LANGUAGE_RETURNS_UNRETAINED
-    void checkBridgingAttrs(const clang::NamedDecl *decl) {
-      assert(isa<clang::FunctionDecl>(decl) ||
-             isa<clang::ObjCMethodDecl>(decl) &&
-                 "checkBridgingAttrs called with a clang::NamedDecl which is "
-                 "neither clang::FunctionDecl nor clang::ObjCMethodDecl");
+    void checkBridgingAttrs(const language::Core::NamedDecl *decl) {
+      assert(isa<language::Core::FunctionDecl>(decl) ||
+             isa<language::Core::ObjCMethodDecl>(decl) &&
+                 "checkBridgingAttrs called with a language::Core::NamedDecl which is "
+                 "neither language::Core::FunctionDecl nor language::Core::ObjCMethodDecl");
       bool returnsRetainedAttrIsPresent = false;
       bool returnsUnretainedAttrIsPresent = false;
       if (decl->hasAttrs()) {
         for (const auto *attr : decl->getAttrs()) {
-          if (const auto *languageAttr = dyn_cast<clang::CodiraAttrAttr>(attr)) {
+          if (const auto *languageAttr = dyn_cast<language::Core::CodiraAttrAttr>(attr)) {
             if (languageAttr->getAttribute() == "returns_unretained") {
               returnsUnretainedAttrIsPresent = true;
             } else if (languageAttr->getAttribute() == "returns_retained") {
@@ -3591,16 +3591,16 @@ namespace {
 
       HeaderLoc loc(decl->getLocation());
       const auto retType =
-          isa<clang::FunctionDecl>(decl)
-              ? cast<clang::FunctionDecl>(decl)->getReturnType()
-              : cast<clang::ObjCMethodDecl>(decl)->getReturnType();
-      clang::QualType pointeeType = retType;
+          isa<language::Core::FunctionDecl>(decl)
+              ? cast<language::Core::FunctionDecl>(decl)->getReturnType()
+              : cast<language::Core::ObjCMethodDecl>(decl)->getReturnType();
+      language::Core::QualType pointeeType = retType;
       if (retType->isPointerType() || retType->isReferenceType()) {
         pointeeType = retType->getPointeeType();
       }
 
-      clang::RecordDecl *recordDecl = nullptr;
-      if (const auto *recordType = pointeeType->getAs<clang::RecordType>()) {
+      language::Core::RecordDecl *recordDecl = nullptr;
+      if (const auto *recordType = pointeeType->getAs<language::Core::RecordType>()) {
         recordDecl = recordType->getDecl();
       }
 
@@ -3612,14 +3612,14 @@ namespace {
         } else if (!returnsRetainedAttrIsPresent &&
                    !returnsUnretainedAttrIsPresent) {
           bool unannotatedAPIWarningNeeded = false;
-          if (isa<clang::FunctionDecl>(decl) &&
-              !isa<clang::CXXDeductionGuideDecl>(decl)) {
-            if (const auto *methodDecl = dyn_cast<clang::CXXMethodDecl>(decl)) {
+          if (isa<language::Core::FunctionDecl>(decl) &&
+              !isa<language::Core::CXXDeductionGuideDecl>(decl)) {
+            if (const auto *methodDecl = dyn_cast<language::Core::CXXMethodDecl>(decl)) {
               // FIXME: In the future we should support LANGUAGE_RETURNS_RETAINED
               // and LANGUAGE_RETURNS_UNRETAINED for overloaded C++ operators
               // returning LANGUAGE_SHARED_REFERENCE types
-              if (!isa<clang::CXXConstructorDecl>(methodDecl) &&
-                  !isa<clang::CXXDestructorDecl>(methodDecl) &&
+              if (!isa<language::Core::CXXConstructorDecl>(methodDecl) &&
+                  !isa<language::Core::CXXDestructorDecl>(methodDecl) &&
                   !methodDecl->isOverloadedOperator() &&
                   methodDecl->isUserProvided()) {
                 // normal c++ member method
@@ -3629,7 +3629,7 @@ namespace {
               // global or top-level C/C++ function
               unannotatedAPIWarningNeeded = true;
             }
-          } else if (isa<clang::ObjCMethodDecl>(decl)) {
+          } else if (isa<language::Core::ObjCMethodDecl>(decl)) {
             unannotatedAPIWarningNeeded = true;
           }
 
@@ -3645,7 +3645,7 @@ namespace {
                           decl);
           }
         } else if (const auto *methodDecl =
-                       dyn_cast<clang::CXXMethodDecl>(decl)) {
+                       dyn_cast<language::Core::CXXMethodDecl>(decl)) {
           // Warning for annotated overloaded C++ operators as they currently
           // follow Codira method's convention and always return owned.
           if (methodDecl->isOverloadedOperator()) {
@@ -3658,7 +3658,7 @@ namespace {
         }
       } else {
         if (returnsRetainedAttrIsPresent || returnsUnretainedAttrIsPresent) {
-          if (const auto *functionDecl = dyn_cast<clang::FunctionDecl>(decl)) {
+          if (const auto *functionDecl = dyn_cast<language::Core::FunctionDecl>(decl)) {
             if (functionDecl->isTemplateInstantiation()) {
               return;
             }
@@ -3675,8 +3675,8 @@ namespace {
     /// Handles special functions such as subscripts and dereference operators.
     bool
     processSpecialImportedFunc(FuncDecl *fn, ImportedName importedName,
-                               clang::OverloadedOperatorKind cxxOperatorKind) {
-      if (cxxOperatorKind == clang::OverloadedOperatorKind::OO_None)
+                               language::Core::OverloadedOperatorKind cxxOperatorKind) {
+      if (cxxOperatorKind == language::Core::OverloadedOperatorKind::OO_None)
         return true;
 
       auto dc = fn->getDeclContext();
@@ -3736,7 +3736,7 @@ namespace {
         return true;
       }
 
-      if (cxxOperatorKind == clang::OverloadedOperatorKind::OO_PlusPlus) {
+      if (cxxOperatorKind == language::Core::OverloadedOperatorKind::OO_PlusPlus) {
         // Make sure the type is not a foreign reference type.
         // We cannot handle `operator++` for those types, since the
         // current implementation creates a new instance of the type.
@@ -3761,12 +3761,12 @@ namespace {
       // Check if this method _is_ an overloaded operator but is not a
       // call / subscript / dereference / increment. Those
       // operators do not need static versions.
-      if (cxxOperatorKind != clang::OverloadedOperatorKind::OO_Call) {
+      if (cxxOperatorKind != language::Core::OverloadedOperatorKind::OO_Call) {
         auto opFuncDecl = synthesizer.makeOperator(fn, cxxOperatorKind);
         Impl.addAlternateDecl(fn, opFuncDecl);
 
         Impl.markUnavailable(
-            fn, (Twine("use ") + clang::getOperatorSpelling(cxxOperatorKind) +
+            fn, (Twine("use ") + language::Core::getOperatorSpelling(cxxOperatorKind) +
                    " instead")
                       .str());
 
@@ -3780,13 +3780,13 @@ namespace {
 
     template <typename T>
     static const T *
-    getImplicitObjectParamAnnotation(const clang::FunctionDecl *FD) {
-      const clang::TypeSourceInfo *TSI = FD->getTypeSourceInfo();
+    getImplicitObjectParamAnnotation(const language::Core::FunctionDecl *FD) {
+      const language::Core::TypeSourceInfo *TSI = FD->getTypeSourceInfo();
       if (!TSI)
         return nullptr;
-      clang::AttributedTypeLoc ATL;
-      for (clang::TypeLoc TL = TSI->getTypeLoc();
-           (ATL = TL.getAsAdjusted<clang::AttributedTypeLoc>());
+      language::Core::AttributedTypeLoc ATL;
+      for (language::Core::TypeLoc TL = TSI->getTypeLoc();
+           (ATL = TL.getAsAdjusted<language::Core::AttributedTypeLoc>());
            TL = ATL.getModifiedLoc()) {
         if (auto attr = ATL.getAttrAs<T>())
           return attr;
@@ -3795,21 +3795,21 @@ namespace {
     }
 
     Decl *importFunctionDecl(
-        const clang::FunctionDecl *decl, ImportedName importedName,
+        const language::Core::FunctionDecl *decl, ImportedName importedName,
         std::optional<ImportedName> correctCodiraName,
         std::optional<AccessorInfo> accessorInfo,
-        const clang::FunctionTemplateDecl *funcTemplate = nullptr) {
+        const language::Core::FunctionTemplateDecl *funcTemplate = nullptr) {
       if (decl->isDeleted())
         return nullptr;
 
       if (Impl.CodiraContext.LangOpts.EnableCXXInterop &&
-          !isa<clang::CXXMethodDecl>(decl)) {
+          !isa<language::Core::CXXMethodDecl>(decl)) {
         // Do not import math functions from the C++ standard library, as
         // they're also imported from the Darwin/Glibc module, and their
         // presence in the C++ standard library will cause overloading
         // ambiguities or other type checking errors in Codira.
         auto isAlternativeCStdlibFunctionFromTextualHeader =
-            [this](const clang::FunctionDecl *d) -> bool {
+            [this](const language::Core::FunctionDecl *d) -> bool {
           // stdlib.h might be a textual header in libc++'s module map.
           // in this case, check for known ambiguous functions by their name
           // instead of checking if they come from the `std` module.
@@ -3821,7 +3821,7 @@ namespace {
           return false;
         };
 
-        if (clang::Module *owningModule = decl->getOwningModule();
+        if (language::Core::Module *owningModule = decl->getOwningModule();
             owningModule && importer::isCxxStdModule(owningModule)) {
           if (isAlternativeCStdlibFunctionFromTextualHeader(decl)) {
             return nullptr;
@@ -3853,10 +3853,10 @@ namespace {
       }
 
       bool isOperator = decl->getDeclName().getNameKind() ==
-                        clang::DeclarationName::CXXOperatorName;
+                        language::Core::DeclarationName::CXXOperatorName;
       bool isNonSubscriptOperator =
           isOperator && (decl->getDeclName().getCXXOverloadedOperator() !=
-                         clang::OO_Subscript);
+                         language::Core::OO_Subscript);
 
       // For now, we don't support non-subscript operators which are templated
       if (isNonSubscriptOperator && decl->isTemplated()) {
@@ -3867,7 +3867,7 @@ namespace {
       auto selfIdx = importedName.getSelfIndex();
 
       auto templateParamTypeUsedInSignature =
-          [decl](clang::TemplateTypeParmDecl *type) -> bool {
+          [decl](language::Core::TemplateTypeParmDecl *type) -> bool {
         // TODO(https://github.com/apple/language/issues/56206): We will want to update this to handle dependent types when those are supported.
         if (hasSameUnderlyingType(decl->getReturnType().getTypePtr(), type))
           return true;
@@ -3889,7 +3889,7 @@ namespace {
       if (funcTemplate) {
         unsigned i = 0;
         for (auto param : *funcTemplate->getTemplateParameters()) {
-          auto templateTypeParam = cast<clang::TemplateTypeParmDecl>(param);
+          auto templateTypeParam = cast<language::Core::TemplateTypeParmDecl>(param);
           // If the template type parameter isn't used in the signature then we
           // won't be able to deduce what it is when the function template is
           // called in Codira code. This is OK if there's a defaulted type we can
@@ -3928,7 +3928,7 @@ namespace {
       }
 
       if (!dc->isModuleScopeContext() && !isClangNamespace(dc) &&
-          !isa<clang::CXXMethodDecl>(decl)) {
+          !isa<language::Core::CXXMethodDecl>(decl)) {
         // Handle initializers.
         if (name.getBaseName().isConstructor()) {
           assert(!accessorInfo);
@@ -3968,7 +3968,7 @@ namespace {
             // is only inout if this is a pointer to the typedef type (which
             // itself is a pointer).
             if (auto nominalTypeDecl = dc->getSelfNominalTypeDecl()) {
-              if (auto clangDCTy = dyn_cast_or_null<clang::TypedefNameDecl>(
+              if (auto clangDCTy = dyn_cast_or_null<language::Core::TypedefNameDecl>(
                       nominalTypeDecl->getClangDecl()))
                 if (getCodiraNewtypeAttr(clangDCTy, getVersion()))
                   if (clangDCTy->getUnderlyingType().getCanonicalType() !=
@@ -4000,7 +4000,7 @@ namespace {
             decl->isVariadic(), isInSystemModule(dc), name, bodyParams,
             templateParams);
 
-        if (auto *mdecl = dyn_cast<clang::CXXMethodDecl>(decl)) {
+        if (auto *mdecl = dyn_cast<language::Core::CXXMethodDecl>(decl)) {
           if (mdecl->isStatic()) {
             selfIdx = std::nullopt;
           } else {
@@ -4044,13 +4044,13 @@ namespace {
       // FIXME: Poor location info.
       auto nameLoc = Impl.importSourceLoc(decl->getLocation());
 
-      if (auto method = dyn_cast<clang::CXXMethodDecl>(decl);
+      if (auto method = dyn_cast<language::Core::CXXMethodDecl>(decl);
           method && method->isStatic() && name.getBaseName().isConstructor()) {
         return importGlobalAsInitializer(
             decl, name, dc, importedName.getInitKind(), correctCodiraName);
       }
       AbstractFunctionDecl *result = nullptr;
-      if (auto *ctordecl = dyn_cast<clang::CXXConstructorDecl>(decl)) {
+      if (auto *ctordecl = dyn_cast<language::Core::CXXConstructorDecl>(decl)) {
         // Don't import copy constructor or move constructor -- these will be
         // provided through the value witness table.
         if (ctordecl->isCopyConstructor() || ctordecl->isMoveConstructor())
@@ -4087,7 +4087,7 @@ namespace {
           if (selfIsInOut)
             fn->setSelfAccessKind(SelfAccessKind::Mutating);
           else {
-            if (getImplicitObjectParamAnnotation<clang::LifetimeBoundAttr>(
+            if (getImplicitObjectParamAnnotation<language::Core::LifetimeBoundAttr>(
                     decl))
               fn->setSelfAccessKind(SelfAccessKind::Borrowing);
             else
@@ -4132,14 +4132,14 @@ namespace {
       return result;
     }
 
-    static bool isNonEscapableAnnotatedType(const clang::Type *t) {
+    static bool isNonEscapableAnnotatedType(const language::Core::Type *t) {
       if (const auto *rd = t->getAsRecordDecl()) {
         return hasNonEscapableAttr(rd);
       }
       return false;
     }
 
-    static bool isEscapableAnnotatedType(const clang::Type *t) {
+    static bool isEscapableAnnotatedType(const language::Core::Type *t) {
       if (const auto *rd = t->getAsRecordDecl()) {
         return hasEscapableAttr(rd);
       }
@@ -4148,9 +4148,9 @@ namespace {
 
     // Inject lifetime annotations selectively for some STL types so we can use
     // unsafeAddress to avoid copies.
-    bool inferSelfDependence(const clang::FunctionDecl *decl,
+    bool inferSelfDependence(const language::Core::FunctionDecl *decl,
                              AbstractFunctionDecl *result, size_t returnIdx) {
-      const auto *method = dyn_cast<clang::CXXMethodDecl>(decl);
+      const auto *method = dyn_cast<language::Core::CXXMethodDecl>(decl);
       if (!method)
         return false;
       const auto *enclosing = method->getParent();
@@ -4158,7 +4158,7 @@ namespace {
           (enclosing->getName() == "unique_ptr" ||
            enclosing->getName() == "shared_ptr") &&
           method->isOverloadedOperator() &&
-          method->getOverloadedOperator() == clang::OO_Star) {
+          method->getOverloadedOperator() == language::Core::OO_Star) {
         SmallVector<LifetimeDependenceInfo, 1> lifetimeDependencies;
         SmallBitVector dependenciesOfRet(returnIdx);
         dependenciesOfRet[result->getSelfIndex()] = true;
@@ -4174,18 +4174,18 @@ namespace {
       return false;
     }
 
-    void addLifetimeDependencies(const clang::FunctionDecl *decl,
+    void addLifetimeDependencies(const language::Core::FunctionDecl *decl,
                                  AbstractFunctionDecl *result) {
-      if (decl->getTemplatedKind() == clang::FunctionDecl::TK_FunctionTemplate)
+      if (decl->getTemplatedKind() == language::Core::FunctionDecl::TK_FunctionTemplate)
         return;
 
       // FIXME: support C functions imported as members.
       if (!isClangNamespace(result->getDeclContext()) &&
           result->getImportAsMemberStatus().isImportAsMember() &&
-          !isa<clang::CXXMethodDecl, clang::ObjCMethodDecl>(decl))
+          !isa<language::Core::CXXMethodDecl, language::Core::ObjCMethodDecl>(decl))
         return;
 
-      auto isEscapable = [this](clang::QualType ty) {
+      auto isEscapable = [this](language::Core::QualType ty) {
         return evaluateOrDefault(
                    Impl.CodiraContext.evaluator,
                    ClangTypeEscapability({ty.getTypePtr(), &Impl}),
@@ -4232,7 +4232,7 @@ namespace {
       SmallBitVector scopedLifetimeParamIndicesForReturn(dependencyVecSize);
       SmallBitVector paramHasAnnotation(dependencyVecSize);
       std::map<unsigned, SmallBitVector> inheritedArgDependences;
-      auto processLifetimeBound = [&](unsigned idx, clang::QualType ty) {
+      auto processLifetimeBound = [&](unsigned idx, language::Core::QualType ty) {
         warnForEscapableReturnType();
         paramHasAnnotation[idx] = true;
         if (isEscapable(ty))
@@ -4241,8 +4241,8 @@ namespace {
           inheritLifetimeParamIndicesForReturn[idx] = true;
       };
       auto processLifetimeCaptureBy =
-          [&](const clang::LifetimeCaptureByAttr *attr, unsigned idx,
-              clang::QualType ty) {
+          [&](const language::Core::LifetimeCaptureByAttr *attr, unsigned idx,
+              language::Core::QualType ty) {
             // FIXME: support scoped lifetimes. This is not straightforward as
             // const T& is imported as taking a value
             //        and we assume the address of T would not escape. An
@@ -4254,41 +4254,41 @@ namespace {
             for (auto param : attr->params()) {
               // FIXME: Codira assumes no escaping to globals. We should diagnose
               // this.
-              if (param == clang::LifetimeCaptureByAttr::GLOBAL ||
-                  param == clang::LifetimeCaptureByAttr::UNKNOWN ||
-                  param == clang::LifetimeCaptureByAttr::INVALID)
+              if (param == language::Core::LifetimeCaptureByAttr::GLOBAL ||
+                  param == language::Core::LifetimeCaptureByAttr::UNKNOWN ||
+                  param == language::Core::LifetimeCaptureByAttr::INVALID)
                 continue;
 
               paramHasAnnotation[idx] = true;
-              if (isa<clang::CXXMethodDecl>(decl) &&
-                  param == clang::LifetimeCaptureByAttr::THIS) {
+              if (isa<language::Core::CXXMethodDecl>(decl) &&
+                  param == language::Core::LifetimeCaptureByAttr::THIS) {
                 auto [it, inserted] = inheritedArgDependences.try_emplace(
                     result->getSelfIndex(), SmallBitVector(dependencyVecSize));
                 it->second[idx] = true;
               } else {
                 auto [it, inserted] = inheritedArgDependences.try_emplace(
-                    param - isa<clang::CXXMethodDecl>(decl),
+                    param - isa<language::Core::CXXMethodDecl>(decl),
                     SmallBitVector(dependencyVecSize));
                 it->second[idx] = true;
               }
             }
           };
       for (auto [idx, param] : toolchain::enumerate(decl->parameters())) {
-        if (param->hasAttr<clang::LifetimeBoundAttr>())
+        if (param->hasAttr<language::Core::LifetimeBoundAttr>())
           processLifetimeBound(idx, param->getType());
-        if (const auto *attr = param->getAttr<clang::LifetimeCaptureByAttr>())
+        if (const auto *attr = param->getAttr<language::Core::LifetimeCaptureByAttr>())
           processLifetimeCaptureBy(attr, idx, param->getType());
       }
-      if (getImplicitObjectParamAnnotation<clang::LifetimeBoundAttr>(decl))
+      if (getImplicitObjectParamAnnotation<language::Core::LifetimeBoundAttr>(decl))
         processLifetimeBound(
             result->getSelfIndex(),
-            cast<clang::CXXMethodDecl>(decl)->getThisType()->getPointeeType());
+            cast<language::Core::CXXMethodDecl>(decl)->getThisType()->getPointeeType());
       if (auto attr =
-              getImplicitObjectParamAnnotation<clang::LifetimeCaptureByAttr>(
+              getImplicitObjectParamAnnotation<language::Core::LifetimeCaptureByAttr>(
                   decl))
         processLifetimeCaptureBy(
             attr, result->getSelfIndex(),
-            cast<clang::CXXMethodDecl>(decl)->getThisType()->getPointeeType());
+            cast<language::Core::CXXMethodDecl>(decl)->getThisType()->getPointeeType());
 
       for (auto& [idx, inheritedDepVec]: inheritedArgDependences) {
         lifetimeDependencies.push_back(LifetimeDependenceInfo(inheritedDepVec.any() ? IndexSubset::get(Impl.CodiraContext,
@@ -4308,7 +4308,7 @@ namespace {
                 : nullptr,
             returnIdx,
             /*isImmortal*/ false));
-      else if (auto *ctordecl = dyn_cast<clang::CXXConstructorDecl>(decl)) {
+      else if (auto *ctordecl = dyn_cast<language::Core::CXXConstructorDecl>(decl)) {
         // Assume default constructed view types have no dependencies.
         if (ctordecl->isDefaultConstructor() &&
             evaluateOrDefault(
@@ -4335,7 +4335,7 @@ namespace {
       for (auto [idx, param] : toolchain::enumerate(decl->parameters())) {
         if (isEscapable(param->getType()))
           continue;
-        if (param->hasAttr<clang::NoEscapeAttr>() || paramHasAnnotation[idx])
+        if (param->hasAttr<language::Core::NoEscapeAttr>() || paramHasAnnotation[idx])
           continue;
         // We have a nonescapable parameter that does not have its lifetime
         // annotated nor is it marked noescape.
@@ -4347,7 +4347,7 @@ namespace {
       Impl.diagnoseTargetDirectly(decl);
     }
 
-    void finishFuncDecl(const clang::FunctionDecl *decl,
+    void finishFuncDecl(const language::Core::FunctionDecl *decl,
                         AbstractFunctionDecl *result) {
       // Set availability.
       if (decl->isVariadic()) {
@@ -4356,7 +4356,7 @@ namespace {
 
       addLifetimeDependencies(decl, result);
 
-      if (decl->hasAttr<clang::ReturnsTwiceAttr>()) {
+      if (decl->hasAttr<language::Core::ReturnsTwiceAttr>()) {
         // The Clang 'returns_twice' attribute is used for functions like
         // 'vfork' or 'setjmp'. Because these functions may return control flow
         // of a Codira program to an arbitrary point, Codira's guarantees of
@@ -4372,22 +4372,22 @@ namespace {
       Impl.codeify(result);
     }
 
-    static bool hasComputedPropertyAttr(const clang::Decl *decl) {
+    static bool hasComputedPropertyAttr(const language::Core::Decl *decl) {
       return decl->hasAttrs() && toolchain::any_of(decl->getAttrs(), [](auto *attr) {
-               if (auto languageAttr = dyn_cast<clang::CodiraAttrAttr>(attr))
+               if (auto languageAttr = dyn_cast<language::Core::CodiraAttrAttr>(attr))
                  return languageAttr->getAttribute() == "import_computed_property";
                return false;
              });
     }
 
-    Decl *VisitCXXMethodDecl(const clang::CXXMethodDecl *decl) {
+    Decl *VisitCXXMethodDecl(const language::Core::CXXMethodDecl *decl) {
       // The static `operator ()` introduced in C++ 23 is still callable as an
       // instance operator in C++, and we want to preserve the ability to call
       // it as an instance method in Codira as well for source compatibility.
       // Therefore, we synthesize a C++ instance member that invokes the
       // operator and import it instead.
       if (decl->getOverloadedOperator() ==
-              clang::OverloadedOperatorKind::OO_Call &&
+              language::Core::OverloadedOperatorKind::OO_Call &&
           decl->isStatic()) {
         auto result = synthesizer.makeInstanceToStaticOperatorCallMethod(decl);
         if (result)
@@ -4397,8 +4397,8 @@ namespace {
 
       // Do not expose constructors of abstract C++ classes.
       if (auto recordDecl =
-              dyn_cast<clang::CXXRecordDecl>(decl->getDeclContext())) {
-        if (isa<clang::CXXConstructorDecl>(decl) && recordDecl->isAbstract() &&
+              dyn_cast<language::Core::CXXRecordDecl>(decl->getDeclContext())) {
+        if (isa<language::Core::CXXConstructorDecl>(decl) && recordDecl->isAbstract() &&
             isa_and_nonnull<ValueDecl>(method)) {
           Impl.markUnavailable(
               cast<ValueDecl>(method),
@@ -4458,8 +4458,8 @@ namespace {
       return method;
     }
 
-    Decl *VisitFieldDecl(const clang::FieldDecl *decl) {
-      if (decl->hasAttr<clang::NoUniqueAddressAttr>()) {
+    Decl *VisitFieldDecl(const language::Core::FieldDecl *decl) {
+      if (decl->hasAttr<language::Core::NoUniqueAddressAttr>()) {
         if (const auto *rd = decl->getType()->getAsRecordDecl()) {
           // Clang can store the next field in the padding of this one. Codira
           // does not support this yet so let's not import the field and
@@ -4518,7 +4518,7 @@ namespace {
       // TODO: do we want to emit a diagnostic here?
       // Types that are marked as foreign references cannot be stored by value.
       if (auto recordType =
-              dyn_cast<clang::RecordType>(decl->getType().getCanonicalType())) {
+              dyn_cast<language::Core::RecordType>(decl->getType().getCanonicalType())) {
         if (recordHasReferenceSemantics(recordType->getDecl()))
           return nullptr;
       }
@@ -4558,7 +4558,7 @@ namespace {
                                        importedType.isImplicitlyUnwrapped());
 
       // Handle attributes.
-      if (decl->hasAttr<clang::IBOutletAttr>())
+      if (decl->hasAttr<language::Core::IBOutletAttr>())
         result->getAttrs().add(
             new (Impl.CodiraContext) IBOutletAttr(/*IsImplicit=*/false));
       // FIXME: Handle IBOutletCollection.
@@ -4571,17 +4571,17 @@ namespace {
       return result;
     }
 
-    Decl *VisitObjCIvarDecl(const clang::ObjCIvarDecl *decl) {
+    Decl *VisitObjCIvarDecl(const language::Core::ObjCIvarDecl *decl) {
       // Disallow direct ivar access (and avoid conflicts with property names).
       return nullptr;
     }
 
-    Decl *VisitObjCAtDefsFieldDecl(const clang::ObjCAtDefsFieldDecl *decl) {
+    Decl *VisitObjCAtDefsFieldDecl(const language::Core::ObjCAtDefsFieldDecl *decl) {
       // @defs is an anachronism; ignore it.
       return nullptr;
     }
 
-    Decl *VisitVarDecl(const clang::VarDecl *decl) {
+    Decl *VisitVarDecl(const language::Core::VarDecl *decl) {
       // Variables are imported as... variables.
       ImportedName importedName;
       std::optional<ImportedName> correctCodiraName;
@@ -4614,7 +4614,7 @@ namespace {
       if (auto init = decl->getInit()) {
         // Don't import values for partial specializations. TODO: Should we stop
         // importing partially specialized variables completely?
-        bool partial = isa<clang::VarTemplatePartialSpecializationDecl>(decl);
+        bool partial = isa<language::Core::VarTemplatePartialSpecializationDecl>(decl);
 
         // Don't import values when type-dependent or value-dependent.
         bool typeDependent = decl->getType()->isDependentType();
@@ -4682,36 +4682,36 @@ namespace {
       // If the decl represents an availability domain, eagerly synthesize its
       // `if #available` predicate function.
       if (decl->hasAttrs() &&
-          toolchain::any_of(decl->getAttrs(), [](clang::Attr *attr) {
-            return isa<clang::AvailabilityDomainAttr>(attr);
+          toolchain::any_of(decl->getAttrs(), [](language::Core::Attr *attr) {
+            return isa<language::Core::AvailabilityDomainAttr>(attr);
           }))
         (void)synthesizer.makeAvailabilityDomainPredicate(decl);
 
       return result;
     }
 
-    Decl *VisitImplicitParamDecl(const clang::ImplicitParamDecl *decl) {
+    Decl *VisitImplicitParamDecl(const language::Core::ImplicitParamDecl *decl) {
       // Parameters are never directly imported.
       return nullptr;
     }
 
-    Decl *VisitParmVarDecl(const clang::ParmVarDecl *decl) {
+    Decl *VisitParmVarDecl(const language::Core::ParmVarDecl *decl) {
       // Parameters are never directly imported.
       return nullptr;
     }
 
     Decl *
-    VisitNonTypeTemplateParmDecl(const clang::NonTypeTemplateParmDecl *decl) {
+    VisitNonTypeTemplateParmDecl(const language::Core::NonTypeTemplateParmDecl *decl) {
       // Note: templates are not imported.
       return nullptr;
     }
 
-    Decl *VisitTemplateDecl(const clang::TemplateDecl *decl) {
+    Decl *VisitTemplateDecl(const language::Core::TemplateDecl *decl) {
       // Note: templates are not imported.
       return nullptr;
     }
 
-    Decl *VisitFunctionTemplateDecl(const clang::FunctionTemplateDecl *decl) {
+    Decl *VisitFunctionTemplateDecl(const language::Core::FunctionTemplateDecl *decl) {
       ImportedName importedName;
       std::optional<ImportedName> correctCodiraName;
       std::tie(importedName, correctCodiraName) =
@@ -4720,14 +4720,14 @@ namespace {
         return nullptr;
       // All template parameters must be template type parameters.
       if (!toolchain::all_of(*decl->getTemplateParameters(), [](auto param) {
-            return isa<clang::TemplateTypeParmDecl>(param);
+            return isa<language::Core::TemplateTypeParmDecl>(param);
           }))
         return nullptr;
       return importFunctionDecl(decl->getAsFunction(), importedName,
                                 correctCodiraName, std::nullopt, decl);
     }
 
-    Decl *VisitClassTemplateDecl(const clang::ClassTemplateDecl *decl) {
+    Decl *VisitClassTemplateDecl(const language::Core::ClassTemplateDecl *decl) {
       ImportedName importedName;
       std::tie(importedName, std::ignore) = importFullName(decl);
       auto name = importedName.getBaseIdentifier(Impl.CodiraContext);
@@ -4765,22 +4765,22 @@ namespace {
       return structDecl;
     }
 
-    Decl *VisitUsingDecl(const clang::UsingDecl *decl) {
+    Decl *VisitUsingDecl(const language::Core::UsingDecl *decl) {
       // See VisitUsingShadowDecl below.
       return nullptr;
     }
 
-    Decl *VisitUsingShadowDecl(const clang::UsingShadowDecl *decl) {
+    Decl *VisitUsingShadowDecl(const language::Core::UsingShadowDecl *decl) {
       // Only import:
       //   1. Types
       //   2. C++ methods from privately inherited base classes
-      if (!isa<clang::TypeDecl>(decl->getTargetDecl()) &&
-          !isa<clang::CXXMethodDecl>(decl->getTargetDecl()))
+      if (!isa<language::Core::TypeDecl>(decl->getTargetDecl()) &&
+          !isa<language::Core::CXXMethodDecl>(decl->getTargetDecl()))
         return nullptr;
       // Constructors (e.g. `using BaseClass::BaseClass`) are handled in
       // VisitCXXRecordDecl, since we need them to determine whether a struct
       // can be imported into Codira.
-      if (isa<clang::CXXConstructorDecl>(decl->getTargetDecl()))
+      if (isa<language::Core::CXXConstructorDecl>(decl->getTargetDecl()))
         return nullptr;
 
       ImportedName importedName;
@@ -4810,7 +4810,7 @@ namespace {
       if (known.has_value())
         return known.value();
 
-      if (isa<clang::TypeDecl>(decl->getTargetDecl())) {
+      if (isa<language::Core::TypeDecl>(decl->getTargetDecl())) {
         Decl *CodiraDecl = Impl.importDecl(decl->getUnderlyingDecl(), getActiveCodiraVersion());
         if (!CodiraDecl)
           return nullptr;
@@ -4829,10 +4829,10 @@ namespace {
         return Result;
       }
       if (auto targetMethod =
-              dyn_cast<clang::CXXMethodDecl>(decl->getTargetDecl())) {
+              dyn_cast<language::Core::CXXMethodDecl>(decl->getTargetDecl())) {
         auto *derivedRecord =
-            dyn_cast_or_null<clang::CXXRecordDecl>(decl->getDeclContext());
-        auto *baseRecord = dyn_cast_or_null<clang::CXXRecordDecl>(
+            dyn_cast_or_null<language::Core::CXXRecordDecl>(decl->getDeclContext());
+        auto *baseRecord = dyn_cast_or_null<language::Core::CXXRecordDecl>(
             targetMethod->getDeclContext());
         if (!derivedRecord || !baseRecord ||
             !derivedRecord->isDerivedFrom(baseRecord))
@@ -4901,7 +4901,7 @@ namespace {
       addObjCAttribute(decl, ObjCSelector(Impl.CodiraContext, 0, name));
     }
 
-    Decl *VisitObjCMethodDecl(const clang::ObjCMethodDecl *decl) {
+    Decl *VisitObjCMethodDecl(const language::Core::ObjCMethodDecl *decl) {
       auto dc = Impl.importDeclContextOf(decl, decl->getDeclContext());
       if (!dc)
         return nullptr;
@@ -4993,7 +4993,7 @@ namespace {
       return false;
     }
 
-    Decl *importObjCMethodDecl(const clang::ObjCMethodDecl *decl,
+    Decl *importObjCMethodDecl(const language::Core::ObjCMethodDecl *decl,
                                DeclContext *dc,
                                std::optional<AccessorInfo> accessorInfo) {
       return importObjCMethodDecl(decl, dc, false, accessorInfo);
@@ -5020,7 +5020,7 @@ namespace {
     /// Creates a fresh VarDecl with a single 'get' accessor to represent
     /// an ObjC method that takes no arguments other than a completion-handler
     /// (where the handler may have an NSError argument).
-    Decl *importObjCMethodAsEffectfulProp(const clang::ObjCMethodDecl *decl,
+    Decl *importObjCMethodAsEffectfulProp(const language::Core::ObjCMethodDecl *decl,
                                          DeclContext *dc,
                                          ImportedName name) {
       assert(name.getAsyncInfo() && "expected to be for an effectful prop!");
@@ -5064,12 +5064,12 @@ namespace {
       // NOTE: since it's an ObjC method we're turning into a Codira computed
       // property, we infer that it has no ObjC 'atomic' guarantees.
       auto inferredObjCPropertyAttrs =
-          static_cast<clang::ObjCPropertyAttribute::Kind>
-          ( clang::ObjCPropertyAttribute::Kind::kind_readonly
-          | clang::ObjCPropertyAttribute::Kind::kind_nonatomic
+          static_cast<language::Core::ObjCPropertyAttribute::Kind>
+          ( language::Core::ObjCPropertyAttribute::Kind::kind_readonly
+          | language::Core::ObjCPropertyAttribute::Kind::kind_nonatomic
           | (decl->isInstanceMethod()
-              ? clang::ObjCPropertyAttribute::Kind::kind_class
-              : clang::ObjCPropertyAttribute::Kind::kind_noattr)
+              ? language::Core::ObjCPropertyAttribute::Kind::kind_class
+              : language::Core::ObjCPropertyAttribute::Kind::kind_noattr)
           );
 
       // FIXME: Fake locations for '{' and '}'?
@@ -5089,7 +5089,7 @@ namespace {
       return propDecl;
     }
 
-    Decl *importObjCMethodDecl(const clang::ObjCMethodDecl *decl,
+    Decl *importObjCMethodDecl(const language::Core::ObjCMethodDecl *decl,
                                DeclContext *dc, bool forceClassMethod,
                                std::optional<AccessorInfo> accessorInfo) {
       // If we have an init method, import it as an initializer.
@@ -5175,7 +5175,7 @@ namespace {
     }
 
     Decl *
-    importNonInitObjCMethodDecl(const clang::ObjCMethodDecl *decl,
+    importNonInitObjCMethodDecl(const language::Core::ObjCMethodDecl *decl,
                                 DeclContext *dc, ImportedName importedName,
                                 ObjCSelector selector, bool forceClassMethod,
                                 std::optional<AccessorInfo> accessorInfo) {
@@ -5207,7 +5207,7 @@ namespace {
 
       // If we have a property accessor, find the corresponding property
       // declaration.
-      const clang::ObjCPropertyDecl *prop = nullptr;
+      const language::Core::ObjCPropertyDecl *prop = nullptr;
       if (decl->isPropertyAccessor()) {
         prop = decl->findPropertyDecl();
         if (!prop) return nullptr;
@@ -5315,7 +5315,7 @@ namespace {
 
       // Optional methods in protocols.
       if (decl->getImplementationControl() ==
-              clang::ObjCImplementationControl::Optional &&
+              language::Core::ObjCImplementationControl::Optional &&
           isa<ProtocolDecl>(dc))
         result->getAttrs().add(new (Impl.CodiraContext)
                                       OptionalAttr(/*implicit*/false));
@@ -5348,7 +5348,7 @@ namespace {
       }
 
       // Handle attributes.
-      if (decl->hasAttr<clang::IBActionAttr>() &&
+      if (decl->hasAttr<language::Core::IBActionAttr>() &&
           isa<FuncDecl>(result) &&
           cast<FuncDecl>(result)->isPotentialIBActionTarget()) {
         result->getAttrs().add(
@@ -5394,20 +5394,20 @@ namespace {
     /// // in objc: [[NSArray alloc] initWithCapacity:1024]
     /// NSArray(capacity: 1024)
     /// \endcode
-    ConstructorDecl *importConstructor(const clang::ObjCMethodDecl *objcMethod,
+    ConstructorDecl *importConstructor(const language::Core::ObjCMethodDecl *objcMethod,
                                        const DeclContext *dc, bool implicit,
                                        std::optional<CtorInitializerKind> kind,
                                        bool required);
 
     /// Returns the latest "introduced" version on the current platform for
     /// \p D.
-    toolchain::VersionTuple findLatestIntroduction(const clang::Decl *D);
+    toolchain::VersionTuple findLatestIntroduction(const language::Core::Decl *D);
 
     /// Returns true if importing \p objcMethod will produce a "better"
     /// initializer than \p existingCtor.
     bool
     existingConstructorIsWorse(const ConstructorDecl *existingCtor,
-                               const clang::ObjCMethodDecl *objcMethod,
+                               const language::Core::ObjCMethodDecl *objcMethod,
                                CtorInitializerKind kind);
 
     /// Given an imported method, try to import it as a constructor.
@@ -5422,14 +5422,14 @@ namespace {
     ///
     /// This variant of the function is responsible for actually binding the
     /// constructor declaration appropriately.
-    ConstructorDecl *importConstructor(const clang::ObjCMethodDecl *objcMethod,
+    ConstructorDecl *importConstructor(const language::Core::ObjCMethodDecl *objcMethod,
                                        const DeclContext *dc,
                                        bool implicit,
                                        CtorInitializerKind kind,
                                        bool required,
                                        ObjCSelector selector,
                                        ImportedName importedName,
-                                       ArrayRef<const clang::ParmVarDecl*> args,
+                                       ArrayRef<const language::Core::ParmVarDecl*> args,
                                        bool variadic,
                                        ConstructorDecl *&existing);
 
@@ -5438,10 +5438,10 @@ namespace {
     /// Given either the getter or setter for a subscript operation,
     /// create the Codira subscript declaration.
     SubscriptDecl *importSubscript(Decl *decl,
-                                   const clang::ObjCMethodDecl *objcMethod);
+                                   const language::Core::ObjCMethodDecl *objcMethod);
 
     /// Import the accessor and its attributes.
-    AccessorDecl *importAccessor(const clang::ObjCMethodDecl *clangAccessor,
+    AccessorDecl *importAccessor(const language::Core::ObjCMethodDecl *clangAccessor,
                                  AbstractStorageDecl *storage,
                                  AccessorKind accessorKind,
                                  DeclContext *dc);
@@ -5458,14 +5458,14 @@ namespace {
     // implicitly-provided protocols, and attach them to the given
     // declaration.
     void importObjCProtocols(Decl *decl,
-                             const clang::ObjCProtocolList &clangProtocols,
+                             const language::Core::ObjCProtocolList &clangProtocols,
                              SmallVectorImpl<InheritedEntry> &inheritedTypes);
 
     // Returns None on error. Returns nullptr if there is no type param list to
     // import or we suppress its import, as in the case of NSArray, NSSet, and
     // NSDictionary.
     std::optional<GenericParamList *>
-    importObjCGenericParams(const clang::ObjCInterfaceDecl *decl,
+    importObjCGenericParams(const language::Core::ObjCInterfaceDecl *decl,
                             DeclContext *dc);
 
     /// Import the members of all of the protocols to which the given
@@ -5479,7 +5479,7 @@ namespace {
     /// it may still be necessary when the protocol's instance methods become
     /// class methods on a root class (e.g. NSObject-the-protocol's instance
     /// methods become class methods on NSObject).
-    void importMirroredProtocolMembers(const clang::ObjCContainerDecl *decl,
+    void importMirroredProtocolMembers(const language::Core::ObjCContainerDecl *decl,
                                        DeclContext *dc,
                                        std::optional<DeclBaseName> name,
                                        SmallVectorImpl<Decl *> &newMembers);
@@ -5493,7 +5493,7 @@ namespace {
     void importInheritedConstructors(const ClassDecl *classDecl,
                                      SmallVectorImpl<Decl *> &newMembers);
 
-    Decl *VisitObjCCategoryDecl(const clang::ObjCCategoryDecl *decl) {
+    Decl *VisitObjCCategoryDecl(const language::Core::ObjCCategoryDecl *decl) {
       // If the declaration is invalid, fail.
       if (decl->isInvalidDecl()) return nullptr;
 
@@ -5669,7 +5669,7 @@ namespace {
     T* hasNonLocalNativeCodiraDecl(U *decl, Identifier name, bool hasKnownCodiraName) {
       assert(!decl->hasDefinition() && "This method is only intended to be used on incomplete Clang types");
 
-      // We intentionally do not consider if the declaration has a clang::ExternalSourceSymbolAttr
+      // We intentionally do not consider if the declaration has a language::Core::ExternalSourceSymbolAttr
       // attribute, since we can't know if the corresponding Codira definition is "local" (ie.
       // in the overlay or bridging header owner) or not.
 
@@ -5725,7 +5725,7 @@ namespace {
       VD->getAttrs().add(attr);
     }
 
-    Decl *VisitObjCProtocolDecl(const clang::ObjCProtocolDecl *decl) {
+    Decl *VisitObjCProtocolDecl(const language::Core::ObjCProtocolDecl *decl) {
       ImportedName importedName;
       std::optional<ImportedName> correctCodiraName;
       std::tie(importedName, correctCodiraName) = importFullName(decl);
@@ -5837,7 +5837,7 @@ namespace {
       }
     }
 
-    Decl *VisitObjCInterfaceDecl(const clang::ObjCInterfaceDecl *decl) {
+    Decl *VisitObjCInterfaceDecl(const language::Core::ObjCInterfaceDecl *decl) {
 
       auto createFakeClass = [=](Identifier name, bool cacheResult,
                                      bool inheritFromNSObject,
@@ -5869,7 +5869,7 @@ namespace {
       // class which is hidden in modern Objective-C runtimes.
       // We treat it as a foreign class (like a CF type) because it doesn't
       // have a real public class object.
-      clang::ASTContext &clangCtx = Impl.getClangASTContext();
+      language::Core::ASTContext &clangCtx = Impl.getClangASTContext();
       if (decl->getCanonicalDecl() ==
           clangCtx.getObjCProtocolDecl()->getCanonicalDecl()) {
         Type nsObjectTy = Impl.getNSObjectType();
@@ -5955,7 +5955,7 @@ namespace {
         return nativeDecl;
 
       auto access = AccessLevel::Open;
-      if (decl->hasAttr<clang::ObjCSubclassingRestrictedAttr>() &&
+      if (decl->hasAttr<language::Core::ObjCSubclassingRestrictedAttr>() &&
           Impl.CodiraContext.isCodiraVersionAtLeast(5)) {
         access = AccessLevel::Public;
       }
@@ -5985,7 +5985,7 @@ namespace {
 
       if (declaredNative)
         markMissingCodiraDecl(result);
-      if (decl->getAttr<clang::ObjCRuntimeVisibleAttr>()) {
+      if (decl->getAttr<language::Core::ObjCRuntimeVisibleAttr>()) {
         result->setForeignClassKind(ClassDecl::ForeignKind::RuntimeOnly);
       }
 
@@ -5993,7 +5993,7 @@ namespace {
       SmallVector<InheritedEntry, 4> inheritedTypes;
       Type superclassType;
       if (decl->getSuperClass()) {
-        clang::QualType clangSuperclassType =
+        language::Core::QualType clangSuperclassType =
           decl->getSuperClassType()->stripObjCKindOfTypeAndQuals(clangCtx);
         clangSuperclassType =
           clangCtx.getObjCObjectPointerType(clangSuperclassType);
@@ -6034,9 +6034,9 @@ namespace {
       // triggered. Create deinit explicitly
       auto deallocII = &clangCtx.Idents.get("dealloc");
       auto deallocSelector = clangCtx.Selectors.getNullarySelector(deallocII);
-      auto deallocName = clang::DeclarationName(deallocSelector);
+      auto deallocName = language::Core::DeclarationName(deallocSelector);
       for (auto nd : decl->lookup(deallocName)) {
-        if (auto deallocDecl = dyn_cast<clang::ObjCMethodDecl>(nd)) {
+        if (auto deallocDecl = dyn_cast<language::Core::ObjCMethodDecl>(nd)) {
           if (deallocDecl->isInstanceMethod()) {
             auto loc = Impl.importSourceLoc(deallocDecl->getLocation());
             auto dtor = Impl.createDeclWithClangNode<DestructorDecl>(
@@ -6048,13 +6048,13 @@ namespace {
       return result;
     }
 
-    Decl *VisitObjCImplDecl(const clang::ObjCImplDecl *decl) {
+    Decl *VisitObjCImplDecl(const language::Core::ObjCImplDecl *decl) {
       // Implementations of Objective-C classes and categories are not
       // reflected into Codira.
       return nullptr;
     }
 
-    Decl *VisitObjCPropertyDecl(const clang::ObjCPropertyDecl *decl) {
+    Decl *VisitObjCPropertyDecl(const language::Core::ObjCPropertyDecl *decl) {
       auto dc = Impl.importDeclContextOf(decl, decl->getDeclContext());
       if (!dc)
         return nullptr;
@@ -6074,14 +6074,14 @@ namespace {
     ///
     /// \see VisitObjCPropertyDecl
     void handlePropertyRedeclaration(VarDecl *original,
-                                     const clang::ObjCPropertyDecl *redecl) {
+                                     const language::Core::ObjCPropertyDecl *redecl) {
       // If the property isn't from Clang, we can't safely update it.
       if (!original->hasClangNode())
         return;
 
       // If the original declaration was implicit, we may want to change that.
       if (original->isImplicit() && !redecl->isImplicit() &&
-          !isa<clang::ObjCProtocolDecl>(redecl->getDeclContext()))
+          !isa<language::Core::ObjCProtocolDecl>(redecl->getDeclContext()))
         original->setImplicit(false);
 
       if (!original->getAttrs().hasAttribute<ReferenceOwnershipAttr>() &&
@@ -6118,7 +6118,7 @@ namespace {
       original->setComputedSetter(setter);
     }
 
-    Decl *importObjCPropertyDecl(const clang::ObjCPropertyDecl *decl,
+    Decl *importObjCPropertyDecl(const language::Core::ObjCPropertyDecl *decl,
                                 DeclContext *dc) {
       assert(dc);
 
@@ -6233,11 +6233,11 @@ namespace {
       applyPropertyOwnership(result, decl->getPropertyAttributesAsWritten());
 
       // Handle attributes.
-      if (decl->hasAttr<clang::IBOutletAttr>())
+      if (decl->hasAttr<language::Core::IBOutletAttr>())
         result->getAttrs().add(
             new (Impl.CodiraContext) IBOutletAttr(/*IsImplicit=*/false));
       if (decl->getPropertyImplementation() ==
-              clang::ObjCPropertyDecl::Optional &&
+              language::Core::ObjCPropertyDecl::Optional &&
           isa<ProtocolDecl>(dc) &&
           !result->getAttrs().hasAttribute<OptionalAttr>())
         result->getAttrs().add(new (Impl.CodiraContext)
@@ -6262,7 +6262,7 @@ namespace {
     }
 
     Decl *
-    VisitObjCCompatibleAliasDecl(const clang::ObjCCompatibleAliasDecl *decl) {
+    VisitObjCCompatibleAliasDecl(const language::Core::ObjCCompatibleAliasDecl *decl) {
       // Import Objective-C's @compatibility_alias as typealias.
       EffectiveClangContext effectiveContext(decl->getDeclContext()->getRedeclContext());
       auto dc = Impl.importDeclContextOf(decl, effectiveContext);
@@ -6300,42 +6300,42 @@ namespace {
       return typealias;
     }
 
-    Decl *VisitLinkageSpecDecl(const clang::LinkageSpecDecl *decl) {
+    Decl *VisitLinkageSpecDecl(const language::Core::LinkageSpecDecl *decl) {
       // Linkage specifications are not imported.
       return nullptr;
     }
 
-    Decl *VisitObjCPropertyImplDecl(const clang::ObjCPropertyImplDecl *decl) {
+    Decl *VisitObjCPropertyImplDecl(const language::Core::ObjCPropertyImplDecl *decl) {
       // @synthesize and @dynamic are not imported, since they are not part
       // of the interface to a class.
       return nullptr;
     }
 
-    Decl *VisitFileScopeAsmDecl(const clang::FileScopeAsmDecl *decl) {
+    Decl *VisitFileScopeAsmDecl(const language::Core::FileScopeAsmDecl *decl) {
       return nullptr;
     }
 
-    Decl *VisitAccessSpecDecl(const clang::AccessSpecDecl *decl) {
+    Decl *VisitAccessSpecDecl(const language::Core::AccessSpecDecl *decl) {
       return nullptr;
     }
 
-    Decl *VisitFriendTemplateDecl(const clang::FriendTemplateDecl *decl) {
+    Decl *VisitFriendTemplateDecl(const language::Core::FriendTemplateDecl *decl) {
       // Friends are not imported; Codira has a different access control
       // mechanism.
       return nullptr;
     }
 
-    Decl *VisitStaticAssertDecl(const clang::StaticAssertDecl *decl) {
+    Decl *VisitStaticAssertDecl(const language::Core::StaticAssertDecl *decl) {
       // Static assertions are an implementation detail.
       return nullptr;
     }
 
-    Decl *VisitBlockDecl(const clang::BlockDecl *decl) {
+    Decl *VisitBlockDecl(const language::Core::BlockDecl *decl) {
       // Blocks are not imported (although block types can be imported).
       return nullptr;
     }
 
-    Decl *VisitImportDecl(const clang::ImportDecl *decl) {
+    Decl *VisitImportDecl(const language::Core::ImportDecl *decl) {
       // Transitive module imports are not handled at the declaration level.
       // Rather, they are understood from the module itself.
       return nullptr;
@@ -6344,8 +6344,8 @@ namespace {
 } // end anonymous namespace
 
 /// Try to strip "Mutable" out of a type name.
-static clang::IdentifierInfo *
-getImmutableCFSuperclassName(const clang::TypedefNameDecl *decl, clang::ASTContext &ctx) {
+static language::Core::IdentifierInfo *
+getImmutableCFSuperclassName(const language::Core::TypedefNameDecl *decl, language::Core::ASTContext &ctx) {
   StringRef name = decl->getName();
 
   // Split at the first occurrence of "Mutable".
@@ -6375,7 +6375,7 @@ getImmutableCFSuperclassName(const clang::TypedefNameDecl *decl, clang::ASTConte
 /// then we look for a "superclass" that matches:
 ///   typedef const struct __foo *XXXYYY;
 static Type findImmutableCFSuperclass(ClangImporter::Implementation &impl,
-                                      const clang::TypedefNameDecl *decl,
+                                      const language::Core::TypedefNameDecl *decl,
                                       CFPointeeInfo subclassInfo) {
   // If this type is already immutable, it has no immutable
   // superclass.
@@ -6413,7 +6413,7 @@ static Type findImmutableCFSuperclass(ClangImporter::Implementation &impl,
 
 /// Attempt to find a superclass for the given CF typedef.
 static Type findCFSuperclass(ClangImporter::Implementation &impl,
-                             const clang::TypedefNameDecl *decl,
+                             const language::Core::TypedefNameDecl *decl,
                              CFPointeeInfo info) {
   if (Type immutable = findImmutableCFSuperclass(impl, decl, info))
     return immutable;
@@ -6423,7 +6423,7 @@ static Type findCFSuperclass(ClangImporter::Implementation &impl,
 }
 
 ClassDecl *
-CodiraDeclConverter::importCFClassType(const clang::TypedefNameDecl *decl,
+CodiraDeclConverter::importCFClassType(const language::Core::TypedefNameDecl *decl,
                                       Identifier className, CFPointeeInfo info,
                                       EffectiveClangContext effectiveContext) {
   auto dc = Impl.importDeclContextOf(decl, effectiveContext);
@@ -6457,7 +6457,7 @@ CodiraDeclConverter::importCFClassType(const clang::TypedefNameDecl *decl,
   // any attributes from earlier declarations.
   auto record = info.getRecord()->getMostRecentDecl();
   if (info.isConst()) {
-    if (auto attr = record->getAttr<clang::ObjCBridgeAttr>()) {
+    if (auto attr = record->getAttr<language::Core::ObjCBridgeAttr>()) {
       // Record the Objective-C class to which this CF type is toll-free
       // bridged.
       if (ClassDecl *objcClass = dynCastIgnoringCompatibilityAlias<ClassDecl>(
@@ -6467,7 +6467,7 @@ CodiraDeclConverter::importCFClassType(const clang::TypedefNameDecl *decl,
       }
     }
   } else {
-    if (auto attr = record->getAttr<clang::ObjCBridgeMutableAttr>()) {
+    if (auto attr = record->getAttr<language::Core::ObjCBridgeMutableAttr>()) {
       // Record the Objective-C class to which this CF type is toll-free
       // bridged.
       if (ClassDecl *objcClass = dynCastIgnoringCompatibilityAlias<ClassDecl>(
@@ -6482,7 +6482,7 @@ CodiraDeclConverter::importCFClassType(const clang::TypedefNameDecl *decl,
 }
 
 Decl *CodiraDeclConverter::importCompatibilityTypeAlias(
-    const clang::NamedDecl *decl,
+    const language::Core::NamedDecl *decl,
     ImportedName compatibilityName,
     ImportedName correctCodiraName) {
   // Import the referenced declaration. If it doesn't come in as a type,
@@ -6577,8 +6577,8 @@ static bool conformsToProtocolInOriginalModule(NominalTypeDecl *nominal,
 }
 
 Decl *
-CodiraDeclConverter::importCodiraNewtype(const clang::TypedefNameDecl *decl,
-                                       clang::CodiraNewTypeAttr *newtypeAttr,
+CodiraDeclConverter::importCodiraNewtype(const language::Core::TypedefNameDecl *decl,
+                                       language::Core::CodiraNewTypeAttr *newtypeAttr,
                                        DeclContext *dc, Identifier name) {
   // The only (current) difference between language_newtype(struct) and
   // language_newtype(enum), until we can get real enum support, is that enums
@@ -6587,12 +6587,12 @@ CodiraDeclConverter::importCodiraNewtype(const clang::TypedefNameDecl *decl,
   bool unlabeledCtor = false;
 
   switch (newtypeAttr->getNewtypeKind()) {
-  case clang::CodiraNewTypeAttr::NK_Enum:
+  case language::Core::CodiraNewTypeAttr::NK_Enum:
     unlabeledCtor = false;
     // TODO: import as enum instead
     break;
 
-  case clang::CodiraNewTypeAttr::NK_Struct:
+  case language::Core::CodiraNewTypeAttr::NK_Struct:
     unlabeledCtor = true;
     break;
     // No other cases yet
@@ -6753,8 +6753,8 @@ CodiraDeclConverter::importCodiraNewtype(const clang::TypedefNameDecl *decl,
   return structDecl;
 }
 
-Decl *CodiraDeclConverter::importEnumCase(const clang::EnumConstantDecl *decl,
-                                         const clang::EnumDecl *clangEnum,
+Decl *CodiraDeclConverter::importEnumCase(const language::Core::EnumConstantDecl *decl,
+                                         const language::Core::EnumDecl *clangEnum,
                                          EnumDecl *theEnum,
                                          Decl *correctDecl) {
   auto &context = Impl.CodiraContext;
@@ -6812,8 +6812,8 @@ Decl *CodiraDeclConverter::importEnumCase(const clang::EnumConstantDecl *decl,
 }
 
 Decl *
-CodiraDeclConverter::importOptionConstant(const clang::EnumConstantDecl *decl,
-                                         const clang::EnumDecl *clangEnum,
+CodiraDeclConverter::importOptionConstant(const language::Core::EnumConstantDecl *decl,
+                                         const language::Core::EnumDecl *clangEnum,
                                          NominalTypeDecl *theStruct) {
   ImportedName nameInfo;
   std::optional<ImportedName> correctCodiraName;
@@ -6828,7 +6828,7 @@ CodiraDeclConverter::importOptionConstant(const clang::EnumConstantDecl *decl,
     convertKind = ConstantConvertKind::ConstructionWithUnwrap;
   Decl *CD = synthesizer.createConstant(
       name, theStruct, theStruct->getDeclaredInterfaceType(),
-      clang::APValue(decl->getInitVal()), convertKind, /*isStatic*/ true, decl,
+      language::Core::APValue(decl->getInitVal()), convertKind, /*isStatic*/ true, decl,
       importer::convertClangAccess(clangEnum->getAccess()));
   Impl.importAttributes(decl, CD);
 
@@ -6852,8 +6852,8 @@ CodiraDeclConverter::importOptionConstant(const clang::EnumConstantDecl *decl,
 }
 
 Decl *CodiraDeclConverter::importEnumCaseAlias(
-    Identifier name, const clang::EnumConstantDecl *alias, ValueDecl *original,
-    const clang::EnumDecl *clangEnum, NominalTypeDecl *importedEnum,
+    Identifier name, const language::Core::EnumConstantDecl *alias, ValueDecl *original,
+    const language::Core::EnumDecl *clangEnum, NominalTypeDecl *importedEnum,
     DeclContext *importIntoDC) {
   if (name.empty())
     return nullptr;
@@ -6903,7 +6903,7 @@ Decl *CodiraDeclConverter::importEnumCaseAlias(
 
 NominalTypeDecl *
 CodiraDeclConverter::importAsOptionSetType(DeclContext *dc, Identifier name,
-                                          const clang::EnumDecl *decl) {
+                                          const language::Core::EnumDecl *decl) {
   ASTContext &ctx = Impl.CodiraContext;
 
   auto Loc = Impl.importSourceLoc(decl->getLocation());
@@ -6932,7 +6932,7 @@ CodiraDeclConverter::importAsOptionSetType(DeclContext *dc, Identifier name,
 }
 
 Decl *CodiraDeclConverter::importGlobalAsInitializer(
-    const clang::FunctionDecl *decl, DeclName name, DeclContext *dc,
+    const language::Core::FunctionDecl *decl, DeclName name, DeclContext *dc,
     CtorInitializerKind initKind,
     std::optional<ImportedName> correctCodiraName) {
   // TODO: Should this be an error? How can this come up?
@@ -7049,17 +7049,17 @@ Decl *CodiraDeclConverter::importGlobalAsInitializer(
 /// the accessors.
 VarDecl *
 CodiraDeclConverter::getImplicitProperty(ImportedName importedName,
-                                         const clang::FunctionDecl *accessor) {
+                                         const language::Core::FunctionDecl *accessor) {
   // Check whether we already know about the property.
   auto knownProperty = Impl.FunctionsAsProperties.find(accessor);
   if (knownProperty != Impl.FunctionsAsProperties.end())
     return knownProperty->second;
 
   // Determine whether we have the getter or setter.
-  const clang::FunctionDecl *getter = nullptr;
+  const language::Core::FunctionDecl *getter = nullptr;
   ImportedName getterName;
   std::optional<ImportedName> language3GetterName;
-  const clang::FunctionDecl *setter = nullptr;
+  const language::Core::FunctionDecl *setter = nullptr;
   ImportedName setterName;
   std::optional<ImportedName> language3SetterName;
   switch (importedName.getAccessorKind()) {
@@ -7089,11 +7089,11 @@ CodiraDeclConverter::getImplicitProperty(ImportedName importedName,
   bool foundAccessor = false;
   for (auto entry : lookupTable->lookup(SerializedCodiraName(propertyName),
                                         importedName.getEffectiveContext())) {
-    auto decl = entry.dyn_cast<clang::NamedDecl *>();
+    auto decl = entry.dyn_cast<language::Core::NamedDecl *>();
     if (!decl)
       continue;
 
-    auto function = dyn_cast<clang::FunctionDecl>(decl);
+    auto function = dyn_cast<language::Core::FunctionDecl>(decl);
     if (!function)
       continue;
 
@@ -7245,7 +7245,7 @@ CodiraDeclConverter::getImplicitProperty(ImportedName importedName,
 }
 
 ConstructorDecl *CodiraDeclConverter::importConstructor(
-    const clang::ObjCMethodDecl *objcMethod, const DeclContext *dc,
+    const language::Core::ObjCMethodDecl *objcMethod, const DeclContext *dc,
     bool implicit, std::optional<CtorInitializerKind> kind, bool required) {
   // Only methods in the 'init' family can become constructors.
   assert(isInitMethod(objcMethod) && "Not a real init method");
@@ -7272,7 +7272,7 @@ ConstructorDecl *CodiraDeclConverter::importConstructor(
     return nullptr;
 
   // Map the name and complete the import.
-  ArrayRef<const clang::ParmVarDecl *> params{objcMethod->param_begin(),
+  ArrayRef<const language::Core::ParmVarDecl *> params{objcMethod->param_begin(),
                                               objcMethod->param_end()};
 
   bool variadic = objcMethod->isVariadic();
@@ -7301,10 +7301,10 @@ ConstructorDecl *CodiraDeclConverter::importConstructor(
 /// Returns the latest "introduced" version on the current platform for
 /// \p D.
 toolchain::VersionTuple
-CodiraDeclConverter::findLatestIntroduction(const clang::Decl *D) {
+CodiraDeclConverter::findLatestIntroduction(const language::Core::Decl *D) {
   toolchain::VersionTuple result;
 
-  for (auto *attr : D->specific_attrs<clang::AvailabilityAttr>()) {
+  for (auto *attr : D->specific_attrs<language::Core::AvailabilityAttr>()) {
     if (attr->getPlatform()->getName() == "language") {
       toolchain::VersionTuple maxVersion{~0U, ~0U, ~0U};
       return maxVersion;
@@ -7327,7 +7327,7 @@ CodiraDeclConverter::findLatestIntroduction(const clang::Decl *D) {
 /// initializer than \p existingCtor.
 bool CodiraDeclConverter::existingConstructorIsWorse(
     const ConstructorDecl *existingCtor,
-    const clang::ObjCMethodDecl *objcMethod, CtorInitializerKind kind) {
+    const language::Core::ObjCMethodDecl *objcMethod, CtorInitializerKind kind) {
   CtorInitializerKind existingKind = existingCtor->getInitKind();
 
   // If one constructor is unavailable in Codira and the other is
@@ -7397,9 +7397,9 @@ bool CodiraDeclConverter::existingConstructorIsWorse(
 /// This variant of the function is responsible for actually binding the
 /// constructor declaration appropriately.
 ConstructorDecl *CodiraDeclConverter::importConstructor(
-    const clang::ObjCMethodDecl *objcMethod, const DeclContext *dc, bool implicit,
+    const language::Core::ObjCMethodDecl *objcMethod, const DeclContext *dc, bool implicit,
     CtorInitializerKind kind, bool required, ObjCSelector selector,
-    ImportedName importedName, ArrayRef<const clang::ParmVarDecl *> args,
+    ImportedName importedName, ArrayRef<const language::Core::ParmVarDecl *> args,
     bool variadic, ConstructorDecl *&existing) {
   existing = nullptr;
 
@@ -7474,10 +7474,10 @@ ConstructorDecl *CodiraDeclConverter::importConstructor(
         errorStr += "-[";
 
       auto objcDC = objcMethod->getDeclContext();
-      if (auto objcClass = dyn_cast<clang::ObjCInterfaceDecl>(objcDC)) {
+      if (auto objcClass = dyn_cast<language::Core::ObjCInterfaceDecl>(objcDC)) {
         errorStr += objcClass->getName();
         errorStr += ' ';
-      } else if (auto objcCat = dyn_cast<clang::ObjCCategoryDecl>(objcDC)) {
+      } else if (auto objcCat = dyn_cast<language::Core::ObjCCategoryDecl>(objcDC)) {
         errorStr += objcCat->getClassInterface()->getName();
         auto catName = objcCat->getName();
         if (!catName.empty()) {
@@ -7486,7 +7486,7 @@ ConstructorDecl *CodiraDeclConverter::importConstructor(
           errorStr += ')';
         }
         errorStr += ' ';
-      } else if (auto objcProto = dyn_cast<clang::ObjCProtocolDecl>(objcDC)) {
+      } else if (auto objcProto = dyn_cast<language::Core::ObjCProtocolDecl>(objcDC)) {
         errorStr += objcProto->getName();
         errorStr += ' ';
       }
@@ -7543,21 +7543,21 @@ ConstructorDecl *CodiraDeclConverter::importConstructor(
   // Check whether this initializer satisfies a requirement in a protocol.
   if (!required && !isa<ProtocolDecl>(dc) && objcMethod->isInstanceMethod()) {
     auto objcParent =
-        cast<clang::ObjCContainerDecl>(objcMethod->getDeclContext());
+        cast<language::Core::ObjCContainerDecl>(objcMethod->getDeclContext());
 
-    if (isa<clang::ObjCProtocolDecl>(objcParent)) {
+    if (isa<language::Core::ObjCProtocolDecl>(objcParent)) {
       // An initializer declared in a protocol is required.
       required = true;
     } else {
       // If the class in which this initializer was declared conforms to a
       // protocol that requires this initializer, then this initializer is
       // required.
-      SmallPtrSet<clang::ObjCProtocolDecl *, 8> objcProtocols;
+      SmallPtrSet<language::Core::ObjCProtocolDecl *, 8> objcProtocols;
       objcParent->getASTContext().CollectInheritedProtocols(objcParent,
                                                             objcProtocols);
       for (auto objcProto : objcProtocols) {
         for (auto decl : objcProto->lookup(objcMethod->getSelector())) {
-          if (cast<clang::ObjCMethodDecl>(decl)->isInstanceMethod()) {
+          if (cast<language::Core::ObjCMethodDecl>(decl)->isInstanceMethod()) {
             required = true;
             break;
           }
@@ -7717,29 +7717,29 @@ void CodiraDeclConverter::recordObjCOverride(SubscriptDecl *subscript) {
 /// create the Codira subscript declaration.
 SubscriptDecl *
 CodiraDeclConverter::importSubscript(Decl *decl,
-                                    const clang::ObjCMethodDecl *objcMethod) {
+                                    const language::Core::ObjCMethodDecl *objcMethod) {
   assert(objcMethod->isInstanceMethod() && "Caller must filter");
 
   // If the method we're attempting to import has the
   // language_private attribute, don't import as a subscript.
-  if (objcMethod->hasAttr<clang::CodiraPrivateAttr>())
+  if (objcMethod->hasAttr<language::Core::CodiraPrivateAttr>())
     return nullptr;
 
   // Figure out where to look for the counterpart.
-  const clang::ObjCInterfaceDecl *interface = nullptr;
-  const clang::ObjCProtocolDecl *protocol =
-      dyn_cast<clang::ObjCProtocolDecl>(objcMethod->getDeclContext());
+  const language::Core::ObjCInterfaceDecl *interface = nullptr;
+  const language::Core::ObjCProtocolDecl *protocol =
+      dyn_cast<language::Core::ObjCProtocolDecl>(objcMethod->getDeclContext());
   if (!protocol)
     interface = objcMethod->getClassInterface();
   auto lookupInstanceMethod = [&](
-      clang::Selector Sel) -> const clang::ObjCMethodDecl * {
+      language::Core::Selector Sel) -> const language::Core::ObjCMethodDecl * {
     if (interface)
       return interface->lookupInstanceMethod(Sel);
 
     return protocol->lookupInstanceMethod(Sel);
   };
 
-  auto findCounterpart = [&](clang::Selector sel) -> FuncDecl * {
+  auto findCounterpart = [&](language::Core::Selector sel) -> FuncDecl * {
     // If the declaration we're starting from is in a class, first check to see
     // if we've already imported an instance method with a matching selector.
     if (auto classDecl = decl->getDeclContext()->getSelfClassDecl()) {
@@ -7770,7 +7770,7 @@ CodiraDeclConverter::importSubscript(Decl *decl,
     // we're going to build the subscript later when we mirror the protocol
     // member. Bail out here, otherwise we'll build it twice.
     if (interface &&
-        isa<clang::ObjCProtocolDecl>(counterpart->getDeclContext()))
+        isa<language::Core::ObjCProtocolDecl>(counterpart->getDeclContext()))
       return nullptr;
 
     return cast_or_null<FuncDecl>(
@@ -7779,9 +7779,9 @@ CodiraDeclConverter::importSubscript(Decl *decl,
 
   // Determine the selector of the counterpart.
   FuncDecl *getter = nullptr, *setter = nullptr;
-  const clang::ObjCMethodDecl *getterObjCMethod = nullptr,
+  const language::Core::ObjCMethodDecl *getterObjCMethod = nullptr,
                               *setterObjCMethod = nullptr;
-  clang::Selector counterpartSelector;
+  language::Core::Selector counterpartSelector;
   if (objcMethod->getSelector() == Impl.objectAtIndexedSubscript) {
     getter = cast<FuncDecl>(decl);
     getterObjCMethod = objcMethod;
@@ -7804,21 +7804,21 @@ CodiraDeclConverter::importSubscript(Decl *decl,
 
   // Find the counterpart.
   bool optionalMethods = (objcMethod->getImplementationControl() ==
-                          clang::ObjCImplementationControl::Optional);
+                          language::Core::ObjCImplementationControl::Optional);
 
   if (auto *counterpart = findCounterpart(counterpartSelector)) {
-    const clang::ObjCMethodDecl *counterpartMethod = nullptr;
+    const language::Core::ObjCMethodDecl *counterpartMethod = nullptr;
 
     // If the counterpart to the method we're attempting to import has the
     // language_private attribute, don't import as a subscript.
     if (auto importedFrom = counterpart->getClangDecl()) {
-      if (importedFrom->hasAttr<clang::CodiraPrivateAttr>())
+      if (importedFrom->hasAttr<language::Core::CodiraPrivateAttr>())
         return nullptr;
 
-      counterpartMethod = cast<clang::ObjCMethodDecl>(importedFrom);
+      counterpartMethod = cast<language::Core::ObjCMethodDecl>(importedFrom);
       if (optionalMethods)
         optionalMethods = (counterpartMethod->getImplementationControl() ==
-                           clang::ObjCImplementationControl::Optional);
+                           language::Core::ObjCImplementationControl::Optional);
     }
 
     assert(!counterpart || !counterpart->isStatic());
@@ -7962,7 +7962,7 @@ CodiraDeclConverter::importSubscript(Decl *decl,
                                                         getter->getClangNode());
 
   bool IsObjCDirect = false;
-  if (auto objCDecl = dyn_cast<clang::ObjCMethodDecl>(getter->getClangDecl())) {
+  if (auto objCDecl = dyn_cast<language::Core::ObjCMethodDecl>(getter->getClangDecl())) {
     IsObjCDirect = objCDecl->isDirectMethod();
   }
   const auto access = IsObjCDirect ? AccessLevel::Public
@@ -8015,7 +8015,7 @@ CodiraDeclConverter::importSubscript(Decl *decl,
 }
 
 AccessorDecl *
-CodiraDeclConverter::importAccessor(const clang::ObjCMethodDecl *clangAccessor,
+CodiraDeclConverter::importAccessor(const language::Core::ObjCMethodDecl *clangAccessor,
                                    AbstractStorageDecl *storage,
                                    AccessorKind accessorKind,
                                    DeclContext *dc) {
@@ -8044,7 +8044,7 @@ void CodiraDeclConverter::addProtocols(
 }
 
 void CodiraDeclConverter::importObjCProtocols(
-    Decl *decl, const clang::ObjCProtocolList &clangProtocols,
+    Decl *decl, const language::Core::ObjCProtocolList &clangProtocols,
     SmallVectorImpl<InheritedEntry> &inheritedTypes) {
   SmallVector<ProtocolDecl *, 4> protocols;
   toolchain::SmallPtrSet<ProtocolDecl *, 4> knownProtocols;
@@ -8068,7 +8068,7 @@ void CodiraDeclConverter::importObjCProtocols(
 }
 
 std::optional<GenericParamList *> CodiraDeclConverter::importObjCGenericParams(
-    const clang::ObjCInterfaceDecl *decl, DeclContext *dc) {
+    const language::Core::ObjCInterfaceDecl *decl, DeclContext *dc) {
   auto typeParamList = decl->getTypeParamList();
   if (!typeParamList) {
     return nullptr;
@@ -8096,7 +8096,7 @@ std::optional<GenericParamList *> CodiraDeclConverter::importObjCGenericParams(
       assert(!objcGenericParam->getUnderlyingType().isNull());
       auto underlyingTy = objcGenericParam->getUnderlyingType();
       auto clangBound = underlyingTy
-                            ->castAs<clang::ObjCObjectPointerType>();
+                            ->castAs<language::Core::ObjCObjectPointerType>();
 
       ImportTypeAttrs attrs;
       getConcurrencyAttrs(Impl.CodiraContext, ImportTypeKind::Abstract, attrs,
@@ -8108,7 +8108,7 @@ std::optional<GenericParamList *> CodiraDeclConverter::importObjCGenericParams(
         assert(!objcGenericParam->hasAttrs()
                && "ObjC generics can have attributes now--we should use 'em");
         Type superclassType = Impl.importTypeIgnoreIUO(
-            clang::QualType(unqualifiedClangBound, 0), ImportTypeKind::Abstract,
+            language::Core::QualType(unqualifiedClangBound, 0), ImportTypeKind::Abstract,
             ImportDiagnosticAdder(Impl, decl, decl->getLocation()),
             false, Bridgeability::None, ImportTypeAttrs());
         if (!superclassType) {
@@ -8125,7 +8125,7 @@ std::optional<GenericParamList *> CodiraDeclConverter::importObjCGenericParams(
         }
       }
 
-      for (clang::ObjCProtocolDecl *clangProto : clangBound->quals()) {
+      for (language::Core::ObjCProtocolDecl *clangProto : clangBound->quals()) {
         ProtocolDecl *proto = castIgnoringCompatibilityAlias<ProtocolDecl>(
             Impl.importDecl(clangProto, getActiveCodiraVersion()));
         if (!proto) {
@@ -8149,37 +8149,37 @@ std::optional<GenericParamList *> CodiraDeclConverter::importObjCGenericParams(
 }
 
 void ClangImporter::Implementation::importMirroredProtocolMembers(
-    const clang::ObjCContainerDecl *decl, DeclContext *dc,
+    const language::Core::ObjCContainerDecl *decl, DeclContext *dc,
     std::optional<DeclBaseName> name, SmallVectorImpl<Decl *> &members) {
   CodiraDeclConverter converter(*this, CurrentVersion);
   converter.importMirroredProtocolMembers(decl, dc, name, members);
 }
 
 void CodiraDeclConverter::importMirroredProtocolMembers(
-    const clang::ObjCContainerDecl *decl, DeclContext *dc,
+    const language::Core::ObjCContainerDecl *decl, DeclContext *dc,
     std::optional<DeclBaseName> name, SmallVectorImpl<Decl *> &members) {
   assert(dc);
-  const clang::ObjCInterfaceDecl *interfaceDecl = nullptr;
+  const language::Core::ObjCInterfaceDecl *interfaceDecl = nullptr;
   const ClangModuleUnit *declModule;
   const ClangModuleUnit *interfaceModule;
 
   // Try to import only the most specific methods with a particular name.
   // We use a MapVector to get deterministic iteration order later.
-  toolchain::MapVector<clang::Selector, std::vector<MirroredMethodEntry>>
+  toolchain::MapVector<language::Core::Selector, std::vector<MirroredMethodEntry>>
     methodsByName;
 
   for (auto proto : Impl.getImportedProtocols(dc->getAsDecl())) {
     auto clangProto =
-        cast_or_null<clang::ObjCProtocolDecl>(proto->getClangDecl());
+        cast_or_null<language::Core::ObjCProtocolDecl>(proto->getClangDecl());
     if (!clangProto)
       continue;
 
     if (!interfaceDecl) {
       declModule = Impl.getClangModuleForDecl(decl);
-      if ((interfaceDecl = dyn_cast<clang::ObjCInterfaceDecl>(decl))) {
+      if ((interfaceDecl = dyn_cast<language::Core::ObjCInterfaceDecl>(decl))) {
         interfaceModule = declModule;
       } else {
-        auto category = cast<clang::ObjCCategoryDecl>(decl);
+        auto category = cast<language::Core::ObjCCategoryDecl>(decl);
         interfaceDecl = category->getClassInterface();
         interfaceModule = Impl.getClangModuleForDecl(interfaceDecl);
       }
@@ -8202,7 +8202,7 @@ void CodiraDeclConverter::importMirroredProtocolMembers(
 
       if (auto prop = dyn_cast<VarDecl>(member)) {
         auto objcProp =
-            dyn_cast_or_null<clang::ObjCPropertyDecl>(prop->getClangDecl());
+            dyn_cast_or_null<language::Core::ObjCPropertyDecl>(prop->getClangDecl());
         if (!objcProp)
           return;
 
@@ -8210,14 +8210,14 @@ void CodiraDeclConverter::importMirroredProtocolMembers(
         // name. (This also covers other properties with that same name.)
         // FIXME: We should still mirror the setter as a method if it's
         // not already there.
-        clang::Selector sel = objcProp->getGetterName();
+        language::Core::Selector sel = objcProp->getGetterName();
         if (interfaceDecl->getInstanceMethod(sel))
           return;
 
         bool inNearbyCategory =
             std::any_of(interfaceDecl->known_categories_begin(),
                         interfaceDecl->known_categories_end(),
-                        [=](const clang::ObjCCategoryDecl *category) -> bool {
+                        [=](const language::Core::ObjCCategoryDecl *category) -> bool {
                           if (!Impl.getClangSema().isVisible(category)) {
                             return false;
                           }
@@ -8252,7 +8252,7 @@ void CodiraDeclConverter::importMirroredProtocolMembers(
         return;
 
       auto objcMethod =
-          dyn_cast_or_null<clang::ObjCMethodDecl>(member->getClangDecl());
+          dyn_cast_or_null<language::Core::ObjCMethodDecl>(member->getClangDecl());
       if (!objcMethod)
         return;
 
@@ -8299,13 +8299,13 @@ enum MirrorImportComparison {
 ///
 /// The algorithm that uses this assumes that it is transitive.
 static bool isMirrorImportSuppressedBy(ClangImporter::Implementation &importer,
-                                       const clang::ObjCMethodDecl *first,
-                                       const clang::ObjCMethodDecl *second) {
+                                       const language::Core::ObjCMethodDecl *first,
+                                       const language::Core::ObjCMethodDecl *second) {
   if (first->isInstanceMethod() != second->isInstanceMethod())
     return false;
 
-  auto firstProto = cast<clang::ObjCProtocolDecl>(first->getDeclContext());
-  auto secondProto = cast<clang::ObjCProtocolDecl>(second->getDeclContext());
+  auto firstProto = cast<language::Core::ObjCProtocolDecl>(first->getDeclContext());
+  auto secondProto = cast<language::Core::ObjCProtocolDecl>(second->getDeclContext());
 
   // If the first method's protocol is a super-protocol of the second's,
   // then the second method overrides the first and we should suppress.
@@ -8314,15 +8314,15 @@ static bool isMirrorImportSuppressedBy(ClangImporter::Implementation &importer,
   // the other (the LHS).
   auto &ctx = importer.getClangASTContext();
   return ctx.ProtocolCompatibleWithProtocol(
-                          const_cast<clang::ObjCProtocolDecl*>(firstProto),
-                          const_cast<clang::ObjCProtocolDecl*>(secondProto));
+                          const_cast<language::Core::ObjCProtocolDecl*>(firstProto),
+                          const_cast<language::Core::ObjCProtocolDecl*>(secondProto));
 }
 
 /// Compare two methods for mirror-import purposes.
 static MirrorImportComparison
 compareMethodsForMirrorImport(ClangImporter::Implementation &importer,
-                              const clang::ObjCMethodDecl *first,
-                              const clang::ObjCMethodDecl *second) {
+                              const language::Core::ObjCMethodDecl *first,
+                              const language::Core::ObjCMethodDecl *second) {
   if (isMirrorImportSuppressedBy(importer, first, second))
     return IsSuppressed;
   if (isMirrorImportSuppressedBy(importer, second, first))
@@ -8334,7 +8334,7 @@ compareMethodsForMirrorImport(ClangImporter::Implementation &importer,
 /// as suppressed by nulling their entries out.
 /// Return true if this method is overridden by any methods in the array.
 static bool suppressOverriddenMethods(ClangImporter::Implementation &importer,
-                                      const clang::ObjCMethodDecl *method,
+                                      const language::Core::ObjCMethodDecl *method,
                                       bool isAsync,
                                MutableArrayRef<MirroredMethodEntry> entries) {
   assert(method && "method was already suppressed");
@@ -8416,11 +8416,11 @@ void CodiraDeclConverter::importNonOverriddenMirroredMethods(DeclContext *dc,
                                MutableArrayRef<MirroredMethodEntry> entries,
                                            SmallVectorImpl<Decl *> &members) {
   // Keep track of the async imports. We'll come back to them.
-  toolchain::SmallMapVector<const clang::ObjCMethodDecl*, Decl *, 4> asyncImports;
+  toolchain::SmallMapVector<const language::Core::ObjCMethodDecl*, Decl *, 4> asyncImports;
 
   // Keep track of all of the synchronous imports.
   toolchain::SmallMapVector<
-      const clang::ObjCMethodDecl*, toolchain::TinyPtrVector<Decl *>, 4>
+      const language::Core::ObjCMethodDecl*, toolchain::TinyPtrVector<Decl *>, 4>
     syncImports;
 
   for (size_t i = 0, e = entries.size(); i != e; ++i) {
@@ -8493,10 +8493,10 @@ void CodiraDeclConverter::importInheritedConstructors(
 
   auto superclassClangDecl = superclassDecl->getClangDecl();
   if (!superclassClangDecl ||
-      !isa<clang::ObjCInterfaceDecl>(superclassClangDecl))
+      !isa<language::Core::ObjCInterfaceDecl>(superclassClangDecl))
     return;
 
-  auto curObjCClass = cast<clang::ObjCInterfaceDecl>(classDecl->getClangDecl());
+  auto curObjCClass = cast<language::Core::ObjCInterfaceDecl>(classDecl->getClangDecl());
 
   // The kind of initializer to import. If this class has designated
   // initializers, everything it inherits is a convenience initializer.
@@ -8529,12 +8529,12 @@ void CodiraDeclConverter::importInheritedConstructors(
     }
 
     auto objcMethod =
-        dyn_cast_or_null<clang::ObjCMethodDecl>(ctor->getClangDecl());
+        dyn_cast_or_null<language::Core::ObjCMethodDecl>(ctor->getClangDecl());
     if (!objcMethod)
       continue;
 
     auto &clangSourceMgr = Impl.getClangASTContext().getSourceManager();
-    clang::PrettyStackTraceDecl trace(objcMethod, clang::SourceLocation(),
+    language::Core::PrettyStackTraceDecl trace(objcMethod, language::Core::SourceLocation(),
                                       clangSourceMgr,
                                       "importing (inherited)");
 
@@ -8568,7 +8568,7 @@ void CodiraDeclConverter::importInheritedConstructors(
                  existing->getClangDecl()) {
         // Check that the existing constructor the prevented new creation is
         // really an inherited factory initializer and not a class member.
-        auto existingMD = cast<clang::ObjCMethodDecl>(existing->getClangDecl());
+        auto existingMD = cast<language::Core::ObjCMethodDecl>(existing->getClangDecl());
         if (existingMD->getClassInterface() != curObjCClass) {
           newMembers.push_back(existing);
         }
@@ -8600,7 +8600,7 @@ void CodiraDeclConverter::importInheritedConstructors(
 }
 
 std::optional<Decl *> ClangImporter::Implementation::importDeclCached(
-    const clang::NamedDecl *ClangDecl, ImportNameVersion version,
+    const language::Core::NamedDecl *ClangDecl, ImportNameVersion version,
     bool UseCanonical) {
   auto Known = ImportedDecls.find(
     { UseCanonical? ClangDecl->getCanonicalDecl(): ClangDecl, version });
@@ -8613,38 +8613,38 @@ std::optional<Decl *> ClangImporter::Implementation::importDeclCached(
 /// Checks if we don't need to import the typedef itself.  If the typedef
 /// should be skipped, returns the underlying declaration that the typedef
 /// refers to -- this declaration should be imported instead.
-static const clang::TagDecl *
+static const language::Core::TagDecl *
 canSkipOverTypedef(ClangImporter::Implementation &Impl,
-                   const clang::NamedDecl *D,
+                   const language::Core::NamedDecl *D,
                    bool &TypedefIsSuperfluous) {
   // If we have a typedef that refers to a tag type of the same name,
   // skip the typedef and import the tag type directly.
 
   TypedefIsSuperfluous = false;
 
-  auto *ClangTypedef = dyn_cast<clang::TypedefNameDecl>(D);
+  auto *ClangTypedef = dyn_cast<language::Core::TypedefNameDecl>(D);
   if (!ClangTypedef)
     return nullptr;
 
-  const clang::DeclContext *RedeclContext =
+  const language::Core::DeclContext *RedeclContext =
       ClangTypedef->getDeclContext()->getRedeclContext();
   if (!RedeclContext->isTranslationUnit())
     return nullptr;
 
-  clang::QualType UnderlyingType = ClangTypedef->getUnderlyingType();
-  if (auto elaborated = dyn_cast<clang::ElaboratedType>(UnderlyingType))
+  language::Core::QualType UnderlyingType = ClangTypedef->getUnderlyingType();
+  if (auto elaborated = dyn_cast<language::Core::ElaboratedType>(UnderlyingType))
     UnderlyingType = elaborated->desugar();
 
   // A typedef to a typedef should get imported as a typealias.
-  auto *TypedefT = UnderlyingType->getAs<clang::TypedefType>();
+  auto *TypedefT = UnderlyingType->getAs<language::Core::TypedefType>();
   if (TypedefT)
     return nullptr;
 
-  auto *TT = UnderlyingType->getAs<clang::TagType>();
+  auto *TT = UnderlyingType->getAs<language::Core::TagType>();
   if (!TT)
     return nullptr;
 
-  clang::TagDecl *UnderlyingDecl = TT->getDecl();
+  language::Core::TagDecl *UnderlyingDecl = TT->getDecl();
   if (UnderlyingDecl->getDeclContext()->getRedeclContext() != RedeclContext)
     return nullptr;
 
@@ -8664,15 +8664,15 @@ StringRef ClangImporter::Implementation::
 getCodiraNameFromClangName(StringRef replacement) {
   auto &clangSema = getClangSema();
 
-  clang::IdentifierInfo *identifier =
+  language::Core::IdentifierInfo *identifier =
       &clangSema.getASTContext().Idents.get(replacement);
-  clang::LookupResult lookupResult(clangSema, identifier,
-                                   clang::SourceLocation(),
-                                   clang::Sema::LookupOrdinaryName);
+  language::Core::LookupResult lookupResult(clangSema, identifier,
+                                   language::Core::SourceLocation(),
+                                   language::Core::Sema::LookupOrdinaryName);
   if (!clangSema.LookupName(lookupResult, clangSema.TUScope))
     return "";
 
-  auto clangDecl = lookupResult.getAsSingle<clang::NamedDecl>();
+  auto clangDecl = lookupResult.getAsSingle<language::Core::NamedDecl>();
   if (!clangDecl)
     return "";
 
@@ -8690,23 +8690,23 @@ getCodiraNameFromClangName(StringRef replacement) {
   return CodiraContext.AllocateCopy(StringRef(renamed));
 }
 
-bool importer::isSpecialUIKitStructZeroProperty(const clang::NamedDecl *decl) {
+bool importer::isSpecialUIKitStructZeroProperty(const language::Core::NamedDecl *decl) {
   // FIXME: Once UIKit removes the "nonlanguage" availability in their versioned
   // API notes, this workaround can go away.
-  auto *constant = dyn_cast<clang::VarDecl>(decl);
+  auto *constant = dyn_cast<language::Core::VarDecl>(decl);
   if (!constant)
     return false;
 
-  clang::DeclarationName name = constant->getDeclName();
-  const clang::IdentifierInfo *ident = name.getAsIdentifierInfo();
+  language::Core::DeclarationName name = constant->getDeclName();
+  const language::Core::IdentifierInfo *ident = name.getAsIdentifierInfo();
   if (!ident)
     return false;
 
   return ident->isStr("UIEdgeInsetsZero") || ident->isStr("UIOffsetZero");
 }
 
-bool importer::hasSameUnderlyingType(const clang::Type *a,
-                                     const clang::TemplateTypeParmDecl *b) {
+bool importer::hasSameUnderlyingType(const language::Core::Type *a,
+                                     const language::Core::TemplateTypeParmDecl *b) {
   while (a->isPointerType() || a->isReferenceType())
     a = a->getPointeeType().getTypePtr();
   return a == b->getTypeForDecl();
@@ -8750,12 +8750,12 @@ SourceFile &ClangImporter::Implementation::getClangCodiraAttrSourceFile(
   return *sourceFile;
 }
 
-bool language::importer::isMainActorAttr(const clang::CodiraAttrAttr *languageAttr) {
+bool language::importer::isMainActorAttr(const language::Core::CodiraAttrAttr *languageAttr) {
   return languageAttr->getAttribute() == "@MainActor" ||
          languageAttr->getAttribute() == "@UIActor";
 }
 
-bool language::importer::isMutabilityAttr(const clang::CodiraAttrAttr *languageAttr) {
+bool language::importer::isMutabilityAttr(const language::Core::CodiraAttrAttr *languageAttr) {
   return languageAttr->getAttribute() == "mutating" ||
          languageAttr->getAttribute() == "nonmutating";
 }
@@ -8810,7 +8810,7 @@ void ClangImporter::Implementation::importNontrivialAttribute(
 void
 ClangImporter::Implementation::importCodiraAttrAttributes(Decl *MappedDecl) {
   auto ClangDecl =
-      dyn_cast_or_null<clang::NamedDecl>(MappedDecl->getClangDecl());
+      dyn_cast_or_null<language::Core::NamedDecl>(MappedDecl->getClangDecl());
   if (!ClangDecl)
     return;
 
@@ -8821,17 +8821,17 @@ ClangImporter::Implementation::importCodiraAttrAttributes(Decl *MappedDecl) {
 
   if (auto maybeDefinition = getDefinitionForClangTypeDecl(ClangDecl))
     if (maybeDefinition.value())
-      ClangDecl = cast<clang::NamedDecl>(maybeDefinition.value());
+      ClangDecl = cast<language::Core::NamedDecl>(maybeDefinition.value());
 
-  std::optional<const clang::CodiraAttrAttr *> seenMainActorAttr;
-  const clang::CodiraAttrAttr *seenMutabilityAttr = nullptr;
+  std::optional<const language::Core::CodiraAttrAttr *> seenMainActorAttr;
+  const language::Core::CodiraAttrAttr *seenMutabilityAttr = nullptr;
 
-  auto importAttrsFromDecl = [&](const clang::NamedDecl *ClangDecl) {
+  auto importAttrsFromDecl = [&](const language::Core::NamedDecl *ClangDecl) {
     //
     // __attribute__((language_attr("attribute")))
     //
     bool seenUnsafe = false;
-    for (auto languageAttr : ClangDecl->specific_attrs<clang::CodiraAttrAttr>()) {
+    for (auto languageAttr : ClangDecl->specific_attrs<language::Core::CodiraAttrAttr>()) {
       // FIXME: Hard-code @MainActor and @UIActor, because we don't have a
       // point at which to do name lookup for imported entities.
       if (isMainActorAttr(languageAttr)) {
@@ -8860,7 +8860,7 @@ ClangImporter::Implementation::importCodiraAttrAttributes(Decl *MappedDecl) {
 
         // Check if 'nonmutating' attr is applicable
         if (attr == "nonmutating") {
-          if (auto *method = dyn_cast<clang::CXXMethodDecl>(ClangDecl)) {
+          if (auto *method = dyn_cast<language::Core::CXXMethodDecl>(ClangDecl)) {
             if (!method->isConst()) {
               diagnose(HeaderLoc(languageAttr->getLocation()),
                        diag::nonmutating_without_const);
@@ -8944,7 +8944,7 @@ ClangImporter::Implementation::importCodiraAttrAttributes(Decl *MappedDecl) {
     }
 
     bool importUnsafeHeuristic =
-        isa<clang::CXXMethodDecl>(ClangDecl) &&
+        isa<language::Core::CXXMethodDecl>(ClangDecl) &&
         !evaluateOrDefault(CodiraContext.evaluator,
                            IsSafeUseOfCxxDecl({ClangDecl}), {});
     if (seenUnsafe || importUnsafeHeuristic) {
@@ -8956,7 +8956,7 @@ ClangImporter::Implementation::importCodiraAttrAttributes(Decl *MappedDecl) {
 
   // If the Clang declaration is from an anonymous tag that was given a
   // name via a typedef, look for attributes on the typedef as well.
-  if (auto tag = dyn_cast<clang::TagDecl>(ClangDecl)) {
+  if (auto tag = dyn_cast<language::Core::TagDecl>(ClangDecl)) {
     if (tag->getName().empty()) {
       if (auto typedefDecl = tag->getTypedefNameForAnonDecl())
         importAttrsFromDecl(typedefDecl);
@@ -8978,16 +8978,16 @@ ClangImporter::Implementation::importCodiraAttrAttributes(Decl *MappedDecl) {
       MappedDecl->getAttrs().removeAttribute(attr);
 
   // Some types have an implicit '@Sendable' attribute.
-  if (ClangDecl->hasAttr<clang::CodiraNewTypeAttr>() ||
-      ClangDecl->hasAttr<clang::EnumExtensibilityAttr>() ||
-      ClangDecl->hasAttr<clang::FlagEnumAttr>() ||
-      ClangDecl->hasAttr<clang::NSErrorDomainAttr>())
+  if (ClangDecl->hasAttr<language::Core::CodiraNewTypeAttr>() ||
+      ClangDecl->hasAttr<language::Core::EnumExtensibilityAttr>() ||
+      ClangDecl->hasAttr<language::Core::FlagEnumAttr>() ||
+      ClangDecl->hasAttr<language::Core::NSErrorDomainAttr>())
     MappedDecl->getAttrs().add(
                           new (CodiraContext) SendableAttr(/*isImplicit=*/true));
 
   // 'Error' conforms to 'Sendable', so error wrappers have to be 'Sendable'
   // and it doesn't make sense for the 'Code' enum to be non-'Sendable'.
-  if (ClangDecl->hasAttr<clang::NSErrorDomainAttr>()) {
+  if (ClangDecl->hasAttr<language::Core::NSErrorDomainAttr>()) {
     // If any @_nonSendable attributes are running the show, invalidate and
     // diagnose them.
     while (NonSendableAttr *attr = dyn_cast_or_null<NonSendableAttr>(
@@ -9022,7 +9022,7 @@ ClangImporter::Implementation::importCodiraAttrAttributes(Decl *MappedDecl) {
     if (DC->isTypeContext() && isa<VarDecl>(MappedDecl)) {
       auto *mappedVar = cast<VarDecl>(MappedDecl);
       if (mappedVar->isStatic() && mappedVar->isLet() &&
-          isNSNotificationName(cast<clang::ValueDecl>(ClangDecl)->getType())) {
+          isNSNotificationName(cast<language::Core::ValueDecl>(ClangDecl)->getType())) {
         MappedDecl->getAttrs().add(
             NonisolatedAttr::createImplicit(CodiraContext));
       }
@@ -9043,21 +9043,21 @@ class CodiraifyInfoPrinter {
 public:
   static const ssize_t SELF_PARAM_INDEX = -2;
   static const ssize_t RETURN_VALUE_INDEX = -1;
-  clang::ASTContext &ctx;
+  language::Core::ASTContext &ctx;
   ASTContext &CodiraContext;
   toolchain::raw_ostream &out;
   MacroDecl &CodiraifyImportDecl;
   bool firstParam = true;
-  CodiraifyInfoPrinter(clang::ASTContext &ctx, ASTContext &CodiraContext, toolchain::raw_ostream &out, MacroDecl &CodiraifyImportDecl)
+  CodiraifyInfoPrinter(language::Core::ASTContext &ctx, ASTContext &CodiraContext, toolchain::raw_ostream &out, MacroDecl &CodiraifyImportDecl)
       : ctx(ctx), CodiraContext(CodiraContext), out(out), CodiraifyImportDecl(CodiraifyImportDecl) {
     out << "@_CodiraifyImport(";
   }
   ~CodiraifyInfoPrinter() { out << ")"; }
 
-  void printCountedBy(const clang::CountAttributedType *CAT,
+  void printCountedBy(const language::Core::CountAttributedType *CAT,
                       ssize_t pointerIndex) {
     printSeparator();
-    clang::Expr *countExpr = CAT->getCountExpr();
+    language::Core::Expr *countExpr = CAT->getCountExpr();
     bool isSizedBy = CAT->isCountInBytes();
     out << ".";
     if (isSizedBy)
@@ -9073,7 +9073,7 @@ public:
       out << "count";
     out << ": \"";
     countExpr->printPretty(
-        out, {}, {ctx.getLangOpts()}); // TODO: map clang::Expr to Codira Expr
+        out, {}, {ctx.getLangOpts()}); // TODO: map language::Core::Expr to Codira Expr
     out << "\")";
   }
 
@@ -9156,22 +9156,22 @@ private:
 
 namespace {
 struct CountedByExpressionValidator
-    : clang::ConstStmtVisitor<CountedByExpressionValidator, bool> {
-  bool VisitDeclRefExpr(const clang::DeclRefExpr *e) { return true; }
+    : language::Core::ConstStmtVisitor<CountedByExpressionValidator, bool> {
+  bool VisitDeclRefExpr(const language::Core::DeclRefExpr *e) { return true; }
 
-  bool VisitIntegerLiteral(const clang::IntegerLiteral *IL) {
-    switch (IL->getType()->castAs<clang::BuiltinType>()->getKind()) {
-    case clang::BuiltinType::Char_S:
-    case clang::BuiltinType::Char_U:
-    case clang::BuiltinType::UChar:
-    case clang::BuiltinType::SChar:
-    case clang::BuiltinType::Short:
-    case clang::BuiltinType::UShort:
-    case clang::BuiltinType::UInt:
-    case clang::BuiltinType::Long:
-    case clang::BuiltinType::ULong:
-    case clang::BuiltinType::LongLong:
-    case clang::BuiltinType::ULongLong:
+  bool VisitIntegerLiteral(const language::Core::IntegerLiteral *IL) {
+    switch (IL->getType()->castAs<language::Core::BuiltinType>()->getKind()) {
+    case language::Core::BuiltinType::Char_S:
+    case language::Core::BuiltinType::Char_U:
+    case language::Core::BuiltinType::UChar:
+    case language::Core::BuiltinType::SChar:
+    case language::Core::BuiltinType::Short:
+    case language::Core::BuiltinType::UShort:
+    case language::Core::BuiltinType::UInt:
+    case language::Core::BuiltinType::Long:
+    case language::Core::BuiltinType::ULong:
+    case language::Core::BuiltinType::LongLong:
+    case language::Core::BuiltinType::ULongLong:
       // These integer literals are printed with a suffix that isn't valid Codira
       // syntax
       return false;
@@ -9180,15 +9180,15 @@ struct CountedByExpressionValidator
     }
   }
 
-  bool VisitImplicitCastExpr(const clang::ImplicitCastExpr *c) {
+  bool VisitImplicitCastExpr(const language::Core::ImplicitCastExpr *c) {
     return this->Visit(c->getSubExpr());
   }
-  bool VisitParenExpr(const clang::ParenExpr *p) {
+  bool VisitParenExpr(const language::Core::ParenExpr *p) {
     return this->Visit(p->getSubExpr());
   }
 
 #define SUPPORTED_UNOP(UNOP) \
-  bool VisitUnary ## UNOP(const clang::UnaryOperator *unop) { \
+  bool VisitUnary ## UNOP(const language::Core::UnaryOperator *unop) { \
     return this->Visit(unop->getSubExpr()); \
   }
   SUPPORTED_UNOP(Plus)
@@ -9197,7 +9197,7 @@ struct CountedByExpressionValidator
 #undef SUPPORTED_UNOP
 
 #define SUPPORTED_BINOP(BINOP) \
-  bool VisitBin ## BINOP(const clang::BinaryOperator *binop) { \
+  bool VisitBin ## BINOP(const language::Core::BinaryOperator *binop) { \
     return this->Visit(binop->getLHS()) && this->Visit(binop->getRHS()); \
   }
   SUPPORTED_BINOP(Add)
@@ -9212,7 +9212,7 @@ struct CountedByExpressionValidator
   SUPPORTED_BINOP(Or)
 #undef SUPPORTED_BINOP
 
-  bool VisitStmt(const clang::Stmt *) { return false; }
+  bool VisitStmt(const language::Core::Stmt *) { return false; }
 };
 } // namespace
 
@@ -9224,9 +9224,9 @@ static bool CodiraifiableCountedByPointerType(Type languageType) {
   return nonnullType->getAnyPointerElementType(PTK) &&
     (PTK == PTK_UnsafePointer || PTK == PTK_UnsafeMutablePointer);
 }
-static bool CodiraifiableSizedByPointerType(const clang::ASTContext &ctx,
+static bool CodiraifiableSizedByPointerType(const language::Core::ASTContext &ctx,
                                            Type languageType,
-                                           const clang::CountAttributedType *CAT) {
+                                           const language::Core::CountAttributedType *CAT) {
   Type nonnullType = languageType->lookThroughSingleOptionalType();
   if (nonnullType->isOpaquePointer())
     return true;
@@ -9238,12 +9238,12 @@ static bool CodiraifiableSizedByPointerType(const clang::ASTContext &ctx,
   if (PTK != PTK_UnsafePointer && PTK != PTK_UnsafeMutablePointer)
     return false;
   // We have a pointer to a type with a size. Verify that it is char-sized.
-  auto PtrT = CAT->getAs<clang::PointerType>();
+  auto PtrT = CAT->getAs<language::Core::PointerType>();
   auto PointeeT = PtrT->getPointeeType();
   return ctx.getTypeSizeInChars(PointeeT).isOne();
 }
-static bool CodiraifiableCAT(const clang::ASTContext &ctx,
-                            const clang::CountAttributedType *CAT,
+static bool CodiraifiableCAT(const language::Core::ASTContext &ctx,
+                            const language::Core::CountAttributedType *CAT,
                             Type languageType) {
   return CAT && CountedByExpressionValidator().Visit(CAT->getCountExpr()) &&
     (CAT->isCountInBytes() ?
@@ -9257,13 +9257,13 @@ namespace {
 // FIXME: make sure the generated code compiles for template
 // instantiations that are not behind type aliases.
 struct UnaliasedInstantiationVisitor
-    : clang::RecursiveASTVisitor<UnaliasedInstantiationVisitor> {
+    : language::Core::RecursiveASTVisitor<UnaliasedInstantiationVisitor> {
   bool hasUnaliasedInstantiation = false;
 
-  bool TraverseTypedefType(const clang::TypedefType *) { return true; }
+  bool TraverseTypedefType(const language::Core::TypedefType *) { return true; }
 
   bool
-  VisitTemplateSpecializationType(const clang::TemplateSpecializationType *) {
+  VisitTemplateSpecializationType(const language::Core::TemplateSpecializationType *) {
     hasUnaliasedInstantiation = true;
     return false;
   }
@@ -9274,14 +9274,14 @@ void ClangImporter::Implementation::languageify(AbstractFunctionDecl *MappedDecl
   if (!CodiraContext.LangOpts.hasFeature(Feature::SafeInteropWrappers))
     return;
   auto ClangDecl =
-      dyn_cast_or_null<clang::FunctionDecl>(MappedDecl->getClangDecl());
+      dyn_cast_or_null<language::Core::FunctionDecl>(MappedDecl->getClangDecl());
   if (!ClangDecl)
     return;
 
   // FIXME: for private macro generated functions we do not serialize the
   // SILFunction's body anywhere triggering assertions.
-  if (ClangDecl->getAccess() == clang::AS_protected ||
-      ClangDecl->getAccess() == clang::AS_private)
+  if (ClangDecl->getAccess() == language::Core::AS_protected ||
+      ClangDecl->getAccess() == language::Core::AS_private)
     return;
 
   if (ClangDecl->getNumParams() != MappedDecl->getParameters()->size())
@@ -9309,7 +9309,7 @@ void ClangImporter::Implementation::languageify(AbstractFunctionDecl *MappedDecl
     toolchain::StringMap<std::string> typeMapping;
 
     auto registerStdSpanTypeMapping =
-        [&typeMapping](Type languageType, const clang::QualType clangType) {
+        [&typeMapping](Type languageType, const language::Core::QualType clangType) {
           const auto *decl = clangType->getAsTagDecl();
           if (decl && decl->isInStdNamespace() && decl->getName() == "span") {
             typeMapping.insert(
@@ -9329,14 +9329,14 @@ void ClangImporter::Implementation::languageify(AbstractFunctionDecl *MappedDecl
       ABORT("Unexpected AbstractFunctionDecl subclass.");
     bool returnIsStdSpan = registerStdSpanTypeMapping(
         languageReturnTy, ClangDecl->getReturnType());
-    auto *CAT = ClangDecl->getReturnType()->getAs<clang::CountAttributedType>();
+    auto *CAT = ClangDecl->getReturnType()->getAs<language::Core::CountAttributedType>();
     if (CodiraifiableCAT(getClangASTContext(), CAT, languageReturnTy)) {
       printer.printCountedBy(CAT, CodiraifyInfoPrinter::RETURN_VALUE_INDEX);
       attachMacro = true;
     }
     bool returnHasLifetimeInfo = false;
     if (CodiraDeclConverter::getImplicitObjectParamAnnotation<
-            clang::LifetimeBoundAttr>(ClangDecl)) {
+            language::Core::LifetimeBoundAttr>(ClangDecl)) {
       printer.printLifetimeboundReturn(CodiraifyInfoPrinter::SELF_PARAM_INDEX,
                                        true);
       returnHasLifetimeInfo = true;
@@ -9346,7 +9346,7 @@ void ClangImporter::Implementation::languageify(AbstractFunctionDecl *MappedDecl
       auto languageParam = MappedDecl->getParameters()->get(index);
       Type languageParamTy = languageParam->getInterfaceType();
       bool paramHasBoundsInfo = false;
-      auto *CAT = clangParamTy->getAs<clang::CountAttributedType>();
+      auto *CAT = clangParamTy->getAs<language::Core::CountAttributedType>();
       if (CodiraifiableCAT(getClangASTContext(), CAT, languageParamTy)) {
         printer.printCountedBy(CAT, index);
         attachMacro = paramHasBoundsInfo = true;
@@ -9356,11 +9356,11 @@ void ClangImporter::Implementation::languageify(AbstractFunctionDecl *MappedDecl
       paramHasBoundsInfo |= paramIsStdSpan;
 
       bool paramHasLifetimeInfo = false;
-      if (clangParam->hasAttr<clang::NoEscapeAttr>()) {
+      if (clangParam->hasAttr<language::Core::NoEscapeAttr>()) {
         printer.printNonEscaping(index);
         paramHasLifetimeInfo = true;
       }
-      if (clangParam->hasAttr<clang::LifetimeBoundAttr>()) {
+      if (clangParam->hasAttr<language::Core::LifetimeBoundAttr>()) {
         // If this parameter has bounds info we will tranform it into a Span,
         // so then it will no longer be Escapable.
         bool willBeEscapable = languageParamTy->isEscapable() && !paramHasBoundsInfo;
@@ -9379,7 +9379,7 @@ void ClangImporter::Implementation::languageify(AbstractFunctionDecl *MappedDecl
   }
 
   if (attachMacro) {
-    if (clang::RawComment *raw =
+    if (language::Core::RawComment *raw =
             getClangASTContext().getRawCommentForDeclNoCache(ClangDecl)) {
       // language::RawDocCommentAttr doesn't contain its text directly, but instead
       // references the source range of the parsed comment. Instead of creating
@@ -9399,8 +9399,8 @@ void ClangImporter::Implementation::languageify(AbstractFunctionDecl *MappedDecl
   }
 }
 
-static bool isUsingMacroName(clang::SourceManager &SM,
-                             clang::SourceLocation loc,
+static bool isUsingMacroName(language::Core::SourceManager &SM,
+                             language::Core::SourceLocation loc,
                              StringRef MacroName) {
   if (!loc.isMacroID())
     return false;
@@ -9419,7 +9419,7 @@ void ClangImporter::Implementation::importAttributesFromClangDeclToSynthesizedCo
   // sourceDecl->getClangDecl() can be null because some lazily instantiated cases like C++ members that were instantiated from using-shadow-decls have no corresponding Clang decl.
   // FIXME: Need to include the cases where correspondoing clang decl is not present.
   if (auto clangDeclForSource =
-          dyn_cast_or_null<clang::NamedDecl>(
+          dyn_cast_or_null<language::Core::NamedDecl>(
               sourceDecl->getClangDecl())) {
     importAttributes(clangDeclForSource, synthesizedDecl);
   }
@@ -9427,9 +9427,9 @@ void ClangImporter::Implementation::importAttributesFromClangDeclToSynthesizedCo
 
 /// Import Clang attributes as Codira attributes.
 void ClangImporter::Implementation::importAttributes(
-    const clang::NamedDecl *ClangDecl,
+    const language::Core::NamedDecl *ClangDecl,
     Decl *MappedDecl,
-    const clang::ObjCContainerDecl *NewContext)
+    const language::Core::ObjCContainerDecl *NewContext)
 {
   // Subscripts are special-cased since there isn't a 1:1 mapping
   // from its accessor(s) to the subscript declaration.
@@ -9440,7 +9440,7 @@ void ClangImporter::Implementation::importAttributes(
 
   if (auto maybeDefinition = getDefinitionForClangTypeDecl(ClangDecl))
     if (maybeDefinition.value())
-      ClangDecl = cast<clang::NamedDecl>(maybeDefinition.value());
+      ClangDecl = cast<language::Core::NamedDecl>(maybeDefinition.value());
 
   // Determine whether this is an async import.
   bool isAsync = false;
@@ -9450,14 +9450,14 @@ void ClangImporter::Implementation::importAttributes(
   // Scan through Clang attributes and map them onto Codira
   // equivalents.
   bool AnyUnavailable = MappedDecl->isUnavailable();
-  for (clang::NamedDecl::attr_iterator AI = ClangDecl->attr_begin(),
+  for (language::Core::NamedDecl::attr_iterator AI = ClangDecl->attr_begin(),
        AE = ClangDecl->attr_end(); AI != AE; ++AI) {
     //
     // __attribute__((unavailable))
     //
     // Mapping: @available(*,unavailable)
     //
-    if (auto unavailable = dyn_cast<clang::UnavailableAttr>(*AI)) {
+    if (auto unavailable = dyn_cast<language::Core::UnavailableAttr>(*AI)) {
       auto Message = unavailable->getMessage();
       auto attr = AvailableAttr::createUniversallyUnavailable(C, Message);
       MappedDecl->getAttrs().add(attr);
@@ -9470,7 +9470,7 @@ void ClangImporter::Implementation::importAttributes(
     //
     // Mapping: @available(*, unavailable)
     //
-    if (auto unavailable_annot = dyn_cast<clang::AnnotateAttr>(*AI))
+    if (auto unavailable_annot = dyn_cast<language::Core::AnnotateAttr>(*AI))
       if (unavailable_annot->getAnnotation() == "language1_unavailable") {
         auto attr = AvailableAttr::createUnavailableInCodira(C, "", "");
         MappedDecl->getAttrs().add(attr);
@@ -9483,7 +9483,7 @@ void ClangImporter::Implementation::importAttributes(
     //
     // Mapping: @available(*,deprecated)
     //
-    if (auto deprecated = dyn_cast<clang::DeprecatedAttr>(*AI)) {
+    if (auto deprecated = dyn_cast<language::Core::DeprecatedAttr>(*AI)) {
       auto Message = deprecated->getMessage();
       auto attr = AvailableAttr::createUniversallyDeprecated(C, Message, "");
       MappedDecl->getAttrs().add(attr);
@@ -9492,7 +9492,7 @@ void ClangImporter::Implementation::importAttributes(
 
     // __attribute__((availability))
     //
-    if (auto avail = dyn_cast<clang::AvailabilityAttr>(*AI)) {
+    if (auto avail = dyn_cast<language::Core::AvailabilityAttr>(*AI)) {
       StringRef Platform = avail->getPlatform()->getName();
 
       // Is this our special "availability(language, unavailable)" attribute?
@@ -9595,7 +9595,7 @@ void ClangImporter::Implementation::importAttributes(
 
     // __attribute__((availability(domain:)))
     //
-    if (auto avail = dyn_cast<clang::DomainAvailabilityAttr>(*AI)) {
+    if (auto avail = dyn_cast<language::Core::DomainAvailabilityAttr>(*AI)) {
       auto *declContext = MappedDecl->getInnermostDeclContext();
 
       // FIXME: [availability] Don't look up the availability domain. Clang
@@ -9625,7 +9625,7 @@ void ClangImporter::Implementation::importAttributes(
     // importCodiraAttrAttributes(). Other attributes are ignored.
   }
 
-  if (auto method = dyn_cast<clang::ObjCMethodDecl>(ClangDecl)) {
+  if (auto method = dyn_cast<language::Core::ObjCMethodDecl>(ClangDecl)) {
     if (method->isDirectMethod() && !AnyUnavailable) {
       assert(isa<AbstractFunctionDecl>(MappedDecl) &&
              "objc_direct declarations are expected to be an AbstractFunctionDecl");
@@ -9641,7 +9641,7 @@ void ClangImporter::Implementation::importAttributes(
   if (AnyUnavailable)
     return;
 
-  if (auto ID = dyn_cast<clang::ObjCInterfaceDecl>(ClangDecl)) {
+  if (auto ID = dyn_cast<language::Core::ObjCInterfaceDecl>(ClangDecl)) {
     // Ban NSInvocation.
     if (ID->getName() == "NSInvocation") {
       auto attr = AvailableAttr::createUniversallyUnavailable(C, "");
@@ -9650,7 +9650,7 @@ void ClangImporter::Implementation::importAttributes(
     }
 
     // Map Clang's language_objc_members attribute to @objcMembers.
-    if (ID->hasAttr<clang::CodiraObjCMembersAttr>() &&
+    if (ID->hasAttr<language::Core::CodiraObjCMembersAttr>() &&
         isa<ClassDecl>(MappedDecl)) {
       if (!MappedDecl->getAttrs().hasAttribute<ObjCMembersAttr>()) {
         auto attr = new (C) ObjCMembersAttr(/*IsImplicit=*/true);
@@ -9669,13 +9669,13 @@ void ClangImporter::Implementation::importAttributes(
 
   // Ban CFRelease|CFRetain|CFAutorelease(CFTypeRef) as well as custom ones
   // such as CGColorRelease(CGColorRef).
-  if (auto FD = dyn_cast<clang::FunctionDecl>(ClangDecl)) {
+  if (auto FD = dyn_cast<language::Core::FunctionDecl>(ClangDecl)) {
     if (FD->getNumParams() == 1 && FD->getDeclName().isIdentifier() &&
          (FD->getName().ends_with("Release") ||
           FD->getName().ends_with("Retain") ||
           FD->getName().ends_with("Autorelease")) &&
-        !FD->getAttr<clang::CodiraNameAttr>()) {
-      if (auto t = FD->getParamDecl(0)->getType()->getAs<clang::TypedefType>()){
+        !FD->getAttr<language::Core::CodiraNameAttr>()) {
+      if (auto t = FD->getParamDecl(0)->getType()->getAs<language::Core::TypedefType>()){
         if (isCFTypeDecl(t->getDecl())) {
           auto attr = AvailableAttr::createUniversallyUnavailable(
               C, "Core Foundation objects are automatically memory managed");
@@ -9697,14 +9697,14 @@ void ClangImporter::Implementation::importAttributes(
   }
 
   // Map __attribute__((warn_unused_result)).
-  if (!ClangDecl->hasAttr<clang::WarnUnusedResultAttr>()) {
+  if (!ClangDecl->hasAttr<language::Core::WarnUnusedResultAttr>()) {
     if (auto MD = dyn_cast<FuncDecl>(MappedDecl)) {
       // Ask if the clang function's return type is void to prevent eagerly
       // loading the result type of the imported function.
       bool hasVoidReturnType = false;
-      if (auto clangFunction = dyn_cast<clang::FunctionDecl>(ClangDecl))
+      if (auto clangFunction = dyn_cast<language::Core::FunctionDecl>(ClangDecl))
         hasVoidReturnType = clangFunction->getReturnType()->isVoidType();
-      if (auto clangMethod = dyn_cast<clang::ObjCMethodDecl>(ClangDecl))
+      if (auto clangMethod = dyn_cast<language::Core::ObjCMethodDecl>(ClangDecl))
         hasVoidReturnType = clangMethod->getReturnType()->isVoidType();
       // Async functions might get re-written to be non-void, so if this is an
       // async function, eagerly load the result type and check.
@@ -9715,17 +9715,17 @@ void ClangImporter::Implementation::importAttributes(
     }
   }
   // Map __attribute__((const)).
-  if (ClangDecl->hasAttr<clang::ConstAttr>()) {
+  if (ClangDecl->hasAttr<language::Core::ConstAttr>()) {
     MappedDecl->getAttrs().add(new (C) EffectsAttr(EffectsKind::ReadNone));
   }
   // Map __attribute__((pure)).
-  if (ClangDecl->hasAttr<clang::PureAttr>()) {
+  if (ClangDecl->hasAttr<language::Core::PureAttr>()) {
     MappedDecl->getAttrs().add(new (C) EffectsAttr(EffectsKind::ReadOnly));
   }
 }
 
 Decl *
-ClangImporter::Implementation::importDeclImpl(const clang::NamedDecl *ClangDecl,
+ClangImporter::Implementation::importDeclImpl(const language::Core::NamedDecl *ClangDecl,
                                               ImportNameVersion version,
                                               bool &TypedefIsSuperfluous,
                                               bool &HadForwardDeclaration) {
@@ -9754,14 +9754,14 @@ ClangImporter::Implementation::importDeclImpl(const clang::NamedDecl *ClangDecl,
     // initializer of a class.
     bool hasMissingRequiredMember = false;
     if (auto clangProto
-          = dyn_cast<clang::ObjCProtocolDecl>(ClangDecl->getDeclContext())) {
-      if (auto method = dyn_cast<clang::ObjCMethodDecl>(ClangDecl)) {
+          = dyn_cast<language::Core::ObjCProtocolDecl>(ClangDecl->getDeclContext())) {
+      if (auto method = dyn_cast<language::Core::ObjCMethodDecl>(ClangDecl)) {
         if (method->getImplementationControl() ==
-            clang::ObjCImplementationControl::Required)
+            language::Core::ObjCImplementationControl::Required)
           hasMissingRequiredMember = true;
-      } else if (auto prop = dyn_cast<clang::ObjCPropertyDecl>(ClangDecl)) {
+      } else if (auto prop = dyn_cast<language::Core::ObjCPropertyDecl>(ClangDecl)) {
         if (prop->getPropertyImplementation() ==
-            clang::ObjCPropertyDecl::Required)
+            language::Core::ObjCPropertyDecl::Required)
           hasMissingRequiredMember = true;
       }
 
@@ -9773,9 +9773,9 @@ ClangImporter::Implementation::importDeclImpl(const clang::NamedDecl *ClangDecl,
         }
       }
     }
-    if (auto method = dyn_cast<clang::ObjCMethodDecl>(ClangDecl)) {
+    if (auto method = dyn_cast<language::Core::ObjCMethodDecl>(ClangDecl)) {
       if (method->isDesignatedInitializerForTheInterface()) {
-        const clang::ObjCInterfaceDecl *theClass = method->getClassInterface();
+        const language::Core::ObjCInterfaceDecl *theClass = method->getClassInterface();
         assert(theClass && "cannot be a protocol method here");
         // Only allow this to affect declarations in the same top-level module
         // as the original class.
@@ -9818,7 +9818,7 @@ ClangImporter::Implementation::importDeclImpl(const clang::NamedDecl *ClangDecl,
   }
 
 #ifndef NDEBUG
-  auto Canon = cast<clang::NamedDecl>(ClangDecl->getCanonicalDecl());
+  auto Canon = cast<language::Core::NamedDecl>(ClangDecl->getCanonicalDecl());
 
   // Note that the decl was imported from Clang.  Don't mark Codira decls as
   // imported.
@@ -9828,7 +9828,7 @@ ClangImporter::Implementation::importDeclImpl(const clang::NamedDecl *ClangDecl,
     // For using declarations that expose a method of a base class, the Clang
     // decl is synthesized lazily when the method is actually used from Codira.
     bool hasSynthesizedClangNode =
-        isa<clang::UsingShadowDecl>(ClangDecl) && isa<FuncDecl>(Result);
+        isa<language::Core::UsingShadowDecl>(ClangDecl) && isa<FuncDecl>(Result);
 
     // Either the Codira declaration was from stdlib,
     // or we imported the underlying decl of the typedef,
@@ -9840,21 +9840,21 @@ ClangImporter::Implementation::importDeclImpl(const clang::NamedDecl *ClangDecl,
 
     // Or the other type is a typedef,
     if (!ImportedCorrectly &&
-        isa<clang::TypedefNameDecl>(Result->getClangDecl())) {
+        isa<language::Core::TypedefNameDecl>(Result->getClangDecl())) {
       // both types are ValueDecls:
-      if (isa<clang::ValueDecl>(Result->getClangDecl())) {
+      if (isa<language::Core::ValueDecl>(Result->getClangDecl())) {
         ImportedCorrectly =
             getClangASTContext().hasSameType(
-                cast<clang::ValueDecl>(Result->getClangDecl())->getType(),
-                cast<clang::ValueDecl>(Canon)->getType());
-      } else if (isa<clang::TypeDecl>(Result->getClangDecl())) {
+                cast<language::Core::ValueDecl>(Result->getClangDecl())->getType(),
+                cast<language::Core::ValueDecl>(Canon)->getType());
+      } else if (isa<language::Core::TypeDecl>(Result->getClangDecl())) {
         // both types are TypeDecls:
         ImportedCorrectly =
             getClangASTContext().hasSameUnqualifiedType(
                 getClangASTContext().getTypeDeclType(
-                    cast<clang::TypeDecl>(Result->getClangDecl())),
+                    cast<language::Core::TypeDecl>(Result->getClangDecl())),
                 getClangASTContext().getTypeDeclType(
-                    cast<clang::TypeDecl>(Canon)));
+                    cast<language::Core::TypeDecl>(Canon)));
       }
       assert(ImportedCorrectly);
     }
@@ -9979,17 +9979,17 @@ void ClangImporter::Implementation::finishNormalConformance(
 }
 
 Decl *ClangImporter::Implementation::importDeclAndCacheImpl(
-    const clang::NamedDecl *ClangDecl, ImportNameVersion version,
+    const language::Core::NamedDecl *ClangDecl, ImportNameVersion version,
     bool SuperfluousTypedefsAreTransparent, bool UseCanonicalDecl) {
   if (!ClangDecl)
     return nullptr;
 
   FrontendStatsTracer StatsTracer(CodiraContext.Stats,
                                   "import-clang-decl", ClangDecl);
-  clang::PrettyStackTraceDecl trace(ClangDecl, clang::SourceLocation(),
+  language::Core::PrettyStackTraceDecl trace(ClangDecl, language::Core::SourceLocation(),
                                     Instance->getSourceManager(), "importing");
 
-  auto Canon = cast<clang::NamedDecl>(UseCanonicalDecl? ClangDecl->getCanonicalDecl(): ClangDecl);
+  auto Canon = cast<language::Core::NamedDecl>(UseCanonicalDecl? ClangDecl->getCanonicalDecl(): ClangDecl);
 
   auto Known = importDeclCached(Canon, version, UseCanonicalDecl);
   if (Known.has_value()) {
@@ -10012,7 +10012,7 @@ Decl *ClangImporter::Implementation::importDeclAndCacheImpl(
 
   if (TypedefIsSuperfluous) {
     SuperfluousTypedefs.insert(Canon);
-    if (auto tagDecl = dyn_cast_or_null<clang::TagDecl>(Result->getClangDecl()))
+    if (auto tagDecl = dyn_cast_or_null<language::Core::TagDecl>(Result->getClangDecl()))
       DeclsWithSuperfluousTypedefs.insert(tagDecl);
   }
 
@@ -10026,7 +10026,7 @@ Decl *ClangImporter::Implementation::importDeclAndCacheImpl(
 }
 
 Decl *
-ClangImporter::Implementation::importMirroredDecl(const clang::NamedDecl *decl,
+ClangImporter::Implementation::importMirroredDecl(const language::Core::NamedDecl *decl,
                                                   DeclContext *dc,
                                                   ImportNameVersion version,
                                                   ProtocolDecl *proto) {
@@ -10034,7 +10034,7 @@ ClangImporter::Implementation::importMirroredDecl(const clang::NamedDecl *decl,
   if (!decl)
     return nullptr;
 
-  clang::PrettyStackTraceDecl trace(decl, clang::SourceLocation(),
+  language::Core::PrettyStackTraceDecl trace(decl, language::Core::SourceLocation(),
                                     Instance->getSourceManager(),
                                     "importing (mirrored)");
 
@@ -10045,10 +10045,10 @@ ClangImporter::Implementation::importMirroredDecl(const clang::NamedDecl *decl,
 
   CodiraDeclConverter converter(*this, version);
   Decl *result;
-  if (auto method = dyn_cast<clang::ObjCMethodDecl>(decl)) {
+  if (auto method = dyn_cast<language::Core::ObjCMethodDecl>(decl)) {
     result =
         converter.importObjCMethodDecl(method, dc, /*accessor*/ std::nullopt);
-  } else if (auto prop = dyn_cast<clang::ObjCPropertyDecl>(decl)) {
+  } else if (auto prop = dyn_cast<language::Core::ObjCPropertyDecl>(decl)) {
     result = converter.importObjCPropertyDecl(prop, dc);
   } else {
     toolchain_unreachable("unexpected mirrored decl");
@@ -10091,12 +10091,12 @@ ClangImporter::Implementation::importMirroredDecl(const clang::NamedDecl *decl,
 }
 
 DeclContext *ClangImporter::Implementation::importDeclContextImpl(
-    const clang::Decl *ImportingDecl, const clang::DeclContext *dc) {
+    const language::Core::Decl *ImportingDecl, const language::Core::DeclContext *dc) {
   // Every declaration should come from a module, so we should not see the
   // TranslationUnit DeclContext here.
   assert(!dc->isTranslationUnit());
 
-  auto decl = dyn_cast<clang::NamedDecl>(dc);
+  auto decl = dyn_cast<language::Core::NamedDecl>(dc);
   if (!decl)
     return nullptr;
 
@@ -10104,7 +10104,7 @@ DeclContext *ClangImporter::Implementation::importDeclContextImpl(
   // leads to the first category of the given name. We'd like to keep these
   // categories separated.
   auto useCanonical =
-      !isa<clang::ObjCCategoryDecl>(decl) && !isa<clang::NamespaceDecl>(decl);
+      !isa<language::Core::ObjCCategoryDecl>(decl) && !isa<language::Core::NamespaceDecl>(decl);
   auto languageDecl = importDeclForDeclContext(ImportingDecl, decl->getName(),
                                             decl, CurrentVersion, useCanonical);
   if (!languageDecl)
@@ -10161,9 +10161,9 @@ GenericSignature ClangImporter::Implementation::buildGenericSignature(
 
 Decl *
 ClangImporter::Implementation::importDeclForDeclContext(
-    const clang::Decl *importingDecl,
+    const language::Core::Decl *importingDecl,
     StringRef writtenName,
-    const clang::NamedDecl *contextDecl,
+    const language::Core::NamedDecl *contextDecl,
     Version version,
     bool useCanonicalDecl)
 {
@@ -10192,8 +10192,8 @@ ClangImporter::Implementation::importDeclForDeclContext(
   if (!contextDeclsWarnedAbout.insert(contextDecl).second)
     return nullptr;
 
-  auto getDeclName = [](const clang::Decl *D) -> std::string {
-    if (auto ND = dyn_cast<clang::NamedDecl>(D)) {
+  auto getDeclName = [](const language::Core::Decl *D) -> std::string {
+    if (auto ND = dyn_cast<language::Core::NamedDecl>(D)) {
       std::string name;
       toolchain::raw_string_ostream os(name);
       ND->printName(os);
@@ -10225,7 +10225,7 @@ ClangImporter::Implementation::importDeclForDeclContext(
 
 DeclContext *
 ClangImporter::Implementation::importDeclContextOf(
-  const clang::Decl *decl,
+  const language::Core::Decl *decl,
   EffectiveClangContext context)
 {
   DeclContext *importedDC = nullptr;
@@ -10236,14 +10236,14 @@ ClangImporter::Implementation::importDeclContextOf(
     // For C++-Interop in cases where #ifdef __cplusplus surround an extern "C"
     // you want to first check if the TU decl is the parent of this extern "C"
     // decl (aka LinkageSpecDecl) and then proceed.
-    if (dc->getDeclKind() == clang::Decl::LinkageSpec)
+    if (dc->getDeclKind() == language::Core::Decl::LinkageSpec)
       dc = dc->getParent();
 
-    if (auto functionDecl = dyn_cast<clang::FunctionDecl>(decl)) {
+    if (auto functionDecl = dyn_cast<language::Core::FunctionDecl>(decl)) {
       // Treat friend decls like top-level decls.
       if (functionDecl->getFriendObjectKind()) {
         // Find the top-level decl context.
-        while (isa<clang::NamedDecl>(dc))
+        while (isa<language::Core::NamedDecl>(dc))
           dc = dc->getParent();
       }
 
@@ -10321,7 +10321,7 @@ ClangImporter::Implementation::importDeclContextOf(
 
   // Look for the extension for the given nominal type within the
   // Clang submodule of the declaration.
-  const clang::Module *declSubmodule = *getClangSubmoduleForDecl(decl);
+  const language::Core::Module *declSubmodule = *getClangSubmoduleForDecl(decl);
   auto extensionKey = std::make_pair(nominal, declSubmodule);
   auto [it, inserted] = extensionPoints.try_emplace(extensionKey, nullptr);
   if (!inserted)
@@ -10398,14 +10398,14 @@ static void loadAllMembersOfSuperclassIfNeeded(ClassDecl *CD) {
 }
 
 void ClangImporter::Implementation::loadAllMembersOfRecordDecl(
-    NominalTypeDecl *languageDecl, const clang::RecordDecl *clangRecord,
+    NominalTypeDecl *languageDecl, const language::Core::RecordDecl *clangRecord,
     ClangInheritanceInfo inheritance) {
 
   // Whether to skip non-public members. Feature::ImportNonPublicCxxMembers says
   // to import all non-public members by default; if that is disabled, we only
   // import non-public members annotated with LANGUAGE_PRIVATE_FILEID (since those
   // are the only classes that need non-public members.)
-  auto *baseRecord = dyn_cast<clang::CXXRecordDecl>(languageDecl->getClangDecl());
+  auto *baseRecord = dyn_cast<language::Core::CXXRecordDecl>(languageDecl->getClangDecl());
   auto skipIfNonPublic = !languageDecl->getASTContext().LangOpts.hasFeature(
                              Feature::ImportNonPublicCxxMembers) &&
                          baseRecord &&
@@ -10413,8 +10413,8 @@ void ClangImporter::Implementation::loadAllMembersOfRecordDecl(
 
   // Import all of the members.
   toolchain::SmallVector<Decl *, 16> members;
-  for (const clang::Decl *m : clangRecord->decls()) {
-    auto nd = dyn_cast<clang::NamedDecl>(m);
+  for (const language::Core::Decl *m : clangRecord->decls()) {
+    auto nd = dyn_cast<language::Core::NamedDecl>(m);
     if (!nd)
       continue;
 
@@ -10432,15 +10432,15 @@ void ClangImporter::Implementation::loadAllMembersOfRecordDecl(
     //
     // The first two conditions are captured by skipIfNonPublic. The next two
     // are conveyed by the following:
-    auto nonPublic = nd->getAccess() == clang::AS_private ||
-                     nd->getAccess() == clang::AS_protected;
-    auto noninheritedField = !inheritance && isa<clang::FieldDecl>(nd);
+    auto nonPublic = nd->getAccess() == language::Core::AS_private ||
+                     nd->getAccess() == language::Core::AS_protected;
+    auto noninheritedField = !inheritance && isa<language::Core::FieldDecl>(nd);
     if (skipIfNonPublic && nonPublic && !noninheritedField)
       continue;
 
     // Currently, we don't import unnamed bitfields.
-    if (isa<clang::FieldDecl>(m) &&
-        cast<clang::FieldDecl>(m)->isUnnamedBitField())
+    if (isa<language::Core::FieldDecl>(m) &&
+        cast<language::Core::FieldDecl>(m)->isUnnamedBitField())
       continue;
 
     // Make sure we always pull in record fields. Everything else had better
@@ -10448,7 +10448,7 @@ void ClangImporter::Implementation::loadAllMembersOfRecordDecl(
     // we import nested C struct types by C's usual convention of chucking them
     // into the global namespace.
     const bool isCanonicalInContext =
-        (isa<clang::FieldDecl>(nd) || nd == nd->getCanonicalDecl());
+        (isa<language::Core::FieldDecl>(nd) || nd == nd->getCanonicalDecl());
     if (isCanonicalInContext && nd->getDeclContext() == clangRecord &&
         isVisibleClangEntry(nd))
       // We don't pass `languageDecl` as `expectedDC` because we might be in a
@@ -10490,7 +10490,7 @@ void ClangImporter::Implementation::loadAllMembersOfRecordDecl(
 
     // A friend C++ decl is not a member of the Codira type.
     if (member->getClangDecl() &&
-        member->getClangDecl()->getFriendObjectKind() != clang::Decl::FOK_None)
+        member->getClangDecl()->getFriendObjectKind() != language::Core::Decl::FOK_None)
       continue;
 
     // FIXME: constructors are added eagerly, but shouldn't be
@@ -10503,20 +10503,20 @@ void ClangImporter::Implementation::loadAllMembersOfRecordDecl(
   }
 
   // If this is a C++ record, look through the base classes too.
-  if (auto cxxRecord = dyn_cast<clang::CXXRecordDecl>(clangRecord)) {
+  if (auto cxxRecord = dyn_cast<language::Core::CXXRecordDecl>(clangRecord)) {
     for (auto base : cxxRecord->bases()) {
-      if (skipIfNonPublic && base.getAccessSpecifier() != clang::AS_public)
+      if (skipIfNonPublic && base.getAccessSpecifier() != language::Core::AS_public)
         continue;
 
-      clang::QualType baseType = base.getType();
-      if (auto spectType = dyn_cast<clang::TemplateSpecializationType>(baseType))
+      language::Core::QualType baseType = base.getType();
+      if (auto spectType = dyn_cast<language::Core::TemplateSpecializationType>(baseType))
         baseType = spectType->desugar();
-      if (auto elaborated = dyn_cast<clang::ElaboratedType>(baseType))
+      if (auto elaborated = dyn_cast<language::Core::ElaboratedType>(baseType))
         baseType = elaborated->desugar();
-      if (!isa<clang::RecordType>(baseType))
+      if (!isa<language::Core::RecordType>(baseType))
         continue;
 
-      auto *baseRecord = cast<clang::RecordType>(baseType)->getDecl();
+      auto *baseRecord = cast<language::Core::RecordType>(baseType)->getDecl();
       auto baseInheritance = ClangInheritanceInfo(inheritance, base);
       loadAllMembersOfRecordDecl(languageDecl, baseRecord, baseInheritance);
     }
@@ -10534,9 +10534,9 @@ ClangImporter::Implementation::loadAllMembers(Decl *D, uint64_t extra) {
   // bridging header lookup table. This has most likely already been done, but
   // in some cases, such as when processing DWARF imported AST nodes from LLDB,
   // it has not. Do it here just to be safe.
-  if (auto namedDecl = dyn_cast_or_null<clang::NamedDecl>(D->getClangDecl())) {
+  if (auto namedDecl = dyn_cast_or_null<language::Core::NamedDecl>(D->getClangDecl())) {
     if (!namedDecl->hasOwningModule()) {
-      auto mutableNamedDecl = const_cast<clang::NamedDecl *>(namedDecl);
+      auto mutableNamedDecl = const_cast<language::Core::NamedDecl *>(namedDecl);
       addBridgeHeaderTopLevelDecls(mutableNamedDecl);
       addEntryToLookupTable(*BridgingHeaderLookupTable,
                             mutableNamedDecl, *nameImporter);
@@ -10545,7 +10545,7 @@ ClangImporter::Implementation::loadAllMembers(Decl *D, uint64_t extra) {
 
   // Check whether we're importing an Objective-C container of some sort.
   auto objcContainer =
-    dyn_cast_or_null<clang::ObjCContainerDecl>(D->getClangDecl());
+    dyn_cast_or_null<language::Core::ObjCContainerDecl>(D->getClangDecl());
   auto *IDC = dyn_cast<IterableDeclContext>(D);
 
   // If not, we're importing globals-as-members into an extension.
@@ -10557,16 +10557,16 @@ ClangImporter::Implementation::loadAllMembers(Decl *D, uint64_t extra) {
     return;
   }
 
-  if (isa_and_nonnull<clang::RecordDecl>(D->getClangDecl())) {
+  if (isa_and_nonnull<language::Core::RecordDecl>(D->getClangDecl())) {
     loadAllMembersOfRecordDecl(cast<NominalTypeDecl>(D),
-                               cast<clang::RecordDecl>(D->getClangDecl()),
+                               cast<language::Core::RecordDecl>(D->getClangDecl()),
                                ClangInheritanceInfo());
     if (IDC) // Set member deserialization status
       IDC->setDeserializedMembers(true);
     return;
   }
 
-  if (isa_and_nonnull<clang::NamespaceDecl>(D->getClangDecl())) {
+  if (isa_and_nonnull<language::Core::NamespaceDecl>(D->getClangDecl())) {
     // Namespace members will only be loaded lazily.
     cast<EnumDecl>(D)->setHasLazyMembers(true);
     return;
@@ -10584,8 +10584,8 @@ void ClangImporter::Implementation::loadAllMembersIntoExtension(
   auto nominal = ext->getExtendedNominal();
 
   // The submodule of the extension is encoded in the extra data.
-  clang::Module *submodule =
-      reinterpret_cast<clang::Module *>(static_cast<uintptr_t>(extra));
+  language::Core::Module *submodule =
+      reinterpret_cast<language::Core::Module *>(static_cast<uintptr_t>(extra));
 
   // Find the lookup table.
   auto topLevelModule = submodule;
@@ -10611,7 +10611,7 @@ void ClangImporter::Implementation::loadAllMembersIntoExtension(
 
   // Load the members.
   for (auto entry : table->allGlobalsAsMembersInContext(effectiveClangContext)) {
-    auto decl = entry.get<clang::NamedDecl *>();
+    auto decl = entry.get<language::Core::NamedDecl *>();
 
     // Only include members in the same submodule as this extension.
     if (getClangSubmoduleForDecl(decl) != submodule)
@@ -10639,7 +10639,7 @@ static Decl *findMemberThatWillLandInAnExtensionContext(Decl *member) {
 }
 
 bool ClangImporter::Implementation::addMemberAndAlternatesToExtension(
-    clang::NamedDecl *decl, ImportedName newName, ImportNameVersion nameVersion,
+    language::Core::NamedDecl *decl, ImportedName newName, ImportNameVersion nameVersion,
     ExtensionDecl *ext) {
   // Quickly check the context and bail out if it obviously doesn't
   // belong here.
@@ -10683,14 +10683,14 @@ static void loadMembersOfBaseImportedFromClang(ExtensionDecl *ext) {
   // Soundness check: make sure we don't jump over to a category /while/
   // loading the original class's members. Right now we only check if this
   // happens on the first member.
-  if (auto *clangContainer = dyn_cast<clang::ObjCContainerDecl>(clangBase))
+  if (auto *clangContainer = dyn_cast<language::Core::ObjCContainerDecl>(clangBase))
     assert((clangContainer->decls_empty() || !base->getMembers().empty()) &&
            "can't load extension members before base has finished");
 }
 
 void ClangImporter::Implementation::loadAllMembersOfObjcContainer(
-    Decl *D, const clang::ObjCContainerDecl *objcContainer) {
-  clang::PrettyStackTraceDecl trace(objcContainer, clang::SourceLocation(),
+    Decl *D, const language::Core::ObjCContainerDecl *objcContainer) {
+  language::Core::PrettyStackTraceDecl trace(objcContainer, language::Core::SourceLocation(),
                                     Instance->getSourceManager(),
                                     "loading members for");
 
@@ -10713,7 +10713,7 @@ void ClangImporter::Implementation::loadAllMembersOfObjcContainer(
 }
 
 void ClangImporter::Implementation::insertMembersAndAlternates(
-    const clang::NamedDecl *nd,
+    const language::Core::NamedDecl *nd,
     SmallVectorImpl<Decl *> &members,
     DeclContext *expectedDC) {
 
@@ -10773,7 +10773,7 @@ void ClangImporter::Implementation::insertMembersAndAlternates(
 }
 
 void ClangImporter::Implementation::importInheritedConstructors(
-     const clang::ObjCInterfaceDecl *curObjCClass,
+     const language::Core::ObjCInterfaceDecl *curObjCClass,
      const ClassDecl *classDecl, SmallVectorImpl<Decl *> &newMembers) {
   if (curObjCClass->getName() != "Protocol") {
     CodiraDeclConverter converter(*this, CurrentVersion);
@@ -10782,10 +10782,10 @@ void ClangImporter::Implementation::importInheritedConstructors(
 }
 
 void ClangImporter::Implementation::collectMembersToAdd(
-    const clang::ObjCContainerDecl *objcContainer, Decl *D, DeclContext *DC,
+    const language::Core::ObjCContainerDecl *objcContainer, Decl *D, DeclContext *DC,
     SmallVectorImpl<Decl *> &members) {
-  for (const clang::Decl *m : objcContainer->decls()) {
-    auto nd = dyn_cast<clang::NamedDecl>(m);
+  for (const language::Core::Decl *m : objcContainer->decls()) {
+    auto nd = dyn_cast<language::Core::NamedDecl>(m);
     if (nd && nd == nd->getCanonicalDecl() &&
         nd->getDeclContext() == objcContainer &&
         isVisibleClangEntry(nd))
@@ -10793,16 +10793,16 @@ void ClangImporter::Implementation::collectMembersToAdd(
   }
 
   // Objective-C protocols don't require any special handling.
-  if (isa<clang::ObjCProtocolDecl>(objcContainer))
+  if (isa<language::Core::ObjCProtocolDecl>(objcContainer))
     return;
 
   // Objective-C interfaces can inherit constructors from their superclass,
   // which we must model explicitly.
-  if (auto clangClass = dyn_cast<clang::ObjCInterfaceDecl>(objcContainer)) {
+  if (auto clangClass = dyn_cast<language::Core::ObjCInterfaceDecl>(objcContainer)) {
     objcContainer = clangClass = clangClass->getDefinition();
     importInheritedConstructors(clangClass, cast<ClassDecl>(D), members);
   } else if (auto clangProto
-               = dyn_cast<clang::ObjCProtocolDecl>(objcContainer)) {
+               = dyn_cast<language::Core::ObjCProtocolDecl>(objcContainer)) {
     objcContainer = clangProto->getDefinition();
   }
 
@@ -10838,7 +10838,7 @@ void ClangImporter::Implementation::loadAllConformances(
 
 std::optional<MappedTypeNameKind>
 ClangImporter::Implementation::getSpecialTypedefKind(
-    clang::TypedefNameDecl *decl) {
+    language::Core::TypedefNameDecl *decl) {
   auto iter = SpecialTypedefNames.find(decl->getCanonicalDecl());
   if (iter == SpecialTypedefNames.end())
     return std::nullopt;
@@ -10846,21 +10846,21 @@ ClangImporter::Implementation::getSpecialTypedefKind(
 }
 
 Identifier
-ClangImporter::getEnumConstantName(const clang::EnumConstantDecl *enumConstant){
+ClangImporter::getEnumConstantName(const language::Core::EnumConstantDecl *enumConstant){
   return Impl.importFullName(enumConstant, Impl.CurrentVersion)
       .getBaseIdentifier(Impl.CodiraContext);
 }
 
 // See language/Basic/Statistic.h for declaration: this enables tracing
-// clang::Decls, is defined here to avoid too much layering violation / circular
+// language::Core::Decls, is defined here to avoid too much layering violation / circular
 // linkage dependency.
 
 struct ClangDeclTraceFormatter : public UnifiedStatsReporter::TraceFormatter {
   void traceName(const void *Entity, raw_ostream &OS) const override {
     if (!Entity)
       return;
-    const clang::Decl *CD = static_cast<const clang::Decl *>(Entity);
-    if (auto const *ND = dyn_cast<const clang::NamedDecl>(CD)) {
+    const language::Core::Decl *CD = static_cast<const language::Core::Decl *>(Entity);
+    if (auto const *ND = dyn_cast<const language::Core::NamedDecl>(CD)) {
       ND->printName(OS);
     } else {
       OS << "<unnamed-clang-decl>";
@@ -10868,8 +10868,8 @@ struct ClangDeclTraceFormatter : public UnifiedStatsReporter::TraceFormatter {
   }
 
   static inline bool printClangShortLoc(raw_ostream &OS,
-                                        clang::SourceManager *CSM,
-                                        clang::SourceLocation L) {
+                                        language::Core::SourceManager *CSM,
+                                        language::Core::SourceLocation L) {
     if (!L.isValid() || !L.isFileID())
       return false;
     auto PLoc = CSM->getPresumedLoc(L);
@@ -10879,11 +10879,11 @@ struct ClangDeclTraceFormatter : public UnifiedStatsReporter::TraceFormatter {
   }
 
   void traceLoc(const void *Entity, SourceManager *SM,
-                clang::SourceManager *CSM, raw_ostream &OS) const override {
+                language::Core::SourceManager *CSM, raw_ostream &OS) const override {
     if (!Entity)
       return;
     if (CSM) {
-      const clang::Decl *CD = static_cast<const clang::Decl *>(Entity);
+      const language::Core::Decl *CD = static_cast<const language::Core::Decl *>(Entity);
       auto Range = CD->getSourceRange();
       if (printClangShortLoc(OS, CSM, Range.getBegin()))
         OS << '-';
@@ -10896,6 +10896,6 @@ static ClangDeclTraceFormatter TF;
 
 template<>
 const UnifiedStatsReporter::TraceFormatter*
-FrontendStatsTracer::getTraceFormatter<const clang::Decl *>() {
+FrontendStatsTracer::getTraceFormatter<const language::Core::Decl *>() {
   return &TF;
 }

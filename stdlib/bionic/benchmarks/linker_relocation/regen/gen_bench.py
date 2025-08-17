@@ -383,7 +383,7 @@ def main() -> None:
                         help='Generate a benchmark using a compiler and ninja rather than Soong')
     parser.add_argument('--cc',
                         help='For --ninja, a target-specific C clang driver and flags (e.g. "'
-                             '$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang'
+                             '$NDK/toolchains/toolchain/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang'
                              ' -fuse-ld=lld")')
 
     args = parser.parse_args()

@@ -15,7 +15,7 @@ import sys
 parser = argparse.ArgumentParser()
 parser.add_argument("--path", help="path to a binary to check")
 parser.add_argument("--triple", help="target triple of the freestanding stdlib")
-parser.add_argument("--size-path", help="path to llvm-size binary to use")
+parser.add_argument("--size-path", help="path to toolchain-size binary to use")
 args = parser.parse_args()
 
 

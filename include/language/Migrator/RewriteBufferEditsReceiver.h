@@ -17,10 +17,10 @@
 #ifndef LANGUAGE_MIGRATOR_REWRITEBUFFEREDITSRECEIVER_H
 #define LANGUAGE_MIGRATOR_REWRITEBUFFEREDITSRECEIVER_H
 
-#include "clang/Basic/SourceManager.h"
-#include "clang/Basic/SourceLocation.h"
-#include "clang/Edit/EditsReceiver.h"
-#include "clang/Rewrite/Core/RewriteBuffer.h"
+#include "language/Core/Basic/SourceManager.h"
+#include "language/Core/Basic/SourceLocation.h"
+#include "language/Core/Edit/EditsReceiver.h"
+#include "language/Core/Rewrite/Core/RewriteBuffer.h"
 #include "toolchain/ADT/StringRef.h"
 #include "toolchain/Support/raw_ostream.h"
 
@@ -30,15 +30,15 @@ namespace language {
 namespace migrator {
 
 /// An EditsReceiver that collects edits from an EditedSource and directly
-/// applies it to a clang::RewriteBuffer.
-class RewriteBufferEditsReceiver final : public clang::edit::EditsReceiver {
-  const clang::SourceManager &ClangSourceManager;
-  const clang::FileID InputFileID;
+/// applies it to a language::Core::RewriteBuffer.
+class RewriteBufferEditsReceiver final : public language::Core::edit::EditsReceiver {
+  const language::Core::SourceManager &ClangSourceManager;
+  const language::Core::FileID InputFileID;
   const StringRef InputText;
-  clang::RewriteBuffer RewriteBuf;
+  language::Core::RewriteBuffer RewriteBuf;
 public:
-  RewriteBufferEditsReceiver(const clang::SourceManager &ClangSourceManager,
-                             const clang::FileID InputFileID,
+  RewriteBufferEditsReceiver(const language::Core::SourceManager &ClangSourceManager,
+                             const language::Core::FileID InputFileID,
                              const StringRef InputText)
     : ClangSourceManager(ClangSourceManager),
       InputFileID(InputFileID),
@@ -46,8 +46,8 @@ public:
     RewriteBuf.Initialize(InputText);
   }
 
-  virtual void insert(clang::SourceLocation Loc, StringRef Text) override;
-  virtual void replace(clang::CharSourceRange Range, StringRef Text) override;
+  virtual void insert(language::Core::SourceLocation Loc, StringRef Text) override;
+  virtual void replace(language::Core::CharSourceRange Range, StringRef Text) override;
 
   /// Print the result of all of the edits to the given output stream.
   void printResult(toolchain::raw_ostream &OS) const;

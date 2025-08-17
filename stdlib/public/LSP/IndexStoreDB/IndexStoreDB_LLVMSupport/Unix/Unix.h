@@ -1,8 +1,24 @@
-//===- llvm/Support/Unix/Unix.h - Common Unix Include File -------*- C++ -*-===//
+//===- toolchain/Support/Unix/Unix.h - Common Unix Include File -------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -18,9 +34,9 @@
 //===          is guaranteed to work on all UNIX variants.
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_Config_config.h> // Get autoconf configuration settings
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Chrono.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Errno.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_config.h> // Get autoconf configuration settings
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Chrono.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Errno.h>
 #include <algorithm>
 #include <assert.h>
 #include <cerrno>
@@ -65,11 +81,11 @@ static inline bool MakeErrMsg(
     return true;
   if (errnum == -1)
     errnum = errno;
-  *ErrMsg = prefix + ": " + llvm::sys::StrError(errnum);
+  *ErrMsg = prefix + ": " + toolchain::sys::StrError(errnum);
   return true;
 }
 
-namespace llvm {
+namespace toolchain {
 namespace sys {
 
 /// Convert a struct timeval to a duration. Note that timeval can be used both
@@ -100,6 +116,6 @@ inline struct timeval toTimeVal(TimePoint<std::chrono::microseconds> TP) {
 }
 
 } // namespace sys
-} // namespace llvm
+} // namespace toolchain
 
 #endif

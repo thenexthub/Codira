@@ -1,0 +1,172 @@
+//=== CastSizeChecker.cpp ---------------------------------------*- C++ -*-===//
+//
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
+//
+//===----------------------------------------------------------------------===//
+//
+// CastSizeChecker checks when casting a malloc'ed symbolic region to type T,
+// whether the size of the symbolic region is a multiple of the size of T.
+//
+//===----------------------------------------------------------------------===//
+
+#include "language/Core/AST/CharUnits.h"
+#include "language/Core/StaticAnalyzer/Checkers/BuiltinCheckerRegistration.h"
+#include "language/Core/StaticAnalyzer/Core/BugReporter/BugType.h"
+#include "language/Core/StaticAnalyzer/Core/Checker.h"
+#include "language/Core/StaticAnalyzer/Core/CheckerManager.h"
+#include "language/Core/StaticAnalyzer/Core/PathSensitive/CheckerContext.h"
+#include "language/Core/StaticAnalyzer/Core/PathSensitive/DynamicExtent.h"
+
+using namespace language::Core;
+using namespace ento;
+
+namespace {
+class CastSizeChecker : public Checker< check::PreStmt<CastExpr> > {
+  const BugType BT{this, "Cast region with wrong size."};
+
+public:
+  void checkPreStmt(const CastExpr *CE, CheckerContext &C) const;
+};
+}
+
+/// Check if we are casting to a struct with a flexible array at the end.
+/// \code
+/// struct foo {
+///   size_t len;
+///   struct bar data[];
+/// };
+/// \endcode
+/// or
+/// \code
+/// struct foo {
+///   size_t len;
+///   struct bar data[0];
+/// }
+/// \endcode
+/// In these cases it is also valid to allocate size of struct foo + a multiple
+/// of struct bar.
+static bool evenFlexibleArraySize(ASTContext &Ctx, CharUnits RegionSize,
+                                  CharUnits TypeSize, QualType ToPointeeTy) {
+  const RecordType *RT = ToPointeeTy->getAs<RecordType>();
+  if (!RT)
+    return false;
+
+  const RecordDecl *RD = RT->getOriginalDecl()->getDefinitionOrSelf();
+  RecordDecl::field_iterator Iter(RD->field_begin());
+  RecordDecl::field_iterator End(RD->field_end());
+  const FieldDecl *Last = nullptr;
+  for (; Iter != End; ++Iter)
+    Last = *Iter;
+  assert(Last && "empty structs should already be handled");
+
+  const Type *ElemType = Last->getType()->getArrayElementTypeNoTypeQual();
+  if (!ElemType)
+    return false;
+  CharUnits FlexSize;
+  if (const ConstantArrayType *ArrayTy =
+        Ctx.getAsConstantArrayType(Last->getType())) {
+    FlexSize = Ctx.getTypeSizeInChars(ElemType);
+    if (ArrayTy->getSize() == 1 && TypeSize > FlexSize)
+      TypeSize -= FlexSize;
+    else if (!ArrayTy->isZeroSize())
+      return false;
+  } else if (RD->hasFlexibleArrayMember()) {
+    FlexSize = Ctx.getTypeSizeInChars(ElemType);
+  } else {
+    return false;
+  }
+
+  if (FlexSize.isZero())
+    return false;
+
+  CharUnits Left = RegionSize - TypeSize;
+  if (Left.isNegative())
+    return false;
+
+  return Left % FlexSize == 0;
+}
+
+void CastSizeChecker::checkPreStmt(const CastExpr *CE,CheckerContext &C) const {
+  const Expr *E = CE->getSubExpr();
+  ASTContext &Ctx = C.getASTContext();
+  QualType ToTy = Ctx.getCanonicalType(CE->getType());
+  const PointerType *ToPTy = dyn_cast<PointerType>(ToTy.getTypePtr());
+
+  if (!ToPTy)
+    return;
+
+  QualType ToPointeeTy = ToPTy->getPointeeType();
+
+  // Only perform the check if 'ToPointeeTy' is a complete type.
+  if (ToPointeeTy->isIncompleteType())
+    return;
+
+  ProgramStateRef state = C.getState();
+  const MemRegion *R = C.getSVal(E).getAsRegion();
+  if (!R)
+    return;
+
+  const SymbolicRegion *SR = dyn_cast<SymbolicRegion>(R);
+  if (!SR)
+    return;
+
+  SValBuilder &svalBuilder = C.getSValBuilder();
+
+  DefinedOrUnknownSVal Size = getDynamicExtent(state, SR, svalBuilder);
+  const toolchain::APSInt *SizeInt = svalBuilder.getKnownValue(state, Size);
+  if (!SizeInt)
+    return;
+
+  CharUnits regionSize = CharUnits::fromQuantity(SizeInt->getZExtValue());
+  CharUnits typeSize = C.getASTContext().getTypeSizeInChars(ToPointeeTy);
+
+  // Ignore void, and a few other un-sizeable types.
+  if (typeSize.isZero())
+    return;
+
+  if (regionSize % typeSize == 0)
+    return;
+
+  if (evenFlexibleArraySize(Ctx, regionSize, typeSize, ToPointeeTy))
+    return;
+
+  if (ExplodedNode *errorNode = C.generateErrorNode()) {
+    constexpr toolchain::StringLiteral Msg =
+        "Cast a region whose size is not a multiple of the destination type "
+        "size.";
+    auto R = std::make_unique<PathSensitiveBugReport>(BT, Msg, errorNode);
+    R->addRange(CE->getSourceRange());
+    C.emitReport(std::move(R));
+  }
+}
+
+void ento::registerCastSizeChecker(CheckerManager &mgr) {
+  mgr.registerChecker<CastSizeChecker>();
+}
+
+bool ento::shouldRegisterCastSizeChecker(const CheckerManager &mgr) {
+  // PR31226: C++ is more complicated than what this checker currently supports.
+  // There are derived-to-base casts, there are different rules for 0-size
+  // structures, no flexible arrays, etc.
+  // FIXME: Disabled on C++ for now.
+  const LangOptions &LO = mgr.getLangOpts();
+  return !LO.CPlusPlus;
+}

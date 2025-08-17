@@ -21,7 +21,7 @@
 #ifndef LANGUAGE_IRGEN_NATIVECONVENTIONSCHEMA_H
 #define LANGUAGE_IRGEN_NATIVECONVENTIONSCHEMA_H
 
-#include "clang/CodeGen/CodiraCallingConv.h"
+#include "language/Core/CodeGen/CodiraCallingConv.h"
 #include "toolchain/ADT/ArrayRef.h"
 #include "toolchain/ADT/SmallVector.h"
 #include "IRGen.h"
@@ -30,7 +30,7 @@
 namespace language {
 namespace irgen {
 
-using CodiraAggLowering = clang::CodeGen::languagecall::CodiraAggLowering;
+using CodiraAggLowering = language::Core::CodeGen::languagecall::CodiraAggLowering;
 
 class NativeConventionSchema {
   CodiraAggLowering Lowering;

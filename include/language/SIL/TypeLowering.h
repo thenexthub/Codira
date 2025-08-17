@@ -31,7 +31,7 @@
 #include "toolchain/ADT/SmallVector.h"
 #include "toolchain/Support/Allocator.h"
 
-namespace clang {
+namespace language::Core {
   class Type;
 }
 

@@ -1,0 +1,72 @@
+//===-- Symbols.def - Metadata about SymExpr kinds --------------*- C++ -*-===//
+//
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
+//
+//===----------------------------------------------------------------------===//
+//
+// The list of symbols (SymExpr sub-classes) used in the Static Analyzer.
+// In order to use this information, users of this file must define
+// one or more of the three macros:
+//
+// SYMBOL(Id, Parent) - for specific SymExpr sub-classes, reserving the
+// IdKind identifier for its kind enumeration value.
+//
+// ABSTRACT_SYMBOL(Id, Parent) - for abstract symbol classes,
+//
+// SYMBOL_RANGE(Id, First, Last) - for ranges of kind-enums,
+// allowing to determine abstract class of a symbol
+// based on the kind enumeration value.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef SYMBOL
+#define SYMBOL(Id, Parent)
+#endif
+
+#ifndef ABSTRACT_SYMBOL
+#define ABSTRACT_SYMBOL(Id, Parent)
+#endif
+
+#ifndef SYMBOL_RANGE
+#define SYMBOL_RANGE(Id, First, Last)
+#endif
+
+SYMBOL(UnarySymExpr, SymExpr)
+
+ABSTRACT_SYMBOL(BinarySymExpr, SymExpr)
+  SYMBOL(IntSymExpr, BinarySymExpr)
+  SYMBOL(SymIntExpr, BinarySymExpr)
+  SYMBOL(SymSymExpr, BinarySymExpr)
+SYMBOL_RANGE(BINARYSYMEXPRS, IntSymExprKind, SymSymExprKind)
+
+SYMBOL(SymbolCast, SymExpr)
+
+ABSTRACT_SYMBOL(SymbolData, SymExpr)
+  SYMBOL(SymbolConjured, SymbolData)
+  SYMBOL(SymbolDerived, SymbolData)
+  SYMBOL(SymbolExtent, SymbolData)
+  SYMBOL(SymbolMetadata, SymbolData)
+  SYMBOL(SymbolRegionValue, SymbolData)
+SYMBOL_RANGE(SYMBOLS, SymbolConjuredKind, SymbolRegionValueKind)
+
+#undef SYMBOL
+#undef ABSTRACT_SYMBOL
+#undef SYMBOL_RANGE

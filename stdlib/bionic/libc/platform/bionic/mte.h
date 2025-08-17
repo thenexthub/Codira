@@ -110,7 +110,7 @@ class ScopedDisableMTE {
 
 // N.B. that this is NOT the pagesize, but 4096. This is hardcoded in the codegen.
 // See
-// https://github.com/search?q=repo%3Allvm/llvm-project%20AArch64StackTagging%3A%3AinsertBaseTaggedPointer&type=code
+// https://github.com/search?q=repo%3Atoolchain/toolchain-project%20AArch64StackTagging%3A%3AinsertBaseTaggedPointer&type=code
 constexpr size_t kStackMteRingbufferSizeMultiplier = 4096;
 
 inline size_t stack_mte_ringbuffer_size(uintptr_t size_cls) {
@@ -139,7 +139,7 @@ inline void* stack_mte_ringbuffer_allocate(size_t n, const char* name) {
   // So we allocate 3*size - pagesz bytes, which will always contain size bytes
   // aligned to 2*size, and unmap the unneeded part.
   // See
-  // https://github.com/search?q=repo%3Allvm/llvm-project%20AArch64StackTagging%3A%3AinsertBaseTaggedPointer&type=code
+  // https://github.com/search?q=repo%3Atoolchain/toolchain-project%20AArch64StackTagging%3A%3AinsertBaseTaggedPointer&type=code
   //
   // In the worst case, we get an allocation that is one page past the properly
   // aligned address, in which case we have to unmap the previous

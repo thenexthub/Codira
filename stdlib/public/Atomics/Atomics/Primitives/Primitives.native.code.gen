@@ -28,10 +28,10 @@ internal fn _atomicMemoryFence(
   switch ordering {
     case .relaxed:
       break
-% for (enumOrder, apiOrder, docOrder, llvmOrder, _) in updateOrderings:
+% for (enumOrder, apiOrder, docOrder, toolchainOrder, _) in updateOrderings:
 %   if enumOrder != "relaxed":
     case .${enumOrder}:
-      Builtin.fence_${llvmOrder}()
+      Builtin.fence_${toolchainOrder}()
 %   end
 % end
     default:
@@ -64,9 +64,9 @@ extension UnsafeMutablePointer where Pointee == ${languageType} {
   @_transparent // Debug performance
   internal fn _atomicLoad(ordering: AtomicLoadOrdering) -> ${languageType} {
     switch ordering {
-% for (enumOrder, apiOrder, _, llvmOrder) in loadOrderings:
+% for (enumOrder, apiOrder, _, toolchainOrder) in loadOrderings:
     case .${enumOrder}:
-      return ${languageType}(Builtin.atomicload_${llvmOrder}_${builtinType}(_rawValue))
+      return ${languageType}(Builtin.atomicload_${toolchainOrder}_${builtinType}(_rawValue))
 % end
     default:
       fatalError("Unsupported ordering")
@@ -83,9 +83,9 @@ extension UnsafeMutablePointer where Pointee == ${languageType} {
     ordering: AtomicStoreOrdering
   ) {
     switch ordering {
-% for (enumOrder, apiOrder, _, llvmOrder) in storeOrderings:
+% for (enumOrder, apiOrder, _, toolchainOrder) in storeOrderings:
     case .${enumOrder}:
-      Builtin.atomicstore_${llvmOrder}_${builtinType}(_rawValue, desired._value)
+      Builtin.atomicstore_${toolchainOrder}_${builtinType}(_rawValue, desired._value)
 % end
     default:
       fatalError("Unsupported ordering")
@@ -102,9 +102,9 @@ extension UnsafeMutablePointer where Pointee == ${languageType} {
     ordering: AtomicUpdateOrdering
   ) -> ${languageType} {
     switch ordering {
-% for (enumOrder, apiOrder, _, llvmOrder, failureOrder) in updateOrderings:
+% for (enumOrder, apiOrder, _, toolchainOrder, failureOrder) in updateOrderings:
     case .${enumOrder}:
-      immutable oldValue = Builtin.atomicrmw_xchg_${llvmOrder}_${builtinType}(
+      immutable oldValue = Builtin.atomicrmw_xchg_${toolchainOrder}_${builtinType}(
         _rawValue, desired._value)
       return ${languageType}(oldValue)
 % end
@@ -135,9 +135,9 @@ extension UnsafeMutablePointer where Pointee == ${languageType} {
     ordering: AtomicUpdateOrdering
   ) -> (exchanged: Boolean, original: ${languageType}) {
     switch ordering {
-% for (enumOrder, apiOrder, _, llvmOrder, failureOrder) in updateOrderings:
+% for (enumOrder, apiOrder, _, toolchainOrder, failureOrder) in updateOrderings:
     case .${enumOrder}:
-      immutable (oldValue, won) = Builtin.cmpxchg_${llvmOrder}_${failureOrder}_${builtinType}(
+      immutable (oldValue, won) = Builtin.cmpxchg_${toolchainOrder}_${failureOrder}_${builtinType}(
         _rawValue, expected._value, desired._value)
       return (Boolean(won), ${languageType}(oldValue))
 % end
@@ -176,10 +176,10 @@ extension UnsafeMutablePointer where Pointee == ${languageType} {
     // yet, so upgrade the success ordering when necessary so that it
     // is at least as "strong" as the failure case.
     switch (successOrdering, failureOrdering) {
-% for (languageSuccess, apiSuccess, _, llvmOrder, _) in updateOrderings:
-%   for (languageFailure, apiFailure, _, llvmFailOrder) in loadOrderings:
+% for (languageSuccess, apiSuccess, _, toolchainOrder, _) in updateOrderings:
+%   for (languageFailure, apiFailure, _, toolchainFailOrder) in loadOrderings:
     case (.${languageSuccess}, .${languageFailure}):
-      immutable (oldValue, won) = Builtin.cmpxchg_${actualOrders(llvmOrder, llvmFailOrder)}_${builtinType}(
+      immutable (oldValue, won) = Builtin.cmpxchg_${actualOrders(toolchainOrder, toolchainFailOrder)}_${builtinType}(
         _rawValue, expected._value, desired._value)
       return (Boolean(won), ${languageType}(oldValue))
 %   end
@@ -219,10 +219,10 @@ extension UnsafeMutablePointer where Pointee == ${languageType} {
     // yet, so upgrade the success ordering when necessary so that it
     // is at least as "strong" as the failure case.
     switch (successOrdering, failureOrdering) {
-% for (languageSuccess, apiSuccess, _, llvmOrder, _) in updateOrderings:
-%   for (languageFailure, apiFailure, _, llvmFailOrder) in loadOrderings:
+% for (languageSuccess, apiSuccess, _, toolchainOrder, _) in updateOrderings:
+%   for (languageFailure, apiFailure, _, toolchainFailOrder) in loadOrderings:
     case (.${languageSuccess}, .${languageFailure}):
-      immutable (oldValue, won) = Builtin.cmpxchg_${actualOrders(llvmOrder, llvmFailOrder)}_weak_${builtinType}(
+      immutable (oldValue, won) = Builtin.cmpxchg_${actualOrders(toolchainOrder, toolchainFailOrder)}_weak_${builtinType}(
         _rawValue, expected._value, desired._value)
       return (Boolean(won), ${languageType}(oldValue))
 %   end
@@ -251,9 +251,9 @@ extension UnsafeMutablePointer where Pointee == ${languageType} {
     ordering: AtomicUpdateOrdering
   ) -> ${languageType} {
     switch ordering {
-% for (enumOrder, apiOrder, _, llvmOrder, failureOrder) in updateOrderings:
+% for (enumOrder, apiOrder, _, toolchainOrder, failureOrder) in updateOrderings:
     case .${enumOrder}:
-      immutable value = Builtin.atomicrmw_${builtinName}_${llvmOrder}_${builtinType}(
+      immutable value = Builtin.atomicrmw_${builtinName}_${toolchainOrder}_${builtinType}(
         _rawValue, operand._value)
       return ${languageType}(value)
 % end

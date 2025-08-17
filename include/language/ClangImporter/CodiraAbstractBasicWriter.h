@@ -23,8 +23,8 @@
 #ifndef LANGUAGE_CLANGIMPORTER_LANGUAGEABSTRACTBASICWRITER_H
 #define LANGUAGE_CLANGIMPORTER_LANGUAGEABSTRACTBASICWRITER_H
 
-#include "clang/AST/AbstractTypeWriter.h"
-#include "clang/AST/Type.h"
+#include "language/Core/AST/AbstractTypeWriter.h"
+#include "language/Core/AST/Type.h"
 
 namespace language {
 
@@ -38,22 +38,22 @@ namespace language {
 ///
 /// The subclass must implement:
 ///   void writeUInt64(uint64_t value);
-///   void writeIdentifier(const clang::IdentifierInfo *ident);
-///   void writeStmtRef(const clang::Stmt *stmt);
-///   void writeDeclRef(const clang::Decl *decl);
+///   void writeIdentifier(const language::Core::IdentifierInfo *ident);
+///   void writeStmtRef(const language::Core::Stmt *stmt);
+///   void writeDeclRef(const language::Core::Decl *decl);
 template <class Impl>
 class DataStreamBasicWriter
-       : public clang::serialization::DataStreamBasicWriter<Impl> {
-  using super = clang::serialization::DataStreamBasicWriter<Impl>;
+       : public language::Core::serialization::DataStreamBasicWriter<Impl> {
+  using super = language::Core::serialization::DataStreamBasicWriter<Impl>;
 public:
   using super::asImpl;
 
-  DataStreamBasicWriter(clang::ASTContext &ctx) : super(ctx) {}
+  DataStreamBasicWriter(language::Core::ASTContext &ctx) : super(ctx) {}
 
   /// Perform all the calls necessary to write out the given type.
-  void writeTypeRef(const clang::Type *type) {
+  void writeTypeRef(const language::Core::Type *type) {
     asImpl().writeUInt64(uint64_t(type->getTypeClass()));
-    clang::serialization::AbstractTypeWriter<Impl>(asImpl()).write(type);
+    language::Core::serialization::AbstractTypeWriter<Impl>(asImpl()).write(type);
   }
 
   void writeBool(bool value) {
@@ -64,7 +64,7 @@ public:
     asImpl().writeUInt64(uint64_t(value));
   }
 
-  void writeSelector(clang::Selector selector) {
+  void writeSelector(language::Core::Selector selector) {
     if (selector.isNull()) {
       asImpl().writeUInt64(0);
       return;
@@ -75,19 +75,19 @@ public:
       asImpl().writeIdentifier(selector.getIdentifierInfoForSlot(i));
   }
 
-  void writeSourceLocation(clang::SourceLocation loc) {
+  void writeSourceLocation(language::Core::SourceLocation loc) {
     // DataStreamBasicReader will always read null; the serializability
     // check overrides this to complain about non-null source locations.
   }
 
-  void writeQualType(clang::QualType type) {
+  void writeQualType(language::Core::QualType type) {
     assert(!type.isNull());
 
     auto split = type.split();
     auto qualifiers = split.Quals;
 
     // Unwrap BTFTagAttributeType and merge any of its qualifiers.
-    while (auto btfType = dyn_cast<clang::BTFTagAttributedType>(split.Ty)) {
+    while (auto btfType = dyn_cast<language::Core::BTFTagAttributedType>(split.Ty)) {
       split = btfType->getWrappedType().split();
       qualifiers.addQualifiers(split.Quals);
     }
@@ -97,7 +97,7 @@ public:
     asImpl().writeTypeRef(split.Ty);
   }
 
-  void writeBTFTypeTagAttr(const clang::BTFTypeTagAttr *attr) {
+  void writeBTFTypeTagAttr(const language::Core::BTFTypeTagAttr *attr) {
     // BTFTagAttributeType is explicitly unwrapped above, so we should never
     // hit any of its attributes.
     toolchain::report_fatal_error("Should never hit BTFTypeTagAttr serialization");

@@ -36,7 +36,7 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/StringExtras.h"
 
-#include "clang/AST/DeclObjC.h"
+#include "language/Core/AST/DeclObjC.h"
 
 using namespace language;
 
@@ -210,7 +210,7 @@ static void diagnoseTypeNotRepresentableInObjC(const DeclContext *DC,
 
   // Special diagnostic for structs.
   if (auto *SD = T->getStructOrBoundGenericStruct()) {
-    if (isa_and_nonnull<clang::CXXRecordDecl>(SD->getClangDecl())) {
+    if (isa_and_nonnull<language::Core::CXXRecordDecl>(SD->getClangDecl())) {
       // This can be a non-trivial C++ record.
       diags.diagnose(TypeRange.Start, diag::not_objc_non_trivial_cxx_class,
                      language)
@@ -4074,9 +4074,9 @@ private:
   /// Is this member an `@optional` ObjC protocol requirement?
   static bool isOptionalObjCProtocolRequirement(ValueDecl *vd) {
     if (auto clangDecl = vd->getClangDecl()) {
-      if (auto method = dyn_cast<clang::ObjCMethodDecl>(clangDecl))
+      if (auto method = dyn_cast<language::Core::ObjCMethodDecl>(clangDecl))
         return method->isOptional();
-      if (auto property = dyn_cast<clang::ObjCPropertyDecl>(clangDecl))
+      if (auto property = dyn_cast<language::Core::ObjCPropertyDecl>(clangDecl))
         return property->isOptional();
     }
 

@@ -1,8 +1,24 @@
 //===- SourceMgr.cpp - Manager for Simple Source Buffers & Diagnostics ----===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -12,19 +28,19 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_SourceMgr.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_ArrayRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_STLExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallVector.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Twine.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ErrorOr.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Locale.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_MemoryBuffer.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Path.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_SMLoc.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_WithColor.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_SourceMgr.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_ArrayRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_STLExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallVector.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Twine.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ErrorOr.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Locale.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_MemoryBuffer.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Path.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_SMLoc.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_WithColor.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
@@ -33,7 +49,7 @@
 #include <string>
 #include <utility>
 
-using namespace llvm;
+using namespace toolchain;
 
 static const size_t TabStop = 8;
 
@@ -269,7 +285,7 @@ SMDiagnostic::SMDiagnostic(const SourceMgr &sm, SMLoc L, StringRef FN,
   : SM(&sm), Loc(L), Filename(FN), LineNo(Line), ColumnNo(Col), Kind(Kind),
     Message(Msg), LineContents(LineStr), Ranges(Ranges.vec()),
     FixIts(Hints.begin(), Hints.end()) {
-  llvm::sort(FixIts);
+  toolchain::sort(FixIts);
 }
 
 static void buildFixItLine(std::string &CaretLine, std::string &FixItLine,

@@ -17,7 +17,7 @@ module Test {
 
 struct LANGUAGE_NONESCAPABLE View {
     View() : member(nullptr) {}
-    View(const int *p [[clang::lifetimebound]]) : member(p) {}
+    View(const int *p [[language::Core::lifetimebound]]) : member(p) {}
     View(const View&) = default;
 private:
     const int *member;
@@ -27,11 +27,11 @@ struct LANGUAGE_ESCAPABLE Owner {
     int data;
 };
 
-Owner f(int* x [[clang::lifetimebound]]) { 
+Owner f(int* x [[language::Core::lifetimebound]]) { 
     return Owner{0};
 }
 
-Owner f2(int* x [[clang::lifetimebound]], int* y [[clang::lifetimebound]]) { 
+Owner f2(int* x [[language::Core::lifetimebound]], int* y [[language::Core::lifetimebound]]) { 
     return Owner{0};
 }
 

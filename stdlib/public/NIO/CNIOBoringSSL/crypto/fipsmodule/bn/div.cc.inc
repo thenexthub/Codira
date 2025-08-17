@@ -101,8 +101,8 @@ static inline void bn_div_rem_words(BN_ULONG *quotient_out, BN_ULONG *rem_out,
   //   * https://gcc.gnu.org/bugzilla/show_bug.cgi?id=65668
   //
   // Clang bugs:
-  //   * https://github.com/llvm/llvm-project/issues/6769
-  //   * https://github.com/llvm/llvm-project/issues/12790
+  //   * https://github.com/toolchain/toolchain-project/issues/6769
+  //   * https://github.com/toolchain/toolchain-project/issues/12790
   //
   // These is specific to x86 and x86_64; Arm and RISC-V do not have double-wide
   // division instructions.

@@ -31,9 +31,9 @@
 #include "language/Frontend/ModuleInterfaceSupport.h"
 #include "language/IDE/SourceEntityWalker.h"
 
-#include "clang/AST/DeclObjC.h"
-#include "clang/AST/ObjCMethodReferenceInfo.h"
-#include "clang/Basic/Module.h"
+#include "language/Core/AST/DeclObjC.h"
+#include "language/Core/AST/ObjCMethodReferenceInfo.h"
+#include "language/Core/Basic/Module.h"
 
 #include "toolchain/ADT/SmallPtrSet.h"
 #include "toolchain/ADT/SmallString.h"
@@ -877,18 +877,18 @@ bool language::emitLoadedModuleTraceIfNeeded(ModuleDecl *mainModule,
 
 class ObjcMethodReferenceCollector: public SourceEntityWalker {
   unsigned CurrentFileID;
-  toolchain::DenseMap<const clang::ObjCMethodDecl*, unsigned> results;
+  toolchain::DenseMap<const language::Core::ObjCMethodDecl*, unsigned> results;
   bool visitDeclReference(ValueDecl *D, SourceRange Range, TypeDecl *CtorTyRef,
                           ExtensionDecl *ExtTyRef, Type T,
                           ReferenceMetaData Data) override {
     if (!Range.isValid())
       return true;
-    if (auto *clangD = dyn_cast_or_null<clang::ObjCMethodDecl>(D->getClangDecl()))
+    if (auto *clangD = dyn_cast_or_null<language::Core::ObjCMethodDecl>(D->getClangDecl()))
       Info.References[CurrentFileID].push_back(clangD);
     return true;
   }
 
-  clang::ObjCMethodReferenceInfo Info;
+  language::Core::ObjCMethodReferenceInfo Info;
 
 public:
   ObjcMethodReferenceCollector(ModuleDecl *MD) {
@@ -906,7 +906,7 @@ public:
     CurrentFileID = Info.FilePaths.size();
   }
   void serializeAsJson(toolchain::raw_ostream &OS) {
-    clang::serializeObjCMethodReferencesAsJson(Info, OS);
+    language::Core::serializeObjCMethodReferencesAsJson(Info, OS);
   }
 };
 

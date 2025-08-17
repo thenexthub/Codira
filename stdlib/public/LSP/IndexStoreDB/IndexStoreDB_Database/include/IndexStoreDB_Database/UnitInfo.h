@@ -18,10 +18,10 @@
 
 #include <IndexStoreDB_Database/IDCode.h>
 #include <IndexStoreDB_Support/LLVM.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_ArrayRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Hashing.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Chrono.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_ArrayRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Hashing.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Chrono.h>
 
 namespace IndexStoreDB {
 namespace db {
@@ -41,7 +41,7 @@ struct UnitInfo {
 
   StringRef UnitName;
   IDCode UnitCode;
-  llvm::sys::TimePoint<> ModTime;
+  toolchain::sys::TimePoint<> ModTime;
   IDCode OutFileCode;
   IDCode MainFileCode;
   IDCode SysrootCode;
@@ -65,7 +65,7 @@ struct UnitInfo {
 namespace std {
 template <> struct hash<IndexStoreDB::db::UnitInfo::Provider> {
   size_t operator()(const IndexStoreDB::db::UnitInfo::Provider &k) const {
-    return llvm::hash_combine(k.FileCode.value(), k.ProviderCode.value());
+    return toolchain::hash_combine(k.FileCode.value(), k.ProviderCode.value());
   }
 };
 }

@@ -231,7 +231,7 @@ public:
   /// Return the Clang node associated with this variable if it has one.
   ClangNode getClangNode() const;
 
-  const clang::Decl *getClangDecl() const;
+  const language::Core::Decl *getClangDecl() const;
 
   //===--------------------------------------------------------------------===//
   // Miscellaneous

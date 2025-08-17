@@ -51,9 +51,9 @@ TEST(__cxa_demangle, cxa_demangle_fuzz_152588929) {
   //    long double.
   char* p = abi::__cxa_demangle("1\006ILeeeEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE", 0, 0, 0);
   if (p && !strcmp(p, "\x6<-0x1.cecececececececececececececep+11983")) {
-    // Prior to llvm.org/D77924, libc++abi left off the "L>" suffix.
+    // Prior to toolchain.org/D77924, libc++abi left off the "L>" suffix.
   } else if (p && !strcmp(p, "\x6<-0x1.cecececececececececececececep+11983L>")) {
-    // After llvm.org/D77924, the "L>" suffix is present. libc++abi
+    // After toolchain.org/D77924, the "L>" suffix is present. libc++abi
     // accepts A-F digits but decodes each using (digit - 'a' + 10), turning 'E'
     // into -18.
   } else {

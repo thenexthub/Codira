@@ -25,10 +25,10 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/StringExtras.h"
 #include "language/Parse/Lexer.h"
-#include "clang/AST/Attr.h"
-#include "clang/AST/Decl.h"
-#include "clang/Lex/MacroInfo.h"
-#include "clang/Lex/Preprocessor.h"
+#include "language/Core/AST/Attr.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/Lex/MacroInfo.h"
+#include "language/Core/Lex/Preprocessor.h"
 
 #include "toolchain/ADT/Statistic.h"
 #define DEBUG_TYPE "Enum Info"
@@ -43,11 +43,11 @@ using namespace importer;
 ///
 /// This is not what Clang will do, but it's more useful for us since CF_ENUM
 /// already has enum_extensibility(open) in it.
-static clang::EnumExtensibilityAttr *
-getBestExtensibilityAttr(clang::Preprocessor &pp, const clang::EnumDecl *decl) {
-  clang::EnumExtensibilityAttr *bestSoFar = nullptr;
-  const clang::SourceManager &sourceMgr = pp.getSourceManager();
-  for (auto *next : decl->specific_attrs<clang::EnumExtensibilityAttr>()) {
+static language::Core::EnumExtensibilityAttr *
+getBestExtensibilityAttr(language::Core::Preprocessor &pp, const language::Core::EnumDecl *decl) {
+  language::Core::EnumExtensibilityAttr *bestSoFar = nullptr;
+  const language::Core::SourceManager &sourceMgr = pp.getSourceManager();
+  for (auto *next : decl->specific_attrs<language::Core::EnumExtensibilityAttr>()) {
     if (next->getLocation().isInvalid()) {
       // This is from API notes -- use it!
       return next;
@@ -63,10 +63,10 @@ getBestExtensibilityAttr(clang::Preprocessor &pp, const clang::EnumDecl *decl) {
 }
 
 /// Classify the given Clang enumeration to describe how to import it.
-void EnumInfo::classifyEnum(const clang::EnumDecl *decl,
-                            clang::Preprocessor &pp) {
+void EnumInfo::classifyEnum(const language::Core::EnumDecl *decl,
+                            language::Core::Preprocessor &pp) {
   assert(decl);
-  clang::PrettyStackTraceDecl trace(decl, clang::SourceLocation(),
+  language::Core::PrettyStackTraceDecl trace(decl, language::Core::SourceLocation(),
                                     pp.getSourceManager(), "classifying");
   assert(decl->isThisDeclarationADefinition());
 
@@ -75,12 +75,12 @@ void EnumInfo::classifyEnum(const clang::EnumDecl *decl,
   // name for the Codira type.
   if (!decl->hasNameForLinkage()) {
     // If this enum comes from a typedef, we can find a name.
-    const clang::Type *underlyingType = getUnderlyingType(decl);
-    if (!isa<clang::TypedefType>(underlyingType) ||
+    const language::Core::Type *underlyingType = getUnderlyingType(decl);
+    if (!isa<language::Core::TypedefType>(underlyingType) ||
         // If the typedef is available in Codira, the user will get ambiguity.
         // It also means they may not have intended this API to be imported like this.
         !importer::isUnavailableInCodira(
-            cast<clang::TypedefType>(underlyingType)->getDecl(),
+            cast<language::Core::TypedefType>(underlyingType)->getDecl(),
             nullptr, true)) {
       kind = EnumKind::Constants;
       return;
@@ -88,16 +88,16 @@ void EnumInfo::classifyEnum(const clang::EnumDecl *decl,
   }
 
   // First, check for attributes that denote the classification.
-  if (auto domainAttr = decl->getAttr<clang::NSErrorDomainAttr>()) {
+  if (auto domainAttr = decl->getAttr<language::Core::NSErrorDomainAttr>()) {
     kind = EnumKind::NonFrozenEnum;
     nsErrorDomain = domainAttr->getErrorDomain()->getName();
   }
-  if (decl->hasAttr<clang::FlagEnumAttr>()) {
+  if (decl->hasAttr<language::Core::FlagEnumAttr>()) {
     kind = EnumKind::Options;
     return;
   }
   if (auto *attr = getBestExtensibilityAttr(pp, decl)) {
-    if (attr->getExtensibility() == clang::EnumExtensibilityAttr::Closed)
+    if (attr->getExtensibility() == language::Core::EnumExtensibilityAttr::Closed)
       kind = EnumKind::FrozenEnum;
     else
       kind = EnumKind::NonFrozenEnum;
@@ -113,11 +113,11 @@ void EnumInfo::classifyEnum(const clang::EnumDecl *decl,
 
   // If API notes have /removed/ a FlagEnum or EnumExtensibility attribute,
   // then we don't need to check the macros.
-  for (auto *attr : decl->specific_attrs<clang::CodiraVersionedAdditionAttr>()) {
+  for (auto *attr : decl->specific_attrs<language::Core::CodiraVersionedAdditionAttr>()) {
     if (!attr->getIsReplacedByActive())
       continue;
-    if (isa<clang::FlagEnumAttr>(attr->getAdditionalAttr()) ||
-        isa<clang::EnumExtensibilityAttr>(attr->getAdditionalAttr())) {
+    if (isa<language::Core::FlagEnumAttr>(attr->getAdditionalAttr()) ||
+        isa<language::Core::EnumExtensibilityAttr>(attr->getAdditionalAttr())) {
       kind = EnumKind::Unknown;
       return;
     }
@@ -247,13 +247,13 @@ StringRef importer::getCommonPluralPrefix(StringRef singular,
   return commonPrefix;
 }
 
-const clang::Type *importer::getUnderlyingType(const clang::EnumDecl *decl) {
+const language::Core::Type *importer::getUnderlyingType(const language::Core::EnumDecl *decl) {
   return importer::desugarIfElaborated(decl->getIntegerType().getTypePtr());
 }
 
-ImportedType importer::findOptionSetEnum(clang::QualType type,
+ImportedType importer::findOptionSetEnum(language::Core::QualType type,
                                          ClangImporter::Implementation &Impl) {
-  auto typedefType = dyn_cast<clang::TypedefType>(type);
+  auto typedefType = dyn_cast<language::Core::TypedefType>(type);
   if (!typedefType || !Impl.isUnavailableInCodira(typedefType->getDecl()))
     // If this isn't a typedef, or it is a typedef that is available in Codira,
     // then this definitely isn't used for {CF,NS}_OPTIONS.
@@ -274,7 +274,7 @@ ImportedType importer::findOptionSetEnum(clang::QualType type,
   // If these fails, it means that we need a stronger predicate for
   // determining the relationship between an enum and typedef.
   if (auto *tdEnum =
-          dyn_cast<clang::EnumType>(typedefType->getCanonicalTypeInternal())) {
+          dyn_cast<language::Core::EnumType>(typedefType->getCanonicalTypeInternal())) {
     ASSERT(clangEnum.value()->getIntegerType()->getCanonicalTypeInternal() ==
            tdEnum->getDecl()->getIntegerType()->getCanonicalTypeInternal());
   } else {
@@ -290,7 +290,7 @@ ImportedType importer::findOptionSetEnum(clang::QualType type,
 
 /// Determine the prefix to be stripped from the names of the enum constants
 /// within the given enum.
-void EnumInfo::determineConstantNamePrefix(const clang::EnumDecl *decl) {
+void EnumInfo::determineConstantNamePrefix(const language::Core::EnumDecl *decl) {
   switch (getKind()) {
   case EnumKind::NonFrozenEnum:
   case EnumKind::FrozenEnum:
@@ -313,28 +313,28 @@ void EnumInfo::determineConstantNamePrefix(const clang::EnumDecl *decl) {
   // Determine whether the given enumerator is non-deprecated and has no
   // specifically-provided name.
   auto isNonDeprecatedWithoutCustomName = [](
-      const clang::EnumConstantDecl *elem) -> bool {
-    if (elem->hasAttr<clang::CodiraNameAttr>())
+      const language::Core::EnumConstantDecl *elem) -> bool {
+    if (elem->hasAttr<language::Core::CodiraNameAttr>())
       return false;
 
     toolchain::VersionTuple maxVersion{~0U, ~0U, ~0U};
     switch (elem->getAvailability(nullptr, maxVersion)) {
-    case clang::AR_Available:
-    case clang::AR_NotYetIntroduced:
+    case language::Core::AR_Available:
+    case language::Core::AR_NotYetIntroduced:
       for (auto attr : elem->attrs()) {
-        if (auto annotate = dyn_cast<clang::AnnotateAttr>(attr)) {
+        if (auto annotate = dyn_cast<language::Core::AnnotateAttr>(attr)) {
           if (annotate->getAnnotation() == "language1_unavailable")
             return false;
         }
-        if (auto avail = dyn_cast<clang::AvailabilityAttr>(attr)) {
+        if (auto avail = dyn_cast<language::Core::AvailabilityAttr>(attr)) {
           if (avail->getPlatform()->getName() == "language")
             return false;
         }
       }
       return true;
 
-    case clang::AR_Deprecated:
-    case clang::AR_Unavailable:
+    case language::Core::AR_Deprecated:
+    case language::Core::AR_Unavailable:
       return false;
     }
 
@@ -350,7 +350,7 @@ void EnumInfo::determineConstantNamePrefix(const clang::EnumDecl *decl) {
     ec = firstNonDeprecated;
   } else {
     // Advance to the first case without a custom name, deprecated or not.
-    while (ec != ecEnd && (*ec)->hasAttr<clang::CodiraNameAttr>())
+    while (ec != ecEnd && (*ec)->hasAttr<language::Core::CodiraNameAttr>())
       ++ec;
     if (ec == ecEnd) {
       return;
@@ -362,12 +362,12 @@ void EnumInfo::determineConstantNamePrefix(const clang::EnumDecl *decl) {
   bool followedByNonIdentifier = false;
   for (++ec; ec != ecEnd; ++ec) {
     // Skip deprecated or language_name'd enumerators.
-    const clang::EnumConstantDecl *elem = *ec;
+    const language::Core::EnumConstantDecl *elem = *ec;
     if (hasNonDeprecated) {
       if (!isNonDeprecatedWithoutCustomName(elem))
         continue;
     } else {
-      if (elem->hasAttr<clang::CodiraNameAttr>())
+      if (elem->hasAttr<language::Core::CodiraNameAttr>())
         continue;
     }
 
@@ -384,7 +384,7 @@ void EnumInfo::determineConstantNamePrefix(const clang::EnumDecl *decl) {
     if (checkPrefix[0] == 'k') {
       bool canDropK;
       if (checkPrefix.size() >= 2)
-        canDropK = clang::isUppercase(checkPrefix[1]);
+        canDropK = language::Core::isUppercase(checkPrefix[1]);
       else
         canDropK = !followedByNonIdentifier;
 
@@ -397,8 +397,8 @@ void EnumInfo::determineConstantNamePrefix(const clang::EnumDecl *decl) {
     StringRef enumNameStr;
     // If there's no name, this must be typedef. So use the typedef's name.
     if (!decl->hasNameForLinkage()) {
-      const clang::Type *underlyingType = getUnderlyingType(decl);
-      auto typedefDecl = cast<clang::TypedefType>(underlyingType)->getDecl();
+      const language::Core::Type *underlyingType = getUnderlyingType(decl);
+      auto typedefDecl = cast<language::Core::TypedefType>(underlyingType)->getDecl();
       enumNameStr = typedefDecl->getName();
     } else {
       enumNameStr = decl->getName();
@@ -423,7 +423,7 @@ void EnumInfo::determineConstantNamePrefix(const clang::EnumDecl *decl) {
   constantNamePrefix = commonPrefix;
 }
 
-EnumInfo EnumInfoCache::getEnumInfo(const clang::EnumDecl *decl) {
+EnumInfo EnumInfoCache::getEnumInfo(const language::Core::EnumDecl *decl) {
   auto iter = enumInfos.find(decl);
   if (iter != enumInfos.end()) {
     ++EnumInfoNumCacheHits;

@@ -26,10 +26,10 @@
 #include "language/Basic/Version.h"
 #include "toolchain/Support/VersionTuple.h"
 
-namespace clang {
+namespace language::Core {
 class NamedDecl;
 class Type;
-} // namespace clang
+} // namespace language::Core
 
 namespace language {
 
@@ -134,8 +134,8 @@ class DiagnosticArgument {
     ActorIsolation ActorIsolationVal;
     IsolationSource IsolationSourceVal;
     DiagnosticInfo *DiagnosticVal;
-    const clang::NamedDecl *ClangDecl;
-    const clang::Type *ClangType;
+    const language::Core::NamedDecl *ClangDecl;
+    const language::Core::Type *ClangType;
   };
 
 public:
@@ -168,8 +168,8 @@ public:
   DiagnosticArgument(ActorIsolation AI);
   DiagnosticArgument(IsolationSource IS);
   DiagnosticArgument(DiagnosticInfo *D);
-  DiagnosticArgument(const clang::NamedDecl *ND);
-  DiagnosticArgument(const clang::Type *Ty);
+  DiagnosticArgument(const language::Core::NamedDecl *ND);
+  DiagnosticArgument(const language::Core::Type *Ty);
 
   /// Initializes a diagnostic argument using the underlying type of the
   /// given enum.
@@ -208,8 +208,8 @@ public:
   ActorIsolation getAsActorIsolation() const;
   IsolationSource getAsIsolationSource() const;
   DiagnosticInfo *getAsDiagnostic() const;
-  const clang::NamedDecl *getAsClangDecl() const;
-  const clang::Type *getAsClangType() const;
+  const language::Core::NamedDecl *getAsClangDecl() const;
+  const language::Core::Type *getAsClangType() const;
 };
 
 } // namespace language

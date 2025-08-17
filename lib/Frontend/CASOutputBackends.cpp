@@ -21,7 +21,7 @@
 #include "language/Frontend/CachingUtils.h"
 #include "language/Frontend/CompileJobCacheKey.h"
 #include "language/Frontend/CompileJobCacheResult.h"
-#include "clang/Frontend/CompileJobCacheResult.h"
+#include "language/Core/Frontend/CompileJobCacheResult.h"
 #include "toolchain/ADT/STLExtras.h"
 #include "toolchain/CAS/HierarchicalTreeBuilder.h"
 #include "toolchain/CAS/ObjectStore.h"
@@ -309,20 +309,20 @@ Error CodiraCASOutputBackend::Implementation::finalizeCacheKeysFor(
   std::optional<ObjectRef> Result;
   // Use a clang compatible result CAS object schema when emiting PCM.
   if (Action == FrontendOptions::ActionType::EmitPCM) {
-    clang::cas::CompileJobCacheResult::Builder Builder;
+    language::Core::cas::CompileJobCacheResult::Builder Builder;
 
     for (auto &Outs : OutputsForInput) {
       if (Outs.first == file_types::ID::TY_ClangModuleFile)
         Builder.addOutput(
-            clang::cas::CompileJobCacheResult::OutputKind::MainOutput,
+            language::Core::cas::CompileJobCacheResult::OutputKind::MainOutput,
             Outs.second);
       else if (Outs.first == file_types::ID::TY_CachedDiagnostics)
-        Builder.addOutput(clang::cas::CompileJobCacheResult::OutputKind::
+        Builder.addOutput(language::Core::cas::CompileJobCacheResult::OutputKind::
                               SerializedDiagnostics,
                           Outs.second);
       else if (Outs.first == file_types::ID::TY_Dependencies)
         Builder.addOutput(
-            clang::cas::CompileJobCacheResult::OutputKind::Dependencies,
+            language::Core::cas::CompileJobCacheResult::OutputKind::Dependencies,
             Outs.second);
       else
         toolchain_unreachable("Unexpected output when compiling clang module");

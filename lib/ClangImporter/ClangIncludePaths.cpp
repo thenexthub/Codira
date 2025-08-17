@@ -21,9 +21,9 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Platform.h"
 #include "language/ClangImporter/ClangImporter.h"
-#include "clang/Driver/Driver.h"
-#include "clang/Driver/ToolChain.h"
-#include "clang/Frontend/CompilerInstance.h"
+#include "language/Core/Driver/Driver.h"
+#include "language/Core/Driver/ToolChain.h"
+#include "language/Core/Frontend/CompilerInstance.h"
 #include "toolchain/WindowsDriver/MSVCPaths.h"
 
 using namespace language;
@@ -120,21 +120,21 @@ language::getCxxShimModuleMapPath(SearchPathOptions &opts,
 }
 
 static toolchain::opt::InputArgList
-parseClangDriverArgs(const clang::driver::Driver &clangDriver,
+parseClangDriverArgs(const language::Core::driver::Driver &clangDriver,
                      const ArrayRef<const char *> args) {
   unsigned unused1, unused2;
   return clangDriver.getOpts().ParseArgs(args, unused1, unused2);
 }
 
-std::pair<clang::driver::Driver,
-          toolchain::IntrusiveRefCntPtr<clang::DiagnosticsEngine>>
+std::pair<language::Core::driver::Driver,
+          toolchain::IntrusiveRefCntPtr<language::Core::DiagnosticsEngine>>
 ClangImporter::createClangDriver(
     const LangOptions &LangOpts, const ClangImporterOptions &ClangImporterOpts,
     toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> vfs) {
-  auto *silentDiagConsumer = new clang::DiagnosticConsumer();
-  auto clangDiags = clang::CompilerInstance::createDiagnostics(
-      new clang::DiagnosticOptions(), silentDiagConsumer);
-  clang::driver::Driver clangDriver(ClangImporterOpts.clangPath,
+  auto *silentDiagConsumer = new language::Core::DiagnosticConsumer();
+  auto clangDiags = language::Core::CompilerInstance::createDiagnostics(
+      new language::Core::DiagnosticOptions(), silentDiagConsumer);
+  language::Core::driver::Driver clangDriver(ClangImporterOpts.clangPath,
                                     LangOpts.Target.str(), *clangDiags,
                                     "clang LLVM compiler", vfs);
   return {std::move(clangDriver), clangDiags};
@@ -152,11 +152,11 @@ static std::optional<Path> findFirstIncludeDir(
     const toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> &vfs) {
   // C++ stdlib paths are added as `-internal-isystem`.
   std::vector<std::string> includeDirs =
-      args.getAllArgValues(clang::driver::options::OPT_internal_isystem);
+      args.getAllArgValues(language::Core::driver::options::OPT_internal_isystem);
   // C stdlib paths are added as `-internal-externc-isystem`.
   toolchain::append_range(includeDirs,
                      args.getAllArgValues(
-                         clang::driver::options::OPT_internal_externc_isystem));
+                         language::Core::driver::options::OPT_internal_externc_isystem));
 
   for (const auto &includeDir : includeDirs) {
     Path dir(includeDir);
@@ -182,7 +182,7 @@ static std::optional<Path> findFirstIncludeDir(
 toolchain::opt::InputArgList
 ClangImporter::createClangArgs(const ClangImporterOptions &ClangImporterOpts,
                                const SearchPathOptions &SearchPathOpts,
-                               clang::driver::Driver &clangDriver) {
+                               language::Core::driver::Driver &clangDriver) {
   // Flags passed to Codira with `-Xcc` might affect include paths.
   std::vector<const char *> clangArgs;
   for (const auto &each : ClangImporterOpts.ExtraArgs) {
@@ -300,9 +300,9 @@ static void getLibStdCxxFileMapping(
   auto parsedStdlibArgs = parseClangDriverArgs(clangDriver, stdlibArgStrings);
 
   // If we were explicitly asked to not bring in the C++ stdlib, bail.
-  if (parsedStdlibArgs.hasArg(clang::driver::options::OPT_nostdinc,
-                              clang::driver::options::OPT_nostdincxx,
-                              clang::driver::options::OPT_nostdlibinc))
+  if (parsedStdlibArgs.hasArg(language::Core::driver::options::OPT_nostdinc,
+                              language::Core::driver::options::OPT_nostdincxx,
+                              language::Core::driver::options::OPT_nostdlibinc))
     return;
 
   Path cxxStdlibDir;
@@ -472,7 +472,7 @@ void GetWindowsFileMappings(
       Context.LangOpts, Context.ClangImporterOpts, driverVFS);
   const toolchain::opt::InputArgList Args = ClangImporter::createClangArgs(
       Context.ClangImporterOpts, Context.SearchPathOpts, Driver);
-  const clang::driver::ToolChain &ToolChain = Driver.getToolChain(Args, Triple);
+  const language::Core::driver::ToolChain &ToolChain = Driver.getToolChain(Args, Triple);
   toolchain::vfs::FileSystem &VFS = ToolChain.getVFS();
 
   struct {

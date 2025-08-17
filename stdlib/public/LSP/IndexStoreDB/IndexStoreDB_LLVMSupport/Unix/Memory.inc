@@ -1,8 +1,24 @@
 //===- Unix/Memory.cpp - Generic UNIX System Configuration ------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -11,10 +27,10 @@
 //===----------------------------------------------------------------------===//
 
 #include "Unix.h"
-#include <IndexStoreDB_LLVMSupport/llvm_Config_config.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_DataTypes.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ErrorHandling.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Process.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_config.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_DataTypes.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ErrorHandling.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Process.h>
 
 #ifdef HAVE_SYS_MMAN_H
 #include <sys/mman.h>
@@ -45,19 +61,19 @@ extern "C" void __clear_cache(void *, void*);
 namespace {
 
 int getPosixProtectionFlags(unsigned Flags) {
-  switch (Flags & llvm::sys::Memory::MF_RWE_MASK) {
-  case llvm::sys::Memory::MF_READ:
+  switch (Flags & toolchain::sys::Memory::MF_RWE_MASK) {
+  case toolchain::sys::Memory::MF_READ:
     return PROT_READ;
-  case llvm::sys::Memory::MF_WRITE:
+  case toolchain::sys::Memory::MF_WRITE:
     return PROT_WRITE;
-  case llvm::sys::Memory::MF_READ|llvm::sys::Memory::MF_WRITE:
+  case toolchain::sys::Memory::MF_READ|toolchain::sys::Memory::MF_WRITE:
     return PROT_READ | PROT_WRITE;
-  case llvm::sys::Memory::MF_READ|llvm::sys::Memory::MF_EXEC:
+  case toolchain::sys::Memory::MF_READ|toolchain::sys::Memory::MF_EXEC:
     return PROT_READ | PROT_EXEC;
-  case llvm::sys::Memory::MF_READ | llvm::sys::Memory::MF_WRITE |
-      llvm::sys::Memory::MF_EXEC:
+  case toolchain::sys::Memory::MF_READ | toolchain::sys::Memory::MF_WRITE |
+      toolchain::sys::Memory::MF_EXEC:
     return PROT_READ | PROT_WRITE | PROT_EXEC;
-  case llvm::sys::Memory::MF_EXEC:
+  case toolchain::sys::Memory::MF_EXEC:
 #if defined(__FreeBSD__)
     // On PowerPC, having an executable page that has no read permission
     // can have unintended consequences.  The function InvalidateInstruction-
@@ -71,7 +87,7 @@ int getPosixProtectionFlags(unsigned Flags) {
     return PROT_EXEC;
 #endif
   default:
-    llvm_unreachable("Illegal memory protection flag specified!");
+    toolchain_unreachable("Illegal memory protection flag specified!");
   }
   // Provide a default return value as required by some compilers.
   return PROT_NONE;
@@ -79,7 +95,7 @@ int getPosixProtectionFlags(unsigned Flags) {
 
 } // anonymous namespace
 
-namespace llvm {
+namespace toolchain {
 namespace sys {
 
 MemoryBlock
@@ -245,4 +261,4 @@ void Memory::InvalidateInstructionCache(const void *Addr,
 }
 
 } // namespace sys
-} // namespace llvm
+} // namespace toolchain

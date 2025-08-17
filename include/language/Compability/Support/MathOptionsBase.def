@@ -1,0 +1,57 @@
+//===--- MathOptionsBase.def - Math options config ---------------- C++ -*-===//
+//
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// Author: Tunjay Akbarli
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
+//
+//===----------------------------------------------------------------------===//
+///
+/// \file
+/// This file defines math options. Users of this file must define
+/// ENUM_MATHOPT macro to make use of this information.
+///
+//===----------------------------------------------------------------------===//
+
+#ifndef ENUM_MATHOPT
+#  error Define the ENUM_MATHOPT macro to handle lowering options
+#endif
+
+/// Allow fusing FP operations (e.g. create FMAs from mul/add).
+ENUM_MATHOPT(FPContractEnabled, unsigned, 1, 1)
+
+/// Permit floating point optimizations without regard to infinities.
+ENUM_MATHOPT(NoHonorInfs, unsigned, 1, 0)
+
+/// Permit floating point optimization without regard to NaN
+ENUM_MATHOPT(NoHonorNaNs, unsigned, 1, 0)
+
+/// Allow math functions to be replaced with an approximately equivalent
+/// calculation
+ENUM_MATHOPT(ApproxFunc, unsigned, 1, 0)
+
+/// Allow optimizations that ignore the sign of floating point zeros
+ENUM_MATHOPT(NoSignedZeros, unsigned, 1, 0)
+
+/// Allow reassociation transformations for floating-point instructions
+ENUM_MATHOPT(AssociativeMath, unsigned, 1, 0)
+
+/// Allow division operations to be reassociated
+ENUM_MATHOPT(ReciprocalMath, unsigned, 1, 0)
+
+#undef ENUM_MATHOPT

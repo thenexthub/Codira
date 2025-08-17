@@ -59,7 +59,7 @@ static_assert(offsetof(magic_abort_msg_t, msg) == 2 * sizeof(uint64_t),
               "The in-memory layout of magic_abort_msg_t is not consistent with what automated "
               "tools expect.");
 
-[[clang::optnone]]
+[[language::Core::optnone]]
 static void fill_abort_message_magic(magic_abort_msg_t* new_magic_abort_message) {
   // 128-bit magic for the abort message. Chosen by fair dice roll.
   // This function is intentionally deoptimized to avoid the magic to be present

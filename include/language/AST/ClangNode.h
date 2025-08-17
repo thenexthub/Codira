@@ -20,7 +20,7 @@
 #include "language/Basic/Debug.h"
 #include "toolchain/ADT/PointerUnion.h"
 
-namespace clang {
+namespace language::Core {
   class Decl;
   class MacroInfo;
   class ModuleMacro;
@@ -53,58 +53,58 @@ class ClangNode {
   template <typename T>
   using Box = detail::ClangNodeBox<T>;
 
-  toolchain::PointerUnion<Box<clang::Decl>, Box<clang::MacroInfo>,
-                     Box<clang::ModuleMacro>, Box<clang::Module>> Ptr;
+  toolchain::PointerUnion<Box<language::Core::Decl>, Box<language::Core::MacroInfo>,
+                     Box<language::Core::ModuleMacro>, Box<language::Core::Module>> Ptr;
 
 public:
   ClangNode() = default;
-  ClangNode(const clang::Decl *D) : Ptr(D) {}
-  ClangNode(const clang::MacroInfo *MI) : Ptr(MI) {}
-  ClangNode(const clang::ModuleMacro *MM) : Ptr(MM) {}
-  ClangNode(const clang::Module *Mod) : Ptr(Mod) {}
+  ClangNode(const language::Core::Decl *D) : Ptr(D) {}
+  ClangNode(const language::Core::MacroInfo *MI) : Ptr(MI) {}
+  ClangNode(const language::Core::ModuleMacro *MM) : Ptr(MM) {}
+  ClangNode(const language::Core::Module *Mod) : Ptr(Mod) {}
 
   bool isNull() const { return Ptr.isNull(); }
   explicit operator bool() const { return !isNull(); }
 
-  const clang::Decl *getAsDecl() const {
-    return Ptr.dyn_cast<Box<clang::Decl>>().value;
+  const language::Core::Decl *getAsDecl() const {
+    return Ptr.dyn_cast<Box<language::Core::Decl>>().value;
   }
-  const clang::MacroInfo *getAsMacroInfo() const {
-    return Ptr.dyn_cast<Box<clang::MacroInfo>>().value;
+  const language::Core::MacroInfo *getAsMacroInfo() const {
+    return Ptr.dyn_cast<Box<language::Core::MacroInfo>>().value;
   }
-  const clang::ModuleMacro *getAsModuleMacro() const {
-    return Ptr.dyn_cast<Box<clang::ModuleMacro>>().value;
+  const language::Core::ModuleMacro *getAsModuleMacro() const {
+    return Ptr.dyn_cast<Box<language::Core::ModuleMacro>>().value;
   }
-  const clang::Module *getAsModule() const {
-    return Ptr.dyn_cast<Box<clang::Module>>().value;
+  const language::Core::Module *getAsModule() const {
+    return Ptr.dyn_cast<Box<language::Core::Module>>().value;
   }
 
-  const clang::Decl *castAsDecl() const {
-    return Ptr.get<Box<clang::Decl>>().value;
+  const language::Core::Decl *castAsDecl() const {
+    return Ptr.get<Box<language::Core::Decl>>().value;
   }
-  const clang::MacroInfo *castAsMacroInfo() const {
-    return Ptr.get<Box<clang::MacroInfo>>().value;
+  const language::Core::MacroInfo *castAsMacroInfo() const {
+    return Ptr.get<Box<language::Core::MacroInfo>>().value;
   }
-  const clang::ModuleMacro *castAsModuleMacro() const {
-    return Ptr.get<Box<clang::ModuleMacro>>().value;
+  const language::Core::ModuleMacro *castAsModuleMacro() const {
+    return Ptr.get<Box<language::Core::ModuleMacro>>().value;
   }
-  const clang::Module *castAsModule() const {
-    return Ptr.get<Box<clang::Module>>().value;
+  const language::Core::Module *castAsModule() const {
+    return Ptr.get<Box<language::Core::Module>>().value;
   }
 
   // Get the MacroInfo for a local definition, one imported from a
   // ModuleMacro, or null if it's neither.
-  const clang::MacroInfo *getAsMacro() const;
+  const language::Core::MacroInfo *getAsMacro() const;
 
   /// Returns the module either the one wrapped directly, the one from a
-  /// clang::ImportDecl or null if it's neither.
-  const clang::Module *getClangModule() const;
+  /// language::Core::ImportDecl or null if it's neither.
+  const language::Core::Module *getClangModule() const;
 
   /// Returns the owning clang module of this node, if it exists.
-  const clang::Module *getOwningClangModule() const;
+  const language::Core::Module *getOwningClangModule() const;
 
-  clang::SourceLocation getLocation() const;
-  clang::SourceRange getSourceRange() const;
+  language::Core::SourceLocation getLocation() const;
+  language::Core::SourceRange getSourceRange() const;
 
   LANGUAGE_DEBUG_DUMP;
 

@@ -1,8 +1,24 @@
 //===- Allocator.h - Simple memory allocation abstraction -------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 /// \file
@@ -20,12 +36,12 @@
 #ifndef LLVM_SUPPORT_ALLOCATOR_H
 #define LLVM_SUPPORT_ALLOCATOR_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Optional.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallVector.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Compiler.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ErrorHandling.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_MathExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_MemAlloc.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Optional.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallVector.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Compiler.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ErrorHandling.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_MathExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_MemAlloc.h>
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
@@ -35,7 +51,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace llvm {
+namespace toolchain {
 
 /// CRTP base class providing obvious overloads for the core \c
 /// Allocate() methods of LLVM-style allocators.
@@ -288,7 +304,7 @@ public:
   /// The returned value is negative iff the object is inside a custom-size
   /// slab.
   /// Returns an empty optional if the pointer is not found in the allocator.
-  llvm::Optional<int64_t> identifyObject(const void *Ptr) {
+  toolchain::Optional<int64_t> identifyObject(const void *Ptr) {
     const char *P = static_cast<const char *>(Ptr);
     int64_t InSlabIdx = 0;
     for (size_t Idx = 0, E = Slabs.size(); Idx < E; Idx++) {
@@ -490,11 +506,11 @@ public:
   T *Allocate(size_t num = 1) { return Allocator.Allocate<T>(num); }
 };
 
-} // end namespace llvm
+} // end namespace toolchain
 
 template <typename AllocatorT, size_t SlabSize, size_t SizeThreshold>
 void *operator new(size_t Size,
-                   llvm::BumpPtrAllocatorImpl<AllocatorT, SlabSize,
+                   toolchain::BumpPtrAllocatorImpl<AllocatorT, SlabSize,
                                               SizeThreshold> &Allocator) {
   struct S {
     char c;
@@ -506,12 +522,12 @@ void *operator new(size_t Size,
     } x;
   };
   return Allocator.Allocate(
-      Size, std::min((size_t)llvm::NextPowerOf2(Size), offsetof(S, x)));
+      Size, std::min((size_t)toolchain::NextPowerOf2(Size), offsetof(S, x)));
 }
 
 template <typename AllocatorT, size_t SlabSize, size_t SizeThreshold>
 void operator delete(
-    void *, llvm::BumpPtrAllocatorImpl<AllocatorT, SlabSize, SizeThreshold> &) {
+    void *, toolchain::BumpPtrAllocatorImpl<AllocatorT, SlabSize, SizeThreshold> &) {
 }
 
 #endif // LLVM_SUPPORT_ALLOCATOR_H

@@ -25,7 +25,7 @@
 #include "toolchain/ADT/StringExtras.h"
 #include "toolchain/Support/raw_ostream.h"
 #include "toolchain/Support/ConvertUTF.h"
-#include "clang/Basic/CharInfo.h"
+#include "language/Core/Basic/CharInfo.h"
 using namespace language;
 
 constexpr const Identifier::Aligner DeclBaseName::SubscriptIdentifierData{};
@@ -303,14 +303,14 @@ ObjCSelectorFamily ObjCSelector::getSelectorFamily() const {
   // Does the given selector start with the given string as a prefix, in the
   // sense of the selector naming conventions?
   // This implementation matches the one used by
-  // clang::Selector::getMethodFamily, to make sure we behave the same as
+  // language::Core::Selector::getMethodFamily, to make sure we behave the same as
   // Clang ARC. We're not just calling that method here because it means
-  // allocating a clang::IdentifierInfo, which requires a Clang ASTContext.
+  // allocating a language::Core::IdentifierInfo, which requires a Clang ASTContext.
   auto hasPrefix = [](StringRef text, StringRef prefix) {
     if (!text.starts_with(prefix)) return false;
     if (text.size() == prefix.size()) return true;
     assert(text.size() > prefix.size());
-    return !clang::isLowercase(text[prefix.size()]);
+    return !language::Core::isLowercase(text[prefix.size()]);
   };
 
   if (false) /*for #define purposes*/;

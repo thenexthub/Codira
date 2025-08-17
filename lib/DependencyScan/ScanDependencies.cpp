@@ -49,7 +49,7 @@
 #include "language/Frontend/FrontendOptions.h"
 #include "language/Frontend/ModuleInterfaceLoader.h"
 #include "language/Strings.h"
-#include "clang/CAS/IncludeTree.h"
+#include "language/Core/CAS/IncludeTree.h"
 #include "toolchain/ADT/STLExtras.h"
 #include "toolchain/ADT/SetOperations.h"
 #include "toolchain/ADT/SetVector.h"
@@ -613,7 +613,7 @@ private:
       return true;
     }
 
-    auto root = clang::cas::IncludeTreeRoot::get(db, *ref);
+    auto root = language::Core::cas::IncludeTreeRoot::get(db, *ref);
     if (!root) {
       instance.getDiags().diagnose(SourceLoc(), diag::error_cas_malformed_input,
                                    includeTree, toString(root.takeError()));
@@ -630,7 +630,7 @@ private:
 
     auto &db = scanner.getCAS();
     auto casFS =
-        clang::cas::IncludeTree::FileList::create(db, {}, fileListRefs);
+        language::Core::cas::IncludeTree::FileList::create(db, {}, fileListRefs);
     if (!casFS) {
       instance.getDiags().diagnose(SourceLoc(), diag::error_cas,
                                    "CAS IncludeTree FileList creation",

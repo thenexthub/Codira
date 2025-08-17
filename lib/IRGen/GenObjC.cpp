@@ -24,11 +24,11 @@
 #include "toolchain/IR/Module.h"
 #include "toolchain/IR/InlineAsm.h"
 
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/GlobalDecl.h"
-#include "clang/Basic/CharInfo.h"
-#include "clang/CodeGen/CGFunctionInfo.h"
-#include "clang/CodeGen/CodeGenABITypes.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/GlobalDecl.h"
+#include "language/Core/Basic/CharInfo.h"
+#include "language/Core/CodeGen/CGFunctionInfo.h"
+#include "language/Core/CodeGen/CodeGenABITypes.h"
 
 #include "language/AST/Decl.h"
 #include "language/AST/IRGenOptions.h"
@@ -39,8 +39,8 @@
 #include "language/IRGen/Linking.h"
 #include "language/SIL/PrettyStackTrace.h"
 #include "language/SIL/SILModule.h"
-#include "clang/AST/Attr.h"
-#include "clang/AST/DeclObjC.h"
+#include "language/Core/AST/Attr.h"
+#include "language/Core/AST/DeclObjC.h"
 
 #include "CallEmission.h"
 #include "ConstantBuilder.h"
@@ -476,8 +476,8 @@ getProtocolRefsList(toolchain::Constant *protocol) {
 }
 
 static void appendNonRuntimeImpliedProtocols(
-  clang::ObjCProtocolDecl *proto,
-  toolchain::SetVector<clang::ObjCProtocolDecl *> &nonRuntimeImpliedProtos) {
+  language::Core::ObjCProtocolDecl *proto,
+  toolchain::SetVector<language::Core::ObjCProtocolDecl *> &nonRuntimeImpliedProtos) {
 
   if (!proto->isNonRuntimeProtocol()) {
     nonRuntimeImpliedProtos.insert(proto->getCanonicalDecl());
@@ -490,11 +490,11 @@ static void appendNonRuntimeImpliedProtocols(
 
 // Get runtime protocol list used during emission of objective-c protocol
 // metadata taking non-runtime protocols into account.
-static std::vector<clang::ObjCProtocolDecl *>
-getRuntimeProtocolList(clang::ObjCProtocolDecl::protocol_range protocols) {
+static std::vector<language::Core::ObjCProtocolDecl *>
+getRuntimeProtocolList(language::Core::ObjCProtocolDecl::protocol_range protocols) {
 
-  toolchain::DenseSet<clang::ObjCProtocolDecl *> nonRuntimeProtocols;
-  std::vector<clang::ObjCProtocolDecl*> runtimeProtocols;
+  toolchain::DenseSet<language::Core::ObjCProtocolDecl *> nonRuntimeProtocols;
+  std::vector<language::Core::ObjCProtocolDecl*> runtimeProtocols;
   for (auto p: protocols) {
     auto *proto = p->getCanonicalDecl();
     if (proto->isNonRuntimeProtocol())
@@ -508,14 +508,14 @@ getRuntimeProtocolList(clang::ObjCProtocolDecl::protocol_range protocols) {
 
   // Find the non-runtime implied protocols: protocols that occur in the closest
   // ancestry of a non-runtime protocol.
-  toolchain::SetVector<clang::ObjCProtocolDecl *> nonRuntimeImpliedProtos;
+  toolchain::SetVector<language::Core::ObjCProtocolDecl *> nonRuntimeImpliedProtos;
   for (auto *nonRuntimeProto : nonRuntimeProtocols) {
     appendNonRuntimeImpliedProtocols(nonRuntimeProto, nonRuntimeImpliedProtos);
   }
 
   // Subtract the implied protocols of the runtime protocols and non runtime
   // protoocls implied protocols form the non runtime implied protocols.
-  toolchain::DenseSet<const clang::ObjCProtocolDecl *> impliedProtocols;
+  toolchain::DenseSet<const language::Core::ObjCProtocolDecl *> impliedProtocols;
   for (auto *p : runtimeProtocols) {
     impliedProtocols.insert(p);
     p->getImpliedProtocols(impliedProtocols);
@@ -535,7 +535,7 @@ getRuntimeProtocolList(clang::ObjCProtocolDecl::protocol_range protocols) {
 }
 
 static void updateProtocolRefs(IRGenModule &IGM,
-                               const clang::ObjCProtocolDecl *objcProtocol,
+                               const language::Core::ObjCProtocolDecl *objcProtocol,
                                toolchain::Constant *protocol) {
 
   // Get the clang importer to map ObjCProtocolDecl to ProtocolDecl.
@@ -580,9 +580,9 @@ static void updateProtocolRefs(IRGenModule &IGM,
 }
 
 toolchain::Constant *IRGenModule::emitClangProtocolObject(
-    const clang::ObjCProtocolDecl *objcProtocol) {
+    const language::Core::ObjCProtocolDecl *objcProtocol) {
   auto clangProto =
-      clang::CodeGen::emitObjCProtocolObject(getClangCGM(), objcProtocol);
+      language::Core::CodeGen::emitObjCProtocolObject(getClangCGM(), objcProtocol);
   updateProtocolRefs(*this, objcProtocol, clangProto);
   return clangProto;
 }
@@ -1253,7 +1253,7 @@ static CanSILFunctionType getObjCMethodType(IRGenModule &IGM,
       TypeExpansionContext::minimal(), getObjCMethodRef(method));
 }
 
-static clang::CanQualType getObjCPropertyType(IRGenModule &IGM,
+static language::Core::CanQualType getObjCPropertyType(IRGenModule &IGM,
                                               VarDecl *property) {
   // Use the lowered return type of the foreign getter.
   auto getter = property->getOpaqueAccessor(AccessorKind::Get);
@@ -1271,11 +1271,11 @@ void irgen::getObjCEncodingForPropertyType(IRGenModule &IGM,
 }
 
 static void
-HelperGetObjCEncodingForType(const clang::ASTContext &Context,
-                             clang::CanQualType T,
+HelperGetObjCEncodingForType(const language::Core::ASTContext &Context,
+                             language::Core::CanQualType T,
                              std::string &S, bool Extended) {
   
-  Context.getObjCEncodingForMethodParameter(clang::Decl::OBJC_TQ_None,
+  Context.getObjCEncodingForMethodParameter(language::Core::Decl::OBJC_TQ_None,
                                             T, S, Extended);
 }
 
@@ -1313,7 +1313,7 @@ static toolchain::Constant *getObjCEncodingForTypes(IRGenModule &IGM,
     HelperGetObjCEncodingForType(clangASTContext, clangType, paramsString,
                                  useExtendedEncoding);
     paramsString += toolchain::itostr(parmOffset);
-    clang::CharUnits sz = clangASTContext.getObjCEncodingTypeSize(clangType);
+    language::Core::CharUnits sz = clangASTContext.getObjCEncodingTypeSize(clangType);
     parmOffset += sz.getQuantity();
   }
   
@@ -1331,11 +1331,11 @@ getObjectEncodingFromClangNode(IRGenModule &IGM, Decl *d,
     auto clangDecl = d->getClangNode().castAsDecl();
     auto &clangASTContext = IGM.getClangASTContext();
     std::string typeStr;
-    if (auto objcMethodDecl = dyn_cast<clang::ObjCMethodDecl>(clangDecl)) {
+    if (auto objcMethodDecl = dyn_cast<language::Core::ObjCMethodDecl>(clangDecl)) {
       typeStr = clangASTContext.getObjCEncodingForMethodDecl(
           objcMethodDecl, useExtendedEncoding /*extended*/);
     }
-    if (auto objcPropertyDecl = dyn_cast<clang::ObjCPropertyDecl>(clangDecl)) {
+    if (auto objcPropertyDecl = dyn_cast<language::Core::ObjCPropertyDecl>(clangDecl)) {
       typeStr = clangASTContext.getObjCEncodingForPropertyDecl(objcPropertyDecl,
                                                                nullptr);
     }
@@ -1504,7 +1504,7 @@ irgen::emitObjCSetterDescriptorParts(IRGenModule &IGM,
     descriptor.silFunction = nullptr;
     return descriptor;
   }
-  clang::CharUnits sz = clangASTContext.getObjCEncodingTypeSize(clangType);
+  language::Core::CharUnits sz = clangASTContext.getObjCEncodingTypeSize(clangType);
   if (!sz.isZero())
     ParmOffset += sz.getQuantity();
   TypeStr += toolchain::itostr(ParmOffset);
@@ -1726,9 +1726,9 @@ void IRGenFunction::emitBlockRelease(toolchain::Value *value) {
 
 void IRGenFunction::emitForeignReferenceTypeLifetimeOperation(
     ValueDecl *fn, toolchain::Value *value, bool needsNullCheck) {
-  assert(fn->getClangDecl() && isa<clang::FunctionDecl>(fn->getClangDecl()));
+  assert(fn->getClangDecl() && isa<language::Core::FunctionDecl>(fn->getClangDecl()));
 
-  auto clangFn = cast<clang::FunctionDecl>(fn->getClangDecl());
+  auto clangFn = cast<language::Core::FunctionDecl>(fn->getClangDecl());
   auto toolchainFn = cast<toolchain::Function>(
       IGM.getAddrOfClangGlobalDecl(clangFn, ForDefinition));
 

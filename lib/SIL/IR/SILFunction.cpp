@@ -36,7 +36,7 @@
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILModule.h"
 #include "language/SIL/SILProfiler.h"
-#include "clang/AST/Decl.h"
+#include "language/Core/AST/Decl.h"
 #include "toolchain/ADT/Statistic.h"
 #include "toolchain/Support/CommandLine.h"
 #include "toolchain/Support/GraphWriter.h"
@@ -1140,7 +1140,7 @@ struct SILFunctionTraceFormatter : public UnifiedStatsReporter::TraceFormatter {
   }
 
   void traceLoc(const void *Entity, SourceManager *SM,
-                clang::SourceManager *CSM, raw_ostream &OS) const override {
+                language::Core::SourceManager *CSM, raw_ostream &OS) const override {
     if (!Entity)
       return;
     const SILFunction *F = static_cast<const SILFunction *>(Entity);

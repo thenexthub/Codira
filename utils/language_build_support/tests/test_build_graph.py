@@ -29,7 +29,7 @@ class ProductMock(object):
 def get_products():
     products = {
         "cmark": ProductMock("cmark"),
-        "llvm": ProductMock("llvm"),
+        "toolchain": ProductMock("toolchain"),
         "language": ProductMock("language"),
         "languagepm": ProductMock("languagepm"),
         "libMockSwiftPM": ProductMock("libMockSwiftPM"),
@@ -37,9 +37,9 @@ def get_products():
         "libMockSwiftPM2": ProductMock("libMockSwiftPM2"),
     }
 
-    products['llvm'].deps.extend([products['cmark']])
-    products['language'].deps.extend([products['llvm']])
-    products['languagepm'].deps.extend([products['llvm'], products['language']])
+    products['toolchain'].deps.extend([products['cmark']])
+    products['language'].deps.extend([products['toolchain']])
+    products['languagepm'].deps.extend([products['toolchain'], products['language']])
     products['libMockSwiftPM'].deps.extend([products['languagepm']])
     products['libMockCMark'].deps.extend([products['cmark']])
     products['libMockSwiftPM2'].deps.extend([products['languagepm'], products['cmark']])
@@ -54,4 +54,4 @@ class BuildGraphTestCase(unittest.TestCase):
         selectedProducts = [products['languagepm']]
         schedule = build_graph.produce_scheduled_build(selectedProducts)
         names = [x.name for x in schedule[0]]
-        self.assertEqual(['cmark', 'llvm', 'language', 'languagepm'], names)
+        self.assertEqual(['cmark', 'toolchain', 'language', 'languagepm'], names)

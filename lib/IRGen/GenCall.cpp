@@ -31,13 +31,13 @@
 #include "language/Runtime/Config.h"
 #include "language/SIL/SILModule.h"
 #include "language/SIL/SILType.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/GlobalDecl.h"
-#include "clang/AST/RecordLayout.h"
-#include "clang/Basic/TargetInfo.h"
-#include "clang/CodeGen/CodeGenABITypes.h"
-#include "clang/CodeGen/ModuleBuilder.h"
-#include "clang/Sema/Sema.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/GlobalDecl.h"
+#include "language/Core/AST/RecordLayout.h"
+#include "language/Core/Basic/TargetInfo.h"
+#include "language/Core/CodeGen/CodeGenABITypes.h"
+#include "language/Core/CodeGen/ModuleBuilder.h"
+#include "language/Core/Sema/Sema.h"
 #include "toolchain/Analysis/ValueTracking.h"
 #include "toolchain/IR/CallingConv.h"
 #include "toolchain/IR/Constant.h"
@@ -437,13 +437,13 @@ CombinedResultAndErrorType irgen::combineResultAndTypedErrorType(
   CombinedResultAndErrorType result;
   SmallVector<toolchain::Type *, 8> elts;
   resultSchema.enumerateComponents(
-      [&](clang::CharUnits offset, clang::CharUnits end, toolchain::Type *type) {
+      [&](language::Core::CharUnits offset, language::Core::CharUnits end, toolchain::Type *type) {
         elts.push_back(type);
       });
 
   SmallVector<toolchain::Type *, 8> errorElts;
   errorSchema.enumerateComponents(
-      [&](clang::CharUnits offset, clang::CharUnits end, toolchain::Type *type) {
+      [&](language::Core::CharUnits offset, language::Core::CharUnits end, toolchain::Type *type) {
         errorElts.push_back(type);
       });
 
@@ -566,7 +566,7 @@ namespace {
     bool forStaticCall = false; // Used for objc_method (direct call or not).
 
     // Indicates this is a c++ constructor call.
-    const clang::CXXConstructorDecl *cxxCtorDecl = nullptr;
+    const language::Core::CXXConstructorDecl *cxxCtorDecl = nullptr;
 
   public:
     SmallVector<toolchain::Type*, 8> ParamIRTypes;
@@ -583,7 +583,7 @@ namespace {
 
     SignatureExpansion(IRGenModule &IGM, CanSILFunctionType fnType,
                        FunctionPointerKind fnKind, bool forStaticCall = false,
-                       const clang::CXXConstructorDecl *cxxCtorDecl = nullptr)
+                       const language::Core::CXXConstructorDecl *cxxCtorDecl = nullptr)
         : IGM(IGM), FnType(fnType), forStaticCall(forStaticCall),
           cxxCtorDecl(cxxCtorDecl), FnKind(fnKind) {}
 
@@ -802,8 +802,8 @@ namespace {
     }
 
     void enumerateDirectComponents(toolchain::function_ref<void(toolchain::Type*)> fn) {
-      getDirectSchema().enumerateComponents([&](clang::CharUnits begin,
-                                                clang::CharUnits end,
+      getDirectSchema().enumerateComponents([&](language::Core::CharUnits begin,
+                                                language::Core::CharUnits end,
                                                 toolchain::Type *componentTy) {
         fn(componentTy);
       });
@@ -868,7 +868,7 @@ void SignatureExpansion::expandCoroutineResult(bool forContinuation) {
   // When counting components, ignore the continuation pointer.
   unsigned numDirectComponents = components.size() - 1;
   SmallVector<toolchain::Type*, 8> overflowTypes;
-  while (clang::CodeGen::languagecall::
+  while (language::Core::CodeGen::languagecall::
                 shouldPassIndirectly(IGM.ClangCodeGen->CGM(), components,
                                      /*asReturnValue*/ true)) {
     // If we added a pointer to the end of components, remove it.
@@ -965,7 +965,7 @@ toolchain::Type *NativeConventionSchema::getExpandedType(IRGenModule &IGM) const
   if (empty())
     return IGM.VoidTy;
   SmallVector<toolchain::Type *, 8> elts;
-  enumerateComponents([&](clang::CharUnits offset, clang::CharUnits end,
+  enumerateComponents([&](language::Core::CharUnits offset, language::Core::CharUnits end,
                           toolchain::Type *type) { elts.push_back(type); });
 
   if (elts.size() == 1)
@@ -985,13 +985,13 @@ NativeConventionSchema::getCoercionTypes(
     return {type, type};
   }
 
-  clang::CharUnits lastEnd = clang::CharUnits::Zero();
+  language::Core::CharUnits lastEnd = language::Core::CharUnits::Zero();
   toolchain::SmallSet<unsigned, 8> overlappedWithSuccessor;
   unsigned idx = 0;
 
   // Mark overlapping ranges.
   enumerateComponents(
-      [&](clang::CharUnits offset, clang::CharUnits end, toolchain::Type *type) {
+      [&](language::Core::CharUnits offset, language::Core::CharUnits end, toolchain::Type *type) {
         if (offset < lastEnd) {
           overlappedWithSuccessor.insert(idx);
         }
@@ -1002,11 +1002,11 @@ NativeConventionSchema::getCoercionTypes(
   // Create the coercion struct with only the integer portion of overlapped
   // components and non-overlapped components.
   idx = 0;
-  lastEnd = clang::CharUnits::Zero();
+  lastEnd = language::Core::CharUnits::Zero();
   SmallVector<toolchain::Type *, 8> elts;
   bool packed = false;
   enumerateComponents(
-      [&](clang::CharUnits begin, clang::CharUnits end, toolchain::Type *type) {
+      [&](language::Core::CharUnits begin, language::Core::CharUnits end, toolchain::Type *type) {
         bool overlapped = overlappedWithSuccessor.count(idx) ||
                           (idx && overlappedWithSuccessor.count(idx - 1));
         ++idx;
@@ -1025,12 +1025,12 @@ NativeConventionSchema::getCoercionTypes(
           elts.push_back(padding);
         }
 
-        if (!packed && !begin.isMultipleOf(clang::CharUnits::fromQuantity(
+        if (!packed && !begin.isMultipleOf(language::Core::CharUnits::fromQuantity(
                            IGM.DataLayout.getABITypeAlign(type))))
           packed = true;
         elts.push_back(type);
         expandedTyIndicesMap.push_back(idx - 1);
-        lastEnd = begin + clang::CharUnits::fromQuantity(
+        lastEnd = begin + language::Core::CharUnits::fromQuantity(
                               IGM.DataLayout.getTypeAllocSize(type));
         assert(end <= lastEnd);
       });
@@ -1042,11 +1042,11 @@ NativeConventionSchema::getCoercionTypes(
   // Create the coercion struct with only the non-integer overlapped
   // components.
   idx = 0;
-  lastEnd = clang::CharUnits::Zero();
+  lastEnd = language::Core::CharUnits::Zero();
   elts.clear();
   packed = false;
   enumerateComponents(
-      [&](clang::CharUnits begin, clang::CharUnits end, toolchain::Type *type) {
+      [&](language::Core::CharUnits begin, language::Core::CharUnits end, toolchain::Type *type) {
         bool overlapped = overlappedWithSuccessor.count(idx) ||
                           (idx && overlappedWithSuccessor.count(idx - 1));
         ++idx;
@@ -1064,12 +1064,12 @@ NativeConventionSchema::getCoercionTypes(
           elts.push_back(padding);
         }
         if (!packed &&
-            !begin.isMultipleOf(clang::CharUnits::fromQuantity(
+            !begin.isMultipleOf(language::Core::CharUnits::fromQuantity(
                 IGM.DataLayout.getABITypeAlign(type))))
           packed = true;
         elts.push_back(type);
         expandedTyIndicesMap.push_back(idx - 1);
-        lastEnd = begin + clang::CharUnits::fromQuantity(
+        lastEnd = begin + language::Core::CharUnits::fromQuantity(
                               IGM.DataLayout.getTypeAllocSize(type));
         assert(end <= lastEnd);
       });
@@ -1142,15 +1142,15 @@ SignatureExpansion::expandDirectErrorType() {
   }
 }
 
-static const clang::FieldDecl *
-getLargestUnionField(const clang::RecordDecl *record,
-                     const clang::ASTContext &ctx) {
-  const clang::FieldDecl *largestField = nullptr;
-  clang::CharUnits unionSize = clang::CharUnits::Zero();
+static const language::Core::FieldDecl *
+getLargestUnionField(const language::Core::RecordDecl *record,
+                     const language::Core::ASTContext &ctx) {
+  const language::Core::FieldDecl *largestField = nullptr;
+  language::Core::CharUnits unionSize = language::Core::CharUnits::Zero();
 
   for (auto field : record->fields()) {
     assert(!field->isBitField());
-    clang::CharUnits fieldSize = ctx.getTypeSizeInChars(field->getType());
+    language::Core::CharUnits fieldSize = ctx.getTypeSizeInChars(field->getType());
     if (unionSize < fieldSize) {
       unionSize = fieldSize;
       largestField = field;
@@ -1165,62 +1165,62 @@ namespace {
   /// argument type expansions.
   template <class Impl, class... Args> struct ClangExpand {
     IRGenModule &IGM;
-    const clang::ASTContext &Ctx;
+    const language::Core::ASTContext &Ctx;
     ClangExpand(IRGenModule &IGM) : IGM(IGM), Ctx(IGM.getClangASTContext()) {}
 
     Impl &asImpl() { return *static_cast<Impl*>(this); }
 
-    void visit(clang::CanQualType type, Args... args) {
+    void visit(language::Core::CanQualType type, Args... args) {
       switch (type->getTypeClass()) {
 #define TYPE(Class, Base)
 #define NON_CANONICAL_TYPE(Class, Base) \
-      case clang::Type::Class:
+      case language::Core::Type::Class:
 #define DEPENDENT_TYPE(Class, Base) \
-      case clang::Type::Class:
+      case language::Core::Type::Class:
 #define NON_CANONICAL_UNLESS_DEPENDENT_TYPE(Class, Base) \
-      case clang::Type::Class:
-#include "clang/AST/TypeNodes.inc"
+      case language::Core::Type::Class:
+#include "language/Core/AST/TypeNodes.inc"
         toolchain_unreachable("canonical or dependent type in ABI lowering");
 
       // These shouldn't occur in expandable struct types.
-      case clang::Type::IncompleteArray:
-      case clang::Type::VariableArray:
+      case language::Core::Type::IncompleteArray:
+      case language::Core::Type::VariableArray:
         toolchain_unreachable("variable-sized or incomplete array in ABI lowering");
 
       // We should only ever get ObjC pointers, not underlying objects.
-      case clang::Type::ObjCInterface:
-      case clang::Type::ObjCObject:
+      case language::Core::Type::ObjCInterface:
+      case language::Core::Type::ObjCObject:
         toolchain_unreachable("ObjC object type in ABI lowering");
 
       // We should only ever get function pointers.
-      case clang::Type::FunctionProto:
-      case clang::Type::FunctionNoProto:
+      case language::Core::Type::FunctionProto:
+      case language::Core::Type::FunctionNoProto:
         toolchain_unreachable("non-pointer function type in ABI lowering");
 
       // We currently never import C++ code, and we should be able to
       // kill Expand before we do.
-      case clang::Type::LValueReference:
-      case clang::Type::RValueReference:
-      case clang::Type::MemberPointer:
-      case clang::Type::Auto:
-      case clang::Type::DeducedTemplateSpecialization:
+      case language::Core::Type::LValueReference:
+      case language::Core::Type::RValueReference:
+      case language::Core::Type::MemberPointer:
+      case language::Core::Type::Auto:
+      case language::Core::Type::DeducedTemplateSpecialization:
         toolchain_unreachable("C++ type in ABI lowering?");
 
-      case clang::Type::Pipe:
+      case language::Core::Type::Pipe:
         toolchain_unreachable("OpenCL type in ABI lowering?");
 
-      case clang::Type::BitInt:
+      case language::Core::Type::BitInt:
         toolchain_unreachable("BitInt type in ABI lowering?");
 
-      case clang::Type::ConstantMatrix: {
+      case language::Core::Type::ConstantMatrix: {
         toolchain_unreachable("ConstantMatrix type in ABI lowering?");
       }
 
-      case clang::Type::ArrayParameter:
+      case language::Core::Type::ArrayParameter:
         toolchain_unreachable("HLSL type in ABI lowering");
 
 
-      case clang::Type::ConstantArray: {
+      case language::Core::Type::ConstantArray: {
         auto array = Ctx.getAsConstantArrayType(type);
         auto elt = Ctx.getCanonicalType(array->getElementType());
         auto &&context = asImpl().beginArrayElements(elt);
@@ -1231,8 +1231,8 @@ namespace {
         return;
       }
 
-      case clang::Type::Record: {
-        auto record = cast<clang::RecordType>(type)->getDecl();
+      case language::Core::Type::Record: {
+        auto record = cast<language::Core::RecordType>(type)->getDecl();
         if (record->isUnion()) {
           auto largest = getLargestUnionField(record, Ctx);
           asImpl().visitUnionField(record, largest, args...);
@@ -1245,138 +1245,138 @@ namespace {
         return;
       }
 
-      case clang::Type::Complex: {
-        auto elt = type.castAs<clang::ComplexType>().getElementType();
+      case language::Core::Type::Complex: {
+        auto elt = type.castAs<language::Core::ComplexType>().getElementType();
         asImpl().visitComplexElement(elt, 0, args...);
         asImpl().visitComplexElement(elt, 1, args...);
         return;
       }
 
       // Just handle this types as opaque integers.
-      case clang::Type::Enum:
-      case clang::Type::Atomic:
+      case language::Core::Type::Enum:
+      case language::Core::Type::Atomic:
         asImpl().visitScalar(convertTypeAsInteger(type), args...);
         return;
 
-      case clang::Type::Builtin:
+      case language::Core::Type::Builtin:
         asImpl().visitScalar(
-                      convertBuiltinType(type.castAs<clang::BuiltinType>()),
+                      convertBuiltinType(type.castAs<language::Core::BuiltinType>()),
                              args...);
         return;
 
-      case clang::Type::Vector:
-      case clang::Type::ExtVector:
+      case language::Core::Type::Vector:
+      case language::Core::Type::ExtVector:
         asImpl().visitScalar(
-                      convertVectorType(type.castAs<clang::VectorType>()),
+                      convertVectorType(type.castAs<language::Core::VectorType>()),
                              args...);
         return;
 
-      case clang::Type::Pointer:
-      case clang::Type::BlockPointer:
-      case clang::Type::ObjCObjectPointer:
+      case language::Core::Type::Pointer:
+      case language::Core::Type::BlockPointer:
+      case language::Core::Type::ObjCObjectPointer:
         asImpl().visitScalar(IGM.Int8PtrTy, args...);
         return;
       }
       toolchain_unreachable("bad type kind");
     }
     
-    Size getSizeOfType(clang::QualType type) {
+    Size getSizeOfType(language::Core::QualType type) {
       auto clangSize = Ctx.getTypeSizeInChars(type);
       return Size(clangSize.getQuantity());
     }
 
   private:
-    toolchain::Type *convertVectorType(clang::CanQual<clang::VectorType> type) {
+    toolchain::Type *convertVectorType(language::Core::CanQual<language::Core::VectorType> type) {
       auto eltTy =
-        convertBuiltinType(type->getElementType().castAs<clang::BuiltinType>());
+        convertBuiltinType(type->getElementType().castAs<language::Core::BuiltinType>());
       return toolchain::FixedVectorType::get(eltTy, type->getNumElements());
     }
 
-    toolchain::Type *convertBuiltinType(clang::CanQual<clang::BuiltinType> type) {
+    toolchain::Type *convertBuiltinType(language::Core::CanQual<language::Core::BuiltinType> type) {
       switch (type.getTypePtr()->getKind()) {
 #define BUILTIN_TYPE(Id, SingletonId)
 #define PLACEHOLDER_TYPE(Id, SingletonId) \
-      case clang::BuiltinType::Id:
-#include "clang/AST/BuiltinTypes.def"
-      case clang::BuiltinType::Dependent:
+      case language::Core::BuiltinType::Id:
+#include "language/Core/AST/BuiltinTypes.def"
+      case language::Core::BuiltinType::Dependent:
         toolchain_unreachable("placeholder type in ABI lowering");
 
       // We should never see these unadorned.
-      case clang::BuiltinType::ObjCId:
-      case clang::BuiltinType::ObjCClass:
-      case clang::BuiltinType::ObjCSel:
+      case language::Core::BuiltinType::ObjCId:
+      case language::Core::BuiltinType::ObjCClass:
+      case language::Core::BuiltinType::ObjCSel:
         toolchain_unreachable("bare Objective-C object type in ABI lowering");
 
       // This should never be the type of an argument or field.
-      case clang::BuiltinType::Void:
+      case language::Core::BuiltinType::Void:
         toolchain_unreachable("bare void type in ABI lowering");
 
       // We should never see the OpenCL builtin types at all.
-      case clang::BuiltinType::OCLClkEvent:
-      case clang::BuiltinType::OCLEvent:
-      case clang::BuiltinType::OCLSampler:
-      case clang::BuiltinType::OCLQueue:
-      case clang::BuiltinType::OCLReserveID:
-#define IMAGE_TYPE(Name, Id, ...) case clang::BuiltinType::Id:
-#include "clang/Basic/OpenCLImageTypes.def"
-#define EXT_OPAQUE_TYPE(Name, Id, ...) case clang::BuiltinType::Id:
-#include "clang/Basic/OpenCLExtensionTypes.def"
+      case language::Core::BuiltinType::OCLClkEvent:
+      case language::Core::BuiltinType::OCLEvent:
+      case language::Core::BuiltinType::OCLSampler:
+      case language::Core::BuiltinType::OCLQueue:
+      case language::Core::BuiltinType::OCLReserveID:
+#define IMAGE_TYPE(Name, Id, ...) case language::Core::BuiltinType::Id:
+#include "language/Core/Basic/OpenCLImageTypes.def"
+#define EXT_OPAQUE_TYPE(Name, Id, ...) case language::Core::BuiltinType::Id:
+#include "language/Core/Basic/OpenCLExtensionTypes.def"
         toolchain_unreachable("OpenCL type in ABI lowering");
 
       // We should never see ARM SVE types at all.
-#define SVE_TYPE(Name, Id, ...) case clang::BuiltinType::Id:
-#include "clang/Basic/AArch64SVEACLETypes.def"
+#define SVE_TYPE(Name, Id, ...) case language::Core::BuiltinType::Id:
+#include "language/Core/Basic/AArch64SVEACLETypes.def"
         toolchain_unreachable("ARM SVE type in ABI lowering");
 
       // We should never see PPC MMA types at all.
-#define PPC_VECTOR_TYPE(Name, Id, Size) case clang::BuiltinType::Id:
-#include "clang/Basic/PPCTypes.def"
+#define PPC_VECTOR_TYPE(Name, Id, Size) case language::Core::BuiltinType::Id:
+#include "language/Core/Basic/PPCTypes.def"
         toolchain_unreachable("PPC MMA type in ABI lowering");
 
       // We should never see RISC-V V types at all.
-#define RVV_TYPE(Name, Id, Size) case clang::BuiltinType::Id:
-#include "clang/Basic/RISCVVTypes.def"
+#define RVV_TYPE(Name, Id, Size) case language::Core::BuiltinType::Id:
+#include "language/Core/Basic/RISCVVTypes.def"
         toolchain_unreachable("RISC-V V type in ABI lowering");
 
-#define WASM_TYPE(Name, Id, Size) case clang::BuiltinType::Id:
-#include "clang/Basic/WebAssemblyReferenceTypes.def"
+#define WASM_TYPE(Name, Id, Size) case language::Core::BuiltinType::Id:
+#include "language/Core/Basic/WebAssemblyReferenceTypes.def"
         toolchain_unreachable("WASM type in ABI lowering");
 
       // We should never see AMDGPU types at all.
-#define AMDGPU_TYPE(Name, Id, ...) case clang::BuiltinType::Id:
-#include "clang/Basic/AMDGPUTypes.def"
+#define AMDGPU_TYPE(Name, Id, ...) case language::Core::BuiltinType::Id:
+#include "language/Core/Basic/AMDGPUTypes.def"
         toolchain_unreachable("AMDGPU type in ABI lowering");
 
       // Handle all the integer types as opaque values.
 #define BUILTIN_TYPE(Id, SingletonId)
 #define SIGNED_TYPE(Id, SingletonId) \
-      case clang::BuiltinType::Id:
+      case language::Core::BuiltinType::Id:
 #define UNSIGNED_TYPE(Id, SingletonId) \
-      case clang::BuiltinType::Id:
-#include "clang/AST/BuiltinTypes.def"
+      case language::Core::BuiltinType::Id:
+#include "language/Core/AST/BuiltinTypes.def"
         return convertTypeAsInteger(type);
 
       // Lower all the floating-point values by their semantics.
-      case clang::BuiltinType::Half:
+      case language::Core::BuiltinType::Half:
         return convertFloatingType(Ctx.getTargetInfo().getHalfFormat());
-      case clang::BuiltinType::Float:
+      case language::Core::BuiltinType::Float:
         return convertFloatingType(Ctx.getTargetInfo().getFloatFormat());
-      case clang::BuiltinType::Double:
+      case language::Core::BuiltinType::Double:
         return convertFloatingType(Ctx.getTargetInfo().getDoubleFormat());
-      case clang::BuiltinType::LongDouble:
+      case language::Core::BuiltinType::LongDouble:
         return convertFloatingType(Ctx.getTargetInfo().getLongDoubleFormat());
-      case clang::BuiltinType::Float16:
+      case language::Core::BuiltinType::Float16:
         toolchain_unreachable("When upstream support is added for Float16 in "
-                         "clang::TargetInfo, use the implementation here");
-      case clang::BuiltinType::BFloat16:
+                         "language::Core::TargetInfo, use the implementation here");
+      case language::Core::BuiltinType::BFloat16:
         return convertFloatingType(Ctx.getTargetInfo().getBFloat16Format());
-      case clang::BuiltinType::Float128:
+      case language::Core::BuiltinType::Float128:
         return convertFloatingType(Ctx.getTargetInfo().getFloat128Format());
-      case clang::BuiltinType::Ibm128:
+      case language::Core::BuiltinType::Ibm128:
         return convertFloatingType(Ctx.getTargetInfo().getIbm128Format());
 
       // nullptr_t -> void*
-      case clang::BuiltinType::NullPtr:
+      case language::Core::BuiltinType::NullPtr:
         return IGM.Int8PtrTy;
       }
       toolchain_unreachable("bad builtin type");
@@ -1398,7 +1398,7 @@ namespace {
       toolchain_unreachable("bad float format");
     }
 
-    toolchain::Type *convertTypeAsInteger(clang::QualType type) {
+    toolchain::Type *convertTypeAsInteger(language::Core::QualType type) {
       auto size = getSizeOfType(type);
       return toolchain::IntegerType::get(IGM.getLLVMContext(),
                                     size.getValueInBits());
@@ -1423,39 +1423,39 @@ namespace {
       : super(IGF.IGM), IGF(IGF) {}
 
   public:
-    void visit(clang::CanQualType type, Address addr) {
+    void visit(language::Core::CanQualType type, Address addr) {
       assert(addr.getType() == IGM.Int8PtrTy);
       super::visit(type, addr);
     }
     
-    Size beginArrayElements(clang::CanQualType element) {
+    Size beginArrayElements(language::Core::CanQualType element) {
       return getSizeOfType(element);
     }
-    void visitArrayElement(clang::CanQualType element, unsigned i,
+    void visitArrayElement(language::Core::CanQualType element, unsigned i,
                            Size elementSize, Address arrayAddr) {
       asImpl().visit(element, createGEPAtOffset(arrayAddr, elementSize * i));
     }
 
-    void visitComplexElement(clang::CanQualType element, unsigned i,
+    void visitComplexElement(language::Core::CanQualType element, unsigned i,
                              Address complexAddr) {
       Address addr = complexAddr;
       if (i) { addr = createGEPAtOffset(complexAddr, getSizeOfType(element)); }
       asImpl().visit(element, addr);
     }
 
-    void visitUnionField(const clang::RecordDecl *record,
-                         const clang::FieldDecl *field,
+    void visitUnionField(const language::Core::RecordDecl *record,
+                         const language::Core::FieldDecl *field,
                          Address structAddr) {
       asImpl().visit(Ctx.getCanonicalType(field->getType()), structAddr);
     }
 
-    const clang::ASTRecordLayout &
-    beginStructFields(const clang::RecordDecl *record) {
+    const language::Core::ASTRecordLayout &
+    beginStructFields(const language::Core::RecordDecl *record) {
       return Ctx.getASTRecordLayout(record);
     }
-    void visitStructField(const clang::RecordDecl *record,
-                          const clang::FieldDecl *field,
-                          const clang::ASTRecordLayout &layout,
+    void visitStructField(const language::Core::RecordDecl *record,
+                          const language::Core::FieldDecl *field,
+                          const language::Core::ASTRecordLayout &layout,
                           Address structAddr) {
       auto fieldIndex = field->getFieldIndex();
       assert(!field->isBitField());
@@ -1482,23 +1482,23 @@ namespace {
                              SmallVectorImpl<toolchain::Type*> &types)
       : ClangExpand(IGM), Types(types) {}
 
-    bool beginArrayElements(clang::CanQualType element) { return true; }
-    void visitArrayElement(clang::CanQualType element, unsigned i, bool _) {
+    bool beginArrayElements(language::Core::CanQualType element) { return true; }
+    void visitArrayElement(language::Core::CanQualType element, unsigned i, bool _) {
       visit(element);
     }
 
-    void visitComplexElement(clang::CanQualType element, unsigned i) {
+    void visitComplexElement(language::Core::CanQualType element, unsigned i) {
       visit(element);
     }
 
-    void visitUnionField(const clang::RecordDecl *record,
-                         const clang::FieldDecl *field) {
+    void visitUnionField(const language::Core::RecordDecl *record,
+                         const language::Core::FieldDecl *field) {
       visit(Ctx.getCanonicalType(field->getType()));
     }
 
-    bool beginStructFields(const clang::RecordDecl *record) { return true; }
-    void visitStructField(const clang::RecordDecl *record,
-                          const clang::FieldDecl *field,
+    bool beginStructFields(const language::Core::RecordDecl *record) { return true; }
+    void visitStructField(const language::Core::RecordDecl *record,
+                          const language::Core::FieldDecl *field,
                           bool _) {
       visit(Ctx.getCanonicalType(field->getType()));
     }
@@ -1510,7 +1510,7 @@ namespace {
 } // end anonymous namespace
 
 static bool doesClangExpansionMatchSchema(IRGenModule &IGM,
-                                          clang::CanQualType type,
+                                          language::Core::CanQualType type,
                                           const ExplosionSchema &schema) {
   assert(!schema.containsAggregate());
   SmallVector<toolchain::Type *, 4> expansion;
@@ -1553,7 +1553,7 @@ void SignatureExpansion::expandExternalSignatureTypes() {
   // Now convert the parameters to Clang types.
   auto params = FnType->getParameters();
 
-  SmallVector<clang::CanQualType,4> paramTys;
+  SmallVector<language::Core::CanQualType,4> paramTys;
   auto const &clangCtx = IGM.getClangASTContext();
 
   switch (FnType->getRepresentation()) {
@@ -1615,17 +1615,17 @@ void SignatureExpansion::expandExternalSignatureTypes() {
   }
 
   // Generate function info for this signature.
-  auto extInfo = clang::FunctionType::ExtInfo();
+  auto extInfo = language::Core::FunctionType::ExtInfo();
 
   bool isCXXMethod =
       FnType->getRepresentation() == SILFunctionTypeRepresentation::CXXMethod;
   auto &FI = isCXXMethod ?
-      clang::CodeGen::arrangeCXXMethodCall(IGM.ClangCodeGen->CGM(),
+      language::Core::CodeGen::arrangeCXXMethodCall(IGM.ClangCodeGen->CGM(),
           clangResultTy, paramTys, extInfo, {},
-          clang::CodeGen::RequiredArgs::All) :
-      clang::CodeGen::arrangeFreeFunctionCall(IGM.ClangCodeGen->CGM(),
+          language::Core::CodeGen::RequiredArgs::All) :
+      language::Core::CodeGen::arrangeFreeFunctionCall(IGM.ClangCodeGen->CGM(),
           clangResultTy, paramTys, extInfo, {},
-          clang::CodeGen::RequiredArgs::All);
+          language::Core::CodeGen::RequiredArgs::All);
   ForeignInfo.ClangInfo = &FI;
 
   assert(FI.arg_size() == paramTys.size() &&
@@ -1658,7 +1658,7 @@ void SignatureExpansion::expandExternalSignatureTypes() {
       ParamIRTypes.push_back(padType);
 
     switch (AI.getKind()) {
-    case clang::CodeGen::ABIArgInfo::Extend: {
+    case language::Core::CodeGen::ABIArgInfo::Extend: {
       bool signExt = paramTys[i]->hasSignedIntegerRepresentation();
       assert((signExt || paramTys[i]->hasUnsignedIntegerRepresentation()) &&
              "Invalid attempt to add extension attribute to argument!");
@@ -1666,20 +1666,20 @@ void SignatureExpansion::expandExternalSignatureTypes() {
                                       attrKindForExtending(signExt));
       TOOLCHAIN_FALLTHROUGH;
     }
-    case clang::CodeGen::ABIArgInfo::Direct: {
+    case language::Core::CodeGen::ABIArgInfo::Direct: {
       switch (FI.getExtParameterInfo(i).getABI()) {
-      case clang::ParameterABI::Ordinary:
+      case language::Core::ParameterABI::Ordinary:
         break;
-      case clang::ParameterABI::CodiraAsyncContext:
+      case language::Core::ParameterABI::CodiraAsyncContext:
         IGM.addCodiraAsyncContextAttributes(Attrs, getCurParamIndex());
         break;
-      case clang::ParameterABI::CodiraContext:
+      case language::Core::ParameterABI::CodiraContext:
         IGM.addCodiraSelfAttributes(Attrs, getCurParamIndex());
         break;
-      case clang::ParameterABI::CodiraErrorResult:
+      case language::Core::ParameterABI::CodiraErrorResult:
         IGM.addCodiraErrorAttributes(Attrs, getCurParamIndex());
         break;
-      case clang::ParameterABI::CodiraIndirectResult: {
+      case language::Core::ParameterABI::CodiraIndirectResult: {
         auto &param = params[i - clangToCodiraParamOffset];
         auto paramTy = getSILFuncConventions().getSILType(
             param, IGM.getMaximalTypeExpansionContext());
@@ -1703,14 +1703,14 @@ void SignatureExpansion::expandExternalSignatureTypes() {
       }
       break;
     }
-    case clang::CodeGen::ABIArgInfo::CoerceAndExpand: {
+    case language::Core::CodeGen::ABIArgInfo::CoerceAndExpand: {
       auto types = AI.getCoerceAndExpandTypeSequence();
       ParamIRTypes.append(types.begin(), types.end());
       break;
     }
-    case clang::CodeGen::ABIArgInfo::IndirectAliased:
+    case language::Core::CodeGen::ABIArgInfo::IndirectAliased:
       toolchain_unreachable("not implemented");
-    case clang::CodeGen::ABIArgInfo::Indirect: {
+    case language::Core::CodeGen::ABIArgInfo::Indirect: {
       // When `i` is 0, if the clang offset is 1, that means we mapped the last
       // Codira parameter (self) to the first Clang parameter (this). In this
       // case, the corresponding Codira param is the last function parameter.
@@ -1731,12 +1731,12 @@ void SignatureExpansion::expandExternalSignatureTypes() {
       addPointerParameter(paramTI.getStorageType());
       break;
     }
-    case clang::CodeGen::ABIArgInfo::Expand:
+    case language::Core::CodeGen::ABIArgInfo::Expand:
       ClangExpandTypeCollector(IGM, ParamIRTypes).visit(paramTys[i]);
       break;
-    case clang::CodeGen::ABIArgInfo::Ignore:
+    case language::Core::CodeGen::ABIArgInfo::Ignore:
       break;
-    case clang::CodeGen::ABIArgInfo::InAlloca:
+    case language::Core::CodeGen::ABIArgInfo::InAlloca:
       toolchain_unreachable("Need to handle InAlloca during signature expansion");
     }
   };
@@ -1770,7 +1770,7 @@ void SignatureExpansion::expandExternalSignatureTypes() {
 
   if (cxxCtorDecl) {
     ResultIRType = cast<toolchain::Function>(IGM.getAddrOfClangGlobalDecl(
-                                            {cxxCtorDecl, clang::Ctor_Complete},
+                                            {cxxCtorDecl, language::Core::Ctor_Complete},
                                             (ForDefinition_t) false))
                        ->getReturnType();
   } else if (returnInfo.isIndirect() || returnInfo.isIgnore()) {
@@ -2221,7 +2221,7 @@ void SignatureExpansion::expandAsyncReturnType() {
 
   // Add the result type components as trailing parameters.
   native.enumerateComponents(
-      [&](clang::CharUnits offset, clang::CharUnits end, toolchain::Type *type) {
+      [&](language::Core::CharUnits offset, language::Core::CharUnits end, toolchain::Type *type) {
         ParamIRTypes.push_back(type);
       });
 
@@ -2408,7 +2408,7 @@ void SignatureExpansion::expandAsyncAwaitType() {
 
   // Add the result type components as trailing parameters.
   native.enumerateComponents(
-      [&](clang::CharUnits offset, clang::CharUnits end, toolchain::Type *type) {
+      [&](language::Core::CharUnits offset, language::Core::CharUnits end, toolchain::Type *type) {
         components.push_back(type);
       });
 
@@ -2460,7 +2460,7 @@ Signature SignatureExpansion::getSignature() {
 Signature Signature::getUncached(IRGenModule &IGM,
                                  CanSILFunctionType formalType,
                                  FunctionPointerKind fpKind, bool forStaticCall,
-                                 const clang::CXXConstructorDecl *cxxCtorDecl) {
+                                 const language::Core::CXXConstructorDecl *cxxCtorDecl) {
   GenericContextScope scope(IGM, formalType->getInvocationGenericSignature());
   SignatureExpansion expansion(IGM, formalType, fpKind, forStaticCall,
                                cxxCtorDecl);
@@ -4320,7 +4320,7 @@ static void emitCoerceAndExpand(IRGenFunction &IGF, Explosion &in,
 }
 
 static void emitDirectExternalArgument(IRGenFunction &IGF, SILType argType,
-                                       const clang::CodeGen::ABIArgInfo &AI,
+                                       const language::Core::CodeGen::ABIArgInfo &AI,
                                        Explosion &in, Explosion &out,
                                        bool isOutlined) {
   bool IsDirectFlattened = AI.isDirect() && AI.getCanBeFlattened();
@@ -4417,7 +4417,7 @@ namespace {
 /// (according to ABIArgInfo::Expand) in 'out'.
 static void
 emitClangExpandedArgument(IRGenFunction &IGF, Explosion &in, Explosion &out,
-                          clang::CanQualType clangType, SILType languageType,
+                          language::Core::CanQualType clangType, SILType languageType,
                           const LoadableTypeInfo &languageTI, bool isOutlined) {
   // If Clang's expansion schema matches Codira's, great.
   auto languageSchema = languageTI.getSchema();
@@ -4440,7 +4440,7 @@ emitClangExpandedArgument(IRGenFunction &IGF, Explosion &in, Explosion &out,
 /// in 'in', produce a Codira value explosion in 'out'.
 void irgen::emitClangExpandedParameter(IRGenFunction &IGF,
                                        Explosion &in, Explosion &out,
-                                       clang::CanQualType clangType,
+                                       language::Core::CanQualType clangType,
                                        SILType languageType,
                                        const LoadableTypeInfo &languageTI) {
   // If Clang's expansion schema matches Codira's, great.
@@ -4547,7 +4547,7 @@ void CallEmission::externalizeArguments(IRGenFunction &IGF, const Callee &callee
     // We don't need to do anything to handle the Codira parameter-ABI
     // attributes here because we shouldn't be trying to round-trip
     // languagecall function pointers through SIL as C functions anyway.
-    assert(FI.getExtParameterInfo(i).getABI() == clang::ParameterABI::Ordinary);
+    assert(FI.getExtParameterInfo(i).getABI() == language::Core::ParameterABI::Ordinary);
 
     // Add a padding argument if required.
     if (auto *padType = AI.getPaddingType())
@@ -4579,7 +4579,7 @@ void CallEmission::externalizeArguments(IRGenFunction &IGF, const Callee &callee
     if (passIndirectToDirect) {
       toolchain::Value *ptr = in.claimNext();
 
-      if (AI.getKind() == clang::CodeGen::ABIArgInfo::Indirect) {
+      if (AI.getKind() == language::Core::CodeGen::ABIArgInfo::Indirect) {
         // It's a large struct which is also passed indirectl in LLVM IR.
         // The C function (= the callee) is allowed to modify the memory used
         // for passing arguments, therefore we need to copy the argument value
@@ -4605,14 +4605,14 @@ void CallEmission::externalizeArguments(IRGenFunction &IGF, const Callee &callee
     }
 
     switch (AI.getKind()) {
-    case clang::CodeGen::ABIArgInfo::Extend: {
+    case language::Core::CodeGen::ABIArgInfo::Extend: {
       bool signExt = clangParamTy->hasSignedIntegerRepresentation();
       assert((signExt || clangParamTy->hasUnsignedIntegerRepresentation()) &&
              "Invalid attempt to add extension attribute to argument!");
       (void) signExt;
       TOOLCHAIN_FALLTHROUGH;
     }
-    case clang::CodeGen::ABIArgInfo::Direct: {
+    case language::Core::CodeGen::ABIArgInfo::Direct: {
       auto toTy = AI.getCoerceToType();
 
       // Indirect parameters are bridged as Clang pointer types.
@@ -4629,9 +4629,9 @@ void CallEmission::externalizeArguments(IRGenFunction &IGF, const Callee &callee
       emitDirectExternalArgument(IGF, paramType, AI, in, out, isOutlined);
       break;
     }
-    case clang::CodeGen::ABIArgInfo::IndirectAliased:
+    case language::Core::CodeGen::ABIArgInfo::IndirectAliased:
       toolchain_unreachable("not implemented");
-    case clang::CodeGen::ABIArgInfo::Indirect: {
+    case language::Core::CodeGen::ABIArgInfo::Indirect: {
       auto &ti = cast<LoadableTypeInfo>(IGF.getTypeInfo(paramType));
 
       auto temp = ti.allocateStack(IGF, paramType, "indirect-temporary");
@@ -4665,7 +4665,7 @@ void CallEmission::externalizeArguments(IRGenFunction &IGF, const Callee &callee
       out.add(addr.getAddress());
       break;
     }
-    case clang::CodeGen::ABIArgInfo::CoerceAndExpand: {
+    case language::Core::CodeGen::ABIArgInfo::CoerceAndExpand: {
       auto &paramTI = cast<LoadableTypeInfo>(IGF.getTypeInfo(paramType));
       emitCoerceAndExpand(IGF, in, out, paramType, paramTI,
                           AI.getCoerceAndExpandType(),
@@ -4673,14 +4673,14 @@ void CallEmission::externalizeArguments(IRGenFunction &IGF, const Callee &callee
                           TranslationDirection::ToForeign, isOutlined);
       break;
     }
-    case clang::CodeGen::ABIArgInfo::Expand:
+    case language::Core::CodeGen::ABIArgInfo::Expand:
       emitClangExpandedArgument(
           IGF, in, out, clangParamTy, paramType,
           cast<LoadableTypeInfo>(IGF.getTypeInfo(paramType)), isOutlined);
       break;
-    case clang::CodeGen::ABIArgInfo::Ignore:
+    case language::Core::CodeGen::ABIArgInfo::Ignore:
       break;
-    case clang::CodeGen::ABIArgInfo::InAlloca:
+    case language::Core::CodeGen::ABIArgInfo::InAlloca:
       toolchain_unreachable("Need to handle InAlloca when externalizing arguments");
       break;
     }
@@ -4853,7 +4853,7 @@ bool irgen::addNativeArgument(IRGenFunction &IGF,
 
 /// Emit a direct parameter that was passed under a C-based CC.
 static void emitDirectForeignParameter(IRGenFunction &IGF, Explosion &in,
-                                       const clang::CodeGen::ABIArgInfo &AI,
+                                       const language::Core::CodeGen::ABIArgInfo &AI,
                                        Explosion &out, SILType paramType,
                                        const LoadableTypeInfo &paramTI) {
   // The ABI IR types for the entrypoint might differ from the
@@ -4944,31 +4944,31 @@ void irgen::emitForeignParameter(IRGenFunction &IGF, Explosion &params,
   // attributes here because we shouldn't be trying to round-trip
   // languagecall function pointers through SIL as C functions anyway.
   assert(FI.getExtParameterInfo(foreignParamIndex).getABI()
-           == clang::ParameterABI::Ordinary);
+           == language::Core::ParameterABI::Ordinary);
 
   // Drop padding arguments.
   if (AI.getPaddingType())
     params.claimNext();
 
   switch (AI.getKind()) {
-  case clang::CodeGen::ABIArgInfo::Extend:
-  case clang::CodeGen::ABIArgInfo::Direct:
+  case language::Core::CodeGen::ABIArgInfo::Extend:
+  case language::Core::CodeGen::ABIArgInfo::Direct:
     emitDirectForeignParameter(IGF, params, AI, paramExplosion, paramTy,
                                paramTI);
     return;
-  case clang::CodeGen::ABIArgInfo::IndirectAliased:
+  case language::Core::CodeGen::ABIArgInfo::IndirectAliased:
       toolchain_unreachable("not implemented");
-  case clang::CodeGen::ABIArgInfo::Indirect: {
+  case language::Core::CodeGen::ABIArgInfo::Indirect: {
     Address address = paramTI.getAddressForPointer(params.claimNext());
     paramTI.loadAsTake(IGF, address, paramExplosion);
     return;
   }
-  case clang::CodeGen::ABIArgInfo::Expand: {
+  case language::Core::CodeGen::ABIArgInfo::Expand: {
     emitClangExpandedParameter(IGF, params, paramExplosion, clangArgTy,
                                paramTy, paramTI);
     return;
   }
-  case clang::CodeGen::ABIArgInfo::CoerceAndExpand: {
+  case language::Core::CodeGen::ABIArgInfo::CoerceAndExpand: {
     auto &paramTI = cast<LoadableTypeInfo>(IGF.getTypeInfo(paramTy));
     emitCoerceAndExpand(IGF, params, paramExplosion, paramTy, paramTI,
                         AI.getCoerceAndExpandType(),
@@ -4977,10 +4977,10 @@ void irgen::emitForeignParameter(IRGenFunction &IGF, Explosion &params,
     break;
   }
 
-  case clang::CodeGen::ABIArgInfo::Ignore:
+  case language::Core::CodeGen::ABIArgInfo::Ignore:
     return;
 
-  case clang::CodeGen::ABIArgInfo::InAlloca:
+  case language::Core::CodeGen::ABIArgInfo::InAlloca:
     toolchain_unreachable("Need to handle InAlloca during signature expansion");
   }
 }
@@ -5828,17 +5828,17 @@ bool IRGenModule::isForeignExceptionHandlingEnabled() const {
          !clangLangOpts.IgnoreExceptions;
 }
 
-bool IRGenModule::isCxxNoThrow(clang::FunctionDecl *fd, bool defaultNoThrow) {
-  auto *fpt = fd->getType()->getAs<clang::FunctionProtoType>();
+bool IRGenModule::isCxxNoThrow(language::Core::FunctionDecl *fd, bool defaultNoThrow) {
+  auto *fpt = fd->getType()->getAs<language::Core::FunctionProtoType>();
   if (!fpt)
     return defaultNoThrow;
   if (fpt->getExceptionSpecType() ==
-      clang::ExceptionSpecificationType::EST_Unevaluated) {
+      language::Core::ExceptionSpecificationType::EST_Unevaluated) {
     // Clang might not have evaluated the exception spec for
     // a constructor, so force the evaluation of it.
     auto &clangSema = Context.getClangModuleLoader()->getClangSema();
     clangSema.EvaluateImplicitExceptionSpec(fd->getLocation(), fd);
-    fpt = fd->getType()->getAs<clang::FunctionProtoType>();
+    fpt = fd->getType()->getAs<language::Core::FunctionProtoType>();
     if (!fpt)
       return defaultNoThrow;
   }
@@ -6008,7 +6008,7 @@ unsigned NativeConventionSchema::size() const {
   if (empty())
     return 0;
   unsigned size = 0;
-  enumerateComponents([&](clang::CharUnits offset, clang::CharUnits end,
+  enumerateComponents([&](language::Core::CharUnits offset, language::Core::CharUnits end,
                           toolchain::Type *type) { ++size; });
   return size;
 }
@@ -6894,8 +6894,8 @@ void irgen::emitAsyncReturn(IRGenFunction &IGF, AsyncContextLayout &asyncLayout,
   if (result.empty() && !nativeSchema.empty()) {
     if (!nativeSchema.requiresIndirect())
       // When we throw, we set the return values to undef.
-      nativeSchema.enumerateComponents([&](clang::CharUnits begin,
-                                           clang::CharUnits end,
+      nativeSchema.enumerateComponents([&](language::Core::CharUnits begin,
+                                           language::Core::CharUnits end,
                                            toolchain::Type *componentTy) {
         nativeResultsStorage.push_back(toolchain::UndefValue::get(componentTy));
       });

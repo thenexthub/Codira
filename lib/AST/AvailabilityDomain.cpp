@@ -22,22 +22,22 @@
 #include "language/AST/TypeCheckRequests.h"
 #include "language/Basic/Assertions.h"
 #include "language/ClangImporter/ClangImporter.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Decl.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Decl.h"
 #include "toolchain/ADT/StringSwitch.h"
 
 using namespace language;
 
 CustomAvailabilityDomain::Kind
-getCustomDomainKind(clang::FeatureAvailKind featureAvailKind) {
+getCustomDomainKind(language::Core::FeatureAvailKind featureAvailKind) {
   switch (featureAvailKind) {
-  case clang::FeatureAvailKind::None:
+  case language::Core::FeatureAvailKind::None:
     toolchain_unreachable("unexpected kind");
-  case clang::FeatureAvailKind::Available:
+  case language::Core::FeatureAvailKind::Available:
     return CustomAvailabilityDomain::Kind::Enabled;
-  case clang::FeatureAvailKind::Unavailable:
+  case language::Core::FeatureAvailKind::Unavailable:
     return CustomAvailabilityDomain::Kind::Disabled;
-  case clang::FeatureAvailKind::Dynamic:
+  case language::Core::FeatureAvailKind::Dynamic:
     return CustomAvailabilityDomain::Kind::Dynamic;
   }
 }
@@ -47,22 +47,22 @@ customDomainForClangDecl(Decl *decl, const ASTContext &ctx) {
   auto *clangDecl = decl->getClangDecl();
   ASSERT(clangDecl);
 
-  auto *varDecl = dyn_cast<clang::VarDecl>(clangDecl);
+  auto *varDecl = dyn_cast<language::Core::VarDecl>(clangDecl);
   if (!varDecl)
     return nullptr;
 
   auto featureInfo = clangDecl->getASTContext().getFeatureAvailInfo(
-      const_cast<clang::VarDecl *>(varDecl));
+      const_cast<language::Core::VarDecl *>(varDecl));
 
   // Ensure the decl actually represents an availability domain.
   if (featureInfo.first.empty())
     return nullptr;
 
-  if (featureInfo.second.Kind == clang::FeatureAvailKind::None)
+  if (featureInfo.second.Kind == language::Core::FeatureAvailKind::None)
     return nullptr;
 
   FuncDecl *predicate = nullptr;
-  if (featureInfo.second.Kind == clang::FeatureAvailKind::Dynamic)
+  if (featureInfo.second.Kind == language::Core::FeatureAvailKind::Dynamic)
     predicate =
         ctx.getClangModuleLoader()->getAvailabilityDomainPredicate(varDecl);
 

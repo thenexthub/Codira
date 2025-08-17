@@ -34,7 +34,7 @@
 #include "language/ClangImporter/ClangModule.h"
 #include "language/Subsystems.h"
 #include "language/SymbolGraphGen/DocumentationCategory.h"
-#include "clang/Basic/Module.h"
+#include "language/Core/Basic/Module.h"
 #include "toolchain/ADT/DenseMap.h"
 #include "toolchain/ADT/TinyPtrVector.h"
 #include "toolchain/ADT/Twine.h"

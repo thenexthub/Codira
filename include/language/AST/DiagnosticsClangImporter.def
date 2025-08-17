@@ -157,10 +157,10 @@ NOTE(macro_not_imported_unsupported_structure, none, "macro '%0' unavailable: st
 NOTE(macro_not_imported, none, "macro '%0' unavailable (cannot import)", (StringRef))
 
 NOTE(return_type_not_imported, none, "return type unavailable (cannot import)", ())
-NOTE(parameter_type_not_imported, none, "parameter %0 unavailable (cannot import)", (const clang::NamedDecl*))
+NOTE(parameter_type_not_imported, none, "parameter %0 unavailable (cannot import)", (const language::Core::NamedDecl*))
 NOTE(rvalue_ref_params_not_imported, none, "C++ functions with rvalue reference parameters are unavailable in Codira", ())
-NOTE(incomplete_interface, none, "interface %0 is incomplete", (const clang::NamedDecl*))
-NOTE(incomplete_protocol, none, "protocol %0 is incomplete", (const clang::NamedDecl*))
+NOTE(incomplete_interface, none, "interface %0 is incomplete", (const language::Core::NamedDecl*))
+NOTE(incomplete_protocol, none, "protocol %0 is incomplete", (const language::Core::NamedDecl*))
 NOTE(incomplete_record, none, "record '%0' is not defined (incomplete)", (StringRef))
 NOTE(record_over_aligned, none, "record '%0' is over aligned", (StringRef))
 NOTE(record_non_trivial_copy_destroy, none, "record '%0' is not trivial to copy or destroy", (StringRef))
@@ -293,7 +293,7 @@ ERROR(failed_base_method_call_synthesis,none,
 ERROR(both_returns_retained_returns_unretained, none,
       "%0 cannot be annotated with both LANGUAGE_RETURNS_RETAINED and "
       "LANGUAGE_RETURNS_UNRETAINED",
-      (const clang::NamedDecl *))
+      (const language::Core::NamedDecl *))
 
 ERROR(redundant_conformance_protocol,none,
      "redundant conformance of %0 to protocol '%1'", (Type, StringRef))
@@ -302,7 +302,7 @@ ERROR(returns_retained_or_returns_unretained_for_non_cxx_frt_values, none,
       "%0 cannot be annotated with either LANGUAGE_RETURNS_RETAINED or "
       "LANGUAGE_RETURNS_UNRETAINED because it is not returning "
       "a LANGUAGE_SHARED_REFERENCE type",
-      (const clang::NamedDecl *))
+      (const language::Core::NamedDecl *))
 
 // TODO: In the next C++ interop version, convert this warning into an error and
 // stop importing unannotated C++ APIs that return LANGUAGE_SHARED_REFERENCE.
@@ -310,14 +310,14 @@ ERROR(returns_retained_or_returns_unretained_for_non_cxx_frt_values, none,
 GROUPED_WARNING(no_returns_retained_returns_unretained, ClangDeclarationImport, none,
         "%0 should be annotated with either LANGUAGE_RETURNS_RETAINED or "
         "LANGUAGE_RETURNS_UNRETAINED as it is returning a LANGUAGE_SHARED_REFERENCE",
-        (const clang::NamedDecl *))
+        (const language::Core::NamedDecl *))
 
 GROUPED_WARNING(returns_retained_returns_unretained_on_overloaded_operator,  ClangDeclarationImport, none,
         "LANGUAGE_RETURNS_RETAINED and LANGUAGE_RETURNS_UNRETAINED is not supported "
         "yet for overloaded C++ %0. Overloaded C++ operators always "
         "return "
         "LANGUAGE_SHARED_REFERENCE types as owned ",
-        (const clang::NamedDecl *))
+        (const language::Core::NamedDecl *))
 
 // TODO: In the next C++ interop version, convert this warning into an error and
 // stop importing C++ types that inherit from LANGUAGE_SHARED_REFERENCE if the
@@ -326,13 +326,13 @@ GROUPED_WARNING(returns_retained_returns_unretained_on_overloaded_operator,  Cla
 GROUPED_WARNING(cant_infer_frt_in_cxx_inheritance, ClangDeclarationImport, none,
         "unable to infer LANGUAGE_SHARED_REFERENCE for %0, although one of its "
         "transitive base types is marked as LANGUAGE_SHARED_REFERENCE",
-        (const clang::NamedDecl *))
+        (const language::Core::NamedDecl *))
 
 NOTE(unsupported_builtin_type, none, "built-in type '%0' not supported", (StringRef))
-NOTE(record_field_not_imported, none, "field %0 unavailable (cannot import)", (const clang::NamedDecl*))
-NOTE(invoked_func_not_imported, none, "function %0 unavailable (cannot import)", (const clang::NamedDecl*))
-NOTE(record_method_not_imported, none, "method %0 unavailable (cannot import)", (const clang::NamedDecl*))
-NOTE(objc_property_not_imported, none, "property %0 unavailable (cannot import)", (const clang::NamedDecl*))
+NOTE(record_field_not_imported, none, "field %0 unavailable (cannot import)", (const language::Core::NamedDecl*))
+NOTE(invoked_func_not_imported, none, "function %0 unavailable (cannot import)", (const language::Core::NamedDecl*))
+NOTE(record_method_not_imported, none, "method %0 unavailable (cannot import)", (const language::Core::NamedDecl*))
+NOTE(objc_property_not_imported, none, "property %0 unavailable (cannot import)", (const language::Core::NamedDecl*))
 
 NOTE(placeholder_for_forward_declared_interface_member_access_failure, none,
      "class '%0' will be imported as an opaque placeholder class and may be "
@@ -343,18 +343,18 @@ NOTE(placeholder_for_forward_declared_protocol_member_access_failure, none,
      "and may be missing members; import the definition to access the "
      "complete protocol", (StringRef))
 NOTE(forward_declared_interface_label, none,
-     "interface %0 forward declared here", (const clang::NamedDecl*))
+     "interface %0 forward declared here", (const language::Core::NamedDecl*))
 NOTE(forward_declared_protocol_label, none,
-     "protocol %0 forward declared here", (const clang::NamedDecl*))
+     "protocol %0 forward declared here", (const language::Core::NamedDecl*))
 
 NOTE(forward_declared_interface_clashes_with_imported_objc_Codira_interface, none,
      "interface %0 is incomplete and cannot be imported as a stub; "
      "its name conflicts with a %1 in module %2",
-     (const clang::NamedDecl*, StringRef, StringRef))
+     (const language::Core::NamedDecl*, StringRef, StringRef))
 NOTE(forward_declared_protocol_clashes_with_imported_objc_Codira_protocol, none,
      "protocol %0 is incomplete and cannot be imported as a stub; "
      "its name conflicts with a %1 in module %2",
-     (const clang::NamedDecl*, StringRef, StringRef))
+     (const language::Core::NamedDecl*, StringRef, StringRef))
 
 GROUPED_WARNING(return_escapable_with_lifetimebound,  ClangDeclarationImport, none,
      "the returned type '%0' is annotated as escapable; it cannot have lifetime dependencies",
@@ -380,11 +380,11 @@ NOTE(bridged_pointer_type_not_found,none,
 
 NOTE(ptr_to_nonescapable,none,
      "pointer to non-escapable type %0 cannot be imported",
-     (const clang::Type*))
+     (const language::Core::Type*))
 
 NOTE(nonescapable_field_of_escapable, none,
      "escapable record %0 cannot have non-escapable field '%1'",
-     (const clang::NamedDecl *, StringRef))
+     (const language::Core::NamedDecl *, StringRef))
 
 #define UNDEFINE_DIAGNOSTIC_MACROS
 #include "DefineDiagnosticMacros.h"

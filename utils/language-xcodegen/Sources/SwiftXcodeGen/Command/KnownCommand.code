@@ -200,8 +200,8 @@ extension Command.Flag {
     languagec(.Xcc)
   static let Xfrontend =
     languagec(.Xfrontend)
-  static let Xllvm =
-    languagec(.Xllvm)
+  static let Xtoolchain =
+    languagec(.Xtoolchain)
 }
 
 extension KnownCommand {
@@ -283,7 +283,7 @@ extension KnownCommand {
     .wmo,
     .Xcc,
     .Xfrontend,
-    .Xllvm,
+    .Xtoolchain,
   ]
 
   private static let languagecSpec = Command.FlagSpec(

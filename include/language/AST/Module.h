@@ -49,7 +49,7 @@
 #include <set>
 #include <unordered_map>
 
-namespace clang {
+namespace language::Core {
   class Module;
 }
 
@@ -270,11 +270,11 @@ public:
     using iterator_category = std::forward_iterator_tag;
 
   private:
-    PointerUnion<const ModuleDecl *, const /* clang::Module */ void *> current;
+    PointerUnion<const ModuleDecl *, const /* language::Core::Module */ void *> current;
   public:
     ReverseFullNameIterator() = default;
     explicit ReverseFullNameIterator(const ModuleDecl *M);
-    explicit ReverseFullNameIterator(const clang::Module *clangModule) {
+    explicit ReverseFullNameIterator(const language::Core::Module *clangModule) {
       current = clangModule;
     }
 
@@ -582,7 +582,7 @@ private:
 
   /// A cache of this module's visible Clang modules
   /// parameterized by the Codira interface print mode.
-  using VisibleClangModuleSet = toolchain::DenseMap<const clang::Module *, ModuleDecl *>;
+  using VisibleClangModuleSet = toolchain::DenseMap<const language::Core::Module *, ModuleDecl *>;
   std::unordered_map<PrintOptions::InterfaceMode, VisibleClangModuleSet> CachedVisibleClangModuleSet;
 
   /// If this module is an underscored cross import overlay, gets the underlying
@@ -1187,7 +1187,7 @@ public:
   NominalTypeDecl *getMainTypeDecl() const;
 
   /// Returns the associated clang module if one exists.
-  const clang::Module *findUnderlyingClangModule() const;
+  const language::Core::Module *findUnderlyingClangModule() const;
 
   /// Returns a generator with the components of this module's full,
   /// hierarchical name.
@@ -1258,12 +1258,12 @@ public:
 /// Wraps either a language module or a clang one.
 /// FIXME: Should go away once language modules can support submodules natively.
 class ModuleEntity {
-  toolchain::PointerUnion<const ModuleDecl *, const /* clang::Module */ void *> Mod;
+  toolchain::PointerUnion<const ModuleDecl *, const /* language::Core::Module */ void *> Mod;
 
 public:
   ModuleEntity() = default;
   ModuleEntity(const ModuleDecl *Mod) : Mod(Mod) {}
-  ModuleEntity(const clang::Module *Mod) : Mod(static_cast<const void *>(Mod)){}
+  ModuleEntity(const language::Core::Module *Mod) : Mod(static_cast<const void *>(Mod)){}
 
   /// @param useRealNameIfAliased Whether to use the module's real name in case
   ///                             module aliasing is used. For example, if a file
@@ -1276,14 +1276,14 @@ public:
   StringRef getName(bool useRealNameIfAliased = false) const;
 
   /// For Codira modules, it returns the same result as \c ModuleEntity::getName(bool).
-  /// For Clang modules, it returns the result of \c clang::Module::getFullModuleName.
+  /// For Clang modules, it returns the result of \c language::Core::Module::getFullModuleName.
   std::string getFullName(bool useRealNameIfAliased = false) const;
 
   bool isSystemModule() const;
   bool isNonUserModule() const;
   bool isBuiltinModule() const;
   const ModuleDecl *getAsCodiraModule() const;
-  const clang::Module *getAsClangModule() const;
+  const language::Core::Module *getAsClangModule() const;
 
   void *getOpaqueValue() const {
     assert(!Mod.isNull());

@@ -23,8 +23,8 @@
 #include "language/ClangImporter/ClangModule.h"
 #include "language/Parse/Parser.h"
 #include "language/Subsystems.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/Rewrite/Core/RewriteBuffer.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/Rewrite/Core/RewriteBuffer.h"
 #include "toolchain/ADT/STLExtras.h"
 #include "toolchain/Support/Compiler.h"
 #include "toolchain/Support/MemoryBuffer.h"
@@ -189,8 +189,8 @@ SourceCompleteResult ide::isSourceInputComplete(StringRef Text,
 }
 
 template <typename FnTy>
-static void walkOverriddenClangDecls(const clang::NamedDecl *D, const FnTy &Fn){
-  SmallVector<const clang::NamedDecl *, 8> OverDecls;
+static void walkOverriddenClangDecls(const language::Core::NamedDecl *D, const FnTy &Fn){
+  SmallVector<const language::Core::NamedDecl *, 8> OverDecls;
   D->getASTContext().getOverriddenMethods(D, OverDecls);
   for (auto Over : OverDecls)
     Fn(Over);
@@ -201,12 +201,12 @@ static void walkOverriddenClangDecls(const clang::NamedDecl *D, const FnTy &Fn){
 void
 ide::walkOverriddenDecls(const ValueDecl *VD,
                          toolchain::function_ref<void(toolchain::PointerUnion<
-                             const ValueDecl*, const clang::NamedDecl*>)> Fn) {
+                             const ValueDecl*, const language::Core::NamedDecl*>)> Fn) {
   for (auto CurrOver = VD; CurrOver; CurrOver = CurrOver->getOverriddenDecl()) {
     if (CurrOver != VD)
       Fn(CurrOver);
     if (auto ClangD =
-        dyn_cast_or_null<clang::NamedDecl>(CurrOver->getClangDecl())) {
+        dyn_cast_or_null<language::Core::NamedDecl>(CurrOver->getClangDecl())) {
       walkOverriddenClangDecls(ClangD, Fn);
       return;
     }
@@ -786,11 +786,11 @@ accept(SourceManager &SM, RegionType Type, ArrayRef<Replacement> Replacements) {
 namespace {
 class ClangFileRewriterHelper {
   unsigned InterestedId;
-  clang::RewriteBuffer RewriteBuf;
+  language::Core::RewriteBuffer RewriteBuf;
   bool HasChange;
   toolchain::raw_ostream &OS;
 
-  void removeCommentLines(clang::RewriteBuffer &Buffer, StringRef Input,
+  void removeCommentLines(language::Core::RewriteBuffer &Buffer, StringRef Input,
                           StringRef LineHeader) {
     size_t Pos = 0;
     while (true) {

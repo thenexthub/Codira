@@ -1,0 +1,56 @@
+//===--- Transaction.h - Incremental Compilation and Execution---*- C++ -*-===//
+//
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
+//
+//===----------------------------------------------------------------------===//
+//
+// This file defines utilities tracking the incrementally processed pieces of
+// code.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef LANGUAGE_CORE_INTERPRETER_PARTIALTRANSLATIONUNIT_H
+#define LANGUAGE_CORE_INTERPRETER_PARTIALTRANSLATIONUNIT_H
+
+#include <memory>
+
+namespace toolchain {
+class Module;
+}
+
+namespace language::Core {
+
+class TranslationUnitDecl;
+
+/// The class keeps track of various objects created as part of processing
+/// incremental inputs.
+struct PartialTranslationUnit {
+  TranslationUnitDecl *TUPart = nullptr;
+
+  /// The toolchain IR produced for the input.
+  std::unique_ptr<toolchain::Module> TheModule;
+  bool operator==(const PartialTranslationUnit &other) {
+    return other.TUPart == TUPart && other.TheModule == TheModule;
+  }
+};
+} // namespace language::Core
+
+#endif // LANGUAGE_CORE_INTERPRETER_PARTIALTRANSLATIONUNIT_H

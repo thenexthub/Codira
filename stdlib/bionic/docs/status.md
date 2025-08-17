@@ -33,7 +33,7 @@ Missing functions are either obsolete or explicitly disallowed by SELinux:
 
 Missing functionality:
   * `<aio.h>`. No particular reason not to have this other than that no-one's
-    needed it yet, and it's relatively complex. If/when llvm-libc adds this,
+    needed it yet, and it's relatively complex. If/when toolchain-libc adds this,
     maybe we'll just reuse that.
   * `<monetary.h>`. See
     [discussion](https://github.com/android/ndk/issues/1182).
@@ -319,7 +319,7 @@ libc function count over time:
 
 Data collected by:
 ```
-ndk-r26c$ for i in `ls -1v toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/*/libc.so` ; \
+ndk-r26c$ for i in `ls -1v toolchains/toolchain/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/*/libc.so` ; \
   do echo $i; nm $i | grep -w T | wc -l ; done
 ```
 

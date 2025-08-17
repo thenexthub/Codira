@@ -138,7 +138,7 @@ extern "C" int* missing_weak_tls_addr();
 // symbol to 0, which is added to the thread pointer. N.B.: A TPREL relocation
 // in a static executable is resolved by the static linker instead, and static
 // linker behavior varies (especially with bfd and gold). See
-// https://bugs.llvm.org/show_bug.cgi?id=40570.
+// https://bugs.toolchain.org/show_bug.cgi?id=40570.
 TEST(elftls_dl, tprel_missing_weak) {
   ASSERT_EQ(static_cast<void*>(__get_tls()), missing_weak_tls_addr());
   std::thread([] {

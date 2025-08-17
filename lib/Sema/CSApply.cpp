@@ -48,12 +48,12 @@
 #include "language/Basic/StringExtras.h"
 #include "language/Sema/ConstraintSystem.h"
 #include "language/Sema/SolutionResult.h"
-#include "clang/AST/DeclTemplate.h"
-#include "clang/AST/Mangle.h"
-#include "clang/Frontend/CompilerInstance.h"
-#include "clang/Sema/Sema.h"
-#include "clang/Sema/Template.h"
-#include "clang/Sema/TemplateDeduction.h"
+#include "language/Core/AST/DeclTemplate.h"
+#include "language/Core/AST/Mangle.h"
+#include "language/Core/Frontend/CompilerInstance.h"
+#include "language/Core/Sema/Sema.h"
+#include "language/Core/Sema/Template.h"
+#include "language/Core/Sema/TemplateDeduction.h"
 #include "toolchain/ADT/APFloat.h"
 #include "toolchain/ADT/APInt.h"
 #include "toolchain/ADT/STLExtras.h"
@@ -161,8 +161,8 @@ Solution::computeSubstitutions(NullablePtr<ValueDecl> decl,
 // no-op.
 static void maybeInstantiateCXXMethodDefinition(ValueDecl *decl) {
   if (const auto *constMethod =
-          dyn_cast_or_null<clang::CXXMethodDecl>(decl->getClangDecl())) {
-    auto method = const_cast<clang::CXXMethodDecl *>(constMethod);
+          dyn_cast_or_null<language::Core::CXXMethodDecl>(decl->getClangDecl())) {
+    auto method = const_cast<language::Core::CXXMethodDecl *>(constMethod);
     // Make sure that this method is part of a class template specialization.
     if (method->getTemplateInstantiationPattern())
       decl->getASTContext()
@@ -186,7 +186,7 @@ Solution::resolveConcreteDeclRef(ValueDecl *decl,
 
   // If this is a C++ function template, get it's specialization for the given
   // substitution map and update the decl accordingly.
-  if (isa_and_nonnull<clang::FunctionTemplateDecl>(decl->getClangDecl())) {
+  if (isa_and_nonnull<language::Core::FunctionTemplateDecl>(decl->getClangDecl())) {
     auto moduleLoader = decl->getASTContext().getClangModuleLoader();
     return moduleLoader->getCXXFunctionTemplateSpecialization(subst, decl);
   }

@@ -831,7 +831,7 @@ static const toolchain::VersionTuple minimumMacCatalystDeploymentTarget() {
   return toolchain::VersionTuple(13, 1);
 }
 
-toolchain::VersionTuple language::getTargetSDKVersion(clang::DarwinSDKInfo &SDKInfo,
+toolchain::VersionTuple language::getTargetSDKVersion(language::Core::DarwinSDKInfo &SDKInfo,
                                               const toolchain::Triple &triple) {
   // Retrieve the SDK version.
   auto SDKVersion = SDKInfo.getVersion();
@@ -841,7 +841,7 @@ toolchain::VersionTuple language::getTargetSDKVersion(clang::DarwinSDKInfo &SDKI
   // down to the linker.
   if (tripleIsMacCatalystEnvironment(triple)) {
     if (const auto *MacOStoMacCatalystMapping = SDKInfo.getVersionMapping(
-            clang::DarwinSDKInfo::OSEnvPair::macOStoMacCatalystPair())) {
+            language::Core::DarwinSDKInfo::OSEnvPair::macOStoMacCatalystPair())) {
       return MacOStoMacCatalystMapping
           ->map(SDKVersion, minimumMacCatalystDeploymentTarget(), std::nullopt)
           .value_or(toolchain::VersionTuple(0, 0, 0));

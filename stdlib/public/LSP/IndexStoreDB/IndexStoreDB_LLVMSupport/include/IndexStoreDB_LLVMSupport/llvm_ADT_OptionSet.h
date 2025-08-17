@@ -14,12 +14,12 @@
 #ifndef LLVM_ADT_OPTIONSET_H
 #define LLVM_ADT_OPTIONSET_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_None.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_None.h>
 
 #include <type_traits>
 #include <cstdint>
 
-namespace llvm {
+namespace toolchain {
 
 /// The class template \c OptionSet captures a set of options stored as the
 /// bits in an unsigned integral value.
@@ -48,7 +48,7 @@ public:
   OptionSet() : Storage() { }
 
   /// Create an empty option set.
-  OptionSet(llvm::NoneType) : Storage() { }
+  OptionSet(toolchain::NoneType) : Storage() { }
 
   /// Create an option set with only the given option set.
   OptionSet(Flags flag) : Storage(static_cast<StorageType>(flag)) { }
@@ -63,7 +63,7 @@ public:
   explicit operator StorageType() const { return Storage; }
 
   /// Explicitly convert an option set to intptr_t, for use in
-  /// llvm::PointerIntPair.
+  /// toolchain::PointerIntPair.
   ///
   /// This member is not present if the underlying type is bigger than
   /// a pointer.

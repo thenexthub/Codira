@@ -27,9 +27,9 @@
 #include "language/Basic/CXXStdlibKind.h"
 #include "language/Basic/Toolchain.h"
 #include "language/Serialization/Validation.h"
-#include "clang/CAS/CASOptions.h"
-#include "clang/Tooling/DependencyScanning/DependencyScanningService.h"
-#include "clang/Tooling/DependencyScanning/ModuleDepCollector.h"
+#include "language/Core/CAS/CASOptions.h"
+#include "language/Core/Tooling/DependencyScanning/DependencyScanningService.h"
+#include "language/Core/Tooling/DependencyScanning/ModuleDepCollector.h"
 #include "toolchain/ADT/ArrayRef.h"
 #include "toolchain/ADT/DenseSet.h"
 #include "toolchain/ADT/IntrusiveRefCntPtr.h"
@@ -955,10 +955,10 @@ using ModuleDependenciesKindMap =
 /// dependency scanner.
 class CodiraDependencyScanningService {
   /// The CASOption created the Scanning Service if used.
-  std::optional<clang::CASOptions> CASOpts;
+  std::optional<language::Core::CASOptions> CASOpts;
 
   /// The persistent Clang dependency scanner service
-  std::optional<clang::tooling::dependencies::DependencyScanningService>
+  std::optional<language::Core::tooling::dependencies::DependencyScanningService>
       ClangScanningService;
 
   /// Shared state mutual-exclusivity lock
@@ -992,7 +992,7 @@ private:
   /// Discovered dependencies
   ModuleDependenciesKindMap ModuleDependenciesMap;
   /// Set containing all of the Clang modules that have already been seen.
-  toolchain::DenseSet<clang::tooling::dependencies::ModuleID> alreadySeenClangModules;
+  toolchain::DenseSet<language::Core::tooling::dependencies::ModuleID> alreadySeenClangModules;
   /// Name of the module under scan
   std::string mainScanModuleName;
   /// The context hash of the current scanning invocation
@@ -1030,11 +1030,11 @@ public:
   /// Whether we have cached dependency information for the given Codira module.
   bool hasCodiraDependency(StringRef moduleName) const;
 
-  const toolchain::DenseSet<clang::tooling::dependencies::ModuleID> &
+  const toolchain::DenseSet<language::Core::tooling::dependencies::ModuleID> &
   getAlreadySeenClangModules() const {
     return alreadySeenClangModules;
   }
-  void addSeenClangModule(clang::tooling::dependencies::ModuleID newModule) {
+  void addSeenClangModule(language::Core::tooling::dependencies::ModuleID newModule) {
     alreadySeenClangModules.insert(newModule);
   }
 

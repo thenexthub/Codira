@@ -542,7 +542,7 @@ public:
 
   bool hasEntryPoint() const override;
 
-  virtual const clang::Module *getUnderlyingClangModule() const override;
+  virtual const language::Core::Module *getUnderlyingClangModule() const override;
 
   virtual ModuleDecl *getUnderlyingModuleIfOverlay() const override;
 

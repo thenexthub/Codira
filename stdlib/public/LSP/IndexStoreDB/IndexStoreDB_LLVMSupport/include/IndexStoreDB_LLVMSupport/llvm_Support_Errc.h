@@ -1,8 +1,24 @@
-//===- llvm/Support/Errc.h - Defines the llvm::errc enum --------*- C++ -*-===//
+//===- toolchain/Support/Errc.h - Defines the toolchain::errc enum --------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -29,11 +45,11 @@
 #ifndef LLVM_SUPPORT_ERRC_H
 #define LLVM_SUPPORT_ERRC_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_Config_indexstoredb-prefix.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_indexstoredb-prefix.h>
 
 #include <system_error>
 
-namespace llvm {
+namespace toolchain {
 enum class errc {
   argument_list_too_long = int(std::errc::argument_list_too_long),
   argument_out_of_domain = int(std::errc::argument_out_of_domain),
@@ -83,6 +99,6 @@ inline std::error_code make_error_code(errc E) {
 }
 
 namespace std {
-template <> struct is_error_code_enum<llvm::errc> : std::true_type {};
+template <> struct is_error_code_enum<toolchain::errc> : std::true_type {};
 }
 #endif

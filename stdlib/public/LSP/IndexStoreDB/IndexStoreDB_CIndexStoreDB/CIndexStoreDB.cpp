@@ -21,7 +21,7 @@
 #include <IndexStoreDB_Support/Path.h>
 #include <IndexStoreDB_Core/Symbol.h>
 #include <IndexStoreDB_Index/IndexStoreCXX.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_IntrusiveRefCntPtr.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_IntrusiveRefCntPtr.h>
 #include <Block.h>
 
 using namespace IndexStoreDB;
@@ -169,7 +169,7 @@ indexstoredb_index_create(const char *storePath, const char *databasePath,
   std::string errMsg;
   if (auto index =
           IndexSystem::create(storePath, databasePath, libProviderObj, delegate,
-                              *options, llvm::None, errMsg)) {
+                              *options, toolchain::None, errMsg)) {
 
     return make_object(index);
 
@@ -701,7 +701,7 @@ indexstoredb_timestamp_of_latest_unit_for_file(
   const char *_Nonnull fileName
 ) {
   auto obj = (Object<std::shared_ptr<IndexSystem>> *)index;
-  llvm::Optional<llvm::sys::TimePoint<>> timePoint = obj->value->timestampOfLatestUnitForFile(fileName);
+  toolchain::Optional<toolchain::sys::TimePoint<>> timePoint = obj->value->timestampOfLatestUnitForFile(fileName);
   if (timePoint) {
     // Up until C++20 the reference date of time_since_epoch is undefined but according to
     // https://en.cppreference.com/w/cpp/chrono/system_clock most implementations use Unix Time.
@@ -718,7 +718,7 @@ indexstoredb_timestamp_of_unit_for_output_path(
   const char *_Nonnull unitOutputPath
 ) {
   auto obj = (Object<std::shared_ptr<IndexSystem>> *)index;
-  llvm::Optional<llvm::sys::TimePoint<>> timePoint = obj->value->timestampOfUnitForOutputPath(unitOutputPath);
+  toolchain::Optional<toolchain::sys::TimePoint<>> timePoint = obj->value->timestampOfUnitForOutputPath(unitOutputPath);
   if (timePoint) {
     // Up until C++20 the reference date of time_since_epoch is undefined but according to
     // https://en.cppreference.com/w/cpp/chrono/system_clock most implementations use Unix Time.

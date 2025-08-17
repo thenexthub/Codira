@@ -15,9 +15,9 @@
 
 #include "ImportTransactionImpl.h"
 #include "DatabaseImpl.h"
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallString.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Path.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallString.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Path.h>
 
 using namespace IndexStoreDB;
 using namespace IndexStoreDB::db;
@@ -114,7 +114,7 @@ IDCode ImportTransaction::Implementation::addFilePath(StringRef filePath) {
 
   IDCode filePathCode = makeIDCodeFromString(filePath);
   IDCode dirCode;
-  StringRef dirName = llvm::sys::path::parent_path(filePath);
+  StringRef dirName = toolchain::sys::path::parent_path(filePath);
   if (!dirName.empty()) {
     dirCode = makeIDCodeFromString(dirName);
     lmdb::val key{&dirCode, sizeof(dirCode)};
@@ -122,10 +122,10 @@ IDCode ImportTransaction::Implementation::addFilePath(StringRef filePath) {
     dbiDirNames.put(Txn, key, val, MDB_NOOVERWRITE);
   }
 
-  llvm::SmallString<64> dirCodeAndFilename;
+  toolchain::SmallString<64> dirCodeAndFilename;
   dirCodeAndFilename.resize(sizeof(IDCode));
   memcpy(dirCodeAndFilename.data(), &dirCode, sizeof(dirCode));
-  dirCodeAndFilename += llvm::sys::path::filename(filePath);
+  dirCodeAndFilename += toolchain::sys::path::filename(filePath);
   lmdb::val key{&filePathCode, sizeof(filePathCode)};
   lmdb::val val{dirCodeAndFilename.data(), dirCodeAndFilename.size()};
   dbiFilenames.put(Txn, key, val, MDB_NOOVERWRITE);
@@ -179,7 +179,7 @@ IDCode ImportTransaction::Implementation::addModuleName(StringRef moduleName) {
 }
 
 void ImportTransaction::Implementation::addFileAssociationForProvider(IDCode provider, IDCode file, IDCode unit,
-                                                                      llvm::sys::TimePoint<> modTime, IDCode module, bool isSystem) {
+                                                                      toolchain::sys::TimePoint<> modTime, IDCode module, bool isSystem) {
   auto &db = DBase->impl();
   auto &dbiFilesByProvider = db.getDBITimestampedFilesByProvider();
 
@@ -196,7 +196,7 @@ void ImportTransaction::Implementation::addFileAssociationForProvider(IDCode pro
     lmdb::val existingValue;
     cursor.get(existingKey, existingValue, MDB_GET_CURRENT);
     const auto &existingData = *(TimestampedFileForProviderData*)existingValue.data();
-    llvm::sys::TimePoint<> existingModTime = llvm::sys::TimePoint<>(std::chrono::nanoseconds(existingData.NanoTime));
+    toolchain::sys::TimePoint<> existingModTime = toolchain::sys::TimePoint<>(std::chrono::nanoseconds(existingData.NanoTime));
     if (modTime > existingModTime)
       cursor.put(key, value, MDB_CURRENT);
   }
@@ -267,7 +267,7 @@ void ImportTransaction::Implementation::addUnitInfo(const UnitInfo &info) {
   static_assert((alignof(UnitInfoData) >= alignof(IDCode)) &&
                 (sizeof(UnitInfoData) % alignof(IDCode) == 0),
                 "misaligned IDCode");
-  bufSize = llvm::alignTo(bufSize, alignof(UnitInfoData));
+  bufSize = toolchain::alignTo(bufSize, alignof(UnitInfoData));
 
   lmdb::val key{&info.UnitCode, sizeof(info.UnitCode)};
   lmdb::val val{nullptr, bufSize};
@@ -405,7 +405,7 @@ void ImportTransaction::commit() {
   return Impl->commit();
 }
 
-UnitDataImport::UnitDataImport(ImportTransaction &import, StringRef unitName, llvm::sys::TimePoint<> modTime)
+UnitDataImport::UnitDataImport(ImportTransaction &import, StringRef unitName, toolchain::sys::TimePoint<> modTime)
 : Import(import), UnitName(unitName), ModTime(modTime), IsSystem(false) {
 
   auto dbUnit = import._impl()->getUnitInfo(makeIDCodeFromString(unitName));

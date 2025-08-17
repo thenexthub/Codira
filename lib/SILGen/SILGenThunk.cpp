@@ -44,7 +44,7 @@
 #include "language/SIL/SILArgument.h"
 #include "language/SIL/TypeLowering.h"
 
-#include "clang/AST/ASTContext.h"
+#include "language/Core/AST/ASTContext.h"
 
 using namespace language;
 using namespace Lowering;
@@ -242,27 +242,27 @@ SILGenFunction::emitGlobalFunctionRef(SILLocation loc, SILDeclRef constant,
   return B.createFunctionRefFor(loc, f);
 }
 
-static const clang::Type *prependParameterType(
+static const language::Core::Type *prependParameterType(
       ASTContext &ctx,
-      const clang::Type *oldBlockPtrTy,
-      const clang::Type *newParameterTy) {
+      const language::Core::Type *oldBlockPtrTy,
+      const language::Core::Type *newParameterTy) {
   if (!oldBlockPtrTy)
     return nullptr;
 
-  SmallVector<clang::QualType, 4> newParamTypes;
-  newParamTypes.push_back(clang::QualType(newParameterTy, 0));
-  clang::QualType returnType;
-  clang::FunctionProtoType::ExtProtoInfo newExtProtoInfo{};
-  using ExtParameterInfo = clang::FunctionProtoType::ExtParameterInfo;
+  SmallVector<language::Core::QualType, 4> newParamTypes;
+  newParamTypes.push_back(language::Core::QualType(newParameterTy, 0));
+  language::Core::QualType returnType;
+  language::Core::FunctionProtoType::ExtProtoInfo newExtProtoInfo{};
+  using ExtParameterInfo = language::Core::FunctionProtoType::ExtParameterInfo;
   SmallVector<ExtParameterInfo, 4> newExtParamInfos;
 
-  auto blockPtrTy = cast<clang::BlockPointerType>(oldBlockPtrTy);
+  auto blockPtrTy = cast<language::Core::BlockPointerType>(oldBlockPtrTy);
   auto blockPointeeTy = blockPtrTy->getPointeeType().getTypePtr();
-  if (auto fnNoProtoTy = dyn_cast<clang::FunctionNoProtoType>(blockPointeeTy)) {
+  if (auto fnNoProtoTy = dyn_cast<language::Core::FunctionNoProtoType>(blockPointeeTy)) {
     returnType = fnNoProtoTy->getReturnType();
     newExtProtoInfo.ExtInfo = fnNoProtoTy->getExtInfo();
   } else {
-    auto fnProtoTy = cast<clang::FunctionProtoType>(blockPointeeTy);
+    auto fnProtoTy = cast<language::Core::FunctionProtoType>(blockPointeeTy);
     toolchain::copy(fnProtoTy->getParamTypes(), std::back_inserter(newParamTypes));
     returnType = fnProtoTy->getReturnType();
     newExtProtoInfo = fnProtoTy->getExtProtoInfo();
@@ -270,7 +270,7 @@ static const clang::Type *prependParameterType(
     if (extParamInfos) {
       auto oldExtParamInfos =
           ArrayRef<ExtParameterInfo>(extParamInfos, fnProtoTy->getNumParams());
-      newExtParamInfos.push_back(clang::FunctionProtoType::ExtParameterInfo());
+      newExtParamInfos.push_back(language::Core::FunctionProtoType::ExtParameterInfo());
       toolchain::copy(oldExtParamInfos, std::back_inserter(newExtParamInfos));
       newExtProtoInfo.ExtParameterInfos = newExtParamInfos.data();
     }

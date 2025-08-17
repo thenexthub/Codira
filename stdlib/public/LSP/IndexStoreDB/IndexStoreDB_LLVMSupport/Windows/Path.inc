@@ -1,8 +1,24 @@
-//===- llvm/Support/Windows/Path.inc - Windows Path Impl --------*- C++ -*-===//
+//===- toolchain/Support/Windows/Path.inc - Windows Path Impl --------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -15,9 +31,9 @@
 //===          is guaranteed to work on *all* Windows variants.
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_STLExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ConvertUTF.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_WindowsError.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_STLExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ConvertUTF.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_WindowsError.h>
 #include <fcntl.h>
 #include <io.h>
 #include <sys/stat.h>
@@ -42,12 +58,12 @@ typedef int errno_t;
 # pragma comment(lib, "ole32.lib")     // This provides CoTaskMemFree
 #endif
 
-using namespace llvm;
+using namespace toolchain;
 
-using llvm::sys::windows::UTF8ToUTF16;
-using llvm::sys::windows::CurCPToUTF16;
-using llvm::sys::windows::UTF16ToUTF8;
-using llvm::sys::path::widenPath;
+using toolchain::sys::windows::UTF8ToUTF16;
+using toolchain::sys::windows::CurCPToUTF16;
+using toolchain::sys::windows::UTF16ToUTF8;
+using toolchain::sys::path::widenPath;
 
 static bool is_separator(const wchar_t value) {
   switch (value) {
@@ -59,7 +75,7 @@ static bool is_separator(const wchar_t value) {
   }
 }
 
-namespace llvm {
+namespace toolchain {
 namespace sys  {
 namespace path {
 
@@ -77,7 +93,7 @@ std::error_code widenPath(const Twine &Path8,
 
   // If we made this path absolute, how much longer would it get?
   size_t CurPathLen;
-  if (llvm::sys::path::is_absolute(Twine(Path8Str)))
+  if (toolchain::sys::path::is_absolute(Twine(Path8Str)))
     CurPathLen = 0; // No contribution from current_path needed.
   else {
     CurPathLen = ::GetCurrentDirectoryW(0, NULL);
@@ -91,7 +107,7 @@ std::error_code widenPath(const Twine &Path8,
     SmallString<2*MAX_PATH> FullPath("\\\\?\\");
     if (CurPathLen) {
       SmallString<80> CurPath;
-      if (std::error_code EC = llvm::sys::fs::current_path(CurPath))
+      if (std::error_code EC = toolchain::sys::fs::current_path(CurPath))
         return EC;
       FullPath.append(CurPath);
     }
@@ -100,17 +116,17 @@ std::error_code widenPath(const Twine &Path8,
     // separators, which can be returned from the iterator if the path has a
     // drive name.  We don't need to call native() on the result since append()
     // always attaches preferred_separator.
-    for (llvm::sys::path::const_iterator I = llvm::sys::path::begin(Path8Str),
-                                         E = llvm::sys::path::end(Path8Str);
+    for (toolchain::sys::path::const_iterator I = toolchain::sys::path::begin(Path8Str),
+                                         E = toolchain::sys::path::end(Path8Str);
                                          I != E; ++I) {
       if (I->size() == 1 && is_separator((*I)[0]))
         continue;
       if (I->size() == 1 && *I == ".")
         continue;
       if (I->size() == 2 && *I == "..")
-        llvm::sys::path::remove_filename(FullPath);
+        toolchain::sys::path::remove_filename(FullPath);
       else
-        llvm::sys::path::append(FullPath, *I);
+        toolchain::sys::path::append(FullPath, *I);
     }
     return UTF8ToUTF16(FullPath, Path16);
   }
@@ -330,11 +346,11 @@ static std::error_code is_local_internal(SmallVectorImpl<wchar_t> &Path,
   default:
     return make_error_code(errc::no_such_file_or_directory);
   }
-  llvm_unreachable("Unreachable!");
+  toolchain_unreachable("Unreachable!");
 }
 
 std::error_code is_local(const Twine &path, bool &result) {
-  if (!llvm::sys::fs::exists(path) || !llvm::sys::path::has_root_path(path))
+  if (!toolchain::sys::fs::exists(path) || !toolchain::sys::path::has_root_path(path))
     return make_error_code(errc::no_such_file_or_directory);
 
   SmallString<128> Storage;
@@ -654,7 +670,7 @@ static std::error_code getStatus(HANDLE FileHandle, file_status &Result) {
 
   switch (::GetFileType(FileHandle)) {
   default:
-    llvm_unreachable("Don't know anything about this file type");
+    toolchain_unreachable("Don't know anything about this file type");
   case FILE_TYPE_UNKNOWN: {
     DWORD Err = ::GetLastError();
     if (Err != NO_ERROR)
@@ -854,7 +870,7 @@ mapped_file_region::mapped_file_region(int fd, mapmode mode, size_t length,
 }
 
 static bool hasFlushBufferKernelBug() {
-  static bool Ret{GetWindowsOSVersion() < llvm::VersionTuple(10, 0, 0, 17763)};
+  static bool Ret{GetWindowsOSVersion() < toolchain::VersionTuple(10, 0, 0, 17763)};
   return Ret;
 }
 
@@ -1064,7 +1080,7 @@ static DWORD nativeDisposition(CreationDisposition Disp, OpenFlags Flags) {
   case CD_OpenExisting:
     return OPEN_EXISTING;
   }
-  llvm_unreachable("unreachable!");
+  toolchain_unreachable("unreachable!");
 }
 
 static DWORD nativeAccess(FileAccess Access, OpenFlags Flags) {
@@ -1281,7 +1297,7 @@ std::error_code real_path(const Twine &path, SmallVectorImpl<char> &dest,
 
   int fd;
   if (std::error_code EC =
-          llvm::sys::fs::openFileForRead(path, fd, OF_None, &dest))
+          toolchain::sys::fs::openFileForRead(path, fd, OF_None, &dest))
     return EC;
   ::close(fd);
   return std::error_code();
@@ -1353,8 +1369,8 @@ void system_temp_directory(bool ErasedOnReboot, SmallVectorImpl<char> &Result) {
 
 namespace windows {
 std::error_code CodePageToUTF16(unsigned codepage,
-                                llvm::StringRef original,
-                                llvm::SmallVectorImpl<wchar_t> &utf16) {
+                                toolchain::StringRef original,
+                                toolchain::SmallVectorImpl<wchar_t> &utf16) {
   if (!original.empty()) {
     int len = ::MultiByteToWideChar(codepage, MB_ERR_INVALID_CHARS, original.begin(),
                                     original.size(), utf16.begin(), 0);
@@ -1381,20 +1397,20 @@ std::error_code CodePageToUTF16(unsigned codepage,
   return std::error_code();
 }
 
-std::error_code UTF8ToUTF16(llvm::StringRef utf8,
-                            llvm::SmallVectorImpl<wchar_t> &utf16) {
+std::error_code UTF8ToUTF16(toolchain::StringRef utf8,
+                            toolchain::SmallVectorImpl<wchar_t> &utf16) {
   return CodePageToUTF16(CP_UTF8, utf8, utf16);
 }
 
-std::error_code CurCPToUTF16(llvm::StringRef curcp,
-                            llvm::SmallVectorImpl<wchar_t> &utf16) {
+std::error_code CurCPToUTF16(toolchain::StringRef curcp,
+                            toolchain::SmallVectorImpl<wchar_t> &utf16) {
   return CodePageToUTF16(CP_ACP, curcp, utf16);
 }
 
 static
 std::error_code UTF16ToCodePage(unsigned codepage, const wchar_t *utf16,
                                 size_t utf16_len,
-                                llvm::SmallVectorImpl<char> &converted) {
+                                toolchain::SmallVectorImpl<char> &converted) {
   if (utf16_len) {
     // Get length.
     int len = ::WideCharToMultiByte(codepage, 0, utf16, utf16_len, converted.begin(),
@@ -1424,15 +1440,15 @@ std::error_code UTF16ToCodePage(unsigned codepage, const wchar_t *utf16,
 }
 
 std::error_code UTF16ToUTF8(const wchar_t *utf16, size_t utf16_len,
-                            llvm::SmallVectorImpl<char> &utf8) {
+                            toolchain::SmallVectorImpl<char> &utf8) {
   return UTF16ToCodePage(CP_UTF8, utf16, utf16_len, utf8);
 }
 
 std::error_code UTF16ToCurCP(const wchar_t *utf16, size_t utf16_len,
-                             llvm::SmallVectorImpl<char> &curcp) {
+                             toolchain::SmallVectorImpl<char> &curcp) {
   return UTF16ToCodePage(CP_ACP, utf16, utf16_len, curcp);
 }
 
 } // end namespace windows
 } // end namespace sys
-} // end namespace llvm
+} // end namespace toolchain

@@ -766,7 +766,7 @@ public:
     return ImportedUnderlyingModule;
   }
 
-  const clang::Module *getUnderlyingClangModule() const override {
+  const language::Core::Module *getUnderlyingClangModule() const override {
     if (!ImportedUnderlyingModule)
       return nullptr;
 

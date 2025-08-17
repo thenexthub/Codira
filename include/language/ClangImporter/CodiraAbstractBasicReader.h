@@ -22,13 +22,13 @@
 #ifndef LANGUAGE_CLANGIMPORTER_LANGUAGEABSTRACTBASICREADER_H
 #define LANGUAGE_CLANGIMPORTER_LANGUAGEABSTRACTBASICREADER_H
 
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/AbstractTypeReader.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/AbstractTypeReader.h"
 
 // This include is required to instantiate the template code in
 // AbstractBasicReader.h, i.e. it's a workaround to an include-what-you-use
 // violation.
-#include "clang/AST/DeclObjC.h"
+#include "language/Core/AST/DeclObjC.h"
 
 namespace language {
 
@@ -40,23 +40,23 @@ namespace language {
 ///
 /// The subclass must implement:
 ///   uint64_t readUInt64();
-///   clang::IdentifierInfo *readIdentifier();
-///   clang::Stmt *readStmtRef();
-///   clang::Decl *readDeclRef();
+///   language::Core::IdentifierInfo *readIdentifier();
+///   language::Core::Stmt *readStmtRef();
+///   language::Core::Decl *readDeclRef();
 template <class Impl>
 class DataStreamBasicReader
-       : public clang::serialization::DataStreamBasicReader<Impl> {
-  using super = clang::serialization::DataStreamBasicReader<Impl>;
+       : public language::Core::serialization::DataStreamBasicReader<Impl> {
+  using super = language::Core::serialization::DataStreamBasicReader<Impl>;
 public:
   using super::asImpl;
   using super::getASTContext;
 
-  DataStreamBasicReader(clang::ASTContext &ctx) : super(ctx) {}
+  DataStreamBasicReader(language::Core::ASTContext &ctx) : super(ctx) {}
 
   /// Perform all the calls necessary to write out the given type.
-  clang::QualType readTypeRef() {
-    auto kind = clang::Type::TypeClass(asImpl().readUInt64());
-    return clang::serialization::AbstractTypeReader<Impl>(asImpl()).read(kind);
+  language::Core::QualType readTypeRef() {
+    auto kind = language::Core::Type::TypeClass(asImpl().readUInt64());
+    return language::Core::serialization::AbstractTypeReader<Impl>(asImpl()).read(kind);
   }
 
   bool readBool() {
@@ -67,33 +67,33 @@ public:
     return uint32_t(asImpl().readUInt64());
   }
 
-  clang::Selector readSelector() {
+  language::Core::Selector readSelector() {
     uint64_t numArgsPlusOne = asImpl().readUInt64();
 
     // The null case.
     if (numArgsPlusOne == 0)
-      return clang::Selector();
+      return language::Core::Selector();
 
     unsigned numArgs = unsigned(numArgsPlusOne - 1);
-    SmallVector<const clang::IdentifierInfo *, 4> chunks;
+    SmallVector<const language::Core::IdentifierInfo *, 4> chunks;
     for (unsigned i = 0, e = std::max(numArgs, 1U); i != e; ++i)
       chunks.push_back(asImpl().readIdentifier());
 
     return getASTContext().Selectors.getSelector(numArgs, chunks.data());
   }
 
-  clang::SourceLocation readSourceLocation() {
+  language::Core::SourceLocation readSourceLocation() {
     // Always read null.
-    return clang::SourceLocation();
+    return language::Core::SourceLocation();
   }
 
-  clang::QualType readQualType() {
-    clang::Qualifiers quals = asImpl().readQualifiers();
-    clang::QualType type = asImpl().readTypeRef();
+  language::Core::QualType readQualType() {
+    language::Core::Qualifiers quals = asImpl().readQualifiers();
+    language::Core::QualType type = asImpl().readTypeRef();
     return getASTContext().getQualifiedType(type, quals);
   }
 
-  const clang::BTFTypeTagAttr *readBTFTypeTagAttr() {
+  const language::Core::BTFTypeTagAttr *readBTFTypeTagAttr() {
     toolchain::report_fatal_error("Read BTFTypeTagAttr that should never have been"
                              " serialized");
   }

@@ -13,7 +13,7 @@
 import os
 
 from . import cmake_product
-from . import llvm
+from . import toolchain
 from . import language
 from . import wasisysroot
 from . import wasmkit
@@ -44,18 +44,18 @@ class WasmStdlib(cmake_product.CMakeProduct):
         self._build(host_target, 'wasm32-wasip1', 'wasip1-wasm32')
 
     def _build(self, host_target, target_triple, short_triple):
-        llvm_build_dir = self._configure_llvm(target_triple, short_triple)
-        llvm_cmake_dir = os.path.join(llvm_build_dir, 'lib', 'cmake', 'llvm')
-        self._build_stdlib(host_target, target_triple, llvm_cmake_dir)
+        toolchain_build_dir = self._configure_toolchain(target_triple, short_triple)
+        toolchain_cmake_dir = os.path.join(toolchain_build_dir, 'lib', 'cmake', 'toolchain')
+        self._build_stdlib(host_target, target_triple, toolchain_cmake_dir)
 
-    def _configure_llvm(self, target_triple, short_triple):
+    def _configure_toolchain(self, target_triple, short_triple):
         # Configure LLVM for WebAssembly target independently
         # from the native LLVM build to turn off zlib and libxml2
         build_root = os.path.dirname(self.build_dir)
         build_dir = os.path.join(
-            build_root, 'llvm-%s' % short_triple)
-        llvm_source_dir = os.path.join(
-            os.path.dirname(self.source_dir), 'llvm-project', 'llvm')
+            build_root, 'toolchain-%s' % short_triple)
+        toolchain_source_dir = os.path.join(
+            os.path.dirname(self.source_dir), 'toolchain-project', 'toolchain')
         cmake_options = cmake.CMakeOptions()
         cmake_options.define('CMAKE_BUILD_TYPE:STRING', self._build_variant)
         # compiler-rt for WebAssembly target is not installed in the host toolchain
@@ -70,17 +70,17 @@ class WasmStdlib(cmake_product.CMakeProduct):
         if self.args.build_runtime_with_host_compiler:
             cmake_options.define('CMAKE_ASM_COMPILER:PATH', self.toolchain.cc)
 
-        llvm_cmake = cmake.CMake(
+        toolchain_cmake = cmake.CMake(
             self.args, self.toolchain, prefer_native_toolchain=not self.args.build_runtime_with_host_compiler)
         # Only configure LLVM, not build it because we just need
         # LLVM CMake functionalities
         shell.call(["env", self.toolchain.cmake, "-B", build_dir]
-                   + list(llvm_cmake.common_options(self))
+                   + list(toolchain_cmake.common_options(self))
                    + list(cmake_options)
-                   + [llvm_source_dir])
+                   + [toolchain_source_dir])
         return build_dir
 
-    def _build_stdlib(self, host_target, target_triple, llvm_cmake_dir):
+    def _build_stdlib(self, host_target, target_triple, toolchain_cmake_dir):
         self.cmake_options.define('CMAKE_INSTALL_PREFIX:PATH', '/usr')
         self.cmake_options.define('CMAKE_BUILD_TYPE:STRING', self._build_variant)
         # Teach about the WebAssembly target. UNIX is explicitly set to TRUE
@@ -99,17 +99,17 @@ class WasmStdlib(cmake_product.CMakeProduct):
             self.cmake_options.define(
                 'SWIFT_NATIVE_SWIFT_TOOLS_PATH:STRING', os.path.dirname(self.toolchain.languagec))
             self.cmake_options.define(
-                'SWIFT_NATIVE_LLVM_TOOLS_PATH:STRING', os.path.dirname(self.toolchain.llvm_ar))
+                'SWIFT_NATIVE_LLVM_TOOLS_PATH:STRING', os.path.dirname(self.toolchain.toolchain_ar))
         else:
             # Toolchain configuration
             toolchain_path = self.native_toolchain_path(host_target)
-            # Explicitly set the CMake AR and RANLIB to force it to use llvm-ar/llvm-ranlib
+            # Explicitly set the CMake AR and RANLIB to force it to use toolchain-ar/toolchain-ranlib
             # instead of the system ar/ranlib, which usually don't support WebAssembly
             # object files.
             self.cmake_options.define('CMAKE_AR:STRING', os.path.join(
-                toolchain_path, 'bin', 'llvm-ar'))
+                toolchain_path, 'bin', 'toolchain-ar'))
             self.cmake_options.define('CMAKE_RANLIB:STRING', os.path.join(
-                toolchain_path, 'bin', 'llvm-ranlib'))
+                toolchain_path, 'bin', 'toolchain-ranlib'))
             self.cmake_options.define(
                 'SWIFT_NATIVE_CLANG_TOOLS_PATH:STRING', os.path.join(toolchain_path, 'bin'))
             self.cmake_options.define(
@@ -131,7 +131,7 @@ class WasmStdlib(cmake_product.CMakeProduct):
         self.cmake_options.define('CMAKE_Swift_COMPILER_WORKS:BOOL', 'TRUE')
         self.cmake_options.define('LLVM_COMPILER_CHECKED:BOOL', 'TRUE')
 
-        self.cmake_options.define('LLVM_DIR:PATH', llvm_cmake_dir)
+        self.cmake_options.define('LLVM_DIR:PATH', toolchain_cmake_dir)
 
         # Standalone stdlib configuration
         self.cmake_options.define('SWIFT_INCLUDE_TOOLS:BOOL', 'FALSE')
@@ -220,7 +220,7 @@ class WasmStdlib(cmake_product.CMakeProduct):
         build_root = os.path.dirname(self.build_dir)
         bin_paths = [
             os.path.join(self._host_language_build_dir(host_target), 'bin'),
-            os.path.join(self._host_llvm_build_dir(host_target), 'bin'),
+            os.path.join(self._host_toolchain_build_dir(host_target), 'bin'),
             os.environ['PATH']
         ]
         wasmkit_build_path = os.path.join(
@@ -254,9 +254,9 @@ class WasmStdlib(cmake_product.CMakeProduct):
     def _build_variant(self):
         return self.args.build_variant
 
-    def _host_llvm_build_dir(self, host_target):
+    def _host_toolchain_build_dir(self, host_target):
         build_root = os.path.dirname(self.build_dir)
-        return os.path.join('..', build_root, '%s-%s' % ('llvm', host_target))
+        return os.path.join('..', build_root, '%s-%s' % ('toolchain', host_target))
 
     def _host_language_build_dir(self, host_target):
         build_root = os.path.dirname(self.build_dir)
@@ -271,7 +271,7 @@ class WasmStdlib(cmake_product.CMakeProduct):
 
     @classmethod
     def get_dependencies(cls):
-        return [llvm.LLVM,
+        return [toolchain.LLVM,
                 wasisysroot.WASILibc,
                 wasisysroot.WasmLLVMRuntimeLibs,
                 wasmkit.WasmKit,

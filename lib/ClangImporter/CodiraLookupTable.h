@@ -24,11 +24,11 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/Debug.h"
 #include "language/Basic/Toolchain.h"
-#include "clang/AST/Decl.h"
-#include "clang/AST/DeclCXX.h"
-#include "clang/AST/DeclObjC.h"
-#include "clang/Serialization/ASTBitCodes.h"
-#include "clang/Serialization/ModuleFileExtension.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/AST/DeclCXX.h"
+#include "language/Core/AST/DeclObjC.h"
+#include "language/Core/Serialization/ASTBitCodes.h"
+#include "language/Core/Serialization/ModuleFileExtension.h"
 #include "toolchain/ADT/DenseMap.h"
 #include "toolchain/ADT/SmallVector.h"
 #include "toolchain/ADT/TinyPtrVector.h"
@@ -41,7 +41,7 @@ namespace toolchain {
 class BitstreamWriter;
 }
 
-namespace clang {
+namespace language::Core {
 class NamedDecl;
 class DeclContext;
 class MacroInfo;
@@ -172,8 +172,8 @@ public:
 
 private:
   union {
-    const clang::DeclContext *DC;
-    const clang::TypedefNameDecl *Typedef;
+    const language::Core::DeclContext *DC;
+    const language::Core::TypedefNameDecl *Typedef;
     struct {
       const char *Data;
     } Unresolved;
@@ -189,35 +189,35 @@ public:
     DC = nullptr;
   }
 
-  EffectiveClangContext(const clang::DeclContext *dc)
+  EffectiveClangContext(const language::Core::DeclContext *dc)
       : KindOrBiasedLength(DeclContext) {
     assert(dc != nullptr && "use null constructor instead");
 
     // Skip over any linkage spec decl contexts
-    while (auto externCDecl = dyn_cast<clang::LinkageSpecDecl>(dc)) {
+    while (auto externCDecl = dyn_cast<language::Core::LinkageSpecDecl>(dc)) {
       dc = externCDecl->getLexicalDeclContext();
     }
 
-    if (auto tagDecl = dyn_cast<clang::TagDecl>(dc)) {
+    if (auto tagDecl = dyn_cast<language::Core::TagDecl>(dc)) {
       DC = tagDecl->getCanonicalDecl();
-    } else if (auto oiDecl = dyn_cast<clang::ObjCInterfaceDecl>(dc)) {
+    } else if (auto oiDecl = dyn_cast<language::Core::ObjCInterfaceDecl>(dc)) {
       DC = oiDecl->getCanonicalDecl();
-    } else if (auto opDecl = dyn_cast<clang::ObjCProtocolDecl>(dc)) {
+    } else if (auto opDecl = dyn_cast<language::Core::ObjCProtocolDecl>(dc)) {
       DC = opDecl->getCanonicalDecl();
-    } else if (auto omDecl = dyn_cast<clang::ObjCMethodDecl>(dc)) {
+    } else if (auto omDecl = dyn_cast<language::Core::ObjCMethodDecl>(dc)) {
       DC = omDecl->getCanonicalDecl();
-    } else if (auto fDecl = dyn_cast<clang::FunctionDecl>(dc)) {
+    } else if (auto fDecl = dyn_cast<language::Core::FunctionDecl>(dc)) {
       DC = fDecl->getCanonicalDecl();
     } else {
-      assert(isa<clang::TranslationUnitDecl>(dc) ||
-             isa<clang::NamespaceDecl>(dc) ||
-             isa<clang::ObjCContainerDecl>(dc) &&
+      assert(isa<language::Core::TranslationUnitDecl>(dc) ||
+             isa<language::Core::NamespaceDecl>(dc) ||
+             isa<language::Core::ObjCContainerDecl>(dc) &&
                  "No other kinds of effective Clang contexts");
       DC = dc;
     }
   }
 
-  EffectiveClangContext(const clang::TypedefNameDecl *typedefName)
+  EffectiveClangContext(const language::Core::TypedefNameDecl *typedefName)
     : KindOrBiasedLength(TypedefContext) {
     Typedef = typedefName->getCanonicalDecl();
   }
@@ -241,12 +241,12 @@ public:
   }
 
   /// Retrieve the declaration context.
-  const clang::DeclContext *getAsDeclContext() const {
+  const language::Core::DeclContext *getAsDeclContext() const {
     return getKind() == DeclContext ? DC : nullptr;
   }
 
   /// Retrieve the typedef declaration.
-  const clang::TypedefNameDecl *getTypedefName() const {
+  const language::Core::TypedefNameDecl *getTypedefName() const {
     assert(getKind() == TypedefContext);
     return Typedef;
   }
@@ -320,8 +320,8 @@ public:
   static bool contextRequiresName(ContextKind kind);
 
   /// A single entry referencing either a named declaration or a macro.
-  typedef toolchain::PointerUnion<clang::NamedDecl *, clang::MacroInfo *,
-                             clang::ModuleMacro *>
+  typedef toolchain::PointerUnion<language::Core::NamedDecl *, language::Core::MacroInfo *,
+                             language::Core::ModuleMacro *>
     SingleEntry;
 
   /// A stored version of the context of an entity, which is Clang
@@ -333,13 +333,13 @@ public:
   /// pointer to an AST node, or by one or more serialization IDs.
   class StoredSingleEntry {
   public:
-    using SerializationID = clang::serialization::DeclID;
-    using SubmoduleID = clang::serialization::SubmoduleID;
+    using SerializationID = language::Core::serialization::DeclID;
+    using SubmoduleID = language::Core::serialization::SubmoduleID;
 
     static_assert(sizeof(SerializationID) >= sizeof(uintptr_t),
                   "pointer fits into SerializationID");
     static_assert(sizeof(SerializationID) >=
-                      sizeof(clang::serialization::IdentifierID),
+                      sizeof(language::Core::serialization::IdentifierID),
                   "IdentifierID fits into SerializationID");
 
   private:
@@ -424,17 +424,17 @@ public:
     {}
 
     /// Encode a Clang named declaration as an entry in the table.
-    StoredSingleEntry(clang::NamedDecl *decl)
+    StoredSingleEntry(language::Core::NamedDecl *decl)
       : StoredSingleEntry(decl, IS_DECL)
     {}
 
     /// Encode a Clang macro as an entry in the table.
-    StoredSingleEntry(clang::MacroInfo *macro)
+    StoredSingleEntry(language::Core::MacroInfo *macro)
       : StoredSingleEntry(macro, 0)
     {}
 
     /// Encode a Clang macro as an entry in the table.
-    StoredSingleEntry(clang::ModuleMacro *macro)
+    StoredSingleEntry(language::Core::ModuleMacro *macro)
       : StoredSingleEntry(macro, 0)
     {}
 
@@ -487,7 +487,7 @@ private:
   TableType GlobalsAsMembers;
 
   /// The list of Objective-C categories and extensions.
-  toolchain::SmallVector<clang::ObjCCategoryDecl *, 4> Categories;
+  toolchain::SmallVector<language::Core::ObjCCategoryDecl *, 4> Categories;
 
   /// A mapping from stored contexts to the set of global declarations that
   /// are mapped to members within that context.
@@ -525,7 +525,7 @@ public:
   explicit CodiraLookupTable(CodiraLookupTableReader *reader) : Reader(reader) { }
 
   /// Maps a stored declaration entry to an actual Clang declaration.
-  clang::NamedDecl *mapStoredDecl(StoredSingleEntry &entry);
+  language::Core::NamedDecl *mapStoredDecl(StoredSingleEntry &entry);
 
   /// Maps a stored macro entry to an actual Clang macro.
   SingleEntry mapStoredMacro(StoredSingleEntry &entry,
@@ -537,7 +537,7 @@ public:
 
   /// Translate a Clang DeclContext into a context kind and name.
   static std::optional<StoredContext>
-  translateDeclContext(const clang::DeclContext *dc);
+  translateDeclContext(const language::Core::DeclContext *dc);
 
   /// Translate a Clang effective context into a context kind and name.
   std::optional<StoredContext> translateContext(EffectiveClangContext context);
@@ -551,7 +551,7 @@ public:
                 EffectiveClangContext effectiveContext);
 
   /// Add an Objective-C category or extension to the table.
-  void addCategory(clang::ObjCCategoryDecl *category);
+  void addCategory(language::Core::ObjCCategoryDecl *category);
 
   /// Resolve any unresolved entries.
   ///
@@ -596,7 +596,7 @@ private:
 public:
   /// Lookup an unresolved context name and resolve it to a Clang
   /// named declaration.
-  clang::NamedDecl *resolveContext(StringRef unresolvedName);
+  language::Core::NamedDecl *resolveContext(StringRef unresolvedName);
 
   /// Lookup the set of entities with the given base name.
   ///
@@ -613,15 +613,15 @@ public:
 
   /// Lookup Objective-C members with the given base name, regardless
   /// of context.
-  SmallVector<clang::NamedDecl *, 4>
+  SmallVector<language::Core::NamedDecl *, 4>
   lookupObjCMembers(SerializedCodiraName baseName);
 
   /// Lookup member operators with the given base name, regardless of context.
-  SmallVector<clang::NamedDecl *, 4>
+  SmallVector<language::Core::NamedDecl *, 4>
   lookupMemberOperators(SerializedCodiraName baseName);
 
   /// Retrieve the set of Objective-C categories and extensions.
-  ArrayRef<clang::ObjCCategoryDecl *> categories();
+  ArrayRef<language::Core::ObjCCategoryDecl *> categories();
 
   /// Retrieve the set of global declarations that are going to be
   /// imported as members into the given context.
@@ -657,7 +657,7 @@ class NameImporter;
 
 /// Add the given named declaration as an entry to the given Codira name
 /// lookup table, including any of its child entries.
-void addEntryToLookupTable(CodiraLookupTable &table, clang::NamedDecl *named,
+void addEntryToLookupTable(CodiraLookupTable &table, language::Core::NamedDecl *named,
                            NameImporter &);
 
 /// Add the macros from the given Clang preprocessor to the given

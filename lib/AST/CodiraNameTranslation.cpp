@@ -31,7 +31,7 @@
 #include "language/Basic/Assertions.h"
 #include "language/Basic/StringExtras.h"
 
-#include "clang/AST/DeclObjC.h"
+#include "language/Core/AST/DeclObjC.h"
 #include "toolchain/ADT/SmallString.h"
 #include <optional>
 
@@ -60,10 +60,10 @@ getNameForObjC(const ValueDecl *VD, CustomNamesOnly_t customNamesOnly) {
   if (customNamesOnly)
     return StringRef();
 
-  if (auto clangDecl = dyn_cast_or_null<clang::NamedDecl>(VD->getClangDecl())) {
-    if (const clang::IdentifierInfo *II = clangDecl->getIdentifier())
+  if (auto clangDecl = dyn_cast_or_null<language::Core::NamedDecl>(VD->getClangDecl())) {
+    if (const language::Core::IdentifierInfo *II = clangDecl->getIdentifier())
       return II->getName();
-    if (auto *anonDecl = dyn_cast<clang::TagDecl>(clangDecl)) {
+    if (auto *anonDecl = dyn_cast<language::Core::TagDecl>(clangDecl)) {
       if (auto *anonTypedef = anonDecl->getTypedefNameForAnonDecl())
         return anonTypedef->getIdentifier()->getName();
       if (auto *cfOptionsTy =

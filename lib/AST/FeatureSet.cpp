@@ -24,7 +24,7 @@
 #include "language/AST/ParameterList.h"
 #include "language/AST/Pattern.h"
 #include "language/AST/ProtocolConformance.h"
-#include "clang/AST/DeclObjC.h"
+#include "language/Core/AST/DeclObjC.h"
 #include "language/Basic/Assertions.h"
 
 using namespace language;

@@ -24,10 +24,10 @@ struct SwiftXcodegen: AsyncParsableCommand, Sendable {
   // MARK: Options
 
   @OptionGroup(title: "LLVM Projects")
-  var llvmProjectOpts: LLVMProjectOptions
+  var toolchainProjectOpts: LLVMProjectOptions
 
   subscript<T>(dynamicMember kp: KeyPath<LLVMProjectOptions, T>) -> T {
-    llvmProjectOpts[keyPath: kp]
+    toolchainProjectOpts[keyPath: kp]
   }
 
   @OptionGroup(title: "Swift targets")
@@ -121,7 +121,7 @@ struct SwiftXcodegen: AsyncParsableCommand, Sendable {
     if self.addStdlibCxx || self.addStdlibSwift {
       // These are headers copied from LLVM, avoid including them in the project
       // to avoid confusion.
-      spec.addExcludedPath("stdlib/include/llvm")
+      spec.addExcludedPath("stdlib/include/toolchain")
     }
     if self.addStdlibCxx {
       // This doesn't build with Clang 15, it does build with ToT Clang though.
@@ -191,7 +191,7 @@ struct SwiftXcodegen: AsyncParsableCommand, Sendable {
     for ninja: NinjaBuildDir, into outputDir: AbsolutePath
   ) throws -> GeneratedProject {
     var spec = newProjectSpec(
-      "Clang", for: try ninja.buildDir(for: .llvm), mainRepoDir: "clang"
+      "Clang", for: try ninja.buildDir(for: .toolchain), mainRepoDir: "clang"
     )
     if self.addDocs {
       spec.addTopLevelDocs()
@@ -258,7 +258,7 @@ struct SwiftXcodegen: AsyncParsableCommand, Sendable {
     for ninja: NinjaBuildDir, into outputDir: AbsolutePath
   ) throws -> GeneratedProject {
     var spec = newProjectSpec(
-      "LLVM", for: try ninja.buildDir(for: .llvm), mainRepoDir: "llvm"
+      "LLVM", for: try ninja.buildDir(for: .toolchain), mainRepoDir: "toolchain"
     )
     if self.addDocs {
       spec.addTopLevelDocs()
@@ -267,7 +267,7 @@ struct SwiftXcodegen: AsyncParsableCommand, Sendable {
     spec.addHeaders(in: "include")
 
     if self.addCompilerLibs {
-      spec.addClangTargets(below: "lib", addingPrefix: "llvm")
+      spec.addClangTargets(below: "lib", addingPrefix: "toolchain")
     }
     if self.addCompilerTools {
       spec.addClangTargets(below: "tools")
@@ -276,7 +276,7 @@ struct SwiftXcodegen: AsyncParsableCommand, Sendable {
       spec.addReference(to: "test")
     }
     // FIXME: Looks like compiler-rt has its own build directory
-    // llvm-macosx-arm64/tools/clang/runtime/compiler-rt-bins/build.ninja
+    // toolchain-macosx-arm64/tools/clang/runtime/compiler-rt-bins/build.ninja
     if self.addCompilerRT {
       spec.addClangTargets(
         below: "../compiler-rt", addingPrefix: "extra-"
@@ -355,7 +355,7 @@ struct SwiftXcodegen: AsyncParsableCommand, Sendable {
       )
       return try writeSwiftRuntimesXcodeProject(for: buildDir, into: outputDir)
     }
-    let llvmProj = try await runTask {
+    let toolchainProj = try await runTask {
       self.addLLVM ? try writeLLVMXcodeProject(for: buildDir, into: outputDir) : nil
     }
     let clangProj = try await runTask {
@@ -372,22 +372,22 @@ struct SwiftXcodegen: AsyncParsableCommand, Sendable {
       try languageWorkspace.write("Swift+Runtimes", into: outputDir)
     }
 
-    if let llvmProj = try await llvmProj.value {
+    if let toolchainProj = try await toolchainProj.value {
       var languageLLVMWorkspace = languageWorkspace
-      languageLLVMWorkspace.addProject(llvmProj)
+      languageLLVMWorkspace.addProject(toolchainProj)
       try languageLLVMWorkspace.write("Swift+LLVM", into: outputDir)
     }
 
     if let clangProj = try await clangProj.value,
-       let llvmProj = try await llvmProj.value {
+       let toolchainProj = try await toolchainProj.value {
       var clangLLVMWorkspace = WorkspaceGenerator()
       clangLLVMWorkspace.addProject(clangProj)
-      clangLLVMWorkspace.addProject(llvmProj)
+      clangLLVMWorkspace.addProject(toolchainProj)
       try clangLLVMWorkspace.write("Clang+LLVM", into: outputDir)
 
       var allWorkspace = languageWorkspace
       allWorkspace.addProject(clangProj)
-      allWorkspace.addProject(llvmProj)
+      allWorkspace.addProject(toolchainProj)
       try allWorkspace.write("Swift+Clang+LLVM", into: outputDir)
     }
 
@@ -396,10 +396,10 @@ struct SwiftXcodegen: AsyncParsableCommand, Sendable {
       languageLLDBWorkspace.addProject(lldbProj)
       try languageLLDBWorkspace.write("Swift+LLDB", into: outputDir)
 
-      if let llvmProj = try await llvmProj.value {
+      if let toolchainProj = try await toolchainProj.value {
         var lldbLLVMWorkspace = WorkspaceGenerator()
         lldbLLVMWorkspace.addProject(lldbProj)
-        lldbLLVMWorkspace.addProject(llvmProj)
+        lldbLLVMWorkspace.addProject(toolchainProj)
         try lldbLLVMWorkspace.write("LLDB+LLVM", into: outputDir)
       }
     }

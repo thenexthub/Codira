@@ -1,8 +1,8 @@
-/*===-- llvm-c/Support.h - C Interface Types declarations ---------*- C -*-===*\
+/*===-- toolchain-c/Support.h - C Interface Types declarations ---------*- C -*-===*\
 |*                                                                            *|
 |* Part of the LLVM Project, under the Apache License v2.0 with LLVM          *|
 |* Exceptions.                                                                *|
-|* See https://llvm.org/LICENSE.txt for license information.                  *|
+|* See https://toolchain.org/LICENSE.txt for license information.                  *|
 |* SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception                    *|
 |*                                                                            *|
 |*===----------------------------------------------------------------------===*|
@@ -14,7 +14,7 @@
 #ifndef LLVM_C_TYPES_H
 #define LLVM_C_TYPES_H
 
-#include <IndexStoreDB_LLVMSupport/llvm-c_DataTypes.h>
+#include <IndexStoreDB_LLVMSupport/toolchain-c_DataTypes.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,7 +44,7 @@ typedef int LLVMBool;
 /**
  * Used to pass regions of memory through LLVM interfaces.
  *
- * @see llvm::MemoryBuffer
+ * @see toolchain::MemoryBuffer
  */
 typedef struct LLVMOpaqueMemoryBuffer *LLVMMemoryBufferRef;
 
@@ -57,42 +57,42 @@ typedef struct LLVMOpaqueContext *LLVMContextRef;
  * The top-level container for all other LLVM Intermediate Representation (IR)
  * objects.
  *
- * @see llvm::Module
+ * @see toolchain::Module
  */
 typedef struct LLVMOpaqueModule *LLVMModuleRef;
 
 /**
  * Each value in the LLVM IR has a type, an LLVMTypeRef.
  *
- * @see llvm::Type
+ * @see toolchain::Type
  */
 typedef struct LLVMOpaqueType *LLVMTypeRef;
 
 /**
  * Represents an individual value in LLVM IR.
  *
- * This models llvm::Value.
+ * This models toolchain::Value.
  */
 typedef struct LLVMOpaqueValue *LLVMValueRef;
 
 /**
  * Represents a basic block of instructions in LLVM IR.
  *
- * This models llvm::BasicBlock.
+ * This models toolchain::BasicBlock.
  */
 typedef struct LLVMOpaqueBasicBlock *LLVMBasicBlockRef;
 
 /**
  * Represents an LLVM Metadata.
  *
- * This models llvm::Metadata.
+ * This models toolchain::Metadata.
  */
 typedef struct LLVMOpaqueMetadata *LLVMMetadataRef;
 
 /**
  * Represents an LLVM Named Metadata Node.
  *
- * This models llvm::NamedMDNode.
+ * This models toolchain::NamedMDNode.
  */
 typedef struct LLVMOpaqueNamedMDNode *LLVMNamedMDNodeRef;
 
@@ -106,65 +106,65 @@ typedef struct LLVMOpaqueValueMetadataEntry LLVMValueMetadataEntry;
 /**
  * Represents an LLVM basic block builder.
  *
- * This models llvm::IRBuilder.
+ * This models toolchain::IRBuilder.
  */
 typedef struct LLVMOpaqueBuilder *LLVMBuilderRef;
 
 /**
  * Represents an LLVM debug info builder.
  *
- * This models llvm::DIBuilder.
+ * This models toolchain::DIBuilder.
  */
 typedef struct LLVMOpaqueDIBuilder *LLVMDIBuilderRef;
 
 /**
  * Interface used to provide a module to JIT or interpreter.
- * This is now just a synonym for llvm::Module, but we have to keep using the
+ * This is now just a synonym for toolchain::Module, but we have to keep using the
  * different type to keep binary compatibility.
  */
 typedef struct LLVMOpaqueModuleProvider *LLVMModuleProviderRef;
 
-/** @see llvm::PassManagerBase */
+/** @see toolchain::PassManagerBase */
 typedef struct LLVMOpaquePassManager *LLVMPassManagerRef;
 
-/** @see llvm::PassRegistry */
+/** @see toolchain::PassRegistry */
 typedef struct LLVMOpaquePassRegistry *LLVMPassRegistryRef;
 
 /**
  * Used to get the users and usees of a Value.
  *
- * @see llvm::Use */
+ * @see toolchain::Use */
 typedef struct LLVMOpaqueUse *LLVMUseRef;
 
 /**
  * Used to represent an attributes.
  *
- * @see llvm::Attribute
+ * @see toolchain::Attribute
  */
 typedef struct LLVMOpaqueAttributeRef *LLVMAttributeRef;
 
 /**
- * @see llvm::DiagnosticInfo
+ * @see toolchain::DiagnosticInfo
  */
 typedef struct LLVMOpaqueDiagnosticInfo *LLVMDiagnosticInfoRef;
 
 /**
- * @see llvm::Comdat
+ * @see toolchain::Comdat
  */
 typedef struct LLVMComdat *LLVMComdatRef;
 
 /**
- * @see llvm::Module::ModuleFlagEntry
+ * @see toolchain::Module::ModuleFlagEntry
  */
 typedef struct LLVMOpaqueModuleFlagEntry LLVMModuleFlagEntry;
 
 /**
- * @see llvm::JITEventListener
+ * @see toolchain::JITEventListener
  */
 typedef struct LLVMOpaqueJITEventListener *LLVMJITEventListenerRef;
 
 /**
- * @see llvm::object::Binary
+ * @see toolchain::object::Binary
  */
 typedef struct LLVMOpaqueBinary *LLVMBinaryRef;
 

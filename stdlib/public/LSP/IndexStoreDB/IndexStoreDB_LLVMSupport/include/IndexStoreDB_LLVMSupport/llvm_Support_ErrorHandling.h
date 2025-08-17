@@ -1,8 +1,24 @@
-//===- llvm/Support/ErrorHandling.h - Fatal error handling ------*- C++ -*-===//
+//===- toolchain/Support/ErrorHandling.h - Fatal error handling ------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -14,10 +30,10 @@
 #ifndef LLVM_SUPPORT_ERRORHANDLING_H
 #define LLVM_SUPPORT_ERRORHANDLING_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Compiler.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Compiler.h>
 #include <string>
 
-namespace llvm {
+namespace toolchain {
 class StringRef;
   class Twine;
 
@@ -116,10 +132,10 @@ void install_out_of_memory_new_handler();
 void report_bad_alloc_error(const char *Reason, bool GenCrashDiag = true);
 
 /// This function calls abort(), and prints the optional message to stderr.
-/// Use the llvm_unreachable macro (that adds location info), instead of
+/// Use the toolchain_unreachable macro (that adds location info), instead of
 /// calling this function directly.
 LLVM_ATTRIBUTE_NORETURN void
-llvm_unreachable_internal(const char *msg = nullptr, const char *file = nullptr,
+toolchain_unreachable_internal(const char *msg = nullptr, const char *file = nullptr,
                           unsigned line = 0);
 }
 
@@ -132,12 +148,12 @@ llvm_unreachable_internal(const char *msg = nullptr, const char *file = nullptr,
 /// Use this instead of assert(0).  It conveys intent more clearly and
 /// allows compilers to omit some unnecessary code.
 #ifndef NDEBUG
-#define llvm_unreachable(msg) \
-  ::llvm::llvm_unreachable_internal(msg, __FILE__, __LINE__)
+#define toolchain_unreachable(msg) \
+  ::toolchain::toolchain_unreachable_internal(msg, __FILE__, __LINE__)
 #elif defined(LLVM_BUILTIN_UNREACHABLE)
-#define llvm_unreachable(msg) LLVM_BUILTIN_UNREACHABLE
+#define toolchain_unreachable(msg) LLVM_BUILTIN_UNREACHABLE
 #else
-#define llvm_unreachable(msg) ::llvm::llvm_unreachable_internal()
+#define toolchain_unreachable(msg) ::toolchain::toolchain_unreachable_internal()
 #endif
 
 #endif

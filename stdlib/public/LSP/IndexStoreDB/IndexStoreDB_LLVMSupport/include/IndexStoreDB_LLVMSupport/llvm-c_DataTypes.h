@@ -1,8 +1,8 @@
-/*===-- include/llvm-c/DataTypes.h - Define fixed size types ------*- C -*-===*\
+/*===-- include/toolchain-c/DataTypes.h - Define fixed size types ------*- C -*-===*\
 |*                                                                            *|
 |* Part of the LLVM Project, under the Apache License v2.0 with LLVM          *|
 |* Exceptions.                                                                *|
-|* See https://llvm.org/LICENSE.txt for license information.                  *|
+|* See https://toolchain.org/LICENSE.txt for license information.                  *|
 |* SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception                    *|
 |*                                                                            *|
 |*===----------------------------------------------------------------------===*|
@@ -24,7 +24,7 @@
 #ifndef LLVM_C_DATATYPES_H
 #define LLVM_C_DATATYPES_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_Config_indexstoredb-prefix.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_indexstoredb-prefix.h>
 
 #ifdef __cplusplus
 #include <cmath>
@@ -39,12 +39,12 @@
 
 #if !defined(UINT32_MAX)
 # error "The standard header <cstdint> is not C++11 compliant. Must #define "\
-        "__STDC_LIMIT_MACROS before #including llvm-c/DataTypes.h"
+        "__STDC_LIMIT_MACROS before #including toolchain-c/DataTypes.h"
 #endif
 
 #if !defined(UINT32_C)
 # error "The standard header <cstdint> is not C++11 compliant. Must #define "\
-        "__STDC_CONSTANT_MACROS before #including llvm-c/DataTypes.h"
+        "__STDC_CONSTANT_MACROS before #including toolchain-c/DataTypes.h"
 #endif
 
 /* Note that <inttypes.h> includes <stdint.h>, if this is a C99 system. */

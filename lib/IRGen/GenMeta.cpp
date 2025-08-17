@@ -42,9 +42,9 @@
 #include "language/SIL/SILModule.h"
 #include "language/SIL/TypeLowering.h"
 #include "language/Strings.h"
-#include "clang/AST/Decl.h"
-#include "clang/AST/DeclObjC.h"
-#include "clang/Basic/TargetInfo.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/AST/DeclObjC.h"
+#include "language/Core/Basic/TargetInfo.h"
 #include "toolchain/ADT/SmallString.h"
 #include "toolchain/IR/DerivedTypes.h"
 #include "toolchain/IR/Function.h"
@@ -1470,7 +1470,7 @@ namespace {
         // specialization's Codira name will always be the mangled name, so just
         // use that.
         if (auto spec =
-                dyn_cast<clang::ClassTemplateSpecializationDecl>(clangDecl)) {
+                dyn_cast<language::Core::ClassTemplateSpecializationDecl>(clangDecl)) {
           abiName = Type->getName().str();
           IsCxxSpecializedTemplate = true;
         } else
@@ -1478,8 +1478,8 @@ namespace {
 
         // Typedefs and compatibility aliases that have been promoted to
         // their own nominal types need to be marked specially.
-        if (isa<clang::TypedefNameDecl>(clangDecl) ||
-            isa<clang::ObjCCompatibleAliasDecl>(clangDecl)) {
+        if (isa<language::Core::TypedefNameDecl>(clangDecl) ||
+            isa<language::Core::ObjCCompatibleAliasDecl>(clangDecl)) {
           getMutableImportInfo().SymbolNamespace =
             TypeImportSymbolNamespace::CTypedef;
         }

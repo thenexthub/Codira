@@ -47,7 +47,7 @@
 #include "language/Serialization/SerializedModuleLoader.h"
 #include "language/Strings.h"
 #include "language/Subsystems.h"
-#include "clang/AST/ASTContext.h"
+#include "language/Core/AST/ASTContext.h"
 #include "toolchain/ADT/Hashing.h"
 #include "toolchain/ADT/IntrusiveRefCntPtr.h"
 #include "toolchain/ADT/SmallVector.h"
@@ -387,7 +387,7 @@ void CompilerInstance::setupStatsReporter() {
     }
   };
 
-  auto getClangSourceManager = [](ASTContext &Ctx) -> clang::SourceManager * {
+  auto getClangSourceManager = [](ASTContext &Ctx) -> language::Core::SourceManager * {
     if (auto *clangImporter = static_cast<ClangImporter *>(
             Ctx.getClangModuleLoader())) {
       return &clangImporter->getClangASTContext().getSourceManager();

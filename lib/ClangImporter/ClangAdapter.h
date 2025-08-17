@@ -23,13 +23,13 @@
 #define CLANG_ADAPTER_H
 
 #include "language/Basic/StringExtras.h"
-#include "clang/Basic/Specifiers.h"
+#include "language/Core/Basic/Specifiers.h"
 #include "toolchain/ADT/SmallBitVector.h"
 #include <optional>
 
 #include "ImportName.h"
 
-namespace clang {
+namespace language::Core {
 class ASTContext;
 class Decl;
 class DeclContext;
@@ -61,8 +61,8 @@ struct PlatformAvailability;
 /// Returns \c None if \p D is not a redeclarable type declaration.
 /// Returns null if \p D is a redeclarable type, but it does not have a
 /// definition yet.
-std::optional<const clang::Decl *>
-getDefinitionForClangTypeDecl(const clang::Decl *D);
+std::optional<const language::Core::Decl *>
+getDefinitionForClangTypeDecl(const language::Core::Decl *D);
 
 /// Returns the first redeclaration of \p D outside of a function.
 ///
@@ -84,90 +84,90 @@ getDefinitionForClangTypeDecl(const clang::Decl *D);
 /// declarations without definitions that choice is somewhat arbitrary. But it
 /// would be better not to pick a local declaration like the one above, and
 /// therefore this method should be used instead of
-/// clang::Decl::getCanonicalDecl when the containing module is important.
+/// language::Core::Decl::getCanonicalDecl when the containing module is important.
 ///
 /// If there are no non-local redeclarations, returns null.
 /// If \p D is not a kind of declaration that supports being redeclared, just
 /// returns \p D itself.
-const clang::Decl *
-getFirstNonLocalDecl(const clang::Decl *D);
+const language::Core::Decl *
+getFirstNonLocalDecl(const language::Core::Decl *D);
 
 /// Returns the module \p D comes from, or \c None if \p D does not have
 /// a valid associated module.
 ///
 /// The returned module may be null (but not \c None) if \p D comes from
 /// an imported header.
-std::optional<clang::Module *>
-getClangSubmoduleForDecl(const clang::Decl *D,
+std::optional<language::Core::Module *>
+getClangSubmoduleForDecl(const language::Core::Decl *D,
                          bool allowForwardDeclaration = false);
 
 /// Retrieve the type of an instance of the given Clang declaration context,
 /// or a null type if the DeclContext does not have a corresponding type.
-clang::QualType getClangDeclContextType(const clang::DeclContext *dc);
+language::Core::QualType getClangDeclContextType(const language::Core::DeclContext *dc);
 
 /// Retrieve the type name of a Clang type for the purposes of
 /// omitting unneeded words.
-OmissionTypeName getClangTypeNameForOmission(clang::ASTContext &ctx,
-                                             clang::QualType type);
+OmissionTypeName getClangTypeNameForOmission(language::Core::ASTContext &ctx,
+                                             language::Core::QualType type);
 
 /// Find the language_newtype attribute on the given typedef, if present.
-clang::CodiraNewTypeAttr *getCodiraNewtypeAttr(const clang::TypedefNameDecl *decl,
+language::Core::CodiraNewTypeAttr *getCodiraNewtypeAttr(const language::Core::TypedefNameDecl *decl,
                                              ImportNameVersion version);
 
 /// Retrieve a bit vector containing the non-null argument
 /// annotations for the given declaration.
 SmallBitVector
-getNonNullArgs(const clang::Decl *decl,
-               ArrayRef<const clang::ParmVarDecl *> params);
+getNonNullArgs(const language::Core::Decl *decl,
+               ArrayRef<const language::Core::ParmVarDecl *> params);
 
 /// Whether the given decl is a global Notification
-bool isNSNotificationGlobal(const clang::NamedDecl *);
+bool isNSNotificationGlobal(const language::Core::NamedDecl *);
 
 // If this decl is associated with a language_newtype (and we're honoring
 // language_newtype), return it, otherwise null
-clang::TypedefNameDecl *findCodiraNewtype(const clang::NamedDecl *decl,
-                                         clang::Sema &clangSema,
+language::Core::TypedefNameDecl *findCodiraNewtype(const language::Core::NamedDecl *decl,
+                                         language::Core::Sema &clangSema,
                                          ImportNameVersion version);
 
 /// Whether the passed type is NSString *
-bool isNSString(const clang::Type *);
-bool isNSString(clang::QualType);
+bool isNSString(const language::Core::Type *);
+bool isNSString(language::Core::QualType);
 
 /// Wehther the passed type is `NSNotificationName` typealias
-bool isNSNotificationName(clang::QualType);
+bool isNSNotificationName(language::Core::QualType);
 
 /// Whether the given declaration was exported from Codira.
 ///
 /// Note that this only checks the immediate declaration being passed.
 /// For things like methods and properties that are nested in larger types,
 /// it's the top-level declaration that should be checked.
-bool hasNativeCodiraDecl(const clang::Decl *decl);
+bool hasNativeCodiraDecl(const language::Core::Decl *decl);
 
 /// Translation API nullability from an API note into an optional kind.
 ///
 /// \param stripNonResultOptionality Whether strip optionality from
 /// \c _Nullable but not \c _Nullable_result.
 OptionalTypeKind translateNullability(
-    clang::NullabilityKind kind, bool stripNonResultOptionality = false);
+    language::Core::NullabilityKind kind, bool stripNonResultOptionality = false);
 
 /// Determine whether the given method is a required initializer
 /// of the given class.
-bool isRequiredInitializer(const clang::ObjCMethodDecl *method);
+bool isRequiredInitializer(const language::Core::ObjCMethodDecl *method);
 
 /// Determine whether this property should be imported as its getter and setter
 /// rather than as a Codira property.
-bool shouldImportPropertyAsAccessors(const clang::ObjCPropertyDecl *prop);
+bool shouldImportPropertyAsAccessors(const language::Core::ObjCPropertyDecl *prop);
 
 /// Determine whether this method is an Objective-C "init" method
 /// that will be imported as a Codira initializer.
-bool isInitMethod(const clang::ObjCMethodDecl *method);
+bool isInitMethod(const language::Core::ObjCMethodDecl *method);
 
 /// Determine whether this is the declaration of Objective-C's 'id' type.
-bool isObjCId(const clang::Decl *decl);
+bool isObjCId(const language::Core::Decl *decl);
 
 /// Determine whether the given declaration is considered
 /// 'unavailable' in Codira.
-bool isUnavailableInCodira(const clang::Decl *decl, const PlatformAvailability *,
+bool isUnavailableInCodira(const language::Core::Decl *decl, const PlatformAvailability *,
                           bool enableObjCInterop);
 
 /// Determine the optionality of the given Clang parameter.
@@ -176,7 +176,7 @@ bool isUnavailableInCodira(const clang::Decl *decl, const PlatformAvailability *
 ///
 /// \param knownNonNull Whether a function- or method-level "nonnull" attribute
 /// applies to this parameter.
-OptionalTypeKind getParamOptionality(const clang::ParmVarDecl *param,
+OptionalTypeKind getParamOptionality(const language::Core::ParmVarDecl *param,
                                      bool knownNonNull);
 }
 }

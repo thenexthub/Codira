@@ -23,8 +23,8 @@
 #include "language/AST/Attr.h"
 #include "language/AST/AttrKind.h"
 #include "language/AST/ClangModuleLoader.h"
-#include "clang/AST/Attr.h"
-#include "clang/Basic/Specifiers.h"
+#include "language/Core/AST/Attr.h"
+#include "language/Core/Basic/Specifiers.h"
 #include "toolchain/Support/VirtualFileSystem.h"
 
 /// The maximum number of SIMD vector elements we currently try to import.
@@ -43,7 +43,7 @@ namespace toolchain {
   }
 }
 
-namespace clang {
+namespace language::Core {
   class ASTContext;
   class CodeGenOptions;
   class Decl;
@@ -136,7 +136,7 @@ public:
   /// \param inModule only return results from this module.
   virtual void lookupValue(StringRef name, std::optional<ClangTypeKind> kind,
                            StringRef inModule,
-                           SmallVectorImpl<clang::Decl *> &results) {}
+                           SmallVectorImpl<language::Core::Decl *> &results) {}
   /// vtable anchor.
   virtual void anchor();
 };
@@ -145,8 +145,8 @@ public:
 // Putting more than four types in this `PointerUnion` will break the build for
 // 32-bit hosts. If we need five or more types in the future, we'll need to
 // design a proper larger-than-word-sized type.
-typedef toolchain::PointerUnion<const clang::Decl *, const clang::MacroInfo *,
-                           const clang::Type *, const clang::Token *>
+typedef toolchain::PointerUnion<const language::Core::Decl *, const language::Core::MacroInfo *,
+                           const language::Core::Type *, const language::Core::Token *>
     ImportDiagnosticTarget;
 
 /// Class that imports Clang modules into Codira, mapping directly
@@ -181,7 +181,7 @@ private:
   /// The caller of this method should set any action-specific invocation
   /// options (like FrontendOptions::ProgramAction, input files, and output
   /// paths), then create the appropriate FrontendAction and execute it.
-  std::unique_ptr<clang::CompilerInstance>
+  std::unique_ptr<language::Core::CompilerInstance>
   cloneCompilerInstanceForPrecompiling();
 
 public:
@@ -218,7 +218,7 @@ public:
   std::vector<std::string>
   getClangDepScanningInvocationArguments(ASTContext &ctx);
 
-  static std::unique_ptr<clang::CompilerInvocation>
+  static std::unique_ptr<language::Core::CompilerInvocation>
   createClangInvocation(ClangImporter *importer,
                         const ClangImporterOptions &importerOpts,
                         toolchain::IntrusiveRefCntPtr<toolchain::vfs::FileSystem> VFS,
@@ -228,8 +228,8 @@ public:
   ///
   /// \return a pair of the Clang Driver and the diagnostic engine, which needs
   /// to be alive during the use of the Driver.
-  static std::pair<clang::driver::Driver,
-                   toolchain::IntrusiveRefCntPtr<clang::DiagnosticsEngine>>
+  static std::pair<language::Core::driver::Driver,
+                   toolchain::IntrusiveRefCntPtr<language::Core::DiagnosticsEngine>>
   createClangDriver(
       const LangOptions &LangOpts,
       const ClangImporterOptions &ClangImporterOpts,
@@ -238,7 +238,7 @@ public:
   static toolchain::opt::InputArgList
   createClangArgs(const ClangImporterOptions &ClangImporterOpts,
                   const SearchPathOptions &SearchPathOpts,
-                  clang::driver::Driver &clangDriver);
+                  language::Core::driver::Driver &clangDriver);
 
   ClangImporter(const ClangImporter &) = delete;
   ClangImporter(ClangImporter &&) = delete;
@@ -250,9 +250,9 @@ public:
   /// Only to be used by lldb-moduleimport-test.
   void setDWARFImporterDelegate(DWARFImporterDelegate &delegate);
 
-  /// Create a new clang::DependencyCollector customized to
+  /// Create a new language::Core::DependencyCollector customized to
   /// ClangImporter's specific uses.
-  static std::shared_ptr<clang::DependencyCollector> createDependencyCollector(
+  static std::shared_ptr<language::Core::DependencyCollector> createDependencyCollector(
       IntermoduleDepTrackingMode Mode,
       std::shared_ptr<toolchain::FileCollectorBase> FileCollector);
 
@@ -332,8 +332,8 @@ public:
                       toolchain::function_ref<void(TypeDecl *)> receiver) override;
 
   StructDecl *
-  instantiateCXXClassTemplate(clang::ClassTemplateDecl *decl,
-                      ArrayRef<clang::TemplateArgument> arguments) override;
+  instantiateCXXClassTemplate(language::Core::ClassTemplateDecl *decl,
+                      ArrayRef<language::Core::TemplateArgument> arguments) override;
 
   ConcreteDeclRef getCXXFunctionTemplateSpecialization(
           SubstitutionMap subst, ValueDecl *decl) override;
@@ -453,7 +453,7 @@ public:
   /// Retrieves the Codira wrapper for the given Clang module, creating
   /// it if necessary.
   ModuleDecl *
-  getWrapperForModule(const clang::Module *mod,
+  getWrapperForModule(const language::Core::Module *mod,
                       bool returnOverlayIfPossible = false) const override;
 
   std::string
@@ -466,7 +466,7 @@ public:
   /// content. Delegates to clang for everything except construction of the
   /// replica.
   ///
-  /// \sa clang::GeneratePCHAction
+  /// \sa language::Core::GeneratePCHAction
   bool emitBridgingPCH(StringRef headerPath, StringRef outputPCHPath,
                        bool cached);
 
@@ -492,34 +492,34 @@ public:
   bool dumpPrecompiledModule(StringRef modulePath, StringRef outputPath);
 
   bool runPreprocessor(StringRef inputPath, StringRef outputPath);
-  const clang::Module *getClangOwningModule(ClangNode Node) const;
-  bool hasTypedef(const clang::Decl *typeDecl) const;
+  const language::Core::Module *getClangOwningModule(ClangNode Node) const;
+  bool hasTypedef(const language::Core::Decl *typeDecl) const;
 
   void verifyAllModules() override;
 
   using RemapPathCallback = toolchain::function_ref<std::string(StringRef)>;
   using LookupModuleOutputCallback =
-      toolchain::function_ref<std::string(const clang::tooling::dependencies::ModuleDeps &,
-                                     clang::tooling::dependencies::ModuleOutputKind)>;
+      toolchain::function_ref<std::string(const language::Core::tooling::dependencies::ModuleDeps &,
+                                     language::Core::tooling::dependencies::ModuleOutputKind)>;
 
   static toolchain::SmallVector<std::pair<ModuleDependencyID, ModuleDependencyInfo>, 1>
   bridgeClangModuleDependencies(
       const ASTContext &ctx,
-      clang::tooling::dependencies::DependencyScanningTool &clangScanningTool,
-      clang::tooling::dependencies::ModuleDepsGraph &clangDependencies,
+      language::Core::tooling::dependencies::DependencyScanningTool &clangScanningTool,
+      language::Core::tooling::dependencies::ModuleDepsGraph &clangDependencies,
       LookupModuleOutputCallback LookupModuleOutput,
       RemapPathCallback remapPath = nullptr);
 
   static void getBridgingHeaderOptions(
       const ASTContext &ctx,
-      const clang::tooling::dependencies::TranslationUnitDeps &deps,
+      const language::Core::tooling::dependencies::TranslationUnitDeps &deps,
       std::vector<std::string> &languageArgs);
 
-  clang::TargetInfo &getModuleAvailabilityTarget() const override;
-  clang::ASTContext &getClangASTContext() const override;
-  clang::Preprocessor &getClangPreprocessor() const override;
-  clang::Sema &getClangSema() const override;
-  const clang::CompilerInstance &getClangInstance() const override;
+  language::Core::TargetInfo &getModuleAvailabilityTarget() const override;
+  language::Core::ASTContext &getClangASTContext() const override;
+  language::Core::Preprocessor &getClangPreprocessor() const override;
+  language::Core::Sema &getClangSema() const override;
+  const language::Core::CompilerInstance &getClangInstance() const override;
 
   /// ClangImporter's Clang instance may be configured with a different
   /// (higher) OS version than the compilation target itself in order to be able
@@ -540,8 +540,8 @@ public:
   /// instead. To distinguish IRGen clients from module loading clients,
   /// `getModuleAvailabilityTarget` should be used instead by module-loading
   /// clients.
-  clang::TargetInfo &getTargetInfo() const;
-  clang::CodeGenOptions &getCodeGenOpts() const;
+  language::Core::TargetInfo &getTargetInfo() const;
+  language::Core::CodeGenOptions &getCodeGenOpts() const;
 
   std::string getClangModuleHash() const;
 
@@ -553,10 +553,10 @@ public:
   /// to import said decl then return nullptr.
   /// Otherwise, if we have never encountered this decl previously then return
   /// None.
-  std::optional<Decl *> importDeclCached(const clang::NamedDecl *ClangDecl);
+  std::optional<Decl *> importDeclCached(const language::Core::NamedDecl *ClangDecl);
 
   // Returns true if it is expected that the macro is ignored.
-  bool shouldIgnoreMacro(StringRef Name, const clang::MacroInfo *Macro);
+  bool shouldIgnoreMacro(StringRef Name, const language::Core::MacroInfo *Macro);
 
   /// Returns the name of the given enum element as it would be imported into
   /// Codira.
@@ -565,10 +565,10 @@ public:
   /// not be imported.
   ///
   /// This is not used by the importer itself, but is used by the debugger.
-  Identifier getEnumConstantName(const clang::EnumConstantDecl *enumConstant);
+  Identifier getEnumConstantName(const language::Core::EnumConstantDecl *enumConstant);
 
   /// Writes the mangled name of \p clangDecl to \p os.
-  void getMangledName(raw_ostream &os, const clang::NamedDecl *clangDecl) const;
+  void getMangledName(raw_ostream &os, const language::Core::NamedDecl *clangDecl) const;
 
   // Print statistics from the Clang AST reader.
   void printStatistics() const override;
@@ -583,17 +583,17 @@ public:
       std::vector<std::string> &names) const;
 
   /// Given a Clang module, decide whether this module is imported already.
-  static bool isModuleImported(const clang::Module *M);
+  static bool isModuleImported(const language::Core::Module *M);
 
   DeclName importName(
-      const clang::NamedDecl *D,
-      clang::DeclarationName givenName = clang::DeclarationName()) override;
+      const language::Core::NamedDecl *D,
+      language::Core::DeclarationName givenName = language::Core::DeclarationName()) override;
 
   std::optional<Type>
-  importFunctionReturnType(const clang::FunctionDecl *clangDecl,
+  importFunctionReturnType(const language::Core::FunctionDecl *clangDecl,
                            DeclContext *dc) override;
 
-  Type importVarDeclType(const clang::VarDecl *clangDecl,
+  Type importVarDeclType(const language::Core::VarDecl *clangDecl,
                          VarDecl *languageDecl,
                          DeclContext *dc) override;
 
@@ -606,50 +606,50 @@ public:
   getPCHFilename(const ClangImporterOptions &ImporterOptions,
                  StringRef CodiraPCHHash, bool &isExplicit);
 
-  const clang::Type *parseClangFunctionType(StringRef type,
+  const language::Core::Type *parseClangFunctionType(StringRef type,
                                             SourceLoc loc) const override;
-  void printClangType(const clang::Type *type,
+  void printClangType(const language::Core::Type *type,
                       toolchain::raw_ostream &os) const override;
 
   StableSerializationPath
-  findStableSerializationPath(const clang::Decl *decl) const override;
+  findStableSerializationPath(const language::Core::Decl *decl) const override;
 
-  const clang::Decl *
+  const language::Core::Decl *
   resolveStableSerializationPath(
                             const StableSerializationPath &path) const override;
 
-  bool isSerializable(const clang::Type *type,
+  bool isSerializable(const language::Core::Type *type,
                       bool checkCanonical) const override;
 
-  clang::FunctionDecl *
+  language::Core::FunctionDecl *
   instantiateCXXFunctionTemplate(ASTContext &ctx,
-                                 clang::FunctionTemplateDecl *fn,
+                                 language::Core::FunctionTemplateDecl *fn,
                                  SubstitutionMap subst) override;
 
-  bool isSynthesizedAndVisibleFromAllModules(const clang::Decl *decl);
+  bool isSynthesizedAndVisibleFromAllModules(const language::Core::Decl *decl);
 
-  bool isCXXMethodMutating(const clang::CXXMethodDecl *method) override;
+  bool isCXXMethodMutating(const language::Core::CXXMethodDecl *method) override;
 
   bool isUnsafeCXXMethod(const FuncDecl *fn) override;
 
-  FuncDecl *getDefaultArgGenerator(const clang::ParmVarDecl *param) override;
+  FuncDecl *getDefaultArgGenerator(const language::Core::ParmVarDecl *param) override;
 
-  FuncDecl *getAvailabilityDomainPredicate(const clang::VarDecl *var) override;
+  FuncDecl *getAvailabilityDomainPredicate(const language::Core::VarDecl *var) override;
 
-  bool isAnnotatedWith(const clang::CXXMethodDecl *method, StringRef attr);
+  bool isAnnotatedWith(const language::Core::CXXMethodDecl *method, StringRef attr);
 
   /// Find the lookup table that corresponds to the given Clang module.
   ///
   /// \param clangModule The module, or null to indicate that we're talking
   /// about the directly-parsed headers.
-  CodiraLookupTable *findLookupTable(const clang::Module *clangModule) override;
+  CodiraLookupTable *findLookupTable(const language::Core::Module *clangModule) override;
 
   /// Determine the effective Clang context for the given Codira nominal type.
   EffectiveClangContext
   getEffectiveClangContext(const NominalTypeDecl *nominal) override;
 
   /// Imports a clang decl directly, rather than looking up it's name.
-  Decl *importDeclDirectly(const clang::NamedDecl *decl) override;
+  Decl *importDeclDirectly(const language::Core::NamedDecl *decl) override;
 
   ValueDecl *importBaseMemberDecl(ValueDecl *decl, DeclContext *newContext,
                                   ClangInheritanceInfo inheritance) override;
@@ -664,25 +664,25 @@ public:
   /// of the provided baseType.
   void diagnoseMemberValue(const DeclName &name, const Type &baseType) override;
 
-  const clang::TypedefType *getTypeDefForCXXCFOptionsDefinition(
-      const clang::Decl *candidateDecl) override;
+  const language::Core::TypedefType *getTypeDefForCXXCFOptionsDefinition(
+      const language::Core::Decl *candidateDecl) override;
 
   /// Create cache key for embedded bridging header.
   static toolchain::Expected<toolchain::cas::ObjectRef>
   createEmbeddedBridgingHeaderCacheKey(
       toolchain::cas::ObjectStore &CAS, toolchain::cas::ObjectRef ChainedPCHIncludeTree);
 
-  SourceLoc importSourceLocation(clang::SourceLocation loc) override;
+  SourceLoc importSourceLocation(language::Core::SourceLocation loc) override;
 };
 
 ImportDecl *createImportDecl(ASTContext &Ctx, DeclContext *DC, ClangNode ClangN,
-                             ArrayRef<clang::Module *> Exported);
+                             ArrayRef<language::Core::Module *> Exported);
 
 /// Extract the specified-or-defaulted -module-cache-path that winds up in
 /// the clang importer, for reuse as the .codemodule cache path when
 /// building a ModuleInterfaceLoader.
 std::string
-getModuleCachePathFromClang(const clang::CompilerInstance &Instance);
+getModuleCachePathFromClang(const language::Core::CompilerInstance &Instance);
 
 /// Whether the given parameter name identifies a completion handler.
 bool isCompletionHandlerParamName(StringRef paramName);
@@ -690,12 +690,12 @@ bool isCompletionHandlerParamName(StringRef paramName);
 namespace importer {
 
 /// Returns true if the given module has a 'cplusplus' requirement.
-bool requiresCPlusPlus(const clang::Module *module);
+bool requiresCPlusPlus(const language::Core::Module *module);
 
 /// Returns true if the given module is one of the C++ standard library modules.
 /// This could be the top-level std module, or any of the libc++ split modules
 /// (std_vector, std_iosfwd, etc).
-bool isCxxStdModule(const clang::Module *module);
+bool isCxxStdModule(const language::Core::Module *module);
 
 /// Returns true if the given module is one of the C++ standard library modules.
 /// This could be the top-level std module, or any of the libc++ split modules
@@ -704,18 +704,18 @@ bool isCxxStdModule(StringRef moduleName, bool IsSystem);
 
 /// Returns the pointee type if the given type is a C++ `const`
 /// reference type, `None` otherwise.
-std::optional<clang::QualType>
-getCxxReferencePointeeTypeOrNone(const clang::Type *type);
+std::optional<language::Core::QualType>
+getCxxReferencePointeeTypeOrNone(const language::Core::Type *type);
 
 /// Returns true if the given type is a C++ `const` reference type.
-bool isCxxConstReferenceType(const clang::Type *type);
+bool isCxxConstReferenceType(const language::Core::Type *type);
 
 /// Determine whether this typedef is a CF type.
-bool isCFTypeDecl(const clang::TypedefNameDecl *Decl);
+bool isCFTypeDecl(const language::Core::TypedefNameDecl *Decl);
 
 /// Determine the imported CF type for the given typedef-name, or the empty
 /// string if this is not an imported CF type name.
-toolchain::StringRef getCFTypeName(const clang::TypedefNameDecl *decl);
+toolchain::StringRef getCFTypeName(const language::Core::TypedefNameDecl *decl);
 
 /// Lookup and return the synthesized conformance operator like '==' '-' or '+='
 /// for the given type.
@@ -727,7 +727,7 @@ ValueDecl *getImportedMemberOperator(const DeclBaseName &name,
 ///
 /// This mapping is conservative: the resulting Codira access should be at _most_
 /// as permissive as the input C++ access.
-AccessLevel convertClangAccess(clang::AccessSpecifier access);
+AccessLevel convertClangAccess(language::Core::AccessSpecifier access);
 
 /// Read file IDs from 'private_fileid' Codira attributes on a Clang decl.
 ///
@@ -737,10 +737,10 @@ AccessLevel convertClangAccess(clang::AccessSpecifier access);
 ///
 /// The returned fileIDs may not be of a valid format (e.g., missing a '/'),
 /// and should be parsed using language::SourceFile::FileIDStr::parse().
-SmallVector<std::pair<StringRef, clang::SourceLocation>, 1>
-getPrivateFileIDAttrs(const clang::CXXRecordDecl *decl);
+SmallVector<std::pair<StringRef, language::Core::SourceLocation>, 1>
+getPrivateFileIDAttrs(const language::Core::CXXRecordDecl *decl);
 
-/// Use some heuristics to determine whether the clang::Decl associated with
+/// Use some heuristics to determine whether the language::Core::Decl associated with
 /// \a decl would not exist without C++ interop.
 ///
 /// For instance, a namespace is C++-only, but a plain struct is valid in both
@@ -765,8 +765,8 @@ bool isClangNamespace(const DeclContext *dc);
 /// Checking for this kind of scenario is necessary for avoiding infinite
 /// recursion during symbolic imports (importSymbolicCXXDecls), where
 /// specialized class templates are instead imported as unspecialized.
-bool isSymbolicCircularBase(const clang::CXXRecordDecl *templatedClass,
-                            const clang::RecordDecl *base);
+bool isSymbolicCircularBase(const language::Core::CXXRecordDecl *templatedClass,
+                            const language::Core::RecordDecl *base);
 
 /// Match a `[[language_attr("...")]]` annotation on the given Clang decl.
 ///
@@ -775,13 +775,13 @@ bool isSymbolicCircularBase(const clang::CXXRecordDecl *templatedClass,
 /// \returns The value for the first matching attribute, or `std::nullopt`.
 template <typename T>
 std::optional<T>
-matchCodiraAttr(const clang::Decl *decl,
+matchCodiraAttr(const language::Core::Decl *decl,
                toolchain::ArrayRef<std::pair<toolchain::StringRef, T>> patterns) {
   if (!decl || !decl->hasAttrs())
     return std::nullopt;
 
   for (const auto *attr : decl->getAttrs()) {
-    if (const auto *languageAttr = toolchain::dyn_cast<clang::CodiraAttrAttr>(attr)) {
+    if (const auto *languageAttr = toolchain::dyn_cast<language::Core::CodiraAttrAttr>(attr)) {
       for (const auto &p : patterns) {
         if (languageAttr->getAttribute() == p.first)
           return p.second;
@@ -798,7 +798,7 @@ matchCodiraAttr(const clang::Decl *decl,
 /// \returns The matched value from this decl or its bases, or `std::nullopt`.
 template <typename T>
 std::optional<T> matchCodiraAttrConsideringInheritance(
-    const clang::Decl *decl,
+    const language::Core::Decl *decl,
     toolchain::ArrayRef<std::pair<toolchain::StringRef, T>> patterns) {
   if (!decl)
     return std::nullopt;
@@ -806,9 +806,9 @@ std::optional<T> matchCodiraAttrConsideringInheritance(
   if (auto match = matchCodiraAttr<T>(decl, patterns))
     return match;
 
-  if (const auto *recordDecl = toolchain::dyn_cast<clang::CXXRecordDecl>(decl)) {
+  if (const auto *recordDecl = toolchain::dyn_cast<language::Core::CXXRecordDecl>(decl)) {
     std::optional<T> result;
-    recordDecl->forallBases([&](const clang::CXXRecordDecl *base) -> bool {
+    recordDecl->forallBases([&](const language::Core::CXXRecordDecl *base) -> bool {
       if (auto baseMatch = matchCodiraAttr<T>(base, patterns)) {
         result = baseMatch;
         return false;
@@ -831,9 +831,9 @@ std::optional<T> matchCodiraAttrConsideringInheritance(
 /// \returns Matched value or std::nullopt.
 template <typename T>
 std::optional<T> matchCodiraAttrOnRecordPtr(
-    const clang::QualType &type,
+    const language::Core::QualType &type,
     toolchain::ArrayRef<std::pair<toolchain::StringRef, T>> patterns) {
-  if (const auto *ptrType = type->getAs<clang::PointerType>()) {
+  if (const auto *ptrType = type->getAs<language::Core::PointerType>()) {
     if (const auto *recordDecl = ptrType->getPointeeType()->getAsRecordDecl()) {
       return matchCodiraAttrConsideringInheritance<T>(recordDecl, patterns);
     }
@@ -848,7 +848,7 @@ std::optional<T> matchCodiraAttrOnRecordPtr(
 /// \param decl The Clang function or method declaration to inspect.
 /// \returns Matched `ResultConvention`, or `std::nullopt` if none applies.
 std::optional<ResultConvention>
-getCxxRefConventionWithAttrs(const clang::Decl *decl);
+getCxxRefConventionWithAttrs(const language::Core::Decl *decl);
 } // namespace importer
 
 struct ClangInvocationFileMapping {
@@ -899,16 +899,16 @@ class ClangInheritanceInfo {
   /// inherited members are private but accessible from extensions.
   ///
   /// See ClangInheritanceInfo::cumulativeInheritedAccess() for an example.
-  std::optional<clang::AccessSpecifier> access;
+  std::optional<language::Core::AccessSpecifier> access;
 
 public:
   /// Default constructor for this class that is used as the base case when
   /// recursively walking up a class inheritance hierarchy.
-  ClangInheritanceInfo() : access(clang::AS_none) {}
+  ClangInheritanceInfo() : access(language::Core::AS_none) {}
 
   /// Inductive case for this class that is used to accumulate inheritance
   /// metadata for cases of (nested) inheritance.
-  ClangInheritanceInfo(ClangInheritanceInfo prev, clang::CXXBaseSpecifier base)
+  ClangInheritanceInfo(ClangInheritanceInfo prev, language::Core::CXXBaseSpecifier base)
       : access(computeAccess(prev, base)) {}
 
   /// Whether this info represents a case of nested private inheritance.
@@ -918,7 +918,7 @@ public:
   ///
   /// Returns \c false for the default instance of this class.
   bool isInheriting() const {
-    return isNestedPrivate() || *access != clang::AS_none;
+    return isNestedPrivate() || *access != language::Core::AS_none;
   }
 
   /// Whether this is info represents a case of C++ inheritance.
@@ -932,7 +932,7 @@ public:
   /// inherited with (ClangInheritanceInfo::access).
   ///
   /// Always returns language::AccessLevel::Public (i.e., corresponding to
-  /// clang::AS_none) if this ClangInheritanceInfo::isInheriting() is \c false.
+  /// language::Core::AS_none) if this ClangInheritanceInfo::isInheriting() is \c false.
   AccessLevel accessForBaseDecl(const ValueDecl *baseDecl) const;
 
   /// Marks \param clonedDecl as unavailable (using \c @available) if it
@@ -969,10 +969,10 @@ private:
   /// struct D : public    C { ... }; // access = private
   /// struct E : private   D { ... }; // access = none [base case]
   /// \endcode
-  static std::optional<clang::AccessSpecifier>
-  computeAccess(ClangInheritanceInfo prev, clang::CXXBaseSpecifier base) {
+  static std::optional<language::Core::AccessSpecifier>
+  computeAccess(ClangInheritanceInfo prev, language::Core::CXXBaseSpecifier base) {
     auto baseAccess = base.getAccessSpecifier();
-    assert(baseAccess != clang::AS_none &&
+    assert(baseAccess != language::Core::AS_none &&
            "this should always be public, protected, or private");
 
     if (!prev.isInheriting())
@@ -981,13 +981,13 @@ private:
       // where we can have access = private.
       return {baseAccess};
 
-    if (prev.isNestedPrivate() || baseAccess == clang::AS_private)
+    if (prev.isNestedPrivate() || baseAccess == language::Core::AS_private)
       // This is a case of nested inheritance, and either we encountered nested
       // private inheritance before, or this is our first time encountering it.
       return std::nullopt;
 
-    static_assert(clang::AS_private > clang::AS_protected &&
-                  clang::AS_protected > clang::AS_public &&
+    static_assert(language::Core::AS_private > language::Core::AS_protected &&
+                  language::Core::AS_protected > language::Core::AS_public &&
                   "using std::max() relies on this ordering");
     return {std::max(*prev.access, baseAccess)};
   }

@@ -21,7 +21,7 @@
 
 #include "language/Basic/Assertions.h"
 #include "language/Basic/StringExtras.h"
-#include "clang/Basic/CharInfo.h"
+#include "language/Core/Basic/CharInfo.h"
 #include "toolchain/ADT/ArrayRef.h"
 #include "toolchain/ADT/SmallString.h"
 #include "toolchain/ADT/SmallVector.h"
@@ -137,7 +137,7 @@ void WordIterator::computeNextPosition() const {
   }
 
   // Skip over any uppercase letters at the beginning of the word.
-  while (i < n && clang::isUppercase(String[i]))
+  while (i < n && language::Core::isUppercase(String[i]))
     ++i;
 
   // If there was more than one uppercase letter, this is an
@@ -149,7 +149,7 @@ void WordIterator::computeNextPosition() const {
 
     // Collect the lowercase letters up to the next word.
     unsigned endOfNext = i;
-    while (endOfNext < n && clang::isLowercase(String[endOfNext]))
+    while (endOfNext < n && language::Core::isLowercase(String[endOfNext]))
       ++endOfNext;
 
     // If the next word is a plural suffix, add it on.
@@ -157,7 +157,7 @@ void WordIterator::computeNextPosition() const {
         (isPluralSuffix(String.slice(i, endOfNext)) &&
          String.slice(i-1, endOfNext) != "Is"))
       NextPosition = endOfNext;
-    else if (clang::isLowercase(String[i]))
+    else if (language::Core::isLowercase(String[i]))
       NextPosition = i-1;
     else
       NextPosition = i;
@@ -167,7 +167,7 @@ void WordIterator::computeNextPosition() const {
   }
 
   // Skip non-uppercase letters.
-  while (i < n && !clang::isUppercase(String[i]) && String[i] != '_')
+  while (i < n && !language::Core::isUppercase(String[i]) && String[i] != '_')
     ++i;
 
   NextPosition = i;
@@ -180,14 +180,14 @@ void WordIterator::computePrevPosition() const {
   unsigned i = Position;
 
   // While we see non-uppercase letters, keep moving back.
-  while (i > 0 && !clang::isUppercase(String[i-1]) && String[i-1] != '_')
+  while (i > 0 && !language::Core::isUppercase(String[i-1]) && String[i-1] != '_')
     --i;
 
   // If what we found is a plural suffix, keep going.
   unsigned effectiveEndPosition = Position;
   if (i > 0 && isPluralSuffix(String.slice(i, Position))) {
     effectiveEndPosition = i;
-    while (i > 0 && !clang::isUppercase(String[i-1]) && String[i-1] != '_')
+    while (i > 0 && !language::Core::isUppercase(String[i-1]) && String[i-1] != '_')
       --i;
   }
 
@@ -198,7 +198,7 @@ void WordIterator::computePrevPosition() const {
     // word starts with an uppercase letter if the next word is alphabetic
     // (URL_Loader) or after the last uppercase letter if it's not (UTF_8).
     PrevPosition = i;
-    if (i != 0 && clang::isLowercase(String[i]) && String[i-1] != '_')
+    if (i != 0 && language::Core::isLowercase(String[i]) && String[i-1] != '_')
       --PrevPosition;
     PrevPositionValid = true;
     return;
@@ -213,7 +213,7 @@ void WordIterator::computePrevPosition() const {
 
   // There were no lowercase letters, so this is an acronym. Keep
   // skipping uppercase letters.
-  while (i > 0 && clang::isUppercase(String[i-1]))
+  while (i > 0 && language::Core::isUppercase(String[i-1]))
     --i;
 
   PrevPosition = i;
@@ -249,7 +249,7 @@ bool camel_case::sameWordIgnoreFirstCase(StringRef word1, StringRef word2) {
   if (word1.size() != word2.size())
     return false;
 
-  if (clang::toLowercase(word1[0]) != clang::toLowercase(word2[0]))
+  if (language::Core::toLowercase(word1[0]) != language::Core::toLowercase(word2[0]))
     return false;
 
   return word1.substr(1) == word2.substr(1);
@@ -259,7 +259,7 @@ bool camel_case::startsWithIgnoreFirstCase(StringRef word1, StringRef word2) {
   if (word1.size() < word2.size())
     return false;
 
-  if (clang::toLowercase(word1[0]) != clang::toLowercase(word2[0]))
+  if (language::Core::toLowercase(word1[0]) != language::Core::toLowercase(word2[0]))
     return false;
 
   return word1.substr(1, word2.size() - 1) == word2.substr(1);
@@ -295,16 +295,16 @@ StringRef camel_case::toLowercaseWord(StringRef string,
     return string;
 
   // Already lowercase.
-  if (!clang::isUppercase(string[0]))
+  if (!language::Core::isUppercase(string[0]))
     return string;
 
   // Acronym doesn't get lowercased.
-  if (string.size() > 1 && clang::isUppercase(string[1]))
+  if (string.size() > 1 && language::Core::isUppercase(string[1]))
     return string;
 
   // Lowercase the first letter, append the rest.
   scratch.clear();
-  scratch.push_back(clang::toLowercase(string[0]));
+  scratch.push_back(language::Core::toLowercase(string[0]));
   scratch.append(string.begin() + 1, string.end());
   return StringRef(scratch.data(), scratch.size());
 }
@@ -315,12 +315,12 @@ StringRef camel_case::toSentencecase(StringRef string,
     return string;
 
   // Can't be uppercased.
-  if (!clang::isLowercase(string[0]))
+  if (!language::Core::isLowercase(string[0]))
     return string;
 
   // Uppercase the first letter, append the rest.
   scratch.clear();
-  scratch.push_back(clang::toUppercase(string[0]));
+  scratch.push_back(language::Core::toUppercase(string[0]));
   scratch.append(string.begin() + 1, string.end());
   return StringRef(scratch.data(), scratch.size());  
 }
@@ -333,7 +333,7 @@ StringRef camel_case::dropPrefix(StringRef string) {
     return string;
 
   for (; firstLower < n; ++firstLower) {
-    if (!clang::isUppercase(string[firstLower]))
+    if (!language::Core::isUppercase(string[firstLower]))
       break;
   }
 
@@ -353,14 +353,14 @@ StringRef camel_case::appendSentenceCase(SmallVectorImpl<char> &buffer,
     return StringRef(buffer.data(), buffer.size());
 
   // Uppercase the first letter, append the rest.
-  buffer.push_back(clang::toUppercase(string[0]));
+  buffer.push_back(language::Core::toUppercase(string[0]));
   buffer.append(string.begin() + 1, string.end());
   return StringRef(buffer.data(), buffer.size());
 }
 
 size_t camel_case::findWord(StringRef string, StringRef word) {
   assert(!word.empty());
-  assert(clang::isUppercase(word[0]));
+  assert(language::Core::isUppercase(word[0]));
 
   // Scan forward until we find the word as a complete word.
   size_t startingIndex = 0;
@@ -379,7 +379,7 @@ size_t camel_case::findWord(StringRef string, StringRef word) {
 
     // If we find the word, check whether it's a valid match.
     StringRef suffix = string.substr(index);
-    if (!suffix.empty() && clang::isLowercase(suffix[0]))
+    if (!suffix.empty() && language::Core::isLowercase(suffix[0]))
       continue;
 
     return index;
@@ -439,11 +439,11 @@ static bool matchNameWordToTypeWord(StringRef nameWord, StringRef typeWord) {
     // match is neither a lowercase letter nor a '_'. This ignores type
     // prefixes for acronyms, e.g., the 'NS' in 'NSURL'.
     if (typeWord.ends_with_insensitive(nameWord) &&
-        !clang::isLowercase(typeWord[typeWord.size() - nameWord.size()])) {
+        !language::Core::isLowercase(typeWord[typeWord.size() - nameWord.size()])) {
       // Check that everything preceding the match is neither a lowercase letter
       // nor a '_'.
       for (unsigned i = 0, n = nameWord.size(); i != n; ++i) {
-        if (clang::isLowercase(typeWord[i]) || typeWord[i] == '_') return false;
+        if (language::Core::isLowercase(typeWord[i]) || typeWord[i] == '_') return false;
       }
 
       return true;
@@ -453,7 +453,7 @@ static bool matchNameWordToTypeWord(StringRef nameWord, StringRef typeWord) {
     // a number.
     if (typeWord.starts_with_insensitive(nameWord)) {
       for (unsigned i = nameWord.size(), n = typeWord.size(); i != n; ++i) {
-        if (!clang::isDigit(typeWord[i])) return false;
+        if (!language::Core::isDigit(typeWord[i])) return false;
       }
 
       return true;
@@ -955,7 +955,7 @@ camel_case::toLowercaseInitialisms(StringRef string,
     return string;
 
   // Already lowercase.
-  if (!clang::isUppercase(string[0]))
+  if (!language::Core::isUppercase(string[0]))
     return string;
 
   // Lowercase until we hit the an uppercase letter followed by a
@@ -964,13 +964,13 @@ camel_case::toLowercaseInitialisms(StringRef string,
   scratch.reserve(string.size());
   for (unsigned i = 0, n = string.size(); i != n; ++i) {
     // If the next character is not uppercase, stop.
-    if (i < n - 1 && !clang::isUppercase(string[i+1])) {
+    if (i < n - 1 && !language::Core::isUppercase(string[i+1])) {
       // If the next non-uppercase character was not a letter, we seem
       // to have a plural, or we're at the beginning, we should still
       // lowercase the character we're on.
-      if (i == 0 || !clang::isLetter(string[i+1]) ||
+      if (i == 0 || !language::Core::isLetter(string[i+1]) ||
           isPluralSuffix(camel_case::getFirstWord(string.substr(i+1)))) {
-        scratch.push_back(clang::toLowercase(string[i]));
+        scratch.push_back(language::Core::toLowercase(string[i]));
         ++i;
       }
 
@@ -978,7 +978,7 @@ camel_case::toLowercaseInitialisms(StringRef string,
       break;
     }
 
-    scratch.push_back(clang::toLowercase(string[i]));
+    scratch.push_back(language::Core::toLowercase(string[i]));
   }
 
   return {scratch.data(), scratch.size()};

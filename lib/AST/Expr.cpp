@@ -3021,7 +3021,7 @@ struct ExprTraceFormatter : public UnifiedStatsReporter::TraceFormatter {
     OS << Expr::getKindName(E->getKind());
   }
   void traceLoc(const void *Entity, SourceManager *SM,
-                clang::SourceManager *CSM, raw_ostream &OS) const override {
+                language::Core::SourceManager *CSM, raw_ostream &OS) const override {
     if (!Entity)
       return;
     const Expr *E = static_cast<const Expr *>(Entity);

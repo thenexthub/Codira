@@ -22,7 +22,7 @@
 #include "language/ClangImporter/ClangImporter.h"
 #include "language/IRGen/TBDGen.h"
 #include "language/Subsystems.h"
-#include "clang/Basic/TargetInfo.h"
+#include "language/Core/Basic/TargetInfo.h"
 #include "toolchain/TextAPI/InterfaceFile.h"
 
 #include "APIGen.h"

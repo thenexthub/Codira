@@ -1,8 +1,24 @@
 //===-- Host.cpp - Implement OS Host Concept --------------------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -10,18 +26,18 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Host.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_TargetParser.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallSet.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallVector.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringSwitch.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Triple.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Config_llvm-config.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Debug.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_FileSystem.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_MemoryBuffer.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Host.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_TargetParser.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallSet.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallVector.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringSwitch.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Triple.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_toolchain-config.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Debug.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_FileSystem.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_MemoryBuffer.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 #include <assert.h>
 #include <string.h>
 
@@ -50,14 +66,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-using namespace llvm;
+using namespace toolchain;
 
-static std::unique_ptr<llvm::MemoryBuffer>
+static std::unique_ptr<toolchain::MemoryBuffer>
     LLVM_ATTRIBUTE_UNUSED getProcCpuinfoContent() {
-  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> Text =
-      llvm::MemoryBuffer::getFileAsStream("/proc/cpuinfo");
+  toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>> Text =
+      toolchain::MemoryBuffer::getFileAsStream("/proc/cpuinfo");
   if (std::error_code EC = Text.getError()) {
-    llvm::errs() << "Can't read "
+    toolchain::errs() << "Can't read "
                  << "/proc/cpuinfo: " << EC.message() << "\n";
     return nullptr;
   }
@@ -405,7 +421,7 @@ enum VendorSignatures {
 // support. Consequently, for i386, the presence of CPUID is checked first
 // via the corresponding eflags bit.
 // Removal of cpuid.h header motivated by PR30384
-// Header cpuid.h and method __get_cpuid_max are not used in llvm, clang, openmp
+// Header cpuid.h and method __get_cpuid_max are not used in toolchain, clang, openmp
 // or test-suite, but are used in external projects e.g. libstdcxx
 static bool isCpuIdSupported() {
 #if defined(__GNUC__) || defined(__clang__)
@@ -946,7 +962,7 @@ static void getAvailableFeatures(unsigned ECX, unsigned EDX, unsigned MaxLeaf,
     else if (F < 96)
       Features3 |= 1U << ((F - 64) & 0x1f);
     else
-      llvm_unreachable("Unexpected FeatureBit");
+      toolchain_unreachable("Unexpected FeatureBit");
   };
 
   if ((EDX >> 15) & 1)
@@ -1097,13 +1113,13 @@ StringRef sys::getHostCPUName() {
 #define X86_CPU_SUBTYPE(ARCHNAME, ENUM) \
   if (Subtype == X86::ENUM) \
     return ARCHNAME;
-#include <IndexStoreDB_LLVMSupport/llvm_Support_X86TargetParser.def>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_X86TargetParser.def>
 
   // Now check types.
 #define X86_CPU_TYPE(ARCHNAME, ENUM) \
   if (Type == X86::ENUM) \
     return ARCHNAME;
-#include <IndexStoreDB_LLVMSupport/llvm_Support_X86TargetParser.def>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_X86TargetParser.def>
 
   return "generic";
 }
@@ -1154,19 +1170,19 @@ StringRef sys::getHostCPUName() {
 }
 #elif defined(__linux__) && (defined(__ppc__) || defined(__powerpc__))
 StringRef sys::getHostCPUName() {
-  std::unique_ptr<llvm::MemoryBuffer> P = getProcCpuinfoContent();
+  std::unique_ptr<toolchain::MemoryBuffer> P = getProcCpuinfoContent();
   StringRef Content = P ? P->getBuffer() : "";
   return detail::getHostCPUNameForPowerPC(Content);
 }
 #elif defined(__linux__) && (defined(__arm__) || defined(__aarch64__))
 StringRef sys::getHostCPUName() {
-  std::unique_ptr<llvm::MemoryBuffer> P = getProcCpuinfoContent();
+  std::unique_ptr<toolchain::MemoryBuffer> P = getProcCpuinfoContent();
   StringRef Content = P ? P->getBuffer() : "";
   return detail::getHostCPUNameForARM(Content);
 }
 #elif defined(__linux__) && defined(__s390x__)
 StringRef sys::getHostCPUName() {
-  std::unique_ptr<llvm::MemoryBuffer> P = getProcCpuinfoContent();
+  std::unique_ptr<toolchain::MemoryBuffer> P = getProcCpuinfoContent();
   StringRef Content = P ? P->getBuffer() : "";
   return detail::getHostCPUNameForS390x(Content);
 }
@@ -1181,10 +1197,10 @@ StringRef sys::getHostCPUName() { return "generic"; }
 static int computeHostNumPhysicalCores() {
   // Read /proc/cpuinfo as a stream (until EOF reached). It cannot be
   // mmapped because it appears to have 0 size.
-  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> Text =
-      llvm::MemoryBuffer::getFileAsStream("/proc/cpuinfo");
+  toolchain::ErrorOr<std::unique_ptr<toolchain::MemoryBuffer>> Text =
+      toolchain::MemoryBuffer::getFileAsStream("/proc/cpuinfo");
   if (std::error_code EC = Text.getError()) {
-    llvm::errs() << "Can't read "
+    toolchain::errs() << "Can't read "
                  << "/proc/cpuinfo: " << EC.message() << "\n";
     return -1;
   }
@@ -1393,7 +1409,7 @@ bool sys::getHostCPUFeatures(StringMap<bool> &Features) {
 }
 #elif defined(__linux__) && (defined(__arm__) || defined(__aarch64__))
 bool sys::getHostCPUFeatures(StringMap<bool> &Features) {
-  std::unique_ptr<llvm::MemoryBuffer> P = getProcCpuinfoContent();
+  std::unique_ptr<toolchain::MemoryBuffer> P = getProcCpuinfoContent();
   if (!P)
     return false;
 

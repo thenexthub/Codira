@@ -14,7 +14,7 @@
 
 //===----------------------------------------------------------------------===//
 //
-// This class wraps a clang::edit::Commit, taking Codira source locations and
+// This class wraps a language::Core::edit::Commit, taking Codira source locations and
 // ranges, transforming them to Clang source locations and ranges, and pushes
 // them into the textual editing infrastructure. This is a temporary measure
 // while lib/Syntax bringup is happening.
@@ -25,9 +25,9 @@
 #define LANGUAGE_MIGRATOR_EDITORADAPTER_H
 
 #include "language/Migrator/Replacement.h"
-#include "clang/Basic/LangOptions.h"
-#include "clang/Basic/SourceLocation.h"
-#include "clang/Edit/Commit.h"
+#include "language/Core/Basic/LangOptions.h"
+#include "language/Core/Basic/SourceLocation.h"
+#include "language/Core/Edit/Commit.h"
 #include "toolchain/ADT/DenseMap.h"
 #include "toolchain/ADT/SmallSet.h"
 
@@ -42,16 +42,16 @@ namespace migrator {
 
 class EditorAdapter {
   language::SourceManager &CodiraSrcMgr;
-  clang::SourceManager &ClangSrcMgr;
+  language::Core::SourceManager &ClangSrcMgr;
 
   /// This holds a mapping of identical buffers, one that exist in the
   /// CodiraSrcMgr and one that exists in the ClangSrcMgr.
   ///
   /// This is marked mutable because it is lazily populated internally
   /// in the `getClangFileIDForCodiraBufferID` method below.
-  mutable toolchain::SmallDenseMap<unsigned, clang::FileID> CodiraToClangBufferMap;
+  mutable toolchain::SmallDenseMap<unsigned, language::Core::FileID> CodiraToClangBufferMap;
 
-  /// Tracks a history of edits outside of the clang::edit::Commit collector
+  /// Tracks a history of edits outside of the language::Core::edit::Commit collector
   /// below. That doesn't handle duplicate or redundant changes.
   mutable toolchain::SmallSet<Replacement, 32> Replacements;
 
@@ -62,20 +62,20 @@ class EditorAdapter {
   /// incompatibilities, such as those due to macro expansions, but we don't
   /// have macros in Codira. However, as a temporary adapter API, we use this
   /// to keep things simple.
-  clang::edit::Commit Edits;
+  language::Core::edit::Commit Edits;
 
   /// Translate a Codira SourceLoc using the CodiraSrcMgr to a
-  /// clang::SourceLocation using the ClangSrcMgr.
-  clang::SourceLocation translateSourceLoc(SourceLoc CodiraLoc) const;
+  /// language::Core::SourceLocation using the ClangSrcMgr.
+  language::Core::SourceLocation translateSourceLoc(SourceLoc CodiraLoc) const;
 
   /// Translate a Codira SourceRange using the CodiraSrcMgr to a
-  /// clang::SourceRange using the ClangSrcMgr.
-  clang::SourceRange
+  /// language::Core::SourceRange using the ClangSrcMgr.
+  language::Core::SourceRange
   translateSourceRange(SourceRange CodiraSourceRange) const;
 
   /// Translate a Codira CharSourceRange using the CodiraSrcMgr to a
-  /// clang::CharSourceRange using the ClangSrcMgr.
-  clang::CharSourceRange
+  /// language::Core::CharSourceRange using the ClangSrcMgr.
+  language::Core::CharSourceRange
   translateCharSourceRange(CharSourceRange CodiraSourceSourceRange) const;
 
   /// Returns the buffer ID and absolute offset for a Codira SourceLoc.
@@ -87,13 +87,13 @@ class EditorAdapter {
 
 public:
   EditorAdapter(language::SourceManager &CodiraSrcMgr,
-                clang::SourceManager &ClangSrcMgr)
+                language::Core::SourceManager &ClangSrcMgr)
     : CodiraSrcMgr(CodiraSrcMgr), ClangSrcMgr(ClangSrcMgr), CacheEnabled(true),
-      Edits(clang::edit::Commit(ClangSrcMgr, clang::LangOptions())) {}
+      Edits(language::Core::edit::Commit(ClangSrcMgr, language::Core::LangOptions())) {}
 
   /// Lookup the BufferID in the CodiraToClangBufferMap. If it doesn't exist,
   /// copy the corresponding buffer into the ClangSrcMgr.
-  clang::FileID getClangFileIDForCodiraBufferID(unsigned BufferID) const;
+  language::Core::FileID getClangFileIDForCodiraBufferID(unsigned BufferID) const;
 
   bool insert(SourceLoc Loc, StringRef Text, bool AfterToken = false,
               bool BeforePreviousInsertions = false);
@@ -131,7 +131,7 @@ public:
   bool replaceWithInner(SourceRange TokenRange, SourceRange TokenInnerRange);
 
   /// Return the batched edits encountered so far.
-  const clang::edit::Commit &getEdits() const {
+  const language::Core::edit::Commit &getEdits() const {
     return Edits;
   }
   void enableCache() { CacheEnabled = true; }

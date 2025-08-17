@@ -182,7 +182,7 @@ class AndroidPlatform(Platform):
         return options
 
     def ndk_toolchain_path(self, args):
-        return '%s/toolchains/llvm/prebuilt/%s' % (
+        return '%s/toolchains/toolchain/prebuilt/%s' % (
             args.android_ndk, StdlibDeploymentTarget.host_target().name)
 
     def languagepm_config(self, args, output_dir, language_toolchain, resource_path):

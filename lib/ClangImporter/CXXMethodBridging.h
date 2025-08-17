@@ -2,7 +2,7 @@
 #define LANGUAGE_CXXMETHODBRIDGING_H
 
 #include "language/AST/Decl.h"
-#include "clang/AST/DeclCXX.h"
+#include "language/Core/AST/DeclCXX.h"
 #include "toolchain/ADT/StringRef.h"
 #include <string>
 
@@ -13,7 +13,7 @@ struct CXXMethodBridging {
 
   enum class NameKind { unknown, snake, lower, camel, title };
 
-  CXXMethodBridging(const clang::CXXMethodDecl *method) : method(method) {}
+  CXXMethodBridging(const language::Core::CXXMethodDecl *method) : method(method) {}
 
   Kind classify() {
     if (nameIsBlacklist())
@@ -157,7 +157,7 @@ struct CXXMethodBridging {
   }
 
 private:
-  const clang::CXXMethodDecl *method = nullptr;
+  const language::Core::CXXMethodDecl *method = nullptr;
 
   bool nameIsBlacklist() {
     auto loweredName = getClangName().lower();

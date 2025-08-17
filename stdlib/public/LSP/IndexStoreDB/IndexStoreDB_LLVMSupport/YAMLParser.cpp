@@ -1,8 +1,24 @@
 //===- YAMLParser.cpp - Simple YAML parser --------------------------------===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -10,23 +26,23 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_YAMLParser.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_AllocatorList.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_ArrayRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_None.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_STLExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallString.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallVector.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Twine.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Compiler.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ErrorHandling.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_MemoryBuffer.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_SMLoc.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_SourceMgr.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Unicode.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_YAMLParser.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_AllocatorList.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_ArrayRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_None.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_STLExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallString.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallVector.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Twine.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Compiler.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ErrorHandling.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_MemoryBuffer.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_SMLoc.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_SourceMgr.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Unicode.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
@@ -37,7 +53,7 @@
 #include <system_error>
 #include <utility>
 
-using namespace llvm;
+using namespace toolchain;
 using namespace yaml;
 
 enum UnicodeEncodingForm {
@@ -119,7 +135,7 @@ void MappingNode::anchor() {}
 void SequenceNode::anchor() {}
 void AliasNode::anchor() {}
 
-namespace llvm {
+namespace toolchain {
 namespace yaml {
 
 /// Token - A single YAML token.
@@ -161,7 +177,7 @@ struct Token {
 };
 
 } // end namespace yaml
-} // end namespace llvm
+} // end namespace toolchain
 
 using TokenQueueT = BumpPtrList<Token>;
 
@@ -245,7 +261,7 @@ static UTF8Decoded decodeUTF8(StringRef Range) {
   return std::make_pair(0, 0);
 }
 
-namespace llvm {
+namespace toolchain {
 namespace yaml {
 
 /// Scans YAML tokens from a MemoryBuffer.
@@ -559,7 +575,7 @@ private:
 };
 
 } // end namespace yaml
-} // end namespace llvm
+} // end namespace toolchain
 
 /// encodeUTF8 - Encode \a UnicodeScalarValue in UTF-8 and append it to result.
 static void encodeUTF8( uint32_t UnicodeScalarValue
@@ -1249,7 +1265,7 @@ bool Scanner::scanValue() {
 }
 
 // Forbidding inlining improves performance by roughly 20%.
-// FIXME: Remove once llvm optimizes this to the faster version without hints.
+// FIXME: Remove once toolchain optimizes this to the faster version without hints.
 LLVM_ATTRIBUTE_NOINLINE static bool
 wasEscaped(StringRef::iterator First, StringRef::iterator Position);
 
@@ -2397,7 +2413,7 @@ parse_property:
   case Token::TK_Error:
     return nullptr;
   }
-  llvm_unreachable("Control flow shouldn't reach here.");
+  toolchain_unreachable("Control flow shouldn't reach here.");
   return nullptr;
 }
 

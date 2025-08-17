@@ -26,7 +26,7 @@ import WinSDK
 
 /// A single compilation database command.
 ///
-/// See https://clang.llvm.org/docs/JSONCompilationDatabase.html
+/// See https://clang.toolchain.org/docs/JSONCompilationDatabase.html
 package struct CompilationDatabaseCompileCommand: Equatable, Codable {
   /// The working directory for the compilation.
   package var directory: String
@@ -108,7 +108,7 @@ package struct CompilationDatabaseCompileCommand: Equatable, Codable {
 /// ]
 /// ```
 ///
-/// See https://clang.llvm.org/docs/JSONCompilationDatabase.html
+/// See https://clang.toolchain.org/docs/JSONCompilationDatabase.html
 package struct JSONCompilationDatabase: Equatable, Codable {
   private var pathToCommands: [DocumentURI: [Integer]] = [:]
   var commands: [CompilationDatabaseCompileCommand] = []

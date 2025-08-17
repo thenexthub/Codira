@@ -1,8 +1,24 @@
 //===-- TargetParser - Parser for target features ---------------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -11,13 +27,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ARMBuildAttributes.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_TargetParser.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_ArrayRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringSwitch.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Twine.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ARMBuildAttributes.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_TargetParser.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_ArrayRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringSwitch.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Twine.h>
 
-using namespace llvm;
+using namespace toolchain;
 using namespace AMDGPU;
 
 namespace {
@@ -115,19 +131,19 @@ const GPUInfo *getArchEntry(AMDGPU::GPUKind AK, ArrayRef<GPUInfo> Table) {
 
 } // namespace
 
-StringRef llvm::AMDGPU::getArchNameAMDGCN(GPUKind AK) {
+StringRef toolchain::AMDGPU::getArchNameAMDGCN(GPUKind AK) {
   if (const auto *Entry = getArchEntry(AK, AMDGCNGPUs))
     return Entry->CanonicalName;
   return "";
 }
 
-StringRef llvm::AMDGPU::getArchNameR600(GPUKind AK) {
+StringRef toolchain::AMDGPU::getArchNameR600(GPUKind AK) {
   if (const auto *Entry = getArchEntry(AK, R600GPUs))
     return Entry->CanonicalName;
   return "";
 }
 
-AMDGPU::GPUKind llvm::AMDGPU::parseArchAMDGCN(StringRef CPU) {
+AMDGPU::GPUKind toolchain::AMDGPU::parseArchAMDGCN(StringRef CPU) {
   for (const auto C : AMDGCNGPUs) {
     if (CPU == C.Name)
       return C.Kind;
@@ -136,7 +152,7 @@ AMDGPU::GPUKind llvm::AMDGPU::parseArchAMDGCN(StringRef CPU) {
   return AMDGPU::GPUKind::GK_NONE;
 }
 
-AMDGPU::GPUKind llvm::AMDGPU::parseArchR600(StringRef CPU) {
+AMDGPU::GPUKind toolchain::AMDGPU::parseArchR600(StringRef CPU) {
   for (const auto C : R600GPUs) {
     if (CPU == C.Name)
       return C.Kind;

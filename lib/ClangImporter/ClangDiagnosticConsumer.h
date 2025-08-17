@@ -17,23 +17,23 @@
 #define LANGUAGE_CLANG_DIAGNOSTIC_CONSUMER_H
 
 #include "language/ClangImporter/ClangImporter.h"
-#include "clang/Basic/Diagnostic.h"
-#include "clang/Basic/IdentifierTable.h"
-#include "clang/Frontend/TextDiagnosticPrinter.h"
+#include "language/Core/Basic/Diagnostic.h"
+#include "language/Core/Basic/IdentifierTable.h"
+#include "language/Core/Frontend/TextDiagnosticPrinter.h"
 #include "toolchain/Support/MemoryBuffer.h"
 
 namespace language {
 
-class ClangDiagnosticConsumer : public clang::TextDiagnosticPrinter {
+class ClangDiagnosticConsumer : public language::Core::TextDiagnosticPrinter {
   struct LoadModuleRAII {
     ClangDiagnosticConsumer *Consumer;
-    clang::DiagnosticsEngine *Engine;
+    language::Core::DiagnosticsEngine *Engine;
     bool DiagEngineClearPriorToLookup;
 
   public:
     LoadModuleRAII(ClangDiagnosticConsumer &consumer,
-                   clang::DiagnosticsEngine &engine,
-                   const clang::IdentifierInfo *import)
+                   language::Core::DiagnosticsEngine &engine,
+                   const language::Core::IdentifierInfo *import)
         : Consumer(&consumer), Engine(&engine) {
       assert(import);
       assert(!Consumer->CurrentImport);
@@ -80,25 +80,25 @@ private:
 
   ClangImporter::Implementation &ImporterImpl;
 
-  const clang::IdentifierInfo *CurrentImport = nullptr;
+  const language::Core::IdentifierInfo *CurrentImport = nullptr;
   bool CurrentImportNotFound = false;
   SourceLoc DiagLoc;
   const bool DumpToStderr;
 
 public:
   ClangDiagnosticConsumer(ClangImporter::Implementation &impl,
-                          clang::DiagnosticOptions &clangDiagOptions,
+                          language::Core::DiagnosticOptions &clangDiagOptions,
                           bool dumpToStderr);
 
-  LoadModuleRAII handleImport(const clang::IdentifierInfo *name,
-                              clang::DiagnosticsEngine &engine,
+  LoadModuleRAII handleImport(const language::Core::IdentifierInfo *name,
+                              language::Core::DiagnosticsEngine &engine,
                               SourceLoc diagLoc) {
     DiagLoc = diagLoc;
     return LoadModuleRAII(*this, engine, name);
   }
 
-  void HandleDiagnostic(clang::DiagnosticsEngine::Level diagLevel,
-                        const clang::Diagnostic &info) override;
+  void HandleDiagnostic(language::Core::DiagnosticsEngine::Level diagLevel,
+                        const language::Core::Diagnostic &info) override;
 };
 
 } // end namespace language

@@ -34,7 +34,7 @@ class ConstantInt;
 class Value;
 }
 
-namespace clang {
+namespace language::Core {
 class PointerAuthSchema;
 }
 
@@ -168,7 +168,7 @@ public:
   toolchain::ConstantInt *getTypeDiscriminator(IRGenModule &IGM) const;
 };
 
-std::pair<clang::PointerAuthSchema, PointerAuthEntity>
+std::pair<language::Core::PointerAuthSchema, PointerAuthEntity>
 getCoroutineResumeFunctionPointerAuth(IRGenModule &IGM,
                                       CanSILFunctionType coroutineFnType);
 

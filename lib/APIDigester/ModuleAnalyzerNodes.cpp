@@ -1128,9 +1128,9 @@ static StringRef calculateLocation(SDKContext &SDKCtx, Decl *D) {
   auto &Ctx = D->getASTContext();
   auto &Importer = static_cast<ClangImporter &>(*Ctx.getClangModuleLoader());
 
-  clang::SourceManager &SM = Importer.getClangPreprocessor().getSourceManager();
+  language::Core::SourceManager &SM = Importer.getClangPreprocessor().getSourceManager();
   if (ClangNode CN = D->getClangNode()) {
-    clang::SourceLocation Loc = CN.getLocation();
+    language::Core::SourceLocation Loc = CN.getLocation();
     Loc = SM.getFileLoc(Loc);
     if (Loc.isValid())
       return SDKCtx.buffer(Loc.printToString(SM));
@@ -1785,18 +1785,18 @@ SDKContext::shouldIgnore(Decl *D, const Decl* Parent) const {
   }
 
   if (auto *ClangD = D->getClangDecl()) {
-    if (isa<clang::ObjCIvarDecl>(ClangD))
+    if (isa<language::Core::ObjCIvarDecl>(ClangD))
       return true;
-    if (isa<clang::FieldDecl>(ClangD))
+    if (isa<language::Core::FieldDecl>(ClangD))
       return true;
-    if (ClangD->hasAttr<clang::CodiraPrivateAttr>())
+    if (ClangD->hasAttr<language::Core::CodiraPrivateAttr>())
       return true;
 
     // If this decl is a synthesized member from a conformed clang protocol, we
     // should ignore this member to reduce redundancy.
     if (Parent &&
         !isa<language::ProtocolDecl>(Parent) &&
-        isa<clang::ObjCProtocolDecl>(ClangD->getDeclContext()))
+        isa<language::Core::ObjCProtocolDecl>(ClangD->getDeclContext()))
       return true;
   }
   return false;

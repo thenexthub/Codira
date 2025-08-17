@@ -77,7 +77,7 @@
 #include "language/Subsystems.h"
 #include "language/SymbolGraphGen/SymbolGraphOptions.h"
 
-#include "clang/Lex/Preprocessor.h"
+#include "language/Core/Lex/Preprocessor.h"
 
 #include "toolchain/ADT/IntrusiveRefCntPtr.h"
 #include "toolchain/ADT/STLExtras.h"
@@ -167,7 +167,7 @@ static bool writeSIL(SILModule &SM, const PrimarySpecificPaths &PSPs,
 static bool printAsClangHeaderIfNeeded(toolchain::vfs::OutputBackend &outputBackend,
     StringRef outputPath, ModuleDecl *M, StringRef bridgingHeader,
     const FrontendOptions &frontendOpts, const IRGenOptions &irGenOpts,
-    clang::HeaderSearch &clangHeaderSearchInfo) {
+    language::Core::HeaderSearch &clangHeaderSearchInfo) {
   if (outputPath.empty())
     return false;
   return withOutputPath(

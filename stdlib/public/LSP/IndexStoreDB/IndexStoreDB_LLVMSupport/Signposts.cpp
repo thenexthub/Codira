@@ -7,22 +7,22 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Signposts.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Timer.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Signposts.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Timer.h>
 
-#include <IndexStoreDB_LLVMSupport/llvm_Config_config.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_config.h>
 #if LLVM_SUPPORT_XCODE_SIGNPOSTS
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_DenseMap.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_DenseMap.h>
 #include <os/signpost.h>
 #endif // if LLVM_SUPPORT_XCODE_SIGNPOSTS
 
-using namespace llvm;
+using namespace toolchain;
 
 #if LLVM_SUPPORT_XCODE_SIGNPOSTS
 namespace {
 os_log_t *LogCreator() {
   os_log_t *X = new os_log_t;
-  *X = os_log_create("org.llvm.signposts", OS_LOG_CATEGORY_POINTS_OF_INTEREST);
+  *X = os_log_create("org.toolchain.signposts", OS_LOG_CATEGORY_POINTS_OF_INTEREST);
   return X;
 }
 void LogDeleter(os_log_t *X) {
@@ -31,7 +31,7 @@ void LogDeleter(os_log_t *X) {
 }
 } // end anonymous namespace
 
-namespace llvm {
+namespace toolchain {
 class SignpostEmitterImpl {
   using LogPtrTy =
       std::unique_ptr<os_log_t, std::function<void(os_log_t *)>>;
@@ -73,7 +73,7 @@ public:
     }
   }
 };
-} // end namespace llvm
+} // end namespace toolchain
 #endif // if LLVM_SUPPORT_XCODE_SIGNPOSTS
 
 #if LLVM_SUPPORT_XCODE_SIGNPOSTS

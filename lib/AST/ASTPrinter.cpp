@@ -59,13 +59,13 @@
 #include "language/Config.h"
 #include "language/Parse/Lexer.h"
 #include "language/Strings.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Attr.h"
-#include "clang/AST/Decl.h"
-#include "clang/AST/DeclObjC.h"
-#include "clang/Basic/Module.h"
-#include "clang/Basic/SourceManager.h"
-#include "clang/Lex/MacroInfo.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Attr.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/AST/DeclObjC.h"
+#include "language/Core/Basic/Module.h"
+#include "language/Core/Basic/SourceManager.h"
+#include "language/Core/Lex/MacroInfo.h"
 #include "toolchain/ADT/STLExtras.h"
 #include "toolchain/ADT/StringSwitch.h"
 #include "toolchain/Support/CommandLine.h"
@@ -496,7 +496,7 @@ void ASTPrinter::printEscapedStringLiteral(StringRef str) {
 // specialization.
 static bool isSpecializedCxxDecl(const Decl *D) {
   return D->hasClangNode() &&
-         isa<clang::ClassTemplateSpecializationDecl>(D->getClangDecl());
+         isa<language::Core::ClassTemplateSpecializationDecl>(D->getClangDecl());
 }
 
 void ASTPrinter::printTypeRef(Type T, const TypeDecl *RefTo, Identifier Name,
@@ -762,9 +762,9 @@ class PrintAST : public ASTVisitor<PrintAST> {
     return Line.str();
   }
 
-  void printClangDocumentationComment(const clang::Decl *D) {
+  void printClangDocumentationComment(const language::Core::Decl *D) {
     const auto &ClangContext = D->getASTContext();
-    const clang::RawComment *RC = ClangContext.getRawCommentForAnyRedecl(D);
+    const language::Core::RawComment *RC = ClangContext.getRawCommentForAnyRedecl(D);
     if (!RC)
       return;
 
@@ -2317,7 +2317,7 @@ bool ShouldPrintChecker::shouldPrint(const Decl *D,
   // Skip clang decls marked with the language_private attribute.
   if (Options.SkipCodiraPrivateClangDecls) {
     if (auto ClangD = D->getClangDecl()) {
-      if (ClangD->hasAttr<clang::CodiraPrivateAttr>())
+      if (ClangD->hasAttr<language::Core::CodiraPrivateAttr>())
         return false;
     }
   }
@@ -2360,19 +2360,19 @@ bool ShouldPrintChecker::shouldPrint(const Decl *D,
       if (auto clangDecl = VD->getClangDecl()) {
         // If the Clang declaration is from a protocol but was mirrored into
         // class or extension thereof, treat it as an override.
-        if (isa<clang::ObjCProtocolDecl>(clangDecl->getDeclContext()) &&
+        if (isa<language::Core::ObjCProtocolDecl>(clangDecl->getDeclContext()) &&
             VD->getDeclContext()->getSelfClassDecl())
           return false;
 
         // Check whether Clang considers it an override.
-        if (auto objcMethod = dyn_cast<clang::ObjCMethodDecl>(clangDecl)) {
-          SmallVector<const clang::ObjCMethodDecl *, 4> overriddenMethods;
+        if (auto objcMethod = dyn_cast<language::Core::ObjCMethodDecl>(clangDecl)) {
+          SmallVector<const language::Core::ObjCMethodDecl *, 4> overriddenMethods;
           objcMethod->getOverriddenMethods(overriddenMethods);
           if (!overriddenMethods.empty()) return false;
         } else if (auto objcProperty
-                     = dyn_cast<clang::ObjCPropertyDecl>(clangDecl)) {
+                     = dyn_cast<language::Core::ObjCPropertyDecl>(clangDecl)) {
           if (auto getter = objcProperty->getGetterMethodDecl()) {
-            SmallVector<const clang::ObjCMethodDecl *, 4> overriddenMethods;
+            SmallVector<const language::Core::ObjCMethodDecl *, 4> overriddenMethods;
             getter->getOverriddenMethods(overriddenMethods);
             if (!overriddenMethods.empty()) return false;
           }
@@ -2735,15 +2735,15 @@ void PrintAST::printAccessors(const AbstractStorageDecl *ASD) {
 static void addNamespaceMembers(Decl *decl,
                                 toolchain::SmallVector<Decl *, 16> &members) {
   auto &ctx = decl->getASTContext();
-  auto namespaceDecl = cast<clang::NamespaceDecl>(decl->getClangDecl());
+  auto namespaceDecl = cast<language::Core::NamespaceDecl>(decl->getClangDecl());
 
   // This is only to keep track of the members we've already seen.
   toolchain::SmallPtrSet<Decl *, 16> addedMembers;
   const auto *declOwner = namespaceDecl->getOwningModule();
   if (declOwner)
     declOwner = declOwner->getTopLevelModule();
-  auto Redecls = toolchain::SmallVector<clang::NamespaceDecl *, 2>(namespaceDecl->redecls());
-  std::stable_sort(Redecls.begin(), Redecls.end(), [&](clang::NamespaceDecl *LHS, clang::NamespaceDecl *RHS) {
+  auto Redecls = toolchain::SmallVector<language::Core::NamespaceDecl *, 2>(namespaceDecl->redecls());
+  std::stable_sort(Redecls.begin(), Redecls.end(), [&](language::Core::NamespaceDecl *LHS, language::Core::NamespaceDecl *RHS) {
     // A namespace redeclaration will not have an owning Clang module if it is
     // declared in a bridging header.
     if (!LHS->getOwningModule() || !RHS->getOwningModule())
@@ -2757,10 +2757,10 @@ static void addNamespaceMembers(Decl *decl,
         continue;
     }
     for (auto member : redecl->decls()) {
-      if (auto classTemplate = dyn_cast<clang::ClassTemplateDecl>(member)) {
+      if (auto classTemplate = dyn_cast<language::Core::ClassTemplateDecl>(member)) {
         // Add all specializations to a worklist so we don't accidentally mutate
         // the list of decls we're iterating over.
-        toolchain::SmallPtrSet<const clang::ClassTemplateSpecializationDecl *, 16> specWorklist;
+        toolchain::SmallPtrSet<const language::Core::ClassTemplateSpecializationDecl *, 16> specWorklist;
         for (auto spec : classTemplate->specializations())
           specWorklist.insert(spec);
         for (auto spec : specWorklist) {
@@ -2776,7 +2776,7 @@ static void addNamespaceMembers(Decl *decl,
             ctx.evaluator, ClangDirectLookupRequest({decl, redecl, name}), {});
 
         for (auto found : allResults) {
-          auto clangMember = found.get<clang::NamedDecl *>();
+          auto clangMember = found.get<language::Core::NamedDecl *>();
           if (auto importedDecl =
                   ctx.getClangModuleLoader()->importDeclDirectly(clangMember)) {
             if (addedMembers.insert(importedDecl).second) {
@@ -2801,7 +2801,7 @@ static void addNamespaceMembers(Decl *decl,
         }
       };
 
-      auto namedDecl = dyn_cast<clang::NamedDecl>(member);
+      auto namedDecl = dyn_cast<language::Core::NamedDecl>(member);
       if (!namedDecl)
         continue;
       auto name = ctx.getClangModuleLoader()->importName(namedDecl);
@@ -2811,7 +2811,7 @@ static void addNamespaceMembers(Decl *decl,
 
       // Unscoped enums could have their enumerators present
       // in the parent namespace.
-      if (auto *ed = dyn_cast<clang::EnumDecl>(member)) {
+      if (auto *ed = dyn_cast<language::Core::EnumDecl>(member)) {
         if (!ed->isScoped()) {
           for (const auto *ecd : ed->enumerators()) {
             auto name = ctx.getClangModuleLoader()->importName(ecd);
@@ -2856,7 +2856,7 @@ void PrintAST::printMembersOfDecl(Decl *D, bool needComma, bool openBracket,
         }
       }
     }
-    if (isa_and_nonnull<clang::NamespaceDecl>(D->getClangDecl()))
+    if (isa_and_nonnull<language::Core::NamespaceDecl>(D->getClangDecl()))
       addNamespaceMembers(D, Members);
   }
   printMembers(Members, needComma, openBracket, closeBracket, doIndent);
@@ -2989,7 +2989,7 @@ void PrintAST::printInherited(const Decl *decl) {
   });
 }
 
-static void getModuleEntities(const clang::Module *ClangMod,
+static void getModuleEntities(const language::Core::Module *ClangMod,
                               SmallVectorImpl<ModuleEntity> &ModuleEnts) {
   if (!ClangMod)
     return;
@@ -3690,7 +3690,7 @@ void PrintAST::visitAssociatedTypeDecl(AssociatedTypeDecl *decl) {
 
 void PrintAST::visitEnumDecl(EnumDecl *decl) {
   if (const auto *namespaceDecl =
-          dyn_cast_or_null<clang::NamespaceDecl>(decl->getClangDecl())) {
+          dyn_cast_or_null<language::Core::NamespaceDecl>(decl->getClangDecl())) {
     // Enum that correponds to the C++ namespace should only be printed once.
     if (!Printer.shouldPrintRedeclaredClangDecl(
             namespaceDecl->getFirstDecl()))
@@ -6007,7 +6007,7 @@ class TypePrinter : public TypeVisitor<TypePrinter, void, NonRecursivePrintOptio
   ///
   /// The returned map associates each visible Clang module with the
   /// corresponding Codira module.
-  const toolchain::DenseMap<const clang::Module *, ModuleDecl *> &
+  const toolchain::DenseMap<const language::Core::Module *, ModuleDecl *> &
   getVisibleClangModules() {
     return Options.CurrentModule->getVisibleClangModules(Options.InterfaceContentKind);
   }
@@ -6023,13 +6023,13 @@ class TypePrinter : public TypeVisitor<TypePrinter, void, NonRecursivePrintOptio
     // all of these modules may be visible. We therefore need to make sure we
     // choose a module that is visible from the current module. This is possible
     // only if we know what the current module is.
-    const clang::Decl *ClangDecl = Ty->getDecl()->getClangDecl();
+    const language::Core::Decl *ClangDecl = Ty->getDecl()->getClangDecl();
     if (ClangDecl && Options.CurrentModule) {
       for (auto *Redecl : ClangDecl->redecls()) {
         auto *owningModule = Redecl->getOwningModule();
         if (!owningModule)
           continue;
-        clang::Module *ClangModule = owningModule->getTopLevelModule();
+        language::Core::Module *ClangModule = owningModule->getTopLevelModule();
         if (!ClangModule)
           continue;
 
@@ -6437,7 +6437,7 @@ public:
       // Don't print the parent type if it's a reference to an inline C++
       // namespace.
       if (auto *enumTy = T->getAs<EnumType>()) {
-        if (const auto *namespaceDecl = dyn_cast_or_null<clang::NamespaceDecl>(
+        if (const auto *namespaceDecl = dyn_cast_or_null<language::Core::NamespaceDecl>(
                 enumTy->getDecl()->getClangDecl())) {
           if (namespaceDecl->isInline()) {
             if (auto parent = enumTy->getParent())

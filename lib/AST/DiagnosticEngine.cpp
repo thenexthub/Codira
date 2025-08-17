@@ -41,10 +41,10 @@
 #include "language/Config.h"
 #include "language/Localization/LocalizationFormat.h"
 #include "language/Parse/Lexer.h" // bad dependency
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Decl.h"
-#include "clang/AST/PrettyPrinter.h"
-#include "clang/AST/Type.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/AST/PrettyPrinter.h"
+#include "language/Core/AST/Type.h"
 #include "toolchain/ADT/SmallString.h"
 #include "toolchain/ADT/Twine.h"
 #include "toolchain/Support/CommandLine.h"
@@ -777,14 +777,14 @@ static bool typeSpellingIsAmbiguous(Type type,
   return false;
 }
 
-void language::printClangDeclName(const clang::NamedDecl *ND,
+void language::printClangDeclName(const language::Core::NamedDecl *ND,
                                toolchain::raw_ostream &os) {
   ND->getNameForDiagnostic(os, ND->getASTContext().getPrintingPolicy(), false);
 }
 
-void language::printClangTypeName(const clang::Type *Ty, toolchain::raw_ostream &os) {
-  clang::QualType::print(Ty, clang::Qualifiers(), os,
-                         clang::PrintingPolicy{clang::LangOptions()}, "");
+void language::printClangTypeName(const language::Core::Type *Ty, toolchain::raw_ostream &os) {
+  language::Core::QualType::print(Ty, language::Core::Qualifiers(), os,
+                         language::Core::PrintingPolicy{language::Core::LangOptions()}, "");
 }
 
 /// Format a single diagnostic argument and write it to the given

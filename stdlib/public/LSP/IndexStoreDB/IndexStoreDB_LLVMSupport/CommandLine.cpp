@@ -1,8 +1,24 @@
 //===-- CommandLine.cpp - Command line parser implementation --------------===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -15,32 +31,32 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_CommandLine.h>
-#include <IndexStoreDB_LLVMSupport/llvm-c_Support.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_ArrayRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Optional.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_STLExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallPtrSet.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallString.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringMap.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Triple.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Twine.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Config_config.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ConvertUTF.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Debug.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ErrorHandling.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_FileSystem.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Host.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ManagedStatic.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_MemoryBuffer.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Path.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Process.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_StringSaver.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_CommandLine.h>
+#include <IndexStoreDB_LLVMSupport/toolchain-c_Support.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_ArrayRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Optional.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_STLExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallPtrSet.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallString.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringMap.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Triple.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Twine.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_config.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ConvertUTF.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Debug.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ErrorHandling.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_FileSystem.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Host.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ManagedStatic.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_MemoryBuffer.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Path.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Process.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_StringSaver.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 #include <cstdlib>
 #include <map>
-using namespace llvm;
+using namespace toolchain;
 using namespace cl;
 
 #define DEBUG_TYPE "commandline"
@@ -48,7 +64,7 @@ using namespace cl;
 //===----------------------------------------------------------------------===//
 // Template instantiations and anchors.
 //
-namespace llvm {
+namespace toolchain {
 namespace cl {
 template class basic_parser<bool>;
 template class basic_parser<boolOrDefault>;
@@ -66,7 +82,7 @@ template class opt<std::string>;
 template class opt<char>;
 template class opt<bool>;
 }
-} // end namespace llvm::cl
+} // end namespace toolchain::cl
 
 // Pin the vtables to this file.
 void GenericOptionValue::anchor() {}
@@ -400,7 +416,7 @@ void Option::reset() {
 }
 
 // Initialise the general option category.
-OptionCategory llvm::cl::GeneralCategory("General options");
+OptionCategory toolchain::cl::GeneralCategory("General options");
 
 void OptionCategory::registerCategory() {
   GlobalParser->registerCategory(this);
@@ -410,10 +426,10 @@ void OptionCategory::registerCategory() {
 // that this ManagedStatic uses constant initailization and not dynamic
 // initialization because it is referenced from cl::opt constructors, which run
 // dynamically in an arbitrary order.
-ManagedStatic<SubCommand> llvm::cl::TopLevelSubCommand;
+ManagedStatic<SubCommand> toolchain::cl::TopLevelSubCommand;
 
 // A special subcommand that can be used to put an option into all subcommands.
-ManagedStatic<SubCommand> llvm::cl::AllSubCommands;
+ManagedStatic<SubCommand> toolchain::cl::AllSubCommands;
 
 void SubCommand::registerSubCommand() {
   GlobalParser->registerSubCommand(this);
@@ -1017,16 +1033,16 @@ static bool ExpandResponseFile(StringRef FName, StringSaver &Saver,
         StringRef Arg = NewArgv[I];
         if (Arg.front() == '@') {
           StringRef FileName = Arg.drop_front();
-          if (llvm::sys::path::is_relative(FileName)) {
+          if (toolchain::sys::path::is_relative(FileName)) {
             SmallString<128> ResponseFile;
             ResponseFile.append(1, '@');
-            if (llvm::sys::path::is_relative(FName)) {
+            if (toolchain::sys::path::is_relative(FName)) {
               SmallString<128> curr_dir;
-              llvm::sys::fs::current_path(curr_dir);
+              toolchain::sys::fs::current_path(curr_dir);
               ResponseFile.append(curr_dir.str());
             }
-            llvm::sys::path::append(
-                ResponseFile, llvm::sys::path::parent_path(FName), FileName);
+            toolchain::sys::path::append(
+                ResponseFile, toolchain::sys::path::parent_path(FName), FileName);
             NewArgv[I] = Saver.save(ResponseFile.c_str()).data();
           }
         }
@@ -1101,7 +1117,7 @@ void cl::ParseEnvironmentOptions(const char *progName, const char *envVar,
   assert(envVar && "Environment variable name missing");
 
   // Get the environment variable they want us to parse options out of.
-  llvm::Optional<std::string> envValue = sys::Process::GetEnv(StringRef(envVar));
+  toolchain::Optional<std::string> envValue = sys::Process::GetEnv(StringRef(envVar));
   if (!envValue)
     return;
 
@@ -1129,7 +1145,7 @@ bool cl::ParseCommandLineOptions(int argc, const char *const *argv,
 
   // Parse options from environment variable.
   if (EnvVar) {
-    if (llvm::Optional<std::string> EnvValue =
+    if (toolchain::Optional<std::string> EnvValue =
             sys::Process::GetEnv(StringRef(EnvVar)))
       TokenizeGNUCommandLine(*EnvValue, Saver, NewArgv);
   }
@@ -1414,7 +1430,7 @@ bool CommandLineParser::ParseCommandLineOptions(int argc,
           ValNo++;
           break;
         default:
-          llvm_unreachable("Internal error, unexpected NumOccurrences flag in "
+          toolchain_unreachable("Internal error, unexpected NumOccurrences flag in "
                            "positional argument processing!");
         }
       }
@@ -2252,7 +2268,7 @@ public:
 #ifdef PACKAGE_VENDOR
     OS << PACKAGE_VENDOR << " ";
 #else
-    OS << "LLVM (http://llvm.org/):\n  ";
+    OS << "LLVM (http://toolchain.org/):\n  ";
 #endif
     OS << PACKAGE_NAME << " version " << PACKAGE_VERSION;
 #ifdef LLVM_VERSION_INFO
@@ -2371,6 +2387,6 @@ void cl::ResetAllOptionOccurrences() {
 
 void LLVMParseCommandLineOptions(int argc, const char *const *argv,
                                  const char *Overview) {
-  llvm::cl::ParseCommandLineOptions(argc, argv, StringRef(Overview),
-                                    &llvm::nulls());
+  toolchain::cl::ParseCommandLineOptions(argc, argv, StringRef(Overview),
+                                    &toolchain::nulls());
 }

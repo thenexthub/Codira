@@ -28,7 +28,7 @@ using IntSpan = std::span<const int>;
 class Foo {
 public:
    Foo();
-   Foo(IntSpan sp [[clang::noescape]]);
+   Foo(IntSpan sp [[language::Core::noescape]]);
 };
 
 //--- method.code

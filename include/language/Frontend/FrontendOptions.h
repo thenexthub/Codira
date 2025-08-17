@@ -22,7 +22,7 @@
 #include "language/Basic/Version.h"
 #include "language/Frontend/FrontendInputsAndOutputs.h"
 #include "language/Frontend/InputFile.h"
-#include "clang/CAS/CASOptions.h"
+#include "language/Core/CAS/CASOptions.h"
 #include "toolchain/ADT/Hashing.h"
 #include "toolchain/ADT/StringMap.h"
 #include "toolchain/MC/MCTargetOptions.h"

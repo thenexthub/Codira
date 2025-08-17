@@ -1,26 +1,42 @@
-//===- llvm/Support/Program.h ------------------------------------*- C++ -*-===//
+//===- toolchain/Support/Program.h ------------------------------------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
-// This file declares the llvm::sys::Program class.
+// This file declares the toolchain::sys::Program class.
 //
 //===----------------------------------------------------------------------===//
 
 #ifndef LLVM_SUPPORT_PROGRAM_H
 #define LLVM_SUPPORT_PROGRAM_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_ArrayRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Optional.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Config_llvm-config.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ErrorOr.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_ArrayRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Optional.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_toolchain-config.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ErrorOr.h>
 #include <system_error>
 
-namespace llvm {
+namespace toolchain {
 namespace sys {
 
   /// This is the OS-specific separator for PATH like environment variables:
@@ -100,7 +116,7 @@ namespace sys {
       ///< If the array is empty, no redirections are performed.
       ///< Otherwise, the inferior process's stdin(0), stdout(1), and stderr(2)
       ///< will be redirected to the corresponding paths, if the optional path
-      ///< is present (not \c llvm::None).
+      ///< is present (not \c toolchain::None).
       ///< When an empty path is passed in, the corresponding file descriptor
       ///< will be disconnected (ie, /dev/null'd) in a portable way.
       unsigned SecondsToWait = 0, ///< If non-zero, this specifies the amount

@@ -23,13 +23,13 @@
 #include "toolchain/IR/DerivedTypes.h"
 #include "toolchain/IR/GlobalVariable.h"
 #include "toolchain/IR/Instructions.h"
-#include "clang/CodeGen/ConstantInitBuilder.h"
+#include "language/Core/CodeGen/ConstantInitBuilder.h"
 
 #include "Address.h"
 #include "IRGenModule.h"
 #include "IRGenFunction.h"
 
-namespace clang {
+namespace language::Core {
 class PointerAuthSchema;
 }
 
@@ -51,7 +51,7 @@ struct ConstantInitBuilderTraits {
 
 /// A Codira customization of Clang's ConstantInitBuilder.
 class ConstantInitBuilder
-    : public clang::CodeGen::ConstantInitBuilderTemplateBase<
+    : public language::Core::CodeGen::ConstantInitBuilderTemplateBase<
                                                     ConstantInitBuilderTraits> {
 public:
   IRGenModule &IGM;
@@ -61,8 +61,8 @@ public:
 };
 
 class ConstantAggregateBuilderBase
-       : public clang::CodeGen::ConstantAggregateBuilderBase {
-  using super = clang::CodeGen::ConstantAggregateBuilderBase;
+       : public language::Core::CodeGen::ConstantAggregateBuilderBase {
+  using super = language::Core::CodeGen::ConstantAggregateBuilderBase;
 protected:
   ConstantAggregateBuilderBase(ConstantInitBuilder &builder,
                                ConstantAggregateBuilderBase *parent)
@@ -154,11 +154,11 @@ public:
 
   using super::addSignedPointer;
   void addSignedPointer(toolchain::Constant *pointer,
-                        const clang::PointerAuthSchema &schema,
+                        const language::Core::PointerAuthSchema &schema,
                         const PointerAuthEntity &entity);
 
   void addSignedPointer(toolchain::Constant *pointer,
-                        const clang::PointerAuthSchema &schema,
+                        const language::Core::PointerAuthSchema &schema,
                         uint16_t otherDiscriminator);
 
   /// Add a UniqueHash metadata structure to this builder which stores
@@ -167,7 +167,7 @@ public:
 };
 
 class ConstantArrayBuilder
-    : public clang::CodeGen::ConstantArrayBuilderTemplateBase<
+    : public language::Core::CodeGen::ConstantArrayBuilderTemplateBase<
                                                     ConstantInitBuilderTraits> {
 private:
   toolchain::Type *EltTy;
@@ -192,7 +192,7 @@ public:
 };
 
 class ConstantStructBuilder
-    : public clang::CodeGen::ConstantStructBuilderTemplateBase<
+    : public language::Core::CodeGen::ConstantStructBuilderTemplateBase<
                                                     ConstantInitBuilderTraits> {
 public:
   template <class... As>

@@ -1,10 +1,10 @@
 #ifndef LLVM_SUPPORT_REVERSEITERATION_H
 #define LLVM_SUPPORT_REVERSEITERATION_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_Config_abi-breaking.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_PointerLikeTypeTraits.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_abi-breaking.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_PointerLikeTypeTraits.h>
 
-namespace llvm {
+namespace toolchain {
 
 template<class T = void *>
 bool shouldReverseIterate() {

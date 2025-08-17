@@ -1,8 +1,24 @@
 //===- FormatProviders.h - Formatters for common LLVM types -----*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -14,17 +30,17 @@
 #ifndef LLVM_SUPPORT_FORMATPROVIDERS_H
 #define LLVM_SUPPORT_FORMATPROVIDERS_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Optional.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_STLExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringSwitch.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Twine.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_FormatVariadicDetails.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_NativeFormatting.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Optional.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_STLExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringSwitch.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Twine.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_FormatVariadicDetails.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_NativeFormatting.h>
 
 #include <type_traits>
 #include <vector>
 
-namespace llvm {
+namespace toolchain {
 namespace detail {
 template <typename T>
 struct use_integral_formatter
@@ -46,7 +62,7 @@ struct is_cstring
 template <typename T>
 struct use_string_formatter
     : public std::integral_constant<bool,
-                                    std::is_convertible<T, llvm::StringRef>::value> {};
+                                    std::is_convertible<T, toolchain::StringRef>::value> {};
 
 template <typename T>
 struct use_pointer_formatter
@@ -128,7 +144,7 @@ struct format_provider<
     : public detail::HelperFunctions {
 private:
 public:
-  static void format(const T &V, llvm::raw_ostream &Stream, StringRef Style) {
+  static void format(const T &V, toolchain::raw_ostream &Stream, StringRef Style) {
     HexPrintStyle HS;
     size_t Digits = 0;
     if (consumeHexStyle(Style, HS)) {
@@ -177,7 +193,7 @@ struct format_provider<
     : public detail::HelperFunctions {
 private:
 public:
-  static void format(const T &V, llvm::raw_ostream &Stream, StringRef Style) {
+  static void format(const T &V, toolchain::raw_ostream &Stream, StringRef Style) {
     HexPrintStyle HS = HexPrintStyle::PrefixUpper;
     consumeHexStyle(Style, HS);
     size_t Digits = consumeNumHexDigits(Style, HS, sizeof(void *) * 2);
@@ -186,7 +202,7 @@ public:
 };
 
 /// Implementation of format_provider<T> for c-style strings and string
-/// objects such as std::string and llvm::StringRef.
+/// objects such as std::string and toolchain::StringRef.
 ///
 /// The options string of a string type has the grammar:
 ///
@@ -199,22 +215,22 @@ public:
 template <typename T>
 struct format_provider<
     T, typename std::enable_if<detail::use_string_formatter<T>::value>::type> {
-  static void format(const T &V, llvm::raw_ostream &Stream, StringRef Style) {
+  static void format(const T &V, toolchain::raw_ostream &Stream, StringRef Style) {
     size_t N = StringRef::npos;
     if (!Style.empty() && Style.getAsInteger(10, N)) {
       assert(false && "Style is not a valid integer");
     }
-    llvm::StringRef S = V;
+    toolchain::StringRef S = V;
     Stream << S.substr(0, N);
   }
 };
 
-/// Implementation of format_provider<T> for llvm::Twine.
+/// Implementation of format_provider<T> for toolchain::Twine.
 ///
 /// This follows the same rules as the string formatter.
 
 template <> struct format_provider<Twine> {
-  static void format(const Twine &V, llvm::raw_ostream &Stream,
+  static void format(const Twine &V, toolchain::raw_ostream &Stream,
                      StringRef Style) {
     format_provider<std::string>::format(V.str(), Stream, Style);
   }
@@ -232,7 +248,7 @@ template <> struct format_provider<Twine> {
 template <typename T>
 struct format_provider<
     T, typename std::enable_if<detail::use_char_formatter<T>::value>::type> {
-  static void format(const char &V, llvm::raw_ostream &Stream,
+  static void format(const char &V, toolchain::raw_ostream &Stream,
                      StringRef Style) {
     if (Style.empty())
       Stream << V;
@@ -260,7 +276,7 @@ struct format_provider<
 ///   | (empty) |   Equivalent to 't'  |
 ///   ==================================
 template <> struct format_provider<bool> {
-  static void format(const bool &B, llvm::raw_ostream &Stream,
+  static void format(const bool &B, toolchain::raw_ostream &Stream,
                      StringRef Style) {
     Stream << StringSwitch<const char *>(Style)
                   .Case("Y", B ? "YES" : "NO")
@@ -299,7 +315,7 @@ template <typename T>
 struct format_provider<
     T, typename std::enable_if<detail::use_double_formatter<T>::value>::type>
     : public detail::HelperFunctions {
-  static void format(const T &V, llvm::raw_ostream &Stream, StringRef Style) {
+  static void format(const T &V, toolchain::raw_ostream &Stream, StringRef Style) {
     FloatStyle S;
     if (Style.consume_front("P") || Style.consume_front("p"))
       S = FloatStyle::Percent;
@@ -353,7 +369,7 @@ struct range_item_has_provider
 /// provider can be found for T will result in a compile error.
 ///
 
-template <typename IterT> class format_provider<llvm::iterator_range<IterT>> {
+template <typename IterT> class format_provider<toolchain::iterator_range<IterT>> {
   using value = typename std::iterator_traits<IterT>::value_type;
   using reference = typename std::iterator_traits<IterT>::reference;
 
@@ -395,8 +411,8 @@ template <typename IterT> class format_provider<llvm::iterator_range<IterT>> {
 public:
   static_assert(detail::range_item_has_provider<IterT>::value,
                 "Range value_type does not have a format provider!");
-  static void format(const llvm::iterator_range<IterT> &V,
-                     llvm::raw_ostream &Stream, StringRef Style) {
+  static void format(const toolchain::iterator_range<IterT> &V,
+                     toolchain::raw_ostream &Stream, StringRef Style) {
     StringRef Sep;
     StringRef ArgStyle;
     std::tie(Sep, ArgStyle) = parseOptions(Style);

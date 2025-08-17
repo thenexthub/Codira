@@ -36,17 +36,17 @@
 #include "language/Runtime/RuntimeFnWrappersGen.h"
 #include "language/Strings.h"
 #include "language/Subsystems.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/Basic/CharInfo.h"
-#include "clang/Basic/TargetInfo.h"
-#include "clang/CodeGen/CodeGenABITypes.h"
-#include "clang/CodeGen/ModuleBuilder.h"
-#include "clang/CodeGen/CodiraCallingConv.h"
-#include "clang/Frontend/CompilerInstance.h"
-#include "clang/Lex/HeaderSearch.h"
-#include "clang/Lex/HeaderSearchOptions.h"
-#include "clang/Lex/Preprocessor.h"
-#include "clang/Lex/PreprocessorOptions.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/Basic/CharInfo.h"
+#include "language/Core/Basic/TargetInfo.h"
+#include "language/Core/CodeGen/CodeGenABITypes.h"
+#include "language/Core/CodeGen/ModuleBuilder.h"
+#include "language/Core/CodeGen/CodiraCallingConv.h"
+#include "language/Core/Frontend/CompilerInstance.h"
+#include "language/Core/Lex/HeaderSearch.h"
+#include "language/Core/Lex/HeaderSearchOptions.h"
+#include "language/Core/Lex/Preprocessor.h"
+#include "language/Core/Lex/PreprocessorOptions.h"
 #include "toolchain/ADT/ArrayRef.h"
 #include "toolchain/ADT/PointerUnion.h"
 #include "toolchain/Frontend/Debug/Options.h"
@@ -100,7 +100,7 @@ toolchain::StructType *IRGenModule::createTransientStructType(
   return createStructType(*this, name, types, packed);
 }
 
-static clang::CodeGenerator *createClangCodeGenerator(ASTContext &Context,
+static language::Core::CodeGenerator *createClangCodeGenerator(ASTContext &Context,
                                                       toolchain::LLVMContext &LLVMContext,
                                                       const IRGenOptions &Opts,
                                                       StringRef ModuleName,
@@ -162,7 +162,7 @@ static clang::CodeGenerator *createClangCodeGenerator(ASTContext &Context,
                   .getHeaderSearchInfo()
                   .getHeaderSearchOpts();
   auto &PPO = Importer->getClangPreprocessor().getPreprocessorOpts();
-  auto *ClangCodeGen = clang::CreateLLVMCodeGen(ClangContext.getDiagnostics(),
+  auto *ClangCodeGen = language::Core::CreateLLVMCodeGen(ClangContext.getDiagnostics(),
                                                 ModuleName, &VFS, HSI, PPO, CGO,
                                                 LLVMContext);
   ClangCodeGen->Initialize(ClangContext, CGTI);
@@ -216,13 +216,13 @@ static void sanityCheckStdlib(IRGenModule &IGM) {
 }
 #endif
 
-static bool getIsCoroCCSupported(const clang::TargetInfo &targetInfo,
+static bool getIsCoroCCSupported(const language::Core::TargetInfo &targetInfo,
                                  const IRGenOptions &IRGenOpts) {
   // TODO: CoroutineAccessors: The one caller of this function should just be
-  //                           rewritten as follows (once clang::CC_CoroAsync is
+  //                           rewritten as follows (once language::Core::CC_CoroAsync is
   //                           defined).
   //
-  // clangASTContext.getTargetInfo().checkCallingConvention(clang::CC_CoroAsync)
+  // clangASTContext.getTargetInfo().checkCallingConvention(language::Core::CC_CoroAsync)
   if (targetInfo.getTriple().isAArch64() && IRGenOpts.UseCoroCCArm64) {
     return true;
   }
@@ -613,8 +613,8 @@ IRGenModule::IRGenModule(IRGenerator &irgen,
   DefaultCC = LANGUAGE_DEFAULT_TOOLCHAIN_CC;
 
   bool isCodiraCCSupported =
-    clangASTContext.getTargetInfo().checkCallingConvention(clang::CC_Codira)
-    == clang::TargetInfo::CCCR_OK;
+    clangASTContext.getTargetInfo().checkCallingConvention(language::Core::CC_Codira)
+    == language::Core::TargetInfo::CCCR_OK;
   if (isCodiraCCSupported) {
     CodiraCC = toolchain::CallingConv::Codira;
   } else {
@@ -622,8 +622,8 @@ IRGenModule::IRGenModule(IRGenerator &irgen,
   }
 
   bool isAsyncCCSupported =
-    clangASTContext.getTargetInfo().checkCallingConvention(clang::CC_CodiraAsync)
-    == clang::TargetInfo::CCCR_OK;
+    clangASTContext.getTargetInfo().checkCallingConvention(language::Core::CC_CodiraAsync)
+    == language::Core::TargetInfo::CCCR_OK;
   if (isAsyncCCSupported) {
     CodiraAsyncCC = toolchain::CallingConv::CodiraTail;
     AsyncTailCallKind = toolchain::CallInst::TCK_MustTail;
@@ -669,7 +669,7 @@ IRGenModule::IRGenModule(IRGenerator &irgen,
     ShouldUseCodiraError = false;
   } else {
     ShouldUseCodiraError =
-        clang::CodeGen::languagecall::isCodiraErrorLoweredInRegister(
+        language::Core::CodeGen::languagecall::isCodiraErrorLoweredInRegister(
             ClangCodeGen->CGM());
   }
 
@@ -1443,7 +1443,7 @@ Lowering::TypeConverter &IRGenModule::getSILTypes() const {
   return IRGen.SIL.Types;
 }
 
-clang::CodeGen::CodeGenModule &IRGenModule::getClangCGM() const {
+language::Core::CodeGen::CodeGenModule &IRGenModule::getClangCGM() const {
   return ClangCodeGen->CGM();
 }
 
@@ -1597,7 +1597,7 @@ void IRGenModule::constructInitialFnAttributes(
     toolchain::AttrBuilder &Attrs, OptimizationMode FuncOptMode,
     StackProtectorMode stackProtector) {
   // Add the default attributes for the Clang configuration.
-  clang::CodeGen::addDefaultFunctionDefinitionAttributes(getClangCGM(), Attrs);
+  language::Core::CodeGen::addDefaultFunctionDefinitionAttributes(getClangCGM(), Attrs);
 
   // Add/remove MinSize based on the appropriate setting.
   if (FuncOptMode == OptimizationMode::NotSet)
@@ -1640,7 +1640,7 @@ toolchain::Constant *IRGenModule::getOpaquePtr(toolchain::Constant *ptr) {
 }
 
 static void appendEncodedName(raw_ostream &os, StringRef name) {
-  if (clang::isValidAsciiIdentifier(name)) {
+  if (language::Core::isValidAsciiIdentifier(name)) {
     os << "_" << name;
   } else {
     for (auto c : name)
@@ -2446,7 +2446,7 @@ bool language::writeEmptyOutputFilesFor(
       continue;
 
     std::unique_ptr<toolchain::LLVMContext> toolchainContext(new toolchain::LLVMContext());
-    std::unique_ptr<clang::CodeGenerator> clangCodeGen(
+    std::unique_ptr<language::Core::CodeGenerator> clangCodeGen(
       createClangCodeGenerator(const_cast<ASTContext&>(Context),
                                *toolchainContext, IRGenOpts, fileName, ""));
     auto *toolchainModule = clangCodeGen->GetModule();
@@ -2459,7 +2459,7 @@ bool language::writeEmptyOutputFilesFor(
     // Add LLVM module flags.
     auto &clangASTContext = clangImporter->getClangASTContext();
     clangCodeGen->HandleTranslationUnit(
-        const_cast<clang::ASTContext &>(clangASTContext));
+        const_cast<language::Core::ASTContext &>(clangASTContext));
 
     emitCodiraVersionNumberIntoModule(toolchainModule);
 

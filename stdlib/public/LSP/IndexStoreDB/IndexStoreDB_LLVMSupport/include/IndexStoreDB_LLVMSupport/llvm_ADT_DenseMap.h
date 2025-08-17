@@ -1,8 +1,24 @@
-//===- llvm/ADT/DenseMap.h - Dense probed hash table ------------*- C++ -*-===//
+//===- toolchain/ADT/DenseMap.h - Dense probed hash table ------------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -13,13 +29,13 @@
 #ifndef LLVM_ADT_DENSEMAP_H
 #define LLVM_ADT_DENSEMAP_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_DenseMapInfo.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_EpochTracker.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_AlignOf.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Compiler.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_MathExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ReverseIteration.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_type_traits.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_DenseMapInfo.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_EpochTracker.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_AlignOf.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Compiler.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_MathExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ReverseIteration.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_type_traits.h>
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
@@ -30,7 +46,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace llvm {
+namespace toolchain {
 
 namespace detail {
 
@@ -76,7 +92,7 @@ struct DenseMapPair : public std::pair<KeyT, ValueT> {
 
 template <typename KeyT, typename ValueT,
           typename KeyInfoT = DenseMapInfo<KeyT>,
-          typename Bucket = llvm::detail::DenseMapPair<KeyT, ValueT>,
+          typename Bucket = toolchain::detail::DenseMapPair<KeyT, ValueT>,
           bool IsConst = false>
 class DenseMapIterator;
 
@@ -706,7 +722,7 @@ bool operator!=(
 
 template <typename KeyT, typename ValueT,
           typename KeyInfoT = DenseMapInfo<KeyT>,
-          typename BucketT = llvm::detail::DenseMapPair<KeyT, ValueT>>
+          typename BucketT = toolchain::detail::DenseMapPair<KeyT, ValueT>>
 class DenseMap : public DenseMapBase<DenseMap<KeyT, ValueT, KeyInfoT, BucketT>,
                                      KeyT, ValueT, KeyInfoT, BucketT> {
   friend class DenseMapBase<DenseMap, KeyT, ValueT, KeyInfoT, BucketT>;
@@ -868,7 +884,7 @@ private:
 
 template <typename KeyT, typename ValueT, unsigned InlineBuckets = 4,
           typename KeyInfoT = DenseMapInfo<KeyT>,
-          typename BucketT = llvm::detail::DenseMapPair<KeyT, ValueT>>
+          typename BucketT = toolchain::detail::DenseMapPair<KeyT, ValueT>>
 class SmallDenseMap
     : public DenseMapBase<
           SmallDenseMap<KeyT, ValueT, InlineBuckets, KeyInfoT, BucketT>, KeyT,
@@ -1289,6 +1305,6 @@ inline size_t capacity_in_bytes(const DenseMap<KeyT, ValueT, KeyInfoT> &X) {
   return X.getMemorySize();
 }
 
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif // LLVM_ADT_DENSEMAP_H

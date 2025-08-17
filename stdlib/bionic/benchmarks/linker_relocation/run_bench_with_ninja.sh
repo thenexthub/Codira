@@ -48,7 +48,7 @@ Misc:
   --keep-tmp-dir    Don't delete the temporary directory on exit
 
 Examples:
-  --cc "\$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang
+  --cc "\$NDK/toolchains/toolchain/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang
         -fuse-ld=lld -Wl,--pack-dyn-relocs=android+relr -Wl,--use-android-relr-tags"
 EOF
   exit 0

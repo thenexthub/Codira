@@ -4113,7 +4113,7 @@ void MissingMemberFailure::diagnoseUnsafeCxxMethod(SourceLoc loc,
 
   if (baseType->getAnyNominal() == nullptr ||
       // Don't waist time on non-cxx-methods.
-      !isa_and_nonnull<clang::CXXRecordDecl>(
+      !isa_and_nonnull<language::Core::CXXRecordDecl>(
           baseType->getAnyNominal()->getClangDecl()))
     return;
 
@@ -4122,7 +4122,7 @@ void MissingMemberFailure::diagnoseUnsafeCxxMethod(SourceLoc loc,
   for (auto found :
        baseType->getAnyNominal()->lookupDirect(DeclBaseName(unsafeId))) {
     auto cxxMethod =
-        dyn_cast_or_null<clang::CXXMethodDecl>(found->getClangDecl());
+        dyn_cast_or_null<language::Core::CXXMethodDecl>(found->getClangDecl());
     if (!cxxMethod)
       continue;
 
@@ -4242,7 +4242,7 @@ void MissingMemberFailure::diagnoseUnsafeCxxMethod(SourceLoc loc,
             .fixItInsert(methodCodiraLoc, " LANGUAGE_RETURNS_INDEPENDENT_VALUE ");
       }
     } else if (cxxMethod->getReturnType()->isRecordType()) {
-      if (auto cxxRecord = dyn_cast<clang::CXXRecordDecl>(
+      if (auto cxxRecord = dyn_cast<language::Core::CXXRecordDecl>(
               cxxMethod->getReturnType()->getAsRecordDecl())) {
         // `importerImpl` is set to nullptr here to avoid diagnostics during
         // this CxxRecordSemantics evaluation.

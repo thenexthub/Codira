@@ -1058,7 +1058,7 @@ bool FieldSensitivePrunedLiveRange<LivenessWithDefs>::isWithinBoundary(
       isLive = true;
       PRUNED_LIVENESS_LOG(toolchain::dbgs()
                  << "        LiveOut, but a def block... searching block!\n");
-      [[clang::fallthrough]];
+      [[language::Core::fallthrough]];
     case FieldSensitivePrunedLiveBlocks::LiveWithin:
       bool shouldContinue = false;
       if (!isLive)

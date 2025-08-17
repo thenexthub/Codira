@@ -17,7 +17,7 @@
 #define INDEXSTOREDB_INDEX_INDEXSYSTEMDELEGATE_H
 
 #include <IndexStoreDB_Index/StoreUnitInfo.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Chrono.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Chrono.h>
 #include <memory>
 #include <string>
 
@@ -33,19 +33,19 @@ typedef std::shared_ptr<OutOfDateFileTrigger> OutOfDateFileTriggerRef;
 /// about the file that triggered the unit to become out-of-date.
 class OutOfDateFileTrigger final {
   std::string FilePath;
-  llvm::sys::TimePoint<> ModTime;
+  toolchain::sys::TimePoint<> ModTime;
 
 public:
   explicit OutOfDateFileTrigger(StringRef filePath,
-                                llvm::sys::TimePoint<> modTime)
+                                toolchain::sys::TimePoint<> modTime)
       : FilePath(filePath), ModTime(modTime) {}
 
   static OutOfDateFileTriggerRef create(StringRef filePath,
-                                        llvm::sys::TimePoint<> modTime) {
+                                        toolchain::sys::TimePoint<> modTime) {
     return std::make_shared<OutOfDateFileTrigger>(filePath, modTime);
   }
 
-  llvm::sys::TimePoint<> getModTime() const { return ModTime; }
+  toolchain::sys::TimePoint<> getModTime() const { return ModTime; }
 
   /// Returns a reference to the stored file path. Note this has the same
   /// lifetime as the trigger.

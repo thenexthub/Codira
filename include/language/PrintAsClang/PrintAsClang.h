@@ -21,7 +21,7 @@
 #include "language/AST/AttrKind.h"
 #include "language/AST/Identifier.h"
 
-namespace clang {
+namespace language::Core {
 class HeaderSearch;
 }
 
@@ -45,7 +45,7 @@ bool printAsClangHeader(raw_ostream &out, ModuleDecl *M,
                         StringRef bridgingHeader,
                         const FrontendOptions &frontendOpts,
                         const IRGenOptions &irGenOpts,
-                        clang::HeaderSearch &headerSearchInfo);
+                        language::Core::HeaderSearch &headerSearchInfo);
 }
 
 #endif

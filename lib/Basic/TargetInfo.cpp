@@ -20,7 +20,7 @@
 #include "language/Basic/StringExtras.h"
 #include "language/Frontend/Frontend.h"
 
-#include "clang/Basic/TargetInfo.h"
+#include "language/Core/Basic/TargetInfo.h"
 #include "toolchain/Support/raw_ostream.h"
 
 using namespace language;
@@ -149,17 +149,17 @@ void printTripleInfo(const CompilerInvocation &invocation,
   out << "    \"arch\": \"" << language::getMajorArchitectureName(triple)
       << "\",\n";
 
-  clang::DiagnosticsEngine DE{new clang::DiagnosticIDs(),
-                              new clang::DiagnosticOptions(),
-                              new clang::IgnoringDiagConsumer()};
-  std::shared_ptr<clang::TargetOptions> TO =
-      std::make_shared<clang::TargetOptions>();
+  language::Core::DiagnosticsEngine DE{new language::Core::DiagnosticIDs(),
+                              new language::Core::DiagnosticOptions(),
+                              new language::Core::IgnoringDiagConsumer()};
+  std::shared_ptr<language::Core::TargetOptions> TO =
+      std::make_shared<language::Core::TargetOptions>();
   TO->Triple = triple.str();
-  clang::TargetInfo *TI = clang::TargetInfo::CreateTargetInfo(DE, TO);
+  language::Core::TargetInfo *TI = language::Core::TargetInfo::CreateTargetInfo(DE, TO);
   out << "    \"pointerWidthInBits\": "
-      << TI->getPointerWidth(clang::LangAS::Default) << ",\n";
+      << TI->getPointerWidth(language::Core::LangAS::Default) << ",\n";
   out << "    \"pointerWidthInBytes\": "
-      << TI->getPointerWidth(clang::LangAS::Default) / TI->getCharWidth()
+      << TI->getPointerWidth(language::Core::LangAS::Default) / TI->getCharWidth()
       << ",\n";
 
   if (runtimeVersion) {

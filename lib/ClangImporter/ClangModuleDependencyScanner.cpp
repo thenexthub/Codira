@@ -23,12 +23,12 @@
 #include "language/Basic/SourceManager.h"
 #include "language/ClangImporter/ClangImporter.h"
 #include "language/Basic/Assertions.h"
-#include "clang/Basic/Diagnostic.h"
-#include "clang/CAS/CASOptions.h"
-#include "clang/Frontend/CompilerInvocation.h"
-#include "clang/Frontend/FrontendOptions.h"
-#include "clang/Tooling/DependencyScanning/DependencyScanningService.h"
-#include "clang/Tooling/DependencyScanning/DependencyScanningTool.h"
+#include "language/Core/Basic/Diagnostic.h"
+#include "language/Core/CAS/CASOptions.h"
+#include "language/Core/Frontend/CompilerInvocation.h"
+#include "language/Core/Frontend/FrontendOptions.h"
+#include "language/Core/Tooling/DependencyScanning/DependencyScanningService.h"
+#include "language/Core/Tooling/DependencyScanning/DependencyScanningTool.h"
 #include "toolchain/ADT/STLExtras.h"
 #include "toolchain/Support/Allocator.h"
 #include "toolchain/Support/FileSystem.h"
@@ -38,8 +38,8 @@
 
 using namespace language;
 
-using namespace clang::tooling;
-using namespace clang::tooling::dependencies;
+using namespace language::Core::tooling;
+using namespace language::Core::tooling::dependencies;
 
 static void addScannerPrefixMapperInvocationArguments(
     std::vector<std::string> &invocationArgStrs, ASTContext &ctx) {
@@ -88,8 +88,8 @@ std::vector<std::string> ClangImporter::getClangDepScanningInvocationArguments(
 
 ModuleDependencyVector ClangImporter::bridgeClangModuleDependencies(
     const ASTContext &ctx,
-    clang::tooling::dependencies::DependencyScanningTool &clangScanningTool,
-    clang::tooling::dependencies::ModuleDepsGraph &clangDependencies,
+    language::Core::tooling::dependencies::DependencyScanningTool &clangScanningTool,
+    language::Core::tooling::dependencies::ModuleDepsGraph &clangDependencies,
     LookupModuleOutputCallback lookupModuleOutput,
     RemapPathCallback callback) {
   ModuleDependencyVector result;
@@ -139,7 +139,7 @@ ModuleDependencyVector ClangImporter::bridgeClangModuleDependencies(
     invocation.getMutFrontendOpts().OutputFile.clear();
 
     // Reset CASOptions since that should be coming from language.
-    invocation.getMutCASOpts() = clang::CASOptions();
+    invocation.getMutCASOpts() = language::Core::CASOptions();
     invocation.getMutFrontendOpts().CASIncludeTreeID.clear();
 
     // FIXME: workaround for rdar://105684525: find the -ivfsoverlay option
@@ -208,7 +208,7 @@ ModuleDependencyVector ClangImporter::bridgeClangModuleDependencies(
 
 void ClangImporter::getBridgingHeaderOptions(
     const ASTContext &ctx,
-    const clang::tooling::dependencies::TranslationUnitDeps &deps,
+    const language::Core::tooling::dependencies::TranslationUnitDeps &deps,
     std::vector<std::string> &languageArgs) {
   auto addClangArg = [&](Twine arg) {
     languageArgs.push_back("-Xcc");
@@ -229,17 +229,17 @@ void ClangImporter::getBridgingHeaderOptions(
 
   // Round-trip clang args to canonicalize and clear the options that language
   // compiler doesn't need.
-  clang::CompilerInvocation depsInvocation;
-  clang::DiagnosticsEngine clangDiags(new clang::DiagnosticIDs(),
-                                      new clang::DiagnosticOptions(),
-                                      new clang::IgnoringDiagConsumer());
+  language::Core::CompilerInvocation depsInvocation;
+  language::Core::DiagnosticsEngine clangDiags(new language::Core::DiagnosticIDs(),
+                                      new language::Core::DiagnosticOptions(),
+                                      new language::Core::IgnoringDiagConsumer());
 
   toolchain::SmallVector<const char *> clangArgs;
   toolchain::for_each(deps.Commands[0].Arguments, [&](const std::string &Arg) {
     clangArgs.push_back(Arg.c_str());
   });
 
-  bool success = clang::CompilerInvocation::CreateFromArgs(
+  bool success = language::Core::CompilerInvocation::CreateFromArgs(
       depsInvocation, clangArgs, clangDiags);
   (void)success;
   assert(success && "clang option from dep scanner round trip failed");
@@ -247,7 +247,7 @@ void ClangImporter::getBridgingHeaderOptions(
   // Clear the cache key for module. The module key is computed from clang
   // invocation, not language invocation.
   depsInvocation.getFrontendOpts().ProgramAction =
-      clang::frontend::ActionKind::GeneratePCH;
+      language::Core::frontend::ActionKind::GeneratePCH;
   depsInvocation.getFrontendOpts().ModuleCacheKeys.clear();
   depsInvocation.getFrontendOpts().PathPrefixMappings.clear();
   depsInvocation.getFrontendOpts().OutputFile.clear();

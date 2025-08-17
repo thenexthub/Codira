@@ -36,7 +36,7 @@
 #include "language/SILOptimizer/PassManager/Passes.h"
 #include "language/Serialization/SerializationOptions.h"
 #include "language/Serialization/Validation.h"
-#include "clang/Basic/Module.h"
+#include "language/Core/Basic/Module.h"
 #include "toolchain/ADT/Hashing.h"
 #include "toolchain/ADT/SmallSet.h"
 #include "toolchain/ADT/StringSet.h"

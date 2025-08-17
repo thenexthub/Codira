@@ -34,11 +34,11 @@
 #include "language/Basic/Defer.h"
 #include "language/SIL/TypeLowering.h"
 #include "language/SIL/AbstractionPatternGenerators.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Attr.h"
-#include "clang/AST/DeclCXX.h"
-#include "clang/AST/DeclObjC.h"
-#include "clang/AST/PrettyPrinter.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Attr.h"
+#include "language/Core/AST/DeclCXX.h"
+#include "language/Core/AST/DeclObjC.h"
+#include "language/Core/AST/PrettyPrinter.h"
 #include "toolchain/Support/Debug.h"
 #include "toolchain/Support/ErrorHandling.h"
 
@@ -62,20 +62,20 @@ TypeConverter::getAbstractionPattern(SubscriptDecl *decl, bool isNonObjC) {
   return AbstractionPattern(sig, type);
 }
 
-static const clang::Type *getClangType(const clang::Decl *decl) {
-  if (auto valueDecl = dyn_cast<clang::ValueDecl>(decl)) {
+static const language::Core::Type *getClangType(const language::Core::Decl *decl) {
+  if (auto valueDecl = dyn_cast<language::Core::ValueDecl>(decl)) {
     return valueDecl->getType().getTypePtr();
   }
 
   // This should *really* be a ValueDecl.
-  return cast<clang::ObjCPropertyDecl>(decl)->getType().getTypePtr();
+  return cast<language::Core::ObjCPropertyDecl>(decl)->getType().getTypePtr();
 }
 
-static Bridgeability getClangDeclBridgeability(const clang::Decl *decl) {
+static Bridgeability getClangDeclBridgeability(const language::Core::Decl *decl) {
   // These declarations are always imported without bridging (for now).
-  if (isa<clang::VarDecl>(decl) ||
-      isa<clang::FieldDecl>(decl) ||
-      isa<clang::IndirectFieldDecl>(decl))
+  if (isa<language::Core::VarDecl>(decl) ||
+      isa<language::Core::FieldDecl>(decl) ||
+      isa<language::Core::IndirectFieldDecl>(decl))
     return Bridgeability::None;
 
   // Functions and methods always use normal bridging.
@@ -151,7 +151,7 @@ AbstractionPattern::EncodedForeignInfo::encode(
 }
 
 AbstractionPattern AbstractionPattern::getObjCMethod(
-    CanType origType, const clang::ObjCMethodDecl *method,
+    CanType origType, const language::Core::ObjCMethodDecl *method,
     const std::optional<ForeignErrorConvention> &foreignError,
     const std::optional<ForeignAsyncConvention> &foreignAsync) {
   auto errorInfo = EncodedForeignInfo::encode(foreignError, foreignAsync);
@@ -159,7 +159,7 @@ AbstractionPattern AbstractionPattern::getObjCMethod(
 }
 
 AbstractionPattern AbstractionPattern::getCurriedObjCMethod(
-    CanType origType, const clang::ObjCMethodDecl *method,
+    CanType origType, const language::Core::ObjCMethodDecl *method,
     const std::optional<ForeignErrorConvention> &foreignError,
     const std::optional<ForeignAsyncConvention> &foreignAsync) {
   auto errorInfo = EncodedForeignInfo::encode(foreignError, foreignAsync);
@@ -169,7 +169,7 @@ AbstractionPattern AbstractionPattern::getCurriedObjCMethod(
 AbstractionPattern
 AbstractionPattern::getCurriedCFunctionAsMethod(CanType origType,
                                          const AbstractFunctionDecl *function) {
-  auto clangFn = cast<clang::ValueDecl>(function->getClangDecl());
+  auto clangFn = cast<language::Core::ValueDecl>(function->getClangDecl());
   return getCurriedCFunctionAsMethod(origType,
                      clangFn->getType().getTypePtr(),
                      function->getImportAsMemberStatus());
@@ -178,7 +178,7 @@ AbstractionPattern::getCurriedCFunctionAsMethod(CanType origType,
 AbstractionPattern
 AbstractionPattern::getCurriedCXXMethod(CanType origType,
                                         const AbstractFunctionDecl *function) {
-  auto clangMethod = cast<clang::CXXMethodDecl>(function->getClangDecl());
+  auto clangMethod = cast<language::Core::CXXMethodDecl>(function->getClangDecl());
   return getCurriedCXXMethod(origType, clangMethod, function->getImportAsMemberStatus());
 }
 
@@ -441,31 +441,31 @@ bool AbstractionPattern::matchesTuple(CanType substType) const {
   toolchain_unreachable("bad kind");
 }
 
-static const clang::FunctionType *
-getClangFunctionType(const clang::Type *clangType) {
-  if (auto ptrTy = clangType->getAs<clang::PointerType>()) {
+static const language::Core::FunctionType *
+getClangFunctionType(const language::Core::Type *clangType) {
+  if (auto ptrTy = clangType->getAs<language::Core::PointerType>()) {
     clangType = ptrTy->getPointeeType().getTypePtr();
-  } else if (auto blockTy = clangType->getAs<clang::BlockPointerType>()) {
+  } else if (auto blockTy = clangType->getAs<language::Core::BlockPointerType>()) {
     clangType = blockTy->getPointeeType().getTypePtr();
-  } else if (auto refTy = clangType->getAs<clang::ReferenceType>()) {
+  } else if (auto refTy = clangType->getAs<language::Core::ReferenceType>()) {
     clangType = refTy->getPointeeType().getTypePtr();
   }
-  return clangType->castAs<clang::FunctionType>();
+  return clangType->castAs<language::Core::FunctionType>();
 }
 
 static
-const clang::Type *getClangFunctionParameterType(const clang::Type *ty,
+const language::Core::Type *getClangFunctionParameterType(const language::Core::Type *ty,
                                                  unsigned index) {
   // TODO: adjust for error type parameter.
 
   // If we're asking about parameters, we'd better have a FunctionProtoType.
-  auto fnType = getClangFunctionType(ty)->castAs<clang::FunctionProtoType>();
+  auto fnType = getClangFunctionType(ty)->castAs<language::Core::FunctionProtoType>();
   assert(index < fnType->getNumParams());
   return fnType->getParamType(index).getTypePtr();
 }
 
 static
-const clang::Type *getClangArrayElementType(const clang::Type *ty,
+const language::Core::Type *getClangArrayElementType(const language::Core::Type *ty,
                                             unsigned index) {
   return ty->castAsArrayTypeUnsafe()->getElementType().getTypePtr();
 }
@@ -517,7 +517,7 @@ AbstractionPattern::getTupleElementType(unsigned index) const {
   case Kind::ObjCCompletionHandlerArgumentsType: {
     // Match up the tuple element with the parameter from the Clang block type,
     // skipping the error parameter and flag indexes if any.
-    auto callback = cast<clang::FunctionProtoType>(getClangType());
+    auto callback = cast<language::Core::FunctionProtoType>(getClangType());
     auto errorIndex = getEncodedForeignInfo()
       .getAsyncCompletionHandlerErrorParamIndex();
     auto flagIndex = getEncodedForeignInfo()
@@ -1242,7 +1242,7 @@ AbstractionPattern AbstractionPattern::getFunctionResultType() const {
       auto callbackParamTy = getObjCMethod()->parameters()[paramIndex]
                                             ->getType()
                                             ->getPointeeType()
-                                            ->getAs<clang::FunctionProtoType>();
+                                            ->getAs<language::Core::FunctionProtoType>();
       
       // The result comprises the non-error argument(s) to the callback, if
       // any.
@@ -1986,7 +1986,7 @@ void AbstractionPattern::print(raw_ostream &out) const {
     // [TODO: Improve-Clang-type-printing]
     // It would be better to use print, but we need a PrintingPolicy
     // for that, for which we need a clang LangOptions, and... ugh.
-    clang::QualType(getClangType(), 0).dump();
+    language::Core::QualType(getClangType(), 0).dump();
     if (hasImportAsMemberStatus()) {
       out << ", member=";
       auto status = getImportAsMemberStatus();

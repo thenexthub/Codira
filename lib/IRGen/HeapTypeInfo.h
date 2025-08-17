@@ -23,7 +23,7 @@
 #define LANGUAGE_IRGEN_HEAPTYPEINFO_H
 
 #include "language/AST/ASTContext.h"
-#include "clang/AST/Attr.h"
+#include "language/Core/AST/Attr.h"
 #include "toolchain/IR/DerivedTypes.h"
 
 #include "ExtraInhabitants.h"

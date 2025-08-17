@@ -24,10 +24,10 @@
 #include "language/AST/Type.h"
 #include "language/AST/TypeCheckRequests.h"
 #include "language/Basic/Assertions.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Decl.h"
-#include "clang/AST/DeclTemplate.h"
-#include "clang/AST/NestedNameSpecifier.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/AST/DeclTemplate.h"
+#include "language/Core/AST/NestedNameSpecifier.h"
 #include "toolchain/ADT/StringRef.h"
 #include "toolchain/Support/Casting.h"
 
@@ -45,11 +45,11 @@ StringRef cxx_synthesis::getCxxOpaqueStorageClassName() {
 bool ClangSyntaxPrinter::isClangKeyword(StringRef name) {
   static const toolchain::DenseSet<StringRef> keywords = [] {
     toolchain::DenseSet<StringRef> set;
-    // FIXME: clang::IdentifierInfo /nearly/ has the API we need to do this
+    // FIXME: language::Core::IdentifierInfo /nearly/ has the API we need to do this
     // in a more principled way, but not quite.
 #define KEYWORD(SPELLING, FLAGS) set.insert(#SPELLING);
 #define CXX_KEYWORD_OPERATOR(SPELLING, TOK) set.insert(#SPELLING);
-#include "clang/Basic/TokenKinds.def"
+#include "language/Core/Basic/TokenKinds.def"
     return set;
   }();
 
@@ -103,29 +103,29 @@ bool ClangSyntaxPrinter::printNominalTypeOutsideMemberDeclInnerStaticAssert(
   return false;
 }
 
-void ClangSyntaxPrinter::printClangTypeReference(const clang::Decl *typeDecl) {
-  if (cast<clang::NamedDecl>(typeDecl)->getDeclName().isEmpty() &&
-      isa<clang::TagDecl>(typeDecl)) {
+void ClangSyntaxPrinter::printClangTypeReference(const language::Core::Decl *typeDecl) {
+  if (cast<language::Core::NamedDecl>(typeDecl)->getDeclName().isEmpty() &&
+      isa<language::Core::TagDecl>(typeDecl)) {
     if (auto *tnd =
-            cast<clang::TagDecl>(typeDecl)->getTypedefNameForAnonDecl()) {
+            cast<language::Core::TagDecl>(typeDecl)->getTypedefNameForAnonDecl()) {
       printClangTypeReference(tnd);
       return;
     }
   }
   auto &clangCtx = typeDecl->getASTContext();
-  clang::PrintingPolicy pp(clangCtx.getLangOpts());
-  const auto *NS = clang::NestedNameSpecifier::getRequiredQualification(
+  language::Core::PrintingPolicy pp(clangCtx.getLangOpts());
+  const auto *NS = language::Core::NestedNameSpecifier::getRequiredQualification(
       clangCtx, clangCtx.getTranslationUnitDecl(),
       typeDecl->getLexicalDeclContext());
   if (NS)
     NS->print(os, pp);
-  assert(cast<clang::NamedDecl>(typeDecl)->getDeclName().isIdentifier());
-  os << cast<clang::NamedDecl>(typeDecl)->getName();
-  if (auto *ctd = dyn_cast<clang::ClassTemplateSpecializationDecl>(typeDecl)) {
+  assert(cast<language::Core::NamedDecl>(typeDecl)->getDeclName().isIdentifier());
+  os << cast<language::Core::NamedDecl>(typeDecl)->getName();
+  if (auto *ctd = dyn_cast<language::Core::ClassTemplateSpecializationDecl>(typeDecl)) {
     if (ctd->getTemplateArgs().size()) {
       os << '<';
       toolchain::interleaveComma(ctd->getTemplateArgs().asArray(), os,
-                            [&](const clang::TemplateArgument &arg) {
+                            [&](const language::Core::TemplateArgument &arg) {
                               arg.print(pp, os, /*IncludeType=*/true);
                             });
       os << '>';
@@ -145,7 +145,7 @@ bool ClangSyntaxPrinter::printNestedTypeNamespaceQualifiers(const ValueDecl *D,
       continue;
     // C++ namespaces are imported as enums.
     if (parentNTD->hasClangNode() &&
-        isa<clang::NamespaceDecl>(parentNTD->getClangNode().getAsDecl()))
+        isa<language::Core::NamespaceDecl>(parentNTD->getClangNode().getAsDecl()))
       break;
     if (!first)
       os << (forC ? "_" : "::");

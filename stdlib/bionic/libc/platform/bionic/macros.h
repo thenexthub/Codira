@@ -63,7 +63,7 @@ char (&ArraySizeHelper(T (&array)[N]))[N];  // NOLINT(readability/casting)
 // Used to inform clang's -Wimplicit-fallthrough that a fallthrough is intended. There's no way to
 // silence (or enable, apparently) -Wimplicit-fallthrough in C yet.
 #ifdef __cplusplus
-#define __BIONIC_FALLTHROUGH [[clang::fallthrough]]
+#define __BIONIC_FALLTHROUGH [[language::Core::fallthrough]]
 #else
 #define __BIONIC_FALLTHROUGH
 #endif

@@ -23,7 +23,7 @@
 #include "toolchain/ADT/PointerUnion.h"
 #include "toolchain/ADT/StringRef.h"
 
-namespace clang {
+namespace language::Core {
   class RecordDecl;
   class TypedefNameDecl;
 }
@@ -34,11 +34,11 @@ namespace importer {
 class CFPointeeInfo {
   bool IsValid;
   bool IsConst;
-  toolchain::PointerUnion<const clang::RecordDecl *, const clang::TypedefNameDecl *>
+  toolchain::PointerUnion<const language::Core::RecordDecl *, const language::Core::TypedefNameDecl *>
       Decl;
   CFPointeeInfo() = default;
 
-  static CFPointeeInfo forRecord(bool isConst, const clang::RecordDecl *decl) {
+  static CFPointeeInfo forRecord(bool isConst, const language::Core::RecordDecl *decl) {
     assert(decl);
     CFPointeeInfo info;
     info.IsValid = true;
@@ -47,7 +47,7 @@ class CFPointeeInfo {
     return info;
   }
 
-  static CFPointeeInfo forTypedef(const clang::TypedefNameDecl *decl) {
+  static CFPointeeInfo forTypedef(const language::Core::TypedefNameDecl *decl) {
     assert(decl);
     CFPointeeInfo info;
     info.IsValid = true;
@@ -79,7 +79,7 @@ class CFPointeeInfo {
   }
 
 public:
-  static CFPointeeInfo classifyTypedef(const clang::TypedefNameDecl *decl);
+  static CFPointeeInfo classifyTypedef(const language::Core::TypedefNameDecl *decl);
 
   static bool isKnownCFTypeName(toolchain::StringRef name);
 
@@ -95,20 +95,20 @@ public:
 
   bool isRecord() const {
     assert(isValid());
-    return !Decl.isNull() && Decl.is<const clang::RecordDecl *>();
+    return !Decl.isNull() && Decl.is<const language::Core::RecordDecl *>();
   }
-  const clang::RecordDecl *getRecord() const {
+  const language::Core::RecordDecl *getRecord() const {
     assert(isRecord());
-    return Decl.get<const clang::RecordDecl *>();
+    return Decl.get<const language::Core::RecordDecl *>();
   }
 
   bool isTypedef() const {
     assert(isValid());
-    return !Decl.isNull() && Decl.is<const clang::TypedefNameDecl *>();
+    return !Decl.isNull() && Decl.is<const language::Core::TypedefNameDecl *>();
   }
-  const clang::TypedefNameDecl *getTypedef() const {
+  const language::Core::TypedefNameDecl *getTypedef() const {
     assert(isTypedef());
-    return Decl.get<const clang::TypedefNameDecl *>();
+    return Decl.get<const language::Core::TypedefNameDecl *>();
   }
 };
 }

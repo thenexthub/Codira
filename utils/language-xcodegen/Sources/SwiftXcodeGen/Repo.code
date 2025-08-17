@@ -19,7 +19,7 @@ public enum Repo: CaseIterable, Sendable {
   case language
   case languageRuntimes
   case lldb
-  case llvm
+  case toolchain
   case cmark
 
   public var relativePath: RelativePath {
@@ -27,8 +27,8 @@ public enum Repo: CaseIterable, Sendable {
     case .language: "language"
     case .languageRuntimes: "language/Runtimes"
     case .cmark: "cmark"
-    case .lldb:  "llvm-project/lldb"
-    case .llvm:  "llvm-project"
+    case .lldb:  "toolchain-project/lldb"
+    case .toolchain:  "toolchain-project"
     }
   }
 
@@ -38,7 +38,7 @@ public enum Repo: CaseIterable, Sendable {
     case .languageRuntimes: nil
     case .cmark: "cmark"
     case .lldb:  "lldb"
-    case .llvm:  "llvm"
+    case .toolchain:  "toolchain"
     }
   }
 }

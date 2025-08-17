@@ -22,10 +22,10 @@
 #include "language/Basic/Toolchain.h"
 #include "language/IDE/CodeCompletionStringPrinter.h"
 #include "language/IDE/Utils.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Comment.h"
-#include "clang/Basic/Module.h"
-#include "clang/Index/USRGeneration.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Comment.h"
+#include "language/Core/Basic/Module.h"
+#include "language/Core/Index/USRGeneration.h"
 
 using namespace language;
 using namespace language::ide;
@@ -62,7 +62,7 @@ copyAssociatedUSRs(toolchain::BumpPtrAllocator &Allocator, const Decl *D) {
   toolchain::SmallVector<NullTerminatedStringRef, 4> USRs;
   walkValueDeclAndOverriddenDecls(
       D,
-      [&](toolchain::PointerUnion<const ValueDecl *, const clang::NamedDecl *> OD) {
+      [&](toolchain::PointerUnion<const ValueDecl *, const language::Core::NamedDecl *> OD) {
         toolchain::SmallString<128> SS;
         bool Ignored = true;
         if (auto *OVD = OD.dyn_cast<const ValueDecl *>()) {
@@ -70,8 +70,8 @@ copyAssociatedUSRs(toolchain::BumpPtrAllocator &Allocator, const Decl *D) {
             toolchain::raw_svector_ostream OS(SS);
             Ignored = printValueDeclUSR(OVD, OS);
           }
-        } else if (auto *OND = OD.dyn_cast<const clang::NamedDecl *>()) {
-          Ignored = clang::index::generateUSRForDecl(OND, SS);
+        } else if (auto *OND = OD.dyn_cast<const language::Core::NamedDecl *>()) {
+          Ignored = language::Core::index::generateUSRForDecl(OND, SS);
         }
 
         if (!Ignored)
@@ -124,7 +124,7 @@ CodeCompletionResult *CodeCompletionResultBuilder::takeResult() {
       if (Sink.LastModule.first == CurrentModule.getOpaqueValue()) {
         ModuleName = Sink.LastModule.second;
       } else {
-        if (auto *C = CurrentModule.dyn_cast<const clang::Module *>()) {
+        if (auto *C = CurrentModule.dyn_cast<const language::Core::Module *>()) {
           ModuleName =
               NullTerminatedStringRef(C->getFullModuleName(), Allocator);
         } else {
@@ -231,7 +231,7 @@ void CodeCompletionResultBuilder::setAssociatedDecl(const Decl *D) {
   if (D->getClangNode()) {
     if (auto *ClangD = D->getClangDecl()) {
       const auto &ClangContext = ClangD->getASTContext();
-      if (const clang::RawComment *RC =
+      if (const language::Core::RawComment *RC =
               ClangContext.getRawCommentForAnyRedecl(ClangD)) {
         setBriefDocComment(RC->getBriefText(ClangContext));
       }

@@ -16,7 +16,7 @@
 
 #include "ClangSourceBufferImporter.h"
 #include "language/Basic/SourceManager.h"
-#include "clang/Basic/SourceManager.h"
+#include "language/Core/Basic/SourceManager.h"
 #include "toolchain/Support/MemoryBuffer.h"
 
 using namespace language;
@@ -34,8 +34,8 @@ static SourceLoc findEndOfLine(SourceManager &SM, SourceLoc loc,
 }
 
 SourceLoc ClangSourceBufferImporter::resolveSourceLocation(
-    const clang::SourceManager &clangSrcMgr,
-    clang::SourceLocation clangLoc) {
+    const language::Core::SourceManager &clangSrcMgr,
+    language::Core::SourceLocation clangLoc) {
   SourceLoc loc;
 
   clangLoc = clangSrcMgr.getFileLoc(clangLoc);
@@ -85,13 +85,13 @@ SourceLoc ClangSourceBufferImporter::resolveSourceLocation(
     }
   }
 
-  using SourceManagerRef = toolchain::IntrusiveRefCntPtr<const clang::SourceManager>;
+  using SourceManagerRef = toolchain::IntrusiveRefCntPtr<const language::Core::SourceManager>;
   auto iter = std::lower_bound(sourceManagersWithDiagnostics.begin(),
                                sourceManagersWithDiagnostics.end(),
                                &clangSrcMgr,
                                [](const SourceManagerRef &inArray,
-                                  const clang::SourceManager *toInsert) {
-    return std::less<const clang::SourceManager *>()(inArray.get(), toInsert);
+                                  const language::Core::SourceManager *toInsert) {
+    return std::less<const language::Core::SourceManager *>()(inArray.get(), toInsert);
   });
   if (iter == sourceManagersWithDiagnostics.end() ||
       iter->get() != &clangSrcMgr) {

@@ -57,10 +57,10 @@
 #include "language/SIL/SILValue.h"
 #include "language/SIL/SILVisitor.h"
 #include "language/SIL/TerminatorUtils.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/DeclCXX.h"
-#include "clang/Basic/TargetInfo.h"
-#include "clang/CodeGen/CodeGenABITypes.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/DeclCXX.h"
+#include "language/Core/Basic/TargetInfo.h"
+#include "language/Core/CodeGen/CodeGenABITypes.h"
 #include "toolchain/ADT/MapVector.h"
 #include "toolchain/ADT/SmallBitVector.h"
 #include "toolchain/ADT/TinyPtrVector.h"
@@ -3121,10 +3121,10 @@ void IRGenSILFunction::visitFunctionRefBaseInst(FunctionRefBaseInst *i) {
   auto fnType = fn->getLoweredFunctionType();
 
   auto fpKind = irgen::classifyFunctionPointerKind(fn);
-  const clang::CXXConstructorDecl *cxxCtorDecl = nullptr;
+  const language::Core::CXXConstructorDecl *cxxCtorDecl = nullptr;
 
   if (auto *clangFnDecl = fn->getClangDecl())
-    cxxCtorDecl = dyn_cast<clang::CXXConstructorDecl>(clangFnDecl);
+    cxxCtorDecl = dyn_cast<language::Core::CXXConstructorDecl>(clangFnDecl);
 
   auto sig =
       IGM.getSignature(fnType, fpKind, true /*forStaticCall*/, cxxCtorDecl);
@@ -3172,8 +3172,8 @@ void IRGenSILFunction::visitFunctionRefBaseInst(FunctionRefBaseInst *i) {
       FunctionPointer::forDirect(fpKind, value, secondaryValue, sig, useSignature);
   // Update the foreign no-throw information if needed.
   if (auto *cd = fn->getClangDecl()) {
-    if (auto *cfd = dyn_cast<clang::FunctionDecl>(cd)) {
-      if (IGM.isCxxNoThrow(const_cast<clang::FunctionDecl *>(cfd)))
+    if (auto *cfd = dyn_cast<language::Core::FunctionDecl>(cd)) {
+      if (IGM.isCxxNoThrow(const_cast<language::Core::FunctionDecl *>(cfd)))
         fp.setForeignNoThrow();
     }
     if (IGM.emittedForeignFunctionThunksWithExceptionTraps.count(fnPtr))

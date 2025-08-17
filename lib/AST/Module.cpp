@@ -58,7 +58,7 @@
 #include "language/Demangling/ManglingMacros.h"
 #include "language/Parse/Token.h"
 #include "language/Strings.h"
-#include "clang/Basic/Module.h"
+#include "language/Core/Basic/Module.h"
 #include "toolchain/ADT/DenseMap.h"
 #include "toolchain/ADT/DenseSet.h"
 #include "toolchain/ADT/STLExtras.h"
@@ -1659,7 +1659,7 @@ void ModuleDecl::getImplicitImportsForModuleInterface(
   FORWARD(getImplicitImportsForModuleInterface, (imports));
 }
 
-const toolchain::DenseMap<const clang::Module *, ModuleDecl *> &
+const toolchain::DenseMap<const language::Core::Module *, ModuleDecl *> &
 ModuleDecl::getVisibleClangModules(PrintOptions::InterfaceMode contentMode) {
   if (CachedVisibleClangModuleSet.find(contentMode) != CachedVisibleClangModuleSet.end())
     return CachedVisibleClangModuleSet[contentMode];
@@ -1693,7 +1693,7 @@ ModuleDecl::getVisibleClangModules(PrintOptions::InterfaceMode contentMode) {
     if (!Processed.insert(Mod).second)
       continue;
 
-    if (const clang::Module *ClangModule = Mod->findUnderlyingClangModule())
+    if (const language::Core::Module *ClangModule = Mod->findUnderlyingClangModule())
       result[ClangModule] = Mod;
 
     // For transitive imports, consider only public imports.
@@ -1824,7 +1824,7 @@ StringRef ModuleDecl::ReverseFullNameIterator::operator*() const {
     return languageModule->getRealName().str();
 
   auto *clangModule =
-      static_cast<const clang::Module *>(current.get<const void *>());
+      static_cast<const language::Core::Module *>(current.get<const void *>());
   if (!clangModule->isSubModule() && clangModule->Name == "std")
     return "CxxStdlib";
   return clangModule->Name;
@@ -1841,7 +1841,7 @@ ModuleDecl::ReverseFullNameIterator::operator++() {
   }
 
   auto *clangModule =
-      static_cast<const clang::Module *>(current.get<const void *>());
+      static_cast<const language::Core::Module *>(current.get<const void *>());
   if (clangModule->Parent)
     current = clangModule->Parent;
   else
@@ -2190,7 +2190,7 @@ ModuleDecl *ModuleDecl::getUnderlyingModuleIfOverlay() const {
   return nullptr;
 }
 
-const clang::Module *ModuleDecl::findUnderlyingClangModule() const {
+const language::Core::Module *ModuleDecl::findUnderlyingClangModule() const {
   for (auto *FU : getFiles()) {
     if (auto *Mod = FU->getUnderlyingClangModule())
       return Mod;
@@ -3987,9 +3987,9 @@ StringRef LoadedFile::getFilename() const {
   return "";
 }
 
-static const clang::Module *
+static const language::Core::Module *
 getClangModule(toolchain::PointerUnion<const ModuleDecl *, const void *> Union) {
-  return static_cast<const clang::Module *>(Union.get<const void *>());
+  return static_cast<const language::Core::Module *>(Union.get<const void *>());
 }
 
 StringRef ModuleEntity::getName(bool useRealNameIfAliased) const {
@@ -4035,7 +4035,7 @@ const ModuleDecl* ModuleEntity::getAsCodiraModule() const {
   return nullptr;
 }
 
-const clang::Module* ModuleEntity::getAsClangModule() const {
+const language::Core::Module* ModuleEntity::getAsClangModule() const {
   assert(!Mod.isNull());
   if (Mod.is<const ModuleDecl*>())
     return nullptr;
@@ -4054,7 +4054,7 @@ struct SourceFileTraceFormatter : public UnifiedStatsReporter::TraceFormatter {
     OS << toolchain::sys::path::filename(SF->getFilename());
   }
   void traceLoc(const void *Entity, SourceManager *SM,
-                clang::SourceManager *CSM, raw_ostream &OS) const override {
+                language::Core::SourceManager *CSM, raw_ostream &OS) const override {
     // SourceFiles don't have SourceLocs of their own; they contain them.
   }
 };

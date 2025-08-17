@@ -16,7 +16,7 @@ import platform
 from . import cmake_product
 from . import cmark
 from . import libcxx
-from . import llvm
+from . import toolchain
 from . import language
 
 
@@ -43,10 +43,10 @@ class MinimalStdlib(cmake_product.CMakeProduct):
             'SWIFT_STDLIB_BUILD_TYPE:STRING', build_variant)
 
         build_root = os.path.dirname(self.build_dir)
-        llvm_build_dir = os.path.join(
-            '..', build_root, '%s-%s' % ('llvm', host_target))
-        llvm_cmake_dir = os.path.join(llvm_build_dir, 'lib', 'cmake', 'llvm')
-        self.cmake_options.define('LLVM_DIR:PATH', llvm_cmake_dir)
+        toolchain_build_dir = os.path.join(
+            '..', build_root, '%s-%s' % ('toolchain', host_target))
+        toolchain_cmake_dir = os.path.join(toolchain_build_dir, 'lib', 'cmake', 'toolchain')
+        self.cmake_options.define('LLVM_DIR:PATH', toolchain_cmake_dir)
 
         # Use the just-built toolchain
         toolchain_dir = self.install_toolchain_path(host_target)
@@ -192,6 +192,6 @@ class MinimalStdlib(cmake_product.CMakeProduct):
     @classmethod
     def get_dependencies(cls):
         return [cmark.CMark,
-                llvm.LLVM,
+                toolchain.LLVM,
                 libcxx.LibCXX,
                 language.Swift]

@@ -60,17 +60,17 @@ MULTIROOT_DATA_FILE_PATH = os.path.join(
 # Helpers
 
 
-def _is_llvm_checkout(llvm_path):
-    """Returns true if the given llvm_path is a valid LLVM checkout, false otherwise.
+def _is_toolchain_checkout(toolchain_path):
+    """Returns true if the given toolchain_path is a valid LLVM checkout, false otherwise.
 
     NOTE: This is a very naive validation, checking only for the existence of a few
     known files.
     """
 
-    if not os.path.exists(os.path.join(llvm_path, "tools")):
+    if not os.path.exists(os.path.join(toolchain_path, "tools")):
         return False
 
-    if not os.path.exists(os.path.join(llvm_path, "CMakeLists.txt")):
+    if not os.path.exists(os.path.join(toolchain_path, "CMakeLists.txt")):
         return False
 
     return True
@@ -104,15 +104,15 @@ def _get_language_source_root(language_path, env=None):
     enclosing directory is the source root.
 
         source-root/
-        |- llvm/
+        |- toolchain/
         |- language/
         | ...
 
-    However the unified case means Swift will be checked out in the llvm/tools
+    However the unified case means Swift will be checked out in the toolchain/tools
     directory, which means the directory containing LLVM is the source root.
 
         source-root/
-        |- llvm/
+        |- toolchain/
         |   |- tools/
         |   |   |- language/
         |   |   | ...
@@ -122,7 +122,7 @@ def _get_language_source_root(language_path, env=None):
     In the case that this function is called with an invalid Swift checkout it returns
     None as well.
 
-    FIXME: What about the new llvm-project monorepo?
+    FIXME: What about the new toolchain-project monorepo?
     """
 
     env = env or {}
@@ -141,12 +141,12 @@ def _get_language_source_root(language_path, env=None):
     if os.path.basename(source_root) != "tools":
         return source_root
 
-    llvm_path = os.path.dirname(source_root)
-    if not _is_llvm_checkout(llvm_path):
+    toolchain_path = os.path.dirname(source_root)
+    if not _is_toolchain_checkout(toolchain_path):
         return source_root
 
     # Return the directory containing LLVM.
-    return os.path.dirname(llvm_path)
+    return os.path.dirname(toolchain_path)
 
 
 def _get_language_build_root(source_root, env=None):

@@ -20,7 +20,7 @@ public fn callLvalueRef() {
   lvalueReference(true)
 }
 
-// Use protocol composition to create a type that we cannot (yet) turn into a clang::QualType.
+// Use protocol composition to create a type that we cannot (yet) turn into a language::Core::QualType.
 public protocol A { }
 public protocol B { }
 public protocol C { }

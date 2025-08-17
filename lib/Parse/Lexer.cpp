@@ -34,21 +34,21 @@
 #include "toolchain/Support/MathExtras.h"
 #include "toolchain/Support/MemoryBuffer.h"
 // FIXME: Figure out if this can be migrated to LLVM.
-#include "clang/Basic/CharInfo.h"
+#include "language/Core/Basic/CharInfo.h"
 
 #include <limits>
 
 using namespace language;
 
-// clang::isAsciiIdentifierStart and clang::isAsciiIdentifierContinue are
+// language::Core::isAsciiIdentifierStart and language::Core::isAsciiIdentifierContinue are
 // deliberately not in this list as a reminder that they are using C rules for
 // identifiers. (Admittedly these are the same as Codira's right now.)
-using clang::isAlphanumeric;
-using clang::isDigit;
-using clang::isHexDigit;
-using clang::isHorizontalWhitespace;
-using clang::isPrintable;
-using clang::isWhitespace;
+using language::Core::isAlphanumeric;
+using language::Core::isDigit;
+using language::Core::isHexDigit;
+using language::Core::isHorizontalWhitespace;
+using language::Core::isPrintable;
+using language::Core::isWhitespace;
 
 //===----------------------------------------------------------------------===//
 // UTF8 Validation/Encoding/Decoding helper functions
@@ -517,7 +517,7 @@ void Lexer::skipSlashStarComment() {
 
 static bool isValidIdentifierContinuationCodePoint(uint32_t c) {
   if (c < 0x80)
-    return clang::isAsciiIdentifierContinue(c, /*dollar*/true);
+    return language::Core::isAsciiIdentifierContinue(c, /*dollar*/true);
   
   // N1518: Recommendations for extended identifier characters for C and C++
   // Proposed Annex X.1: Ranges of characters allowed
@@ -757,10 +757,10 @@ void Lexer::lexHash() {
 
   // Scan for [a-zA-Z]+ to see what we match.
   const char *tmpPtr = CurPtr;
-  if (clang::isAsciiIdentifierStart(*tmpPtr)) {
+  if (language::Core::isAsciiIdentifierStart(*tmpPtr)) {
     do {
       ++tmpPtr;
-    } while (clang::isAsciiIdentifierContinue(*tmpPtr));
+    } while (language::Core::isAsciiIdentifierContinue(*tmpPtr));
   }
 
   // Map the character sequence onto
@@ -2803,10 +2803,10 @@ void Lexer::lexImpl() {
     return lexOperatorIdentifier();
   case '%':
     // Lex %[0-9a-zA-Z_]+ as a local SIL value
-    if (InSILBody && clang::isAsciiIdentifierContinue(CurPtr[0])) {
+    if (InSILBody && language::Core::isAsciiIdentifierContinue(CurPtr[0])) {
       do {
         ++CurPtr;
-      } while (clang::isAsciiIdentifierContinue(CurPtr[0]));
+      } while (language::Core::isAsciiIdentifierContinue(CurPtr[0]));
       
       return formToken(tok::sil_local_name, TokStart);
     }

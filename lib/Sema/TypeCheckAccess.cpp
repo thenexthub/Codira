@@ -34,8 +34,8 @@
 #include "language/AST/Pattern.h"
 #include "language/AST/TypeCheckRequests.h"
 #include "language/Basic/Assertions.h"
-#include "clang/AST/DeclCXX.h"
-#include "clang/AST/DeclObjC.h"
+#include "language/Core/AST/DeclCXX.h"
+#include "language/Core/AST/DeclObjC.h"
 
 using namespace language;
 
@@ -1852,9 +1852,9 @@ public:
   }
 };
 
-bool isFragileClangDecl(const clang::Decl *decl);
+bool isFragileClangDecl(const language::Core::Decl *decl);
 
-bool isFragileClangType(clang::QualType type) {
+bool isFragileClangType(language::Core::QualType type) {
   if (type.isNull())
     return true;
   auto underlyingTypePtr = type->getUnqualifiedDesugaredType();
@@ -1873,17 +1873,17 @@ bool isFragileClangType(clang::QualType type) {
   return true;
 }
 
-bool isFragileClangDecl(const clang::Decl *decl) {
+bool isFragileClangDecl(const language::Core::Decl *decl) {
   // Namespaces by themselves don't impact ABI.
-  if (isa<clang::NamespaceDecl>(decl))
+  if (isa<language::Core::NamespaceDecl>(decl))
     return false;
   // Objective-C type declarations are compatible with library evolution.
-  if (isa<clang::ObjCContainerDecl>(decl))
+  if (isa<language::Core::ObjCContainerDecl>(decl))
     return false;
-  if (auto *fd = dyn_cast<clang::FunctionDecl>(decl)) {
-    if (auto *ctorDecl = dyn_cast<clang::CXXConstructorDecl>(fd))
+  if (auto *fd = dyn_cast<language::Core::FunctionDecl>(decl)) {
+    if (auto *ctorDecl = dyn_cast<language::Core::CXXConstructorDecl>(fd))
       return isFragileClangDecl(ctorDecl->getParent());
-    if (!isa<clang::CXXMethodDecl>(decl) &&
+    if (!isa<language::Core::CXXMethodDecl>(decl) &&
         !isFragileClangType(fd->getDeclaredReturnType())) {
       for (const auto *param : fd->parameters()) {
         if (isFragileClangType(param->getType()))
@@ -1894,7 +1894,7 @@ bool isFragileClangDecl(const clang::Decl *decl) {
       return false;
     }
   }
-  if (auto *md = dyn_cast<clang::ObjCMethodDecl>(decl)) {
+  if (auto *md = dyn_cast<language::Core::ObjCMethodDecl>(decl)) {
     if (!isFragileClangType(md->getReturnType())) {
       for (const auto *param : md->parameters()) {
         if (isFragileClangType(param->getType()))
@@ -1907,22 +1907,22 @@ bool isFragileClangDecl(const clang::Decl *decl) {
   }
   // An Objective-C property whose can be compatible
   // with library evolution if its type is compatible.
-  if (auto *pd = dyn_cast<clang::ObjCPropertyDecl>(decl))
+  if (auto *pd = dyn_cast<language::Core::ObjCPropertyDecl>(decl))
     return isFragileClangType(pd->getType());
-  if (auto *typedefDecl = dyn_cast<clang::TypedefNameDecl>(decl))
+  if (auto *typedefDecl = dyn_cast<language::Core::TypedefNameDecl>(decl))
     return isFragileClangType(typedefDecl->getUnderlyingType());
-  if (auto *enumDecl = dyn_cast<clang::EnumDecl>(decl))
+  if (auto *enumDecl = dyn_cast<language::Core::EnumDecl>(decl))
     return enumDecl->isScoped();
-  if (auto *rd = dyn_cast<clang::RecordDecl>(decl)) {
-    auto cxxRecordDecl = dyn_cast<clang::CXXRecordDecl>(rd);
+  if (auto *rd = dyn_cast<language::Core::RecordDecl>(decl)) {
+    auto cxxRecordDecl = dyn_cast<language::Core::CXXRecordDecl>(rd);
     if (!cxxRecordDecl)
       return false;
     return !cxxRecordDecl->isCLike() &&
            !cxxRecordDecl->getDeclContext()->isExternCContext();
   }
-  if (auto *varDecl = dyn_cast<clang::VarDecl>(decl))
+  if (auto *varDecl = dyn_cast<language::Core::VarDecl>(decl))
     return isFragileClangType(varDecl->getType());
-  if (auto *fieldDecl = dyn_cast<clang::FieldDecl>(decl))
+  if (auto *fieldDecl = dyn_cast<language::Core::FieldDecl>(decl))
     return isFragileClangType(fieldDecl->getType()) ||
            isFragileClangDecl(fieldDecl->getParent());
   return true;
@@ -1983,7 +1983,7 @@ language::getDisallowedOriginKind(const Decl *decl,
     SF->getImportedModules(sfImportedModules, filter);
     if (auto clangDecl = decl->getClangDecl()) {
       for (auto redecl : clangDecl->redecls()) {
-        if (auto tagReDecl = dyn_cast<clang::TagDecl>(redecl)) {
+        if (auto tagReDecl = dyn_cast<language::Core::TagDecl>(redecl)) {
           // This is a forward declaration. We ignore visibility of those.
           if (tagReDecl->getBraceRange().isInvalid()) {
             continue;

@@ -15,9 +15,9 @@
 
 #include "Logging_impl.h"
 #include <IndexStoreDB_Support/Logging.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Config_config.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Format.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Threading.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_config.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Format.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Threading.h>
 
 #include <dispatch/dispatch.h>
 
@@ -97,7 +97,7 @@ unsigned Logger::getCurrentLogLevelNum() {
   }
 }
 
-Logger &Logger::operator<<(const llvm::format_object_base &Fmt) {
+Logger &Logger::operator<<(const toolchain::format_object_base &Fmt) {
   LogOS << Fmt;
   return *this;
 }
@@ -105,20 +105,20 @@ Logger &Logger::operator<<(const llvm::format_object_base &Fmt) {
 Logger::Logger(StringRef Name, Level LogLevel)
   : Name(Name), CurrLevel(LogLevel), LogOS(Msg) {
 
-  thread_id = llvm::get_threadid();
-  TimeR = llvm::TimeRecord::getCurrentTime();
+  thread_id = toolchain::get_threadid();
+  TimeR = toolchain::TimeRecord::getCurrentTime();
 }
 
 Logger::~Logger() {
-  static llvm::TimeRecord sBeginTR = llvm::TimeRecord::getCurrentTime();
+  static toolchain::TimeRecord sBeginTR = toolchain::TimeRecord::getCurrentTime();
 
   SmallString<64> LogMsg;
-  llvm::raw_svector_ostream LogMsgOS(LogMsg);
+  toolchain::raw_svector_ostream LogMsgOS(LogMsg);
   raw_ostream &OS = LogMsgOS;
 
   OS << '[' << int(CurrLevel) << ':' << Name << ':';
   OS << thread_id << ':';
-  OS << llvm::format("%7.4f] ", TimeR.getWallTime() - sBeginTR.getWallTime());
+  OS << toolchain::format("%7.4f] ", TimeR.getWallTime() - sBeginTR.getWallTime());
   OS << LogOS.str();
   OS.flush();
 

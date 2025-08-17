@@ -28,7 +28,7 @@
 #include "language/AST/GenericEnvironment.h"
 #include "language/Basic/Assertions.h"
 #include "language/SIL/TypeLowering.h"
-#include "clang/CodeGen/CodeGenABITypes.h"
+#include "language/Core/CodeGen/CodeGenABITypes.h"
 #include "toolchain/ADT/APInt.h"
 #include "toolchain/Support/raw_ostream.h"
 
@@ -254,7 +254,7 @@ PointerAuthInfo PointerAuthInfo::emit(IRGenFunction &IGF,
 
 PointerAuthInfo
 PointerAuthInfo::emit(IRGenFunction &IGF,
-                      clang::PointerAuthQualifier pointerAuthQual,
+                      language::Core::PointerAuthQualifier pointerAuthQual,
                       toolchain::Value *storageAddress) {
   unsigned key = pointerAuthQual.getKey();
 
@@ -336,7 +336,7 @@ static toolchain::ConstantInt *getDiscriminatorForHash(IRGenModule &IGM,
 
 static toolchain::ConstantInt *getDiscriminatorForString(IRGenModule &IGM,
                                                     StringRef string) {
-  uint64_t rawHash = clang::CodeGen::computeStableStringHash(string);
+  uint64_t rawHash = language::Core::CodeGen::computeStableStringHash(string);
   return getDiscriminatorForHash(IGM, rawHash);
 }
 
@@ -594,7 +594,7 @@ static uint64_t getTypeHash(IRGenModule &IGM, CanSILFunctionType type) {
   hashStringForFunctionType(
       IGM, type, Out,
       genericSig.getCanonicalSignature().getGenericEnvironment());
-  return clang::CodeGen::computeStableStringHash(Out.str());
+  return language::Core::CodeGen::computeStableStringHash(Out.str());
 }
 
 static uint64_t getYieldTypesHash(IRGenModule &IGM, CanSILFunctionType type) {
@@ -633,7 +633,7 @@ static uint64_t getYieldTypesHash(IRGenModule &IGM, CanSILFunctionType type) {
     out << ":";
   }
 
-  return clang::CodeGen::computeStableStringHash(out.str());  
+  return language::Core::CodeGen::computeStableStringHash(out.str());  
 }
 
 toolchain::ConstantInt *
@@ -731,7 +731,7 @@ toolchain::Constant *
 IRGenModule::getConstantSignedPointer(toolchain::Constant *pointer, unsigned key,
                                       toolchain::Constant *storageAddress,
                                       toolchain::ConstantInt *otherDiscriminator) {
-  return clang::CodeGen::getConstantSignedPointer(getClangCGM(), pointer, key,
+  return language::Core::CodeGen::getConstantSignedPointer(getClangCGM(), pointer, key,
                                                   storageAddress,
                                                   otherDiscriminator);
 }

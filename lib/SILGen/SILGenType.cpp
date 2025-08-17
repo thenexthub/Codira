@@ -458,7 +458,7 @@ public:
         //   () -> NSString
         // But the first is correct, so make sure we don't mark this witness
         // as foreign.
-        if (dyn_cast_or_null<clang::CXXMethodDecl>(
+        if (dyn_cast_or_null<language::Core::CXXMethodDecl>(
                 witness.getDecl()->getClangDecl()))
           newDecl = newDecl.asForeign();
         return addMethodImplementation(

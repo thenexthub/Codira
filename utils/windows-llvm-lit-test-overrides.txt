@@ -27,7 +27,7 @@ xfail lldb-shell :: SymbolFile/DWARF/x86/dead-code-filtering.yaml
 
 ### Tests that pass locally, but fail in CI reliably ###
 
-# https://github.com/languagelang/llvm-project/issues/9539
+# https://github.com/languagelang/toolchain-project/issues/9539
 xfail lldb-shell :: SwiftREPL/Basic.test
 xfail lldb-shell :: SwiftREPL/Class.test
 xfail lldb-shell :: SwiftREPL/ComputedProperties.test
@@ -84,18 +84,18 @@ xfail lldb-api :: python_api/thread/TestThreadAPI.py
 xfail lldb-api :: source-manager/TestSourceManager.py
 xfail lldb-shell :: Driver/TestConvenienceVariables.test
 
-# https://github.com/languagelang/llvm-project/issues/9620
+# https://github.com/languagelang/toolchain-project/issues/9620
 xfail lldb-shell :: Swift/expression-diagnostics.test
 
-# https://github.com/languagelang/llvm-project/issues/9540
+# https://github.com/languagelang/toolchain-project/issues/9540
 xfail lldb-shell :: SymbolFile/NativePDB/local-variables.cpp
 xfail lldb-shell :: SymbolFile/NativePDB/stack_unwinding01.cpp
 xfail lldb-api :: lang/c/local_variables/TestLocalVariables.py
 
-# https://github.com/languagelang/llvm-project/issues/9637
+# https://github.com/languagelang/toolchain-project/issues/9637
 xfail lldb-api :: python_api/address_range/TestAddressRange.py
 
-# https://github.com/languagelang/llvm-project/issues/9643
+# https://github.com/languagelang/toolchain-project/issues/9643
 xfail lldb-shell :: Commands/command-process-launch-user-entry.test
 
 # Skip SymbolTests because we cannot xfail unittests by name. We would need to
@@ -116,17 +116,17 @@ skip lldb-unit :: Symbol/./SymbolTests.exe
 
 ### Tests that fail occasionally ###
 
-# https://github.com/languagelang/llvm-project/issues/9705
+# https://github.com/languagelang/toolchain-project/issues/9705
 skip lldb-api :: python_api/section/TestSectionAPI.py
 
 # Passes upstream in bot lldb-aarch64-windows; it fails in languagelang
-# since https://github.com/languagelang/llvm-project/pull/9493 relanded
+# since https://github.com/languagelang/toolchain-project/pull/9493 relanded
 skip lldb-api :: functionalities/breakpoint/same_cu_name/TestFileBreakpoinsSameCUName.py
 
 # Disable 37 tests: 17 unsupported, 6 usually failed, 14 usually passed (but flaky)
-# https://github.com/languagelang/llvm-project/issues/9099
-# https://github.com/languagelang/llvm-project/issues/9100
-# https://github.com/languagelang/llvm-project/issues/9101
+# https://github.com/languagelang/toolchain-project/issues/9099
+# https://github.com/languagelang/toolchain-project/issues/9100
+# https://github.com/languagelang/toolchain-project/issues/9101
 skip lldb-api :: tools/lldb-server
 
 ### Tests that time out occasionally ###
@@ -140,20 +140,20 @@ skip lldb-api :: functionalities/thread/thread_specific_break/TestThreadSpecific
 
 ### Tests that pass occasionally ###
 
-# Fixed upstream: https://github.com/llvm/llvm-project/commit/ec009994a06338995dfb6431c943b299f9327fd2
+# Fixed upstream: https://github.com/toolchain/toolchain-project/commit/ec009994a06338995dfb6431c943b299f9327fd2
 # But patches don't apply on stable branch due to downstream changes.
 skip lldb-api :: functionalities/archives/TestBSDArchives.py
 skip lldb-api :: macosx/duplicate-archive-members/TestDuplicateMembers.py
 
 ### Tests that pass accidentally ###
 
-https://github.com/llvm/llvm-project/issues/116972
+https://github.com/toolchain/toolchain-project/issues/116972
 skip lldb-api :: api/command-return-object/TestSBCommandReturnObject.py
 skip lldb-api :: api/multiple-targets/TestMultipleTargets.py
 
 ### Tests that fail during setup and thus show up as UNRESOLVED ***
 
-# https://github.com/languagelang/llvm-project/issues/9887
+# https://github.com/languagelang/toolchain-project/issues/9887
 skip lldb-api :: lang/language/async/tasks/TestSwiftTaskBacktrace.py
 skip lldb-api :: lang/language/async/tasks/TestSwiftTaskSelect.py
 
@@ -169,13 +169,13 @@ skip lldb-api :: lang/BoundsSafety/out_of_bounds_pointer/TestOutOfBoundsPointer.
 skip lldb-shell :: Commands/command-expr-diagnostics.test
 skip lldb-unit :: Host/./HostTests.exe
 
-# https://github.com/llvm/llvm-project/issues/62983
+# https://github.com/toolchain/toolchain-project/issues/62983
 skip lldb-api :: functionalities/var_path/TestVarPath.py
 
-# https://github.com/languagelang/llvm-project/issues/9073
+# https://github.com/languagelang/toolchain-project/issues/9073
 skip lldb-api :: lang/c/trampoline_stepping/TestTrampolineStepping.py
 
-# https://github.com/languagelang/llvm-project/issues/9072
+# https://github.com/languagelang/toolchain-project/issues/9072
 skip lldb-api :: lang/cpp/bitfields/TestCppBitfields.py
 
 skip lldb-shell :: Swift/astcontext_error.test

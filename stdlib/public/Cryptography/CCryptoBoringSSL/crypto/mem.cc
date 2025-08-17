@@ -51,7 +51,7 @@ static void __asan_unpoison_memory_region(const void *addr, size_t size) {}
 
 // Windows doesn't really support weak symbols as of May 2019, and Clang on
 // Windows will emit strong symbols instead. See
-// https://bugs.llvm.org/show_bug.cgi?id=37598
+// https://bugs.toolchain.org/show_bug.cgi?id=37598
 //
 // EDK2 targets UEFI but builds as ELF and then translates the binary to
 // COFF(!). Thus it builds with __ELF__ defined but cannot actually cope with

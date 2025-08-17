@@ -1,4 +1,4 @@
-/*===------- llvm/Config/indexstoredb-prefix.h --------------------*- C -*-===*/
+/*===------- toolchain/Config/indexstoredb-prefix.h --------------------*- C -*-===*/
 /*                                                                            */
 /*                     The LLVM Compiler Infrastructure                       */
 /*                                                                            */
@@ -10,14 +10,14 @@
 #ifndef INDEXSTOREDB_PREFIX_H
 #define INDEXSTOREDB_PREFIX_H
 
-/* HACK: Rename all of the llvm symbols so that they will not collide if another
- * copy of llvm is linked into the same image. The use of llvm within IndexStore
+/* HACK: Rename all of the toolchain symbols so that they will not collide if another
+ * copy of toolchain is linked into the same image. The use of toolchain within IndexStore
  * is purely an implementation detail. Using a source-level rename is a
  * workaround for the lack of symbol visibility controls in languagepm. Ideally we
  * could do this with a combination of `-fvisibility=hidden` and `ld -r`.
 */
 
-#define llvm indexstoredb_llvm
+#define toolchain indexstoredb_toolchain
 #define LLVMEnablePrettyStackTrace indexstoredb_LLVMEnablePrettyStackTrace
 #define LLVMParseCommandLineOptions indexstoredb_LLVMParseCommandLineOptions
 #define LLVMResetFatalErrorHandler indexstoredb_LLVMResetFatalErrorHandler

@@ -153,86 +153,86 @@ static constexpr bool platformSupportsTaggedPointers() {
               &&Default,    &&Default, &&Default,                              \
       };                                                                       \
                                                                                \
-      [[clang::nomerge]] {                                                     \
+      [[language::Core::nomerge]] {                                                     \
         CONTINUE(METADATA, READER, ADDR_OFFSET, __VA_ARGS__);                  \
       }                                                                        \
                                                                                \
-      [[clang::nomerge]] {                                                     \
+      [[language::Core::nomerge]] {                                                     \
       Error:                                                                   \
                                                                                \
         FN_TABLE[1](METADATA, READER, ADDR_OFFSET, __VA_ARGS__);               \
         CONTINUE(METADATA, READER, ADDR_OFFSET, __VA_ARGS__);                  \
       }                                                                        \
-      [[clang::nomerge]] {                                                     \
+      [[language::Core::nomerge]] {                                                     \
       NativeStrong:                                                            \
         FN_TABLE[2](METADATA, READER, ADDR_OFFSET, __VA_ARGS__);               \
         CONTINUE(METADATA, READER, ADDR_OFFSET, __VA_ARGS__);                  \
       }                                                                        \
-      [[clang::nomerge]] {                                                     \
+      [[language::Core::nomerge]] {                                                     \
       NativeUnowned:                                                           \
         FN_TABLE[3](METADATA, READER, ADDR_OFFSET, __VA_ARGS__);               \
         CONTINUE(METADATA, READER, ADDR_OFFSET, __VA_ARGS__);                  \
       }                                                                        \
-      [[clang::nomerge]] {                                                     \
+      [[language::Core::nomerge]] {                                                     \
       NativeWeak:                                                              \
         FN_TABLE[4](METADATA, READER, ADDR_OFFSET, __VA_ARGS__);               \
         CONTINUE(METADATA, READER, ADDR_OFFSET, __VA_ARGS__);                  \
       }                                                                        \
-      [[clang::nomerge]] {                                                     \
+      [[language::Core::nomerge]] {                                                     \
       Unknown:                                                                 \
         FN_TABLE[5](METADATA, READER, ADDR_OFFSET, __VA_ARGS__);               \
         CONTINUE(METADATA, READER, ADDR_OFFSET, __VA_ARGS__);                  \
       }                                                                        \
-      [[clang::nomerge]] {                                                     \
+      [[language::Core::nomerge]] {                                                     \
       UnknownUnowned:                                                          \
         FN_TABLE[6](METADATA, READER, ADDR_OFFSET, __VA_ARGS__);               \
         CONTINUE(METADATA, READER, ADDR_OFFSET, __VA_ARGS__);                  \
       }                                                                        \
-      [[clang::nomerge]] {                                                     \
+      [[language::Core::nomerge]] {                                                     \
       UnknownWeak:                                                             \
         FN_TABLE[7](METADATA, READER, ADDR_OFFSET, __VA_ARGS__);               \
         CONTINUE(METADATA, READER, ADDR_OFFSET, __VA_ARGS__);                  \
       }                                                                        \
-      [[clang::nomerge]] {                                                     \
+      [[language::Core::nomerge]] {                                                     \
       Bridge:                                                                  \
         FN_TABLE[8](METADATA, READER, ADDR_OFFSET, __VA_ARGS__);               \
         CONTINUE(METADATA, READER, ADDR_OFFSET, __VA_ARGS__);                  \
       }                                                                        \
-      [[clang::nomerge]] {                                                     \
+      [[language::Core::nomerge]] {                                                     \
       Block:                                                                   \
         FN_TABLE[9](METADATA, READER, ADDR_OFFSET, __VA_ARGS__);               \
         CONTINUE(METADATA, READER, ADDR_OFFSET, __VA_ARGS__);                  \
       }                                                                        \
-      [[clang::nomerge]] {                                                     \
+      [[language::Core::nomerge]] {                                                     \
       ObjC:                                                                    \
         FN_TABLE[10](METADATA, READER, ADDR_OFFSET, __VA_ARGS__);              \
         CONTINUE(METADATA, READER, ADDR_OFFSET, __VA_ARGS__);                  \
       }                                                                        \
-      [[clang::nomerge]] {                                                     \
+      [[language::Core::nomerge]] {                                                     \
       NativeCodiraObjC:                                                         \
         FN_TABLE[11](METADATA, READER, ADDR_OFFSET, __VA_ARGS__);              \
         CONTINUE(METADATA, READER, ADDR_OFFSET, __VA_ARGS__);                  \
       }                                                                        \
-      [[clang::nomerge]] {                                                     \
+      [[language::Core::nomerge]] {                                                     \
       Metatype:                                                                \
         FN_TABLE[12](METADATA, READER, ADDR_OFFSET, __VA_ARGS__);              \
         CONTINUE(METADATA, READER, ADDR_OFFSET, __VA_ARGS__);                  \
       }                                                                        \
-      [[clang::nomerge]] {                                                     \
+      [[language::Core::nomerge]] {                                                     \
       Generic:                                                                 \
         language_unreachable("");                                                 \
       }                                                                        \
-      [[clang::nomerge]] {                                                     \
+      [[language::Core::nomerge]] {                                                     \
       Existential:                                                             \
         FN_TABLE[14](METADATA, READER, ADDR_OFFSET, __VA_ARGS__);              \
         CONTINUE(METADATA, READER, ADDR_OFFSET, __VA_ARGS__);                  \
       }                                                                        \
-      [[clang::nomerge]] {                                                     \
+      [[language::Core::nomerge]] {                                                     \
       Resilient:                                                               \
         FN_TABLE[15](METADATA, READER, ADDR_OFFSET, __VA_ARGS__);              \
         CONTINUE(METADATA, READER, ADDR_OFFSET, __VA_ARGS__);                  \
       }                                                                        \
-      [[clang::nomerge]] {                                                     \
+      [[language::Core::nomerge]] {                                                     \
       Default:                                                                 \
         uintptr_t _ADDR_OFFSET = ADDR_OFFSET;                                  \
         LayoutStringReader1 _READER = READER;                                  \

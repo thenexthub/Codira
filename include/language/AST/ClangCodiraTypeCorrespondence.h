@@ -24,7 +24,7 @@
 #ifndef LANGUAGE_AST_CLANG_LANGUAGE_TYPE_CORRESPONDENCE_H
 #define LANGUAGE_AST_CLANG_LANGUAGE_TYPE_CORRESPONDENCE_H
 
-namespace clang {
+namespace language::Core {
 class Type;
 }
 
@@ -33,7 +33,7 @@ namespace language {
 ///
 /// For example, a `const uint8_t *` could be imported as
 /// `Optional<UnsafePointer<UInt8>>`.
-bool canImportAsOptional(const clang::Type *type);
+bool canImportAsOptional(const language::Core::Type *type);
 }
 
 #endif /* LANGUAGE_AST_CLANG_LANGUAGE_TYPE_CORRESPONDENCE_H */

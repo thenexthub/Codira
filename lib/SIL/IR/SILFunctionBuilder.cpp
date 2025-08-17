@@ -24,7 +24,7 @@
 #include "language/AST/ParameterList.h"
 #include "language/AST/SemanticAttrs.h"
 #include "language/Basic/Assertions.h"
-#include "clang/AST/Mangle.h"
+#include "language/Core/AST/Mangle.h"
 
 using namespace language;
 

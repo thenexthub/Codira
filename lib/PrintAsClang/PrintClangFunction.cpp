@@ -35,10 +35,10 @@
 #include "language/Basic/Assertions.h"
 #include "language/ClangImporter/ClangImporter.h"
 #include "language/IRGen/IRABIDetailsProvider.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Attr.h"
-#include "clang/AST/Decl.h"
-#include "clang/AST/DeclObjC.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Attr.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/AST/DeclObjC.h"
 #include "toolchain/ADT/STLExtras.h"
 
 using namespace language;
@@ -81,7 +81,7 @@ bool isKnownType(Type t, PrimitiveTypeMapping &typeMapping,
   }
   if (auto *classType = dyn_cast<ClassType>(tPtr)) {
     return classType->getClassOrBoundGenericClass()->hasClangNode() &&
-           isa<clang::ObjCInterfaceDecl>(
+           isa<language::Core::ObjCInterfaceDecl>(
                classType->getClassOrBoundGenericClass()->getClangDecl());
   }
 
@@ -109,8 +109,8 @@ struct CFunctionSignatureTypePrinterModifierDelegate {
 
 class ClangTypeHandler {
 public:
-  ClangTypeHandler(const clang::Decl *typeDecl)
-      : typeDecl(dyn_cast<clang::TagDecl>(typeDecl)) {}
+  ClangTypeHandler(const language::Core::Decl *typeDecl)
+      : typeDecl(dyn_cast<language::Core::TagDecl>(typeDecl)) {}
 
   bool isRepresentable() const {
     // We can only return tag types.
@@ -120,7 +120,7 @@ public:
         return true;
 
       // We can return nontrivial types iff they can be moved or copied.
-      if (auto *record = dyn_cast<clang::CXXRecordDecl>(typeDecl)) {
+      if (auto *record = dyn_cast<language::Core::CXXRecordDecl>(typeDecl)) {
         return record->hasMoveConstructor() ||
                record->hasCopyConstructorWithConstParam();
       }
@@ -132,19 +132,19 @@ public:
 
 private:
   /// Is the tag type trivial?
-  static bool isTrivial(const clang::TagDecl *typeDecl) {
+  static bool isTrivial(const language::Core::TagDecl *typeDecl) {
     if (!typeDecl)
       return false;
 
-    if (auto *record = dyn_cast<clang::CXXRecordDecl>(typeDecl))
+    if (auto *record = dyn_cast<language::Core::CXXRecordDecl>(typeDecl))
       return record->isTrivial();
 
     // Structs with ARC members are not considered trivial.
-    if (auto *record = dyn_cast<clang::RecordDecl>(typeDecl))
+    if (auto *record = dyn_cast<language::Core::RecordDecl>(typeDecl))
       return !record->hasObjectMember();
 
     // C-family enums are always trivial.
-    return isa<clang::EnumDecl>(typeDecl);
+    return isa<language::Core::EnumDecl>(typeDecl);
   }
 
 public:
@@ -175,7 +175,7 @@ public:
 
 private:
   static void
-  printReturnScaffold(const clang::TagDecl *typeDecl, raw_ostream &os,
+  printReturnScaffold(const language::Core::TagDecl *typeDecl, raw_ostream &os,
                       StringRef fullQualifiedType, StringRef typeName,
                       toolchain::function_ref<void(StringRef)> bodyOfReturn) {
     os << "alignas(alignof(" << fullQualifiedType << ")) char storage[sizeof("
@@ -196,7 +196,7 @@ private:
     os << "return result;\n";
   }
 
-  const clang::TagDecl *typeDecl;
+  const language::Core::TagDecl *typeDecl;
 };
 
 // Prints types in the C function signature that corresponds to the
@@ -326,14 +326,14 @@ public:
       const auto *clangDecl = cd->getClangDecl();
       ClangSyntaxPrinter(cd->getASTContext(), os).printClangTypeReference(clangDecl);
       bool alreadyPointer = false;
-      if (const auto *typedefDecl = dyn_cast<clang::TypedefNameDecl>(clangDecl))
+      if (const auto *typedefDecl = dyn_cast<language::Core::TypedefNameDecl>(clangDecl))
         if (importer::isCFTypeDecl(typedefDecl))
           alreadyPointer = true;
       os << (alreadyPointer ? " " : " *")
          << (!optionalKind || *optionalKind == OTK_None ? "_Nonnull"
                                                         : "_Nullable");
       if (isInOutParam) {
-        if (isa<clang::ObjCContainerDecl>(cd->getClangDecl()))
+        if (isa<language::Core::ObjCContainerDecl>(cd->getClangDecl()))
           os << " __strong";
         printInoutTypeModifier();
       }
@@ -574,8 +574,8 @@ DeclAndTypeClangFunctionPrinter::printClangFunctionReturnType(
 }
 
 static void addABIRecordToTypeEncoding(toolchain::raw_ostream &typeEncodingOS,
-                                       clang::CharUnits offset,
-                                       clang::CharUnits end, Type t,
+                                       language::Core::CharUnits offset,
+                                       language::Core::CharUnits end, Type t,
                                        PrimitiveTypeMapping &typeMapping) {
   auto info =
       typeMapping.getKnownCTypeInfo(t->getNominalOrBoundGenericNominal());
@@ -592,7 +592,7 @@ static void addABIRecordToTypeEncoding(toolchain::raw_ostream &typeEncodingOS,
   // Express the offset and end in terms of target word size.
   // This ensures that tests are able to use the stub struct name in target
   // independent manner.
-  auto emitUnit = [&](const clang::CharUnits &unit) {
+  auto emitUnit = [&](const language::Core::CharUnits &unit) {
     typeEncodingOS << '_' << unit.getQuantity();
   };
   emitUnit(offset);
@@ -608,7 +608,7 @@ static std::string encodeTypeInfo(const T &abiTypeInfo,
 
   ClangSyntaxPrinter(moduleContext->getASTContext(), typeEncodingOS).printBaseName(moduleContext);
   abiTypeInfo.enumerateRecordMembers(
-      [&](clang::CharUnits offset, clang::CharUnits end, Type t) {
+      [&](language::Core::CharUnits offset, language::Core::CharUnits end, Type t) {
         addABIRecordToTypeEncoding(typeEncodingOS, offset, end, t, typeMapping);
       });
   return std::move(typeEncodingOS.str());
@@ -651,9 +651,9 @@ static bool printDirectReturnOrParamCType(
   ClangSyntaxPrinter(emittedModule->getASTContext(), typeEncodingOS).printBaseName(emittedModule);
 
   unsigned Count = 0;
-  clang::CharUnits lastOffset;
-  if (abiTypeInfo.enumerateRecordMembers([&](clang::CharUnits offset,
-                                             clang::CharUnits end, Type t) {
+  language::Core::CharUnits lastOffset;
+  if (abiTypeInfo.enumerateRecordMembers([&](language::Core::CharUnits offset,
+                                             language::Core::CharUnits end, Type t) {
         lastOffset = offset;
         ++Count;
         addABIRecordToTypeEncoding(typeEncodingOS, offset, end, t, typeMapping);
@@ -678,14 +678,14 @@ static bool printDirectReturnOrParamCType(
   }
 
   os << "struct " << typeEncodingOS.str();
-  toolchain::SmallVector<std::pair<clang::CharUnits, clang::CharUnits>, 8> fields;
+  toolchain::SmallVector<std::pair<language::Core::CharUnits, language::Core::CharUnits>, 8> fields;
   auto printStub = [&](raw_ostream &os, StringRef stubName) {
     // Print out a C stub for this value type.
     os << "// Stub struct to be used to pass/return values to/from Codira "
           "functions.\n";
     os << "struct " << stubName << " {\n";
-    abiTypeInfo.enumerateRecordMembers([&](clang::CharUnits offset,
-                                           clang::CharUnits end, Type t) {
+    abiTypeInfo.enumerateRecordMembers([&](language::Core::CharUnits offset,
+                                           language::Core::CharUnits end, Type t) {
       auto info =
           typeMapping.getKnownCTypeInfo(t->getNominalOrBoundGenericNominal());
       os << "  " << info->name;
@@ -1474,7 +1474,7 @@ void DeclAndTypeClangFunctionPrinter::printCxxThunkBody(
     }
     if (auto *classDecl = resultTy->getClassOrBoundGenericClass()) {
       if (classDecl->hasClangNode()) {
-        assert(!isa<clang::ObjCContainerDecl>(classDecl->getClangDecl()));
+        assert(!isa<language::Core::ObjCContainerDecl>(classDecl->getClangDecl()));
         os << "return ";
         printCallToCFunc(/*additionalParam=*/std::nullopt);
         os << ";\n";
@@ -1523,7 +1523,7 @@ void DeclAndTypeClangFunctionPrinter::printCxxThunkBody(
   if (!nonOptResultType)
     nonOptResultType = resultTy;
   if (auto *classDecl = nonOptResultType->getClassOrBoundGenericClass();
-      (classDecl && isa<clang::ObjCContainerDecl>(classDecl->getClangDecl())) ||
+      (classDecl && isa<language::Core::ObjCContainerDecl>(classDecl->getClangDecl())) ||
       nonOptResultType->isObjCExistentialType()) {
     assert(!classDecl || classDecl->hasClangNode());
     os << "return (__bridge_transfer ";
@@ -1785,7 +1785,7 @@ bool DeclAndTypeClangFunctionPrinter::hasKnownOptionalNullableCxxMapping(
       if (const auto *cd = dyn_cast<ClassDecl>(nominal))
         if (cd->isForeignReferenceType())
           return true;
-      return isa_and_nonnull<clang::ObjCInterfaceDecl>(nominal->getClangDecl());
+      return isa_and_nonnull<language::Core::ObjCInterfaceDecl>(nominal->getClangDecl());
     }
   }
   return false;

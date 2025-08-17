@@ -60,9 +60,9 @@
 #include "language/Sema/SILTypeResolutionContext.h"
 #include "language/Strings.h"
 #include "language/Subsystems.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/DeclBase.h"
-#include "clang/AST/DeclTemplate.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/DeclBase.h"
+#include "language/Core/AST/DeclTemplate.h"
 #include "toolchain/ADT/APInt.h"
 #include "toolchain/ADT/SmallPtrSet.h"
 #include "toolchain/ADT/SmallString.h"
@@ -1129,13 +1129,13 @@ static Type applyGenericArguments(Type type,
 
   if (auto clangDecl = decl->getClangDecl()) {
     if (auto classTemplateDecl =
-            dyn_cast<clang::ClassTemplateDecl>(clangDecl)) {
+            dyn_cast<language::Core::ClassTemplateDecl>(clangDecl)) {
       SmallVector<Type, 2> typesOfGenericArgs;
       for (auto typeRepr : genericArgs) {
         typesOfGenericArgs.push_back(resolution.resolveType(typeRepr));
       }
 
-      SmallVector<clang::TemplateArgument, 2> templateArguments;
+      SmallVector<language::Core::TemplateArgument, 2> templateArguments;
       std::unique_ptr<TemplateInstantiationError> error =
           ctx.getClangTemplateArguments(
               classTemplateDecl->getTemplateParameters(), typesOfGenericArgs,
@@ -1155,7 +1155,7 @@ static Type applyGenericArguments(Type type,
 
       auto *clangModuleLoader = decl->getASTContext().getClangModuleLoader();
       auto instantiatedDecl = clangModuleLoader->instantiateCXXClassTemplate(
-          const_cast<clang::ClassTemplateDecl *>(classTemplateDecl),
+          const_cast<language::Core::ClassTemplateDecl *>(classTemplateDecl),
           templateArguments);
       if (instantiatedDecl) {
         instantiatedDecl->setTemplateInstantiationType(result);
@@ -2269,7 +2269,7 @@ namespace {
     Type resolveGlobalActor(SourceLoc loc, TypeResolutionOptions options,
                             CustomAttr *&attr, TypeAttrSet &attrs);
 
-    const clang::Type *tryParseClangType(ConventionTypeAttr *conv,
+    const language::Core::Type *tryParseClangType(ConventionTypeAttr *conv,
                                          bool hasConventionCOrBlock);
 
     NeverNullType resolveAttributedTypeRepr(AttributedTypeRepr *repr,
@@ -3406,7 +3406,7 @@ Type TypeResolver::resolveGlobalActor(SourceLoc loc, TypeResolutionOptions optio
   return result;
 }
 
-const clang::Type *TypeResolver::tryParseClangType(ConventionTypeAttr *conv,
+const language::Core::Type *TypeResolver::tryParseClangType(ConventionTypeAttr *conv,
                                                    bool hasConventionCOrBlock) {
   auto clangTypeString = conv->getClangType();
   auto clangTypeLoc = conv->getClangTypeLoc();
@@ -3418,7 +3418,7 @@ const clang::Type *TypeResolver::tryParseClangType(ConventionTypeAttr *conv,
     return nullptr;
   }
 
-  const clang::Type *type =
+  const language::Core::Type *type =
       getASTContext().getClangModuleLoader()->parseClangFunctionType(
           *clangTypeString, clangTypeLoc);
   if (!type)
@@ -4040,7 +4040,7 @@ NeverNullType TypeResolver::resolveASTFunctionType(
 
   AnyFunctionType::Representation representation =
     FunctionType::Representation::Codira;
-  const clang::Type *parsedClangFunctionType = nullptr;
+  const language::Core::Type *parsedClangFunctionType = nullptr;
   auto conventionAttr = claim<ConventionTypeAttr>(attrs);
   if (conventionAttr) {
     auto parsedRep =
@@ -4342,7 +4342,7 @@ NeverNullType TypeResolver::resolveASTFunctionType(
       diffKind, /*clangFunctionType*/ nullptr, isolation,
       /*LifetimeDependenceInfo*/ std::nullopt, hasSendingResult);
 
-  const clang::Type *clangFnType = parsedClangFunctionType;
+  const language::Core::Type *clangFnType = parsedClangFunctionType;
   if (shouldStoreClangType(representation) && !clangFnType)
     clangFnType =
         getASTContext().getClangFunctionType(params, outputTy, representation);
@@ -4475,7 +4475,7 @@ NeverNullType TypeResolver::resolveSILFunctionType(FunctionTypeRepr *repr,
 
   SILFunctionType::Representation representation =
     SILFunctionType::Representation::Thick;
-  const clang::Type *clangFnType = nullptr;
+  const language::Core::Type *clangFnType = nullptr;
   TypeRepr *witnessMethodProtocol = nullptr;
   auto conventionAttr = claim<ConventionTypeAttr>(attrs);
   if (conventionAttr) {

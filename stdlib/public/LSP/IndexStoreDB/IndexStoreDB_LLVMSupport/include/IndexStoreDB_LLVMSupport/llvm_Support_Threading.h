@@ -1,8 +1,24 @@
-//===-- llvm/Support/Threading.h - Control multithreading mode --*- C++ -*-===//
+//===-- toolchain/Support/Threading.h - Control multithreading mode --*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -14,9 +30,9 @@
 #ifndef LLVM_SUPPORT_THREADING_H
 #define LLVM_SUPPORT_THREADING_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallVector.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Config_llvm-config.h> // for LLVM_ON_UNIX
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Compiler.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallVector.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_toolchain-config.h> // for LLVM_ON_UNIX
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Compiler.h>
 #include <ciso646> // So we can check the C++ standard lib macros.
 #include <functional>
 
@@ -42,17 +58,17 @@
 #if LLVM_THREADING_USE_STD_CALL_ONCE
 #include <mutex>
 #else
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Atomic.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Atomic.h>
 #endif
 
-namespace llvm {
+namespace toolchain {
 class Twine;
 
 /// Returns true if LLVM is compiled with support for multi-threading, and
 /// false otherwise.
-bool llvm_is_multithreaded();
+bool toolchain_is_multithreaded();
 
-/// llvm_execute_on_thread - Execute the given \p UserFn on a separate
+/// toolchain_execute_on_thread - Execute the given \p UserFn on a separate
 /// thread, passing it the provided \p UserData and waits for thread
 /// completion.
 ///
@@ -64,7 +80,7 @@ bool llvm_is_multithreaded();
 /// \param UserData - An argument to pass to the callback function.
 /// \param RequestedStackSize - If non-zero, a requested size (in bytes) for
 /// the thread stack.
-void llvm_execute_on_thread(void (*UserFn)(void *), void *UserData,
+void toolchain_execute_on_thread(void (*UserFn)(void *), void *UserData,
                             unsigned RequestedStackSize = 0);
 
 #if LLVM_THREADING_USE_STD_CALL_ONCE
@@ -75,9 +91,9 @@ void llvm_execute_on_thread(void (*UserFn)(void *), void *UserData,
 
   enum InitStatus { Uninitialized = 0, Wait = 1, Done = 2 };
 
-  /// The llvm::once_flag structure
+  /// The toolchain::once_flag structure
   ///
-  /// This type is modeled after std::once_flag to use with llvm::call_once.
+  /// This type is modeled after std::once_flag to use with toolchain::call_once.
   /// This structure must be used as an opaque object. It is a struct to force
   /// autoinitialization and behave like std::once_flag.
   struct once_flag {

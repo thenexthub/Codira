@@ -3073,7 +3073,7 @@ TEST(STDIO_TEST, snprintf_b_B) {
   EXPECT_SNPRINTF("<0b10101010101010101010101010101010>", "<%#" PRIb32 ">", 0xaaaaaaaa);
   EXPECT_SNPRINTF("<0B10101010101010101010101010101010>", "<%#" PRIB32 ">", 0xaaaaaaaa);
 
-  // clang doesn't like "%lb" (https://github.com/llvm/llvm-project/issues/62247)
+  // clang doesn't like "%lb" (https://github.com/toolchain/toolchain-project/issues/62247)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wformat"
   EXPECT_SNPRINTF("<1010101010101010101010101010101010101010101010101010101010101010>",
@@ -3114,7 +3114,7 @@ TEST(STDIO_TEST, swprintf_b_B) {
   EXPECT_SWPRINTF(L"<0b10101010101010101010101010101010>", L"<%#" PRIb32 ">", 0xaaaaaaaa);
   EXPECT_SWPRINTF(L"<0B10101010101010101010101010101010>", L"<%#" PRIB32 ">", 0xaaaaaaaa);
 
-  // clang doesn't like "%lb" (https://github.com/llvm/llvm-project/issues/62247)
+  // clang doesn't like "%lb" (https://github.com/toolchain/toolchain-project/issues/62247)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wformat"
   EXPECT_SWPRINTF(L"<1010101010101010101010101010101010101010101010101010101010101010>",

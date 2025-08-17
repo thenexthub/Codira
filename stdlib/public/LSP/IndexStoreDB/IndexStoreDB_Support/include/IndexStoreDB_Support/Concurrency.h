@@ -17,7 +17,7 @@
 #define LLVM_INDEXSTOREDB_SUPPORT_CONCURRENCY_H
 
 #include <IndexStoreDB_Support/Visibility.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
 
 namespace IndexStoreDB {
 
@@ -37,7 +37,7 @@ public:
   typedef void (*DispatchFn)(void *Context);
 
   WorkQueue() : ImplObj(0) { }
-  WorkQueue(Dequeuing DeqKind, llvm::StringRef Label,
+  WorkQueue(Dequeuing DeqKind, toolchain::StringRef Label,
             Priority Prio = Priority::Default) {
     ImplObj = Impl::create(DeqKind, Prio, Label);
   }
@@ -46,7 +46,7 @@ public:
       Impl::release(ImplObj);
   }
 
-  llvm::StringRef getLabel() const {
+  toolchain::StringRef getLabel() const {
     return Impl::getLabel(ImplObj);
   }
 
@@ -176,7 +176,7 @@ private:
   // Platform-specific implementation.
   struct Impl {
     typedef void *Ty;
-    static Ty create(Dequeuing DeqKind, Priority Prio, llvm::StringRef Label);
+    static Ty create(Dequeuing DeqKind, Priority Prio, toolchain::StringRef Label);
     static void dispatch(Ty Obj, const DispatchData &Fn);
     static void dispatchSync(Ty Obj, const DispatchData &Fn);
     static void dispatchBarrier(Ty Obj, const DispatchData &Fn);
@@ -186,7 +186,7 @@ private:
     static void suspend(Ty Obj);
     static void resume(Ty Obj);
     static void setPriority(Ty Obj, Priority Prio);
-    static llvm::StringRef getLabel(const Ty Obj);
+    static toolchain::StringRef getLabel(const Ty Obj);
     static void retain(Ty Obj);
     static void release(Ty Obj);
   };

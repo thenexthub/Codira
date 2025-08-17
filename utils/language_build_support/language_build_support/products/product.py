@@ -46,15 +46,15 @@ class Product(object):
         the value of product_name() by default for this reason.
         """
 
-        llvm_projects = ['clang',
+        toolchain_projects = ['clang',
                          'clang-tools-extra',
                          'compiler-rt',
                          'libcxx',
                          'lldb',
-                         'llvm']
+                         'toolchain']
 
-        if cls.product_name() in llvm_projects:
-            return "llvm-project/{}".format(cls.product_name())
+        if cls.product_name() in toolchain_projects:
+            return "toolchain-project/{}".format(cls.product_name())
         return cls.product_name()
 
     @classmethod

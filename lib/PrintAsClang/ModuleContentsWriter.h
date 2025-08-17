@@ -23,7 +23,7 @@
 #include "toolchain/ADT/SmallPtrSet.h"
 #include "toolchain/ADT/StringSet.h"
 
-namespace clang {
+namespace language::Core {
   class Module;
 }
 
@@ -32,7 +32,7 @@ class Decl;
 class ModuleDecl;
 class CodiraToClangInteropContext;
 
-using ImportModuleTy = PointerUnion<ModuleDecl*, const clang::Module*>;
+using ImportModuleTy = PointerUnion<ModuleDecl*, const language::Core::Module*>;
 
 /// Prints the declarations of \p M to \p os and collecting imports in
 /// \p imports along the way.

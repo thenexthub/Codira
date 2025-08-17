@@ -132,7 +132,7 @@ bool SILGlobalVariable::hasClangNode() const {
 ClangNode SILGlobalVariable::getClangNode() const {
   return (VDecl ? VDecl->getClangNode() : ClangNode());
 }
-const clang::Decl *SILGlobalVariable::getClangDecl() const {
+const language::Core::Decl *SILGlobalVariable::getClangDecl() const {
   return (VDecl ? VDecl->getClangDecl() : nullptr);
 }
 

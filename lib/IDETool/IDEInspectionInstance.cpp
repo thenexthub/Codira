@@ -39,7 +39,7 @@
 #include "language/Serialization/SerializedModuleLoader.h"
 #include "language/Subsystems.h"
 #include "language/SymbolGraphGen/SymbolGraphOptions.h"
-#include "clang/AST/ASTContext.h"
+#include "language/Core/AST/ASTContext.h"
 #include "toolchain/ADT/Hashing.h"
 #include "toolchain/Support/MemoryBuffer.h"
 

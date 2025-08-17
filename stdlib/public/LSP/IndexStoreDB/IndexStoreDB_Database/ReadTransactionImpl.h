@@ -41,9 +41,9 @@ public:
   explicit Implementation(DatabaseRef dbase);
 
   bool lookupProvidersForUSR(StringRef USR, SymbolRoleSet roles, SymbolRoleSet relatedRoles,
-                             llvm::function_ref<bool(IDCode provider, SymbolRoleSet roles, SymbolRoleSet relatedRoles)> receiver);
+                             toolchain::function_ref<bool(IDCode provider, SymbolRoleSet roles, SymbolRoleSet relatedRoles)> receiver);
   bool lookupProvidersForUSR(IDCode usrCode, SymbolRoleSet roles, SymbolRoleSet relatedRoles,
-                             llvm::function_ref<bool(IDCode provider, SymbolRoleSet roles, SymbolRoleSet relatedRoles)> receiver);
+                             toolchain::function_ref<bool(IDCode provider, SymbolRoleSet roles, SymbolRoleSet relatedRoles)> receiver);
 
   IDCode getUSRCode(StringRef USR);
   IDCode getProviderCode(StringRef providerName);
@@ -51,32 +51,32 @@ public:
   StringRef getTargetName(IDCode target);
   StringRef getModuleName(IDCode moduleName);
   bool getProviderFileReferences(IDCode provider,
-                                 llvm::function_ref<bool(TimestampedPath path)> receiver);
+                                 toolchain::function_ref<bool(TimestampedPath path)> receiver);
   /// `unitFilter` returns `true` if the unit should be included, `false` if it should be ignored.
   bool getProviderFileCodeReferences(IDCode provider,
     function_ref<bool(IDCode unitCode)> unitFilter,
-    function_ref<bool(IDCode pathCode, IDCode unitCode, llvm::sys::TimePoint<> modTime, IDCode moduleNameCode, bool isSystem)> receiver);
+    function_ref<bool(IDCode pathCode, IDCode unitCode, toolchain::sys::TimePoint<> modTime, IDCode moduleNameCode, bool isSystem)> receiver);
   /// `unitFilter` returns `true` if the unit should be included, `false` if it should be ignored.
   bool foreachProviderAndFileCodeReference(function_ref<bool(IDCode unitCode)> unitFilter,
-    function_ref<bool(IDCode provider, IDCode pathCode, IDCode unitCode, llvm::sys::TimePoint<> modTime, IDCode moduleNameCode, bool isSystem)> receiver);
+    function_ref<bool(IDCode provider, IDCode pathCode, IDCode unitCode, toolchain::sys::TimePoint<> modTime, IDCode moduleNameCode, bool isSystem)> receiver);
 
   bool foreachProviderContainingTestSymbols(function_ref<bool(IDCode provider)> receiver);
 
-  bool foreachUSROfGlobalSymbolKind(SymbolKind symKind, llvm::function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver);
-  bool foreachUSROfGlobalUnitTestSymbol(llvm::function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver);
+  bool foreachUSROfGlobalSymbolKind(SymbolKind symKind, toolchain::function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver);
+  bool foreachUSROfGlobalUnitTestSymbol(toolchain::function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver);
   bool foreachUSROfGlobalSymbolKind(GlobalSymbolKind globalSymKind, function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver);
 
   bool findUSRsWithNameContaining(StringRef pattern,
                                   bool anchorStart, bool anchorEnd,
                                   bool subsequence, bool ignoreCase,
-                                  llvm::function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver);
-  bool foreachUSRBySymbolName(StringRef name, llvm::function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver);
+                                  toolchain::function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver);
+  bool foreachUSRBySymbolName(StringRef name, toolchain::function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver);
 
   /// The memory that \c filePath points to may not live beyond the receiver function invocation.
   bool findFilenamesContaining(StringRef pattern,
                                bool anchorStart, bool anchorEnd,
                                bool subsequence, bool ignoreCase,
-                               llvm::function_ref<bool(CanonicalFilePathRef filePath)> receiver);
+                               toolchain::function_ref<bool(CanonicalFilePathRef filePath)> receiver);
 
   /// Returns all the recorded symbol names along with their associated USRs.
   bool foreachSymbolName(function_ref<bool(StringRef name)> receiver);
@@ -89,9 +89,9 @@ public:
   /// Returns empty path if it was not found. This should only be used for the unit path since it is not treated as
   ///  a canonicalized path.
   std::string getUnitFileIdentifierFromCode(IDCode fileCode);
-  bool foreachDirPath(llvm::function_ref<bool(CanonicalFilePathRef dirPath)> receiver);
+  bool foreachDirPath(toolchain::function_ref<bool(CanonicalFilePathRef dirPath)> receiver);
   bool findFilePathsWithParentPaths(ArrayRef<CanonicalFilePathRef> parentPaths,
-                                    llvm::function_ref<bool(IDCode pathCode, CanonicalFilePathRef filePath)> receiver);
+                                    toolchain::function_ref<bool(IDCode pathCode, CanonicalFilePathRef filePath)> receiver);
   IDCode getFilePathCode(CanonicalFilePathRef filePath);
   IDCode getUnitPathCode(StringRef filePath);
 
@@ -100,9 +100,9 @@ public:
   /// UnitInfo.UnitName will be empty if \c unit was not found. UnitInfo.UnitCode is always filled out.
   UnitInfo getUnitInfo(StringRef unitName);
   bool foreachUnitContainingFile(IDCode filePathCode,
-                                 llvm::function_ref<bool(ArrayRef<IDCode> unitCodes)> receiver);
+                                 toolchain::function_ref<bool(ArrayRef<IDCode> unitCodes)> receiver);
   bool foreachUnitContainingUnit(IDCode unitCode,
-                                 llvm::function_ref<bool(ArrayRef<IDCode> unitCodes)> receiver);
+                                 toolchain::function_ref<bool(ArrayRef<IDCode> unitCodes)> receiver);
   bool foreachRootUnitOfFile(IDCode filePathCode,
                              function_ref<bool(const UnitInfo &unitInfo)> receiver);
   bool foreachRootUnitOfUnit(IDCode unitCode,

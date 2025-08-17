@@ -52,17 +52,17 @@
 #include "language/SIL/SILDebugScope.h"
 #include "language/SIL/SILModule.h"
 #include "language/Serialization/SerializedModuleLoader.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Decl.h"
-#include "clang/AST/ExternalASTSource.h"
-#include "clang/Basic/Module.h"
-#include "clang/Basic/SourceLocation.h"
-#include "clang/Basic/SourceManager.h"
-#include "clang/Basic/TargetInfo.h"
-#include "clang/Frontend/CompilerInstance.h"
-#include "clang/Lex/HeaderSearchOptions.h"
-#include "clang/Lex/Preprocessor.h"
-#include "clang/Serialization/ASTReader.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/AST/ExternalASTSource.h"
+#include "language/Core/Basic/Module.h"
+#include "language/Core/Basic/SourceLocation.h"
+#include "language/Core/Basic/SourceManager.h"
+#include "language/Core/Basic/TargetInfo.h"
+#include "language/Core/Frontend/CompilerInstance.h"
+#include "language/Core/Lex/HeaderSearchOptions.h"
+#include "language/Core/Lex/Preprocessor.h"
+#include "language/Core/Serialization/ASTReader.h"
 #include "toolchain/ADT/StringRef.h"
 #include "toolchain/ADT/StringSet.h"
 #include "toolchain/Config/config.h"
@@ -428,10 +428,10 @@ private:
       return L;
 
     if (auto *ClangDecl = D->getClangDecl()) {
-      clang::SourceLocation ClangSrcLoc = ClangDecl->getBeginLoc();
-      clang::SourceManager &ClangSM =
+      language::Core::SourceLocation ClangSrcLoc = ClangDecl->getBeginLoc();
+      language::Core::SourceManager &ClangSM =
           CI.getClangASTContext().getSourceManager();
-      clang::PresumedLoc PresumedLoc = ClangSM.getPresumedLoc(ClangSrcLoc);
+      language::Core::PresumedLoc PresumedLoc = ClangSM.getPresumedLoc(ClangSrcLoc);
       if (!PresumedLoc.isValid())
         return L;
       L.Line = PresumedLoc.getLine();
@@ -587,7 +587,7 @@ private:
     return createFile(Filename, std::nullopt, Source);
   }
 
-  /// This is effectively \p clang::CGDebugInfo::createFile().
+  /// This is effectively \p language::Core::CGDebugInfo::createFile().
   toolchain::DIFile *
   createFile(StringRef FileName,
              std::optional<toolchain::DIFile::ChecksumInfo<StringRef>> CSInfo,
@@ -837,12 +837,12 @@ private:
     // For overlays of Clang modules also emit an import of the underlying Clang
     // module. The helps the debugger resolve types that are present only in the
     // underlying module.
-    if (const clang::Module *UnderlyingClangModule =
+    if (const language::Core::Module *UnderlyingClangModule =
             M.importedModule->findUnderlyingClangModule()) {
       DBuilder.createImportedModule(
           Context,
           getOrCreateModule(
-              {*const_cast<clang::Module *>(UnderlyingClangModule)},
+              {*const_cast<language::Core::Module *>(UnderlyingClangModule)},
               UnderlyingClangModule),
           File, 0);
     }
@@ -886,12 +886,12 @@ private:
     return M;
   }
 
-  using ASTSourceDescriptor = clang::ASTSourceDescriptor;
+  using ASTSourceDescriptor = language::Core::ASTSourceDescriptor;
   /// Create a DIModule from a clang module or PCH.
-  /// The clang::Module pointer is passed separately because the recursive case
+  /// The language::Core::Module pointer is passed separately because the recursive case
   /// needs to fudge the AST descriptor.
   toolchain::DIModule *getOrCreateModule(ASTSourceDescriptor Desc,
-                                    const clang::Module *ClangModule) {
+                                    const language::Core::Module *ClangModule) {
     // PCH files don't have a signature field in the control block,
     // but LLVM detects skeleton CUs by looking for a non-zero DWO id.
     // We use the lower 64 bits for debug info.
@@ -910,7 +910,7 @@ private:
         // module. A PCM rebuild causes the ModuleManager to unload previously
         // loaded ASTFiles. For this reason we must use the cached ASTFile
         // information here instead of the potentially dangling pointer to the
-        // ASTFile that is stored in the clang::Module object.
+        // ASTFile that is stored in the language::Core::Module object.
         //
         // Note: The implementation here assumes that all clang submodules
         //       belong to the same PCM file.
@@ -1654,7 +1654,7 @@ private:
       return createPointerSizedStruct(Scope, Name, FwdDecl, File, Line, Flags,
                                       MangledName, SpecificationOf);
     } else {
-      unsigned SizeInBits = CI.getTargetInfo().getPointerWidth(clang::LangAS::Default);
+      unsigned SizeInBits = CI.getTargetInfo().getPointerWidth(language::Core::LangAS::Default);
       return createOpaqueStruct(Scope, Name, File, Line, SizeInBits, 0, Flags,
                                 MangledName);
     }
@@ -1665,7 +1665,7 @@ private:
       toolchain::DIFile *File, unsigned Line, toolchain::DINode::DIFlags Flags,
       StringRef MangledName, toolchain::DIType *SpecificationOf = nullptr) {
     unsigned PtrSize =
-        CI.getTargetInfo().getPointerWidth(clang::LangAS::Default);
+        CI.getTargetInfo().getPointerWidth(language::Core::LangAS::Default);
     auto PtrTy = DBuilder.createPointerType(PointeeTy, PtrSize, 0);
     toolchain::Metadata *Elements[] = {DBuilder.createMemberType(
         Scope, "ptr", File, 0, PtrSize, 0, 0, Flags, PtrTy)};
@@ -1680,7 +1680,7 @@ private:
                                  toolchain::DIType *PointeeTy, toolchain::DIFile *File,
                                  unsigned Line, toolchain::DINode::DIFlags Flags,
                                  StringRef MangledName) {
-    unsigned PtrSize = CI.getTargetInfo().getPointerWidth(clang::LangAS::Default);
+    unsigned PtrSize = CI.getTargetInfo().getPointerWidth(language::Core::LangAS::Default);
     toolchain::Metadata *Elements[] = {
         DBuilder.createMemberType(
             Scope, "ptr", File, 0, PtrSize, 0, 0, Flags,
@@ -1696,7 +1696,7 @@ private:
 
   toolchain::DIType *createFixedValueBufferStruct(toolchain::DIType *PointeeTy) {
     unsigned Line = 0;
-    unsigned PtrSize = CI.getTargetInfo().getPointerWidth(clang::LangAS::Default);
+    unsigned PtrSize = CI.getTargetInfo().getPointerWidth(language::Core::LangAS::Default);
     toolchain::DINode::DIFlags Flags = toolchain::DINode::FlagArtificial;
     toolchain::DIFile *File = MainFile;
     toolchain::DIScope *Scope = TheCU;
@@ -1736,7 +1736,7 @@ private:
     auto FnTy = DBuilder.createSubroutineType(Params, Flags);
     toolchain::DIType *DITy;
     if (FunTy->getRepresentation() == SILFunctionType::Representation::Thick) {
-      if (SizeInBits == 2 * CI.getTargetInfo().getPointerWidth(clang::LangAS::Default))
+      if (SizeInBits == 2 * CI.getTargetInfo().getPointerWidth(language::Core::LangAS::Default))
         // This is a FunctionPairTy: { i8*, %language.refcounted* }.
         DITy = createDoublePointerSizedStruct(Scope, MangledName, FnTy,
                                               MainFile, 0, Flags, MangledName);
@@ -1745,7 +1745,7 @@ private:
         DITy = createOpaqueStruct(Scope, MangledName, MainFile, 0, SizeInBits,
                                   AlignInBits, Flags, MangledName);
     } else {
-      assert(SizeInBits == CI.getTargetInfo().getPointerWidth(clang::LangAS::Default));
+      assert(SizeInBits == CI.getTargetInfo().getPointerWidth(language::Core::LangAS::Default));
       DITy = createPointerSizedStruct(Scope, MangledName, FnTy, MainFile, 0,
                                       Flags, MangledName);
     }
@@ -1932,7 +1932,7 @@ private:
     case TypeKind::BuiltinRawUnsafeContinuation:
     case TypeKind::BuiltinJob: {
       unsigned PtrSize =
-          CI.getTargetInfo().getPointerWidth(clang::LangAS::Default);
+          CI.getTargetInfo().getPointerWidth(language::Core::LangAS::Default);
       if (Opts.DebugInfoLevel > IRGenDebugInfoLevel::ASTTypes) {
         Flags |= toolchain::DINode::FlagArtificial;
         toolchain::DICompositeType *PTy = DBuilder.createStructType(
@@ -2004,7 +2004,7 @@ private:
       auto L = getFileAndLocation(Decl);
       unsigned FwdDeclLine = 0;
       assert(SizeInBits ==
-             CI.getTargetInfo().getPointerWidth(clang::LangAS::Default));
+             CI.getTargetInfo().getPointerWidth(language::Core::LangAS::Default));
       if (Opts.DebugInfoLevel > IRGenDebugInfoLevel::ASTTypes) {
         if (ClassTy->isSpecialized())
           return createSpecializedStructOrClassType(
@@ -2061,7 +2061,7 @@ private:
       auto L = getFileAndLocation(Decl);
       unsigned FwdDeclLine = 0;
       assert(SizeInBits ==
-             CI.getTargetInfo().getPointerWidth(clang::LangAS::Default));
+             CI.getTargetInfo().getPointerWidth(language::Core::LangAS::Default));
       return createPointerSizedStruct(Scope,
                                       Decl ? Decl->getNameStr() : MangledName,
                                       L.File, FwdDeclLine, Flags, MangledName);
@@ -2531,7 +2531,7 @@ private:
   toolchain::DIScope *updateScope(toolchain::DIScope *Scope, DebugTypeInfo DbgTy) {
     DeclContext *Context = nullptr;
     const Decl *TypeDecl = nullptr;
-    const clang::Decl *ClangDecl = nullptr;
+    const language::Core::Decl *ClangDecl = nullptr;
     if (auto Alias = dyn_cast<TypeAliasType>(DbgTy.getType())) {
       TypeAliasDecl *AliasDecl = Alias->getDecl();
       TypeDecl = AliasDecl;
@@ -2556,7 +2556,7 @@ private:
       Context = BNO->getASTContext().TheBuiltinModule;
     }
     if (ClangDecl) {
-      clang::ASTReader &Reader = *CI.getClangInstance().getASTReader();
+      language::Core::ASTReader &Reader = *CI.getClangInstance().getASTReader();
       auto Idx = ClangDecl->getOwningModuleID();
       auto SubModuleDesc = Reader.getSourceDescriptor(Idx);
       auto TopLevelModuleDesc = getClangModule(*TypeDecl->getModuleContext());
@@ -3124,7 +3124,7 @@ void IRGenDebugInfoImpl::emitImport(ImportDecl *D) {
   ImportedModules.insert(Imported.importedModule);
 }
 
-/// This is effectively \p clang::CGDebugInfo::getCallSiteRelatedAttrs().
+/// This is effectively \p language::Core::CGDebugInfo::getCallSiteRelatedAttrs().
 toolchain::DINode::DIFlags IRGenDebugInfoImpl::getCallSiteRelatedAttrs() const {
 
   // Do not generate callsite attributes if unless the -gen-callsite-info flag
@@ -3923,12 +3923,12 @@ void IRGenDebugInfoImpl::emitTypeMetadata(IRGenFunction &IGF,
   static const char *Tau = LANGUAGE_UTF8("\u03C4");
   toolchain::raw_svector_ostream OS(Buf);
   OS << '$' << Tau << '_' << Depth << '_' << Index;
-  uint64_t PtrWidthInBits = CI.getTargetInfo().getPointerWidth(clang::LangAS::Default);
+  uint64_t PtrWidthInBits = CI.getTargetInfo().getPointerWidth(language::Core::LangAS::Default);
   assert(PtrWidthInBits % 8 == 0);
   auto DbgTy = DebugTypeInfo::getTypeMetadata(
       getMetadataType(Name)->getDeclaredInterfaceType().getPointer(),
       Size(PtrWidthInBits / 8),
-      Alignment(CI.getTargetInfo().getPointerAlign(clang::LangAS::Default)));
+      Alignment(CI.getTargetInfo().getPointerAlign(language::Core::LangAS::Default)));
   emitVariableDeclaration(IGF.Builder, Metadata, DbgTy, IGF.getDebugScope(),
                           {}, {OS.str().str(), 0, false},
                           // language.type is already a pointer type,
@@ -3949,7 +3949,7 @@ void IRGenDebugInfoImpl::emitPackCountParameter(IRGenFunction &IGF,
   if (!DS || DS->getInlinedFunction()->isTransparent())
     return;
 
-  Type IntTy = BuiltinIntegerType::get(CI.getTargetInfo().getPointerWidth(clang::LangAS::Default),
+  Type IntTy = BuiltinIntegerType::get(CI.getTargetInfo().getPointerWidth(language::Core::LangAS::Default),
                                        IGM.getCodiraModule()->getASTContext());
   auto &TI = IGM.getTypeInfoForUnlowered(IntTy);
   auto DbgTy = *CompletedDebugTypeInfo::getFromTypeInfo(IntTy, TI, IGM);

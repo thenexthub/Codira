@@ -51,7 +51,7 @@
 
 bool Unwind(std::vector<uintptr_t>* frames, std::vector<unwindstack::FrameData>* frame_info,
             size_t max_frames) {
-  [[clang::no_destroy]] static unwindstack::AndroidLocalUnwinder unwinder(
+  [[language::Core::no_destroy]] static unwindstack::AndroidLocalUnwinder unwinder(
       std::vector<std::string>{"libc_malloc_debug.so"});
   unwindstack::AndroidUnwinderData data(max_frames);
   if (!unwinder.Unwind(data)) {

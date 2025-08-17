@@ -1,8 +1,8 @@
-/*===------- llvm/Config/abi-breaking.h - llvm configuration -------*- C -*-===*/
+/*===------- toolchain/Config/abi-breaking.h - toolchain configuration -------*- C -*-===*/
 /*                                                                            */
 /* Part of the LLVM Project, under the Apache License v2.0 with LLVM          */
 /* Exceptions.                                                                */
-/* See https://llvm.org/LICENSE.txt for license information.                  */
+/* See https://toolchain.org/LICENSE.txt for license information.                  */
 /* SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception                    */
 /*                                                                            */
 /*===----------------------------------------------------------------------===*/
@@ -12,12 +12,12 @@
 #ifndef LLVM_ABI_BREAKING_CHECKS_H
 #define LLVM_ABI_BREAKING_CHECKS_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_Config_indexstoredb-prefix.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_indexstoredb-prefix.h>
 
 /* Define to enable checks that alter the LLVM C++ ABI */
 #define LLVM_ENABLE_ABI_BREAKING_CHECKS 0
 
-/* Define to enable reverse iteration of unordered llvm containers */
+/* Define to enable reverse iteration of unordered toolchain containers */
 #define LLVM_ENABLE_REVERSE_ITERATION 0
 
 /* Allow selectively disabling link-time mismatch checking so that header-only
@@ -43,7 +43,7 @@
 // exported by default on AIX.
 #define LLVM_HIDDEN_VISIBILITY
 #endif
-namespace llvm {
+namespace toolchain {
 #if LLVM_ENABLE_ABI_BREAKING_CHECKS
 extern int EnableABIBreakingChecks;
 LLVM_HIDDEN_VISIBILITY

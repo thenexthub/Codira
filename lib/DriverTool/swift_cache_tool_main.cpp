@@ -28,8 +28,8 @@
 #include "language/Frontend/Frontend.h"
 #include "language/Frontend/PrintingDiagnosticConsumer.h"
 #include "language/Parse/ParseVersion.h"
-#include "clang/CAS/CASOptions.h"
-#include "clang/CAS/IncludeTree.h"
+#include "language/Core/CAS/CASOptions.h"
+#include "language/Core/CAS/IncludeTree.h"
 #include "toolchain/CAS/ActionCache.h"
 #include "toolchain/CAS/BuiltinUnifiedCASDatabases.h"
 #include "toolchain/CAS/ObjectStore.h"
@@ -93,7 +93,7 @@ private:
   CompilerInvocation Invocation;
   PrintingDiagnosticConsumer PDC;
   std::string MainExecutablePath;
-  clang::CASOptions CASOpts;
+  language::Core::CASOptions CASOpts;
   std::vector<std::string> Inputs;
   std::vector<std::string> FrontendArgs;
   CodiraCacheToolAction ActionKind = CodiraCacheToolAction::Invalid;
@@ -523,7 +523,7 @@ int CodiraCacheToolInvocation::printIncludeTreeList() {
       return 1;
     }
 
-    auto fileList = clang::cas::IncludeTree::FileList::get(*CAS, *Ref);
+    auto fileList = language::Core::cas::IncludeTree::FileList::get(*CAS, *Ref);
     if (!fileList)
       return error(fileList.takeError());
 

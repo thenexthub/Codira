@@ -77,7 +77,7 @@ namespace toolchain {
   class Type;
   class AttributeList;
 }
-namespace clang {
+namespace language::Core {
   class ASTContext;
   template <class> class CanQual;
   class CodeGenerator;
@@ -664,7 +664,7 @@ public:
   std::unique_ptr<toolchain::LLVMContext> LLVMContext;
   IRGenerator &IRGen;
   ASTContext &Context;
-  std::unique_ptr<clang::CodeGenerator> ClangCodeGen;
+  std::unique_ptr<language::Core::CodeGenerator> ClangCodeGen;
   toolchain::Module &Module;
   const toolchain::DataLayout DataLayout;
   const toolchain::Triple Triple;
@@ -1110,21 +1110,21 @@ public:
   toolchain::PointerType *getStoragePointerType(SILType T);
   toolchain::StructType *createNominalType(CanType type);
   toolchain::StructType *createNominalType(ProtocolCompositionType *T);
-  clang::CanQual<clang::Type> getClangType(CanType type);
-  clang::CanQual<clang::Type> getClangType(SILType type);
-  clang::CanQual<clang::Type> getClangType(SILParameterInfo param,
+  language::Core::CanQual<language::Core::Type> getClangType(CanType type);
+  language::Core::CanQual<language::Core::Type> getClangType(SILType type);
+  language::Core::CanQual<language::Core::Type> getClangType(SILParameterInfo param,
                                            CanSILFunctionType funcTy);
 
   const TypeLayoutEntry
   &getTypeLayoutEntry(SILType T, bool useStructLayouts);
 
-  const clang::ASTContext &getClangASTContext() {
+  const language::Core::ASTContext &getClangASTContext() {
     assert(ClangASTContext &&
            "requesting clang AST context without clang importer!");
     return *ClangASTContext;
   }
 
-  clang::CodeGen::CodeGenModule &getClangCGM() const;
+  language::Core::CodeGen::CodeGenModule &getClangCGM() const;
   
   CanType getRuntimeReifiedType(CanType type);
   Type substOpaqueTypesWithUnderlyingTypes(Type type);
@@ -1169,7 +1169,7 @@ private:
   TypeConverter &Types;
   friend TypeConverter;
 
-  const clang::ASTContext *ClangASTContext;
+  const language::Core::ASTContext *ClangASTContext;
 
   toolchain::DenseMap<Decl*, MetadataLayout*> MetadataLayouts;
   void destroyMetadataLayoutMap();
@@ -1205,7 +1205,7 @@ public:
   toolchain::Constant *getAddrOfOpaqueTypeDescriptor(OpaqueTypeDecl *opaqueType,
                                                 ConstantInit forDefinition);
   toolchain::Constant *
-  emitClangProtocolObject(const clang::ObjCProtocolDecl *objcProtocol);
+  emitClangProtocolObject(const language::Core::ObjCProtocolDecl *objcProtocol);
 
   ConstantReference getConstantReferenceForProtocolDescriptor(ProtocolDecl *proto);
 
@@ -1241,7 +1241,7 @@ public:
                            toolchain::Constant *storageAddress,
                            toolchain::ConstantInt *otherDiscriminator);
   toolchain::Constant *getConstantSignedPointer(toolchain::Constant *pointer,
-                                           const clang::PointerAuthSchema &schema,
+                                           const language::Core::PointerAuthSchema &schema,
                                            const PointerAuthEntity &entity,
                                            toolchain::Constant *storageAddress);
 
@@ -1288,7 +1288,7 @@ public:
   toolchain::Constant *getOrCreateOutlinedDestructiveProjectDataForLoad(
     SILType T, const TypeInfo &ti, EnumElementDecl *theCase, unsigned caseIdx);
 
-  toolchain::Constant *getAddrOfClangGlobalDecl(clang::GlobalDecl global,
+  toolchain::Constant *getAddrOfClangGlobalDecl(language::Core::GlobalDecl global,
                                            ForDefinition_t forDefinition);
 
 private:
@@ -1310,7 +1310,7 @@ private:
   toolchain::DenseMap<LinkEntity, toolchain::Constant *> IndirectCoroFunctionPointers;
   toolchain::DenseMap<LinkEntity, toolchain::Constant*> GlobalGOTEquivalents;
   toolchain::DenseMap<LinkEntity, toolchain::Function*> GlobalFuncs;
-  toolchain::DenseSet<const clang::Decl *> GlobalClangDecls;
+  toolchain::DenseSet<const language::Core::Decl *> GlobalClangDecls;
   toolchain::StringMap<std::pair<toolchain::GlobalVariable*, toolchain::Constant*>>
     GlobalStrings;
   toolchain::StringMap<std::pair<toolchain::GlobalVariable*, toolchain::Constant*>>
@@ -1643,25 +1643,25 @@ public:
   toolchain::Constant *emitFixedTypeLayout(CanType t, const FixedTypeInfo &ti);
   void emitProtocolConformance(const ConformanceDescription &record);
   void emitNestedTypeDecls(DeclRange members);
-  void emitClangDecl(const clang::Decl *decl);
+  void emitClangDecl(const language::Core::Decl *decl);
 
   void finalizeClangCodeGen();
   void finishEmitAfterTopLevel();
 
   Signature
   getSignature(CanSILFunctionType fnType,
-               const clang::CXXConstructorDecl *cxxCtorDecl = nullptr);
+               const language::Core::CXXConstructorDecl *cxxCtorDecl = nullptr);
   Signature
   getSignature(CanSILFunctionType fnType, FunctionPointerKind kind,
                bool forStaticCall = false,
-               const clang::CXXConstructorDecl *cxxCtorDecl = nullptr);
+               const language::Core::CXXConstructorDecl *cxxCtorDecl = nullptr);
   toolchain::FunctionType *getFunctionType(CanSILFunctionType type,
                                       toolchain::AttributeList &attrs,
                                       ForeignFunctionInfo *foreignInfo=nullptr);
   ForeignFunctionInfo getForeignFunctionInfo(CanSILFunctionType type);
 
   void
-  ensureImplicitCXXDestructorBodyIsDefined(clang::CXXDestructorDecl *cxxDtor);
+  ensureImplicitCXXDestructorBodyIsDefined(language::Core::CXXDestructorDecl *cxxDtor);
 
   toolchain::ConstantInt *getInt32(uint32_t value);
   toolchain::ConstantInt *getSize(Size size);
@@ -1998,7 +1998,7 @@ public:
   bool isForeignExceptionHandlingEnabled() const;
 
   /// Returns true if the given Clang function does not throw exceptions.
-  bool isCxxNoThrow(clang::FunctionDecl *fd, bool defaultNoThrow = false);
+  bool isCxxNoThrow(language::Core::FunctionDecl *fd, bool defaultNoThrow = false);
 
 private:
   toolchain::Constant *
@@ -2070,7 +2070,7 @@ public:
 bool shouldRemoveTargetFeature(StringRef);
 
 struct CXXBaseRecordLayout {
-  const clang::CXXRecordDecl *decl;
+  const language::Core::CXXRecordDecl *decl;
   Size offset;
   Size size;
 };
@@ -2078,7 +2078,7 @@ struct CXXBaseRecordLayout {
 /// Retrieves the base classes of a C++ struct/class ordered by their offset in
 /// the derived type's memory layout.
 SmallVector<CXXBaseRecordLayout, 1>
-getBasesAndOffsets(const clang::CXXRecordDecl *decl);
+getBasesAndOffsets(const language::Core::CXXRecordDecl *decl);
 
 } // end namespace irgen
 } // end namespace language

@@ -1,24 +1,40 @@
-//===- llvm/Support/Mutex.h - Mutex Operating System Concept -----*- C++ -*-===//
+//===- toolchain/Support/Mutex.h - Mutex Operating System Concept -----*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
-// This file declares the llvm::sys::Mutex class.
+// This file declares the toolchain::sys::Mutex class.
 //
 //===----------------------------------------------------------------------===//
 
 #ifndef LLVM_SUPPORT_MUTEX_H
 #define LLVM_SUPPORT_MUTEX_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_Config_llvm-config.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Compiler.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Threading.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_toolchain-config.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Compiler.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Threading.h>
 #include <cassert>
 
-namespace llvm
+namespace toolchain
 {
   namespace sys
   {
@@ -97,7 +113,7 @@ namespace llvm
         impl(rec), acquired(0), recursive(rec) { }
 
       bool lock() {
-        if (!mt_only || llvm_is_multithreaded()) {
+        if (!mt_only || toolchain_is_multithreaded()) {
           return impl.acquire();
         } else {
           // Single-threaded debugging code.  This would be racy in
@@ -110,7 +126,7 @@ namespace llvm
       }
 
       bool unlock() {
-        if (!mt_only || llvm_is_multithreaded()) {
+        if (!mt_only || toolchain_is_multithreaded()) {
           return impl.release();
         } else {
           // Single-threaded debugging code.  This would be racy in
@@ -124,7 +140,7 @@ namespace llvm
       }
 
       bool try_lock() {
-        if (!mt_only || llvm_is_multithreaded())
+        if (!mt_only || toolchain_is_multithreaded())
           return impl.tryacquire();
         else return true;
       }

@@ -22,7 +22,7 @@
 // FORTIFY implementation:
 //
 // 1. For compile-time checks, we use clang's diagnostic consumer
-// (https://clang.llvm.org/doxygen/classclang_1_1VerifyDiagnosticConsumer.html#details)
+// (https://clang.toolchain.org/doxygen/classclang_1_1VerifyDiagnosticConsumer.html#details)
 // to check diagnostics (e.g. the expected-* comments everywhere).
 //
 // 2. For run-time checks, we build and run as regular gtests.

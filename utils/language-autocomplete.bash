@@ -20,8 +20,8 @@ _language_complete()
     return 0
   fi
 
-  if [[ ${prevWord} == "-Xllvm" ]] ; then
-    # Don't know how to get the help for llvm options automatically.
+  if [[ ${prevWord} == "-Xtoolchain" ]] ; then
+    # Don't know how to get the help for toolchain options automatically.
     # So we use a grep'ed static list.
     COMPREPLY=( $(compgen -W "\
       -aa-kind \
@@ -38,7 +38,7 @@ _language_complete()
       -copy-forward-stop \
       -differentiation-skip-folding-differentiable-function-extraction \
       -disable-arc-cm \
-      -disable-llvm-arc-opts \
+      -disable-toolchain-arc-opts \
       -disable-sil-cm-rr-cm \
       -disable-sil-ownership-verification \
       -dont-abort-on-memory-lifetime-errors \
@@ -192,7 +192,7 @@ complete -o default -F _language_complete language-frontend
 complete -o default -F _language_complete sil-opt
 complete -o default -F _language_complete sil-func-extractor
 complete -o default -F _language_complete language-demangle
-complete -o default -F _language_complete language-llvm-opt
+complete -o default -F _language_complete language-toolchain-opt
 complete -o default -F _language_complete language-ide-test
 complete -o default -F _language_complete language-ios-test
 complete -o default -F _language_complete language-sdk-analyzer

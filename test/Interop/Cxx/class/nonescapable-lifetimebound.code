@@ -16,7 +16,7 @@ module Test {
 
 struct LANGUAGE_NONESCAPABLE View {
     View() : member(nullptr) {}
-    View(const int *p [[clang::lifetimebound]]) : member(p) {}
+    View(const int *p [[language::Core::lifetimebound]]) : member(p) {}
     View(const View&) = default;
 private:
     const int *member;
@@ -24,7 +24,7 @@ private:
 };
 
 struct LANGUAGE_NONESCAPABLE OtherView {
-    OtherView(View v [[clang::lifetimebound]]) : member(v.member) {}
+    OtherView(View v [[language::Core::lifetimebound]]) : member(v.member) {}
     OtherView(const OtherView&) = default;
 private:
     const int *member;
@@ -33,11 +33,11 @@ private:
 struct Owner {
     int data;
 
-    View handOutView() const [[clang::lifetimebound]] {
+    View handOutView() const [[language::Core::lifetimebound]] {
         return View(&data);
     }
 
-    View handOutView2(View v) const [[clang::lifetimebound]] {
+    View handOutView2(View v) const [[language::Core::lifetimebound]] {
         return View(&data);
     }
 };
@@ -46,24 +46,24 @@ Owner makeOwner() {
     return Owner{42};
 }
 
-View getView(const Owner& owner [[clang::lifetimebound]]) {
+View getView(const Owner& owner [[language::Core::lifetimebound]]) {
     return View(&owner.data);
 }
 
-View getViewFromFirst(const Owner& owner [[clang::lifetimebound]], const Owner& owner2) {
+View getViewFromFirst(const Owner& owner [[language::Core::lifetimebound]], const Owner& owner2) {
     return View(&owner.data);
 }
 
 bool coinFlip;
 
-View getViewFromEither(const Owner& owner [[clang::lifetimebound]], const Owner& owner2 [[clang::lifetimebound]]) {
+View getViewFromEither(const Owner& owner [[language::Core::lifetimebound]], const Owner& owner2 [[language::Core::lifetimebound]]) {
     if (coinFlip)
         return View(&owner.data);
     else
         return View(&owner2.data);
 }
 
-View getViewFromEither(View view1 [[clang::lifetimebound]], View view2 [[clang::lifetimebound]]) {
+View getViewFromEither(View view1 [[language::Core::lifetimebound]], View view2 [[language::Core::lifetimebound]]) {
     if (coinFlip)
         return view1;
     else
@@ -72,8 +72,8 @@ View getViewFromEither(View view1 [[clang::lifetimebound]], View view2 [[clang::
 
 struct LANGUAGE_NONESCAPABLE TestAnnotationTranslation {
     TestAnnotationTranslation() : member(nullptr) {}
-    TestAnnotationTranslation(const int *p [[clang::lifetimebound]]) : member(p) {}
-    TestAnnotationTranslation(const TestAnnotationTranslation& other [[clang::lifetimebound]]) = default;
+    TestAnnotationTranslation(const int *p [[language::Core::lifetimebound]]) : member(p) {}
+    TestAnnotationTranslation(const TestAnnotationTranslation& other [[language::Core::lifetimebound]]) = default;
 private:
     const int *member;
 };
@@ -82,26 +82,26 @@ View returnsImmortal() LANGUAGE_RETURNS_INDEPENDENT_VALUE {
     return View();
 }
 
-void copyView(View view1 [[clang::lifetime_capture_by(view2)]], View &view2) {
+void copyView(View view1 [[language::Core::lifetime_capture_by(view2)]], View &view2) {
     view2 = view1;
 }
 
 struct LANGUAGE_NONESCAPABLE CaptureView {
     CaptureView() : view(nullptr) {}
-    CaptureView(View p [[clang::lifetimebound]]) : view(p) {}
+    CaptureView(View p [[language::Core::lifetimebound]]) : view(p) {}
 
-    void captureView(View v [[clang::lifetime_capture_by(this)]]) {
+    void captureView(View v [[language::Core::lifetime_capture_by(this)]]) {
         view = v;
     }
 
-    void handOut(View &v) const [[clang::lifetime_capture_by(v)]] {
+    void handOut(View &v) const [[language::Core::lifetime_capture_by(v)]] {
        v = view; 
     }
 
     View view;
 };
 
-CaptureView getCaptureView(const Owner& owner [[clang::lifetimebound]]) {
+CaptureView getCaptureView(const Owner& owner [[language::Core::lifetimebound]]) {
     return CaptureView(View{&owner.data});
 }
 
@@ -110,7 +110,7 @@ struct LANGUAGE_NONESCAPABLE AggregateView {
 };
 
 namespace NS {
-    View getView(const Owner& owner [[clang::lifetimebound]]) {
+    View getView(const Owner& owner [[language::Core::lifetimebound]]) {
         return View(&owner.data);
     }
 }
@@ -127,7 +127,7 @@ private:
     int *i;
 };
 
-MoveOnly moveOnlyId(const MoveOnly& p [[clang::lifetimebound]]);
+MoveOnly moveOnlyId(const MoveOnly& p [[language::Core::lifetimebound]]);
 
 // CHECK: sil [clang makeOwner] {{.*}}: $@convention(c) () -> Owner
 // CHECK: sil [clang getView] {{.*}} : $@convention(c) (@in_guaranteed Owner) -> @lifetime(borrow address_for_deps 0) @owned View

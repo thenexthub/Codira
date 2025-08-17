@@ -89,7 +89,7 @@ public:
   /// \param isStatic Whether the constant should be a static member of \p dc.
   /// \param access What access level should be given to the constant.
   ValueDecl *createConstant(Identifier name, DeclContext *dc, Type type,
-                            const clang::APValue &value,
+                            const language::Core::APValue &value,
                             ConstantConvertKind convertKind, bool isStatic,
                             ClangNode ClangN, AccessLevel access);
 
@@ -206,8 +206,8 @@ public:
   ///
   /// \returns a pair of the getter and setter function decls.
   std::pair<FuncDecl *, FuncDecl *> makeBitFieldAccessors(
-      clang::RecordDecl *structDecl, NominalTypeDecl *importedStructDecl,
-      clang::FieldDecl *fieldDecl, VarDecl *importedFieldDecl);
+      language::Core::RecordDecl *structDecl, NominalTypeDecl *importedStructDecl,
+      language::Core::FieldDecl *fieldDecl, VarDecl *importedFieldDecl);
 
   /// Build the indirect field getter and setter.
   ///
@@ -230,7 +230,7 @@ public:
   ///
   /// \returns a pair of getter and setter function decls.
   std::pair<AccessorDecl *, AccessorDecl *>
-  makeIndirectFieldAccessors(const clang::IndirectFieldDecl *indirectField,
+  makeIndirectFieldAccessors(const language::Core::IndirectFieldDecl *indirectField,
                              ArrayRef<VarDecl *> members,
                              NominalTypeDecl *importedStructDecl,
                              VarDecl *importedFieldDecl);
@@ -309,14 +309,14 @@ public:
   FuncDecl *makeSuccessorFunc(FuncDecl *incrementFunc);
 
   FuncDecl *makeOperator(FuncDecl *operatorMethod,
-                         clang::OverloadedOperatorKind opKind);
+                         language::Core::OverloadedOperatorKind opKind);
   
   // Synthesize a C++ method that invokes the method from the base
   // class. This lets Clang take care of the cast from the derived class
   // to the base class during the invocation of the method.
-  clang::CXXMethodDecl *synthesizeCXXForwardingMethod(
-      const clang::CXXRecordDecl *derivedClass,
-      const clang::CXXRecordDecl *baseClass, const clang::CXXMethodDecl *method,
+  language::Core::CXXMethodDecl *synthesizeCXXForwardingMethod(
+      const language::Core::CXXRecordDecl *derivedClass,
+      const language::Core::CXXRecordDecl *baseClass, const language::Core::CXXMethodDecl *method,
       ForwardingMethodKind forwardingMethodKind,
       ReferenceReturnTypeBehaviorForBaseMethodSynthesis
           referenceReturnTypeBehavior =
@@ -325,28 +325,28 @@ public:
 
   /// Given an overload of a C++ virtual method on a reference type, create a
   /// method that dispatches the call dynamically.
-  FuncDecl *makeVirtualMethod(const clang::CXXMethodDecl *clangMethodDecl);
+  FuncDecl *makeVirtualMethod(const language::Core::CXXMethodDecl *clangMethodDecl);
 
   FuncDecl *makeInstanceToStaticOperatorCallMethod(
-      const clang::CXXMethodDecl *clangMethodDecl);
+      const language::Core::CXXMethodDecl *clangMethodDecl);
 
   VarDecl *makeComputedPropertyFromCXXMethods(FuncDecl *getter,
                                               FuncDecl *setter);
 
-  CallExpr *makeDefaultArgument(const clang::ParmVarDecl *param,
+  CallExpr *makeDefaultArgument(const language::Core::ParmVarDecl *param,
                                 const language::Type &languageParamTy,
                                 SourceLoc paramLoc);
 
   /// Synthesize a static factory method for a C++ foreign reference type,
   /// returning a `CXXMethodDecl*` or `nullptr` if the required constructor or
   /// allocation function is not found.
-  toolchain::SmallVector<clang::CXXMethodDecl *, 4>
+  toolchain::SmallVector<language::Core::CXXMethodDecl *, 4>
   synthesizeStaticFactoryForCXXForeignRef(
-      const clang::CXXRecordDecl *cxxRecordDecl);
+      const language::Core::CXXRecordDecl *cxxRecordDecl);
 
   /// Synthesize a Codira function that calls the Clang runtime predicate
   /// function for the availability domain represented by `var`.
-  FuncDecl *makeAvailabilityDomainPredicate(const clang::VarDecl *var);
+  FuncDecl *makeAvailabilityDomainPredicate(const language::Core::VarDecl *var);
 
 private:
   Type getConstantLiteralType(Type type, ConstantConvertKind convertKind);

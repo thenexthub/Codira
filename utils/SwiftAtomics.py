@@ -69,7 +69,7 @@ updateOrderings = [
 ]
 
 integerOperations = [
-    # Swift name, llvm name, operator, doc name
+    # Swift name, toolchain name, operator, doc name
     ("WrappingAdd", "add", "&+", "wrapping add"),
     ("WrappingSubtract", "sub", "&-", "wrapping subtract"),
     ("BitwiseAnd", "and", "&", "bitwise AND"),
@@ -82,7 +82,7 @@ integerOperations = [
 ]
 
 boolOperations = [
-    # Swift name, llvm name, operator, doc
+    # Swift name, toolchain name, operator, doc
     ("LogicalAnd", "and", "&&", "logical AND"),
     ("LogicalOr", "or", "||", "logical OR"),
     ("LogicalXor", "xor", "!=", "logical XOR")
@@ -94,7 +94,7 @@ boolOperations = [
 # ordering when necessary so that it is at least as "strong" as the
 # failure case. This function implements that mapping.
 #
-# See llvm/Support/AtomicOrdering.h
+# See toolchain/Support/AtomicOrdering.h
 def actualOrders(success, failure):
     def max(success, failure):
         if failure == "acquire":
@@ -109,7 +109,7 @@ def actualOrders(success, failure):
     return actualSuccess + "_" + failure
 
 
-def llvmToCaseName(ordering):
+def toolchainToCaseName(ordering):
     if ordering == "monotonic":
         return "relaxed"
     if ordering == "acquire":

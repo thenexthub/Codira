@@ -1,0 +1,64 @@
+//===--------- new - OPENMP wrapper for <new> ------------------------------===
+//
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
+//
+//===-----------------------------------------------------------------------===
+
+#ifndef __CLANG_OPENMP_WRAPPERS_NEW
+#define __CLANG_OPENMP_WRAPPERS_NEW
+
+// We need the system <new> for the std::nothrow_t. The new/delete operators
+// which do not use nothrow_t are provided without the <new> header.
+#include_next <new>
+
+#if (defined(__NVPTX__) || defined(__AMDGPU__)) && defined(_OPENMP)
+
+#include <cstdlib>
+
+#pragma push_macro("OPENMP_NOEXCEPT")
+#if __cplusplus >= 201103L
+#define OPENMP_NOEXCEPT noexcept
+#else
+#define OPENMP_NOEXCEPT
+#endif
+
+inline void *operator new(__SIZE_TYPE__ size,
+                          const std::nothrow_t &) OPENMP_NOEXCEPT {
+  return ::operator new(size);
+}
+
+inline void *operator new[](__SIZE_TYPE__ size, const std::nothrow_t &) {
+  return ::operator new(size);
+}
+
+inline void operator delete(void *ptr, const std::nothrow_t &)OPENMP_NOEXCEPT {
+  ::operator delete(ptr);
+}
+
+inline void operator delete[](void *ptr,
+                              const std::nothrow_t &) OPENMP_NOEXCEPT {
+  ::operator delete(ptr);
+}
+
+#pragma pop_macro("OPENMP_NOEXCEPT")
+#endif
+
+#endif // include guard

@@ -14,8 +14,8 @@
 
 //===----------------------------------------------------------------------===//
 
-#include "clang/AST/DeclObjC.h"
-#include "clang/Basic/Module.h"
+#include "language/Core/AST/DeclObjC.h"
+#include "language/Core/Basic/Module.h"
 #include "toolchain/ADT/StringSwitch.h"
 #include "language/AST/ASTContext.h"
 #include "language/AST/ClangModuleLoader.h"
@@ -64,7 +64,7 @@ bool areModulesEqual(const ModuleDecl *lhs, const ModuleDecl *rhs, bool isClangE
   return true;
 }
 
-bool clangModuleExports(const clang::Module *ClangParent, const clang::Module *CM) {
+bool clangModuleExports(const language::Core::Module *ClangParent, const language::Core::Module *CM) {
   if (!ClangParent || !CM) return false;
   if (ClangParent == CM) return true;
 
@@ -368,7 +368,7 @@ bool SymbolGraphASTWalker::walkToDeclPre(Decl *D, CharSourceRange Range) {
         // definition, so let's pull out the Clang decl and check for that
         if (NTD->hasClangNode()) {
           if (const auto *ClangDecl = NTD->getClangNode().getAsDecl()) {
-            if (const auto *ClangTagDecl = dyn_cast<clang::TagDecl>(ClangDecl)) {
+            if (const auto *ClangTagDecl = dyn_cast<language::Core::TagDecl>(ClangDecl)) {
               if (ClangTagDecl->isEmbeddedInDeclarator()) {
                 PublicPrivateTypeAliases.insert_or_assign(NTD, TD);
                 synthesizeChildSymbols(NTD, TD);

@@ -19,7 +19,7 @@ from . import foundation
 from . import libcxx
 from . import libdispatch
 from . import llbuild
-from . import llvm
+from . import toolchain
 from . import product
 from . import language
 from . import languagepm
@@ -126,8 +126,8 @@ class SwiftSyntax(product.Product):
         return self.args.test_languagesyntax
 
     def test(self, host_target):
-        llvm_build_dir = os.path.join(self.build_dir, '..', 'llvm-' + host_target)
-        llvm_build_dir = os.path.realpath(llvm_build_dir)
+        toolchain_build_dir = os.path.join(self.build_dir, '..', 'toolchain-' + host_target)
+        toolchain_build_dir = os.path.realpath(toolchain_build_dir)
 
         self.run_languagesyntax_build_script(target=host_target,
                                           command='test')
@@ -144,7 +144,7 @@ class SwiftSyntax(product.Product):
     @classmethod
     def get_dependencies(cls):
         return [cmark.CMark,
-                llvm.LLVM,
+                toolchain.LLVM,
                 libcxx.LibCXX,
                 language.Swift,
                 libdispatch.LibDispatch,

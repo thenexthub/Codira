@@ -175,7 +175,7 @@ struct gcc_emutls_object {  // for libgcc
   void* templ;
 };
 
-typedef struct __emutls_control {  // for clang/llvm
+typedef struct __emutls_control {  // for clang/toolchain
   size_t size;
   size_t align;
   union {

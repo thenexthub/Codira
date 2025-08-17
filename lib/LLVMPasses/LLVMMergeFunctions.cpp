@@ -35,8 +35,8 @@
 
 #include "language/Basic/Assertions.h"
 #include "language/LLVMPasses/Passes.h"
-#include "clang/AST/StableHash.h"
-#include "clang/Basic/PointerAuthOptions.h"
+#include "language/Core/AST/StableHash.h"
+#include "language/Core/Basic/PointerAuthOptions.h"
 #include "toolchain/ADT/DenseSet.h"
 #include "toolchain/ADT/FoldingSet.h"
 #include "toolchain/ADT/Hashing.h"
@@ -421,7 +421,7 @@ private:
         if (auto *GO = dyn_cast<GlobalObject>(value))
           concatenatedCalleeNames += GO->getName();
       }
-      uint64_t rawHash = clang::getStableStringHash(concatenatedCalleeNames);
+      uint64_t rawHash = language::Core::getStableStringHash(concatenatedCalleeNames);
       IntegerType *discrTy = Type::getInt64Ty(Context);
       discriminator = ConstantInt::get(discrTy, (rawHash % 0xFFFF) + 1);
     }
@@ -710,7 +710,7 @@ bool CodiraMergeFunctions::runOnModule(Module &M) {
     // If invoked from language-toolchain-opt, derive the options from the target triple.
     Triple triple(M.getTargetTriple());
     ptrAuthEnabled = (triple.getSubArch() == Triple::AArch64SubArch_arm64e);
-    ptrAuthKey = (unsigned)clang::PointerAuthSchema::ARM8_3Key::ASIA;
+    ptrAuthKey = (unsigned)language::Core::PointerAuthSchema::ARM8_3Key::ASIA;
     ptrAuthOptionsSet = true;
   }
 

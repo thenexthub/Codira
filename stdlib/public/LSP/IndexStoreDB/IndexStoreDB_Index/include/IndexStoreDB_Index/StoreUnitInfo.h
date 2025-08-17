@@ -17,7 +17,7 @@
 #define INDEXSTOREDB_INDEX_STOREUNITINFO_H
 
 #include <IndexStoreDB_Support/Path.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Chrono.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Chrono.h>
 #include <string>
 
 namespace IndexStoreDB {
@@ -28,12 +28,12 @@ struct StoreUnitInfo {
   CanonicalFilePath MainFilePath;
   std::string OutFileIdentifier;
   bool HasTestSymbols = false;
-  llvm::sys::TimePoint<> ModTime;
+  toolchain::sys::TimePoint<> ModTime;
 
   StoreUnitInfo() = default;
   StoreUnitInfo(std::string unitName, CanonicalFilePath mainFilePath,
                 StringRef outFileIdentifier, bool hasTestSymbols,
-                llvm::sys::TimePoint<> modTime)
+                toolchain::sys::TimePoint<> modTime)
       : UnitName(unitName),
         MainFilePath(mainFilePath),
         OutFileIdentifier(outFileIdentifier),

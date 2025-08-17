@@ -19,8 +19,8 @@
 
 #if __cplusplus > 201402l && __has_cpp_attribute(nodiscard)
 #define LANGUAGE_NODISCARD [[nodiscard]]
-#elif __has_cpp_attribute(clang::warn_unused_result)
-#define LANGUAGE_NODISCARD [[clang::warn_unused_result]]
+#elif __has_cpp_attribute(language::Core::warn_unused_result)
+#define LANGUAGE_NODISCARD [[language::Core::warn_unused_result]]
 #else
 #define LANGUAGE_NODISCARD
 #endif

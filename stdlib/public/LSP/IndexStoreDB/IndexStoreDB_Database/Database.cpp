@@ -18,16 +18,16 @@
 #include <IndexStoreDB_Database/UnitInfo.h>
 #include <IndexStoreDB_Support/Logging.h>
 #include <IndexStoreDB_Support/Path.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Hashing.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringMap.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_STLExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Errc.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_FileSystem.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Mutex.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Path.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_WindowsError.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Hashing.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringMap.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_STLExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Errc.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_FileSystem.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Mutex.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Path.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_WindowsError.h>
 #if defined(_WIN32)
 #define NOMINMAX
 #include "Windows.h"
@@ -53,27 +53,27 @@ const unsigned Database::DATABASE_FORMAT_VERSION = 13;
 static const char *DeadProcessDBSuffix = "-dead";
 
 static std::error_code renameDirectory(const Twine &from, const Twine &to) {
-  // llvm::sys::fs::rename is not able to rename directories on Windows. Use `MoveFile` directly.
+  // toolchain::sys::fs::rename is not able to rename directories on Windows. Use `MoveFile` directly.
   #if defined(_WIN32)
-  if (!llvm::sys::fs::exists(from)) {
-    return make_error_code(llvm::errc::no_such_file_or_directory);
+  if (!toolchain::sys::fs::exists(from)) {
+    return make_error_code(toolchain::errc::no_such_file_or_directory);
   }
   SmallVector<wchar_t, 128> wideFrom;
-  if (std::error_code ec = llvm::sys::path::widenPath(from, wideFrom)) {
+  if (std::error_code ec = toolchain::sys::path::widenPath(from, wideFrom)) {
     return ec;
   }
   SmallVector<wchar_t, 128> wideTo;
-  if (std::error_code ec = llvm::sys::path::widenPath(to, wideTo)) {
+  if (std::error_code ec = toolchain::sys::path::widenPath(to, wideTo)) {
     return ec;
   }
   // MoveFileW does not override an existing directory. Remove the destination if it is an empty directory.
   ::RemoveDirectoryW(wideTo.begin());
   if (!::MoveFileW(wideFrom.begin(), wideTo.begin())) {
-    return llvm::mapWindowsError(GetLastError());
+    return toolchain::mapWindowsError(GetLastError());
   }
   return std::error_code();
   #else
-  return llvm::sys::fs::rename(from, to);
+  return toolchain::sys::fs::rename(from, to);
   #endif
 }
 
@@ -124,12 +124,12 @@ Database::Implementation::~Implementation() {
     assert(!SavedPath.empty() && !UniquePath.empty());
     // In case some other process already created the 'saved' path, override it so
     // that the 'last one wins'.
-    renameDirectory(SavedPath, llvm::Twine(UniquePath)+"-saved"+DeadProcessDBSuffix);
+    renameDirectory(SavedPath, toolchain::Twine(UniquePath)+"-saved"+DeadProcessDBSuffix);
     if (std::error_code ec = renameDirectory(UniquePath, SavedPath)) {
       // If the database directory already got removed or some other process beat
       // us during the tiny window between the above 2 renames, then give-up,
       // and immutable the database to be discarded.
-      LOG_INFO_FUNC(High, "failed moving " << llvm::sys::path::filename(UniquePath) << " directory to 'saved': " << ec.message());
+      LOG_INFO_FUNC(High, "failed moving " << toolchain::sys::path::filename(UniquePath) << " directory to 'saved': " << ec.message());
     }
   }
 
@@ -140,34 +140,34 @@ Database::Implementation::~Implementation() {
 std::shared_ptr<Database::Implementation>
 Database::Implementation::create(StringRef path, bool readonly, Optional<size_t> initialDBSize, std::string &error) {
   SmallString<10> versionStr;
-  llvm::raw_svector_ostream(versionStr) << 'v' << Database::DATABASE_FORMAT_VERSION;
+  toolchain::raw_svector_ostream(versionStr) << 'v' << Database::DATABASE_FORMAT_VERSION;
   SmallString<128> versionPath = path;
-  llvm::sys::path::append(versionPath, versionStr);
+  toolchain::sys::path::append(versionPath, versionStr);
 
   SmallString<128> savedPathBuf = versionPath;
-  llvm::sys::path::append(savedPathBuf, "saved");
+  toolchain::sys::path::append(savedPathBuf, "saved");
   SmallString<128> prefixPathBuf = versionPath;
 #if defined(WIN32)
-  llvm::raw_svector_ostream(prefixPathBuf) << "\\p" << GetCurrentProcessId();
+  toolchain::raw_svector_ostream(prefixPathBuf) << "\\p" << GetCurrentProcessId();
 #else
-  llvm::raw_svector_ostream(prefixPathBuf) << "/p" << getpid();
+  toolchain::raw_svector_ostream(prefixPathBuf) << "/p" << getpid();
 #endif
-  llvm::raw_svector_ostream(prefixPathBuf) << "-";
+  toolchain::raw_svector_ostream(prefixPathBuf) << "-";
   SmallString<128> uniqueDirPath;
 
   bool existingDB = true;
 
   auto createDirectoriesOrError = [&error](SmallVectorImpl<char> &path) {
-    if (std::error_code ec = llvm::sys::fs::create_directories(path)) {
-      llvm::raw_string_ostream(error) << "failed creating directory '" << path << "': " << ec.message();
+    if (std::error_code ec = toolchain::sys::fs::create_directories(path)) {
+      toolchain::raw_string_ostream(error) << "failed creating directory '" << path << "': " << ec.message();
       return true;
     }
     return false;
   };
   auto createUniqueDirOrError = [&error, &prefixPathBuf, &uniqueDirPath]() {
     uniqueDirPath.clear();
-    if (std::error_code ec = llvm::sys::fs::createUniqueDirectory(prefixPathBuf, uniqueDirPath)) {
-      llvm::raw_string_ostream(error) << "failed creating directory '" << uniqueDirPath << "': " << ec.message();
+    if (std::error_code ec = toolchain::sys::fs::createUniqueDirectory(prefixPathBuf, uniqueDirPath)) {
+      toolchain::raw_string_ostream(error) << "failed creating directory '" << uniqueDirPath << "': " << ec.message();
       return true;
     }
     return false;
@@ -207,7 +207,7 @@ retry:
 
     uint64_t dbFileSize = 0;
     if (existingDB) {
-      if (std::error_code ec = llvm::sys::fs::file_size(dbPath + "/data.mdb", dbFileSize)) {
+      if (std::error_code ec = toolchain::sys::fs::file_size(dbPath + "/data.mdb", dbFileSize)) {
         LOG_WARN_FUNC("failed reading database file size " << dbPath << "/data.mdb: " << ec.message());
       }
     }
@@ -257,8 +257,8 @@ retry:
       // Since db is destroyed, the database is now at the saved path; move it
       // aside to a 'corrupted' path we can find it for analysis.
       SmallString<128> corruptedPathBuf = versionPath;
-      llvm::sys::path::append(corruptedPathBuf, "corrupted");
-      renameDirectory(corruptedPathBuf, llvm::Twine(corruptedPathBuf)+DeadProcessDBSuffix);
+      toolchain::sys::path::append(corruptedPathBuf, "corrupted");
+      renameDirectory(corruptedPathBuf, toolchain::Twine(corruptedPathBuf)+DeadProcessDBSuffix);
       renameDirectory(savedPathBuf, corruptedPathBuf);
       LOG_WARN_FUNC("failed opening database: " << err.description() << "\n"
                     "corrupted database saved at '" << corruptedPathBuf << "'\n"
@@ -270,7 +270,7 @@ retry:
       existingDB = false;
       goto retry;
     }
-    llvm::raw_string_ostream(error) << "failed opening database: " << err.description();
+    toolchain::raw_string_ostream(error) << "failed opening database: " << err.description();
     return nullptr;
   }
 }
@@ -291,16 +291,16 @@ UnitInfo Database::Implementation::getUnitInfo(IDCode unitCode, lmdb::txn &Txn) 
   char *ptr = value.data();
   memcpy(&infoData, ptr, sizeof(infoData));
   ptr += sizeof(infoData);
-  assert(llvm::alignmentAdjustment(ptr, alignof(IDCode)) == 0 && "misaligned IDCode");
-  fileDepends = llvm::makeArrayRef((IDCode*)ptr, infoData.FileDependSize);
+  assert(toolchain::alignmentAdjustment(ptr, alignof(IDCode)) == 0 && "misaligned IDCode");
+  fileDepends = toolchain::makeArrayRef((IDCode*)ptr, infoData.FileDependSize);
   ptr += sizeof(IDCode)*fileDepends.size();
-  unitDepends = llvm::makeArrayRef((IDCode*)ptr, infoData.UnitDependSize);
+  unitDepends = toolchain::makeArrayRef((IDCode*)ptr, infoData.UnitDependSize);
   ptr += sizeof(IDCode)*unitDepends.size();
-  providerDepends = llvm::makeArrayRef((UnitInfo::Provider*)ptr, infoData.ProviderDependSize);
+  providerDepends = toolchain::makeArrayRef((UnitInfo::Provider*)ptr, infoData.ProviderDependSize);
   ptr += sizeof(UnitInfo::Provider)*providerDepends.size();
   unitName = StringRef(ptr, infoData.NameLength);
 
-  llvm::sys::TimePoint<> modTime = llvm::sys::TimePoint<>(std::chrono::nanoseconds(infoData.NanoTime));
+  toolchain::sys::TimePoint<> modTime = toolchain::sys::TimePoint<>(std::chrono::nanoseconds(infoData.NanoTime));
   return UnitInfo{ unitName, unitCode, modTime,
     infoData.OutFileCode, infoData.MainFileCode, infoData.SysrootCode, infoData.TargetCode,
     infoData.HasMainFile, infoData.HasSysroot, infoData.IsSystem, infoData.HasTestSymbols,
@@ -350,7 +350,7 @@ static bool isProcessStillExecuting(indexstorePid_t PID) {
 
 // This runs in a background priority queue.
 static void cleanupDiscardedDBsImpl(StringRef versionedPath) {
-  using namespace llvm::sys::fs;
+  using namespace toolchain::sys::fs;
 
   // Finds database subdirectories that are considered dead and removes them.
   // A directory is dead if it has been marked with the suffix "-dead" or if it
@@ -370,7 +370,7 @@ static void cleanupDiscardedDBsImpl(StringRef versionedPath) {
     StringRef currPath = Item.path();
 
     auto shouldRemove = [](StringRef fullpath, indexstorePid_t currPID) -> bool {
-      StringRef path = llvm::sys::path::filename(fullpath);
+      StringRef path = toolchain::sys::path::filename(fullpath);
       if (path.endswith(DeadProcessDBSuffix))
         return true;
       if (!path.startswith("p"))
@@ -439,13 +439,13 @@ void Database::Implementation::printStats(raw_ostream &OS) {
 // had the chance to close it.
 static std::shared_ptr<Database::Implementation>
 getLMDBDatabaseRefForPath(StringRef dbPath, bool readonly, Optional<size_t> initialDBSize, std::string &error) {
-  static llvm::sys::Mutex processDatabasesMtx;
-  static llvm::StringMap<std::weak_ptr<Database::Implementation>> databasesByPath;
+  static toolchain::sys::Mutex processDatabasesMtx;
+  static toolchain::StringMap<std::weak_ptr<Database::Implementation>> databasesByPath;
 
   // Note that canonicalization of the path may result in different paths, if the
   // path doesn't exist yet vs the path exists. Use the path as given by the client.
 
-  llvm::sys::ScopedLock L(processDatabasesMtx);
+  toolchain::sys::ScopedLock L(processDatabasesMtx);
   std::weak_ptr<Database::Implementation> &dbWeakRef = databasesByPath[dbPath];
   if (auto dbRef = dbWeakRef.lock()) {
     return dbRef;

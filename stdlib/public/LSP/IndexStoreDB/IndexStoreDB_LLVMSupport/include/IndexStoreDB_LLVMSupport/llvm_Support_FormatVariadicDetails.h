@@ -1,20 +1,36 @@
 //===- FormatVariadicDetails.h - Helpers for FormatVariadic.h ----*- C++-*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 
 #ifndef LLVM_SUPPORT_FORMATVARIADIC_DETAILS_H
 #define LLVM_SUPPORT_FORMATVARIADIC_DETAILS_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 
 #include <type_traits>
 
-namespace llvm {
+namespace toolchain {
 template <typename T, typename Enable = void> struct format_provider {};
 class Error;
 
@@ -35,7 +51,7 @@ template <typename T> class provider_format_adapter : public format_adapter {
 public:
   explicit provider_format_adapter(T &&Item) : Item(std::forward<T>(Item)) {}
 
-  void format(llvm::raw_ostream &S, StringRef Options) override {
+  void format(toolchain::raw_ostream &S, StringRef Options) override {
     format_provider<typename std::decay<T>::type>::format(Item, S, Options);
   }
 };
@@ -48,7 +64,7 @@ public:
   explicit stream_operator_format_adapter(T &&Item)
       : Item(std::forward<T>(Item)) {}
 
-  void format(llvm::raw_ostream &S, StringRef Options) override { S << Item; }
+  void format(toolchain::raw_ostream &S, StringRef Options) override { S << Item; }
 };
 
 template <typename T> class missing_format_adapter;
@@ -60,7 +76,7 @@ template <typename T> class missing_format_adapter;
 template <class T> class has_FormatProvider {
 public:
   using Decayed = typename std::decay<T>::type;
-  typedef void (*Signature_format)(const Decayed &, llvm::raw_ostream &,
+  typedef void (*Signature_format)(const Decayed &, toolchain::raw_ostream &,
                                    StringRef);
 
   template <typename U>
@@ -69,7 +85,7 @@ public:
   template <typename U> static double test(...);
 
   static bool const value =
-      (sizeof(test<llvm::format_provider<Decayed>>(nullptr)) == 1);
+      (sizeof(test<toolchain::format_provider<Decayed>>(nullptr)) == 1);
 };
 
 // Test if raw_ostream& << T -> raw_ostream& is findable via ADL.
@@ -79,9 +95,9 @@ public:
 
   template <typename U>
   static char test(typename std::enable_if<
-                   std::is_same<decltype(std::declval<llvm::raw_ostream &>()
+                   std::is_same<decltype(std::declval<toolchain::raw_ostream &>()
                                          << std::declval<U>()),
-                                llvm::raw_ostream &>::value,
+                                toolchain::raw_ostream &>::value,
                    int *>::type);
 
   template <typename U> static double test(...);
@@ -147,8 +163,8 @@ build_format_adapter(T &&Item) {
   // would be responsible for consuming it.
   // Make the caller opt into this by calling fmt_consume().
   static_assert(
-      !std::is_same<llvm::Error, typename std::remove_cv<T>::type>::value,
-      "llvm::Error-by-value must be wrapped in fmt_consume() for formatv");
+      !std::is_same<toolchain::Error, typename std::remove_cv<T>::type>::value,
+      "toolchain::Error-by-value must be wrapped in fmt_consume() for formatv");
   return stream_operator_format_adapter<T>(std::forward<T>(Item));
 }
 

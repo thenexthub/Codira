@@ -48,7 +48,7 @@
 #include "language/Basic/Assertions.h"
 #include "language/ClangImporter/ClangModule.h"
 #include "language/Parse/Lexer.h" // FIXME: Bad dependency
-#include "clang/Lex/MacroInfo.h"
+#include "language/Core/Lex/MacroInfo.h"
 #include "toolchain/ADT/SmallPtrSet.h"
 #include "toolchain/ADT/SmallSet.h"
 #include "toolchain/ADT/SmallString.h"
@@ -57,10 +57,10 @@
 #include "toolchain/Support/raw_ostream.h"
 #include "language/Basic/StringExtras.h"
 
-#include "clang/Basic/CharInfo.h"
-#include "clang/Basic/Module.h"
-#include "clang/AST/Attr.h"
-#include "clang/AST/DeclObjC.h"
+#include "language/Core/Basic/CharInfo.h"
+#include "language/Core/Basic/Module.h"
+#include "language/Core/AST/Attr.h"
+#include "language/Core/AST/DeclObjC.h"
 
 #include <algorithm>
 

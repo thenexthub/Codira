@@ -56,7 +56,7 @@ g_readelf_cache: Dict[str, str] = {}
 g_path_to_soname_cache: Dict[Path, str] = {}
 
 def do_readelf_query(arguments: List[str]) -> List[str]:
-    cmdline = ['llvm-readelf'] + arguments
+    cmdline = ['toolchain-readelf'] + arguments
     key = repr(cmdline)
     if key in g_readelf_cache: return g_readelf_cache[key].splitlines()
     out = subprocess.run(cmdline, check=True, stdout=PIPE).stdout.decode()
@@ -116,10 +116,10 @@ def get_dyn_symbols(path: Path) -> DynSymbols:
     for line in out:
         m = kSymbolMatcher.match(line)
         if not m:
-            # gLinux currently has a version of llvm-readelf whose output is very different from
-            # the current versions of llvm-readelf (or GNU readelf).
+            # gLinux currently has a version of toolchain-readelf whose output is very different from
+            # the current versions of toolchain-readelf (or GNU readelf).
             if 'Symbol table of .gnu.hash for image:' in line:
-                sys.exit(f'error: obsolete version of llvm-readelf')
+                sys.exit(f'error: obsolete version of toolchain-readelf')
             continue
 
         num, kind, bind, ndx, name, ver_type, ver_name = m.groups()

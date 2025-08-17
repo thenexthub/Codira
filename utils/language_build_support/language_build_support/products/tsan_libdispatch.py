@@ -17,7 +17,7 @@ from . import foundation
 from . import libcxx
 from . import libdispatch
 from . import llbuild
-from . import llvm
+from . import toolchain
 from . import product
 from . import language
 from . import languagepm
@@ -49,7 +49,7 @@ class TSanLibDispatch(product.Product):
         """Build TSan runtime (compiler-rt)."""
         rt_source_dir = join_path(
             self.source_dir, os.pardir,
-            'llvm-project', 'compiler-rt')
+            'toolchain-project', 'compiler-rt')
         toolchain_path = join_path(self.args.install_destdir, 'usr')
         clang = join_path(toolchain_path, 'bin', 'clang')
         clangxx = join_path(toolchain_path, 'bin', 'clang++')
@@ -97,7 +97,7 @@ class TSanLibDispatch(product.Product):
     @classmethod
     def get_dependencies(cls):
         return [cmark.CMark,
-                llvm.LLVM,
+                toolchain.LLVM,
                 libcxx.LibCXX,
                 language.Swift,
                 libdispatch.LibDispatch,

@@ -33,7 +33,7 @@ using namespace language;
 
 using ExternalPath = StableSerializationPath::ExternalPath;
 
-static bool isSameDecl(const clang::Decl *lhs, const clang::Decl *rhs) {
+static bool isSameDecl(const language::Core::Decl *lhs, const language::Core::Decl *rhs) {
   return lhs == rhs || lhs->getCanonicalDecl() == rhs->getCanonicalDecl();
 }
 
@@ -43,9 +43,9 @@ class SerializationPathFinder {
 public:
   SerializationPathFinder(ClangImporter::Implementation &impl) : Impl(impl) {}
 
-  StableSerializationPath find(const clang::Decl *decl) {
+  StableSerializationPath find(const language::Core::Decl *decl) {
     // We can't do anything with non-NamedDecl declarations.
-    auto named = dyn_cast<clang::NamedDecl>(decl);
+    auto named = dyn_cast<language::Core::NamedDecl>(decl);
     if (!named) return StableSerializationPath();
 
     if (decl->isFromASTFile()) {
@@ -65,11 +65,11 @@ public:
   }
 
 private:
-  Identifier getIdentifier(const clang::IdentifierInfo *clangIdent) {
+  Identifier getIdentifier(const language::Core::IdentifierInfo *clangIdent) {
     return Impl.CodiraContext.getIdentifier(clangIdent->getName());
   }
 
-  StableSerializationPath findImportedPath(const clang::NamedDecl *decl) {
+  StableSerializationPath findImportedPath(const language::Core::NamedDecl *decl) {
     // We've almost certainly imported this declaration, look for it.
     std::optional<Decl *> languageDeclOpt =
         Impl.importDeclCached(decl, Impl.CurrentVersion);
@@ -95,21 +95,21 @@ private:
     return StableSerializationPath();
   }
 
-  bool findExternalPath(const clang::NamedDecl *decl, ExternalPath &path) {
-    if (auto tag = dyn_cast<clang::TagDecl>(decl))
+  bool findExternalPath(const language::Core::NamedDecl *decl, ExternalPath &path) {
+    if (auto tag = dyn_cast<language::Core::TagDecl>(decl))
       return findExternalPath(tag, path);
-    if (auto alias = dyn_cast<clang::TypedefNameDecl>(decl))
+    if (auto alias = dyn_cast<language::Core::TypedefNameDecl>(decl))
       return findExternalPath(alias, path);
-    if (auto proto = dyn_cast<clang::ObjCProtocolDecl>(decl))
+    if (auto proto = dyn_cast<language::Core::ObjCProtocolDecl>(decl))
       return findExternalPath(proto, path);
-    if (auto iface = dyn_cast<clang::ObjCInterfaceDecl>(decl))
+    if (auto iface = dyn_cast<language::Core::ObjCInterfaceDecl>(decl))
       return findExternalPath(iface, path);
     return false;
   }
 
-  bool findExternalPath(const clang::TagDecl *decl, ExternalPath &path) {
+  bool findExternalPath(const language::Core::TagDecl *decl, ExternalPath &path) {
     // We can't handle class template specializations right now.
-    if (isa<clang::ClassTemplateSpecializationDecl>(decl))
+    if (isa<language::Core::ClassTemplateSpecializationDecl>(decl))
       return false;
 
     // Named tags are straightforward.
@@ -135,7 +135,7 @@ private:
     return false;
   }
 
-  bool findExternalPath(const clang::TypedefNameDecl *decl,
+  bool findExternalPath(const language::Core::TypedefNameDecl *decl,
                         ExternalPath &path) {
     auto name = decl->getIdentifier();
     if (!name) return false;
@@ -144,7 +144,7 @@ private:
     return true;
   }
 
-  bool findExternalPath(const clang::ObjCProtocolDecl *decl,
+  bool findExternalPath(const language::Core::ObjCProtocolDecl *decl,
                         ExternalPath &path) {
     auto name = decl->getIdentifier();
     if (!name) return false;
@@ -152,7 +152,7 @@ private:
     return true;
   }
 
-  bool findExternalPath(const clang::ObjCInterfaceDecl *decl,
+  bool findExternalPath(const language::Core::ObjCInterfaceDecl *decl,
                         ExternalPath &path) {
     auto name = decl->getIdentifier();
     if (!name) return false;
@@ -160,17 +160,17 @@ private:
     return true;
   }
 
-  bool findExternalPath(const clang::DeclContext *dc, ExternalPath &path) {
+  bool findExternalPath(const language::Core::DeclContext *dc, ExternalPath &path) {
     // If we've reached the translation unit, we're done.
-    if (isa<clang::TranslationUnitDecl>(dc))
+    if (isa<language::Core::TranslationUnitDecl>(dc))
       return true;
 
     // Linkage specifications don't contribute to the path.
-    if (isa<clang::LinkageSpecDecl>(dc))
+    if (isa<language::Core::LinkageSpecDecl>(dc))
       return findExternalPath(dc->getParent(), path);
 
     // Handle namespaces.
-    if (auto ns = dyn_cast<clang::NamespaceDecl>(dc)) {
+    if (auto ns = dyn_cast<language::Core::NamespaceDecl>(dc)) {
       // Don't try to handle anonymous namespaces.
       auto name = ns->getIdentifier();
       if (!name) return false;
@@ -183,7 +183,7 @@ private:
     }
 
     // Handle types.
-    if (auto tag = dyn_cast<clang::TagDecl>(dc))
+    if (auto tag = dyn_cast<language::Core::TagDecl>(dc))
       return findExternalPath(tag, path);
 
     // Can't handle anything else.
@@ -194,17 +194,17 @@ private:
 
 
 StableSerializationPath
-ClangImporter::findStableSerializationPath(const clang::Decl *decl) const {
+ClangImporter::findStableSerializationPath(const language::Core::Decl *decl) const {
   return Impl.findStableSerializationPath(decl);
 }
 
 StableSerializationPath
 ClangImporter::Implementation::findStableSerializationPath(
-                                                    const clang::Decl *decl) {
+                                                    const language::Core::Decl *decl) {
   return SerializationPathFinder(*this).find(decl);
 }
 
-const clang::Decl *
+const language::Core::Decl *
 ClangImporter::resolveStableSerializationPath(
                                   const StableSerializationPath &path) const {
   if (!path) return nullptr;
@@ -216,17 +216,17 @@ ClangImporter::resolveStableSerializationPath(
   auto &extpath = path.getExternalPath();
   auto &clangCtx = getClangASTContext();
 
-  const clang::Decl *decl = nullptr;
+  const language::Core::Decl *decl = nullptr;
 
   // Perform a lookup in the current context (`decl` if set, and
   // otherwise the translation unit).
-  auto lookup = [&](Identifier name) -> clang::DeclContext::lookup_result {    
-    if (name.empty()) return clang::DeclContext::lookup_result();
+  auto lookup = [&](Identifier name) -> language::Core::DeclContext::lookup_result {    
+    if (name.empty()) return language::Core::DeclContext::lookup_result();
 
-    const clang::DeclContext *dc;
+    const language::Core::DeclContext *dc;
     if (decl) {
-      dc = dyn_cast<clang::DeclContext>(decl);
-      if (!dc) return clang::DeclContext::lookup_result();
+      dc = dyn_cast<language::Core::DeclContext>(decl);
+      if (!dc) return language::Core::DeclContext::lookup_result();
     } else {
       dc = clangCtx.getTranslationUnitDecl();
     }
@@ -238,7 +238,7 @@ ClangImporter::resolveStableSerializationPath(
   for (auto step : extpath.Path) {
     // Handle the non-lookup steps here.
     if (step.first == ExternalPath::TypedefAnonDecl) {
-      if (auto alias = dyn_cast_or_null<clang::TypedefNameDecl>(decl))
+      if (auto alias = dyn_cast_or_null<language::Core::TypedefNameDecl>(decl))
         return alias->getAnonDeclWithTypedefName();
       return nullptr;
     }
@@ -246,23 +246,23 @@ ClangImporter::resolveStableSerializationPath(
     assert(ExternalPath::requiresIdentifier(step.first) &&
            "should've handled all non-lookup kinds above");
 
-    const clang::Decl *resultDecl = nullptr;
+    const language::Core::Decl *resultDecl = nullptr;
     for (auto lookupDecl : lookup(step.second)) {
-      auto isAcceptable = [](const clang::Decl *decl,
+      auto isAcceptable = [](const language::Core::Decl *decl,
                              ExternalPath::ComponentKind kind) {
         switch (kind) {
         case ExternalPath::Record:
-          return isa<clang::RecordDecl>(decl);
+          return isa<language::Core::RecordDecl>(decl);
         case ExternalPath::Enum:
-          return isa<clang::EnumDecl>(decl);
+          return isa<language::Core::EnumDecl>(decl);
         case ExternalPath::Namespace:
-          return isa<clang::NamespaceDecl>(decl);
+          return isa<language::Core::NamespaceDecl>(decl);
         case ExternalPath::Typedef:
-          return isa<clang::TypedefNameDecl>(decl);
+          return isa<language::Core::TypedefNameDecl>(decl);
         case ExternalPath::ObjCInterface:
-          return isa<clang::ObjCInterfaceDecl>(decl);
+          return isa<language::Core::ObjCInterfaceDecl>(decl);
         case ExternalPath::ObjCProtocol:
-          return isa<clang::ObjCProtocolDecl>(decl);
+          return isa<language::Core::ObjCProtocolDecl>(decl);
         case ExternalPath::TypedefAnonDecl:
           toolchain_unreachable("should have been filtered above");
         }
@@ -304,16 +304,16 @@ namespace {
         Impl(impl) {}
 
     void writeUInt64(uint64_t value) {}
-    void writeIdentifier(const clang::IdentifierInfo *ident) {}
-    void writeStmtRef(const clang::Stmt *stmt) {
+    void writeIdentifier(const language::Core::IdentifierInfo *ident) {}
+    void writeStmtRef(const language::Core::Stmt *stmt) {
       if (stmt != nullptr)
         IsSerializable = false;
     }
-    void writeDeclRef(const clang::Decl *decl) {
+    void writeDeclRef(const language::Core::Decl *decl) {
       if (decl && !Impl.findStableSerializationPath(decl))
         IsSerializable = false;
     }
-    void writeSourceLocation(clang::SourceLocation loc) {
+    void writeSourceLocation(language::Core::SourceLocation loc) {
       // If a source location is written into a type, it's likely to be
       // something like the location of a VLA which we shouldn't simply
       // replace with a meaningless location.
@@ -321,7 +321,7 @@ namespace {
         IsSerializable = false;
     }
 
-    void writeAttr(const clang::Attr *attr) {}
+    void writeAttr(const language::Core::Attr *attr) {}
 
     // CountAttributedType is a clang type representing a pointer with
     // a "counted_by" type attribute and DynamicRangePointerType
@@ -331,18 +331,18 @@ namespace {
     // "__ended_by(expr)".
     // Leave it non-serializable for now as we currently don't import
     // these types into Codira.
-    void writeTypeCoupledDeclRefInfo(clang::TypeCoupledDeclRefInfo info) {
+    void writeTypeCoupledDeclRefInfo(language::Core::TypeCoupledDeclRefInfo info) {
       toolchain_unreachable("TypeCoupledDeclRefInfo shouldn't be reached from language");
     }
   };
 }
 
-bool ClangImporter::isSerializable(const clang::Type *type,
+bool ClangImporter::isSerializable(const language::Core::Type *type,
                                    bool checkCanonical) const {
-  return Impl.isSerializable(clang::QualType(type, 0), checkCanonical);
+  return Impl.isSerializable(language::Core::QualType(type, 0), checkCanonical);
 }
 
-bool ClangImporter::Implementation::isSerializable(clang::QualType type,
+bool ClangImporter::Implementation::isSerializable(language::Core::QualType type,
                                                    bool checkCanonical) {
   if (checkCanonical)
     type = getClangASTContext().getCanonicalType(type);

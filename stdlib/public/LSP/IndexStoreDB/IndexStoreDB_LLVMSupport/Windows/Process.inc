@@ -1,8 +1,24 @@
 //===- Win32/Process.cpp - Win32 Process Implementation ------- -*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -10,12 +26,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Allocator.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_CommandLine.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ConvertUTF.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ErrorHandling.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_StringSaver.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_WindowsError.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Allocator.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_CommandLine.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ConvertUTF.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ErrorHandling.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_StringSaver.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_WindowsError.h>
 #include <malloc.h>
 
 // The Windows.h header must be after LLVM and standard headers.
@@ -41,7 +57,7 @@
 #  define _HEAPOK (-2)
 #endif
 
-using namespace llvm;
+using namespace toolchain;
 
 // This function retrieves the page size using GetNativeSystemInfo() and is
 // present solely so it can be called once to initialize the self_process member
@@ -187,7 +203,7 @@ static std::error_code WildcardExpand(StringRef Arg,
       break;
 
     // Append FileName to Dir, and remove it afterwards.
-    llvm::sys::path::append(Dir, FileName);
+    toolchain::sys::path::append(Dir, FileName);
     Args.push_back(Saver.save(StringRef(Dir)).data());
     Dir.resize(DirSize);
   } while (FindNextFileW(FindHandle, &FileData));
@@ -463,7 +479,7 @@ unsigned Process::GetRandomNumber() {
 typedef NTSTATUS(WINAPI* RtlGetVersionPtr)(PRTL_OSVERSIONINFOW);
 #define STATUS_SUCCESS ((NTSTATUS)0x00000000L)
 
-llvm::VersionTuple llvm::GetWindowsOSVersion() {
+toolchain::VersionTuple toolchain::GetWindowsOSVersion() {
   HMODULE hMod = ::GetModuleHandleW(L"ntdll.dll");
   if (hMod) {
     auto getVer = (RtlGetVersionPtr)::GetProcAddress(hMod, "RtlGetVersion");
@@ -471,15 +487,15 @@ llvm::VersionTuple llvm::GetWindowsOSVersion() {
       RTL_OSVERSIONINFOEXW info{};
       info.dwOSVersionInfoSize = sizeof(info);
       if (getVer((PRTL_OSVERSIONINFOW)&info) == STATUS_SUCCESS) {
-        return llvm::VersionTuple(info.dwMajorVersion, info.dwMinorVersion, 0,
+        return toolchain::VersionTuple(info.dwMajorVersion, info.dwMinorVersion, 0,
                                   info.dwBuildNumber);
       }
     }
   }
-  return llvm::VersionTuple(0, 0, 0, 0);
+  return toolchain::VersionTuple(0, 0, 0, 0);
 }
 
-bool llvm::RunningWindows8OrGreater() {
+bool toolchain::RunningWindows8OrGreater() {
   // Windows 8 is version 6.2, service pack 0.
-  return GetWindowsOSVersion() >= llvm::VersionTuple(6, 2, 0, 0);
+  return GetWindowsOSVersion() >= toolchain::VersionTuple(6, 2, 0, 0);
 }

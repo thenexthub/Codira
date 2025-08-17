@@ -115,12 +115,12 @@ xfail Swift-validation(android-aarch64) :: BuildSystem/default_build_still_perfo
 xfail Swift-validation(android-aarch64) :: BuildSystem/infer_dumps_deps_if_verbose_build.test
 xfail Swift-validation(android-aarch64) :: BuildSystem/infer_implies_install_all.test
 xfail Swift-validation(android-aarch64) :: BuildSystem/install_all.test
-xfail Swift-validation(android-aarch64) :: BuildSystem/llvm-targets-options.test
+xfail Swift-validation(android-aarch64) :: BuildSystem/toolchain-targets-options.test
 xfail Swift-validation(android-aarch64) :: BuildSystem/reconfigure-passed-to-build-script-impl.test
 xfail Swift-validation(android-aarch64) :: BuildSystem/skip-local-build.test-sh
 xfail Swift-validation(android-aarch64) :: BuildSystem/skip_clean_corelibs.test
 xfail Swift-validation(android-aarch64) :: BuildSystem/skip_clean_llbuild.test
-xfail Swift-validation(android-aarch64) :: BuildSystem/skip_cmark_language_llvm.test
+xfail Swift-validation(android-aarch64) :: BuildSystem/skip_cmark_language_toolchain.test
 xfail Swift-validation(android-aarch64) :: BuildSystem/test_early_language_driver_and_infer.language
 xfail Swift-validation(android-aarch64) :: BuildSystem/test_skip_early_language_driver.test
 xfail Swift-validation(android-aarch64) :: IDE/complete_sdk_is_symlink.language

@@ -56,12 +56,12 @@ class ComputeBuildSubdirTestCase(unittest.TestCase):
         return argparse.Namespace(
             cmake_generator=generator,
             cmark_build_variant=variant,
-            llvm_build_variant=variant,
+            toolchain_build_variant=variant,
             language_build_variant=variant,
             language_stdlib_build_variant=variant,
             language_analyze_code_coverage="false",
             cmark_assertions=assertions,
-            llvm_assertions=assertions,
+            toolchain_assertions=assertions,
             language_assertions=assertions,
             language_stdlib_assertions=assertions,
             enable_asan=enable_asan,
@@ -110,16 +110,16 @@ class ComputeBuildSubdirTestCase(unittest.TestCase):
 
     def test_Ninja_mixed(self):  # noqa (N802 function name should be lowercase)
         # build-script -R --no-assertions
-        #     --llvm-build-variant=RelWithDebInfo
+        #     --toolchain-build-variant=RelWithDebInfo
         #     --language-analyze-code-coverage="merged"
         #     --language-stdlib-assertions
         args = self.create_basic_args(
             "Ninja", variant="Release", assertions=False)
-        args.llvm_build_variant = "RelWithDebInfo"
+        args.toolchain_build_variant = "RelWithDebInfo"
         args.language_analyze_code_coverage = "merged"
         args.language_stdlib_assertions = True
         self.assertEqual(compute_build_subdir(args),
-                         "Ninja+cmark-Release+llvm-RelWithDebInfo"
+                         "Ninja+cmark-Release+toolchain-RelWithDebInfo"
                          "+language-ReleaseCoverage+stdlib-ReleaseAssert")
 
     def test_Unix_Makefiles_ReleaseAssert(self):  # noqa (N802 function name should be lowercase)
@@ -132,23 +132,23 @@ class ComputeBuildSubdirTestCase(unittest.TestCase):
     def test_all_combinations_are_unique(self):
         productions = itertools.product(
             ["Release", "Debug"],        # cmark_build_variant
-            ["Release", "Debug"],        # llvm_build_variant
+            ["Release", "Debug"],        # toolchain_build_variant
             ["Release", "Debug"],        # language_build_variant
             ["Release", "Debug"],        # language_stdlib_build_variant
             ["false", "true"],           # language_analyze_code_coverage
             [True, False],               # cmark_assertions
-            [True, False],               # llvm_assertions
+            [True, False],               # toolchain_assertions
             [True, False],               # language_assertions
             [True, False],               # language_stdlib_assertions
         )
         keys = [
             "cmark_build_variant",
-            "llvm_build_variant",
+            "toolchain_build_variant",
             "language_build_variant",
             "language_stdlib_build_variant",
             "language_analyze_code_coverage",
             "cmark_assertions",
-            "llvm_assertions",
+            "toolchain_assertions",
             "language_assertions",
             "language_stdlib_assertions",
         ]

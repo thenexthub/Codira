@@ -273,7 +273,7 @@ def process_module(module_file):
 
         # FIXME: Some Python installations are unable to handle Unicode
         # properly. Narrow this once we figure out how to detect them.
-        command_args += ('-diagnostic-style', 'llvm')
+        command_args += ('-diagnostic-style', 'toolchain')
 
         if looks_like_iosmac(interface_base):
             for system_framework_path in args.iosmac_system_framework_dirs:

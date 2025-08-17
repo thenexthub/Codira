@@ -263,9 +263,9 @@ static bool isBetterThan(const SemanticAvailableAttr &newAttr,
                                           prevAttr->getPlatform());
 }
 
-static const clang::DarwinSDKInfo::RelatedTargetVersionMapping *
+static const language::Core::DarwinSDKInfo::RelatedTargetVersionMapping *
 getFallbackVersionMapping(const ASTContext &Ctx,
-                          clang::DarwinSDKInfo::OSEnvPair Kind) {
+                          language::Core::DarwinSDKInfo::OSEnvPair Kind) {
   auto *SDKInfo = Ctx.getDarwinSDKInfo();
   if (SDKInfo)
     return SDKInfo->getVersionMapping(Kind);
@@ -273,11 +273,11 @@ getFallbackVersionMapping(const ASTContext &Ctx,
   return Ctx.getAuxiliaryDarwinPlatformRemapInfo(Kind);
 }
 
-static std::optional<clang::VersionTuple>
+static std::optional<language::Core::VersionTuple>
 getRemappedIntroducedVersionForFallbackPlatform(
     const ASTContext &Ctx, const toolchain::VersionTuple &Version) {
   const auto *Mapping = getFallbackVersionMapping(
-      Ctx, clang::DarwinSDKInfo::OSEnvPair(
+      Ctx, language::Core::DarwinSDKInfo::OSEnvPair(
                toolchain::Triple::IOS, toolchain::Triple::UnknownEnvironment,
                toolchain::Triple::XROS, toolchain::Triple::UnknownEnvironment));
   if (!Mapping)
@@ -285,11 +285,11 @@ getRemappedIntroducedVersionForFallbackPlatform(
   return Mapping->mapIntroducedAvailabilityVersion(Version);
 }
 
-static std::optional<clang::VersionTuple>
+static std::optional<language::Core::VersionTuple>
 getRemappedDeprecatedObsoletedVersionForFallbackPlatform(
     const ASTContext &Ctx, const toolchain::VersionTuple &Version) {
   const auto *Mapping = getFallbackVersionMapping(
-      Ctx, clang::DarwinSDKInfo::OSEnvPair(
+      Ctx, language::Core::DarwinSDKInfo::OSEnvPair(
                toolchain::Triple::IOS, toolchain::Triple::UnknownEnvironment,
                toolchain::Triple::XROS, toolchain::Triple::UnknownEnvironment));
   if (!Mapping)

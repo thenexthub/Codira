@@ -34,7 +34,7 @@ namespace toolchain {
   class FunctionType;
 }
 
-namespace clang {
+namespace language::Core {
   class CXXConstructorDecl;
   namespace CodeGen {
     class CGFunctionInfo;    
@@ -57,7 +57,7 @@ class TypeInfo;
 /// abstract CC of the formal function type.
 class ForeignFunctionInfo {
 public:
-  const clang::CodeGen::CGFunctionInfo *ClangInfo = nullptr;
+  const language::Core::CodeGen::CGFunctionInfo *ClangInfo = nullptr;
   /// True if the foreign function can throw an Objective-C / C++ exception.
   bool canThrow = false;
 };
@@ -210,7 +210,7 @@ public:
   static Signature
   getUncached(IRGenModule &IGM, CanSILFunctionType formalType,
               FunctionPointerKind kind, bool forStaticCall = false,
-              const clang::CXXConstructorDecl *cxxCtorDecl = nullptr);
+              const language::Core::CXXConstructorDecl *cxxCtorDecl = nullptr);
 
   static SignatureExpansionABIDetails
   getUncachedABIDetails(IRGenModule &IGM, CanSILFunctionType formalType,

@@ -62,9 +62,9 @@
 #include <map>
 #include <type_traits>
 
-namespace clang {
+namespace language::Core {
 class PointerAuthQualifier;
-} // end namespace clang
+} // end namespace language::Core
 
 namespace language {
   enum class AccessSemantics : unsigned char;
@@ -1298,7 +1298,7 @@ public:
   /// Retrieve the Clang declaration from which this declaration was
   /// synthesized, if any.
   TOOLCHAIN_READONLY
-  const clang::Decl *getClangDecl() const {
+  const language::Core::Decl *getClangDecl() const {
     if (!Bits.Decl.FromClang)
       return nullptr;
 
@@ -1308,7 +1308,7 @@ public:
   /// Retrieve the Clang macro from which this declaration was
   /// synthesized, if any.
   TOOLCHAIN_READONLY
-  const clang::MacroInfo *getClangMacro() {
+  const language::Core::MacroInfo *getClangMacro() {
     if (!Bits.Decl.FromClang)
       return nullptr;
 
@@ -1811,7 +1811,7 @@ public:
   /// Is the access level of this import implicit, aka a default import?
   bool isAccessLevelImplicit() const;
 
-  const clang::Module *getClangModule() const {
+  const language::Core::Module *getClangModule() const {
     return getClangNode().getClangModule();
   }
 
@@ -6870,7 +6870,7 @@ public:
     });
   }
 
-  clang::PointerAuthQualifier getPointerAuthQualifier() const;
+  language::Core::PointerAuthQualifier getPointerAuthQualifier() const;
 
   static VarDecl *createImplicitStringInterpolationVar(DeclContext *DC);
 

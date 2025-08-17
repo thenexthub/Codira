@@ -17,7 +17,7 @@
 #define INDEXSTOREDB_LIB_INDEX_INDEXDATASTORE_H
 
 #include <IndexStoreDB_Core/Symbol.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_OptionSet.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_OptionSet.h>
 #include <memory>
 #include <string>
 #include <vector>
@@ -48,8 +48,8 @@ public:
                                                 std::string &Error);
 
   bool isUnitOutOfDate(StringRef unitOutputPath, ArrayRef<StringRef> dirtyFiles);
-  bool isUnitOutOfDate(StringRef unitOutputPath, llvm::sys::TimePoint<> outOfDateModTime);
-  llvm::Optional<llvm::sys::TimePoint<>> timestampOfUnitForOutputPath(StringRef unitOutputPath);
+  bool isUnitOutOfDate(StringRef unitOutputPath, toolchain::sys::TimePoint<> outOfDateModTime);
+  toolchain::Optional<toolchain::sys::TimePoint<>> timestampOfUnitForOutputPath(StringRef unitOutputPath);
 
   /// Check whether any unit(s) containing \p file are out of date and if so,
   /// *synchronously* notify the delegate.

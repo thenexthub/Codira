@@ -25,14 +25,14 @@
 #include "language/Basic/STLExtras.h"
 #include "language/Basic/Version.h"
 #include "language/ClangImporter/ClangImporter.h"
-#include "clang/AST/DeclCXX.h"
-#include "clang/AST/DeclObjC.h"
-#include "clang/Lex/MacroInfo.h"
-#include "clang/Lex/Preprocessor.h"
-#include "clang/Sema/Sema.h"
-#include "clang/Serialization/ASTBitCodes.h"
-#include "clang/Serialization/ASTReader.h"
-#include "clang/Serialization/ASTWriter.h"
+#include "language/Core/AST/DeclCXX.h"
+#include "language/Core/AST/DeclObjC.h"
+#include "language/Core/Lex/MacroInfo.h"
+#include "language/Core/Lex/Preprocessor.h"
+#include "language/Core/Sema/Sema.h"
+#include "language/Core/Serialization/ASTBitCodes.h"
+#include "language/Core/Serialization/ASTReader.h"
+#include "language/Core/Serialization/ASTWriter.h"
 #include "toolchain/ADT/STLExtras.h"
 #include "toolchain/ADT/SmallString.h"
 #include "toolchain/ADT/StringExtras.h"
@@ -47,7 +47,7 @@ using namespace importer;
 using namespace toolchain::support;
 
 /// Determine whether the new declarations matches an existing declaration.
-static bool matchesExistingDecl(clang::Decl *decl, clang::Decl *existingDecl) {
+static bool matchesExistingDecl(language::Core::Decl *decl, language::Core::Decl *existingDecl) {
   // If the canonical declarations are equivalent, we have a match.
   if (decl->getCanonicalDecl() == existingDecl->getCanonicalDecl()) {
     return true;
@@ -80,8 +80,8 @@ namespace {
 
 namespace language {
 /// Module file extension writer for the Codira lookup tables.
-class CodiraLookupTableWriter : public clang::ModuleFileExtensionWriter {
-  clang::ASTWriter &Writer;
+class CodiraLookupTableWriter : public language::Core::ModuleFileExtensionWriter {
+  language::Core::ASTWriter &Writer;
 
   ASTContext &languageCtx;
   importer::ClangSourceBufferImporter &buffersForDiagnostics;
@@ -91,7 +91,7 @@ class CodiraLookupTableWriter : public clang::ModuleFileExtensionWriter {
 
 public:
   CodiraLookupTableWriter(
-      clang::ModuleFileExtension *extension, clang::ASTWriter &writer,
+      language::Core::ModuleFileExtension *extension, language::Core::ASTWriter &writer,
       ASTContext &ctx,
       importer::ClangSourceBufferImporter &buffersForDiagnostics,
       const PlatformAvailability &avail,
@@ -100,33 +100,33 @@ public:
         buffersForDiagnostics(buffersForDiagnostics), availability(avail),
         importerImpl(importerImpl) {}
 
-  void writeExtensionContents(clang::Sema &sema,
+  void writeExtensionContents(language::Core::Sema &sema,
                               toolchain::BitstreamWriter &stream) override;
 
   void populateTable(CodiraLookupTable &table, NameImporter &);
 
   void populateTableWithDecl(CodiraLookupTable &table,
-                             NameImporter &nameImporter, clang::Decl *decl);
+                             NameImporter &nameImporter, language::Core::Decl *decl);
 };
 
 /// Module file extension reader for the Codira lookup tables.
-class CodiraLookupTableReader : public clang::ModuleFileExtensionReader {
-  clang::ASTReader &Reader;
-  clang::serialization::ModuleFile &ModuleFile;
+class CodiraLookupTableReader : public language::Core::ModuleFileExtensionReader {
+  language::Core::ASTReader &Reader;
+  language::Core::serialization::ModuleFile &ModuleFile;
   std::function<void()> OnRemove;
 
   std::unique_ptr<SerializedBaseNameToEntitiesTable> SerializedTable;
-  ArrayRef<clang::serialization::DeclID> Categories;
+  ArrayRef<language::Core::serialization::DeclID> Categories;
   std::unique_ptr<SerializedGlobalsAsMembersTable> GlobalsAsMembersTable;
   std::unique_ptr<SerializedGlobalsAsMembersIndex> GlobalsAsMembersIndex;
 
-  CodiraLookupTableReader(clang::ModuleFileExtension *extension,
-                         clang::ASTReader &reader,
-                         clang::serialization::ModuleFile &moduleFile,
+  CodiraLookupTableReader(language::Core::ModuleFileExtension *extension,
+                         language::Core::ASTReader &reader,
+                         language::Core::serialization::ModuleFile &moduleFile,
                          std::function<void()> onRemove,
                          std::unique_ptr<SerializedBaseNameToEntitiesTable>
                              serializedTable,
-                         ArrayRef<clang::serialization::DeclID> categories,
+                         ArrayRef<language::Core::serialization::DeclID> categories,
                          std::unique_ptr<SerializedGlobalsAsMembersTable>
                              globalsAsMembersTable,
                          std::unique_ptr<SerializedGlobalsAsMembersIndex>
@@ -141,17 +141,17 @@ public:
   /// Create a new lookup table reader for the given AST reader and stream
   /// position.
   static std::unique_ptr<CodiraLookupTableReader>
-  create(clang::ModuleFileExtension *extension, clang::ASTReader &reader,
-         clang::serialization::ModuleFile &moduleFile,
+  create(language::Core::ModuleFileExtension *extension, language::Core::ASTReader &reader,
+         language::Core::serialization::ModuleFile &moduleFile,
          std::function<void()> onRemove, const toolchain::BitstreamCursor &stream);
 
   ~CodiraLookupTableReader() override;
 
   /// Retrieve the AST reader associated with this lookup table reader.
-  clang::ASTReader &getASTReader() const { return Reader; }
+  language::Core::ASTReader &getASTReader() const { return Reader; }
 
   /// Retrieve the module file associated with this lookup table reader.
-  clang::serialization::ModuleFile &getModuleFile() { return ModuleFile; }
+  language::Core::serialization::ModuleFile &getModuleFile() { return ModuleFile; }
 
   /// Retrieve the set of base names that are stored in the on-disk hash table.
   SmallVector<SerializedCodiraName, 4> getBaseNames();
@@ -163,7 +163,7 @@ public:
               SmallVectorImpl<CodiraLookupTable::FullTableEntry> &entries);
 
   /// Retrieve the declaration IDs of the categories.
-  ArrayRef<clang::serialization::DeclID> categories() const {
+  ArrayRef<language::Core::serialization::DeclID> categories() const {
     return Categories;
   }
 
@@ -222,17 +222,17 @@ bool CodiraLookupTable::contextRequiresName(ContextKind kind) {
 
 /// Try to translate the given Clang declaration into a context.
 static std::optional<CodiraLookupTable::StoredContext>
-translateDeclToContext(clang::NamedDecl *decl) {
+translateDeclToContext(language::Core::NamedDecl *decl) {
   // Tag declaration.
-  if (auto tag = dyn_cast<clang::TagDecl>(decl)) {
+  if (auto tag = dyn_cast<language::Core::TagDecl>(decl)) {
     if (tag->getIdentifier())
       return std::make_pair(CodiraLookupTable::ContextKind::Tag, tag->getName());
     if (auto typedefDecl = tag->getTypedefNameForAnonDecl())
       return std::make_pair(CodiraLookupTable::ContextKind::Tag,
                             typedefDecl->getName());
-    if (auto enumDecl = dyn_cast<clang::EnumDecl>(tag)) {
+    if (auto enumDecl = dyn_cast<language::Core::EnumDecl>(tag)) {
       if (auto typedefType =
-              dyn_cast<clang::TypedefType>(getUnderlyingType(enumDecl))) {
+              dyn_cast<language::Core::TypedefType>(getUnderlyingType(enumDecl))) {
         if (importer::isUnavailableInCodira(typedefType->getDecl(), nullptr,
                                            true)) {
           return std::make_pair(CodiraLookupTable::ContextKind::Tag,
@@ -245,7 +245,7 @@ translateDeclToContext(clang::NamedDecl *decl) {
   }
 
   // Namespace declaration.
-  if (auto namespaceDecl = dyn_cast<clang::NamespaceDecl>(decl)) {
+  if (auto namespaceDecl = dyn_cast<language::Core::NamespaceDecl>(decl)) {
     if (namespaceDecl->getIdentifier())
       return std::make_pair(CodiraLookupTable::ContextKind::Tag,
                             namespaceDecl->getName());
@@ -253,21 +253,21 @@ translateDeclToContext(clang::NamedDecl *decl) {
   }
 
   // Objective-C class context.
-  if (auto objcClass = dyn_cast<clang::ObjCInterfaceDecl>(decl))
+  if (auto objcClass = dyn_cast<language::Core::ObjCInterfaceDecl>(decl))
     return std::make_pair(CodiraLookupTable::ContextKind::ObjCClass,
                           objcClass->getName());
 
   // Objective-C protocol context.
-  if (auto objcProtocol = dyn_cast<clang::ObjCProtocolDecl>(decl))
+  if (auto objcProtocol = dyn_cast<language::Core::ObjCProtocolDecl>(decl))
     return std::make_pair(CodiraLookupTable::ContextKind::ObjCProtocol,
                           objcProtocol->getName());
 
   // Typedefs.
-  if (auto typedefName = dyn_cast<clang::TypedefNameDecl>(decl)) {
+  if (auto typedefName = dyn_cast<language::Core::TypedefNameDecl>(decl)) {
     // If this typedef is merely a restatement of a tag declaration's type,
     // return the result for that tag.
     if (auto tag = typedefName->getUnderlyingType()->getAsTagDecl())
-      return translateDeclToContext(const_cast<clang::TagDecl *>(tag));
+      return translateDeclToContext(const_cast<language::Core::TagDecl *>(tag));
 
     // Otherwise, this must be a typedef mapped to a strong type.
     return std::make_pair(CodiraLookupTable::ContextKind::Typedef,
@@ -277,27 +277,27 @@ translateDeclToContext(clang::NamedDecl *decl) {
   return std::nullopt;
 }
 
-auto CodiraLookupTable::translateDeclContext(const clang::DeclContext *dc)
+auto CodiraLookupTable::translateDeclContext(const language::Core::DeclContext *dc)
     -> std::optional<CodiraLookupTable::StoredContext> {
   // Translation unit context.
   if (dc->isTranslationUnit())
     return std::make_pair(ContextKind::TranslationUnit, StringRef());
 
   // Tag declaration context.
-  if (auto tag = dyn_cast<clang::TagDecl>(dc))
-    return translateDeclToContext(const_cast<clang::TagDecl *>(tag));
+  if (auto tag = dyn_cast<language::Core::TagDecl>(dc))
+    return translateDeclToContext(const_cast<language::Core::TagDecl *>(tag));
 
   // Namespace declaration context.
-  if (auto namespaceDecl = dyn_cast<clang::NamespaceDecl>(dc))
+  if (auto namespaceDecl = dyn_cast<language::Core::NamespaceDecl>(dc))
     return translateDeclToContext(
-        const_cast<clang::NamespaceDecl *>(namespaceDecl));
+        const_cast<language::Core::NamespaceDecl *>(namespaceDecl));
 
   // Objective-C class context.
-  if (auto objcClass = dyn_cast<clang::ObjCInterfaceDecl>(dc))
+  if (auto objcClass = dyn_cast<language::Core::ObjCInterfaceDecl>(dc))
     return std::make_pair(ContextKind::ObjCClass, objcClass->getName());
 
   // Objective-C protocol context.
-  if (auto objcProtocol = dyn_cast<clang::ObjCProtocolDecl>(dc))
+  if (auto objcProtocol = dyn_cast<language::Core::ObjCProtocolDecl>(dc))
     return std::make_pair(ContextKind::ObjCProtocol, objcProtocol->getName());
 
   return std::nullopt;
@@ -327,15 +327,15 @@ CodiraLookupTable::translateContext(EffectiveClangContext context) {
 
 /// Lookup an unresolved context name and resolve it to a Clang
 /// declaration context or typedef name.
-clang::NamedDecl *CodiraLookupTable::resolveContext(StringRef unresolvedName) {
+language::Core::NamedDecl *CodiraLookupTable::resolveContext(StringRef unresolvedName) {
   // Look for a context with the given Codira name.
   for (auto entry :
        lookup(SerializedCodiraName(unresolvedName),
               std::make_pair(ContextKind::TranslationUnit, StringRef()))) {
-    if (auto decl = entry.dyn_cast<clang::NamedDecl *>()) {
-      if (isa<clang::TagDecl>(decl) ||
-          isa<clang::ObjCInterfaceDecl>(decl) ||
-          isa<clang::TypedefNameDecl>(decl))
+    if (auto decl = entry.dyn_cast<language::Core::NamedDecl *>()) {
+      if (isa<language::Core::TagDecl>(decl) ||
+          isa<language::Core::ObjCInterfaceDecl>(decl) ||
+          isa<language::Core::TypedefNameDecl>(decl))
         return decl;
     }
   }
@@ -345,7 +345,7 @@ clang::NamedDecl *CodiraLookupTable::resolveContext(StringRef unresolvedName) {
   return nullptr;
 }
 
-void CodiraLookupTable::addCategory(clang::ObjCCategoryDecl *category) {
+void CodiraLookupTable::addCategory(language::Core::ObjCCategoryDecl *category) {
   // Force deserialization to occur before appending.
   (void) categories();
 
@@ -437,16 +437,16 @@ static bool isGlobalAsMember(CodiraLookupTable::SingleEntry entry,
 
   // Macros are never stored within a non-translation-unit context in
   // Clang.
-  if (entry.is<clang::MacroInfo *>()) return true;
+  if (entry.is<language::Core::MacroInfo *>()) return true;
 
   // We have a declaration.
-  auto decl = entry.get<clang::NamedDecl *>();
+  auto decl = entry.get<language::Core::NamedDecl *>();
 
   // Enumerators have the translation unit as their redeclaration context,
   // but members of anonymous enums are still allowed to be in the
   // global-as-member category.
-  if (isa<clang::EnumConstantDecl>(decl)) {
-    const auto *theEnum = cast<clang::EnumDecl>(decl->getDeclContext());
+  if (isa<language::Core::EnumConstantDecl>(decl)) {
+    const auto *theEnum = cast<language::Core::EnumDecl>(decl->getDeclContext());
     return !theEnum->hasNameForLinkage();
   }
 
@@ -459,9 +459,9 @@ bool CodiraLookupTable::addLocalEntry(
          SingleEntry newEntry,
          SmallVectorImpl<StoredSingleEntry> &entries) {
   // Check whether this entry matches any existing entry.
-  auto decl = newEntry.dyn_cast<clang::NamedDecl *>();
-  auto macro = newEntry.dyn_cast<clang::MacroInfo *>();
-  auto moduleMacro = newEntry.dyn_cast<clang::ModuleMacro *>();
+  auto decl = newEntry.dyn_cast<language::Core::NamedDecl *>();
+  auto macro = newEntry.dyn_cast<language::Core::MacroInfo *>();
+  auto moduleMacro = newEntry.dyn_cast<language::Core::ModuleMacro *>();
 
   for (auto &existingEntry : entries) {
     // If it matches an existing declaration, there's nothing to do.
@@ -489,10 +489,10 @@ bool CodiraLookupTable::addLocalEntry(
     if (moduleMacro && existingEntry.isMacroEntry()) {
       SingleEntry decodedEntry = mapStoredMacro(existingEntry,
                                                 /*assumeModule*/true);
-      const auto *existingMacro = decodedEntry.get<clang::ModuleMacro *>();
+      const auto *existingMacro = decodedEntry.get<language::Core::ModuleMacro *>();
 
-      const clang::Module *newModule = moduleMacro->getOwningModule();
-      const clang::Module *existingModule = existingMacro->getOwningModule();
+      const language::Core::Module *newModule = moduleMacro->getOwningModule();
+      const language::Core::Module *existingModule = existingMacro->getOwningModule();
 
       // A simple redeclaration: drop the new definition.
       if (existingModule == newModule)
@@ -529,7 +529,7 @@ void CodiraLookupTable::addEntry(DeclName name, SingleEntry newEntry,
   auto contextOpt = translateContext(effectiveContext);
   if (!contextOpt) {
     // We might be able to resolve this later.
-    if (newEntry.is<clang::NamedDecl *>()) {
+    if (newEntry.is<language::Core::NamedDecl *>()) {
       UnresolvedEntries.push_back(
         std::make_tuple(name, newEntry, effectiveContext));
     }
@@ -550,9 +550,9 @@ void CodiraLookupTable::addEntry(DeclName name, SingleEntry newEntry,
     }
 
      // This is a new context for this name. Add it.
-    auto decl = newEntry.dyn_cast<clang::NamedDecl *>();
-    auto macro = newEntry.dyn_cast<clang::MacroInfo *>();
-    auto moduleMacro = newEntry.dyn_cast<clang::ModuleMacro *>();
+    auto decl = newEntry.dyn_cast<language::Core::NamedDecl *>();
+    auto macro = newEntry.dyn_cast<language::Core::MacroInfo *>();
+    auto moduleMacro = newEntry.dyn_cast<language::Core::ModuleMacro *>();
 
      FullTableEntry entry;
     entry.Context = context;
@@ -775,9 +775,9 @@ SmallVector<SerializedCodiraName, 4> CodiraLookupTable::allBaseNames() {
   return result;
 }
 
-SmallVector<clang::NamedDecl *, 4>
+SmallVector<language::Core::NamedDecl *, 4>
 CodiraLookupTable::lookupObjCMembers(SerializedCodiraName baseName) {
-  SmallVector<clang::NamedDecl *, 4> result;
+  SmallVector<language::Core::NamedDecl *, 4> result;
 
   // Find the lookup table entry for this base name.
   auto known = findOrCreate(LookupTable, baseName,
@@ -811,9 +811,9 @@ CodiraLookupTable::lookupObjCMembers(SerializedCodiraName baseName) {
   return result;
 }
 
-SmallVector<clang::NamedDecl *, 4>
+SmallVector<language::Core::NamedDecl *, 4>
 CodiraLookupTable::lookupMemberOperators(SerializedCodiraName baseName) {
-  SmallVector<clang::NamedDecl *, 4> result;
+  SmallVector<language::Core::NamedDecl *, 4> result;
 
   // Find the lookup table entry for this base name.
   auto known = findOrCreate(LookupTable, baseName,
@@ -840,14 +840,14 @@ CodiraLookupTable::lookupMemberOperators(SerializedCodiraName baseName) {
   return result;
 }
 
-ArrayRef<clang::ObjCCategoryDecl *> CodiraLookupTable::categories() {
+ArrayRef<language::Core::ObjCCategoryDecl *> CodiraLookupTable::categories() {
   if (!Categories.empty() || !Reader) return Categories;
 
   // Map categories known to the reader.
   for (auto declID : Reader->categories()) {
-    auto localID = clang::LocalDeclID::get(Reader->getASTReader(),
+    auto localID = language::Core::LocalDeclID::get(Reader->getASTReader(),
                                            Reader->getModuleFile(), declID);
-    auto category = cast_or_null<clang::ObjCCategoryDecl>(
+    auto category = cast_or_null<language::Core::ObjCCategoryDecl>(
         Reader->getASTReader().GetLocalDecl(Reader->getModuleFile(), localID));
     if (category)
       Categories.push_back(category);
@@ -856,17 +856,17 @@ ArrayRef<clang::ObjCCategoryDecl *> CodiraLookupTable::categories() {
   return Categories;
 }
 
-static void printName(clang::NamedDecl *named, toolchain::raw_ostream &out) {
+static void printName(language::Core::NamedDecl *named, toolchain::raw_ostream &out) {
   // If there is a name, print it.
   if (!named->getDeclName().isEmpty()) {
     // If we have an Objective-C method, print the class name along
     // with '+'/'-'.
-    if (auto objcMethod = dyn_cast<clang::ObjCMethodDecl>(named)) {
+    if (auto objcMethod = dyn_cast<language::Core::ObjCMethodDecl>(named)) {
       out << (objcMethod->isInstanceMethod() ? '-' : '+') << '[';
       if (auto classDecl = objcMethod->getClassInterface()) {
         classDecl->printName(out);
         out << ' ';
-      } else if (auto proto = dyn_cast<clang::ObjCProtocolDecl>(
+      } else if (auto proto = dyn_cast<language::Core::ObjCProtocolDecl>(
                                 objcMethod->getDeclContext())) {
         proto->printName(out);
         out << ' ';
@@ -878,15 +878,15 @@ static void printName(clang::NamedDecl *named, toolchain::raw_ostream &out) {
 
     // If we have an Objective-C property, print the class name along
     // with the property name.
-    if (auto objcProperty = dyn_cast<clang::ObjCPropertyDecl>(named)) {
+    if (auto objcProperty = dyn_cast<language::Core::ObjCPropertyDecl>(named)) {
       auto dc = objcProperty->getDeclContext();
-      if (auto classDecl = dyn_cast<clang::ObjCInterfaceDecl>(dc)) {
+      if (auto classDecl = dyn_cast<language::Core::ObjCInterfaceDecl>(dc)) {
         classDecl->printName(out);
         out << '.';
-      } else if (auto categoryDecl = dyn_cast<clang::ObjCCategoryDecl>(dc)) {
+      } else if (auto categoryDecl = dyn_cast<language::Core::ObjCCategoryDecl>(dc)) {
         categoryDecl->getClassInterface()->printName(out);
         out << '.';
-      } else if (auto proto = dyn_cast<clang::ObjCProtocolDecl>(dc)) {
+      } else if (auto proto = dyn_cast<language::Core::ObjCProtocolDecl>(dc)) {
         proto->printName(out);
         out << '.';
       }
@@ -899,7 +899,7 @@ static void printName(clang::NamedDecl *named, toolchain::raw_ostream &out) {
   }
 
   // If this is an anonymous tag declaration with a typedef name, use that.
-  if (auto tag = dyn_cast<clang::TagDecl>(named)) {
+  if (auto tag = dyn_cast<language::Core::TagDecl>(named)) {
     if (auto typedefName = tag->getTypedefNameForAnonDecl()) {
       printName(typedefName, out);
       return;
@@ -1014,7 +1014,7 @@ void CodiraLookupTable::dump(raw_ostream &os) const {
     os << "Categories: ";
     toolchain::interleave(
         Categories.begin(), Categories.end(),
-        [&os](clang::ObjCCategoryDecl *category) {
+        [&os](language::Core::ObjCCategoryDecl *category) {
           os << category->getClassInterface()->getName() << "("
              << category->getName() << ")";
         },
@@ -1024,7 +1024,7 @@ void CodiraLookupTable::dump(raw_ostream &os) const {
     os << "Categories: ";
     toolchain::interleave(
         Reader->categories().begin(), Reader->categories().end(),
-        [&os](clang::serialization::DeclID declID) {
+        [&os](language::Core::serialization::DeclID declID) {
           os << "decl ID #" << declID;
         },
         [&os] { os << ", "; });
@@ -1070,7 +1070,7 @@ namespace {
     /// Record that contains the mapping from base names to entities with that
     /// name.
     BASE_NAME_TO_ENTITIES_RECORD_ID
-      = clang::serialization::FIRST_EXTENSION_RECORD_ID,
+      = language::Core::serialization::FIRST_EXTENSION_RECORD_ID,
 
     /// Record that contains the list of Objective-C category/extension IDs.
     CATEGORIES_RECORD_ID,
@@ -1101,18 +1101,18 @@ namespace {
       + sizeof(StoredSingleEntry::SubmoduleID);
 
   static void emitStoredSingleEntry(CodiraLookupTable::SingleEntry &mappedEntry,
-                                    clang::ASTWriter &astWriter,
+                                    language::Core::ASTWriter &astWriter,
                                     endian::Writer &blobWriter) {
     StoredSingleEntry ids;
 
     // Construct a StoredSingleEntry with the ID(s) for `mappedEntry`.
-    if (auto *decl = mappedEntry.dyn_cast<clang::NamedDecl *>()) {
+    if (auto *decl = mappedEntry.dyn_cast<language::Core::NamedDecl *>()) {
       ids = StoredSingleEntry::forSerializedDecl(
                                  astWriter.getDeclID(decl).getRawValue());
-    } else if (auto *macro = mappedEntry.dyn_cast<clang::MacroInfo *>()) {
+    } else if (auto *macro = mappedEntry.dyn_cast<language::Core::MacroInfo *>()) {
       ids = StoredSingleEntry::forSerializedMacro(astWriter.getMacroID(macro));
     } else {
-      auto *moduleMacro = mappedEntry.get<clang::ModuleMacro *>();
+      auto *moduleMacro = mappedEntry.get<language::Core::ModuleMacro *>();
       StoredSingleEntry::SerializationID nameID =
         astWriter.getIdentifierRef(moduleMacro->getName());
       StoredSingleEntry::SubmoduleID submoduleID =
@@ -1133,7 +1133,7 @@ namespace {
                   "kind serialized as uint8_t");
 
     CodiraLookupTable &Table;
-    clang::ASTWriter &Writer;
+    language::Core::ASTWriter &Writer;
 
   public:
     using key_type = SerializedCodiraName;
@@ -1144,7 +1144,7 @@ namespace {
     using offset_type = unsigned;
 
     BaseNameToEntitiesTableWriterInfo(CodiraLookupTable &table,
-                                      clang::ASTWriter &writer)
+                                      language::Core::ASTWriter &writer)
       : Table(table), Writer(writer)
     {
     }
@@ -1227,7 +1227,7 @@ namespace {
   /// globals-as-members mapping.
   class GlobalsAsMembersTableWriterInfo {
     CodiraLookupTable &Table;
-    clang::ASTWriter &Writer;
+    language::Core::ASTWriter &Writer;
 
   public:
     using key_type = std::pair<CodiraLookupTable::ContextKind, StringRef>;
@@ -1238,7 +1238,7 @@ namespace {
     using offset_type = unsigned;
 
     GlobalsAsMembersTableWriterInfo(CodiraLookupTable &table,
-                                    clang::ASTWriter &writer)
+                                    language::Core::ASTWriter &writer)
       : Table(table), Writer(writer)
     {
     }
@@ -1294,7 +1294,7 @@ namespace {
 } // end anonymous namespace
 
 void CodiraLookupTableWriter::writeExtensionContents(
-       clang::Sema &sema,
+       language::Core::Sema &sema,
        toolchain::BitstreamWriter &stream) {
   NameImporter nameImporter(languageCtx, availability, sema, importerImpl);
 
@@ -1333,13 +1333,13 @@ void CodiraLookupTableWriter::writeExtensionContents(
 
   // Write the categories, if there are any.
   if (!table.Categories.empty()) {
-    SmallVector<clang::serialization::DeclID, 4> categoryIDs;
+    SmallVector<language::Core::serialization::DeclID, 4> categoryIDs;
     for (auto category : table.Categories) {
       categoryIDs.push_back(Writer.getDeclID(category).getRawValue());
     }
 
     StringRef blob(reinterpret_cast<const char *>(categoryIDs.data()),
-                   categoryIDs.size() * sizeof(clang::serialization::DeclID));
+                   categoryIDs.size() * sizeof(language::Core::serialization::DeclID));
     CategoriesRecordLayout layout(stream);
     layout.emit(ScratchRecord, blob);
   }
@@ -1555,20 +1555,20 @@ namespace {
 
 } // end anonymous namespace
 
-clang::NamedDecl *CodiraLookupTable::mapStoredDecl(StoredSingleEntry &entry) {
+language::Core::NamedDecl *CodiraLookupTable::mapStoredDecl(StoredSingleEntry &entry) {
   assert(entry.isDeclEntry() && "Not a declaration entry");
 
   // If we have an AST node here, just cast it.
   if (entry.isASTNodeEntry()) {
-    return static_cast<clang::NamedDecl *>(entry.getASTNode());
+    return static_cast<language::Core::NamedDecl *>(entry.getASTNode());
   }
 
   // Otherwise, resolve the declaration.
   assert(Reader && "Cannot resolve the declaration without a reader");
   auto declID = entry.getSerializationID();
-  auto localID = clang::LocalDeclID::get(Reader->getASTReader(),
+  auto localID = language::Core::LocalDeclID::get(Reader->getASTReader(),
                                          Reader->getModuleFile(), declID);
-  auto decl = cast_or_null<clang::NamedDecl>(
+  auto decl = cast_or_null<language::Core::NamedDecl>(
       Reader->getASTReader().GetLocalDecl(Reader->getModuleFile(), localID));
 
   // Update the entry now that we've resolved the declaration.
@@ -1577,7 +1577,7 @@ clang::NamedDecl *CodiraLookupTable::mapStoredDecl(StoredSingleEntry &entry) {
 }
 
 static bool isPCH(CodiraLookupTableReader &reader) {
-  return reader.getModuleFile().Kind == clang::serialization::MK_PCH;
+  return reader.getModuleFile().Kind == language::Core::serialization::MK_PCH;
 }
 
 CodiraLookupTable::SingleEntry
@@ -1587,14 +1587,14 @@ CodiraLookupTable::mapStoredMacro(StoredSingleEntry &entry, bool assumeModule) {
   // If we have an AST node here, just cast it.
   if (entry.isASTNodeEntry()) {
     if (assumeModule || (Reader && !isPCH(*Reader)))
-      return static_cast<clang::ModuleMacro *>(entry.getASTNode());
+      return static_cast<language::Core::ModuleMacro *>(entry.getASTNode());
     else
-      return static_cast<clang::MacroInfo *>(entry.getASTNode());
+      return static_cast<language::Core::MacroInfo *>(entry.getASTNode());
   }
 
   // Otherwise, resolve the macro.
   assert(Reader && "Cannot resolve the macro without a reader");
-  clang::ASTReader &astReader = Reader->getASTReader();
+  language::Core::ASTReader &astReader = Reader->getASTReader();
 
   if (!assumeModule && entry.getModuleID() == 0) {
     assert(isPCH(*Reader));
@@ -1611,18 +1611,18 @@ CodiraLookupTable::mapStoredMacro(StoredSingleEntry &entry, bool assumeModule) {
   // FIXME: Clang should help us out here, but it doesn't. It can only give us
   // MacroInfos and not ModuleMacros.
   assert(!isPCH(*Reader));
-  clang::IdentifierInfo *name =
+  language::Core::IdentifierInfo *name =
       astReader.getLocalIdentifier(Reader->getModuleFile(), 
                                    entry.getSerializationID());
   auto submoduleID = astReader.getGlobalSubmoduleID(Reader->getModuleFile(),
                                    entry.getModuleID());
-  clang::Module *submodule = astReader.getSubmodule(submoduleID);
+  language::Core::Module *submodule = astReader.getSubmodule(submoduleID);
   assert(submodule);
 
-  clang::Preprocessor &pp = Reader->getASTReader().getPreprocessor();
+  language::Core::Preprocessor &pp = Reader->getASTReader().getPreprocessor();
   // Force the ModuleMacro to be loaded if this module is visible.
   (void)pp.getLeafModuleMacros(name);
-  clang::ModuleMacro *macro = pp.getModuleMacro(submodule, name);
+  language::Core::ModuleMacro *macro = pp.getModuleMacro(submodule, name);
   // This might still be NULL if the module has been imported but not made
   // visible. We need a better answer here.
   if (macro)
@@ -1642,9 +1642,9 @@ CodiraLookupTableReader::~CodiraLookupTableReader() {
 }
 
 std::unique_ptr<CodiraLookupTableReader>
-CodiraLookupTableReader::create(clang::ModuleFileExtension *extension,
-                               clang::ASTReader &reader,
-                               clang::serialization::ModuleFile &moduleFile,
+CodiraLookupTableReader::create(language::Core::ModuleFileExtension *extension,
+                               language::Core::ASTReader &reader,
+                               language::Core::serialization::ModuleFile &moduleFile,
                                std::function<void()> onRemove,
                                const toolchain::BitstreamCursor &stream)
 {
@@ -1661,7 +1661,7 @@ CodiraLookupTableReader::create(clang::ModuleFileExtension *extension,
   std::unique_ptr<SerializedBaseNameToEntitiesTable> serializedTable;
   std::unique_ptr<SerializedGlobalsAsMembersIndex> globalsAsMembersIndex;
   std::unique_ptr<SerializedGlobalsAsMembersTable> globalsAsMembersTable;
-  ArrayRef<clang::serialization::DeclID> categories;
+  ArrayRef<language::Core::serialization::DeclID> categories;
 
   while (next.Kind != toolchain::BitstreamEntry::EndBlock) {
     if (next.Kind == toolchain::BitstreamEntry::Error)
@@ -1731,9 +1731,9 @@ CodiraLookupTableReader::create(clang::ModuleFileExtension *extension,
       if (!categories.empty()) return nullptr;
 
       auto start =
-        reinterpret_cast<const clang::serialization::DeclID *>(blobData.data());
+        reinterpret_cast<const language::Core::serialization::DeclID *>(blobData.data());
       unsigned numElements
-        = blobData.size() / sizeof(clang::serialization::DeclID);
+        = blobData.size() / sizeof(language::Core::serialization::DeclID);
       categories = toolchain::ArrayRef(start, numElements);
       break;
     }
@@ -1852,9 +1852,9 @@ bool CodiraLookupTableReader::lookupGlobalsAsMembers(
   return true;
 }
 
-clang::ModuleFileExtensionMetadata
+language::Core::ModuleFileExtensionMetadata
 CodiraNameLookupExtension::getExtensionMetadata() const {
-  clang::ModuleFileExtensionMetadata metadata;
+  language::Core::ModuleFileExtensionMetadata metadata;
   metadata.BlockName = "language.lookup";
   metadata.MajorVersion = LANGUAGE_LOOKUP_TABLE_VERSION_MAJOR;
   metadata.MinorVersion = LANGUAGE_LOOKUP_TABLE_VERSION_MINOR;
@@ -1872,10 +1872,10 @@ CodiraNameLookupExtension::hashExtension(ExtensionHashBuilder &HBuilder) const {
 }
 
 void importer::addEntryToLookupTable(CodiraLookupTable &table,
-                                     clang::NamedDecl *named,
+                                     language::Core::NamedDecl *named,
                                      NameImporter &nameImporter) {
   auto &clangContext = nameImporter.getClangContext();
-  clang::PrettyStackTraceDecl trace(
+  language::Core::PrettyStackTraceDecl trace(
       named, named->getLocation(), clangContext.getSourceManager(),
       "while adding CodiraName lookup table entries for clang declaration");
 
@@ -1896,13 +1896,13 @@ void importer::addEntryToLookupTable(CodiraLookupTable &table,
   // The best way to do this is probably to change CFDatabase.def to include
   // struct names when relevant, not just pointer names. That way we can check
   // both CFDatabase.def and the objc_bridge attribute and cover all our bases.
-  if (auto *tagDecl = dyn_cast<clang::TagDecl>(named)) {
+  if (auto *tagDecl = dyn_cast<language::Core::TagDecl>(named)) {
     // We add entries for ClassTemplateSpecializations that don't have
     // definition. It's possible that the decl will be instantiated by
     // CodiraDeclConverter later on. We cannot force instantiating
     // ClassTemplateSPecializations here because we're currently writing the
     // AST, so we cannot modify it.
-    if (!isa<clang::ClassTemplateSpecializationDecl>(named) &&
+    if (!isa<language::Core::ClassTemplateSpecializationDecl>(named) &&
         !tagDecl->getDefinition()) {
       return;
     }
@@ -1927,7 +1927,7 @@ void importer::addEntryToLookupTable(CodiraLookupTable &table,
         return true;
       });
   if (failed) {
-    if (auto category = dyn_cast<clang::ObjCCategoryDecl>(named)) {
+    if (auto category = dyn_cast<language::Core::ObjCCategoryDecl>(named)) {
       // If the category is invalid, don't add it.
       if (category->isInvalidDecl())
         return;
@@ -1942,7 +1942,7 @@ void importer::addEntryToLookupTable(CodiraLookupTable &table,
   // that defines a name for a class template instantiation (e.g. std::string),
   // import the mangled name of this instantiation, and add it to the table.
   auto addTemplateSpecialization =
-      [&](clang::ClassTemplateSpecializationDecl *specializationDecl) {
+      [&](language::Core::ClassTemplateSpecializationDecl *specializationDecl) {
         auto name = nameImporter.importName(specializationDecl, currentVersion);
 
         // Avoid adding duplicate entries into the table.
@@ -1954,64 +1954,64 @@ void importer::addEntryToLookupTable(CodiraLookupTable &table,
                          name.getEffectiveContext());
         }
       };
-  if (auto typedefNameDecl = dyn_cast<clang::TypedefNameDecl>(named)) {
+  if (auto typedefNameDecl = dyn_cast<language::Core::TypedefNameDecl>(named)) {
     auto underlyingDecl = typedefNameDecl->getUnderlyingType()->getAsTagDecl();
 
     if (auto specializationDecl =
-            dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(
+            dyn_cast_or_null<language::Core::ClassTemplateSpecializationDecl>(
                 underlyingDecl)) {
       addTemplateSpecialization(specializationDecl);
     }
   }
-  if (auto valueDecl = dyn_cast<clang::ValueDecl>(named)) {
+  if (auto valueDecl = dyn_cast<language::Core::ValueDecl>(named)) {
     auto valueTypeDecl = valueDecl->getType()->getAsTagDecl();
 
     if (auto specializationDecl =
-            dyn_cast_or_null<clang::ClassTemplateSpecializationDecl>(
+            dyn_cast_or_null<language::Core::ClassTemplateSpecializationDecl>(
                 valueTypeDecl)) {
       addTemplateSpecialization(specializationDecl);
     }
   }
 
   // Walk the members of any context that can have nested members.
-  if (isa<clang::TagDecl>(named) || isa<clang::ObjCInterfaceDecl>(named) ||
-      isa<clang::ObjCProtocolDecl>(named) ||
-      isa<clang::ObjCCategoryDecl>(named)) {
-    clang::DeclContext *dc = cast<clang::DeclContext>(named);
+  if (isa<language::Core::TagDecl>(named) || isa<language::Core::ObjCInterfaceDecl>(named) ||
+      isa<language::Core::ObjCProtocolDecl>(named) ||
+      isa<language::Core::ObjCCategoryDecl>(named)) {
+    language::Core::DeclContext *dc = cast<language::Core::DeclContext>(named);
     for (auto member : dc->decls()) {
-      if (auto friendDecl = dyn_cast<clang::FriendDecl>(member))
+      if (auto friendDecl = dyn_cast<language::Core::FriendDecl>(member))
         if (auto underlyingDecl = friendDecl->getFriendDecl())
           member = underlyingDecl;
 
-      if (auto namedMember = dyn_cast<clang::NamedDecl>(member))
+      if (auto namedMember = dyn_cast<language::Core::NamedDecl>(member))
         addEntryToLookupTable(table, namedMember, nameImporter);
     }
   }
-  if (isa<clang::NamespaceDecl>(named)) {
-    toolchain::SmallPtrSet<clang::Decl *, 8> alreadyAdded;
+  if (isa<language::Core::NamespaceDecl>(named)) {
+    toolchain::SmallPtrSet<language::Core::Decl *, 8> alreadyAdded;
     alreadyAdded.insert(named->getCanonicalDecl());
 
-    auto dc = cast<clang::DeclContext>(named);
+    auto dc = cast<language::Core::DeclContext>(named);
     for (auto member : dc->decls()) {
-      auto canonicalMember = isa<clang::NamespaceDecl>(member)
+      auto canonicalMember = isa<language::Core::NamespaceDecl>(member)
                                  ? member
                                  : member->getCanonicalDecl();
       if (!alreadyAdded.insert(canonicalMember).second)
         continue;
 
-      if (auto namedMember = dyn_cast<clang::NamedDecl>(canonicalMember)) {
+      if (auto namedMember = dyn_cast<language::Core::NamedDecl>(canonicalMember)) {
         // Make sure we're looking at the definition, otherwise, there won't
         // be any members to add.
-        if (auto recordDecl = dyn_cast<clang::RecordDecl>(namedMember))
+        if (auto recordDecl = dyn_cast<language::Core::RecordDecl>(namedMember))
           if (auto def = recordDecl->getDefinition())
             namedMember = def;
         addEntryToLookupTable(table, namedMember, nameImporter);
       }
     }
   }
-  if (auto usingDecl = dyn_cast<clang::UsingDecl>(named)) {
+  if (auto usingDecl = dyn_cast<language::Core::UsingDecl>(named)) {
     for (auto usingShadowDecl : usingDecl->shadows()) {
-      if (isa<clang::CXXMethodDecl>(usingShadowDecl->getTargetDecl()))
+      if (isa<language::Core::CXXMethodDecl>(usingShadowDecl->getTargetDecl()))
         addEntryToLookupTable(table, usingShadowDecl, nameImporter);
     }
   }
@@ -2020,8 +2020,8 @@ void importer::addEntryToLookupTable(CodiraLookupTable &table,
 /// Returns the nearest parent of \p module that is marked \c explicit in its
 /// module map. If \p module is itself explicit, it is returned; if no module
 /// in the parent chain is explicit, the top-level module is returned.
-static const clang::Module *
-getExplicitParentModule(const clang::Module *module) {
+static const language::Core::Module *
+getExplicitParentModule(const language::Core::Module *module) {
   while (!module->IsExplicit && module->Parent)
     module = module->Parent;
   return module;
@@ -2033,8 +2033,8 @@ void importer::addMacrosToLookupTable(CodiraLookupTable &table,
   auto *tu = nameImporter.getClangContext().getTranslationUnitDecl();
   bool isModule = pp.getLangOpts().isCompilingModule();
   for (const auto &macro : pp.macros(false)) {
-    auto maybeAddMacro = [&](clang::MacroInfo *info,
-                             clang::ModuleMacro *moduleMacro) {
+    auto maybeAddMacro = [&](language::Core::MacroInfo *info,
+                             language::Core::ModuleMacro *moduleMacro) {
       // If this is a #undef, return.
       if (!info)
         return;
@@ -2067,36 +2067,36 @@ void importer::addMacrosToLookupTable(CodiraLookupTable &table,
         table.addEntry(name, info, tu);
     };
 
-    ArrayRef<clang::ModuleMacro *> moduleMacros =
+    ArrayRef<language::Core::ModuleMacro *> moduleMacros =
         macro.second.getActiveModuleMacros(pp, macro.first);
     if (moduleMacros.empty()) {
       // Handle the bridging header case.
-      clang::MacroDirective *MD = pp.getLocalMacroDirective(macro.first);
+      language::Core::MacroDirective *MD = pp.getLocalMacroDirective(macro.first);
       if (!MD)
         continue;
 
       maybeAddMacro(MD->getMacroInfo(), nullptr);
 
     } else {
-      clang::Module *currentModule = pp.getCurrentModule();
-      SmallVector<clang::ModuleMacro *, 8> worklist;
+      language::Core::Module *currentModule = pp.getCurrentModule();
+      SmallVector<language::Core::ModuleMacro *, 8> worklist;
       toolchain::copy_if(moduleMacros, std::back_inserter(worklist),
-                    [currentModule](const clang::ModuleMacro *next) -> bool {
+                    [currentModule](const language::Core::ModuleMacro *next) -> bool {
         return next->getOwningModule()->isSubModuleOf(currentModule);
       });
 
       while (!worklist.empty()) {
-        clang::ModuleMacro *moduleMacro = worklist.pop_back_val();
+        language::Core::ModuleMacro *moduleMacro = worklist.pop_back_val();
         maybeAddMacro(moduleMacro->getMacroInfo(), moduleMacro);
 
         // Also visit overridden macros that are in a different explicit
         // submodule. This isn't a perfect way to tell if these two macros are
         // supposed to be independent, but it's close enough in practice.
-        clang::Module *owningModule = moduleMacro->getOwningModule();
+        language::Core::Module *owningModule = moduleMacro->getOwningModule();
         auto *explicitParent = getExplicitParentModule(owningModule);
         toolchain::copy_if(moduleMacro->overrides(), std::back_inserter(worklist),
-                      [&](const clang::ModuleMacro *next) -> bool {
-          const clang::Module *nextModule =
+                      [&](const language::Core::ModuleMacro *next) -> bool {
+          const language::Core::Module *nextModule =
               getExplicitParentModule(next->getOwningModule());
           if (!nextModule->isSubModuleOf(currentModule))
             return false;
@@ -2115,8 +2115,8 @@ void importer::finalizeLookupTable(
   if (table.resolveUnresolvedEntries(unresolved)) {
     // Complain about unresolved entries that remain.
     for (auto entry : unresolved) {
-      auto decl = entry.get<clang::NamedDecl *>();
-      auto languageName = decl->getAttr<clang::CodiraNameAttr>();
+      auto decl = entry.get<language::Core::NamedDecl *>();
+      auto languageName = decl->getAttr<language::Core::CodiraNameAttr>();
 
       if (languageName
           // Clang didn't previously attach CodiraNameAttrs to forward
@@ -2124,7 +2124,7 @@ void importer::finalizeLookupTable(
           // warnings on @class declarations. Suppress them.
           // FIXME: Can we avoid processing these decls in the first place?
           && !importer::isForwardDeclOfType(decl)) {
-        clang::SourceLocation diagLoc = languageName->getLocation();
+        language::Core::SourceLocation diagLoc = languageName->getLocation();
         if (!diagLoc.isValid())
           diagLoc = decl->getLocation();
         SourceLoc languageSourceLoc = buffersForDiagnostics.resolveSourceLocation(
@@ -2147,13 +2147,13 @@ void importer::finalizeLookupTable(
 
 void CodiraLookupTableWriter::populateTableWithDecl(CodiraLookupTable &table,
                                                    NameImporter &nameImporter,
-                                                   clang::Decl *decl) {
+                                                   language::Core::Decl *decl) {
   // Skip anything from an AST file.
   if (decl->isFromASTFile())
     return;
 
   // Iterate into extern "C" {} type declarations.
-  if (auto linkageDecl = dyn_cast<clang::LinkageSpecDecl>(decl)) {
+  if (auto linkageDecl = dyn_cast<language::Core::LinkageSpecDecl>(decl)) {
     for (auto *decl : linkageDecl->noload_decls()) {
       populateTableWithDecl(table, nameImporter, decl);
     }
@@ -2161,7 +2161,7 @@ void CodiraLookupTableWriter::populateTableWithDecl(CodiraLookupTable &table,
   }
 
   // Skip non-named declarations.
-  auto named = dyn_cast<clang::NamedDecl>(decl);
+  auto named = dyn_cast<language::Core::NamedDecl>(decl);
   if (!named)
     return;
 
@@ -2183,17 +2183,17 @@ void CodiraLookupTableWriter::populateTable(CodiraLookupTable &table,
   finalizeLookupTable(table, nameImporter, buffersForDiagnostics);
 }
 
-std::unique_ptr<clang::ModuleFileExtensionWriter>
-CodiraNameLookupExtension::createExtensionWriter(clang::ASTWriter &writer) {
+std::unique_ptr<language::Core::ModuleFileExtensionWriter>
+CodiraNameLookupExtension::createExtensionWriter(language::Core::ASTWriter &writer) {
   return std::make_unique<CodiraLookupTableWriter>(this, writer, languageCtx,
                                                   buffersForDiagnostics,
                                                   availability, importerImpl);
 }
 
-std::unique_ptr<clang::ModuleFileExtensionReader>
+std::unique_ptr<language::Core::ModuleFileExtensionReader>
 CodiraNameLookupExtension::createExtensionReader(
-    const clang::ModuleFileExtensionMetadata &metadata,
-    clang::ASTReader &reader, clang::serialization::ModuleFile &mod,
+    const language::Core::ModuleFileExtensionMetadata &metadata,
+    language::Core::ASTReader &reader, language::Core::serialization::ModuleFile &mod,
     const toolchain::BitstreamCursor &stream) {
   // Make sure we have a compatible block. Since these values are part
   // of the hash, it should never be wrong.
@@ -2204,7 +2204,7 @@ CodiraNameLookupExtension::createExtensionReader(
   std::function<void()> onRemove = [](){};
   std::unique_ptr<CodiraLookupTable> *target = nullptr;
 
-  if (mod.Kind == clang::serialization::MK_PCH) {
+  if (mod.Kind == language::Core::serialization::MK_PCH) {
     // PCH imports unconditionally overwrite the provided pchLookupTable.
     target = &pchLookupTable;
   } else {

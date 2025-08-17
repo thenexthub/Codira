@@ -19,13 +19,13 @@
 using namespace language;
 using namespace language::migrator;
 
-void RewriteBufferEditsReceiver::insert(clang::SourceLocation ClangLoc,
+void RewriteBufferEditsReceiver::insert(language::Core::SourceLocation ClangLoc,
                                                 StringRef NewText) {
   auto Offset = ClangSourceManager.getFileOffset(ClangLoc);
   RewriteBuf.InsertText(Offset, NewText);
 }
 
-void RewriteBufferEditsReceiver::replace(clang::CharSourceRange ClangRange,
+void RewriteBufferEditsReceiver::replace(language::Core::CharSourceRange ClangRange,
                                          StringRef ReplacementText) {
   auto StartOffset = ClangSourceManager.getFileOffset(ClangRange.getBegin());
   auto EndOffset = ClangSourceManager.getFileOffset(ClangRange.getEnd());

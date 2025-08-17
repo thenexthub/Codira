@@ -402,7 +402,7 @@ are not forward-compatible, and so cannot be loaded by different versions
 of Clang (or programs using Clang, like the Codira compiler). Normally this
 is fine, but occasionally a development compiler will not have proper
 version information and may try to load older module files, resulting in
-crashes in `clang::ASTReader`.
+crashes in `language::Core::ASTReader`.
 
 ## NFC
 
@@ -467,7 +467,7 @@ different concepts.
 
 Precompiled header, a type of file ending in .pch. A precompiled header is
 like a precompiled module, in the sense that it's the same file format and
-is just a cache file produced by clang and read by `clang::ASTReader`. The
+is just a cache file produced by clang and read by `language::Core::ASTReader`. The
 difference is that PCH files are not "modular": they do not correspond to a
 named module, and cannot be read in any order or imported by module-name;
 rather they must be the first file parsed by the compiler. PCHs are used

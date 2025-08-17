@@ -15,18 +15,18 @@
 #define INDEXSTOREDB_INDEXSTORE_INDEXSTORECXX_H
 
 #include <IndexStoreDB_Index/indexstore_functions.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_ArrayRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Optional.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_STLExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallString.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Mutex.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_ArrayRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Optional.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_STLExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallString.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Mutex.h>
 #include <ctime>
 #include <vector>
 
 namespace indexstore {
-  using llvm::ArrayRef;
-  using llvm::Optional;
-  using llvm::StringRef;
+  using toolchain::ArrayRef;
+  using toolchain::Optional;
+  using toolchain::StringRef;
 
 static inline StringRef stringFromIndexStoreStringRef(indexstore_string_ref_t str) {
   return StringRef(str.data, str.length);
@@ -120,7 +120,7 @@ public:
   IndexRecordSymbol getSymbol() { return {lib->api().occurrence_get_symbol(obj), lib}; }
   uint64_t getRoles() { return lib->api().occurrence_get_roles(obj); }
 
-  bool foreachRelation(llvm::function_ref<bool(IndexSymbolRelation)> receiver) {
+  bool foreachRelation(toolchain::function_ref<bool(IndexSymbolRelation)> receiver) {
     auto forwarder = [&](indexstore_symbol_relation_t sym_rel) -> bool {
       return receiver({sym_rel, lib});
     };
@@ -147,7 +147,7 @@ public:
   IndexStore(StringRef path, IndexStoreLibraryRef library,
              const IndexStoreCreationOptions &options,
              std::string &error) : library(std::move(library)) {
-    llvm::SmallString<64> buf = path;
+    toolchain::SmallString<64> buf = path;
     indexstore_error_t c_err = nullptr;
     // Backwards compatibility for previous versions which don't support a
     // prefix mapping.
@@ -195,7 +195,7 @@ public:
   bool isInvalid() const { return !isValid(); }
   explicit operator bool() const { return isValid(); }
 
-  bool foreachUnit(bool sorted, llvm::function_ref<bool(StringRef unitName)> receiver) {
+  bool foreachUnit(bool sorted, toolchain::function_ref<bool(StringRef unitName)> receiver) {
     auto forwarder = [&](indexstore_string_ref_t unit_name) -> bool {
       return receiver(stringFromIndexStoreStringRef(unit_name));
     };
@@ -251,12 +251,12 @@ private:
   struct EventHandlerContext {
     RawUnitEventHandler handler;
     #if __has_feature(thread_sanitizer)
-    std::unique_ptr<llvm::sys::Mutex> eventHandlerMutex;
+    std::unique_ptr<toolchain::sys::Mutex> eventHandlerMutex;
     #endif
 
     EventHandlerContext(RawUnitEventHandler handler) : handler(std::move(handler)) {
       #if __has_feature(thread_sanitizer)
-      eventHandlerMutex = std::make_unique<llvm::sys::Mutex>();
+      eventHandlerMutex = std::make_unique<toolchain::sys::Mutex>();
       #endif
     }
 
@@ -295,7 +295,7 @@ private:
 
     #if __has_feature(thread_sanitizer)
     // See comment in event_handler_finalizer.
-    llvm::sys::ScopedLock L(*ctx->eventHandlerMutex);
+    toolchain::sys::ScopedLock L(*ctx->eventHandlerMutex);
     #endif
 
     (ctx->handler)(evt);
@@ -309,7 +309,7 @@ private:
     // see the synchronization, and we need to move the mutex out of the context
     // so that it can be held during `delete` below.
     auto mutexPtr = std::move(ctx->eventHandlerMutex);
-    llvm::sys::ScopedLock L(*mutexPtr);
+    toolchain::sys::ScopedLock L(*mutexPtr);
     #endif
 
     delete ctx;
@@ -333,18 +333,18 @@ public:
   }
 
   void discardUnit(StringRef UnitName) {
-    llvm::SmallString<64> buf = UnitName;
+    toolchain::SmallString<64> buf = UnitName;
     api().store_discard_unit(obj, buf.c_str());
   }
 
   void discardRecord(StringRef RecordName) {
-    llvm::SmallString<64> buf = RecordName;
+    toolchain::SmallString<64> buf = RecordName;
     api().store_discard_record(obj, buf.c_str());
   }
 
-  void getUnitNameFromOutputPath(StringRef outputPath, llvm::SmallVectorImpl<char> &nameBuf) {
-    llvm::SmallString<256> buf = outputPath;
-    llvm::SmallString<64> unitName;
+  void getUnitNameFromOutputPath(StringRef outputPath, toolchain::SmallVectorImpl<char> &nameBuf) {
+    toolchain::SmallString<256> buf = outputPath;
+    toolchain::SmallString<64> unitName;
     unitName.resize(64);
     size_t nameLen = api().store_get_unit_name_from_output_path(obj, buf.c_str(), unitName.data(), unitName.size());
     if (nameLen+1 > unitName.size()) {
@@ -354,9 +354,9 @@ public:
     nameBuf.append(unitName.begin(), unitName.begin()+nameLen);
   }
 
-  llvm::Optional<timespec>
+  toolchain::Optional<timespec>
   getUnitModificationTime(StringRef unitName, std::string &error) {
-    llvm::SmallString<64> buf = unitName;
+    toolchain::SmallString<64> buf = unitName;
     int64_t seconds, nanoseconds;
     indexstore_error_t c_err = nullptr;
     bool err = api().store_get_unit_modification_time(obj, buf.c_str(),
@@ -364,7 +364,7 @@ public:
     if (err && c_err) {
       error = api().error_get_description(c_err);
       api().error_dispose(c_err);
-      return llvm::None;
+      return toolchain::None;
     }
     timespec ts;
     ts.tv_sec = seconds;
@@ -383,7 +383,7 @@ class IndexRecordReader {
 
 public:
   IndexRecordReader(IndexStore &store, StringRef recordName, std::string &error) : lib(store.library) {
-    llvm::SmallString<64> buf = recordName;
+    toolchain::SmallString<64> buf = recordName;
     indexstore_error_t c_err = nullptr;
     obj = lib->api().record_reader_create(store.obj, buf.c_str(), &c_err);
     if (c_err) {
@@ -410,8 +410,8 @@ public:
   /// Resulting decls can be used as filter for \c foreachOccurrence. This
   /// allows allocating memory only for the record decls that the caller is
   /// interested in.
-  bool searchSymbols(llvm::function_ref<bool(IndexRecordSymbol, bool &stop)> filter,
-                     llvm::function_ref<void(IndexRecordSymbol)> receiver) {
+  bool searchSymbols(toolchain::function_ref<bool(IndexRecordSymbol, bool &stop)> filter,
+                     toolchain::function_ref<void(IndexRecordSymbol)> receiver) {
     auto forwarder_filter = [&](indexstore_symbol_t symbol, bool *stop) -> bool {
       return filter({symbol, lib}, *stop);
     };
@@ -422,7 +422,7 @@ public:
                                                      &forwarder_receiver, functionPtrFromFunctionRef<decltype(forwarder_receiver)>);
   }
 
-  bool foreachSymbol(bool noCache, llvm::function_ref<bool(IndexRecordSymbol)> receiver) {
+  bool foreachSymbol(bool noCache, toolchain::function_ref<bool(IndexRecordSymbol)> receiver) {
     auto forwarder = [&](indexstore_symbol_t sym) -> bool {
       return receiver({sym, lib});
     };
@@ -435,13 +435,13 @@ public:
   /// \param RelatedDeclsFilter Same as \c DeclsFilter but for related decls.
   bool foreachOccurrence(ArrayRef<IndexRecordSymbol> symbolsFilter,
                          ArrayRef<IndexRecordSymbol> relatedSymbolsFilter,
-              llvm::function_ref<bool(IndexRecordOccurrence)> receiver) {
-    llvm::SmallVector<indexstore_symbol_t, 16> c_symbolsFilter;
+              toolchain::function_ref<bool(IndexRecordOccurrence)> receiver) {
+    toolchain::SmallVector<indexstore_symbol_t, 16> c_symbolsFilter;
     c_symbolsFilter.reserve(symbolsFilter.size());
     for (IndexRecordSymbol sym : symbolsFilter) {
       c_symbolsFilter.push_back(sym.obj);
     }
-    llvm::SmallVector<indexstore_symbol_t, 16> c_relatedSymbolsFilter;
+    toolchain::SmallVector<indexstore_symbol_t, 16> c_relatedSymbolsFilter;
     c_relatedSymbolsFilter.reserve(relatedSymbolsFilter.size());
     for (IndexRecordSymbol sym : relatedSymbolsFilter) {
       c_relatedSymbolsFilter.push_back(sym.obj);
@@ -457,7 +457,7 @@ public:
   }
 
   bool foreachOccurrence(
-              llvm::function_ref<bool(IndexRecordOccurrence)> receiver) {
+              toolchain::function_ref<bool(IndexRecordOccurrence)> receiver) {
     auto forwarder = [&](indexstore_occurrence_t occur) -> bool {
       return receiver({occur, lib});
     };
@@ -465,7 +465,7 @@ public:
   }
 
   bool foreachOccurrenceInLineRange(unsigned lineStart, unsigned lineEnd,
-              llvm::function_ref<bool(IndexRecordOccurrence)> receiver) {
+              toolchain::function_ref<bool(IndexRecordOccurrence)> receiver) {
     auto forwarder = [&](indexstore_occurrence_t occur) -> bool {
       return receiver({occur, lib});
     };
@@ -528,7 +528,7 @@ class IndexUnitReader {
 
 public:
   IndexUnitReader(IndexStore &store, StringRef unitName, std::string &error) : lib(store.library) {
-    llvm::SmallString<64> buf = unitName;
+    toolchain::SmallString<64> buf = unitName;
     indexstore_error_t c_err = nullptr;
     obj = lib->api().unit_reader_create(store.obj, buf.c_str(), &c_err);
     if (c_err) {
@@ -589,14 +589,14 @@ public:
     return stringFromIndexStoreStringRef(lib->api().unit_reader_get_target(obj));
   }
 
-  bool foreachDependency(llvm::function_ref<bool(IndexUnitDependency)> receiver) {
+  bool foreachDependency(toolchain::function_ref<bool(IndexUnitDependency)> receiver) {
     auto forwarder = [&](indexstore_unit_dependency_t dep) -> bool {
       return receiver({dep, lib});
     };
     return lib->api().unit_reader_dependencies_apply_f(obj, &forwarder, functionPtrFromFunctionRef<decltype(forwarder)>);;
   }
 
-  bool foreachInclude(llvm::function_ref<bool(IndexUnitInclude)> receiver) {
+  bool foreachInclude(toolchain::function_ref<bool(IndexUnitInclude)> receiver) {
     auto forwarder = [&](indexstore_unit_include_t inc) -> bool {
       return receiver({inc, lib});
     };

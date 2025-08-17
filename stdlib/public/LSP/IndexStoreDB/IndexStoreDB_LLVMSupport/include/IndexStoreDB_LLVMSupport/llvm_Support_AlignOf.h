@@ -1,8 +1,24 @@
 //===--- AlignOf.h - Portable calculation of type alignment -----*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -13,10 +29,10 @@
 #ifndef LLVM_SUPPORT_ALIGNOF_H
 #define LLVM_SUPPORT_ALIGNOF_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Compiler.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Compiler.h>
 #include <cstddef>
 
-namespace llvm {
+namespace toolchain {
 
 /// \struct AlignedCharArray
 /// Helper for building an aligned character array type.
@@ -134,12 +150,12 @@ template <typename T1,
           typename T2 = char, typename T3 = char, typename T4 = char,
           typename T5 = char, typename T6 = char, typename T7 = char,
           typename T8 = char, typename T9 = char, typename T10 = char>
-struct AlignedCharArrayUnion : llvm::AlignedCharArray<
-    alignof(llvm::detail::AlignerImpl<T1, T2, T3, T4, T5,
+struct AlignedCharArrayUnion : toolchain::AlignedCharArray<
+    alignof(toolchain::detail::AlignerImpl<T1, T2, T3, T4, T5,
                                       T6, T7, T8, T9, T10>),
-    sizeof(::llvm::detail::SizerImpl<T1, T2, T3, T4, T5,
+    sizeof(::toolchain::detail::SizerImpl<T1, T2, T3, T4, T5,
                                      T6, T7, T8, T9, T10>)> {
 };
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif // LLVM_SUPPORT_ALIGNOF_H

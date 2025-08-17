@@ -31,7 +31,7 @@
 #include "language/AST/TypeRepr.h"
 #include "language/AST/TypeVisitor.h"
 #include "language/Basic/SourceManager.h"
-#include "clang/AST/Type.h"
+#include "language/Core/AST/Type.h"
 #include "toolchain/Support/raw_ostream.h"
 #include "toolchain/Support/MemoryBuffer.h"
 

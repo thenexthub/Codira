@@ -22,8 +22,8 @@
 #include "language/AST/ProtocolConformance.h"
 #include "language/Basic/Assertions.h"
 #include "language/ClangImporter/ClangImporterRequests.h"
-#include "clang/Sema/DelayedDiagnostic.h"
-#include "clang/Sema/Overload.h"
+#include "language/Core/Sema/DelayedDiagnostic.h"
+#include "language/Core/Sema/Overload.h"
 
 using namespace language;
 using namespace language::importer;
@@ -99,7 +99,7 @@ static FuncDecl *getInsertFunc(NominalTypeDecl *decl,
   return insert;
 }
 
-static bool isStdDecl(const clang::CXXRecordDecl *clangDecl,
+static bool isStdDecl(const language::Core::CXXRecordDecl *clangDecl,
                       toolchain::ArrayRef<StringRef> names) {
   if (!clangDecl->isInStdNamespace())
     return false;
@@ -109,10 +109,10 @@ static bool isStdDecl(const clang::CXXRecordDecl *clangDecl,
   return toolchain::is_contained(names, name);
 }
 
-static clang::TypeDecl *
-lookupNestedClangTypeDecl(const clang::CXXRecordDecl *clangDecl,
+static language::Core::TypeDecl *
+lookupNestedClangTypeDecl(const language::Core::CXXRecordDecl *clangDecl,
                           StringRef name) {
-  clang::IdentifierInfo *nestedDeclName =
+  language::Core::IdentifierInfo *nestedDeclName =
       &clangDecl->getASTContext().Idents.get(name);
   auto nestedDecls = clangDecl->lookup(nestedDeclName);
   // If this is a templated typedef, Clang might have instantiated several
@@ -122,16 +122,16 @@ lookupNestedClangTypeDecl(const clang::CXXRecordDecl *clangDecl,
   if (nestedDecls.empty())
     return nullptr;
   auto nestedDecl = nestedDecls.front();
-  return dyn_cast_or_null<clang::TypeDecl>(nestedDecl);
+  return dyn_cast_or_null<language::Core::TypeDecl>(nestedDecl);
 }
 
-static clang::TypeDecl *
-getIteratorCategoryDecl(const clang::CXXRecordDecl *clangDecl) {
+static language::Core::TypeDecl *
+getIteratorCategoryDecl(const language::Core::CXXRecordDecl *clangDecl) {
   return lookupNestedClangTypeDecl(clangDecl, "iterator_category");
 }
 
-static clang::TypeDecl *
-getIteratorConceptDecl(const clang::CXXRecordDecl *clangDecl) {
+static language::Core::TypeDecl *
+getIteratorConceptDecl(const language::Core::CXXRecordDecl *clangDecl) {
   return lookupNestedClangTypeDecl(clangDecl, "iterator_concept");
 }
 
@@ -249,33 +249,33 @@ static FuncDecl *getPlusEqualOperator(NominalTypeDecl *decl, Type distanceTy) {
   return dyn_cast_or_null<FuncDecl>(result);
 }
 
-static clang::FunctionDecl *
+static language::Core::FunctionDecl *
 instantiateTemplatedOperator(ClangImporter::Implementation &impl,
-                             const clang::CXXRecordDecl *classDecl,
-                             clang::BinaryOperatorKind operatorKind) {
+                             const language::Core::CXXRecordDecl *classDecl,
+                             language::Core::BinaryOperatorKind operatorKind) {
 
-  clang::ASTContext &clangCtx = impl.getClangASTContext();
-  clang::Sema &clangSema = impl.getClangSema();
+  language::Core::ASTContext &clangCtx = impl.getClangASTContext();
+  language::Core::Sema &clangSema = impl.getClangSema();
 
-  clang::UnresolvedSet<1> ops;
-  auto qualType = clang::QualType(classDecl->getTypeForDecl(), 0);
-  auto arg = clang::CXXThisExpr::Create(clangCtx, clang::SourceLocation(),
+  language::Core::UnresolvedSet<1> ops;
+  auto qualType = language::Core::QualType(classDecl->getTypeForDecl(), 0);
+  auto arg = language::Core::CXXThisExpr::Create(clangCtx, language::Core::SourceLocation(),
                                         qualType, false);
-  arg->setType(clang::QualType(classDecl->getTypeForDecl(), 0));
+  arg->setType(language::Core::QualType(classDecl->getTypeForDecl(), 0));
 
-  clang::OverloadedOperatorKind opKind =
-      clang::BinaryOperator::getOverloadedOperator(operatorKind);
-  clang::OverloadCandidateSet candidateSet(
-      classDecl->getLocation(), clang::OverloadCandidateSet::CSK_Operator,
-      clang::OverloadCandidateSet::OperatorRewriteInfo(opKind,
-                                              clang::SourceLocation(), false));
-  std::array<clang::Expr *, 2> args{arg, arg};
+  language::Core::OverloadedOperatorKind opKind =
+      language::Core::BinaryOperator::getOverloadedOperator(operatorKind);
+  language::Core::OverloadCandidateSet candidateSet(
+      classDecl->getLocation(), language::Core::OverloadCandidateSet::CSK_Operator,
+      language::Core::OverloadCandidateSet::OperatorRewriteInfo(opKind,
+                                              language::Core::SourceLocation(), false));
+  std::array<language::Core::Expr *, 2> args{arg, arg};
   clangSema.LookupOverloadedBinOp(candidateSet, opKind, ops, args, true);
 
-  clang::OverloadCandidateSet::iterator best;
-  switch (candidateSet.BestViableFunction(clangSema, clang::SourceLocation(),
+  language::Core::OverloadCandidateSet::iterator best;
+  switch (candidateSet.BestViableFunction(clangSema, language::Core::SourceLocation(),
                                           best)) {
-  case clang::OR_Success: {
+  case language::Core::OR_Success: {
     if (auto clangCallee = best->Function) {
       auto lookupTable = impl.findLookupTable(classDecl);
       addEntryToLookupTable(*lookupTable, clangCallee, impl.getNameImporter());
@@ -283,9 +283,9 @@ instantiateTemplatedOperator(ClangImporter::Implementation &impl,
     }
     break;
   }
-  case clang::OR_No_Viable_Function:
-  case clang::OR_Ambiguous:
-  case clang::OR_Deleted:
+  case language::Core::OR_No_Viable_Function:
+  case language::Core::OR_Ambiguous:
+  case language::Core::OR_Deleted:
     break;
   }
 
@@ -294,20 +294,20 @@ instantiateTemplatedOperator(ClangImporter::Implementation &impl,
 
 /// Warning: This function emits an error and stops compilation if the
 /// underlying operator function is unavailable in Codira for the current target
-/// (see `clang::Sema::DiagnoseAvailabilityOfDecl`).
+/// (see `language::Core::Sema::DiagnoseAvailabilityOfDecl`).
 static bool synthesizeCXXOperator(ClangImporter::Implementation &impl,
-                                  const clang::CXXRecordDecl *classDecl,
-                                  clang::BinaryOperatorKind operatorKind,
-                                  clang::QualType lhsTy, clang::QualType rhsTy,
-                                  clang::QualType returnTy) {
+                                  const language::Core::CXXRecordDecl *classDecl,
+                                  language::Core::BinaryOperatorKind operatorKind,
+                                  language::Core::QualType lhsTy, language::Core::QualType rhsTy,
+                                  language::Core::QualType returnTy) {
   auto &clangCtx = impl.getClangASTContext();
   auto &clangSema = impl.getClangSema();
 
-  clang::OverloadedOperatorKind opKind =
-      clang::BinaryOperator::getOverloadedOperator(operatorKind);
-  const char *opSpelling = clang::getOperatorSpelling(opKind);
+  language::Core::OverloadedOperatorKind opKind =
+      language::Core::BinaryOperator::getOverloadedOperator(operatorKind);
+  const char *opSpelling = language::Core::getOperatorSpelling(opKind);
 
-  auto declName = clang::DeclarationName(&clangCtx.Idents.get(opSpelling));
+  auto declName = language::Core::DeclarationName(&clangCtx.Idents.get(opSpelling));
 
   // Determine the Clang decl context where the new operator function will be
   // created. We use the translation unit as the decl context of the new
@@ -316,57 +316,57 @@ static bool synthesizeCXXOperator(ClangImporter::Implementation &impl,
   // namespace would get imported as a member function of a Codira enum), which
   // would make the operator un-discoverable to Codira name lookup.
   auto declContext =
-      const_cast<clang::CXXRecordDecl *>(classDecl)->getDeclContext();
+      const_cast<language::Core::CXXRecordDecl *>(classDecl)->getDeclContext();
   while (!declContext->isTranslationUnit()) {
     declContext = declContext->getParent();
   }
 
   auto equalEqualTy = clangCtx.getFunctionType(
-      returnTy, {lhsTy, rhsTy}, clang::FunctionProtoType::ExtProtoInfo());
+      returnTy, {lhsTy, rhsTy}, language::Core::FunctionProtoType::ExtProtoInfo());
 
   // Create a `bool operator==(T, T)` function.
-  auto equalEqualDecl = clang::FunctionDecl::Create(
-      clangCtx, declContext, clang::SourceLocation(), clang::SourceLocation(),
+  auto equalEqualDecl = language::Core::FunctionDecl::Create(
+      clangCtx, declContext, language::Core::SourceLocation(), language::Core::SourceLocation(),
       declName, equalEqualTy, clangCtx.getTrivialTypeSourceInfo(returnTy),
-      clang::StorageClass::SC_Static);
+      language::Core::StorageClass::SC_Static);
   equalEqualDecl->setImplicit();
   equalEqualDecl->setImplicitlyInline();
   // If this is a static member function of a class, it needs to be public.
-  equalEqualDecl->setAccess(clang::AccessSpecifier::AS_public);
+  equalEqualDecl->setAccess(language::Core::AccessSpecifier::AS_public);
 
   // Create the parameters of the function. They are not referenced from source
   // code, so they don't need to have a name.
   auto lhsParamId = nullptr;
   auto lhsTyInfo = clangCtx.getTrivialTypeSourceInfo(lhsTy);
-  auto lhsParamDecl = clang::ParmVarDecl::Create(
-      clangCtx, equalEqualDecl, clang::SourceLocation(),
-      clang::SourceLocation(), lhsParamId, lhsTy, lhsTyInfo,
-      clang::StorageClass::SC_None, /*DefArg*/ nullptr);
-  auto lhsParamRefExpr = new (clangCtx) clang::DeclRefExpr(
-      clangCtx, lhsParamDecl, false, lhsTy, clang::ExprValueKind::VK_LValue,
-      clang::SourceLocation());
+  auto lhsParamDecl = language::Core::ParmVarDecl::Create(
+      clangCtx, equalEqualDecl, language::Core::SourceLocation(),
+      language::Core::SourceLocation(), lhsParamId, lhsTy, lhsTyInfo,
+      language::Core::StorageClass::SC_None, /*DefArg*/ nullptr);
+  auto lhsParamRefExpr = new (clangCtx) language::Core::DeclRefExpr(
+      clangCtx, lhsParamDecl, false, lhsTy, language::Core::ExprValueKind::VK_LValue,
+      language::Core::SourceLocation());
 
   auto rhsParamId = nullptr;
   auto rhsTyInfo = clangCtx.getTrivialTypeSourceInfo(rhsTy);
-  auto rhsParamDecl = clang::ParmVarDecl::Create(
-      clangCtx, equalEqualDecl, clang::SourceLocation(),
-      clang::SourceLocation(), rhsParamId, rhsTy, rhsTyInfo,
-      clang::StorageClass::SC_None, nullptr);
-  auto rhsParamRefExpr = new (clangCtx) clang::DeclRefExpr(
-      clangCtx, rhsParamDecl, false, rhsTy, clang::ExprValueKind::VK_LValue,
-      clang::SourceLocation());
+  auto rhsParamDecl = language::Core::ParmVarDecl::Create(
+      clangCtx, equalEqualDecl, language::Core::SourceLocation(),
+      language::Core::SourceLocation(), rhsParamId, rhsTy, rhsTyInfo,
+      language::Core::StorageClass::SC_None, nullptr);
+  auto rhsParamRefExpr = new (clangCtx) language::Core::DeclRefExpr(
+      clangCtx, rhsParamDecl, false, rhsTy, language::Core::ExprValueKind::VK_LValue,
+      language::Core::SourceLocation());
 
   equalEqualDecl->setParams({lhsParamDecl, rhsParamDecl});
 
   // Lookup the `operator==` function that will be called under the hood.
-  clang::UnresolvedSet<16> operators;
-  clang::sema::DelayedDiagnosticPool diagPool{
+  language::Core::UnresolvedSet<16> operators;
+  language::Core::sema::DelayedDiagnosticPool diagPool{
       impl.getClangSema().DelayedDiagnostics.getCurrentPool()};
   auto diagState = impl.getClangSema().DelayedDiagnostics.push(diagPool);
   // Note: calling `CreateOverloadedBinOp` emits an error if the looked up
   // function is unavailable for the current target.
   auto underlyingCallResult = clangSema.CreateOverloadedBinOp(
-      clang::SourceLocation(), operatorKind, operators, lhsParamRefExpr,
+      language::Core::SourceLocation(), operatorKind, operators, lhsParamRefExpr,
       rhsParamRefExpr);
   impl.getClangSema().DelayedDiagnostics.popWithoutEmitting(diagState);
 
@@ -376,8 +376,8 @@ static bool synthesizeCXXOperator(ClangImporter::Implementation &impl,
     return false;
   auto underlyingCall = underlyingCallResult.get();
 
-  auto equalEqualBody = clang::ReturnStmt::Create(
-      clangCtx, clang::SourceLocation(), underlyingCall, nullptr);
+  auto equalEqualBody = language::Core::ReturnStmt::Create(
+      clangCtx, language::Core::SourceLocation(), underlyingCall, nullptr);
   equalEqualDecl->setBody(equalEqualBody);
 
   impl.synthesizedAndAlwaysVisibleDecls.insert(equalEqualDecl);
@@ -386,7 +386,7 @@ static bool synthesizeCXXOperator(ClangImporter::Implementation &impl,
   return true;
 }
 
-bool language::isIterator(const clang::CXXRecordDecl *clangDecl) {
+bool language::isIterator(const language::Core::CXXRecordDecl *clangDecl) {
   return getIteratorCategoryDecl(clangDecl);
 }
 
@@ -414,13 +414,13 @@ language::importer::getImportedMemberOperator(const DeclBaseName &name,
 
 void language::conformToCxxIteratorIfNeeded(
     ClangImporter::Implementation &impl, NominalTypeDecl *decl,
-    const clang::CXXRecordDecl *clangDecl) {
+    const language::Core::CXXRecordDecl *clangDecl) {
   PrettyStackTraceDecl trace("conforming to UnsafeCxxInputIterator", decl);
 
   assert(decl);
   assert(clangDecl);
   ASTContext &ctx = decl->getASTContext();
-  clang::ASTContext &clangCtx = clangDecl->getASTContext();
+  language::Core::ASTContext &clangCtx = clangDecl->getASTContext();
 
   if (!ctx.getProtocol(KnownProtocolKind::UnsafeCxxInputIterator))
     return;
@@ -433,13 +433,13 @@ void language::conformToCxxIteratorIfNeeded(
     return;
 
   auto unwrapUnderlyingTypeDecl =
-      [](clang::TypeDecl *typeDecl) -> clang::CXXRecordDecl * {
-    clang::CXXRecordDecl *underlyingDecl = nullptr;
-    if (auto typedefDecl = dyn_cast<clang::TypedefNameDecl>(typeDecl)) {
+      [](language::Core::TypeDecl *typeDecl) -> language::Core::CXXRecordDecl * {
+    language::Core::CXXRecordDecl *underlyingDecl = nullptr;
+    if (auto typedefDecl = dyn_cast<language::Core::TypedefNameDecl>(typeDecl)) {
       auto type = typedefDecl->getUnderlyingType();
       underlyingDecl = type->getAsCXXRecordDecl();
     } else {
-      underlyingDecl = dyn_cast<clang::CXXRecordDecl>(typeDecl);
+      underlyingDecl = dyn_cast<language::Core::CXXRecordDecl>(typeDecl);
     }
     if (underlyingDecl) {
       underlyingDecl = underlyingDecl->getDefinition();
@@ -453,18 +453,18 @@ void language::conformToCxxIteratorIfNeeded(
   if (!underlyingCategoryDecl)
     return;
 
-  auto isIteratorTagDecl = [&](const clang::CXXRecordDecl *base,
+  auto isIteratorTagDecl = [&](const language::Core::CXXRecordDecl *base,
                                StringRef tag) {
     return base->isInStdNamespace() && base->getIdentifier() &&
            base->getName() == tag;
   };
-  auto isInputIteratorDecl = [&](const clang::CXXRecordDecl *base) {
+  auto isInputIteratorDecl = [&](const language::Core::CXXRecordDecl *base) {
     return isIteratorTagDecl(base, "input_iterator_tag");
   };
-  auto isRandomAccessIteratorDecl = [&](const clang::CXXRecordDecl *base) {
+  auto isRandomAccessIteratorDecl = [&](const language::Core::CXXRecordDecl *base) {
     return isIteratorTagDecl(base, "random_access_iterator_tag");
   };
-  auto isContiguousIteratorDecl = [&](const clang::CXXRecordDecl *base) {
+  auto isContiguousIteratorDecl = [&](const language::Core::CXXRecordDecl *base) {
     return isIteratorTagDecl(base, "contiguous_iterator_tag"); // C++20
   };
 
@@ -473,7 +473,7 @@ void language::conformToCxxIteratorIfNeeded(
   bool isInputIterator = isInputIteratorDecl(underlyingCategoryDecl);
   bool isRandomAccessIterator =
       isRandomAccessIteratorDecl(underlyingCategoryDecl);
-  underlyingCategoryDecl->forallBases([&](const clang::CXXRecordDecl *base) {
+  underlyingCategoryDecl->forallBases([&](const language::Core::CXXRecordDecl *base) {
     if (isInputIteratorDecl(base)) {
       isInputIterator = true;
     }
@@ -499,7 +499,7 @@ void language::conformToCxxIteratorIfNeeded(
       isContiguousIterator = isContiguousIteratorDecl(underlyingConceptDecl);
       if (!isContiguousIterator)
         underlyingConceptDecl->forallBases(
-            [&](const clang::CXXRecordDecl *base) {
+            [&](const language::Core::CXXRecordDecl *base) {
               if (isContiguousIteratorDecl(base)) {
                 isContiguousIterator = true;
                 return false;
@@ -536,8 +536,8 @@ void language::conformToCxxIteratorIfNeeded(
     // If this class is inherited, `operator==` might be defined for a base
     // class. If this is a templated class, `operator==` might be templated as
     // well. Try to instantiate it.
-    clang::FunctionDecl *instantiated = instantiateTemplatedOperator(
-        impl, clangDecl, clang::BinaryOperatorKind::BO_EQ);
+    language::Core::FunctionDecl *instantiated = instantiateTemplatedOperator(
+        impl, clangDecl, language::Core::BinaryOperatorKind::BO_EQ);
     if (instantiated && !impl.isUnavailableInCodira(instantiated)) {
       // If `operator==` was instantiated successfully, try to find `fn ==`
       // again.
@@ -546,7 +546,7 @@ void language::conformToCxxIteratorIfNeeded(
         // If `fn ==` still can't be found, it might be defined for a base
         // class of the current class.
         auto paramTy = clangCtx.getRecordType(clangDecl);
-        synthesizeCXXOperator(impl, clangDecl, clang::BinaryOperatorKind::BO_EQ,
+        synthesizeCXXOperator(impl, clangDecl, language::Core::BinaryOperatorKind::BO_EQ,
                               paramTy, paramTy, clangCtx.BoolTy);
         equalEqual = getEqualEqualOperator(decl);
       }
@@ -573,15 +573,15 @@ void language::conformToCxxIteratorIfNeeded(
   // Check if present: `fn -`
   auto minus = getMinusOperator(decl);
   if (!minus) {
-    clang::FunctionDecl *instantiated = instantiateTemplatedOperator(
-        impl, clangDecl, clang::BinaryOperatorKind::BO_Sub);
+    language::Core::FunctionDecl *instantiated = instantiateTemplatedOperator(
+        impl, clangDecl, language::Core::BinaryOperatorKind::BO_Sub);
     if (instantiated && !impl.isUnavailableInCodira(instantiated)) {
       minus = getMinusOperator(decl);
       if (!minus) {
-        clang::QualType returnTy = instantiated->getReturnType();
+        language::Core::QualType returnTy = instantiated->getReturnType();
         auto paramTy = clangCtx.getRecordType(clangDecl);
         synthesizeCXXOperator(impl, clangDecl,
-                              clang::BinaryOperatorKind::BO_Sub, paramTy,
+                              language::Core::BinaryOperatorKind::BO_Sub, paramTy,
                               paramTy, returnTy);
         minus = getMinusOperator(decl);
       }
@@ -594,17 +594,17 @@ void language::conformToCxxIteratorIfNeeded(
 
   auto plusEqual = getPlusEqualOperator(decl, distanceTy);
   if (!plusEqual) {
-    clang::FunctionDecl *instantiated = instantiateTemplatedOperator(
-        impl, clangDecl, clang::BinaryOperatorKind::BO_AddAssign);
+    language::Core::FunctionDecl *instantiated = instantiateTemplatedOperator(
+        impl, clangDecl, language::Core::BinaryOperatorKind::BO_AddAssign);
     if (instantiated && !impl.isUnavailableInCodira(instantiated)) {
       plusEqual = getPlusEqualOperator(decl, distanceTy);
       if (!plusEqual) {
-        clang::QualType returnTy = instantiated->getReturnType();
-        auto clangMinus = cast<clang::FunctionDecl>(minus->getClangDecl());
+        language::Core::QualType returnTy = instantiated->getReturnType();
+        auto clangMinus = cast<language::Core::FunctionDecl>(minus->getClangDecl());
         auto lhsTy = clangCtx.getRecordType(clangDecl);
         auto rhsTy = clangMinus->getReturnType();
         synthesizeCXXOperator(impl, clangDecl,
-                              clang::BinaryOperatorKind::BO_AddAssign, lhsTy,
+                              language::Core::BinaryOperatorKind::BO_AddAssign, lhsTy,
                               rhsTy, returnTy);
         plusEqual = getPlusEqualOperator(decl, distanceTy);
       }
@@ -633,7 +633,7 @@ void language::conformToCxxIteratorIfNeeded(
 
 void language::conformToCxxConvertibleToBoolIfNeeded(
     ClangImporter::Implementation &impl, language::NominalTypeDecl *decl,
-    const clang::CXXRecordDecl *clangDecl) {
+    const language::Core::CXXRecordDecl *clangDecl) {
   PrettyStackTraceDecl trace("conforming to CxxConvertibleToBool", decl);
 
   assert(decl);
@@ -666,14 +666,14 @@ void language::conformToCxxConvertibleToBoolIfNeeded(
 
 void language::conformToCxxOptionalIfNeeded(
     ClangImporter::Implementation &impl, NominalTypeDecl *decl,
-    const clang::CXXRecordDecl *clangDecl) {
+    const language::Core::CXXRecordDecl *clangDecl) {
   PrettyStackTraceDecl trace("conforming to CxxOptional", decl);
 
   assert(decl);
   assert(clangDecl);
   ASTContext &ctx = decl->getASTContext();
-  clang::ASTContext &clangCtx = impl.getClangASTContext();
-  clang::Sema &clangSema = impl.getClangSema();
+  language::Core::ASTContext &clangCtx = impl.getClangASTContext();
+  language::Core::Sema &clangSema = impl.getClangSema();
 
   if (!isStdDecl(clangDecl, {"optional"}))
     return;
@@ -711,38 +711,38 @@ void language::conformToCxxOptionalIfNeeded(
   auto constRefValueType =
       clangCtx.getLValueReferenceType(valueType.withConst());
   // Create a fake variable with type of the wrapped value.
-  auto fakeValueVarDecl = clang::VarDecl::Create(
+  auto fakeValueVarDecl = language::Core::VarDecl::Create(
       clangCtx, /*DC*/ clangCtx.getTranslationUnitDecl(),
-      clang::SourceLocation(), clang::SourceLocation(), /*Id*/ nullptr,
+      language::Core::SourceLocation(), language::Core::SourceLocation(), /*Id*/ nullptr,
       constRefValueType, clangCtx.getTrivialTypeSourceInfo(constRefValueType),
-      clang::StorageClass::SC_None);
-  auto fakeValueRefExpr = new (clangCtx) clang::DeclRefExpr(
+      language::Core::StorageClass::SC_None);
+  auto fakeValueRefExpr = new (clangCtx) language::Core::DeclRefExpr(
       clangCtx, fakeValueVarDecl, false,
-      constRefValueType.getNonReferenceType(), clang::ExprValueKind::VK_LValue,
-      clang::SourceLocation());
+      constRefValueType.getNonReferenceType(), language::Core::ExprValueKind::VK_LValue,
+      language::Core::SourceLocation());
 
   auto clangDeclTyInfo = clangCtx.getTrivialTypeSourceInfo(
-      clang::QualType(clangDecl->getTypeForDecl(), 0));
-  SmallVector<clang::Expr *, 1> constructExprArgs = {fakeValueRefExpr};
+      language::Core::QualType(clangDecl->getTypeForDecl(), 0));
+  SmallVector<language::Core::Expr *, 1> constructExprArgs = {fakeValueRefExpr};
 
   // Instantiate the templated constructor that would accept this fake variable.
-  clang::Sema::SFINAETrap trap(clangSema);
+  language::Core::Sema::SFINAETrap trap(clangSema);
   auto constructExprResult = clangSema.BuildCXXTypeConstructExpr(
       clangDeclTyInfo, clangDecl->getLocation(), constructExprArgs,
       clangDecl->getLocation(), /*ListInitialization*/ false);
   if (!constructExprResult.isUsable() || trap.hasErrorOccurred())
     return;
 
-  auto castExpr = dyn_cast_or_null<clang::CastExpr>(constructExprResult.get());
+  auto castExpr = dyn_cast_or_null<language::Core::CastExpr>(constructExprResult.get());
   if (!castExpr)
     return;
 
   // The temporary bind expression will only be present for some non-trivial C++
   // types.
   auto bindTempExpr =
-      dyn_cast_or_null<clang::CXXBindTemporaryExpr>(castExpr->getSubExpr());
+      dyn_cast_or_null<language::Core::CXXBindTemporaryExpr>(castExpr->getSubExpr());
 
-  auto constructExpr = dyn_cast_or_null<clang::CXXConstructExpr>(
+  auto constructExpr = dyn_cast_or_null<language::Core::CXXConstructExpr>(
       bindTempExpr ? bindTempExpr->getSubExpr() : castExpr->getSubExpr());
   if (!constructExpr)
     return;
@@ -758,7 +758,7 @@ void language::conformToCxxOptionalIfNeeded(
 
 void language::conformToCxxSequenceIfNeeded(
     ClangImporter::Implementation &impl, NominalTypeDecl *decl,
-    const clang::CXXRecordDecl *clangDecl) {
+    const language::Core::CXXRecordDecl *clangDecl) {
   PrettyStackTraceDecl trace("conforming to CxxSequence", decl);
 
   assert(decl);
@@ -930,17 +930,17 @@ void language::conformToCxxSequenceIfNeeded(
   }
 }
 
-static bool isStdSetType(const clang::CXXRecordDecl *clangDecl) {
+static bool isStdSetType(const language::Core::CXXRecordDecl *clangDecl) {
   return isStdDecl(clangDecl, {"set", "unordered_set", "multiset"});
 }
 
-static bool isStdMapType(const clang::CXXRecordDecl *clangDecl) {
+static bool isStdMapType(const language::Core::CXXRecordDecl *clangDecl) {
   return isStdDecl(clangDecl, {"map", "unordered_map", "multimap"});
 }
 
-bool language::isUnsafeStdMethod(const clang::CXXMethodDecl *methodDecl) {
+bool language::isUnsafeStdMethod(const language::Core::CXXMethodDecl *methodDecl) {
   auto parentDecl =
-      dyn_cast<clang::CXXRecordDecl>(methodDecl->getDeclContext());
+      dyn_cast<language::Core::CXXRecordDecl>(methodDecl->getDeclContext());
   if (!parentDecl)
     return false;
   if (!isStdSetType(parentDecl) && !isStdMapType(parentDecl))
@@ -953,7 +953,7 @@ bool language::isUnsafeStdMethod(const clang::CXXMethodDecl *methodDecl) {
 
 void language::conformToCxxSetIfNeeded(ClangImporter::Implementation &impl,
                                     NominalTypeDecl *decl,
-                                    const clang::CXXRecordDecl *clangDecl) {
+                                    const language::Core::CXXRecordDecl *clangDecl) {
   PrettyStackTraceDecl trace("conforming to CxxSet", decl);
 
   assert(decl);
@@ -1020,7 +1020,7 @@ void language::conformToCxxSetIfNeeded(ClangImporter::Implementation &impl,
 
 void language::conformToCxxPairIfNeeded(ClangImporter::Implementation &impl,
                                      NominalTypeDecl *decl,
-                                     const clang::CXXRecordDecl *clangDecl) {
+                                     const language::Core::CXXRecordDecl *clangDecl) {
   PrettyStackTraceDecl trace("conforming to CxxPair", decl);
 
   assert(decl);
@@ -1048,7 +1048,7 @@ void language::conformToCxxPairIfNeeded(ClangImporter::Implementation &impl,
 
 void language::conformToCxxDictionaryIfNeeded(
     ClangImporter::Implementation &impl, NominalTypeDecl *decl,
-    const clang::CXXRecordDecl *clangDecl) {
+    const language::Core::CXXRecordDecl *clangDecl) {
   PrettyStackTraceDecl trace("conforming to CxxDictionary", decl);
 
   assert(decl);
@@ -1126,7 +1126,7 @@ void language::conformToCxxDictionaryIfNeeded(
 
 void language::conformToCxxVectorIfNeeded(ClangImporter::Implementation &impl,
                                        NominalTypeDecl *decl,
-                                       const clang::CXXRecordDecl *clangDecl) {
+                                       const language::Core::CXXRecordDecl *clangDecl) {
   PrettyStackTraceDecl trace("conforming to CxxVector", decl);
 
   assert(decl);
@@ -1171,14 +1171,14 @@ void language::conformToCxxVectorIfNeeded(ClangImporter::Implementation &impl,
 
 void language::conformToCxxFunctionIfNeeded(
     ClangImporter::Implementation &impl, NominalTypeDecl *decl,
-    const clang::CXXRecordDecl *clangDecl) {
+    const language::Core::CXXRecordDecl *clangDecl) {
   PrettyStackTraceDecl trace("conforming to CxxFunction", decl);
 
   assert(decl);
   assert(clangDecl);
   ASTContext &ctx = decl->getASTContext();
-  clang::ASTContext &clangCtx = impl.getClangASTContext();
-  clang::Sema &clangSema = impl.getClangSema();
+  language::Core::ASTContext &clangCtx = impl.getClangASTContext();
+  language::Core::Sema &clangSema = impl.getClangSema();
 
   // Only auto-conform types from the C++ standard library. Custom user types
   // might have a similar interface but different semantics.
@@ -1194,35 +1194,35 @@ void language::conformToCxxFunctionIfNeeded(
   if (!callAsFunctionDecl)
     return;
 
-  auto operatorCallDecl = dyn_cast_or_null<clang::CXXMethodDecl>(
+  auto operatorCallDecl = dyn_cast_or_null<language::Core::CXXMethodDecl>(
       callAsFunctionDecl->getClangDecl());
   if (!operatorCallDecl)
     return;
 
-  std::vector<clang::QualType> operatorCallParamTypes;
+  std::vector<language::Core::QualType> operatorCallParamTypes;
   toolchain::transform(
       operatorCallDecl->parameters(),
       std::back_inserter(operatorCallParamTypes),
-      [](const clang::ParmVarDecl *paramDecl) { return paramDecl->getType(); });
+      [](const language::Core::ParmVarDecl *paramDecl) { return paramDecl->getType(); });
 
   auto funcPointerType = clangCtx.getPointerType(clangCtx.getFunctionType(
       operatorCallDecl->getReturnType(), operatorCallParamTypes,
-      clang::FunctionProtoType::ExtProtoInfo())).withConst();
+      language::Core::FunctionProtoType::ExtProtoInfo())).withConst();
 
   // Create a fake variable with a function type that matches the type of
   // `operator()`.
-  auto fakeFuncPointerVarDecl = clang::VarDecl::Create(
+  auto fakeFuncPointerVarDecl = language::Core::VarDecl::Create(
       clangCtx, /*DC*/ clangCtx.getTranslationUnitDecl(),
-      clang::SourceLocation(), clang::SourceLocation(), /*Id*/ nullptr,
+      language::Core::SourceLocation(), language::Core::SourceLocation(), /*Id*/ nullptr,
       funcPointerType, clangCtx.getTrivialTypeSourceInfo(funcPointerType),
-      clang::StorageClass::SC_None);
-  auto fakeFuncPointerRefExpr = new (clangCtx) clang::DeclRefExpr(
+      language::Core::StorageClass::SC_None);
+  auto fakeFuncPointerRefExpr = new (clangCtx) language::Core::DeclRefExpr(
       clangCtx, fakeFuncPointerVarDecl, false, funcPointerType,
-      clang::ExprValueKind::VK_LValue, clang::SourceLocation());
+      language::Core::ExprValueKind::VK_LValue, language::Core::SourceLocation());
 
   auto clangDeclTyInfo = clangCtx.getTrivialTypeSourceInfo(
-      clang::QualType(clangDecl->getTypeForDecl(), 0));
-  SmallVector<clang::Expr *, 1> constructExprArgs = {fakeFuncPointerRefExpr};
+      language::Core::QualType(clangDecl->getTypeForDecl(), 0));
+  SmallVector<language::Core::Expr *, 1> constructExprArgs = {fakeFuncPointerRefExpr};
 
   // Instantiate the templated constructor that would accept this fake variable.
   auto constructExprResult = clangSema.BuildCXXTypeConstructExpr(
@@ -1231,17 +1231,17 @@ void language::conformToCxxFunctionIfNeeded(
   if (!constructExprResult.isUsable())
     return;
 
-  auto castExpr = dyn_cast_or_null<clang::CastExpr>(constructExprResult.get());
+  auto castExpr = dyn_cast_or_null<language::Core::CastExpr>(constructExprResult.get());
   if (!castExpr)
     return;
 
   auto bindTempExpr =
-      dyn_cast_or_null<clang::CXXBindTemporaryExpr>(castExpr->getSubExpr());
+      dyn_cast_or_null<language::Core::CXXBindTemporaryExpr>(castExpr->getSubExpr());
   if (!bindTempExpr)
     return;
 
   auto constructExpr =
-      dyn_cast_or_null<clang::CXXConstructExpr>(bindTempExpr->getSubExpr());
+      dyn_cast_or_null<language::Core::CXXConstructExpr>(bindTempExpr->getSubExpr());
   if (!constructExpr)
     return;
 
@@ -1259,14 +1259,14 @@ void language::conformToCxxFunctionIfNeeded(
 
 void language::conformToCxxSpanIfNeeded(ClangImporter::Implementation &impl,
                                      NominalTypeDecl *decl,
-                                     const clang::CXXRecordDecl *clangDecl) {
+                                     const language::Core::CXXRecordDecl *clangDecl) {
   PrettyStackTraceDecl trace("conforming to CxxSpan", decl);
 
   assert(decl);
   assert(clangDecl);
   ASTContext &ctx = decl->getASTContext();
-  clang::ASTContext &clangCtx = impl.getClangASTContext();
-  clang::Sema &clangSema = impl.getClangSema();
+  language::Core::ASTContext &clangCtx = impl.getClangASTContext();
+  language::Core::Sema &clangSema = impl.getClangSema();
 
   // Only auto-conform types from the C++ standard library. Custom user types
   // might have a similar interface but different semantics.
@@ -1288,35 +1288,35 @@ void language::conformToCxxSpanIfNeeded(ClangImporter::Implementation &impl,
     return;
 
   // create fake variable for pointer (constructor arg 1)
-  clang::QualType pointerType = clangCtx.getTypeDeclType(pointerTypeDecl);
-  auto fakePointerVarDecl = clang::VarDecl::Create(
+  language::Core::QualType pointerType = clangCtx.getTypeDeclType(pointerTypeDecl);
+  auto fakePointerVarDecl = language::Core::VarDecl::Create(
       clangCtx, /*DC*/ clangCtx.getTranslationUnitDecl(),
-      clang::SourceLocation(), clang::SourceLocation(), /*Id*/ nullptr,
+      language::Core::SourceLocation(), language::Core::SourceLocation(), /*Id*/ nullptr,
       pointerType, clangCtx.getTrivialTypeSourceInfo(pointerType),
-      clang::StorageClass::SC_None);
+      language::Core::StorageClass::SC_None);
 
-  auto fakePointer = new (clangCtx) clang::DeclRefExpr(
+  auto fakePointer = new (clangCtx) language::Core::DeclRefExpr(
       clangCtx, fakePointerVarDecl, false, pointerType,
-      clang::ExprValueKind::VK_LValue, clang::SourceLocation());
+      language::Core::ExprValueKind::VK_LValue, language::Core::SourceLocation());
 
   // create fake variable for count (constructor arg 2)
   auto countType = clangCtx.getTypeDeclType(countTypeDecl);
-  auto fakeCountVarDecl = clang::VarDecl::Create(
+  auto fakeCountVarDecl = language::Core::VarDecl::Create(
       clangCtx, /*DC*/ clangCtx.getTranslationUnitDecl(),
-      clang::SourceLocation(), clang::SourceLocation(), /*Id*/ nullptr,
+      language::Core::SourceLocation(), language::Core::SourceLocation(), /*Id*/ nullptr,
       countType, clangCtx.getTrivialTypeSourceInfo(countType),
-      clang::StorageClass::SC_None);
+      language::Core::StorageClass::SC_None);
 
-  auto fakeCount = new (clangCtx) clang::DeclRefExpr(
+  auto fakeCount = new (clangCtx) language::Core::DeclRefExpr(
       clangCtx, fakeCountVarDecl, false, countType,
-      clang::ExprValueKind::VK_LValue, clang::SourceLocation());
+      language::Core::ExprValueKind::VK_LValue, language::Core::SourceLocation());
 
   // Use clangSema.BuildCxxTypeConstructExpr to create a CXXTypeConstructExpr,
   // passing constPointer and count
-  SmallVector<clang::Expr *, 2> constructExprArgs = {fakePointer, fakeCount};
+  SmallVector<language::Core::Expr *, 2> constructExprArgs = {fakePointer, fakeCount};
 
   auto clangDeclTyInfo = clangCtx.getTrivialTypeSourceInfo(
-      clang::QualType(clangDecl->getTypeForDecl(), 0));
+      language::Core::QualType(clangDecl->getTypeForDecl(), 0));
 
   // Instantiate the templated constructor that would accept this fake variable.
   auto constructExprResult = clangSema.BuildCXXTypeConstructExpr(
@@ -1326,7 +1326,7 @@ void language::conformToCxxSpanIfNeeded(ClangImporter::Implementation &impl,
     return;
 
   auto constructExpr =
-      dyn_cast_or_null<clang::CXXConstructExpr>(constructExprResult.get());
+      dyn_cast_or_null<language::Core::CXXConstructExpr>(constructExprResult.get());
   if (!constructExpr)
     return;
 

@@ -1428,7 +1428,7 @@ TEST(UNISTD_TEST, execve_failure) {
   ASSERT_ERRNO(EACCES);
 }
 
-static void append_llvm_cov_env_var(std::string& env_str) {
+static void append_toolchain_cov_env_var(std::string& env_str) {
   if (getenv("LLVM_PROFILE_FILE") != nullptr)
     env_str.append("__LLVM_PROFILE_RT_INIT_ONCE=__LLVM_PROFILE_RT_INIT_ONCE\n");
 }
@@ -1446,7 +1446,7 @@ TEST(UNISTD_TEST, execve_args) {
   eth.SetEnv({"A=B", nullptr});
 
   std::string expected_output("A=B\n");
-  append_llvm_cov_env_var(expected_output);
+  append_toolchain_cov_env_var(expected_output);
 
   eth.Run([&]() { execve(BIN_DIR "printenv", eth.GetArgs(), eth.GetEnv()); }, 0,
           expected_output.c_str());
@@ -1476,7 +1476,7 @@ TEST(UNISTD_TEST, execle) {
   eth.SetEnv({"A=B", nullptr});
 
   std::string expected_output("A=B\n");
-  append_llvm_cov_env_var(expected_output);
+  append_toolchain_cov_env_var(expected_output);
 
   // int execle(const char* path, const char* arg, ..., char* envp[]);
   eth.Run([&]() { execle(BIN_DIR "printenv", "printenv", nullptr, eth.GetEnv()); }, 0,
@@ -1545,7 +1545,7 @@ TEST(UNISTD_TEST, execvpe) {
   eth.SetEnv({"A=B", nullptr});
 
   std::string expected_output("A=B\n");
-  append_llvm_cov_env_var(expected_output);
+  append_toolchain_cov_env_var(expected_output);
 
   eth.Run([&]() { execvpe("printenv", eth.GetArgs(), eth.GetEnv()); }, 0, expected_output.c_str());
 }
@@ -1647,7 +1647,7 @@ TEST(UNISTD_TEST, fexecve_args) {
   eth.SetEnv({"A=B", nullptr});
 
   std::string expected_output("A=B\n");
-  append_llvm_cov_env_var(expected_output);
+  append_toolchain_cov_env_var(expected_output);
 
   eth.Run([&]() { fexecve(printenv_fd, eth.GetArgs(), eth.GetEnv()); }, 0, expected_output.c_str());
   close(printenv_fd);

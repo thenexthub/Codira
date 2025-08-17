@@ -20,9 +20,9 @@
 #include "language/Frontend/PrintingDiagnosticConsumer.h"
 #include "language/IDE/TypeContextInfo.h"
 #include "language/IDETool/IDEInspectionInstance.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Comment.h"
-#include "clang/AST/Decl.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Comment.h"
+#include "language/Core/AST/Decl.h"
 
 using namespace SourceKit;
 using namespace language;
@@ -89,7 +89,7 @@ static void deliverResults(SourceKit::TypeContextInfoConsumer &SKConsumer,
         if (MaybeClangNode) {
           if (auto *D = MaybeClangNode.getAsDecl()) {
             const auto &ClangContext = D->getASTContext();
-            if (const clang::RawComment *RC =
+            if (const language::Core::RawComment *RC =
                     ClangContext.getRawCommentForAnyRedecl(D))
               memberElem.BriefComment = RC->getBriefText(ClangContext);
           }

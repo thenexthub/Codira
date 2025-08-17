@@ -361,8 +361,8 @@ static inline void aes_nohw_compact_block(aes_word_t out[AES_NOHW_BLOCK_WORDS],
   // Note clang, when building for ARM Thumb2, will sometimes miscompile
   // expressions such as (a0 & 0x0000ff00) << 8, particularly when building
   // without optimizations. This bug was introduced in
-  // https://reviews.llvm.org/rL340261 and fixed in
-  // https://reviews.llvm.org/rL351310. The following is written to avoid this.
+  // https://reviews.toolchain.org/rL340261 and fixed in
+  // https://reviews.toolchain.org/rL351310. The following is written to avoid this.
   out[0] = aes_nohw_word_from_bytes(a0, a1, a2, a3);
   out[1] = aes_nohw_word_from_bytes(a0 >> 8, a1 >> 8, a2 >> 8, a3 >> 8);
   out[2] = aes_nohw_word_from_bytes(a0 >> 16, a1 >> 16, a2 >> 16, a3 >> 16);
@@ -391,8 +391,8 @@ static inline void aes_nohw_uncompact_block(
   // Note clang, when building for ARM Thumb2, will sometimes miscompile
   // expressions such as (a0 & 0x0000ff00) << 8, particularly when building
   // without optimizations. This bug was introduced in
-  // https://reviews.llvm.org/rL340261 and fixed in
-  // https://reviews.llvm.org/rL351310. The following is written to avoid this.
+  // https://reviews.toolchain.org/rL340261 and fixed in
+  // https://reviews.toolchain.org/rL351310. The following is written to avoid this.
   uint32_t b0 = aes_nohw_word_from_bytes(a0, a1, a2, a3);
   uint32_t b1 = aes_nohw_word_from_bytes(a0 >> 8, a1 >> 8, a2 >> 8, a3 >> 8);
   uint32_t b2 =

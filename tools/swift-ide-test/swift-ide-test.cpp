@@ -57,7 +57,7 @@
 #include "language/Markup/Markup.h"
 #include "language/Parse/ParseVersion.h"
 #include "language/Sema/IDETypeChecking.h"
-#include "clang/Rewrite/Core/RewriteBuffer.h"
+#include "language/Core/Rewrite/Core/RewriteBuffer.h"
 #include "toolchain/ADT/SmallString.h"
 #include "toolchain/ADT/Statistic.h"
 #include "toolchain/Support/CommandLine.h"

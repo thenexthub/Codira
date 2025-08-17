@@ -57,20 +57,20 @@ _register("ninja", "ninja", "ninja-build")
 _register("cmake", "cmake")
 _register("distcc", "distcc")
 _register("distcc_pump", "distcc-pump", "pump")
-_register("llvm_profdata", "llvm-profdata")
-_register("llvm_cov", "llvm-cov")
+_register("toolchain_profdata", "toolchain-profdata")
+_register("toolchain_cov", "toolchain-cov")
 _register("lipo", "lipo")
 _register("libtool", "libtool")
 _register("ld", "ld")
 if 'ANDROID_DATA' in os.environ:
-    _register("ranlib", "llvm-ranlib")
-    _register("ar", "llvm-ar")
+    _register("ranlib", "toolchain-ranlib")
+    _register("ar", "toolchain-ar")
 else:
     _register("ranlib", "ranlib")
     _register("ar", "ar")
-_register("llvm_ar", "llvm-ar")
-_register("llvm_nm", "llvm-nm")
-_register("llvm_ranlib", "llvm-ranlib")
+_register("toolchain_ar", "toolchain-ar")
+_register("toolchain_nm", "toolchain-nm")
+_register("toolchain_ranlib", "toolchain-ranlib")
 _register("sccache", "sccache")
 _register("languagec", "languagec")
 _register("language_build", "language-build")
@@ -100,26 +100,26 @@ class GenericUnix(Toolchain):
         super(GenericUnix, self).__init__()
 
         # On these platforms, search 'clang', 'clang++' unconditionally.
-        # To determine the llvm_suffix.
+        # To determine the toolchain_suffix.
         ret = self.find_clang(['clang', 'clang++'], suffixes)
         if ret is None:
             self.cc = None
             self.cxx = None
-            # We don't have clang, then we don't have any llvm tools.
-            self.llvm_suffixes = []
+            # We don't have clang, then we don't have any toolchain tools.
+            self.toolchain_suffixes = []
         else:
             found, suffix = ret
             self.cc, self.cxx = found
 
             if suffix == '':
-                # Some platform may have `clang`, `clang++`, `llvm-cov-3.6`
-                # but not `llvm-cov`. In that case, we assume `clang` is
-                # corresponding to the best version of llvm tools found.
-                self.llvm_suffixes = suffixes
+                # Some platform may have `clang`, `clang++`, `toolchain-cov-3.6`
+                # but not `toolchain-cov`. In that case, we assume `clang` is
+                # corresponding to the best version of toolchain tools found.
+                self.toolchain_suffixes = suffixes
             else:
-                # Otherwise, we must have llvm tools with the same suffix as
+                # Otherwise, we must have toolchain tools with the same suffix as
                 # `clang` or `clang++`
-                self.llvm_suffixes = [suffix]
+                self.toolchain_suffixes = [suffix]
 
     def find_clang(self, tools, suffixes):
         for suffix in suffixes:
@@ -128,19 +128,19 @@ class GenericUnix(Toolchain):
                 return (ret, suffix)
         return None
 
-    def find_llvm_tool(self, tool):
-        for suffix in self.llvm_suffixes:
+    def find_toolchain_tool(self, tool):
+        for suffix in self.toolchain_suffixes:
             found = which(tool + suffix)
             if found is not None:
                 # If we found the tool with the suffix, lock suffixes to it.
-                self.llvm_suffix = [suffix]
+                self.toolchain_suffix = [suffix]
                 return found
         return None
 
     def find_tool(self, *names):
         for name in names:
-            if name.startswith('llvm-'):
-                found = self.find_llvm_tool(name)
+            if name.startswith('toolchain-'):
+                found = self.find_toolchain_tool(name)
             else:
                 found = which(name)
             if found is not None:

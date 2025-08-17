@@ -15,13 +15,13 @@
 //===----------------------------------------------------------------------===//
 
 #include "SourceKit/Support/ImmutableTextBuffer.h"
-#include "clang/Rewrite/Core/RewriteRope.h"
+#include "language/Core/Rewrite/Core/RewriteRope.h"
 #include "toolchain/Support/MemoryBuffer.h"
 #include "toolchain/Support/SourceMgr.h"
 
 using namespace SourceKit;
 using namespace toolchain;
-using clang::RewriteRope;
+using language::Core::RewriteRope;
 
 void ImmutableTextUpdate::anchor() {}
 

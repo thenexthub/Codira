@@ -21,7 +21,7 @@
 #include "language/Frontend/CachedDiagnostics.h"
 #include "language/Frontend/FrontendInputsAndOutputs.h"
 #include "language/Frontend/FrontendOptions.h"
-#include "clang/CAS/CASOptions.h"
+#include "language/Core/CAS/CASOptions.h"
 #include "toolchain/ADT/IntrusiveRefCntPtr.h"
 #include "toolchain/CAS/ActionCache.h"
 #include "toolchain/CAS/CASReference.h"

@@ -26,9 +26,9 @@
 #include "language/Parse/IDEInspectionCallbacks.h"
 #include "language/Sema/ConstraintSystem.h"
 #include "language/Sema/IDETypeChecking.h"
-#include "clang/AST/Attr.h"
-#include "clang/AST/Decl.h"
-#include "clang/Basic/Module.h"
+#include "language/Core/AST/Attr.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/Basic/Module.h"
 
 using namespace language;
 using namespace language::constraints;

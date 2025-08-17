@@ -26,11 +26,11 @@
 #include <IndexStoreDB_Support/Path.h>
 #include <IndexStoreDB_Support/Concurrency.h>
 #include <IndexStoreDB_Index/IndexStoreCXX.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_ArrayRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_STLExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_FileSystem.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_ArrayRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_STLExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_FileSystem.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 
 #include <unordered_map>
 
@@ -143,8 +143,8 @@ public:
             std::string &Error);
 
   bool isUnitOutOfDate(StringRef unitOutputPath, ArrayRef<StringRef> dirtyFiles);
-  bool isUnitOutOfDate(StringRef unitOutputPath, llvm::sys::TimePoint<> outOfDateModTime);
-  llvm::Optional<llvm::sys::TimePoint<>> timestampOfUnitForOutputPath(StringRef unitOutputPath);
+  bool isUnitOutOfDate(StringRef unitOutputPath, toolchain::sys::TimePoint<> outOfDateModTime);
+  toolchain::Optional<toolchain::sys::TimePoint<>> timestampOfUnitForOutputPath(StringRef unitOutputPath);
   void checkUnitContainingFileIsOutOfDate(StringRef file);
 
   void registerMainFiles(ArrayRef<StringRef> filePaths, StringRef productName);
@@ -248,7 +248,7 @@ public:
   /// Returns the latest modification date of a unit that contains the given source file.
   ///
   /// If no unit containing the given source file exists, returns `None`.
-  llvm::Optional<llvm::sys::TimePoint<>> timestampOfLatestUnitForFile(StringRef filePath);
+  toolchain::Optional<toolchain::sys::TimePoint<>> timestampOfLatestUnitForFile(StringRef filePath);
 };
 
 } // anonymous namespace
@@ -276,7 +276,7 @@ bool IndexSystemImpl::init(StringRef StorePath,
 
   if (!options.readonly) {
     // Create the index store path, if it does not already exist.
-    if (std::error_code EC = llvm::sys::fs::create_directories(StorePath)) {
+    if (std::error_code EC = toolchain::sys::fs::create_directories(StorePath)) {
       Error = "could not create directories for data store path ";
       Error += StorePath.str() + ": " + EC.message();
     }
@@ -308,11 +308,11 @@ bool IndexSystemImpl::isUnitOutOfDate(StringRef unitOutputPath, ArrayRef<StringR
   return IndexStore->isUnitOutOfDate(unitOutputPath, dirtyFiles);
 }
 
-bool IndexSystemImpl::isUnitOutOfDate(StringRef unitOutputPath, llvm::sys::TimePoint<> outOfDateModTime) {
+bool IndexSystemImpl::isUnitOutOfDate(StringRef unitOutputPath, toolchain::sys::TimePoint<> outOfDateModTime) {
   return IndexStore->isUnitOutOfDate(unitOutputPath, outOfDateModTime);
 }
 
-llvm::Optional<llvm::sys::TimePoint<>> IndexSystemImpl::timestampOfUnitForOutputPath(StringRef unitOutputPath) {
+toolchain::Optional<toolchain::sys::TimePoint<>> IndexSystemImpl::timestampOfUnitForOutputPath(StringRef unitOutputPath) {
   return IndexStore->timestampOfUnitForOutputPath(unitOutputPath);
 }
 
@@ -657,7 +657,7 @@ bool IndexSystemImpl::foreachUnitTestSymbol(function_ref<bool(SymbolOccurrenceRe
   return SymIndex->foreachUnitTestSymbol(std::move(receiver));
 }
 
-llvm::Optional<llvm::sys::TimePoint<>> IndexSystemImpl::timestampOfLatestUnitForFile(StringRef filePath) {
+toolchain::Optional<toolchain::sys::TimePoint<>> IndexSystemImpl::timestampOfLatestUnitForFile(StringRef filePath) {
   auto canonFilePath = PathIndex->getCanonicalPath(filePath);
   return SymIndex->timestampOfLatestUnitForFile(canonFilePath);
 }
@@ -697,11 +697,11 @@ bool IndexSystem::isUnitOutOfDate(StringRef unitOutputPath, ArrayRef<StringRef> 
   return IMPL->isUnitOutOfDate(unitOutputPath, dirtyFiles);
 }
 
-bool IndexSystem::isUnitOutOfDate(StringRef unitOutputPath, llvm::sys::TimePoint<> outOfDateModTime) {
+bool IndexSystem::isUnitOutOfDate(StringRef unitOutputPath, toolchain::sys::TimePoint<> outOfDateModTime) {
   return IMPL->isUnitOutOfDate(unitOutputPath, outOfDateModTime);
 }
 
-llvm::Optional<llvm::sys::TimePoint<>> IndexSystem::timestampOfUnitForOutputPath(StringRef unitOutputPath) {
+toolchain::Optional<toolchain::sys::TimePoint<>> IndexSystem::timestampOfUnitForOutputPath(StringRef unitOutputPath) {
   return IMPL->timestampOfUnitForOutputPath(unitOutputPath);
 }
 
@@ -746,7 +746,7 @@ void IndexSystem::dumpProviderFileAssociations(raw_ostream &OS) {
 }
 
 void IndexSystem::dumpProviderFileAssociations() {
-  return dumpProviderFileAssociations(llvm::errs());
+  return dumpProviderFileAssociations(toolchain::errs());
 }
 
 void IndexSystem::addDelegate(std::shared_ptr<IndexSystemDelegate> Delegate) {
@@ -872,6 +872,6 @@ bool IndexSystem::foreachUnitTestSymbol(function_ref<bool(SymbolOccurrenceRef Oc
   return IMPL->foreachUnitTestSymbol(std::move(receiver));
 }
 
-llvm::Optional<llvm::sys::TimePoint<>> IndexSystem::timestampOfLatestUnitForFile(StringRef filePath) {
+toolchain::Optional<toolchain::sys::TimePoint<>> IndexSystem::timestampOfLatestUnitForFile(StringRef filePath) {
   return IMPL->timestampOfLatestUnitForFile(filePath);
 }

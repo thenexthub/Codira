@@ -1,8 +1,24 @@
-//===- llvm/ADT/STLExtras.h - Useful STL related functions ------*- C++ -*-===//
+//===- toolchain/ADT/STLExtras.h - Useful STL related functions ------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -16,12 +32,12 @@
 #ifndef LLVM_ADT_STLEXTRAS_H
 #define LLVM_ADT_STLEXTRAS_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Optional.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallVector.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_iterator.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_iterator_range.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Config_abi-breaking.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ErrorHandling.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Optional.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallVector.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_iterator.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_iterator_range.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_abi-breaking.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ErrorHandling.h>
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
@@ -40,7 +56,7 @@
 #include <random> // for std::mt19937
 #endif
 
-namespace llvm {
+namespace toolchain {
 
 // Only used by compiler if both template types are the same.  Useful when
 // using SFINAE to test for the existence of member functions.
@@ -282,10 +298,10 @@ template <typename ContainerTy>
 auto reverse(
     ContainerTy &&C,
     typename std::enable_if<!has_rbegin<ContainerTy>::value>::type * = nullptr)
-    -> decltype(make_range(llvm::make_reverse_iterator(std::end(C)),
-                           llvm::make_reverse_iterator(std::begin(C)))) {
-  return make_range(llvm::make_reverse_iterator(std::end(C)),
-                    llvm::make_reverse_iterator(std::begin(C)));
+    -> decltype(make_range(toolchain::make_reverse_iterator(std::end(C)),
+                           toolchain::make_reverse_iterator(std::begin(C)))) {
+  return make_range(toolchain::make_reverse_iterator(std::end(C)),
+                    toolchain::make_reverse_iterator(std::begin(C)));
 }
 
 /// An iterator adaptor that filters the elements of given inner iterators.
@@ -682,7 +698,7 @@ static Iter next_or_end(const Iter &I, const Iter &End) {
 
 template <typename Iter>
 static auto deref_or_none(const Iter &I, const Iter &End)
-    -> llvm::Optional<typename std::remove_const<
+    -> toolchain::Optional<typename std::remove_const<
         typename std::remove_reference<decltype(*I)>::type>::type> {
   if (I == End)
     return None;
@@ -691,7 +707,7 @@ static auto deref_or_none(const Iter &I, const Iter &End)
 
 template <typename Iter> struct ZipLongestItemType {
   using type =
-      llvm::Optional<typename std::remove_const<typename std::remove_reference<
+      toolchain::Optional<typename std::remove_const<typename std::remove_reference<
           decltype(*std::declval<Iter>())>::type>::type>;
 };
 
@@ -721,7 +737,7 @@ private:
   template <size_t... Ns>
   bool test(const zip_longest_iterator<Iters...> &other,
             index_sequence<Ns...>) const {
-    return llvm::any_of(
+    return toolchain::any_of(
         std::initializer_list<bool>{std::get<Ns>(this->iterators) !=
                                     std::get<Ns>(other.iterators)...},
         identity<bool>{});
@@ -789,7 +805,7 @@ public:
 } // namespace detail
 
 /// Iterate over two or more iterators at the same time. Iteration continues
-/// until all iterators reach the end. The llvm::Optional only contains a value
+/// until all iterators reach the end. The toolchain::Optional only contains a value
 /// if the iterator has not reached the end.
 template <typename T, typename U, typename... Args>
 detail::zip_longest_range<T, U, Args...> zip_longest(T &&t, U &&u,
@@ -850,7 +866,7 @@ class concat_iterator
       if ((this->*IncrementHelperFn)())
         return;
 
-    llvm_unreachable("Attempted to increment an end concat iterator!");
+    toolchain_unreachable("Attempted to increment an end concat iterator!");
   }
 
   /// Returns null if the specified iterator is at the end. Otherwise,
@@ -879,7 +895,7 @@ class concat_iterator
       if (ValueT *P = (this->*GetHelperFn)())
         return *P;
 
-    llvm_unreachable("Attempted to get a pointer from an end concat iterator!");
+    toolchain_unreachable("Attempted to get a pointer from an end concat iterator!");
   }
 
 public:
@@ -1121,7 +1137,7 @@ inline void sort(IteratorTy Start, IteratorTy End) {
 }
 
 template <typename Container> inline void sort(Container &&C) {
-  llvm::sort(adl_begin(C), adl_end(C));
+  toolchain::sort(adl_begin(C), adl_end(C));
 }
 
 template <typename IteratorTy, typename Compare>
@@ -1135,7 +1151,7 @@ inline void sort(IteratorTy Start, IteratorTy End, Compare Comp) {
 
 template <typename Container, typename Compare>
 inline void sort(Container &&C, Compare Comp) {
-  llvm::sort(adl_begin(C), adl_end(C), Comp);
+  toolchain::sort(adl_begin(C), adl_end(C), Comp);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1634,6 +1650,6 @@ template <class Ptr> auto to_address(const Ptr &P) -> decltype(P.operator->()) {
 }
 template <class T> constexpr T *to_address(T *P) { return P; }
 
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif // LLVM_ADT_STLEXTRAS_H

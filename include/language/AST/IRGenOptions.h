@@ -29,7 +29,7 @@
 #include "language/Basic/OptionSet.h"
 #include "language/Basic/OptimizationMode.h"
 #include "language/Config.h"
-#include "clang/Basic/PointerAuthOptions.h"
+#include "language/Core/Basic/PointerAuthOptions.h"
 #include "toolchain/IR/CallingConv.h"
 // FIXME: This include is just for toolchain::SanitizerCoverageOptions. We should
 // split the header upstream so we don't include so much.
@@ -102,9 +102,9 @@ enum class ReflectionMetadataMode : unsigned {
   Runtime,      ///< Make reflection metadata fully available.
 };
 
-using clang::PointerAuthSchema;
+using language::Core::PointerAuthSchema;
 
-struct PointerAuthOptions : clang::PointerAuthOptions {
+struct PointerAuthOptions : language::Core::PointerAuthOptions {
   /// Native opaque function types, both thin and thick.
   /// Never address-sensitive.
   PointerAuthSchema CodiraFunctionPointers;

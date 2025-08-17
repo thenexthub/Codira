@@ -161,7 +161,7 @@ in the context of your project. (e.g. Dependencies are difficult to disentangle 
 isolation, etc.) Additionally, it can sometimes be more effective to see higher level
 representations of the program used by the compiler such as the
 [SIL](https://github.com/apple/swift/blob/main/docs/SIL.rst) program instead of the [LLVM
-IR](https://llvm.org/docs/LangRef.html) or [assembly
+IR](https://toolchain.org/docs/LangRef.html) or [assembly
 instructions](https://en.wikipedia.org/wiki/X86_instruction_listings). Advantages of looking at SIL
 include much better tie-in with the original Swift code, and higher-level semantic operations.
 Looking at LLVM or the assembly has the advantage of being closer to the hardware, and thus there

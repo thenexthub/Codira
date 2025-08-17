@@ -51,8 +51,8 @@
 #include "language/SIL/InstructionUtils.h"
 #include "language/SIL/PrettyStackTrace.h"
 #include "language/SIL/SILArgument.h"
-#include "clang/AST/DeclCXX.h"
-#include "clang/AST/DeclObjC.h"
+#include "language/Core/AST/DeclCXX.h"
+#include "language/Core/AST/DeclObjC.h"
 #include "toolchain/Support/Compiler.h"
 
 using namespace language;
@@ -644,7 +644,7 @@ public:
     };
 
     // Remove the metatype "self" parameter by making this a static member.
-    if (isa_and_nonnull<clang::CXXConstructorDecl>(
+    if (isa_and_nonnull<language::Core::CXXConstructorDecl>(
             constant->getDecl()->getClangDecl()))
       result.foreign.self.setStatic();
 
@@ -1179,7 +1179,7 @@ public:
     auto subs = e->getDeclRef().getSubstitutions();
 
     bool isObjCDirect = false;
-    if (auto objcDecl = dyn_cast_or_null<clang::ObjCMethodDecl>(
+    if (auto objcDecl = dyn_cast_or_null<language::Core::ObjCMethodDecl>(
             afd->getClangDecl())) {
       isObjCDirect = objcDecl->isDirectMethod();
     }
@@ -7224,7 +7224,7 @@ static Callee getBaseAccessorFunctionRef(SILGenFunction &SGF,
   }
 
   bool isObjCDirect = false;
-  if (auto objcDecl = dyn_cast_or_null<clang::ObjCMethodDecl>(
+  if (auto objcDecl = dyn_cast_or_null<language::Core::ObjCMethodDecl>(
           decl->getClangDecl())) {
     isObjCDirect = objcDecl->isDirectMethod();
   }

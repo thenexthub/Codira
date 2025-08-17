@@ -20,7 +20,7 @@
 using namespace IndexStoreDB;
 using namespace IndexStoreDB::db;
 using namespace IndexStoreDB::index;
-using namespace llvm;
+using namespace toolchain;
 
 FileVisibilityChecker::FileVisibilityChecker(DatabaseRef dbase,
                                              std::shared_ptr<CanonicalPathCache> canonPathCache,

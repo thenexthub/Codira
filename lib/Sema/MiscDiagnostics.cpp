@@ -47,7 +47,7 @@
 #include "language/Parse/Lexer.h"
 #include "language/Sema/ConstraintSystem.h"
 #include "language/Sema/IDETypeChecking.h"
-#include "clang/AST/DeclObjC.h"
+#include "language/Core/AST/DeclObjC.h"
 #include "toolchain/ADT/MapVector.h"
 #include "toolchain/ADT/StringSwitch.h"
 #include "toolchain/Support/SaveAndRestore.h"
@@ -5266,16 +5266,16 @@ static bool diagnoseAvailabilityCondition(PoundAvailableInfo *info,
   return false;
 }
 
-/// Diagnoses whether the given clang::Decl can be referenced by a
+/// Diagnoses whether the given language::Core::Decl can be referenced by a
 /// `if #_hasSymbol(...)` condition. Returns true if a diagnostic was emitted.
 static bool diagnoseHasSymbolConditionClangDecl(SourceLoc loc,
-                                                const clang::Decl *clangDecl,
+                                                const language::Core::Decl *clangDecl,
                                                 ASTContext &ctx) {
-  if (isa<clang::ObjCInterfaceDecl>(clangDecl) ||
-      isa<clang::FunctionDecl>(clangDecl))
+  if (isa<language::Core::ObjCInterfaceDecl>(clangDecl) ||
+      isa<language::Core::FunctionDecl>(clangDecl))
     return false;
 
-  if (auto *method = dyn_cast<clang::ObjCMethodDecl>(clangDecl)) {
+  if (auto *method = dyn_cast<language::Core::ObjCMethodDecl>(clangDecl)) {
     // FIXME: Allow objc_direct methods when supported by IRGen.
     ctx.Diags.diagnose(loc,
                        diag::has_symbol_invalid_decl_use_responds_to_selector,
@@ -5283,7 +5283,7 @@ static bool diagnoseHasSymbolConditionClangDecl(SourceLoc loc,
     return true;
   }
 
-  if (auto *property = dyn_cast<clang::ObjCPropertyDecl>(clangDecl)) {
+  if (auto *property = dyn_cast<language::Core::ObjCPropertyDecl>(clangDecl)) {
     // FIXME: Allow objc_direct properties when supported by IRGen.
     ctx.Diags.diagnose(loc,
                        diag::has_symbol_invalid_decl_use_responds_to_selector,

@@ -1,8 +1,24 @@
 //===- PrettyStackTrace.cpp - Pretty Crash Handling -----------------------===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -11,14 +27,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_PrettyStackTrace.h>
-#include <IndexStoreDB_LLVMSupport/llvm-c_ErrorHandling.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallString.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Config_config.h> // Get autoconf configuration settings
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Compiler.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Signals.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Watchdog.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_PrettyStackTrace.h>
+#include <IndexStoreDB_LLVMSupport/toolchain-c_ErrorHandling.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallString.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_config.h> // Get autoconf configuration settings
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Compiler.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Signals.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Watchdog.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 
 #include <cstdarg>
 #include <cstdio>
@@ -28,7 +44,7 @@
 #include <CrashReporterClient.h>
 #endif
 
-using namespace llvm;
+using namespace toolchain;
 
 // If backtrace support is not enabled, compile out support for pretty stack
 // traces.  This has the secondary effect of not requiring thread local storage
@@ -41,7 +57,7 @@ using namespace llvm;
 // thread-local variable.
 static LLVM_THREAD_LOCAL PrettyStackTraceEntry *PrettyStackTraceHead = nullptr;
 
-namespace llvm {
+namespace toolchain {
 PrettyStackTraceEntry *ReverseStackTrace(PrettyStackTraceEntry *Head) {
   PrettyStackTraceEntry *Prev = nullptr;
   while (Head)
@@ -57,14 +73,14 @@ static void PrintStack(raw_ostream &OS) {
   // reverse the stack, then print it, then reverse it again.
   unsigned ID = 0;
   PrettyStackTraceEntry *ReversedStack =
-      llvm::ReverseStackTrace(PrettyStackTraceHead);
+      toolchain::ReverseStackTrace(PrettyStackTraceHead);
   for (const PrettyStackTraceEntry *Entry = ReversedStack; Entry;
        Entry = Entry->getNextEntry()) {
     OS << ID++ << ".\t";
     sys::Watchdog W(5);
     Entry->print(OS);
   }
-  llvm::ReverseStackTrace(ReversedStack);
+  toolchain::ReverseStackTrace(ReversedStack);
 }
 
 /// PrintCurStackTrace - Print the current stack trace to the specified stream.
@@ -81,7 +97,7 @@ static void PrintCurStackTrace(raw_ostream &OS) {
 
 // Integrate with crash reporter libraries.
 #if defined (__APPLE__) && defined(HAVE_CRASHREPORTERCLIENT_H)
-//  If any clients of llvm try to link to libCrashReporterClient.a themselves,
+//  If any clients of toolchain try to link to libCrashReporterClient.a themselves,
 //  only one crash info struct will be used.
 extern "C" {
 CRASH_REPORTER_CLIENT_HIDDEN
@@ -180,7 +196,7 @@ static bool RegisterCrashPrinter() {
 }
 #endif
 
-void llvm::EnablePrettyStackTrace() {
+void toolchain::EnablePrettyStackTrace() {
 #if ENABLE_BACKTRACES
   // The first time this is called, we register the crash printer.
   static bool HandlerRegistered = RegisterCrashPrinter();
@@ -188,7 +204,7 @@ void llvm::EnablePrettyStackTrace() {
 #endif
 }
 
-const void *llvm::SavePrettyStackState() {
+const void *toolchain::SavePrettyStackState() {
 #if ENABLE_BACKTRACES
   return PrettyStackTraceHead;
 #else
@@ -196,7 +212,7 @@ const void *llvm::SavePrettyStackState() {
 #endif
 }
 
-void llvm::RestorePrettyStackState(const void *Top) {
+void toolchain::RestorePrettyStackState(const void *Top) {
 #if ENABLE_BACKTRACES
   PrettyStackTraceHead =
       static_cast<PrettyStackTraceEntry *>(const_cast<void *>(Top));

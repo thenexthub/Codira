@@ -20,7 +20,7 @@
 #include "language/AST/ClangNode.h"
 #include "language/Basic/FileSystem.h"
 #include "language/Basic/SourceLoc.h"
-#include "clang/Basic/FileManager.h"
+#include "language/Core/Basic/FileManager.h"
 #include "toolchain/ADT/ArrayRef.h"
 #include "toolchain/ADT/DenseSet.h"
 #include "toolchain/ADT/TinyPtrVector.h"

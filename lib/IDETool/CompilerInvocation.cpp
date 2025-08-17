@@ -19,13 +19,13 @@
 #include "language/Basic/Assertions.h"
 #include "language/Driver/FrontendUtil.h"
 #include "language/Frontend/Frontend.h"
-#include "clang/AST/DeclObjC.h"
-#include "clang/Basic/TargetInfo.h"
-#include "clang/Frontend/CompilerInstance.h"
-#include "clang/Frontend/PCHContainerOperations.h"
-#include "clang/Frontend/TextDiagnosticBuffer.h"
-#include "clang/Lex/PreprocessorOptions.h"
-#include "clang/Serialization/ASTReader.h"
+#include "language/Core/AST/DeclObjC.h"
+#include "language/Core/Basic/TargetInfo.h"
+#include "language/Core/Frontend/CompilerInstance.h"
+#include "language/Core/Frontend/PCHContainerOperations.h"
+#include "language/Core/Frontend/TextDiagnosticBuffer.h"
+#include "language/Core/Lex/PreprocessorOptions.h"
+#include "language/Core/Serialization/ASTReader.h"
 
 using namespace language;
 
@@ -271,13 +271,13 @@ bool ide::initCompilerInvocation(
 bool ide::initInvocationByClangArguments(ArrayRef<const char *> ArgList,
                                          CompilerInvocation &Invok,
                                          std::string &Error) {
-  toolchain::IntrusiveRefCntPtr<clang::DiagnosticOptions> DiagOpts{
-    new clang::DiagnosticOptions()
+  toolchain::IntrusiveRefCntPtr<language::Core::DiagnosticOptions> DiagOpts{
+    new language::Core::DiagnosticOptions()
   };
 
-  clang::TextDiagnosticBuffer DiagBuf;
-  toolchain::IntrusiveRefCntPtr<clang::DiagnosticsEngine> ClangDiags =
-      clang::CompilerInstance::createDiagnostics(DiagOpts.get(), &DiagBuf,
+  language::Core::TextDiagnosticBuffer DiagBuf;
+  toolchain::IntrusiveRefCntPtr<language::Core::DiagnosticsEngine> ClangDiags =
+      language::Core::CompilerInstance::createDiagnostics(DiagOpts.get(), &DiagBuf,
                                                  /*ShouldOwnClient=*/false);
 
   // Clang expects this to be like an actual command line. So we need to pass in
@@ -287,11 +287,11 @@ bool ide::initInvocationByClangArguments(ArrayRef<const char *> ArgList,
   ClangArgList.insert(ClangArgList.end(), ArgList.begin(), ArgList.end());
 
   // Create a new Clang compiler invocation.
-  clang::CreateInvocationOptions CIOpts;
+  language::Core::CreateInvocationOptions CIOpts;
   CIOpts.Diags = ClangDiags;
   CIOpts.ProbePrecompiled = true;
-  std::unique_ptr<clang::CompilerInvocation> ClangInvok =
-      clang::createInvocation(ClangArgList, std::move(CIOpts));
+  std::unique_ptr<language::Core::CompilerInvocation> ClangInvok =
+      language::Core::createInvocation(ClangArgList, std::move(CIOpts));
   if (!ClangInvok || ClangDiags->hasErrorOccurred()) {
     for (auto I = DiagBuf.err_begin(), E = DiagBuf.err_end(); I != E; ++I) {
       Error += I->second;
@@ -322,11 +322,11 @@ bool ide::initInvocationByClangArguments(ArrayRef<const char *> ArgList,
 
   for (auto &Entry : HSOpts.UserEntries) {
     switch (Entry.Group) {
-    case clang::frontend::Quoted:
+    case language::Core::frontend::Quoted:
       CCArgs.push_back("-iquote");
       CCArgs.push_back(Entry.Path);
       break;
-    case clang::frontend::Angled: {
+    case language::Core::frontend::Angled: {
       std::string Flag;
       if (Entry.IsFramework)
         Flag += "-F";
@@ -336,29 +336,29 @@ bool ide::initInvocationByClangArguments(ArrayRef<const char *> ArgList,
       CCArgs.push_back(Flag);
       break;
     }
-    case clang::frontend::System:
+    case language::Core::frontend::System:
       if (Entry.IsFramework)
         CCArgs.push_back("-iframework");
       else
         CCArgs.push_back("-isystem");
       CCArgs.push_back(Entry.Path);
       break;
-    case clang::frontend::ExternCSystem:
-    case clang::frontend::CSystem:
-    case clang::frontend::CXXSystem:
-    case clang::frontend::ObjCSystem:
-    case clang::frontend::ObjCXXSystem:
-    case clang::frontend::After:
+    case language::Core::frontend::ExternCSystem:
+    case language::Core::frontend::CSystem:
+    case language::Core::frontend::CXXSystem:
+    case language::Core::frontend::ObjCSystem:
+    case language::Core::frontend::ObjCXXSystem:
+    case language::Core::frontend::After:
       break;
     }
   }
 
   if (!PPOpts.ImplicitPCHInclude.empty()) {
-    clang::FileSystemOptions FileSysOpts;
-    clang::FileManager FileMgr(FileSysOpts);
+    language::Core::FileSystemOptions FileSysOpts;
+    language::Core::FileManager FileMgr(FileSysOpts);
     auto PCHContainerOperations =
-        std::make_shared<clang::PCHContainerOperations>();
-    std::string HeaderFile = clang::ASTReader::getOriginalSourceFile(
+        std::make_shared<language::Core::PCHContainerOperations>();
+    std::string HeaderFile = language::Core::ASTReader::getOriginalSourceFile(
         PPOpts.ImplicitPCHInclude, FileMgr,
         PCHContainerOperations->getRawReader(), *ClangDiags);
     if (!HeaderFile.empty()) {

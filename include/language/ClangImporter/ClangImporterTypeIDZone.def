@@ -35,7 +35,7 @@ LANGUAGE_REQUEST(ClangImporter, ObjCInterfaceAndImplementationRequest,
               ObjCInterfaceAndImplementation(Decl *), SeparatelyCached,
               NoLocationInfo)
 LANGUAGE_REQUEST(ClangImporter, CxxRecordSemantics,
-              CxxRecordSemanticsKind(const clang::CXXRecordDecl *), Cached,
+              CxxRecordSemanticsKind(const language::Core::CXXRecordDecl *), Cached,
               NoLocationInfo)
 LANGUAGE_REQUEST(ClangImporter, CxxRecordAsCodiraType,
               ValueDecl *(CxxRecordSemanticsDescriptor), Cached,

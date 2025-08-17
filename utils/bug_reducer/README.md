@@ -2,7 +2,7 @@
 # SIL Bug Reducer
 
 This directory contains a script called bug_reducer. It is a reimplementation of
-llvm's bugpoint using a python script + high level IR utilities. This will
+toolchain's bugpoint using a python script + high level IR utilities. This will
 enable bugpoint to easily be ported to newer IRs.
 
 An example invocation would be:
@@ -23,7 +23,7 @@ hopefully help fix them/add tests).
 
 # Tasks
 
-1. A lot of this code was inspired by llvm's bisect tool. This includes a bit of
+1. A lot of this code was inspired by toolchain's bisect tool. This includes a bit of
    the code style, we should clean this up and pythonify these parts of the
    tool.
 2. Reduction at a function level is complete, we should look into block/instruction
@@ -46,7 +46,7 @@ the normal performance pipeline. I decide I want to use the bug_reducer to
 reduce the passes and or size of the test case. First I emit a SIB file with the
 performance optimizations disabled:
 
-    ${SWIFTC_CMDLINE} -emit-sib -Xllvm -disable-sil-optzns -O -o ${OUTPUT}.sib
+    ${SWIFTC_CMDLINE} -emit-sib -Xtoolchain -disable-sil-optzns -O -o ${OUTPUT}.sib
 
 Then I invoke the bug reducer as follows:
 

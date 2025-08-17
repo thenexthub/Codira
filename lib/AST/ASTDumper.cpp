@@ -44,7 +44,7 @@
 #include "language/Basic/SourceLoc.h"
 #include "language/Basic/SourceManager.h"
 #include "language/Basic/StringExtras.h"
-#include "clang/AST/Type.h"
+#include "language/Core/AST/Type.h"
 #include "toolchain/ADT/APFloat.h"
 #include "toolchain/ADT/SmallString.h"
 #include "toolchain/ADT/StringExtras.h"

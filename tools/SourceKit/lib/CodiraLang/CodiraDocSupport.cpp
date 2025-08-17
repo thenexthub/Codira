@@ -13,8 +13,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "clang/AST/Decl.h"
-#include "clang/Basic/Module.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/Basic/Module.h"
 #include "CodiraASTManager.h"
 #include "CodiraEditorDiagConsumer.h"
 #include "CodiraLangSupport.h"

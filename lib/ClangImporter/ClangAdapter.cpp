@@ -24,11 +24,11 @@
 #include "ClangAdapter.h"
 #include "ImportName.h"
 #include "ImporterImpl.h"
-#include "clang/AST/Decl.h"
-#include "clang/AST/DeclObjC.h"
-#include "clang/Lex/Lexer.h"
-#include "clang/Sema/Lookup.h"
-#include "clang/Sema/Sema.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/AST/DeclObjC.h"
+#include "language/Core/Lex/Lexer.h"
+#include "language/Core/Sema/Lookup.h"
+#include "language/Core/Sema/Sema.h"
 
 using namespace language;
 using namespace importer;
@@ -36,13 +36,13 @@ using namespace importer;
 /// Get a bit vector indicating which arguments are non-null for a
 /// given function or method.
 SmallBitVector
-importer::getNonNullArgs(const clang::Decl *decl,
-                         ArrayRef<const clang::ParmVarDecl *> params) {
+importer::getNonNullArgs(const language::Core::Decl *decl,
+                         ArrayRef<const language::Core::ParmVarDecl *> params) {
   SmallBitVector result;
   if (!decl)
     return result;
 
-  for (const auto *nonnull : decl->specific_attrs<clang::NonNullAttr>()) {
+  for (const auto *nonnull : decl->specific_attrs<language::Core::NonNullAttr>()) {
     if (!nonnull->args_size()) {
       // Easy case: all pointer arguments are non-null.
       if (result.empty())
@@ -67,28 +67,28 @@ importer::getNonNullArgs(const clang::Decl *decl,
   return result;
 }
 
-std::optional<const clang::Decl *>
-importer::getDefinitionForClangTypeDecl(const clang::Decl *D) {
-  if (auto OID = dyn_cast<clang::ObjCInterfaceDecl>(D))
+std::optional<const language::Core::Decl *>
+importer::getDefinitionForClangTypeDecl(const language::Core::Decl *D) {
+  if (auto OID = dyn_cast<language::Core::ObjCInterfaceDecl>(D))
     return OID->getDefinition();
 
-  if (auto TD = dyn_cast<clang::TagDecl>(D))
+  if (auto TD = dyn_cast<language::Core::TagDecl>(D))
     return TD->getDefinition();
 
-  if (auto OPD = dyn_cast<clang::ObjCProtocolDecl>(D))
+  if (auto OPD = dyn_cast<language::Core::ObjCProtocolDecl>(D))
     return OPD->getDefinition();
 
   return std::nullopt;
 }
 
-static bool isInLocalScope(const clang::Decl *D) {
-  const clang::DeclContext *LDC = D->getLexicalDeclContext();
+static bool isInLocalScope(const language::Core::Decl *D) {
+  const language::Core::DeclContext *LDC = D->getLexicalDeclContext();
   while (true) {
     if (LDC->isFunctionOrMethod())
       return true;
-    if (!isa<clang::TagDecl>(LDC))
+    if (!isa<language::Core::TagDecl>(LDC))
       return false;
-    if (const auto *CRD = dyn_cast<clang::CXXRecordDecl>(LDC))
+    if (const auto *CRD = dyn_cast<language::Core::CXXRecordDecl>(LDC))
       if (CRD->isLambda())
         return true;
     LDC = LDC->getLexicalParent();
@@ -96,10 +96,10 @@ static bool isInLocalScope(const clang::Decl *D) {
   return false;
 }
 
-const clang::Decl *
-importer::getFirstNonLocalDecl(const clang::Decl *D) {
+const language::Core::Decl *
+importer::getFirstNonLocalDecl(const language::Core::Decl *D) {
   D = D->getCanonicalDecl();
-  auto iter = toolchain::find_if(D->redecls(), [](const clang::Decl *next) -> bool {
+  auto iter = toolchain::find_if(D->redecls(), [](const language::Core::Decl *next) -> bool {
     return !isInLocalScope(next);
   });
   if (iter == D->redecls_end())
@@ -107,10 +107,10 @@ importer::getFirstNonLocalDecl(const clang::Decl *D) {
   return *iter;
 }
 
-std::optional<clang::Module *>
-importer::getClangSubmoduleForDecl(const clang::Decl *D,
+std::optional<language::Core::Module *>
+importer::getClangSubmoduleForDecl(const language::Core::Decl *D,
                                    bool allowForwardDeclaration) {
-  const clang::Decl *actual = nullptr;
+  const language::Core::Decl *actual = nullptr;
 
   // Put an Objective-C class into the module that contains the @interface
   // definition, not just some @class forward declaration.
@@ -127,31 +127,31 @@ importer::getClangSubmoduleForDecl(const clang::Decl *D,
 }
 
 /// Retrieve the instance type of the given Clang declaration context.
-clang::QualType
-importer::getClangDeclContextType(const clang::DeclContext *dc) {
+language::Core::QualType
+importer::getClangDeclContextType(const language::Core::DeclContext *dc) {
   auto &ctx = dc->getParentASTContext();
-  if (auto objcClass = dyn_cast<clang::ObjCInterfaceDecl>(dc))
+  if (auto objcClass = dyn_cast<language::Core::ObjCInterfaceDecl>(dc))
     return ctx.getObjCObjectPointerType(ctx.getObjCInterfaceType(objcClass));
 
-  if (auto objcCategory = dyn_cast<clang::ObjCCategoryDecl>(dc)) {
+  if (auto objcCategory = dyn_cast<language::Core::ObjCCategoryDecl>(dc)) {
     if (objcCategory->isInvalidDecl())
-      return clang::QualType();
+      return language::Core::QualType();
 
     return ctx.getObjCObjectPointerType(
         ctx.getObjCInterfaceType(objcCategory->getClassInterface()));
   }
 
-  if (auto constProto = dyn_cast<clang::ObjCProtocolDecl>(dc)) {
-    auto proto = const_cast<clang::ObjCProtocolDecl *>(constProto);
+  if (auto constProto = dyn_cast<language::Core::ObjCProtocolDecl>(dc)) {
+    auto proto = const_cast<language::Core::ObjCProtocolDecl *>(constProto);
     auto type = ctx.getObjCObjectType(ctx.ObjCBuiltinIdTy, {}, {proto}, false);
     return ctx.getObjCObjectPointerType(type);
   }
 
-  if (auto tag = dyn_cast<clang::TagDecl>(dc)) {
+  if (auto tag = dyn_cast<language::Core::TagDecl>(dc)) {
     return ctx.getTagDeclType(tag);
   }
 
-  return clang::QualType();
+  return language::Core::QualType();
 }
 
 /// Determine whether this is the name of a collection with a single
@@ -163,8 +163,8 @@ static bool isCollectionName(StringRef typeName) {
 
 /// Retrieve the name of the given Clang type for use when omitting
 /// needless words.
-OmissionTypeName importer::getClangTypeNameForOmission(clang::ASTContext &ctx,
-                                                       clang::QualType type) {
+OmissionTypeName importer::getClangTypeNameForOmission(language::Core::ASTContext &ctx,
+                                                       language::Core::QualType type) {
   if (type.isNull())
     return OmissionTypeName();
 
@@ -174,7 +174,7 @@ OmissionTypeName importer::getClangTypeNameForOmission(clang::ASTContext &ctx,
   do {
     // The name of a typedef-name.
     auto typePtr = type.getTypePtr();
-    if (auto typedefType = dyn_cast<clang::TypedefType>(typePtr)) {
+    if (auto typedefType = dyn_cast<language::Core::TypedefType>(typePtr)) {
       auto name = typedefType->getDecl()->getName();
 
       // Objective-C selector type.
@@ -206,7 +206,7 @@ OmissionTypeName importer::getClangTypeNameForOmission(clang::ASTContext &ctx,
       // If it's a collection name and of pointer type, call it an
       // array of the pointee type.
       if (isCollectionName(name)) {
-        if (auto ptrType = type->getAs<clang::PointerType>()) {
+        if (auto ptrType = type->getAs<language::Core::PointerType>()) {
           return OmissionTypeName(
               name, std::nullopt,
               getClangTypeNameForOmission(ctx, ptrType->getPointeeType()).Name);
@@ -220,26 +220,26 @@ OmissionTypeName importer::getClangTypeNameForOmission(clang::ASTContext &ctx,
     }
 
     // For array types, convert the element type and treat this an as array.
-    if (auto arrayType = dyn_cast<clang::ArrayType>(typePtr)) {
+    if (auto arrayType = dyn_cast<language::Core::ArrayType>(typePtr)) {
       return OmissionTypeName(
           "Array", std::nullopt,
           getClangTypeNameForOmission(ctx, arrayType->getElementType()).Name);
     }
 
     // Look through reference types.
-    if (auto refType = dyn_cast<clang::ReferenceType>(typePtr)) {
+    if (auto refType = dyn_cast<language::Core::ReferenceType>(typePtr)) {
       type = refType->getPointeeTypeAsWritten();
       continue;
     }
 
     // Look through pointer types.
-    if (auto ptrType = dyn_cast<clang::PointerType>(typePtr)) {
+    if (auto ptrType = dyn_cast<language::Core::PointerType>(typePtr)) {
       type = ptrType->getPointeeType();
       continue;
     }
 
     // Try to desugar one level...
-    clang::QualType desugared = type.getSingleStepDesugaredType(ctx);
+    language::Core::QualType desugared = type.getSingleStepDesugaredType(ctx);
     if (desugared.getTypePtr() == type.getTypePtr())
       break;
 
@@ -247,7 +247,7 @@ OmissionTypeName importer::getClangTypeNameForOmission(clang::ASTContext &ctx,
   } while (true);
 
   // Objective-C object pointers.
-  if (auto objcObjectPtr = type->getAs<clang::ObjCObjectPointerType>()) {
+  if (auto objcObjectPtr = type->getAs<language::Core::ObjCObjectPointerType>()) {
     auto objcClass = objcObjectPtr->getInterfaceDecl();
 
     // For id<Proto> or NSObject<Proto>, retrieve the name of "Proto".
@@ -294,7 +294,7 @@ OmissionTypeName importer::getClangTypeNameForOmission(clang::ASTContext &ctx,
   }
 
   // Handle builtin types by importing them and getting the Codira name.
-  if (auto builtinTy = type->getAs<clang::BuiltinType>()) {
+  if (auto builtinTy = type->getAs<language::Core::BuiltinType>()) {
     // Names of integer types.
     static const char *intTypeNames[] = {"UInt8", "UInt16", "UInt32", "UInt64",
                                          "UInt128"};
@@ -318,147 +318,147 @@ OmissionTypeName importer::getClangTypeNameForOmission(clang::ASTContext &ctx,
     };
 
     switch (builtinTy->getKind()) {
-    case clang::BuiltinType::Void:
+    case language::Core::BuiltinType::Void:
       return "Void";
 
-    case clang::BuiltinType::Bool:
+    case language::Core::BuiltinType::Bool:
       return OmissionTypeName("Bool", OmissionTypeFlags::Boolean);
 
-    case clang::BuiltinType::Float:
+    case language::Core::BuiltinType::Float:
       return "Float";
 
-    case clang::BuiltinType::Double:
+    case language::Core::BuiltinType::Double:
       return "Double";
 
-    case clang::BuiltinType::Char8:
+    case language::Core::BuiltinType::Char8:
       return "UInt8";
 
-    case clang::BuiltinType::Char16:
+    case language::Core::BuiltinType::Char16:
       return "UInt16";
 
-    case clang::BuiltinType::Char32:
+    case language::Core::BuiltinType::Char32:
       return "UnicodeScalar";
 
-    case clang::BuiltinType::Char_U:
-    case clang::BuiltinType::UChar:
-    case clang::BuiltinType::UShort:
-    case clang::BuiltinType::UInt:
-    case clang::BuiltinType::ULong:
-    case clang::BuiltinType::ULongLong:
-    case clang::BuiltinType::UInt128:
-    case clang::BuiltinType::WChar_U:
+    case language::Core::BuiltinType::Char_U:
+    case language::Core::BuiltinType::UChar:
+    case language::Core::BuiltinType::UShort:
+    case language::Core::BuiltinType::UInt:
+    case language::Core::BuiltinType::ULong:
+    case language::Core::BuiltinType::ULongLong:
+    case language::Core::BuiltinType::UInt128:
+    case language::Core::BuiltinType::WChar_U:
       return getIntTypeName(false);
 
-    case clang::BuiltinType::Char_S:
-    case clang::BuiltinType::SChar:
-    case clang::BuiltinType::Short:
-    case clang::BuiltinType::Int:
-    case clang::BuiltinType::Long:
-    case clang::BuiltinType::LongLong:
-    case clang::BuiltinType::Int128:
-    case clang::BuiltinType::WChar_S:
+    case language::Core::BuiltinType::Char_S:
+    case language::Core::BuiltinType::SChar:
+    case language::Core::BuiltinType::Short:
+    case language::Core::BuiltinType::Int:
+    case language::Core::BuiltinType::Long:
+    case language::Core::BuiltinType::LongLong:
+    case language::Core::BuiltinType::Int128:
+    case language::Core::BuiltinType::WChar_S:
       return getIntTypeName(true);
 
     // Types that cannot be mapped into Codira, and probably won't ever be.
-    case clang::BuiltinType::Dependent:
-    case clang::BuiltinType::ARCUnbridgedCast:
-    case clang::BuiltinType::BoundMember:
-    case clang::BuiltinType::BuiltinFn:
-    case clang::BuiltinType::IncompleteMatrixIdx:
-    case clang::BuiltinType::Overload:
-    case clang::BuiltinType::PseudoObject:
-    case clang::BuiltinType::UnknownAny:
-    case clang::BuiltinType::UnresolvedTemplate:
+    case language::Core::BuiltinType::Dependent:
+    case language::Core::BuiltinType::ARCUnbridgedCast:
+    case language::Core::BuiltinType::BoundMember:
+    case language::Core::BuiltinType::BuiltinFn:
+    case language::Core::BuiltinType::IncompleteMatrixIdx:
+    case language::Core::BuiltinType::Overload:
+    case language::Core::BuiltinType::PseudoObject:
+    case language::Core::BuiltinType::UnknownAny:
+    case language::Core::BuiltinType::UnresolvedTemplate:
       return OmissionTypeName();
 
     // FIXME: Types that can be mapped, but aren't yet.
-    case clang::BuiltinType::ShortAccum:
-    case clang::BuiltinType::Accum:
-    case clang::BuiltinType::LongAccum:
-    case clang::BuiltinType::UShortAccum:
-    case clang::BuiltinType::UAccum:
-    case clang::BuiltinType::ULongAccum:
-    case clang::BuiltinType::ShortFract:
-    case clang::BuiltinType::Fract:
-    case clang::BuiltinType::LongFract:
-    case clang::BuiltinType::UShortFract:
-    case clang::BuiltinType::UFract:
-    case clang::BuiltinType::ULongFract:
-    case clang::BuiltinType::SatShortAccum:
-    case clang::BuiltinType::SatAccum:
-    case clang::BuiltinType::SatLongAccum:
-    case clang::BuiltinType::SatUShortAccum:
-    case clang::BuiltinType::SatUAccum:
-    case clang::BuiltinType::SatULongAccum:
-    case clang::BuiltinType::SatShortFract:
-    case clang::BuiltinType::SatFract:
-    case clang::BuiltinType::SatLongFract:
-    case clang::BuiltinType::SatUShortFract:
-    case clang::BuiltinType::SatUFract:
-    case clang::BuiltinType::SatULongFract:
-    case clang::BuiltinType::Half:
-    case clang::BuiltinType::LongDouble:
-    case clang::BuiltinType::BFloat16:
-    case clang::BuiltinType::Float16:
-    case clang::BuiltinType::Float128:
-    case clang::BuiltinType::NullPtr:
-    case clang::BuiltinType::Ibm128:
+    case language::Core::BuiltinType::ShortAccum:
+    case language::Core::BuiltinType::Accum:
+    case language::Core::BuiltinType::LongAccum:
+    case language::Core::BuiltinType::UShortAccum:
+    case language::Core::BuiltinType::UAccum:
+    case language::Core::BuiltinType::ULongAccum:
+    case language::Core::BuiltinType::ShortFract:
+    case language::Core::BuiltinType::Fract:
+    case language::Core::BuiltinType::LongFract:
+    case language::Core::BuiltinType::UShortFract:
+    case language::Core::BuiltinType::UFract:
+    case language::Core::BuiltinType::ULongFract:
+    case language::Core::BuiltinType::SatShortAccum:
+    case language::Core::BuiltinType::SatAccum:
+    case language::Core::BuiltinType::SatLongAccum:
+    case language::Core::BuiltinType::SatUShortAccum:
+    case language::Core::BuiltinType::SatUAccum:
+    case language::Core::BuiltinType::SatULongAccum:
+    case language::Core::BuiltinType::SatShortFract:
+    case language::Core::BuiltinType::SatFract:
+    case language::Core::BuiltinType::SatLongFract:
+    case language::Core::BuiltinType::SatUShortFract:
+    case language::Core::BuiltinType::SatUFract:
+    case language::Core::BuiltinType::SatULongFract:
+    case language::Core::BuiltinType::Half:
+    case language::Core::BuiltinType::LongDouble:
+    case language::Core::BuiltinType::BFloat16:
+    case language::Core::BuiltinType::Float16:
+    case language::Core::BuiltinType::Float128:
+    case language::Core::BuiltinType::NullPtr:
+    case language::Core::BuiltinType::Ibm128:
       return OmissionTypeName();
 
     // Objective-C types that aren't mapped directly; rather, pointers to
     // these types will be mapped.
-    case clang::BuiltinType::ObjCClass:
-    case clang::BuiltinType::ObjCId:
-    case clang::BuiltinType::ObjCSel:
+    case language::Core::BuiltinType::ObjCClass:
+    case language::Core::BuiltinType::ObjCId:
+    case language::Core::BuiltinType::ObjCSel:
       return OmissionTypeName();
 
     // OpenMP types that don't have Codira equivalents.
-    case clang::BuiltinType::ArraySection:
-    case clang::BuiltinType::OMPArrayShaping:
-    case clang::BuiltinType::OMPIterator:
+    case language::Core::BuiltinType::ArraySection:
+    case language::Core::BuiltinType::OMPArrayShaping:
+    case language::Core::BuiltinType::OMPIterator:
       return OmissionTypeName();
 
     // OpenCL builtin types that don't have Codira equivalents.
-    case clang::BuiltinType::OCLClkEvent:
-    case clang::BuiltinType::OCLEvent:
-    case clang::BuiltinType::OCLSampler:
-    case clang::BuiltinType::OCLQueue:
-    case clang::BuiltinType::OCLReserveID:
-#define IMAGE_TYPE(Name, Id, ...) case clang::BuiltinType::Id:
-#include "clang/Basic/OpenCLImageTypes.def"
-#define EXT_OPAQUE_TYPE(Name, Id, ...) case clang::BuiltinType::Id:
-#include "clang/Basic/OpenCLExtensionTypes.def"
+    case language::Core::BuiltinType::OCLClkEvent:
+    case language::Core::BuiltinType::OCLEvent:
+    case language::Core::BuiltinType::OCLSampler:
+    case language::Core::BuiltinType::OCLQueue:
+    case language::Core::BuiltinType::OCLReserveID:
+#define IMAGE_TYPE(Name, Id, ...) case language::Core::BuiltinType::Id:
+#include "language/Core/Basic/OpenCLImageTypes.def"
+#define EXT_OPAQUE_TYPE(Name, Id, ...) case language::Core::BuiltinType::Id:
+#include "language/Core/Basic/OpenCLExtensionTypes.def"
       return OmissionTypeName();
 
     // ARM SVE builtin types that don't have Codira equivalents.
-#define SVE_TYPE(Name, Id, ...) case clang::BuiltinType::Id:
-#include "clang/Basic/AArch64SVEACLETypes.def"
+#define SVE_TYPE(Name, Id, ...) case language::Core::BuiltinType::Id:
+#include "language/Core/Basic/AArch64SVEACLETypes.def"
       return OmissionTypeName();
 
     // PPC MMA builtin types that don't have Codira equivalents.
-#define PPC_VECTOR_TYPE(Name, Id, ...) case clang::BuiltinType::Id:
-#include "clang/Basic/PPCTypes.def"
+#define PPC_VECTOR_TYPE(Name, Id, ...) case language::Core::BuiltinType::Id:
+#include "language/Core/Basic/PPCTypes.def"
       return OmissionTypeName();
 
     // RISC-V V builtin types that don't have Codira equivalents.
-#define RVV_TYPE(Name, Id, ...) case clang::BuiltinType::Id:
-#include "clang/Basic/RISCVVTypes.def"
+#define RVV_TYPE(Name, Id, ...) case language::Core::BuiltinType::Id:
+#include "language/Core/Basic/RISCVVTypes.def"
       return OmissionTypeName();
 
     // WASM builtin types that don't have Codira equivalents.
-#define WASM_TYPE(Name, Id, ...) case clang::BuiltinType::Id:
-#include "clang/Basic/WebAssemblyReferenceTypes.def"
+#define WASM_TYPE(Name, Id, ...) case language::Core::BuiltinType::Id:
+#include "language/Core/Basic/WebAssemblyReferenceTypes.def"
       return OmissionTypeName();
 
     // AMDGPU builtins that don't have Codira equivalents.
-#define AMDGPU_TYPE(Name, Id, ...) case clang::BuiltinType::Id:
-#include "clang/Basic/AMDGPUTypes.def"
+#define AMDGPU_TYPE(Name, Id, ...) case language::Core::BuiltinType::Id:
+#include "language/Core/Basic/AMDGPUTypes.def"
       return OmissionTypeName();
     }
   }
 
   // Tag types.
-  if (auto tagType = type->getAs<clang::TagType>()) {
+  if (auto tagType = type->getAs<language::Core::TagType>()) {
     if (tagType->getDecl()->getName().empty())
       return lastTypedefName;
 
@@ -466,7 +466,7 @@ OmissionTypeName importer::getClangTypeNameForOmission(clang::ASTContext &ctx,
   }
 
   // Block pointers.
-  if (type->getAs<clang::BlockPointerType>())
+  if (type->getAs<language::Core::BlockPointerType>())
     return OmissionTypeName("Block", OmissionTypeFlags::Function);
 
   // Function pointers.
@@ -476,10 +476,10 @@ OmissionTypeName importer::getClangTypeNameForOmission(clang::ASTContext &ctx,
   return StringRef();
 }
 
-static clang::CodiraNewTypeAttr *
-retrieveNewTypeAttr(const clang::TypedefNameDecl *decl) {
+static language::Core::CodiraNewTypeAttr *
+retrieveNewTypeAttr(const language::Core::TypedefNameDecl *decl) {
   // Retrieve the attribute.
-  auto attr = decl->getAttr<clang::CodiraNewTypeAttr>();
+  auto attr = decl->getAttr<language::Core::CodiraNewTypeAttr>();
   if (!attr)
     return nullptr;
 
@@ -492,8 +492,8 @@ retrieveNewTypeAttr(const clang::TypedefNameDecl *decl) {
   return attr;
 }
 
-clang::CodiraNewTypeAttr *
-importer::getCodiraNewtypeAttr(const clang::TypedefNameDecl *decl,
+language::Core::CodiraNewTypeAttr *
+importer::getCodiraNewtypeAttr(const language::Core::TypedefNameDecl *decl,
                               ImportNameVersion version) {
   // Newtype was introduced in Codira 3
   if (version <= ImportNameVersion::language2())
@@ -503,34 +503,34 @@ importer::getCodiraNewtypeAttr(const clang::TypedefNameDecl *decl,
 
 // If this decl is associated with a language_newtype typedef, return it, otherwise
 // null
-clang::TypedefNameDecl *importer::findCodiraNewtype(const clang::NamedDecl *decl,
-                                                   clang::Sema &clangSema,
+language::Core::TypedefNameDecl *importer::findCodiraNewtype(const language::Core::NamedDecl *decl,
+                                                   language::Core::Sema &clangSema,
                                                    ImportNameVersion version) {
   // Newtype was introduced in Codira 3
   if (version <= ImportNameVersion::language2())
     return nullptr;
 
-  auto varDecl = dyn_cast<clang::VarDecl>(decl);
+  auto varDecl = dyn_cast<language::Core::VarDecl>(decl);
   if (!varDecl)
     return nullptr;
 
-  if (auto typedefTy = varDecl->getType()->getAs<clang::TypedefType>())
+  if (auto typedefTy = varDecl->getType()->getAs<language::Core::TypedefType>())
     if (retrieveNewTypeAttr(typedefTy->getDecl()))
       return typedefTy->getDecl();
 
   // Special case: "extern NSString * fooNotification" adopts
   // NSNotificationName type, and is a member of NSNotificationName
   if (isNSNotificationGlobal(decl)) {
-    clang::IdentifierInfo *notificationName =
+    language::Core::IdentifierInfo *notificationName =
         &clangSema.getASTContext().Idents.get("NSNotificationName");
-    clang::LookupResult lookupResult(clangSema, notificationName,
-                                     clang::SourceLocation(),
-                                     clang::Sema::LookupOrdinaryName);
+    language::Core::LookupResult lookupResult(clangSema, notificationName,
+                                     language::Core::SourceLocation(),
+                                     language::Core::Sema::LookupOrdinaryName);
     if (!clangSema.LookupQualifiedName(
             lookupResult,
             /*LookupCtx*/ clangSema.getASTContext().getTranslationUnitDecl()))
       return nullptr;
-    auto nsDecl = lookupResult.getAsSingle<clang::TypedefNameDecl>();
+    auto nsDecl = lookupResult.getAsSingle<language::Core::TypedefNameDecl>();
     if (!nsDecl)
       return nullptr;
 
@@ -544,35 +544,35 @@ clang::TypedefNameDecl *importer::findCodiraNewtype(const clang::NamedDecl *decl
   return nullptr;
 }
 
-bool importer::isNSString(const clang::Type *type) {
-  if (auto ptrType = type->getAs<clang::ObjCObjectPointerType>())
+bool importer::isNSString(const language::Core::Type *type) {
+  if (auto ptrType = type->getAs<language::Core::ObjCObjectPointerType>())
     if (auto interfaceType = ptrType->getInterfaceType())
       if (interfaceType->getDecl()->getName() == "NSString")
         return true;
   return false;
 }
 
-bool importer::isNSString(clang::QualType qt) {
+bool importer::isNSString(language::Core::QualType qt) {
   return qt.getTypePtrOrNull() && isNSString(qt.getTypePtrOrNull());
 }
 
-bool importer::isNSNotificationName(clang::QualType type) {
-  if (auto *typealias = type->getAs<clang::TypedefType>()) {
+bool importer::isNSNotificationName(language::Core::QualType type) {
+  if (auto *typealias = type->getAs<language::Core::TypedefType>()) {
     return typealias->getDecl()->getName() == "NSNotificationName";
   }
   return false;
 }
 
-bool importer::isNSNotificationGlobal(const clang::NamedDecl *decl) {
+bool importer::isNSNotificationGlobal(const language::Core::NamedDecl *decl) {
   // Looking for: extern NSString *fooNotification;
 
   // Must be extern global variable
-  auto vDecl = dyn_cast<clang::VarDecl>(decl);
+  auto vDecl = dyn_cast<language::Core::VarDecl>(decl);
   if (!vDecl || !vDecl->hasExternalFormalLinkage())
     return false;
 
   // No explicit language_name
-  if (decl->getAttr<clang::CodiraNameAttr>())
+  if (decl->getAttr<language::Core::CodiraNameAttr>())
     return false;
 
   // Must end in Notification
@@ -589,8 +589,8 @@ bool importer::isNSNotificationGlobal(const clang::NamedDecl *decl) {
   return true;
 }
 
-bool importer::hasNativeCodiraDecl(const clang::Decl *decl) {
-  if (auto *attr = decl->getAttr<clang::ExternalSourceSymbolAttr>())
+bool importer::hasNativeCodiraDecl(const language::Core::Decl *decl) {
+  if (auto *attr = decl->getAttr<language::Core::ExternalSourceSymbolAttr>())
     if (attr->getGeneratedDeclaration() && attr->getLanguage() == "Codira")
       return true;
   return false;
@@ -599,20 +599,20 @@ bool importer::hasNativeCodiraDecl(const clang::Decl *decl) {
 /// Translate the "nullability" notion from API notes into an optional type
 /// kind.
 OptionalTypeKind importer::translateNullability(
-    clang::NullabilityKind kind, bool stripNonResultOptionality) {
+    language::Core::NullabilityKind kind, bool stripNonResultOptionality) {
   if (stripNonResultOptionality &&
-      kind != clang::NullabilityKind::NullableResult)
+      kind != language::Core::NullabilityKind::NullableResult)
     return OptionalTypeKind::OTK_None;
 
   switch (kind) {
-  case clang::NullabilityKind::NonNull:
+  case language::Core::NullabilityKind::NonNull:
     return OptionalTypeKind::OTK_None;
 
-  case clang::NullabilityKind::Nullable:
-  case clang::NullabilityKind::NullableResult:
+  case language::Core::NullabilityKind::Nullable:
+  case language::Core::NullabilityKind::NullableResult:
     return OptionalTypeKind::OTK_Optional;
 
-  case clang::NullabilityKind::Unspecified:
+  case language::Core::NullabilityKind::Unspecified:
     return OptionalTypeKind::OTK_ImplicitlyUnwrappedOptional;
   }
 
@@ -620,23 +620,23 @@ OptionalTypeKind importer::translateNullability(
   return OptionalTypeKind::OTK_Optional;
 }
 
-bool importer::isRequiredInitializer(const clang::ObjCMethodDecl *method) {
+bool importer::isRequiredInitializer(const language::Core::ObjCMethodDecl *method) {
   // FIXME: No way to express this in Objective-C.
   return false;
 }
 
 /// Check if this method is declared in the context that conforms to
 /// NSAccessibility.
-static bool isAccessibilityConformingContext(const clang::DeclContext *ctx) {
-  const clang::ObjCProtocolList *protocols = nullptr;
+static bool isAccessibilityConformingContext(const language::Core::DeclContext *ctx) {
+  const language::Core::ObjCProtocolList *protocols = nullptr;
 
-  if (auto protocol = dyn_cast<clang::ObjCProtocolDecl>(ctx)) {
+  if (auto protocol = dyn_cast<language::Core::ObjCProtocolDecl>(ctx)) {
     if (protocol->getName() == "NSAccessibility")
       return true;
     return false;
-  } else if (auto interface = dyn_cast<clang::ObjCInterfaceDecl>(ctx))
+  } else if (auto interface = dyn_cast<language::Core::ObjCInterfaceDecl>(ctx))
     protocols = &interface->getReferencedProtocols();
-  else if (auto category = dyn_cast<clang::ObjCCategoryDecl>(ctx))
+  else if (auto category = dyn_cast<language::Core::ObjCCategoryDecl>(ctx))
     protocols = &category->getReferencedProtocols();
   else
     return false;
@@ -649,8 +649,8 @@ static bool isAccessibilityConformingContext(const clang::DeclContext *ctx) {
 }
 
 bool
-importer::shouldImportPropertyAsAccessors(const clang::ObjCPropertyDecl *prop) {
-  if (prop->hasAttr<clang::CodiraImportPropertyAsAccessorsAttr>())
+importer::shouldImportPropertyAsAccessors(const language::Core::ObjCPropertyDecl *prop) {
+  if (prop->hasAttr<language::Core::CodiraImportPropertyAsAccessorsAttr>())
     return true;
 
   // Check if the property is one of the specially handled accessibility APIs.
@@ -666,13 +666,13 @@ importer::shouldImportPropertyAsAccessors(const clang::ObjCPropertyDecl *prop) {
   return false;
 }
 
-bool importer::isInitMethod(const clang::ObjCMethodDecl *method) {
+bool importer::isInitMethod(const language::Core::ObjCMethodDecl *method) {
   // init methods are always instance methods.
   if (!method->isInstanceMethod())
     return false;
 
   // init methods must be classified as such by Clang.
-  if (method->getMethodFamily() != clang::OMF_init)
+  if (method->getMethodFamily() != language::Core::OMF_init)
     return false;
 
   // Codira restriction: init methods must start with the word "init".
@@ -680,8 +680,8 @@ bool importer::isInitMethod(const clang::ObjCMethodDecl *method) {
   return camel_case::getFirstWord(selector.getNameForSlot(0)) == "init";
 }
 
-bool importer::isObjCId(const clang::Decl *decl) {
-  auto typedefDecl = dyn_cast<clang::TypedefNameDecl>(decl);
+bool importer::isObjCId(const language::Core::Decl *decl) {
+  auto typedefDecl = dyn_cast<language::Core::TypedefNameDecl>(decl);
   if (!typedefDecl)
     return false;
 
@@ -692,7 +692,7 @@ bool importer::isObjCId(const clang::Decl *decl) {
 }
 
 bool importer::isUnavailableInCodira(
-    const clang::Decl *decl,
+    const language::Core::Decl *decl,
     const PlatformAvailability *platformAvailability,
     bool enableObjCInterop) {
   // 'id' is always unavailable in Codira.
@@ -702,7 +702,7 @@ bool importer::isUnavailableInCodira(
   if (decl->isUnavailable())
     return true;
 
-  for (auto *attr : decl->specific_attrs<clang::AvailabilityAttr>()) {
+  for (auto *attr : decl->specific_attrs<language::Core::AvailabilityAttr>()) {
     if (attr->getPlatform()->getName() == "language")
       return true;
 
@@ -727,22 +727,22 @@ bool importer::isUnavailableInCodira(
   return false;
 }
 
-OptionalTypeKind importer::getParamOptionality(const clang::ParmVarDecl *param,
+OptionalTypeKind importer::getParamOptionality(const language::Core::ParmVarDecl *param,
                                                bool knownNonNull) {
   // If nullability is available on the type, use it.
-  clang::QualType paramTy = param->getType();
+  language::Core::QualType paramTy = param->getType();
   if (auto nullability = paramTy->getNullability()) {
     return translateNullability(*nullability);
   }
 
   // If it's known non-null, use that.
-  if (knownNonNull || param->hasAttr<clang::NonNullAttr>())
+  if (knownNonNull || param->hasAttr<language::Core::NonNullAttr>())
     return OTK_None;
 
   // Check for the 'static' annotation on C arrays.
-  if (const auto *DT = dyn_cast<clang::DecayedType>(paramTy))
+  if (const auto *DT = dyn_cast<language::Core::DecayedType>(paramTy))
     if (const auto *AT = DT->getOriginalType()->getAsArrayTypeUnsafe())
-      if (AT->getSizeModifier() == clang::ArraySizeModifier::Static)
+      if (AT->getSizeModifier() == language::Core::ArraySizeModifier::Static)
         return OTK_None;
 
   // Default to implicitly unwrapped optionals.

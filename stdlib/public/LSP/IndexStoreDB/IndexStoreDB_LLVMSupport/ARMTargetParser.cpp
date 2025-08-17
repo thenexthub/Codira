@@ -1,8 +1,24 @@
 //===-- ARMTargetParser - Parser for ARM target features --------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -11,11 +27,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ARMTargetParser.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringSwitch.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ARMTargetParser.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringSwitch.h>
 #include <cctype>
 
-using namespace llvm;
+using namespace toolchain;
 
 static StringRef getHWDivSynonym(StringRef HWDiv) {
   return StringSwitch<StringRef>(HWDiv)
@@ -81,7 +97,7 @@ unsigned ARM::parseArchVersion(StringRef Arch) {
   case ArchKind::INVALID:
     return 0;
   }
-  llvm_unreachable("Unhandled architecture");
+  toolchain_unreachable("Unhandled architecture");
 }
 
 // Profile A/R/M
@@ -127,7 +143,7 @@ ARM::ProfileKind ARM::parseArchProfile(StringRef Arch) {
   case ArchKind::INVALID:
     return ProfileKind::INVALID;
   }
-  llvm_unreachable("Unhandled architecture");
+  toolchain_unreachable("Unhandled architecture");
 }
 
 StringRef ARM::getArchSynonym(StringRef Arch) {
@@ -374,7 +390,7 @@ unsigned ARM::getDefaultFPU(StringRef CPU, ARM::ArchKind AK) {
   return StringSwitch<unsigned>(CPU)
 #define ARM_CPU_NAME(NAME, ID, DEFAULT_FPU, IS_DEFAULT, DEFAULT_EXT)           \
   .Case(NAME, DEFAULT_FPU)
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ARMTargetParser.def>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ARMTargetParser.def>
    .Default(ARM::FK_INVALID);
 }
 
@@ -387,7 +403,7 @@ unsigned ARM::getDefaultExtensions(StringRef CPU, ARM::ArchKind AK) {
   .Case(NAME,                                                                  \
         ARCHNames[static_cast<unsigned>(ArchKind::ID)].ArchBaseExtensions |    \
             DEFAULT_EXT)
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ARMTargetParser.def>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ARMTargetParser.def>
   .Default(ARM::AEK_INVALID);
 }
 

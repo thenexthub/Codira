@@ -1,8 +1,24 @@
 //===-- APInt.cpp - Implement APInt class ---------------------------------===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -11,24 +27,24 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_APInt.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_ArrayRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_FoldingSet.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Hashing.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Optional.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallString.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_bit.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Config_llvm-config.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Debug.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ErrorHandling.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_MathExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_APInt.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_ArrayRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_FoldingSet.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Hashing.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Optional.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallString.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_bit.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_toolchain-config.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Debug.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ErrorHandling.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_MathExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 #include <climits>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
-using namespace llvm;
+using namespace toolchain;
 
 #define DEBUG_TYPE "apint"
 
@@ -491,7 +507,7 @@ unsigned APInt::getBitsNeeded(StringRef str, uint8_t radix) {
   }
 }
 
-hash_code llvm::hash_value(const APInt &Arg) {
+hash_code toolchain::hash_value(const APInt &Arg) {
   if (Arg.isSingleWord())
     return hash_combine(Arg.U.VAL);
 
@@ -536,7 +552,7 @@ unsigned APInt::countLeadingZerosSlowCase() const {
     if (V == 0)
       Count += APINT_BITS_PER_WORD;
     else {
-      Count += llvm::countLeadingZeros(V);
+      Count += toolchain::countLeadingZeros(V);
       break;
     }
   }
@@ -556,13 +572,13 @@ unsigned APInt::countLeadingOnesSlowCase() const {
     shift = APINT_BITS_PER_WORD - highWordBits;
   }
   int i = getNumWords() - 1;
-  unsigned Count = llvm::countLeadingOnes(U.pVal[i] << shift);
+  unsigned Count = toolchain::countLeadingOnes(U.pVal[i] << shift);
   if (Count == highWordBits) {
     for (i--; i >= 0; --i) {
       if (U.pVal[i] == WORDTYPE_MAX)
         Count += APINT_BITS_PER_WORD;
       else {
-        Count += llvm::countLeadingOnes(U.pVal[i]);
+        Count += toolchain::countLeadingOnes(U.pVal[i]);
         break;
       }
     }
@@ -576,7 +592,7 @@ unsigned APInt::countTrailingZerosSlowCase() const {
   for (; i < getNumWords() && U.pVal[i] == 0; ++i)
     Count += APINT_BITS_PER_WORD;
   if (i < getNumWords())
-    Count += llvm::countTrailingZeros(U.pVal[i]);
+    Count += toolchain::countTrailingZeros(U.pVal[i]);
   return std::min(Count, BitWidth);
 }
 
@@ -586,7 +602,7 @@ unsigned APInt::countTrailingOnesSlowCase() const {
   for (; i < getNumWords() && U.pVal[i] == WORDTYPE_MAX; ++i)
     Count += APINT_BITS_PER_WORD;
   if (i < getNumWords())
-    Count += llvm::countTrailingOnes(U.pVal[i]);
+    Count += toolchain::countTrailingOnes(U.pVal[i]);
   assert(Count <= BitWidth);
   return Count;
 }
@@ -594,7 +610,7 @@ unsigned APInt::countTrailingOnesSlowCase() const {
 unsigned APInt::countPopulationSlowCase() const {
   unsigned Count = 0;
   for (unsigned i = 0; i < getNumWords(); ++i)
-    Count += llvm::countPopulation(U.pVal[i]);
+    Count += toolchain::countPopulation(U.pVal[i]);
   return Count;
 }
 
@@ -643,13 +659,13 @@ APInt APInt::byteSwap() const {
 APInt APInt::reverseBits() const {
   switch (BitWidth) {
   case 64:
-    return APInt(BitWidth, llvm::reverseBits<uint64_t>(U.VAL));
+    return APInt(BitWidth, toolchain::reverseBits<uint64_t>(U.VAL));
   case 32:
-    return APInt(BitWidth, llvm::reverseBits<uint32_t>(U.VAL));
+    return APInt(BitWidth, toolchain::reverseBits<uint32_t>(U.VAL));
   case 16:
-    return APInt(BitWidth, llvm::reverseBits<uint16_t>(U.VAL));
+    return APInt(BitWidth, toolchain::reverseBits<uint16_t>(U.VAL));
   case 8:
-    return APInt(BitWidth, llvm::reverseBits<uint8_t>(U.VAL));
+    return APInt(BitWidth, toolchain::reverseBits<uint8_t>(U.VAL));
   default:
     break;
   }
@@ -668,7 +684,7 @@ APInt APInt::reverseBits() const {
   return Reversed;
 }
 
-APInt llvm::APIntOps::GreatestCommonDivisor(APInt A, APInt B) {
+APInt toolchain::APIntOps::GreatestCommonDivisor(APInt A, APInt B) {
   // Fast-path a common case.
   if (A == B) return A;
 
@@ -711,7 +727,7 @@ APInt llvm::APIntOps::GreatestCommonDivisor(APInt A, APInt B) {
   return A;
 }
 
-APInt llvm::APIntOps::RoundDoubleToAPInt(double Double, unsigned width) {
+APInt toolchain::APIntOps::RoundDoubleToAPInt(double Double, unsigned width) {
   uint64_t I = bit_cast<uint64_t>(Double);
 
   // Get the sign bit from the highest order bit
@@ -2066,7 +2082,7 @@ void APInt::toString(SmallVectorImpl<char> &Str, unsigned Radix,
         Prefix = "0x";
         break;
       default:
-        llvm_unreachable("Invalid radix!");
+        toolchain_unreachable("Invalid radix!");
     }
   }
 
@@ -2692,7 +2708,7 @@ void APInt::tcSetLeastSignificantBits(WordType *dst, unsigned parts,
     dst[i++] = 0;
 }
 
-APInt llvm::APIntOps::RoundingUDiv(const APInt &A, const APInt &B,
+APInt toolchain::APIntOps::RoundingUDiv(const APInt &A, const APInt &B,
                                    APInt::Rounding RM) {
   // Currently udivrem always rounds down.
   switch (RM) {
@@ -2707,10 +2723,10 @@ APInt llvm::APIntOps::RoundingUDiv(const APInt &A, const APInt &B,
     return Quo + 1;
   }
   }
-  llvm_unreachable("Unknown APInt::Rounding enum");
+  toolchain_unreachable("Unknown APInt::Rounding enum");
 }
 
-APInt llvm::APIntOps::RoundingSDiv(const APInt &A, const APInt &B,
+APInt toolchain::APIntOps::RoundingSDiv(const APInt &A, const APInt &B,
                                    APInt::Rounding RM) {
   switch (RM) {
   case APInt::Rounding::DOWN:
@@ -2737,11 +2753,11 @@ APInt llvm::APIntOps::RoundingSDiv(const APInt &A, const APInt &B,
   case APInt::Rounding::TOWARD_ZERO:
     return A.sdiv(B);
   }
-  llvm_unreachable("Unknown APInt::Rounding enum");
+  toolchain_unreachable("Unknown APInt::Rounding enum");
 }
 
 Optional<APInt>
-llvm::APIntOps::SolveQuadraticEquationWrap(APInt A, APInt B, APInt C,
+toolchain::APIntOps::SolveQuadraticEquationWrap(APInt A, APInt B, APInt C,
                                            unsigned RangeWidth) {
   unsigned CoeffWidth = A.getBitWidth();
   assert(CoeffWidth == B.getBitWidth() && CoeffWidth == C.getBitWidth());

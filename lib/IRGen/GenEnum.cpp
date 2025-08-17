@@ -121,7 +121,7 @@
 #include "toolchain/IR/GlobalVariable.h"
 #include "toolchain/Analysis/CFG.h"
 #include "toolchain/Support/Compiler.h"
-#include "clang/CodeGen/CodiraCallingConv.h"
+#include "language/Core/CodeGen/CodiraCallingConv.h"
 
 #include "BitPatternBuilder.h"
 #include "GenDecl.h"

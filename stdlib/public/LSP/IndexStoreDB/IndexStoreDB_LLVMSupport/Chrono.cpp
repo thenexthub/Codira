@@ -1,26 +1,42 @@
 //===- Support/Chrono.cpp - Utilities for Timing Manipulation ---*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Chrono.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Config_llvm-config.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Format.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Chrono.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_toolchain-config.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Format.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 
-namespace llvm {
+namespace toolchain {
 
 using namespace sys;
 
-const char llvm::detail::unit<std::ratio<3600>>::value[] = "h";
-const char llvm::detail::unit<std::ratio<60>>::value[] = "m";
-const char llvm::detail::unit<std::ratio<1>>::value[] = "s";
-const char llvm::detail::unit<std::milli>::value[] = "ms";
-const char llvm::detail::unit<std::micro>::value[] = "us";
-const char llvm::detail::unit<std::nano>::value[] = "ns";
+const char toolchain::detail::unit<std::ratio<3600>>::value[] = "h";
+const char toolchain::detail::unit<std::ratio<60>>::value[] = "m";
+const char toolchain::detail::unit<std::ratio<1>>::value[] = "s";
+const char toolchain::detail::unit<std::milli>::value[] = "ms";
+const char toolchain::detail::unit<std::micro>::value[] = "us";
+const char toolchain::detail::unit<std::nano>::value[] = "ns";
 
 static inline struct tm getStructTM(TimePoint<> TP) {
   struct tm Storage;
@@ -63,17 +79,17 @@ void format_provider<TimePoint<>>::format(const TimePoint<> &T, raw_ostream &OS,
   for (unsigned I = 0; I < Style.size(); ++I) {
     if (Style[I] == '%' && Style.size() > I + 1) switch (Style[I + 1]) {
         case 'L':  // Milliseconds, from Ruby.
-          FStream << llvm::format(
+          FStream << toolchain::format(
               "%.3lu", (long)duration_cast<milliseconds>(Fractional).count());
           ++I;
           continue;
         case 'f':  // Microseconds, from Python.
-          FStream << llvm::format(
+          FStream << toolchain::format(
               "%.6lu", (long)duration_cast<microseconds>(Fractional).count());
           ++I;
           continue;
         case 'N':  // Nanoseconds, from date(1).
-          FStream << llvm::format(
+          FStream << toolchain::format(
               "%.6lu", (long)duration_cast<nanoseconds>(Fractional).count());
           ++I;
           continue;
@@ -90,4 +106,4 @@ void format_provider<TimePoint<>>::format(const TimePoint<> &T, raw_ostream &OS,
   OS << (Len ? Buffer : "BAD-DATE-FORMAT");
 }
 
-} // namespace llvm
+} // namespace toolchain

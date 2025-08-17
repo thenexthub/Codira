@@ -79,24 +79,24 @@ class TestDefaults(unittest.TestCase):
         self.assertIsNone(defaults._system_memory())
 
     # ------------------------------------------------------------------------
-    # _default_llvm_lto_link_jobs
+    # _default_toolchain_lto_link_jobs
 
     @utils.requires_module('unittest.mock')
-    def test_default_llvm_lto_link_jobs(self):
+    def test_default_toolchain_lto_link_jobs(self):
         with mock.patch.object(defaults, '_system_memory') as mock_memory:
             mock_memory.return_value = _SYSCTL_HW_MEMSIZE
 
-            lto_link_jobs = defaults._default_llvm_lto_link_jobs()
+            lto_link_jobs = defaults._default_toolchain_lto_link_jobs()
 
             self.assertIsNotNone(lto_link_jobs)
             self.assertLess(lto_link_jobs, _LTO_LINK_JOBS_UPPER_BOUND)
 
     @utils.requires_module('unittest.mock')
-    def test_default_llvm_lto_link_jobs_with_unknown_system_memory(self):
+    def test_default_toolchain_lto_link_jobs_with_unknown_system_memory(self):
         with mock.patch.object(defaults, '_system_memory') as mock_memory:
             mock_memory.return_value = None
 
-            self.assertIsNone(defaults._default_llvm_lto_link_jobs())
+            self.assertIsNone(defaults._default_toolchain_lto_link_jobs())
 
     # ------------------------------------------------------------------------
     # _default_language_lto_link_jobs
@@ -116,4 +116,4 @@ class TestDefaults(unittest.TestCase):
         with mock.patch.object(defaults, '_system_memory') as mock_memory:
             mock_memory.return_value = None
 
-            self.assertIsNone(defaults._default_llvm_lto_link_jobs())
+            self.assertIsNone(defaults._default_toolchain_lto_link_jobs())

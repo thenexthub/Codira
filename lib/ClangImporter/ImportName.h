@@ -30,7 +30,7 @@
 #include "language/Basic/StringExtras.h"
 #include "language/Basic/Version.h"
 #include "language/ClangImporter/ClangImporter.h"
-#include "clang/Sema/Sema.h"
+#include "language/Core/Sema/Sema.h"
 
 namespace language {
 namespace importer {
@@ -411,36 +411,36 @@ class NameImporter {
   ASTContext &languageCtx;
   const PlatformAvailability &availability;
 
-  clang::Sema &clangSema;
+  language::Core::Sema &clangSema;
   EnumInfoCache enumInfos;
   StringScratchSpace scratch;
 
   // TODO: remove when we drop the options (i.e. import all names)
   using CacheKeyType =
-      std::pair<const clang::NamedDecl *, ImportNameVersion>;
+      std::pair<const language::Core::NamedDecl *, ImportNameVersion>;
 
   /// Cache for repeated calls
   toolchain::DenseMap<CacheKeyType, ImportedName> importNameCache;
 
   /// The set of property names that show up in the defining module of
   /// an Objective-C class.
-  toolchain::DenseMap<std::pair<const clang::ObjCInterfaceDecl *, char>,
+  toolchain::DenseMap<std::pair<const language::Core::ObjCInterfaceDecl *, char>,
                  std::unique_ptr<InheritedNameSet>> allProperties;
 
   ClangImporter::Implementation *importerImpl;
 
 public:
   NameImporter(ASTContext &ctx, const PlatformAvailability &avail,
-               clang::Sema &cSema, ClangImporter::Implementation *importerImpl)
+               language::Core::Sema &cSema, ClangImporter::Implementation *importerImpl)
       : languageCtx(ctx), availability(avail), clangSema(cSema),
         enumInfos(clangSema.getPreprocessor()),
         importerImpl(importerImpl) {}
 
   /// Determine the Codira name for a Clang decl
-  ImportedName importName(const clang::NamedDecl *decl,
+  ImportedName importName(const language::Core::NamedDecl *decl,
                           ImportNameVersion version,
-                          clang::DeclarationName preferredName =
-                            clang::DeclarationName());
+                          language::Core::DeclarationName preferredName =
+                            language::Core::DeclarationName());
 
   /// Attempts to import the name of \p decl with each possible
   /// ImportNameVersion. \p action will be called with each unique name.
@@ -461,12 +461,12 @@ public:
   ///
   /// Returns \c true if it fails to import name for the active version.
   bool forEachDistinctImportName(
-      const clang::NamedDecl *decl, ImportNameVersion activeVersion,
+      const language::Core::NamedDecl *decl, ImportNameVersion activeVersion,
       toolchain::function_ref<bool(ImportedName, ImportNameVersion)> action);
 
   /// Imports the name of the given Clang macro into Codira.
-  Identifier importMacroName(const clang::IdentifierInfo *clangIdentifier,
-                             const clang::MacroInfo *macro);
+  Identifier importMacroName(const language::Core::IdentifierInfo *clangIdentifier,
+                             const language::Core::MacroInfo *macro);
 
   ASTContext &getContext() { return languageCtx; }
   const LangOptions &getLangOpts() const { return languageCtx.LangOpts; }
@@ -478,29 +478,29 @@ public:
 
   StringScratchSpace &getScratch() { return scratch; }
 
-  EnumInfo getEnumInfo(const clang::EnumDecl *decl) {
+  EnumInfo getEnumInfo(const language::Core::EnumDecl *decl) {
     return enumInfos.getEnumInfo(decl);
   }
-  EnumKind getEnumKind(const clang::EnumDecl *decl) {
+  EnumKind getEnumKind(const language::Core::EnumDecl *decl) {
     return enumInfos.getEnumKind(decl);
   }
 
-  clang::Sema &getClangSema() { return clangSema; }
-  clang::ASTContext &getClangContext() {
+  language::Core::Sema &getClangSema() { return clangSema; }
+  language::Core::ASTContext &getClangContext() {
     return getClangSema().getASTContext();
   }
-  clang::Preprocessor &getClangPreprocessor() {
+  language::Core::Preprocessor &getClangPreprocessor() {
     return getClangSema().getPreprocessor();
   }
 
   /// Retrieve the inherited name set for the given Objective-C class.
   const InheritedNameSet *getAllPropertyNames(
-                            clang::ObjCInterfaceDecl *classDecl,
+                            language::Core::ObjCInterfaceDecl *classDecl,
                             bool forInstance);
 
   /// Retrieve a purported custom name even if it is invalid.
   static std::optional<StringRef>
-  findCustomName(const clang::Decl *decl, ImportNameVersion version);
+  findCustomName(const language::Core::Decl *decl, ImportNameVersion version);
 
 private:
   bool enableObjCInterop() const { return languageCtx.LangOpts.EnableObjCInterop; }
@@ -508,40 +508,40 @@ private:
   /// Look for a method that will import to have the same name as the
   /// given method after importing the Nth parameter as an elided error
   /// parameter.
-  bool hasErrorMethodNameCollision(const clang::ObjCMethodDecl *method,
+  bool hasErrorMethodNameCollision(const language::Core::ObjCMethodDecl *method,
                                    unsigned paramIndex,
                                    StringRef suffixToStrip);
 
   /// Test to see if there is a value with the same name as 'proposedName' in
   /// the same module as the decl
-  bool hasNamingConflict(const clang::NamedDecl *decl,
-                         const clang::IdentifierInfo *proposedName,
-                         const clang::TypedefNameDecl *cfTypedef);
+  bool hasNamingConflict(const language::Core::NamedDecl *decl,
+                         const language::Core::IdentifierInfo *proposedName,
+                         const language::Core::TypedefNameDecl *cfTypedef);
 
   std::optional<ForeignErrorConvention::Info>
-  considerErrorImport(const clang::ObjCMethodDecl *clangDecl,
+  considerErrorImport(const language::Core::ObjCMethodDecl *clangDecl,
                       StringRef &baseName,
                       SmallVectorImpl<StringRef> &paramNames,
-                      ArrayRef<const clang::ParmVarDecl *> params,
+                      ArrayRef<const language::Core::ParmVarDecl *> params,
                       bool isInitializer, bool hasCustomName);
 
   std::optional<ForeignAsyncConvention::Info> considerAsyncImport(
-      const clang::ObjCMethodDecl *clangDecl, StringRef baseName,
+      const language::Core::ObjCMethodDecl *clangDecl, StringRef baseName,
       SmallVectorImpl<StringRef> &paramNames,
-      ArrayRef<const clang::ParmVarDecl *> params, bool isInitializer,
+      ArrayRef<const language::Core::ParmVarDecl *> params, bool isInitializer,
       std::optional<unsigned> explicitCompletionHandlerParamIndex,
       CustomAsyncName customName,
       std::optional<unsigned> completionHandlerFlagParamIndex,
       bool completionHandlerFlagIsZeroOnError,
       std::optional<ForeignErrorConvention::Info> errorInfo);
 
-  EffectiveClangContext determineEffectiveContext(const clang::NamedDecl *,
-                                                  const clang::DeclContext *,
+  EffectiveClangContext determineEffectiveContext(const language::Core::NamedDecl *,
+                                                  const language::Core::DeclContext *,
                                                   ImportNameVersion version);
 
-  ImportedName importNameImpl(const clang::NamedDecl *,
+  ImportedName importNameImpl(const language::Core::NamedDecl *,
                               ImportNameVersion version,
-                              clang::DeclarationName);
+                              language::Core::DeclarationName);
 };
 
 }

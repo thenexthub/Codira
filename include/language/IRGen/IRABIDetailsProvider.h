@@ -21,7 +21,7 @@
 #include "language/AST/Type.h"
 #include "language/AST/Types.h"
 #include "language/IRGen/GenericRequirement.h"
-#include "clang/AST/CharUnits.h"
+#include "language/Core/AST/CharUnits.h"
 #include "toolchain/ADT/MapVector.h"
 #include "toolchain/ADT/STLExtras.h"
 #include "toolchain/ADT/SmallVector.h"
@@ -60,7 +60,7 @@ public:
     /// Returns true if an error occurred when a particular member can't be
     /// represented with an AST type.
     bool enumerateRecordMembers(
-        toolchain::function_ref<void(clang::CharUnits, clang::CharUnits, Type)>
+        toolchain::function_ref<void(language::Core::CharUnits, language::Core::CharUnits, Type)>
             callback) const;
 
   private:
@@ -95,7 +95,7 @@ public:
     /// Returns true if an error occurred when a particular member can't be
     /// represented with an AST type.
     bool enumerateRecordMembers(
-        toolchain::function_ref<void(clang::CharUnits, clang::CharUnits, Type)>
+        toolchain::function_ref<void(language::Core::CharUnits, language::Core::CharUnits, Type)>
             callback) const;
 
     inline const ParamDecl &getParamDecl() const { return paramDecl; }

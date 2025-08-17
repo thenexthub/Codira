@@ -26,8 +26,8 @@
 #include "language/SIL/SILFunctionBuilder.h"
 #include "language/SIL/SILModule.h"
 #include "language/SIL/SILSymbolVisitor.h"
-#include "clang/AST/DeclObjC.h"
-#include "clang/AST/GlobalDecl.h"
+#include "language/Core/AST/DeclObjC.h"
+#include "language/Core/AST/GlobalDecl.h"
 
 #include "GenDecl.h"
 #include "GenericArguments.h"
@@ -141,15 +141,15 @@ public:
 
 static toolchain::Constant *
 getAddrOfLLVMVariableForClangDecl(IRGenModule &IGM, ValueDecl *decl,
-                                  const clang::Decl *clangDecl) {
-  if (isa<clang::FunctionDecl>(clangDecl)) {
+                                  const language::Core::Decl *clangDecl) {
+  if (isa<language::Core::FunctionDecl>(clangDecl)) {
     SILFunction *silFn =
         IGM.getSILModule().lookUpFunction(SILDeclRef(decl).asForeign());
     assert(silFn && "missing SIL function?");
     return silFn ? IGM.getAddrOfSILFunction(silFn, NotForDefinition) : nullptr;
   }
 
-  if (isa<clang::ObjCInterfaceDecl>(clangDecl))
+  if (isa<language::Core::ObjCInterfaceDecl>(clangDecl))
     return IGM.getAddrOfObjCClass(cast<ClassDecl>(decl), NotForDefinition);
 
   toolchain::report_fatal_error("Unexpected clang decl kind");

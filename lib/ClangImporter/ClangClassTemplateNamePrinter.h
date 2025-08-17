@@ -19,7 +19,7 @@
 
 #include "ImportName.h"
 #include "language/AST/ASTContext.h"
-#include "clang/AST/DeclTemplate.h"
+#include "language/Core/AST/DeclTemplate.h"
 
 namespace language {
 namespace importer {
@@ -35,7 +35,7 @@ namespace importer {
 /// This function does not instantiate any templates and does not modify the AST
 /// in any way.
 std::string printClassTemplateSpecializationName(
-    const clang::ClassTemplateSpecializationDecl *decl, ASTContext &languageCtx,
+    const language::Core::ClassTemplateSpecializationDecl *decl, ASTContext &languageCtx,
     NameImporter *nameImporter, ImportNameVersion version);
 
 } // namespace importer

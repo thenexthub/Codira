@@ -77,9 +77,9 @@ class WasmSwiftSDK(product.Product):
             # unlikely support Wasm object format.
             native_toolchain_path = self.native_toolchain_path(self.args.host_target)
             cmake_options.define('CMAKE_AR', os.path.join(
-                native_toolchain_path, 'bin', 'llvm-ar'))
+                native_toolchain_path, 'bin', 'toolchain-ar'))
             cmake_options.define('CMAKE_RANLIB', os.path.join(
-                native_toolchain_path, 'bin', 'llvm-ranlib'))
+                native_toolchain_path, 'bin', 'toolchain-ranlib'))
 
     def _build_libxml2(self, language_host_triple, clang_multiarch_triple, has_pthread, wasi_sysroot):
         libxml2 = CMakeProduct(
@@ -188,7 +188,7 @@ class WasmSwiftSDK(product.Product):
         # at link-time.
         self._append_platform_cmake_options(
             language_testing.cmake_options, language_host_triple, has_pthread, wasi_sysroot,
-            extra_language_flags=['-Xfrontend', '-enable-single-module-llvm-emission'])
+            extra_language_flags=['-Xfrontend', '-enable-single-module-toolchain-emission'])
         language_testing.cmake_options.define('BUILD_SHARED_LIBS', 'FALSE')
         language_testing.cmake_options.define(
             'CMAKE_Swift_COMPILATION_MODE', 'wholemodule')
@@ -223,7 +223,7 @@ class WasmSwiftSDK(product.Product):
                        env={'DESTDIR': dest_dir})
 
     def _build_target_package(self, language_host_triple, clang_multiarch_triple, has_pthread,
-                              stdlib_build_path, llvm_runtime_libs_build_path,
+                              stdlib_build_path, toolchain_runtime_libs_build_path,
                               wasi_sysroot):
 
         dest_dir = self._target_package_path(language_host_triple)
@@ -236,7 +236,7 @@ class WasmSwiftSDK(product.Product):
                        env={'DESTDIR': dest_dir})
 
         # Copy clang builtin libraries
-        with shell.pushd(llvm_runtime_libs_build_path):
+        with shell.pushd(toolchain_runtime_libs_build_path):
             for dirname in ['clang', 'language/clang', 'language_static/clang']:
                 clang_dir = os.path.join(dest_dir, f'usr/lib/{dirname}')
                 shell.call([self.toolchain.cmake, '--install', '.',
@@ -259,7 +259,7 @@ class WasmSwiftSDK(product.Product):
         # 1. language_host_triple: The triple used by the Swift compiler's '-target' option
         # 2. clang_multiarch_triple: The triple used by Clang to find library
         #    and header paths from the sysroot
-        #    https://github.com/llvm/llvm-project/blob/73ef397fcba35b7b4239c00bf3e0b4e689ca0add/clang/lib/Driver/ToolChains/WebAssembly.cpp#L29-L36
+        #    https://github.com/toolchain/toolchain-project/blob/73ef397fcba35b7b4239c00bf3e0b4e689ca0add/clang/lib/Driver/ToolChains/WebAssembly.cpp#L29-L36
         for language_host_triple, clang_multiarch_triple, build_basename, build_sdk, has_pthread in [
             ('wasm32-unknown-wasip1', 'wasm32-wasip1', 'wasmstdlib', True, False),
             # TODO: Include p1-threads in the Swift SDK once sdk-generator supports multi-target SDK
@@ -270,12 +270,12 @@ class WasmSwiftSDK(product.Product):
                 build_root, '%s-%s' % (build_basename, host_target))
             wasi_sysroot = wasisysroot.WASILibc.sysroot_install_path(
                 build_root, clang_multiarch_triple)
-            llvm_runtime_libs_build_path = os.path.join(
-                build_root, '%s-%s' % ('wasmllvmruntimelibs', host_target),
+            toolchain_runtime_libs_build_path = os.path.join(
+                build_root, '%s-%s' % ('wasmtoolchainruntimelibs', host_target),
                 clang_multiarch_triple)
             package_path = self._build_target_package(
                 language_host_triple, clang_multiarch_triple, has_pthread, stdlib_build_path,
-                llvm_runtime_libs_build_path, wasi_sysroot)
+                toolchain_runtime_libs_build_path, wasi_sysroot)
             if build_sdk:
                 target_packages.append((language_host_triple, wasi_sysroot, package_path))
 

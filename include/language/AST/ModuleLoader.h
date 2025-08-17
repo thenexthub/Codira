@@ -43,7 +43,7 @@ class OutputBackend;
 } // namespace vfs
 } // namespace toolchain
 
-namespace clang {
+namespace language::Core {
 class DependencyCollector;
 namespace tooling {
 namespace dependencies {
@@ -92,7 +92,7 @@ enum class IntermoduleDepTrackingMode {
 };
 
 /// Records dependencies on files outside of the current module;
-/// implemented in terms of a wrapped clang::DependencyCollector.
+/// implemented in terms of a wrapped language::Core::DependencyCollector.
 class DependencyTracker {
 public:
   /// A representation of a first-class incremental dependency known to the
@@ -120,7 +120,7 @@ public:
   template <typename Dep>
   using PathArrayRefView = ArrayRefView<Dep, const std::string, getPath>;
 
-  std::shared_ptr<clang::DependencyCollector> clangCollector;
+  std::shared_ptr<language::Core::DependencyCollector> clangCollector;
   SmallVector<IncrementalDependency, 8> incrementalDeps;
   toolchain::StringSet<> incrementalDepsUniquer;
   toolchain::SetVector<MacroPluginDependency> macroPluginDeps;
@@ -173,9 +173,9 @@ public:
         getMacroPluginDependencies());
   }
 
-  /// Return the underlying clang::DependencyCollector that this
+  /// Return the underlying language::Core::DependencyCollector that this
   /// class wraps.
-  std::shared_ptr<clang::DependencyCollector> getClangCollector();
+  std::shared_ptr<language::Core::DependencyCollector> getClangCollector();
 };
 
 struct SubCompilerInstanceInfo {

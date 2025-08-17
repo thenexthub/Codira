@@ -96,7 +96,7 @@ However, `bpftrace` tends to work better if PID-based tracing is used instead.
 This is because `bpftrace` has a [known limitation where symbolication fails if
 the process being traced has existed before `bpftrace`
 does](https://github.com/bpftrace/bpftrace/issues/2118#issuecomment-1008694821).
-This can still be resolved using tools like `llvm-symbolizer`, but it's
+This can still be resolved using tools like `toolchain-symbolizer`, but it's
 trickier.
 
 You can pass the PID of your program to the script via the `-p` option, for

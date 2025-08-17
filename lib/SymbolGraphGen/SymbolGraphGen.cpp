@@ -21,7 +21,7 @@
 #include "language/AST/Module.h"
 #include "language/AST/NameLookup.h"
 #include "language/Sema/IDETypeChecking.h"
-#include "clang/Basic/Module.h"
+#include "language/Core/Basic/Module.h"
 #include "toolchain/ADT/STLExtras.h"
 #include "toolchain/Support/JSON.h"
 #include "toolchain/Support/Path.h"
@@ -69,8 +69,8 @@ int symbolgraphgen::emitSymbolGraphForModule(
     ModuleDecl *M, const SymbolGraphOptions &Options) {
   ModuleDecl::ImportCollector importCollector(Options.MinimumAccessLevel);
 
-  SmallPtrSet<const clang::Module *, 2> ExportedClangModules = {};
-  SmallPtrSet<const clang::Module *, 2> WildcardExportClangModules = {};
+  SmallPtrSet<const language::Core::Module *, 2> ExportedClangModules = {};
+  SmallPtrSet<const language::Core::Module *, 2> WildcardExportClangModules = {};
   if (const auto *ClangModule = M->findUnderlyingClangModule()) {
     // Scan through the Clang module's exports and collect them for later
     // handling

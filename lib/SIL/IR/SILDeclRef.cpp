@@ -28,12 +28,12 @@
 #include "language/SIL/SILLinkage.h"
 #include "language/SIL/SILLocation.h"
 #include "language/SILOptimizer/Utils/SpecializationMangler.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Attr.h"
-#include "clang/AST/Decl.h"
-#include "clang/AST/DeclCXX.h"
-#include "clang/AST/DeclObjC.h"
-#include "clang/AST/Mangle.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Attr.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/AST/DeclCXX.h"
+#include "language/Core/AST/DeclObjC.h"
+#include "language/Core/AST/Mangle.h"
 #include "toolchain/Support/Compiler.h"
 #include "toolchain/Support/raw_ostream.h"
 using namespace language;
@@ -280,7 +280,7 @@ bool SILDeclRef::isClangGenerated() const {
 
 // FIXME: this is a weird predicate.
 bool SILDeclRef::isClangGenerated(ClangNode node) {
-  if (auto nd = dyn_cast_or_null<clang::NamedDecl>(node.getAsDecl())) {
+  if (auto nd = dyn_cast_or_null<language::Core::NamedDecl>(node.getAsDecl())) {
     // ie, 'static inline' functions for which we must ask Clang to emit a body
     // for explicitly
     if (!nd->isExternallyVisible())
@@ -1177,7 +1177,7 @@ bool SILDeclRef::isBackDeploymentThunk() const {
 
 /// Use the Clang importer to mangle a Clang declaration.
 static void mangleClangDeclViaImporter(raw_ostream &buffer,
-                                       const clang::NamedDecl *clangDecl,
+                                       const language::Core::NamedDecl *clangDecl,
                                        ASTContext &ctx) {
   auto *importer = static_cast<ClangImporter *>(ctx.getClangModuleLoader());
   importer->getMangledName(buffer, clangDecl);
@@ -1186,12 +1186,12 @@ static void mangleClangDeclViaImporter(raw_ostream &buffer,
 static std::string mangleClangDecl(Decl *decl, bool isForeign) {
   auto clangDecl = decl->getClangDecl();
 
-  if (auto namedClangDecl = dyn_cast<clang::DeclaratorDecl>(clangDecl)) {
-    if (auto asmLabel = namedClangDecl->getAttr<clang::AsmLabelAttr>()) {
+  if (auto namedClangDecl = dyn_cast<language::Core::DeclaratorDecl>(clangDecl)) {
+    if (auto asmLabel = namedClangDecl->getAttr<language::Core::AsmLabelAttr>()) {
       std::string s(1, '\01');
       s += asmLabel->getLabel();
       return s;
-    } else if (namedClangDecl->hasAttr<clang::OverloadableAttr>() ||
+    } else if (namedClangDecl->hasAttr<language::Core::OverloadableAttr>() ||
                decl->getASTContext().LangOpts.EnableCXXInterop) {
       std::string storage;
       toolchain::raw_string_ostream SS(storage);
@@ -1199,12 +1199,12 @@ static std::string mangleClangDecl(Decl *decl, bool isForeign) {
       return SS.str();
     }
     return namedClangDecl->getName().str();
-  } else if (auto objcDecl = dyn_cast<clang::ObjCMethodDecl>(clangDecl)) {
+  } else if (auto objcDecl = dyn_cast<language::Core::ObjCMethodDecl>(clangDecl)) {
     if (objcDecl->isDirectMethod() && isForeign) {
       std::string storage;
       toolchain::raw_string_ostream SS(storage);
-      clang::ASTContext &ctx = clangDecl->getASTContext();
-      std::unique_ptr<clang::MangleContext> mangler(ctx.createMangleContext());
+      language::Core::ASTContext &ctx = clangDecl->getASTContext();
+      std::unique_ptr<language::Core::MangleContext> mangler(ctx.createMangleContext());
       mangler->mangleObjCMethodName(objcDecl, SS, /*includePrefixByte=*/true,
                                     /*includeCategoryNamespace=*/false);
       return SS.str();

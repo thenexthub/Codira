@@ -68,7 +68,7 @@
 #include "language/Demangling/ManglingMacros.h"
 #include "language/Parse/Lexer.h" // FIXME: Bad dependency
 #include "language/Strings.h"
-#include "clang/Lex/MacroInfo.h"
+#include "language/Core/Lex/MacroInfo.h"
 #include "toolchain/ADT/DenseMap.h"
 #include "toolchain/ADT/SmallPtrSet.h"
 #include "toolchain/ADT/SmallSet.h"
@@ -77,11 +77,11 @@
 #include "toolchain/Support/Compiler.h"
 #include "toolchain/Support/raw_ostream.h"
 
-#include "clang/Basic/CharInfo.h"
-#include "clang/Basic/Module.h"
-#include "clang/Basic/TargetInfo.h"
-#include "clang/AST/Attr.h"
-#include "clang/AST/DeclObjC.h"
+#include "language/Core/Basic/CharInfo.h"
+#include "language/Core/Basic/Module.h"
+#include "language/Core/Basic/TargetInfo.h"
+#include "language/Core/AST/Attr.h"
+#include "language/Core/AST/DeclObjC.h"
 
 #include "InlinableText.h"
 #include <algorithm>
@@ -105,39 +105,39 @@ static_assert(IsTriviallyDestructible<ParameterList>::value,
 static_assert(IsTriviallyDestructible<GenericParamList>::value,
               "GenericParamLists are BumpPtrAllocated; the d'tor isn't called");
 
-const clang::MacroInfo *ClangNode::getAsMacro() const {
+const language::Core::MacroInfo *ClangNode::getAsMacro() const {
   if (auto MM = getAsModuleMacro())
     return MM->getMacroInfo();
   return getAsMacroInfo();
 }
 
-clang::SourceLocation ClangNode::getLocation() const {
+language::Core::SourceLocation ClangNode::getLocation() const {
   if (auto D = getAsDecl())
     return D->getLocation();
   if (auto M = getAsMacro())
     return M->getDefinitionLoc();
 
-  return clang::SourceLocation();
+  return language::Core::SourceLocation();
 }
 
-clang::SourceRange ClangNode::getSourceRange() const {
+language::Core::SourceRange ClangNode::getSourceRange() const {
   if (auto D = getAsDecl())
     return D->getSourceRange();
   if (auto M = getAsMacro())
-    return clang::SourceRange(M->getDefinitionLoc(), M->getDefinitionEndLoc());
+    return language::Core::SourceRange(M->getDefinitionLoc(), M->getDefinitionEndLoc());
 
-  return clang::SourceLocation();
+  return language::Core::SourceLocation();
 }
 
-const clang::Module *ClangNode::getClangModule() const {
+const language::Core::Module *ClangNode::getClangModule() const {
   if (auto *M = getAsModule())
     return M;
-  if (auto *ID = dyn_cast_or_null<clang::ImportDecl>(getAsDecl()))
+  if (auto *ID = dyn_cast_or_null<language::Core::ImportDecl>(getAsDecl()))
     return ID->getImportedModule();
   return nullptr;
 }
 
-const clang::Module *ClangNode::getOwningClangModule() const {
+const language::Core::Module *ClangNode::getOwningClangModule() const {
   if (auto *M = getAsModule())
     return M;
   if (auto D = getAsDecl())
@@ -1692,7 +1692,7 @@ ImportDecl *ImportDecl::create(ASTContext &Ctx, DeclContext *DC,
   assert(!Path.empty());
   assert(Kind == ImportKind::Module || Path.size() > 1);
   assert(ClangN.isNull() || ClangN.getAsModule() ||
-         isa<clang::ImportDecl>(ClangN.getAsDecl()));
+         isa<language::Core::ImportDecl>(ClangN.getAsDecl()));
   size_t Size = totalSizeToAlloc<ImportPath::Element>(Path.size());
   void *ptr = allocateMemoryForDecl<ImportDecl>(Ctx, Size, !ClangN.isNull());
   auto D = new (ptr) ImportDecl(DC, ImportLoc, Kind, KindLoc, Path);
@@ -4582,8 +4582,8 @@ void ValueDecl::setInterfaceType(Type type) {
 
 StringRef ValueDecl::getCDeclName() const {
   // Treat imported C functions as implicitly @_cdecl.
-  if (auto clangDecl = dyn_cast_or_null<clang::FunctionDecl>(getClangDecl())) {
-    if (clangDecl->getLanguageLinkage() == clang::CLanguageLinkage
+  if (auto clangDecl = dyn_cast_or_null<language::Core::FunctionDecl>(getClangDecl())) {
+    if (clangDecl->getLanguageLinkage() == language::Core::CLanguageLinkage
           && clangDecl->getIdentifier())
       return clangDecl->getName();
   }
@@ -4960,25 +4960,25 @@ bool ValueDecl::shouldHideFromEditor() const {
       if (AFD->getForeignAsyncConvention().has_value()) {
         // For imported 'async' declarations, visibility can be controlled by
         // 'language_async(...)' attribute.
-        if (auto *asyncAttr = ClangD->getAttr<clang::CodiraAsyncAttr>()) {
+        if (auto *asyncAttr = ClangD->getAttr<language::Core::CodiraAsyncAttr>()) {
           bypassCodiraPrivate = true;
           switch (asyncAttr->getKind()) {
-          case clang::CodiraAsyncAttr::None:
+          case language::Core::CodiraAsyncAttr::None:
             // Should be unreachable.
             return true;
-          case clang::CodiraAsyncAttr::CodiraPrivate:
+          case language::Core::CodiraAsyncAttr::CodiraPrivate:
             // Hide 'language_async(language_private, ...)'.
             return true;
-          case clang::CodiraAsyncAttr::NotCodiraPrivate:
+          case language::Core::CodiraAsyncAttr::NotCodiraPrivate:
             break;
           }
-        } else if (ClangD->getAttr<clang::CodiraAsyncNameAttr>()) {
+        } else if (ClangD->getAttr<language::Core::CodiraAsyncNameAttr>()) {
           // Manually specifying the name bypasses 'language_private' attr.
           bypassCodiraPrivate = true;
         }
       }
     }
-    if (!bypassCodiraPrivate && ClangD->hasAttr<clang::CodiraPrivateAttr>())
+    if (!bypassCodiraPrivate && ClangD->hasAttr<language::Core::CodiraPrivateAttr>())
       return true;
   }
 
@@ -6853,7 +6853,7 @@ StringRef ClassDecl::getObjCRuntimeName(
 
   // If there is a Clang declaration, use it's runtime name.
   if (auto objcClass
-        = dyn_cast_or_null<clang::ObjCInterfaceDecl>(getClangDecl()))
+        = dyn_cast_or_null<language::Core::ObjCInterfaceDecl>(getClangDecl()))
     return objcClass->getObjCRuntimeNameAsString();
 
   // If there is an 'objc' attribute with a name, use that name.
@@ -6955,7 +6955,7 @@ bool ClassDecl::walkSuperclasses(
 }
 
 bool ClassDecl::isForeignReferenceType() const {
-  auto clangRecordDecl = dyn_cast_or_null<clang::RecordDecl>(getClangDecl());
+  auto clangRecordDecl = dyn_cast_or_null<language::Core::RecordDecl>(getClangDecl());
   if (!clangRecordDecl)
     return false;
 
@@ -8943,13 +8943,13 @@ void VarDecl::emitLetToVarNoteIfSimple(DeclContext *UseDC) const {
   }
 }
 
-clang::PointerAuthQualifier VarDecl::getPointerAuthQualifier() const {
+language::Core::PointerAuthQualifier VarDecl::getPointerAuthQualifier() const {
   if (auto *clangDecl = getClangDecl()) {
-    if (auto *valueDecl = dyn_cast<clang::ValueDecl>(clangDecl)) {
+    if (auto *valueDecl = dyn_cast<language::Core::ValueDecl>(clangDecl)) {
       return valueDecl->getType().getPointerAuth();
     }
   }
-  return clang::PointerAuthQualifier();
+  return language::Core::PointerAuthQualifier();
 }
 
 ParamDecl::ParamDecl(SourceLoc specifierLoc, SourceLoc argumentNameLoc,
@@ -11876,7 +11876,7 @@ Type TypeBase::getCodiraNewtypeUnderlyingType() {
 
   // Make sure the clang node has language_newtype attribute
   auto clangNode = structDecl->getClangDecl();
-  if (!clangNode || !clangNode->hasAttr<clang::CodiraNewTypeAttr>())
+  if (!clangNode || !clangNode->hasAttr<language::Core::CodiraNewTypeAttr>())
     return {};
 
   // Underlying type is the type of rawValue
@@ -12145,7 +12145,7 @@ struct DeclTraceFormatter : public UnifiedStatsReporter::TraceFormatter {
     }
   }
   void traceLoc(const void *Entity, SourceManager *SM,
-                clang::SourceManager *CSM, raw_ostream &OS) const override {
+                language::Core::SourceManager *CSM, raw_ostream &OS) const override {
     if (!Entity)
       return;
     const Decl *D = static_cast<const Decl *>(Entity);

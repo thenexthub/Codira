@@ -21,11 +21,11 @@
 #include "language/Migrator/FixitApplyDiagnosticConsumer.h"
 #include "language/Migrator/Migrator.h"
 #include "language/Migrator/RewriteBufferEditsReceiver.h"
-#include "clang/Basic/Diagnostic.h"
-#include "clang/Basic/FileManager.h"
-#include "clang/Basic/SourceManager.h"
-#include "clang/Edit/EditedSource.h"
-#include "clang/Rewrite/Core/RewriteBuffer.h"
+#include "language/Core/Basic/Diagnostic.h"
+#include "language/Core/Basic/FileManager.h"
+#include "language/Core/Basic/SourceManager.h"
+#include "language/Core/Edit/EditedSource.h"
+#include "language/Core/Rewrite/Core/RewriteBuffer.h"
 #include "toolchain/Support/CommandLine.h"
 #include "toolchain/Support/FileSystem.h"
 
@@ -189,21 +189,21 @@ Migrator::performAFixItMigration(version::Version CodiraLanguageVersion) {
 }
 
 bool Migrator::performSyntacticPasses(SyntacticPassOptions Opts) {
-  clang::FileSystemOptions ClangFileSystemOptions;
-  clang::FileManager ClangFileManager { ClangFileSystemOptions };
+  language::Core::FileSystemOptions ClangFileSystemOptions;
+  language::Core::FileManager ClangFileManager { ClangFileSystemOptions };
 
-  toolchain::IntrusiveRefCntPtr<clang::DiagnosticIDs> DummyClangDiagIDs {
-    new clang::DiagnosticIDs()
+  toolchain::IntrusiveRefCntPtr<language::Core::DiagnosticIDs> DummyClangDiagIDs {
+    new language::Core::DiagnosticIDs()
   };
   auto ClangDiags =
-    std::make_unique<clang::DiagnosticsEngine>(DummyClangDiagIDs,
-                                                new clang::DiagnosticOptions,
-                                                new clang::DiagnosticConsumer(),
+    std::make_unique<language::Core::DiagnosticsEngine>(DummyClangDiagIDs,
+                                                new language::Core::DiagnosticOptions,
+                                                new language::Core::DiagnosticConsumer(),
                                                 /*ShouldOwnClient=*/true);
 
-  clang::SourceManager ClangSourceManager { *ClangDiags, ClangFileManager };
-  clang::LangOptions ClangLangOpts;
-  clang::edit::EditedSource Edits { ClangSourceManager, ClangLangOpts };
+  language::Core::SourceManager ClangSourceManager { *ClangDiags, ClangFileManager };
+  language::Core::LangOptions ClangLangOpts;
+  language::Core::edit::EditedSource Edits { ClangSourceManager, ClangLangOpts };
 
   auto InputState = States.back();
   auto InputText = InputState->getOutputText();

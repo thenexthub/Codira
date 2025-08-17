@@ -25,13 +25,13 @@
 #include "language/Markup/XMLUtils.h"
 #include "language/Subsystems.h"
 
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/DeclObjC.h"
-#include "clang/Basic/Module.h"
-#include "clang/Basic/SourceManager.h"
-#include "clang/Index/USRGeneration.h"
-#include "clang/Lex/Lexer.h"
-#include "clang/Basic/CharInfo.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/DeclObjC.h"
+#include "language/Core/Basic/Module.h"
+#include "language/Core/Basic/SourceManager.h"
+#include "language/Core/Index/USRGeneration.h"
+#include "language/Core/Lex/Lexer.h"
+#include "language/Core/Basic/CharInfo.h"
 
 #include "toolchain/Support/MemoryBuffer.h"
 

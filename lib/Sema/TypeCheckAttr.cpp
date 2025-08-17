@@ -52,7 +52,7 @@
 #include "language/Parse/Lexer.h"
 #include "language/Parse/ParseDeclName.h"
 #include "language/Sema/IDETypeChecking.h"
-#include "clang/Basic/CharInfo.h"
+#include "language/Core/Basic/CharInfo.h"
 #include "toolchain/ADT/MapVector.h"
 #include "toolchain/ADT/STLExtras.h"
 #include "toolchain/Support/Debug.h"
@@ -886,7 +886,7 @@ void AttributeChecker::visitIBSegueActionAttr(IBSegueActionAttr *attr) {
   /// sequence of lowercase characters.
   auto replacingPrefix = [&](Identifier oldName) -> Identifier {
     SmallString<32> scratch = prefix;
-    scratch += oldName.str().drop_while(clang::isLowercase);
+    scratch += oldName.str().drop_while(language::Core::isLowercase);
     return Ctx.getIdentifier(scratch);
   };
 
@@ -2522,7 +2522,7 @@ void AttributeChecker::visitExternAttr(ExternAttr *attr) {
     StringRef cName = attr->getCName(FD);
     if (cName.empty()) {
       diagnose(attr->getLocation(), diag::extern_empty_c_name);
-    } else if (!attr->Name.has_value() && !clang::isValidAsciiIdentifier(cName)) {
+    } else if (!attr->Name.has_value() && !language::Core::isValidAsciiIdentifier(cName)) {
       // Warn non ASCII identifiers if it's *implicitly* specified. The C standard allows
       // Universal Character Names in identifiers, but clang doesn't provide
       // an easy way to validate them, so we warn identifers that is potentially

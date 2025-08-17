@@ -50,14 +50,14 @@
 #include "language/Demangling/ManglingMacros.h"
 #include "language/Demangling/ManglingUtils.h"
 #include "language/Strings.h"
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Attr.h"
-#include "clang/AST/Decl.h"
-#include "clang/AST/DeclCXX.h"
-#include "clang/AST/DeclObjC.h"
-#include "clang/AST/DeclTemplate.h"
-#include "clang/AST/Mangle.h"
-#include "clang/Basic/CharInfo.h"
+#include "language/Core/AST/ASTContext.h"
+#include "language/Core/AST/Attr.h"
+#include "language/Core/AST/Decl.h"
+#include "language/Core/AST/DeclCXX.h"
+#include "language/Core/AST/DeclObjC.h"
+#include "language/Core/AST/DeclTemplate.h"
+#include "language/Core/AST/Mangle.h"
+#include "language/Core/Basic/CharInfo.h"
 #include "toolchain/ADT/DenseMap.h"
 #include "toolchain/ADT/STLExtras.h"
 #include "toolchain/ADT/SmallString.h"
@@ -362,14 +362,14 @@ std::string ASTMangler::mangleGlobalVariableFull(const VarDecl *decl) {
 
   // Clang globals get mangled using Clang's mangler.
   if (auto clangDecl =
-      dyn_cast_or_null<clang::DeclaratorDecl>(decl->getClangDecl())) {
-    if (auto asmLabel = clangDecl->getAttr<clang::AsmLabelAttr>()) {
+      dyn_cast_or_null<language::Core::DeclaratorDecl>(decl->getClangDecl())) {
+    if (auto asmLabel = clangDecl->getAttr<language::Core::AsmLabelAttr>()) {
       Buffer << '\01' << asmLabel->getLabel();
     } else {
       if (clangDecl->getDeclContext()->isTranslationUnit()) {
         Buffer << clangDecl->getName();
       } else {
-        std::unique_ptr<clang::MangleContext> mangler(
+        std::unique_ptr<language::Core::MangleContext> mangler(
             decl->getClangDecl()->getASTContext().createMangleContext());
         mangler->mangleName(clangDecl, Buffer);
       }
@@ -656,7 +656,7 @@ void ASTMangler::beginManglingWithAutoDiffOriginalFunction(
     return;
   }
 
-  auto beginManglingClangDecl = [&](const clang::NamedDecl *decl) {
+  auto beginManglingClangDecl = [&](const language::Core::NamedDecl *decl) {
     beginManglingWithoutPrefix();
     appendOperator(decl->getName());
   };
@@ -1178,7 +1178,7 @@ static StringRef getPrivateDiscriminatorIfNecessary(const Decl *decl) {
   assert(!isNonAscii(discriminator.str()) &&
          "discriminator contains non-ASCII characters");
   (void)&isNonAscii;
-  assert(!clang::isDigit(discriminator.str().front()) &&
+  assert(!language::Core::isDigit(discriminator.str().front()) &&
          "not a valid identifier");
   return discriminator.str();
 }
@@ -2550,9 +2550,9 @@ ASTMangler::getSpecialManglingContext(const ValueDecl *decl,
 
   // Nested types imported from C should also get use the special "So" context.
   if (isa<TypeDecl>(decl)) {
-    if (auto *clangDecl = cast_or_null<clang::NamedDecl>(decl->getClangDecl())){
+    if (auto *clangDecl = cast_or_null<language::Core::NamedDecl>(decl->getClangDecl())){
       bool hasNameForLinkage;
-      if (auto *tagDecl = dyn_cast<clang::TagDecl>(clangDecl))
+      if (auto *tagDecl = dyn_cast<language::Core::TagDecl>(clangDecl))
         // Clang does not always populate the fields that determine if a tag
         // decl has a linkage name. This is particularly the case for the
         // C++ definition of CF_OPTIONS in the sdk. However, we use the
@@ -2568,8 +2568,8 @@ ASTMangler::getSpecialManglingContext(const ValueDecl *decl,
         //   struct Foo { struct Bar { }; }; -> struct Foo { }; struct Bar { };
         // Whereas in C++, nested records will actually be nested. So if this is
         // a C++ record, simply treat it like a namespace and exit early.
-        if (isa<clang::NamespaceDecl>(clangDC) ||
-            isa<clang::CXXRecordDecl>(clangDC))
+        if (isa<language::Core::NamespaceDecl>(clangDC) ||
+            isa<language::Core::CXXRecordDecl>(clangDC))
           return std::nullopt;
         assert(clangDC->getRedeclContext()->isTranslationUnit() &&
                "non-top-level Clang types not supported yet");
@@ -2855,7 +2855,7 @@ void ASTMangler::appendProtocolName(const ProtocolDecl *protocol,
   BaseEntitySignature base(protocol);
   appendContextOf(protocol, base);
   auto *clangDecl = protocol->getClangDecl();
-  auto clangProto = cast_or_null<clang::ObjCProtocolDecl>(clangDecl);
+  auto clangProto = cast_or_null<language::Core::ObjCProtocolDecl>(clangDecl);
   if (clangProto && UseObjCRuntimeNames)
     appendIdentifier(clangProto->getObjCRuntimeNameAsString());
   else if (clangProto)
@@ -2868,9 +2868,9 @@ bool ASTMangler::isCXXCFOptionsDefinition(const ValueDecl *decl) {
   return getTypeDefForCXXCFOptionsDefinition(decl);
 }
 
-const clang::TypedefType *
+const language::Core::TypedefType *
 ASTMangler::getTypeDefForCXXCFOptionsDefinition(const ValueDecl *decl) {
-  const clang::Decl *clangDecl = decl->getClangDecl();
+  const language::Core::Decl *clangDecl = decl->getClangDecl();
   if (!clangDecl)
     return nullptr;
 
@@ -2878,16 +2878,16 @@ ASTMangler::getTypeDefForCXXCFOptionsDefinition(const ValueDecl *decl) {
   return clangModuleLoader->getTypeDefForCXXCFOptionsDefinition(clangDecl);
 }
 
-const clang::NamedDecl *
+const language::Core::NamedDecl *
 ASTMangler::getClangDeclForMangling(const ValueDecl *vd) {
-  auto namedDecl = dyn_cast_or_null<clang::NamedDecl>(vd->getClangDecl());
+  auto namedDecl = dyn_cast_or_null<language::Core::NamedDecl>(vd->getClangDecl());
   if (!namedDecl)
     return nullptr;
 
   // Use an anonymous enum's enclosing typedef for the mangled name, if
   // present. This matches C++'s rules for linkage names of tag declarations.
   if (namedDecl->getDeclName().isEmpty())
-    if (auto *tagDecl = dyn_cast<clang::TagDecl>(namedDecl))
+    if (auto *tagDecl = dyn_cast<language::Core::TagDecl>(namedDecl))
       if (auto *typedefDecl = tagDecl->getTypedefNameForAnonDecl())
         namedDecl = typedefDecl;
 
@@ -3150,18 +3150,18 @@ void ASTMangler::appendAnyGenericType(const GenericTypeDecl *decl,
     // Mangle `Foo` from `namespace Bar { class Foo; } using Bar::Foo;` the same
     // way as if we spelled `Bar.Foo` explicitly.
     if (const auto *usingShadowDecl =
-            dyn_cast<clang::UsingShadowDecl>(namedDecl))
+            dyn_cast<language::Core::UsingShadowDecl>(namedDecl))
       namedDecl = usingShadowDecl->getTargetDecl();
 
     // Mangle ObjC classes using their runtime names.
-    auto interface = dyn_cast<clang::ObjCInterfaceDecl>(namedDecl);
-    auto protocol = dyn_cast<clang::ObjCProtocolDecl>(namedDecl);
+    auto interface = dyn_cast<language::Core::ObjCInterfaceDecl>(namedDecl);
+    auto protocol = dyn_cast<language::Core::ObjCProtocolDecl>(namedDecl);
     
     if (UseObjCRuntimeNames && interface) {
       appendIdentifier(interface->getObjCRuntimeNameAsString());
     } else if (UseObjCRuntimeNames && protocol) {
       appendIdentifier(protocol->getObjCRuntimeNameAsString());
-    } else if (isa<clang::ClassTemplateSpecializationDecl>(namedDecl)) {
+    } else if (isa<language::Core::ClassTemplateSpecializationDecl>(namedDecl)) {
       // If this is a `ClassTemplateSpecializationDecl`, it was
       // imported as a Codira decl with `__CxxTemplateInst...` name.
       // `ClassTemplateSpecializationDecl`'s name does not include information about
@@ -3181,18 +3181,18 @@ void ASTMangler::appendAnyGenericType(const GenericTypeDecl *decl,
       appendOperator("C");
     } else if (protocol) {
       appendOperator("P");
-    } else if (isa<clang::TagDecl>(namedDecl)) {
+    } else if (isa<language::Core::TagDecl>(namedDecl)) {
       // Note: This includes enums, but that's okay. A Clang enum is not always
       // imported as a Codira enum.
       appendOperator("V");
-    } else if (isa<clang::TypedefNameDecl>(namedDecl) ||
-               isa<clang::ObjCCompatibleAliasDecl>(namedDecl)) {
+    } else if (isa<language::Core::TypedefNameDecl>(namedDecl) ||
+               isa<language::Core::ObjCCompatibleAliasDecl>(namedDecl)) {
       appendOperator("a");
-    } else if (isa<clang::NamespaceDecl>(namedDecl)) {
+    } else if (isa<language::Core::NamespaceDecl>(namedDecl)) {
       // Note: Namespaces are not really enums, but since namespaces are
       // imported as enums, be consistent.
       appendOperator("O");
-    } else if (isa<clang::ClassTemplateDecl>(namedDecl)) {
+    } else if (isa<language::Core::ClassTemplateDecl>(namedDecl)) {
       appendIdentifier(nominal->getName().str(),
                        /*allowRawIdentifiers=*/false);
     } else {
@@ -3325,11 +3325,11 @@ void ASTMangler::appendClangType(FnType *fn, toolchain::raw_svector_ostream &out
   auto clangType = fn->getClangTypeInfo().getType();
   SmallString<64> scratch;
   toolchain::raw_svector_ostream scratchOS(scratch);
-  clang::ASTContext &clangCtx =
+  language::Core::ASTContext &clangCtx =
       Context.getClangModuleLoader()->getClangASTContext();
-  std::unique_ptr<clang::ItaniumMangleContext> mangler{
-      clang::ItaniumMangleContext::create(clangCtx, clangCtx.getDiagnostics())};
-  mangler->mangleCanonicalTypeName(clang::QualType(clangType, 0), scratchOS);
+  std::unique_ptr<language::Core::ItaniumMangleContext> mangler{
+      language::Core::ItaniumMangleContext::create(clangCtx, clangCtx.getDiagnostics())};
+  mangler->mangleCanonicalTypeName(language::Core::QualType(clangType, 0), scratchOS);
   out << scratchOS.str().size() << scratchOS.str();
 }
 
@@ -5028,7 +5028,7 @@ static StringRef getPrivateDiscriminatorIfNecessary(
   assert(!isNonAscii(discriminator.str()) &&
          "discriminator contains non-ASCII characters");
   (void)&isNonAscii;
-  assert(!clang::isDigit(discriminator.str().front()) &&
+  assert(!language::Core::isDigit(discriminator.str().front()) &&
          "not a valid identifier");
   return discriminator.str();
 }

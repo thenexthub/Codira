@@ -62,7 +62,7 @@ int main() {
   CHECK((var_addr(&var4) & (getpagesize() - 1)) == 0);
 
   // TODO: These TLS accesses are broken with the current version of LLD. See
-  // https://github.com/llvm/llvm-project/issues/84743.
+  // https://github.com/toolchain/toolchain-project/issues/84743.
 #if !defined(__riscv)
   CHECK(var1.field == 13);
   CHECK(var2.field == 17);

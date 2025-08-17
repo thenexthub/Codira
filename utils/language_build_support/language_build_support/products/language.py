@@ -17,7 +17,7 @@ from build_language.build_language.constants import SWIFT_REPO_NAME
 from . import cmark
 from . import earlylanguagedriver
 from . import libcxx
-from . import llvm
+from . import toolchain
 from . import product
 from . import staticlanguagelinux
 from ..cmake import CMakeOptions
@@ -155,7 +155,7 @@ updated without updating language.py?")
 
         return [
             ('SWIFT_VENDOR', 'Apple'),
-            ('SWIFT_VENDOR_UTI', 'com.apple.compilers.llvm.language'),
+            ('SWIFT_VENDOR_UTI', 'com.apple.compilers.toolchain.language'),
 
             # This has a default of 3.0, so it should be safe to use here.
             ('SWIFT_VERSION', str(self.args.language_user_visible_version)),
@@ -339,6 +339,6 @@ updated without updating language.py?")
     def get_dependencies(cls):
         return [cmark.CMark,
                 earlylanguagedriver.EarlyLanguageDriver,
-                llvm.LLVM,
+                toolchain.LLVM,
                 staticlanguagelinux.StaticLanguageLinuxConfig,
                 libcxx.LibCXX]

@@ -27,8 +27,8 @@
 #include "language/AST/SimpleRequest.h"
 #include "language/Basic/Statistic.h"
 #include "language/ClangImporter/ClangImporter.h"
-#include "clang/AST/Type.h"
-#include "clang/Basic/Specifiers.h"
+#include "language/Core/AST/Type.h"
+#include "language/Core/Basic/Specifiers.h"
 #include "toolchain/ADT/Hashing.h"
 #include "toolchain/ADT/TinyPtrVector.h"
 
@@ -41,10 +41,10 @@ enum class ExplicitSafety;
 /// The input type for a clang direct lookup request.
 struct ClangDirectLookupDescriptor final {
   Decl *decl;
-  const clang::Decl *clangDecl;
+  const language::Core::Decl *clangDecl;
   DeclName name;
 
-  ClangDirectLookupDescriptor(Decl *decl, const clang::Decl *clangDecl,
+  ClangDirectLookupDescriptor(Decl *decl, const language::Core::Decl *clangDecl,
                               DeclName name)
       : decl(decl), clangDecl(clangDecl), name(name) {}
 
@@ -69,8 +69,8 @@ void simple_display(toolchain::raw_ostream &out,
 SourceLoc extractNearestSourceLoc(const ClangDirectLookupDescriptor &desc);
 
 /// This matches CodiraLookupTable::SingleEntry;
-using SingleEntry = toolchain::PointerUnion<clang::NamedDecl *, clang::MacroInfo *,
-                                       clang::ModuleMacro *>;
+using SingleEntry = toolchain::PointerUnion<language::Core::NamedDecl *, language::Core::MacroInfo *,
+                                       language::Core::ModuleMacro *>;
 /// Uses the appropriate CodiraLookupTable to find a set of clang decls given
 /// their name.
 class ClangDirectLookupRequest
@@ -96,7 +96,7 @@ struct CXXNamespaceMemberLookupDescriptor final {
 
   CXXNamespaceMemberLookupDescriptor(EnumDecl *namespaceDecl, DeclName name)
       : namespaceDecl(namespaceDecl), name(name) {
-    assert(isa<clang::NamespaceDecl>(namespaceDecl->getClangDecl()));
+    assert(isa<language::Core::NamespaceDecl>(namespaceDecl->getClangDecl()));
   }
 
   friend toolchain::hash_code
@@ -151,7 +151,7 @@ struct ClangRecordMemberLookupDescriptor final {
   ClangRecordMemberLookupDescriptor(NominalTypeDecl *recordDecl, DeclName name)
       : recordDecl(recordDecl), inheritingDecl(recordDecl), name(name),
         inheritance() {
-    assert(isa<clang::RecordDecl>(recordDecl->getClangDecl()));
+    assert(isa<language::Core::RecordDecl>(recordDecl->getClangDecl()));
   }
 
   friend toolchain::hash_code
@@ -182,8 +182,8 @@ private:
                                     ClangInheritanceInfo inheritance)
       : recordDecl(recordDecl), inheritingDecl(inheritingDecl), name(name),
         inheritance(inheritance) {
-    assert(isa<clang::RecordDecl>(recordDecl->getClangDecl()));
-    assert(isa<clang::CXXRecordDecl>(inheritingDecl->getClangDecl()));
+    assert(isa<language::Core::RecordDecl>(recordDecl->getClangDecl()));
+    assert(isa<language::Core::CXXRecordDecl>(inheritingDecl->getClangDecl()));
     assert(inheritance.isInheriting() &&
            "recursive calls should indicate inheritance");
     assert(recordDecl != inheritingDecl &&
@@ -248,10 +248,10 @@ SourceLoc extractNearestSourceLoc(const ClangCategoryLookupDescriptor &desc);
 ///
 /// That is, this request will return one of:
 ///
-/// \li a single \c language::ExtensionDecl backed by a \c clang::ObjCCategoryDecl
-/// \li a \c language::ClassDecl backed by a \c clang::ObjCInterfaceDecl, plus
+/// \li a single \c language::ExtensionDecl backed by a \c language::Core::ObjCCategoryDecl
+/// \li a \c language::ClassDecl backed by a \c language::Core::ObjCInterfaceDecl, plus
 ///     zero or more \c language::ExtensionDecl s backed by 
-///     \c clang::ObjCCategoryDecl s (representing ObjC class extensions).
+///     \c language::Core::ObjCCategoryDecl s (representing ObjC class extensions).
 /// \li an empty list if the class is not imported from Clang or it does not
 ///     have a category by that name.
 class ClangCategoryLookupRequest
@@ -360,11 +360,11 @@ enum class CxxRecordSemanticsKind {
 };
 
 struct CxxRecordSemanticsDescriptor final {
-  const clang::RecordDecl *decl;
+  const language::Core::RecordDecl *decl;
   ASTContext &ctx;
   ClangImporter::Implementation *importerImpl;
 
-  CxxRecordSemanticsDescriptor(const clang::RecordDecl *decl, ASTContext &ctx,
+  CxxRecordSemanticsDescriptor(const language::Core::RecordDecl *decl, ASTContext &ctx,
                                ClangImporter::Implementation *importerImpl)
       : decl(decl), ctx(ctx), importerImpl(importerImpl) {}
 
@@ -430,9 +430,9 @@ private:
 };
 
 struct SafeUseOfCxxDeclDescriptor final {
-  const clang::Decl *decl;
+  const language::Core::Decl *decl;
 
-  SafeUseOfCxxDeclDescriptor(const clang::Decl *decl) : decl(decl) {}
+  SafeUseOfCxxDeclDescriptor(const language::Core::Decl *decl) : decl(decl) {}
 
   friend toolchain::hash_code hash_value(const SafeUseOfCxxDeclDescriptor &desc) {
     return toolchain::hash_combine(desc.decl);
@@ -539,7 +539,7 @@ private:
 enum class CxxEscapability { Escapable, NonEscapable, Unknown };
 
 struct EscapabilityLookupDescriptor final {
-  const clang::Type *type;
+  const language::Core::Type *type;
   ClangImporter::Implementation *impl;
   // Only explicitly ~Escapable annotated types are considered ~Escapable.
   // This is for backward compatibility, so we continue to import aggregates
@@ -581,10 +581,10 @@ void simple_display(toolchain::raw_ostream &out, EscapabilityLookupDescriptor de
 SourceLoc extractNearestSourceLoc(EscapabilityLookupDescriptor desc);
 
 struct CxxDeclExplicitSafetyDescriptor final {
-  const clang::Decl *decl;
+  const language::Core::Decl *decl;
   bool isClass;
 
-  CxxDeclExplicitSafetyDescriptor(const clang::Decl *decl, bool isClass)
+  CxxDeclExplicitSafetyDescriptor(const language::Core::Decl *decl, bool isClass)
       : decl(decl), isClass(isClass) {}
 
   friend toolchain::hash_code

@@ -31,13 +31,13 @@
 #include "language/ClangImporter/ClangModule.h"
 #include "language/IDE/ModuleInterfacePrinting.h"
 #include "language/Index/Index.h"
-#include "clang/Basic/FileManager.h"
-#include "clang/Frontend/CompilerInstance.h"
-#include "clang/Index/IndexRecordWriter.h"
-#include "clang/Index/IndexUnitWriter.h"
-#include "clang/Index/IndexingAction.h"
-#include "clang/Lex/Preprocessor.h"
-#include "clang/Serialization/ASTReader.h"
+#include "language/Core/Basic/FileManager.h"
+#include "language/Core/Frontend/CompilerInstance.h"
+#include "language/Core/Index/IndexRecordWriter.h"
+#include "language/Core/Index/IndexUnitWriter.h"
+#include "language/Core/Index/IndexingAction.h"
+#include "language/Core/Lex/Preprocessor.h"
+#include "language/Core/Serialization/ASTReader.h"
 #include "toolchain/Support/BLAKE3.h"
 #include "toolchain/Support/Error.h"
 #include "toolchain/Support/HashBuilder.h"
@@ -45,10 +45,10 @@
 
 using namespace language;
 using namespace language::index;
-using clang::index::IndexUnitWriter;
-using clang::index::IndexRecordWriter;
-using clang::index::SymbolRole;
-using clang::index::SymbolRoleSet;
+using language::Core::index::IndexUnitWriter;
+using language::Core::index::IndexRecordWriter;
+using language::Core::index::SymbolRole;
+using language::Core::index::SymbolRoleSet;
 
 //===----------------------------------------------------------------------===//
 // Index data collection and record writing
@@ -331,7 +331,7 @@ static bool writeRecord(SymbolTracker &record, std::string Filename,
   }
 
   for (auto &occurrence : record.getOccurrences()) {
-    SmallVector<clang::index::writer::SymbolRelation, 3> relations;
+    SmallVector<language::Core::index::writer::SymbolRelation, 3> relations;
     for(SymbolTracker::SymbolRelation symbolRelation: occurrence.related) {
       relations.push_back({record.getSymbol(symbolRelation.symbolIndex), symbolRelation.roles});
     }
@@ -342,10 +342,10 @@ static bool writeRecord(SymbolTracker &record, std::string Filename,
   }
 
   result = recordWriter.endRecord(error,
-      [&](clang::index::writer::OpaqueDecl opaqueSymbol,
+      [&](language::Core::index::writer::OpaqueDecl opaqueSymbol,
           SmallVectorImpl<char> &scratch) {
     auto *symbol = static_cast<const SymbolTracker::Symbol *>(opaqueSymbol);
-    clang::index::writer::Symbol result;
+    language::Core::index::writer::Symbol result;
     result.SymInfo = symbol->symInfo;
     result.Name = symbol->name;
     result.USR = symbol->USR;
@@ -406,10 +406,10 @@ public:
 };
 }
 
-static clang::index::writer::ModuleInfo
-getModuleInfoFromOpaqueModule(clang::index::writer::OpaqueModule mod,
+static language::Core::index::writer::ModuleInfo
+getModuleInfoFromOpaqueModule(language::Core::index::writer::OpaqueModule mod,
                               SmallVectorImpl<char> &Scratch) {
-  clang::index::writer::ModuleInfo info;
+  language::Core::index::writer::ModuleInfo info;
   info.Name = *static_cast<const std::string*>(mod);
   return info;
 }
@@ -423,7 +423,7 @@ emitDataForCodiraSerializedModule(ModuleDecl *module,
                                  bool includeLocals,
                                  bool explicitModulebuild,
                                  StringRef targetTriple,
-                                 const clang::CompilerInstance &clangCI,
+                                 const language::Core::CompilerInstance &clangCI,
                                  DiagnosticEngine &diags,
                                  IndexUnitWriter &parentUnitWriter,
                                  const PathRemapper &pathRemapper,
@@ -437,7 +437,7 @@ static void addModuleDependencies(ArrayRef<ImportedModule> imports,
                                   bool includeLocals,
                                   bool explicitModuleBuild,
                                   StringRef targetTriple,
-                                  const clang::CompilerInstance &clangCI,
+                                  const language::Core::CompilerInstance &clangCI,
                                   DiagnosticEngine &diags,
                                   IndexUnitWriter &unitWriter,
                                   StringScratchSpace &moduleNameScratch,
@@ -496,7 +496,7 @@ static void addModuleDependencies(ArrayRef<ImportedModule> imports,
             // FIXME: clang's -Rremarks do not seem to go through Codira's
             // diagnostic emitter.
             if (shouldIndexModule)
-              clang::index::emitIndexDataForModuleFile(clangMod,
+              language::Core::index::emitIndexDataForModuleFile(clangMod,
                                                        clangCI, unitWriter);
           }
         } else {
@@ -534,7 +534,7 @@ static void addModuleDependencies(ArrayRef<ImportedModule> imports,
                                     ModuleDecl::ImportFilterKind::Exported);
           }
         }
-        clang::index::writer::OpaqueModule opaqMod =
+        language::Core::index::writer::OpaqueModule opaqMod =
             moduleNameScratch.createString(moduleName);
         unitWriter.addASTFileDependency(*F, mod->isNonUserModule(), opaqMod,
                                         withoutUnitName);
@@ -556,7 +556,7 @@ emitDataForCodiraSerializedModule(ModuleDecl *module,
                                  bool includeLocals,
                                  bool explicitModuleBuild,
                                  StringRef targetTriple,
-                                 const clang::CompilerInstance &clangCI,
+                                 const language::Core::CompilerInstance &clangCI,
                                  DiagnosticEngine &diags,
                                  IndexUnitWriter &parentUnitWriter,
                                  const PathRemapper &pathRemapper,
@@ -711,7 +711,7 @@ emitDataForCodiraSerializedModule(ModuleDecl *module,
       std::string &groupName = pair.second;
       if (recordFile.empty())
         continue;
-      clang::index::writer::OpaqueModule mod = &groupName;
+      language::Core::index::writer::OpaqueModule mod = &groupName;
       unitWriter.addRecordFile(recordFile, *FE, isSystem, mod);
     }
   }
@@ -740,8 +740,8 @@ recordSourceFileUnit(SourceFile *primarySourceFile, StringRef indexUnitToken,
                      bool indexSystemModules, bool skipStdlib,
                      bool includeLocals, bool isDebugCompilation,
                      bool isExplicitModuleBuild, StringRef targetTriple,
-                     ArrayRef<clang::FileEntryRef> fileDependencies,
-                     const clang::CompilerInstance &clangCI,
+                     ArrayRef<language::Core::FileEntryRef> fileDependencies,
+                     const language::Core::CompilerInstance &clangCI,
                      const PathRemapper &pathRemapper,
                      DiagnosticEngine &diags) {
   auto &fileMgr = clangCI.getFileManager();
@@ -798,9 +798,9 @@ recordSourceFileUnit(SourceFile *primarySourceFile, StringRef indexUnitToken,
 // Not currently used, see related comments in the call sites.
 #if 0
 static void
-collectFileDependencies(toolchain::SetVector<const clang::FileEntry *> &result,
+collectFileDependencies(toolchain::SetVector<const language::Core::FileEntry *> &result,
                         const DependencyTracker &dependencyTracker,
-                        ModuleDecl *module, clang::FileManager &fileMgr) {
+                        ModuleDecl *module, language::Core::FileManager &fileMgr) {
   for (auto *F : module->getFiles()) {
     if (auto *SF = dyn_cast<SourceFile>(F)) {
       if (auto *dep = fileMgr.getFile(SF->getFilename())) {

@@ -211,7 +211,7 @@ class SwiftTestCase(unittest.TestCase):
             build_dir='/path/to/build')
         self.assertIn('-DSWIFT_VENDOR=Apple', language.cmake_options)
         self.assertIn(
-            '-DSWIFT_VENDOR_UTI=com.apple.compilers.llvm.language',
+            '-DSWIFT_VENDOR_UTI=com.apple.compilers.toolchain.language',
             language.cmake_options)
         self.assertIn('-DSWIFT_VERSION=1.3', language.cmake_options)
         self.assertIn('-DSWIFT_COMPILER_VERSION=', language.cmake_options)
@@ -226,7 +226,7 @@ class SwiftTestCase(unittest.TestCase):
             build_dir='/path/to/build')
         self.assertIn('-DSWIFT_VENDOR=Apple', language.cmake_options)
         self.assertIn(
-            '-DSWIFT_VENDOR_UTI=com.apple.compilers.llvm.language',
+            '-DSWIFT_VENDOR_UTI=com.apple.compilers.toolchain.language',
             language.cmake_options)
         self.assertIn('-DSWIFT_VERSION=1.3', language.cmake_options)
         self.assertIn('-DSWIFT_COMPILER_VERSION=2.3', language.cmake_options)

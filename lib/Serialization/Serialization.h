@@ -33,7 +33,7 @@
 #include <queue>
 #include <tuple>
 
-namespace clang {
+namespace language::Core {
   class Type;
 }
 
@@ -218,7 +218,7 @@ class Serializer : public SerializerBase {
                        index_block::TYPE_OFFSETS>
   TypesToSerialize;
 
-  ASTBlockRecordKeeper<const clang::Type *, ClangTypeID,
+  ASTBlockRecordKeeper<const language::Core::Type *, ClangTypeID,
                        index_block::CLANG_TYPE_OFFSETS>
   ClangTypesToSerialize;
 
@@ -374,7 +374,7 @@ private:
   void writeASTBlockEntity(Type ty);
 
   /// Writes the given Clang type.
-  void writeASTBlockEntity(const clang::Type *ty);
+  void writeASTBlockEntity(const language::Core::Type *ty);
 
   /// Writes a generic signature.
   void writeASTBlockEntity(GenericSignature sig);
@@ -473,7 +473,7 @@ public:
   /// The type will be scheduled for serialization if necessary.,
   ///
   /// \returns The ID for the given type in this module.
-  ClangTypeID addClangTypeRef(const clang::Type *ty);
+  ClangTypeID addClangTypeRef(const language::Core::Type *ty);
 
   /// Records the use of the given DeclBaseName.
   ///

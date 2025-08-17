@@ -29,7 +29,7 @@
 #include "language/Basic/Assertions.h"
 #include "language/SIL/SILInstruction.h"
 #include "language/SIL/SILModule.h"
-#include "clang/AST/ASTContext.h"
+#include "language/Core/AST/ASTContext.h"
 
 #include "Explosion.h"
 #include "GenCall.h"

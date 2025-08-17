@@ -17,13 +17,13 @@
 
 #include <IndexStoreDB_Support/LLVM.h>
 #include <IndexStoreDB_Support/Path.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_ArrayRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Optional.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_OptionSet.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallVector.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_DataTypes.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Chrono.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_ArrayRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Optional.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_OptionSet.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallVector.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_DataTypes.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Chrono.h>
 #include <memory>
 #include <string>
 
@@ -123,7 +123,7 @@ enum class SymbolProperty : uint32_t {
   ProtocolInterface             = 1 << 8,
   SwiftAsync                    = 1 << 16,
 };
-typedef llvm::OptionSet<SymbolProperty> SymbolPropertySet;
+typedef toolchain::OptionSet<SymbolProperty> SymbolPropertySet;
 
 /// Set of roles that are attributed to symbol occurrences.
 enum class SymbolRole : uint64_t {
@@ -157,7 +157,7 @@ enum class SymbolRole : uint64_t {
   // preferable to navigate the user to.
   Canonical = uint64_t(1) << 63,
 };
-typedef llvm::OptionSet<SymbolRole> SymbolRoleSet;
+typedef toolchain::OptionSet<SymbolRole> SymbolRoleSet;
 
 struct SymbolInfo {
   SymbolKind Kind;
@@ -223,12 +223,12 @@ public:
 class TimestampedPath {
   std::string Path;
   std::string ModuleName;
-  llvm::sys::TimePoint<> ModificationTime;
+  toolchain::sys::TimePoint<> ModificationTime;
   unsigned sysrootPrefixLength = 0;
   bool IsSystem;
 
 public:
-  TimestampedPath(StringRef Path, llvm::sys::TimePoint<> ModificationTime, StringRef moduleName, bool isSystem, CanonicalFilePathRef sysroot = {})
+  TimestampedPath(StringRef Path, toolchain::sys::TimePoint<> ModificationTime, StringRef moduleName, bool isSystem, CanonicalFilePathRef sysroot = {})
     : Path(Path), ModuleName(moduleName), ModificationTime(ModificationTime), IsSystem(isSystem) {
     if (sysroot.contains(CanonicalFilePathRef::getAsCanonicalPath(Path))) {
       sysrootPrefixLength = sysroot.getPath().size();
@@ -236,7 +236,7 @@ public:
   }
 
   const std::string &getPathString() const { return Path; }
-  llvm::sys::TimePoint<> getModificationTime() const { return ModificationTime; }
+  toolchain::sys::TimePoint<> getModificationTime() const { return ModificationTime; }
   const std::string &getModuleName() const { return ModuleName; }
   unsigned isSystem() const { return IsSystem; }
   StringRef getPathWithoutSysroot() const {
@@ -260,7 +260,7 @@ public:
   unsigned getColumn() const { return Column; }
   unsigned isSystem() const { return Path.isSystem(); }
 
-  void print(llvm::raw_ostream &OS) const;
+  void print(toolchain::raw_ostream &OS) const;
 };
 
 class SymbolOccurrence {
@@ -305,7 +305,7 @@ typedef std::shared_ptr<SymbolOccurrence> SymbolOccurrenceRef;
 
 const char *getSymbolKindString(SymbolKind kind);
 void applyForEachSymbolRole(SymbolRoleSet Roles,
-                            llvm::function_ref<void(SymbolRole)> Fn);
+                            toolchain::function_ref<void(SymbolRole)> Fn);
 void printSymbolRoles(SymbolRoleSet Roles, raw_ostream &OS);
 
 Optional<SymbolProviderKind> getSymbolProviderKindFromIdentifer(StringRef ident);

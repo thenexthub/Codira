@@ -28,7 +28,7 @@
 #include "language/AST/ModuleLoader.h"
 #include "language/AST/ProtocolConformance.h"
 #include "language/Basic/Assertions.h"
-#include "clang/AST/DeclObjC.h"
+#include "language/Core/AST/DeclObjC.h"
 #include "toolchain/Support/Debug.h"
 #include "toolchain/Support/ErrorHandling.h"
 using namespace language;
@@ -144,14 +144,14 @@ Type TypeConverter::getLoweredCBridgedType(AbstractionPattern pattern,
     // If we have a Clang type that was imported as Bool, it had better be
     // one of a small set of types.
     if (clangTy && clangTy->isBuiltinType()) {
-      auto builtinTy = clangTy->castAs<clang::BuiltinType>();
-      if (builtinTy->getKind() == clang::BuiltinType::Bool)
+      auto builtinTy = clangTy->castAs<language::Core::BuiltinType>();
+      if (builtinTy->getKind() == language::Core::BuiltinType::Bool)
         return t;
-      if (builtinTy->getKind() == clang::BuiltinType::UChar)
+      if (builtinTy->getKind() == language::Core::BuiltinType::UChar)
         return getDarwinBooleanType();
-      if (builtinTy->getKind() == clang::BuiltinType::Int)
+      if (builtinTy->getKind() == language::Core::BuiltinType::Int)
         return getWindowsBoolType();
-      assert(builtinTy->getKind() == clang::BuiltinType::SChar);
+      assert(builtinTy->getKind() == language::Core::BuiltinType::SChar);
       return getObjCBoolType();
     }
 

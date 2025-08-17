@@ -126,7 +126,7 @@ class ActionCache;
 } // namespace cas
 } // namespace toolchain
 
-namespace clang {
+namespace language::Core {
 class CompilerInstance;
 }
 

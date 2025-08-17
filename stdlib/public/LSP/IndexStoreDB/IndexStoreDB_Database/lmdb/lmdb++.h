@@ -25,9 +25,9 @@
 #include "lmdb.h"      /* for MDB_*, mdb_*() */
 #include <IndexStoreDB_Database/DatabaseError.h>
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallString.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Twine.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallString.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Twine.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 
 #ifdef LMDBXX_DEBUG
 #include <cassert>     /* for assert() */
@@ -878,7 +878,7 @@ public:
   /**
    * Constructor.
    */
-  val(llvm::StringRef data) noexcept
+  val(toolchain::StringRef data) noexcept
     : val{data.data(), data.size()} {}
 
   /**
@@ -1126,10 +1126,10 @@ public:
    * @param mode
    * @throws lmdb::error on failure
    */
-  env& open(const llvm::Twine &path,
+  env& open(const toolchain::Twine &path,
             const unsigned int flags = default_flags,
             const mode mode = default_mode) {
-    llvm::SmallString<128> pathBuf;
+    toolchain::SmallString<128> pathBuf;
     path.toVector(pathBuf);
     lmdb::env_open(handle(), pathBuf.c_str(), flags, mode);
     return *this;
@@ -1603,7 +1603,7 @@ public:
    */
   template<typename V>
   bool put(MDB_txn* const txn,
-           llvm::StringRef key,
+           toolchain::StringRef key,
            const V& val,
            const unsigned int flags = default_put_flags) {
     const lmdb::val k{key.data(), key.size()};
@@ -1621,8 +1621,8 @@ public:
    * @throws lmdb::error on failure
    */
   bool put(MDB_txn* const txn,
-           llvm::StringRef key,
-           llvm::StringRef val,
+           toolchain::StringRef key,
+           toolchain::StringRef val,
            const unsigned int flags = default_put_flags) {
     const lmdb::val k{key.data(), key.size()};
     lmdb::val v{val.data(), val.size()};

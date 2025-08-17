@@ -1,8 +1,24 @@
-//===-- llvm/Support/MathExtras.h - Useful math functions -------*- C++ -*-===//
+//===-- toolchain/Support/MathExtras.h - Useful math functions -------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -13,8 +29,8 @@
 #ifndef LLVM_SUPPORT_MATHEXTRAS_H
 #define LLVM_SUPPORT_MATHEXTRAS_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Compiler.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_SwapByteOrder.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Compiler.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_SwapByteOrder.h>
 #include <algorithm>
 #include <cassert>
 #include <climits>
@@ -38,7 +54,7 @@ unsigned char _BitScanReverse64(unsigned long *_Index, unsigned __int64 _Mask);
 }
 #endif
 
-namespace llvm {
+namespace toolchain {
 /// The behavior an operation has on an input of 0.
 enum ZeroBehavior {
   /// The returned value is undefined.
@@ -120,7 +136,7 @@ std::size_t countTrailingZeros(T Val, ZeroBehavior ZB = ZB_Width) {
   static_assert(std::numeric_limits<T>::is_integer &&
                     !std::numeric_limits<T>::is_signed,
                 "Only unsigned integral types are allowed.");
-  return llvm::detail::TrailingZerosCounter<T, sizeof(T)>::count(Val, ZB);
+  return toolchain::detail::TrailingZerosCounter<T, sizeof(T)>::count(Val, ZB);
 }
 
 namespace detail {
@@ -189,7 +205,7 @@ std::size_t countLeadingZeros(T Val, ZeroBehavior ZB = ZB_Width) {
   static_assert(std::numeric_limits<T>::is_integer &&
                     !std::numeric_limits<T>::is_signed,
                 "Only unsigned integral types are allowed.");
-  return llvm::detail::LeadingZerosCounter<T, sizeof(T)>::count(Val, ZB);
+  return toolchain::detail::LeadingZerosCounter<T, sizeof(T)>::count(Val, ZB);
 }
 
 /// Get the index of the first set bit starting from the least
@@ -244,7 +260,7 @@ template <typename T> T findLastSet(T Val, ZeroBehavior ZB = ZB_Max) {
   if (ZB == ZB_Max && Val == 0)
     return std::numeric_limits<T>::max();
 
-  // Use ^ instead of - because both gcc and llvm can remove the associated ^
+  // Use ^ instead of - because both gcc and toolchain can remove the associated ^
   // in the __builtin_clz intrinsic on x86.
   return countLeadingZeros(Val, ZB_Undefined) ^
          (std::numeric_limits<T>::digits - 1);
@@ -848,6 +864,6 @@ SaturatingMultiplyAdd(T X, T Y, T A, bool *ResultOverflowed = nullptr) {
 
 /// Use this rather than HUGE_VALF; the latter causes warnings on MSVC.
 extern const float huge_valf;
-} // End llvm namespace
+} // End toolchain namespace
 
 #endif

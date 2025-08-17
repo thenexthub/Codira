@@ -391,11 +391,11 @@ x86-64. [arm64 support came later][D5073]. However, the Linux TLS functionality 
 anything: the `GetThreadPointer` function is no longer implemented. Code for reading the thread
 pointer was removed in [D10661] ([this function][r240543]). (arm32 was apparently never supported.)
 
-[rL192922]: https://reviews.llvm.org/rL192922
-[D1944]: https://reviews.llvm.org/D1944
-[D5073]: https://reviews.llvm.org/D5073
-[D10661]: https://reviews.llvm.org/D10661
-[r240543]: https://github.com/llvm-mirror/lldb/commit/79246050b0f8d6b54acb5366f153d07f235d2780#diff-52dee3d148892cccfcdab28bc2165548L962
+[rL192922]: https://reviews.toolchain.org/rL192922
+[D1944]: https://reviews.toolchain.org/D1944
+[D5073]: https://reviews.toolchain.org/D5073
+[D10661]: https://reviews.toolchain.org/D10661
+[r240543]: https://github.com/toolchain-mirror/lldb/commit/79246050b0f8d6b54acb5366f153d07f235d2780#diff-52dee3d148892cccfcdab28bc2165548L962
 
 ## Threading Library Metadata
 
@@ -602,7 +602,7 @@ There are issues with rearranging this memory:
    CMake toolchain file) enable `-fstack-protector-strong` by default.
 
  * `TLS_SLOT_TSAN` is used for more than just TSAN -- it's also used by [HWASAN and
-   Scudo](https://reviews.llvm.org/D53906#1285002).
+   Scudo](https://reviews.toolchain.org/D53906#1285002).
 
  * The Go runtime allocates a thread-local "g" variable on Android by creating a pthread key and
    searching for its TP-relative offset, which it assumes is nonnegative:
@@ -645,7 +645,7 @@ Aside: gcc's arm64ilp32 target uses a 32-bit unsigned offset for a TLS IE access
 (https://godbolt.org/z/_NIXjF). If Android ever supports this target, and in a configuration with
 variant 2 TLS, we might need to change the compiler to emit a sign-extending load.
 
-[D18632]: https://reviews.llvm.org/D18632
+[D18632]: https://reviews.toolchain.org/D18632
 [bionic-lockfree-keys]: https://android-review.googlesource.com/c/platform/bionic/+/134202
 [golang-post]: https://groups.google.com/forum/#!msg/golang-nuts/EhndTzcPJxQ/i-w7kAMfBQAJ
 [go-hacking]: https://github.com/golang/go/blob/master/src/runtime/HACKING.md
@@ -720,13 +720,13 @@ sequence when targeting Android/arm64.
     * Use an `--android-tls-variant2` flag (or `--bionic-tls-variant2`, we're trying to make [Bionic
       run on the host](http://b/31559095))
     * Add a `PT_ANDROID_TLS_TPOFF` segment?
-    * Add a [`.note.gnu.property`](https://reviews.llvm.org/D53906#1283425) with a
+    * Add a [`.note.gnu.property`](https://reviews.toolchain.org/D53906#1283425) with a
       "`GNU_PROPERTY_TLS_TPOFF`" property value?
 
-[D44355]: https://reviews.llvm.org/D44355
+[D44355]: https://reviews.toolchain.org/D44355
 [BFD]: https://sourceware.org/bugzilla/show_bug.cgi?id=22970
 [Gold]: https://sourceware.org/bugzilla/show_bug.cgi?id=22969
-[LLD]: https://bugs.llvm.org/show_bug.cgi?id=36727
+[LLD]: https://bugs.toolchain.org/show_bug.cgi?id=36727
 
 ### Workaround: Reserve an Extra-Large TCB on ARM
 
@@ -861,7 +861,7 @@ arm32:
  * ["ELF for the ARM® Architecture."][arm-elf] List TLS relocations (traditional and TLSDESC).
 
 arm64:
- * [2015 LLVM bugtracker comment][llvm22408] with an excerpt from an unnamed ARM draft specification
+ * [2015 LLVM bugtracker comment][toolchain22408] with an excerpt from an unnamed ARM draft specification
    describing arm64 code sequences necessary for linker relaxation
  * ["ELF for the ARM® 64-bit Architecture (AArch64)."][arm64-elf] Lists TLS relocations (traditional
    and TLSDESC).
@@ -873,5 +873,5 @@ arm64:
 [arm-addenda]: http://infocenter.arm.com/help/topic/com.arm.doc.ihi0045e/IHI0045E_ABI_addenda.pdf
 [arm-rtabi]: http://infocenter.arm.com/help/topic/com.arm.doc.ihi0043d/IHI0043D_rtabi.pdf
 [arm-elf]: http://infocenter.arm.com/help/topic/com.arm.doc.ihi0044f/IHI0044F_aaelf.pdf
-[llvm22408]: https://bugs.llvm.org/show_bug.cgi?id=22408#c10
+[toolchain22408]: https://bugs.toolchain.org/show_bug.cgi?id=22408#c10
 [arm64-elf]: http://infocenter.arm.com/help/topic/com.arm.doc.ihi0056b/IHI0056B_aaelf64.pdf

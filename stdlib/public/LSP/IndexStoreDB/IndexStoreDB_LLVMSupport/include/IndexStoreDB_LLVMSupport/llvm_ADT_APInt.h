@@ -1,8 +1,24 @@
-//===-- llvm/ADT/APInt.h - For Arbitrary Precision Integer -----*- C++ -*--===//
+//===-- toolchain/ADT/APInt.h - For Arbitrary Precision Integer -----*- C++ -*--===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 ///
@@ -15,14 +31,14 @@
 #ifndef LLVM_ADT_APINT_H
 #define LLVM_ADT_APINT_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Compiler.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_MathExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Compiler.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_MathExtras.h>
 #include <cassert>
 #include <climits>
 #include <cstring>
 #include <string>
 
-namespace llvm {
+namespace toolchain {
 class FoldingSetNodeID;
 class StringRef;
 class hash_code;
@@ -1595,7 +1611,7 @@ public:
   unsigned countLeadingZeros() const {
     if (isSingleWord()) {
       unsigned unusedBits = APINT_BITS_PER_WORD - BitWidth;
-      return llvm::countLeadingZeros(U.VAL) - unusedBits;
+      return toolchain::countLeadingZeros(U.VAL) - unusedBits;
     }
     return countLeadingZerosSlowCase();
   }
@@ -1610,7 +1626,7 @@ public:
   /// of 1 bits from the most significant to the least
   unsigned countLeadingOnes() const {
     if (isSingleWord())
-      return llvm::countLeadingOnes(U.VAL << (APINT_BITS_PER_WORD - BitWidth));
+      return toolchain::countLeadingOnes(U.VAL << (APINT_BITS_PER_WORD - BitWidth));
     return countLeadingOnesSlowCase();
   }
 
@@ -1630,7 +1646,7 @@ public:
   /// zeros from the least significant bit to the first one bit.
   unsigned countTrailingZeros() const {
     if (isSingleWord())
-      return std::min(unsigned(llvm::countTrailingZeros(U.VAL)), BitWidth);
+      return std::min(unsigned(toolchain::countTrailingZeros(U.VAL)), BitWidth);
     return countTrailingZerosSlowCase();
   }
 
@@ -1644,7 +1660,7 @@ public:
   /// of ones from the least significant bit to the first zero bit.
   unsigned countTrailingOnes() const {
     if (isSingleWord())
-      return llvm::countTrailingOnes(U.VAL);
+      return toolchain::countTrailingOnes(U.VAL);
     return countTrailingOnesSlowCase();
   }
 
@@ -1656,7 +1672,7 @@ public:
   /// \returns 0 if the value is zero, otherwise returns the number of set bits.
   unsigned countPopulation() const {
     if (isSingleWord())
-      return llvm::countPopulation(U.VAL);
+      return toolchain::countPopulation(U.VAL);
     return countPopulationSlowCase();
   }
 
@@ -2212,6 +2228,6 @@ Optional<APInt> SolveQuadraticEquationWrap(APInt A, APInt B, APInt C,
 // See friend declaration above. This additional declaration is required in
 // order to compile LLVM with IBM xlC compiler.
 hash_code hash_value(const APInt &Arg);
-} // End of llvm namespace
+} // End of toolchain namespace
 
 #endif

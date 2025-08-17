@@ -18,7 +18,7 @@
 
 #include <IndexStoreDB_Database/IDCode.h>
 #include <IndexStoreDB_Support/LLVM.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Mutex.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Mutex.h>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -39,7 +39,7 @@ class FileVisibilityChecker {
   db::DatabaseRef DBase;
   std::shared_ptr<CanonicalPathCache> CanonPathCache;
 
-  mutable llvm::sys::Mutex VisibleCacheMtx;
+  mutable toolchain::sys::Mutex VisibleCacheMtx;
   std::unordered_set<db::IDCode> VisibleMainFiles;
   std::unordered_map<db::IDCode, unsigned> MainFilesRefCount;
   std::unordered_map<db::IDCode, bool> UnitVisibilityCache;

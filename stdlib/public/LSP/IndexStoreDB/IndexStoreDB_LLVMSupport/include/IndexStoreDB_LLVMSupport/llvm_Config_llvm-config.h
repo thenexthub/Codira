@@ -1,20 +1,20 @@
-/*===------- llvm/Config/llvm-config.h - llvm configuration -------*- C -*-===*/
+/*===------- toolchain/Config/toolchain-config.h - toolchain configuration -------*- C -*-===*/
 /*                                                                            */
 /* Part of the LLVM Project, under the Apache License v2.0 with LLVM          */
 /* Exceptions.                                                                */
-/* See https://llvm.org/LICENSE.txt for license information.                  */
+/* See https://toolchain.org/LICENSE.txt for license information.                  */
 /* SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception                    */
 /*                                                                            */
 /*===----------------------------------------------------------------------===*/
 
 /* This file enumerates variables from the LLVM configuration so that they
    can be in exported headers and won't override package specific directives.
-   This is a C header that can be included in the llvm-c headers. */
+   This is a C header that can be included in the toolchain-c headers. */
 
 #ifndef LLVM_CONFIG_H
 #define LLVM_CONFIG_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_Config_indexstoredb-prefix.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Config_indexstoredb-prefix.h>
 
 /* Define if LLVM_ENABLE_DUMP is enabled */
 /* #undef LLVM_ENABLE_DUMP */

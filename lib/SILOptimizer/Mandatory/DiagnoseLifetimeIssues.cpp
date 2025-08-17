@@ -42,7 +42,7 @@
 #include "language/SIL/OwnershipUtils.h"
 #include "language/SIL/PrunedLiveness.h"
 #include "language/SILOptimizer/PassManager/Transforms.h"
-#include "clang/AST/DeclObjC.h"
+#include "language/Core/AST/DeclObjC.h"
 #include "toolchain/ADT/DenseMap.h"
 #include "toolchain/Support/Debug.h"
 
@@ -149,11 +149,11 @@ static bool isStoreObjcWeak(SILInstruction *inst, Operand *op) {
   if (!clangNode)
     return false;
   
-  auto *objcDecl = dyn_cast_or_null<clang::ObjCPropertyDecl>(clangNode.getAsDecl());
+  auto *objcDecl = dyn_cast_or_null<language::Core::ObjCPropertyDecl>(clangNode.getAsDecl());
   if (!objcDecl)
     return false;
 
-  return objcDecl->getSetterKind() == clang::ObjCPropertyDecl::Weak;
+  return objcDecl->getSetterKind() == language::Core::ObjCPropertyDecl::Weak;
 }
 
 /// Transitively iterates over all uses of \p def and - if \p

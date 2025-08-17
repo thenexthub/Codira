@@ -878,7 +878,7 @@ bool SerializedModuleLoaderBase::findModule(
   return false;
 }
 
-static std::pair<StringRef, clang::VersionTuple>
+static std::pair<StringRef, language::Core::VersionTuple>
 getOSAndVersionForDiagnostics(const toolchain::Triple &triple) {
   StringRef osName;
   toolchain::VersionTuple osVersion;
@@ -1211,9 +1211,9 @@ void language::serialization::diagnoseSerializedASTLoadFailure(
   case serialization::Status::TargetTooNew: {
     toolchain::Triple moduleTarget(toolchain::Triple::normalize(loadInfo.targetTriple));
 
-    std::pair<StringRef, clang::VersionTuple> moduleOSInfo =
+    std::pair<StringRef, language::Core::VersionTuple> moduleOSInfo =
         getOSAndVersionForDiagnostics(moduleTarget);
-    std::pair<StringRef, clang::VersionTuple> compilationOSInfo =
+    std::pair<StringRef, language::Core::VersionTuple> compilationOSInfo =
         getOSAndVersionForDiagnostics(Ctx.LangOpts.Target);
 
     // FIXME: This doesn't handle a non-debugger REPL, which should also treat
@@ -2016,7 +2016,7 @@ ModuleDecl *SerializedASTFile::getUnderlyingModuleIfOverlay() const {
   return File.getUnderlyingModule();
 }
 
-const clang::Module *SerializedASTFile::getUnderlyingClangModule() const {
+const language::Core::Module *SerializedASTFile::getUnderlyingClangModule() const {
   if (auto *UnderlyingModule = File.getUnderlyingModule())
     return UnderlyingModule->findUnderlyingClangModule();
   return nullptr;

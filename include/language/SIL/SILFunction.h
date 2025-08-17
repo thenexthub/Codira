@@ -1278,7 +1278,7 @@ public:
   ClangNode getClangNode() const {
     return (ClangNodeOwner ? ClangNodeOwner->getClangNode() : ClangNode());
   }
-  const clang::Decl *getClangDecl() const {
+  const language::Core::Decl *getClangDecl() const {
     return (ClangNodeOwner ? ClangNodeOwner->getClangDecl() : nullptr);
   }
 

@@ -32,10 +32,10 @@
 
 #include <utility>
 
-namespace clang {
+namespace language::Core {
 class Type;
 class ASTContext;
-} // namespace clang
+} // namespace language::Core
 
 namespace language {
 class AnyFunctionType;
@@ -203,7 +203,7 @@ public:
 };
 
 // MARK: - ClangTypeInfo
-/// Wrapper class for storing a clang::Type in an (AST|SIL)ExtInfo.
+/// Wrapper class for storing a language::Core::Type in an (AST|SIL)ExtInfo.
 class ClangTypeInfo {
   friend AnyFunctionType;
   friend FunctionType;
@@ -212,32 +212,32 @@ class ClangTypeInfo {
   friend SILExtInfoBuilder;
 
   // [NOTE: ClangTypeInfo-contents]
-  // We preserve a full clang::Type *, not a clang::FunctionType * as:
+  // We preserve a full language::Core::Type *, not a language::Core::FunctionType * as:
   // 1. We need to keep sugar in case we need to present an error to the user
   //    (for AnyFunctionType).
   // 2. The actual type being stored is [ignoring sugar] either a
-  //    clang::PointerType, a clang::BlockPointerType, or a
-  //    clang::ReferenceType which points to a clang::FunctionType.
+  //    language::Core::PointerType, a language::Core::BlockPointerType, or a
+  //    language::Core::ReferenceType which points to a language::Core::FunctionType.
   //
   // When used as a part of SILFunctionType, the type is canonical.
-  const clang::Type *type;
+  const language::Core::Type *type;
 
   constexpr ClangTypeInfo() : type(nullptr) {}
-  constexpr ClangTypeInfo(const clang::Type *type) : type(type) {}
+  constexpr ClangTypeInfo(const language::Core::Type *type) : type(type) {}
 
   friend bool operator==(ClangTypeInfo lhs, ClangTypeInfo rhs);
   friend bool operator!=(ClangTypeInfo lhs, ClangTypeInfo rhs);
   ClangTypeInfo getCanonical() const;
 
 public:
-  constexpr const clang::Type *getType() const { return type; }
+  constexpr const language::Core::Type *getType() const { return type; }
 
   constexpr bool empty() const { return !type; }
 
   /// Use the ClangModuleLoader to print the Clang type as a string.
   void printType(ClangModuleLoader *cml, toolchain::raw_ostream &os) const;
 
-  void dump(toolchain::raw_ostream &os, const clang::ASTContext &ctx) const;
+  void dump(toolchain::raw_ostream &os, const language::Core::ASTContext &ctx) const;
 };
 
 // MARK: - UnexpectedClangTypeError
@@ -251,10 +251,10 @@ struct UnexpectedClangTypeError {
     NonCanonical,
   };
   const Kind errorKind;
-  const clang::Type *type;
+  const language::Core::Type *type;
 
   static std::optional<UnexpectedClangTypeError>
-  checkClangType(SILFunctionTypeRepresentation fnRep, const clang::Type *type,
+  checkClangType(SILFunctionTypeRepresentation fnRep, const language::Core::Type *type,
                  bool expectNonnullForCOrBlock, bool expectCanonical);
 
   void dump();
@@ -567,7 +567,7 @@ public:
   // Constructor with no defaults.
   ASTExtInfoBuilder(Representation rep, bool isNoEscape, bool throws,
                     Type thrownError, DifferentiabilityKind diffKind,
-                    const clang::Type *type, FunctionTypeIsolation isolation,
+                    const language::Core::Type *type, FunctionTypeIsolation isolation,
                     ArrayRef<LifetimeDependenceInfo> lifetimeDependencies,
                     bool sendingResult)
       : ASTExtInfoBuilder(
@@ -725,7 +725,7 @@ public:
         clangTypeInfo, globalActor, thrownError, lifetimeDependencies);
   }
   [[nodiscard]]
-  ASTExtInfoBuilder withClangFunctionType(const clang::Type *type) const {
+  ASTExtInfoBuilder withClangFunctionType(const language::Core::Type *type) const {
     return ASTExtInfoBuilder(bits, ClangTypeInfo(type), globalActor,
                              thrownError, lifetimeDependencies);
   }
@@ -1056,7 +1056,7 @@ public:
   SILExtInfoBuilder(Representation rep, bool isPseudogeneric, bool isNoEscape,
                     bool isSendable, bool isAsync, bool isUnimplementable,
                     SILFunctionTypeIsolation isolation,
-                    DifferentiabilityKind diffKind, const clang::Type *type,
+                    DifferentiabilityKind diffKind, const language::Core::Type *type,
                     ArrayRef<LifetimeDependenceInfo> lifetimeDependenceInfo)
       : SILExtInfoBuilder(makeBits(rep, isPseudogeneric, isNoEscape, isSendable,
                                    isAsync, isUnimplementable, isolation,
@@ -1241,7 +1241,7 @@ public:
         clangTypeInfo, lifetimeDependencies);
   }
   [[nodiscard]]
-  SILExtInfoBuilder withClangFunctionType(const clang::Type *type) const {
+  SILExtInfoBuilder withClangFunctionType(const language::Core::Type *type) const {
     return SILExtInfoBuilder(bits, ClangTypeInfo(type).getCanonical(),
                              lifetimeDependencies);
   }

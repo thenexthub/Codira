@@ -59,7 +59,7 @@ def main():
             next_arg_is_output = False
         elif arg == '-c':
             write_obj_file = True
-        elif arg == '-disable-incremental-llvm-codegen':
+        elif arg == '-disable-incremental-toolchain-codegen':
             compare_time = False
         elif arg == '-emit-empty-object-file':
             compare_time = False

@@ -30,7 +30,7 @@ namespace toolchain {
   template <class T> class function_ref;
 }
 
-namespace clang {
+namespace language::Core {
   class CXXMethodDecl;
   class ObjCMethodDecl;
   class Type;
@@ -436,9 +436,9 @@ class AbstractionPattern {
   unsigned OtherData : NumOtherDataBits;
   CanType OrigType;
   union {
-    const clang::Type *ClangType;
-    const clang::ObjCMethodDecl *ObjCMethod;
-    const clang::CXXMethodDecl *CXXMethod;
+    const language::Core::Type *ClangType;
+    const language::Core::ObjCMethodDecl *ObjCMethod;
+    const language::Core::CXXMethodDecl *CXXMethod;
     const AbstractionPattern *OrigTupleElements;
     const void *RawTypePtr;
   };
@@ -542,14 +542,14 @@ class AbstractionPattern {
   }
 
   void initClangType(SubstitutionMap subs, CanGenericSignature signature,
-                     CanType origType, const clang::Type *clangType,
+                     CanType origType, const language::Core::Type *clangType,
                      Kind kind = Kind::ClangType) {
     initCodiraType(subs, signature, origType, kind);
     ClangType = clangType;
   }
 
   void initObjCMethod(SubstitutionMap subs, CanGenericSignature signature,
-                      CanType origType, const clang::ObjCMethodDecl *method,
+                      CanType origType, const language::Core::ObjCMethodDecl *method,
                       Kind kind, EncodedForeignInfo errorInfo) {
     initCodiraType(subs, signature, origType, kind);
     ObjCMethod = method;
@@ -558,7 +558,7 @@ class AbstractionPattern {
 
   void initCFunctionAsMethod(SubstitutionMap subs,
                              CanGenericSignature signature,
-                             CanType origType, const clang::Type *clangType,
+                             CanType origType, const language::Core::Type *clangType,
                              Kind kind,
                              ImportAsMemberStatus memberStatus) {
     initClangType(subs, signature, origType, clangType, kind);
@@ -567,7 +567,7 @@ class AbstractionPattern {
 
   void initCXXMethod(SubstitutionMap subs,
                      CanGenericSignature signature, CanType origType,
-                     const clang::CXXMethodDecl *method, Kind kind,
+                     const language::Core::CXXMethodDecl *method, Kind kind,
                      ImportAsMemberStatus memberStatus) {
     initCodiraType(subs, signature, origType, kind);
     CXXMethod = method;
@@ -593,16 +593,16 @@ public:
                               CanType origType) {
     initCodiraType(subs, sig, origType);
   }
-  explicit AbstractionPattern(CanType origType, const clang::Type *clangType)
+  explicit AbstractionPattern(CanType origType, const language::Core::Type *clangType)
     : AbstractionPattern(nullptr, origType, clangType) {}
   explicit AbstractionPattern(CanGenericSignature signature, CanType origType,
-                              const clang::Type *clangType) {
+                              const language::Core::Type *clangType) {
     initClangType(SubstitutionMap(), signature, origType, clangType);
   }
   explicit AbstractionPattern(SubstitutionMap subs,
                               CanGenericSignature signature,
                               CanType origType,
-                              const clang::Type *clangType) {
+                              const language::Core::Type *clangType) {
     initClangType(subs, signature, origType, clangType);
   }
 
@@ -680,7 +680,7 @@ public:
   getObjCCompletionHandlerArgumentsType(SubstitutionMap subs,
                                         CanGenericSignature sig,
                                         CanType origTupleType,
-                                        const clang::Type *clangBlockType,
+                                        const language::Core::Type *clangBlockType,
                                         EncodedForeignInfo foreignInfo) {
     AbstractionPattern pattern(Kind::ObjCCompletionHandlerArgumentsType);
     pattern.initClangType(subs, sig, origTupleType, clangBlockType,
@@ -694,7 +694,7 @@ public:
   /// Return an abstraction pattern for the curried type of an
   /// Objective-C method.
   static AbstractionPattern getCurriedObjCMethod(
-      CanType origType, const clang::ObjCMethodDecl *method,
+      CanType origType, const language::Core::ObjCMethodDecl *method,
       const std::optional<ForeignErrorConvention> &foreignError,
       const std::optional<ForeignAsyncConvention> &foreignAsync);
 
@@ -708,7 +708,7 @@ public:
   /// then the uncurried type is:
   ///   ((CCRefrigeratorComponent, CCTemperature), CCRefrigerator) -> ()
   static AbstractionPattern
-  getCFunctionAsMethod(CanType origType, const clang::Type *clangType,
+  getCFunctionAsMethod(CanType origType, const language::Core::Type *clangType,
                        ImportAsMemberStatus memberStatus) {
     assert(isa<AnyFunctionType>(origType));
     AbstractionPattern pattern;
@@ -744,7 +744,7 @@ public:
   /// then the uncurried type is:
   ///   ((RefrigeratorCompartment, Temperature), Refrigerator) -> ()
   static AbstractionPattern getCXXMethod(CanType origType,
-                                         const clang::CXXMethodDecl *method,
+                                         const language::Core::CXXMethodDecl *method,
                                          ImportAsMemberStatus memberStatus) {
     assert(isa<AnyFunctionType>(origType));
     AbstractionPattern pattern;
@@ -761,7 +761,7 @@ public:
   /// then the curried type:
   ///   (Refrigerator) -> (Compartment, Temperature) -> ()
   static AbstractionPattern
-  getCurriedCXXMethod(CanType origType, const clang::CXXMethodDecl *method,
+  getCurriedCXXMethod(CanType origType, const language::Core::CXXMethodDecl *method,
                       ImportAsMemberStatus memberStatus) {
     assert(isa<AnyFunctionType>(origType));
     AbstractionPattern pattern;
@@ -802,7 +802,7 @@ private:
   /// Return an abstraction pattern for the curried type of an
   /// Objective-C method.
   static AbstractionPattern
-  getCurriedObjCMethod(CanType origType, const clang::ObjCMethodDecl *method,
+  getCurriedObjCMethod(CanType origType, const language::Core::ObjCMethodDecl *method,
                        EncodedForeignInfo errorInfo) {
     assert(isa<AnyFunctionType>(origType));
     AbstractionPattern pattern;
@@ -813,7 +813,7 @@ private:
   
   static AbstractionPattern
   getCurriedCFunctionAsMethod(CanType origType,
-                              const clang::Type *clangType,
+                              const language::Core::Type *clangType,
                               ImportAsMemberStatus memberStatus) {
     assert(isa<AnyFunctionType>(origType));
     AbstractionPattern pattern;
@@ -830,7 +830,7 @@ private:
   getPartialCurriedObjCMethod(SubstitutionMap subs,
                               CanGenericSignature signature,
                               CanType origType,
-                              const clang::ObjCMethodDecl *method,
+                              const language::Core::ObjCMethodDecl *method,
                               EncodedForeignInfo errorInfo) {
     assert(isa<AnyFunctionType>(origType));
     AbstractionPattern pattern;
@@ -852,7 +852,7 @@ private:
   getPartialCurriedCFunctionAsMethod(SubstitutionMap subs,
                                      CanGenericSignature signature,
                                      CanType origType,
-                                     const clang::Type *clangType,
+                                     const language::Core::Type *clangType,
                                      ImportAsMemberStatus memberStatus) {
     assert(isa<AnyFunctionType>(origType));
     AbstractionPattern pattern;
@@ -873,7 +873,7 @@ private:
   static AbstractionPattern
   getPartialCurriedCXXMethod(SubstitutionMap subs,
                              CanGenericSignature signature, CanType origType,
-                             const clang::CXXMethodDecl *method,
+                             const language::Core::CXXMethodDecl *method,
                              ImportAsMemberStatus memberStatus) {
     assert(isa<AnyFunctionType>(origType));
     AbstractionPattern pattern;
@@ -885,7 +885,7 @@ private:
 public:
   /// Return an abstraction pattern for the type of an Objective-C method.
   static AbstractionPattern
-  getObjCMethod(CanType origType, const clang::ObjCMethodDecl *method,
+  getObjCMethod(CanType origType, const language::Core::ObjCMethodDecl *method,
                 const std::optional<ForeignErrorConvention> &foreignError,
                 const std::optional<ForeignAsyncConvention> &foreignAsync);
 
@@ -893,7 +893,7 @@ private:
   /// Return an abstraction pattern for the uncurried type of an
   /// Objective-C method.
   static AbstractionPattern
-  getObjCMethod(CanType origType, const clang::ObjCMethodDecl *method,
+  getObjCMethod(CanType origType, const language::Core::ObjCMethodDecl *method,
                 EncodedForeignInfo errorInfo) {
     assert(isa<AnyFunctionType>(origType));
     AbstractionPattern pattern;
@@ -1155,7 +1155,7 @@ public:
     return (getKind() == Kind::ClangType);
   }
 
-  const clang::Type *getClangType() const {
+  const language::Core::Type *getClangType() const {
     assert(hasStoredClangType());
     return ClangType;
   }
@@ -1167,7 +1167,7 @@ public:
             getKind() == Kind::CurriedObjCMethodType);
   }
 
-  const clang::ObjCMethodDecl *getObjCMethod() const {
+  const language::Core::ObjCMethodDecl *getObjCMethod() const {
     assert(hasStoredObjCMethod());
     return ObjCMethod;
   }
@@ -1179,7 +1179,7 @@ public:
             getKind() == Kind::CurriedCXXMethodType);
   }
 
-  const clang::CXXMethodDecl *getCXXMethod() const {
+  const language::Core::CXXMethodDecl *getCXXMethod() const {
     assert(hasStoredCXXMethod());
     return CXXMethod;
   }

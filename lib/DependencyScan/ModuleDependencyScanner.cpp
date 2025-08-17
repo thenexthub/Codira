@@ -36,8 +36,8 @@
 #include "language/Serialization/ScanningLoaders.h"
 #include "language/Serialization/SerializedModuleLoader.h"
 #include "language/Subsystems.h"
-#include "clang/CAS/IncludeTree.h"
-#include "clang/Frontend/CompilerInstance.h"
+#include "language/Core/CAS/IncludeTree.h"
+#include "language/Core/Frontend/CompilerInstance.h"
 #include "toolchain/ADT/IntrusiveRefCntPtr.h"
 #include "toolchain/ADT/SetOperations.h"
 #include "toolchain/CAS/CASProvidingFileSystem.h"
@@ -142,8 +142,8 @@ computeClangWorkingDirectory(const std::vector<std::string> &commandLineArgs,
 }
 
 static std::string moduleCacheRelativeLookupModuleOutput(
-    const clang::tooling::dependencies::ModuleDeps &MD,
-    clang::tooling::dependencies::ModuleOutputKind MOK,
+    const language::Core::tooling::dependencies::ModuleDeps &MD,
+    language::Core::tooling::dependencies::ModuleOutputKind MOK,
     const StringRef moduleCachePath, const StringRef stableModuleCachePath,
     const StringRef runtimeResourcePath) {
   toolchain::SmallString<128> outputPath(moduleCachePath);
@@ -163,17 +163,17 @@ static std::string moduleCacheRelativeLookupModuleOutput(
   toolchain::sys::path::append(outputPath,
                           MD.ID.ModuleName + "-" + MD.ID.ContextHash);
   switch (MOK) {
-  case clang::tooling::dependencies::ModuleOutputKind::ModuleFile:
+  case language::Core::tooling::dependencies::ModuleOutputKind::ModuleFile:
     toolchain::sys::path::replace_extension(
         outputPath, getExtension(language::file_types::TY_ClangModuleFile));
     break;
-  case clang::tooling::dependencies::ModuleOutputKind::DependencyFile:
+  case language::Core::tooling::dependencies::ModuleOutputKind::DependencyFile:
     toolchain::sys::path::replace_extension(
         outputPath, getExtension(language::file_types::TY_Dependencies));
     break;
-  case clang::tooling::dependencies::ModuleOutputKind::DependencyTargets:
+  case language::Core::tooling::dependencies::ModuleOutputKind::DependencyTargets:
     return MD.ID.ModuleName + "-" + MD.ID.ContextHash;
-  case clang::tooling::dependencies::ModuleOutputKind::
+  case language::Core::tooling::dependencies::ModuleOutputKind::
       DiagnosticSerializationFile:
     toolchain::sys::path::replace_extension(
         outputPath, getExtension(language::file_types::TY_SerializedDiagnostics));
@@ -311,11 +311,11 @@ ModuleDependencyScanningWorker::scanFilesystemForCodiraModuleDependency(
 ModuleDependencyVector
 ModuleDependencyScanningWorker::scanFilesystemForClangModuleDependency(
     Identifier moduleName,
-    const toolchain::DenseSet<clang::tooling::dependencies::ModuleID>
+    const toolchain::DenseSet<language::Core::tooling::dependencies::ModuleID>
         &alreadySeenModules) {
   auto lookupModuleOutput =
-      [this](const clang::tooling::dependencies::ModuleDeps &MD,
-             const clang::tooling::dependencies::ModuleOutputKind MOK)
+      [this](const language::Core::tooling::dependencies::ModuleDeps &MD,
+             const language::Core::tooling::dependencies::ModuleOutputKind MOK)
       -> std::string {
     return moduleCacheRelativeLookupModuleOutput(
         MD, MOK, moduleOutputPath, sdkModuleOutputPath,
@@ -355,10 +355,10 @@ bool ModuleDependencyScanningWorker::scanHeaderDependenciesOfCodiraModule(
     std::optional<std::string> &includeTreeID) {
   // Scan the specified textual header file and collect its dependencies
   auto scanHeaderDependencies = [&]()
-      -> toolchain::Expected<clang::tooling::dependencies::TranslationUnitDeps> {
+      -> toolchain::Expected<language::Core::tooling::dependencies::TranslationUnitDeps> {
     auto lookupModuleOutput =
-        [this, &ctx](const clang::tooling::dependencies::ModuleDeps &MD,
-                     const clang::tooling::dependencies::ModuleOutputKind MOK)
+        [this, &ctx](const language::Core::tooling::dependencies::ModuleDeps &MD,
+                     const language::Core::tooling::dependencies::ModuleOutputKind MOK)
         -> std::string {
       return moduleCacheRelativeLookupModuleOutput(
           MD, MOK, moduleOutputPath, sdkModuleOutputPath,
@@ -548,9 +548,9 @@ void CodiraDependencyTracker::trackFile(const Twine &path) {
 
 toolchain::Expected<toolchain::cas::ObjectProxy>
 CodiraDependencyTracker::createTreeFromDependencies() {
-  toolchain::SmallVector<clang::cas::IncludeTree::FileList::FileEntry> Files;
+  toolchain::SmallVector<language::Core::cas::IncludeTree::FileList::FileEntry> Files;
   for (auto &file : TrackedFiles) {
-    auto includeTreeFile = clang::cas::IncludeTree::File::create(
+    auto includeTreeFile = language::Core::cas::IncludeTree::File::create(
         *CAS, file.first, file.second.FileRef);
     if (!includeTreeFile) {
       return toolchain::createStringError("CASFS createTree failed for " +
@@ -559,11 +559,11 @@ CodiraDependencyTracker::createTreeFromDependencies() {
     }
     Files.push_back(
         {includeTreeFile->getRef(),
-         (clang::cas::IncludeTree::FileList::FileSizeTy)file.second.Size});
+         (language::Core::cas::IncludeTree::FileList::FileSizeTy)file.second.Size});
   }
 
   auto includeTreeList =
-      clang::cas::IncludeTree::FileList::create(*CAS, Files, {});
+      language::Core::cas::IncludeTree::FileList::create(*CAS, Files, {});
   if (!includeTreeList)
     return toolchain::createStringError("casfs include-tree filelist error: " +
                                    toString(includeTreeList.takeError()));
@@ -1122,7 +1122,7 @@ void ModuleDependencyScanner::resolveAllClangModuleDependencies(
   // We need a copy of the shared already-seen module set, which will be shared
   // amongst all the workers. In `recordDependencies`, each worker will
   // contribute its results back to the shared set for future lookups.
-  const toolchain::DenseSet<clang::tooling::dependencies::ModuleID>
+  const toolchain::DenseSet<language::Core::tooling::dependencies::ModuleID>
       seenClangModules = cache.getAlreadySeenClangModules();
   std::mutex cacheAccessLock;
   auto scanForClangModuleDependency =

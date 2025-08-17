@@ -35,7 +35,7 @@
 // language utils/sourcekit_fuzzer/sourcekit_fuzzer.language <build dir> <source file>
 //
 // - <build dir> is your Swift build directory (the one with subdirectories
-//   named language-macosx-x86_64 and llvm-macosx-x86_64).
+//   named language-macosx-x86_64 and toolchain-macosx-x86_64).
 //
 // - <source file> is the source file to fuzz. Try any complex but
 //   self-contained Swift file that exercises a variety of language features;
@@ -114,7 +114,7 @@ if arguments.count != 2 {
 
 let buildDir = arguments[0]
 
-let notPath = "\(buildDir)/llvm-macosx-x86_64/bin/not"
+let notPath = "\(buildDir)/toolchain-macosx-x86_64/bin/not"
 let languageIdeTestPath = "\(buildDir)/language-macosx-x86_64/bin/language-ide-test"
 let creducePath = "/usr/local/bin/creduce"
 

@@ -34,7 +34,7 @@
 
 // (libc++ also seems to have really bad implementations of its own that ignore
 // the intricacies of floating point math.)
-// http://llvm.org/bugs/show_bug.cgi?id=21504
+// http://toolchain.org/bugs/show_bug.cgi?id=21504
 
 #include <math.h> // For M_PI_2/M_PI_2l.
 

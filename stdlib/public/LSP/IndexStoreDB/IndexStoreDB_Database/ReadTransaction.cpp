@@ -17,10 +17,10 @@
 #include <IndexStoreDB_Support/Path.h>
 #include <IndexStoreDB_Support/PatternMatching.h>
 #include <IndexStoreDB_Support/Logging.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_ArrayRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Path.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_ArrayRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Path.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 
 using namespace IndexStoreDB;
 using namespace IndexStoreDB::db;
@@ -38,12 +38,12 @@ ReadTransaction::Implementation::Implementation(DatabaseRef dbase)
 }
 
 bool ReadTransaction::Implementation::lookupProvidersForUSR(StringRef USR, SymbolRoleSet rolesToLookup, SymbolRoleSet relatedRolesToLookup,
-                                                            llvm::function_ref<bool(IDCode provider, SymbolRoleSet roles, SymbolRoleSet relatedRoles)> receiver) {
+                                                            toolchain::function_ref<bool(IDCode provider, SymbolRoleSet roles, SymbolRoleSet relatedRoles)> receiver) {
   return lookupProvidersForUSR(makeIDCodeFromString(USR), rolesToLookup, relatedRolesToLookup, std::move(receiver));
 }
 
 bool ReadTransaction::Implementation::lookupProvidersForUSR(IDCode usrCode, SymbolRoleSet rolesToLookup, SymbolRoleSet relatedRolesToLookup,
-                                                            llvm::function_ref<bool(IDCode provider, SymbolRoleSet roles, SymbolRoleSet relatedRoles)> receiver) {
+                                                            toolchain::function_ref<bool(IDCode provider, SymbolRoleSet roles, SymbolRoleSet relatedRoles)> receiver) {
   auto &db = DBase->impl();
   auto &dbiProvidersByUSR = db.getDBISymbolProvidersByUSR();
   auto cursorUSR = lmdb::cursor::open(Txn, dbiProvidersByUSR);
@@ -72,7 +72,7 @@ bool ReadTransaction::Implementation::lookupProvidersForUSR(IDCode usrCode, Symb
       assert(value.size() % sizeof(ProviderForUSRData) == 0);
       ProviderForUSRData *entryPtr = (ProviderForUSRData*)value.data();
       size_t entryCount = value.size() / sizeof(ProviderForUSRData);
-      auto entries = llvm::makeArrayRef(entryPtr, entryCount);
+      auto entries = toolchain::makeArrayRef(entryPtr, entryCount);
       for (auto &entry : entries) {
         bool cont = handleEntry(entry);
         if (!cont)
@@ -123,11 +123,11 @@ StringRef ReadTransaction::Implementation::getModuleName(IDCode moduleNameCode) 
 }
 
 bool ReadTransaction::Implementation::getProviderFileReferences(IDCode provider,
-    llvm::function_ref<bool(TimestampedPath path)> receiver) {
+    toolchain::function_ref<bool(TimestampedPath path)> receiver) {
   auto unitFilter = [](IDCode unitCode)->bool { return true; };
-  return getProviderFileCodeReferences(provider, unitFilter, [&](IDCode pathCode, IDCode unitCode, llvm::sys::TimePoint<> modTime, IDCode moduleNameCode, bool isSystem) -> bool {
+  return getProviderFileCodeReferences(provider, unitFilter, [&](IDCode pathCode, IDCode unitCode, toolchain::sys::TimePoint<> modTime, IDCode moduleNameCode, bool isSystem) -> bool {
     std::string pathString;
-    llvm::raw_string_ostream OS(pathString);
+    toolchain::raw_string_ostream OS(pathString);
     if (!getFullFilePathFromCode(pathCode, OS)) {
       LOG_WARN_FUNC("path of provider file not found");
       return true;
@@ -147,14 +147,14 @@ static bool passFileReferencesForProviderCursor(lmdb::val &key,
                                                 lmdb::val &value,
                                                 lmdb::cursor &cursor,
                                                 function_ref<bool(IDCode unitCode)> unitFilter,
-                                                llvm::function_ref<bool(IDCode pathCode, IDCode unitCode, llvm::sys::TimePoint<> modTime, IDCode moduleNameCode, bool isSystem)> receiver) {
+                                                toolchain::function_ref<bool(IDCode pathCode, IDCode unitCode, toolchain::sys::TimePoint<> modTime, IDCode moduleNameCode, bool isSystem)> receiver) {
   // Entries are sorted by file code and there can be multiple same file entries
   // from different units. We want to pass each file only once with its most recent
   // timestamp. Visit the entries and keep track of current file and recent timestamp;
   // when file changes pass it to the receiver.
   Optional<IDCode> currFileCode;
   Optional<IDCode> currUnitCode;
-  llvm::sys::TimePoint<> currModTime;
+  toolchain::sys::TimePoint<> currModTime;
   IDCode currModuleNameCode;
   bool currIsSystem = false;
   auto passCurrFile = [&]() -> bool {
@@ -163,7 +163,7 @@ static bool passFileReferencesForProviderCursor(lmdb::val &key,
 
   do {
     const auto &entry = *(TimestampedFileForProviderData*)value.data();
-    llvm::sys::TimePoint<> modTime = llvm::sys::TimePoint<>(std::chrono::nanoseconds(entry.NanoTime));
+    toolchain::sys::TimePoint<> modTime = toolchain::sys::TimePoint<>(std::chrono::nanoseconds(entry.NanoTime));
     if (!currFileCode) {
       if (unitFilter(entry.UnitCode)) {
         currFileCode = entry.FileCode;
@@ -204,7 +204,7 @@ static bool passFileReferencesForProviderCursor(lmdb::val &key,
 
 bool ReadTransaction::Implementation::getProviderFileCodeReferences(IDCode provider,
     function_ref<bool(IDCode unitCode)> unitFilter,
-    function_ref<bool(IDCode pathCode, IDCode unitCode, llvm::sys::TimePoint<> modTime, IDCode moduleNameCode, bool isSystem)> receiver) {
+    function_ref<bool(IDCode pathCode, IDCode unitCode, toolchain::sys::TimePoint<> modTime, IDCode moduleNameCode, bool isSystem)> receiver) {
   auto &db = DBase->impl();
   auto &dbiFilesByProvider = db.getDBITimestampedFilesByProvider();
   auto cursor = lmdb::cursor::open(Txn, dbiFilesByProvider);
@@ -220,7 +220,7 @@ bool ReadTransaction::Implementation::getProviderFileCodeReferences(IDCode provi
 
 bool ReadTransaction::Implementation::foreachProviderAndFileCodeReference(
     function_ref<bool(IDCode unitCode)> unitFilter,
-    function_ref<bool(IDCode provider, IDCode pathCode, IDCode unitCode, llvm::sys::TimePoint<> modTime, IDCode moduleNameCode, bool isSystem)> receiver) {
+    function_ref<bool(IDCode provider, IDCode pathCode, IDCode unitCode, toolchain::sys::TimePoint<> modTime, IDCode moduleNameCode, bool isSystem)> receiver) {
   auto &db = DBase->impl();
   auto &dbiFilesByProvider = db.getDBITimestampedFilesByProvider();
   auto cursor = lmdb::cursor::open(Txn, dbiFilesByProvider);
@@ -229,7 +229,7 @@ bool ReadTransaction::Implementation::foreachProviderAndFileCodeReference(
   lmdb::val value{};
   while (cursor.get(key, value, MDB_NEXT_NODUP)) {
     IDCode providerCode = *(IDCode*)key.data();
-    bool cont = passFileReferencesForProviderCursor(key, value, cursor, unitFilter, [&](IDCode pathCode, IDCode unitCode, llvm::sys::TimePoint<> modTime, IDCode moduleNameCode, bool isSystem) -> bool {
+    bool cont = passFileReferencesForProviderCursor(key, value, cursor, unitFilter, [&](IDCode pathCode, IDCode unitCode, toolchain::sys::TimePoint<> modTime, IDCode moduleNameCode, bool isSystem) -> bool {
       return receiver(providerCode, pathCode, unitCode, modTime, moduleNameCode, isSystem);
     });
     if (!cont)
@@ -239,7 +239,7 @@ bool ReadTransaction::Implementation::foreachProviderAndFileCodeReference(
 }
 
 static bool passMultipleIDCodes(lmdb::cursor &cursor, lmdb::val &key, lmdb::val &value,
-                                llvm::function_ref<bool(ArrayRef<IDCode> codes)> receiver) {
+                                toolchain::function_ref<bool(ArrayRef<IDCode> codes)> receiver) {
   size_t numItems = cursor.count();
   if (numItems == 1) {
     IDCode usrCode;
@@ -277,7 +277,7 @@ bool ReadTransaction::Implementation::foreachProviderContainingTestSymbols(funct
 }
 
 bool ReadTransaction::Implementation::foreachUSROfGlobalSymbolKind(SymbolKind symKind,
-                                                             llvm::function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver) {
+                                                             toolchain::function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver) {
   auto globalKindOpt = getGlobalSymbolKind(symKind);
   if (!globalKindOpt.hasValue())
     return true;
@@ -308,7 +308,7 @@ bool ReadTransaction::Implementation::foreachUSROfGlobalSymbolKind(GlobalSymbolK
 bool ReadTransaction::Implementation::findUSRsWithNameContaining(StringRef pattern,
                                                                  bool anchorStart, bool anchorEnd,
                                                                  bool subsequence, bool ignoreCase,
-                                                                 llvm::function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver) {
+                                                                 toolchain::function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver) {
   auto &db = DBase->impl();
   auto &dbiNames = db.getDBIUSRsBySymbolName();
   auto cursor = lmdb::cursor::open(Txn, dbiNames);
@@ -327,7 +327,7 @@ bool ReadTransaction::Implementation::findUSRsWithNameContaining(StringRef patte
 }
 
 bool ReadTransaction::Implementation::foreachUSRBySymbolName(StringRef name,
-                                                     llvm::function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver) {
+                                                     toolchain::function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver) {
   auto &db = DBase->impl();
   auto &dbiNames = db.getDBIUSRsBySymbolName();
   auto cursor = lmdb::cursor::open(Txn, dbiNames);
@@ -359,7 +359,7 @@ bool ReadTransaction::Implementation::foreachSymbolName(function_ref<bool(String
 bool ReadTransaction::Implementation::findFilenamesContaining(StringRef pattern,
                                                               bool anchorStart, bool anchorEnd,
                                                               bool subsequence, bool ignoreCase,
-                                                              llvm::function_ref<bool(CanonicalFilePathRef filePath)> receiver) {
+                                                              toolchain::function_ref<bool(CanonicalFilePathRef filePath)> receiver) {
   auto &db = DBase->impl();
   auto &dbiFilenames = db.getDBIFilenameByCode();
   auto cursor = lmdb::cursor::open(Txn, dbiFilenames);
@@ -374,7 +374,7 @@ bool ReadTransaction::Implementation::findFilenamesContaining(StringRef pattern,
     // FIXME: When adding a path in the database mark it explicitly whether it
     // should be searchable or not. For now workaround the issue by excluding
     // output filenames.
-    StringRef ext = llvm::sys::path::extension(fileName);
+    StringRef ext = toolchain::sys::path::extension(fileName);
     if (ext == ".o" || ext == ".pcm")
       continue;
 
@@ -406,7 +406,7 @@ bool ReadTransaction::Implementation::getFullFilePathFromCode(IDCode filePathCod
 CanonicalFilePath ReadTransaction::Implementation::getFullFilePathFromCode(IDCode filePathCode) {
   SmallString<128> path;
   {
-    llvm::raw_svector_ostream OS(path);
+    toolchain::raw_svector_ostream OS(path);
     getFullFilePathFromCode(filePathCode, OS);
   }
   return CanonicalFilePathRef::getAsCanonicalPath(path);
@@ -415,7 +415,7 @@ CanonicalFilePath ReadTransaction::Implementation::getFullFilePathFromCode(IDCod
 std::string ReadTransaction::Implementation::getUnitFileIdentifierFromCode(IDCode filePathCode) {
   std::string path;
   {
-    llvm::raw_string_ostream OS(path);
+    toolchain::raw_string_ostream OS(path);
     getFullFilePathFromCode(filePathCode, OS);
   }
   return path;
@@ -431,7 +431,7 @@ CanonicalFilePathRef ReadTransaction::Implementation::getDirectoryFromCode(IDCod
   return CanonicalFilePathRef::getAsCanonicalPath({value.data(), value.size()});
 }
 
-bool ReadTransaction::Implementation::foreachDirPath(llvm::function_ref<bool(CanonicalFilePathRef dirPath)> receiver) {
+bool ReadTransaction::Implementation::foreachDirPath(toolchain::function_ref<bool(CanonicalFilePathRef dirPath)> receiver) {
   auto &db = DBase->impl();
   auto cursor = lmdb::cursor::open(Txn, db.getDBIDirNameByCode());
 
@@ -446,7 +446,7 @@ bool ReadTransaction::Implementation::foreachDirPath(llvm::function_ref<bool(Can
 }
 
 bool ReadTransaction::Implementation::findFilePathsWithParentPaths(ArrayRef<CanonicalFilePathRef> origParentPaths,
-                   llvm::function_ref<bool(IDCode pathCode, CanonicalFilePathRef filePath)> receiver) {
+                   toolchain::function_ref<bool(IDCode pathCode, CanonicalFilePathRef filePath)> receiver) {
   // Do cleanup of the path if it ends with '/'.
   SmallVector<StringRef, 8> parentPaths;
   parentPaths.reserve(origParentPaths.size());
@@ -468,7 +468,7 @@ bool ReadTransaction::Implementation::findFilePathsWithParentPaths(ArrayRef<Cano
     for (IDCode pathCode : codes) {
       pathBuf.clear();
       {
-        llvm::raw_svector_ostream OS(pathBuf);
+        toolchain::raw_svector_ostream OS(pathBuf);
         if (!getFullFilePathFromCode(pathCode, OS))
           continue;
       }
@@ -515,7 +515,7 @@ bool ReadTransaction::Implementation::getFilePathFromValue(lmdb::val &filePathVa
   bool found = dbiDirNames.get(Txn, key, value);
   if (found)
     OS << StringRef(value.data(), value.size());
-  OS << llvm::sys::path::get_separator();
+  OS << toolchain::sys::path::get_separator();
   OS << fileName;
   return true;
 }
@@ -523,7 +523,7 @@ bool ReadTransaction::Implementation::getFilePathFromValue(lmdb::val &filePathVa
 CanonicalFilePath ReadTransaction::Implementation::getFilePathFromValue(lmdb::val &filePathValue) {
   SmallString<128> path;
   {
-    llvm::raw_svector_ostream OS(path);
+    toolchain::raw_svector_ostream OS(path);
     getFilePathFromValue(filePathValue, OS);
   }
   return CanonicalFilePathRef::getAsCanonicalPath(path);
@@ -546,7 +546,7 @@ UnitInfo ReadTransaction::Implementation::getUnitInfo(StringRef unitName) {
 }
 
 bool ReadTransaction::Implementation::foreachUnitContainingFile(IDCode filePathCode,
-                                                                llvm::function_ref<bool(ArrayRef<IDCode> unitCodes)> receiver) {
+                                                                toolchain::function_ref<bool(ArrayRef<IDCode> unitCodes)> receiver) {
   auto &db = DBase->impl();
   auto cursor = lmdb::cursor::open(Txn, db.getDBIUnitByFileDependency());
   lmdb::val key{&filePathCode, sizeof(filePathCode)};
@@ -571,12 +571,12 @@ LLVM_DUMP_METHOD void ReadTransaction::Implementation::dumpUnitByFilePair() {
 
     CanonicalFilePath filePath = getFullFilePathFromCode(filePathCode);
     UnitInfo unitInfo = getUnitInfo(unitCode);
-    llvm::errs() << filePath.getPath() << " -> " << unitInfo.UnitName << '\n';
+    toolchain::errs() << filePath.getPath() << " -> " << unitInfo.UnitName << '\n';
   }
 }
 
 bool ReadTransaction::Implementation::foreachUnitContainingUnit(IDCode unitCode,
-                                                                llvm::function_ref<bool(ArrayRef<IDCode> unitCodes)> receiver) {
+                                                                toolchain::function_ref<bool(ArrayRef<IDCode> unitCodes)> receiver) {
   auto &db = DBase->impl();
   auto cursor = lmdb::cursor::open(Txn, db.getDBIUnitByUnitDependency());
   lmdb::val key{&unitCode, sizeof(unitCode)};
@@ -657,12 +657,12 @@ ReadTransaction::ReadTransaction(DatabaseRef dbase)
 ReadTransaction::~ReadTransaction() {}
 
 bool ReadTransaction::lookupProvidersForUSR(StringRef USR, SymbolRoleSet roles, SymbolRoleSet relatedRoles,
-                                            llvm::function_ref<bool(IDCode provider, SymbolRoleSet roles, SymbolRoleSet relatedRoles)> receiver) {
+                                            toolchain::function_ref<bool(IDCode provider, SymbolRoleSet roles, SymbolRoleSet relatedRoles)> receiver) {
   return Impl->lookupProvidersForUSR(USR, roles, relatedRoles, std::move(receiver));
 }
 
 bool ReadTransaction::lookupProvidersForUSR(IDCode usrCode, SymbolRoleSet roles, SymbolRoleSet relatedRoles,
-                                            llvm::function_ref<bool(IDCode provider, SymbolRoleSet roles, SymbolRoleSet relatedRoles)> receiver) {
+                                            toolchain::function_ref<bool(IDCode provider, SymbolRoleSet roles, SymbolRoleSet relatedRoles)> receiver) {
   return Impl->lookupProvidersForUSR(usrCode, roles, relatedRoles, std::move(receiver));
 }
 
@@ -679,19 +679,19 @@ StringRef ReadTransaction::getModuleName(IDCode moduleName) {
 }
 
 bool ReadTransaction::getProviderFileReferences(IDCode provider,
-    llvm::function_ref<bool(TimestampedPath path)> receiver) {
+    toolchain::function_ref<bool(TimestampedPath path)> receiver) {
   return Impl->getProviderFileReferences(provider, std::move(receiver));
 }
 
 bool ReadTransaction::getProviderFileCodeReferences(IDCode provider,
     function_ref<bool(IDCode unitCode)> unitFilter,
-    function_ref<bool(IDCode pathCode, IDCode unitCode, llvm::sys::TimePoint<> modTime, IDCode moduleNameCode, bool isSystem)> receiver) {
+    function_ref<bool(IDCode pathCode, IDCode unitCode, toolchain::sys::TimePoint<> modTime, IDCode moduleNameCode, bool isSystem)> receiver) {
   return Impl->getProviderFileCodeReferences(provider, std::move(unitFilter), std::move(receiver));
 }
 
 bool ReadTransaction::foreachProviderAndFileCodeReference(
     function_ref<bool(IDCode unitCode)> unitFilter,
-    function_ref<bool(IDCode provider, IDCode pathCode, IDCode unitCode, llvm::sys::TimePoint<> modTime, IDCode moduleNameCode, bool isSystem)> receiver) {
+    function_ref<bool(IDCode provider, IDCode pathCode, IDCode unitCode, toolchain::sys::TimePoint<> modTime, IDCode moduleNameCode, bool isSystem)> receiver) {
   return Impl->foreachProviderAndFileCodeReference(std::move(unitFilter), std::move(receiver));
 }
 
@@ -699,29 +699,29 @@ bool ReadTransaction::foreachProviderContainingTestSymbols(function_ref<bool(IDC
   return Impl->foreachProviderContainingTestSymbols(std::move(receiver));
 }
 
-bool ReadTransaction::foreachUSROfGlobalSymbolKind(SymbolKind symKind, llvm::function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver) {
+bool ReadTransaction::foreachUSROfGlobalSymbolKind(SymbolKind symKind, toolchain::function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver) {
   return Impl->foreachUSROfGlobalSymbolKind(symKind, std::move(receiver));
 }
 
-bool ReadTransaction::foreachUSROfGlobalUnitTestSymbol(llvm::function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver) {
+bool ReadTransaction::foreachUSROfGlobalUnitTestSymbol(toolchain::function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver) {
   return Impl->foreachUSROfGlobalUnitTestSymbol(std::move(receiver));
 }
 
 bool ReadTransaction::findUSRsWithNameContaining(StringRef pattern,
                                                  bool anchorStart, bool anchorEnd,
                                                  bool subsequence, bool ignoreCase,
-                                                 llvm::function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver) {
+                                                 toolchain::function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver) {
   return Impl->findUSRsWithNameContaining(pattern, anchorStart, anchorEnd, subsequence, ignoreCase, std::move(receiver));
 }
 
-bool ReadTransaction::foreachUSRBySymbolName(StringRef name, llvm::function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver) {
+bool ReadTransaction::foreachUSRBySymbolName(StringRef name, toolchain::function_ref<bool(ArrayRef<IDCode> usrCodes)> receiver) {
   return Impl->foreachUSRBySymbolName(name, std::move(receiver));
 }
 
 bool ReadTransaction::findFilenamesContaining(StringRef pattern,
                                               bool anchorStart, bool anchorEnd,
                                               bool subsequence, bool ignoreCase,
-                                              llvm::function_ref<bool(CanonicalFilePathRef filePath)> receiver) {
+                                              toolchain::function_ref<bool(CanonicalFilePathRef filePath)> receiver) {
   return Impl->findFilenamesContaining(pattern, anchorStart, anchorEnd, subsequence, ignoreCase, std::move(receiver));
 }
 
@@ -745,12 +745,12 @@ CanonicalFilePathRef ReadTransaction::getDirectoryFromCode(IDCode dirCode) {
   return Impl->getDirectoryFromCode(dirCode);
 }
 
-bool ReadTransaction::foreachDirPath(llvm::function_ref<bool(CanonicalFilePathRef dirPath)> receiver) {
+bool ReadTransaction::foreachDirPath(toolchain::function_ref<bool(CanonicalFilePathRef dirPath)> receiver) {
   return Impl->foreachDirPath(std::move(receiver));
 }
 
 bool ReadTransaction::findFilePathsWithParentPaths(ArrayRef<CanonicalFilePathRef> parentPaths,
-                                                   llvm::function_ref<bool(IDCode pathCode, CanonicalFilePathRef filePath)> receiver) {
+                                                   toolchain::function_ref<bool(IDCode pathCode, CanonicalFilePathRef filePath)> receiver) {
   return Impl->findFilePathsWithParentPaths(parentPaths, std::move(receiver));
 }
 
@@ -771,12 +771,12 @@ UnitInfo ReadTransaction::getUnitInfo(StringRef unitName) {
 }
 
 bool ReadTransaction::foreachUnitContainingFile(IDCode filePathCode,
-                                                llvm::function_ref<bool(ArrayRef<IDCode> unitCodes)> receiver) {
+                                                toolchain::function_ref<bool(ArrayRef<IDCode> unitCodes)> receiver) {
   return Impl->foreachUnitContainingFile(filePathCode, std::move(receiver));
 }
 
 bool ReadTransaction::foreachUnitContainingUnit(IDCode unitCode,
-                                                llvm::function_ref<bool(ArrayRef<IDCode> unitCodes)> receiver) {
+                                                toolchain::function_ref<bool(ArrayRef<IDCode> unitCodes)> receiver) {
   return Impl->foreachUnitContainingUnit(unitCode, std::move(receiver));
 }
 

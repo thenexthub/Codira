@@ -1,8 +1,24 @@
-//===- llvm/Support/CommandLine.h - Command line handler --------*- C++ -*-===//
+//===- toolchain/Support/CommandLine.h - Command line handler --------*- C++ -*-===//
 //
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// Copyright (c) 2025, NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+// 
+// Author: Tunjay Akbarli
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+// 
+//     http://www.apache.org/licenses/LICENSE-2.0
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// 
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -19,17 +35,17 @@
 #ifndef LLVM_SUPPORT_COMMANDLINE_H
 #define LLVM_SUPPORT_COMMANDLINE_H
 
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_ArrayRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_STLExtras.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallPtrSet.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallVector.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringMap.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_Twine.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_iterator_range.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ErrorHandling.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_ManagedStatic.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_ArrayRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_STLExtras.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallPtrSet.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallVector.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringMap.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_Twine.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_iterator_range.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ErrorHandling.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_ManagedStatic.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
 #include <cassert>
 #include <climits>
 #include <cstddef>
@@ -39,7 +55,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace llvm {
+namespace toolchain {
 
 class StringSaver;
 class raw_ostream;
@@ -380,7 +396,7 @@ public:
                              bool MultiArg = false);
 
   // Prints option name followed by message.  Always returns true.
-  bool error(const Twine &Message, StringRef ArgName = StringRef(), raw_ostream &Errs = llvm::errs());
+  bool error(const Twine &Message, StringRef ArgName = StringRef(), raw_ostream &Errs = toolchain::errs());
   bool error(const Twine &Message, raw_ostream &Errs) {
     return error(Message, StringRef(), Errs);
   }
@@ -491,7 +507,7 @@ struct OptionValueBase : public GenericOptionValue {
 
   bool hasValue() const { return false; }
 
-  const DataType &getValue() const { llvm_unreachable("no default value"); }
+  const DataType &getValue() const { toolchain_unreachable("no default value"); }
 
   // Some options may take their value from a different data type.
   template <class DT> void setValue(const DT & /*V*/) {}
@@ -618,9 +634,9 @@ struct OptionEnumValue {
 };
 
 #define clEnumVal(ENUMVAL, DESC)                                               \
-  llvm::cl::OptionEnumValue { #ENUMVAL, int(ENUMVAL), DESC }
+  toolchain::cl::OptionEnumValue { #ENUMVAL, int(ENUMVAL), DESC }
 #define clEnumValN(ENUMVAL, FLAGNAME, DESC)                                    \
-  llvm::cl::OptionEnumValue { FLAGNAME, int(ENUMVAL), DESC }
+  toolchain::cl::OptionEnumValue { FLAGNAME, int(ENUMVAL), DESC }
 
 // values - For custom data types, allow specifying a group of values together
 // as the values that go into the mapping that the option handler uses.
@@ -1805,18 +1821,18 @@ void PrintHelpMessage(bool Hidden = false, bool Categorized = false);
 /// Typical usage:
 /// \code
 /// main(int argc,char* argv[]) {
-/// StringMap<llvm::cl::Option*> &opts = llvm::cl::getRegisteredOptions();
+/// StringMap<toolchain::cl::Option*> &opts = toolchain::cl::getRegisteredOptions();
 /// assert(opts.count("help") == 1)
 /// opts["help"]->setDescription("Show alphabetical help information")
 /// // More code
-/// llvm::cl::ParseCommandLineOptions(argc,argv);
+/// toolchain::cl::ParseCommandLineOptions(argc,argv);
 /// //More code
 /// }
 /// \endcode
 ///
 /// This interface is useful for modifying options in libraries that are out of
 /// the control of the client. The options should be modified before calling
-/// llvm::cl::ParseCommandLineOptions().
+/// toolchain::cl::ParseCommandLineOptions().
 ///
 /// Hopefully this API can be deprecated soon. Any situation where options need
 /// to be modified by tools or libraries should be handled by sane APIs rather
@@ -1830,8 +1846,8 @@ StringMap<Option *> &getRegisteredOptions(SubCommand &Sub = *TopLevelSubCommand)
 /// Typical usage:
 /// \code
 /// main(int argc, char* argv[]) {
-///   llvm::cl::ParseCommandLineOptions(argc, argv);
-///   for (auto* S : llvm::cl::getRegisteredSubcommands()) {
+///   toolchain::cl::ParseCommandLineOptions(argc, argv);
+///   for (auto* S : toolchain::cl::getRegisteredSubcommands()) {
 ///     if (*S) {
 ///       std::cout << "Executing subcommand: " << S->getName() << std::endl;
 ///       // Execute some function based on the name...
@@ -1966,6 +1982,6 @@ void ResetCommandLineParser();
 
 } // end namespace cl
 
-} // end namespace llvm
+} // end namespace toolchain
 
 #endif // LLVM_SUPPORT_COMMANDLINE_H

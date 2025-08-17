@@ -18,14 +18,14 @@
 
 #include <IndexStoreDB_Support/LLVM.h>
 #include <IndexStoreDB_Support/Visibility.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_IntrusiveRefCntPtr.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_SmallString.h>
-#include <IndexStoreDB_LLVMSupport/llvm_ADT_StringRef.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_raw_ostream.h>
-#include <IndexStoreDB_LLVMSupport/llvm_Support_Timer.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_IntrusiveRefCntPtr.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_SmallString.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_ADT_StringRef.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_raw_ostream.h>
+#include <IndexStoreDB_LLVMSupport/toolchain_Support_Timer.h>
 #include <string>
 
-namespace llvm {
+namespace toolchain {
 class format_object_base;
 }
 
@@ -43,7 +43,7 @@ typedef IntrusiveRefCntPtr<Logger> LogRef;
 ///     *Log << "stuff";
 ///   }
 /// \endcode
-class INDEXSTOREDB_EXPORT Logger : public llvm::ThreadSafeRefCountedBase<Logger> {
+class INDEXSTOREDB_EXPORT Logger : public toolchain::ThreadSafeRefCountedBase<Logger> {
 public:
   enum class Level : unsigned char {
     /// \brief No logging.
@@ -62,9 +62,9 @@ private:
   std::string Name;
   Level CurrLevel;
   SmallString<64> Msg;
-  llvm::raw_svector_ostream LogOS;
+  toolchain::raw_svector_ostream LogOS;
   uint64_t thread_id;
-  llvm::TimeRecord TimeR;
+  toolchain::TimeRecord TimeR;
 
   static std::string LoggerName;
   static std::atomic<Level> LoggingLevel;
@@ -87,7 +87,7 @@ public:
   static Level getLogLevelByNum(unsigned LevelNum);
   static unsigned getCurrentLogLevelNum();
 
-  static LogRef make(llvm::StringRef Name, Level LogLevel) {
+  static LogRef make(toolchain::StringRef Name, Level LogLevel) {
     if (isLoggingEnabledForLevel(LogLevel)) return new Logger(Name, LogLevel);
     return nullptr;
   }
@@ -95,9 +95,9 @@ public:
   Logger(StringRef Name, Level LogLevel);
   ~Logger();
 
-  llvm::raw_ostream &getOS() { return LogOS; }
+  toolchain::raw_ostream &getOS() { return LogOS; }
 
-  Logger &operator<<(llvm::StringRef Str) { LogOS << Str; return *this; }
+  Logger &operator<<(toolchain::StringRef Str) { LogOS << Str; return *this; }
   Logger &operator<<(const char *Str) { if (Str) LogOS << Str; return *this; }
   Logger &operator<<(unsigned long N) { LogOS << N; return *this; }
   Logger &operator<<(unsigned long long N) { LogOS << N; return *this; }
@@ -107,7 +107,7 @@ public:
   Logger &operator<<(char C) { LogOS << C; return *this; }
   Logger &operator<<(unsigned char C) { LogOS << C; return *this; }
   Logger &operator<<(signed char C) { LogOS << C; return *this; }
-  Logger &operator<<(const llvm::format_object_base &Fmt);
+  Logger &operator<<(const toolchain::format_object_base &Fmt);
 };
 
 } // namespace IndexStoreDB.

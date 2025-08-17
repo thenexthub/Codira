@@ -163,7 +163,7 @@ class UnparseableStruct(Exception):
 # The __contains__ function in libclang SourceRange class contains a bug. It
 # gives wrong result when dealing with single line range.
 # Bug filed with upstream:
-# http://llvm.org/bugs/show_bug.cgi?id=22243, http://reviews.llvm.org/D7277
+# http://toolchain.org/bugs/show_bug.cgi?id=22243, http://reviews.toolchain.org/D7277
 def SourceRange__contains__(self, other):
     """Determine if a given location is inside the range."""
     if not isinstance(other, SourceLocation):
