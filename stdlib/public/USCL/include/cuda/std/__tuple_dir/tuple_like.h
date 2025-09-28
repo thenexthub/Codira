@@ -1,0 +1,90 @@
+//===----------------------------------------------------------------------===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// SPDX-FileCopyrightText: Copyright (c) 2023-24 NVIDIA CORPORATION & AFFILIATES.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef _CUDA_STD___TUPLE_TUPLE_LIKE_H
+#define _CUDA_STD___TUPLE_TUPLE_LIKE_H
+
+#include <uscl/std/detail/__config>
+
+#if defined(_CCCL_IMPLICIT_SYSTEM_HEADER_GCC)
+#  pragma GCC system_header
+#elif defined(_CCCL_IMPLICIT_SYSTEM_HEADER_CLANG)
+#  pragma clang system_header
+#elif defined(_CCCL_IMPLICIT_SYSTEM_HEADER_MSVC)
+#  pragma system_header
+#endif // no system header
+
+#include <uscl/std/__concepts/concept_macros.h>
+#include <uscl/std/__fwd/array.h>
+#include <uscl/std/__fwd/complex.h>
+#include <uscl/std/__fwd/pair.h>
+#include <uscl/std/__fwd/subrange.h>
+#include <uscl/std/__fwd/tuple.h>
+#include <uscl/std/__tuple_dir/tuple_size.h>
+#include <uscl/std/__tuple_dir/tuple_types.h>
+#include <uscl/std/__type_traits/integral_constant.h>
+#include <uscl/std/__type_traits/remove_cvref.h>
+#include <uscl/std/cstddef>
+
+#include <uscl/std/__cccl/prologue.h>
+
+_CCCL_BEGIN_NAMESPACE_CUDA_STD
+
+template <class _Tp>
+struct __tuple_like_impl : false_type
+{};
+
+template <class _Tp>
+struct __tuple_like_impl<const _Tp> : public __tuple_like_impl<_Tp>
+{};
+template <class _Tp>
+struct __tuple_like_impl<volatile _Tp> : public __tuple_like_impl<_Tp>
+{};
+template <class _Tp>
+struct __tuple_like_impl<const volatile _Tp> : public __tuple_like_impl<_Tp>
+{};
+
+template <class... _Tp>
+struct __tuple_like_impl<tuple<_Tp...>> : true_type
+{};
+
+template <class _T1, class _T2>
+struct __tuple_like_impl<pair<_T1, _T2>> : true_type
+{};
+
+template <class _Tp, size_t _Size>
+struct __tuple_like_impl<array<_Tp, _Size>> : true_type
+{};
+
+template <class _Tp>
+struct __tuple_like_impl<complex<_Tp>> : true_type
+{};
+
+template <class _Ip, class _Sp, ::cuda::std::ranges::subrange_kind _Kp>
+struct __tuple_like_impl<::cuda::std::ranges::subrange<_Ip, _Sp, _Kp>> : true_type
+{};
+
+template <class... _Tp>
+struct __tuple_like_impl<__tuple_types<_Tp...>> : true_type
+{};
+
+#if _CCCL_STD_VER >= 2014
+template <class _Tp>
+_CCCL_CONCEPT __tuple_like = __tuple_like_impl<remove_cvref_t<_Tp>>::value;
+
+template <class _Tp>
+_CCCL_CONCEPT __pair_like = _CCCL_REQUIRES_EXPR((_Tp)) //
+  (requires(__tuple_like_impl<remove_cvref_t<_Tp>>::value), requires(tuple_size<remove_cvref_t<_Tp>>::value == 2));
+#endif // _CCCL_STD_VER >= 2014
+
+_CCCL_END_NAMESPACE_CUDA_STD
+
+#include <uscl/std/__cccl/epilogue.h>
+
+#endif // _CUDA_STD___TUPLE_TUPLE_LIKE_H

@@ -33,11 +33,11 @@
 #include "format.h"
 #include "internal-unit.h"
 #include "io-error.h"
-#include "flang/Common/optional.h"
-#include "flang/Common/reference-wrapper.h"
-#include "flang/Common/visit.h"
-#include "flang/Runtime/freestanding-tools.h"
-#include "flang/Runtime/io-api.h"
+#include "language/Compability/Common/optional.h"
+#include "language/Compability/Common/reference-wrapper.h"
+#include "language/Compability/Common/visit.h"
+#include "language/Compability/Runtime/freestanding-tools.h"
+#include "language/Compability/Runtime/io-api.h"
 #include <flang/Common/variant.h>
 #include <functional>
 #include <type_traits>

@@ -36,9 +36,9 @@
 
 #include "terminator.h"
 #include "tools.h"
-#include "flang/Common/api-attrs.h"
-#include "flang/Common/erfc-scaled.h"
-#include "flang/Common/float128.h"
+#include "language/Compability/Common/api-attrs.h"
+#include "language/Compability/Common/erfc-scaled.h"
+#include "language/Compability/Common/float128.h"
 #include <cstdint>
 #include <limits>
 

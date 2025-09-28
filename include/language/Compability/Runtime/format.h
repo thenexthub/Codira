@@ -29,10 +29,10 @@
 
 #include "environment.h"
 #include "io-error.h"
-#include "flang/Common/Fortran-consts.h"
-#include "flang/Common/optional.h"
-#include "flang/Decimal/decimal.h"
-#include "flang/Runtime/freestanding-tools.h"
+#include "language/Compability/Common/Fortran-consts.h"
+#include "language/Compability/Common/optional.h"
+#include "language/Compability/Decimal/decimal.h"
+#include "language/Compability/Runtime/freestanding-tools.h"
 #include <cinttypes>
 
 namespace language::Compability::runtime {

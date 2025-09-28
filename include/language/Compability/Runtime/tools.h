@@ -29,9 +29,9 @@
 #include "memory.h"
 #include "stat.h"
 #include "terminator.h"
-#include "flang/Common/optional.h"
-#include "flang/Runtime/cpp-type.h"
-#include "flang/Runtime/freestanding-tools.h"
+#include "language/Compability/Common/optional.h"
+#include "language/Compability/Runtime/cpp-type.h"
+#include "language/Compability/Runtime/freestanding-tools.h"
 #include <cstring>
 #include <functional>
 #include <map>

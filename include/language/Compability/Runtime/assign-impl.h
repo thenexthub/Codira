@@ -25,7 +25,7 @@
 #ifndef FLANG_RT_RUNTIME_ASSIGN_IMPL_H_
 #define FLANG_RT_RUNTIME_ASSIGN_IMPL_H_
 
-#include "flang/Runtime/freestanding-tools.h"
+#include "language/Compability/Runtime/freestanding-tools.h"
 
 namespace language::Compability::runtime {
 class Descriptor;

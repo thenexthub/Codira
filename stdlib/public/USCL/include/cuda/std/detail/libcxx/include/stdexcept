@@ -1,0 +1,134 @@
+/*
+ *
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ * Date: Friday, December 29, 2023.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ *
+ */
+
+#ifndef _LIBCUDACXX_STDEXCEPT
+#define _LIBCUDACXX_STDEXCEPT
+
+#include <uscl/std/detail/__config>
+
+#if defined(_CCCL_IMPLICIT_SYSTEM_HEADER_GCC)
+#  pragma GCC system_header
+#elif defined(_CCCL_IMPLICIT_SYSTEM_HEADER_CLANG)
+#  pragma clang system_header
+#elif defined(_CCCL_IMPLICIT_SYSTEM_HEADER_MSVC)
+#  pragma system_header
+#endif // no system header
+
+#include <uscl/std/__exception/terminate.h>
+
+#if _CCCL_HAS_EXCEPTIONS()
+#  include <stdexcept>
+#endif // _LIBCUDACXX_HAS_STRING
+
+#include <uscl/std/__cccl/prologue.h>
+
+_CCCL_BEGIN_NAMESPACE_CUDA_STD
+
+[[noreturn]] _CCCL_API inline void __throw_runtime_error([[maybe_unused]] const char* __msg)
+{
+#if _CCCL_HAS_EXCEPTIONS()
+  NV_IF_ELSE_TARGET(NV_IS_HOST, (throw ::std::runtime_error(__msg);), (::cuda::std::terminate();))
+#else // ^^^ _CCCL_HAS_EXCEPTIONS() ^^^ / vvv !_CCCL_HAS_EXCEPTIONS() vvv
+  ::cuda::std::terminate();
+#endif // !_CCCL_HAS_EXCEPTIONS()
+}
+
+[[noreturn]] _CCCL_API inline void __throw_logic_error([[maybe_unused]] const char* __msg)
+{
+#if _CCCL_HAS_EXCEPTIONS()
+  NV_IF_ELSE_TARGET(NV_IS_HOST, (throw ::std::logic_error(__msg);), (::cuda::std::terminate();))
+#else // ^^^ _CCCL_HAS_EXCEPTIONS() ^^^ / vvv !_CCCL_HAS_EXCEPTIONS() vvv
+  ::cuda::std::terminate();
+#endif // !_CCCL_HAS_EXCEPTIONS()
+}
+
+[[noreturn]] _CCCL_API inline void __throw_domain_error([[maybe_unused]] const char* __msg)
+{
+#if _CCCL_HAS_EXCEPTIONS()
+  NV_IF_ELSE_TARGET(NV_IS_HOST, (throw ::std::domain_error(__msg);), (::cuda::std::terminate();))
+#else // ^^^ _CCCL_HAS_EXCEPTIONS() ^^^ / vvv !_CCCL_HAS_EXCEPTIONS() vvv
+  ::cuda::std::terminate();
+#endif // !_CCCL_HAS_EXCEPTIONS()
+}
+
+[[noreturn]] _CCCL_API inline void __throw_invalid_argument([[maybe_unused]] const char* __msg)
+{
+#if _CCCL_HAS_EXCEPTIONS()
+  NV_IF_ELSE_TARGET(NV_IS_HOST, (throw ::std::invalid_argument(__msg);), (::cuda::std::terminate();))
+#else // ^^^ _CCCL_HAS_EXCEPTIONS() ^^^ / vvv !_CCCL_HAS_EXCEPTIONS() vvv
+  ::cuda::std::terminate();
+#endif // !_CCCL_HAS_EXCEPTIONS()
+}
+
+[[noreturn]] _CCCL_API inline void __throw_length_error([[maybe_unused]] const char* __msg)
+{
+#if _CCCL_HAS_EXCEPTIONS()
+  NV_IF_ELSE_TARGET(NV_IS_HOST, (throw ::std::length_error(__msg);), (::cuda::std::terminate();))
+#else // ^^^ _CCCL_HAS_EXCEPTIONS() ^^^ / vvv !_CCCL_HAS_EXCEPTIONS() vvv
+  ::cuda::std::terminate();
+#endif // !_CCCL_HAS_EXCEPTIONS()
+}
+
+[[noreturn]] _CCCL_API inline void __throw_out_of_range([[maybe_unused]] const char* __msg)
+{
+#if _CCCL_HAS_EXCEPTIONS()
+  NV_IF_ELSE_TARGET(NV_IS_HOST, (throw ::std::out_of_range(__msg);), (::cuda::std::terminate();))
+#else // ^^^ _CCCL_HAS_EXCEPTIONS() ^^^ / vvv !_CCCL_HAS_EXCEPTIONS() vvv
+  ::cuda::std::terminate();
+#endif // !_CCCL_HAS_EXCEPTIONS()
+}
+
+[[noreturn]] _CCCL_API inline void __throw_range_error([[maybe_unused]] const char* __msg)
+{
+#if _CCCL_HAS_EXCEPTIONS()
+  NV_IF_ELSE_TARGET(NV_IS_HOST, (throw ::std::range_error(__msg);), (::cuda::std::terminate();))
+#else // ^^^ _CCCL_HAS_EXCEPTIONS() ^^^ / vvv !_CCCL_HAS_EXCEPTIONS() vvv
+  ::cuda::std::terminate();
+#endif // !_CCCL_HAS_EXCEPTIONS()
+}
+
+[[noreturn]] _CCCL_API inline void __throw_overflow_error([[maybe_unused]] const char* __msg)
+{
+#if _CCCL_HAS_EXCEPTIONS()
+  NV_IF_ELSE_TARGET(NV_IS_HOST, (throw ::std::overflow_error(__msg);), (::cuda::std::terminate();))
+#else // ^^^ _CCCL_HAS_EXCEPTIONS() ^^^ / vvv !_CCCL_HAS_EXCEPTIONS() vvv
+  ::cuda::std::terminate();
+#endif // !_CCCL_HAS_EXCEPTIONS()
+}
+
+[[noreturn]] _CCCL_API inline void __throw_underflow_error([[maybe_unused]] const char* __msg)
+{
+#if _CCCL_HAS_EXCEPTIONS()
+  NV_IF_ELSE_TARGET(NV_IS_HOST, (throw ::std::underflow_error(__msg);), (::cuda::std::terminate();))
+#else // ^^^ _CCCL_HAS_EXCEPTIONS() ^^^ / vvv !_CCCL_HAS_EXCEPTIONS() vvv
+  ::cuda::std::terminate();
+#endif // !_CCCL_HAS_EXCEPTIONS()
+}
+
+_CCCL_END_NAMESPACE_CUDA_STD
+
+#include <uscl/std/__cccl/epilogue.h>
+
+#endif // _LIBCUDACXX_STDEXCEPT

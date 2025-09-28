@@ -27,9 +27,9 @@
 
 #ifndef FLANG_RT_RUNTIME_STAT_H_
 #define FLANG_RT_RUNTIME_STAT_H_
-#include "flang/Common/ISO_Fortran_binding_wrapper.h"
-#include "flang/Common/api-attrs.h"
-#include "flang/Runtime/magic-numbers.h"
+#include "language/Compability/Common/ISO_Fortran_binding_wrapper.h"
+#include "language/Compability/Common/api-attrs.h"
+#include "language/Compability/Runtime/magic-numbers.h"
 namespace language::Compability::runtime {
 
 class Descriptor;

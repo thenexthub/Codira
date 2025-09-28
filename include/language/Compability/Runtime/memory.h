@@ -28,7 +28,7 @@
 #ifndef FLANG_RT_RUNTIME_MEMORY_H_
 #define FLANG_RT_RUNTIME_MEMORY_H_
 
-#include "flang/Common/api-attrs.h"
+#include "language/Compability/Common/api-attrs.h"
 #include <cassert>
 #include <memory>
 #include <type_traits>

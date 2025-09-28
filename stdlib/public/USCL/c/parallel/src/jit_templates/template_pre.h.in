@@ -1,0 +1,2 @@
+const char * jit_template_header_contents = R"unlikelystring(
+#include <uscl/std/type_traits>

@@ -36,10 +36,10 @@
 
 #include "memory.h"
 #include "type-code.h"
-#include "flang-rt/runtime/allocator-registry.h"
-#include "flang/Common/ISO_Fortran_binding_wrapper.h"
-#include "flang/Common/optional.h"
-#include "flang/Runtime/descriptor-consts.h"
+#include "language/Compability-rt/runtime/allocator-registry.h"
+#include "language/Compability/Common/ISO_Fortran_binding_wrapper.h"
+#include "language/Compability/Common/optional.h"
+#include "language/Compability/Runtime/descriptor-consts.h"
 #include <algorithm>
 #include <cassert>
 #include <cinttypes>

@@ -31,9 +31,9 @@
 #include "format.h"
 #include "io-stmt.h"
 #include "memory.h"
-#include "flang/Common/format.h"
-#include "flang/Decimal/decimal.h"
-#include "flang/Runtime/main.h"
+#include "language/Compability/Common/format.h"
+#include "language/Compability/Decimal/decimal.h"
+#include "language/Compability/Runtime/main.h"
 #include <algorithm>
 #include <cstring>
 #include <limits>

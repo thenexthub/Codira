@@ -1,0 +1,200 @@
+/*
+ *
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ * Date: Sunday, April 14, 2024.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ *
+ */
+
+#ifndef _CUDA_STD___BIT_BYTESWAP_H
+#define _CUDA_STD___BIT_BYTESWAP_H
+
+#include <uscl/std/detail/__config>
+
+#if defined(_CCCL_IMPLICIT_SYSTEM_HEADER_GCC)
+#  pragma GCC system_header
+#elif defined(_CCCL_IMPLICIT_SYSTEM_HEADER_CLANG)
+#  pragma clang system_header
+#elif defined(_CCCL_IMPLICIT_SYSTEM_HEADER_MSVC)
+#  pragma system_header
+#endif // no system header
+
+#if _CCCL_CUDA_COMPILATION()
+#  include <cuda/__ptx/instructions/prmt.h>
+#endif // _CCCL_CUDA_COMPILATION()
+#include <uscl/std/__concepts/concept_macros.h>
+#include <uscl/std/__type_traits/is_constant_evaluated.h>
+#include <uscl/std/__type_traits/is_integral.h>
+#include <uscl/std/__type_traits/make_nbit_int.h>
+#include <uscl/std/__type_traits/make_unsigned.h>
+#include <uscl/std/cstdint>
+#include <uscl/std/limits>
+
+#if _CCCL_COMPILER(MSVC)
+#  include <intrin.h>
+#endif // _CCCL_COMPILER(MSVC)
+
+#include <uscl/std/__cccl/prologue.h>
+
+_CCCL_BEGIN_NAMESPACE_CUDA_STD
+
+template <class _Tp>
+[[nodiscard]] _CCCL_API constexpr _Tp __byteswap_impl(_Tp __val) noexcept;
+
+template <class _Full>
+[[nodiscard]] _CCCL_API constexpr _Full __byteswap_impl_recursive(_Full __val) noexcept
+{
+  using _Half            = __make_nbit_uint_t<numeric_limits<_Full>::digits / 2>;
+  constexpr auto __shift = numeric_limits<_Half>::digits;
+
+  if constexpr (sizeof(_Full) > 2)
+  {
+    return static_cast<_Full>(::cuda::std::__byteswap_impl(static_cast<_Half>(__val >> __shift)))
+         | (static_cast<_Full>(::cuda::std::__byteswap_impl(static_cast<_Half>(__val))) << __shift);
+  }
+  else
+  {
+    return static_cast<_Full>((__val << __shift) | (__val >> __shift));
+  }
+}
+
+template <class _Tp>
+[[nodiscard]] _CCCL_HIDE_FROM_ABI _CCCL_DEVICE _Tp __byteswap_impl_device(_Tp __val) noexcept
+{
+#if __cccl_ptx_isa >= 200
+  if constexpr (sizeof(_Tp) == sizeof(uint16_t))
+  {
+    return static_cast<uint16_t>(::cuda::ptx::prmt(static_cast<uint32_t>(__val), uint32_t{0}, uint32_t{0x3201}));
+  }
+  else if constexpr (sizeof(_Tp) == sizeof(uint32_t))
+  {
+    return ::cuda::ptx::prmt(__val, uint32_t{0}, uint32_t{0x0123});
+  }
+  else if constexpr (sizeof(_Tp) == sizeof(uint64_t))
+  {
+    const auto __hi     = static_cast<uint32_t>(__val >> 32);
+    const auto __lo     = static_cast<uint32_t>(__val);
+    const auto __new_lo = ::cuda::ptx::prmt(__hi, uint32_t{0}, uint32_t{0x0123});
+    const auto __new_hi = ::cuda::ptx::prmt(__lo, uint32_t{0}, uint32_t{0x0123});
+
+    return static_cast<uint64_t>(__new_hi) << 32 | static_cast<uint64_t>(__new_lo);
+  }
+  else
+#endif // __cccl_ptx_isa >= 200
+  {
+    return ::cuda::std::__byteswap_impl_recursive(__val);
+  }
+}
+
+template <class _Tp>
+[[nodiscard]] _CCCL_API constexpr _Tp __byteswap_impl(_Tp __val) noexcept
+{
+  constexpr auto __shift = numeric_limits<uint8_t>::digits;
+
+  _Tp __result{};
+
+  _CCCL_PRAGMA_UNROLL_FULL()
+  for (size_t __i = 0; __i < sizeof(_Tp); ++__i)
+  {
+    __result <<= __shift;
+    __result |= _Tp(__val & _Tp(numeric_limits<uint8_t>::max()));
+    __val >>= __shift;
+  }
+  return __result;
+}
+
+[[nodiscard]] _CCCL_API constexpr uint16_t __byteswap_impl(uint16_t __val) noexcept
+{
+#if defined(_CCCL_BUILTIN_BSWAP16)
+  return _CCCL_BUILTIN_BSWAP16(__val);
+#else // ^^^ _CCCL_BUILTIN_BSWAP16 ^^^ / vvv !_CCCL_BUILTIN_BSWAP16 vvv
+  if (!::cuda::std::__cccl_default_is_constant_evaluated())
+  {
+#  if _CCCL_COMPILER(MSVC)
+    NV_IF_TARGET(NV_IS_HOST, return ::_byteswap_ushort(__val);)
+#  endif // _CCCL_COMPILER(MSVC)
+    NV_IF_TARGET(NV_IS_DEVICE, return ::cuda::std::__byteswap_impl_device(__val);)
+  }
+  return ::cuda::std::__byteswap_impl_recursive(__val);
+#endif // !_CCCL_BUILTIN_BSWAP16
+}
+
+[[nodiscard]] _CCCL_API constexpr uint32_t __byteswap_impl(uint32_t __val) noexcept
+{
+#if defined(_CCCL_BUILTIN_BSWAP32)
+  return _CCCL_BUILTIN_BSWAP32(__val);
+#else // ^^^ _CCCL_BUILTIN_BSWAP32 ^^^ / vvv !_CCCL_BUILTIN_BSWAP32 vvv
+  if (!::cuda::std::__cccl_default_is_constant_evaluated())
+  {
+#  if _CCCL_COMPILER(MSVC)
+    NV_IF_TARGET(NV_IS_HOST, return ::_byteswap_ulong(__val);)
+#  endif // _CCCL_COMPILER(MSVC)
+    NV_IF_TARGET(NV_IS_DEVICE, return ::cuda::std::__byteswap_impl_device(__val);)
+  }
+  return ::cuda::std::__byteswap_impl_recursive(__val);
+#endif // !_CCCL_BUILTIN_BSWAP32
+}
+
+[[nodiscard]] _CCCL_API constexpr uint64_t __byteswap_impl(uint64_t __val) noexcept
+{
+#if defined(_CCCL_BUILTIN_BSWAP64)
+  return _CCCL_BUILTIN_BSWAP64(__val);
+#else // ^^^ _CCCL_BUILTIN_BSWAP64 ^^^ / vvv !_CCCL_BUILTIN_BSWAP64 vvv
+  if (!::cuda::std::__cccl_default_is_constant_evaluated())
+  {
+#  if _CCCL_COMPILER(MSVC)
+    NV_IF_TARGET(NV_IS_HOST, return ::_byteswap_uint64(__val);)
+#  endif // _CCCL_COMPILER(MSVC)
+    NV_IF_TARGET(NV_IS_DEVICE, return ::cuda::std::__byteswap_impl_device(__val);)
+  }
+  return ::cuda::std::__byteswap_impl_recursive(__val);
+#endif // !_CCCL_BUILTIN_BSWAP64
+}
+
+#if _CCCL_HAS_INT128()
+[[nodiscard]] _CCCL_API constexpr __uint128_t __byteswap_impl(__uint128_t __val) noexcept
+{
+#  if defined(_CCCL_BUILTIN_BSWAP128)
+  return _CCCL_BUILTIN_BSWAP128(__val);
+#  else // ^^^ _CCCL_BUILTIN_BSWAP128 ^^^ / vvv !_CCCL_BUILTIN_BSWAP128 vvv
+  return ::cuda::std::__byteswap_impl_recursive(__val);
+#  endif // !_CCCL_BUILTIN_BSWAP128
+}
+#endif // _CCCL_HAS_INT128()
+
+_CCCL_TEMPLATE(class _Integer)
+_CCCL_REQUIRES(is_integral_v<_Integer>)
+[[nodiscard]] _CCCL_API constexpr _Integer byteswap(_Integer __val) noexcept
+{
+  if constexpr (sizeof(_Integer) > 1)
+  {
+    return static_cast<_Integer>(::cuda::std::__byteswap_impl(::cuda::std::__to_unsigned_like(__val)));
+  }
+  else
+  {
+    return __val;
+  }
+}
+
+_CCCL_END_NAMESPACE_CUDA_STD
+
+#include <uscl/std/__cccl/epilogue.h>
+
+#endif // _CUDA_STD___BIT_BYTESWAP_H

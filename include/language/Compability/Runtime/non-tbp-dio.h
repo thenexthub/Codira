@@ -38,8 +38,8 @@
 #ifndef FLANG_RT_RUNTIME_NON_TBP_DIO_H_
 #define FLANG_RT_RUNTIME_NON_TBP_DIO_H_
 
-#include "flang/Common/Fortran-consts.h"
-#include "flang/Common/api-attrs.h"
+#include "language/Compability/Common/Fortran-consts.h"
+#include "language/Compability/Common/api-attrs.h"
 #include <cstddef>
 
 namespace language::Compability::runtime::typeInfo {

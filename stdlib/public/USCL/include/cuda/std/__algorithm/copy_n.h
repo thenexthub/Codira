@@ -1,0 +1,73 @@
+//===----------------------------------------------------------------------===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+// SPDX-FileCopyrightText: Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef _CUDA_STD___ALGORITHM_COPY_N_H
+#define _CUDA_STD___ALGORITHM_COPY_N_H
+
+#include <uscl/std/detail/__config>
+
+#if defined(_CCCL_IMPLICIT_SYSTEM_HEADER_GCC)
+#  pragma GCC system_header
+#elif defined(_CCCL_IMPLICIT_SYSTEM_HEADER_CLANG)
+#  pragma clang system_header
+#elif defined(_CCCL_IMPLICIT_SYSTEM_HEADER_MSVC)
+#  pragma system_header
+#endif // no system header
+
+#include <uscl/std/__algorithm/copy.h>
+#include <uscl/std/__iterator/iterator_traits.h>
+#include <uscl/std/__type_traits/enable_if.h>
+#include <uscl/std/__utility/convert_to_integral.h>
+
+#include <uscl/std/__cccl/prologue.h>
+
+_CCCL_BEGIN_NAMESPACE_CUDA_STD
+
+_CCCL_EXEC_CHECK_DISABLE
+template <class _InputIterator,
+          class _Size,
+          class _OutputIterator,
+          enable_if_t<__is_cpp17_input_iterator<_InputIterator>::value, int>          = 0,
+          enable_if_t<!__is_cpp17_random_access_iterator<_InputIterator>::value, int> = 0>
+_CCCL_API inline _CCCL_CONSTEXPR_CXX20 _OutputIterator
+copy_n(_InputIterator __first, _Size __orig_n, _OutputIterator __result)
+{
+  using _IntegralSize = decltype(__convert_to_integral(__orig_n));
+  _IntegralSize __n   = static_cast<_IntegralSize>(__orig_n);
+  if (__n > 0)
+  {
+    *__result = *__first;
+    ++__result;
+    for (--__n; __n > 0; --__n)
+    {
+      ++__first;
+      *__result = *__first;
+      ++__result;
+    }
+  }
+  return __result;
+}
+
+_CCCL_EXEC_CHECK_DISABLE
+template <class _InputIterator,
+          class _Size,
+          class _OutputIterator,
+          enable_if_t<__is_cpp17_random_access_iterator<_InputIterator>::value, int> = 0>
+_CCCL_API constexpr _OutputIterator copy_n(_InputIterator __first, _Size __orig_n, _OutputIterator __result)
+{
+  using _IntegralSize = decltype(__convert_to_integral(__orig_n));
+  _IntegralSize __n   = static_cast<_IntegralSize>(__orig_n);
+  return ::cuda::std::copy(__first, __first + __n, __result);
+}
+
+_CCCL_END_NAMESPACE_CUDA_STD
+
+#include <uscl/std/__cccl/epilogue.h>
+
+#endif // _CUDA_STD___ALGORITHM_COPY_N_H

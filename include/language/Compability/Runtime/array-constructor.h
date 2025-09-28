@@ -29,8 +29,8 @@
 #define FLANG_RT_RUNTIME_ARRAY_CONSTRUCTOR_H_
 
 #include "descriptor.h"
-#include "flang/Runtime/array-constructor-consts.h"
-#include "flang/Runtime/entry-names.h"
+#include "language/Compability/Runtime/array-constructor-consts.h"
+#include "language/Compability/Runtime/entry-names.h"
 #include <cstdint>
 
 namespace language::Compability::runtime {

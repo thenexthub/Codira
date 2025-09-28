@@ -27,7 +27,7 @@
 #ifndef FLANG_RT_RUNTIME_TERMINATOR_H_
 #define FLANG_RT_RUNTIME_TERMINATOR_H_
 
-#include "flang/Common/api-attrs.h"
+#include "language/Compability/Common/api-attrs.h"
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>

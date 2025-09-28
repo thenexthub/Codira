@@ -28,7 +28,7 @@
 #define FLANG_RT_RUNTIME_NAMELIST_H_
 
 #include "non-tbp-dio.h"
-#include "flang/Common/api-attrs.h"
+#include "language/Compability/Common/api-attrs.h"
 
 #include <cstddef>
 

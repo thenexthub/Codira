@@ -27,7 +27,7 @@
 #ifndef FLANG_RT_RUNTIME_DERIVED_H_
 #define FLANG_RT_RUNTIME_DERIVED_H_
 
-#include "flang/Common/api-attrs.h"
+#include "language/Compability/Common/api-attrs.h"
 
 namespace language::Compability::runtime::typeInfo {
 class DerivedType;

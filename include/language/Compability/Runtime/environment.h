@@ -25,8 +25,8 @@
 #ifndef FLANG_RT_RUNTIME_ENVIRONMENT_H_
 #define FLANG_RT_RUNTIME_ENVIRONMENT_H_
 
-#include "flang/Common/optional.h"
-#include "flang/Decimal/decimal.h"
+#include "language/Compability/Common/optional.h"
+#include "language/Compability/Decimal/decimal.h"
 
 struct EnvironmentDefaultList;
 

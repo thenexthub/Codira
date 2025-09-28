@@ -30,9 +30,9 @@
 
 #include "descriptor.h"
 #include "terminator.h"
-#include "flang/Common/Fortran-consts.h"
-#include "flang/Common/bit-population-count.h"
-#include "flang/Common/optional.h"
+#include "language/Compability/Common/Fortran-consts.h"
+#include "language/Compability/Common/bit-population-count.h"
+#include "language/Compability/Common/optional.h"
 #include <cinttypes>
 #include <memory>
 

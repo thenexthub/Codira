@@ -73,13 +73,13 @@
 #ifndef FLANG_RT_RUNTIME_WORK_QUEUE_H_
 #define FLANG_RT_RUNTIME_WORK_QUEUE_H_
 
-#include "flang-rt/runtime/connection.h"
-#include "flang-rt/runtime/descriptor.h"
-#include "flang-rt/runtime/stat.h"
-#include "flang-rt/runtime/type-info.h"
-#include "flang/Common/api-attrs.h"
-#include "flang/Common/optional.h"
-#include "flang/Runtime/freestanding-tools.h"
+#include "language/Compability-rt/runtime/connection.h"
+#include "language/Compability-rt/runtime/descriptor.h"
+#include "language/Compability-rt/runtime/stat.h"
+#include "language/Compability-rt/runtime/type-info.h"
+#include "language/Compability/Common/api-attrs.h"
+#include "language/Compability/Common/optional.h"
+#include "language/Compability/Runtime/freestanding-tools.h"
 #include <flang/Common/variant.h>
 
 namespace language::Compability::runtime::io {

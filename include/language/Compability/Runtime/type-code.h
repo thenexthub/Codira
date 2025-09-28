@@ -25,9 +25,9 @@
 #ifndef FLANG_RT_RUNTIME_TYPE_CODE_H_
 #define FLANG_RT_RUNTIME_TYPE_CODE_H_
 
-#include "flang/Common/Fortran-consts.h"
-#include "flang/Common/ISO_Fortran_binding_wrapper.h"
-#include "flang/Common/optional.h"
+#include "language/Compability/Common/Fortran-consts.h"
+#include "language/Compability/Common/ISO_Fortran_binding_wrapper.h"
+#include "language/Compability/Common/optional.h"
 #include <utility>
 
 namespace language::Compability::runtime {

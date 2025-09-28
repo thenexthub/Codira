@@ -1,0 +1,63 @@
+/*
+ *
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ * Date: Sunday, April 14, 2024.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ *
+ */
+
+#ifndef _CUDA_STD___FLOATING_POINT_COMMON_TYPE_H
+#define _CUDA_STD___FLOATING_POINT_COMMON_TYPE_H
+
+#include <uscl/std/detail/__config>
+
+#if defined(_CCCL_IMPLICIT_SYSTEM_HEADER_GCC)
+#  pragma GCC system_header
+#elif defined(_CCCL_IMPLICIT_SYSTEM_HEADER_CLANG)
+#  pragma clang system_header
+#elif defined(_CCCL_IMPLICIT_SYSTEM_HEADER_MSVC)
+#  pragma system_header
+#endif // no system header
+
+#include <uscl/std/__floating_point/conversion_rank_order.h>
+#include <uscl/std/__type_traits/always_false.h>
+#include <uscl/std/__type_traits/conditional.h>
+#include <uscl/std/__type_traits/enable_if.h>
+#include <uscl/std/__type_traits/is_integral.h>
+
+#include <uscl/std/__cccl/prologue.h>
+
+_CCCL_BEGIN_NAMESPACE_CUDA_STD
+
+template <class _Lhs, class _Rhs>
+using __fp_common_type_t =
+  enable_if_t<__fp_conv_rank_order_v<_Lhs, _Rhs> != __fp_conv_rank_order::__unordered
+                && __fp_conv_rank_order_v<_Lhs, _Rhs> != __fp_conv_rank_order::__invalid,
+              conditional_t<__fp_conv_rank_order_v<_Lhs, _Rhs> == __fp_conv_rank_order::__greater, _Lhs, _Rhs>>;
+
+template <class _Lhs, class _Rhs>
+using __fp_int_ext_common_type_t =
+  __fp_common_type_t<conditional_t<is_integral_v<_Lhs>, double, _Lhs>, conditional_t<is_integral_v<_Rhs>, double, _Rhs>>;
+
+_CCCL_END_NAMESPACE_CUDA_STD
+
+#include <uscl/std/__cccl/epilogue.h>
+
+#endif // _CUDA_STD___FLOATING_POINT_COMMON_TYPE_H

@@ -1,0 +1,85 @@
+/*
+ *
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ * Date: Tuesday, June 11, 2024.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ *
+ */
+
+#ifndef _CUDA_STD_UTILITY
+#define _CUDA_STD_UTILITY
+
+#include <uscl/std/detail/__config>
+
+#if defined(_CCCL_IMPLICIT_SYSTEM_HEADER_GCC)
+#  pragma GCC system_header
+#elif defined(_CCCL_IMPLICIT_SYSTEM_HEADER_CLANG)
+#  pragma clang system_header
+#elif defined(_CCCL_IMPLICIT_SYSTEM_HEADER_MSVC)
+#  pragma system_header
+#endif // no system header
+
+#include <uscl/std/__functional/binary_function.h>
+#include <uscl/std/__functional/hash.h>
+#include <uscl/std/__functional/reference_wrapper.h>
+#include <uscl/std/__functional/unary_function.h>
+#include <uscl/std/__functional/unwrap_ref.h>
+#include <uscl/std/__functional/weak_result_type.h>
+#include <uscl/std/__fwd/get.h>
+#include <uscl/std/__memory/construct_at.h>
+#include <uscl/std/__utility/as_const.h>
+#include <uscl/std/__utility/auto_cast.h>
+#include <uscl/std/__utility/cmp.h>
+#include <uscl/std/__utility/convert_to_integral.h>
+#include <uscl/std/__utility/declval.h>
+#include <uscl/std/__utility/exchange.h>
+#include <uscl/std/__utility/forward.h>
+#include <uscl/std/__utility/forward_like.h>
+#include <uscl/std/__utility/in_place.h>
+#include <uscl/std/__utility/integer_sequence.h>
+#include <uscl/std/__utility/monostate.h>
+#include <uscl/std/__utility/move.h>
+#include <uscl/std/__utility/pair.h>
+#include <uscl/std/__utility/piecewise_construct.h>
+#include <uscl/std/__utility/priority_tag.h>
+#include <uscl/std/__utility/rel_ops.h>
+#include <uscl/std/__utility/swap.h>
+#include <uscl/std/__utility/to_underlying.h>
+#include <uscl/std/__utility/unreachable.h>
+#include <uscl/std/limits>
+
+// standard-mandated includes
+#include <uscl/std/concepts>
+#include <uscl/std/version>
+
+// [utility.syn]
+#if _LIBCUDACXX_HAS_SPACESHIP_OPERATOR()
+#  include <cuda/std/compare>
+#endif // _LIBCUDACXX_HAS_SPACESHIP_OPERATOR()
+#include <uscl/std/initializer_list>
+
+// [tuple.creation]
+#include <uscl/std/__tuple_dir/ignore.h>
+
+// [tuple.helper]
+#include <uscl/std/__tuple_dir/tuple_element.h>
+#include <uscl/std/__tuple_dir/tuple_size.h>
+
+#endif // _CUDA_STD_UTILITY

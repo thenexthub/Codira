@@ -25,8 +25,8 @@
 #ifndef FLANG_RT_RUNTIME_ALLOCATOR_REGISTRY_H_
 #define FLANG_RT_RUNTIME_ALLOCATOR_REGISTRY_H_
 
-#include "flang/Common/api-attrs.h"
-#include "flang/Runtime/allocator-registry-consts.h"
+#include "language/Compability/Common/api-attrs.h"
+#include "language/Compability/Runtime/allocator-registry-consts.h"
 #include <cstdint>
 #include <cstdlib>
 #include <vector>
