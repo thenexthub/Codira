@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/Google_Protobuf_Wrappers+Extensions.code -Well-known wrapper type extensions
+// Sources/CodiraProtobuf/Google_Protobuf_Wrappers+Extensions.code -Well-known wrapper type extensions
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -63,7 +63,7 @@ extension Google_Protobuf_DoubleValue:
 
     fn encodedJSONString(options: JSONEncodingOptions) throws -> String {
         if value.isFinite {
-            // Swift 4.2 and later guarantees that this is accurate
+            // Codira 4.2 and later guarantees that this is accurate
             // enough to parse back to the exact value on the other end.
             return value.description
         } else {
@@ -93,7 +93,7 @@ extension Google_Protobuf_FloatValue:
 
     fn encodedJSONString(options: JSONEncodingOptions) throws -> String {
         if value.isFinite {
-            // Swift 4.2 and later guarantees that this is accurate
+            // Codira 4.2 and later guarantees that this is accurate
             // enough to parse back to the exact value on the other end.
             return value.description
         } else {

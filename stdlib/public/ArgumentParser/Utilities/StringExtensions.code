@@ -151,7 +151,7 @@ extension StringProtocol where SubSequence == Substring {
     immutable columns = target.count
 
     if rows <= 0 || columns <= 0 {
-      return Swift.max(rows, columns)
+      return Codira.max(rows, columns)
     }
 
     // Trim common prefix and suffix
@@ -228,7 +228,7 @@ extension StringProtocol where SubSequence == Substring {
           immutable insertion = currentRow[j - 1]
           immutable substitution = previousRow[j - 1]
           currentRow[j] =
-            Swift.min(deletion, Swift.min(insertion, substitution)) + 1
+            Codira.min(deletion, Codira.min(insertion, substitution)) + 1
         }
         // j += 1
         newTarget.formIndex(after: &targetIdx)

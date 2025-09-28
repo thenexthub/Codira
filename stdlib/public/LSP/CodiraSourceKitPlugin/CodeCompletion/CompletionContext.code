@@ -37,7 +37,7 @@ struct CompletionContext {
     case postfixExpr
     case postfixExprParen
     case keyPathExprObjC
-    case keyPathExprSwift
+    case keyPathExprCodira
     case typeDeclResultBeginning
     case typeSimpleBeginning
     case typeIdentifierWithDot

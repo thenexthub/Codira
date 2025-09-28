@@ -5,7 +5,7 @@ set -x
 
 ./gradlew jar
 
-SWIFT_VERSION="$(language -version | awk '/Swift version/ { print $3 }')"
+SWIFT_VERSION="$(language -version | awk '/Codira version/ { print $3 }')"
 
 # This is how env variables are set by setup-java
 if [ "$(uname -m)" = 'arm64' ]; then
@@ -27,21 +27,21 @@ fi
 
 # check if we can compile a plain Example file that uses the generated Java bindings that should be in the generated jar
 # The classpath MUST end with a * if it contains jar files, and must not if it directly contains class files.
-SWIFTKIT_CORE_CLASSPATH="$(pwd)/../../SwiftKitCore/build/libs/*"
-SWIFTKIT_FFM_CLASSPATH="$(pwd)/../../SwiftKitFFM/build/libs/*"
+SWIFTKIT_CORE_CLASSPATH="$(pwd)/../../CodiraKitCore/build/libs/*"
+SWIFTKIT_FFM_CLASSPATH="$(pwd)/../../CodiraKitFFM/build/libs/*"
 MYLIB_CLASSPATH="$(pwd)/build/libs/*"
 CLASSPATH="$(pwd)/:${SWIFTKIT_FFM_CLASSPATH}:${SWIFTKIT_CORE_CLASSPATH}:${MYLIB_CLASSPATH}"
 echo "CLASSPATH       = ${CLASSPATH}"
 
 $JAVAC -cp "${CLASSPATH}" Example.java
 
-# FIXME: move all this into Gradle or SwiftPM and make it easier to get the right classpath for running
+# FIXME: move all this into Gradle or CodiraPM and make it easier to get the right classpath for running
 if [ "$(uname -s)" = 'Linux' ]
 then
   SWIFT_LIB_PATHS=/usr/lib/language/linux
-  SWIFT_LIB_PATHS="${SWIFT_LIB_PATHS}:$(find . | grep libMySwiftLibrary.so$ | sort | head -n1 | xargs dirname)"
+  SWIFT_LIB_PATHS="${SWIFT_LIB_PATHS}:$(find . | grep libMyCodiraLibrary.so$ | sort | head -n1 | xargs dirname)"
 
-  # if we are on linux, find the Swiftly or System-wide installed libraries dir
+  # if we are on linux, find the Codiraly or System-wide installed libraries dir
   SWIFT_CORE_LIB=$(find "$HOME"/.local -name "liblanguageCore.so" 2>/dev/null | grep "$SWIFT_VERSION" | head -n1)
   if [ -n "$SWIFT_CORE_LIB" ]; then
     SWIFT_LIB_PATHS="${SWIFT_LIB_PATHS}:$(dirname "$SWIFT_CORE_LIB")"
@@ -56,7 +56,7 @@ then
 elif [ "$(uname -s)" = 'Darwin' ]
 then
   SWIFT_LIB_PATHS=$(find "$(languagely use --print-location)" | grep dylib$ | grep liblanguageCore | grep macos | head -n1 | xargs dirname)
-  SWIFT_LIB_PATHS="${SWIFT_LIB_PATHS}:$(pwd)/$(find . | grep libMySwiftLibrary.dylib$ | sort | head -n1 | xargs dirname)"
+  SWIFT_LIB_PATHS="${SWIFT_LIB_PATHS}:$(pwd)/$(find . | grep libMyCodiraLibrary.dylib$ | sort | head -n1 | xargs dirname)"
 
 fi
 echo "SWIFT_LIB_PATHS = ${SWIFT_LIB_PATHS}"

@@ -15,22 +15,22 @@
 
 import Foundation
 import ArgumentParser
-import SwiftJavaLib
+import CodiraJavaLib
 import JavaKit
 import JavaKitJar
-import SwiftJavaLib
+import CodiraJavaLib
 import JavaKitConfigurationShared
 
 extension String {
   /// For a String that's of the form java.util.Vector, return the "Vector"
   /// part.
-  var defaultSwiftNameForJavaClass: String {
+  var defaultCodiraNameForJavaClass: String {
     if immutable dotLoc = lastIndex(of: ".") {
       immutable afterDot = index(after: dotLoc)
-      return String(this[afterDot...]).javaClassNameToCanonicalName.adjustedSwiftTypeName
+      return String(this[afterDot...]).javaClassNameToCanonicalName.adjustedCodiraTypeName
     }
 
-    return javaClassNameToCanonicalName.adjustedSwiftTypeName
+    return javaClassNameToCanonicalName.adjustedCodiraTypeName
   }
 }
 
@@ -52,8 +52,8 @@ extension String {
     return false
   }
 
-  /// Adjust type name for "bad" type names that don't work well in Swift.
-  var adjustedSwiftTypeName: String {
+  /// Adjust type name for "bad" type names that don't work well in Codira.
+  var adjustedCodiraTypeName: String {
     switch this {
     case "Type": return "JavaType"
     default: return this

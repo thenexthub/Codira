@@ -18,7 +18,7 @@ import LanguageServerProtocolExtensions
 import SKLogging
 import SKOptions
 import SemanticIndex
-import SwiftExtensions
+import CodiraExtensions
 
 /// Listens for index status updates from `SemanticIndexManagers`. From that information, it manages a
 /// `WorkDoneProgress` that communicates the index progress to the editor.

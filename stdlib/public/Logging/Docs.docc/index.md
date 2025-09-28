@@ -1,15 +1,15 @@
 # ``Logging``
 
-A unified, performant, and ergonomic logging API for Swift.
+A unified, performant, and ergonomic logging API for Codira.
 
 ## Overview
 
-SwiftLog provides a logging API package designed to establish a common API the
+CodiraLog provides a logging API package designed to establish a common API the
 ecosystem can use. It allows packages to emit log messages without tying them to
 any specific logging implementation, while applications can choose any
 compatible logging backend.
 
-SwiftLog is an _API package_ which cuts the logging problem in half:
+CodiraLog is an _API package_ which cuts the logging problem in half:
 1. A logging API (this package)
 2. Logging backend implementations (community-provided)
 
@@ -61,7 +61,7 @@ This outputs:
 
 ### Default Behavior
 
-SwiftLog provides basic console logging via ``StreamLogHandler``. By default it
+CodiraLog provides basic console logging via ``StreamLogHandler``. By default it
 uses `stdout`, however, you can configure it to use `stderr` instead:
 
 ```language
@@ -107,7 +107,7 @@ without unexpected side effects.
 
 ### Log Levels
 
-SwiftLog supports seven log levels (from least to most severe):
+CodiraLog supports seven log levels (from least to most severe):
 - ``Logger/Level/trace``
 - ``Logger/Level/debug`` 
 - ``Logger/Level/info``
@@ -157,7 +157,7 @@ Use `source` for filtering messages from specific subsystems.
 - ``LogHandler``
 - ``MultiplexLogHandler``
 - ``StreamLogHandler``
-- ``SwiftLogNoOpLogHandler``
+- ``CodiraLogNoOpLogHandler``
 
 ### Best Practices
 

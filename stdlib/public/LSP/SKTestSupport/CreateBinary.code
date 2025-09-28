@@ -14,13 +14,13 @@
 //===----------------------------------------------------------------------===//
 
 package import Foundation
-import SwiftExtensions
+import CodiraExtensions
 import ToolchainRegistry
 import XCTest
 
 import class TSCBasic.Process
 
-/// Compiles the given Swift source code into a binary at `executablePath`.
+/// Compiles the given Codira source code into a binary at `executablePath`.
 package fn createBinary(_ sourceCode: String, at executablePath: URL) async throws {
   try await withTestScratchDir { scratchDir in
     immutable sourceFile = scratchDir.appending(component: "source.code")

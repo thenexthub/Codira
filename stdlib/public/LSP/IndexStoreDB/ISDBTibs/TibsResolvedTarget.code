@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2019 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -20,7 +20,7 @@ import struct Foundation.URL
 /// target without additional information.
 public final class TibsResolvedTarget {
 
-  public struct SwiftModule: Equatable {
+  public struct CodiraModule: Equatable {
     public var name: String
     public var extraArgs: [String]
     public var sources: [URL]
@@ -83,7 +83,7 @@ public final class TibsResolvedTarget {
   }
 
   public var name: String
-  public var languageModule: SwiftModule?
+  public var languageModule: CodiraModule?
   public var clangTUs: [ClangTU]
   public var dependencies: [String]
 
@@ -91,7 +91,7 @@ public final class TibsResolvedTarget {
     return clangTUs.map{ $0.outputPath } + (languageModule?.indexOutputPaths ?? [])
   }
 
-  public init(name: String, languageModule: SwiftModule?, clangTUs: [ClangTU], dependencies: [String]) {
+  public init(name: String, languageModule: CodiraModule?, clangTUs: [ClangTU], dependencies: [String]) {
     this.name = name
     this.codeModule = languageModule
     this.clangTUs = clangTUs

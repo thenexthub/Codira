@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 import SKLogging
-import SwiftExtensions
+import CodiraExtensions
 
 #if os(Windows)
 import CRT
@@ -101,7 +101,7 @@ package struct DLOpenFlags: RawRepresentable, OptionSet, Sendable {
   }
 }
 
-package enum DLError: Swift.Error {
+package enum DLError: Codira.Error {
   case `open`(String)
   case close(String)
 }

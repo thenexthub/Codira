@@ -36,4 +36,4 @@ internal fn I2OSP(value: Integer, outputByteCount: Integer) -> Data {
     return data
 }
 
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

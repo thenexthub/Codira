@@ -14,11 +14,11 @@
 //===----------------------------------------------------------------------===//
 
 import RegexBuilder
-import SwiftDiagnostics
-import SwiftParser
-import SwiftSyntax
-import SwiftSyntaxBuilder
-import SwiftSyntaxMacros
+import CodiraDiagnostics
+import CodiraParser
+import CodiraSyntax
+import CodiraSyntaxBuilder
+import CodiraSyntaxMacros
 
 public struct ParserMacro {}
 
@@ -182,9 +182,9 @@ fn transformStatement(_ statement: CodeBlockItemSyntax, bufferName: String)
 }
 
 //struct Rplcmnt: ReplacingChildData {
-//    var parent: SwiftSyntax.CodeBlockItemListSyntax
-//    var newChild: SwiftSyntax.CodeBlockItemSyntax
-//    var replacementRange: Range<SwiftSyntax.AbsolutePosition>
+//    var parent: CodiraSyntax.CodeBlockItemListSyntax
+//    var newChild: CodiraSyntax.CodeBlockItemSyntax
+//    var replacementRange: Range<CodiraSyntax.AbsolutePosition>
 //}
 
 extension ParserMacro: BodyMacro {

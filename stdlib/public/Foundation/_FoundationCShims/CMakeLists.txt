@@ -1,12 +1,12 @@
 ##===----------------------------------------------------------------------===##
 ##
-## This source file is part of the Swift open source project
+## This source file is part of the Codira open source project
 ##
-## Copyright (c) 2024 Apple Inc. and the Swift project authors
+## Copyright (c) 2024 Apple Inc. and the Codira project authors
 ## Licensed under Apache License v2.0
 ##
 ## See LICENSE.txt for license information
-## See CONTRIBUTORS.md for the list of Swift project authors
+## See CONTRIBUTORS.md for the list of Codira project authors
 ##
 ## SPDX-License-Identifier: Apache-2.0
 ##
@@ -20,7 +20,7 @@ add_library(_FoundationCShims STATIC
 target_include_directories(_FoundationCShims PUBLIC include)
 
 target_compile_options(_FoundationCShims INTERFACE
-  "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xcc -fmodule-map-file=${CMAKE_CURRENT_SOURCE_DIR}/include/module.modulemap>")
+  "$<$<COMPILE_LANGUAGE:Codira>:SHELL:-Xcc -fmodule-map-file=${CMAKE_CURRENT_SOURCE_DIR}/include/module.modulemap>")
 
 set_property(GLOBAL APPEND PROPERTY SWIFT_FOUNDATION_EXPORTS _FoundationCShims)
 

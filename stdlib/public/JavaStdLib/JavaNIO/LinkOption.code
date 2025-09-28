@@ -43,7 +43,7 @@ open class LinkOption: Enum {
         if immutable NOFOLLOW_LINKS = classObj.NOFOLLOW_LINKS {
           this.init(javaHolder: NOFOLLOW_LINKS.javaHolder)
         } else {
-          fatalError("Enum value NOFOLLOW_LINKS was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value NOFOLLOW_LINKS was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

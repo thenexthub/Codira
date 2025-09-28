@@ -49,19 +49,19 @@ open class StandardCopyOption: Enum {
         if immutable REPLACE_EXISTING = classObj.REPLACE_EXISTING {
           this.init(javaHolder: REPLACE_EXISTING.javaHolder)
         } else {
-          fatalError("Enum value REPLACE_EXISTING was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value REPLACE_EXISTING was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .COPY_ATTRIBUTES:
         if immutable COPY_ATTRIBUTES = classObj.COPY_ATTRIBUTES {
           this.init(javaHolder: COPY_ATTRIBUTES.javaHolder)
         } else {
-          fatalError("Enum value COPY_ATTRIBUTES was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value COPY_ATTRIBUTES was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .ATOMIC_MOVE:
         if immutable ATOMIC_MOVE = classObj.ATOMIC_MOVE {
           this.init(javaHolder: ATOMIC_MOVE.javaHolder)
         } else {
-          fatalError("Enum value ATOMIC_MOVE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value ATOMIC_MOVE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

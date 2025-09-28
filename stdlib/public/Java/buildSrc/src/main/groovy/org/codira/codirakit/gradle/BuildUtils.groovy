@@ -19,7 +19,7 @@ import groovy.json.JsonSlurper
 
 final class BuildUtils {
 
-    static List<String> getSwiftRuntimeLibraryPaths() {
+    static List<String> getCodiraRuntimeLibraryPaths() {
         def process = ['languagec', '-print-target-info'].execute()
         def output = new StringWriter()
         process.consumeProcessOutput(output, System.err)
@@ -54,7 +54,7 @@ final class BuildUtils {
                         "${base}../../.build/${osArch}-apple-macosx/debug/"),
         ]
         def releasePaths = debugPaths.collect { it.replaceAll("debug", "release") }
-        def languageRuntimePaths = getSwiftRuntimeLibraryPaths()
+        def languageRuntimePaths = getCodiraRuntimeLibraryPaths()
 
         return releasePaths + debugPaths + languageRuntimePaths
     }

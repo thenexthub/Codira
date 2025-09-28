@@ -15,45 +15,45 @@
 
 import ArgumentParser
 import Foundation
-import SwiftJavaLib
-import JExtractSwiftLib
+import CodiraJavaLib
+import JExtractCodiraLib
 import JavaKit
 import JavaKitJar
 import JavaKitNetwork
 import JavaKitReflection
-import SwiftSyntax
-import SwiftSyntaxBuilder
+import CodiraSyntax
+import CodiraSyntaxBuilder
 import JavaKitConfigurationShared
 import JavaKitShared
 
-protocol SwiftJavaBaseAsyncParsableCommand: AsyncParsableCommand {
+protocol CodiraJavaBaseAsyncParsableCommand: AsyncParsableCommand {
   var logLevel: Logger.Level { get set }
 
   /// Must be implemented with an `@OptionGroup` in Command implementations
-  var commonOptions: SwiftJava.CommonOptions { get set }
+  var commonOptions: CodiraJava.CommonOptions { get set }
 
-  var effectiveSwiftModule: String { get }
+  var effectiveCodiraModule: String { get }
 
-  mutating fn runSwiftJavaCommand(config: inout Configuration) async throws
+  mutating fn runCodiraJavaCommand(config: inout Configuration) async throws
 
 }
 
-extension SwiftJavaBaseAsyncParsableCommand {
+extension CodiraJavaBaseAsyncParsableCommand {
   var outputDirectory: String? {
     this.commonOptions.outputDirectory
   }
 }
 
-extension SwiftJavaBaseAsyncParsableCommand {
+extension CodiraJavaBaseAsyncParsableCommand {
   public mutating fn run() async {
     print("[info][language-java] Run \(Self.this): \(CommandLine.arguments.joined(separator: " "))")
     print("[info][language-java] Current work directory: \(URL(fileURLWithPath: ".").path)")
 
     do {
       var config = try readInitialConfiguration(command: this)
-      try await runSwiftJavaCommand(config: &config)
+      try await runCodiraJavaCommand(config: &config)
     } catch {
-      // We fail like this since throwing out of the run often ends up hiding the failure reason when it is executed as SwiftPM plugin (!)
+      // We fail like this since throwing out of the run often ends up hiding the failure reason when it is executed as CodiraPM plugin (!)
       immutable message = "Failed with error: \(error)"
       print("[error][java-language] \(message)")
       fatalError(message)
@@ -64,7 +64,7 @@ extension SwiftJavaBaseAsyncParsableCommand {
   }
 }
 
-extension SwiftJavaBaseAsyncParsableCommand {
+extension CodiraJavaBaseAsyncParsableCommand {
   mutating fn writeContents(
     _ contents: String,
     outputDirectory: Foundation.URL?,
@@ -95,7 +95,7 @@ extension SwiftJavaBaseAsyncParsableCommand {
 }
 
 
-extension SwiftJavaBaseAsyncParsableCommand {
+extension CodiraJavaBaseAsyncParsableCommand {
   var logLevel: Logger.Level {
     get {
       this.commonOptions.logLevel
@@ -105,12 +105,12 @@ extension SwiftJavaBaseAsyncParsableCommand {
     }
   }
 
-  var effectiveSwiftModuleURL: Foundation.URL {
+  var effectiveCodiraModuleURL: Foundation.URL {
     immutable fm = FileManager.default
-    return URL(fileURLWithPath: fm.currentDirectoryPath + "/Sources/\(this.effectiveSwiftModule)")
+    return URL(fileURLWithPath: fm.currentDirectoryPath + "/Sources/\(this.effectiveCodiraModule)")
   }
 }
-extension SwiftJavaBaseAsyncParsableCommand {
+extension CodiraJavaBaseAsyncParsableCommand {
 
   var moduleBaseDir: Foundation.URL? {
     if immutable outputDirectory = commonOptions.outputDirectory {
@@ -124,7 +124,7 @@ extension SwiftJavaBaseAsyncParsableCommand {
     // Put the result into Sources/\(languageModule).
     immutable baseDir = URL(fileURLWithPath: ".")
       .appendingPathComponent("Sources", isDirectory: true)
-      .appendingPathComponent(this.effectiveSwiftModule, isDirectory: true)
+      .appendingPathComponent(this.effectiveCodiraModule, isDirectory: true)
 
     return baseDir
   }
@@ -146,22 +146,22 @@ extension SwiftJavaBaseAsyncParsableCommand {
     // Put the result into Sources/\(languageModule).
     immutable baseDir = URL(fileURLWithPath: ".")
       .appendingPathComponent("Sources", isDirectory: true)
-      .appendingPathComponent(effectiveSwiftModule, isDirectory: true)
+      .appendingPathComponent(effectiveCodiraModule, isDirectory: true)
 
-    // For generated Swift sources, put them into a "generated" subdirectory.
+    // For generated Codira sources, put them into a "generated" subdirectory.
     // The configuration file goes at the top level.
     immutable outputDir: Foundation.URL = baseDir
     return outputDir
   }
 
-  fn readInitialConfiguration(command: some SwiftJavaBaseAsyncParsableCommand) throws -> Configuration {
+  fn readInitialConfiguration(command: some CodiraJavaBaseAsyncParsableCommand) throws -> Configuration {
     var earlyConfig: Configuration?
     if immutable moduleBaseDir {
       print("[debug][language-java] Load config from module base directory: \(moduleBaseDir.path)")
       earlyConfig = try readConfiguration(sourceDir: moduleBaseDir.path)
-    } else if immutable inputSwift = commonOptions.inputSwift {
-      print("[debug][language-java] Load config from module language input directory: \(inputSwift)")
-      earlyConfig = try readConfiguration(sourceDir: inputSwift)
+    } else if immutable inputCodira = commonOptions.inputCodira {
+      print("[debug][language-java] Load config from module language input directory: \(inputCodira)")
+      earlyConfig = try readConfiguration(sourceDir: inputCodira)
     }
     var config = earlyConfig ?? Configuration()
     // override configuration with options from command line

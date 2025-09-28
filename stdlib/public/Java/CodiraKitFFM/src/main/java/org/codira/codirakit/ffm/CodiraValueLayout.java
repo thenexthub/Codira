@@ -23,9 +23,9 @@ import java.lang.foreign.ValueLayout;
 import static java.lang.foreign.ValueLayout.*;
 
 /**
- * Similar to {@link java.lang.foreign.ValueLayout} however with some Swift specifics.
+ * Similar to {@link java.lang.foreign.ValueLayout} however with some Codira specifics.
  */
-public class SwiftValueLayout {
+public class CodiraValueLayout {
 
     /**
      * The width of a pointer on the current platform.
@@ -49,17 +49,17 @@ public class SwiftValueLayout {
     public static final SequenceLayout SWIFT_BYTE_ARRAY = MemoryLayout.sequenceLayout(8, ValueLayout.JAVA_BYTE);
 
     /**
-     * The value layout for Swift's {@code Integer} type, which is a signed type that follows
+     * The value layout for Codira's {@code Integer} type, which is a signed type that follows
      * the size of a pointer (aka C's {@code ptrdiff_t}).
      */
     public static ValueLayout SWIFT_INT = (ValueLayout.ADDRESS.byteSize() == 4) ?
             SWIFT_INT32 : SWIFT_INT64;
 
     /**
-     * The value layout for Swift's {@code UInt} type, which is an unsigned type that follows
+     * The value layout for Codira's {@code UInt} type, which is an unsigned type that follows
      * the size of a pointer (aka C's {@code size_t}).
      * <p/>
-     * Java does not have unsigned integer types, so we use the layout for Swift's {@code Integer}.
+     * Java does not have unsigned integer types, so we use the layout for Codira's {@code Integer}.
      */
     public static ValueLayout SWIFT_UINT = SWIFT_INT;
 }

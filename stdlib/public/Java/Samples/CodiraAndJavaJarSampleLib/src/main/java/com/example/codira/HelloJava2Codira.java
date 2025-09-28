@@ -18,33 +18,33 @@ package com.example.code;
 // Import language-extract generated sources
 
 // Import javakit/languagekit support libraries
-import org.code.codekit.core.SwiftLibraries;
-import org.code.codekit.ffm.AllocatingSwiftArena;
-import org.code.codekit.ffm.SwiftRuntime;
+import org.code.codekit.core.CodiraLibraries;
+import org.code.codekit.ffm.AllocatingCodiraArena;
+import org.code.codekit.ffm.CodiraRuntime;
 
-public class HelloJava2Swift {
+public class HelloJava2Codira {
 
     public static void main(String[] args) {
         boolean traceDowncalls = Boolean.getBoolean("jextract.trace.downcalls");
         System.out.println("Property: jextract.trace.downcalls = " + traceDowncalls);
 
-        System.out.print("Property: java.library.path = " + SwiftLibraries.getJavaLibraryPath());
+        System.out.print("Property: java.library.path = " + CodiraLibraries.getJavaLibraryPath());
 
         examples();
     }
 
     static void examples() {
-        MySwiftLibrary.helloWorld();
+        MyCodiraLibrary.helloWorld();
 
-        MySwiftLibrary.globalTakeInt(1337);
+        MyCodiraLibrary.globalTakeInt(1337);
 
         // Example of using an arena; MyClass.deinit is run at end of scope
-        try (var arena = AllocatingSwiftArena.ofConfined()) {
-            MySwiftClass obj = MySwiftClass.init(2222, 7777, arena);
+        try (var arena = AllocatingCodiraArena.ofConfined()) {
+            MyCodiraClass obj = MyCodiraClass.init(2222, 7777, arena);
 
             // just checking retains/releases work
-            SwiftRuntime.retain(obj);
-            SwiftRuntime.release(obj);
+            CodiraRuntime.retain(obj);
+            CodiraRuntime.release(obj);
 
             obj.voidMethod();
             obj.takeIntMethod(42);

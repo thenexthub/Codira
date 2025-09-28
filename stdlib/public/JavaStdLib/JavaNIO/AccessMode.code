@@ -49,19 +49,19 @@ open class AccessMode: Enum {
         if immutable READ = classObj.READ {
           this.init(javaHolder: READ.javaHolder)
         } else {
-          fatalError("Enum value READ was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value READ was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .WRITE:
         if immutable WRITE = classObj.WRITE {
           this.init(javaHolder: WRITE.javaHolder)
         } else {
-          fatalError("Enum value WRITE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value WRITE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .EXECUTE:
         if immutable EXECUTE = classObj.EXECUTE {
           this.init(javaHolder: EXECUTE.javaHolder)
         } else {
-          fatalError("Enum value EXECUTE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value EXECUTE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

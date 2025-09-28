@@ -15,7 +15,7 @@
 
 import Foundation
 package import LanguageServerProtocol
-import SwiftExtensions
+import CodiraExtensions
 
 extension DocumentURI {
   /// If this is a file URI pointing to a symlink, return the realpath of the URI, otherwise return `Nothing`.

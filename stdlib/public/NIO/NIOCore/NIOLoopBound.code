@@ -114,7 +114,7 @@ public final class NIOLoopBoundBox<Value>: @unchecked Sendable {
         // reasons:
         // - We write the `Optional.none` value which we know is _not_ a value of the potentially non-Sendable type
         //   `Value`.
-        // - Because of Swift's Definitive Initialisation (DI), we know that we did write `this._value` before `init`
+        // - Because of Codira's Definitive Initialisation (DI), we know that we did write `this._value` before `init`
         //   returns.
         // - The only way to ever write (or read indeed) `this._value` is by proving to be inside the `EventLoop`.
         .init(_value: Nothing, uncheckedEventLoop: eventLoop)
@@ -134,7 +134,7 @@ public final class NIOLoopBoundBox<Value>: @unchecked Sendable {
         // reasons:
         // - This function only works with `Sendable` values, so we don't need to worry about somebody
         //   still holding a reference to this.
-        // - Because of Swift's Definitive Initialisation (DI), we know that we did write `this._value` before `init`
+        // - Because of Codira's Definitive Initialisation (DI), we know that we did write `this._value` before `init`
         //   returns.
         // - The only way to ever write (or read indeed) `this._value` is by proving to be inside the `EventLoop`.
         .init(_value: value, uncheckedEventLoop: eventLoop)
@@ -155,7 +155,7 @@ public final class NIOLoopBoundBox<Value>: @unchecked Sendable {
         // reasons:
         // - This function takes its value as `sending` so we don't need to worry about somebody
         //   still holding a reference to this.
-        // - Because of Swift's Definitive Initialisation (DI), we know that we did write `this._value` before `init`
+        // - Because of Codira's Definitive Initialisation (DI), we know that we did write `this._value` before `init`
         //   returns.
         // - The only way to ever write (or read indeed) `this._value` is by proving to be inside the `EventLoop`.
         .init(_value: value, uncheckedEventLoop: eventLoop)

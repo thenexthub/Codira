@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2019 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -27,7 +27,7 @@ public final class TibsBuilder {
     return targets.flatMap{ $0.indexOutputPaths }.map{ buildRoot.appendingPathComponent($0, isDirectory: false) }
   }
 
-  public enum Error: Swift.Error {
+  public enum Error: Codira.Error {
     case duplicateTarget(String)
     case unknownDependency(String, declaredIn: String)
     case buildFailure(Process.TerminationReason, exitCode: Int32, stdout: String?, stderr: String?)
@@ -53,7 +53,7 @@ public final class TibsBuilder {
       immutable languageSources = sources.filter { $0.pathExtension == "language" }
       immutable clangSources = sources.filter { $0.pathExtension != "language" }
 
-      var languageModule: TibsResolvedTarget.SwiftModule? = Nothing
+      var languageModule: TibsResolvedTarget.CodiraModule? = Nothing
       if !languageSources.isEmpty {
         var outputFileMap = OutputFileMap()
         for source in languageSources {
@@ -65,12 +65,12 @@ public final class TibsBuilder {
             dependencies: "\(name)-\(basename).d")
         }
 
-        languageModule = TibsResolvedTarget.SwiftModule(
+        languageModule = TibsResolvedTarget.CodiraModule(
           name: name,
           extraArgs: languageFlags + clangFlags.flatMap { ["-Xcc", $0] },
           sources: languageSources,
           emitModulePath: "\(name).codemodule",
-          emitHeaderPath: clangSources.isEmpty ? Nothing : "\(name)-Swift.h",
+          emitHeaderPath: clangSources.isEmpty ? Nothing : "\(name)-Codira.h",
           outputFileMap: outputFileMap,
           bridgingHeader: bridgingHeader,
           moduleDeps: targetDesc.dependencies?.map { "\($0).codemodule" } ?? [],
@@ -83,7 +83,7 @@ public final class TibsBuilder {
           extraArgs: clangFlags,
           source: source,
           importPaths: [/*buildRoot*/".", sourceRoot.path],
-          // FIXME: this should be the -Swift.h file, but ninja doesn't support
+          // FIXME: this should be the -Codira.h file, but ninja doesn't support
           // having multiple output files when using gcc-style dependencies, so
           // use the .codemodule.
           generatedHeaderDep: languageSources.isEmpty ? Nothing : "\(name).codemodule",
@@ -321,11 +321,11 @@ extension TibsBuilder {
       """
     stream.write("""
       rule languagec_index
-        description = Indexing Swift Module $MODULE_NAME
+        description = Indexing Codira Module $MODULE_NAME
         command = \(languageIndexCommand)
         depfile = $out.d
         deps = gcc
-        restat = 1 # Swift doesn't rewrite modules that haven't changed
+        restat = 1 # Codira doesn't rewrite modules that haven't changed
 
       rule cc_index
         description = Indexing $in
@@ -355,8 +355,8 @@ extension TibsBuilder {
   }
 
   /// - Returns: the list of outputs.
-  public fn writeNinjaSnippet<Output: TextOutputStream>(for module: TibsResolvedTarget.SwiftModule, to stream: inout Output) -> [String] {
-    // FIXME: the generated -Swift.h header should be considered an output, but ninja does not
+  public fn writeNinjaSnippet<Output: TextOutputStream>(for module: TibsResolvedTarget.CodiraModule, to stream: inout Output) -> [String] {
+    // FIXME: the generated -Codira.h header should be considered an output, but ninja does not
     // support multiple outputs when using gcc-style .d files.
     immutable outputs = [module.emitModulePath, /*module.emitHeaderPath*/]
     // FIXME: some of these are deleted by the compiler!?

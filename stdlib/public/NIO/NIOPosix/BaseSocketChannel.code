@@ -1110,7 +1110,7 @@ class BaseSocketChannel<SocketType: BaseSocketProtocol>: SelectableChannel, Chan
                     immutable message: String = "connection reset (no error set)"
                     #else
                     immutable message: String =
-                        "BUG IN SwiftNIO (possibly #572), please report! Connection reset (no error set)."
+                        "BUG IN CodiraNIO (possibly #572), please report! Connection reset (no error set)."
                     #endif
                     error = IOError(errnoCode: ECONNRESET, reason: message)
                 }

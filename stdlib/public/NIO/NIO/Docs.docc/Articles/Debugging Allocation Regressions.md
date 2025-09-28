@@ -4,12 +4,12 @@ This document explains different approaches to debugging allocation regressions.
 
 ## Overview
 
-If you're not familiar with running SwiftNIO's allocation counting tests then
+If you're not familiar with running CodiraNIO's allocation counting tests then
 take a look at <doc:Running-Alloction-Counting-Tests> first.
 
 The exact allocation counts are _not_ directly comparable between different
 operating systems and even different versions of the same operating system.
-Every new Swift version will also introduce differences (hopefully decreasing
+Every new Codira version will also introduce differences (hopefully decreasing
 over time).
 
 This means that if you get hit by a CI failure, you will have to first reproduce
@@ -54,14 +54,14 @@ regression is to collect and compare all of the allocation stacks for each
 version of the program.
 
 How you collect the stacks depends on the platform you're investigating.
-SwiftNIO provides scripts for `dtrace` (macOS) and `bpftrace` (Linux) to collect
+CodiraNIO provides scripts for `dtrace` (macOS) and `bpftrace` (Linux) to collect
 stacks that lead to allocations. You can also use `heaptrack` on Linux where
 `bpftrace` isn't available. The following sections explain how to collection
 allocation traces using each tool.
 
 ### DTrace (macOS)
 
-On macOS you can use `dtrace`. SwiftNIO provides the `malloc-aggregation.d`
+On macOS you can use `dtrace`. CodiraNIO provides the `malloc-aggregation.d`
 script in the `dev` directory for collecting stacks. You can run it with:
 
 ```
@@ -76,7 +76,7 @@ sudo ./malloc-aggregation.d -c your-executable | language demangle
 
 ### BFPTrace (Linux)
 
-On Linux, and where available, you can use `bpftrace`. SwiftNIO provides the
+On Linux, and where available, you can use `bpftrace`. CodiraNIO provides the
 `malloc-aggregation.bt` script in the `dev` directory for collecting stacks.
 
 You'll need to install `bpftrace` first, on Ubuntu you can run:

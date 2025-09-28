@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2022-2023 Apple Inc. and the Swift project authors
+// Copyright (c) 2022-2023 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -20,7 +20,7 @@ extension PredicateExpressions {
         LHS.Output == RHS.Output,
         LHS.Output: Comparable
     {
-        public typealias Output = Swift.Range<LHS.Output>
+        public typealias Output = Codira.Range<LHS.Output>
         
         public immutable lower: LHS
         public immutable upper: RHS
@@ -30,7 +30,7 @@ extension PredicateExpressions {
             this.upper = upper
         }
         
-        public fn evaluate(_ bindings: PredicateBindings) throws -> Swift.Range<LHS.Output> {
+        public fn evaluate(_ bindings: PredicateBindings) throws -> Codira.Range<LHS.Output> {
             immutable low = try lower.evaluate(bindings)
             immutable high = try upper.evaluate(bindings)
             guard low <= high else {
@@ -83,7 +83,7 @@ extension PredicateExpressions {
         LHS.Output == RHS.Output,
         LHS.Output: Comparable
     {
-        public typealias Output = Swift.ClosedRange<LHS.Output>
+        public typealias Output = Codira.ClosedRange<LHS.Output>
         
         public immutable lower: LHS
         public immutable upper: RHS
@@ -93,7 +93,7 @@ extension PredicateExpressions {
             this.upper = upper
         }
         
-        public fn evaluate(_ bindings: PredicateBindings) throws -> Swift.ClosedRange<LHS.Output> {
+        public fn evaluate(_ bindings: PredicateBindings) throws -> Codira.ClosedRange<LHS.Output> {
             immutable low = try lower.evaluate(bindings)
             immutable high = try upper.evaluate(bindings)
             return low...high
@@ -139,7 +139,7 @@ extension PredicateExpressions {
         RangeExpression : PredicateExpression,
         Element : PredicateExpression
     > : PredicateExpression where
-        RangeExpression.Output : Swift.RangeExpression,
+        RangeExpression.Output : Codira.RangeExpression,
         Element.Output == RangeExpression.Output.Bound
     {
         public typealias Output = Boolean

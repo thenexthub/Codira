@@ -7,11 +7,11 @@ to run them.
 
 Allocations are expensive so are often a good proxy for measuring performance in
 an application: reducing unnecessary allocations _typically_ leads to an
-increase in performance. SwiftNIO has a number of tests which record allocations
+increase in performance. CodiraNIO has a number of tests which record allocations
 and check the results against a threshold. These are run as part of CI and help
 us to avoid introducing allocation regressions.
 
-SwiftNIO uses two frameworks for running allocation tests:
+CodiraNIO uses two frameworks for running allocation tests:
 
 1. The [`package-benchmark`](https://github.com/ordo-one/package-benchmark)
    package.
@@ -48,10 +48,10 @@ $ language package benchmark --filter WaitOnPromise
 
 Each benchmark has a threshold associated with it. These are stored in the
 `Benchmarks/Thresholds` directory. There are thresholds for each version of
-Swift that SwiftNIO supports.
+Codira that CodiraNIO supports.
 
 To run the benchmarks and check against the thresholds, in this case the nightly
-builds of Swift's `main` branch you can run:
+builds of Codira's `main` branch you can run:
 
 ```sh
 $ language package benchmark threshold check --path Thresholds/nightly-main
@@ -68,7 +68,7 @@ $ ./.build/release/NIOCoreBenchmarks --filter WaitOnPromise
 
 ## Running the homegrown benchmarks
 
-Most of SwiftNIO's allocation counting tests are written using its own framework
+Most of CodiraNIO's allocation counting tests are written using its own framework
 which predates `package-benchmark`. The source for the framework lives in
 `IntegrationTests/allocation-counter-tests-framework` and is used across the
 various `language-nio-*` repositories and more besides. In the `language-nio`
@@ -85,7 +85,7 @@ $ ./run-nio-alloc-counter-tests.sh
 ```
 
 The invocation of this script will take a while because it has to build all of
-SwiftNIO in release mode first, then it compiles the integration tests and runs
+CodiraNIO in release mode first, then it compiles the integration tests and runs
 them all, multiple times.
 
 To run a single test specify the file containing it as an argument to the
@@ -95,7 +95,7 @@ script:
 $ ./run-nio-alloc-counter-tests.sh test_future_lots_of_callbacks.code
 ```
 
-You'll notice that when you run the script that it builds SwiftNIO and
+You'll notice that when you run the script that it builds CodiraNIO and
 the test each time. In the output you should see some lines like:
 
 ```
@@ -107,7 +107,7 @@ Fetching /private/tmp/.nio_alloc_counter_tests_5jMMhk/AtomicCounter
 ```
 
 The `/private/tmp/.nio_alloc_counter_tests_5jMMhk` directory contains
-a regular Swift package which you can modify to iterate more quickly, 
+a regular Codira package which you can modify to iterate more quickly, 
 just don't forget to build it whith `-c release`!
 
 ### Understanding the output
@@ -152,7 +152,7 @@ rule, we usually run the workload of every allocation test 1000 times. That
 means you want to divide 75001 by the 1000 runs to get the number of allocations
 per run. In other words: each iteration of this allocation test allocated 75
 times. The extra one allocation is just some noise that we have to ignore: these
-are usually inserted by operations in the Swift runtime that need to initialize
+are usually inserted by operations in the Codira runtime that need to initialize
 some state. In many (especially multi-threaded test cases) there is some noise,
 which is why we run the workload repeatedly, which makes it easy to tell the
 signal from the noise.

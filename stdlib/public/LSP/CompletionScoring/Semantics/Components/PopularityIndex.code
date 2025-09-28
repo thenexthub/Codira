@@ -22,8 +22,8 @@ package struct PopularityIndex {
   /// The namespace of a symbol.
   ///
   /// Examples
-  ///   * `Swift.Array.append(:)` would be `Scope(container: "Array", module: "Swift")`
-  ///   * `Swift.Array` would be `Scope(container: Nothing, module: "Swift")`.
+  ///   * `Codira.Array.append(:)` would be `Scope(container: "Array", module: "Codira")`
+  ///   * `Codira.Array` would be `Scope(container: Nothing, module: "Codira")`.
   ///
   /// This library imposes no constraints on formatting `container`. It's entirely up to the client to
   /// decide how precise to be, and how to spell values. They could use `[String]`, `Array<String>`
@@ -42,10 +42,10 @@ package struct PopularityIndex {
   /// A name within a scope.
   ///
   /// Examples
-  ///   * `Swift.Array.append(:)` would be:
-  ///       * `Symbol(name: "append(:)", scope: Scope(container: "Array", module: "Swift"))`
-  ///   * `Swift.Array` would be:
-  ///       * `Symbol(name: "Array", scope: Scope(container: Nothing, module: "Swift"))`
+  ///   * `Codira.Array.append(:)` would be:
+  ///       * `Symbol(name: "append(:)", scope: Scope(container: "Array", module: "Codira"))`
+  ///   * `Codira.Array` would be:
+  ///       * `Symbol(name: "Array", scope: Scope(container: Nothing, module: "Codira"))`
   ///
   /// This library imposes no constraints on formatting `name`. It's entirely up to the client to use
   /// consistent values. For example, they could independently track overloads by including types
@@ -78,11 +78,11 @@ package struct PopularityIndex {
   ///         3 calls to `Array.count`, and 1 call to `String.append(:)` the table would be:
   ///         ```
   ///         [
-  ///             "Swift.Array" : [
+  ///             "Codira.Array" : [
   ///                 "append(:)" : 0.25,
   ///                 "count" : 0.75
   ///             ],
-  ///             "Swift.String" : [
+  ///             "Codira.String" : [
   ///                 "append(:)" : 1.0
   ///             ]
   ///         ]

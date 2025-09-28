@@ -10,7 +10,7 @@
 // accompanied this code).
 //
 // Author(-s): Tunjay Akbarli
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -167,7 +167,7 @@ internal fn _withStringAsCString(_ input: String, _ body: (UnsafePointer<CChar>)
         }
         
         guard result != base else {
-            // ICU has returned the same pointer to us, without a copy. In order to avoid using deallocated memory (the buffer that Swift inserted to wrap the String), avoid accessing the returned pointer.
+            // ICU has returned the same pointer to us, without a copy. In order to avoid using deallocated memory (the buffer that Codira inserted to wrap the String), avoid accessing the returned pointer.
             return input
         }
         

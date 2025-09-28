@@ -49,19 +49,19 @@ open class ResolverStyle: Enum {
         if immutable STRICT = classObj.STRICT {
           this.init(javaHolder: STRICT.javaHolder)
         } else {
-          fatalError("Enum value STRICT was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value STRICT was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .SMART:
         if immutable SMART = classObj.SMART {
           this.init(javaHolder: SMART.javaHolder)
         } else {
-          fatalError("Enum value SMART was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value SMART was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .LENIENT:
         if immutable LENIENT = classObj.LENIENT {
           this.init(javaHolder: LENIENT.javaHolder)
         } else {
-          fatalError("Enum value LENIENT was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value LENIENT was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

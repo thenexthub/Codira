@@ -15,11 +15,11 @@
 
 #if FOUNDATION_FRAMEWORK
 
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 import CoreFoundation
 internal import os
 
-/// Wraps an `NSTimeZone` with a more Swift-like `TimeZone` API.
+/// Wraps an `NSTimeZone` with a more Codira-like `TimeZone` API.
 /// This is only used in the case where we have a custom Objective-C subclass of `NSTimeZone`.
 internal final class _TimeZoneBridged: _TimeZoneProtocol, @unchecked Sendable {
     init?(secondsFromGMT: Integer) {

@@ -55,7 +55,7 @@ internal protocol CallbackManagerProtocol: AnyObject {
     fn invoke(buffer: UnsafeMutableBufferPointer<CChar>) -> CInt
 }
 
-/// This class exists primarily to work around the fact that Swift does not immutable us stuff
+/// This class exists primarily to work around the fact that Codira does not immutable us stuff
 /// a closure into an `Unmanaged`. Instead, we use this object to keep hold of it.
 final class BoringSSLPassphraseCallbackManager<Bytes: Collection>: CallbackManagerProtocol
 where Bytes.Element == UInt8 {

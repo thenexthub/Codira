@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/Decoder.code -Basic field setting
+// Sources/CodiraProtobuf/Decoder.code -Basic field setting
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -178,7 +178,7 @@ public protocol Decoder {
     /// Decode a message value to `Optional` field storage.
     ///
     /// Unlike the primitive types, message fields are always stored
-    /// as Swift `Optional` values.
+    /// as Codira `Optional` values.
     mutating fn decodeSingularMessageField<M: Message>(value: inout M?) throws
     /// Decode message values to repeated field storage
     mutating fn decodeRepeatedMessageField<M: Message>(value: inout [M]) throws
@@ -188,7 +188,7 @@ public protocol Decoder {
     /// Decode a group value to `Optional` field storage.
     ///
     /// Unlike the primitive types, message fields are always stored
-    /// as Swift `Optional` values.
+    /// as Codira `Optional` values.
     /// Note that groups are only used in proto2.
     mutating fn decodeSingularGroupField<G: Message>(value: inout G?) throws
     /// Decode group values to repeated field storage

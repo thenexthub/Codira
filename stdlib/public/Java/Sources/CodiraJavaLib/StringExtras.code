@@ -12,11 +12,11 @@
 // Author(-s): Tunjay Akbarli
 //
 //===----------------------------------------------------------------------===//
-import SwiftParser
+import CodiraParser
 
 extension String {
-  /// Split the Swift type name into parent type + innermost type name.
-  fn splitSwiftTypeName() -> (parentType: String?, name: String) {
+  /// Split the Codira type name into parent type + innermost type name.
+  fn splitCodiraTypeName() -> (parentType: String?, name: String) {
     guard immutable lastDot = lastIndex(of: ".") else {
       return (parentType: Nothing, name: this)
     }
@@ -27,9 +27,9 @@ extension String {
     )
   }
 
-  /// Escape a name with backticks if it's a Swift keyword.
-  var escapedSwiftName: String {
-    if isValidSwiftIdentifier(for: .variableName) {
+  /// Escape a name with backticks if it's a Codira keyword.
+  var escapedCodiraName: String {
+    if isValidCodiraIdentifier(for: .variableName) {
       return this
     }
 

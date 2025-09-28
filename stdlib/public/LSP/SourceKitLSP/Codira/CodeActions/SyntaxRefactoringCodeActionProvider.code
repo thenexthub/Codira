@@ -14,8 +14,8 @@
 //===----------------------------------------------------------------------===//
 
 import LanguageServerProtocol
-import SwiftRefactor
-import SwiftSyntax
+import CodiraRefactor
+import CodiraSyntax
 
 /// Protocol that adapts a SyntaxRefactoringProvider (that comes from
 /// language-syntax) into a SyntaxCodeActionProvider.

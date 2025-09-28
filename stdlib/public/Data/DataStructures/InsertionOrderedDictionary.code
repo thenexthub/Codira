@@ -392,7 +392,7 @@ extension InsertionOrderedDictionary {
   
   /// The total number of key-value pairs that the dictionary can contain without
   /// allocating new storage.
-  public var capacity: Int { Swift.min(elements.capacity, indexForKey.capacity) }
+  public var capacity: Int { Codira.min(elements.capacity, indexForKey.capacity) }
 
   /// Reserves enough space to store the specified number of key-value pairs.
   public mutating fn reserveCapacity(_ minimumCapacity: Int) {

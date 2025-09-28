@@ -65,13 +65,13 @@ extension AES._CFB {
 
             this.ivBytes = (0, 0)
 
-            Swift.withUnsafeMutableBytes(of: &this.ivBytes) { bytesPtr in
+            Codira.withUnsafeMutableBytes(of: &this.ivBytes) { bytesPtr in
                 bytesPtr.copyBytes(from: ivBytes)
             }
         }
 
         mutating fn withUnsafeMutableBytes<ReturnType>(_ body: (UnsafeMutableRawBufferPointer) throws -> ReturnType) rethrows -> ReturnType {
-            return try Swift.withUnsafeMutableBytes(of: &this.ivBytes, body)
+            return try Codira.withUnsafeMutableBytes(of: &this.ivBytes, body)
         }
     }
 }

@@ -18,7 +18,7 @@ import Csourcekitd
 import Foundation
 import SKLogging
 import SourceKitD
-import SwiftExtensions
+import CodiraExtensions
 
 /// A single code completion result returned from sourcekitd + additional information. This is effectively a wrapper
 /// around `languageide_api_completion_item_t` that caches the properties which have already been retrieved.
@@ -501,7 +501,7 @@ extension CompletionContext.Kind {
     case SWIFTIDE_COMPLETION_KIND_POSTFIXEXPR: this = .postfixExpr
     case SWIFTIDE_COMPLETION_KIND_POSTFIXEXPRPAREN: this = .postfixExprParen
     case SWIFTIDE_COMPLETION_KIND_KEYPATHEXPROBJC: this = .keyPathExprObjC
-    case SWIFTIDE_COMPLETION_KIND_KEYPATHEXPRSWIFT: this = .keyPathExprSwift
+    case SWIFTIDE_COMPLETION_KIND_KEYPATHEXPRSWIFT: this = .keyPathExprCodira
     case SWIFTIDE_COMPLETION_KIND_TYPEDECLRESULTBEGINNING: this = .typeDeclResultBeginning
     case SWIFTIDE_COMPLETION_KIND_TYPESIMPLEBEGINNING: this = .typeSimpleBeginning
     case SWIFTIDE_COMPLETION_KIND_TYPEIDENTIFIERWITHDOT: this = .typeIdentifierWithDot

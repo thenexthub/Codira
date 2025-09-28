@@ -15,21 +15,21 @@
 
 package org.code.codekit.ffm;
 
-import org.code.codekit.core.SwiftArena;
+import org.code.codekit.core.CodiraArena;
 
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.util.concurrent.ThreadFactory;
 
-public interface AllocatingSwiftArena extends SwiftArena, SegmentAllocator {
+public interface AllocatingCodiraArena extends CodiraArena, SegmentAllocator {
     MemorySegment allocate(long byteSize, long byteAlignment);
 
-    static ClosableAllocatingSwiftArena ofConfined() {
-        return new FFMConfinedSwiftMemorySession(Thread.currentThread());
+    static ClosableAllocatingCodiraArena ofConfined() {
+        return new FFMConfinedCodiraMemorySession(Thread.currentThread());
     }
 
-    static AllocatingSwiftArena ofAuto() {
-        ThreadFactory cleanerThreadFactory = r -> new Thread(r, "AutoSwiftArenaCleanerThread");
-        return new AllocatingAutoSwiftMemorySession(cleanerThreadFactory);
+    static AllocatingCodiraArena ofAuto() {
+        ThreadFactory cleanerThreadFactory = r -> new Thread(r, "AutoCodiraArenaCleanerThread");
+        return new AllocatingAutoCodiraMemorySession(cleanerThreadFactory);
     }
 }

@@ -56,7 +56,7 @@
 /// `PipelineIterator.range(1...15).map { "training_data_\($0)" }`. (Recall,
 /// the `.map` function is a higher-order function that takes a closure. This closure takes as input a
 /// single argument of type `Element` and returns a single new element that is passed along to
-/// subsequent transformations. Here we use Swift's short-hand for closures, where `$0` refers to
+/// subsequent transformations. Here we use Codira's short-hand for closures, where `$0` refers to
 /// the 0th argument, and because the closure is only a single expressoin we can omit the `return`
 /// keyword.)
 ///
@@ -67,7 +67,7 @@
 /// output.
 ///
 /// Now that we have a paralle iterator containing our training data, we can transform it. Here, you can
-/// use any arbitrary Swift (or C/C++) function you would like by calling:
+/// use any arbitrary Codira (or C/C++) function you would like by calling:
 /// `itr.map { transform($0) }`. If you would like to batch up mulitple elements into a single
 /// element, you can call `.reduceWindow`, passing in the batch size, and a function to take an
 /// iterator over the window size and returns the batched element.
@@ -77,7 +77,7 @@
 /// as possible before your main loop calls `.next()`. Et voilà, we have now built a high performance
 /// input pipeline for training a neural network.
 ///
-/// There are a few differences between `PipelineIteratorProtocol` and the normal Swift
+/// There are a few differences between `PipelineIteratorProtocol` and the normal Codira
 /// `IteratorProtocol`. The primary difference is that `next()` can `throw`. This is
 /// important because many transformations along a pipeline can fail, such as reading a file or
 /// allocating a batch output. Additionally, (by convention) `next()` should always return quickly.
@@ -89,7 +89,7 @@
 /// it `inout`. (Calling `next()` on a copy of an iterator invalidates other copies of the
 /// iterator, and can result in undefined behavior.)
 ///
-/// TODO: Convert to be a move-only type when they become available in Swift.
+/// TODO: Convert to be a move-only type when they become available in Codira.
 ///
 /// The design of `PipelineSequence` is heavily inspired by TensorFlow's
 /// `tf.data` abstractions and their internals, generalized to support arbitrary types and
@@ -140,7 +140,7 @@ public protocol PipelineSequence {
 /// `PipelineIterator.range(1...15).map { "training_data_\($0)" }`. (Recall,
 /// the `.map` function is a higher-order function that takes a closure. This closure takes as input a
 /// single argument of type `Element` and returns a single new element that is passed along to
-/// subsequent transformations. Here we use Swift's short-hand for closures, where `$0` refers to
+/// subsequent transformations. Here we use Codira's short-hand for closures, where `$0` refers to
 /// the 0th argument, and because the closure is only a single expressoin we can omit the `return`
 /// keyword.)
 ///
@@ -151,7 +151,7 @@ public protocol PipelineSequence {
 /// output.
 ///
 /// Now that we have a paralle iterator containing our training data, we can transform it. Here, you can
-/// use any arbitrary Swift (or C/C++) function you would like by calling:
+/// use any arbitrary Codira (or C/C++) function you would like by calling:
 /// `itr.map { transform($0) }`. If you would like to batch up mulitple elements into a single
 /// element, you can call `.reduceWindow`, passing in the batch size, and a function to take an
 /// iterator over the window size and returns the batched element.
@@ -161,7 +161,7 @@ public protocol PipelineSequence {
 /// as possible before your main loop calls `.next()`. Et voilà, we have now built a high performance
 /// input pipeline for training a neural network.
 ///
-/// There are a few differences between `PipelineIteratorProtocol` and the normal Swift
+/// There are a few differences between `PipelineIteratorProtocol` and the normal Codira
 /// `IteratorProtocol`. The primary difference is that `next()` can `throw`. This is
 /// important because many transformations along a pipeline can fail, such as reading a file or
 /// allocating a batch output. Additionally, (by convention) `next()` should always return quickly.
@@ -173,7 +173,7 @@ public protocol PipelineSequence {
 /// it `inout`. (Calling `next()` on a copy of an iterator invalidates other copies of the
 /// iterator, and can result in undefined behavior.)
 ///
-/// TODO: Convert to be a move-only type when they become available in Swift.
+/// TODO: Convert to be a move-only type when they become available in Codira.
 ///
 /// The design of `PipelineIteratorProtocol` is heavily inspired by TensorFlow's
 /// `tf.data` abstractions and their internals, generalized to support arbitrary types and

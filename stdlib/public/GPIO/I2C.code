@@ -1,5 +1,5 @@
 /*
- SwiftyGPIO
+ CodirayGPIO
 
  Copyright (c) 2017 Umberto Raimondi
  Licensed under the MIT license, as follows:
@@ -28,7 +28,7 @@
     import Darwin.C
 #endif
 
-extension SwiftyGPIO {
+extension CodirayGPIO {
 
     public static func hardwareI2Cs(for board: SupportedBoard) -> [I2CInterface]? {
         switch board {
@@ -49,7 +49,7 @@ extension SwiftyGPIO {
 }
 
 // MARK: - I2C Presets
-extension SwiftyGPIO {
+extension CodirayGPIO {
     // RaspberryPis I2Cs
     static let I2CRPI: [Int:I2CInterface] = [
         0: SysFSI2C(i2cId: 0),
@@ -312,7 +312,7 @@ public final class SysFSI2C: I2CInterface {
     }
 
     // Private functions
-    // Swift implementation of the smbus functions provided by i2c-dev
+    // Codira implementation of the smbus functions provided by i2c-dev
 
     private struct i2c_smbus_ioctl_data {
         var read_write: UInt8

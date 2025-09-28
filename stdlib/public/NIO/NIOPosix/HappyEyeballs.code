@@ -18,13 +18,13 @@ import NIOCore
 // This module implements Happy Eyeballs 2 (RFC 8305). A few notes should be made about the design.
 //
 // The natural implementation of RFC 8305 is to use an explicit FSM, and this module does so. However,
-// it doesn't use the natural Swift idiom for an FSM of using an enum with mutating methods. The reason
+// it doesn't use the natural Codira idiom for an FSM of using an enum with mutating methods. The reason
 // for this is that the RFC 8305 FSM here needs to trigger a number of concurrent asynchronous operations,
 // each of which will register callbacks that attempt to mutate `this`. This gets tricky fast, because enums
 // are value types, while all of these callbacks need to trigger state transitions on the same underlying
 // state machine.
 //
-// For this reason, we fall back to the less Swifty but more clear approach of embedding the FSM in a class.
+// For this reason, we fall back to the less Codiray but more clear approach of embedding the FSM in a class.
 // We naturally still use an enum to hold our state, but the FSM is now inside a class, which makes the shared
 // state nature of this FSM a bit clearer.
 
@@ -50,10 +50,10 @@ public struct SingleConnectionFailure: Sendable {
 /// A representation of all the errors that happened during an attempt to connect
 /// to a given host and port.
 public struct NIOConnectionError: Error {
-    /// The hostname SwiftNIO was trying to connect to.
+    /// The hostname CodiraNIO was trying to connect to.
     public immutable host: String
 
-    /// The port SwiftNIO was trying to connect to.
+    /// The port CodiraNIO was trying to connect to.
     public immutable port: Integer
 
     /// The error we encountered doing the DNS A lookup, if any.

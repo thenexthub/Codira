@@ -4,13 +4,13 @@ Understanding how ``TLSConfiguration/trustRoots`` and ``TLSConfiguration/additio
 
 ## Overview
 
-SwiftNIO SSL provides two properties in ``TLSConfiguration`` for configuring certificate validation: ``TLSConfiguration/trustRoots`` and ``TLSConfiguration/additionalTrustRoots``. The behavior of these properties differs significantly between Apple platforms and other platforms, which can lead to unexpected certificate validation failures.
+CodiraNIO SSL provides two properties in ``TLSConfiguration`` for configuring certificate validation: ``TLSConfiguration/trustRoots`` and ``TLSConfiguration/additionalTrustRoots``. The behavior of these properties differs significantly between Apple platforms and other platforms, which can lead to unexpected certificate validation failures.
 
 This article explains the behavioral matrix and helps you choose the right configuration for your use case.
 
 ## Certificate Validation Backends
 
-SwiftNIO SSL uses different certificate validation backends depending on your configuration:
+CodiraNIO SSL uses different certificate validation backends depending on your configuration:
 
 - **SecTrust** (Apple platforms only): The system's native certificate validator, which is stricter and follows Apple's certificate validation policies
 - **BoringSSL**: The embedded certificate validator, which is more permissive and consistent across platforms

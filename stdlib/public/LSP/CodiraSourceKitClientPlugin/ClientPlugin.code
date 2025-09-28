@@ -16,8 +16,8 @@
 public import Csourcekitd
 import Foundation
 import SourceKitD
-import SwiftExtensions
-import SwiftSourceKitPluginCommon
+import CodiraExtensions
+import CodiraSourceKitPluginCommon
 
 #if compiler(>=6.3)
 #warning("Remove sourcekitd_plugin_initialize when we no longer support toolchains that call it")

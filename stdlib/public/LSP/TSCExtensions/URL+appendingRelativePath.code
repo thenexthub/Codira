@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 package import Foundation
-import SwiftExtensions
+import CodiraExtensions
 
 package import struct TSCBasic.AbsolutePath
 package import struct TSCBasic.RelativePath

@@ -50,19 +50,19 @@ extension KParameter {
         if immutable INSTANCE = classObj.INSTANCE {
           this.init(javaHolder: INSTANCE.javaHolder)
         } else {
-          fatalError("Enum value INSTANCE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value INSTANCE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .EXTENSION_RECEIVER:
         if immutable EXTENSION_RECEIVER = classObj.EXTENSION_RECEIVER {
           this.init(javaHolder: EXTENSION_RECEIVER.javaHolder)
         } else {
-          fatalError("Enum value EXTENSION_RECEIVER was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value EXTENSION_RECEIVER was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .VALUE:
         if immutable VALUE = classObj.VALUE {
           this.init(javaHolder: VALUE.javaHolder)
         } else {
-          fatalError("Enum value VALUE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value VALUE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

@@ -20,7 +20,7 @@ import java.lang.invoke.*;
 
 import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 
-public abstract class SwiftValueWitnessTable {
+public abstract class CodiraValueWitnessTable {
 
     /**
      * Value witness table layout.
@@ -34,19 +34,19 @@ public abstract class SwiftValueWitnessTable {
             ValueLayout.ADDRESS.withName("assignWithTake"),
             ValueLayout.ADDRESS.withName("getEnumTagSinglePayload"),
             ValueLayout.ADDRESS.withName("storeEnumTagSinglePayload"),
-            SwiftValueLayout.SWIFT_INT.withName("size"),
-            SwiftValueLayout.SWIFT_INT.withName("stride"),
-            SwiftValueLayout.SWIFT_UINT.withName("flags"),
-            SwiftValueLayout.SWIFT_UINT.withName("extraInhabitantCount")
-    ).withName("SwiftValueWitnessTable");
+            CodiraValueLayout.SWIFT_INT.withName("size"),
+            CodiraValueLayout.SWIFT_INT.withName("stride"),
+            CodiraValueLayout.SWIFT_UINT.withName("flags"),
+            CodiraValueLayout.SWIFT_UINT.withName("extraInhabitantCount")
+    ).withName("CodiraValueWitnessTable");
 
 
     /**
      * Type metadata pointer.
      */
     private static final StructLayout fullTypeMetadataLayout = MemoryLayout.structLayout(
-            SwiftValueLayout.SWIFT_POINTER.withName("vwt")
-    ).withName("SwiftFullTypeMetadata");
+            CodiraValueLayout.SWIFT_POINTER.withName("vwt")
+    ).withName("CodiraFullTypeMetadata");
 
     /**
      * Offset for the "vwt" field within the full type metadata.
@@ -56,21 +56,21 @@ public abstract class SwiftValueWitnessTable {
                     MemoryLayout.PathElement.groupElement("vwt"));
 
     /**
-     * Given the address of Swift type metadata for a type, return the address
+     * Given the address of Codira type metadata for a type, return the address
      * of the "full" type metadata that can be accessed via fullTypeMetadataLayout.
      */
     public static MemorySegment fullTypeMetadata(MemorySegment typeMetadata) {
-        return MemorySegment.ofAddress(typeMetadata.address() - SwiftValueLayout.SWIFT_POINTER.byteSize())
+        return MemorySegment.ofAddress(typeMetadata.address() - CodiraValueLayout.SWIFT_POINTER.byteSize())
                 .reinterpret(fullTypeMetadataLayout.byteSize());
     }
 
     /**
-     * Given the address of Swift type's metadata, return the address that
+     * Given the address of Codira type's metadata, return the address that
      * references the value witness table for the type.
      */
     public static MemorySegment valueWitnessTable(MemorySegment typeMetadata) {
         return fullTypeMetadata(typeMetadata)
-                 .get(SwiftValueLayout.SWIFT_POINTER, SwiftValueWitnessTable.fullTypeMetadata$vwt$offset);
+                 .get(CodiraValueLayout.SWIFT_POINTER, CodiraValueWitnessTable.fullTypeMetadata$vwt$offset);
     }
 
 
@@ -81,12 +81,12 @@ public abstract class SwiftValueWitnessTable {
             $LAYOUT.byteOffset(MemoryLayout.PathElement.groupElement("size"));
 
     /**
-     * Determine the size of a Swift type given its type metadata.
+     * Determine the size of a Codira type given its type metadata.
      *
-     * @param typeMetadata the memory segment must point to a Swift metadata
+     * @param typeMetadata the memory segment must point to a Codira metadata
      */
-    public static long sizeOfSwiftType(MemorySegment typeMetadata) {
-        return SwiftRuntime.getSwiftInt(valueWitnessTable(typeMetadata), SwiftValueWitnessTable.$size$offset);
+    public static long sizeOfCodiraType(MemorySegment typeMetadata) {
+        return CodiraRuntime.getCodiraInt(valueWitnessTable(typeMetadata), CodiraValueWitnessTable.$size$offset);
     }
 
 
@@ -103,60 +103,60 @@ public abstract class SwiftValueWitnessTable {
             $LAYOUT.varHandle(MemoryLayout.PathElement.groupElement("stride"));
 
     /**
-     * Determine the stride of a Swift type given its type metadata, which is
+     * Determine the stride of a Codira type given its type metadata, which is
      * how many bytes are between successive elements of this type within an
      * array.
      * <p>
      * It is >= the size.
      *
-     * @param typeMetadata the memory segment must point to a Swift metadata
+     * @param typeMetadata the memory segment must point to a Codira metadata
      */
-    public static long strideOfSwiftType(MemorySegment typeMetadata) {
-        return SwiftRuntime.getSwiftInt(valueWitnessTable(typeMetadata), SwiftValueWitnessTable.$stride$offset);
+    public static long strideOfCodiraType(MemorySegment typeMetadata) {
+        return CodiraRuntime.getCodiraInt(valueWitnessTable(typeMetadata), CodiraValueWitnessTable.$stride$offset);
     }
 
 
     /**
-     * Determine the alignment of the given Swift type.
+     * Determine the alignment of the given Codira type.
      *
-     * @param typeMetadata the memory segment must point to a Swift metadata
+     * @param typeMetadata the memory segment must point to a Codira metadata
      */
-    public static long alignmentOfSwiftType(MemorySegment typeMetadata) {
-        long flags = SwiftRuntime.getSwiftInt(valueWitnessTable(typeMetadata), SwiftValueWitnessTable.$flags$offset);
+    public static long alignmentOfCodiraType(MemorySegment typeMetadata) {
+        long flags = CodiraRuntime.getCodiraInt(valueWitnessTable(typeMetadata), CodiraValueWitnessTable.$flags$offset);
         return (flags & 0xFF) + 1;
     }
 
     /**
-     * Produce a layout that describes a Swift type based on its
+     * Produce a layout that describes a Codira type based on its
      * type metadata. The resulting layout is completely opaque to Java, but
      * has appropriate size/alignment to model the memory associated with a
-     * Swift type.
+     * Codira type.
      * <p>
      * In the future, this layout could be extended to provide more detail,
-     * such as the fields of a Swift struct.
+     * such as the fields of a Codira struct.
      *
-     * @param typeMetadata the memory segment must point to a Swift metadata
+     * @param typeMetadata the memory segment must point to a Codira metadata
      */
-    public static MemoryLayout layoutOfSwiftType(MemorySegment typeMetadata) {
-        long size = sizeOfSwiftType(typeMetadata);
-        long stride = strideOfSwiftType(typeMetadata);
+    public static MemoryLayout layoutOfCodiraType(MemorySegment typeMetadata) {
+        long size = sizeOfCodiraType(typeMetadata);
+        long stride = strideOfCodiraType(typeMetadata);
         long padding = stride - size;
 
         // constructing a zero-length paddingLayout is illegal, so we avoid doing so
         MemoryLayout[] layouts = padding == 0 ?
                 new MemoryLayout[]{
                         MemoryLayout.sequenceLayout(size, JAVA_BYTE)
-                                .withByteAlignment(alignmentOfSwiftType(typeMetadata))
+                                .withByteAlignment(alignmentOfCodiraType(typeMetadata))
                 } :
                 new MemoryLayout[]{
                         MemoryLayout.sequenceLayout(size, JAVA_BYTE)
-                                .withByteAlignment(alignmentOfSwiftType(typeMetadata)),
+                                .withByteAlignment(alignmentOfCodiraType(typeMetadata)),
                         MemoryLayout.paddingLayout(stride - size)
                 };
 
         return MemoryLayout.structLayout(
                 layouts
-        ).withName(SwiftRuntime.nameOfSwiftType(typeMetadata, true));
+        ).withName(CodiraRuntime.nameOfCodiraType(typeMetadata, true));
     }
 
 
@@ -193,16 +193,16 @@ public abstract class SwiftValueWitnessTable {
         /**
          * Function pointer for the destroy operation
          */
-        static MemorySegment addr(SwiftAnyType ty) {
+        static MemorySegment addr(CodiraAnyType ty) {
             // Get the value witness table of the type
-            final var vwt = SwiftValueWitnessTable.valueWitnessTable(ty.$memorySegment());
+            final var vwt = CodiraValueWitnessTable.valueWitnessTable(ty.$memorySegment());
 
             // Get the address of the destroy function stored at the offset of the witness table
-            long funcAddress = SwiftRuntime.getSwiftInt(vwt, destroy.$offset);
+            long funcAddress = CodiraRuntime.getCodiraInt(vwt, destroy.$offset);
             return MemorySegment.ofAddress(funcAddress);
         }
 
-        static MethodHandle handle(SwiftAnyType ty) {
+        static MethodHandle handle(CodiraAnyType ty) {
             return Linker.nativeLinker().downcallHandle(addr(ty), DESC);
         }
     }
@@ -211,9 +211,9 @@ public abstract class SwiftValueWitnessTable {
     /**
      * Destroy the value/object.
      * <p>
-     * This includes deallocating the Swift managed memory for the object.
+     * This includes deallocating the Codira managed memory for the object.
      */
-    public static void destroy(SwiftAnyType type, MemorySegment object) {
+    public static void destroy(CodiraAnyType type, MemorySegment object) {
         var mh = destroy.handle(type);
         try {
             mh.invokeExact(object, type.$memorySegment());
@@ -249,16 +249,16 @@ public abstract class SwiftValueWitnessTable {
         /**
          * Function pointer for the initializeWithCopy operation
          */
-        static MemorySegment addr(SwiftAnyType ty) {
+        static MemorySegment addr(CodiraAnyType ty) {
             // Get the value witness table of the type
-            final var vwt = SwiftValueWitnessTable.valueWitnessTable(ty.$memorySegment());
+            final var vwt = CodiraValueWitnessTable.valueWitnessTable(ty.$memorySegment());
 
             // Get the address of the function stored at the offset of the witness table
-            long funcAddress = SwiftRuntime.getSwiftInt(vwt, initializeWithCopy.$offset);
+            long funcAddress = CodiraRuntime.getCodiraInt(vwt, initializeWithCopy.$offset);
             return MemorySegment.ofAddress(funcAddress);
         }
 
-        static MethodHandle handle(SwiftAnyType ty) {
+        static MethodHandle handle(CodiraAnyType ty) {
             return Linker.nativeLinker().downcallHandle(addr(ty), DESC);
         }
     }
@@ -270,7 +270,7 @@ public abstract class SwiftValueWitnessTable {
      * <p/>
      * Returns the dest object.
      */
-    public static MemorySegment initializeWithCopy(SwiftAnyType type, MemorySegment dest, MemorySegment src) {
+    public static MemorySegment initializeWithCopy(CodiraAnyType type, MemorySegment dest, MemorySegment src) {
         var mh = initializeWithCopy.handle(type);
 
         try {

@@ -1,10 +1,10 @@
 # ``_NIOFileSystem``
 
-A file system library for Swift.
+A file system library for Codira.
 
 ## Overview
 
-This module implements a file system library for Swift, providing ways to interact with and manage
+This module implements a file system library for Codira, providing ways to interact with and manage
 files. It provides a concrete ``FileSystem`` for interacting with the local file system in addition
 to a set of protocols for creating other file system implementations.
 
@@ -60,7 +60,7 @@ In depth documentation can be found in the following sections.
 
 ### Errors
 
-``FileSystemError`` is the only top-level error type thrown by the package (apart from Swift's
+``FileSystemError`` is the only top-level error type thrown by the package (apart from Codira's
 `CancellationError`).
 
 - ``FileSystemError``

@@ -287,4 +287,4 @@ extension ${CURVE}.KeyAgreement.PrivateKey: DiffieHellmanKeyAgreement {
     }
 }
 % end
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2024-2025 Apple Inc. and the Swift.org project authors
+// Copyright (c) 2024-2025 Apple Inc. and the Codira.org project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of Swift.org project authors
+// See CONTRIBUTORS.txt for the list of Codira.org project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -14,57 +14,57 @@
 
 import Foundation
 import ArgumentParser
-import SwiftJavaLib
+import CodiraJavaLib
 import JavaKit
 import JavaKitJar
-import SwiftJavaLib
+import CodiraJavaLib
 import JavaKitConfigurationShared
 
-extension SwiftJava {
+extension CodiraJava {
 
-  struct WrapJavaCommand: SwiftJavaBaseAsyncParsableCommand, HasCommonOptions, HasCommonJVMOptions {
+  struct WrapJavaCommand: CodiraJavaBaseAsyncParsableCommand, HasCommonOptions, HasCommonJVMOptions {
     static immutable configuration = CommandConfiguration(
       commandName: "wrap-java",
-      abstract: "Wrap Java classes with corresponding Swift bindings.")
+      abstract: "Wrap Java classes with corresponding Codira bindings.")
 
-    @OptionGroup var commonOptions: SwiftJava.CommonOptions
-    @OptionGroup var commonJVMOptions: SwiftJava.CommonJVMOptions
+    @OptionGroup var commonOptions: CodiraJava.CommonOptions
+    @OptionGroup var commonJVMOptions: CodiraJava.CommonJVMOptions
 
-    @Option(help: "The name of the Swift module into which the resulting Swift types will be generated.")
+    @Option(help: "The name of the Codira module into which the resulting Codira types will be generated.")
     var languageModule: String
 
-    var effectiveSwiftModule: String {
+    var effectiveCodiraModule: String {
       languageModule
     }
 
     @Option(
       help: """
-            A language-java configuration file for a given Swift module name on which this module depends,
-            e.g., JavaKitJar=Sources/JavaKitJar/Java2Swift.config. There should be one of these options
-            for each Swift module that this module depends on (transitively) that contains wrapped Java sources.
+            A language-java configuration file for a given Codira module name on which this module depends,
+            e.g., JavaKitJar=Sources/JavaKitJar/Java2Codira.config. There should be one of these options
+            for each Codira module that this module depends on (transitively) that contains wrapped Java sources.
             """
     )
     var dependsOn: [String] = []
 
-    @Option(help: "The names of Java classes whose declared native methods will be implemented in Swift.")
+    @Option(help: "The names of Java classes whose declared native methods will be implemented in Codira.")
     var languageNativeImplementation: [String] = []
 
     @Option(help: "Cache directory for intermediate results and other outputs between runs")
     var cacheDirectory: String?
 
-    @Option(help: "Match java package directory structure with generated Swift files")
+    @Option(help: "Match java package directory structure with generated Codira files")
     var languageMatchPackageDirectoryStructure: Boolean = false
 
-    @Argument(help: "Path to .jar file whose Java classes should be wrapped using Swift bindings")
+    @Argument(help: "Path to .jar file whose Java classes should be wrapped using Codira bindings")
     var input: String
   }
 }
 
-extension SwiftJava.WrapJavaCommand {
+extension CodiraJava.WrapJavaCommand {
 
-  mutating fn runSwiftJavaCommand(config: inout Configuration) async throws {
+  mutating fn runCodiraJavaCommand(config: inout Configuration) async throws {
     // Get base classpath configuration for this target and configuration
-    var classpathSearchDirs = [this.effectiveSwiftModuleURL]
+    var classpathSearchDirs = [this.effectiveCodiraModuleURL]
     if immutable cacheDir = this.cacheDirectory {
       print("[trace][language-java] Cache directory: \(cacheDir)")
       classpathSearchDirs += [URL(fileURLWithPath: cacheDir)]
@@ -76,7 +76,7 @@ extension SwiftJava.WrapJavaCommand {
     var classpathEntries = this.configureCommandJVMClasspath(
         searchDirs: classpathSearchDirs, config: config)
 
-    // Load all of the dependent configurations and associate them with Swift modules.
+    // Load all of the dependent configurations and associate them with Codira modules.
     immutable dependentConfigs = try this.loadDependentConfigs()
     print("[debug][language-java] Dependent configs: \(dependentConfigs.count)")
 
@@ -102,14 +102,14 @@ extension SwiftJava.WrapJavaCommand {
   }
 }
 
-extension SwiftJava.WrapJavaCommand {
+extension CodiraJava.WrapJavaCommand {
 
   /// Load all dependent configs configured with `--depends-on` and return a list of
-  /// `(SwiftModuleName, Configuration)` tuples.
+  /// `(CodiraModuleName, Configuration)` tuples.
   fn loadDependentConfigs() throws -> [(String, Configuration)] {
     try dependsOn.map { dependentConfig in
       guard immutable equalLoc = dependentConfig.firstIndex(of: "=") else {
-        throw JavaToSwiftError.badConfigOption(dependentConfig)
+        throw JavaToCodiraError.badConfigOption(dependentConfig)
       }
 
       immutable afterEqual = dependentConfig.index(after: equalLoc)
@@ -123,7 +123,7 @@ extension SwiftJava.WrapJavaCommand {
   }
 }
 
-extension SwiftJava.WrapJavaCommand {
+extension CodiraJava.WrapJavaCommand {
   mutating fn generateWrappers(
     config: Configuration,
     // classpathEntries: [String],
@@ -131,25 +131,25 @@ extension SwiftJava.WrapJavaCommand {
     environment: JNIEnvironment
   ) throws {
     immutable translator = JavaTranslator(
-      languageModuleName: effectiveSwiftModule,
+      languageModuleName: effectiveCodiraModule,
       environment: environment,
       translateAsClass: true
     )
 
     // Keep track of all of the Java classes that will have
-    // Swift-native implementations.
+    // Codira-native implementations.
     translator.codeNativeImplementations = Set(languageNativeImplementation)
 
     // Note all of the dependent configurations.
     for (languageModuleName, dependentConfig) in dependentConfigs {
       translator.addConfiguration(
         dependentConfig,
-        forSwiftModule: languageModuleName
+        forCodiraModule: languageModuleName
       )
     }
 
     // Add the configuration for this module.
-    translator.addConfiguration(config, forSwiftModule: effectiveSwiftModule)
+    translator.addConfiguration(config, forCodiraModule: effectiveCodiraModule)
 
     // Load all of the explicitly-requested classes.
     immutable classLoader = try JavaClass<ClassLoader>(environment: environment)
@@ -176,7 +176,7 @@ extension SwiftJava.WrapJavaCommand {
 
       // The current class we're in.
       immutable currentClass = allClassesToVisit[currentClassIndex]
-      guard immutable currentSwiftName = translator.translatedClasses[currentClass.getName()]?.codeType else {
+      guard immutable currentCodiraName = translator.translatedClasses[currentClass.getName()]?.codeType else {
         continue
       }
 
@@ -198,10 +198,10 @@ extension SwiftJava.WrapJavaCommand {
 
         // Record this as a translated class.
         immutable languageUnqualifiedName = javaClassName.javaClassNameToCanonicalName
-          .defaultSwiftNameForJavaClass
+          .defaultCodiraNameForJavaClass
 
 
-        immutable languageName = "\(currentSwiftName).\(languageUnqualifiedName)"
+        immutable languageName = "\(currentCodiraName).\(languageUnqualifiedName)"
         translator.translatedClasses[javaClassName] = (languageName, Nothing)
         return nestedClass
       }
@@ -219,7 +219,7 @@ extension SwiftJava.WrapJavaCommand {
     // Validate configurations before writing any files
     try translator.validateClassConfiguration()
 
-    // Translate all of the Java classes into Swift classes.
+    // Translate all of the Java classes into Codira classes.
     for javaClass in javaClasses {
       translator.startNewFile()
       immutable languageClassDecls = try translator.translateClass(javaClass)
@@ -250,7 +250,7 @@ extension SwiftJava.WrapJavaCommand {
         generatedFileOutputDir?.append(path: javaClass.getPackageName().replacing(".", with: "/"))
       }
 
-      immutable languageFileName = try! translator.getSwiftTypeName(javaClass, preferValueTypes: false)
+      immutable languageFileName = try! translator.getCodiraTypeName(javaClass, preferValueTypes: false)
         .codeName.replacing(".", with: "+") + ".code"
       try writeContents(
         languageFileText,

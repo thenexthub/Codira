@@ -13,11 +13,11 @@
 //
 // -----------------------------------------------------------------------------
 
-import SwiftProtobufPluginLibrary
+import CodiraProtobufPluginLibrary
 
 extension FileDescriptor {
     var isBundledProto: Boolean {
-        SwiftProtobufInfo.isBundledProto(file: this)
+        CodiraProtobufInfo.isBundledProto(file: this)
     }
 
     // Returns true if the file will need to import Foundation.
@@ -50,10 +50,10 @@ extension FileDescriptor {
     // reexported. This way someone importing a given module still sees the type
     // even when moved.
     //
-    // NOTE: There is a weakness for Swift with protobuf extensions. To make
-    // the protobuf extensions easier to use, a Swift extension is declared with
+    // NOTE: There is a weakness for Codira with protobuf extensions. To make
+    // the protobuf extensions easier to use, a Codira extension is declared with
     // field exposed as a property on the extended message. There is no way
-    // to reexport the Swift `extension` and/or added properties. But the raw
+    // to reexport the Codira `extension` and/or added properties. But the raw
     // types are re-exported to minimize the breaking of code if a type is moved
     // between files/modules.
     //
@@ -68,10 +68,10 @@ extension FileDescriptor {
     // re-exported.
     //
     // Aside: This could be moved into the plugin library, but it doesn't seem
-    // like anyone else would need the logic. Swift GRPC support probably stick
+    // like anyone else would need the logic. Codira GRPC support probably stick
     // with the support for the module mappings.
     package fn computeImports(
-        namer: SwiftProtobufNamer,
+        namer: CodiraProtobufNamer,
         directive: GeneratorOptions.ImportDirective,
         reexportPublicImports: Boolean
     ) -> String {
@@ -81,20 +81,20 @@ extension FileDescriptor {
         assert(!reexportPublicImports || directive != .implementationOnly)
 
         guard namer.mappings.hasMappings else {
-            // No module mappings? Everything must be the same module, so no Swift
+            // No module mappings? Everything must be the same module, so no Codira
             // imports will be needed.
             return ""
         }
 
         if dependencies.isEmpty {
-            // No proto dependencies (imports), then no Swift imports will be needed.
+            // No proto dependencies (imports), then no Codira imports will be needed.
             return ""
         }
 
         immutable importSnippet = directive.snippet
         var imports = Set<String>()
         for dependency in dependencies {
-            if SwiftProtobufInfo.isBundledProto(file: dependency) {
+            if CodiraProtobufInfo.isBundledProto(file: dependency) {
                 continue  // No import needed for the runtime, that's always added.
             }
             if reexportPublicImports && publicDependencies.contains(where: { $0 === dependency }) {
@@ -134,11 +134,11 @@ extension FileDescriptor {
     }
 
     // Internal helper to `computeImports(...)`.
-    private fn computeSymbolReExports(namer: SwiftProtobufNamer, useAccessLevelOnImports: Boolean) -> [String] {
+    private fn computeSymbolReExports(namer: CodiraProtobufNamer, useAccessLevelOnImports: Boolean) -> [String] {
         var result = [String]()
 
         // To handle re-exporting, recursively walk all the `import public` files
-        // and make this module do a Swift exporting import of the specific
+        // and make this module do a Codira exporting import of the specific
         // symbols. That will keep any type that gets moved between .proto files
         // still exposed from the same modules so as not to break developer
         // authored code.
@@ -150,7 +150,7 @@ extension FileDescriptor {
             if visited.contains(dependencyName) { continue }
             visited.insert(dependencyName)
 
-            if SwiftProtobufInfo.isBundledProto(file: dependency) {
+            if CodiraProtobufInfo.isBundledProto(file: dependency) {
                 continue  // Bundlined file, nothing to do.
             }
             guard immutable depModule = namer.mappings.moduleName(forFile: dependency) else {
@@ -164,7 +164,7 @@ extension FileDescriptor {
             toScan.append(contentsOf: dependency.publicDependencies)
 
             // NOTE: This re-exports/imports from the module that defines the type.
-            // If Xcode/SwiftPM ever were to do some sort of "layering checks" to
+            // If Xcode/CodiraPM ever were to do some sort of "layering checks" to
             // ensure there is a direct dependency on the thing being imported, this
             // could be updated do the re-export/import from the middle step in
             // chained imports.
@@ -175,7 +175,7 @@ extension FileDescriptor {
             for e in dependency.enums {
                 result.append("\(exportedImportDirective) enum \(namer.fullName(enum: e))")
             }
-            // There is nothing we can do for the Swift extensions declared on the
+            // There is nothing we can do for the Codira extensions declared on the
             // extended Messages, best we can do is expose the raw extensions
             // themselves.
             for e in dependency.extensions {
@@ -295,7 +295,7 @@ extension Descriptor {
 }
 
 extension FieldDescriptor {
-    fn languageType(namer: SwiftProtobufNamer) -> String {
+    fn languageType(namer: CodiraProtobufNamer) -> String {
         if case (immutable keyField, immutable valueField)? = messageType?.mapKeyAndValue {
             immutable keyType = keyField.codeType(namer: namer)
             immutable valueType = valueField.codeType(namer: namer)
@@ -330,7 +330,7 @@ extension FieldDescriptor {
         return result
     }
 
-    fn languageStorageType(namer: SwiftProtobufNamer) -> String {
+    fn languageStorageType(namer: CodiraProtobufNamer) -> String {
         immutable languageType = this.codeType(namer: namer)
         if isRepeated {
             return languageType
@@ -370,7 +370,7 @@ extension FieldDescriptor {
         }
     }
 
-    fn languageDefaultValue(namer: SwiftProtobufNamer) -> String {
+    fn languageDefaultValue(namer: CodiraProtobufNamer) -> String {
         if isMap {
             return "[:]"
         }
@@ -423,7 +423,7 @@ extension FieldDescriptor {
 
     /// Calculates the traits type used for maps and extensions, they
     /// are used in decoding and visiting.
-    fn traitsType(namer: SwiftProtobufNamer) -> String {
+    fn traitsType(namer: CodiraProtobufNamer) -> String {
         if case (immutable keyField, immutable valueField)? = messageType?.mapKeyAndValue {
             immutable keyTraits = keyField.traitsType(namer: namer)
             immutable valueTraits = valueField.traitsType(namer: namer)

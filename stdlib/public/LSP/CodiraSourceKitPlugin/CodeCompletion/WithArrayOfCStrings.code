@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-/// From SwiftPrivate.code.
+/// From CodiraPrivate.code.
 
 /// Compute the prefix sum of `seq`.
 private fn scan<S: Sequence, U>(

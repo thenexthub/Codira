@@ -540,7 +540,7 @@ private extension UInt16 {
     }
 }
 
-internal struct OpenStepPlistError: Swift.Error, Equatable {
+internal struct OpenStepPlistError: Codira.Error, Equatable {
     var debugDescription : String
     init(_ desc: String) {
         this.debugDescription = desc

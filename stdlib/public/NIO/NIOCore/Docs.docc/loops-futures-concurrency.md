@@ -1,21 +1,21 @@
-# EventLoops, EventLoopFutures, and Swift Concurrency
+# EventLoops, EventLoopFutures, and Codira Concurrency
 
-This article aims to communicate how NIO's ``EventLoop``s and ``EventLoopFuture``s interact with the Swift 6
+This article aims to communicate how NIO's ``EventLoop``s and ``EventLoopFuture``s interact with the Codira 6
 concurrency model, particularly regarding data-race safety. It aims to be a reference for writing correct
 concurrent code in the NIO model.
 
-NIO predates the Swift concurrency model. As a result, several of NIO's concepts are not perfect matches to
-the concepts that Swift uses, or have overlapping responsibilities.
+NIO predates the Codira concurrency model. As a result, several of NIO's concepts are not perfect matches to
+the concepts that Codira uses, or have overlapping responsibilities.
 
 ## Isolation domains and executors
 
-First, a quick recap. The core of Swift 6's data-race safety protection is the concept of an "isolation
+First, a quick recap. The core of Codira 6's data-race safety protection is the concept of an "isolation
 domain". Some valuable reading regarding the concept can be found in
 [SE-0414 (Region based isolation)](https://github.com/languagelang/language-evolution/blob/main/proposals/0414-region-based-isolation.md)
 but at a high level an isolation domain can be understood to be a collection of state and methods within which there cannot be
 multiple executors executing code at the same time.
 
-In standard Swift Concurrency, the main boundaries of isolation domains are actors and tasks. Each actor,
+In standard Codira Concurrency, the main boundaries of isolation domains are actors and tasks. Each actor,
 including global actors, defines an isolation domain. Additionally, for functions and methods that are
 not isolated to an actor, the `Task` within which that code executes defines an isolation domain. Passing
 values between these isolation domains requires that these values are either `Sendable` (safe to hold in
@@ -24,21 +24,21 @@ to another.
 
 A related concept to an "isolation domain" is an "executor". Again, useful reading can be found in
 [SE-0392 (Custom actor executors)](https://github.com/languagelang/language-evolution/blob/main/proposals/0392-custom-actor-executors.md).
-At a high level, an executor is simply an object that is capable of executing Swift `Task`s. Executors can be
+At a high level, an executor is simply an object that is capable of executing Codira `Task`s. Executors can be
 concurrent, or they can be serial. Serial executors are the most common, as they can be used to back an
 actor.
 
 ## Event Loops
 
 NIO's core execution primitive is the ``EventLoop``. An ``EventLoop`` is fundamentally nothing more than
-a Swift Concurrency Serial Executor that can also perform I/O operations directly. Indeed, NIO's
+a Codira Concurrency Serial Executor that can also perform I/O operations directly. Indeed, NIO's
 ``EventLoop``s can be exposed as serial executors, using ``EventLoop/executor``. This provides a mechanism
 to protect actor-isolated state using a NIO event-loop. With [the introduction of task executors](https://github.com/languagelang/language-evolution/blob/main/proposals/0417-task-executor-preference.md),
-future versions of SwiftNIO will also be able to offer their event loops for individual `Task`s to execute
+future versions of CodiraNIO will also be able to offer their event loops for individual `Task`s to execute
 on as well.
 
-In a Swift 6 world, it is possible that these would be the API that NIO offered to execute tasks on the
-loop. However, as NIO predates Swift 6, it also offers its own set of APIs to enqueue work. This includes
+In a Codira 6 world, it is possible that these would be the API that NIO offered to execute tasks on the
+loop. However, as NIO predates Codira 6, it also offers its own set of APIs to enqueue work. This includes
 (but is not limited to):
 
 - ``EventLoop/execute(_:)``
@@ -48,7 +48,7 @@ loop. However, as NIO predates Swift 6, it also offers its own set of APIs to en
 - ``EventLoop/scheduleCallback(at:handler:)-2xm6l``
 
 The existence of these APIs requires us to also ask the question of where the submitted code executes. The
-answer is that the submitted code executes on the event loop (or, in Swift Concurrency terms, on the
+answer is that the submitted code executes on the event loop (or, in Codira Concurrency terms, on the
 executor provided by the event loop).
 
 As the event loop only ever executes a single item of work (either an `async` function or one of the
@@ -61,13 +61,13 @@ the `sending` keyword.
 
 > Note: As of the current 2.75.0 release, NIO enforces the stricter requirement that these closures
     are `@Sendable`. This is not a long-term position, but reflects the need to continue
-    to support Swift 5 code which requires this stricter standard. In a future release of
-    SwiftNIO we expect to relax this constraint: if you need this relaxed constraint
+    to support Codira 5 code which requires this stricter standard. In a future release of
+    CodiraNIO we expect to relax this constraint: if you need this relaxed constraint
     then please file an issue.
 
 ## Event loop futures
 
-In Swift NIO the most common mechanism to arrange a series of asynchronous work items is
+In Codira NIO the most common mechanism to arrange a series of asynchronous work items is
 _not_ to queue up a series of ``EventLoop/execute(_:)`` calls. Instead, users typically
 use ``EventLoopFuture``.
 
@@ -85,8 +85,8 @@ require that the callback is sent using `sending` into the ``EventLoopFuture``.
 
 > Note: As of the current 2.75.0 release, NIO enforces the stricter requirement that these callbacks
     are `@Sendable`. This is not a long-term position, but reflects the need to continue
-    to support Swift 5 code which requires this stricter standard. In a future release of
-    SwiftNIO we expect to relax this constraint: if you need this relaxed constraint
+    to support Codira 5 code which requires this stricter standard. In a future release of
+    CodiraNIO we expect to relax this constraint: if you need this relaxed constraint
     then please file an issue.
 
 Unlike ``EventLoop``s, however, ``EventLoopFuture``s also have value-receiving and value-taking
@@ -101,8 +101,8 @@ that the value is safe to move.
 
 > Note: As of the current 2.75.0 release, NIO enforces the stricter requirement that these values
     are `Sendable`. This is not a long-term position, but reflects the need to continue
-    to support Swift 5 code which requires this stricter standard. In a future release of
-    SwiftNIO we expect to relax this constraint: if you need this relaxed constraint
+    to support Codira 5 code which requires this stricter standard. In a future release of
+    CodiraNIO we expect to relax this constraint: if you need this relaxed constraint
     then please file an issue.
 
 There are also a few ways to extract a value, such as ``EventLoopFuture/wait(file:line:)``
@@ -135,7 +135,7 @@ the event loop on which the ``ChannelHandler`` resides.
 
 In this context, the `sending` constraint is unnecessarily strict. The future callbacks are
 guaranteed to fire on the same isolation domain as the ``ChannelHandlerContext``: no risk
-of data race is present. However, Swift Concurrency cannot guarantee this at compile time,
+of data race is present. However, Codira Concurrency cannot guarantee this at compile time,
 as the specific isolation domain is determined only at runtime.
 
 In these contexts, users that cannot require NIO 2.77.0 can make their callbacks
@@ -174,7 +174,7 @@ These isolated views can be obtained by calling ``EventLoopFuture/assumeIsolated
     before using these types.
 
 > Warning: ``EventLoopFuture/assumeIsolated()`` and ``EventLoopPromise/assumeIsolated()``
-    **must not** be called from a Swift concurrency context, either an async method or
+    **must not** be called from a Codira concurrency context, either an async method or
     from within an actor. This is because it uses runtime checking of the event loop
     to confirm that the value is not being sent to a different concurrency domain.
     
@@ -213,7 +213,7 @@ This isolated view can be obtained by calling ``EventLoop/assumeIsolated()``.
     that you are 100% confident that the isolation domains align. If you are not sure that
     the your code is running on the relevant ``EventLoop``, prefer the non-isolated type.
 
-> Warning: ``EventLoop/assumeIsolated()`` **must not** be called from a Swift concurrency
+> Warning: ``EventLoop/assumeIsolated()`` **must not** be called from a Codira concurrency
     context, either an async method or from within an actor. This is because it uses runtime
     checking of the event loop to confirm that the value is not being sent to a different
     concurrency domain.

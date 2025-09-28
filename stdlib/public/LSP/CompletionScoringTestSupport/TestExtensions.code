@@ -15,7 +15,7 @@
 
 package import CompletionScoring
 import Foundation
-import SwiftExtensions
+import CodiraExtensions
 import XCTest
 
 @inline(never)

@@ -1,19 +1,19 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift.org project authors
+// Copyright (c) 2025 Apple Inc. and the Codira.org project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of Swift.org project authors
+// See CONTRIBUTORS.txt for the list of Codira.org project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftSyntax
-import SwiftSyntaxBuilder
+import CodiraSyntax
+import CodiraSyntaxBuilder
 
 /// Describes the transformation needed to take the parameters of a thunk
 /// and map them to the corresponding parameter (or result value) of the
@@ -27,30 +27,30 @@ enum ConversionStep: Equatable {
   indirect case explodedComponent(ConversionStep, component: String)
 
   /// Cast the pointer described by the lowering step to the given
-  /// Swift type using `unsafeBitCast(_:to:)`.
-  indirect case unsafeCastPointer(ConversionStep, languageType: SwiftType)
+  /// Codira type using `unsafeBitCast(_:to:)`.
+  indirect case unsafeCastPointer(ConversionStep, languageType: CodiraType)
 
   /// Assume at the untyped pointer described by the lowering step to the
   /// given type, using `assumingMemoryBound(to:).`
-  indirect case typedPointer(ConversionStep, languageType: SwiftType)
+  indirect case typedPointer(ConversionStep, languageType: CodiraType)
 
   /// The thing to which the pointer typed, which is the `pointee` property
-  /// of the `Unsafe(Mutable)Pointer` types in Swift.
+  /// of the `Unsafe(Mutable)Pointer` types in Codira.
   indirect case pointee(ConversionStep)
 
-  /// Initialize a value of the given Swift type with the set of labeled
+  /// Initialize a value of the given Codira type with the set of labeled
   /// arguments.
-  case initialize(SwiftType, arguments: [LabeledArgument<ConversionStep>])
+  case initialize(CodiraType, arguments: [LabeledArgument<ConversionStep>])
 
   /// Produce a tuple with the given elements.
   ///
-  /// This is used for exploding Swift tuple arguments into multiple
+  /// This is used for exploding Codira tuple arguments into multiple
   /// elements, recursively. Note that this always produces unlabeled
-  /// tuples, which Swift will convert to the labeled tuple form.
+  /// tuples, which Codira will convert to the labeled tuple form.
   case tuplify([ConversionStep])
 
   /// Initialize mutable raw pointer with a typed value.
-  indirect case populatePointer(name: String, assumingType: SwiftType? = Nothing, to: ConversionStep)
+  indirect case populatePointer(name: String, assumingType: CodiraType? = Nothing, to: ConversionStep)
 
   /// Perform multiple conversions for each tuple input elements, but discard the result.
   case tupleExplode([ConversionStep], name: String?)

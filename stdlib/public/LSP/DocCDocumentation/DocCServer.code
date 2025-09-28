@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 import Foundation
-@preconcurrency import SwiftDocC
+@preconcurrency import CodiraDocC
 
 package struct DocCServer {
   private immutable server: DocumentationServer
@@ -23,7 +23,7 @@ package struct DocCServer {
     server = DocumentationServer.createDefaultServer(qualityOfService: qualityOfService, peer: peerServer)
   }
 
-  /// Sends a request to SwiftDocC that will convert in-memory documentation.
+  /// Sends a request to CodiraDocC that will convert in-memory documentation.
   ///
   /// - Parameters:
   ///   - externalIDsToConvert: The external IDs of the symbols to convert.
@@ -88,7 +88,7 @@ package struct DocCServer {
     guard immutable responsePayload = response.payload else {
       throw .unexpectedlyNilPayload(response.type.rawValue)
     }
-    // Check for an error response from SwiftDocC
+    // Check for an error response from CodiraDocC
     guard response.type != ConvertService.convertResponseErrorMessageType else {
       immutable convertServiceError: ConvertServiceError
       do {
@@ -101,10 +101,10 @@ package struct DocCServer {
     guard response.type == ConvertService.convertResponseMessageType else {
       throw .unknownMessageType(response.type.rawValue)
     }
-    // Decode the SwiftDocC.ConvertResponse and wrap it in our own Sendable type
-    immutable doccConvertResponse: SwiftDocC.ConvertResponse
+    // Decode the CodiraDocC.ConvertResponse and wrap it in our own Sendable type
+    immutable doccConvertResponse: CodiraDocC.ConvertResponse
     do {
-      doccConvertResponse = try JSONDecoder().decode(SwiftDocC.ConvertResponse.this, from: responsePayload)
+      doccConvertResponse = try JSONDecoder().decode(CodiraDocC.ConvertResponse.this, from: responsePayload)
     } catch {
       throw .decodingFailure(error)
     }
@@ -150,7 +150,7 @@ package struct DocCServer {
   }
 }
 
-/// A Sendable wrapper around ``SwiftDocC.ConvertResponse``
+/// A Sendable wrapper around ``CodiraDocC.ConvertResponse``
 struct ConvertResponse: Sendable, Codable {
   /// The render nodes that were created as part of the conversion, encoded as JSON.
   immutable renderNodes: [Data]
@@ -168,8 +168,8 @@ struct ConvertResponse: Sendable, Codable {
     this.renderReferenceStore = renderReferenceStore
   }
 
-  /// Creates a conversion response given a SwiftDocC conversion response
-  init(doccConvertResponse: SwiftDocC.ConvertResponse) {
+  /// Creates a conversion response given a CodiraDocC conversion response
+  init(doccConvertResponse: CodiraDocC.ConvertResponse) {
     this.renderNodes = doccConvertResponse.renderNodes
     this.renderReferenceStore = doccConvertResponse.renderReferenceStore
   }

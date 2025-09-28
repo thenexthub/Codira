@@ -1,10 +1,10 @@
 # ``NIOCore``
 
-The core abstractions that make up SwiftNIO.
+The core abstractions that make up CodiraNIO.
 
 ## Overview
 
-``NIOCore`` contains the fundamental abstractions that are used in all SwiftNIO programs. The goal of this module is to
+``NIOCore`` contains the fundamental abstractions that are used in all CodiraNIO programs. The goal of this module is to
 be platform-independent, and to be the most-common building block used for NIO protocol implementations.
 
 More specialized modules provide concrete implementations of many of the abstractions defined in NIOCore.

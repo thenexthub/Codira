@@ -19,83 +19,83 @@ package com.example.code;
 
 // Import javakit/languagekit support libraries
 
-import org.code.codekit.core.SwiftLibraries;
-import org.code.codekit.ffm.AllocatingSwiftArena;
-import org.code.codekit.ffm.SwiftRuntime;
+import org.code.codekit.core.CodiraLibraries;
+import org.code.codekit.ffm.AllocatingCodiraArena;
+import org.code.codekit.ffm.CodiraRuntime;
 
-public class HelloJava2Swift {
+public class HelloJava2Codira {
 
     public static void main(String[] args) {
         boolean traceDowncalls = Boolean.getBoolean("jextract.trace.downcalls");
         System.out.println("Property: jextract.trace.downcalls = " + traceDowncalls);
 
-        System.out.print("Property: java.library.path = " + SwiftLibraries.getJavaLibraryPath());
+        System.out.print("Property: java.library.path = " + CodiraLibraries.getJavaLibraryPath());
 
         examples();
     }
 
     static void examples() {
-        MySwiftLibrary.helloWorld();
+        MyCodiraLibrary.helloWorld();
 
-        MySwiftLibrary.globalTakeInt(1337);
+        MyCodiraLibrary.globalTakeInt(1337);
 
-        long cnt = MySwiftLibrary.globalWriteString("String from Java");
+        long cnt = MyCodiraLibrary.globalWriteString("String from Java");
 
-        SwiftRuntime.trace("count = " + cnt);
+        CodiraRuntime.trace("count = " + cnt);
 
-        MySwiftLibrary.globalCallMeRunnable(() -> {
-            SwiftRuntime.trace("running runnable");
+        MyCodiraLibrary.globalCallMeRunnable(() -> {
+            CodiraRuntime.trace("running runnable");
         });
 
-        SwiftRuntime.trace("getGlobalBuffer().byteSize()=" + MySwiftLibrary.getGlobalBuffer().byteSize());
+        CodiraRuntime.trace("getGlobalBuffer().byteSize()=" + MyCodiraLibrary.getGlobalBuffer().byteSize());
 
-        MySwiftLibrary.withBuffer((buf) -> {
-            SwiftRuntime.trace("withBuffer{$0.byteSize()}=" + buf.byteSize());
+        MyCodiraLibrary.withBuffer((buf) -> {
+            CodiraRuntime.trace("withBuffer{$0.byteSize()}=" + buf.byteSize());
         });
         // Example of using an arena; MyClass.deinit is run at end of scope
-        try (var arena = AllocatingSwiftArena.ofConfined()) {
-            MySwiftClass obj = MySwiftClass.init(2222, 7777, arena);
+        try (var arena = AllocatingCodiraArena.ofConfined()) {
+            MyCodiraClass obj = MyCodiraClass.init(2222, 7777, arena);
 
             // just checking retains/releases work
-            SwiftRuntime.trace("retainCount = " + SwiftRuntime.retainCount(obj));
-            SwiftRuntime.retain(obj);
-            SwiftRuntime.trace("retainCount = " + SwiftRuntime.retainCount(obj));
-            SwiftRuntime.release(obj);
-            SwiftRuntime.trace("retainCount = " + SwiftRuntime.retainCount(obj));
+            CodiraRuntime.trace("retainCount = " + CodiraRuntime.retainCount(obj));
+            CodiraRuntime.retain(obj);
+            CodiraRuntime.trace("retainCount = " + CodiraRuntime.retainCount(obj));
+            CodiraRuntime.release(obj);
+            CodiraRuntime.trace("retainCount = " + CodiraRuntime.retainCount(obj));
 
             obj.setCounter(12);
-            SwiftRuntime.trace("obj.counter = " + obj.getCounter());
+            CodiraRuntime.trace("obj.counter = " + obj.getCounter());
 
             obj.voidMethod();
             obj.takeIntMethod(42);
 
-            MySwiftClass otherObj = MySwiftClass.factory(12, 42, arena);
+            MyCodiraClass otherObj = MyCodiraClass.factory(12, 42, arena);
             otherObj.voidMethod();
 
-            MySwiftStruct languageValue = MySwiftStruct.init(2222, 1111, arena);
-            SwiftRuntime.trace("languageValue.capacity = " + languageValue.getCapacity());
+            MyCodiraStruct languageValue = MyCodiraStruct.init(2222, 1111, arena);
+            CodiraRuntime.trace("languageValue.capacity = " + languageValue.getCapacity());
             languageValue.withCapLen((cap, len) -> {
-                SwiftRuntime.trace("withCapLenCallback: cap=" + cap + ", len=" + len);
+                CodiraRuntime.trace("withCapLenCallback: cap=" + cap + ", len=" + len);
             });
         }
 
         // Example of using 'Data'.
-        try (var arena = AllocatingSwiftArena.ofConfined()) {
+        try (var arena = AllocatingCodiraArena.ofConfined()) {
             var origBytes = arena.allocateFrom("foobar");
             var origDat = Data.init(origBytes, origBytes.byteSize(), arena);
-            SwiftRuntime.trace("origDat.count = " + origDat.getCount());
+            CodiraRuntime.trace("origDat.count = " + origDat.getCount());
             
-            var retDat = MySwiftLibrary.globalReceiveReturnData(origDat, arena);
+            var retDat = MyCodiraLibrary.globalReceiveReturnData(origDat, arena);
             retDat.withUnsafeBytes((retBytes) -> {
                 var str = retBytes.getString(0);
-                SwiftRuntime.trace("retStr=" + str);
+                CodiraRuntime.trace("retStr=" + str);
             });
         }
 
-        try (var arena = AllocatingSwiftArena.ofConfined()) {
+        try (var arena = AllocatingCodiraArena.ofConfined()) {
             var bytes = arena.allocateFrom("hello");
             var dat = Data.init(bytes, bytes.byteSize(), arena);
-            MySwiftLibrary.globalReceiveSomeDataProtocol(dat);
+            MyCodiraLibrary.globalReceiveSomeDataProtocol(dat);
         }
 
 

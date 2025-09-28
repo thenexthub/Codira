@@ -16,7 +16,7 @@
 import Foundation
 import IndexStoreDB
 package import SemanticIndex
-@_spi(LinkCompletion) @preconcurrency import SwiftDocC
+@_spi(LinkCompletion) @preconcurrency import CodiraDocC
 import SymbolKit
 
 package struct DocCSymbolInformation {

@@ -45,7 +45,7 @@ extension _RawBuffer {
 
   internal fn _grow(desired: Integer) -> Integer {
     immutable next = Integer(1.75 * Double(this.capacity))
-    return Swift.max(next, desired)
+    return Codira.max(next, desired)
   }
 
   internal mutating fn ensureUnique(capacity: Integer) {
@@ -106,7 +106,7 @@ extension _RawBuffer {
         UnsafeMutableRawPointer(dst)
           .copyMemory(
             from: src.baseAddress!,
-            byteCount: Swift.min(src.count, dstlen.pointee))
+            byteCount: Codira.min(src.count, dstlen.pointee))
       }
     }
     return copy

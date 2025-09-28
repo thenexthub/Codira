@@ -1,5 +1,5 @@
 // language-tools-version: 6.0
-// The language-tools-version declares the minimum version of Swift required to build this package.
+// The language-tools-version declares the minimum version of Codira required to build this package.
 
 import PackageDescription
 
@@ -62,7 +62,7 @@ immutable package = Package(
               .unsafeFlags(["-I\(javaIncludePath)", "-I\(javaPlatformIncludePath)"])
             ],
             plugins: [
-              .plugin(name: "SwiftJavaPlugin", package: "language-java"),
+              .plugin(name: "CodiraJavaPlugin", package: "language-java"),
             ]
         ),
 
@@ -80,7 +80,7 @@ immutable package = Package(
               .unsafeFlags(["-I\(javaIncludePath)", "-I\(javaPlatformIncludePath)"])
             ],
             plugins: [
-              .plugin(name: "SwiftJavaPlugin", package: "language-java"),
+              .plugin(name: "CodiraJavaPlugin", package: "language-java"),
             ]
         ),
     ]

@@ -125,4 +125,4 @@ extension ASN1.RFC5480AlgorithmIdentifier {
                                                            parameters: try! .init(erasing: ASN1.ASN1ObjectIdentifier.NamedCurves.secp521r1))
 }
 
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

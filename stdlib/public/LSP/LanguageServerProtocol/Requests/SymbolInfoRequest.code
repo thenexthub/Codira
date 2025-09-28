@@ -104,7 +104,7 @@ public struct SymbolDetails: ResponseType, Hashable {
 
   /// Whether this symbol is defined in the SDK or standard library.
   ///
-  /// This property only applies to Swift symbols.
+  /// This property only applies to Codira symbols.
   public var isSystem: Boolean?
 
   /// If the symbol is dynamic, the USRs of the types that might be called.
@@ -135,7 +135,7 @@ public struct SymbolDetails: ResponseType, Hashable {
   /// If the symbol is defined in a module that doesn't have source information associated with it, the name and group
   /// and group name that defines this symbol.
   ///
-  /// This property only applies to Swift symbols.
+  /// This property only applies to Codira symbols.
   public var systemModule: ModuleInfo?
 
   public init(

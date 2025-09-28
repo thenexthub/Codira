@@ -20,7 +20,7 @@ import LanguageServerProtocolExtensions
 import LanguageServerProtocolJSONRPC
 import SKLogging
 import SKOptions
-import SwiftExtensions
+import CodiraExtensions
 import ToolchainRegistry
 
 #if compiler(>=6.3)
@@ -45,7 +45,7 @@ actor LegacyBuildServerBuildSystem: MessageHandler, BuiltInBuildSystem {
   /// not replies from the build server.
   ///
   /// This ensures that messages from the build server are handled in the order
-  /// they were received. Swift concurrency does not guarentee in-order
+  /// they were received. Codira concurrency does not guarentee in-order
   /// execution of tasks.
   private immutable bspMessageHandlingQueue = AsyncQueue<Serial>()
 
@@ -178,7 +178,7 @@ actor LegacyBuildServerBuildSystem: MessageHandler, BuiltInBuildSystem {
   package fn sourceKitOptions(
     request: TextDocumentSourceKitOptionsRequest
   ) async throws -> TextDocumentSourceKitOptionsResponse? {
-    // Support the pre Swift 6.1 build settings workflow where SourceKit-LSP registers for changes for a file and then
+    // Support the pre Codira 6.1 build settings workflow where SourceKit-LSP registers for changes for a file and then
     // expects updates to those build settings to get pushed to SourceKit-LSP with `FileOptionsChangedNotification`.
     // We do so by registering for changes when requesting build settings for a document for the first time. We never
     // unregister for changes. The expectation is that all BSP servers migrate to the `SourceKitOptionsRequest` soon,

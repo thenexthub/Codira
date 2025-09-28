@@ -84,7 +84,7 @@ extension PredicateExpressions {
     > : PredicateExpression
     where
         Wrapped.Output : Collection,
-        Range.Output == Swift.Range<Wrapped.Output.Index>
+        Range.Output == Codira.Range<Wrapped.Output.Index>
     {
         public typealias Output = Wrapped.Output.SubSequence
         

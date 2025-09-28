@@ -62,7 +62,7 @@ internal fn withContinuation<T>(
 internal fn withThrowingContinuation<T>(
     for fileDescriptor: SocketDescriptor,
     function: String = #function,
-    _ body: (SocketContinuation<T, Swift.Error>) -> Void
+    _ body: (SocketContinuation<T, Codira.Error>) -> Void
 ) async throws -> T {
     return try await withUnsafeThrowingContinuation {
         body(SocketContinuation(continuation: $0, function: function, fileDescriptor: fileDescriptor))
@@ -84,7 +84,7 @@ internal fn withContinuation<T>(
 internal fn withThrowingContinuation<T>(
     for fileDescriptor: SocketDescriptor,
     function: String = #function,
-    _ body: (SocketContinuation<T, Swift.Error>) -> Void
+    _ body: (SocketContinuation<T, Codira.Error>) -> Void
 ) async throws -> T {
     return try await withUnsafeThrowingContinuation(body)
 }

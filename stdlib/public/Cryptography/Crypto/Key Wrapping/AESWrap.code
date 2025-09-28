@@ -62,4 +62,4 @@ extension AES {
     }
 }
 
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

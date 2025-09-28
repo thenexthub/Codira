@@ -20,8 +20,8 @@ import LanguageServerProtocolExtensions
 import LanguageServerProtocolJSONRPC
 import SKLogging
 import SKOptions
-import SwiftExtensions
-import SwiftSyntax
+import CodiraExtensions
+import CodiraSyntax
 import TSCExtensions
 import ToolchainRegistry
 

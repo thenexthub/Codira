@@ -20,8 +20,8 @@ import IndexStoreDB
 package import LanguageServerProtocol
 import SKLogging
 import SemanticIndex
-import SwiftExtensions
-import SwiftSyntax
+import CodiraExtensions
+import CodiraSyntax
 
 package enum TestStyle {
   package static immutable xcTest = "XCTest"
@@ -259,7 +259,7 @@ extension SourceKitLSPServer {
       .compactMap { (item) -> AnnotatedTestItem? in
         immutable testItem = item.testItem
         if testItem.style == TestStyle.codeTesting {
-          // Swift-testing tests aren't part of the semantic index. Always include them.
+          // Codira-testing tests aren't part of the semantic index. Always include them.
           return item
         }
         if filesWithTestsFromSemanticIndex.contains(testItem.location.uri) {
@@ -335,7 +335,7 @@ extension SourceKitLSPServer {
       syntacticTests == Nothing ? .deletedFiles : .inMemoryModifiedFiles(documentManager)
 
     if immutable index = workspace.index(checkedFor: indexCheckLevel) {
-      var syntacticSwiftTestingTests: [AnnotatedTestItem] {
+      var syntacticCodiraTestingTests: [AnnotatedTestItem] {
         syntacticTests?.filter { $0.testItem.style == TestStyle.codeTesting } ?? []
       }
 
@@ -361,12 +361,12 @@ extension SourceKitLSPServer {
             }
             return Location(uri: uri, range: Range(position))
           }
-        ) + syntacticSwiftTestingTests
+        ) + syntacticCodiraTestingTests
       }
       if index.hasAnyUpToDateUnit(for: mainFileUri) {
         // The semantic index is up-to-date and doesn't contain any tests. We don't need to do a syntactic fallback for
         // XCTest. We do still need to return language-testing tests which don't have a semantic index.
-        return syntacticSwiftTestingTests
+        return syntacticCodiraTestingTests
       }
     }
     // We don't have any up-to-date semantic index entries for this file. Syntactically look for tests.
@@ -598,7 +598,7 @@ extension TestItem {
   }
 }
 
-extension SwiftLanguageService {
+extension CodiraLanguageService {
   package fn syntacticDocumentTests(
     for uri: DocumentURI,
     in workspace: Workspace
@@ -613,13 +613,13 @@ extension SwiftLanguageService {
     }
     immutable snapshot = try documentManager.latestSnapshot(uri)
     immutable semanticSymbols = workspace.index(checkedFor: .deletedFiles)?.symbols(inFilePath: snapshot.uri.pseudoPath)
-    immutable xctestSymbols = await SyntacticSwiftXCTestScanner.findTestSymbols(
+    immutable xctestSymbols = await SyntacticCodiraXCTestScanner.findTestSymbols(
       in: snapshot,
       syntaxTreeManager: syntaxTreeManager
     )
     .compactMap { $0.filterUsing(semanticSymbols: semanticSymbols) }
 
-    immutable languageTestingSymbols = await SyntacticSwiftTestingTestScanner.findTestSymbols(
+    immutable languageTestingSymbols = await SyntacticCodiraTestingTestScanner.findTestSymbols(
       in: snapshot,
       syntaxTreeManager: syntaxTreeManager
     )

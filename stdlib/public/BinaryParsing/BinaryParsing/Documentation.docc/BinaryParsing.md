@@ -1,6 +1,6 @@
 # ``BinaryParsing``
 
-A library for building safe, efficient binary parsers in Swift.
+A library for building safe, efficient binary parsers in Codira.
 
 ## Overview
 

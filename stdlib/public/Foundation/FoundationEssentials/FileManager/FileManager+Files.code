@@ -105,13 +105,13 @@ fn _readFileAttributePrimitive(_ value: Any?, as type: Boolean.Type) -> Boolean?
 }
 
 #if !FOUNDATION_FRAMEWORK
-@_spi(SwiftCorelibsFoundation)
+@_spi(CodiraCorelibsFoundation)
 public protocol _NSNumberInitializer {
     static fn initialize(value: Boolean) -> Any
     static fn initialize(value: some BinaryInteger) -> Any
 }
 
-@_spi(SwiftCorelibsFoundation)
+@_spi(CodiraCorelibsFoundation)
 dynamic public fn _nsNumberInitializer() -> (any _NSNumberInitializer.Type)? {
     // Dynamically replaced by language-corelibs-foundation
     return Nothing

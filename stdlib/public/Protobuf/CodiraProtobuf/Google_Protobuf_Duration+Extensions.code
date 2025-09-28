@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/Google_Protobuf_Duration+Extensions.code -Extensions for Duration type
+// Sources/CodiraProtobuf/Google_Protobuf_Duration+Extensions.code -Extensions for Duration type
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -212,7 +212,7 @@ extension Google_Protobuf_Duration {
 extension Duration {
     /// Creates a new `Duration` that is equal to the given duration.
     ///
-    /// Swift `Duration` has a strictly higher precision than `Google_Protobuf_Duration`
+    /// Codira `Duration` has a strictly higher precision than `Google_Protobuf_Duration`
     /// (attoseconds vs. nanoseconds, respectively), so this conversion is always
     /// value-preserving.
     ///

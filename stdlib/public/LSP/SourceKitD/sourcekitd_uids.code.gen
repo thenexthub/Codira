@@ -36,7 +36,7 @@
     return name[:word_index].lower() + name[word_index:]
 
   ADDITIONAL_KEYS = [
-    # Maintained from translateCodeCompletionOptions in SwiftCompletion.cpp#
+    # Maintained from translateCodeCompletionOptions in CodiraCompletion.cpp#
     KEY('SortByName', 'key.codecomplete.sort.byname'),
     KEY('UseImportDepth', 'key.codecomplete.sort.useimportdepth'),
     KEY('GroupOverloads', 'key.codecomplete.group.overloads'),
@@ -86,7 +86,7 @@
     KEY('UsedScoreComponents', 'key.codecomplete.setpopularapi_used_score_components'),
 
 
-    # Maintained from applyFormatOptions in SwiftEditor.cpp
+    # Maintained from applyFormatOptions in CodiraEditor.cpp
     KEY('UseTabs', 'key.editor.format.usetabs'),
     KEY('IndentWidth', 'key.editor.format.indentwidth'),
     KEY('TabWidth', 'key.editor.format.tabwidth'),
@@ -100,11 +100,11 @@
 
   # We should automatically generate these.
   ADDITIONAL_VALUES = [
-    # Maintained from SwiftToSourceKitCompletionAdapter::handleResult in SwiftCompletion.cpp
+    # Maintained from CodiraToSourceKitCompletionAdapter::handleResult in CodiraCompletion.cpp
     KIND('CompletionKindKeyword', 'source.lang.code.keyword'),
     KIND('CompletionKindPattern', 'source.lang.code.pattern'),
 
-    # Maintained from SwiftEditor.cpp
+    # Maintained from CodiraEditor.cpp
     KIND('SemaDiagStage', 'source.diagnostic.stage.code.sema'),
     KIND('ParseDiagStage', 'source.diagnostic.stage.code.parse'),
 

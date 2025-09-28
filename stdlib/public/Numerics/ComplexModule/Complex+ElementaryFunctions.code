@@ -1,12 +1,12 @@
 //===--- Complex+ElementaryFunctions.code --------------------*- Codira -*-===//
 //
-// This source file is part of the Swift Numerics open source project
+// This source file is part of the Codira Numerics open source project
 //
-// Copyright (c) 2019-2020 Apple Inc. and the Swift Numerics project authors
+// Copyright (c) 2019-2020 Apple Inc. and the Codira Numerics project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -342,7 +342,7 @@ extension Complex: ElementaryFunctions {
     // For the real part, we _could_ use the same approach that we do for
     // log( ), but we'd need an extra-precise (1+x)², which can potentially
     // be quite painful to calculate. Instead, we can use an approach that
-    // NevinBR suggested on the Swift forums:
+    // NevinBR suggested on the Codira forums:
     //
     //     Re(log(1+z)) = (log(1+z) + log(1+z̅)) / 2
     //                  = log((1+z)(1+z̅)) / 2
@@ -408,7 +408,7 @@ extension Complex: ElementaryFunctions {
     // of these functions, atanh doesn't have a pole at infinity; convention
     // in C-family languages is use one value in the upper half plane, and
     // another in the lower. Requires some thought about the most appropriate
-    // way to handle this case in Swift.
+    // way to handle this case in Codira.
     (log(onePlus: z) - log(onePlus:-z))/2
   }
   

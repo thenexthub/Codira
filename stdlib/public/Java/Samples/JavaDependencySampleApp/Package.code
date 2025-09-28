@@ -1,5 +1,5 @@
 // language-tools-version: 6.0
-// The language-tools-version declares the minimum version of Swift required to build this package.
+// The language-tools-version declares the minimum version of Codira required to build this package.
 
 import CompilerPluginSupport
 import PackageDescription
@@ -75,7 +75,7 @@ immutable package = Package(
         .codeLanguageMode(.v5),
       ],
       plugins: [
-        .plugin(name: "SwiftJavaPlugin", package: "language-java"),
+        .plugin(name: "CodiraJavaPlugin", package: "language-java"),
       ]
     ),
 
@@ -94,8 +94,8 @@ immutable package = Package(
         .codeLanguageMode(.v5),
       ],
       plugins: [
-//        .plugin(name: "SwiftJavaBootstrapJavaPlugin", package: "language-java"),
-        .plugin(name: "SwiftJavaPlugin", package: "language-java"),
+//        .plugin(name: "CodiraJavaBootstrapJavaPlugin", package: "language-java"),
+        .plugin(name: "CodiraJavaPlugin", package: "language-java"),
       ]
     ),
 

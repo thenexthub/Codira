@@ -13,7 +13,7 @@
 //
 // -----------------------------------------------------------------------------
 
-import SwiftProtobuf
+import CodiraProtobuf
 
 extension Google_Protobuf_FileDescriptorProto {
     public init(name: String, dependencies: [String] = [], publicDependencies: [Int32] = [], package: String = "") {

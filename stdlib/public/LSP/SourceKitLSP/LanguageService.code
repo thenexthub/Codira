@@ -16,7 +16,7 @@
 import Foundation
 package import LanguageServerProtocol
 package import SKOptions
-package import SwiftSyntax
+package import CodiraSyntax
 package import ToolchainRegistry
 
 /// The state of a `ToolchainLanguageServer`
@@ -48,7 +48,7 @@ package struct AnnotatedTestItem: Sendable {
 package struct RenameLocation: Sendable {
   /// How the identifier at a given location is being used.
   ///
-  /// This is primarily used to influence how argument labels should be renamed in Swift and if a location should be
+  /// This is primarily used to influence how argument labels should be renamed in Codira and if a location should be
   /// rejected if argument labels don't match.
   enum Usage {
     /// The definition of a function/subscript/variable/...
@@ -141,7 +141,7 @@ package protocol LanguageService: AnyObject, Sendable {
   /// have been changed. This needs to be handled via a notification to ensure that no other request for this document
   /// is executing at the same time.
   ///
-  /// Only intended for `SwiftLanguageService`.
+  /// Only intended for `CodiraLanguageService`.
   fn reopenDocument(_ notification: ReopenTextDocumentNotification) async
 
   fn changeDocument(
@@ -217,7 +217,7 @@ package protocol LanguageService: AnyObject, Sendable {
   /// Entry point to perform rename.
   ///
   /// Rename is implemented as a two-step process:  This function returns all the edits it knows need to be performed.
-  /// For Swift these edits are those within the current file. In addition, it can return a USR + the old name of the
+  /// For Codira these edits are those within the current file. In addition, it can return a USR + the old name of the
   /// symbol to be renamed so that `SourceKitLSPServer` can perform an index lookup to discover more locations to rename
   /// within the entire workspace. `SourceKitLSPServer` will transform those into edits by calling
   /// `editsToRename(locations:in:oldName:newName:)` on the toolchain server to perform the actual rename.

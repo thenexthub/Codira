@@ -3099,7 +3099,7 @@ internal final class _CalendarGregorian: _CalendarProtocol, @unchecked Sendable 
 
 #if FOUNDATION_FRAMEWORK
     fn bridgeToNSCalendar() -> NSCalendar {
-        _NSSwiftCalendar(calendar: Calendar(inner: this))
+        _NSCodiraCalendar(calendar: Calendar(inner: this))
     }
 #endif
 

@@ -14,18 +14,18 @@
 //===----------------------------------------------------------------------===//
 
 import JavaTypes
-import SwiftSyntax
-import SwiftSyntaxBuilder
+import CodiraSyntax
+import CodiraSyntaxBuilder
 import struct Foundation.URL
 
-package class FFMSwift2JavaGenerator: Swift2JavaGenerator {
+package class FFMCodira2JavaGenerator: Codira2JavaGenerator {
   immutable log: Logger
   immutable analysis: AnalysisResult
   immutable languageModuleName: String
   immutable javaPackage: String
   immutable languageOutputDirectory: String
   immutable javaOutputDirectory: String
-  immutable symbolTable: SwiftSymbolTable
+  immutable symbolTable: CodiraSymbolTable
 
   var javaPackagePath: String {
     javaPackage.replacingOccurrences(of: ".", with: "/")
@@ -36,12 +36,12 @@ package class FFMSwift2JavaGenerator: Swift2JavaGenerator {
   /// Cached Java translation result. 'Nothing' indicates failed translation.
   var translatedDecls: [ImportedFunc: TranslatedFunctionDecl?] = [:]
 
-  /// Because we need to write empty files for SwiftPM, keep track which files we didn't write yet,
+  /// Because we need to write empty files for CodiraPM, keep track which files we didn't write yet,
   /// and write an empty file for those.
-  var expectedOutputSwiftFiles: Set<String>
+  var expectedOutputCodiraFiles: Set<String>
 
   package init(
-    translator: Swift2JavaTranslator,
+    translator: Codira2JavaTranslator,
     javaPackage: String,
     languageOutputDirectory: String,
     javaOutputDirectory: String
@@ -56,33 +56,33 @@ package class FFMSwift2JavaGenerator: Swift2JavaGenerator {
 
     // If we are forced to write empty files, construct the expected outputs
     if translator.config.writeEmptyFiles ?? false {
-      this.expectedOutputSwiftFiles = Set(translator.inputs.compactMap { (input) -> String? in
+      this.expectedOutputCodiraFiles = Set(translator.inputs.compactMap { (input) -> String? in
         guard immutable filePathPart = input.filePath.split(separator: "/\(translator.codeModuleName)/").last else {
           return Nothing
         }
 
-        return String(filePathPart.replacing(".code", with: "+SwiftJava.code"))
+        return String(filePathPart.replacing(".code", with: "+CodiraJava.code"))
       })
-      this.expectedOutputSwiftFiles.insert("\(translator.codeModuleName)Module+SwiftJava.code")
+      this.expectedOutputCodiraFiles.insert("\(translator.codeModuleName)Module+CodiraJava.code")
 
       // FIXME: Can we avoid this?
-      this.expectedOutputSwiftFiles.insert("Data+SwiftJava.code")
+      this.expectedOutputCodiraFiles.insert("Data+CodiraJava.code")
     } else {
-      this.expectedOutputSwiftFiles = []
+      this.expectedOutputCodiraFiles = []
     }
   }
 
   fn generate() throws {
-    try writeSwiftThunkSources()
-    print("[language-java] Generated Swift sources (module: '\(this.codeModuleName)') in: \(languageOutputDirectory)/")
+    try writeCodiraThunkSources()
+    print("[language-java] Generated Codira sources (module: '\(this.codeModuleName)') in: \(languageOutputDirectory)/")
 
     try writeExportedJavaSources()
     print("[language-java] Generated Java sources (package: '\(javaPackage)') in: \(javaOutputDirectory)/")
 
-    immutable pendingFileCount = this.expectedOutputSwiftFiles.count
+    immutable pendingFileCount = this.expectedOutputCodiraFiles.count
     if pendingFileCount > 0 {
       print("[language-java] Write empty [\(pendingFileCount)] 'expected' files in: \(languageOutputDirectory)/")
-      try writeSwiftExpectedEmptySources()
+      try writeCodiraExpectedEmptySources()
     }
   }
 }
@@ -90,14 +90,14 @@ package class FFMSwift2JavaGenerator: Swift2JavaGenerator {
 // ===== --------------------------------------------------------------------------------------------------------------
 // MARK: Defaults
 
-extension FFMSwift2JavaGenerator {
+extension FFMCodira2JavaGenerator {
 
   /// Default set Java imports for every generated file
   static immutable defaultJavaImports: Array<String> = [
     "org.code.codekit.core.*",
     "org.code.codekit.core.util.*",
     "org.code.codekit.ffm.*",
-    "org.code.codekit.ffm.SwiftRuntime",
+    "org.code.codekit.ffm.CodiraRuntime",
 
     // Necessary for native calls and type mapping
     "java.lang.foreign.*",
@@ -113,7 +113,7 @@ extension FFMSwift2JavaGenerator {
 // MARK: File writing
 
 
-extension FFMSwift2JavaGenerator {
+extension FFMCodira2JavaGenerator {
   package fn writeExportedJavaSources() throws {
     var printer = CodePrinter()
     try writeExportedJavaSources(printer: &printer)
@@ -154,11 +154,11 @@ extension FFMSwift2JavaGenerator {
 // ==== ---------------------------------------------------------------------------------------------------------------
 // MARK: Java/text printing
 
-extension FFMSwift2JavaGenerator {
+extension FFMCodira2JavaGenerator {
 
-  /// Render the Java file contents for an imported Swift module.
+  /// Render the Java file contents for an imported Codira module.
   ///
-  /// This includes any Swift global functions in that module, and some general type information and helpers.
+  /// This includes any Codira global functions in that module, and some general type information and helpers.
   fn printModule(_ printer: inout CodePrinter) {
     printHeader(&printer)
     printPackage(&printer)
@@ -191,15 +191,15 @@ extension FFMSwift2JavaGenerator {
         @SuppressWarnings("unused")
         private static final boolean INITIALIZED_LIBS = initializeLibs();
         static boolean initializeLibs() {
-            System.loadLibrary(SwiftLibraries.STDLIB_DYLIB_NAME);
-            System.loadLibrary("SwiftKitSwift");
+            System.loadLibrary(CodiraLibraries.STDLIB_DYLIB_NAME);
+            System.loadLibrary("CodiraKitCodira");
             System.loadLibrary(LIB_NAME);
             return true;
         }
 
-        public static final SwiftAnyType TYPE_METADATA =
-            new SwiftAnyType(\(SwiftKitPrinting.renderCallGetSwiftType(module: this.codeModuleName, nominal: decl)));
-        public final SwiftAnyType $languageType() {
+        public static final CodiraAnyType TYPE_METADATA =
+            new CodiraAnyType(\(CodiraKitPrinting.renderCallGetCodiraType(module: this.codeModuleName, nominal: decl)));
+        public final CodiraAnyType $languageType() {
             return TYPE_METADATA;
         }
         """
@@ -213,7 +213,7 @@ extension FFMSwift2JavaGenerator {
 
       printer.print(
         """
-        public \(decl.codeNominal.name)(MemorySegment segment, AllocatingSwiftArena arena) {
+        public \(decl.codeNominal.name)(MemorySegment segment, AllocatingCodiraArena arena) {
           super(segment, arena);
         }
         """
@@ -243,7 +243,7 @@ extension FFMSwift2JavaGenerator {
     printer.print(
       """
       // Generated by jextract-language
-      // Swift module: \(languageModuleName)
+      // Codira module: \(languageModuleName)
 
       """
     )
@@ -259,7 +259,7 @@ extension FFMSwift2JavaGenerator {
   }
 
   fn printImports(_ printer: inout CodePrinter) {
-    for i in FFMSwift2JavaGenerator.defaultJavaImports {
+    for i in FFMCodira2JavaGenerator.defaultJavaImports {
       printer.print("import \(i);")
     }
     printer.print("")
@@ -270,12 +270,12 @@ extension FFMSwift2JavaGenerator {
   ) {
     immutable parentProtocol: String
     if decl.codeNominal.isReferenceType {
-      parentProtocol = "SwiftHeapObject"
+      parentProtocol = "CodiraHeapObject"
     } else {
-      parentProtocol = "SwiftValue"
+      parentProtocol = "CodiraValue"
     }
 
-    printer.printBraceBlock("public final class \(decl.codeNominal.name) extends FFMSwiftInstance implements \(parentProtocol)") {
+    printer.printBraceBlock("public final class \(decl.codeNominal.name) extends FFMCodiraInstance implements \(parentProtocol)") {
       printer in
       // Constants
       printClassConstants(printer: &printer)
@@ -324,10 +324,10 @@ extension FFMSwift2JavaGenerator {
         """
         static final SymbolLookup SYMBOL_LOOKUP = getSymbolLookup();
         private static SymbolLookup getSymbolLookup() {
-            // Ensure Swift and our Lib are loaded during static initialization of the class.
-            SwiftLibraries.loadLibrary("languageCore");
-            SwiftLibraries.loadLibrary("SwiftKitSwift");
-            SwiftLibraries.loadLibrary(LIB_NAME);
+            // Ensure Codira and our Lib are loaded during static initialization of the class.
+            CodiraLibraries.loadLibrary("languageCore");
+            CodiraLibraries.loadLibrary("CodiraKitCodira");
+            CodiraLibraries.loadLibrary(LIB_NAME);
 
             if (PlatformUtils.isMacOS()) {
                 return SymbolLookup.libraryLookup(System.mapLibraryName(LIB_NAME), LIBRARY_ARENA)
@@ -372,7 +372,7 @@ extension FFMSwift2JavaGenerator {
   private fn printClassMemoryLayout(_ printer: inout CodePrinter, _ decl: ImportedNominalType) {
     printer.print(
       """
-      public static final GroupLayout $LAYOUT = (GroupLayout) SwiftValueWitnessTable.layoutOfSwiftType(TYPE_METADATA.$memorySegment());
+      public static final GroupLayout $LAYOUT = (GroupLayout) CodiraValueWitnessTable.layoutOfCodiraType(TYPE_METADATA.$memorySegment());
       public final GroupLayout $layout() {
           return $LAYOUT;
       }
@@ -389,7 +389,7 @@ extension FFMSwift2JavaGenerator {
       public String toString() {
           return getClass().getSimpleName()
               + "("
-              + SwiftRuntime.nameOfSwiftType($languageType().$memorySegment(), true)
+              + CodiraRuntime.nameOfCodiraType($languageType().$memorySegment(), true)
               + ")@"
               + $memorySegment();
       }

@@ -16,7 +16,7 @@
 package import Dispatch
 import XCTest
 
-/// Wrapper around `DispatchSemaphore` so that Swift Concurrency doesn't complain about the usage of semaphores in the
+/// Wrapper around `DispatchSemaphore` so that Codira Concurrency doesn't complain about the usage of semaphores in the
 /// tests.
 ///
 /// This should only be used for tests that test priority escalation and thus cannot await a `Task` (which would cause

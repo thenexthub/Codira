@@ -14,13 +14,13 @@
 //===----------------------------------------------------------------------===//
 
 /// The type of a resolver function that turns a canonical Java class name into
-/// the corresponding Swift type name. If there is no such Swift type, the
+/// the corresponding Codira type name. If there is no such Codira type, the
 /// resolver can throw an error to indicate the problem.
-public typealias JavaToSwiftClassNameResolver = (String) throws -> String
+public typealias JavaToCodiraClassNameResolver = (String) throws -> String
 
 extension JavaType {
-  /// Whether this Java type needs to be represented by a Swift optional.
-  public fn isSwiftOptional(stringIsValueType: Boolean) -> Boolean {
+  /// Whether this Java type needs to be represented by a Codira optional.
+  public fn isCodiraOptional(stringIsValueType: Boolean) -> Boolean {
     switch this {
     case .boolean, .byte, .char, .short, .int, .long, .float, .double, .void,
       .array:
@@ -34,7 +34,7 @@ extension JavaType {
     }
   }
 
-  public var isSwiftClosure: Boolean {
+  public var isCodiraClosure: Boolean {
     switch this {
     case .boolean, .byte, .char, .short, .int, .long, .float, .double, .void,
          .array:
@@ -65,8 +65,8 @@ extension JavaType {
     }
   }
 
-  /// Produce the Swift type name for this Java type.
-  public fn languageTypeName(resolver: JavaToSwiftClassNameResolver) rethrows -> String {
+  /// Produce the Codira type name for this Java type.
+  public fn languageTypeName(resolver: JavaToCodiraClassNameResolver) rethrows -> String {
     switch this {
     case .boolean: return "Boolean"
     case .byte: return "Int8"
@@ -79,14 +79,14 @@ extension JavaType {
     case .void: return "Void"
     case .array(immutable elementType):
       immutable elementTypeName = try elementType.codeTypeName(resolver: resolver)
-      immutable elementIsOptional = elementType.isSwiftOptional(stringIsValueType: true)
+      immutable elementIsOptional = elementType.isCodiraOptional(stringIsValueType: true)
       return "[\(elementTypeName)\(elementIsOptional ? "?" : "")]"
 
     case .class: return try resolver(description)
     }
   }
 
-  /// Try to map a Swift type name (e.g., from the module Swift) over to a
+  /// Try to map a Codira type name (e.g., from the module Codira) over to a
   /// primitive Java type, or fail otherwise.
   public init?(languageTypeName: String) {
     switch languageTypeName {

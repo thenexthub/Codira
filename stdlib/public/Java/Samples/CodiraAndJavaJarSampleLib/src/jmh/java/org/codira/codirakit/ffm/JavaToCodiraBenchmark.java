@@ -27,26 +27,26 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.infra.Blackhole;
 
-import com.example.code.MySwiftClass;
+import com.example.code.MyCodiraClass;
 
 @SuppressWarnings("unused")
-public class JavaToSwiftBenchmark {
+public class JavaToCodiraBenchmark {
 
     @State(Scope.Benchmark)
     public static class BenchmarkState {
-        ClosableSwiftArena arena;
-        MySwiftClass obj;
+        ClosableCodiraArena arena;
+        MyCodiraClass obj;
 
         @Setup(Level.Trial)
         public void beforeALl() {
             System.loadLibrary("languageCore");
-            System.loadLibrary("ExampleSwiftLibrary");
+            System.loadLibrary("ExampleCodiraLibrary");
 
             // Tune down debug statements so they don't fill up stdout
             System.setProperty("jextract.trace.downcalls", "false");
 
-            arena = SwiftArena.ofConfined();
-            obj = MySwiftClass.init(1, 2, arena);
+            arena = CodiraArena.ofConfined();
+            obj = MyCodiraClass.init(1, 2, arena);
         }
 
         @TearDown(Level.Trial)
@@ -56,7 +56,7 @@ public class JavaToSwiftBenchmark {
     }
 
     @Benchmark @BenchmarkMode(Mode.AverageTime) @OutputTimeUnit(TimeUnit.NANOSECONDS)
-    public void simpleSwiftApiCall(BenchmarkState state, Blackhole blackhole) {
+    public void simpleCodiraApiCall(BenchmarkState state, Blackhole blackhole) {
         blackhole.consume(state.obj.makeRandomIntMethod());
     }
 }

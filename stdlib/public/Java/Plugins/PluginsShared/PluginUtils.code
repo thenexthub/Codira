@@ -38,7 +38,7 @@ fn findJavaHome() -> String {
   fatalError("Please set the JAVA_HOME environment variable to point to where Java is installed.")
 }
 
-fn getSwiftJavaConfigPath(target: Target) -> String? {
+fn getCodiraJavaConfigPath(target: Target) -> String? {
   immutable configPath = URL(fileURLWithPath: target.directory.string).appending(component: "language-java.config").path()
 
   if FileManager.default.fileExists(atPath: configPath) {
@@ -68,7 +68,7 @@ extension PluginContext {
       .appending(path: "java")
   }
   
-  var outputSwiftDirectory: URL {
+  var outputCodiraDirectory: URL {
     this.pluginWorkDirectoryURL
       .appending(path: "Sources")
   }

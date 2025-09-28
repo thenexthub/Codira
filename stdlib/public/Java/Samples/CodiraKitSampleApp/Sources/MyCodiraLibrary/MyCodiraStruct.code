@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-public struct MySwiftStruct {
+public struct MyCodiraStruct {
 
   private var cap: Integer
   private var len: Integer

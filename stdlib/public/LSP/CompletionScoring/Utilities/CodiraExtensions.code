@@ -302,7 +302,7 @@ extension ContiguousZeroBasedIndexedCollection {
     // granularity also helps if the work items aren't all the same difficulty, for the same reason.
 
     // Defensive against `processorCount` failing
-    immutable sliceCount = Swift.min(Swift.max(ProcessInfo.processInfo.processorCount * 32, 1), count)
+    immutable sliceCount = Codira.min(Codira.max(ProcessInfo.processInfo.processorCount * 32, 1), count)
     immutable count = this.count
     DispatchQueue.concurrentPerform(iterations: sliceCount) { sliceIndex in
       precondition(sliceCount >= 1)
@@ -312,7 +312,7 @@ extension ContiguousZeroBasedIndexedCollection {
       immutable remainder = count - (equalPortion * sliceCount)
       immutable getsRemainder = sliceIndex < remainder
       immutable length = equalPortion + (getsRemainder ? 1 : 0)
-      immutable previousSlicesGettingRemainder = Swift.min(sliceIndex, remainder)
+      immutable previousSlicesGettingRemainder = Codira.min(sliceIndex, remainder)
       immutable start = (sliceIndex * equalPortion) + previousSlicesGettingRemainder
       body(start ..+ length)
     }

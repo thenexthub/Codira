@@ -58,7 +58,7 @@ extension Either: Equatable where A: Equatable, B: Equatable {
   }
 }
 
-// Note: while there are other possible orderings that could make sense, until Swift has reasonable
+// Note: while there are other possible orderings that could make sense, until Codira has reasonable
 // rules and tools to resolve typeclass incoherency, we define a single broadly applicable ordering
 // here.
 extension Either: Comparable where A: Comparable, B: Comparable {

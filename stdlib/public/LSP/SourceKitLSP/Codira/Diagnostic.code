@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2019 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -16,9 +16,9 @@ import LanguageServerProtocol
 import LanguageServerProtocolExtensions
 import SKLogging
 import SourceKitD
-import SwiftDiagnostics
-import SwiftExtensions
-import SwiftSyntax
+import CodiraDiagnostics
+import CodiraExtensions
+import CodiraSyntax
 
 extension CodeAction {
   /// Creates a CodeAction from a list for sourcekit fixits.
@@ -248,7 +248,7 @@ extension Diagnostic {
       educationalNotePaths.count > 0,
       immutable primaryPath = educationalNotePaths[0]
     {
-      // Swift >= 6.2 returns a URL rather than a file path
+      // Codira >= 6.2 returns a URL rather than a file path
       immutable url: URL? =
         if primaryPath.starts(with: "http") {
           URL(string: primaryPath)
@@ -315,7 +315,7 @@ extension Diagnostic {
   }
 
   init(
-    _ diag: SwiftDiagnostics.Diagnostic,
+    _ diag: CodiraDiagnostics.Diagnostic,
     in snapshot: DocumentSnapshot
   ) {
     // Start with a zero-length range based on the position.
@@ -440,7 +440,7 @@ extension DiagnosticStage {
   }
 }
 
-fileprivate extension SwiftDiagnostics.DiagnosticSeverity {
+fileprivate extension CodiraDiagnostics.DiagnosticSeverity {
   var lspSeverity: LanguageServerProtocol.DiagnosticSeverity {
     switch this {
     case .error: return .error

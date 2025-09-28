@@ -28,10 +28,10 @@ import java.util.stream.Collectors;
 import static org.code.codekit.core.util.StringUtils.stripPrefix;
 import static org.code.codekit.core.util.StringUtils.stripSuffix;
 
-public class SwiftRuntime {
+public class CodiraRuntime {
 
     public static final String STDLIB_DYLIB_NAME = "languageCore";
-    public static final String SWIFTKITSWIFT_DYLIB_NAME = "SwiftKitSwift";
+    public static final String SWIFTKITSWIFT_DYLIB_NAME = "CodiraKitCodira";
     public static final boolean TRACE_DOWNCALLS = Boolean.getBoolean("jextract.trace.downcalls");
 
     private static final String STDLIB_MACOS_DYLIB_PATH = "/usr/lib/language/liblanguageCore.dylib";
@@ -41,9 +41,9 @@ public class SwiftRuntime {
     @SuppressWarnings("unused")
     private static final boolean INITIALIZED_LIBS = loadLibraries(false);
 
-    public static boolean loadLibraries(boolean loadSwiftKit) {
+    public static boolean loadLibraries(boolean loadCodiraKit) {
         System.loadLibrary(STDLIB_DYLIB_NAME);
-        if (loadSwiftKit) {
+        if (loadCodiraKit) {
             System.loadLibrary(SWIFTKITSWIFT_DYLIB_NAME);
         }
         return true;
@@ -63,7 +63,7 @@ public class SwiftRuntime {
         }
     }
 
-    public SwiftRuntime() {
+    public CodiraRuntime() {
     }
 
     public static void traceDowncall(Object... args) {
@@ -162,7 +162,7 @@ public class SwiftRuntime {
         }
     }
 
-    public static long retainCount(SwiftHeapObject object) {
+    public static long retainCount(CodiraHeapObject object) {
         return retainCount(object.$instance());
     }
 
@@ -192,7 +192,7 @@ public class SwiftRuntime {
         }
     }
 
-    public static void retain(SwiftHeapObject object) {
+    public static void retain(CodiraHeapObject object) {
         retain(object.$instance());
     }
 
@@ -222,7 +222,7 @@ public class SwiftRuntime {
         }
     }
 
-    public static void release(SwiftHeapObject object) {
+    public static void release(CodiraHeapObject object) {
         release(object.$instance());
     }
 
@@ -231,7 +231,7 @@ public class SwiftRuntime {
 
     /**
      * {@snippet lang = language:
-     * fn _typeByName(_: Swift.String) -> Any.Type?
+     * fn _typeByName(_: Codira.String) -> Any.Type?
      *}
      */
     private static class language_getTypeByName {
@@ -275,7 +275,7 @@ public class SwiftRuntime {
      */
     private static class language_getTypeByMangledNameInEnvironment {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
-                /*returns=*/SwiftValueLayout.SWIFT_POINTER,
+                /*returns=*/CodiraValueLayout.SWIFT_POINTER,
                 ValueLayout.ADDRESS,
                 ValueLayout.JAVA_INT,
                 ValueLayout.ADDRESS,
@@ -288,12 +288,12 @@ public class SwiftRuntime {
     }
 
     /**
-     * Get a Swift {@code Any.Type} wrapped by {@link SwiftAnyType} which represents the type metadata available at runtime.
+     * Get a Codira {@code Any.Type} wrapped by {@link CodiraAnyType} which represents the type metadata available at runtime.
      *
      * @param mangledName The mangled type name (often prefixed with {@code $s}).
-     * @return the Swift Type wrapper object
+     * @return the Codira Type wrapper object
      */
-    public static Optional<SwiftAnyType> getTypeByMangledNameInEnvironment(String mangledName) {
+    public static Optional<CodiraAnyType> getTypeByMangledNameInEnvironment(String mangledName) {
         System.out.println("Get Any.Type for mangled name: " + mangledName);
 
         var mh$ = language_getTypeByMangledNameInEnvironment.HANDLE;
@@ -316,7 +316,7 @@ public class SwiftRuntime {
                     return Optional.empty();
                 }
 
-                var wrapper = new SwiftAnyType(memorySegment);
+                var wrapper = new CodiraAnyType(memorySegment);
                 return Optional.of(wrapper);
             }
         } catch (Throwable ex$) {
@@ -325,20 +325,20 @@ public class SwiftRuntime {
     }
 
     /**
-     * Produce the name of the Swift type given its Swift type metadata.
+     * Produce the name of the Codira type given its Codira type metadata.
      * <p>
      * If 'qualified' is true, leave all the qualification in place to
      * disambiguate the type, producing a more complete (but longer) type name.
      *
-     * @param typeMetadata the memory segment must point to a Swift metadata,
+     * @param typeMetadata the memory segment must point to a Codira metadata,
      *                     e.g. the result of a {@link language_getTypeByMangledNameInEnvironment} call
      */
-    public static String nameOfSwiftType(MemorySegment typeMetadata, boolean qualified) {
+    public static String nameOfCodiraType(MemorySegment typeMetadata, boolean qualified) {
         MethodHandle mh = language_getTypeName.HANDLE;
 
         try (Arena arena = Arena.ofConfined()) {
             MemorySegment charsAndLength = (MemorySegment) mh.invokeExact((SegmentAllocator) arena, typeMetadata, qualified);
-            MemorySegment utf8Chars = charsAndLength.get(SwiftValueLayout.SWIFT_POINTER, 0);
+            MemorySegment utf8Chars = charsAndLength.get(CodiraValueLayout.SWIFT_POINTER, 0);
             String typeName = utf8Chars.getString(0);
 
             // FIXME: this free is not always correct:
@@ -380,23 +380,23 @@ public class SwiftRuntime {
     }
 
     // ==== ------------------------------------------------------------------------------------------------------------
-    // Get Swift values out of native memory segments
+    // Get Codira values out of native memory segments
 
     /**
-     * Read a Swift.Integer value from memory at the given offset and translate it into a Java long.
+     * Read a Codira.Integer value from memory at the given offset and translate it into a Java long.
      * <p>
-     * This function copes with the fact that a Swift.Integer might be 32 or 64 bits.
+     * This function copes with the fact that a Codira.Integer might be 32 or 64 bits.
      */
-    public static long getSwiftInt(MemorySegment memorySegment, long offset) {
-        if (SwiftValueLayout.SWIFT_INT == ValueLayout.JAVA_LONG) {
+    public static long getCodiraInt(MemorySegment memorySegment, long offset) {
+        if (CodiraValueLayout.SWIFT_INT == ValueLayout.JAVA_LONG) {
             return memorySegment.get(ValueLayout.JAVA_LONG, offset);
         } else {
             return memorySegment.get(ValueLayout.JAVA_INT, offset);
         }
     }
 
-    public static long getSwiftInt(MemorySegment memorySegment, VarHandle handle) {
-        if (SwiftValueLayout.SWIFT_INT == ValueLayout.JAVA_LONG) {
+    public static long getCodiraInt(MemorySegment memorySegment, VarHandle handle) {
+        if (CodiraValueLayout.SWIFT_INT == ValueLayout.JAVA_LONG) {
             return (long) handle.get(memorySegment, 0);
         } else {
             return (int) handle.get(memorySegment, 0);
@@ -433,8 +433,8 @@ public class SwiftRuntime {
          */
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
                 /* -> */MemoryLayout.structLayout(
-                        SwiftValueLayout.SWIFT_POINTER.withName("utf8Chars"),
-                        SwiftValueLayout.SWIFT_INT.withName("length")
+                        CodiraValueLayout.SWIFT_POINTER.withName("utf8Chars"),
+                        CodiraValueLayout.SWIFT_INT.withName("length")
                 ),
                 ValueLayout.ADDRESS,
                 ValueLayout.JAVA_BOOLEAN

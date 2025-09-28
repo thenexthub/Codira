@@ -98,7 +98,7 @@ public protocol ChannelCore: AnyObject {
 ///
 /// - Note: All operations on `Channel` are thread-safe.
 ///
-/// In SwiftNIO, all I/O operations are asynchronous and hence all operations on `Channel` are asynchronous too. This means
+/// In CodiraNIO, all I/O operations are asynchronous and hence all operations on `Channel` are asynchronous too. This means
 /// that all I/O operations will return immediately, usually before the work has been completed. The `EventLoopPromise`s
 /// passed to or returned by the operations are used to retrieve the result of an operation after it has completed.
 ///

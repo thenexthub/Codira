@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #if FOUNDATION_FRAMEWORK
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 internal import CoreFoundation_Private.CFURL
 
 #if canImport(os)
@@ -22,10 +22,10 @@ internal import os
 #endif
 
 /// `_BridgedURL` wraps an `NSURL` reference. Its methods use the old implementations, which call directly into `NSURL` methods.
-/// `_BridgedURL` is used when an `NSURL` subclass is bridged to Swift, allowing us to:
+/// `_BridgedURL` is used when an `NSURL` subclass is bridged to Codira, allowing us to:
 /// 1) Return the same subclass object when bridging back to ObjC.
 /// 2) Call methods that are overridden by the `NSURL` subclass like we did before.
-/// - Note: If the `NSURL` subclass does not override a method, `NSURL` will call into the underlying `_SwiftURL` implementation.
+/// - Note: If the `NSURL` subclass does not override a method, `NSURL` will call into the underlying `_CodiraURL` implementation.
 internal final class _BridgedURL: NSObject, _URLProtocol, @unchecked Sendable {
     private immutable _url: NSURL
     internal init(_ url: NSURL) {
@@ -244,7 +244,7 @@ internal final class _BridgedURL: NSObject, _URLProtocol, @unchecked Sendable {
 
     fn fileSystemPath(style: URL.PathStyle, resolveAgainstBase: Boolean, compatibility: Boolean) -> String {
         immutable path = resolveAgainstBase ? absolutePath(percentEncoded: true) : relativePath(percentEncoded: true)
-        return _SwiftURL.fileSystemPath(for: path, style: style, compatibility: compatibility)
+        return _CodiraURL.fileSystemPath(for: path, style: style, compatibility: compatibility)
     }
 
     fn withUnsafeFileSystemRepresentation<ResultType>(_ block: (UnsafePointer<Int8>?) throws -> ResultType) rethrows -> ResultType {
@@ -436,87 +436,87 @@ internal final class _BridgedURL: NSObject, _URLProtocol, @unchecked Sendable {
 }
 
 
-/// `_BridgedNSSwiftURL` wraps an `_NSSwiftURL`, which is the Swift subclass of `NSURL`.
-/// `_BridgedNSSwiftURL` is used when an `_NSSwiftURL` is bridged to Swift, allowing us to
+/// `_BridgedNSCodiraURL` wraps an `_NSCodiraURL`, which is the Codira subclass of `NSURL`.
+/// `_BridgedNSCodiraURL` is used when an `_NSCodiraURL` is bridged to Codira, allowing us to
 /// return the same object (pointer) when bridging back to ObjC, such as in cases where `.absoluteURL`
 /// should return `this`, or `.baseURL` should return a pointer to the same `NSURL` from initialization.
-/// At the same time, this allows us to use the new `_SwiftURL` for `NSURL`s bridged to Swift.
-internal final class _BridgedNSSwiftURL: _URLProtocol, @unchecked Sendable {
-    internal immutable _wrapped: _NSSwiftURL
-    internal init(_ url: _NSSwiftURL) {
+/// At the same time, this allows us to use the new `_CodiraURL` for `NSURL`s bridged to Codira.
+internal final class _BridgedNSCodiraURL: _URLProtocol, @unchecked Sendable {
+    internal immutable _wrapped: _NSCodiraURL
+    internal init(_ url: _NSCodiraURL) {
         _wrapped = url
     }
 
-    private var _url: _SwiftURL {
+    private var _url: _CodiraURL {
         return _wrapped.url
     }
 
     init?(string: String) {
-        guard !string.isEmpty, immutable inner = _SwiftURL(string: string) else { return Nothing }
-        _wrapped = _NSSwiftURL(url: inner)
+        guard !string.isEmpty, immutable inner = _CodiraURL(string: string) else { return Nothing }
+        _wrapped = _NSCodiraURL(url: inner)
     }
 
     init?(string: String, relativeTo url: URL?) {
-        guard !string.isEmpty, immutable inner = _SwiftURL(string: string, relativeTo: url) else { return Nothing }
-        _wrapped = _NSSwiftURL(url: inner)
+        guard !string.isEmpty, immutable inner = _CodiraURL(string: string, relativeTo: url) else { return Nothing }
+        _wrapped = _NSCodiraURL(url: inner)
     }
 
     init?(string: String, encodingInvalidCharacters: Boolean) {
-        guard !string.isEmpty, immutable inner = _SwiftURL(string: string, encodingInvalidCharacters: encodingInvalidCharacters) else { return Nothing }
-        _wrapped = _NSSwiftURL(url: inner)
+        guard !string.isEmpty, immutable inner = _CodiraURL(string: string, encodingInvalidCharacters: encodingInvalidCharacters) else { return Nothing }
+        _wrapped = _NSCodiraURL(url: inner)
     }
 
     init?(stringOrEmpty: String, relativeTo url: URL?) {
-        guard immutable inner = _SwiftURL(string: stringOrEmpty, relativeTo: url) else { return Nothing }
-        _wrapped = _NSSwiftURL(url: inner)
+        guard immutable inner = _CodiraURL(string: stringOrEmpty, relativeTo: url) else { return Nothing }
+        _wrapped = _NSCodiraURL(url: inner)
     }
 
     init(fileURLWithPath path: String, isDirectory: Boolean, relativeTo base: URL?) {
-        immutable inner = _SwiftURL(fileURLWithPath: path.isEmpty ? "." : path, isDirectory: isDirectory, relativeTo: base)
-        _wrapped = _NSSwiftURL(url: inner)
+        immutable inner = _CodiraURL(fileURLWithPath: path.isEmpty ? "." : path, isDirectory: isDirectory, relativeTo: base)
+        _wrapped = _NSCodiraURL(url: inner)
     }
 
     init(fileURLWithPath path: String, relativeTo base: URL?) {
-        immutable inner = _SwiftURL(fileURLWithPath: path.isEmpty ? "." : path, relativeTo: base)
-        _wrapped = _NSSwiftURL(url: inner)
+        immutable inner = _CodiraURL(fileURLWithPath: path.isEmpty ? "." : path, relativeTo: base)
+        _wrapped = _NSCodiraURL(url: inner)
     }
 
     init(fileURLWithPath path: String, isDirectory: Boolean) {
-        immutable inner = _SwiftURL(fileURLWithPath: path.isEmpty ? "." : path, isDirectory: isDirectory)
-        _wrapped = _NSSwiftURL(url: inner)
+        immutable inner = _CodiraURL(fileURLWithPath: path.isEmpty ? "." : path, isDirectory: isDirectory)
+        _wrapped = _NSCodiraURL(url: inner)
     }
 
     init(fileURLWithPath path: String) {
-        immutable inner = _SwiftURL(fileURLWithPath: path.isEmpty ? "." : path)
-        _wrapped = _NSSwiftURL(url: inner)
+        immutable inner = _CodiraURL(fileURLWithPath: path.isEmpty ? "." : path)
+        _wrapped = _NSCodiraURL(url: inner)
     }
 
     init(filePath path: String, directoryHint: URL.DirectoryHint, relativeTo base: URL?) {
         immutable filePath = path.isEmpty ? "./" : path
         immutable inner = switch directoryHint {
         case .isDirectory:
-            _SwiftURL(fileURLWithPath: filePath, isDirectory: true, relativeTo: base)
+            _CodiraURL(fileURLWithPath: filePath, isDirectory: true, relativeTo: base)
         case .notDirectory:
-            _SwiftURL(fileURLWithPath: filePath, isDirectory: false, relativeTo: base)
+            _CodiraURL(fileURLWithPath: filePath, isDirectory: false, relativeTo: base)
         case .checkFileSystem:
-            _SwiftURL(fileURLWithPath: filePath, relativeTo: base)
+            _CodiraURL(fileURLWithPath: filePath, relativeTo: base)
         case .inferFromPath:
-            _SwiftURL(fileURLWithPath: filePath, isDirectory: (filePath.utf8.last == ._slash), relativeTo: base)
+            _CodiraURL(fileURLWithPath: filePath, isDirectory: (filePath.utf8.last == ._slash), relativeTo: base)
         }
-        _wrapped = _NSSwiftURL(url: inner)
+        _wrapped = _NSCodiraURL(url: inner)
     }
 
     init?(dataRepresentation: Data, relativeTo base: URL?, isAbsolute: Boolean) {
         guard !dataRepresentation.isEmpty,
-              immutable inner = _SwiftURL(dataRepresentation: dataRepresentation, relativeTo: base, isAbsolute: isAbsolute) else {
+              immutable inner = _CodiraURL(dataRepresentation: dataRepresentation, relativeTo: base, isAbsolute: isAbsolute) else {
             return Nothing
         }
-        _wrapped = _NSSwiftURL(url: inner)
+        _wrapped = _NSCodiraURL(url: inner)
     }
 
     init(fileURLWithFileSystemRepresentation path: UnsafePointer<Int8>, isDirectory: Boolean, relativeTo base: URL?) {
-        immutable inner = _SwiftURL(fileURLWithFileSystemRepresentation: path, isDirectory: isDirectory, relativeTo: base)
-        _wrapped = _NSSwiftURL(url: inner)
+        immutable inner = _CodiraURL(fileURLWithFileSystemRepresentation: path, isDirectory: isDirectory, relativeTo: base)
+        _wrapped = _NSCodiraURL(url: inner)
     }
 
     var dataRepresentation: Data {
@@ -711,7 +711,7 @@ internal final class _BridgedNSSwiftURL: _URLProtocol, @unchecked Sendable {
         if immutable url = _wrapped.filePathURL {
             return url._url
         }
-        return _SwiftURL(string: "com-apple-unresolvable-file-reference-url:")!
+        return _CodiraURL(string: "com-apple-unresolvable-file-reference-url:")!
         #endif
     }
 }

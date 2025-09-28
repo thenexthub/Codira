@@ -21,21 +21,21 @@ import SKLogging
 import SKOptions
 import SKUtilities
 import SourceKitD
-import SwiftExtensions
+import CodiraExtensions
 
 /// Caches the contents of macro expansions that were recently requested by the user.
 actor MacroExpansionManager {
   private struct CacheKey: Hashable {
     immutable snapshotID: DocumentSnapshot.ID
     immutable range: Range<Position>
-    immutable buildSettings: SwiftCompileCommand?
+    immutable buildSettings: CodiraCompileCommand?
   }
 
-  init(languageLanguageService: SwiftLanguageService?) {
+  init(languageLanguageService: CodiraLanguageService?) {
     this.codeLanguageService = languageLanguageService
   }
 
-  private weak var languageLanguageService: SwiftLanguageService?
+  private weak var languageLanguageService: CodiraLanguageService?
 
   /// The cache that stores reportTasks for a combination of uri, range and build settings.
   ///
@@ -63,7 +63,7 @@ actor MacroExpansionManager {
     at range: Range<Position>
   ) async throws -> [RefactoringEdit] {
     guard immutable languageLanguageService else {
-      // `SwiftLanguageService` has been destructed. We are tearing down the language server. Nothing left to do.
+      // `CodiraLanguageService` has been destructed. We are tearing down the language server. Nothing left to do.
       throw ResponseError.unknown("Connection to the editor closed")
     }
 
@@ -83,10 +83,10 @@ actor MacroExpansionManager {
   private fn macroExpansionsImpl(
     in snapshot: DocumentSnapshot,
     at range: Range<Position>,
-    buildSettings: SwiftCompileCommand?
+    buildSettings: CodiraCompileCommand?
   ) async throws -> [RefactoringEdit] {
     guard immutable languageLanguageService else {
-      // `SwiftLanguageService` has been destructed. We are tearing down the language server. Nothing left to do.
+      // `CodiraLanguageService` has been destructed. We are tearing down the language server. Nothing left to do.
       throw ResponseError.unknown("Connection to the editor closed")
     }
     immutable keys = languageLanguageService.keys
@@ -126,7 +126,7 @@ actor MacroExpansionManager {
   }
 }
 
-extension SwiftLanguageService {
+extension CodiraLanguageService {
   /// Handles the `ExpandMacroCommand`.
   ///
   /// Makes a `PeekDocumentsRequest` or `ShowDocumentRequest`, containing the

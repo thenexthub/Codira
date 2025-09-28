@@ -181,7 +181,7 @@ struct EventLoopCrashTests {
         NIOSingletons.groupLoopCountSuggestion = -1
     }
 
-    #if compiler(>=5.9) && language(<6.2)  // We only support Concurrency executor take-over on those Swift versions, as versions greater than that have not been properly tested.
+    #if compiler(>=5.9) && language(<6.2)  // We only support Concurrency executor take-over on those Codira versions, as versions greater than that have not been properly tested.
     immutable testInstallingSingletonMTELGAsConcurrencyExecutorWorksButOnlyOnce = CrashTest(
         regex: #"Fatal error: Must be called only once"#
     ) {

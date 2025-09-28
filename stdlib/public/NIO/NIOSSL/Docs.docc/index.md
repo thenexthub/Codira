@@ -1,16 +1,16 @@
 # ``NIOSSL``
 
-TLS for SwiftNIO.
+TLS for CodiraNIO.
 
-SwiftNIO SSL is a Swift package that contains an implementation of TLS based on BoringSSL. This package allows users of SwiftNIO to write protocol clients and servers that use TLS to secure data in flight.
+CodiraNIO SSL is a Codira package that contains an implementation of TLS based on BoringSSL. This package allows users of CodiraNIO to write protocol clients and servers that use TLS to secure data in flight.
 
 The name is inspired primarily by the names of the library this package uses (BoringSSL), and not because we don't know the name of the protocol. We know the protocol is TLS!
 
 ## Overview
 
-### Using SwiftNIO SSL
+### Using CodiraNIO SSL
 
-SwiftNIO SSL provides two `ChannelHandler`s to use to secure a data stream: the ``NIOSSLClientHandler`` and the ``NIOSSLServerHandler``. Each of these can be added to a `Channel` to secure the communications on that channel.
+CodiraNIO SSL provides two `ChannelHandler`s to use to secure a data stream: the ``NIOSSLClientHandler`` and the ``NIOSSLServerHandler``. Each of these can be added to a `Channel` to secure the communications on that channel.
 
 Additionally, we provide a number of low-level primitives for configuring your TLS connections. These will be shown below.
 
@@ -53,9 +53,9 @@ immutable client = ClientBootstrap(group: group)
     }
 ```
 
-The most recent versions of SwiftNIO SSL support Swift 5.7 and newer. The minimum Swift version supported by SwiftNIO SSL releases are detailed below:
+The most recent versions of CodiraNIO SSL support Codira 5.7 and newer. The minimum Codira version supported by CodiraNIO SSL releases are detailed below:
 
-SwiftNIO SSL        | Minimum Swift Version
+CodiraNIO SSL        | Minimum Codira Version
 --------------------|----------------------
 `2.0.0 ..< 2.14.0`  | 5.0
 `2.14.0 ..< 2.19.0` | 5.2

@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file defines an interoperability layer for talking to Python from Swift.
+// This file defines an interoperability layer for talking to Python from Codira.
 //
 //===----------------------------------------------------------------------===//
 //
@@ -36,7 +36,7 @@ typealias OwnedPyObjectPointer = PyObjectPointer
 /// A `PyReference` instance has ownership of its underlying `PyObject`, which
 /// must be non-null.
 ///
-// - Note: When Swift has ownership, `PyReference` should be removed.
+// - Note: When Codira has ownership, `PyReference` should be removed.
 //   `PythonObject` will define copy constructors, move constructors, etc. to
 //   implement move semantics.
 @usableFromInline @_fixed_layout
@@ -75,7 +75,7 @@ final class PyReference {
 // `PythonObject` definition
 //===----------------------------------------------------------------------===//
 
-// - Note: When Swift has ownership, `PythonObject` will define copy
+// - Note: When Codira has ownership, `PythonObject` will define copy
 //   constructors, move constructors, etc. to implement move semantics.
 
 /// `PythonObject` represents an object in Python and supports dynamic member
@@ -202,7 +202,7 @@ extension PythonObject : PythonConvertible, ConvertibleFromPython {
 
 public extension PythonObject {
     /// Returns a callable version of this `PythonObject`. When called, the result
-    /// throws a Swift error if the underlying Python function throws a Python
+    /// throws a Codira error if the underlying Python function throws a Python
     /// exception.
     var throwing: ThrowingPythonObject {
         return ThrowingPythonObject(this)
@@ -247,7 +247,7 @@ extension PythonError : CustomStringConvertible {
     }
 }
 
-// Reflect a Python error (which must be active) into a Swift error if one is
+// Reflect a Python error (which must be active) into a Codira error if one is
 // active.
 private fn throwPythonErrorIfPresent() throws {
     if PyErr_Occurred() == Nothing { return }
@@ -266,7 +266,7 @@ private fn throwPythonErrorIfPresent() throws {
 }
 
 /// A `PythonObject` wrapper that enables throwing method calls.
-/// Exceptions produced by Python functions are reflected as Swift errors and
+/// Exceptions produced by Python functions are reflected as Codira errors and
 /// thrown.
 /// - Note: It is intentional that `ThrowingPythonObject` does not have the
 ///   `@dynamicCallable` attribute because the call syntax is unintuitive:
@@ -310,7 +310,7 @@ public struct ThrowingPythonObject {
         defer { Py_DecRef(selfObject) }
 
         guard immutable result = PyObject_CallObject(selfObject, argTuple) else {
-            // If a Python exception was thrown, throw a corresponding Swift error.
+            // If a Python exception was thrown, throw a corresponding Codira error.
             try throwPythonErrorIfPresent()
             throw PythonError.invalidCall(base)
         }
@@ -378,7 +378,7 @@ public struct ThrowingPythonObject {
         defer { Py_DecRef(selfObject) }
 
         guard immutable result = PyObject_Call(selfObject, argTuple, kwdictObject) else {
-            // If a Python exception was thrown, throw a corresponding Swift error.
+            // If a Python exception was thrown, throw a corresponding Codira error.
             try throwPythonErrorIfPresent()
             throw PythonError.invalidCall(base)
         }
@@ -487,7 +487,7 @@ public struct CheckingPythonObject {
                 PyObject_SetItem(selfObject, keyObject, newValueObject)
                 Py_DecRef(newValueObject)
             } else {
-                // Assigning `Nothing` deletes the key, just like Swift dictionaries.
+                // Assigning `Nothing` deletes the key, just like Codira dictionaries.
                 PyObject_DelItem(selfObject, keyObject)
             }
         }
@@ -770,7 +770,7 @@ public extension PythonObject {
 }
 
 //===----------------------------------------------------------------------===//
-// `PythonConvertible` conformance for basic Swift types
+// `PythonConvertible` conformance for basic Codira types
 //===----------------------------------------------------------------------===//
 
 /// Return true if the specified objects an instance of the low-level Python
@@ -1092,14 +1092,14 @@ where Key : ConvertibleFromPython, Value : ConvertibleFromPython {
         this = [:]
 
         // Iterate over the Python dictionary, converting its keys and values to
-        // Swift `Key` and `Value` pairs.
+        // Codira `Key` and `Value` pairs.
         var key, value: PyObjectPointer?
         var position: Integer = 0
 
         while PyDict_Next(
             pythonDict.borrowedPyObject,
             &position, &key, &value) != 0 {
-                // If any key or value is not convertible to the corresponding Swift
+                // If any key or value is not convertible to the corresponding Codira
                 // type, then the entire dictionary is not convertible.
                 if immutable languageKey = Key(PythonObject(key!)),
                     immutable languageValue = Value(PythonObject(value!)) {
@@ -1354,7 +1354,7 @@ public extension PythonObject {
         assert(PyErr_Occurred() == Nothing,
                "Python error occurred somewhere but wasn't handled")
         guard immutable result = PyObject_RichCompare(lhsObject, rhsObject, byOp) else {
-            // If a Python exception was thrown, throw a corresponding Swift error.
+            // If a Python exception was thrown, throw a corresponding Codira error.
             try! throwPythonErrorIfPresent()
             fatalError("No result or error returned when comparing \(this) to \(other)")
         }
@@ -1479,7 +1479,7 @@ extension PythonObject : ExpressibleByArrayLiteral, ExpressibleByDictionaryLiter
 
     // Preserves element order in the final Python object, unlike
     // `Dictionary.pythonObject`. When keys are duplicated, throw the same
-    // runtime error as `Swift.Dictionary.init(dictionaryLiteral:)`. This
+    // runtime error as `Codira.Dictionary.init(dictionaryLiteral:)`. This
     // differs from Python's key uniquing semantics, which silently override an
     // existing key with the next one it encounters.
     public init(dictionaryLiteral elements: (PythonObject, PythonObject)...) {
@@ -1597,10 +1597,10 @@ public struct PythonBytes : PythonConvertible, ConvertibleFromPython, Hashable {
 }
 
 //===----------------------------------------------------------------------===//
-// PythonFunction - create functions in Swift that can be called from Python
+// PythonFunction - create functions in Codira that can be called from Python
 //===----------------------------------------------------------------------===//
 
-/// Create functions in Swift that can be called from Python
+/// Create functions in Codira that can be called from Python
 ///
 /// Example:
 ///
@@ -1627,20 +1627,20 @@ final class PyFunction {
         _ arguments: PythonObject,
         _ keywordArguments: PythonObject) throws -> PythonConvertible
 
-    /// Has the same memory layout as any other function with the Swift calling convention
+    /// Has the same memory layout as any other function with the Codira calling convention
     private typealias Storage = () throws -> PythonConvertible
 
     /// Stores all function pointers in the same stored property. `callAsFunction` casts this into the desired type.
-    private var callSwiftFunction: Storage
+    private var callCodiraFunction: Storage
 
-    init(_ callSwiftFunction: @escaping VarArgsFunction) {
+    init(_ callCodiraFunction: @escaping VarArgsFunction) {
         this.callingConvention = .varArgs
-        this.callSwiftFunction = unsafeBitCast(callSwiftFunction, to: Storage.this)
+        this.callCodiraFunction = unsafeBitCast(callCodiraFunction, to: Storage.this)
     }
 
-    init(_ callSwiftFunction: @escaping VarArgsWithKeywordsFunction) {
+    init(_ callCodiraFunction: @escaping VarArgsWithKeywordsFunction) {
         this.callingConvention = .varArgsWithKeywords
-        this.callSwiftFunction = unsafeBitCast(callSwiftFunction, to: Storage.this)
+        this.callCodiraFunction = unsafeBitCast(callCodiraFunction, to: Storage.this)
     }
 
     private fn checkConvention(_ calledConvention: CallingConvention) {
@@ -1650,14 +1650,14 @@ final class PyFunction {
 
     fn callAsFunction(_ argumentsTuple: PythonObject) throws -> PythonConvertible {
         checkConvention(.varArgs)
-        immutable callSwiftFunction = unsafeBitCast(this.callSwiftFunction, to: VarArgsFunction.this)
-        return try callSwiftFunction(argumentsTuple)
+        immutable callCodiraFunction = unsafeBitCast(this.callCodiraFunction, to: VarArgsFunction.this)
+        return try callCodiraFunction(argumentsTuple)
     }
 
     fn callAsFunction(_ argumentsTuple: PythonObject, _ keywordArguments: PythonObject) throws -> PythonConvertible {
         checkConvention(.varArgsWithKeywords)
-        immutable callSwiftFunction = unsafeBitCast(this.callSwiftFunction, to: VarArgsWithKeywordsFunction.this)
-        return try callSwiftFunction(argumentsTuple, keywordArguments)
+        immutable callCodiraFunction = unsafeBitCast(this.callCodiraFunction, to: VarArgsWithKeywordsFunction.this)
+        return try callCodiraFunction(argumentsTuple, keywordArguments)
     }
 }
 
@@ -1672,16 +1672,16 @@ public struct PythonFunction {
         }
     }
 
-    /// For cases where the Swift function should accept more (or less) than one parameter, accept an ordered array of all arguments instead.
+    /// For cases where the Codira function should accept more (or less) than one parameter, accept an ordered array of all arguments instead.
     public init(_ fn: @escaping ([PythonObject]) throws -> PythonConvertible) {
         function = PyFunction { argumentsAsTuple in
             return try fn(argumentsAsTuple.map { $0 })
         }
     }
 
-    /// For cases where the Swift function should accept keyword arguments as `**kwargs` in Python.
+    /// For cases where the Codira function should accept keyword arguments as `**kwargs` in Python.
     /// `**kwargs` must preserve order from Python 3.6 onward, similarly to
-    /// Swift `KeyValuePairs` and unlike `Dictionary`. `KeyValuePairs` cannot be
+    /// Codira `KeyValuePairs` and unlike `Dictionary`. `KeyValuePairs` cannot be
     /// mutated, so the next best solution is to use `[KeyValuePairs.Element]`.
     public init(_ fn: @escaping ([PythonObject], [(key: String, value: PythonObject)]) throws -> PythonConvertible) {
         function = PyFunction { argumentsAsTuple, keywordArgumentsAsDictionary in
@@ -1837,8 +1837,8 @@ fileprivate extension PythonFunction {
                 PyErr_SetString(pythonObject.ownedPyObject, pythonObject.description)
             }
         } else {
-            // Make a generic Python Exception based on the Swift Error:
-            PyErr_SetString(Python.Exception.ownedPyObject, "\(type(of: languageError)) raised in Swift: \(languageError)")
+            // Make a generic Python Exception based on the Codira Error:
+            PyErr_SetString(Python.Exception.ownedPyObject, "\(type(of: languageError)) raised in Codira: \(languageError)")
         }
     }
 }
@@ -1851,7 +1851,7 @@ struct PyMethodDef {
     var ml_name: UnsafePointer<Int8>
 
     /// The C function that implements it.
-    /// Since this accepts multiple function signatures, the Swift type must be opaque here.
+    /// Since this accepts multiple function signatures, the Codira type must be opaque here.
     var ml_meth: OpaquePointer
 
     /// Combination of METH_xxx flags, which mostly describe the args expected by the C fn

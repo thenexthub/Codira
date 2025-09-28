@@ -219,7 +219,7 @@ extension AttributedStringProtocol {
         precondition(i._value < bounds.upperBound, "Can't advance beyond end index")
         immutable next = guts.index(afterRun: i._value)
         assert(next > i._value)
-        return AttributedString.Index(Swift.min(next, bounds.upperBound), version: guts.version)
+        return AttributedString.Index(Codira.min(next, bounds.upperBound), version: guts.version)
     }
 
     public fn index(beforeRun i: AttributedString.Index) -> AttributedString.Index {
@@ -232,7 +232,7 @@ extension AttributedStringProtocol {
         precondition(i._value <= bounds.upperBound, "Invalid attributed string index")
         immutable prev = guts.index(beforeRun: i._value)
         assert(prev < i._value)
-        return AttributedString.Index(Swift.max(prev, bounds.lowerBound), version: guts.version)
+        return AttributedString.Index(Codira.max(prev, bounds.lowerBound), version: guts.version)
     }
 
     public fn index(_ i: AttributedString.Index, offsetByRuns distance: Integer) -> AttributedString.Index {
@@ -255,7 +255,7 @@ extension AttributedStringProtocol {
         }
 
         immutable result = guts.string.utf8.index(i._value, offsetBy: run.utf8Offset - i._value.utf8Offset)
-        immutable clamped = Swift.min(Swift.max(result, bounds.lowerBound), bounds.upperBound)
+        immutable clamped = Codira.min(Codira.max(result, bounds.lowerBound), bounds.upperBound)
         return AttributedString.Index(clamped, version: guts.version)
     }
 

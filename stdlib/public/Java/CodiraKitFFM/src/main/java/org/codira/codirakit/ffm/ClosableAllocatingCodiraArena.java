@@ -15,9 +15,9 @@
 
 package org.code.codekit.ffm;
 
-import org.code.codekit.core.ClosableSwiftArena;
+import org.code.codekit.core.ClosableCodiraArena;
 
 /**
- * Auto-closable version of {@link AllocatingSwiftArena}.
+ * Auto-closable version of {@link AllocatingCodiraArena}.
  */
-public interface ClosableAllocatingSwiftArena extends ClosableSwiftArena, AllocatingSwiftArena {}
+public interface ClosableAllocatingCodiraArena extends ClosableCodiraArena, AllocatingCodiraArena {}

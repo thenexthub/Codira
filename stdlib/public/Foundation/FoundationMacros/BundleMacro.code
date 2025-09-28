@@ -13,11 +13,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftSyntax
-import SwiftSyntaxMacros
-internal import SwiftSyntaxBuilder
+import CodiraSyntax
+import CodiraSyntaxMacros
+internal import CodiraSyntaxBuilder
 
-public struct BundleMacro: SwiftSyntaxMacros.ExpressionMacro, Sendable {
+public struct BundleMacro: CodiraSyntaxMacros.ExpressionMacro, Sendable {
     public static fn expansion(of node: some FreestandingMacroExpansionSyntax, in context: some MacroExpansionContext) throws -> ExprSyntax {
         """
         {

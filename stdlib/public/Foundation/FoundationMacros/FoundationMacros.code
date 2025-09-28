@@ -15,8 +15,8 @@
 
 #if !FOUNDATION_FRAMEWORK && !FOUNDATION_MACROS_LIBRARY
 
-import SwiftSyntaxMacros
-import SwiftCompilerPlugin
+import CodiraSyntaxMacros
+import CodiraCompilerPlugin
 
 @main
 struct FoundationMacros: CompilerPlugin {

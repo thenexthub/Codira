@@ -8,7 +8,7 @@
 
 import Foundation
 
-/// Constructors are used to translate `Node`s to Swift values.
+/// Constructors are used to translate `Node`s to Codira values.
 public final class Constructor {
     /// Maps `Tag.Name`s to `Node.Scalar`s.
     public typealias ScalarMap = [Tag.Name: (Node.Scalar) -> Any?]
@@ -30,12 +30,12 @@ public final class Constructor {
         self.sequenceMap = sequenceMap
     }
 
-    /// Constructs Swift values based on the maps this `Constructor` was initialized with.
+    /// Constructs Codira values based on the maps this `Constructor` was initialized with.
     ///
-    /// - parameter node: `Node` from which to extract an `Any` Swift value, if one was produced by the Node
+    /// - parameter node: `Node` from which to extract an `Any` Codira value, if one was produced by the Node
     ///                   type's relevant mapping on this `Constructor`.
     ///
-    /// - returns: An `Any` Swift value, if one was produced by the Node type's relevant mapping on this
+    /// - returns: An `Any` Codira value, if one was produced by the Node type's relevant mapping on this
     ///            `Constructor`.
     public func any(from node: Node) -> Any {
         switch node {
@@ -480,7 +480,7 @@ extension Set {
         // TODO: YAML supports Hashable elements other than str.
         return Set<AnyHashable>(mapping.map({ String.construct(from: $0.key)! as AnyHashable }))
         // Explicitly declaring the generic parameter as `<AnyHashable>` above is required,
-        // because this is inside extension of `Set` and Swift can't infer the type without that.
+        // because this is inside extension of `Set` and Codira can't infer the type without that.
     }
 }
 

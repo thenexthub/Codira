@@ -15,7 +15,7 @@
 
 /// Request that generates documentation for a symbol at a given cursor location **(LSP Extension)**.
 ///
-/// Primarily designed to support live preview of Swift documentation in editors.
+/// Primarily designed to support live preview of Codira documentation in editors.
 ///
 /// This request looks up the nearest documentable symbol (if any) at a given cursor location within
 /// a text document and returns a `DoccDocumentationResponse`. The response contains a string
@@ -24,7 +24,7 @@
 ///
 /// The position may be ommitted for documentation within DocC markdown and tutorial files as they
 /// represent a single documentation page. It is only required for generating documentation within
-/// Swift files as they usually contain multiple documentable symbols.
+/// Codira files as they usually contain multiple documentable symbols.
 ///
 /// Documentation can fail to be generated for a number of reasons. The most common of which being
 /// that no documentable symbol could be found. In such cases the request will fail with a request

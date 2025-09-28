@@ -13,10 +13,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftSyntax
-import SwiftSyntaxBuilder
-@_spi(Testing) import SwiftSyntaxMacroExpansion
-import SwiftSyntaxMacros
+import CodiraSyntax
+import CodiraSyntaxBuilder
+@_spi(Testing) import CodiraSyntaxMacroExpansion
+import CodiraSyntaxMacros
 
 package enum JavaMethodMacro {}
 

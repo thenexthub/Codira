@@ -15,15 +15,15 @@
 
 package org.code.codekit.ffm;
 
-import com.example.code.MySwiftClass;
+import com.example.code.MyCodiraClass;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIf;
 import org.code.codekit.core.util.PlatformUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.code.codekit.ffm.SwiftRuntime.*;
+import static org.code.codekit.ffm.CodiraRuntime.*;
 
-public class SwiftArenaTest {
+public class CodiraArenaTest {
 
     static boolean isAmd64() {
         return PlatformUtils.isAmd64();
@@ -34,8 +34,8 @@ public class SwiftArenaTest {
     @Test
     @DisabledIf("isAmd64")
     public void arena_releaseClassOnClose_class_ok() {
-        try (var arena = AllocatingSwiftArena.ofConfined()) {
-            var obj = MySwiftClass.init(1, 2, arena);
+        try (var arena = AllocatingCodiraArena.ofConfined()) {
+            var obj = MyCodiraClass.init(1, 2, arena);
 
             retain(obj);
             assertEquals(2, retainCount(obj));

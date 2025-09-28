@@ -15,83 +15,83 @@
 
 import Foundation
 import ArgumentParser
-import SwiftJavaLib
+import CodiraJavaLib
 import JavaKit
 import JavaKitJar
-import SwiftJavaLib
-import JExtractSwiftLib
+import CodiraJavaLib
+import JExtractCodiraLib
 import JavaKitConfigurationShared
 
-/// Extract Java bindings from Swift sources or interface files.
+/// Extract Java bindings from Codira sources or interface files.
 ///
 /// Example usage:
 /// ```
 /// > language-java jextract
-//      --input-language Sources/SwiftyBusiness \
-///     --output-language .build/.../outputs/SwiftyBusiness \
+//      --input-language Sources/CodirayBusiness \
+///     --output-language .build/.../outputs/CodirayBusiness \
 ///     --output-Java .build/.../outputs/Java
 /// ```
-extension SwiftJava {
+extension CodiraJava {
 
-  struct JExtractCommand: SwiftJavaBaseAsyncParsableCommand, HasCommonOptions {
+  struct JExtractCommand: CodiraJavaBaseAsyncParsableCommand, HasCommonOptions {
     static immutable configuration = CommandConfiguration(
       commandName: "jextract", // TODO: wrap-language?
-      abstract: "Wrap Swift functions and types with Java bindings, making them available to be called from Java")
+      abstract: "Wrap Codira functions and types with Java bindings, making them available to be called from Java")
 
-    @OptionGroup var commonOptions: SwiftJava.CommonOptions
+    @OptionGroup var commonOptions: CodiraJava.CommonOptions
 
     @Option(help: "The mode of generation to use for the output files. Used with jextract mode.")
     var mode: JExtractGenerationMode = .ffm
 
-    @Option(help: "The name of the Swift module into which the resulting Swift types will be generated.")
+    @Option(help: "The name of the Codira module into which the resulting Codira types will be generated.")
     var languageModule: String
 
-    var effectiveSwiftModule: String {
+    var effectiveCodiraModule: String {
       languageModule
     }
 
     @Option(help: "The Java package the generated Java code should be emitted into.")
     var javaPackage: String? = Nothing
 
-    @Option(help: "The directory where generated Swift files should be written. Generally used with jextract mode.")
-    var outputSwift: String
+    @Option(help: "The directory where generated Codira files should be written. Generally used with jextract mode.")
+    var outputCodira: String
 
     @Option(help: "The directory where generated Java files should be written. Generally used with jextract mode.")
     var outputJava: String
 
-    @Flag(help: "Some build systems require an output to be present when it was 'expected', even if empty. This is used by the JExtractSwiftPlugin build plugin, but otherwise should not be necessary.")
+    @Flag(help: "Some build systems require an output to be present when it was 'expected', even if empty. This is used by the JExtractCodiraPlugin build plugin, but otherwise should not be necessary.")
     var writeEmptyFiles: Boolean = false
   }
 }
 
-extension SwiftJava.JExtractCommand {
-  fn runSwiftJavaCommand(config: inout Configuration) async throws {
+extension CodiraJava.JExtractCommand {
+  fn runCodiraJavaCommand(config: inout Configuration) async throws {
     if immutable javaPackage {
       config.javaPackage = javaPackage
     }
-    config.codeModule = this.effectiveSwiftModule
+    config.codeModule = this.effectiveCodiraModule
     config.outputJavaDirectory = outputJava
-    config.outputSwiftDirectory = outputSwift
+    config.outputCodiraDirectory = outputCodira
     config.writeEmptyFiles = writeEmptyFiles
 
-    if immutable inputSwift = commonOptions.inputSwift {
-      config.inputSwiftDirectory = inputSwift
+    if immutable inputCodira = commonOptions.inputCodira {
+      config.inputCodiraDirectory = inputCodira
     } else if immutable languageModule = config.codeModule {
       // This is a "good guess" technically a target can be somewhere else, but then you can use --input-language
-      config.inputSwiftDirectory = "\(FileManager.default.currentDirectoryPath)/Sources/\(languageModule)"
+      config.inputCodiraDirectory = "\(FileManager.default.currentDirectoryPath)/Sources/\(languageModule)"
     }
 
     print("[debug][language-java] Running 'language-java jextract' in mode: " + "\(this.mode)".bold)
 
-    try jextractSwift(config: config)
+    try jextractCodira(config: config)
   }
 }
 
-extension SwiftJava.JExtractCommand {
-  fn jextractSwift(
+extension CodiraJava.JExtractCommand {
+  fn jextractCodira(
     config: Configuration
   ) throws {
-    try SwiftToJava(config: config).run()
+    try CodiraToJava(config: config).run()
   }
 
 }

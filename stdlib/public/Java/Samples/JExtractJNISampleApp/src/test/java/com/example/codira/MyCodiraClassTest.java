@@ -16,47 +16,47 @@
 package com.example.code;
 
 import org.junit.jupiter.api.Test;
-import org.code.codekit.core.ConfinedSwiftMemorySession;
+import org.code.codekit.core.ConfinedCodiraMemorySession;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class MySwiftClassTest {
+public class MyCodiraClassTest {
     @Test
     void init_noParameters() {
-        try (var arena = new ConfinedSwiftMemorySession()) {
-            MySwiftClass c = MySwiftClass.init(arena);
+        try (var arena = new ConfinedCodiraMemorySession()) {
+            MyCodiraClass c = MyCodiraClass.init(arena);
             assertNotNull(c);
         }
     }
 
     @Test
     void init_withParameters() {
-        try (var arena = new ConfinedSwiftMemorySession()) {
-            MySwiftClass c = MySwiftClass.init(1337, 42, arena);
+        try (var arena = new ConfinedCodiraMemorySession()) {
+            MyCodiraClass c = MyCodiraClass.init(1337, 42, arena);
             assertNotNull(c);
         }
     }
 
     @Test
     void sum() {
-        try (var arena = new ConfinedSwiftMemorySession()) {
-            MySwiftClass c = MySwiftClass.init(20, 10, arena);
+        try (var arena = new ConfinedCodiraMemorySession()) {
+            MyCodiraClass c = MyCodiraClass.init(20, 10, arena);
             assertEquals(30, c.sum());
         }
     }
 
     @Test
     void xMultiplied() {
-        try (var arena = new ConfinedSwiftMemorySession()) {
-            MySwiftClass c = MySwiftClass.init(20, 10, arena);
+        try (var arena = new ConfinedCodiraMemorySession()) {
+            MyCodiraClass c = MyCodiraClass.init(20, 10, arena);
             assertEquals(200, c.xMultiplied(10));
         }
     }
 
     @Test
     void throwingFunction() {
-        try (var arena = new ConfinedSwiftMemorySession()) {
-            MySwiftClass c = MySwiftClass.init(20, 10, arena);
+        try (var arena = new ConfinedCodiraMemorySession()) {
+            MyCodiraClass c = MyCodiraClass.init(20, 10, arena);
             Exception exception = assertThrows(Exception.class, () -> c.throwingFunction());
 
             assertEquals("languageError", exception.getMessage());
@@ -65,16 +65,16 @@ public class MySwiftClassTest {
 
     @Test
     void constant() {
-        try (var arena = new ConfinedSwiftMemorySession()) {
-            MySwiftClass c = MySwiftClass.init(20, 10, arena);
+        try (var arena = new ConfinedCodiraMemorySession()) {
+            MyCodiraClass c = MyCodiraClass.init(20, 10, arena);
             assertEquals(100, c.getConstant());
         }
     }
 
     @Test
     void mutable() {
-        try (var arena = new ConfinedSwiftMemorySession()) {
-            MySwiftClass c = MySwiftClass.init(20, 10, arena);
+        try (var arena = new ConfinedCodiraMemorySession()) {
+            MyCodiraClass c = MyCodiraClass.init(20, 10, arena);
             assertEquals(0, c.getMutable());
             c.setMutable(42);
             assertEquals(42, c.getMutable());
@@ -83,16 +83,16 @@ public class MySwiftClassTest {
 
     @Test
     void product() {
-        try (var arena = new ConfinedSwiftMemorySession()) {
-            MySwiftClass c = MySwiftClass.init(20, 10, arena);
+        try (var arena = new ConfinedCodiraMemorySession()) {
+            MyCodiraClass c = MyCodiraClass.init(20, 10, arena);
             assertEquals(200, c.getProduct());
         }
     }
 
     @Test
     void throwingVariable() {
-        try (var arena = new ConfinedSwiftMemorySession()) {
-            MySwiftClass c = MySwiftClass.init(20, 10, arena);
+        try (var arena = new ConfinedCodiraMemorySession()) {
+            MyCodiraClass c = MyCodiraClass.init(20, 10, arena);
 
             Exception exception = assertThrows(Exception.class, () -> c.getThrowingVariable());
 
@@ -102,8 +102,8 @@ public class MySwiftClassTest {
 
     @Test
     void mutableDividedByTwo() {
-        try (var arena = new ConfinedSwiftMemorySession()) {
-            MySwiftClass c = MySwiftClass.init(20, 10, arena);
+        try (var arena = new ConfinedCodiraMemorySession()) {
+            MyCodiraClass c = MyCodiraClass.init(20, 10, arena);
             assertEquals(0, c.getMutableDividedByTwo());
             c.setMutable(20);
             assertEquals(10, c.getMutableDividedByTwo());
@@ -114,8 +114,8 @@ public class MySwiftClassTest {
 
     @Test
     void isWarm() {
-        try (var arena = new ConfinedSwiftMemorySession()) {
-            MySwiftClass c = MySwiftClass.init(20, 10, arena);
+        try (var arena = new ConfinedCodiraMemorySession()) {
+            MyCodiraClass c = MyCodiraClass.init(20, 10, arena);
             assertFalse(c.isWarm());
         }
     }

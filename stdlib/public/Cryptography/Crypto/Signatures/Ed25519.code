@@ -78,4 +78,4 @@ extension Curve25519.Signing.PrivateKey: Signer {
         #endif
     }
 }
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

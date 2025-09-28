@@ -4,12 +4,12 @@ add_library(Diagnose STATIC
   DiagnoseCommand.code
   GenericError.code
   IndexCommand.code
-  MergeSwiftFiles.code
+  MergeCodiraFiles.code
   OSLogScraper.code
   ReduceCommand.code
   ReduceFrontendCommand.code
   ReduceSourceKitDRequest.code
-  ReduceSwiftFrontend.code
+  ReduceCodiraFrontend.code
   ReproducerBundle.code
   RequestInfo.code
   RunSourcekitdRequestCommand.code
@@ -17,13 +17,13 @@ add_library(Diagnose STATIC
   SourceKitDRequestExecutor.code
   SourceReducer.code
   StderrStreamConcurrencySafe.code
-  SwiftFrontendCrashScraper.code
-  Toolchain+SwiftFrontend.code
+  CodiraFrontendCrashScraper.code
+  Toolchain+CodiraFrontend.code
   Toolchain+PluginPaths.code
   TraceFromSignpostsCommand.code)
 
 set_target_properties(Diagnose PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Codira_MODULE_DIRECTORY})
 
 target_link_libraries(Diagnose PUBLIC
   BuildSystemIntegration
@@ -31,12 +31,12 @@ target_link_libraries(Diagnose PUBLIC
   SKLogging
   SKOptions
   SourceKitD
-  SwiftExtensions
+  CodiraExtensions
   ToolchainRegistry
   ArgumentParser
-  SwiftSyntax::SwiftIDEUtils
-  SwiftSyntax::SwiftSyntax
-  SwiftSyntax::SwiftParser
+  CodiraSyntax::CodiraIDEUtils
+  CodiraSyntax::CodiraSyntax
+  CodiraSyntax::CodiraParser
   TSCBasic
 )
 

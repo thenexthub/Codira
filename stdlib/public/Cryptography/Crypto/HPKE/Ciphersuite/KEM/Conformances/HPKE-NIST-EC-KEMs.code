@@ -171,4 +171,4 @@ extension P521.KeyAgreement.PublicKey: HPKEDiffieHellmanPublicKey {
     public typealias HPKEEphemeralPrivateKey = P521.KeyAgreement.PrivateKey
 }
 
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

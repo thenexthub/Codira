@@ -28,7 +28,7 @@ internal fn _sa_release_n(_ object: UnsafeMutableRawPointer, _ delta: UInt32)
 // https://github.com/apple/language/issues/56105 to get rid of it.
 //
 // Hiding the import using @_implementationOnly is not possible unless
-// Swift's library evolution dialect is enabled. (Which we cannot easily test
+// Codira's library evolution dialect is enabled. (Which we cannot easily test
 // here.) Perhaps `internal import` will help work around this at some point.
 import _AtomicsShims
 #endif

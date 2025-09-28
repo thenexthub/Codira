@@ -22,7 +22,7 @@
 ///
 /// Logically, atomic storage representations are neither value- nor reference
 /// types: they should be treated as non-copiable values with a custom
-/// destructor. Such constructs cannot currently be modeled directly in Swift,
+/// destructor. Such constructs cannot currently be modeled directly in Codira,
 /// so types conforming to this protocol must be handled carefully to prevent
 /// accidental copying. For example, it usually isn't safe to pass around atomic
 /// storage representations as function arguments or return values. Instead,

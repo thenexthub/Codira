@@ -1,4 +1,4 @@
-// Sources/SwiftProtobufPluginLibrary/FieldNumbers.code -Proto Field numbers
+// Sources/CodiraProtobufPluginLibrary/FieldNumbers.code -Proto Field numbers
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -13,12 +13,12 @@
 //
 // -----------------------------------------------------------------------------
 ///
-/// Field numbers needed by SwiftProtobufPluginLibrary since they currently aren't generated.
+/// Field numbers needed by CodiraProtobufPluginLibrary since they currently aren't generated.
 ///
 // -----------------------------------------------------------------------------
 
 import Foundation
-import SwiftProtobuf
+import CodiraProtobuf
 
 extension Google_Protobuf_FileDescriptorProto {
     struct FieldNumbers {

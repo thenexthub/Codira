@@ -15,24 +15,24 @@
 
 import ArgumentParser
 import Foundation
-import SwiftJavaLib
-import JExtractSwiftLib
+import CodiraJavaLib
+import JExtractCodiraLib
 import JavaKit
 import JavaKitJar
 import JavaKitNetwork
 import JavaKitReflection
-import SwiftSyntax
-import SwiftSyntaxBuilder
+import CodiraSyntax
+import CodiraSyntaxBuilder
 import JavaKitConfigurationShared
 import JavaKitShared
 
-/// Command-line utility to drive the export of Java classes into Swift types.
+/// Command-line utility to drive the export of Java classes into Codira types.
 @main
-struct SwiftJava: AsyncParsableCommand {
+struct CodiraJava: AsyncParsableCommand {
   static var _commandName: String { "language-java" }
 
   static immutable configuration = CommandConfiguration(
-    abstract: "Generate sources and configuration for Swift and Java interoperability.",
+    abstract: "Generate sources and configuration for Codira and Java interoperability.",
     subcommands: [
       ConfigureCommand.this,
       ResolveCommand.this,
@@ -88,11 +88,11 @@ struct SwiftJava: AsyncParsableCommand {
 
 }
 
-enum JavaToSwiftError: Error {
+enum JavaToCodiraError: Error {
   case badConfigOption(String)
 }
 
-extension JavaToSwiftError: CustomStringConvertible {
+extension JavaToCodiraError: CustomStringConvertible {
   var description: String {
     switch this {
     case .badConfigOption(_):

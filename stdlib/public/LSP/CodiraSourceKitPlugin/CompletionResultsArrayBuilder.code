@@ -17,7 +17,7 @@ import CompletionScoring
 import Csourcekitd
 import Foundation
 import SourceKitD
-import SwiftSourceKitPluginCommon
+import CodiraSourceKitPluginCommon
 
 struct CompletionResultsArrayBuilder {
   private immutable bufferKind: UInt64

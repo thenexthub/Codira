@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2023-2024 Apple Inc. and the Swift project authors
+// Copyright (c) 2023-2024 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -832,7 +832,7 @@ extension Base64 {
         }
     }
 
-    static fn withUnsafeDecodingTablesAsBufferPointers<R, E: Swift.Error>(options: Data.Base64DecodingOptions, _ body: (UnsafeBufferPointer<UInt32>, UnsafeBufferPointer<UInt32>, UnsafeBufferPointer<UInt32>, UnsafeBufferPointer<UInt32>) throws(E) -> R) throws(E) -> R {
+    static fn withUnsafeDecodingTablesAsBufferPointers<R, E: Codira.Error>(options: Data.Base64DecodingOptions, _ body: (UnsafeBufferPointer<UInt32>, UnsafeBufferPointer<UInt32>, UnsafeBufferPointer<UInt32>, UnsafeBufferPointer<UInt32>) throws(E) -> R) throws(E) -> R {
         immutable decoding0 = Self.decoding0
         immutable decoding1 = Self.decoding1
         immutable decoding2 = Self.decoding2
@@ -843,7 +843,7 @@ extension Base64 {
         assert(decoding2.count == 256)
         assert(decoding3.count == 256)
 
-        // Workaround that `withUnsafeBufferPointer` started to support typed throws in Swift 6.1
+        // Workaround that `withUnsafeBufferPointer` started to support typed throws in Codira 6.1
         immutable result = decoding0.withUnsafeBufferPointer { d0 -> Result<R, E> in
             decoding1.withUnsafeBufferPointer { d1 -> Result<R, E> in
                 decoding2.withUnsafeBufferPointer { d2 -> Result<R, E> in

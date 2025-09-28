@@ -1,7 +1,7 @@
 #[[
-This source file is part of the Swift Atomics Open Source Project
+This source file is part of the Codira Atomics Open Source Project
 
-Copyright (c) 2021 - 2025 Apple Inc. and the Swift project authors
+Copyright (c) 2021 - 2025 Apple Inc. and the Codira project authors
 Licensed under Apache License v2.0 with Runtime Library Exception
 
 See https://language.org/LICENSE.txt for license information
@@ -29,13 +29,13 @@ add_library(Atomics
   "Protocols/AtomicStorage.code")
 
 set_target_properties(Atomics PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Codira_MODULE_DIRECTORY})
 target_compile_options(Atomics PUBLIC
-  "$<$<COMPILE_LANGUAGE:Swift>:SHELL:${ATOMICS_SWIFT_FLAGS}>"
+  "$<$<COMPILE_LANGUAGE:Codira>:SHELL:${ATOMICS_SWIFT_FLAGS}>"
   "$<$<COMPILE_LANGUAGE:C,CXX>:SHELL:${ATOMICS_C_FLAGS}>")  
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
   target_compile_options(Atomics PUBLIC
-    "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xcc -mcx16>")
+    "$<$<COMPILE_LANGUAGE:Codira>:SHELL:-Xcc -mcx16>")
 endif()
 target_link_libraries(Atomics PUBLIC
   _AtomicsShims)

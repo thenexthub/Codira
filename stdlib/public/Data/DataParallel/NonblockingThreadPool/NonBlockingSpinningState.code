@@ -23,7 +23,7 @@
  *
  */
 
-// TODO: once some version of atomics lands in Swift, refactor this to make it much nicer!
+// TODO: once some version of atomics lands in Codira, refactor this to make it much nicer!
 
 /// A helper that packs the spinning state of the `NonBlockingThreadPool` into 64 bits.
 internal struct NonBlockingSpinningState {

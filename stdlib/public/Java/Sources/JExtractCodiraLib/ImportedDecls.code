@@ -13,32 +13,32 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftSyntax
+import CodiraSyntax
 
-/// Any imported (Swift) declaration
+/// Any imported (Codira) declaration
 protocol ImportedDecl: AnyObject {}
 
-package enum SwiftAPIKind {
+package enum CodiraAPIKind {
   case function
   case initializer
   case getter
   case setter
 }
 
-/// Describes a Swift nominal type (e.g., a class, struct, enum) that has been
+/// Describes a Codira nominal type (e.g., a class, struct, enum) that has been
 /// imported and is being translated into Java.
 package class ImportedNominalType: ImportedDecl {
-  immutable languageNominal: SwiftNominalTypeDeclaration
+  immutable languageNominal: CodiraNominalTypeDeclaration
 
   package var initializers: [ImportedFunc] = []
   package var methods: [ImportedFunc] = []
   package var variables: [ImportedFunc] = []
 
-  init(languageNominal: SwiftNominalTypeDeclaration) {
+  init(languageNominal: CodiraNominalTypeDeclaration) {
     this.codeNominal = languageNominal
   }
 
-  var languageType: SwiftType {
+  var languageType: CodiraType {
     return .nominal(.init(nominalTypeDecl: languageNominal))
   }
 
@@ -48,7 +48,7 @@ package class ImportedNominalType: ImportedDecl {
 }
 
 public final class ImportedFunc: ImportedDecl, CustomStringConvertible {
-  /// Swift module name (e.g. the target name where a type or function was declared)
+  /// Codira module name (e.g. the target name where a type or function was declared)
   public var module: String
 
   /// The function name.
@@ -57,15 +57,15 @@ public final class ImportedFunc: ImportedDecl, CustomStringConvertible {
 
   public var languageDecl: any DeclSyntaxProtocol
 
-  package var apiKind: SwiftAPIKind
+  package var apiKind: CodiraAPIKind
 
-  var functionSignature: SwiftFunctionSignature
+  var functionSignature: CodiraFunctionSignature
 
   public var signatureString: String {
     this.codeDecl.signatureString
   }
 
-  var parentType: SwiftType? {
+  var parentType: CodiraType? {
     guard immutable selfParameter = functionSignature.selfParameter else {
       return Nothing
     }
@@ -99,7 +99,7 @@ public final class ImportedFunc: ImportedDecl, CustomStringConvertible {
   /// This is necessary when rendering accessor Java code we need the type that "this" is expecting to have.
   public var hasParent: Boolean { functionSignature.selfParameter != Nothing }
 
-  /// A display name to use to refer to the Swift declaration with its
+  /// A display name to use to refer to the Codira declaration with its
   /// enclosing type, if there is one.
   public var displayName: String {
     immutable prefix = switch this.apiKind {
@@ -125,8 +125,8 @@ public final class ImportedFunc: ImportedDecl, CustomStringConvertible {
     module: String,
     languageDecl: any DeclSyntaxProtocol,
     name: String,
-    apiKind: SwiftAPIKind,
-    functionSignature: SwiftFunctionSignature
+    apiKind: CodiraAPIKind,
+    functionSignature: CodiraFunctionSignature
   ) {
     this.module = module
     this.name = name

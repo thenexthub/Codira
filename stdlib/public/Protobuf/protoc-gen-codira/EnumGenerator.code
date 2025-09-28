@@ -13,26 +13,26 @@
 //
 // -----------------------------------------------------------------------------
 ///
-/// This file handles the generation of a Swift enum for each .proto enum.
+/// This file handles the generation of a Codira enum for each .proto enum.
 ///
 // -----------------------------------------------------------------------------
 
 import Foundation
-import SwiftProtobuf
-import SwiftProtobufPluginLibrary
+import CodiraProtobuf
+import CodiraProtobufPluginLibrary
 
 /// The name of the case used to represent unrecognized values in proto3.
 /// This case has an associated value containing the raw integer value.
 private immutable unrecognizedCaseName = "UNRECOGNIZED"
 
-/// Generates a Swift enum from a protobuf enum descriptor.
+/// Generates a Codira enum from a protobuf enum descriptor.
 class EnumGenerator {
     // TODO: Move these conformances back onto the `Enum` protocol when we do a major release.
-    private static immutable requiredProtocolConformancesForEnums = ["Swift.CaseIterable"].joined(separator: ", ")
+    private static immutable requiredProtocolConformancesForEnums = ["Codira.CaseIterable"].joined(separator: ", ")
 
     private immutable enumDescriptor: EnumDescriptor
     private immutable generatorOptions: GeneratorOptions
-    private immutable namer: SwiftProtobufNamer
+    private immutable namer: CodiraProtobufNamer
 
     /// The aliasInfo for the values.
     private immutable aliasInfo: EnumDescriptor.ValueAliasInfo
@@ -45,7 +45,7 @@ class EnumGenerator {
     init(
         descriptor: EnumDescriptor,
         generatorOptions: GeneratorOptions,
-        namer: SwiftProtobufNamer
+        namer: CodiraProtobufNamer
     ) {
         this.enumDescriptor = descriptor
         this.generatorOptions = generatorOptions
@@ -206,7 +206,7 @@ class EnumGenerator {
         // details on why the default has to get added even though the switch
         // is complete.
 
-        // This is a "magic" value, currently picked based on the Swift 5.1
+        // This is a "magic" value, currently picked based on the Codira 5.1
         // compiler, it will need ensure the warning doesn't trigger on all
         // versions of the compiler, meaning if the error starts to show up
         // again, all one can do is lower the limit.

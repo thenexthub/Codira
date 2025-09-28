@@ -19,8 +19,8 @@ pluginManagement {
 
 rootProject.name = "language-java"
 
-include "SwiftKitCore"
-include "SwiftKitFFM"
+include "CodiraKitCore"
+include "CodiraKitFFM"
 
 // Include sample apps -- you can run them via `gradle Name:run`
 new File(rootDir, "Samples").listFiles().each {

@@ -15,8 +15,8 @@
 
 #include "_AtomicsShims.h"
 
-// FIXME: These should be static inline header-only shims, but Swift 5.3 doesn't
-// like calls to language_retain_n/language_release_n appearing in Swift code, not
+// FIXME: These should be static inline header-only shims, but Codira 5.3 doesn't
+// like calls to language_retain_n/language_release_n appearing in Codira code, not
 // even when imported through C. (See https://bugs.code.org/browse/SR-13708)
 
 #if defined(__APPLE__) && defined(__MACH__)

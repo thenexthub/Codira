@@ -17,7 +17,7 @@ import Dispatch
 import IndexStoreDB
 import LanguageServerProtocolExtensions
 import SKLogging
-import SwiftExtensions
+import CodiraExtensions
 
 /// `IndexDelegate` for the SourceKit workspace.
 actor SourceKitIndexDelegate: IndexDelegate {

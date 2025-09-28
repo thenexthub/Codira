@@ -21,11 +21,11 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.7.3")
 }
 
-def cleanSwift = tasks.register("cleanSwift", Exec) {
+def cleanCodira = tasks.register("cleanCodira", Exec) {
     workingDir = layout.projectDirectory
     commandLine "language"
     args("package", "clean")
 }
 tasks.clean {
-    dependsOn("cleanSwift")
+    dependsOn("cleanCodira")
 }

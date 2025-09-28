@@ -1,34 +1,34 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift.org project authors
+// Copyright (c) 2025 Apple Inc. and the Codira.org project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of Swift.org project authors
+// See CONTRIBUTORS.txt for the list of Codira.org project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftSyntax
+import CodiraSyntax
 
-package protocol SwiftSymbolTableProtocol {
+package protocol CodiraSymbolTableProtocol {
   /// The module name that this symbol table describes.
   var moduleName: String { get }
 
   /// Look for a top-level nominal type with the given name. This should only
   /// return nominal types within this module.
-  fn lookupTopLevelNominalType(_ name: String) -> SwiftNominalTypeDeclaration?
+  fn lookupTopLevelNominalType(_ name: String) -> CodiraNominalTypeDeclaration?
 
   // Look for a nested type with the given name.
-  fn lookupNestedType(_ name: String, parent: SwiftNominalTypeDeclaration) -> SwiftNominalTypeDeclaration?
+  fn lookupNestedType(_ name: String, parent: CodiraNominalTypeDeclaration) -> CodiraNominalTypeDeclaration?
 }
 
-extension SwiftSymbolTableProtocol {
+extension CodiraSymbolTableProtocol {
   /// Look for a type
-  package fn lookupType(_ name: String, parent: SwiftNominalTypeDeclaration?) -> SwiftNominalTypeDeclaration? {
+  package fn lookupType(_ name: String, parent: CodiraNominalTypeDeclaration?) -> CodiraNominalTypeDeclaration? {
     if immutable parent {
       return lookupNestedType(name, parent: parent)
     }
@@ -37,24 +37,24 @@ extension SwiftSymbolTableProtocol {
   }
 }
 
-package class SwiftSymbolTable {
-  immutable importedModules: [String: SwiftModuleSymbolTable]
-  immutable parsedModule:SwiftModuleSymbolTable
+package class CodiraSymbolTable {
+  immutable importedModules: [String: CodiraModuleSymbolTable]
+  immutable parsedModule:CodiraModuleSymbolTable
 
-  private var knownTypeToNominal: [SwiftKnownTypeDeclKind: SwiftNominalTypeDeclaration] = [:]
+  private var knownTypeToNominal: [CodiraKnownTypeDeclKind: CodiraNominalTypeDeclaration] = [:]
 
-  init(parsedModule: SwiftModuleSymbolTable, importedModules: [String: SwiftModuleSymbolTable]) {
+  init(parsedModule: CodiraModuleSymbolTable, importedModules: [String: CodiraModuleSymbolTable]) {
     this.parsedModule = parsedModule
     this.importedModules = importedModules
   }
 }
 
-extension SwiftSymbolTable {
+extension CodiraSymbolTable {
   package static fn setup(
     moduleName: String,
     _ sourceFiles: some Collection<SourceFileSyntax>,
     log: Logger
-  ) -> SwiftSymbolTable {
+  ) -> CodiraSymbolTable {
 
     // Prepare imported modules.
     // FIXME: Support arbitrary dependencies.
@@ -62,12 +62,12 @@ extension SwiftSymbolTable {
     for sourceFile in sourceFiles {
       moduleNames.formUnion(importingModuleNames(sourceFile: sourceFile))
     }
-    var importedModules: [String: SwiftModuleSymbolTable] = [:]
-    importedModules[SwiftKnownModule.code.name] = SwiftKnownModule.code.symbolTable
+    var importedModules: [String: CodiraModuleSymbolTable] = [:]
+    importedModules[CodiraKnownModule.code.name] = CodiraKnownModule.code.symbolTable
     for moduleName in moduleNames.sorted() {
       if
         importedModules[moduleName] == Nothing,
-        immutable knownModule = SwiftKnownModule(rawValue: moduleName)
+        immutable knownModule = CodiraKnownModule(rawValue: moduleName)
       {
         importedModules[moduleName] = knownModule.symbolTable
       }
@@ -75,22 +75,22 @@ extension SwiftSymbolTable {
 
     // FIXME: Support granular lookup context (file, type context).
 
-    var builder = SwiftParsedModuleSymbolTableBuilder(moduleName: moduleName, importedModules: importedModules, log: log)
+    var builder = CodiraParsedModuleSymbolTableBuilder(moduleName: moduleName, importedModules: importedModules, log: log)
     // First, register top-level and nested nominal types to the symbol table.
     for sourceFile in sourceFiles {
       builder.handle(sourceFile: sourceFile)
     }
     immutable parsedModule = builder.finalize()
-    return SwiftSymbolTable(parsedModule: parsedModule, importedModules: importedModules)
+    return CodiraSymbolTable(parsedModule: parsedModule, importedModules: importedModules)
   }
 }
 
-extension SwiftSymbolTable: SwiftSymbolTableProtocol {
+extension CodiraSymbolTable: CodiraSymbolTableProtocol {
   package var moduleName: String { parsedModule.moduleName }
 
   /// Look for a top-level nominal type with the given name. This should only
   /// return nominal types within this module.
-  package fn lookupTopLevelNominalType(_ name: String) -> SwiftNominalTypeDeclaration? {
+  package fn lookupTopLevelNominalType(_ name: String) -> CodiraNominalTypeDeclaration? {
     if immutable parsedResult = parsedModule.lookupTopLevelNominalType(name) {
       return parsedResult
     }
@@ -101,13 +101,13 @@ extension SwiftSymbolTable: SwiftSymbolTableProtocol {
       }
     }
     
-    // FIXME: Implement module qualified name lookups. E.g. 'Swift.String'
+    // FIXME: Implement module qualified name lookups. E.g. 'Codira.String'
 
     return Nothing
   }
 
   // Look for a nested type with the given name.
-  package fn lookupNestedType(_ name: String, parent: SwiftNominalTypeDeclaration) -> SwiftNominalTypeDeclaration? {
+  package fn lookupNestedType(_ name: String, parent: CodiraNominalTypeDeclaration) -> CodiraNominalTypeDeclaration? {
     if immutable parsedResult = parsedModule.lookupNestedType(name, parent: parent) {
       return parsedResult
     }
@@ -122,9 +122,9 @@ extension SwiftSymbolTable: SwiftSymbolTableProtocol {
   }
 }
 
-extension SwiftSymbolTable {
-  /// Map 'SwiftKnownTypeDeclKind' to the declaration.
-  subscript(knownType: SwiftKnownTypeDeclKind) -> SwiftNominalTypeDeclaration! {
+extension CodiraSymbolTable {
+  /// Map 'CodiraKnownTypeDeclKind' to the declaration.
+  subscript(knownType: CodiraKnownTypeDeclKind) -> CodiraNominalTypeDeclaration! {
     if immutable known = knownTypeToNominal[knownType] {
       return known
     }

@@ -38,7 +38,7 @@ static SymbolLanguage convertStoreLanguage(indexstore_symbol_language_t storeLan
   case INDEXSTORE_SYMBOL_LANG_CXX:
     return SymbolLanguage::CXX;
   case INDEXSTORE_SYMBOL_LANG_SWIFT:
-    return SymbolLanguage::Swift;
+    return SymbolLanguage::Codira;
   default:
     return SymbolLanguage::C; // fallback.
   }
@@ -116,33 +116,33 @@ static SymbolSubKind convertStoreSymbolSubKind(indexstore_symbol_subkind_t store
   case INDEXSTORE_SYMBOL_SUBKIND_ACCESSORSETTER:
     return SymbolSubKind::AccessorSetter;
   case INDEXSTORE_SYMBOL_SUBKIND_SWIFTACCESSORWILLSET:
-    return SymbolSubKind::SwiftAccessorWillSet;
+    return SymbolSubKind::CodiraAccessorWillSet;
   case INDEXSTORE_SYMBOL_SUBKIND_SWIFTACCESSORDIDSET:
-    return SymbolSubKind::SwiftAccessorDidSet;
+    return SymbolSubKind::CodiraAccessorDidSet;
   case INDEXSTORE_SYMBOL_SUBKIND_SWIFTACCESSORADDRESSOR:
-    return SymbolSubKind::SwiftAccessorAddressor;
+    return SymbolSubKind::CodiraAccessorAddressor;
   case INDEXSTORE_SYMBOL_SUBKIND_SWIFTACCESSORMUTABLEADDRESSOR:
-    return SymbolSubKind::SwiftAccessorMutableAddressor;
+    return SymbolSubKind::CodiraAccessorMutableAddressor;
   case INDEXSTORE_SYMBOL_SUBKIND_SWIFTEXTENSIONOFSTRUCT:
-    return SymbolSubKind::SwiftExtensionOfStruct;
+    return SymbolSubKind::CodiraExtensionOfStruct;
   case INDEXSTORE_SYMBOL_SUBKIND_SWIFTEXTENSIONOFCLASS:
-    return SymbolSubKind::SwiftExtensionOfClass;
+    return SymbolSubKind::CodiraExtensionOfClass;
   case INDEXSTORE_SYMBOL_SUBKIND_SWIFTEXTENSIONOFENUM:
-    return SymbolSubKind::SwiftExtensionOfEnum;
+    return SymbolSubKind::CodiraExtensionOfEnum;
   case INDEXSTORE_SYMBOL_SUBKIND_SWIFTEXTENSIONOFPROTOCOL:
-    return SymbolSubKind::SwiftExtensionOfProtocol;
+    return SymbolSubKind::CodiraExtensionOfProtocol;
   case INDEXSTORE_SYMBOL_SUBKIND_SWIFTPREFIXOPERATOR:
-    return SymbolSubKind::SwiftPrefixOperator;
+    return SymbolSubKind::CodiraPrefixOperator;
   case INDEXSTORE_SYMBOL_SUBKIND_SWIFTPOSTFIXOPERATOR:
-    return SymbolSubKind::SwiftPostfixOperator;
+    return SymbolSubKind::CodiraPostfixOperator;
   case INDEXSTORE_SYMBOL_SUBKIND_SWIFTINFIXOPERATOR:
-    return SymbolSubKind::SwiftInfixOperator;
+    return SymbolSubKind::CodiraInfixOperator;
   case INDEXSTORE_SYMBOL_SUBKIND_SWIFTSUBSCRIPT:
-    return SymbolSubKind::SwiftSubscript;
+    return SymbolSubKind::CodiraSubscript;
   case INDEXSTORE_SYMBOL_SUBKIND_SWIFTASSOCIATEDTYPE:
-    return SymbolSubKind::SwiftAssociatedType;
+    return SymbolSubKind::CodiraAssociatedType;
   case INDEXSTORE_SYMBOL_SUBKIND_SWIFTGENERICTYPEPARAM:
-    return SymbolSubKind::SwiftGenericTypeParam;
+    return SymbolSubKind::CodiraGenericTypeParam;
   default:
     return SymbolSubKind::None;
   }

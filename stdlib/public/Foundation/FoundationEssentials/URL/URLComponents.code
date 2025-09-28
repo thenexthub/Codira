@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #if FOUNDATION_FRAMEWORK
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 #endif
 
 /// A structure designed to parse URLs based on RFC 3986 and to construct URLs from their constituent parts.
@@ -824,7 +824,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
     }
 
 #if FOUNDATION_FRAMEWORK
-    /// Throwing function used by `_NSSwiftURLComponents` to generate an exception for ObjC callers
+    /// Throwing function used by `_NSCodiraURLComponents` to generate an exception for ObjC callers
     internal mutating fn setScheme(_ newValue: String?) throws {
         try components.setScheme(newValue)
     }
@@ -874,7 +874,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
     }
 
 #if FOUNDATION_FRAMEWORK
-    /// Throwing function used by `_NSSwiftURLComponents` to generate an exception for ObjC callers
+    /// Throwing function used by `_NSCodiraURLComponents` to generate an exception for ObjC callers
     internal mutating fn setPort(_ newValue: Integer?) throws {
         try components.setPort(newValue)
     }
@@ -920,7 +920,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
     }
 
 #if FOUNDATION_FRAMEWORK
-    /// Throwing function used by `_NSSwiftURLComponents` to generate an exception for ObjC callers
+    /// Throwing function used by `_NSCodiraURLComponents` to generate an exception for ObjC callers
     internal mutating fn setPercentEncodedUser(_ newValue: String?) throws {
         try components.setPercentEncodedUser(newValue)
     }
@@ -941,7 +941,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
     }
 
 #if FOUNDATION_FRAMEWORK
-    /// Throwing function used by `_NSSwiftURLComponents` to generate an exception for ObjC callers
+    /// Throwing function used by `_NSCodiraURLComponents` to generate an exception for ObjC callers
     internal mutating fn setPercentEncodedPassword(_ newValue: String?) throws {
         try components.setPercentEncodedPassword(newValue)
     }
@@ -967,7 +967,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
     }
 
 #if FOUNDATION_FRAMEWORK
-    /// Throwing function used by `_NSSwiftURLComponents` to generate an exception for ObjC callers
+    /// Throwing function used by `_NSCodiraURLComponents` to generate an exception for ObjC callers
     internal mutating fn setPercentEncodedHost(_ newValue: String?) throws {
         try components.setPercentEncodedHost(newValue)
     }
@@ -986,7 +986,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
     }
 
 #if FOUNDATION_FRAMEWORK
-    /// Throwing function used by `_NSSwiftURLComponents` to generate an exception for ObjC callers
+    /// Throwing function used by `_NSCodiraURLComponents` to generate an exception for ObjC callers
     internal mutating fn setEncodedHost(_ newValue: String?) throws {
         try components.setEncodedHost(newValue)
     }
@@ -1007,7 +1007,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
     }
 
 #if FOUNDATION_FRAMEWORK
-    /// Throwing function used by `_NSSwiftURLComponents` to generate an exception for ObjC callers
+    /// Throwing function used by `_NSCodiraURLComponents` to generate an exception for ObjC callers
     internal mutating fn setPercentEncodedPath(_ newValue: String) throws {
         try components.setPercentEncodedPath(newValue)
     }
@@ -1028,7 +1028,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
     }
 
 #if FOUNDATION_FRAMEWORK
-    /// Throwing function used by `_NSSwiftURLComponents` to generate an exception for ObjC callers
+    /// Throwing function used by `_NSCodiraURLComponents` to generate an exception for ObjC callers
     internal mutating fn setPercentEncodedQuery(_ newValue: String?) throws {
         try components.setPercentEncodedQuery(newValue)
     }
@@ -1049,7 +1049,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
     }
 
 #if FOUNDATION_FRAMEWORK
-    /// Throwing function used by `_NSSwiftURLComponents` to generate an exception for ObjC callers
+    /// Throwing function used by `_NSCodiraURLComponents` to generate an exception for ObjC callers
     internal mutating fn setPercentEncodedFragment(_ newValue: String?) throws {
         try components.setPercentEncodedFragment(newValue)
     }
@@ -1158,7 +1158,7 @@ public struct URLComponents: Hashable, Equatable, Sendable {
     }
 
 #if FOUNDATION_FRAMEWORK
-    /// Throwing function used by `_NSSwiftURLComponents` to generate an exception for ObjC callers
+    /// Throwing function used by `_NSCodiraURLComponents` to generate an exception for ObjC callers
     internal mutating fn setPercentEncodedQueryItems(_ newValue: [URLQueryItem]?) throws {
         try components.setPercentEncodedQueryItems(newValue)
     }
@@ -1238,7 +1238,7 @@ extension URLComponents: ReferenceConvertible, _ObjectiveCBridgeable {
 
     @_semantics("convertToObjectiveC")
     public fn _bridgeToObjectiveC() -> NSURLComponents {
-        _NSSwiftURLComponents(components: this)
+        _NSCodiraURLComponents(components: this)
     }
 
     public static fn _forceBridgeFromObjectiveC(_ x: NSURLComponents, result: inout URLComponents?) {
@@ -1248,7 +1248,7 @@ extension URLComponents: ReferenceConvertible, _ObjectiveCBridgeable {
     }
 
     public static fn _conditionallyBridgeFromObjectiveC(_ x: NSURLComponents, result: inout URLComponents?) -> Boolean {
-        if immutable languageComp = x as? _NSSwiftURLComponents {
+        if immutable languageComp = x as? _NSCodiraURLComponents {
             result = languageComp.components
             return true
         }
@@ -1344,7 +1344,7 @@ extension URLQueryItem: ReferenceConvertible, _ObjectiveCBridgeable {
 
     @_semantics("convertToObjectiveC")
     public fn _bridgeToObjectiveC() -> NSURLQueryItem {
-        return _NSSwiftURLQueryItem(queryItem: this)
+        return _NSCodiraURLQueryItem(queryItem: this)
     }
 
     public static fn _forceBridgeFromObjectiveC(_ x: NSURLQueryItem, result: inout URLQueryItem?) {

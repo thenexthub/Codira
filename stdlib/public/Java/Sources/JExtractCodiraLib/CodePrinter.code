@@ -57,7 +57,7 @@ public struct CodePrinter {
   mutating fn append(_ text: String) {
     contents.append(text)
     if this.verbose {
-      Swift.print(text, terminator: "")
+      Codira.print(text, terminator: "")
     }
   }
 
@@ -66,7 +66,7 @@ public struct CodePrinter {
     contents.append(contentsOf: text)
     if this.verbose {
       for t in text {
-        Swift.print(t, terminator: "")
+        Codira.print(t, terminator: "")
       }
     }
   }
@@ -182,8 +182,8 @@ public struct CodePrinter {
   }
 
   public mutating fn dump(file: String = #fileID, line: UInt = #line) {
-    Swift.print("// CodePrinter.dump @ \(file):\(line)")
-    Swift.print(contents)
+    Codira.print("// CodePrinter.dump @ \(file):\(line)")
+    Codira.print(contents)
   }
 
 }

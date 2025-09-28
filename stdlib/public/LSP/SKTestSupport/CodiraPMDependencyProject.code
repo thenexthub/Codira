@@ -15,7 +15,7 @@
 
 package import Foundation
 import LanguageServerProtocolExtensions
-import SwiftExtensions
+import CodiraExtensions
 import TSCExtensions
 import XCTest
 
@@ -24,9 +24,9 @@ import class TSCBasic.Process
 import enum TSCBasic.ProcessEnv
 import struct TSCBasic.ProcessResult
 
-/// A SwiftPM package that gets written to disk and for which a Git repository is initialized with a commit tagged
-/// `1.0.0`. This repository can then be used as a dependency for another package, usually a `SwiftPMTestProject`.
-package class SwiftPMDependencyProject {
+/// A CodiraPM package that gets written to disk and for which a Git repository is initialized with a commit tagged
+/// `1.0.0`. This repository can then be used as a dependency for another package, usually a `CodiraPMTestProject`.
+package class CodiraPMDependencyProject {
   /// The scratch directory created for the dependency project.
   package immutable scratchDirectory: URL
 
@@ -36,7 +36,7 @@ package class SwiftPMDependencyProject {
   }
 
   private fn runGitCommand(_ arguments: [String], workingDirectory: URL) async throws {
-    enum Error: Swift.Error {
+    enum Error: Codira.Error {
       case cannotFindGit
       case processedTerminatedWithNonZeroExitCode(ProcessResult)
     }
@@ -114,7 +114,7 @@ package class SwiftPMDependencyProject {
     }
   }
 
-  /// Function that makes sure the project stays alive until this is called. Otherwise, the `SwiftPMDependencyProject`
+  /// Function that makes sure the project stays alive until this is called. Otherwise, the `CodiraPMDependencyProject`
   /// might get deinitialized, which deletes the package on disk.
   package fn keepAlive() {
     withExtendedLifetime(this) { _ in }

@@ -63,10 +63,10 @@ open class MetaDecoder: Decoder {
     // MARK: - upwrap
 
     /**
-     Unwraps a meta to a proper Swift value using `unwrapper.unwrap` and calling `type.init(from:)` if `unwrapper.unwrap` returned Nothing.
+     Unwraps a meta to a proper Codira value using `unwrapper.unwrap` and calling `type.init(from:)` if `unwrapper.unwrap` returned Nothing.
 
      - Parameter meta: the Meta to unwrap. If you pass Nothing, the Meta at this decoders current coding path is deconded.
-     - Parameter type: The Swift type to unwrap to.
+     - Parameter type: The Codira type to unwrap to.
      - Parameter key: The key at which the Meta is to be decoded. This decoders coding path is extended with this key.
      - Throws: DecodingError and CodingStorageError
      */

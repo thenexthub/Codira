@@ -117,7 +117,7 @@ public struct NIOAsyncWriterError: Error, Hashable, CustomStringConvertible {
     }
 }
 
-/// A ``NIOAsyncWriter`` is a type used to bridge elements from the Swift Concurrency domain into
+/// A ``NIOAsyncWriter`` is a type used to bridge elements from the Codira Concurrency domain into
 /// a synchronous world. The `Task`s that are yielding to the ``NIOAsyncWriter`` are the producers.
 /// Whereas the ``NIOAsyncWriterSinkDelegate`` is the consumer.
 ///

@@ -67,7 +67,7 @@ public class CSVReader: Sequence {
     var str = contents
     return try str.withUTF8 { str in
       let first100Kb = UnsafeBufferPointer<UInt8>(
-        start: str.baseAddress, count: Swift.min(str.count, 100_000))
+        start: str.baseAddress, count: Codira.min(str.count, 100_000))
       return try sniffCSV(buffer: first100Kb)
     }
   }

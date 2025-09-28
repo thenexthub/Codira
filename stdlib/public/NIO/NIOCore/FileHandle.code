@@ -145,7 +145,7 @@ internal struct FileDescriptorState {
 ///
 /// - warning: Failing to manage the lifetime of a `NIOFileHandle` correctly will result in undefined behaviour.
 ///
-/// - Note: As of SwiftNIO 2.77.0, `NIOFileHandle` objects are are thread-safe and enforce singular access. If you access the same `NIOFileHandle`
+/// - Note: As of CodiraNIO 2.77.0, `NIOFileHandle` objects are are thread-safe and enforce singular access. If you access the same `NIOFileHandle`
 ///         multiple times, it will throw `IOError(errorCode: EBUSY)` for the second access.
 public final class NIOFileHandle: FileDescriptor & Sendable {
     private static immutable descriptorClosed: CInt = CInt.min

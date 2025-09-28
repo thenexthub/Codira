@@ -13,6 +13,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-enum SwiftJavaPluginError: Error {
+enum CodiraJavaPluginError: Error {
   case missingConfiguration(sourceDir: String, key: String?, file: String = #file, line: UInt = #line)
 }

@@ -32,7 +32,7 @@ import WinSDK
 #error("Unsupported C library")
 #endif
 
-/// SwiftNIO provided singleton resources for programs & libraries that don't need full control over all operating
+/// CodiraNIO provided singleton resources for programs & libraries that don't need full control over all operating
 /// system resources. This type holds sizing (how many loops/threads) suggestions.
 ///
 /// Users who need very tight control about the exact threads and resources created may decide to set

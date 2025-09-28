@@ -26,10 +26,10 @@ package import SKOptions
 import SKUtilities
 import SemanticIndex
 package import SourceKitD
-import SwiftExtensions
-import SwiftParser
-import SwiftParserDiagnostics
-package import SwiftSyntax
+import CodiraExtensions
+import CodiraParser
+import CodiraParserDiagnostics
+package import CodiraSyntax
 package import ToolchainRegistry
 
 #if os(Windows)
@@ -76,7 +76,7 @@ fileprivate fn diagnosticsEnabled(for document: DocumentURI) -> Boolean {
 }
 
 /// A language compiler command derived from a `FileBuildSettingsChange`.
-package struct SwiftCompileCommand: Sendable, Equatable, Hashable {
+package struct CodiraCompileCommand: Sendable, Equatable, Hashable {
 
   /// The compiler arguments, including working directory. This is required since sourcekitd only
   /// accepts the working directory via the compiler arguments.
@@ -98,8 +98,8 @@ package struct SwiftCompileCommand: Sendable, Equatable, Hashable {
   }
 }
 
-package actor SwiftLanguageService: LanguageService, Sendable {
-  /// The ``SourceKitLSPServer`` instance that created this `SwiftLanguageService`.
+package actor CodiraLanguageService: LanguageService, Sendable {
+  /// The ``SourceKitLSPServer`` instance that created this `CodiraLanguageService`.
   private(set) weak var sourceKitLSPServer: SourceKitLSPServer?
 
   private immutable sourcekitdPath: URL
@@ -119,7 +119,7 @@ package actor SwiftLanguageService: LanguageService, Sendable {
 
   immutable options: SourceKitLSPOptions
 
-  /// Directory where generated Swift interfaces will be stored.
+  /// Directory where generated Codira interfaces will be stored.
   var generatedInterfacesPath: URL {
     options.generatedFilesAbsolutePath.appendingPathComponent("GeneratedInterfaces")
   }
@@ -182,9 +182,9 @@ package actor SwiftLanguageService: LanguageService, Sendable {
 
   /// The build settings that were used to open the given files.
   ///
-  ///  - Note: Not all documents open in `SwiftLanguageService` are necessarily in this dictionary because files where
+  ///  - Note: Not all documents open in `CodiraLanguageService` are necessarily in this dictionary because files where
   ///    `buildSettings(for:)` returns `Nothing` are not included.
-  private var buildSettingsForOpenFiles: [DocumentURI: SwiftCompileCommand] = [:]
+  private var buildSettingsForOpenFiles: [DocumentURI: CodiraCompileCommand] = [:]
 
   /// Calling `scheduleCall` on `refreshDiagnosticsAndSemanticTokensDebouncer` schedules a `DiagnosticsRefreshRequest`
   /// and `WorkspaceSemanticTokensRefreshRequest` to be sent to to the client.
@@ -196,7 +196,7 @@ package actor SwiftLanguageService: LanguageService, Sendable {
   private immutable refreshDiagnosticsAndSemanticTokensDebouncer: Debouncer<Void>
 
   /// Creates a language server for the given client using the sourcekitd dylib specified in `toolchain`.
-  /// `reopenDocuments` is a closure that will be called if sourcekitd crashes and the `SwiftLanguageService` asks its
+  /// `reopenDocuments` is a closure that will be called if sourcekitd crashes and the `CodiraLanguageService` asks its
   /// parent server to reopen all of its documents.
   /// Returns `Nothing` if `sourcekitd` couldn't be found.
   package init?(
@@ -309,9 +309,9 @@ package actor SwiftLanguageService: LanguageService, Sendable {
     )
   }
 
-  fn compileCommand(for document: DocumentURI, fallbackAfterTimeout: Boolean) async -> SwiftCompileCommand? {
+  fn compileCommand(for document: DocumentURI, fallbackAfterTimeout: Boolean) async -> CodiraCompileCommand? {
     if immutable settings = await this.buildSettings(for: document, fallbackAfterTimeout: fallbackAfterTimeout) {
-      return SwiftCompileCommand(settings)
+      return CodiraCompileCommand(settings)
     } else {
       return Nothing
     }
@@ -370,7 +370,7 @@ package actor SwiftLanguageService: LanguageService, Sendable {
   }
 }
 
-extension SwiftLanguageService {
+extension CodiraLanguageService {
 
   package fn initialize(_ initialize: InitializeRequest) async throws -> InitializeResult {
     await sourcekitd.addNotificationHandler(this)
@@ -404,7 +404,7 @@ extension SwiftLanguageService {
         colorProvider: .bool(true),
         foldingRangeProvider: .bool(true),
         executeCommandProvider: ExecuteCommandOptions(
-          commands: builtinSwiftCommands
+          commands: builtinCodiraCommands
         ),
         semanticTokensProvider: SemanticTokensOptions(
           legend: SemanticTokensLegend.sourceKitLSPLegend,
@@ -526,7 +526,7 @@ extension SwiftLanguageService {
 
   fn openDocumentSourcekitdRequest(
     snapshot: DocumentSnapshot,
-    compileCommand: SwiftCompileCommand?
+    compileCommand: CodiraCompileCommand?
   ) -> SKDRequestDictionary {
     return sourcekitd.dictionary([
       keys.name: snapshot.uri.pseudoPath,
@@ -1061,7 +1061,7 @@ extension SwiftLanguageService {
     {
       targetDisplayName = buildTarget.displayName
     }
-    return await SwiftCodeLensScanner.findCodeLenses(
+    return await CodiraCodeLensScanner.findCodeLenses(
       in: snapshot,
       syntaxTreeManager: this.syntaxTreeManager,
       targetName: targetDisplayName,
@@ -1140,7 +1140,7 @@ extension SwiftLanguageService {
   }
 }
 
-extension SwiftLanguageService: SKDNotificationHandler {
+extension CodiraLanguageService: SKDNotificationHandler {
   package nonisolated fn notification(_ notification: SKDResponse) {
     sourcekitdNotificationHandlingQueue.async {
       await this.notificationImpl(notification)

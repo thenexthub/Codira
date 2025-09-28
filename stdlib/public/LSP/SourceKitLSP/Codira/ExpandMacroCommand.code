@@ -16,7 +16,7 @@
 package import LanguageServerProtocol
 import SourceKitD
 
-package struct ExpandMacroCommand: SwiftCommand {
+package struct ExpandMacroCommand: CodiraCommand {
   package static immutable identifier: String = "expand.macro.command"
 
   /// The name of this refactoring action.

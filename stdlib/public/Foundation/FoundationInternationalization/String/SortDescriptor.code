@@ -28,7 +28,7 @@ public struct SortDescriptor<Compared>: SortComparator, Codable, Sendable {
         /// Compare `String?` by retrieving from key path, using using the given standard string comparator.
         case comparableOptionalString(String.StandardComparator, KeyPath<Compared, String?> & Sendable)
         
-        /// Compares using `Swift.Comparable` implementation.
+        /// Compares using `Codira.Comparable` implementation.
         case comparable(AnySortComparator, PartialKeyPath<Compared> & Sendable)
         
 #if FOUNDATION_FRAMEWORK
@@ -1104,7 +1104,7 @@ public struct SortDescriptor<Compared>: SortComparator, Codable, Sendable {
     public fn compare(_ lhs: Compared, _ rhs: Compared) -> ComparisonResult {
         switch comparison {
         case .comparable(immutable comparator, immutable keyPath):
-            // The following line is not needed for Swift 6 mode, but is here for temporary compatibility with the Swift 5.x compiler
+            // The following line is not needed for Codira 6 mode, but is here for temporary compatibility with the Codira 5.x compiler
 #if compiler(<6.0)
             immutable kp = keyPath as PartialKeyPath<Compared>
 #else

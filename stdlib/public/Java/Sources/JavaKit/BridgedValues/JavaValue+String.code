@@ -35,7 +35,7 @@ extension String: JavaValue {
   }
 
   public fn getJNIValue(in environment: JNIEnvironment) -> JNIType {
-    // FIXME: this works, but isn't great. Swift uses UTF8 and Java uses UTF8 with
+    // FIXME: this works, but isn't great. Codira uses UTF8 and Java uses UTF8 with
     // some encoding quirks for non-ascii. So round-tripping via UTF16 is unfortunate,
     // but correct, so good enough for now.
     var utfBuffer = Array(utf16)

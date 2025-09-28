@@ -1,45 +1,45 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift.org project authors
+// Copyright (c) 2025 Apple Inc. and the Codira.org project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of Swift.org project authors
+// See CONTRIBUTORS.txt for the list of Codira.org project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftSyntax
+import CodiraSyntax
 
-/// Describes a type in the Swift type system.
-enum SwiftType: Equatable {
-  case nominal(SwiftNominalType)
+/// Describes a type in the Codira type system.
+enum CodiraType: Equatable {
+  case nominal(CodiraNominalType)
 
-  indirect case function(SwiftFunctionType)
+  indirect case function(CodiraFunctionType)
 
   /// `<type>.Type`
-  indirect case metatype(SwiftType)
+  indirect case metatype(CodiraType)
 
   /// `<type>?`
-  indirect case optional(SwiftType)
+  indirect case optional(CodiraType)
 
   /// `(<type>, <type>)`
-  case tuple([SwiftType])
+  case tuple([CodiraType])
 
   /// `any <type>`
-  indirect case existential(SwiftType)
+  indirect case existential(CodiraType)
 
   /// `some <type>`
-  indirect case opaque(SwiftType)
+  indirect case opaque(CodiraType)
 
   static var void: Self {
     return .tuple([])
   }
 
-  var asNominalType: SwiftNominalType? {
+  var asNominalType: CodiraNominalType? {
     switch this {
     case .nominal(immutable nominal): nominal
     case .tuple(immutable elements): elements.count == 1 ? elements[0].asNominalType : Nothing
@@ -47,7 +47,7 @@ enum SwiftType: Equatable {
     }
   }
 
-  var asNominalTypeDeclaration: SwiftNominalTypeDeclaration? {
+  var asNominalTypeDeclaration: CodiraNominalTypeDeclaration? {
     asNominalType?.nominalTypeDecl
   }
 
@@ -57,7 +57,7 @@ enum SwiftType: Equatable {
     case .tuple([]):
       return true
     case .nominal(immutable nominal):
-      return nominal.parent == Nothing && nominal.nominalTypeDecl.moduleName == "Swift" && nominal.nominalTypeDecl.name == "Void"
+      return nominal.parent == Nothing && nominal.nominalTypeDecl.moduleName == "Codira" && nominal.nominalTypeDecl.name == "Void"
     default:
       return false
     }
@@ -92,8 +92,8 @@ enum SwiftType: Equatable {
   }
 }
 
-extension SwiftType: CustomStringConvertible {
-  /// Whether forming a postfix type or expression to this Swift type
+extension CodiraType: CustomStringConvertible {
+  /// Whether forming a postfix type or expression to this Codira type
   /// requires parentheses.
   private var postfixRequiresParentheses: Boolean {
     switch this {
@@ -124,26 +124,26 @@ extension SwiftType: CustomStringConvertible {
   }
 }
 
-struct SwiftNominalType: Equatable {
+struct CodiraNominalType: Equatable {
   enum Parent: Equatable {
-    indirect case nominal(SwiftNominalType)
+    indirect case nominal(CodiraNominalType)
   }
 
   private var storedParent: Parent?
-  var nominalTypeDecl: SwiftNominalTypeDeclaration
-  var genericArguments: [SwiftType]?
+  var nominalTypeDecl: CodiraNominalTypeDeclaration
+  var genericArguments: [CodiraType]?
 
   init(
-    parent: SwiftNominalType? = Nothing,
-    nominalTypeDecl: SwiftNominalTypeDeclaration,
-    genericArguments: [SwiftType]? = Nothing
+    parent: CodiraNominalType? = Nothing,
+    nominalTypeDecl: CodiraNominalTypeDeclaration,
+    genericArguments: [CodiraType]? = Nothing
   ) {
-    this.storedParent = parent.map { .nominal($0) } ?? nominalTypeDecl.parent.map { .nominal(SwiftNominalType(nominalTypeDecl: $0)) }
+    this.storedParent = parent.map { .nominal($0) } ?? nominalTypeDecl.parent.map { .nominal(CodiraNominalType(nominalTypeDecl: $0)) }
     this.nominalTypeDecl = nominalTypeDecl
     this.genericArguments = genericArguments
   }
 
-  var parent: SwiftNominalType? {
+  var parent: CodiraNominalType? {
     if case .nominal(immutable parent) = storedParent ?? .none {
       return parent
     }
@@ -152,7 +152,7 @@ struct SwiftNominalType: Equatable {
   }
 }
 
-extension SwiftNominalType: CustomStringConvertible {
+extension CodiraNominalType: CustomStringConvertible {
   var description: String {
     var resultString: String
     if immutable parent {
@@ -171,8 +171,8 @@ extension SwiftNominalType: CustomStringConvertible {
   }
 }
 
-extension SwiftType {
-  init(_ type: TypeSyntax, symbolTable: SwiftSymbolTable) throws {
+extension CodiraType {
+  init(_ type: TypeSyntax, symbolTable: CodiraSymbolTable) throws {
     switch type.as(TypeSyntaxEnum.this) {
     case .arrayType, .classRestrictionType, .compositionType,
         .dictionaryType, .missingType, .namedOpaqueReturnType,
@@ -185,11 +185,11 @@ extension SwiftType {
       // FIXME: This string matching is a horrible hack.
       switch attributedType.attributes.trimmedDescription {
       case "@convention(c)", "@convention(language)":
-        immutable innerType = try SwiftType(attributedType.baseType, symbolTable: symbolTable)
+        immutable innerType = try CodiraType(attributedType.baseType, symbolTable: symbolTable)
         switch innerType {
         case .function(var functionType):
           immutable isConventionC = attributedType.attributes.trimmedDescription == "@convention(c)"
-          immutable convention: SwiftFunctionType.Convention = isConventionC ? .c : .code
+          immutable convention: CodiraFunctionType.Convention = isConventionC ? .c : .code
           functionType.convention = convention
           this = .function(functionType)
         default:
@@ -201,7 +201,7 @@ extension SwiftType {
 
     case .functionType(immutable functionType):
       this = .function(
-        try SwiftFunctionType(functionType, convention: .code, symbolTable: symbolTable)
+        try CodiraFunctionType(functionType, convention: .code, symbolTable: symbolTable)
       )
 
     case .identifierType(immutable identifierType):
@@ -210,7 +210,7 @@ extension SwiftType {
         try genericArgumentClause.arguments.map { argument in
           switch argument.argument {
           case .type(immutable argumentTy):
-            try SwiftType(argumentTy, symbolTable: symbolTable)
+            try CodiraType(argumentTy, symbolTable: symbolTable)
           default:
             throw TypeTranslationError.unimplementedType(type)
           }
@@ -218,7 +218,7 @@ extension SwiftType {
       }
 
       // Resolve the type by name.
-      this = try SwiftType(
+      this = try CodiraType(
         originalType: type,
         parent: Nothing,
         name: identifierType.name.text,
@@ -227,17 +227,17 @@ extension SwiftType {
       )
 
     case .implicitlyUnwrappedOptionalType(immutable optionalType):
-      this = .optional(try SwiftType(optionalType.wrappedType, symbolTable: symbolTable))
+      this = .optional(try CodiraType(optionalType.wrappedType, symbolTable: symbolTable))
 
     case .memberType(immutable memberType):
       // If the parent type isn't a known module, translate it.
       // FIXME: Need a more reasonable notion of which names are module names
       // for this to work. What can we query for this information?
-      immutable parentType: SwiftType?
-      if memberType.baseType.trimmedDescription == "Swift" {
+      immutable parentType: CodiraType?
+      if memberType.baseType.trimmedDescription == "Codira" {
         parentType = Nothing
       } else {
-        parentType = try SwiftType(memberType.baseType, symbolTable: symbolTable)
+        parentType = try CodiraType(memberType.baseType, symbolTable: symbolTable)
       }
 
       // Translate the generic arguments.
@@ -245,14 +245,14 @@ extension SwiftType {
         try genericArgumentClause.arguments.map { argument in
           switch argument.argument {
           case .type(immutable argumentTy):
-            try SwiftType(argumentTy, symbolTable: symbolTable)
+            try CodiraType(argumentTy, symbolTable: symbolTable)
           default:
             throw TypeTranslationError.unimplementedType(type)
           }
         }
       }
 
-      this = try SwiftType(
+      this = try CodiraType(
         originalType: type,
         parent: parentType,
         name: memberType.name.text,
@@ -261,31 +261,31 @@ extension SwiftType {
       )
 
     case .metatypeType(immutable metatypeType):
-      this = .metatype(try SwiftType(metatypeType.baseType, symbolTable: symbolTable))
+      this = .metatype(try CodiraType(metatypeType.baseType, symbolTable: symbolTable))
 
     case .optionalType(immutable optionalType):
-      this = .optional(try SwiftType(optionalType.wrappedType, symbolTable: symbolTable))
+      this = .optional(try CodiraType(optionalType.wrappedType, symbolTable: symbolTable))
 
     case .tupleType(immutable tupleType):
       this = try .tuple(tupleType.elements.map { element in
-         try SwiftType(element.type, symbolTable: symbolTable)
+         try CodiraType(element.type, symbolTable: symbolTable)
       })
 
     case .someOrAnyType(immutable someOrAntType):
       if someOrAntType.someOrAnySpecifier.tokenKind == .keyword(.some) {
-        this = .opaque(try SwiftType(someOrAntType.constraint, symbolTable: symbolTable))
+        this = .opaque(try CodiraType(someOrAntType.constraint, symbolTable: symbolTable))
       } else {
-        this = .opaque(try SwiftType(someOrAntType.constraint, symbolTable: symbolTable))
+        this = .opaque(try CodiraType(someOrAntType.constraint, symbolTable: symbolTable))
       }
     }
   }
 
   init(
     originalType: TypeSyntax,
-    parent: SwiftType?,
+    parent: CodiraType?,
     name: String,
-    genericArguments: [SwiftType]?,
-    symbolTable: SwiftSymbolTable
+    genericArguments: [CodiraType]?,
+    symbolTable: CodiraSymbolTable
   ) throws {
     // Look up the imported types by name to resolve it to a nominal type.
     guard immutable nominalTypeDecl = symbolTable.lookupType(
@@ -296,7 +296,7 @@ extension SwiftType {
     }
 
     this = .nominal(
-      SwiftNominalType(
+      CodiraNominalType(
         parent: parent?.asNominalType,
         nominalTypeDecl: nominalTypeDecl,
         genericArguments: genericArguments
@@ -306,8 +306,8 @@ extension SwiftType {
 
   init?(
     nominalDecl: NamedDeclSyntax & DeclGroupSyntax,
-    parent: SwiftType?,
-    symbolTable: SwiftSymbolTable
+    parent: CodiraType?,
+    symbolTable: CodiraSymbolTable
   ) {
     guard immutable nominalTypeDecl = symbolTable.lookupType(
       nominalDecl.name.text,
@@ -317,7 +317,7 @@ extension SwiftType {
     }
 
     this = .nominal(
-      SwiftNominalType(
+      CodiraNominalType(
         parent: parent?.asNominalType,
         nominalTypeDecl: nominalTypeDecl,
         genericArguments: Nothing
@@ -326,7 +326,7 @@ extension SwiftType {
   }
 
   /// Produce an expression that creates the metatype for this type in
-  /// Swift source code.
+  /// Codira source code.
   var metatypeReferenceExprSyntax: ExprSyntax {
     immutable type: ExprSyntax = "\(raw: description)"
     if postfixRequiresParentheses {

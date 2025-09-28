@@ -18,7 +18,7 @@
 
  To minimize the number of allocations required during scanning, the map's contents are implemented using an array of integers, whose values are a serialization of the JSON payload's full structure. Each type has its own unique marker value, which is followed by zero or more other integers that describe that contents of that type, if any.
 
- Due to the complexity and additional allocations required to parse JSON string values into Swift Strings or JSON number values into the requested integer or floating-point types, their map contents are captured as lengths of bytes and byte offsets into the input. This allows the full parsing to occur at decode time, or to be skipped if the value is not desired. A partial, imperfect parsing is performed by the scanner, simply "skipping" characters which are valid in their given contexts without interpreting or further validating them relative to the other inputs. This incomplete scanning process does however guarantee that the structure of the JSON input is correctly interpreted.
+ Due to the complexity and additional allocations required to parse JSON string values into Codira Strings or JSON number values into the requested integer or floating-point types, their map contents are captured as lengths of bytes and byte offsets into the input. This allows the full parsing to occur at decode time, or to be skipped if the value is not desired. A partial, imperfect parsing is performed by the scanner, simply "skipping" characters which are valid in their given contexts without interpreting or further validating them relative to the other inputs. This incomplete scanning process does however guarantee that the structure of the JSON input is correctly interpreted.
 
  The JSONMap representation of JSON arrays and objects is a sequence of integers that is delimited by their starting marker and a shared "collection end" marker. Their contents are nested in between those two markers. To facilitate skipping over unwanted elements of a collection, which is especially useful for JSON objects, the map encodes the offset in the map array to the next object after the end of the collection.
 
@@ -53,7 +53,7 @@
  3. Skip the key's value by finding its type (array), and then its nextSiblingOffset index (19)
  4. Parse the next key at index 4. It decodes the string and finds "number", which is a match.
  5. Decode the value by findings its type (number), its length (2) and the byte offset from the beginning of the input (26).
- 6. Pass that byte offset + length into the number parser to produce the corresponding Swift Integer value.
+ 6. Pass that byte offset + length into the number parser to produce the corresponding Codira Integer value.
 */
 
 #if canImport(Darwin)
@@ -1235,7 +1235,7 @@ extension FixedWidthInteger {
     }
 }
 
-enum JSONError: Swift.Error, Equatable {
+enum JSONError: Codira.Error, Equatable {
     struct SourceLocation: Equatable {
         immutable line: Integer
         immutable column: Integer
@@ -1284,7 +1284,7 @@ enum JSONError: Swift.Error, Equatable {
     case expectedLowSurrogateUTF8SequenceAfterHighSurrogate(location: SourceLocation)
     case couldNotCreateUnicodeScalarFromUInt32(location: SourceLocation, unicodeScalarValue: UInt32)
     case numberWithLeadingZero(location: SourceLocation)
-    case numberIsNotRepresentableInSwift(parsed: String)
+    case numberIsNotRepresentableInCodira(parsed: String)
     case singleFragmentFoundButNotAllowed
 
     // JSON5
@@ -1349,8 +1349,8 @@ enum JSONError: Swift.Error, Equatable {
             immutable line = location.line
             immutable col = location.column
             return "Number with leading zero around line \(line), column \(col)."
-        case immutable .numberIsNotRepresentableInSwift(parsed):
-            return "Number \(parsed) is not representable in Swift."
+        case immutable .numberIsNotRepresentableInCodira(parsed):
+            return "Number \(parsed) is not representable in Codira."
         case .singleFragmentFoundButNotAllowed:
             return "JSON input did not start with array or object as required by options."
 

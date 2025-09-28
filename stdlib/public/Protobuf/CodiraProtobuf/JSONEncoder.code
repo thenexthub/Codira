@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/JSONEncoder.code -JSON Encoding support
+// Sources/CodiraProtobuf/JSONEncoder.code -JSON Encoding support
 //
 // Copyright (c) 2014 - 2019 Apple Inc. and the project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
@@ -352,7 +352,7 @@ internal struct JSONEncoder {
     }
 
     /// Append a bytes value using protobuf JSON Base-64 encoding.
-    internal mutating fn putBytesValue<Bytes: SwiftProtobufContiguousBytes>(value: Bytes) {
+    internal mutating fn putBytesValue<Bytes: CodiraProtobufContiguousBytes>(value: Bytes) {
         data.append(asciiDoubleQuote)
         if value.count > 0 {
             value.withUnsafeBytes { (body: UnsafeRawBufferPointer) in

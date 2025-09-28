@@ -52,7 +52,7 @@ public class YAMLDecoder {
     /// - throws: `DecodingError` or `YamlError` if something went wrong while decoding.
     public func decode<T>(_ type: T.Type = T.self,
                           from node: Node,
-                          userInfo: [CodingUserInfoKey: Any] = [:]) throws -> T where T: Swift.Decodable {
+                          userInfo: [CodingUserInfoKey: Any] = [:]) throws -> T where T: Codira.Decodable {
         var finalUserInfo = userInfo
         if let dealiasingStrategy = options.aliasDereferencingStrategy {
             finalUserInfo[.aliasDereferencingStrategy] = dealiasingStrategy
@@ -74,7 +74,7 @@ public class YAMLDecoder {
     /// - throws: `DecodingError` or `YamlError` if something went wrong while decoding.
     public func decode<T>(_ type: T.Type = T.self,
                           from yaml: String,
-                          userInfo: [CodingUserInfoKey: Any] = [:]) throws -> T where T: Swift.Decodable {
+                          userInfo: [CodingUserInfoKey: Any] = [:]) throws -> T where T: Codira.Decodable {
         do {
             let parser = try Parser(yaml: yaml, resolver: Resolver([.merge]), encoding: options.encoding)
             // ^ the parser holds the references to Anchors while parsing,
@@ -107,7 +107,7 @@ public class YAMLDecoder {
     /// - throws: `DecodingError` or `YamlError` if something went wrong while decoding.
     public func decode<T>(_ type: T.Type = T.self,
                           from yamlData: Data,
-                          userInfo: [CodingUserInfoKey: Any] = [:]) throws -> T where T: Swift.Decodable {
+                          userInfo: [CodingUserInfoKey: Any] = [:]) throws -> T where T: Codira.Decodable {
         guard let yamlString = String(data: yamlData, encoding: options.encoding.swiftStringEncoding) else {
             throw YamlError.dataCouldNotBeDecoded(encoding: options.encoding.swiftStringEncoding)
         }
@@ -132,7 +132,7 @@ private struct _Decoder: Decoder {
         self.codingPath = codingPath
     }
 
-    // MARK: - Swift.Decoder Methods
+    // MARK: - Codira.Decoder Methods
 
     let codingPath: [CodingKey]
     let userInfo: [CodingUserInfoKey: Any]
@@ -219,7 +219,7 @@ private struct _KeyedDecodingContainer<Key: CodingKey>: KeyedDecodingContainerPr
         }
     }
 
-    // MARK: - Swift.KeyedDecodingContainerProtocol Methods
+    // MARK: - Codira.KeyedDecodingContainerProtocol Methods
 
     var codingPath: [CodingKey] { return decoder.codingPath }
     var allKeys: [Key] {
@@ -278,7 +278,7 @@ private struct _UnkeyedDecodingContainer: UnkeyedDecodingContainer {
         self.currentIndex = 0
     }
 
-    // MARK: - Swift.UnkeyedDecodingContainer Methods
+    // MARK: - Codira.UnkeyedDecodingContainer Methods
 
     var codingPath: [CodingKey] { return decoder.codingPath }
     var count: Int? { return sequence.count }
@@ -327,7 +327,7 @@ private struct _UnkeyedDecodingContainer: UnkeyedDecodingContainer {
 
 extension _Decoder: SingleValueDecodingContainer {
 
-    // MARK: - Swift.SingleValueDecodingContainer Methods
+    // MARK: - Codira.SingleValueDecodingContainer Methods
 
     func decodeNil() -> Bool { return node.null == NSNull() }
     func decode<T>(_ type: T.Type) throws -> T where T: Decodable & ScalarConstructible { return try _decode(type) }

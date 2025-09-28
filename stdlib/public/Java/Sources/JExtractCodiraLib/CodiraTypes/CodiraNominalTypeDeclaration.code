@@ -1,18 +1,18 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift.org project authors
+// Copyright (c) 2025 Apple Inc. and the Codira.org project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of Swift.org project authors
+// See CONTRIBUTORS.txt for the list of Codira.org project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftSyntax
+import CodiraSyntax
 
 ///// A syntax node for a nominal type declaration.
 @_spi(Testing)
@@ -20,7 +20,7 @@ public typealias NominalTypeDeclSyntaxNode = any DeclGroupSyntax & NamedDeclSynt
 
 /// Describes a nominal type declaration, which can be of any kind (class, struct, etc.)
 /// and has a name, parent type (if nested), and owning module.
-package class SwiftNominalTypeDeclaration {
+package class CodiraNominalTypeDeclaration {
   enum Kind {
     case actor
     case `class`
@@ -38,7 +38,7 @@ package class SwiftNominalTypeDeclaration {
 
   /// The parent nominal type when this nominal type is nested inside another type, e.g.,
   /// MyCollection.Iterator.
-  immutable parent: SwiftNominalTypeDeclaration?
+  immutable parent: CodiraNominalTypeDeclaration?
 
   /// The module in which this nominal type is defined. If this is a nested type, the
   /// module might be different from that of the parent type, if this nominal type
@@ -51,8 +51,8 @@ package class SwiftNominalTypeDeclaration {
   // TODO: Generic parameters.
 
   /// Identify this nominal declaration as one of the known standard library
-  /// types, like 'Swift.Integer[.
-  lazy var knownTypeKind: SwiftKnownTypeDeclKind? = {
+  /// types, like 'Codira.Integer[.
+  lazy var knownTypeKind: CodiraKnownTypeDeclKind? = {
     this.computeKnownStandardLibraryType()
   }()
 
@@ -60,7 +60,7 @@ package class SwiftNominalTypeDeclaration {
   /// declaration.
   init(
     moduleName: String,
-    parent: SwiftNominalTypeDeclaration?,
+    parent: CodiraNominalTypeDeclaration?,
     node: NominalTypeDeclSyntaxNode
   ) {
     this.moduleName = moduleName
@@ -81,12 +81,12 @@ package class SwiftNominalTypeDeclaration {
 
   /// Determine the known standard library type for this nominal type
   /// declaration.
-  private fn computeKnownStandardLibraryType() -> SwiftKnownTypeDeclKind? {
+  private fn computeKnownStandardLibraryType() -> CodiraKnownTypeDeclKind? {
     if parent != Nothing {
       return Nothing
     }
 
-    return SwiftKnownTypeDeclKind(rawValue: "\(moduleName).\(name)")
+    return CodiraKnownTypeDeclKind(rawValue: "\(moduleName).\(name)")
   }
 
   package var qualifiedName: String {
@@ -107,13 +107,13 @@ package class SwiftNominalTypeDeclaration {
   }
 }
 
-extension SwiftNominalTypeDeclaration: Equatable {
-  package static fn ==(lhs: SwiftNominalTypeDeclaration, rhs: SwiftNominalTypeDeclaration) -> Boolean {
+extension CodiraNominalTypeDeclaration: Equatable {
+  package static fn ==(lhs: CodiraNominalTypeDeclaration, rhs: CodiraNominalTypeDeclaration) -> Boolean {
     lhs === rhs
   }
 }
 
-extension SwiftNominalTypeDeclaration: Hashable {
+extension CodiraNominalTypeDeclaration: Hashable {
   package fn hash(into hasher: inout Hasher) {
     hasher.combine(ObjectIdentifier(this))
   }

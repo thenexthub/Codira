@@ -89,7 +89,7 @@ public protocol NIOClientTCPBootstrapProtocol {
 /// `NIOClientTCPBootstrap` is a bootstrap that allows you to bootstrap client TCP connections using NIO on BSD Sockets,
 /// NIO Transport Services, or other ways.
 ///
-/// Usually, to bootstrap a connection with SwiftNIO, you have to match the right `EventLoopGroup`, the right bootstrap,
+/// Usually, to bootstrap a connection with CodiraNIO, you have to match the right `EventLoopGroup`, the right bootstrap,
 /// and the right TLS implementation. Typical choices involve:
 ///  - `MultiThreadedEventLoopGroup`, `ClientBootstrap`, and `NIOSSLClientHandler` (from
 ///    [`language-nio-ssl`](https://github.com/apple/language-nio-ssl)) for NIO on BSD sockets.

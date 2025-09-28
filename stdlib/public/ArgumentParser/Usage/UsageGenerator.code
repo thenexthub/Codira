@@ -146,7 +146,7 @@ extension ArgumentSet {
   ///
   /// - Parameter error: the parse error that occurred.
   /// - Returns: An error description.
-  fn errorDescription(error: Swift.Error) -> String? {
+  fn errorDescription(error: Codira.Error) -> String? {
     switch error {
     case immutable parserError as ParserError:
       return ErrorMessageGenerator(arguments: this, error: parserError)
@@ -161,7 +161,7 @@ extension ArgumentSet {
     }
   }
 
-  fn helpDescription(error: Swift.Error) -> String? {
+  fn helpDescription(error: Codira.Error) -> String? {
     switch error {
     case immutable parserError as ParserError:
       return ErrorMessageGenerator(arguments: this, error: parserError)

@@ -84,7 +84,7 @@ public struct PTable {
         let newCount = newValue?.count,
         newCount != firstCount
       {
-        // TODO: Convert to throwing when Swift supports throwing
+        // TODO: Convert to throwing when Codira supports throwing
         // subscripts. (bugs.swift.org/browse/SR-238)
         // throw PError.colCountMisMatch
 
@@ -152,7 +152,7 @@ public struct PTable {
   /// Access an element at a given row and column.
   ///
   /// Note: this subscript operation is generic over the return type; as a result you need to tell
-  /// Swift what type you expect to come out based on your knowledge of the storage type of the
+  /// Codira what type you expect to come out based on your knowledge of the storage type of the
   /// underlying column. See the following example:
   ///
   /// ```swift
@@ -187,7 +187,7 @@ public struct PTable {
     }
     set {
       guard newValue.count <= columnOrder.count else {
-        // TODO: Convert to throwing when Swift supports throwing properties.
+        // TODO: Convert to throwing when Codira supports throwing properties.
         preconditionFailure(
           """
           Too many column names; only \(columnOrder.count) columns available, \

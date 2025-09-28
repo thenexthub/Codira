@@ -1,12 +1,12 @@
 ##===----------------------------------------------------------------------===##
 ##
-## This source file is part of the SwiftCrypto open source project
+## This source file is part of the CodiraCrypto open source project
 ##
-## Copyright (c) 2021 Apple Inc. and the SwiftCrypto project authors
+## Copyright (c) 2021 Apple Inc. and the CodiraCrypto project authors
 ## Licensed under Apache License v2.0
 ##
 ## See LICENSE.txt for license information
-## See CONTRIBUTORS.txt for the list of SwiftCrypto project authors
+## See CONTRIBUTORS.txt for the list of CodiraCrypto project authors
 ##
 ## SPDX-License-Identifier: Apache-2.0
 ##
@@ -96,11 +96,11 @@ add_library(Crypto
 )
 
 target_compile_definitions(Crypto PRIVATE
-  "$<$<COMPILE_LANGUAGE:Swift>:CRYPTO_IN_SWIFTPM>")
+  "$<$<COMPILE_LANGUAGE:Codira>:CRYPTO_IN_SWIFTPM>")
 
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   target_compile_definitions(Crypto PRIVATE
-    "$<$<COMPILE_LANGUAGE:Swift>:CRYPTO_IN_SWIFTPM_FORCE_BUILD_API>")
+    "$<$<COMPILE_LANGUAGE:Codira>:CRYPTO_IN_SWIFTPM_FORCE_BUILD_API>")
 endif()
 
 target_include_directories(Crypto PRIVATE
@@ -115,7 +115,7 @@ target_link_libraries(Crypto PUBLIC
   CryptoBoringWrapper)
 target_compile_options(Crypto PRIVATE ${SWIFT_CRYPTO_COMPILE_OPTIONS})
 set_target_properties(Crypto PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Codira_MODULE_DIRECTORY})
 
 _install_target(Crypto)
 set_property(GLOBAL APPEND PROPERTY SWIFT_CRYPTO_EXPORTS Crypto)

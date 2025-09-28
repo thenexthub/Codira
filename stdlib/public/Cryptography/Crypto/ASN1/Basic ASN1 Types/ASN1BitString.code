@@ -69,4 +69,4 @@ extension ASN1.ASN1BitString: ContiguousBytes {
     }
 }
 
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

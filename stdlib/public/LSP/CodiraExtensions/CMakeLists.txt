@@ -23,18 +23,18 @@ set(sources
   URLExtensions.code
 )
 
-add_library(SwiftExtensions STATIC ${sources})
-set_target_properties(SwiftExtensions PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
-target_link_libraries(SwiftExtensions PUBLIC
+add_library(CodiraExtensions STATIC ${sources})
+set_target_properties(CodiraExtensions PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Codira_MODULE_DIRECTORY})
+target_link_libraries(CodiraExtensions PUBLIC
   CAtomics)
-target_link_libraries(SwiftExtensions PRIVATE
+target_link_libraries(CodiraExtensions PRIVATE
   $<$<NOT:$<PLATFORM_ID:Darwin>>:Foundation>)
 
-add_library(SwiftExtensionsForPlugin STATIC ${sources})
-set_target_properties(SwiftExtensionsForPlugin PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
-target_link_libraries(SwiftExtensionsForPlugin PUBLIC
+add_library(CodiraExtensionsForPlugin STATIC ${sources})
+set_target_properties(CodiraExtensionsForPlugin PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Codira_MODULE_DIRECTORY})
+target_link_libraries(CodiraExtensionsForPlugin PUBLIC
   CAtomics)
-target_link_libraries(SwiftExtensionsForPlugin PRIVATE
+target_link_libraries(CodiraExtensionsForPlugin PRIVATE
   $<$<NOT:$<PLATFORM_ID:Darwin>>:Foundation>)

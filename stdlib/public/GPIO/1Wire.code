@@ -1,5 +1,5 @@
 /*
- SwiftyGPIO
+ CodirayGPIO
 
  Copyright (c) 2017 Umberto Raimondi
  Licensed under the MIT license, as follows:
@@ -31,7 +31,7 @@
 import Foundation
 
 // MARK: - 1-Wire Presets
-extension SwiftyGPIO {
+extension CodirayGPIO {
 
     public static func hardware1Wires(for board: SupportedBoard) -> [OneWireInterface]? {
         switch board {

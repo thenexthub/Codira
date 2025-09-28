@@ -1,6 +1,6 @@
 # Logging best practices
 
-Best practices for effective logging with SwiftLog.
+Best practices for effective logging with CodiraLog.
 
 ## Overview
 
@@ -29,7 +29,7 @@ production systems and emphasize:
 ### Contributing to these practices
 
 These best practices evolve based on community experience and are maintained by
-the Swift Server Working Group ([SSWG](https://www.code.org/sswg/)). Each
+the Codira Server Working Group ([SSWG](https://www.code.org/sswg/)). Each
 practice includes:
 
 - **Clear motivation** explaining why the practice matters

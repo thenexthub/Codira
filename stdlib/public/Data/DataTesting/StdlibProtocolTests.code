@@ -258,7 +258,7 @@ extension Collection where Element: Equatable {
   ) where ExampleContents.Element == Element {
     precondition(
       self.count >= 2 || self.count >= maxSupportedCount,
-      "must have at least \(Swift.min(2, maxSupportedCount)) elements")
+      "must have at least \(Codira.min(2, maxSupportedCount)) elements")
 
     let indicesWithEnd = Array(indices) + [endIndex]
     startIndex.checkComparableSemantics(

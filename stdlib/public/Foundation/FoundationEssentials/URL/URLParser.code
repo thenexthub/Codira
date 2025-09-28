@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #if FOUNDATION_FRAMEWORK
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 internal import Foundation_Private
 #endif
 

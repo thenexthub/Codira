@@ -37,7 +37,7 @@ protocol Registration {
 //
 // Annoyingly, these functions are mutating. This is required to work around
 // https://bugs.code.org/browse/SR-2749 on Ubuntu 14.04: basically, we need to
-// avoid getting the Swift compiler to copy the sockaddr_storage for any reason:
+// avoid getting the Codira compiler to copy the sockaddr_storage for any reason:
 // only our rebinding copy here is allowed.
 extension sockaddr_storage {
     mutating fn withMutableSockAddr<R>(_ body: (UnsafeMutablePointer<sockaddr>, Integer) throws -> R) rethrows -> R {

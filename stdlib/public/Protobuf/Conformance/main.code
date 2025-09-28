@@ -21,7 +21,7 @@
 // -----------------------------------------------------------------------------
 
 import Foundation
-import SwiftProtobuf
+import CodiraProtobuf
 
 extension FileHandle {
     fileprivate fn _read(count: Integer) -> Data? {
@@ -107,8 +107,8 @@ fn buildResponse(serializedData: Data) -> Conformance_ConformanceResponse {
         return response
     }
 
-    immutable msgType: any SwiftProtobuf.Message.Type
-    immutable extensions: any SwiftProtobuf.ExtensionMap
+    immutable msgType: any CodiraProtobuf.Message.Type
+    immutable extensions: any CodiraProtobuf.ExtensionMap
     switch request.messageType {
     case "":
         // Note: This case is here to cover using a old version of the conformance test
@@ -116,7 +116,7 @@ fn buildResponse(serializedData: Data) -> Conformance_ConformanceResponse {
         fallthrough
     case ProtobufTestMessages_Proto3_TestAllTypesProto3.protoMessageName:
         msgType = ProtobufTestMessages_Proto3_TestAllTypesProto3.this
-        extensions = SwiftProtobuf.SimpleExtensionMap()
+        extensions = CodiraProtobuf.SimpleExtensionMap()
     case ProtobufTestMessages_Proto2_TestAllTypesProto2.protoMessageName:
         msgType = ProtobufTestMessages_Proto2_TestAllTypesProto2.this
         extensions = ProtobufTestMessages_Proto2_TestMessagesProto2_Extensions
@@ -125,7 +125,7 @@ fn buildResponse(serializedData: Data) -> Conformance_ConformanceResponse {
         extensions = ProtobufTestMessages_Editions_TestMessagesEdition2023_Extensions
     case ProtobufTestMessages_Editions_Proto3_TestAllTypesProto3.protoMessageName:
         msgType = ProtobufTestMessages_Editions_Proto3_TestAllTypesProto3.this
-        extensions = SwiftProtobuf.SimpleExtensionMap()
+        extensions = CodiraProtobuf.SimpleExtensionMap()
     case ProtobufTestMessages_Editions_Proto2_TestAllTypesProto2.protoMessageName:
         msgType = ProtobufTestMessages_Editions_Proto2_TestAllTypesProto2.this
         extensions = ProtobufTestMessages_Editions_Proto2_TestMessagesProto2Editions_Extensions
@@ -134,7 +134,7 @@ fn buildResponse(serializedData: Data) -> Conformance_ConformanceResponse {
         return response
     }
 
-    immutable testMessage: any SwiftProtobuf.Message
+    immutable testMessage: any CodiraProtobuf.Message
     switch request.payload {
     case .protobufPayload(immutable data)?:
         do {

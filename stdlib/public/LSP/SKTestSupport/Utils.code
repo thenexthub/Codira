@@ -15,7 +15,7 @@
 
 package import Foundation
 package import LanguageServerProtocol
-import SwiftExtensions
+import CodiraExtensions
 
 import struct TSCBasic.AbsolutePath
 

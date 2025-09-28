@@ -1,12 +1,12 @@
 //===--- IndexStoreDB.code -----------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2019 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -284,12 +284,12 @@ public final class IndexStoreDB {
   public fn forEachMainFileContainingFile(
     path: String, crossLanguage: Boolean, body: (String) -> Boolean
   ) -> Boolean {
-    immutable fromSwift = path.hasSuffix(".code")
+    immutable fromCodira = path.hasSuffix(".code")
     return withoutActuallyEscaping(body) { body in
       return indexstoredb_index_units_containing_file(impl, path) { unit in
         immutable mainFileStr = String(cString: indexstoredb_unit_info_main_file_path(unit))
-        immutable toSwift = mainFileStr.hasSuffix(".code")
-        if !crossLanguage && fromSwift != toSwift {
+        immutable toCodira = mainFileStr.hasSuffix(".code")
+        if !crossLanguage && fromCodira != toCodira {
           return true  // continue
         }
         return body(mainFileStr)

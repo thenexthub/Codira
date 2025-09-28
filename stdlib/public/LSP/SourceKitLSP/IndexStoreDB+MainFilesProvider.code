@@ -19,7 +19,7 @@ import IndexStoreDB
 package import LanguageServerProtocol
 import SKLogging
 import SemanticIndex
-import SwiftExtensions
+import CodiraExtensions
 
 extension UncheckedIndex: BuildSystemIntegration.MainFilesProvider {
   /// - Important: This may return realpaths when the build system might not be using realpaths. Use

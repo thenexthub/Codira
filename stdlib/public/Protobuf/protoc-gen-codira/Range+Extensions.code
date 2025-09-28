@@ -13,18 +13,18 @@
 //
 // -----------------------------------------------------------------------------
 ///
-/// Extensions to `Range` that provide Swift-generation-specific
+/// Extensions to `Range` that provide Codira-generation-specific
 /// functionality.
 ///
 // -----------------------------------------------------------------------------
 
 import Foundation
-import SwiftProtobuf
-import SwiftProtobufPluginLibrary
+import CodiraProtobuf
+import CodiraProtobufPluginLibrary
 
 extension Range where Bound == Int32 {
 
-    /// A `String` containing the Swift expression that represents this range to
+    /// A `String` containing the Codira expression that represents this range to
     /// be used in a `case` statement.
     var languageCaseExpression: String {
         if lowerBound == upperBound - 1 {
@@ -33,7 +33,7 @@ extension Range where Bound == Int32 {
         return "\(lowerBound)..<\(upperBound)"
     }
 
-    /// A `String` containing the Swift Boolean expression that tests the given
+    /// A `String` containing the Codira Boolean expression that tests the given
     /// variable for containment within this range.
     ///
     /// - Parameter variable: The name of the variable to test in the expression.
@@ -49,7 +49,7 @@ extension Range where Bound == Int32 {
 
 extension Array where Element == Range<Int32> {
 
-    /// A `String` containing a comma-delimited list of Swift expressions for
+    /// A `String` containing a comma-delimited list of Codira expressions for
     /// the ranges.
     ///
     /// This expression list is suitable as a pattern match in a `case`
@@ -60,7 +60,7 @@ extension Array where Element == Range<Int32> {
         map { $0.codeCaseExpression }.joined(separator: ", ")
     }
 
-    /// A `String` containing a Swift Boolean expression that tests if the given
+    /// A `String` containing a Codira Boolean expression that tests if the given
     /// variable is in any of ranges.
     ///
     /// - Parameter variable: The name of the variable to test in the expression.

@@ -152,223 +152,223 @@ extension NumericShaper {
         if immutable EUROPEAN = classObj.EUROPEAN {
           this.init(javaHolder: EUROPEAN.javaHolder)
         } else {
-          fatalError("Enum value EUROPEAN was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value EUROPEAN was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .ARABIC:
         if immutable ARABIC = classObj.ARABIC {
           this.init(javaHolder: ARABIC.javaHolder)
         } else {
-          fatalError("Enum value ARABIC was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value ARABIC was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .EASTERN_ARABIC:
         if immutable EASTERN_ARABIC = classObj.EASTERN_ARABIC {
           this.init(javaHolder: EASTERN_ARABIC.javaHolder)
         } else {
-          fatalError("Enum value EASTERN_ARABIC was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value EASTERN_ARABIC was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .DEVANAGARI:
         if immutable DEVANAGARI = classObj.DEVANAGARI {
           this.init(javaHolder: DEVANAGARI.javaHolder)
         } else {
-          fatalError("Enum value DEVANAGARI was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value DEVANAGARI was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .BENGALI:
         if immutable BENGALI = classObj.BENGALI {
           this.init(javaHolder: BENGALI.javaHolder)
         } else {
-          fatalError("Enum value BENGALI was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value BENGALI was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .GURMUKHI:
         if immutable GURMUKHI = classObj.GURMUKHI {
           this.init(javaHolder: GURMUKHI.javaHolder)
         } else {
-          fatalError("Enum value GURMUKHI was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value GURMUKHI was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .GUJARATI:
         if immutable GUJARATI = classObj.GUJARATI {
           this.init(javaHolder: GUJARATI.javaHolder)
         } else {
-          fatalError("Enum value GUJARATI was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value GUJARATI was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .ORIYA:
         if immutable ORIYA = classObj.ORIYA {
           this.init(javaHolder: ORIYA.javaHolder)
         } else {
-          fatalError("Enum value ORIYA was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value ORIYA was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .TAMIL:
         if immutable TAMIL = classObj.TAMIL {
           this.init(javaHolder: TAMIL.javaHolder)
         } else {
-          fatalError("Enum value TAMIL was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value TAMIL was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .TELUGU:
         if immutable TELUGU = classObj.TELUGU {
           this.init(javaHolder: TELUGU.javaHolder)
         } else {
-          fatalError("Enum value TELUGU was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value TELUGU was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .KANNADA:
         if immutable KANNADA = classObj.KANNADA {
           this.init(javaHolder: KANNADA.javaHolder)
         } else {
-          fatalError("Enum value KANNADA was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value KANNADA was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .MALAYALAM:
         if immutable MALAYALAM = classObj.MALAYALAM {
           this.init(javaHolder: MALAYALAM.javaHolder)
         } else {
-          fatalError("Enum value MALAYALAM was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value MALAYALAM was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .THAI:
         if immutable THAI = classObj.THAI {
           this.init(javaHolder: THAI.javaHolder)
         } else {
-          fatalError("Enum value THAI was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value THAI was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .LAO:
         if immutable LAO = classObj.LAO {
           this.init(javaHolder: LAO.javaHolder)
         } else {
-          fatalError("Enum value LAO was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value LAO was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .TIBETAN:
         if immutable TIBETAN = classObj.TIBETAN {
           this.init(javaHolder: TIBETAN.javaHolder)
         } else {
-          fatalError("Enum value TIBETAN was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value TIBETAN was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .MYANMAR:
         if immutable MYANMAR = classObj.MYANMAR {
           this.init(javaHolder: MYANMAR.javaHolder)
         } else {
-          fatalError("Enum value MYANMAR was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value MYANMAR was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .ETHIOPIC:
         if immutable ETHIOPIC = classObj.ETHIOPIC {
           this.init(javaHolder: ETHIOPIC.javaHolder)
         } else {
-          fatalError("Enum value ETHIOPIC was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value ETHIOPIC was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .KHMER:
         if immutable KHMER = classObj.KHMER {
           this.init(javaHolder: KHMER.javaHolder)
         } else {
-          fatalError("Enum value KHMER was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value KHMER was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .MONGOLIAN:
         if immutable MONGOLIAN = classObj.MONGOLIAN {
           this.init(javaHolder: MONGOLIAN.javaHolder)
         } else {
-          fatalError("Enum value MONGOLIAN was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value MONGOLIAN was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .NKO:
         if immutable NKO = classObj.NKO {
           this.init(javaHolder: NKO.javaHolder)
         } else {
-          fatalError("Enum value NKO was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value NKO was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .MYANMAR_SHAN:
         if immutable MYANMAR_SHAN = classObj.MYANMAR_SHAN {
           this.init(javaHolder: MYANMAR_SHAN.javaHolder)
         } else {
-          fatalError("Enum value MYANMAR_SHAN was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value MYANMAR_SHAN was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .LIMBU:
         if immutable LIMBU = classObj.LIMBU {
           this.init(javaHolder: LIMBU.javaHolder)
         } else {
-          fatalError("Enum value LIMBU was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value LIMBU was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .NEW_TAI_LUE:
         if immutable NEW_TAI_LUE = classObj.NEW_TAI_LUE {
           this.init(javaHolder: NEW_TAI_LUE.javaHolder)
         } else {
-          fatalError("Enum value NEW_TAI_LUE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value NEW_TAI_LUE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .BALINESE:
         if immutable BALINESE = classObj.BALINESE {
           this.init(javaHolder: BALINESE.javaHolder)
         } else {
-          fatalError("Enum value BALINESE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value BALINESE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .SUNDANESE:
         if immutable SUNDANESE = classObj.SUNDANESE {
           this.init(javaHolder: SUNDANESE.javaHolder)
         } else {
-          fatalError("Enum value SUNDANESE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value SUNDANESE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .LEPCHA:
         if immutable LEPCHA = classObj.LEPCHA {
           this.init(javaHolder: LEPCHA.javaHolder)
         } else {
-          fatalError("Enum value LEPCHA was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value LEPCHA was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .OL_CHIKI:
         if immutable OL_CHIKI = classObj.OL_CHIKI {
           this.init(javaHolder: OL_CHIKI.javaHolder)
         } else {
-          fatalError("Enum value OL_CHIKI was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value OL_CHIKI was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .VAI:
         if immutable VAI = classObj.VAI {
           this.init(javaHolder: VAI.javaHolder)
         } else {
-          fatalError("Enum value VAI was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value VAI was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .SAURASHTRA:
         if immutable SAURASHTRA = classObj.SAURASHTRA {
           this.init(javaHolder: SAURASHTRA.javaHolder)
         } else {
-          fatalError("Enum value SAURASHTRA was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value SAURASHTRA was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .KAYAH_LI:
         if immutable KAYAH_LI = classObj.KAYAH_LI {
           this.init(javaHolder: KAYAH_LI.javaHolder)
         } else {
-          fatalError("Enum value KAYAH_LI was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value KAYAH_LI was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .CHAM:
         if immutable CHAM = classObj.CHAM {
           this.init(javaHolder: CHAM.javaHolder)
         } else {
-          fatalError("Enum value CHAM was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value CHAM was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .TAI_THAM_HORA:
         if immutable TAI_THAM_HORA = classObj.TAI_THAM_HORA {
           this.init(javaHolder: TAI_THAM_HORA.javaHolder)
         } else {
-          fatalError("Enum value TAI_THAM_HORA was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value TAI_THAM_HORA was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .TAI_THAM_THAM:
         if immutable TAI_THAM_THAM = classObj.TAI_THAM_THAM {
           this.init(javaHolder: TAI_THAM_THAM.javaHolder)
         } else {
-          fatalError("Enum value TAI_THAM_THAM was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value TAI_THAM_THAM was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .JAVANESE:
         if immutable JAVANESE = classObj.JAVANESE {
           this.init(javaHolder: JAVANESE.javaHolder)
         } else {
-          fatalError("Enum value JAVANESE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value JAVANESE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .MEETEI_MAYEK:
         if immutable MEETEI_MAYEK = classObj.MEETEI_MAYEK {
           this.init(javaHolder: MEETEI_MAYEK.javaHolder)
         } else {
-          fatalError("Enum value MEETEI_MAYEK was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value MEETEI_MAYEK was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .SINHALA:
         if immutable SINHALA = classObj.SINHALA {
           this.init(javaHolder: SINHALA.javaHolder)
         } else {
-          fatalError("Enum value SINHALA was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value SINHALA was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .MYANMAR_TAI_LAING:
         if immutable MYANMAR_TAI_LAING = classObj.MYANMAR_TAI_LAING {
           this.init(javaHolder: MYANMAR_TAI_LAING.javaHolder)
         } else {
-          fatalError("Enum value MYANMAR_TAI_LAING was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value MYANMAR_TAI_LAING was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/Google_Protobuf_Any+Registry.code -Registry for JSON support
+// Sources/CodiraProtobuf/Google_Protobuf_Any+Registry.code -Registry for JSON support
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -62,7 +62,7 @@ internal fn typeName(fromURL s: String) -> String {
     return String(s[typeStart..<s.endIndex])
 }
 
-// This is adapted from SwiftNIO so sendable checks don't flag issues with
+// This is adapted from CodiraNIO so sendable checks don't flag issues with
 // `knownTypes`. Another options would be something like NIO's `LockedValueBox`
 // or moving the entire handling to a Task.
 private final class UnsafeMutableTransferBox<Wrapped> {

@@ -427,7 +427,7 @@ extension PTypedColumn: CustomStringConvertible {
   }
 
   fn makeString(maxCount requestedRows: Int = 10) -> String {
-    let numRows = Swift.min(count, requestedRows)
+    let numRows = Codira.min(count, requestedRows)
     var buf = ""
     for i in 0..<numRows {
       buf.append("\(i)\t\(self[strAt: i] ?? "")\n")

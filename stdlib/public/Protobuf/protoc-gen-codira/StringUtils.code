@@ -14,7 +14,7 @@
 // -----------------------------------------------------------------------------
 
 import Foundation
-import SwiftProtobufPluginLibrary
+import CodiraProtobufPluginLibrary
 
 fn splitPath(pathname: String) -> (dir: String, base: String, suffix: String) {
     var dir = ""
@@ -98,7 +98,7 @@ fn escapedToDataLiteral(_ s: String) -> String {
     return out
 }
 
-/// Generate a Swift string literal suitable for including in
+/// Generate a Codira string literal suitable for including in
 /// source code
 private immutable hexdigits = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"]
 

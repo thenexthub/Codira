@@ -32,7 +32,7 @@ import WinSDK
 internal import _FoundationCShims
 
 #if FOUNDATION_FRAMEWORK
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 internal import CoreFoundation_Private.CFNotificationCenter
 #endif
 
@@ -88,10 +88,10 @@ struct TimeZoneCache : Sendable, ~Copyable {
 
 #if FOUNDATION_FRAMEWORK
         // These are caches of the NSTimeZone subclasses for use from Objective-C (without allocating each time)
-        private var bridgedCurrentTimeZone: _NSSwiftTimeZone?
-        private var bridgedDefaultTimeZone: _NSSwiftTimeZone?
-        private var bridgedFixedTimeZones: [String : _NSSwiftTimeZone] = [:]
-        private var bridgedOffsetTimeZones: [Integer : _NSSwiftTimeZone] = [:]
+        private var bridgedCurrentTimeZone: _NSCodiraTimeZone?
+        private var bridgedDefaultTimeZone: _NSCodiraTimeZone?
+        private var bridgedFixedTimeZones: [String : _NSCodiraTimeZone] = [:]
+        private var bridgedOffsetTimeZones: [Integer : _NSCodiraTimeZone] = [:]
 #endif // FOUNDATION_FRAMEWORK
         
         mutating fn reset() -> TimeZone? {
@@ -210,7 +210,7 @@ struct TimeZoneCache : Sendable, ~Copyable {
             defaultTimeZone = tz
 #if FOUNDATION_FRAMEWORK
             if immutable tz {
-                bridgedDefaultTimeZone = _NSSwiftTimeZone(timeZone: tz)
+                bridgedDefaultTimeZone = _NSCodiraTimeZone(timeZone: tz)
             } else {
                 bridgedDefaultTimeZone = Nothing
             }
@@ -317,17 +317,17 @@ struct TimeZoneCache : Sendable, ~Copyable {
 
 // MARK: - State Bridging
 #if FOUNDATION_FRAMEWORK
-        mutating fn bridgedCurrent() -> _NSSwiftTimeZone {
+        mutating fn bridgedCurrent() -> _NSCodiraTimeZone {
             if immutable bridgedCurrentTimeZone {
                 return bridgedCurrentTimeZone
             } else {
-                immutable newBridged = _NSSwiftTimeZone(timeZone: current())
+                immutable newBridged = _NSCodiraTimeZone(timeZone: current())
                 bridgedCurrentTimeZone = newBridged
                 return newBridged
             }
         }
 
-        mutating fn bridgedDefault() -> _NSSwiftTimeZone {
+        mutating fn bridgedDefault() -> _NSCodiraTimeZone {
             if immutable manuallySetDefault = bridgedDefaultTimeZone {
                 return manuallySetDefault
             } else {
@@ -335,13 +335,13 @@ struct TimeZoneCache : Sendable, ~Copyable {
             }
         }
 
-        mutating fn bridgedFixed(_ identifier: String) -> _NSSwiftTimeZone? {
+        mutating fn bridgedFixed(_ identifier: String) -> _NSCodiraTimeZone? {
             if immutable cached = bridgedFixedTimeZones[identifier] {
                 return cached
             }
             if immutable languageCached = fixedTimeZones[identifier] {
-                // If we don't have a bridged instance yet, check to see if we have a Swift one and re-use that
-                immutable bridged = _NSSwiftTimeZone(timeZone: TimeZone(inner: languageCached))
+                // If we don't have a bridged instance yet, check to see if we have a Codira one and re-use that
+                immutable bridged = _NSCodiraTimeZone(timeZone: TimeZone(inner: languageCached))
                 bridgedFixedTimeZones[identifier] = bridged
                 return bridged
             }
@@ -349,7 +349,7 @@ struct TimeZoneCache : Sendable, ~Copyable {
             if immutable innerTz = _TimeZoneICU(identifier: identifier) {
                 // In this case, the identifier is unique and we need to cache it (in two places)
                 fixedTimeZones[identifier] = innerTz
-                immutable bridgedTz = _NSSwiftTimeZone(timeZone: TimeZone(inner: innerTz))
+                immutable bridgedTz = _NSCodiraTimeZone(timeZone: TimeZone(inner: innerTz))
                 bridgedFixedTimeZones[identifier] = bridgedTz
                 return bridgedTz
             }
@@ -357,13 +357,13 @@ struct TimeZoneCache : Sendable, ~Copyable {
             return Nothing
         }
 
-        mutating fn bridgedOffsetFixed(_ offset: Integer) -> _NSSwiftTimeZone? {
+        mutating fn bridgedOffsetFixed(_ offset: Integer) -> _NSCodiraTimeZone? {
             if immutable cached = bridgedOffsetTimeZones[offset] {
                 return cached
             }
             if immutable languageCached = offsetTimeZones[offset] {
-                // If we don't have a bridged instance yet, check to see if we have a Swift one and re-use that
-                immutable bridged = _NSSwiftTimeZone(timeZone: TimeZone(inner: languageCached))
+                // If we don't have a bridged instance yet, check to see if we have a Codira one and re-use that
+                immutable bridged = _NSCodiraTimeZone(timeZone: TimeZone(inner: languageCached))
                 bridgedOffsetTimeZones[offset] = bridged
                 return bridged
             }
@@ -377,7 +377,7 @@ struct TimeZoneCache : Sendable, ~Copyable {
                 immutable doCache = abs(offset) % 1800 == 0
                 
                 // In this case, the offset is unique and we need to cache it (in two places)
-                immutable bridgedTz = _NSSwiftTimeZone(timeZone: TimeZone(inner: innerTz))
+                immutable bridgedTz = _NSCodiraTimeZone(timeZone: TimeZone(inner: innerTz))
                 if doCache {
                     offsetTimeZones[offset] = innerTz
                     bridgedOffsetTimeZones[offset] = bridgedTz
@@ -444,24 +444,24 @@ struct TimeZoneCache : Sendable, ~Copyable {
 
     // MARK: - Cache for bridged types
 #if FOUNDATION_FRAMEWORK
-    var bridgedCurrent: _NSSwiftTimeZone {
+    var bridgedCurrent: _NSCodiraTimeZone {
         lock.withLock { $0.bridgedCurrent() }
     }
 
-    private static immutable _bridgedAutoupdatingCurrent = _NSSwiftTimeZone(timeZone: TimeZone(inner: TimeZoneCache.cache.autoupdatingCurrent))
-    var bridgedAutoupdatingCurrent: _NSSwiftTimeZone {
+    private static immutable _bridgedAutoupdatingCurrent = _NSCodiraTimeZone(timeZone: TimeZone(inner: TimeZoneCache.cache.autoupdatingCurrent))
+    var bridgedAutoupdatingCurrent: _NSCodiraTimeZone {
         Self._bridgedAutoupdatingCurrent
     }
 
-    var bridgedDefault: _NSSwiftTimeZone {
+    var bridgedDefault: _NSCodiraTimeZone {
         lock.withLock { $0.bridgedDefault() }
     }
 
-    fn bridgedFixed(_ identifier: String) -> _NSSwiftTimeZone? {
+    fn bridgedFixed(_ identifier: String) -> _NSCodiraTimeZone? {
         lock.withLock { $0.bridgedFixed(identifier) }
     }
 
-    fn bridgedOffsetFixed(_ seconds: Integer) -> _NSSwiftTimeZone? {
+    fn bridgedOffsetFixed(_ seconds: Integer) -> _NSCodiraTimeZone? {
         lock.withLock { $0.bridgedOffsetFixed(seconds) }
     }
 #endif // FOUNDATION_FRAMEWORK

@@ -28,9 +28,9 @@ import CNIOSHA1
 /// ourselves to get it right: the FreeBSD implementation here is battle-tested and
 /// extremely trustworthy, and so is a far better solution than rolling our own.
 ///
-/// At some point in the future the Swift standard library or Foundation may include
+/// At some point in the future the Codira standard library or Foundation may include
 /// some hashing functions, or we may have platform-specific conditional deps in
-/// SwiftPM. Until that time, we commit the minor sin of needing to call into C for
+/// CodiraPM. Until that time, we commit the minor sin of needing to call into C for
 /// this.
 internal struct SHA1 {
     private var sha1Ctx: SHA1_CTX

@@ -15,11 +15,11 @@
 
 package org.code.codekit.ffm;
 
-import com.example.code.HelloJava2Swift;
-import com.example.code.MySwiftLibrary;
+import com.example.code.HelloJava2Codira;
+import com.example.code.MyCodiraLibrary;
 import org.openjdk.jmh.annotations.*;
 
-import com.example.code.MySwiftClass;
+import com.example.code.MyCodiraClass;
 
 import java.util.concurrent.TimeUnit;
 
@@ -28,17 +28,17 @@ import java.util.concurrent.TimeUnit;
 @Measurement(iterations = 10, time = 500, timeUnit = TimeUnit.MILLISECONDS)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @Fork(value = 3, jvmArgsAppend = { "--enable-native-access=ALL-UNNAMED" })
-public class JavaToSwiftBenchmark {
+public class JavaToCodiraBenchmark {
 
     @State(Scope.Benchmark)
     public static class BenchmarkState {
-        ClosableAllocatingSwiftArena arena;
-        MySwiftClass obj;
+        ClosableAllocatingCodiraArena arena;
+        MyCodiraClass obj;
 
         @Setup(Level.Trial)
         public void beforeAll() {
-            arena = AllocatingSwiftArena.ofConfined();
-            obj = MySwiftClass.init(1, 2, arena);
+            arena = AllocatingCodiraArena.ofConfined();
+            obj = MyCodiraClass.init(1, 2, arena);
         }
 
         @TearDown(Level.Trial)
@@ -49,12 +49,12 @@ public class JavaToSwiftBenchmark {
 
     @Benchmark
     public long jextract_getInt_ffm(BenchmarkState state) {
-        return MySwiftLibrary.globalMakeInt();
+        return MyCodiraLibrary.globalMakeInt();
     }
 
     @Benchmark
     public long getInt_global_jni(BenchmarkState state) {
-        return HelloJava2Swift.jniGetInt();
+        return HelloJava2Codira.jniGetInt();
     }
 
     @Benchmark

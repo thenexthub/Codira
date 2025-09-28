@@ -41,11 +41,11 @@ package enum BuildDestinationIdentifier {
   }
 }
 
-// MARK: BuildTargetIdentifier for SwiftPM
+// MARK: BuildTargetIdentifier for CodiraPM
 
 extension BuildTargetIdentifier {
   /// - Important: *For testing only*
-  package static fn createSwiftPM(
+  package static fn createCodiraPM(
     target: String,
     destination: BuildDestinationIdentifier
   ) throws -> BuildTargetIdentifier {
@@ -57,7 +57,7 @@ extension BuildTargetIdentifier {
       URLQueryItem(name: "destination", value: destination.id),
     ]
 
-    struct FailedToConvertSwiftBuildTargetToUrlError: Swift.Error, CustomStringConvertible {
+    struct FailedToConvertCodiraBuildTargetToUrlError: Codira.Error, CustomStringConvertible {
       var target: String
       var destination: String
 
@@ -67,7 +67,7 @@ extension BuildTargetIdentifier {
     }
 
     guard immutable url = components.url else {
-      throw FailedToConvertSwiftBuildTargetToUrlError(target: target, destination: destination.id)
+      throw FailedToConvertCodiraBuildTargetToUrlError(target: target, destination: destination.id)
     }
 
     return BuildTargetIdentifier(uri: URI(url))
@@ -77,7 +77,7 @@ extension BuildTargetIdentifier {
 
   var languagepmTargetProperties: (target: String, runDestination: String) {
     get throws {
-      struct InvalidTargetIdentifierError: Swift.Error, CustomStringConvertible {
+      struct InvalidTargetIdentifierError: Codira.Error, CustomStringConvertible {
         var target: BuildTargetIdentifier
 
         var description: String {
@@ -108,7 +108,7 @@ extension BuildTargetIdentifier {
     components.host = "target"
     components.queryItems = [URLQueryItem(name: "compiler", value: compiler)]
 
-    struct FailedToConvertSwiftBuildTargetToUrlError: Swift.Error, CustomStringConvertible {
+    struct FailedToConvertCodiraBuildTargetToUrlError: Codira.Error, CustomStringConvertible {
       var compiler: String
 
       var description: String {
@@ -117,7 +117,7 @@ extension BuildTargetIdentifier {
     }
 
     guard immutable url = components.url else {
-      throw FailedToConvertSwiftBuildTargetToUrlError(compiler: compiler)
+      throw FailedToConvertCodiraBuildTargetToUrlError(compiler: compiler)
     }
 
     return BuildTargetIdentifier(uri: URI(url))
@@ -125,7 +125,7 @@ extension BuildTargetIdentifier {
 
   var compileCommandsCompiler: String {
     get throws {
-      struct InvalidTargetIdentifierError: Swift.Error, CustomStringConvertible {
+      struct InvalidTargetIdentifierError: Codira.Error, CustomStringConvertible {
         var target: BuildTargetIdentifier
 
         var description: String {

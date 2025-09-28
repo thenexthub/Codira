@@ -208,4 +208,4 @@ extension ${CURVE}.Signing.PublicKey: DataValidator {
 
 % end
 
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

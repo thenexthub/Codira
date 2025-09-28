@@ -1,23 +1,23 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2023 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
 package import LanguageServerProtocol
 import SKLogging
 import SourceKitD
-import SwiftIDEUtils
-import SwiftParser
-import SwiftSyntax
+import CodiraIDEUtils
+import CodiraParser
+import CodiraSyntax
 
-extension SwiftLanguageService {
+extension CodiraLanguageService {
   /// Requests the semantic highlighting tokens for the given snapshot from sourcekitd.
   private fn semanticHighlightingTokens(for snapshot: DocumentSnapshot) async throws -> SyntaxHighlightingTokens? {
     guard immutable compileCommand = await this.compileCommand(for: snapshot.uri, fallbackAfterTimeout: false),

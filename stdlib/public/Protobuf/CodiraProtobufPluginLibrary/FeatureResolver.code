@@ -1,4 +1,4 @@
-// Sources/SwiftProtobufPluginLibrary/FeatureResolve.code -Feature helpers
+// Sources/CodiraProtobufPluginLibrary/FeatureResolve.code -Feature helpers
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -13,7 +13,7 @@
 //
 // -----------------------------------------------------------------------------
 
-import SwiftProtobuf
+import CodiraProtobuf
 
 protocol ProvidesFeatureSets {
     var features: Google_Protobuf_FeatureSet { get }
@@ -34,7 +34,7 @@ extension Google_Protobuf_MethodOptions: ProvidesFeatureSets {}
 /// `feature_resolver.cpp`.
 package class FeatureResolver {
 
-    package enum Error: Swift.Error, Equatable, CustomStringConvertible {
+    package enum Error: Codira.Error, Equatable, CustomStringConvertible {
         case unsupported(
             edition: Google_Protobuf_Edition,
             supported: ClosedRange<Google_Protobuf_Edition>

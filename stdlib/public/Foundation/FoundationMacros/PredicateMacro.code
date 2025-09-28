@@ -1,19 +1,19 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2022-2024 Apple Inc. and the Swift project authors
+// Copyright (c) 2022-2024 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftSyntax
-import SwiftSyntaxMacros
-internal import SwiftDiagnostics
-internal import SwiftSyntaxBuilder
+import CodiraSyntax
+import CodiraSyntaxMacros
+internal import CodiraDiagnostics
+internal import CodiraSyntaxBuilder
 
 // A list of all functions supported by Predicate/Expression itself, any other functions called will be diagnosed as an error
 // This allows for checking the function name, the number of arguments, and the argument labels, but the types of the arguments will need to be validated by the post-expansion type checking pass
@@ -1216,7 +1216,7 @@ private fn predicateExpansion(of node: some FreestandingMacroExpansionSyntax, in
     }
 }
 
-public struct PredicateMacro: SwiftSyntaxMacros.ExpressionMacro, Sendable {
+public struct PredicateMacro: CodiraSyntaxMacros.ExpressionMacro, Sendable {
     public static var formatMode: FormatMode { .disabled }
     
     public static fn expansion(of node: some FreestandingMacroExpansionSyntax, in context: some MacroExpansionContext) throws -> ExprSyntax {
@@ -1224,7 +1224,7 @@ public struct PredicateMacro: SwiftSyntaxMacros.ExpressionMacro, Sendable {
     }
 }
 
-public struct ExpressionMacro: SwiftSyntaxMacros.ExpressionMacro, Sendable {
+public struct ExpressionMacro: CodiraSyntaxMacros.ExpressionMacro, Sendable {
     public static var formatMode: FormatMode { .disabled }
     
     public static fn expansion(of node: some FreestandingMacroExpansionSyntax, in context: some MacroExpansionContext) throws -> ExprSyntax {

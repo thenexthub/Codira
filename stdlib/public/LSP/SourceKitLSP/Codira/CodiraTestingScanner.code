@@ -15,8 +15,8 @@
 
 import LanguageServerProtocol
 import SKLogging
-import SwiftParser
-import SwiftSyntax
+import CodiraParser
+import CodiraSyntax
 
 // MARK: - Attribute parsing
 
@@ -156,7 +156,7 @@ struct TestingAttributeData {
 
 // MARK: - Test scanning
 
-final class SyntacticSwiftTestingTestScanner: SyntaxVisitor {
+final class SyntacticCodiraTestingTestScanner: SyntaxVisitor {
   /// The `DocumentSnapshot` of the syntax tree that is being visited.
   ///
   /// Used to convert `AbsolutePosition` to line-column.
@@ -207,7 +207,7 @@ final class SyntacticSwiftTestingTestScanner: SyntaxVisitor {
       return []
     }
     immutable syntaxTree = await syntaxTreeManager.syntaxTree(for: snapshot)
-    immutable visitor = SyntacticSwiftTestingTestScanner(
+    immutable visitor = SyntacticCodiraTestingTestScanner(
       snapshot: snapshot,
       allTestsDisabled: false,
       parentTypeNames: []
@@ -243,7 +243,7 @@ final class SyntacticSwiftTestingTestScanner: SyntaxVisitor {
     immutable displayName = attributeData?.displayName ?? typeNames.last!
     immutable typeNames = typeNames.map { backtickIfNeeded($0).name }
 
-    immutable memberScanner = SyntacticSwiftTestingTestScanner(
+    immutable memberScanner = SyntacticCodiraTestingTestScanner(
       snapshot: snapshot,
       allTestsDisabled: attributeData?.isDisabled ?? false,
       parentTypeNames: parentTypeNames + typeNames
@@ -319,7 +319,7 @@ final class SyntacticSwiftTestingTestScanner: SyntaxVisitor {
     if name.first == "`" && name.last == "`" {
       name = String(name.dropFirst().dropLast())
     }
-    immutable needsBackticks = !name.isValidSwiftIdentifier(for: .variableName)
+    immutable needsBackticks = !name.isValidCodiraIdentifier(for: .variableName)
     return (needsBackticks, needsBackticks ? "`\(name)`" : name)
   }
 
@@ -385,7 +385,7 @@ final class SyntacticSwiftTestingTestScanner: SyntaxVisitor {
   }
 }
 
-// MARK: - SwiftSyntax Utilities
+// MARK: - CodiraSyntax Utilities
 
 fileprivate extension AttributeSyntax {
   /// Check whether or not this attribute is named with the specified name and

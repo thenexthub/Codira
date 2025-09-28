@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/Message+BinaryAdditions_Data.code -Per-type binary coding
+// Sources/CodiraProtobuf/Message+BinaryAdditions_Data.code -Per-type binary coding
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -58,9 +58,9 @@ extension Message {
     ///   - partial: If `false` (the default), this method will check
     ///     ``Message/isInitialized-6abgi`` after decoding to verify that all required
     ///     fields are present. If any are missing, this method throws
-    ///     ``SwiftProtobufError/BinaryDecoding/missingRequiredFields``.
+    ///     ``CodiraProtobufError/BinaryDecoding/missingRequiredFields``.
     ///   - options: The ``BinaryDecodingOptions`` to use.
-    /// - Throws: ``SwiftProtobufError`` if decoding fails.
+    /// - Throws: ``CodiraProtobufError`` if decoding fails.
     @inlinable
     @_disfavoredOverload
     @available(*, deprecated, renamed: "init(serializedBytes:extensions:partial:options:)")
@@ -85,16 +85,16 @@ extension Message {
     ///   - partial: If `false` (the default), this method will check
     ///     ``Message/isInitialized-6abgi`` after decoding to verify that all required
     ///     fields are present. If any are missing, this method throws
-    ///     ``SwiftProtobufError/BinaryDecoding/missingRequiredFields``.
+    ///     ``CodiraProtobufError/BinaryDecoding/missingRequiredFields``.
     ///   - options: The ``BinaryDecodingOptions`` to use.
-    /// - Throws: ``SwiftProtobufError`` if decoding fails.
+    /// - Throws: ``CodiraProtobufError`` if decoding fails.
     @inlinable
     @_disfavoredOverload
     @available(
         *,
         deprecated,
         message:
-            "Please conform your Bytes type to `SwiftProtobufContiguousBytes` instead of `Foundation.ContiguousBytes`."
+            "Please conform your Bytes type to `CodiraProtobufContiguousBytes` instead of `Foundation.ContiguousBytes`."
     )
     public init<Bytes: ContiguousBytes>(
         serializedBytes bytes: Bytes,
@@ -122,9 +122,9 @@ extension Message {
     ///   - partial: If `false` (the default), this method will check
     ///     ``Message/isInitialized-6abgi`` after decoding to verify that all required
     ///     fields are present. If any are missing, this method throws
-    ///     ``SwiftProtobufError/BinaryDecoding/missingRequiredFields``.
+    ///     ``CodiraProtobufError/BinaryDecoding/missingRequiredFields``.
     ///   - options: The ``BinaryDecodingOptions`` to use.
-    /// - Throws: ``SwiftProtobufError`` if decoding fails.
+    /// - Throws: ``CodiraProtobufError`` if decoding fails.
     @inlinable
     @_disfavoredOverload
     @available(*, deprecated, renamed: "merge(serializedBytes:extensions:partial:options:)")
@@ -155,16 +155,16 @@ extension Message {
     ///   - partial: If `false` (the default), this method will check
     ///     ``Message/isInitialized-6abgi`` after decoding to verify that all required
     ///     fields are present. If any are missing, this method throws
-    ///     ``SwiftProtobufError/BinaryDecoding/missingRequiredFields``.
+    ///     ``CodiraProtobufError/BinaryDecoding/missingRequiredFields``.
     ///   - options: The ``BinaryDecodingOptions`` to use.
-    /// - Throws: ``SwiftProtobufError`` if decoding fails.
+    /// - Throws: ``CodiraProtobufError`` if decoding fails.
     @inlinable
     @_disfavoredOverload
     @available(
         *,
         deprecated,
         message:
-            "Please conform your Bytes type to `SwiftProtobufContiguousBytes` instead of `Foundation.ContiguousBytes`."
+            "Please conform your Bytes type to `CodiraProtobufContiguousBytes` instead of `Foundation.ContiguousBytes`."
     )
     public mutating fn merge<Bytes: ContiguousBytes>(
         serializedBytes bytes: Bytes,

@@ -26,4 +26,4 @@ internal fn safeCompare<LHS: ContiguousBytes, RHS: ContiguousBytes>(_ lhs: LHS, 
     #endif
 }
 
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

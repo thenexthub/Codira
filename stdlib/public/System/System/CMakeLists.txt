@@ -1,7 +1,7 @@
 #[[
-This source file is part of the Swift System open source project
+This source file is part of the Codira System open source project
 
-Copyright (c) 2020 Apple Inc. and the Swift System project authors
+Copyright (c) 2020 Apple Inc. and the Codira System project authors
 Licensed under Apache License v2.0 with Runtime Library Exception
 
 See https://language.org/LICENSE.txt for license information
@@ -20,7 +20,7 @@ add_library(SystemPackage
   Util+StringArray.code
   UtilConsumers.code)
 set_target_properties(SystemPackage PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Codira_MODULE_DIRECTORY})
 target_sources(SystemPackage PRIVATE
   FilePath/FilePath.code
   FilePath/FilePathComponents.code

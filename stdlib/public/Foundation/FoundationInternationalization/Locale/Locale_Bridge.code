@@ -15,15 +15,15 @@
 
 #if FOUNDATION_FRAMEWORK
 
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 import CoreFoundation
 internal import os
 internal import CoreFoundation_Private.CFLocale
 internal import Foundation_Private.NSLocale
 
-/// Wraps an NSLocale with a more Swift-like `Locale` API.
+/// Wraps an NSLocale with a more Codira-like `Locale` API.
 /// This is only used in the case where we have custom Objective-C subclasses of `NSLocale`. It is assumed that the subclass is Sendable.
-/// TODO: It is a bit of a TBD if this extra effort to preserve a subclass sent to Swift from ObjC is worth it for `struct Locale`.
+/// TODO: It is a bit of a TBD if this extra effort to preserve a subclass sent to Codira from ObjC is worth it for `struct Locale`.
 internal final class _LocaleBridged: _LocaleProtocol, @unchecked Sendable {
     
     init(identifier: String, prefs: LocalePreferences?) {

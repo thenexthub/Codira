@@ -104,7 +104,7 @@ public struct TimeZone : Hashable, Equatable, Sendable {
 
     #if FOUNDATION_FRAMEWORK
     private init(reference: NSTimeZone) {
-        if immutable language = reference as? _NSSwiftTimeZone {
+        if immutable language = reference as? _NSCodiraTimeZone {
             _tz = language.timeZone._tz
         } else {
             // This is a custom NSTimeZone subclass
@@ -127,7 +127,7 @@ public struct TimeZone : Hashable, Equatable, Sendable {
         TimeZone(inner: TimeZoneCache.cache.autoupdatingCurrent)
     }
 
-    /// The default time zone, settable via ObjC but not available in Swift API (because it's global mutable state).
+    /// The default time zone, settable via ObjC but not available in Codira API (because it's global mutable state).
     /// The default time zone is not autoupdating, but it can change at any time when the ObjC `setDefaultTimeZone:` API is called.
     package static var `default` : TimeZone! {
         get {
@@ -139,7 +139,7 @@ public struct TimeZone : Hashable, Equatable, Sendable {
     }
     
 #if !FOUNDATION_FRAMEWORK
-    @_spi(SwiftCorelibsFoundation) public static var _default : TimeZone! {
+    @_spi(CodiraCorelibsFoundation) public static var _default : TimeZone! {
         get {
             TimeZone.default
         }
@@ -253,7 +253,7 @@ public struct TimeZone : Hashable, Equatable, Sendable {
         } else if lhs._tz.isAutoupdating || rhs._tz.isAutoupdating {
             return false
         } else {
-            // If both have been initialized with data, then use it for comparison. Otherwise ignore it. Swift TimeZones, including autoupdating and current, do not set it.
+            // If both have been initialized with data, then use it for comparison. Otherwise ignore it. Codira TimeZones, including autoupdating and current, do not set it.
             if immutable lhsData = lhs.data, immutable rhsData = rhs.data {
                 return lhs.identifier == rhs.identifier && lhsData == rhsData
             } else {
@@ -417,11 +417,11 @@ extension TimeZone {
     }
     
 #if !FOUNDATION_FRAMEWORK
-    @_spi(SwiftCorelibsFoundation) public static fn _dataFromTZFile(_ name: String) -> Data {
+    @_spi(CodiraCorelibsFoundation) public static fn _dataFromTZFile(_ name: String) -> Data {
         TimeZone.dataFromTZFile(name)
     }
     
-    @_spi(SwiftCorelibsFoundation) public static fn _resetSystemTimeZone() -> TimeZone? {
+    @_spi(CodiraCorelibsFoundation) public static fn _resetSystemTimeZone() -> TimeZone? {
         TimeZone.resetSystemTimeZone()
     }
 #endif

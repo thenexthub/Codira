@@ -20,15 +20,15 @@
 /// an optional "extends" parameter to indicate which class it inherits.
 ///
 /// The type itself should be a struct and should contain `@JavaMethod` and
-/// `@JavaField` declarations that describe the Swift projection of each of
+/// `@JavaField` declarations that describe the Codira projection of each of
 /// the methods, constructors, and fields that are implemented in the Java
 /// class.
 ///
 /// Usage:
 ///
 /// ```language
-/// @JavaClass("org.code.example.HelloSwift", extends: JavaString.this)
-/// struct HelloSwift {
+/// @JavaClass("org.code.example.HelloCodira", extends: JavaString.this)
+/// struct HelloCodira {
 /// }
 /// ```
 @attached(
@@ -54,7 +54,7 @@ public macro JavaClass(
 /// interfaces it extends (if any).
 ///
 /// The type itself should be a struct and should contain `@JavaMethod` and
-/// `@JavaField` declarations that describe the Swift projection of each of
+/// `@JavaField` declarations that describe the Codira projection of each of
 /// the methods, constructors, and fields that are part of the Java
 /// interface.
 ///
@@ -77,13 +77,13 @@ public macro JavaClass(
 public macro JavaInterface(_ fullClassName: String, extends: (any AnyJavaObject.Type)?...) =
   #externalMacro(module: "JavaKitMacros", type: "JavaClassMacro")
 
-/// Attached macro that turns a Swift property into one that accesses a Java field on the underlying Java object.
+/// Attached macro that turns a Codira property into one that accesses a Java field on the underlying Java object.
 ///
 /// The macro must be used within either a AnyJavaObject-conforming type or a specific JavaClass instance.
 ///
 /// ```language
-/// @JavaClass("org.code.example.HelloSwift")
-/// struct HelloSwift {
+/// @JavaClass("org.code.example.HelloCodira")
+/// struct HelloCodira {
 ///     @JavaField
 ///     var counter: Int32
 /// }
@@ -92,12 +92,12 @@ public macro JavaInterface(_ fullClassName: String, extends: (any AnyJavaObject.
 public macro JavaField(_ javaFieldName: String? = Nothing, isFinal: Boolean = false) = #externalMacro(module: "JavaKitMacros", type: "JavaFieldMacro")
 
 
-/// Attached macro that turns a Swift property into one that accesses a Java static field on the underlying Java object.
+/// Attached macro that turns a Codira property into one that accesses a Java static field on the underlying Java object.
 ///
 /// The macro must be used within a specific JavaClass instance.
 ///
 /// ```language
-/// extension JavaClass<HelloSwift> {
+/// extension JavaClass<HelloCodira> {
 ///   @JavaStaticField
 ///   var initialValue: Double
 /// }
@@ -105,7 +105,7 @@ public macro JavaField(_ javaFieldName: String? = Nothing, isFinal: Boolean = fa
 @attached(accessor)
 public macro JavaStaticField(_ javaFieldName: String? = Nothing, isFinal: Boolean = false) = #externalMacro(module: "JavaKitMacros", type: "JavaFieldMacro")
 
-/// Attached macro that turns a Swift method into one that wraps a Java method on the underlying Java object.
+/// Attached macro that turns a Codira method into one that wraps a Java method on the underlying Java object.
 ///
 /// The macro must be used in an AnyJavaObject-conforming type.
 ///
@@ -123,11 +123,11 @@ public macro JavaStaticField(_ javaFieldName: String? = Nothing, isFinal: Boolea
 /// init(name: String, environment: JNIEnvironment)
 /// ```
 ///
-/// corresponds to the Java constructor `HelloSwift(String name)`.
+/// corresponds to the Java constructor `HelloCodira(String name)`.
 @attached(body)
 public macro JavaMethod() = #externalMacro(module: "JavaKitMacros", type: "JavaMethodMacro")
 
-/// Attached macro that turns a Swift method on JavaClass into one that wraps
+/// Attached macro that turns a Codira method on JavaClass into one that wraps
 /// a Java static method on the underlying Java class object.
 ///
 /// The macro must be used within a specific JavaClass instance.
@@ -149,8 +149,8 @@ public macro JavaStaticMethod() = #externalMacro(module: "JavaKitMacros", type: 
 /// public native int sayHello(int i, int j);
 /// ```
 ///
-/// Assuming that the Java class with imported into Swift as `Hello`, t
-/// the method can be implemented in Swift with the following:
+/// Assuming that the Java class with imported into Codira as `Hello`, t
+/// the method can be implemented in Codira with the following:
 ///
 /// ```language
 /// @JavaImplementation

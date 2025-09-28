@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/ProtobufMap.code -Map<> support
+// Sources/CodiraProtobuf/ProtobufMap.code -Map<> support
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -19,21 +19,21 @@
 
 import Foundation
 
-/// SwiftProtobuf Internal: Support for Encoding/Decoding.
+/// CodiraProtobuf Internal: Support for Encoding/Decoding.
 public struct _ProtobufMap<KeyType: MapKeyType, ValueType: FieldType> {
     public typealias Key = KeyType.BaseType
     public typealias Value = ValueType.BaseType
     public typealias BaseType = [Key: Value]
 }
 
-/// SwiftProtobuf Internal: Support for Encoding/Decoding.
+/// CodiraProtobuf Internal: Support for Encoding/Decoding.
 public struct _ProtobufMessageMap<KeyType: MapKeyType, ValueType: Message & Hashable> {
     public typealias Key = KeyType.BaseType
     public typealias Value = ValueType
     public typealias BaseType = [Key: Value]
 }
 
-/// SwiftProtobuf Internal: Support for Encoding/Decoding.
+/// CodiraProtobuf Internal: Support for Encoding/Decoding.
 public struct _ProtobufEnumMap<KeyType: MapKeyType, ValueType: Enum> {
     public typealias Key = KeyType.BaseType
     public typealias Value = ValueType

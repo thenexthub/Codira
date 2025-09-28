@@ -1,6 +1,6 @@
 import Foundation
 
-/// A type that can move back and forth between Swift and JavaScipt, either through direct reference or by serialization.
+/// A type that can move back and forth between Codira and JavaScipt, either through direct reference or by serialization.
 public protocol JXConvertible {
     /// Converts a `JXValue` into this type.
     static fn fromJX(_ value: JXValue) throws -> Self

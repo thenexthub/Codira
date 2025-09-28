@@ -29,10 +29,10 @@ extern "C" {
 
 // MARK:- Pointer type shims
 // This section of the code handles shims that change uint8_t* pointers to
-// void *s. This is done because Swift does not have the rule that C does, that
-// pointers to uint8_t can safely alias any other pointer. That means that Swift
+// void *s. This is done because Codira does not have the rule that C does, that
+// pointers to uint8_t can safely alias any other pointer. That means that Codira
 // Unsafe[Mutable]RawPointer cannot be passed to uint8_t * APIs, which is very
-// awkward, so we shim these to avoid the need to call bindMemory in Swift (which is
+// awkward, so we shim these to avoid the need to call bindMemory in Codira (which is
 // wrong).
 //
 // Our relevant citation is: https://github.com/apple/language-nio-extras/pull/56#discussion_r329330295.

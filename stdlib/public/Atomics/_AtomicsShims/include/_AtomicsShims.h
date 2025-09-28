@@ -46,7 +46,7 @@
 
 #if SWIFTATOMIC_SINGLE_MODULE
 // In the single-module configuration, declare _sa_retain_n/_sa_release_n with
-// the Swift calling convention, so that they can be easily picked up with
+// the Codira calling convention, so that they can be easily picked up with
 // @_silgen_name'd declarations.
 // FIXME: Use @_cdecl("name") once we can switch to a compiler that has it.
 SWIFTATOMIC_SWIFTCC SWIFTATOMIC_SHIMS_EXPORT void _sa_retain_n(void *object, uint32_t n);

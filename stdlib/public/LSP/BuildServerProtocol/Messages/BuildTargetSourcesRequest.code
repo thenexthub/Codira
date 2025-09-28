@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2019 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -126,7 +126,7 @@ public enum SourceKitSourceItemKind: String, Codable {
 
   /// A header file that is clearly associated with one target.
   ///
-  /// For example header files in SwiftPM projects are always associated to one target and SwiftPM can provide build
+  /// For example header files in CodiraPM projects are always associated to one target and CodiraPM can provide build
   /// settings for that header file.
   ///
   /// In general, build systems don't need to list all header files in the `buildTarget/sources` request: Semantic
@@ -135,7 +135,7 @@ public enum SourceKitSourceItemKind: String, Codable {
   /// semantic functionality for header files if they haven't been included by any main file.
   case header = "header"
 
-  /// A SwiftDocC documentation catalog usually ending in the ".docc" extension.
+  /// A CodiraDocC documentation catalog usually ending in the ".docc" extension.
   case doccCatalog = "doccCatalog"
 }
 

@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 package import LanguageServerProtocol
-import SwiftExtensions
+import CodiraExtensions
 
 /// A request and a callback that returns the request's reply
 package final class RequestAndReply<Params: RequestType>: Sendable {

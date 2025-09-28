@@ -26,7 +26,7 @@
 #error "SWIFTNIO_USE_IO_URING specified but liburing.h not available. You need to install https://github.com/axboe/liburing."
 #endif
 
-// OR in the IOSQE_IO_LINK flag, couldn't access the define from Swift
+// OR in the IOSQE_IO_LINK flag, couldn't access the define from Codira
 void CNIOLinux_io_uring_set_link_flag(struct io_uring_sqe *sqe);
 
 // No way I managed to get this even when defining _GNU_SOURCE properly. Argh.

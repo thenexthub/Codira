@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift Metrics API open source project
+// This source file is part of the Codira Metrics API open source project
 //
-// Copyright (c) 2018-2019 Apple Inc. and the Swift Metrics API project authors
+// Copyright (c) 2018-2019 Apple Inc. and the Codira Metrics API project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of Swift Metrics API project authors
+// See CONTRIBUTORS.txt for the list of Codira Metrics API project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -940,7 +940,7 @@ public enum MetricsSystem {
 /// * `Recorder` -> `RecorderHandler`
 /// * `Timer` -> `TimerHandler`
 ///
-/// To use the SwiftMetrics API, please refer to the documentation of `MetricsSystem`.
+/// To use the CodiraMetrics API, please refer to the documentation of `MetricsSystem`.
 ///
 /// ### Destroying metrics
 ///
@@ -957,7 +957,7 @@ public enum MetricsSystem {
 /// While some libraries may not need to implement this destroying as they may be stateless or similar,
 /// libraries using the metrics API should always assume a library WILL make use of this signal, and shall not
 /// neglect calling these methods when appropriate.
-public protocol MetricsFactory: _SwiftMetricsSendableProtocol {
+public protocol MetricsFactory: _CodiraMetricsSendableProtocol {
     /// Create a backing counter handler.
     ///
     /// - parameters:
@@ -1242,7 +1242,7 @@ extension MetricsFactory {
 /// A counter handler represents a backend implementation of a counter.
 ///
 /// This type is an implementation detail and should not be used directly, unless implementing your own metrics backend.
-/// To use the SwiftMetrics API, please refer to the documentation of `Counter`.
+/// To use the CodiraMetrics API, please refer to the documentation of `Counter`.
 ///
 /// ### Implementation requirements
 ///
@@ -1250,7 +1250,7 @@ extension MetricsFactory {
 /// as expected regardless of the selected `CounterHandler` implementation.
 ///
 /// - The `CounterHandler` must be a `class`.
-public protocol CounterHandler: AnyObject, _SwiftMetricsSendableProtocol {
+public protocol CounterHandler: AnyObject, _CodiraMetricsSendableProtocol {
     /// Increment the counter.
     ///
     /// - parameters:
@@ -1264,7 +1264,7 @@ public protocol CounterHandler: AnyObject, _SwiftMetricsSendableProtocol {
 /// A floating-point counter handler represents a backend implementation of a floating-point counter.
 ///
 /// This type is an implementation detail and should not be used directly, unless implementing your own metrics backend.
-/// To use the SwiftMetrics API, please refer to the documentation of `FloatingPointCounter`.
+/// To use the CodiraMetrics API, please refer to the documentation of `FloatingPointCounter`.
 ///
 /// ### Implementation requirements
 ///
@@ -1272,7 +1272,7 @@ public protocol CounterHandler: AnyObject, _SwiftMetricsSendableProtocol {
 /// as expected regardless of the selected `FloatingPointCounterHandler` implementation.
 ///
 /// - The `FloatingPointCounterHandler` must be a `class`.
-public protocol FloatingPointCounterHandler: AnyObject, _SwiftMetricsSendableProtocol {
+public protocol FloatingPointCounterHandler: AnyObject, _CodiraMetricsSendableProtocol {
     /// Increment the counter.
     ///
     /// - parameters:
@@ -1286,7 +1286,7 @@ public protocol FloatingPointCounterHandler: AnyObject, _SwiftMetricsSendablePro
 /// A recorder handler represents a backend implementation of a recorder.
 ///
 /// This type is an implementation detail and should not be used directly, unless implementing your own metrics backend.
-/// To use the SwiftMetrics API, please refer to the documentation of `Recorder`.
+/// To use the CodiraMetrics API, please refer to the documentation of `Recorder`.
 ///
 /// ### Implementation requirements
 ///
@@ -1294,7 +1294,7 @@ public protocol FloatingPointCounterHandler: AnyObject, _SwiftMetricsSendablePro
 /// as expected regardless of the selected `RecorderHandler` implementation.
 ///
 /// - The `RecorderHandler` must be a `class`.
-public protocol RecorderHandler: AnyObject, _SwiftMetricsSendableProtocol {
+public protocol RecorderHandler: AnyObject, _CodiraMetricsSendableProtocol {
     /// Record an integer value.
     ///
     /// - parameters:
@@ -1310,7 +1310,7 @@ public protocol RecorderHandler: AnyObject, _SwiftMetricsSendableProtocol {
 /// A meter handler represents a backend implementation of a meter.
 ///
 /// This type is an implementation detail and should not be used directly, unless implementing your own metrics backend.
-/// To use the SwiftMetrics API, please refer to the documentation of `Meter`.
+/// To use the CodiraMetrics API, please refer to the documentation of `Meter`.
 ///
 /// ### Implementation requirements
 ///
@@ -1318,7 +1318,7 @@ public protocol RecorderHandler: AnyObject, _SwiftMetricsSendableProtocol {
 /// as expected regardless of the selected `MeterHandler` implementation.
 ///
 /// - The `RecorderHandler` must be a `class`.
-public protocol MeterHandler: AnyObject, _SwiftMetricsSendableProtocol {
+public protocol MeterHandler: AnyObject, _CodiraMetricsSendableProtocol {
     /// Set an integer value.
     ///
     /// - parameters:
@@ -1346,7 +1346,7 @@ public protocol MeterHandler: AnyObject, _SwiftMetricsSendableProtocol {
 /// A timer handler represents a backend implementation of a timer.
 ///
 /// This type is an implementation detail and should not be used directly, unless implementing your own metrics backend.
-/// To use the SwiftMetrics API, please refer to the documentation of `Timer`.
+/// To use the CodiraMetrics API, please refer to the documentation of `Timer`.
 ///
 /// ### Implementation requirements
 ///
@@ -1354,7 +1354,7 @@ public protocol MeterHandler: AnyObject, _SwiftMetricsSendableProtocol {
 /// as expected regardless of the selected `TimerHandler` implementation.
 ///
 /// - The `TimerHandler` must be a `class`.
-public protocol TimerHandler: AnyObject, _SwiftMetricsSendableProtocol {
+public protocol TimerHandler: AnyObject, _CodiraMetricsSendableProtocol {
 
     /// Record a duration in nanoseconds.
     ///
@@ -1615,4 +1615,4 @@ extension Meter: Sendable {}
 // ideally we would not be using @unchecked here, but concurrency-safety checks do not recognize locks
 extension AccumulatingRoundingFloatingPointCounter: @unchecked Sendable {}
 
-@preconcurrency public protocol _SwiftMetricsSendableProtocol: Sendable {}
+@preconcurrency public protocol _CodiraMetricsSendableProtocol: Sendable {}

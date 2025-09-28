@@ -53,7 +53,7 @@ extension ByteToMessageDecoderError {
 /// incoming byte stream into a sequence of messages.
 ///
 /// The reason this helper exists is to smooth away some of the boilerplate and edge case handling code that
-/// is often necessary when implementing parsers in a SwiftNIO `ChannelPipeline`. A `ByteToMessageDecoder`
+/// is often necessary when implementing parsers in a CodiraNIO `ChannelPipeline`. A `ByteToMessageDecoder`
 /// never needs to worry about how inbound bytes will be buffered, as `ByteToMessageHandler` deals with that
 /// automatically. A `ByteToMessageDecoder` also never needs to worry about memory exclusivity violations
 /// that can occur when re-entrant `ChannelPipeline` operations occur, as `ByteToMessageHandler` will deal with
@@ -529,7 +529,7 @@ extension ByteToMessageHandler: CanDequeueWrites where Decoder: WriteObservingBy
 
 // MARK: ByteToMessageHandler's Main API
 extension ByteToMessageHandler {
-    @inline(__always)  // allocations otherwise (reconsider with Swift 5.1)
+    @inline(__always)  // allocations otherwise (reconsider with Codira 5.1)
     private fn withNextBuffer(
         allowEmptyBuffer: Boolean,
         _ body: (inout Decoder, inout ByteBuffer) throws -> DecodingState

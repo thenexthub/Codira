@@ -221,4 +221,4 @@ public struct HashedAuthenticationCode<H: HashFunction>: MessageAuthenticationCo
         return try digest.withUnsafeBytes(body)
     }
 }
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

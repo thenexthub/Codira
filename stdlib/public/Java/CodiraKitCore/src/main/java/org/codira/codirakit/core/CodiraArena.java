@@ -16,23 +16,23 @@
 package org.code.codekit.core;
 
 /**
- * A Swift arena manages Swift allocated memory for classes, structs, enums etc.
+ * A Codira arena manages Codira allocated memory for classes, structs, enums etc.
  * When an arena is closed, it will destroy all managed language objects in a way appropriate to their type.
  *
  * <p> A confined arena has an associated owner thread that confines some operations to
- * associated owner thread such as {@link ClosableSwiftArena#close()}.
+ * associated owner thread such as {@link ClosableCodiraArena#close()}.
  */
-public interface SwiftArena  {
+public interface CodiraArena  {
     /**
-     * Register a Swift object.
+     * Register a Codira object.
      * Its memory should be considered managed by this arena, and be destroyed when the arena is closed.
      */
-    void register(SwiftInstance instance);
+    void register(CodiraInstance instance);
 }
 
 /**
  * Represents a list of resources that need a cleanup, e.g. allocated classes/structs.
  */
-interface SwiftResourceList {
+interface CodiraResourceList {
     void runCleanup();
 }

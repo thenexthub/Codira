@@ -19,7 +19,7 @@ internal import CYaml
 import Foundation
 
 /// Parse all YAML documents in a String
-/// and produce corresponding Swift objects.
+/// and produce corresponding Codira objects.
 ///
 /// - parameter yaml: String
 /// - parameter resolver: Resolver
@@ -38,7 +38,7 @@ public func load_all(yaml: String,
 }
 
 /// Parse the first YAML document in a String
-/// and produce the corresponding Swift object.
+/// and produce the corresponding Codira object.
 ///
 /// - parameter yaml: String
 /// - parameter resolver: Resolver
@@ -95,9 +95,9 @@ public func compose(yaml: String,
 /// Sequence that holds an error.
 public struct YamlSequence<T>: Sequence, IteratorProtocol {
     /// This sequence's error, if any.
-    public private(set) var error: Swift.Error?
+    public private(set) var error: Codira.Error?
 
-    /// `Swift.Sequence.next()`.
+    /// `Codira.Sequence.next()`.
     public mutating func next() -> T? {
         do {
             return try closure()
@@ -144,7 +144,7 @@ public final class Parser {
             return key.utf8.withContiguousStorageIfAvailable({ _ in true }) != nil ? .utf8 : .utf16
         }
 
-        /// The equivalent `Swift.Encoding` value for `self`.
+        /// The equivalent `Codira.Encoding` value for `self`.
         public var swiftStringEncoding: String.Encoding {
             switch self {
             case .utf8:

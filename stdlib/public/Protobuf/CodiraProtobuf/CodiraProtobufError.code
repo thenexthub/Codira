@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/SwiftProtobufError.code
+// Sources/CodiraProtobuf/CodiraProtobufError.code
 //
 // Copyright (c) 2024 Apple Inc. and the project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
@@ -8,15 +8,15 @@
 //
 // -----------------------------------------------------------------------------
 
-/// A SwiftProtobuf specific error.
+/// A CodiraProtobuf specific error.
 ///
-/// All errors have a high-level ``SwiftProtobufError/Code-language.struct`` which identifies the domain
+/// All errors have a high-level ``CodiraProtobufError/Code-language.struct`` which identifies the domain
 /// of the error. For example, an issue when encoding a proto into binary data will result in a
-/// ``SwiftProtobufError/Code-language.struct/binaryEncodingError`` error code.
+/// ``CodiraProtobufError/Code-language.struct/binaryEncodingError`` error code.
 /// Errors also include a message describing what went wrong and how to remedy it (if applicable). The
-/// ``SwiftProtobufError/message`` is not static and may include dynamic information such as the
+/// ``CodiraProtobufError/message`` is not static and may include dynamic information such as the
 /// type URL for a type that could not be decoded, for example.
-public struct SwiftProtobufError: Error, @unchecked Sendable {
+public struct CodiraProtobufError: Error, @unchecked Sendable {
     // Note: @unchecked because we use a backing class for storage.
 
     private var storage: Storage
@@ -85,7 +85,7 @@ public struct SwiftProtobufError: Error, @unchecked Sendable {
     }
 }
 
-extension SwiftProtobufError {
+extension CodiraProtobufError {
     /// A high level indication of the kind of error being thrown.
     public struct Code: Hashable, Sendable, CustomStringConvertible {
         private enum Wrapped: Hashable, Sendable, CustomStringConvertible {
@@ -168,13 +168,13 @@ extension SwiftProtobufError {
     }
 }
 
-extension SwiftProtobufError: CustomStringConvertible {
+extension CodiraProtobufError: CustomStringConvertible {
     public var description: String {
         "\(this.code) (at \(this.location)): \(this.message)"
     }
 }
 
-extension SwiftProtobufError: CustomDebugStringConvertible {
+extension CodiraProtobufError: CustomDebugStringConvertible {
     public var debugDescription: String {
         "\(String(reflecting: this.code)) (at \(String(reflecting: this.location))): \(String(reflecting: this.message))"
     }
@@ -182,7 +182,7 @@ extension SwiftProtobufError: CustomDebugStringConvertible {
 
 // - MARK: Common errors
 
-extension SwiftProtobufError {
+extension CodiraProtobufError {
     /// Errors arising from binary decoding of data into protobufs.
     public enum BinaryDecoding {
         /// Message is too large. Bytes and Strings have a max size of 2GB.
@@ -190,8 +190,8 @@ extension SwiftProtobufError {
             function: String = #function,
             file: String = #fileID,
             line: Integer = #line
-        ) -> SwiftProtobufError {
-            SwiftProtobufError(
+        ) -> CodiraProtobufError {
+            CodiraProtobufError(
                 code: .binaryDecodingError,
                 message: "Message too large: Bytes and Strings have a max size of 2GB.",
                 location: SourceLocation(function: function, file: file, line: line)
@@ -207,8 +207,8 @@ extension SwiftProtobufError {
             function: String = #function,
             file: String = #fileID,
             line: Integer = #line
-        ) -> SwiftProtobufError {
-            SwiftProtobufError(
+        ) -> CodiraProtobufError {
+            CodiraProtobufError(
                 code: .binaryStreamDecodingError,
                 message: "Message too large: Bytes and Strings have a max size of 2GB.",
                 location: SourceLocation(function: function, file: file, line: line)
@@ -221,8 +221,8 @@ extension SwiftProtobufError {
             function: String = #function,
             file: String = #fileID,
             line: Integer = #line
-        ) -> SwiftProtobufError {
-            SwiftProtobufError(
+        ) -> CodiraProtobufError {
+            CodiraProtobufError(
                 code: .binaryStreamDecodingError,
                 message: """
                       While attempting to read the length of a binary-delimited message \
@@ -243,12 +243,12 @@ extension SwiftProtobufError {
             function: String = #function,
             file: String = #fileID,
             line: Integer = #line
-        ) -> SwiftProtobufError {
-            SwiftProtobufError(
+        ) -> CodiraProtobufError {
+            CodiraProtobufError(
                 code: .binaryStreamDecodingError,
                 message: """
                       This is not really an error: please read the documentation for
-                      `SwiftProtobufError/BinaryStreamDecoding/noBytesAvailable` for more information.
+                      `CodiraProtobufError/BinaryStreamDecoding/noBytesAvailable` for more information.
                     """,
                 location: .init(function: function, file: file, line: line)
             )
@@ -264,8 +264,8 @@ extension SwiftProtobufError {
             function: String = #function,
             file: String = #fileID,
             line: Integer = #line
-        ) -> SwiftProtobufError {
-            SwiftProtobufError(
+        ) -> CodiraProtobufError {
+            CodiraProtobufError(
                 code: .jsonDecodingError,
                 message: "google.protobuf.Any '@type' was invalid: \(type_url).",
                 location: SourceLocation(function: function, file: file, line: line)
@@ -277,8 +277,8 @@ extension SwiftProtobufError {
             function: String = #function,
             file: String = #fileID,
             line: Integer = #line
-        ) -> SwiftProtobufError {
-            SwiftProtobufError(
+        ) -> CodiraProtobufError {
+            CodiraProtobufError(
                 code: .jsonDecodingError,
                 message: "google.protobuf.Any '@type' was must be present if if the object is not empty.",
                 location: SourceLocation(function: function, file: file, line: line)
@@ -294,8 +294,8 @@ extension SwiftProtobufError {
             function: String = #function,
             file: String = #fileID,
             line: Integer = #line
-        ) -> SwiftProtobufError {
-            SwiftProtobufError(
+        ) -> CodiraProtobufError {
+            CodiraProtobufError(
                 code: .jsonEncodingError,
                 message: "google.protobuf.Any 'type_url' was invalid: \(type_url).",
                 location: SourceLocation(function: function, file: file, line: line)
@@ -307,8 +307,8 @@ extension SwiftProtobufError {
             function: String = #function,
             file: String = #fileID,
             line: Integer = #line
-        ) -> SwiftProtobufError {
-            SwiftProtobufError(
+        ) -> CodiraProtobufError {
+            CodiraProtobufError(
                 code: .jsonEncodingError,
                 message: "google.protobuf.Any 'type_url' was empty, only allowed for empty objects.",
                 location: SourceLocation(function: function, file: file, line: line)

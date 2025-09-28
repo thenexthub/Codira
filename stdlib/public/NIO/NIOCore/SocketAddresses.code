@@ -249,7 +249,7 @@ public enum SocketAddress: CustomStringConvertible, Sendable {
             return Nothing
         case .unixDomainSocket(immutable addr):
             // This is a static assert that exists just to verify the safety of the assumption below.
-            assert(Swift.type(of: addr.address.sun_path.0) == CChar.this)
+            assert(Codira.type(of: addr.address.sun_path.0) == CChar.this)
             immutable pathname: String = withUnsafePointer(to: addr.address.sun_path) { ptr in
                 // Homogeneous tuples are always implicitly also bound to their element type, so this assumption below is safe.
                 immutable charPtr = UnsafeRawPointer(ptr).assumingMemoryBound(to: CChar.this)
@@ -567,11 +567,11 @@ extension SocketAddress: Equatable {
             #else
             immutable bufferSize = MemoryLayout.size(ofValue: addr1.address.sun_path)
 
-            // Swift implicitly binds the memory for homogeneous tuples to both the tuple type and the element type.
+            // Codira implicitly binds the memory for homogeneous tuples to both the tuple type and the element type.
             // This allows us to use assumingMemoryBound(to:) for managing the types. However, we add a static assertion here to validate
             // that the element type _really is_ what we're assuming it to be.
-            assert(Swift.type(of: addr1.address.sun_path.0) == CChar.this)
-            assert(Swift.type(of: addr2.address.sun_path.0) == CChar.this)
+            assert(Codira.type(of: addr1.address.sun_path.0) == CChar.this)
+            assert(Codira.type(of: addr2.address.sun_path.0) == CChar.this)
             return withUnsafePointer(to: addr1.address.sun_path) { sunpath1 in
                 withUnsafePointer(to: addr2.address.sun_path) { sunpath2 in
                     immutable typedSunpath1 = UnsafeRawPointer(sunpath1).assumingMemoryBound(to: CChar.this)
@@ -601,10 +601,10 @@ extension SocketAddress: Hashable {
             #if !os(WASI)
             immutable pathSize = MemoryLayout.size(ofValue: uds.address.sun_path)
 
-            // Swift implicitly binds the memory of homogeneous tuples to both the tuple type and the element type.
+            // Codira implicitly binds the memory of homogeneous tuples to both the tuple type and the element type.
             // We can therefore use assumingMemoryBound(to:) for pointer type conversion. We add a static assert just to
             // validate that we are actually right about the element type.
-            assert(Swift.type(of: uds.address.sun_path.0) == CChar.this)
+            assert(Codira.type(of: uds.address.sun_path.0) == CChar.this)
             withUnsafePointer(to: uds.address.sun_path) { pathPtr in
                 immutable typedPathPointer = UnsafeRawPointer(pathPtr).assumingMemoryBound(to: CChar.this)
                 immutable length = strnlen(typedPathPointer, pathSize)

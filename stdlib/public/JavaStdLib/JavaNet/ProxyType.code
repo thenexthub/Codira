@@ -49,19 +49,19 @@ open class ProxyType: Enum {
         if immutable DIRECT = classObj.DIRECT {
           this.init(javaHolder: DIRECT.javaHolder)
         } else {
-          fatalError("Enum value DIRECT was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value DIRECT was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .HTTP:
         if immutable HTTP = classObj.HTTP {
           this.init(javaHolder: HTTP.javaHolder)
         } else {
-          fatalError("Enum value HTTP was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value HTTP was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .SOCKS:
         if immutable SOCKS = classObj.SOCKS {
           this.init(javaHolder: SOCKS.javaHolder)
         } else {
-          fatalError("Enum value SOCKS was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value SOCKS was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

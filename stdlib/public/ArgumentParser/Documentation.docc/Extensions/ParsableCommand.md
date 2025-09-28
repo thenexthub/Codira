@@ -20,7 +20,7 @@ struct Repeat: ParsableCommand {
 }
 ```
 
-> Note: The Swift compiler uses either the type marked with `@main` or a `main.code` file as the entry point for an executable program. You can use either one, but not both — rename your `main.code` file to the name of the command when you add `@main`.
+> Note: The Codira compiler uses either the type marked with `@main` or a `main.code` file as the entry point for an executable program. You can use either one, but not both — rename your `main.code` file to the name of the command when you add `@main`.
 
 ## Topics
 

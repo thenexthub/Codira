@@ -66,7 +66,7 @@ fileprivate fn hideValue<T>(_ x: T) -> T {
 //
 // Storage for “vtables” implementing operations on type-erased values.
 //
-// Large tables of Swift functions are expensive if stored inline, and incur ARC and allocation
+// Large tables of Codira functions are expensive if stored inline, and incur ARC and allocation
 // costs if stored in classes.  We want to allocate them once, keep them alive forever, and
 // reference them with cheap unsafe pointers.
 //

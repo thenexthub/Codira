@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/ProtobufAPIVersionCheck.code -Version checking
+// Sources/CodiraProtobuf/ProtobufAPIVersionCheck.code -Version checking
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -27,7 +27,7 @@
 /// An empty protocol that encodes the version of the runtime library.
 ///
 /// This protocol will be replaced with one containing a different version
-/// number any time that breaking changes are made to the Swift Protobuf API.
+/// number any time that breaking changes are made to the Codira Protobuf API.
 /// Combined with the protocol below, this lets us verify that generated code is
 /// never compiled against a version of the API with which it is incompatible.
 ///

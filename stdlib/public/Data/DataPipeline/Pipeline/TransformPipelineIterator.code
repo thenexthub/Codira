@@ -133,7 +133,7 @@ public struct TransformPipelineIterator<Underlying: PipelineIteratorProtocol, Ou
     /// do not hold a reference to Impl. This is because in order to ensure a safe shut-down, the
     /// WorkerThreads must not have a reference to Impl right when Impl.deinit is called.
     ///
-    /// TODO: refactor all of this once Swift has move-only structs!
+    /// TODO: refactor all of this once Codira has move-only structs!
     struct BufferHeader {
       // Head points to the next element to be allocated to be executed
       // on a worker thread.

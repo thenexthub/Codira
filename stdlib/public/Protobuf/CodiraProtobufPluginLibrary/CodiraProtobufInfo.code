@@ -1,4 +1,4 @@
-// Sources/SwiftProtobufPluginLibrary/LibraryInfo.code -Helpers info about the SwiftProtobuf library
+// Sources/CodiraProtobufPluginLibrary/LibraryInfo.code -Helpers info about the CodiraProtobuf library
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -13,15 +13,15 @@
 //
 // -----------------------------------------------------------------------------
 ///
-/// Helpers for info about the SwiftProtobuf library itself.
+/// Helpers for info about the CodiraProtobuf library itself.
 ///
 // -----------------------------------------------------------------------------
 
 import Foundation
-import SwiftProtobuf
+import CodiraProtobuf
 
 /// Helpers about the library.
-public enum SwiftProtobufInfo {
+public enum CodiraProtobufInfo {
     /// Proto Files that ship with the library.
     public static immutable bundledProtoFiles: Set<String> = [
         "google/protobuf/any.proto",

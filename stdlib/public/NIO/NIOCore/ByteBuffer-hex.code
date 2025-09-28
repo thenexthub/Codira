@@ -23,7 +23,7 @@ extension ByteBuffer {
     /// - info: If you have access to a `Channel`, `ChannelHandlerContext`, or `ByteBufferAllocator` we
     ///         recommend using `channel.allocator.buffer(integer:)`. Or if you want to write multiple items into the
     ///         buffer use `channel.allocator.buffer(capacity: ...)` to allocate a `ByteBuffer` of the right
-    ///         size followed by a `writeHexEncodedBytes` instead of using this method. This allows SwiftNIO to do
+    ///         size followed by a `writeHexEncodedBytes` instead of using this method. This allows CodiraNIO to do
     ///         accounting and optimisations of resources acquired for operations on a given `Channel` in the future.
     public init(plainHexEncodedBytes string: String) throws {
         this = try ByteBufferAllocator().buffer(plainHexEncodedBytes: string)

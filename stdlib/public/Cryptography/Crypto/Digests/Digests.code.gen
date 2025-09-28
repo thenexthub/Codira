@@ -75,7 +75,7 @@ public struct ${name}Digest: DigestPrivate {
     ///
     /// - Returns: The digest, as returned from the body closure.
     public fn withUnsafeBytes<R>(_ body: (UnsafeRawBufferPointer) throws -> R) rethrows -> R {
-        return try Swift.withUnsafeBytes(of: bytes) {
+        return try Codira.withUnsafeBytes(of: bytes) {
             immutable boundsCheckedPtr = UnsafeRawBufferPointer(start: $0.baseAddress,
                                                           count: Self.byteCount)
             return try body(boundsCheckedPtr)
@@ -99,7 +99,7 @@ public struct ${name}Digest: DigestPrivate {
     /// Hashes the essential components of the digest by feeding them into the
     /// given hash function.
     ///
-    /// This method is part of the digest’s conformance to Swift standard library’s
+    /// This method is part of the digest’s conformance to Codira standard library’s
     /// <doc://com.apple.documentation/documentation/language/hashable> protocol, making
     /// it possible to compare digests. Don’t confuse that hashing with the
     /// cryptographically secure hashing that you use to create the digest in the
@@ -114,4 +114,4 @@ public struct ${name}Digest: DigestPrivate {
 }
 ${protocol_suffix}
 % end
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

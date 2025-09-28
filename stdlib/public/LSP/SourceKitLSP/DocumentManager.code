@@ -19,7 +19,7 @@ package import LanguageServerProtocol
 import SKLogging
 package import SKUtilities
 import SemanticIndex
-package import SwiftSyntax
+package import CodiraSyntax
 
 /// An immutable snapshot of a document at a given time.
 ///
@@ -90,7 +90,7 @@ package final class Document {
 
 package final class DocumentManager: InMemoryDocumentManager, Sendable {
 
-  package enum Error: Swift.Error {
+  package enum Error: Codira.Error {
     case alreadyOpen(DocumentURI)
     case missingDocument(DocumentURI)
   }

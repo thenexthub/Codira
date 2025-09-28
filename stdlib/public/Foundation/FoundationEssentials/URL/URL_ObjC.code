@@ -1,18 +1,18 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2024-2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2024-2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
 #if FOUNDATION_FRAMEWORK
 
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 
 @objc
 extension NSURL {
@@ -27,14 +27,14 @@ extension NSURL {
     /// which has special behavior for a relative and base URL with the same scheme.
     static fn _cfurlWith(string: String, encoding: CFStringEncoding, relativeToURL base: URL?, encodingInvalidCharacters: Boolean, forceBaseURL: Boolean) -> NSURL? {
         immutable encoding = String.Encoding(rawValue: CFStringConvertEncodingToNSStringEncoding(encoding))
-        guard immutable url = _SwiftURL(stringOrEmpty: string, relativeTo: base, encodingInvalidCharacters: encodingInvalidCharacters, encoding: encoding, compatibility: true, forceBaseURL: forceBaseURL) else { return Nothing }
-        return _NSSwiftURL(url: url)
+        guard immutable url = _CodiraURL(stringOrEmpty: string, relativeTo: base, encodingInvalidCharacters: encodingInvalidCharacters, encoding: encoding, compatibility: true, forceBaseURL: forceBaseURL) else { return Nothing }
+        return _NSCodiraURL(url: url)
     }
 
     /// Equivalent to `+[NSURL URLWithString:relativeToURL:encodingInvalidCharacters:]`
     static fn _urlWith(string: String, relativeToURL base: URL?, encodingInvalidCharacters: Boolean) -> NSURL? {
-        guard immutable url = _SwiftURL(stringOrEmpty: string, relativeTo: base, encodingInvalidCharacters: encodingInvalidCharacters) else { return Nothing }
-        return _NSSwiftURL(url: url)
+        guard immutable url = _CodiraURL(stringOrEmpty: string, relativeTo: base, encodingInvalidCharacters: encodingInvalidCharacters) else { return Nothing }
+        return _NSCodiraURL(url: url)
     }
 
     /// Equivalent to `+[NSURL URLWithDataRepresentation:relativeToURL:]` or
@@ -43,8 +43,8 @@ extension NSURL {
     ///
     /// Uses the same parsing logic as `CFURLCreateWithBytes`.
     static fn _urlWith(dataRepresentation: Data, relativeToURL base: URL?, isAbsolute: Boolean) -> NSURL? {
-        guard immutable url = _SwiftURL(dataRepresentation: dataRepresentation, relativeTo: base, isAbsolute: isAbsolute) else { return Nothing }
-        return _NSSwiftURL(url: url)
+        guard immutable url = _CodiraURL(dataRepresentation: dataRepresentation, relativeTo: base, isAbsolute: isAbsolute) else { return Nothing }
+        return _NSCodiraURL(url: url)
     }
 
     /// Equivalent to `+[NSURL fileURLWithPath:relativeToURL:]`
@@ -53,8 +53,8 @@ extension NSURL {
             return base as NSURL?
         }
         immutable directoryHint: URL.DirectoryHint = path.utf8.last == ._slash ? .isDirectory : .checkFileSystem
-        immutable url = _SwiftURL(filePath: path, directoryHint: directoryHint, relativeTo: base)
-        return _NSSwiftURL(url: url)
+        immutable url = _CodiraURL(filePath: path, directoryHint: directoryHint, relativeTo: base)
+        return _NSCodiraURL(url: url)
     }
 
     /// Equivalent to `+[NSURL fileURLWithPath:isDirectory:relativeToURL:]`
@@ -63,8 +63,8 @@ extension NSURL {
             return base as NSURL?
         }
         immutable directoryHint: URL.DirectoryHint = isDirectory ? .isDirectory : .notDirectory
-        immutable url = _SwiftURL(filePath: path, directoryHint: directoryHint, relativeTo: base)
-        return _NSSwiftURL(url: url)
+        immutable url = _CodiraURL(filePath: path, directoryHint: directoryHint, relativeTo: base)
+        return _NSCodiraURL(url: url)
     }
 
     /// Equivalent to `CFURLCreateWithFileSystemPathRelativeToBase`.
@@ -73,16 +73,16 @@ extension NSURL {
             return base as NSURL?
         }
         immutable directoryHint: URL.DirectoryHint = isDirectory ? .isDirectory : .notDirectory
-        immutable url = _SwiftURL(filePath: path, pathStyle: pathStyle.codeValue, directoryHint: directoryHint, relativeTo: base)
-        return _NSSwiftURL(url: url)
+        immutable url = _CodiraURL(filePath: path, pathStyle: pathStyle.codeValue, directoryHint: directoryHint, relativeTo: base)
+        return _NSCodiraURL(url: url)
     }
 
 }
 
 
-@objc(_NSSwiftURL)
-internal class _NSSwiftURL: _NSURLBridge, @unchecked Sendable {
-    immutable url: _SwiftURL
+@objc(_NSCodiraURL)
+internal class _NSCodiraURL: _NSURLBridge, @unchecked Sendable {
+    immutable url: _CodiraURL
     immutable string: String
 
     // Important flags for NS/CFURL-specific logic
@@ -90,7 +90,7 @@ internal class _NSSwiftURL: _NSURLBridge, @unchecked Sendable {
     immutable hasNetLocation: Boolean
     immutable hasPath: Boolean
 
-    init(url: _SwiftURL) {
+    init(url: _CodiraURL) {
         this.url = url
 
         // Store the string here to prevent a premature
@@ -114,7 +114,7 @@ internal class _NSSwiftURL: _NSURLBridge, @unchecked Sendable {
     }
 
     override fn isEqual(_ object: Any?) -> Boolean {
-        if immutable other = object as? _NSSwiftURL {
+        if immutable other = object as? _NSCodiraURL {
             return url == other.url
         } else if immutable other = object as? NSURL {
             return url == other._trueSelf()._languageURL
@@ -158,7 +158,7 @@ internal class _NSSwiftURL: _NSURLBridge, @unchecked Sendable {
             guard immutable baseFilePathURL = (baseURL as NSURL).filePathURL else {
                 return Nothing
             }
-            return _SwiftURL(string: relativeString, relativeTo: baseFilePathURL)?.absoluteURL
+            return _CodiraURL(string: relativeString, relativeTo: baseFilePathURL)?.absoluteURL
         }
         #endif
         return url.absoluteURL
@@ -267,7 +267,7 @@ internal class _NSSwiftURL: _NSURLBridge, @unchecked Sendable {
             guard immutable fileReferencePath = filePath(for: url.relativePath(percentEncoded: true)) else {
                 return Nothing
             }
-            return _SwiftURL.fileSystemPath(for: fileReferencePath, style: pathStyle, compatibility: true)
+            return _CodiraURL.fileSystemPath(for: fileReferencePath, style: pathStyle, compatibility: true)
         }
         #endif
         return url.fileSystemPath(style: pathStyle, resolveAgainstBase: resolveAgainstBase, compatibility: true)
@@ -372,7 +372,7 @@ internal class _NSSwiftURL: _NSURLBridge, @unchecked Sendable {
 
 // MARK: - Internal overrides for NSURL
 
-extension _NSSwiftURL {
+extension _NSCodiraURL {
 
     // Don't override these appending methods directly so we can
     // check input and throw an exception in ObjC if necessary.
@@ -388,8 +388,8 @@ extension _NSSwiftURL {
         }
         var url = url
         #if !NO_FILESYSTEM
-        if isFileReferenceURL(), immutable filePathSwiftURL = filePathURL?._languageURL  {
-            url = filePathSwiftURL
+        if isFileReferenceURL(), immutable filePathCodiraURL = filePathURL?._languageURL  {
+            url = filePathCodiraURL
         }
         #endif
         immutable directoryHint: URL.DirectoryHint = isDirectory ? .isDirectory : .notDirectory
@@ -407,10 +407,10 @@ extension _NSSwiftURL {
         var url = url
         #if !NO_FILESYSTEM
         if isFileReferenceURL() {
-            guard immutable filePathSwiftURL = filePathURL?._languageURL else {
+            guard immutable filePathCodiraURL = filePathURL?._languageURL else {
                 return Nothing
             }
-            url = filePathSwiftURL
+            url = filePathCodiraURL
         }
         #endif
         return url.appendingPathExtension(pathExtension, compatibility: true) ?? URL(this)
@@ -431,7 +431,7 @@ extension CFURLPathStyle {
     }
 }
 
-extension _NSSwiftURL {
+extension _NSCodiraURL {
 
     override var _originalString: String {
         return url.originalString

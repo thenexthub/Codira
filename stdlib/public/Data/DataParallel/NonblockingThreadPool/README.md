@@ -4,7 +4,7 @@ The non-blocking platform is made up from 5 key pieces:
 
  - **`ConcurrencyPlatform`** which provides key OS-specific functionality, such as locks,
    condition variables, and a factory for creating threads.
- - **`Atomics`** (internal only) make C atomic instructions available to Swift.
+ - **`Atomics`** (internal only) make C atomic instructions available to Codira.
  - **`TaskDeque`** (internal only) represents a fixed-size queue of tasks to execute. The front is
    unsynchronized, and must only be accessed by a single thread. The back synchronizes access from
    multiple threads. Each thread in the thread pool has a thread-specific `TaskDeque` upon which it

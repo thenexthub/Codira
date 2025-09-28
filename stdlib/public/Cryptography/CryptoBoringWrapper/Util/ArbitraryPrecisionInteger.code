@@ -20,7 +20,7 @@
 import Foundation
 
 /// A wrapper around the OpenSSL BIGNUM object that is appropriately lifetime managed,
-/// and that provides better Swift types for this object.
+/// and that provides better Codira types for this object.
 @usableFromInline
 @available(macOS 10.15, iOS 13, watchOS 6, tvOS 13, macCatalyst 13, visionOS 1.0, *)
 package struct ArbitraryPrecisionInteger: @unchecked Sendable {

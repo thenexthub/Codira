@@ -11,4 +11,4 @@ language run --disable-sandbox
 language run language-java resolve \
   Sources/JavaCommonsCSV/language-java.config \
   --language-module JavaCommonsCSV \
-  --output-directory .build/plugins/outputs/javadependencysampleapp/JavaCommonsCSV/destination/SwiftJavaPlugin/
+  --output-directory .build/plugins/outputs/javadependencysampleapp/JavaCommonsCSV/destination/CodiraJavaPlugin/

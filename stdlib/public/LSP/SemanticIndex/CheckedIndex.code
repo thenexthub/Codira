@@ -18,7 +18,7 @@ package import Foundation
 @preconcurrency package import IndexStoreDB
 package import LanguageServerProtocol
 import SKLogging
-import SwiftExtensions
+import CodiraExtensions
 
 /// Essentially a `DocumentManager` from the `SourceKitLSP` module.
 ///
@@ -373,7 +373,7 @@ private struct IndexOutOfDateChecker {
     case date(Date)
   }
 
-  private enum Error: Swift.Error, CustomStringConvertible {
+  private enum Error: Codira.Error, CustomStringConvertible {
     case fileAttributesDontHaveModificationDate
     case circularSymlink(URL)
 

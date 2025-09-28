@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/Message+TextFormatAdditions.code -Text format primitive types
+// Sources/CodiraProtobuf/Message+TextFormatAdditions.code -Text format primitive types
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -67,7 +67,7 @@ extension Message {
     ///   - extensions: An ``ExtensionMap`` used to look up and decode any
     ///     extensions in this message or messages nested within this message's
     ///     fields.
-    /// - Throws: ``SwiftProtobufError`` on failure.
+    /// - Throws: ``CodiraProtobufError`` on failure.
     // TODO: delete this (and keep the one with the extra param instead) when we break API
     public init(
         textFormatString: String,

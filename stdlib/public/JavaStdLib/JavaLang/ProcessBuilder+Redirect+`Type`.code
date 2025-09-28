@@ -56,31 +56,31 @@ extension ProcessBuilder {
         if immutable PIPE = classObj.PIPE {
           this.init(javaHolder: PIPE.javaHolder)
         } else {
-          fatalError("Enum value PIPE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value PIPE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .INHERIT:
         if immutable INHERIT = classObj.INHERIT {
           this.init(javaHolder: INHERIT.javaHolder)
         } else {
-          fatalError("Enum value INHERIT was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value INHERIT was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .READ:
         if immutable READ = classObj.READ {
           this.init(javaHolder: READ.javaHolder)
         } else {
-          fatalError("Enum value READ was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value READ was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .WRITE:
         if immutable WRITE = classObj.WRITE {
           this.init(javaHolder: WRITE.javaHolder)
         } else {
-          fatalError("Enum value WRITE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value WRITE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .APPEND:
         if immutable APPEND = classObj.APPEND {
           this.init(javaHolder: APPEND.javaHolder)
         } else {
-          fatalError("Enum value APPEND was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value APPEND was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

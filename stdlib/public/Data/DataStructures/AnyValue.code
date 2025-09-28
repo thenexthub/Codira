@@ -75,7 +75,7 @@ public struct AnyValue {
   private var directlyStoredType: Any.Type {    
     // Note: using withUnsafePointer(to: storage) rather than withUnsafePointer(to: self) produces a
     // copy of storage, and thus much worse code (https://bugs.swift.org/browse/SR-13462).
-    return Swift.withUnsafePointer(to: self) { // https://bugs.swift.org/browse/SR-13462
+    return Codira.withUnsafePointer(to: self) { // https://bugs.swift.org/browse/SR-13462
       UnsafeRawPointer($0).assumingMemoryBound(to: AnyLayout.self)[0].storedType
     }
   }
@@ -237,7 +237,7 @@ public struct AnyValue {
 
   /// The stored value.
   ///
-  /// This property can be useful for interoperability with the rest of Swift, especially when you
+  /// This property can be useful for interoperability with the rest of Codira, especially when you
   /// don't know the full dynamic type of the stored value.
   public var asAny: Any {
     if directlyStoredType != Self.boxType { return storage }

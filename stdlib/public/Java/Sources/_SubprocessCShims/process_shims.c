@@ -1,8 +1,8 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
@@ -78,7 +78,7 @@ int _shims_snprintf(
 
 #if __has_include(<mach/vm_page_size.h>)
 vm_size_t _subprocess_vm_size(void) {
-    // This shim exists because vm_page_size is not marked const, and therefore looks like global mutable state to Swift.
+    // This shim exists because vm_page_size is not marked const, and therefore looks like global mutable state to Codira.
     return vm_page_size;
 }
 #endif

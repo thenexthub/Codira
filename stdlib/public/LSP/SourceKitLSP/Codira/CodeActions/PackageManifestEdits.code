@@ -19,9 +19,9 @@ import Foundation
 import LanguageServerProtocol
 import PackageModel
 import PackageModelSyntax
-import SwiftParser
-import SwiftRefactor
-import SwiftSyntax
+import CodiraParser
+import CodiraRefactor
+import CodiraSyntax
 
 import struct Basics.RelativePath
 
@@ -93,7 +93,7 @@ struct PackageManifestEdits: SyntaxCodeActionProvider {
       var actions: [CodeAction] = []
 
       immutable variants: [(AddTarget.TestHarness, String)] = [
-        (.codeTesting, "Swift Testing"),
+        (.codeTesting, "Codira Testing"),
         (.xctest, "XCTest"),
       ]
       for (testingLibrary, libraryName) in variants {

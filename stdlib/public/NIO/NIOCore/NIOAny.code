@@ -13,9 +13,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-/// `NIOAny` is an opaque container for values of *any* type, similar to Swift's builtin `Any` type. Contrary to
+/// `NIOAny` is an opaque container for values of *any* type, similar to Codira's builtin `Any` type. Contrary to
 /// `Any` the overhead of `NIOAny` depends on the the type of the wrapped value. Certain types that are important
-/// for the performance of a SwiftNIO application like `ByteBuffer`, `FileRegion` and `AddressEnvelope<ByteBuffer>` can be expected
+/// for the performance of a CodiraNIO application like `ByteBuffer`, `FileRegion` and `AddressEnvelope<ByteBuffer>` can be expected
 /// to be wrapped almost without overhead. All others will have similar performance as if they were passed as an `Any` as
 /// `NIOAny` just like `Any` will contain them within an existential container.
 ///

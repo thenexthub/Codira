@@ -44,7 +44,7 @@ import Darwin
 #endif
 
 /// An `Error` for an IO operation.
-public struct IOError: Swift.Error {
+public struct IOError: Codira.Error {
     @available(*, deprecated, message: "NIO no longer uses FailureDescription.")
     public enum FailureDescription {
         case function(StaticString)

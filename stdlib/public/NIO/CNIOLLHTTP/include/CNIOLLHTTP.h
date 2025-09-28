@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-// adaptions for llhttp to make it more straightforward to use from Swift
+// adaptions for llhttp to make it more straightforward to use from Codira
 
 #ifndef C_NIO_LLHTTP_SWIFT
 #define C_NIO_LLHTTP_SWIFT

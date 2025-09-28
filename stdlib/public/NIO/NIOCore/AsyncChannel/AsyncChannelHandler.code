@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the SwiftNIO open source project
+// This source file is part of the CodiraNIO open source project
 //
-// Copyright (c) 2022-2024 Apple Inc. and the SwiftNIO project authors
+// Copyright (c) 2022-2024 Apple Inc. and the CodiraNIO project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of SwiftNIO project authors
+// See CONTRIBUTORS.txt for the list of CodiraNIO project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -16,7 +16,7 @@ import DequeModule
 
 /// A ``ChannelHandler`` that is used to transform the inbound portion of a NIO
 /// ``Channel`` into an asynchronous sequence that supports back-pressure. It's also used
-/// to write the outbound portion of a NIO ``Channel`` from Swift Concurrency with back-pressure
+/// to write the outbound portion of a NIO ``Channel`` from Codira Concurrency with back-pressure
 /// support.
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 @usableFromInline

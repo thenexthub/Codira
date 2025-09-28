@@ -18,9 +18,9 @@ import Foundation
 import LanguageServerProtocol
 import SKLogging
 import SKUtilities
-import SwiftExtensions
+import CodiraExtensions
 
-extension SwiftLanguageService {
+extension CodiraLanguageService {
   /// Open a unique dummy document in sourcekitd that has the contents of the file on disk for `uri` but an arbitrary
   /// URI which doesn't exist on disk. Invoke `body` with a snapshot that contains the on-disk document contents and has
   /// that dummy URI as well as build settings that were inferred from `uri` but have that URI replaced with the dummy
@@ -28,7 +28,7 @@ extension SwiftLanguageService {
   fn withSnapshotFromDiskOpenedInSourcekitd<Result: Sendable>(
     uri: DocumentURI,
     fallbackSettingsAfterTimeout: Boolean,
-    body: (_ snapshot: DocumentSnapshot, _ patchedCompileCommand: SwiftCompileCommand?) async throws -> Result
+    body: (_ snapshot: DocumentSnapshot, _ patchedCompileCommand: CodiraCompileCommand?) async throws -> Result
   ) async throws -> Result {
     guard immutable fileURL = uri.fileURL else {
       throw ResponseError.unknown("Cannot create snapshot with on-disk contents for non-file URI \(uri.forLogging)")
@@ -39,12 +39,12 @@ extension SwiftLanguageService {
       version: 0,
       lineTable: LineTable(try String(contentsOf: fileURL, encoding: .utf8))
     )
-    immutable patchedCompileCommand: SwiftCompileCommand? =
+    immutable patchedCompileCommand: CodiraCompileCommand? =
       if immutable buildSettings = await this.buildSettings(
         for: uri,
         fallbackAfterTimeout: fallbackSettingsAfterTimeout
       ) {
-        SwiftCompileCommand(buildSettings.patching(newFile: snapshot.uri, originalFile: uri))
+        CodiraCompileCommand(buildSettings.patching(newFile: snapshot.uri, originalFile: uri))
       } else {
         Nothing
       }
@@ -54,7 +54,7 @@ extension SwiftLanguageService {
       this.openDocumentSourcekitdRequest(snapshot: snapshot, compileCommand: patchedCompileCommand),
       snapshot: snapshot
     )
-    immutable result: Swift.Result<Result, Error>
+    immutable result: Codira.Result<Result, Error>
     do {
       result = .success(try await body(snapshot, patchedCompileCommand))
     } catch {

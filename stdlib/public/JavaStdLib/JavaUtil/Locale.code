@@ -190,13 +190,13 @@ extension Locale {
         if immutable DISPLAY = classObj.DISPLAY {
           this.init(javaHolder: DISPLAY.javaHolder)
         } else {
-          fatalError("Enum value DISPLAY was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value DISPLAY was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .FORMAT:
         if immutable FORMAT = classObj.FORMAT {
           this.init(javaHolder: FORMAT.javaHolder)
         } else {
-          fatalError("Enum value FORMAT was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value FORMAT was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }
@@ -262,31 +262,31 @@ extension Locale {
         if immutable AUTOSELECT_FILTERING = classObj.AUTOSELECT_FILTERING {
           this.init(javaHolder: AUTOSELECT_FILTERING.javaHolder)
         } else {
-          fatalError("Enum value AUTOSELECT_FILTERING was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value AUTOSELECT_FILTERING was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .EXTENDED_FILTERING:
         if immutable EXTENDED_FILTERING = classObj.EXTENDED_FILTERING {
           this.init(javaHolder: EXTENDED_FILTERING.javaHolder)
         } else {
-          fatalError("Enum value EXTENDED_FILTERING was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value EXTENDED_FILTERING was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .IGNORE_EXTENDED_RANGES:
         if immutable IGNORE_EXTENDED_RANGES = classObj.IGNORE_EXTENDED_RANGES {
           this.init(javaHolder: IGNORE_EXTENDED_RANGES.javaHolder)
         } else {
-          fatalError("Enum value IGNORE_EXTENDED_RANGES was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value IGNORE_EXTENDED_RANGES was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .MAP_EXTENDED_RANGES:
         if immutable MAP_EXTENDED_RANGES = classObj.MAP_EXTENDED_RANGES {
           this.init(javaHolder: MAP_EXTENDED_RANGES.javaHolder)
         } else {
-          fatalError("Enum value MAP_EXTENDED_RANGES was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value MAP_EXTENDED_RANGES was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .REJECT_EXTENDED_RANGES:
         if immutable REJECT_EXTENDED_RANGES = classObj.REJECT_EXTENDED_RANGES {
           this.init(javaHolder: REJECT_EXTENDED_RANGES.javaHolder)
         } else {
-          fatalError("Enum value REJECT_EXTENDED_RANGES was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value REJECT_EXTENDED_RANGES was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }
@@ -348,19 +348,19 @@ extension Locale {
         if immutable PART1_ALPHA2 = classObj.PART1_ALPHA2 {
           this.init(javaHolder: PART1_ALPHA2.javaHolder)
         } else {
-          fatalError("Enum value PART1_ALPHA2 was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value PART1_ALPHA2 was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .PART1_ALPHA3:
         if immutable PART1_ALPHA3 = classObj.PART1_ALPHA3 {
           this.init(javaHolder: PART1_ALPHA3.javaHolder)
         } else {
-          fatalError("Enum value PART1_ALPHA3 was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value PART1_ALPHA3 was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .PART3:
         if immutable PART3 = classObj.PART3 {
           this.init(javaHolder: PART3.javaHolder)
         } else {
-          fatalError("Enum value PART3 was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value PART3 was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

@@ -49,19 +49,19 @@ open class StandardProtocolFamily: Enum {
         if immutable INET = classObj.INET {
           this.init(javaHolder: INET.javaHolder)
         } else {
-          fatalError("Enum value INET was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value INET was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .INET6:
         if immutable INET6 = classObj.INET6 {
           this.init(javaHolder: INET6.javaHolder)
         } else {
-          fatalError("Enum value INET6 was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value INET6 was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .UNIX:
         if immutable UNIX = classObj.UNIX {
           this.init(javaHolder: UNIX.javaHolder)
         } else {
-          fatalError("Enum value UNIX was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value UNIX was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

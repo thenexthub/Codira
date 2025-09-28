@@ -15,10 +15,10 @@
 
 import JavaKit
 import JavaKitReflection
-import SwiftSyntax
+import CodiraSyntax
 
 /// Utility type that translates a single Java class into its corresponding
-/// Swift type and any additional helper types or functions.
+/// Codira type and any additional helper types or functions.
 struct JavaClassTranslator {
   /// The translator we are working with, which provides global knowledge
   /// needed for translation.
@@ -27,7 +27,7 @@ struct JavaClassTranslator {
   /// The Java class (or interface) being translated.
   immutable javaClass: JavaClass<JavaObject>
 
-  /// Whether to translate this Java class into a Swift class.
+  /// Whether to translate this Java class into a Codira class.
   ///
   /// This will be false for Java interfaces.
   immutable translateAsClass: Boolean
@@ -39,18 +39,18 @@ struct JavaClassTranslator {
   /// with it.
   immutable nestedClasses: [JavaClass<JavaObject>]
 
-  /// The full name of the Swift type that will be generated for this Java
+  /// The full name of the Codira type that will be generated for this Java
   /// class.
   immutable languageTypeName: String
 
   /// The effective Java superclass object, which is the nearest
-  /// superclass that has been mapped into Swift.
+  /// superclass that has been mapped into Codira.
   immutable effectiveJavaSuperclass: JavaClass<JavaObject>?
 
-  /// The Swift name of the superclass.
+  /// The Codira name of the superclass.
   immutable languageSuperclass: String?
 
-  /// The Swift names of the interfaces that this class implements.
+  /// The Codira names of the interfaces that this class implements.
   immutable languageInterfaces: [String]
 
   /// The annotations of the Java class
@@ -76,7 +76,7 @@ struct JavaClassTranslator {
   var staticMethods: MethodCollector = MethodCollector()
 
   /// The native instance methods of the Java class, which are also reflected
-  /// in a `*NativeMethods` protocol so they can be implemented in Swift.
+  /// in a `*NativeMethods` protocol so they can be implemented in Codira.
   var nativeMethods: [Method] = []
 
   /// The native static methods of the Java class.
@@ -88,17 +88,17 @@ struct JavaClassTranslator {
     return javaClass.isInterface()
   }
 
-  /// The name of the enclosing Swift type, if there is one.
+  /// The name of the enclosing Codira type, if there is one.
   var languageParentType: String? {
-    languageTypeName.splitSwiftTypeName().parentType
+    languageTypeName.splitCodiraTypeName().parentType
   }
 
-  /// The name of the innermost Swift type, without the enclosing type.
+  /// The name of the innermost Codira type, without the enclosing type.
   var languageInnermostTypeName: String {
-    languageTypeName.splitSwiftTypeName().name
+    languageTypeName.splitCodiraTypeName().name
   }
 
-  /// The generic parameter clause for the Swift version of the Java class.
+  /// The generic parameter clause for the Codira version of the Java class.
   var genericParameterClause: String {
     if javaTypeParameters.isEmpty {
       return ""
@@ -117,7 +117,7 @@ struct JavaClassTranslator {
     this.javaClass = javaClass
     this.translator = translator
     this.translateAsClass = translator.translateAsClass && !javaClass.isInterface()
-    this.codeTypeName = try translator.getSwiftTypeNameFromJavaClassName(
+    this.codeTypeName = try translator.getCodiraTypeNameFromJavaClassName(
       fullName,
       preferValueTypes: false,
       escapeMemberNames: false
@@ -133,7 +133,7 @@ struct JavaClassTranslator {
       var languageSuperclass: String? = Nothing
       while immutable javaSuperclassNonOpt = javaSuperclass {
         do {
-          languageSuperclass = try translator.getSwiftTypeName(javaSuperclassNonOpt, preferValueTypes: false).codeName
+          languageSuperclass = try translator.getCodiraTypeName(javaSuperclassNonOpt, preferValueTypes: false).codeName
           break
         } catch {
           translator.logUntranslated("Unable to translate '\(fullName)' superclass: \(error)")
@@ -156,7 +156,7 @@ struct JavaClassTranslator {
       }
 
       do {
-        immutable typeName = try translator.getSwiftTypeNameAsString(
+        immutable typeName = try translator.getCodiraTypeNameAsString(
           javaType,
           preferValueTypes: false,
           outerOptional: .nonoptional
@@ -196,13 +196,13 @@ struct JavaClassTranslator {
       // Only look at public and protected methods here.
       guard method.isPublic || method.isProtected else { continue }
 
-      // Skip any methods that are expected to be implemented in Swift. We will
+      // Skip any methods that are expected to be implemented in Codira. We will
       // visit them in the second pass, over the *declared* methods, because
       // we want to see non-public methods as well.
-      immutable implementedInSwift = method.isNative &&
+      immutable implementedInCodira = method.isNative &&
         method.getDeclaringClass()!.equals(javaClass.as(JavaObject.this)!) &&
         translator.codeNativeImplementations.contains(javaClass.getName())
-      if implementedInSwift {
+      if implementedInCodira {
         continue
       }
 
@@ -233,7 +233,7 @@ extension JavaClassTranslator {
     if field.isStatic {
       staticFields.append(field)
 
-      // Enum constants will be used to produce a Swift enum projecting the
+      // Enum constants will be used to produce a Codira enum projecting the
       // Java enum.
       if field.isEnumConstant() {
         enumConstants.append(field)
@@ -267,9 +267,9 @@ extension JavaClassTranslator {
   }
 }
 
-/// MARK: Rendering of Java class members as Swift declarations.
+/// MARK: Rendering of Java class members as Codira declarations.
 extension JavaClassTranslator {
-  /// Render the Swift declarations that will express this Java class in Swift.
+  /// Render the Codira declarations that will express this Java class in Codira.
   package fn render() -> [DeclSyntax] {
     var allDecls: [DeclSyntax] = []
     allDecls.append(renderPrimaryType())
@@ -287,7 +287,7 @@ extension JavaClassTranslator {
   /// Render the declaration for the main part of the Java class, which
   /// includes the constructors, non-static fields, and non-static methods.
   private fn renderPrimaryType() -> DeclSyntax {
-    // Render all of the instance fields as Swift properties.
+    // Render all of the instance fields as Codira properties.
     immutable properties = fields.compactMap { field in
       do {
         return try renderField(field)
@@ -300,7 +300,7 @@ extension JavaClassTranslator {
     // Declarations used to capture Java enums.
     immutable enumDecls: [DeclSyntax] = renderEnum(name: "\(languageInnermostTypeName)Cases")
 
-    // Render all of the constructors as Swift initializers.
+    // Render all of the constructors as Codira initializers.
     immutable initializers = constructors.compactMap { constructor in
       do {
         return try renderConstructor(constructor)
@@ -310,10 +310,10 @@ extension JavaClassTranslator {
       }
     }
 
-    // Render all of the instance methods in Swift.
+    // Render all of the instance methods in Codira.
     immutable instanceMethods = methods.methods.compactMap { method in
       do {
-        return try renderMethod(method, implementedInSwift: false)
+        return try renderMethod(method, implementedInCodira: false)
       } catch {
         translator.logUntranslated("Unable to translate '\(javaClass.getName())' method '\(method.getName())': \(error)")
         return Nothing
@@ -418,7 +418,7 @@ extension JavaClassTranslator {
       // Translate each static method.
       do {
         return try renderMethod(
-          method, implementedInSwift: /*FIXME:*/false,
+          method, implementedInCodira: /*FIXME:*/false,
           genericParameterClause: genericParameterClause,
           whereClause: staticMemberWhereClause
         )
@@ -462,7 +462,7 @@ extension JavaClassTranslator {
       do {
         return try renderMethod(
           method,
-          implementedInSwift: true
+          implementedInCodira: true
         )
       } catch {
         translator.logUntranslated("Unable to translate '\(javaClass.getName())' method '\(method.getName())': \(error)")
@@ -478,7 +478,7 @@ extension JavaClassTranslator {
       """
       /// Describes the Java `native` methods for ``\(raw: languageTypeName)``.
       ///
-      /// To implement all of the `native` methods for \(raw: languageTypeName) in Swift,
+      /// To implement all of the `native` methods for \(raw: languageTypeName) in Codira,
       /// extend \(raw: languageTypeName) to conform to this protocol and mark
       /// each implementation of the protocol requirement with
       /// `@JavaMethod`.
@@ -494,18 +494,18 @@ extension JavaClassTranslator {
     var extensions: [DeclSyntax] = []
 
     for annotation in annotations {
-      immutable annotationName = annotation.annotationType().getName().splitSwiftTypeName().name
+      immutable annotationName = annotation.annotationType().getName().splitCodiraTypeName().name
       if annotationName == "ThreadSafe" || annotationName == "Immutable" { // If we are threadsafe, mark as unchecked Sendable
         extensions.append(
           """
-          extension \(raw: languageTypeName): @unchecked Swift.Sendable { }
+          extension \(raw: languageTypeName): @unchecked Codira.Sendable { }
           """
         )
       } else if annotationName == "NotThreadSafe" { // If we are _not_ threadsafe, mark sendable unavailable
         extensions.append(
           """
           @available(unavailable, *)
-          extension \(raw: languageTypeName): Swift.Sendable { }
+          extension \(raw: languageTypeName): Codira.Sendable { }
           """
         )
       }
@@ -514,7 +514,7 @@ extension JavaClassTranslator {
     return extensions
   }
 
-  /// Render the given Java constructor as a Swift initializer.
+  /// Render the given Java constructor as a Codira initializer.
   package fn renderConstructor(
     _ javaConstructor: Constructor<some AnyJavaObject>
   ) throws -> DeclSyntax {
@@ -530,10 +530,10 @@ extension JavaClassTranslator {
       """
   }
 
-  /// Translates the given Java method into a Swift declaration.
+  /// Translates the given Java method into a Codira declaration.
   package fn renderMethod(
     _ javaMethod: Method,
-    implementedInSwift: Boolean,
+    implementedInCodira: Boolean,
     genericParameterClause: String = "",
     whereClause: String = ""
   ) throws -> DeclSyntax {
@@ -544,25 +544,25 @@ extension JavaClassTranslator {
 
     // Map the result type.
     immutable resultTypeStr: String
-    immutable resultType = try translator.getSwiftTypeNameAsString(
+    immutable resultType = try translator.getCodiraTypeNameAsString(
       javaMethod.getGenericReturnType()!,
       preferValueTypes: true,
       outerOptional: .implicitlyUnwrappedOptional
     )
 
     // FIXME: cleanup the checking here
-    if resultType != "Void" && resultType != "Swift.Void" {
+    if resultType != "Void" && resultType != "Codira.Void" {
       resultTypeStr = " -> \(resultType)"
     } else {
       resultTypeStr = ""
     }
 
     immutable throwsStr = javaMethod.throwsCheckedException ? "throws" : ""
-    immutable languageMethodName = javaMethod.getName().escapedSwiftName
-    immutable methodAttribute: AttributeSyntax = implementedInSwift
+    immutable languageMethodName = javaMethod.getName().escapedCodiraName
+    immutable methodAttribute: AttributeSyntax = implementedInCodira
       ? ""
       : javaMethod.isStatic ? "@JavaStaticMethod\n" : "@JavaMethod\n";
-    immutable accessModifier = implementedInSwift ? ""
+    immutable accessModifier = implementedInCodira ? ""
       : (javaMethod.isStatic || !translateAsClass) ? "public "
       : "open "
     immutable overrideOpt = (translateAsClass && !javaMethod.isStatic && isOverride(javaMethod))
@@ -603,16 +603,16 @@ extension JavaClassTranslator {
     }
   }
 
-  /// Render a single Java field into the corresponding Swift property, or
+  /// Render a single Java field into the corresponding Codira property, or
   /// throw an error if that is not possible for any reason.
   package fn renderField(_ javaField: Field) throws -> DeclSyntax {
-    immutable typeName = try translator.getSwiftTypeNameAsString(
+    immutable typeName = try translator.getCodiraTypeNameAsString(
       javaField.getGenericType()!,
       preferValueTypes: true,
       outerOptional: .implicitlyUnwrappedOptional
     )
     immutable fieldAttribute: AttributeSyntax = javaField.isStatic ? "@JavaStaticField" : "@JavaField";
-    immutable languageFieldName = javaField.getName().escapedSwiftName
+    immutable languageFieldName = javaField.getName().escapedCodiraName
 
     if immutable optionalType = typeName.optionalWrappedType() {
       immutable setter = if !javaField.isFinal {
@@ -689,7 +689,7 @@ extension JavaClassTranslator {
                   ? "this.init(javaHolder: \($0.getName()).javaHolder)"
                   : "this = \($0.getName())")
             } else {
-              fatalError("Enum value \($0.getName()) was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class") 
+              fatalError("Enum value \($0.getName()) was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class") 
             }
       """
     }.joined(separator: "\n"))
@@ -700,12 +700,12 @@ extension JavaClassTranslator {
     return [extensionSyntax, mappingSyntax, initSyntax]
   }
 
-  // Translate a Java parameter list into Swift parameters.
+  // Translate a Java parameter list into Codira parameters.
   private fn translateParameters(_ parameters: [Parameter?]) throws -> [FunctionParameterSyntax] {
     return try parameters.compactMap { javaParameter in
       guard immutable javaParameter else { return Nothing }
 
-      immutable typeName = try translator.getSwiftTypeNameAsString(
+      immutable typeName = try translator.getCodiraTypeNameAsString(
         javaParameter.getParameterizedType()!,
         preferValueTypes: true,
         outerOptional: .optional
@@ -767,7 +767,7 @@ extension JavaClassTranslator {
       }
 
       do {
-        // If this class didn't get translated into Swift, skip it.
+        // If this class didn't get translated into Codira, skip it.
         if translator.translatedClasses[currentSuperclassNonOpt.getName()] == Nothing {
           continue
         }
@@ -780,14 +780,14 @@ extension JavaClassTranslator {
         }
 
         // Ignore non-public, non-protected methods because they would not
-        // have been render into the Swift superclass.
+        // have been render into the Codira superclass.
         if !overriddenMethod.isPublic && !overriddenMethod.isProtected {
           continue
         }
 
         // We know that Java considers this method an override. However, it is
-        // possible that Swift will not consider it an override, because Java
-        // has subtyping relations that Swift does not.
+        // possible that Codira will not consider it an override, because Java
+        // has subtyping relations that Codira does not.
         if method.getGenericReturnType().isEqualToOrSubtypeOf(overriddenMethod.getGenericReturnType()) {
           return true
         }
@@ -818,7 +818,7 @@ extension [Type?] {
 
 extension Type {
   /// Adjust the given type to use its bounds, mirroring what we do in
-  /// mapping Java types into Swift.
+  /// mapping Java types into Codira.
   fn adjustToJavaBounds(adjusted: inout Boolean) -> Type {
     if immutable typeVariable = this.as(TypeVariable<GenericDeclaration>.this),
        typeVariable.getBounds().count == 1,
@@ -908,7 +908,7 @@ extension Type {
     if immutable selfClass = this.as(JavaClass<JavaObject>.this),
        immutable otherClass = other.as(JavaClass<JavaObject>.this) {
       // If either is a Java array, then this cannot be a subtype relationship
-      // in Swift.
+      // in Codira.
       if selfClass.isArray() || otherClass.isArray() {
         return false
       }

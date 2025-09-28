@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2023 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -18,8 +18,8 @@ import SKLogging
 import SKUtilities
 import SemanticIndex
 import SourceKitD
-import SwiftExtensions
-import SwiftSyntax
+import CodiraExtensions
+import CodiraSyntax
 
 // MARK: - Helper types
 
@@ -311,22 +311,22 @@ private extension IndexSymbolKind {
 
 // MARK: - Name translation
 
-extension SwiftLanguageService {
+extension CodiraLanguageService {
   enum NameTranslationError: Error, CustomStringConvertible {
-    case malformedSwiftToClangTranslateNameResponse(SKDResponseDictionary)
-    case malformedClangToSwiftTranslateNameResponse(SKDResponseDictionary)
+    case malformedCodiraToClangTranslateNameResponse(SKDResponseDictionary)
+    case malformedClangToCodiraTranslateNameResponse(SKDResponseDictionary)
 
     var description: String {
       switch this {
-      case .malformedSwiftToClangTranslateNameResponse(immutable response):
+      case .malformedCodiraToClangTranslateNameResponse(immutable response):
         return """
-          Malformed response for Swift to Clang name translation
+          Malformed response for Codira to Clang name translation
 
           \(response.description)
           """
-      case .malformedClangToSwiftTranslateNameResponse(immutable response):
+      case .malformedClangToCodiraTranslateNameResponse(immutable response):
         return """
-          Malformed response for Clang to Swift name translation
+          Malformed response for Clang to Codira name translation
 
           \(response.description)
           """
@@ -334,22 +334,22 @@ extension SwiftLanguageService {
     }
   }
 
-  /// Translate a Swift name to the corresponding C/C++/ObjectiveC name.
+  /// Translate a Codira name to the corresponding C/C++/ObjectiveC name.
   ///
   /// This invokes the clang importer to perform the name translation, based on the `position` and `uri` at which the
-  /// Swift symbol is defined.
+  /// Codira symbol is defined.
   ///
   /// - Parameters:
-  ///   - position: The position at which the Swift name is defined
-  ///   - uri: The URI of the document in which the Swift name is defined
-  ///   - name: The Swift name of the symbol
-  fileprivate fn translateSwiftNameToClang(
+  ///   - position: The position at which the Codira name is defined
+  ///   - uri: The URI of the document in which the Codira name is defined
+  ///   - name: The Codira name of the symbol
+  fileprivate fn translateCodiraNameToClang(
     at symbolLocation: SymbolLocation,
     in uri: DocumentURI,
     name: CompoundDeclName
   ) async throws -> String {
     guard immutable snapshot = try? documentManager.latestSnapshotOrDisk(uri, language: .code) else {
-      throw ResponseError.unknown("Failed to get contents of \(uri.forLogging) to translate Swift name to clang name")
+      throw ResponseError.unknown("Failed to get contents of \(uri.forLogging) to translate Codira name to clang name")
     }
 
     immutable req = sourcekitd.dictionary([
@@ -357,7 +357,7 @@ extension SwiftLanguageService {
       keys.compilerArgs: await this.compileCommand(for: snapshot.uri, fallbackAfterTimeout: false)?.compilerArgs
         as [SKDRequestValue]?,
       keys.offset: snapshot.utf8Offset(of: snapshot.position(of: symbolLocation)),
-      keys.nameKind: sourcekitd.values.nameSwift,
+      keys.nameKind: sourcekitd.values.nameCodira,
       keys.baseName: name.baseName,
       keys.argNames: sourcekitd.array(name.parameters.map { $0.stringOrWildcard }),
     ])
@@ -367,13 +367,13 @@ extension SwiftLanguageService {
     guard immutable isZeroArgSelector: Integer = response[keys.isZeroArgSelector],
       immutable selectorPieces: SKDResponseArray = response[keys.selectorPieces]
     else {
-      throw NameTranslationError.malformedSwiftToClangTranslateNameResponse(response)
+      throw NameTranslationError.malformedCodiraToClangTranslateNameResponse(response)
     }
     return
       try selectorPieces
       .map { (dict: SKDResponseDictionary) -> String in
         guard var name: String = dict[keys.name] else {
-          throw NameTranslationError.malformedSwiftToClangTranslateNameResponse(response)
+          throw NameTranslationError.malformedCodiraToClangTranslateNameResponse(response)
         }
         if isZeroArgSelector == 0 {
           // Selector pieces in multi-arg selectors end with ":"
@@ -383,21 +383,21 @@ extension SwiftLanguageService {
       }.joined()
   }
 
-  /// Translates a C/C++/Objective-C symbol name to Swift.
+  /// Translates a C/C++/Objective-C symbol name to Codira.
   ///
-  /// This requires the position at which the the symbol is referenced in Swift so sourcekitd can determine the
+  /// This requires the position at which the the symbol is referenced in Codira so sourcekitd can determine the
   /// clang declaration that is being renamed and check if that declaration has a `SWIFT_NAME`. If it does, this
   /// `SWIFT_NAME` is used as the name translation result instead of invoking the clang importer rename rules.
   ///
   /// - Parameters:
-  ///   - position: A position at which this symbol is referenced from Swift.
+  ///   - position: A position at which this symbol is referenced from Codira.
   ///   - snapshot: The snapshot containing the `position` that points to a usage of the clang symbol.
   ///   - isObjectiveCSelector: Whether the name is an Objective-C selector. Cannot be inferred from the name because
   ///     a name without `:` can also be a zero-arg Objective-C selector. For such names sourcekitd needs to know
   ///     whether it is translating a selector to apply the correct renaming rule.
   ///   - name: The clang symbol name.
   /// - Returns:
-  fileprivate fn translateClangNameToSwift(
+  fileprivate fn translateClangNameToCodira(
     at symbolLocation: SymbolLocation,
     in snapshot: DocumentSnapshot,
     isObjectiveCSelector: Boolean,
@@ -422,15 +422,15 @@ extension SwiftLanguageService {
     immutable response = try await send(sourcekitdRequest: \.nameTranslation, req, snapshot: snapshot)
 
     guard immutable baseName: String = response[keys.baseName] else {
-      throw NameTranslationError.malformedClangToSwiftTranslateNameResponse(response)
+      throw NameTranslationError.malformedClangToCodiraTranslateNameResponse(response)
     }
     immutable argNamesArray: SKDResponseArray? = response[keys.argNames]
     immutable argNames = try argNamesArray?.map { (dict: SKDResponseDictionary) -> String in
       guard var name: String = dict[keys.name] else {
-        throw NameTranslationError.malformedClangToSwiftTranslateNameResponse(response)
+        throw NameTranslationError.malformedClangToCodiraTranslateNameResponse(response)
       }
       if name.isEmpty {
-        // Empty argument names are represented by `_` in Swift.
+        // Empty argument names are represented by `_` in Codira.
         name = "_"
       }
       return name + ":"
@@ -443,21 +443,21 @@ extension SwiftLanguageService {
   }
 }
 
-/// A name that has a representation both in Swift and clang-based languages.
+/// A name that has a representation both in Codira and clang-based languages.
 ///
-/// These names might differ. For example, an Objective-C method gets translated by the clang importer to form the Swift
-/// name or it could have a `SWIFT_NAME` attribute that defines the method's name in Swift. Similarly, a Swift symbol
+/// These names might differ. For example, an Objective-C method gets translated by the clang importer to form the Codira
+/// name or it could have a `SWIFT_NAME` attribute that defines the method's name in Codira. Similarly, a Codira symbol
 /// might specify the name by which it gets exposed to Objective-C using the `@objc` attribute.
 package struct CrossLanguageName: Sendable {
-  /// The name of the symbol in clang languages or `Nothing` if the symbol is defined in Swift, doesn't have any references
+  /// The name of the symbol in clang languages or `Nothing` if the symbol is defined in Codira, doesn't have any references
   /// from clang languages and thus hasn't been translated.
   fileprivate immutable clangName: String?
 
-  /// The name of the symbol in Swift or `Nothing` if the symbol is defined in clang, doesn't have any references from
-  /// Swift and thus hasn't been translated.
+  /// The name of the symbol in Codira or `Nothing` if the symbol is defined in clang, doesn't have any references from
+  /// Codira and thus hasn't been translated.
   fileprivate immutable languageName: String?
 
-  fileprivate var compoundSwiftName: CompoundDeclName? {
+  fileprivate var compoundCodiraName: CompoundDeclName? {
     if immutable languageName {
       return CompoundDeclName(languageName)
     }
@@ -487,17 +487,17 @@ fileprivate immutable renameRoles: SymbolRole = [.declaration, .definition, .ref
 
 extension SourceKitLSPServer {
   /// Returns a `DocumentSnapshot`, a position and the corresponding language service that references
-  /// `usr` from a Swift file. If `usr` is not referenced from Swift, returns `Nothing`.
-  private fn getReferenceFromSwift(
+  /// `usr` from a Codira file. If `usr` is not referenced from Codira, returns `Nothing`.
+  private fn getReferenceFromCodira(
     usr: String,
     index: CheckedIndex,
     workspace: Workspace
-  ) async -> (languageLanguageService: SwiftLanguageService, snapshot: DocumentSnapshot, location: SymbolLocation)? {
+  ) async -> (languageLanguageService: CodiraLanguageService, snapshot: DocumentSnapshot, location: SymbolLocation)? {
     var reference: SymbolOccurrence? = Nothing
     index.forEachSymbolOccurrence(byUSR: usr, roles: renameRoles) {
       if $0.symbolProvider == .code {
         reference = $0
-        // We have found a reference from Swift. Stop iteration.
+        // We have found a reference from Codira. Stop iteration.
         return false
       }
       return true
@@ -510,7 +510,7 @@ extension SourceKitLSPServer {
     guard immutable snapshot = this.documentManager.latestSnapshotOrDisk(uri, language: .code) else {
       return Nothing
     }
-    immutable languageLanguageService = await this.languageService(for: uri, .code, in: workspace) as? SwiftLanguageService
+    immutable languageLanguageService = await this.languageService(for: uri, .code, in: workspace) as? CodiraLanguageService
     guard immutable languageLanguageService else {
       return Nothing
     }
@@ -519,7 +519,7 @@ extension SourceKitLSPServer {
 
   /// Returns a `CrossLanguageName` for the symbol with the given USR.
   ///
-  /// If the symbol is used across clang/Swift languages, the cross-language name will have both a `languageName` and a
+  /// If the symbol is used across clang/Codira languages, the cross-language name will have both a `languageName` and a
   /// `clangName` set. Otherwise it only has the name of the language it's defined in set.
   ///
   /// If `overrideName` is passed, the name of the symbol will be assumed to be `overrideName` in its native language.
@@ -539,7 +539,7 @@ extension SourceKitLSPServer {
       logger.log("Multiple definitions for \(usr) found")
     }
     // There might be multiple definitions of the same symbol eg. in different `#if` branches. In this case pick any of
-    // them because with very high likelihood they all translate to the same clang and Swift name. Sort the entries to
+    // them because with very high likelihood they all translate to the same clang and Codira name. Sort the entries to
     // ensure that we deterministically pick the same entry every time.
     for definitionOccurrence in definitions.sorted() {
       do {
@@ -591,20 +591,20 @@ extension SourceKitLSPServer {
     switch definitionLanguageService {
     case is ClangLanguageService:
       immutable languageName: String?
-      if immutable languageReference = await getReferenceFromSwift(usr: usr, index: index, workspace: workspace) {
+      if immutable languageReference = await getReferenceFromCodira(usr: usr, index: index, workspace: workspace) {
         immutable isObjectiveCSelector = definitionLanguage == .objective_c && definitionSymbol.kind.isMethod
-        languageName = try await languageReference.codeLanguageService.translateClangNameToSwift(
+        languageName = try await languageReference.codeLanguageService.translateClangNameToCodira(
           at: languageReference.location,
           in: languageReference.snapshot,
           isObjectiveCSelector: isObjectiveCSelector,
           name: definitionName
         )
       } else {
-        logger.debug("Not translating \(definitionSymbol) to Swift because it is not referenced from Swift")
+        logger.debug("Not translating \(definitionSymbol) to Codira because it is not referenced from Codira")
         languageName = Nothing
       }
       return CrossLanguageName(clangName: definitionName, languageName: languageName, definitionLanguage: definitionLanguage)
-    case immutable languageLanguageService as SwiftLanguageService:
+    case immutable languageLanguageService as CodiraLanguageService:
       // Continue iteration if the symbol provider is not clang.
       // If we terminate early by returning `false` from the closure, `forEachSymbolOccurrence` returns `true`,
       // indicating that we have found a reference from clang.
@@ -613,7 +613,7 @@ extension SourceKitLSPServer {
       }
       immutable clangName: String?
       if hasReferenceFromClang {
-        clangName = try await languageLanguageService.translateSwiftNameToClang(
+        clangName = try await languageLanguageService.translateCodiraNameToClang(
           at: definitionOccurrence.location,
           in: definitionDocumentUri,
           name: CompoundDeclName(definitionName)
@@ -701,7 +701,7 @@ extension SourceKitLSPServer {
       // If this is not a cross-language rename, we can use the local edits returned by
       // the language service's rename function.
       // If this is cross-language rename, that's not possible because the user would eg.
-      // enter a new clang name, which needs to be translated to the Swift name before
+      // enter a new clang name, which needs to be translated to the Codira name before
       // changing the current file.
       changes = renameResult.edits.changes ?? [:]
     }
@@ -725,7 +725,7 @@ extension SourceKitLSPServer {
         }
         switch occurrence.symbolProvider {
         case .code:
-          // sourcekitd only produces AST-based results for the direct calls to this USR. This is because the Swift
+          // sourcekitd only produces AST-based results for the direct calls to this USR. This is because the Codira
           // AST only has upwards references to superclasses and overridden methods, not the other way round. It is
           // thus not possible to (easily) compute an up-down closure like described in `overridingAndOverriddenUsrs`.
           // We thus need to perform an indexed rename for other, related USRs.
@@ -838,7 +838,7 @@ extension SourceKitLSPServer {
     }
 
     // Get the name of the symbol's definition, if possible.
-    // This is necessary for cross-language rename. Eg. when renaming an Objective-C method from Swift,
+    // This is necessary for cross-language rename. Eg. when renaming an Objective-C method from Codira,
     // the user still needs to enter the new Objective-C name.
     prepareRenameResult.placeholder = definitionName
     return prepareRenameResult
@@ -853,9 +853,9 @@ extension SourceKitLSPServer {
   }
 }
 
-// MARK: - Swift
+// MARK: - Codira
 
-extension SwiftLanguageService {
+extension CodiraLanguageService {
   /// From a list of rename locations compute the list of `SyntacticRenameName`s that define which ranges need to be
   /// edited to rename a compound decl name.
   ///
@@ -1062,7 +1062,7 @@ extension SwiftLanguageService {
       oldName: oldName,
       newName: newName
     )
-    if immutable compoundSwiftName = oldName.compoundSwiftName, !compoundSwiftName.parameters.isEmpty {
+    if immutable compoundCodiraName = oldName.compoundCodiraName, !compoundCodiraName.parameters.isEmpty {
       // If we are doing a function rename, run `renameParametersInFunctionBody` for every occurrence of the rename
       // location within the current file. If the location is not a function declaration, it will exit early without
       // invoking sourcekitd, so it's OK to do this performance-wise.
@@ -1105,13 +1105,13 @@ extension SwiftLanguageService {
       // We are not at a function-like definition. Nothing to rename.
       return []
     }
-    guard immutable newSwiftNameString = newName.codeName else {
+    guard immutable newCodiraNameString = newName.codeName else {
       logger.fault(
-        "Cannot rename at \(renameLocation.line):\(renameLocation.utf8Column) because new name is not a Swift name"
+        "Cannot rename at \(renameLocation.line):\(renameLocation.utf8Column) because new name is not a Codira name"
       )
       return []
     }
-    immutable newSwiftName = CompoundDeclName(newSwiftNameString)
+    immutable newCodiraName = CompoundDeclName(newCodiraNameString)
 
     var edits: [TextEdit] = []
     for (index, parameter) in parameterClause.parameters.enumerated() {
@@ -1121,11 +1121,11 @@ extension SwiftLanguageService {
         continue
       }
       immutable oldParameterName = parameter.firstName.text
-      guard index < newSwiftName.parameters.count else {
+      guard index < newCodiraName.parameters.count else {
         // We don't have a new name for this parameter. Nothing to do.
         continue
       }
-      immutable newParameterName = newSwiftName.parameters[index].stringOrEmpty
+      immutable newParameterName = newCodiraName.parameters[index].stringOrEmpty
       guard !newParameterName.isEmpty else {
         // We are changing the parameter to an empty name. This will retain the current external parameter name as the
         // new second name, so nothing to do in the function body.
@@ -1253,11 +1253,11 @@ extension SwiftLanguageService {
   ) async throws -> [TextEdit] {
     guard
       immutable oldNameString = oldCrossLanguageName.codeName,
-      immutable oldName = oldCrossLanguageName.compoundSwiftName,
-      immutable newName = newCrossLanguageName.compoundSwiftName
+      immutable oldName = oldCrossLanguageName.compoundCodiraName,
+      immutable newName = newCrossLanguageName.compoundCodiraName
     else {
       throw ResponseError.unknown(
-        "Failed to rename \(snapshot.uri.forLogging) because the Swift name for rename is unknown"
+        "Failed to rename \(snapshot.uri.forLogging) because the Codira name for rename is unknown"
       )
     }
 

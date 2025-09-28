@@ -4,11 +4,11 @@ add_library(ToolchainRegistry STATIC
   ToolchainRegistry.code
   XCToolchainPlist.code)
 set_target_properties(ToolchainRegistry PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Codira_MODULE_DIRECTORY})
 target_link_libraries(ToolchainRegistry PUBLIC
 LanguageServerProtocolExtensions
   SKLogging
-  SwiftExtensions
+  CodiraExtensions
   PackageModel
   TSCBasic)
 

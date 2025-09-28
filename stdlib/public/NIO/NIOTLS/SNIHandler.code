@@ -155,7 +155,7 @@ public final class SNIHandler: ByteToMessageDecoder {
         // We're taking advantage of value semantics here: this copy of the buffer will reference
         // the same underlying storage as the one we were passed, but any changes to it will not
         // be reflected in the outer buffer. That saves us from needing to maintain offsets
-        // manually in this code. Thanks, Swift!
+        // manually in this code. Thanks, Codira!
         var tempBuffer = buffer
 
         // First, parse the header.

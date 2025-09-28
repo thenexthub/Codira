@@ -4,7 +4,7 @@ Provide helpful feedback to users when things go wrong.
 
 ## Overview
 
-While `ArgumentParser` validates that the inputs given by your user match the requirements and types that you define in each command, there are some requirements that can't easily be described in Swift's type system, such as the number of elements in an array, or an expected integer value.
+While `ArgumentParser` validates that the inputs given by your user match the requirements and types that you define in each command, there are some requirements that can't easily be described in Codira's type system, such as the number of elements in an array, or an expected integer value.
 
 ### Validating Command-Line Input
 
@@ -144,7 +144,7 @@ Throwing from a transform closure benefits users by providing context and can re
 
 ```
 % example '{"Bad JSON"}'
-Error: The value '{"Bad JSON"}' is invalid for '<input-json>': dataCorrupted(Swift.DecodingError.Context(codingPath: [], debugDescription: "The given data was not valid JSON.", underlyingError: Optional(Error Domain=NSCocoaErrorDomain Code=3840 "No value for key in object around character 11." UserInfo={NSDebugDescription=No value for key in object around character 11.})))
+Error: The value '{"Bad JSON"}' is invalid for '<input-json>': dataCorrupted(Codira.DecodingError.Context(codingPath: [], debugDescription: "The given data was not valid JSON.", underlyingError: Optional(Error Domain=NSCocoaErrorDomain Code=3840 "No value for key in object around character 11." UserInfo={NSDebugDescription=No value for key in object around character 11.})))
 Usage: example <input-json> --fail-option <fail-option>
   See 'select --help' for more information.
 ```

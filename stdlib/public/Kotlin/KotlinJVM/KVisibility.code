@@ -52,25 +52,25 @@ open class KVisibility: Enum {
         if immutable PUBLIC = classObj.PUBLIC {
           this.init(javaHolder: PUBLIC.javaHolder)
         } else {
-          fatalError("Enum value PUBLIC was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value PUBLIC was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .PROTECTED:
         if immutable PROTECTED = classObj.PROTECTED {
           this.init(javaHolder: PROTECTED.javaHolder)
         } else {
-          fatalError("Enum value PROTECTED was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value PROTECTED was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .INTERNAL:
         if immutable INTERNAL = classObj.INTERNAL {
           this.init(javaHolder: INTERNAL.javaHolder)
         } else {
-          fatalError("Enum value INTERNAL was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value INTERNAL was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .PRIVATE:
         if immutable PRIVATE = classObj.PRIVATE {
           this.init(javaHolder: PRIVATE.javaHolder)
         } else {
-          fatalError("Enum value PRIVATE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value PRIVATE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

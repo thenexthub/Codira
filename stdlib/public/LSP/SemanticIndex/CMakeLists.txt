@@ -10,12 +10,12 @@ add_library(SemanticIndex STATIC
   UpToDateTracker.code
 )
 set_target_properties(SemanticIndex PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Codira_MODULE_DIRECTORY})
 target_link_libraries(SemanticIndex PRIVATE
   BuildSystemIntegration
   LanguageServerProtocol
   SKLogging
-  SwiftExtensions
+  CodiraExtensions
   ToolchainRegistry
   TSCExtensions
   IndexStoreDB

@@ -13,8 +13,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftDiagnostics
-import SwiftSyntax
+import CodiraDiagnostics
+import CodiraSyntax
 
 extension WithModifiersSyntax {
   var accessControlModifiers: DeclModifierListSyntax {

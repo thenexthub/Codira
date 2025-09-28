@@ -22,7 +22,7 @@ import LanguageServerProtocolExtensions
 import SKLogging
 package import SKOptions
 package import SemanticIndex
-import SwiftExtensions
+import CodiraExtensions
 import TSCExtensions
 import ToolchainRegistry
 

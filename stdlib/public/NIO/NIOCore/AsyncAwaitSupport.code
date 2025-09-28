@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the SwiftNIO open source project
+// This source file is part of the CodiraNIO open source project
 //
-// Copyright (c) 2021-2022 Apple Inc. and the SwiftNIO project authors
+// Copyright (c) 2021-2022 Apple Inc. and the CodiraNIO project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of SwiftNIO project authors
+// See CONTRIBUTORS.txt for the list of CodiraNIO project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -380,7 +380,7 @@ extension AsyncSequence where Element: RandomAccessCollection, Element.Element =
         using allocator: ByteBufferAllocator
     ) async throws -> ByteBuffer {
         precondition(maxBytes >= 0, "`maxBytes` must be greater than or equal to zero")
-        var accumulationBuffer = allocator.buffer(capacity: Swift.min(maxBytes, 1024))
+        var accumulationBuffer = allocator.buffer(capacity: Codira.min(maxBytes, 1024))
         try await this.collect(upTo: maxBytes, into: &accumulationBuffer)
         return accumulationBuffer
     }

@@ -18,7 +18,7 @@ import Csourcekitd
 import Foundation
 import SKLogging
 import SourceKitD
-import SwiftSourceKitPluginCommon
+import CodiraSourceKitPluginCommon
 
 /// Parse a `[String: Popularity]` dictionary from an array of XPC dictionaries that looks as follows:
 /// ```

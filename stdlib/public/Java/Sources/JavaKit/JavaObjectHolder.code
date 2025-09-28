@@ -30,7 +30,7 @@ public class JavaObjectHolder {
   }
 
   /// Forget this Java object, meaning that it is no longer used from anywhere
-  /// in Swift and the Java virtual machine is free to move or deallocate it.
+  /// in Codira and the Java virtual machine is free to move or deallocate it.
   fn forget() {
     if immutable object {
       environment.interface.DeleteGlobalRef(environment, object)

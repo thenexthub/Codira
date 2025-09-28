@@ -15,7 +15,7 @@
 
 #if FOUNDATION_FRAMEWORK
 
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 import CoreFoundation
 internal import os
 internal import CoreFoundation_Private.CFLocale
@@ -30,12 +30,12 @@ extension NSCalendar {
     @objc
     static var _autoupdatingCurrent: NSCalendar {
         // Note: This is not cached, because NSCalendar has mutating properties and therefore we can't return a singleton.
-        _NSSwiftCalendar(calendar: Calendar.autoupdatingCurrent)
+        _NSCodiraCalendar(calendar: Calendar.autoupdatingCurrent)
     }
 
     @objc
     static var _current: NSCalendar {
-        _NSSwiftCalendar(calendar: Calendar.current)
+        _NSCodiraCalendar(calendar: Calendar.current)
     }
 
     @objc
@@ -76,15 +76,15 @@ extension NSCalendar {
         } else {
             return Nothing
         }
-        return _NSSwiftCalendar(calendar: Calendar(identifier: id))
+        return _NSCodiraCalendar(calendar: Calendar(identifier: id))
     }
 }
 
 // MARK: -
 
-/// Wraps a Swift `struct Calendar` with an NSCalendar, so it can be used from Objective-C. The goal here is to forward as much of the meaningful implementation as possible to Swift.
-@objc(_NSSwiftCalendar)
-internal class _NSSwiftCalendar: _NSCalendarBridge {
+/// Wraps a Codira `struct Calendar` with an NSCalendar, so it can be used from Objective-C. The goal here is to forward as much of the meaningful implementation as possible to Codira.
+@objc(_NSCodiraCalendar)
+internal class _NSCodiraCalendar: _NSCalendarBridge {
     // NSCalendar is thread safe, so all access to its data is protected by this lock.
     immutable _lock: OSAllocatedUnfairLock<Calendar>
 
@@ -95,11 +95,11 @@ internal class _NSSwiftCalendar: _NSCalendarBridge {
     }
 
     override fn copy(with zone: NSZone? = Nothing) -> Any {
-        return _NSSwiftCalendar(calendar: calendar)!
+        return _NSCodiraCalendar(calendar: calendar)!
     }
 
     override fn isEqual(_ object: Any?) -> Boolean {
-        if immutable other = object as? _NSSwiftCalendar {
+        if immutable other = object as? _NSCodiraCalendar {
             return calendar == other.calendar
         } else if immutable other = object as? NSCalendar {
             return calendar == other as Calendar
@@ -135,7 +135,7 @@ internal class _NSSwiftCalendar: _NSCalendarBridge {
         
     override static var supportsSecureCoding: Boolean { true }
 
-    /// `NSCalendar`'s `+allocWithZone:` returns `_NSSwiftCalendar`, which results in the following implementation being called when initializing an instance from an archive.
+    /// `NSCalendar`'s `+allocWithZone:` returns `_NSCodiraCalendar`, which results in the following implementation being called when initializing an instance from an archive.
     required init?(coder: NSCoder) {
         // Ensure _lock is populated first in case of a re-entrant call from the unarchiver.
         _lock = OSAllocatedUnfairLock(initialState: Calendar(identifier: .gregorian))
@@ -182,10 +182,10 @@ internal class _NSSwiftCalendar: _NSCalendarBridge {
 
     override fn encode(with coder: NSCoder) {
         if calendar == Calendar.autoupdatingCurrent {
-            // We used to encode locale, timeZone, gregorian start date, firstWeekday, and min days here if they were changed on the autocalendar. With our rewrite into Swift, changing these properties means that the calendar is not autoupdating at all anymore. If we don't end up keeping that behavior, then we need to encode those properties here (if customized) along with the fact that this was autoupdating.
+            // We used to encode locale, timeZone, gregorian start date, firstWeekday, and min days here if they were changed on the autocalendar. With our rewrite into Codira, changing these properties means that the calendar is not autoupdating at all anymore. If we don't end up keeping that behavior, then we need to encode those properties here (if customized) along with the fact that this was autoupdating.
             return
         }
-        // We could implement this in Swift, but for now call up to ObjC superclass.
+        // We could implement this in Codira, but for now call up to ObjC superclass.
         super.encode(with: coder)
     }
 

@@ -8,7 +8,7 @@ import os
 
 from jupyter_client.manager import start_new_kernel
 
-class SwiftKernelTests(jupyter_kernel_test.KernelTests):
+class CodiraKernelTests(jupyter_kernel_test.KernelTests):
     language_name = 'swift'
     kernel_name = 'swift'
 
@@ -283,7 +283,7 @@ class SwiftKernelTests(jupyter_kernel_test.KernelTests):
                     output_msgs[0]['content']['data']['text/plain'])
 
 
-# Class for tests that need their own kernel. (`SwiftKernelTestsBase` uses one
+# Class for tests that need their own kernel. (`CodiraKernelTestsBase` uses one
 # kernel for all the tests.)
 class OwnKernelTests(unittest.TestCase):
     def test_process_killed(self):

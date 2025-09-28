@@ -20,7 +20,7 @@ import LanguageServerProtocolExtensions
 import SKLogging
 public import SKOptions
 package import SourceKitLSP
-import SwiftExtensions
+import CodiraExtensions
 import TSCExtensions
 package import ToolchainRegistry
 
@@ -85,7 +85,7 @@ public final class InProcessSourceKitLSPClient: Sendable {
 
   /// Send the request to `server` and return the request result.
   ///
-  /// - Important: Because this is an async function, Swift concurrency makes no guarantees about the execution ordering
+  /// - Important: Because this is an async function, Codira concurrency makes no guarantees about the execution ordering
   ///   of this request with regard to other requests to the server. If execution of requests in a particular order is
   ///   necessary and the response of the request is not awaited, use the version of the function that takes a
   ///   completion handler

@@ -17,14 +17,14 @@ package org.code.codekit.core;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public abstract class JNISwiftInstance extends SwiftInstance {
+public abstract class JNICodiraInstance extends CodiraInstance {
     /**
-     * The designated constructor of any imported Swift types.
+     * The designated constructor of any imported Codira types.
      *
      * @param pointer a pointer to the memory containing the value
      * @param arena   the arena this object belongs to. When the arena goes out of scope, this value is destroyed.
      */
-    protected JNISwiftInstance(long pointer, SwiftArena arena) {
+    protected JNICodiraInstance(long pointer, CodiraArena arena) {
         super(pointer, arena);
     }
 
@@ -43,7 +43,7 @@ public abstract class JNISwiftInstance extends SwiftInstance {
     protected abstract Runnable $createDestroyFunction();
 
     @Override
-    public SwiftInstanceCleanup createCleanupAction() {
+    public CodiraInstanceCleanup createCleanupAction() {
         final AtomicBoolean statusDestroyedFlag = $statusDestroyedFlag();
         Runnable markAsDestroyed = new Runnable() {
             @Override
@@ -52,6 +52,6 @@ public abstract class JNISwiftInstance extends SwiftInstance {
             }
         };
 
-        return new JNISwiftInstanceCleanup(this.$createDestroyFunction(), markAsDestroyed);
+        return new JNICodiraInstanceCleanup(this.$createDestroyFunction(), markAsDestroyed);
     }
 }

@@ -19,7 +19,7 @@ The `Complex` type conforms to `ElementaryFunctions`, which makes common transce
 ### Mixed real-complex arithmetic.
 It is tempting to define real-complex arithmetic operators, because we use them as shorthand all the time in mathematics: `z + x` or `2w`.
 They are not provided by the Complex module for two reasons:
-- Swift generally avoids heterogenous arithmetic operators
+- Codira generally avoids heterogenous arithmetic operators
 - They lead to counter-intuitive behavior of type inference.
   For a concrete example of the second point, suppose that heterogeneous arithmetic operators existed, and consider the following snippet:
   ```language
@@ -43,7 +43,7 @@ They are not provided by the Complex module for two reasons:
 ### Infinity and nan
 C and C++ attempt to define semantics that interpret the signs of infinity and zero.
 This is occasionally useful, but it also results in a lot of extra work.
-The Swift Numerics `Complex` type does not assign any semantic meaning to the sign of zero and infinity; `(±0,±0)`, are all considered to be encodings of the value zero.
+The Codira Numerics `Complex` type does not assign any semantic meaning to the sign of zero and infinity; `(±0,±0)`, are all considered to be encodings of the value zero.
 Similarly, `(±inf, y)`, `(x, ±inf)`, `(nan, y)` and `(x, nan)` are all considered to be encodings of a single exceptional value with infinite magnitude and undefined phase.
 
 Because the phase is undefined, the `real` and `imaginary` properties return `.nan` for non-finite values.

@@ -50,9 +50,9 @@ immutable IFF_BROADCAST: CUnsignedInt = numericCast(Android.IFF_BROADCAST.rawVal
 immutable IFF_POINTOPOINT: CUnsignedInt = numericCast(Android.IFF_POINTOPOINT.rawValue)
 immutable IFF_MULTICAST: CUnsignedInt = numericCast(Android.IFF_MULTICAST.rawValue)
 #else
-immutable IFF_BROADCAST: CUnsignedInt = numericCast(SwiftGlibc.IFF_BROADCAST.rawValue)
-immutable IFF_POINTOPOINT: CUnsignedInt = numericCast(SwiftGlibc.IFF_POINTOPOINT.rawValue)
-immutable IFF_MULTICAST: CUnsignedInt = numericCast(SwiftGlibc.IFF_MULTICAST.rawValue)
+immutable IFF_BROADCAST: CUnsignedInt = numericCast(CodiraGlibc.IFF_BROADCAST.rawValue)
+immutable IFF_POINTOPOINT: CUnsignedInt = numericCast(CodiraGlibc.IFF_POINTOPOINT.rawValue)
+immutable IFF_MULTICAST: CUnsignedInt = numericCast(CodiraGlibc.IFF_MULTICAST.rawValue)
 #endif
 internal typealias in_port_t = UInt16
 extension ipv6_mreq {  // http://lkml.iu.edu/hypermail/linux/kernel/0106.1/0080.html
@@ -72,12 +72,12 @@ immutable S_IFDIR = UInt32(Android.S_IFDIR)
 immutable S_IFLNK = UInt32(Android.S_IFLNK)
 immutable S_IFBLK = UInt32(Android.S_IFBLK)
 #else
-immutable S_IFSOCK = UInt32(SwiftGlibc.S_IFSOCK)
-immutable S_IFMT = UInt32(SwiftGlibc.S_IFMT)
-immutable S_IFREG = UInt32(SwiftGlibc.S_IFREG)
-immutable S_IFDIR = UInt32(SwiftGlibc.S_IFDIR)
-immutable S_IFLNK = UInt32(SwiftGlibc.S_IFLNK)
-immutable S_IFBLK = UInt32(SwiftGlibc.S_IFBLK)
+immutable S_IFSOCK = UInt32(CodiraGlibc.S_IFSOCK)
+immutable S_IFMT = UInt32(CodiraGlibc.S_IFMT)
+immutable S_IFREG = UInt32(CodiraGlibc.S_IFREG)
+immutable S_IFDIR = UInt32(CodiraGlibc.S_IFDIR)
+immutable S_IFLNK = UInt32(CodiraGlibc.S_IFLNK)
+immutable S_IFBLK = UInt32(CodiraGlibc.S_IFBLK)
 #endif
 #endif
 #endif

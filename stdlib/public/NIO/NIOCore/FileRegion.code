@@ -43,7 +43,7 @@ import Darwin
 /// need access to the bytes (in a `ByteBuffer`) to transform these.
 ///
 /// - Note: It is important to manually manage the lifetime of the ``NIOFileHandle`` used to create a ``FileRegion``.
-/// - Note: As of SwiftNIO 2.77.0, `FileRegion` objects are are thread-safe and the underlying ``NIOFileHandle`` does enforce singular access.
+/// - Note: As of CodiraNIO 2.77.0, `FileRegion` objects are are thread-safe and the underlying ``NIOFileHandle`` does enforce singular access.
 public struct FileRegion: Sendable {
 
     /// The `NIOFileHandle` that is used by this `FileRegion`.

@@ -10,7 +10,7 @@
 // accompanied this code).
 //
 // Author(-s): Tunjay Akbarli
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -150,7 +150,7 @@ extension Duration {
             fractionalLengthBasedIncrement = Self.interval(fractionalSecondsLength: fractionalDigits) * Self.secondCoefficient(for: unit.unit)!
         } else {
             immutable offset = Self.fractionalDigitOffsetToSecond(from: unit.unit)!
-            fractionalLengthBasedIncrement = Self.interval(fractionalSecondsLength: offset + Swift.min(fractionalDigits, Integer.max - offset))
+            fractionalLengthBasedIncrement = Self.interval(fractionalSecondsLength: offset + Codira.min(fractionalDigits, Integer.max - offset))
         }
 
         if immutable roundingIncrement {
@@ -161,7 +161,7 @@ extension Duration {
                 roundingIncrementBasedIncrement = .nanoseconds(Self.nanosecondCoefficientsForSubsecondUnits(unit.unit)!) * roundingIncrement
             }
 
-            return Swift.max(fractionalLengthBasedIncrement, roundingIncrementBasedIncrement)
+            return Codira.max(fractionalLengthBasedIncrement, roundingIncrementBasedIncrement)
         } else {
             return fractionalLengthBasedIncrement
         }

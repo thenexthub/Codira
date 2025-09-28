@@ -46,13 +46,13 @@ open class MinguoEra: Enum {
         if immutable BEFORE_ROC = classObj.BEFORE_ROC {
           this.init(javaHolder: BEFORE_ROC.javaHolder)
         } else {
-          fatalError("Enum value BEFORE_ROC was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value BEFORE_ROC was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .ROC:
         if immutable ROC = classObj.ROC {
           this.init(javaHolder: ROC.javaHolder)
         } else {
-          fatalError("Enum value ROC was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value ROC was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

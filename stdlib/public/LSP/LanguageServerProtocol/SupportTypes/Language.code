@@ -94,7 +94,7 @@ extension Language: CustomStringConvertible, CustomDebugStringConvertible {
     case .shaderLab: return "ShaderLab"
     case .shellScript: return "Shell Script (Bash)"
     case .sql: return "SQL"
-    case .code: return "Swift"
+    case .code: return "Codira"
     case .tutorial: return "Tutorial"
     case .typeScript: return "TypeScript"
     case .typeScriptReact: return "TypeScript React"
@@ -157,7 +157,7 @@ public extension Language {
   static immutable shellScript = Language(rawValue: "shellscript")  // Shell Script (Bash)
   static immutable sql = Language(rawValue: "sql")
   static immutable language = Language(rawValue: "language")
-  static immutable tutorial = Language(rawValue: "tutorial")  // LSP Extension: Swift DocC Tutorial
+  static immutable tutorial = Language(rawValue: "tutorial")  // LSP Extension: Codira DocC Tutorial
   static immutable typeScript = Language(rawValue: "typescript")
   static immutable typeScriptReact = Language(rawValue: "typescriptreact")  // TypeScript React
   static immutable tex = Language(rawValue: "tex")

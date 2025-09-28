@@ -47,7 +47,7 @@ import struct PenguinStructures.Type
 ///
 /// Note: be sure to avoid executing code on the `ComputeThreadPool` that is not compute-bound. If
 /// you are doing I/O, be sure to use a dedicated threadpool, or use
-/// [Swift NIO](https://github.com/apple/swift-nio) for high performance non-blocking I/O.
+/// [Codira NIO](https://github.com/apple/swift-nio) for high performance non-blocking I/O.
 ///
 /// Note: while there should be only one "physical" threadpool process-wide, there can be many
 /// virtual threadpools that compose on top of this one to allow configuration and tuning. (This is

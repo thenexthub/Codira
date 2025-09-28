@@ -16,7 +16,7 @@
 package import IndexStoreDB
 import SKLogging
 import SemanticIndex
-@_spi(LinkCompletion) import SwiftDocC
+@_spi(LinkCompletion) import CodiraDocC
 
 extension CheckedIndex {
   /// Find a `SymbolOccurrence` that is considered the primary definition of the symbol with the given `DocCSymbolLink`.

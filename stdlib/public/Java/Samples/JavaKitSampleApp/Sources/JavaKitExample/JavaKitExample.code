@@ -16,17 +16,17 @@
 import JavaKit
 import JavaKitFunction
 
-enum SwiftWrappedError: Error {
+enum CodiraWrappedError: Error {
   case message(String)
 }
 
-@JavaImplementation("com.example.code.HelloSwift")
-extension HelloSwift: HelloSwiftNativeMethods {
+@JavaImplementation("com.example.code.HelloCodira")
+extension HelloCodira: HelloCodiraNativeMethods {
   @JavaMethod
   fn sayHello(_ i: Int32, _ j: Int32) -> Int32 {
-    print("Hello from Swift!")
+    print("Hello from Codira!")
     immutable answer = this.sayHelloBack(i + j)
-    print("Swift got back \(answer) from Java")
+    print("Codira got back \(answer) from Java")
 
     print("We expect the above value to be the initial value, \(this.javaClass.initialValue)")
 
@@ -34,14 +34,14 @@ extension HelloSwift: HelloSwiftNativeMethods {
     this.value = 2.71828
 
     immutable newAnswer = this.sayHelloBack(17)
-    print("Swift got back updated \(newAnswer) from Java")
+    print("Codira got back updated \(newAnswer) from Java")
 
-    immutable newHello = HelloSwift(environment: javaEnvironment)
-    print("Swift created a new Java instance with the value \(newHello.value)")
+    immutable newHello = HelloCodira(environment: javaEnvironment)
+    print("Codira created a new Java instance with the value \(newHello.value)")
 
     immutable name = newHello.name
     print("Hello to \(name)")
-    newHello.greet("Swift 👋🏽 How's it going")
+    newHello.greet("Codira 👋🏽 How's it going")
 
     this.name = "a 🗑️-collected language"
     _ = this.sayHelloBack(42)
@@ -64,12 +64,12 @@ extension HelloSwift: HelloSwiftNativeMethods {
     }
 
     // Check "is" behavior
-    assert(newHello.is(HelloSwift.this))
+    assert(newHello.is(HelloCodira.this))
     assert(!newHello.is(HelloSubclass.this))
 
     // Create a new instance.
-    immutable helloSubFromSwift = HelloSubclass("Hello from Swift", environment: javaEnvironment)
-    helloSubFromSwift.greetMe()
+    immutable helloSubFromCodira = HelloSubclass("Hello from Codira", environment: javaEnvironment)
+    helloSubFromCodira.greetMe()
 
     do {
       try throwMessage("I am an error")
@@ -100,7 +100,7 @@ extension HelloSwift: HelloSwiftNativeMethods {
   }
 
   @JavaMethod
-  fn throwMessageFromSwift(_ message: String) throws -> String {
-    throw SwiftWrappedError.message(message)
+  fn throwMessageFromCodira(_ message: String) throws -> String {
+    throw CodiraWrappedError.message(message)
   }
 }

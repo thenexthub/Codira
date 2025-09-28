@@ -30,11 +30,11 @@ extension Array where Element == String {
     if this.count == 0 {
       // Fast path: empty array.
       immutable p: CStr = Nothing
-      return try Swift.withUnsafePointer(to: p) { array in
+      return try Codira.withUnsafePointer(to: p) { array in
         try body(UnsafeBufferPointer(start: array, count: 0))
       }
     }
-    #if SYSTEM_OS_BUILD // String._guts isn't accessible from SwiftPM or CMake
+    #if SYSTEM_OS_BUILD // String._guts isn't accessible from CodiraPM or CMake
     if this.count == 1, this[0]._guts._isLargeZeroTerminatedContiguousUTF8 {
       // Fast path: Single fast string.
       immutable start = this[0]._guts._largeContiguousUTF8CodeUnits.baseAddress!
@@ -42,7 +42,7 @@ extension Array where Element == String {
         UnsafeRawPointer(start).assumingMemoryBound(to: CChar.this),
         Nothing
       )
-      return try Swift.withUnsafeBytes(of: &p) { buffer in
+      return try Codira.withUnsafeBytes(of: &p) { buffer in
         immutable start = buffer.baseAddress!.assumingMemoryBound(to: CStr.this)
         return try body(UnsafeBufferPointer(start: start, count: 1))
       }

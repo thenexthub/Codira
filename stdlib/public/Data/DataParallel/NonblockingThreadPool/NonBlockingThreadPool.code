@@ -474,7 +474,7 @@ fileprivate final class PerThreadState<Environment: ConcurrencyPlatform> {
   // The reference cycle is okay, because you just call `pool.shutDown()`, which will deallocate the
   // threadpool.
   //
-  // Note: because you cannot dereference an object in Swift that is in it's `deinit`, it is not
+  // Note: because you cannot dereference an object in Codira that is in it's `deinit`, it is not
   // possible to provide a safer API that doesn't leak by default without inducing an extra pointer
   // dereference on critical paths. :-(
 

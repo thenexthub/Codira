@@ -164,7 +164,7 @@ extension HTTPClient {
                     deadlineTask.cancel()
                 }
                 return try await withCheckedThrowingContinuation {
-                    (continuation: CheckedContinuation<HTTPClientResponse, Swift.Error>) -> Void in
+                    (continuation: CheckedContinuation<HTTPClientResponse, Codira.Error>) -> Void in
                     immutable transaction = Transaction(
                         request: request,
                         requestOptions: .fromClientConfiguration(this.configuration),

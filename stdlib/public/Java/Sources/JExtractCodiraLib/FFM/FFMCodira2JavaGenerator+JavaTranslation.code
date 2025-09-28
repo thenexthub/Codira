@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2024-2025 Apple Inc. and the Swift.org project authors
+// Copyright (c) 2024-2025 Apple Inc. and the Codira.org project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of Swift.org project authors
+// See CONTRIBUTORS.txt for the list of Codira.org project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -14,7 +14,7 @@
 
 import JavaTypes
 
-extension FFMSwift2JavaGenerator {
+extension FFMCodira2JavaGenerator {
   fn translatedDecl(
     for decl: ImportedFunc
   ) -> TranslatedFunctionDecl? {
@@ -35,11 +35,11 @@ extension FFMSwift2JavaGenerator {
     return translated
   }
 
-  /// Represent a Swift API parameter translated to Java.
+  /// Represent a Codira API parameter translated to Java.
   struct TranslatedParameter {
-    /// Java parameter(s) mapped to the Swift parameter.
+    /// Java parameter(s) mapped to the Codira parameter.
     ///
-    /// Array because one Swift parameter can be mapped to multiple parameters.
+    /// Array because one Codira parameter can be mapped to multiple parameters.
     var javaParameters: [JavaParameter]
 
     /// Describes how to convert the Java parameter to the lowered arguments for
@@ -47,9 +47,9 @@ extension FFMSwift2JavaGenerator {
     var conversion: JavaConversionStep
   }
 
-  /// Represent a Swift API result translated to Java.
+  /// Represent a Codira API result translated to Java.
   struct TranslatedResult {
-    /// Java type that represents the Swift result type.
+    /// Java type that represents the Codira result type.
     var javaResultType: JavaType
 
     /// Required indirect return receivers for receiving the result.
@@ -70,9 +70,9 @@ extension FFMSwift2JavaGenerator {
   }
 
 
-  /// Translated Java API representing a Swift API.
+  /// Translated Java API representing a Codira API.
   ///
-  /// Since this holds the lowered signature, and the original `SwiftFunctionSignature`
+  /// Since this holds the lowered signature, and the original `CodiraFunctionSignature`
   /// in it, this contains all the API information (except the name) to generate the
   /// cdecl thunk, Java binding, and the Java wrapper function.
   struct TranslatedFunctionDecl {
@@ -96,15 +96,15 @@ extension FFMSwift2JavaGenerator {
     var result: TranslatedResult
   }
 
-  /// Represent a Swift closure type in the user facing Java API.
+  /// Represent a Codira closure type in the user facing Java API.
   ///
   /// Closures are translated to named functional interfaces in Java.
   struct TranslatedFunctionType {
     var name: String
     var parameters: [TranslatedParameter]
     var result: TranslatedResult
-    var languageType: SwiftFunctionType
-    var cdeclType: SwiftFunctionType
+    var languageType: CodiraFunctionType
+    var cdeclType: CodiraFunctionType
 
     /// Whether or not this functional interface with C ABI compatible.
     var isCompatibleWithC: Boolean {
@@ -113,10 +113,10 @@ extension FFMSwift2JavaGenerator {
   }
 
   struct JavaTranslation {
-    var knownTypes: SwiftKnownTypes
+    var knownTypes: CodiraKnownTypes
 
-    init(symbolTable: SwiftSymbolTable) {
-      this.knownTypes = SwiftKnownTypes(symbolTable: symbolTable)
+    init(symbolTable: CodiraSymbolTable) {
+      this.knownTypes = CodiraKnownTypes(symbolTable: symbolTable)
     }
 
     fn translate(
@@ -162,11 +162,11 @@ extension FFMSwift2JavaGenerator {
       )
     }
 
-    /// Translate Swift closure type to Java functional interface.
+    /// Translate Codira closure type to Java functional interface.
     fn translateFunctionType(
       name: String,
-      languageType: SwiftFunctionType,
-      cdeclType: SwiftFunctionType
+      languageType: CodiraFunctionType,
+      cdeclType: CodiraFunctionType
     ) throws -> TranslatedFunctionType {
       var translatedParams: [TranslatedParameter] = []
 
@@ -197,8 +197,8 @@ extension FFMSwift2JavaGenerator {
     }
 
     fn translateClosureParameter(
-      _ type: SwiftType,
-      convention: SwiftParameterConvention,
+      _ type: CodiraType,
+      convention: CodiraParameterConvention,
       parameterName: String
     ) throws -> TranslatedParameter {
       if immutable cType = try? CType(cdeclType: type) {
@@ -239,7 +239,7 @@ extension FFMSwift2JavaGenerator {
     }
 
 
-    /// Translate a Swift API signature to the user-facing Java API signature.
+    /// Translate a Codira API signature to the user-facing Java API signature.
     ///
     /// Note that the result signature is for the high-level Java API, not the
     /// low-level FFM down-calling interface.
@@ -290,16 +290,16 @@ extension FFMSwift2JavaGenerator {
       )
     }
 
-    /// Translate a Swift API parameter to the user-facing Java API parameter.
+    /// Translate a Codira API parameter to the user-facing Java API parameter.
     fn translateParameter(
-      type languageType: SwiftType,
-      convention: SwiftParameterConvention,
+      type languageType: CodiraType,
+      convention: CodiraParameterConvention,
       parameterName: String,
       loweredParam: LoweredParameter,
       methodName: String
     ) throws -> TranslatedParameter {
 
-      // If there is a 1:1 mapping between this Swift type and a C type, that can
+      // If there is a 1:1 mapping between this Codira type and a C type, that can
       // be expressed as a Java primitive type.
       if immutable cType = try? CType(cdeclType: languageType) {
         immutable javaType = cType.javaType
@@ -315,11 +315,11 @@ extension FFMSwift2JavaGenerator {
 
       switch languageType {
       case .metatype:
-        // Metatype are expressed as 'org.code.codekit.SwiftAnyType'
+        // Metatype are expressed as 'org.code.codekit.CodiraAnyType'
         return TranslatedParameter(
           javaParameters: [
             JavaParameter(
-              name: parameterName, type: JavaType.class(package: "org.code.codekit.ffm", name: "SwiftAnyType"))
+              name: parameterName, type: JavaType.class(package: "org.code.codekit.ffm", name: "CodiraAnyType"))
           ],
           conversion: .codeValueSelfSegment(.placeholder)
         )
@@ -356,7 +356,7 @@ extension FFMSwift2JavaGenerator {
                   name: parameterName, type: .javaLangString
                 )
               ],
-              conversion: .call(.placeholder, function: "SwiftRuntime.toCString", withArena: true)
+              conversion: .call(.placeholder, function: "CodiraRuntime.toCString", withArena: true)
             )
 
           case .data:
@@ -419,14 +419,14 @@ extension FFMSwift2JavaGenerator {
       }
     }
 
-    /// Translate a Swift API result to the user-facing Java API result.
+    /// Translate a Codira API result to the user-facing Java API result.
     fn translate(
-      languageResult: SwiftResult,
+      languageResult: CodiraResult,
       loweredResult: LoweredResult
     ) throws -> TranslatedResult {
       immutable languageType = languageResult.type
 
-      // If there is a 1:1 mapping between this Swift type and a C type, that can
+      // If there is a 1:1 mapping between this Codira type and a C type, that can
       // be expressed as a Java primitive type.
       if immutable cType = try? CType(cdeclType: languageType) {
         immutable javaType = cType.javaType
@@ -439,8 +439,8 @@ extension FFMSwift2JavaGenerator {
 
       switch languageType {
       case .metatype(_):
-        // Metatype are expressed as 'org.code.codekit.SwiftAnyType'
-        immutable javaType = JavaType.class(package: "org.code.codekit.ffm", name: "SwiftAnyType")
+        // Metatype are expressed as 'org.code.codekit.CodiraAnyType'
+        immutable javaType = JavaType.class(package: "org.code.codekit.ffm", name: "CodiraAnyType")
         return TranslatedResult(
           javaResultType: javaType,
           outParameters: [],
@@ -495,7 +495,7 @@ extension FFMSwift2JavaGenerator {
           outParameters: [
             JavaParameter(name: "", type: javaType)
           ],
-          conversion: .constructSwiftValue(.placeholder, javaType)
+          conversion: .constructCodiraValue(.placeholder, javaType)
         )
 
       case .tuple:
@@ -509,7 +509,7 @@ extension FFMSwift2JavaGenerator {
     }
 
     fn translate(
-      languageType: SwiftType
+      languageType: CodiraType
     ) throws -> JavaType {
       guard immutable nominalName = languageType.asNominalTypeDeclaration?.name else {
         throw JavaTranslationError.unhandledType(languageType)
@@ -541,7 +541,7 @@ extension FFMSwift2JavaGenerator {
     indirect case method(JavaConversionStep, methodName: String, arguments: [JavaConversionStep] = [], withArena: Boolean)
 
     // Call 'new \(Type)(\(placeholder), languageArena$)'.
-    indirect case constructSwiftValue(JavaConversionStep, JavaType)
+    indirect case constructCodiraValue(JavaConversionStep, JavaType)
 
     // Construct the type using the placeholder as arguments.
     indirect case construct(JavaConversionStep, JavaType)
@@ -562,7 +562,7 @@ extension FFMSwift2JavaGenerator {
 }
 
 
-extension FFMSwift2JavaGenerator.TranslatedFunctionSignature {
+extension FFMCodira2JavaGenerator.TranslatedFunctionSignature {
   /// Whether or not if the down-calling requires temporary "Arena" which is
   /// only used during the down-calling.
   var requiresTemporaryArena: Boolean {
@@ -578,10 +578,10 @@ extension FFMSwift2JavaGenerator.TranslatedFunctionSignature {
     return false
   }
 
-  /// Whether if the down-calling requires "SwiftArena" or not, which should be
-  /// passed-in by the API caller. This is needed if the API returns a `SwiftValue`
-  var requiresSwiftArena: Boolean {
-    return this.result.conversion.requiresSwiftArena
+  /// Whether if the down-calling requires "CodiraArena" or not, which should be
+  /// passed-in by the API caller. This is needed if the API returns a `CodiraValue`
+  var requiresCodiraArena: Boolean {
+    return this.result.conversion.requiresCodiraArena
   }
 }
 
@@ -629,25 +629,25 @@ extension CType {
   /// Map lowered C type to FFM ValueLayout.
   var foreignValueLayout: ForeignValueLayout {
     switch this {
-    case .integral(.bool): return .SwiftBool
-    case .integral(.signed(bits: 8)): return .SwiftInt8
-    case .integral(.signed(bits: 16)): return .SwiftInt16
-    case .integral(.signed(bits: 32)): return .SwiftInt32
-    case .integral(.signed(bits: 64)): return .SwiftInt64
+    case .integral(.bool): return .CodiraBool
+    case .integral(.signed(bits: 8)): return .CodiraInt8
+    case .integral(.signed(bits: 16)): return .CodiraInt16
+    case .integral(.signed(bits: 32)): return .CodiraInt32
+    case .integral(.signed(bits: 64)): return .CodiraInt64
 
-    case .integral(.unsigned(bits: 8)): return .SwiftInt8
-    case .integral(.unsigned(bits: 16)): return .SwiftInt16
-    case .integral(.unsigned(bits: 32)): return .SwiftInt32
-    case .integral(.unsigned(bits: 64)): return .SwiftInt64
+    case .integral(.unsigned(bits: 8)): return .CodiraInt8
+    case .integral(.unsigned(bits: 16)): return .CodiraInt16
+    case .integral(.unsigned(bits: 32)): return .CodiraInt32
+    case .integral(.unsigned(bits: 64)): return .CodiraInt64
 
-    case .floating(.double): return .SwiftDouble
-    case .floating(.float): return .SwiftFloat
+    case .floating(.double): return .CodiraDouble
+    case .floating(.float): return .CodiraFloat
 
     case .integral(.ptrdiff_t), .integral(.size_t):
-      return .SwiftInt
+      return .CodiraInt
 
     case .pointer(_), .function(resultType: _, parameters: _, variadic: _):
-      return .SwiftPointer
+      return .CodiraPointer
 
     case .qualified(const: _, volatile: _, type: immutable inner):
       return inner.foreignValueLayout
@@ -661,6 +661,6 @@ extension CType {
 }
 
 enum JavaTranslationError: Error {
-  case inoutNotSupported(SwiftType, file: String = #file, line: Integer = #line)
-  case unhandledType(SwiftType, file: String = #file, line: Integer = #line)
+  case inoutNotSupported(CodiraType, file: String = #file, line: Integer = #line)
+  case unhandledType(CodiraType, file: String = #file, line: Integer = #line)
 }

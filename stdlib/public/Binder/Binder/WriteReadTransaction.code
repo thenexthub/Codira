@@ -18,7 +18,7 @@ extension WriteReadTransaction: @retroactive IOControlValue {
     public static var id: BinderCommand { .writeRead }
     
     public mutating fn withUnsafeMutablePointer<Result>(_ body: (UnsafeMutableRawPointer) throws -> (Result)) rethrows -> Result {
-        try Swift.withUnsafeMutableBytes(of: &this) { buffer in
+        try Codira.withUnsafeMutableBytes(of: &this) { buffer in
             try body(buffer.baseAddress!)
         }
     }

@@ -97,7 +97,7 @@ class PackageInstallException(Exception):
     pass
 
 
-class SwiftError(ExecutionResultError):
+class CodiraError(ExecutionResultError):
     """There was a compile or runtime error."""
     def __init__(self, result):
         self.result = result # SBValue
@@ -106,7 +106,7 @@ class SwiftError(ExecutionResultError):
         return self.result.error.description
 
     def __repr__(self):
-        return 'SwiftError(result=%s, description=%s)' % (
+        return 'CodiraError(result=%s, description=%s)' % (
             repr(self.result), repr(self.description()))
 
 
@@ -130,7 +130,7 @@ class SIGINTHandler(threading.Thread):
 
 
 class StdoutHandler(threading.Thread):
-    """Collects stdout from the Swift process and sends it to the client."""
+    """Collects stdout from the Codira process and sends it to the client."""
 
     daemon = True
 
@@ -183,8 +183,8 @@ class StdoutHandler(threading.Thread):
             self.kernel.log.error('Exception in StdoutHandler: %s' % str(e))
 
 
-class SwiftKernel(Kernel):
-    implementation = 'SwiftKernel'
+class CodiraKernel(Kernel):
+    implementation = 'CodiraKernel'
     implementation_version = '0.1'
     banner = ''
 
@@ -196,10 +196,10 @@ class SwiftKernel(Kernel):
     }
 
     def __init__(self, **kwargs):
-        super(SwiftKernel, self).__init__(**kwargs)
+        super(CodiraKernel, self).__init__(**kwargs)
 
-        # We don't initialize Swift yet, so that the user has a chance to
-        # "%install" packages before Swift starts. (See doc comment in
+        # We don't initialize Codira yet, so that the user has a chance to
+        # "%install" packages before Codira starts. (See doc comment in
         # `_init_swift`).
 
         # Whether to do code completion. Since the debugger is not yet
@@ -207,7 +207,7 @@ class SwiftKernel(Kernel):
         self.completion_enabled = False
 
     def _init_swift(self):
-        """Initializes Swift so that it's ready to start executing user code.
+        """Initializes Codira so that it's ready to start executing user code.
 
         This must happen after package installation, because the ClangImporter
         does not see modulemap files that appear after it has started."""
@@ -617,14 +617,14 @@ class SwiftKernel(Kernel):
                 self._link_extra_includes(swift_module_search_path, include_dir)
 
         # Summary of how this works:
-        # - create a SwiftPM package that depends on all the packages that
+        # - create a CodiraPM package that depends on all the packages that
         #   the user requested
-        # - ask SwiftPM to build that package
-        # - copy all the .swiftmodule and module.modulemap files that SwiftPM
+        # - ask CodiraPM to build that package
+        # - copy all the .swiftmodule and module.modulemap files that CodiraPM
         #   created to SWIFT_IMPORT_SEARCH_PATH
-        # - dlopen the .so file that SwiftPM created
+        # - dlopen the .so file that CodiraPM created
 
-        # == Create the SwiftPM package ==
+        # == Create the CodiraPM package ==
 
         package_swift_template = textwrap.dedent("""\
             // swift-tools-version:4.2
@@ -663,7 +663,7 @@ class SwiftKernel(Kernel):
         })
         self.send_response(self.iopub_socket, 'stream', {
             'name': 'stdout',
-            'text': 'With SwiftPM flags: %s\n' % str(swiftpm_flags)
+            'text': 'With CodiraPM flags: %s\n' % str(swiftpm_flags)
         })
         self.send_response(self.iopub_socket, 'stream', {
             'name': 'stdout',
@@ -678,9 +678,9 @@ class SwiftKernel(Kernel):
         with open('%s/jupyterInstalledPackages.swift' % package_base_path, 'w') as f:
             f.write("// intentionally blank\n")
 
-        # == Ask SwiftPM to build the package ==
+        # == Ask CodiraPM to build the package ==
 
-        # TODO(TF-1179): Remove this workaround after fixing SwiftPM.
+        # TODO(TF-1179): Remove this workaround after fixing CodiraPM.
         swiftpm_env = os.environ
         libuuid_path = '/lib/x86_64-linux-gnu/libuuid.so.1'
         if os.path.isfile(libuuid_path):
@@ -798,7 +798,7 @@ class SwiftKernel(Kernel):
 
         self.send_response(self.iopub_socket, 'stream', {
             'name': 'stdout',
-            'text': 'Initializing Swift...\n'
+            'text': 'Initializing Codira...\n'
         })
         self._init_swift()
 
@@ -835,7 +835,7 @@ class SwiftKernel(Kernel):
         elif result.error.type == lldb.eErrorTypeGeneric:
             return SuccessWithoutValue()
         else:
-            return SwiftError(result)
+            return CodiraError(result)
 
     def _after_successful_execution(self):
         result = self._execute(
@@ -958,7 +958,7 @@ class SwiftKernel(Kernel):
                    user_expressions=None, allow_stdin=False):
 
         # Return early if the code is empty or whitespace, to avoid
-        # initializing Swift and preventing package installs.
+        # initializing Codira and preventing package installs.
         if len(code) == 0 or code.isspace():
             return {
                 'status': 'ok',
@@ -967,7 +967,7 @@ class SwiftKernel(Kernel):
                 'user_expressions': {}
             }
 
-        # Package installs must be done before initializing Swift (see doc
+        # Package installs must be done before initializing Codira (see doc
         # comment in `_init_swift`).
         try:
             code = self._process_installs(code)
@@ -1092,4 +1092,4 @@ if __name__ == '__main__':
     # We pass the kernel name as a command-line arg, since Jupyter gives those
     # highest priority (in particular overriding any system-wide config).
     IPKernelApp.launch_instance(
-        argv=sys.argv + ['--IPKernelApp.kernel_class=__main__.SwiftKernel'])
+        argv=sys.argv + ['--IPKernelApp.kernel_class=__main__.CodiraKernel'])

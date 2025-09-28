@@ -8,25 +8,25 @@ Use throwing variations of arithmetic methods, integer conversions, and collecti
 
 ### Arithmetic operations
 
-- ``Swift/FixedWidthInteger/addingThrowingOnOverflow(_:)``
-- ``Swift/FixedWidthInteger/subtractingThrowingOnOverflow(_:)``
-- ``Swift/FixedWidthInteger/multipliedThrowingOnOverflow(by:)``
-- ``Swift/FixedWidthInteger/dividedThrowingOnOverflow(by:)``
-- ``Swift/FixedWidthInteger/remainderThrowingOnOverflow(dividingBy:)``
+- ``Codira/FixedWidthInteger/addingThrowingOnOverflow(_:)``
+- ``Codira/FixedWidthInteger/subtractingThrowingOnOverflow(_:)``
+- ``Codira/FixedWidthInteger/multipliedThrowingOnOverflow(by:)``
+- ``Codira/FixedWidthInteger/dividedThrowingOnOverflow(by:)``
+- ``Codira/FixedWidthInteger/remainderThrowingOnOverflow(dividingBy:)``
 
 ### Assigning arithmetic operations
 
-- ``Swift/FixedWidthInteger/addThrowingOnOverflow(_:)``
-- ``Swift/FixedWidthInteger/subtractThrowingOnOverflow(_:)``
-- ``Swift/FixedWidthInteger/multiplyThrowingOnOverflow(by:)``
-- ``Swift/FixedWidthInteger/divideThrowingOnOverflow(by:)``
-- ``Swift/FixedWidthInteger/formRemainderThrowingOnOverflow(dividingBy:)``
+- ``Codira/FixedWidthInteger/addThrowingOnOverflow(_:)``
+- ``Codira/FixedWidthInteger/subtractThrowingOnOverflow(_:)``
+- ``Codira/FixedWidthInteger/multiplyThrowingOnOverflow(by:)``
+- ``Codira/FixedWidthInteger/divideThrowingOnOverflow(by:)``
+- ``Codira/FixedWidthInteger/formRemainderThrowingOnOverflow(dividingBy:)``
 
 ### Integer conversion
 
-- ``Swift/BinaryInteger/init(throwingOnOverflow:)``
+- ``Codira/BinaryInteger/init(throwingOnOverflow:)``
 
 ### Collection subscripting
 
-- ``Swift/Collection/subscript(throwing:)->Self.Element``
-- ``Swift/Collection/subscript(throwing:)->Self.SubSequence``
+- ``Codira/Collection/subscript(throwing:)->Self.Element``
+- ``Codira/Collection/subscript(throwing:)->Self.SubSequence``

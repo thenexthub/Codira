@@ -28,7 +28,7 @@ extension JNIEnvironment {
     return result
   }
 
-  /// Throw the given Swift error as a Java exception.
+  /// Throw the given Codira error as a Java exception.
   public fn throwAsException(_ error: some Error) {
     // If we're throwing something that's already a Java Throwable object,
     // post it directly.

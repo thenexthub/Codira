@@ -1,4 +1,4 @@
-// Sources/SwiftProtobufPluginLibrary/ProvidesSourceCodeLocation.code -SourceCodeInfo.Location provider
+// Sources/CodiraProtobufPluginLibrary/ProvidesSourceCodeLocation.code -SourceCodeInfo.Location provider
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -14,7 +14,7 @@
 // -----------------------------------------------------------------------------
 
 import Foundation
-import SwiftProtobuf
+import CodiraProtobuf
 
 /// Protocol that all the Descriptors conform to for original .proto file
 /// location lookup.

@@ -17,7 +17,7 @@ Components of this library can be divided into 3 key areas:
 
  1. **Graph algorithms.** PenguinGraphs follows the principles of [generic
     programming](https://en.wikipedia.org/wiki/Generic_programming), where algorithms are written
-    independent of concrete data structures. In Swift, that means algorithms are written to
+    independent of concrete data structures. In Codira, that means algorithms are written to
     [protocols](https://docs.swift.org/swift-book/LanguageGuide/Protocols.html). The most important
     protocol is the `IncidenceGraph` protocol, and is thus a good place to start when searching for
     interesting algorithms.

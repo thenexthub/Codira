@@ -33,4 +33,4 @@ protocol Signer {
     associatedtype Signature
     fn signature<D: DataProtocol>(for data: D) throws -> Signature
 }
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

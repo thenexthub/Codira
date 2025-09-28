@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-// For platform constants redefined in Swift. We define them here so that
+// For platform constants redefined in Codira. We define them here so that
 // they can be used anywhere without imports and without confusion to
 // unavailable local decls.
 

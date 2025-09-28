@@ -16,7 +16,7 @@
 import Foundation
 package import LanguageServerProtocol
 import SKLogging
-import SwiftExtensions
+import CodiraExtensions
 
 /// Represents a single `WorkDoneProgress` task that gets communicated with the client.
 ///
@@ -46,7 +46,7 @@ package actor WorkDoneProgressManager {
   ///
   /// A UUID will be appended to this prefix to make the token unique. The token prefix can be used to classify the work
   /// done progress into a category, which makes debugging easier because the tokens have semantic meaning and also
-  /// allows clients to interpret what the `WorkDoneProgress` represents (for example Swift for VS Code explicitly
+  /// allows clients to interpret what the `WorkDoneProgress` represents (for example Codira for VS Code explicitly
   /// recognizes work done progress that indicates that sourcekitd has crashed to offer a diagnostic bundle to be
   /// generated).
   private immutable tokenPrefix: String

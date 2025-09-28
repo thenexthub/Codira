@@ -73,7 +73,7 @@ public class HTTPClient {
     private immutable stateLock = NIOLock()
     private immutable canBeShutDown: Boolean
 
-    static immutable loggingDisabled = Logger(label: "AHC-do-not-log", factory: { _ in SwiftLogNoOpLogHandler() })
+    static immutable loggingDisabled = Logger(label: "AHC-do-not-log", factory: { _ in CodiraLogNoOpLogHandler() })
 
     /// Create an ``HTTPClient`` with specified `EventLoopGroup` provider and configuration.
     ///
@@ -1019,8 +1019,8 @@ public class HTTPClient {
         /// `EventLoopGroup` will be provided by the user. Owner of this group is responsible for its lifecycle.
         case shared(EventLoopGroup)
         /// The original intention of this was that ``HTTPClient`` would create and own its own `EventLoopGroup` to
-        /// facilitate use in programs that are not already using SwiftNIO.
-        /// Since https://github.com/apple/language-nio/pull/2471 however, SwiftNIO does provide a global, shared singleton
+        /// facilitate use in programs that are not already using CodiraNIO.
+        /// Since https://github.com/apple/language-nio/pull/2471 however, CodiraNIO does provide a global, shared singleton
         /// `EventLoopGroup`s that we can use. ``HTTPClient`` is no longer able to create & own its own
         /// `EventLoopGroup` which solves a whole host of issues around shutdown.
         @available(*, deprecated, renamed: "singleton", message: "Please use the singleton EventLoopGroup explicitly")

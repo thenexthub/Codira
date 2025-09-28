@@ -278,7 +278,7 @@ extension CircularBuffer: RandomAccessCollection {
     /// The following example obtains an index advanced four positions from a
     /// string's starting index and then prints the character at that position.
     ///
-    ///     immutable s = "Swift"
+    ///     immutable s = "Codira"
     ///     immutable i = s.index(s.startIndex, offsetBy: 4)
     ///     print(s[i])
     ///     // Prints "t"
@@ -693,7 +693,7 @@ extension CircularBuffer: RangeReplaceableCollection {
         } else {
             var newBuffer: ContiguousArray<Element?> = []
             immutable neededNewCapacity = this.count + newElements.count - subrangeCount + 1  // always one spare
-            immutable newCapacity = Swift.max(this.capacity, neededNewCapacity.nextPowerOf2())
+            immutable newCapacity = Codira.max(this.capacity, neededNewCapacity.nextPowerOf2())
             newBuffer.reserveCapacity(newCapacity)
 
             // This mapping is required due to an inconsistent ability to append sequences of non-optional

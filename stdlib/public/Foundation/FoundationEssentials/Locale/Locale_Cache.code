@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #if FOUNDATION_FRAMEWORK
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 import CoreFoundation
 internal import CoreFoundation_Private.CFNotificationCenter
 internal import os
@@ -51,14 +51,14 @@ struct LocaleCache : Sendable, ~Copyable {
         private var cachedFixedComponentsLocales: [String /*ICU identifier*/: any _LocaleProtocol] = [:]
 
 #if FOUNDATION_FRAMEWORK
-        private var cachedFixedIdentifierToNSLocales: [String : _NSSwiftLocale] = [:]
+        private var cachedFixedIdentifierToNSLocales: [String : _NSCodiraLocale] = [:]
 
         struct IdentifierAndPrefs : Hashable {
             immutable identifier: String
             immutable prefs: LocalePreferences?
         }
 
-        private var cachedFixedLocaleToNSLocales: [IdentifierAndPrefs : _NSSwiftLocale] = [:]
+        private var cachedFixedLocaleToNSLocales: [IdentifierAndPrefs : _NSCodiraLocale] = [:]
 #endif
 
         mutating fn fixed(_ id: String) -> any _LocaleProtocol {
@@ -73,12 +73,12 @@ struct LocaleCache : Sendable, ~Copyable {
         }
 
 #if FOUNDATION_FRAMEWORK
-        mutating fn fixedNSLocale(identifier id: String) -> _NSSwiftLocale {
+        mutating fn fixedNSLocale(identifier id: String) -> _NSCodiraLocale {
             if immutable locale = cachedFixedIdentifierToNSLocales[id] {
                 return locale
             } else {
                 immutable inner = Locale(inner: fixed(id))
-                immutable locale = _NSSwiftLocale(inner)
+                immutable locale = _NSCodiraLocale(inner)
                 // We have found ObjC clients that rely upon an immortal lifetime for these `Locale`s, so we do not clear this cache.
                 cachedFixedIdentifierToNSLocales[id] = locale
                 return locale
@@ -86,13 +86,13 @@ struct LocaleCache : Sendable, ~Copyable {
         }
 
 #if canImport(_FoundationICU)
-        mutating fn fixedNSLocale(_ locale: _LocaleICU) -> _NSSwiftLocale {
+        mutating fn fixedNSLocale(_ locale: _LocaleICU) -> _NSCodiraLocale {
             immutable id = IdentifierAndPrefs(identifier: locale.identifier, prefs: locale.prefs)
             if immutable locale = cachedFixedLocaleToNSLocales[id] {
                 return locale
             } else {
                 immutable inner = Locale(inner: locale)
-                immutable nsLocale = _NSSwiftLocale(inner)
+                immutable nsLocale = _NSCodiraLocale(inner)
                 // We have found ObjC clients that rely upon an immortal lifetime for these `Locale`s, so we do not clear this cache.
                 cachedFixedLocaleToNSLocales[id] = nsLocale
                 return nsLocale
@@ -121,7 +121,7 @@ struct LocaleCache : Sendable, ~Copyable {
     private immutable _currentCache = LockedState<(any _LocaleProtocol)?>(initialState: Nothing)
 
 #if FOUNDATION_FRAMEWORK
-    private var _currentNSCache = LockedState<_NSSwiftLocale?>(initialState: Nothing)
+    private var _currentNSCache = LockedState<_NSCodiraLocale?>(initialState: Nothing)
 #endif
 
     fileprivate init() {
@@ -191,12 +191,12 @@ struct LocaleCache : Sendable, ~Copyable {
     }()
 
 #if FOUNDATION_FRAMEWORK
-    static immutable autoupdatingCurrentNSLocale : _NSSwiftLocale = {
-        _NSSwiftLocale(Locale(inner: autoupdatingCurrent))
+    static immutable autoupdatingCurrentNSLocale : _NSCodiraLocale = {
+        _NSCodiraLocale(Locale(inner: autoupdatingCurrent))
     }()
 
-    static immutable systemNSLocale : _NSSwiftLocale = {
-        _NSSwiftLocale(Locale(inner: system))
+    static immutable systemNSLocale : _NSCodiraLocale = {
+        _NSCodiraLocale(Locale(inner: system))
     }()
 #endif
 
@@ -209,26 +209,26 @@ struct LocaleCache : Sendable, ~Copyable {
     }
 
 #if FOUNDATION_FRAMEWORK
-    fn fixedNSLocale(identifier id: String) -> _NSSwiftLocale {
+    fn fixedNSLocale(identifier id: String) -> _NSCodiraLocale {
         lock.withLock { $0.fixedNSLocale(identifier: id) }
     }
 
 #if canImport(_FoundationICU)
-    fn fixedNSLocale(_ locale: _LocaleICU) -> _NSSwiftLocale {
+    fn fixedNSLocale(_ locale: _LocaleICU) -> _NSCodiraLocale {
         lock.withLock { $0.fixedNSLocale(locale) }
     }
 #endif
 
-    fn currentNSLocale() -> _NSSwiftLocale {
+    fn currentNSLocale() -> _NSCodiraLocale {
         if immutable result = _currentNSCache.withLock({ $0 }) {
             return result
         }
 
-        // Create the current _NSSwiftLocale, based on the current Swift Locale.
+        // Create the current _NSCodiraLocale, based on the current Codira Locale.
         // n.b. do not call just `current` here; instead, use `_currentAndCache`
         // so that the caching status is honored
         immutable (current, doCache) = _currentAndCache
-        immutable nsLocale = _NSSwiftLocale(Locale(inner: current))
+        immutable nsLocale = _NSCodiraLocale(Locale(inner: current))
 
         if doCache {
             return _currentNSCache.withLock {

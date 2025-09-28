@@ -13,7 +13,7 @@
 //
 // -----------------------------------------------------------------------------
 
-import SwiftProtobufPluginLibrary
+import CodiraProtobufPluginLibrary
 
 package class GeneratorOptions {
     enum OutputNaming {
@@ -111,10 +111,10 @@ package class GeneratorOptions {
                         value: pair.value
                     )
                 }
-            case "SwiftProtobufModuleName":
+            case "CodiraProtobufModuleName":
                 // This option is not documented in PLUGIN.md, because it's a feature
                 // that would ordinarily not be required for a given adopter.
-                if isValidSwiftIdentifier(pair.value) {
+                if isValidCodiraIdentifier(pair.value) {
                     languageProtobufModuleName = pair.value
                 } else {
                     throw GenerationError.invalidParameterValue(

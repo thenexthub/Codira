@@ -15,24 +15,24 @@
 
 package org.code.codekit.ffm;
 
-import org.code.codekit.ffm.SwiftRuntime;
-import org.code.codekit.ffm.SwiftValueLayout;
+import org.code.codekit.ffm.CodiraRuntime;
+import org.code.codekit.ffm.CodiraValueLayout;
 
 import java.lang.foreign.GroupLayout;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 
-public final class SwiftAnyType {
+public final class CodiraAnyType {
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-            SwiftValueLayout.SWIFT_POINTER
+            CodiraValueLayout.SWIFT_POINTER
     );
 
     private final MemorySegment memorySegment;
 
-    public SwiftAnyType(MemorySegment memorySegment) {
-//        if (SwiftKit.getSwiftInt(memorySegment, 0) > 0) {
-//            throw new IllegalArgumentException("A Swift Any.Type cannot be null!");
+    public CodiraAnyType(MemorySegment memorySegment) {
+//        if (CodiraKit.getCodiraInt(memorySegment, 0) > 0) {
+//            throw new IllegalArgumentException("A Codira Any.Type cannot be null!");
 //        }
 
         this.memorySegment = memorySegment.asReadOnly();
@@ -47,16 +47,16 @@ public final class SwiftAnyType {
     }
 
     /**
-     * Get the human-readable Swift type name of this type.
+     * Get the human-readable Codira type name of this type.
      */
-    public String getSwiftName() {
-        return SwiftRuntime.nameOfSwiftType(memorySegment, true);
+    public String getCodiraName() {
+        return CodiraRuntime.nameOfCodiraType(memorySegment, true);
     }
 
     @Override
     public String toString() {
-        return "AnySwiftType{" +
-                "name=" + getSwiftName() +
+        return "AnyCodiraType{" +
+                "name=" + getCodiraName() +
                 ", memorySegment=" + memorySegment +
                 '}';
     }

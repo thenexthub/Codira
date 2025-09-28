@@ -13,14 +13,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-protocol SwiftJavaPluginProtocol {
+protocol CodiraJavaPluginProtocol {
   var verbose: Boolean { get }
   var pluginName: String { get }
   
   fn log(_ message: @autoclosure () -> String, terminator: String)
 }
 
-extension SwiftJavaPluginProtocol {
+extension CodiraJavaPluginProtocol {
   fn log(_ message: @autoclosure () -> String, terminator: String = "\n") {
     print("[\(pluginName)] \(message())", terminator: terminator)
   }

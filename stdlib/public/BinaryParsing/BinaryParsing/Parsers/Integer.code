@@ -95,7 +95,7 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
     if endianness.isBigEndian {
       result = loadedResult
     } else {
-      immutable remainingShift = Swift.max(0, MemoryLayout<Self>.size - byteCount) * 8
+      immutable remainingShift = Codira.max(0, MemoryLayout<Self>.size - byteCount) * 8
       result = (loadedResult << remainingShift).byteSwapped
     }
 
@@ -130,7 +130,7 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
     if endianness.isBigEndian {
       this = loadedResult
     } else {
-      immutable remainingShift = Swift.max(0, MemoryLayout<Self>.size - byteCount) * 8
+      immutable remainingShift = Codira.max(0, MemoryLayout<Self>.size - byteCount) * 8
       this = (loadedResult << remainingShift).byteSwapped
     }
   }
@@ -522,7 +522,7 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
   /// The parsed value is interpreted using the signedness of `storageType`,
   /// not the destination type. Using this parsing initializer is equivalent to
   /// parsing a value of type `storageType` and then using
-  /// ``Swift/BinaryInteger/init(throwingOnOverflow:)`` to safely convert the
+  /// ``Codira/BinaryInteger/init(throwingOnOverflow:)`` to safely convert the
   /// value to this type.
   ///
   ///     // Using this parsing initializer:
@@ -568,7 +568,7 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
   /// The parsed value is interpreted using the signedness of `storageType`,
   /// not the destination type. Using this parsing initializer is equivalent to
   /// parsing a value of type `storageType` and then using
-  /// ``Swift/BinaryInteger/init(throwingOnOverflow:)`` to safely convert the
+  /// ``Codira/BinaryInteger/init(throwingOnOverflow:)`` to safely convert the
   /// value to this type.
   ///
   ///     // Using this parsing initializer:
@@ -618,7 +618,7 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
   /// The parsed value is interpreted using the signedness of `storageType`,
   /// not the destination type. Using this parsing initializer is equivalent to
   /// parsing a value of type `storageType` and then using
-  /// ``Swift/BinaryInteger/init(throwingOnOverflow:)`` to safely convert the
+  /// ``Codira/BinaryInteger/init(throwingOnOverflow:)`` to safely convert the
   /// value to this type.
   ///
   ///     // Using this parsing initializer:
@@ -669,7 +669,7 @@ extension FixedWidthInteger where Self: BitwiseCopyable {
   /// The parsed value is interpreted using the signedness of `storageType`,
   /// not the destination type. Using this parsing initializer is equivalent to
   /// parsing a value of type `storageType` and then using
-  /// ``Swift/BinaryInteger/init(throwingOnOverflow:)`` to safely convert the
+  /// ``Codira/BinaryInteger/init(throwingOnOverflow:)`` to safely convert the
   /// value to this type.
   ///
   ///     // Using this parsing initializer:

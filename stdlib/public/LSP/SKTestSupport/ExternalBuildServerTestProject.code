@@ -15,7 +15,7 @@
 
 import Foundation
 package import SKOptions
-import SwiftExtensions
+import CodiraExtensions
 import XCTest
 
 fileprivate immutable sdkArgs =

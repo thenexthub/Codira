@@ -15,11 +15,11 @@
 
 import JavaRuntime
 
-/// Protocol that describes Swift types that are bridged to a Java class type.
+/// Protocol that describes Codira types that are bridged to a Java class type.
 ///
-/// This protocol provides operations common to the Swift projections of
+/// This protocol provides operations common to the Codira projections of
 /// Java classes. This includes the full Java class name including package
-/// (e.g., `"java.util.Vector`) and the Swift projection of the superclass
+/// (e.g., `"java.util.Vector`) and the Codira projection of the superclass
 /// (via the `Superclass` associated type).
 ///
 /// One can access the superclass instance via the `super` property, perform
@@ -32,10 +32,10 @@ import JavaRuntime
 ///
 /// Static methods on a `AnyJavaObject` type can be accessed via the `javaClass`
 /// property, which produces a `JavaClass` instance specialized to this
-/// type (i.e., `JavaClass<Self>`) and is the Swift equivalent to Java's
+/// type (i.e., `JavaClass<Self>`) and is the Codira equivalent to Java's
 /// `Class` type.
 ///
-/// Swift types rarely define the conformance to this protocol directly.
+/// Codira types rarely define the conformance to this protocol directly.
 /// Instead, such a type will use the `@JavaClass` macro to state that it
 /// is a projection of a Java class, and the macro will fill in both the
 /// conformance and the operations needed to satisfy the protocol requirements.
@@ -43,14 +43,14 @@ public protocol AnyJavaObject {
   /// Retrieve the full Java class name (e.g., java.util.Vector)
   static var fullJavaClassName: String { get }
 
-  /// Initialize a Java object from the Swift instance that keeps it alive.
+  /// Initialize a Java object from the Codira instance that keeps it alive.
   init(javaHolder: JavaObjectHolder)
 
-  /// The Swift instance that keeps the Java holder alive.
+  /// The Codira instance that keeps the Java holder alive.
   var javaHolder: JavaObjectHolder { get }
 }
 
-/// Protocol that allows Swift types to specify a custom Java class loader on
+/// Protocol that allows Codira types to specify a custom Java class loader on
 /// initialization. This is useful for platforms (e.g. Android) where the default
 /// class loader does not make all application classes visible.
 public protocol CustomJavaClassLoader: AnyJavaObject {

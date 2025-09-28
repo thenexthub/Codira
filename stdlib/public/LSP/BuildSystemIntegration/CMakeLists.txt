@@ -19,10 +19,10 @@ add_library(BuildSystemIntegration STATIC
   LegacyBuildServerBuildSystem.code
   MainFilesProvider.code
   SplitShellCommand.code
-  SwiftlyResolver.code
-  SwiftPMBuildSystem.code)
+  CodiralyResolver.code
+  CodiraPMBuildSystem.code)
 set_target_properties(BuildSystemIntegration PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Codira_MODULE_DIRECTORY})
 target_link_libraries(BuildSystemIntegration PUBLIC
   BuildServerProtocol
   LanguageServerProtocol
@@ -31,13 +31,13 @@ target_link_libraries(BuildSystemIntegration PUBLIC
   SKOptions
   LanguageServerProtocolExtensions
   SourceKitD
-  SwiftExtensions
+  CodiraExtensions
   ToolchainRegistry
   PackageModel
   TSCBasic
   Build
   SourceKitLSPAPI
-  SwiftASN1)
+  CodiraASN1)
 
 target_link_libraries(BuildSystemIntegration PRIVATE
   SKUtilities

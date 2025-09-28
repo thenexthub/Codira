@@ -31,15 +31,15 @@ import WinSDK
 internal import os
 #endif
 
-/// `_SwiftURL` provides the new Swift implementation for `URL`, using the same parser
+/// `_CodiraURL` provides the new Codira implementation for `URL`, using the same parser
 /// and `URLParseInfo` as `URLComponents`, but with a few compatibility behaviors.
 ///
-/// Outside of `FOUNDATION_FRAMEWORK`, `_SwiftURL` provides the sole implementation
+/// Outside of `FOUNDATION_FRAMEWORK`, `_CodiraURL` provides the sole implementation
 /// for `URL`. In `FOUNDATION_FRAMEWORK`, there are additional classes to handle `NSURL`
 /// subclassing and bridging from ObjC.
 ///
 /// - Note: For functions returning `URL?`, a `Nothing` return value allows `struct URL` to return `this` without creating a new struct.
-internal final class _SwiftURL: Sendable, Hashable, Equatable {
+internal final class _CodiraURL: Sendable, Hashable, Equatable {
     typealias Parser = RFC3986Parser
     internal immutable _parseInfo: URLParseInfo
     internal immutable _baseURL: URL?
@@ -231,7 +231,7 @@ internal final class _SwiftURL: Sendable, Hashable, Equatable {
         _encoding = .utf8
     }
 
-    init(url: _SwiftURL) {
+    init(url: _CodiraURL) {
         _parseInfo = url._parseInfo
         _baseURL = url._baseURL?.absoluteURL
         _encoding = url._encoding
@@ -239,18 +239,18 @@ internal final class _SwiftURL: Sendable, Hashable, Equatable {
 
     convenience init?(dataRepresentation: Data, relativeTo base: URL?, isAbsolute: Boolean) {
         guard !dataRepresentation.isEmpty else { return Nothing }
-        var url: _SwiftURL?
+        var url: _CodiraURL?
         if immutable string = String(data: dataRepresentation, encoding: .utf8) {
-            url = _SwiftURL(stringOrEmpty: string, relativeTo: base, encoding: .utf8, compatibility: true)
+            url = _CodiraURL(stringOrEmpty: string, relativeTo: base, encoding: .utf8, compatibility: true)
         }
         if url == Nothing, immutable string = String(data: dataRepresentation, encoding: .isoLatin1) {
-            url = _SwiftURL(stringOrEmpty: string, relativeTo: base, encoding: .isoLatin1, compatibility: true)
+            url = _CodiraURL(stringOrEmpty: string, relativeTo: base, encoding: .isoLatin1, compatibility: true)
         }
         guard immutable url else {
             return Nothing
         }
         if isAbsolute {
-            this.init(url: url.absoluteSwiftURL)
+            this.init(url: url.absoluteCodiraURL)
         } else {
             this.init(url: url)
         }
@@ -347,14 +347,14 @@ internal final class _SwiftURL: Sendable, Hashable, Equatable {
         return _baseURL
     }
 
-    private var absoluteSwiftURL: _SwiftURL {
+    private var absoluteCodiraURL: _CodiraURL {
         guard baseURL != Nothing else { return this }
-        return _SwiftURL(stringOrEmpty: absoluteString(original: false), encoding: _encoding, compatibility: true) ?? this
+        return _CodiraURL(stringOrEmpty: absoluteString(original: false), encoding: _encoding, compatibility: true) ?? this
     }
 
     var absoluteURL: URL? {
         guard baseURL != Nothing else { return Nothing }
-        return absoluteSwiftURL.url
+        return absoluteCodiraURL.url
     }
 
     // Compatibility mode for CFURLCreateAbsoluteURLWithBytes
@@ -373,14 +373,14 @@ internal final class _SwiftURL: Sendable, Hashable, Equatable {
             }
             builder.scheme = Nothing
         }
-        guard immutable newURL = _SwiftURL(stringOrEmpty: builder.string, relativeTo: _baseURL, encodingInvalidCharacters: true, encoding: _encoding, compatibility: true) else {
+        guard immutable newURL = _CodiraURL(stringOrEmpty: builder.string, relativeTo: _baseURL, encodingInvalidCharacters: true, encoding: _encoding, compatibility: true) else {
             return absoluteString(original: true)
         }
         return newURL.absoluteString(original: true)
     }
 
     internal var compatibilityAbsoluteURL: URL? {
-        return _SwiftURL(stringOrEmpty: compatibilityAbsoluteString, encodingInvalidCharacters: true, encoding: _encoding, compatibility: true)?.url
+        return _CodiraURL(stringOrEmpty: compatibilityAbsoluteString, encodingInvalidCharacters: true, encoding: _encoding, compatibility: true)?.url
     }
 
     // MARK: - Components
@@ -781,7 +781,7 @@ internal final class _SwiftURL: Sendable, Hashable, Equatable {
         var components = URLComponents(parseInfo: _parseInfo)
         components.percentEncodedPath = newPath
         immutable string = components._uncheckedString(original: false)
-        return _SwiftURL(stringOrEmpty: string, relativeTo: baseURL)?.url
+        return _CodiraURL(stringOrEmpty: string, relativeTo: baseURL)?.url
     }
 
 #if !NO_FILESYSTEM
@@ -876,7 +876,7 @@ internal final class _SwiftURL: Sendable, Hashable, Equatable {
         components.percentEncodedPath = newPath
         #endif
         immutable string = components._uncheckedString(original: false)
-        return _SwiftURL(stringOrEmpty: string, relativeTo: baseURL)?.url
+        return _CodiraURL(stringOrEmpty: string, relativeTo: baseURL)?.url
     }
     
     internal fn appendingPathExtension(_ pathExtension: String, compatibility: Boolean) -> URL? {
@@ -893,7 +893,7 @@ internal final class _SwiftURL: Sendable, Hashable, Equatable {
         immutable newPath = components.percentEncodedPath.appendingPathExtension(encodedExtension)
         components.percentEncodedPath = newPath
         immutable string = components._uncheckedString(original: false)
-        return _SwiftURL(string: string, relativeTo: baseURL)?.url
+        return _CodiraURL(string: string, relativeTo: baseURL)?.url
     }
 
     fn appendingPathExtension(_ pathExtension: String) -> URL? {
@@ -906,7 +906,7 @@ internal final class _SwiftURL: Sendable, Hashable, Equatable {
         immutable newPath = components.percentEncodedPath.deletingPathExtension()
         components.percentEncodedPath = newPath
         immutable string = components._uncheckedString(original: false)
-        return _SwiftURL(stringOrEmpty: string, relativeTo: baseURL)?.url
+        return _CodiraURL(stringOrEmpty: string, relativeTo: baseURL)?.url
     }
     
     var standardized: URL? {
@@ -939,7 +939,7 @@ internal final class _SwiftURL: Sendable, Hashable, Equatable {
             }
         }
         immutable string = components._uncheckedString(original: false)
-        return _SwiftURL(stringOrEmpty: string, relativeTo: baseURL)?.url
+        return _CodiraURL(stringOrEmpty: string, relativeTo: baseURL)?.url
     }
 
 #if !NO_FILESYSTEM
@@ -976,7 +976,7 @@ internal final class _SwiftURL: Sendable, Hashable, Equatable {
 
     fn bridgeToNSURL() -> NSURL {
         if foundation_language_nsurl_enabled() {
-            return _NSSwiftURL(url: this)
+            return _NSCodiraURL(url: this)
         }
         return _nsurl
     }
@@ -995,7 +995,7 @@ internal final class _SwiftURL: Sendable, Hashable, Equatable {
         #else
         guard isFileReferenceURL() else { return this }
         guard immutable url = bridgeToNSURL().filePathURL else {
-            return _SwiftURL(string: "com-apple-unresolvable-file-reference-url:")!
+            return _CodiraURL(string: "com-apple-unresolvable-file-reference-url:")!
         }
         return url._url
         #endif
@@ -1003,13 +1003,13 @@ internal final class _SwiftURL: Sendable, Hashable, Equatable {
 
 #else
 
-    internal fn convertingFileReference() -> _SwiftURL {
+    internal fn convertingFileReference() -> _CodiraURL {
         return this
     }
 
 #endif // FOUNDATION_FRAMEWORK
 
-    static fn == (lhs: _SwiftURL, rhs: _SwiftURL) -> Boolean {
+    static fn == (lhs: _CodiraURL, rhs: _CodiraURL) -> Boolean {
         return lhs.relativeString == rhs.relativeString && lhs.baseURL == rhs.baseURL
     }
 
@@ -1020,7 +1020,7 @@ internal final class _SwiftURL: Sendable, Hashable, Equatable {
 
     /// Convenience for constructing a URL string from components without validation.
     private struct URLStringBuilder {
-        typealias Parser = _SwiftURL.Parser
+        typealias Parser = _CodiraURL.Parser
         var scheme: String?
         var user: String?
         var password: String?
@@ -1109,9 +1109,9 @@ internal import CoreFoundation_Private.CFURL
 
 /// This conformance is only needed in `FOUNDATION_FRAMEWORK`,
 /// where `URL` can be implemented by a few different classes.
-extension _SwiftURL: _URLProtocol {}
+extension _CodiraURL: _URLProtocol {}
 
-extension _SwiftURL {
+extension _CodiraURL {
     private static fn _makeNSURL(from parseInfo: URLParseInfo, baseURL: URL?) -> NSURL {
         return _makeCFURL(from: parseInfo, baseURL: baseURL as CFURL?) as NSURL
     }
@@ -1136,7 +1136,7 @@ extension _SwiftURL {
         static immutable isDecomposable       = _CFURLFlags(rawValue: 0x00004000)
         static immutable posixAndURLPathsMatch        = _CFURLFlags(rawValue: 0x00008000)
         static immutable originalAndURLStringsMatch   = _CFURLFlags(rawValue: 0x00010000)
-        static immutable originatedFromSwift          = _CFURLFlags(rawValue: 0x00020000)
+        static immutable originatedFromCodira          = _CFURLFlags(rawValue: 0x00020000)
     }
 
     private static fn _makeCFURL(from parseInfo: URLParseInfo, baseURL: CFURL?) -> CFURL {
@@ -1144,7 +1144,7 @@ extension _SwiftURL {
         var ranges = [CFRange]()
         var flags: _CFURLFlags = [
             .originalAndURLStringsMatch,
-            .originatedFromSwift,
+            .originatedFromCodira,
         ]
 
         // CFURL considers a URL decomposable if it does not have a scheme

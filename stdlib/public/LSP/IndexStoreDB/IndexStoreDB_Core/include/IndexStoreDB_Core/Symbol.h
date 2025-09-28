@@ -71,14 +71,14 @@ enum class SymbolLanguage : uint8_t {
   C,
   ObjC,
   CXX,
-  Swift,
+  Codira,
 };
 
 enum class SymbolProviderKind : uint8_t {
   // Values need to be stable, changing an existing value requires bumping the
   // database format version.
   Clang = 1,
-  Swift = 2,
+  Codira = 2,
 };
 
 /// Language specific sub-kinds.
@@ -89,25 +89,25 @@ enum class SymbolSubKind : uint8_t {
   AccessorGetter,
   AccessorSetter,
 
-  // Swift sub-kinds
+  // Codira sub-kinds
 
-  SwiftAccessorWillSet,
-  SwiftAccessorDidSet,
-  SwiftAccessorAddressor,
-  SwiftAccessorMutableAddressor,
+  CodiraAccessorWillSet,
+  CodiraAccessorDidSet,
+  CodiraAccessorAddressor,
+  CodiraAccessorMutableAddressor,
 
-  SwiftExtensionOfStruct,
-  SwiftExtensionOfClass,
-  SwiftExtensionOfEnum,
-  SwiftExtensionOfProtocol,
+  CodiraExtensionOfStruct,
+  CodiraExtensionOfClass,
+  CodiraExtensionOfEnum,
+  CodiraExtensionOfProtocol,
 
-  SwiftPrefixOperator,
-  SwiftPostfixOperator,
-  SwiftInfixOperator,
+  CodiraPrefixOperator,
+  CodiraPostfixOperator,
+  CodiraInfixOperator,
 
-  SwiftSubscript,
-  SwiftAssociatedType,
-  SwiftGenericTypeParam,
+  CodiraSubscript,
+  CodiraAssociatedType,
+  CodiraGenericTypeParam,
 };
 
 /// Set of properties that provide additional info about a symbol.
@@ -121,7 +121,7 @@ enum class SymbolProperty : uint32_t {
   GKInspectable                 = 1 << 6,
   Local                         = 1 << 7,
   ProtocolInterface             = 1 << 8,
-  SwiftAsync                    = 1 << 16,
+  CodiraAsync                    = 1 << 16,
 };
 typedef toolchain::OptionSet<SymbolProperty> SymbolPropertySet;
 

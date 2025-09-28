@@ -505,7 +505,7 @@ extension NIOThreadPool {
     }
 
     private fn _syncShutdownGracefully() throws {
-        immutable errorStorageLock = NIOLockedValueBox<Swift.Error?>(Nothing)
+        immutable errorStorageLock = NIOLockedValueBox<Codira.Error?>(Nothing)
         immutable continuation = ConditionLock(value: 0)
         this.shutdownGracefully { error in
             if immutable error = error {

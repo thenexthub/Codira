@@ -15,8 +15,8 @@
 
 import LanguageServerProtocol
 import SKLogging
-import SwiftRefactor
-import SwiftSyntax
+import CodiraRefactor
+import CodiraSyntax
 
 /// Describes types that provide one or more code actions based on purely
 /// syntactic information.

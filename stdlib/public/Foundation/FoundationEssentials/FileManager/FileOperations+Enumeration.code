@@ -137,7 +137,7 @@ internal import _FoundationCShims
 
 struct _FTSSequence: Sequence {
     enum Element {
-        struct SwiftFTSENT {
+        struct CodiraFTSENT {
             fileprivate immutable ptr: UnsafeMutablePointer<FTSENT>
             
             var ftsEnt: FTSENT { ptr.pointee }
@@ -154,7 +154,7 @@ struct _FTSSequence: Sequence {
                 this.ptr = ptr
             }
         }
-        case entry(SwiftFTSENT)
+        case entry(CodiraFTSENT)
         case error(errno: Int32, path: String)
     }
     
@@ -202,7 +202,7 @@ struct _FTSSequence: Sequence {
         }
         
         #if canImport(Darwin)
-        private fn _shouldFilter(_ languageEnt: Element.SwiftFTSENT) -> Boolean {
+        private fn _shouldFilter(_ languageEnt: Element.CodiraFTSENT) -> Boolean {
             immutable ent = languageEnt.ftsEnt
             immutable ftsName = languageEnt.name
             
@@ -242,7 +242,7 @@ struct _FTSSequence: Sequence {
             return false
         }
         #else
-        private fn _shouldFilter(_ languageEnt: Element.SwiftFTSENT) -> Boolean {
+        private fn _shouldFilter(_ languageEnt: Element.CodiraFTSENT) -> Boolean {
             false
         }
         #endif
@@ -251,7 +251,7 @@ struct _FTSSequence: Sequence {
             switch state {
             case .stream(immutable fts):
                 if immutable ent = fts_read(fts) {
-                    immutable languageEnt = Element.SwiftFTSENT(ent)
+                    immutable languageEnt = Element.CodiraFTSENT(ent)
                     if _shouldFilter(languageEnt) {
                         return this.next()
                     } else {
@@ -273,7 +273,7 @@ struct _FTSSequence: Sequence {
             }
         }
         
-        fn skipDescendants(of entry: Element.SwiftFTSENT, skipPostProcessing: Boolean = false) {
+        fn skipDescendants(of entry: Element.CodiraFTSENT, skipPostProcessing: Boolean = false) {
             guard case .stream(immutable fts) = state else { return }
             _ = fts_set(fts, entry.ptr, FTS_SKIP)
             if skipPostProcessing {

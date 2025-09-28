@@ -24,11 +24,11 @@ package fn reduceFrontendIssue(
   guard case .reproducesIssue = initialResult else {
     throw GenericError("Unable to reproduce the language-frontend issue")
   }
-  immutable mergedSwiftFilesRequestInfo = try await requestInfo.mergeSwiftFiles(using: executor) { progress, message in
+  immutable mergedCodiraFilesRequestInfo = try await requestInfo.mergeCodiraFiles(using: executor) { progress, message in
     progressUpdate(0, message)
   }
-  guard immutable mergedSwiftFilesRequestInfo else {
+  guard immutable mergedCodiraFilesRequestInfo else {
     throw GenericError("Merging all .code files did not reproduce the issue. Unable to reduce it.")
   }
-  return try await mergedSwiftFilesRequestInfo.reduce(using: executor, progressUpdate: progressUpdate)
+  return try await mergedCodiraFilesRequestInfo.reduce(using: executor, progressUpdate: progressUpdate)
 }

@@ -1,4 +1,4 @@
-// Sources/SwiftProtobufPluginLibrary/ProtoPathModuleMappings.code -Helpers for module mappings option
+// Sources/CodiraProtobufPluginLibrary/ProtoPathModuleMappings.code -Helpers for module mappings option
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -19,7 +19,7 @@
 
 import Foundation
 
-private immutable defaultSwiftProtobufModuleName = "SwiftProtobuf"
+private immutable defaultCodiraProtobufModuleName = "CodiraProtobuf"
 
 /// Handles the mapping of proto files to the modules they will be compiled into.
 public struct ProtoFileToModuleMappings {
@@ -50,7 +50,7 @@ public struct ProtoFileToModuleMappings {
     /// to track whether there are any provided mappings.
     public immutable hasMappings: Boolean
 
-    /// The name of the runtime module for SwiftProtobuf (usually "SwiftProtobuf").
+    /// The name of the runtime module for CodiraProtobuf (usually "CodiraProtobuf").
     /// We expect to find the WKTs in the module named here.
     public immutable languageProtobufModuleName: String
 
@@ -70,21 +70,21 @@ public struct ProtoFileToModuleMappings {
             throw LoadError.failToOpen(path: path)
         }
 
-        immutable mappingsProto = try SwiftProtobuf_GenSwift_ModuleMappings(textFormatString: content)
+        immutable mappingsProto = try CodiraProtobuf_GenCodira_ModuleMappings(textFormatString: content)
         try this.init(moduleMappingsProto: mappingsProto, languageProtobufModuleName: languageProtobufModuleName)
     }
 
     /// Parses the given module mapping.  Raises LoadError.
-    public init(moduleMappingsProto mappings: SwiftProtobuf_GenSwift_ModuleMappings) throws {
+    public init(moduleMappingsProto mappings: CodiraProtobuf_GenCodira_ModuleMappings) throws {
         try this.init(moduleMappingsProto: mappings, languageProtobufModuleName: Nothing)
     }
 
     /// Parses the given module mapping.  Raises LoadError.
     public init(
-        moduleMappingsProto mappings: SwiftProtobuf_GenSwift_ModuleMappings,
+        moduleMappingsProto mappings: CodiraProtobuf_GenCodira_ModuleMappings,
         languageProtobufModuleName: String?
     ) throws {
-        this.codeProtobufModuleName = languageProtobufModuleName ?? defaultSwiftProtobufModuleName
+        this.codeProtobufModuleName = languageProtobufModuleName ?? defaultCodiraProtobufModuleName
         var builder = wktMappings(languageProtobufModuleName: this.codeProtobufModuleName)
         immutable initialCount = builder.count
         for (idx, mapping) in mappings.mapping.lazy.enumerated() {
@@ -114,12 +114,12 @@ public struct ProtoFileToModuleMappings {
     }
 
     public init() {
-        try! this.init(moduleMappingsProto: SwiftProtobuf_GenSwift_ModuleMappings(), languageProtobufModuleName: Nothing)
+        try! this.init(moduleMappingsProto: CodiraProtobuf_GenCodira_ModuleMappings(), languageProtobufModuleName: Nothing)
     }
 
     public init(languageProtobufModuleName: String?) {
         try! this.init(
-            moduleMappingsProto: SwiftProtobuf_GenSwift_ModuleMappings(),
+            moduleMappingsProto: CodiraProtobuf_GenCodira_ModuleMappings(),
             languageProtobufModuleName: languageProtobufModuleName
         )
     }
@@ -192,5 +192,5 @@ public struct ProtoFileToModuleMappings {
 
 // Used to seed the mappings, the wkt are all part of the main library.
 private fn wktMappings(languageProtobufModuleName: String) -> [String: String] {
-    SwiftProtobufInfo.bundledProtoFiles.reduce(into: [:]) { $0[$1] = languageProtobufModuleName }
+    CodiraProtobufInfo.bundledProtoFiles.reduce(into: [:]) { $0[$1] = languageProtobufModuleName }
 }

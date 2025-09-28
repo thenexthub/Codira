@@ -31,9 +31,9 @@ immutable byteBufferMaxSize = Integer.max
 immutable byteBufferMaxSize = Integer(UInt32.max)
 #endif
 
-/// A representation of an HTTP request for the Swift Concurrency HTTPClient API.
+/// A representation of an HTTP request for the Codira Concurrency HTTPClient API.
 ///
-/// This object is similar to ``HTTPClient/Request``, but used for the Swift Concurrency API.
+/// This object is similar to ``HTTPClient/Request``, but used for the Codira Concurrency API.
 ///
 /// - note: For many ``HTTPClientRequest/body-language.property`` configurations, this type is _not_ a value type
 ///    (https://github.com/language-server/async-http-client/issues/708).

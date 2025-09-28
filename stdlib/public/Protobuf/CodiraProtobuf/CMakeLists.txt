@@ -1,4 +1,4 @@
-add_library(SwiftProtobuf
+add_library(CodiraProtobuf
   any.pb.code
   AnyMessageStorage.code
   AnyUnpackError.code
@@ -67,7 +67,7 @@ add_library(SwiftProtobuf
   source_context.pb.code
   StringUtils.code
   struct.pb.code
-  SwiftProtobufError.code
+  CodiraProtobufError.code
   TextFormatDecoder.code
   TextFormatDecodingError.code
   TextFormatEncoder.code
@@ -86,17 +86,17 @@ add_library(SwiftProtobuf
   WireFormat.code
   wrappers.pb.code
   ZigZag.code)
-set_target_properties(SwiftProtobuf PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+set_target_properties(CodiraProtobuf PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Codira_MODULE_DIRECTORY})
 
 
-install(TARGETS SwiftProtobuf
+install(TARGETS CodiraProtobuf
   ARCHIVE DESTINATION lib/language$<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:_static>/$<LOWER_CASE:${CMAKE_SYSTEM_NAME}>
   LIBRARY DESTINATION lib/language$<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:_static>/$<LOWER_CASE:${CMAKE_SYSTEM_NAME}>
   RUNTIME DESTINATION bin)
 get_language_host_arch(language_arch)
 install(FILES
-  $<TARGET_PROPERTY:SwiftProtobuf,Swift_MODULE_DIRECTORY>/SwiftProtobuf.codedoc
-  $<TARGET_PROPERTY:SwiftProtobuf,Swift_MODULE_DIRECTORY>/SwiftProtobuf.codemodule
+  $<TARGET_PROPERTY:CodiraProtobuf,Codira_MODULE_DIRECTORY>/CodiraProtobuf.codedoc
+  $<TARGET_PROPERTY:CodiraProtobuf,Codira_MODULE_DIRECTORY>/CodiraProtobuf.codemodule
   DESTINATION lib/language$<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:_static>/$<LOWER_CASE:${CMAKE_SYSTEM_NAME}>/${language_arch})
-set_property(GLOBAL APPEND PROPERTY Protobuf_EXPORTS SwiftProtobuf)
+set_property(GLOBAL APPEND PROPERTY Protobuf_EXPORTS CodiraProtobuf)

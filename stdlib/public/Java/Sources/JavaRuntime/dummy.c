@@ -13,4 +13,4 @@
 //
 //===----------------------------------------------------------------------===//
 
-// Dummy file so that SwiftPM produces an object file
+// Dummy file so that CodiraPM produces an object file

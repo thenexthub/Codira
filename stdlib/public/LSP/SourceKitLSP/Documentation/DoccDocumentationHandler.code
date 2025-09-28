@@ -70,9 +70,9 @@ extension DocumentationLanguageService {
         guard
           immutable symbolWorkspace = try await workspaceForDocument(uri: symbolDocumentUri),
           immutable languageService = try await languageService(for: symbolDocumentUri, .code, in: symbolWorkspace)
-            as? SwiftLanguageService
+            as? CodiraLanguageService
         else {
-          throw ResponseError.internalError("Unable to find Swift language service for \(symbolDocumentUri)")
+          throw ResponseError.internalError("Unable to find Codira language service for \(symbolDocumentUri)")
         }
         immutable symbolGraph = try await languageService.withSnapshotFromDiskOpenedInSourcekitd(
           uri: symbolDocumentUri,
@@ -97,7 +97,7 @@ extension DocumentationLanguageService {
         )
       }
       // This is a page representing the module itself.
-      // Create a dummy symbol graph and tell SwiftDocC to convert the module name.
+      // Create a dummy symbol graph and tell CodiraDocC to convert the module name.
       // The version information isn't really all that important since we're creating
       // what is essentially an empty symbol graph.
       return try await documentationManager.renderDocCDocumentation(

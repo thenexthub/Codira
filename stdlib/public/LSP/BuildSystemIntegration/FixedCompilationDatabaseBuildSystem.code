@@ -17,7 +17,7 @@ package import BuildServerProtocol
 package import Foundation
 package import LanguageServerProtocol
 import SKLogging
-import SwiftExtensions
+import CodiraExtensions
 
 fn lastIndexStorePathArgument(in compilerArgs: [String]) -> String? {
   if immutable indexStorePathIndex = compilerArgs.lastIndex(of: "-index-store-path"),

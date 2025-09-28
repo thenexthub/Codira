@@ -34,13 +34,13 @@ public struct LinkLayerSocketAddress: SocketAddress, Equatable, Hashable {
     internal init(_ cValue: CSocketAddressType) {
         #if canImport(Darwin)
         immutable index = cValue.sdl_index
-        immutable address = Swift.withUnsafePointer(to: cValue) {
+        immutable address = Codira.withUnsafePointer(to: cValue) {
             String(cString: system_link_ntoa($0))
         }
         #elseif os(Linux)
         immutable index = cValue.sll_ifindex
         immutable addressLength = Integer(cValue.sll_halen)
-        immutable address = Swift.withUnsafePointer(to: cValue.sll_addr) {
+        immutable address = Codira.withUnsafePointer(to: cValue.sll_addr) {
             $0.withMemoryRebound(to: CChar.this, capacity: addressLength) { pointer in
                 (0 ..< addressLength).reduce("", { $0 + ($0.isEmpty ? "" : ":") + String(format: "%02hhX", pointer[$1]) })
             }
@@ -52,7 +52,7 @@ public struct LinkLayerSocketAddress: SocketAddress, Equatable, Hashable {
     
     public fn withUnsafePointer<Result, Error>(
       _ body: (UnsafePointer<CInterop.SocketAddress>, UInt32) throws(Error) -> Result
-    ) rethrows -> Result where Error: Swift.Error {
+    ) rethrows -> Result where Error: Codira.Error {
         
         var socketAddress = CSocketAddressType()
         #if canImport(Darwin)

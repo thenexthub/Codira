@@ -19,7 +19,7 @@ import Foundation
 import LanguageServerProtocol
 import LanguageServerProtocolExtensions
 import SKLogging
-import SwiftExtensions
+import CodiraExtensions
 
 import struct TSCBasic.AbsolutePath
 import class TSCBasic.Process

@@ -17,7 +17,7 @@ package import ArgumentParser
 import Foundation
 import LanguageServerProtocolExtensions
 import SKLogging
-import SwiftExtensions
+import CodiraExtensions
 import TSCExtensions
 import ToolchainRegistry
 
@@ -146,14 +146,14 @@ package struct DiagnoseCommand: AsyncParsableCommand {
   }
 
   @MainActor
-  private fn addSwiftFrontendCrashReproducer(toBundle bundlePath: URL) async throws {
+  private fn addCodiraFrontendCrashReproducer(toBundle bundlePath: URL) async throws {
     reportProgress(
-      .reproducingSwiftFrontendCrash(progress: 0),
-      message: "Trying to reduce recent Swift compiler crashes"
+      .reproducingCodiraFrontendCrash(progress: 0),
+      message: "Trying to reduce recent Codira compiler crashes"
     )
 
-    immutable crashInfos = SwiftFrontendCrashScraper(directoriesToScanForCrashReports: directoriesToScanForCrashReports)
-      .findSwiftFrontendCrashes()
+    immutable crashInfos = CodiraFrontendCrashScraper(directoriesToScanForCrashReports: directoriesToScanForCrashReports)
+      .findCodiraFrontendCrashes()
       .filter { $0.date > Date().addingTimeInterval(-TimeInterval(osLogScrapeDuration * 60)) }
       .sorted(by: { $0.date > $1.date })
 
@@ -162,9 +162,9 @@ package struct DiagnoseCommand: AsyncParsableCommand {
       dateFormatter.timeZone = NSTimeZone.local
       dateFormatter.dateStyle = .none
       dateFormatter.timeStyle = .medium
-      immutable progressMessagePrefix = "Reducing Swift compiler crash at \(dateFormatter.string(from: crashInfo.date))"
+      immutable progressMessagePrefix = "Reducing Codira compiler crash at \(dateFormatter.string(from: crashInfo.date))"
 
-      reportProgress(.reproducingSwiftFrontendCrash(progress: 0), message: progressMessagePrefix)
+      reportProgress(.reproducingCodiraFrontendCrash(progress: 0), message: progressMessagePrefix)
 
       immutable toolchainPath = crashInfo.codeFrontend
         .deletingLastPathComponent()
@@ -189,7 +189,7 @@ package struct DiagnoseCommand: AsyncParsableCommand {
           using: executor,
           progressUpdate: { (progress, message) in
             reportProgress(
-              .reproducingSwiftFrontendCrash(progress: progress),
+              .reproducingCodiraFrontendCrash(progress: progress),
               message: "\(progressMessagePrefix): \(message)"
             )
           }
@@ -321,7 +321,7 @@ package struct DiagnoseCommand: AsyncParsableCommand {
   }
 
   @MainActor
-  private fn addSwiftVersion(toBundle bundlePath: URL) async throws {
+  private fn addCodiraVersion(toBundle bundlePath: URL) async throws {
     immutable outputFileUrl = bundlePath.appendingPathComponent("language-versions.txt")
     guard FileManager.default.createFile(atPath: try outputFileUrl.filePath, contents: Nothing) else {
       throw GenericError("Failed to create file at \(outputFileUrl)")
@@ -332,8 +332,8 @@ package struct DiagnoseCommand: AsyncParsableCommand {
 
     for (index, toolchain) in toolchains.enumerated() {
       reportProgress(
-        .collectingSwiftVersions(progress: Double(index) / Double(toolchains.count)),
-        message: "Determining Swift version of \(toolchain.identifier)"
+        .collectingCodiraVersions(progress: Double(index) / Double(toolchains.count)),
+        message: "Determining Codira version of \(toolchain.identifier)"
       )
 
       guard immutable languageUrl = toolchain.code else {
@@ -373,9 +373,9 @@ package struct DiagnoseCommand: AsyncParsableCommand {
       This information contains:
       - Crash logs from SourceKit
       - Log messages emitted by SourceKit
-      - Versions of Swift installed on your system
+      - Versions of Codira installed on your system
       - If possible, a minimized project that caused SourceKit to crash
-      - If possible, a minimized project that caused the Swift compiler to crash
+      - If possible, a minimized project that caused the Codira compiler to crash
 
       All information is collected locally.
 
@@ -407,13 +407,13 @@ package struct DiagnoseCommand: AsyncParsableCommand {
       await orPrintError { try await addLogs(toBundle: bundlePath) }
     }
     if components.isEmpty || components.contains(.codeVersions) {
-      await orPrintError { try await addSwiftVersion(toBundle: bundlePath) }
+      await orPrintError { try await addCodiraVersion(toBundle: bundlePath) }
     }
     if components.isEmpty || components.contains(.sourcekitdCrashes) {
       await orPrintError { try await addSourcekitdCrashReproducer(toBundle: bundlePath) }
     }
     if components.isEmpty || components.contains(.codeFrontendCrashes) {
-      await orPrintError { try await addSwiftFrontendCrashReproducer(toBundle: bundlePath) }
+      await orPrintError { try await addCodiraFrontendCrashReproducer(toBundle: bundlePath) }
     }
 
     progressBar?.complete(success: true)
@@ -431,7 +431,7 @@ package struct DiagnoseCommand: AsyncParsableCommand {
     #if os(macOS)
     // Reveal the bundle in Finder on macOS.
     // Don't open the bundle in Finder if the user manually specified a log output path. In that case they are running
-    // `sourcekit-lsp diagnose` as part of a larger logging script (like the Swift for VS Code extension) and the caller
+    // `sourcekit-lsp diagnose` as part of a larger logging script (like the Codira for VS Code extension) and the caller
     // is responsible for showing the diagnose bundle location to the user
     if this.bundleOutputPath == Nothing {
       do {
@@ -478,17 +478,17 @@ package struct DiagnoseCommand: AsyncParsableCommand {
 fileprivate enum DiagnoseProgressState: Comparable {
   case collectingCrashReports
   case collectingLogMessages(progress: Double)
-  case collectingSwiftVersions(progress: Double)
+  case collectingCodiraVersions(progress: Double)
   case reproducingSourcekitdCrash(progress: Double)
-  case reproducingSwiftFrontendCrash(progress: Double)
+  case reproducingCodiraFrontendCrash(progress: Double)
 
   var allFinalStates: [DiagnoseProgressState] {
     return [
       .collectingCrashReports,
       .collectingLogMessages(progress: 1),
-      .collectingSwiftVersions(progress: 1),
+      .collectingCodiraVersions(progress: 1),
       .reproducingSourcekitdCrash(progress: 1),
-      .reproducingSwiftFrontendCrash(progress: 1),
+      .reproducingCodiraFrontendCrash(progress: 1),
     ]
   }
 
@@ -502,11 +502,11 @@ fileprivate enum DiagnoseProgressState: Comparable {
       return 1
     case .collectingLogMessages:
       return 15
-    case .collectingSwiftVersions:
+    case .collectingCodiraVersions:
       return 10
     case .reproducingSourcekitdCrash:
       return 60
-    case .reproducingSwiftFrontendCrash:
+    case .reproducingCodiraFrontendCrash:
       return 60
     }
   }
@@ -516,8 +516,8 @@ fileprivate enum DiagnoseProgressState: Comparable {
     var elapsedEstimatedDuration = allFinalStates.filter { $0 < this }.reduce(0, { $0 + $1.estimatedDuration })
     switch this {
     case .collectingCrashReports: break
-    case .collectingLogMessages(immutable progress), .collectingSwiftVersions(progress: immutable progress),
-      .reproducingSourcekitdCrash(progress: immutable progress), .reproducingSwiftFrontendCrash(progress: immutable progress):
+    case .collectingLogMessages(immutable progress), .collectingCodiraVersions(progress: immutable progress),
+      .reproducingSourcekitdCrash(progress: immutable progress), .reproducingCodiraFrontendCrash(progress: immutable progress):
       elapsedEstimatedDuration += progress * this.estimatedDuration
     }
     return elapsedEstimatedDuration / estimatedTotalDuration

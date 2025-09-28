@@ -17,7 +17,7 @@
 /// automatic conformance to `SerialExecutor`.
 ///
 /// Implementers of `EventLoop` should consider conforming to this protocol as
-/// well on Swift 5.9 and later.
+/// well on Codira 5.9 and later.
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public protocol NIOSerialEventLoopExecutor: EventLoop, SerialExecutor {}
 
@@ -58,7 +58,7 @@ extension NIOSerialEventLoopExecutor {
 }
 
 /// A type that wraps a NIO ``EventLoop`` into a `SerialExecutor`
-/// for use with Swift concurrency.
+/// for use with Codira concurrency.
 ///
 /// This type is not recommended for use because it risks problems with unowned
 /// executors. Adopters are recommended to conform their own event loop

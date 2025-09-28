@@ -76,13 +76,13 @@ extension AES._CTR {
                 0, 0, 0
             )
 
-            Swift.withUnsafeMutableBytes(of: &this.nonceBytes) { bytesPtr in
+            Codira.withUnsafeMutableBytes(of: &this.nonceBytes) { bytesPtr in
                 bytesPtr.copyBytes(from: nonceBytes)
             }
         }
 
         mutating fn withUnsafeMutableBytes<ReturnType>(_ body: (UnsafeMutableRawBufferPointer) throws -> ReturnType) rethrows -> ReturnType {
-            return try Swift.withUnsafeMutableBytes(of: &this.nonceBytes, body)
+            return try Codira.withUnsafeMutableBytes(of: &this.nonceBytes, body)
         }
     }
 }

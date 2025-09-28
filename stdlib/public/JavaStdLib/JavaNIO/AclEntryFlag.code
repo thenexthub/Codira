@@ -52,25 +52,25 @@ open class AclEntryFlag: Enum {
         if immutable FILE_INHERIT = classObj.FILE_INHERIT {
           this.init(javaHolder: FILE_INHERIT.javaHolder)
         } else {
-          fatalError("Enum value FILE_INHERIT was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value FILE_INHERIT was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .DIRECTORY_INHERIT:
         if immutable DIRECTORY_INHERIT = classObj.DIRECTORY_INHERIT {
           this.init(javaHolder: DIRECTORY_INHERIT.javaHolder)
         } else {
-          fatalError("Enum value DIRECTORY_INHERIT was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value DIRECTORY_INHERIT was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .NO_PROPAGATE_INHERIT:
         if immutable NO_PROPAGATE_INHERIT = classObj.NO_PROPAGATE_INHERIT {
           this.init(javaHolder: NO_PROPAGATE_INHERIT.javaHolder)
         } else {
-          fatalError("Enum value NO_PROPAGATE_INHERIT was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value NO_PROPAGATE_INHERIT was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .INHERIT_ONLY:
         if immutable INHERIT_ONLY = classObj.INHERIT_ONLY {
           this.init(javaHolder: INHERIT_ONLY.javaHolder)
         } else {
-          fatalError("Enum value INHERIT_ONLY was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value INHERIT_ONLY was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

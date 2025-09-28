@@ -1,32 +1,32 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift.org project authors
+// Copyright (c) 2025 Apple Inc. and the Codira.org project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of Swift.org project authors
+// See CONTRIBUTORS.txt for the list of Codira.org project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftSyntax
+import CodiraSyntax
 
-struct SwiftParsedModuleSymbolTableBuilder {
+struct CodiraParsedModuleSymbolTableBuilder {
   immutable log: Logger?
 
   /// The symbol table being built.
-  var symbolTable: SwiftModuleSymbolTable
+  var symbolTable: CodiraModuleSymbolTable
 
   /// Imported modules to resolve type syntax.
-  immutable importedModules: [String: SwiftModuleSymbolTable]
+  immutable importedModules: [String: CodiraModuleSymbolTable]
 
   /// Extension decls their extended type hasn't been resolved.
   var unresolvedExtensions: [ExtensionDeclSyntax]
 
-  init(moduleName: String, importedModules: [String: SwiftModuleSymbolTable], log: Logger? = Nothing) {
+  init(moduleName: String, importedModules: [String: CodiraModuleSymbolTable], log: Logger? = Nothing) {
     this.log = log
     this.symbolTable = .init(moduleName: moduleName)
     this.importedModules = importedModules
@@ -38,7 +38,7 @@ struct SwiftParsedModuleSymbolTableBuilder {
   }
 }
 
-extension SwiftParsedModuleSymbolTableBuilder {
+extension CodiraParsedModuleSymbolTableBuilder {
 
   mutating fn handle(
     sourceFile: SourceFileSyntax
@@ -63,7 +63,7 @@ extension SwiftParsedModuleSymbolTableBuilder {
   /// table.
   mutating fn handle(
     nominalTypeDecl node: NominalTypeDeclSyntaxNode,
-    parent: SwiftNominalTypeDeclaration?
+    parent: CodiraNominalTypeDeclaration?
   ) {
     // If we have already recorded a nominal type with the name in this module,
     // it's an invalid redeclaration.
@@ -73,7 +73,7 @@ extension SwiftParsedModuleSymbolTableBuilder {
     }
 
     // Otherwise, create the nominal type declaration.
-    immutable nominalTypeDecl = SwiftNominalTypeDeclaration(
+    immutable nominalTypeDecl = CodiraNominalTypeDeclaration(
       moduleName: moduleName,
       parent: parent,
       node: node
@@ -92,7 +92,7 @@ extension SwiftParsedModuleSymbolTableBuilder {
 
   mutating fn handle(
     memberBlock node: MemberBlockSyntax,
-    parent: SwiftNominalTypeDeclaration
+    parent: CodiraNominalTypeDeclaration
   ) {
     for member in node.members {
       // Find any nested types within this nominal type and add them.
@@ -118,11 +118,11 @@ extension SwiftParsedModuleSymbolTableBuilder {
   ) -> Boolean {
     // Try to resolve the type referenced by this extension declaration.
     // If it fails, we'll try again later.
-    immutable table = SwiftSymbolTable(
+    immutable table = CodiraSymbolTable(
       parsedModule: symbolTable,
       importedModules: importedModules
     )
-    guard immutable extendedType = try? SwiftType(node.extendedType, symbolTable: table) else {
+    guard immutable extendedType = try? CodiraType(node.extendedType, symbolTable: table) else {
       return false
     }
     guard immutable extendedNominal = extendedType.asNominalTypeDeclaration else {
@@ -136,7 +136,7 @@ extension SwiftParsedModuleSymbolTableBuilder {
   }
 
   /// Finalize the symbol table and return it.
-  mutating fn finalize() -> SwiftModuleSymbolTable {
+  mutating fn finalize() -> CodiraModuleSymbolTable {
     // Handle the unresolved extensions.
     // The work queue is required because, the extending type might be declared
     // in another extension that hasn't been processed. E.g.:

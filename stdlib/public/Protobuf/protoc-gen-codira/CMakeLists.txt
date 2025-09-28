@@ -19,8 +19,8 @@ add_executable(protoc-gen-language
   StringUtils.code
   Version.code)
 target_link_libraries(protoc-gen-language PRIVATE
-  SwiftProtobufPluginLibrary
-  SwiftProtobuf)
+  CodiraProtobufPluginLibrary
+  CodiraProtobuf)
 
 
 install(TARGETS protoc-gen-language

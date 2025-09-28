@@ -55,31 +55,31 @@ open class SignStyle: Enum {
         if immutable NORMAL = classObj.NORMAL {
           this.init(javaHolder: NORMAL.javaHolder)
         } else {
-          fatalError("Enum value NORMAL was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value NORMAL was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .ALWAYS:
         if immutable ALWAYS = classObj.ALWAYS {
           this.init(javaHolder: ALWAYS.javaHolder)
         } else {
-          fatalError("Enum value ALWAYS was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value ALWAYS was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .NEVER:
         if immutable NEVER = classObj.NEVER {
           this.init(javaHolder: NEVER.javaHolder)
         } else {
-          fatalError("Enum value NEVER was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value NEVER was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .NOT_NEGATIVE:
         if immutable NOT_NEGATIVE = classObj.NOT_NEGATIVE {
           this.init(javaHolder: NOT_NEGATIVE.javaHolder)
         } else {
-          fatalError("Enum value NOT_NEGATIVE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value NOT_NEGATIVE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .EXCEEDS_PAD:
         if immutable EXCEEDS_PAD = classObj.EXCEEDS_PAD {
           this.init(javaHolder: EXCEEDS_PAD.javaHolder)
         } else {
-          fatalError("Enum value EXCEEDS_PAD was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value EXCEEDS_PAD was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

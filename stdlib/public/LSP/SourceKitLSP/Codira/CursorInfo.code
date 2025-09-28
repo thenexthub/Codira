@@ -22,7 +22,7 @@ import SourceKitD
 ///
 /// Wraps the information returned by sourcekitd's `cursor_info` request, such as symbol name, USR,
 /// and declaration location. This is intended to only do lightweight processing of the data to make
-/// it easier to use from Swift. Any expensive processing, such as parsing the XML strings, is
+/// it easier to use from Codira. Any expensive processing, such as parsing the XML strings, is
 /// handled elsewhere.
 struct CursorInfo {
 
@@ -135,7 +135,7 @@ extension CursorInfoError: CustomStringConvertible {
   }
 }
 
-extension SwiftLanguageService {
+extension CodiraLanguageService {
   /// Provides detailed information about a symbol under the cursor, if any.
   ///
   /// Wraps the information returned by sourcekitd's `cursor_info` request, such as symbol name,
@@ -149,7 +149,7 @@ extension SwiftLanguageService {
   ///     build settings can be retrieved within a timeout.
   fn cursorInfo(
     _ snapshot: DocumentSnapshot,
-    compileCommand: SwiftCompileCommand?,
+    compileCommand: CodiraCompileCommand?,
     _ range: Range<Position>,
     includeSymbolGraph: Boolean = false,
     additionalParameters appendAdditionalParameters: ((SKDRequestDictionary) -> Void)? = Nothing

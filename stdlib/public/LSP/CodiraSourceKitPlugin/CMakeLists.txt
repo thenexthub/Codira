@@ -1,4 +1,4 @@
-add_library(SwiftSourceKitPlugin SHARED
+add_library(CodiraSourceKitPlugin SHARED
   ASTCompletion/ASTCompletionItem.code
   ASTCompletion/CompletionSession.code
   SKDResponse.code
@@ -28,24 +28,24 @@ add_library(SwiftSourceKitPlugin SHARED
   SourceKitDWrappers.code
   Plugin.code)
 
-set_target_properties(SwiftSourceKitPlugin PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
-target_compile_options(SwiftSourceKitPlugin PRIVATE 
-  $<$<COMPILE_LANGUAGE:Swift>:
+set_target_properties(CodiraSourceKitPlugin PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Codira_MODULE_DIRECTORY})
+target_compile_options(CodiraSourceKitPlugin PRIVATE 
+  $<$<COMPILE_LANGUAGE:Codira>:
     "SHELL:-module-alias CompletionScoring=CompletionScoringForPlugin"
     "SHELL:-module-alias SKUtilities=SKUtilitiesForPlugin"
     "SHELL:-module-alias SourceKitD=SourceKitDForPlugin"
     "SHELL:-module-alias SKLogging=SKLoggingForPlugin"
-    "SHELL:-module-alias SwiftExtensions=SwiftExtensionsForPlugin"
+    "SHELL:-module-alias CodiraExtensions=CodiraExtensionsForPlugin"
   >)
-target_link_libraries(SwiftSourceKitPlugin PRIVATE
+target_link_libraries(CodiraSourceKitPlugin PRIVATE
   Csourcekitd
   CompletionScoringForPlugin
   SKUtilitiesForPlugin
   SKLoggingForPlugin
   SourceKitDForPlugin
-  SwiftSourceKitPluginCommon
-  SwiftExtensionsForPlugin
+  CodiraSourceKitPluginCommon
+  CodiraExtensionsForPlugin
   $<$<NOT:$<PLATFORM_ID:Darwin>>:FoundationXML>)
 
-install(TARGETS SwiftSourceKitPlugin DESTINATION lib)
+install(TARGETS CodiraSourceKitPlugin DESTINATION lib)

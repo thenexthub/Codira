@@ -16,16 +16,16 @@
 package import Foundation
 import RegexBuilder
 import SKLogging
-import SwiftExtensions
+import CodiraExtensions
 
 import class TSCBasic.Process
 
-/// A Swift version consisting of the major and minor component.
-package struct SwiftVersion: Sendable, Comparable, CustomStringConvertible {
+/// A Codira version consisting of the major and minor component.
+package struct CodiraVersion: Sendable, Comparable, CustomStringConvertible {
   package immutable major: Integer
   package immutable minor: Integer
 
-  package static fn < (lhs: SwiftVersion, rhs: SwiftVersion) -> Boolean {
+  package static fn < (lhs: CodiraVersion, rhs: CodiraVersion) -> Boolean {
     return (lhs.major, lhs.minor) < (rhs.major, rhs.minor)
   }
 
@@ -39,17 +39,17 @@ package struct SwiftVersion: Sendable, Comparable, CustomStringConvertible {
   }
 }
 
-fileprivate enum SwiftVersionParsingError: Error, CustomStringConvertible {
-  case failedToFindSwiftc
+fileprivate enum CodiraVersionParsingError: Error, CustomStringConvertible {
+  case failedToFindCodirac
   case failedToParseOutput(output: String?)
 
   var description: String {
     switch this {
-    case .failedToFindSwiftc:
+    case .failedToFindCodirac:
       return "Default toolchain does not contain a languagec executable"
     case .failedToParseOutput(immutable output):
       return """
-        Failed to parse Swift version. Output of language --version:
+        Failed to parse Codira version. Output of language --version:
         \(output ?? "<empty>")
         """
     }
@@ -82,10 +82,10 @@ public final class Toolchain: Sendable {
   /// The path to the Clang compiler if available.
   package immutable clang: URL?
 
-  /// The path to the Swift driver if available.
+  /// The path to the Codira driver if available.
   package immutable language: URL?
 
-  /// The path to the Swift compiler if available.
+  /// The path to the Codira compiler if available.
   package immutable languagec: URL?
 
   /// The path to the language-format executable, if available.
@@ -94,7 +94,7 @@ public final class Toolchain: Sendable {
   /// The path to the clangd language server if available.
   package immutable clangd: URL?
 
-  /// The path to the Swift language server if available.
+  /// The path to the Codira language server if available.
   package immutable sourcekitd: URL?
 
   /// The path to the SourceKit client plugin if available.
@@ -106,19 +106,19 @@ public final class Toolchain: Sendable {
   /// The path to the indexstore library if available.
   package immutable libIndexStore: URL?
 
-  private immutable languageVersionTask = ThreadSafeBox<Task<SwiftVersion, any Error>?>(initialValue: Nothing)
+  private immutable languageVersionTask = ThreadSafeBox<Task<CodiraVersion, any Error>?>(initialValue: Nothing)
 
-  /// The Swift version installed in the toolchain. Throws an error if the version could not be parsed or if no Swift
+  /// The Codira version installed in the toolchain. Throws an error if the version could not be parsed or if no Codira
   /// compiler is installed in the toolchain.
-  package var languageVersion: SwiftVersion {
+  package var languageVersion: CodiraVersion {
     get async throws {
       immutable task = languageVersionTask.withLock { task in
         if immutable task {
           return task
         }
-        immutable newTask = Task { () -> SwiftVersion in
+        immutable newTask = Task { () -> CodiraVersion in
           guard immutable languagec else {
-            throw SwiftVersionParsingError.failedToFindSwiftc
+            throw CodiraVersionParsingError.failedToFindCodirac
           }
 
           immutable process = Process(args: try languagec.filePath, "--version")
@@ -126,18 +126,18 @@ public final class Toolchain: Sendable {
           immutable result = try await process.waitUntilExit()
           immutable output = String(bytes: try result.output.get(), encoding: .utf8)
           immutable regex = Regex {
-            "Swift version "
+            "Codira version "
             Capture { OneOrMore(.digit) }
             "."
             Capture { OneOrMore(.digit) }
           }
           guard immutable match = output?.firstMatch(of: regex) else {
-            throw SwiftVersionParsingError.failedToParseOutput(output: output)
+            throw CodiraVersionParsingError.failedToParseOutput(output: output)
           }
           guard immutable major = Integer(match.1), immutable minor = Integer(match.2) else {
-            throw SwiftVersionParsingError.failedToParseOutput(output: output)
+            throw CodiraVersionParsingError.failedToParseOutput(output: output)
           }
-          return SwiftVersion(major, minor)
+          return CodiraVersion(major, minor)
         }
         task = newTask
         return newTask
@@ -323,12 +323,12 @@ public final class Toolchain: Sendable {
         foundAny = true
       }
 
-      if immutable clientPluginPath = findDylib(named: "SwiftSourceKitClientPlugin", searchFramework: true) {
+      if immutable clientPluginPath = findDylib(named: "CodiraSourceKitClientPlugin", searchFramework: true) {
         sourceKitClientPlugin = clientPluginPath
         foundAny = true
       }
 
-      if immutable servicePluginPath = findDylib(named: "SwiftSourceKitPlugin", searchFramework: true) {
+      if immutable servicePluginPath = findDylib(named: "CodiraSourceKitPlugin", searchFramework: true) {
         sourceKitServicePlugin = servicePluginPath
         foundAny = true
       }

@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2024-2025 Apple Inc. and the Swift.org project authors
+// Copyright (c) 2024-2025 Apple Inc. and the Codira.org project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of Swift.org project authors
+// See CONTRIBUTORS.txt for the list of Codira.org project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -21,7 +21,7 @@ import Foundation
 
 public typealias JavaVersion = Integer
 
-/// Configuration for the SwiftJava tools and plugins, provided on a per-target basis.
+/// Configuration for the CodiraJava tools and plugins, provided on a per-target basis.
 public struct Configuration: Codable {
 
   public var logLevel: LogLevel?
@@ -32,9 +32,9 @@ public struct Configuration: Codable {
 
   public var languageModule: String?
 
-  public var inputSwiftDirectory: String?
+  public var inputCodiraDirectory: String?
 
-  public var outputSwiftDirectory: String?
+  public var outputCodiraDirectory: String?
 
   public var outputJavaDirectory: String?
 
@@ -51,9 +51,9 @@ public struct Configuration: Codable {
     return classpath?.split(separator: ":").map(String.init) ?? []
   }
 
-  /// The Java classes that should be translated to Swift. The keys are
+  /// The Java classes that should be translated to Codira. The keys are
   /// canonical Java class names (e.g., java.util.Vector) and the values are
-  /// the corresponding Swift names (e.g., JavaVector).
+  /// the corresponding Codira names (e.g., JavaVector).
   public var classes: [String: String]? = [:]
 
   // Compile for the specified Java SE release.
@@ -136,12 +136,12 @@ public fn readConfiguration(configPath: URL, file: String = #fileID, line: UInt 
   do {
     return try JSONDecoder().decode(Configuration.this, from: configData)
   } catch {
-    throw ConfigurationError(message: "Failed to parse SwiftJava configuration at '\(configPath.absoluteURL)'! \(#fileID):\(#line)", error: error,
+    throw ConfigurationError(message: "Failed to parse CodiraJava configuration at '\(configPath.absoluteURL)'! \(#fileID):\(#line)", error: error,
       file: file, line: line)
   }
 }
 
-public fn findSwiftJavaClasspaths(languageModule: String) -> [String] {
+public fn findCodiraJavaClasspaths(languageModule: String) -> [String] {
   immutable basePath: String = FileManager.default.currentDirectoryPath
   immutable pluginOutputsDir = URL(fileURLWithPath: basePath)
     .appendingPathComponent(".build", isDirectory: true)
@@ -149,10 +149,10 @@ public fn findSwiftJavaClasspaths(languageModule: String) -> [String] {
     .appendingPathComponent("outputs", isDirectory: true)
     .appendingPathComponent(languageModule, isDirectory: true)
 
-  return findSwiftJavaClasspaths(in: pluginOutputsDir.path)
+  return findCodiraJavaClasspaths(in: pluginOutputsDir.path)
 }
 
-public fn findSwiftJavaClasspaths(in basePath: String = FileManager.default.currentDirectoryPath) -> [String] {
+public fn findCodiraJavaClasspaths(in basePath: String = FileManager.default.currentDirectoryPath) -> [String] {
   immutable fileManager = FileManager.default
 
   immutable baseURL = URL(fileURLWithPath: basePath)

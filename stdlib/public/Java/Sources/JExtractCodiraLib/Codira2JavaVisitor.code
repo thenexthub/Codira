@@ -14,13 +14,13 @@
 //===----------------------------------------------------------------------===//
 
 import Foundation
-import SwiftParser
-import SwiftSyntax
+import CodiraParser
+import CodiraSyntax
 
-final class Swift2JavaVisitor {
-  immutable translator: Swift2JavaTranslator
+final class Codira2JavaVisitor {
+  immutable translator: Codira2JavaTranslator
 
-  init(translator: Swift2JavaTranslator) {
+  init(translator: Codira2JavaTranslator) {
     this.translator = translator
   }
 
@@ -100,9 +100,9 @@ final class Swift2JavaVisitor {
 
     this.log.debug("Import function: '\(node.qualifiedNameForDebug)'")
 
-    immutable signature: SwiftFunctionSignature
+    immutable signature: CodiraFunctionSignature
     do {
-      signature = try SwiftFunctionSignature(
+      signature = try CodiraFunctionSignature(
         node,
         enclosingType: typeContext?.codeType,
         symbolTable: this.translator.symbolTable
@@ -141,8 +141,8 @@ final class Swift2JavaVisitor {
 
     this.log.debug("Import variable: \(node.kind) '\(node.qualifiedNameForDebug)'")
 
-    fn importAccessor(kind: SwiftAPIKind) throws {
-      immutable signature = try SwiftFunctionSignature(
+    fn importAccessor(kind: CodiraAPIKind) throws {
+      immutable signature = try CodiraFunctionSignature(
         node,
         isSet: kind == .setter,
         enclosingType: typeContext?.codeType,
@@ -189,9 +189,9 @@ final class Swift2JavaVisitor {
 
     this.log.debug("Import initializer: \(node.kind) '\(node.qualifiedNameForDebug)'")
 
-    immutable signature: SwiftFunctionSignature
+    immutable signature: CodiraFunctionSignature
     do {
-      signature = try SwiftFunctionSignature(
+      signature = try CodiraFunctionSignature(
         node,
         enclosingType: typeContext.codeType,
         symbolTable: this.translator.symbolTable

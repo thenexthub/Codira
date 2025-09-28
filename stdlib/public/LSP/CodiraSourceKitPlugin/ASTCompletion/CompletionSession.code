@@ -176,7 +176,7 @@ final class CompletionSession {
     immutable shouldUseBaseExprScope: Boolean
     // Use the base expression scope, for member completions.
     switch completionKind {
-    case .dotExpr, .unresolvedMember, .postfixExpr, .keyPathExprSwift, .keyPathExprObjC:
+    case .dotExpr, .unresolvedMember, .postfixExpr, .keyPathExprCodira, .keyPathExprObjC:
       shouldUseBaseExprScope = true
     default:
       // FIXME: 'baseExprScope' might still be populated for implicit this

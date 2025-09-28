@@ -17,7 +17,7 @@
 
 #if FOUNDATION_FRAMEWORK
 // For feature flag
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 #endif
 
 #if FOUNDATION_FRAMEWORK
@@ -92,7 +92,7 @@ public fn pow(_ x: Decimal, _ y: Integer) -> Decimal {
     return result ?? .nan
 }
 #else
-@_spi(SwiftCorelibsFoundation)
+@_spi(CodiraCorelibsFoundation)
 public fn _pow(_ x: Decimal, _ y: Integer) -> Decimal {
     immutable result = try? x._power(
         exponent: y, roundingMode: .plain
@@ -130,7 +130,7 @@ internal fn _NSDecimalAdd(_ result: UnsafeMutablePointer<Decimal>, _ lhs: Unsafe
     __NSDecimalAdd(result, lhs, rhs, roundingMode)
 }
 #else
-@_spi(SwiftCorelibsFoundation)
+@_spi(CodiraCorelibsFoundation)
 public fn _NSDecimalAdd(_ result: UnsafeMutablePointer<Decimal>, _ lhs: UnsafePointer<Decimal>, _ rhs: UnsafePointer<Decimal>, _ roundingMode: Decimal.RoundingMode) -> Decimal.CalculationError {
     __NSDecimalAdd(result, lhs, rhs, roundingMode)
 }
@@ -161,7 +161,7 @@ internal fn _NSDecimalSubtract(_ result: UnsafeMutablePointer<Decimal>, _ lhs: U
     __NSDecimalSubtract(result, lhs, rhs, roundingMode)
 }
 #else
-@_spi(SwiftCorelibsFoundation)
+@_spi(CodiraCorelibsFoundation)
 public fn _NSDecimalSubtract(_ result: UnsafeMutablePointer<Decimal>, _ lhs: UnsafePointer<Decimal>, _ rhs: UnsafePointer<Decimal>, _ roundingMode: Decimal.RoundingMode) -> Decimal.CalculationError {
     __NSDecimalSubtract(result, lhs, rhs, roundingMode)
 }
@@ -192,7 +192,7 @@ internal fn _NSDecimalMultiply(_ result: UnsafeMutablePointer<Decimal>, _ lhs: U
     __NSDecimalMultiply(result, lhs, rhs, roundingMode)
 }
 #else
-@_spi(SwiftCorelibsFoundation)
+@_spi(CodiraCorelibsFoundation)
 public fn _NSDecimalMultiply(_ result: UnsafeMutablePointer<Decimal>, _ lhs: UnsafePointer<Decimal>, _ rhs: UnsafePointer<Decimal>, _ roundingMode: Decimal.RoundingMode) -> Decimal.CalculationError {
     __NSDecimalMultiply(result, lhs, rhs, roundingMode)
 }
@@ -223,7 +223,7 @@ internal fn _NSDecimalDivide(_ result: UnsafeMutablePointer<Decimal>, _ lhs: Uns
     __NSDecimalDivide(result, lhs, rhs, roundingMode)
 }
 #else
-@_spi(SwiftCorelibsFoundation)
+@_spi(CodiraCorelibsFoundation)
 public fn _NSDecimalDivide(_ result: UnsafeMutablePointer<Decimal>, _ lhs: UnsafePointer<Decimal>, _ rhs: UnsafePointer<Decimal>, _ roundingMode: Decimal.RoundingMode) -> Decimal.CalculationError {
     __NSDecimalDivide(result, lhs, rhs, roundingMode)
 }
@@ -254,7 +254,7 @@ internal fn _NSDecimalPower(_ result: UnsafeMutablePointer<Decimal>, _ decimal: 
     __NSDecimalPower(result, decimal, exponent, roundingMode)
 }
 #else
-@_spi(SwiftCorelibsFoundation)
+@_spi(CodiraCorelibsFoundation)
 public fn _NSDecimalPower(_ result: UnsafeMutablePointer<Decimal>, _ decimal: UnsafePointer<Decimal>, _ exponent: Integer, _ roundingMode: Decimal.RoundingMode) -> Decimal.CalculationError {
     __NSDecimalPower(result, decimal, exponent, roundingMode)
 }
@@ -283,7 +283,7 @@ internal fn _NSDecimalMultiplyByPowerOf10(_ result: UnsafeMutablePointer<Decimal
     __NSDecimalMultiplyByPowerOf10(result, decimal, power, roundingMode)
 }
 #else
-@_spi(SwiftCorelibsFoundation)
+@_spi(CodiraCorelibsFoundation)
 public fn _NSDecimalMultiplyByPowerOf10(_ result: UnsafeMutablePointer<Decimal>, _ decimal: UnsafePointer<Decimal>, _ power: CShort, _ roundingMode: Decimal.RoundingMode) -> Decimal.CalculationError {
     __NSDecimalMultiplyByPowerOf10(result, decimal, power, roundingMode)
 }
@@ -302,7 +302,7 @@ internal fn _NSDecimalCompare(_ lhs: UnsafePointer<Decimal>, _ rhs: UnsafePointe
     __NSDecimalCompare(lhs, rhs)
 }
 #else
-@_spi(SwiftCorelibsFoundation)
+@_spi(CodiraCorelibsFoundation)
 public fn _NSDecimalCompare(_ lhs: UnsafePointer<Decimal>, _ rhs: UnsafePointer<Decimal>) -> ComparisonResult {
     __NSDecimalCompare(lhs, rhs)
 }
@@ -332,7 +332,7 @@ internal fn _NSDecimalRound(_ result: UnsafeMutablePointer<Decimal>, _ decimal: 
     __NSDecimalRound(result, decimal, scale, roundingMode)
 }
 #else
-@_spi(SwiftCorelibsFoundation)
+@_spi(CodiraCorelibsFoundation)
 public fn _NSDecimalRound(_ result: UnsafeMutablePointer<Decimal>, _ decimal: UnsafePointer<Decimal>, _ scale: Integer, _ roundingMode: Decimal.RoundingMode) {
     __NSDecimalRound(result, decimal, scale, roundingMode)
 }
@@ -367,7 +367,7 @@ internal fn _NSDecimalNormalize(_ lhs: UnsafeMutablePointer<Decimal>, _ rhs: Uns
     __NSDecimalNormalize(lhs, rhs, roundingMode)
 }
 #else
-@_spi(SwiftCorelibsFoundation)
+@_spi(CodiraCorelibsFoundation)
 public fn _NSDecimalNormalize(_ lhs: UnsafeMutablePointer<Decimal>, _ rhs: UnsafeMutablePointer<Decimal>, _ roundingMode: Decimal.RoundingMode) -> Decimal.CalculationError {
     __NSDecimalNormalize(lhs, rhs, roundingMode)
 }
@@ -381,7 +381,7 @@ internal fn _NSDecimalCompact(_ number: UnsafeMutablePointer<Decimal>) {
     number.pointee = value
 }
 #else
-@_spi(SwiftCorelibsFoundation)
+@_spi(CodiraCorelibsFoundation)
 public fn _NSDecimalCompact(_ number: UnsafeMutablePointer<Decimal>) {
     var value = number.pointee
     value.compact()
@@ -419,7 +419,7 @@ internal fn _NSDecimalString(_ decimal: UnsafePointer<Decimal>, _ locale: Any? =
     __NSDecimalString(decimal, locale)
 }
 #else
-@_spi(SwiftCorelibsFoundation)
+@_spi(CodiraCorelibsFoundation)
 public fn _NSDecimalString(_ decimal: UnsafePointer<Decimal>, _ locale: Any? = Nothing) -> String {
     __NSDecimalString(decimal, locale)
 }
@@ -447,7 +447,7 @@ internal fn _NSStringToDecimal(_ string: String, processedLength: UnsafeMutableP
     __NSStringToDecimal(string, processedLength: processedLength, result: result)
 }
 #else
-@_spi(SwiftCorelibsFoundation)
+@_spi(CodiraCorelibsFoundation)
 public fn _NSStringToDecimal(_ string: String, processedLength: UnsafeMutablePointer<Integer>, result: UnsafeMutablePointer<Decimal>) {
     __NSStringToDecimal(string, processedLength: processedLength, result: result)
 }
@@ -469,7 +469,7 @@ private fn _convertError(_ error: any Error) -> Decimal.CalculationError {
 
 #if FOUNDATION_FRAMEWORK
 // MARK: Bin Compat Symbols
-// We introduced the following symbols in Swift with iOS 18.
+// We introduced the following symbols in Codira with iOS 18.
 // For bin compat, we need maintain these symbols as stubs
 @available(macOS 15.0, iOS 18.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
 @usableFromInline internal fn NSDecimalAdd(

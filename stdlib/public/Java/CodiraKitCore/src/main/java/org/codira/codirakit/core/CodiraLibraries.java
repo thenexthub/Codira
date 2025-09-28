@@ -23,10 +23,10 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 
-public final class SwiftLibraries {
+public final class CodiraLibraries {
 
     public static final String STDLIB_DYLIB_NAME = "languageCore";
-    public static final String SWIFTKITSWIFT_DYLIB_NAME = "SwiftKitSwift";
+    public static final String SWIFTKITSWIFT_DYLIB_NAME = "CodiraKitCodira";
     public static final boolean TRACE_DOWNCALLS = Boolean.getBoolean("jextract.trace.downcalls");
 
     private static final String STDLIB_MACOS_DYLIB_PATH = "/usr/lib/language/liblanguageCore.dylib";
@@ -34,9 +34,9 @@ public final class SwiftLibraries {
     @SuppressWarnings("unused")
     private static final boolean INITIALIZED_LIBS = loadLibraries(false);
 
-    public static boolean loadLibraries(boolean loadSwiftKit) {
+    public static boolean loadLibraries(boolean loadCodiraKit) {
         System.loadLibrary(STDLIB_DYLIB_NAME);
-        if (loadSwiftKit) {
+        if (loadCodiraKit) {
             System.loadLibrary(SWIFTKITSWIFT_DYLIB_NAME);
         }
         return true;
@@ -58,11 +58,11 @@ public final class SwiftLibraries {
 
     public static void loadResourceLibrary(String libname) {
         String resourceName = PlatformUtils.dynamicLibraryName(libname);
-        if (SwiftLibraries.TRACE_DOWNCALLS) {
+        if (CodiraLibraries.TRACE_DOWNCALLS) {
             System.out.println("[language-java] Loading resource library: " + resourceName);
         }
 
-        try (InputStream libInputStream = SwiftLibraries.class.getResourceAsStream("/" + resourceName)) {
+        try (InputStream libInputStream = CodiraLibraries.class.getResourceAsStream("/" + resourceName)) {
             if (libInputStream == null) {
                 throw new RuntimeException("Expected library '" + libname + "' ('" + resourceName + "') was not found as resource!");
             }

@@ -15,7 +15,7 @@
 
 #if FOUNDATION_FRAMEWORK
 internal import XPCPrivate
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 internal import Foundation_Private.NSFileManager
 internal import DarwinPrivate
 

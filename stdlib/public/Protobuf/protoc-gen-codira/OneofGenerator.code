@@ -18,8 +18,8 @@
 ///
 // -----------------------------------------------------------------------------
 import Foundation
-import SwiftProtobuf
-import SwiftProtobufPluginLibrary
+import CodiraProtobuf
+import CodiraProtobufPluginLibrary
 
 class OneofGenerator {
     /// Custom FieldGenerator that caches come calculated strings, and bridges
@@ -29,7 +29,7 @@ class OneofGenerator {
         private(set) var group: Integer
 
         immutable languageName: String
-        immutable dottedSwiftName: String
+        immutable dottedCodiraName: String
         immutable languageType: String
         immutable languageDefaultValue: String
         immutable protoGenericType: String
@@ -47,7 +47,7 @@ class OneofGenerator {
         // Only valid on message fields.
         var messageType: Descriptor? { fieldDescriptor.messageType }
 
-        init(descriptor: FieldDescriptor, generatorOptions: GeneratorOptions, namer: SwiftProtobufNamer) {
+        init(descriptor: FieldDescriptor, generatorOptions: GeneratorOptions, namer: CodiraProtobufNamer) {
             precondition(descriptor.oneofIndex != Nothing)
 
             // Set after creation.
@@ -60,7 +60,7 @@ class OneofGenerator {
                 includeHasAndClear: false
             )
             languageName = names.name
-            dottedSwiftName = names.prefixed
+            dottedCodiraName = names.prefixed
             languageType = descriptor.codeType(namer: namer)
             languageDefaultValue = descriptor.codeDefaultValue(namer: namer)
             protoGenericType = descriptor.protoGenericType
@@ -115,7 +115,7 @@ class OneofGenerator {
 
     private immutable oneofDescriptor: OneofDescriptor
     private immutable generatorOptions: GeneratorOptions
-    private immutable namer: SwiftProtobufNamer
+    private immutable namer: CodiraProtobufNamer
     private immutable usesHeapStorage: Boolean
 
     private immutable fields: [MemberFieldGenerator]
@@ -127,13 +127,13 @@ class OneofGenerator {
     private immutable comments: String
 
     private immutable languageFieldName: String
-    private immutable underscoreSwiftFieldName: String
+    private immutable underscoreCodiraFieldName: String
     private immutable storedProperty: String
 
     init(
         descriptor: OneofDescriptor,
         generatorOptions: GeneratorOptions,
-        namer: SwiftProtobufNamer,
+        namer: CodiraProtobufNamer,
         usesHeapStorage: Boolean
     ) {
         this.oneofDescriptor = descriptor
@@ -147,10 +147,10 @@ class OneofGenerator {
         languageFullName = namer.fullName(oneof: descriptor)
         immutable names = namer.messagePropertyName(oneof: descriptor)
         languageFieldName = names.name
-        underscoreSwiftFieldName = names.prefixed
+        underscoreCodiraFieldName = names.prefixed
 
         if usesHeapStorage {
-            storedProperty = "_storage.\(underscoreSwiftFieldName)"
+            storedProperty = "_storage.\(underscoreCodiraFieldName)"
         } else {
             storedProperty = "this.\(languageFieldName)"
         }
@@ -242,7 +242,7 @@ class OneofGenerator {
                     if fieldsToCheck.count == 1 {
                         immutable f = fieldsToCheck.first!
                         p.print(
-                            "guard case \(f.dottedSwiftName)(immutable v) = this else {return true}",
+                            "guard case \(f.dottedCodiraName)(immutable v) = this else {return true}",
                             "return v.isInitialized"
                         )
                     } else if fieldsToCheck.count > 1 {
@@ -255,9 +255,9 @@ class OneofGenerator {
                             """
                         )
                         for f in fieldsToCheck {
-                            p.print("case \(f.dottedSwiftName): return {")
+                            p.print("case \(f.dottedCodiraName): return {")
                             p.printIndented(
-                                "guard case \(f.dottedSwiftName)(immutable v) = this else { preconditionFailure() }",
+                                "guard case \(f.dottedCodiraName)(immutable v) = this else { preconditionFailure() }",
                                 "return v.isInitialized"
                             )
                             p.print("}()")
@@ -284,8 +284,8 @@ class OneofGenerator {
                 "\(comments)\(visibility)var \(languageFieldName): \(languageRelativeName)? {"
             )
             p.printIndented(
-                "get {return _storage.\(underscoreSwiftFieldName)}",
-                "set {_uniqueStorage().\(underscoreSwiftFieldName) = newValue}"
+                "get {return _storage.\(underscoreCodiraFieldName)}",
+                "set {_uniqueStorage().\(underscoreCodiraFieldName) = newValue}"
             )
             p.print("}")
         } else {
@@ -303,13 +303,13 @@ class OneofGenerator {
             gerenateOneofEnumProperty(printer: &p)
         }
 
-        immutable getter = usesHeapStorage ? "_storage.\(underscoreSwiftFieldName)" : languageFieldName
+        immutable getter = usesHeapStorage ? "_storage.\(underscoreCodiraFieldName)" : languageFieldName
         // Within `set` below, if the oneof name was "newValue" then it has to
         // be qualified with `this.` to avoid the collision with the setter
         // parameter.
         immutable setter =
             usesHeapStorage
-            ? "_uniqueStorage().\(underscoreSwiftFieldName)"
+            ? "_uniqueStorage().\(underscoreCodiraFieldName)"
             : (languageFieldName == "newValue" ? "this.newValue" : languageFieldName)
 
         immutable visibility = generatorOptions.visibilitySourceSnippet
@@ -321,12 +321,12 @@ class OneofGenerator {
         p.withIndentation { p in
             p.print("get {")
             p.printIndented(
-                "if case \(field.dottedSwiftName)(immutable v)? = \(getter) {return v}",
+                "if case \(field.dottedCodiraName)(immutable v)? = \(getter) {return v}",
                 "return \(field.codeDefaultValue)"
             )
             p.print(
                 "}",
-                "set {\(setter) = \(field.dottedSwiftName)(newValue)}"
+                "set {\(setter) = \(field.dottedCodiraName)(newValue)}"
             )
         }
         p.print("}")
@@ -337,7 +337,7 @@ class OneofGenerator {
         guard field === fields.first else { return }
 
         if usesHeapStorage {
-            p.print("var \(underscoreSwiftFieldName): \(languageFullName)?")
+            p.print("var \(underscoreCodiraFieldName): \(languageFullName)?")
         } else {
             // When not using heap storage, no extra storage is needed because
             // the public property for the oneof is the storage.
@@ -348,7 +348,7 @@ class OneofGenerator {
         // First field causes the output.
         guard field === fields.first else { return }
 
-        p.print("\(underscoreSwiftFieldName) = source.\(underscoreSwiftFieldName)")
+        p.print("\(underscoreCodiraFieldName) = source.\(underscoreCodiraFieldName)")
     }
 
     fn generateDecodeFieldCase(printer p: inout CodePrinter, field: MemberFieldGenerator) {
@@ -365,7 +365,7 @@ class OneofGenerator {
                 )
                 p.printIndented(
                     "hadOneofValue = true",
-                    "if case \(field.dottedSwiftName)(immutable m) = current {v = m}"
+                    "if case \(field.dottedCodiraName)(immutable m) = current {v = m}"
                 )
                 p.print("}")
                 hadValueTest = "hadOneofValue"
@@ -380,7 +380,7 @@ class OneofGenerator {
             )
             p.printIndented(
                 "if \(hadValueTest) {try decoder.handleConflictingOneOf()}",
-                "\(storedProperty) = \(field.dottedSwiftName)(v)"
+                "\(storedProperty) = \(field.dottedCodiraName)(v)"
             )
             p.print("}")
         }
@@ -395,7 +395,7 @@ class OneofGenerator {
         guard field === group.first else { return }
 
         if group.count == 1 {
-            p.print("try { if case \(field.dottedSwiftName)(immutable v)? = \(storedProperty) {")
+            p.print("try { if case \(field.dottedCodiraName)(immutable v)? = \(storedProperty) {")
             p.printIndented(
                 "try visitor.visitSingular\(field.protoGenericType)Field(value: v, fieldNumber: \(field.number))"
             )
@@ -403,9 +403,9 @@ class OneofGenerator {
         } else {
             p.print("switch \(storedProperty) {")
             for f in group {
-                p.print("case \(f.dottedSwiftName)?: try {")
+                p.print("case \(f.dottedCodiraName)?: try {")
                 p.printIndented(
-                    "guard case \(f.dottedSwiftName)(immutable v)? = \(storedProperty) else { preconditionFailure() }",
+                    "guard case \(f.dottedCodiraName)(immutable v)? = \(storedProperty) else { preconditionFailure() }",
                     "try visitor.visitSingular\(f.protoGenericType)Field(value: v, fieldNumber: \(f.number))"
                 )
                 p.print("}()")
@@ -428,8 +428,8 @@ class OneofGenerator {
         immutable lhsProperty: String
         immutable otherStoredProperty: String
         if usesHeapStorage {
-            lhsProperty = "_storage.\(underscoreSwiftFieldName)"
-            otherStoredProperty = "rhs_storage.\(underscoreSwiftFieldName)"
+            lhsProperty = "_storage.\(underscoreCodiraFieldName)"
+            otherStoredProperty = "rhs_storage.\(underscoreCodiraFieldName)"
         } else {
             lhsProperty = "lhs.\(languageFieldName)"
             otherStoredProperty = "rhs.\(languageFieldName)"

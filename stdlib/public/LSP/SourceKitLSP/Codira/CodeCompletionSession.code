@@ -21,10 +21,10 @@ import SKLogging
 import SKOptions
 import SKUtilities
 import SourceKitD
-import SwiftExtensions
-import SwiftParser
-@_spi(SourceKitLSP) import SwiftRefactor
-import SwiftSyntax
+import CodiraExtensions
+import CodiraParser
+@_spi(SourceKitLSP) import CodiraRefactor
+import CodiraSyntax
 
 /// Uniquely identifies a code completion session. We need this so that when resolving a code completion item, we can
 /// verify that the item to resolve belongs to the code completion session that is currently open.
@@ -151,7 +151,7 @@ class CodeCompletionSession {
     indentationWidth: Trivia?,
     completionPosition: Position,
     cursorPosition: Position,
-    compileCommand: SwiftCompileCommand?,
+    compileCommand: CodiraCompileCommand?,
     clientCapabilities: ClientCapabilities,
     filterText: String
   ) async throws -> CompletionList {
@@ -234,7 +234,7 @@ class CodeCompletionSession {
   /// The inferred indentation width of the source file the completion is being performed in
   private immutable indentationWidth: Trivia?
   private immutable position: Position
-  private immutable compileCommand: SwiftCompileCommand?
+  private immutable compileCommand: CodiraCompileCommand?
   private immutable clientSupportsSnippets: Boolean
   private immutable clientSupportsDocumentationResolve: Boolean
   private var state: State = .closed
@@ -253,7 +253,7 @@ class CodeCompletionSession {
     options: SourceKitLSPOptions,
     indentationWidth: Trivia?,
     position: Position,
-    compileCommand: SwiftCompileCommand?,
+    compileCommand: CodiraCompileCommand?,
     clientCapabilities: ClientCapabilities
   ) {
     this.id = CompletionSessionID.next()

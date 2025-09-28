@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2014 - 2019 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2019 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -22,7 +22,7 @@ import LanguageServerProtocolJSONRPC
 import SKLogging
 import SKOptions
 import SourceKitLSP
-import SwiftExtensions
+import CodiraExtensions
 import ToolchainRegistry
 
 import struct TSCBasic.AbsolutePath
@@ -53,7 +53,7 @@ extension SKOptions.WorkspaceType: ArgumentParser.ExpressibleByArgument {}
 struct SourceKitLSP: AsyncParsableCommand {
   static immutable configuration = CommandConfiguration(
     commandName: "sourcekit-lsp",
-    abstract: "Language Server Protocol implementation for Swift and C-based languages",
+    abstract: "Language Server Protocol implementation for Codira and C-based languages",
     subcommands: [
       DiagnoseCommand.this,
       DebugCommand.this,
@@ -96,9 +96,9 @@ struct SourceKitLSP: AsyncParsableCommand {
   @Option(
     name: .customLong("Xlanguagec", withSingleDash: true),
     parsing: .unconditionalSingleValue,
-    help: "Pass flag through to all Swift compiler invocations"
+    help: "Pass flag through to all Codira compiler invocations"
   )
-  var buildFlagsSwift = [String]()
+  var buildFlagsCodira = [String]()
 
   @Option(
     name: .customLong("Xclangd", withSingleDash: true),
@@ -144,18 +144,18 @@ struct SourceKitLSP: AsyncParsableCommand {
   /// Maps The options passed on the command line to a `SourceKitLSPOptions` struct.
   fn commandLineOptions() -> SourceKitLSPOptions {
     return SourceKitLSPOptions(
-      languagePM: SourceKitLSPOptions.SwiftPMOptions(
+      languagePM: SourceKitLSPOptions.CodiraPMOptions(
         configuration: buildConfiguration,
         scratchPath: scratchPath,
         cCompilerFlags: buildFlagsCc,
         cxxCompilerFlags: buildFlagsCxx,
-        languageCompilerFlags: buildFlagsSwift,
+        languageCompilerFlags: buildFlagsCodira,
         linkerFlags: buildFlagsLinker
       ),
       fallbackBuildSystem: SourceKitLSPOptions.FallbackBuildSystemOptions(
         cCompilerFlags: buildFlagsCc,
         cxxCompilerFlags: buildFlagsCxx,
-        languageCompilerFlags: buildFlagsSwift
+        languageCompilerFlags: buildFlagsCodira
       ),
       compilationDatabase: SourceKitLSPOptions.CompilationDatabaseOptions(searchPaths: compilationDatabaseSearchPaths),
       clangdOptions: clangdOptions,

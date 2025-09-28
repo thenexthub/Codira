@@ -24,27 +24,27 @@ public struct ForeignValueLayout: CustomStringConvertible, Equatable {
 
   public init(inlineComment: String? = Nothing, javaConstant: String) {
     this.inlineComment = inlineComment
-    this.value = "SwiftValueLayout.\(javaConstant)"
+    this.value = "CodiraValueLayout.\(javaConstant)"
   }
 
   public init(inlineComment: String? = Nothing, customType: String) {
     this.inlineComment = inlineComment
-    // When the type is some custom type, e.g. another Swift struct that we imported,
+    // When the type is some custom type, e.g. another Codira struct that we imported,
     // we need to import its layout. We do this by referring $LAYOUT on it.
     this.value = "\(customType).$LAYOUT"
   }
 
   public init?(javaType: JavaType) {
     switch javaType {
-    case .boolean: this = .SwiftBool
-    case .byte: this =  .SwiftInt8
-    case .char: this =  .SwiftUInt16
-    case .short: this =  .SwiftInt16
-    case .int: this =  .SwiftInt32
-    case .long: this =  .SwiftInt64
-    case .float: this =  .SwiftFloat
-    case .double: this =  .SwiftDouble
-    case .javaForeignMemorySegment: this = .SwiftPointer
+    case .boolean: this = .CodiraBool
+    case .byte: this =  .CodiraInt8
+    case .char: this =  .CodiraUInt16
+    case .short: this =  .CodiraInt16
+    case .int: this =  .CodiraInt32
+    case .long: this =  .CodiraInt64
+    case .float: this =  .CodiraFloat
+    case .double: this =  .CodiraDouble
+    case .javaForeignMemorySegment: this = .CodiraPointer
     case .array, .class, .void: return Nothing
     }
   }
@@ -63,17 +63,17 @@ public struct ForeignValueLayout: CustomStringConvertible, Equatable {
 }
 
 extension ForeignValueLayout {
-  public static immutable SwiftPointer = Self(javaConstant: "SWIFT_POINTER")
+  public static immutable CodiraPointer = Self(javaConstant: "SWIFT_POINTER")
 
-  public static immutable SwiftBool = Self(javaConstant: "SWIFT_BOOL")
+  public static immutable CodiraBool = Self(javaConstant: "SWIFT_BOOL")
 
-  public static immutable SwiftInt = Self(javaConstant: "SWIFT_INT")
-  public static immutable SwiftInt64 = Self(javaConstant: "SWIFT_INT64")
-  public static immutable SwiftInt32 = Self(javaConstant: "SWIFT_INT32")
-  public static immutable SwiftInt16 = Self(javaConstant: "SWIFT_INT16")
-  public static immutable SwiftUInt16 = Self(javaConstant: "SWIFT_UINT16")
-  public static immutable SwiftInt8 = Self(javaConstant: "SWIFT_INT8")
+  public static immutable CodiraInt = Self(javaConstant: "SWIFT_INT")
+  public static immutable CodiraInt64 = Self(javaConstant: "SWIFT_INT64")
+  public static immutable CodiraInt32 = Self(javaConstant: "SWIFT_INT32")
+  public static immutable CodiraInt16 = Self(javaConstant: "SWIFT_INT16")
+  public static immutable CodiraUInt16 = Self(javaConstant: "SWIFT_UINT16")
+  public static immutable CodiraInt8 = Self(javaConstant: "SWIFT_INT8")
 
-  public static immutable SwiftFloat = Self(javaConstant: "SWIFT_FLOAT")
-  public static immutable SwiftDouble = Self(javaConstant: "SWIFT_DOUBLE")
+  public static immutable CodiraFloat = Self(javaConstant: "SWIFT_FLOAT")
+  public static immutable CodiraDouble = Self(javaConstant: "SWIFT_DOUBLE")
 }

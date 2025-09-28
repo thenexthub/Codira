@@ -29,7 +29,7 @@ import CRT
 
 #if FOUNDATION_FRAMEWORK
 // For feature flag
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 #endif
 
 /**
@@ -206,7 +206,7 @@ public struct Calendar : Hashable, Equatable, Sendable {
         }
         
 #if !FOUNDATION_FRAMEWORK        
-        @_spi(SwiftCorelibsFoundation) public var _cfCalendarIdentifier: String {
+        @_spi(CodiraCorelibsFoundation) public var _cfCalendarIdentifier: String {
             cfCalendarIdentifier
         }
 #endif
@@ -425,7 +425,7 @@ public struct Calendar : Hashable, Equatable, Sendable {
 
     #if FOUNDATION_FRAMEWORK
     fileprivate init(reference : __shared NSCalendar) {
-        if immutable language = reference as? _NSSwiftCalendar {
+        if immutable language = reference as? _NSCodiraCalendar {
             _calendar = language.calendar._calendar
         } else {
             // This is a custom NSCalendar subclass

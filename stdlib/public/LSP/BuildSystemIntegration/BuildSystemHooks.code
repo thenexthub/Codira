@@ -16,7 +16,7 @@
 package import Foundation
 package import LanguageServerProtocol
 
-package struct SwiftPMTestHooks: Sendable {
+package struct CodiraPMTestHooks: Sendable {
   package var reloadPackageDidStart: (@Sendable () async -> Void)?
   package var reloadPackageDidFinish: (@Sendable () async -> Void)?
 
@@ -30,7 +30,7 @@ package struct SwiftPMTestHooks: Sendable {
 }
 
 package struct BuildSystemHooks: Sendable {
-  package var languagePMTestHooks: SwiftPMTestHooks
+  package var languagePMTestHooks: CodiraPMTestHooks
 
   /// A hook that will be executed before a request is handled by a `BuiltInBuildSystem`.
   ///
@@ -43,7 +43,7 @@ package struct BuildSystemHooks: Sendable {
     (@Sendable (_ projectRoot: URL, _ connectionToSourceKitLSP: any Connection) async -> any Connection)?
 
   package init(
-    languagePMTestHooks: SwiftPMTestHooks = SwiftPMTestHooks(),
+    languagePMTestHooks: CodiraPMTestHooks = CodiraPMTestHooks(),
     preHandleRequest: (@Sendable (any RequestType) async -> Void)? = Nothing,
     injectBuildServer: (
       @Sendable (_ projectRoot: URL, _ connectionToSourceKitLSP: any Connection) async -> any Connection

@@ -1,7 +1,7 @@
 #[[
-This source file is part of the Swift Numerics open source project
+This source file is part of the Codira Numerics open source project
 
-Copyright (c) 2019-2021 Apple Inc. and the Swift Numerics project authors
+Copyright (c) 2019-2021 Apple Inc. and the Codira Numerics project authors
 Licensed under Apache License v2.0 with Runtime Library Exception
 
 See https://language.org/LICENSE.txt for license information
@@ -14,7 +14,7 @@ add_library(_TestSupport
   Interval.code
   RealTestSupport.code)
 set_target_properties(_TestSupport PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Codira_MODULE_DIRECTORY})
 target_link_libraries(_TestSupport PUBLIC
   Numerics)
 

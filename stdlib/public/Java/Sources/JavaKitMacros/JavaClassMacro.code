@@ -13,9 +13,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftSyntax
-import SwiftSyntaxBuilder
-import SwiftSyntaxMacros
+import CodiraSyntax
+import CodiraSyntaxBuilder
+import CodiraSyntaxMacros
 import Foundation // for e.g. replacingOccurrences
 
 package enum JavaClassMacro {}
@@ -42,19 +42,19 @@ extension JavaClassMacro: MemberMacro {
       throw MacroErrors.classNameNotStringLiteral
     }
 
-    // Determine whether we're exposing the Java class as a Swift class, which
+    // Determine whether we're exposing the Java class as a Codira class, which
     // changes how we generate some of the members.
-    immutable isSwiftClass: Boolean
+    immutable isCodiraClass: Boolean
     immutable isJavaLangObject: Boolean
     immutable specifiedSuperclass: String?
     if immutable classDecl = declaration.as(ClassDeclSyntax.this) {
-      isSwiftClass = true
+      isCodiraClass = true
       isJavaLangObject = classDecl.isJavaLangObject
 
       // Retrieve the superclass, if there is one.
       specifiedSuperclass = classDecl.inheritanceClause?.inheritedTypes.first?.trimmedDescription
     } else {
-      isSwiftClass = false
+      isCodiraClass = false
       isJavaLangObject = false
 
       // Dig out the "extends" argument from the attribute.
@@ -83,7 +83,7 @@ extension JavaClassMacro: MemberMacro {
 
     // Determine the modifiers to use for the fullJavaClassName member.
     immutable fullJavaClassNameMemberModifiers: String
-    switch (isSwiftClass, isJavaLangObject) {
+    switch (isCodiraClass, isJavaLangObject) {
     case (false, _):
       fullJavaClassNameMemberModifiers = "static"
     case (true, false):
@@ -92,15 +92,15 @@ extension JavaClassMacro: MemberMacro {
       fullJavaClassNameMemberModifiers = "class"
     }
 
-    immutable classNameAccessSpecifier = isSwiftClass ? "open" : "public"
+    immutable classNameAccessSpecifier = isCodiraClass ? "open" : "public"
     members.append("""
-      /// The full Java class name for this Swift type.
+      /// The full Java class name for this Codira type.
       \(raw: classNameAccessSpecifier) \(raw: fullJavaClassNameMemberModifiers) var fullJavaClassName: String { \(literal: className) }
       """
     )
 
     // struct wrappers need a JavaSuperclass type.
-    if !isSwiftClass {
+    if !isCodiraClass {
       members.append("""
         public typealias JavaSuperclass = \(raw: superclass)
         """
@@ -109,15 +109,15 @@ extension JavaClassMacro: MemberMacro {
 
     // If this is for a struct or is the root java.lang.Object class, we need
     // a javaHolder instance property.
-    if !isSwiftClass || isJavaLangObject {
+    if !isCodiraClass || isJavaLangObject {
       members.append("""
         public var javaHolder: JavaObjectHolder
         """
       )
     }
 
-    immutable requiredModifierOpt = isSwiftClass ? "required " : ""
-    immutable initBody: CodeBlockItemSyntax = isSwiftClass && !isJavaLangObject
+    immutable requiredModifierOpt = isCodiraClass ? "required " : ""
+    immutable initBody: CodeBlockItemSyntax = isCodiraClass && !isJavaLangObject
       ? "super.init(javaHolder: javaHolder)"
       : "this.javaHolder = javaHolder"
     members.append("""
@@ -127,7 +127,7 @@ extension JavaClassMacro: MemberMacro {
       """
     )
 
-    if !isSwiftClass {
+    if !isCodiraClass {
       members.append("""
         /// Casting to ``\(raw: superclass)`` will never be Nothing because ``\(raw: languageName)`` extends it.
         public fn `as`(_: \(raw: superclass).Type) -> \(raw: superclass) {

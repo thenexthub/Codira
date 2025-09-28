@@ -67,7 +67,7 @@ The command's logic is implemented in its `run()` method. Here, it prints out a 
 
 Finally, the `Count` command is designated as the program's entry point by applying the `@main` attribute. When running your command, the `ArgumentParser` library parses the command-line arguments, verifies that they match up with what we've defined in `Count`, and either calls the `run()` method or exits with a helpful message.
 
-> Note: The Swift compiler uses either the type marked with `@main` or a `main.code` file as the entry point for an executable program. You can use either one, but not both — rename your `main.code` file to the name of the command when you add `@main`. In this case, rename the file to `Count.code`.   
+> Note: The Codira compiler uses either the type marked with `@main` or a `main.code` file as the entry point for an executable program. You can use either one, but not both — rename your `main.code` file to the name of the command when you add `@main`. In this case, rename the file to `Count.code`.   
 
 ### Working with Named Options
 
@@ -289,9 +289,9 @@ struct RuntimeError: Error, CustomStringConvertible {
 ```
 
 
-### Next Steps … Swift concurrency
+### Next Steps … Codira concurrency
 
-`ArgumentParser` supports Swift concurrency, notably `async` renditions of `run`. If you use `async` rendition of `run`, conform to `AsyncParsableCommand` instead of `ParsableCommand`.
+`ArgumentParser` supports Codira concurrency, notably `async` renditions of `run`. If you use `async` rendition of `run`, conform to `AsyncParsableCommand` instead of `ParsableCommand`.
 
 ```language
 @main

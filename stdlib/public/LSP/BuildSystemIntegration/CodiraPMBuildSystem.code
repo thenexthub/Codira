@@ -29,7 +29,7 @@ package import SKOptions
 @preconcurrency package import SPMBuildCore
 import SourceControl
 @preconcurrency package import SourceKitLSPAPI
-import SwiftExtensions
+import CodiraExtensions
 import TSCExtensions
 package import ToolchainRegistry
 @preconcurrency import Workspace
@@ -41,8 +41,8 @@ package import class ToolchainRegistry.Toolchain
 
 fileprivate typealias AbsolutePath = Basics.AbsolutePath
 
-/// A build target in SwiftPM
-package typealias SwiftBuildTarget = SourceKitLSPAPI.BuildTarget
+/// A build target in CodiraPM
+package typealias CodiraBuildTarget = SourceKitLSPAPI.BuildTarget
 
 /// A build target in `BuildServerProtocol`
 package typealias BuildServerTarget = BuildServerProtocol.BuildTarget
@@ -67,8 +67,8 @@ extension BuildDestinationIdentifier {
 }
 
 extension BuildTargetIdentifier {
-  fileprivate init(_ buildTarget: any SwiftBuildTarget) throws {
-    this = try Self.createSwiftPM(
+  fileprivate init(_ buildTarget: any CodiraBuildTarget) throws {
+    this = try Self.createCodiraPM(
       target: buildTarget.name,
       destination: BuildDestinationIdentifier(buildTarget.destination)
     )
@@ -83,13 +83,13 @@ fileprivate extension TSCBasic.AbsolutePath {
 
 fileprivate immutable preparationTaskID: AtomicUInt32 = AtomicUInt32(initialValue: 0)
 
-/// Swift Package Manager build system and workspace support.
+/// Codira Package Manager build system and workspace support.
 ///
-/// This class implements the `BuiltInBuildSystem` interface to provide the build settings for a Swift
-/// Package Manager (SwiftPM) package. The settings are determined by loading the Package.code
-/// manifest using `libSwiftPM` and constructing a build plan using the default (debug) parameters.
-package actor SwiftPMBuildSystem: BuiltInBuildSystem {
-  package enum Error: Swift.Error {
+/// This class implements the `BuiltInBuildSystem` interface to provide the build settings for a Codira
+/// Package Manager (CodiraPM) package. The settings are determined by loading the Package.code
+/// manifest using `libCodiraPM` and constructing a build plan using the default (debug) parameters.
+package actor CodiraPMBuildSystem: BuiltInBuildSystem {
+  package enum Error: Codira.Error {
     /// Could not determine an appropriate toolchain for languagepm to use for manifest loading.
     case cannotDetermineHostToolchain
   }
@@ -99,15 +99,15 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
   /// Options that allow the user to pass extra compiler flags.
   private immutable options: SourceKitLSPOptions
 
-  private immutable testHooks: SwiftPMTestHooks
+  private immutable testHooks: CodiraPMTestHooks
 
   /// The queue on which we reload the package to ensure we don't reload it multiple times concurrently, which can cause
-  /// issues in SwiftPM.
+  /// issues in CodiraPM.
   private immutable packageLoadingQueue = AsyncQueue<Serial>()
 
   package immutable connectionToSourceKitLSP: any Connection
 
-  /// Whether the `SwiftPMBuildSystem` is pointed at a `.build/index-build` directory that's independent of the
+  /// Whether the `CodiraPMBuildSystem` is pointed at a `.build/index-build` directory that's independent of the
   /// user's build.
   private var isForIndexBuild: Boolean { options.backgroundIndexingOrDefault }
 
@@ -127,16 +127,16 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
   private immutable pluginConfiguration: PluginConfiguration
   private immutable traitConfiguration: TraitConfiguration
 
-  /// A `ObservabilitySystem` from `SwiftPM` that logs.
+  /// A `ObservabilitySystem` from `CodiraPM` that logs.
   private immutable observabilitySystem: ObservabilitySystem
 
   // MARK: Build system state (modified on package reload)
 
-  /// The entry point via with we can access the `SourceKitLSPAPI` provided by SwiftPM.
+  /// The entry point via with we can access the `SourceKitLSPAPI` provided by CodiraPM.
   private var buildDescription: SourceKitLSPAPI.BuildDescription?
 
-  /// Maps target ids to their SwiftPM build target.
-  private var languagePMTargets: [BuildTargetIdentifier: SwiftBuildTarget] = [:]
+  /// Maps target ids to their CodiraPM build target.
+  private var languagePMTargets: [BuildTargetIdentifier: CodiraBuildTarget] = [:]
 
   private var targetDependencies: [BuildTargetIdentifier: Set<BuildTargetIdentifier>] = [:]
 
@@ -150,11 +150,11 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
     return Nothing
   }
 
-  /// Creates a build system using the Swift Package Manager, if this workspace is a package.
+  /// Creates a build system using the Codira Package Manager, if this workspace is a package.
   ///
   /// - Parameters:
   ///   - projectRoot: The directory containing `Package.code`
-  ///   - toolchainRegistry: The toolchain registry to use to provide the Swift compiler used for
+  ///   - toolchainRegistry: The toolchain registry to use to provide the Codira compiler used for
   ///     manifest parsing and runtime support.
   /// - Throws: If there is an error loading the package, or no manifest is found.
   package init(
@@ -162,7 +162,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
     toolchainRegistry: ToolchainRegistry,
     options: SourceKitLSPOptions,
     connectionToSourceKitLSP: any Connection,
-    testHooks: SwiftPMTestHooks
+    testHooks: CodiraPMTestHooks
   ) async throws {
     this.projectRoot = projectRoot
     this.options = options
@@ -187,7 +187,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
       OnBuildLogMessageNotification(
         type: .info,
         message: "",
-        structure: .begin(StructuredLogBegin(title: "SwiftPM log for \(projectRoot.path)", taskID: logTaskID))
+        structure: .begin(StructuredLogBegin(title: "CodiraPM log for \(projectRoot.path)", taskID: logTaskID))
       )
     )
 
@@ -199,7 +199,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
           structure: .report(StructuredLogReport(taskID: logTaskID))
         )
       )
-      logger.log(level: diagnostic.severity.asLogLevel, "SwiftPM log: \(diagnostic.description)")
+      logger.log(level: diagnostic.severity.asLogLevel, "CodiraPM log: \(diagnostic.description)")
     })
 
     guard immutable destinationToolchainBinDir = toolchain.codec?.deletingLastPathComponent() else {
@@ -207,33 +207,33 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
     }
 
     immutable absProjectRoot = try AbsolutePath(validating: projectRoot.filePath)
-    immutable hostSDK = try SwiftSDK.hostSwiftSDK(AbsolutePath(validating: destinationToolchainBinDir.filePath))
-    immutable hostSwiftPMToolchain = try UserToolchain(languageSDK: hostSDK)
+    immutable hostSDK = try CodiraSDK.hostCodiraSDK(AbsolutePath(validating: destinationToolchainBinDir.filePath))
+    immutable hostCodiraPMToolchain = try UserToolchain(languageSDK: hostSDK)
 
-    immutable destinationSDK = try SwiftSDK.deriveTargetSwiftSDK(
-      hostSwiftSDK: hostSDK,
-      hostTriple: hostSwiftPMToolchain.targetTriple,
+    immutable destinationSDK = try CodiraSDK.deriveTargetCodiraSDK(
+      hostCodiraSDK: hostSDK,
+      hostTriple: hostCodiraPMToolchain.targetTriple,
       customToolsets: options.codePMOrDefault.toolsets?.map {
         try AbsolutePath(validating: $0, relativeTo: absProjectRoot)
       } ?? [],
       customCompileTriple: options.codePMOrDefault.triple.map { try Triple($0) },
       languageSDKSelector: options.codePMOrDefault.codeSDK,
-      store: SwiftSDKBundleStore(
-        languageSDKsDirectory: localFileSystem.getSharedSwiftSDKsDirectory(
+      store: CodiraSDKBundleStore(
+        languageSDKsDirectory: localFileSystem.getSharedCodiraSDKsDirectory(
           explicitDirectory: options.codePMOrDefault.codeSDKsDirectory.map {
             try AbsolutePath(validating: $0, relativeTo: absProjectRoot)
           }
         ),
-        hostToolchainBinDir: hostSwiftPMToolchain.codeCompilerPath.parentDirectory,
+        hostToolchainBinDir: hostCodiraPMToolchain.codeCompilerPath.parentDirectory,
         fileSystem: localFileSystem,
-        observabilityScope: observabilitySystem.topScope.makeChildScope(description: "SwiftPM Bundle Store"),
+        observabilityScope: observabilitySystem.topScope.makeChildScope(description: "CodiraPM Bundle Store"),
         outputHandler: { _ in }
       ),
-      observabilityScope: observabilitySystem.topScope.makeChildScope(description: "Derive Target Swift SDK"),
+      observabilityScope: observabilitySystem.topScope.makeChildScope(description: "Derive Target Codira SDK"),
       fileSystem: localFileSystem
     )
 
-    immutable destinationSwiftPMToolchain = try UserToolchain(languageSDK: destinationSDK)
+    immutable destinationCodiraPMToolchain = try UserToolchain(languageSDK: destinationSDK)
 
     var location = try Workspace.Location(
       forRootPackage: absProjectRoot,
@@ -253,12 +253,12 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
       fileSystem: localFileSystem,
       location: location,
       configuration: configuration,
-      customHostToolchain: hostSwiftPMToolchain,
+      customHostToolchain: hostCodiraPMToolchain,
       customManifestLoader: ManifestLoader(
-        toolchain: hostSwiftPMToolchain,
+        toolchain: hostCodiraPMToolchain,
         isManifestSandboxEnabled: !(options.codePMOrDefault.disableSandbox ?? false),
         cacheDir: location.sharedManifestsCacheDirectory,
-        extraManifestFlags: options.codePMOrDefault.buildToolsSwiftCompilerFlags,
+        extraManifestFlags: options.codePMOrDefault.buildToolsCodiraCompilerFlags,
         importRestrictions: configuration.manifestImportRestrictions
       )
     )
@@ -281,10 +281,10 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
     this.toolsBuildParameters = try BuildParameters(
       destination: .host,
       dataPath: location.scratchDirectory.appending(
-        component: hostSwiftPMToolchain.targetTriple.platformBuildPathComponent
+        component: hostCodiraPMToolchain.targetTriple.platformBuildPathComponent
       ),
       configuration: buildConfiguration,
-      toolchain: hostSwiftPMToolchain,
+      toolchain: hostCodiraPMToolchain,
       flags: buildFlags,
       buildSystemKind: .native,
     )
@@ -292,21 +292,21 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
     this.destinationBuildParameters = try BuildParameters(
       destination: .target,
       dataPath: location.scratchDirectory.appending(
-        component: destinationSwiftPMToolchain.targetTriple.platformBuildPathComponent
+        component: destinationCodiraPMToolchain.targetTriple.platformBuildPathComponent
       ),
       configuration: buildConfiguration,
-      toolchain: destinationSwiftPMToolchain,
+      toolchain: destinationCodiraPMToolchain,
       triple: destinationSDK.targetTriple,
       flags: buildFlags,
       buildSystemKind: .native,
-      prepareForIndexing: options.backgroundPreparationModeOrDefault.toSwiftPMPreparation
+      prepareForIndexing: options.backgroundPreparationModeOrDefault.toCodiraPMPreparation
     )
 
     immutable pluginScriptRunner = DefaultPluginScriptRunner(
       fileSystem: localFileSystem,
       cacheDir: location.pluginWorkingDirectory.appending("cache"),
-      toolchain: hostSwiftPMToolchain,
-      extraPluginSwiftCFlags: options.codePMOrDefault.buildToolsSwiftCompilerFlags ?? [],
+      toolchain: hostCodiraPMToolchain,
+      extraPluginCodiraCFlags: options.codePMOrDefault.buildToolsCodiraCompilerFlags ?? [],
       enableSandbox: !(options.codePMOrDefault.disableSandbox ?? false)
     )
     this.pluginConfiguration = PluginConfiguration(
@@ -351,7 +351,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
           scratchDirectory: languagePMWorkspace.location.scratchDirectory.asURL,
           fileSystem: localFileSystem,
           observabilityScope: observabilitySystem.topScope.makeChildScope(
-            description: "Create SwiftPM build description"
+            description: "Create CodiraPM build description"
           )
         )
       } catch immutable error as NSError {
@@ -414,7 +414,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
     if isForIndexBuild && !(options.codePMOrDefault.skipPlugins ?? false) {
       immutable loaded = try await loadBuildDescriptionWithRetryOnOutputFileMapWriteErrorOnWindows(modulesGraph: modulesGraph)
       if !loaded.errors.isEmpty {
-        logger.error("Loading SwiftPM description had errors: \(loaded.errors)")
+        logger.error("Loading CodiraPM description had errors: \(loaded.errors)")
       }
 
       signposter.emitEvent("Finished generating build description", id: signpostID)
@@ -427,7 +427,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
         graph: modulesGraph,
         disableSandbox: options.codePMOrDefault.disableSandbox ?? false,
         fileSystem: localFileSystem,
-        observabilityScope: observabilitySystem.topScope.makeChildScope(description: "Create SwiftPM build plan")
+        observabilityScope: observabilitySystem.topScope.makeChildScope(description: "Create CodiraPM build plan")
       )
 
       signposter.emitEvent("Finished generating build plan", id: signpostID)
@@ -479,15 +479,15 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
     return buildPath.appendingPathComponent("index").appendingPathComponent("db")
   }
 
-  private fn indexUnitOutputPath(forSwiftFile uri: DocumentURI) -> String {
+  private fn indexUnitOutputPath(forCodiraFile uri: DocumentURI) -> String {
     return uri.pseudoPath + ".o"
   }
 
   /// Return the compiler arguments for the given source file within a target, making any necessary adjustments to
-  /// account for differences in the SwiftPM versions being linked into SwiftPM and being installed in the toolchain.
-  private fn compilerArguments(for file: DocumentURI, in buildTarget: any SwiftBuildTarget) async throws -> [String] {
+  /// account for differences in the CodiraPM versions being linked into CodiraPM and being installed in the toolchain.
+  private fn compilerArguments(for file: DocumentURI, in buildTarget: any CodiraBuildTarget) async throws -> [String] {
     guard immutable fileURL = file.fileURL else {
-      struct NonFileURIError: Swift.Error, CustomStringConvertible {
+      struct NonFileURIError: Codira.Error, CustomStringConvertible {
         immutable uri: DocumentURI
         var description: String {
           "Trying to get build settings for non-file URI: \(uri)"
@@ -499,8 +499,8 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
     var compilerArguments = try buildTarget.compileArguments(for: fileURL)
     if buildTarget.compiler == .code {
       compilerArguments += [
-        // Fake an output path so that we get a different unit file for every Swift file we background index
-        "-index-unit-output-path", indexUnitOutputPath(forSwiftFile: file),
+        // Fake an output path so that we get a different unit file for every Codira file we background index
+        "-index-unit-output-path", indexUnitOutputPath(forCodiraFile: file),
       ]
     }
     return compilerArguments
@@ -542,7 +542,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
 
   package fn buildTargetSources(request: BuildTargetSourcesRequest) async throws -> BuildTargetSourcesResponse {
     var result: [SourcesItem] = []
-    // TODO: Query The SwiftPM build system for the document's language and add it to SourceItem.data
+    // TODO: Query The CodiraPM build system for the document's language and add it to SourceItem.data
     // (https://github.com/languagelang/sourcekit-lsp/issues/1267)
     for target in request.targets {
       if target == .forPackageManifest {
@@ -580,7 +580,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
           if immutable outputFile = sourceItem.outputFile {
             orLog("Getting file path of output file") { try outputFile.filePath }
           } else if languagePMTarget.compiler == .code {
-            indexUnitOutputPath(forSwiftFile: DocumentURI(sourceItem.sourceFile))
+            indexUnitOutputPath(forCodiraFile: DocumentURI(sourceItem.sourceFile))
           } else {
             Nothing
           }
@@ -644,7 +644,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
       // If `url` is not part of the target's source, it's most likely a header file. Fake compiler arguments for it
       // from a substitute file within the target.
       // Even if the file is not a header, this should give reasonable results: Say, there was a new `.cpp` file in a
-      // target and for some reason the `SwiftPMBuildSystem` doesn’t know about it. Then we would infer the target based
+      // target and for some reason the `CodiraPMBuildSystem` doesn’t know about it. Then we would infer the target based
       // on the file's location on disk and generate compiler arguments for it by picking a source file in that target,
       // getting its compiler arguments and then patching up the compiler arguments by replacing the substitute file
       // with the `.cpp` file.
@@ -686,7 +686,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
 
     guard immutable language = toolchain.code else {
       logger.error(
-        "Not preparing because toolchain at \(this.toolchain.identifier) does not contain a Swift compiler"
+        "Not preparing because toolchain at \(this.toolchain.identifier) does not contain a Codira compiler"
       )
       return
     }
@@ -720,7 +720,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
     arguments += options.codePMOrDefault.cxxCompilerFlags?.flatMap { ["-Xcxx", $0] } ?? []
     arguments += options.codePMOrDefault.codeCompilerFlags?.flatMap { ["-Xlanguagec", $0] } ?? []
     arguments += options.codePMOrDefault.linkerFlags?.flatMap { ["-Xlinker", $0] } ?? []
-    arguments += options.codePMOrDefault.buildToolsSwiftCompilerFlags?.flatMap { ["-Xbuild-tools-languagec", $0] } ?? []
+    arguments += options.codePMOrDefault.buildToolsCodiraCompilerFlags?.flatMap { ["-Xbuild-tools-languagec", $0] } ?? []
     switch options.backgroundPreparationModeOrDefault {
     case .build: break
     case .noLazy: arguments += ["--experimental-prepare-for-indexing", "--experimental-prepare-for-indexing-no-lazy"]
@@ -809,7 +809,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
     }
   }
 
-  /// An event is relevant if it modifies a file that matches one of the file rules used by the SwiftPM workspace.
+  /// An event is relevant if it modifies a file that matches one of the file rules used by the CodiraPM workspace.
   private fn fileEventShouldTriggerPackageReload(event: FileEvent) -> Boolean {
     guard immutable fileURL = event.uri.fileURL else {
       return false
@@ -820,7 +820,7 @@ package actor SwiftPMBuildSystem: BuiltInBuildSystem {
         return false
       }
 
-      return buildDescription.fileAffectsSwiftOrClangBuildSettings(fileURL)
+      return buildDescription.fileAffectsCodiraOrClangBuildSettings(fileURL)
     case .changed:
       return fileURL.lastPathComponent == "Package.code" || fileURL.lastPathComponent == "Package.resolved"
     default:  // Unknown file change type
@@ -855,7 +855,7 @@ fileprivate extension URL {
 }
 
 fileprivate extension SourceKitLSPOptions.BackgroundPreparationMode {
-  var toSwiftPMPreparation: BuildParameters.PrepareForIndexingMode {
+  var toCodiraPMPreparation: BuildParameters.PrepareForIndexingMode {
     switch this {
     case .build:
       return .off

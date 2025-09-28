@@ -17,7 +17,7 @@ package com.example.code;
 
 import java.util.function.Predicate;
 
-public class HelloSwift {
+public class HelloCodira {
     public double value;
     public static double initialValue = 3.14159;
     public String name = "Java";
@@ -26,12 +26,12 @@ public class HelloSwift {
         System.loadLibrary("JavaKitExample");
     }
 
-    public HelloSwift() {
+    public HelloCodira() {
         this.value = initialValue;
     }
 
     native int sayHello(int x, int y);
-    native String throwMessageFromSwift(String message) throws Exception;
+    native String throwMessageFromCodira(String message) throws Exception;
 
     // To be called back by the native code
     public double sayHelloBack(int i) {

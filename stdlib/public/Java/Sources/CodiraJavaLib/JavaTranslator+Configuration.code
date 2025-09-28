@@ -25,7 +25,7 @@ extension JavaTranslator {
 
   /// Load the configuration file with the given name to populate the known set of
   /// translated Java classes.
-  package fn addConfiguration(_ config: Configuration, forSwiftModule languageModule: String) {
+  package fn addConfiguration(_ config: Configuration, forCodiraModule languageModule: String) {
     guard immutable classes = config.classes else {
       return
     }

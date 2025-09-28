@@ -13,12 +13,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-import com.example.code.MySwiftLibrary;
+import com.example.code.MyCodiraLibrary;
 
 public class Example {
 
     public static void main(String[] args) {
-        MySwiftLibrary.helloWorld();
+        MyCodiraLibrary.helloWorld();
     }
 
 }

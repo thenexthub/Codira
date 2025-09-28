@@ -200,7 +200,7 @@ public enum VertexColor {
 /// hashable VertexId's, the `DictionaryPropertyMap` is often a good choice.
 ///
 /// Note: we have to spell out each of these associated PropertyMaps explicitly, because associated
-/// types cannot be generic in Swift, and we want to avoid existentials.
+/// types cannot be generic in Codira, and we want to avoid existentials.
 public protocol SearchDefaultsGraph: IncidenceGraph {
   /// A reasonable choice for a data structure to use when keeping track of visitation state during
   /// graph searches and traversals.

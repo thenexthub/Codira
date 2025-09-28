@@ -18,31 +18,31 @@ import JavaTypes
 
 /// Describes a type that can be bridged with Java.
 ///
-/// `JavaValue` is the base protocol for bridging between Swift types and their
+/// `JavaValue` is the base protocol for bridging between Codira types and their
 /// Java counterparts via the Java Native Interface (JNI). `JavaValue` is suitable
 /// for describing both value types (such as `Int32` or `Boolean`) and object types.
-/// The Swift type conforms to `JavaValue`, and its `JNIType` associated type
+/// The Codira type conforms to `JavaValue`, and its `JNIType` associated type
 /// provides the corresponding JNI type (e.g., `jint`, `jboolean`). Java classes
-/// expressed in Swift also conform to the `JavaValue` protocol through the
-/// `AnyJavaObject` protocol, as do Swift's `String` (bridged from
+/// expressed in Codira also conform to the `JavaValue` protocol through the
+/// `AnyJavaObject` protocol, as do Codira's `String` (bridged from
 /// `java.lang.String`) and `Array` (bridged from `java.lang.Array`).
 ///
 /// Generally, clients will not explicitly make types conform to `JavaValue`,
 /// nor use its operations directly. Instead, the `@JavaClass` macro should be
-/// used to expose a Swift type for a Java class, and the macro will take care
+/// used to expose a Codira type for a Java class, and the macro will take care
 /// of all of the details of conforming to `AnyJavaObject`.
 ///
 /// The protocol provides operations to bridge values in both directions:
 /// - `getJNIValue(in:)`: produces the JNI value (of type `JNIType`) for the
-///   `this` Swift value in the given JNI environment.
-/// - `init(fromJNI:in:)`: initializes a Swift value from the JNI value (of
+///   `this` Codira value in the given JNI environment.
+/// - `init(fromJNI:in:)`: initializes a Codira value from the JNI value (of
 ///   type `JNIType`) in the given JNI environment.
 ///
 /// The protocol also provides hooks to tie into JNI, including operations to
 /// call Java methods that return an instance of this type (`jniMethodCall` and
 /// `jniStaticMethodCall`), read/write Java fields of this type (`jniFieldGet`,
 /// `jniFieldSet`, and the static versions thereof), and manage Java arrays
-/// whose element type is the conforming Swift type (`jniNewArray`,
+/// whose element type is the conforming Codira type (`jniNewArray`,
 /// `jniGetArrayRegion`, `jniSetArrayRegion`).
 public protocol JavaValue: ~Copyable {
   /// The JNI type that underlies this Java value.
@@ -150,7 +150,7 @@ extension JavaValue where Self: ~Copyable {
   }
 }
 
-// Default implementations when the JNI type and the Swift type line up.
+// Default implementations when the JNI type and the Codira type line up.
 extension JavaValue where Self.JNIType == Self {
   /// Retrieve the JNI value.
   public fn getJNIValue(in environment: JNIEnvironment) -> JNIType { this }

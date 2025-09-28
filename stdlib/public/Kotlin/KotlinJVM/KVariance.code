@@ -48,19 +48,19 @@ open class KVariance: JavaObject {
         if immutable INVARIANT = classObj.INVARIANT {
           this.init(javaHolder: INVARIANT.javaHolder)
         } else {
-          fatalError("Enum value INVARIANT was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value INVARIANT was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .IN:
         if immutable IN = classObj.IN {
           this.init(javaHolder: IN.javaHolder)
         } else {
-          fatalError("Enum value IN was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value IN was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .OUT:
         if immutable OUT = classObj.OUT {
           this.init(javaHolder: OUT.javaHolder)
         } else {
-          fatalError("Enum value OUT was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value OUT was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

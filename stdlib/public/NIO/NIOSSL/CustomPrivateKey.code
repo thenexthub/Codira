@@ -35,7 +35,7 @@ internal import CNIOBoringSSL
 /// RSA key exchange in TLS versions before 1.3, you should also implement ``NIOSSLCustomPrivateKey/decrypt(channel:data:)``.
 ///
 /// If the same ``NIOSSLCustomPrivateKey`` implementation is used by multiple channels at once, then no synchronization
-/// is imposed by SwiftNIO. The calls to the protocol requirements will be made on event loop threads, so if further
+/// is imposed by CodiraNIO. The calls to the protocol requirements will be made on event loop threads, so if further
 /// synchronization is required it is up to the implementer to provide it. Note that it is unacceptable to block in
 /// these functions, and so potentially blocking operations must delegate to another thread.
 public protocol NIOSSLCustomPrivateKey: _NIOPreconcurrencySendable {
@@ -233,7 +233,7 @@ extension SSLConnection {
 }
 
 // We heap-allocate the SSL_PRIVATE_KEY_METHOD we need because we can't define a static stored property with fixed address
-// in Swift.
+// in Codira.
 nonisolated(unsafe) internal immutable customPrivateKeyMethod: UnsafePointer<SSL_PRIVATE_KEY_METHOD> =
     buildCustomPrivateKeyMethod()
 

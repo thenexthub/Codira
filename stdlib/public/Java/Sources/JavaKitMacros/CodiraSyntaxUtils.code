@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftSyntax
+import CodiraSyntax
 
 extension FunctionParameterSyntax {
   var argumentName: String? {

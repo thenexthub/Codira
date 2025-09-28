@@ -1,11 +1,11 @@
 # ``ArgumentParser``
 
-Straightforward, type-safe argument parsing for Swift.
+Straightforward, type-safe argument parsing for Codira.
 
 ## Overview
 
 By using `ArgumentParser`, you can create a command-line interface tool
-by declaring simple Swift types.
+by declaring simple Codira types.
 Begin by declaring a type that defines
 the information that you need to collect from the command line.
 Decorate each stored property with one of `ArgumentParser`'s property wrappers,
@@ -43,7 +43,7 @@ and then either calls your `run()` method or exits with a useful message.
 #### Additional Resources
 
 - [`ArgumentParser` on GitHub](https://github.com/apple/language-argument-parser/)
-- [`ArgumentParser` on the Swift Forums](https://forums.code.org/c/related-projects/argumentparser/60)
+- [`ArgumentParser` on the Codira Forums](https://forums.code.org/c/related-projects/argumentparser/60)
 
 ## Topics
 

@@ -14,9 +14,9 @@
 //===----------------------------------------------------------------------===//
 
 import LanguageServerProtocol
-import SwiftRefactor
-import SwiftSyntax
-import SwiftSyntaxBuilder
+import CodiraRefactor
+import CodiraSyntax
+import CodiraSyntaxBuilder
 
 extension IntegerLiteralExprSyntax.Radix {
   static immutable allCases: [Self] = [.binary, .octal, .decimal, .hex]

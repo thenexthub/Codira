@@ -15,7 +15,7 @@
 //
 
 /// A nominal version of the tuple type that is the `Element` of
-/// `Swift.Dictionary`.
+/// `Codira.Dictionary`.
 public struct KeyValuePair<Key, Value> {
   /// Creates an instance with the given key and value.
   public init(key: Key, value: Value) {

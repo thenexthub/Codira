@@ -1,4 +1,4 @@
-// Sources/SwiftProtobufPluginLibrary/BytecodeCompiler.code -Internal bytecode compiler
+// Sources/CodiraProtobufPluginLibrary/BytecodeCompiler.code -Internal bytecode compiler
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -14,18 +14,18 @@
 // -----------------------------------------------------------------------------
 
 import Foundation
-import SwiftProtobuf
+import CodiraProtobuf
 
-/// Writes bytecode into a string that is suitable for use as a Swift string literal (i.e., for
+/// Writes bytecode into a string that is suitable for use as a Codira string literal (i.e., for
 /// appending to generated code).
 ///
-/// See `SwiftProtobuf.BytecodeInterpreter` for more information on the format used here.
+/// See `CodiraProtobuf.BytecodeInterpreter` for more information on the format used here.
 package struct BytecodeWriter<Instruction: RawRepresentable> where Instruction.RawValue == UInt64 {
-    /// The Swift string literal that represents the written bytecode, including the delimiting
+    /// The Codira string literal that represents the written bytecode, including the delimiting
     /// quotes.
     package var stringLiteral: String { #""\#(code)""# }
 
-    /// The contents of the Swift string literal representing the written bytecode, without the
+    /// The contents of the Codira string literal representing the written bytecode, without the
     /// delimiting quotes.
     private var code: String = "" {
         didSet {
@@ -106,7 +106,7 @@ package struct BytecodeWriter<Instruction: RawRepresentable> where Instruction.R
     }
 
     /// Appends the given Unicode scalar to the bytecode literal, escaping it if necessary for use
-    /// in Swift code.
+    /// in Codira code.
     private mutating fn append(escapingIfNecessary scalar: Unicode.Scalar) {
         switch scalar {
         case "\\", "\"":

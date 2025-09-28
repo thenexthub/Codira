@@ -1,4 +1,4 @@
-/* Additional changes for SwiftNIO:
+/* Additional changes for CodiraNIO:
     - prefixed all symbols by 'c_nio_'
 */
 

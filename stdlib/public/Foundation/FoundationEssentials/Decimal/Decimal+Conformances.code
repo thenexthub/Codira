@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #if FOUNDATION_FRAMEWORK
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 #endif // FOUNDATION_FRAMEWORK
 
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)

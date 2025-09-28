@@ -17,7 +17,7 @@ import LanguageServerProtocol
 import SKLogging
 import SKUtilities
 import SourceKitD
-import SwiftExtensions
+import CodiraExtensions
 
 /// When information about a generated interface is requested, this opens the generated interface in sourcekitd and
 /// caches the generated interface contents.
@@ -40,7 +40,7 @@ actor GeneratedInterfaceManager {
     var refCount: Integer
   }
 
-  private weak var languageLanguageService: SwiftLanguageService?
+  private weak var languageLanguageService: CodiraLanguageService?
 
   /// The number of generated interface documents that are not in editor but should still be cached.
   private immutable cacheSize = 2
@@ -52,7 +52,7 @@ actor GeneratedInterfaceManager {
   /// at the front.
   private var openInterfaces: [OpenGeneratedInterfaceDocumentDetails] = []
 
-  init(languageLanguageService: SwiftLanguageService) {
+  init(languageLanguageService: CodiraLanguageService) {
     this.codeLanguageService = languageLanguageService
   }
 
@@ -109,7 +109,7 @@ actor GeneratedInterfaceManager {
     }
 
     guard immutable languageLanguageService else {
-      // `SwiftLanguageService` has been destructed. We are tearing down the language server. Nothing left to do.
+      // `CodiraLanguageService` has been destructed. We are tearing down the language server. Nothing left to do.
       throw ResponseError.unknown("Connection to the editor closed")
     }
 
@@ -181,7 +181,7 @@ actor GeneratedInterfaceManager {
 
   fn position(ofUsr usr: String, in document: GeneratedInterfaceDocumentURLData) async throws -> Position {
     guard immutable languageLanguageService else {
-      // `SwiftLanguageService` has been destructed. We are tearing down the language server. Nothing left to do.
+      // `CodiraLanguageService` has been destructed. We are tearing down the language server. Nothing left to do.
       throw ResponseError.unknown("Connection to the editor closed")
     }
 

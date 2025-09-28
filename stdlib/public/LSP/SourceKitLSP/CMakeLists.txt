@@ -30,56 +30,56 @@ target_sources(SourceKitLSP PRIVATE
   Documentation/DocumentationLanguageService.code
 )
 target_sources(SourceKitLSP PRIVATE
-  Swift/AdjustPositionToStartOfIdentifier.code
-  Swift/ClosureCompletionFormat.code
-  Swift/CodeActions/AddDocumentation.code
-  Swift/CodeActions/ConvertIntegerLiteral.code
-  Swift/CodeActions/ConvertJSONToCodableStruct.code
-  Swift/CodeActions/ConvertStringConcatenationToStringInterpolation.code
-  Swift/CodeActions/PackageManifestEdits.code
-  Swift/CodeActions/SyntaxCodeActionProvider.code
-  Swift/CodeActions/SyntaxCodeActions.code
-  Swift/CodeActions/SyntaxRefactoringCodeActionProvider.code
-  Swift/CodeCompletion.code
-  Swift/CodeCompletionSession.code
-  Swift/CommentXML.code
-  Swift/CursorInfo.code
-  Swift/Diagnostic.code
-  Swift/DiagnosticReportManager.code
-  Swift/DocumentFormatting.code
-  Swift/DocumentSymbols.code
-  Swift/ExpandMacroCommand.code
-  Swift/FoldingRange.code
-  Swift/GeneratedInterfaceDocumentURLData.code
-  Swift/GeneratedInterfaceManager.code
-  Swift/GeneratedInterfaceManager.code
-  Swift/MacroExpansion.code
-  Swift/MacroExpansionReferenceDocumentURLData.code
-  Swift/OpenInterface.code
-  Swift/RefactoringEdit.code
-  Swift/RefactoringResponse.code
-  Swift/ReferenceDocumentURL.code
-  Swift/RelatedIdentifiers.code
-  Swift/RewriteSourceKitPlaceholders.code
-  Swift/SemanticRefactorCommand.code
-  Swift/SemanticRefactoring.code
-  Swift/SemanticTokens.code
-  Swift/SwiftCodeLensScanner.code
-  Swift/SwiftCommand.code
-  Swift/SwiftLanguageService.code
-  Swift/SwiftTestingScanner.code
-  Swift/SymbolInfo.code
-  Swift/SyntacticSwiftXCTestScanner.code
-  Swift/SyntacticTestIndex.code
-  Swift/SyntaxHighlightingToken.code
-  Swift/SyntaxHighlightingTokenParser.code
-  Swift/SyntaxHighlightingTokens.code
-  Swift/SyntaxTreeManager.code
-  Swift/VariableTypeInfo.code
-  Swift/WithSnapshotFromDiskOpenedInSourcekitd.code
+  Codira/AdjustPositionToStartOfIdentifier.code
+  Codira/ClosureCompletionFormat.code
+  Codira/CodeActions/AddDocumentation.code
+  Codira/CodeActions/ConvertIntegerLiteral.code
+  Codira/CodeActions/ConvertJSONToCodableStruct.code
+  Codira/CodeActions/ConvertStringConcatenationToStringInterpolation.code
+  Codira/CodeActions/PackageManifestEdits.code
+  Codira/CodeActions/SyntaxCodeActionProvider.code
+  Codira/CodeActions/SyntaxCodeActions.code
+  Codira/CodeActions/SyntaxRefactoringCodeActionProvider.code
+  Codira/CodeCompletion.code
+  Codira/CodeCompletionSession.code
+  Codira/CommentXML.code
+  Codira/CursorInfo.code
+  Codira/Diagnostic.code
+  Codira/DiagnosticReportManager.code
+  Codira/DocumentFormatting.code
+  Codira/DocumentSymbols.code
+  Codira/ExpandMacroCommand.code
+  Codira/FoldingRange.code
+  Codira/GeneratedInterfaceDocumentURLData.code
+  Codira/GeneratedInterfaceManager.code
+  Codira/GeneratedInterfaceManager.code
+  Codira/MacroExpansion.code
+  Codira/MacroExpansionReferenceDocumentURLData.code
+  Codira/OpenInterface.code
+  Codira/RefactoringEdit.code
+  Codira/RefactoringResponse.code
+  Codira/ReferenceDocumentURL.code
+  Codira/RelatedIdentifiers.code
+  Codira/RewriteSourceKitPlaceholders.code
+  Codira/SemanticRefactorCommand.code
+  Codira/SemanticRefactoring.code
+  Codira/SemanticTokens.code
+  Codira/CodiraCodeLensScanner.code
+  Codira/CodiraCommand.code
+  Codira/CodiraLanguageService.code
+  Codira/CodiraTestingScanner.code
+  Codira/SymbolInfo.code
+  Codira/SyntacticCodiraXCTestScanner.code
+  Codira/SyntacticTestIndex.code
+  Codira/SyntaxHighlightingToken.code
+  Codira/SyntaxHighlightingTokenParser.code
+  Codira/SyntaxHighlightingTokens.code
+  Codira/SyntaxTreeManager.code
+  Codira/VariableTypeInfo.code
+  Codira/WithSnapshotFromDiskOpenedInSourcekitd.code
 )
 set_target_properties(SourceKitLSP PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Codira_MODULE_DIRECTORY})
 target_link_libraries(SourceKitLSP PUBLIC
   BuildServerProtocol
   BuildSystemIntegration
@@ -91,16 +91,16 @@ target_link_libraries(SourceKitLSP PUBLIC
   SKOptions
   SKUtilities
   SourceKitD
-  SwiftExtensions
+  CodiraExtensions
   ToolchainRegistry
   IndexStoreDB
-  SwiftSyntax::SwiftBasicFormat
-  SwiftSyntax::SwiftDiagnostics
-  SwiftSyntax::SwiftIDEUtils
-  SwiftSyntax::SwiftParser
-  SwiftSyntax::SwiftParserDiagnostics
-  SwiftSyntax::SwiftRefactor
-  SwiftSyntax::SwiftSyntax)
+  CodiraSyntax::CodiraBasicFormat
+  CodiraSyntax::CodiraDiagnostics
+  CodiraSyntax::CodiraIDEUtils
+  CodiraSyntax::CodiraParser
+  CodiraSyntax::CodiraParserDiagnostics
+  CodiraSyntax::CodiraRefactor
+  CodiraSyntax::CodiraSyntax)
 target_link_libraries(SourceKitLSP PRIVATE
   PackageModelSyntax
   TSCExtensions

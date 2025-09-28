@@ -1,30 +1,30 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift.org project authors
+// Copyright (c) 2025 Apple Inc. and the Codira.org project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of Swift.org project authors
+// See CONTRIBUTORS.txt for the list of Codira.org project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftSyntax
+import CodiraSyntax
 
-struct SwiftResult: Equatable {
-  var convention: SwiftResultConvention // currently not used.
-  var type: SwiftType
+struct CodiraResult: Equatable {
+  var convention: CodiraResultConvention // currently not used.
+  var type: CodiraType
 }
 
-enum SwiftResultConvention: Equatable {
+enum CodiraResultConvention: Equatable {
   case direct
   case indirect
 }
 
-extension SwiftResult {
+extension CodiraResult {
   static var void: Self {
     return Self(convention: .direct, type: .void)
   }

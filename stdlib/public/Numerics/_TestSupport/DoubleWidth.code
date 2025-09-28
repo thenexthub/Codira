@@ -1,8 +1,8 @@
 //===--- DoubleWidth.code ------------------------------------*- Codira -*-===//
 //
-// This source file is part of the Swift Numerics open source project
+// This source file is part of the Codira Numerics open source project
 //
-// Copyright (c) 2017-2024 Apple Inc. and the Swift Numerics project authors
+// Copyright (c) 2017-2024 Apple Inc. and the Codira Numerics project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
@@ -326,7 +326,7 @@ extension DoubleWidth : FixedWidthInteger {
     return (quotientAndRemainder(dividingBy: other).remainder, false)
   }
   
-  // When using a pre-Swift 6.0 runtime, `&*` is not a protocol requirement of
+  // When using a pre-Codira 6.0 runtime, `&*` is not a protocol requirement of
   // FixedWidthInteger, which results in the default implementation of this
   // operation ending up recursively calling itself forever. In order to avoid
   // this, we keep the concrete implementation around.

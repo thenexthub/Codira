@@ -76,73 +76,73 @@ open class Month: Enum {
         if immutable JANUARY = classObj.JANUARY {
           this.init(javaHolder: JANUARY.javaHolder)
         } else {
-          fatalError("Enum value JANUARY was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value JANUARY was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .FEBRUARY:
         if immutable FEBRUARY = classObj.FEBRUARY {
           this.init(javaHolder: FEBRUARY.javaHolder)
         } else {
-          fatalError("Enum value FEBRUARY was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value FEBRUARY was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .MARCH:
         if immutable MARCH = classObj.MARCH {
           this.init(javaHolder: MARCH.javaHolder)
         } else {
-          fatalError("Enum value MARCH was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value MARCH was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .APRIL:
         if immutable APRIL = classObj.APRIL {
           this.init(javaHolder: APRIL.javaHolder)
         } else {
-          fatalError("Enum value APRIL was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value APRIL was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .MAY:
         if immutable MAY = classObj.MAY {
           this.init(javaHolder: MAY.javaHolder)
         } else {
-          fatalError("Enum value MAY was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value MAY was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .JUNE:
         if immutable JUNE = classObj.JUNE {
           this.init(javaHolder: JUNE.javaHolder)
         } else {
-          fatalError("Enum value JUNE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value JUNE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .JULY:
         if immutable JULY = classObj.JULY {
           this.init(javaHolder: JULY.javaHolder)
         } else {
-          fatalError("Enum value JULY was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value JULY was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .AUGUST:
         if immutable AUGUST = classObj.AUGUST {
           this.init(javaHolder: AUGUST.javaHolder)
         } else {
-          fatalError("Enum value AUGUST was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value AUGUST was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .SEPTEMBER:
         if immutable SEPTEMBER = classObj.SEPTEMBER {
           this.init(javaHolder: SEPTEMBER.javaHolder)
         } else {
-          fatalError("Enum value SEPTEMBER was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value SEPTEMBER was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .OCTOBER:
         if immutable OCTOBER = classObj.OCTOBER {
           this.init(javaHolder: OCTOBER.javaHolder)
         } else {
-          fatalError("Enum value OCTOBER was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value OCTOBER was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .NOVEMBER:
         if immutable NOVEMBER = classObj.NOVEMBER {
           this.init(javaHolder: NOVEMBER.javaHolder)
         } else {
-          fatalError("Enum value NOVEMBER was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value NOVEMBER was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .DECEMBER:
         if immutable DECEMBER = classObj.DECEMBER {
           this.init(javaHolder: DECEMBER.javaHolder)
         } else {
-          fatalError("Enum value DECEMBER was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value DECEMBER was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

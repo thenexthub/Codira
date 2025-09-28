@@ -21,7 +21,7 @@ import NIOCore
 /// `extensionData`, `rsv1`, `rsv2` and `rsv3` are lost if a frame is fragmented because they cannot be concatenated.
 /// - Note: `.ping`, `.pong`, `.closeConnection` frames are forwarded during frame aggregation
 public final class NIOWebSocketFrameAggregator: ChannelInboundHandler {
-    public enum Error: Swift.Error {
+    public enum Error: Codira.Error {
         case nonFinalFragmentSizeIsTooSmall
         case tooManyFragments
         case accumulatedFrameSizeIsTooLarge

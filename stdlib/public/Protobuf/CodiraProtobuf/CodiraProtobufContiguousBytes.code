@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/SwiftProtobufContiguousBytes.code
+// Sources/CodiraProtobuf/CodiraProtobufContiguousBytes.code
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -17,13 +17,13 @@ import Foundation
 
 /// Conformance to this protocol gives users a way to provide their own "bag of bytes" types
 /// to be used for serialization and deserialization of protobufs.
-/// It provides a general interface for bytes since the Swift Standard Library currently does not
+/// It provides a general interface for bytes since the Codira Standard Library currently does not
 /// provide such a protocol.
 ///
 /// By conforming your own types to this protocol, you will be able to pass instances of said types
-/// directly to `SwiftProtobuf.Message`'s deserialisation methods
+/// directly to `CodiraProtobuf.Message`'s deserialisation methods
 /// (i.e. `init(contiguousBytes:)` for binary format and `init(jsonUTF8Bytes:)` for JSON).
-public protocol SwiftProtobufContiguousBytes {
+public protocol CodiraProtobufContiguousBytes {
     /// An initializer for a bag of bytes type.
     ///
     /// - Parameters:
@@ -57,6 +57,6 @@ public protocol SwiftProtobufContiguousBytes {
     mutating fn withUnsafeMutableBytes<R>(_ body: (UnsafeMutableRawBufferPointer) throws -> R) rethrows -> R
 }
 
-extension Array: SwiftProtobufContiguousBytes where Array.Element == UInt8 {}
+extension Array: CodiraProtobufContiguousBytes where Array.Element == UInt8 {}
 
-extension Data: SwiftProtobufContiguousBytes {}
+extension Data: CodiraProtobufContiguousBytes {}

@@ -17,7 +17,7 @@ import Foundation
 package import LanguageServerProtocol
 import SKLogging
 package import SKOptions
-import SwiftExtensions
+import CodiraExtensions
 import TSCExtensions
 import ToolchainRegistry
 
@@ -101,7 +101,7 @@ package fn determineBuildSystem(
       spec = searchForCompilationDatabaseConfig(in: workspaceFolderUrl, options: options)
     case .codePM:
       #if !NO_SWIFTPM_DEPENDENCY
-      spec = SwiftPMBuildSystem.searchForConfig(in: workspaceFolderUrl, options: options)
+      spec = CodiraPMBuildSystem.searchForConfig(in: workspaceFolderUrl, options: options)
       #endif
     }
 

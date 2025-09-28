@@ -1,4 +1,4 @@
-// Sources/SwiftProtobufPluginLibrary/CodeGenerator.code
+// Sources/CodiraProtobufPluginLibrary/CodeGenerator.code
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -18,7 +18,7 @@
 // -----------------------------------------------------------------------------
 
 import Foundation
-import SwiftProtobuf
+import CodiraProtobuf
 
 /// A protocol that generator should conform to then get easy support for
 /// being a protocol buffer compiler pluign.

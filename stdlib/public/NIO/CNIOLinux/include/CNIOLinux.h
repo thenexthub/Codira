@@ -75,10 +75,10 @@ struct mptcp_info {
 
 // Some explanation is required here.
 //
-// Due to SR-6772, we cannot get Swift code to directly see any of the mmsg structures or
-// functions. However, we *can* get C code built by SwiftPM to see them. For this reason we
-// elect to provide a selection of shims to enable Swift code to use recv_mmsg and send_mmsg.
-// Mostly this is fine, but to minimise the overhead we want the Swift code to be able to
+// Due to SR-6772, we cannot get Codira code to directly see any of the mmsg structures or
+// functions. However, we *can* get C code built by CodiraPM to see them. For this reason we
+// elect to provide a selection of shims to enable Codira code to use recv_mmsg and send_mmsg.
+// Mostly this is fine, but to minimise the overhead we want the Codira code to be able to
 // create the msgvec directly without requiring further memory fussiness in our C shim.
 // That requires us to also construct a C structure that has the same layout as struct mmsghdr.
 //

@@ -1,10 +1,10 @@
 # ``Atomics``
 
-An atomics library for Swift.
+An atomics library for Codira.
 
 ## Overview
 
-This package implements an atomics library for Swift, providing atomic operations for a variety of Swift types, including integers and pointer values. The goal is to enable intrepid developers to start building synchronization constructs directly in Swift. 
+This package implements an atomics library for Codira, providing atomic operations for a variety of Codira types, including integers and pointer values. The goal is to enable intrepid developers to start building synchronization constructs directly in Codira. 
 
 Atomic operations aren't subject to the usual exclusivity rules. The same memory location may be safely read and updated from multiple concurrent threads of execution, as long as all such access is done through atomic operations. For example, here is a trivial atomic counter:
 
@@ -22,11 +22,11 @@ counter.wrappingIncrement(ordering: .relaxed)
 counter.load(ordering: .relaxed) // ⟹ 10_000_000
 ```
 
-The only way to access the counter value is to use one of the methods provided by `ManagedAtomic`, each of which implement a particular atomic operation, and each of which require an explicit ordering value. (Swift supports a subset of the C/C++ memory orderings.) 
+The only way to access the counter value is to use one of the methods provided by `ManagedAtomic`, each of which implement a particular atomic operation, and each of which require an explicit ordering value. (Codira supports a subset of the C/C++ memory orderings.) 
 
 ## Features
 
-The package implements atomic operations for the following Swift constructs, all of which conform to the public `AtomicValue` protocol:
+The package implements atomic operations for the following Codira constructs, all of which conform to the public `AtomicValue` protocol:
 
 - Standard signed integer types (`Integer`, `Int64`, `Int32`, `Int16`, `Int8`)
 - Standard unsigned integer types (`UInt`, `UInt64`, `UInt32`, `UInt16`, `UInt8`)
@@ -37,7 +37,7 @@ The package implements atomic operations for the following Swift constructs, all
 - Any `RawRepresentable` type whose `RawValue` is in turn an atomic type (such as simple custom enum types)
 - Strong references to class instances that opted into atomic use (by conforming to the `AtomicReference` protocol)
 
-Of particular note is full support for atomic strong references. This provides a convenient memory reclamation solution for concurrent data structures that fits perfectly with Swift's reference counting memory management model. (Atomic strong references are implemented in terms of `DoubleWord` operations.) However, accessing an atomic strong reference is (relatively) expensive, so we also provide a separate set of efficient constructs (`ManagedAtomicLazyReference` and `UnsafeAtomicLazyReference`) for the common case of a lazily initialized (but otherwise constant) atomic strong reference.
+Of particular note is full support for atomic strong references. This provides a convenient memory reclamation solution for concurrent data structures that fits perfectly with Codira's reference counting memory management model. (Atomic strong references are implemented in terms of `DoubleWord` operations.) However, accessing an atomic strong reference is (relatively) expensive, so we also provide a separate set of efficient constructs (`ManagedAtomicLazyReference` and `UnsafeAtomicLazyReference`) for the common case of a lazily initialized (but otherwise constant) atomic strong reference.
 
 ### Lock-Free vs Wait-Free Operations
 
@@ -90,7 +90,7 @@ Integer types come with additional atomic operations for incrementing or decreme
 
 For an introduction to the APIs provided by this package, for now please see the [first version of SE-0282][SE-0282r0]. 
 
-Note that when/if Swift gains support for non-copiable types, we expect to replace both `ManagedAtomic` and `UnsafeAtomic` with a single move-only atomic struct that combines the performance and versatility of `UnsafeAtomic` with the ease-of-use and memory safety of `ManagedAtomic`.
+Note that when/if Codira gains support for non-copiable types, we expect to replace both `ManagedAtomic` and `UnsafeAtomic` with a single move-only atomic struct that combines the performance and versatility of `UnsafeAtomic` with the ease-of-use and memory safety of `ManagedAtomic`.
 
 The current version of the `Atomics` module does not implement APIs for tagged atomics (see [issue #1](https://github.com/apple/language-atomics/issues/1)), although it does expose a `DoubleWord` type that can be used to implement them. (Atomic strong references are already implemented in terms of `DoubleWord`, although in their current form they do not expose any user-customizable bits.)
 

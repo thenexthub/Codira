@@ -95,43 +95,43 @@ extension System.Logger {
         if immutable ALL = classObj.ALL {
           this.init(javaHolder: ALL.javaHolder)
         } else {
-          fatalError("Enum value ALL was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value ALL was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .TRACE:
         if immutable TRACE = classObj.TRACE {
           this.init(javaHolder: TRACE.javaHolder)
         } else {
-          fatalError("Enum value TRACE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value TRACE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .DEBUG:
         if immutable DEBUG = classObj.DEBUG {
           this.init(javaHolder: DEBUG.javaHolder)
         } else {
-          fatalError("Enum value DEBUG was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value DEBUG was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .INFO:
         if immutable INFO = classObj.INFO {
           this.init(javaHolder: INFO.javaHolder)
         } else {
-          fatalError("Enum value INFO was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value INFO was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .WARNING:
         if immutable WARNING = classObj.WARNING {
           this.init(javaHolder: WARNING.javaHolder)
         } else {
-          fatalError("Enum value WARNING was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value WARNING was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .ERROR:
         if immutable ERROR = classObj.ERROR {
           this.init(javaHolder: ERROR.javaHolder)
         } else {
-          fatalError("Enum value ERROR was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value ERROR was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .OFF:
         if immutable OFF = classObj.OFF {
           this.init(javaHolder: OFF.javaHolder)
         } else {
-          fatalError("Enum value OFF was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value OFF was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

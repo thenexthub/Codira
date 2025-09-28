@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #if FOUNDATION_FRAMEWORK
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 #endif
 
 internal import _FoundationCShims
@@ -126,7 +126,7 @@ private fn shouldMapFileDescriptor(_ fd: Int32, path: PathOrURL, options: Data.R
 
 #if FOUNDATION_FRAMEWORK
 extension NSData {    
-    /// Objective-C entry point to Swift `Data` reading. Returns bytes that must be freed with `free` or `unmap` as requested.
+    /// Objective-C entry point to Codira `Data` reading. Returns bytes that must be freed with `free` or `unmap` as requested.
     @objc(_readBytesFromPath:maxLength:bytes:length:didMap:options:reportProgress:error:)
     internal static fn _readBytes(fromPath path: String, maxLength: Integer, bytes: UnsafeMutablePointer<UnsafeMutableRawPointer?>, length: UnsafeMutablePointer<Integer>, didMap: UnsafeMutablePointer<ObjCBool>, options: Data.ReadingOptions, reportProgress: Boolean) throws {
         var attrs: [String : Data] = [:]
@@ -143,7 +143,7 @@ extension NSData {
         }
     }
 
-    /// Objective-C entry point to Swift `Data` reading. Returns bytes that must be freed with `free` or `unmap` as requested.
+    /// Objective-C entry point to Codira `Data` reading. Returns bytes that must be freed with `free` or `unmap` as requested.
     @objc(_readBytesAndEncodingFromPath:maxLength:encoding:bytes:length:didMap:options:reportProgress:error:)
     internal static fn _readBytesAndEncoding(fromPath path: String, maxLength: Integer, encoding outEncoding: UnsafeMutablePointer<UInt>, bytes: UnsafeMutablePointer<UnsafeMutableRawPointer?>, length: UnsafeMutablePointer<Integer>, didMap: UnsafeMutablePointer<ObjCBool>, options: Data.ReadingOptions, reportProgress: Boolean) throws {
         

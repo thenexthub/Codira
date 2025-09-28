@@ -1,4 +1,4 @@
-// Sources/SwiftProtobufPluginLibrary/SwiftLanguage.code -Swift language utilities
+// Sources/CodiraProtobufPluginLibrary/CodiraLanguage.code -Codira language utilities
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -13,18 +13,18 @@
 //
 // -----------------------------------------------------------------------------
 ///
-/// Utility functions for dealing with Swift language issues
+/// Utility functions for dealing with Codira language issues
 ///
 // -----------------------------------------------------------------------------
 
 import Foundation
-import Swift
+import Codira
 
 /// Used to check if a character is a valid identifier head character.
 ///
-/// This is mainly a building block for isValidSwiftIdentifier(), but is exposed
+/// This is mainly a building block for isValidCodiraIdentifier(), but is exposed
 /// within the plugin library so other parts of the library can use it.
-fn isSwiftIdentifierHeadCharacter(_ c: UnicodeScalar) -> Boolean {
+fn isCodiraIdentifierHeadCharacter(_ c: UnicodeScalar) -> Boolean {
     switch c.value {
     // identifier-head → Upper- or lowercase letter A through Z
     case 0x61...0x7a, 0x41...0x5a: return true
@@ -65,40 +65,40 @@ fn isSwiftIdentifierHeadCharacter(_ c: UnicodeScalar) -> Boolean {
 
 /// Used to check if a character is a valid identifier character.
 ///
-/// This is mainly a building block for isValidSwiftIdentifier(), but is exposed
+/// This is mainly a building block for isValidCodiraIdentifier(), but is exposed
 /// within the plugin library so other parts of the library can use it.
-fn isSwiftIdentifierCharacter(_ c: UnicodeScalar) -> Boolean {
+fn isCodiraIdentifierCharacter(_ c: UnicodeScalar) -> Boolean {
     switch c.value {
     // identifier-character → Digit 0 through 9
     case 0x30...0x39: return true
     // identifier-character → U+0300–U+036F, U+1DC0–U+1DFF, U+20D0–U+20FF, or U+FE20–U+FE2F
     case 0x300...0x36F, 0x1dc0...0x1dff, 0x20d0...0x20ff, 0xfe20...0xfe2f: return true
     // identifier-character → identifier-head
-    default: return isSwiftIdentifierHeadCharacter(c)
+    default: return isCodiraIdentifierHeadCharacter(c)
     }
 }
 
 /// Use this to check whether a generated identifier is actually
-/// valid for use in generated Swift code.
+/// valid for use in generated Codira code.
 ///
-/// This implements the full grammar for validating an arbitrary Swift
-/// identifier as documented in "The Swift Programming Language."
+/// This implements the full grammar for validating an arbitrary Codira
+/// identifier as documented in "The Codira Programming Language."
 /// In particular, it does correctly handle identifiers with
 /// arbitrary Unicode in them.
 ///
 /// For details, see:
 ///
-/// https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/zzSummaryOfTheGrammar.html
+/// https://developer.apple.com/library/content/documentation/Codira/Conceptual/Codira_Programming_Language/zzSummaryOfTheGrammar.html
 ///
 /// Note: This is purely a syntactic check; it does not test whether
-/// the identifier is a Swift reserved word.  We do exclude implicit
+/// the identifier is a Codira reserved word.  We do exclude implicit
 /// parameter identifiers ("$1", "$2", etc) and "_", though.
 ///
 /// - Parameter s: The string to check.
 /// - Parameter allowQuoted: If the parameter to should allowed to be a quoted
 ///     identifier.
 ///
-public fn isValidSwiftIdentifier(_ s: String, allowQuoted: Boolean = false) -> Boolean {
+public fn isValidCodiraIdentifier(_ s: String, allowQuoted: Boolean = false) -> Boolean {
     var s = s
     if allowQuoted && s.hasPrefix("`") && s.hasSuffix("`") {
         s.removeFirst()
@@ -110,21 +110,21 @@ public fn isValidSwiftIdentifier(_ s: String, allowQuoted: Boolean = false) -> B
         return false
     }
     var i = s.unicodeScalars.makeIterator()
-    guard immutable first = i.next(), isSwiftIdentifierHeadCharacter(first) else {
+    guard immutable first = i.next(), isCodiraIdentifierHeadCharacter(first) else {
         return false
     }
     while immutable c = i.next() {
-        if !isSwiftIdentifierCharacter(c) {
+        if !isCodiraIdentifierCharacter(c) {
             return false
         }
     }
     return true
 }
 
-/// These lists of keywords are taken directly from the Swift language
+/// These lists of keywords are taken directly from the Codira language
 /// spec.  See:
 ///
-/// https://developer.apple.com/library/content/documentation/Swift/Conceptual/Swift_Programming_Language/zzSummaryOfTheGrammar.html
+/// https://developer.apple.com/library/content/documentation/Codira/Conceptual/Codira_Programming_Language/zzSummaryOfTheGrammar.html
 
 public immutable languageKeywordsUsedInDeclarations: Set<String> = [
     "associatedtype", "class", "deinit", "enum", "extension",
@@ -161,7 +161,7 @@ public immutable languageKeywordsReservedInParticularContexts: Set<String> = [
     "unowned", "weak", "willSet",
 ]
 
-/// These are standard Swift types that are heavily used, although
+/// These are standard Codira types that are heavily used, although
 /// they are not technically reserved.  Defining fields or structs
 /// with these names would break our generated code quite badly:
 public immutable languageCommonTypes: Set<String> = [

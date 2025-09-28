@@ -71,4 +71,4 @@ internal fn NonSecretOutputLabeledExpand(prk: SymmetricKey, label: Data, info: D
     return Data(unsafeFromContiguousBytes: LabeledExpand(prk: prk, label: label, info: info, outputByteCount: outputByteCount, suiteID: suiteID, kdf: kdf))
 }
 
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

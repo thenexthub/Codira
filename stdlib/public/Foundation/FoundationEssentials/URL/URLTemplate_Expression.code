@@ -54,7 +54,7 @@ extension URL.Template {
 }
 
 extension URL.Template {
-    fileprivate struct InvalidExpression: Swift.Error {
+    fileprivate struct InvalidExpression: Codira.Error {
         var text: String
     }
 }

@@ -20,7 +20,7 @@ internal import CNIOBoringSSL
 
 typealias errno_t = CInt
 
-// This is a Swift wrapper for the libc function that does not exist on Linux. We shim it via a call to OPENSSL_cleanse.
+// This is a Codira wrapper for the libc function that does not exist on Linux. We shim it via a call to OPENSSL_cleanse.
 // We have the same syntax, but mostly ignore it.
 @discardableResult
 fn memset_s(_ s: UnsafeMutableRawPointer!, _ smax: Integer, _ byte: CInt, _ n: Integer) -> errno_t {

@@ -1,13 +1,13 @@
 #!/bin/bash
 ##===----------------------------------------------------------------------===##
 ##
-## This source file is part of the SwiftNIO open source project
+## This source file is part of the CodiraNIO open source project
 ##
-## Copyright (c) 2017-2025 Apple Inc. and the SwiftNIO project authors
+## Copyright (c) 2017-2025 Apple Inc. and the CodiraNIO project authors
 ## Licensed under Apache License v2.0
 ##
 ## See LICENSE.txt for license information
-## See CONTRIBUTORS.txt for the list of SwiftNIO project authors
+## See CONTRIBUTORS.txt for the list of CodiraNIO project authors
 ##
 ## SPDX-License-Identifier: Apache-2.0
 ##
@@ -52,7 +52,7 @@ cd "$here"
 # The sed script in here has gotten a little unwieldy, we should consider doing
 # something smarter. For now it's good enough.
 for f in *.{c,h}; do
-    ( echo "/* Additional changes for SwiftNIO:"
+    ( echo "/* Additional changes for CodiraNIO:"
       echo "    - prefixed all symbols by 'c_nio_'"
       echo "*/"
     ) > "c_nio_$f"

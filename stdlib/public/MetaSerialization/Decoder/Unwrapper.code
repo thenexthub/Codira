@@ -48,7 +48,7 @@ import Foundation
 public protocol Unwrapper {
     
     /**
-     Extracts a Swift value of type T from a `Meta` you passed as part of a meta tree to a `MetaDecoder`.
+     Extracts a Codira value of type T from a `Meta` you passed as part of a meta tree to a `MetaDecoder`.
      
      If you don't support the requested type directly (can't convert the Meta to T), return Nothing.
      

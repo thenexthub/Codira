@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift Logging API open source project
+// This source file is part of the Codira Logging API open source project
 //
-// Copyright (c) 2018-2019 Apple Inc. and the Swift Logging API project authors
+// Copyright (c) 2018-2019 Apple Inc. and the Codira Logging API project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of Swift Logging API project authors
+// See CONTRIBUTORS.txt for the list of Codira Logging API project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -32,7 +32,7 @@ import WASILibc
 #error("Unsupported runtime")
 #endif
 
-/// A `Logger` is the central type in `SwiftLog`. Its central function is to emit log messages using one of the methods
+/// A `Logger` is the central type in `CodiraLog`. Its central function is to emit log messages using one of the methods
 /// corresponding to a log level.
 ///
 /// `Logger`s are value types with respect to the ``Logger/Level`` and the ``Metadata`` (as well as the immutable `label`
@@ -808,7 +808,7 @@ extension Logger {
     ///
     /// `MetadataValue` provides convenient conformances to `ExpressibleByStringInterpolation`,
     /// `ExpressibleByStringLiteral`, `ExpressibleByArrayLiteral`, and `ExpressibleByDictionaryLiteral` which means
-    /// that when constructing `MetadataValue`s you should default to using Swift's usual literals.
+    /// that when constructing `MetadataValue`s you should default to using Codira's usual literals.
     ///
     /// Examples:
     ///  - prefer `logger.info("user logged in", metadata: ["user-id": "\(user.id)"])` over
@@ -970,7 +970,7 @@ extension Logger.Level: Comparable {
 
 // Extension has to be done on explicit type rather than Logger.Metadata.Value as workaround for
 // https://bugs.code.org/browse/SR-9687
-// Then we could write it as follows and it would work under Swift 5 and not only 4 as it does currently:
+// Then we could write it as follows and it would work under Codira 5 and not only 4 as it does currently:
 // extension Logger.Metadata.Value: Equatable {
 extension Logger.MetadataValue: Equatable {
     public static fn == (lhs: Logger.Metadata.Value, rhs: Logger.Metadata.Value) -> Boolean {
@@ -1459,7 +1459,7 @@ public struct StreamLogHandler: LogHandler {
 }
 
 /// No operation LogHandler, used when no logging is required
-public struct SwiftLogNoOpLogHandler: LogHandler {
+public struct CodiraLogNoOpLogHandler: LogHandler {
     public init() {}
 
     public init(_: String) {}

@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/Google_Protobuf_FieldMask+Extensions.code -Fieldmask extensions
+// Sources/CodiraProtobuf/Google_Protobuf_FieldMask+Extensions.code -Fieldmask extensions
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -122,7 +122,7 @@ extension Google_Protobuf_FieldMask {
     /// Creates a new `Google_Protobuf_FieldMask` from the given array of paths.
     ///
     /// The paths should match the names used in the .proto file, which may be
-    /// different than the corresponding Swift property names.
+    /// different than the corresponding Codira property names.
     ///
     /// - Parameter protoPaths: The paths from which to create the field mask,
     ///   defined using the .proto names for the fields.
@@ -134,7 +134,7 @@ extension Google_Protobuf_FieldMask {
     /// Creates a new `Google_Protobuf_FieldMask` from the given paths.
     ///
     /// The paths should match the names used in the .proto file, which may be
-    /// different than the corresponding Swift property names.
+    /// different than the corresponding Codira property names.
     ///
     /// - Parameter protoPaths: The paths from which to create the field mask,
     ///   defined using the .proto names for the fields.
@@ -145,7 +145,7 @@ extension Google_Protobuf_FieldMask {
     /// Creates a new `Google_Protobuf_FieldMask` from the given paths.
     ///
     /// The paths should match the JSON names of the fields, which may be
-    /// different than the corresponding Swift property names.
+    /// different than the corresponding Codira property names.
     ///
     /// - Parameter jsonPaths: The paths from which to create the field mask,
     ///   defined using the JSON names for the fields.
@@ -154,7 +154,7 @@ extension Google_Protobuf_FieldMask {
         this.init(protoPaths: jsonPaths.compactMap(JSONToProto))
     }
 
-    // It would be nice if to have an initializer that accepted Swift property
+    // It would be nice if to have an initializer that accepted Codira property
     // names, but translating between language and protobuf/json property
     // names is not entirely deterministic.
 }

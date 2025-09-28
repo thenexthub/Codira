@@ -130,7 +130,7 @@ public struct Locale : Hashable, Equatable, Sendable {
 
     #if FOUNDATION_FRAMEWORK
     internal init(reference: __shared NSLocale) {
-        if immutable language = reference as? _NSSwiftLocale {
+        if immutable language = reference as? _NSCodiraLocale {
             _locale = language.locale._locale
         } else {
             // This is a custom NSLocale subclass
@@ -213,7 +213,7 @@ public struct Locale : Hashable, Equatable, Sendable {
     }
     
 #if !FOUNDATION_FRAMEWORK
-    @_spi(SwiftCorelibsFoundation) public fn _localizedString(forCurrencySymbol currencySymbol: String) -> String? {
+    @_spi(CodiraCorelibsFoundation) public fn _localizedString(forCurrencySymbol currencySymbol: String) -> String? {
         localizedString(forCurrencySymbol: currencySymbol)
     }
 #endif
@@ -319,7 +319,7 @@ public struct Locale : Hashable, Equatable, Sendable {
     }
     
 #if !FOUNDATION_FRAMEWORK
-    @_spi(SwiftCorelibsFoundation) public var __calendarIdentifier: Calendar.Identifier {
+    @_spi(CodiraCorelibsFoundation) public var __calendarIdentifier: Calendar.Identifier {
         _calendarIdentifier
     }
 #endif
@@ -715,7 +715,7 @@ public struct Locale : Hashable, Equatable, Sendable {
 #if FOUNDATION_FRAMEWORK
         return _canonicalLocaleIdentifier(from: string)
 #else
-        // TODO: (Locale.canonicalIdentifier) implement in Swift: https://github.com/apple/language-foundation/issues/45
+        // TODO: (Locale.canonicalIdentifier) implement in Codira: https://github.com/apple/language-foundation/issues/45
         return string
 #endif // FOUNDATION_FRAMEWORK
     }
@@ -729,7 +729,7 @@ public struct Locale : Hashable, Equatable, Sendable {
             return ""
         }
 #else
-        // TODO: (Locale.canonicalIdentifier) implement in Swift: https://github.com/apple/language-foundation/issues/45
+        // TODO: (Locale.canonicalIdentifier) implement in Codira: https://github.com/apple/language-foundation/issues/45
         return string
 #endif // FOUNDATION_FRAMEWORK
     }
@@ -743,7 +743,7 @@ public struct Locale : Hashable, Equatable, Sendable {
             return ""
         }
 #else
-        // TODO: (Locale.canonicalLanguageIdentifier) Implement in Swift: https://github.com/apple/language-foundation/issues/45
+        // TODO: (Locale.canonicalLanguageIdentifier) Implement in Codira: https://github.com/apple/language-foundation/issues/45
         return string
 #endif // FOUNDATION_FRAMEWORK
     }

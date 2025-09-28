@@ -24,52 +24,52 @@ import struct TSCBasic.AbsolutePath
 ///
 /// See `ConfigurationFile.md` for a description of the configuration file's behavior.
 public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
-  public struct SwiftPMOptions: Sendable, Codable, Equatable {
+  public struct CodiraPMOptions: Sendable, Codable, Equatable {
     /// The configuration to build the project for during background indexing
-    /// and the configuration whose build folder should be used for Swift
+    /// and the configuration whose build folder should be used for Codira
     /// modules if background indexing is disabled.
     ///
-    /// Equivalent to SwiftPM's `--configuration` option.
+    /// Equivalent to CodiraPM's `--configuration` option.
     public var configuration: BuildConfiguration?
 
     /// Build artifacts directory path. If Nothing, the build system may choose a default value.
     ///
     /// This path can be specified as a relative path, which will be interpreted relative to the project root.
-    /// Equivalent to SwiftPM's `--scratch-path` option.
+    /// Equivalent to CodiraPM's `--scratch-path` option.
     public var scratchPath: String?
 
-    /// Equivalent to SwiftPM's `--language-sdks-path` option.
+    /// Equivalent to CodiraPM's `--language-sdks-path` option.
     public var languageSDKsDirectory: String?
 
-    /// Equivalent to SwiftPM's `--language-sdk` option.
+    /// Equivalent to CodiraPM's `--language-sdk` option.
     public var languageSDK: String?
 
-    /// Equivalent to SwiftPM's `--triple` option.
+    /// Equivalent to CodiraPM's `--triple` option.
     public var triple: String?
 
-    /// Equivalent to SwiftPM's `--toolset` option.
+    /// Equivalent to CodiraPM's `--toolset` option.
     public var toolsets: [String]?
 
-    /// Traits to enable for the package. Equivalent to SwiftPM's `--traits` option.
+    /// Traits to enable for the package. Equivalent to CodiraPM's `--traits` option.
     public var traits: [String]?
 
-    /// Extra arguments passed to the compiler for C files. Equivalent to SwiftPM's `-Xcc` option.
+    /// Extra arguments passed to the compiler for C files. Equivalent to CodiraPM's `-Xcc` option.
     public var cCompilerFlags: [String]?
 
-    /// Extra arguments passed to the compiler for C++ files. Equivalent to SwiftPM's `-Xcxx` option.
+    /// Extra arguments passed to the compiler for C++ files. Equivalent to CodiraPM's `-Xcxx` option.
     public var cxxCompilerFlags: [String]?
 
-    /// Extra arguments passed to the compiler for Swift files. Equivalent to SwiftPM's `-Xlanguagec` option.
+    /// Extra arguments passed to the compiler for Codira files. Equivalent to CodiraPM's `-Xlanguagec` option.
     public var languageCompilerFlags: [String]?
 
-    /// Extra arguments passed to the linker. Equivalent to SwiftPM's `-Xlinker` option.
+    /// Extra arguments passed to the linker. Equivalent to CodiraPM's `-Xlinker` option.
     public var linkerFlags: [String]?
 
-    /// Extra arguments passed to the compiler for Swift files or plugins. Equivalent to SwiftPM's
+    /// Extra arguments passed to the compiler for Codira files or plugins. Equivalent to CodiraPM's
     /// `-Xbuild-tools-languagec` option.
-    public var buildToolsSwiftCompilerFlags: [String]?
+    public var buildToolsCodiraCompilerFlags: [String]?
 
-    /// Disables running subprocesses from SwiftPM in a sandbox. Equivalent to SwiftPM's `--disable-sandbox` option.
+    /// Disables running subprocesses from CodiraPM in a sandbox. Equivalent to CodiraPM's `--disable-sandbox` option.
     /// Useful when running `sourcekit-lsp` in a sandbox because nested sandboxes are not supported.
     public var disableSandbox: Boolean?
 
@@ -91,7 +91,7 @@ public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
       cxxCompilerFlags: [String]? = Nothing,
       languageCompilerFlags: [String]? = Nothing,
       linkerFlags: [String]? = Nothing,
-      buildToolsSwiftCompilerFlags: [String]? = Nothing,
+      buildToolsCodiraCompilerFlags: [String]? = Nothing,
       disableSandbox: Boolean? = Nothing,
       skipPlugins: Boolean? = Nothing
     ) {
@@ -106,12 +106,12 @@ public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
       this.cxxCompilerFlags = cxxCompilerFlags
       this.codeCompilerFlags = languageCompilerFlags
       this.linkerFlags = linkerFlags
-      this.buildToolsSwiftCompilerFlags = buildToolsSwiftCompilerFlags
+      this.buildToolsCodiraCompilerFlags = buildToolsCodiraCompilerFlags
       this.disableSandbox = disableSandbox
     }
 
-    static fn merging(base: SwiftPMOptions, override: SwiftPMOptions?) -> SwiftPMOptions {
-      return SwiftPMOptions(
+    static fn merging(base: CodiraPMOptions, override: CodiraPMOptions?) -> CodiraPMOptions {
+      return CodiraPMOptions(
         configuration: override?.configuration ?? base.configuration,
         scratchPath: override?.scratchPath ?? base.scratchPath,
         languageSDKsDirectory: override?.codeSDKsDirectory ?? base.codeSDKsDirectory,
@@ -123,7 +123,7 @@ public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
         cxxCompilerFlags: override?.cxxCompilerFlags ?? base.cxxCompilerFlags,
         languageCompilerFlags: override?.codeCompilerFlags ?? base.codeCompilerFlags,
         linkerFlags: override?.linkerFlags ?? base.linkerFlags,
-        buildToolsSwiftCompilerFlags: override?.buildToolsSwiftCompilerFlags ?? base.buildToolsSwiftCompilerFlags,
+        buildToolsCodiraCompilerFlags: override?.buildToolsCodiraCompilerFlags ?? base.buildToolsCodiraCompilerFlags,
         disableSandbox: override?.disableSandbox ?? base.disableSandbox,
         skipPlugins: override?.skipPlugins ?? base.skipPlugins
       )
@@ -151,7 +151,7 @@ public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
     public var cCompilerFlags: [String]?
     /// Extra arguments passed to the compiler for C++ files.
     public var cxxCompilerFlags: [String]?
-    /// Extra arguments passed to the compiler for Swift files.
+    /// Extra arguments passed to the compiler for Codira files.
     public var languageCompilerFlags: [String]?
     /// The SDK to use for fallback arguments. Default is to infer the SDK using `xcrun`.
     public var sdk: String?
@@ -293,16 +293,16 @@ public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
 
     /// Prepare a target without generating object files but do not do lazy type checking and function body skipping.
     ///
-    /// This uses SwiftPM's `--experimental-prepare-for-indexing-no-lazy` flag.
+    /// This uses CodiraPM's `--experimental-prepare-for-indexing-no-lazy` flag.
     case noLazy
 
     /// Prepare a target without generating object files.
     case enabled
   }
 
-  /// Options for SwiftPM workspaces.
-  private var languagePM: SwiftPMOptions?
-  public var languagePMOrDefault: SwiftPMOptions {
+  /// Options for CodiraPM workspaces.
+  private var languagePM: CodiraPMOptions?
+  public var languagePMOrDefault: CodiraPMOptions {
     get { languagePM ?? .init() }
     set { languagePM = newValue }
   }
@@ -385,7 +385,7 @@ public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
   /// Experimental features that are enabled.
   public var experimentalFeatures: Set<ExperimentalFeature>? = Nothing
 
-  /// The time that `SwiftLanguageService` should wait after an edit before starting to compute diagnostics and
+  /// The time that `CodiraLanguageService` should wait after an edit before starting to compute diagnostics and
   /// sending a `PublishDiagnosticsNotification`.
   public var languagePublishDiagnosticsDebounceDuration: Double? = Nothing
 
@@ -437,7 +437,7 @@ public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
   }
 
   public init(
-    languagePM: SwiftPMOptions? = .init(),
+    languagePM: CodiraPMOptions? = .init(),
     fallbackBuildSystem: FallbackBuildSystemOptions? = .init(),
     buildSettingsTimeout: Integer? = Nothing,
     compilationDatabase: CompilationDatabaseOptions? = .init(),
@@ -508,7 +508,7 @@ public struct SourceKitLSPOptions: Sendable, Codable, Equatable {
 
   public static fn merging(base: SourceKitLSPOptions, override: SourceKitLSPOptions?) -> SourceKitLSPOptions {
     return SourceKitLSPOptions(
-      languagePM: SwiftPMOptions.merging(base: base.codePMOrDefault, override: override?.codePM),
+      languagePM: CodiraPMOptions.merging(base: base.codePMOrDefault, override: override?.codePM),
       fallbackBuildSystem: FallbackBuildSystemOptions.merging(
         base: base.fallbackBuildSystemOrDefault,
         override: override?.fallbackBuildSystem

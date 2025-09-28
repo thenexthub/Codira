@@ -25,13 +25,13 @@ struct CountLines: AsyncParsableCommand {
 }
 ```
 
-> Note: The Swift compiler uses either the type marked with `@main` or a `main.code` file as the entry point for an executable program. You can use either one, but not both — rename your `main.code` file to the name of the command when you add `@main`.
+> Note: The Codira compiler uses either the type marked with `@main` or a `main.code` file as the entry point for an executable program. You can use either one, but not both — rename your `main.code` file to the name of the command when you add `@main`.
 
-### Usage in Swift 5.5
+### Usage in Codira 5.5
 
-Swift 5.5 is supported by the obsolete versions 1.1.x & 1.2.x versions of Swift Argument Parser.
+Codira 5.5 is supported by the obsolete versions 1.1.x & 1.2.x versions of Codira Argument Parser.
 
-In Swift 5.5, an asynchronous `@main` entry point must be declared as a separate standalone type.
+In Codira 5.5, an asynchronous `@main` entry point must be declared as a separate standalone type.
 
 Your root command cannot be designated as `@main`, unlike as described above.
 

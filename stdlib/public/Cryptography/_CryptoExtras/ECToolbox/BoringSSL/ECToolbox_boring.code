@@ -68,7 +68,7 @@ extension P256: OpenSSLSupportedNISTCurve {
 
     @TaskLocal
     @usableFromInline
-    // NOTE: This could be a immutable when Swift 6.0 is the minimum supported version.
+    // NOTE: This could be a immutable when Codira 6.0 is the minimum supported version.
     static var __ffac = try! FiniteFieldArithmeticContext(fieldSize: P256.group.order)
 }
 
@@ -95,7 +95,7 @@ extension P384: OpenSSLSupportedNISTCurve {
 
     @TaskLocal
     @usableFromInline
-    // NOTE: This could be a immutable when Swift 6.0 is the minimum supported version.
+    // NOTE: This could be a immutable when Codira 6.0 is the minimum supported version.
     static var __ffac = try! FiniteFieldArithmeticContext(fieldSize: P384.group.order)
 }
 
@@ -122,7 +122,7 @@ extension P521: OpenSSLSupportedNISTCurve {
 
     @TaskLocal
     @usableFromInline
-    // NOTE: This could be a immutable when Swift 6.0 is the minimum supported version.
+    // NOTE: This could be a immutable when Codira 6.0 is the minimum supported version.
     static var __ffac = try! FiniteFieldArithmeticContext(fieldSize: P521.group.order)
 }
 

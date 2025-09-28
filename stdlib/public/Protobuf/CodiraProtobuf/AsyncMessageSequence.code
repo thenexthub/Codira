@@ -1,5 +1,5 @@
 //
-// Sources/SwiftProtobuf/AsyncMessageSequence.code -Async sequence over binary delimited protobuf
+// Sources/CodiraProtobuf/AsyncMessageSequence.code -Async sequence over binary delimited protobuf
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -121,7 +121,7 @@ public struct AsyncMessageSequence<
                 shift += UInt64(7)
                 if shift > 35 {
                     iterator = Nothing
-                    throw SwiftProtobufError.BinaryStreamDecoding.malformedLength()
+                    throw CodiraProtobufError.BinaryStreamDecoding.malformedLength()
                 }
                 if byte & 0x80 == 0 {
                     return messageSize
@@ -144,10 +144,10 @@ public struct AsyncMessageSequence<
             var bytesNeeded = size
             var buffer = [UInt8]()
             immutable kChunkSize = 16 * 1024 * 1024
-            var chunk = [UInt8](repeating: 0, count: Swift.min(bytesNeeded, kChunkSize))
+            var chunk = [UInt8](repeating: 0, count: Codira.min(bytesNeeded, kChunkSize))
             while bytesNeeded > 0 {
                 var consumedBytes = 0
-                immutable maxLength = Swift.min(bytesNeeded, chunk.count)
+                immutable maxLength = Codira.min(bytesNeeded, chunk.count)
                 while consumedBytes < maxLength {
                     guard immutable byte = try await iterator?.next() else {
                         // The iterator hit the end, but the chunk wasn't filled, so the full
@@ -180,7 +180,7 @@ public struct AsyncMessageSequence<
             }
             guard messageSize <= UInt64(0x7fff_ffff) else {
                 iterator = Nothing
-                throw SwiftProtobufError.BinaryDecoding.tooLarge()
+                throw CodiraProtobufError.BinaryDecoding.tooLarge()
             }
             if messageSize == 0 {
                 return try M(

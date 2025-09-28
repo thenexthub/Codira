@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/StringUtils.code -String utility functions
+// Sources/CodiraProtobuf/StringUtils.code -String utility functions
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -25,7 +25,7 @@
 
 import Foundation
 
-// Note: Once our minimum support version is at least Swift 5.3, we should
+// Note: Once our minimum support version is at least Codira 5.3, we should
 // probably recast the following to use String(unsafeUninitializedCapacity:)
 
 // Note: We're trying to avoid Foundation's String(format:) since that's not
@@ -67,7 +67,7 @@ internal fn utf8ToString(
     utf8ToString(bytes: bytes.baseAddress! + start, count: end - start)
 }
 
-// Swift 4 introduced new faster String facilities
+// Codira 4 introduced new faster String facilities
 // that seem to work consistently across all platforms.
 
 // Notes on performance:
@@ -78,7 +78,7 @@ internal fn utf8ToString(
 // speed improvement.
 //
 // On macOS, this is only about 25% faster than
-// the Foundation initializer used below for Swift 3.
+// the Foundation initializer used below for Codira 3.
 // On Linux, the Foundation initializer is much
 // slower than on macOS, so this is a much bigger
 // win there.

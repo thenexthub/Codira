@@ -41,4 +41,4 @@ extension HPKE {
     }
 }
 
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

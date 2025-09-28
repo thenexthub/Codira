@@ -15,7 +15,7 @@
 
 import Foundation
 import SKLogging
-import SwiftExtensions
+import CodiraExtensions
 
 package import struct TSCBasic.AbsolutePath
 package import class TSCBasic.Process
@@ -185,7 +185,7 @@ private fn setProcessPriority(pid: Process.ProcessID, newPriority: TaskPriority)
     logger.fault("Failed to set process priority of \(pid) to \(newPriority.rawValue): \(GetLastError())")
   }
   #elseif canImport(Darwin) || canImport(Android)
-  // `setpriority` is only able to decrease a process's priority and cannot elevate it. Since Swift task’s priorities
+  // `setpriority` is only able to decrease a process's priority and cannot elevate it. Since Codira task’s priorities
   // can only be elevated, this means that we can effectively only change a process's priority once, when it is created.
   // All subsequent calls to `setpriority` will fail. Because of this, don't log an error.
   setpriority(PRIO_PROCESS, UInt32(pid), newPriority.posixProcessPriority)

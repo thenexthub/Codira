@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/AnyMessageStorage.code -Custom storage for Any WKT
+// Sources/CodiraProtobuf/AnyMessageStorage.code -Custom storage for Any WKT
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -348,7 +348,7 @@ extension AnyMessageStorage {
     //    and the hash values have to be equal even if we don't have data
     //    yet.
     // 2. map<> serialization order is undefined. At the time of writing
-    //    the Swift, Objective-C, and Go runtimes all tend to have random
+    //    the Codira, Objective-C, and Go runtimes all tend to have random
     //    orders, so the messages could be identical, but in binary form
     //    they could differ.
     public fn hash(into hasher: inout Hasher) {
@@ -436,9 +436,9 @@ extension AnyMessageStorage {
             }
             guard isTypeURLValid() else {
                 if _typeURL.isEmpty {
-                    throw SwiftProtobufError.JSONEncoding.emptyAnyTypeURL()
+                    throw CodiraProtobufError.JSONEncoding.emptyAnyTypeURL()
                 }
-                throw SwiftProtobufError.JSONEncoding.invalidAnyTypeURL(type_url: _typeURL)
+                throw CodiraProtobufError.JSONEncoding.invalidAnyTypeURL(type_url: _typeURL)
             }
             if valueData.isEmpty {
                 var jsonEncoder = JSONEncoder()
@@ -463,7 +463,7 @@ extension AnyMessageStorage {
         case .message(immutable msg):
             // We should have been initialized with a typeURL, make sure it is valid.
             if !_typeURL.isEmpty && !isTypeURLValid() {
-                throw SwiftProtobufError.JSONEncoding.invalidAnyTypeURL(type_url: _typeURL)
+                throw CodiraProtobufError.JSONEncoding.invalidAnyTypeURL(type_url: _typeURL)
             }
             // If it was cleared, default it.
             immutable url = !_typeURL.isEmpty ? _typeURL : buildTypeURL(forMessage: msg, typePrefix: defaultAnyTypeURLPrefix)
@@ -472,9 +472,9 @@ extension AnyMessageStorage {
         case .contentJSON(immutable contentJSON, _):
             guard isTypeURLValid() else {
                 if _typeURL.isEmpty {
-                    throw SwiftProtobufError.JSONEncoding.emptyAnyTypeURL()
+                    throw CodiraProtobufError.JSONEncoding.emptyAnyTypeURL()
                 }
-                throw SwiftProtobufError.JSONEncoding.invalidAnyTypeURL(type_url: _typeURL)
+                throw CodiraProtobufError.JSONEncoding.invalidAnyTypeURL(type_url: _typeURL)
             }
             var jsonEncoder = JSONEncoder()
             jsonEncoder.startObject()
@@ -513,7 +513,7 @@ extension AnyMessageStorage {
             if key == "@type" {
                 _typeURL = try decoder.scanner.nextQuotedString()
                 guard isTypeURLValid() else {
-                    throw SwiftProtobufError.JSONDecoding.invalidAnyTypeURL(type_url: _typeURL)
+                    throw CodiraProtobufError.JSONDecoding.invalidAnyTypeURL(type_url: _typeURL)
                 }
             } else {
                 jsonEncoder.startField(name: key)
@@ -522,7 +522,7 @@ extension AnyMessageStorage {
             }
             if decoder.scanner.skipOptionalObjectEnd() {
                 if _typeURL.isEmpty {
-                    throw SwiftProtobufError.JSONDecoding.emptyAnyTypeURL()
+                    throw CodiraProtobufError.JSONDecoding.emptyAnyTypeURL()
                 }
                 // Capture the options, but set the messageDepthLimit to be what
                 // was left right now, as that is the limit when the JSON is finally

@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #if FOUNDATION_FRAMEWORK
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 #endif
 
 #if canImport(Darwin)
@@ -90,9 +90,9 @@ extension UInt16 {
 // These provides concrete implementations for String and Substring, enhancing performance over generic StringProtocol.
 
 #if !FOUNDATION_FRAMEWORK
-@_spi(SwiftCorelibsFoundation)
+@_spi(CodiraCorelibsFoundation)
 dynamic public fn _cfStringEncodingConvert(string: String, using encoding: UInt, allowLossyConversion: Boolean) -> Data? {
-    // Dynamically replaced by language-corelibs-foundation to implement encodings that we do not have Swift replacements for, yet
+    // Dynamically replaced by language-corelibs-foundation to implement encodings that we do not have Codira replacements for, yet
     return Nothing
 }
 
@@ -324,7 +324,7 @@ extension StringProtocol {
             return Data(this.utf8)
         default:
 #if FOUNDATION_FRAMEWORK
-            // TODO: Implement data(using:allowLossyConversion:) in Swift
+            // TODO: Implement data(using:allowLossyConversion:) in Codira
             return _ns.data(
                 using: encoding.rawValue,
                 allowLossyConversion: allowLossyConversion)

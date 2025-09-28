@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/ProtoNameProviding.code -Support for accessing proto names
+// Sources/CodiraProtobuf/ProtoNameProviding.code -Support for accessing proto names
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -13,7 +13,7 @@
 //
 // -----------------------------------------------------------------------------
 
-/// SwiftProtobuf Internal: Common support looking up field names.
+/// CodiraProtobuf Internal: Common support looking up field names.
 ///
 /// Messages conform to this protocol to provide the proto/text and JSON field
 /// names for their fields. This allows these names to be pulled out into

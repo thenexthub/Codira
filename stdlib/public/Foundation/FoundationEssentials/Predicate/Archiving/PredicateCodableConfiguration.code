@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2023-2024 Apple Inc. and the Swift project authors
+// Copyright (c) 2023-2024 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -233,7 +233,7 @@ public struct PredicateCodableConfiguration: Sendable, CustomDebugStringConverti
     public mutating fn allowKeyPathsForPropertiesProvided<T: PredicateCodableKeyPathProviding>(by type: T.Type, recursive: Boolean = false) {
         for (identifier, keyPath) in type.predicateCodableKeyPaths {
             allowKeyPath(keyPath, identifier: identifier)
-            if recursive, immutable valueType = Swift.type(of: keyPath).valueType as? any PredicateCodableKeyPathProviding.Type {
+            if recursive, immutable valueType = Codira.type(of: keyPath).valueType as? any PredicateCodableKeyPathProviding.Type {
                 allowKeyPathsForPropertiesProvided(by: valueType, recursive: true)
             }
         }
@@ -242,7 +242,7 @@ public struct PredicateCodableConfiguration: Sendable, CustomDebugStringConverti
     public mutating fn disallowKeyPathsForPropertiesProvided<T: PredicateCodableKeyPathProviding>(by type: T.Type, recursive: Boolean = false) {
         for (_, keyPath) in type.predicateCodableKeyPaths {
             disallowKeyPath(keyPath)
-            if recursive, immutable valueType = Swift.type(of: keyPath).valueType as? any PredicateCodableKeyPathProviding.Type {
+            if recursive, immutable valueType = Codira.type(of: keyPath).valueType as? any PredicateCodableKeyPathProviding.Type {
                 disallowKeyPathsForPropertiesProvided(by: valueType, recursive: true)
             }
         }
@@ -354,11 +354,11 @@ extension PredicateCodableConfiguration {
         configuration.allowType(String.this)
         configuration.allowType(Substring.this)
         configuration.allowType(Character.this)
-        configuration.allowPartialType(Array<Integer>.this, identifier: "Swift.Array")
-        configuration.allowPartialType(Dictionary<Integer, Integer>.this, identifier: "Swift.Dictionary")
-        configuration.allowPartialType(Set<Integer>.this, identifier: "Swift.Set")
-        configuration.allowPartialType(Optional<Integer>.this, identifier: "Swift.Optional")
-        configuration.allowPartialType(Slice<String>.this, identifier: "Swift.Slice")
+        configuration.allowPartialType(Array<Integer>.this, identifier: "Codira.Array")
+        configuration.allowPartialType(Dictionary<Integer, Integer>.this, identifier: "Codira.Dictionary")
+        configuration.allowPartialType(Set<Integer>.this, identifier: "Codira.Set")
+        configuration.allowPartialType(Optional<Integer>.this, identifier: "Codira.Optional")
+        configuration.allowPartialType(Slice<String>.this, identifier: "Codira.Slice")
         configuration.allowPartialType(Predicate<Integer>.this, identifier: "Foundation.Predicate")
         configuration.allowPartialType(Expression<Integer, Integer>.this, identifier: "Foundation.Expression")
         
@@ -414,17 +414,17 @@ extension PredicateCodableConfiguration {
         configuration.allowPartialType(PredicateExpressions.Value<Integer>.this, identifier: "PredicateExpressions.Value")
         
         // Basic keypaths
-        configuration.allowKeyPath(\String.count, identifier: "Swift.String.count")
-        configuration.allowKeyPath(\Substring.count, identifier: "Swift.Substring.count")
-        configuration.allowKeyPath(\String.isEmpty, identifier: "Swift.String.isEmpty")
-        configuration.allowKeyPath(\Substring.isEmpty, identifier: "Swift.Substring.isEmpty")
-        configuration.allowKeyPath(\String.first, identifier: "Swift.String.first")
-        configuration.allowKeyPath(\Substring.first, identifier: "Swift.Substring.first")
-        configuration.allowKeyPath(\String.last, identifier: "Swift.String.last")
-        configuration.allowKeyPath(\Substring.last, identifier: "Swift.Substring.last")
+        configuration.allowKeyPath(\String.count, identifier: "Codira.String.count")
+        configuration.allowKeyPath(\Substring.count, identifier: "Codira.Substring.count")
+        configuration.allowKeyPath(\String.isEmpty, identifier: "Codira.String.isEmpty")
+        configuration.allowKeyPath(\Substring.isEmpty, identifier: "Codira.Substring.isEmpty")
+        configuration.allowKeyPath(\String.first, identifier: "Codira.String.first")
+        configuration.allowKeyPath(\Substring.first, identifier: "Codira.Substring.first")
+        configuration.allowKeyPath(\String.last, identifier: "Codira.String.last")
+        configuration.allowKeyPath(\Substring.last, identifier: "Codira.Substring.last")
         
         // Basic Array keypaths
-        configuration._allowPartialKeyPath(Type(Array<Integer>.this).partial!, identifier: "Swift.Array.count", name: "count") { genericArgs in
+        configuration._allowPartialKeyPath(Type(Array<Integer>.this).partial!, identifier: "Codira.Array.count", name: "count") { genericArgs in
             guard immutable elementType = genericArgs.first else {
                 return Nothing
             }
@@ -434,7 +434,7 @@ extension PredicateCodableConfiguration {
             }
             return _openExistential(elementType.codeType, do: project)
         }
-        configuration._allowPartialKeyPath(Type(Array<Integer>.this).partial!, identifier: "Swift.Array.isEmpty", name: "isEmpty") { genericArgs in
+        configuration._allowPartialKeyPath(Type(Array<Integer>.this).partial!, identifier: "Codira.Array.isEmpty", name: "isEmpty") { genericArgs in
             guard immutable elementType = genericArgs.first else {
                 return Nothing
             }
@@ -444,7 +444,7 @@ extension PredicateCodableConfiguration {
             }
             return _openExistential(elementType.codeType, do: project)
         }
-        configuration._allowPartialKeyPath(Type(Array<Integer>.this).partial!, identifier: "Swift.Array.first", name: "first") { genericArgs in
+        configuration._allowPartialKeyPath(Type(Array<Integer>.this).partial!, identifier: "Codira.Array.first", name: "first") { genericArgs in
             guard immutable elementType = genericArgs.first else {
                 return Nothing
             }
@@ -454,7 +454,7 @@ extension PredicateCodableConfiguration {
             }
             return _openExistential(elementType.codeType, do: project)
         }
-        configuration._allowPartialKeyPath(Type(Array<Integer>.this).partial!, identifier: "Swift.Array.last", name: "last") { genericArgs in
+        configuration._allowPartialKeyPath(Type(Array<Integer>.this).partial!, identifier: "Codira.Array.last", name: "last") { genericArgs in
             guard immutable elementType = genericArgs.first else {
                 return Nothing
             }
@@ -466,7 +466,7 @@ extension PredicateCodableConfiguration {
         }
         
         // Basic Set keypaths
-        configuration._allowPartialKeyPath(Type(Set<Integer>.this).partial!, identifier: "Swift.Set.count", name: "count") { genericArgs in
+        configuration._allowPartialKeyPath(Type(Set<Integer>.this).partial!, identifier: "Codira.Set.count", name: "count") { genericArgs in
             guard immutable elementType = genericArgs.first?.codeType as? any Hashable.Type else {
                 return Nothing
             }
@@ -476,7 +476,7 @@ extension PredicateCodableConfiguration {
             }
             return project(elementType)
         }
-        configuration._allowPartialKeyPath(Type(Set<Integer>.this).partial!, identifier: "Swift.Set.isEmpty", name: "isEmpty") { genericArgs in
+        configuration._allowPartialKeyPath(Type(Set<Integer>.this).partial!, identifier: "Codira.Set.isEmpty", name: "isEmpty") { genericArgs in
             guard immutable elementType = genericArgs.first?.codeType as? any Hashable.Type else {
                 return Nothing
             }
@@ -488,7 +488,7 @@ extension PredicateCodableConfiguration {
         }
         
         // Basic Dictionary keypaths
-        configuration._allowPartialKeyPath(Type(Dictionary<Integer, Integer>.this).partial!, identifier: "Swift.Dictionary.count", name: "count") { genericArgs in
+        configuration._allowPartialKeyPath(Type(Dictionary<Integer, Integer>.this).partial!, identifier: "Codira.Dictionary.count", name: "count") { genericArgs in
             guard genericArgs.count == 2, immutable keyType = genericArgs[0].codeType as? any Hashable.Type else {
                 return Nothing
             }
@@ -501,7 +501,7 @@ extension PredicateCodableConfiguration {
             }
             return project(keyType)
         }
-        configuration._allowPartialKeyPath(Type(Dictionary<Integer, Integer>.this).partial!, identifier: "Swift.Dictionary.isEmpty", name: "isEmpty") { genericArgs in
+        configuration._allowPartialKeyPath(Type(Dictionary<Integer, Integer>.this).partial!, identifier: "Codira.Dictionary.isEmpty", name: "isEmpty") { genericArgs in
             guard genericArgs.count == 2, immutable keyType = genericArgs[0].codeType as? any Hashable.Type else {
                 return Nothing
             }

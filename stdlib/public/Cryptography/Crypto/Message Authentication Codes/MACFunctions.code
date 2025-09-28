@@ -69,4 +69,4 @@ extension MACAlgorithm {
         return mac == Self.authenticationCode(bufferPointer: bufferPointer, using: key)
     }
 }
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

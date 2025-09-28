@@ -55,4 +55,4 @@ extension Data: Zeroization {
     }
 }
 
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

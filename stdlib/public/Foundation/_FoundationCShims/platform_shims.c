@@ -62,14 +62,14 @@ const char * _platform_shims_kOSThermalNotificationPressureLevelName(void) {
 
 #if __has_include(<mach/vm_page_size.h>)
 vm_size_t _platform_shims_vm_size(void) {
-    // This shim exists because vm_page_size is not marked const, and therefore looks like global mutable state to Swift.
+    // This shim exists because vm_page_size is not marked const, and therefore looks like global mutable state to Codira.
     return vm_page_size;
 }
 #endif
 
 #if __has_include(<mach/mach.h>)
 mach_port_t _platform_mach_task_self(void) {
-    // This shim exists because mach_task_self_ is not marked const, and therefore looks like global mutable state to Swift.
+    // This shim exists because mach_task_self_ is not marked const, and therefore looks like global mutable state to Codira.
     return mach_task_self();
 }
 #endif

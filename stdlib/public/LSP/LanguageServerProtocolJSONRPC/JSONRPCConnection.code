@@ -17,7 +17,7 @@ public import Dispatch
 public import Foundation
 public import LanguageServerProtocol
 import SKLogging
-import SwiftExtensions
+import CodiraExtensions
 
 #if canImport(Android)
 import Android

@@ -168,4 +168,4 @@ public struct HKDF<H: HashFunction> {
         return SymmetricKey(data: output.prefix(outputByteCount))
     }
 }
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

@@ -1,43 +1,43 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift.org project authors
+// Copyright (c) 2025 Apple Inc. and the Codira.org project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of Swift.org project authors
+// See CONTRIBUTORS.txt for the list of Codira.org project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftSyntax
+import CodiraSyntax
 
-enum SwiftKnownTypeDeclKind: String, Hashable {
-  case bool = "Swift.Boolean"
-  case int = "Swift.Integer"
-  case uint = "Swift.UInt"
-  case int8 = "Swift.Int8"
-  case uint8 = "Swift.UInt8"
-  case int16 = "Swift.Int16"
-  case uint16 = "Swift.UInt16"
-  case int32 = "Swift.Int32"
-  case uint32 = "Swift.UInt32"
-  case int64 = "Swift.Int64"
-  case uint64 = "Swift.UInt64"
-  case float = "Swift.Float"
-  case double = "Swift.Double"
-  case unsafeRawPointer = "Swift.UnsafeRawPointer"
-  case unsafeMutableRawPointer = "Swift.UnsafeMutableRawPointer"
-  case unsafeRawBufferPointer = "Swift.UnsafeRawBufferPointer"
-  case unsafeMutableRawBufferPointer = "Swift.UnsafeMutableRawBufferPointer"
-  case unsafePointer = "Swift.UnsafePointer"
-  case unsafeMutablePointer = "Swift.UnsafeMutablePointer"
-  case unsafeBufferPointer = "Swift.UnsafeBufferPointer"
-  case unsafeMutableBufferPointer = "Swift.UnsafeMutableBufferPointer"
-  case void = "Swift.Void"
-  case string = "Swift.String"
+enum CodiraKnownTypeDeclKind: String, Hashable {
+  case bool = "Codira.Boolean"
+  case int = "Codira.Integer"
+  case uint = "Codira.UInt"
+  case int8 = "Codira.Int8"
+  case uint8 = "Codira.UInt8"
+  case int16 = "Codira.Int16"
+  case uint16 = "Codira.UInt16"
+  case int32 = "Codira.Int32"
+  case uint32 = "Codira.UInt32"
+  case int64 = "Codira.Int64"
+  case uint64 = "Codira.UInt64"
+  case float = "Codira.Float"
+  case double = "Codira.Double"
+  case unsafeRawPointer = "Codira.UnsafeRawPointer"
+  case unsafeMutableRawPointer = "Codira.UnsafeMutableRawPointer"
+  case unsafeRawBufferPointer = "Codira.UnsafeRawBufferPointer"
+  case unsafeMutableRawBufferPointer = "Codira.UnsafeMutableRawBufferPointer"
+  case unsafePointer = "Codira.UnsafePointer"
+  case unsafeMutablePointer = "Codira.UnsafeMutablePointer"
+  case unsafeBufferPointer = "Codira.UnsafeBufferPointer"
+  case unsafeMutableBufferPointer = "Codira.UnsafeMutableBufferPointer"
+  case void = "Codira.Void"
+  case string = "Codira.String"
 
   case dataProtocol = "Foundation.DataProtocol"
   case data = "Foundation.Data"

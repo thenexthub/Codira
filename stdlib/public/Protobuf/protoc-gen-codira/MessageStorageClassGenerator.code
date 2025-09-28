@@ -19,8 +19,8 @@
 // -----------------------------------------------------------------------------
 
 import Foundation
-import SwiftProtobuf
-import SwiftProtobufPluginLibrary
+import CodiraProtobuf
+import CodiraProtobufPluginLibrary
 
 /// Generates the `_StorageClass` used for messages that employ copy-on-write
 /// logic for some of their fields.

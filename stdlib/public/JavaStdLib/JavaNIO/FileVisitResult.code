@@ -52,25 +52,25 @@ open class FileVisitResult: Enum {
         if immutable CONTINUE = classObj.CONTINUE {
           this.init(javaHolder: CONTINUE.javaHolder)
         } else {
-          fatalError("Enum value CONTINUE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value CONTINUE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .TERMINATE:
         if immutable TERMINATE = classObj.TERMINATE {
           this.init(javaHolder: TERMINATE.javaHolder)
         } else {
-          fatalError("Enum value TERMINATE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value TERMINATE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .SKIP_SUBTREE:
         if immutable SKIP_SUBTREE = classObj.SKIP_SUBTREE {
           this.init(javaHolder: SKIP_SUBTREE.javaHolder)
         } else {
-          fatalError("Enum value SKIP_SUBTREE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value SKIP_SUBTREE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .SKIP_SIBLINGS:
         if immutable SKIP_SIBLINGS = classObj.SKIP_SIBLINGS {
           this.init(javaHolder: SKIP_SIBLINGS.javaHolder)
         } else {
-          fatalError("Enum value SKIP_SIBLINGS was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value SKIP_SIBLINGS was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

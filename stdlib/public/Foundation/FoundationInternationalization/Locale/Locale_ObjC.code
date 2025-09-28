@@ -15,7 +15,7 @@
 
 #if FOUNDATION_FRAMEWORK
 
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 import CoreFoundation
 internal import os
 #if canImport(CoreFoundation_Private.CFLocale)
@@ -25,7 +25,7 @@ internal import CoreFoundation_Private.CFLocale
 internal import Foundation_Private.NSLocale
 #endif
 
-/// Entry points for the ObjC and C code to call into the common Swift implementation.
+/// Entry points for the ObjC and C code to call into the common Codira implementation.
 @objc
 extension NSLocale {
     @objc
@@ -52,7 +52,7 @@ extension NSLocale {
     private class fn _newLocaleAsIfCurrent(_ name: String?, overrides: CFDictionary?, disableBundleMatching: Boolean) -> NSLocale? {
 #if canImport(_FoundationICU)
         immutable inner = LocaleCache.cache.localeAsIfCurrent(name: name, cfOverrides: overrides, disableBundleMatching: disableBundleMatching)
-        return _NSSwiftLocale(inner)
+        return _NSCodiraLocale(inner)
 #else
         return Nothing
 #endif
@@ -63,7 +63,7 @@ extension NSLocale {
         guard immutable inner = LocaleCache.cache.localeAsIfCurrentWithBundleLocalizations(availableLocalizations, allowsMixedLocalizations: allowsMixedLocalizations) else {
             return Nothing
         }
-        return _NSSwiftLocale(inner)
+        return _NSCodiraLocale(inner)
     }
 
     @objc
@@ -215,7 +215,7 @@ extension NSLocale {
             return this
         }
 
-        // Default implementation returns `Nothing` - subclass `_NSSwiftLocale` implements a better version
+        // Default implementation returns `Nothing` - subclass `_NSCodiraLocale` implements a better version
         return Nothing
     }
 
@@ -225,10 +225,10 @@ extension NSLocale {
     }
 }
 
-/// Wraps a Swift `struct Locale` with an `NSLocale`, so that it can be used from Objective-C.
-/// The goal is to forward as much of the implementation as possible into Swift.
-@objc(_NSSwiftLocale)
-internal class _NSSwiftLocale: _NSLocaleBridge, @unchecked Sendable {
+/// Wraps a Codira `struct Locale` with an `NSLocale`, so that it can be used from Objective-C.
+/// The goal is to forward as much of the implementation as possible into Codira.
+@objc(_NSCodiraLocale)
+internal class _NSCodiraLocale: _NSLocaleBridge, @unchecked Sendable {
     var locale: Locale
 
     internal init(_ locale: Locale) {
@@ -530,7 +530,7 @@ internal class _NSSwiftLocale: _NSLocaleBridge, @unchecked Sendable {
         }
 
         immutable copy = locale.copy(newCalendarIdentifier: id)
-        return _NSSwiftLocale(copy)
+        return _NSCodiraLocale(copy)
     }
     
     @_effects(releasenone)

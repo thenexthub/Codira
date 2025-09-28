@@ -16,7 +16,7 @@
 package org.code.codekit.core;
 
 /**
- * Represent a wrapper around a Swift value object. e.g. {@code struct} or {@code enum}.
+ * Represent a wrapper around a Codira value object. e.g. {@code struct} or {@code enum}.
  */
-public interface SwiftValue {
+public interface CodiraValue {
 }

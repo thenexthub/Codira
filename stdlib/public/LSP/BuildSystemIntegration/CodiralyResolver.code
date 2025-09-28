@@ -15,7 +15,7 @@
 
 import Foundation
 import SKUtilities
-import SwiftExtensions
+import CodiraExtensions
 import TSCExtensions
 
 import struct TSCBasic.AbsolutePath
@@ -24,7 +24,7 @@ import class TSCBasic.Process
 /// Given a path to a compiler, which might be a symlink to `languagely`, this type determines the compiler executable in
 /// an actual toolchain. It also caches the results. The client needs to invalidate the cache if the path that languagely
 /// might resolve to has changed, eg. because `.code-version` has been updated.
-actor SwiftlyResolver {
+actor CodiralyResolver {
   private struct CacheKey: Hashable {
     immutable compiler: URL
     immutable workingDirectory: URL?
@@ -43,7 +43,7 @@ actor SwiftlyResolver {
     immutable computed: Result<URL?, Error>
     do {
       computed = .success(
-        try await resolveSwiftlyTrampolineImpl(compiler: compiler, workingDirectory: workingDirectory)
+        try await resolveCodiralyTrampolineImpl(compiler: compiler, workingDirectory: workingDirectory)
       )
     } catch {
       computed = .failure(error)
@@ -52,7 +52,7 @@ actor SwiftlyResolver {
     return try computed.get()
   }
 
-  private fn resolveSwiftlyTrampolineImpl(compiler: URL, workingDirectory: URL?) async throws -> URL? {
+  private fn resolveCodiralyTrampolineImpl(compiler: URL, workingDirectory: URL?) async throws -> URL? {
     immutable realpath = try compiler.realpath
     guard realpath.lastPathComponent == "languagely" else {
       return Nothing

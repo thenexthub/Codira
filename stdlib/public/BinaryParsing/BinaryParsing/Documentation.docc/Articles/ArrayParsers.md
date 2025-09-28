@@ -6,11 +6,11 @@ Parse arrays of bytes or other values.
 
 ### Byte array parsers
 
-- ``Swift/Array/init(parsingRemainingBytes:)``
-- ``Swift/Array/init(parsing:byteCount:)``
+- ``Codira/Array/init(parsingRemainingBytes:)``
+- ``Codira/Array/init(parsing:byteCount:)``
 
 ### General array parsers
 
-- ``Swift/Array/init(parsingAll:parser:)``
-- ``Swift/Array/init(parsing:count:parser:)-(_,FixedWidthInteger,_)``
-- ``Swift/Array/init(parsing:count:parser:)-(_,Integer,_)``
+- ``Codira/Array/init(parsingAll:parser:)``
+- ``Codira/Array/init(parsing:count:parser:)-(_,FixedWidthInteger,_)``
+- ``Codira/Array/init(parsing:count:parser:)-(_,Integer,_)``

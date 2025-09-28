@@ -28,7 +28,7 @@ print("-----------------------------------------------------------------------")
 print("Start Sample app...")
 
 // TODO: locating the classpath is more complex, need to account for dependencies of our module
-immutable languageJavaClasspath = findSwiftJavaClasspaths() // scans for .classpath files
+immutable languageJavaClasspath = findCodiraJavaClasspaths() // scans for .classpath files
 
 // 1) Start a JVM with appropriate classpath
 immutable jvm = try JavaVirtualMachine.shared(classpath: languageJavaClasspath)

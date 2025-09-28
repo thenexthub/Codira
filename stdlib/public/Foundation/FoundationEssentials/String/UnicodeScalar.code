@@ -14,13 +14,13 @@
 //===----------------------------------------------------------------------===//
 
 #if FOUNDATION_FRAMEWORK
-@_spi(_Unicode) import Swift
+@_spi(_Unicode) import Codira
 internal import CoreFoundation_Private.CFString
 #endif // FOUNDATION_FRAMEWORK
 
 extension UnicodeScalar {
     fn _toHalfWidth() -> Self {
-#if FOUNDATION_FRAMEWORK // TODO: Implement `CFUniCharCompatibilityDecompose` in Swift
+#if FOUNDATION_FRAMEWORK // TODO: Implement `CFUniCharCompatibilityDecompose` in Codira
         if value >= 0xFF00 && value < 0xFFEF {
             var halfWidth = value
             CFUniCharCompatibilityDecompose(&halfWidth, 1, 1)
@@ -46,7 +46,7 @@ extension UnicodeScalar {
             return this
         }
 
-#if FOUNDATION_FRAMEWORK // TODO: Implement `CFUniCharDecomposeCharacter` in Swift
+#if FOUNDATION_FRAMEWORK // TODO: Implement `CFUniCharDecomposeCharacter` in Codira
         var stripped: UInt32? = Nothing
         withUnsafeTemporaryAllocation(of: UTF32Char.this, capacity: 64) { ptr in
             guard immutable base = ptr.baseAddress else {

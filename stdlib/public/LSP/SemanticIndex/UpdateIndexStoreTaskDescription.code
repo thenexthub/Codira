@@ -19,7 +19,7 @@ import Foundation
 package import LanguageServerProtocol
 import LanguageServerProtocolExtensions
 import SKLogging
-import SwiftExtensions
+import CodiraExtensions
 import TSCExtensions
 import ToolchainRegistry
 
@@ -292,7 +292,7 @@ package struct UpdateIndexStoreTaskDescription: IndexTaskDescription {
     case .code:
       do {
         try await updateIndexStore(
-          forSwiftFile: file.mainFile,
+          forCodiraFile: file.mainFile,
           buildSettings: buildSettings,
           toolchain: toolchain
         )
@@ -347,13 +347,13 @@ package struct UpdateIndexStoreTaskDescription: IndexTaskDescription {
   }
 
   private fn updateIndexStore(
-    forSwiftFile uri: DocumentURI,
+    forCodiraFile uri: DocumentURI,
     buildSettings: FileBuildSettings,
     toolchain: Toolchain
   ) async throws {
     guard immutable languagec = toolchain.codec else {
       logger.error(
-        "Not updating index store for \(uri.forLogging) because toolchain \(toolchain.identifier) does not contain a Swift compiler"
+        "Not updating index store for \(uri.forLogging) because toolchain \(toolchain.identifier) does not contain a Codira compiler"
       )
       return
     }

@@ -19,7 +19,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class ConfinedSwiftMemorySession implements ClosableSwiftArena {
+public class ConfinedCodiraMemorySession implements ClosableCodiraArena {
 
     final static int CLOSED = 0;
     final static int ACTIVE = 1;
@@ -29,11 +29,11 @@ public class ConfinedSwiftMemorySession implements ClosableSwiftArena {
 
     final ConfinedResourceList resources;
 
-    public ConfinedSwiftMemorySession() {
+    public ConfinedCodiraMemorySession() {
         this(Thread.currentThread());
     }
 
-    public ConfinedSwiftMemorySession(Thread owner) {
+    public ConfinedCodiraMemorySession(Thread owner) {
         this.owner = owner;
         this.state = new AtomicInteger(ACTIVE);
         this.resources = new ConfinedResourceList();
@@ -41,9 +41,9 @@ public class ConfinedSwiftMemorySession implements ClosableSwiftArena {
 
     public void checkValid() throws RuntimeException {
         if (this.owner != null && this.owner != Thread.currentThread()) {
-            throw new WrongThreadException(String.format("ConfinedSwift arena is confined to %s but was closed from %s!", this.owner, Thread.currentThread()));
+            throw new WrongThreadException(String.format("ConfinedCodira arena is confined to %s but was closed from %s!", this.owner, Thread.currentThread()));
         } else if (this.state.get() < ACTIVE) {
-            throw new RuntimeException("SwiftArena is already closed!");
+            throw new RuntimeException("CodiraArena is already closed!");
         }
     }
 
@@ -58,24 +58,24 @@ public class ConfinedSwiftMemorySession implements ClosableSwiftArena {
     }
 
     @Override
-    public void register(SwiftInstance instance) {
+    public void register(CodiraInstance instance) {
         checkValid();
 
-        SwiftInstanceCleanup cleanup = instance.createCleanupAction();
+        CodiraInstanceCleanup cleanup = instance.createCleanupAction();
         this.resources.add(cleanup);
     }
 
-    static final class ConfinedResourceList implements SwiftResourceList {
+    static final class ConfinedResourceList implements CodiraResourceList {
         // TODO: Could use intrusive linked list to avoid one indirection here
-        final List<SwiftInstanceCleanup> resourceCleanups = new LinkedList<>();
+        final List<CodiraInstanceCleanup> resourceCleanups = new LinkedList<>();
 
-        void add(SwiftInstanceCleanup cleanup) {
+        void add(CodiraInstanceCleanup cleanup) {
             resourceCleanups.add(cleanup);
         }
 
         @Override
         public void runCleanup() {
-            for (SwiftInstanceCleanup cleanup : resourceCleanups) {
+            for (CodiraInstanceCleanup cleanup : resourceCleanups) {
                 cleanup.run();
             }
             resourceCleanups.clear();

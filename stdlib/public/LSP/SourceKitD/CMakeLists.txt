@@ -12,26 +12,26 @@ set(sources
 
 add_library(SourceKitD STATIC ${sources})
 set_target_properties(SourceKitD PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Codira_MODULE_DIRECTORY})
 target_link_libraries(SourceKitD PUBLIC
   Csourcekitd)
 target_link_libraries(SourceKitD PRIVATE
   SKLogging
-  SwiftExtensions
+  CodiraExtensions
   $<$<NOT:$<PLATFORM_ID:Darwin>>:Foundation>)
 
 
 add_library(SourceKitDForPlugin STATIC ${sources})
 set_target_properties(SourceKitDForPlugin PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Codira_MODULE_DIRECTORY})
 target_compile_options(SourceKitDForPlugin PRIVATE
-  $<$<COMPILE_LANGUAGE:Swift>:
+  $<$<COMPILE_LANGUAGE:Codira>:
     "SHELL:-module-alias SKLogging=SKLoggingForPlugin"
-    "SHELL:-module-alias SwiftExtensions=SwiftExtensionsForPlugin"
+    "SHELL:-module-alias CodiraExtensions=CodiraExtensionsForPlugin"
   >)
 target_link_libraries(SourceKitDForPlugin PUBLIC
   Csourcekitd)
 target_link_libraries(SourceKitDForPlugin PRIVATE
   SKLoggingForPlugin
-  SwiftExtensionsForPlugin
+  CodiraExtensionsForPlugin
   $<$<NOT:$<PLATFORM_ID:Darwin>>:Foundation>)

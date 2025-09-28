@@ -15,8 +15,8 @@
 
 package org.code.codekit.ffm;
 
-import org.code.codekit.core.SwiftArena;
-import org.code.codekit.core.SwiftInstance;
+import org.code.codekit.core.CodiraArena;
+import org.code.codekit.core.CodiraInstance;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
@@ -27,32 +27,32 @@ import java.util.concurrent.ThreadFactory;
 /**
  * A memory session which manages registered objects via the Garbage Collector.
  *
- * <p> When registered Java wrapper classes around native Swift instances {@link SwiftInstance},
+ * <p> When registered Java wrapper classes around native Codira instances {@link CodiraInstance},
  * are eligible for collection, this will trigger the cleanup of the native resources as well.
  *
- * <p> This memory session is LESS reliable than using a {@link FFMConfinedSwiftMemorySession} because
+ * <p> This memory session is LESS reliable than using a {@link FFMConfinedCodiraMemorySession} because
  * the timing of when the native resources are cleaned up is somewhat undefined, and rely on the
  * system GC. Meaning, that if an object nas been promoted to an old generation, there may be a
  * long time between the resource no longer being referenced "in Java" and its native memory being released,
- * and also the deinit of the Swift type being run.
+ * and also the deinit of the Codira type being run.
  *
- * <p> This can be problematic for Swift applications which rely on quick release of resources, and may expect
+ * <p> This can be problematic for Codira applications which rely on quick release of resources, and may expect
  * the deinits to run in expected and "quick" succession.
  *
- * <p> Whenever possible, prefer using an explicitly managed {@link SwiftArena}, such as {@link SwiftArena#ofConfined()}.
+ * <p> Whenever possible, prefer using an explicitly managed {@link CodiraArena}, such as {@link CodiraArena#ofConfined()}.
  */
-final class AllocatingAutoSwiftMemorySession implements AllocatingSwiftArena {
+final class AllocatingAutoCodiraMemorySession implements AllocatingCodiraArena {
 
     private final Arena arena;
     private final Cleaner cleaner;
 
-    public AllocatingAutoSwiftMemorySession(ThreadFactory cleanerThreadFactory) {
+    public AllocatingAutoCodiraMemorySession(ThreadFactory cleanerThreadFactory) {
         this.cleaner = Cleaner.create(cleanerThreadFactory);
         this.arena = Arena.ofAuto();
     }
 
     @Override
-    public void register(SwiftInstance instance) {
+    public void register(CodiraInstance instance) {
         Objects.requireNonNull(instance, "value");
 
         // We make sure we don't capture `instance` in the

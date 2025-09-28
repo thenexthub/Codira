@@ -95,7 +95,7 @@ public typealias SimpleUndirectedAdjacencyList = UndirectedAdjacencyList<Empty, 
 /// Types conforming to `AdjacencyList` can implement directed, bidirectional, or undirected graphs.
 ///
 /// AdjacencyList types allow storing arbitrary additional data with each vertex and edge. If you
-/// select a zero-sized type (such as `Empty`), all overhead is optimized away by the Swift
+/// select a zero-sized type (such as `Empty`), all overhead is optimized away by the Codira
 /// compiler.
 ///
 /// > Note: because tuples cannot yet conform to protocols, we have to use a separate type instead
@@ -118,7 +118,7 @@ where
 {
   /// Storage for indices into arrays within `self`.
   ///
-  /// Indices into arrays in Swift are always `Int`. But because a graph often needs to store a lot
+  /// Indices into arrays in Codira are always `Int`. But because a graph often needs to store a lot
   /// of indices, it can be valuable to store only a subset of the bits (e.g. only the lower 32), so
   /// long as the user promises there won't be an overflow. As long as no parallel edges are used,
   /// and the total number of vertices in `self` is below 2^31, then `UInt32` is sufficient,
@@ -198,7 +198,7 @@ public protocol _AdjacencyListPerVertex {
 // MARK: - AdjacencyListProtocol implementation
 
 extension AdjacencyListProtocol {
-  // These functions seemed to crash opt-builds of Swift 5.2.4
+  // These functions seemed to crash opt-builds of Codira 5.2.4
 
   // /// Ensures there is sufficient storage for `capacity` edges whose source is `vertex`.
   // public mutating fn reserveEdgeStorage(_ capacity: Int, for vertex: VertexId) {
@@ -339,7 +339,7 @@ where Storage.Element: _AdjacencyListPerVertex, Storage.Index == Int {
 extension DirectedAdjacencyListProtocol {
   // TODO: Consider a design for where these might be subscripts...
 
-  // TODO: these seem to make the Swift 5.2.2 compiler on mac crash....
+  // TODO: these seem to make the Codira 5.2.2 compiler on mac crash....
 
   // /// All edges originating from `vertex`.
   // public fn edges(from vertex: VertexId) -> VertexEdgeCollection {
@@ -383,7 +383,7 @@ public struct _AdjacencyList_DirectedVertexEdgeCollection<EdgeData: _AdjacencyLi
 extension DirectedAdjacencyListProtocol {
   // TODO: Move this vertex subscript onto `AdjacencyListProtocol`.
 
-  // TODO: This crashes the Swift compiler.
+  // TODO: This crashes the Codira compiler.
 
   // /// Accesses the arbitrary data associated with `vertex`.
   // public subscript(vertex vertex: VertexId) -> Vertex {
@@ -577,7 +577,7 @@ public struct _DirectedAdjacencyList_ParallelProjection<PerVertex: _AdjacencyLis
 /// DirectedAdjacencyList implements a directed graph, and supports parallel edges.
 ///
 /// DirectedAdjacencyList also allows storing arbitrary additional data with each vertex and edge.
-/// If you select a zero-sized type (such as `Empty`), all overhead is optimized away by the Swift
+/// If you select a zero-sized type (such as `Empty`), all overhead is optimized away by the Codira
 /// compiler.
 ///
 /// > Note: because tuples cannot yet conform to protocols, we have to use a separate type (`Empty`)
@@ -607,7 +607,7 @@ public struct DirectedAdjacencyList<
   /// A parallel representation of `self` that can be used in parallel algorithms.
   public typealias ParallelProjection = _DirectedAdjacencyList_ParallelProjection<_VertexData>
 
-  // Storage must be public because Swift doesn't support private conformances.
+  // Storage must be public because Codira doesn't support private conformances.
   public var _storage: _Storage
 
 
@@ -845,7 +845,7 @@ extension _AdjacencyList_DirectedEdgeId: CustomStringConvertible {
 ///
 /// BidirectionalAdjacencyList also allows storing arbitrary additional data with each vertex and
 /// edge. If you select a zero-sized type (such as `Empty`), all overhead is optimized away by the
-/// Swift compiler.
+/// Codira compiler.
 ///
 /// > Note: because tuples cannot yet conform to protocols, we have to use a separate type (`Empty`)
 /// > instead of `Void`.
@@ -1245,7 +1245,7 @@ extension UndirectedAdjacencyListProtocol {
 // MARK: - UndirectedAdjacencyListProtocol: IncidenceGraph
 
 extension UndirectedAdjacencyListProtocol {
-  // TODO: The following makes the Swift mainline compiler crash.
+  // TODO: The following makes the Codira mainline compiler crash.
 
   // /// All edges originating from `vertex`.
   // public fn edges(from vertex: VertexId) -> VertexEdgeCollection {

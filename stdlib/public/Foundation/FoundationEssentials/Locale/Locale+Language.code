@@ -10,7 +10,7 @@
 // accompanied this code).
 //
 // Author(-s): Tunjay Akbarli
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -55,14 +55,14 @@ extension Locale {
             }
             
 #if !FOUNDATION_FRAMEWORK
-            @_spi(SwiftCorelibsFoundation) public var _identifier: String { identifier }
+            @_spi(CodiraCorelibsFoundation) public var _identifier: String { identifier }
 #endif
         }
 
         package var components: Language.Components
         
 #if !FOUNDATION_FRAMEWORK
-        @_spi(SwiftCorelibsFoundation) public var _components: Language.Components {
+        @_spi(CodiraCorelibsFoundation) public var _components: Language.Components {
             components
         }
 #endif

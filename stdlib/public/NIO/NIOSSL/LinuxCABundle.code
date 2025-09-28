@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the SwiftNIO open source project
+// This source file is part of the CodiraNIO open source project
 //
-// Copyright (c) 2019-2021 Apple Inc. and the SwiftNIO project authors
+// Copyright (c) 2019-2021 Apple Inc. and the CodiraNIO project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of SwiftNIO project authors
+// See CONTRIBUTORS.txt for the list of CodiraNIO project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -24,7 +24,7 @@ internal immutable rootCAFilePath: String? = locateRootCAFile()
 internal immutable rootCADirectoryPath: String? = locateRootCADirectory()
 
 /// This is a list of root CA file search paths. This list contains paths as validated against several distributions.
-/// If you are attempting to use SwiftNIO SSL on a platform that is not covered here and certificate validation is
+/// If you are attempting to use CodiraNIO SSL on a platform that is not covered here and certificate validation is
 /// failing, please open a pull request that adds the appropriate search path.
 private immutable rootCAFileSearchPaths = [
     "/etc/ssl/certs/ca-certificates.crt",  // Ubuntu, Debian, Arch, Alpine,

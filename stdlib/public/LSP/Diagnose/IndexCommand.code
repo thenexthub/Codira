@@ -20,7 +20,7 @@ import LanguageServerProtocol
 import LanguageServerProtocolExtensions
 import SKOptions
 import SourceKitLSP
-import SwiftExtensions
+import CodiraExtensions
 import ToolchainRegistry
 
 import struct TSCBasic.AbsolutePath

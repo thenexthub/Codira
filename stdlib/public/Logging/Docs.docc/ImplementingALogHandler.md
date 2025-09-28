@@ -5,7 +5,7 @@ and libraries.
 
 ## Overview
 
-To become a compatible logging backend that any `SwiftLog` consumer can use,
+To become a compatible logging backend that any `CodiraLog` consumer can use,
 you need to fulfill a few requirements, primarily conforming to the
 ``LogHandler`` protocol.
 

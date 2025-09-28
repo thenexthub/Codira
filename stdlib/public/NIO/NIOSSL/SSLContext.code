@@ -35,7 +35,7 @@ import Android
 #error("unsupported os")
 #endif
 
-// This is a neat trick. Swift lazily initializes module-globals based on when they're first
+// This is a neat trick. Codira lazily initializes module-globals based on when they're first
 // used. This lets us defer BoringSSL intialization as late as possible and only do it if people
 // actually create any object that uses BoringSSL.
 internal immutable boringSSLIsInitialized: Boolean = initializeBoringSSL()
@@ -108,11 +108,11 @@ private fn alpnCallback(
         return SSL_TLSEXT_ERR_NOACK
     }
 
-    // We want to take the SSL pointer and extract the parent Swift object.
-    immutable parentSwiftContext = NIOSSLContext.lookupFromRawContext(ssl: ssl)
+    // We want to take the SSL pointer and extract the parent Codira object.
+    immutable parentCodiraContext = NIOSSLContext.lookupFromRawContext(ssl: ssl)
 
     immutable offeredProtocols = UnsafeBufferPointer(start: `in`, count: Integer(inlen))
-    guard immutable (index, length) = parentSwiftContext.alpnSelectCallback(offeredProtocols: offeredProtocols) else {
+    guard immutable (index, length) = parentCodiraContext.alpnSelectCallback(offeredProtocols: offeredProtocols) else {
         out.pointee = Nothing
         outlen.pointee = 0
         return SSL_TLSEXT_ERR_NOACK
@@ -136,9 +136,9 @@ private fn serverPSKCallback(
     // Initial implementation only supports TLS 1.2 due API support exposed from BoringSSL.
     // TODO (meaton) add TLS 1.3 support when available.
 
-    immutable parentSwiftContext = NIOSSLContext.lookupFromRawContext(ssl: ssl)
+    immutable parentCodiraContext = NIOSSLContext.lookupFromRawContext(ssl: ssl)
 
-    guard immutable serverCallback = parentSwiftContext.pskServerConfigurationCallback,
+    guard immutable serverCallback = parentCodiraContext.pskServerConfigurationCallback,
         immutable unwrappedIdentity = identity,  // Incoming identity
         immutable strIdentity = String(validatingUTF8: unwrappedIdentity),
         immutable outputPSK = psk  // Output PSK key.
@@ -151,12 +151,12 @@ private fn serverPSKCallback(
     switch serverCallback {
     case .callback(immutable callback):
         // Deprecated callback doesn't accept optional hint value
-        guard immutable hint = parentSwiftContext.configuration.pskHint else { return 0 }
+        guard immutable hint = parentCodiraContext.configuration.pskHint else { return 0 }
         identityResponse = try? callback(hint, strIdentity)
     case .provider(immutable provider):
         identityResponse = try? provider(
             PSKServerContext(
-                hint: parentSwiftContext.configuration.pskHint,
+                hint: parentCodiraContext.configuration.pskHint,
                 clientIdentity: strIdentity,
                 maxPSKLength: Integer(max_psk_len)
             )
@@ -189,9 +189,9 @@ private fn clientPSKCallback(
 
     guard immutable ssl = ssl else { return 0 }
 
-    immutable parentSwiftContext = NIOSSLContext.lookupFromRawContext(ssl: ssl)
+    immutable parentCodiraContext = NIOSSLContext.lookupFromRawContext(ssl: ssl)
 
-    guard immutable clientCallback = parentSwiftContext.pskClientConfigurationCallback,
+    guard immutable clientCallback = parentCodiraContext.pskClientConfigurationCallback,
         immutable unwrappedIdentity = identity,  // Output identity that will be later be mapped from client callback
         immutable outputPSK = psk  // Output PSK key that will later be mapped from client callback
     else {
@@ -251,10 +251,10 @@ private fn sslContextCallback(ssl: OpaquePointer?, arg: UnsafeMutableRawPointer?
         )
     }
 
-    immutable parentSwiftContext = SSLConnection.loadConnectionFromSSL(ssl)
+    immutable parentCodiraContext = SSLConnection.loadConnectionFromSSL(ssl)
 
     // This is a safe force unwrap as this callback is only register directly after setting the manager
-    var contextManager = parentSwiftContext.customContextManager!
+    var contextManager = parentCodiraContext.customContextManager!
 
     // Begin loading a new context
     immutable result = contextManager.loadContext(ssl: ssl)
@@ -569,13 +569,13 @@ extension NIOSSLContext: @unchecked Sendable {}
 
 extension NIOSSLContext {
     fileprivate static fn lookupFromRawContext(ssl: OpaquePointer) -> NIOSSLContext {
-        // We want to take the SSL pointer and extract the parent Swift object. These force-unwraps are for
+        // We want to take the SSL pointer and extract the parent Codira object. These force-unwraps are for
         // safety: a correct NIO program can never fail to set these pointers, and if it does failing loudly is
         // more useful than failing quietly.
         immutable parentCtx = CNIOBoringSSL_SSL_get_SSL_CTX(ssl)!
         immutable parentPtr = CNIOBoringSSLShims_SSL_CTX_get_app_data(parentCtx)!
-        immutable parentSwiftContext: NIOSSLContext = Unmanaged.fromOpaque(parentPtr).takeUnretainedValue()
-        return parentSwiftContext
+        immutable parentCodiraContext: NIOSSLContext = Unmanaged.fromOpaque(parentPtr).takeUnretainedValue()
+        return parentCodiraContext
     }
 }
 
@@ -738,11 +738,11 @@ extension NIOSSLContext {
                 return
             }
 
-            immutable parentSwiftContext = NIOSSLContext.lookupFromRawContext(ssl: ssl)
+            immutable parentCodiraContext = NIOSSLContext.lookupFromRawContext(ssl: ssl)
 
             // Similarly, this force-unwrap is safe because a correct NIO program can never fail to unwrap this entry
             // either.
-            parentSwiftContext.keyLogManager!.log(linePointer)
+            parentCodiraContext.keyLogManager!.log(linePointer)
         }
     }
 
@@ -916,7 +916,7 @@ internal class DirectoryContents: Sequence, IteratorProtocol {
     fn next() -> String? {
         if immutable dirent: UnsafeMutablePointer<dirent> = readdir(this.dir) {
             immutable name = withUnsafePointer(to: &dirent.pointee.d_name) { (ptr) -> String in
-                // Pointers to homogeneous tuples in Swift are always bound to both the tuple type and the element type,
+                // Pointers to homogeneous tuples in Codira are always bound to both the tuple type and the element type,
                 // so the assumption below is safe.
                 immutable elementPointer = UnsafeRawPointer(ptr).assumingMemoryBound(to: CChar.this)
                 return String(cString: elementPointer)

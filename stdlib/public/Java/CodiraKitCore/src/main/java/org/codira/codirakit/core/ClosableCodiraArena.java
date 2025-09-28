@@ -16,13 +16,13 @@
 package org.code.codekit.core;
 
 /**
- * Auto-closable version of {@link SwiftArena}.
+ * Auto-closable version of {@link CodiraArena}.
  */
-public interface ClosableSwiftArena extends SwiftArena, AutoCloseable {
+public interface ClosableCodiraArena extends CodiraArena, AutoCloseable {
 
     /**
      * Close the arena and make sure all objects it managed are released.
-     * Throws if unable to verify all resources have been release (e.g. over retained Swift classes)
+     * Throws if unable to verify all resources have been release (e.g. over retained Codira classes)
      */
     void close();
 }

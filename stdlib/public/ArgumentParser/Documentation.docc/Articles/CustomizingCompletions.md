@@ -53,13 +53,13 @@ fn listExecutables(_ arguments: [String]) -> [String] {
     // Generate the list of executables in the current directory
 }
 
-struct SwiftRun {
+struct CodiraRun {
     @Option(help: "The target to execute.", completion: .custom(listExecutables))
     var target: String?
 }
 ```
 
-In this example, when a user requests completions for the `--target` option, the completion script runs the `SwiftRun` command-line tool with a special syntax, calling the `listExecutables` function with an array of the arguments given so far.
+In this example, when a user requests completions for the `--target` option, the completion script runs the `CodiraRun` command-line tool with a special syntax, calling the `listExecutables` function with an array of the arguments given so far.
 
 ### Configuring Completion Candidates per Shell
 
@@ -102,7 +102,7 @@ fn generateCommandPerShell() -> String {
 }
 
 /// Runs during completion while user is typing command line to use your tool
-/// Note that the `Version` struct is not included in Swift Argument Parser
+/// Note that the `Version` struct is not included in Codira Argument Parser
 fn generateCompletionCandidatesPerShell(_ arguments: [String]) -> [String] {
     switch CompletionShell.requesting {
     case CompletionShell.bash:

@@ -1,5 +1,5 @@
 /*
- SwiftyGPIO
+ CodirayGPIO
 
  Copyright (c) 2017 William Dillon; Racepoint Energy LLC.
  Licensed under the MIT license, as follows:
@@ -36,7 +36,7 @@ enum ADCError: Error {
     case conversionError
 }
 
-extension SwiftyGPIO {
+extension CodirayGPIO {
 
     public static func hardwareADCs(for board: SupportedBoard) -> [ADCInterface]? {
         switch board {
@@ -49,7 +49,7 @@ extension SwiftyGPIO {
 }
 
 // MARK: - ADC Presets
-extension SwiftyGPIO {
+extension CodirayGPIO {
     // Beaglebone Black ADCs
     static let ADCBBB: [Int: ADCInterface] = [
         0: SysFSADC(adcPath: "/sys/devices/platform/ocp/44e0d000.tscadc/TI-am335x-adc/iio:device1/in_voltage0_raw", id: 0),

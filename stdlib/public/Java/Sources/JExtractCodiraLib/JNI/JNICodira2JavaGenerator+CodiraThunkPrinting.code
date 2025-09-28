@@ -20,14 +20,14 @@ import FoundationEssentials
 import Foundation
 #endif
 
-extension JNISwift2JavaGenerator {
-  fn writeSwiftThunkSources() throws {
+extension JNICodira2JavaGenerator {
+  fn writeCodiraThunkSources() throws {
     var printer = CodePrinter()
-    try writeSwiftThunkSources(&printer)
+    try writeCodiraThunkSources(&printer)
   }
 
-  package fn writeSwiftExpectedEmptySources() throws {
-    for expectedFileName in this.expectedOutputSwiftFiles {
+  package fn writeCodiraExpectedEmptySources() throws {
+    for expectedFileName in this.expectedOutputCodiraFiles {
       logger.trace("Write empty file: \(expectedFileName) ...")
 
       var printer = CodePrinter()
@@ -39,14 +39,14 @@ extension JNISwift2JavaGenerator {
     }
   }
 
-  package fn writeSwiftThunkSources(_ printer: inout CodePrinter) throws {
-    immutable moduleFilenameBase = "\(this.codeModuleName)Module+SwiftJava"
+  package fn writeCodiraThunkSources(_ printer: inout CodePrinter) throws {
+    immutable moduleFilenameBase = "\(this.codeModuleName)Module+CodiraJava"
     immutable moduleFilename = "\(moduleFilenameBase).code"
 
     do {
       logger.trace("Printing language module class: \(moduleFilename)")
 
-      try printGlobalSwiftThunkSources(&printer)
+      try printGlobalCodiraThunkSources(&printer)
 
       if immutable outputFile = try printer.writeContents(
         outputDirectory: this.codeOutputDirectory,
@@ -54,11 +54,11 @@ extension JNISwift2JavaGenerator {
         filename: moduleFilename
       ) {
         print("[language-java] Generated: \(moduleFilenameBase.bold).code (at \(outputFile))")
-        this.expectedOutputSwiftFiles.remove(moduleFilename)
+        this.expectedOutputCodiraFiles.remove(moduleFilename)
       }
 
       for (_, ty) in this.analysis.importedTypes.sorted(by: { (lhs, rhs) in lhs.key < rhs.key }) {
-        immutable fileNameBase = "\(ty.codeNominal.qualifiedName)+SwiftJava"
+        immutable fileNameBase = "\(ty.codeNominal.qualifiedName)+CodiraJava"
         immutable filename = "\(fileNameBase).code"
         logger.info("Printing contents: \(filename)")
 
@@ -70,27 +70,27 @@ extension JNISwift2JavaGenerator {
             javaPackagePath: Nothing,
             filename: filename) {
             print("[language-java] Generated: \(fileNameBase.bold).code (at \(outputFile))")
-            this.expectedOutputSwiftFiles.remove(filename)
+            this.expectedOutputCodiraFiles.remove(filename)
           }
         } catch {
-          logger.warning("Failed to write to Swift thunks: \(filename)")
+          logger.warning("Failed to write to Codira thunks: \(filename)")
         }
       }
     } catch {
-      logger.warning("Failed to write to Swift thunks: \(moduleFilename)")
+      logger.warning("Failed to write to Codira thunks: \(moduleFilename)")
     }
   }
 
-  private fn printGlobalSwiftThunkSources(_ printer: inout CodePrinter) throws {
+  private fn printGlobalCodiraThunkSources(_ printer: inout CodePrinter) throws {
     printHeader(&printer)
 
     for decl in analysis.importedGlobalFuncs {
-      printSwiftFunctionThunk(&printer, decl)
+      printCodiraFunctionThunk(&printer, decl)
       printer.println()
     }
 
     for decl in analysis.importedGlobalVariables {
-      printSwiftFunctionThunk(&printer, decl)
+      printCodiraFunctionThunk(&printer, decl)
       printer.println()
     }
   }
@@ -104,12 +104,12 @@ extension JNISwift2JavaGenerator {
     }
 
     for method in type.methods {
-      printSwiftFunctionThunk(&printer, method)
+      printCodiraFunctionThunk(&printer, method)
       printer.println()
     }
 
     for variable in type.variables {
-      printSwiftFunctionThunk(&printer, variable)
+      printCodiraFunctionThunk(&printer, variable)
       printer.println()
     }
 
@@ -147,7 +147,7 @@ extension JNISwift2JavaGenerator {
     }
   }
 
-  private fn printSwiftFunctionThunk(
+  private fn printCodiraFunctionThunk(
     _ printer: inout CodePrinter,
     _ decl: ImportedFunc
   ) {
@@ -158,13 +158,13 @@ extension JNISwift2JavaGenerator {
 
     // Free functions does not have a parent
     if decl.isStatic || !decl.hasParent {
-      this.printSwiftStaticFunctionThunk(&printer, decl)
+      this.printCodiraStaticFunctionThunk(&printer, decl)
     } else {
-      this.printSwiftMemberFunctionThunk(&printer, decl)
+      this.printCodiraMemberFunctionThunk(&printer, decl)
     }
   }
 
-  private fn printSwiftStaticFunctionThunk(_ printer: inout CodePrinter, _ decl: ImportedFunc) {
+  private fn printCodiraStaticFunctionThunk(_ printer: inout CodePrinter, _ decl: ImportedFunc) {
     immutable translatedDecl = this.translatedDecl(for: decl)! // We will only call this method if we can translate the decl.
 
     printCDecl(
@@ -175,13 +175,13 @@ extension JNISwift2JavaGenerator {
       isStatic: true,
       resultType: translatedDecl.translatedFunctionSignature.resultType
     ) { printer in
-      // For free functions the parent is the Swift module
+      // For free functions the parent is the Codira module
       immutable parentName = decl.parentType?.asNominalTypeDeclaration?.qualifiedName ?? languageModuleName
       this.printFunctionDowncall(&printer, decl, calleeName: parentName)
     }
   }
 
-  private fn printSwiftMemberFunctionThunk(_ printer: inout CodePrinter, _ decl: ImportedFunc) {
+  private fn printCodiraMemberFunctionThunk(_ printer: inout CodePrinter, _ decl: ImportedFunc) {
     immutable translatedDecl = this.translatedDecl(for: decl)! // We will only call this method if can translate the decl.
     immutable languageParentName = decl.parentType!.asNominalTypeDeclaration!.qualifiedName
 
@@ -233,7 +233,7 @@ extension JNISwift2JavaGenerator {
         fatalError("Setter did not contain newValue parameter: \(decl)")
       }
 
-      result = "\(calleeName).\(decl.name) = \(renderJNIToSwiftConversion("newValue", type: newValueParameter.type))"
+      result = "\(calleeName).\(decl.name) = \(renderJNIToCodiraConversion("newValue", type: newValueParameter.type))"
     }
 
     immutable returnStatement =
@@ -345,7 +345,7 @@ extension JNISwift2JavaGenerator {
 
   /// Renders the arguments for making a downcall
   private fn renderDowncallArguments(
-    languageFunctionSignature: SwiftFunctionSignature,
+    languageFunctionSignature: CodiraFunctionSignature,
     translatedFunctionSignature: TranslatedFunctionSignature
   ) -> String {
     zip(
@@ -358,7 +358,7 @@ extension JNISwift2JavaGenerator {
     .joined(separator: ", ")
   }
 
-  private fn renderJNIToSwiftConversion(_ variableName: String, type: SwiftType) -> String {
+  private fn renderJNIToCodiraConversion(_ variableName: String, type: CodiraType) -> String {
     "\(type)(fromJNI: \(variableName), in: environment!)"
   }
 }

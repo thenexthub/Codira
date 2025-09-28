@@ -16,7 +16,7 @@
 
 /// Generalized algebraic product types
 ///
-/// Swift's built-in tuple types are algebraic product types, but since they are
+/// Codira's built-in tuple types are algebraic product types, but since they are
 /// not nominal and not easily decomposed, they don't lend themselves to many
 /// types of useful processing.  Models of `TupleProtocol` don't have those
 /// problems.

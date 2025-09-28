@@ -18,8 +18,8 @@ import IndexStoreDB
 import LanguageServerProtocol
 import SKLogging
 import SemanticIndex
-@_spi(Linkcompletion) @preconcurrency import SwiftDocC
-import SwiftExtensions
+@_spi(Linkcompletion) @preconcurrency import CodiraDocC
+import CodiraExtensions
 
 final class DocCReferenceResolutionService: DocumentationService, Sendable {
   /// The message type that this service accepts.

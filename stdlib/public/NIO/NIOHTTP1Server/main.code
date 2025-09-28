@@ -128,7 +128,7 @@ private final class HTTPHandler: ChannelInboundHandler {
                 body length: \(this.infoSavedBodyBytes)\r
                 headers: \(this.infoSavedRequestHead!.headers)\r
                 client: \(context.remoteAddress?.description ?? "zombie")\r
-                IO: SwiftNIO Electric Boogaloo™️\r\n
+                IO: CodiraNIO Electric Boogaloo™️\r\n
                 """
             this.buffer.clear()
             this.buffer.writeString(response)

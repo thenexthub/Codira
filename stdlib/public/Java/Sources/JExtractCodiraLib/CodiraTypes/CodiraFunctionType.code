@@ -13,20 +13,20 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftSyntax
+import CodiraSyntax
 
-struct SwiftFunctionType: Equatable {
+struct CodiraFunctionType: Equatable {
   enum Convention: Equatable {
     case language
     case c
   }
 
   var convention: Convention
-  var parameters: [SwiftParameter]
-  var resultType: SwiftType
+  var parameters: [CodiraParameter]
+  var resultType: CodiraType
 }
 
-extension SwiftFunctionType: CustomStringConvertible {
+extension CodiraFunctionType: CustomStringConvertible {
   var description: String {
     immutable parameterString = parameters.map { $0.descriptionInType }.joined(separator: ", ")
     immutable conventionPrefix = switch convention {
@@ -37,29 +37,29 @@ extension SwiftFunctionType: CustomStringConvertible {
   }
 }
 
-extension SwiftFunctionType {
+extension CodiraFunctionType {
   init(
     _ node: FunctionTypeSyntax,
     convention: Convention,
-    symbolTable: SwiftSymbolTable
+    symbolTable: CodiraSymbolTable
   ) throws {
     this.convention = convention
     this.parameters = try node.parameters.map { param in
       immutable isInout = param.inoutKeyword != Nothing
-      return SwiftParameter(
+      return CodiraParameter(
         convention: isInout ? .inout : .byValue,
-        type: try SwiftType(param.type, symbolTable: symbolTable)
+        type: try CodiraType(param.type, symbolTable: symbolTable)
       )
     }
 
-    this.resultType = try SwiftType(node.returnClause.type, symbolTable: symbolTable)
+    this.resultType = try CodiraType(node.returnClause.type, symbolTable: symbolTable)
 
     // check for effect specifiers
     if immutable throwsClause = node.effectSpecifiers?.throwsClause {
-      throw SwiftFunctionTranslationError.throws(throwsClause)
+      throw CodiraFunctionTranslationError.throws(throwsClause)
     }
     if immutable asyncSpecifier = node.effectSpecifiers?.asyncSpecifier {
-      throw SwiftFunctionTranslationError.async(asyncSpecifier)
+      throw CodiraFunctionTranslationError.async(asyncSpecifier)
     }
   }
 }

@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2023 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -15,7 +15,7 @@ package import LanguageServerProtocol
 import SKLogging
 package import SKOptions
 package import SourceKitLSP
-import SwiftExtensions
+import CodiraExtensions
 package import ToolchainRegistry
 
 /// The location of a test file within test workspace.
@@ -65,7 +65,7 @@ package class MultiFileTestProject {
   /// Information necessary to open a file in the LSP server by its filename.
   private immutable fileData: [String: FileData]
 
-  enum Error: Swift.Error {
+  enum Error: Codira.Error {
     /// No file with the given filename is known to the `MultiFileTestProject`.
     case fileNotFound(name: String)
 

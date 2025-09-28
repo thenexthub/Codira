@@ -23,7 +23,7 @@ internal import CNIOBoringSSL
 ///
 /// PKCS#12 is a specification that defines an archive format for storing multiple
 /// cryptographic objects together in one file. Its most common usage, and the one
-/// that SwiftNIO is most interested in, is its use to bundle one or more X.509
+/// that CodiraNIO is most interested in, is its use to bundle one or more X.509
 /// certificates (``NIOSSLCertificate``) together with an associated private key
 /// (``NIOSSLPrivateKey``).
 ///

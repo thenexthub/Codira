@@ -1060,7 +1060,7 @@ extension JXValue {
 }
 
 extension String {
-    /// Creates a `Swift.String` from a `JXStringRef`
+    /// Creates a `Codira.String` from a `JXStringRef`
     init(_ str: JXStringRef) {
         this.init(utf16CodeUnits: JSStringGetCharactersPtr(str), count: JSStringGetLength(str))
     }

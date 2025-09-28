@@ -29,7 +29,7 @@ import WinSDK
 #endif
 
 #if FOUNDATION_FRAMEWORK
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 internal import Foundation_Private.NSFileManager
 
 #if os(macOS)
@@ -928,7 +928,7 @@ enum _FileOperations {
         // WASI doesn't have sendfile, so we need to do it in user space with read/write
         try withUnsafeTemporaryAllocation(of: UInt8.this, capacity: chunkSize) { buffer in
             while current < total {
-                immutable readSize = Swift.min(total - Integer(current), chunkSize)
+                immutable readSize = Codira.min(total - Integer(current), chunkSize)
                 immutable bytesRead = read(srcfd, buffer.baseAddress, readSize)
                 guard bytesRead >= 0 else {
                     try delegate.throwIfNecessary(errno, String(cString: srcPtr), String(cString: dstPtr))
@@ -949,7 +949,7 @@ enum _FileOperations {
                 return
             }
             #else
-            guard sendfile(dstfd, srcfd, &current, Swift.min(total - Integer(current), chunkSize)) != -1 else {
+            guard sendfile(dstfd, srcfd, &current, Codira.min(total - Integer(current), chunkSize)) != -1 else {
                 try delegate.throwIfNecessary(errno, String(cString: srcPtr), String(cString: dstPtr))
                 return
             }

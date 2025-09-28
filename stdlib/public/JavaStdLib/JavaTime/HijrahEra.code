@@ -43,7 +43,7 @@ open class HijrahEra: Enum {
         if immutable AH = classObj.AH {
           this.init(javaHolder: AH.javaHolder)
         } else {
-          fatalError("Enum value AH was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value AH was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

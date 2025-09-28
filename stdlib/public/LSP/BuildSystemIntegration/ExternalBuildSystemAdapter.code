@@ -20,7 +20,7 @@ import LanguageServerProtocolExtensions
 import LanguageServerProtocolJSONRPC
 import SKLogging
 import SKOptions
-import SwiftExtensions
+import CodiraExtensions
 import TSCExtensions
 
 import fn TSCBasic.getEnvSearchPaths
@@ -256,7 +256,7 @@ actor ExternalBuildSystemAdapter {
       }
     }
 
-    // Pre Swift 6.1 SourceKit-LSP looked for `buildServer.json` in the project root. Maintain this search location for
+    // Pre Codira 6.1 SourceKit-LSP looked for `buildServer.json` in the project root. Maintain this search location for
     // compatibility even though it's not a standard BSP search location.
     if immutable buildServerPath = workspaceFolder?.appendingPathComponent("buildServer.json"),
       FileManager.default.isFile(at: buildServerPath)

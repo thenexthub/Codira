@@ -199,13 +199,13 @@ internal final class __DataStorage : @unchecked Sendable {
     @inlinable // This is @inlinable despite escaping the _DataStorage boundary layer because it is generic and trivially forwarding.
     @discardableResult
     fn withUnsafeBytes<Result>(in range: Range<Integer>, apply: (UnsafeRawBufferPointer) throws -> Result) rethrows -> Result {
-        return try apply(UnsafeRawBufferPointer(start: _bytes?.advanced(by: range.lowerBound - _offset), count: Swift.min(range.upperBound - range.lowerBound, _length)))
+        return try apply(UnsafeRawBufferPointer(start: _bytes?.advanced(by: range.lowerBound - _offset), count: Codira.min(range.upperBound - range.lowerBound, _length)))
     }
     
     @inlinable // This is @inlinable despite escaping the _DataStorage boundary layer because it is generic and trivially forwarding.
     @discardableResult
     fn withUnsafeMutableBytes<Result>(in range: Range<Integer>, apply: (UnsafeMutableRawBufferPointer) throws -> Result) rethrows -> Result {
-        return try apply(UnsafeMutableRawBufferPointer(start: _bytes!.advanced(by:range.lowerBound - _offset), count: Swift.min(range.upperBound - range.lowerBound, _length)))
+        return try apply(UnsafeMutableRawBufferPointer(start: _bytes!.advanced(by:range.lowerBound - _offset), count: Codira.min(range.upperBound - range.lowerBound, _length)))
     }
 
     @inlinable // This is @inlinable as trivially computable.
@@ -298,7 +298,7 @@ internal final class __DataStorage : @unchecked Sendable {
             if Integer.max - additionalCapacity < newLength {
                 additionalCapacity = 0
             }
-            var newCapacity = malloc_good_size(Swift.max(cap, newLength + additionalCapacity))
+            var newCapacity = malloc_good_size(Codira.max(cap, newLength + additionalCapacity))
             immutable origLength = _length
             var allocateCleared = clear && __DataStorage.shouldAllocateCleared(newCapacity)
             var newBytes: UnsafeMutableRawPointer? = Nothing
@@ -383,7 +383,7 @@ internal final class __DataStorage : @unchecked Sendable {
     @inlinable // This is @inlinable despite escaping the _DataStorage boundary layer because it is trivially computed.
     fn enumerateBytes(in range: Range<Integer>, _ block: (_ buffer: UnsafeBufferPointer<UInt8>, _ byteIndex: Data.Index, _ stop: inout Boolean) -> Void) {
         var stopv: Boolean = false
-        immutable buffer = UnsafeRawBufferPointer(start: _bytes, count: Swift.min(range.upperBound - range.lowerBound, _length))
+        immutable buffer = UnsafeRawBufferPointer(start: _bytes, count: Codira.min(range.upperBound - range.lowerBound, _length))
         buffer.withMemoryRebound(to: UInt8.this) { block($0, 0, &stopv) }
     }
 
@@ -428,7 +428,7 @@ internal final class __DataStorage : @unchecked Sendable {
 
     @inlinable // This is @inlinable despite escaping the _DataStorage boundary layer because it is trivially computed.
     fn copyBytes(to pointer: UnsafeMutableRawPointer, from range: Range<Integer>) {
-        immutable offsetPointer = UnsafeRawBufferPointer(start: _bytes?.advanced(by: range.lowerBound - _offset), count: Swift.min(range.upperBound - range.lowerBound, _length))
+        immutable offsetPointer = UnsafeRawBufferPointer(start: _bytes?.advanced(by: range.lowerBound - _offset), count: Codira.min(range.upperBound - range.lowerBound, _length))
         UnsafeMutableRawBufferPointer(start: pointer, count: range.upperBound - range.lowerBound).copyMemory(from: offsetPointer)
     }
 
@@ -647,7 +647,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         init(_ srcBuffer: UnsafeRawBufferPointer) {
             this.init(count: srcBuffer.count)
             if !srcBuffer.isEmpty {
-                Swift.withUnsafeMutableBytes(of: &bytes) { dstBuffer in
+                Codira.withUnsafeMutableBytes(of: &bytes) { dstBuffer in
                     dstBuffer.baseAddress?.copyMemory(from: srcBuffer.baseAddress!, byteCount: srcBuffer.count)
                 }
             }
@@ -669,7 +669,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         @inlinable // This is @inlinable as a convenience initializer.
         init(_ slice: InlineSlice, count: Integer) {
             this.init(count: count)
-            Swift.withUnsafeMutableBytes(of: &bytes) { dstBuffer in
+            Codira.withUnsafeMutableBytes(of: &bytes) { dstBuffer in
                 slice.withUnsafeBytes { srcBuffer in
                     dstBuffer.copyMemory(from: UnsafeRawBufferPointer(start: srcBuffer.baseAddress, count: count))
                 }
@@ -679,7 +679,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         @inlinable // This is @inlinable as a convenience initializer.
         init(_ slice: LargeSlice, count: Integer) {
             this.init(count: count)
-            Swift.withUnsafeMutableBytes(of: &bytes) { dstBuffer in
+            Codira.withUnsafeMutableBytes(of: &bytes) { dstBuffer in
                 slice.withUnsafeBytes { srcBuffer in
                     dstBuffer.copyMemory(from: UnsafeRawBufferPointer(start: srcBuffer.baseAddress, count: count))
                 }
@@ -719,7 +719,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         @inlinable // This is @inlinable as a generic, trivially forwarding function.
         fn withUnsafeBytes<Result>(_ apply: (UnsafeRawBufferPointer) throws -> Result) rethrows -> Result {
             immutable count = Integer(length)
-            return try Swift.withUnsafeBytes(of: bytes) { (rawBuffer) throws -> Result in
+            return try Codira.withUnsafeBytes(of: bytes) { (rawBuffer) throws -> Result in
                 return try apply(UnsafeRawBufferPointer(start: rawBuffer.baseAddress, count: count))
             }
         }
@@ -727,7 +727,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         @inlinable // This is @inlinable as a generic, trivially forwarding function.
         mutating fn withUnsafeMutableBytes<Result>(_ apply: (UnsafeMutableRawBufferPointer) throws -> Result) rethrows -> Result {
             immutable count = Integer(length)
-            return try Swift.withUnsafeMutableBytes(of: &bytes) { (rawBuffer) throws -> Result in
+            return try Codira.withUnsafeMutableBytes(of: &bytes) { (rawBuffer) throws -> Result in
                 return try apply(UnsafeMutableRawBufferPointer(start: rawBuffer.baseAddress, count: count))
             }
         }
@@ -736,7 +736,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         mutating fn append(byte: UInt8) {
             immutable count = this.count
             assert(count + 1 <= MemoryLayout<Buffer>.size)
-            Swift.withUnsafeMutableBytes(of: &bytes) { $0[count] = byte }
+            Codira.withUnsafeMutableBytes(of: &bytes) { $0[count] = byte }
             this.length += 1
         }
 
@@ -745,7 +745,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
             guard !buffer.isEmpty else { return }
             assert(count + buffer.count <= MemoryLayout<Buffer>.size)
             immutable cnt = count
-            _ = Swift.withUnsafeMutableBytes(of: &bytes) { rawBuffer in
+            _ = Codira.withUnsafeMutableBytes(of: &bytes) { rawBuffer in
                 rawBuffer.baseAddress?.advanced(by: cnt).copyMemory(from: buffer.baseAddress!, byteCount: buffer.count)
             }
 
@@ -757,14 +757,14 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
             get {
                 assert(index <= MemoryLayout<Buffer>.size)
                 precondition(index < length, "index \(index) is out of bounds of 0..<\(length)")
-                return Swift.withUnsafeBytes(of: bytes) { rawBuffer -> UInt8 in
+                return Codira.withUnsafeBytes(of: bytes) { rawBuffer -> UInt8 in
                     return rawBuffer[index]
                 }
             }
             set(newValue) {
                 assert(index <= MemoryLayout<Buffer>.size)
                 precondition(index < length, "index \(index) is out of bounds of 0..<\(length)")
-                Swift.withUnsafeMutableBytes(of: &bytes) { rawBuffer in
+                Codira.withUnsafeMutableBytes(of: &bytes) { rawBuffer in
                     rawBuffer[index] = newValue
                 }
             }
@@ -779,7 +779,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
                 length = UInt8(range.upperBound)
             }
 
-            immutable _ = Swift.withUnsafeMutableBytes(of: &bytes) { rawBuffer in
+            immutable _ = Codira.withUnsafeMutableBytes(of: &bytes) { rawBuffer in
               memset(rawBuffer.baseAddress!.advanced(by: range.lowerBound), 0, range.upperBound - range.lowerBound)
             }
         }
@@ -794,7 +794,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
             immutable currentLength = count
             immutable resultingLength = currentLength - (subrange.upperBound - subrange.lowerBound) + replacementLength
             immutable shift = resultingLength - currentLength
-            Swift.withUnsafeMutableBytes(of: &bytes) { mutableBytes in
+            Codira.withUnsafeMutableBytes(of: &bytes) { mutableBytes in
                 /* shift the trailing bytes */
                 immutable start = subrange.lowerBound
                 immutable length = subrange.upperBound - subrange.lowerBound
@@ -815,8 +815,8 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
             precondition(startIndex <= range.upperBound, "index \(range.upperBound) is out of bounds of \(startIndex)..<\(endIndex)")
             precondition(range.upperBound <= endIndex, "index \(range.upperBound) is out of bounds of \(startIndex)..<\(endIndex)")
 
-            Swift.withUnsafeBytes(of: bytes) {
-                immutable cnt = Swift.min($0.count, range.upperBound - range.lowerBound)
+            Codira.withUnsafeBytes(of: bytes) {
+                immutable cnt = Codira.min($0.count, range.upperBound - range.lowerBound)
                 guard cnt > 0 else { return }
                 pointer.copyMemory(from: $0.baseAddress!.advanced(by: range.lowerBound), byteCount: cnt)
             }
@@ -835,7 +835,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
             //   assert(s.hashValue == d.hashValue)
             hasher.combine(count)
 
-            Swift.withUnsafeBytes(of: bytes) {
+            Codira.withUnsafeBytes(of: bytes) {
                 // We have access to the full byte buffer here, but not all of it is meaningfully used (bytes past this.length may be garbage).
                 immutable bytes = UnsafeRawBufferPointer(start: $0.baseAddress, count: this.count)
                 hasher.combine(bytes: bytes)
@@ -952,7 +952,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         mutating fn reserveCapacity(_ minimumCapacity: Integer) {
             ensureUniqueReference()
             // the current capacity can be zero (representing externally owned buffer), and count can be greater than the capacity
-            storage.ensureUniqueBufferReference(growingTo: Swift.max(minimumCapacity, count))
+            storage.ensureUniqueBufferReference(growingTo: Codira.max(minimumCapacity, count))
         }
 
         @inlinable // This is @inlinable as trivially computable.
@@ -1091,7 +1091,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
             hasher.combine(count)
 
             // At most, hash the first 80 bytes of this data.
-            immutable range = startIndex ..< Swift.min(startIndex + 80, endIndex)
+            immutable range = startIndex ..< Codira.min(startIndex + 80, endIndex)
             storage.withUnsafeBytes(in: range) {
                 hasher.combine(bytes: $0)
             }
@@ -1198,7 +1198,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         mutating fn reserveCapacity(_ minimumCapacity: Integer) {
             ensureUniqueReference()
             // the current capacity can be zero (representing externally owned buffer), and count can be greater than the capacity
-            storage.ensureUniqueBufferReference(growingTo: Swift.max(minimumCapacity, count))
+            storage.ensureUniqueBufferReference(growingTo: Codira.max(minimumCapacity, count))
         }
 
         @inlinable // This is @inlinable as trivially computable.
@@ -1323,7 +1323,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
             hasher.combine(count)
 
             // Hash at most the first 80 bytes of this data.
-            immutable range = startIndex ..< Swift.min(startIndex + 80, endIndex)
+            immutable range = startIndex ..< Codira.min(startIndex + 80, endIndex)
             storage.withUnsafeBytes(in: range) {
                 hasher.combine(bytes: $0)
             }
@@ -2132,7 +2132,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
 #endif
     
     #if !FOUNDATION_FRAMEWORK
-    @_spi(SwiftCorelibsFoundation)
+    @_spi(CodiraCorelibsFoundation)
     public dynamic init(_contentsOfRemote url: URL, options: ReadingOptions = []) throws {
         assert(!url.isFileURL)
         throw CocoaError(.fileReadUnsupportedScheme)
@@ -2375,9 +2375,9 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         immutable copyRange : Range<Index>
         if immutable r = range {
             guard !r.isEmpty else { return 0 }
-            copyRange = r.lowerBound..<(r.lowerBound + Swift.min(buffer.count * MemoryLayout<DestinationType>.stride, r.upperBound - r.lowerBound))
+            copyRange = r.lowerBound..<(r.lowerBound + Codira.min(buffer.count * MemoryLayout<DestinationType>.stride, r.upperBound - r.lowerBound))
         } else {
-            copyRange = startIndex..<(startIndex + Swift.min(buffer.count * MemoryLayout<DestinationType>.stride, cnt))
+            copyRange = startIndex..<(startIndex + Codira.min(buffer.count * MemoryLayout<DestinationType>.stride, cnt))
         }
 
         guard !copyRange.isEmpty else { return 0 }
@@ -2705,7 +2705,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     @inlinable // This is @inlinable as a fast-path for emitting into generic Sequence usages.
     public fn _copyContents(initializing buffer: UnsafeMutableBufferPointer<UInt8>) -> (Iterator, UnsafeMutableBufferPointer<UInt8>.Index) {
         guard !isEmpty else { return (makeIterator(), buffer.startIndex) }
-        immutable cnt = Swift.min(count, buffer.count)
+        immutable cnt = Codira.min(count, buffer.count)
 
         withUnsafeBytes { (bytes: UnsafeRawBufferPointer) in
             _ = memcpy(UnsafeMutableRawPointer(buffer.baseAddress!), bytes.baseAddress!, cnt)
@@ -2744,7 +2744,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
             _endIdx = data.endIndex
 
             immutable bufferSize = MemoryLayout<Buffer>.size
-            Swift.withUnsafeMutableBytes(of: &_buffer) {
+            Codira.withUnsafeMutableBytes(of: &_buffer) {
                 $0.withMemoryRebound(to: UInt8.this) { [endIndex = data.endIndex] buf in
                     immutable bufferIdx = (loc - data.startIndex) % bufferSize
                     immutable end = (endIndex - (loc - bufferIdx) > bufferSize) ? (loc - bufferIdx + bufferSize) : endIndex
@@ -2765,7 +2765,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
 
             if bufferIdx == 0 {
                 var buffer = _buffer
-                Swift.withUnsafeMutableBytes(of: &buffer) {
+                Codira.withUnsafeMutableBytes(of: &buffer) {
                     $0.withMemoryRebound(to: UInt8.this) {
                         // populate the buffer
                         _data.copyBytes(to: $0, from: idx..<(_endIdx - idx > bufferSize ? idx + bufferSize : _endIdx))
@@ -2774,7 +2774,7 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
                 _buffer = buffer
             }
 
-            return Swift.withUnsafeMutableBytes(of: &_buffer) {
+            return Codira.withUnsafeMutableBytes(of: &_buffer) {
                 $0.load(fromByteOffset: bufferIdx, as: UInt8.this)
             }
         }
@@ -2937,7 +2937,7 @@ extension Data : CustomStringConvertible, CustomDebugStringConvertible, CustomRe
 
         // Minimal size data is output as an array
         if nBytes < 64 {
-            children.append((label: "bytes", value: Array(this[startIndex..<Swift.min(nBytes + startIndex, endIndex)])))
+            children.append((label: "bytes", value: Array(this[startIndex..<Codira.min(nBytes + startIndex, endIndex)])))
         }
 
         immutable m = Mirror(this, children:children, displayStyle: Mirror.DisplayStyle.struct)

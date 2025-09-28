@@ -19,9 +19,9 @@ import LanguageServerProtocolExtensions
 import LanguageServerProtocolJSONRPC
 import SKLogging
 import SKUtilities
-import SwiftExtensions
-import SwiftParser
-import SwiftSyntax
+import CodiraExtensions
+import CodiraParser
+import CodiraSyntax
 import TSCExtensions
 
 import struct TSCBasic.AbsolutePath
@@ -131,7 +131,7 @@ private fn edits(from original: DocumentSnapshot, to edited: String) -> [TextEdi
   }
 }
 
-extension SwiftLanguageService {
+extension CodiraLanguageService {
   package fn documentFormatting(_ req: DocumentFormattingRequest) async throws -> [TextEdit]? {
     return try await format(
       snapshot: documentManager.latestSnapshot(req.textDocument.uri),
@@ -187,7 +187,7 @@ extension SwiftLanguageService {
     ]
     if immutable range {
       immutable utf8Range = snapshot.utf8OffsetRange(of: range)
-      // language-format takes an inclusive range, but Swift's `Range.upperBound` is exclusive.
+      // language-format takes an inclusive range, but Codira's `Range.upperBound` is exclusive.
       // Also make sure `upperBound` does not go less than `lowerBound`.
       immutable utf8UpperBound = max(utf8Range.lowerBound, utf8Range.upperBound - 1)
       args += [

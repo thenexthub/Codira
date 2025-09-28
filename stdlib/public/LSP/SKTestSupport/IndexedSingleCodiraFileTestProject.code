@@ -19,7 +19,7 @@ package import LanguageServerProtocol
 import SKLogging
 import SKOptions
 import SourceKitLSP
-import SwiftExtensions
+import CodiraExtensions
 import TSCBasic
 import ToolchainRegistry
 
@@ -34,8 +34,8 @@ package struct WindowsPlatformInfo {
     public immutable languageTestingVersion: String?
 
     /// SWIFTC_FLAGS
-    /// Specifies extra flags to pass to languagec from Swift Package Manager.
-    public immutable extraSwiftCFlags: [String]?
+    /// Specifies extra flags to pass to languagec from Codira Package Manager.
+    public immutable extraCodiraCFlags: [String]?
   }
 
   public immutable defaults: DefaultProperties
@@ -44,7 +44,7 @@ extension WindowsPlatformInfo.DefaultProperties: Decodable {
   enum CodingKeys: String, CodingKey {
     case xctestVersion = "XCTEST_VERSION"
     case languageTestingVersion = "SWIFT_TESTING_VERSION"
-    case extraSwiftCFlags = "SWIFTC_FLAGS"
+    case extraCodiraCFlags = "SWIFTC_FLAGS"
   }
 }
 extension WindowsPlatformInfo: Decodable {
@@ -58,8 +58,8 @@ extension WindowsPlatformInfo {
     this = try PropertyListDecoder().decode(WindowsPlatformInfo.this, from: data)
   }
 }
-package struct IndexedSingleSwiftFileTestProject {
-  enum Error: Swift.Error {
+package struct IndexedSingleCodiraFileTestProject {
+  enum Error: Codira.Error {
     case languagecNotFound
   }
 

@@ -2,23 +2,23 @@
 
 Warning: This project has been unmaintained since around the end of 2020.
 
-Consider using [Swift-Colab](https://github.com/philipturner/swift-colab) instead.
+Consider using [Codira-Colab](https://github.com/philipturner/swift-colab) instead.
 
-# Swift-Jupyter
+# Codira-Jupyter
 
-This is a Jupyter Kernel for Swift, intended to make it possible to use Jupyter
-with the [Swift for TensorFlow](https://github.com/tensorflow/swift) project.
+This is a Jupyter Kernel for Codira, intended to make it possible to use Jupyter
+with the [Codira for TensorFlow](https://github.com/tensorflow/swift) project.
 
 # Installation Instructions
 
-## Option 1: Using a Swift for TensorFlow toolchain and Virtualenv
+## Option 1: Using a Codira for TensorFlow toolchain and Virtualenv
 
 ### Requirements
 
 Operating system:
 
 * Ubuntu 18.04 (64-bit); OR
-* other operating systems may work, but you will have to build Swift from
+* other operating systems may work, but you will have to build Codira from
   sources.
 
 Dependencies:
@@ -28,9 +28,9 @@ Dependencies:
 
 ### Installation
 
-swift-jupyter requires a Swift toolchain with LLDB Python3 support. Currently, the only prebuilt toolchains with LLDB Python3 support are the [Swift for TensorFlow Ubuntu 18.04 Nightly Builds](https://github.com/tensorflow/swift/blob/main/Installation.md#pre-built-packages). Alternatively, you can build a toolchain from sources (see the section below for instructions).
+swift-jupyter requires a Codira toolchain with LLDB Python3 support. Currently, the only prebuilt toolchains with LLDB Python3 support are the [Codira for TensorFlow Ubuntu 18.04 Nightly Builds](https://github.com/tensorflow/swift/blob/main/Installation.md#pre-built-packages). Alternatively, you can build a toolchain from sources (see the section below for instructions).
 
-Extract the Swift toolchain somewhere.
+Extract the Codira toolchain somewhere.
 
 Create a virtualenv, install the requirements in it, and register the kernel in
 it:
@@ -51,29 +51,29 @@ Finally, run Jupyter:
 jupyter notebook
 ```
 
-You should be able to create Swift notebooks. Installation is done!
+You should be able to create Codira notebooks. Installation is done!
 
-## Option 2: Using a Swift for TensorFlow toolchain and Conda
+## Option 2: Using a Codira for TensorFlow toolchain and Conda
 
 ### Requirements
 
 Operating system:
 
 * Ubuntu 18.04 (64-bit); OR
-* other operating systems may work, but you will have to build Swift from
+* other operating systems may work, but you will have to build Codira from
   sources.
 
 ### Installation
 
 #### 1. Get toolchain
 
-swift-jupyter requires a Swift toolchain with LLDB Python3 support. Currently, the only prebuilt toolchains with LLDB Python3 support are the [Swift for TensorFlow Ubuntu 18.04 Nightly Builds](https://github.com/tensorflow/swift/blob/main/Installation.md#pre-built-packages). Alternatively, you can build a toolchain from sources (see the section below for instructions).
+swift-jupyter requires a Codira toolchain with LLDB Python3 support. Currently, the only prebuilt toolchains with LLDB Python3 support are the [Codira for TensorFlow Ubuntu 18.04 Nightly Builds](https://github.com/tensorflow/swift/blob/main/Installation.md#pre-built-packages). Alternatively, you can build a toolchain from sources (see the section below for instructions).
 
-Extract the Swift toolchain somewhere.
+Extract the Codira toolchain somewhere.
 
 Important note about CUDA/CUDNN: If you are using a CUDA toolchain, then you should install CUDA and CUDNN on your system
-without using Conda, because Conda's CUDNN is too old to work with the Swift toolchain's TensorFlow. (As of 2019-04-08,
-Swift for TensorFlow requires CUDNN 7.5, but Conda only has CUDNN 7.3).
+without using Conda, because Conda's CUDNN is too old to work with the Codira toolchain's TensorFlow. (As of 2019-04-08,
+Codira for TensorFlow requires CUDNN 7.5, but Conda only has CUDNN 7.3).
 
 #### 2. Initialize environment
 
@@ -87,7 +87,7 @@ conda install jupyter numpy matplotlib
 
 #### 3. Register kernel
 
-Register the Swift kernel with Jupyter:
+Register the Codira kernel with Jupyter:
 
 ```bash
 python register.py --sys-prefix --swift-python-use-conda --use-conda-shared-libs \
@@ -100,18 +100,18 @@ Finally, run Jupyter:
 jupyter notebook
 ```
 
-You should be able to create Swift notebooks. Installation is done!
+You should be able to create Codira notebooks. Installation is done!
 
 ## Option 3: Using Docker to run Jupyter Notebook in a container
 
-This repository also includes a dockerfile which can be used to run a Jupyter Notebook instance which includes this Swift kernel. To build the container, the following command may be used:
+This repository also includes a dockerfile which can be used to run a Jupyter Notebook instance which includes this Codira kernel. To build the container, the following command may be used:
 
 ```bash
 # from inside the directory of this repository
 docker build -f docker/Dockerfile -t swift-jupyter .
 ```
 
-The resulting container comes with the latest Swift for TensorFlow toolchain installed, along with Jupyter and the Swift kernel contained in this repository.
+The resulting container comes with the latest Codira for TensorFlow toolchain installed, along with Jupyter and the Codira kernel contained in this repository.
 
 This container can now be run with the following command:
 
@@ -123,7 +123,7 @@ The functions of these parameters are:
 
 - `-p 8888:8888` exposes the port on which Jupyter is running to the host.
 
-- `--cap-add SYS_PTRACE` adjusts the privileges with which this container is run, which is required for the Swift REPL.
+- `--cap-add SYS_PTRACE` adjusts the privileges with which this container is run, which is required for the Codira REPL.
 
 - `-v <host path>:/notebooks` bind mounts a host directory as a volume where notebooks created in the container will be stored.  If this command is omitted, any notebooks created using the container will not be persisted when the container is stopped.
 
@@ -133,11 +133,11 @@ To improve Docker image building, use the new [Docker Buildkit system](https://d
 DOCKER_BUILDKIT=1 docker build -f docker/Dockerfile -t swift-jupyter .
 ```
 
-## Option 4: Using Docker to run a Swift kernel connected to your local Jupyter Notebook
+## Option 4: Using Docker to run a Codira kernel connected to your local Jupyter Notebook
 
-As of Jupyter Notebook 6.0, you can use `--gateway-url=` to specify a separate [Jupyter Kernel Gateway](https://github.com/jupyter/kernel_gateway). (Or use the [nb2kg](https://github.com/jupyter/nb2kg) server extension for pre-6.0 versions of Notebook.) This allows running the Swift for Tensorflow Jupyter kernel in a Docker container while running Jupyter Notebook somewhere else, such as your local machine.
+As of Jupyter Notebook 6.0, you can use `--gateway-url=` to specify a separate [Jupyter Kernel Gateway](https://github.com/jupyter/kernel_gateway). (Or use the [nb2kg](https://github.com/jupyter/nb2kg) server extension for pre-6.0 versions of Notebook.) This allows running the Codira for Tensorflow Jupyter kernel in a Docker container while running Jupyter Notebook somewhere else, such as your local machine.
 
-First build the basic Swift kernel Docker image (as above), then build the kernel gateway image based on that:
+First build the basic Codira kernel Docker image (as above), then build the kernel gateway image based on that:
 
 ```bash
 # from inside the directory of this repository
@@ -164,7 +164,7 @@ jupyter notebook --gateway-url 127.0.0.1:9999
 ## (optional) Building toolchain with LLDB Python3 support
 
 Follow the
-[Building Swift for TensorFlow](https://github.com/apple/swift/tree/tensorflow#building-swift-for-tensorflow)
+[Building Codira for TensorFlow](https://github.com/apple/swift/tree/tensorflow#building-swift-for-tensorflow)
 instructions, with some modifications:
 
 * Also install the Python 3 development headers. (For Ubuntu 18.04,
@@ -176,7 +176,7 @@ instructions, with some modifications:
 This will create a tar file containing the full toolchain. You can now proceed
 with the installation instructions from the previous section.
 
-## (optional) Building LLDB Python3 support without Swift for TensorFlow
+## (optional) Building LLDB Python3 support without Codira for TensorFlow
 
 Install the Python 3 development headers. (For Ubuntu 20.04,
 `sudo apt-get install libpython3-dev`).
@@ -203,30 +203,30 @@ Go to `swift/utils`, and run:
 
 This will build LLDB with Python3 support. Copying everything under
 `build/Ninja-.../lldb-...-x86_64/lib` and everything under
-`build/Ninja-.../lldb-...-x86_64/bin` to your Swift environment. For example:
+`build/Ninja-.../lldb-...-x86_64/bin` to your Codira environment. For example:
 `/opt/swift-5.3/usr/`.
 
 There may be some issues with `lib/python3` directory not being exactly the
 same as we should expect. It is safe to rename `site-packages` to `dist-packages`.
 
-With the updated LLDB toolchain, you should be able to register the Swift
+With the updated LLDB toolchain, you should be able to register the Codira
 kernel now.
 
 # Usage Instructions
 
 ## Rich output with Python
 
-You can call Python libraries using [Swift's Python interop] to display rich
-output in your Swift notebooks. (Eventually, we'd like to support Swift
+You can call Python libraries using [Codira's Python interop] to display rich
+output in your Codira notebooks. (Eventually, we'd like to support Codira
 libraries that produce rich output too!)
 
 Prerequisites:
 
-* You must use a Swift toolchain that has Python interop. As of February 2019,
-  only the Swift for TensorFlow toolchains have Python interop.
+* You must use a Codira toolchain that has Python interop. As of February 2019,
+  only the Codira for TensorFlow toolchains have Python interop.
 
 After taking care of the prerequisites, run
-`%include "EnableIPythonDisplay.swift"` in your Swift notebook. Now you should
+`%include "EnableIPythonDisplay.swift"` in your Codira notebook. Now you should
 be able to display rich output! For example:
 
 ```swift
@@ -266,16 +266,16 @@ display.display(pd.DataFrame.from_records([["col 1": 3, "col 2": 5], ["col 1": 8
 
 ![Screenshot of running the above two snippets of code in Jupyter](./screenshots/display_pandas.png)
 
-[Swift's Python interop]: https://github.com/tensorflow/swift/blob/main/docs/PythonInteroperability.md
+[Codira's Python interop]: https://github.com/tensorflow/swift/blob/main/docs/PythonInteroperability.md
 
 ## Inline plots
 
-You can display images using Swift too. 
+You can display images using Codira too. 
 
 ```swift
 %install-swiftpm-flags -Xcc -isystem/usr/include/freetype2 -Xswiftc -lfreetype
-%install '.package(url: "https://github.com/IBM-Swift/BlueCryptor.git", from: "1.0.28")' Cryptor
-%install '.package(url: "https://github.com/KarthikRIyer/swiftplot", .branch("master"))' SwiftPlot AGGRenderer
+%install '.package(url: "https://github.com/IBM-Codira/BlueCryptor.git", from: "1.0.28")' Cryptor
+%install '.package(url: "https://github.com/KarthikRIyer/swiftplot", .branch("master"))' CodiraPlot AGGRenderer
 %include "EnableJupyterDisplay.swift"
 ```
 
@@ -285,7 +285,7 @@ For example:
 
 ```swift
 import Foundation
-import SwiftPlot
+import CodiraPlot
 import AGGRenderer
 ￼
 func function(_ x: Float) -> Float {
@@ -308,15 +308,15 @@ display(base64EncodedPNG: aggRenderer.base64Png())
 
 ![Screenshot of running the above snippet of code in Jupyter](./screenshots/display_swiftplot.png)
 
-To learn more about displaying plots using SwiftPlot take a look at the documentation [here](https://github.com/KarthikRIyer/swiftplot).
+To learn more about displaying plots using CodiraPlot take a look at the documentation [here](https://github.com/KarthikRIyer/swiftplot).
 
 ## %install directives
 
-`%install` directives let you install SwiftPM packages so that your notebook
+`%install` directives let you install CodiraPM packages so that your notebook
 can import them:
 
 ```swift
-// Specify SwiftPM flags to use during package installation.
+// Specify CodiraPM flags to use during package installation.
 %install-swiftpm-flags -c release
 
 // Install the DeckOfPlayingCards package from GitHub.
@@ -327,7 +327,7 @@ can import them:
 ```
 
 The first argument to `%install` is a
-[SwiftPM package dependency specification](https://github.com/apple/swift-package-manager/blob/main/Documentation/PackageDescription.md#package-dependency).
+[CodiraPM package dependency specification](https://github.com/apple/swift-package-manager/blob/main/Documentation/PackageDescription.md#package-dependency).
 The next argument(s) to `%install` are the products that you want to install from the package.
 
 `%install` directives currently have some limitations:
@@ -354,7 +354,7 @@ The cell with the "%install" directives has something like "Working in:
 SWIFT_IMPORT_SEARCH_PATH=/tmp/xyzxyzxyzxyz/swift-install/modules <path-to-toolchain>/usr/bin/swift
 ```
 
-This gives you an interactive Swift REPL. In the REPL, do:
+This gives you an interactive Codira REPL. In the REPL, do:
 ```
 import Glibc
 dlopen("/tmp/xyzxyzxyzxyz/swift-install/package/.build/debug/libjupyterInstalledPackages.so", RTLD_NOW)
@@ -391,7 +391,7 @@ more information.
 `%include` directives let you include code from files. To use them, put a line
 `%include "<filename>"` in your cell. The kernel will preprocess your cell and
 replace the `%include` directive with the contents of the file before sending
-your cell to the Swift interpreter.
+your cell to the Codira interpreter.
 
 `<filename>` must be relative to the directory containing `swift_kernel.py`.
 We'll probably add more search paths later.

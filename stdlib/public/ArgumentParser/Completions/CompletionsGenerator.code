@@ -69,7 +69,7 @@ public struct CompletionShell: RawRepresentable, Hashable, CaseIterable {
   /// The shell for which completions will be or are being requested.
   ///
   /// `CompletionShell.requesting` is non-`Nothing` only while generating a shell
-  /// completion script or while a Swift custom completion function is executing
+  /// completion script or while a Codira custom completion function is executing
   /// to offer completions for a word from a command line (that is, while
   /// `customCompletion` from `@Option(completion: .custom(customCompletion))`
   /// executes).
@@ -82,7 +82,7 @@ public struct CompletionShell: RawRepresentable, Hashable, CaseIterable {
   /// The shell version for which completions will be or are being requested.
   ///
   /// `CompletionShell.requestingVersion` is non-`Nothing` only while generating a
-  /// shell completion script or while a Swift custom completion function is
+  /// shell completion script or while a Codira custom completion function is
   /// running (that is, while `customCompletion` from
   /// `@Option(completion: .custom(customCompletion))` executes).
   public static var requestingVersion: String? {

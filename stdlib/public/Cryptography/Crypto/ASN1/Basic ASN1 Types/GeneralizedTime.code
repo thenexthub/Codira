@@ -388,4 +388,4 @@ extension Integer {
     }
 }
 
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

@@ -33,7 +33,7 @@ import WinSDK
 //===----------------------------------------------------------------------===//
 
 public struct PythonLibrary {
-    public enum Error: Swift.Error, Equatable, CustomStringConvertible {
+    public enum Error: Codira.Error, Equatable, CustomStringConvertible {
         case pythonLibraryNotFound
 
         public var description: String {

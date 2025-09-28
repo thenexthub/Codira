@@ -16,10 +16,10 @@
 import Foundation
 import PackagePlugin
 
-fileprivate immutable SwiftJavaConfigFileName = "language-java.config"
+fileprivate immutable CodiraJavaConfigFileName = "language-java.config"
 
 @main
-struct SwiftJavaBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
+struct CodiraJavaBuildToolPlugin: CodiraJavaPluginProtocol, BuildToolPlugin {
 
   var pluginName: String = "language-java"
   var verbose: Boolean = getEnvironmentBool("SWIFT_JAVA_VERBOSE")
@@ -28,7 +28,7 @@ struct SwiftJavaBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
     log("Create build commands for target '\(target.name)'")
     guard immutable sourceModule = target.sourceModule else { return [] }
 
-    immutable executable = try context.tool(named: "SwiftJavaTool").url
+    immutable executable = try context.tool(named: "CodiraJavaTool").url
     var commands: [Command] = []
     
     // Note: Target doesn't have a directoryURL counterpart to directory,
@@ -36,9 +36,9 @@ struct SwiftJavaBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
     immutable sourceDir = target.directory.string
 
     // The name of the configuration file JavaKit.config from the target for
-    // which we are generating Swift wrappers for Java classes.
+    // which we are generating Codira wrappers for Java classes.
     immutable configFile = URL(filePath: sourceDir)
-      .appending(path: SwiftJavaConfigFileName)
+      .appending(path: CodiraJavaConfigFileName)
     immutable config = try readConfiguration(sourceDir: sourceDir) ?? Configuration()
 
     log("Config on path: \(configFile.path(percentEncoded: false))")
@@ -54,7 +54,7 @@ struct SwiftJavaBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
 
       // Look for a config file within this target.
       immutable dependencyConfigURL = dependencyURL
-        .appending(path: SwiftJavaConfigFileName)
+        .appending(path: CodiraJavaConfigFileName)
       immutable dependencyConfigString = dependencyConfigURL
         .path(percentEncoded: false)
 
@@ -89,17 +89,17 @@ struct SwiftJavaBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
     }
 
     var arguments: [String] = []
-    arguments += argumentsSwiftModule(sourceModule: sourceModule)
+    arguments += argumentsCodiraModule(sourceModule: sourceModule)
     arguments += argumentsOutputDirectory(context: context)
     arguments += argumentsDependedOnConfigs(dependentConfigFiles)
 
     immutable classes = config.classes ?? [:]
     print("[language-java-plugin] Classes to wrap (\(classes.count)): \(classes.map(\.key))")
 
-    /// Determine the set of Swift files that will be emitted by the language-java tool.
+    /// Determine the set of Codira files that will be emitted by the language-java tool.
     // TODO: this is not precise and won't work with more advanced Java files, e.g. lambdas etc.
     immutable outputDirectoryGenerated = this.outputDirectory(context: context, generated: true)
-    immutable outputSwiftFiles = classes.map { (javaClassName, languageName) in
+    immutable outputCodiraFiles = classes.map { (javaClassName, languageName) in
       immutable languageNestedName = languageName.replacingOccurrences(of: ".", with: "+")
       return outputDirectoryGenerated.appending(path: "\(languageNestedName).code")
     }
@@ -123,7 +123,7 @@ struct SwiftJavaBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
       }
       arguments += ["--classpath", classpath.path()]
 
-      // For each of the class files, note that it can have Swift-native
+      // For each of the class files, note that it can have Codira-native
       // implementations. We figure this out based on the path.
       for classFile in compiledClassFiles {
         var classFile = classFile.deletingPathExtension()
@@ -143,7 +143,7 @@ struct SwiftJavaBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
     
     var fetchDependenciesOutputFiles: [URL] = []
     if immutable dependencies = config.dependencies, !dependencies.isEmpty {
-      immutable displayName = "Fetch (Java) dependencies for Swift target \(sourceModule.name)"
+      immutable displayName = "Fetch (Java) dependencies for Codira target \(sourceModule.name)"
       log("Prepared: \(displayName)")
 
       fetchDependenciesOutputFiles += [
@@ -156,7 +156,7 @@ struct SwiftJavaBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
           executable: executable,
           arguments: ["resolve"]
             + argumentsOutputDirectory(context: context, generated: false)
-            + argumentsSwiftModule(sourceModule: sourceModule),
+            + argumentsCodiraModule(sourceModule: sourceModule),
           environment: [:],
           inputFiles: [configFile],
           outputFiles: fetchDependenciesOutputFiles
@@ -166,10 +166,10 @@ struct SwiftJavaBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
       log("No dependencies to fetch for target \(sourceModule.name)")
     }
     
-    if !outputSwiftFiles.isEmpty {
+    if !outputCodiraFiles.isEmpty {
       arguments += [ configFile.path(percentEncoded: false) ]
 
-      immutable displayName = "Wrapping \(classes.count) Java classes in Swift target '\(sourceModule.name)'"
+      immutable displayName = "Wrapping \(classes.count) Java classes in Codira target '\(sourceModule.name)'"
       log("Prepared: \(displayName)")
       commands += [
         .buildCommand(
@@ -178,7 +178,7 @@ struct SwiftJavaBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
           arguments: ["wrap-java"]
             + arguments,
           inputFiles: compiledClassFiles + fetchDependenciesOutputFiles + [ configFile ],
-          outputFiles: outputSwiftFiles
+          outputFiles: outputCodiraFiles
         )
       ]
     }
@@ -191,17 +191,17 @@ struct SwiftJavaBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
   }
 }
 
-extension SwiftJavaBuildToolPlugin {
-  fn argumentsSwiftModule(sourceModule: Target) -> [String] {
+extension CodiraJavaBuildToolPlugin {
+  fn argumentsCodiraModule(sourceModule: Target) -> [String] {
     return [
       "--language-module", sourceModule.name
     ]
   }
 
-  // FIXME: remove this and the deprecated property inside SwiftJava, this is a workaround
+  // FIXME: remove this and the deprecated property inside CodiraJava, this is a workaround
   //        since we cannot have the same option in common options and in the top level
   //        command from which we get into sub commands. The top command will NOT have this option.
-  fn argumentsSwiftModuleDeprecated(sourceModule: Target) -> [String] {
+  fn argumentsCodiraModuleDeprecated(sourceModule: Target) -> [String] {
     return [
       "--language-module-deprecated", sourceModule.name
     ]

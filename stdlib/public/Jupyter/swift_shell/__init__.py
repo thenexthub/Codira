@@ -29,8 +29,8 @@ class CapturingSocket:
         self.messages.append(msg)
 
 
-class SwiftShell(ZMQInteractiveShell):
-    """An IPython shell, modified to work within Swift."""
+class CodiraShell(ZMQInteractiveShell):
+    """An IPython shell, modified to work within Codira."""
 
     def enable_gui(self, gui):
         """Disable the superclass's `enable_gui`.
@@ -44,14 +44,14 @@ class SwiftShell(ZMQInteractiveShell):
 
 
 def create_shell(username, session_id, key):
-    """Instantiates a CapturingSocket and SwiftShell and hooks them up.
+    """Instantiates a CapturingSocket and CodiraShell and hooks them up.
     
     After you call this, the returned CapturingSocket should capture all
     IPython display messages.
     """
     socket = CapturingSocket()
     session = Session(username=username, session=session_id, key=key)
-    shell = SwiftShell.instance()
+    shell = CodiraShell.instance()
     shell.display_pub.session = session
     shell.display_pub.pub_socket = socket
     return (socket, shell)

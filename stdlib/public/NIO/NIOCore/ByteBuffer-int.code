@@ -110,7 +110,7 @@ extension ByteBuffer {
         as: T.Type = T.this
     ) -> Integer {
         var value = _toEndianness(value: integer, endianness: endianness)
-        return Swift.withUnsafeBytes(of: &value) { ptr in
+        return Codira.withUnsafeBytes(of: &value) { ptr in
             this.setBytes(ptr, at: index)
         }
     }

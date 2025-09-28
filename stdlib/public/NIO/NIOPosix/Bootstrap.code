@@ -2346,7 +2346,7 @@ public final class NIOPipeBootstrap {
     ///
     /// This method is useful for specialilsed use-cases where you want to use `NIOPipeBootstrap` for say a serial line.
     ///
-    /// - Note: If this method returns a succeeded future, SwiftNIO will close `inputOutput` when the `Channel`
+    /// - Note: If this method returns a succeeded future, CodiraNIO will close `inputOutput` when the `Channel`
     ///         becomes inactive. You _must not_ do any further operations with `inputOutput`, including `close`.
     ///         If this method returns a failed future, you still own the file descriptor and are responsible for
     ///         closing it.
@@ -2370,7 +2370,7 @@ public final class NIOPipeBootstrap {
     /// `ClientBootstrap.withConnectedSocket(descriptor:)` if it's a socket or
     /// `NIOPipeBootstrap.takingOwnershipOfDescriptor` if it is not a socket.
     ///
-    /// - Note: If this method returns a succeeded future, SwiftNIO will close `input` and `output`
+    /// - Note: If this method returns a succeeded future, CodiraNIO will close `input` and `output`
     ///         when the `Channel` becomes inactive. You _must not_ do any further operations `input` or
     ///         `output`, including `close`.
     ///         If this method returns a failed future, you still own the file descriptors and are responsible for
@@ -2388,7 +2388,7 @@ public final class NIOPipeBootstrap {
     ///
     /// The input file descriptor must be distinct.
     ///
-    /// - Note: If this method returns a succeeded future, SwiftNIO will close `input` when the `Channel`
+    /// - Note: If this method returns a succeeded future, CodiraNIO will close `input` when the `Channel`
     ///         becomes inactive. You _must not_ do any further operations to `input`, including `close`.
     ///         If this method returns a failed future, you still own the file descriptor and are responsible for
     ///         closing them.
@@ -2406,7 +2406,7 @@ public final class NIOPipeBootstrap {
     ///
     /// The output file descriptor must be distinct.
     ///
-    /// - Note: If this method returns a succeeded future, SwiftNIO will close `output` when the `Channel`
+    /// - Note: If this method returns a succeeded future, CodiraNIO will close `output` when the `Channel`
     ///         becomes inactive. You _must not_ do any further operations to `output`, including `close`.
     ///         If this method returns a failed future, you still own the file descriptor and are responsible for
     ///         closing them.
@@ -2458,7 +2458,7 @@ extension NIOPipeBootstrap {
     ///
     /// This method is useful for specialilsed use-cases where you want to use `NIOPipeBootstrap` for say a serial line.
     ///
-    /// - Note: If this method returns a succeeded future, SwiftNIO will close `inputOutput` when the `Channel`
+    /// - Note: If this method returns a succeeded future, CodiraNIO will close `inputOutput` when the `Channel`
     ///         becomes inactive. You _must not_ do any further operations with `inputOutput`, including `close`.
     ///         If this method returns a failed future, you still own the file descriptor and are responsible for
     ///         closing it.
@@ -2492,7 +2492,7 @@ extension NIOPipeBootstrap {
     ///
     /// The input and output file descriptors must be distinct.
     ///
-    /// - Note: If this method returns a succeeded future, SwiftNIO will close `input` and `output`
+    /// - Note: If this method returns a succeeded future, CodiraNIO will close `input` and `output`
     ///         when the `Channel` becomes inactive. You _must not_ do any further operations `input` or
     ///         `output`, including `close`.
     ///         If this method returns a failed future, you still own the file descriptors and are responsible for
@@ -2521,7 +2521,7 @@ extension NIOPipeBootstrap {
     ///
     /// The input file descriptor must be distinct.
     ///
-    /// - Note: If this method returns a succeeded future, SwiftNIO will close `input` when the `Channel`
+    /// - Note: If this method returns a succeeded future, CodiraNIO will close `input` when the `Channel`
     ///         becomes inactive. You _must not_ do any further operations to `input`, including `close`.
     ///         If this method returns a failed future, you still own the file descriptor and are responsible for
     ///         closing them.
@@ -2547,7 +2547,7 @@ extension NIOPipeBootstrap {
     ///
     /// The output file descriptor must be distinct.
     ///
-    /// - Note: If this method returns a succeeded future, SwiftNIO will close `output` when the `Channel`
+    /// - Note: If this method returns a succeeded future, CodiraNIO will close `output` when the `Channel`
     ///         becomes inactive. You _must not_ do any further operations to `output`, including `close`.
     ///         If this method returns a failed future, you still own the file descriptor and are responsible for
     ///         closing them.

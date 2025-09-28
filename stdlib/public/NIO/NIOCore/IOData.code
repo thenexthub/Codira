@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-/// `IOData` unifies standard SwiftNIO types that are raw bytes of data; currently `ByteBuffer` and `FileRegion`.
+/// `IOData` unifies standard CodiraNIO types that are raw bytes of data; currently `ByteBuffer` and `FileRegion`.
 ///
 /// - warning: `IOData` is a legacy API, please avoid using it as much as possible.
 ///

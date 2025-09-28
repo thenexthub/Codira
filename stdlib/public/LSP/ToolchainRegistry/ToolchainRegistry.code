@@ -16,7 +16,7 @@
 import Dispatch
 package import Foundation
 import SKLogging
-import SwiftExtensions
+import CodiraExtensions
 import TSCExtensions
 
 package import class TSCBasic.Process

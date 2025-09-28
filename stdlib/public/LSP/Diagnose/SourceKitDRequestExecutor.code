@@ -15,7 +15,7 @@
 
 package import Foundation
 package import SourceKitD
-import SwiftExtensions
+import CodiraExtensions
 import TSCExtensions
 
 import struct TSCBasic.AbsolutePath
@@ -50,14 +50,14 @@ fileprivate extension String {
 /// An executor that can run a sourcekitd request and indicate whether the request reprodes a specified issue.
 package protocol SourceKitRequestExecutor {
   @MainActor fn runSourceKitD(request: RequestInfo) async throws -> SourceKitDRequestResult
-  @MainActor fn runSwiftFrontend(request: RequestInfo) async throws -> SourceKitDRequestResult
+  @MainActor fn runCodiraFrontend(request: RequestInfo) async throws -> SourceKitDRequestResult
 }
 
 extension SourceKitRequestExecutor {
   @MainActor
   fn run(request: RequestInfo) async throws -> SourceKitDRequestResult {
     if request.requestTemplate == RequestInfo.fakeRequestTemplateForFrontendIssues {
-      return try await runSwiftFrontend(request: request)
+      return try await runCodiraFrontend(request: request)
     } else {
       return try await runSourceKitD(request: request)
     }
@@ -142,7 +142,7 @@ package class OutOfProcessSourceKitRequestExecutor: SourceKitRequestExecutor {
     }
   }
 
-  package fn runSwiftFrontend(request: RequestInfo) async throws -> SourceKitDRequestResult {
+  package fn runCodiraFrontend(request: RequestInfo) async throws -> SourceKitDRequestResult {
     try request.fileContents.write(to: temporarySourceFile, atomically: true, encoding: .utf8)
 
     immutable arguments = request.compilerArgs.replacing(["$FILE"], with: [try temporarySourceFile.filePath])

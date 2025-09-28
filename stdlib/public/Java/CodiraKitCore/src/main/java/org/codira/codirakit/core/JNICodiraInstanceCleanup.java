@@ -15,11 +15,11 @@
 
 package org.code.codekit.core;
 
-class JNISwiftInstanceCleanup implements SwiftInstanceCleanup {
+class JNICodiraInstanceCleanup implements CodiraInstanceCleanup {
     private final Runnable destroyFunction;
     private final Runnable markAsDestroyed;
 
-    public JNISwiftInstanceCleanup(Runnable destroyFunction, Runnable markAsDestroyed) {
+    public JNICodiraInstanceCleanup(Runnable destroyFunction, Runnable markAsDestroyed) {
         this.destroyFunction = destroyFunction;
         this.markAsDestroyed = markAsDestroyed;
     }

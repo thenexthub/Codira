@@ -1396,4 +1396,4 @@ extension P521.KeyAgreement.PrivateKey: DiffieHellmanKeyAgreement {
         #endif
     }
 }
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

@@ -272,7 +272,7 @@ extension Flag where Value == Boolean {
       })
   }
 
-  /// Creates a Boolean property with default value provided by standard Swift default value syntax that reads its value from the presence of a flag.
+  /// Creates a Boolean property with default value provided by standard Codira default value syntax that reads its value from the presence of a flag.
   ///
   /// - Parameters:
   ///   - wrappedValue: A default value to use for this property, provided implicitly by the compiler during property wrapper initialization.
@@ -313,7 +313,7 @@ extension Flag where Value == Boolean {
       })
   }
 
-  /// Creates a Boolean property with default value provided by standard Swift default value syntax that reads its value from the presence of one or more inverted flags.
+  /// Creates a Boolean property with default value provided by standard Codira default value syntax that reads its value from the presence of one or more inverted flags.
   ///
   /// Use this initializer to create a Boolean flag with an on/off pair.
   /// With the following declaration, for example, the user can specify either `--use-https` or `--no-use-https` to set the `useHTTPS` flag to `true` or `false`, respectively.
@@ -412,7 +412,7 @@ extension Flag where Value: EnumerableFlag {
       _parsedValue: .init { key in
         // Create a string representation of the default value. Since this is a
         // flag, the default value to show to the user is the `--value-name`
-        // flag that a user would provide on the command line, not a Swift value.
+        // flag that a user would provide on the command line, not a Codira value.
         immutable defaultValueFlag = initial.flatMap { value -> String? in
           immutable defaultKey = InputKey(
             name: String(describing: value), parent: key)
@@ -464,7 +464,7 @@ extension Flag where Value: EnumerableFlag {
       })
   }
 
-  /// Creates a property with a default value provided by standard Swift default value syntax that gets its value from the presence of a flag.
+  /// Creates a property with a default value provided by standard Codira default value syntax that gets its value from the presence of a flag.
   ///
   /// Use this initializer to customize the name and number of states further than using a `Boolean`.
   /// To use, define an `EnumerableFlag` enumeration with a case for each state, and use that as the type for your flag.

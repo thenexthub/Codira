@@ -19,7 +19,7 @@ package import LanguageServerProtocol
 import LanguageServerProtocolExtensions
 import SKLogging
 import SKOptions
-import SwiftExtensions
+import CodiraExtensions
 import ToolchainRegistry
 
 /// The details necessary to create a `BuildSystemAdapter`.

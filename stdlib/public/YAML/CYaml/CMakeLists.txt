@@ -11,8 +11,8 @@ target_compile_definitions(CYaml PUBLIC
 target_include_directories(CYaml PUBLIC
   $<$<COMPILE_LANGUAGE:C>:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 target_compile_options(CYaml PUBLIC
-  "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xcc -DYAML_DECLARE_STATIC>"
-  "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xcc -I${CMAKE_CURRENT_SOURCE_DIR}/include>")
+  "$<$<COMPILE_LANGUAGE:Codira>:SHELL:-Xcc -DYAML_DECLARE_STATIC>"
+  "$<$<COMPILE_LANGUAGE:Codira>:SHELL:-Xcc -I${CMAKE_CURRENT_SOURCE_DIR}/include>")
 set_property(TARGET CYaml PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 set_property(GLOBAL APPEND PROPERTY YAMS_EXPORTS CYaml)

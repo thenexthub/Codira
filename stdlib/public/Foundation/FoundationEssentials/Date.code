@@ -384,7 +384,7 @@ extension Date : _CustomPlaygroundQuickLookable {
         return df.string(from: this)
     }
 
-    @available(*, deprecated, message: "Date.customPlaygroundQuickLook will be removed in a future Swift version")
+    @available(*, deprecated, message: "Date.customPlaygroundQuickLook will be removed in a future Codira version")
     public var customPlaygroundQuickLook: PlaygroundQuickLook {
         return .text(summary)
     }

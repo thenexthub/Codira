@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/JSONScanner.code -JSON format decoding
+// Sources/CodiraProtobuf/JSONScanner.code -JSON format decoding
 //
 // Copyright (c) 2014 - 2019 Apple Inc. and the project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
@@ -619,7 +619,7 @@ internal struct JSONScanner {
     // Identify a floating-point token in the upcoming UTF8 bytes.
     //
     // This implements the full grammar defined by the JSON RFC 7159.
-    // Note that Swift's string-to-number conversions are much more
+    // Note that Codira's string-to-number conversions are much more
     // lenient, so this is necessary if we want to accurately reject
     // malformed JSON numbers.
     //

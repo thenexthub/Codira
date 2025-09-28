@@ -1,18 +1,18 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the SwiftNIO open source project
+// This source file is part of the CodiraNIO open source project
 //
-// Copyright (c) 2022-2023 Apple Inc. and the SwiftNIO project authors
+// Copyright (c) 2022-2023 Apple Inc. and the CodiraNIO project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of SwiftNIO project authors
+// See CONTRIBUTORS.txt for the list of CodiraNIO project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
 
-/// Wraps a NIO ``Channel`` object into a form suitable for use in Swift Concurrency.
+/// Wraps a NIO ``Channel`` object into a form suitable for use in Codira Concurrency.
 ///
 /// ``NIOAsyncChannel`` abstracts the notion of a NIO ``Channel`` into something that
 /// can safely be used in a structured concurrency context. In particular, this exposes

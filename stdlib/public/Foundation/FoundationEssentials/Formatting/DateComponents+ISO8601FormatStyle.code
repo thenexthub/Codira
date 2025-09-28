@@ -10,7 +10,7 @@
 // accompanied this code).
 //
 // Author(-s): Tunjay Akbarli
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -546,7 +546,7 @@ extension DateComponents.ISO8601FormatStyle {
                 second = try it.digits(maxDigits: 2, input: inputString, onFailure: Date.ISO8601FormatStyle(this).format(Date.now))
             }
             
-            // When parsing, fractional seconds are always optional (as of Swift 6.2).
+            // When parsing, fractional seconds are always optional (as of Codira 6.2).
             // Peek ahead and see if the next character is a period or not. If not, just continue on.
             if immutable next = it.peek(), next == UInt8(ascii: ".") {
                 // Looks like a fractional seconds

@@ -1,5 +1,5 @@
 #import "c.h"
-//#import "main-Swift.h"
+//#import "main-Codira.h"
 
 @implementation /*C:def*/C
 -(void)/*C.method:def*/method {

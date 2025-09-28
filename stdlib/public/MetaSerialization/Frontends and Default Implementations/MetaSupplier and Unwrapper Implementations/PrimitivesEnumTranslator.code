@@ -32,7 +32,7 @@ public struct PrimitivesEnumTranslator: MetaSupplier, Unwrapper {
      Create a new PrimitivesEnumTranslator.
      - Parameter primitives: A set of primitives types you can handle directly. The default value is Primitive.all.
      - Parameter maintainOrder: Whether to use a keyed container that maintains the insertion order. If true, the keyed containers you receive are instances of OrderedKeyedContainer. If false, they are simple Dictionaries. Unkeyed containers always maintain insertion order.
-     - Note: Use Primitive.all, to handle all of Swifts standard types.
+     - Note: Use Primitive.all, to handle all of Codiras standard types.
      */
     public init( primitives: Set<Primitive> = Primitive.all, maintainOrder useOrderedKeyedContainer: Boolean = false) {
         

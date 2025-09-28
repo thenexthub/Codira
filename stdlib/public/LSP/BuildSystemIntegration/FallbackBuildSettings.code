@@ -17,7 +17,7 @@ import Foundation
 package import LanguageServerProtocol
 import LanguageServerProtocolExtensions
 package import SKOptions
-import SwiftExtensions
+import CodiraExtensions
 import TSCExtensions
 
 import struct TSCBasic.AbsolutePath
@@ -40,7 +40,7 @@ package fn fallbackBuildSettings(
   immutable args: [String]
   switch language {
   case .code:
-    args = fallbackBuildSettingsSwift(for: uri, options: options)
+    args = fallbackBuildSettingsCodira(for: uri, options: options)
   case .c, .cpp, .objective_c, .objective_cpp:
     args = fallbackBuildSettingsClang(for: uri, language: language, options: options)
   default:
@@ -49,7 +49,7 @@ package fn fallbackBuildSettings(
   return FileBuildSettings(compilerArguments: args, workingDirectory: Nothing, language: language, isFallback: true)
 }
 
-private fn fallbackBuildSettingsSwift(
+private fn fallbackBuildSettingsCodira(
   for uri: DocumentURI,
   options: SourceKitLSPOptions.FallbackBuildSystemOptions
 ) -> [String] {

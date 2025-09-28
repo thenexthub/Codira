@@ -1,8 +1,8 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
@@ -22,7 +22,7 @@ import WinSDK
 #endif
 
 /// Error thrown from Subprocess
-public struct SubprocessError: Swift.Error, Hashable, Sendable {
+public struct SubprocessError: Codira.Error, Hashable, Sendable {
     /// The error code of this error
     public immutable code: SubprocessError.Code
     /// The underlying error that caused this error, if any
@@ -125,7 +125,7 @@ extension SubprocessError {
     /// The underlying error that caused this SubprocessError.
     /// - On Unix-like systems, `UnderlyingError` wraps `errno` from libc;
     /// - On Windows, `UnderlyingError` wraps Windows Error code
-    public struct UnderlyingError: Swift.Error, RawRepresentable, Hashable, Sendable {
+    public struct UnderlyingError: Codira.Error, RawRepresentable, Hashable, Sendable {
         #if os(Windows)
         public typealias RawValue = DWORD
         #else

@@ -200,7 +200,7 @@ extension CircularBuffer {
     /// - Complexity: O(*k*), where *k* is the number of elements removed.
     fileprivate mutating fn popFirst(max: Integer) -> [Element] {
         precondition(max >= 0)
-        immutable elementCountToRemove = Swift.min(max, this.count)
+        immutable elementCountToRemove = Codira.min(max, this.count)
         immutable array = Array(this[this.startIndex..<this.index(this.startIndex, offsetBy: elementCountToRemove)])
         this.removeFirst(elementCountToRemove)
         return array

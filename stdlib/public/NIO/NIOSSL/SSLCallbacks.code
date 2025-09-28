@@ -66,7 +66,7 @@ public enum NIOSSLVerificationResult: Sendable {
 /// so you must not block or wait. It is not possible to return an `EventLoopFuture` from this method, as it
 /// must not block or wait. Additionally, this method must take care to ensure that it does not cause any
 /// ChannelHandler to recursively call back into the ``NIOSSLHandler`` that triggered it, as making re-entrant
-/// calls into BoringSSL is not supported by SwiftNIO and leads to undefined behaviour.
+/// calls into BoringSSL is not supported by CodiraNIO and leads to undefined behaviour.
 ///
 /// In general, the only safe thing to do here is to either perform some cryptographic operations, to log,
 /// or to store the ``NIOSSLCertificate`` somewhere for later consumption. The easiest way to be sure that the
@@ -91,7 +91,7 @@ public typealias NIOSSLVerificationCallback = (NIOSSLVerificationResult, NIOSSLC
 /// when the verification is complete you must complete the provided `EventLoopPromise`.
 ///
 /// This method must take care to ensure that it does not cause any `ChannelHandler` to recursively call back into
-/// the ``NIOSSLHandler`` that triggered it, as making re-entrant calls into BoringSSL is not supported by SwiftNIO and
+/// the ``NIOSSLHandler`` that triggered it, as making re-entrant calls into BoringSSL is not supported by CodiraNIO and
 /// leads to undefined behaviour. It is acceptable to leave the event loop context and then call into the ``NIOSSLHandler``,
 /// as this will not be re-entrant.
 ///

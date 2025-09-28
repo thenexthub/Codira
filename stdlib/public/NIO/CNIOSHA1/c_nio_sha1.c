@@ -1,4 +1,4 @@
-/* Additional changes for SwiftNIO:
+/* Additional changes for CodiraNIO:
     - prefixed all symbols by 'c_nio_'
     - removed the _KERNEL include guards
     - defined the __min_size macro inline

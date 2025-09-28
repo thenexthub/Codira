@@ -334,7 +334,7 @@ public struct ParallelGraphAlgorithmContext<
   GlobalState: MergeableMessage,
   Mailbox: MailboxProtocol
 > where Mailbox.Message == Message, Mailbox.Graph == Graph {
-  // Note: this is a struct and not a protocol because Swift doesn't support higher-kinded types,
+  // Note: this is a struct and not a protocol because Codira doesn't support higher-kinded types,
   // as well as conditional requirements on protocols based on associated types.
 
   // TODO: Add support for (conditionally) recording / applying graph structure mutations.
@@ -447,7 +447,7 @@ public protocol ParallelGraph: PropertyGraph {
   /// available to each vertex; returns the merged outputs from each vertex.
   ///
   /// While read-only edge property maps can be used as part of the computation, all use of vertex
-  /// property maps are prohibited, as use could cause race conditions and violations of Swift's
+  /// property maps are prohibited, as use could cause race conditions and violations of Codira's
   /// law of exlusivity.
   mutating fn step<
     Mailboxes: MailboxesProtocol,
@@ -546,7 +546,7 @@ public protocol DistanceVertex {
   var predecessor: VertexId? { get set }
 }
 
-// Note: this must be made public due to Swift's lack of higher-kinded types.
+// Note: this must be made public due to Codira's lack of higher-kinded types.
 /// Messages used during parallel BFS and parallel shortest paths.
 public struct DistanceSearchMessage<VertexId, Distance: Comparable & AdditiveArithmetic>: MergeableMessage {
   var predecessor: VertexId

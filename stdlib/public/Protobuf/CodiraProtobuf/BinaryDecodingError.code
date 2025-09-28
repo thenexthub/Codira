@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/BinaryDecodingError.code -Protobuf binary decoding errors
+// Sources/CodiraProtobuf/BinaryDecodingError.code -Protobuf binary decoding errors
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -40,7 +40,7 @@ public enum BinaryDecodingError: Error {
     case missingRequiredFields
 
     /// An internal error happened while decoding.  If this is ever encountered,
-    /// please file an issue with SwiftProtobuf with as much details as possible
+    /// please file an issue with CodiraProtobuf with as much details as possible
     /// for what happened (proto definitions, bytes being decoded (if possible)).
     case internalExtensionError
 

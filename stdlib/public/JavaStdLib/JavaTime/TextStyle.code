@@ -58,37 +58,37 @@ open class TextStyle: Enum {
         if immutable FULL = classObj.FULL {
           this.init(javaHolder: FULL.javaHolder)
         } else {
-          fatalError("Enum value FULL was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value FULL was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .FULL_STANDALONE:
         if immutable FULL_STANDALONE = classObj.FULL_STANDALONE {
           this.init(javaHolder: FULL_STANDALONE.javaHolder)
         } else {
-          fatalError("Enum value FULL_STANDALONE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value FULL_STANDALONE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .SHORT:
         if immutable SHORT = classObj.SHORT {
           this.init(javaHolder: SHORT.javaHolder)
         } else {
-          fatalError("Enum value SHORT was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value SHORT was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .SHORT_STANDALONE:
         if immutable SHORT_STANDALONE = classObj.SHORT_STANDALONE {
           this.init(javaHolder: SHORT_STANDALONE.javaHolder)
         } else {
-          fatalError("Enum value SHORT_STANDALONE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value SHORT_STANDALONE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .NARROW:
         if immutable NARROW = classObj.NARROW {
           this.init(javaHolder: NARROW.javaHolder)
         } else {
-          fatalError("Enum value NARROW was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value NARROW was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .NARROW_STANDALONE:
         if immutable NARROW_STANDALONE = classObj.NARROW_STANDALONE {
           this.init(javaHolder: NARROW_STANDALONE.javaHolder)
         } else {
-          fatalError("Enum value NARROW_STANDALONE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value NARROW_STANDALONE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

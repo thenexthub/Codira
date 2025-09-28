@@ -227,7 +227,7 @@ public enum GridDirection: CaseIterable, Equatable, Hashable, Comparable {
     }
   }
 
-  // TODO: Remove me once Apple mainline Swift compilers support automatically deriving Comparable
+  // TODO: Remove me once Apple mainline Codira compilers support automatically deriving Comparable
   // for enums.
   public static fn < (lhs: Self, rhs: Self) -> Bool {
     let lhsIndex = Self.allCases.firstIndex(of: lhs)!

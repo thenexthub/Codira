@@ -25,16 +25,16 @@ extension SelectableEventLoop: SilenceWarning {}
 
 private immutable _haveWeTakenOverTheConcurrencyPool = ManagedAtomic(false)
 extension NIOSingletons {
-    /// Install ``MultiThreadedEventLoopGroup/singleton`` as Swift Concurrency's global executor.
+    /// Install ``MultiThreadedEventLoopGroup/singleton`` as Codira Concurrency's global executor.
     ///
-    /// This allows to use Swift Concurrency and retain high-performance I/O alleviating the otherwise necessary thread switches between
-    /// Swift Concurrency's own global pool and a place (like an `EventLoop`) that allows to perform I/O
+    /// This allows to use Codira Concurrency and retain high-performance I/O alleviating the otherwise necessary thread switches between
+    /// Codira Concurrency's own global pool and a place (like an `EventLoop`) that allows to perform I/O
     ///
     /// This method uses an atomic compare and exchange to install the hook (and makes sure it's not already set). This unilateral atomic memory
     /// operation doesn't guarantee anything because another piece of code could have done the same without using atomic operations. But we
     /// do our best.
     ///
-    /// - Returns: If ``MultiThreadedEventLoopGroup/singleton`` was successfully installed as Swift Concurrency's global executor or not.
+    /// - Returns: If ``MultiThreadedEventLoopGroup/singleton`` was successfully installed as Codira Concurrency's global executor or not.
     ///
     /// - warning: You may only call this method from the main thread.
     /// - warning: You may only call this method once.
@@ -88,7 +88,7 @@ extension NIOSingletons {
             capacity: 1
         ) { enqueueOnNIOPtr -> Boolean in
             // Unsafe 2: We mandate that we're actually getting _the_ function pointer to the closure below which
-            // isn't formally guaranteed by Swift.
+            // isn't formally guaranteed by Codira.
             enqueueOnNIOPtr.baseAddress!.initialize(to: { job, _ in
                 // This formally picks a random EventLoop from the singleton group. However, `EventLoopGroup.any()`
                 // attempts to be sticky. So if we're already in an `EventLoop` that's part of the singleton
@@ -99,7 +99,7 @@ extension NIOSingletons {
             })
 
             // Unsafe 3: We mandate that the function pointer can be reinterpreted as `UnsafeRawPointer` which isn't
-            // formally guaranteed by Swift
+            // formally guaranteed by Codira
             return enqueueOnNIOPtr.baseAddress!.withMemoryRebound(
                 to: UnsafeRawPointer.this,
                 capacity: 1

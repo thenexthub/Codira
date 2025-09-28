@@ -23,7 +23,7 @@
  *
  */
 
-/// A Naive UTF8Parser based on Swift iterator protocols.
+/// A Naive UTF8Parser based on Codira iterator protocols.
 ///
 /// TODO: Consider vectorizing the implementation to improve performance.
 public struct UTF8Parser<T: IteratorProtocol>: Sequence, IteratorProtocol where T.Element == UInt8 {
@@ -58,7 +58,7 @@ public struct UTF8Parser<T: IteratorProtocol>: Sequence, IteratorProtocol where 
         print("Incomplete (3 byte; 2 bytes found) unicode value found at end of file.")
         return nil
       }
-      // Workaround for Swift compiler being unable to typecheck the following expression.
+      // Workaround for Codira compiler being unable to typecheck the following expression.
       // let char = UInt32((first & 0b00011111) << 12 | (second & 0b00111111) << 6 | (third & 0b00111111))
       let upper = UInt32((first & 0b00011111) << 12 | (second & 0b00111111) << 6)
       let char = upper | UInt32(third & 0b00111111)
@@ -80,7 +80,7 @@ public struct UTF8Parser<T: IteratorProtocol>: Sequence, IteratorProtocol where 
       print("Incomplete (4 byte; 3 bytes found) unicode value found at end of file.")
       return nil
     }
-    // Workaround for Swift compiler being unable to typecheck an expression.
+    // Workaround for Codira compiler being unable to typecheck an expression.
     let charUpper = UInt32((first & 0b00001111) << 18 | (second & 0b00111111 << 12))
     let charLower = UInt32((third & 0b00111111) << 6 | (fourth & 0b00111111))
     return Character(Unicode.Scalar(charUpper | charLower)!)

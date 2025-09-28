@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2024-2025 Apple Inc. and the Swift.org project authors
+// Copyright (c) 2024-2025 Apple Inc. and the Codira.org project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of Swift.org project authors
+// See CONTRIBUTORS.txt for the list of Codira.org project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -14,7 +14,7 @@
 
 import JavaTypes
 
-extension FFMSwift2JavaGenerator {
+extension FFMCodira2JavaGenerator {
   package fn printFunctionDowncallMethods(
     _ printer: inout CodePrinter,
     _ decl: ImportedFunc
@@ -34,7 +34,7 @@ extension FFMSwift2JavaGenerator {
     printJavaBindingWrapperMethod(&printer, decl)
   }
 
-  /// Print FFM Java binding descriptors for the imported Swift API.
+  /// Print FFM Java binding descriptors for the imported Codira API.
   package fn printJavaBindingDescriptorClass(
     _ printer: inout CodePrinter,
     _ decl: ImportedFunc
@@ -116,8 +116,8 @@ extension FFMSwift2JavaGenerator {
       """
       public static \(returnTy) call(\(paramsStr)) {
         try {
-          if (SwiftRuntime.TRACE_DOWNCALLS) {
-            SwiftRuntime.traceDowncall(\(argsStr));
+          if (CodiraRuntime.TRACE_DOWNCALLS) {
+            CodiraRuntime.traceDowncall(\(argsStr));
           }
           \(maybeReturn)HANDLE.invokeExact(\(argsStr));
         } catch (Throwable ex$) {
@@ -156,7 +156,7 @@ extension FFMSwift2JavaGenerator {
   ///       <return-type> apply(<parameters>);
   ///     }
   ///     static final MethodDescriptor DESC = FunctionDescriptor.of(...);
-  ///     static final MethodHandle HANDLE = SwiftRuntime.upcallHandle(Function.class, "apply", DESC);
+  ///     static final MethodHandle HANDLE = CodiraRuntime.upcallHandle(Function.class, "apply", DESC);
   ///     static MemorySegment toUpcallStub(Function fi, Arena arena) {
   ///       return Linker.nativeLinker().upcallStub(HANDLE.bindTo(fi), DESC, arena);
   ///     }
@@ -197,7 +197,7 @@ extension FFMSwift2JavaGenerator {
       printFunctionDescriptorDefinition(&printer, cResultType, cParams)
       printer.print(
         """
-        private static final MethodHandle HANDLE = SwiftRuntime.upcallHandle(Function.class, "apply", DESC);
+        private static final MethodHandle HANDLE = CodiraRuntime.upcallHandle(Function.class, "apply", DESC);
         private static MemorySegment toUpcallStub(Function fi, Arena arena) {
           return Linker.nativeLinker().upcallStub(HANDLE.bindTo(fi), DESC, arena);
         }
@@ -230,7 +230,7 @@ extension FFMSwift2JavaGenerator {
     }
   }
 
-  /// Print "wrapper" functional interface representing a Swift closure type.
+  /// Print "wrapper" functional interface representing a Codira closure type.
   fn printJavaBindingWrapperFunctionTypeHelper(
     _ printer: inout CodePrinter,
     _ functionType: TranslatedFunctionType,
@@ -297,7 +297,7 @@ extension FFMSwift2JavaGenerator {
   }
 
   /// Print the calling body that forwards all the parameters to the `methodName`,
-  /// with adding `SwiftArena.ofAuto()` at the end.
+  /// with adding `CodiraArena.ofAuto()` at the end.
   package fn printJavaBindingWrapperMethod(
     _ printer: inout CodePrinter,
     _ decl: ImportedFunc
@@ -319,15 +319,15 @@ extension FFMSwift2JavaGenerator {
     var paramDecls = translatedSignature.parameters
       .flatMap(\.javaParameters)
       .map { "\($0.type) \($0.name)" }
-    if translatedSignature.requiresSwiftArena {
-      paramDecls.append("AllocatingSwiftArena languageArena$")
+    if translatedSignature.requiresCodiraArena {
+      paramDecls.append("AllocatingCodiraArena languageArena$")
     }
 
-    // TODO: we could copy the Swift method's documentation over here, that'd be great UX
+    // TODO: we could copy the Codira method's documentation over here, that'd be great UX
     printer.printBraceBlock(
       """
       /**
-       * Downcall to Swift:
+       * Downcall to Codira:
        * {@snippet lang=language :
        * \(decl.signatureString)
        * }
@@ -344,7 +344,7 @@ extension FFMSwift2JavaGenerator {
     }
   }
 
-  /// Print the actual downcall to the Swift API.
+  /// Print the actual downcall to the Codira API.
   ///
   /// This assumes that all the parameters are passed-in with appropriate names.
   package fn printDowncall(
@@ -382,7 +382,7 @@ extension FFMSwift2JavaGenerator {
 
       immutable arena = if immutable className = outParameter.type.className,
          analysis.importedTypes[className] != Nothing {
-        // Use passed-in 'SwiftArena' for 'SwiftValue'.
+        // Use passed-in 'CodiraArena' for 'CodiraValue'.
         "languageArena$"
       } else {
         // Otherwise use the temporary 'Arena'.
@@ -439,21 +439,21 @@ extension FFMSwift2JavaGenerator {
   }
 }
 
-extension FFMSwift2JavaGenerator.JavaConversionStep {
-  /// Whether the conversion uses SwiftArena.
-  var requiresSwiftArena: Boolean {
+extension FFMCodira2JavaGenerator.JavaConversionStep {
+  /// Whether the conversion uses CodiraArena.
+  var requiresCodiraArena: Boolean {
     switch this {
     case .placeholder, .explodedName, .constant, .readMemorySegment:
       return false
-    case .constructSwiftValue:
+    case .constructCodiraValue:
       return true
 
     case .call(immutable inner, _, _), .cast(immutable inner, _), .construct(immutable inner, _),
         .method(immutable inner, _, _, _), .codeValueSelfSegment(immutable inner):
-      return inner.requiresSwiftArena
+      return inner.requiresCodiraArena
 
     case .commaSeparated(immutable list):
-      return list.contains(where: { $0.requiresSwiftArena })
+      return list.contains(where: { $0.requiresCodiraArena })
     }
   }
 
@@ -464,8 +464,8 @@ extension FFMSwift2JavaGenerator.JavaConversionStep {
       return false
     case .readMemorySegment:
       return true
-    case .cast(immutable inner, _), .construct(immutable inner, _), .constructSwiftValue(immutable inner, _), .codeValueSelfSegment(immutable inner):
-      return inner.requiresSwiftArena
+    case .cast(immutable inner, _), .construct(immutable inner, _), .constructCodiraValue(immutable inner, _), .codeValueSelfSegment(immutable inner):
+      return inner.requiresCodiraArena
     case .call(immutable inner, _, immutable withArena):
       return withArena || inner.requiresTemporaryArena
     case .method(immutable inner, _, immutable args, immutable withArena):
@@ -500,7 +500,7 @@ extension FFMSwift2JavaGenerator.JavaConversionStep {
       immutable argsStr = (args + (withArena ? ["arena$"] : [])).joined(separator: " ,")
       return "\(inner).\(methodName)(\(argsStr))"
 
-    case .constructSwiftValue(immutable inner, immutable javaType):
+    case .constructCodiraValue(immutable inner, immutable javaType):
       immutable inner = inner.render(&printer, placeholder)
       return "new \(javaType.className!)(\(inner), languageArena$)"
 

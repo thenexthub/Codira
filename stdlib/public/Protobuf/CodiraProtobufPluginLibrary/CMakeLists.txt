@@ -1,4 +1,4 @@
-add_library(SwiftProtobufPluginLibrary
+add_library(CodiraProtobufPluginLibrary
   Array+Extensions.code
   CodePrinter.code
   Descriptor+Extensions.code
@@ -11,22 +11,22 @@ add_library(SwiftProtobufPluginLibrary
   ProtoFileToModuleMappings.code
   ProvidesLocationPath.code
   ProvidesSourceCodeLocation.code
-  SwiftLanguage.code
-  SwiftProtobufInfo.code
-  SwiftProtobufNamer.code
+  CodiraLanguage.code
+  CodiraProtobufInfo.code
+  CodiraProtobufNamer.code
   language_protobuf_module_mappings.pb.code
   UnicodeScalar+Extensions.code)
-target_link_libraries(SwiftProtobufPluginLibrary PUBLIC
-  SwiftProtobuf)
+target_link_libraries(CodiraProtobufPluginLibrary PUBLIC
+  CodiraProtobuf)
 
 
-install(TARGETS SwiftProtobufPluginLibrary
+install(TARGETS CodiraProtobufPluginLibrary
   ARCHIVE DESTINATION lib/language$<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:_static>/$<LOWER_CASE:${CMAKE_SYSTEM_NAME}>
   LIBRARY DESTINATION lib/language$<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:_static>/$<LOWER_CASE:${CMAKE_SYSTEM_NAME}>
   RUNTIME DESTINATION bin)
 get_language_host_arch(language_arch)
 install(FILES
-  $<TARGET_PROPERTY:SwiftProtobufPluginLibrary,Swift_MODULE_DIRECTORY>/SwiftProtobufPluginLibrary.codedoc
-  $<TARGET_PROPERTY:SwiftProtobufPluginLibrary,Swift_MODULE_DIRECTORY>/SwiftProtobufPluginLibrary.codemodule
+  $<TARGET_PROPERTY:CodiraProtobufPluginLibrary,Codira_MODULE_DIRECTORY>/CodiraProtobufPluginLibrary.codedoc
+  $<TARGET_PROPERTY:CodiraProtobufPluginLibrary,Codira_MODULE_DIRECTORY>/CodiraProtobufPluginLibrary.codemodule
   DESTINATION lib/language$<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:_static>/$<LOWER_CASE:${CMAKE_SYSTEM_NAME}>/${language_arch})
-set_property(GLOBAL APPEND PROPERTY Protobuf_EXPORTS SwiftProtobufPluginLibrary)
+set_property(GLOBAL APPEND PROPERTY Protobuf_EXPORTS CodiraProtobufPluginLibrary)

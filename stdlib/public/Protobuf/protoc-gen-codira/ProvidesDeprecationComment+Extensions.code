@@ -14,7 +14,7 @@
 // -----------------------------------------------------------------------------
 
 import Foundation
-import SwiftProtobufPluginLibrary
+import CodiraProtobufPluginLibrary
 
 extension ProvidesSourceCodeLocation {
     fn protoSourceComments(

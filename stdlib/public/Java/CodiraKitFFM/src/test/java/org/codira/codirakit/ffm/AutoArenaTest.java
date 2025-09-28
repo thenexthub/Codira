@@ -25,10 +25,10 @@ public class AutoArenaTest {
     @Test
     @SuppressWarnings("removal") // System.runFinalization() will be removed
     public void cleaner_releases_native_resource() {
-        AllocatingSwiftArena arena = AllocatingSwiftArena.ofAuto();
+        AllocatingCodiraArena arena = AllocatingCodiraArena.ofAuto();
 
         // This object is registered to the arena.
-        var object = new FakeSwiftInstance(arena);
+        var object = new FakeCodiraInstance(arena);
         var statusDestroyedFlag = object.$statusDestroyedFlag();
 
         // Release the object and hope it gets GC-ed soon
@@ -47,13 +47,13 @@ public class AutoArenaTest {
         }
     }
 
-    private static class FakeSwiftInstance extends FFMSwiftInstance implements SwiftHeapObject {
-        public FakeSwiftInstance(AllocatingSwiftArena arena) {
+    private static class FakeCodiraInstance extends FFMCodiraInstance implements CodiraHeapObject {
+        public FakeCodiraInstance(AllocatingCodiraArena arena) {
             super(MemorySegment.NULL, arena);
         }
 
         @Override
-        public SwiftAnyType $languageType() {
+        public CodiraAnyType $languageType() {
             return null;
         }
     }

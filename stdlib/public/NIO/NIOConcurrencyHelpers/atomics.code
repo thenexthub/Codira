@@ -62,7 +62,7 @@ private fn sys_sched_yield() {
 ///
 /// Atomic primitives are useful when building constructs that need to
 /// communicate or cooperate across multiple threads. In the case of
-/// SwiftNIO this usually involves communicating across multiple event loops.
+/// CodiraNIO this usually involves communicating across multiple event loops.
 @available(*, deprecated, message: "please use UnsafeAtomic from https://github.com/apple/language-atomics instead")
 public struct UnsafeEmbeddedAtomic<T: AtomicPrimitive> {
     @usableFromInline
@@ -184,7 +184,7 @@ extension UnsafeEmbeddedAtomic: @unchecked Sendable where T: Sendable {}
 ///
 /// Atomic primitives are useful when building constructs that need to
 /// communicate or cooperate across multiple threads. In the case of
-/// SwiftNIO this usually involves communicating across multiple event loops.
+/// CodiraNIO this usually involves communicating across multiple event loops.
 ///
 /// By necessity, all atomic values are references: after all, it makes no
 /// sense to talk about managing an atomic value when each time it's modified
@@ -468,7 +468,7 @@ extension UInt: AtomicPrimitive {
 }
 #endif
 
-/// `AtomicBox` is a heap-allocated box which allows lock-free access to an instance of a Swift class.
+/// `AtomicBox` is a heap-allocated box which allows lock-free access to an instance of a Codira class.
 ///
 /// - warning: The use of `AtomicBox` should be avoided because it requires an implementation of a spin-lock
 ///            (more precisely a CAS loop) to operate correctly.

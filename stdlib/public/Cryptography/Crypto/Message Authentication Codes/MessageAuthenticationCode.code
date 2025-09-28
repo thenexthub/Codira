@@ -67,4 +67,4 @@ extension MessageAuthenticationCode {
         return "\(Self.this): \(Array(this).hexString)"
     }
 }
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

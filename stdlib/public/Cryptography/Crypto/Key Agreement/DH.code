@@ -92,7 +92,7 @@ public struct SharedSecret: ContiguousBytes {
         // 4. Set K to be the leftmost keydatalen octets of: K1 || K2 || . . . || K⌈keydatalen/hashlen⌉.
         // 5. Output K.
         //
-        // The loop in step 3 is not very Swifty, so instead we generate the counter directly.
+        // The loop in step 3 is not very Codiray, so instead we generate the counter directly.
         // Step 1: Check that keydatalen < hashlen × (2³² − 1).
         // We do this math in UInt64-space, because we'll overflow 32-bit integers.
         guard UInt64(outputByteCount) < (UInt64(H.Digest.byteCount) * UInt64(UInt32.max)) else {
@@ -199,4 +199,4 @@ extension HashFunction {
     }
 }
 
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

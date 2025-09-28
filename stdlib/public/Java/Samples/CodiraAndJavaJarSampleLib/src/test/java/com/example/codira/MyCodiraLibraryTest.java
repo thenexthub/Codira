@@ -22,16 +22,16 @@ import java.util.concurrent.CountDownLatch;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class MySwiftLibraryTest {
+public class MyCodiraLibraryTest {
 
     @Test
     void call_helloWorld() {
-        MySwiftLibrary.helloWorld();
+        MyCodiraLibrary.helloWorld();
     }
 
     @Test
     void call_globalTakeInt() {
-        MySwiftLibrary.globalTakeInt(12);
+        MyCodiraLibrary.globalTakeInt(12);
     }
 
     @Test
@@ -40,7 +40,7 @@ public class MySwiftLibraryTest {
     void call_globalCallMeRunnable() {
         CountDownLatch countDownLatch = new CountDownLatch(3);
 
-        MySwiftLibrary.globalCallMeRunnable(new MySwiftLibrary.globalCallMeRunnable.run() {
+        MyCodiraLibrary.globalCallMeRunnable(new MyCodiraLibrary.globalCallMeRunnable.run() {
             @Override
             public void apply() {
                 countDownLatch.countDown();
@@ -48,10 +48,10 @@ public class MySwiftLibraryTest {
         });
         assertEquals(2, countDownLatch.getCount());
 
-        MySwiftLibrary.globalCallMeRunnable(() -> countDownLatch.countDown());
+        MyCodiraLibrary.globalCallMeRunnable(() -> countDownLatch.countDown());
         assertEquals(1, countDownLatch.getCount());
 
-        MySwiftLibrary.globalCallMeRunnable(countDownLatch::countDown);
+        MyCodiraLibrary.globalCallMeRunnable(countDownLatch::countDown);
         assertEquals(0, countDownLatch.getCount());
     }
 

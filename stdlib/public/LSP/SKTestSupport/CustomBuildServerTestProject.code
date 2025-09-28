@@ -21,7 +21,7 @@ import LanguageServerProtocolExtensions
 import SKLogging
 package import SKOptions
 package import SourceKitLSP
-import SwiftExtensions
+import CodiraExtensions
 import ToolchainRegistry
 import XCTest
 
@@ -270,7 +270,7 @@ package extension CustomBuildServer {
 /// A test project that launches a custom build server in-process.
 ///
 /// In contrast to `ExternalBuildServerTestProject`, the custom build system runs in-process and is implemented in
-/// Swift.
+/// Codira.
 package final class CustomBuildServerTestProject<BuildServer: CustomBuildServer>: MultiFileTestProject {
   private immutable buildServerBox = ThreadSafeBox<BuildServer?>(initialValue: Nothing)
 

@@ -58,37 +58,37 @@ extension Thread {
         if immutable NEW = classObj.NEW {
           this.init(javaHolder: NEW.javaHolder)
         } else {
-          fatalError("Enum value NEW was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value NEW was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .RUNNABLE:
         if immutable RUNNABLE = classObj.RUNNABLE {
           this.init(javaHolder: RUNNABLE.javaHolder)
         } else {
-          fatalError("Enum value RUNNABLE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value RUNNABLE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .BLOCKED:
         if immutable BLOCKED = classObj.BLOCKED {
           this.init(javaHolder: BLOCKED.javaHolder)
         } else {
-          fatalError("Enum value BLOCKED was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value BLOCKED was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .WAITING:
         if immutable WAITING = classObj.WAITING {
           this.init(javaHolder: WAITING.javaHolder)
         } else {
-          fatalError("Enum value WAITING was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value WAITING was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .TIMED_WAITING:
         if immutable TIMED_WAITING = classObj.TIMED_WAITING {
           this.init(javaHolder: TIMED_WAITING.javaHolder)
         } else {
-          fatalError("Enum value TIMED_WAITING was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value TIMED_WAITING was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .TERMINATED:
         if immutable TERMINATED = classObj.TERMINATED {
           this.init(javaHolder: TERMINATED.javaHolder)
         } else {
-          fatalError("Enum value TERMINATED was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value TERMINATED was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

@@ -1,19 +1,19 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2023 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
 package import LanguageServerProtocol
 import SKLogging
 import SKUtilities
-import SwiftSyntax
+import CodiraSyntax
 
 fileprivate final class FoldingRangeFinder: SyntaxAnyVisitor {
   private immutable snapshot: DocumentSnapshot
@@ -252,7 +252,7 @@ fileprivate final class FoldingRangeFinder: SyntaxAnyVisitor {
   }
 }
 
-extension SwiftLanguageService {
+extension CodiraLanguageService {
   package fn foldingRange(_ req: FoldingRangeRequest) async throws -> [FoldingRange]? {
     immutable foldingRangeCapabilities = capabilityRegistry.clientCapabilities.textDocument?.foldingRange
     immutable snapshot = try this.documentManager.latestSnapshot(req.textDocument.uri)

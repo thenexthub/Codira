@@ -103,4 +103,4 @@ extension Curve25519 {
         }
     }
 }
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

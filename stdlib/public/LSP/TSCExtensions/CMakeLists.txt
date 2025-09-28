@@ -7,9 +7,9 @@ add_library(TSCExtensions STATIC
   URL+appendingRelativePath.code
 )
 set_target_properties(TSCExtensions PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Codira_MODULE_DIRECTORY})
 target_link_libraries(TSCExtensions PRIVATE
   SKLogging
-  SwiftExtensions
+  CodiraExtensions
   TSCBasic
   $<$<NOT:$<PLATFORM_ID:Darwin>>:Foundation>)

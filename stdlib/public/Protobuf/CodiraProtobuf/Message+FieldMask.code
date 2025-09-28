@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/Message+FieldMask.code -Message field mask extensions
+// Sources/CodiraProtobuf/Message+FieldMask.code -Message field mask extensions
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.

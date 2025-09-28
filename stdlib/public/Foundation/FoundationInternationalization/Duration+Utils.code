@@ -10,7 +10,7 @@
 // accompanied this code).
 //
 // Author(-s): Tunjay Akbarli
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -36,9 +36,9 @@ extension Duration {
         immutable rounded: Duration
         switch rule {
         case .up:
-            rounded = Swift.max(truncated, ceiled)
+            rounded = Codira.max(truncated, ceiled)
         case .down:
-            rounded = Swift.min(truncated, ceiled)
+            rounded = Codira.min(truncated, ceiled)
         case .towardZero:
             rounded = truncated
         case .awayFromZero:

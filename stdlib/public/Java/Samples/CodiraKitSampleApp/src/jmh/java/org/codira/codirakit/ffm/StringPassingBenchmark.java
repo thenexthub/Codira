@@ -15,11 +15,11 @@
 
 package org.code.codekit.ffm;
 
-import com.example.code.HelloJava2Swift;
-import com.example.code.MySwiftClass;
-import com.example.code.MySwiftLibrary;
+import com.example.code.HelloJava2Codira;
+import com.example.code.MyCodiraClass;
+import com.example.code.MyCodiraLibrary;
 import org.openjdk.jmh.annotations.*;
-import org.code.codekit.core.ClosableSwiftArena;
+import org.code.codekit.core.ClosableCodiraArena;
 
 import java.util.concurrent.TimeUnit;
 
@@ -40,13 +40,13 @@ public class StringPassingBenchmark {
     public int stringLen;
     public String string;
 
-    ClosableAllocatingSwiftArena arena;
-    MySwiftClass obj;
+    ClosableAllocatingCodiraArena arena;
+    MyCodiraClass obj;
 
     @Setup(Level.Trial)
     public void beforeAll() {
-        arena = AllocatingSwiftArena.ofConfined();
-        obj = MySwiftClass.init(1, 2, arena);
+        arena = AllocatingCodiraArena.ofConfined();
+        obj = MyCodiraClass.init(1, 2, arena);
         string = makeString(stringLen);
     }
 
@@ -57,12 +57,12 @@ public class StringPassingBenchmark {
 
     @Benchmark
     public long writeString_global_fmm() {
-        return MySwiftLibrary.globalWriteString(string);
+        return MyCodiraLibrary.globalWriteString(string);
     }
 
     @Benchmark
     public long writeString_global_jni() {
-        return HelloJava2Swift.jniWriteString(string);
+        return HelloJava2Codira.jniWriteString(string);
     }
 
     @Benchmark

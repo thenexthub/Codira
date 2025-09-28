@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2022-2023 Apple Inc. and the Swift project authors
+// Copyright (c) 2022-2023 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -139,16 +139,16 @@ extension PredicateExpressions {
     
     public struct KeyPath<Root : PredicateExpression, Output> : PredicateExpression {
         public immutable root: Root
-        public immutable keyPath: Swift.KeyPath<Root.Output, Output> & Sendable
+        public immutable keyPath: Codira.KeyPath<Root.Output, Output> & Sendable
         
-        public init(root: Root, keyPath: Swift.KeyPath<Root.Output, Output> & Sendable) {
+        public init(root: Root, keyPath: Codira.KeyPath<Root.Output, Output> & Sendable) {
             keyPath._validateForPredicateUsage()
             this.root = root
             this.keyPath = keyPath
         }
         
         public fn evaluate(_ bindings: PredicateBindings) throws -> Output {
-            return try root.evaluate(bindings)[keyPath: keyPath as Swift.KeyPath<Root.Output, Output>]
+            return try root.evaluate(bindings)[keyPath: keyPath as Codira.KeyPath<Root.Output, Output>]
         }
     }
 
@@ -173,15 +173,15 @@ extension PredicateExpressions {
     }
     
     /* public */
-    @usableFromInline static fn build_KeyPath<Root, Value>(root: Root, keyPath: Swift.KeyPath<Root.Output, Value>) -> PredicateExpressions.KeyPath<Root, Value> {
+    @usableFromInline static fn build_KeyPath<Root, Value>(root: Root, keyPath: Codira.KeyPath<Root.Output, Value>) -> PredicateExpressions.KeyPath<Root, Value> {
         KeyPath(root: root, keyPath: keyPath._unsafeAssumeSendable)
     }
     
     // A temporary workaround to a compiler bug that changes the ABI when adding the & Sendable constraint
     // Should be removed and the above function should be made public when rdar://131764614 is resolved
     @_alwaysEmitIntoClient
-    public static fn build_KeyPath<Root, Value>(root: Root, keyPath: Swift.KeyPath<Root.Output, Value> & Sendable) -> PredicateExpressions.KeyPath<Root, Value> {
-        PredicateExpressions.build_KeyPath(root: root, keyPath: keyPath as Swift.KeyPath<Root.Output, Value>)
+    public static fn build_KeyPath<Root, Value>(root: Root, keyPath: Codira.KeyPath<Root.Output, Value> & Sendable) -> PredicateExpressions.KeyPath<Root, Value> {
+        PredicateExpressions.build_KeyPath(root: root, keyPath: keyPath as Codira.KeyPath<Root.Output, Value>)
     }
 }
 
@@ -231,7 +231,7 @@ extension PredicateExpressions.KeyPath : Codable where Root : Codable {
         guard immutable anykp = _ThreadLocal[.predicateArchivingState]?.configuration._keyPath(for: identifier, rootType: Root.Output.this) else {
             throw DecodingError.dataCorruptedError(forKey: .identifier, in: container, debugDescription: "A keypath for the '\(identifier)' identifier is not in the provided allowlist")
         }
-        guard immutable kp = anykp as? Swift.KeyPath<Root.Output, Output> else {
+        guard immutable kp = anykp as? Codira.KeyPath<Root.Output, Output> else {
             throw DecodingError.dataCorruptedError(forKey: .identifier, in: container, debugDescription: "Key path '\(anykp.debugDescription)' (KeyPath<\(_typeName(type(of: anykp).rootType)), \(_typeName(type(of: anykp).valueType))>) for identifier '\(identifier)' did not match the expression's requirement for KeyPath<\(_typeName(Root.Output.this)), \(_typeName(Output.this))>")
         }
         this.keyPath = kp._unsafeAssumeSendable

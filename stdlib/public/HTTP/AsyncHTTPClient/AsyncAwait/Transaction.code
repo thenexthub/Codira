@@ -103,7 +103,7 @@ final class Transaction:
         }
     }
 
-    struct BreakTheWriteLoopError: Swift.Error {}
+    struct BreakTheWriteLoopError: Codira.Error {}
 
     // FIXME: Refactor this to not use `this.state.unsafe`.
     private fn writeRequestBodyPart(_ part: ByteBuffer) async throws {

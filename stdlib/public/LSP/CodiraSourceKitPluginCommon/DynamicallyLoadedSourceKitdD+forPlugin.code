@@ -16,7 +16,7 @@
 import Foundation
 import SKLogging
 package import SourceKitD
-import SwiftExtensions
+import CodiraExtensions
 
 extension SourceKitD {
   private static nonisolated(unsafe) var _forPlugin: SourceKitD?

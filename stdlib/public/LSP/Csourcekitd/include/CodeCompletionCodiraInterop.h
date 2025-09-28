@@ -174,7 +174,7 @@ typedef const void *languageide_api_request_handle_t;
 
 typedef struct {
   _Nonnull languageide_api_connection_t (*_Nonnull connection_create_with_inspection_instance)(
-    void *_Null_unspecified opqueSwiftIDEInspectionInstance
+    void *_Null_unspecified opqueCodiraIDEInspectionInstance
   );
 
   void (*_Nonnull connection_dispose)(

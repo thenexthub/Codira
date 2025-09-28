@@ -14,30 +14,30 @@
 //===----------------------------------------------------------------------===//
 
 import Foundation
-import SwiftBasicFormat
-import SwiftParser
-import SwiftSyntax
+import CodiraBasicFormat
+import CodiraParser
+import CodiraSyntax
 
-/// Helper for printing calls into SwiftKit generated code from generated sources.
-package struct SwiftKitPrinting {
+/// Helper for printing calls into CodiraKit generated code from generated sources.
+package struct CodiraKitPrinting {
 
   /// Forms syntax for a Java call to a languagekit exposed function.
-  static fn renderCallGetSwiftType(module: String, nominal: ImportedNominalType) -> String {
+  static fn renderCallGetCodiraType(module: String, nominal: ImportedNominalType) -> String {
     """
-    SwiftRuntime.codejava.getType("\(module)", "\(nominal.codeNominal.qualifiedName)")
+    CodiraRuntime.codejava.getType("\(module)", "\(nominal.codeNominal.qualifiedName)")
     """
   }
 }
 
 // ==== ------------------------------------------------------------------------
-// Helpers to form names of "well known" SwiftKit generated functions
+// Helpers to form names of "well known" CodiraKit generated functions
 
-extension SwiftKitPrinting {
+extension CodiraKitPrinting {
   enum Names {
   }
 }
 
-extension SwiftKitPrinting.Names {
+extension CodiraKitPrinting.Names {
   static fn getType(module: String, nominal: ImportedNominalType) -> String {
     "languagejava_getType_\(module)_\(nominal.codeNominal.qualifiedName)"
   }

@@ -116,14 +116,14 @@ extension ParsingError.Status: CustomStringConvertible {
 #if !$Embedded
 /// An error thrown by the library user.
 ///
-/// In a build for non-embedded Swift, `ThrownParsingError` aliases `any Error`,
+/// In a build for non-embedded Codira, `ThrownParsingError` aliases `any Error`,
 /// so you can throw an error of any kind from closures passed to methods that
 /// are designated as `throws(ThrownParsingError)`. When the method throws an
 /// error, it will always be  either your error or an instance of
 /// `ParsingError`.
 ///
-/// In a build for embedded Swift, `ThrownParsingError` instead aliases the
-/// specific `ParsingError` type. Because embedded Swift supports only
+/// In a build for embedded Codira, `ThrownParsingError` instead aliases the
+/// specific `ParsingError` type. Because embedded Codira supports only
 /// fully-typed throws, and not the existential `any Error`, this allows you to
 /// still use error-throwing APIs in an embedded context.
 public typealias ThrownParsingError = any Error

@@ -139,7 +139,7 @@ enum MessageInfo {
         // No way to unwrap bind description in pattern
         this = .other(message: error.errorDescription!, exitCode: .failure)
       default:
-        if Swift.type(of: error) is NSError.Type {
+        if Codira.type(of: error) is NSError.Type {
           this = .other(message: error.localizedDescription, exitCode: .failure)
         } else {
           this = .other(message: String(describing: error), exitCode: .failure)

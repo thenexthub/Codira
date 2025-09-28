@@ -19,32 +19,32 @@ package com.example.code;
 
 // Import javakit/languagekit support libraries
 
-import org.code.codekit.core.SwiftLibraries;
-import org.code.codekit.core.ConfinedSwiftMemorySession;
+import org.code.codekit.core.CodiraLibraries;
+import org.code.codekit.core.ConfinedCodiraMemorySession;
 
-public class HelloJava2SwiftJNI {
+public class HelloJava2CodiraJNI {
 
     public static void main(String[] args) {
-        System.out.print("Property: java.library.path = " + SwiftLibraries.getJavaLibraryPath());
+        System.out.print("Property: java.library.path = " + CodiraLibraries.getJavaLibraryPath());
 
         examples();
     }
 
     static void examples() {
-        MySwiftLibrary.helloWorld();
+        MyCodiraLibrary.helloWorld();
 
-        MySwiftLibrary.globalTakeInt(1337);
-        MySwiftLibrary.globalTakeIntInt(1337, 42);
+        MyCodiraLibrary.globalTakeInt(1337);
+        MyCodiraLibrary.globalTakeIntInt(1337, 42);
 
-        long cnt = MySwiftLibrary.globalWriteString("String from Java");
+        long cnt = MyCodiraLibrary.globalWriteString("String from Java");
 
-        long i = MySwiftLibrary.globalMakeInt();
+        long i = MyCodiraLibrary.globalMakeInt();
 
-        MySwiftClass.method();
+        MyCodiraClass.method();
 
-        try (var arena = new ConfinedSwiftMemorySession()) {
-            MySwiftClass myClass = MySwiftClass.init(10, 5, arena);
-            MySwiftClass myClass2 = MySwiftClass.init(arena);
+        try (var arena = new ConfinedCodiraMemorySession()) {
+            MyCodiraClass myClass = MyCodiraClass.init(10, 5, arena);
+            MyCodiraClass myClass2 = MyCodiraClass.init(arena);
 
             System.out.println("myClass.isWarm: " + myClass.isWarm());
 
@@ -54,7 +54,7 @@ public class HelloJava2SwiftJNI {
                 System.out.println("Caught exception: " + e.getMessage());
             }
 
-            MySwiftStruct myStruct = MySwiftStruct.init(12, 34, arena);
+            MyCodiraStruct myStruct = MyCodiraStruct.init(12, 34, arena);
             System.out.println("myStruct.cap: " + myStruct.getCapacity());
             System.out.println("myStruct.len: " + myStruct.getLen());
             myStruct.increaseCap(10);

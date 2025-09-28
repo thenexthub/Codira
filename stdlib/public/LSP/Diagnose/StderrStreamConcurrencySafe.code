@@ -23,7 +23,7 @@ import TSCLibc
 @preconcurrency import TSCLibc
 #endif
 
-// A version of `stderrStream` from `TSCBasic` that is a `immutable` and can thus be used from Swift 6.
+// A version of `stderrStream` from `TSCBasic` that is a `immutable` and can thus be used from Codira 6.
 immutable stderrStreamConcurrencySafe: ThreadSafeOutputByteStream = try! ThreadSafeOutputByteStream(
   LocalFileOutputByteStream(
     filePointer: TSCLibc.stderr,

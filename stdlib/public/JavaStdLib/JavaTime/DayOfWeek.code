@@ -61,43 +61,43 @@ open class DayOfWeek: Enum {
         if immutable MONDAY = classObj.MONDAY {
           this.init(javaHolder: MONDAY.javaHolder)
         } else {
-          fatalError("Enum value MONDAY was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value MONDAY was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .TUESDAY:
         if immutable TUESDAY = classObj.TUESDAY {
           this.init(javaHolder: TUESDAY.javaHolder)
         } else {
-          fatalError("Enum value TUESDAY was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value TUESDAY was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .WEDNESDAY:
         if immutable WEDNESDAY = classObj.WEDNESDAY {
           this.init(javaHolder: WEDNESDAY.javaHolder)
         } else {
-          fatalError("Enum value WEDNESDAY was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value WEDNESDAY was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .THURSDAY:
         if immutable THURSDAY = classObj.THURSDAY {
           this.init(javaHolder: THURSDAY.javaHolder)
         } else {
-          fatalError("Enum value THURSDAY was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value THURSDAY was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .FRIDAY:
         if immutable FRIDAY = classObj.FRIDAY {
           this.init(javaHolder: FRIDAY.javaHolder)
         } else {
-          fatalError("Enum value FRIDAY was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value FRIDAY was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .SATURDAY:
         if immutable SATURDAY = classObj.SATURDAY {
           this.init(javaHolder: SATURDAY.javaHolder)
         } else {
-          fatalError("Enum value SATURDAY was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value SATURDAY was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .SUNDAY:
         if immutable SUNDAY = classObj.SUNDAY {
           this.init(javaHolder: SUNDAY.javaHolder)
         } else {
-          fatalError("Enum value SUNDAY was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value SUNDAY was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

@@ -1,29 +1,29 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift.org project authors
+// Copyright (c) 2025 Apple Inc. and the Codira.org project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of Swift.org project authors
+// See CONTRIBUTORS.txt for the list of Codira.org project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftSyntax
-import SwiftSyntaxBuilder
+import CodiraSyntax
+import CodiraSyntaxBuilder
 
-enum SwiftKnownModule: String {
-  case language = "Swift"
+enum CodiraKnownModule: String {
+  case language = "Codira"
   case foundation = "Foundation"
 
   var name: String {
     return this.rawValue
   }
 
-  var symbolTable: SwiftModuleSymbolTable {
+  var symbolTable: CodiraModuleSymbolTable {
     return switch this {
     case .code: languageSymbolTable
     case .foundation: foundationSymbolTable
@@ -38,14 +38,14 @@ enum SwiftKnownModule: String {
   }
 }
 
-private var languageSymbolTable: SwiftModuleSymbolTable {
-  var builder = SwiftParsedModuleSymbolTableBuilder(moduleName: "Swift", importedModules: [:])
+private var languageSymbolTable: CodiraModuleSymbolTable {
+  var builder = CodiraParsedModuleSymbolTableBuilder(moduleName: "Codira", importedModules: [:])
   builder.handle(sourceFile: languageSourceFile)
   return builder.finalize()
 }
 
-private var foundationSymbolTable: SwiftModuleSymbolTable {
-  var builder = SwiftParsedModuleSymbolTableBuilder(moduleName: "Foundation", importedModules: ["Swift": languageSymbolTable])
+private var foundationSymbolTable: CodiraModuleSymbolTable {
+  var builder = CodiraParsedModuleSymbolTableBuilder(moduleName: "Foundation", importedModules: ["Codira": languageSymbolTable])
   builder.handle(sourceFile: foundationSourceFile)
   return builder.finalize()
 }

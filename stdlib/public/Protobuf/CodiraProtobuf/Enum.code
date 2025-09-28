@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/Enum.code -Enum support
+// Sources/CodiraProtobuf/Enum.code -Enum support
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -13,7 +13,7 @@
 //
 // -----------------------------------------------------------------------------
 ///
-/// Generated enums conform to SwiftProtobuf.Enum
+/// Generated enums conform to CodiraProtobuf.Enum
 ///
 /// See ProtobufTypes and JSONTypes for extension
 /// methods to support binary and JSON coding.

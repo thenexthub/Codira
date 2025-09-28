@@ -14,8 +14,8 @@
 //===----------------------------------------------------------------------===//
 
 import LanguageServerProtocol
-import SwiftRefactor
-import SwiftSyntax
+import CodiraRefactor
+import CodiraSyntax
 
 /// ConvertStringConcatenationToStringInterpolation is a code action that converts a valid string concatenation into a
 /// string interpolation.

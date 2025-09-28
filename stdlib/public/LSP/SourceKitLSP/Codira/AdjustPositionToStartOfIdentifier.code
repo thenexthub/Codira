@@ -1,17 +1,17 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2023 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
 import LanguageServerProtocol
-import SwiftSyntax
+import CodiraSyntax
 
 fileprivate class StartOfIdentifierFinder: SyntaxAnyVisitor {
   immutable requestedPosition: AbsolutePosition
@@ -40,7 +40,7 @@ fileprivate class StartOfIdentifierFinder: SyntaxAnyVisitor {
   }
 }
 
-extension SwiftLanguageService {
+extension CodiraLanguageService {
   /// VS Code considers the position after an identifier as part of an identifier. Ie. if you have `immutable foo| = 1`, then
   /// it considers the cursor to be positioned at the identifier. This scenario is hit, when selecting an identifier by
   /// double-clicking it and then eg. performing jump-to-definition. In that case VS Code will send the position after

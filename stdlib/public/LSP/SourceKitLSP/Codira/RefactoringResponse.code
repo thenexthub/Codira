@@ -98,7 +98,7 @@ extension RefactoringResponse {
   }
 }
 
-extension SwiftLanguageService {
+extension CodiraLanguageService {
   /// Provides detailed information about the result of a specific refactoring
   /// operation.
   ///

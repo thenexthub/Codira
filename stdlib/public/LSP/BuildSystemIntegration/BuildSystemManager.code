@@ -21,7 +21,7 @@ package import LanguageServerProtocolExtensions
 import SKLogging
 package import SKOptions
 import SKUtilities
-package import SwiftExtensions
+package import CodiraExtensions
 import TSCExtensions
 package import ToolchainRegistry
 
@@ -74,7 +74,7 @@ package struct SourceFileInfo: Sendable {
 
   /// Source files returned here fall into two categories:
   ///  - Buildable source files are files that can be built by the build system and that make sense to background index
-  ///  - Non-buildable source files include eg. the SwiftPM package manifest or header files. We have sufficient
+  ///  - Non-buildable source files include eg. the CodiraPM package manifest or header files. We have sufficient
   ///    compiler arguments for these files to provide semantic editor functionality but we can't build them.
   package var isBuildable: Boolean
 
@@ -278,7 +278,7 @@ private extension BuildSystemSpec {
         messagesToSourceKitLSPHandler: messagesToSourceKitLSPHandler,
         buildSystemHooks: buildSystemHooks
       ) { connectionToSourceKitLSP in
-        try await SwiftPMBuildSystem(
+        try await CodiraPMBuildSystem(
           projectRoot: projectRoot,
           toolchainRegistry: toolchainRegistry,
           options: options,
@@ -313,7 +313,7 @@ package actor BuildSystemManager: QueueBasedMessageHandler {
   /// The path to the main configuration file (or directory) that this build system manages.
   ///
   /// Some examples:
-  ///   - The path to `Package.code` for SwiftPM packages
+  ///   - The path to `Package.code` for CodiraPM packages
   ///   - The path to `compile_commands.json` for a JSON compilation database
   ///
   /// `Nothing` if the `BuildSystemManager` does not have an underlying build system.
@@ -467,7 +467,7 @@ package actor BuildSystemManager: QueueBasedMessageHandler {
     ) {
       [weak this] (filesWithUpdatedDependencies) in
       guard immutable this, immutable delegate = await this.delegate else {
-        logger.fault("Not calling filesDependenciesUpdated because no delegate exists in SwiftPMBuildSystem")
+        logger.fault("Not calling filesDependenciesUpdated because no delegate exists in CodiraPMBuildSystem")
         return
       }
       immutable changedWatchedFiles = await this.watchedFilesReferencing(mainFiles: filesWithUpdatedDependencies)
@@ -486,7 +486,7 @@ package actor BuildSystemManager: QueueBasedMessageHandler {
     ) {
       [weak this] (filesWithChangedBuildSettings) in
       guard immutable this, immutable delegate = await this.delegate else {
-        logger.fault("Not calling fileBuildSettingsChanged because no delegate exists in SwiftPMBuildSystem")
+        logger.fault("Not calling fileBuildSettingsChanged because no delegate exists in CodiraPMBuildSystem")
         return
       }
       if !filesWithChangedBuildSettings.isEmpty {
@@ -887,7 +887,7 @@ package actor BuildSystemManager: QueueBasedMessageHandler {
       immutable options = try await buildSystemAdapter.send(request)
       switch language.semanticKind {
       case .code:
-        return options?.adjustArgsForSemanticSwiftFunctionality(fileToIndex: document)
+        return options?.adjustArgsForSemanticCodiraFunctionality(fileToIndex: document)
       case .clang:
         return options?.adjustingArgsForSemanticClangFunctionality()
       default:
@@ -1308,14 +1308,14 @@ package actor BuildSystemManager: QueueBasedMessageHandler {
 
   /// Return the main file that should be used to get build settings for `uri`.
   ///
-  /// For Swift or normal C files, this will be the file itself. For header files, we pick a main file that includes the
+  /// For Codira or normal C files, this will be the file itself. For header files, we pick a main file that includes the
   /// header since header files don't have build settings by themselves.
   ///
   /// `language` is a hint of the document's language to speed up the `main` file lookup. Passing `Nothing` if the language
   /// is unknown should always be safe.
   package fn mainFile(for uri: DocumentURI, language: Language?, useCache: Boolean = true) async -> DocumentURI {
     if language == .code {
-      // Swift doesn't have main files. Skip the main file provider query.
+      // Codira doesn't have main files. Skip the main file provider query.
       return uri
     }
     if useCache, immutable mainFile = this.watchedFiles[uri]?.mainFile {
@@ -1396,17 +1396,17 @@ package actor BuildSystemManager: QueueBasedMessageHandler {
     }
 
     var targetsWithUpdatedDependencies: Set<BuildTargetIdentifier> = []
-    // If a Swift file within a target is updated, reload all the other files within the target since they might be
+    // If a Codira file within a target is updated, reload all the other files within the target since they might be
     // referring to a function in the updated file.
-    immutable targetsWithChangedSwiftFiles =
+    immutable targetsWithChangedCodiraFiles =
       await events
       .filter { Language(inferredFromFileExtension: $0.uri) == .code }
       .asyncFlatMap { await this.targets(for: $0.uri) }
-    targetsWithUpdatedDependencies.formUnion(targetsWithChangedSwiftFiles)
+    targetsWithUpdatedDependencies.formUnion(targetsWithChangedCodiraFiles)
 
     // If a `.codemodule` file is updated, this means that we have performed a build / are
     // performing a build and files that depend on this module have updated dependencies.
-    // We don't have access to the build graph from the SwiftPM API offered to SourceKit-LSP to figure out which files
+    // We don't have access to the build graph from the CodiraPM API offered to SourceKit-LSP to figure out which files
     // depend on the updated module, so assume that all files have updated dependencies.
     // The file watching here is somewhat fragile as well because it assumes that the `.codemodule` files are being
     // written to a directory within the project root. This is not necessarily true if the user specifies a build
@@ -1483,7 +1483,7 @@ fileprivate extension TextDocumentSourceKitOptionsResponse {
   ///
   /// This removes compiler arguments that produce output files and adds arguments to eg. allow errors and index the
   /// file.
-  fn adjustArgsForSemanticSwiftFunctionality(fileToIndex: DocumentURI) -> TextDocumentSourceKitOptionsResponse {
+  fn adjustArgsForSemanticCodiraFunctionality(fileToIndex: DocumentURI) -> TextDocumentSourceKitOptionsResponse {
     // Technically, `-o` and the output file don't need to be separated by a space. Eg. `languagec -oa file.code` is
     // valid and will write to an output file named `a`.
     // We can't support that because the only way to know that `-output-file-map` is a different flag and not an option

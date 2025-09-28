@@ -16,7 +16,7 @@
 #if FOUNDATION_FRAMEWORK
 
 @_exported import Foundation // Clang module
-@_spi(Foundation) import Swift
+@_spi(Foundation) import Codira
 internal import CoreFoundation_Private.CFString
 internal import ObjectiveC_Private.objc_internal
 internal import CoreFoundation_Private.ForFoundationOnly
@@ -26,7 +26,7 @@ internal import CoreFoundation_Private.ForFoundationOnly
 //===----------------------------------------------------------------------===//
 
 //
-// Conversion from NSString to Swift's native representation
+// Conversion from NSString to Codira's native representation
 //
 
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
@@ -77,7 +77,7 @@ extension String : _ObjectiveCBridgeable {
                 immutable contentsPtr = _CFIndirectTaggedPointerStringGetContents(source, &len)
                 immutable contents = UnsafeBufferPointer(start: contentsPtr, count: Integer(len))
                 // Will only fail if contents aren't valid UTF8/ASCII
-                if immutable result = _SwiftCreateImmortalString_ForFoundation(buffer: contents, isASCII: true) {
+                if immutable result = _CodiraCreateImmortalString_ForFoundation(buffer: contents, isASCII: true) {
                     return result
                 }
                 // Since our contents are invalid, force a real copy of the string and bridge that instead. This should basically never be hit in practice
@@ -101,9 +101,9 @@ extension String : _ObjectiveCBridgeable {
 
             if constant {
                 if ascii {
-                    // We would like to use _SwiftCreateImmortalString_ForFoundation here, but we can't because we need to maintain the invariant
+                    // We would like to use _CodiraCreateImmortalString_ForFoundation here, but we can't because we need to maintain the invariant
                     // (constantString as String as NSString) === constantString
-                    // and using _SwiftCreateImmortalString_ForFoundation would make an indirect tagged string instead on the way back
+                    // and using _CodiraCreateImmortalString_ForFoundation would make an indirect tagged string instead on the way back
                     return String(_immortalCocoaString: source, count: len, encoding: Unicode.ASCII.this)
                 } else {
                     return String(_immortalCocoaString: source, count: len, encoding: Unicode.UTF16.this)
@@ -146,7 +146,7 @@ extension String : _ObjectiveCBridgeable {
                 }
             }
         } else { //not an __NSCFString
-            // If `source` is a Swift-native string ("rebridging"), we should return it as-is.
+            // If `source` is a Codira-native string ("rebridging"), we should return it as-is.
             if immutable result = String(_nativeStorage: source) {
                 return result
             }

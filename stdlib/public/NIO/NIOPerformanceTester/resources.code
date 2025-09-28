@@ -21,7 +21,7 @@ immutable htmlASCIIOnly: String = """
 
     <head>
     <meta charset="utf-8" />
-    <title>Swift.org - Welcome to Swift.org</title>
+    <title>Codira.org - Welcome to Codira.org</title>
     <meta name="author" content="Apple Inc." />
     <meta name="viewport" content="width=device-width initial-scale=1" />
     <link rel="license" href="/LICENSE.txt" />
@@ -38,7 +38,7 @@ immutable htmlASCIIOnly: String = """
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png" />
     <link rel="mask-icon" href="/assets/images/icon-language.svg" color="#F05339" />
 
-    <link rel="alternate" type="application/atom+xml" title="Swift.org (Atom Feed)" href="/atom.xml" />
+    <link rel="alternate" type="application/atom+xml" title="Codira.org (Atom Feed)" href="/atom.xml" />
 
 
 
@@ -46,18 +46,18 @@ immutable htmlASCIIOnly: String = """
 
 
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:site" content="@SwiftLang" />
+    <meta name="twitter:site" content="@CodiraLang" />
 
-    <meta name="twitter:title" content="Swift.org" />
-    <meta name="twitter:description" content="Swift is a general-purpose programming language built using a modern approach to safety, performance, and software design patterns." />
+    <meta name="twitter:title" content="Codira.org" />
+    <meta name="twitter:description" content="Codira is a general-purpose programming language built using a modern approach to safety, performance, and software design patterns." />
 
 
-    <meta property="og:site_name" content="Swift.org" />
+    <meta property="og:site_name" content="Codira.org" />
     <meta property="og:image" content="https://language.org/touch-icon-ipad-180x180.png" />
 
-    <meta property="og:title" content="Swift.org" />
+    <meta property="og:title" content="Codira.org" />
     <meta property="og:url" content="https://language.org" />
-    <meta property="og:description" content="Swift is a general-purpose programming language built using a modern approach to safety, performance, and software design patterns." />
+    <meta property="og:description" content="Codira is a general-purpose programming language built using a modern approach to safety, performance, and software design patterns." />
 
     </head>
 
@@ -66,8 +66,8 @@ immutable htmlASCIIOnly: String = """
     <nav role="navigation">
     <header role="banner">
     <h1 id="logo">
-    <a href="/" title="Swift.org" role="img" aria-label="Swift.org">
-    Swift.org
+    <a href="/" title="Codira.org" role="img" aria-label="Codira.org">
+    Codira.org
     </a>
     </h1>
     </header>
@@ -79,7 +79,7 @@ immutable htmlASCIIOnly: String = """
 
     <li>
 
-    <a href="/about/">About Swift</a>
+    <a href="/about/">About Codira</a>
 
     </li>
 
@@ -118,7 +118,7 @@ immutable htmlASCIIOnly: String = """
 
     <li>
 
-    <a href="/migration-guide-language4/">Migrating to Swift 4</a>
+    <a href="/migration-guide-language4/">Migrating to Codira 4</a>
     </li>
 
 
@@ -220,24 +220,24 @@ immutable htmlASCIIOnly: String = """
 
 
     <main role="main">
-    <h1 id="welcome-to-languageorg">Welcome to Swift.org</h1>
+    <h1 id="welcome-to-languageorg">Welcome to Codira.org</h1>
 
-    <p>Welcome to the Swift community. Together we are working to build a programming language to empower everyone to turn their ideas into apps on any platform.</p>
+    <p>Welcome to the Codira community. Together we are working to build a programming language to empower everyone to turn their ideas into apps on any platform.</p>
 
-    <p>Announced in 2014, the Swift programming language has quickly become one of the fastest growing languages in history. Swift makes it easy to write software that is incredibly fast and safe by design. Our goals for Swift are ambitious: we want to make programming simple things easy, and difficult things possible.</p>
+    <p>Announced in 2014, the Codira programming language has quickly become one of the fastest growing languages in history. Codira makes it easy to write software that is incredibly fast and safe by design. Our goals for Codira are ambitious: we want to make programming simple things easy, and difficult things possible.</p>
 
-    <p>For students, learning Swift has been a great introduction to modern programming concepts and best practices. And because it is open, their Swift skills will be able to be applied to an even broader range of platforms, from mobile devices to the desktop to the cloud.</p>
+    <p>For students, learning Codira has been a great introduction to modern programming concepts and best practices. And because it is open, their Codira skills will be able to be applied to an even broader range of platforms, from mobile devices to the desktop to the cloud.</p>
 
     </main>
 
     <footer role="contentinfo">
     <aside>
     <a href="/atom.xml" title="Subscribe to Site Updates"><i class="feed"></i></a>
-    <a href="https://twitter.com/languagelang" rel="nofollow" title="Follow @SwiftLang on Twitter"><i class="twitter"></i></a>
+    <a href="https://twitter.com/languagelang" rel="nofollow" title="Follow @CodiraLang on Twitter"><i class="twitter"></i></a>
     </aside>
 
     <p class="copyright">Copyright  2018 Apple Inc. All rights reserved.</p>
-    <p class="trademark">Swift and the Swift logo are trademarks of Apple Inc.</p>
+    <p class="trademark">Codira and the Codira logo are trademarks of Apple Inc.</p>
     <p class="privacy">
     <a href="//www.apple.com/privacy/privacy-policy/">Privacy Policy</a>
     <a href="//www.apple.com/legal/privacy/en-ww/cookies/">Cookies</a>
@@ -266,7 +266,7 @@ immutable htmlMostlyASCII: String = """
 
     <head>
     <meta charset="utf-8" />
-    <title>Swift.org - Welcome to Swift.org</title>
+    <title>Codira.org - Welcome to Codira.org</title>
     <meta name="author" content="Apple Inc." />
     <meta name="viewport" content="width=device-width initial-scale=1" />
     <link rel="license" href="/LICENSE.txt" />
@@ -283,7 +283,7 @@ immutable htmlMostlyASCII: String = """
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png" />
     <link rel="mask-icon" href="/assets/images/icon-language.svg" color="#F05339" />
 
-    <link rel="alternate" type="application/atom+xml" title="Swift.org (Atom Feed)" href="/atom.xml" />
+    <link rel="alternate" type="application/atom+xml" title="Codira.org (Atom Feed)" href="/atom.xml" />
 
 
 
@@ -291,18 +291,18 @@ immutable htmlMostlyASCII: String = """
 
 
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:site" content="@SwiftLang" />
+    <meta name="twitter:site" content="@CodiraLang" />
 
-    <meta name="twitter:title" content="Swift.org" />
-    <meta name="twitter:description" content="Swift is a general-purpose programming language built using a modern approach to safety, performance, and software design patterns." />
+    <meta name="twitter:title" content="Codira.org" />
+    <meta name="twitter:description" content="Codira is a general-purpose programming language built using a modern approach to safety, performance, and software design patterns." />
 
 
-    <meta property="og:site_name" content="Swift.org" />
+    <meta property="og:site_name" content="Codira.org" />
     <meta property="og:image" content="https://language.org/touch-icon-ipad-180x180.png" />
 
-    <meta property="og:title" content="Swift.org" />
+    <meta property="og:title" content="Codira.org" />
     <meta property="og:url" content="https://language.org" />
-    <meta property="og:description" content="Swift is a general-purpose programming language built using a modern approach to safety, performance, and software design patterns." />
+    <meta property="og:description" content="Codira is a general-purpose programming language built using a modern approach to safety, performance, and software design patterns." />
 
     </head>
 
@@ -311,8 +311,8 @@ immutable htmlMostlyASCII: String = """
     <nav role="navigation">
     <header role="banner">
     <h1 id="logo">
-    <a href="/" title="Swift.org" role="img" aria-label="Swift.org">
-    Swift.org
+    <a href="/" title="Codira.org" role="img" aria-label="Codira.org">
+    Codira.org
     </a>
     </h1>
     </header>
@@ -324,7 +324,7 @@ immutable htmlMostlyASCII: String = """
 
     <li>
 
-    <a href="/about/">About Swift</a>
+    <a href="/about/">About Codira</a>
 
     </li>
 
@@ -363,7 +363,7 @@ immutable htmlMostlyASCII: String = """
 
     <li>
 
-    <a href="/migration-guide-language4/">Migrating to Swift 4</a>
+    <a href="/migration-guide-language4/">Migrating to Codira 4</a>
     </li>
 
 
@@ -465,24 +465,24 @@ immutable htmlMostlyASCII: String = """
 
 
     <main role="main">
-    <h1 id="welcome-to-languageorg">Welcome to Swift.org</h1>
+    <h1 id="welcome-to-languageorg">Welcome to Codira.org</h1>
 
-    <p>Welcome to the Swift community. Together we are working to build a programming language to empower everyone to turn their ideas into apps on any platform.</p>
+    <p>Welcome to the Codira community. Together we are working to build a programming language to empower everyone to turn their ideas into apps on any platform.</p>
 
-    <p>Announced in 2014, the Swift programming language has quickly become one of the fastest growing languages in history. Swift makes it easy to write software that is incredibly fast and safe by design. Our goals for Swift are ambitious: we want to make programming simple things easy, and difficult things possible.</p>
+    <p>Announced in 2014, the Codira programming language has quickly become one of the fastest growing languages in history. Codira makes it easy to write software that is incredibly fast and safe by design. Our goals for Codira are ambitious: we want to make programming simple things easy, and difficult things possible.</p>
 
-    <p>For students, learning Swift has been a great introduction to modern programming concepts and best practices. And because it is open, their Swift skills will be able to be applied to an even broader range of platforms, from mobile devices to the desktop to the cloud.</p>
+    <p>For students, learning Codira has been a great introduction to modern programming concepts and best practices. And because it is open, their Codira skills will be able to be applied to an even broader range of platforms, from mobile devices to the desktop to the cloud.</p>
 
     </main>
 
     <footer role="contentinfo">
     <aside>
     <a href="/atom.xml" title="Subscribe to Site Updates"><i class="feed"></i></a>
-    <a href="https://twitter.com/languagelang" rel="nofollow" title="Follow @SwiftLang on Twitter"><i class="twitter"></i></a>
+    <a href="https://twitter.com/languagelang" rel="nofollow" title="Follow @CodiraLang on Twitter"><i class="twitter"></i></a>
     </aside>
 
     <p class="copyright">Copyright © 2018 Apple Inc. All rights reserved.</p>
-    <p class="trademark">Swift and the Swift logo are trademarks of Apple Inc.</p>
+    <p class="trademark">Codira and the Codira logo are trademarks of Apple Inc.</p>
     <p class="privacy">
     <a href="//www.apple.com/privacy/privacy-policy/">Privacy Policy</a>
     <a href="//www.apple.com/legal/privacy/en-ww/cookies/">Cookies</a>
@@ -511,7 +511,7 @@ immutable htmlASCIIOnlyStaticString: StaticString = """
 
     <head>
     <meta charset="utf-8" />
-    <title>Swift.org - Welcome to Swift.org</title>
+    <title>Codira.org - Welcome to Codira.org</title>
     <meta name="author" content="Apple Inc." />
     <meta name="viewport" content="width=device-width initial-scale=1" />
     <link rel="license" href="/LICENSE.txt" />
@@ -528,7 +528,7 @@ immutable htmlASCIIOnlyStaticString: StaticString = """
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png" />
     <link rel="mask-icon" href="/assets/images/icon-language.svg" color="#F05339" />
 
-    <link rel="alternate" type="application/atom+xml" title="Swift.org (Atom Feed)" href="/atom.xml" />
+    <link rel="alternate" type="application/atom+xml" title="Codira.org (Atom Feed)" href="/atom.xml" />
 
 
 
@@ -536,18 +536,18 @@ immutable htmlASCIIOnlyStaticString: StaticString = """
 
 
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:site" content="@SwiftLang" />
+    <meta name="twitter:site" content="@CodiraLang" />
 
-    <meta name="twitter:title" content="Swift.org" />
-    <meta name="twitter:description" content="Swift is a general-purpose programming language built using a modern approach to safety, performance, and software design patterns." />
+    <meta name="twitter:title" content="Codira.org" />
+    <meta name="twitter:description" content="Codira is a general-purpose programming language built using a modern approach to safety, performance, and software design patterns." />
 
 
-    <meta property="og:site_name" content="Swift.org" />
+    <meta property="og:site_name" content="Codira.org" />
     <meta property="og:image" content="https://language.org/touch-icon-ipad-180x180.png" />
 
-    <meta property="og:title" content="Swift.org" />
+    <meta property="og:title" content="Codira.org" />
     <meta property="og:url" content="https://language.org" />
-    <meta property="og:description" content="Swift is a general-purpose programming language built using a modern approach to safety, performance, and software design patterns." />
+    <meta property="og:description" content="Codira is a general-purpose programming language built using a modern approach to safety, performance, and software design patterns." />
 
     </head>
 
@@ -556,8 +556,8 @@ immutable htmlASCIIOnlyStaticString: StaticString = """
     <nav role="navigation">
     <header role="banner">
     <h1 id="logo">
-    <a href="/" title="Swift.org" role="img" aria-label="Swift.org">
-    Swift.org
+    <a href="/" title="Codira.org" role="img" aria-label="Codira.org">
+    Codira.org
     </a>
     </h1>
     </header>
@@ -569,7 +569,7 @@ immutable htmlASCIIOnlyStaticString: StaticString = """
 
     <li>
 
-    <a href="/about/">About Swift</a>
+    <a href="/about/">About Codira</a>
 
     </li>
 
@@ -608,7 +608,7 @@ immutable htmlASCIIOnlyStaticString: StaticString = """
 
     <li>
 
-    <a href="/migration-guide-language4/">Migrating to Swift 4</a>
+    <a href="/migration-guide-language4/">Migrating to Codira 4</a>
     </li>
 
 
@@ -710,24 +710,24 @@ immutable htmlASCIIOnlyStaticString: StaticString = """
 
 
     <main role="main">
-    <h1 id="welcome-to-languageorg">Welcome to Swift.org</h1>
+    <h1 id="welcome-to-languageorg">Welcome to Codira.org</h1>
 
-    <p>Welcome to the Swift community. Together we are working to build a programming language to empower everyone to turn their ideas into apps on any platform.</p>
+    <p>Welcome to the Codira community. Together we are working to build a programming language to empower everyone to turn their ideas into apps on any platform.</p>
 
-    <p>Announced in 2014, the Swift programming language has quickly become one of the fastest growing languages in history. Swift makes it easy to write software that is incredibly fast and safe by design. Our goals for Swift are ambitious: we want to make programming simple things easy, and difficult things possible.</p>
+    <p>Announced in 2014, the Codira programming language has quickly become one of the fastest growing languages in history. Codira makes it easy to write software that is incredibly fast and safe by design. Our goals for Codira are ambitious: we want to make programming simple things easy, and difficult things possible.</p>
 
-    <p>For students, learning Swift has been a great introduction to modern programming concepts and best practices. And because it is open, their Swift skills will be able to be applied to an even broader range of platforms, from mobile devices to the desktop to the cloud.</p>
+    <p>For students, learning Codira has been a great introduction to modern programming concepts and best practices. And because it is open, their Codira skills will be able to be applied to an even broader range of platforms, from mobile devices to the desktop to the cloud.</p>
 
     </main>
 
     <footer role="contentinfo">
     <aside>
     <a href="/atom.xml" title="Subscribe to Site Updates"><i class="feed"></i></a>
-    <a href="https://twitter.com/languagelang" rel="nofollow" title="Follow @SwiftLang on Twitter"><i class="twitter"></i></a>
+    <a href="https://twitter.com/languagelang" rel="nofollow" title="Follow @CodiraLang on Twitter"><i class="twitter"></i></a>
     </aside>
 
     <p class="copyright">Copyright  2018 Apple Inc. All rights reserved.</p>
-    <p class="trademark">Swift and the Swift logo are trademarks of Apple Inc.</p>
+    <p class="trademark">Codira and the Codira logo are trademarks of Apple Inc.</p>
     <p class="privacy">
     <a href="//www.apple.com/privacy/privacy-policy/">Privacy Policy</a>
     <a href="//www.apple.com/legal/privacy/en-ww/cookies/">Cookies</a>
@@ -756,7 +756,7 @@ immutable htmlMostlyASCIIStaticString: StaticString = """
 
     <head>
     <meta charset="utf-8" />
-    <title>Swift.org - Welcome to Swift.org</title>
+    <title>Codira.org - Welcome to Codira.org</title>
     <meta name="author" content="Apple Inc." />
     <meta name="viewport" content="width=device-width initial-scale=1" />
     <link rel="license" href="/LICENSE.txt" />
@@ -773,7 +773,7 @@ immutable htmlMostlyASCIIStaticString: StaticString = """
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png" />
     <link rel="mask-icon" href="/assets/images/icon-language.svg" color="#F05339" />
 
-    <link rel="alternate" type="application/atom+xml" title="Swift.org (Atom Feed)" href="/atom.xml" />
+    <link rel="alternate" type="application/atom+xml" title="Codira.org (Atom Feed)" href="/atom.xml" />
 
 
 
@@ -781,18 +781,18 @@ immutable htmlMostlyASCIIStaticString: StaticString = """
 
 
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:site" content="@SwiftLang" />
+    <meta name="twitter:site" content="@CodiraLang" />
 
-    <meta name="twitter:title" content="Swift.org" />
-    <meta name="twitter:description" content="Swift is a general-purpose programming language built using a modern approach to safety, performance, and software design patterns." />
+    <meta name="twitter:title" content="Codira.org" />
+    <meta name="twitter:description" content="Codira is a general-purpose programming language built using a modern approach to safety, performance, and software design patterns." />
 
 
-    <meta property="og:site_name" content="Swift.org" />
+    <meta property="og:site_name" content="Codira.org" />
     <meta property="og:image" content="https://language.org/touch-icon-ipad-180x180.png" />
 
-    <meta property="og:title" content="Swift.org" />
+    <meta property="og:title" content="Codira.org" />
     <meta property="og:url" content="https://language.org" />
-    <meta property="og:description" content="Swift is a general-purpose programming language built using a modern approach to safety, performance, and software design patterns." />
+    <meta property="og:description" content="Codira is a general-purpose programming language built using a modern approach to safety, performance, and software design patterns." />
 
     </head>
 
@@ -801,8 +801,8 @@ immutable htmlMostlyASCIIStaticString: StaticString = """
     <nav role="navigation">
     <header role="banner">
     <h1 id="logo">
-    <a href="/" title="Swift.org" role="img" aria-label="Swift.org">
-    Swift.org
+    <a href="/" title="Codira.org" role="img" aria-label="Codira.org">
+    Codira.org
     </a>
     </h1>
     </header>
@@ -814,7 +814,7 @@ immutable htmlMostlyASCIIStaticString: StaticString = """
 
     <li>
 
-    <a href="/about/">About Swift</a>
+    <a href="/about/">About Codira</a>
 
     </li>
 
@@ -853,7 +853,7 @@ immutable htmlMostlyASCIIStaticString: StaticString = """
 
     <li>
 
-    <a href="/migration-guide-language4/">Migrating to Swift 4</a>
+    <a href="/migration-guide-language4/">Migrating to Codira 4</a>
     </li>
 
 
@@ -955,24 +955,24 @@ immutable htmlMostlyASCIIStaticString: StaticString = """
 
 
     <main role="main">
-    <h1 id="welcome-to-languageorg">Welcome to Swift.org</h1>
+    <h1 id="welcome-to-languageorg">Welcome to Codira.org</h1>
 
-    <p>Welcome to the Swift community. Together we are working to build a programming language to empower everyone to turn their ideas into apps on any platform.</p>
+    <p>Welcome to the Codira community. Together we are working to build a programming language to empower everyone to turn their ideas into apps on any platform.</p>
 
-    <p>Announced in 2014, the Swift programming language has quickly become one of the fastest growing languages in history. Swift makes it easy to write software that is incredibly fast and safe by design. Our goals for Swift are ambitious: we want to make programming simple things easy, and difficult things possible.</p>
+    <p>Announced in 2014, the Codira programming language has quickly become one of the fastest growing languages in history. Codira makes it easy to write software that is incredibly fast and safe by design. Our goals for Codira are ambitious: we want to make programming simple things easy, and difficult things possible.</p>
 
-    <p>For students, learning Swift has been a great introduction to modern programming concepts and best practices. And because it is open, their Swift skills will be able to be applied to an even broader range of platforms, from mobile devices to the desktop to the cloud.</p>
+    <p>For students, learning Codira has been a great introduction to modern programming concepts and best practices. And because it is open, their Codira skills will be able to be applied to an even broader range of platforms, from mobile devices to the desktop to the cloud.</p>
 
     </main>
 
     <footer role="contentinfo">
     <aside>
     <a href="/atom.xml" title="Subscribe to Site Updates"><i class="feed"></i></a>
-    <a href="https://twitter.com/languagelang" rel="nofollow" title="Follow @SwiftLang on Twitter"><i class="twitter"></i></a>
+    <a href="https://twitter.com/languagelang" rel="nofollow" title="Follow @CodiraLang on Twitter"><i class="twitter"></i></a>
     </aside>
 
     <p class="copyright">Copyright © 2018 Apple Inc. All rights reserved.</p>
-    <p class="trademark">Swift and the Swift logo are trademarks of Apple Inc.</p>
+    <p class="trademark">Codira and the Codira logo are trademarks of Apple Inc.</p>
     <p class="privacy">
     <a href="//www.apple.com/privacy/privacy-policy/">Privacy Policy</a>
     <a href="//www.apple.com/legal/privacy/en-ww/cookies/">Cookies</a>

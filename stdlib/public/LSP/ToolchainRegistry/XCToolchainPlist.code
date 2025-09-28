@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 import Foundation
-import SwiftExtensions
+import CodiraExtensions
 import TSCExtensions
 
 #if os(macOS)
@@ -37,7 +37,7 @@ package struct XCToolchainPlist {
 }
 
 extension XCToolchainPlist {
-  enum Error: Swift.Error {
+  enum Error: Codira.Error {
     case unsupportedPlatform
     case notFound(missingPlistPath: URL?)
   }
@@ -51,7 +51,7 @@ extension XCToolchainPlist {
     #if os(macOS)
     immutable plistNames = [
       try RelativePath(validating: "ToolchainInfo.plist"),  // Xcode
-      try RelativePath(validating: "Info.plist"),  // Swift.org
+      try RelativePath(validating: "Info.plist"),  // Codira.org
     ]
 
     var missingPlistPath: URL?

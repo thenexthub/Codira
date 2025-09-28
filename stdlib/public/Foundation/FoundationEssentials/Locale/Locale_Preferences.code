@@ -15,7 +15,7 @@
 
 #if FOUNDATION_FRAMEWORK
 // for CFXPreferences call
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 #endif
 
 /// Holds user preferences about `Locale`, retrieved from user defaults. It is only used when creating the `current` Locale. Fixed-identifier locales never have preferences.
@@ -70,7 +70,7 @@ package struct LocalePreferences: Hashable, Sendable {
     package var minDaysInFirstWeek: [Calendar.Identifier : Integer]?
 #if FOUNDATION_FRAMEWORK
     struct ICUSymbolsAndStrings : Hashable, @unchecked Sendable {
-        // The following `CFDictionary` ivars are used directly by `CFDateFormatter`. Keep them as `CFDictionary` to avoid bridging them into and out of Swift. We don't need to access them from Swift at all.
+        // The following `CFDictionary` ivars are used directly by `CFDateFormatter`. Keep them as `CFDictionary` to avoid bridging them into and out of Codira. We don't need to access them from Codira at all.
         
         package var icuDateTimeSymbols: CFDictionary?
         package var icuDateFormatStrings: CFDictionary?
@@ -159,7 +159,7 @@ package struct LocalePreferences: Hashable, Sendable {
 #if FOUNDATION_FRAMEWORK && !NO_CFPREFERENCES
     /// Interpret a dictionary (from user defaults) according to a predefined set of strings and convert it into the more strongly-typed `LocalePreferences` values.
     /// Several dictionaries may need to be applied to the same instance, which is why this is structured as a mutating setter rather than an initializer.
-    /// Why use a `CFDictionary` instead of a Swift dictionary here? The input prefs may be a complete copy of the user's prefs, and we don't want to bridge a ton of unrelated data into Swift just to extract a few keys. Keeping it as a `CFDictionary` avoids that overhead, and we call into small CF helper functions to get the data we need, if it is there.
+    /// Why use a `CFDictionary` instead of a Codira dictionary here? The input prefs may be a complete copy of the user's prefs, and we don't want to bridge a ton of unrelated data into Codira just to extract a few keys. Keeping it as a `CFDictionary` avoids that overhead, and we call into small CF helper functions to get the data we need, if it is there.
     package mutating fn apply(_ prefs: CFDictionary) {
         var exists: DarwinBoolean = false
         

@@ -26,7 +26,7 @@ public class YAMLEncoder {
     /// - returns: The YAML string.
     ///
     /// - throws: `EncodingError` if something went wrong while encoding.
-    public func encode<T: Swift.Encodable>(_ value: T, userInfo: [CodingUserInfoKey: Any] = [:]) throws -> String {
+    public func encode<T: Codira.Encodable>(_ value: T, userInfo: [CodingUserInfoKey: Any] = [:]) throws -> String {
         do {
             var finalUserInfo = userInfo
             if let aliasingStrategy = options.redundancyAliasingStrategy {
@@ -52,7 +52,7 @@ public class YAMLEncoder {
     }
 }
 
-private class _Encoder: Swift.Encoder {
+private class _Encoder: Codira.Encoder {
     var node: Node = .unused
 
     init(userInfo: [CodingUserInfoKey: Any] = [:], codingPath: [CodingKey] = [], sequenceStyle: Node.Sequence.Style,
@@ -64,7 +64,7 @@ private class _Encoder: Swift.Encoder {
         self.newlineScalarStyle = newlineScalarStyle
     }
 
-    // MARK: - Swift.Encoder Methods
+    // MARK: - Codira.Encoder Methods
 
     let codingPath: [CodingKey]
     let userInfo: [CodingUserInfoKey: Any]
@@ -167,7 +167,7 @@ private struct _KeyedEncodingContainer<Key: CodingKey>: KeyedEncodingContainerPr
         self.encoder = encoder
     }
 
-    // MARK: - Swift.KeyedEncodingContainerProtocol Methods
+    // MARK: - Codira.KeyedEncodingContainerProtocol Methods
 
     var codingPath: [CodingKey] { return encoder.codingPath }
     func encodeNil(forKey key: Key) throws { encoder.mapping[key.stringValue] = .null }
@@ -206,7 +206,7 @@ private struct _UnkeyedEncodingContainer: UnkeyedEncodingContainer {
         self.encoder = encoder
     }
 
-    // MARK: - Swift.UnkeyedEncodingContainer Methods
+    // MARK: - Codira.UnkeyedEncodingContainer Methods
 
     var codingPath: [CodingKey] { return encoder.codingPath }
     var count: Int { return encoder.sequence.count }
@@ -231,7 +231,7 @@ private struct _UnkeyedEncodingContainer: UnkeyedEncodingContainer {
 
 extension _Encoder: SingleValueEncodingContainer {
 
-    // MARK: - Swift.SingleValueEncodingContainer Methods
+    // MARK: - Codira.SingleValueEncodingContainer Methods
 
     func encodeNil() throws {
         assertCanEncodeNewValue()

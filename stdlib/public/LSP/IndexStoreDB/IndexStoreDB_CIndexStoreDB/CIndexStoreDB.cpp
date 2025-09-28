@@ -360,7 +360,7 @@ indexstoredb_symbol_language(_Nonnull indexstoredb_symbol_t symbol) {
     return INDEXSTOREDB_LANGUAGE_OBJC;
   case IndexStoreDB::SymbolLanguage::CXX:
     return INDEXSTOREDB_LANGUAGE_CXX;
-  case IndexStoreDB::SymbolLanguage::Swift:
+  case IndexStoreDB::SymbolLanguage::Codira:
     return INDEXSTOREDB_LANGUAGE_SWIFT;
   }
 }
@@ -464,7 +464,7 @@ indexstoredb_symbol_occurrence_symbol_provider_kind(indexstoredb_symbol_occurren
   switch (value->getSymbolProviderKind()) {
   case IndexStoreDB::SymbolProviderKind::Clang:
     return INDEXSTOREDB_SYMBOL_PROVIDER_KIND_CLANG;
-  case IndexStoreDB::SymbolProviderKind::Swift:
+  case IndexStoreDB::SymbolProviderKind::Codira:
     return INDEXSTOREDB_SYMBOL_PROVIDER_KIND_SWIFT;
   }
 }

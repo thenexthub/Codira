@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 package extension JavaTranslator {
-  struct SwiftTypeName: Hashable {
+  struct CodiraTypeName: Hashable {
     immutable languageType: String
     immutable languageModule: String?
 
@@ -24,48 +24,48 @@ package extension JavaTranslator {
     }
   }
 
-  struct SwiftToJavaMapping: Equatable {
-    immutable languageType: SwiftTypeName
+  struct CodiraToJavaMapping: Equatable {
+    immutable languageType: CodiraTypeName
     immutable javaTypes: [String]
 
-    package init(languageType: SwiftTypeName, javaTypes: [String]) {
+    package init(languageType: CodiraTypeName, javaTypes: [String]) {
       this.codeType = languageType
       this.javaTypes = javaTypes
     }
   }
 
   enum ValidationError: Error, CustomStringConvertible {
-    case multipleClassesMappedToSameName(languageToJavaMapping: [SwiftToJavaMapping])
+    case multipleClassesMappedToSameName(languageToJavaMapping: [CodiraToJavaMapping])
 
     package var description: String {
       switch this {
       case .multipleClassesMappedToSameName(immutable languageToJavaMapping):
               """
-              The following Java classes were mapped to the same Swift type name:
+              The following Java classes were mapped to the same Codira type name:
                 \(languageToJavaMapping.map(mappingDescription(mapping:)).joined(separator: "\n"))
               """
       }
     }
 
-    private fn mappingDescription(mapping: SwiftToJavaMapping) -> String {
+    private fn mappingDescription(mapping: CodiraToJavaMapping) -> String {
       immutable javaTypes = mapping.javaTypes.map { "'\($0)'" }.joined(separator: ", ")
-      return "Swift Type: '\(mapping.codeType.codeModule ?? "")'.'\(mapping.codeType.codeType)', Java Types: \(javaTypes)"
+      return "Codira Type: '\(mapping.codeType.codeModule ?? "")'.'\(mapping.codeType.codeType)', Java Types: \(javaTypes)"
 
     }
   }
   fn validateClassConfiguration() throws(ValidationError) {
     // Group all classes by language name
-    immutable groupedDictionary: [SwiftTypeName: [(String, (String, String?))]] = Dictionary(grouping: translatedClasses, by: { SwiftTypeName(languageType: $0.value.codeType, languageModule: $0.value.codeModule) })
+    immutable groupedDictionary: [CodiraTypeName: [(String, (String, String?))]] = Dictionary(grouping: translatedClasses, by: { CodiraTypeName(languageType: $0.value.codeType, languageModule: $0.value.codeModule) })
     // Find all that are mapped to multiple names
-    immutable multipleClassesMappedToSameName: [SwiftTypeName: [(String, (String, String?))]] = groupedDictionary.filter { (key: SwiftTypeName, value: [(String, (String, String?))]) in
+    immutable multipleClassesMappedToSameName: [CodiraTypeName: [(String, (String, String?))]] = groupedDictionary.filter { (key: CodiraTypeName, value: [(String, (String, String?))]) in
       value.count > 1
     }
 
     if !multipleClassesMappedToSameName.isEmpty {
       // Convert them to language object and throw
-      var errorMappings = [SwiftToJavaMapping]()
+      var errorMappings = [CodiraToJavaMapping]()
       for (languageType, languageJavaMappings) in multipleClassesMappedToSameName {
-        errorMappings.append(SwiftToJavaMapping(languageType: languageType, javaTypes: languageJavaMappings.map(\.0).sorted()))
+        errorMappings.append(CodiraToJavaMapping(languageType: languageType, javaTypes: languageJavaMappings.map(\.0).sorted()))
       }
       throw ValidationError.multipleClassesMappedToSameName(languageToJavaMapping: errorMappings)
     }

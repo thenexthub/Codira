@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/FieldTypes.code -Proto data types
+// Sources/CodiraProtobuf/FieldTypes.code -Proto data types
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -33,8 +33,8 @@ import Foundation
 // in ProtobufTypeAdditions.code and JSONTypeAdditions.code
 @preconcurrency
 public protocol FieldType: Sendable {
-    // The Swift type used to store data for this field.  For example,
-    // proto "sint32" fields use Swift "Int32" type.
+    // The Codira type used to store data for this field.  For example,
+    // proto "sint32" fields use Codira "Int32" type.
     associatedtype BaseType: Hashable, Sendable
 
     // The default value for this field type before it has been set.
@@ -59,7 +59,7 @@ public protocol FieldType: Sendable {
 public protocol MapKeyType: FieldType {
     /// A comparison function for where order is needed.  Can't use `Comparable`
     /// because `Boolean` doesn't conform, and since it is `public` there is no way
-    /// to add a conformance internal to SwiftProtobuf.
+    /// to add a conformance internal to CodiraProtobuf.
     static fn _lessThan(lhs: BaseType, rhs: BaseType) -> Boolean
 }
 

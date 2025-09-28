@@ -50,19 +50,19 @@ extension ZoneOffsetTransitionRule {
         if immutable UTC = classObj.UTC {
           this.init(javaHolder: UTC.javaHolder)
         } else {
-          fatalError("Enum value UTC was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value UTC was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .WALL:
         if immutable WALL = classObj.WALL {
           this.init(javaHolder: WALL.javaHolder)
         } else {
-          fatalError("Enum value WALL was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value WALL was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .STANDARD:
         if immutable STANDARD = classObj.STANDARD {
           this.init(javaHolder: STANDARD.javaHolder)
         } else {
-          fatalError("Enum value STANDARD was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value STANDARD was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

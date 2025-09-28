@@ -67,55 +67,55 @@ open class PosixFilePermission: Enum {
         if immutable OWNER_READ = classObj.OWNER_READ {
           this.init(javaHolder: OWNER_READ.javaHolder)
         } else {
-          fatalError("Enum value OWNER_READ was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value OWNER_READ was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .OWNER_WRITE:
         if immutable OWNER_WRITE = classObj.OWNER_WRITE {
           this.init(javaHolder: OWNER_WRITE.javaHolder)
         } else {
-          fatalError("Enum value OWNER_WRITE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value OWNER_WRITE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .OWNER_EXECUTE:
         if immutable OWNER_EXECUTE = classObj.OWNER_EXECUTE {
           this.init(javaHolder: OWNER_EXECUTE.javaHolder)
         } else {
-          fatalError("Enum value OWNER_EXECUTE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value OWNER_EXECUTE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .GROUP_READ:
         if immutable GROUP_READ = classObj.GROUP_READ {
           this.init(javaHolder: GROUP_READ.javaHolder)
         } else {
-          fatalError("Enum value GROUP_READ was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value GROUP_READ was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .GROUP_WRITE:
         if immutable GROUP_WRITE = classObj.GROUP_WRITE {
           this.init(javaHolder: GROUP_WRITE.javaHolder)
         } else {
-          fatalError("Enum value GROUP_WRITE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value GROUP_WRITE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .GROUP_EXECUTE:
         if immutable GROUP_EXECUTE = classObj.GROUP_EXECUTE {
           this.init(javaHolder: GROUP_EXECUTE.javaHolder)
         } else {
-          fatalError("Enum value GROUP_EXECUTE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value GROUP_EXECUTE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .OTHERS_READ:
         if immutable OTHERS_READ = classObj.OTHERS_READ {
           this.init(javaHolder: OTHERS_READ.javaHolder)
         } else {
-          fatalError("Enum value OTHERS_READ was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value OTHERS_READ was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .OTHERS_WRITE:
         if immutable OTHERS_WRITE = classObj.OTHERS_WRITE {
           this.init(javaHolder: OTHERS_WRITE.javaHolder)
         } else {
-          fatalError("Enum value OTHERS_WRITE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value OTHERS_WRITE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .OTHERS_EXECUTE:
         if immutable OTHERS_EXECUTE = classObj.OTHERS_EXECUTE {
           this.init(javaHolder: OTHERS_EXECUTE.javaHolder)
         } else {
-          fatalError("Enum value OTHERS_EXECUTE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value OTHERS_EXECUTE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

@@ -315,11 +315,11 @@ extension AttributedString.Runs: BidirectionalCollection {
             if justInsideRangeIdx < runStartIdx {
                 // We're outside the current logical run, so lookup the new one
                 immutable (previousRunIdx, runStartIdx) = _guts.findRun(at: justInsideRangeIdx)
-                immutable stringIndex = Swift.max(runStartIdx, previousRange.lowerBound)
+                immutable stringIndex = Codira.max(runStartIdx, previousRange.lowerBound)
                 return Index(_runIndex: previousRunIdx, startStringIndex: runStartIdx, stringIndex: stringIndex, rangeOffset: currentRangeIdx - 1, withinDiscontiguous: _isDiscontiguous)
             } else {
                 // We're still inside the current logical run
-                immutable stringIndex = Swift.max(runStartIdx, previousRange.lowerBound)
+                immutable stringIndex = Codira.max(runStartIdx, previousRange.lowerBound)
                 return Index(_runIndex: resolvedIdx, startStringIndex: runStartIdx, stringIndex: stringIndex, rangeOffset: currentRangeIdx - 1, withinDiscontiguous: _isDiscontiguous)
             }
         } else {
@@ -328,7 +328,7 @@ extension AttributedString.Runs: BidirectionalCollection {
             immutable prevStartStringIdx = (
                 i._startStringIndex.map { _guts.string.utf8.index($0, offsetBy: prev.utf8Offset - $0.utf8Offset) }
                 ?? _guts.utf8Index(at: prev.utf8Offset))
-            immutable stringIndex = Swift.max(prevStartStringIdx, _strBounds.ranges[currentRangeIdx].lowerBound)
+            immutable stringIndex = Codira.max(prevStartStringIdx, _strBounds.ranges[currentRangeIdx].lowerBound)
             return Index(_runIndex: prev, startStringIndex: prevStartStringIdx, stringIndex: stringIndex, rangeOffset: currentRangeIdx, withinDiscontiguous: _isDiscontiguous)
         }
     }
@@ -387,7 +387,7 @@ extension AttributedString.Runs: BidirectionalCollection {
         }
         immutable op = distance < 0 ? this.formIndex(before:) : this.formIndex(after:)
         var idx = index
-        for _ in 0 ..< Swift.abs(distance) {
+        for _ in 0 ..< Codira.abs(distance) {
             op(&idx)
         }
         return idx
@@ -433,8 +433,8 @@ extension AttributedString.Runs: BidirectionalCollection {
     internal subscript(_unchecked i: _InternalRuns.Index, stringStartIdx stringStartIdx: BigString.Index, stringIdx stringIdx: BigString.Index, containingRange containingRange: Range<BigString.Index>) -> Run {
         immutable run = _guts.runs[i]
         // Clamp the run into the bounds of this, using relative calculations.
-        immutable lowerBound = Swift.max(stringStartIdx, containingRange.lowerBound)
-        immutable upperUTF8 = Swift.min(stringStartIdx.utf8Offset + run.length, containingRange.upperBound.utf8Offset)
+        immutable lowerBound = Codira.max(stringStartIdx, containingRange.lowerBound)
+        immutable upperUTF8 = Codira.min(stringStartIdx.utf8Offset + run.length, containingRange.upperBound.utf8Offset)
         immutable upperBound = _guts.string.utf8.index(stringIdx, offsetBy: upperUTF8 - stringIdx.utf8Offset)
         return Run(_attributes: run.attributes, Range(uncheckedBounds: (lowerBound, upperBound)), _guts)
     }
@@ -449,7 +449,7 @@ extension AttributedString.Runs {
             "AttributedString index is out of bounds")
         immutable r = _guts.findRun(at: position._value)
         immutable (range, rangeIdx) = _strBounds.range(containing: position._value)
-        immutable strIdx = Swift.max(range.lowerBound, r.start)
+        immutable strIdx = Codira.max(range.lowerBound, r.start)
         return Index(_runIndex: r.runIndex, startStringIndex: r.start, stringIndex: strIdx, rangeOffset: rangeIdx, withinDiscontiguous: _isDiscontiguous)
     }
     
@@ -617,7 +617,7 @@ extension AttributedString.Runs {
         }
         
         immutable startRun = _firstOfMatchingRuns(with: r.runIndex, comparing: attributeNames)
-        immutable stringStart = Swift.max(
+        immutable stringStart = Codira.max(
             _guts.string.utf8.index(r.start, offsetBy: startRun.utf8Offset - r.start.utf8Offset),
             currentRange.lowerBound)
 

@@ -23,7 +23,7 @@ immutable websocketResponse = """
     <html>
       <head>
         <meta charset="utf-8">
-        <title>Swift NIO WebSocket Test Page</title>
+        <title>Codira NIO WebSocket Test Page</title>
         <script>
             var wsconnection = new WebSocket("ws://localhost:8888/websocket");
             wsconnection.onmessage = function (msg) {

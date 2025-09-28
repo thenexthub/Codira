@@ -480,7 +480,7 @@ internal final class SelectableEventLoop: EventLoop, @unchecked Sendable {
                     printError(
                         """
                         ERROR: Cannot schedule tasks on an EventLoop that has already shut down. \
-                        This will be upgraded to a forced crash in future SwiftNIO versions.\n
+                        This will be upgraded to a forced crash in future CodiraNIO versions.\n
                         """
                     )
                     return false

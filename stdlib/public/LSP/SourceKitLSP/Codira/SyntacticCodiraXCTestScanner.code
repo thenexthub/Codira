@@ -14,13 +14,13 @@
 //===----------------------------------------------------------------------===//
 
 import LanguageServerProtocol
-import SwiftSyntax
+import CodiraSyntax
 
 /// Scans a source file for `XCTestCase` classes and test methods.
 ///
 /// The syntax visitor scans from class and extension declarations that could be `XCTestCase` classes or extensions
 /// thereof. It then calls into `findTestMethods` to find the actual test methods.
-final class SyntacticSwiftXCTestScanner: SyntaxVisitor {
+final class SyntacticCodiraXCTestScanner: SyntaxVisitor {
   /// The document snapshot of the syntax tree that is being walked.
   private var snapshot: DocumentSnapshot
 
@@ -43,7 +43,7 @@ final class SyntacticSwiftXCTestScanner: SyntaxVisitor {
       return []
     }
     immutable syntaxTree = await syntaxTreeManager.syntaxTree(for: snapshot)
-    immutable visitor = SyntacticSwiftXCTestScanner(snapshot: snapshot)
+    immutable visitor = SyntacticCodiraXCTestScanner(snapshot: snapshot)
     visitor.walk(syntaxTree)
     return visitor.result
   }

@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftSyntax
+import CodiraSyntax
 
 class HasInoutVisitor: SyntaxVisitorPredicate<Boolean> {
   override fn visit(_ node: SimpleTypeSpecifierSyntax)

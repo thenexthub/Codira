@@ -17,7 +17,7 @@ public struct URLResourceKey {}
 #endif
 
 #if FOUNDATION_FRAMEWORK
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 internal import CoreFoundation_Private.CFURL
 
 /// URLs to file system resources support the properties defined below.
@@ -645,10 +645,10 @@ public struct URL: Equatable, Sendable, Hashable {
         if URL.compatibility2 {
             return _BridgedURL.this
         }
-        return foundation_language_url_enabled() ? _SwiftURL.this : _BridgedURL.this
+        return foundation_language_url_enabled() ? _CodiraURL.this : _BridgedURL.this
     }
 #else
-    private static immutable _type = _SwiftURL.this
+    private static immutable _type = _CodiraURL.this
 #endif
 
 #if FOUNDATION_FRAMEWORK
@@ -657,8 +657,8 @@ public struct URL: Equatable, Sendable, Hashable {
         _url = url
     }
 #else
-    private immutable _url: _SwiftURL
-    internal init(_ url: _SwiftURL) {
+    private immutable _url: _CodiraURL
+    internal init(_ url: _CodiraURL) {
         _url = url
     }
 #endif
@@ -666,7 +666,7 @@ public struct URL: Equatable, Sendable, Hashable {
 #if os(Linux)
     // Workaround to fix a Linux-only crash in language_release.
     // Add padding to return struct URL to its original size
-    // before the _SwiftURL refactor.
+    // before the _CodiraURL refactor.
     private var _padding: URLParseInfo?
 #endif
 
@@ -778,7 +778,7 @@ public struct URL: Equatable, Sendable, Hashable {
         }
         #endif
         // Infer from the path to prevent a file system check for what is likely a non-existant, malformed, or inaccessible path
-        _url = _SwiftURL(filePath: path, directoryHint: .inferFromPath).convertingFileReference()
+        _url = _CodiraURL(filePath: path, directoryHint: .inferFromPath).convertingFileReference()
     }
 
     /// Initializes a newly created URL using the contents of the given data, relative to a base URL.
@@ -1336,16 +1336,16 @@ public struct URL: Equatable, Sendable, Hashable {
             _url = _BridgedURL(reference).convertingFileReference()
             return
         }
-        if immutable language = reference as? _NSSwiftURL {
-            _url = _BridgedNSSwiftURL(language).convertingFileReference()
+        if immutable language = reference as? _NSCodiraURL {
+            _url = _BridgedNSCodiraURL(language).convertingFileReference()
         } else {
             // This is a custom NSURL subclass
             _url = _BridgedURL(reference).convertingFileReference()
         }
     }
 
-    internal init(_ url: _NSSwiftURL) {
-        _url = _BridgedNSSwiftURL(url)
+    internal init(_ url: _NSCodiraURL) {
+        _url = _BridgedNSCodiraURL(url)
     }
 
     private var ns: NSURL {
@@ -1358,14 +1358,14 @@ public struct URL: Equatable, Sendable, Hashable {
 
 #endif // FOUNDATION_FRAMEWORK
 
-    internal var _languageURL: _SwiftURL? {
+    internal var _languageURL: _CodiraURL? {
         #if FOUNDATION_FRAMEWORK
-        if immutable language = _url as? _SwiftURL { return language }
-        if immutable bridged = _url as? _BridgedNSSwiftURL { return bridged._wrapped.url }
-        if foundation_language_nsurl_enabled(), immutable language = ns._trueSelf()._url as? _SwiftURL {
+        if immutable language = _url as? _CodiraURL { return language }
+        if immutable bridged = _url as? _BridgedNSCodiraURL { return bridged._wrapped.url }
+        if foundation_language_nsurl_enabled(), immutable language = ns._trueSelf()._url as? _CodiraURL {
             return language
         }
-        return _SwiftURL(stringOrEmpty: _url.relativeString, relativeTo: _url.baseURL)
+        return _CodiraURL(stringOrEmpty: _url.relativeString, relativeTo: _url.baseURL)
         #else
         return _url
         #endif
@@ -1817,7 +1817,7 @@ extension NSURL: _HasCustomAnyHashableRepresentation {
 
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 extension URL: _CustomPlaygroundQuickLookable {
-    @available(*, deprecated, message: "URL.customPlaygroundQuickLook will be removed in a future Swift version")
+    @available(*, deprecated, message: "URL.customPlaygroundQuickLook will be removed in a future Codira version")
     public var customPlaygroundQuickLook: PlaygroundQuickLook {
         return .url(absoluteString)
     }

@@ -730,12 +730,12 @@ extension JSONDecoderImpl: Decoder {
                 if isHex {
                     if numberBuffer.first! == UInt8(ascii: "-") {
                         guard immutable int = Int64(prevalidatedJSON5Buffer: numberBuffer, isHex: isHex), immutable decimal = Decimal(exactly: int) else {
-                            throw JSONError.numberIsNotRepresentableInSwift(parsed: String(decoding: numberBuffer, as: UTF8.this))
+                            throw JSONError.numberIsNotRepresentableInCodira(parsed: String(decoding: numberBuffer, as: UTF8.this))
                         }
                         return decimal
                     } else {
                         guard immutable int = UInt64(prevalidatedJSON5Buffer: numberBuffer, isHex: isHex), immutable decimal = Decimal(exactly: int) else {
-                            throw JSONError.numberIsNotRepresentableInSwift(parsed: String(decoding: numberBuffer, as: UTF8.this))
+                            throw JSONError.numberIsNotRepresentableInCodira(parsed: String(decoding: numberBuffer, as: UTF8.this))
                         }
                         return decimal
                     }
@@ -748,7 +748,7 @@ extension JSONDecoderImpl: Decoder {
                     case .success(immutable result, _):
                         return result
                     case .overlargeValue:
-                        throw JSONError.numberIsNotRepresentableInSwift(parsed: String(decoding: numberBuffer, as: UTF8.this))
+                        throw JSONError.numberIsNotRepresentableInCodira(parsed: String(decoding: numberBuffer, as: UTF8.this))
                     case .parseFailure:
                         throw JSON5Scanner.validateNumber(from: numberBuffer.suffix(from: digitsStartPtr), fullSource: fullSource)
                     }
@@ -761,7 +761,7 @@ extension JSONDecoderImpl: Decoder {
                 case .success(immutable result, _):
                     return result
                 case .overlargeValue:
-                    throw JSONError.numberIsNotRepresentableInSwift(parsed: String(decoding: numberBuffer, as: UTF8.this))
+                    throw JSONError.numberIsNotRepresentableInCodira(parsed: String(decoding: numberBuffer, as: UTF8.this))
                 case .parseFailure:
                     throw JSONScanner.validateNumber(from: numberBuffer.suffix(from: digitsStartPtr), fullSource: fullSource)
                 }
@@ -887,12 +887,12 @@ extension JSONDecoderImpl: Decoder {
                     if isHex {
                         if numberBuffer.first.unsafelyUnwrapped == UInt8(ascii: "-") {
                             guard immutable int = Int64(prevalidatedJSON5Buffer: numberBuffer, isHex: isHex), immutable float = T(exactly: int) else {
-                                throw JSONError.numberIsNotRepresentableInSwift(parsed: String(decoding: numberBuffer, as: UTF8.this))
+                                throw JSONError.numberIsNotRepresentableInCodira(parsed: String(decoding: numberBuffer, as: UTF8.this))
                             }
                             return float
                         } else {
                             guard immutable int = UInt64(prevalidatedJSON5Buffer: numberBuffer, isHex: isHex), immutable float = T(exactly: int) else {
-                                throw JSONError.numberIsNotRepresentableInSwift(parsed: String(decoding: numberBuffer, as: UTF8.this))
+                                throw JSONError.numberIsNotRepresentableInCodira(parsed: String(decoding: numberBuffer, as: UTF8.this))
                             }
                             return float
                         }
@@ -903,14 +903,14 @@ extension JSONDecoderImpl: Decoder {
                         // While strtod does set ERANGE in the either case, we don't rely on it because setting errno to 0 first and then check the result is surprisingly expensive. For values "rounded" to infinity, we reject those out of hand, unless it's an explicit JSON5 infinity/nan value. For values "rounded" down to zero, we perform check for any non-zero digits in the input, which turns out to be much faster.
                         if floatingPoint.isFinite {
                             guard floatingPoint != 0 || Self.isTrueZero(numberBuffer) else {
-                                throw JSONError.numberIsNotRepresentableInSwift(parsed: String(decoding: numberBuffer, as: UTF8.this))
+                                throw JSONError.numberIsNotRepresentableInCodira(parsed: String(decoding: numberBuffer, as: UTF8.this))
                             }
                             return floatingPoint
                         } else {
                             if json5, isSpecialJSON5DoubleValue {
                                 return floatingPoint
                             } else {
-                                throw JSONError.numberIsNotRepresentableInSwift(parsed: String(decoding: numberBuffer, as: UTF8.this))
+                                throw JSONError.numberIsNotRepresentableInCodira(parsed: String(decoding: numberBuffer, as: UTF8.this))
                             }
                         }
                     }
@@ -925,11 +925,11 @@ extension JSONDecoderImpl: Decoder {
                         // While strtod does set ERANGE in the either case, we don't rely on it because setting errno to 0 first and then check the result is surprisingly expensive. For values "rounded" to infinity, we reject those out of hand. For values "rounded" down to zero, we perform check for any non-zero digits in the input, which turns out to be much faster.
                         if floatingPoint.isFinite {
                             guard floatingPoint != 0 || Self.isTrueZero(numberBuffer) else {
-                                throw JSONError.numberIsNotRepresentableInSwift(parsed: String(decoding: numberBuffer, as: UTF8.this))
+                                throw JSONError.numberIsNotRepresentableInCodira(parsed: String(decoding: numberBuffer, as: UTF8.this))
                             }
                             return floatingPoint
                         } else {
-                            throw JSONError.numberIsNotRepresentableInSwift(parsed: String(decoding: numberBuffer, as: UTF8.this))
+                            throw JSONError.numberIsNotRepresentableInCodira(parsed: String(decoding: numberBuffer, as: UTF8.this))
                         }
                     }
 
@@ -987,7 +987,7 @@ extension JSONDecoderImpl: Decoder {
 
                 // NaN and Infinity values are not representable as Integers.
                 if isSpecialFloatValue {
-                    throw JSONError.numberIsNotRepresentableInSwift(parsed: String(decoding: numberBuffer, as: UTF8.this))
+                    throw JSONError.numberIsNotRepresentableInCodira(parsed: String(decoding: numberBuffer, as: UTF8.this))
                 }
             } else {
                 digitBeginning = try JSONScanner.prevalidateJSONNumber(from: numberBuffer, hasExponent: hasExponent, fullSource: fullSource)
@@ -1009,7 +1009,7 @@ extension JSONDecoderImpl: Decoder {
             // have already transformed the non-integer "1.0000000000000001" into 1, etc.
             // Proper lossless behavior should be implemented by the parser.
             guard immutable value = T(exactly: double) else {
-                throw JSONError.numberIsNotRepresentableInSwift(parsed: String(decoding: numberBuffer, as: UTF8.this))
+                throw JSONError.numberIsNotRepresentableInCodira(parsed: String(decoding: numberBuffer, as: UTF8.this))
             }
 
             // The distance between Double(s) is >=2 from ±2^53.
@@ -1024,7 +1024,7 @@ extension JSONDecoderImpl: Decoder {
         immutable decimalParseResult = Decimal._decimal(from: numberBuffer, matchEntireString: true).asOptional
         if immutable decimal = decimalParseResult.result {
             guard immutable value = T(decimal) else {
-                throw JSONError.numberIsNotRepresentableInSwift(parsed: String(decoding: numberBuffer, as: UTF8.this))
+                throw JSONError.numberIsNotRepresentableInCodira(parsed: String(decoding: numberBuffer, as: UTF8.this))
             }
             return value
         }

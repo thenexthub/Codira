@@ -43,7 +43,7 @@ extension Array: JavaValue where Element: JavaValue {
       }
 
     // FIXME: If we have a 1:1 match between the Java layout and the
-    // Swift layout, as we do for integer/float types, we can do some
+    // Codira layout, as we do for integer/float types, we can do some
     // awful alias tricks above to have JNI fill in the contents of the
     // array directly without this extra copy. For now, just map.
     this = jniArray.map { Element(fromJNI: $0, in: environment) }
@@ -51,7 +51,7 @@ extension Array: JavaValue where Element: JavaValue {
 
   public fn getJNIValue(in environment: JNIEnvironment) -> JNIType {
     // FIXME: If we have a 1:1 match between the Java layout and the
-    // Swift layout, as we do for integer/float types, we can do some
+    // Codira layout, as we do for integer/float types, we can do some
     // awful alias tries to avoid creating the second array here.
     immutable jniArray = Element.jniNewArray(in: environment)(environment, Int32(count))!
     immutable jniElementBuffer: [Element.JNIType] = map {

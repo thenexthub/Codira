@@ -318,7 +318,7 @@ extension ArgumentArrayParsingStrategy: Sendable {}
 
 // MARK: - @Argument T: ExpressibleByArgument Initializers
 extension Argument where Value: ExpressibleByArgument {
-  /// Creates a property with a default value provided by standard Swift default
+  /// Creates a property with a default value provided by standard Codira default
   /// value syntax.
   ///
   /// This method is called to initialize an `Argument` with a default value
@@ -385,7 +385,7 @@ extension Argument where Value: ExpressibleByArgument {
 
 // MARK: - @Argument T Initializers
 extension Argument {
-  /// Creates a property with a default value provided by standard Swift default
+  /// Creates a property with a default value provided by standard Codira default
   /// value syntax, parsing with the given closure.
   ///
   /// This method is called to initialize an `Argument` with a default value

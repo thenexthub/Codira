@@ -16,8 +16,8 @@
 import Foundation
 package import LanguageServerProtocol
 package import SKOptions
-import SwiftExtensions
-package import SwiftSyntax
+import CodiraExtensions
+package import CodiraSyntax
 package import ToolchainRegistry
 
 package actor DocumentationLanguageService: LanguageService, Sendable {
@@ -106,7 +106,7 @@ package actor DocumentationLanguageService: LanguageService, Sendable {
     _ notification: DidChangeTextDocumentNotification,
     preEditSnapshot: DocumentSnapshot,
     postEditSnapshot: DocumentSnapshot,
-    edits: [SwiftSyntax.SourceEdit]
+    edits: [CodiraSyntax.SourceEdit]
   ) async {
     // The DocumentationLanguageService does not do anything with document events
   }

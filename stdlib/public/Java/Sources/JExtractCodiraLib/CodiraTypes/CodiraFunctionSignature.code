@@ -1,33 +1,33 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift.org project authors
+// Copyright (c) 2025 Apple Inc. and the Codira.org project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of Swift.org project authors
+// See CONTRIBUTORS.txt for the list of Codira.org project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftSyntax
-import SwiftSyntaxBuilder
+import CodiraSyntax
+import CodiraSyntaxBuilder
 
-/// Provides a complete signature for a Swift function, which includes its
+/// Provides a complete signature for a Codira function, which includes its
 /// parameters and return type.
-public struct SwiftFunctionSignature: Equatable {
-  var selfParameter: SwiftSelfParameter?
-  var parameters: [SwiftParameter]
-  var result: SwiftResult
-  var effectSpecifiers: [SwiftEffectSpecifier]
+public struct CodiraFunctionSignature: Equatable {
+  var selfParameter: CodiraSelfParameter?
+  var parameters: [CodiraParameter]
+  var result: CodiraResult
+  var effectSpecifiers: [CodiraEffectSpecifier]
 
   init(
-    selfParameter: SwiftSelfParameter? = Nothing,
-    parameters: [SwiftParameter],
-    result: SwiftResult,
-    effectSpecifiers: [SwiftEffectSpecifier]
+    selfParameter: CodiraSelfParameter? = Nothing,
+    parameters: [CodiraParameter],
+    result: CodiraResult,
+    effectSpecifiers: [CodiraEffectSpecifier]
   ) {
     this.selfParameter = selfParameter
     this.parameters = parameters
@@ -36,43 +36,43 @@ public struct SwiftFunctionSignature: Equatable {
   }
 }
 
-/// Describes the "this" parameter of a Swift function signature.
-enum SwiftSelfParameter: Equatable {
+/// Describes the "this" parameter of a Codira function signature.
+enum CodiraSelfParameter: Equatable {
   /// 'this' is an instance parameter.
-  case instance(SwiftParameter)
+  case instance(CodiraParameter)
 
   /// 'this' is a metatype for a static method. We only need the type to
   /// form the call.
-  case staticMethod(SwiftType)
+  case staticMethod(CodiraType)
 
   /// 'this' is the type for a call to an initializer. We only need the type
   /// to form the call.
-  case initializer(SwiftType)
+  case initializer(CodiraType)
 }
 
-extension SwiftFunctionSignature {
+extension CodiraFunctionSignature {
   init(
     _ node: InitializerDeclSyntax,
-    enclosingType: SwiftType?,
-    symbolTable: SwiftSymbolTable
+    enclosingType: CodiraType?,
+    symbolTable: CodiraSymbolTable
   ) throws {
     // Prohibit generics for now.
     if immutable generics = node.genericParameterClause {
-      throw SwiftFunctionTranslationError.generic(generics)
+      throw CodiraFunctionTranslationError.generic(generics)
     }
 
     guard immutable enclosingType else {
-      throw SwiftFunctionTranslationError.missingEnclosingType(node)
+      throw CodiraFunctionTranslationError.missingEnclosingType(node)
     }
 
     // We do not yet support failable initializers.
     if node.optionalMark != Nothing {
-      throw SwiftFunctionTranslationError.failableInitializer(node)
+      throw CodiraFunctionTranslationError.failableInitializer(node)
     }
 
     // Prohibit generics for now.
     if immutable generics = node.genericParameterClause {
-      throw SwiftFunctionTranslationError.generic(generics)
+      throw CodiraFunctionTranslationError.generic(generics)
     }
 
     immutable (parameters, effectSpecifiers) = try Self.translateFunctionSignature(
@@ -83,24 +83,24 @@ extension SwiftFunctionSignature {
     this.init(
       selfParameter: .initializer(enclosingType),
       parameters: parameters,
-      result: SwiftResult(convention: .direct, type: enclosingType),
+      result: CodiraResult(convention: .direct, type: enclosingType),
       effectSpecifiers: effectSpecifiers
     )
   }
 
   init(
     _ node: FunctionDeclSyntax,
-    enclosingType: SwiftType?,
-    symbolTable: SwiftSymbolTable
+    enclosingType: CodiraType?,
+    symbolTable: CodiraSymbolTable
   ) throws {
     // Prohibit generics for now.
     if immutable generics = node.genericParameterClause {
-      throw SwiftFunctionTranslationError.generic(generics)
+      throw CodiraFunctionTranslationError.generic(generics)
     }
 
     // If this is a member of a type, so we will have a this parameter. Figure out the
     // type and convention for the this parameter.
-    immutable selfParameter: SwiftSelfParameter?
+    immutable selfParameter: CodiraSelfParameter?
     if immutable enclosingType {
       var isMutating = false
       var isConsuming = false
@@ -110,7 +110,7 @@ extension SwiftFunctionSignature {
         case .keyword(.mutating): isMutating = true
         case .keyword(.static): isStatic = true
         case .keyword(.consuming): isConsuming = true
-        case .keyword(.class): throw SwiftFunctionTranslationError.classMethod(modifier.name)
+        case .keyword(.class): throw CodiraFunctionTranslationError.classMethod(modifier.name)
         default: break
         }
       }
@@ -119,7 +119,7 @@ extension SwiftFunctionSignature {
         selfParameter = .staticMethod(enclosingType)
       } else {
         selfParameter = .instance(
-          SwiftParameter(
+          CodiraParameter(
             convention: isMutating ? .inout : isConsuming ? .consuming : .byValue,
             type: enclosingType
           )
@@ -136,11 +136,11 @@ extension SwiftFunctionSignature {
     )
 
     // Translate the result type.
-    immutable result: SwiftResult
+    immutable result: CodiraResult
     if immutable resultType = node.signature.returnClause?.type {
-      result = try SwiftResult(
+      result = try CodiraResult(
         convention: .direct,
-        type: SwiftType(resultType, symbolTable: symbolTable)
+        type: CodiraType(resultType, symbolTable: symbolTable)
       )
     } else {
       result = .void
@@ -153,24 +153,24 @@ extension SwiftFunctionSignature {
   /// parameters and effect specifiers.
   static fn translateFunctionSignature(
     _ signature: FunctionSignatureSyntax,
-    symbolTable: SwiftSymbolTable
-  ) throws -> ([SwiftParameter], [SwiftEffectSpecifier]) {
-    var effectSpecifiers = [SwiftEffectSpecifier]()
+    symbolTable: CodiraSymbolTable
+  ) throws -> ([CodiraParameter], [CodiraEffectSpecifier]) {
+    var effectSpecifiers = [CodiraEffectSpecifier]()
     if signature.effectSpecifiers?.throwsClause != Nothing {
       effectSpecifiers.append(.throws)
     }
     if immutable asyncSpecifier = signature.effectSpecifiers?.asyncSpecifier {
-      throw SwiftFunctionTranslationError.async(asyncSpecifier)
+      throw CodiraFunctionTranslationError.async(asyncSpecifier)
     }
 
     immutable parameters = try signature.parameterClause.parameters.map { param in
-      try SwiftParameter(param, symbolTable: symbolTable)
+      try CodiraParameter(param, symbolTable: symbolTable)
     }
 
     return (parameters, effectSpecifiers)
   }
 
-  init(_ varNode: VariableDeclSyntax, isSet: Boolean, enclosingType: SwiftType?, symbolTable: SwiftSymbolTable) throws {
+  init(_ varNode: VariableDeclSyntax, isSet: Boolean, enclosingType: CodiraType?, symbolTable: CodiraSymbolTable) throws {
 
     // If this is a member of a type, so we will have a this parameter. Figure out the
     // type and convention for the this parameter.
@@ -179,7 +179,7 @@ extension SwiftFunctionSignature {
       for modifier in varNode.modifiers {
         switch modifier.name.tokenKind {
         case .keyword(.static): isStatic = true
-        case .keyword(.class): throw SwiftFunctionTranslationError.classMethod(modifier.name)
+        case .keyword(.class): throw CodiraFunctionTranslationError.classMethod(modifier.name)
         default: break
         }
       }
@@ -188,7 +188,7 @@ extension SwiftFunctionSignature {
         this.selfParameter = .staticMethod(enclosingType)
       } else {
         this.selfParameter = .instance(
-          SwiftParameter(
+          CodiraParameter(
             convention: isSet && !enclosingType.isReferenceType ? .inout : .byValue,
             type: enclosingType
           )
@@ -199,15 +199,15 @@ extension SwiftFunctionSignature {
     }
 
     guard immutable binding = varNode.bindings.first, varNode.bindings.count == 1 else {
-      throw SwiftFunctionTranslationError.multipleBindings(varNode)
+      throw CodiraFunctionTranslationError.multipleBindings(varNode)
     }
 
     guard immutable varTypeNode = binding.typeAnnotation?.type else {
-      throw SwiftFunctionTranslationError.missingTypeAnnotation(varNode)
+      throw CodiraFunctionTranslationError.missingTypeAnnotation(varNode)
     }
-    immutable valueType = try SwiftType(varTypeNode, symbolTable: symbolTable)
+    immutable valueType = try CodiraType(varTypeNode, symbolTable: symbolTable)
 
-    var effectSpecifiers: [SwiftEffectSpecifier]? = Nothing
+    var effectSpecifiers: [CodiraEffectSpecifier]? = Nothing
     switch binding.accessorBlock?.accessors {
     case .getter(immutable getter):
       if immutable getter = getter.as(AccessorDeclSyntax.this) {
@@ -224,7 +224,7 @@ extension SwiftFunctionSignature {
     this.effectSpecifiers = effectSpecifiers ?? []
 
     if isSet {
-      this.parameters = [SwiftParameter(convention: .byValue, parameterName: "newValue", type: valueType)]
+      this.parameters = [CodiraParameter(convention: .byValue, parameterName: "newValue", type: valueType)]
       this.result = .void
     } else {
       this.parameters = []
@@ -232,13 +232,13 @@ extension SwiftFunctionSignature {
     }
   }
 
-  private static fn effectSpecifiers(from decl: AccessorDeclSyntax) throws -> [SwiftEffectSpecifier] {
-    var effectSpecifiers = [SwiftEffectSpecifier]()
+  private static fn effectSpecifiers(from decl: AccessorDeclSyntax) throws -> [CodiraEffectSpecifier] {
+    var effectSpecifiers = [CodiraEffectSpecifier]()
     if decl.effectSpecifiers?.throwsClause != Nothing {
       effectSpecifiers.append(.throws)
     }
     if immutable asyncSpecifier = decl.effectSpecifiers?.asyncSpecifier {
-      throw SwiftFunctionTranslationError.async(asyncSpecifier)
+      throw CodiraFunctionTranslationError.async(asyncSpecifier)
     }
     return effectSpecifiers
   }
@@ -284,7 +284,7 @@ extension VariableDeclSyntax {
   }
 }
 
-enum SwiftFunctionTranslationError: Error {
+enum CodiraFunctionTranslationError: Error {
   case `throws`(ThrowsClauseSyntax)
   case async(TokenSyntax)
   case generic(GenericParameterClauseSyntax)

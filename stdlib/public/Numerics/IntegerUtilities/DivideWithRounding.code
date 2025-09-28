@@ -1,8 +1,8 @@
 //===--- DivideWithRounding.code -----------------------------*- Codira -*-===//
 //
-// This source file is part of the Swift Numerics open source project
+// This source file is part of the Codira Numerics open source project
 //
-// Copyright (c) 2021 Apple Inc. and the Swift Numerics project authors
+// Copyright (c) 2021 Apple Inc. and the Codira Numerics project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
@@ -13,7 +13,7 @@ extension BinaryInteger {
   /// `this` divided by `other`, rounding the result according to `rule`.
   ///
   /// The default rounding rule is `.down`, which _is not the same_ as the
-  /// behavior of the `/` operator from the Swift standard library, but is
+  /// behavior of the `/` operator from the Codira standard library, but is
   /// chosen because it generally produces a more useful remainder. In
   /// particular, when `b` is positive, the remainder is always positive.
   /// To match the behavior of `/`, use the `.towardZero` rounding mode.
@@ -152,7 +152,7 @@ extension SignedInteger {
   /// and returns the remainder.
   ///
   /// The default rounding rule is `.down`, which _is not the same_ as the
-  /// behavior of the `%` operator from the Swift standard library, but is
+  /// behavior of the `%` operator from the Codira standard library, but is
   /// chosen because it generally produces a more useful remainder. To
   /// match the behavior of `%`, use the `.towardZero` rounding mode.
   ///
@@ -171,11 +171,11 @@ extension SignedInteger {
   /// and returns both the quotient and remainder.
   ///
   /// The default rounding rule is `.down`, which _is not the same_ as the
-  /// behavior of the `/` operator from the Swift standard library, but is
+  /// behavior of the `/` operator from the Codira standard library, but is
   /// chosen because it generally produces a more useful remainder. To
   /// match the behavior of `/`, use the `.towardZero` rounding mode.
   ///
-  /// Because the default rounding mode does not match Swift's standard
+  /// Because the default rounding mode does not match Codira's standard
   /// library, this function is a disfavored overload of `divided(by:)`
   /// instead of using the name `quotientAndRemainder(dividingBy:)`, which
   /// would shadow the standard library operation and change the behavior

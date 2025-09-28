@@ -15,7 +15,7 @@
 
 /// A circular buffer that allows one object at a time to be "marked" and easily identified and retrieved later.
 ///
-/// This object is used extensively within SwiftNIO to handle flushable buffers. It can be used to store buffered
+/// This object is used extensively within CodiraNIO to handle flushable buffers. It can be used to store buffered
 /// writes and mark how far through the buffer the user has flushed, and therefore how far through the buffer is
 /// safe to write.
 public struct MarkedCircularBuffer<Element>: CustomStringConvertible {

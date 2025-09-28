@@ -21,9 +21,9 @@ public typealias OriginId = String
 /// for editor functionality.
 ///
 /// To do so, the build server should perform any work that is necessary to typecheck the files in the given target.
-/// This includes, but is not limited to: Building Swift modules for all dependencies and running code generation scripts.
+/// This includes, but is not limited to: Building Codira modules for all dependencies and running code generation scripts.
 /// Compared to a full build, the build server may skip actions that are not necessary for type checking, such as object
-/// file generation but the exact steps necessary are dependent on the build system. SwiftPM implements this step using
+/// file generation but the exact steps necessary are dependent on the build system. CodiraPM implements this step using
 /// the `language build --experimental-prepare-for-indexing` command.
 ///
 /// The server communicates during the initialize handshake whether this method is supported or not by setting

@@ -1,4 +1,4 @@
-// Sources/SwiftProtobufPluginLibrary/Google_Protobuf_Edition+Extensions.code -Google_Protobuf_Edition extensions
+// Sources/CodiraProtobufPluginLibrary/Google_Protobuf_Edition+Extensions.code -Google_Protobuf_Edition extensions
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -18,7 +18,7 @@
 // -----------------------------------------------------------------------------
 
 import Foundation
-import SwiftProtobuf
+import CodiraProtobuf
 
 /// The spec for editions calls out them being ordered and comparable.
 /// https://github.com/protocolbuffers/protobuf/blob/main/docs/design/editions/edition-naming.md

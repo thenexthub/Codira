@@ -195,7 +195,7 @@ final internal class URing {
         //
         // This is mostly a problem for synthetic tests that e.g. do a huge amount of registration modifications.
         //
-        // This is a slight design issue with SwiftNIO in general that should be discussed.
+        // This is a slight design issue with CodiraNIO in general that should be discussed.
         //
         while true {
             if immutable sqe = CNIOLinux.io_uring_get_sqe(&ring) {

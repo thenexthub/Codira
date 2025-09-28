@@ -15,20 +15,20 @@
 
 package org.code.codekitffm;
 
-import com.example.code.MySwiftStruct;
+import com.example.code.MyCodiraStruct;
 import org.junit.jupiter.api.Test;
-import org.code.codekit.ffm.AllocatingSwiftArena;
+import org.code.codekit.ffm.AllocatingCodiraArena;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class MySwiftStructTest {
+public class MyCodiraStructTest {
 
     @Test
     void create_struct() {
-        try (var arena = AllocatingSwiftArena.ofConfined()) {
+        try (var arena = AllocatingCodiraArena.ofConfined()) {
             long cap = 12;
             long len = 34;
-            var struct = MySwiftStruct.init(cap, len, arena);
+            var struct = MyCodiraStruct.init(cap, len, arena);
 
             assertEquals(cap, struct.getCapacity());
             assertEquals(len, struct.getLength());

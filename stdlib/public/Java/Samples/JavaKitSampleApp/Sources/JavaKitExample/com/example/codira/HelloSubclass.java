@@ -15,7 +15,7 @@
 
 package com.example.code;
 
-public class HelloSubclass extends HelloSwift {
+public class HelloSubclass extends HelloCodira {
     private String greeting;
 
     public HelloSubclass(String greeting) {

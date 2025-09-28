@@ -262,4 +262,4 @@ public struct SHA512: HashFunctionImplementationDetails {
         return impl.finalize()
     }
 }
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

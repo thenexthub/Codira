@@ -67,7 +67,7 @@
 ///  |               |                                   |               |
 ///  |       [ Socket.read ]                    [ Socket.write ]         |
 ///  |                                                                   |
-///  |  SwiftNIO Internal I/O Threads (Transport Implementation)         |
+///  |  CodiraNIO Internal I/O Threads (Transport Implementation)         |
 ///  +-------------------------------------------------------------------+
 /// ```
 ///
@@ -2285,12 +2285,12 @@ extension ChannelHandlerContext {
     ///
     /// This is a shorthand for `NIOLoopBound(this, eventLoop: this.eventLoop)`.
     ///
-    /// Being able to capture `ChannelHandlerContext`s in `EventLoopFuture` callbacks is important in SwiftNIO programs.
-    /// Of course, this is not always safe because the `EventLoopFuture` callbacks may run on other threads. SwiftNIO
+    /// Being able to capture `ChannelHandlerContext`s in `EventLoopFuture` callbacks is important in CodiraNIO programs.
+    /// Of course, this is not always safe because the `EventLoopFuture` callbacks may run on other threads. CodiraNIO
     /// programmers therefore always had to manually arrange for those callbacks to run on the correct `EventLoop`
     /// (i.e. `context.eventLoop`) which then made that construction safe.
     ///
-    /// Newer Swift versions contain a static feature to automatically detect data races which of course can't detect
+    /// Newer Codira versions contain a static feature to automatically detect data races which of course can't detect
     /// the only _dynamically_ ``EventLoop`` a ``EventLoopFuture`` callback is running on. ``NIOLoopBound`` can be used
     /// to prove to the compiler that this is safe and in case it is not, ``NIOLoopBound`` will trap at runtime. This is
     /// therefore dynamically enforce the correct behaviour.

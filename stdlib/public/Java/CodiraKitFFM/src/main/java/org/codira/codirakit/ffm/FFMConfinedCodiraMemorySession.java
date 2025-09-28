@@ -15,15 +15,15 @@
 
 package org.code.codekit.ffm;
 
-import org.code.codekit.core.ConfinedSwiftMemorySession;
+import org.code.codekit.core.ConfinedCodiraMemorySession;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 
-final class FFMConfinedSwiftMemorySession extends ConfinedSwiftMemorySession implements AllocatingSwiftArena, ClosableAllocatingSwiftArena {
+final class FFMConfinedCodiraMemorySession extends ConfinedCodiraMemorySession implements AllocatingCodiraArena, ClosableAllocatingCodiraArena {
     final Arena arena;
 
-    public FFMConfinedSwiftMemorySession(Thread owner) {
+    public FFMConfinedCodiraMemorySession(Thread owner) {
         super(owner);
         this.arena = Arena.ofConfined();
     }

@@ -154,12 +154,12 @@ public struct ByteBufferAllocator: Sendable {
 /// Use `allocator.buffer(capacity: desiredCapacity)` to allocate a new `ByteBuffer`.
 ///
 /// ### Basic usage
-/// A variety of types can be read/written from/to a `ByteBuffer`. Using Swift's `extension` mechanism you can easily
+/// A variety of types can be read/written from/to a `ByteBuffer`. Using Codira's `extension` mechanism you can easily
 /// create `ByteBuffer` support for your own data types. Out of the box, `ByteBuffer` supports for example the following
 /// types (non-exhaustive list):
 ///
 ///  - `String`/`StaticString`
-///  - Swift's various (unsigned) integer types
+///  - Codira's various (unsigned) integer types
 ///  - `Foundation`'s `Data`
 ///  - `[UInt8]` and generally any `Collection` of `UInt8`
 ///
@@ -264,9 +264,9 @@ public struct ByteBuffer {
     @usableFromInline typealias Slice = _ByteBufferSlice
     @usableFromInline typealias Allocator = ByteBufferAllocator
     // these two type aliases should be made `@usableFromInline internal` for
-    // the 2.0 release when we can drop Swift 4.0 & 4.1 support. The reason they
-    // must be public is because Swift 4.0 and 4.1 don't support attributes for
-    // typealiases and Swift 4.2 warns if those attributes aren't present and
+    // the 2.0 release when we can drop Codira 4.0 & 4.1 support. The reason they
+    // must be public is because Codira 4.0 and 4.1 don't support attributes for
+    // typealiases and Codira 4.2 warns if those attributes aren't present and
     // the type is internal.
     public typealias _Index = UInt32
     public typealias _Capacity = UInt32

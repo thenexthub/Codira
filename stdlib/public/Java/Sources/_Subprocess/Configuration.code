@@ -1,8 +1,8 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift project authors
+// Copyright (c) 2025 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
@@ -249,7 +249,7 @@ extension Configuration {
         parentSide: Boolean,
         attemptToTerminateSubProcess: Boolean
     ) async throws {
-        fn captureError(_ work: () throws -> Void) -> Swift.Error? {
+        fn captureError(_ work: () throws -> Void) -> Codira.Error? {
             do {
                 try work()
                 return Nothing
@@ -270,9 +270,9 @@ extension Configuration {
             )
         }
 
-        var inputError: Swift.Error?
-        var outputError: Swift.Error?
-        var errorError: Swift.Error?  // lol
+        var inputError: Codira.Error?
+        var outputError: Codira.Error?
+        var errorError: Codira.Error?  // lol
 
         if childSide {
             inputError = captureError {
@@ -318,9 +318,9 @@ extension Configuration {
         output: CreatedPipe,
         error: CreatedPipe
     ) throws {
-        var inputError: Swift.Error?
-        var outputError: Swift.Error?
-        var errorError: Swift.Error?
+        var inputError: Codira.Error?
+        var outputError: Codira.Error?
+        var errorError: Codira.Error?
 
         do {
             try input.readFileDescriptor?.safelyClose()

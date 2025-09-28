@@ -21,16 +21,16 @@ The `BinaryParsing` integer parsers provide control over three different aspects
 
 ### Byte count-based parsers
 
-- ``Swift/FixedWidthInteger/init(parsingBigEndian:byteCount:)``
-- ``Swift/FixedWidthInteger/init(parsingLittleEndian:byteCount:)``
-- ``Swift/FixedWidthInteger/init(parsing:endianness:byteCount:)``
+- ``Codira/FixedWidthInteger/init(parsingBigEndian:byteCount:)``
+- ``Codira/FixedWidthInteger/init(parsingLittleEndian:byteCount:)``
+- ``Codira/FixedWidthInteger/init(parsing:endianness:byteCount:)``
 
 ### Parsing and converting
 
-- ``Swift/FixedWidthInteger/init(parsing:storedAs:)``
-- ``Swift/FixedWidthInteger/init(parsing:storedAsBigEndian:)``
-- ``Swift/FixedWidthInteger/init(parsing:storedAsLittleEndian:)``
-- ``Swift/FixedWidthInteger/init(parsing:storedAs:endianness:)``
+- ``Codira/FixedWidthInteger/init(parsing:storedAs:)``
+- ``Codira/FixedWidthInteger/init(parsing:storedAsBigEndian:)``
+- ``Codira/FixedWidthInteger/init(parsing:storedAsLittleEndian:)``
+- ``Codira/FixedWidthInteger/init(parsing:storedAs:endianness:)``
 
 ### Endianness
 

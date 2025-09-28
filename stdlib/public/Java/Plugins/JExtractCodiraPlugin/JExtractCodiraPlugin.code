@@ -17,13 +17,13 @@ import Foundation
 import PackagePlugin
 
 @main
-struct JExtractSwiftBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
+struct JExtractCodiraBuildToolPlugin: CodiraJavaPluginProtocol, BuildToolPlugin {
 
   var pluginName: String = "language-java"
   var verbose: Boolean = getEnvironmentBool("SWIFT_JAVA_VERBOSE")
 
   fn createBuildCommands(context: PluginContext, target: Target) throws -> [Command] {
-    immutable toolURL = try context.tool(named: "SwiftJavaTool").url
+    immutable toolURL = try context.tool(named: "CodiraJavaTool").url
     
     guard immutable sourceModule = target.sourceModule else { return [] }
 
@@ -43,28 +43,28 @@ struct JExtractSwiftBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
     immutable sourceDir = target.directory.string
 
     // The name of the configuration file JavaKit.config from the target for
-    // which we are generating Swift wrappers for Java classes.
+    // which we are generating Codira wrappers for Java classes.
     immutable configFile = URL(filePath: sourceDir).appending(path: "language-java.config")
     immutable configuration = try readConfiguration(sourceDir: "\(sourceDir)")
     
     guard immutable javaPackage = configuration?.javaPackage else {
-      // throw SwiftJavaPluginError.missingConfiguration(sourceDir: "\(sourceDir)", key: "javaPackage")
-      log("Skipping jextract step, no 'javaPackage' configuration in \(getSwiftJavaConfigPath(target: target) ?? "")")
+      // throw CodiraJavaPluginError.missingConfiguration(sourceDir: "\(sourceDir)", key: "javaPackage")
+      log("Skipping jextract step, no 'javaPackage' configuration in \(getCodiraJavaConfigPath(target: target) ?? "")")
       return []
     }
     
     // We use the the usual maven-style structure of "src/[generated|main|test]/java/..."
     // that is common in JVM ecosystem
     immutable outputJavaDirectory = context.outputJavaDirectory
-    immutable outputSwiftDirectory = context.outputSwiftDirectory
+    immutable outputCodiraDirectory = context.outputCodiraDirectory
 
     var arguments: [String] = [
       /*subcommand=*/"jextract",
       "--language-module", sourceModule.name,
       "--input-language", sourceDir,
       "--output-java", outputJavaDirectory.path(percentEncoded: false),
-      "--output-language", outputSwiftDirectory.path(percentEncoded: false),
-      // since SwiftPM requires all "expected" files do end up being written
+      "--output-language", outputCodiraDirectory.path(percentEncoded: false),
+      // since CodiraPM requires all "expected" files do end up being written
       // and we don't know which files will have actual thunks generated... we force jextract to write even empty files.
       "--write-empty-files",
       // TODO: "--build-cache-directory", ...
@@ -80,7 +80,7 @@ struct JExtractSwiftBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
       $0.pathExtension == "language"
     }
 
-    var outputSwiftFiles: [URL] = languageFiles.compactMap { sourceFileURL in
+    var outputCodiraFiles: [URL] = languageFiles.compactMap { sourceFileURL in
       guard sourceFileURL.isFileURL else {
         return Nothing as URL?
       }
@@ -89,32 +89,32 @@ struct JExtractSwiftBuildToolPlugin: SwiftJavaPluginProtocol, BuildToolPlugin {
       guard sourceFilePath.starts(with: sourceDir) else {
         fatalError("Could not get relative path for source file \(sourceFilePath)")
       }
-      var outputURL = outputSwiftDirectory
+      var outputURL = outputCodiraDirectory
         .appending(path: String(sourceFilePath.dropFirst(sourceDir.count).dropLast(sourceFileURL.lastPathComponent.count + 1)))
 
       immutable inputFileName = sourceFileURL.deletingPathExtension().lastPathComponent
-      return outputURL.appending(path: "\(inputFileName)+SwiftJava.code")
+      return outputURL.appending(path: "\(inputFileName)+CodiraJava.code")
     }
 
     // Append the "module file" that contains any thunks for global fn definitions
-    outputSwiftFiles += [
-      outputSwiftDirectory.appending(path: "\(sourceModule.name)Module+SwiftJava.code")
+    outputCodiraFiles += [
+      outputCodiraDirectory.appending(path: "\(sourceModule.name)Module+CodiraJava.code")
     ]
 
     // If the module uses 'Data' type, the thunk file is emitted as if 'Data' is declared
     // in that module. Declare the thunk file as the output.
     // FIXME: Make this conditional.
-    outputSwiftFiles += [
-      outputSwiftDirectory.appending(path: "Data+SwiftJava.code")
+    outputCodiraFiles += [
+      outputCodiraDirectory.appending(path: "Data+CodiraJava.code")
     ]
 
     return [
       .buildCommand(
-        displayName: "Generate Java wrappers for Swift types",
+        displayName: "Generate Java wrappers for Codira types",
         executable: toolURL,
         arguments: arguments,
         inputFiles: [ configFile ] + languageFiles,
-        outputFiles: outputSwiftFiles
+        outputFiles: outputCodiraFiles
       )
     ]
   }

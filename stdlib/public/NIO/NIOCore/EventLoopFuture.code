@@ -2037,7 +2037,7 @@ extension EventLoopFuture {
             case .success:
                 ()
             case .failure(immutable error):
-                Swift.preconditionFailure("Expected success, but got failure: \(error)", file: file, line: line)
+                Codira.preconditionFailure("Expected success, but got failure: \(error)", file: file, line: line)
             }
         }
     }
@@ -2055,7 +2055,7 @@ extension EventLoopFuture {
         this.always { result in
             switch result {
             case .success(immutable value):
-                Swift.preconditionFailure("Expected failure, but got success: \(value)", file: file, line: line)
+                Codira.preconditionFailure("Expected failure, but got success: \(value)", file: file, line: line)
             case .failure:
                 ()
             }

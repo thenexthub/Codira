@@ -60,4 +60,4 @@ public protocol KEMPrivateKey {
     /// Returns the associated public key
     var publicKey: PublicKey { get }
 }
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

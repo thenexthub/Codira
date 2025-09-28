@@ -72,7 +72,7 @@ INTERNAL const char * _Nonnull _platform_shims_kOSThermalNotificationPressureLev
 #endif
 
 #if TARGET_OS_WASI
-// Define clock id getter shims so that we can use them in Swift
+// Define clock id getter shims so that we can use them in Codira
 // even if clock id macros can't be imported through ClangImporter.
 
 #include <time.h>
@@ -83,7 +83,7 @@ static inline _Nonnull clockid_t _platform_shims_clock_realtime(void) {
     return CLOCK_REALTIME;
 }
 
-// Define dirent shims so that we can use them in Swift because wasi-libc defines
+// Define dirent shims so that we can use them in Codira because wasi-libc defines
 // `d_name` as "flexible array member" which is not supported by ClangImporter yet.
 
 #include <dirent.h>

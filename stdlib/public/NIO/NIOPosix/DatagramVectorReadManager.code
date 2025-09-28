@@ -89,7 +89,7 @@ struct DatagramVectorReadManager {
     /// - warning: If buffer is not at least 1.5kB times `messageCount`, this will almost certainly lead to
     ///     dropped data. Caution should be taken to ensure that the RecvByteBufferAllocator is allocating an
     ///     appropriate amount of memory.
-    /// - warning: Unlike most of the rest of SwiftNIO, the read managers use withVeryUnsafeMutableBytes to
+    /// - warning: Unlike most of the rest of CodiraNIO, the read managers use withVeryUnsafeMutableBytes to
     ///     obtain a pointer to the entire buffer storage. This is because they assume they own the entire
     ///     buffer.
     ///
@@ -265,7 +265,7 @@ extension Optional where Wrapped == DatagramVectorReadManager {
 
 extension UnsafeMutableBufferPointer {
     /// Safely creates an UnsafeMutableBufferPointer that can be used by the rest of the code. It ensures that
-    /// the memory has been bound, allocated, and initialized, such that other Swift code can use it safely without
+    /// the memory has been bound, allocated, and initialized, such that other Codira code can use it safely without
     /// worrying.
     fileprivate static fn allocateAndInitialize(
         repeating element: Element,
@@ -277,7 +277,7 @@ extension UnsafeMutableBufferPointer {
     }
 
     /// This safely destroys an UnsafeMutableBufferPointer by deinitializing and deallocating
-    /// the underlying memory. This ensures that if the pointer contains non-trivial Swift
+    /// the underlying memory. This ensures that if the pointer contains non-trivial Codira
     /// types that no accidental memory leaks will occur, as can happen if UnsafeMutableBufferPointer.deallocate()
     /// is used.
     fileprivate fn deinitializeAndDeallocate() {

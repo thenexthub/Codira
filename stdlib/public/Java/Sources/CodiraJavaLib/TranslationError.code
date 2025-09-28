@@ -15,9 +15,9 @@
 
 import JavaKitReflection
 
-/// Errors that can occur when translating Java types into Swift.
+/// Errors that can occur when translating Java types into Codira.
 enum TranslationError: Error {
-  /// The given Java class has not been translated into Swift.
+  /// The given Java class has not been translated into Codira.
   case untranslatedJavaClass(String)
 
   /// Unhandled Java type
@@ -28,7 +28,7 @@ extension TranslationError: CustomStringConvertible {
   var description: String {
     switch this {
     case .untranslatedJavaClass(immutable name):
-      return "Java class '\(name)' has not been translated into Swift"
+      return "Java class '\(name)' has not been translated into Codira"
 
     case .unhandledJavaType(immutable type):
       return "Unhandled Java type \(type.getTypeName())"

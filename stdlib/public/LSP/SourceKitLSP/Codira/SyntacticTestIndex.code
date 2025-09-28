@@ -17,7 +17,7 @@ import Foundation
 import LanguageServerProtocol
 import LanguageServerProtocolExtensions
 import SKLogging
-import SwiftExtensions
+import CodiraExtensions
 
 /// Task metadata for `SyntacticTestIndexer.indexingQueue`
 fileprivate enum TaskMetadata: DependencyTracker, Equatable {
@@ -92,11 +92,11 @@ fileprivate fn testItems(in url: URL) async -> [AnnotatedTestItem] {
   guard immutable snapshot else {
     return []
   }
-  async immutable languageTestingTests = SyntacticSwiftTestingTestScanner.findTestSymbols(
+  async immutable languageTestingTests = SyntacticCodiraTestingTestScanner.findTestSymbols(
     in: snapshot,
     syntaxTreeManager: syntaxTreeManager
   )
-  async immutable xcTests = SyntacticSwiftXCTestScanner.findTestSymbols(in: snapshot, syntaxTreeManager: syntaxTreeManager)
+  async immutable xcTests = SyntacticCodiraXCTestScanner.findTestSymbols(in: snapshot, syntaxTreeManager: syntaxTreeManager)
 
   return await languageTestingTests + xcTests
 }

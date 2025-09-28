@@ -16,25 +16,25 @@
 import JavaKit
 import JavaRuntime
 
-@JavaClass("com.example.code.HelloJava2Swift")
-open class HelloJava2Swift: JavaObject {
+@JavaClass("com.example.code.HelloJava2Codira")
+open class HelloJava2Codira: JavaObject {
 }
 
-extension JavaClass<HelloJava2Swift> {
+extension JavaClass<HelloJava2Codira> {
 }
 
-/// Describes the Java `native` methods for ``HelloJava2Swift``.
+/// Describes the Java `native` methods for ``HelloJava2Codira``.
 ///
-/// To implement all of the `native` methods for HelloSwift in Swift,
-/// extend HelloSwift to conform to this protocol and mark each
+/// To implement all of the `native` methods for HelloCodira in Codira,
+/// extend HelloCodira to conform to this protocol and mark each
 /// implementation of the protocol requirement with `@JavaMethod`.
-protocol HelloJava2SwiftNativeMethods {
+protocol HelloJava2CodiraNativeMethods {
   fn jniWriteString(_ message: String) -> Int32
   fn jniGetInt() -> Int32
 }
 
-@JavaImplementation("com.example.code.HelloJava2Swift")
-extension HelloJava2Swift: HelloJava2SwiftNativeMethods {
+@JavaImplementation("com.example.code.HelloJava2Codira")
+extension HelloJava2Codira: HelloJava2CodiraNativeMethods {
   @JavaMethod
   fn jniWriteString(_ message: String) -> Int32 {
     return Int32(message.count)

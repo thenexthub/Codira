@@ -13,7 +13,7 @@
 //
 // -----------------------------------------------------------------------------
 
-import SwiftProtobufPluginLibrary
+import CodiraProtobufPluginLibrary
 
 // The file attempts to isolate the decisions around when to use heap based
 // storage vs. inlining it into the value times. At the moment the decisions
@@ -93,7 +93,7 @@ private struct AnalyzeResult {
         AnalyzeResult(usesStorage: true, costAsField: FieldCost.singleMessageFieldUsingStorage)
 }
 
-// This is adapted from SwiftNIO so sendable checks don't flag issues with
+// This is adapted from CodiraNIO so sendable checks don't flag issues with
 // `analysisCache`. Another option would be something like NIO's
 // `LockedValueBox` or moving the entire handling to a Task.
 private final class UnsafeMutableTransferBox<Wrapped> {

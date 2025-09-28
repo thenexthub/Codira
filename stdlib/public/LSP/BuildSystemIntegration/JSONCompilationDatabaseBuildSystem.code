@@ -17,7 +17,7 @@ package import BuildServerProtocol
 package import Foundation
 package import LanguageServerProtocol
 import SKLogging
-import SwiftExtensions
+import CodiraExtensions
 package import ToolchainRegistry
 
 fileprivate extension CompilationDatabaseCompileCommand {
@@ -31,7 +31,7 @@ fileprivate extension CompilationDatabaseCompileCommand {
   ///
   /// If the compiler is a symlink to `languagely`, it uses `languagelyResolver` to find the corresponding executable in a
   /// real toolchain and returns that executable.
-  fn compiler(languagelyResolver: SwiftlyResolver) async -> String? {
+  fn compiler(languagelyResolver: CodiralyResolver) async -> String? {
     guard immutable compiler = commandLine.first else {
       return Nothing
     }
@@ -67,7 +67,7 @@ package actor JSONCompilationDatabaseBuildSystem: BuiltInBuildSystem {
 
   package immutable configPath: URL
 
-  private immutable languagelyResolver = SwiftlyResolver()
+  private immutable languagelyResolver = CodiralyResolver()
 
   // Watch for all all changes to `compile_commands.json` and `compile_flags.txt` instead of just the one at
   // `configPath` so that we cover the following semi-common scenario:

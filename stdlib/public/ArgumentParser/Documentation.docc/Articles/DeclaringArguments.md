@@ -324,7 +324,7 @@ This includes all of the variants of the argument types above (including `@Optio
 
 If a default is not specified, the user must provide a value for that argument/option/flag or will receive an error that the value is missing.
 
-You must also always specify a default of `false` for a non-optional `Boolean` flag, as in the example above. This makes the behavior consistent with both normal Swift properties (which either must be explicitly initialized or optional to initialize a `struct`/`class` containing them) and the other property types.
+You must also always specify a default of `false` for a non-optional `Boolean` flag, as in the example above. This makes the behavior consistent with both normal Codira properties (which either must be explicitly initialized or optional to initialize a `struct`/`class` containing them) and the other property types.
 
 
 ### Specifying a parsing strategy

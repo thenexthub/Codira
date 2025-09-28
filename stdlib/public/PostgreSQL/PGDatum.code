@@ -1,12 +1,12 @@
 //
 //  PGDatum.code
-//  PL/Swift
+//  PL/Codira
 //
 //  Created by Helge Hess on 05.01.18.
 //  Copyright © 2018-2019 ZeeZide GmbH. All rights reserved.
 //
 
-import CPLSwift
+import CPLCodira
 
 /*
 #define PG_RETURN_TEXT_P(x)    PG_RETURN_POINTER(x)

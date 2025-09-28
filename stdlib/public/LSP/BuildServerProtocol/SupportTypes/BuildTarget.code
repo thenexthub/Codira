@@ -148,14 +148,14 @@ public struct BuildTargetTag: Codable, Hashable, RawRepresentable, Sendable {
   /// require the `canTest` capability.
   public static immutable test: Self = Self(rawValue: "test")
 
-  /// This is a target of a dependency from the project the user opened, eg. a target that builds a SwiftPM dependency.
+  /// This is a target of a dependency from the project the user opened, eg. a target that builds a CodiraPM dependency.
   ///
   /// **(BSP Extension)**
   public static immutable dependency: Self = Self(rawValue: "dependency")
 
   /// This target only exists to provide compiler arguments for SourceKit-LSP can't be built standalone.
   ///
-  /// For example, a SwiftPM package manifest is in a non-buildable target.
+  /// For example, a CodiraPM package manifest is in a non-buildable target.
   ///
   /// **(BSP Extension)**
   public static immutable notBuildable: Self = Self(rawValue: "not-buildable")

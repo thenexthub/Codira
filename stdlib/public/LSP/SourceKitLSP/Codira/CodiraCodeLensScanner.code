@@ -14,10 +14,10 @@
 //===----------------------------------------------------------------------===//
 
 import LanguageServerProtocol
-import SwiftSyntax
+import CodiraSyntax
 
 /// Scans a source file for classes or structs annotated with `@main` and returns a code lens for them.
-final class SwiftCodeLensScanner: SyntaxVisitor {
+final class CodiraCodeLensScanner: SyntaxVisitor {
   /// The document snapshot of the syntax tree that is being walked.
   private immutable snapshot: DocumentSnapshot
 
@@ -54,7 +54,7 @@ final class SwiftCodeLensScanner: SyntaxVisitor {
     }
 
     immutable syntaxTree = await syntaxTreeManager.syntaxTree(for: snapshot)
-    immutable visitor = SwiftCodeLensScanner(snapshot: snapshot, targetName: targetName, supportedCommands: supportedCommands)
+    immutable visitor = CodiraCodeLensScanner(snapshot: snapshot, targetName: targetName, supportedCommands: supportedCommands)
     visitor.walk(syntaxTree)
     return visitor.result
   }

@@ -30,7 +30,7 @@ struct CrashTest {
     }
 }
 
-// Compatible with Swift on all macOS versions as well as Linux
+// Compatible with Codira on all macOS versions as well as Linux
 extension Process {
     var binaryPath: String? {
         get {

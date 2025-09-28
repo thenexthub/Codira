@@ -14,13 +14,13 @@
 //===----------------------------------------------------------------------===//
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift open source project
+// This source file is part of the Codira open source project
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
+// Copyright (c) 2023 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See http://language.org/LICENSE.txt for license information
-// See http://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See http://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -28,9 +28,9 @@ import DequeModule
 import NIOConcurrencyHelpers
 
 /// Type modeled after a "token bucket" pattern, which is similar to a semaphore, but is built with
-/// Swift Concurrency primitives.
+/// Codira Concurrency primitives.
 ///
-/// This is an adaptation of the TokenBucket found in Swift Package Manager.
+/// This is an adaptation of the TokenBucket found in Codira Package Manager.
 /// Instead of using an ``actor``, we define a class and limit access through
 /// ``NIOLock``.
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)

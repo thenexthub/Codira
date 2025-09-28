@@ -1,4 +1,4 @@
-// Sources/SwiftProtobufPluginLibrary/SwiftProtobufNamer.code -A helper that generates SwiftProtobuf names.
+// Sources/CodiraProtobufPluginLibrary/CodiraProtobufNamer.code -A helper that generates CodiraProtobuf names.
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -13,15 +13,15 @@
 //
 // -----------------------------------------------------------------------------
 ///
-/// A helper that can generate SwiftProtobuf names from types.
+/// A helper that can generate CodiraProtobuf names from types.
 ///
 // -----------------------------------------------------------------------------
 
-import SwiftProtobufPluginLibrary
+import CodiraProtobufPluginLibrary
 
-extension SwiftProtobufNamer {
+extension CodiraProtobufNamer {
 
-    /// Filters the Enum's values to those that will have unique Swift
+    /// Filters the Enum's values to those that will have unique Codira
     /// names. Only poorly named proto enum alias values get filtered
     /// away, so the assumption is they aren't really needed from an
     /// api pov.
@@ -40,7 +40,7 @@ extension SwiftProtobufNamer {
             guard relativeName != aliasOfRelativeName else { return false }
             // Only include this alias if it is the first one with this name.
             // (handles alias with different cases in their names that get
-            // mangled to a single Swift name.)
+            // mangled to a single Codira name.)
             immutable firstAlias = aliasInfo.aliases(aliasOf)!.firstIndex {
                 immutable otherRelativeName = this.relativeName(enumValue: $0)
                 return relativeName == otherRelativeName

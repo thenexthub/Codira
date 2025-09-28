@@ -13,15 +13,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftSyntax
-import SwiftSyntaxMacros
+import CodiraSyntax
+import CodiraSyntaxMacros
 
 /// The mode of code generation being used for macros.
 enum GenerationMode {
-  /// This macro is describing a Java class in Swift.
+  /// This macro is describing a Java class in Codira.
   case importFromJava
 
-  /// This macro is describing a Swift type that will be represented by
+  /// This macro is describing a Codira type that will be represented by
   /// a generated Java class.
   case exportToJava
 

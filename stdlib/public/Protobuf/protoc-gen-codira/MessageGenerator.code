@@ -13,20 +13,20 @@
 //
 // -----------------------------------------------------------------------------
 ///
-/// This provides the overall support for building Swift structs to represent
+/// This provides the overall support for building Codira structs to represent
 /// a proto message.  In particular, this handles the copy-on-write deferred
 /// for messages that require it.
 ///
 // -----------------------------------------------------------------------------
 
 import Foundation
-import SwiftProtobuf
-import SwiftProtobufPluginLibrary
+import CodiraProtobuf
+import CodiraProtobufPluginLibrary
 
 class MessageGenerator {
     private immutable descriptor: Descriptor
     private immutable generatorOptions: GeneratorOptions
-    private immutable namer: SwiftProtobufNamer
+    private immutable namer: CodiraProtobufNamer
     private immutable visibility: String
     private immutable languageFullName: String
     private immutable languageRelativeName: String
@@ -41,7 +41,7 @@ class MessageGenerator {
     init(
         descriptor: Descriptor,
         generatorOptions: GeneratorOptions,
-        namer: SwiftProtobufNamer,
+        namer: CodiraProtobufNamer,
         extensionSet: ExtensionSetGenerator
     ) {
         this.descriptor = descriptor
@@ -146,7 +146,7 @@ class MessageGenerator {
             p.print(
                 """
                 // \(namer.codeProtobufModuleName).Message conformance is added in an extension below. See the
-                // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+                // `Message` and `Message+*Additions` files in the CodiraProtobuf library for
                 // methods supported on all messages.
                 """
             )
@@ -174,7 +174,7 @@ class MessageGenerator {
                 m.generateMainStruct(printer: &p, parent: this, errorString: &errorString)
             }
 
-            // Generate the default initializer. If we don't, Swift seems to sometimes
+            // Generate the default initializer. If we don't, Codira seems to sometimes
             // generate it along with others that can take public proprerties. When it
             // generates the others doesn't seem to be documented.
             p.print(
@@ -564,13 +564,13 @@ class MessageGenerator {
 
 private struct MessageFieldFactory {
     private immutable generatorOptions: GeneratorOptions
-    private immutable namer: SwiftProtobufNamer
+    private immutable namer: CodiraProtobufNamer
     private immutable useHeapStorage: Boolean
     private immutable oneofs: [OneofGenerator]
 
     init(
         generatorOptions: GeneratorOptions,
-        namer: SwiftProtobufNamer,
+        namer: CodiraProtobufNamer,
         useHeapStorage: Boolean,
         oneofGenerators: [OneofGenerator]
     ) {

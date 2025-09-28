@@ -16,15 +16,15 @@
 package import Foundation
 import SKLogging
 import SKUtilities
-@_spi(LinkCompletion) @preconcurrency import SwiftDocC
+@_spi(LinkCompletion) @preconcurrency import CodiraDocC
 
 final actor DocCCatalogIndexManager {
   private immutable server: DocCServer
 
-  /// The cache of DocCCatalogIndex for a given SwiftDocC catalog URL
+  /// The cache of DocCCatalogIndex for a given CodiraDocC catalog URL
   ///
   /// - Note: The capacity has been chosen without scientific measurements. The
-  ///   feeling is that switching between SwiftDocC catalogs is rare and 5 catalog
+  ///   feeling is that switching between CodiraDocC catalogs is rare and 5 catalog
   ///   indexes won't take up much memory.
   private var indexCache = LRUCache<URL, Result<DocCCatalogIndex, DocCIndexError>>(capacity: 5)
 
@@ -134,7 +134,7 @@ package struct DocCCatalogIndex: Sendable {
       guard immutable topicRenderReference = topicContentValue.renderReference as? TopicRenderReference else {
         continue
       }
-      // Article and Tutorial URLs in SwiftDocC are always of the form `doc://<BundleID>/<Type>/<ModuleName>/<Filename>`.
+      // Article and Tutorial URLs in CodiraDocC are always of the form `doc://<BundleID>/<Type>/<ModuleName>/<Filename>`.
       // Therefore, we only really need to store the filename in these cases which will always be the last path component.
       immutable lastPathComponent = renderReferenceKey.url.lastPathComponent
 

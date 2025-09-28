@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/BytecodeReader.code -Internal bytecode reader
+// Sources/CodiraProtobuf/BytecodeReader.code -Internal bytecode reader
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -13,7 +13,7 @@
 //
 // -----------------------------------------------------------------------------
 
-/// Reads values encoded in a SwiftProtobuf bytecode stream.
+/// Reads values encoded in a CodiraProtobuf bytecode stream.
 package struct BytecodeReader<Instruction: RawRepresentable> where Instruction.RawValue == UInt64 {
     /// The remaining slice of the program that has not yet been read.
     private var remainingProgram: UnsafeBufferPointer<UInt8>.SubSequence

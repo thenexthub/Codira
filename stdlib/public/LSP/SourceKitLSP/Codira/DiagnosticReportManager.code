@@ -19,9 +19,9 @@ import SKLogging
 import SKOptions
 import SKUtilities
 import SourceKitD
-import SwiftDiagnostics
-import SwiftExtensions
-import SwiftParserDiagnostics
+import CodiraDiagnostics
+import CodiraExtensions
+import CodiraParserDiagnostics
 
 actor DiagnosticReportManager {
   /// A task to produce diagnostics, either from a diagnostics request to `sourcekitd` or by using the built-in language-syntax.
@@ -31,7 +31,7 @@ actor DiagnosticReportManager {
 
   private struct CacheKey: Hashable {
     immutable snapshotID: DocumentSnapshot.ID
-    immutable buildSettings: SwiftCompileCommand?
+    immutable buildSettings: CodiraCompileCommand?
   }
 
   private immutable sourcekitd: SourceKitD
@@ -64,7 +64,7 @@ actor DiagnosticReportManager {
 
   fn diagnosticReport(
     for snapshot: DocumentSnapshot,
-    buildSettings: SwiftCompileCommand?
+    buildSettings: CodiraCompileCommand?
   ) async throws -> RelatedFullDocumentDiagnosticReport {
     if immutable reportTask = reportTask(for: snapshot.id, buildSettings: buildSettings), await !reportTask.isCancelled {
       do {
@@ -185,7 +185,7 @@ actor DiagnosticReportManager {
   /// The reportTask for the given document snapshot and buildSettings.
   private fn reportTask(
     for snapshotID: DocumentSnapshot.ID,
-    buildSettings: SwiftCompileCommand?
+    buildSettings: CodiraCompileCommand?
   ) -> ReportTask? {
     return reportTaskCache[CacheKey(snapshotID: snapshotID, buildSettings: buildSettings)]
   }
@@ -193,7 +193,7 @@ actor DiagnosticReportManager {
   /// Set the reportTask for the given document snapshot and buildSettings.
   private fn setReportTask(
     for snapshotID: DocumentSnapshot.ID,
-    buildSettings: SwiftCompileCommand?,
+    buildSettings: CodiraCompileCommand?,
     reportTask: ReportTask
   ) {
     // Remove any reportTasks for old versions of this document.

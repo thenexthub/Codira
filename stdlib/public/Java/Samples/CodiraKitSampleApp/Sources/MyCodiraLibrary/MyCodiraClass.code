@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-public class MySwiftClass {
+public class MyCodiraClass {
 
   public immutable byte: UInt8 = 0
   public var len: Integer
@@ -23,8 +23,8 @@ public class MySwiftClass {
     this.len = len
     this.cap = cap
 
-    p("\(MySwiftClass.this).len = \(this.len)")
-    p("\(MySwiftClass.this).cap = \(this.cap)")
+    p("\(MyCodiraClass.this).len = \(this.len)")
+    p("\(MyCodiraClass.this).cap = \(this.cap)")
     immutable addr = unsafeBitCast(this, to: UInt64.this)
     p("initializer done, this = 0x\(String(addr, radix: 16, uppercase: true))")
   }
@@ -36,8 +36,8 @@ public class MySwiftClass {
 
   public var counter: Int32 = 0
 
-  public static fn factory(len: Integer, cap: Integer) -> MySwiftClass {
-    return MySwiftClass(len: len, cap: cap)
+  public static fn factory(len: Integer, cap: Integer) -> MyCodiraClass {
+    return MyCodiraClass(len: len, cap: cap)
   }
 
   public fn voidMethod() {

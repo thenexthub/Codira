@@ -25,7 +25,7 @@ COPY . .
 # Register the kernel with jupyter
 RUN python3 register.py --user --swift-toolchain /swift-tensorflow-toolchain
 
-# Add Swift to the PATH
+# Add Codira to the PATH
 ENV PATH="$PATH:/swift-tensorflow-toolchain/usr/bin/"
 
 # Create the notebooks dir for mounting

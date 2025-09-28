@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-// Translate all Java Throwable instances in a Swift error.
+// Translate all Java Throwable instances in a Codira error.
 extension Throwable: Error, CustomStringConvertible {
   public var description: String {
     return toString()

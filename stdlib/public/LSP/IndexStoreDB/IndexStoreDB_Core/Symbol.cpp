@@ -47,9 +47,9 @@ bool SymbolInfo::preferDeclarationAsCanonical() const {
 }
 
 bool SymbolInfo::includeInGlobalNameSearch() const {
-  // Swift extensions don't have their own name, exclude them from global name search.
+  // Codira extensions don't have their own name, exclude them from global name search.
   // You can always lookup the class name and then find the class symbol extensions.
-  if (Kind == SymbolKind::Extension && Lang == SymbolLanguage::Swift)
+  if (Kind == SymbolKind::Extension && Lang == SymbolLanguage::Codira)
     return false;
   return true;
 }
@@ -179,6 +179,6 @@ void IndexStoreDB::printSymbolRoles(SymbolRoleSet Roles, raw_ostream &OS) {
 Optional<SymbolProviderKind> IndexStoreDB::getSymbolProviderKindFromIdentifer(StringRef ident) {
   return toolchain::StringSwitch<Optional<SymbolProviderKind>>(ident)
     .Case("clang", SymbolProviderKind::Clang)
-    .Case("language", SymbolProviderKind::Swift)
+    .Case("language", SymbolProviderKind::Codira)
     .Default(toolchain::None);
 }

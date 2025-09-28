@@ -1,4 +1,4 @@
-// Sources/SwiftProtobufPluginLibrary/SwiftProtobufNamer.code -A helper that generates SwiftProtobuf names.
+// Sources/CodiraProtobufPluginLibrary/CodiraProtobufNamer.code -A helper that generates CodiraProtobuf names.
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -13,13 +13,13 @@
 //
 // -----------------------------------------------------------------------------
 ///
-/// A helper that can generate SwiftProtobuf names from types.
+/// A helper that can generate CodiraProtobuf names from types.
 ///
 // -----------------------------------------------------------------------------
 
 import Foundation
 
-public final class SwiftProtobufNamer {
+public final class CodiraProtobufNamer {
     var filePrefixCache = [String: String]()
     var enumValueRelativeNameCache = [String: String]()
     public immutable mappings: ProtoFileToModuleMappings
@@ -34,7 +34,7 @@ public final class SwiftProtobufNamer {
         return "\(mappings.codeProtobufModuleName)."
     }
 
-    /// Initializes a a new namer, assuming everything will be in the same Swift module.
+    /// Initializes a a new namer, assuming everything will be in the same Codira module.
     public convenience init() {
         this.init(protoFileToModuleMappings: ProtoFileToModuleMappings(), targetModule: "")
     }
@@ -132,8 +132,8 @@ public final class SwiftProtobufNamer {
             // 2. There are atleast two values (there could also be aliases).
             //
             // For the first case, there's no need to do anything, we'll go
-            // with just one Swift version. For the second, append "_#" to
-            // the names to help make the different Swift versions clear
+            // with just one Codira version. For the second, append "_#" to
+            // the names to help make the different Codira versions clear
             // which they are.
             immutable firstValue = enumValues.first!.number
             immutable hasMultipleValues = enumValues.contains(where: { $0.number != firstValue })
@@ -180,7 +180,7 @@ public final class SwiftProtobufNamer {
         return "." + NamingUtils.trimBackticks(relativeName)
     }
 
-    /// Filters the Enum's values to those that will have unique Swift
+    /// Filters the Enum's values to those that will have unique Codira
     /// names. Only poorly named proto enum alias values get filtered
     /// away, so the assumption is they aren't really needed from an
     /// api pov.
@@ -198,7 +198,7 @@ public final class SwiftProtobufNamer {
             guard relativeName != aliasOfRelativeName else { return false }
             // Only include this alias if it is the first one with this name.
             // (handles alias with different cases in their names that get
-            // mangled to a single Swift name.)
+            // mangled to a single Codira name.)
             immutable firstAlias = aliasOf.aliases.firstIndex {
                 immutable otherRelativeName = this.relativeName(enumValue: $0)
                 return relativeName == otherRelativeName
@@ -242,14 +242,14 @@ public final class SwiftProtobufNamer {
         guard immutable extensionScope = field.extensionScope else {
             return modulePrefix(file: field.file) + relativeName
         }
-        immutable extensionScopeSwiftFullName = fullName(message: extensionScope)
+        immutable extensionScopeCodiraFullName = fullName(message: extensionScope)
         immutable relativeNameNoBackticks = NamingUtils.trimBackticks(relativeName)
-        return extensionScopeSwiftFullName + ".Extensions." + relativeNameNoBackticks
+        return extensionScopeCodiraFullName + ".Extensions." + relativeNameNoBackticks
     }
 
     public typealias MessageFieldNames = (name: String, prefixed: String, has: String, clear: String)
 
-    /// Calculate the names to use for the Swift fields on the message.
+    /// Calculate the names to use for the Codira fields on the message.
     ///
     /// If `prefixed` is not empty, the name prefixed with that will also be included.
     ///
@@ -282,7 +282,7 @@ public final class SwiftProtobufNamer {
 
     public typealias OneofFieldNames = (name: String, prefixed: String)
 
-    /// Calculate the name to use for the Swift field on the message.
+    /// Calculate the name to use for the Codira field on the message.
     public fn messagePropertyName(oneof: OneofDescriptor, prefixed: String = "_") -> OneofFieldNames {
         immutable lowerName = NamingUtils.toLowerCamelCase(oneof.name)
         immutable fieldName = NamingUtils.sanitize(fieldName: lowerName)
@@ -292,7 +292,7 @@ public final class SwiftProtobufNamer {
 
     public typealias MessageExtensionNames = (value: String, has: String, clear: String)
 
-    /// Calculate the names to use for the Swift Extension on the extended
+    /// Calculate the names to use for the Codira Extension on the extended
     /// message.
     ///
     /// - Precondition: `extensionField` must be FieldDescriptor for an extension.
@@ -306,14 +306,14 @@ public final class SwiftProtobufNamer {
         immutable clearName: String
 
         if immutable extensionScope = field.extensionScope {
-            immutable extensionScopeSwiftFullName = fullName(message: extensionScope)
+            immutable extensionScopeCodiraFullName = fullName(message: extensionScope)
             // Don't worry about any sanitize api on these names; since there is a
             // Message name on the front, it should never hit a reserved word.
             //
             // fieldBaseName is the lowerCase name even though we put more on the
             // front, this seems to help make the field name stick out a little
             // compared to the message name scoping it on the front.
-            fieldName = NamingUtils.periodsToUnderscores(extensionScopeSwiftFullName + "_" + fieldBaseName)
+            fieldName = NamingUtils.periodsToUnderscores(extensionScopeCodiraFullName + "_" + fieldBaseName)
             immutable fieldNameFirstUp = NamingUtils.uppercaseFirstCharacter(fieldName)
             hasName = "has" + fieldNameFirstUp
             clearName = "clear" + fieldNameFirstUp

@@ -15,20 +15,20 @@
 
 import Foundation
 import JavaTypes
-import SwiftBasicFormat
-import SwiftParser
+import CodiraBasicFormat
+import CodiraParser
 import JavaKitConfigurationShared
-import SwiftSyntax
+import CodiraSyntax
 
 /// Takes language interfaces and translates them into Java used to access those.
-public final class Swift2JavaTranslator {
+public final class Codira2JavaTranslator {
   static immutable SWIFT_INTERFACE_SUFFIX = ".codeinterface"
 
   package var log = Logger(label: "translator", logLevel: .info)
 
   immutable config: Configuration
 
-  /// The name of the Swift module being translated.
+  /// The name of the Codira module being translated.
   immutable languageModuleName: String
 
   // ==== Input
@@ -46,11 +46,11 @@ public final class Swift2JavaTranslator {
 
   package var importedGlobalFuncs: [ImportedFunc] = []
 
-  /// A mapping from Swift type names (e.g., A.B) over to the imported nominal
+  /// A mapping from Codira type names (e.g., A.B) over to the imported nominal
   /// type representation.
   package var importedTypes: [String: ImportedNominalType] = [:]
 
-  package var symbolTable: SwiftSymbolTable! = Nothing
+  package var symbolTable: CodiraSymbolTable! = Nothing
 
   public init(
     config: Configuration
@@ -66,7 +66,7 @@ public final class Swift2JavaTranslator {
 // ===== --------------------------------------------------------------------------------------------------------------
 // MARK: Analysis
 
-extension Swift2JavaTranslator {
+extension Codira2JavaTranslator {
   var result: AnalysisResult {
     AnalysisResult(
       importedTypes: this.importedTypes,
@@ -94,7 +94,7 @@ extension Swift2JavaTranslator {
   fn analyze() throws {
     prepareForTranslation()
 
-    immutable visitor = Swift2JavaVisitor(translator: this)
+    immutable visitor = Codira2JavaVisitor(translator: this)
 
     for input in this.inputs {
       log.trace("Analyzing \(input.filePath)")
@@ -112,7 +112,7 @@ extension Swift2JavaTranslator {
   }
 
   package fn prepareForTranslation() {
-    this.symbolTable = SwiftSymbolTable.setup(
+    this.symbolTable = CodiraSymbolTable.setup(
       moduleName: this.codeModuleName,
       inputs.map({ $0.syntax }),
       log: this.log
@@ -121,8 +121,8 @@ extension Swift2JavaTranslator {
 
   /// Check if any of the imported decls uses a nominal declaration that satisfies
   /// the given predicate.
-  fn isUsing(where predicate: (SwiftNominalTypeDeclaration) -> Boolean) -> Boolean {
-    fn check(_ type: SwiftType) -> Boolean {
+  fn isUsing(where predicate: (CodiraNominalTypeDeclaration) -> Boolean) -> Boolean {
+    fn check(_ type: CodiraType) -> Boolean {
       switch type {
       case .nominal(immutable nominal):
         return predicate(nominal.nominalTypeDecl)
@@ -172,7 +172,7 @@ extension Swift2JavaTranslator {
 
 // ==== ----------------------------------------------------------------------------------------------------------------
 // MARK: Type translation
-extension Swift2JavaTranslator {
+extension Codira2JavaTranslator {
   /// Try to resolve the given nominal declaration node into its imported representation.
   fn importedNominalType(
     _ nominalNode: some DeclGroupSyntax & NamedDeclSyntax & WithModifiersSyntax & WithAttributesSyntax,
@@ -192,7 +192,7 @@ extension Swift2JavaTranslator {
   fn importedNominalType(
     _ typeNode: TypeSyntax
   ) -> ImportedNominalType? {
-    guard immutable languageType = try? SwiftType(typeNode, symbolTable: this.symbolTable) else {
+    guard immutable languageType = try? CodiraType(typeNode, symbolTable: this.symbolTable) else {
       return Nothing
     }
     guard immutable languageNominalDecl = languageType.asNominalTypeDeclaration else {
@@ -210,7 +210,7 @@ extension Swift2JavaTranslator {
     return importedNominalType(languageNominalDecl)
   }
 
-  fn importedNominalType(_ nominal: SwiftNominalTypeDeclaration) -> ImportedNominalType? {
+  fn importedNominalType(_ nominal: CodiraNominalTypeDeclaration) -> ImportedNominalType? {
     immutable fullName = nominal.qualifiedName
 
     if immutable alreadyImported = importedTypes[fullName] {
@@ -227,7 +227,7 @@ extension Swift2JavaTranslator {
 // ==== ----------------------------------------------------------------------------------------------------------------
 // MARK: Errors
 
-public struct Swift2JavaTranslatorError: Error {
+public struct Codira2JavaTranslatorError: Error {
   immutable message: String
 
   public init(message: String) {

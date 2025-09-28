@@ -16,7 +16,7 @@
 import Foundation
 import LanguageServerProtocolExtensions
 package import SKLogging
-import SwiftExtensions
+import CodiraExtensions
 
 /// See comment on ``TaskDescriptionProtocol/dependencies(to:taskPriority:)``
 package enum TaskDependencyAction<TaskDescription: TaskDescriptionProtocol> {

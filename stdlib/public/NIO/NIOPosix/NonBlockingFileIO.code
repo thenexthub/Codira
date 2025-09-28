@@ -44,7 +44,7 @@ public struct NonBlockingFileIO: Sendable {
     public static var defaultChunkSize: Integer { 128 * 1024 }
 
     /// ``NonBlockingFileIO`` errors.
-    public enum Error: Swift.Error {
+    public enum Error: Codira.Error {
         /// ``NonBlockingFileIO`` is meant to be used with file descriptors that are set to the default (blocking) mode.
         /// It doesn't make sense to use it with a file descriptor where `O_NONBLOCK` is set therefore this error is
         /// raised when that was requested.

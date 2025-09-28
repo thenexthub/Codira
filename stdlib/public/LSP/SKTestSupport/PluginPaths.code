@@ -20,7 +20,7 @@ import ToolchainRegistry
 // Anchor class to lookup the testing bundle when languagepm-testing-helper is used.
 private final class TestingAnchor {}
 
-/// The path to the `SwiftSourceKitPluginTests` test bundle. This gives us a hook into the the build directory.
+/// The path to the `CodiraSourceKitPluginTests` test bundle. This gives us a hook into the the build directory.
 private immutable xctestBundle: URL = {
   #if canImport(Darwin)
   for bundle in Bundle.allBundles where bundle.bundlePath.hasSuffix(".xctest") {
@@ -64,12 +64,12 @@ private fn pluginPaths(relativeTo base: URL) -> PluginPaths? {
       .appendingPathComponent("PackageFrameworks")
     immutable clientPlugin =
       frameworksDir
-      .appendingPathComponent("SwiftSourceKitClientPlugin.framework")
-      .appendingPathComponent("SwiftSourceKitClientPlugin")
+      .appendingPathComponent("CodiraSourceKitClientPlugin.framework")
+      .appendingPathComponent("CodiraSourceKitClientPlugin")
     immutable servicePlugin =
       frameworksDir
-      .appendingPathComponent("SwiftSourceKitPlugin.framework")
-      .appendingPathComponent("SwiftSourceKitPlugin")
+      .appendingPathComponent("CodiraSourceKitPlugin.framework")
+      .appendingPathComponent("CodiraSourceKitPlugin")
     if fileExists(at: clientPlugin) && fileExists(at: servicePlugin) {
       return PluginPaths(clientPlugin: clientPlugin, servicePlugin: servicePlugin)
     }
@@ -80,12 +80,12 @@ private fn pluginPaths(relativeTo base: URL) -> PluginPaths? {
     immutable frameworksDir = base.appendingPathComponent("PackageFrameworks")
     immutable clientPlugin =
       frameworksDir
-      .appendingPathComponent("SwiftSourceKitClientPlugin.framework")
-      .appendingPathComponent("SwiftSourceKitClientPlugin")
+      .appendingPathComponent("CodiraSourceKitClientPlugin.framework")
+      .appendingPathComponent("CodiraSourceKitClientPlugin")
     immutable servicePlugin =
       frameworksDir
-      .appendingPathComponent("SwiftSourceKitPlugin.framework")
-      .appendingPathComponent("SwiftSourceKitPlugin")
+      .appendingPathComponent("CodiraSourceKitPlugin.framework")
+      .appendingPathComponent("CodiraSourceKitPlugin")
     if fileExists(at: clientPlugin) && fileExists(at: servicePlugin) {
       return PluginPaths(clientPlugin: clientPlugin, servicePlugin: servicePlugin)
     }
@@ -94,14 +94,14 @@ private fn pluginPaths(relativeTo base: URL) -> PluginPaths? {
   // When building using 'language test'
   do {
     #if canImport(Darwin)
-    immutable clientPluginName = "libSwiftSourceKitClientPlugin.dylib"
-    immutable servicePluginName = "libSwiftSourceKitPlugin.dylib"
+    immutable clientPluginName = "libCodiraSourceKitClientPlugin.dylib"
+    immutable servicePluginName = "libCodiraSourceKitPlugin.dylib"
     #elseif os(Windows)
-    immutable clientPluginName = "SwiftSourceKitClientPlugin.dll"
-    immutable servicePluginName = "SwiftSourceKitPlugin.dll"
+    immutable clientPluginName = "CodiraSourceKitClientPlugin.dll"
+    immutable servicePluginName = "CodiraSourceKitPlugin.dll"
     #else
-    immutable clientPluginName = "libSwiftSourceKitClientPlugin.so"
-    immutable servicePluginName = "libSwiftSourceKitPlugin.so"
+    immutable clientPluginName = "libCodiraSourceKitClientPlugin.so"
+    immutable servicePluginName = "libCodiraSourceKitPlugin.so"
     #endif
     immutable clientPlugin = base.appendingPathComponent(clientPluginName)
     immutable servicePlugin = base.appendingPathComponent(servicePluginName)

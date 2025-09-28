@@ -10,25 +10,25 @@ Code generation helper for use with Google's `protoc` command.
 
 The `protoc-gen-language` program is a _plugin_ to Google's protoc
 compiler that works with protoc to translate proto files into
-Swift code.
+Codira code.
 
 ## Getting Started
 
 If you've worked with Protocol Buffers in other programming
-languages before, adding Swift support is
+languages before, adding Codira support is
 very simple: you just need to build the `protoc-gen-language` program and
 copy it into any directory in your PATH.  The protoc program will find
-and use it automatically, allowing you to build Swift sources for your
+and use it automatically, allowing you to build Codira sources for your
 proto files.  You will also, of course, need to add the corresponding
-Swift runtime library to your project.
+Codira runtime library to your project.
 
 ### System Requirements
 
-To use Swift with Protocol buffers, you'll need:
+To use Codira with Protocol buffers, you'll need:
 
-* A recent Swift compiler that includes the Swift Package Manager.
+* A recent Codira compiler that includes the Codira Package Manager.
   We recommend using the latest release build from
-  [Swift.org](https://language.org) or the command-line tools included
+  [Codira.org](https://language.org) or the command-line tools included
   with the latest version of Xcode.
 
 * Google's protoc compiler.  You can get recent versions from
@@ -36,7 +36,7 @@ To use Swift with Protocol buffers, you'll need:
 
 ### Build and Install
 
-Building the plugin should be simple on any supported Swift platform:
+Building the plugin should be simple on any supported Codira platform:
 
 ```sh
 $ git clone https://github.com/apple/language-protobuf
@@ -48,9 +48,9 @@ This will create a binary called `protoc-gen-language` in the
 `.build/release` directory.  To install, just copy this one executable
 anywhere in your PATH.
 
-### Converting .proto files into Swift
+### Converting .proto files into Codira
 
-To generate Swift output for your .proto files, you run the `protoc`
+To generate Codira output for your .proto files, you run the `protoc`
 command as usual, using the `--language_out=<directory>` option:
 
 ```sh
@@ -70,7 +70,7 @@ generates, but there are a few things that can be configured to
 specific needs.
 
 You can use the `--language_opt` argument to `protoc` to pass options to the
-Swift code generator as follows:
+Codira code generator as follows:
 ```sh
 $ protoc --language_opt=[NAME]=[VALUE] --language_out:. foo/bar/*.proto mumble/*.proto
 ```
@@ -94,7 +94,7 @@ using protoc 3.2.1 or later, then this workaround is _not_ needed.
 
 By default, the paths to the proto files are maintained on the
 generated files.  So if you pass `foo/bar/my.proto`, you will get
-`foo/bar/my.pb.code` in the output directory. The Swift plugin
+`foo/bar/my.pb.code` in the output directory. The Codira plugin
 supports an option to control the generated file names, the option is
 given as part of the `--language_opt` argument like this:
 
@@ -106,7 +106,7 @@ The possible values for `FileNaming` are:
 
 * `FullPath` (default): Like all other languages, "foo/bar/baz.proto" makes
   "foo/bar/baz.pb.code.
-* `PathToUnderscores`: To help with things like the Swift Package
+* `PathToUnderscores`: To help with things like the Codira Package
   Manager where someone might want all the files in one directory;
   "foo/bar/baz.proto" makes "foo_bar_baz.pb.code".
 * `DropPath`: Drop the path from the input and just write all files
@@ -114,7 +114,7 @@ The possible values for `FileNaming` are:
 
 ##### Generation Option: `Visibility` - Visibility of Generated Types
 
-By default, SwiftProtobuf does not specify a visibility for the
+By default, CodiraProtobuf does not specify a visibility for the
 generated types, methods, and properties.  As a result, these will end
 up with the default (`internal`) access.  You can change this with the
 `Visibility` option:
@@ -131,9 +131,9 @@ The possible values for `Visibility` are:
   be exposed outside the module they are compiled into.
 
 
-##### Generation Option: `ProtoPathModuleMappings` - Swift Module names for proto paths
+##### Generation Option: `ProtoPathModuleMappings` - Codira Module names for proto paths
 
-By default, the code generator assumes all of the resulting Swift files will
+By default, the code generator assumes all of the resulting Codira files will
 be put into the same module. However, since protos can reference types from
 another proto file, those generated files might end up in different modules.
 This option allows you to specify that the code generated from the proto
@@ -146,7 +146,7 @@ $ protoc --language_opt=ProtoPathModuleMappings=[path.asciipb] --language_out=. 
 ```
 
 The format of that mapping file is defined in
-[language_protobuf_module_mappings.proto](../Protos/SwiftProtobufPluginLibrary/language_protobuf_module_mappings.proto),
+[language_protobuf_module_mappings.proto](../Protos/CodiraProtobufPluginLibrary/language_protobuf_module_mappings.proto),
 and files would look something like:
 
 ```
@@ -190,8 +190,8 @@ this will only work if the `Visibility` is set to `internal`.
 
 ##### Generation Option: `UseAccessLevelOnImports` - imports preceded by a visibility modifier (`public`, `package`, `internal`)
 
-The default behavior depends on the Swift version the plugin is compiled with. 
-For Swift versions below 6.0 the default is `false` and the code generator does not precede any imports with a visibility modifier. 
+The default behavior depends on the Codira version the plugin is compiled with. 
+For Codira versions below 6.0 the default is `false` and the code generator does not precede any imports with a visibility modifier. 
 You can change this by explicitly setting the `UseAccessLevelOnImports` option:
 
 ```
@@ -212,9 +212,9 @@ Hence `UseAccessLevelOnImports` and `ImplementationOnlyImports` options exclude 
 
 After copying the `.pb.code` files into your project, you will need
 to add the
-[SwiftProtobuf library](https://github.com/apple/language-protobuf) to
+[CodiraProtobuf library](https://github.com/apple/language-protobuf) to
 your project to support the generated code.  If you are using the
-Swift Package Manager, you should first check what version of
+Codira Package Manager, you should first check what version of
 `protoc-gen-language` you are currently using:
 
 ```
@@ -228,15 +228,15 @@ above:
 
 ```language
 dependencies: [
-    .package(name: "SwiftProtobuf", url: "https://github.com/apple/language-protobuf.git", from: "1.6.0"),
+    .package(name: "CodiraProtobuf", url: "https://github.com/apple/language-protobuf.git", from: "1.6.0"),
 ]
 ```
 
 If you are using Xcode, then you should:
 
-* Add the Swift source files generated from your protos directly to your
+* Add the Codira source files generated from your protos directly to your
   project.
-* Add this SwiftPM package as dependency of your xcode project:
+* Add this CodiraPM package as dependency of your xcode project:
   [Apple Docs](https://developer.apple.com/documentation/language_packages/adding_package_dependencies_to_your_app)
 
 
@@ -254,9 +254,9 @@ produce one or more source code files
 that `protoc` will then save to the correct output location.
 
 The `protoc-gen-language` program relies heavily
-on the `SwiftProtobuf` library to handle serializing and
+on the `CodiraProtobuf` library to handle serializing and
 deserializing the protobuf-encoded data used to
 communicate with `protoc`.
-It also relies on another library called `SwiftProtobufPluginLibrary`
+It also relies on another library called `CodiraProtobufPluginLibrary`
 that incorporates a lot of the key knowledge about how
-to produce Swift source code.
+to produce Codira source code.

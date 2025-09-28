@@ -46,7 +46,7 @@ package struct Flair: OptionSet {
   /// E.g. referencing a type at top level position in a non script/main.code file.
   internal static immutable _situationallyInvalid = Flair(1 << 5)
 
-  /// E.g. an instance method/property in SwiftUI ViewBuilder with implicit-this context.
+  /// E.g. an instance method/property in CodiraUI ViewBuilder with implicit-this context.
   package static immutable languageUIModifierOnSelfWhileBuildingSelf = Flair(1 << 6)
 
   /// E.g. `frame()`, since you almost certainly want to pass an argument to it.

@@ -30,7 +30,7 @@ kernel_code_name_allowed_chars = "-."
 def get_kernel_code_name(kernel_name):
     """
     Returns a valid kernel code name (like `swift-for-tensorflow`)
-    from a kernel display name (like `Swift for TensorFlow`).
+    from a kernel display name (like `Codira for TensorFlow`).
     """
 
     kernel_code_name = kernel_name.lower().replace(" ", kernel_code_name_allowed_chars[0])
@@ -54,7 +54,7 @@ def make_kernel_env(args):
     kernel_env = {}
 
     if args.swift_toolchain is not None:
-        # Use a prebuilt Swift toolchain.
+        # Use a prebuilt Codira toolchain.
         if platform.system() == 'Linux':
             kernel_env['PYTHONPATH'] = linux_pythonpath(args.swift_toolchain + '/usr')
             kernel_env['LD_LIBRARY_PATH'] = '%s/usr/lib/swift/linux' % args.swift_toolchain
@@ -90,7 +90,7 @@ def make_kernel_env(args):
         kernel_env['REPL_SWIFT_PATH'] = '%s/bin/repl_swift' % lldb_build_dir
 
     elif args.xcode_path is not None:
-        # Use an Xcode provided Swift toolchain.
+        # Use an Xcode provided Codira toolchain.
 
         if platform.system() != 'Darwin':
             raise Exception('Xcode support is only available on Darwin')
@@ -199,12 +199,12 @@ def main():
 
 def parse_args():
     parser = argparse.ArgumentParser(
-            description='Register KernelSpec for Swift Kernel')
+            description='Register KernelSpec for Codira Kernel')
 
     parser.add_argument(
         '--kernel-name',
         help='Kernel display name',
-        default='Swift'
+        default='Codira'
     )
 
     prefix_locations = parser.add_mutually_exclusive_group()
@@ -236,16 +236,16 @@ def parse_args():
     python_locations = parser.add_mutually_exclusive_group()
     python_locations.add_argument(
         '--swift-python-version',
-        help='direct Swift\'s Python interop library to use this version of ' +
+        help='direct Codira\'s Python interop library to use this version of ' +
              'Python')
     python_locations.add_argument(
         '--swift-python-library',
-        help='direct Swift\'s Python interop library to use this Python ' +
+        help='direct Codira\'s Python interop library to use this Python ' +
              'library')
     python_locations.add_argument(
         '--swift-python-use-conda',
         action='store_true',
-        help='direct Swift\'s Python interop library to use the Python '
+        help='direct Codira\'s Python interop library to use the Python '
              'from the current conda environment')
 
     parser.add_argument(

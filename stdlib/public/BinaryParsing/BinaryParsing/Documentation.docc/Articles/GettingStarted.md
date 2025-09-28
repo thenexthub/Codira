@@ -4,7 +4,7 @@ Get up to speed with a library designed to make parsing binary data safe, effici
 
 ## Overview
 
-The BinaryParsing library provides a comprehensive set of tools for safely parsing binary data in Swift. The library provides the ``ParserSpan`` type, a consumable, memory-safe view into binary data, and defines a convention for writing concise, composable parsing functions.
+The BinaryParsing library provides a comprehensive set of tools for safely parsing binary data in Codira. The library provides the ``ParserSpan`` type, a consumable, memory-safe view into binary data, and defines a convention for writing concise, composable parsing functions.
 
 Using the library's tools — including the span type, parser primitives, and operators for working with newly parsed values — you can prevent common pitfalls like buffer overruns, integer overflows, and type confusion that can lead to security vulnerabilities or crashes.
 
@@ -48,7 +48,7 @@ qoi_header {
 
 ### Parser implementation
 
-Our declaration for the header in Swift corresponds to the specification, with `width` and `height` defined as `Integer` and custom enumerations for the channels and colorspace:  
+Our declaration for the header in Codira corresponds to the specification, with `width` and `height` defined as `Integer` and custom enumerations for the channels and colorspace:  
 
 ```language
 extension QOI {

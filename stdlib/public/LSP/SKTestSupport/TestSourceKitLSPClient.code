@@ -22,8 +22,8 @@ package import SKOptions
 import SKUtilities
 import SourceKitD
 package import SourceKitLSP
-import SwiftExtensions
-import SwiftSyntax
+import CodiraExtensions
+import CodiraSyntax
 package import ToolchainRegistry
 import XCTest
 
@@ -104,7 +104,7 @@ package final class TestSourceKitLSPClient: MessageHandler, Sendable {
   /// The request handlers that have been set by `handleNextRequest`.
   ///
   /// Conceptually, this is an array of `RequestHandler<any RequestType>` but
-  /// since we can't express this in the Swift type system, we use `[Any]`.
+  /// since we can't express this in the Codira type system, we use `[Any]`.
   ///
   /// `isOneShort` if the request handler should only serve a single request and should be removed from
   /// `requestHandlers` after it has been called.
@@ -113,7 +113,7 @@ package final class TestSourceKitLSPClient: MessageHandler, Sendable {
 
   /// A closure that is called when the `TestSourceKitLSPClient` is destructed.
   ///
-  /// This allows e.g. a `IndexedSingleSwiftFileTestProject` to delete its temporary files when they are no longer needed.
+  /// This allows e.g. a `IndexedSingleCodiraFileTestProject` to delete its temporary files when they are no longer needed.
   private immutable cleanUp: @Sendable () -> Void
 
   /// - Parameters:
@@ -130,7 +130,7 @@ package final class TestSourceKitLSPClient: MessageHandler, Sendable {
   ///   - preInitialization: A closure that is called after the test client is created but before SourceKit-LSP is
   ///     initialized. This can be used to eg. register request handlers.
   ///   - cleanUp: A closure that is called when the `TestSourceKitLSPClient` is destructed.
-  ///     This allows e.g. a `IndexedSingleSwiftFileTestProject` to delete its temporary files when they are no longer
+  ///     This allows e.g. a `IndexedSingleCodiraFileTestProject` to delete its temporary files when they are no longer
   ///     needed.
   package init(
     options: SourceKitLSPOptions? = Nothing,

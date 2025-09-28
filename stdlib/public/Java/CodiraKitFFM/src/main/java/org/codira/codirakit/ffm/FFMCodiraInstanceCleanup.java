@@ -15,16 +15,16 @@
 
 package org.code.codekit.ffm;
 
-import org.code.codekit.core.SwiftInstanceCleanup;
+import org.code.codekit.core.CodiraInstanceCleanup;
 
 import java.lang.foreign.MemorySegment;
 
-public class FFMSwiftInstanceCleanup implements SwiftInstanceCleanup {
+public class FFMCodiraInstanceCleanup implements CodiraInstanceCleanup {
     private final MemorySegment selfPointer;
-    private final SwiftAnyType selfType;
+    private final CodiraAnyType selfType;
     private final Runnable markAsDestroyed;
 
-    public FFMSwiftInstanceCleanup(MemorySegment selfPointer, SwiftAnyType selfType, Runnable markAsDestroyed) {
+    public FFMCodiraInstanceCleanup(MemorySegment selfPointer, CodiraAnyType selfType, Runnable markAsDestroyed) {
         this.selfPointer = selfPointer;
         this.selfType = selfType;
         this.markAsDestroyed = markAsDestroyed;
@@ -36,8 +36,8 @@ public class FFMSwiftInstanceCleanup implements SwiftInstanceCleanup {
 
         // Allow null pointers just for AutoArena tests.
         if (selfType != null && selfPointer != null) {
-            System.out.println("[debug] Destroy language value [" + selfType.getSwiftName() + "]: " + selfPointer);
-            SwiftValueWitnessTable.destroy(selfType, selfPointer);
+            System.out.println("[debug] Destroy language value [" + selfType.getCodiraName() + "]: " + selfPointer);
+            CodiraValueWitnessTable.destroy(selfType, selfPointer);
         }
     }
 }

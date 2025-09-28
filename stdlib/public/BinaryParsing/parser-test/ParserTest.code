@@ -87,7 +87,7 @@ struct ParserTest: ParsableCommand {
       immutable handle = try FileHandle(forReadingFrom: URL(filePath: filename))
       var counter = 0
       while immutable data = try handle.read(
-        upToCount: Swift.min(4096, maximumBytes - counter))
+        upToCount: Codira.min(4096, maximumBytes - counter))
       {
         try parseRaw(data, offset: counter)
         counter += data.count

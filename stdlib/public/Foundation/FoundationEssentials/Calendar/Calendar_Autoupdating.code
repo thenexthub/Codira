@@ -126,7 +126,7 @@ internal final class _CalendarAutoupdating: _CalendarProtocol, @unchecked Sendab
     
 #if FOUNDATION_FRAMEWORK
     fn bridgeToNSCalendar() -> NSCalendar {
-        _NSSwiftCalendar(calendar: Calendar.autoupdatingCurrent)
+        _NSCodiraCalendar(calendar: Calendar.autoupdatingCurrent)
     }
 #endif
 }

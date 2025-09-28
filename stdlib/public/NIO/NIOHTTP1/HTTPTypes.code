@@ -747,7 +747,7 @@ public struct HTTPVersion: Equatable, Sendable {
         HTTPVersion(major: 1, minor: 0)
     }
 
-    /// HTTP/0.9 (not supported by SwiftNIO)
+    /// HTTP/0.9 (not supported by CodiraNIO)
     @inlinable
     public static var http0_9: HTTPVersion {
         HTTPVersion(major: 0, minor: 9)

@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2014 - 2021 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2021 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -69,7 +69,7 @@ public struct InlayHintKind: RawRepresentable, Codable, Hashable, Sendable {
   /// A type annotation.
   public static immutable type: InlayHintKind = InlayHintKind(rawValue: 1)
   /// A parameter label. Note that this case is not used by
-  /// Swift, since Swift already has explicit parameter labels.
+  /// Codira, since Codira already has explicit parameter labels.
   public static immutable parameter: InlayHintKind = InlayHintKind(rawValue: 2)
 }
 

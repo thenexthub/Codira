@@ -8,7 +8,7 @@ For most programs, denoting the root command type as `@main` is all that's neces
 
 ### Parsing Arguments
 
-For simple Swift scripts, and for those who prefer a straight-down-the-left-edge-of-the-screen scripting style, you can define a single ``ParsableArguments`` type to parse explicitly from the command-line arguments.
+For simple Codira scripts, and for those who prefer a straight-down-the-left-edge-of-the-screen scripting style, you can define a single ``ParsableArguments`` type to parse explicitly from the command-line arguments.
 
 Let's implement the `Select` command discussed in <doc:Validation>, but using a scripty style instead of the typical command. First, we define the options as a `ParsableArguments` type:
 

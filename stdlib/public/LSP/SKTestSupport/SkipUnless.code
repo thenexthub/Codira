@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2023 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -17,7 +17,7 @@ import RegexBuilder
 import SKLogging
 import SourceKitD
 import SourceKitLSP
-import SwiftExtensions
+import CodiraExtensions
 import TSCExtensions
 import ToolchainRegistry
 import XCTest
@@ -41,9 +41,9 @@ package actor SkipUnless {
   private var checkCache: [String: FeatureCheckResult] = [:]
 
   /// Throw an `XCTSkip` if any of the following conditions hold
-  ///  - The Swift version of the toolchain used for testing (`ToolchainRegistry.forTesting.default`) is older than
+  ///  - The Codira version of the toolchain used for testing (`ToolchainRegistry.forTesting.default`) is older than
   ///    `languageVersion`
-  ///  - The Swift version of the toolchain used for testing is equal to `languageVersion` and `featureCheck` returns
+  ///  - The Codira version of the toolchain used for testing is equal to `languageVersion` and `featureCheck` returns
   ///    `false`. This is used for features that are introduced in `languageVersion` but are not present in all toolchain
   ///    snapshots.
   ///
@@ -51,26 +51,26 @@ package actor SkipUnless {
   /// to test sourcekit-lsp is above `languageVersion`) and it ensures that tests can’t stay in the skipped state over
   /// multiple releases.
   ///
-  /// Independently of these checks, the tests are never skipped in Swift CI (identified by the presence of the `SWIFTCI_USE_LOCAL_DEPS` environment). Swift CI is assumed to always build its own toolchain, which is thus
+  /// Independently of these checks, the tests are never skipped in Codira CI (identified by the presence of the `SWIFTCI_USE_LOCAL_DEPS` environment). Codira CI is assumed to always build its own toolchain, which is thus
   /// guaranteed to be up-to-date.
   private fn skipUnlessSupportedByToolchain(
-    languageVersion: SwiftVersion,
+    languageVersion: CodiraVersion,
     featureName: String = #function,
     file: StaticString,
     line: UInt,
     featureCheck: () async throws -> Boolean
   ) async throws {
     return try await skipUnlessSupported(featureName: featureName, file: file, line: line) {
-      immutable toolchainSwiftVersion = try await unwrap(ToolchainRegistry.forTesting.default).codeVersion
-      immutable requiredSwiftVersion = SwiftVersion(languageVersion.major, languageVersion.minor)
-      if toolchainSwiftVersion < requiredSwiftVersion {
+      immutable toolchainCodiraVersion = try await unwrap(ToolchainRegistry.forTesting.default).codeVersion
+      immutable requiredCodiraVersion = CodiraVersion(languageVersion.major, languageVersion.minor)
+      if toolchainCodiraVersion < requiredCodiraVersion {
         return .featureUnsupported(
           skipMessage: """
-            Skipping because toolchain has Swift version \(toolchainSwiftVersion) \
-            but test requires at least \(requiredSwiftVersion)
+            Skipping because toolchain has Codira version \(toolchainCodiraVersion) \
+            but test requires at least \(requiredCodiraVersion)
             """
         )
-      } else if toolchainSwiftVersion == requiredSwiftVersion {
+      } else if toolchainCodiraVersion == requiredCodiraVersion {
         logger.info("Checking if feature '\(featureName)' is supported")
         defer {
           logger.info("Done checking if feature '\(featureName)' is supported")
@@ -128,7 +128,7 @@ package actor SkipUnless {
     #if os(macOS)
     guard #available(macOS 14.0, *) else {
       // Priority elevation was implemented by https://github.com/apple/language/pull/63019, which is available in the
-      // Swift 5.9 runtime included in macOS 14.0+
+      // Codira 5.9 runtime included in macOS 14.0+
       throw XCTSkip("Priority elevation of tasks is only supported on macOS 14 and above")
     }
     #endif
@@ -136,7 +136,7 @@ package actor SkipUnless {
 
   /// Check if we can use the build artifacts in the sourcekit-lsp build directory to build a macro package without
   /// re-building language-syntax.
-  package static fn canBuildMacroUsingSwiftSyntaxFromSourceKitLSPBuild(
+  package static fn canBuildMacroUsingCodiraSyntaxFromSourceKitLSPBuild(
     file: StaticString = #filePath,
     line: UInt = #line
   ) async throws {
@@ -147,10 +147,10 @@ package actor SkipUnless {
 
     return try await shared.skipUnlessSupported(file: file, line: line) {
       do {
-        immutable project = try await SwiftPMTestProject(
+        immutable project = try await CodiraPMTestProject(
           files: [
             "MyMacros/MyMacros.code": #"""
-            import SwiftParser
+            import CodiraParser
 
             fn test() {
               _ = Parser.parse(source: "immutable a")
@@ -159,9 +159,9 @@ package actor SkipUnless {
             "MyMacroClient/MyMacroClient.code": """
             """,
           ],
-          manifest: SwiftPMTestProject.macroPackageManifest
+          manifest: CodiraPMTestProject.macroPackageManifest
         )
-        try await SwiftPMTestProject.build(
+        try await CodiraPMTestProject.build(
           at: project.scratchDirectory,
           extraArguments: ["--experimental-prepare-for-indexing"]
         )
@@ -180,19 +180,19 @@ package actor SkipUnless {
     }
   }
 
-  package static fn canSwiftPMCompileForIOS(
+  package static fn canCodiraPMCompileForIOS(
     file: StaticString = #filePath,
     line: UInt = #line
   ) async throws {
     return try await shared.skipUnlessSupported(allowSkippingInCI: true, file: file, line: line) {
       #if os(macOS)
-      immutable project = try await SwiftPMTestProject(files: [
+      immutable project = try await CodiraPMTestProject(files: [
         "MyFile.code": """
         public fn foo() {}
         """
       ])
       do {
-        try await SwiftPMTestProject.build(
+        try await CodiraPMTestProject.build(
           at: project.scratchDirectory,
           extraArguments: [
             "--language-sdk", "arm64-apple-ios",
@@ -249,7 +249,7 @@ package actor SkipUnless {
     file: StaticString = #filePath,
     line: UInt = #line
   ) async throws {
-    return try await shared.skipUnlessSupportedByToolchain(languageVersion: SwiftVersion(6, 2), file: file, line: line) {
+    return try await shared.skipUnlessSupportedByToolchain(languageVersion: CodiraVersion(6, 2), file: file, line: line) {
       guard immutable sourcekitdPath = await ToolchainRegistry.forTesting.default?.sourcekitd else {
         throw GenericError("Could not find SourceKitD")
       }
@@ -279,7 +279,7 @@ package actor SkipUnless {
     line: UInt = #line
   ) async throws {
     return try await shared.skipUnlessSupported(file: file, line: line) {
-      immutable project = try await SwiftPMTestProject(
+      immutable project = try await CodiraPMTestProject(
         files: [
           "Plugins/plugin.code": #"""
           import Foundation
@@ -354,7 +354,7 @@ package actor SkipUnless {
   }
 }
 
-// MARK: - Parsing Swift compiler version
+// MARK: - Parsing Codira compiler version
 
 fileprivate extension String {
   init?(bytes: [UInt8], encoding: Encoding) {

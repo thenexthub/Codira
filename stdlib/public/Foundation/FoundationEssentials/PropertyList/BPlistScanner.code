@@ -747,7 +747,7 @@ extension Integer {
 }
 
 
-enum BPlistError: Swift.Error, Equatable {
+enum BPlistError: Codira.Error, Equatable {
     case invalidMarker
     case corruptedValue(String)
     case corruptTopLevelInfo

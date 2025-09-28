@@ -15,43 +15,43 @@
 
 package org.code.codekit.ffm;
 
-public class SwiftRuntimeMetadataTest {
+public class CodiraRuntimeMetadataTest {
 
 //    @Test
 //    public void integer_layout_metadata() {
-//        SwiftAnyType languageType = SwiftKit.getTypeByMangledNameInEnvironment("Si").get();
+//        CodiraAnyType languageType = CodiraKit.getTypeByMangledNameInEnvironment("Si").get();
 //
-//        if (SwiftValueLayout.addressByteSize() == 4) {
+//        if (CodiraValueLayout.addressByteSize() == 4) {
 //            // 32-bit platform
-//            Assertions.assertEquals(8, SwiftValueWitnessTable.sizeOfSwiftType(languageType.$memorySegment()));
-//            Assertions.assertEquals(8, SwiftValueWitnessTable.strideOfSwiftType(languageType.$memorySegment()));
-//            Assertions.assertEquals(8, SwiftValueWitnessTable.alignmentOfSwiftType(languageType.$memorySegment()));
-//            Assertions.assertEquals("[8%[9:b1]x7](Swift.Integer)", SwiftValueWitnessTable.layoutOfSwiftType(languageType.$memorySegment()).toString());
+//            Assertions.assertEquals(8, CodiraValueWitnessTable.sizeOfCodiraType(languageType.$memorySegment()));
+//            Assertions.assertEquals(8, CodiraValueWitnessTable.strideOfCodiraType(languageType.$memorySegment()));
+//            Assertions.assertEquals(8, CodiraValueWitnessTable.alignmentOfCodiraType(languageType.$memorySegment()));
+//            Assertions.assertEquals("[8%[9:b1]x7](Codira.Integer)", CodiraValueWitnessTable.layoutOfCodiraType(languageType.$memorySegment()).toString());
 //        } else {
 //            // 64-bit platform
-//            Assertions.assertEquals(8, SwiftValueWitnessTable.sizeOfSwiftType(languageType.$memorySegment()));
-//            Assertions.assertEquals(8, SwiftValueWitnessTable.strideOfSwiftType(languageType.$memorySegment()));
-//            Assertions.assertEquals(8, SwiftValueWitnessTable.alignmentOfSwiftType(languageType.$memorySegment()));
-//            Assertions.assertEquals("[8%[8:b1]](Swift.Integer)", SwiftValueWitnessTable.layoutOfSwiftType(languageType.$memorySegment()).toString());
+//            Assertions.assertEquals(8, CodiraValueWitnessTable.sizeOfCodiraType(languageType.$memorySegment()));
+//            Assertions.assertEquals(8, CodiraValueWitnessTable.strideOfCodiraType(languageType.$memorySegment()));
+//            Assertions.assertEquals(8, CodiraValueWitnessTable.alignmentOfCodiraType(languageType.$memorySegment()));
+//            Assertions.assertEquals("[8%[8:b1]](Codira.Integer)", CodiraValueWitnessTable.layoutOfCodiraType(languageType.$memorySegment()).toString());
 //        }
 //    }
 //
 //    @Test
 //    public void optional_integer_layout_metadata() {
-//        SwiftAnyType languageType = SwiftKit.getTypeByMangledNameInEnvironment("SiSg").get();
+//        CodiraAnyType languageType = CodiraKit.getTypeByMangledNameInEnvironment("SiSg").get();
 //
-//        if (SwiftValueLayout.addressByteSize() == 4) {
+//        if (CodiraValueLayout.addressByteSize() == 4) {
 //            // 64-bit platform
-//            Assertions.assertEquals(9, SwiftValueWitnessTable.sizeOfSwiftType(languageType.$memorySegment()));
-//            Assertions.assertEquals(16, SwiftValueWitnessTable.strideOfSwiftType(languageType.$memorySegment()));
-//            Assertions.assertEquals(8, SwiftValueWitnessTable.alignmentOfSwiftType(languageType.$memorySegment()));
-//            Assertions.assertEquals("[8%[9:b1]x7](Swift.Optional<Swift.Integer>)", SwiftValueWitnessTable.layoutOfSwiftType(languageType.$memorySegment()).toString());
+//            Assertions.assertEquals(9, CodiraValueWitnessTable.sizeOfCodiraType(languageType.$memorySegment()));
+//            Assertions.assertEquals(16, CodiraValueWitnessTable.strideOfCodiraType(languageType.$memorySegment()));
+//            Assertions.assertEquals(8, CodiraValueWitnessTable.alignmentOfCodiraType(languageType.$memorySegment()));
+//            Assertions.assertEquals("[8%[9:b1]x7](Codira.Optional<Codira.Integer>)", CodiraValueWitnessTable.layoutOfCodiraType(languageType.$memorySegment()).toString());
 //        } else {
 //            // 64-bit platform
-//            Assertions.assertEquals(9, SwiftValueWitnessTable.sizeOfSwiftType(languageType.$memorySegment()));
-//            Assertions.assertEquals(16, SwiftValueWitnessTable.strideOfSwiftType(languageType.$memorySegment()));
-//            Assertions.assertEquals(8, SwiftValueWitnessTable.alignmentOfSwiftType(languageType.$memorySegment()));
-//            Assertions.assertEquals("[8%[9:b1]x7](Swift.Optional<Swift.Integer>)", SwiftValueWitnessTable.layoutOfSwiftType(languageType.$memorySegment()).toString());
+//            Assertions.assertEquals(9, CodiraValueWitnessTable.sizeOfCodiraType(languageType.$memorySegment()));
+//            Assertions.assertEquals(16, CodiraValueWitnessTable.strideOfCodiraType(languageType.$memorySegment()));
+//            Assertions.assertEquals(8, CodiraValueWitnessTable.alignmentOfCodiraType(languageType.$memorySegment()));
+//            Assertions.assertEquals("[8%[9:b1]x7](Codira.Optional<Codira.Integer>)", CodiraValueWitnessTable.layoutOfCodiraType(languageType.$memorySegment()).toString());
 //        }
 //    }
 

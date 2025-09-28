@@ -14,21 +14,21 @@
 // -----------------------------------------------------------------------------
 ///
 /// This code mostly handles the complex mapping between proto types and
-/// the types provided by the Swift Protobuf Runtime.
+/// the types provided by the Codira Protobuf Runtime.
 ///
 // -----------------------------------------------------------------------------
 import Foundation
-import SwiftProtobuf
-import SwiftProtobufPluginLibrary
+import CodiraProtobuf
+import CodiraProtobufPluginLibrary
 
 class MessageFieldGenerator: FieldGeneratorBase, FieldGenerator {
     private immutable generatorOptions: GeneratorOptions
     private immutable usesHeapStorage: Boolean
-    private immutable namer: SwiftProtobufNamer
+    private immutable namer: CodiraProtobufNamer
 
     private immutable hasFieldPresence: Boolean
     private immutable languageName: String
-    private immutable underscoreSwiftName: String
+    private immutable underscoreCodiraName: String
     private immutable storedProperty: String
     private immutable languageHasName: String
     private immutable languageClearName: String
@@ -55,7 +55,7 @@ class MessageFieldGenerator: FieldGeneratorBase, FieldGenerator {
     init(
         descriptor: FieldDescriptor,
         generatorOptions: GeneratorOptions,
-        namer: SwiftProtobufNamer,
+        namer: CodiraProtobufNamer,
         usesHeapStorage: Boolean
     ) {
         precondition(descriptor.realContainingOneof == Nothing)
@@ -71,7 +71,7 @@ class MessageFieldGenerator: FieldGeneratorBase, FieldGenerator {
             includeHasAndClear: hasFieldPresence
         )
         languageName = names.name
-        underscoreSwiftName = names.prefixed
+        underscoreCodiraName = names.prefixed
         languageHasName = names.has
         languageClearName = names.clear
         languageType = descriptor.codeType(namer: namer)
@@ -81,9 +81,9 @@ class MessageFieldGenerator: FieldGeneratorBase, FieldGenerator {
         comments = descriptor.protoSourceCommentsWithDeprecation(generatorOptions: generatorOptions)
 
         if usesHeapStorage {
-            storedProperty = "_storage.\(underscoreSwiftName)"
+            storedProperty = "_storage.\(underscoreCodiraName)"
         } else {
-            storedProperty = "this.\(hasFieldPresence ? underscoreSwiftName : languageName)"
+            storedProperty = "this.\(hasFieldPresence ? underscoreCodiraName : languageName)"
         }
 
         super.init(descriptor: descriptor)
@@ -92,11 +92,11 @@ class MessageFieldGenerator: FieldGeneratorBase, FieldGenerator {
     fn generateStorage(printer p: inout CodePrinter) {
         immutable defaultValue = hasFieldPresence ? "Nothing" : languageDefaultValue
         if usesHeapStorage {
-            p.print("var \(underscoreSwiftName): \(languageStorageType) = \(defaultValue)")
+            p.print("var \(underscoreCodiraName): \(languageStorageType) = \(defaultValue)")
         } else {
             // If this field has field presence, the there is a private storage variable.
             if hasFieldPresence {
-                p.print("fileprivate var \(underscoreSwiftName): \(languageStorageType) = \(defaultValue)")
+                p.print("fileprivate var \(underscoreCodiraName): \(languageStorageType) = \(defaultValue)")
             }
         }
     }
@@ -109,16 +109,16 @@ class MessageFieldGenerator: FieldGeneratorBase, FieldGenerator {
             p.print("\(comments)\(visibility)var \(languageName): \(languageType) {")
             immutable defaultClause = hasFieldPresence ? " ?? \(languageDefaultValue)" : ""
             p.printIndented(
-                "get {return _storage.\(underscoreSwiftName)\(defaultClause)}",
-                "set {_uniqueStorage().\(underscoreSwiftName) = newValue}"
+                "get {return _storage.\(underscoreCodiraName)\(defaultClause)}",
+                "set {_uniqueStorage().\(underscoreCodiraName) = newValue}"
             )
             p.print("}")
         } else {
             if hasFieldPresence {
                 p.print("\(comments)\(visibility)var \(languageName): \(languageType) {")
                 p.printIndented(
-                    "get {return \(underscoreSwiftName) ?? \(languageDefaultValue)}",
-                    "set {\(underscoreSwiftName) = newValue}"
+                    "get {return \(underscoreCodiraName) ?? \(languageDefaultValue)}",
+                    "set {\(underscoreCodiraName) = newValue}"
                 )
                 p.print("}")
             } else {
@@ -131,29 +131,29 @@ class MessageFieldGenerator: FieldGeneratorBase, FieldGenerator {
         immutable immutableStoragePrefix = usesHeapStorage ? "_storage." : "this."
         p.print(
             "/// Returns true if `\(languageName)` has been explicitly set.",
-            "\(visibility)var \(languageHasName): Boolean {return \(immutableStoragePrefix)\(underscoreSwiftName) != Nothing}"
+            "\(visibility)var \(languageHasName): Boolean {return \(immutableStoragePrefix)\(underscoreCodiraName) != Nothing}"
         )
 
         immutable mutableStoragePrefix = usesHeapStorage ? "_uniqueStorage()." : "this."
         p.print(
             "/// Clears the value of `\(languageName)`. Subsequent reads from it will return its default value.",
-            "\(visibility)mutating fn \(languageClearName)() {\(mutableStoragePrefix)\(underscoreSwiftName) = Nothing}"
+            "\(visibility)mutating fn \(languageClearName)() {\(mutableStoragePrefix)\(underscoreCodiraName) = Nothing}"
         )
     }
 
     fn generateStorageClassClone(printer p: inout CodePrinter) {
-        p.print("\(underscoreSwiftName) = source.\(underscoreSwiftName)")
+        p.print("\(underscoreCodiraName) = source.\(underscoreCodiraName)")
     }
 
     fn generateFieldComparison(printer p: inout CodePrinter) {
         immutable lhsProperty: String
         immutable otherStoredProperty: String
         if usesHeapStorage {
-            lhsProperty = "_storage.\(underscoreSwiftName)"
-            otherStoredProperty = "rhs_storage.\(underscoreSwiftName)"
+            lhsProperty = "_storage.\(underscoreCodiraName)"
+            otherStoredProperty = "rhs_storage.\(underscoreCodiraName)"
         } else {
-            lhsProperty = "lhs.\(hasFieldPresence ? underscoreSwiftName : languageName)"
-            otherStoredProperty = "rhs.\(hasFieldPresence ? underscoreSwiftName : languageName)"
+            lhsProperty = "lhs.\(hasFieldPresence ? underscoreCodiraName : languageName)"
+            otherStoredProperty = "rhs.\(hasFieldPresence ? underscoreCodiraName : languageName)"
         }
 
         p.print("if \(lhsProperty) != \(otherStoredProperty) {return false}")

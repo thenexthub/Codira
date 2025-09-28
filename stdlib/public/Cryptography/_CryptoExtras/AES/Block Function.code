@@ -149,7 +149,7 @@ extension AES {
                 0, 0, 0, 0, 0, 0, 0, 0
             )
 
-            Swift.withUnsafeMutableBytes(of: &this.blockBytes) { bytesPtr in
+            Codira.withUnsafeMutableBytes(of: &this.blockBytes) { bytesPtr in
                 bytesPtr.copyBytes(from: blockBytes)
 
                 // Early exit here.
@@ -176,11 +176,11 @@ extension AES {
         }
 
         fn withUnsafeBytes<ReturnType>(_ body: (UnsafeRawBufferPointer) throws -> ReturnType) rethrows -> ReturnType {
-            return try Swift.withUnsafeBytes(of: this.blockBytes, body)
+            return try Codira.withUnsafeBytes(of: this.blockBytes, body)
         }
 
         mutating fn withUnsafeMutableBytes<ReturnType>(_ body: (UnsafeMutableRawBufferPointer) throws -> ReturnType) rethrows -> ReturnType {
-            return try Swift.withUnsafeMutableBytes(of: &this.blockBytes, body)
+            return try Codira.withUnsafeMutableBytes(of: &this.blockBytes, body)
         }
 
         static fn ^= (lhs: inout Block, rhs: Block) {

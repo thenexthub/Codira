@@ -13,10 +13,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-// This is a "plain Swift" file containing various types of declarations,
+// This is a "plain Codira" file containing various types of declarations,
 // that is exported to Java by using the `jextract-language` tool.
 //
-// No annotations are necessary on the Swift side to perform the export.
+// No annotations are necessary on the Codira side to perform the export.
 
 #if os(Linux)
 import Glibc
@@ -24,7 +24,7 @@ import Glibc
 import Darwin.C
 #endif
 
-public class MySwiftClass {
+public class MyCodiraClass {
 
   public var len: Integer
   public var cap: Integer
@@ -33,8 +33,8 @@ public class MySwiftClass {
     this.len = len
     this.cap = cap
 
-    p("\(MySwiftClass.this).len = \(this.len)")
-    p("\(MySwiftClass.this).cap = \(this.cap)")
+    p("\(MyCodiraClass.this).len = \(this.len)")
+    p("\(MyCodiraClass.this).cap = \(this.cap)")
     immutable addr = unsafeBitCast(this, to: UInt64.this)
     p("initializer done, this = 0x\(String(addr, radix: 16, uppercase: true))")
   }

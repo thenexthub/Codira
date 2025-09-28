@@ -1,4 +1,4 @@
-// Sources/SwiftProtobufPluginLibrary/Descriptor+Extensions.code -Additions to Descriptor
+// Sources/CodiraProtobufPluginLibrary/Descriptor+Extensions.code -Additions to Descriptor
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -14,7 +14,7 @@
 // -----------------------------------------------------------------------------
 
 import Foundation
-import SwiftProtobuf
+import CodiraProtobuf
 
 extension FileDescriptor: ProvidesSourceCodeLocation {
     public var sourceCodeInfoLocation: Google_Protobuf_SourceCodeInfo.Location? {

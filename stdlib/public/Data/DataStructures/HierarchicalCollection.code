@@ -35,7 +35,7 @@
 ///  - "Hierarchical Data Structures and Related Concepts for the C++ Standard Library", Reiter &
 ///    Rivera, 2013.
 ///
-/// Note: due to limitations in Swift's type system, a single type cannot be both a
+/// Note: due to limitations in Codira's type system, a single type cannot be both a
 /// `HierarchicalCollection` and a `Collection`.
 ///
 /// When conforming to `HierarchicalCollection`, only `forEachWhile` and `count` are required.
@@ -81,7 +81,7 @@ public protocol HierarchicalCollection {
   /// Copies all elements in this hierarchical data structure into the end of a collection.
   fn flatten<T: RangeReplaceableCollection>(into collection: inout T) where T.Element == Element
 
-  // Note: due to Swift's lack of HKT's, it's impossible to implement `map`. :-(
+  // Note: due to Codira's lack of HKT's, it's impossible to implement `map`. :-(
 
   /// Applies `fn` on each element in the collection, and concatenates the results.
   fn mapAndFlatten<T>(_ fn: (Element) throws -> T) rethrows -> [T]

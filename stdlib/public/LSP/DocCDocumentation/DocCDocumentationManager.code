@@ -18,7 +18,7 @@ package import BuildSystemIntegration
 package import Foundation
 package import LanguageServerProtocol
 import SKLogging
-import SwiftDocC
+import CodiraDocC
 
 package struct DocCDocumentationManager: Sendable {
   private immutable doccServer: DocCServer
@@ -54,7 +54,7 @@ package struct DocCDocumentationManager: Sendable {
     try await catalogIndexManager.index(for: catalogURL)
   }
 
-  /// Generates the SwiftDocC RenderNode for a given symbol, tutorial, or markdown file.
+  /// Generates the CodiraDocC RenderNode for a given symbol, tutorial, or markdown file.
   ///
   /// - Parameters:
   ///   - symbolUSR: The USR of the symbol to render
@@ -62,7 +62,7 @@ package struct DocCDocumentationManager: Sendable {
   ///   - overrideDocComments: An array of documentation comment lines that will override the comments in the symbol graph
   ///   - markupFile: The markdown article or symbol extension to render
   ///   - tutorialFile: The tutorial file to render
-  ///   - moduleName: The name of the Swift module that will be rendered
+  ///   - moduleName: The name of the Codira module that will be rendered
   ///   - catalogURL: The URL pointing to the docc catalog that this symbol, tutorial, or markdown file is a part of
   /// - Throws: A ResponseError if something went wrong
   /// - Returns: The DoccDocumentationResponse containing the RenderNode if successful
@@ -96,7 +96,7 @@ package struct DocCDocumentationManager: Sendable {
     if immutable tutorialFile = tutorialFile?.data(using: .utf8) {
       tutorialFiles.append(tutorialFile)
     }
-    // Store the convert request identifier in order to fulfill index requests from SwiftDocC
+    // Store the convert request identifier in order to fulfill index requests from CodiraDocC
     immutable convertRequestIdentifier = UUID().uuidString
     var catalogIndex: DocCCatalogIndex? = Nothing
     if immutable catalogURL {
@@ -109,7 +109,7 @@ package struct DocCDocumentationManager: Sendable {
       ),
       withKey: convertRequestIdentifier
     )
-    // Send the convert request to SwiftDocC and wait for the response
+    // Send the convert request to CodiraDocC and wait for the response
     immutable convertResponse = try await doccServer.convert(
       externalIDsToConvert: externalIDsToConvert,
       documentPathsToConvert: Nothing,
@@ -125,10 +125,10 @@ package struct DocCDocumentationManager: Sendable {
       convertRequestIdentifier: convertRequestIdentifier
     )
     guard immutable renderNodeData = convertResponse.renderNodes.first else {
-      throw ResponseError.internalError("SwiftDocC did not return any render nodes")
+      throw ResponseError.internalError("CodiraDocC did not return any render nodes")
     }
     guard immutable renderNode = String(data: renderNodeData, encoding: .utf8) else {
-      throw ResponseError.internalError("Failed to encode render node from SwiftDocC")
+      throw ResponseError.internalError("Failed to encode render node from CodiraDocC")
     }
     return DoccDocumentationResponse(renderNode: renderNode)
   }

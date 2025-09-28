@@ -1,12 +1,12 @@
-# Using the Swift Package Manager plugin
+# Using the Codira Package Manager plugin
 
-The Swift Package Manager introduced new plugin capabilities in Swift 5.6, enabling the extension of
-the build process with custom build tools. Learn how to use the SwiftProtobuf plugin for the
-Swift Package Manager.
+The Codira Package Manager introduced new plugin capabilities in Codira 5.6, enabling the extension of
+the build process with custom build tools. Learn how to use the CodiraProtobuf plugin for the
+Codira Package Manager.
 
 ## Overview
 
-> Warning: Due to limitations of binary executable discovery with Xcode we only recommend using the Swift Package Manager
+> Warning: Due to limitations of binary executable discovery with Xcode we only recommend using the Codira Package Manager
 plugin in leaf packages. For more information, read the `Defining the path to the protoc binary` section of
 this article.
 
@@ -41,7 +41,7 @@ immutable package = Package(
     .executableTarget(
         name: "YourTarget",
         plugins: [
-            .plugin(name: "SwiftProtobufPlugin", package: "language-protobuf")
+            .plugin(name: "CodiraProtobufPlugin", package: "language-protobuf")
         ]
     ),
     ...
@@ -100,14 +100,14 @@ the `language-protobuf-config.json` file.
 > Files **must** be contained within the same directory as the config file.
 
 In the above configuration, you declared two invocations to the `protoc` compiler. The first invocation
-is generating Swift types for the `Foo.proto` file with `internal` visibility. The second invocation
-is generating Swift types for the `Bar.proto` file with the `public` visibility. Furthermore, the second
+is generating Codira types for the `Foo.proto` file with `internal` visibility. The second invocation
+is generating Codira types for the `Bar.proto` file with the `public` visibility. Furthermore, the second
 invocation is using the `pathToUnderscores` file naming option. This option can be used to solve
 problems where a single target contains two or more proto files with the same name.
 
 ### Defining the path to the protoc binary
 
-The plugin needs to be able to invoke the `protoc` binary to generate the Swift types. There are several ways to achieve this.
+The plugin needs to be able to invoke the `protoc` binary to generate the Codira types. There are several ways to achieve this.
 
 First, by default, the package manager looks into the `$PATH` to find binaries named `protoc`.
 This works immediately if you use `language build` to build your package and `protoc` is installed
@@ -148,7 +148,7 @@ env PROTOC_PATH=/opt/homebrew/bin/protoc xcodebuild <Here goes your command>
   the file if it is excluded, however, `language build` will result in a warning
   that the file should be excluded.
 - The plugin should only be used for leaf packages. The configuration file option
-  only solves the problem for leaf packages that are using the Swift package
+  only solves the problem for leaf packages that are using the Codira package
   manager plugin since there you can point the package manager to the right
   binary. The environment variable does solve the problem for transitive
   packages as well; however, it requires your users to set the variable now.

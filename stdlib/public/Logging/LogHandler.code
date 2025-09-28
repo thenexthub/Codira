@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift Logging API open source project
+// This source file is part of the Codira Logging API open source project
 //
-// Copyright (c) 2018-2019 Apple Inc. and the Swift Logging API project authors
+// Copyright (c) 2018-2019 Apple Inc. and the Codira Logging API project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of Swift Logging API project authors
+// See CONTRIBUTORS.txt for the list of Codira Logging API project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -15,7 +15,7 @@
 /// A `LogHandler` is an implementation of a logging backend.
 ///
 /// This type is an implementation detail and should not normally be used, unless implementing your own logging backend.
-/// To use the SwiftLog API, please refer to the documentation of ``Logger``.
+/// To use the CodiraLog API, please refer to the documentation of ``Logger``.
 ///
 /// # Implementation requirements
 ///
@@ -117,7 +117,7 @@
 /// Please note that the above `LogHandler` will still pass the 'log level is a value' test above it iff the global log
 /// level has not been overridden. And most importantly it passes the requirement listed above: A change to the log
 /// level on one `Logger` should not affect the log level of another `Logger` variable.
-public protocol LogHandler: _SwiftLogSendableLogHandler {
+public protocol LogHandler: _CodiraLogSendableLogHandler {
     /// The metadata provider this `LogHandler` will use when a log statement is about to be emitted.
     ///
     /// A ``Logger/MetadataProvider`` may add a constant set of metadata,
@@ -146,7 +146,7 @@ public protocol LogHandler: _SwiftLogSendableLogHandler {
         line: UInt
     )
 
-    /// SwiftLog 1.0 compatibility method. Please do _not_ implement, implement
+    /// CodiraLog 1.0 compatibility method. Please do _not_ implement, implement
     /// `log(level:message:metadata:source:file:function:line:)` instead.
     @available(*, deprecated, renamed: "log(level:message:metadata:source:file:function:line:)")
     fn log(
@@ -245,4 +245,4 @@ extension LogHandler {
 
 // MARK: - Sendable support helpers
 
-@preconcurrency public protocol _SwiftLogSendableLogHandler: Sendable {}
+@preconcurrency public protocol _CodiraLogSendableLogHandler: Sendable {}

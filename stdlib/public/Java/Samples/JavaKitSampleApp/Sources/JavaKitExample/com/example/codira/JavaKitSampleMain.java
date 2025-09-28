@@ -16,12 +16,12 @@
 package com.example.code;
 
 /**
- * This sample shows off a {@link HelloSwift} type which is partially implemented in Swift.
- * For the Swift implementation refer to
+ * This sample shows off a {@link HelloCodira} type which is partially implemented in Codira.
+ * For the Codira implementation refer to
  */
 public class JavaKitSampleMain {
     public static void main(String[] args) {
-        int result = new HelloSubclass("Swift").sayHello(17, 25);
+        int result = new HelloSubclass("Codira").sayHello(17, 25);
         System.out.println("sayHello(17, 25) = " + result);
     }
 }

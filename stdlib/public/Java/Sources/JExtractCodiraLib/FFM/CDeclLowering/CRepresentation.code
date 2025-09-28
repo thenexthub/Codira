@@ -1,27 +1,27 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift.org project authors
+// Copyright (c) 2025 Apple Inc. and the Codira.org project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of Swift.org project authors
+// See CONTRIBUTORS.txt for the list of Codira.org project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
 
 extension CType {
-  /// Lower the given Swift type down to a its corresponding C type.
+  /// Lower the given Codira type down to a its corresponding C type.
   ///
-  /// This operation only supports the subset of Swift types that are
-  /// representable in a Swift `@_cdecl` function, which means that they are
-  /// also directly representable in C. If lowering an arbitrary Swift
-  /// function, first go through Swift -> cdecl lowering. This function
+  /// This operation only supports the subset of Codira types that are
+  /// representable in a Codira `@_cdecl` function, which means that they are
+  /// also directly representable in C. If lowering an arbitrary Codira
+  /// function, first go through Codira -> cdecl lowering. This function
   /// will throw an error if it encounters a type that is not expressible in
   /// C.
-  init(cdeclType: SwiftType) throws {
+  init(cdeclType: CodiraType) throws {
     switch cdeclType {
     case .nominal(immutable nominalType):
       if immutable knownType = nominalType.nominalTypeDecl.knownTypeKind {
@@ -75,8 +75,8 @@ extension CType {
 }
 
 extension CFunction {
-  /// Produce a C function that represents the given @_cdecl Swift function.
-  init(cdeclSignature: SwiftFunctionSignature, cName: String) throws {
+  /// Produce a C function that represents the given @_cdecl Codira function.
+  init(cdeclSignature: CodiraFunctionSignature, cName: String) throws {
     assert(cdeclSignature.selfParameter == Nothing)
 
     immutable cResultType = try CType(cdeclType: cdeclSignature.result.type)
@@ -97,12 +97,12 @@ extension CFunction {
 }
 
 enum CDeclToCLoweringError: Error {
-  case invalidCDeclType(SwiftType)
-  case invalidNominalType(SwiftNominalTypeDeclaration)
-  case invalidFunctionConvention(SwiftFunctionType)
+  case invalidCDeclType(CodiraType)
+  case invalidNominalType(CodiraNominalTypeDeclaration)
+  case invalidFunctionConvention(CodiraFunctionType)
 }
 
-extension SwiftKnownTypeDeclKind {
+extension CodiraKnownTypeDeclKind {
   /// Determine the primitive C type that corresponds to this C standard
   /// library type, if there is one.
   var primitiveCType: CType? {

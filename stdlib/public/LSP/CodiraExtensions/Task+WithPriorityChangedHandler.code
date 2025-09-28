@@ -15,7 +15,7 @@
 
 /// Runs `operation`. If the task's priority changes while the operation is running, calls `taskPriorityChanged`.
 ///
-/// Since Swift Concurrency doesn't support direct observation of a task's priority, this polls the task's priority at
+/// Since Codira Concurrency doesn't support direct observation of a task's priority, this polls the task's priority at
 /// `pollingInterval`.
 /// The function assumes that the original priority of the task is `initialPriority`. If the task priority changed
 /// compared to `initialPriority`, the `taskPriorityChanged` will be called.

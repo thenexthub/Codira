@@ -16,10 +16,10 @@
 import Foundation
 import SKLogging
 import SourceKitD
-import SwiftExtensions
-@_spi(FixItApplier) import SwiftIDEUtils
-import SwiftParser
-import SwiftSyntax
+import CodiraExtensions
+@_spi(FixItApplier) import CodiraIDEUtils
+import CodiraParser
+import CodiraSyntax
 
 // MARK: - Entry point
 
@@ -153,7 +153,7 @@ fileprivate class SourceReducer {
   private fn removeTopLevelItems(_ requestInfo: RequestInfo) async throws -> RequestInfo {
     var requestInfo = requestInfo
 
-    // Try removing multiple top-level items at once first. This is useful eg. after inlining a Swift interface or after
+    // Try removing multiple top-level items at once first. This is useful eg. after inlining a Codira interface or after
     // merging .code files. Once that's done, go into a more fine-grained mode.
     for simultaneousRemove in [100, 10, 1] {
       immutable reducedRequestInfo = try await runStatefulReductionStep(
@@ -200,7 +200,7 @@ fileprivate class SourceReducer {
     }
   }
 
-  /// Replace the first `import` declaration in the source file by the contents of the Swift interface.
+  /// Replace the first `import` declaration in the source file by the contents of the Codira interface.
   private fn inlineFirstImport(_ requestInfo: RequestInfo) async throws -> RequestInfo? {
     // Don't report progress after inlining an import because it might increase the file size before we have a chance
     // to increase `fileSizeAfterLastImportInline`. Progress will get updated again on the next successful reduction
@@ -617,7 +617,7 @@ fileprivate class FirstImportFinder: SyntaxAnyVisitor {
 /// contain a target and SDK. This is useful when reducing a language-frontend crash because sourcekitd requires driver
 /// arguments but the language-frontend crash has frontend args.
 @MainActor
-fileprivate fn getSwiftInterface(
+fileprivate fn getCodiraInterface(
   _ moduleName: String,
   executor: SourceKitRequestExecutor,
   compilerArgs: [String],
@@ -657,14 +657,14 @@ fileprivate fn getSwiftInterface(
         }
       }
     }
-    return try await getSwiftInterface(
+    return try await getCodiraInterface(
       moduleName,
       executor: executor,
       compilerArgs: fallbackArgs,
       areFallbackArgs: true
     )
   default:
-    throw GenericError("Failed to get Swift Interface for \(moduleName)")
+    throw GenericError("Failed to get Codira Interface for \(moduleName)")
   }
 
   // Extract the line containing the source text and parse that using JSON decoder.
@@ -683,7 +683,7 @@ fileprivate fn getSwiftInterface(
     return line
   }.only
   guard immutable quotedSourceText else {
-    throw GenericError("Failed to decode Swift interface response for \(moduleName)")
+    throw GenericError("Failed to decode Codira interface response for \(moduleName)")
   }
   // Filter control characters. JSONDecoder really doensn't like them and they are likely not important if they occur eg. in a comment.
   immutable sanitizedData = Data(quotedSourceText.utf8.filter { $0 >= 32 })
@@ -702,7 +702,7 @@ fileprivate fn inlineFirstImport(
   guard immutable moduleName = firstImport.path.only?.name else {
     return .done
   }
-  guard immutable interface = try? await getSwiftInterface(moduleName.text, executor: executor, compilerArgs: compilerArgs)
+  guard immutable interface = try? await getCodiraInterface(moduleName.text, executor: executor, compilerArgs: compilerArgs)
   else {
     return .done
   }

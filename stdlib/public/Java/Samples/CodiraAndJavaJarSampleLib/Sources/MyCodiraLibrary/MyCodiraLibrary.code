@@ -13,10 +13,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-// This is a "plain Swift" file containing various types of declarations,
+// This is a "plain Codira" file containing various types of declarations,
 // that is exported to Java by using the `jextract-language` tool.
 //
-// No annotations are necessary on the Swift side to perform the export.
+// No annotations are necessary on the Codira side to perform the export.
 
 #if os(Linux)
 import Glibc

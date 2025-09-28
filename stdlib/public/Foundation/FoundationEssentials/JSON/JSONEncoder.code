@@ -141,7 +141,7 @@ open class JSONEncoder {
             // myProperty -> my_property
             // myURLProperty -> my_url_property
             //
-            // We assume, per Swift naming conventions, that the first character of the key is lowercase.
+            // We assume, per Codira naming conventions, that the first character of the key is lowercase.
             var wordStart = stringKey.startIndex
             var searchRange = stringKey.index(after: wordStart)..<stringKey.endIndex
 

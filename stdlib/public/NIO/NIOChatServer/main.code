@@ -38,7 +38,7 @@ final class LineDelimiterCodec: ByteToMessageDecoder {
 
 /// This `ChannelInboundHandler` demonstrates a few things:
 ///   * Synchronisation between `EventLoop`s.
-///   * Mixing `Dispatch` and SwiftNIO.
+///   * Mixing `Dispatch` and CodiraNIO.
 ///   * `Channel`s are thread-safe, `ChannelHandlerContext`s are not.
 ///
 /// As we are using an `MultiThreadedEventLoopGroup` that uses more then 1 thread we need to ensure proper

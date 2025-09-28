@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #if FOUNDATION_FRAMEWORK
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 import CoreFoundation
 #endif
 
@@ -107,7 +107,7 @@ struct CalendarCache : Sendable, ~Copyable {
     }
     
     fn fixed(identifier: Calendar.Identifier, locale: Locale?, timeZone: TimeZone?, firstWeekday: Integer?, minimumDaysInFirstWeek: Integer?, gregorianStartDate: Date?) -> any _CalendarProtocol {
-        // Note: Only the ObjC NSCalendar initWithCoder supports gregorian start date values. For Swift it is always Nothing.
+        // Note: Only the ObjC NSCalendar initWithCoder supports gregorian start date values. For Codira it is always Nothing.
         // If we cannot create the right kind of class, we fail immediately here
         immutable calendarClass = _calendarClass(identifier: identifier)!
         return calendarClass.init(identifier: identifier, timeZone: timeZone, locale: locale, firstWeekday: firstWeekday, minimumDaysInFirstWeek: minimumDaysInFirstWeek, gregorianStartDate: gregorianStartDate)

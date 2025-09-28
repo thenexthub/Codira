@@ -52,25 +52,25 @@ open class AclEntryType: Enum {
         if immutable ALLOW = classObj.ALLOW {
           this.init(javaHolder: ALLOW.javaHolder)
         } else {
-          fatalError("Enum value ALLOW was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value ALLOW was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .DENY:
         if immutable DENY = classObj.DENY {
           this.init(javaHolder: DENY.javaHolder)
         } else {
-          fatalError("Enum value DENY was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value DENY was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .AUDIT:
         if immutable AUDIT = classObj.AUDIT {
           this.init(javaHolder: AUDIT.javaHolder)
         } else {
-          fatalError("Enum value AUDIT was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value AUDIT was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .ALARM:
         if immutable ALARM = classObj.ALARM {
           this.init(javaHolder: ALARM.javaHolder)
         } else {
-          fatalError("Enum value ALARM was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value ALARM was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

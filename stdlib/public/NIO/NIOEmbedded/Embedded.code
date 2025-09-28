@@ -167,7 +167,7 @@ public final class EmbeddedEventLoop: EventLoop, CustomStringConvertible {
                     """
                     ERROR: NIO API misuse: EmbeddedEventLoop is not thread-safe. \
                     You can only use it from the thread you created it on. This problem will be upgraded to a forced \
-                    crash in future versions of SwiftNIO.
+                    crash in future versions of CodiraNIO.
 
                     """
                 )

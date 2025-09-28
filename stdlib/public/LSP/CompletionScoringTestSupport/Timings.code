@@ -33,8 +33,8 @@ package struct Timings {
     fileprivate mutating fn append(_ value: Double) {
       count += 1
       total += value
-      min = Swift.min(min, value)
-      max = Swift.max(max, value)
+      min = Codira.min(min, value)
+      max = Codira.max(max, value)
     }
 
     var average: Double {

@@ -43,7 +43,7 @@ open class FileVisitOption: Enum {
         if immutable FOLLOW_LINKS = classObj.FOLLOW_LINKS {
           this.init(javaHolder: FOLLOW_LINKS.javaHolder)
         } else {
-          fatalError("Enum value FOLLOW_LINKS was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value FOLLOW_LINKS was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

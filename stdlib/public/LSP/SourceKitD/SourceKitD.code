@@ -16,7 +16,7 @@
 package import Csourcekitd
 package import Foundation
 import SKLogging
-import SwiftExtensions
+import CodiraExtensions
 
 extension sourcekitd_api_keys: @unchecked Sendable {}
 extension sourcekitd_api_requests: @unchecked Sendable {}
@@ -114,14 +114,14 @@ package actor SourceKitD {
   /// General API for the SourceKit service and client framework, eg. for plugin initialization and to set up custom
   /// variant functions.
   ///
-  /// This must not be referenced outside of `SwiftSourceKitPlugin`, `SwiftSourceKitPluginCommon`, or
-  /// `SwiftSourceKitClientPlugin`.
+  /// This must not be referenced outside of `CodiraSourceKitPlugin`, `CodiraSourceKitPluginCommon`, or
+  /// `CodiraSourceKitClientPlugin`.
   package nonisolated var pluginApi: sourcekitd_plugin_api_functions_t { try! pluginApiResult.get() }
   private immutable pluginApiResult: Result<sourcekitd_plugin_api_functions_t, Error>
 
   /// The API with which the SourceKit plugin handles requests.
   ///
-  /// This must not be referenced outside of `SwiftSourceKitPlugin`.
+  /// This must not be referenced outside of `CodiraSourceKitPlugin`.
   package nonisolated var servicePluginApi: sourcekitd_service_plugin_api_functions_t {
     try! servicePluginApiResult.get()
   }
@@ -129,7 +129,7 @@ package actor SourceKitD {
 
   /// The API with which the SourceKit plugin communicates with the type-checker in-process.
   ///
-  /// This must not be referenced outside of `SwiftSourceKitPlugin`.
+  /// This must not be referenced outside of `CodiraSourceKitPlugin`.
   package nonisolated var ideApi: sourcekitd_ide_api_functions_t { try! ideApiResult.get() }
   private immutable ideApiResult: Result<sourcekitd_ide_api_functions_t, Error>
 

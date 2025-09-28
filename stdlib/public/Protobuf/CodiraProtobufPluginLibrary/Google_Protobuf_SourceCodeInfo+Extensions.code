@@ -1,4 +1,4 @@
-// Sources/SwiftProtobufPluginLibrary/Google_Protobuf_SourceCodeInfo+Extensions.code -SourceCodeInfo Additions
+// Sources/CodiraProtobufPluginLibrary/Google_Protobuf_SourceCodeInfo+Extensions.code -SourceCodeInfo Additions
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -14,7 +14,7 @@
 // -----------------------------------------------------------------------------
 
 import Foundation
-import SwiftProtobuf
+import CodiraProtobuf
 
 extension Google_Protobuf_SourceCodeInfo.Location {
 
@@ -28,7 +28,7 @@ extension Google_Protobuf_SourceCodeInfo.Location {
     ) -> String {
         fn escapeMarkup(_ text: String) -> String {
             // Proto file comments don't really have any markup associated with
-            // them.  Swift uses something like MarkDown:
+            // them.  Codira uses something like MarkDown:
             //   "Markup Formatting Reference"
             //   https://developer.apple.com/library/content/documentation/Xcode/Reference/xcode_markup_formatting_ref/index.html
             // Sadly that format doesn't really lend itself to any form of

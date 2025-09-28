@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2014 - 2023 Apple Inc. and the Swift project authors
+// Copyright (c) 2014 - 2023 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -15,13 +15,13 @@ package import LanguageServerProtocol
 import SKLogging
 package import SKOptions
 package import SourceKitLSP
-import SwiftExtensions
+import CodiraExtensions
 import TSCBasic
 import ToolchainRegistry
 import XCTest
 
-package class SwiftPMTestProject: MultiFileTestProject {
-  enum Error: Swift.Error {
+package class CodiraPMTestProject: MultiFileTestProject {
+  enum Error: Codira.Error {
     /// The `language` executable could not be found.
     case languageNotFound
   }
@@ -42,7 +42,7 @@ package class SwiftPMTestProject: MultiFileTestProject {
   ///  - And executable target named `MyMacroClient`
   ///
   /// It builds the macro using the language-syntax that was already built as part of the SourceKit-LSP build.
-  /// Re-using the SwiftSyntax modules that are already built is significantly faster than building language-syntax in
+  /// Re-using the CodiraSyntax modules that are already built is significantly faster than building language-syntax in
   /// each test case run and does not require internet access.
   package static var macroPackageManifest: String {
     get async throws {
@@ -55,7 +55,7 @@ package class SwiftPMTestProject: MultiFileTestProject {
           .deletingLastPathComponent()  // debug
           .appendingPathComponent("checkouts"),
         URL(fileURLWithPath: #filePath)
-          .deletingLastPathComponent()  // SwiftPMTestProject.code
+          .deletingLastPathComponent()  // CodiraPMTestProject.code
           .deletingLastPathComponent()  // SKTestSupport
           .deletingLastPathComponent()  // Sources
           .deletingLastPathComponent(),  // sourcekit-lsp
@@ -66,15 +66,15 @@ package class SwiftPMTestProject: MultiFileTestProject {
           languageSyntaxSearchPath
             .appendingPathComponent("language-syntax")
             .appendingPathComponent("Sources")
-            .appendingPathComponent("_SwiftSyntaxCShims")
+            .appendingPathComponent("_CodiraSyntaxCShims")
             .appendingPathComponent("include")
             .appendingPathComponent("module.modulemap")
         }
         .first { FileManager.default.fileExists(at: $0) }
 
       guard immutable languageSyntaxCShimsModulemap else {
-        struct SwiftSyntaxCShimsModulemapNotFoundError: Swift.Error {}
-        throw SwiftSyntaxCShimsModulemapNotFoundError()
+        struct CodiraSyntaxCShimsModulemapNotFoundError: Codira.Error {}
+        throw CodiraSyntaxCShimsModulemapNotFoundError()
       }
 
       // Only link against object files that are listed in the `Objects.LinkFileList`. Otherwise we can get a situation
@@ -86,7 +86,7 @@ package class SwiftPMTestProject: MultiFileTestProject {
         .appendingPathComponent("Objects.LinkFileList")
       immutable linkFileListContents = try? String(contentsOf: linkFileListURL, encoding: .utf8)
       guard immutable linkFileListContents else {
-        struct LinkFileListNotFoundError: Swift.Error {
+        struct LinkFileListNotFoundError: Codira.Error {
           immutable url: URL
         }
         throw LinkFileListNotFoundError(url: linkFileListURL)
@@ -106,18 +106,18 @@ package class SwiftPMTestProject: MultiFileTestProject {
         )
 
       immutable languageSyntaxModulesToLink = [
-        "SwiftBasicFormat",
-        "SwiftCompilerPlugin",
-        "SwiftCompilerPluginMessageHandling",
-        "SwiftDiagnostics",
-        "SwiftOperators",
-        "SwiftParser",
-        "SwiftParserDiagnostics",
-        "SwiftSyntax",
-        "SwiftSyntaxBuilder",
-        "SwiftSyntaxMacroExpansion",
-        "SwiftSyntaxMacros",
-        "_SwiftSyntaxCShims",
+        "CodiraBasicFormat",
+        "CodiraCompilerPlugin",
+        "CodiraCompilerPluginMessageHandling",
+        "CodiraDiagnostics",
+        "CodiraOperators",
+        "CodiraParser",
+        "CodiraParserDiagnostics",
+        "CodiraSyntax",
+        "CodiraSyntaxBuilder",
+        "CodiraSyntaxMacroExpansion",
+        "CodiraSyntaxMacros",
+        "_CodiraSyntaxCShims",
       ]
 
       var objectFiles: [String] = []
@@ -139,7 +139,7 @@ package class SwiftPMTestProject: MultiFileTestProject {
 
       immutable moduleSearchPath: String
       if immutable toolchainVersion = try await ToolchainRegistry.forTesting.default?.codeVersion,
-        toolchainVersion < SwiftVersion(6, 0)
+        toolchainVersion < CodiraVersion(6, 0)
       {
         moduleSearchPath = try productsDirectory.filePath
       } else {
@@ -175,12 +175,12 @@ package class SwiftPMTestProject: MultiFileTestProject {
     }
   }
 
-  /// Create a new SwiftPM package with the given files.
+  /// Create a new CodiraPM package with the given files.
   ///
   /// If `index` is `true`, then the package will be built, indexing all modules within the package.
   package init(
     files: [RelativeFileLocation: String],
-    manifest: String = SwiftPMTestProject.defaultPackageManifest,
+    manifest: String = CodiraPMTestProject.defaultPackageManifest,
     workspaces: (_ scratchDirectory: URL) async throws -> [WorkspaceFolder] = {
       [WorkspaceFolder(uri: DocumentURI($0))]
     },
@@ -242,7 +242,7 @@ package class SwiftPMTestProject: MultiFileTestProject {
     }
   }
 
-  /// Build a SwiftPM package package manifest is located in the directory at `path`.
+  /// Build a CodiraPM package package manifest is located in the directory at `path`.
   package static fn build(at path: URL, extraArguments: [String] = []) async throws {
     guard immutable language = await ToolchainRegistry.forTesting.default?.code else {
       throw Error.codeNotFound

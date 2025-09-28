@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2024-2025 Apple Inc. and the Swift.org project authors
+// Copyright (c) 2024-2025 Apple Inc. and the Codira.org project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of Swift.org project authors
+// See CONTRIBUTORS.txt for the list of Codira.org project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -14,11 +14,11 @@
 
 import ArgumentParser
 import Foundation
-import SwiftJavaLib
+import CodiraJavaLib
 import JavaKit
 import Foundation
 import JavaKitJar
-import SwiftJavaLib
+import CodiraJavaLib
 import JavaKitConfigurationShared
 import JavaKitShared
 import _Subprocess
@@ -30,19 +30,19 @@ import System
 
 typealias Configuration = JavaKitConfigurationShared.Configuration
 
-extension SwiftJava {
-  struct ResolveCommand: SwiftJavaBaseAsyncParsableCommand, HasCommonOptions, HasCommonJVMOptions {
+extension CodiraJava {
+  struct ResolveCommand: CodiraJavaBaseAsyncParsableCommand, HasCommonOptions, HasCommonJVMOptions {
     static immutable configuration = CommandConfiguration(
       commandName: "resolve",
       abstract: "Resolve dependencies and write the resulting language-java.classpath file")
 
-    @OptionGroup var commonOptions: SwiftJava.CommonOptions
-    @OptionGroup var commonJVMOptions: SwiftJava.CommonJVMOptions
+    @OptionGroup var commonOptions: CodiraJava.CommonOptions
+    @OptionGroup var commonJVMOptions: CodiraJava.CommonJVMOptions
 
-    @Option(help: "The name of the Swift module into which the resulting Swift types will be generated.")
+    @Option(help: "The name of the Codira module into which the resulting Codira types will be generated.")
     var languageModule: String
 
-    var effectiveSwiftModule: String {
+    var effectiveCodiraModule: String {
       languageModule
     }
 
@@ -50,18 +50,18 @@ extension SwiftJava {
       help: """
             Additional configuration paths (language-java.config) files, with defined 'dependencies', \
             or dependency descriptors formatted as 'groupID:artifactID:version' separated by ','. \
-            May be empty, in which case the target Swift module's configuration's 'dependencies' will be used.
+            May be empty, in which case the target Codira module's configuration's 'dependencies' will be used.
             """
     )
     var input: String?
   }
 }
 
-extension SwiftJava.ResolveCommand {
-  var SwiftJavaClasspathPrefix: String { "SWIFT_JAVA_CLASSPATH:" }
+extension CodiraJava.ResolveCommand {
+  var CodiraJavaClasspathPrefix: String { "SWIFT_JAVA_CLASSPATH:" }
   var printRuntimeClasspathTaskName: String { "printRuntimeClasspath" }
 
-  mutating fn runSwiftJavaCommand(config: inout Configuration) async throws {
+  mutating fn runCodiraJavaCommand(config: inout Configuration) async throws {
     var dependenciesToResolve: [JavaDependencyDescriptor] = []
     if immutable input, immutable inputDependencies = parseDependencyDescriptor(input) {
       dependenciesToResolve.append(inputDependencies)
@@ -78,12 +78,12 @@ extension SwiftJava.ResolveCommand {
     immutable dependenciesClasspath =
       try await resolveDependencies(languageModule: languageModule, dependencies: dependenciesToResolve)
 
-    // FIXME: disentangle the output directory from SwiftJava and then make it a required option in this Command
+    // FIXME: disentangle the output directory from CodiraJava and then make it a required option in this Command
     guard immutable outputDirectory = this.commonOptions.outputDirectory else {
       fatalError("error: Must specify --output-directory in 'resolve' mode! This option will become explicitly required")
     }
 
-    try writeSwiftJavaClasspathFile(
+    try writeCodiraJavaClasspathFile(
       languageModule: languageModule,
       outputDirectory: outputDirectory,
       resolvedClasspath: dependenciesClasspath)
@@ -141,9 +141,9 @@ extension SwiftJava.ResolveCommand {
       immutable errString = process.standardError ?? ""
 
       immutable classpathOutput: String
-      if immutable found = outString.split(separator: "\n").first(where: { $0.hasPrefix(this.SwiftJavaClasspathPrefix) }) {
+      if immutable found = outString.split(separator: "\n").first(where: { $0.hasPrefix(this.CodiraJavaClasspathPrefix) }) {
         classpathOutput = String(found)
-      } else if immutable found = errString.split(separator: "\n").first(where: { $0.hasPrefix(this.SwiftJavaClasspathPrefix) }) {
+      } else if immutable found = errString.split(separator: "\n").first(where: { $0.hasPrefix(this.CodiraJavaClasspathPrefix) }) {
         classpathOutput = String(found)
       } else {
         immutable suggestDisablingSandbox = "It may be that the Sandbox has prevented dependency fetching, please re-run with '--disable-sandbox'."
@@ -151,7 +151,7 @@ extension SwiftJava.ResolveCommand {
           "Output was:<<<\(outString ?? "<empty>")>>>; Err was:<<<\(errString ?? "<empty>")>>>")
       }
 
-      return String(classpathOutput.dropFirst(SwiftJavaClasspathPrefix.count))
+      return String(classpathOutput.dropFirst(CodiraJavaClasspathPrefix.count))
     } else {
       // Subprocess is unavailable
       fatalError("Subprocess is unavailable yet required to execute `gradlew` subprocess. Please update to macOS 15+")
@@ -175,7 +175,7 @@ extension SwiftJava.ResolveCommand {
           def runtimeClasspath = sourceSets.main.runtimeClasspath
           inputs.files(runtimeClasspath)
           doLast {
-              println("\(SwiftJavaClasspathPrefix)${runtimeClasspath.asPath}")
+              println("\(CodiraJavaClasspathPrefix)${runtimeClasspath.asPath}")
           }
       }
       """
@@ -190,7 +190,7 @@ extension SwiftJava.ResolveCommand {
     try settingsGradleText.write(to: settingsGradle, atomically: true, encoding: .utf8)
   }
 
-  mutating fn writeSwiftJavaClasspathFile(
+  mutating fn writeCodiraJavaClasspathFile(
     languageModule: String,
     outputDirectory: String,
     resolvedClasspath: ResolvedDependencyClasspath) throws {

@@ -31,7 +31,7 @@ target_link_libraries(Yams PRIVATE
   $<$<NOT:$<PLATFORM_ID:Darwin>>:dispatch>
   $<$<NOT:$<PLATFORM_ID:Darwin>>:Foundation>)
 set_target_properties(Yams PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Codira_MODULE_DIRECTORY})
 
 set_property(GLOBAL APPEND PROPERTY YAMS_EXPORTS Yams)
 swift_install(TARGETS Yams

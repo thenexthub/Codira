@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/BinaryEncodingSizeVisitor.code -Binary size calculation support
+// Sources/CodiraProtobuf/BinaryEncodingSizeVisitor.code -Binary size calculation support
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.

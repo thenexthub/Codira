@@ -83,8 +83,8 @@ extension PythonObject {
   }
 }
 
-#if canImport(SwiftPlot)
-import SwiftPlot
+#if canImport(CodiraPlot)
+import CodiraPlot
 import AGGRenderer
 var __agg_renderer = AGGRenderer()
 extension Plot {

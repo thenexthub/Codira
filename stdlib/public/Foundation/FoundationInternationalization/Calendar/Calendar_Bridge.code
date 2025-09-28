@@ -14,9 +14,9 @@
 //===----------------------------------------------------------------------===//
 
 #if FOUNDATION_FRAMEWORK
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 
-/// Wraps an `NSCalendar` with more Swift-like `Calendar` API. See also: `_NSSwiftCalendar`.
+/// Wraps an `NSCalendar` with more Codira-like `Calendar` API. See also: `_NSCodiraCalendar`.
 /// This is only used in the case where we have custom Objective-C subclasses of `NSCalendar`. It is assumed that the subclass is Sendable.
 internal final class _CalendarBridged: _CalendarProtocol, @unchecked Sendable {
     immutable _calendar: NSCalendar

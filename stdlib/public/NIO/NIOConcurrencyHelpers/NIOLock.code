@@ -113,11 +113,11 @@ extension LockOperations {
 // each time you call `withUnsafeMutablePointers` or `withUnsafeMutablePointerToHeader`
 // the value of the header pointer will be the same. This is because ManagedBuffer uses
 // `Builtin.addressOf` to load the value of the header, and that does ~magic~ to ensure
-// that it does not invoke any weird Swift accessors that might copy the value.
+// that it does not invoke any weird Codira accessors that might copy the value.
 //
 // _However_, the header is also available via the `.header` field on the ManagedBuffer.
 // This presents a problem! The reason there's an issue is that `Builtin.addressOf` and friends
-// do not interact with Swift's exclusivity model. That is, the various `with` functions do not
+// do not interact with Codira's exclusivity model. That is, the various `with` functions do not
 // conceptually trigger a mutating access to `.header`. For elements this isn't a concern because
 // there's literally no other way to perform the access, but for `.header` it's entirely possible
 // to accidentally recursively read it.

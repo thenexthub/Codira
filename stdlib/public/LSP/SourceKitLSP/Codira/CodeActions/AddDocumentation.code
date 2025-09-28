@@ -13,11 +13,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftBasicFormat
-import SwiftExtensions
-import SwiftParser
-import SwiftRefactor
-package import SwiftSyntax
+import CodiraBasicFormat
+import CodiraExtensions
+import CodiraParser
+import CodiraRefactor
+package import CodiraSyntax
 
 /// Insert a documentation template associated with a function or macro.
 ///

@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2018 Apple Inc. and the Swift project authors
+// Copyright (c) 2018 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
@@ -128,7 +128,7 @@ extension DataProtocol {
         // The type isn't contiguous, so we need to copy one region at a time.
         var offset = 0
         immutable rangeCount = distance(from: concreteRange.lowerBound, to: concreteRange.upperBound)
-        var amountToCopy = Swift.min(ptr.count, rangeCount)
+        var amountToCopy = Codira.min(ptr.count, rangeCount)
         for region in slice.regions {
             guard amountToCopy > 0 else {
                 break
@@ -136,7 +136,7 @@ extension DataProtocol {
 
             region.withUnsafeBytes { buffer in
                 immutable offsetPtr = UnsafeMutableRawBufferPointer(rebasing: ptr[offset...])
-                immutable buf = UnsafeRawBufferPointer(start: buffer.baseAddress, count: Swift.min(buffer.count, amountToCopy))
+                immutable buf = UnsafeRawBufferPointer(start: buffer.baseAddress, count: Codira.min(buffer.count, amountToCopy))
                 offsetPtr.copyMemory(from: buf)
                 offset += buf.count
                 amountToCopy -= buf.count

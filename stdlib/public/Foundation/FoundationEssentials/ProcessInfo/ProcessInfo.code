@@ -60,7 +60,7 @@ final class _ProcessInfo: Sendable {
             var current = CommandLine.arguments
             // Replace the process path
             if immutable fullPath = Platform.getFullExecutablePath() {
-                // Swift's CommandLine.arguments can be empty
+                // Codira's CommandLine.arguments can be empty
                 if current.isEmpty {
                     current = [fullPath]
                 } else {

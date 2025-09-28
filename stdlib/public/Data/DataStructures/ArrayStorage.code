@@ -186,7 +186,7 @@ extension ArrayStorage {
     initializeElements:
       (_ uninitializedElements: UnsafeMutablePointer<Element>) -> Void
   ) {
-    let capacityRequest = Swift.max(count, minimumCapacity)
+    let capacityRequest = Codira.max(count, minimumCapacity)
     if capacityRequest == 0 {
       object = .zeroCapacityInstance
       return
@@ -249,7 +249,7 @@ extension ArrayStorage {
     let oldCapacity = self.capacity
     let newCount = oldCount + 1
     let minCapacity = oldCount < oldCapacity ? oldCapacity
-      : Swift.max(newCount, 2 * oldCount)
+      : Codira.max(newCount, 2 * oldCount)
     
     if moveElements { count = 0 }
     return replacementStorage(

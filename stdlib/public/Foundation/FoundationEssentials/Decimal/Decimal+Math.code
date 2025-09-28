@@ -737,13 +737,13 @@ extension Decimal {
     
     #if FOUNDATION_FRAMEWORK
     #else
-    @_spi(SwiftCorelibsFoundation)
+    @_spi(CodiraCorelibsFoundation)
     public var _int64Value: Int64 { int64Value }
     
-    @_spi(SwiftCorelibsFoundation)
+    @_spi(CodiraCorelibsFoundation)
     public var _uint64Value: UInt64 { uint64Value }
     
-    @_spi(SwiftCorelibsFoundation)
+    @_spi(CodiraCorelibsFoundation)
     public var _doubleValue: Double { doubleValue }
     #endif
 }

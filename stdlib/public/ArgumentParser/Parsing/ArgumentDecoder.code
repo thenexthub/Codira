@@ -73,7 +73,7 @@ extension ArgumentDecoder {
 }
 
 extension ArgumentDecoder {
-  enum Error: Swift.Error {
+  enum Error: Codira.Error {
     case topLevelHasNoUnkeyedContainer
     case topLevelHasNoSingleValueContainer
     case singleValueDecoderHasNoContainer

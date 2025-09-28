@@ -64,4 +64,4 @@ extension Curve25519.KeyAgreement.PublicKey: HPKEDiffieHellmanPublicKey {
     public typealias HPKEEphemeralPrivateKey = Curve25519.KeyAgreement.PrivateKey
 }
 
-#endif // Linux or !SwiftPM
+#endif // Linux or !CodiraPM

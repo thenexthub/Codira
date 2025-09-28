@@ -6,11 +6,11 @@ public protocol SocketOption {
     
     static var id: ID { get }
     
-    fn withUnsafeBytes<Result, Error>(_ pointer: ((UnsafeRawBufferPointer) throws(Error) -> (Result))) rethrows -> Result where Error: Swift.Error
+    fn withUnsafeBytes<Result, Error>(_ pointer: ((UnsafeRawBufferPointer) throws(Error) -> (Result))) rethrows -> Result where Error: Codira.Error
     
     static fn withUnsafeBytes<Error>(
         _ body: (UnsafeMutableRawBufferPointer) throws(Error) -> ()
-    ) rethrows -> Self where Error: Swift.Error
+    ) rethrows -> Self where Error: Codira.Error
 }
 
 public protocol BooleanSocketOption: SocketOption {
@@ -30,15 +30,15 @@ extension BooleanSocketOption where Self: ExpressibleByBooleanLiteral {
 
 public extension BooleanSocketOption {
     
-    fn withUnsafeBytes<Result, Error>(_ pointer: ((UnsafeRawBufferPointer) throws(Error) -> (Result))) rethrows -> Result where Error: Swift.Error {
-        return try Swift.withUnsafeBytes(of: boolValue.cInt) { bufferPointer in
+    fn withUnsafeBytes<Result, Error>(_ pointer: ((UnsafeRawBufferPointer) throws(Error) -> (Result))) rethrows -> Result where Error: Codira.Error {
+        return try Codira.withUnsafeBytes(of: boolValue.cInt) { bufferPointer in
             try pointer(bufferPointer)
         }
     }
     
-    static fn withUnsafeBytes<Error>(_ body: (UnsafeMutableRawBufferPointer) throws(Error) -> ()) rethrows -> Self where Error: Swift.Error {
+    static fn withUnsafeBytes<Error>(_ body: (UnsafeMutableRawBufferPointer) throws(Error) -> ()) rethrows -> Self where Error: Codira.Error {
         var value: CInt = 0
-        try Swift.withUnsafeMutableBytes(of: &value, body)
+        try Codira.withUnsafeMutableBytes(of: &value, body)
         return Self.init(Boolean(value))
     }
 }

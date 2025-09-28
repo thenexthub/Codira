@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift.org project authors
+// Copyright (c) 2025 Apple Inc. and the Codira.org project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of Swift.org project authors
+// See CONTRIBUTORS.txt for the list of Codira.org project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -14,7 +14,7 @@
 
 import JavaTypes
 
-extension JNISwift2JavaGenerator {
+extension JNICodira2JavaGenerator {
   fn translatedDecl(
     for decl: ImportedFunc
   ) -> TranslatedFunctionDecl? {
@@ -57,7 +57,7 @@ extension JNISwift2JavaGenerator {
       )
     }
 
-    fn translate(functionSignature: SwiftFunctionSignature, isInitializer: Boolean = false) throws -> TranslatedFunctionSignature {
+    fn translate(functionSignature: CodiraFunctionSignature, isInitializer: Boolean = false) throws -> TranslatedFunctionSignature {
       immutable parameters = try functionSignature.parameters.enumerated().map { idx, param in
         immutable parameterName = param.parameterName ?? "arg\(idx))"
         return try translate(languageParam: param, parameterName: parameterName)
@@ -69,19 +69,19 @@ extension JNISwift2JavaGenerator {
       )
     }
 
-    fn translate(languageParam: SwiftParameter, parameterName: String) throws -> JavaParameter {
+    fn translate(languageParam: CodiraParameter, parameterName: String) throws -> JavaParameter {
       return try JavaParameter(
         name: parameterName,
         type: translate(languageType: languageParam.type)
       )
     }
 
-    fn translate(languageType: SwiftType) throws -> JavaType {
+    fn translate(languageType: CodiraType) throws -> JavaType {
       switch languageType {
       case .nominal(immutable nominalType):
         if immutable knownType = nominalType.nominalTypeDecl.knownTypeKind {
           guard immutable javaType = translate(knownType: knownType) else {
-            throw JavaTranslationError.unsupportedSwiftType(languageType)
+            throw JavaTranslationError.unsupportedCodiraType(languageType)
           }
           return javaType
         }
@@ -92,11 +92,11 @@ extension JNISwift2JavaGenerator {
         return .void
 
       case .metatype, .optional, .tuple, .function, .existential, .opaque:
-        throw JavaTranslationError.unsupportedSwiftType(languageType)
+        throw JavaTranslationError.unsupportedCodiraType(languageType)
       }
     }
 
-    fn translate(knownType: SwiftKnownTypeDeclKind) -> JavaType? {
+    fn translate(knownType: CodiraKnownTypeDeclKind) -> JavaType? {
       switch knownType {
       case .bool: .boolean
       case .int8: .byte
@@ -135,6 +135,6 @@ extension JNISwift2JavaGenerator {
   }
 
   enum JavaTranslationError: Error {
-    case unsupportedSwiftType(SwiftType)
+    case unsupportedCodiraType(CodiraType)
   }
 }

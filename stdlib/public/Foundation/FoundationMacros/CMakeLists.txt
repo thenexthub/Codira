@@ -1,12 +1,12 @@
 ##===----------------------------------------------------------------------===##
 ##
-## This source file is part of the Swift open source project
+## This source file is part of the Codira open source project
 ##
-## Copyright (c) 2024 Apple Inc. and the Swift project authors
+## Copyright (c) 2024 Apple Inc. and the Codira project authors
 ## Licensed under Apache License v2.0
 ##
 ## See LICENSE.txt for license information
-## See CONTRIBUTORS.md for the list of Swift project authors
+## See CONTRIBUTORS.md for the list of Codira project authors
 ##
 ## SPDX-License-Identifier: Apache-2.0
 ##
@@ -19,12 +19,12 @@ if(POLICY CMP0156)
     cmake_policy(SET CMP0156 NEW)
 endif()
 if(POLICY CMP0157)
-    # New Swift build model: improved incremental build performance and LSP support
+    # New Codira build model: improved incremental build performance and LSP support
   cmake_policy(SET CMP0157 NEW)
 endif()
 
 project(FoundationMacros
-  LANGUAGES Swift)
+  LANGUAGES Codira)
 
 if(NOT SWIFT_SYSTEM_NAME)
   if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
@@ -34,19 +34,19 @@ if(NOT SWIFT_SYSTEM_NAME)
   endif()
 endif()
 
-# SwiftSyntax Dependency
-find_package(SwiftSyntax QUIET)
-if(NOT SwiftSyntax_FOUND)
-  message(STATUS "SwiftSyntax_DIR not provided, checking out local copy of language-syntax")
+# CodiraSyntax Dependency
+find_package(CodiraSyntax QUIET)
+if(NOT CodiraSyntax_FOUND)
+  message(STATUS "CodiraSyntax_DIR not provided, checking out local copy of language-syntax")
     include(FetchContent)
 
-    # If building at desk, check out and link against the SwiftSyntax repo's targets
-    FetchContent_Declare(SwiftSyntax
+    # If building at desk, check out and link against the CodiraSyntax repo's targets
+    FetchContent_Declare(CodiraSyntax
         GIT_REPOSITORY https://github.com/languagelang/language-syntax.git
         GIT_TAG main)
-    FetchContent_MakeAvailable(SwiftSyntax)
+    FetchContent_MakeAvailable(CodiraSyntax)
 else()
-  message(STATUS "SwiftSyntax_DIR provided, using language-syntax from ${SwiftSyntax_DIR}")
+  message(STATUS "CodiraSyntax_DIR provided, using language-syntax from ${CodiraSyntax_DIR}")
 endif()
 
 if(NOT FoundationMacros_BuildLocalExecutable)
@@ -55,7 +55,7 @@ if(NOT FoundationMacros_BuildLocalExecutable)
 else()
     add_executable(FoundationMacros)
     target_link_libraries(FoundationMacros PUBLIC
-        SwiftSyntax::SwiftCompilerPlugin)
+        CodiraSyntax::CodiraCompilerPlugin)
 endif()
 
 # Parse the module as a library, even if it's an executable, because it uses an `@main` type to define its entry point.
@@ -67,16 +67,16 @@ target_sources(FoundationMacros PRIVATE
     PredicateMacro.code)
 
 target_compile_options(FoundationMacros PRIVATE
-    "SHELL:$<$<COMPILE_LANGUAGE:Swift>:-Xfrontend -enable-experimental-feature -Xfrontend AccessLevelOnImport>"
-    "SHELL:$<$<COMPILE_LANGUAGE:Swift>:-Xfrontend -enable-experimental-feature -Xfrontend StrictConcurrency>"
-    "SHELL:$<$<COMPILE_LANGUAGE:Swift>:-Xfrontend -enable-upcoming-feature -Xfrontend InferSendableFromCaptures>"
-    "SHELL:$<$<COMPILE_LANGUAGE:Swift>:-Xfrontend -enable-upcoming-feature -Xfrontend MemberImportVisibility>")
+    "SHELL:$<$<COMPILE_LANGUAGE:Codira>:-Xfrontend -enable-experimental-feature -Xfrontend AccessLevelOnImport>"
+    "SHELL:$<$<COMPILE_LANGUAGE:Codira>:-Xfrontend -enable-experimental-feature -Xfrontend StrictConcurrency>"
+    "SHELL:$<$<COMPILE_LANGUAGE:Codira>:-Xfrontend -enable-upcoming-feature -Xfrontend InferSendableFromCaptures>"
+    "SHELL:$<$<COMPILE_LANGUAGE:Codira>:-Xfrontend -enable-upcoming-feature -Xfrontend MemberImportVisibility>")
 
 target_link_libraries(FoundationMacros PUBLIC
-    SwiftSyntax::SwiftSyntax
-    SwiftSyntax::SwiftSyntaxMacros
-    SwiftSyntax::SwiftDiagnostics
-    SwiftSyntax::SwiftSyntaxBuilder
+    CodiraSyntax::CodiraSyntax
+    CodiraSyntax::CodiraSyntaxMacros
+    CodiraSyntax::CodiraDiagnostics
+    CodiraSyntax::CodiraSyntaxBuilder
 )
 
 set_target_properties(FoundationMacros PROPERTIES

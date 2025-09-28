@@ -18,7 +18,7 @@ import LanguageServerProtocol
 import LanguageServerProtocolExtensions
 import SKLogging
 import SKOptions
-import SwiftExtensions
+import CodiraExtensions
 
 extension WorkDoneProgressManager {
   init?(
@@ -48,7 +48,7 @@ extension WorkDoneProgressManager {
 /// A `WorkDoneProgressManager` that essentially has two states. If any operation tracked by this type is currently
 /// running, it displays a work done progress in the client. If multiple operations are running at the same time, it
 /// doesn't show multiple work done progress in the client. For example, we only want to show one progress indicator
-/// when sourcekitd has crashed, not one per `SwiftLanguageService`.
+/// when sourcekitd has crashed, not one per `CodiraLanguageService`.
 actor SharedWorkDoneProgressManager {
   private weak var sourceKitLSPServer: SourceKitLSPServer?
 

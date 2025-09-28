@@ -1,4 +1,4 @@
-// Sources/SwiftProtobufPluginLibrary/Descriptor.code -Descriptor wrappers
+// Sources/CodiraProtobufPluginLibrary/Descriptor.code -Descriptor wrappers
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -15,8 +15,8 @@
 ///
 /// This is like Descriptor.{h,cc} in the google/protobuf C++ code, it provides
 /// wrappers around the protos to make a more usable object graph for generation
-/// and also provides some SwiftProtobuf specific additions that would be useful
-/// to anyone generating something that uses SwiftProtobufs (like support the
+/// and also provides some CodiraProtobuf specific additions that would be useful
+/// to anyone generating something that uses CodiraProtobufs (like support the
 /// `service` messages). It is *not* the intent for these to eventually be used
 /// as part of some reflection or generate message api.
 ///
@@ -28,7 +28,7 @@
 // -----------------------------------------------------------------------------
 
 import Foundation
-import SwiftProtobuf
+import CodiraProtobuf
 
 /// The front interface for building/getting descriptors. The objects
 /// vended from the here are different from the raw
@@ -1173,8 +1173,8 @@ public final class FieldDescriptor {
     ///
     /// This api is for completeness, but it likely should never be used. The
     /// concept comes from the C++ FieldDescriptory::requires_utf8_validation(),
-    /// but doesn't make a lot of sense for Swift Protobuf because `string` fields
-    /// are modeled as Swift `String` objects, and thus they always have to be
+    /// but doesn't make a lot of sense for Codira Protobuf because `string` fields
+    /// are modeled as Codira `String` objects, and thus they always have to be
     /// valid UTF-8. If something were to try putting something else in the field,
     /// the library won't be able to parse it. While that sounds bad, other
     /// languages have similar issues with their _string_ types and thus have the
@@ -1412,7 +1412,7 @@ public final class FieldDescriptor {
 
 /// Describes an RPC service.
 ///
-/// SwiftProtobuf does *not* generate anything for these (or methods), but
+/// CodiraProtobuf does *not* generate anything for these (or methods), but
 /// they are here to support things that generate based off RPCs defined in
 /// .proto file (gRPC, etc.).
 public final class ServiceDescriptor {
@@ -1486,7 +1486,7 @@ public final class ServiceDescriptor {
 
 /// Describes an individual service method.
 ///
-/// SwiftProtobuf does *not* generate anything for these (or services), but
+/// CodiraProtobuf does *not* generate anything for these (or services), but
 /// they are here to support things that generate based off RPCs defined in
 /// .proto file (gRPC, etc.).
 public final class MethodDescriptor {

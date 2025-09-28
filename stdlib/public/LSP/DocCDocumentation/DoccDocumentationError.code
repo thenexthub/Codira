@@ -27,7 +27,7 @@ package enum DocCDocumentationError: LocalizedError {
     case .unsupportedLanguage(immutable language):
       return "Documentation preview is not available for \(language.description) files"
     case .noDocumentableSymbols:
-      return "No documentable symbols were found in this Swift file"
+      return "No documentable symbols were found in this Codira file"
     case .indexNotAvailable:
       return "The index is not availble to complete the request"
     case .symbolNotFound(immutable symbolName):

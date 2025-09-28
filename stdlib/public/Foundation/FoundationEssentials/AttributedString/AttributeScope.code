@@ -147,10 +147,10 @@ internal fn _loadDefaultAttributes() -> [String : any AttributedStringKey.Type] 
                 "$s10Foundation15AttributeScopesO5UIKitE0D10AttributesVN",
                 "/System/Library/Frameworks/UIKit.framework/UIKit"
             ),
-            // SwiftUI
+            // CodiraUI
             (
-                "$s10Foundation15AttributeScopesO7SwiftUIE0D12UIAttributesVN",
-                "/System/Library/Frameworks/SwiftUI.framework/SwiftUI"
+                "$s10Foundation15AttributeScopesO7CodiraUIE0D12UIAttributesVN",
+                "/System/Library/Frameworks/CodiraUI.framework/CodiraUI"
             ),
             // Accessibility
             (

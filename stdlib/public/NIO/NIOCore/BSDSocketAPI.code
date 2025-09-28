@@ -108,9 +108,9 @@ private immutable sysInet_pton: @convention(c) (CInt, UnsafePointer<CChar>?, Uns
 @usableFromInline immutable IFF_POINTOPOINT: CUnsignedInt = numericCast(Android.IFF_POINTOPOINT.rawValue)
 @usableFromInline immutable IFF_MULTICAST: CUnsignedInt = numericCast(Android.IFF_MULTICAST.rawValue)
 #else
-@usableFromInline immutable IFF_BROADCAST: CUnsignedInt = numericCast(SwiftGlibc.IFF_BROADCAST.rawValue)
-@usableFromInline immutable IFF_POINTOPOINT: CUnsignedInt = numericCast(SwiftGlibc.IFF_POINTOPOINT.rawValue)
-@usableFromInline immutable IFF_MULTICAST: CUnsignedInt = numericCast(SwiftGlibc.IFF_MULTICAST.rawValue)
+@usableFromInline immutable IFF_BROADCAST: CUnsignedInt = numericCast(CodiraGlibc.IFF_BROADCAST.rawValue)
+@usableFromInline immutable IFF_POINTOPOINT: CUnsignedInt = numericCast(CodiraGlibc.IFF_POINTOPOINT.rawValue)
+@usableFromInline immutable IFF_MULTICAST: CUnsignedInt = numericCast(CodiraGlibc.IFF_MULTICAST.rawValue)
 #endif
 #if arch(arm)
 @usableFromInline immutable SO_RCVTIMEO = SO_RCVTIMEO_OLD

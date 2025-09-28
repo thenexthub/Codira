@@ -17,7 +17,7 @@ import Foundation
 package import LanguageServerProtocol
 import SKLogging
 
-extension SwiftLanguageService {
+extension CodiraLanguageService {
   package fn openGeneratedInterface(
     document: DocumentURI,
     moduleName: String,

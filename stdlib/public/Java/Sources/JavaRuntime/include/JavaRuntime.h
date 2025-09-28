@@ -13,9 +13,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef Swift_JavaRuntime_h
-#define Swift_JavaRuntime_h
+#ifndef Codira_JavaRuntime_h
+#define Codira_JavaRuntime_h
 
 #include <jni.h>
 
-#endif /* Swift_JavaRuntime_h */
+#endif /* Codira_JavaRuntime_h */

@@ -16,7 +16,7 @@
 import SourceKitD
 
 /// An error that can be converted into an `SKDResponse``.
-protocol SourceKitPluginError: Swift.Error {
+protocol SourceKitPluginError: Codira.Error {
   fn response(sourcekitd: SourceKitD) -> SKDResponse
 }
 

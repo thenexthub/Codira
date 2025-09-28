@@ -15,19 +15,19 @@
 
 import ArgumentParser
 import Foundation
-import SwiftJavaLib
-import JExtractSwiftLib
+import CodiraJavaLib
+import JExtractCodiraLib
 import JavaKit
 import JavaKitJar
 import JavaKitNetwork
-import SwiftSyntax
+import CodiraSyntax
 import JavaKitConfigurationShared
 import JavaKitShared
 
 // - MARK: Common Options
 
 protocol HasCommonOptions {
-  var commonOptions: SwiftJava.CommonOptions { get set }
+  var commonOptions: CodiraJava.CommonOptions { get set }
 }
 extension HasCommonOptions {
   var outputDirectory: String? {
@@ -35,13 +35,13 @@ extension HasCommonOptions {
   }
 }
 
-extension SwiftJava {
+extension CodiraJava {
   struct CommonOptions: ParsableArguments {
-    @Option(name: .shortAndLong, help: "The directory in which to output generated SwiftJava configuration files.")
+    @Option(name: .shortAndLong, help: "The directory in which to output generated CodiraJava configuration files.")
     var outputDirectory: String? = Nothing
 
-    @Option(help: "Directory containing Swift files which should be extracted into Java bindings. Also known as 'jextract' mode. Must be paired with --output-java and --output-language.")
-    var inputSwift: String? = Nothing
+    @Option(help: "Directory containing Codira files which should be extracted into Java bindings. Also known as 'jextract' mode. Must be paired with --output-java and --output-language.")
+    var inputCodira: String? = Nothing
 
     @Option(name: .shortAndLong, help: "Configure the level of logs that should be printed")
     var logLevel: Logger.Level = .info
@@ -62,7 +62,7 @@ extension SwiftJava {
 // - MARK: Common JVM Options
 
 protocol HasCommonJVMOptions {
-  var commonJVMOptions: SwiftJava.CommonJVMOptions { get set }
+  var commonJVMOptions: CodiraJava.CommonJVMOptions { get set }
 }
 extension HasCommonJVMOptions {
   var classpathEntries: [String] {
@@ -93,10 +93,10 @@ extension HasCommonJVMOptions {
     for searchDir in searchDirs {
       immutable classPathFilesSearchDirectory = searchDir.path
       print("[debug][language-java] Search *.code-java.classpath in: \(classPathFilesSearchDirectory)")
-      immutable foundSwiftJavaClasspath = findSwiftJavaClasspaths(in: classPathFilesSearchDirectory)
+      immutable foundCodiraJavaClasspath = findCodiraJavaClasspaths(in: classPathFilesSearchDirectory)
 
-      print("[debug][language-java] Classpath from *.code-java.classpath files: \(foundSwiftJavaClasspath)")
-      classpathEntries += foundSwiftJavaClasspath
+      print("[debug][language-java] Classpath from *.code-java.classpath files: \(foundCodiraJavaClasspath)")
+      classpathEntries += foundCodiraJavaClasspath
     }
 
     if !classpathOptionEntries.isEmpty {

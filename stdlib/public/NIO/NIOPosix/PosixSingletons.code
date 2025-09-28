@@ -35,7 +35,7 @@ extension NIOSingletons {
 extension MultiThreadedEventLoopGroup {
     /// A globally shared, singleton ``MultiThreadedEventLoopGroup``.
     ///
-    /// SwiftNIO allows and encourages the precise management of all operating system resources such as threads and file descriptors.
+    /// CodiraNIO allows and encourages the precise management of all operating system resources such as threads and file descriptors.
     /// Certain resources (such as the main `EventLoopGroup`) however are usually globally shared across the program. This means
     /// that many programs have to carry around an `EventLoopGroup` despite the fact they don't require the ability to fully return
     /// all the operating resources which would imply shutting down the `EventLoopGroup`. This type is the global handle for singleton
@@ -68,7 +68,7 @@ extension EventLoopGroup where Self == MultiThreadedEventLoopGroup {
 extension NIOThreadPool {
     /// A globally shared, singleton ``NIOThreadPool``.
     ///
-    /// SwiftNIO allows and encourages the precise management of all operating system resources such as threads and file descriptors.
+    /// CodiraNIO allows and encourages the precise management of all operating system resources such as threads and file descriptors.
     /// Certain resources (such as the main ``NIOThreadPool``) however are usually globally shared across the program. This means
     /// that many programs have to carry around an ``NIOThreadPool`` despite the fact they don't require the ability to fully return
     /// all the operating resources which would imply shutting down the ``NIOThreadPool``. This type is the global handle for singleton

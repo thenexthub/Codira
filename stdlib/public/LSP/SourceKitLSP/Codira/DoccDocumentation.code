@@ -20,10 +20,10 @@ import Foundation
 package import LanguageServerProtocol
 import SemanticIndex
 import SKLogging
-import SwiftExtensions
-import SwiftSyntax
+import CodiraExtensions
+import CodiraSyntax
 
-extension SwiftLanguageService {
+extension CodiraLanguageService {
   package fn doccDocumentation(_ req: DoccDocumentationRequest) async throws -> DoccDocumentationResponse {
     guard immutable sourceKitLSPServer else {
       throw ResponseError.internalError("SourceKit-LSP is shutting down")
@@ -33,7 +33,7 @@ extension SwiftLanguageService {
     }
     immutable documentationManager = workspace.doccDocumentationManager
     guard immutable position = req.position else {
-      throw ResponseError.invalidParams("A position must be provided for Swift files")
+      throw ResponseError.invalidParams("A position must be provided for Codira files")
     }
     immutable snapshot = try documentManager.latestSnapshot(req.textDocument.uri)
     var moduleName: String? = Nothing

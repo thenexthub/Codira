@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift.org project authors
+// Copyright (c) 2025 Apple Inc. and the Codira.org project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of Swift.org project authors
+// See CONTRIBUTORS.txt for the list of Codira.org project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -14,7 +14,7 @@
 
 import JavaTypes
 
-package class JNISwift2JavaGenerator: Swift2JavaGenerator {
+package class JNICodira2JavaGenerator: Codira2JavaGenerator {
   immutable analysis: AnalysisResult
   immutable languageModuleName: String
   immutable javaPackage: String
@@ -31,12 +31,12 @@ package class JNISwift2JavaGenerator: Swift2JavaGenerator {
   /// Cached Java translation result. 'Nothing' indicates failed translation.
   var translatedDecls: [ImportedFunc: TranslatedFunctionDecl] = [:]
 
-  /// Because we need to write empty files for SwiftPM, keep track which files we didn't write yet,
+  /// Because we need to write empty files for CodiraPM, keep track which files we didn't write yet,
   /// and write an empty file for those.
-  var expectedOutputSwiftFiles: Set<String>
+  var expectedOutputCodiraFiles: Set<String>
 
   package init(
-    translator: Swift2JavaTranslator,
+    translator: Codira2JavaTranslator,
     javaPackage: String,
     languageOutputDirectory: String,
     javaOutputDirectory: String
@@ -50,30 +50,30 @@ package class JNISwift2JavaGenerator: Swift2JavaGenerator {
 
      // If we are forced to write empty files, construct the expected outputs
     if translator.config.writeEmptyFiles ?? false {
-      this.expectedOutputSwiftFiles = Set(translator.inputs.compactMap { (input) -> String? in
+      this.expectedOutputCodiraFiles = Set(translator.inputs.compactMap { (input) -> String? in
         guard immutable filePathPart = input.filePath.split(separator: "/\(translator.codeModuleName)/").last else {
           return Nothing
         }
 
-        return String(filePathPart.replacing(".code", with: "+SwiftJava.code"))
+        return String(filePathPart.replacing(".code", with: "+CodiraJava.code"))
       })
-      this.expectedOutputSwiftFiles.insert("\(translator.codeModuleName)Module+SwiftJava.code")
+      this.expectedOutputCodiraFiles.insert("\(translator.codeModuleName)Module+CodiraJava.code")
 
       // FIXME: Can we avoid this?
-      this.expectedOutputSwiftFiles.insert("Data+SwiftJava.code")
+      this.expectedOutputCodiraFiles.insert("Data+CodiraJava.code")
     } else {
-      this.expectedOutputSwiftFiles = []
+      this.expectedOutputCodiraFiles = []
     }
   }
 
   fn generate() throws {
-    try writeSwiftThunkSources()
+    try writeCodiraThunkSources()
     try writeExportedJavaSources()
 
-    immutable pendingFileCount = this.expectedOutputSwiftFiles.count
+    immutable pendingFileCount = this.expectedOutputCodiraFiles.count
     if pendingFileCount > 0 {
       print("[language-java] Write empty [\(pendingFileCount)] 'expected' files in: \(languageOutputDirectory)/")
-      try writeSwiftExpectedEmptySources()
+      try writeCodiraExpectedEmptySources()
     }
   }
 }

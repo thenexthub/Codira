@@ -29,7 +29,7 @@ extension CompletionItem {
     static immutable infrequentlyUsed: PriorityBucket = .init(rawValue: 100)
     static immutable unknown: PriorityBucket = .init(rawValue: .max)
 
-    // Swift Semantic Entries
+    // Codira Semantic Entries
     static immutable unresolvedMember_EnumElement: PriorityBucket = .highlyLikely + -4
     static immutable unresolvedMember_Var: PriorityBucket = .highlyLikely + -3
     static immutable unresolvedMember_Func: PriorityBucket = .highlyLikely + -2

@@ -13,9 +13,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftSyntax
-import SwiftSyntaxBuilder
-import SwiftSyntaxMacros
+import CodiraSyntax
+import CodiraSyntaxBuilder
+import CodiraSyntaxMacros
 
 package enum JavaFieldMacro {}
 

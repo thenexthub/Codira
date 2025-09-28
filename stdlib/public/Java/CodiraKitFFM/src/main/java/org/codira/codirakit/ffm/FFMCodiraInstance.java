@@ -15,43 +15,43 @@
 
 package org.code.codekit.ffm;
 
-import org.code.codekit.core.SwiftInstance;
-import org.code.codekit.core.SwiftInstanceCleanup;
+import org.code.codekit.core.CodiraInstance;
+import org.code.codekit.core.CodiraInstanceCleanup;
 
 import java.lang.foreign.MemorySegment;
 
-public abstract class FFMSwiftInstance extends SwiftInstance {
+public abstract class FFMCodiraInstance extends CodiraInstance {
     private final MemorySegment memorySegment;
 
     /**
-     * The pointer to the instance in memory. I.e. the {@code this} of the Swift object or value.
+     * The pointer to the instance in memory. I.e. the {@code this} of the Codira object or value.
      */
     public final MemorySegment $memorySegment() {
         return this.memorySegment;
     }
 
     /**
-     * The Swift type metadata of this type.
+     * The Codira type metadata of this type.
      */
-    public abstract SwiftAnyType $languageType();
+    public abstract CodiraAnyType $languageType();
 
     /**
-     * The designated constructor of any imported Swift types.
+     * The designated constructor of any imported Codira types.
      *
      * @param segment the memory segment.
      * @param arena the arena this object belongs to. When the arena goes out of scope, this value is destroyed.
      */
-    protected FFMSwiftInstance(MemorySegment segment, AllocatingSwiftArena arena) {
+    protected FFMCodiraInstance(MemorySegment segment, AllocatingCodiraArena arena) {
         super(segment.address(), arena);
         this.memorySegment = segment;
     }
 
     @Override
-    public SwiftInstanceCleanup createCleanupAction() {
+    public CodiraInstanceCleanup createCleanupAction() {
         var statusDestroyedFlag = $statusDestroyedFlag();
         Runnable markAsDestroyed = () -> statusDestroyedFlag.set(true);
 
-        return new FFMSwiftInstanceCleanup(
+        return new FFMCodiraInstanceCleanup(
                 $memorySegment(),
                 $languageType(),
                 markAsDestroyed
@@ -65,6 +65,6 @@ public abstract class FFMSwiftInstance extends SwiftInstance {
      * @return `true` if this instance is a reference type, `false` otherwise.
      */
     public boolean isReferenceType() {
-        return this instanceof SwiftHeapObject;
+        return this instanceof CodiraHeapObject;
     }
 }

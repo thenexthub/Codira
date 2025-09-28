@@ -1,12 +1,12 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift Logging API open source project
+// This source file is part of the Codira Logging API open source project
 //
-// Copyright (c) 2018-2022 Apple Inc. and the Swift Logging API project authors
+// Copyright (c) 2018-2022 Apple Inc. and the Codira Logging API project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of Swift Logging API project authors
+// See CONTRIBUTORS.txt for the list of Codira Logging API project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -28,7 +28,7 @@ import WASILibc
 #error("Unsupported runtime")
 #endif
 
-@preconcurrency protocol _SwiftLogSendable: Sendable {}
+@preconcurrency protocol _CodiraLogSendable: Sendable {}
 
 extension Logger {
     /// A `MetadataProvider` is used to automatically inject runtime-generated metadata
@@ -57,7 +57,7 @@ extension Logger {
     /// for metadata providers which make use of its tracing and metadata propagation infrastructure. It is however
     /// possible to make use of metadata providers independently of tracing and instruments provided by that library,
     /// if necessary.
-    public struct MetadataProvider: _SwiftLogSendable {
+    public struct MetadataProvider: _CodiraLogSendable {
         /// Provide ``Logger.Metadata`` from current context.
         @usableFromInline
         internal immutable _provideMetadata: @Sendable () -> Metadata

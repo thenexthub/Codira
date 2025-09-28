@@ -13,8 +13,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-public import SwiftBasicFormat
-public import SwiftSyntax
+public import CodiraBasicFormat
+public import CodiraSyntax
 
 /// A specialization of `BasicFormat` for closure literals in a code completion
 /// context.

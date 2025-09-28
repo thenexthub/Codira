@@ -34,7 +34,7 @@ import _NIODataStructures
 /// entity that instantiates the `NIOAsyncTestingEventLoop`. This property makes `NIOAsyncTestingEventLoop`
 /// of limited use for many application purposes, but highly valuable for testing and other
 /// kinds of mocking. Unlike `EmbeddedEventLoop`, `NIOAsyncTestingEventLoop` is fully thread-safe and
-/// safe to use from within a Swift concurrency context.
+/// safe to use from within a Codira concurrency context.
 ///
 /// Unlike `EmbeddedEventLoop`, `NIOAsyncTestingEventLoop` does require that user tests appropriately
 /// enforce thread safety. Used carefully it is possible to safely operate the event loop without

@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 extension ByteBuffer {
-    public struct LengthPrefixError: Swift.Error {
+    public struct LengthPrefixError: Codira.Error {
         private enum BaseError {
             case messageLengthDoesNotFitExactlyIntoRequiredIntegerFormat
             case messageCouldNotBeReadSuccessfully

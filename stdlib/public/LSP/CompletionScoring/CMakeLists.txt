@@ -25,7 +25,7 @@ set(sources
   Utilities/Serialization/Conformances/Scalars+BinaryCodable.code
   Utilities/Serialization/Conformances/String+BinaryCodable.code
   Utilities/Serialization/Conformances/Array+BinaryCodable.code
-  Utilities/SwiftExtensions.code
+  Utilities/CodiraExtensions.code
   Utilities/SelectTopK.code
   Utilities/UnsafeArray.code
   Text/CandidateBatch.code
@@ -40,12 +40,12 @@ set(sources
 
 add_library(CompletionScoring STATIC ${sources})
 set_target_properties(CompletionScoring PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Codira_MODULE_DIRECTORY})
 target_link_libraries(CompletionScoring PUBLIC
   CCompletionScoring)
 
 add_library(CompletionScoringForPlugin STATIC ${sources})
 set_target_properties(CompletionScoringForPlugin PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Codira_MODULE_DIRECTORY})
 target_link_libraries(CompletionScoringForPlugin PUBLIC
   CCompletionScoring)

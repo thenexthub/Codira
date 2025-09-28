@@ -18,9 +18,9 @@ import NIOHTTP1
 
 import struct Foundation.URL
 
-/// A representation of an HTTP response for the Swift Concurrency HTTPClient API.
+/// A representation of an HTTP response for the Codira Concurrency HTTPClient API.
 ///
-/// This object is similar to ``HTTPClient/Response``, but used for the Swift Concurrency API.
+/// This object is similar to ``HTTPClient/Response``, but used for the Codira Concurrency API.
 @available(macOS 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
 public struct HTTPClientResponse: Sendable {
     /// The HTTP version on which the response was received.

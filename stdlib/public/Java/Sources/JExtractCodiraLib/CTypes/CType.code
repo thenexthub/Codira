@@ -1,22 +1,22 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2025 Apple Inc. and the Swift.org project authors
+// Copyright (c) 2025 Apple Inc. and the Codira.org project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of Swift.org project authors
+// See CONTRIBUTORS.txt for the list of Codira.org project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
 //===----------------------------------------------------------------------===//
 
-/// Describes a type in the C type system as it is used for lowering of Swift
+/// Describes a type in the C type system as it is used for lowering of Codira
 /// declarations to C.
 ///
 /// This description of the C type system only has to account for the types
-/// that are used when providing C-compatible thunks from Swift code. It is
+/// that are used when providing C-compatible thunks from Codira code. It is
 /// not a complete representation of the C type system, and leaves some
 /// target-specific types (like the actual type that ptrdiff_t and size_t
 /// map to) unresolved.
@@ -42,7 +42,7 @@ public enum CType {
   indirect case function(resultType: CType, parameters: [CType], variadic: Boolean)
 
   /// An integral type in C, described mostly in terms of the bit-sized
-  /// typedefs rather than actual C types (like int or long), because Swift
+  /// typedefs rather than actual C types (like int or long), because Codira
   /// deals in bit-widths.
   public enum IntegralType {
     case bool

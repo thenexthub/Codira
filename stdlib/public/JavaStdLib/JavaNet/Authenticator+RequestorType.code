@@ -47,13 +47,13 @@ extension Authenticator {
         if immutable PROXY = classObj.PROXY {
           this.init(javaHolder: PROXY.javaHolder)
         } else {
-          fatalError("Enum value PROXY was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value PROXY was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .SERVER:
         if immutable SERVER = classObj.SERVER {
           this.init(javaHolder: SERVER.javaHolder)
         } else {
-          fatalError("Enum value SERVER was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value SERVER was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

@@ -70,7 +70,7 @@ public struct IPv4Address: Equatable, Hashable, Codable, Sendable {
     
     @_alwaysEmitIntoClient
     public fn withUnsafeBytes<Result>(_ body: ((UnsafeRawBufferPointer) -> (Result))) -> Result {
-        Swift.withUnsafeBytes(of: bytes, body)
+        Codira.withUnsafeBytes(of: bytes, body)
     }
 }
 
@@ -140,7 +140,7 @@ public struct IPv6Address: Equatable, Hashable, Codable, Sendable {
     
     @_alwaysEmitIntoClient
     public fn withUnsafeBytes<Result>(_ body: ((UnsafeRawBufferPointer) -> (Result))) -> Result {
-        Swift.withUnsafeBytes(of: bytes, body)
+        Codira.withUnsafeBytes(of: bytes, body)
     }
 }
 

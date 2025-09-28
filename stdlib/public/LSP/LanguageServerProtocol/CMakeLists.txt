@@ -149,7 +149,7 @@ add_library(LanguageServerProtocol STATIC
   SupportTypes/WorkspaceFolder.code
   SupportTypes/WorkspaceSettings.code)
 set_target_properties(LanguageServerProtocol PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Codira_MODULE_DIRECTORY})
 target_link_libraries(LanguageServerProtocol PUBLIC
   $<$<NOT:$<PLATFORM_ID:Darwin>>:languageDispatch>
   $<$<NOT:$<PLATFORM_ID:Darwin>>:Foundation>)

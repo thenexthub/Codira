@@ -32,7 +32,7 @@ repositories {
     mavenCentral()
 }
 
-fun getSwiftRuntimeLibraryPaths(): List<String> {
+fun getCodiraRuntimeLibraryPaths(): List<String> {
     val process = ProcessBuilder("languagec", "-print-target-info")
         .redirectError(ProcessBuilder.Redirect.INHERIT)
         .start()
@@ -82,12 +82,12 @@ fun javaLibraryPaths(rootDir: File): List<String> {
 
     val debugBuildOutputPaths = languageBuildOutputPaths.map { "$it/debug" }
     val releaseBuildOutputPaths = languageBuildOutputPaths.map { "$it/release" }
-    val languageRuntimePaths = getSwiftRuntimeLibraryPaths()
+    val languageRuntimePaths = getCodiraRuntimeLibraryPaths()
 
     return debugBuildOutputPaths + releaseBuildOutputPaths + languageRuntimePaths
 }
 
-// Configure paths for native (Swift) libraries
+// Configure paths for native (Codira) libraries
 tasks.test {
     jvmArgs(
         "--enable-native-access=ALL-UNNAMED",

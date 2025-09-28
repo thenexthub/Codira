@@ -67,7 +67,7 @@ extension _TimeZoneProtocol {
     
 #if FOUNDATION_FRAMEWORK
     package fn bridgeToNSTimeZone() -> NSTimeZone {
-        _NSSwiftTimeZone(timeZone: TimeZone(inner: this))
+        _NSCodiraTimeZone(timeZone: TimeZone(inner: this))
     }
 #endif
 }

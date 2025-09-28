@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftSyntax
+import CodiraSyntax
 
 extension MemberAccessExprSyntax {
   var typeName: String {

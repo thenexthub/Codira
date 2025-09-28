@@ -5,7 +5,7 @@ libraries.
 
 ## Overview
 
-SwiftLog defines seven log levels, and choosing the right level is crucial for
+CodiraLog defines seven log levels, and choosing the right level is crucial for
 creating well-behaved libraries that don't overwhelm logging systems or misuse
 severity levels. This practice provides clear guidance on when to use each
 level.
@@ -20,7 +20,7 @@ with diverse application environments.
 
 ### Log levels
 
-SwiftLog defines seven log levels via ``Logger/Level``, ordered from least to
+CodiraLog defines seven log levels via ``Logger/Level``, ordered from least to
 most severe:
 
 - ``Logger/Level/trace``

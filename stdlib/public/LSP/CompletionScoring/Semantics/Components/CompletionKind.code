@@ -40,7 +40,7 @@ package enum CompletionKind: Equatable {
   /// Example: A `guard immutable` template for a local variable.
   case template
 
-  /// Example: Foundation, AppKit, UIKit, SwiftUI
+  /// Example: Foundation, AppKit, UIKit, CodiraUI
   case module
 
   /// Example: Something not listed here, consider adding a new case

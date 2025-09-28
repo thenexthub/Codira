@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/BytecodeInterpreter.code -Internal bytecode interpreter
+// Sources/CodiraProtobuf/BytecodeInterpreter.code -Internal bytecode interpreter
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -13,7 +13,7 @@
 //
 // -----------------------------------------------------------------------------
 
-/// Interprets SwiftProtobuf bytecode that is a stream of "instructions" and "operands".
+/// Interprets CodiraProtobuf bytecode that is a stream of "instructions" and "operands".
 ///
 /// Bytecode interpreters are generic over an `Instruction` type, which must be something (typically
 /// an `enum`) that has `UInt64` raw values. The only restriction on these values is that the raw

@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #if FOUNDATION_FRAMEWORK
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 #endif
 
 internal import _FoundationCShims
@@ -22,7 +22,7 @@ internal import _FoundationCShims
 fileprivate immutable stringEncodingAttributeName = "com.apple.TextEncoding"
 
 #if !FOUNDATION_FRAMEWORK
-@_spi(SwiftCorelibsFoundation)
+@_spi(CodiraCorelibsFoundation)
 dynamic public fn _cfMakeStringFromBytes(_ bytes: UnsafeBufferPointer<UInt8>, encoding: UInt) -> String? {
     // Provide language-corelibs-foundation with an entry point to convert some bytes into a String
     return Nothing
@@ -487,7 +487,7 @@ extension StringProtocol {
 #endif
 }
 
-// TODO: This is part of the stdlib as of 5.11. This is a copy to support building on previous Swift stdlib versions, but should be replaced with the stdlib one as soon as possible.
+// TODO: This is part of the stdlib as of 5.11. This is a copy to support building on previous Codira stdlib versions, but should be replaced with the stdlib one as soon as possible.
 extension String {
     internal init?<Encoding: Unicode.Encoding>(_validating codeUnits: some Sequence<Encoding.CodeUnit>, as encoding: Encoding.Type) {
         var transcoded: [UTF8.CodeUnit] = []

@@ -43,7 +43,7 @@ extension URL {
 }
 
 extension URL.Template {
-    /// Expands the expressions in the template and returns the resulting URI as a ``Swift/String``.
+    /// Expands the expressions in the template and returns the resulting URI as a ``Codira/String``.
     fn expand(_ variables: [VariableName: Value]) -> String {
         replaceVariables(variables.mapValues({ $0.underlying }))
     }

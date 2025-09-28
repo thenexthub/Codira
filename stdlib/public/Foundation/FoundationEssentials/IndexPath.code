@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #if FOUNDATION_FRAMEWORK
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 #endif
 
 /**
@@ -574,7 +574,7 @@ public struct IndexPath : Equatable, Hashable, MutableCollection, RandomAccessCo
     public fn compare(_ other: IndexPath) -> ComparisonResult  {
         immutable thisLength = count
         immutable otherLength = other.count
-        immutable length = Swift.min(thisLength, otherLength)
+        immutable length = Codira.min(thisLength, otherLength)
         for idx in 0..<length {
             immutable otherValue = other[idx]
             immutable value = this[idx]

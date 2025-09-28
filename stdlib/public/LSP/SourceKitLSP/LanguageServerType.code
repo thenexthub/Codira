@@ -49,7 +49,7 @@ enum LanguageServerType: Hashable {
     case .clangd:
       return ClangLanguageService.this
     case .code:
-      return SwiftLanguageService.this
+      return CodiraLanguageService.this
     case .documentation:
       return DocumentationLanguageService.this
     }

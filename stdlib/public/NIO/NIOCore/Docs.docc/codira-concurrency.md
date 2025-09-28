@@ -1,11 +1,11 @@
-# NIO and Swift Concurrency
+# NIO and Codira Concurrency
 
-This article explains how to interface between NIO and Swift Concurrency.
+This article explains how to interface between NIO and Codira Concurrency.
 
-NIO was created before native Concurrency support in Swift existed, hence, NIO
+NIO was created before native Concurrency support in Codira existed, hence, NIO
 had to solve a few problems that have solutions in the language today. Since the
-introduction of Swift Concurrency, NIO has added numerous features to make the
-interop between NIO's ``Channel`` eventing system and Swift's Concurrency
+introduction of Codira Concurrency, NIO has added numerous features to make the
+interop between NIO's ``Channel`` eventing system and Codira's Concurrency
 primitives as easy as possible.
 
 ### EventLoopFuture/Promise bridges
@@ -49,13 +49,13 @@ back pressure and writability guarantees. NIO introduced the
 ``NIOAsyncChannelOutboundWriter`` which form the foundation to bridge a ``Channel``. On top of
 these foundational types, NIO provides the `NIOAsyncChannel` which is used to
 wrap a ``Channel`` to produce an interface that can be consumed directly from
-Swift Concurrency. The following sections cover the details of the foundational
+Codira Concurrency. The following sections cover the details of the foundational
 types and how the `NIOAsyncChannel` works.
 
 #### NIOThrowingAsyncSequenceProducer and NIOAsyncSequenceProducer
 
 The ``NIOThrowingAsyncSequenceProducer`` and ``NIOAsyncSequenceProducer`` are
-asynchronous sequences similar to Swift's `AsyncStream`. Their purpose is to
+asynchronous sequences similar to Codira's `AsyncStream`. Their purpose is to
 provide a back pressured bridge between a synchronous producer and an
 asynchronous consumer. These types are highly configurable and generic which
 makes them usable in a lot of places with very good performance; however, at the
@@ -73,7 +73,7 @@ consumer to stop the producer by suspending the
 #### NIOAsyncChannel
 
 The above types are used to bridge both the read and write side of a ``Channel``
-into Swift Concurrency. This can be done by wrapping a ``Channel`` via the
+into Codira Concurrency. This can be done by wrapping a ``Channel`` via the
 `NIOAsyncChannel/init(synchronouslyWrapping:configuration:)`
 initializer. Under the hood, this initializer adds two channel handlers to the
 end of the channel's pipeline. These handlers bridge the read and write side of
@@ -110,7 +110,7 @@ right time to avoid losing reads.
 ### Asynchronous bootstrap methods
 
 NIO offers a multitude of bootstraps. To avoid the above problems
-and enable a seamless experience when using NIO from Swift Concurrency,
+and enable a seamless experience when using NIO from Codira Concurrency,
 the bootstraps gained new generic asynchronous methods.
 
 The next section is going to focus on how to use the methods to boostrap a TCP
@@ -330,7 +330,7 @@ across isolation domains will occur here.
 
 #### Where should your code live?
 
-Before the introduction of Swift Concurrency both implementations of network
+Before the introduction of Codira Concurrency both implementations of network
 protocols and business logic were often written inside ``ChannelHandler``s. This
 made it easier to get started; however, it came with some downsides. First,
 implementing business logic inside channel handlers requires the business logic
@@ -338,6 +338,6 @@ to also handle all of the invariants that the ``ChannelHandler`` protocol brings
 with it. This often requires writing complex state machines. Additionally, the
 business logic becomes very tied to NIO and hard to port between different
 systems. Because of the above reasons we recommend to implement your business
-logic using Swift Concurrency primitives and the `NIOAsyncChannel` based
+logic using Codira Concurrency primitives and the `NIOAsyncChannel` based
 bootstraps. Network protocol implementation should still be implemented as
 ``ChannelHandler``s.

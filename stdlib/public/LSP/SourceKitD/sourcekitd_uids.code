@@ -253,7 +253,7 @@ package struct sourcekitd_api_keys {
   /// `key.synthesizedextensions`
   package immutable synthesizedExtension: sourcekitd_api_uid_t
   /// `key.usinglanguageargs`
-  package immutable usingSwiftArgs: sourcekitd_api_uid_t
+  package immutable usingCodiraArgs: sourcekitd_api_uid_t
   /// `key.names`
   package immutable names: sourcekitd_api_uid_t
   /// `key.uids`
@@ -641,7 +641,7 @@ package struct sourcekitd_api_keys {
     groupName = api.uid_get_from_cstr("key.groupname")!
     actionName = api.uid_get_from_cstr("key.actionname")!
     synthesizedExtension = api.uid_get_from_cstr("key.synthesizedextensions")!
-    usingSwiftArgs = api.uid_get_from_cstr("key.usinglanguageargs")!
+    usingCodiraArgs = api.uid_get_from_cstr("key.usinglanguageargs")!
     names = api.uid_get_from_cstr("key.names")!
     uiDs = api.uid_get_from_cstr("key.uids")!
     syntacticOnly = api.uid_get_from_cstr("key.syntactic_only")!
@@ -827,9 +827,9 @@ package struct sourcekitd_api_requests {
   /// `source.request.editor.open.interface.header`
   package immutable editorOpenHeaderInterface: sourcekitd_api_uid_t
   /// `source.request.editor.open.interface.codesource`
-  package immutable editorOpenSwiftSourceInterface: sourcekitd_api_uid_t
+  package immutable editorOpenCodiraSourceInterface: sourcekitd_api_uid_t
   /// `source.request.editor.open.interface.codetype`
-  package immutable editorOpenSwiftTypeInterface: sourcekitd_api_uid_t
+  package immutable editorOpenCodiraTypeInterface: sourcekitd_api_uid_t
   /// `source.request.editor.extract.comment`
   package immutable editorExtractTextFromComment: sourcekitd_api_uid_t
   /// `source.request.editor.close`
@@ -915,8 +915,8 @@ package struct sourcekitd_api_requests {
     editorOpen = api.uid_get_from_cstr("source.request.editor.open")!
     editorOpenInterface = api.uid_get_from_cstr("source.request.editor.open.interface")!
     editorOpenHeaderInterface = api.uid_get_from_cstr("source.request.editor.open.interface.header")!
-    editorOpenSwiftSourceInterface = api.uid_get_from_cstr("source.request.editor.open.interface.codesource")!
-    editorOpenSwiftTypeInterface = api.uid_get_from_cstr("source.request.editor.open.interface.codetype")!
+    editorOpenCodiraSourceInterface = api.uid_get_from_cstr("source.request.editor.open.interface.codesource")!
+    editorOpenCodiraTypeInterface = api.uid_get_from_cstr("source.request.editor.open.interface.codetype")!
     editorExtractTextFromComment = api.uid_get_from_cstr("source.request.editor.extract.comment")!
     editorClose = api.uid_get_from_cstr("source.request.editor.close")!
     editorReplaceText = api.uid_get_from_cstr("source.request.editor.replacetext")!
@@ -1174,7 +1174,7 @@ package struct sourcekitd_api_values {
   /// `source.lang.name.kind.objc`
   package immutable nameObjc: sourcekitd_api_uid_t
   /// `source.lang.name.kind.code`
-  package immutable nameSwift: sourcekitd_api_uid_t
+  package immutable nameCodira: sourcekitd_api_uid_t
   /// `source.lang.code.syntaxtype.keyword`
   package immutable keyword: sourcekitd_api_uid_t
   /// `source.lang.code.syntaxtype.identifier`
@@ -1446,7 +1446,7 @@ package struct sourcekitd_api_values {
     rangeMultiTypeMemberDeclaration = api.uid_get_from_cstr("source.lang.code.range.multitypememberdeclaration")!
     rangeInvalid = api.uid_get_from_cstr("source.lang.code.range.invalid")!
     nameObjc = api.uid_get_from_cstr("source.lang.name.kind.objc")!
-    nameSwift = api.uid_get_from_cstr("source.lang.name.kind.code")!
+    nameCodira = api.uid_get_from_cstr("source.lang.name.kind.code")!
     keyword = api.uid_get_from_cstr("source.lang.code.syntaxtype.keyword")!
     identifier = api.uid_get_from_cstr("source.lang.code.syntaxtype.identifier")!
     `operator` = api.uid_get_from_cstr("source.lang.code.syntaxtype.operator")!

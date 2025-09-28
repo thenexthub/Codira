@@ -65,8 +65,8 @@ extension Real {
 ```
 
 This gives us an implementation that works for `Float`, `Double`, and `Float80` if the target supports it.
-When new basic floating-point types are added to Swift, like `Float16` or `Float128`, it will work for them as well.
-Not having this protocol is a significant missing feature for numerical computing in Swift, and I'm really looking forward to seeing what people do with it.
+When new basic floating-point types are added to Codira, like `Float16` or `Float128`, it will work for them as well.
+Not having this protocol is a significant missing feature for numerical computing in Codira, and I'm really looking forward to seeing what people do with it.
 
 ### Dependencies:
 - The C standard math library (`libm`) via the `_NumericsShims` target.

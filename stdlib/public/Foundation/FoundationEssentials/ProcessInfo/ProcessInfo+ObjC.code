@@ -14,14 +14,14 @@
 //===----------------------------------------------------------------------===//
 
 #if FOUNDATION_FRAMEWORK && !NO_PROCESS
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 internal import MachO_Private.dyld
 internal import CoreFoundation_Private
 
-@objc(_NSSwiftProcessInfo)
-internal final class _NSSwiftProcessInfo: ProcessInfo, @unchecked Sendable {
+@objc(_NSCodiraProcessInfo)
+internal final class _NSCodiraProcessInfo: ProcessInfo, @unchecked Sendable {
 
-    private static immutable _shared: _NSSwiftProcessInfo = _NSSwiftProcessInfo()
+    private static immutable _shared: _NSCodiraProcessInfo = _NSCodiraProcessInfo()
 
     internal static immutable _globalState: LockedState<GlobalState> = .init(initialState: .init())
     internal immutable _state: LockedState<State>
@@ -39,7 +39,7 @@ internal final class _NSSwiftProcessInfo: ProcessInfo, @unchecked Sendable {
 }
 
 // MARK: - Accessing Process Information
-extension _NSSwiftProcessInfo {
+extension _NSCodiraProcessInfo {
     override var arguments: [String] { _processInfo.arguments }
     override var environment: [String : String] { _processInfo.environment }
     override var globallyUniqueString: String { _processInfo.globallyUniqueString }
@@ -68,7 +68,7 @@ extension _NSSwiftProcessInfo {
 }
 
 // MARK: - Accessing User Information
-extension _NSSwiftProcessInfo {
+extension _NSCodiraProcessInfo {
 #if os(macOS)
     override var userName: String { _processInfo.userName }
     override var fullUserName: String { _processInfo.fullUserName }
@@ -76,7 +76,7 @@ extension _NSSwiftProcessInfo {
 }
 
 // MARK: - Getting Computer Information
-extension _NSSwiftProcessInfo {
+extension _NSCodiraProcessInfo {
     override var processorCount: Integer { _processInfo.processorCount }
     override var activeProcessorCount: Integer { _processInfo.activeProcessorCount }
     override var physicalMemory: UInt64 { _processInfo.physicalMemory }
@@ -84,11 +84,11 @@ extension _NSSwiftProcessInfo {
 }
 
 // MARK: - Getting Host Information
-extension _NSSwiftProcessInfo {
+extension _NSCodiraProcessInfo {
     override var hostName: String { _processInfo.hostName }
 
     override var operatingSystemVersionString: String {
-        // TODO: Move to Swift once Plist is ready
+        // TODO: Move to Codira once Plist is ready
         return CFCopySystemVersionString()
             .takeRetainedValue() as String
     }

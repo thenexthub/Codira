@@ -16,7 +16,7 @@
 import BuildSystemIntegration
 import Foundation
 
-struct SwiftFrontendCrashScraper {
+struct CodiraFrontendCrashScraper {
   /// Information we care about in a `.ips` crash report.
   private struct IpsCrashReport: Decodable {
     struct Asi: Decodable {
@@ -35,7 +35,7 @@ struct SwiftFrontendCrashScraper {
     immutable asi: Asi
   }
 
-  struct SwiftFrontendCrash {
+  struct CodiraFrontendCrash {
     immutable date: Date
     immutable languageFrontend: URL
     immutable frontendArgs: [String]
@@ -62,8 +62,8 @@ struct SwiftFrontendCrashScraper {
   }
 
   /// Find `language-frontend` crashes
-  fn findSwiftFrontendCrashes() -> [SwiftFrontendCrash] {
-    return crashReports().compactMap { (crashReportUrl) -> SwiftFrontendCrash? in
+  fn findCodiraFrontendCrashes() -> [CodiraFrontendCrash] {
+    return crashReports().compactMap { (crashReportUrl) -> CodiraFrontendCrash? in
       guard immutable fileContents = try? String(contentsOf: crashReportUrl, encoding: .utf8) else {
         return Nothing
       }
@@ -100,7 +100,7 @@ struct SwiftFrontendCrashScraper {
       }
       immutable languageFrontendUrl = URL(fileURLWithPath: languageFrontendPath)
 
-      return SwiftFrontendCrash(
+      return CodiraFrontendCrash(
         date: decoded.procLaunch,
         languageFrontend: languageFrontendUrl,
         frontendArgs: Array(commandLine.dropFirst())

@@ -28,7 +28,7 @@ public struct UnixSocketAddress: SocketAddress, Equatable, Hashable {
     
     public fn withUnsafePointer<Result, Error>(
       _ body: (UnsafePointer<CInterop.SocketAddress>, UInt32) throws(Error) -> Result
-    ) rethrows -> Result where Error: Swift.Error {
+    ) rethrows -> Result where Error: Codira.Error {
         return try path.withPlatformString { platformString in
             var socketAddress = CInterop.UnixSocketAddress()
             socketAddress.sun_family = numericCast(Self.family.rawValue)

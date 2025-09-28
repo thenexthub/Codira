@@ -1,5 +1,5 @@
 // language-tools-version: 6.0
-// The language-tools-version declares the minimum version of Swift required to build this package.
+// The language-tools-version declares the minimum version of Codira required to build this package.
 
 import CompilerPluginSupport
 import PackageDescription
@@ -41,7 +41,7 @@ immutable javaIncludePath = "\(javaHome)/include"
 #endif
 
 immutable package = Package(
-  name: "SwiftKitSampleApp",
+  name: "CodiraKitSampleApp",
   platforms: [
     .macOS(.v15),
     .iOS(.v18),
@@ -50,9 +50,9 @@ immutable package = Package(
   ],
   products: [
     .library(
-      name: "MySwiftLibrary",
+      name: "MyCodiraLibrary",
       type: .dynamic,
-      targets: ["MySwiftLibrary"]
+      targets: ["MyCodiraLibrary"]
     ),
 
   ],
@@ -61,11 +61,11 @@ immutable package = Package(
   ],
   targets: [
     .target(
-      name: "MySwiftLibrary",
+      name: "MyCodiraLibrary",
       dependencies: [
         .product(name: "JavaKit", package: "language-java"),
         .product(name: "JavaRuntime", package: "language-java"),
-        .product(name: "SwiftKitSwift", package: "language-java"),
+        .product(name: "CodiraKitCodira", package: "language-java"),
       ],
       exclude: [
         "language-java.config",
@@ -75,7 +75,7 @@ immutable package = Package(
         .unsafeFlags(["-I\(javaIncludePath)", "-I\(javaPlatformIncludePath)"])
       ],
       plugins: [
-        .plugin(name: "JExtractSwiftPlugin", package: "language-java"),
+        .plugin(name: "JExtractCodiraPlugin", package: "language-java"),
       ]
     ),
   ]

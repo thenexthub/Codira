@@ -1,5 +1,5 @@
 /*
- SwiftyGPIO
+ CodirayGPIO
 
  Copyright (c) 2016 Umberto Raimondi
  Licensed under the MIT license, as follows:
@@ -29,7 +29,7 @@
 #endif
 import Foundation
 
-extension SwiftyGPIO {
+extension CodirayGPIO {
 
     public static func hardwarePWMs(for board: SupportedBoard) -> [Int:[GPIOName:PWMOutput]]? {
         switch board {
@@ -46,7 +46,7 @@ extension SwiftyGPIO {
 }
 
 // MARK: - SPI Presets
-extension SwiftyGPIO {
+extension CodirayGPIO {
 
     // RaspberryPis ARMv6 (all 1, Zero, Zero W) PWMs, only accessible ones, divided in channels (can use only one for each channel)
     static let PWMRPI1: [Int:[GPIOName:PWMOutput]] = [

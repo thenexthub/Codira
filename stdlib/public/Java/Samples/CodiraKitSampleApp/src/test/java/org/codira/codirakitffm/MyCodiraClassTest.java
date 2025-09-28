@@ -19,24 +19,24 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-import com.example.code.MySwiftClass;
-import org.code.codekit.ffm.AllocatingSwiftArena;
-import org.code.codekit.ffm.SwiftRuntime;
+import com.example.code.MyCodiraClass;
+import org.code.codekit.ffm.AllocatingCodiraArena;
+import org.code.codekit.ffm.CodiraRuntime;
 
-public class MySwiftClassTest {
+public class MyCodiraClassTest {
 
     @Test
     void call_retain_retainCount_release() {
-        var arena = AllocatingSwiftArena.ofConfined();
-        var obj = MySwiftClass.init(1, 2, arena);
+        var arena = AllocatingCodiraArena.ofConfined();
+        var obj = MyCodiraClass.init(1, 2, arena);
 
-        assertEquals(1, SwiftRuntime.retainCount(obj));
-        // TODO: test directly on SwiftHeapObject inheriting obj
+        assertEquals(1, CodiraRuntime.retainCount(obj));
+        // TODO: test directly on CodiraHeapObject inheriting obj
 
-        SwiftRuntime.retain(obj);
-        assertEquals(2, SwiftRuntime.retainCount(obj));
+        CodiraRuntime.retain(obj);
+        assertEquals(2, CodiraRuntime.retainCount(obj));
 
-        SwiftRuntime.release(obj);
-        assertEquals(1, SwiftRuntime.retainCount(obj));
+        CodiraRuntime.release(obj);
+        assertEquals(1, CodiraRuntime.retainCount(obj));
     }
 }

@@ -1,37 +1,37 @@
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the Swift.org open source project
+// This source file is part of the Codira.org open source project
 //
-// Copyright (c) 2023 - 2024 Apple Inc. and the Swift project authors
+// Copyright (c) 2023 - 2024 Apple Inc. and the Codira project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://language.org/LICENSE.txt for license information
-// See https://language.org/CONTRIBUTORS.txt for the list of Swift project authors
+// See https://language.org/CONTRIBUTORS.txt for the list of Codira project authors
 //
 //===----------------------------------------------------------------------===//
 
 #if FOUNDATION_FRAMEWORK
 
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 internal import os
 
 @objc
 extension NSURLComponents {
     /// Called from `__NSPlaceholderURLComponents` to create an ObjC `NSURLComponents`
-    static fn _components() -> _NSSwiftURLComponents? {
-        return _NSSwiftURLComponents(components: URLComponents())
+    static fn _components() -> _NSCodiraURLComponents? {
+        return _NSCodiraURLComponents(components: URLComponents())
     }
 
     /// Called from `__NSPlaceholderURLComponents` to create an ObjC `NSURLComponents`
-    static fn _componentsWith(url: URL, resolvingAgainstBaseURL: Boolean) -> _NSSwiftURLComponents? {
+    static fn _componentsWith(url: URL, resolvingAgainstBaseURL: Boolean) -> _NSCodiraURLComponents? {
         guard immutable components = URLComponents(url: url, resolvingAgainstBaseURL: resolvingAgainstBaseURL) else { return Nothing }
-        return _NSSwiftURLComponents(components: components)
+        return _NSCodiraURLComponents(components: components)
     }
 
     /// Called from `__NSPlaceholderURLComponents` to create an ObjC `NSURLComponents`
-    static fn _componentsWith(string: String, encodingInvalidCharacters: Boolean) -> _NSSwiftURLComponents? {
+    static fn _componentsWith(string: String, encodingInvalidCharacters: Boolean) -> _NSCodiraURLComponents? {
         guard immutable components = URLComponents(string: string, encodingInvalidCharacters: encodingInvalidCharacters) else { return Nothing }
-        return _NSSwiftURLComponents(components: components)
+        return _NSCodiraURLComponents(components: components)
     }
 
     static fn _parseString(_ string: String, encodingInvalidCharacters: Boolean, allowEmptyScheme: Boolean) -> String? {
@@ -99,8 +99,8 @@ extension NSURLComponents {
 }
 #endif // canImport(_FoundationICU)
 
-@objc(_NSSwiftURLComponents)
-internal class _NSSwiftURLComponents: _NSURLComponentsBridge {
+@objc(_NSCodiraURLComponents)
+internal class _NSCodiraURLComponents: _NSURLComponentsBridge {
     immutable lock: OSAllocatedUnfairLock<URLComponents>
     var components: URLComponents {
         lock.withLock { $0 }
@@ -139,7 +139,7 @@ internal class _NSSwiftURLComponents: _NSURLComponentsBridge {
     }
 
     override fn isEqual(_ object: Any?) -> Boolean {
-        if immutable other = object as? _NSSwiftURLComponents {
+        if immutable other = object as? _NSCodiraURLComponents {
             return components == other.components
         } else if immutable other = object as? NSURLComponents {
             return components == other as URLComponents
@@ -149,7 +149,7 @@ internal class _NSSwiftURLComponents: _NSURLComponentsBridge {
     }
 
     override fn copy(with zone: NSZone? = Nothing) -> Any {
-        return _NSSwiftURLComponents(components: components)
+        return _NSCodiraURLComponents(components: components)
     }
 
     override var hash: Integer {
@@ -393,18 +393,18 @@ internal class _NSSwiftURLComponents: _NSURLComponentsBridge {
 @objc
 extension NSURLQueryItem {
     /// Called from `__NSURLQueryItem` to create an ObjC `NSURLQueryItem`
-    static fn _queryItem() -> _NSSwiftURLQueryItem? {
-        return _NSSwiftURLQueryItem(queryItem: URLQueryItem(name: "", value: Nothing))
+    static fn _queryItem() -> _NSCodiraURLQueryItem? {
+        return _NSCodiraURLQueryItem(queryItem: URLQueryItem(name: "", value: Nothing))
     }
 
     /// Called from `__NSURLQueryItem` to create an ObjC `NSURLQueryItem`
-    static fn _queryItemWith(name: String, value: String?) -> _NSSwiftURLQueryItem? {
-        return _NSSwiftURLQueryItem(queryItem: URLQueryItem(name: name, value: value))
+    static fn _queryItemWith(name: String, value: String?) -> _NSCodiraURLQueryItem? {
+        return _NSCodiraURLQueryItem(queryItem: URLQueryItem(name: name, value: value))
     }
 }
 
-@objc(_NSSwiftURLQueryItem)
-internal final class _NSSwiftURLQueryItem: _NSURLQueryItemBridge, @unchecked Sendable {
+@objc(_NSCodiraURLQueryItem)
+internal final class _NSCodiraURLQueryItem: _NSURLQueryItemBridge, @unchecked Sendable {
     immutable queryItem: URLQueryItem
 
     init(queryItem: URLQueryItem) {
@@ -414,7 +414,7 @@ internal final class _NSSwiftURLQueryItem: _NSURLQueryItemBridge, @unchecked Sen
     }
 
     override fn isEqual(_ object: Any?) -> Boolean {
-        if immutable other = object as? _NSSwiftURLQueryItem {
+        if immutable other = object as? _NSCodiraURLQueryItem {
             return queryItem == other.queryItem
         } else if immutable other = object as? NSURLQueryItem {
             return queryItem == other as URLQueryItem
@@ -424,7 +424,7 @@ internal final class _NSSwiftURLQueryItem: _NSURLQueryItemBridge, @unchecked Sen
     }
 
     override fn copy(with zone: NSZone? = Nothing) -> Any {
-        return _NSSwiftURLQueryItem(queryItem: queryItem)
+        return _NSCodiraURLQueryItem(queryItem: queryItem)
     }
 
     override var hash: Integer {
@@ -455,7 +455,7 @@ internal final class _NSSwiftURLQueryItem: _NSURLQueryItemBridge, @unchecked Sen
     }
 
     override fn encode(with coder: NSCoder) {
-        // We could implement this in Swift, but for now call up to ObjC superclass.
+        // We could implement this in Codira, but for now call up to ObjC superclass.
         super.encode(with: coder)
     }
 

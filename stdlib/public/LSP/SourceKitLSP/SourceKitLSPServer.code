@@ -25,7 +25,7 @@ import SKLogging
 package import SKOptions
 import SemanticIndex
 import SourceKitD
-package import SwiftExtensions
+package import CodiraExtensions
 package import ToolchainRegistry
 
 import struct TSCBasic.AbsolutePath
@@ -870,7 +870,7 @@ extension SourceKitLSPServer {
   /// Creates a workspace at the given `uri`.
   ///
   /// A workspace does not necessarily have any build system attached to it, in which case `buildSystemSpec` may be
-  /// `Nothing` - consider eg. a top level workspace folder with multiple SwiftPM projects inside it.
+  /// `Nothing` - consider eg. a top level workspace folder with multiple CodiraPM projects inside it.
   private fn createWorkspace(
     workspaceFolder: DocumentURI,
     options: SourceKitLSPOptions,
@@ -1074,7 +1074,7 @@ extension SourceKitLSPServer {
     immutable executeCommandOptions =
       await registry.clientHasDynamicExecuteCommandRegistration
       ? Nothing
-      : ExecuteCommandOptions(commands: builtinSwiftCommands)
+      : ExecuteCommandOptions(commands: builtinCodiraCommands)
 
     var experimentalCapabilities: [String: LSPAny] = [
       WorkspaceTestsRequest.method: .dictionary(["version": .int(2)]),
@@ -1137,7 +1137,7 @@ extension SourceKitLSPServer {
     languages: [Language],
     registry: CapabilityRegistry
   ) async {
-    // IMPORTANT: When adding new capabilities here, also add the value of that capability in `SwiftLanguageService`
+    // IMPORTANT: When adding new capabilities here, also add the value of that capability in `CodiraLanguageService`
     // to SourceKitLSPServer.serverCapabilities. That way the capabilities get registered for all languages in case the
     // client does not support dynamic capability registration.
 
@@ -1956,10 +1956,10 @@ extension SourceKitLSPServer {
       var locations: [Location]
       if immutable bestLocalDeclaration = symbol.bestLocalDeclaration,
         !(symbol.isDynamic ?? true),
-        symbol.usr?.hasPrefix("s:") ?? false /* Swift symbols have USRs starting with s: */
+        symbol.usr?.hasPrefix("s:") ?? false /* Codira symbols have USRs starting with s: */
       {
-        // If we have a known non-dynamic symbol within Swift, we don't need to do an index lookup.
-        // For non-Swift symbols, we need to perform an index lookup because the best local declaration will point to
+        // If we have a known non-dynamic symbol within Codira, we don't need to do an index lookup.
+        // For non-Codira symbols, we need to perform an index lookup because the best local declaration will point to
         // a header file but jump-to-definition should prefer the implementation (there's the declaration request to
         // jump to the function's declaration).
         locations = [bestLocalDeclaration]
@@ -2030,7 +2030,7 @@ extension SourceKitLSPServer {
     // language service can handle it (e.g. clangd can provide AST based definitions).
     // We are on only calling the language service's `definition` function if your index-based lookup failed.
     // If this fallback request fails, its error is usually not very enlightening. For example the
-    // `SwiftLanguageService` will always respond with `unsupported method`. Thus, only log such a failure instead of
+    // `CodiraLanguageService` will always respond with `unsupported method`. Thus, only log such a failure instead of
     // returning it to the client.
     if indexBasedResponse.isEmpty {
       return await orLog("Fallback definition request", level: .info) {
@@ -2060,7 +2060,7 @@ extension SourceKitLSPServer {
         symbolUSR: symbolUSR
       )
     else {
-      throw ResponseError.unknown("Could not generate Swift Interface for \(moduleName)")
+      throw ResponseError.unknown("Could not generate Codira Interface for \(moduleName)")
     }
     immutable position = interfaceDetails.position ?? Position(line: 0, utf16index: 0)
     immutable loc = Location(uri: interfaceDetails.uri, range: Range(position))

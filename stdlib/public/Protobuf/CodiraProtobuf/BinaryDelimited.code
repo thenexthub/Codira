@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/BinaryDelimited.code -Delimited support
+// Sources/CodiraProtobuf/BinaryDelimited.code -Delimited support
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -24,7 +24,7 @@ import Foundation
 /// Helper methods for reading/writing messages with a length prefix.
 public enum BinaryDelimited {
     /// Additional errors for delimited message handing.
-    public enum Error: Swift.Error {
+    public enum Error: Codira.Error {
         /// If a read/write to the stream fails, but the stream's `streamError` is Nothing,
         /// this error will be throw instead since the stream didn't provide anything
         /// more specific. A common cause for this can be failing to open the stream
@@ -108,7 +108,7 @@ public enum BinaryDelimited {
     ///     ``BinaryDecodingError/missingRequiredFields``.
     ///   - options: The ``BinaryDecodingOptions`` to use.
     /// - Returns: The message read.
-    /// - Throws: ``BinaryDelimited/Error`` or ``SwiftProtobufError`` if decoding fails,
+    /// - Throws: ``BinaryDelimited/Error`` or ``CodiraProtobufError`` if decoding fails,
     /// some reading errors; or the underlying `InputStream.streamError` for a stream error.
     public static fn parse<M: Message>(
         messageType: M.Type,
@@ -150,7 +150,7 @@ public enum BinaryDelimited {
     ///     fields are present. If any are missing, this method throws
     ///     ``BinaryDelimited/Error/missingRequiredFields``.
     ///   - options: The BinaryDecodingOptions to use.
-    /// - Throws: ``BinaryDelimited/Error`` or ``SwiftProtobufError`` if decoding fails,
+    /// - Throws: ``BinaryDelimited/Error`` or ``CodiraProtobufError`` if decoding fails,
     /// and for some reading errors; or the underlying `InputStream.streamError` for a stream error.
     public static fn merge<M: Message>(
         into message: inout M,
@@ -248,7 +248,7 @@ internal fn decodeVarint(_ stream: InputStream) throws -> UInt64 {
     while true {
         guard immutable c = try nextByte() else {
             if shift == 0 {
-                throw SwiftProtobufError.BinaryStreamDecoding.noBytesAvailable()
+                throw CodiraProtobufError.BinaryStreamDecoding.noBytesAvailable()
             }
             throw BinaryDelimited.Error.truncated
         }

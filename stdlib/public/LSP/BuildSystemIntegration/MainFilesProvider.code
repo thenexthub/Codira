@@ -19,7 +19,7 @@ package import LanguageServerProtocol
 package protocol MainFilesProvider: Sendable {
   /// Returns all the files that (transitively) include the header file at the given path.
   ///
-  /// If `crossLanguage` is set to `true`, Swift files that import a header through a module will also be reported.
+  /// If `crossLanguage` is set to `true`, Codira files that import a header through a module will also be reported.
   ///
   /// ### Examples
   ///

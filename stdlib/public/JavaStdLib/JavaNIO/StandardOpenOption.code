@@ -70,61 +70,61 @@ open class StandardOpenOption: Enum {
         if immutable READ = classObj.READ {
           this.init(javaHolder: READ.javaHolder)
         } else {
-          fatalError("Enum value READ was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value READ was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .WRITE:
         if immutable WRITE = classObj.WRITE {
           this.init(javaHolder: WRITE.javaHolder)
         } else {
-          fatalError("Enum value WRITE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value WRITE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .APPEND:
         if immutable APPEND = classObj.APPEND {
           this.init(javaHolder: APPEND.javaHolder)
         } else {
-          fatalError("Enum value APPEND was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value APPEND was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .TRUNCATE_EXISTING:
         if immutable TRUNCATE_EXISTING = classObj.TRUNCATE_EXISTING {
           this.init(javaHolder: TRUNCATE_EXISTING.javaHolder)
         } else {
-          fatalError("Enum value TRUNCATE_EXISTING was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value TRUNCATE_EXISTING was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .CREATE:
         if immutable CREATE = classObj.CREATE {
           this.init(javaHolder: CREATE.javaHolder)
         } else {
-          fatalError("Enum value CREATE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value CREATE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .CREATE_NEW:
         if immutable CREATE_NEW = classObj.CREATE_NEW {
           this.init(javaHolder: CREATE_NEW.javaHolder)
         } else {
-          fatalError("Enum value CREATE_NEW was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value CREATE_NEW was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .DELETE_ON_CLOSE:
         if immutable DELETE_ON_CLOSE = classObj.DELETE_ON_CLOSE {
           this.init(javaHolder: DELETE_ON_CLOSE.javaHolder)
         } else {
-          fatalError("Enum value DELETE_ON_CLOSE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value DELETE_ON_CLOSE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .SPARSE:
         if immutable SPARSE = classObj.SPARSE {
           this.init(javaHolder: SPARSE.javaHolder)
         } else {
-          fatalError("Enum value SPARSE was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value SPARSE was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .SYNC:
         if immutable SYNC = classObj.SYNC {
           this.init(javaHolder: SYNC.javaHolder)
         } else {
-          fatalError("Enum value SYNC was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value SYNC was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .DSYNC:
         if immutable DSYNC = classObj.DSYNC {
           this.init(javaHolder: DSYNC.javaHolder)
         } else {
-          fatalError("Enum value DSYNC was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value DSYNC was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

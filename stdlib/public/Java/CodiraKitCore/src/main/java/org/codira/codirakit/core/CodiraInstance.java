@@ -17,12 +17,12 @@ package org.code.codekit.core;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public abstract class SwiftInstance {
+public abstract class CodiraInstance {
     /// Pointer to the "this".
     private final long selfPointer;
 
     /**
-     * The pointer to the instance in memory. I.e. the {@code this} of the Swift object or value.
+     * The pointer to the instance in memory. I.e. the {@code this} of the Codira object or value.
      */
     public final long pointer() {
         return this.selfPointer;
@@ -33,7 +33,7 @@ public abstract class SwiftInstance {
      * <p/>
      * <b>Warning:</b> The cleanup action must not capture {@code this}.
      */
-    public abstract SwiftInstanceCleanup createCleanupAction();
+    public abstract CodiraInstanceCleanup createCleanupAction();
 
     // TODO: make this a flagset integer and/or use a field updater
     /** Used to track additional state of the underlying object, e.g. if it was explicitly destroyed. */
@@ -43,20 +43,20 @@ public abstract class SwiftInstance {
      * Exposes a boolean value which can be used to indicate if the object was destroyed.
      * <p/>
      * This is exposing the object, rather than performing the action because we don't want to accidentally
-     * form a strong reference to the {@code SwiftInstance} which could prevent the cleanup from running,
-     * if using an GC managed instance (e.g. using an {@link AutoSwiftMemorySession}.
+     * form a strong reference to the {@code CodiraInstance} which could prevent the cleanup from running,
+     * if using an GC managed instance (e.g. using an {@link AutoCodiraMemorySession}.
      */
     public final AtomicBoolean $statusDestroyedFlag() {
         return this.$state$destroyed;
     }
 
     /**
-     * The designated constructor of any imported Swift types.
+     * The designated constructor of any imported Codira types.
      *
      * @param pointer a pointer to the memory containing the value
      * @param arena the arena this object belongs to. When the arena goes out of scope, this value is destroyed.
      */
-    protected SwiftInstance(long pointer, SwiftArena arena) {
+    protected CodiraInstance(long pointer, CodiraArena arena) {
         this.selfPointer = pointer;
         arena.register(this);
     }

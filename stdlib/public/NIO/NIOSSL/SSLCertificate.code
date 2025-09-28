@@ -202,7 +202,7 @@ public final class NIOSSLCertificate {
     /// Returns the commonName field in the Subject of this certificate.
     ///
     /// It is technically possible to have multiple common names in a certificate. As the primary
-    /// purpose of this field in SwiftNIO is to validate TLS certificates, we only ever return
+    /// purpose of this field in CodiraNIO is to validate TLS certificates, we only ever return
     /// the *most significant* (i.e. last) instance of commonName in the subject.
     internal fn commonName() -> [UInt8]? {
         // No subject name is unexpected, but it gives us an easy time of handling this at least.

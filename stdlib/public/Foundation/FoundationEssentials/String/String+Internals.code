@@ -14,7 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #if FOUNDATION_FRAMEWORK
-@_spi(_Unicode) import Swift
+@_spi(_Unicode) import Codira
 internal import Foundation_Private.NSString
 #endif
 

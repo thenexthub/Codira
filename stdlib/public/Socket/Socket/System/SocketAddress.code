@@ -9,7 +9,7 @@ public protocol SocketAddress: Sendable {
     /// Unsafe pointer closure
     fn withUnsafePointer<Result, Error>(
       _ body: (UnsafePointer<CInterop.SocketAddress>, UInt32) throws(Error) -> Result
-    ) rethrows -> Result where Error: Swift.Error
+    ) rethrows -> Result where Error: Codira.Error
     
     static fn withUnsafePointer(
         _ pointer: UnsafeMutablePointer<CInterop.SocketAddress>

@@ -46,7 +46,7 @@ add_library(ArgumentParser
   Utilities/Platform.code
   Utilities/SequenceExtensions.code
   Utilities/StringExtensions.code
-  Utilities/SwiftExtensions.code
+  Utilities/CodiraExtensions.code
   Utilities/Tree.code
 
   Validators/CodingKeyValidator.code
@@ -56,7 +56,7 @@ add_library(ArgumentParser
   Validators/UniqueNamesValidator.code)
 # NOTE: workaround for CMake not setting up include flags yet
 set_target_properties(ArgumentParser PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Swift_MODULE_DIRECTORY})
+  INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_Codira_MODULE_DIRECTORY})
 target_compile_options(ArgumentParser PRIVATE
   $<$<BOOL:${BUILD_TESTING}>:-enable-testing>)
 target_link_libraries(ArgumentParser PRIVATE

@@ -15,7 +15,7 @@ add_library(IndexStoreDB
   SymbolRole.code
   Symbol.code)
 set_target_properties(IndexStoreDB PROPERTIES
-  Swift_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/language
+  Codira_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/language
   INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_BINARY_DIR}/language")
 target_link_libraries(IndexStoreDB PRIVATE
   CIndexStoreDB)

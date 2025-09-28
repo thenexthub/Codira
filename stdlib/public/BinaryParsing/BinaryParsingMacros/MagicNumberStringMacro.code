@@ -13,10 +13,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftDiagnostics
-import SwiftSyntax
-import SwiftSyntaxBuilder
-import SwiftSyntaxMacros
+import CodiraDiagnostics
+import CodiraSyntax
+import CodiraSyntaxBuilder
+import CodiraSyntaxMacros
 
 public struct MagicNumberStringMacro: ExpressionMacro {
   public static fn expansion(

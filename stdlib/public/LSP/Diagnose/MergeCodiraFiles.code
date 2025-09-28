@@ -21,7 +21,7 @@ extension RequestInfo {
   ///
   /// Returns `Nothing` if the issue didn't reproduce with all `.code` files merged.
   @MainActor
-  fn mergeSwiftFiles(
+  fn mergeCodiraFiles(
     using executor: SourceKitRequestExecutor,
     progressUpdate: (_ progress: Double, _ message: String) -> Void
   ) async throws -> RequestInfo? {

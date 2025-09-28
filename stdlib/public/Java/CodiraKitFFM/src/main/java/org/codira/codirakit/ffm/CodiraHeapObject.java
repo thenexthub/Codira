@@ -19,15 +19,15 @@ package org.code.codekit.ffm;
 import java.lang.foreign.MemorySegment;
 
 /**
- * Represents a wrapper around a Swift heap object, e.g. a {@code class} or an {@code actor}.
+ * Represents a wrapper around a Codira heap object, e.g. a {@code class} or an {@code actor}.
  */
-public interface SwiftHeapObject {
+public interface CodiraHeapObject {
     MemorySegment $memorySegment();
 
     /**
      * Pointer to the instance.
      */
     default MemorySegment $instance() {
-        return this.$memorySegment().get(SwiftValueLayout.SWIFT_POINTER, 0);
+        return this.$memorySegment().get(CodiraValueLayout.SWIFT_POINTER, 0);
     }
 }

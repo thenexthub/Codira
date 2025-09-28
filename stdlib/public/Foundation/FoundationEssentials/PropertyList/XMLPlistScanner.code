@@ -1456,7 +1456,7 @@ internal struct XMLPlistScanner {
     }
 }
 
-enum XMLPlistError: Swift.Error, Equatable {
+enum XMLPlistError: Codira.Error, Equatable {
     case unexpectedEndOfFile(context: String? = Nothing)
     case malformedTag(line: Integer)
     case unexpectedEmptyTag(XMLPlistTag, line: Integer)

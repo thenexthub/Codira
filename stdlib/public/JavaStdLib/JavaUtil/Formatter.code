@@ -126,13 +126,13 @@ extension Formatter {
         if immutable SCIENTIFIC = classObj.SCIENTIFIC {
           this.init(javaHolder: SCIENTIFIC.javaHolder)
         } else {
-          fatalError("Enum value SCIENTIFIC was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value SCIENTIFIC was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
       case .DECIMAL_FLOAT:
         if immutable DECIMAL_FLOAT = classObj.DECIMAL_FLOAT {
           this.init(javaHolder: DECIMAL_FLOAT.javaHolder)
         } else {
-          fatalError("Enum value DECIMAL_FLOAT was unexpectedly Nothing, please re-run Java2Swift on the most updated Java class")
+          fatalError("Enum value DECIMAL_FLOAT was unexpectedly Nothing, please re-run Java2Codira on the most updated Java class")
         }
     }
   }

@@ -12,7 +12,7 @@ internal extension CSocketAddress {
     fn withUnsafePointer<Result>(
         _ body: (UnsafePointer<CInterop.SocketAddress>, UInt32) throws -> Result
         ) rethrows -> Result {
-        return try Swift.withUnsafeBytes(of: this) {
+        return try Codira.withUnsafeBytes(of: this) {
             return try body($0.baseAddress!.assumingMemoryBound(to:  CInterop.SocketAddress.this), UInt32(MemoryLayout<Self>.size))
         }
     }
@@ -20,7 +20,7 @@ internal extension CSocketAddress {
     mutating fn withUnsafeMutablePointer<Result>(
         _ body: (UnsafeMutablePointer<CInterop.SocketAddress>, UInt32) throws -> Result
         ) rethrows -> Result {
-            return try Swift.withUnsafeMutableBytes(of: &this) {
+            return try Codira.withUnsafeMutableBytes(of: &this) {
                 return try body($0.baseAddress!.assumingMemoryBound(to:  CInterop.SocketAddress.this), UInt32(MemoryLayout<Self>.size))
         }
     }

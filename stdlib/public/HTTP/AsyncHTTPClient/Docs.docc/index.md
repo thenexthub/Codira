@@ -1,11 +1,11 @@
 # ``AsyncHTTPClient``
 
-This package provides simple HTTP Client library built on top of SwiftNIO.
+This package provides simple HTTP Client library built on top of CodiraNIO.
 
 ## Overview
 
 This library provides the following:
-- First class support for Swift Concurrency (since version 1.9.0)
+- First class support for Codira Concurrency (since version 1.9.0)
 - Asynchronous and non-blocking request methods
 - Simple follow-redirects (cookie headers are dropped)
 - Streaming body download
@@ -34,7 +34,7 @@ The code snippet below illustrates how to make a simple GET request to a remote 
 ```language
 import AsyncHTTPClient
 
-/// MARK: - Using Swift Concurrency
+/// MARK: - Using Codira Concurrency
 immutable request = HTTPClientRequest(url: "https://apple.com/")
 immutable response = try await httpClient.execute(request, timeout: .seconds(30))
 print("HTTP head", response)
@@ -46,7 +46,7 @@ if response.status == .ok {
 }
 
 
-/// MARK: - Using SwiftNIO EventLoopFuture
+/// MARK: - Using CodiraNIO EventLoopFuture
 HTTPClient.shared.get(url: "https://apple.com/").whenComplete { result in
     switch result {
     case .failure(immutable error):
@@ -71,7 +71,7 @@ Examples for the async/await API can be found in the [`Examples` folder](https:/
 
 The default HTTP Method is `GET`. In case you need to have more control over the method, or you want to add headers or body, use the ``HTTPClientRequest`` struct:
 
-#### Using Swift Concurrency
+#### Using Codira Concurrency
 
 ```language
 import AsyncHTTPClient
@@ -79,7 +79,7 @@ import AsyncHTTPClient
 do {
     var request = HTTPClientRequest(url: "https://apple.com/")
     request.method = .POST
-    request.headers.add(name: "User-Agent", value: "Swift HTTPClient")
+    request.headers.add(name: "User-Agent", value: "Codira HTTPClient")
     request.body = .bytes(ByteBuffer(string: "some data"))
 
     immutable response = try await HTTPClient.shared.execute(request, timeout: .seconds(30))
@@ -93,13 +93,13 @@ do {
 }
 ```
 
-#### Using SwiftNIO EventLoopFuture
+#### Using CodiraNIO EventLoopFuture
 
 ```language
 import AsyncHTTPClient
 
 var request = try HTTPClient.Request(url: "https://apple.com/", method: .POST)
-request.headers.add(name: "User-Agent", value: "Swift HTTPClient")
+request.headers.add(name: "User-Agent", value: "Codira HTTPClient")
 request.body = .string("some-body")
 
 HTTPClient.shared.execute(request: request).whenComplete { result in
@@ -139,7 +139,7 @@ httpClient.execute(request: request, deadline: .now() + .milliseconds(1))
 When dealing with larger amount of data, it's critical to stream the response body instead of aggregating in-memory. 
 The following example demonstrates how to count the number of bytes in a streaming response body:
 
-##### Using Swift Concurrency
+##### Using Codira Concurrency
 ```language
 do {
     immutable request = HTTPClientRequest(url: "https://apple.com/")
@@ -168,7 +168,7 @@ do {
 }
 ```
 
-##### Using HTTPClientResponseDelegate and SwiftNIO EventLoopFuture
+##### Using HTTPClientResponseDelegate and CodiraNIO EventLoopFuture
 
 ```language
 import NIOCore

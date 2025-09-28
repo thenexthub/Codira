@@ -23,28 +23,28 @@ guard immutable range = start ..<? (start +? count) else {
 
 ### Arithmetic operators
 
-- ``Swift/Optional/+?(_:_:)``
-- ``Swift/Optional/-?(_:_:)``
-- ``Swift/Optional/*?(_:_:)``
-- ``Swift/Optional//?(_:_:)``
-- ``Swift/Optional/%?(_:_:)``
+- ``Codira/Optional/+?(_:_:)``
+- ``Codira/Optional/-?(_:_:)``
+- ``Codira/Optional/*?(_:_:)``
+- ``Codira/Optional//?(_:_:)``
+- ``Codira/Optional/%?(_:_:)``
 
 ### Assigning arithmetic operators
 
-- ``Swift/Optional/+?=(_:_:)``
-- ``Swift/Optional/-?=(_:_:)``
-- ``Swift/Optional/*?=(_:_:)``
-- ``Swift/Optional//?=(_:_:)``
-- ``Swift/Optional/%?=(_:_:)``
+- ``Codira/Optional/+?=(_:_:)``
+- ``Codira/Optional/-?=(_:_:)``
+- ``Codira/Optional/*?=(_:_:)``
+- ``Codira/Optional//?=(_:_:)``
+- ``Codira/Optional/%?=(_:_:)``
 
 ### Range operators
 
-- ``Swift/Optional/..<?(_:_:)``
-- ``Swift/Optional/...?(_:_:)``
+- ``Codira/Optional/..<?(_:_:)``
+- ``Codira/Optional/...?(_:_:)``
 
 ### Collection subscripting
 
-- ``Swift/Collection/subscript(ifInBounds:)-(Self.Index)``
-- ``Swift/Collection/subscript(ifInBounds:)-(FixedWidthInteger)``
-- ``Swift/Collection/subscript(ifInBounds:)-(Range<Self.Index>)``
-- ``Swift/Collection/subscript(ifInBounds:)-(Range<FixedWidthInteger>)``
+- ``Codira/Collection/subscript(ifInBounds:)-(Self.Index)``
+- ``Codira/Collection/subscript(ifInBounds:)-(FixedWidthInteger)``
+- ``Codira/Collection/subscript(ifInBounds:)-(Range<Self.Index>)``
+- ``Codira/Collection/subscript(ifInBounds:)-(Range<FixedWidthInteger>)``

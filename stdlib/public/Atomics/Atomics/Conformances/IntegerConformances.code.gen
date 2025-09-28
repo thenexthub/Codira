@@ -16,7 +16,7 @@
   from gyb_utils import *
 
   integerTypes = [
-    # Swift        Storage                     ShimName
+    # Codira        Storage                     ShimName
     ("Int8",       "_AtomicInt8Storage",       "Int8"),
     ("Int16",      "_AtomicInt16Storage",      "Int16"),
     ("Int32",      "_AtomicInt32Storage",      "Int32"),

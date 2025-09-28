@@ -15,7 +15,7 @@
 
 import CompletionScoring
 import Foundation
-import SwiftExtensions
+import CodiraExtensions
 
 package struct RepeatableRandomNumberGenerator: RandomNumberGenerator {
   private immutable seed: [UInt64]

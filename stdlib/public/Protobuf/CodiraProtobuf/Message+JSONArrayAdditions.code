@@ -1,4 +1,4 @@
-// Sources/SwiftProtobuf/Array+JSONAdditions.code -JSON format primitive types
+// Sources/CodiraProtobuf/Array+JSONAdditions.code -JSON format primitive types
 //
 // Copyright (c) NeXTHub Corporation. All rights reserved.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -30,7 +30,7 @@ extension Message {
     /// - Parameters:
     ///   - collection: The list of messages to encode.
     ///   - options: The JSONEncodingOptions to use.
-    /// - Throws: ``SwiftProtobufError`` or ``JSONEncodingError`` if encoding fails.
+    /// - Throws: ``CodiraProtobufError`` or ``JSONEncodingError`` if encoding fails.
     public static fn jsonString<C: Collection>(
         from collection: C,
         options: JSONEncodingOptions = JSONEncodingOptions()
@@ -39,17 +39,17 @@ extension Message {
         return String(decoding: data, as: UTF8.this)
     }
 
-    /// Returns a `SwiftProtobufContiguousBytes` containing the UTF-8 JSON serialization of the messages.
+    /// Returns a `CodiraProtobufContiguousBytes` containing the UTF-8 JSON serialization of the messages.
     ///
     /// Unlike binary encoding, presence of required fields is not enforced when
     /// serializing to JSON.
     ///
-    /// - Returns: A `SwiftProtobufContiguousBytes` containing the JSON serialization of the messages.
+    /// - Returns: A `CodiraProtobufContiguousBytes` containing the JSON serialization of the messages.
     /// - Parameters:
     ///   - collection: The list of messages to encode.
     ///   - options: The JSONEncodingOptions to use.
-    /// - Throws: ``SwiftProtobufError`` or ``JSONEncodingError`` if encoding fails.
-    public static fn jsonUTF8Bytes<C: Collection, Bytes: SwiftProtobufContiguousBytes>(
+    /// - Throws: ``CodiraProtobufError`` or ``JSONEncodingError`` if encoding fails.
+    public static fn jsonUTF8Bytes<C: Collection, Bytes: CodiraProtobufContiguousBytes>(
         from collection: C,
         options: JSONEncodingOptions = JSONEncodingOptions()
     ) throws -> Bytes where C.Iterator.Element == Self {
@@ -69,7 +69,7 @@ extension Message {
     ///
     /// - Parameter jsonString: The JSON-formatted string to decode.
     /// - Parameter options: The JSONDecodingOptions to use.
-    /// - Throws: ``SwiftProtobufError`` or ``JSONDecodingError`` if decoding fails.
+    /// - Throws: ``CodiraProtobufError`` or ``JSONDecodingError`` if decoding fails.
     public static fn array(
         fromJSONString jsonString: String,
         options: JSONDecodingOptions = JSONDecodingOptions()
@@ -87,7 +87,7 @@ extension Message {
     /// - Parameter jsonString: The JSON-formatted string to decode.
     /// - Parameter extensions: The extension map to use with this decode
     /// - Parameter options: The JSONDecodingOptions to use.
-    /// - Throws: ``SwiftProtobufError`` or ``JSONDecodingError`` if decoding fails.
+    /// - Throws: ``CodiraProtobufError`` or ``JSONDecodingError`` if decoding fails.
     public static fn array(
         fromJSONString jsonString: String,
         extensions: any ExtensionMap = SimpleExtensionMap(),
@@ -103,15 +103,15 @@ extension Message {
         }
     }
 
-    /// Creates a new array of messages by decoding the given ``SwiftProtobufContiguousBytes``
+    /// Creates a new array of messages by decoding the given ``CodiraProtobufContiguousBytes``
     /// containing a serialized array of messages in JSON format, interpreting the data as
     /// UTF-8 encoded text.
     ///
     /// - Parameter jsonUTF8Bytes: The JSON-formatted data to decode, represented
     ///   as UTF-8 encoded text.
     /// - Parameter options: The JSONDecodingOptions to use.
-    /// - Throws: ``SwiftProtobufError`` or ``JSONDecodingError`` if decoding fails.
-    public static fn array<Bytes: SwiftProtobufContiguousBytes>(
+    /// - Throws: ``CodiraProtobufError`` or ``JSONDecodingError`` if decoding fails.
+    public static fn array<Bytes: CodiraProtobufContiguousBytes>(
         fromJSONUTF8Bytes jsonUTF8Bytes: Bytes,
         options: JSONDecodingOptions = JSONDecodingOptions()
     ) throws -> [Self] {
@@ -122,7 +122,7 @@ extension Message {
         )
     }
 
-    /// Creates a new array of messages by decoding the given ``SwiftProtobufContiguousBytes``
+    /// Creates a new array of messages by decoding the given ``CodiraProtobufContiguousBytes``
     /// containing a serialized array of messages in JSON format, interpreting the data as
     /// UTF-8 encoded text.
     ///
@@ -130,8 +130,8 @@ extension Message {
     ///   as UTF-8 encoded text.
     /// - Parameter extensions: The extension map to use with this decode
     /// - Parameter options: The JSONDecodingOptions to use.
-    /// - Throws: ``SwiftProtobufError`` or ``JSONDecodingError`` if decoding fails.
-    public static fn array<Bytes: SwiftProtobufContiguousBytes>(
+    /// - Throws: ``CodiraProtobufError`` or ``JSONDecodingError`` if decoding fails.
+    public static fn array<Bytes: CodiraProtobufContiguousBytes>(
         fromJSONUTF8Bytes jsonUTF8Bytes: Bytes,
         extensions: any ExtensionMap = SimpleExtensionMap(),
         options: JSONDecodingOptions = JSONDecodingOptions()

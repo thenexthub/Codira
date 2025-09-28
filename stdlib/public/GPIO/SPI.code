@@ -1,5 +1,5 @@
 /*
- SwiftyGPIO
+ CodirayGPIO
 
  Copyright (c) 2016 Umberto Raimondi
  Licensed under the MIT license, as follows:
@@ -28,7 +28,7 @@
     import Darwin.C
 #endif
 
-extension SwiftyGPIO {
+extension CodirayGPIO {
 
     public static func hardwareSPIs(for board: SupportedBoard) -> [SPIInterface]? {
         switch board {
@@ -49,7 +49,7 @@ extension SwiftyGPIO {
 }
 
 // MARK: - SPI Presets
-extension SwiftyGPIO {
+extension CodirayGPIO {
     // RaspberryPis SPIs
     static let SPIRPI: [Int:SPIInterface] = [
         0: SysFSSPI(spiId:"0.0"),

@@ -13,7 +13,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import SwiftSyntax
+import CodiraSyntax
 
 class SyntaxVisitorPredicate<T>: SyntaxVisitor {
   var result: T?

@@ -13,8 +13,8 @@
 //
 // -----------------------------------------------------------------------------
 
-import SwiftProtobuf
-import SwiftProtobufPluginLibrary
+import CodiraProtobuf
+import CodiraProtobufPluginLibrary
 
 /// A convenience wrapper that adds operations to write `ProtoNameInstruction`s and their operands
 /// into bytecode streams.

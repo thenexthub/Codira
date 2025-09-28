@@ -263,7 +263,7 @@ private extension AsyncSocketManager {
             return socket // execute immediately
         }
         // store continuation to resume when event is polled
-        try await withThrowingContinuation(for: fileDescriptor) { (continuation: SocketContinuation<(), Swift.Error>) -> () in
+        try await withThrowingContinuation(for: fileDescriptor) { (continuation: SocketContinuation<(), Codira.Error>) -> () in
             // store pending continuation
             Task(priority: .userInitiated) {
                 await log("Will wait for \(events) for \(fileDescriptor)")

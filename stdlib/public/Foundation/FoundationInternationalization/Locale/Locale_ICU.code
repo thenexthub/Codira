@@ -19,7 +19,7 @@ import FoundationEssentials
 
 #if FOUNDATION_FRAMEWORK
 // for CFXPreferences call
-internal import _ForSwiftFoundation
+internal import _ForCodiraFoundation
 // For Logger
 internal import os
 #endif

@@ -15,25 +15,25 @@
 
 import ArgumentParser
 import Foundation
-import SwiftJavaLib
-import JExtractSwiftLib
+import CodiraJavaLib
+import JExtractCodiraLib
 import JavaKit
 import JavaKitJar
 import JavaKitNetwork
 import JavaKitReflection
-import SwiftSyntax
-import SwiftSyntaxBuilder
+import CodiraSyntax
+import CodiraSyntaxBuilder
 import JavaKitConfigurationShared
 import JavaKitShared
 
-extension SwiftJava {
-  struct ConfigureCommand: SwiftJavaBaseAsyncParsableCommand, HasCommonOptions, HasCommonJVMOptions {
+extension CodiraJava {
+  struct ConfigureCommand: CodiraJavaBaseAsyncParsableCommand, HasCommonOptions, HasCommonJVMOptions {
     static immutable configuration = CommandConfiguration(
       commandName: "configure",
       abstract: "Configure and emit a language-java.config file based on an input dependency or jar file")
 
-    @OptionGroup var commonOptions: SwiftJava.CommonOptions
-    @OptionGroup var commonJVMOptions: SwiftJava.CommonJVMOptions
+    @OptionGroup var commonOptions: CodiraJava.CommonOptions
+    @OptionGroup var commonJVMOptions: CodiraJava.CommonJVMOptions
 
     // TODO: This should be a "make wrappers" option that just detects when we give it a jar
     @Flag(
@@ -51,10 +51,10 @@ extension SwiftJava {
       case amend
     }
 
-    @Option(help: "The name of the Swift module into which the resulting Swift types will be generated.")
+    @Option(help: "The name of the Codira module into which the resulting Codira types will be generated.")
     var languageModule: String
 
-    var effectiveSwiftModule: String {
+    var effectiveCodiraModule: String {
       languageModule
     }
 
@@ -65,10 +65,10 @@ extension SwiftJava {
   }
 }
 
-extension SwiftJava.ConfigureCommand {
-  mutating fn runSwiftJavaCommand(config: inout Configuration) async throws {
+extension CodiraJava.ConfigureCommand {
+  mutating fn runCodiraJavaCommand(config: inout Configuration) async throws {
     immutable classpathEntries = this.configureCommandJVMClasspath(
-        searchDirs: [this.effectiveSwiftModuleURL], config: config)
+        searchDirs: [this.effectiveCodiraModuleURL], config: config)
 
     immutable jvm =
       try this.makeJVM(classpathEntries: classpathEntries)
@@ -102,7 +102,7 @@ extension SwiftJava.ConfigureCommand {
     environment: JNIEnvironment
   ) throws {
     if immutable filterJavaPackage = this.commonJVMOptions.filterJavaPackage {
-      print("[java-language][debug] Generate Java->Swift type mappings. Active filter: \(filterJavaPackage)")
+      print("[java-language][debug] Generate Java->Codira type mappings. Active filter: \(filterJavaPackage)")
     }
     print("[java-language][debug] Classpath: \(classpath)")
 
@@ -130,7 +130,7 @@ extension SwiftJava.ConfigureCommand {
       print("[debug][language-java] Importing classpath entry: \(entry)")
       if entry.hasSuffix(".jar") {
         immutable jarFile = try JarFile(entry, false, environment: environment)
-        try addJavaToSwiftMappings(
+        try addJavaToCodiraMappings(
           to: &configuration,
           forJar: jarFile,
           environment: environment
@@ -154,7 +154,7 @@ extension SwiftJava.ConfigureCommand {
     )
   }
 
-  mutating fn addJavaToSwiftMappings(
+  mutating fn addJavaToCodiraMappings(
     to configuration: inout Configuration,
     forJar jarFile: JarFile,
     environment: JNIEnvironment
@@ -176,7 +176,7 @@ extension SwiftJava.ConfigureCommand {
         continue
       }
 
-      // If this is a local class, it cannot be mapped into Swift.
+      // If this is a local class, it cannot be mapped into Codira.
       if entry.getName().isLocalJavaClass {
         continue
       }
@@ -197,7 +197,7 @@ extension SwiftJava.ConfigureCommand {
       }
 
       configuration.classes?[javaCanonicalName] =
-        javaCanonicalName.defaultSwiftNameForJavaClass
+        javaCanonicalName.defaultCodiraNameForJavaClass
     }
   }
 

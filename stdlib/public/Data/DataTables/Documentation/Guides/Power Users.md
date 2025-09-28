@@ -1,11 +1,11 @@
 # Penguin for Power Users #
 
-Although Penguin is designed to be easy to pick up and get started, Penguin and Swift combine
+Although Penguin is designed to be easy to pick up and get started, Penguin and Codira combine
 together to make powerful analysis concise.
 
 ## Extensions on `PTable` ##
 
-Because `PTable` is just a normal Swift type, you can define extensions on it.
+Because `PTable` is just a normal Codira type, you can define extensions on it.
 
 > Warning: overusing these power features can make your code harder for others (including your
 > "future self") harder to understand later. Use appropriate caution, and happy analyzing!
