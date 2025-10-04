@@ -1,17 +1,32 @@
-//===----------------------------------------------------------------------===//
-//
-// Part of libcu++, the C++ Standard Library for your entire system,
-// under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-// SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES.
-//
-//===----------------------------------------------------------------------===//
+/*
+ *
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ * Date: Tuesday, June 11, 2024.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ *
+ */
 
 #ifndef _CUDA___BARRIER_BARRIER_BLOCK_SCOPE_H
 #define _CUDA___BARRIER_BARRIER_BLOCK_SCOPE_H
 
-#include <cuda/std/detail/__config>
+#include <uscl/std/detail/__config>
 
 #if defined(_CCCL_IMPLICIT_SYSTEM_HEADER_GCC)
 #  pragma GCC system_header
@@ -21,22 +36,22 @@
 #  pragma system_header
 #endif // no system header
 
-#include <cuda/__fwd/barrier.h>
-#include <cuda/__fwd/barrier_native_handle.h>
+#include <uscl/__fwd/barrier.h>
+#include <uscl/__fwd/barrier_native_handle.h>
 #if _CCCL_CUDA_COMPILATION()
 #  include <cuda/__ptx/instructions/get_sreg.h>
 #  include <cuda/__ptx/instructions/mbarrier_arrive.h>
 #  include <cuda/__ptx/ptx_dot_variants.h>
 #  include <cuda/__ptx/ptx_helper_functions.h>
 #endif // _CCCL_CUDA_COMPILATION()
-#include <cuda/__memory/address_space.h>
-#include <cuda/std/__atomic/scopes.h>
-#include <cuda/std/__barrier/barrier.h>
-#include <cuda/std/__barrier/empty_completion.h>
-#include <cuda/std/__barrier/poll_tester.h>
-#include <cuda/std/__new_>
-#include <cuda/std/chrono>
-#include <cuda/std/cstdint>
+#include <uscl/__memory/address_space.h>
+#include <uscl/std/__atomic/scopes.h>
+#include <uscl/std/__barrier/barrier.h>
+#include <uscl/std/__barrier/empty_completion.h>
+#include <uscl/std/__barrier/poll_tester.h>
+#include <uscl/std/__new_>
+#include <uscl/std/chrono>
+#include <uscl/std/cstdint>
 
 #include <nv/target>
 
@@ -46,7 +61,7 @@
 #  define _LIBCUDACXX_OFFSET_IS_ZERO(type, member) !offsetof(type, member)
 #endif // _CCCL_COMPILER(NVRTC)
 
-#include <cuda/std/__cccl/prologue.h>
+#include <uscl/std/__cccl/prologue.h>
 
 _CCCL_BEGIN_NAMESPACE_CUDA
 
@@ -461,6 +476,6 @@ public:
 
 _CCCL_END_NAMESPACE_CUDA
 
-#include <cuda/std/__cccl/epilogue.h>
+#include <uscl/std/__cccl/epilogue.h>
 
 #endif // _CUDA___BARRIER_BARRIER_BLOCK_SCOPE_H

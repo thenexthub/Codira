@@ -23,7 +23,7 @@
  *
  */
 
-#include <cuda/devices>
+#include <uscl/devices>
 
 #include <testing.cuh>
 

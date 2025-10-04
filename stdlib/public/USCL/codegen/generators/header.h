@@ -62,7 +62,7 @@ inline void FormatHeader(std::ostream& out)
 #ifndef _CUDA_STD___ATOMIC_FUNCTIONS_CUDA_PTX_GENERATED_H
 #define _CUDA_STD___ATOMIC_FUNCTIONS_CUDA_PTX_GENERATED_H
 
-#include <cuda/std/detail/__config>
+#include <uscl/std/detail/__config>
 
 #if defined(_CCCL_IMPLICIT_SYSTEM_HEADER_GCC)
 #  pragma GCC system_header
@@ -72,20 +72,20 @@ inline void FormatHeader(std::ostream& out)
 #  pragma system_header
 #endif // no system header
 
-#include <cuda/std/cassert>
-#include <cuda/std/cstdint>
+#include <uscl/std/cassert>
+#include <uscl/std/cstdint>
 
-#include <cuda/std/__type_traits/enable_if.h>
-#include <cuda/std/__type_traits/is_signed.h>
-#include <cuda/std/__type_traits/is_unsigned.h>
+#include <uscl/std/__type_traits/enable_if.h>
+#include <uscl/std/__type_traits/is_signed.h>
+#include <uscl/std/__type_traits/is_unsigned.h>
 
-#include <cuda/std/__atomic/scopes.h>
-#include <cuda/std/__atomic/order.h>
-#include <cuda/std/__atomic/functions/common.h>
-#include <cuda/std/__atomic/functions/cuda_ptx_generated_helper.h>
-#include <cuda/std/__atomic/functions/cuda_local.h>
+#include <uscl/std/__atomic/scopes.h>
+#include <uscl/std/__atomic/order.h>
+#include <uscl/std/__atomic/functions/common.h>
+#include <uscl/std/__atomic/functions/cuda_ptx_generated_helper.h>
+#include <uscl/std/__atomic/functions/cuda_local.h>
 
-#include <cuda/std/__cccl/prologue.h>
+#include <uscl/std/__cccl/prologue.h>
 
 _CCCL_BEGIN_NAMESPACE_CUDA_STD
 
@@ -102,7 +102,7 @@ inline void FormatTail(std::ostream& out)
 
 _CCCL_END_NAMESPACE_CUDA_STD
 
-#include <cuda/std/__cccl/epilogue.h>
+#include <uscl/std/__cccl/epilogue.h>
 
 #endif // _CUDA_STD___ATOMIC_FUNCTIONS_CUDA_PTX_GENERATED_H
 

@@ -23,7 +23,7 @@
  *
  */
 
-#include <cuda/__runtime/ensure_current_context.h>
+#include <uscl/__runtime/ensure_current_context.h>
 
 #include <testing.cuh>
 

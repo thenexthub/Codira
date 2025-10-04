@@ -26,7 +26,7 @@
 #ifndef _CUDA___BARRIER_BARRIER_H
 #define _CUDA___BARRIER_BARRIER_H
 
-#include <cuda/std/detail/__config>
+#include <uscl/std/detail/__config>
 
 #if defined(_CCCL_IMPLICIT_SYSTEM_HEADER_GCC)
 #  pragma GCC system_header
@@ -36,14 +36,14 @@
 #  pragma system_header
 #endif // no system header
 
-#include <cuda/__fwd/barrier.h>
-#include <cuda/std/__atomic/scopes.h>
-#include <cuda/std/__barrier/barrier.h>
-#include <cuda/std/__barrier/empty_completion.h>
-#include <cuda/std/__new_>
-#include <cuda/std/cstdint>
+#include <uscl/__fwd/barrier.h>
+#include <uscl/std/__atomic/scopes.h>
+#include <uscl/std/__barrier/barrier.h>
+#include <uscl/std/__barrier/empty_completion.h>
+#include <uscl/std/__new_>
+#include <uscl/std/cstdint>
 
-#include <cuda/std/__cccl/prologue.h>
+#include <uscl/std/__cccl/prologue.h>
 
 _CCCL_BEGIN_NAMESPACE_CUDA
 
@@ -75,6 +75,6 @@ public:
 
 _CCCL_END_NAMESPACE_CUDA
 
-#include <cuda/std/__cccl/epilogue.h>
+#include <uscl/std/__cccl/epilogue.h>
 
 #endif // _CUDA___BARRIER_BARRIER_H

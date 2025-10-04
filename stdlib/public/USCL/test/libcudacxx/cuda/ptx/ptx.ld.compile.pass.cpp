@@ -26,8 +26,8 @@
 
 // <cuda/ptx>
 
-#include <cuda/ptx>
-#include <cuda/std/utility>
+#include <uscl/ptx>
+#include <uscl/std/utility>
 
 #include "generated/ld.h"
 

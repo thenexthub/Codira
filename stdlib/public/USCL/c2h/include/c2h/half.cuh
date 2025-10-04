@@ -37,8 +37,8 @@
 
 #include <cub/util_type.cuh>
 
-#include <cuda/std/limits>
-#include <cuda/std/type_traits>
+#include <uscl/std/limits>
+#include <uscl/std/type_traits>
 
 #include <cstdint>
 #include <cstring>

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 
-#include <cuda/__cccl_config>
+#include <uscl/__cccl_config>
 
 #ifndef TEST_HALF_T
 #  if _CCCL_HAS_NVFP16()

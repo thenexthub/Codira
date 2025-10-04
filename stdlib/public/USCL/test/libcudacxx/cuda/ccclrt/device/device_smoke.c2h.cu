@@ -23,8 +23,8 @@
  *
  */
 
-#include <cuda/devices>
-#include <cuda/std/__type_traits/is_same.h>
+#include <uscl/devices>
+#include <uscl/std/__type_traits/is_same.h>
 
 #include <testing.cuh>
 

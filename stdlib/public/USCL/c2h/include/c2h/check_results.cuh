@@ -4,8 +4,8 @@
 #include <cub/detail/type_traits.cuh>
 #include <cub/util_device.cuh>
 
-#include <cuda/std/complex>
-#include <cuda/std/type_traits>
+#include <uscl/std/complex>
+#include <uscl/std/type_traits>
 
 #include <test_util.h>
 

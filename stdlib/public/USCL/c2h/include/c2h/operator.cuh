@@ -4,9 +4,9 @@
 
 #include <cub/thread/thread_operators.cuh>
 
-#include <cuda/functional>
-#include <cuda/std/functional>
-#include <cuda/std/limits>
+#include <uscl/functional>
+#include <uscl/std/functional>
+#include <uscl/std/limits>
 
 #include <c2h/custom_type.h>
 #include <c2h/test_util_vec.h>

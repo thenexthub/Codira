@@ -28,9 +28,9 @@
 
 // <cuda/memory>
 
-#include <cuda/memory>
-#include <cuda/std/cassert>
-#include <cuda/std/type_traits>
+#include <uscl/memory>
+#include <uscl/std/cassert>
+#include <uscl/std/type_traits>
 
 #include "test_macros.h"
 

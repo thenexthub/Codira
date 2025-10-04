@@ -23,7 +23,7 @@
  *
  */
 
-#include <cuda/stream>
+#include <uscl/stream>
 
 #include <testing.cuh>
 #include <utility.cuh>

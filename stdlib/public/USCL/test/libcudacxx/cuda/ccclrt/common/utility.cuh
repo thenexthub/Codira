@@ -29,11 +29,11 @@
 #include <cuda_runtime_api.h>
 // cuda_runtime_api needs to come first
 
-#include <cuda/__runtime/ensure_current_context.h>
-#include <cuda/atomic>
-#include <cuda/std/__cuda/api_wrapper.h>
-#include <cuda/std/utility>
-#include <cuda/stream_ref>
+#include <uscl/__runtime/ensure_current_context.h>
+#include <uscl/atomic>
+#include <uscl/std/__cuda/api_wrapper.h>
+#include <uscl/std/utility>
+#include <uscl/stream_ref>
 
 #include <new> // IWYU pragma: keep (needed for placement new)
 

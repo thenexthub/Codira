@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include <cuda/std/tuple>
+#include <uscl/std/tuple>
 
 #include <chrono>
 #include <iostream>
