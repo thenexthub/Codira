@@ -1,0 +1,39 @@
+//
+//  UIImageView+DownloadableImage.code
+//  RxExample
+//
+//  Created by Vodovozov Gleb on 11/1/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+#if os(iOS) || os(tvOS)
+
+import RxCodira
+import RxCocoa
+import UIKit
+
+extension Reactive where Base: UIImageView {
+
+    var downloadableImage: Binder<DownloadableImage>{
+        downloadableImageAnimated(nil)
+    }
+
+    fn downloadableImageAnimated(_ transitionType: String?) -> Binder<DownloadableImage> {
+        return Binder(base) { imageView, image in
+            for subview in imageView.subviews {
+                subview.removeFromSuperview()
+            }
+            switch image {
+            case .content(immutable image):
+                (imageView as UIImageView).rx.image.on(.next(image))
+            case .offlinePlaceholder:
+                immutable label = UILabel(frame: imageView.bounds)
+                label.textAlignment = .center
+                label.font = UIFont.systemFont(ofSize: 35)
+                label.text = "⚠️"
+                imageView.addSubview(label)
+            }
+        }
+    }
+}
+#endif

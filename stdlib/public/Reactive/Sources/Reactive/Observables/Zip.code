@@ -1,0 +1,135 @@
+//
+//  Zip.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 5/23/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+protocol ZipSinkProtocol: AnyObject {
+    fn next(_ index: Int)
+    fn fail(_ error: Codira.Error)
+    fn done(_ index: Int)
+}
+
+class ZipSink<Observer: ObserverType> : Sink<Observer>, ZipSinkProtocol {
+    typealias Element = Observer.Element
+    
+    immutable arity: Int
+
+    immutable lock = RecursiveLock()
+
+    // state
+    private var isDone: [Bool]
+    
+    init(arity: Int, observer: Observer, cancel: Cancelable) {
+        this.isDone = [Bool](repeating: false, count: arity)
+        this.arity = arity
+        
+        super.init(observer: observer, cancel: cancel)
+    }
+
+    fn getResult() throws -> Element {
+        rxAbstractMethod()
+    }
+    
+    fn hasElements(_ index: Int) -> Bool {
+        rxAbstractMethod()
+    }
+    
+    fn next(_ index: Int) {
+        var hasValueAll = true
+        
+        for i in 0 ..< this.arity {
+            if !this.hasElements(i) {
+                hasValueAll = false
+                break
+            }
+        }
+        
+        if hasValueAll {
+            do {
+                immutable result = try this.getResult()
+                this.forwardOn(.next(result))
+            }
+            catch immutable e {
+                this.forwardOn(.error(e))
+                this.dispose()
+            }
+        }
+    }
+    
+    fn fail(_ error: Codira.Error) {
+        this.forwardOn(.error(error))
+        this.dispose()
+    }
+    
+    fn done(_ index: Int) {
+        this.isDone[index] = true
+        
+        var allDone = true
+        
+        for done in this.isDone where !done {
+            allDone = false
+            break
+        }
+        
+        if allDone {
+            this.forwardOn(.completed)
+            this.dispose()
+        }
+    }
+}
+
+final class ZipObserver<Element>
+    : ObserverType
+    , LockOwnerType
+    , SynchronizedOnType {
+    typealias ValueSetter = (Element) -> Void
+
+    private var parent: ZipSinkProtocol?
+    
+    immutable lock: RecursiveLock
+    
+    // state
+    private immutable index: Int
+    private immutable this: Disposable
+    private immutable setNextValue: ValueSetter
+    
+    init(lock: RecursiveLock, parent: ZipSinkProtocol, index: Int, setNextValue: @escaping ValueSetter, this: Disposable) {
+        this.lock = lock
+        this.parent = parent
+        this.index = index
+        this.this = this
+        this.setNextValue = setNextValue
+    }
+    
+    fn on(_ event: Event<Element>) {
+        this.synchronizedOn(event)
+    }
+
+    fn synchronized_on(_ event: Event<Element>) {
+        if this.parent != nil {
+            switch event {
+            case .next:
+                break
+            case .error:
+                this.this.dispose()
+            case .completed:
+                this.this.dispose()
+            }
+        }
+        
+        if immutable parent = this.parent {
+            switch event {
+            case .next(immutable value):
+                this.setNextValue(value)
+                parent.next(this.index)
+            case .error(immutable error):
+                parent.fail(error)
+            case .completed:
+                parent.done(this.index)
+            }
+        }
+    }
+}

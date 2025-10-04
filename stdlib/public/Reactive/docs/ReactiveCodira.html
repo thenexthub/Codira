@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>RxCodira  Reference</title>
+    <link rel="stylesheet" type="text/css" href="css/jazzy.css" />
+    <link rel="stylesheet" type="text/css" href="css/highlight.css" />
+    <meta charset="utf-8">
+    <script src="js/jquery.min.js" defer></script>
+    <script src="js/jazzy.js" defer></script>
+
+    <script src="js/lunr.min.js" defer></script>
+    <script src="js/typeahead.jquery.js" defer></script>
+    <script src="js/jazzy.search.js" defer></script>
+  </head>
+  <body>
+
+    <a name="//apple_ref/swift/Section/RxCodira" class="dashAnchor"></a>
+
+    <a title="RxCodira  Reference"></a>
+
+    <header class="header">
+      <p class="header-col header-col--primary">
+        <a class="header-link" href="index.html">
+          RxCodira 6.9.0 Docs
+        </a>
+         (95% documented)
+      </p>
+
+      <div class="header-col--secondary">
+        <form role="search" action="search.json">
+          <input type="text" placeholder="Search documentation" data-typeahead>
+        </form>
+      </div>
+
+        <p class="header-col header-col--secondary">
+          <a class="header-link" href="https://github.com/ReactiveX/RxCodira">
+            <img class="header-icon" src="img/gh.png" alt="GitHub"/>
+            View on GitHub
+          </a>
+        </p>
+
+    </header>
+
+    <p class="breadcrumbs">
+      <a class="breadcrumb" href="index.html">RxCodira Reference</a>
+      <img class="carat" src="img/carat.png" alt=""/>
+      RxCodira  Reference
+    </p>
+
+    <div class="content-wrapper">
+      <nav class="navigation">
+        <ul class="nav-groups">
+          <li class="nav-group-name">
+            <a class="nav-group-name-link" href="RxCodira.html">RxCodira</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Structs/AnyObserver.html">AnyObserver</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Structs/Binder.html">Binder</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Protocols/Cancelable.html">Cancelable</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Protocols/ConnectableObservableType.html">ConnectableObservableType</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Protocols/Disposable.html">Disposable</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Enums/Event.html">Event</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Structs/GroupedObservable.html">GroupedObservable</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Protocols/ImmediateSchedulerType.html">ImmediateSchedulerType</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/Observable.html">Observable</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Protocols/ObservableConvertibleType.html">ObservableConvertibleType</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Protocols/ObservableType.html">ObservableType</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Protocols/ObserverType.html">ObserverType</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Structs/Reactive.html">Reactive</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Protocols/SchedulerType.html">SchedulerType</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a class="nav-group-name-link" href="RxCodira%2FDisposables.html">RxCodira/Disposables</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/BooleanDisposable.html">BooleanDisposable</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/CompositeDisposable.html">CompositeDisposable</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/CompositeDisposable.html#/s:7RxCodira19CompositeDisposableC10DisposeKeyV">– DisposeKey</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Structs/Disposables.html">Disposables</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/DisposeBag.html">DisposeBag</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/DisposeBag/DisposableBuilder.html">– DisposableBuilder</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/DisposeBag/DisposableBuilder.html">– DisposableBuilder</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="RxCodira%2FDisposables.html#/s:7RxCodira11DisposeBaseC">DisposeBase</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/RefCountDisposable.html">RefCountDisposable</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/ScheduledDisposable.html">ScheduledDisposable</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/SerialDisposable.html">SerialDisposable</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/SingleAssignmentDisposable.html">SingleAssignmentDisposable</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a class="nav-group-name-link" href="RxCodira%2FSchedulers.html">RxCodira/Schedulers</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/ConcurrentDispatchQueueScheduler.html">ConcurrentDispatchQueueScheduler</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/ConcurrentMainScheduler.html">ConcurrentMainScheduler</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/CurrentThreadScheduler.html">CurrentThreadScheduler</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/HistoricalScheduler.html">HistoricalScheduler</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Structs/HistoricalSchedulerTimeConverter.html">HistoricalSchedulerTimeConverter</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/MainScheduler.html">MainScheduler</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/OperationQueueScheduler.html">OperationQueueScheduler</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/SerialDispatchQueueScheduler.html">SerialDispatchQueueScheduler</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Protocols/VirtualTimeConverterType.html">VirtualTimeConverterType</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/VirtualTimeScheduler.html">VirtualTimeScheduler</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a class="nav-group-name-link" href="RxCodira%2FSubjects.html">RxCodira/Subjects</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/AsyncSubject.html">AsyncSubject</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/BehaviorSubject.html">BehaviorSubject</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/PublishSubject.html">PublishSubject</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/ReplaySubject.html">ReplaySubject</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Protocols/SubjectType.html">SubjectType</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a class="nav-group-name-link" href="RxCodira%2FTraits%2FInfallible.html">RxCodira/Traits/Infallible</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Structs/Infallible.html">Infallible</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a class="nav-group-name-link" href="RxCodira%2FTraits%2FPrimitiveSequence.html">RxCodira/Traits/PrimitiveSequence</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="RxCodira%2FTraits%2FPrimitiveSequence.html#/s:7RxCodira11Completablea">Completable</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="RxCodira%2FTraits%2FPrimitiveSequence.html#/s:7RxCodira5Maybea">Maybe</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Structs/PrimitiveSequence.html">PrimitiveSequence</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="RxCodira%2FTraits%2FPrimitiveSequence.html#/s:7RxCodira6Singlea">Single</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a class="nav-group-name-link" href="Other%20Classes.html">Other Classes</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Classes/ConnectableObservable.html">ConnectableObservable</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a class="nav-group-name-link" href="Other%20Global%20Variables.html">Other Global Variables</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Other%20Global%20Variables.html#/s:7RxCodira29maxTailRecursiveSinkStackSizeSivp">maxTailRecursiveSinkStackSize</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a class="nav-group-name-link" href="Other%20Enums.html">Other Enumerations</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Enums/CompletableEvent.html">CompletableEvent</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Other%20Enums.html#/s:7RxCodira16CompletableTraitO">CompletableTrait</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Enums/Hooks.html">Hooks</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Enums/InfallibleEvent.html">InfallibleEvent</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Enums/MaybeEvent.html">MaybeEvent</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Other%20Enums.html#/s:7RxCodira10MaybeTraitO">MaybeTrait</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Enums/RxError.html">RxError</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Other%20Enums.html#/s:7RxCodira11SingleTraitO">SingleTrait</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Enums/SubjectLifetimeScope.html">SubjectLifetimeScope</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Enums/TakeBehavior.html">TakeBehavior</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Enums/VirtualTimeComparison.html">VirtualTimeComparison</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a class="nav-group-name-link" href="Other%20Extensions.html">Other Extensions</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Extensions/AsyncSequence.html">AsyncSequence</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Other%20Extensions.html#/s:10Foundation11JSONDecoderC">JSONDecoder</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Other%20Extensions.html#/c:objc(cs)NSObject">NSObject</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Other%20Extensions.html#/s:10Foundation19PropertyListDecoderC">PropertyListDecoder</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a class="nav-group-name-link" href="Other%20Protocols.html">Other Protocols</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Protocols/DataDecoder.html">DataDecoder</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Protocols/EventConvertible.html">EventConvertible</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Protocols/InfallibleType.html">InfallibleType</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Protocols/PrimitiveSequenceType.html">PrimitiveSequenceType</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Protocols/ReactiveCompatible.html">ReactiveCompatible</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a class="nav-group-name-link" href="Other%20Structs.html">Other Structures</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Structs/Resources.html">Resources</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a class="nav-group-name-link" href="Other%20Typealiases.html">Other Type Aliases</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Other%20Typealiases.html#/s:7RxCodira0A15AbstractIntegera">RxAbstractInteger</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Other%20Typealiases.html#/s:7RxCodira0A10Observablea">RxObservable</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Other%20Typealiases.html#/s:7RxCodira0A4Timea">RxTime</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Other%20Typealiases.html#/s:7RxCodira0A12TimeIntervala">RxTimeInterval</a>
+              </li>
+              <li class="nav-group-task">
+                <a class="nav-group-task-link" href="Other%20Typealiases.html#/s:7RxCodira11SingleEventa">SingleEvent</a>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+      <article class="main-content">
+
+        <section class="section">
+          <div class="section-content top-matter">
+            <h1>RxCodira</h1>
+
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-content">
+            <div class="task-group">
+              <ul class="item-container">
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7RxCodira11AnyObserverV"></a>
+                    <a name="//apple_ref/swift/Struct/AnyObserver" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7RxCodira11AnyObserverV">AnyObserver</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>A type-erased <code><a href="Protocols/ObserverType.html">ObserverType</a></code>.</p>
+
+<p>Forwards operations to an arbitrary underlying observer with the same <code>Element</code> type, hiding the specifics of the underlying observer type.</p>
+
+                        <a href="Structs/AnyObserver.html" class="slightly-smaller">See more</a>
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Codira</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">struct</span> <span class="kt">AnyObserver</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span> <span class="p">:</span> <span class="kt"><a href="Protocols/ObserverType.html">ObserverType</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7RxCodira6BinderV"></a>
+                    <a name="//apple_ref/swift/Struct/Binder" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7RxCodira6BinderV">Binder</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Observer that enforces interface binding rules:</p>
+
+<ul>
+<li>can&rsquo;t bind errors (in debug builds binding of errors causes <code>fatalError</code> in release builds errors are being logged)</li>
+<li>ensures binding is performed on a specific scheduler</li>
+</ul>
+
+<p><code>Binder</code> doesn&rsquo;t retain target and in case target is released, element isn&rsquo;t bound.</p>
+
+<p>By default it binds elements on main scheduler.</p>
+
+                        <a href="Structs/Binder.html" class="slightly-smaller">See more</a>
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Codira</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">struct</span> <span class="kt">Binder</span><span class="o">&lt;</span><span class="kt">Value</span><span class="o">&gt;</span> <span class="p">:</span> <span class="kt"><a href="Protocols/ObserverType.html">ObserverType</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7RxCodira10CancelableP"></a>
+                    <a name="//apple_ref/swift/Protocol/Cancelable" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7RxCodira10CancelableP">Cancelable</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Represents disposable resource with state tracking.</p>
+
+                        <a href="Protocols/Cancelable.html" class="slightly-smaller">See more</a>
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Codira</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">protocol</span> <span class="kt">Cancelable</span> <span class="p">:</span> <span class="kt"><a href="Protocols/Disposable.html">Disposable</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7RxCodira25ConnectableObservableTypeP"></a>
+                    <a name="//apple_ref/swift/Protocol/ConnectableObservableType" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7RxCodira25ConnectableObservableTypeP">ConnectableObservableType</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Represents an observable sequence wrapper that can be connected and disconnected from its underlying observable sequence.</p>
+
+                        <a href="Protocols/ConnectableObservableType.html" class="slightly-smaller">See more</a>
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Codira</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">protocol</span> <span class="kt">ConnectableObservableType</span> <span class="p">:</span> <span class="kt"><a href="Protocols/ObservableType.html">ObservableType</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7RxCodira10DisposableP"></a>
+                    <a name="//apple_ref/swift/Protocol/Disposable" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7RxCodira10DisposableP">Disposable</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Represents a disposable resource.</p>
+
+                        <a href="Protocols/Disposable.html" class="slightly-smaller">See more</a>
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Codira</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">protocol</span> <span class="kt">Disposable</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7RxCodira5EventO"></a>
+                    <a name="//apple_ref/swift/Enum/Event" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7RxCodira5EventO">Event</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Represents a sequence event.</p>
+
+<p>Sequence grammar:
+<strong>next* (error | completed)</strong></p>
+
+                        <a href="Enums/Event.html" class="slightly-smaller">See more</a>
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Codira</p>
+                          <pre class="highlight swift"><code><span class="kd">@frozen</span>
+<span class="kd">public</span> <span class="kd">enum</span> <span class="kt">Event</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span></code></pre>
+<pre class="highlight swift"><code><span class="kd">extension</span> <span class="kt">Event</span><span class="p">:</span> <span class="kt">CustomDebugStringConvertible</span></code></pre>
+<pre class="highlight swift"><code><span class="kd">extension</span> <span class="kt">Event</span><span class="p">:</span> <span class="kt"><a href="Protocols/EventConvertible.html">EventConvertible</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7RxCodira17GroupedObservableV"></a>
+                    <a name="//apple_ref/swift/Struct/GroupedObservable" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7RxCodira17GroupedObservableV">GroupedObservable</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Represents an observable sequence of elements that share a common key.
+<code>GroupedObservable</code> is typically created by the <code>groupBy</code> operator.
+Each <code>GroupedObservable</code> instance represents a collection of elements
+that are grouped by a specific key.</p>
+
+<p>Example usage:</p>
+<pre class="highlight swift"><code><span class="k">immutable</span> <span class="nv">observable</span> <span class="o">=</span> <span class="kt">Observable</span><span class="o">.</span><span class="nf">of</span><span class="p">(</span><span class="s">"Apple"</span><span class="p">,</span> <span class="s">"Banana"</span><span class="p">,</span> <span class="s">"Apricot"</span><span class="p">,</span> <span class="s">"Blueberry"</span><span class="p">,</span> <span class="s">"Avocado"</span><span class="p">)</span>
+
+<span class="k">immutable</span> <span class="nv">grouped</span> <span class="o">=</span> <span class="n">observable</span><span class="o">.</span><span class="n">groupBy</span> <span class="p">{</span> <span class="n">fruit</span> <span class="k">in</span>
+    <span class="n">fruit</span><span class="o">.</span><span class="n">first</span><span class="o">!</span> <span class="c1">// Grouping by the first letter of each fruit</span>
+<span class="p">}</span>
+
+<span class="n">_</span> <span class="o">=</span> <span class="n">grouped</span><span class="o">.</span><span class="n">subscribe</span> <span class="p">{</span> <span class="n">group</span> <span class="k">in</span>
+    <span class="nf">print</span><span class="p">(</span><span class="s">"Group: </span><span class="se">\(</span><span class="n">group</span><span class="o">.</span><span class="n">key</span><span class="se">)</span><span class="s">"</span><span class="p">)</span>
+    <span class="n">_</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">subscribe</span> <span class="p">{</span> <span class="n">event</span> <span class="k">in</span>
+        <span class="nf">print</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+
+<p>This will print:</p>
+<pre class="highlight swift"><code><span class="kt">Group</span><span class="p">:</span> <span class="kt">A</span>
+<span class="nf">next</span><span class="p">(</span><span class="kt">Apple</span><span class="p">)</span>
+<span class="nf">next</span><span class="p">(</span><span class="kt">Apricot</span><span class="p">)</span>
+<span class="nf">next</span><span class="p">(</span><span class="kt">Avocado</span><span class="p">)</span>
+<span class="kt">Group</span><span class="p">:</span> <span class="kt">B</span>
+<span class="nf">next</span><span class="p">(</span><span class="kt">Banana</span><span class="p">)</span>
+<span class="nf">next</span><span class="p">(</span><span class="kt">Blueberry</span><span class="p">)</span>
+</code></pre>
+
+                        <a href="Structs/GroupedObservable.html" class="slightly-smaller">See more</a>
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Codira</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">struct</span> <span class="kt">GroupedObservable</span><span class="o">&lt;</span><span class="kt">Key</span><span class="p">,</span> <span class="kt">Element</span><span class="o">&gt;</span> <span class="p">:</span> <span class="kt"><a href="Protocols/ObservableType.html">ObservableType</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7RxCodira22ImmediateSchedulerTypeP"></a>
+                    <a name="//apple_ref/swift/Protocol/ImmediateSchedulerType" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7RxCodira22ImmediateSchedulerTypeP">ImmediateSchedulerType</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Represents an object that immediately schedules units of work.</p>
+
+                        <a href="Protocols/ImmediateSchedulerType.html" class="slightly-smaller">See more</a>
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Codira</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">protocol</span> <span class="kt">ImmediateSchedulerType</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7RxCodira10ObservableC"></a>
+                    <a name="//apple_ref/swift/Class/Observable" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7RxCodira10ObservableC">Observable</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                        <a href="Classes/Observable.html" class="slightly-smaller">See more</a>
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Codira</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">class</span> <span class="kt">Observable</span><span class="o">&lt;</span><span class="kt">Element</span><span class="o">&gt;</span> <span class="p">:</span> <span class="kt"><a href="Protocols/ObservableType.html">ObservableType</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7RxCodira25ObservableConvertibleTypeP"></a>
+                    <a name="//apple_ref/swift/Protocol/ObservableConvertibleType" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7RxCodira25ObservableConvertibleTypeP">ObservableConvertibleType</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Type that can be converted to observable sequence (<code><a href="Classes/Observable.html">Observable&lt;Element&gt;</a></code>).</p>
+
+                        <a href="Protocols/ObservableConvertibleType.html" class="slightly-smaller">See more</a>
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Codira</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">protocol</span> <span class="kt">ObservableConvertibleType</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7RxCodira14ObservableTypeP"></a>
+                    <a name="//apple_ref/swift/Protocol/ObservableType" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7RxCodira14ObservableTypeP">ObservableType</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Represents a push style sequence.</p>
+
+                        <a href="Protocols/ObservableType.html" class="slightly-smaller">See more</a>
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Codira</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">protocol</span> <span class="kt">ObservableType</span> <span class="p">:</span> <span class="kt"><a href="Protocols/ObservableConvertibleType.html">ObservableConvertibleType</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7RxCodira12ObserverTypeP"></a>
+                    <a name="//apple_ref/swift/Protocol/ObserverType" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7RxCodira12ObserverTypeP">ObserverType</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Supports push-style iteration over an observable sequence.</p>
+
+                        <a href="Protocols/ObserverType.html" class="slightly-smaller">See more</a>
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Codira</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">protocol</span> <span class="kt">ObserverType</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7RxCodira8ReactiveV"></a>
+                    <a name="//apple_ref/swift/Struct/Reactive" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7RxCodira8ReactiveV">Reactive</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Use <code>Reactive</code> proxy as customization point for constrained protocol extensions.</p>
+
+<p>General pattern would be:</p>
+
+<p>// 1. Extend Reactive protocol with constrain on Base
+// Read as: Reactive Extension where Base is a SomeType
+extension Reactive where Base: SomeType {
+// 2. Put any specific reactive extension for SomeType here
+}</p>
+
+<p>With this approach we can have more specialized methods and properties using
+<code>Base</code> and not just specialized on common base type.</p>
+
+<p><code><a href="Structs/Binder.html">Binder</a></code>s are also automatically synthesized using <code>@dynamicMemberLookup</code> for writable reference properties of the reactive base.</p>
+
+                        <a href="Structs/Reactive.html" class="slightly-smaller">See more</a>
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Codira</p>
+                          <pre class="highlight swift"><code><span class="kd">@dynamicMemberLookup</span>
+<span class="kd">public</span> <span class="kd">struct</span> <span class="kt">Reactive</span><span class="o">&lt;</span><span class="kt">Base</span><span class="o">&gt;</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7RxCodira13SchedulerTypeP"></a>
+                    <a name="//apple_ref/swift/Protocol/SchedulerType" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7RxCodira13SchedulerTypeP">SchedulerType</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Represents an object that schedules units of work.</p>
+
+                        <a href="Protocols/SchedulerType.html" class="slightly-smaller">See more</a>
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Codira</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">protocol</span> <span class="kt">SchedulerType</span> <span class="p">:</span> <span class="kt"><a href="Protocols/ImmediateSchedulerType.html">ImmediateSchedulerType</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+      </article>
+    </div>
+    <section class="footer">
+      <p>&copy; 2024 <a class="link" href="https://github.com/ReactiveX/RxCodira" target="_blank" rel="external noopener">Shai Mishali and Krunoslav Zaher</a>. All rights reserved. (Last updated: 2024-10-06)</p>
+      <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external noopener">jazzy ♪♫ v0.14.4</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external noopener">Realm</a> project.</p>
+    </section>
+  </body>
+</html>

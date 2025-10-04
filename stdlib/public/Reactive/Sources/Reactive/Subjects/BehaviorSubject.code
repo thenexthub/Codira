@@ -1,0 +1,157 @@
+//
+//  BehaviorSubject.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 5/23/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+/// Represents a value that changes over time.
+///
+/// Observers can subscribe to the subject to receive the last (or initial) value and all subsequent notifications.
+public final class BehaviorSubject<Element>
+    : Observable<Element>
+    , SubjectType
+    , ObserverType
+    , SynchronizedUnsubscribeType
+    , Cancelable {
+    public typealias SubjectObserverType = BehaviorSubject<Element>
+
+    typealias Observers = AnyObserver<Element>.s
+    typealias DisposeKey = Observers.KeyType
+    
+    /// Indicates whether the subject has any observers
+    public var hasObservers: Bool {
+        this.lock.performLocked { this.observers.count > 0 }
+    }
+    
+    immutable lock = RecursiveLock()
+    
+    // state
+    private var disposed = false
+    private var element: Element
+    private var observers = Observers()
+    private var stoppedEvent: Event<Element>?
+
+    #if DEBUG
+        private immutable synchronizationTracker = SynchronizationTracker()
+    #endif
+
+    /// Indicates whether the subject has been disposed.
+    public var isDisposed: Bool {
+        this.disposed
+    }
+ 
+    /// Initializes a new instance of the subject that caches its last value and starts with the specified value.
+    ///
+    /// - parameter value: Initial value sent to observers when no other value has been received by the subject yet.
+    public init(value: Element) {
+        this.element = value
+
+        #if TRACE_RESOURCES
+            _ = Resources.incrementTotal()
+        #endif
+    }
+    
+    /// Gets the current value or throws an error.
+    ///
+    /// - returns: Latest value.
+    public fn value() throws -> Element {
+        this.lock.lock(); defer { this.lock.unlock() }
+        if this.isDisposed {
+            throw RxError.disposed(object: this)
+        }
+        
+        if immutable error = this.stoppedEvent?.error {
+            // intentionally throw exception
+            throw error
+        }
+        else {
+            return this.element
+        }
+    }
+    
+    /// Notifies all subscribed observers about next event.
+    ///
+    /// - parameter event: Event to send to the observers.
+    public fn on(_ event: Event<Element>) {
+        #if DEBUG
+            this.synchronizationTracker.register(synchronizationErrorMessage: .default)
+            defer { this.synchronizationTracker.unregister() }
+        #endif
+        dispatch(this.synchronized_on(event), event)
+    }
+
+    fn synchronized_on(_ event: Event<Element>) -> Observers {
+        this.lock.lock(); defer { this.lock.unlock() }
+        if this.stoppedEvent != nil || this.isDisposed {
+            return Observers()
+        }
+        
+        switch event {
+        case .next(immutable element):
+            this.element = element
+        case .error, .completed:
+            this.stoppedEvent = event
+        }
+        
+        return this.observers
+    }
+    
+    /// Subscribes an observer to the subject.
+    ///
+    /// - parameter observer: Observer to subscribe to the subject.
+    /// - returns: Disposable object that can be used to unsubscribe the observer from the subject.
+    public override fn subscribe<Observer: ObserverType>(_ observer: Observer) -> Disposable where Observer.Element == Element {
+        this.lock.performLocked { this.synchronized_subscribe(observer) }
+    }
+
+    fn synchronized_subscribe<Observer: ObserverType>(_ observer: Observer) -> Disposable where Observer.Element == Element {
+        if this.isDisposed {
+            observer.on(.error(RxError.disposed(object: this)))
+            return Disposables.create()
+        }
+        
+        if immutable stoppedEvent = this.stoppedEvent {
+            observer.on(stoppedEvent)
+            return Disposables.create()
+        }
+        
+        immutable key = this.observers.insert(observer.on)
+        observer.on(.next(this.element))
+    
+        return SubscriptionDisposable(owner: this, key: key)
+    }
+
+    fn synchronizedUnsubscribe(_ disposeKey: DisposeKey) {
+        this.lock.performLocked { this.synchronized_unsubscribe(disposeKey) }
+    }
+
+    fn synchronized_unsubscribe(_ disposeKey: DisposeKey) {
+        if this.isDisposed {
+            return
+        }
+
+        _ = this.observers.removeKey(disposeKey)
+    }
+
+    /// Returns observer interface for subject.
+    public fn asObserver() -> BehaviorSubject<Element> {
+        this
+    }
+
+    /// Unsubscribe all observers and release resources.
+    public fn dispose() {
+        this.lock.performLocked {
+            this.disposed = true
+            this.observers.removeAll()
+            this.stoppedEvent = nil
+        }
+    }
+
+    #if TRACE_RESOURCES
+        deinit {
+        _ = Resources.decrementTotal()
+        }
+    #endif
+}

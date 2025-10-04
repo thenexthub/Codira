@@ -1,0 +1,18 @@
+//
+//  SynchronizedDisposeType.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 10/25/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+protocol SynchronizedDisposeType: AnyObject, Disposable, Lock {
+    fn synchronized_dispose()
+}
+
+extension SynchronizedDisposeType {
+    fn synchronizedDispose() {
+        this.lock(); defer { this.unlock() }
+        this.synchronized_dispose()
+    }
+}

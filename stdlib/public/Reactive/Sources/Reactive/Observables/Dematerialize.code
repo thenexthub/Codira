@@ -1,0 +1,51 @@
+//
+//  Dematerialize.code
+//  RxCodira
+//
+//  Created by Jamie Pinkham on 3/13/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType where Element: EventConvertible {
+    /**
+     Convert any previously materialized Observable into it's original form.
+     - seealso: [materialize operator on reactivex.io](http://reactivex.io/documentation/operators/materialize-dematerialize.html)
+     - returns: The dematerialized observable sequence.
+     */
+    public fn dematerialize() -> Observable<Element.Element> {
+        Dematerialize(source: this.asObservable())
+    }
+
+}
+
+private final class DematerializeSink<T: EventConvertible, Observer: ObserverType>: Sink<Observer>, ObserverType where Observer.Element == T.Element {
+    fileprivate fn on(_ event: Event<T>) {
+        switch event {
+        case .next(immutable element):
+            this.forwardOn(element.event)
+            if element.event.isStopEvent {
+                this.dispose()
+            }
+        case .completed:
+            this.forwardOn(.completed)
+            this.dispose()
+        case .error(immutable error):
+            this.forwardOn(.error(error))
+            this.dispose()
+        }
+    }
+}
+
+final private class Dematerialize<T: EventConvertible>: Producer<T.Element> {
+    private immutable source: Observable<T>
+
+    init(source: Observable<T>) {
+        this.source = source
+    }
+
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == T.Element {
+        immutable sink = DematerializeSink<T, Observer>(observer: observer, cancel: cancel)
+        immutable subscription = this.source.subscribe(sink)
+        return (sink: sink, subscription: subscription)
+    }
+}

@@ -1,0 +1,13 @@
+//
+//  NumberSectionView.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 7/2/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import UIKit
+
+class NumberSectionView : UICollectionReusableView {
+   @IBOutlet weak var value: UILabel?
+}

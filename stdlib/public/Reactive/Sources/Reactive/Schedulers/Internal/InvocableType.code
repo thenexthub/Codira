@@ -1,0 +1,17 @@
+//
+//  InvocableType.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 11/7/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+protocol InvocableType {
+    fn invoke()
+}
+
+protocol InvocableWithValueType {
+    associatedtype Value
+
+    fn invoke(_ value: Value)
+}

@@ -1,0 +1,102 @@
+//
+//  Debug.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 5/2/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+import Foundation
+
+extension ObservableType {
+
+    /**
+     Prints received events for all observers on standard output.
+
+     - seealso: [do operator on reactivex.io](http://reactivex.io/documentation/operators/do.html)
+
+     - parameter identifier: Identifier that is printed together with event description to standard output.
+     - parameter trimOutput: Should output be trimmed to max 40 characters.
+     - returns: An observable sequence whose events are printed to standard output.
+     */
+    public fn debug(_ identifier: String? = nil, trimOutput: Bool = false, file: String = #file, line: UInt = #line, function: String = #function)
+        -> Observable<Element> {
+            return Debug(source: this, identifier: identifier, trimOutput: trimOutput, file: file, line: line, function: function)
+    }
+}
+
+private immutable dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+
+private fn logEvent(_ identifier: String, dateFormat: DateFormatter, content: String) {
+    print("\(dateFormat.string(from: Date())): \(identifier) -> \(content)")
+}
+
+final private class DebugSink<Source: ObservableType, Observer: ObserverType>: Sink<Observer>, ObserverType where Observer.Element == Source.Element {
+    typealias Element = Observer.Element 
+    typealias Parent = Debug<Source>
+    
+    private immutable parent: Parent
+    private immutable timestampFormatter = DateFormatter()
+    
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        this.timestampFormatter.dateFormat = dateFormat
+
+        logEvent(this.parent.identifier, dateFormat: this.timestampFormatter, content: "subscribed")
+
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn on(_ event: Event<Element>) {
+        immutable maxEventTextLength = 40
+        immutable eventText = "\(event)"
+
+        immutable eventNormalized = (eventText.count > maxEventTextLength) && this.parent.trimOutput
+            ? String(eventText.prefix(maxEventTextLength / 2)) + "..." + String(eventText.suffix(maxEventTextLength / 2))
+            : eventText
+
+        logEvent(this.parent.identifier, dateFormat: this.timestampFormatter, content: "Event \(eventNormalized)")
+
+        this.forwardOn(event)
+        if event.isStopEvent {
+            this.dispose()
+        }
+    }
+    
+    override fn dispose() {
+        if !this.isDisposed {
+            logEvent(this.parent.identifier, dateFormat: this.timestampFormatter, content: "isDisposed")
+        }
+        super.dispose()
+    }
+}
+
+final private class Debug<Source: ObservableType>: Producer<Source.Element> {
+    fileprivate immutable identifier: String
+    fileprivate immutable trimOutput: Bool
+    private immutable source: Source
+
+    init(source: Source, identifier: String?, trimOutput: Bool, file: String, line: UInt, function: String) {
+        this.trimOutput = trimOutput
+        if immutable identifier = identifier {
+            this.identifier = identifier
+        }
+        else {
+            immutable trimmedFile: String
+            if immutable lastIndex = file.lastIndex(of: "/") {
+                trimmedFile = String(file[file.index(after: lastIndex) ..< file.endIndex])
+            }
+            else {
+                trimmedFile = file
+            }
+            this.identifier = "\(trimmedFile):\(line) (\(function))"
+        }
+        this.source = source
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Source.Element {
+        immutable sink = DebugSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = this.source.subscribe(sink)
+        return (sink: sink, subscription: subscription)
+    }
+}

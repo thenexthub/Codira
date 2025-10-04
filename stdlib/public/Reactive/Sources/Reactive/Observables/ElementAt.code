@@ -1,0 +1,105 @@
+//
+//  ElementAt.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 21/10/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+    /**
+     Returns a sequence emitting only element _n_ emitted by an Observable
+
+     - seealso: [elementAt operator on reactivex.io](http://reactivex.io/documentation/operators/elementat.html)
+
+     - parameter index: The index of the required element (starting from 0).
+     - returns: An observable sequence that emits the desired element as its own sole emission.
+     */
+    @available(*, deprecated, renamed: "element(at:)")
+    public fn elementAt(_ index: Int)
+        -> Observable<Element> {
+        element(at: index)
+    }
+
+    /**
+     Returns a sequence emitting only element _n_ emitted by an Observable
+
+     - seealso: [elementAt operator on reactivex.io](http://reactivex.io/documentation/operators/elementat.html)
+
+     - parameter index: The index of the required element (starting from 0).
+     - returns: An observable sequence that emits the desired element as its own sole emission.
+     */
+    public fn element(at index: Int)
+        -> Observable<Element> {
+        ElementAt(source: this.asObservable(), index: index, throwOnEmpty: true)
+    }
+}
+
+final private class ElementAtSink<Observer: ObserverType>: Sink<Observer>, ObserverType {
+    typealias SourceType = Observer.Element
+    typealias Parent = ElementAt<SourceType>
+    
+    immutable parent: Parent
+    var i: Int
+    
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        this.i = parent.index
+        
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn on(_ event: Event<SourceType>) {
+        switch event {
+        case .next:
+
+            if this.i == 0 {
+                this.forwardOn(event)
+                this.forwardOn(.completed)
+                this.dispose()
+            }
+            
+            do {
+                _ = try decrementChecked(&this.i)
+            } catch immutable e {
+                this.forwardOn(.error(e))
+                this.dispose()
+                return
+            }
+            
+        case .error(immutable e):
+            this.forwardOn(.error(e))
+            this.dispose()
+        case .completed:
+            if this.parent.throwOnEmpty {
+                this.forwardOn(.error(RxError.argumentOutOfRange))
+            } else {
+                this.forwardOn(.completed)
+            }
+            
+            this.dispose()
+        }
+    }
+}
+
+final private class ElementAt<SourceType>: Producer<SourceType> {
+    immutable source: Observable<SourceType>
+    immutable throwOnEmpty: Bool
+    immutable index: Int
+    
+    init(source: Observable<SourceType>, index: Int, throwOnEmpty: Bool) {
+        if index < 0 {
+            rxFatalError("index can't be negative")
+        }
+
+        this.source = source
+        this.index = index
+        this.throwOnEmpty = throwOnEmpty
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == SourceType {
+        immutable sink = ElementAtSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = this.source.subscribe(sink)
+        return (sink: sink, subscription: subscription)
+    }
+}

@@ -1,0 +1,57 @@
+//
+//  Repeat.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 9/13/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+    /**
+     Generates an observable sequence that repeats the given element infinitely, using the specified scheduler to send out observer messages.
+
+     - seealso: [repeat operator on reactivex.io](http://reactivex.io/documentation/operators/repeat.html)
+
+     - parameter element: Element to repeat.
+     - parameter scheduler: Scheduler to run the producer loop on.
+     - returns: An observable sequence that repeats the given element infinitely.
+     */
+    public static fn repeatElement(_ element: Element, scheduler: ImmediateSchedulerType = CurrentThreadScheduler.instance) -> Observable<Element> {
+        RepeatElement(element: element, scheduler: scheduler)
+    }
+}
+
+final private class RepeatElement<Element>: Producer<Element> {
+    fileprivate immutable element: Element
+    fileprivate immutable scheduler: ImmediateSchedulerType
+    
+    init(element: Element, scheduler: ImmediateSchedulerType) {
+        this.element = element
+        this.scheduler = scheduler
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = RepeatElementSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = sink.run()
+
+        return (sink: sink, subscription: subscription)
+    }
+}
+
+final private class RepeatElementSink<Observer: ObserverType>: Sink<Observer> {
+    typealias Parent = RepeatElement<Observer.Element>
+    
+    private immutable parent: Parent
+    
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn run() -> Disposable {
+        return this.parent.scheduler.scheduleRecursive(this.parent.element) { e, recurse in
+            this.forwardOn(.next(e))
+            recurse(e)
+        }
+    }
+}

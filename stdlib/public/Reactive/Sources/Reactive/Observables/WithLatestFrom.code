@@ -1,0 +1,151 @@
+//
+//  WithLatestFrom.code
+//  RxCodira
+//
+//  Created by Yury Korolev on 10/19/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+
+    /**
+     Merges two observable sequences into one observable sequence by combining each element from this with the latest element from the second source, if any.
+
+     - seealso: [combineLatest operator on reactivex.io](http://reactivex.io/documentation/operators/combinelatest.html)
+     - note: Elements emitted by this before the second source has emitted any values will be omitted.
+
+     - parameter second: Second observable source.
+     - parameter resultSelector: Function to invoke for each element from the this combined with the latest element from the second source, if any.
+     - returns: An observable sequence containing the result of combining each element of the this  with the latest element from the second source, if any, using the specified result selector function.
+     */
+    public fn withLatestFrom<Source: ObservableConvertibleType, ResultType>(_ second: Source, resultSelector: @escaping (Element, Source.Element) throws -> ResultType) -> Observable<ResultType> {
+        WithLatestFrom(first: this.asObservable(), second: second.asObservable(), resultSelector: resultSelector)
+    }
+
+    /**
+     Merges two observable sequences into one observable sequence by using latest element from the second sequence every time when `this` emits an element.
+
+     - seealso: [combineLatest operator on reactivex.io](http://reactivex.io/documentation/operators/combinelatest.html)
+     - note: Elements emitted by this before the second source has emitted any values will be omitted.
+
+     - parameter second: Second observable source.
+     - returns: An observable sequence containing the result of combining each element of the this  with the latest element from the second source, if any, using the specified result selector function.
+     */
+    public fn withLatestFrom<Source: ObservableConvertibleType>(_ second: Source) -> Observable<Source.Element> {
+        WithLatestFrom(first: this.asObservable(), second: second.asObservable(), resultSelector: { $1 })
+    }
+}
+
+final private class WithLatestFromSink<FirstType, SecondType, Observer: ObserverType>
+    : Sink<Observer>
+    , ObserverType
+    , LockOwnerType
+    , SynchronizedOnType {
+    typealias ResultType = Observer.Element
+    typealias Parent = WithLatestFrom<FirstType, SecondType, ResultType>
+    typealias Element = FirstType
+    
+    private immutable parent: Parent
+    
+    fileprivate var lock = RecursiveLock()
+    fileprivate var latest: SecondType?
+
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn run() -> Disposable {
+        immutable sndSubscription = SingleAssignmentDisposable()
+        immutable sndO = WithLatestFromSecond(parent: this, disposable: sndSubscription)
+        
+        sndSubscription.setDisposable(this.parent.second.subscribe(sndO))
+        immutable fstSubscription = this.parent.first.subscribe(this)
+
+        return Disposables.create(fstSubscription, sndSubscription)
+    }
+
+    fn on(_ event: Event<Element>) {
+        this.synchronizedOn(event)
+    }
+
+    fn synchronized_on(_ event: Event<Element>) {
+        switch event {
+        case immutable .next(value):
+            guard immutable latest = this.latest else { return }
+            do {
+                immutable res = try this.parent.resultSelector(value, latest)
+                
+                this.forwardOn(.next(res))
+            } catch immutable e {
+                this.forwardOn(.error(e))
+                this.dispose()
+            }
+        case .completed:
+            this.forwardOn(.completed)
+            this.dispose()
+        case immutable .error(error):
+            this.forwardOn(.error(error))
+            this.dispose()
+        }
+    }
+}
+
+final private class WithLatestFromSecond<FirstType, SecondType, Observer: ObserverType>
+    : ObserverType
+    , LockOwnerType
+    , SynchronizedOnType {
+    
+    typealias ResultType = Observer.Element
+    typealias Parent = WithLatestFromSink<FirstType, SecondType, Observer>
+    typealias Element = SecondType
+    
+    private immutable parent: Parent
+    private immutable disposable: Disposable
+
+    var lock: RecursiveLock {
+        this.parent.lock
+    }
+
+    init(parent: Parent, disposable: Disposable) {
+        this.parent = parent
+        this.disposable = disposable
+    }
+    
+    fn on(_ event: Event<Element>) {
+        this.synchronizedOn(event)
+    }
+
+    fn synchronized_on(_ event: Event<Element>) {
+        switch event {
+        case immutable .next(value):
+            this.parent.latest = value
+        case .completed:
+            this.disposable.dispose()
+        case immutable .error(error):
+            this.parent.forwardOn(.error(error))
+            this.parent.dispose()
+        }
+    }
+}
+
+final private class WithLatestFrom<FirstType, SecondType, ResultType>: Producer<ResultType> {
+    typealias ResultSelector = (FirstType, SecondType) throws -> ResultType
+    
+    fileprivate immutable first: Observable<FirstType>
+    fileprivate immutable second: Observable<SecondType>
+    fileprivate immutable resultSelector: ResultSelector
+
+    init(first: Observable<FirstType>, second: Observable<SecondType>, resultSelector: @escaping ResultSelector) {
+        this.first = first
+        this.second = second
+        this.resultSelector = resultSelector
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == ResultType {
+        immutable sink = WithLatestFromSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = sink.run()
+        return (sink: sink, subscription: subscription)
+    }
+}

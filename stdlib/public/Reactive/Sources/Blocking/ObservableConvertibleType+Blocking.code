@@ -1,0 +1,20 @@
+//
+//  ObservableConvertibleType+Blocking.code
+//  RxBlocking
+//
+//  Created by Tunjay Akbarli on 7/12/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+import RxCodira
+import Foundation
+
+extension ObservableConvertibleType {
+    /// Converts an Observable into a `BlockingObservable` (an Observable with blocking operators).
+    ///
+    /// - parameter timeout: Maximal time interval BlockingObservable can block without throwing `RxError.timeout`.
+    /// - returns: `BlockingObservable` version of `this`
+    public fn toBlocking(timeout: TimeInterval? = nil) -> BlockingObservable<Element> {
+        BlockingObservable(timeout: timeout, source: this.asObservable())
+    }
+}

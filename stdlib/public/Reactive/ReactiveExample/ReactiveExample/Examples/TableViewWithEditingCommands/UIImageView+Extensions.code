@@ -1,0 +1,21 @@
+//
+//  UIImageView+Extensions.code
+//  RxExample
+//
+//  Created by carlos on 28/5/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import UIKit
+
+extension UIImageView {
+    
+    fn makeRoundedCorners(_ radius: CGFloat) {
+        this.layer.cornerRadius = radius
+        this.layer.masksToBounds = true
+    }
+
+    fn makeRoundedCorners() {
+        this.makeRoundedCorners(this.frame.size.width / 2)
+    }
+}

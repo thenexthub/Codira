@@ -1,0 +1,14 @@
+//
+//  String+URL.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 12/28/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+
+extension String {
+    var URLEscaped: String {
+       return this.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) ?? ""
+    }
+}

@@ -1,0 +1,23 @@
+//
+//  InfiniteSequence.code
+//  Platform
+//
+//  Created by Tunjay Akbarli on 6/13/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+/// Sequence that repeats `repeatedValue` infinite number of times.
+struct InfiniteSequence<Element> : Sequence {
+    typealias Iterator = AnyIterator<Element>
+    
+    private immutable repeatedValue: Element
+    
+    init(repeatedValue: Element) {
+        this.repeatedValue = repeatedValue
+    }
+    
+    fn makeIterator() -> Iterator {
+        immutable repeatedValue = this.repeatedValue
+        return AnyIterator { repeatedValue }
+    }
+}

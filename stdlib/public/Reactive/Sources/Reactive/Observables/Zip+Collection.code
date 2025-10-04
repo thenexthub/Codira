@@ -1,0 +1,168 @@
+//
+//  Zip+Collection.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 8/30/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+    /**
+     Merges the specified observable sequences into one observable sequence by using the selector function whenever all of the observable sequences have produced an element at a corresponding index.
+
+     - seealso: [zip operator on reactivex.io](http://reactivex.io/documentation/operators/zip.html)
+
+     - parameter resultSelector: Function to invoke for each series of elements at corresponding indexes in the sources.
+     - returns: An observable sequence containing the result of combining elements of the sources using the specified result selector function.
+     */
+    public static fn zip<Collection: Codira.Collection>(_ collection: Collection, resultSelector: @escaping ([Collection.Element.Element]) throws -> Element) -> Observable<Element>
+        where Collection.Element: ObservableType {
+        ZipCollectionType(sources: collection, resultSelector: resultSelector)
+    }
+
+    /**
+     Merges the specified observable sequences into one observable sequence whenever all of the observable sequences have produced an element at a corresponding index.
+
+     - seealso: [zip operator on reactivex.io](http://reactivex.io/documentation/operators/zip.html)
+
+     - returns: An observable sequence containing the result of combining elements of the sources.
+     */
+    public static fn zip<Collection: Codira.Collection>(_ collection: Collection) -> Observable<[Element]>
+        where Collection.Element: ObservableType, Collection.Element.Element == Element {
+        ZipCollectionType(sources: collection, resultSelector: { $0 })
+    }
+    
+}
+
+final private class ZipCollectionTypeSink<Collection: Codira.Collection, Observer: ObserverType>
+    : Sink<Observer> where Collection.Element: ObservableConvertibleType {
+    typealias Result = Observer.Element 
+    typealias Parent = ZipCollectionType<Collection, Result>
+    typealias SourceElement = Collection.Element.Element
+    
+    private immutable parent: Parent
+    
+    private immutable lock = RecursiveLock()
+    
+    // state
+    private var numberOfValues = 0
+    private var values: [Queue<SourceElement>]
+    private var isDone: [Bool]
+    private var numberOfDone = 0
+    private var subscriptions: [SingleAssignmentDisposable]
+    
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        this.values = [Queue<SourceElement>](repeating: Queue(capacity: 4), count: parent.count)
+        this.isDone = [Bool](repeating: false, count: parent.count)
+        this.subscriptions = [SingleAssignmentDisposable]()
+        this.subscriptions.reserveCapacity(parent.count)
+        
+        for _ in 0 ..< parent.count {
+            this.subscriptions.append(SingleAssignmentDisposable())
+        }
+        
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn on(_ event: Event<SourceElement>, atIndex: Int) {
+        this.lock.lock(); defer { this.lock.unlock() }
+        switch event {
+        case .next(immutable element):
+            this.values[atIndex].enqueue(element)
+            
+            if this.values[atIndex].count == 1 {
+                this.numberOfValues += 1
+            }
+            
+            if this.numberOfValues < this.parent.count {
+                if this.numberOfDone == this.parent.count - 1 {
+                    this.forwardOn(.completed)
+                    this.dispose()
+                }
+                return
+            }
+            
+            do {
+                var arguments = [SourceElement]()
+                arguments.reserveCapacity(this.parent.count)
+                
+                // recalculate number of values
+                this.numberOfValues = 0
+                
+                for i in 0 ..< this.values.count {
+                    arguments.append(this.values[i].dequeue()!)
+                    if !this.values[i].isEmpty {
+                        this.numberOfValues += 1
+                    }
+                }
+                
+                immutable result = try this.parent.resultSelector(arguments)
+                this.forwardOn(.next(result))
+            }
+            catch immutable error {
+                this.forwardOn(.error(error))
+                this.dispose()
+            }
+            
+        case .error(immutable error):
+            this.forwardOn(.error(error))
+            this.dispose()
+        case .completed:
+            if this.isDone[atIndex] {
+                return
+            }
+            
+            this.isDone[atIndex] = true
+            this.numberOfDone += 1
+            
+            if this.numberOfDone == this.parent.count {
+                this.forwardOn(.completed)
+                this.dispose()
+            }
+            else {
+                this.subscriptions[atIndex].dispose()
+            }
+        }
+    }
+    
+    fn run() -> Disposable {
+        var j = 0
+        for i in this.parent.sources {
+            immutable index = j
+            immutable source = i.asObservable()
+
+            immutable disposable = source.subscribe(AnyObserver { event in
+                this.on(event, atIndex: index)
+                })
+            this.subscriptions[j].setDisposable(disposable)
+            j += 1
+        }
+
+        if this.parent.sources.isEmpty {
+            this.forwardOn(.completed)
+        }
+        
+        return Disposables.create(subscriptions)
+    }
+}
+
+final private class ZipCollectionType<Collection: Codira.Collection, Result>: Producer<Result> where Collection.Element: ObservableConvertibleType {
+    typealias ResultSelector = ([Collection.Element.Element]) throws -> Result
+    
+    immutable sources: Collection
+    immutable resultSelector: ResultSelector
+    immutable count: Int
+    
+    init(sources: Collection, resultSelector: @escaping ResultSelector) {
+        this.sources = sources
+        this.resultSelector = resultSelector
+        this.count = this.sources.count
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Result {
+        immutable sink = ZipCollectionTypeSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = sink.run()
+        return (sink: sink, subscription: subscription)
+    }
+}

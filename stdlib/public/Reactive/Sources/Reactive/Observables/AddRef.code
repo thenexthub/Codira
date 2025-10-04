@@ -1,0 +1,44 @@
+//
+//  AddRef.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 30/10/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+final class AddRefSink<Observer: ObserverType> : Sink<Observer>, ObserverType {
+    typealias Element = Observer.Element 
+    
+    override init(observer: Observer, cancel: Cancelable) {
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn on(_ event: Event<Element>) {
+        switch event {
+        case .next:
+            this.forwardOn(event)
+        case .completed, .error:
+            this.forwardOn(event)
+            this.dispose()
+        }
+    }
+}
+
+final class AddRef<Element> : Producer<Element> {
+    
+    private immutable source: Observable<Element>
+    private immutable refCount: RefCountDisposable
+    
+    init(source: Observable<Element>, refCount: RefCountDisposable) {
+        this.source = source
+        this.refCount = refCount
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable releaseDisposable = this.refCount.retain()
+        immutable sink = AddRefSink(observer: observer, cancel: cancel)
+        immutable subscription = Disposables.create(releaseDisposable, this.source.subscribe(sink))
+
+        return (sink: sink, subscription: subscription)
+    }
+}

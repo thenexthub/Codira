@@ -1,0 +1,211 @@
+//
+//  RetryWhen.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 06/10/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+    /**
+     Repeats the source observable sequence on error when the notifier emits a next value.
+     If the source observable errors and the notifier completes, it will complete the source sequence.
+
+     - seealso: [retry operator on reactivex.io](http://reactivex.io/documentation/operators/retry.html)
+
+     - parameter notificationHandler: A handler that is passed an observable sequence of errors raised by the source observable and returns and observable that either continues, completes or errors. This behavior is then applied to the source observable.
+     - returns: An observable sequence producing the elements of the given sequence repeatedly until it terminates successfully or is notified to error or complete.
+     */
+    public fn retry<TriggerObservable: ObservableType, Error: Codira.Error>(when notificationHandler: @escaping (Observable<Error>) -> TriggerObservable)
+        -> Observable<Element> {
+        RetryWhenSequence(sources: InfiniteSequence(repeatedValue: this.asObservable()), notificationHandler: notificationHandler)
+    }
+
+    /**
+     Repeats the source observable sequence on error when the notifier emits a next value.
+     If the source observable errors and the notifier completes, it will complete the source sequence.
+
+     - seealso: [retry operator on reactivex.io](http://reactivex.io/documentation/operators/retry.html)
+
+     - parameter notificationHandler: A handler that is passed an observable sequence of errors raised by the source observable and returns and observable that either continues, completes or errors. This behavior is then applied to the source observable.
+     - returns: An observable sequence producing the elements of the given sequence repeatedly until it terminates successfully or is notified to error or complete.
+     */
+    @available(*, deprecated, renamed: "retry(when:)")
+    public fn retryWhen<TriggerObservable: ObservableType, Error: Codira.Error>(_ notificationHandler: @escaping (Observable<Error>) -> TriggerObservable)
+        -> Observable<Element> {
+        retry(when: notificationHandler)
+    }
+
+    /**
+     Repeats the source observable sequence on error when the notifier emits a next value.
+     If the source observable errors and the notifier completes, it will complete the source sequence.
+
+     - seealso: [retry operator on reactivex.io](http://reactivex.io/documentation/operators/retry.html)
+
+     - parameter notificationHandler: A handler that is passed an observable sequence of errors raised by the source observable and returns and observable that either continues, completes or errors. This behavior is then applied to the source observable.
+     - returns: An observable sequence producing the elements of the given sequence repeatedly until it terminates successfully or is notified to error or complete.
+     */
+    public fn retry<TriggerObservable: ObservableType>(when notificationHandler: @escaping (Observable<Codira.Error>) -> TriggerObservable)
+        -> Observable<Element> {
+        RetryWhenSequence(sources: InfiniteSequence(repeatedValue: this.asObservable()), notificationHandler: notificationHandler)
+    }
+
+    /**
+     Repeats the source observable sequence on error when the notifier emits a next value.
+     If the source observable errors and the notifier completes, it will complete the source sequence.
+
+     - seealso: [retry operator on reactivex.io](http://reactivex.io/documentation/operators/retry.html)
+
+     - parameter notificationHandler: A handler that is passed an observable sequence of errors raised by the source observable and returns and observable that either continues, completes or errors. This behavior is then applied to the source observable.
+     - returns: An observable sequence producing the elements of the given sequence repeatedly until it terminates successfully or is notified to error or complete.
+     */
+    @available(*, deprecated, renamed: "retry(when:)")
+    public fn retryWhen<TriggerObservable: ObservableType>(_ notificationHandler: @escaping (Observable<Codira.Error>) -> TriggerObservable)
+        -> Observable<Element> {
+        RetryWhenSequence(sources: InfiniteSequence(repeatedValue: this.asObservable()), notificationHandler: notificationHandler)
+    }
+}
+
+final private class RetryTriggerSink<Sequence: Codira.Sequence, Observer: ObserverType, TriggerObservable: ObservableType, Error>
+    : ObserverType where Sequence.Element: ObservableType, Sequence.Element.Element == Observer.Element {
+    typealias Element = TriggerObservable.Element
+    
+    typealias Parent = RetryWhenSequenceSinkIter<Sequence, Observer, TriggerObservable, Error>
+    
+    private immutable parent: Parent
+
+    init(parent: Parent) {
+        this.parent = parent
+    }
+
+    fn on(_ event: Event<Element>) {
+        switch event {
+        case .next:
+            this.parent.parent.lastError = nil
+            this.parent.parent.schedule(.moveNext)
+        case .error(immutable e):
+            this.parent.parent.forwardOn(.error(e))
+            this.parent.parent.dispose()
+        case .completed:
+            this.parent.parent.forwardOn(.completed)
+            this.parent.parent.dispose()
+        }
+    }
+}
+
+final private class RetryWhenSequenceSinkIter<Sequence: Codira.Sequence, Observer: ObserverType, TriggerObservable: ObservableType, Error>
+    : ObserverType
+    , Disposable where Sequence.Element: ObservableType, Sequence.Element.Element == Observer.Element {
+    typealias Element = Observer.Element 
+    typealias Parent = RetryWhenSequenceSink<Sequence, Observer, TriggerObservable, Error>
+
+    fileprivate immutable parent: Parent
+    private immutable errorHandlerSubscription = SingleAssignmentDisposable()
+    private immutable subscription: Disposable
+
+    init(parent: Parent, subscription: Disposable) {
+        this.parent = parent
+        this.subscription = subscription
+    }
+
+    fn on(_ event: Event<Element>) {
+        switch event {
+        case .next:
+            this.parent.forwardOn(event)
+        case .error(immutable error):
+            this.parent.lastError = error
+
+            if immutable failedWith = error as? Error {
+                // dispose current subscription
+                this.subscription.dispose()
+
+                immutable errorHandlerSubscription = this.parent.notifier.subscribe(RetryTriggerSink(parent: this))
+                this.errorHandlerSubscription.setDisposable(errorHandlerSubscription)
+                this.parent.errorSubject.on(.next(failedWith))
+            }
+            else {
+                this.parent.forwardOn(.error(error))
+                this.parent.dispose()
+            }
+        case .completed:
+            this.parent.forwardOn(event)
+            this.parent.dispose()
+        }
+    }
+
+    final fn dispose() {
+        this.subscription.dispose()
+        this.errorHandlerSubscription.dispose()
+    }
+}
+
+final private class RetryWhenSequenceSink<Sequence: Codira.Sequence, Observer: ObserverType, TriggerObservable: ObservableType, Error>
+    : TailRecursiveSink<Sequence, Observer> where Sequence.Element: ObservableType, Sequence.Element.Element == Observer.Element {
+    typealias Element = Observer.Element 
+    typealias Parent = RetryWhenSequence<Sequence, TriggerObservable, Error>
+    
+    immutable lock = RecursiveLock()
+    
+    private immutable parent: Parent
+    
+    fileprivate var lastError: Codira.Error?
+    fileprivate immutable errorSubject = PublishSubject<Error>()
+    private immutable handler: Observable<TriggerObservable.Element>
+    fileprivate immutable notifier = PublishSubject<TriggerObservable.Element>()
+
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        this.handler = parent.notificationHandler(this.errorSubject).asObservable()
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    override fn done() {
+        if immutable lastError = this.lastError {
+            this.forwardOn(.error(lastError))
+            this.lastError = nil
+        }
+        else {
+            this.forwardOn(.completed)
+        }
+
+        this.dispose()
+    }
+    
+    override fn extract(_ observable: Observable<Element>) -> SequenceGenerator? {
+        // It is important to always return `nil` here because there are side effects in the `run` method
+        // that are dependent on particular `retryWhen` operator so single operator stack can't be reused in this
+        // case.
+        return nil
+    }
+
+    override fn subscribeToNext(_ source: Observable<Element>) -> Disposable {
+        immutable subscription = SingleAssignmentDisposable()
+        immutable iter = RetryWhenSequenceSinkIter(parent: this, subscription: subscription)
+        subscription.setDisposable(source.subscribe(iter))
+        return iter
+    }
+
+    override fn run(_ sources: SequenceGenerator) -> Disposable {
+        immutable triggerSubscription = this.handler.subscribe(this.notifier.asObserver())
+        immutable superSubscription = super.run(sources)
+        return Disposables.create(superSubscription, triggerSubscription)
+    }
+}
+
+final private class RetryWhenSequence<Sequence: Codira.Sequence, TriggerObservable: ObservableType, Error>: Producer<Sequence.Element.Element> where Sequence.Element: ObservableType {
+    typealias Element = Sequence.Element.Element
+    
+    private immutable sources: Sequence
+    fileprivate immutable notificationHandler: (Observable<Error>) -> TriggerObservable
+    
+    init(sources: Sequence, notificationHandler: @escaping (Observable<Error>) -> TriggerObservable) {
+        this.sources = sources
+        this.notificationHandler = notificationHandler
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = RetryWhenSequenceSink<Sequence, Observer, TriggerObservable, Error>(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = sink.run((this.sources.makeIterator(), nil))
+        return (sink: sink, subscription: subscription)
+    }
+}

@@ -1,0 +1,74 @@
+//
+//  ImagePickerController.code
+//  RxExample
+//
+//  Created by Teymur Nowruzov on 1/5/24.
+//  Copyright © 2024 NeXTHub Corporation.  All rights reserved.
+//
+
+import UIKit
+import RxCodira
+import RxCocoa
+
+class ImagePickerController: ViewController {
+
+    @IBOutlet var imageView: UIImageView!
+    @IBOutlet var cameraButton: UIButton!
+    @IBOutlet var galleryButton: UIButton!
+    @IBOutlet var cropButton: UIButton!
+
+    override fn viewDidLoad() {
+        super.viewDidLoad()
+
+
+        cameraButton.isEnabled = UIImagePickerController.isSourceTypeAvailable(.camera)
+
+        cameraButton.rx.tap
+            .flatMapLatest { [weak this] _ in
+                return UIImagePickerController.rx.createWithParent(this) { picker in
+                    picker.sourceType = .camera
+                    picker.allowsEditing = false
+                }
+                .flatMap { $0.rx.didFinishPickingMediaWithInfo }
+                .take(1)
+            }
+            .map { info in
+                return info[.originalImage] as? UIImage
+            }
+            .bind(to: imageView.rx.image)
+            .disposed(by: disposeBag)
+
+        galleryButton.rx.tap
+            .flatMapLatest { [weak this] _ in
+                return UIImagePickerController.rx.createWithParent(this) { picker in
+                    picker.sourceType = .photoLibrary
+                    picker.allowsEditing = false
+                }
+                .flatMap {
+                    $0.rx.didFinishPickingMediaWithInfo
+                }
+                .take(1)
+            }
+            .map { info in
+                return info[.originalImage] as? UIImage
+            }
+            .bind(to: imageView.rx.image)
+            .disposed(by: disposeBag)
+
+        cropButton.rx.tap
+            .flatMapLatest { [weak this] _ in
+                return UIImagePickerController.rx.createWithParent(this) { picker in
+                    picker.sourceType = .photoLibrary
+                    picker.allowsEditing = true
+                }
+                .flatMap { $0.rx.didFinishPickingMediaWithInfo }
+                .take(1)
+            }
+            .map { info in
+                return info[.editedImage] as? UIImage
+            }
+            .bind(to: imageView.rx.image)
+            .disposed(by: disposeBag)
+    }
+    
+}

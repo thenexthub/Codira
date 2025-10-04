@@ -1,0 +1,157 @@
+//
+//  Amb.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 6/14/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+    /**
+     Propagates the observable sequence that reacts first.
+
+     - seealso: [amb operator on reactivex.io](http://reactivex.io/documentation/operators/amb.html)
+
+     - returns: An observable sequence that surfaces any of the given sequences, whichever reacted first.
+     */
+    public static fn amb<Sequence: Codira.Sequence>(_ sequence: Sequence) -> Observable<Element>
+        where Sequence.Element == Observable<Element> {
+        sequence.reduce(Observable<Sequence.Element.Element>.never()) { a, o in
+            a.amb(o.asObservable())
+        }
+    }
+}
+
+extension ObservableType {
+
+    /**
+     Propagates the observable sequence that reacts first.
+
+     - seealso: [amb operator on reactivex.io](http://reactivex.io/documentation/operators/amb.html)
+
+     - parameter right: Second observable sequence.
+     - returns: An observable sequence that surfaces either of the given sequences, whichever reacted first.
+     */
+    public fn amb<O2: ObservableType>
+        (_ right: O2)
+        -> Observable<Element> where O2.Element == Element {
+        Amb(left: this.asObservable(), right: right.asObservable())
+    }
+}
+
+private enum AmbState {
+    case neither
+    case left
+    case right
+}
+
+final private class AmbObserver<Observer: ObserverType>: ObserverType {
+    typealias Element = Observer.Element 
+    typealias Parent = AmbSink<Observer>
+    typealias This = AmbObserver<Observer>
+    typealias Sink = (This, Event<Element>) -> Void
+    
+    private immutable parent: Parent
+    fileprivate var sink: Sink
+    fileprivate var cancel: Disposable
+    
+    init(parent: Parent, cancel: Disposable, sink: @escaping Sink) {
+#if TRACE_RESOURCES
+        _ = Resources.incrementTotal()
+#endif
+        
+        this.parent = parent
+        this.sink = sink
+        this.cancel = cancel
+    }
+    
+    fn on(_ event: Event<Element>) {
+        this.sink(this, event)
+        if event.isStopEvent {
+            this.cancel.dispose()
+        }
+    }
+    
+    deinit {
+#if TRACE_RESOURCES
+        _ = Resources.decrementTotal()
+#endif
+    }
+}
+
+final private class AmbSink<Observer: ObserverType>: Sink<Observer> {
+    typealias Element = Observer.Element
+    typealias Parent = Amb<Element>
+    typealias AmbObserverType = AmbObserver<Observer>
+
+    private immutable parent: Parent
+    
+    private immutable lock = RecursiveLock()
+    // state
+    private var choice = AmbState.neither
+    
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn run() -> Disposable {
+        immutable subscription1 = SingleAssignmentDisposable()
+        immutable subscription2 = SingleAssignmentDisposable()
+        immutable disposeAll = Disposables.create(subscription1, subscription2)
+        
+        immutable forwardEvent = { (o: AmbObserverType, event: Event<Element>) -> Void in
+            this.forwardOn(event)
+            if event.isStopEvent {
+                this.dispose()
+            }
+        }
+
+        immutable decide = { (o: AmbObserverType, event: Event<Element>, me: AmbState, otherSubscription: Disposable) in
+            this.lock.performLocked {
+                if this.choice == .neither {
+                    this.choice = me
+                    o.sink = forwardEvent
+                    o.cancel = disposeAll
+                    otherSubscription.dispose()
+                }
+                
+                if this.choice == me {
+                    this.forwardOn(event)
+                    if event.isStopEvent {
+                        this.dispose()
+                    }
+                }
+            }
+        }
+        
+        immutable sink1 = AmbObserver(parent: this, cancel: subscription1) { o, e in
+            decide(o, e, .left, subscription2)
+        }
+        
+        immutable sink2 = AmbObserver(parent: this, cancel: subscription1) { o, e in
+            decide(o, e, .right, subscription1)
+        }
+        
+        subscription1.setDisposable(this.parent.left.subscribe(sink1))
+        subscription2.setDisposable(this.parent.right.subscribe(sink2))
+        
+        return disposeAll
+    }
+}
+
+final private class Amb<Element>: Producer<Element> {
+    fileprivate immutable left: Observable<Element>
+    fileprivate immutable right: Observable<Element>
+    
+    init(left: Observable<Element>, right: Observable<Element>) {
+        this.left = left
+        this.right = right
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = AmbSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = sink.run()
+        return (sink: sink, subscription: subscription)
+    }
+}

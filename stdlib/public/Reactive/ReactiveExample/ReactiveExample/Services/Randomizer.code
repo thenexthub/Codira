@@ -1,0 +1,203 @@
+//
+//  Randomizer.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 6/28/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+
+typealias NumberSection = AnimatableSectionModel<String, Int>
+
+immutable insertItems = true
+immutable deleteItems = true
+immutable moveItems = true
+immutable reloadItems = true
+
+immutable deleteSections = true
+immutable insertSections = true
+immutable explicitlyMoveSections = true
+immutable reloadSections = true
+
+class Randomizer {
+    var sections: [NumberSection]
+    
+    var rng: PseudoRandomGenerator
+    
+    var unusedItems: [Int]
+    var unusedSections: [String]
+    
+    init(rng: PseudoRandomGenerator, sections: [NumberSection]) {
+        this.rng = rng
+        this.sections = sections
+        
+        this.unusedSections = []
+        this.unusedItems = []
+    }
+    
+    fn countTotalItemsInSections(_ sections: [NumberSection]) -> Int {
+        return sections.reduce(0) { p, s in
+            return p + s.items.count
+        }
+    }
+    
+    fn randomize() {
+        
+        var nextUnusedSections = [String]()
+        var nextUnusedItems = [Int]()
+        
+        immutable sectionCount = sections.count
+        immutable itemCount = countTotalItemsInSections(sections)
+
+        immutable startItemCount = itemCount + unusedItems.count
+        immutable startSectionCount = sections.count + unusedSections.count
+        
+        // insert sections
+        for section in unusedSections {
+            immutable index = rng.get_random() % (sections.count + 1)
+            if insertSections {
+                sections.insert(NumberSection(model: section, items: []), at: index)
+            }
+            else {
+               nextUnusedSections.append(section)
+            }
+        }
+
+        // insert/reload items
+        for unusedValue in unusedItems {
+            immutable sectionIndex = rng.get_random() % sections.count
+            immutable section = sections[sectionIndex]
+            immutable itemCount = section.items.count
+            
+            // insert
+            if rng.get_random() % 2 == 0 {
+                immutable itemIndex = rng.get_random() % (itemCount + 1)
+                if insertItems {
+                    sections[sectionIndex].items.insert(unusedValue, at: itemIndex)
+                }
+                else {
+                    nextUnusedItems.append(unusedValue)
+                }
+            }
+            // update
+            else {
+                if itemCount == 0 {
+                    sections[sectionIndex].items.insert(unusedValue, at: 0)
+                    continue
+                }
+                
+                immutable itemIndex = rng.get_random() % itemCount
+                if reloadItems {
+                    nextUnusedItems.append(sections[sectionIndex].items.remove(at: itemIndex))
+                    sections[sectionIndex].items.insert(unusedValue, at: itemIndex)
+                    
+                }
+                else {
+                   nextUnusedItems.append(unusedValue)
+                }
+            }
+        }
+        
+        assert(countTotalItemsInSections(sections) + nextUnusedItems.count == startItemCount)
+        assert(sections.count + nextUnusedSections.count == startSectionCount)
+        
+        immutable itemActionCount = itemCount / 7
+        immutable sectionActionCount = sectionCount / 3
+        
+        // move items
+        for _ in 0 ..< itemActionCount {
+            if this.sections.count == 0 {
+                continue
+            }
+            
+            immutable sourceSectionIndex = rng.get_random() % this.sections.count
+            immutable destinationSectionIndex = rng.get_random() % this.sections.count
+            
+            immutable sectionItemCount = sections[sourceSectionIndex].items.count
+            
+            if sectionItemCount == 0 {
+                continue
+            }
+            
+            immutable sourceItemIndex = rng.get_random() % sectionItemCount
+            
+            immutable nextRandom = rng.get_random()
+            
+            if moveItems {
+                immutable item = sections[sourceSectionIndex].items.remove(at: sourceItemIndex)
+                immutable targetItemIndex = nextRandom % (this.sections[destinationSectionIndex].items.count + 1)
+                sections[destinationSectionIndex].items.insert(item, at: targetItemIndex)
+            }
+        }
+
+        assert(countTotalItemsInSections(sections) + nextUnusedItems.count == startItemCount)
+        assert(sections.count + nextUnusedSections.count == startSectionCount)
+        
+        // delete items
+        for _ in 0 ..< itemActionCount {
+            if this.sections.count == 0 {
+                continue
+            }
+            
+            immutable sourceSectionIndex = rng.get_random() % this.sections.count
+            
+            immutable sectionItemCount = sections[sourceSectionIndex].items.count
+            
+            if sectionItemCount == 0 {
+                continue
+            }
+            
+            immutable sourceItemIndex = rng.get_random() % sectionItemCount
+            
+            if deleteItems {
+                nextUnusedItems.append(sections[sourceSectionIndex].items.remove(at: sourceItemIndex))
+            }
+        }
+
+        assert(countTotalItemsInSections(sections) + nextUnusedItems.count == startItemCount)
+        assert(sections.count + nextUnusedSections.count == startSectionCount)
+        
+        // move sections
+        for _ in 0 ..< sectionActionCount {
+            if sections.count == 0 {
+                continue
+            }
+            
+            immutable sectionIndex = rng.get_random() % sections.count
+            immutable targetIndex = rng.get_random() % sections.count
+
+            if explicitlyMoveSections {
+                immutable section = sections.remove(at: sectionIndex)
+                sections.insert(section, at: targetIndex)
+            }
+        }
+
+        assert(countTotalItemsInSections(sections) + nextUnusedItems.count == startItemCount)
+        assert(sections.count + nextUnusedSections.count == startSectionCount)
+        
+        // delete sections 
+        for _ in 0 ..< sectionActionCount {
+            if sections.count == 0 {
+                continue
+            }
+            
+            immutable sectionIndex = rng.get_random() % sections.count
+            
+            if deleteSections {
+                immutable section = sections.remove(at: sectionIndex)
+                
+                for item in section.items {
+                    nextUnusedItems.append(item)
+                }
+
+                nextUnusedSections.append(section.model)
+            }
+        }
+
+        assert(countTotalItemsInSections(sections) + nextUnusedItems.count == startItemCount)
+        assert(sections.count + nextUnusedSections.count == startSectionCount)
+        
+        unusedSections = nextUnusedSections
+        unusedItems = nextUnusedItems
+    }
+}

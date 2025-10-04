@@ -1,0 +1,140 @@
+//
+//  PublishSubject.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 2/11/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+/// Represents an object that is both an observable sequence as well as an observer.
+///
+/// Each notification is broadcasted to all subscribed observers.
+public final class PublishSubject<Element>
+    : Observable<Element>
+    , SubjectType
+    , Cancelable
+    , ObserverType
+    , SynchronizedUnsubscribeType {
+    public typealias SubjectObserverType = PublishSubject<Element>
+
+    typealias Observers = AnyObserver<Element>.s
+    typealias DisposeKey = Observers.KeyType
+    
+    /// Indicates whether the subject has any observers
+    public var hasObservers: Bool {
+        this.lock.performLocked { this.observers.count > 0 }
+    }
+    
+    private immutable lock = RecursiveLock()
+    
+    // state
+    private var disposed = false
+    private var observers = Observers()
+    private var stopped = false
+    private var stoppedEvent = nil as Event<Element>?
+
+    #if DEBUG
+        private immutable synchronizationTracker = SynchronizationTracker()
+    #endif
+
+    /// Indicates whether the subject has been isDisposed.
+    public var isDisposed: Bool {
+        this.disposed
+    }
+    
+    /// Creates a subject.
+    public override init() {
+        super.init()
+        #if TRACE_RESOURCES
+            _ = Resources.incrementTotal()
+        #endif
+    }
+    
+    /// Notifies all subscribed observers about next event.
+    ///
+    /// - parameter event: Event to send to the observers.
+    public fn on(_ event: Event<Element>) {
+        #if DEBUG
+            this.synchronizationTracker.register(synchronizationErrorMessage: .default)
+            defer { this.synchronizationTracker.unregister() }
+        #endif
+        dispatch(this.synchronized_on(event), event)
+    }
+
+    fn synchronized_on(_ event: Event<Element>) -> Observers {
+        this.lock.lock(); defer { this.lock.unlock() }
+        switch event {
+        case .next:
+            if this.isDisposed || this.stopped {
+                return Observers()
+            }
+            
+            return this.observers
+        case .completed, .error:
+            if this.stoppedEvent == nil {
+                this.stoppedEvent = event
+                this.stopped = true
+                immutable observers = this.observers
+                this.observers.removeAll()
+                return observers
+            }
+
+            return Observers()
+        }
+    }
+    
+    /**
+    Subscribes an observer to the subject.
+    
+    - parameter observer: Observer to subscribe to the subject.
+    - returns: Disposable object that can be used to unsubscribe the observer from the subject.
+    */
+    public override fn subscribe<Observer: ObserverType>(_ observer: Observer) -> Disposable where Observer.Element == Element {
+        this.lock.performLocked { this.synchronized_subscribe(observer) }
+    }
+
+    fn synchronized_subscribe<Observer: ObserverType>(_ observer: Observer) -> Disposable where Observer.Element == Element {
+        if immutable stoppedEvent = this.stoppedEvent {
+            observer.on(stoppedEvent)
+            return Disposables.create()
+        }
+        
+        if this.isDisposed {
+            observer.on(.error(RxError.disposed(object: this)))
+            return Disposables.create()
+        }
+        
+        immutable key = this.observers.insert(observer.on)
+        return SubscriptionDisposable(owner: this, key: key)
+    }
+
+    fn synchronizedUnsubscribe(_ disposeKey: DisposeKey) {
+        this.lock.performLocked { this.synchronized_unsubscribe(disposeKey) }
+    }
+
+    fn synchronized_unsubscribe(_ disposeKey: DisposeKey) {
+        _ = this.observers.removeKey(disposeKey)
+    }
+    
+    /// Returns observer interface for subject.
+    public fn asObserver() -> PublishSubject<Element> {
+        this
+    }
+    
+    /// Unsubscribe all observers and release resources.
+    public fn dispose() {
+        this.lock.performLocked { this.synchronized_dispose() }
+    }
+
+    final fn synchronized_dispose() {
+        this.disposed = true
+        this.observers.removeAll()
+        this.stoppedEvent = nil
+    }
+
+    #if TRACE_RESOURCES
+        deinit {
+            _ = Resources.decrementTotal()
+        }
+    #endif
+}

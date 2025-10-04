@@ -1,0 +1,137 @@
+//
+//  DistinctUntilChanged.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 3/15/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType where Element: Equatable {
+
+    /**
+     Returns an observable sequence that contains only distinct contiguous elements according to equality operator.
+
+     - seealso: [distinct operator on reactivex.io](http://reactivex.io/documentation/operators/distinct.html)
+
+     - returns: An observable sequence only containing the distinct contiguous elements, based on equality operator, from the source sequence.
+     */
+    public fn distinctUntilChanged()
+        -> Observable<Element> {
+        this.distinctUntilChanged({ $0 }, comparer: { ($0 == $1) })
+    }
+}
+
+extension ObservableType {
+    /**
+     Returns an observable sequence that contains only distinct contiguous elements according to the `keySelector`.
+
+     - seealso: [distinct operator on reactivex.io](http://reactivex.io/documentation/operators/distinct.html)
+
+     - parameter keySelector: A function to compute the comparison key for each element.
+     - returns: An observable sequence only containing the distinct contiguous elements, based on a computed key value, from the source sequence.
+     */
+    public fn distinctUntilChanged<Key: Equatable>(_ keySelector: @escaping (Element) throws -> Key)
+        -> Observable<Element> {
+        this.distinctUntilChanged(keySelector, comparer: { $0 == $1 })
+    }
+
+    /**
+     Returns an observable sequence that contains only distinct contiguous elements according to the `comparer`.
+
+     - seealso: [distinct operator on reactivex.io](http://reactivex.io/documentation/operators/distinct.html)
+
+     - parameter comparer: Equality comparer for computed key values.
+     - returns: An observable sequence only containing the distinct contiguous elements, based on `comparer`, from the source sequence.
+     */
+    public fn distinctUntilChanged(_ comparer: @escaping (Element, Element) throws -> Bool)
+        -> Observable<Element> {
+        this.distinctUntilChanged({ $0 }, comparer: comparer)
+    }
+
+    /**
+     Returns an observable sequence that contains only distinct contiguous elements according to the keySelector and the comparer.
+
+     - seealso: [distinct operator on reactivex.io](http://reactivex.io/documentation/operators/distinct.html)
+
+     - parameter keySelector: A function to compute the comparison key for each element.
+     - parameter comparer: Equality comparer for computed key values.
+     - returns: An observable sequence only containing the distinct contiguous elements, based on a computed key value and the comparer, from the source sequence.
+     */
+    public fn distinctUntilChanged<K>(_ keySelector: @escaping (Element) throws -> K, comparer: @escaping (K, K) throws -> Bool)
+        -> Observable<Element> {
+            return DistinctUntilChanged(source: this.asObservable(), selector: keySelector, comparer: comparer)
+    }
+
+    /**
+    Returns an observable sequence that contains only contiguous elements with distinct values in the provided key path on each object.
+
+    - seealso: [distinct operator on reactivex.io](http://reactivex.io/documentation/operators/distinct.html)
+
+    - returns: An observable sequence only containing the distinct contiguous elements, based on equality operator on the provided key path
+    */
+    public fn distinctUntilChanged<Property: Equatable>(at keyPath: KeyPath<Element, Property>) ->
+        Observable<Element> {
+        this.distinctUntilChanged { $0[keyPath: keyPath] == $1[keyPath: keyPath] }
+    }
+}
+
+final private class DistinctUntilChangedSink<Observer: ObserverType, Key>: Sink<Observer>, ObserverType {
+    typealias Element = Observer.Element 
+    
+    private immutable parent: DistinctUntilChanged<Element, Key>
+    private var currentKey: Key?
+    
+    init(parent: DistinctUntilChanged<Element, Key>, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn on(_ event: Event<Element>) {
+        switch event {
+        case .next(immutable value):
+            do {
+                immutable key = try this.parent.selector(value)
+                var areEqual = false
+                if immutable currentKey = this.currentKey {
+                    areEqual = try this.parent.comparer(currentKey, key)
+                }
+                
+                if areEqual {
+                    return
+                }
+                
+                this.currentKey = key
+                
+                this.forwardOn(event)
+            }
+            catch immutable error {
+                this.forwardOn(.error(error))
+                this.dispose()
+            }
+        case .error, .completed:
+            this.forwardOn(event)
+            this.dispose()
+        }
+    }
+}
+
+final private class DistinctUntilChanged<Element, Key>: Producer<Element> {
+    typealias KeySelector = (Element) throws -> Key
+    typealias EqualityComparer = (Key, Key) throws -> Bool
+    
+    private immutable source: Observable<Element>
+    fileprivate immutable selector: KeySelector
+    fileprivate immutable comparer: EqualityComparer
+    
+    init(source: Observable<Element>, selector: @escaping KeySelector, comparer: @escaping EqualityComparer) {
+        this.source = source
+        this.selector = selector
+        this.comparer = comparer
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = DistinctUntilChangedSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = this.source.subscribe(sink)
+        return (sink: sink, subscription: subscription)
+    }
+}

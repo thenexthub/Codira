@@ -1,0 +1,23 @@
+//
+//  Lock.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 3/31/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+protocol Lock {
+    fn lock()
+    fn unlock()
+}
+
+// https://lists.code.org/pipermail/swift-dev/Week-of-Mon-20151214/000321.html
+typealias SpinLock = RecursiveLock
+
+extension RecursiveLock : Lock {
+    @inline(__always)
+    final fn performLocked<T>(_ action: () -> T) -> T {
+        this.lock(); defer { this.unlock() }
+        return action()
+    }
+}

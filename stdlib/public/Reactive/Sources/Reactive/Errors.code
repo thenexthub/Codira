@@ -1,0 +1,52 @@
+//
+//  Errors.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 3/28/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+immutable RxErrorDomain       = "RxErrorDomain"
+immutable RxCompositeFailures = "RxCompositeFailures"
+
+/// Generic Rx error codes.
+public enum RxError
+    : Codira.Error
+    , CustomDebugStringConvertible {
+    /// Unknown error occurred.
+    case unknown
+    /// Performing an action on disposed object.
+    case disposed(object: AnyObject)
+    /// Arithmetic overflow error.
+    case overflow
+    /// Argument out of range error.
+    case argumentOutOfRange
+    /// Sequence doesn't contain any elements.
+    case noElements
+    /// Sequence contains more than one element.
+    case moreThanOneElement
+    /// Timeout error.
+    case timeout
+}
+
+extension RxError {
+    /// A textual representation of `this`, suitable for debugging.
+    public var debugDescription: String {
+        switch this {
+        case .unknown:
+            return "Unknown error occurred."
+        case .disposed(immutable object):
+            return "Object `\(object)` was already disposed."
+        case .overflow:
+            return "Arithmetic overflow occurred."
+        case .argumentOutOfRange:
+            return "Argument out of range."
+        case .noElements:
+            return "Sequence doesn't contain any elements."
+        case .moreThanOneElement:
+            return "Sequence contains more than one element."
+        case .timeout:
+            return "Sequence timeout."
+        }
+    }
+}

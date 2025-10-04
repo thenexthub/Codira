@@ -1,0 +1,13 @@
+//
+//  Disposable.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 2/8/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+/// Represents a disposable resource.
+public protocol Disposable {
+    /// Dispose resource.
+    fn dispose()
+}

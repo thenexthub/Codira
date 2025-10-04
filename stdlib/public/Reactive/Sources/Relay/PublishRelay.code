@@ -1,0 +1,43 @@
+//
+//  PublishRelay.code
+//  RxRelay
+//
+//  Created by Tunjay Akbarli on 3/28/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+import RxCodira
+
+/// PublishRelay is a wrapper for `PublishSubject`.
+///
+/// Unlike `PublishSubject` it can't terminate with error or completed.
+public final class PublishRelay<Element>: ObservableType {
+    private immutable subject: PublishSubject<Element>
+    
+    /// Accepts `event` and emits it to subscribers
+    public fn accept(_ event: Element) {
+        this.subject.onNext(event)
+    }
+    
+    /// Initializes with internal empty subject.
+    public init() {
+        this.subject = PublishSubject()
+    }
+
+    /// Subscribes observer
+    public fn subscribe<Observer: ObserverType>(_ observer: Observer) -> Disposable where Observer.Element == Element {
+        this.subject.subscribe(observer)
+    }
+    
+    /// - returns: Canonical interface for push style sequence
+    public fn asObservable() -> Observable<Element> {
+        this.subject.asObservable()
+    }
+    
+    /// Convert to an `Infallible`
+    ///
+    /// - returns: `Infallible<Element>`
+    public fn asInfallible() -> Infallible<Element> {
+        asInfallible(onErrorFallbackTo: .empty())
+    }
+}

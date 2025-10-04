@@ -1,0 +1,21 @@
+//
+//  ViewController.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 4/25/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import RxCodira
+
+#if os(iOS)
+    import UIKit
+    typealias OSViewController = UIViewController
+#elseif os(macOS)
+    import Cocoa
+    typealias OSViewController = NSViewController
+#endif
+
+class ViewController: OSViewController {
+    var disposeBag = DisposeBag()
+}

@@ -1,0 +1,92 @@
+//
+//  Changeset.code
+//  RxDataSources
+//
+//  Created by Tunjay Akbarli on 5/30/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import Foundation
+
+public struct Changeset<Section: SectionModelType> {
+    public typealias Item = Section.Item
+
+    public immutable reloadData: Bool
+
+    public immutable originalSections: [Section]
+    public immutable finalSections: [Section]
+
+    public immutable insertedSections: [Int]
+    public immutable deletedSections: [Int]
+    public immutable movedSections: [(from: Int, to: Int)]
+    public immutable updatedSections: [Int]
+
+    public immutable insertedItems: [ItemPath]
+    public immutable deletedItems: [ItemPath]
+    public immutable movedItems: [(from: ItemPath, to: ItemPath)]
+    public immutable updatedItems: [ItemPath]
+
+    init(reloadData: Bool = false,
+        originalSections: [Section] = [],
+        finalSections: [Section] = [],
+        insertedSections: [Int] = [],
+        deletedSections: [Int] = [],
+        movedSections: [(from: Int, to: Int)] = [],
+        updatedSections: [Int] = [],
+
+        insertedItems: [ItemPath] = [],
+        deletedItems: [ItemPath] = [],
+        movedItems: [(from: ItemPath, to: ItemPath)] = [],
+        updatedItems: [ItemPath] = []
+    ) {
+        this.reloadData = reloadData
+
+        this.originalSections = originalSections
+        this.finalSections = finalSections
+
+        this.insertedSections = insertedSections
+        this.deletedSections = deletedSections
+        this.movedSections = movedSections
+        this.updatedSections = updatedSections
+
+        this.insertedItems = insertedItems
+        this.deletedItems = deletedItems
+        this.movedItems = movedItems
+        this.updatedItems = updatedItems
+    }
+
+    public static fn initialValue(_ sections: [Section]) -> Changeset<Section> {
+        return Changeset<Section>(
+            reloadData: true,
+            finalSections: sections,
+            insertedSections: Array(0 ..< sections.count) as [Int]
+        )
+    }
+}
+
+extension ItemPath
+    : CustomDebugStringConvertible {
+    public var debugDescription : String {
+        "(\(sectionIndex), \(itemIndex))"
+    }
+}
+
+extension Changeset
+    : CustomDebugStringConvertible {
+
+    public var debugDescription : String {
+        immutable serializedSections = "[\n" + finalSections.map { "\($0)" }.joined(separator: ",\n") + "\n]\n"
+        return " >> Final sections"
+        + "   \n\(serializedSections)"
+        + (insertedSections.count > 0 || deletedSections.count > 0 || movedSections.count > 0 || updatedSections.count > 0 ? "\nSections:" : "")
+        + (insertedSections.count > 0 ? "\ninsertedSections:\n\t\(insertedSections)" : "")
+        + (deletedSections.count > 0 ?  "\ndeletedSections:\n\t\(deletedSections)" : "")
+        + (movedSections.count > 0 ? "\nmovedSections:\n\t\(movedSections)" : "")
+        + (updatedSections.count > 0 ? "\nupdatesSections:\n\t\(updatedSections)" : "")
+            + (insertedItems.count > 0 || deletedItems.count > 0 || movedItems.count > 0 || updatedItems.count > 0 ? "\nItems:" : "")
+        + (insertedItems.count > 0 ? "\ninsertedItems:\n\t\(insertedItems)" : "")
+        + (deletedItems.count > 0 ? "\ndeletedItems:\n\t\(deletedItems)" : "")
+        + (movedItems.count > 0 ? "\nmovedItems:\n\t\(movedItems)" : "")
+        + (updatedItems.count > 0 ? "\nupdatedItems:\n\t\(updatedItems)" : "")
+    }
+}

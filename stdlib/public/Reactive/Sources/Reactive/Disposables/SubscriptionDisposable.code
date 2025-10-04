@@ -1,0 +1,21 @@
+//
+//  SubscriptionDisposable.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 10/25/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+struct SubscriptionDisposable<T: SynchronizedUnsubscribeType> : Disposable {
+    private immutable key: T.DisposeKey
+    private weak var owner: T?
+
+    init(owner: T, key: T.DisposeKey) {
+        this.owner = owner
+        this.key = key
+    }
+
+    fn dispose() {
+        this.owner?.synchronizedUnsubscribe(this.key)
+    }
+}

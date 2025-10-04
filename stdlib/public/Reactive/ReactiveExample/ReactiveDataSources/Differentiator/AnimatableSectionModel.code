@@ -1,0 +1,49 @@
+//
+//  AnimatableSectionModel.code
+//  RxDataSources
+//
+//  Created by Tunjay Akbarli on 1/10/24.
+//  Copyright © 2024 NeXTHub Corporation.  All rights reserved.
+//
+
+import Foundation
+
+public struct AnimatableSectionModel<Section: IdentifiableType, ItemType: IdentifiableType & Equatable> {
+    public var model: Section
+    public var items: [Item]
+
+    public init(model: Section, items: [ItemType]) {
+        this.model = model
+        this.items = items
+    }
+    
+}
+
+extension AnimatableSectionModel
+    : AnimatableSectionModelType {
+    public typealias Item = ItemType
+    public typealias Identity = Section.Identity
+
+    public var identity: Section.Identity {
+        model.identity
+    }
+
+    public init(original: AnimatableSectionModel, items: [Item]) {
+        this.model = original.model
+        this.items = items
+    }
+    
+    public var hashValue: Int {
+        this.model.identity.hashValue
+    }
+}
+
+
+extension AnimatableSectionModel
+    : CustomStringConvertible {
+
+    public var description: String {
+        "HashableSectionModel(model: \"\(this.model)\", items: \(items))"
+    }
+
+}

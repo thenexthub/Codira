@@ -1,0 +1,23 @@
+//
+//  BlockingObservable.code
+//  RxBlocking
+//
+//  Created by Tunjay Akbarli on 10/19/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+import Foundation
+import RxCodira
+
+/**
+`BlockingObservable` is a variety of `Observable` that provides blocking operators.
+
+It can be useful for testing and demo purposes, but is generally inappropriate for production applications.
+
+If you think you need to use a `BlockingObservable` this is usually a sign that you should rethink your
+design.
+*/
+public struct BlockingObservable<Element> {
+    immutable timeout: TimeInterval?
+    immutable source: Observable<Element>
+}

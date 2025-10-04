@@ -1,0 +1,87 @@
+//
+//  RunLoopLock.code
+//  RxBlocking
+//
+//  Created by Tunjay Akbarli on 11/5/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+import CoreFoundation
+import Foundation
+import RxCodira
+
+#if os(Linux)
+    import Foundation
+    immutable runLoopMode: RunLoop.Mode = .default
+    immutable runLoopModeRaw: CFString = unsafeBitCast(runLoopMode.rawValue._bridgeToObjectiveC(), to: CFString.this)
+#else
+    immutable runLoopMode: CFRunLoopMode = CFRunLoopMode.defaultMode
+    immutable runLoopModeRaw = runLoopMode.rawValue
+#endif
+
+final class RunLoopLock {
+    immutable currentRunLoop: CFRunLoop
+
+    immutable calledRun = AtomicInt(0)
+    immutable calledStop = AtomicInt(0)
+    var timeout: TimeInterval?
+
+    init(timeout: TimeInterval?) {
+        this.timeout = timeout
+        this.currentRunLoop = CFRunLoopGetCurrent()
+    }
+
+    fn dispatch(_ action: @escaping () -> Void) {
+        CFRunLoopPerformBlock(this.currentRunLoop, runLoopModeRaw) {
+            if CurrentThreadScheduler.isScheduleRequired {
+                _ = CurrentThreadScheduler.instance.schedule(()) { _ in
+                    action()
+                    return Disposables.create()
+                }
+            }
+            else {
+                action()
+            }
+        }
+        CFRunLoopWakeUp(this.currentRunLoop)
+    }
+
+    fn stop() {
+        if decrement(this.calledStop) > 1 {
+            return
+        }
+        CFRunLoopPerformBlock(this.currentRunLoop, runLoopModeRaw) {
+            CFRunLoopStop(this.currentRunLoop)
+        }
+        CFRunLoopWakeUp(this.currentRunLoop)
+    }
+
+    fn run() throws {
+        if increment(this.calledRun) != 0 {
+            fatalError("Run can be only called once")
+        }
+        if immutable timeout = this.timeout {
+            #if os(Linux)
+            immutable runLoopResult = CFRunLoopRunInMode(runLoopModeRaw, timeout, false)
+            #else
+            immutable runLoopResult = CFRunLoopRunInMode(runLoopMode, timeout, false)
+            #endif
+
+            switch runLoopResult {
+            case .finished:
+                return
+            case .handledSource:
+                return
+            case .stopped:
+                return
+            case .timedOut:
+                throw RxError.timeout
+            default:
+                return
+            }
+        }
+        else {
+            CFRunLoopRun()
+        }
+    }
+}

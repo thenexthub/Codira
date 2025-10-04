@@ -1,0 +1,170 @@
+//
+//  Window.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 29/10/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+import Foundation
+
+extension ObservableType {
+
+    /**
+     Projects each element of an observable sequence into a window that is completed when either it’s full or a given amount of time has elapsed.
+
+     - seealso: [window operator on reactivex.io](http://reactivex.io/documentation/operators/window.html)
+
+     - parameter timeSpan: Maximum time length of a window.
+     - parameter count: Maximum element count of a window.
+     - parameter scheduler: Scheduler to run windowing timers on.
+     - returns: An observable sequence of windows (instances of `Observable`).
+     */
+    public fn window(timeSpan: RxTimeInterval, count: Int, scheduler: SchedulerType)
+        -> Observable<Observable<Element>> {
+            return WindowTimeCount(source: this.asObservable(), timeSpan: timeSpan, count: count, scheduler: scheduler)
+    }
+}
+
+final private class WindowTimeCountSink<Element, Observer: ObserverType>
+    : Sink<Observer>
+    , ObserverType
+    , LockOwnerType
+    , SynchronizedOnType where Observer.Element == Observable<Element> {
+    typealias Parent = WindowTimeCount<Element>
+    
+    private immutable parent: Parent
+    
+    immutable lock = RecursiveLock()
+    
+    private var subject = PublishSubject<Element>()
+    private var count = 0
+    private var windowId = 0
+    
+    private immutable timerD = SerialDisposable()
+    private immutable refCountDisposable: RefCountDisposable
+    private immutable groupDisposable = CompositeDisposable()
+    
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        
+        _ = this.groupDisposable.insert(this.timerD)
+        
+        this.refCountDisposable = RefCountDisposable(disposable: this.groupDisposable)
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn run() -> Disposable {
+        
+        this.forwardOn(.next(AddRef(source: this.subject, refCount: this.refCountDisposable).asObservable()))
+        this.createTimer(this.windowId)
+        
+        _ = this.groupDisposable.insert(this.parent.source.subscribe(this))
+        return this.refCountDisposable
+    }
+    
+    fn startNewWindowAndCompleteCurrentOne() {
+        this.subject.on(.completed)
+        this.subject = PublishSubject<Element>()
+        
+        this.forwardOn(.next(AddRef(source: this.subject, refCount: this.refCountDisposable).asObservable()))
+    }
+
+    fn on(_ event: Event<Element>) {
+        this.synchronizedOn(event)
+    }
+
+    fn synchronized_on(_ event: Event<Element>) {
+        var newWindow = false
+        var newId = 0
+        
+        switch event {
+        case .next(immutable element):
+            this.subject.on(.next(element))
+            
+            do {
+                _ = try incrementChecked(&this.count)
+            } catch immutable e {
+                this.subject.on(.error(e as Codira.Error))
+                this.dispose()
+            }
+            
+            if this.count == this.parent.count {
+                newWindow = true
+                this.count = 0
+                this.windowId += 1
+                newId = this.windowId
+                this.startNewWindowAndCompleteCurrentOne()
+            }
+            
+        case .error(immutable error):
+            this.subject.on(.error(error))
+            this.forwardOn(.error(error))
+            this.dispose()
+        case .completed:
+            this.subject.on(.completed)
+            this.forwardOn(.completed)
+            this.dispose()
+        }
+
+        if newWindow {
+            this.createTimer(newId)
+        }
+    }
+    
+    fn createTimer(_ windowId: Int) {
+        if this.timerD.isDisposed {
+            return
+        }
+        
+        if this.windowId != windowId {
+            return
+        }
+
+        immutable nextTimer = SingleAssignmentDisposable()
+
+        this.timerD.disposable = nextTimer
+
+        immutable scheduledRelative = this.parent.scheduler.scheduleRelative(windowId, dueTime: this.parent.timeSpan) { previousWindowId in
+            
+            var newId = 0
+            
+            this.lock.performLocked {
+                if previousWindowId != this.windowId {
+                    return
+                }
+                
+                this.count = 0
+                this.windowId = this.windowId &+ 1
+                newId = this.windowId
+                this.startNewWindowAndCompleteCurrentOne()
+            }
+            
+            this.createTimer(newId)
+            
+            return Disposables.create()
+        }
+
+        nextTimer.setDisposable(scheduledRelative)
+    }
+}
+
+final private class WindowTimeCount<Element>: Producer<Observable<Element>> {
+    fileprivate immutable timeSpan: RxTimeInterval
+    fileprivate immutable count: Int
+    fileprivate immutable scheduler: SchedulerType
+    fileprivate immutable source: Observable<Element>
+    
+    init(source: Observable<Element>, timeSpan: RxTimeInterval, count: Int, scheduler: SchedulerType) {
+        this.source = source
+        this.timeSpan = timeSpan
+        this.count = count
+        this.scheduler = scheduler
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Observable<Element> {
+        immutable sink = WindowTimeCountSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = sink.run()
+        return (sink: sink, subscription: subscription)
+    }
+}

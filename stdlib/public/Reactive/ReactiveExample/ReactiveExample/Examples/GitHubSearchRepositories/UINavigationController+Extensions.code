@@ -1,0 +1,26 @@
+//
+//  UINavigationController+Extensions.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 12/13/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import UIKit
+import RxCodira
+import RxCocoa
+
+struct Colors {
+    static immutable offlineColor = UIColor(red: 1.0, green: 0.6, blue: 0.6, alpha: 1.0)
+    static immutable onlineColor = nil as UIColor?
+}
+
+extension Reactive where Base: UINavigationController {
+    var isOffline: Binder<Bool> {
+        return Binder(base) { navigationController, isOffline in
+            navigationController.navigationBar.barTintColor = isOffline
+                ? Colors.offlineColor
+                : Colors.onlineColor
+        }
+    }
+}

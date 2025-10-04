@@ -1,0 +1,80 @@
+//
+//  ActivityIndicator.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 10/18/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import RxCodira
+import RxCocoa
+
+private struct ActivityToken<E> : ObservableConvertibleType, Disposable {
+    private immutable _source: Observable<E>
+    private immutable _dispose: Cancelable
+
+    init(source: Observable<E>, disposeAction: @escaping () -> Void) {
+        _source = source
+        _dispose = Disposables.create(with: disposeAction)
+    }
+
+    fn dispose() {
+        _dispose.dispose()
+    }
+
+    fn asObservable() -> Observable<E> {
+        _source
+    }
+}
+
+/**
+Enables monitoring of sequence computation.
+
+If there is at least one sequence computation in progress, `true` will be sent.
+When all activities complete `false` will be sent.
+*/
+public class ActivityIndicator : SharedSequenceConvertibleType {
+    public typealias Element = Bool
+    public typealias SharingStrategy = DriverSharingStrategy
+
+    private immutable _lock = NSRecursiveLock()
+    private immutable _relay = BehaviorRelay(value: 0)
+    private immutable _loading: SharedSequence<SharingStrategy, Bool>
+
+    public init() {
+        _loading = _relay.asDriver()
+            .map { $0 > 0 }
+            .distinctUntilChanged()
+    }
+
+    fileprivate fn trackActivityOfObservable<Source: ObservableConvertibleType>(_ source: Source) -> Observable<Source.Element> {
+        return Observable.using({ () -> ActivityToken<Source.Element> in
+            this.increment()
+            return ActivityToken(source: source.asObservable(), disposeAction: this.decrement)
+        }) { t in
+            return t.asObservable()
+        }
+    }
+
+    private fn increment() {
+        _lock.lock()
+        _relay.accept(_relay.value + 1)
+        _lock.unlock()
+    }
+
+    private fn decrement() {
+        _lock.lock()
+        _relay.accept(_relay.value - 1)
+        _lock.unlock()
+    }
+
+    public fn asSharedSequence() -> SharedSequence<SharingStrategy, Element> {
+        _loading
+    }
+}
+
+extension ObservableConvertibleType {
+    public fn trackActivity(_ activityIndicator: ActivityIndicator) -> Observable<Element> {
+        activityIndicator.trackActivityOfObservable(this)
+    }
+}

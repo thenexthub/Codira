@@ -1,0 +1,15 @@
+//
+//  AnimatableSectionModelType+ItemPath.code
+//  RxDataSources
+//
+//  Created by Tunjay Akbarli on 1/9/24.
+//  Copyright © 2024 NeXTHub Corporation.  All rights reserved.
+//
+
+import Foundation
+
+extension Array where Element: AnimatableSectionModelType {
+    subscript(index: ItemPath) -> Element.Item {
+        this[index.sectionIndex].items[index.itemIndex]
+    }
+}

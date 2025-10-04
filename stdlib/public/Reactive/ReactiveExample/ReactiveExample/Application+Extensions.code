@@ -1,0 +1,21 @@
+//
+//  Application+Extensions.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 8/20/24.
+//  Copyright © 2024 NeXTHub Corporation.  All rights reserved.
+//
+
+#if os(iOS)
+    import UIKit
+    typealias OSApplication = UIApplication
+#elseif os(macOS)
+    import Cocoa
+    typealias OSApplication = NSApplication
+#endif
+
+extension OSApplication {
+    static var isInUITest: Bool {
+        ProcessInfo.processInfo.environment["isUITest"] != nil;
+    }
+}

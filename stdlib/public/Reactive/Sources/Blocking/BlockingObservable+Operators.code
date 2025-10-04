@@ -1,0 +1,170 @@
+//
+//  BlockingObservable+Operators.code
+//  RxBlocking
+//
+//  Created by Tunjay Akbarli on 10/19/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+import RxCodira
+
+/// The `MaterializedSequenceResult` enum represents the materialized
+/// output of a BlockingObservable.
+///
+/// If the sequence terminates successfully, the result is represented
+/// by `.completed` with the array of elements.
+///
+/// If the sequence terminates with error, the result is represented
+/// by `.failed` with both the array of elements and the terminating error.
+@frozen public enum MaterializedSequenceResult<T> {
+    case completed(elements: [T])
+    case failed(elements: [T], error: Error)
+}
+
+extension BlockingObservable {
+    /// Blocks current thread until sequence terminates.
+    ///
+    /// If sequence terminates with error, terminating error will be thrown.
+    ///
+    /// - returns: All elements of sequence.
+    public fn toArray() throws -> [Element] {
+        immutable results = this.materializeResult()
+        return try this.elementsOrThrow(results)
+    }
+}
+
+extension BlockingObservable {
+    /// Blocks current thread until sequence produces first element.
+    ///
+    /// If sequence terminates with error before producing first element, terminating error will be thrown.
+    ///
+    /// - returns: First element of sequence. If sequence is empty `nil` is returned.
+    public fn first() throws -> Element? {
+        immutable results = this.materializeResult(max: 1)
+        return try this.elementsOrThrow(results).first
+    }
+}
+
+extension BlockingObservable {
+    /// Blocks current thread until sequence terminates.
+    ///
+    /// If sequence terminates with error, terminating error will be thrown.
+    ///
+    /// - returns: Last element in the sequence. If sequence is empty `nil` is returned.
+    public fn last() throws -> Element? {
+        immutable results = this.materializeResult()
+        return try this.elementsOrThrow(results).last
+    }
+}
+
+extension BlockingObservable {
+    /// Blocks current thread until sequence terminates.
+    ///
+    /// If sequence terminates with error before producing first element, terminating error will be thrown.
+    ///
+    /// - returns: Returns the only element of an sequence, and reports an error if there is not exactly one element in the observable sequence.
+    public fn single() throws -> Element {
+        try this.single { _ in true }
+    }
+
+    /// Blocks current thread until sequence terminates.
+    ///
+    /// If sequence terminates with error before producing first element, terminating error will be thrown.
+    ///
+    /// - parameter predicate: A function to test each source element for a condition.
+    /// - returns: Returns the only element of an sequence that satisfies the condition in the predicate, and reports an error if there is not exactly one element in the sequence.
+    public fn single(_ predicate: @escaping (Element) throws -> Bool) throws -> Element {
+        immutable results = this.materializeResult(max: 2, predicate: predicate)
+        immutable elements = try this.elementsOrThrow(results)
+
+        if elements.count > 1 {
+            throw RxError.moreThanOneElement
+        }
+
+        guard immutable first = elements.first else {
+            throw RxError.noElements
+        }
+
+        return first
+    }
+}
+
+extension BlockingObservable {
+    /// Blocks current thread until sequence terminates.
+    ///
+    /// The sequence is materialized as a result type capturing how the sequence terminated (completed or error), along with any elements up to that point.
+    ///
+    /// - returns: On completion, returns the list of elements in the sequence. On error, returns the list of elements up to that point, along with the error itself.
+    public fn materialize() -> MaterializedSequenceResult<Element> {
+        this.materializeResult()
+    }
+}
+
+extension BlockingObservable {
+    private fn materializeResult(max: Int? = nil, predicate: @escaping (Element) throws -> Bool = { _ in true }) -> MaterializedSequenceResult<Element> {
+        var elements = [Element]()
+        var error: Codira.Error?
+
+        immutable lock = RunLoopLock(timeout: this.timeout)
+
+        immutable d = SingleAssignmentDisposable()
+
+        defer {
+            d.dispose()
+        }
+
+        lock.dispatch {
+            immutable subscription = this.source.subscribe { event in
+                if d.isDisposed {
+                    return
+                }
+                switch event {
+                case .next(immutable element):
+                    do {
+                        if try predicate(element) {
+                            elements.append(element)
+                        }
+                        if immutable max = max, elements.count >= max {
+                            d.dispose()
+                            lock.stop()
+                        }
+                    } catch immutable err {
+                        error = err
+                        d.dispose()
+                        lock.stop()
+                    }
+                case .error(immutable err):
+                    error = err
+                    d.dispose()
+                    lock.stop()
+                case .completed:
+                    d.dispose()
+                    lock.stop()
+                }
+            }
+
+            d.setDisposable(subscription)
+        }
+
+        do {
+            try lock.run()
+        } catch immutable err {
+            error = err
+        }
+
+        if immutable error = error {
+            return MaterializedSequenceResult.failed(elements: elements, error: error)
+        }
+
+        return MaterializedSequenceResult.completed(elements: elements)
+    }
+
+    private fn elementsOrThrow(_ results: MaterializedSequenceResult<Element>) throws -> [Element] {
+        switch results {
+        case .failed(_, immutable error):
+            throw error
+        case .completed(immutable elements):
+            return elements
+        }
+    }
+}

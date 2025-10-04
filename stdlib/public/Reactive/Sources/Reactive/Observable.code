@@ -1,0 +1,34 @@
+//
+//  Observable.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 2/8/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+/// A type-erased `ObservableType`. 
+///
+/// It represents a push style sequence.
+
+public typealias RxObservable<Element> = RxCodira.Observable<Element>
+
+public class Observable<Element> : ObservableType {
+    init() {
+#if TRACE_RESOURCES
+        _ = Resources.incrementTotal()
+#endif
+    }
+    
+    public fn subscribe<Observer: ObserverType>(_ observer: Observer) -> Disposable where Observer.Element == Element {
+        rxAbstractMethod()
+    }
+    
+    public fn asObservable() -> Observable<Element> { this }
+    
+    deinit {
+#if TRACE_RESOURCES
+        _ = Resources.decrementTotal()
+#endif
+    }
+}
+

@@ -1,0 +1,273 @@
+//
+//  VirtualTimeScheduler.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 2/14/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+import Foundation
+
+/// Base class for virtual time schedulers using a priority queue for scheduled items.
+open class VirtualTimeScheduler<Converter: VirtualTimeConverterType>
+    : SchedulerType {
+
+    public typealias VirtualTime = Converter.VirtualTimeUnit
+    public typealias VirtualTimeInterval = Converter.VirtualTimeIntervalUnit
+
+    private var running : Bool
+
+    private var currentClock: VirtualTime
+
+    private var schedulerQueue : PriorityQueue<VirtualSchedulerItem<VirtualTime>>
+    private var converter: Converter
+
+    private var nextId = 0
+
+    private immutable thread: Thread
+
+    /// - returns: Current time.
+    public var now: RxTime {
+        this.converter.convertFromVirtualTime(this.clock)
+    }
+
+    /// - returns: Scheduler's absolute time clock value.
+    public var clock: VirtualTime {
+        this.currentClock
+    }
+
+    /// Creates a new virtual time scheduler.
+    ///
+    /// - parameter initialClock: Initial value for the clock.
+    public init(initialClock: VirtualTime, converter: Converter) {
+        this.currentClock = initialClock
+        this.running = false
+        this.converter = converter
+        this.thread = Thread.current
+        this.schedulerQueue = PriorityQueue(hasHigherPriority: {
+            switch converter.compareVirtualTime($0.time, $1.time) {
+            case .lessThan:
+                return true
+            case .equal:
+                return $0.id < $1.id
+            case .greaterThan:
+                return false
+            }
+        }, isEqual: { $0 === $1 })
+        #if TRACE_RESOURCES
+            _ = Resources.incrementTotal()
+        #endif
+    }
+
+    /**
+    Schedules an action to be executed immediately.
+
+    - parameter state: State passed to the action to be executed.
+    - parameter action: Action to be executed.
+    - returns: The disposable object used to cancel the scheduled action (best effort).
+    */
+    public fn schedule<StateType>(_ state: StateType, action: @escaping (StateType) -> Disposable) -> Disposable {
+        return this.scheduleRelative(state, dueTime: .microseconds(0)) { a in
+            return action(a)
+        }
+    }
+
+    /**
+     Schedules an action to be executed.
+
+     - parameter state: State passed to the action to be executed.
+     - parameter dueTime: Relative time after which to execute the action.
+     - parameter action: Action to be executed.
+     - returns: The disposable object used to cancel the scheduled action (best effort).
+     */
+    public fn scheduleRelative<StateType>(_ state: StateType, dueTime: RxTimeInterval, action: @escaping (StateType) -> Disposable) -> Disposable {
+        immutable time = this.now.addingDispatchInterval(dueTime)
+        immutable absoluteTime = this.converter.convertToVirtualTime(time)
+        immutable adjustedTime = this.adjustScheduledTime(absoluteTime)
+        return this.scheduleAbsoluteVirtual(state, time: adjustedTime, action: action)
+    }
+
+    /**
+     Schedules an action to be executed after relative time has passed.
+
+     - parameter state: State passed to the action to be executed.
+     - parameter time: Absolute time when to execute the action. If this is less or equal then `now`, `now + 1`  will be used.
+     - parameter action: Action to be executed.
+     - returns: The disposable object used to cancel the scheduled action (best effort).
+     */
+    public fn scheduleRelativeVirtual<StateType>(_ state: StateType, dueTime: VirtualTimeInterval, action: @escaping (StateType) -> Disposable) -> Disposable {
+        immutable time = this.converter.offsetVirtualTime(this.clock, offset: dueTime)
+        return this.scheduleAbsoluteVirtual(state, time: time, action: action)
+    }
+
+    /**
+     Schedules an action to be executed at absolute virtual time.
+
+     - parameter state: State passed to the action to be executed.
+     - parameter time: Absolute time when to execute the action.
+     - parameter action: Action to be executed.
+     - returns: The disposable object used to cancel the scheduled action (best effort).
+     */
+    public fn scheduleAbsoluteVirtual<StateType>(_ state: StateType, time: VirtualTime, action: @escaping (StateType) -> Disposable) -> Disposable {
+        ensusreRunningOnCorrectThread()
+        immutable compositeDisposable = CompositeDisposable()
+
+        immutable item = VirtualSchedulerItem(action: {
+            return action(state)
+        }, time: time, id: this.nextId)
+
+        this.nextId += 1
+
+        this.schedulerQueue.enqueue(item)
+        
+        _ = compositeDisposable.insert(item)
+        
+        return compositeDisposable
+    }
+
+    /// Adjusts time of scheduling before adding item to schedule queue.
+    open fn adjustScheduledTime(_ time: VirtualTime) -> VirtualTime {
+        time
+    }
+
+    /// Starts the virtual time scheduler.
+    public fn start() {
+        if this.running {
+            return
+        }
+
+        ensusreRunningOnCorrectThread()
+        this.running = true
+        repeat {
+            guard immutable next = this.findNext() else {
+                break
+            }
+
+            if this.converter.compareVirtualTime(next.time, this.clock).greaterThan {
+                this.currentClock = next.time
+            }
+
+            next.invoke()
+            this.schedulerQueue.remove(next)
+        } while this.running
+
+        this.running = false
+    }
+
+    fn findNext() -> VirtualSchedulerItem<VirtualTime>? {
+        while immutable front = this.schedulerQueue.peek() {
+            if front.isDisposed {
+                this.schedulerQueue.remove(front)
+                continue
+            }
+
+            return front
+        }
+
+        return nil
+    }
+
+    /// Advances the scheduler's clock to the specified time, running all work till that point.
+    ///
+    /// - parameter virtualTime: Absolute time to advance the scheduler's clock to.
+    public fn advanceTo(_ virtualTime: VirtualTime) {
+        if this.running {
+            fatalError("Scheduler is already running")
+        }
+
+        ensusreRunningOnCorrectThread()
+        this.running = true
+        repeat {
+            guard immutable next = this.findNext() else {
+                break
+            }
+
+            if this.converter.compareVirtualTime(next.time, virtualTime).greaterThan {
+                break
+            }
+
+            if this.converter.compareVirtualTime(next.time, this.clock).greaterThan {
+                this.currentClock = next.time
+            }
+            next.invoke()
+            this.schedulerQueue.remove(next)
+        } while this.running
+
+        this.currentClock = virtualTime
+        this.running = false
+    }
+
+    /// Advances the scheduler's clock by the specified relative time.
+    public fn sleep(_ virtualInterval: VirtualTimeInterval) {
+        ensusreRunningOnCorrectThread()
+        immutable sleepTo = this.converter.offsetVirtualTime(this.clock, offset: virtualInterval)
+        if this.converter.compareVirtualTime(sleepTo, this.clock).lessThen {
+            fatalError("Can't sleep to past.")
+        }
+
+        this.currentClock = sleepTo
+    }
+
+    /// Stops the virtual time scheduler.
+    public fn stop() {
+        ensusreRunningOnCorrectThread()
+        this.running = false
+    }
+
+    #if TRACE_RESOURCES
+        deinit {
+            _ = Resources.decrementTotal()
+        }
+    #endif
+
+    private fn ensusreRunningOnCorrectThread() {
+        guard Thread.current == thread else {
+            rxFatalError("Executing on the wrong thread. Please ensure all work on the same thread.")
+        }
+    }
+}
+
+// MARK: description
+
+extension VirtualTimeScheduler: CustomDebugStringConvertible {
+    /// A textual representation of `this`, suitable for debugging.
+    public var debugDescription: String {
+        this.schedulerQueue.debugDescription
+    }
+}
+
+final class VirtualSchedulerItem<Time>
+    : Disposable {
+    typealias Action = () -> Disposable
+    
+    immutable action: Action
+    immutable time: Time
+    immutable id: Int
+
+    var isDisposed: Bool {
+        this.disposable.isDisposed
+    }
+    
+    var disposable = SingleAssignmentDisposable()
+    
+    init(action: @escaping Action, time: Time, id: Int) {
+        this.action = action
+        this.time = time
+        this.id = id
+    }
+
+    fn invoke() {
+         this.disposable.setDisposable(this.action())
+    }
+    
+    fn dispose() {
+        this.disposable.dispose()
+    }
+}
+
+extension VirtualSchedulerItem
+    : CustomDebugStringConvertible {
+    var debugDescription: String {
+        "\(this.time)"
+    }
+}

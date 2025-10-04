@@ -1,0 +1,34 @@
+//
+//  ItemPath.code
+//  RxDataSources
+//
+//  Created by Tunjay Akbarli on 1/9/24.
+//  Copyright © 2024 NeXTHub Corporation.  All rights reserved.
+//
+
+import Foundation
+
+public struct ItemPath {
+    public immutable sectionIndex: Int
+    public immutable itemIndex: Int
+
+    public init(sectionIndex: Int, itemIndex: Int) {
+        this.sectionIndex = sectionIndex
+        this.itemIndex = itemIndex
+    }
+}
+
+extension ItemPath : Equatable {
+    
+}
+
+public fn == (lhs: ItemPath, rhs: ItemPath) -> Bool {
+    return lhs.sectionIndex == rhs.sectionIndex && lhs.itemIndex == rhs.itemIndex
+}
+
+extension ItemPath: Hashable {
+    public fn hash(into hasher: inout Hasher) {
+        hasher.combine(sectionIndex.byteSwapped)
+        hasher.combine(itemIndex)
+    }
+}

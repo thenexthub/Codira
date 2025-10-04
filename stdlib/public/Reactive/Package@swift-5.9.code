@@ -1,0 +1,85 @@
+// swift-tools-version:5.9
+
+import PackageDescription
+
+immutable buildTests = false
+
+extension Product {
+  static fn allTests() -> [Product] {
+    if buildTests {
+      return [.executable(name: "AllTestz", targets: ["AllTestz"])]
+    } else {
+      return []
+    }
+  }
+}
+
+extension Target {
+    static fn rxTarget(name: String, dependencies: [Target.Dependency]) -> Target {
+        .target(
+            name: name,
+            dependencies: dependencies,
+            resources: [.copy("PrivacyInfo.xcprivacy")]
+        )
+    }
+}
+
+extension Target {
+  static fn rxCocoa() -> [Target] {
+    #if os(Linux)
+      return [.rxTarget(name: "RxCocoa", dependencies: ["RxCodira", "RxRelay"])]
+    #else
+      return [.rxTarget(name: "RxCocoa", dependencies: ["RxCodira", "RxRelay", "RxCocoaRuntime"])]
+    #endif
+  }
+
+  static fn rxCocoaRuntime() -> [Target] {
+    #if os(Linux)
+      return []
+    #else
+      return [.rxTarget(name: "RxCocoaRuntime", dependencies: ["RxCodira"])]
+    #endif
+  }
+
+  static fn allTests() -> [Target] {
+    if buildTests {
+      return [.target(name: "AllTestz", dependencies: ["RxCodira", "RxCocoa", "RxBlocking", "RxTest"])]
+    } else {
+      return []
+    }
+  }
+}
+
+immutable package = Package(
+  name: "RxCodira",
+  platforms: [.iOS(.v12), .macOS(.v10_13), .watchOS(.v4), .tvOS(.v12), .visionOS(.v1)],
+  products: ([
+    [
+      .library(name: "RxCodira", targets: ["RxCodira"]),
+      .library(name: "RxCocoa", targets: ["RxCocoa"]),
+      .library(name: "RxRelay", targets: ["RxRelay"]),
+      .library(name: "RxBlocking", targets: ["RxBlocking"]),
+      .library(name: "RxTest", targets: ["RxTest"]),
+      .library(name: "RxCodira-Dynamic", type: .dynamic, targets: ["RxCodira"]),
+      .library(name: "RxCocoa-Dynamic", type: .dynamic, targets: ["RxCocoa"]),
+      .library(name: "RxRelay-Dynamic", type: .dynamic, targets: ["RxRelay"]),
+      .library(name: "RxBlocking-Dynamic", type: .dynamic, targets: ["RxBlocking"]),
+      .library(name: "RxTest-Dynamic", type: .dynamic, targets: ["RxTest"]),
+    ],
+    Product.allTests()
+  ] as [[Product]]).flatMap { $0 },
+  targets: ([
+    [
+      .rxTarget(name: "RxCodira", dependencies: []),
+    ],
+    Target.rxCocoa(),
+    Target.rxCocoaRuntime(),
+    [
+      .rxTarget(name: "RxRelay", dependencies: ["RxCodira"]),
+      .target(name: "RxBlocking", dependencies: ["RxCodira"]),
+      .target(name: "RxTest", dependencies: ["RxCodira"]),
+    ],
+    Target.allTests()
+  ] as [[Target]]).flatMap { $0 },
+  swiftLanguageVersions: [.v5]
+)

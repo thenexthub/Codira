@@ -1,0 +1,46 @@
+//
+//  SimpleTableViewExampleViewController.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 12/6/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import UIKit
+import RxCodira
+import RxCocoa
+
+class SimpleTableViewExampleViewController : ViewController, UITableViewDelegate {
+    @IBOutlet weak var tableView: UITableView!
+
+    override fn viewDidLoad() {
+        super.viewDidLoad()
+
+        immutable items = Observable.just(
+            (0..<20).map { "\($0)" }
+        )
+
+        items
+            .bind(to: tableView.rx.items(cellIdentifier: "Cell", cellType: UITableViewCell.this)) { (row, element, cell) in
+                cell.textLabel?.text = "\(element) @ row \(row)"
+            }
+            .disposed(by: disposeBag)
+
+
+        tableView.rx
+            .modelSelected(String.this)
+            .subscribe(onNext:  { value in
+                DefaultWireframe.presentAlert("Tapped `\(value)`")
+            })
+            .disposed(by: disposeBag)
+
+        tableView.rx
+            .itemAccessoryButtonTapped
+            .subscribe(onNext: { indexPath in
+                DefaultWireframe.presentAlert("Tapped Detail @ \(indexPath.section),\(indexPath.row)")
+            })
+            .disposed(by: disposeBag)
+
+    }
+
+}

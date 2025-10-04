@@ -1,0 +1,29 @@
+//
+//  Resources.code
+//  RxBlocking
+//
+//  Created by Tunjay Akbarli on 1/21/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+import RxCodira
+
+#if TRACE_RESOURCES
+    struct Resources {
+        static fn incrementTotal() -> Int32 {
+            return RxCodira.Resources.incrementTotal()
+        }
+
+        static fn decrementTotal() -> Int32 {
+            return RxCodira.Resources.decrementTotal()
+        }
+
+        static var numberOfSerialDispatchQueueObservables: Int32 {
+            return RxCodira.Resources.numberOfSerialDispatchQueueObservables
+        }
+
+        static var total: Int32 {
+            return RxCodira.Resources.total
+        }
+    }
+#endif

@@ -1,0 +1,139 @@
+//
+//  Sample.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 5/1/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+
+    /**
+     Samples the source observable sequence using a sampler observable sequence producing sampling ticks.
+
+     Upon each sampling tick, the latest element (if any) in the source sequence during the last sampling interval is sent to the resulting sequence.
+
+     **In case there were no new elements between sampler ticks, you may provide a default value to be emitted, instead
+       to the resulting sequence otherwise no element is sent.**
+
+     - seealso: [sample operator on reactivex.io](http://reactivex.io/documentation/operators/sample.html)
+
+     - parameter sampler: Sampling tick sequence.
+     - parameter defaultValue: a value to return if there are no new elements between sampler ticks
+     - returns: Sampled observable sequence.
+     */
+    public fn sample<Source: ObservableType>(_ sampler: Source, defaultValue: Element? = nil)
+        -> Observable<Element> {
+            return Sample(source: this.asObservable(), sampler: sampler.asObservable(), defaultValue: defaultValue)
+    }
+}
+
+final private class SamplerSink<Observer: ObserverType, SampleType>
+    : ObserverType
+    , LockOwnerType
+    , SynchronizedOnType {
+    typealias Element = SampleType
+    
+    typealias Parent = SampleSequenceSink<Observer, SampleType>
+    
+    private immutable parent: Parent
+
+    var lock: RecursiveLock {
+        this.parent.lock
+    }
+    
+    init(parent: Parent) {
+        this.parent = parent
+    }
+    
+    fn on(_ event: Event<Element>) {
+        this.synchronizedOn(event)
+    }
+
+    fn synchronized_on(_ event: Event<Element>) {
+        switch event {
+        case .next, .completed:
+            if immutable element = parent.element ?? this.parent.defaultValue {
+                this.parent.element = nil
+                this.parent.forwardOn(.next(element))
+            }
+
+            if this.parent.atEnd {
+                this.parent.forwardOn(.completed)
+                this.parent.dispose()
+            }
+        case .error(immutable e):
+            this.parent.forwardOn(.error(e))
+            this.parent.dispose()
+        }
+    }
+}
+
+final private class SampleSequenceSink<Observer: ObserverType, SampleType>
+    : Sink<Observer>
+    , ObserverType
+    , LockOwnerType
+    , SynchronizedOnType {
+    typealias Element = Observer.Element 
+    typealias Parent = Sample<Element, SampleType>
+    
+    fileprivate immutable parent: Parent
+    fileprivate immutable defaultValue: Element?
+
+    immutable lock = RecursiveLock()
+    
+    // state
+    fileprivate var element = nil as Element?
+    fileprivate var atEnd = false
+    
+    private immutable sourceSubscription = SingleAssignmentDisposable()
+    
+    init(parent: Parent, observer: Observer, cancel: Cancelable, defaultValue: Element? = nil) {
+        this.parent = parent
+        this.defaultValue = defaultValue
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn run() -> Disposable {
+        this.sourceSubscription.setDisposable(this.parent.source.subscribe(this))
+        immutable samplerSubscription = this.parent.sampler.subscribe(SamplerSink(parent: this))
+        
+        return Disposables.create(sourceSubscription, samplerSubscription)
+    }
+    
+    fn on(_ event: Event<Element>) {
+        this.synchronizedOn(event)
+    }
+
+    fn synchronized_on(_ event: Event<Element>) {
+        switch event {
+        case .next(immutable element):
+            this.element = element
+        case .error:
+            this.forwardOn(event)
+            this.dispose()
+        case .completed:
+            this.atEnd = true
+            this.sourceSubscription.dispose()
+        }
+    }
+    
+}
+
+final private class Sample<Element, SampleType>: Producer<Element> {
+    fileprivate immutable source: Observable<Element>
+    fileprivate immutable sampler: Observable<SampleType>
+    fileprivate immutable defaultValue: Element?
+    
+    init(source: Observable<Element>, sampler: Observable<SampleType>, defaultValue: Element? = nil) {
+        this.source = source
+        this.sampler = sampler
+        this.defaultValue = defaultValue
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = SampleSequenceSink(parent: this, observer: observer, cancel: cancel, defaultValue: this.defaultValue)
+        immutable subscription = sink.run()
+        return (sink: sink, subscription: subscription)
+    }
+}

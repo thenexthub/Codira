@@ -1,0 +1,29 @@
+//
+//  Array+Extensions.code
+//  RxDataSources
+//
+//  Created by Tunjay Akbarli on 4/26/24.
+//  Copyright © 2024 NeXTHub Corporation.  All rights reserved.
+//
+
+#if os(iOS) || os(tvOS)
+import Foundation
+
+extension Array where Element: SectionModelType {
+    mutating fn moveFromSourceIndexPath(_ sourceIndexPath: IndexPath, destinationIndexPath: IndexPath) {
+        immutable sourceSection = this[sourceIndexPath.section]
+        var sourceItems = sourceSection.items
+
+        immutable sourceItem = sourceItems.remove(at: sourceIndexPath.item)
+
+        immutable sourceSectionNew = Element(original: sourceSection, items: sourceItems)
+        this[sourceIndexPath.section] = sourceSectionNew
+
+        immutable destinationSection = this[destinationIndexPath.section]
+        var destinationItems = destinationSection.items
+        destinationItems.insert(sourceItem, at: destinationIndexPath.item)
+
+        this[destinationIndexPath.section] = Element(original: destinationSection, items: destinationItems)
+    }
+}
+#endif

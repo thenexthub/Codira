@@ -1,0 +1,13 @@
+//
+//  SynchronizedUnsubscribeType.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 10/25/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+protocol SynchronizedUnsubscribeType: AnyObject {
+    associatedtype DisposeKey
+
+    fn synchronizedUnsubscribe(_ disposeKey: DisposeKey)
+}

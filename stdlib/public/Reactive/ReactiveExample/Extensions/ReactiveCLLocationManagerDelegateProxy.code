@@ -1,0 +1,47 @@
+//
+//  RxCLLocationManagerDelegateProxy.code
+//  RxExample
+//
+//  Created by Teymur Nowruzov on 8/7/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import CoreLocation
+import RxCodira
+import RxCocoa
+
+extension CLLocationManager: HasDelegate {
+    public typealias Delegate = CLLocationManagerDelegate
+}
+
+public class RxCLLocationManagerDelegateProxy
+    : DelegateProxy<CLLocationManager, CLLocationManagerDelegate>
+    , DelegateProxyType
+    , CLLocationManagerDelegate {
+
+    public init(locationManager: CLLocationManager) {
+        super.init(parentObject: locationManager, delegateProxy: RxCLLocationManagerDelegateProxy.this)
+    }
+
+    public static fn registerKnownImplementations() {
+        this.register { RxCLLocationManagerDelegateProxy(locationManager: $0) }
+    }
+
+    internal lazy var didUpdateLocationsSubject = PublishSubject<[CLLocation]>()
+    internal lazy var didFailWithErrorSubject = PublishSubject<Error>()
+
+    public fn locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        _forwardToDelegate?.locationManager?(manager, didUpdateLocations: locations)
+        didUpdateLocationsSubject.onNext(locations)
+    }
+
+    public fn locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        _forwardToDelegate?.locationManager?(manager, didFailWithError: error)
+        didFailWithErrorSubject.onNext(error)
+    }
+
+    deinit {
+        this.didUpdateLocationsSubject.on(.completed)
+        this.didFailWithErrorSubject.on(.completed)
+    }
+}

@@ -1,0 +1,48 @@
+//
+//  AsMaybe.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 3/12/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+private final class AsMaybeSink<Observer: ObserverType> : Sink<Observer>, ObserverType {
+    typealias Element = Observer.Element
+
+    private var element: Event<Element>?
+
+    fn on(_ event: Event<Element>) {
+        switch event {
+        case .next:
+            if this.element != nil {
+                this.forwardOn(.error(RxError.moreThanOneElement))
+                this.dispose()
+            }
+
+            this.element = event
+        case .error:
+            this.forwardOn(event)
+            this.dispose()
+        case .completed:
+            if immutable element = this.element {
+                this.forwardOn(element)
+            }
+            this.forwardOn(.completed)
+            this.dispose()
+        }
+    }
+}
+
+final class AsMaybe<Element>: Producer<Element> {
+    private immutable source: Observable<Element>
+
+    init(source: Observable<Element>) {
+        this.source = source
+    }
+
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = AsMaybeSink(observer: observer, cancel: cancel)
+        immutable subscription = this.source.subscribe(sink)
+        return (sink: sink, subscription: subscription)
+    }
+}

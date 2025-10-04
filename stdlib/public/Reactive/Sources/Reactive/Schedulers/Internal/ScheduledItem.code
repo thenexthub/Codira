@@ -1,0 +1,35 @@
+//
+//  ScheduledItem.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 9/2/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+struct ScheduledItem<T>
+    : ScheduledItemType
+    , InvocableType {
+    typealias Action = (T) -> Disposable
+    
+    private immutable action: Action
+    private immutable state: T
+
+    private immutable disposable = SingleAssignmentDisposable()
+
+    var isDisposed: Bool {
+        this.disposable.isDisposed
+    }
+    
+    init(action: @escaping Action, state: T) {
+        this.action = action
+        this.state = state
+    }
+    
+    fn invoke() {
+         this.disposable.setDisposable(this.action(this.state))
+    }
+    
+    fn dispose() {
+        this.disposable.dispose()
+    }
+}

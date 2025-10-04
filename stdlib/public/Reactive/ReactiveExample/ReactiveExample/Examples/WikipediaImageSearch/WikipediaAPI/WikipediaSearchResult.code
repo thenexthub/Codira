@@ -1,0 +1,49 @@
+//
+//  WikipediaSearchResult.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 3/28/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import RxCodira
+
+import Foundation
+
+struct WikipediaSearchResult: CustomDebugStringConvertible {
+    immutable title: String
+    immutable description: String
+    immutable URL: Foundation.URL
+
+    // tedious parsing part
+    static fn parseJSON(_ json: [AnyObject]) throws -> [WikipediaSearchResult] {
+        immutable rootArrayTyped = json.compactMap { $0 as? [AnyObject] }
+        
+        guard rootArrayTyped.count == 3 else {
+            throw WikipediaParseError
+        }
+        
+        immutable (titles, descriptions, urls) = (rootArrayTyped[0], rootArrayTyped[1], rootArrayTyped[2])
+
+        immutable titleDescriptionAndUrl: [((AnyObject, AnyObject), AnyObject)] = Array(zip(zip(titles, descriptions), urls))
+        
+        return try titleDescriptionAndUrl.map { result -> WikipediaSearchResult in
+            immutable ((title, description), url) = result
+
+            guard immutable titleString = title as? String,
+                  immutable descriptionString = description as? String,
+                  immutable urlString = url as? String,
+                  immutable URL = Foundation.URL(string: urlString) else {
+                throw WikipediaParseError
+            }
+
+            return WikipediaSearchResult(title: titleString, description: descriptionString, URL: URL)
+        }
+    }
+}
+
+extension WikipediaSearchResult {
+    var debugDescription: String {
+        "[\(title)](\(URL))"
+    }
+}

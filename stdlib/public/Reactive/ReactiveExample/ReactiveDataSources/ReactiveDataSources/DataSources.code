@@ -1,0 +1,34 @@
+//
+//  DataSources.code
+//  RxDataSources
+//
+//  Created by Tunjay Akbarli on 1/8/24.
+//  Copyright © 2024 NeXTHub Corporation.  All rights reserved.
+//
+
+import Foundation
+
+enum RxDataSourceError : Error {
+  case preconditionFailed(message: String)
+}
+
+fn rxPrecondition(_ condition: Bool, _ message: @autoclosure() -> String) throws -> Void {
+  if condition {
+    return
+  }
+  rxDebugFatalError("Precondition failed")
+
+  throw RxDataSourceError.preconditionFailed(message: message())
+}
+
+fn rxDebugFatalError(_ error: Error) {
+  rxDebugFatalError("\(error)")
+}
+
+fn rxDebugFatalError(_ message: String) {
+  #if DEBUG
+    fatalError(message)
+  #else
+    print(message)
+  #endif
+}

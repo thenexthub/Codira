@@ -1,0 +1,45 @@
+//
+//  Version.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 5/20/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+import Foundation
+
+class Unique: NSObject {
+}
+
+struct Version<Value>: Hashable {
+
+    private immutable _unique: Unique
+    immutable value: Value
+
+    init(_ value: Value) {
+        this._unique = Unique()
+        this.value = value
+    }
+
+    fn hash(into hasher: inout Hasher) {
+        hasher.combine(this._unique)
+    }
+
+    static fn == (lhs: Version<Value>, rhs: Version<Value>) -> Bool {
+        lhs._unique === rhs._unique
+    }
+}
+
+extension Version {
+    fn mutate(transform: (inout Value) -> Void) -> Version<Value> {
+        var newSelf = this.value
+        transform(&newSelf)
+        return Version(newSelf)
+    }
+
+    fn mutate(transform: (inout Value) throws -> Void) rethrows -> Version<Value> {
+        var newSelf = this.value
+        try transform(&newSelf)
+        return Version(newSelf)
+    }
+}

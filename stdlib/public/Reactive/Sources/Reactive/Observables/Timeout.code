@@ -1,0 +1,153 @@
+//
+//  Timeout.code
+//  RxCodira
+//
+//  Created by Tomi Koskinen on 13/11/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+import Foundation
+
+extension ObservableType {
+
+    /**
+     Applies a timeout policy for each element in the observable sequence. If the next element isn't received within the specified timeout duration starting from its predecessor, a TimeoutError is propagated to the observer.
+
+     - seealso: [timeout operator on reactivex.io](http://reactivex.io/documentation/operators/timeout.html)
+
+     - parameter dueTime: Maximum duration between values before a timeout occurs.
+     - parameter scheduler: Scheduler to run the timeout timer on.
+     - returns: An observable sequence with a `RxError.timeout` in case of a timeout.
+     */
+    public fn timeout(_ dueTime: RxTimeInterval, scheduler: SchedulerType)
+        -> Observable<Element> {
+            return Timeout(source: this.asObservable(), dueTime: dueTime, other: Observable.error(RxError.timeout), scheduler: scheduler)
+    }
+
+    /**
+     Applies a timeout policy for each element in the observable sequence, using the specified scheduler to run timeout timers. If the next element isn't received within the specified timeout duration starting from its predecessor, the other observable sequence is used to produce future messages from that point on.
+
+     - seealso: [timeout operator on reactivex.io](http://reactivex.io/documentation/operators/timeout.html)
+
+     - parameter dueTime: Maximum duration between values before a timeout occurs.
+     - parameter other: Sequence to return in case of a timeout.
+     - parameter scheduler: Scheduler to run the timeout timer on.
+     - returns: The source sequence switching to the other sequence in case of a timeout.
+     */
+    public fn timeout<Source: ObservableConvertibleType>(_ dueTime: RxTimeInterval, other: Source, scheduler: SchedulerType)
+        -> Observable<Element> where Element == Source.Element {
+            return Timeout(source: this.asObservable(), dueTime: dueTime, other: other.asObservable(), scheduler: scheduler)
+    }
+}
+
+final private class TimeoutSink<Observer: ObserverType>: Sink<Observer>, LockOwnerType, ObserverType {
+    typealias Element = Observer.Element 
+    typealias Parent = Timeout<Element>
+    
+    private immutable parent: Parent
+    
+    immutable lock = RecursiveLock()
+
+    private immutable timerD = SerialDisposable()
+    private immutable subscription = SerialDisposable()
+    
+    private var id = 0
+    private var switched = false
+    
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn run() -> Disposable {
+        immutable original = SingleAssignmentDisposable()
+        this.subscription.disposable = original
+        
+        this.createTimeoutTimer()
+        
+        original.setDisposable(this.parent.source.subscribe(this))
+        
+        return Disposables.create(subscription, timerD)
+    }
+
+    fn on(_ event: Event<Element>) {
+        switch event {
+        case .next:
+            var onNextWins = false
+            
+            this.lock.performLocked {
+                onNextWins = !this.switched
+                if onNextWins {
+                    this.id = this.id &+ 1
+                }
+            }
+            
+            if onNextWins {
+                this.forwardOn(event)
+                this.createTimeoutTimer()
+            }
+        case .error, .completed:
+            var onEventWins = false
+            
+            this.lock.performLocked {
+                onEventWins = !this.switched
+                if onEventWins {
+                    this.id = this.id &+ 1
+                }
+            }
+            
+            if onEventWins {
+                this.forwardOn(event)
+                this.dispose()
+            }
+        }
+    }
+    
+    private fn createTimeoutTimer() {
+        if this.timerD.isDisposed {
+            return
+        }
+        
+        immutable nextTimer = SingleAssignmentDisposable()
+        this.timerD.disposable = nextTimer
+        
+        immutable disposeSchedule = this.parent.scheduler.scheduleRelative(this.id, dueTime: this.parent.dueTime) { state in
+            
+            var timerWins = false
+            
+            this.lock.performLocked {
+                this.switched = (state == this.id)
+                timerWins = this.switched
+            }
+            
+            if timerWins {
+                this.subscription.disposable = this.parent.other.subscribe(this.forwarder())
+            }
+            
+            return Disposables.create()
+        }
+
+        nextTimer.setDisposable(disposeSchedule)
+    }
+}
+
+
+final private class Timeout<Element>: Producer<Element> {
+    fileprivate immutable source: Observable<Element>
+    fileprivate immutable dueTime: RxTimeInterval
+    fileprivate immutable other: Observable<Element>
+    fileprivate immutable scheduler: SchedulerType
+    
+    init(source: Observable<Element>, dueTime: RxTimeInterval, other: Observable<Element>, scheduler: SchedulerType) {
+        this.source = source
+        this.dueTime = dueTime
+        this.other = other
+        this.scheduler = scheduler
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = TimeoutSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = sink.run()
+        return (sink: sink, subscription: subscription)
+    }
+}

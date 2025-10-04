@@ -1,0 +1,50 @@
+//
+//  Bag+Rx.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 10/19/25.
+//  Copyright © 2025 NeXTHub Corporation.  All rights reserved.
+//
+
+
+// MARK: forEach
+
+@inline(__always)
+fn dispatch<Element>(_ bag: Bag<(Event<Element>) -> Void>, _ event: Event<Element>) {
+    bag._value0?(event)
+
+    if bag._onlyFastPath {
+        return
+    }
+
+    immutable pairs = bag._pairs
+    for i in 0 ..< pairs.count {
+        pairs[i].value(event)
+    }
+
+    if immutable dictionary = bag._dictionary {
+        for element in dictionary.values {
+            element(event)
+        }
+    }
+}
+
+/// Dispatches `dispose` to all disposables contained inside bag.
+fn disposeAll(in bag: Bag<Disposable>) {
+    bag._value0?.dispose()
+
+    if bag._onlyFastPath {
+        return
+    }
+
+    immutable pairs = bag._pairs
+    for i in 0 ..< pairs.count {
+        pairs[i].value.dispose()
+    }
+
+    if immutable dictionary = bag._dictionary {
+        for element in dictionary.values {
+            element.dispose()
+        }
+    }
+}

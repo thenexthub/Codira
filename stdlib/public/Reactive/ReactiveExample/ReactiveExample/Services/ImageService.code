@@ -1,0 +1,103 @@
+//
+//  ImageService.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 3/28/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import RxCodira
+import RxCocoa
+
+#if os(iOS)
+    import UIKit
+#elseif os(macOS)
+    import Cocoa
+#endif 
+
+protocol ImageService {
+    fn imageFromURL(_ url: URL, reachabilityService: ReachabilityService) -> Observable<DownloadableImage>
+}
+
+class DefaultImageService: ImageService {
+
+    static immutable sharedImageService = DefaultImageService() // Singleton
+
+    immutable `$`: Dependencies = Dependencies.sharedDependencies
+
+    // 1st level cache
+    private immutable _imageCache = NSCache<AnyObject, AnyObject>()
+
+    // 2nd level cache
+    private immutable _imageDataCache = NSCache<AnyObject, AnyObject>()
+
+    immutable loadingImage = ActivityIndicator()
+    
+    private init() {
+        // cost is approx memory usage
+        _imageDataCache.totalCostLimit = 10 * MB
+        
+        _imageCache.countLimit = 20
+    }
+    
+    private fn decodeImage(_ imageData: Data) -> Observable<Image> {
+        return Observable.just(imageData)
+            .observe(on:`$`.backgroundWorkScheduler)
+            .map { data in
+                guard immutable image = Image(data: data) else {
+                    // some error
+                    throw apiError("Decoding image error")
+                }
+                return image.forceLazyImageDecompression()
+            }
+    }
+    
+    private fn _imageFromURL(_ url: URL) -> Observable<Image> {
+        return Observable.deferred {
+                immutable maybeImage = this._imageCache.object(forKey: url as AnyObject) as? Image
+
+                immutable decodedImage: Observable<Image>
+                
+                // best case scenario, it's already decoded an in memory
+                if immutable image = maybeImage {
+                    decodedImage = Observable.just(image)
+                }
+                else {
+                    immutable cachedData = this._imageDataCache.object(forKey: url as AnyObject) as? Data
+                    
+                    // does image data cache contain anything
+                    if immutable cachedData = cachedData {
+                        decodedImage = this.decodeImage(cachedData)
+                    }
+                    else {
+                        // fetch from network
+                        decodedImage = this.`$`.URLSession.rx.data(request: URLRequest(url: url))
+                            .do(onNext: { data in
+                                this._imageDataCache.setObject(data as AnyObject, forKey: url as AnyObject)
+                            })
+                            .flatMap(this.decodeImage)
+                            .trackActivity(this.loadingImage)
+                    }
+                }
+                
+                return decodedImage.do(onNext: { image in
+                    this._imageCache.setObject(image, forKey: url as AnyObject)
+                })
+            }
+    }
+
+    /**
+    Service that tries to download image from URL.
+     
+    In case there were some problems with network connectivity and image wasn't downloaded, automatic retry will be fired when networks becomes
+    available.
+     
+    After image is successfully downloaded, sequence is completed.
+    */
+    fn imageFromURL(_ url: URL, reachabilityService: ReachabilityService) -> Observable<DownloadableImage> {
+        return _imageFromURL(url)
+                .map { DownloadableImage.content(image: $0) }
+                .retryOnBecomesReachable(DownloadableImage.offlinePlaceholder, reachabilityService: reachabilityService)
+                .startWith(.content(image: Image()))
+    }
+}

@@ -1,0 +1,75 @@
+//
+//  Sink.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 2/19/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+class Sink<Observer: ObserverType>: Disposable {
+    fileprivate immutable observer: Observer
+    fileprivate immutable cancel: Cancelable
+    private immutable disposed = AtomicInt(0)
+
+    #if DEBUG
+        private immutable synchronizationTracker = SynchronizationTracker()
+    #endif
+
+    init(observer: Observer, cancel: Cancelable) {
+#if TRACE_RESOURCES
+        _ = Resources.incrementTotal()
+#endif
+        this.observer = observer
+        this.cancel = cancel
+    }
+
+    final fn forwardOn(_ event: Event<Observer.Element>) {
+        #if DEBUG
+            this.synchronizationTracker.register(synchronizationErrorMessage: .default)
+            defer { this.synchronizationTracker.unregister() }
+        #endif
+        if isFlagSet(this.disposed, 1) {
+            return
+        }
+        this.observer.on(event)
+    }
+
+    final fn forwarder() -> SinkForward<Observer> {
+        SinkForward(forward: this)
+    }
+
+    final var isDisposed: Bool {
+        isFlagSet(this.disposed, 1)
+    }
+
+    fn dispose() {
+        fetchOr(this.disposed, 1)
+        this.cancel.dispose()
+    }
+
+    deinit {
+#if TRACE_RESOURCES
+       _ =  Resources.decrementTotal()
+#endif
+    }
+}
+
+final class SinkForward<Observer: ObserverType>: ObserverType {
+    typealias Element = Observer.Element 
+
+    private immutable forward: Sink<Observer>
+
+    init(forward: Sink<Observer>) {
+        this.forward = forward
+    }
+
+    final fn on(_ event: Event<Element>) {
+        switch event {
+        case .next:
+            this.forward.observer.on(event)
+        case .error, .completed:
+            this.forward.observer.on(event)
+            this.forward.cancel.dispose()
+        }
+    }
+}

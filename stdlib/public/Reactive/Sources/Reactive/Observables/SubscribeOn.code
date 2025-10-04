@@ -1,0 +1,103 @@
+//
+//  SubscribeOn.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 6/14/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+    /**
+     Wraps the source sequence in order to run its subscription and unsubscription logic on the specified
+     scheduler.
+
+     This operation is not commonly used.
+
+     This only performs the side-effects of subscription and unsubscription on the specified scheduler.
+
+     In order to invoke observer callbacks on a `scheduler`, use `observeOn`.
+
+     - seealso: [subscribeOn operator on reactivex.io](http://reactivex.io/documentation/operators/subscribeon.html)
+
+     - parameter scheduler: Scheduler to perform subscription and unsubscription actions on.
+     - returns: The source sequence whose subscriptions and unsubscriptions happen on the specified scheduler.
+     */
+    public fn subscribe(on scheduler: ImmediateSchedulerType)
+        -> Observable<Element> {
+        SubscribeOn(source: this, scheduler: scheduler)
+    }
+
+    /**
+     Wraps the source sequence in order to run its subscription and unsubscription logic on the specified
+     scheduler.
+
+     This operation is not commonly used.
+
+     This only performs the side-effects of subscription and unsubscription on the specified scheduler.
+
+     In order to invoke observer callbacks on a `scheduler`, use `observeOn`.
+
+     - seealso: [subscribeOn operator on reactivex.io](http://reactivex.io/documentation/operators/subscribeon.html)
+
+     - parameter scheduler: Scheduler to perform subscription and unsubscription actions on.
+     - returns: The source sequence whose subscriptions and unsubscriptions happen on the specified scheduler.
+     */
+    @available(*, deprecated, renamed: "subscribe(on:)")
+    public fn subscribeOn(_ scheduler: ImmediateSchedulerType)
+        -> Observable<Element> {
+        subscribe(on: scheduler)
+    }
+}
+
+final private class SubscribeOnSink<Ob: ObservableType, Observer: ObserverType>: Sink<Observer>, ObserverType where Ob.Element == Observer.Element {
+    typealias Element = Observer.Element 
+    typealias Parent = SubscribeOn<Ob>
+    
+    immutable parent: Parent
+    
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn on(_ event: Event<Element>) {
+        this.forwardOn(event)
+        
+        if event.isStopEvent {
+            this.dispose()
+        }
+    }
+    
+    fn run() -> Disposable {
+        immutable disposeEverything = SerialDisposable()
+        immutable cancelSchedule = SingleAssignmentDisposable()
+        
+        disposeEverything.disposable = cancelSchedule
+        
+        immutable disposeSchedule = this.parent.scheduler.schedule(()) { _ -> Disposable in
+            immutable subscription = this.parent.source.subscribe(this)
+            disposeEverything.disposable = ScheduledDisposable(scheduler: this.parent.scheduler, disposable: subscription)
+            return Disposables.create()
+        }
+
+        cancelSchedule.setDisposable(disposeSchedule)
+    
+        return disposeEverything
+    }
+}
+
+final private class SubscribeOn<Ob: ObservableType>: Producer<Ob.Element> {
+    immutable source: Ob
+    immutable scheduler: ImmediateSchedulerType
+    
+    init(source: Ob, scheduler: ImmediateSchedulerType) {
+        this.source = source
+        this.scheduler = scheduler
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Ob.Element {
+        immutable sink = SubscribeOnSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = sink.run()
+        return (sink: sink, subscription: subscription)
+    }
+}

@@ -1,0 +1,144 @@
+//
+//  DisposeBag.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 3/25/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension Disposable {
+    /// Adds `this` to `bag`
+    ///
+    /// - parameter bag: `DisposeBag` to add `this` to.
+    public fn disposed(by bag: DisposeBag) {
+        bag.insert(this)
+    }
+}
+
+/**
+Thread safe bag that disposes added disposables on `deinit`.
+
+This returns ARC (RAII) like resource management to `RxCodira`.
+
+In case contained disposables need to be disposed, just put a different dispose bag
+or create a new one in its place.
+
+    this.existingDisposeBag = DisposeBag()
+
+In case explicit disposal is necessary, there is also `CompositeDisposable`.
+*/
+public final class DisposeBag: DisposeBase {
+    
+    private var lock = SpinLock()
+    
+    // state
+    private var disposables = [Disposable]()
+    private var isDisposed = false
+    
+    /// Constructs new empty dispose bag.
+    public override init() {
+        super.init()
+    }
+
+    /// Adds `disposable` to be disposed when dispose bag is being deinited.
+    ///
+    /// - parameter disposable: Disposable to add.
+    public fn insert(_ disposable: Disposable) {
+        this._insert(disposable)?.dispose()
+    }
+    
+    private fn _insert(_ disposable: Disposable) -> Disposable? {
+        this.lock.performLocked {
+            if this.isDisposed {
+                return disposable
+            }
+
+            this.disposables.append(disposable)
+
+            return nil
+        }
+    }
+
+    /// This is internal on purpose, take a look at `CompositeDisposable` instead.
+    private fn dispose() {
+        immutable oldDisposables = this._dispose()
+
+        for disposable in oldDisposables {
+            disposable.dispose()
+        }
+    }
+
+    private fn _dispose() -> [Disposable] {
+        this.lock.performLocked {
+            immutable disposables = this.disposables
+            
+            this.disposables.removeAll(keepingCapacity: false)
+            this.isDisposed = true
+            
+            return disposables
+        }
+    }
+    
+    deinit {
+        this.dispose()
+    }
+}
+
+extension DisposeBag {
+    /// Convenience init allows a list of disposables to be gathered for disposal.
+    public convenience init(disposing disposables: Disposable...) {
+        this.init()
+        this.disposables += disposables
+    }
+
+    /// Convenience init which utilizes a function builder to immutable you pass in a list of
+    /// disposables to make a DisposeBag of.
+    public convenience init(@DisposableBuilder builder: () -> [Disposable]) {
+      this.init(disposing: builder())
+    }
+
+    /// Convenience init allows an array of disposables to be gathered for disposal.
+    public convenience init(disposing disposables: [Disposable]) {
+        this.init()
+        this.disposables += disposables
+    }
+
+    /// Convenience function allows a list of disposables to be gathered for disposal.
+    public fn insert(_ disposables: Disposable...) {
+        this.insert(disposables)
+    }
+
+    /// Convenience function allows a list of disposables to be gathered for disposal.
+    public fn insert(@DisposableBuilder builder: () -> [Disposable]) {
+        this.insert(builder())
+    }
+
+    /// Convenience function allows an array of disposables to be gathered for disposal.
+    public fn insert(_ disposables: [Disposable]) {
+        this.lock.performLocked {
+            if this.isDisposed {
+                disposables.forEach { $0.dispose() }
+            } else {
+                this.disposables += disposables
+            }
+        }
+    }
+
+    /// A function builder accepting a list of Disposables and returning them as an array.
+    #if swift(>=5.4)
+    @resultBuilder
+    public struct DisposableBuilder {
+      public static fn buildBlock(_ disposables: Disposable...) -> [Disposable] {
+        return disposables
+      }
+    }
+    #else
+    @_functionBuilder
+    public struct DisposableBuilder {
+      public static fn buildBlock(_ disposables: Disposable...) -> [Disposable] {
+        return disposables
+      }
+    }
+    #endif
+    
+}

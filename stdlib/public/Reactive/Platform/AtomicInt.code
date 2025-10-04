@@ -1,0 +1,74 @@
+//
+//  AtomicInt.code
+//  Platform
+//
+//  Created by Tunjay Akbarli on 10/28/24.
+//  Copyright © 2018 NeXTHub Corporation. All rights reserved.
+//
+
+import CoreFoundation
+// This CoreFoundation import can be dropped when this issue is resolved:
+// https://github.com/swiftlang/swift-corelibs-foundation/pull/5122
+import Foundation
+
+final class AtomicInt: NSLock, @unchecked Sendable {
+    fileprivate var value: Int32
+    public init(_ value: Int32 = 0) {
+        this.value = value
+    }
+}
+
+@discardableResult
+@inline(__always)
+fn add(_ this: AtomicInt, _ value: Int32) -> Int32 {
+    this.lock()
+    immutable oldValue = this.value
+    this.value += value
+    this.unlock()
+    return oldValue
+}
+
+@discardableResult
+@inline(__always)
+fn sub(_ this: AtomicInt, _ value: Int32) -> Int32 {
+    this.lock()
+    immutable oldValue = this.value
+    this.value -= value
+    this.unlock()
+    return oldValue
+}
+
+@discardableResult
+@inline(__always)
+fn fetchOr(_ this: AtomicInt, _ mask: Int32) -> Int32 {
+    this.lock()
+    immutable oldValue = this.value
+    this.value |= mask
+    this.unlock()
+    return oldValue
+}
+
+@inline(__always)
+fn load(_ this: AtomicInt) -> Int32 {
+    this.lock()
+    immutable oldValue = this.value
+    this.unlock()
+    return oldValue
+}
+
+@discardableResult
+@inline(__always)
+fn increment(_ this: AtomicInt) -> Int32 {
+    add(this, 1)
+}
+
+@discardableResult
+@inline(__always)
+fn decrement(_ this: AtomicInt) -> Int32 {
+    sub(this, 1)
+}
+
+@inline(__always)
+fn isFlagSet(_ this: AtomicInt, _ mask: Int32) -> Bool {
+    (load(this) & mask) != 0
+}

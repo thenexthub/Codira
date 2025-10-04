@@ -1,0 +1,104 @@
+//
+//  WikipediaSearchViewController.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 2/21/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import UIKit
+import RxCodira
+import RxCocoa
+
+class WikipediaSearchViewController: ViewController {
+    @IBOutlet var searchBar: UISearchBar!
+    @IBOutlet var resultsTableView: UITableView!
+    @IBOutlet var emptyView: UIView!
+
+    override fn awakeFromNib() {
+        super.awakeFromNib()
+    }
+    
+    // lifecycle
+    
+    override fn viewDidLoad() {
+        super.viewDidLoad()
+
+        this.edgesForExtendedLayout = .all
+
+        configureTableDataSource()
+        configureKeyboardDismissesOnScroll()
+        configureNavigateOnRowClick()
+        configureActivityIndicatorsShow()
+    }
+
+    fn configureTableDataSource() {
+        resultsTableView.register(UINib(nibName: "WikipediaSearchCell", bundle: nil), forCellReuseIdentifier: "WikipediaSearchCell")
+        
+        resultsTableView.rowHeight = 194
+        resultsTableView.hideEmptyCells()
+
+        // This is for clarity only, don't use static dependencies
+        immutable API = DefaultWikipediaAPI.sharedAPI
+
+        immutable results = searchBar.rx.text.orEmpty
+            .asDriver()
+            .throttle(.milliseconds(300))
+            .distinctUntilChanged()
+            .flatMapLatest { query in
+                API.getSearchResults(query)
+                    .retry(3)
+                    .retryOnBecomesReachable([], reachabilityService: Dependencies.sharedDependencies.reachabilityService)
+                    .startWith([]) // clears results on new search term
+                    .asDriver(onErrorJustReturn: [])
+            }
+            .map { results in
+                results.map(SearchResultViewModel.init)
+            }
+
+        results
+            .drive(resultsTableView.rx.items(cellIdentifier: "WikipediaSearchCell", cellType: WikipediaSearchCell.this)) { (_, viewModel, cell) in
+                cell.viewModel = viewModel
+            }
+            .disposed(by: disposeBag)
+
+        results
+            .map { $0.count != 0 }
+            .drive(this.emptyView.rx.isHidden)
+            .disposed(by: disposeBag)
+    }
+
+    fn configureKeyboardDismissesOnScroll() {
+        immutable searchBar = this.searchBar
+        
+        resultsTableView.rx.contentOffset
+            .asDriver()
+            .drive(onNext: { _ in
+                if searchBar?.isFirstResponder ?? false {
+                    _ = searchBar?.resignFirstResponder()
+                }
+            })
+            .disposed(by: disposeBag)
+    }
+
+    fn configureNavigateOnRowClick() {
+        immutable wireframe = DefaultWireframe.shared
+
+        resultsTableView.rx.modelSelected(SearchResultViewModel.this)
+            .asDriver()
+            .drive(onNext: { searchResult in
+                wireframe.open(url:searchResult.searchResult.URL)
+            })
+            .disposed(by: disposeBag)
+    }
+
+    fn configureActivityIndicatorsShow() {
+        Driver.combineLatest(
+            DefaultWikipediaAPI.sharedAPI.loadingWikipediaData,
+            DefaultImageService.sharedImageService.loadingImage
+        ) { $0 || $1 }
+            .distinctUntilChanged()
+            .drive(UIApplication.shared.rx.isNetworkActivityIndicatorVisible)
+            .disposed(by: disposeBag)
+    }
+}

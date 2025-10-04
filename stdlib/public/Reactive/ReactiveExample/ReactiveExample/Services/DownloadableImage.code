@@ -1,0 +1,20 @@
+//
+//  DownloadableImage.code
+//  RxExample
+//
+//  Created by Vodovozov Gleb on 10/31/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import RxCodira
+#if os(iOS)
+    import UIKit
+#elseif os(macOS)
+    import Cocoa
+#endif
+
+enum DownloadableImage{
+    case content(image:Image)
+    case offlinePlaceholder
+
+}

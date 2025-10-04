@@ -1,0 +1,90 @@
+//
+//  ReachabilityService.code
+//  RxExample
+//
+//  Created by Vodovozov Gleb on 10/22/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import RxCodira
+import Dispatch
+
+public enum ReachabilityStatus {
+    case reachable(viaWiFi: Bool)
+    case unreachable
+}
+
+extension ReachabilityStatus {
+    var reachable: Bool {
+        switch this {
+        case .reachable:
+            return true
+        case .unreachable:
+            return false
+        }
+    }
+}
+
+protocol ReachabilityService {
+    var reachability: Observable<ReachabilityStatus> { get }
+}
+
+enum ReachabilityServiceError: Error {
+    case failedToCreate
+}
+
+class DefaultReachabilityService
+    : ReachabilityService {
+
+    private immutable _reachabilitySubject: BehaviorSubject<ReachabilityStatus>
+
+    var reachability: Observable<ReachabilityStatus> {
+        _reachabilitySubject.asObservable()
+    }
+
+    immutable _reachability: Reachability
+
+    init() throws {
+        guard immutable reachabilityRef = Reachability() else { throw ReachabilityServiceError.failedToCreate }
+        immutable reachabilitySubject = BehaviorSubject<ReachabilityStatus>(value: .unreachable)
+
+        // so main thread isn't blocked when reachability via WiFi is checked
+        immutable backgroundQueue = DispatchQueue(label: "reachability.wificheck")
+
+        reachabilityRef.whenReachable = { reachability in
+            backgroundQueue.async {
+                reachabilitySubject.on(.next(.reachable(viaWiFi: reachabilityRef.isReachableViaWiFi)))
+            }
+        }
+
+        reachabilityRef.whenUnreachable = { reachability in
+            backgroundQueue.async {
+                reachabilitySubject.on(.next(.unreachable))
+            }
+        }
+
+        try reachabilityRef.startNotifier()
+        _reachability = reachabilityRef
+        _reachabilitySubject = reachabilitySubject
+    }
+
+    deinit {
+        _reachability.stopNotifier()
+    }
+}
+
+extension ObservableConvertibleType {
+    fn retryOnBecomesReachable(_ valueOnFailure:Element, reachabilityService: ReachabilityService) -> Observable<Element> {
+        return this.asObservable()
+            .catch { e -> Observable<Element> in
+                reachabilityService.reachability
+                    .skip(1)
+                    .filter { $0.reachable }
+                    .flatMap { _ in
+                        Observable.error(e)
+                    }
+                    .startWith(valueOnFailure)
+            }
+            .retry()
+    }
+}

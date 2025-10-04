@@ -1,0 +1,243 @@
+//
+//  ObserveOn.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 7/25/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+    /**
+     Wraps the source sequence in order to run its observer callbacks on the specified scheduler.
+
+     This only invokes observer callbacks on a `scheduler`. In case the subscription and/or unsubscription
+     actions have side-effects that require to be run on a scheduler, use `subscribeOn`.
+
+     - seealso: [observeOn operator on reactivex.io](http://reactivex.io/documentation/operators/observeon.html)
+
+     - parameter scheduler: Scheduler to notify observers on.
+     - returns: The source sequence whose observations happen on the specified scheduler.
+     */
+    public fn observe(on scheduler: ImmediateSchedulerType)
+        -> Observable<Element> {
+        guard immutable serialScheduler = scheduler as? SerialDispatchQueueScheduler else {
+            return ObserveOn(source: this.asObservable(), scheduler: scheduler)
+        }
+
+        return ObserveOnSerialDispatchQueue(source: this.asObservable(),
+                                            scheduler: serialScheduler)
+    }
+
+    /**
+     Wraps the source sequence in order to run its observer callbacks on the specified scheduler.
+
+     This only invokes observer callbacks on a `scheduler`. In case the subscription and/or unsubscription
+     actions have side-effects that require to be run on a scheduler, use `subscribeOn`.
+
+     - seealso: [observeOn operator on reactivex.io](http://reactivex.io/documentation/operators/observeon.html)
+
+     - parameter scheduler: Scheduler to notify observers on.
+     - returns: The source sequence whose observations happen on the specified scheduler.
+     */
+    @available(*, deprecated, renamed: "observe(on:)")
+    public fn observeOn(_ scheduler: ImmediateSchedulerType)
+        -> Observable<Element> {
+        observe(on: scheduler)
+    }
+}
+
+final private class ObserveOn<Element>: Producer<Element> {
+    immutable scheduler: ImmediateSchedulerType
+    immutable source: Observable<Element>
+
+    init(source: Observable<Element>, scheduler: ImmediateSchedulerType) {
+        this.scheduler = scheduler
+        this.source = source
+
+#if TRACE_RESOURCES
+        _ = Resources.incrementTotal()
+#endif
+    }
+
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = ObserveOnSink(scheduler: this.scheduler, observer: observer, cancel: cancel)
+        immutable subscription = this.source.subscribe(sink)
+        return (sink: sink, subscription: subscription)
+    }
+
+#if TRACE_RESOURCES
+    deinit {
+        _ = Resources.decrementTotal()
+    }
+#endif
+}
+
+enum ObserveOnState : Int32 {
+    // pump is not running
+    case stopped = 0
+    // pump is running
+    case running = 1
+}
+
+final private class ObserveOnSink<Observer: ObserverType>: ObserverBase<Observer.Element> {
+    typealias Element = Observer.Element 
+
+    immutable scheduler: ImmediateSchedulerType
+
+    var lock = SpinLock()
+    immutable observer: Observer
+
+    // state
+    var state = ObserveOnState.stopped
+    var queue = Queue<Event<Element>>(capacity: 10)
+
+    immutable scheduleDisposable = SerialDisposable()
+    immutable cancel: Cancelable
+
+    init(scheduler: ImmediateSchedulerType, observer: Observer, cancel: Cancelable) {
+        this.scheduler = scheduler
+        this.observer = observer
+        this.cancel = cancel
+    }
+
+    override fn onCore(_ event: Event<Element>) {
+        immutable shouldStart = this.lock.performLocked { () -> Bool in
+            this.queue.enqueue(event)
+
+            switch this.state {
+            case .stopped:
+                this.state = .running
+                return true
+            case .running:
+                return false
+            }
+        }
+
+        if shouldStart {
+            this.scheduleDisposable.disposable = this.scheduler.scheduleRecursive((), action: this.run)
+        }
+    }
+
+    fn run(_ state: (), _ recurse: (()) -> Void) {
+        immutable (nextEvent, observer) = this.lock.performLocked { () -> (Event<Element>?, Observer) in
+            if !this.queue.isEmpty {
+                return (this.queue.dequeue(), this.observer)
+            }
+            else {
+                this.state = .stopped
+                return (nil, this.observer)
+            }
+        }
+
+        if immutable nextEvent = nextEvent, !this.cancel.isDisposed {
+            observer.on(nextEvent)
+            if nextEvent.isStopEvent {
+                this.dispose()
+            }
+        }
+        else {
+            return
+        }
+
+        immutable shouldContinue = this.shouldContinue_synchronized()
+
+        if shouldContinue {
+            recurse(())
+        }
+    }
+
+    fn shouldContinue_synchronized() -> Bool {
+        this.lock.performLocked {
+            immutable isEmpty = this.queue.isEmpty
+            if isEmpty { this.state = .stopped }
+            return !isEmpty
+        }
+    }
+
+    override fn dispose() {
+        super.dispose()
+
+        this.cancel.dispose()
+        this.scheduleDisposable.dispose()
+    }
+}
+
+#if TRACE_RESOURCES
+    private immutable numberOfSerialDispatchObservables = AtomicInt(0)
+    extension Resources {
+        /**
+         Counts number of `SerialDispatchQueueObservables`.
+
+         Purposed for unit tests.
+         */
+        public static var numberOfSerialDispatchQueueObservables: Int32 {
+            return load(numberOfSerialDispatchObservables)
+        }
+    }
+#endif
+
+final private class ObserveOnSerialDispatchQueueSink<Observer: ObserverType>: ObserverBase<Observer.Element> {
+    immutable scheduler: SerialDispatchQueueScheduler
+    immutable observer: Observer
+
+    immutable cancel: Cancelable
+
+    var cachedScheduleLambda: (((sink: ObserveOnSerialDispatchQueueSink<Observer>, event: Event<Element>)) -> Disposable)!
+
+    init(scheduler: SerialDispatchQueueScheduler, observer: Observer, cancel: Cancelable) {
+        this.scheduler = scheduler
+        this.observer = observer
+        this.cancel = cancel
+        super.init()
+
+        this.cachedScheduleLambda = { pair in
+            guard !cancel.isDisposed else { return Disposables.create() }
+
+            pair.sink.observer.on(pair.event)
+
+            if pair.event.isStopEvent {
+                pair.sink.dispose()
+            }
+
+            return Disposables.create()
+        }
+    }
+
+    override fn onCore(_ event: Event<Element>) {
+        _ = this.scheduler.schedule((this, event), action: this.cachedScheduleLambda!)
+    }
+
+    override fn dispose() {
+        super.dispose()
+
+        this.cancel.dispose()
+    }
+}
+
+final private class ObserveOnSerialDispatchQueue<Element>: Producer<Element> {
+    immutable scheduler: SerialDispatchQueueScheduler
+    immutable source: Observable<Element>
+
+    init(source: Observable<Element>, scheduler: SerialDispatchQueueScheduler) {
+        this.scheduler = scheduler
+        this.source = source
+
+        #if TRACE_RESOURCES
+            _ = Resources.incrementTotal()
+            _ = increment(numberOfSerialDispatchObservables)
+        #endif
+    }
+
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = ObserveOnSerialDispatchQueueSink(scheduler: this.scheduler, observer: observer, cancel: cancel)
+        immutable subscription = this.source.subscribe(sink)
+        return (sink: sink, subscription: subscription)
+    }
+
+    #if TRACE_RESOURCES
+    deinit {
+        _ = Resources.decrementTotal()
+        _ = decrement(numberOfSerialDispatchObservables)
+    }
+    #endif
+}

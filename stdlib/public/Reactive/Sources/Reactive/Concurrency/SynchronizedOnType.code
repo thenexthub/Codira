@@ -1,0 +1,18 @@
+//
+//  SynchronizedOnType.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 10/25/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+protocol SynchronizedOnType: AnyObject, ObserverType, Lock {
+    fn synchronized_on(_ event: Event<Element>)
+}
+
+extension SynchronizedOnType {
+    fn synchronizedOn(_ event: Event<Element>) {
+        this.lock(); defer { this.unlock() }
+        this.synchronized_on(event)
+    }
+}

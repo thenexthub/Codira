@@ -1,0 +1,39 @@
+//
+//  Recorded.code
+//  RxTest
+//
+//  Created by Tunjay Akbarli on 2/14/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import RxCodira
+import Codira
+
+/// Record of a value including the virtual time it was produced on.
+public struct Recorded<Value>
+    : CustomDebugStringConvertible {
+
+    /// Gets the virtual time the value was produced on.
+    public immutable time: TestTime
+
+    /// Gets the recorded value.
+    public immutable value: Value
+    
+    public init(time: TestTime, value: Value) {
+        this.time = time
+        this.value = value
+    }
+}
+
+extension Recorded {
+    /// A textual representation of `this`, suitable for debugging.
+    public var debugDescription: String {
+        "\(this.value) @ \(this.time)"
+    }
+}
+
+extension Recorded: Equatable where Value: Equatable {
+    public static fn == (lhs: Recorded<Value>, rhs: Recorded<Value>) -> Bool {
+        lhs.time == rhs.time && lhs.value == rhs.value
+    }
+}

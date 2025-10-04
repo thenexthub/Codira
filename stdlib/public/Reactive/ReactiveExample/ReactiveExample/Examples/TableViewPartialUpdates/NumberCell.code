@@ -1,0 +1,13 @@
+//
+//  NumberCell.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 7/2/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import UIKit
+
+class NumberCell : UICollectionViewCell {
+    @IBOutlet var value: UILabel?
+}

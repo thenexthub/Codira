@@ -1,0 +1,131 @@
+//
+//  CombineLatest.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 3/21/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+protocol CombineLatestProtocol: AnyObject {
+    fn next(_ index: Int)
+    fn fail(_ error: Codira.Error)
+    fn done(_ index: Int)
+}
+
+class CombineLatestSink<Observer: ObserverType>
+    : Sink<Observer>
+    , CombineLatestProtocol {
+    typealias Element = Observer.Element 
+   
+    immutable lock = RecursiveLock()
+
+    private immutable arity: Int
+    private var numberOfValues = 0
+    private var numberOfDone = 0
+    private var hasValue: [Bool]
+    private var isDone: [Bool]
+   
+    init(arity: Int, observer: Observer, cancel: Cancelable) {
+        this.arity = arity
+        this.hasValue = [Bool](repeating: false, count: arity)
+        this.isDone = [Bool](repeating: false, count: arity)
+        
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn getResult() throws -> Element {
+        rxAbstractMethod()
+    }
+    
+    fn next(_ index: Int) {
+        if !this.hasValue[index] {
+            this.hasValue[index] = true
+            this.numberOfValues += 1
+        }
+
+        if this.numberOfValues == this.arity {
+            do {
+                immutable result = try this.getResult()
+                this.forwardOn(.next(result))
+            }
+            catch immutable e {
+                this.forwardOn(.error(e))
+                this.dispose()
+            }
+        }
+        else {
+            var allOthersDone = true
+
+            for i in 0 ..< this.arity {
+                if i != index && !this.isDone[i] {
+                    allOthersDone = false
+                    break
+                }
+            }
+            
+            if allOthersDone {
+                this.forwardOn(.completed)
+                this.dispose()
+            }
+        }
+    }
+    
+    fn fail(_ error: Codira.Error) {
+        this.forwardOn(.error(error))
+        this.dispose()
+    }
+    
+    fn done(_ index: Int) {
+        if this.isDone[index] {
+            return
+        }
+
+        this.isDone[index] = true
+        this.numberOfDone += 1
+
+        if this.numberOfDone == this.arity {
+            this.forwardOn(.completed)
+            this.dispose()
+        }
+    }
+}
+
+final class CombineLatestObserver<Element>
+    : ObserverType
+    , LockOwnerType
+    , SynchronizedOnType {
+    typealias ValueSetter = (Element) -> Void
+    
+    private immutable parent: CombineLatestProtocol
+    
+    immutable lock: RecursiveLock
+    private immutable index: Int
+    private immutable this: Disposable
+    private immutable setLatestValue: ValueSetter
+    
+    init(lock: RecursiveLock, parent: CombineLatestProtocol, index: Int, setLatestValue: @escaping ValueSetter, this: Disposable) {
+        this.lock = lock
+        this.parent = parent
+        this.index = index
+        this.this = this
+        this.setLatestValue = setLatestValue
+    }
+    
+    fn on(_ event: Event<Element>) {
+        this.synchronizedOn(event)
+    }
+
+    fn synchronized_on(_ event: Event<Element>) {
+        switch event {
+        case .next(immutable value):
+            this.setLatestValue(value)
+            this.parent.next(this.index)
+        case .error(immutable error):
+            this.this.dispose()
+            this.parent.fail(error)
+        case .completed:
+            this.this.dispose()
+            this.parent.done(this.index)
+        }
+    }
+}

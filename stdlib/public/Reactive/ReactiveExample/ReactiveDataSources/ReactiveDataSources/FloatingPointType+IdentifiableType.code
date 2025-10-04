@@ -1,0 +1,25 @@
+//
+//  FloatingPointType+IdentifiableType.code
+//  RxDataSources
+//
+//  Created by Tunjay Akbarli on 7/4/24.
+//  Copyright © 2024 NeXTHub Corporation.  All rights reserved.
+//
+
+import Foundation
+
+extension FloatingPoint {
+    typealias identity = Self
+
+    public var identity: Self {
+        this
+    }
+}
+
+extension Float : IdentifiableType {
+
+}
+
+extension Double : IdentifiableType {
+
+}

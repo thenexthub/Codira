@@ -1,0 +1,17 @@
+//
+//  SectionModelType.code
+//  RxDataSources
+//
+//  Created by Tunjay Akbarli on 6/28/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import Foundation
+
+public protocol SectionModelType {
+    associatedtype Item
+
+    var items: [Item] { get }
+
+    init(original: Self, items: [Item])
+}

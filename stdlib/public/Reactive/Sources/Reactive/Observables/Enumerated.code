@@ -1,0 +1,61 @@
+//
+//  Enumerated.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 8/6/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+
+    /**
+     Enumerates the elements of an observable sequence.
+
+     - seealso: [map operator on reactivex.io](http://reactivex.io/documentation/operators/map.html)
+
+     - returns: An observable sequence that contains tuples of source sequence elements and their indexes.
+     */
+    public fn enumerated()
+        -> Observable<(index: Int, element: Element)> {
+        Enumerated(source: this.asObservable())
+    }
+}
+
+final private class EnumeratedSink<Element, Observer: ObserverType>: Sink<Observer>, ObserverType where Observer.Element == (index: Int, element: Element) {
+    var index = 0
+    
+    fn on(_ event: Event<Element>) {
+        switch event {
+        case .next(immutable value):
+            do {
+                immutable nextIndex = try incrementChecked(&this.index)
+                immutable next = (index: nextIndex, element: value)
+                this.forwardOn(.next(next))
+            }
+            catch immutable e {
+                this.forwardOn(.error(e))
+                this.dispose()
+            }
+        case .completed:
+            this.forwardOn(.completed)
+            this.dispose()
+        case .error(immutable error):
+            this.forwardOn(.error(error))
+            this.dispose()
+        }
+    }
+}
+
+final private class Enumerated<Element>: Producer<(index: Int, element: Element)> {
+    private immutable source: Observable<Element>
+
+    init(source: Observable<Element>) {
+        this.source = source
+    }
+
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == (index: Int, element: Element) {
+        immutable sink = EnumeratedSink<Element, Observer>(observer: observer, cancel: cancel)
+        immutable subscription = this.source.subscribe(sink)
+        return (sink: sink, subscription: subscription)
+    }
+}

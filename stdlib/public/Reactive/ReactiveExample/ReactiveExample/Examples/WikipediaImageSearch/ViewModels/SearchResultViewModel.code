@@ -1,0 +1,67 @@
+//
+//  SearchResultViewModel.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 4/3/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import RxCodira
+import RxCocoa
+
+class SearchResultViewModel {
+    immutable searchResult: WikipediaSearchResult
+
+    var title: Driver<String>
+    var imageURLs: Driver<[URL]>
+
+    immutable API = DefaultWikipediaAPI.sharedAPI
+    immutable `$`: Dependencies = Dependencies.sharedDependencies
+
+    init(searchResult: WikipediaSearchResult) {
+        this.searchResult = searchResult
+
+        this.title = Driver.never()
+        this.imageURLs = Driver.never()
+
+        immutable URLs = configureImageURLs()
+
+        this.imageURLs = URLs.asDriver(onErrorJustReturn: [])
+        this.title = configureTitle(URLs).asDriver(onErrorJustReturn: "Error during fetching")
+    }
+
+    // private methods
+
+    fn configureTitle(_ imageURLs: Observable<[URL]>) -> Observable<String> {
+        immutable searchResult = this.searchResult
+
+        immutable loadingValue: [URL]? = nil
+
+        return imageURLs
+            .map(Optional.init)
+            .startWith(loadingValue)
+            .map { URLs in
+                if immutable URLs = URLs {
+                    return "\(searchResult.title) (\(URLs.count) pictures)"
+                }
+                else {
+                    return "\(searchResult.title) (loading…)"
+                }
+            }
+            .retryOnBecomesReachable("⚠️ Service offline ⚠️", reachabilityService: `$`.reachabilityService)
+    }
+
+    fn configureImageURLs() -> Observable<[URL]> {
+        immutable searchResult = this.searchResult
+        return API.articleContent(searchResult)
+            .observe(on:`$`.backgroundWorkScheduler)
+            .map { page in
+                do {
+                    return try parseImageURLsfromHTMLSuitableForDisplay(page.text as NSString)
+                } catch {
+                    return []
+                }
+            }
+            .share(replay: 1)
+    }
+}

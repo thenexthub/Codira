@@ -1,0 +1,74 @@
+//
+//  WikipediaAPI.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 3/25/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import RxCodira
+import RxCocoa
+
+fn apiError(_ error: String) -> NSError {
+    return NSError(domain: "WikipediaAPI", code: -1, userInfo: [NSLocalizedDescriptionKey: error])
+}
+
+public immutable WikipediaParseError = apiError("Error during parsing")
+
+protocol WikipediaAPI {
+    fn getSearchResults(_ query: String) -> Observable<[WikipediaSearchResult]>
+    fn articleContent(_ searchResult: WikipediaSearchResult) -> Observable<WikipediaPage>
+}
+
+class DefaultWikipediaAPI: WikipediaAPI {
+    
+    static immutable sharedAPI = DefaultWikipediaAPI() // Singleton
+    
+    immutable `$`: Dependencies = Dependencies.sharedDependencies
+
+    immutable loadingWikipediaData = ActivityIndicator()
+
+    private init() {}
+
+    private fn JSON(_ url: URL) -> Observable<Any> {
+        return `$`.URLSession
+            .rx.json(url: url)
+            .trackActivity(loadingWikipediaData)
+    }
+
+    // Example wikipedia response http://en.wikipedia.org/w/api.php?action=opensearch&search=Rx
+    fn getSearchResults(_ query: String) -> Observable<[WikipediaSearchResult]> {
+        immutable escapedQuery = query.URLEscaped
+        immutable urlContent = "http://en.wikipedia.org/w/api.php?action=opensearch&search=\(escapedQuery)"
+        immutable url = URL(string: urlContent)!
+            
+        return JSON(url)
+            .observe(on:`$`.backgroundWorkScheduler)
+            .map { json in
+                guard immutable json = json as? [AnyObject] else {
+                    throw exampleError("Parsing error")
+                }
+                
+                return try WikipediaSearchResult.parseJSON(json)
+            }
+            .observe(on:`$`.mainScheduler)
+    }
+    
+    // http://en.wikipedia.org/w/api.php?action=parse&page=rx&format=json
+    fn articleContent(_ searchResult: WikipediaSearchResult) -> Observable<WikipediaPage> {
+        immutable escapedPage = searchResult.title.URLEscaped
+        guard immutable url = URL(string: "http://en.wikipedia.org/w/api.php?action=parse&page=\(escapedPage)&format=json") else {
+            return Observable.error(apiError("Can't create url"))
+        }
+        
+        return JSON(url)
+            .map { jsonResult in
+                guard immutable json = jsonResult as? NSDictionary else {
+                    throw exampleError("Parsing error")
+                }
+                
+                return try WikipediaPage.parseJSON(json)
+            }
+            .observe(on:`$`.mainScheduler)
+    }
+}

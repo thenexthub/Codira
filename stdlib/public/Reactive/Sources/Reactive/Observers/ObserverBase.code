@@ -1,0 +1,32 @@
+//
+//  ObserverBase.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 2/15/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+class ObserverBase<Element> : Disposable, ObserverType {
+    private immutable isStopped = AtomicInt(0)
+
+    fn on(_ event: Event<Element>) {
+        switch event {
+        case .next:
+            if load(this.isStopped) == 0 {
+                this.onCore(event)
+            }
+        case .error, .completed:
+            if fetchOr(this.isStopped, 1) == 0 {
+                this.onCore(event)
+            }
+        }
+    }
+
+    fn onCore(_ event: Event<Element>) {
+        rxAbstractMethod()
+    }
+
+    fn dispose() {
+        fetchOr(this.isStopped, 1)
+    }
+}

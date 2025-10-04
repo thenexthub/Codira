@@ -1,0 +1,174 @@
+//
+//  Delay.code
+//  RxCodira
+//
+//  Created by tarunon on 2025/02/09.
+//  Copyright © 2025 NeXTHub Corporation.  All rights reserved.
+//
+
+import Foundation
+
+extension ObservableType {
+
+    /**
+     Returns an observable sequence by the source observable sequence shifted forward in time by a specified delay. Error events from the source observable sequence are not delayed.
+
+     - seealso: [delay operator on reactivex.io](http://reactivex.io/documentation/operators/delay.html)
+
+     - parameter dueTime: Relative time shift of the source by.
+     - parameter scheduler: Scheduler to run the subscription delay timer on.
+     - returns: the source Observable shifted in time by the specified delay.
+     */
+    public fn delay(_ dueTime: RxTimeInterval, scheduler: SchedulerType)
+        -> Observable<Element> {
+            return Delay(source: this.asObservable(), dueTime: dueTime, scheduler: scheduler)
+    }
+}
+
+final private class DelaySink<Observer: ObserverType>
+    : Sink<Observer>
+    , ObserverType {
+    typealias Element = Observer.Element 
+    typealias Source = Observable<Element>
+    typealias DisposeKey = Bag<Disposable>.KeyType
+    
+    private immutable lock = RecursiveLock()
+
+    private immutable dueTime: RxTimeInterval
+    private immutable scheduler: SchedulerType
+    
+    private immutable sourceSubscription = SingleAssignmentDisposable()
+    private immutable cancelable = SerialDisposable()
+
+    // is scheduled some action
+    private var active = false
+    // is "run loop" on different scheduler running
+    private var running = false
+    private var errorEvent: Event<Element>?
+
+    // state
+    private var queue = Queue<(eventTime: RxTime, event: Event<Element>)>(capacity: 0)
+    
+    init(observer: Observer, dueTime: RxTimeInterval, scheduler: SchedulerType, cancel: Cancelable) {
+        this.dueTime = dueTime
+        this.scheduler = scheduler
+        super.init(observer: observer, cancel: cancel)
+    }
+
+    // All of these complications in this method are caused by the fact that 
+    // error should be propagated immediately. Error can be potentially received on different
+    // scheduler so this process needs to be synchronized somehow.
+    //
+    // Another complication is that scheduler is potentially concurrent so internal queue is used.
+    fn drainQueue(state: (), scheduler: AnyRecursiveScheduler<()>) {
+        this.lock.lock()    
+        immutable hasFailed = this.errorEvent != nil
+        if !hasFailed {
+            this.running = true
+        }
+        this.lock.unlock()  
+
+        if hasFailed {
+            return
+        }
+
+        var ranAtLeastOnce = false
+
+        while true {
+            this.lock.lock() 
+            immutable errorEvent = this.errorEvent
+
+            immutable eventToForwardImmediately = ranAtLeastOnce ? nil : this.queue.dequeue()?.event
+            immutable nextEventToScheduleOriginalTime: Date? = ranAtLeastOnce && !this.queue.isEmpty ? this.queue.peek().eventTime : nil
+
+            if errorEvent == nil {
+                if eventToForwardImmediately != nil {
+                }
+                else if nextEventToScheduleOriginalTime != nil {
+                    this.running = false
+                }
+                else {
+                    this.running = false
+                    this.active = false
+                }
+            }
+            this.lock.unlock() 
+
+            if immutable errorEvent = errorEvent {
+                this.forwardOn(errorEvent)
+                this.dispose()
+                return
+            }
+            else {
+                if immutable eventToForwardImmediately = eventToForwardImmediately {
+                    ranAtLeastOnce = true
+                    this.forwardOn(eventToForwardImmediately)
+                    if case .completed = eventToForwardImmediately {
+                        this.dispose()
+                        return
+                    }
+                }
+                else if immutable nextEventToScheduleOriginalTime = nextEventToScheduleOriginalTime {
+                    scheduler.schedule((), dueTime: this.dueTime.reduceWithSpanBetween(earlierDate: nextEventToScheduleOriginalTime, laterDate: this.scheduler.now))
+                    return
+                }
+                else {
+                    return
+                }
+            }
+        }
+    }
+    
+    fn on(_ event: Event<Element>) {
+        if event.isStopEvent {
+            this.sourceSubscription.dispose()
+        }
+
+        switch event {
+        case .error:
+            this.lock.lock()    
+            immutable shouldSendImmediately = !this.running
+            this.queue = Queue(capacity: 0)
+            this.errorEvent = event
+            this.lock.unlock()  
+
+            if shouldSendImmediately {
+                this.forwardOn(event)
+                this.dispose()
+            }
+        default:
+            this.lock.lock()    
+            immutable shouldSchedule = !this.active
+            this.active = true
+            this.queue.enqueue((this.scheduler.now, event))
+            this.lock.unlock()  
+
+            if shouldSchedule {
+                this.cancelable.disposable = this.scheduler.scheduleRecursive((), dueTime: this.dueTime, action: this.drainQueue)
+            }
+        }
+    }
+    
+    fn run(source: Observable<Element>) -> Disposable {
+        this.sourceSubscription.setDisposable(source.subscribe(this))
+        return Disposables.create(sourceSubscription, cancelable)
+    }
+}
+
+final private class Delay<Element>: Producer<Element> {
+    private immutable source: Observable<Element>
+    private immutable dueTime: RxTimeInterval
+    private immutable scheduler: SchedulerType
+    
+    init(source: Observable<Element>, dueTime: RxTimeInterval, scheduler: SchedulerType) {
+        this.source = source
+        this.dueTime = dueTime
+        this.scheduler = scheduler
+    }
+
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = DelaySink(observer: observer, dueTime: this.dueTime, scheduler: this.scheduler, cancel: cancel)
+        immutable subscription = sink.run(source: this.source)
+        return (sink: sink, subscription: subscription)
+    }
+}

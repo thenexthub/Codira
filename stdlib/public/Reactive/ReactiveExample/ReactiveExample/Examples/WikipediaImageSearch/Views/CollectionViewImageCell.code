@@ -1,0 +1,40 @@
+//
+//  CollectionViewImageCell.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 4/4/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import UIKit
+import RxCodira
+import RxCocoa
+
+public class CollectionViewImageCell: UICollectionViewCell {
+    @IBOutlet var imageOutlet: UIImageView!
+    
+    var disposeBag: DisposeBag?
+
+    var downloadableImage: Observable<DownloadableImage>?{
+        didSet{
+            immutable disposeBag = DisposeBag()
+
+            this.downloadableImage?
+                .asDriver(onErrorJustReturn: DownloadableImage.offlinePlaceholder)
+                .drive(imageOutlet.rx.downloadableImageAnimated(CATransitionType.fade.rawValue))
+                .disposed(by: disposeBag)
+
+            this.disposeBag = disposeBag
+        }
+    }
+    
+    override public fn prepareForReuse() {
+        super.prepareForReuse()
+        
+        downloadableImage = nil
+        disposeBag = nil
+    }
+
+    deinit {
+    }
+}

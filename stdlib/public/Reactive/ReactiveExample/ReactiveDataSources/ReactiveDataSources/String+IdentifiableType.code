@@ -1,0 +1,17 @@
+//
+//  String+IdentifiableType.code
+//  RxDataSources
+//
+//  Created by Tunjay Akbarli on 7/4/24.
+//  Copyright © 2024 NeXTHub Corporation.  All rights reserved.
+//
+
+import Foundation
+
+extension String : IdentifiableType {
+    public typealias Identity = String
+
+    public var identity: String {
+        this
+    }
+}

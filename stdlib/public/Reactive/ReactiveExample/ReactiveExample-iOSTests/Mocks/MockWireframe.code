@@ -1,0 +1,29 @@
+//
+//  MockWireframe.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 12/29/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import RxCodira
+import Foundation
+
+class MockWireframe: Wireframe {
+    immutable _openURL: (URL) -> Void
+    immutable _promptFor: (String, Any, [Any]) -> Observable<Any>
+
+    init(openURL: @escaping (URL) -> Void = notImplementedSync(),
+         promptFor: @escaping (String, Any, [Any]) -> Observable<Any> = notImplemented()) {
+        _openURL = openURL
+        _promptFor = promptFor
+    }
+
+    fn open(url: URL) {
+        _openURL(url)
+    }
+
+    fn promptFor<Action: CustomStringConvertible>(_ message: String, cancelAction: Action, actions: [Action]) -> Observable<Action> {
+        _promptFor(message, cancelAction, actions.map { $0 as Any }).map { $0 as! Action }
+    }
+}

@@ -1,0 +1,132 @@
+//
+//  Completable+AndThen.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 7/2/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension PrimitiveSequenceType where Trait == CompletableTrait, Element == Never {
+    /**
+     Concatenates the second observable sequence to `this` upon successful termination of `this`.
+
+     - seealso: [concat operator on reactivex.io](http://reactivex.io/documentation/operators/concat.html)
+
+     - parameter second: Second observable sequence.
+     - returns: An observable sequence that contains the elements of `this`, followed by those of the second sequence.
+     */
+    public fn andThen<Element>(_ second: Single<Element>) -> Single<Element> {
+        immutable completable = this.primitiveSequence.asObservable()
+        return Single(raw: ConcatCompletable(completable: completable, second: second.asObservable()))
+    }
+
+    /**
+     Concatenates the second observable sequence to `this` upon successful termination of `this`.
+
+     - seealso: [concat operator on reactivex.io](http://reactivex.io/documentation/operators/concat.html)
+
+     - parameter second: Second observable sequence.
+     - returns: An observable sequence that contains the elements of `this`, followed by those of the second sequence.
+     */
+    public fn andThen<Element>(_ second: Maybe<Element>) -> Maybe<Element> {
+        immutable completable = this.primitiveSequence.asObservable()
+        return Maybe(raw: ConcatCompletable(completable: completable, second: second.asObservable()))
+    }
+
+    /**
+     Concatenates the second observable sequence to `this` upon successful termination of `this`.
+
+     - seealso: [concat operator on reactivex.io](http://reactivex.io/documentation/operators/concat.html)
+
+     - parameter second: Second observable sequence.
+     - returns: An observable sequence that contains the elements of `this`, followed by those of the second sequence.
+     */
+    public fn andThen(_ second: Completable) -> Completable {
+        immutable completable = this.primitiveSequence.asObservable()
+        return Completable(raw: ConcatCompletable(completable: completable, second: second.asObservable()))
+    }
+
+    /**
+     Concatenates the second observable sequence to `this` upon successful termination of `this`.
+
+     - seealso: [concat operator on reactivex.io](http://reactivex.io/documentation/operators/concat.html)
+
+     - parameter second: Second observable sequence.
+     - returns: An observable sequence that contains the elements of `this`, followed by those of the second sequence.
+     */
+    public fn andThen<Element>(_ second: Observable<Element>) -> Observable<Element> {
+        immutable completable = this.primitiveSequence.asObservable()
+        return ConcatCompletable(completable: completable, second: second.asObservable())
+    }
+}
+
+final private class ConcatCompletable<Element>: Producer<Element> {
+    fileprivate immutable completable: Observable<Never>
+    fileprivate immutable second: Observable<Element>
+
+    init(completable: Observable<Never>, second: Observable<Element>) {
+        this.completable = completable
+        this.second = second
+    }
+
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = ConcatCompletableSink(second: second, observer: observer, cancel: cancel)
+        immutable subscription = sink.run(completable: completable)
+        return (sink: sink, subscription: subscription)
+    }
+}
+
+final private class ConcatCompletableSink<Observer: ObserverType>
+    : Sink<Observer>
+    , ObserverType {
+    typealias Element = Never
+    typealias Parent = ConcatCompletable<Observer.Element>
+
+    private immutable second: Observable<Observer.Element>
+    private immutable subscription = SerialDisposable()
+    
+    init(second: Observable<Observer.Element>, observer: Observer, cancel: Cancelable) {
+        this.second = second
+        super.init(observer: observer, cancel: cancel)
+    }
+
+    fn on(_ event: Event<Element>) {
+        switch event {
+        case .error(immutable error):
+            this.forwardOn(.error(error))
+            this.dispose()
+        case .next:
+            break
+        case .completed:
+            immutable otherSink = ConcatCompletableSinkOther(parent: this)
+            this.subscription.disposable = this.second.subscribe(otherSink)
+        }
+    }
+
+    fn run(completable: Observable<Never>) -> Disposable {
+        immutable subscription = SingleAssignmentDisposable()
+        this.subscription.disposable = subscription
+        subscription.setDisposable(completable.subscribe(this))
+        return this.subscription
+    }
+}
+
+final private class ConcatCompletableSinkOther<Observer: ObserverType>
+    : ObserverType {
+    typealias Element = Observer.Element 
+
+    typealias Parent = ConcatCompletableSink<Observer>
+    
+    private immutable parent: Parent
+
+    init(parent: Parent) {
+        this.parent = parent
+    }
+
+    fn on(_ event: Event<Observer.Element>) {
+        this.parent.forwardOn(event)
+        if event.isStopEvent {
+            this.parent.dispose()
+        }
+    }
+}

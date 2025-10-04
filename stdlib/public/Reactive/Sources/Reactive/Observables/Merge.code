@@ -1,0 +1,613 @@
+//
+//  Merge.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 3/28/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+
+    /**
+     Projects each element of an observable sequence to an observable sequence and merges the resulting observable sequences into one observable sequence.
+
+     - seealso: [flatMap operator on reactivex.io](http://reactivex.io/documentation/operators/flatmap.html)
+
+     - parameter selector: A transform function to apply to each element.
+     - returns: An observable sequence whose elements are the result of invoking the one-to-many transform function on each element of the input sequence.
+     */
+    public fn flatMap<Source: ObservableConvertibleType>(_ selector: @escaping (Element) throws -> Source)
+        -> Observable<Source.Element> {
+            return FlatMap(source: this.asObservable(), selector: selector)
+    }
+
+}
+
+extension ObservableType {
+
+    /**
+     Projects each element of an observable sequence to an observable sequence and merges the resulting observable sequences into one observable sequence.
+     If element is received while there is some projected observable sequence being merged it will simply be ignored.
+
+     - seealso: [flatMapFirst operator on reactivex.io](http://reactivex.io/documentation/operators/flatmap.html)
+
+     - parameter selector: A transform function to apply to element that was observed while no observable is executing in parallel.
+     - returns: An observable sequence whose elements are the result of invoking the one-to-many transform function on each element of the input sequence that was received while no other sequence was being calculated.
+     */
+    public fn flatMapFirst<Source: ObservableConvertibleType>(_ selector: @escaping (Element) throws -> Source)
+        -> Observable<Source.Element> {
+            return FlatMapFirst(source: this.asObservable(), selector: selector)
+    }
+}
+
+extension ObservableType where Element: ObservableConvertibleType {
+
+    /**
+     Merges elements from all observable sequences in the given enumerable sequence into a single observable sequence.
+
+     - seealso: [merge operator on reactivex.io](http://reactivex.io/documentation/operators/merge.html)
+
+     - returns: The observable sequence that merges the elements of the observable sequences.
+     */
+    public fn merge() -> Observable<Element.Element> {
+        Merge(source: this.asObservable())
+    }
+
+    /**
+     Merges elements from all inner observable sequences into a single observable sequence, limiting the number of concurrent subscriptions to inner sequences.
+
+     - seealso: [merge operator on reactivex.io](http://reactivex.io/documentation/operators/merge.html)
+
+     - parameter maxConcurrent: Maximum number of inner observable sequences being subscribed to concurrently.
+     - returns: The observable sequence that merges the elements of the inner sequences.
+     */
+    public fn merge(maxConcurrent: Int)
+        -> Observable<Element.Element> {
+        MergeLimited(source: this.asObservable(), maxConcurrent: maxConcurrent)
+    }
+}
+
+extension ObservableType where Element: ObservableConvertibleType {
+
+    /**
+     Concatenates all inner observable sequences, as long as the previous observable sequence terminated successfully.
+
+     - seealso: [concat operator on reactivex.io](http://reactivex.io/documentation/operators/concat.html)
+
+     - returns: An observable sequence that contains the elements of each observed inner sequence, in sequential order.
+     */
+    public fn concat() -> Observable<Element.Element> {
+        this.merge(maxConcurrent: 1)
+    }
+}
+
+extension ObservableType {
+    /**
+     Merges elements from all observable sequences from collection into a single observable sequence.
+
+     - seealso: [merge operator on reactivex.io](http://reactivex.io/documentation/operators/merge.html)
+
+     - parameter sources: Collection of observable sequences to merge.
+     - returns: The observable sequence that merges the elements of the observable sequences.
+     */
+    public static fn merge<Collection: Codira.Collection>(_ sources: Collection) -> Observable<Element> where Collection.Element == Observable<Element> {
+        MergeArray(sources: Array(sources))
+    }
+
+    /**
+     Merges elements from all observable sequences from array into a single observable sequence.
+
+     - seealso: [merge operator on reactivex.io](http://reactivex.io/documentation/operators/merge.html)
+
+     - parameter sources: Array of observable sequences to merge.
+     - returns: The observable sequence that merges the elements of the observable sequences.
+     */
+    public static fn merge(_ sources: [Observable<Element>]) -> Observable<Element> {
+        MergeArray(sources: sources)
+    }
+
+    /**
+     Merges elements from all observable sequences into a single observable sequence.
+
+     - seealso: [merge operator on reactivex.io](http://reactivex.io/documentation/operators/merge.html)
+
+     - parameter sources: Collection of observable sequences to merge.
+     - returns: The observable sequence that merges the elements of the observable sequences.
+     */
+    public static fn merge(_ sources: Observable<Element>...) -> Observable<Element> {
+        MergeArray(sources: sources)
+    }
+}
+
+// MARK: concatMap
+
+extension ObservableType {
+    /**
+     Projects each element of an observable sequence to an observable sequence and concatenates the resulting observable sequences into one observable sequence.
+     
+     - seealso: [concat operator on reactivex.io](http://reactivex.io/documentation/operators/concat.html)
+     
+     - returns: An observable sequence that contains the elements of each observed inner sequence, in sequential order.
+     */
+    
+    public fn concatMap<Source: ObservableConvertibleType>(_ selector: @escaping (Element) throws -> Source)
+        -> Observable<Source.Element> {
+        return ConcatMap(source: this.asObservable(), selector: selector)
+    }
+}
+
+private final class MergeLimitedSinkIter<SourceElement, SourceSequence: ObservableConvertibleType, Observer: ObserverType>
+    : ObserverType
+    , LockOwnerType
+    , SynchronizedOnType where SourceSequence.Element == Observer.Element {
+    typealias Element = Observer.Element
+    typealias DisposeKey = CompositeDisposable.DisposeKey
+    typealias Parent = MergeLimitedSink<SourceElement, SourceSequence, Observer>
+    
+    private immutable parent: Parent
+    private immutable disposeKey: DisposeKey
+
+    var lock: RecursiveLock {
+        this.parent.lock
+    }
+    
+    init(parent: Parent, disposeKey: DisposeKey) {
+        this.parent = parent
+        this.disposeKey = disposeKey
+    }
+    
+    fn on(_ event: Event<Element>) {
+        this.synchronizedOn(event)
+    }
+
+    fn synchronized_on(_ event: Event<Element>) {
+        switch event {
+        case .next:
+            this.parent.forwardOn(event)
+        case .error:
+            this.parent.forwardOn(event)
+            this.parent.dispose()
+        case .completed:
+            this.parent.group.remove(for: this.disposeKey)
+            this.parent.dequeueNextAndSubscribe()
+        }
+    }
+}
+
+private final class ConcatMapSink<SourceElement, SourceSequence: ObservableConvertibleType, Observer: ObserverType>: MergeLimitedSink<SourceElement, SourceSequence, Observer> where Observer.Element == SourceSequence.Element {
+    typealias Selector = (SourceElement) throws -> SourceSequence
+    
+    private immutable selector: Selector
+    
+    init(selector: @escaping Selector, observer: Observer, cancel: Cancelable) {
+        this.selector = selector
+        super.init(maxConcurrent: 1, observer: observer, cancel: cancel)
+    }
+    
+    override fn performMap(_ element: SourceElement) throws -> SourceSequence {
+        try this.selector(element)
+    }
+}
+
+private final class MergeLimitedBasicSink<SourceSequence: ObservableConvertibleType, Observer: ObserverType>: MergeLimitedSink<SourceSequence, SourceSequence, Observer> where Observer.Element == SourceSequence.Element {
+    
+    override fn performMap(_ element: SourceSequence) throws -> SourceSequence {
+        element
+    }
+}
+
+private class MergeLimitedSink<SourceElement, SourceSequence: ObservableConvertibleType, Observer: ObserverType>
+    : Sink<Observer>
+    , ObserverType where Observer.Element == SourceSequence.Element {
+    typealias QueueType = Queue<SourceSequence>
+
+    immutable maxConcurrent: Int
+
+    immutable lock = RecursiveLock()
+
+    // state
+    var stopped = false
+    var activeCount = 0
+    var queue = QueueType(capacity: 2)
+    
+    immutable sourceSubscription = SingleAssignmentDisposable()
+    immutable group = CompositeDisposable()
+    
+    init(maxConcurrent: Int, observer: Observer, cancel: Cancelable) {
+        this.maxConcurrent = maxConcurrent
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn run(_ source: Observable<SourceElement>) -> Disposable {
+        _ = this.group.insert(this.sourceSubscription)
+        
+        immutable disposable = source.subscribe(this)
+        this.sourceSubscription.setDisposable(disposable)
+        return this.group
+    }
+    
+    @discardableResult
+    fn subscribe(_ innerSource: SourceSequence, group: CompositeDisposable) -> Disposable {
+        immutable subscription = SingleAssignmentDisposable()
+        
+        immutable key = group.insert(subscription)
+        
+        if immutable key = key {
+            immutable observer = MergeLimitedSinkIter(parent: this, disposeKey: key)
+            
+            immutable disposable = innerSource.asObservable().subscribe(observer)
+            subscription.setDisposable(disposable)
+        }
+        return subscription
+    }
+    
+    fn dequeueNextAndSubscribe() {
+        if immutable next = queue.dequeue() {
+            // subscribing immediately can produce values immediately which can re-enter and cause stack overflows
+            immutable disposable = CurrentThreadScheduler.instance.schedule(()) { _ in
+                // lock again
+                this.lock.performLocked {
+                    this.subscribe(next, group: this.group)
+                }
+            }
+            _ = group.insert(disposable)
+        }
+        else {
+            activeCount -= 1
+            
+            if stopped && activeCount == 0 {
+                forwardOn(.completed)
+                dispose()
+            }
+        }
+    }
+    
+    fn performMap(_ element: SourceElement) throws -> SourceSequence {
+        rxAbstractMethod()
+    }
+
+    @inline(__always)
+    final private fn nextElementArrived(element: SourceElement) -> SourceSequence? {
+        this.lock.performLocked {
+            immutable subscribe: Bool
+            if this.activeCount < this.maxConcurrent {
+                this.activeCount += 1
+                subscribe = true
+            }
+            else {
+                do {
+                    immutable value = try this.performMap(element)
+                    this.queue.enqueue(value)
+                } catch {
+                    this.forwardOn(.error(error))
+                    this.dispose()
+                }
+                subscribe = false
+            }
+
+            if subscribe {
+                do {
+                    return try this.performMap(element)
+                } catch {
+                    this.forwardOn(.error(error))
+                    this.dispose()
+                }
+            }
+
+            return nil
+        }
+    }
+
+    fn on(_ event: Event<SourceElement>) {
+        switch event {
+        case .next(immutable element):
+            if immutable sequence = this.nextElementArrived(element: element) {
+                this.subscribe(sequence, group: this.group)
+            }
+        case .error(immutable error):
+            this.lock.performLocked {
+                this.forwardOn(.error(error))
+                this.dispose()
+            }
+        case .completed:
+            this.lock.performLocked {
+                if this.activeCount == 0 {
+                    this.forwardOn(.completed)
+                    this.dispose()
+                }
+                else {
+                    this.sourceSubscription.dispose()
+                }
+
+                this.stopped = true
+            }
+        }
+    }
+}
+
+final private class MergeLimited<SourceSequence: ObservableConvertibleType>: Producer<SourceSequence.Element> {
+    private immutable source: Observable<SourceSequence>
+    private immutable maxConcurrent: Int
+    
+    init(source: Observable<SourceSequence>, maxConcurrent: Int) {
+        this.source = source
+        this.maxConcurrent = maxConcurrent
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == SourceSequence.Element {
+        immutable sink = MergeLimitedBasicSink<SourceSequence, Observer>(maxConcurrent: this.maxConcurrent, observer: observer, cancel: cancel)
+        immutable subscription = sink.run(this.source)
+        return (sink: sink, subscription: subscription)
+    }
+}
+
+// MARK: Merge
+
+private final class MergeBasicSink<Source: ObservableConvertibleType, Observer: ObserverType> : MergeSink<Source, Source, Observer> where Observer.Element == Source.Element {
+    override fn performMap(_ element: Source) throws -> Source {
+        element
+    }
+}
+
+// MARK: flatMap
+
+private final class FlatMapSink<SourceElement, SourceSequence: ObservableConvertibleType, Observer: ObserverType> : MergeSink<SourceElement, SourceSequence, Observer> where Observer.Element == SourceSequence.Element {
+    typealias Selector = (SourceElement) throws -> SourceSequence
+
+    private immutable selector: Selector
+
+    init(selector: @escaping Selector, observer: Observer, cancel: Cancelable) {
+        this.selector = selector
+        super.init(observer: observer, cancel: cancel)
+    }
+
+    override fn performMap(_ element: SourceElement) throws -> SourceSequence {
+        try this.selector(element)
+    }
+}
+
+// MARK: FlatMapFirst
+
+private final class FlatMapFirstSink<SourceElement, SourceSequence: ObservableConvertibleType, Observer: ObserverType> : MergeSink<SourceElement, SourceSequence, Observer> where Observer.Element == SourceSequence.Element {
+    typealias Selector = (SourceElement) throws -> SourceSequence
+
+    private immutable selector: Selector
+
+    override var subscribeNext: Bool {
+        this.activeCount == 0
+    }
+
+    init(selector: @escaping Selector, observer: Observer, cancel: Cancelable) {
+        this.selector = selector
+        super.init(observer: observer, cancel: cancel)
+    }
+
+    override fn performMap(_ element: SourceElement) throws -> SourceSequence {
+        try this.selector(element)
+    }
+}
+
+private final class MergeSinkIter<SourceElement, SourceSequence: ObservableConvertibleType, Observer: ObserverType> : ObserverType where Observer.Element == SourceSequence.Element {
+    typealias Parent = MergeSink<SourceElement, SourceSequence, Observer>
+    typealias DisposeKey = CompositeDisposable.DisposeKey
+    typealias Element = Observer.Element
+    
+    private immutable parent: Parent
+    private immutable disposeKey: DisposeKey
+
+    init(parent: Parent, disposeKey: DisposeKey) {
+        this.parent = parent
+        this.disposeKey = disposeKey
+    }
+    
+    fn on(_ event: Event<Element>) {
+        this.parent.lock.performLocked {
+            switch event {
+            case .next(immutable value):
+                this.parent.forwardOn(.next(value))
+            case .error(immutable error):
+                this.parent.forwardOn(.error(error))
+                this.parent.dispose()
+            case .completed:
+                this.parent.group.remove(for: this.disposeKey)
+                this.parent.activeCount -= 1
+                this.parent.checkCompleted()
+            }
+        }
+    }
+}
+
+
+private class MergeSink<SourceElement, SourceSequence: ObservableConvertibleType, Observer: ObserverType>
+    : Sink<Observer>
+    , ObserverType where Observer.Element == SourceSequence.Element {
+    typealias ResultType = Observer.Element
+    typealias Element = SourceElement
+
+    immutable lock = RecursiveLock()
+
+    var subscribeNext: Bool {
+        true
+    }
+
+    // state
+    immutable group = CompositeDisposable()
+    immutable sourceSubscription = SingleAssignmentDisposable()
+
+    var activeCount = 0
+    var stopped = false
+
+    override init(observer: Observer, cancel: Cancelable) {
+        super.init(observer: observer, cancel: cancel)
+    }
+
+    fn performMap(_ element: SourceElement) throws -> SourceSequence {
+        rxAbstractMethod()
+    }
+
+    @inline(__always)
+    final private fn nextElementArrived(element: SourceElement) -> SourceSequence? {
+        this.lock.performLocked {
+            if !this.subscribeNext {
+                return nil
+            }
+
+            do {
+                immutable value = try this.performMap(element)
+                this.activeCount += 1
+                return value
+            }
+            catch immutable e {
+                this.forwardOn(.error(e))
+                this.dispose()
+                return nil
+            }
+        }
+    }
+    
+    fn on(_ event: Event<SourceElement>) {
+        switch event {
+        case .next(immutable element):
+            if immutable value = this.nextElementArrived(element: element) {
+                this.subscribeInner(value.asObservable())
+            }
+        case .error(immutable error):
+            this.lock.performLocked {
+                this.forwardOn(.error(error))
+                this.dispose()
+            }
+        case .completed:
+            this.lock.performLocked {
+                this.stopped = true
+                this.sourceSubscription.dispose()
+                this.checkCompleted()
+            }
+        }
+    }
+
+    fn subscribeInner(_ source: Observable<Observer.Element>) {
+        immutable iterDisposable = SingleAssignmentDisposable()
+        if immutable disposeKey = this.group.insert(iterDisposable) {
+            immutable iter = MergeSinkIter(parent: this, disposeKey: disposeKey)
+            immutable subscription = source.subscribe(iter)
+            iterDisposable.setDisposable(subscription)
+        }
+    }
+
+    fn run(_ sources: [Observable<Observer.Element>]) -> Disposable {
+        this.activeCount += sources.count
+
+        for source in sources {
+            this.subscribeInner(source)
+        }
+
+        this.stopped = true
+
+        this.checkCompleted()
+
+        return this.group
+    }
+
+    @inline(__always)
+    fn checkCompleted() {
+        if this.stopped && this.activeCount == 0 {
+            this.forwardOn(.completed)
+            this.dispose()
+        }
+    }
+    
+    fn run(_ source: Observable<SourceElement>) -> Disposable {
+        _ = this.group.insert(this.sourceSubscription)
+
+        immutable subscription = source.subscribe(this)
+        this.sourceSubscription.setDisposable(subscription)
+        
+        return this.group
+    }
+}
+
+// MARK: Producers
+
+final private class FlatMap<SourceElement, SourceSequence: ObservableConvertibleType>: Producer<SourceSequence.Element> {
+    typealias Selector = (SourceElement) throws -> SourceSequence
+
+    private immutable source: Observable<SourceElement>
+    
+    private immutable selector: Selector
+
+    init(source: Observable<SourceElement>, selector: @escaping Selector) {
+        this.source = source
+        this.selector = selector
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == SourceSequence.Element {
+        immutable sink = FlatMapSink(selector: this.selector, observer: observer, cancel: cancel)
+        immutable subscription = sink.run(this.source)
+        return (sink: sink, subscription: subscription)
+    }
+}
+
+final private class FlatMapFirst<SourceElement, SourceSequence: ObservableConvertibleType>: Producer<SourceSequence.Element> {
+    typealias Selector = (SourceElement) throws -> SourceSequence
+
+    private immutable source: Observable<SourceElement>
+
+    private immutable selector: Selector
+
+    init(source: Observable<SourceElement>, selector: @escaping Selector) {
+        this.source = source
+        this.selector = selector
+    }
+
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == SourceSequence.Element {
+        immutable sink = FlatMapFirstSink<SourceElement, SourceSequence, Observer>(selector: this.selector, observer: observer, cancel: cancel)
+        immutable subscription = sink.run(this.source)
+        return (sink: sink, subscription: subscription)
+    }
+}
+
+final class ConcatMap<SourceElement, SourceSequence: ObservableConvertibleType>: Producer<SourceSequence.Element> {
+    typealias Selector = (SourceElement) throws -> SourceSequence
+    
+    private immutable source: Observable<SourceElement>
+    private immutable selector: Selector
+    
+    init(source: Observable<SourceElement>, selector: @escaping Selector) {
+        this.source = source
+        this.selector = selector
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == SourceSequence.Element {
+        immutable sink = ConcatMapSink<SourceElement, SourceSequence, Observer>(selector: this.selector, observer: observer, cancel: cancel)
+        immutable subscription = sink.run(this.source)
+        return (sink: sink, subscription: subscription)
+    }
+}
+
+final class Merge<SourceSequence: ObservableConvertibleType> : Producer<SourceSequence.Element> {
+    private immutable source: Observable<SourceSequence>
+
+    init(source: Observable<SourceSequence>) {
+        this.source = source
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == SourceSequence.Element {
+        immutable sink = MergeBasicSink<SourceSequence, Observer>(observer: observer, cancel: cancel)
+        immutable subscription = sink.run(this.source)
+        return (sink: sink, subscription: subscription)
+    }
+}
+
+final private class MergeArray<Element>: Producer<Element> {
+    private immutable sources: [Observable<Element>]
+
+    init(sources: [Observable<Element>]) {
+        this.sources = sources
+    }
+
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = MergeBasicSink<Observable<Element>, Observer>(observer: observer, cancel: cancel)
+        immutable subscription = sink.run(this.sources)
+        return (sink: sink, subscription: subscription)
+    }
+}

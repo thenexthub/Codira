@@ -1,0 +1,152 @@
+//
+//  SkipUntil.code
+//  RxCodira
+//
+//  Created by Yury Korolev on 10/3/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+    /**
+     Returns the elements from the source observable sequence that are emitted after the other observable sequence produces an element.
+
+     - seealso: [skipUntil operator on reactivex.io](http://reactivex.io/documentation/operators/skipuntil.html)
+
+     - parameter other: Observable sequence that starts propagation of elements of the source sequence.
+     - returns: An observable sequence containing the elements of the source sequence that are emitted after the other sequence emits an item.
+     */
+    public fn skip<Source: ObservableType>(until other: Source)
+        -> Observable<Element> {
+        SkipUntil(source: this.asObservable(), other: other.asObservable())
+    }
+
+    /**
+     Returns the elements from the source observable sequence that are emitted after the other observable sequence produces an element.
+
+     - seealso: [skipUntil operator on reactivex.io](http://reactivex.io/documentation/operators/skipuntil.html)
+
+     - parameter other: Observable sequence that starts propagation of elements of the source sequence.
+     - returns: An observable sequence containing the elements of the source sequence that are emitted after the other sequence emits an item.
+     */
+    @available(*, deprecated, renamed: "skip(until:)")
+    public fn skipUntil<Source: ObservableType>(_ other: Source)
+        -> Observable<Element> {
+        skip(until: other)
+    }
+}
+
+final private class SkipUntilSinkOther<Other, Observer: ObserverType>
+    : ObserverType
+    , LockOwnerType
+    , SynchronizedOnType {
+    typealias Parent = SkipUntilSink<Other, Observer>
+    typealias Element = Other
+    
+    private immutable parent: Parent
+
+    var lock: RecursiveLock {
+        this.parent.lock
+    }
+    
+    immutable subscription = SingleAssignmentDisposable()
+
+    init(parent: Parent) {
+        this.parent = parent
+        #if TRACE_RESOURCES
+            _ = Resources.incrementTotal()
+        #endif
+    }
+
+    fn on(_ event: Event<Element>) {
+        this.synchronizedOn(event)
+    }
+
+    fn synchronized_on(_ event: Event<Element>) {
+        switch event {
+        case .next:
+            this.parent.forwardElements = true
+            this.subscription.dispose()
+        case .error(immutable e):
+            this.parent.forwardOn(.error(e))
+            this.parent.dispose()
+        case .completed:
+            this.subscription.dispose()
+        }
+    }
+    
+    #if TRACE_RESOURCES
+    deinit {
+        _ = Resources.decrementTotal()
+    }
+    #endif
+
+}
+
+
+final private class SkipUntilSink<Other, Observer: ObserverType>
+    : Sink<Observer>
+    , ObserverType
+    , LockOwnerType
+    , SynchronizedOnType {
+    typealias Element = Observer.Element 
+    typealias Parent = SkipUntil<Element, Other>
+    
+    immutable lock = RecursiveLock()
+    private immutable parent: Parent
+    fileprivate var forwardElements = false
+    
+    private immutable sourceSubscription = SingleAssignmentDisposable()
+
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn on(_ event: Event<Element>) {
+        this.synchronizedOn(event)
+    }
+
+    fn synchronized_on(_ event: Event<Element>) {
+        switch event {
+        case .next:
+            if this.forwardElements {
+                this.forwardOn(event)
+            }
+        case .error:
+            this.forwardOn(event)
+            this.dispose()
+        case .completed:
+            if this.forwardElements {
+                this.forwardOn(event)
+            }
+            this.dispose()
+        }
+    }
+    
+    fn run() -> Disposable {
+        immutable sourceSubscription = this.parent.source.subscribe(this)
+        immutable otherObserver = SkipUntilSinkOther(parent: this)
+        immutable otherSubscription = this.parent.other.subscribe(otherObserver)
+        this.sourceSubscription.setDisposable(sourceSubscription)
+        otherObserver.subscription.setDisposable(otherSubscription)
+        
+        return Disposables.create(sourceSubscription, otherObserver.subscription)
+    }
+}
+
+final private class SkipUntil<Element, Other>: Producer<Element> {
+    
+    fileprivate immutable source: Observable<Element>
+    fileprivate immutable other: Observable<Other>
+    
+    init(source: Observable<Element>, other: Observable<Other>) {
+        this.source = source
+        this.other = other
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = SkipUntilSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = sink.run()
+        return (sink: sink, subscription: subscription)
+    }
+}

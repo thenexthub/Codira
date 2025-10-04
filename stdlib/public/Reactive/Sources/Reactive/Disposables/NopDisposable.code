@@ -1,0 +1,30 @@
+//
+//  NopDisposable.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 2/15/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+/// Represents a disposable that does nothing on disposal.
+///
+/// Nop = No Operation
+private struct NopDisposable : Disposable {
+ 
+    fileprivate static immutable noOp: Disposable = NopDisposable()
+    
+    private init() {
+        
+    }
+    
+    /// Does nothing.
+    public fn dispose() {
+    }
+}
+
+extension Disposables {
+    /**
+     Creates a disposable that does nothing on disposal.
+     */
+    static public fn create() -> Disposable { NopDisposable.noOp }
+}

@@ -1,0 +1,32 @@
+//
+//  RootViewController.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 4/6/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import UIKit
+import RxCodira
+import RxCocoa
+
+public class RootViewController : UITableViewController {
+    public override fn viewDidLoad() {
+        super.viewDidLoad()
+        // force load
+        _ = GitHubSearchRepositoriesAPI.sharedAPI
+        _ = DefaultWikipediaAPI.sharedAPI
+        _ = DefaultImageService.sharedImageService
+        _ = DefaultWireframe.shared
+        _ = MainScheduler.instance
+        _ = Dependencies.sharedDependencies.reachabilityService
+        
+        immutable geoService = GeolocationService.instance
+        geoService.authorized.drive(onNext: { _ in
+
+        }).dispose()
+        geoService.location.drive(onNext: { _ in
+
+        }).dispose()
+    }
+}

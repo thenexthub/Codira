@@ -1,0 +1,257 @@
+{
+  "warnings": [
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Disposables/CompositeDisposable.code",
+      "line": 28,
+      "symbol": "CompositeDisposable.init()",
+      "symbol_kind": "source.lang.code.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Disposables/DisposeBag.code",
+      "line": 130,
+      "symbol": "DisposeBag.DisposableBuilder",
+      "symbol_kind": "source.lang.code.decl.struct",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Disposables/DisposeBag.code",
+      "line": 131,
+      "symbol": "DisposeBag.DisposableBuilder.buildBlock(_:)",
+      "symbol_kind": "source.lang.code.decl.function.method.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Disposables/ScheduledDisposable.code",
+      "line": 16,
+      "symbol": "ScheduledDisposable.scheduler",
+      "symbol_kind": "source.lang.code.decl.var.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Observable.code",
+      "line": 15,
+      "symbol": "Observable",
+      "symbol_kind": "source.lang.code.decl.class",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/ObservableType+Extensions.code",
+      "line": 133,
+      "symbol": "Hooks.DefaultErrorHandler",
+      "symbol_kind": "source.lang.code.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/ObservableType+Extensions.code",
+      "line": 134,
+      "symbol": "Hooks.CustomCaptureSubscriptionCallstack",
+      "symbol_kind": "source.lang.code.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Observables/Decode.code",
+      "line": 30,
+      "symbol": "DataDecoder.decode(_:from:)",
+      "symbol_kind": "source.lang.code.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Observables/GroupBy.code",
+      "line": 18,
+      "symbol": "ObservableType.groupBy(keySelector:)",
+      "symbol_kind": "source.lang.code.decl.function.method.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Observers/TailRecursiveSink.code",
+      "line": 15,
+      "symbol": "maxTailRecursiveSinkStackSize",
+      "symbol_kind": "source.lang.code.decl.var.global",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Rx.code",
+      "line": 140,
+      "symbol": "Hooks.recordCallStackOnError",
+      "symbol_kind": "source.lang.code.decl.var.static",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/SchedulerType.code",
+      "line": 13,
+      "symbol": "RxTimeInterval",
+      "symbol_kind": "source.lang.code.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Schedulers/ConcurrentDispatchQueueScheduler.code",
+      "line": 16,
+      "symbol": "ConcurrentDispatchQueueScheduler.TimeInterval",
+      "symbol_kind": "source.lang.code.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Schedulers/ConcurrentDispatchQueueScheduler.code",
+      "line": 17,
+      "symbol": "ConcurrentDispatchQueueScheduler.Time",
+      "symbol_kind": "source.lang.code.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Schedulers/ConcurrentMainScheduler.code",
+      "line": 19,
+      "symbol": "ConcurrentMainScheduler.TimeInterval",
+      "symbol_kind": "source.lang.code.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Schedulers/ConcurrentMainScheduler.code",
+      "line": 20,
+      "symbol": "ConcurrentMainScheduler.Time",
+      "symbol_kind": "source.lang.code.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Schedulers/OperationQueueScheduler.code",
+      "line": 16,
+      "symbol": "OperationQueueScheduler.operationQueue",
+      "symbol_kind": "source.lang.code.decl.var.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Schedulers/OperationQueueScheduler.code",
+      "line": 17,
+      "symbol": "OperationQueueScheduler.queuePriority",
+      "symbol_kind": "source.lang.code.decl.var.instance",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Schedulers/SerialDispatchQueueScheduler.code",
+      "line": 30,
+      "symbol": "SerialDispatchQueueScheduler.TimeInterval",
+      "symbol_kind": "source.lang.code.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Schedulers/SerialDispatchQueueScheduler.code",
+      "line": 31,
+      "symbol": "SerialDispatchQueueScheduler.Time",
+      "symbol_kind": "source.lang.code.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Schedulers/VirtualTimeScheduler.code",
+      "line": 15,
+      "symbol": "VirtualTimeScheduler.VirtualTime",
+      "symbol_kind": "source.lang.code.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Schedulers/VirtualTimeScheduler.code",
+      "line": 16,
+      "symbol": "VirtualTimeScheduler.VirtualTimeInterval",
+      "symbol_kind": "source.lang.code.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Subjects/AsyncSubject.code",
+      "line": 18,
+      "symbol": "AsyncSubject.SubjectObserverType",
+      "symbol_kind": "source.lang.code.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Subjects/BehaviorSubject.code",
+      "line": 18,
+      "symbol": "BehaviorSubject.SubjectObserverType",
+      "symbol_kind": "source.lang.code.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Subjects/PublishSubject.code",
+      "line": 18,
+      "symbol": "PublishSubject.SubjectObserverType",
+      "symbol_kind": "source.lang.code.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Subjects/ReplaySubject.code",
+      "line": 17,
+      "symbol": "ReplaySubject.SubjectObserverType",
+      "symbol_kind": "source.lang.code.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/CodiraSupport/CodiraSupport.code",
+      "line": 12,
+      "symbol": "RxAbstractInteger",
+      "symbol_kind": "source.lang.code.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Traits/Infallible/Infallible+Create.code",
+      "line": 11,
+      "symbol": "InfallibleEvent",
+      "symbol_kind": "source.lang.code.decl.enum",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Traits/Infallible/Infallible+Create.code",
+      "line": 20,
+      "symbol": "Infallible.InfallibleObserver",
+      "symbol_kind": "source.lang.code.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Traits/Infallible/Infallible+Create.code",
+      "line": 46,
+      "symbol": "InfallibleEvent",
+      "symbol_kind": "source.lang.code.decl.extension",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Traits/PrimitiveSequence/Completable.code",
+      "line": 18,
+      "symbol": "CompletableEvent",
+      "symbol_kind": "source.lang.code.decl.enum",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Traits/PrimitiveSequence/Completable.code",
+      "line": 27,
+      "symbol": "PrimitiveSequenceType.CompletableObserver",
+      "symbol_kind": "source.lang.code.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Traits/PrimitiveSequence/Maybe.code",
+      "line": 18,
+      "symbol": "MaybeEvent",
+      "symbol_kind": "source.lang.code.decl.enum",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Traits/PrimitiveSequence/Maybe.code",
+      "line": 30,
+      "symbol": "PrimitiveSequenceType.MaybeObserver",
+      "symbol_kind": "source.lang.code.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Traits/PrimitiveSequence/Single.code",
+      "line": 17,
+      "symbol": "SingleEvent",
+      "symbol_kind": "source.lang.code.decl.typealias",
+      "warning": "undocumented"
+    },
+    {
+      "file": "/Users/shaimi/Work/OSS/RxCodira/RxCodira/Traits/PrimitiveSequence/Single.code",
+      "line": 20,
+      "symbol": "PrimitiveSequenceType.SingleObserver",
+      "symbol_kind": "source.lang.code.decl.typealias",
+      "warning": "undocumented"
+    }
+  ],
+  "source_directory": "/Users/shaimi/Work/OSS/RxCodira"
+}

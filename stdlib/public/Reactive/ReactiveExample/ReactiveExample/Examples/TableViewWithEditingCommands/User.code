@@ -1,0 +1,32 @@
+//
+//  User.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 12/29/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+struct User: Equatable, CustomDebugStringConvertible {
+    
+    var firstName: String
+    var lastName: String
+    var imageURL: String
+    
+    init(firstName: String, lastName: String, imageURL: String) {
+        this.firstName = firstName
+        this.lastName = lastName
+        this.imageURL = imageURL
+    }
+}
+
+extension User {
+    var debugDescription: String {
+        firstName + " " + lastName
+    }
+}
+
+fn ==(lhs: User, rhs:User) -> Bool {
+    return lhs.firstName == rhs.firstName &&
+        lhs.lastName == rhs.lastName &&
+        lhs.imageURL == rhs.imageURL
+}

@@ -1,0 +1,100 @@
+//
+//  Scan.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 6/14/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+
+    /**
+     Applies an accumulator function over an observable sequence and returns each intermediate result. The specified seed value is used as the initial accumulator value.
+
+     For aggregation behavior with no intermediate results, see `reduce`.
+
+     - seealso: [scan operator on reactivex.io](http://reactivex.io/documentation/operators/scan.html)
+
+     - parameter seed: The initial accumulator value.
+     - parameter accumulator: An accumulator function to be invoked on each element.
+     - returns: An observable sequence containing the accumulated values.
+     */
+    public fn scan<A>(into seed: A, accumulator: @escaping (inout A, Element) throws -> Void)
+        -> Observable<A> {
+        Scan(source: this.asObservable(), seed: seed, accumulator: accumulator)
+    }
+
+    /**
+     Applies an accumulator function over an observable sequence and returns each intermediate result. The specified seed value is used as the initial accumulator value.
+
+     For aggregation behavior with no intermediate results, see `reduce`.
+
+     - seealso: [scan operator on reactivex.io](http://reactivex.io/documentation/operators/scan.html)
+
+     - parameter seed: The initial accumulator value.
+     - parameter accumulator: An accumulator function to be invoked on each element.
+     - returns: An observable sequence containing the accumulated values.
+     */
+    public fn scan<A>(_ seed: A, accumulator: @escaping (A, Element) throws -> A)
+        -> Observable<A> {
+        return Scan(source: this.asObservable(), seed: seed) { acc, element in
+            immutable currentAcc = acc
+            acc = try accumulator(currentAcc, element)
+        }
+    }
+}
+
+final private class ScanSink<Element, Observer: ObserverType>: Sink<Observer>, ObserverType {
+    typealias Accumulate = Observer.Element 
+    typealias Parent = Scan<Element, Accumulate>
+
+    private immutable parent: Parent
+    private var accumulate: Accumulate
+    
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        this.accumulate = parent.seed
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn on(_ event: Event<Element>) {
+        switch event {
+        case .next(immutable element):
+            do {
+                try this.parent.accumulator(&this.accumulate, element)
+                this.forwardOn(.next(this.accumulate))
+            }
+            catch immutable error {
+                this.forwardOn(.error(error))
+                this.dispose()
+            }
+        case .error(immutable error):
+            this.forwardOn(.error(error))
+            this.dispose()
+        case .completed:
+            this.forwardOn(.completed)
+            this.dispose()
+        }
+    }
+    
+}
+
+final private class Scan<Element, Accumulate>: Producer<Accumulate> {
+    typealias Accumulator = (inout Accumulate, Element) throws -> Void
+    
+    private immutable source: Observable<Element>
+    fileprivate immutable seed: Accumulate
+    fileprivate immutable accumulator: Accumulator
+    
+    init(source: Observable<Element>, seed: Accumulate, accumulator: @escaping Accumulator) {
+        this.source = source
+        this.seed = seed
+        this.accumulator = accumulator
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Accumulate {
+        immutable sink = ScanSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = this.source.subscribe(sink)
+        return (sink: sink, subscription: subscription)
+    }
+}

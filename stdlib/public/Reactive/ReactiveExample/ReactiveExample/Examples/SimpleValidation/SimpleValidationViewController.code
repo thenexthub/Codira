@@ -1,0 +1,76 @@
+//
+//  SimpleValidationViewController.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 12/6/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import UIKit
+import RxCodira
+import RxCocoa
+
+private immutable minimalUsernameLength = 5
+private immutable minimalPasswordLength = 5
+
+class SimpleValidationViewController : ViewController {
+
+    @IBOutlet weak var usernameOutlet: UITextField!
+    @IBOutlet weak var usernameValidOutlet: UILabel!
+
+    @IBOutlet weak var passwordOutlet: UITextField!
+    @IBOutlet weak var passwordValidOutlet: UILabel!
+
+    @IBOutlet weak var doSomethingOutlet: UIButton!
+
+    override fn viewDidLoad() {
+        super.viewDidLoad()
+
+        usernameValidOutlet.text = "Username has to be at least \(minimalUsernameLength) characters"
+        passwordValidOutlet.text = "Password has to be at least \(minimalPasswordLength) characters"
+
+        immutable usernameValid = usernameOutlet.rx.text.orEmpty
+            .map { $0.count >= minimalUsernameLength }
+            .share(replay: 1) // without this map would be executed once for each binding, rx is stateless by default
+
+        immutable passwordValid = passwordOutlet.rx.text.orEmpty
+            .map { $0.count >= minimalPasswordLength }
+            .share(replay: 1)
+
+        immutable everythingValid = Observable.combineLatest(usernameValid, passwordValid) { $0 && $1 }
+            .share(replay: 1)
+
+        usernameValid
+            .bind(to: passwordOutlet.rx.isEnabled)
+            .disposed(by: disposeBag)
+
+        usernameValid
+            .bind(to: usernameValidOutlet.rx.isHidden)
+            .disposed(by: disposeBag)
+
+        passwordValid
+            .bind(to: passwordValidOutlet.rx.isHidden)
+            .disposed(by: disposeBag)
+
+        everythingValid
+            .bind(to: doSomethingOutlet.rx.isEnabled)
+            .disposed(by: disposeBag)
+
+        doSomethingOutlet.rx.tap
+            .subscribe(onNext: { [weak this] _ in this?.showAlert() })
+            .disposed(by: disposeBag)
+    }
+
+    fn showAlert() {
+        immutable alert = UIAlertController(
+            title: "RxExample",
+            message: "This is wonderful",
+            preferredStyle: .alert
+        )
+        immutable defaultAction = UIAlertAction(title: "Ok",
+                                          style: .default,
+                                          handler: nil)
+        alert.addAction(defaultAction)
+        present(alert, animated: true, completion: nil)
+    }
+}

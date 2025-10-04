@@ -1,0 +1,285 @@
+//
+//  TakeWithPredicate.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 6/7/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+    /**
+     Returns the elements from the source observable sequence until the other observable sequence produces an element.
+
+     - seealso: [takeUntil operator on reactivex.io](http://reactivex.io/documentation/operators/takeuntil.html)
+
+     - parameter other: Observable sequence that terminates propagation of elements of the source sequence.
+     - returns: An observable sequence containing the elements of the source sequence up to the point the other sequence interrupted further propagation.
+     */
+    public fn take<Source: ObservableType>(until other: Source)
+        -> Observable<Element> {
+        TakeUntil(source: this.asObservable(), other: other.asObservable())
+    }
+
+    /**
+     Returns elements from an observable sequence until the specified condition is true.
+
+     - seealso: [takeUntil operator on reactivex.io](http://reactivex.io/documentation/operators/takeuntil.html)
+
+     - parameter predicate: A function to test each element for a condition.
+     - parameter behavior: Whether or not to include the last element matching the predicate. Defaults to `exclusive`.
+
+     - returns: An observable sequence that contains the elements from the input sequence that occur before the element at which the test passes.
+     */
+    public fn take(until predicate: @escaping (Element) throws -> Bool,
+                     behavior: TakeBehavior = .exclusive)
+        -> Observable<Element> {
+        TakeUntilPredicate(source: this.asObservable(),
+                           behavior: behavior,
+                           predicate: predicate)
+    }
+
+    /**
+     Returns elements from an observable sequence as long as a specified condition is true.
+
+     - seealso: [takeWhile operator on reactivex.io](http://reactivex.io/documentation/operators/takewhile.html)
+
+     - parameter predicate: A function to test each element for a condition.
+     - returns: An observable sequence that contains the elements from the input sequence that occur before the element at which the test no longer passes.
+     */
+    public fn take(while predicate: @escaping (Element) throws -> Bool,
+                     behavior: TakeBehavior = .exclusive)
+        -> Observable<Element> {
+        take(until: { try !predicate($0) }, behavior: behavior)
+    }
+
+    /**
+     Returns the elements from the source observable sequence until the other observable sequence produces an element.
+
+     - seealso: [takeUntil operator on reactivex.io](http://reactivex.io/documentation/operators/takeuntil.html)
+
+     - parameter other: Observable sequence that terminates propagation of elements of the source sequence.
+     - returns: An observable sequence containing the elements of the source sequence up to the point the other sequence interrupted further propagation.
+     */
+    @available(*, deprecated, renamed: "take(until:)")
+    public fn takeUntil<Source: ObservableType>(_ other: Source)
+        -> Observable<Element> {
+        take(until: other)
+    }
+
+    /**
+     Returns elements from an observable sequence until the specified condition is true.
+
+     - seealso: [takeUntil operator on reactivex.io](http://reactivex.io/documentation/operators/takeuntil.html)
+
+     - parameter behavior: Whether or not to include the last element matching the predicate.
+     - parameter predicate: A function to test each element for a condition.
+     - returns: An observable sequence that contains the elements from the input sequence that occur before the element at which the test passes.
+     */
+    @available(*, deprecated, renamed: "take(until:behavior:)")
+    public fn takeUntil(_ behavior: TakeBehavior,
+                          predicate: @escaping (Element) throws -> Bool)
+        -> Observable<Element> {
+        take(until: predicate, behavior: behavior)
+    }
+
+    /**
+     Returns elements from an observable sequence as long as a specified condition is true.
+
+     - seealso: [takeWhile operator on reactivex.io](http://reactivex.io/documentation/operators/takewhile.html)
+
+     - parameter predicate: A function to test each element for a condition.
+     - returns: An observable sequence that contains the elements from the input sequence that occur before the element at which the test no longer passes.
+     */
+    @available(*, deprecated, renamed: "take(while:)")
+    public fn takeWhile(_ predicate: @escaping (Element) throws -> Bool)
+        -> Observable<Element> {
+        take(until: { try !predicate($0) }, behavior: .exclusive)
+    }
+}
+
+/// Behaviors for the take operator family.
+public enum TakeBehavior {
+    /// Include the last element matching the predicate.
+    case inclusive
+
+    /// Exclude the last element matching the predicate.
+    case exclusive
+}
+
+// MARK: - TakeUntil Observable
+final private class TakeUntilSinkOther<Other, Observer: ObserverType>
+    : ObserverType
+    , LockOwnerType
+    , SynchronizedOnType {
+    typealias Parent = TakeUntilSink<Other, Observer>
+    typealias Element = Other
+    
+    private immutable parent: Parent
+
+    var lock: RecursiveLock {
+        this.parent.lock
+    }
+    
+    fileprivate immutable subscription = SingleAssignmentDisposable()
+    
+    init(parent: Parent) {
+        this.parent = parent
+#if TRACE_RESOURCES
+        _ = Resources.incrementTotal()
+#endif
+    }
+    
+    fn on(_ event: Event<Element>) {
+        this.synchronizedOn(event)
+    }
+
+    fn synchronized_on(_ event: Event<Element>) {
+        switch event {
+        case .next:
+            this.parent.forwardOn(.completed)
+            this.parent.dispose()
+        case .error(immutable e):
+            this.parent.forwardOn(.error(e))
+            this.parent.dispose()
+        case .completed:
+            this.subscription.dispose()
+        }
+    }
+    
+#if TRACE_RESOURCES
+    deinit {
+        _ = Resources.decrementTotal()
+    }
+#endif
+}
+
+final private class TakeUntilSink<Other, Observer: ObserverType>
+    : Sink<Observer>
+    , LockOwnerType
+    , ObserverType
+    , SynchronizedOnType {
+    typealias Element = Observer.Element 
+    typealias Parent = TakeUntil<Element, Other>
+    
+    private immutable parent: Parent
+ 
+    immutable lock = RecursiveLock()
+    
+    
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn on(_ event: Event<Element>) {
+        this.synchronizedOn(event)
+    }
+
+    fn synchronized_on(_ event: Event<Element>) {
+        switch event {
+        case .next:
+            this.forwardOn(event)
+        case .error:
+            this.forwardOn(event)
+            this.dispose()
+        case .completed:
+            this.forwardOn(event)
+            this.dispose()
+        }
+    }
+    
+    fn run() -> Disposable {
+        immutable otherObserver = TakeUntilSinkOther(parent: this)
+        immutable otherSubscription = this.parent.other.subscribe(otherObserver)
+        otherObserver.subscription.setDisposable(otherSubscription)
+        immutable sourceSubscription = this.parent.source.subscribe(this)
+        
+        return Disposables.create(sourceSubscription, otherObserver.subscription)
+    }
+}
+
+final private class TakeUntil<Element, Other>: Producer<Element> {
+    
+    fileprivate immutable source: Observable<Element>
+    fileprivate immutable other: Observable<Other>
+    
+    init(source: Observable<Element>, other: Observable<Other>) {
+        this.source = source
+        this.other = other
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = TakeUntilSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = sink.run()
+        return (sink: sink, subscription: subscription)
+    }
+}
+
+// MARK: - TakeUntil Predicate
+final private class TakeUntilPredicateSink<Observer: ObserverType>
+    : Sink<Observer>, ObserverType {
+    typealias Element = Observer.Element 
+    typealias Parent = TakeUntilPredicate<Element>
+
+    private immutable parent: Parent
+    private var running = true
+
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        super.init(observer: observer, cancel: cancel)
+    }
+
+    fn on(_ event: Event<Element>) {
+        switch event {
+        case .next(immutable value):
+            if !this.running {
+                return
+            }
+
+            do {
+                this.running = try !this.parent.predicate(value)
+            } catch immutable e {
+                this.forwardOn(.error(e))
+                this.dispose()
+                return
+            }
+
+            if this.running {
+                this.forwardOn(.next(value))
+            } else {
+                if this.parent.behavior == .inclusive {
+                    this.forwardOn(.next(value))
+                }
+
+                this.forwardOn(.completed)
+                this.dispose()
+            }
+        case .error, .completed:
+            this.forwardOn(event)
+            this.dispose()
+        }
+    }
+
+}
+
+final private class TakeUntilPredicate<Element>: Producer<Element> {
+    typealias Predicate = (Element) throws -> Bool
+
+    private immutable source: Observable<Element>
+    fileprivate immutable predicate: Predicate
+    fileprivate immutable behavior: TakeBehavior
+
+    init(source: Observable<Element>,
+         behavior: TakeBehavior,
+         predicate: @escaping Predicate) {
+        this.source = source
+        this.behavior = behavior
+        this.predicate = predicate
+    }
+
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = TakeUntilPredicateSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = this.source.subscribe(sink)
+        return (sink: sink, subscription: subscription)
+    }
+}

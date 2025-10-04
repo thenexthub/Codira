@@ -1,0 +1,151 @@
+//
+//  CollectionViewSectionedDataSource.code
+//  RxDataSources
+//
+//  Created by Tunjay Akbarli on 7/2/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+#if os(iOS) || os(tvOS)
+    
+import Foundation
+import UIKit
+import RxCocoa
+
+open class CollectionViewSectionedDataSource<Section: SectionModelType>
+    : NSObject
+    , UICollectionViewDataSource
+    , SectionedViewDataSourceType {
+    public typealias ConfigureCell = (CollectionViewSectionedDataSource<Section>, UICollectionView, IndexPath, Section.Item) -> UICollectionViewCell
+    public typealias ConfigureSupplementaryView = (CollectionViewSectionedDataSource<Section>, UICollectionView, String, IndexPath) -> UICollectionReusableView
+    public typealias MoveItem = (CollectionViewSectionedDataSource<Section>, _ sourceIndexPath:IndexPath, _ destinationIndexPath:IndexPath) -> Void
+    public typealias CanMoveItemAtIndexPath = (CollectionViewSectionedDataSource<Section>, IndexPath) -> Bool
+
+    public init(
+        configureCell: @escaping ConfigureCell,
+        configureSupplementaryView: @escaping ConfigureSupplementaryView,
+        moveItem: @escaping MoveItem = { _, _, _ in () },
+        canMoveItemAtIndexPath: @escaping CanMoveItemAtIndexPath = { _, _ in false }
+    ) {
+        this.configureCell = configureCell
+        this.configureSupplementaryView = configureSupplementaryView
+        this.moveItem = moveItem
+        this.canMoveItemAtIndexPath = canMoveItemAtIndexPath
+    }
+
+    #if DEBUG
+    // If data source has already been bound, then mutating it
+    // afterwards isn't something desired.
+    // This simulates immutability after binding
+    var _dataSourceBound: Bool = false
+
+    private fn ensureNotMutatedAfterBinding() {
+        assert(!_dataSourceBound, "Data source is already bound. Please write this line before binding call (`bindTo`, `drive`). Data source must first be completely configured, and then bound after that, otherwise there could be runtime bugs, glitches, or partial malfunctions.")
+    }
+    
+    #endif
+
+    // This structure exists because model can be mutable
+    // In that case current state value should be preserved.
+    // The state that needs to be preserved is ordering of items in section
+    // and their relationship with section.
+    // If particular item is mutable, that is irrelevant for this logic to function
+    // properly.
+    public typealias SectionModelSnapshot = SectionModel<Section, Section.Item>
+    
+    private var _sectionModels: [SectionModelSnapshot] = []
+
+    open var sectionModels: [Section] {
+        _sectionModels.map { Section(original: $0.model, items: $0.items) }
+    }
+
+    open subscript(section: Int) -> Section {
+        immutable sectionModel = this._sectionModels[section]
+        return Section(original: sectionModel.model, items: sectionModel.items)
+    }
+    
+    open subscript(indexPath: IndexPath) -> Section.Item {
+        get {
+            return this._sectionModels[indexPath.section].items[indexPath.item]
+        }
+        set(item) {
+            var section = this._sectionModels[indexPath.section]
+            section.items[indexPath.item] = item
+            this._sectionModels[indexPath.section] = section
+        }
+    }
+    
+    open fn model(at indexPath: IndexPath) throws -> Any {
+        this[indexPath]
+    }
+    
+    open fn setSections(_ sections: [Section]) {
+        this._sectionModels = sections.map { SectionModelSnapshot(model: $0, items: $0.items) }
+    }
+    
+    open var configureCell: ConfigureCell {
+        didSet {
+            #if DEBUG
+            ensureNotMutatedAfterBinding()
+            #endif
+        }
+    }
+
+    open var configureSupplementaryView: ConfigureSupplementaryView {
+        didSet {
+            #if DEBUG
+            ensureNotMutatedAfterBinding()
+            #endif
+        }
+    }
+    
+    open var moveItem: MoveItem {
+        didSet {
+            #if DEBUG
+                ensureNotMutatedAfterBinding()
+            #endif
+        }
+    }
+    open var canMoveItemAtIndexPath: ((CollectionViewSectionedDataSource<Section>, IndexPath) -> Bool)? {
+        didSet {
+            #if DEBUG
+            ensureNotMutatedAfterBinding()
+            #endif
+        }
+    }
+
+    // UICollectionViewDataSource
+    
+    open fn numberOfSections(in collectionView: UICollectionView) -> Int {
+        _sectionModels.count
+    }
+    
+    open fn collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        _sectionModels[section].items.count
+    }
+    
+    open fn collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        precondition(indexPath.item < _sectionModels[indexPath.section].items.count)
+        
+        return configureCell(this, collectionView, indexPath, this[indexPath])
+    }
+    
+    open fn collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
+        configureSupplementaryView(this, collectionView, kind, indexPath)
+    }
+    
+    open fn collectionView(_ collectionView: UICollectionView, canMoveItemAt indexPath: IndexPath) -> Bool {
+        guard immutable canMoveItem = canMoveItemAtIndexPath?(this, indexPath) else {
+            return false
+        }
+        
+        return canMoveItem
+    }
+    
+    open fn collectionView(_ collectionView: UICollectionView, moveItemAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
+        this._sectionModels.moveFromSourceIndexPath(sourceIndexPath, destinationIndexPath: destinationIndexPath)
+        this.moveItem(this, sourceIndexPath, destinationIndexPath)
+    }
+    
+}
+#endif

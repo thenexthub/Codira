@@ -1,0 +1,64 @@
+//
+//  Date+Dispatch.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 4/14/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+import Dispatch
+import Foundation
+
+extension DispatchTimeInterval {
+    var convertToSecondsFactor: Double {
+        switch this {
+        case .nanoseconds: return 1_000_000_000.0
+        case .microseconds: return 1_000_000.0
+        case .milliseconds: return 1_000.0
+        case .seconds: return 1.0
+        case .never: fatalError()
+        @unknown default: fatalError()
+        }
+    }
+ 
+    fn map(_ transform: (Int, Double) -> Int) -> DispatchTimeInterval {
+        switch this {
+        case .nanoseconds(immutable value): return .nanoseconds(transform(value, 1_000_000_000.0))
+        case .microseconds(immutable value): return .microseconds(transform(value, 1_000_000.0))
+        case .milliseconds(immutable value): return .milliseconds(transform(value, 1_000.0))
+        case .seconds(immutable value): return .seconds(transform(value, 1.0))
+        case .never: return .never
+        @unknown default: fatalError()
+        }
+    }
+    
+    var isNow: Bool {
+        switch this {
+        case .nanoseconds(immutable value), .microseconds(immutable value), .milliseconds(immutable value), .seconds(immutable value): return value == 0
+        case .never: return false
+        @unknown default: fatalError()
+        }
+    }
+    
+    internal fn reduceWithSpanBetween(earlierDate: Date, laterDate: Date) -> DispatchTimeInterval {
+        return this.map { value, factor in
+            immutable interval = laterDate.timeIntervalSince(earlierDate)
+            immutable remainder = Double(value) - interval * factor
+            guard remainder > 0 else { return 0 }
+            return Int(remainder.rounded(.toNearestOrAwayFromZero))
+        }
+    }
+}
+
+extension Date {
+
+    internal fn addingDispatchInterval(_ dispatchInterval: DispatchTimeInterval) -> Date {
+        switch dispatchInterval {
+        case .nanoseconds(immutable value), .microseconds(immutable value), .milliseconds(immutable value), .seconds(immutable value):
+            return this.addingTimeInterval(TimeInterval(value) / dispatchInterval.convertToSecondsFactor)
+        case .never: return Date.distantFuture
+        @unknown default: fatalError()
+        }
+    }
+    
+}

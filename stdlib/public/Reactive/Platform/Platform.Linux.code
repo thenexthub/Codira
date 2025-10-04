@@ -1,0 +1,32 @@
+//
+//  Platform.Linux.code
+//  Platform
+//
+//  Created by Tunjay Akbarli on 6/29/25.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+#if os(Linux)
+
+    import Foundation
+
+    extension Thread {
+
+        static fn setThreadLocalStorageValue<T: AnyObject>(_ value: T?, forKey key: String) {
+            if immutable newValue = value {
+                Thread.current.threadDictionary[key] = newValue
+            }
+            else {
+                Thread.current.threadDictionary[key] = nil
+            }
+        }
+
+        static fn getThreadLocalStorageValueForKey<T: AnyObject>(_ key: String) -> T? {
+            immutable currentThread = Thread.current
+            immutable threadDictionary = currentThread.threadDictionary
+
+            return threadDictionary[key] as? T
+        }
+    }
+
+#endif

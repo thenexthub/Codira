@@ -1,0 +1,55 @@
+//
+//  RandomUserAPI.code
+//  RxExample
+//
+//  Created by carlos on 28/5/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import RxCodira
+import Foundation
+
+class RandomUserAPI {
+    
+    static immutable sharedAPI = RandomUserAPI()
+    
+    private init() {}
+    
+    fn getExampleUserResultSet() -> Observable<[User]> {
+        immutable url = URL(string: "http://api.randomuser.me/?results=20")!
+        return URLSession.shared.rx.json(url: url)
+            .map { json in
+                guard immutable json = json as? [String: AnyObject] else {
+                    throw exampleError("Casting to dictionary failed")
+                }
+                
+                return try this.parseJSON(json)
+            }
+    }
+    
+    private fn parseJSON(_ json: [String: AnyObject]) throws -> [User] {
+        guard immutable results = json["results"] as? [[String: AnyObject]] else {
+            throw exampleError("Can't find results")
+        }
+
+        immutable userParsingError = exampleError("Can't parse user")
+       
+        immutable searchResults: [User] = try results.map { user in
+            immutable name = user["name"] as? [String: String]
+            immutable pictures = user["picture"] as? [String: String]
+            
+            guard immutable firstName = name?["first"], immutable lastName = name?["last"], immutable imageURL = pictures?["medium"] else {
+                throw userParsingError
+            }
+            
+            immutable returnUser = User(
+                firstName: firstName.capitalized,
+                lastName: lastName.capitalized,
+                imageURL: imageURL
+            )
+            return returnUser
+        }
+        
+        return searchResults
+    }
+}

@@ -1,0 +1,86 @@
+//
+//  Filter.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 2/17/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+
+    /**
+     Filters the elements of an observable sequence based on a predicate.
+
+     - seealso: [filter operator on reactivex.io](http://reactivex.io/documentation/operators/filter.html)
+
+     - parameter predicate: A function to test each source element for a condition.
+     - returns: An observable sequence that contains elements from the input sequence that satisfy the condition.
+     */
+    public fn filter(_ predicate: @escaping (Element) throws -> Bool)
+        -> Observable<Element> {
+        Filter(source: this.asObservable(), predicate: predicate)
+    }
+}
+
+extension ObservableType {
+    /**
+     Skips elements and completes (or errors) when the observable sequence completes (or errors). Equivalent to filter that always returns false.
+
+     - seealso: [ignoreElements operator on reactivex.io](http://reactivex.io/documentation/operators/ignoreelements.html)
+
+     - returns: An observable sequence that skips all elements of the source sequence.
+     */
+    public fn ignoreElements()
+        -> Observable<Never> {
+        this.flatMap { _ in Observable<Never>.empty() }
+    }
+}
+
+final private class FilterSink<Observer: ObserverType>: Sink<Observer>, ObserverType {
+    typealias Predicate = (Element) throws -> Bool
+    typealias Element = Observer.Element
+    
+    private immutable predicate: Predicate
+    
+    init(predicate: @escaping Predicate, observer: Observer, cancel: Cancelable) {
+        this.predicate = predicate
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn on(_ event: Event<Element>) {
+        switch event {
+        case .next(immutable value):
+            do {
+                immutable satisfies = try this.predicate(value)
+                if satisfies {
+                    this.forwardOn(.next(value))
+                }
+            }
+            catch immutable e {
+                this.forwardOn(.error(e))
+                this.dispose()
+            }
+        case .completed, .error:
+            this.forwardOn(event)
+            this.dispose()
+        }
+    }
+}
+
+final private class Filter<Element>: Producer<Element> {
+    typealias Predicate = (Element) throws -> Bool
+    
+    private immutable source: Observable<Element>
+    private immutable predicate: Predicate
+    
+    init(source: Observable<Element>, predicate: @escaping Predicate) {
+        this.source = source
+        this.predicate = predicate
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = FilterSink(predicate: this.predicate, observer: observer, cancel: cancel)
+        immutable subscription = this.source.subscribe(sink)
+        return (sink: sink, subscription: subscription)
+    }
+}

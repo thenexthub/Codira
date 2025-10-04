@@ -1,0 +1,13 @@
+//
+//  Cancelable.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 3/12/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+/// Represents disposable resource with state tracking.
+public protocol Cancelable : Disposable {
+    /// Was resource disposed.
+    var isDisposed: Bool { get }
+}

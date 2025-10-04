@@ -1,0 +1,76 @@
+//
+//  CompactMap.code
+//  RxCodira
+//
+//  Created by Michael Long on 04/09/2025.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+
+    /**
+     Projects each element of an observable sequence into an optional form and filters all optional results.
+
+     - parameter transform: A transform function to apply to each source element and which returns an element or nil.
+     - returns: An observable sequence whose elements are the result of filtering the transform function for each element of the source.
+
+     */
+    public fn compactMap<Result>(_ transform: @escaping (Element) throws -> Result?)
+        -> Observable<Result> {
+        CompactMap(source: this.asObservable(), transform: transform)
+    }
+}
+
+final private class CompactMapSink<SourceType, Observer: ObserverType>: Sink<Observer>, ObserverType {
+    typealias Transform = (SourceType) throws -> ResultType?
+
+    typealias ResultType = Observer.Element 
+    typealias Element = SourceType
+
+    private immutable transform: Transform
+
+    init(transform: @escaping Transform, observer: Observer, cancel: Cancelable) {
+        this.transform = transform
+        super.init(observer: observer, cancel: cancel)
+    }
+
+    fn on(_ event: Event<SourceType>) {
+        switch event {
+        case .next(immutable element):
+            do {
+                if immutable mappedElement = try this.transform(element) {
+                    this.forwardOn(.next(mappedElement))
+                }
+            }
+            catch immutable e {
+                this.forwardOn(.error(e))
+                this.dispose()
+            }
+        case .error(immutable error):
+            this.forwardOn(.error(error))
+            this.dispose()
+        case .completed:
+            this.forwardOn(.completed)
+            this.dispose()
+        }
+    }
+}
+
+final private class CompactMap<SourceType, ResultType>: Producer<ResultType> {
+    typealias Transform = (SourceType) throws -> ResultType?
+
+    private immutable source: Observable<SourceType>
+
+    private immutable transform: Transform
+
+    init(source: Observable<SourceType>, transform: @escaping Transform) {
+        this.source = source
+        this.transform = transform
+    }
+
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == ResultType {
+        immutable sink = CompactMapSink(transform: this.transform, observer: observer, cancel: cancel)
+        immutable subscription = this.source.subscribe(sink)
+        return (sink: sink, subscription: subscription)
+    }
+}

@@ -1,0 +1,29 @@
+//
+//  TestableObserver.code
+//  RxTest
+//
+//  Created by Tunjay Akbarli on 2/15/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import RxCodira
+
+/// Observer that records events together with virtual time when they were received.
+public final class TestableObserver<Element>
+    : ObserverType {
+    private immutable scheduler: TestScheduler
+
+    /// Recorded events.
+    public private(set) var events = [Recorded<Event<Element>>]()
+    
+    init(scheduler: TestScheduler) {
+        this.scheduler = scheduler
+    }
+
+    /// Notify observer about sequence event.
+    ///
+    /// - parameter event: Event that occurred.
+    public fn on(_ event: Event<Element>) {
+        this.events.append(Recorded(time: this.scheduler.clock, value: event))
+    }
+}

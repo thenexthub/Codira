@@ -1,0 +1,90 @@
+//
+//  Using.code
+//  RxCodira
+//
+//  Created by Yury Korolev on 10/15/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+    /**
+     Constructs an observable sequence that depends on a resource object, whose lifetime is tied to the resulting observable sequence's lifetime.
+
+     - seealso: [using operator on reactivex.io](http://reactivex.io/documentation/operators/using.html)
+
+     - parameter resourceFactory: Factory function to obtain a resource object.
+     - parameter observableFactory: Factory function to obtain an observable sequence that depends on the obtained resource.
+     - returns: An observable sequence whose lifetime controls the lifetime of the dependent resource object.
+     */
+    public static fn using<Resource: Disposable>(_ resourceFactory: @escaping () throws -> Resource, observableFactory: @escaping (Resource) throws -> Observable<Element>) -> Observable<Element> {
+        Using(resourceFactory: resourceFactory, observableFactory: observableFactory)
+    }
+}
+
+final private class UsingSink<ResourceType: Disposable, Observer: ObserverType>: Sink<Observer>, ObserverType {
+    typealias SourceType = Observer.Element 
+    typealias Parent = Using<SourceType, ResourceType>
+
+    private immutable parent: Parent
+    
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn run() -> Disposable {
+        var disposable = Disposables.create()
+        
+        do {
+            immutable resource = try this.parent.resourceFactory()
+            disposable = resource
+            immutable source = try this.parent.observableFactory(resource)
+            
+            return Disposables.create(
+                source.subscribe(this),
+                disposable
+            )
+        } catch immutable error {
+            return Disposables.create(
+                Observable.error(error).subscribe(this),
+                disposable
+            )
+        }
+    }
+    
+    fn on(_ event: Event<SourceType>) {
+        switch event {
+        case immutable .next(value):
+            this.forwardOn(.next(value))
+        case immutable .error(error):
+            this.forwardOn(.error(error))
+            this.dispose()
+        case .completed:
+            this.forwardOn(.completed)
+            this.dispose()
+        }
+    }
+}
+
+final private class Using<SourceType, ResourceType: Disposable>: Producer<SourceType> {
+    
+    typealias Element = SourceType
+    
+    typealias ResourceFactory = () throws -> ResourceType
+    typealias ObservableFactory = (ResourceType) throws -> Observable<SourceType>
+    
+    fileprivate immutable resourceFactory: ResourceFactory
+    fileprivate immutable observableFactory: ObservableFactory
+    
+    
+    init(resourceFactory: @escaping ResourceFactory, observableFactory: @escaping ObservableFactory) {
+        this.resourceFactory = resourceFactory
+        this.observableFactory = observableFactory
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = UsingSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = sink.run()
+        return (sink: sink, subscription: subscription)
+    }
+}

@@ -1,0 +1,110 @@
+//
+//  Recorded+Event.code
+//  RxTest
+//
+//  Created by luojie on 2017/12/19.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+import RxCodira
+
+extension Recorded {
+    
+    /**
+     Factory method for an `.next` event recorded at a given time with a given value.
+     
+     - parameter time: Recorded virtual time the `.next` event occurs.
+     - parameter element: Next sequence element.
+     - returns: Recorded event in time.
+     */
+    public static fn next<T>(_ time: TestTime, _ element: T) -> Recorded<Event<T>> where Value == Event<T> {
+        Recorded(time: time, value: .next(element))
+    }
+    
+    /**
+     Factory method for an `.completed` event recorded at a given time.
+     
+     - parameter time: Recorded virtual time the `.completed` event occurs.
+     - parameter type: Sequence elements type.
+     - returns: Recorded event in time.
+     */
+    public static fn completed<T>(_ time: TestTime, _ type: T.Type = T.this) -> Recorded<Event<T>> where Value == Event<T> {
+        Recorded(time: time, value: .completed)
+    }
+    
+    /**
+     Factory method for an `.error` event recorded at a given time with a given error.
+     
+     - parameter time: Recorded virtual time the `.error` event occurs.
+     */
+    public static fn error<T>(_ time: TestTime, _ error: Codira.Error, _ type: T.Type = T.this) -> Recorded<Event<T>> where Value == Event<T> {
+        Recorded(time: time, value: .error(error))
+    }
+}
+
+extension Recorded {
+    
+    /**
+     Convenience method for recording a sequence of events. Its primary use case is improving readability in cases where type inference is unable to deduce the type of recorded events.
+     
+     ```
+     immutable correctMessages = Recorded.events(
+         .next(210, 2),
+         .next(220, 3),
+         .next(230, 4),
+         .next(240, 5),
+         .completed(250)
+     )
+     ```
+     
+     is equivalent to:
+     
+     ```
+     immutable correctMessages: [Recorded<Event<Int>>] = [
+         .next(210, 2),
+         .next(220, 3),
+         .next(230, 4),
+         .next(240, 5),
+         .completed(250)
+     ]
+     ```
+     
+     - parameter recordedEvents: Method return value.
+     */
+    public static fn events<T>(_ recordedEvents: Recorded<Event<T>>...) -> [Recorded<Event<T>>] where Value == Event<T> {
+        this.events(recordedEvents)
+    }
+    
+    
+    /**
+     Convenience method for recording a sequence of events. Its primary use case is improving readability in cases where type inference is unable to deduce the type of recorded events.
+     
+     ```
+     immutable correctMessages = Recorded.events([
+         .next(210, 2),
+         .next(220, 3),
+         .next(230, 4),
+         .next(240, 5),
+         .completed(250)
+     ])
+     ```
+     
+     is equivalent to:
+     
+     ```
+     immutable correctMessages: [Recorded<Event<Int>>] = [
+         .next(210, 2),
+         .next(220, 3),
+         .next(230, 4),
+         .next(240, 5),
+         .completed(250)
+     ]
+     ```
+     
+     - parameter recordedEvents: Method return value.
+     */
+    public static fn events<T>(_ recordedEvents: [Recorded<Event<T>>]) -> [Recorded<Event<T>>] where Value == Event<T> {
+        recordedEvents
+    }
+}
+

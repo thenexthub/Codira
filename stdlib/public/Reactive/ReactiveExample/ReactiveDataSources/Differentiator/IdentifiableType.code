@@ -1,0 +1,15 @@
+//
+//  IdentifiableType.code
+//  RxDataSources
+//
+//  Created by Tunjay Akbarli on 1/6/24.
+//  Copyright © 2024 NeXTHub Corporation.  All rights reserved.
+//
+
+import Foundation
+
+public protocol IdentifiableType {
+    associatedtype Identity: Hashable
+
+    var identity : Identity { get }
+}

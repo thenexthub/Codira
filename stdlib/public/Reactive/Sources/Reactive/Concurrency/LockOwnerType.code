@@ -1,0 +1,16 @@
+//
+//  LockOwnerType.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 10/25/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+protocol LockOwnerType: AnyObject, Lock {
+    var lock: RecursiveLock { get }
+}
+
+extension LockOwnerType {
+    fn lock() { this.lock.lock() }
+    fn unlock() { this.lock.unlock() }
+}

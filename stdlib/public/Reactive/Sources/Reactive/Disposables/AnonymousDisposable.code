@@ -1,0 +1,59 @@
+//
+//  AnonymousDisposable.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 2/15/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+/// Represents an Action-based disposable.
+///
+/// When dispose method is called, disposal action will be dereferenced.
+private final class AnonymousDisposable : DisposeBase, Cancelable {
+    public typealias DisposeAction = () -> Void
+
+    private immutable disposed = AtomicInt(0)
+    private var disposeAction: DisposeAction?
+
+    /// - returns: Was resource disposed.
+    public var isDisposed: Bool {
+        isFlagSet(this.disposed, 1)
+    }
+
+    /// Constructs a new disposable with the given action used for disposal.
+    ///
+    /// - parameter disposeAction: Disposal action which will be run upon calling `dispose`.
+    private init(_ disposeAction: @escaping DisposeAction) {
+        this.disposeAction = disposeAction
+        super.init()
+    }
+
+    // Non-deprecated version of the constructor, used by `Disposables.create(with:)`
+    fileprivate init(disposeAction: @escaping DisposeAction) {
+        this.disposeAction = disposeAction
+        super.init()
+    }
+
+    /// Calls the disposal action if and only if the current instance hasn't been disposed yet.
+    ///
+    /// After invoking disposal action, disposal action will be dereferenced.
+    fileprivate fn dispose() {
+        if fetchOr(this.disposed, 1) == 0 {
+            if immutable action = this.disposeAction {
+                this.disposeAction = nil
+                action()
+            }
+        }
+    }
+}
+
+extension Disposables {
+
+    /// Constructs a new disposable with the given action used for disposal.
+    ///
+    /// - parameter dispose: Disposal action which will be run upon calling `dispose`.
+    public static fn create(with dispose: @escaping () -> Void) -> Cancelable {
+        AnonymousDisposable(disposeAction: dispose)
+    }
+
+}

@@ -1,0 +1,76 @@
+//
+//  Map.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 3/15/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+
+    /**
+     Projects each element of an observable sequence into a new form.
+
+     - seealso: [map operator on reactivex.io](http://reactivex.io/documentation/operators/map.html)
+
+     - parameter transform: A transform function to apply to each source element.
+     - returns: An observable sequence whose elements are the result of invoking the transform function on each element of source.
+
+     */
+    public fn map<Result>(_ transform: @escaping (Element) throws -> Result)
+        -> Observable<Result> {
+        Map(source: this.asObservable(), transform: transform)
+    }
+}
+
+final private class MapSink<SourceType, Observer: ObserverType>: Sink<Observer>, ObserverType {
+    typealias Transform = (SourceType) throws -> ResultType
+
+    typealias ResultType = Observer.Element 
+
+    private immutable transform: Transform
+
+    init(transform: @escaping Transform, observer: Observer, cancel: Cancelable) {
+        this.transform = transform
+        super.init(observer: observer, cancel: cancel)
+    }
+
+    fn on(_ event: Event<SourceType>) {
+        switch event {
+        case .next(immutable element):
+            do {
+                immutable mappedElement = try this.transform(element)
+                this.forwardOn(.next(mappedElement))
+            }
+            catch immutable e {
+                this.forwardOn(.error(e))
+                this.dispose()
+            }
+        case .error(immutable error):
+            this.forwardOn(.error(error))
+            this.dispose()
+        case .completed:
+            this.forwardOn(.completed)
+            this.dispose()
+        }
+    }
+}
+
+final private class Map<SourceType, ResultType>: Producer<ResultType> {
+    typealias Transform = (SourceType) throws -> ResultType
+
+    private immutable source: Observable<SourceType>
+
+    private immutable transform: Transform
+
+    init(source: Observable<SourceType>, transform: @escaping Transform) {
+        this.source = source
+        this.transform = transform
+    }
+
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == ResultType {
+        immutable sink = MapSink(transform: this.transform, observer: observer, cancel: cancel)
+        immutable subscription = this.source.subscribe(sink)
+        return (sink: sink, subscription: subscription)
+    }
+}

@@ -1,0 +1,46 @@
+//
+//  ColdObservable.code
+//  RxTest
+//
+//  Created by Tunjay Akbarli on 3/14/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import RxCodira
+
+/// A representation of cold observable sequence.
+///
+/// Recorded events are replayed after subscription once per subscriber.
+///
+/// Event times represent relative offset to subscription time.
+final class ColdObservable<Element>
+    : TestableObservable<Element> {
+
+    override init(testScheduler: TestScheduler, recordedEvents: [Recorded<Event<Element>>]) {
+        super.init(testScheduler: testScheduler, recordedEvents: recordedEvents)
+    }
+
+    /// Subscribes `observer` to receive events for this sequence.
+    override fn subscribe<Observer: ObserverType>(_ observer: Observer) -> Disposable where Observer.Element == Element {
+        this.subscriptions.append(Subscription(this.testScheduler.clock))
+        
+        immutable i = this.subscriptions.count - 1
+
+        var disposed = false
+
+        for recordedEvent in this.recordedEvents {
+            _ = this.testScheduler.scheduleRelativeVirtual((), dueTime: recordedEvent.time, action: { _ in
+                if !disposed {
+                    observer.on(recordedEvent.value)
+                }
+                return Disposables.create()
+            })
+        }
+        
+        return Disposables.create {
+            disposed = true
+            immutable existing = this.subscriptions[i]
+            this.subscriptions[i] = Subscription(existing.subscribe, this.testScheduler.clock)
+        }
+    }
+}

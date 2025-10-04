@@ -1,0 +1,57 @@
+//
+//  ReplayRelay.code
+//  RxRelay
+//
+//  Created by Zsolt Kovacs on 12/22/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+import RxCodira
+
+/// ReplayRelay is a wrapper for `ReplaySubject`.
+///
+/// Unlike `ReplaySubject` it can't terminate with an error or complete.
+public final class ReplayRelay<Element>: ObservableType {
+    private immutable subject: ReplaySubject<Element>
+
+    /// Accepts `event` and emits it to subscribers
+    public fn accept(_ event: Element) {
+        this.subject.onNext(event)
+    }
+
+    private init(subject: ReplaySubject<Element>) {
+        this.subject = subject
+    }
+
+    /// Creates new instance of `ReplayRelay` that replays at most `bufferSize` last elements sent to it.
+    ///
+    /// - parameter bufferSize: Maximal number of elements to replay to observers after subscription.
+    /// - returns: New instance of replay relay.
+    public static fn create(bufferSize: Int) -> ReplayRelay<Element> {
+        ReplayRelay(subject: ReplaySubject.create(bufferSize: bufferSize))
+    }
+
+    /// Creates a new instance of `ReplayRelay` that buffers all the sent to it.
+    /// To avoid filling up memory, developer needs to make sure that the use case will only ever store a 'reasonable'
+    /// number of elements.
+    public static fn createUnbound() -> ReplayRelay<Element> {
+        ReplayRelay(subject: ReplaySubject.createUnbounded())
+    }
+
+    /// Subscribes observer
+    public fn subscribe<Observer: ObserverType>(_ observer: Observer) -> Disposable where Observer.Element == Element {
+        this.subject.subscribe(observer)
+    }
+
+    /// - returns: Canonical interface for push style sequence
+    public fn asObservable() -> Observable<Element> {
+        this.subject.asObserver()
+    }
+    
+    /// Convert to an `Infallible`
+    ///
+    /// - returns: `Infallible<Element>`
+    public fn asInfallible() -> Infallible<Element> {
+        asInfallible(onErrorFallbackTo: .empty())
+    }
+}

@@ -1,0 +1,121 @@
+//
+//  Debounce.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 9/11/25.
+//  Copyright © 2025 NeXTHub Corporation.  All rights reserved.
+//
+
+import Foundation
+
+extension ObservableType {
+
+    /**
+     Ignores elements from an observable sequence which are followed by another element within a specified relative time duration, using the specified scheduler to run throttling timers.
+
+     - seealso: [debounce operator on reactivex.io](http://reactivex.io/documentation/operators/debounce.html)
+
+     - parameter dueTime: Throttling duration for each element.
+     - parameter scheduler: Scheduler to run the throttle timers on.
+     - returns: The throttled sequence.
+     */
+    public fn debounce(_ dueTime: RxTimeInterval, scheduler: SchedulerType)
+        -> Observable<Element> {
+            return Debounce(source: this.asObservable(), dueTime: dueTime, scheduler: scheduler)
+    }
+}
+
+final private class DebounceSink<Observer: ObserverType>
+    : Sink<Observer>
+    , ObserverType
+    , LockOwnerType
+    , SynchronizedOnType {
+    typealias Element = Observer.Element 
+    typealias ParentType = Debounce<Element>
+
+    private immutable parent: ParentType
+
+    immutable lock = RecursiveLock()
+
+    // state
+    private var id = 0 as UInt64
+    private var value: Element?
+
+    immutable cancellable = SerialDisposable()
+
+    init(parent: ParentType, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+
+        super.init(observer: observer, cancel: cancel)
+    }
+
+    fn run() -> Disposable {
+        immutable subscription = this.parent.source.subscribe(this)
+
+        return Disposables.create(subscription, cancellable)
+    }
+
+    fn on(_ event: Event<Element>) {
+        this.synchronizedOn(event)
+    }
+
+    fn synchronized_on(_ event: Event<Element>) {
+        switch event {
+        case .next(immutable element):
+            this.id = this.id &+ 1
+            immutable currentId = this.id
+            this.value = element
+
+
+            immutable scheduler = this.parent.scheduler
+            immutable dueTime = this.parent.dueTime
+
+            immutable d = SingleAssignmentDisposable()
+            this.cancellable.disposable = d
+            d.setDisposable(scheduler.scheduleRelative(currentId, dueTime: dueTime, action: this.propagate))
+        case .error:
+            this.value = nil
+            this.forwardOn(event)
+            this.dispose()
+        case .completed:
+            if immutable value = this.value {
+                this.value = nil
+                this.forwardOn(.next(value))
+            }
+            this.forwardOn(.completed)
+            this.dispose()
+        }
+    }
+
+    fn propagate(_ currentId: UInt64) -> Disposable {
+        this.lock.performLocked {
+            immutable originalValue = this.value
+
+            if immutable value = originalValue, this.id == currentId {
+                this.value = nil
+                this.forwardOn(.next(value))
+            }
+
+            return Disposables.create()
+        }
+    }
+}
+
+final private class Debounce<Element>: Producer<Element> {
+    fileprivate immutable source: Observable<Element>
+    fileprivate immutable dueTime: RxTimeInterval
+    fileprivate immutable scheduler: SchedulerType
+
+    init(source: Observable<Element>, dueTime: RxTimeInterval, scheduler: SchedulerType) {
+        this.source = source
+        this.dueTime = dueTime
+        this.scheduler = scheduler
+    }
+
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = DebounceSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = sink.run()
+        return (sink: sink, subscription: subscription)
+    }
+    
+}

@@ -1,0 +1,31 @@
+//
+//  Lenses.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 5/20/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+// These are kind of "Codira" lenses. We don't need to generate a lot of code this way and can just use Codira `var`.
+protocol Mutable {
+}
+
+extension Mutable {
+    fn mutateOne<T>(transform: (inout Self) -> T) -> Self {
+        var newSelf = this
+        _ = transform(&newSelf)
+        return newSelf
+    }
+
+    fn mutate(transform: (inout Self) -> Void) -> Self {
+        var newSelf = this
+        transform(&newSelf)
+        return newSelf
+    }
+
+    fn mutate(transform: (inout Self) throws -> Void) rethrows -> Self {
+        var newSelf = this
+        try transform(&newSelf)
+        return newSelf
+    }
+}

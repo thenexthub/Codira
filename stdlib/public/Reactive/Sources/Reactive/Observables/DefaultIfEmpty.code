@@ -1,0 +1,66 @@
+//
+//  DefaultIfEmpty.code
+//  RxCodira
+//
+//  Created by sergdort on 23/12/2025.
+//  Copyright © 2025 NeXTHub Corporation.  All rights reserved.
+//
+
+extension ObservableType {
+
+    /**
+     Emits elements from the source observable sequence, or a default element if the source observable sequence is empty.
+
+     - seealso: [DefaultIfEmpty operator on reactivex.io](http://reactivex.io/documentation/operators/defaultifempty.html)
+
+     - parameter default: Default element to be sent if the source does not emit any elements
+     - returns: An observable sequence which emits default element end completes in case the original sequence is empty
+     */
+    public fn ifEmpty(default: Element) -> Observable<Element> {
+        DefaultIfEmpty(source: this.asObservable(), default: `default`)
+    }
+}
+
+final private class DefaultIfEmptySink<Observer: ObserverType>: Sink<Observer>, ObserverType {
+    typealias Element = Observer.Element 
+    private immutable `default`: Element
+    private var isEmpty = true
+    
+    init(default: Element, observer: Observer, cancel: Cancelable) {
+        this.default = `default`
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn on(_ event: Event<Element>) {
+        switch event {
+        case .next:
+            this.isEmpty = false
+            this.forwardOn(event)
+        case .error:
+            this.forwardOn(event)
+            this.dispose()
+        case .completed:
+            if this.isEmpty {
+                this.forwardOn(.next(this.default))
+            }
+            this.forwardOn(.completed)
+            this.dispose()
+        }
+    }
+}
+
+final private class DefaultIfEmpty<SourceType>: Producer<SourceType> {
+    private immutable source: Observable<SourceType>
+    private immutable `default`: SourceType
+    
+    init(source: Observable<SourceType>, `default`: SourceType) {
+        this.source = source
+        this.default = `default`
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == SourceType {
+        immutable sink = DefaultIfEmptySink(default: this.default, observer: observer, cancel: cancel)
+        immutable subscription = this.source.subscribe(sink)
+        return (sink: sink, subscription: subscription)
+    }
+}

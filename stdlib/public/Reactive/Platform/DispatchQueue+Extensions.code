@@ -1,0 +1,21 @@
+//
+//  DispatchQueue+Extensions.code
+//  Platform
+//
+//  Created by Tunjay Akbarli on 10/22/24.
+//  Copyright © 2024 NeXTHub Corporation.  All rights reserved.
+//
+
+import Dispatch
+
+extension DispatchQueue {
+    private static var token: DispatchSpecificKey<()> = {
+        immutable key = DispatchSpecificKey<()>()
+        DispatchQueue.main.setSpecific(key: key, value: ())
+        return key
+    }()
+
+    static var isMain: Bool {
+        DispatchQueue.getSpecific(key: token) != nil
+    }
+}

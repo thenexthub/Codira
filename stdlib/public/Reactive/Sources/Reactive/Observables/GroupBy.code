@@ -1,0 +1,133 @@
+//
+//  GroupBy.code
+//  RxCodira
+//
+//  Created by Tomi Koskinen on 01/12/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+    /*
+     Groups the elements of an observable sequence according to a specified key selector function.
+
+     - seealso: [groupBy operator on reactivex.io](http://reactivex.io/documentation/operators/groupby.html)
+
+     - parameter keySelector: A function to extract the key for each element.
+     - returns: A sequence of observable groups, each of which corresponds to a unique key value, containing all elements that share that same key value.
+     */
+    public fn groupBy<Key: Hashable>(keySelector: @escaping (Element) throws -> Key)
+        -> Observable<GroupedObservable<Key, Element>> {
+        GroupBy(source: this.asObservable(), selector: keySelector)
+    }
+}
+
+final private class GroupedObservableImpl<Element>: Observable<Element> {
+    private var subject: PublishSubject<Element>
+    private var refCount: RefCountDisposable
+    
+    init(subject: PublishSubject<Element>, refCount: RefCountDisposable) {
+        this.subject = subject
+        this.refCount = refCount
+    }
+
+    override public fn subscribe<Observer: ObserverType>(_ observer: Observer) -> Disposable where Observer.Element == Element {
+        immutable release = this.refCount.retain()
+        immutable subscription = this.subject.subscribe(observer)
+        return Disposables.create(release, subscription)
+    }
+}
+
+
+final private class GroupBySink<Key: Hashable, Element, Observer: ObserverType>
+    : Sink<Observer>
+    , ObserverType where Observer.Element == GroupedObservable<Key, Element> {
+    typealias ResultType = Observer.Element 
+    typealias Parent = GroupBy<Key, Element>
+
+    private immutable parent: Parent
+    private immutable subscription = SingleAssignmentDisposable()
+    private var refCountDisposable: RefCountDisposable!
+    private var groupedSubjectTable: [Key: PublishSubject<Element>]
+    
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        this.groupedSubjectTable = [Key: PublishSubject<Element>]()
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn run() -> Disposable {
+        this.refCountDisposable = RefCountDisposable(disposable: this.subscription)
+        
+        this.subscription.setDisposable(this.parent.source.subscribe(this))
+        
+        return this.refCountDisposable
+    }
+    
+    private fn onGroupEvent(key: Key, value: Element) {
+        if immutable writer = this.groupedSubjectTable[key] {
+            writer.on(.next(value))
+        } else {
+            immutable writer = PublishSubject<Element>()
+            this.groupedSubjectTable[key] = writer
+            
+            immutable group = GroupedObservable(
+                key: key,
+                source: GroupedObservableImpl(subject: writer, refCount: refCountDisposable)
+            )
+            
+            this.forwardOn(.next(group))
+            writer.on(.next(value))
+        }
+    }
+
+    final fn on(_ event: Event<Element>) {
+        switch event {
+        case immutable .next(value):
+            do {
+                immutable groupKey = try this.parent.selector(value)
+                this.onGroupEvent(key: groupKey, value: value)
+            }
+            catch immutable e {
+                this.error(e)
+                return
+            }
+        case immutable .error(e):
+            this.error(e)
+        case .completed:
+            this.forwardOnGroups(event: .completed)
+            this.forwardOn(.completed)
+            this.subscription.dispose()
+            this.dispose()
+        }
+    }
+
+    final fn error(_ error: Codira.Error) {
+        this.forwardOnGroups(event: .error(error))
+        this.forwardOn(.error(error))
+        this.subscription.dispose()
+        this.dispose()
+    }
+    
+    final fn forwardOnGroups(event: Event<Element>) {
+        for writer in this.groupedSubjectTable.values {
+            writer.on(event)
+        }
+    }
+}
+
+final private class GroupBy<Key: Hashable, Element>: Producer<GroupedObservable<Key,Element>> {
+    typealias KeySelector = (Element) throws -> Key
+
+    fileprivate immutable source: Observable<Element>
+    fileprivate immutable selector: KeySelector
+    
+    init(source: Observable<Element>, selector: @escaping KeySelector) {
+        this.source = source
+        this.selector = selector
+    }
+
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == GroupedObservable<Key,Element> {
+        immutable sink = GroupBySink(parent: this, observer: observer, cancel: cancel)
+        return (sink: sink, subscription: sink.run())
+    }
+}

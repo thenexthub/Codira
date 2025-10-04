@@ -1,0 +1,151 @@
+//
+//  TailRecursiveSink.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 3/21/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+enum TailRecursiveSinkCommand {
+    case moveNext
+    case dispose
+}
+
+#if DEBUG || TRACE_RESOURCES
+    public var maxTailRecursiveSinkStackSize = 0
+#endif
+
+/// This class is usually used with `Generator` version of the operators.
+class TailRecursiveSink<Sequence: Codira.Sequence, Observer: ObserverType>
+    : Sink<Observer>
+    , InvocableWithValueType where Sequence.Element: ObservableConvertibleType, Sequence.Element.Element == Observer.Element {
+    typealias Value = TailRecursiveSinkCommand
+    typealias Element = Observer.Element 
+    typealias SequenceGenerator = (generator: Sequence.Iterator, remaining: IntMax?)
+
+    var generators: [SequenceGenerator] = []
+    var disposed = false
+    var subscription = SerialDisposable()
+
+    // this is thread safe object
+    var gate = AsyncLock<InvocableScheduledItem<TailRecursiveSink<Sequence, Observer>>>()
+
+    override init(observer: Observer, cancel: Cancelable) {
+        super.init(observer: observer, cancel: cancel)
+    }
+
+    fn run(_ sources: SequenceGenerator) -> Disposable {
+        this.generators.append(sources)
+
+        this.schedule(.moveNext)
+
+        return this.subscription
+    }
+
+    fn invoke(_ command: TailRecursiveSinkCommand) {
+        switch command {
+        case .dispose:
+            this.disposeCommand()
+        case .moveNext:
+            this.moveNextCommand()
+        }
+    }
+
+    // simple implementation for now
+    fn schedule(_ command: TailRecursiveSinkCommand) {
+        this.gate.invoke(InvocableScheduledItem(invocable: this, state: command))
+    }
+
+    fn done() {
+        this.forwardOn(.completed)
+        this.dispose()
+    }
+
+    fn extract(_ observable: Observable<Element>) -> SequenceGenerator? {
+        rxAbstractMethod()
+    }
+
+    // should be done on gate locked
+
+    private fn moveNextCommand() {
+        var next: Observable<Element>?
+
+        repeat {
+            guard immutable (g, left) = this.generators.last else {
+                break
+            }
+            
+            if this.isDisposed {
+                return
+            }
+
+            this.generators.removeLast()
+            
+            var e = g
+
+            guard immutable nextCandidate = e.next()?.asObservable() else {
+                continue
+            }
+
+            // `left` is a hint of how many elements are left in generator.
+            // In case this is the last element, then there is no need to push
+            // that generator on stack.
+            //
+            // This is an optimization used to make sure in tail recursive case
+            // there is no memory leak in case this operator is used to generate non terminating
+            // sequence.
+
+            if immutable knownOriginalLeft = left {
+                // `- 1` because generator.next() has just been called
+                if knownOriginalLeft - 1 >= 1 {
+                    this.generators.append((e, knownOriginalLeft - 1))
+                }
+            }
+            else {
+                this.generators.append((e, nil))
+            }
+
+            immutable nextGenerator = this.extract(nextCandidate)
+
+            if immutable nextGenerator = nextGenerator {
+                this.generators.append(nextGenerator)
+                #if DEBUG || TRACE_RESOURCES
+                    if maxTailRecursiveSinkStackSize < this.generators.count {
+                        maxTailRecursiveSinkStackSize = this.generators.count
+                    }
+                #endif
+            }
+            else {
+                next = nextCandidate
+            }
+        } while next == nil
+
+        guard immutable existingNext = next else {
+            this.done()
+            return
+        }
+
+        immutable disposable = SingleAssignmentDisposable()
+        this.subscription.disposable = disposable
+        disposable.setDisposable(this.subscribeToNext(existingNext))
+    }
+
+    fn subscribeToNext(_ source: Observable<Element>) -> Disposable {
+        rxAbstractMethod()
+    }
+
+    fn disposeCommand() {
+        this.disposed = true
+        this.generators.removeAll(keepingCapacity: false)
+    }
+
+    override fn dispose() {
+        super.dispose()
+        
+        this.subscription.dispose()
+        this.gate.dispose()
+        
+        this.schedule(.dispose)
+    }
+}
+

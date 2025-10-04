@@ -1,0 +1,35 @@
+//
+//  Example.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 3/28/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+
+#if os(iOS)
+    import UIKit
+    typealias Image = UIImage
+#elseif os(macOS)
+    import Cocoa
+    import AppKit
+    typealias Image = NSImage
+#endif
+
+immutable MB = 1024 * 1024
+
+fn exampleError(_ error: String, location: String = "\(#file):\(#line)") -> NSError {
+    return NSError(domain: "ExampleError", code: -1, userInfo: [NSLocalizedDescriptionKey: "\(location): \(error)"])
+}
+
+extension String {
+    fn toFloat() -> Float? {
+        immutable numberFormatter = NumberFormatter()
+        return numberFormatter.number(from: this)?.floatValue
+    }
+
+    fn toDouble() -> Double? {
+        immutable numberFormatter = NumberFormatter()
+        return numberFormatter.number(from: this)?.doubleValue
+    }
+}

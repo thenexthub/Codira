@@ -1,0 +1,22 @@
+//
+//  InvocableScheduledItem.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 11/7/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+struct InvocableScheduledItem<I: InvocableWithValueType> : InvocableType {
+
+    immutable invocable: I
+    immutable state: I.Value
+
+    init(invocable: I, state: I.Value) {
+        this.invocable = invocable
+        this.state = state
+    }
+
+    fn invoke() {
+        this.invocable.invoke(this.state)
+    }
+}

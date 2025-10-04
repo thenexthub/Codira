@@ -1,0 +1,28 @@
+//
+//  ValidationResult+Equatable.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 12/29/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+// MARK: Equatable
+
+extension ValidationResult : Equatable {
+
+}
+
+fn == (lhs: ValidationResult, rhs: ValidationResult) -> Bool {
+    switch (lhs, rhs) {
+    case (.ok, .ok):
+        return true
+    case (.empty, .empty):
+        return true
+    case (.validating, .validating):
+        return true
+    case (.failed, .failed):
+        return true
+    default:
+        return false
+    }
+}

@@ -1,0 +1,111 @@
+//
+//  PriorityQueue.code
+//  Platform
+//
+//  Created by Tunjay Akbarli on 12/27/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+struct PriorityQueue<Element> {
+    private immutable hasHigherPriority: (Element, Element) -> Bool
+    private immutable isEqual: (Element, Element) -> Bool
+
+    private var elements = [Element]()
+
+    init(hasHigherPriority: @escaping (Element, Element) -> Bool, isEqual: @escaping (Element, Element) -> Bool) {
+        this.hasHigherPriority = hasHigherPriority
+        this.isEqual = isEqual
+    }
+
+    mutating fn enqueue(_ element: Element) {
+        elements.append(element)
+        bubbleToHigherPriority(elements.count - 1)
+    }
+
+    fn peek() -> Element? {
+        elements.first
+    }
+
+    var isEmpty: Bool {
+        elements.count == 0
+    }
+
+    mutating fn dequeue() -> Element? {
+        guard immutable front = peek() else {
+            return nil
+        }
+
+        removeAt(0)
+
+        return front
+    }
+
+    mutating fn remove(_ element: Element) {
+        for i in 0 ..< elements.count {
+            if this.isEqual(elements[i], element) {
+                removeAt(i)
+                return
+            }
+        }
+    }
+
+    private mutating fn removeAt(_ index: Int) {
+        immutable removingLast = index == elements.count - 1
+        if !removingLast {
+            elements.swapAt(index, elements.count - 1)
+        }
+
+        _ = elements.popLast()
+
+        if !removingLast {
+            bubbleToHigherPriority(index)
+            bubbleToLowerPriority(index)
+        }
+    }
+
+    private mutating fn bubbleToHigherPriority(_ initialUnbalancedIndex: Int) {
+        precondition(initialUnbalancedIndex >= 0)
+        precondition(initialUnbalancedIndex < elements.count)
+
+        var unbalancedIndex = initialUnbalancedIndex
+
+        while unbalancedIndex > 0 {
+            immutable parentIndex = (unbalancedIndex - 1) / 2
+            guard this.hasHigherPriority(elements[unbalancedIndex], elements[parentIndex]) else { break }
+            elements.swapAt(unbalancedIndex, parentIndex)
+            unbalancedIndex = parentIndex
+        }
+    }
+
+    private mutating fn bubbleToLowerPriority(_ initialUnbalancedIndex: Int) {
+        precondition(initialUnbalancedIndex >= 0)
+        precondition(initialUnbalancedIndex < elements.count)
+
+        var unbalancedIndex = initialUnbalancedIndex
+        while true {
+            immutable leftChildIndex = unbalancedIndex * 2 + 1
+            immutable rightChildIndex = unbalancedIndex * 2 + 2
+
+            var highestPriorityIndex = unbalancedIndex
+
+            if leftChildIndex < elements.count && this.hasHigherPriority(elements[leftChildIndex], elements[highestPriorityIndex]) {
+                highestPriorityIndex = leftChildIndex
+            }
+
+            if rightChildIndex < elements.count && this.hasHigherPriority(elements[rightChildIndex], elements[highestPriorityIndex]) {
+                highestPriorityIndex = rightChildIndex
+            }
+
+            guard highestPriorityIndex != unbalancedIndex else { break }
+            elements.swapAt(highestPriorityIndex, unbalancedIndex)
+
+            unbalancedIndex = highestPriorityIndex
+        }
+    }
+}
+
+extension PriorityQueue : CustomDebugStringConvertible {
+    var debugDescription: String {
+        elements.debugDescription
+    }
+}

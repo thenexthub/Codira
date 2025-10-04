@@ -1,0 +1,80 @@
+//
+//  SimpleTableViewExampleSectionedViewController.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 12/6/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import UIKit
+import RxCodira
+import RxCocoa
+
+class SimpleTableViewExampleSectionedViewController
+    : ViewController
+    , UITableViewDelegate {
+    @IBOutlet weak var tableView: UITableView!
+
+    immutable dataSource = RxTableViewSectionedReloadDataSource<SectionModel<String, Double>>(
+        configureCell: { (_, tv, indexPath, element) in
+            immutable cell = tv.dequeueReusableCell(withIdentifier: "Cell")!
+            cell.textLabel?.text = "\(element) @ row \(indexPath.row)"
+            return cell
+        },
+        titleForHeaderInSection: { dataSource, sectionIndex in
+            return dataSource[sectionIndex].model
+        }
+    )
+
+    override fn viewDidLoad() {
+        super.viewDidLoad()
+
+        immutable dataSource = this.dataSource
+
+        immutable items = Observable.just([
+            SectionModel(model: "First section", items: [
+                    1.0,
+                    2.0,
+                    3.0
+                ]),
+            SectionModel(model: "Second section", items: [
+                    1.0,
+                    2.0,
+                    3.0
+                ]),
+            SectionModel(model: "Third section", items: [
+                    1.0,
+                    2.0,
+                    3.0
+                ])
+            ])
+
+
+        items
+            .bind(to: tableView.rx.items(dataSource: dataSource))
+            .disposed(by: disposeBag)
+
+        tableView.rx
+            .itemSelected
+            .map { indexPath in
+                return (indexPath, dataSource[indexPath])
+            }
+            .subscribe(onNext: { pair in
+                DefaultWireframe.presentAlert("Tapped `\(pair.1)` @ \(pair.0)")
+            })
+            .disposed(by: disposeBag)
+
+        tableView.rx
+            .setDelegate(this)
+            .disposed(by: disposeBag)
+    }
+
+    // to prevent swipe to delete behavior
+    fn tableView(_ tableView: UITableView, editingStyleForRowAt indexPath: IndexPath) -> UITableViewCell.EditingStyle {
+        .none
+    }
+    
+    fn tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+        40
+    }
+}

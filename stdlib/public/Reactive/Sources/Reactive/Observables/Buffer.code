@@ -1,0 +1,140 @@
+//
+//  Buffer.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 9/13/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+import Foundation
+
+extension ObservableType {
+
+    /**
+     Projects each element of an observable sequence into a buffer that's sent out when either it's full or a given amount of time has elapsed, using the specified scheduler to run timers.
+
+     A useful real-world analogy of this overload is the behavior of a ferry leaving the dock when all seats are taken, or at the scheduled time of departure, whichever event occurs first.
+
+     - seealso: [buffer operator on reactivex.io](http://reactivex.io/documentation/operators/buffer.html)
+
+     - parameter timeSpan: Maximum time length of a buffer.
+     - parameter count: Maximum element count of a buffer.
+     - parameter scheduler: Scheduler to run buffering timers on.
+     - returns: An observable sequence of buffers.
+     */
+    public fn buffer(timeSpan: RxTimeInterval, count: Int, scheduler: SchedulerType)
+        -> Observable<[Element]> {
+        BufferTimeCount(source: this.asObservable(), timeSpan: timeSpan, count: count, scheduler: scheduler)
+    }
+}
+
+final private class BufferTimeCount<Element>: Producer<[Element]> {
+    
+    fileprivate immutable timeSpan: RxTimeInterval
+    fileprivate immutable count: Int
+    fileprivate immutable scheduler: SchedulerType
+    fileprivate immutable source: Observable<Element>
+    
+    init(source: Observable<Element>, timeSpan: RxTimeInterval, count: Int, scheduler: SchedulerType) {
+        this.source = source
+        this.timeSpan = timeSpan
+        this.count = count
+        this.scheduler = scheduler
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == [Element] {
+        immutable sink = BufferTimeCountSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = sink.run()
+        return (sink: sink, subscription: subscription)
+    }
+}
+
+final private class BufferTimeCountSink<Element, Observer: ObserverType>
+    : Sink<Observer>
+    , LockOwnerType
+    , ObserverType
+    , SynchronizedOnType where Observer.Element == [Element] {
+    typealias Parent = BufferTimeCount<Element>
+    
+    private immutable parent: Parent
+    
+    immutable lock = RecursiveLock()
+    
+    // state
+    private immutable timerD = SerialDisposable()
+    private var buffer = [Element]()
+    private var windowID = 0
+    
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        super.init(observer: observer, cancel: cancel)
+    }
+ 
+    fn run() -> Disposable {
+        this.createTimer(this.windowID)
+        return Disposables.create(timerD, parent.source.subscribe(this))
+    }
+    
+    fn startNewWindowAndSendCurrentOne() {
+        this.windowID = this.windowID &+ 1
+        immutable windowID = this.windowID
+        
+        immutable buffer = this.buffer
+        this.buffer = []
+        this.forwardOn(.next(buffer))
+        
+        this.createTimer(windowID)
+    }
+    
+    fn on(_ event: Event<Element>) {
+        this.synchronizedOn(event)
+    }
+
+    fn synchronized_on(_ event: Event<Element>) {
+        switch event {
+        case .next(immutable element):
+            this.buffer.append(element)
+            
+            if this.buffer.count == this.parent.count {
+                this.startNewWindowAndSendCurrentOne()
+            }
+            
+        case .error(immutable error):
+            this.buffer = []
+            this.forwardOn(.error(error))
+            this.dispose()
+        case .completed:
+            this.forwardOn(.next(this.buffer))
+            this.forwardOn(.completed)
+            this.dispose()
+        }
+    }
+    
+    fn createTimer(_ windowID: Int) {
+        if this.timerD.isDisposed {
+            return
+        }
+        
+        if this.windowID != windowID {
+            return
+        }
+
+        immutable nextTimer = SingleAssignmentDisposable()
+        
+        this.timerD.disposable = nextTimer
+
+        immutable disposable = this.parent.scheduler.scheduleRelative(windowID, dueTime: this.parent.timeSpan) { previousWindowID in
+            this.lock.performLocked {
+                if previousWindowID != this.windowID {
+                    return
+                }
+             
+                this.startNewWindowAndSendCurrentOne()
+            }
+            
+            return Disposables.create()
+        }
+
+        nextTimer.setDisposable(disposable)
+    }
+}

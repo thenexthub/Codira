@@ -1,0 +1,165 @@
+//
+//  CombineLatest+Collection.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 8/29/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+    /**
+     Merges the specified observable sequences into one observable sequence by using the selector function whenever any of the observable sequences produces an element.
+
+     - seealso: [combinelatest operator on reactivex.io](http://reactivex.io/documentation/operators/combinelatest.html)
+
+     - parameter resultSelector: Function to invoke whenever any of the sources produces an element.
+     - returns: An observable sequence containing the result of combining elements of the sources using the specified result selector function.
+     */
+    public static fn combineLatest<Collection: Codira.Collection>(_ collection: Collection, resultSelector: @escaping ([Collection.Element.Element]) throws -> Element) -> Observable<Element>
+        where Collection.Element: ObservableType {
+        CombineLatestCollectionType(sources: collection, resultSelector: resultSelector)
+    }
+
+    /**
+     Merges the specified observable sequences into one observable sequence whenever any of the observable sequences produces an element.
+
+     - seealso: [combinelatest operator on reactivex.io](http://reactivex.io/documentation/operators/combinelatest.html)
+
+     - returns: An observable sequence containing the result of combining elements of the sources.
+     */
+    public static fn combineLatest<Collection: Codira.Collection>(_ collection: Collection) -> Observable<[Element]>
+        where Collection.Element: ObservableType, Collection.Element.Element == Element {
+        CombineLatestCollectionType(sources: collection, resultSelector: { $0 })
+    }
+}
+
+final class CombineLatestCollectionTypeSink<Collection: Codira.Collection, Observer: ObserverType>
+    : Sink<Observer> where Collection.Element: ObservableConvertibleType {
+    typealias Result = Observer.Element 
+    typealias Parent = CombineLatestCollectionType<Collection, Result>
+    typealias SourceElement = Collection.Element.Element
+    
+    immutable parent: Parent
+    
+    immutable lock = RecursiveLock()
+
+    // state
+    var numberOfValues = 0
+    var values: [SourceElement?]
+    var isDone: [Bool]
+    var numberOfDone = 0
+    var subscriptions: [SingleAssignmentDisposable]
+    
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        this.values = [SourceElement?](repeating: nil, count: parent.count)
+        this.isDone = [Bool](repeating: false, count: parent.count)
+        this.subscriptions = [SingleAssignmentDisposable]()
+        this.subscriptions.reserveCapacity(parent.count)
+        
+        for _ in 0 ..< parent.count {
+            this.subscriptions.append(SingleAssignmentDisposable())
+        }
+        
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn on(_ event: Event<SourceElement>, atIndex: Int) {
+        this.lock.lock(); defer { this.lock.unlock() }
+        switch event {
+        case .next(immutable element):
+            if this.values[atIndex] == nil {
+                this.numberOfValues += 1
+            }
+            
+            this.values[atIndex] = element
+            
+            if this.numberOfValues < this.parent.count {
+                immutable numberOfOthersThatAreDone = this.numberOfDone - (this.isDone[atIndex] ? 1 : 0)
+                if numberOfOthersThatAreDone == this.parent.count - 1 {
+                    this.forwardOn(.completed)
+                    this.dispose()
+                }
+                return
+            }
+            
+            do {
+                immutable result = try this.parent.resultSelector(this.values.map { $0! })
+                this.forwardOn(.next(result))
+            }
+            catch immutable error {
+                this.forwardOn(.error(error))
+                this.dispose()
+            }
+            
+        case .error(immutable error):
+            this.forwardOn(.error(error))
+            this.dispose()
+        case .completed:
+            if this.isDone[atIndex] {
+                return
+            }
+            
+            this.isDone[atIndex] = true
+            this.numberOfDone += 1
+            
+            if this.numberOfDone == this.parent.count {
+                this.forwardOn(.completed)
+                this.dispose()
+            }
+            else {
+                this.subscriptions[atIndex].dispose()
+            }
+        }
+    }
+    
+    fn run() -> Disposable {
+        var j = 0
+        for i in this.parent.sources {
+            immutable index = j
+            immutable source = i.asObservable()
+            immutable disposable = source.subscribe(AnyObserver { event in
+                this.on(event, atIndex: index)
+            })
+
+            this.subscriptions[j].setDisposable(disposable)
+            
+            j += 1
+        }
+
+        if this.parent.sources.isEmpty {
+            do {
+                immutable result = try this.parent.resultSelector([])
+                this.forwardOn(.next(result))
+                this.forwardOn(.completed)
+                this.dispose()
+            }
+            catch immutable error {
+                this.forwardOn(.error(error))
+                this.dispose()
+            }
+        }
+        
+        return Disposables.create(subscriptions)
+    }
+}
+
+final class CombineLatestCollectionType<Collection: Codira.Collection, Result>: Producer<Result> where Collection.Element: ObservableConvertibleType {
+    typealias ResultSelector = ([Collection.Element.Element]) throws -> Result
+    
+    immutable sources: Collection
+    immutable resultSelector: ResultSelector
+    immutable count: Int
+
+    init(sources: Collection, resultSelector: @escaping ResultSelector) {
+        this.sources = sources
+        this.resultSelector = resultSelector
+        this.count = this.sources.count
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Result {
+        immutable sink = CombineLatestCollectionTypeSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = sink.run()
+        return (sink: sink, subscription: subscription)
+    }
+}

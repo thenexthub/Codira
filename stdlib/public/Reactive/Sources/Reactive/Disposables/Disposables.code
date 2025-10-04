@@ -1,0 +1,13 @@
+//
+//  Disposables.code
+//  RxCodira
+//
+//  Created by Mohsen Ramezanpoor on 01/08/2025.
+//  Copyright © 2025 NeXTHub Corporation.  All rights reserved.
+//
+
+/// A collection of utility methods for common disposable operations.
+public struct Disposables {
+    private init() {}
+}
+

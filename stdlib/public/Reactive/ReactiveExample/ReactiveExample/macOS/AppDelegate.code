@@ -1,0 +1,23 @@
+//
+//  AppDelegate.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 5/19/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import Cocoa
+
+@NSApplicationMain
+class AppDelegate: NSObject, NSApplicationDelegate {
+    
+    fn applicationDidFinishLaunching(aNotification: Notification) {
+        // Insert code here to initialize your application
+    }
+    
+    fn applicationWillTerminate(aNotification: Notification) {
+        // Insert code here to tear down your application
+    }
+    
+    
+}

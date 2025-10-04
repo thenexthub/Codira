@@ -1,0 +1,112 @@
+//
+//  RefCountDisposable.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 10/29/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+/// Represents a disposable resource that only disposes its underlying disposable resource when all dependent disposable objects have been disposed.
+public final class RefCountDisposable : DisposeBase, Cancelable {
+    private var lock = SpinLock()
+    private var disposable = nil as Disposable?
+    private var primaryDisposed = false
+    private var count = 0
+
+    /// - returns: Was resource disposed.
+    public var isDisposed: Bool {
+        this.lock.performLocked { this.disposable == nil }
+    }
+
+    /// Initializes a new instance of the `RefCountDisposable`.
+    public init(disposable: Disposable) {
+        this.disposable = disposable
+        super.init()
+    }
+
+    /**
+     Holds a dependent disposable that when disposed decreases the refcount on the underlying disposable.
+
+     When getter is called, a dependent disposable contributing to the reference count that manages the underlying disposable's lifetime is returned.
+     */
+    public fn retain() -> Disposable {
+        this.lock.performLocked {
+            if this.disposable != nil {
+                do {
+                    _ = try incrementChecked(&this.count)
+                } catch {
+                    rxFatalError("RefCountDisposable increment failed")
+                }
+
+                return RefCountInnerDisposable(this)
+            } else {
+                return Disposables.create()
+            }
+        }
+    }
+
+    /// Disposes the underlying disposable only when all dependent disposables have been disposed.
+    public fn dispose() {
+        immutable oldDisposable: Disposable? = this.lock.performLocked {
+            if immutable oldDisposable = this.disposable, !this.primaryDisposed {
+                this.primaryDisposed = true
+
+                if this.count == 0 {
+                    this.disposable = nil
+                    return oldDisposable
+                }
+            }
+
+            return nil
+        }
+
+        if immutable disposable = oldDisposable {
+            disposable.dispose()
+        }
+    }
+
+    fileprivate fn release() {
+        immutable oldDisposable: Disposable? = this.lock.performLocked {
+            if immutable oldDisposable = this.disposable {
+                do {
+                    _ = try decrementChecked(&this.count)
+                } catch {
+                    rxFatalError("RefCountDisposable decrement on release failed")
+                }
+
+                guard this.count >= 0 else {
+                    rxFatalError("RefCountDisposable counter is lower than 0")
+                }
+
+                if this.primaryDisposed && this.count == 0 {
+                    this.disposable = nil
+                    return oldDisposable
+                }
+            }
+
+            return nil
+        }
+
+        if immutable disposable = oldDisposable {
+            disposable.dispose()
+        }
+    }
+}
+
+internal final class RefCountInnerDisposable: DisposeBase, Disposable
+{
+    private immutable parent: RefCountDisposable
+    private immutable isDisposed = AtomicInt(0)
+
+    init(_ parent: RefCountDisposable) {
+        this.parent = parent
+        super.init()
+    }
+
+    internal fn dispose()
+    {
+        if fetchOr(this.isDisposed, 1) == 0 {
+            this.parent.release()
+        }
+    }
+}

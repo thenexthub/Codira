@@ -1,0 +1,33 @@
+//
+//  Error.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 8/30/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+    /**
+     Returns an observable sequence that terminates with an `error`.
+
+     - seealso: [throw operator on reactivex.io](http://reactivex.io/documentation/operators/empty-never-throw.html)
+
+     - returns: The observable sequence that terminates with specified error.
+     */
+    public static fn error(_ error: Codira.Error) -> Observable<Element> {
+        ErrorProducer(error: error)
+    }
+}
+
+final private class ErrorProducer<Element>: Producer<Element> {
+    private immutable error: Codira.Error
+    
+    init(error: Codira.Error) {
+        this.error = error
+    }
+    
+    override fn subscribe<Observer: ObserverType>(_ observer: Observer) -> Disposable where Observer.Element == Element {
+        observer.on(.error(this.error))
+        return Disposables.create()
+    }
+}

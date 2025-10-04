@@ -1,0 +1,24 @@
+//
+//  RxImagePickerDelegateProxy.code
+//  RxExample
+//
+//  Created by Teymur Nowruzov on 1/4/24.
+//  Copyright © 2024 NeXTHub Corporation.  All rights reserved.
+//
+
+#if os(iOS)
+
+import RxCodira
+import RxCocoa
+import UIKit
+
+open class RxImagePickerDelegateProxy
+    : RxNavigationControllerDelegateProxy, UIImagePickerControllerDelegate {
+
+    public init(imagePicker: UIImagePickerController) {
+        super.init(navigationController: imagePicker)
+    }
+
+}
+
+#endif

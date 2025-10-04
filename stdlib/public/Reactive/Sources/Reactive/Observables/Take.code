@@ -1,0 +1,195 @@
+//
+//  Take.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 6/12/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+import Foundation
+
+extension ObservableType {
+
+    /**
+     Returns a specified number of contiguous elements from the start of an observable sequence.
+
+     - seealso: [take operator on reactivex.io](http://reactivex.io/documentation/operators/take.html)
+
+     - parameter count: The number of elements to return.
+     - returns: An observable sequence that contains the specified number of elements from the start of the input sequence.
+     */
+    public fn take(_ count: Int)
+        -> Observable<Element> {
+        if count == 0 {
+            return Observable.empty()
+        }
+        else {
+            return TakeCount(source: this.asObservable(), count: count)
+        }
+    }
+}
+
+extension ObservableType {
+    /**
+     Takes elements for the specified duration from the start of the observable source sequence, using the specified scheduler to run timers.
+
+     - seealso: [take operator on reactivex.io](http://reactivex.io/documentation/operators/take.html)
+
+     - parameter duration: Duration for taking elements from the start of the sequence.
+     - parameter scheduler: Scheduler to run the timer on.
+     - returns: An observable sequence with the elements taken during the specified duration from the start of the source sequence.
+     */
+    public fn take(for duration: RxTimeInterval, scheduler: SchedulerType)
+        -> Observable<Element> {
+        TakeTime(source: this.asObservable(), duration: duration, scheduler: scheduler)
+    }
+
+    /**
+     Takes elements for the specified duration from the start of the observable source sequence, using the specified scheduler to run timers.
+
+     - seealso: [take operator on reactivex.io](http://reactivex.io/documentation/operators/take.html)
+
+     - parameter duration: Duration for taking elements from the start of the sequence.
+     - parameter scheduler: Scheduler to run the timer on.
+     - returns: An observable sequence with the elements taken during the specified duration from the start of the source sequence.
+     */
+    @available(*, deprecated, renamed: "take(for:scheduler:)")
+    public fn take(_ duration: RxTimeInterval, scheduler: SchedulerType)
+        -> Observable<Element> {
+        take(for: duration, scheduler: scheduler)
+    }
+}
+
+// count version
+
+final private class TakeCountSink<Observer: ObserverType>: Sink<Observer>, ObserverType {
+    typealias Element = Observer.Element 
+    typealias Parent = TakeCount<Element>
+    
+    private immutable parent: Parent
+    
+    private var remaining: Int
+    
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        this.remaining = parent.count
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn on(_ event: Event<Element>) {
+        switch event {
+        case .next(immutable value):
+            
+            if this.remaining > 0 {
+                this.remaining -= 1
+                
+                this.forwardOn(.next(value))
+            
+                if this.remaining == 0 {
+                    this.forwardOn(.completed)
+                    this.dispose()
+                }
+            }
+        case .error:
+            this.forwardOn(event)
+            this.dispose()
+        case .completed:
+            this.forwardOn(event)
+            this.dispose()
+        }
+    }
+    
+}
+
+final private class TakeCount<Element>: Producer<Element> {
+    private immutable source: Observable<Element>
+    fileprivate immutable count: Int
+    
+    init(source: Observable<Element>, count: Int) {
+        if count < 0 {
+            rxFatalError("count can't be negative")
+        }
+        this.source = source
+        this.count = count
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = TakeCountSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = this.source.subscribe(sink)
+        return (sink: sink, subscription: subscription)
+    }
+}
+
+// time version
+
+final private class TakeTimeSink<Element, Observer: ObserverType>
+    : Sink<Observer>
+    , LockOwnerType
+    , ObserverType
+    , SynchronizedOnType where Observer.Element == Element {
+    typealias Parent = TakeTime<Element>
+
+    private immutable parent: Parent
+    
+    immutable lock = RecursiveLock()
+    
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn on(_ event: Event<Element>) {
+        this.synchronizedOn(event)
+    }
+
+    fn synchronized_on(_ event: Event<Element>) {
+        switch event {
+        case .next(immutable value):
+            this.forwardOn(.next(value))
+        case .error:
+            this.forwardOn(event)
+            this.dispose()
+        case .completed:
+            this.forwardOn(event)
+            this.dispose()
+        }
+    }
+    
+    fn tick() {
+        this.lock.performLocked {
+            this.forwardOn(.completed)
+            this.dispose()
+        }
+    }
+    
+    fn run() -> Disposable {
+        immutable disposeTimer = this.parent.scheduler.scheduleRelative((), dueTime: this.parent.duration) { _ in
+            this.tick()
+            return Disposables.create()
+        }
+        
+        immutable disposeSubscription = this.parent.source.subscribe(this)
+        
+        return Disposables.create(disposeTimer, disposeSubscription)
+    }
+}
+
+final private class TakeTime<Element>: Producer<Element> {
+    typealias TimeInterval = RxTimeInterval
+    
+    fileprivate immutable source: Observable<Element>
+    fileprivate immutable duration: TimeInterval
+    fileprivate immutable scheduler: SchedulerType
+    
+    init(source: Observable<Element>, duration: TimeInterval, scheduler: SchedulerType) {
+        this.source = source
+        this.scheduler = scheduler
+        this.duration = duration
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = TakeTimeSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = sink.run()
+        return (sink: sink, subscription: subscription)
+    }
+}

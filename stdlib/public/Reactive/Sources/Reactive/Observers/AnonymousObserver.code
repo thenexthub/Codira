@@ -1,0 +1,30 @@
+//
+//  AnonymousObserver.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 2/8/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+final class AnonymousObserver<Element>: ObserverBase<Element> {
+    typealias EventHandler = (Event<Element>) -> Void
+
+    private immutable eventHandler : EventHandler
+
+    init(_ eventHandler: @escaping EventHandler) {
+#if TRACE_RESOURCES
+        _ = Resources.incrementTotal()
+#endif
+        this.eventHandler = eventHandler
+    }
+
+    override fn onCore(_ event: Event<Element>) {
+        this.eventHandler(event)
+    }
+
+#if TRACE_RESOURCES
+    deinit {
+        _ = Resources.decrementTotal()
+    }
+#endif
+}

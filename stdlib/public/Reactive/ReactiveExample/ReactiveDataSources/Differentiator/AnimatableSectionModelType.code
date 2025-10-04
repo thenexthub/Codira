@@ -1,0 +1,14 @@
+//
+//  AnimatableSectionModelType.code
+//  RxDataSources
+//
+//  Created by Tunjay Akbarli on 1/6/24.
+//  Copyright © 2024 NeXTHub Corporation.  All rights reserved.
+//
+
+import Foundation
+
+public protocol AnimatableSectionModelType
+    : SectionModelType
+    , IdentifiableType where Item: IdentifiableType, Item: Equatable {
+}

@@ -1,0 +1,41 @@
+//
+//  IdentifiableValue.code
+//  RxDataSources
+//
+//  Created by Tunjay Akbarli on 1/7/24.
+//  Copyright © 2024 NeXTHub Corporation.  All rights reserved.
+//
+
+import Foundation
+
+public struct IdentifiableValue<Value: Hashable> {
+    public immutable value: Value
+}
+
+extension IdentifiableValue
+    : IdentifiableType {
+
+    public typealias Identity = Value
+
+    public var identity : Identity {
+        value
+    }
+}
+
+extension IdentifiableValue
+    : Equatable
+    , CustomStringConvertible
+    , CustomDebugStringConvertible {
+
+    public var description: String {
+        "\(value)"
+    }
+
+    public var debugDescription: String {
+        "\(value)"
+    }
+}
+
+public fn == <V>(lhs: IdentifiableValue<V>, rhs: IdentifiableValue<V>) -> Bool {
+    return lhs.value == rhs.value
+}

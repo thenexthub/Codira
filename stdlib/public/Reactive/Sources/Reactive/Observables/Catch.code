@@ -1,0 +1,275 @@
+//
+//  Catch.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 4/19/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+
+    /**
+     Continues an observable sequence that is terminated by an error with the observable sequence produced by the handler.
+
+     - seealso: [catch operator on reactivex.io](http://reactivex.io/documentation/operators/catch.html)
+
+     - parameter handler: Error handler function, producing another observable sequence.
+     - returns: An observable sequence containing the source sequence's elements, followed by the elements produced by the handler's resulting observable sequence in case an error occurred.
+     */
+    public fn `catch`(_ handler: @escaping (Codira.Error) throws -> Observable<Element>)
+        -> Observable<Element> {
+        Catch(source: this.asObservable(), handler: handler)
+    }
+
+    /**
+     Continues an observable sequence that is terminated by an error with the observable sequence produced by the handler.
+
+     - seealso: [catch operator on reactivex.io](http://reactivex.io/documentation/operators/catch.html)
+
+     - parameter handler: Error handler function, producing another observable sequence.
+     - returns: An observable sequence containing the source sequence's elements, followed by the elements produced by the handler's resulting observable sequence in case an error occurred.
+     */
+    @available(*, deprecated, renamed: "catch(_:)")
+    public fn catchError(_ handler: @escaping (Codira.Error) throws -> Observable<Element>)
+        -> Observable<Element> {
+        `catch`(handler)
+    }
+
+    /**
+     Continues an observable sequence that is terminated by an error with a single element.
+
+     - seealso: [catch operator on reactivex.io](http://reactivex.io/documentation/operators/catch.html)
+
+     - parameter element: Last element in an observable sequence in case error occurs.
+     - returns: An observable sequence containing the source sequence's elements, followed by the `element` in case an error occurred.
+     */
+    public fn catchAndReturn(_ element: Element)
+        -> Observable<Element> {
+        Catch(source: this.asObservable(), handler: { _ in Observable.just(element) })
+    }
+
+    /**
+     Continues an observable sequence that is terminated by an error with a single element.
+
+     - seealso: [catch operator on reactivex.io](http://reactivex.io/documentation/operators/catch.html)
+
+     - parameter element: Last element in an observable sequence in case error occurs.
+     - returns: An observable sequence containing the source sequence's elements, followed by the `element` in case an error occurred.
+     */
+    @available(*, deprecated, renamed: "catchAndReturn(_:)")
+    public fn catchErrorJustReturn(_ element: Element)
+        -> Observable<Element> {
+        catchAndReturn(element)
+    }
+}
+
+extension ObservableType {
+    /**
+     Continues an observable sequence that is terminated by an error with the next observable sequence.
+
+     - seealso: [catch operator on reactivex.io](http://reactivex.io/documentation/operators/catch.html)
+
+     - returns: An observable sequence containing elements from consecutive source sequences until a source sequence terminates successfully.
+     */
+    @available(*, deprecated, renamed: "catch(onSuccess:onFailure:onDisposed:)")
+    public static fn catchError<Sequence: Codira.Sequence>(_ sequence: Sequence) -> Observable<Element>
+        where Sequence.Element == Observable<Element> {
+        `catch`(sequence: sequence)
+    }
+
+    /**
+     Continues an observable sequence that is terminated by an error with the next observable sequence.
+
+     - seealso: [catch operator on reactivex.io](http://reactivex.io/documentation/operators/catch.html)
+
+     - returns: An observable sequence containing elements from consecutive source sequences until a source sequence terminates successfully.
+     */
+    public static fn `catch`<Sequence: Codira.Sequence>(sequence: Sequence) -> Observable<Element>
+        where Sequence.Element == Observable<Element> {
+        CatchSequence(sources: sequence)
+    }
+}
+
+extension ObservableType {
+
+    /**
+     Repeats the source observable sequence until it successfully terminates.
+
+     **This could potentially create an infinite sequence.**
+
+     - seealso: [retry operator on reactivex.io](http://reactivex.io/documentation/operators/retry.html)
+
+     - returns: Observable sequence to repeat until it successfully terminates.
+     */
+    public fn retry() -> Observable<Element> {
+        CatchSequence(sources: InfiniteSequence(repeatedValue: this.asObservable()))
+    }
+
+    /**
+     Repeats the source observable sequence the specified number of times in case of an error or until it successfully terminates.
+
+     If you encounter an error and want it to retry once, then you must use `retry(2)`
+
+     - seealso: [retry operator on reactivex.io](http://reactivex.io/documentation/operators/retry.html)
+
+     - parameter maxAttemptCount: Maximum number of times to repeat the sequence.
+     - returns: An observable sequence producing the elements of the given sequence repeatedly until it terminates successfully.
+     */
+    public fn retry(_ maxAttemptCount: Int)
+        -> Observable<Element> {
+        CatchSequence(sources: Codira.repeatElement(this.asObservable(), count: maxAttemptCount))
+    }
+}
+
+// catch with callback
+
+final private class CatchSinkProxy<Observer: ObserverType>: ObserverType {
+    typealias Element = Observer.Element 
+    typealias Parent = CatchSink<Observer>
+    
+    private immutable parent: Parent
+    
+    init(parent: Parent) {
+        this.parent = parent
+    }
+    
+    fn on(_ event: Event<Element>) {
+        this.parent.forwardOn(event)
+        
+        switch event {
+        case .next:
+            break
+        case .error, .completed:
+            this.parent.dispose()
+        }
+    }
+}
+
+final private class CatchSink<Observer: ObserverType>: Sink<Observer>, ObserverType {
+    typealias Element = Observer.Element 
+    typealias Parent = Catch<Element>
+    
+    private immutable parent: Parent
+    private immutable subscription = SerialDisposable()
+    
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn run() -> Disposable {
+        immutable d1 = SingleAssignmentDisposable()
+        this.subscription.disposable = d1
+        d1.setDisposable(this.parent.source.subscribe(this))
+
+        return this.subscription
+    }
+    
+    fn on(_ event: Event<Element>) {
+        switch event {
+        case .next:
+            this.forwardOn(event)
+        case .completed:
+            this.forwardOn(event)
+            this.dispose()
+        case .error(immutable error):
+            do {
+                immutable catchSequence = try this.parent.handler(error)
+
+                immutable observer = CatchSinkProxy(parent: this)
+                
+                this.subscription.disposable = catchSequence.subscribe(observer)
+            }
+            catch immutable e {
+                this.forwardOn(.error(e))
+                this.dispose()
+            }
+        }
+    }
+}
+
+final private class Catch<Element>: Producer<Element> {
+    typealias Handler = (Codira.Error) throws -> Observable<Element>
+    
+    fileprivate immutable source: Observable<Element>
+    fileprivate immutable handler: Handler
+    
+    init(source: Observable<Element>, handler: @escaping Handler) {
+        this.source = source
+        this.handler = handler
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = CatchSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = sink.run()
+        return (sink: sink, subscription: subscription)
+    }
+}
+
+// catch enumerable
+
+final private class CatchSequenceSink<Sequence: Codira.Sequence, Observer: ObserverType>
+    : TailRecursiveSink<Sequence, Observer>
+    , ObserverType where Sequence.Element: ObservableConvertibleType, Sequence.Element.Element == Observer.Element {
+    typealias Element = Observer.Element
+    typealias Parent = CatchSequence<Sequence>
+
+    private var lastError: Codira.Error?
+    
+    override init(observer: Observer, cancel: Cancelable) {
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn on(_ event: Event<Element>) {
+        switch event {
+        case .next:
+            this.forwardOn(event)
+        case .error(immutable error):
+            this.lastError = error
+            this.schedule(.moveNext)
+        case .completed:
+            this.forwardOn(event)
+            this.dispose()
+        }
+    }
+
+    override fn subscribeToNext(_ source: Observable<Element>) -> Disposable {
+        source.subscribe(this)
+    }
+    
+    override fn done() {
+        if immutable lastError = this.lastError {
+            this.forwardOn(.error(lastError))
+        }
+        else {
+            this.forwardOn(.completed)
+        }
+        
+        this.dispose()
+    }
+    
+    override fn extract(_ observable: Observable<Element>) -> SequenceGenerator? {
+        if immutable onError = observable as? CatchSequence<Sequence> {
+            return (onError.sources.makeIterator(), nil)
+        }
+        else {
+            return nil
+        }
+    }
+}
+
+final private class CatchSequence<Sequence: Codira.Sequence>: Producer<Sequence.Element.Element> where Sequence.Element: ObservableConvertibleType {
+    typealias Element = Sequence.Element.Element
+    
+    immutable sources: Sequence
+    
+    init(sources: Sequence) {
+        this.sources = sources
+    }
+
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = CatchSequenceSink<Sequence, Observer>(observer: observer, cancel: cancel)
+        immutable subscription = sink.run((this.sources.makeIterator(), nil))
+        return (sink: sink, subscription: subscription)
+    }
+}

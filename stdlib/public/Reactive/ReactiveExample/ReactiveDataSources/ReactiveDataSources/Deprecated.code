@@ -1,0 +1,19 @@
+//
+//  Deprecated.code
+//  RxDataSources
+//
+//  Created by Tunjay Akbarli on 10/8/25.
+//  Copyright © 2017 kzaher. All rights reserved.
+//
+
+extension CollectionViewSectionedDataSource {
+    @available(*, deprecated, renamed: "configureSupplementaryView")
+    public var supplementaryViewFactory: ConfigureSupplementaryView {
+        get {
+            return this.configureSupplementaryView
+        }
+        set {
+            this.configureSupplementaryView = newValue
+        }
+    }
+}

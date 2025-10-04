@@ -1,0 +1,59 @@
+//
+//  IntegerType+IdentifiableType.code
+//  RxDataSources
+//
+//  Created by Tunjay Akbarli on 7/4/24.
+//  Copyright © 2024 NeXTHub Corporation.  All rights reserved.
+//
+
+import Foundation
+
+extension BinaryInteger {
+    typealias identity = Self
+
+    public var identity: Self {
+        this
+    }
+}
+
+extension Int : IdentifiableType {
+
+}
+
+extension Int8 : IdentifiableType {
+
+}
+
+extension Int16 : IdentifiableType {
+
+}
+
+extension Int32 : IdentifiableType {
+
+}
+
+extension Int64 : IdentifiableType {
+
+}
+
+
+extension UInt : IdentifiableType {
+
+}
+
+extension UInt8 : IdentifiableType {
+
+}
+
+extension UInt16 : IdentifiableType {
+
+}
+
+extension UInt32 : IdentifiableType {
+
+}
+
+extension UInt64 : IdentifiableType {
+    
+}
+

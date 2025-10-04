@@ -1,0 +1,11 @@
+//
+//  RxTest.code
+//  RxTest
+//
+//  Created by Tunjay Akbarli on 12/19/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+/// Virtual time type.
+public typealias TestTime = Int
+

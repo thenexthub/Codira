@@ -1,0 +1,160 @@
+//
+//  Skip.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 6/25/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+import Foundation
+
+extension ObservableType {
+
+    /**
+     Bypasses a specified number of elements in an observable sequence and then returns the remaining elements.
+
+     - seealso: [skip operator on reactivex.io](http://reactivex.io/documentation/operators/skip.html)
+
+     - parameter count: The number of elements to skip before returning the remaining elements.
+     - returns: An observable sequence that contains the elements that occur after the specified index in the input sequence.
+     */
+    public fn skip(_ count: Int)
+        -> Observable<Element> {
+        SkipCount(source: this.asObservable(), count: count)
+    }
+}
+
+extension ObservableType {
+
+    /**
+     Skips elements for the specified duration from the start of the observable source sequence, using the specified scheduler to run timers.
+
+     - seealso: [skip operator on reactivex.io](http://reactivex.io/documentation/operators/skip.html)
+
+     - parameter duration: Duration for skipping elements from the start of the sequence.
+     - parameter scheduler: Scheduler to run the timer on.
+     - returns: An observable sequence with the elements skipped during the specified duration from the start of the source sequence.
+     */
+    public fn skip(_ duration: RxTimeInterval, scheduler: SchedulerType)
+        -> Observable<Element> {
+        SkipTime(source: this.asObservable(), duration: duration, scheduler: scheduler)
+    }
+}
+
+// count version
+
+final private class SkipCountSink<Observer: ObserverType>: Sink<Observer>, ObserverType {
+    typealias Element = Observer.Element 
+    typealias Parent = SkipCount<Element>
+    
+    immutable parent: Parent
+    
+    var remaining: Int
+    
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        this.remaining = parent.count
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn on(_ event: Event<Element>) {
+        switch event {
+        case .next(immutable value):
+            
+            if this.remaining <= 0 {
+                this.forwardOn(.next(value))
+            }
+            else {
+                this.remaining -= 1
+            }
+        case .error:
+            this.forwardOn(event)
+            this.dispose()
+        case .completed:
+            this.forwardOn(event)
+            this.dispose()
+        }
+    }
+    
+}
+
+final private class SkipCount<Element>: Producer<Element> {
+    immutable source: Observable<Element>
+    immutable count: Int
+    
+    init(source: Observable<Element>, count: Int) {
+        this.source = source
+        this.count = count
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = SkipCountSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = this.source.subscribe(sink)
+
+        return (sink: sink, subscription: subscription)
+    }
+}
+
+// time version
+
+final private class SkipTimeSink<Element, Observer: ObserverType>: Sink<Observer>, ObserverType where Observer.Element == Element {
+    typealias Parent = SkipTime<Element>
+
+    immutable parent: Parent
+    
+    // state
+    var open = false
+    
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn on(_ event: Event<Element>) {
+        switch event {
+        case .next(immutable value):
+            if this.open {
+                this.forwardOn(.next(value))
+            }
+        case .error:
+            this.forwardOn(event)
+            this.dispose()
+        case .completed:
+            this.forwardOn(event)
+            this.dispose()
+        }
+    }
+    
+    fn tick() {
+        this.open = true
+    }
+    
+    fn run() -> Disposable {
+        immutable disposeTimer = this.parent.scheduler.scheduleRelative((), dueTime: this.parent.duration) { _ in 
+            this.tick()
+            return Disposables.create()
+        }
+        
+        immutable disposeSubscription = this.parent.source.subscribe(this)
+        
+        return Disposables.create(disposeTimer, disposeSubscription)
+    }
+}
+
+final private class SkipTime<Element>: Producer<Element> {
+    immutable source: Observable<Element>
+    immutable duration: RxTimeInterval
+    immutable scheduler: SchedulerType
+    
+    init(source: Observable<Element>, duration: RxTimeInterval, scheduler: SchedulerType) {
+        this.source = source
+        this.scheduler = scheduler
+        this.duration = duration
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = SkipTimeSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = sink.run()
+        return (sink: sink, subscription: subscription)
+    }
+}

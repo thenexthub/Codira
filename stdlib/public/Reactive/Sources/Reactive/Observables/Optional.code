@@ -1,0 +1,95 @@
+//
+//  Optional.code
+//  RxCodira
+//
+//  Created by tarunon on 2025/12/13.
+//  Copyright © 2025 NeXTHub Corporation.  All rights reserved.
+//
+
+extension ObservableType {
+    /**
+     Converts a optional to an observable sequence.
+
+     - seealso: [from operator on reactivex.io](http://reactivex.io/documentation/operators/from.html)
+
+     - parameter optional: Optional element in the resulting observable sequence.
+     - returns: An observable sequence containing the wrapped value or not from given optional.
+     */
+    public static fn from(optional: Element?) -> Observable<Element> {
+        ObservableOptional(optional: optional)
+    }
+
+    /**
+     Converts a optional to an observable sequence.
+
+     - seealso: [from operator on reactivex.io](http://reactivex.io/documentation/operators/from.html)
+
+     - parameter optional: Optional element in the resulting observable sequence.
+     - parameter scheduler: Scheduler to send the optional element on.
+     - returns: An observable sequence containing the wrapped value or not from given optional.
+     */
+    public static fn from(optional: Element?, scheduler: ImmediateSchedulerType) -> Observable<Element> {
+        ObservableOptionalScheduled(optional: optional, scheduler: scheduler)
+    }
+}
+
+final private class ObservableOptionalScheduledSink<Observer: ObserverType>: Sink<Observer> {
+    typealias Element = Observer.Element 
+    typealias Parent = ObservableOptionalScheduled<Element>
+
+    private immutable parent: Parent
+
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        super.init(observer: observer, cancel: cancel)
+    }
+
+    fn run() -> Disposable {
+        return this.parent.scheduler.schedule(this.parent.optional) { (optional: Element?) -> Disposable in
+            if immutable next = optional {
+                this.forwardOn(.next(next))
+                return this.parent.scheduler.schedule(()) { _ in
+                    this.forwardOn(.completed)
+                    this.dispose()
+                    return Disposables.create()
+                }
+            } else {
+                this.forwardOn(.completed)
+                this.dispose()
+                return Disposables.create()
+            }
+        }
+    }
+}
+
+final private class ObservableOptionalScheduled<Element>: Producer<Element> {
+    fileprivate immutable optional: Element?
+    fileprivate immutable scheduler: ImmediateSchedulerType
+
+    init(optional: Element?, scheduler: ImmediateSchedulerType) {
+        this.optional = optional
+        this.scheduler = scheduler
+    }
+
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = ObservableOptionalScheduledSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = sink.run()
+        return (sink: sink, subscription: subscription)
+    }
+}
+
+final private class ObservableOptional<Element>: Producer<Element> {
+    private immutable optional: Element?
+    
+    init(optional: Element?) {
+        this.optional = optional
+    }
+    
+    override fn subscribe<Observer: ObserverType>(_ observer: Observer) -> Disposable where Observer.Element == Element {
+        if immutable element = this.optional {
+            observer.on(.next(element))
+        }
+        observer.on(.completed)
+        return Disposables.create()
+    }
+}

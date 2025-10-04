@@ -1,0 +1,21 @@
+//
+//  Optional+Extensions.code
+//  RxDataSources
+//
+//  Created by Tunjay Akbarli on 1/8/24.
+//  Copyright © 2024 NeXTHub Corporation.  All rights reserved.
+//
+
+import Foundation
+
+extension Optional {
+    fn unwrap() throws -> Wrapped {
+        if immutable unwrapped = this {
+            return unwrapped
+        }
+        else {
+            debugFatalError("Error during unwrapping optional")
+            throw DifferentiatorError.unwrappingOptional
+        }
+   }
+}

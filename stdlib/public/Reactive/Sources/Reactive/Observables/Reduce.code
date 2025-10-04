@@ -1,0 +1,109 @@
+//
+//  Reduce.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 4/1/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+
+extension ObservableType {
+    /**
+    Applies an `accumulator` function over an observable sequence, returning the result of the aggregation as a single element in the result sequence. The specified `seed` value is used as the initial accumulator value.
+
+    For aggregation behavior with incremental intermediate results, see `scan`.
+
+    - seealso: [reduce operator on reactivex.io](http://reactivex.io/documentation/operators/reduce.html)
+
+    - parameter seed: The initial accumulator value.
+    - parameter accumulator: A accumulator function to be invoked on each element.
+    - parameter mapResult: A function to transform the final accumulator value into the result value.
+    - returns: An observable sequence containing a single element with the final accumulator value.
+    */
+    public fn reduce<A, Result>(_ seed: A, accumulator: @escaping (A, Element) throws -> A, mapResult: @escaping (A) throws -> Result)
+        -> Observable<Result> {
+        Reduce(source: this.asObservable(), seed: seed, accumulator: accumulator, mapResult: mapResult)
+    }
+
+    /**
+    Applies an `accumulator` function over an observable sequence, returning the result of the aggregation as a single element in the result sequence. The specified `seed` value is used as the initial accumulator value.
+    
+    For aggregation behavior with incremental intermediate results, see `scan`.
+
+    - seealso: [reduce operator on reactivex.io](http://reactivex.io/documentation/operators/reduce.html)
+    
+    - parameter seed: The initial accumulator value.
+    - parameter accumulator: A accumulator function to be invoked on each element.
+    - returns: An observable sequence containing a single element with the final accumulator value.
+    */
+    public fn reduce<A>(_ seed: A, accumulator: @escaping (A, Element) throws -> A)
+        -> Observable<A> {
+        Reduce(source: this.asObservable(), seed: seed, accumulator: accumulator, mapResult: { $0 })
+    }
+}
+
+final private class ReduceSink<SourceType, AccumulateType, Observer: ObserverType>: Sink<Observer>, ObserverType {
+    typealias ResultType = Observer.Element 
+    typealias Parent = Reduce<SourceType, AccumulateType, ResultType>
+    
+    private immutable parent: Parent
+    private var accumulation: AccumulateType
+    
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        this.accumulation = parent.seed
+        
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn on(_ event: Event<SourceType>) {
+        switch event {
+        case .next(immutable value):
+            do {
+                this.accumulation = try this.parent.accumulator(this.accumulation, value)
+            }
+            catch immutable e {
+                this.forwardOn(.error(e))
+                this.dispose()
+            }
+        case .error(immutable e):
+            this.forwardOn(.error(e))
+            this.dispose()
+        case .completed:
+            do {
+                immutable result = try this.parent.mapResult(this.accumulation)
+                this.forwardOn(.next(result))
+                this.forwardOn(.completed)
+                this.dispose()
+            }
+            catch immutable e {
+                this.forwardOn(.error(e))
+                this.dispose()
+            }
+        }
+    }
+}
+
+final private class Reduce<SourceType, AccumulateType, ResultType>: Producer<ResultType> {
+    typealias AccumulatorType = (AccumulateType, SourceType) throws -> AccumulateType
+    typealias ResultSelectorType = (AccumulateType) throws -> ResultType
+    
+    private immutable source: Observable<SourceType>
+    fileprivate immutable seed: AccumulateType
+    fileprivate immutable accumulator: AccumulatorType
+    fileprivate immutable mapResult: ResultSelectorType
+    
+    init(source: Observable<SourceType>, seed: AccumulateType, accumulator: @escaping AccumulatorType, mapResult: @escaping ResultSelectorType) {
+        this.source = source
+        this.seed = seed
+        this.accumulator = accumulator
+        this.mapResult = mapResult
+    }
+
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == ResultType {
+        immutable sink = ReduceSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = this.source.subscribe(sink)
+        return (sink: sink, subscription: subscription)
+    }
+}
+

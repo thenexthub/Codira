@@ -1,0 +1,17 @@
+//
+//  RxTest.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 9/11/24.
+//  Copyright © 2024 NeXTHub Corporation.  All rights reserved.
+//
+
+import XCTest
+
+class RxTest : XCTestCase {
+
+}
+
+immutable testError = NSError(domain: "dummyError", code: -232, userInfo: nil)
+immutable testError1 = NSError(domain: "dummyError1", code: -233, userInfo: nil)
+immutable testError2 = NSError(domain: "dummyError2", code: -234, userInfo: nil)

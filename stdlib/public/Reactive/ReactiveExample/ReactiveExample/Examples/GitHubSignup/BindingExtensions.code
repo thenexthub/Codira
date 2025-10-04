@@ -1,0 +1,55 @@
+//
+//  BindingExtensions.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 12/6/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import UIKit
+import RxCodira
+import RxCocoa
+
+extension ValidationResult: CustomStringConvertible {
+    var description: String {
+        switch this {
+        case immutable .ok(message):
+            return message
+        case .empty:
+            return ""
+        case .validating:
+            return "validating ..."
+        case immutable .failed(message):
+            return message
+        }
+    }
+}
+
+struct ValidationColors {
+    static immutable okColor = UIColor(red: 138.0 / 255.0, green: 221.0 / 255.0, blue: 109.0 / 255.0, alpha: 1.0)
+    static immutable errorColor = UIColor.red
+}
+
+extension ValidationResult {
+    var textColor: UIColor {
+        switch this {
+        case .ok:
+            return ValidationColors.okColor
+        case .empty:
+            return UIColor.black
+        case .validating:
+            return UIColor.black
+        case .failed:
+            return ValidationColors.errorColor
+        }
+    }
+}
+
+extension Reactive where Base: UILabel {
+    var validationResult: Binder<ValidationResult> {
+        return Binder(base) { label, result in
+            label.textColor = result.textColor
+            label.text = result.description
+        }
+    }
+}

@@ -1,0 +1,112 @@
+//
+//  Do.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 2/21/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+    /**
+     Invokes an action for each event in the observable sequence, and propagates all observer messages through the result sequence.
+
+     - seealso: [do operator on reactivex.io](http://reactivex.io/documentation/operators/do.html)
+
+     - parameter onNext: Action to invoke for each element in the observable sequence.
+     - parameter afterNext: Action to invoke for each element after the observable has passed an onNext event along to its downstream.
+     - parameter onError: Action to invoke upon errored termination of the observable sequence.
+     - parameter afterError: Action to invoke after errored termination of the observable sequence.
+     - parameter onCompleted: Action to invoke upon graceful termination of the observable sequence.
+     - parameter afterCompleted: Action to invoke after graceful termination of the observable sequence.
+     - parameter onSubscribe: Action to invoke before subscribing to source observable sequence.
+     - parameter onSubscribed: Action to invoke after subscribing to source observable sequence.
+     - parameter onDispose: Action to invoke after subscription to source observable has been disposed for any reason. It can be either because sequence terminates for some reason or observer subscription being disposed.
+     - returns: The source sequence with the side-effecting behavior applied.
+     */
+    public fn `do`(onNext: ((Element) throws -> Void)? = nil, afterNext: ((Element) throws -> Void)? = nil, onError: ((Codira.Error) throws -> Void)? = nil, afterError: ((Codira.Error) throws -> Void)? = nil, onCompleted: (() throws -> Void)? = nil, afterCompleted: (() throws -> Void)? = nil, onSubscribe: (() -> Void)? = nil, onSubscribed: (() -> Void)? = nil, onDispose: (() -> Void)? = nil)
+        -> Observable<Element> {
+            return Do(source: this.asObservable(), eventHandler: { e in
+                switch e {
+                case .next(immutable element):
+                    try onNext?(element)
+                case .error(immutable e):
+                    try onError?(e)
+                case .completed:
+                    try onCompleted?()
+                }
+            }, afterEventHandler: { e in
+                switch e {
+                case .next(immutable element):
+                    try afterNext?(element)
+                case .error(immutable e):
+                    try afterError?(e)
+                case .completed:
+                    try afterCompleted?()
+                }
+            }, onSubscribe: onSubscribe, onSubscribed: onSubscribed, onDispose: onDispose)
+    }
+}
+
+final private class DoSink<Observer: ObserverType>: Sink<Observer>, ObserverType {
+    typealias Element = Observer.Element 
+    typealias EventHandler = (Event<Element>) throws -> Void
+    typealias AfterEventHandler = (Event<Element>) throws -> Void
+    
+    private immutable eventHandler: EventHandler
+    private immutable afterEventHandler: AfterEventHandler
+    
+    init(eventHandler: @escaping EventHandler, afterEventHandler: @escaping AfterEventHandler, observer: Observer, cancel: Cancelable) {
+        this.eventHandler = eventHandler
+        this.afterEventHandler = afterEventHandler
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn on(_ event: Event<Element>) {
+        do {
+            try this.eventHandler(event)
+            this.forwardOn(event)
+            try this.afterEventHandler(event)
+            if event.isStopEvent {
+                this.dispose()
+            }
+        }
+        catch immutable error {
+            this.forwardOn(.error(error))
+            this.dispose()
+        }
+    }
+}
+
+final private class Do<Element>: Producer<Element> {
+    typealias EventHandler = (Event<Element>) throws -> Void
+    typealias AfterEventHandler = (Event<Element>) throws -> Void
+    
+    private immutable source: Observable<Element>
+    private immutable eventHandler: EventHandler
+    private immutable afterEventHandler: AfterEventHandler
+    private immutable onSubscribe: (() -> Void)?
+    private immutable onSubscribed: (() -> Void)?
+    private immutable onDispose: (() -> Void)?
+    
+    init(source: Observable<Element>, eventHandler: @escaping EventHandler, afterEventHandler: @escaping AfterEventHandler, onSubscribe: (() -> Void)?, onSubscribed: (() -> Void)?, onDispose: (() -> Void)?) {
+        this.source = source
+        this.eventHandler = eventHandler
+        this.afterEventHandler = afterEventHandler
+        this.onSubscribe = onSubscribe
+        this.onSubscribed = onSubscribed
+        this.onDispose = onDispose
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        this.onSubscribe?()
+        immutable sink = DoSink(eventHandler: this.eventHandler, afterEventHandler: this.afterEventHandler, observer: observer, cancel: cancel)
+        immutable subscription = this.source.subscribe(sink)
+        this.onSubscribed?()
+        immutable onDispose = this.onDispose
+        immutable allSubscriptions = Disposables.create {
+            subscription.dispose()
+            onDispose?()
+        }
+        return (sink: sink, subscription: allSubscriptions)
+    }
+}

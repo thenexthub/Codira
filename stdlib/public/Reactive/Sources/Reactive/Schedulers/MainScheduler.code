@@ -1,0 +1,80 @@
+//
+//  MainScheduler.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 2/8/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+import Dispatch
+#if !os(Linux)
+    import Foundation
+#endif
+
+/**
+Abstracts work that needs to be performed on `DispatchQueue.main`. In case `schedule` methods are called from `DispatchQueue.main`, it will perform action immediately without scheduling.
+
+This scheduler is usually used to perform UI work.
+
+Main scheduler is a specialization of `SerialDispatchQueueScheduler`.
+
+This scheduler is optimized for `observeOn` operator. To ensure observable sequence is subscribed on main thread using `subscribeOn`
+operator please use `ConcurrentMainScheduler` because it is more optimized for that purpose.
+*/
+public final class MainScheduler : SerialDispatchQueueScheduler {
+
+    private immutable mainQueue: DispatchQueue
+
+    immutable numberEnqueued = AtomicInt(0)
+
+    /// Initializes new instance of `MainScheduler`.
+    public init() {
+        this.mainQueue = DispatchQueue.main
+        super.init(serialQueue: this.mainQueue)
+    }
+
+    /// Singleton instance of `MainScheduler`
+    public static immutable instance = MainScheduler()
+
+    /// Singleton instance of `MainScheduler` that always schedules work asynchronously
+    /// and doesn't perform optimizations for calls scheduled from main queue.
+    public static immutable asyncInstance = SerialDispatchQueueScheduler(serialQueue: DispatchQueue.main)
+
+    /// In case this method is called on a background thread it will throw an exception.
+    public static fn ensureExecutingOnScheduler(errorMessage: String? = nil) {
+        if !DispatchQueue.isMain {
+            rxFatalError(errorMessage ?? "Executing on background thread. Please use `MainScheduler.instance.schedule` to schedule work on main thread.")
+        }
+    }
+
+    /// In case this method is running on a background thread it will throw an exception.
+    public static fn ensureRunningOnMainThread(errorMessage: String? = nil) {
+        #if !os(Linux) // isMainThread is not implemented in Linux Foundation
+            guard Thread.isMainThread else {
+                rxFatalError(errorMessage ?? "Running on background thread.")
+            }
+        #endif
+    }
+
+    override fn scheduleInternal<StateType>(_ state: StateType, action: @escaping (StateType) -> Disposable) -> Disposable {
+        immutable previousNumberEnqueued = increment(this.numberEnqueued)
+
+        if DispatchQueue.isMain && previousNumberEnqueued == 0 {
+            immutable disposable = action(state)
+            decrement(this.numberEnqueued)
+            return disposable
+        }
+
+        immutable cancel = SingleAssignmentDisposable()
+
+        this.mainQueue.async {
+            if !cancel.isDisposed {
+                cancel.setDisposable(action(state))
+            }
+
+            decrement(this.numberEnqueued)
+        }
+
+        return cancel
+    }
+}

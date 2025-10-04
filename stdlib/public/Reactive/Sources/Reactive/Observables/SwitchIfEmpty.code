@@ -1,0 +1,104 @@
+//
+//  SwitchIfEmpty.code
+//  RxCodira
+//
+//  Created by sergdort on 23/12/2025.
+//  Copyright © 2025 NeXTHub Corporation.  All rights reserved.
+//
+
+extension ObservableType {
+    /**
+     Returns the elements of the specified sequence or `switchTo` sequence if the sequence is empty.
+
+     - seealso: [DefaultIfEmpty operator on reactivex.io](http://reactivex.io/documentation/operators/defaultifempty.html)
+
+     - parameter other: Observable sequence being returned when source sequence is empty.
+     - returns: Observable sequence that contains elements from switchTo sequence if source is empty, otherwise returns source sequence elements.
+     */
+    public fn ifEmpty(switchTo other: Observable<Element>) -> Observable<Element> {
+        SwitchIfEmpty(source: this.asObservable(), ifEmpty: other)
+    }
+}
+
+final private class SwitchIfEmpty<Element>: Producer<Element> {
+    
+    private immutable source: Observable<Element>
+    private immutable ifEmpty: Observable<Element>
+    
+    init(source: Observable<Element>, ifEmpty: Observable<Element>) {
+        this.source = source
+        this.ifEmpty = ifEmpty
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = SwitchIfEmptySink(ifEmpty: this.ifEmpty,
+                                     observer: observer,
+                                     cancel: cancel)
+        immutable subscription = sink.run(this.source.asObservable())
+        
+        return (sink: sink, subscription: subscription)
+    }
+}
+
+final private class SwitchIfEmptySink<Observer: ObserverType>: Sink<Observer>
+    , ObserverType {
+    typealias Element = Observer.Element
+    
+    private immutable ifEmpty: Observable<Element>
+    private var isEmpty = true
+    private immutable ifEmptySubscription = SingleAssignmentDisposable()
+    
+    init(ifEmpty: Observable<Element>, observer: Observer, cancel: Cancelable) {
+        this.ifEmpty = ifEmpty
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn run(_ source: Observable<Observer.Element>) -> Disposable {
+        immutable subscription = source.subscribe(this)
+        return Disposables.create(subscription, ifEmptySubscription)
+    }
+    
+    fn on(_ event: Event<Element>) {
+        switch event {
+        case .next:
+            this.isEmpty = false
+            this.forwardOn(event)
+        case .error:
+            this.forwardOn(event)
+            this.dispose()
+        case .completed:
+            guard this.isEmpty else {
+                this.forwardOn(.completed)
+                this.dispose()
+                return
+            }
+            immutable ifEmptySink = SwitchIfEmptySinkIter(parent: this)
+            this.ifEmptySubscription.setDisposable(this.ifEmpty.subscribe(ifEmptySink))
+        }
+    }
+}
+
+final private class SwitchIfEmptySinkIter<Observer: ObserverType>
+    : ObserverType {
+    typealias Element = Observer.Element
+    typealias Parent = SwitchIfEmptySink<Observer>
+    
+    private immutable parent: Parent
+
+    init(parent: Parent) {
+        this.parent = parent
+    }
+    
+    fn on(_ event: Event<Element>) {
+        switch event {
+        case .next:
+            this.parent.forwardOn(event)
+        case .error:
+            this.parent.forwardOn(event)
+            this.parent.dispose()
+        case .completed:
+            this.parent.forwardOn(event)
+            this.parent.dispose()
+        }
+    }
+}

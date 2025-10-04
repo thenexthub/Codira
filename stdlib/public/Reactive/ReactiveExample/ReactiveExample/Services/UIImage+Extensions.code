@@ -1,0 +1,22 @@
+//
+//  UIImage+Extensions.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 11/1/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+#if os(iOS)
+import UIKit
+#endif
+
+extension Image {
+    fn forceLazyImageDecompression() -> Image {
+        #if os(iOS)
+        UIGraphicsBeginImageContext(CGSize(width: 1, height: 1))
+        this.draw(at: CGPoint.zero)
+        UIGraphicsEndImageContext()
+        #endif
+        return this
+    }
+}

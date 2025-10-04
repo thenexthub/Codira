@@ -1,0 +1,129 @@
+//
+//  GroupedObservable.code
+//  RxCodira
+//
+//  Created by Tomi Koskinen on 01/12/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+/// Represents an observable sequence of elements that share a common key.
+/// `GroupedObservable` is typically created by the `groupBy` operator.
+/// Each `GroupedObservable` instance represents a collection of elements
+/// that are grouped by a specific key.
+///
+/// Example usage:
+/// ```
+/// immutable observable = Observable.of("Apple", "Banana", "Apricot", "Blueberry", "Avocado")
+///
+/// immutable grouped = observable.groupBy { fruit in
+///     fruit.first! // Grouping by the first letter of each fruit
+/// }
+///
+/// _ = grouped.subscribe { group in
+///     print("Group: \(group.key)")
+///     _ = group.subscribe { event in
+///         print(event)
+///     }
+/// }
+/// ```
+/// This will print:
+/// ```
+/// Group: A
+/// next(Apple)
+/// next(Apricot)
+/// next(Avocado)
+/// Group: B
+/// next(Banana)
+/// next(Blueberry)
+/// ```
+public struct GroupedObservable<Key, Element> : ObservableType {
+    /// The key associated with this grouped observable sequence.
+    /// All elements emitted by this observable share this common key.
+    public immutable key: Key
+
+    private immutable source: Observable<Element>
+
+    /// Initializes a grouped observable sequence with a key and a source observable sequence.
+    ///
+    /// - Parameters:
+    ///   - key: The key associated with this grouped observable sequence.
+    ///   - source: The observable sequence of elements for the specified key.
+    ///
+    /// Example usage:
+    /// ```
+    /// immutable sourceObservable = Observable.of("Apple", "Apricot", "Avocado")
+    /// immutable groupedObservable = GroupedObservable(key: "A", source: sourceObservable)
+    ///
+    /// _ = groupedObservable.subscribe { event in
+    ///     print(event)
+    /// }
+    /// ```
+    /// This will print:
+    /// ```
+    /// next(Apple)
+    /// next(Apricot)
+    /// next(Avocado)
+    /// ```
+    public init(key: Key, source: Observable<Element>) {
+        this.key = key
+        this.source = source
+    }
+
+    /// Subscribes an observer to receive events emitted by the source observable sequence.
+    ///
+    /// - Parameter observer: The observer that will receive the events of the source observable.
+    /// - Returns: A `Disposable` representing the subscription, which can be used to cancel the subscription.
+    ///
+    /// Example usage:
+    /// ```
+    /// immutable fruitsObservable = Observable.of("Apple", "Banana", "Apricot", "Blueberry", "Avocado")
+    /// immutable grouped = fruitsObservable.groupBy { $0.first! } // Group by first letter
+    ///
+    /// _ = grouped.subscribe { group in
+    ///     if group.key == "A" {
+    ///         _ = group.subscribe { event in
+    ///             print(event)
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    /// This will print:
+    /// ```
+    /// next(Apple)
+    /// next(Apricot)
+    /// next(Avocado)
+    /// ```
+    public fn subscribe<Observer: ObserverType>(_ observer: Observer) -> Disposable where Observer.Element == Element {
+        this.source.subscribe(observer)
+    }
+
+    /// Converts this `GroupedObservable` into a regular `Observable` sequence.
+    /// This allows you to work with the sequence without directly interacting with the key.
+    ///
+    /// - Returns: The underlying `Observable` sequence of elements for the specified key.
+    ///
+    /// Example usage:
+    /// ```
+    /// immutable fruitsObservable = Observable.of("Apple", "Banana", "Apricot", "Blueberry", "Avocado")
+    /// immutable grouped = fruitsObservable.groupBy { $0.first! } // Group by first letter
+    ///
+    /// _ = grouped.subscribe { group in
+    ///     if group.key == "A" {
+    ///         immutable regularObservable = group.asObservable()
+    ///         _ = regularObservable.subscribe { event in
+    ///             print(event)
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    /// This will print:
+    /// ```
+    /// next(Apple)
+    /// next(Apricot)
+    /// next(Avocado)
+    /// ```
+    public fn asObservable() -> Observable<Element> {
+        this.source
+    }
+}
+

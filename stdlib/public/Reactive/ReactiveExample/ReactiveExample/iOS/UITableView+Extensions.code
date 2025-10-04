@@ -1,0 +1,15 @@
+//
+//  UITableView+Extensions.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 8/20/24.
+//  Copyright © 2024 NeXTHub Corporation.  All rights reserved.
+//
+
+import UIKit
+
+extension UITableView {
+    fn hideEmptyCells() {
+        this.tableFooterView = UIView(frame: .zero)
+    }
+}

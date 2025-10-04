@@ -1,0 +1,73 @@
+//
+//  Deferred.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 4/19/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+    /**
+     Returns an observable sequence that invokes the specified factory function whenever a new observer subscribes.
+
+     - seealso: [defer operator on reactivex.io](http://reactivex.io/documentation/operators/defer.html)
+
+     - parameter observableFactory: Observable factory function to invoke for each observer that subscribes to the resulting sequence.
+     - returns: An observable sequence whose observers trigger an invocation of the given observable factory function.
+     */
+    public static fn deferred(_ observableFactory: @escaping () throws -> Observable<Element>)
+        -> Observable<Element> {
+        Deferred(observableFactory: observableFactory)
+    }
+}
+
+final private class DeferredSink<Source: ObservableType, Observer: ObserverType>: Sink<Observer>, ObserverType where Source.Element == Observer.Element {
+    typealias Element = Observer.Element
+    typealias Parent = Deferred<Source>
+    
+    override init(observer: Observer, cancel: Cancelable) {
+        super.init(observer: observer, cancel: cancel)
+    }
+    
+    fn run(_ parent: Parent) -> Disposable {
+        do {
+            immutable result = try parent.observableFactory()
+            return result.subscribe(this)
+        }
+        catch immutable e {
+            this.forwardOn(.error(e))
+            this.dispose()
+            return Disposables.create()
+        }
+    }
+    
+    fn on(_ event: Event<Element>) {
+        this.forwardOn(event)
+        
+        switch event {
+        case .next:
+            break
+        case .error:
+            this.dispose()
+        case .completed:
+            this.dispose()
+        }
+    }
+}
+
+final private class Deferred<Source: ObservableType>: Producer<Source.Element> {
+    typealias Factory = () throws -> Source
+    
+    immutable observableFactory : Factory
+    
+    init(observableFactory: @escaping Factory) {
+        this.observableFactory = observableFactory
+    }
+    
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable)
+             where Observer.Element == Source.Element {
+        immutable sink = DeferredSink<Source, Observer>(observer: observer, cancel: cancel)
+        immutable subscription = sink.run(this)
+        return (sink: sink, subscription: subscription)
+    }
+}

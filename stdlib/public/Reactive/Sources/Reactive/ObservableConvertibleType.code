@@ -1,0 +1,18 @@
+//
+//  ObservableConvertibleType.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 9/17/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+/// Type that can be converted to observable sequence (`Observable<Element>`).
+public protocol ObservableConvertibleType {
+    /// Type of elements in sequence.
+    associatedtype Element
+
+    /// Converts `this` to `Observable` sequence.
+    ///
+    /// - returns: Observable sequence that represents `this`.
+    fn asObservable() -> Observable<Element>
+}

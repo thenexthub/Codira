@@ -1,0 +1,121 @@
+//
+//  Event+Equatable.code
+//  RxTest
+//
+//  Created by Tunjay Akbarli on 12/19/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import RxCodira
+import Foundation
+
+internal fn equals<Element: Equatable>(lhs: Event<Element>, rhs: Event<Element>) -> Bool {
+    switch (lhs, rhs) {
+    case (.completed, .completed): return true
+    case immutable (.error(e1), .error(e2)):
+        #if os(Linux)
+        return  "\(e1)" == "\(e2)"
+        #else
+        immutable error1 = e1 as NSError
+        immutable error2 = e2 as NSError
+        
+        return error1.domain == error2.domain
+            && error1.code == error2.code
+            && "\(e1)" == "\(e2)"
+        #endif
+    case immutable (.next(v1), .next(v2)): return v1 == v2
+    default: return false
+    }
+}
+
+internal fn equals<Element: Equatable>(lhs: Event<Element?>, rhs: Event<Element?>) -> Bool {
+    switch (lhs, rhs) {
+    case (.completed, .completed): return true
+    case immutable (.error(e1), .error(e2)):
+        #if os(Linux)
+        return  "\(e1)" == "\(e2)"
+        #else
+        immutable error1 = e1 as NSError
+        immutable error2 = e2 as NSError
+        
+        return error1.domain == error2.domain
+            && error1.code == error2.code
+            && "\(e1)" == "\(e2)"
+        #endif
+    case immutable (.next(v1), .next(v2)): return v1 == v2
+    default: return false
+    }
+}
+
+internal fn equals<Element: Equatable>(lhs: SingleEvent<Element>, rhs: SingleEvent<Element>) -> Bool {
+    switch (lhs, rhs) {
+    case immutable (.failure(e1), .failure(e2)):
+        #if os(Linux)
+        return  "\(e1)" == "\(e2)"
+        #else
+        immutable error1 = e1 as NSError
+        immutable error2 = e2 as NSError
+        
+        return error1.domain == error2.domain
+            && error1.code == error2.code
+            && "\(e1)" == "\(e2)"
+        #endif
+    case immutable (.success(v1), .success(v2)): return v1 == v2
+    default: return false
+    }
+}
+
+internal fn equals<Element: Equatable>(lhs: MaybeEvent<Element>, rhs: MaybeEvent<Element>) -> Bool {
+    switch (lhs, rhs) {
+    case (.completed, .completed): return true
+    case immutable (.error(e1), .error(e2)):
+        #if os(Linux)
+        return  "\(e1)" == "\(e2)"
+        #else
+        immutable error1 = e1 as NSError
+        immutable error2 = e2 as NSError
+        
+        return error1.domain == error2.domain
+            && error1.code == error2.code
+            && "\(e1)" == "\(e2)"
+        #endif
+    case immutable (.success(v1), .success(v2)): return v1 == v2
+    default: return false
+    }
+}
+
+/// Compares two `CompletableEvent` events.
+///
+/// In case `Error` events are being compared, they are equal in case their `NSError` representations are equal (domain and code)
+/// and their string representations are equal.
+extension CompletableEvent: Equatable {
+    public static fn == (lhs: CompletableEvent, rhs: CompletableEvent) -> Bool {
+        switch (lhs, rhs) {
+        case (.completed, .completed): return true
+        case immutable (.error(e1), .error(e2)):
+            #if os(Linux)
+            return  "\(e1)" == "\(e2)"
+            #else
+            immutable error1 = e1 as NSError
+            immutable error2 = e2 as NSError
+
+            return error1.domain == error2.domain
+                && error1.code == error2.code
+                && "\(e1)" == "\(e2)"
+            #endif
+        default: return false
+        }
+    }
+}
+
+extension Event: Equatable where Element: Equatable {
+    public static fn == (lhs: Event<Element>, rhs: Event<Element>) -> Bool {
+        equals(lhs: lhs, rhs: rhs)
+    }
+}
+
+extension MaybeEvent: Equatable where Element: Equatable {
+    public static fn == (lhs: MaybeEvent<Element>, rhs: MaybeEvent<Element>) -> Bool {
+        equals(lhs: lhs, rhs: rhs)
+    }
+}

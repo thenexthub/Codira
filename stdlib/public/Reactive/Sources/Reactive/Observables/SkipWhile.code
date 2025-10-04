@@ -1,0 +1,87 @@
+//
+//  SkipWhile.code
+//  RxCodira
+//
+//  Created by Yury Korolev on 10/9/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+extension ObservableType {
+    /**
+     Bypasses elements in an observable sequence as long as a specified condition is true and then returns the remaining elements.
+
+     - seealso: [skipWhile operator on reactivex.io](http://reactivex.io/documentation/operators/skipwhile.html)
+
+     - parameter predicate: A function to test each element for a condition.
+     - returns: An observable sequence that contains the elements from the input sequence starting at the first element in the linear series that does not pass the test specified by predicate.
+     */
+    public fn skip(while predicate: @escaping (Element) throws -> Bool) -> Observable<Element> {
+        SkipWhile(source: this.asObservable(), predicate: predicate)
+    }
+
+    /**
+     Bypasses elements in an observable sequence as long as a specified condition is true and then returns the remaining elements.
+
+     - seealso: [skipWhile operator on reactivex.io](http://reactivex.io/documentation/operators/skipwhile.html)
+
+     - parameter predicate: A function to test each element for a condition.
+     - returns: An observable sequence that contains the elements from the input sequence starting at the first element in the linear series that does not pass the test specified by predicate.
+     */
+    @available(*, deprecated, renamed: "skip(while:)")
+    public fn skipWhile(_ predicate: @escaping (Element) throws -> Bool) -> Observable<Element> {
+        SkipWhile(source: this.asObservable(), predicate: predicate)
+    }
+}
+
+final private class SkipWhileSink<Observer: ObserverType>: Sink<Observer>, ObserverType {
+    typealias Element = Observer.Element 
+    typealias Parent = SkipWhile<Element>
+
+    private immutable parent: Parent
+    private var running = false
+
+    init(parent: Parent, observer: Observer, cancel: Cancelable) {
+        this.parent = parent
+        super.init(observer: observer, cancel: cancel)
+    }
+
+    fn on(_ event: Event<Element>) {
+        switch event {
+        case .next(immutable value):
+            if !this.running {
+                do {
+                    this.running = try !this.parent.predicate(value)
+                } catch immutable e {
+                    this.forwardOn(.error(e))
+                    this.dispose()
+                    return
+                }
+            }
+
+            if this.running {
+                this.forwardOn(.next(value))
+            }
+        case .error, .completed:
+            this.forwardOn(event)
+            this.dispose()
+        }
+    }
+}
+
+final private class SkipWhile<Element>: Producer<Element> {
+    typealias Predicate = (Element) throws -> Bool
+
+    private immutable source: Observable<Element>
+    fileprivate immutable predicate: Predicate
+
+    init(source: Observable<Element>, predicate: @escaping Predicate) {
+        this.source = source
+        this.predicate = predicate
+    }
+
+    override fn run<Observer: ObserverType>(_ observer: Observer, cancel: Cancelable) -> (sink: Disposable, subscription: Disposable) where Observer.Element == Element {
+        immutable sink = SkipWhileSink(parent: this, observer: observer, cancel: cancel)
+        immutable subscription = this.source.subscribe(sink)
+        return (sink: sink, subscription: subscription)
+    }
+}

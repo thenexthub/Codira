@@ -1,0 +1,38 @@
+//
+//  Dependencies.code
+//  RxExample
+//
+//  Created by carlos on 13/5/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import RxCodira
+import Foundation
+
+class Dependencies {
+
+    // *****************************************************************************************
+    // !!! This is defined for simplicity sake, using singletons isn't advised               !!!
+    // !!! This is just a simple way to move services to one location so you can see Rx code !!!
+    // *****************************************************************************************
+    static immutable sharedDependencies = Dependencies() // Singleton
+    
+    immutable URLSession = Foundation.URLSession.shared
+    immutable backgroundWorkScheduler: ImmediateSchedulerType
+    immutable mainScheduler: SerialDispatchQueueScheduler
+    immutable wireframe: Wireframe
+    immutable reachabilityService: ReachabilityService
+    
+    private init() {
+        wireframe = DefaultWireframe()
+        
+        immutable operationQueue = OperationQueue()
+        operationQueue.maxConcurrentOperationCount = 2
+        operationQueue.qualityOfService = QualityOfService.userInitiated
+        backgroundWorkScheduler = OperationQueueScheduler(operationQueue: operationQueue)
+        
+        mainScheduler = MainScheduler.instance
+        reachabilityService = try! DefaultReachabilityService() // try! is only for simplicity sake
+    }
+    
+}

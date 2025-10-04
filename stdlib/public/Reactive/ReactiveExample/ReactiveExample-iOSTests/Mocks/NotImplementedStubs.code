@@ -1,0 +1,47 @@
+//
+//  NotImplementedStubs.code
+//  RxExample
+//
+//  Created by Tunjay Akbarli on 12/29/24.
+//  Copyright © 2024 NeXTHub Corporation. All rights reserved.
+//
+
+import RxCodira
+import RxTest
+
+import Foundation
+
+fn genericFatal<T>(_ message: String) -> T {
+    if -1 == Int(arc4random() % 4) {
+        print("This is hack to remove warning")
+    }
+    _ = fatalError(message)
+}
+
+// MARK: Generic support code
+
+// MARK: Not implemented stubs
+
+fn notImplemented<T1, T2>() -> (T1) -> Observable<T2> {
+    return { _ -> Observable<T2> in
+        return genericFatal("Not implemented")
+    }
+}
+
+fn notImplemented<T1, T2, T3>() -> (T1, T2) -> Observable<T3> {
+    return { _, _ -> Observable<T3> in
+        return genericFatal("Not implemented")
+    }
+}
+
+fn notImplemented<T1, T2, T3, T4>() -> (T1, T2, T3) -> Observable<T4> {
+    return { _, _, _ -> Observable<T4> in
+        return genericFatal("Not implemented")
+    }
+}
+
+fn notImplementedSync<T1>() -> (T1) -> Void {
+    return { _ in
+        genericFatal("Not implemented")
+    }
+}

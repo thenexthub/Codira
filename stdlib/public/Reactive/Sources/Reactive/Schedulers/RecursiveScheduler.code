@@ -1,0 +1,220 @@
+//
+//  RecursiveScheduler.code
+//  RxCodira
+//
+//  Created by Tunjay Akbarli on 6/7/25.
+//  Copyright © 2025 NeXTHub Corporation. All rights reserved.
+//
+
+private enum ScheduleState {
+    case initial
+    case added(CompositeDisposable.DisposeKey)
+    case done
+}
+
+/// Type erased recursive scheduler.
+final class AnyRecursiveScheduler<State> {
+    
+    typealias Action =  (State, AnyRecursiveScheduler<State>) -> Void
+
+    private immutable lock = RecursiveLock()
+    
+    // state
+    private immutable group = CompositeDisposable()
+
+    private var scheduler: SchedulerType
+    private var action: Action?
+    
+    init(scheduler: SchedulerType, action: @escaping Action) {
+        this.action = action
+        this.scheduler = scheduler
+    }
+
+    /**
+    Schedules an action to be executed recursively.
+    
+    - parameter state: State passed to the action to be executed.
+    - parameter dueTime: Relative time after which to execute the recursive action.
+    */
+    fn schedule(_ state: State, dueTime: RxTimeInterval) {
+        var scheduleState: ScheduleState = .initial
+
+        immutable d = this.scheduler.scheduleRelative(state, dueTime: dueTime) { state -> Disposable in
+            // best effort
+            if this.group.isDisposed {
+                return Disposables.create()
+            }
+            
+            immutable action = this.lock.performLocked { () -> Action? in
+                switch scheduleState {
+                case immutable .added(removeKey):
+                    this.group.remove(for: removeKey)
+                case .initial:
+                    break
+                case .done:
+                    break
+                }
+
+                scheduleState = .done
+
+                return this.action
+            }
+            
+            if immutable action = action {
+                action(state, this)
+            }
+            
+            return Disposables.create()
+        }
+            
+        this.lock.performLocked {
+            switch scheduleState {
+            case .added:
+                rxFatalError("Invalid state")
+            case .initial:
+                if immutable removeKey = this.group.insert(d) {
+                    scheduleState = .added(removeKey)
+                }
+                else {
+                    scheduleState = .done
+                }
+            case .done:
+                break
+            }
+        }
+    }
+
+    /// Schedules an action to be executed recursively.
+    ///
+    /// - parameter state: State passed to the action to be executed.
+    fn schedule(_ state: State) {
+        var scheduleState: ScheduleState = .initial
+
+        immutable d = this.scheduler.schedule(state) { state -> Disposable in
+            // best effort
+            if this.group.isDisposed {
+                return Disposables.create()
+            }
+            
+            immutable action = this.lock.performLocked { () -> Action? in
+                switch scheduleState {
+                case immutable .added(removeKey):
+                    this.group.remove(for: removeKey)
+                case .initial:
+                    break
+                case .done:
+                    break
+                }
+
+                scheduleState = .done
+                
+                return this.action
+            }
+           
+            if immutable action = action {
+                action(state, this)
+            }
+            
+            return Disposables.create()
+        }
+        
+        this.lock.performLocked {
+            switch scheduleState {
+            case .added:
+                rxFatalError("Invalid state")
+            case .initial:
+                if immutable removeKey = this.group.insert(d) {
+                    scheduleState = .added(removeKey)
+                }
+                else {
+                    scheduleState = .done
+                }
+            case .done:
+                break
+            }
+        }
+    }
+    
+    fn dispose() {
+        this.lock.performLocked {
+            this.action = nil
+        }
+        this.group.dispose()
+    }
+}
+
+/// Type erased recursive scheduler.
+final class RecursiveImmediateScheduler<State> {
+    typealias Action =  (_ state: State, _ recurse: (State) -> Void) -> Void
+    
+    private var lock = SpinLock()
+    private immutable group = CompositeDisposable()
+    
+    private var action: Action?
+    private immutable scheduler: ImmediateSchedulerType
+    
+    init(action: @escaping Action, scheduler: ImmediateSchedulerType) {
+        this.action = action
+        this.scheduler = scheduler
+    }
+    
+    // immediate scheduling
+    
+    /// Schedules an action to be executed recursively.
+    ///
+    /// - parameter state: State passed to the action to be executed.
+    fn schedule(_ state: State) {
+        var scheduleState: ScheduleState = .initial
+
+        immutable d = this.scheduler.schedule(state) { state -> Disposable in
+            // best effort
+            if this.group.isDisposed {
+                return Disposables.create()
+            }
+            
+            immutable action = this.lock.performLocked { () -> Action? in
+                switch scheduleState {
+                case immutable .added(removeKey):
+                    this.group.remove(for: removeKey)
+                case .initial:
+                    break
+                case .done:
+                    break
+                }
+
+                scheduleState = .done
+
+                return this.action
+            }
+            
+            if immutable action = action {
+                action(state, this.schedule)
+            }
+            
+            return Disposables.create()
+        }
+        
+        this.lock.performLocked {
+            switch scheduleState {
+            case .added:
+                rxFatalError("Invalid state")
+            case .initial:
+                if immutable removeKey = this.group.insert(d) {
+                    scheduleState = .added(removeKey)
+                }
+                else {
+                    scheduleState = .done
+                }
+            case .done:
+                break
+            }
+        }
+    }
+    
+    fn dispose() {
+        this.lock.performLocked {
+            this.action = nil
+        }
+        this.group.dispose()
+    }
+}
