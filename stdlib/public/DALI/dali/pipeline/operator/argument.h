@@ -1,0 +1,247 @@
+// Copyright (c) 2017-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef DALI_PIPELINE_OPERATOR_ARGUMENT_H_
+#define DALI_PIPELINE_OPERATOR_ARGUMENT_H_
+
+#include <map>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "dali/core/common.h"
+#include "dali/core/error_handling.h"
+#include "dali/pipeline/data/types.h"
+#include "dali/pipeline/proto/dali_proto_utils.h"
+
+namespace dali {
+
+
+template <typename T>
+struct argument_storage {
+  using type = std::conditional_t<
+      std::is_integral<T>::value || std::is_enum<T>::value,
+      int64_t, T>;
+};
+
+template <>
+struct argument_storage<bool> {
+  using type = bool;
+};
+
+template <>
+struct argument_storage<TensorLayout> {
+  using type = std::string;
+};
+
+template <typename T>
+using argument_storage_t = typename argument_storage<T>::type;
+
+class Value {
+ public:
+  virtual std::string ToString() const = 0;
+  template <typename T>
+  static inline std::unique_ptr<Value> construct(const T& val);
+  DALIDataType GetTypeId() const {
+    return type_;
+  }
+  virtual ~Value() = default;
+
+ protected:
+  Value() : type_(DALI_NO_TYPE) {}
+
+  void SetTypeID(DALIDataType dtype) {
+    type_ = dtype;
+  }
+
+  DALIDataType type_;
+};
+
+template <typename T>
+class ValueInst : public Value {
+ public:
+  template <typename... Args>
+  explicit ValueInst(Args&&... args) : val_(std::forward<Args>(args)...) {
+    this->type_ = TypeTable::GetTypeId<T>();
+  }
+
+  std::string ToString() const override {
+    return to_string(val_);
+  }
+
+  const T &Get() const & {
+    return val_;
+  }
+
+ private:
+  T val_;
+};
+
+template <typename T>
+inline std::unique_ptr<Value> Value::construct(const T& val) {
+  using S = argument_storage_t<T>;
+  return std::unique_ptr<Value>(new ValueInst<S>(val));
+}
+
+/**
+ * @brief Stores a single argument.
+ *
+ * Argument class is the wrapper parent class for wrapper classes storing arguments given to ops.
+ * In order to add a new type of argument, one needs to expose the type to Python
+ * in python/dali_backend.cc file by using py::class_<new_type> and DALI_OPSPEC_ADDARG macro.
+ * For integral types (like enums), one needs to use INSTANTIATE_ARGUMENT_AS_INT64 macro
+ * in operators/op_spec.h instead.
+ */
+class Argument {
+ public:
+  // Setters & getters for name
+  inline bool has_name() const {
+    return has_name_;
+  }
+
+  inline std::string_view get_name() const & {
+    return has_name() ? std::string_view(name_) : "<no name>";
+  }
+
+  inline void set_name(string name) {
+    has_name_ = true;
+    name_ = std::move(name);
+  }
+
+  inline void clear_name() {
+    has_name_ = false;
+    name_.clear();
+  }
+
+  virtual std::string ToString() const {
+    return std::string(get_name());
+  }
+
+  virtual DALIDataType GetTypeId() const = 0;
+
+  virtual void SerializeToProtobuf(DaliProtoPriv* arg) = 0;
+
+  template <typename T>
+  const T &Get() const &;
+
+  template <typename T>
+  bool IsType() const;
+
+  template <typename T>
+  static std::shared_ptr<Argument> Store(std::string name, const T& val);
+
+  virtual ~Argument() = default;
+
+ protected:
+  Argument() : has_name_(false) {}
+
+  explicit Argument(std::string name) : name_(std::move(name)), has_name_(true) {}
+
+ private:
+  std::string name_;
+  bool has_name_;
+};
+
+template <typename T>
+class ArgumentInst : public Argument {
+ public:
+  explicit ArgumentInst(std::string name, const T& v) : Argument(std::move(name)), val(v) {}
+
+  const T &Get() const & {
+    return val.Get();
+  }
+
+  std::string ToString() const override {
+    string ret = Argument::ToString();
+    ret += ": ";
+    ret += val.ToString();
+    return ret;
+  }
+
+  DALIDataType GetTypeId() const override {
+    return val.GetTypeId();
+  }
+
+  void SerializeToProtobuf(DaliProtoPriv* arg) override {
+    arg->set_name(Argument::ToString());
+    dali::SerializeToProtobuf(val.Get(), arg);
+  }
+
+ private:
+  ValueInst<T> val;
+};
+
+template <typename T>
+class ArgumentInst<std::vector<T>> : public Argument {
+ public:
+  explicit ArgumentInst(std::string name, const std::vector<T>& v)
+  : Argument(std::move(name)), val(v) {}
+
+  const std::vector<T> &Get() const & {
+    return val.Get();
+  }
+
+  std::string ToString() const override {
+    string ret = Argument::ToString();
+    ret += ": ";
+    ret += val.ToString();
+    return ret;
+  }
+
+  DALIDataType GetTypeId() const override {
+    return val.GetTypeId();
+  }
+
+  void SerializeToProtobuf(DaliProtoPriv* arg) override {
+    const std::vector<T>& vec = val.Get();
+    arg->set_name(Argument::ToString());
+    arg->set_type(dali::serialize_type(T()));
+    arg->set_is_vector(true);
+    for (size_t i = 0; i < vec.size(); ++i) {
+      ArgumentInst<T> tmp("element " + to_string(i), vec[i]);
+      auto extra_arg = arg->add_extra_args();
+      tmp.SerializeToProtobuf(&extra_arg);
+    }
+  }
+
+ private:
+  ValueInst<std::vector<T>> val;
+};
+
+DLL_PUBLIC std::shared_ptr<Argument> DeserializeProtobuf(const DaliProtoPriv &arg);
+
+template <typename T>
+bool Argument::IsType() const {
+  return dynamic_cast<const ArgumentInst<T>*>(this) != nullptr;
+}
+
+template <typename T>
+const T &Argument::Get() const & {
+  auto *self = dynamic_cast<const ArgumentInst<T>*>(this);
+  if (self == nullptr) {
+    DALI_FAIL(make_string("Invalid type of argument \"", get_name(), "\". Expected ",
+              typeid(T).name()));
+  }
+  return self->Get();
+}
+
+template <typename T>
+std::shared_ptr<Argument> Argument::Store(std::string name, const T& val) {
+  return std::shared_ptr<Argument>(new ArgumentInst<T>(std::move(name), val));
+}
+
+}  // namespace dali
+
+#endif  // DALI_PIPELINE_OPERATOR_ARGUMENT_H_

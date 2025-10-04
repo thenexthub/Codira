@@ -1,0 +1,45 @@
+# Copyright (c) 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+{% set build_version = "4.12.0" %}
+
+  package:
+    name: dali-opencv
+    version: {{ build_version }}
+
+  source:
+    fn: opencv-{{ build_version }}.tar.gz
+    url: https://github.com/opencv/opencv/archive/refs/tags/{{ build_version }}.tar.gz
+    sha256: 44c106d5bb47efec04e531fd93008b3fcd1d27138985c5baf4eafac0e1ec9e9d
+
+  build:
+    number: 0
+    string: dali_opencv
+
+  requirements:
+    build:
+      - {{ compiler('c') }}
+      - {{ compiler('cxx') }}
+      - cmake
+      - make
+    host:
+      - libjpeg-turbo
+      - libtiff
+      - openjpeg
+      - zlib
+    run:
+      - libjpeg-turbo
+      - libtiff
+      - openjpeg
+      - zlib

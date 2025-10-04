@@ -1,0 +1,36 @@
+ARG TF_CUSTOM_OP_IMAGE
+FROM ${TF_CUSTOM_OP_IMAGE}
+
+# Just use manylinux + cuda image created during DALI build process
+# More info here: https://www.tensorflow.org/guide/create_op
+
+ARG PYVER=3.10
+ARG PYV=310
+
+ENV PYVER=${PYVER} \
+    PYV=${PYV} \
+    PYTHONPATH=/opt/python/v \
+    PYBIN=${PYTHONPATH}/bin \
+    PYLIB=${PYTHONPATH}/lib \
+    PATH=/opt/python/cp${PYV}-cp${PYV}/bin:${PYBIN}:${PATH} \
+    LD_LIBRARY_PATH=/opt/python/cp${PYV}-cp${PYV}/lib:${PYLIB}:${LD_LIBRARY_PATH} \
+    LIBRARY_PATH=/opt/python/cp${PYV}-cp${PYV}/lib:${PYLIB}:${LIBRARY_PATH} \
+    PYTHONIOENCODING=utf-8 \
+    LC_ALL=C.UTF-8
+
+ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs/:${LD_LIBRARY_PATH}
+
+WORKDIR /opt/dali
+COPY qa/setup_packages.py qa/setup_packages.py
+
+# get current CUDA version, ask setup_packages.py which TensorFlow we need to support and loop over all version downloading
+# them to /pip-packages dir one by one. In effect all TF versions are stored in only one place setup_packages.py
+SHELL ["/bin/bash", "-c"]
+RUN export USE_CUDA_VERSION=$(echo $(ls /usr/local/cuda/lib64/libcudart.so*) | sed 's/.*\.\([0-9]\+\)\.\([0-9]\+\)\.\([0-9]\+\)/\1\2/') && \
+    export last_config_index=$(python qa/setup_packages.py -n -u tensorflow-gpu --cuda ${USE_CUDA_VERSION}) && \
+    for i in `seq 0 $last_config_index`; do \
+        package=$(python qa/setup_packages.py -i $i -u tensorflow-gpu --cuda ${USE_CUDA_VERSION}); \
+        if [[ "${package}" != *"nvidia-tensorflow"* ]]; then \
+            pip download ${package} -d /pip-packages; \
+        fi \
+    done

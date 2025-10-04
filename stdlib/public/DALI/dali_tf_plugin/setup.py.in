@@ -1,0 +1,99 @@
+# Copyright (c) 2018-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from setuptools import setup, find_namespace_packages
+from dali_tf_plugin_install_tool import InstallerHelper
+from setuptools.command.build_ext import build_ext
+from setuptools.dist import Distribution
+from setuptools.extension import Extension
+import os
+
+class CustomBuildExt(build_ext, object):
+    def run(self):
+        helper = InstallerHelper(plugin_dest_dir = os.path.join(self.build_lib, 'nvidia', 'dali_tf_plugin'))
+        helper.install()
+
+class CustomDistribution(Distribution):
+    def __init__(self, attrs=None):
+        Distribution.__init__(self, attrs)
+        # Just telling distutils that we have an ext module
+        # It doesn't matter what we write here, because we are overriding the
+        # build_ext step altogether.
+        # By filling this ext_modules we are signaling that this package needs
+        # to be built for different platforms
+        self.ext_modules = [Extension('nvidia.dali_tf_plugin', [])]
+
+setup(name='nvidia-dali-tf-plugin@DALI_FLAVOR_MINUS@-cuda@CUDA_VERSION_SHORT_DIGIT_ONLY@',
+      description='NVIDIA DALI @DALI_FLAVOR@ TensorFlow plugin for CUDA @CUDA_VERSION_SHORT@. Git SHA: @GIT_SHA@',
+      long_description='''TensorFlow plugin for NVIDIA DALI
+=================================
+
+The TensorFlow plugin enables usage of DALI with TensorFlow.
+
+The NVIDIA Data Loading Library (DALI) is a library for data loading and
+pre-processing to accelerate deep learning applications. It provides a
+collection of highly optimized building blocks for loading and processing
+image, video and audio data. It can be used as a portable drop-in replacement
+for built in data loaders and data iterators in popular deep learning frameworks.
+
+Deep learning applications require complex, multi-stage data processing pipelines
+that include loading, decoding, cropping, resizing, and many other augmentations.
+These data processing pipelines, which are currently executed on the CPU, have become a
+bottleneck, limiting the performance and scalability of training and inference.
+
+DALI addresses the problem of the CPU bottleneck by offloading data preprocessing to the
+GPU. Additionally, DALI relies on its own execution engine, built to maximize the throughput
+of the input pipeline. Features such as prefetching, parallel execution, and batch processing
+are handled transparently for the user.
+
+In addition, the deep learning frameworks have multiple data pre-processing implementations,
+resulting in challenges such as portability of training and inference workflows, and code
+maintainability. Data processing pipelines implemented using DALI are portable because they
+can easily be retargeted to TensorFlow, PyTorch, MXNet and PaddlePaddle.
+
+For more details please check the
+`latest DALI Documentation <https://docs.nvidia.com/deeplearning/dali/user-guide/docs/index.html>`_.
+
+.. image:: https://raw.githubusercontent.com/NVIDIA/DALI/main/dali.png
+    :width: 800
+    :align: center
+    :alt: DALI Diagram
+
+''',
+      long_description_content_type="text/x-rst",
+      url='https://github.com/NVIDIA/dali',
+      version='@DALI_VERSION@',
+      author='NVIDIA Corporation',
+      license='Apache License 2.0',
+      packages=find_namespace_packages(include=['nvidia.*']),
+      include_package_data=True,
+      zip_safe=False,
+      python_requires='>=3.9, <3.14',
+      classifiers=[
+          'Programming Language :: Python :: 3.9',
+          'Programming Language :: Python :: 3.10',
+          'Programming Language :: Python :: 3.11',
+          'Programming Language :: Python :: 3.12',
+          'Programming Language :: Python :: 3.13',
+          ],
+      install_requires = [
+          'nvidia-dali@DALI_FLAVOR_MINUS@-cuda@CUDA_VERSION_SHORT_DIGIT_ONLY@==@DALI_VERSION@',
+          'packaging',
+          ],
+
+      cmdclass={
+          'build_ext': CustomBuildExt,
+      },
+      distclass=CustomDistribution
+     )

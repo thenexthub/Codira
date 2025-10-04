@@ -1,0 +1,127 @@
+// Copyright (c) 2017-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package dali_proto;
+
+// Stores a single argument
+message Argument {
+  required string name = 1;
+  optional string type = 2;
+  repeated float floats = 3;
+  repeated int64 ints = 4;
+  repeated string strings = 5;
+  repeated bool bools = 6;
+  repeated Argument extra_args = 7;
+
+  // vector storage
+  required bool is_vector = 8 [default = false];
+}
+
+message InputOutput {
+  required string name = 1;
+  required string device = 2;
+  required bool is_argument_input = 3 [default = false];
+  optional string arg_name = 4;
+  optional int32 dtype = 5 [default = -1];  // @ref DALIDataType
+  optional int32 ndim = 6 [default = -1];
+  optional string layout = 7 [default = ""];
+}
+
+// stores info about a single operator
+message OpDef {
+  required string name = 1;
+  // list of inputs & outputs
+  repeated InputOutput input = 2;
+  repeated InputOutput output = 3;
+  // Arguments
+  repeated Argument args = 4;
+  // instance name
+  optional string inst_name = 5;
+  // logical id
+  optional int32 logical_id = 6 [default = -1];
+}
+
+// Stores pipeline options and a list of operators
+message PipelineDef {
+  optional int64 num_threads = 1 [default = 4];
+  required int32 batch_size = 2;
+  // These fields were effectively unused
+  optional bool _unused_use_async = 3 [default = true];
+  optional bool _unused_pipeline = 4 [default = true];
+
+  // Store all container operators
+  repeated OpDef op = 5;
+
+  // WARNING! The field below should no longer be used.
+  // This method of serializing External Inputs was removed from DALI and the ExternalSource
+  // operator is now serialized via OpDef as all other ops.
+  // We must keep this field to be able to deserialize legacy pipelines for backward compatibility.
+  repeated string external_inputs = 6;
+
+  // Store all registered outputs
+  repeated InputOutput pipe_outputs = 7;
+  optional int32 device_id = 8 [default = 0];
+  optional int64 seed = 9 [default = -1];
+
+  optional bool enable_checkpointing = 10 [default = false];
+
+  optional int32 executor_type = 11 [default = 0];
+  optional int64 executor_flags = 12 [default = 0];
+
+  optional int32 prefetch_queue_depth_cpu = 13 [default = 2];
+  optional int32 prefetch_queue_depth_gpu = 14 [default = 2];
+
+  optional int64 bytes_per_sample_hint = 15 [default = 0];
+}
+
+message Checkpoint {
+  message OpCheckpoint {
+    optional string operator_name = 1;
+    optional bytes operator_state = 2;
+  }
+
+  message ExternalContextCheckpoint {
+    optional bytes pipeline_data = 1;
+    optional bytes iterator_data = 2;
+  }
+
+  repeated OpCheckpoint cpts = 1;
+  optional ExternalContextCheckpoint external_ctx_cpt = 2;
+}
+
+// For stateless operators
+message StatelessOp {}
+
+message RNGSnapshotCPU {
+  repeated string rng = 1;
+}
+
+message RNGSnapshotGPU {
+  optional bytes rng = 1;
+}
+
+message ReaderStateSnapshot {
+  message LoaderStateSnapshot {
+    optional bytes rng = 1;
+    optional int32 current_epoch = 2;
+    optional int32 age = 3;
+  }
+  optional LoaderStateSnapshot loader_state = 1;
+}
+
+message DummySnapshot {
+  repeated uint32 dummy_state = 1;
+}

@@ -1,0 +1,5 @@
+Cython
+matplotlib
+tensorflow-addons
+pycocotools
+numpy<2

@@ -1,0 +1,5 @@
+global-include Acknowledgements.txt LICENSE COPYRIGHT
+recursive-include . *.cc
+recursive-include . *.h
+recursive-include . *.py
+recursive-include prebuilt *.so

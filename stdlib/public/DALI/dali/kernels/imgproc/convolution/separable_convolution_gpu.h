@@ -1,0 +1,199 @@
+// Copyright (c) 2020-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef DALI_KERNELS_IMGPROC_CONVOLUTION_SEPARABLE_CONVOLUTION_GPU_H_
+#define DALI_KERNELS_IMGPROC_CONVOLUTION_SEPARABLE_CONVOLUTION_GPU_H_
+
+#include "dali/core/convert.h"
+#include "dali/core/format.h"
+#include "dali/core/tensor_view.h"
+#include "dali/kernels/common/utils.h"
+#include "dali/kernels/imgproc/convolution/convolution_gpu.h"
+#include "dali/kernels/kernel.h"
+#include "dali/pipeline/util/operator_impl_utils.h"
+#include "dali/kernels/dynamic_scratchpad.h"
+
+namespace dali {
+namespace kernels {
+
+
+/**
+ * @brief Apply convolution in all spatial axes, starting from the innermost to outermost.
+ *        If channel axis is present, the convolution is not applied there.
+ *        If it is marked as sequence, the outermost dimension denotes frames and
+ *        convolution is not applied to it.
+ *
+ * Sequence convolutions require one less window to be specified
+ *
+ * `W` is currently assumed to be float
+ *
+ * `windows` and `scales` are specified per axis.
+ *
+ * Specialized for 1, 2 or 3 axes, to not go overboard with TMP for generic solutions
+ *
+ * Here be boilerplate.
+ */
+template <typename Out, typename In, typename W, int axes, bool has_channels = false,
+          bool is_sequence = false>
+struct SeparableConvolutionGpu;
+
+template <typename Out, typename In, typename W, bool has_channels, bool is_sequence>
+struct SeparableConvolutionGpu<Out, In, W, 1, has_channels, is_sequence> {
+  static constexpr int axes = 1;
+  static constexpr int sequence_axes = static_cast<int>(is_sequence);
+  static constexpr int channel_axes = static_cast<int>(has_channels);
+  static constexpr int ndim = sequence_axes + axes + channel_axes;
+
+  KernelRequirements Setup(KernelContext& ctx, const TensorListShape<ndim>& in_shape,
+                           const std::array<TensorListShape<1>, axes>& window_sizes,
+                           bool enforce_intermediate = false) {
+    (void)enforce_intermediate;  // It's relevant only if `axes >= 3`
+    KernelRequirements req;
+    req.output_shapes.push_back(in_shape);
+    auto req_conv = conv_.Setup(ctx, in_shape, window_sizes[0]);
+    return req;
+  }
+
+  void Run(KernelContext& ctx, const TensorListView<StorageGPU, Out, ndim> out,
+           const TensorListView<StorageGPU, const In, ndim>& in,
+           const std::array<TensorListView<StorageCPU, const W, 1>, axes>& windows,
+           const std::array<span<const int>, 1> anchors = {},
+           const ConvEpilogue& conv_epilogue = 1.f) {
+    conv_.Run(ctx, out, in, windows[0], anchors[0], conv_epilogue);
+  }
+
+  ConvolutionGpu<Out, In, W, ndim, sequence_axes + 0, has_channels> conv_;
+};
+
+template <typename Out, typename In, typename W, bool has_channels, bool is_sequence>
+struct SeparableConvolutionGpu<Out, In, W, 2, has_channels, is_sequence> {
+  static constexpr int axes = 2;
+  static constexpr int sequence_axes = static_cast<int>(is_sequence);
+  static constexpr int channel_axes = static_cast<int>(has_channels);
+  static constexpr int ndim = sequence_axes + axes + channel_axes;
+  using Intermediate = decltype(std::declval<W>() * std::declval<In>());
+
+  KernelRequirements Setup(KernelContext& ctx, const TensorListShape<ndim>& in_shape,
+                           const std::array<TensorListShape<1>, axes>& window_sizes,
+                           bool enforce_intermediate = false) {
+    (void)enforce_intermediate;  // It's relevant only if `axes >= 3`
+    KernelRequirements req;
+    req.output_shapes.push_back(in_shape);
+
+    auto req_inner = conv_innermost_.Setup(ctx, in_shape, window_sizes[1]);
+    auto req_outer = conv_outermost_.Setup(ctx, in_shape, window_sizes[0]);
+    return req;
+  }
+
+  void Run(KernelContext& ctx, const TensorListView<StorageGPU, Out, ndim> out,
+           const TensorListView<StorageGPU, const In, ndim>& in,
+           const std::array<TensorListView<StorageCPU, const W, 1>, axes>& windows,
+           const std::array<span<const int>, 2> anchors = {},
+           const ConvEpilogue& conv_epilogue = 1.f) {
+    auto *tmp = ctx.scratchpad->AllocateGPU<Intermediate>(in.shape.num_elements());
+
+    auto intermediate = TensorListView<StorageGPU, Intermediate, ndim>(tmp, in.shape);
+
+    {
+      KernelContext sub_ctx = ctx;
+      DynamicScratchpad dyn_scratchpad(AccessOrder(sub_ctx.gpu.stream));
+      sub_ctx.scratchpad = &dyn_scratchpad;
+      conv_innermost_.Run(sub_ctx, intermediate, in, windows[1], anchors[1]);
+    }
+    {
+      KernelContext sub_ctx = ctx;
+      DynamicScratchpad dyn_scratchpad(AccessOrder(sub_ctx.gpu.stream));
+      sub_ctx.scratchpad = &dyn_scratchpad;
+      conv_outermost_.Run(sub_ctx, out, intermediate, windows[0], anchors[0], conv_epilogue);
+    }
+  }
+
+  ConvolutionGpu<Intermediate, In, W, ndim, sequence_axes + 1, has_channels> conv_innermost_;
+  ConvolutionGpu<Out, Intermediate, W, ndim, sequence_axes + 0, has_channels> conv_outermost_;
+};
+
+template <typename Out, typename In, typename W, bool has_channels, bool is_sequence>
+struct SeparableConvolutionGpu<Out, In, W, 3, has_channels, is_sequence> {
+  static constexpr int axes = 3;
+  static constexpr int sequence_axes = static_cast<int>(is_sequence);
+  static constexpr int channel_axes = static_cast<int>(has_channels);
+  static constexpr int ndim = sequence_axes + axes + channel_axes;
+  using Intermediate = decltype(std::declval<W>() * std::declval<In>());
+  static constexpr bool outFitsIntermediate = sizeof(Intermediate) == sizeof(Out);
+
+  KernelRequirements Setup(KernelContext& ctx, const TensorListShape<ndim>& in_shape,
+                           const std::array<TensorListShape<1>, axes>& window_sizes,
+                           bool enforce_intermediate = false) {
+    KernelRequirements req;
+    use_out_as_intermediate_ = !enforce_intermediate && outFitsIntermediate;
+    req.output_shapes.push_back(in_shape);
+
+    auto req_inner = conv_innermost_.Setup(ctx, in_shape, window_sizes[2]);
+    auto req_middle = conv_middle_.Setup(ctx, in_shape, window_sizes[1]);
+    auto req_outer = conv_outermost_.Setup(ctx, in_shape, window_sizes[0]);
+    return req;
+  }
+
+  void Run(KernelContext& ctx, const TensorListView<StorageGPU, Out, ndim> out,
+           const TensorListView<StorageGPU, const In, ndim>& in,
+           const std::array<TensorListView<StorageCPU, const W, 1>, axes>& windows,
+           const std::array<span<const int>, 3> anchors = {},
+           const ConvEpilogue& conv_epilogue = 1.f) {
+    int intermediate_count = use_out_as_intermediate_ ? 1 : 2;
+    auto* tmp =
+        ctx.scratchpad->AllocateGPU<Intermediate>(in.shape.num_elements() * intermediate_count);
+    TensorListView<StorageGPU, Intermediate, ndim> intermediate_inner, intermediate_outer;
+    if (use_out_as_intermediate_) {
+      intermediate_inner = reinterpret<Intermediate>(out, in.shape);
+      intermediate_outer = {tmp, in.shape};
+    } else {
+      intermediate_inner = {tmp, in.shape};
+      intermediate_outer = {tmp + in.shape.num_elements(), in.shape};
+    }
+
+    KernelContext sub_ctx = ctx;
+    DynamicScratchpad dyn_scratchpad(AccessOrder(sub_ctx.gpu.stream));
+    sub_ctx.scratchpad = &dyn_scratchpad;
+
+    // Clear the scratchpad for sub-kernels to reuse memory
+    {
+      KernelContext sub_ctx = ctx;
+      DynamicScratchpad dyn_scratchpad(AccessOrder(sub_ctx.gpu.stream));
+      sub_ctx.scratchpad = &dyn_scratchpad;
+      conv_innermost_.Run(sub_ctx, intermediate_inner, in, windows[2], anchors[2]);
+    }
+    {
+      KernelContext sub_ctx = ctx;
+      DynamicScratchpad dyn_scratchpad(AccessOrder(sub_ctx.gpu.stream));
+      sub_ctx.scratchpad = &dyn_scratchpad;
+      conv_middle_.Run(sub_ctx, intermediate_outer, intermediate_inner, windows[1], anchors[1]);
+    }
+    {
+      KernelContext sub_ctx = ctx;
+      DynamicScratchpad dyn_scratchpad(AccessOrder(sub_ctx.gpu.stream));
+      sub_ctx.scratchpad = &dyn_scratchpad;
+      conv_outermost_.Run(sub_ctx, out, intermediate_outer, windows[0], anchors[0], conv_epilogue);
+    }
+  }
+
+  bool use_out_as_intermediate_;
+  ConvolutionGpu<Intermediate, In, W, ndim, sequence_axes + 2, has_channels> conv_innermost_;
+  ConvolutionGpu<Intermediate, Intermediate, W, ndim, sequence_axes + 1, has_channels> conv_middle_;
+  ConvolutionGpu<Out, Intermediate, W, ndim, sequence_axes + 0, has_channels> conv_outermost_;
+};
+
+}  // namespace kernels
+}  // namespace dali
+
+#endif  // DALI_KERNELS_IMGPROC_CONVOLUTION_SEPARABLE_CONVOLUTION_GPU_H_
