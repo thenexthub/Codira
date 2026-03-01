@@ -1,0 +1,50 @@
+# This file is used to populate seccomp's allowlist policy in combination with SYSCALLS.TXT.
+# Note that the resultant policy is applied only to zygote spawned processes.
+#
+# The final seccomp allowlist is SYSCALLS.TXT - SECCOMP_BLOCKLIST.TXT + SECCOMP_ALLOWLIST.TXT
+# Any entry in the blocklist must be in the syscalls file and not be in the allowlist file
+#
+# This file is processed by a python script named genseccomp.py.
+
+# Syscalls to modify IDs.
+# Note: Some privileged syscalls are still needed in app_process after fork but
+# before uid change, including capset and setresuid. This is because the seccomp
+# filter must be installed while the process still has CAP_SYS_ADMIN; changing
+# the uid would remove that capability.
+setgid32(gid_t)     lp32
+setgid(gid_t)       lp64
+setuid32(uid_t)    lp32
+setuid(uid_t)      lp64
+setregid32(gid_t, gid_t)  lp32
+setregid(gid_t, gid_t)    lp64
+setreuid32(uid_t, uid_t)   lp32
+setreuid(uid_t, uid_t)     lp64
+setresgid32(gid_t, gid_t, gid_t)   lp32
+setresgid(gid_t, gid_t, gid_t)     lp64
+# setresuid is explicitly allowed, see above.
+setfsgid32(gid_t) lp32
+setfsgid(gid_t)   lp64
+setfsuid32(uid_t) lp32
+setfsuid(uid_t)   lp64
+setgroups32(int, const gid_t*)   lp32
+setgroups(int, const gid_t*)     lp64
+
+# Syscalls to modify times.
+adjtimex(struct timex*)   all
+clock_adjtime(clockid_t, struct timex*)   all
+clock_settime(clockid_t, const struct timespec*)  all
+settimeofday(const struct timeval*, const struct timezone*)   all
+
+acct(const char*  filepath)  all
+syslog(int, char*, int)   all
+chroot(const char*)  all
+
+init_module(void*, unsigned long, const char*)  all
+delete_module(const char*, unsigned int)   all
+mount(const char*, const char*, const char*, unsigned long, const void*)  all
+umount2(const char*, int)  all
+swapon(const char*, int) all
+swapoff(const char*) all
+setdomainname(const char*, size_t)  all
+sethostname(const char*, size_t)  all
+reboot(int, int, int, void*)  all

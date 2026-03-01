@@ -1,0 +1,185 @@
+# Copyright (c) 2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/config/clang/clang.gni")
+import("//build/ohos.gni")
+import("jsvm.gni")
+
+ohos_prebuilt_etc("jit_enable_list_appid") {
+  relative_install_dir = "jsvm"
+  source = "./jit_enable_list_appid.conf"
+  part_name = "jsvm"
+  subsystem_name = "arkcompiler"
+}
+
+dependency_tag = "default"
+js_engine_url = "//vendor/${dependency_tag}/binary/artifacts/js_engine_url/"
+
+action("copy_v8") {
+  external_deps = []
+  deps = []
+  script = "copy_v8.sh"
+  sources = []
+  outputs = [
+    "$target_gen_dir/libv8_shared.so",
+    "$target_gen_dir/v8-include",
+  ]
+  args = [
+    "--target_gen_dir",
+    rebase_path("$target_gen_dir"),
+    rebase_path("${js_engine_url}"),
+    target_cpu,
+  ]
+}
+
+action("copy_llhttp") {
+  external_deps = []
+  deps = []
+  script = "copy_llhttp.sh"
+  sources = []
+  outputs = [
+    "$target_gen_dir/llhttp/src/api.c",
+    "$target_gen_dir/llhttp/src/http.c",
+    "$target_gen_dir/llhttp/src/llhttp.c",
+    "$target_gen_dir/llhttp/include",
+  ]
+  args = [
+    "--target_gen_dir",
+    rebase_path("$target_gen_dir"),
+  ]
+}
+
+config("libv8_config") {
+  include_dirs = [ "$target_gen_dir/v8-include" ]
+}
+
+ohos_prebuilt_shared_library("libv8") {
+  deps = [ ":copy_v8" ]
+  source = "$target_gen_dir/libv8_shared.so"
+  output = "libv8_shared.so"
+  public_configs = [ ":libv8_config" ]
+
+  subsystem_name = "arkcompiler"
+  part_name = "jsvm"
+
+  install_enable = true
+  install_images = [ "system" ]
+}
+
+config("llhttp_config") {
+  include_dirs = [ "$target_gen_dir/llhttp/include" ]
+}
+
+ohos_static_library("llhttp") {
+  deps = [ ":copy_llhttp" ]
+  sources = [
+    "$target_gen_dir/llhttp/src/api.c",
+    "$target_gen_dir/llhttp/src/http.c",
+    "$target_gen_dir/llhttp/src/llhttp.c",
+  ]
+
+  public_configs = [ ":llhttp_config" ]
+
+  subsystem_name = "arkcompiler"
+  part_name = "jsvm"
+}
+
+config("public_jsvm_config") {
+  include_dirs = [ "interface/kits" ]
+}
+
+ohos_prebuilt_shared_library("libjsvm") {
+  deps = [
+    ":jit_enable_list_appid",
+    ":build_libjsvm",
+  ]
+
+  public_configs = [ ":public_jsvm_config" ]
+  if (is_asan && support_hwasan && use_hwasan) {
+    source = "$target_gen_dir/asan/libjsvm.so"
+  } else {
+    source = "$target_gen_dir/libjsvm.so"
+  }
+  subsystem_name = "arkcompiler"
+  part_name = "jsvm"
+
+  install_enable = true
+  install_images = [ "system" ]
+  innerapi_tags = [ "ndk" ]
+}
+
+action("build_libjsvm") {
+  external_deps = [
+    "bounds_checking_function:libsec_static",
+    "hilog:libhilog",
+    "hisysevent:libhisysevent",
+    "hitrace:hitrace_meter",
+    "icu:shared_icui18n",
+    "icu:shared_icuuc",
+    "init:libbegetutil",
+    "libuv:uv",
+    "openssl:libcrypto_shared",
+    "openssl:libssl_shared",
+    "resource_schedule_service:ressched_client",
+    "zlib:libz",
+  ]
+
+  deps = [
+    ":libv8",
+    ":llhttp",
+  ]
+  configs = []
+  script = "build_jsvm.sh"
+  sources = []
+  support_and_use_hwasan = support_hwasan && use_hwasan
+  if (is_asan && support_and_use_hwasan) {
+    outputs = [ "$target_gen_dir/asan/libjsvm.so" ]
+  } else {
+    outputs = [ "$target_gen_dir/libjsvm.so" ]
+  }
+  args = [
+    "--target_gen_dir",
+    rebase_path("$target_gen_dir"),
+    "--target_out_dir",
+    rebase_path("$root_out_dir"),
+    "--target_cpu",
+    "$target_cpu",
+    "--target_platform",
+    "$target_platform",
+    "--prefix",
+    rebase_path("${js_engine_url}/llvm/bin"),
+    "--sysroot",
+    rebase_path("$musl_sysroot"),
+    "--is_asan",
+    "$is_asan",
+    "--use_hwasan",
+    "$support_and_use_hwasan",
+    "{{include_dirs}}",
+    "--cmake_path",
+    rebase_path("//prebuilts/cmake/linux-x86/bin/cmake"),
+    "--dependency_tag",
+    "${dependency_tag}",
+    "--jsvm_path",
+    rebase_path("."),
+  ]
+  if (use_clang_coverage) {
+    args += [
+      "--target_clang_coverage",
+      "$use_clang_coverage",
+    ]
+  }
+}
+
+group("jsvm_packages") {
+  deps = [ ":libjsvm" ]
+}

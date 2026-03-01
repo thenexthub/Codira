@@ -1,0 +1,61 @@
+{
+    "name": "@ohos/jsvm",
+    "description": "jsvm is a Javascript virtual machine in ohos",
+    "version": "1.0",
+    "license": "Apache 2.0",
+    "publishAs": "code-segment",
+    "segment": {
+        "destPath": "arkcompiler/jsvm"
+    },
+    "dirs": {},
+    "scripts": {},
+    "component": {
+        "name": "jsvm",
+        "subsystem": "arkcompiler",
+        "syscap": [
+            "SystemCapability.ArkCompiler.JSVM"
+        ],
+        "features": [],
+        "adapted_system_type": [
+            "standard"
+        ],
+        "rom": "5120KB",
+        "ram": "10240KB",
+        "deps": {
+            "components": [
+                "bounds_checking_function",
+                "hilog",
+                "hisysevent",
+                "hitrace",
+                "hiview",
+                "icu",
+                "init",
+                "libuv",
+                "nghttp2",
+                "openssl",
+                "resource_schedule_service",
+                "zlib"
+            ]
+        },
+        "build": {
+            "sub_component": [
+                "//arkcompiler/jsvm:jsvm_packages"
+            ],
+            "inner_kits": [
+                {
+                    "header": {
+                        "header_base": "//arkcompiler/jsvm/interface/kits",
+                        "header_files": [
+                            "jsvm_types.h",
+                            "jsvm.h"
+                        ]
+                    },
+                    "name": "//arkcompiler/jsvm:libjsvm"
+                }
+            ],
+            "test": [
+                "//arkcompiler/jsvm/test/unittest:jsvm_unittest"
+            ]
+        }
+    }
+}

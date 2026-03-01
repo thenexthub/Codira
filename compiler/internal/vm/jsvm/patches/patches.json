@@ -1,0 +1,9 @@
+{
+    "patches": [
+        {
+            "project":"productdefine_common",                                                  
+            "path":"productdefine/common",                                                     
+            "pr_url":"https://gitee.com/openharmony/productdefine_common/pulls/962"
+        }
+    ]
+}
