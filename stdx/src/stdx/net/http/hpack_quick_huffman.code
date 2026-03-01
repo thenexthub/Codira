@@ -1,0 +1,558 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This source file is part of the Codira project, licensed under Apache-2.0
+ * with Runtime Library Exception.
+ *
+ * See https://cangjie-lang.cn/pages/LICENSE for license information.
+ */
+
+/**
+ * @file
+ *
+ * This is a library for QuickHuffman associated classes.
+ */
+package stdx.net.http
+
+import std.collection.LinkedList
+
+/**
+ * Static Huffman encoding encoder.
+ */
+class QuickHuffmanEncoder {
+
+    /**
+     * Encode bytes with static Huffman encoding.
+     *
+     * @param rawBytes raw bytes.
+     * @return Array<Byte> -Encoded bytes.
+     */
+    static func encodeTo(rawBytes: Array<Byte>, writer: FieldsWriter): Unit {
+        let builder = BytesBuilder(QuickHuffman.EOS_MSB)
+        for (byte in rawBytes) {
+            let bitsMSB = QuickHuffman.codeMSB(byte)
+            let bitsLen = QuickHuffman.lengthOfBits(byte)
+            builder.append(bitsMSB, bitsLen)
+        }
+        return builder.writeTo(writer)
+    }
+
+    /**
+     * Predicts the length after encoding with static Huffman encoding.
+     *
+     * @param rawBytes raw bytes.
+     * @return Int64 encoded bytes size.
+     */
+    static func lengthOf(rawBytes: Array<Byte>): Int64 {
+        var totalBitsLen = 0
+        for (byte in rawBytes) {
+            totalBitsLen += QuickHuffman.lengthOfBits(byte)
+        }
+        return bytesSize(totalBitsLen);
+    }
+}
+
+/**
+ * Static Huffman encoding decoder.
+ */
+class QuickHuffmanDecoder {
+
+    /**
+     * Decode bytes with static Huffman encoding.
+     *
+     * @param bytes encoded bytes.
+     * @return Array<Byte> raw bytes.
+     */
+    static func decode(bytes: Array<Byte>): Array<Byte> {
+        let rawBytes = LinkedList<Byte>()
+
+        var buffer: UInt64 = 0
+        var bufferLen: Int64 = 0
+
+        for (byte in bytes) {
+            while (bufferLen + 8 > 64) {
+                // decode from buffer
+                let (rawByte, bitsLen) = QuickHuffman.decode(buffer)
+                // collect results
+                rawBytes.addLast(rawByte)
+                // clear decoded bits
+                buffer <<= UInt64(bitsLen)
+                bufferLen -= bitsLen
+            }
+
+            // read to buffer
+            buffer |= (UInt64(byte) << (56 - bufferLen))
+            bufferLen += 8
+        }
+
+        while (bufferLen > 0) {
+            if (buffer == 0) {
+                /**
+                 * The encoded data may end with the sequence of 0b00000, which require 5 bit for each symbol.
+                 * So if the remaining size is not a multiple of 5, it means the peer is padding with 0, which is forbidden by the rfc.
+                 */
+                if (bufferLen % 5 != 0) {
+                    throw HpackException("Unexpected padding value 0.")
+                }
+            }
+            if (isPadding(buffer, bufferLen)) {
+                if (bufferLen > 7) { // padding size should not greater than 7
+                    throw HpackException("Invalid padding size: ${bufferLen}.")
+                }
+                break // ignore the padding
+            }
+
+            // decode from buffer
+            let (rawByte, bitsLen) = QuickHuffman.decode(buffer)
+            // collect results
+            rawBytes.addLast(rawByte)
+            // clear decoded bits
+            buffer <<= UInt64(bitsLen)
+            bufferLen -= bitsLen
+        }
+
+        return rawBytes.toArray()
+    }
+
+    private static func isPadding(buffer: UInt64, bitsLen: Int64): Bool {
+        match (bitsLen == 64) {
+            case true => return buffer == 0xff_ff_ff_ff_ff_ff_ff_ffu64
+            case false => return (buffer | (0xff_ff_ff_ff_ff_ff_ff_ffu64 >> bitsLen)) == 0xff_ff_ff_ff_ff_ff_ff_ffu64
+        }
+    }
+}
+
+/**
+ * Static Huffman encoding used by HPACK.
+ * https://www.rfc-editor.org/rfc/rfc7541#appendix-B
+ */
+class QuickHuffman {
+    static const EOS_LSB: UInt64 = 0x3f_ff_ff_ffu64
+    static const EOS_LEN: UInt64 = 30
+    static const EOS_MSB = EOS_LSB << (64 - EOS_LEN)
+
+    static let CODES = Array<UInt64>(256, repeat: 0) // code | bitsLen
+    static let ROOT = buildTrie()
+
+    static func lengthOfBits(sym: Byte): Int64 {
+        return Int64(CODES[Int64(sym)] & 0x00_00_00_00_ff_ff_ff_ffu64)
+    }
+
+    static func codeMSB(sym: Byte): UInt64 {
+        return CODES[Int64(sym)] & 0xff_ff_ff_ff_00_00_00_00u64
+    }
+
+    /**
+     * @return (sym, bitsLen)
+     */
+    static func decode(buffer: UInt64): (Byte, Int64) {
+        return decode(buffer, ROOT)
+    }
+
+    private static func decode(buffer: UInt64, node: NodeHuffman): (Byte, Int64) {
+        if (node.isLeaf()) {
+            if (node.isEOS()) {
+                throw HpackException("Got EOS! buffer: ${buffer}.")
+            }
+            return (UInt8(node.sym), Int64(node.bitsLen))
+        }
+
+        let child = node.child(Int64(buffer >> 56))
+        let (sym, bitsLen) = decode(buffer << 8, child)
+        return (sym, bitsLen + Int64(node.bitsLen))
+    }
+
+    private static func buildTrie(): NodeHuffman {
+        let root = NodeHuffman()
+        addChar(root, 0, 0x1ff8, 13)
+        addChar(root, 1, 0x7fffd8, 23)
+        addChar(root, 2, 0xfffffe2, 28)
+        addChar(root, 3, 0xfffffe3, 28)
+        addChar(root, 4, 0xfffffe4, 28)
+        addChar(root, 5, 0xfffffe5, 28)
+        addChar(root, 6, 0xfffffe6, 28)
+        addChar(root, 7, 0xfffffe7, 28)
+        addChar(root, 8, 0xfffffe8, 28)
+        addChar(root, 9, 0xffffea, 24)
+        addChar(root, 10, 0x3ffffffc, 30)
+        addChar(root, 11, 0xfffffe9, 28)
+        addChar(root, 12, 0xfffffea, 28)
+        addChar(root, 13, 0x3ffffffd, 30)
+        addChar(root, 14, 0xfffffeb, 28)
+        addChar(root, 15, 0xfffffec, 28)
+        addChar(root, 16, 0xfffffed, 28)
+        addChar(root, 17, 0xfffffee, 28)
+        addChar(root, 18, 0xfffffef, 28)
+        addChar(root, 19, 0xffffff0, 28)
+        addChar(root, 20, 0xffffff1, 28)
+        addChar(root, 21, 0xffffff2, 28)
+        addChar(root, 22, 0x3ffffffe, 30)
+        addChar(root, 23, 0xffffff3, 28)
+        addChar(root, 24, 0xffffff4, 28)
+        addChar(root, 25, 0xffffff5, 28)
+        addChar(root, 26, 0xffffff6, 28)
+        addChar(root, 27, 0xffffff7, 28)
+        addChar(root, 28, 0xffffff8, 28)
+        addChar(root, 29, 0xffffff9, 28)
+        addChar(root, 30, 0xffffffa, 28)
+        addChar(root, 31, 0xffffffb, 28)
+        addChar(root, 32, 0x14, 6)
+        addChar(root, 33, 0x3f8, 10)
+        addChar(root, 34, 0x3f9, 10)
+        addChar(root, 35, 0xffa, 12)
+        addChar(root, 36, 0x1ff9, 13)
+        addChar(root, 37, 0x15, 6)
+        addChar(root, 38, 0xf8, 8)
+        addChar(root, 39, 0x7fa, 11)
+        addChar(root, 40, 0x3fa, 10)
+        addChar(root, 41, 0x3fb, 10)
+        addChar(root, 42, 0xf9, 8)
+        addChar(root, 43, 0x7fb, 11)
+        addChar(root, 44, 0xfa, 8)
+        addChar(root, 45, 0x16, 6)
+        addChar(root, 46, 0x17, 6)
+        addChar(root, 47, 0x18, 6)
+        addChar(root, 48, 0x0, 5)
+        addChar(root, 49, 0x1, 5)
+        addChar(root, 50, 0x2, 5)
+        addChar(root, 51, 0x19, 6)
+        addChar(root, 52, 0x1a, 6)
+        addChar(root, 53, 0x1b, 6)
+        addChar(root, 54, 0x1c, 6)
+        addChar(root, 55, 0x1d, 6)
+        addChar(root, 56, 0x1e, 6)
+        addChar(root, 57, 0x1f, 6)
+        addChar(root, 58, 0x5c, 7)
+        addChar(root, 59, 0xfb, 8)
+        addChar(root, 60, 0x7ffc, 15)
+        addChar(root, 61, 0x20, 6)
+        addChar(root, 62, 0xffb, 12)
+        addChar(root, 63, 0x3fc, 10)
+        addChar(root, 64, 0x1ffa, 13)
+        addChar(root, 65, 0x21, 6)
+        addChar(root, 66, 0x5d, 7)
+        addChar(root, 67, 0x5e, 7)
+        addChar(root, 68, 0x5f, 7)
+        addChar(root, 69, 0x60, 7)
+        addChar(root, 70, 0x61, 7)
+        addChar(root, 71, 0x62, 7)
+        addChar(root, 72, 0x63, 7)
+        addChar(root, 73, 0x64, 7)
+        addChar(root, 74, 0x65, 7)
+        addChar(root, 75, 0x66, 7)
+        addChar(root, 76, 0x67, 7)
+        addChar(root, 77, 0x68, 7)
+        addChar(root, 78, 0x69, 7)
+        addChar(root, 79, 0x6a, 7)
+        addChar(root, 80, 0x6b, 7)
+        addChar(root, 81, 0x6c, 7)
+        addChar(root, 82, 0x6d, 7)
+        addChar(root, 83, 0x6e, 7)
+        addChar(root, 84, 0x6f, 7)
+        addChar(root, 85, 0x70, 7)
+        addChar(root, 86, 0x71, 7)
+        addChar(root, 87, 0x72, 7)
+        addChar(root, 88, 0xfc, 8)
+        addChar(root, 89, 0x73, 7)
+        addChar(root, 90, 0xfd, 8)
+        addChar(root, 91, 0x1ffb, 13)
+        addChar(root, 92, 0x7fff0, 19)
+        addChar(root, 93, 0x1ffc, 13)
+        addChar(root, 94, 0x3ffc, 14)
+        addChar(root, 95, 0x22, 6)
+        addChar(root, 96, 0x7ffd, 15)
+        addChar(root, 97, 0x3, 5)
+        addChar(root, 98, 0x23, 6)
+        addChar(root, 99, 0x4, 5)
+        addChar(root, 100, 0x24, 6)
+        addChar(root, 101, 0x5, 5)
+        addChar(root, 102, 0x25, 6)
+        addChar(root, 103, 0x26, 6)
+        addChar(root, 104, 0x27, 6)
+        addChar(root, 105, 0x6, 5)
+        addChar(root, 106, 0x74, 7)
+        addChar(root, 107, 0x75, 7)
+        addChar(root, 108, 0x28, 6)
+        addChar(root, 109, 0x29, 6)
+        addChar(root, 110, 0x2a, 6)
+        addChar(root, 111, 0x7, 5)
+        addChar(root, 112, 0x2b, 6)
+        addChar(root, 113, 0x76, 7)
+        addChar(root, 114, 0x2c, 6)
+        addChar(root, 115, 0x8, 5)
+        addChar(root, 116, 0x9, 5)
+        addChar(root, 117, 0x2d, 6)
+        addChar(root, 118, 0x77, 7)
+        addChar(root, 119, 0x78, 7)
+        addChar(root, 120, 0x79, 7)
+        addChar(root, 121, 0x7a, 7)
+        addChar(root, 122, 0x7b, 7)
+        addChar(root, 123, 0x7ffe, 15)
+        addChar(root, 124, 0x7fc, 11)
+        addChar(root, 125, 0x3ffd, 14)
+        addChar(root, 126, 0x1ffd, 13)
+        addChar(root, 127, 0xffffffc, 28)
+        addChar(root, 128, 0xfffe6, 20)
+        addChar(root, 129, 0x3fffd2, 22)
+        addChar(root, 130, 0xfffe7, 20)
+        addChar(root, 131, 0xfffe8, 20)
+        addChar(root, 132, 0x3fffd3, 22)
+        addChar(root, 133, 0x3fffd4, 22)
+        addChar(root, 134, 0x3fffd5, 22)
+        addChar(root, 135, 0x7fffd9, 23)
+        addChar(root, 136, 0x3fffd6, 22)
+        addChar(root, 137, 0x7fffda, 23)
+        addChar(root, 138, 0x7fffdb, 23)
+        addChar(root, 139, 0x7fffdc, 23)
+        addChar(root, 140, 0x7fffdd, 23)
+        addChar(root, 141, 0x7fffde, 23)
+        addChar(root, 142, 0xffffeb, 24)
+        addChar(root, 143, 0x7fffdf, 23)
+        addChar(root, 144, 0xffffec, 24)
+        addChar(root, 145, 0xffffed, 24)
+        addChar(root, 146, 0x3fffd7, 22)
+        addChar(root, 147, 0x7fffe0, 23)
+        addChar(root, 148, 0xffffee, 24)
+        addChar(root, 149, 0x7fffe1, 23)
+        addChar(root, 150, 0x7fffe2, 23)
+        addChar(root, 151, 0x7fffe3, 23)
+        addChar(root, 152, 0x7fffe4, 23)
+        addChar(root, 153, 0x1fffdc, 21)
+        addChar(root, 154, 0x3fffd8, 22)
+        addChar(root, 155, 0x7fffe5, 23)
+        addChar(root, 156, 0x3fffd9, 22)
+        addChar(root, 157, 0x7fffe6, 23)
+        addChar(root, 158, 0x7fffe7, 23)
+        addChar(root, 159, 0xffffef, 24)
+        addChar(root, 160, 0x3fffda, 22)
+        addChar(root, 161, 0x1fffdd, 21)
+        addChar(root, 162, 0xfffe9, 20)
+        addChar(root, 163, 0x3fffdb, 22)
+        addChar(root, 164, 0x3fffdc, 22)
+        addChar(root, 165, 0x7fffe8, 23)
+        addChar(root, 166, 0x7fffe9, 23)
+        addChar(root, 167, 0x1fffde, 21)
+        addChar(root, 168, 0x7fffea, 23)
+        addChar(root, 169, 0x3fffdd, 22)
+        addChar(root, 170, 0x3fffde, 22)
+        addChar(root, 171, 0xfffff0, 24)
+        addChar(root, 172, 0x1fffdf, 21)
+        addChar(root, 173, 0x3fffdf, 22)
+        addChar(root, 174, 0x7fffeb, 23)
+        addChar(root, 175, 0x7fffec, 23)
+        addChar(root, 176, 0x1fffe0, 21)
+        addChar(root, 177, 0x1fffe1, 21)
+        addChar(root, 178, 0x3fffe0, 22)
+        addChar(root, 179, 0x1fffe2, 21)
+        addChar(root, 180, 0x7fffed, 23)
+        addChar(root, 181, 0x3fffe1, 22)
+        addChar(root, 182, 0x7fffee, 23)
+        addChar(root, 183, 0x7fffef, 23)
+        addChar(root, 184, 0xfffea, 20)
+        addChar(root, 185, 0x3fffe2, 22)
+        addChar(root, 186, 0x3fffe3, 22)
+        addChar(root, 187, 0x3fffe4, 22)
+        addChar(root, 188, 0x7ffff0, 23)
+        addChar(root, 189, 0x3fffe5, 22)
+        addChar(root, 190, 0x3fffe6, 22)
+        addChar(root, 191, 0x7ffff1, 23)
+        addChar(root, 192, 0x3ffffe0, 26)
+        addChar(root, 193, 0x3ffffe1, 26)
+        addChar(root, 194, 0xfffeb, 20)
+        addChar(root, 195, 0x7fff1, 19)
+        addChar(root, 196, 0x3fffe7, 22)
+        addChar(root, 197, 0x7ffff2, 23)
+        addChar(root, 198, 0x3fffe8, 22)
+        addChar(root, 199, 0x1ffffec, 25)
+        addChar(root, 200, 0x3ffffe2, 26)
+        addChar(root, 201, 0x3ffffe3, 26)
+        addChar(root, 202, 0x3ffffe4, 26)
+        addChar(root, 203, 0x7ffffde, 27)
+        addChar(root, 204, 0x7ffffdf, 27)
+        addChar(root, 205, 0x3ffffe5, 26)
+        addChar(root, 206, 0xfffff1, 24)
+        addChar(root, 207, 0x1ffffed, 25)
+        addChar(root, 208, 0x7fff2, 19)
+        addChar(root, 209, 0x1fffe3, 21)
+        addChar(root, 210, 0x3ffffe6, 26)
+        addChar(root, 211, 0x7ffffe0, 27)
+        addChar(root, 212, 0x7ffffe1, 27)
+        addChar(root, 213, 0x3ffffe7, 26)
+        addChar(root, 214, 0x7ffffe2, 27)
+        addChar(root, 215, 0xfffff2, 24)
+        addChar(root, 216, 0x1fffe4, 21)
+        addChar(root, 217, 0x1fffe5, 21)
+        addChar(root, 218, 0x3ffffe8, 26)
+        addChar(root, 219, 0x3ffffe9, 26)
+        addChar(root, 220, 0xffffffd, 28)
+        addChar(root, 221, 0x7ffffe3, 27)
+        addChar(root, 222, 0x7ffffe4, 27)
+        addChar(root, 223, 0x7ffffe5, 27)
+        addChar(root, 224, 0xfffec, 20)
+        addChar(root, 225, 0xfffff3, 24)
+        addChar(root, 226, 0xfffed, 20)
+        addChar(root, 227, 0x1fffe6, 21)
+        addChar(root, 228, 0x3fffe9, 22)
+        addChar(root, 229, 0x1fffe7, 21)
+        addChar(root, 230, 0x1fffe8, 21)
+        addChar(root, 231, 0x7ffff3, 23)
+        addChar(root, 232, 0x3fffea, 22)
+        addChar(root, 233, 0x3fffeb, 22)
+        addChar(root, 234, 0x1ffffee, 25)
+        addChar(root, 235, 0x1ffffef, 25)
+        addChar(root, 236, 0xfffff4, 24)
+        addChar(root, 237, 0xfffff5, 24)
+        addChar(root, 238, 0x3ffffea, 26)
+        addChar(root, 239, 0x7ffff4, 23)
+        addChar(root, 240, 0x3ffffeb, 26)
+        addChar(root, 241, 0x7ffffe6, 27)
+        addChar(root, 242, 0x3ffffec, 26)
+        addChar(root, 243, 0x3ffffed, 26)
+        addChar(root, 244, 0x7ffffe7, 27)
+        addChar(root, 245, 0x7ffffe8, 27)
+        addChar(root, 246, 0x7ffffe9, 27)
+        addChar(root, 247, 0x7ffffea, 27)
+        addChar(root, 248, 0x7ffffeb, 27)
+        addChar(root, 249, 0xffffffe, 28)
+        addChar(root, 250, 0x7ffffec, 27)
+        addChar(root, 251, 0x7ffffed, 27)
+        addChar(root, 252, 0x7ffffee, 27)
+        addChar(root, 253, 0x7ffffef, 27)
+        addChar(root, 254, 0x7fffff0, 27)
+        addChar(root, 255, 0x3ffffee, 26)
+        addEOS(root, 256, EOS_LSB, EOS_LEN)
+        return root
+    }
+
+    private static func addChar(root: NodeHuffman, sym: UInt16, codeLSB: UInt64, bitsLen: UInt64) {
+        CODES[Int64(sym)] = UInt64(codeLSB << (64 - bitsLen)) | bitsLen
+
+        let codeMSB = codeLSB << (64 - bitsLen)
+        addLeaf(root, sym, codeMSB, bitsLen)
+    }
+
+    private static func addEOS(root: NodeHuffman, sym: UInt16, codeLSB: UInt64, bitsLen: UInt64) {
+        let codeMSB = codeLSB << (64 - bitsLen)
+        addLeaf(root, sym, codeMSB, bitsLen)
+    }
+
+    private static func addLeaf(node: NodeHuffman, sym: UInt16, codeMSB: UInt64, bitsLen: UInt64): Unit {
+        let child = node.computeChildIfAbsent(Int64(codeMSB >> 56))
+        if (bitsLen <= 8) { // is leaf
+            let startIdx = (codeMSB >> 56)
+            let endIdx = startIdx | ((1 << (8 - bitsLen)) - 1)
+            for (i in startIdx..=endIdx) {
+                let c = node.child(Int64(i))
+                c.bitsLen = UInt8(bitsLen)
+                c.sym = sym
+            }
+            return
+        }
+        child.bitsLen = 8
+        addLeaf(child, sym, codeMSB << 8, bitsLen - 8)
+    }
+}
+
+class NodeHuffman {
+    NodeHuffman(var sym!: UInt16 = 0, var bitsLen!: UInt8 = 0, var children!: Array<NodeHuffman> = Array<NodeHuffman>()) {
+    }
+
+    func computeChildIfAbsent(idx: Int64): NodeHuffman {
+        if (children.isEmpty()) {
+            children = Array<NodeHuffman>(256, {_ => NodeHuffman()})
+        }
+        return child(idx)
+    }
+
+    func child(idx: Int64): NodeHuffman {
+        return children[idx]
+    }
+
+    func isLeaf() {
+        return children.isEmpty()
+    }
+
+    func isEOS() {
+        return bitsLen == 6 && sym == 256
+    }
+}
+
+func bytesSize(bitsLen: Int64): Int64 {
+    return (bitsLen + 7) >> 3
+}
+
+class BytesBuilder {
+    private let padding: UInt64
+
+    private var totalBitsLen = 0
+    private let bitsList = LinkedList<(UInt64, Int64)>() // (bitsMSB, bitsLen)
+
+    init(padding: UInt64) {
+        this.padding = padding
+    }
+
+    func append(bitsMSB: UInt64, bitsLen: Int64) {
+        bitsList.addLast((bitsMSB, bitsLen))
+        totalBitsLen += bitsLen
+    }
+
+    func writeTo(writer: FieldsWriter): Unit {
+        let byteLen = bytesSize(totalBitsLen)
+        var buffer: UInt64 = 0
+        var bufferLen: Int64 = 0
+
+        var i = 0
+        for ((bitsMSB, bitsLen) in bitsList) {
+            while (bufferLen + bitsLen > 64) { // make bytes from buffer to `bytes`
+                let res = encodeAndWriteBytes(buffer, bufferLen, writer, i)
+                i += (res >> 3)
+
+                // clear buffer
+                if (bufferLen == res) {
+                    buffer = 0
+                    bufferLen = 0
+                } else {
+                    buffer <<= UInt64(res)
+                    bufferLen -= res
+                }
+            }
+
+            // encode to buffer
+            buffer |= (bitsMSB >> bufferLen)
+            bufferLen += bitsLen
+        }
+
+        // need padding
+        if (0 < bufferLen && bufferLen < 64) {
+            buffer |= (padding >> bufferLen)
+        }
+
+        // last buffer
+        if (bufferLen != 0) {
+            bufferLen = (bytesSize(bufferLen) << 3)
+            let res = encodeAndWriteBytes(buffer, bufferLen, writer, i)
+            i += (res >> 3)
+
+            bufferLen -= res
+        }
+
+        if (bufferLen != 0 || i != byteLen) {
+            throw HpackException(
+                "Failed to build bytes, should get byteLen:${byteLen}, but found buffer:${buffer}, bufferLen:${bufferLen}, i:${i}"
+            )
+        }
+    }
+
+    private func encodeAndWriteBytes(buffer: UInt64, bufferLen: Int64, destination: FieldsWriter, desPos: Int64): Int64 {
+        let bytesLen = bufferLen >> 3
+
+        var buf = buffer
+        var idx = desPos
+        for (_ in 0..bytesLen) {
+            destination.write(UInt8(buf >> 56))
+            idx++
+            buf <<= 8
+        }
+
+        return bytesLen << 3
+    }
+}

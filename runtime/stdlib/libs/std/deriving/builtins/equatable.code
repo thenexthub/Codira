@@ -1,0 +1,130 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+protected package std.deriving.builtins
+
+import std.deriving.api.*
+import std.ast.*
+import std.collection.*
+
+class EquatableDeriving <: Deriving {
+    private static let EQUATABLE_NAME = QualifiedName("std.core.Equatable")
+    private static let EQUATABLE_INFO = DerivingInterfaceInfo(
+        EQUATABLE_NAME, [], GenericsInjector.singleRecursive()
+    )
+
+    public override prop name: String {
+        get() { "Equatable"}
+    }
+
+    public override prop description: String {
+        get() { "Equatable"}
+    }
+
+    public override prop supportedInterfaces: Array<QualifiedName> {
+        get() { [EQUATABLE_NAME]}
+    }
+
+    public override func queryInterfaceInfo(interfaceName: QualifiedName): DerivingInterfaceInfo {
+        if (interfaceName != EQUATABLE_NAME) {
+            throw IllegalArgumentException("Interface ${interfaceName} is not supported")
+        }
+        return EQUATABLE_INFO
+    }
+
+    public override func derive(
+        _: Tokens,
+        target: DerivingTarget,
+        _: Logger
+    ): Tokens {
+        let namedMembersCondition = target.namedFields |> map { f: TargetNamedAttribute =>
+            let member = f.identifier.token
+            quote(this.$member == other.$member)
+        } |> collectArray
+
+        let caseKeyword = Token(TokenKind.CASE, "case")
+        let fallbackCase = if (target.enumCases.size != 1 || isEnumHasEllipsis(target)) {
+            quote($caseKeyword _ => false)
+        } else {
+            quote()
+        }
+
+        let condition = if (target.enumCases.isEmpty()) {
+            namedMembersCondition |> joinTokens(delimiter: quote(&&), ifEmpty: quote(true))
+        } else {
+            target.enumCases |> map<TargetEnumCase, Tokens> { enumCase =>
+                let left = destructEnumCase(enumCase, "left")
+                let right = destructEnumCase(enumCase, "right")
+                let condition = enumCasesCompare(enumCase) |>
+                    concat(namedMembersCondition) |>
+                    joinTokens(delimiter: quote(&&), ifEmpty: quote(true))
+
+                quote(
+                    $caseKeyword ($left, $right) => $condition
+                )
+            } |> joinTokens(
+                prefix: quote(match ((this, other)) {),
+                postfix: quote(
+                        $fallbackCase
+                    })
+            )
+        }
+
+        let otherName = if (namedMembersCondition.isEmpty() && target.enumCases.isEmpty()) {
+            Token(TokenKind.WILDCARD, "_")
+        } else {
+            Token(TokenKind.IDENTIFIER, "other")
+        }
+
+        let targetType = target.toType()
+        let e = target.createExtendSkeleton()
+        e.body.decls.add(FuncDecl(quote(
+            public operator func ==($otherName: $targetType): Bool {
+                return $condition
+            }
+        )))
+        e.body.decls.add(FuncDecl(quote(
+            public operator func !=(other: $targetType): Bool {
+                !(this == other)
+            }
+        )))
+
+        e.appendAllConstraints(this, target, EQUATABLE_NAME)
+
+        return e.toTokens()
+    }
+
+    private static func enumCasesCompare(enumCase: TargetEnumCase): Iterable<Tokens> {
+        if (enumCase.totalArgumentsCount == 0) {
+            return []
+        }
+
+        return enumCase.fields |> map<TargetEnumField, Tokens> { f =>
+            let left = Token(TokenKind.IDENTIFIER, "left${f.position}")
+            let right = Token(TokenKind.IDENTIFIER, "right${f.position}")
+            quote($left == $right)
+        }
+    }
+
+    static init() {
+        registerDeriving(EquatableDeriving())
+    }
+}

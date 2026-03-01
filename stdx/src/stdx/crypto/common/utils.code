@@ -1,0 +1,195 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package stdx.crypto.common
+
+protected class ArrayBuilder<T> {
+    private var items: Array<?T>
+    private var tSize = 0
+
+    protected init(capacity: Int64) {
+        items = Array<?T>(capacity, repeat: None)
+    }
+
+    protected init() {
+        this(10)
+    }
+
+    protected func append(item: T): Unit {
+        if (tSize == items.size) {
+            grow()
+        }
+
+        items[tSize] = Some(item)
+        tSize++
+    }
+
+    protected func toArray(): Array<T> {
+        Array<T>(tSize) {
+            index => items[index].getOrThrow()
+        }
+    }
+
+    protected func isEmpty() {
+        tSize == 0
+    }
+
+    private func grow(): Unit {
+        const ALPHA = 3
+        const BETA = 2
+        let newArray = Array<?T>((items.size * ALPHA / BETA) + 1, repeat: None)
+        items.copyTo(newArray, 0, 0, items.size)
+        items = newArray
+    }
+}
+
+public class CryptoException <: Exception {
+    public init() {
+        super()
+    }
+
+    public init(message: String) {
+        super(message)
+    }
+
+    protected override func getClassName(): String {
+        return "CryptoException"
+    }
+}
+
+protected func malloc<T>(count!: Int64, initial!: ?T): NativePointerResource<T> where T <: CType {
+    NativePointerResource<T>(count, initial)
+}
+
+protected func malloc<T>(count!: Int64): NativePointerResource<T> where T <: CType {
+    NativePointerResource<T>(count, Option<T>.None)
+}
+
+protected func malloc<T>(initial!: ?T): NativePointerResource<T> where T <: CType {
+    NativePointerResource<T>(1, initial)
+}
+
+protected func malloc<T>(): NativePointerResource<T> where T <: CType {
+    NativePointerResource<T>(1, Option<T>.None)
+}
+
+protected unsafe func mallocCString(str: ?String): CStringResource {
+    match (str) {
+        case Some(str) => LibC.mallocCString(str).asResource()
+        case None => CString(CPointer()).asResource()
+    }
+}
+
+protected func mallocCopyOf<T>(source: ?Array<T>): NativePointerResource<T> where T <: CType {
+    match (source) {
+        case Some(source) => mallocCopyOf(source)
+        case None => NativePointerResource<T>()
+    }
+}
+
+protected func mallocCopyOf<T>(source: Array<T>): NativePointerResource<T> where T <: CType {
+    let result = NativePointerResource<T>(source.size, None)
+    for (index in 0..source.size) {
+        unsafe {
+            result.pointer.write(index, source[index])
+        }
+    }
+    return result
+}
+
+protected class NativePointerResource<T> <: Resource where T <: CType {
+    private var nativePointer: CPointer<T>
+
+    protected prop pointer: CPointer<T> {
+        get() {
+            nativePointer
+        }
+    }
+
+    protected mut prop value: T {
+        get() {
+            unsafe { nativePointer.read() }
+        }
+        set(newValue) {
+            unsafe { nativePointer.write(newValue) }
+        }
+    }
+
+    protected init() {
+        nativePointer = CPointer()
+    }
+
+    protected init(count: Int64, sample: ?T) {
+        unsafe {
+            if (count <= 0) {
+                throw IllegalArgumentException("Count should be positive: ${count}.")
+            }
+            nativePointer = LibC.malloc(count: count)
+            if (nativePointer.isNull()) {
+                throw CryptoException("Failed to allocate memory.")
+            }
+            if (let Some(s) <- sample) {
+                for (index in 0..count) {
+                    nativePointer.write(index, s)
+                }
+            }
+        }
+    }
+
+    public override func isClosed(): Bool {
+        nativePointer.isNull()
+    }
+    public override func close(): Unit {
+        if (isClosed()) {
+            return
+        }
+        unsafe {
+            LibC.free(nativePointer)
+            nativePointer = CPointer()
+        }
+    }
+}
+
+protected unsafe func toArray(ptr: CPointer<Byte>, size: UIntNative): Array<Byte> {
+    if (ptr.isNull() && size != 0) {
+        throw NoneValueException("Native pointer is NULL.")
+    }
+
+    let result = Array<Byte>(Int64(size), repeat: 0)
+    if (size != 0) {
+        copy(source: ptr, destination: result, count: size)
+    }
+    return result
+}
+
+func copy(source!: CPointer<Byte>, destination!: Array<Byte>, count!: UIntNative) {
+    unsafe {
+        let acq = acquireArrayRawData(destination)
+        let result = memcpy_s(acq.pointer, UIntNative(destination.size), source, count)
+        releaseArrayRawData(acq)
+        if (result != 0) {
+            throw CryptoException("Failed to copy ${count} bytes.")
+        }
+    }
+}
+
+foreign func memcpy_s(dest: CPointer<UInt8>, destMax: UIntNative, src: CPointer<UInt8>, count: UIntNative): Int32

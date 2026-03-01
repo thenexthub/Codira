@@ -1,0 +1,77 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/**
+ * @file
+ *
+ * This file defines the Statement interface.
+ */
+package std.database.sql
+
+/**
+ * The Statement interface is bound to a Connection, that is the pre-execution interface of SQL statements.
+ *
+ * @since 0.32.3
+ */
+public interface Statement <: Resource {
+
+    /**
+     * Retrieves the number, types, length and other properties of this prepared {@code Statement} object's parameters.
+     *
+     * @since 0.43.2
+     */
+    prop parameterColumnInfos: Array<ColumnInfo>
+
+    /**
+     * setOption sets a string option on this statement
+     *
+     */
+    func setOption(key: String, value: String): Unit
+
+    /**
+     * executes a prepared statement with the given arguments and returns a UpdateResult summarizing the effect of the statement.
+     *
+     * @return a update result
+     *
+     * SqlException - An exception occurs during the execution, for example, the network is interrupted, the server times out, or the number of parameters is incorrect.
+     */
+    @Deprecated[message: "Use memeber funcation `func update(): UpdateResult` instead."]
+    func update(params: Array<SqlDbType>): UpdateResult
+
+    /**
+     * executes a prepared query statement with the given arguments and
+     * @return the query results
+     *
+     * SqlException - An exception occurs during the execution, for example, the network is interrupted, the server times out, or the number of parameters is incorrect.
+     */
+    @Deprecated[message: "Use memeber funcation `func query(): QueryResult` instead."]
+    func query(params: Array<SqlDbType>): QueryResult
+
+    @When[backend == "codenative"]
+    func set<T>(index: Int64, value: T): Unit
+
+    func setNull(index: Int64): Unit
+
+    func update(): UpdateResult
+
+    func query(): QueryResult
+}

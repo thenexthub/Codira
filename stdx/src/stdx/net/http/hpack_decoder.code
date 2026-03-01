@@ -1,0 +1,364 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/**
+ * @file
+ *
+ * This is a library for Decoder class.
+ */
+
+package stdx.net.http
+
+import stdx.log.*
+
+/**
+ * HPACK Decoder
+ * A decoder decode HPACK-encoded data frame to HTTP header list.
+ *
+ * https://www.rfc-editor.org/rfc/rfc7541#section-3
+ */
+class Decoder {
+    private let headerTable: HeaderTable
+    /**
+     * The value of Server.headerTableSize.
+     * The value should be send to peer as SETTINGS_HEADER_TABLE_SIZE.
+     * The value will be used to validate the new maximum table size while decoding 'Dynamic Table Size Update'.
+     */
+    private var headerTableSizeLimit: Int64 = 4096
+
+    /**
+     * For decoder, this value will set by user by using the SETTINGS_MAX_HEADER_LIST_SIZE.
+     * The initial value of this setting is unlimited.
+     */
+    var maxHeaderListSize = -1
+
+    /**
+     * Constructor
+     */
+    Decoder(let encoder: Encoder, let name!: String = "unknown", var _logger!: Logger = mutexLogger()) {
+        headerTable = HeaderTable("${name}.decoder", _logger)
+    }
+
+    /**
+     * Logger
+     */
+    mut prop logger: Logger {
+        get() {
+            return _logger
+        }
+        set(v) {
+            _logger = v
+            headerTable.logger = v
+        }
+    }
+
+    /**
+     * Decode HPACK-encoded data frame to HTTP header list.
+     *
+     * https://www.rfc-editor.org/rfc/rfc7541#section-3.2
+     *
+     * @param headerBlock HPACK-encoded data frame.
+     * @return FieldsList HTTP header list.
+     *
+     * @throws HpackException, if index not exists.
+     */
+    func decode(headerBlock: Array<UInt8>): FieldsList {
+        let headerList = FieldsList()
+        let iterator = ByteIterator(headerBlock.iterator())
+
+        var totalHeaderListSize: Int64 = 0 // headerSize = name.size + value.size + 32
+        var isFirstByte = true
+
+        while (let Some(b) <- iterator.next()) {
+            let field: HeaderField = match {
+                /*
+                 * Indexed Header Field Representation
+                 * https://www.rfc-editor.org/rfc/rfc7541#section-6.1
+                 *
+                 *    0   1   2   3   4   5   6   7
+                 *  +---+---+---+---+---+---+---+---+
+                 *  | 1 |        Index (7+)         |
+                 *  +---+---------------------------+
+                 */
+                case (b & 0x80) == 0x80 =>
+                    let index = decodeInt(b, 7, iterator)
+                    let field = headerTable.get(index) // Will throw exception while index not exists
+                    if (logger.enabled(LogLevel.TRACE)) {
+                        httpLogTrace(logger,
+                            "[${this.name}.Decoder#decode] index7: ${index}, header:(${field[0]}, ${field[1]})")
+                    }
+                    field
+
+                /*
+                 * Literal Header Field with Incremental Indexing
+                 * https://www.rfc-editor.org/rfc/rfc7541#section-6.2.1
+                 *
+                 *    0   1   2   3   4   5   6   7
+                 *  +---+---+---+---+---+---+---+---+
+                 *  | 0 | 1 |      Index (6+)       |
+                 *  +---+---+-----------------------+
+                 *  | H |     Value Length (7+)     |
+                 *  +---+---------------------------+
+                 *  | Value String (Length octets)  |
+                 *  +-------------------------------+
+                 *
+                 * or
+                 *
+                 *    0   1   2   3   4   5   6   7
+                 *  +---+---+---+---+---+---+---+---+
+                 *  | 0 | 1 |           0           |
+                 *  +---+---+-----------------------+
+                 *  | H |     Name Length (7+)      |
+                 *  +---+---------------------------+
+                 *  |  Name String (Length octets)  |
+                 *  +---+---------------------------+
+                 *  | H |     Value Length (7+)     |
+                 *  +---+---------------------------+
+                 *  | Value String (Length octets)  |
+                 *  +-------------------------------+
+                 */
+                case (b & 0x40) == 0x40 =>
+                    let field = parseLiteral(b, 6, iterator)
+                    headerTable.insert(field)
+                    field
+
+                /*
+                 * Dynamic Table Size Update
+                 * https://www.rfc-editor.org/rfc/rfc7541#section-6.3
+                 *
+                 *    0   1   2   3   4   5   6   7
+                 *  +---+---+---+---+---+---+---+---+
+                 *  | 0 | 0 | 1 |   Max size (5+)   |
+                 *  +---+---------------------------+
+                 */
+                case (b & 0x20) == 0x20 =>
+                    if (!isFirstByte) {
+                        throw HpackException(
+                            "Dynamic table size update MUST occur at the beginning of the first header block.")
+                    }
+                    let size = decodeInt(b, 5, iterator)
+                    updateDynamicTableSize(size)
+                    if (logger.enabled(LogLevel.TRACE)) {
+                        httpLogTrace(logger, "[${this.name}.Decoder#decode] Max size: ${size}")
+                    }
+                    continue
+
+                /*
+                 * Literal Header Field Never Indexed
+                 * https://www.rfc-editor.org/rfc/rfc7541#section-6.2.3
+                 *
+                 *    0   1   2   3   4   5   6   7
+                 *  +---+---+---+---+---+---+---+---+
+                 *  | 0 | 0 | 0 | 1 |  Index (4+)   |
+                 *  +---+---+-----------------------+
+                 *  | H |     Value Length (7+)     |
+                 *  +---+---------------------------+
+                 *  | Value String (Length octets)  |
+                 *  +-------------------------------+
+                 *
+                 * or
+                 *
+                 *    0   1   2   3   4   5   6   7
+                 *  +---+---+---+---+---+---+---+---+
+                 *  | 0 | 0 | 0 | 1 |       0       |
+                 *  +---+---+-----------------------+
+                 *  | H |     Name Length (7+)      |
+                 *  +---+---------------------------+
+                 *  |  Name String (Length octets)  |
+                 *  +---+---------------------------+
+                 *  | H |     Value Length (7+)     |
+                 *  +---+---------------------------+
+                 *  | Value String (Length octets)  |
+                 *  +-------------------------------+
+                 */
+                case (b & 0x10) == 0x10 =>
+                    let field = parseLiteral(b, 4, iterator)
+                    // Intermediaries MUST use the same representation for encoding this header field.
+                    encoder.setSensitive(field)
+                    field
+
+                /*
+                 * Literal Header Field without Indexing
+                 * https://www.rfc-editor.org/rfc/rfc7541#section-6.2.2
+                 *
+                 *    0   1   2   3   4   5   6   7
+                 *  +---+---+---+---+---+---+---+---+
+                 *  | 0 | 0 | 0 | 0 |  Index (4+)   |
+                 *  +---+---+-----------------------+
+                 *  | H |     Value Length (7+)     |
+                 *  +---+---------------------------+
+                 *  | Value String (Length octets)  |
+                 *  +-------------------------------+
+                 *
+                 * or
+                 *
+                 *     0   1   2   3   4   5   6   7
+                 *  +---+---+---+---+---+---+---+---+
+                 *  | 0 | 0 | 0 | 0 |       0       |
+                 *  +---+---+-----------------------+
+                 *  | H |     Name Length (7+)      |
+                 *  +---+---------------------------+
+                 *  |  Name String (Length octets)  |
+                 *  +---+---------------------------+
+                 *  | H |     Value Length (7+)     |
+                 *  +---+---------------------------+
+                 *  | Value String (Length octets)  |
+                 *  +-------------------------------+
+                 */
+                case _ => parseLiteral(b, 4, iterator)
+            }
+            isFirstByte = false // used by check 0x20
+
+            // check total header list size
+            if (maxHeaderListSize != -1) {
+                totalHeaderListSize += fieldSize(field)
+                if (totalHeaderListSize > maxHeaderListSize) {
+                    throw HpackException(
+                        "Total size:${totalHeaderListSize} out of SettingsMaxHeaderListSize :${maxHeaderListSize}.")
+                }
+            }
+            // append to header list
+            headerList.add(field)
+        }
+
+        return headerList
+    }
+
+    private func parseLiteral(b: Byte, n: Int64, nextBytes: ByteIterator): HeaderField {
+        let index = decodeInt(b, n, nextBytes)
+        let name: String
+        if (index == 0) {
+            name = decodeString(nextBytes.nextByte(), nextBytes)
+        } else {
+            let field = headerTable.get(index) // Will throw exception while index not exists
+            name = field[0]
+        }
+
+        let value = decodeString(nextBytes.nextByte(), nextBytes)
+
+        if (logger.enabled(LogLevel.TRACE)) {
+            httpLogTrace(logger, "[${this.name}.Decoder#parseLiteral] index${n}: ${index}, header:(${name}, ${value})")
+        }
+        return (name, value)
+    }
+
+    func setHeaderTableSizeLimit(limit: Int64): Unit {
+        this.headerTableSizeLimit = limit
+        headerTable.headerTableSize = limit
+    }
+
+    func updateDynamicTableSize(newMaxSize: Int64): Unit {
+        if (newMaxSize > this.headerTableSizeLimit) {
+            throw HpackException(
+                "Failed to update dynamic table size, new size: ${newMaxSize} exceeds the limit: ${this.headerTableSizeLimit}."
+            )
+        }
+        headerTable.headerTableSize = newMaxSize
+    }
+
+    /**
+     * String Literal Representation
+     * https://www.rfc-editor.org/rfc/rfc7541#section-5.2
+     *
+     *      0   1   2   3   4   5   6   7
+     *  +---+---+---+---+---+---+---+---+
+     *  | H |    String Length (7+)     |
+     *  +---+---------------------------+
+     *  |  String Data (Length octets)  |
+     *  +-------------------------------+
+     */
+    func decodeString(b: Byte, nextBytes: ByteIterator): String {
+        let len = decodeInt(b, 7, nextBytes)
+        // check header size
+        if (maxHeaderListSize != -1 && maxHeaderListSize < len) {
+            throw HpackException(
+                "Failed to decode String, header string size:${len} out of SettingsMaxHeaderListSize :${maxHeaderListSize}."
+            )
+        }
+        var bytes = Array<Byte>(len, {_ => nextBytes.nextByte()})
+
+        let isHuff = (Int64(b) & 0x80) == 0x80
+        if (isHuff) {
+            bytes = QuickHuffmanDecoder.decode(bytes)
+        }
+
+        try {
+            return String.fromUtf8(bytes)
+        } catch (e: Exception) {
+            throw HpackException("Failed to decode string: ${e.message}.")
+        }
+    }
+}
+
+/**
+ * Integer Representation
+ * https://www.rfc-editor.org/rfc/rfc7541#section-5.1
+ *
+ *    0   1   2   3   4   5   6   7
+ *  +---+---+---+---+---+---+---+---+
+ *  | ? | ? | ? |       Value       |
+ *  +---+---+---+-------------------+
+ *
+ * or
+ *
+ *    0   1   2   3   4   5   6   7
+ *  +---+---+---+---+---+---+---+---+
+ *  | ? | ? | ? | 1   1   1   1   1 |
+ *  +---+---+---+-------------------+
+ *  | 1 |    Value-(2^N-1) LSB      |
+ *  +---+---------------------------+
+ *                 ...
+ *  +---+---------------------------+
+ *  | 0 |    Value-(2^N-1) MSB      |
+ *  +---+---------------------------+
+ */
+func decodeInt(b: Byte, n: Int64, nextBytes: ByteIterator): Int64 {
+    let maskN = (1 << n) - 1
+    var value = Int64(b) & maskN
+    if (value < maskN) {
+        return value
+    }
+    let mask7 = (1 << 7) - 1
+    var m = 1
+    var t: Int64
+    do {
+        t = Int64(nextBytes.nextByte())
+        value += (t & mask7) * m
+        m <<= 7
+        if (m < 0) {
+            throw HpackException("Failed to decode integer, number too large.")
+        }
+    } while ((t & 0x80) == 0x80)
+    return value
+}
+
+class ByteIterator {
+    ByteIterator(let it: Iterator<Byte>) {}
+
+    func nextByte(): Byte {
+        return it.next() ?? throw HpackException("Failed to decode data, next byte required but not found.")
+    }
+
+    func next(): Option<Byte> {
+        return it.next()
+    }
+}

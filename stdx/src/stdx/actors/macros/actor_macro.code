@@ -1,0 +1,293 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/**
+ * @file
+ *
+ * This file defines the @Actor macro.
+ *
+ */
+
+macro package stdx.actors.macros
+
+import std.ast.*
+import std.collection.ArrayList
+
+const DEFAULT_PRIORITY = 5
+
+/**
+ * This macro can be only defined at non-inheritable class, i.e. a class that is not open nor abstract nor sealed.
+ *
+ * @since
+ *
+ * @throws MacroException if input is not a ClassDecl, or if the ClassDecl has either OPEN, ABSTRACT or SEALED modifier.
+ */
+public macro Actor(attrs: Tokens, input: Tokens): Tokens {
+    ActorMacro.run(attrs, input)
+}
+
+public macro Actor(input: Tokens): Tokens {
+    ActorMacro.run(Tokens(), input)
+}
+
+class ActorMacro {
+    private let opts: MacroOptionSet
+    private let errors: MacroErrors
+    /*
+        Because annotations are interpreted as MacroExpandDecl,
+        the input tokens could be parsed into the following structure:
+        head-MacroExpandDecl --> ... -> actual ClassDecl
+        for example:
+            @Actor
+            @Annotation1 // this is the head
+            @Annotation2
+            class MyActor { ... }
+     */
+    private let headDecl: Decl
+    private var cd: ClassDecl = unsafe { zeroValue<ClassDecl>() }
+
+    static func run(attrs: Tokens, input: Tokens): Tokens {
+        let errors = MacroErrors()
+
+        // parse the options
+        let opts = MacroOptionParser.run(attrs, errors)
+        errors.report()
+
+        let actorMacro = ActorMacro(input, opts, errors)
+
+        // check the options
+        actorMacro.checkOptions()
+
+        // check if it is a class decl
+        actorMacro.checkDecl()
+
+        // check if the class decl is valid
+        actorMacro.checkClassDecl()
+
+        // modify actor body
+        actorMacro.processBody()
+
+        // return the headDecl
+        actorMacro.headDecl.toTokens()
+    }
+
+    private init(input: Tokens, opts: MacroOptionSet, errors: MacroErrors) {
+        this.opts = opts
+        this.errors = errors
+        this.headDecl = parseDecl(input)
+    }
+
+    private func checkDecl(): Unit {
+        var decl = headDecl
+        while (true) {
+            if (let Some(cd) <- (decl as ClassDecl)) {
+                this.cd = cd
+                return
+            } else if (let Some(mc) <- (decl as MacroExpandDecl)) {
+                decl = mc.macroInputDecl
+            } else {
+                errors.add(MacroError.ActorMacroInvalidDecl)
+                return errors.doThrow()
+            }
+        }
+    }
+
+    private func checkOptions(): Unit {
+        opts.iterate {
+            key, _ =>
+                if (key != EnableReceiverPriority) {
+                    errors.add(MacroError.ActorMacroInvalidMacroOption(key))
+                }
+                true
+        }
+        errors.report()
+    }
+
+    private func checkClassDecl(): Unit {
+        for (mod in cd.modifiers) {
+            if (mod.keyword.kind == ABSTRACT || mod.keyword.kind == OPEN || mod.keyword.kind == SEALED) {
+                errors.add(MacroError.ActorMacroInvalidClassModifier)
+            }
+        }
+        errors.report()
+    }
+
+    private func processBody(): Unit {
+        let newDecls = ArrayList<Decl>()
+
+        // add actorInstance member
+        addActorInstanceVar(newDecls)
+
+        for (decl in cd.body.decls) {
+            match (decl) {
+                case mDecl: MacroExpandDecl =>
+                    if (mDecl.identifier.value != receiverMarkerToken.value) {
+                        newDecls.add(decl)
+                        continue
+                    }
+                    // we see a @Receiver
+                    let receiverOptions = MacroOptionParser.run(mDecl.macroAttrs, errors)
+                    newDecls.add(ReceiverModification.run(mDecl.macroInputs, opts, receiverOptions, errors))
+
+                case _ => newDecls.add(decl)
+            }
+        }
+        cd.body.decls = newDecls
+    }
+
+    private func addActorInstanceVar(newDecls: ArrayList<Decl>): Unit {
+        let actorType = quote(SequentialDispatcher(enableReceiverPriority: $(opts.hasEnabledReceiverPriority())))
+
+        newDecls.add(VarDecl(quote(
+            private let $actorInstanceToken = $actorType
+        )))
+    }
+}
+
+private class ReceiverModification {
+    private let actorOpts: MacroOptionSet
+    private let receiverOptions: MacroOptionSet
+    private let errors: MacroErrors
+    private let headDecl: Decl
+    private var fd: FuncDecl = unsafe { zeroValue<FuncDecl>() }
+
+    static func run(input: Tokens, actorOpts: MacroOptionSet, receiverOptions: MacroOptionSet, errors: MacroErrors): Decl {
+        let rModify = ReceiverModification(input, actorOpts, receiverOptions, errors)
+
+        rModify.checkReceiverOptions()
+
+        rModify.checkDecl()
+
+        rModify.checkReceiver()
+
+        rModify.modifyReceiver()
+
+        return rModify.headDecl
+    }
+
+    private init(input: Tokens, actorOpts: MacroOptionSet, receiverOptions: MacroOptionSet, errors: MacroErrors) {
+        this.actorOpts = actorOpts
+        this.receiverOptions = receiverOptions
+        this.errors = errors
+
+        this.headDecl = parseDecl(input)
+    }
+
+    private func checkDecl(): Unit {
+        var decl = headDecl
+        while (true) {
+            if (let Some(fd) <- (decl as FuncDecl)) {
+                this.fd = fd
+                return
+            } else if (let Some(mc) <- (decl as MacroExpandDecl)) {
+                decl = mc.macroInputDecl
+            } else {
+                errors.add(MacroError.ReceiverMacroInvalidDecl)
+                return errors.doThrow()
+            }
+        }
+    }
+
+    private func checkReceiverOptions(): Unit {
+        if (!actorOpts.hasEnabledReceiverPriority()) {
+            receiverOptions.iterate {
+                key, _ =>
+                    if (key == Priority) {
+                        errors.add(MacroError.ReceiverMacroPriorityInsideActor)
+                    }
+                    true
+            }
+        }
+        errors.report()
+    }
+
+    private func checkReceiver(): Unit {
+        if (actorOpts.hasEnabledReceiverPriority()) {
+            for (param in fd.funcParams) {
+                // a named parameter named "priority"
+                if (param.not.kind == TokenKind.NOT && param.identifier.value == Priority.toString()) {
+                    errors.add(MacroError.ReceiverMacroPriorityNameParameter)
+                }
+            }
+        }
+        errors.report()
+    }
+
+    private func modifyReceiver(): Unit {
+        if (actorOpts.hasEnabledReceiverPriority()) {
+            modifyReceiverWithPriority()
+            return
+        }
+
+        /*
+            @receiverMarker
+            func foo(arg1: Ty1, ..., argN: TyN): RetTy { body }
+            =>
+            func foo(arg1: Ty1, ..., argN: TyN): RetTy {
+                actorInstance.post<RetTy>({ => body })
+            }
+         */
+        let retTy = fd.declType
+        fd.declType = actorFutureType(retTy)
+
+        let retExpr = ReturnExpr(
+            quote(
+            return $actorInstanceToken.post<$retTy>({=> $(fd.block.nodes) })
+        ))
+
+        fd.block.nodes.clear()
+        fd.block.nodes.add(retExpr)
+    }
+
+    private func modifyReceiverWithPriority(): Unit {
+        /*
+            @receiverMarker
+            func foo(arg1: Ty1, ..., argN: TyN): RetTy { body }
+            =>
+            func foo(arg1: Ty1, ..., argN: TyN, priority!: Int64 = $defaultPriority): RetTy {
+                actorInstance.post<RetTy>({ => body })
+            }
+         */
+        let defaultPriorityBox: Box<Int64> = Box(DEFAULT_PRIORITY)
+        receiverOptions.iterate {
+            _, opt => match (opt) {
+                case Priority(p) =>
+                    defaultPriorityBox.value = Int64(p)
+                    false
+                case _ => true
+            }
+        }
+        let defaultPriority = defaultPriorityBox.value
+
+        let retTy = fd.declType
+        fd.declType = actorFutureType(retTy)
+        fd.funcParams.add(FuncParam(quote(priority!: Int64 = $defaultPriority)))
+
+        let retExpr = ReturnExpr(
+            quote(
+            return $actorInstanceToken.post<$retTy>({ => $(fd.block.nodes) }, priority: priority)
+        ))
+
+        fd.block.nodes.clear()
+        fd.block.nodes.add(retExpr)
+    }
+}

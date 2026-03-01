@@ -1,0 +1,129 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+package std.unittest.mock
+
+import std.collection.*
+
+/**
+ * Represents the exhaustiveness of verification.
+ * Exhaustive - requires every invocation on an object to be listed inside Verify block.
+ * Partial - allows to list only some invocations and ignore 'uninteresting' invoactions.
+ */
+public enum Exhaustiveness {
+    Exhaustive | Partial
+}
+
+enum Orderedness {
+    Ordered | Unordered
+}
+
+enum VerificationResult {
+    Success | Failure(VerificationFailedReason)
+}
+
+func performVerification(statements: Array<VerifyStatement>, orderedness: Orderedness, exhaustiveness: Exhaustiveness) {
+    if (statements.isEmpty()) {
+        VerifyMisconfiguration().fail(EmptyVerifyBlock)
+    }
+
+    let objectIds = collectObjectsIds(statements)
+
+    // we rely on snapshot being a copy and thus not getting modified concurrently
+    let logSnapshot = MockFramework.session { session: MockSession =>
+        for (st in statements) {
+            st.prepareForVerification(orderedness)
+        }
+        session.invocationLog.snapshotSinceLastClear(objectIds)
+    }
+
+    let verificationResult = match ((orderedness, exhaustiveness)) {
+        case (Ordered, Exhaustive) => verifyExhaustiveOrdered(statements, logSnapshot)
+        case (Unordered, exhaustiveness) => verifyUnordered(exhaustiveness, statements, logSnapshot)
+        case _ => internalError("Unsupported modes")
+    }
+
+    match (verificationResult) {
+        case Failure(reason) =>
+            let nameRegistry = MockNameRegistry(
+                statements |> map {st: VerifyStatement => st.invocationMatcher} |> collectArray)
+            VerificationFailureReport(logSnapshot, nameRegistry).fail(reason)
+        case Success => ()
+    }
+}
+
+func verifyNoInteractions(objectRefs: Array<Object>) {
+    ensureDistinctReferences(objectRefs)
+
+    let objectIds = _FRAMEWORK.findObjectIdsByRefs(objectRefs)
+    if (objectIds.size != objectRefs.size) {
+        illegalInput(
+            "Invalid input: arguments to Verify.noInteractions must be mock or spy objects"
+        )
+    }
+
+    let logSnapshot = MockFramework.session { session: MockSession =>
+        session.invocationLog.snapshotSinceLastClear(objectIds)
+    }
+
+    let invocations = logSnapshot.invocations()
+    if (invocations.isEmpty()) {
+        return
+    }
+
+    VerificationFailureReport(logSnapshot, MockNameRegistry.EMPTY).fail(
+        UnwantedInteractions(invocations)
+    )
+}
+
+func ensureDistinctReferences(refs: Array<Object>) {
+    if (refs.isEmpty()) {
+        illegalInput("Invalid input: empty object array")
+    }
+
+    for (i in 0..refs.size) {
+        for (j in (i + 1)..refs.size) {
+            if (refEq(refs[i], refs[j])) {
+                illegalInput("Invalid input: several references to the same object")
+            }
+        }
+    }
+}
+
+func collectObjectsIds(statements: Array<VerifyStatement>): HashSet<UInt64> {
+    let objectIds = HashSet<UInt64>()
+    for (statement in statements) {
+        objectIds.add(statement.invocationMatcher.stubId.receiverId)
+    }
+    return objectIds
+}
+
+func checkMatchersConsistency(statement: VerifyStatement) {
+    for (matcher in statement.invocationMatcher.positionalMatchers) {
+        if (let Some(listeningMatcher) <- (matcher as ListeningMatcher)) {
+            match (listeningMatcher.valueListener) {
+                case None => ()
+                case _ =>
+                    VerifyMisconfiguration().fail(ArgumentCaptureNotAllowed(statement, matcher))
+            }
+        }
+    }
+}

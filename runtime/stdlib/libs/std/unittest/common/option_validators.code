@@ -1,0 +1,137 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+package std.unittest.common
+
+import std.collection.*
+import std.sync.ReentrantMutex
+
+public class UnittestOptionValidationException <: Exception {
+    init() {
+        super()
+    }
+
+    init(message: String) {
+        super(message)
+    }
+
+    protected override func getClassName(): String {
+        return "UnittestOptionValidationException"
+    }
+}
+
+public enum OptionValidity {
+    | UnknownOptionType
+    | InvalidOption(String)
+    | ValidOption(ConfigurationKey) // with correct type key
+}
+
+type Validator = (Any) -> OptionValidity
+
+public var unittestOptionsRegistryClosed = false
+
+// validators registry is closed when defaultConfiguration is created
+let VALIDATORS: HashMap<String, ArrayList<Validator>> = HashMap()
+
+public struct OptionInfo {
+    OptionInfo(
+        public let name: String,
+        public let userDefined: Bool,
+        public let description: ?String,
+        public let types!: HashMap<String, ?String> = HashMap() // type to it's optional description
+    ) {}
+}
+
+public let optionsInfo: HashMap<String, OptionInfo> = HashMap()
+let MUTEX = ReentrantMutex()
+let VALIDATOR_NAME = "UnittestOption"
+
+func checkOptionValueAndGetConfigurationKey<T>(key: KeyFor<T>, value: T): ConfigurationKey {
+    return checkOptionValueByNameAndGetConfigurationKey(key.name, value)
+}
+
+func checkOptionValueByNameAndGetConfigurationKey<T>(name: String, value: T): ConfigurationKey {
+    let valueStr = match (value) {
+        case tos: ToString => " (${name}.toString='${tos}')"
+        case _ => ""
+    }
+    let option = "Option '${name}'${valueStr}"
+
+    if (let Some(VALIDATORS) <- VALIDATORS.get(name)) {
+        for (validator in VALIDATORS) {
+            let status = validator(value)
+            match (status) {
+                case UnknownOptionType => continue
+                case ValidOption(configurationKey) => return configurationKey // valid, exit
+                case InvalidOption(message) => throw UnittestOptionValidationException(
+                    "${option} is invalid. ${message}")
+            }
+        }
+
+        // no one fit
+        throw UnittestOptionValidationException("${option} type is not valid.")
+    }
+
+    throw UnittestOptionValidationException("Option '${name}' has no validators. Use @${VALIDATOR_NAME} macro.")
+}
+
+public func registerOptionValidator(name: String, validator: Validator): Unit {
+    if (unittestOptionsRegistryClosed) {
+        throw UnittestOptionValidationException("Validator registry closed. Move your validator on top level.")
+    }
+
+    synchronized(MUTEX) {
+        if (!VALIDATORS.contains(name)) {
+            VALIDATORS.add(name, ArrayList())
+        }
+
+        VALIDATORS[name].add(validator)
+    }
+}
+
+public func setOptionInfo(
+    name: String,
+    types: Array<String>,
+    description!: ?String = None
+): Unit {
+    synchronized(MUTEX) {
+        var info = OptionInfo(name, true, description)
+        for (ty in types) {
+            info.types[ty] = None
+        }
+        optionsInfo[name] = info
+    }
+}
+
+public func setOrUpdateOptionInfo(
+    name: String,
+    description: ?String,
+    ty: String,
+    typeDescription: String
+): Unit {
+    synchronized(MUTEX) {
+        if (!optionsInfo.contains(name)) {
+            optionsInfo.add(name, OptionInfo(name, false, description))
+        }
+
+        optionsInfo[name].types[ty] = typeDescription
+    }
+}

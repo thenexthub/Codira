@@ -1,0 +1,1177 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This source file is part of the Codira project, licensed under Apache-2.0
+ * with Runtime Library Exception.
+ *
+ * See https://cangjie-lang.cn/pages/LICENSE for license information.
+ */
+
+package stdx.encoding.json.stream
+
+import std.io.InputStream
+import std.time.*
+
+@FastNative
+foreign func CODE_ReadString(buffer: CPointer<Byte>, left: Int64, right: Int64): Int64
+
+const HIGH_1_UInt8: UInt8 = 0b10000000 // 0x80
+const HIGH_3_UInt8: UInt8 = 0b11100000 // 0xe0
+const HIGH_4_UInt8: UInt8 = 0b11110000 // 0xf0
+const HIGH_5_UInt8: UInt8 = 0b11111000 // 0xf8
+const HIGH_6_UInt8: UInt8 = 0b11111100 // 0xfc
+
+public class JsonReader {
+    let inputStream: InputStream // the input stream
+    let buffer: Array<Byte> = Array<Byte>(1024, repeat: 0)
+    let stacks = JsonStateStack() // a stack of json types(object/array)
+    let stringBuffer: StringBuffer = StringBuffer() // a buffer for readed string
+
+    var peeked: Int64 = PEEK_STATE_NONE // peeked state
+    var availLen: Int64 = 0 // The amount of valid data in the buffer
+    var index: Int64 = 0 // The start position of valid data in the buffer
+
+    var dateTimeFormat: ?DateTimeFormat = None
+
+    public init(inputStream: InputStream) {
+        this.inputStream = inputStream
+    }
+
+    @Frozen
+    public func readValue<T>(): T where T <: JsonDeserializable<T> {
+        if (peeked == PEEK_STATE_NONE && stacks.top == JsonStateStack.JSON_OBJECT || peeked == PEEK_STATE_NAME) {
+            throw IllegalStateException("In an object, the name must be handled before the value.")
+        }
+        let res = T.fromJson(this)
+        // manual inline func afterRead
+        let nextByte: Byte = if (let Some(v) <- tryNextNonJsonWhitespace()) {
+            v
+        } else {
+            peeked = PEEK_STATE_NONE
+            return res
+        }
+        
+        if (nextByte == b',') {
+            index++
+            availLen--
+            match (stacks.top) {
+                case 1 => peeked = PEEK_STATE_NAME /* JsonStateStack.JSON_OBJECT */
+                case 2 => peeked = PEEK_STATE_VALUE /* JsonStateStack.JSON_ARRAY */
+                case _ => ()
+            }
+        } else {
+            if( nextByte != b']' && nextByte != b'}'){
+                 match (stacks.top) {
+                    case 1 where peeked != PEEK_STATE_NAME => throw IllegalStateException("Commas are required to separate values in arrays and object members.")// json object
+                    case 2 where peeked != PEEK_STATE_VALUE => throw IllegalStateException("Commas are required to separate values in arrays and object members.") // json array
+                    case _ => () // top level value
+                }
+            }
+            peeked = PEEK_STATE_NONE           
+        }
+
+        return res
+    }
+
+    /**
+     * read the json raw data directly without specifying the type
+     */
+    public func readValueBytes(): Array<Byte> {
+        // 1. the leading whitespaces will be skipped in the peek() function
+        // 2. the peek() will return None when read to the end of stream
+        if (let Some(token) <- peek()) {
+            match (token) {
+                case JsonNull | JsonBool | JsonNumber => nextValue(stringBuffer)
+                case JsonString => nextString(stringBuffer)
+                case BeginArray => nextArray(stringBuffer)
+                case BeginObject => nextObject(stringBuffer)
+                case EndArray | EndObject => ()
+                case Name =>
+                    nextName(stringBuffer)
+                    nextNonJsonWhitespace(stringBuffer) // keep the whitespaces between ':' to start of the next token
+                    let token = peek().getOrThrow(
+                        {
+                            => throw IllegalStateException("The JSON stream ends at an incorrect location.")
+                        })
+                    match (token) {
+                        case JsonNull | JsonBool | JsonNumber => nextValue(stringBuffer)
+                        case JsonString => nextString(stringBuffer)
+                        case BeginArray => nextArray(stringBuffer)
+                        case BeginObject => nextObject(stringBuffer)
+                        case _ => throw IllegalStateException("The name must be followed by JSON value.")
+                    }
+            }
+        }
+        afterRead()
+
+        let ret = stringBuffer.data[0..stringBuffer.size].clone()
+        stringBuffer.clear()
+
+        return ret
+    }
+
+    /**
+     * Return the next token without consuming it.
+     * if returns None, means the end of the stream.
+     */
+    public func peek(): Option<JsonToken> {
+        // fast return first
+        if (peeked != PEEK_STATE_NONE && peeked != PEEK_STATE_NAME && peeked != PEEK_STATE_VALUE) {
+            return PEEKSTATE2TOKEN[peeked]
+        }
+
+        let nextByte: Byte = if (let Some(v) <- tryNextNonJsonWhitespace()) {
+            v
+        } else {
+            return None
+        }
+        match (stacks.top) {
+            case 1 where peeked == PEEK_STATE_NAME || peeked == PEEK_STATE_NONE => // json object
+                if (nextByte == b'"') {
+                    peeked = PEEK_STATE_NAME
+                    return JsonToken.Name
+                } else if (nextByte == b'}') {
+                    peeked = PEEK_STATE_OBJECT_END
+                    return JsonToken.EndObject
+                }
+                throw IllegalStateException("Expect a string as Json Name, but peeked '${Rune(nextByte)}'.")
+
+            case 2 where peeked != PEEK_STATE_VALUE && nextByte == b']' => // json array
+                peeked = PEEK_STATE_ARRAY_END
+                return JsonToken.EndArray
+            case _ => () // top level value
+        }
+
+        match (nextByte) {
+            case b'n' =>
+                peeked = PEEK_STATE_NULL
+                return JsonToken.JsonNull
+            case b't' =>
+                peeked = PEEK_STATE_TRUE
+                return JsonToken.JsonBool
+            case b'f' =>
+                peeked = PEEK_STATE_FALSE
+                return JsonToken.JsonBool
+            case b'0' | b'1' | b'2' | b'3' | b'4' | b'5' | b'6' | b'7' | b'8' | b'9' | b'-' =>
+                peeked = PEEK_STATE_NUMBER
+                return JsonToken.JsonNumber
+            case b'\"' =>
+                peeked = PEEK_STATE_STRING
+                return JsonToken.JsonString
+            case b'{' =>
+                peeked = PEEK_STATE_OBJECT_BEGIN
+                return JsonToken.BeginObject
+            case b'[' =>
+                peeked = PEEK_STATE_ARRAY_BEGIN
+                return JsonToken.BeginArray
+            case _ => throw IllegalStateException("Character not expected: '${Rune(nextByte)}'.")
+        }
+    }
+
+    @OverflowWrapping
+    public func startArray(): Unit {
+        beforeRead()
+        match (peeked) {
+            case 5 => () // PEEK_STATE_ARRAY_BEGIN
+            case 11 | 10 => // PEEK_STATE_NONE or PEEK_STATE_VALUE
+                if (nextNonJsonWhitespace() != b'[') {
+                    throw IllegalStateException("The next Token is not BeginArray.")
+                }
+            case 4 => // PEEK_STATE_NAME
+                throw IllegalStateException("In an object, the name must be handled before the value.")
+            case _ => // others
+                throw IllegalStateException("The next Token is not BeginArray.")
+        }
+
+        availLen--
+        index++
+        stacks.put(JsonStateStack.JSON_ARRAY)
+        peeked = PEEK_STATE_NONE
+    }
+
+    @OverflowWrapping
+    public func endArray(): Unit {
+        match {
+            case peeked == PEEK_STATE_ARRAY_END => ()
+            case peeked == PEEK_STATE_NONE => if (stacks.top != JsonStateStack.JSON_ARRAY) {
+                throw IllegalStateException("Failed to end array.")
+            }
+            case _ => throw IllegalStateException("The next Token is not EndArray.")
+        }
+        availLen--
+        index++
+        stacks.pop()
+        peeked = PEEK_STATE_NONE
+        afterRead()
+        return
+    }
+
+    @OverflowWrapping
+    public func startObject(): Unit {
+        beforeRead()
+        match (peeked) {
+            case 7 => () // PEEK_STATE_OBJECT_BEGIN
+            case 11 | 10 => // PEEK_STATE_NONE or PEEK_STATE_VALUE
+                if (nextNonJsonWhitespace() != b'{') {
+                    throw IllegalStateException("The next Token is not BeginObject.")
+                }
+            case _ => throw IllegalStateException("The next Token is not BeginObject.")
+        }
+        availLen--
+        index++
+        stacks.put(JsonStateStack.JSON_OBJECT)
+        peeked = PEEK_STATE_NONE
+    }
+
+    @OverflowWrapping
+    public func endObject(): Unit {
+        match (peeked) {
+            case 8 => () // PEEK_STATE_OBJECT_END
+            case 11 => // PEEK_STATE_NONE
+                if (stacks.top == JsonStateStack.JSON_OBJECT) {
+                    if (nextNonJsonWhitespace() != b'}') {
+                        throw IllegalStateException("The next Token is not EndObject.")
+                    }
+                } else {
+                    throw IllegalStateException("Failed to end object.")
+                }
+            case _ => // others
+                throw IllegalStateException("The next Token is not EndObject.")
+        }
+
+        availLen--
+        index++
+        stacks.pop()
+        afterRead()
+    }
+
+    @OverflowWrapping
+    public func readName(): String {
+        match (peeked) {
+            case 10 => // PEEK_STATE_VALUE
+                throw IllegalStateException("Expect readValue after readName.")
+            case 11 => // PEEK_STATE_NONE
+                if (stacks.top != JsonStateStack.JSON_OBJECT) {
+                    throw IllegalStateException("Failed to read name.")
+                }
+            case 9 => () // PEEK_STATE_NAME
+            case _ => // others
+                throw IllegalStateException("Failed to read name.")
+        }
+        let result = readString()
+        if (nextNonJsonWhitespace() != b':') {
+            throw IllegalStateException("Missing ':' after name.")
+        }
+        peeked = PEEK_STATE_VALUE
+        index++
+        availLen--
+        return result
+    }
+
+    public func skip(): Unit {
+        if (let Some(token) <- peek()) {
+            match (token) {
+                case JsonNull | JsonBool | JsonNumber => skipValue()
+                case JsonString => skipString()
+                case BeginArray => skipArray()
+                case BeginObject => skipObject()
+                case EndArray | EndObject => return
+                case Name =>
+                    skipName()
+                    if (let Some(token) <- peek()) {
+                        match (token) {
+                            case JsonNull | JsonBool | JsonNumber => skipValue()
+                            case JsonString => skipString()
+                            case BeginArray => skipArray()
+                            case BeginObject => skipObject()
+                            case _ => throw IllegalStateException("The name must be followed by JSON value.")
+                        }
+                    } else {
+                        throw IllegalStateException("The JSON stream ends at an incorrect location.")
+                    }
+            }
+        }
+        afterRead()
+    }
+
+    // check the stack state of Json text
+    func beforeRead(): Unit {
+        if (peeked == PEEK_STATE_NONE && stacks.top == JsonStateStack.JSON_OBJECT || peeked == PEEK_STATE_NAME) {
+            throw IllegalStateException("In an object, the name must be handled before the value.")
+        }
+    }
+
+    /**
+     * skip the comma after each value
+     */
+    func afterRead(): Unit {
+        // if next character is a comma, it means it's not a end of object/array
+        if (tryNextNonJsonWhitespace() == b',') {
+            index++
+            availLen--
+            match (stacks.top) {
+                case 1 => return peeked = PEEK_STATE_NAME /* JsonStateStack.JSON_OBJECT */
+                case 2 => return peeked = PEEK_STATE_VALUE /* JsonStateStack.JSON_ARRAY */
+                case _ => ()
+            }
+        }
+        peeked = PEEK_STATE_NONE
+    }
+
+    func fillInBuf() {
+        if (availLen > 0) {
+            return
+        }
+        let readLen = inputStream.read(buffer)
+        if (readLen > 0) {
+            index = 0
+            availLen = readLen
+        }
+    }
+
+    @OverflowWrapping
+    private func fillInBuf(min: Int64) {
+        if (availLen >= min) {
+            return
+        }
+        for (i in 0..availLen) {
+            buffer[i] = buffer[index + i]
+        }
+        index = 0
+        availLen += inputStream.read(buffer[index + availLen..])
+        if (availLen < min) {
+            throw IllegalStateException("The JSON stream ends at an incorrect location.")
+        }
+    }
+
+    func peekNext(): ?Byte {
+        fillInBuf()
+        return if (availLen > 0) {
+            buffer[index]
+        } else {
+            None
+        }
+    }
+
+    @OverflowWrapping
+    private func readNext(): Byte {
+        fillInBuf(1)
+        let res = buffer[index]
+        availLen--
+        index++
+        return res
+    }
+
+    // ensure the buffer is not empty
+    private func checkBuffer() {
+        if (availLen <= 0) {
+            fillInBuf()
+            if (availLen <= 0) {
+                throw IllegalStateException("The JSON stream ends at an incorrect location.")
+            }
+        }
+    }
+
+    func readNextHexNum(): Byte {
+        let byte = readNext()
+        if (!byte.isAsciiHex()) {
+            throw IllegalStateException("Illegal escape character.")
+        }
+        return byte
+    }
+
+    @OverflowWrapping
+    private func byteToUint(byte: Byte): UInt32 {
+        if (byte.isAsciiNumber()) {
+            return UInt32(byte - b'0')
+        }
+        if (byte.isAsciiLowerCase()) {
+            return UInt32(byte - b'a' + 10)
+        }
+        if (byte.isAsciiUpperCase()) {
+            return UInt32(byte - b'A' + 10)
+        }
+        throw IllegalStateException("Illegal escape character.")
+    }
+
+    @OverflowWrapping
+    private func handleEscape() {
+        match (readNext()) {
+            case b'\"' => stringBuffer.append(b'\"')
+            case b'\\' => stringBuffer.append(b'\\')
+            case b'/' => stringBuffer.append(b'/')
+            case b'b' => stringBuffer.append(b'\b')
+            case b'f' => stringBuffer.append(b'\f')
+            case b'n' => stringBuffer.append(b'\n')
+            case b'r' => stringBuffer.append(b'\r')
+            case b't' => stringBuffer.append(b'\t')
+            case b'u' =>
+                let byte1 = readNextHexNum()
+                let byte2 = readNextHexNum()
+                let byte3 = readNextHexNum()
+                let byte4 = readNextHexNum()
+                try {
+                    let ch = Rune((byteToUint(byte1) << 12) + (byteToUint(byte2) << 8) + (byteToUint(byte3) << 4) +
+                    byteToUint(byte4))
+                    charToByteArr(UInt32(ch))
+                } catch (_: Exception) {
+                    if (readNext() != b'\\') {
+                        throw IllegalStateException("Illegal escape character.")
+                    }
+                    if (readNext() != b'u') {
+                        throw IllegalStateException("Illegal escape character.")
+                    }
+                    let byte5 = readNextHexNum()
+                    let byte6 = readNextHexNum()
+                    let byte7 = readNextHexNum()
+                    let byte8 = readNextHexNum()
+                    let num1 = ((byteToUint(byte1) << 12) + (byteToUint(byte2) << 8) + (byteToUint(byte3) << 4) +
+                        byteToUint(byte4)) & 0b0000001111111111
+                    let num2 = ((byteToUint(byte5) << 12) + (byteToUint(byte6) << 8) + (byteToUint(byte7) << 4) +
+                        byteToUint(byte8)) & 0b0000001111111111
+                    let ch = Rune(((num1 << 10) | num2) + 0x10000)
+                    charToByteArr(UInt32(ch))
+                }
+            case _ => throw IllegalStateException("Illegal escape character.")
+        }
+        0
+    }
+
+    @OverflowWrapping
+    private func charToByteArr(ch: UInt32) {
+        if (ch <= UTF8_1_MAX) {
+            stringBuffer.append(UInt8(ch))
+            return 0
+        } else if (ch <= UTF8_2_MAX) {
+            stringBuffer.append(UInt8(((ch >> SHIFT_6) & LOW_5_MASK) | HIGH_2_MASK))
+            stringBuffer.append(UInt8(((ch) & LOW_6_MASK) | HIGH_1_MASK))
+            return 0
+        } else if (ch <= UTF8_3_MAX) {
+            stringBuffer.append(UInt8(((ch >> SHIFT_12) & LOW_4_MASK) | HIGH_3_MASK))
+            stringBuffer.append(UInt8(((ch >> SHIFT_6) & LOW_6_MASK) | HIGH_1_MASK))
+            stringBuffer.append(UInt8((ch & LOW_6_MASK) | HIGH_1_MASK))
+            return 0
+        } else if (ch <= UTF8_4_MAX) {
+            stringBuffer.append(UInt8(((ch >> SHIFT_18) & LOW_3_MASK) | HIGH_4_MASK))
+            stringBuffer.append(UInt8(((ch >> SHIFT_12) & LOW_6_MASK) | HIGH_1_MASK))
+            stringBuffer.append(UInt8(((ch >> SHIFT_6) & LOW_6_MASK) | HIGH_1_MASK))
+            stringBuffer.append(UInt8((ch & LOW_6_MASK) | HIGH_1_MASK))
+            return 0
+        } else if (ch <= UTF8_5_MAX) {
+            stringBuffer.append(UInt8(((ch >> SHIFT_24) & LOW_2_MASK) | HIGH_5_MASK))
+            stringBuffer.append(UInt8(((ch >> SHIFT_18) & LOW_6_MASK) | HIGH_1_MASK))
+            stringBuffer.append(UInt8(((ch >> SHIFT_12) & LOW_6_MASK) | HIGH_1_MASK))
+            stringBuffer.append(UInt8(((ch >> SHIFT_6) & LOW_6_MASK) | HIGH_1_MASK))
+            stringBuffer.append(UInt8((ch & LOW_6_MASK) | HIGH_1_MASK))
+            return 0
+        } else {
+            stringBuffer.append(UInt8(((ch >> SHIFT_30) & LOW_1_MASK) | HIGH_6_MASK))
+            stringBuffer.append(UInt8(((ch >> SHIFT_24) & LOW_6_MASK) | HIGH_1_MASK))
+            stringBuffer.append(UInt8(((ch >> SHIFT_18) & LOW_6_MASK) | HIGH_1_MASK))
+            stringBuffer.append(UInt8(((ch >> SHIFT_12) & LOW_6_MASK) | HIGH_1_MASK))
+            stringBuffer.append(UInt8(((ch >> SHIFT_6) & LOW_6_MASK) | HIGH_1_MASK))
+            stringBuffer.append(UInt8((ch & LOW_6_MASK) | HIGH_1_MASK))
+            return 0
+        }
+    }
+
+    private func isJsonWhiteSpace(b: Byte): Bool {
+        return b == b' ' || b == b'\t' || b == b'\n' || b == b'\r'
+    }
+
+    /**
+     * Return the next non-whitespace character in the stream
+     * throws IllegalStateException when the stream ends.
+     */
+    @OverflowWrapping
+    func nextNonJsonWhitespace(): Byte {
+        checkBuffer()
+        while (isJsonWhiteSpace(buffer[index])) {
+            availLen--
+            index++
+            checkBuffer()
+        }
+        return buffer[index]
+    }
+
+    /**
+     * Return the next non-whitespace character in the stream
+     * return None when the stream ends.
+     */
+    @OverflowWrapping
+    func tryNextNonJsonWhitespace(): Option<Byte> {
+        do {
+            if (availLen <= 0) {
+                fillInBuf()
+                if (availLen <= 0) {
+                    return None
+                }
+            }
+            if (!isJsonWhiteSpace(buffer[index])) {
+                break
+            }
+            availLen--
+            index++
+        } while (true)
+        return buffer[index]
+    }
+
+    @OverflowWrapping
+    func nextNonJsonWhitespace(sb: StringBuffer): Byte {
+        checkBuffer()
+        while (isJsonWhiteSpace(buffer[index])) {
+            sb.append(buffer[index])
+            availLen--
+            index++
+            checkBuffer()
+        }
+        return buffer[index]
+    }
+
+    @OverflowWrapping
+    func nextValue(sb: StringBuffer) {
+        var whitespaceCount = 0
+        while (let Some(nextByte) <- peekNext()) {
+            if (nextByte == b',' || nextByte == b']' || nextByte == b'}') {
+                break
+            }
+            if (isJsonWhiteSpace(nextByte)) {
+                whitespaceCount++
+            } else {
+                whitespaceCount = 0
+            }
+            sb.append(nextByte)
+            index++
+            availLen--
+        }
+        // trim right whitespaces
+        sb.size -= whitespaceCount
+    }
+
+    @OverflowWrapping
+    func nextString(sb: StringBuffer) {
+        var count = 0
+        var nextByte: Byte
+        while (count < 2) {
+            nextByte = readNext()
+            sb.append(nextByte)
+            if (nextByte == b'"') {
+                count++
+                continue
+            }
+            if (nextByte == b'\\') {
+                sb.append(readNext())
+            }
+        }
+    }
+
+    @OverflowWrapping
+    func nextName(sb: StringBuffer) {
+        if (peeked != PEEK_STATE_NAME) {
+            if (peeked != PEEK_STATE_NONE || stacks.top != JsonStateStack.JSON_OBJECT) {
+                throw IllegalStateException("Failed to read name.")
+            }
+        }
+
+        nextString(sb) // JSON name is a string
+        if (nextNonJsonWhitespace(sb) != b':') {
+            throw IllegalStateException("Missing ':' after name.")
+        }
+        sb.append(b':')
+        index++
+        availLen--
+        peeked = PEEK_STATE_VALUE
+    }
+
+    func nextArray(sb: StringBuffer) {
+        nextSymmetrySegment(sb, start: b'[', end: b']')
+    }
+
+    func nextObject(sb: StringBuffer) {
+        nextSymmetrySegment(sb, start: b'{', end: b'}')
+    }
+
+    func nextSymmetrySegment(sb: StringBuffer, start!: Byte, end!: Byte) {
+        let depth = stacks.depth
+        var endTag = end
+        var inString = false // the flag indicating the start or end of an escape string
+        while (true) {
+            let nextByte = readNext()
+            sb.append(nextByte)
+            match (nextByte) {
+                case b'\\' =>
+                    if (inString) {
+                        sb.append(readNext())
+                        continue
+                    }
+                    throw IllegalStateException("Characters not expected: '\\'.")
+                case b'\"' => inString = !inString
+                case b'{' | b'[' =>
+                    if (!inString) {
+                        stacks.put(tagStackState(nextByte))
+                    }
+                case b'}' | b']' =>
+                    if (inString) {
+                        continue
+                    }
+                    if (stacks.top == tagStackState(nextByte)) {
+                        stacks.pop()
+                        if (stacks.depth == depth) {
+                            endTag = nextByte
+                            break
+                        }
+                        continue
+                    }
+                    throw IllegalStateException("Failed to read symmetry end of '${Rune(start)}'.")
+                case _ => ()
+            }
+        }
+
+        // Non-symmetry end of segment, throw error
+        if (endTag != end) {
+            throw IllegalStateException("Failed to read symmetry end of '${Rune(start)}'.")
+        }
+    }
+
+    func tagStackState(stackTag: Byte) {
+        if (stackTag == b'{' || stackTag == b'}') {
+            return JsonStateStack.JSON_OBJECT
+        } else if (stackTag == b'[' || stackTag == b']') {
+            return JsonStateStack.JSON_ARRAY
+        } else {
+            return JsonStateStack.JSON_UNDEFINE
+        }
+    }
+
+    @OverflowWrapping
+    func skipValue() {
+        while (true) {
+            if (let Some(nextByte) <- peekNext()) {
+                if (nextByte == b',' || nextByte == b']' || nextByte == b'}') {
+                    break
+                }
+                index++
+                availLen--
+            } else {
+                break
+            }
+        }
+    }
+
+    @OverflowWrapping
+    func skipString() {
+        var count = 0
+        var nextByte: Byte
+        while (count < 2) {
+            nextByte = readNext()
+            if (nextByte == b'"') {
+                count++
+                continue
+            }
+            if (nextByte == b'\\') {
+                readNext()
+            }
+        }
+    }
+
+    @OverflowWrapping
+    func skipName() {
+        if (peeked != PEEK_STATE_NAME) {
+            if (peeked != PEEK_STATE_NONE || stacks.top != JsonStateStack.JSON_OBJECT) {
+                throw IllegalStateException("Failed to read name.")
+            }
+        }
+
+        skipString() // JSON name is a string
+        if (nextNonJsonWhitespace() != b':') {
+            throw IllegalStateException("Missing ':' after name.")
+        }
+        index++
+        availLen--
+        peeked = PEEK_STATE_VALUE
+    }
+
+    func skipArray() {
+        let depth = stacks.depth
+        startArray()
+        var inString = false
+        while (true) {
+            let nextByte = readNext()
+            match (nextByte) {
+                case b'\\' =>
+                    if (inString) {
+                        readNext()
+                        continue
+                    }
+                    throw IllegalStateException("Characters not expected: '\\'.")
+                case b'\"' => inString = !inString
+                case b'{' =>
+                    if (!inString) {
+                        stacks.put(JsonStateStack.JSON_OBJECT)
+                    }
+                case b'[' =>
+                    if (!inString) {
+                        stacks.put(JsonStateStack.JSON_ARRAY)
+                    }
+                case b'}' =>
+                    if (inString) {
+                        continue
+                    }
+                    if (stacks.top == JsonStateStack.JSON_OBJECT) {
+                        stacks.pop()
+                        if (stacks.depth == depth) {
+                            throw IllegalStateException("Failed to skip.")
+                        }
+                        continue
+                    }
+                    throw IllegalStateException("Failed to skip.")
+                case b']' =>
+                    if (inString) {
+                        continue
+                    }
+                    if (stacks.top == JsonStateStack.JSON_ARRAY) {
+                        stacks.pop()
+                        if (stacks.depth == depth) {
+                            return
+                        }
+                        continue
+                    }
+                    throw IllegalStateException("Failed to skip.")
+                case _ => ()
+            }
+        }
+    }
+
+    func skipObject() {
+        let depth = stacks.depth
+        startObject()
+        var inString = false
+        while (true) {
+            let nextByte = readNext()
+            match (nextByte) {
+                case b'\\' =>
+                    if (inString) {
+                        readNext()
+                        continue
+                    }
+                    throw IllegalStateException("Characters not expected: '\\'.")
+                case b'\"' => inString = !inString
+                case b'{' =>
+                    if (!inString) {
+                        stacks.put(JsonStateStack.JSON_OBJECT)
+                    }
+                case b'[' =>
+                    if (!inString) {
+                        stacks.put(JsonStateStack.JSON_ARRAY)
+                    }
+                case b'}' =>
+                    if (inString) {
+                        continue
+                    }
+                    if (stacks.top == JsonStateStack.JSON_OBJECT) {
+                        stacks.pop()
+                        if (stacks.depth == depth) {
+                            return
+                        }
+                        continue
+                    }
+                    throw IllegalStateException("Failed to skip.")
+                case b']' =>
+                    if (inString) {
+                        continue
+                    }
+                    if (stacks.top == JsonStateStack.JSON_ARRAY) {
+                        stacks.pop()
+                        if (stacks.depth == depth) {
+                            throw IllegalStateException("Failed to skip.")
+                        }
+                        continue
+                    }
+                    throw IllegalStateException("Failed to skip.")
+                case _ => ()
+            }
+        }
+    }
+
+    @OverflowWrapping
+    func readString(): String {
+        if (nextNonJsonWhitespace() != b'\"') {
+            return readStringUnquoted()
+        }
+        index++
+        availLen--
+        return readStringQuoted()
+    }
+
+    @OverflowWrapping
+    func readStringUnquoted(): String {
+        checkBuffer()
+        var byte = buffer[index]
+        if (byte == b'{' || byte == b'[' || byte == b']' || byte == b'}') {
+            throw IllegalStateException(
+                "Expect a JsonBool, JsonNull, JsonNumber or a JsonString, but peeked '${Rune(byte)}'.")
+        }
+        var sb = StringBuilder()
+        while (true) {
+            for (i in index..index + availLen) {
+                byte = buffer[i]
+                if (byte > 128u8) {
+                    throw IllegalStateException("Expect an ascii byte sequence, but peeked '${byte}'.")
+                }
+                if (byte == b']' || byte == b',' || byte == b'}' || byte == b'\t' || byte == b'\f' || byte == b'\r' ||
+                    byte == b'\n' || byte == b' ') {
+                    unsafe { sb.appendFromUtf8Unchecked(buffer[index..i]) }
+                    availLen -= (i - index)
+                    index = i
+                    return sb.toString()
+                }
+            }
+            unsafe { sb.appendFromUtf8Unchecked(buffer[index..index + availLen]) }
+            availLen = 0
+            fillInBuf()
+            if (availLen <= 0) {
+                return sb.toString()
+            }
+        }
+        throw IllegalStateException() // unreachable
+    }
+
+    @OverflowWrapping
+    func readStringQuoted(): String {
+        var breakIndex = 0
+        while (true) {
+            checkBuffer()
+            breakIndex = index
+            unsafe {
+                let handle = acquireArrayRawData<Byte>(buffer)
+                try {
+                    breakIndex = CODE_ReadString(handle.pointer, index, index + availLen)
+                } finally {
+                    releaseArrayRawData(handle)
+                }
+            }
+            if (breakIndex == index + availLen) { // read till the end of buffer, fill buffer and continue
+                stringBuffer.appendAll(buffer[index..breakIndex])
+                availLen = 0
+            // and continue
+            } else if (breakIndex < 0) { // utf 8 check err
+                throw IllegalStateException("Invalid utf8 byte sequence.")
+            } else if (buffer[breakIndex] == b'\\') { // read till some character need escape
+                stringBuffer.appendAll(buffer[index..breakIndex])
+                availLen = availLen - (breakIndex - index) - 1
+                index = breakIndex + 1
+                handleEscape()
+            // and continue
+            } else if (buffer[breakIndex] == b'\"') { // end of read string, break
+                break
+            } else { // unexpected end of an utf-8 sequence
+                stringBuffer.appendAll(buffer[index..breakIndex])
+                availLen = availLen - (breakIndex - index)
+                index = breakIndex
+                let utf8Size = utf8SizeUnchecked(buffer[breakIndex])
+                if (utf8Size == 1 || utf8Size > 4) {
+                    throw IllegalStateException("Invalid utf8 byte sequence.")
+                }
+                fillInBuf(utf8Size) // if end, throw exception, continue
+                // and continue
+            }
+        }
+
+        if (stringBuffer.size > 0) { // if buffered, append data left and return all
+            stringBuffer.appendAll(buffer[index..breakIndex])
+            availLen = availLen - (breakIndex - index) - 1
+            index = breakIndex + 1
+            let result = unsafe { String.fromUtf8Unchecked(stringBuffer.data[0..stringBuffer.size]) }
+            stringBuffer.clear()
+            return result
+        } else { // return data directly
+            let result = unsafe { String.fromUtf8Unchecked(buffer[index..breakIndex]) }
+            availLen = availLen - (breakIndex - index) - 1
+            index = breakIndex + 1
+            return result
+        }
+    }
+
+    @OverflowWrapping
+    func readInt(): (Int64, Bool) {
+        var nextByte = if (peeked == PEEK_STATE_NONE || peeked == PEEK_STATE_VALUE) {
+            fillInBuf()
+            if (availLen <= 0) {
+                throw IllegalStateException("The JSON stream ends at an incorrect location.")
+            }
+            nextNonJsonWhitespace()
+        } else if (peeked == PEEK_STATE_NUMBER) {
+            buffer[index]
+        } else {
+            throw IllegalStateException("Failed to read json number.")
+        }
+
+        var isNegative = false
+        if (nextByte == b'-') {
+            isNegative = true
+            index++
+            availLen--
+        }
+        peeked = PEEK_STATE_NUMBER
+        var (result, overflow) = readUInt()
+        if (overflow) {
+            return (0, true)
+        }
+        if (isNegative) {
+            if (result > MAXABSVAL_I64) {
+                return (0, true)
+            }
+            return (Int64(-result), false)
+        }
+        if (result > MAXVAL_I64) {
+            return (0, true)
+        }
+        return (Int64(result), false)
+    }
+
+    @OverflowWrapping
+    func readUInt(): (UInt64, Bool) {
+        var nextByte = if (peeked == PEEK_STATE_NONE || peeked == PEEK_STATE_VALUE) {
+            fillInBuf()
+            if (availLen <= 0) {
+                throw IllegalStateException("The JSON stream ends at an incorrect location.")
+            }
+            nextNonJsonWhitespace()
+        } else if (peeked == PEEK_STATE_NUMBER) {
+            buffer[index]
+        } else {
+            throw IllegalStateException("Failed to read json number.")
+        }
+
+        if (nextByte == b'-') {
+            return (0, true)
+        }
+        if (nextByte < b'0' || nextByte > b'9') {
+            throw IllegalStateException("The next Token is not UInt64.")
+        }
+
+        let (numSys, multmin): (UInt64, UInt64) = handleNumberSystem()
+
+        var result: UInt64 = 0
+        while (true) {
+            if (availLen <= 0) {
+                fillInBuf()
+                if (availLen <= 0) {
+                    break
+                }
+            }
+            nextByte = buffer[index]
+
+            let digit = DIGITS_UI64[Int64(nextByte)]
+            if (digit >= numSys) { // digit cannot equal or bigger then number system
+                break
+            }
+            if (result > multmin) {
+                return (0, true)
+            }
+
+            if (MAXVAL_UI64 - result < digit) {
+                return (0, true)
+            }
+            result = result * numSys + digit
+            index++
+            availLen--
+        }
+        return (result, false)
+    }
+
+    private func readFloatEx(): Float64 {
+        let sign = match (nextNonJsonWhitespace()) {
+            case b'-' =>
+                index++
+                availLen--
+                -1.0
+            case b'+' =>
+                index++
+                availLen--
+                1.0
+            case _ => 1.0
+        }
+
+        fillInBuf()
+        var result = 0.0
+        var pointNum = 0
+        var leftMove = 1.0
+        while (availLen > 0) {
+            if (pointNum > 1) {
+                throw IllegalStateException("Invalid number format.")
+            }
+            let c = buffer[index]
+            if (c >= b'0' && c <= b'9') {
+                result = result * 10.0 + Float64(c - b'0')
+                if (pointNum == 1) {
+                    leftMove = leftMove * 10.0
+                }
+            } else if (c == b'.') {
+                pointNum++
+            } else {
+                break
+            }
+            index++
+            availLen--
+            fillInBuf()
+        }
+        return sign * result / leftMove
+    }
+
+    @OverflowWrapping
+    func readFloat(): Float64 {
+        if (peeked == PEEK_STATE_NONE || peeked == PEEK_STATE_VALUE) {
+            fillInBuf()
+            if (availLen <= 0) {
+                throw IllegalStateException("The JSON stream ends at an incorrect location.")
+            }
+            nextNonJsonWhitespace()
+        } else if (peeked == PEEK_STATE_NUMBER) {
+            buffer[index]
+        } else {
+            throw IllegalStateException("Failed to read json number.")
+        }
+
+        let result = readFloatEx()
+        if (let Some(c) <- tryNextNonJsonWhitespace()) {
+            if (c == b'e' || c == b'E') {
+                index++
+                availLen--
+                let (exponent, overflow) = readInt()
+                if (overflow) {
+                    throw OverflowException("Overflow while reading JSON number.")
+                }
+                return result * (10.0 ** exponent)
+            }
+        }
+        return result
+    }
+
+    @OverflowWrapping
+    private func handleNumberSystem(): (UInt64, UInt64) {
+        if (peekNext() != b'0') {
+            return (10, DECIMAL_OVERFLOW_LIMIT_UI64)
+        }
+        index++
+        availLen--
+        match (peekNext()) {
+            case Some(b'b') | Some(b'B') =>
+                index++
+                availLen--
+                return (2, BINARY_OVERFLOW_LIMIT_UI64)
+            case Some(b'o') | Some(b'O') =>
+                index++
+                availLen--
+                return (8, OCTAL_OVERFLOW_LIMIT_UI64)
+            case Some(b'x') | Some(b'X') =>
+                index++
+                availLen--
+                return (16, HEXADECIMAL_OVERFLOW_LIMIT_UI64)
+            case Some(b'd') | Some(b'D') =>
+                index++
+                availLen--
+                return (10, DECIMAL_OVERFLOW_LIMIT_UI64)
+            case _ => return (10, DECIMAL_OVERFLOW_LIMIT_UI64)
+        }
+    }
+
+    func readBool(): Bool {
+        let nextByte = nextNonJsonWhitespace()
+        return if (nextByte == b't') {
+            readTrue()
+        } else if (nextByte == b'f') {
+            readFalse()
+        } else {
+            throw IllegalStateException("The next Token is not JSON bool.")
+        }
+    }
+
+    @OverflowWrapping
+    func readTrue() {
+        fillInBuf(4)
+        if (buffer[index + 3] == b'e' && buffer[index + 2] == b'u' && buffer[index + 1] == b'r') {
+            index += 4
+            availLen -= 4
+            return true
+        } else {
+            throw IllegalStateException("Failed to read JSON bool.")
+        }
+    }
+
+    @OverflowWrapping
+    func readFalse() {
+        fillInBuf(5)
+        if (buffer[index + 4] == b'e' && buffer[index + 3] == b's' && buffer[index + 2] == b'l' && buffer[index + 1] ==
+            b'a') {
+            index += 5
+            availLen -= 5
+            return false
+        } else {
+            throw IllegalStateException("Failed to read JSON bool.")
+        }
+    }
+
+    @OverflowWrapping
+    func readNull(): Unit {
+        fillInBuf(4)
+        if (buffer[index + 3] == b'l' && buffer[index + 2] == b'l' && buffer[index + 1] == b'u') {
+            index += 4
+            availLen -= 4
+            return
+        } else {
+            throw IllegalStateException("Failed to read JSON null.")
+        }
+    }
+
+    func utf8SizeUnchecked(byte: Byte): Int64 {
+        return match {
+            case byte < HIGH_1_UInt8 => 1
+            case byte < HIGH_3_UInt8 => 2
+            case byte < HIGH_4_UInt8 => 3
+            case byte < HIGH_5_UInt8 => 4
+            case byte < HIGH_6_UInt8 => 5
+            case _ => 6
+        }
+    }
+}
+
+class StringBuffer {
+    var data = Array<Byte>(1024, repeat: 0)
+    var size = 0
+
+    func grow(minCapacity: Int64): Unit {
+        let oldCapacity: Int64 = data.size
+        var newCapacity: Int64 = oldCapacity << 1
+        if (newCapacity < minCapacity) {
+            newCapacity = minCapacity
+        }
+        let newArr: Array<Byte> = Array<Byte>(newCapacity, repeat: 0)
+        data.copyTo(newArr, 0, 0, size)
+        data = newArr
+    }
+
+    @OverflowWrapping
+    func appendAll(elements: Array<Byte>) {
+        let cSize: Int64 = elements.size
+
+        if (size + cSize > data.size) {
+            grow(size + cSize)
+        }
+
+        elements.copyTo(data, 0, size, cSize)
+        size = size + cSize
+    }
+
+    @OverflowWrapping
+    func append(element: Byte) {
+        if (size == data.size) {
+            grow(size + 1)
+        }
+        data[size] = element
+        size++
+    }
+
+    func clear() {
+        size = 0
+    }
+}

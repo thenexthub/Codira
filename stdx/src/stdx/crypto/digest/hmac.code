@@ -1,0 +1,326 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package stdx.crypto.digest
+
+import std.crypto.digest.Digest
+import stdx.crypto.common.CryptoException
+
+public struct HashType <: ToString & Equatable<HashType> {
+    private var hashType: String
+
+    init(hashType: String) {
+        this.hashType = hashType
+    }
+
+    public static prop MD5: HashType {
+        get() {
+            HashType(MD5_DIGEST_ALGORITHM_NAME)
+        }
+    }
+
+    public static prop SHA1: HashType {
+        get() {
+            HashType(SHA1_DIGEST_ALGORITHM_NAME)
+        }
+    }
+
+    public static prop SHA224: HashType {
+        get() {
+            HashType(SHA224_DIGEST_ALGORITHM_NAME)
+        }
+    }
+
+    public static prop SHA256: HashType {
+        get() {
+            HashType(SHA256_DIGEST_ALGORITHM_NAME)
+        }
+    }
+
+    public static prop SHA384: HashType {
+        get() {
+            HashType(SHA384_DIGEST_ALGORITHM_NAME)
+        }
+    }
+
+    public static prop SHA512: HashType {
+        get() {
+            HashType(SHA512_DIGEST_ALGORITHM_NAME)
+        }
+    }
+    public static prop SM3: HashType {
+        get() {
+            HashType(SM3_DIGEST_ALGORITHM_NAME)
+        }
+    }
+
+    public func toString(): String {
+        return hashType
+    }
+
+    public override operator func ==(other: HashType): Bool {
+        hashType == other.hashType
+    }
+
+    public override operator func !=(other: HashType): Bool {
+        hashType != other.hashType
+    }
+}
+
+func getHashName(digest: Digest): String {
+    match (digest) {
+        case _: SHA1 => SHA1_DIGEST_ALGORITHM_NAME
+        case _: SHA224 => SHA224_DIGEST_ALGORITHM_NAME
+        case _: SHA256 => SHA256_DIGEST_ALGORITHM_NAME
+        case _: SHA384 => SHA384_DIGEST_ALGORITHM_NAME
+        case _: SHA512 => SHA512_DIGEST_ALGORITHM_NAME
+        case _: MD5 => MD5_DIGEST_ALGORITHM_NAME
+        case _: SM3 => SM3_DIGEST_ALGORITHM_NAME
+        case _ => throw CryptoException("This hash is not supported.")
+    }
+}
+
+func getHash(algorithm: HashType): () -> Digest {
+    match (algorithm.toString()) {
+        case "SHA1" => {=> SHA1()}
+        case "SHA224" => {=> SHA224()}
+        case "SHA256" => {=> SHA256()}
+        case "SHA384" => {=> SHA384()}
+        case "SHA512" => {=> SHA512()}
+        case "MD5" => {=> MD5()}
+        case "SM3" => {=> SM3()}
+        case _ => throw CryptoException("This hash is not supported.")
+    }
+}
+
+/**
+ * init、write、finish reset Combined use for digest encryption.
+ */
+public class HMAC <: Digest {
+    private var ctxPtr: UInt64
+    private var hashName: String
+    private var hash: Digest
+    private var hasFinished: Bool = false
+    private var key: Array<Byte>
+
+    public prop size: Int64 {
+        get() {
+            return hash.size
+        }
+    }
+
+    public prop blockSize: Int64 {
+        get() {
+            return hash.blockSize
+        }
+    }
+
+    public prop algorithm: String {
+        get() {
+            return "HMAC-${hashName}"
+        }
+    }
+
+    /*
+     * Hmac digest calculation initialization
+     *
+     * @params key - secret key
+     * @params digest - func Digest
+     *
+     * @throw CryptoException
+     */
+    public init(key: Array<Byte>, digest: () -> Digest) {
+        this.hash = digest()
+        this.hashName = getHashName(this.hash)
+        if (key.size <= 0) {
+            throw CryptoException("The key cannot be empty.")
+        }
+        this.key = key
+        var ctxPtr = hmacCtxNew()
+        if (ctxPtr == 0) {
+            throw CryptoException("HMAC init failed, malloc failed.")
+        }
+        this.ctxPtr = ctxPtr
+        hmacInitC(this.ctxPtr, this.key, Int32(this.key.size), this.hashName)
+        this.hasFinished = false
+    }
+
+    /*
+     * Hmac digest calculation initialization
+     *
+     * @params key - secret key
+     * @params algorithm - HashType Type
+     *
+     * @throw CryptoException
+     */
+    public init(key: Array<Byte>, algorithm: HashType) {
+        let digest = getHash(algorithm)
+
+        if (key.size <= 0) {
+            throw CryptoException("The key cannot be empty.")
+        }
+        this.hashName = algorithm.toString()
+        this.key = key
+        this.hash = digest()
+        var ctxPtr = hmacCtxNew()
+        if (ctxPtr == 0) {
+            throw CryptoException("HMAC init failed, malloc failed.")
+        }
+        this.ctxPtr = ctxPtr
+        hmacInitC(this.ctxPtr, this.key, Int32(this.key.size), this.hashName)
+        this.hasFinished = false
+    }
+
+    /*
+     * Perform summary calculation. This function can be run multiple times to summarize multiple data.
+     *
+     * @params data - Data requiring HMAC operation
+     *
+     * @throw CryptoException
+     */
+    public func write(buffer: Array<Byte>): Unit {
+        if (this.hasFinished) {
+            throw CryptoException("HMAC write failed, digest calculation has been completed.")
+        }
+        if (buffer.size <= 0) {
+            throw CryptoException("The data cannot be empty.")
+        }
+        hmacUpdateC(this.ctxPtr, buffer, Int32(buffer.size))
+    }
+
+    /*
+     * Perform summary calculation and use it together with write.
+     *
+     * @return Array<Byte>
+     * @throw CryptoException
+     */
+    public func finish(): Array<Byte> {
+        var md: Array<Byte> = Array<Byte>(size, repeat: 0)
+        finish(to: md)
+        return md
+    }
+
+    public func finish(to!: Array<Byte>): Unit {
+        if (this.hasFinished) {
+            throw CryptoException("HMAC finish failed, digest calculation has been completed.")
+        }
+        if (to.size != size) {
+            throw CryptoException("The length of output is not equal to the digest length.")
+        }
+        hmacFinalC(this.ctxPtr, to, 0)
+        this.hasFinished = true
+    }
+
+    /*
+     * Reset Hmac status to recalculate summary.
+     *
+     * @throw CryptoException
+     */
+    public func reset(): Unit {
+        if (!this.hasFinished) {
+            hmacCtxFree(this.ctxPtr)
+        }
+        var ctxPtr = hmacCtxNew()
+        if (ctxPtr == 0) {
+            throw CryptoException("HMAC malloc failed.")
+        }
+        this.ctxPtr = ctxPtr
+        hmacInitC(this.ctxPtr, this.key, Int32(this.key.size), this.hashName)
+        this.hasFinished = false
+    }
+
+    /*
+     * Hmac digest compare without leaking timing information.
+     *
+     * @params mac1
+     * @params mac1
+     *
+     * @return Bool
+     */
+    @OverflowWrapping
+    public static func equal(mac1: Array<Byte>, mac2: Array<Byte>): Bool {
+        if (mac1.size != mac2.size) {
+            return false
+        }
+        var v: Byte = 0
+        for (i in 0..mac1.size) {
+            v |= mac1[i] ^ mac2[i]
+        }
+        return Int64((UInt32(v ^ 0) - 1) >> 31) == 1
+    }
+}
+
+func hmacInitC(ctx: UInt64, key: Array<Byte>, len: Int32, algorithm: String): Unit {
+    unsafe {
+        let algorithmCstr: CString = LibC.mallocCString(algorithm.toString())
+        var md: UInt64 = 0
+        try {
+            md = getDigestbyname(algorithmCstr)
+        } finally {
+            LibC.free(algorithmCstr)
+        }
+        let dynMsgPtr = generateDynMsg()
+        let keyptr: CPointerHandle<UInt8> = acquireArrayRawData(key)
+        let res = try {
+            DYN_HMAC_Init_ex(ctx, keyptr.pointer, len, md, 0, dynMsgPtr)
+        } finally {
+            releaseArrayRawData(keyptr)
+        }
+        checkError(dynMsgPtr)
+        if (res != 1) {
+            throw CryptoException("HMAC init failed.")
+        }
+    }
+}
+
+func hmacUpdateC(ctx: UInt64, data: Array<Byte>, len: Int32): Unit {
+    unsafe {
+        let dynMsgPtr = generateDynMsg()
+        let dataptr: CPointerHandle<UInt8> = acquireArrayRawData(data)
+        let res = try {
+            DYN_HMAC_Update(ctx, dataptr.pointer, len, dynMsgPtr)
+        } finally {
+            releaseArrayRawData(dataptr)
+        }
+        checkError(dynMsgPtr)
+        if (res != 1) {
+            throw CryptoException("HMAC write failed.")
+        }
+    }
+}
+
+func hmacFinalC(ctx: UInt64, md: Array<Byte>, len: UInt32): Unit {
+    unsafe {
+        let dynMsgPtr = generateDynMsg()
+        let mdptr: CPointerHandle<UInt8> = acquireArrayRawData(md)
+        let res = try {
+            DYN_HMAC_Final(ctx, mdptr.pointer, len, dynMsgPtr)
+        } finally {
+            releaseArrayRawData(mdptr)
+        }
+        hmacCtxFree(ctx)
+        checkError(dynMsgPtr)
+        if (res != 1) {
+            throw CryptoException("HMAC finish failed.")
+        }
+    }
+}

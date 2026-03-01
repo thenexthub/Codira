@@ -1,0 +1,53 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package std.sync
+
+// Common interface for reentrant mutual exclusion concurrency primitives.
+//  ! It is a responsibility of implementor to guarantee that underlying mutex actually supports nested locking.
+//  ! It is a responsibility of implementor to throw ISSE in case of violation of contract.
+//  ! `synchronized` keyword is not compatible with this interface for performance reasons
+@Deprecated[message: "Use `public interface Lock` instead."]
+public interface IReentrantMutex {
+    // reentrant lock, blocks until success
+    func lock(): Unit
+
+    // returns false on fail, does not block
+    func tryLock(): Bool
+
+    // if mutex is locked recursively, this method should be invoked N times to fully unlock mutex
+    // throws ISSE("Mutex is not locked by current thread") if current thread does not hold this mutex
+    func unlock(): Unit
+}
+
+public class IllegalSynchronizationStateException <: Exception {
+    public init() {
+        super()
+    }
+
+    public init(message: String) {
+        super(message)
+    }
+    protected override func getClassName(): String {
+        return "IllegalSynchronizationStateException"
+    }
+}

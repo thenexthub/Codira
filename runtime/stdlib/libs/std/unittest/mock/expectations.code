@@ -1,0 +1,219 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+package std.unittest.mock
+
+import std.collection.*
+import std.unittest.common.PrettyText
+
+extend MockSession {
+    func verifyExpectations(): Unit {
+        let logSnapshot = invocationLog.fullLog()
+        let failures = ArrayList<ExpectationFailedReason>()
+        for (chain in chainsByStubId.values() |> flatten) {
+            if (let Some(failureReason) <- chain.verifyExpectations()) {
+                failures.add(failureReason)
+            }
+        }
+        if (!failures.isEmpty()) {
+            ExpectationFailedReport.fail(logSnapshot, failures)
+        }
+    }
+
+    func checkForMisconfigurationIssues(): Unit {
+        // force misconfiguration errors before any verification is performed
+        // we could accumulate configuration errors here, but that doesn't seem to have any benefit for usability
+        for (chain in chainsByStubId.values() |> flatten) {
+            chain.ensureActivated()
+        }
+
+        for (statement in statements) {
+            if (!statement.isUsed) {
+                VerifyMisconfiguration().fail(StatementNotUsed(statement))
+            }
+        }
+    }
+}
+
+extend StubChain {
+    func verifyExpectations(): ?ExpectationFailedReason {
+        let totalCardinality = getTotalCardinality()
+        let totalInvocationCount = getTotalInvocationCount()
+        match (totalCardinality.check(totalInvocationCount)) {
+            case Less => TooFewInvocationsForStubChain(this, totalCardinality, totalInvocationCount)
+            case _ => None
+        }
+    }
+
+    func getTotalCardinality(): Cardinality {
+        var minInvocations = 0
+        var maxInvocations = Some(0)
+
+        for (sc in scenarios) {
+            minInvocations += sc.cardinality.min
+            match ((maxInvocations, sc.cardinality.max)) {
+                case (None, _) =>
+                    maxInvocations = None
+                case (_, None) =>
+                    maxInvocations = None
+                case (Some(curMax), Some(scMax)) =>
+                    maxInvocations = curMax + scMax
+            }
+        }
+
+        Cardinality(min: minInvocations, max: maxInvocations)
+    }
+
+    func getTotalInvocationCount() {
+        var actualInvocations = 0
+        for (sc in scenarios) {
+            actualInvocations += sc.invocationCount
+        }
+        return actualInvocations
+    }
+}
+
+enum ExpectationFailedReason {
+    TooFewInvocationsForStubChain(StubChain, Cardinality, Int64)
+}
+
+class ExpectationFailedReport <: FailureReport {
+    ExpectationFailedReport(
+        log: LogSnapshot,
+        nameRegistry: MockNameRegistry
+    ) {
+        super(log, nameRegistry)
+    }
+
+    static func fail(log: LogSnapshot, failures: ArrayList<ExpectationFailedReason>): Nothing {
+        let nameRegistry = MockNameRegistry(
+            failures |>
+                map { reason: ExpectationFailedReason =>
+                    match (reason) {
+                        case TooFewInvocationsForStubChain(chain, _, _) => chain.invocationMatcher
+                    }
+                } |>
+                collectArray
+        )
+        throw ExpectationFailedException(
+            ExpectationFailedReport(log, nameRegistry).renderExpectationFailures(failures)
+        )
+    }
+
+    func renderExpectationFailures(failures: ArrayList<ExpectationFailedReason>): PrettyText {
+        let howManyExpectations = match (failures.size) {
+            case 1 => "Expectation"
+            case _ => "Expectations"
+        }
+        build {
+            errorHeader("${howManyExpectations} failed")
+            indent {
+                for (reason in failures) {
+                    renderExpectationFailedReason(reason)
+                }
+            }
+        }
+    }
+
+    func renderExpectationFailedReason(reason: ExpectationFailedReason): Unit {
+        match (reason) {
+            case TooFewInvocationsForStubChain(thisChain, requiredCardinality, actualInvocations) =>
+                line {
+                    text("Too few invocations for")
+                    renderStub(thisChain)
+                }
+                indent {
+                    renderRequiredActual(actualInvocations) {
+                        renderCardinalityMin(requiredCardinality)
+                    }
+
+                    let logEntries = findEntriesByStubId(thisChain.invocationMatcher.stubId)
+                    let handledByThisChain = logEntries |>
+                        filter { entry: LogEntry => entry.wasHandledBy(thisChain) } |>
+                        collectArray
+                    if (!handledByThisChain.isEmpty()) {
+                        line("Invocations handled by this stub occured at:")
+                        indent {
+                            renderInvocationList(
+                                handledByThisChain |>
+                                map { entry: LogEntry => entry.invocation } |>
+                                collectArray
+                            )
+                        }
+                    }
+                    let matchingNotHandledByThisChain = logEntries |>
+                        filter { entry: LogEntry =>
+                            !entry.wasHandledBy(thisChain) && thisChain.invocationMatcher.matches(entry.invocation)
+                        } |> collectArray
+                    if (!matchingNotHandledByThisChain.isEmpty()) {
+                        line("Listing matching invocations not handled by this stub:")
+                        indent {
+                            renderInvocationListWithHandledByHints(matchingNotHandledByThisChain)
+                        }
+                    }
+                    let notHandledByAnyChainsButSameStubId = logEntries |>
+                        filter {
+                            entry: LogEntry => match (entry.origin) {
+                                case Stub(_) => false
+                                case _ => !thisChain.invocationMatcher.matches(entry.invocation)
+                            }
+                        } |> collectArray
+                    if (!notHandledByAnyChainsButSameStubId.isEmpty()) {
+                        line("Listing non-matching invocations that were not handled by any stub:")
+                        indent {
+                            renderInvocationListWithHandledByHints(notHandledByAnyChainsButSameStubId)
+                        }
+                    }
+                }
+        }
+    }
+
+    func renderInvocationListWithHandledByHints(entries: Array<LogEntry>) {
+        for (entry in entries) {
+            listEntry { renderLocation(entry.invocation.location) }
+            indent {
+                line {
+                    match (entry.origin) {
+                        case Stub(otherChain) =>
+                            text("was handled by")
+                            renderStub(otherChain)
+                        case Default =>
+                            text("invoked original (default for")
+                            userCode("spy")
+                            text("object)")
+                        case Failure(_) =>
+                            internalError("Log entry has invalid handler information")
+                    }
+                }
+            }
+        }
+    }
+
+    func findEntriesByStubId(stubId: StubId): ArrayList<LogEntry> {
+        let matchingEntries = ArrayList<LogEntry>()
+        for (entry in invocationLog.entries) {
+            if (entry.invocation.stubId == stubId) {
+                matchingEntries.add(entry)
+            }
+        }
+        return matchingEntries
+    }
+}

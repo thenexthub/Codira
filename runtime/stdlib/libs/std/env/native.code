@@ -1,0 +1,123 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package std.env
+
+foreign {
+    @FastNative
+    func CODE_OS_GetCurrentPid(): Int32
+
+    @FastNative
+    func CODE_OS_GetProcessInfoByPid(pid: Int32): CPointer<ProcessInfo>
+
+    @FastNative
+    func CODE_OS_FreeProcessInfo(processInfo_cp: CPointer<ProcessInfo>): Unit
+
+    @FastNative
+    func exit(status: Int32): Unit
+
+    @FastNative
+    func CODE_BUFFER_Int64ToCPointer(num: Int64, buf: CPointer<UInt8>, destMax: Int64): Int64
+
+    @FastNative
+    func CODE_BUFFER_UInt64ToCPointer(num: UInt64, buf: CPointer<UInt8>, destMax: Int64): Int64
+
+    @FastNative
+    func CODE_BUFFER_Float64ToCPointer(num: Float64, buf: CPointer<UInt8>, bufferSize: Int64): Int64
+
+    @FastNative
+    func CODE_CONSOLE_Readline(): CPointer<StructureString>
+
+    @FastNative
+    func CODE_CONSOLE_ClearstdInerr(): Unit
+
+    @FastNative
+    func memcpy_s(dest: CPointer<UInt8>, destMax: UIntNative, src: CPointer<UInt8>, count: UIntNative): Int32
+
+    @FastNative
+    func memset_s(dest: CPointer<Byte>, destMax: UIntNative, c: Int32, count: UIntNative): Int32
+
+    func CODE_CONSOLE_Write(fd: Int32, c: CPointer<UInt8>, len: Int64, newLine: Bool): Unit
+}
+
+@When[os == "Windows"]
+foreign {
+    @FastNative
+    func CODE_OS_GetEnvVal(envName: CString): CString
+
+    @FastNative
+    func CODE_OS_SetEnvEntry(envEntry: CString): Int32
+
+    @FastNative
+    func CODE_OS_GetStdHandle(fd: IntNative): IntNative
+
+    @FastNative
+    func CODE_OS_CloseFile(fd: IntNative): Int64 // -1: failed, (>= 0): success
+
+    @FastNative
+    func CODE_OS_FileRead(fd: IntNative, buffer: CPointer<Byte>, maxLen: UIntNative): Int64 // -1: failed, 0: end, (>0): the size of buffer be read
+
+    @FastNative
+    func CODE_OS_FileWrite(fd: IntNative, buffer: CPointer<Byte>, maxLen: UIntNative): Bool // -1: failed, (>=0): the size of buffer be written
+}
+
+@When[os != "Windows"]
+foreign {
+    @FastNative
+    func getenv(name: CString): CString
+
+    @FastNative
+    func setenv(name: CString, value: CString, overwrite: Int32): Int32
+
+    @FastNative
+    func unsetenv(name: CString): Int32
+
+    @FastNative
+    func CODE_OS_CloseFile(fd: IntNative): Int64 // -1: failed, (>= 0): success
+
+    @FastNative
+    func CODE_OS_FileRead(fd: IntNative, buffer: CPointer<Byte>, maxLen: UIntNative): Int64 // -1: failed, 0: end, (>0): the size of buffer be read
+
+    @FastNative
+    func CODE_OS_FileWrite(fd: IntNative, buffer: CPointer<Byte>, maxLen: UIntNative): Bool // -1: failed, (>=0): the size of buffer be written
+}
+
+@FastNative
+foreign func CODE_OS_HomeDir(): CString
+
+@When[backend == "codenative"]
+foreign func FiniCODERuntime(): Int64
+
+@C
+struct ProcessInfo {
+    let command: CString = CString(CPointer())
+    let commandLine: CPointer<CString> = CPointer<CString>()
+    let arguments: CPointer<CString> = CPointer<CString>()
+    let workingDirectory: CString = CString(CPointer())
+    let environment: CPointer<CString> = CPointer<CString>()
+}
+
+@C
+struct StructureString {
+    let buffer: CPointer<UInt8> = CPointer<UInt8>()
+    let length: UIntNative = 0
+}

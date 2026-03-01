@@ -1,0 +1,91 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/**
+ * @file
+ *
+ * This file defines ArrayQueue and related classes.
+ */
+package std.collection
+
+public class ArrayQueue<T> <: Queue<T> {
+    let _data: ArrayDeque<T>
+
+    public init() {
+        _data = ArrayDeque<T>()
+    }
+
+    public init(capacity: Int64) {
+        _data = ArrayDeque<T>(capacity)
+    }
+
+    public func peek(): ?T {
+        _data.first
+    }
+
+    public func add(element: T): Unit {
+        _data.addLast(element)
+    }
+
+    public func remove(): ?T {
+        _data.removeFirst()
+    }
+
+    public prop size: Int64 {
+        get() {
+            _data.size
+        }
+    }
+
+    public prop capacity: Int64 {
+        get() {
+            _data.capacity
+        }
+    }
+
+    public func isEmpty(): Bool {
+        _data.isEmpty()
+    }
+
+    public func clear(): Unit {
+        _data.clear()
+    }
+
+    @Frozen
+    public func iterator(): Iterator<T> {
+        _data.iterator()
+    }
+
+    public func toArray(): Array<T> {
+        _data.toArray()
+    }
+
+    public func reserve(additional: Int64): Unit {
+        _data.reserve(additional)
+    }
+}
+
+extend<T> ArrayQueue<T> <: ToString where T <: ToString {
+    public func toString(): String {
+        this._data.toString()
+    }
+}

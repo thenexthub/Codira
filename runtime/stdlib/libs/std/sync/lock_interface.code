@@ -1,0 +1,108 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package std.sync
+
+/**
+ * @brief Base interface for reentrant mutual exclusion concurrency primitives.
+ *
+ * Instance of the Lock interface can be passed as arguments to `synchronized` expression,
+ * which is equivalent to the following transformation
+ *        source code      |        semantics
+ * ------------------------------------------------------
+ *   synchronized(l) {     |  try { l.lock()
+ *     foo()               |    foo()
+ *   }                     |  } finally { l.unlock() }
+ */
+public interface Lock {
+    /**
+     * @brief Acquire the ownership of the lock, blocks if the lock is not available.
+     * Support reentrant.
+     */
+    func lock(): Unit
+
+    /**
+     * @brief Try to lock the mutex.
+     * @return false if the lock is not available;
+     * @return returns true, otherwise.
+     */
+    func tryLock(): Bool
+
+    /**
+     * @brief Unlock the mutex.
+     * If there are other threads blocking on this lock, then wake up one of them.
+     * @throws IllegalSynchronizationStateException if the current thread does not hold the lock.
+     */
+    func unlock(): Unit
+}
+
+public interface UniqueLock <: Lock {
+    /**
+     * @brief Generate a Condition instance for the mutex.
+     * @throws IllegalSynchronizationStateException if the current thread does not hold the lock.
+     */
+    func condition(): Condition
+}
+
+/**
+ * Condition (a.k.a. wait queue) associated with a mutex.
+ */
+public interface Condition {
+    /**
+     * @brief Block until paired `notify` is invoked.
+     * @throws IllegalSynchronizationStateException if current thread does not hold this mutex
+     */
+    func wait(): Unit
+
+    /**
+     * @brief Block until paired `notify` is invoked or `timeout` passed.
+     * @return `true` if event was signalled by other thread;
+     * @return `false` on timeout, otherwise.
+     * @throws IllegalSynchronizationStateException if current thread does not hold this mutex
+     * @throws IllegalArgumentException if `timeout <= Duration.Zero`
+     */
+    func wait(timeout!: Duration): Bool
+
+    /**
+     * @brief Block until paired `notify` is invoked and the `predicate` return true, or the `predicate` always return ture.
+     * @throws IllegalSynchronizationStateException if current thread does not hold this mutex
+     */
+    func waitUntil(predicate: () -> Bool): Unit
+
+    /**
+     * @brief Block until paired `notify` is invoked and the `predicate` return true, or the `predicate` always return ture, or `timeout` passed.
+     * @throws IllegalSynchronizationStateException if current thread does not hold this mutex
+     */
+    func waitUntil(predicate: () -> Bool, timeout!: Duration): Bool
+
+    /**
+     * @brief Wake up a single thread waiting on this mutex (no particular admission policy implied).
+     * @throws IllegalSynchronizationStateException if current thread does not hold this mutex
+     */
+    func notify(): Unit
+
+    /**
+     * @brief Wake up all threads waiting on this mutex (no particular admission policy implied).
+     * @throws IllegalSynchronizationStateException if current thread does not hold this mutex
+     */
+    func notifyAll(): Unit
+}

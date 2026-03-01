@@ -1,0 +1,114 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/**
+ * @file
+ *
+ * This file defines the SqlException class.
+ */
+
+package std.database.sql
+
+/**
+ * The SqlException class is used to handle SQL-related exceptions.
+ *
+ * @since 0.32.3
+ */
+public open class SqlException <: Exception {
+    var _sqlState = ""
+    var _errorCode: Int64 = 0
+
+    /**
+     * a five-character string where IDMS returns the status of the last SQL statement executed.
+     *
+     * @since 0.43.2
+     */
+    public prop sqlState: String {
+        get() {
+            _sqlState
+        }
+    }
+
+    /**
+     * error code that is specific to each vendor.
+     *
+     * @since 0.43.2
+     */
+    public prop errorCode: Int64 {
+        get() {
+            _errorCode
+        }
+    }
+
+    public override prop message: String {
+        get() {
+            var msg = super.message
+            if (msg != "") {
+                msg += ", "
+            }
+            if (_sqlState != "") {
+                msg += "SqlState: ${_sqlState}, "
+            }
+            msg += "errorCode: ${_errorCode}"
+            msg
+        }
+    }
+
+    /**
+     * Parameterless constructor.
+     *
+     * @since 0.32.3
+     */
+    public init() {
+        super()
+    }
+
+    /**
+     * Parameter constructor.
+     *
+     * @param message : predefined message.
+     * @param sqlState : a five-character string where IDMS returns the status of the last SQL statement executed.
+     * @param errorCode : an integer error code that is specific to each vendor.
+     *
+     * @since 0.43.2
+     */
+    public init(message: String, sqlState: String, errorCode: Int64) {
+        super(message)
+        this._sqlState = sqlState
+        this._errorCode = errorCode
+    }
+
+    /**
+     * Parameter constructor.
+     *
+     * @param message : predefined message.
+     *
+     * @since 0.32.3
+     */
+    public init(message: String) {
+        super(message)
+    }
+
+    protected override func getClassName(): String {
+        return "SqlException"
+    }
+}

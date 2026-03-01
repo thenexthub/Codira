@@ -1,0 +1,118 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/**
+ * @file
+ *
+ * This file defines some utility functions.
+ */
+
+package std.io
+
+let BLOCK_SIZE = 4096
+
+/**
+ * SeekPosition  is the position of the cursor in the file.
+ */
+public enum SeekPosition {
+    | Current(Int64) /* < current position. */
+    | Begin(Int64) /* < begin position of the file. */
+    | End(Int64) /* < end position of the file. */
+}
+
+public func readString<T>(from: T): String where T <: InputStream & Seekable {
+    var data = Array<Byte>(from.remainLength, repeat: 0)
+    return try {
+        from.read(data)
+        String.fromUtf8(data)
+    } catch (e: IllegalArgumentException) {
+        throw ContentFormatException(e.message)
+    }
+}
+
+public unsafe func readStringUnchecked<T>(from: T): String where T <: InputStream & Seekable {
+    var data = Array<Byte>(from.remainLength, repeat: 0)
+    from.read(data)
+    String.fromUtf8Unchecked(data)
+}
+
+@OverflowWrapping
+public func readToEnd<T>(from: T): Array<Byte> where T <: InputStream & Seekable {
+    let sum = from.length
+    if (sum <= 0) {
+        let tempSize: Int64 = BLOCK_SIZE
+        let temp: Array<Byte> = Array<Byte>(tempSize, repeat: 0)
+        var buffer: ByteBuffer = ByteBuffer(tempSize)
+
+        while (true) {
+            let readLen = from.read(temp)
+            if (readLen == 0) {
+                break
+            } else if (readLen == tempSize) {
+                buffer.write(temp)
+            } else {
+                buffer.write(temp.slice(0, readLen))
+            }
+        }
+
+        var res: Array<Byte> = Array<Byte>(buffer.length, repeat: 0)
+        buffer.read(res)
+        return res
+    }
+
+    let arr: Array<Byte> = Array<Byte>(sum, repeat: 0)
+    let onceMax = 1 << 30
+    var readSize = 0
+    var emptySize = arr.size
+    while (readSize < sum) {
+        let oneSize = if (emptySize > onceMax) {
+            onceMax
+        } else {
+            emptySize
+        }
+
+        let len = from.read(arr.slice(readSize, oneSize))
+        if (len == 0) {
+            break
+        }
+        readSize += len
+        emptySize -= len
+    }
+
+    arr.slice(0, readSize)
+}
+
+public func copy(from: InputStream, to!: OutputStream): Int64 {
+    let tempArr = Array<Byte>(BLOCK_SIZE, repeat: 0)
+    var readCount = 0
+    while (true) {
+        let readRet = from.read(tempArr)
+        if (readRet > 0) {
+            to.write(tempArr.slice(0, readRet))
+        } else {
+            break
+        }
+        readCount += readRet
+    }
+
+    readCount
+}

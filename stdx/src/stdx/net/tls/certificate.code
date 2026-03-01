@@ -1,0 +1,135 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package stdx.net.tls
+
+import stdx.crypto.x509.*
+import stdx.crypto.common.*
+import stdx.net.tls.common.*
+
+type CertificateVerifyCallbackFunction = (Array<Certificate>) -> Bool
+
+extend<T> Option<T> {
+    func exists() {
+        match (this) {
+            case Some(_) => true
+            case None => false
+        }
+    }
+    func missing() {
+        !exists()
+    }
+}
+
+extend TlsRawSocket {
+    func getPeerCertificate(): ?Array<X509Certificate> {
+        otherNonIO<?Array<X509Certificate>> {
+            nativeStream, exception => getPeerCertificate(nativeStream, exception)
+        }
+    }
+
+    private func getPeerCertificate(stream: CPointer<Ssl>, exception: CPointer<ExceptionData>): ?Array<X509Certificate> {
+        unsafe {
+            var count: UInt32 = 0
+            var dynMsg = DynMsg()
+            let chain = CODE_TLS_DYN_GetPeerCertificate(stream, inout count, exception, inout dynMsg)
+            let resultSize = Int64(count)
+            try {
+                checkDynMsg(dynMsg)
+                if (resultSize != 0 && chain.isNotNull()) {
+                    return convertNativeChain(chain, resultSize)
+                }
+                let exceptionData = exception.read()
+                if (exceptionData.hasException) {
+                    exception.read().throwException(fallback: "Failed to get client certificates.")
+                }
+                return None
+            } finally {
+                CODE_TLS_DYN_Call {
+                    dsgMsg: CPointer<DynMsg> => CODE_TLS_DYN_CertChainFree(chain, resultSize, dsgMsg)
+                }
+            }
+        }
+    }
+
+    protected static unsafe func convertNativeChain(chain: CPointer<CertChainItem>, itemsCount: Int64): ?Array<X509Certificate> {
+        var maxDerSize: Int32 = 0
+        var resultCount = 0
+        for (index in 0..itemsCount) {
+            let item = (chain + index).read()
+            if (item.size > 0 && !item.buffer.isNull()) {
+                if (item.size > maxDerSize) {
+                    maxDerSize = item.size
+                }
+                resultCount++
+            }
+        }
+
+        if (resultCount == 0) {
+            return None
+        }
+
+        let buffer = Array<Byte>(Int64(maxDerSize), repeat: 0)
+        let result = ArrayBuilder<X509Certificate>(resultCount)
+
+        for (index in 0..itemsCount) {
+            let item = (chain + index).read()
+            if (!item.buffer.isNull() && item.size > 0) {
+                let cert = convertNativeCertificate(item, buffer)
+                result.append(cert)
+            }
+        }
+
+        return result.toArray()
+    }
+
+    private static unsafe func convertNativeCertificate(certificate: CertChainItem, buffer: Array<Byte>): X509Certificate {
+        copy(source: CPointer(certificate.buffer), destination: buffer, count: UIntNative(certificate.size))
+        X509Certificate.decodeFromDer(DerBlob(buffer[0..Int64(certificate.size)].clone()))
+    }
+}
+
+@C
+struct CertChainItem {
+    var buffer: CPointer<Byte> = CPointer()
+    var size: Int32 = 0
+}
+
+foreign {
+    func CODE_TLS_DYN_GetPeerCertificate(
+        stream: CPointer<Ssl>,
+        countPtr: CPointer<UInt32>,
+        exception: CPointer<ExceptionData>,
+        dynMsg: CPointer<DynMsg>
+    ): CPointer<CertChainItem>
+
+    func CODE_TLS_DYN_CertChainFree(chain: CPointer<CertChainItem>, itemsCount: Int64, dynMsg: CPointer<DynMsg>): Unit
+}
+
+func CODE_TLS_DYN_Call<T>(call: (CPointer<DynMsg>) -> T): T {
+    unsafe {
+        var dynMsg = DynMsg()
+        let res = call(inout dynMsg)
+        checkDynMsg(dynMsg)
+        return res
+    }
+}

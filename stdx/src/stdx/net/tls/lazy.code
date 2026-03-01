@@ -1,0 +1,98 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package stdx.net.tls
+
+import std.sync.*
+import stdx.net.tls.common.TlsException
+
+/**
+ * Simple concurrent-safe lazy impl. The provided builder in "configure" may
+ * be invoked multiple times but it is guaranteed that only one instance wins.
+ */
+struct Lazy<T> {
+    private let holder: AtomicReference<LazyState<T>>
+
+    init(producer: () -> T) {
+        holder = AtomicReference(Producer<T>(producer))
+    }
+
+    init() {
+        holder = AtomicReference(Uninitialized<T>())
+    }
+
+    prop value: T {
+        get() {
+            compute()
+        }
+    }
+
+    func set(v: T): Unit {
+        holder.store(HasValue<T>(v))
+    }
+
+    func configure(producer: () -> T) {
+        match (holder.load()) {
+            case empty: Uninitialized<T> =>
+                if (holder.compareAndSwap(empty, Producer<T>(producer))) {
+                    return
+                }
+            case _ => ()
+        }
+
+        throw TlsException("Lazy is already configured")
+    }
+
+    private func compute(): T {
+        do {
+            match (holder.load()) {
+                case box: HasValue<T> => return box.value
+                case start: Producer<T> =>
+                    let box = start.create()
+                    if (holder.compareAndSwap(start, box)) {
+                        return box.value
+                    }
+                case _: Uninitialized<T> => throw TlsException(
+                    "This lazy is not yet initialized. Invoke configure first.")
+                case _ => break // workaround compiler bug
+            }
+        } while (true)
+
+        throw TlsException("should never reach here.")
+    }
+}
+
+abstract class LazyState<T> {}
+
+class Uninitialized<T> <: LazyState<T> {}
+
+class Producer<T> <: LazyState<T> {
+    Producer(private let producer: () -> T) {}
+
+    func create(): HasValue<T> {
+        HasValue<T>(producer())
+    }
+}
+
+class HasValue<T> <: LazyState<T> {
+    HasValue(let value: T) {}
+}

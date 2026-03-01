@@ -1,0 +1,668 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package stdx.net.http
+
+import std.net.*
+import std.io.*
+import std.collection.ArrayList
+import stdx.encoding.url.*
+
+public class HttpRequestBuilder {
+    var _method: String = "GET"
+    var _url: ?URL = None
+    // represent it`s not specified by user,
+    var _version: Protocol = UnknownProtocol("HTTP/1.1")
+    var _headers: ?HttpHeaders = None
+    var _body: InputStream = HttpEmptyBody.INSTANCE
+    var _trailers: ?HttpHeaders = None
+    var _remoteAddr: ?SocketAddress = None
+    var priorityValue: String = ""
+    var _readTimeout: ?Duration = None
+    var _writeTimeout: ?Duration = None
+    public init() {}
+
+    /**
+     * Init an HttpRequestBuilder with the input request's attributes.
+     * Headers and trailers are deep copy of the input request.
+     * Body is the same stream as the input request.
+     */
+    public init(request: HttpRequest) {
+        this._method = request.method
+        this._url = request.url
+        this._version = request.version
+        this._headers = request.headers.clone()
+        this._body = request.body
+        this._trailers = request.trailers.clone()
+        this._remoteAddr = request._remoteAddr
+        this.priorityValue = request.priorityValue
+        this._readTimeout = request.readTimeout
+        this._writeTimeout = request.writeTimeout
+    }
+
+    /**
+     * Sets method of this request.
+     *
+     * @param method the request's method,
+     *  method should be consist of tokens.
+     * @return HttpRequestBuilder whose method has been set.
+     *
+     * @throws HttpException, if method is not tokens.
+     */
+    public func method(method: String): HttpRequestBuilder {
+        if (method.isEmpty()) {
+            return this
+        }
+        if (!isTokenString(method)) {
+            throw HttpException("Method should be tokens.")
+        }
+        this._method = method
+        return this
+    }
+
+    /**
+     * Sets url of this request.
+     *
+     * @param url the request's url.
+     * @return HttpRequestBuilder whose url has been set.
+     */
+    public func url(url: URL): HttpRequestBuilder {
+        _url = url
+        return this
+    }
+
+    /**
+     * Sets url of this request.
+     *
+     * @param url the raw string url.
+     * @return HttpRequestBuilder whose url has been set.
+     *
+     * @throws UrlSyntaxException if 'rawUrl' is empty or invalid.
+     * @throws IllegalArgumentException if there is an invalid utf8 leading code in 'rawUrl'.
+     */
+    public func url(rawUrl: String): HttpRequestBuilder {
+        return url(URL.parse(rawUrl))
+    }
+
+    /**
+     * Sets the HTTP-version of this request.
+     *
+     * @param version the protocol version of the request.
+     * @return HttpRequestBuilder whose protocol version has been set.
+     */
+    public func version(version: Protocol): HttpRequestBuilder {
+        this._version = version
+        return this
+    }
+
+    /**
+     * Adds a specifies key-value pair to this request headers
+     * Name should consist of tokens, value should consist of vchar (visible US-ASCII octet), SP or HTAB.
+     *
+     * @param key The field name.
+     * @param value The field value.
+     * @return HttpRequestBuilder whose header has been set.
+     *
+     * @throws HttpException, if field name or value invalid.
+     */
+    public func header(name: String, value: String): HttpRequestBuilder {
+        headers.add(name, value)
+        return this
+    }
+
+    /**
+     * Adds the specifies headers to this request headers.
+     *
+     * @param headers the headers to be added into the request.
+     * @return HttpRequestBuilder whose header has been set.
+     */
+    public func addHeaders(headers: HttpHeaders): HttpRequestBuilder {
+        this.headers.addAll(headers)
+        return this
+    }
+
+    /**
+     * Sets the specifies headers to this request headers.
+     *
+     * @param headers the headers to be set to the request.
+     * @return HttpRequestBuilder whose header has been set.
+     */
+    public func setHeaders(headers: HttpHeaders): HttpRequestBuilder {
+        _headers = headers
+        return this
+    }
+
+    /**
+     * Sets the specified message body for this request.
+     * If the body exists before, it will be overwritten.
+     *
+     * @param body the request's body.
+     * @return HttpRequestBuilder whose body has been set.
+     */
+    public func body(body: Array<UInt8>): HttpRequestBuilder {
+        _body = HttpRawBody(body)
+        return this
+    }
+
+    /**
+     * Sets the specified message body for this request.
+     * If the body exists before, it will be overwritten.
+     *
+     * @param body the request's body.
+     * @return HttpRequestBuilder whose body has been set.
+     */
+    public func body(body: InputStream): HttpRequestBuilder {
+        _body = body
+        return this
+    }
+
+    /**
+     * Sets the specified message body for this request.
+     * If the body exists before, it will be overwritten.
+     *
+     * @param body the request's body.
+     * @return HttpRequestBuilder whose body has been set.
+     */
+    public func body(body: String): HttpRequestBuilder {
+        _body = HttpRawBody(body)
+        return this
+    }
+
+    /**
+     * Adds a specifies key-value pair to this request trailers
+     * Name should consist of tokens, value should consist of vchar (visible US-ASCII octet), SP or HTAB.
+     *
+     * @param key The field name
+     * @param value The field value
+     * @return HttpRequestBuilder whose trailer has been set.
+     *
+     * @throws HttpException, if field name or value invalid.
+     */
+    public func trailer(name: String, value: String): HttpRequestBuilder {
+        trailers.add(name, value)
+        return this
+    }
+
+    /**
+     * Adds the specifies trailers to this request trailers
+     *
+     * @param trailers the trailers to be added into the request.
+     * @return HttpRequestBuilder whose trailers has been set.
+     */
+    public func addTrailers(trailers: HttpHeaders): HttpRequestBuilder {
+        this.trailers.addAll(trailers)
+        return this
+    }
+
+    /**
+     * Sets the specifies trailers to this request trailers.
+     *
+     * @param trailers the trailers to be set to the request.
+     * @return HttpRequestBuilder whose trailers has been set.
+     */
+    public func setTrailers(trailers: HttpHeaders): HttpRequestBuilder {
+        _trailers = trailers
+        return this
+    }
+
+    /**
+     * For http/2 only.
+     * Sets request priority.
+     *
+     * @param urg between 0 ~ 7, inclusive, represents the urgency of the request, the default value is 3.
+     * @param inc requests, incremental of which is set to false, are not expected to be handled concurrently.
+     *  See RFC 9218 2.1.1.4. , https://www.rfc-editor.org/rfc/rfc9218.html#name-priority-parameters
+     * @return HttpRequestBuilder whose priority has been set.
+     *
+     * @throws HttpException, if urg is not in 0 ~ 7, inclusive.
+     */
+    public func priority(urg: Int64, inc: Bool): HttpRequestBuilder {
+        if (urg < 0 || urg > 7) {
+            throw HttpException("Illegal header, priority urgency should be in range [0, 7].")
+        }
+        priorityValue = if (inc) {
+            "u=${urg}, i"
+        } else {
+            "u=${urg}"
+        }
+        return this
+    }
+
+    /*
+     * Set the HttpRequestBuilder's readTimeout, the default value of readTimeout is None.
+     * If this parameter is set, the read response timeout the requests
+     * builded by this builder will be based on this parameter.
+     *
+     * @param timeout the request's readTimeout configuration.
+     * @return HttpRequestBuilder whose readTimeout has been configured.
+     */
+    public func readTimeout(timeout: Duration): HttpRequestBuilder {
+        // checkDuration ensures that the timeout is not negative
+        _readTimeout = checkDuration(timeout)
+        return this
+    }
+
+    /*
+     * Set the HttpRequestBuilder's writeTimeout, the default value of writeTimeout is None.
+     * If this parameter is set, the write request timeout of the requests
+     * builded by this builder will be based on this parameter.
+     *
+     * @param timeout the request's readTimeout configuration.
+     * @return HttpRequestBuilder whose readTimeout has been configured.
+     */
+    public func writeTimeout(timeout: Duration): HttpRequestBuilder {
+        _writeTimeout = checkDuration(timeout)
+        return this
+    }
+
+    /**
+     * For server to set remote address, in order to record the client, which has sent the request.
+     */
+    func remoteAddr(addr: SocketAddress): HttpRequestBuilder {
+        _remoteAddr = addr
+        return this
+    }
+
+    /**
+     * Sets the method to "GET", an alternative of method("GET") for convenience.
+     *
+     * @return HttpRequestBuilder whose method has been set to GET.
+     */
+    public func get(): HttpRequestBuilder {
+        this._method = "GET"
+        return this
+    }
+
+    /**
+     * Sets the method to "HEAD", an alternative of method("GET") for convenience.
+     *
+     * @return HttpRequestBuilder whose method has been set to HEAD.
+     */
+    public func head(): HttpRequestBuilder {
+        this._method = "HEAD"
+        return this
+    }
+
+    /**
+     * Sets the method to "OPTIONS", an alternative of method("GET") for convenience.
+     *
+     * @return HttpRequestBuilder whose method has been set to OPTIONS.
+     */
+    public func options(): HttpRequestBuilder {
+        this._method = "OPTIONS"
+        return this
+    }
+
+    /**
+     * Sets the method to "TRACE", an alternative of method("TRACE") for convenience.
+     *
+     * @return HttpRequestBuilder whose method has been set to TRACE.
+     */
+    public func trace(): HttpRequestBuilder {
+        this._method = "TRACE"
+        return this
+    }
+
+    /**
+     * Sets the method to "DELETE", an alternative of method("DELETE") for convenience.
+     *
+     * @return HttpRequestBuilder whose method has been set to DELETE.
+     */
+    public func delete(): HttpRequestBuilder {
+        this._method = "DELETE"
+        return this
+    }
+
+    /**
+     * Sets the method to "POST", an alternative of method("POST") for convenience.
+     *
+     * @return HttpRequestBuilder whose method has been set to POST.
+     */
+    public func post(): HttpRequestBuilder {
+        this._method = "POST"
+        return this
+    }
+
+    /**
+     * Sets the method to "PUT", an alternative of method("PUT") for convenience.
+     *
+     * @return HttpRequestBuilder whose method has been set to PUT.
+     */
+    public func put(): HttpRequestBuilder {
+        this._method = "PUT"
+        return this
+    }
+
+    /**
+     * Sets the method to "CONNECT", an alternative of method("CONNECT") for convenience.
+     *
+     * @return HttpRequestBuilder whose method has been set to CONNECT.
+     */
+    public func connect(): HttpRequestBuilder {
+        this._method = "CONNECT"
+        return this
+    }
+
+    /**
+     * Builds a request.
+     *
+     * @return HttpRequest whose arguments are set by the builder.
+     */
+    public func build(): HttpRequest {
+        let bodySize: ?Int64 = sizeOf(_body)
+        if (!priorityValue.isEmpty() && (_headers.isNone() || headers.get("priority").isEmpty())) {
+            headers.add("priority", priorityValue)
+        }
+        return HttpRequest(
+            _version: _version,
+            _method: _method,
+            _url: _url,
+            _headers: _headers,
+            _body: _body,
+            _trailers: _trailers,
+            _bodySize: bodySize,
+            priorityValue: priorityValue,
+            _remoteAddr: _remoteAddr,
+            _readTimeout: _readTimeout,
+            _writeTimeout: _writeTimeout
+        )
+    }
+
+    prop headers: HttpHeaders {
+        get() {
+            return match (_headers) {
+                case Some(h) => h
+                case None =>
+                    let h = HttpHeaders()
+                    _headers = h
+                    return h
+            }
+        }
+    }
+
+    prop trailers: HttpHeaders {
+        get() {
+            return match (_trailers) {
+                case Some(t) => t
+                case None =>
+                    let t = HttpHeaders()
+                    _trailers = t
+                    return t
+            }
+        }
+    }
+}
+
+public class HttpRequest <: ToString {
+    HttpRequest(
+        var _method!: String = "GET",
+        var _url!: ?URL = None,
+        var _version!: Protocol = HTTP2_0,
+        var _headers!: ?HttpHeaders = None,
+        var _body!: InputStream = HttpEmptyBody.INSTANCE,
+        var _trailers!: ?HttpHeaders = None,
+        var _bodySize!: ?Int64 = 0,
+        // contentLength is used to decide how to send the request.body
+        var contentLength!: ?Int64 = None,
+        var expectContinuation!: Bool = false,
+        var priorityValue!: String = "",
+        var _form!: ?Form = None,
+        var _remoteAddr!: ?SocketAddress = None,
+        var _readTimeout!: ?Duration = None,
+        var _writeTimeout!: ?Duration = None
+    ) {}
+
+    var requestLine: ?String = None
+    private var formRead = false
+
+    static let empty = HttpRequest(
+        _method: "",
+        _url: None,
+        _version: UnknownProtocol(""),
+        _headers: None,
+        _body: HttpEmptyBody.INSTANCE,
+        _trailers: None,
+        _bodySize: None,
+        priorityValue: ""
+    )
+
+    func reset(): Unit {
+        _method = "GET"
+        _url = None
+        _headers?.reset()
+        _body = HttpEmptyBody.INSTANCE
+        _trailers?.reset()
+        _bodySize = 0
+        priorityValue = ""
+        _remoteAddr = None
+        _readTimeout = None
+        _writeTimeout = None
+    }
+
+    /**
+     * Gets the method of this request.
+     * Default value of method is "GET".
+     */
+    public prop method: String {
+        get() {
+            _method
+        }
+    }
+
+    /**
+     * Gets the url of this request.
+     * url must be set.
+     */
+    public prop url: URL {
+        get() {
+            return match (_url) {
+                case Some(v) => v
+                case None =>
+                    _url = EMPTY_URL
+                    EMPTY_URL
+            }
+        }
+    }
+
+    /**
+     * Gets the Http-version of this request.
+     * Default value of version is HTTP1_1
+     */
+    public prop version: Protocol {
+        get() {
+            _version
+        }
+    }
+
+    /**
+     * Gets the headers of this request, which stores the key-value pair of the request header.
+     * Default provide an empty HttpHeaders.
+     */
+    public prop headers: HttpHeaders {
+        get() {
+            return match (_headers) {
+                case Some(h) => h
+                case None =>
+                    let h = HttpHeaders()
+                    _headers = h
+                    return h
+            }
+        }
+    }
+
+    /**
+     * Gets the body of this request.
+     * Default value of body is an InputStream with no data.
+     */
+    public prop body: InputStream {
+        get() {
+            _body
+        }
+    }
+
+    /**
+     * Gets the trailers of this request, which save the trailer key-value pair in the same format as the header field.
+     * Default provide an empty HttpHeaders.
+     */
+    public prop trailers: HttpHeaders {
+        get() {
+            return match (_trailers) {
+                case Some(t) => t
+                case None =>
+                    let t = HttpHeaders()
+                    _trailers = t
+                    t
+            }
+        }
+    }
+
+    /**
+     * Gets the body size of this request.
+     *
+     * @return Some(0), means the body is empty.
+     * @return Some(v), means the body size is known, input value of body is Array<UInt8> or String
+     *                  or InputStream whose length is valid.
+     * @return None, means the body size is unknown, that is, the body is self-implemented InputStream
+     *                  whose length is invalid.
+     */
+    public prop bodySize: Option<Int64> {
+        get() {
+            _bodySize
+        }
+    }
+
+    /**
+     * If method is POST, PUT, PATCH, and contentType is "application/x-www-form-urlencoded", form represents the body,
+     * If method is not POST, PUT, PATCH, form represents the query in URL.
+     * in this case, body is read to end when get form.
+     *
+     * @throws UrlSyntaxException, if body is not invalid as a form
+     */
+    public prop form: Form {
+        get() {
+            if (let Some(f) <- _form) {
+                return f
+            }
+            let f = match (this._method) {
+                case "POST" | "PUT" | "PATCH" => match (headers.getInternal("content-type")) {
+                    case Some(hv) =>
+                        if (hv.splitAnyMatch(SEMICOLON, "application/x-www-form-urlencoded")) {
+                            readFormBody()
+                        } else {
+                            Form()
+                        }
+                    case None => Form()
+                }
+                case _ => url.queryForm
+            }
+            _form = f
+            return f
+        }
+    }
+
+    /**
+     * For server only.
+     * Gets address of client, which has sent the request.
+     * It has no defined format, in default implementation of server it is set to "IP: port".
+     */
+    public prop remoteAddr: String {
+        get() {
+            _remoteAddr?.toString() ?? ""
+        }
+    }
+
+    /**
+     * For http/1 only.
+     * For server to determine whether to close the connection after processing the request.
+     * For client to determine whether to close the connection after receiving response to the request.
+     */
+    public prop isPersistent: Bool {
+        get() {
+            if (let Some(hv) <- (_headers?.getInternal("connection") ?? return true)) {
+                return !hv.splitAnyMatch(SYMBOL_COMMA, "close")
+            }
+            return true
+        }
+    }
+
+    public prop readTimeout: ?Duration {
+        get() {
+            return _readTimeout
+        }
+    }
+
+    public prop writeTimeout: ?Duration {
+        get() {
+            return _writeTimeout
+        }
+    }
+
+    /**
+     * Prints request start line, headers, body size, trailer.
+     *
+     * @return String that can represent the request.
+     */
+    public override func toString(): String {
+        let str = StringBuilder()
+        if (let Some(s) <- requestLine) {
+            str.append(s)
+        } else {
+            match (_method) {
+                case "CONNECT" =>
+                    let host = _url?.hostName ?? ""
+                    let port = _url?.port ?? ""
+                    if (!port.isEmpty()) {
+                        str.append("${_method} ${host}:${port} ${_version.toString()}")
+                    } else {
+                        str.append("${_method} ${host} ${_version.toString()}")
+                    }
+                case _ => str.append("${_method} ${_url?.path ?? ""} ${_version.toString()}")
+            }
+        }
+        str.append("\r\n")
+        str.append(_headers?.toString() ?? "\r\n")
+        match (bodySize) {
+            case Some(0) => ()
+            case Some(s) => str.append("body size: ${s}\r\n")
+            case None => str.append("unknown body size\r\n")
+        }
+        str.append(_trailers?.toString() ?? "")
+        return str.toString()
+    }
+
+    /**
+     * Reads body to form.
+     */
+    private func readFormBody(): Form {
+        let body = ArrayList<UInt8>()
+
+        let buffer = Array<Byte>(4096, repeat: 0)
+        var readLen = 0
+        do {
+            readLen = this._body.read(buffer)
+            body.add(all: buffer.slice(0, readLen))
+        } while (readLen > 0)
+
+        var bodyData = unsafe { String.fromUtf8(body.getRawArray().slice(0, body.size)) }
+        return Form(bodyData)
+    }
+}

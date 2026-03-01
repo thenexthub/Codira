@@ -1,0 +1,98 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+
+SANITIZER_SYMBOL_DECL(void, __tsan_func_entry, 1, const void*, pc);
+SANITIZER_SYMBOL_DECL(void, __tsan_func_exit, 0, void, void);
+SANITIZER_SYMBOL_DECL(void, __tsan_func_restore_context, 0, const void*, pc);
+SANITIZER_SYMBOL_DECL(void*, __tsan_init, 0, void, void);
+SANITIZER_SYMBOL_DECL(void, __tsan_fini, 0, void, void);
+SANITIZER_SYMBOL_DECL(void*, __tsan_proc_create, 0, void, void);
+SANITIZER_SYMBOL_DECL(void*, __tsan_state_create, 2, void*, parent, const void*, pc);
+SANITIZER_SYMBOL_DECL(void, __tsan_state_delete, 1, void*, rs);
+SANITIZER_SYMBOL_DECL(void, __tsan_write, 3, const void*, pc, const void*, addr, size_t, size);
+SANITIZER_SYMBOL_DECL(void, __tsan_read, 3, const void*, pc, const void*, addr, size_t, size);
+SANITIZER_SYMBOL_DECL(void, __tsan_write_range, 3, const void*, pc, const void*, addr, size_t, size);
+SANITIZER_SYMBOL_DECL(void, __tsan_read_range, 3, const void*, pc, const void*, addr, size_t, size);
+SANITIZER_SYMBOL_DECL(void, __tsan_acquire, 2, void*, thr, const void*, addr);
+SANITIZER_SYMBOL_DECL(void, __tsan_release, 2, void*, thr, const void*, addr);
+SANITIZER_SYMBOL_DECL(void, __tsan_release_merge, 2, void*, thr, const void*, addr);
+SANITIZER_SYMBOL_DECL(void, __tsan_release_acquire, 2, void*, thr, const void*, addr);
+SANITIZER_SYMBOL_DECL(void, __tsan_init_shadow, 2, const void*, addr, size_t, size);
+SANITIZER_SYMBOL_DECL(void, __tsan_fix_shadow, 3, const void*, from, const void*, to, size_t, size);
+SANITIZER_SYMBOL_DECL(void, __tsan_alloc, 3, const void*, pc, const void*, addr, size_t, size);
+SANITIZER_SYMBOL_DECL(void, __tsan_free, 3, const void*, pc, const void*, addr, size_t, size);
+SANITIZER_SYMBOL_DECL(void, __tsan_clean_shadow, 2, const void*, addr, size_t, size);
+
+SANITIZER_SYMBOL_DECL(uint8_t, __tsan_atomic8_load, 2, const uint8_t*, addr, int, mo);
+SANITIZER_SYMBOL_DECL(uint16_t, __tsan_atomic16_load, 2, const uint16_t*, addr, int, mo);
+SANITIZER_SYMBOL_DECL(uint32_t, __tsan_atomic32_load, 2, const uint32_t*, addr, int, mo);
+SANITIZER_SYMBOL_DECL(uint64_t, __tsan_atomic64_load, 2, const uint64_t*, addr, int, mo);
+
+SANITIZER_SYMBOL_DECL(void, __tsan_atomic8_store, 3, const uint8_t*, addr, uint8_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(void, __tsan_atomic16_store, 3, const uint16_t*, addr, uint16_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(void, __tsan_atomic32_store, 3, const uint32_t*, addr, uint32_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(void, __tsan_atomic64_store, 3, const uint64_t*, addr, uint64_t, val, int, mo);
+
+SANITIZER_SYMBOL_DECL(uint8_t,  __tsan_atomic8_fetch_add, 3, const uint8_t*, addr, uint8_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(uint16_t, __tsan_atomic16_fetch_add, 3, const uint16_t*, addr, uint16_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(uint32_t, __tsan_atomic32_fetch_add, 3, const uint32_t*, addr, uint32_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(uint64_t, __tsan_atomic64_fetch_add, 3, const uint64_t*, addr, uint64_t, val, int, mo);
+
+SANITIZER_SYMBOL_DECL(uint8_t,  __tsan_atomic8_fetch_sub, 3, const uint8_t*, addr, uint8_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(uint16_t, __tsan_atomic16_fetch_sub, 3, const uint16_t*, addr, uint16_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(uint32_t, __tsan_atomic32_fetch_sub, 3, const uint32_t*, addr, uint32_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(uint64_t, __tsan_atomic64_fetch_sub, 3, const uint64_t*, addr, uint64_t, val, int, mo);
+
+SANITIZER_SYMBOL_DECL(uint8_t,  __tsan_atomic8_fetch_and, 3, const uint8_t*, addr, uint8_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(uint16_t, __tsan_atomic16_fetch_and, 3, const uint16_t*, addr, uint16_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(uint32_t, __tsan_atomic32_fetch_and, 3, const uint32_t*, addr, uint32_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(uint64_t, __tsan_atomic64_fetch_and, 3, const uint64_t*, addr, uint64_t, val, int, mo);
+
+SANITIZER_SYMBOL_DECL(uint8_t,  __tsan_atomic8_fetch_or, 3, const uint8_t*, addr, uint8_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(uint16_t, __tsan_atomic16_fetch_or, 3, const uint16_t*, addr, uint16_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(uint32_t, __tsan_atomic32_fetch_or, 3, const uint32_t*, addr, uint32_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(uint64_t, __tsan_atomic64_fetch_or, 3, const uint64_t*, addr, uint64_t, val, int, mo);
+
+SANITIZER_SYMBOL_DECL(uint8_t,  __tsan_atomic8_fetch_xor, 3, const uint8_t*, addr, uint8_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(uint16_t, __tsan_atomic16_fetch_xor, 3, const uint16_t*, addr, uint16_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(uint32_t, __tsan_atomic32_fetch_xor, 3, const uint32_t*, addr, uint32_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(uint64_t, __tsan_atomic64_fetch_xor, 3, const uint64_t*, addr, uint64_t, val, int, mo);
+
+SANITIZER_SYMBOL_DECL(uint8_t,  __tsan_atomic8_fetch_nand, 3, const uint8_t*, addr, uint8_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(uint16_t, __tsan_atomic16_fetch_nand, 3, const uint16_t*, addr, uint16_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(uint32_t, __tsan_atomic32_fetch_nand, 3, const uint32_t*, addr, uint32_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(uint64_t, __tsan_atomic64_fetch_nand, 3, const uint64_t*, addr, uint64_t, val, int, mo);
+
+SANITIZER_SYMBOL_DECL(uint8_t,  __tsan_atomic8_exchange, 3, const uint8_t*, addr, uint8_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(uint16_t, __tsan_atomic16_exchange, 3, const uint16_t*, addr, uint16_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(uint32_t, __tsan_atomic32_exchange, 3, const uint32_t*, addr, uint32_t, val, int, mo);
+SANITIZER_SYMBOL_DECL(uint64_t, __tsan_atomic64_exchange, 3, const uint64_t*, addr, uint64_t, val, int, mo);
+
+SANITIZER_SYMBOL_DECL(uint8_t,  __tsan_atomic8_compare_exchange_val, 5, const uint8_t*, addr,
+    uint8_t, expVal, uint8_t, newVal, int, mo, int, fmo);
+SANITIZER_SYMBOL_DECL(uint16_t, __tsan_atomic16_compare_exchange_val, 5, const uint16_t*, addr,
+    uint16_t, expVal, uint16_t, newVal, int, mo, int, fmo);
+SANITIZER_SYMBOL_DECL(uint32_t, __tsan_atomic32_compare_exchange_val, 5, const uint32_t*, addr,
+    uint32_t, expVal, uint32_t, newVal, int, mo, int, fmo);
+SANITIZER_SYMBOL_DECL(uint64_t, __tsan_atomic64_compare_exchange_val, 5, const uint64_t*, addr,
+    uint64_t, expVal, uint64_t, newVal, int, mo, int, fmo);

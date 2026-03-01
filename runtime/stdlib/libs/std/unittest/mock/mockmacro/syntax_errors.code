@@ -1,0 +1,95 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+macro package std.unittest.mock.mockmacro
+
+import std.ast.*
+import std.collection.ArrayList
+
+enum ParseResult<T> {
+    Success(T) | Error(Array<SyntaxError>)
+}
+
+enum SyntaxErrorKind {
+    WrongMatcherExpr | WrongStubExpr | WrongObjectReference | ParserFailed
+}
+
+struct SyntaxError {
+    SyntaxError(
+        let actualTokens: Tokens,
+        let kind: SyntaxErrorKind
+    ) {}
+
+    static func matcher(tokens: Tokens) {
+        SyntaxError(tokens, WrongMatcherExpr)
+    }
+
+    static func stub(tokens: Tokens) {
+        SyntaxError(tokens, WrongStubExpr)
+    }
+
+    static func mockObject(tokens: Tokens) {
+        SyntaxError(tokens, WrongObjectReference)
+    }
+
+    static func parser() {
+        SyntaxError(Tokens(), ParserFailed)
+    }
+}
+
+func accumulateErrors<T>(parseResults: Iterable<ParseResult<T>>): ParseResult<Array<T>> {
+    let results = ArrayList<T>()
+    let errors = ArrayList<SyntaxError>()
+    for (parseResult in parseResults) {
+        match (parseResult) {
+            case Success(t) => results.add(t)
+            case Error(syntaxErrors) => errors.add(all: syntaxErrors)
+        }
+    }
+    if (errors.isEmpty()) {
+        return ParseResult.Success(results.toArray())
+    } else {
+        return ParseResult.Error(errors.toArray())
+    }
+}
+
+func reportSyntaxErrors(errors: Array<SyntaxError>): Nothing {
+    var message = "Encountered issues while processing macro:\n"
+    for (error in errors) {
+        let exprString = descriptionString(error.actualTokens)
+        match (error.kind) {
+            case ParserFailed => throw MalformedMacroException("Unable to parse macro.")
+            case WrongMatcherExpr => message += "Invalid matcher expression: ${exprString}\n"
+            case WrongStubExpr => message += "Invalid stub description expression: ${exprString}\n"
+            case WrongObjectReference => message += "Reference to a mock object must be a single identifier. Invalid reference: ${exprString}\n"
+        }
+    }
+    throw MalformedMacroException(message, errors)
+}
+
+class MalformedMacroException <: Exception {
+    MalformedMacroException(
+        message: String,
+        let errors: Array<SyntaxError>
+    ) {
+        super(message)
+    }
+}

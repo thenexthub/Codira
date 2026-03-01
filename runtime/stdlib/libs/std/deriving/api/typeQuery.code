@@ -1,0 +1,77 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+protected package std.deriving.api
+
+import std.ast.*
+
+public interface GenericsInjector {
+    /**
+     * Add generic arguments to an interface qualified name. Constrained type could be a target class itself
+     * or it's generic parameter.
+     */
+    func injectGenerics(
+        iface: QualifiedName,
+        constrainedType: TypeNode,
+        target: DerivingTarget): TypeNode
+
+    func constraintsFor(
+        iface: QualifiedName,
+        generic: GenericDecl,
+        target: DerivingTarget
+    ): Array<GenericConstraint> {
+        let upperBound = injectGenerics(iface, generic.toType(), target)
+        let constraint = GenericConstraint()
+        constraint.typeArgument = generic.toType()
+        constraint.upperBound = Token(TokenKind.UPPERBOUND, "<:")
+        constraint.upperBounds.add(upperBound)
+        return [constraint]
+    }
+
+    static func noGenerics(): GenericsInjector  { DefaultGenreicInjector() }
+    static func singleRecursive(): GenericsInjector { RecursiveGenericInjector() }
+}
+
+public struct DerivingInterfaceInfo {
+    public DerivingInterfaceInfo(
+        public let name: QualifiedName,
+        public let superTypes: Array<QualifiedName>,
+        public let genericsInjector: GenericsInjector
+    ) {}
+}
+
+struct DefaultGenreicInjector <: GenericsInjector {
+    public func injectGenerics(
+        input: QualifiedName,
+        _: TypeNode,
+        _: DerivingTarget): TypeNode {
+            return input.toType()
+    }
+}
+
+struct RecursiveGenericInjector <: GenericsInjector {
+    public func injectGenerics(
+        iface: QualifiedName,
+        constrainedType: TypeNode,
+        _: DerivingTarget): TypeNode {
+            return iface.toType(constrainedType)
+    }
+}

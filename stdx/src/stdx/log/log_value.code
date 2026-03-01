@@ -1,0 +1,114 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package stdx.log
+
+import std.collection.{HashMap, TreeMap}
+import std.time.DateTime
+
+public interface LogValue {
+    func writeTo(w: LogWriter): Unit
+}
+
+extend Int64 <: LogValue {
+    public func writeTo(w: LogWriter): Unit {
+        w.writeInt(this)
+    }
+}
+
+extend Bool <: LogValue {
+    public func writeTo(w: LogWriter): Unit {
+        w.writeBool(this)
+    }
+}
+
+extend Float64 <: LogValue {
+    public func writeTo(w: LogWriter): Unit {
+        w.writeFloat(this)
+    }
+}
+
+extend DateTime <: LogValue {
+    public func writeTo(w: LogWriter): Unit {
+        w.writeDateTime(this)
+    }
+}
+
+extend Duration <: LogValue {
+    public func writeTo(w: LogWriter): Unit {
+        w.writeDuration(this)
+    }
+}
+
+extend String <: LogValue {
+    public func writeTo(w: LogWriter): Unit {
+        w.writeString(this)
+    }
+}
+
+extend Exception <: LogValue {
+    public func writeTo(w: LogWriter): Unit {
+        w.writeException(this)
+    }
+}
+
+extend<T> Array<T> <: LogValue where T <: LogValue {
+    public func writeTo(w: LogWriter): Unit {
+        w.startArray()
+        for (e in this) {
+            w.writeValue(e)
+        }
+        w.endArray()
+    }
+}
+
+extend<V> HashMap<String, V> <: LogValue where V <: LogValue {
+    public func writeTo(w: LogWriter): Unit {
+        w.startObject()
+        for ((k, v) in this) {
+            w.writeKey(k)
+            w.writeValue(v)
+        }
+        w.endObject()
+    }
+}
+
+extend<V> TreeMap<String, V> <: LogValue where V <: LogValue {
+    public func writeTo(w: LogWriter): Unit {
+        w.startObject()
+        for ((k, v) in this) {
+            w.writeKey(k)
+            w.writeValue(v)
+        }
+        w.endObject()
+    }
+}
+
+extend<T> Option<T> <: LogValue where T <: LogValue {
+    public func writeTo(w: LogWriter): Unit {
+        if (let Some(v) <- this) {
+            w.writeValue(v)
+        } else {
+            w.writeNone()
+        }
+    }
+}

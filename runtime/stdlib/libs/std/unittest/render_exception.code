@@ -1,0 +1,99 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+package std.unittest
+
+import std.unittest.common.PrettyText
+import std.unittest.mock.PrettyException
+
+func renderException(exception: Exception, preamble: ?PrettyText): PrettyText {
+    let text = PrettyText()
+    if (let Some(preamble) <- preamble) {
+        text.append(preamble)
+    }
+    if (let Some(prettyError) <- (exception as PrettyException)) {
+        text.append(prettyError)
+    } else {
+        text.append(exceptionToString(exception))
+    }
+    text
+}
+
+func exceptionToString(e: Exception): String {
+    let traceElementArray: Array<StackTraceElement> = e.getStackTrace()
+    var msg = StringBuilder("An exception has occurred:${e}\n")
+    let indexAfterLast = indexOfFirstIrrelevantEntry(traceElementArray)
+    for (index in 0..indexAfterLast) {
+        let element = traceElementArray[index]
+        let declaringClass = element.declaringClass
+        let fileName = element.fileName
+        let lineNumber = element.lineNumber.toString()
+        msg.append("\tat ${declaringClass}.${methodName(element)}(${fileName}:${lineNumber})")
+        if (index != indexAfterLast - 1) {
+            msg.append("\n")
+        }
+    }
+    return msg.toString()
+}
+
+func indexOfFirstIrrelevantEntry(elements: Array<StackTraceElement>): Int64 {
+    var index = elements.size - 1
+    while (index > 0) {
+        let element = elements[index]
+        if (index == elements.size - 1 && isEntryPoint(element)) {
+            index--
+            continue
+        }
+        let frameInsideUnittest = elements[index].declaringClass.startsWith("std.unittest")
+        if (frameInsideUnittest) {
+            index--
+            continue
+        }
+        let hasAnyFramesInsideUnittest = index != (elements.size - 1)
+        if (hasAnyFramesInsideUnittest) {
+            if (isLambda(element)) {
+                // this wrapping lambda is the last irrelevant entry
+                return index
+            } else {
+                return index + 1
+            }
+        } else {
+            return elements.size
+        }
+    }
+    return elements.size
+}
+
+@When[backend == "codenative"]
+func isEntryPoint(_: StackTraceElement): Bool {
+    false
+}
+
+@When[backend == "codenative"]
+func isLambda(element: StackTraceElement): Bool {
+    element.methodName.startsWith("lambda.")
+}
+
+@When[backend == "codenative"]
+func methodName(element: StackTraceElement): String {
+    element.methodName.replace("::", ".")
+}
+

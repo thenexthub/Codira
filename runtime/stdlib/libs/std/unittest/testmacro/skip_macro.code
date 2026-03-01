@@ -1,0 +1,62 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/**
+ * @file The file declares the macro Skip.
+ */
+macro package std.unittest.testmacro
+
+import std.ast.*
+
+/**
+ *
+ * The macro only add inner macro @Attribute to outer macro Test.
+ * It can skip the func to execute.
+ * @since 0.17.3
+ * @see Test
+ *
+ * @throws MacroException if input is not ClassDecl or FuncDecl.
+ */
+public macro Skip(input: Tokens): Tokens {
+    return topLevelMacroDriver(SKIP_MACRO, input, Tokens(), { it => insideParentContext(it.macroIdentifier) })
+}
+
+/**
+ *
+ * The macro only add inner macro @Attribute to outer macro Test.
+ * It can skip the func to execute.
+ * If attr is the true identifier, it is same with {@codeSkip()}.
+ * If attr is other tokens, it is Ineffective.
+ * @since 0.17.3
+ * @see Test
+ *
+ * @throws MacroException if input is not ClassDecl or FuncDecl.
+ */
+public macro Skip(attr: Tokens, input: Tokens): Tokens {
+    let tokens = match {
+        case compareTokens(attr, true.toTokens()) => ()
+        case compareTokens(attr, false.toTokens()) =>
+            return input
+        case _ => throw MacroException("@Skip can only be used with true or false")
+    }
+    return topLevelMacroDriver(SKIP_MACRO, input, Tokens(), { it => insideParentContext(it.macroIdentifier) })
+}

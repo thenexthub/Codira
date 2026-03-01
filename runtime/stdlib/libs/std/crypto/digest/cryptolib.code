@@ -1,0 +1,86 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package std.crypto.digest
+
+import std.io.{InputStream, OutputStream}
+
+/**
+ * The Digest interface
+ *
+ *
+ */
+public interface Digest {
+    prop size: Int64
+
+    prop blockSize: Int64
+
+    prop algorithm: String
+
+    func write(buffer: Array<Byte>): Unit
+
+    func finish(to!: Array<Byte>): Unit
+
+    func finish(): Array<Byte> {
+        let buf = Array<Byte>(size, repeat: 0)
+        this.finish(to: buf)
+        return buf
+    }
+
+    func reset(): Unit
+}
+
+/**
+ * The function is to calculate the digest of data
+ *
+ * @param algorithm - digest type
+ * @param data - data to be digested
+ *
+ * @return message-digested data
+ */
+@Deprecated[message: "Use global function `public func digest<T>(algorithm: T, input: InputStream): Array<Byte> where T <: Digest` instead."]
+public func digest<T>(algorithm: T, data: String): Array<Byte> where T <: Digest {
+    digest(algorithm, data.toArray())
+}
+
+public func digest<T>(algorithm: T, input: InputStream): Array<Byte> where T <: Digest {
+    var buffer = Array<Byte>(algorithm.blockSize, repeat: 0)
+    while (true) {
+        var len = input.read(buffer)
+        if (len == 0) {
+            break
+        }
+        algorithm.write(buffer[..len])
+    }
+    var result = algorithm.finish()
+    algorithm.reset()
+    return result
+}
+
+public func digest<T>(algorithm: T, data: Array<Byte>): Array<Byte> where T <: Digest {
+    var algorithmMutable = algorithm
+    algorithmMutable.reset()
+    algorithmMutable.write(data)
+    let result = algorithmMutable.finish()
+    algorithmMutable.reset()
+    return result
+}

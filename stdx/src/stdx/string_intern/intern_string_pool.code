@@ -1,0 +1,64 @@
+/*
+ *  Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *  This source file is part of the Codira project, licensed under Apache-2.0
+ *  with Runtime Library Exception.
+ *
+ *  See https://cangjie-lang.cn/pages/LICENSE for license information.
+ */
+
+package stdx.string_intern
+
+class InternStringPool {
+    private let empty: Unit = ()
+    private let _maxLength: Int64
+    private let _cache: Cache<Int64, String>
+
+    init(capacity: Int64, maxLength: Int64) {
+        this._maxLength = maxLength
+        this._cache = CacheProxy<Int64, String>(
+                cacheConfig: DefaultCacheConfig(
+                        maxObjects: capacity,
+                        evictionType: CacheEvictionType.LRU,
+                        spoolChunkSize: 2
+                )
+        )
+    }
+
+    func intern(value: String): String {
+        if (value.size == 0) {
+            return String.empty
+        }
+        if (value.size > _maxLength) {
+            return value
+        }
+
+        let hashcode = value.hashCode()
+        match (_cache.getObject(hashcode)) {
+            case Some(v) => return v
+            case None =>
+            _cache.putObject(hashcode, value)
+            return value
+        }
+    }
+
+    func intern(value: Array<Byte>): String {
+        if (value.size == 0) {
+            return String.empty
+        }
+
+        let tmp = unsafe {
+            String.withRawData(value)
+        }
+        if (value.size > _maxLength) {
+            return tmp.clone()
+        }
+        let hashcode = tmp.hashCode()
+        match (_cache.getObject(hashcode)) {
+            case Some(v) => return v
+            case None =>
+            let str = tmp.clone()
+            _cache.putObject(hashcode, str)
+            return str
+        }
+    }
+}

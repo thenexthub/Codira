@@ -1,0 +1,127 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package std.core
+
+const ASCII_UPPER_TO_LOWER_DIFF: UInt8 = 0x20
+
+extend Byte {
+    /**
+     * Returns true if this Byte is in Ascii letter range.
+     */
+    public func isAsciiLetter(): Bool {
+        return (this >= b'A' && this <= b'Z') || (this >= b'a' && this <=
+            b'z')
+    }
+
+    /**
+     * Returns true if this this Byte is in Ascii number range.
+     */
+    public func isAsciiNumber(): Bool {
+        return this >= b'0' && this <= b'9'
+    }
+
+    /**
+     * Returns true if this this Byte is in Ascii hexadecimal range.
+     */
+    public func isAsciiHex(): Bool {
+        return this.isAsciiNumber() || (this >= b'a' && this <= b'f') || (this >= b'A' &&
+            this <= b'F')
+    }
+
+    /**
+     * Returns true if this Byte is in ASCII octal digit range.
+     */
+    public func isAsciiOct(): Bool {
+        return this >= b'0' && this <= b'7'
+    }
+
+    /**
+     * Return true if this Byte is in ASCII punctuation range.
+     */
+    public func isAsciiPunctuation(): Bool {
+        return (this >= b'!' && this <= b'/') || (this >= b':' && this <= b'@') ||
+               (this >= b'[' && this <= b'`') || (this >= b'{' && this <= b'~')
+    }
+
+    /**
+     * Return true if this Byte is in ASCII graphic character range.
+     */
+    public func isAsciiGraphic(): Bool {
+        return this >= b'!' && this <= b'~'
+    }
+
+    /**
+     * Return true if this Byte is in ASCII control character range.
+     */
+    public func isAsciiControl(): Bool {
+        return this <= 0x1F || this == 0x7F
+    }
+
+    /**
+     * Return true if this Byte is in ASCII number or letter range.
+     */
+    public func isAsciiNumberOrLetter(): Bool {
+        return this.isAsciiLetter() || this.isAsciiNumber()
+    }
+
+    /** Returns true if this Byte is in Lowercase Ascii letter range. */
+    public func isAsciiLowerCase(): Bool {
+        return this >= b'a' && this <= b'z'
+    }
+
+    /** Returns true if this Byte is in Uppercase Ascii letter range. */
+    public func isAsciiUpperCase(): Bool {
+        return this >= b'A' && this <= b'Z'
+    }
+
+    /** Returns true if this Byte is in Ascii range. */
+    public func isAscii(): Bool {
+        return this <= 0x7F
+    }
+
+    /** 
+     * Returns true if this Byte is whitespace.
+     * whitespace include HT, LF, VT, FF, CR, SP
+     */
+    public func isAsciiWhiteSpace(): Bool {
+        return (this >= 0x09 && this <= 0x0D) || this == 0x20
+    }
+
+    /** Returns the uppercase of this Byte. */
+    public func toAsciiUpperCase(): Byte {
+        return if (this.isAsciiLowerCase()) {
+            this - ASCII_UPPER_TO_LOWER_DIFF
+        } else {
+            this
+        }
+    }
+
+    /** Returns the lowercase of this Byte. */
+    public func toAsciiLowerCase(): Byte {
+        return if (this.isAsciiUpperCase()) {
+            this + ASCII_UPPER_TO_LOWER_DIFF
+        } else {
+            this
+        }
+    }
+}

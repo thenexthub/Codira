@@ -1,0 +1,65 @@
+/*
+ *  Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *  This source file is part of the Codira project, licensed under Apache-2.0
+ *  with Runtime Library Exception.
+ *
+ *  See https://cangjie-lang.cn/pages/LICENSE for license information.
+ */
+
+package stdx.string_intern
+
+/**
+ * @brief Encapsulate the cache element object. All underlying objects in the cache need to be encapsulated as the ICacheObj type.
+ * This object encapsulates the cached data, including the cache key, value, region name, and other attributes.
+ * The cache element defines the cache creation time. Cache lifetime, etc.
+ */
+interface ICacheObj<K, V> {
+    prop name: String
+    mut prop attribute: ICacheObjAttr
+    prop key: K
+    prop value: V
+}
+
+class DefaultCacheObj<K, V> <: Object & ICacheObj<K, V> {
+    private var _name: String
+
+    private var _attribute: ICacheObjAttr
+
+    private var _key: K
+
+    private var _value: V
+
+    public prop name: String {
+        get() {
+            return _name
+        }
+    }
+
+    public mut prop attribute: ICacheObjAttr {
+        get() {
+            return _attribute
+        }
+        set(v) {
+            this._attribute = v
+        }
+    }
+
+    public prop key: K {
+        get() {
+            return _key
+        }
+    }
+
+    public prop value: V {
+        get() {
+            return _value
+        }
+    }
+
+    init(key: K, value: V, attribute!: ICacheObjAttr = DefaultCacheObjAttr(), name!: String = "") {
+        this._name = name
+        this._attribute = attribute
+        this._key = key
+        this._value = value
+    }
+}

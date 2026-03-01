@@ -1,0 +1,93 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package stdx.crypto.x509
+
+struct DerType <: Equatable<DerType> & Hashable & ToString {
+    DerType(
+        public let derClass: DerClass,
+        public let typeIdentifier: UInt64,
+        public let primitive!: Bool = true
+    ) {}
+
+    public override operator func ==(other: DerType): Bool {
+        derClass == other.derClass && typeIdentifier == other.typeIdentifier && primitive == other.primitive
+    }
+
+    public override operator func !=(other: DerType): Bool {
+        !(this == other)
+    }
+
+    public override func toString(): String {
+        "DerType(class: ${derClass}, typeIdentifier: ${typeIdentifier}, primitive: ${primitive})"
+    }
+
+    @OverflowWrapping
+    public override func hashCode(): Int64 {
+        derClass.hashCode() * 31 + typeIdentifier.hashCode() * 3113 + primitive.hashCode()
+    }
+
+    static let VERSION_TYPE = DerType(ContextSpecific, 0, primitive: false)
+    static let SEQUENCE = DerType(Universal, 16, primitive: false)
+    static let ASN_INT = DerType(Universal, 2)
+    static let ASN_OBJECT_IDENTIFIER = DerType(Universal, 6)
+    static let UTF8_STRING = DerType(Universal, 12)
+    static let PRINTABLE_STRING = DerType(Universal, 19)
+    static let IA5_STRING = DerType(Universal, 22)
+    static let UTC_TIME = DerType(Universal, 23)
+    static let GENERALIZED_TIME = DerType(Universal, 24)
+    static let BIT_STREAM = DerType(Universal, 3)
+    static let ISSUER_COMPONENT = DerType(Universal, 17, primitive: false)
+    static let EXTENSION_OPTION = DerType(ContextSpecific, 3, primitive: false)
+    static let ATTRIBUTES_TYPE = DerType(ContextSpecific, 0, primitive: false)
+}
+
+enum DerClass <: Equatable<DerClass> & Hashable & ToString {
+    Universal | Application | ContextSpecific | Private
+
+    public override func toString(): String {
+        match (this) {
+            case Universal => "Universal"
+            case Application => "Application"
+            case ContextSpecific => "Context-specific"
+            case Private => "Private"
+        }
+    }
+
+    public override operator func ==(other: DerClass): Bool {
+        match ((this, other)) {
+            case (Universal, Universal) => true
+            case (Application, Application) => true
+            case (ContextSpecific, ContextSpecific) => true
+            case (Private, Private) => true
+            case _ => false
+        }
+    }
+
+    public override operator func !=(other: DerClass): Bool {
+        !(this == other)
+    }
+
+    public func hashCode(): Int64 {
+        toString().hashCode()
+    }
+}

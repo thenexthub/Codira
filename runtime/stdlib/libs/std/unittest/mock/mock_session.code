@@ -1,0 +1,70 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+package std.unittest.mock
+
+import std.collection.*
+
+/**
+ * Controls what kind of stubs are allowed inside a given *MockSession*.
+ * Forbidden - no stubs allowed.
+ * Stateless - only stateless are allowed (inherently stateful actions like returnsConsequitively and cardinality specifiers are disallowed).
+ * Verifiable - any stub is allowed.
+ *
+ * Expectations can only be verified for stubs created in *Verifiable* sessions.
+ */
+public enum MockSessionKind {
+    | Forbidden
+    | Stateless
+    | Verifiable
+}
+
+/**
+ * All stubs are only active during a session they were defined in.
+ * Expectations specified by the stubs will be verified when the session is closed.
+ * Test framework is responsibe for opening and closing the session implcitly.
+ */
+class MockSession {
+    MockSession(
+        let name: String,
+        let sessionKind: MockSessionKind
+    ) {}
+
+    let invocationLog = MutableLog()
+    let chainsByStubId = HashMap<StubId, ArrayList<StubChain>>()
+    let statements = ArrayList<VerifyStatement>()
+    let objectRegistry = HashMap<UInt64, MockObject>()
+    let fieldStorage = FieldStorage()
+}
+
+class MockObject {
+    MockObject(
+        let id: UInt64,
+        let ref: Object,
+        let kind: MockKind,
+        let modes: Array<StubMode>,
+        let sessionName: ?String
+    ) {}
+}
+
+enum MockKind {
+    Mock | Spy
+}

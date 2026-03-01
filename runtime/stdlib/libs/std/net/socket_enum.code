@@ -1,0 +1,95 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/**
+ * @file The file declares the SocketNet and SocketKeepAliveConfig enumeration class.
+ */
+package std.net
+
+/**
+ * Transport Layer Protocol Kind
+ */
+public enum SocketNet <: ToString & Equatable<SocketNet> {
+    | TCP
+    | UDP
+    | UNIX
+
+    public func toString(): String {
+        match (this) {
+            case TCP => return "tcp"
+            case UDP => return "udp"
+            case UNIX => return "domain"
+        }
+    }
+
+    public operator func ==(other: SocketNet): Bool {
+        match ((this, other)) {
+            case (TCP, TCP) => true
+            case (UDP, UDP) => true
+            case (UNIX, UNIX) => true
+            case _ => false
+        }
+    }
+
+    public operator func !=(other: SocketNet): Bool {
+        return !(this == other)
+    }
+}
+
+enum SocketMode <: Equal<SocketMode> {
+    | StreamingMode
+    | DatagramMode
+    | SequentialMode
+
+    public override operator func ==(other: SocketMode): Bool {
+        match ((this, other)) {
+            case (StreamingMode, StreamingMode) => true
+            case (DatagramMode, DatagramMode) => true
+            case (SequentialMode, SequentialMode) => true
+            case _ => false
+        }
+    }
+}
+
+extend Duration {
+    func throwIfNegative(what: String): Duration {
+        if (this < Duration.Zero) {
+            throw IllegalArgumentException("${what} duration cannot be negative.")
+        }
+        if (this > MAX_TIMEOUT_DURATION) {
+            return MAX_TIMEOUT_DURATION
+        }
+        return this
+    }
+
+    func bumpAtLeast(other: Duration): Duration {
+        if (this < other) {
+            return other
+        }
+
+        return this
+    }
+
+    func toNanosecondGranularity(): Duration {
+        this.toNanoseconds() * Duration.nanosecond
+    }
+}

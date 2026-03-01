@@ -1,0 +1,283 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package stdx.crypto.x509
+
+import stdx.crypto.common.*
+
+const GEN_EMAIL: Int64 = 1
+const GEN_DNS: Int64 = 2
+const GEN_IPADD: Int64 = 7
+
+public struct X509CertificateRequestInfo {
+    public var subject: ?X509Name
+    public var dnsNames: Array<String>
+    public var emailAddresses: Array<String>
+    public var IPAddresses: Array<IP>
+
+    public init(
+        subject!: ?X509Name = None,
+        dnsNames!: Array<String> = Array<String>(),
+        emailAddresses!: Array<String> = Array<String>(),
+        IPAddresses!: Array<IP> = Array<IP>()
+    ) {
+        for (IPAddress in IPAddresses) {
+            if (IPAddress.size != IPV4_SIZE && IPAddress.size != IPV6_SIZE) {
+                throw X509Exception("X509CSRInfo init failed: Illegal IP address.")
+            }
+        }
+        this.IPAddresses = IPAddresses.clone()
+        this.subject = subject
+        this.dnsNames = dnsNames.clone()
+        this.emailAddresses = emailAddresses.clone()
+    }
+}
+
+public class X509CertificateRequest <: Hashable & ToString {
+    private let blob: X509CsrBlob
+
+    public prop signature: Signature {
+        get() {
+            blob.signature
+        }
+    }
+
+    public prop signatureAlgorithm: SignatureAlgorithm {
+        get() {
+            blob.signatureAlgorithm
+        }
+    }
+
+    public prop publicKeyAlgorithm: PublicKeyAlgorithm {
+        get() {
+            blob.publicKeyAlgorithm
+        }
+    }
+
+    public prop publicKey: PublicKey {
+        get() {
+            CertRequestPublicKey(blob)
+        }
+    }
+
+    init(blob: X509CsrBlob) {
+        this.blob = blob
+    }
+
+    public init(
+        privateKey: PrivateKey,
+        certificateRequestInfo!: ?X509CertificateRequestInfo = None,
+        signatureAlgorithm!: ?SignatureAlgorithm = None
+    ) {
+        unsafe {
+            var req = x509ReqNew()
+            if (req.isNull()) {
+                throw X509Exception("X509CSR init failed: Cannot init a new request.")
+            }
+            var pkey = CPointer<Unit>()
+            try {
+                setRequestInfo(req, csrInfo: certificateRequestInfo)
+                pkey = getRawPriKey(privateKey)
+                if (!checkKeyType(CPointer<Unit>(pkey), getKeyType(signatureAlgorithm))) {
+                    throw X509Exception("X509CSR init failed: Private key type not match to signatureAlgorithm.")
+                }
+                var ret = x509ReqSetPubkey(req, pkey)
+                if (ret <= 0) {
+                    throw X509Exception("X509CSR init failed: Failed to set public key.")
+                }
+                ret = x509ReqSign(req, pkey, getDigest(signatureAlgorithm))
+                if (ret <= 0) {
+                    throw X509Exception("X509CSR init failed: Failed to sign.")
+                }
+                this.blob = X509CsrBlob(getReqBody(req))
+            } finally {
+                keyFree(pkey)
+                x509ReqFree(req)
+            }
+        }
+    }
+
+    public func encodeToPem(): PemEntry {
+        PemEntry(PemEntry.LABEL_CERTIFICATE_REQUEST, encodeToDer())
+    }
+
+    public func encodeToDer(): DerBlob {
+        blob.content
+    }
+
+    public static func decodeFromDer(der: DerBlob): X509CertificateRequest {
+        X509CertificateRequest(X509CsrBlob(der))
+    }
+
+    public static func decodeFromPem(pem: String): Array<X509CertificateRequest> {
+        let parsedPem = Pem.decode(pem)
+        let result = ArrayBuilder<X509CertificateRequest>(parsedPem.size)
+        for (it in parsedPem) {
+            if (it.label == PemEntry.LABEL_CERTIFICATE_REQUEST) {
+                if (let Some(v) <- it.body) {
+                    result.append(decodeFromDer(v))
+                }
+            }
+        }
+
+        if (result.isEmpty()) {
+            throw X509Exception(
+                "X509CSR decode failed: No ${PemEntry.LABEL_CERTIFICATE_REQUEST} entry found in PEM file.")
+        }
+        return result.toArray()
+    }
+
+    public override func toString(): String {
+        "X509CertificateRequest(for ${subject})"
+    }
+
+    public override func hashCode(): Int64 {
+        blob.hashCode()
+    }
+
+    public prop subject: X509Name {
+        get() {
+            X509Name(blob.subject)
+        }
+    }
+
+    // Extensions
+    public prop dnsNames: Array<String> {
+        get() {
+            blob.dnsNames
+        }
+    }
+
+    public prop emailAddresses: Array<String> {
+        get() {
+            blob.emailAddresses
+        }
+    }
+
+    public prop IPAddresses: Array<IP> {
+        get() {
+            blob.IPAddresses
+        }
+    }
+}
+
+func setRequestInfo(req: CPointer<Unit>, csrInfo!: ?X509CertificateRequestInfo) {
+    match (csrInfo) {
+        case None => return
+        case Some(csrInfo) =>
+            setX509Name(req, csrInfo.subject)
+            setAttributes(
+                req,
+                csrInfo.dnsNames,
+                csrInfo.emailAddresses,
+                csrInfo.IPAddresses
+            )
+    }
+}
+
+func setX509Name(req: CPointer<Unit>, name: ?X509Name) {
+    match (name) {
+        case None => return
+        case Some(name) => setSubjectName(req, name)
+    }
+}
+
+func setSubjectName(req: CPointer<Unit>, name: X509Name) {
+    unsafe {
+        let derBody = name.blob.blob.body
+        let nameLength = derBody.size
+        let derHandle: CPointerHandle<Byte> = acquireArrayRawData(derBody)
+        var x509Name = CPointer<Unit>()
+        try (derBodyPtr = malloc<CPointer<Byte>>()) {
+            derBodyPtr.pointer.write(derHandle.pointer)
+            x509Name = getNamePtr(derBodyPtr.pointer, nameLength)
+            if (x509Name.isNull()) {
+                throw X509Exception("X509CSR init failed: Failed to set subject name.")
+            }
+            let ret = x509ReqSetSubject(req, x509Name)
+            if (ret <= 0) {
+                throw X509Exception("X509CSR init failed: Failed to set subject name.")
+            }
+        } finally {
+            nameFree(x509Name)
+            releaseArrayRawData(derHandle)
+        }
+    }
+}
+
+func setAttributes(req: CPointer<Unit>, dnsNames: Array<String>, emailAddresses: Array<String>, ipAddresses: Array<IP>) {
+    unsafe {
+        var names = nameStackNew()
+        try {
+            for (dnsName in dnsNames) {
+                addName(names, GEN_DNS, dnsName)
+            }
+            for (emailAddress in emailAddresses) {
+                addName(names, GEN_EMAIL, emailAddress)
+            }
+            for (ipAddress in ipAddresses) {
+                addName(names, GEN_IPADD, ipAddressToString(ipAddress))
+            }
+            if (stackNameNum(names) < 0) {
+                return
+            }
+            let ret = reqAddExtension(req, names)
+            if (ret <= 0) {
+                throw X509Exception("X509CSR init failed: Failed to set attribute.")
+            }
+        } finally {
+            nameStackFree(names)
+        }
+    }
+}
+
+func addName(nameStack: CPointer<Unit>, nid: Int64, str: String) {
+    unsafe {
+        try (strPtr = LibC.mallocCString(str).asResource()) {
+            let ret = addName(nameStack, nid, strPtr.value)
+            if (ret < 0) {
+                throw X509Exception("X509CSR init failed: Failed to set attribute ${str}.")
+            }
+        }
+    }
+}
+
+func getReqBody(req: CPointer<Unit>): Array<Byte> {
+    unsafe {
+        var reqlen = getX509ReqDer(req, CPointer<CPointer<Byte>>())
+        if (reqlen < 0) {
+            throw X509Exception("X509CSR init failed: Cannot parse the X509 req body.")
+        }
+        var reqBody = Array<Byte>(Int64(reqlen), repeat: 0)
+        let data: CPointerHandle<Byte> = acquireArrayRawData(reqBody)
+        try (reqPtr = malloc<CPointer<Byte>>()) {
+            reqPtr.pointer.write(data.pointer)
+            reqlen = getX509ReqDer(req, reqPtr.pointer)
+            if (reqlen < 0) {
+                throw X509Exception("X509CSR init failed: Cannot parse the X509 req body.")
+            }
+        } finally {
+            releaseArrayRawData(data)
+        }
+        reqBody
+    }
+}

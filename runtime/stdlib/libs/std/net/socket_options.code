@@ -1,0 +1,49 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package std.net
+
+public struct SocketOptions {
+    private init() {
+    }
+
+    @Deprecated[message: "Use `public static const SOCKET: Int32` in `public struct OptionLevel` instead."]
+    public static const SOL_SOCKET: Int32 = SOL_SOCKET
+
+    @Deprecated[message: "Use `public static const TCP: Int32` in `public struct OptionLevel` instead."]
+    public static const IPPROTO_TCP: Int32 = IPPROTO_TCP
+
+    @Deprecated[message: "Use `public static const UDP: Int32` in `public struct OptionLevel` instead."]
+    public static const IPPROTO_UDP: Int32 = IPPROTO_UDP
+
+    public static const SO_KEEPALIVE: Int32 = SOCK_KEEPALIVE
+    public static const TCP_NODELAY: Int32 = SOCK_TCP_NODELAY
+    public static const TCP_QUICKACK: Int32 = SOCK_TCP_QUICKACK
+
+    public static const SO_LINGER: Int32 = SOCK_LINGER
+    public static const SO_SNDBUF: Int32 = SOCK_SNDBUF
+    public static const SO_RCVBUF: Int32 = SOCK_RCVBUF
+
+    public static const SO_REUSEADDR: Int32 = SOCK_REUSEADDR
+    public static const SO_REUSEPORT: Int32 = SOCK_REUSEPORT
+    public static const SO_BINDTODEVICE: Int32 = SOCK_BINDTODEVICE
+}

@@ -1,0 +1,31 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+
+SANITIZER_SYMBOL_DECL(void, __hwasan_tag_memory, 3, volatile const void*, addr, uint8_t, tag, uintptr_t, size);
+SANITIZER_SYMBOL_DECL(uintptr_t, __hwasan_tag_pointer, 2, volatile const void*, addr, uint8_t, tag);
+SANITIZER_SYMBOL_DECL(uint8_t, __hwasan_generate_tag, 0, void, void);
+SANITIZER_SYMBOL_DECL(void, __hwasan_loadN, 2, volatile const void*, addr, uintptr_t, size);
+SANITIZER_SYMBOL_DECL(void, __hwasan_storeN, 2, volatile const void*, addr, uintptr_t, size);
+SANITIZER_SYMBOL_DECL(void, __hwasan_handle_vfork, 1, const void*, sp);
+SANITIZER_SYMBOL_DECL(int, __sanitizer_install_malloc_and_free_hooks, 2, const void*, malloc_hook,
+                                              const void*, free_hook);

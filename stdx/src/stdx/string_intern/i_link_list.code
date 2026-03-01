@@ -1,0 +1,33 @@
+/*
+ *  Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *  This source file is part of the Codira project, licensed under Apache-2.0
+ *  with Runtime Library Exception.
+ *
+ *  See https://cangjie-lang.cn/pages/LICENSE for license information.
+ */
+
+/**
+ * @file i_link_list.code
+ * @brief A more Suitable Linked List Interface
+ *
+ */
+
+package stdx.string_intern
+
+internal import std.collection.LinkedListNode
+
+interface ILinkList<T> {
+    func clear(): Unit
+    func remove(input: T): Bool
+    func popLast(): Option<T>
+    func popFirst(): Option<T>
+    func firstNode(): Option<LinkedListNode<T>>
+    func lastNode(): Option<LinkedListNode<T>>
+    func prepend(element: T): LinkedListNode<T>
+    func append(element: T): LinkedListNode<T>
+    func appendBefore(element: T, oldkey: Option<T>): LinkedListNode<T>
+    func getNextNode(element: T): Option<LinkedListNode<T>>
+    func makeFirst(element: T): Bool
+    func makeLast(element: T): Bool
+    func getSize(): Int64
+}

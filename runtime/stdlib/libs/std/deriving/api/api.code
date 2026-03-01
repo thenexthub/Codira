@@ -1,0 +1,99 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+protected package std.deriving.api
+
+import std.ast.*
+import std.collection.*
+
+/**
+ * Deriving settings collected from annotations applied to the target type.
+ */
+public struct DerivingSettings {
+    public DerivingSettings(
+        public let interfaces: Array<DerivingInterfaceSettings>,
+        public let excludedFields: Array<TargetNamedAttribute>,
+        public let casesOrder: Array<TargetEnumCase>,
+        public let fieldsOrder: Array<Identifier>,
+        public let includedProperties: Array<PropDecl>
+    ) {}
+
+    public prop interfaceNames: Array<QualifiedName> {
+        get() { interfaces |> map { it: DerivingInterfaceSettings => it.name } |> collectArray }
+    }
+}
+
+public struct TargetEnumCase {
+    public TargetEnumCase(
+        public let name: String,
+        public let constructor: Constructor,
+        public let fields: Array<TargetEnumField>
+    ) {}
+}
+
+public struct TargetEnumField {
+    public TargetEnumField(
+        public let position: Int64,
+        public let fieldType: TypeNode
+    ) {}
+}
+
+public enum TargetNamedAttribute {
+    | FieldAttribute(VarDecl)
+    | ConstructorFieldAttribute(FuncParam)
+    | PropertyAttribute(PropDecl)
+}
+
+/**
+ * Contains effective target information.
+ * Fields are already filtered based on exclusions
+ * Properties contains only manually included.
+ * The provided decl is not supposed to be modified
+ */
+public struct DerivingTarget {
+    public DerivingTarget(
+        public let declaration: Decl,
+        public let namedFields: Array<TargetNamedAttribute>,
+        public let enumCases: Array<TargetEnumCase>,
+        public let settings: DerivingSettings
+    ) {}
+
+    public prop interfaces: Array<DerivingInterfaceSettings> {
+        get() { settings.interfaces }
+    }
+
+    public prop interfaceNames: Array<QualifiedName> {
+        get() { settings.interfaceNames }
+    }
+
+    public func findIntefaceSettings(name: QualifiedName): ?DerivingInterfaceSettings {
+        interfaces.iterator()
+            .filter { it => it.name == name }
+            .first()
+    }
+}
+
+public struct DerivingInterfaceSettings {
+    public DerivingInterfaceSettings(
+        public let name: QualifiedName,
+        public let generics: Array<DerivingGenericSettings>
+    ) {}
+}

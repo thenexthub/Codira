@@ -1,0 +1,192 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package stdx.net.tls
+
+import stdx.net.tls.common.TlsException
+
+const CODETLS_EOF: Int32 = 0
+const CODETLS_FAIL: Int32 = -1
+const CODETLS_NEED_READ: Int32 = -2
+const CODETLS_NEED_WRITE: Int32 = -3
+const CODETLS_OK: Int32 = 1
+
+@C
+struct Ssl {}
+
+@C
+struct Ctx {}
+
+/**
+typedef struct ExceptionDataS {
+    const char* message; // this is always allocated using malloc
+    const char* constMessage; // this is never allocated
+} ExceptionData;
+ */
+@C
+struct ExceptionData {
+    var message: CPointer<Byte> = CPointer()
+    var constMessage: CPointer<Byte> = CPointer()
+
+    prop hasException: Bool {
+        get() {
+            !message.isNull() || !constMessage.isNull()
+        }
+    }
+
+    func throwException(fallback!: String): Nothing {
+        throw getException(fallback: fallback)
+    }
+
+    func getException(fallback!: String): TlsException {
+        if (!message.isNull()) {
+            return TlsException(CString(message).toString())
+        }
+        if (!constMessage.isNull()) {
+            return TlsException(CString(constMessage).toString())
+        }
+
+        return TlsException(fallback)
+    }
+
+    mut func clear(): Unit {
+        if (!message.isNull()) {
+            unsafe { CRYPTO_free(message) }
+            message = CPointer()
+        }
+    }
+
+    static func create(): CPointer<ExceptionData> {
+        unsafe {
+            let ptr = LibC.malloc<ExceptionData>(count: 1)
+            if (ptr.isNull()) {
+                throw IllegalMemoryException("Memory malloc failed.")
+            }
+            ptr.write(ExceptionData())
+            return ptr
+        }
+    }
+
+    static func free(exception: CPointer<ExceptionData>): Unit {
+        unsafe {
+            if (exception.isNull()) {
+                return
+            }
+
+            var data = exception.read()
+            data.clear()
+            LibC.free(exception)
+        }
+    }
+
+    static func withException<R>(block: (CPointer<ExceptionData>) -> R): R {
+        let exception = ExceptionData.create()
+        try {
+            block(exception)
+        } finally {
+            ExceptionData.free(exception)
+        }
+    }
+}
+
+foreign {
+    func memcpy_s(dest: CPointer<UInt8>, destMax: UIntNative, src: CPointer<UInt8>, count: UIntNative): Int32
+
+    func MallocDynMsg(): CPointer<DynMsg>
+
+    func FreeDynMsg(dynMsgPtr: CPointer<DynMsg>): Unit
+
+    func CODE_TLS_DYN_CheckPrivateKey(ctx: CPointer<Ctx>, dynMsgPtr: CPointer<DynMsg>): Int32
+
+    func CODE_TLS_DYN_SetProtoVersions(ctx: CPointer<Ctx>, min: Int32, max: Int32, dynMsgPtr: CPointer<DynMsg>): Int32
+
+    func CODE_TLS_DYN_GetVersion(stream: CPointer<Ssl>, dynMsgPtr: CPointer<DynMsg>): CString
+
+    func CODE_TLS_DYN_GetHostName(stream: CPointer<Ssl>, dynMsgPtr: CPointer<DynMsg>): CString
+
+    func CODE_TLS_DYN_SetHostName(
+        stream: CPointer<Ssl>,
+        name: CString,
+        exception: CPointer<ExceptionData>,
+        dynMsgPtr: CPointer<DynMsg>
+    ): Int32
+
+    func CODE_TLS_DYN_ServerEnableSNI(context: CPointer<Ctx>, dynMsgPtr: CPointer<DynMsg>): Int32
+}
+
+func CODE_TLS_CheckPrivateKey(ctx: CPointer<Ctx>): Int32 {
+    unsafe {
+        var dynMsg = DynMsg()
+        let res = CODE_TLS_DYN_CheckPrivateKey(ctx, inout dynMsg)
+        checkDynMsg(dynMsg)
+        return res
+    }
+}
+
+func CODE_TLS_SetHostName(
+    stream: CPointer<Ssl>,
+    name: CString,
+    exception: CPointer<ExceptionData>
+): Int32 {
+    unsafe {
+        var dynMsg = DynMsg()
+        let res = CODE_TLS_DYN_SetHostName(stream, name, exception, inout dynMsg)
+        checkDynMsg(dynMsg)
+        return res
+    }
+}
+
+func CODE_TLS_ServerEnableSNI(context: CPointer<Ctx>): Int32 {
+    unsafe {
+        var dynMsg = DynMsg()
+        let res = CODE_TLS_DYN_ServerEnableSNI(context, inout dynMsg)
+        checkDynMsg(dynMsg)
+        return res
+    }
+}
+
+func CODE_TLS_GetHostName(stream: CPointer<Ssl>): CString {
+    unsafe {
+        var dynMsg = DynMsg()
+        let res = CODE_TLS_DYN_GetHostName(stream, inout dynMsg)
+        checkDynMsg(dynMsg)
+        return res
+    }
+}
+
+func CODE_TLS_SetProtoVersions(ctx: CPointer<Ctx>, min: Int32, max: Int32): Int32 {
+    unsafe {
+        var dynMsg = DynMsg()
+        let res = CODE_TLS_DYN_SetProtoVersions(ctx, min, max, inout dynMsg)
+        checkDynMsg(dynMsg)
+        return res
+    }
+}
+
+func CODE_TLS_GetVersion(stream: CPointer<Ssl>): CString {
+    unsafe {
+        var dynMsg = DynMsg()
+        let res = CODE_TLS_DYN_GetVersion(stream, inout dynMsg)
+        checkDynMsg(dynMsg)
+        return res
+    }
+}

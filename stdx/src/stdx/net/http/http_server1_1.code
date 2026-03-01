@@ -1,0 +1,965 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This source file is part of the Codira project, licensed under Apache-2.0
+ * with Runtime Library Exception.
+ *
+ * See https://cangjie-lang.cn/pages/LICENSE for license information.
+ */
+
+package stdx.net.http
+
+import std.io.InputStream
+import std.sync.AtomicBool
+import std.net.{StreamingSocket, SocketException}
+import std.convert.Parsable
+import std.time.MonoTime
+import stdx.log.{Logger, LogLevel}
+import stdx.net.tls.common.{TlsConnection, TlsException}
+import stdx.crypto.common.Certificate
+import stdx.encoding.url.URL
+
+class HttpServer1 <: ProtocolService {
+    var quit = false
+    let httpConn: HttpEngineConn1
+    var keepAliveTimer = HttpTimer.empty
+
+    init(socket: StreamingSocket) {
+        httpConn = HttpEngineConn1(socket)
+    }
+
+    protected func serve(): Unit {
+        httpConn.readTimeout = readTimeout
+        httpConn.writeTimeout = writeTimeout
+        httpConn.readHeaderTimeout = readHeaderTimeout
+        httpConn.maxRequestHeaderSize = maxRequestHeaderSize
+        httpConn.maxRequestBodySize = maxRequestBodySize
+        httpConn.logger = logger
+
+        while (!server.quit.load() && !quit && !httpConn.isClosed()) {
+            process(httpConn)
+        }
+    }
+
+    func process(httpConn: HttpEngineConn1): Unit {
+        // block to read request
+        let request = httpConn.readRequest() ?? return ()
+        // reset keep-alive timer
+        keepAliveTimer.cancel()
+
+        let handler = match {
+            case request.url.path == ASTERISK && request.method == "OPTIONS" => OptionsHandler()
+            case _ => distributor.distribute(request.url.path)
+        }
+
+        let responseBuilder = HttpResponseBuilder().request(request)
+        let context = HttpContext(request, responseBuilder)
+        context.httpConn = httpConn
+        (request.body as HttpExpectBodyProvider)?.setContext(context)
+
+        try {
+            if (logger.enabled(LogLevel.DEBUG)) {
+                httpLogDebug(logger, "[HttpServer1#process] start handle req: ${request.toString()}")
+            }
+            // user handler
+            let handlerStartTime = MonoTime.now()
+            handler.handle(context) // if websocket or chunk, ctx will set flag
+            let handlerEndTime = MonoTime.now()
+            if (logger.enabled(LogLevel.DEBUG)) {
+                let duration = handlerEndTime - handlerStartTime
+                httpLogDebug(logger,
+                    "[HttpServer1#process] Handler for request ${context.request.method} ${context.request.url} took ${duration.toMilliseconds()} ms."
+                )
+            }
+        } catch (e: SocketException | ConnectionException | TlsException) {
+            // Unable to send 500 response, log only.
+            httpLogWarn(logger, "[HttpServer1#process] Exception during process: ${e}")
+            return quitAndClose()
+        } catch (http: HttpStatusException) {
+            httpLogWarn(logger, "[HttpServer1#process] Exception due to read request body or trailer: ${http.message}")
+            if (!context.responseFlushedByUser) {
+                context.responseBuilder.status(http.statusCode).header("connection", "close")
+                httpConn.writeResponse(context)
+                // wait for client to finish sending data in flight, and receive response
+                sleep(Duration.second)
+            }
+            return quitAndClose()
+        } catch (e: Exception) {
+            httpLogWarn(logger, "[HttpServer1#process] Exception during process: ${e}")
+
+            if (!context.upgraded && !context.responseFlushedByUser) { // websocket && chunked
+                let headers = HttpHeaders()
+                headers.add("content-type", "text/plain; charset=utf-8")
+                headers.add("connection", "close")
+                context
+                    .responseBuilder
+                    .status(HttpStatusCode.STATUS_INTERNAL_SERVER_ERROR)
+                    .setHeaders(headers)
+                    .body("Internal Server Error")
+                consumeRequestAndWriteResponse(context) ?? return () // 500 Internal Server Error
+            }
+            return quitAndClose()
+        }
+
+        if (context.upgraded) {
+            quit = true // quit only
+            return
+        }
+
+        // write response
+        consumeRequestAndWriteResponse(context) ?? return ()
+
+        // check keep-alive
+        if (!keepAlive(request)) {
+            return quitAndClose()
+        }
+
+        keepAliveTimer = HttpTimer(start: keepAliveTimeout(request), task: quitAndClose)
+    }
+
+    func consumeRequestAndWriteResponse(context: HttpContext): ?Unit {
+        try {
+            httpConn.consumeRequest(context)
+            httpConn.writeResponse(context)
+        } catch (e: HttpException) {
+            httpLogWarn(logger, "[HttpServer1#consumeRequestAndWriteResponse] failed: ${e}")
+
+            let headers = HttpHeaders()
+            headers.add("content-type", "text/plain; charset=utf-8")
+            headers.add("connection", "close")
+            context
+                .responseBuilder
+                .status(HttpStatusCode.STATUS_INTERNAL_SERVER_ERROR)
+                .setHeaders(headers)
+                .body("Internal Server Error")
+            httpConn.writeResponse(context.responseBuilder.build()) // 500 Internal Server Error
+
+            quitAndClose()
+            return None
+        } catch (e: Exception) {
+            httpLogWarn(logger, "[HttpServer1#consumeRequestAndWriteResponse] failed: ${e}")
+            quitAndClose()
+            return None
+        }
+    }
+
+    func quitAndClose(): Unit {
+        quit = true
+        httpConn.close()
+    }
+
+    func keepAliveTimeout(request: HttpRequest): Duration {
+        if (request.version == HTTP1_1) {
+            return httpKeepAliveTimeout
+        }
+        if (let Some(v) <- request.headers.getInternal("keep-alive")?.single) {
+            let timeStr = Str(v).splitFirst(SYMBOL_COMMA)?.splitLast(SYMBOL_EQUAL) ?? return httpKeepAliveTimeout
+            if (let Some(t) <- Int64.tryParse(timeStr.toString())) {
+                if (t <= 0) {
+                    return Duration.Zero
+                }
+                let timeout = Duration.second * t
+                if (timeout < httpKeepAliveTimeout) {
+                    return timeout
+                }
+            }
+        }
+        return httpKeepAliveTimeout
+    }
+
+    func keepAlive(request: HttpRequest): Bool {
+        match (request.headers.getInternal("connection")) {
+            case None => return match (request.version) {
+                case HTTP1_0 => false
+                case _ => true
+            }
+            case Some(hv) => return match (request.version) {
+                case HTTP1_0 => hv.splitAnyMatch(SYMBOL_COMMA, "keep-alive")
+                case _ => !hv.splitAnyMatch(SYMBOL_COMMA, "close")
+            }
+        }
+    }
+
+    protected func closeGracefully(): Unit {
+        close()
+    }
+
+    protected func close(): Unit {
+        httpConn.close()
+    }
+}
+
+class HttpEngineConn1 <: HttpEngineConn & BodyProviderConn {
+    let conn: BufferedConn
+    var _version = "HTTP/1.1"
+    var _logger: ?Logger = None
+    let _isReadTimeout = AtomicBool(false)
+
+    var writeTimer = HttpTimer.empty
+
+    let trash = Array<Byte>(4096, repeat: 0)
+    let dateArr: Array<Byte> = "xxx, xx xxx xxxxxxxxxxxxxxxxxxxxxx xx:xx:xx GMT".toArray() //47 byte
+
+    public prop isReadTimeout: AtomicBool {
+        get() {
+            _isReadTimeout
+        }
+    }
+
+    init(socket: StreamingSocket) {
+        conn = BufferedConn(socket)
+    }
+
+    public prop clientCertificate: ?Array<Certificate> {
+        get() {
+            return match (conn.socket) {
+                case tlsConn: TlsConnection => tlsConn.handshakeResult?.peerCertificate ?? None
+                case _ => None
+            }
+        }
+    }
+
+    public func getSocket(): StreamingSocket {
+        writeTimer.cancel()
+        return conn
+    }
+
+    public func closeConn(): Unit {
+        ()
+    }
+
+    public func returnConn(): Unit {
+        ()
+    }
+
+    mut prop logger: Logger {
+        get() {
+            _logger ?? throw HttpException("[HttpEngineConn1] logger not set yet.")
+        }
+        set(v) {
+            _logger = v
+        }
+    }
+
+    public func getBufferConn(): BufferedConn {
+        return conn
+    }
+
+    /*
+     * Read request from client connection
+     * request-message = request-line CRLF
+     *                   *( field-line CRLF )
+     *                   CRLF
+     *                   [ message-body ]
+     *
+     * @throws SocketException if something wrong happened in socket
+     */
+    func readRequest(): ?HttpRequest {
+        var readTimer = HttpTimer.empty
+        var readHeaderTimer = HttpTimer.empty
+        try {
+            // 1. read request line
+            let (line, method, requestTarget, version) = readRequestLine()
+            readTimer = setReadTimout()
+            // 2. read headers
+            readHeaderTimer = setReadHeaderTimout()
+            let headers = readHeaderFields()
+            readHeaderTimer.cancel()
+            // check http header fields
+            let (contentLength, chunked) = checkHeaderFields(headers, version)
+            // check 100-continue
+            // A server that receives a 100-continue expectation in an HTTP/1.0 request ignore that expectation.
+            // RFC 9110 10.1.1. Expect
+            let expectContinue = (version != "HTTP/1.0") && expected100Continue(headers)
+            // 3. set body && build request
+            let request = HttpRequestBuilder()
+                .method(method.toString())
+                .url(requestTarget)
+                .version(Protocol.fromString(version))
+                .setHeaders(headers)
+                .remoteAddr(conn.socket.remoteAddress)
+                .build()
+            request._body = match {
+                case expectContinue => HttpExpectBodyProvider(this, request, chunked, contentLength, readTimer)
+                case chunked =>
+                    request._bodySize = None
+                    HttpChunkedBodyProvider(this, request, readTimer)
+                case _ => match (contentLength) {
+                    case Some(contentLength) =>
+                        request._bodySize = contentLength
+                        HttpNormalBodyProvider(this, contentLength, readTimer)
+                    case None =>
+                        readTimer.cancel()
+                        HttpEmptyBody.INSTANCE
+                }
+            }
+            request.requestLine = line
+            return request
+        } catch (e: SocketException | ConnectionException | TlsException) {
+            // Unable to send 500 response, log only.
+            logExceptionAndCancelTimer(e, readTimer, readHeaderTimer)
+        } catch (e: Exception) {
+            // Log exception and send 500 response.
+            logExceptionAndCancelTimer(e, readTimer, readHeaderTimer)
+
+            let (status, msg) = match (e) {
+                case http: HttpStatusException => (http.statusCode, e.message)
+                case _ => (HttpStatusCode.STATUS_INTERNAL_SERVER_ERROR, "Internal Server Error")
+            }
+            let response = HttpResponseBuilder().status(status).header("connection", "close").body(msg).build()
+            writeResponse(response)
+            // wait for client to finish sending data in flight, and receive response
+            sleep(Duration.second)
+        }
+        // Failed to read request, close the connection.
+        close()
+        return None
+    }
+
+    func logExceptionAndCancelTimer(e: Exception, readTimer: HttpTimer, readHeaderTimer: HttpTimer): Unit {
+        httpLogWarn(logger, "[HttpEngineConn1#readRequest] exception: ${e}")
+        readTimer.cancel()
+        readHeaderTimer.cancel()
+    }
+
+    /**
+     * @return (contentLength, chunked)
+     */
+    func checkHeaderFields(headers: HttpHeaders, version: String): (?Int64, Bool) {
+        // check field-name: Host in request Header
+        checkHost(headers, version)
+
+        // check content-length and chunked
+        let (contentLength, chunked) = try {
+            checkClAndTe(headers)
+        } catch (e: HttpException) {
+            throw HttpStatusException(HttpStatusCode.STATUS_BAD_REQUEST,
+                "The logic of content-length and transfer-encoding is incorrect.")
+        }
+
+        if (let Some(s) <- contentLength) {
+            if (maxRequestBodySize != 0 && maxRequestBodySize < s) {
+                throw HttpStatusException(HttpStatusCode.STATUS_REQUEST_CONTENT_TOO_LARGE, "The content too large.")
+            }
+        }
+
+        // check trailer with exclude list
+        checkTrailerInHeader(headers, true)
+        return (contentLength, chunked)
+    }
+
+    /**
+     * @return ArrayList<(name, value)>
+     */
+    func readHeaderFields(): HttpHeaders {
+        // The header rule meets the HTTP header rule. For details, see HttpHeaders.
+        let headers = HttpHeaders()
+        var headerSize = 0
+        var headerline = Str.empty
+
+        try {
+            headerline = readLine()
+        } catch (e: HttpException) {
+            throw HttpStatusException(HttpStatusCode.STATUS_REQUEST_HEADER_FIELDS_TOO_LARGE,
+                "Single header size out of limit ${MAX_LINE_SIZE}.")
+        }
+        while (!headerline.isEmpty()) {
+            if (logger.enabled(LogLevel.DEBUG)) {
+                httpLogDebug(logger, "[HttpEngineConn1#readHeaderFields] header line: ${headerline}.")
+            }
+
+            let (name, value) = parseAndCheckHeaderLine(headerline, true)
+
+            // The 431 status code indicates that the server is unwilling to process
+            // the request because its header fields are too large.
+            // RFC 6585 5
+            if (maxRequestHeaderSize != 0) {
+                headerSize += name.size + value.size + 1
+                if (headerSize >= maxRequestHeaderSize) {
+                    throw HttpStatusException(HttpStatusCode.STATUS_REQUEST_HEADER_FIELDS_TOO_LARGE,
+                        "Header size out of limit ${maxRequestHeaderSize}.")
+                }
+            }
+
+            headers.add(name, value)
+            try {
+                headerline = readLine()
+            } catch (_: HttpException) {
+                throw HttpStatusException(HttpStatusCode.STATUS_REQUEST_HEADER_FIELDS_TOO_LARGE,
+                    "Single header size out of limit ${MAX_LINE_SIZE}.")
+            }
+        }
+        return headers
+    }
+
+    func setReadTimout(): HttpTimer {
+        let connId = ThreadContext.connId
+        return HttpTimer(
+            start: readTimeout,
+            task: {
+                =>
+                ThreadContext.connId = connId // set connection id for logger
+                isReadTimeout.swap(true)
+                httpLogWarn(logger, "[HttpEngineConn1 readTimer] read request timeout")
+                let response = HttpResponseBuilder()
+                    .status(HttpStatusCode.STATUS_REQUEST_TIMEOUT)
+                    .header("connection", "close")
+                    .build()
+                writeResponse(response)
+                close()
+                ThreadContext.connId = None // clear connection id
+            }
+        )
+    }
+
+    func setReadHeaderTimout(): HttpTimer {
+        let connId = ThreadContext.connId
+        return HttpTimer(
+            start: readHeaderTimeout,
+            task: {
+                =>
+                ThreadContext.connId = connId // set connection id for logger
+                httpLogWarn(logger, "[HttpEngineConn1 readHeaderTimer] read header timeout")
+                let response = HttpResponseBuilder()
+                    .status(HttpStatusCode.STATUS_REQUEST_TIMEOUT)
+                    .header("connection", "close")
+                    .build()
+                writeResponse(response)
+                close()
+                ThreadContext.connId = None // clear connection id
+            }
+        )
+    }
+
+    /**
+     * @return (line, method, requestTarget, version)
+     */
+    func readRequestLine(): (String, String, URL, String) {
+        // read request-line
+        // If the start-line cannot be parsed, the system considers the request as a bad request and returns a response with status code 400 to the client.
+        // In the interest of robustness, a server that is expecting to receive and parse a request-line SHOULD ignore at least one empty line (CRLF) received prior to the request-line.
+        var line = Str.empty
+        try {
+            line = readLine()
+            if (line.isEmpty()) {
+                line = readLine()
+            }
+        } catch (e: HttpException) { // maybe return none is better (but such case occurs very occasionally), the length of line should be checked when read from socket
+            throw HttpStatusException(HttpStatusCode.STATUS_BAD_REQUEST, e.toString())
+        }
+
+        // A request-line begins with a method token, followed by a single space (SP), the request-target,
+        // and another single space (SP), and ends with the protocol version.
+        // RFC 9112 3
+        var (method, _requestTarget, version) = parseAndCheckRequestLine(line)
+
+        if (logger.enabled(LogLevel.DEBUG)) {
+            httpLogDebug(logger,
+                "[HttpEngineConn1#readRequestLine] request line: ${method} ${_requestTarget} ${version}")
+        }
+
+        let requestTarget: URL = parseUrl(_requestTarget.toString(), method)
+        return (line.toString(), method, requestTarget, version)
+    }
+
+    /*
+     * read start-line and field-line from client conn.
+     * In the interest of robustness, a server that is expecting to receive and parse a request-line SHOULD
+     * ignore at least one empty line (CRLF) received prior to the request-line.
+     */
+    func readLine(): Str {
+        let line = conn.readLine()
+        checkLine(line)
+        return line
+    }
+
+    /*
+     * A sender MUST NOT generate a bare CR (a CR character not immediately followed by LF) within any protocol elements
+     * other than the content. A recipient of such a bare CR MUST consider that element to be invalid or
+     * replace each bare CR with SP before processing the element or forwarding the message.
+     */
+    func checkLine(line: Str): Unit {
+        if (!line.byteMatches({byte => return byte != CR})) {
+            throw HttpStatusException(HttpStatusCode.STATUS_BAD_REQUEST, "Invalid line contains bare CR.")
+        }
+    }
+
+    func parseUrl(_requestTarget: String, method: String): URL {
+        httpLogTrace(logger, "[HttpEngineConn1#parseUrl] parsing request target.")
+        // url must be one of these forms: origin-form, absolute-form, authority-form, asterisk-form
+        match (method) {
+            case "CONNECT" => try {
+                let requestTarget = URL.parse("//" + _requestTarget)
+                if (isAuthorityForm(requestTarget)) {
+                    return requestTarget
+                } else {
+                    throw Exception()
+                }
+            } catch (e: Exception) {
+                throw HttpStatusException(HttpStatusCode.STATUS_BAD_REQUEST, "Invalid request target.")
+            }
+            case "OPTIONS" => try {
+                let requestTarget = URL.parse(_requestTarget)
+                if (isHttpForm(requestTarget) || _requestTarget == ASTERISK) {
+                    return requestTarget
+                } else {
+                    throw Exception()
+                }
+            } catch (e: Exception) {
+                throw HttpStatusException(HttpStatusCode.STATUS_BAD_REQUEST, "Invalid request target.")
+            }
+            case _ => try {
+                let requestTarget = URL.parse(_requestTarget)
+                if (isHttpForm(requestTarget)) {
+                    return requestTarget
+                } else {
+                    throw Exception()
+                }
+            } catch (e: Exception) {
+                throw HttpStatusException(HttpStatusCode.STATUS_BAD_REQUEST, "Invalid request target.")
+            }
+        }
+    }
+
+    /*
+     * Check whether request-target is authority-form.
+     * The "authority-form" of request-target is only used for CONNECT requests.
+     * authority-form = uri-host ":" port
+     */
+    func isAuthorityForm(url: URL): Bool {
+        let scheme = url.scheme
+        let hostName = url.hostName
+        let port = url.port
+        let userInfo = url.userInfo.toString()
+        let path = url.path
+        let query = url.query
+        let fragment = url.fragment
+
+        if (hostName.isEmpty() || port.isEmpty()) {
+            return false
+        }
+
+        if (!scheme.isEmpty() && !userInfo.isEmpty() && !path.isEmpty() && !query.isNone() && !fragment.isNone()) {
+            return false
+        }
+
+        return true
+    }
+
+    /*
+     * Check whether request-target is origin-form or absolute-form.
+     * origin-form = absolute-path [ "?" query ]
+     * absolute-form = absolute-URI
+     */
+    func isHttpForm(url: URL): Bool {
+        let scheme = url.scheme
+        let hostName = url.hostName
+        let userInfo = url.userInfo.toString()
+        let path = url.path
+
+        if (path.isEmpty()) {
+            return false
+        }
+
+        //is origin-form
+        if (scheme.isEmpty() && hostName.isEmpty() && userInfo.isEmpty()) {
+            return true
+        }
+
+        //is absolute-form
+        if (!scheme.isEmpty() && !hostName.isEmpty()) {
+            return true
+        }
+
+        return false
+    }
+
+    /*
+     * A server MUST respond with a 400 (Bad Request) status code to any HTTP/1.1 request message that lacks a Host header field
+     * and to any request message that contains more than one Host header field line or a Host header field with an invalid field value.
+     */
+    func checkHost(headers: HttpHeaders, version: String): Unit {
+        // host should be and only one
+        let hv = match (version) {
+            case "HTTP/1.0" => headers.getInternal("host") ?? return ()
+            case _ => headers.getInternal("host") ?? throw HttpStatusException(HttpStatusCode.STATUS_BAD_REQUEST,
+                "Host should be and only one.")
+        }
+
+        if (!hv.isSingle()) {
+            throw HttpStatusException(HttpStatusCode.STATUS_BAD_REQUEST, "Host should be only one.")
+        }
+        if (!Str(hv.single).byteMatches(validHostByte)) {
+            throw HttpStatusException(HttpStatusCode.STATUS_BAD_REQUEST, "Malformed host header.")
+        }
+    }
+
+    /*
+     * validHostHeader reports whether h is a valid host header.
+     */
+    func validHostByte(b: Byte): Bool {
+        /*
+         * Refer to RFC latest spec, where Host is:
+         * https://www.rfc-editor.org/rfc/rfc9110.html#name-host-and-authority
+         *     Host = uri-host [ ":" port ]
+         *
+         * Where uri-host is:
+         *     uri-host = host
+         *     https://www.rfc-editor.org/rfc/rfc3986.html#section-3.2.2
+         *     host = IP-literal / IPv4address / reg-name
+         *     reg-name = *( unreserved / pct-encoded / sub-delims )
+         *
+         * For now, we search for any byte that's not a valid byte in any of those expressions.
+         */
+        if (b.isAsciiNumberOrLetter()) {
+            return true
+        }
+        if (VALID_HOST_SYMBOLS.contains(b)) {
+            return true
+        }
+        return false
+    }
+
+    /*
+     * Write response to client connection
+     * response-message = status-line CRLF
+     *                    *( field-line CRLF )
+     *                    CRLF
+     *                    [ message-body ]
+     *
+     * @throws HttpException The method or status-code does not allow the response to contain the body but the body is not empty.
+     * @throws HttpException, if content-length is not in form of int64, or content-length has different values,
+     * or the last value of transfer-encoding is not "chunked", or content-length and transfer-encoding are set together,
+     * or content-length is wrong.
+     * @throws HttpException, if the response body size more than declared content-length in headers.
+     */
+    func writeResponse(response: HttpResponse): Unit {
+        let (contentLengthInHeader, chunked) = checkResponseHeader(response, response.bodySize)
+        let contentLength: Int64
+        if (!chunked) {
+            contentLength = checkClWithBodySize(response, contentLengthInHeader)
+        } else {
+            contentLength = -1
+        }
+
+        if (logger.enabled(LogLevel.DEBUG)) {
+            httpLogDebug(logger, "[HttpEngineConn1#writeResponse] response:\r\n${response}")
+        }
+
+        // 1. write response status-line and response header
+        // status-line = HTTP-version SP status-code SP [ reason-phrase ]
+        // The header rule meets the HTTP header rule. For details, see HttpHeaders.
+        writeWithoutBody(response)
+        if (response.request?.method == "HEAD" && response.status / 100 == 2) {
+            return
+        }
+
+        // 2. write body
+        if (chunked) {
+            if (logger.enabled(LogLevel.DEBUG)) {
+                httpLogDebug(logger, "[HttpEngineConn1#writeResponse] chunked = ${chunked}.")
+            }
+            checkTrailer(response)
+            this.writeBodyByChunk(response.body)
+            conn.write("0\r\n" + response.trailers.toString())
+            return
+        }
+        this.writeBodyByCl(response.body, contentLength)
+    }
+
+    /*
+     * If the response contains the "transfer-encoding" header, this method is invoked when the body is written.
+     */
+    func writeBodyByChunk(body: InputStream): Unit {
+        httpLogTrace(logger, "[HttpEngineConn1#writeBodyByChunk] write body by chunked encoding.")
+        match (body) {
+            case b: HttpRawBody =>
+                let chunkSize = CHUNK_SIZE
+                var sendLen = 0
+                while (sendLen < b.length) {
+                    let len = min(chunkSize, b.length - sendLen)
+                    this.writeChunk(b.rawBody.slice(sendLen, len))
+                    sendLen += len
+                }
+            case _: HttpEmptyBody => conn.write(Array<Byte>()) // no body data
+            case _ =>
+                let chunkSize = CHUNK_SIZE
+                var data = Array<Byte>(chunkSize, repeat: 0)
+                var readLen = body.read(data)
+                while (readLen > 0) {
+                    this.writeChunk(data.slice(0, readLen))
+                    readLen = body.read(data)
+                }
+        }
+    }
+
+    func writeBodyByCl(body: InputStream, contentLength: Int64): Unit {
+        match (body) {
+            case b: HttpRawBody => conn.write(b.rawBody.slice(0, contentLength))
+            case _: HttpEmptyBody => conn.write(Array<Byte>()) // no body data
+            case _ =>
+                let buff = Array<Byte>(4096, repeat: 0)
+                var readLen = body.read(buff)
+                var contentLen = contentLength
+                while (readLen > 0 && contentLen > 0) {
+                    let sendLen = min(contentLen, readLen)
+                    conn.write(buff.slice(0, sendLen))
+                    contentLen -= sendLen
+                    readLen = body.read(buff)
+                }
+        }
+    }
+
+    func checkResponseHeader(response: HttpResponse, bodySize: ?Int64): (?Int64, Bool) {
+        let status = response.status
+        let headers = response.headers
+
+        if (logger.enabled(LogLevel.DEBUG)) {
+            httpLogDebug(logger,
+                "[HttpEngineConn1#checkResponse] raw status line: ${response.version} ${response.status} ${response.phrase}"
+            )
+            httpLogDebug(logger, "[HttpEngineConn1#checkResponse] raw response headers: ${headers.toString()}")
+        }
+
+        // A server that sends a 100 (Continue) response MUST ultimately send a final status code, once it receives and processes the request content,
+        // unless the connection is closed prematurely.
+        // RFC 9110 10.1.1.
+        if (response.status == HttpStatusCode.STATUS_CONTINUE) {
+            response._status = HttpStatusCode.STATUS_INTERNAL_SERVER_ERROR
+            response._headers = HttpHeaders()
+            response._body = HttpRawBody("Internal Server Error: invalid status code".toArray())
+            response._bodySize = sizeOf(response._body)
+            httpLogInfo(logger, "[HttpEngineConn1#checkResponse] The final status code cannot be 100")
+        }
+
+        if (!(response.request?.isPersistent ?? true) && response.isPersistent) {
+            headers.add("connection", "close")
+        }
+        checkConnection(headers)
+
+        let dateStr = getRFC1123String(dateArr)
+        headers.set("date", dateStr.toString())
+
+        // check the logic of "content-length" and "transfer-encoding" in response header
+        var (contentLength, chunked) = checkClAndTe(headers)
+        if (chunked) {
+            checkTrailerInHeader(headers, false)
+        }
+
+        if (response.version == HTTP1_0) {
+            httpLogWarn(logger, "[HttpEngineConn1#checkResponse] HTTP/1.0 response is not supported")
+            if (chunked) {
+                throw HttpException("The body cannot be sent in chunked mode in HTTP/1.0.")
+            }
+            response._version = HTTP1_1
+        }
+
+        // Any response to a HEAD request and any response with a 1xx (Informational), 204 (No Content), or 304 (Not Modified) status code
+        // is always terminated by the first empty line after the header fields, regardless of the header fields present in the message,
+        // and thus cannot contain a message body or trailer section.
+        // RFC 9112 6.3.1
+        let statusWithoutContent = status / 100 == 1 || status == HttpStatusCode.STATUS_NO_CONTENT || status == HttpStatusCode
+            .STATUS_NOT_MODIFIED
+        if (statusWithoutContent) {
+            if (let Some(size) <- bodySize) {
+                if (chunked && size > 0) {
+                    throw HttpException("The body is not allowed in this scenario.")
+                }
+            }
+            response._body = HttpEmptyBody.INSTANCE
+            httpLogInfo(logger, "[HttpEngineConn1#checkResponse] the body should be empty")
+            contentLength = 0
+            headers.set("content-length", "0")
+        }
+
+        if (logger.enabled(LogLevel.DEBUG)) {
+            httpLogDebug(logger,
+                "[HttpEngineConn1#checkResponse] status line: ${response.version} ${response.status} ${response.phrase}"
+            )
+            httpLogDebug(logger, "[HttpEngineConn1#checkResponse] response headers: ${headers.toString()}")
+        }
+        return (contentLength, chunked)
+    }
+
+    /*
+     * @throws HttpException, if a field-name is not allowed in the trailers, that is field-name in TrailerExcludeList.
+     */
+    public func writeResponse(ctx: HttpContext): Unit {
+        if (conn.isClosed()) {
+            throw HttpException("The connection is disconnected response cannot be written.")
+        }
+
+        let response = ctx.responseBuilder.build()
+        synchronized(ctx.writerMtx) {
+            if (ctx.upgraded) {
+                return
+            }
+            ctx.responded = true
+            if (ctx.responseFlushedByUser) {
+                httpLogDebug(logger, "[HttpEngineConn1#writeResponse] response: ${response}")
+                if (ctx.request.method == "HEAD" && response.status / 100 == 2) {
+                    return
+                }
+                // 1. write last-chunk
+                conn.write("0\r\n")
+                checkTrailer(response)
+
+                // 2. write trailer
+                conn.write(response.trailers.toString())
+                writeTimer.cancel()
+                return
+            }
+            writeTimer = HttpTimer(
+                start: writeTimeout,
+                task: {
+                    =>
+                    httpLogWarn(logger, "[HttpEngineConn1#writeResponse] write response timeout")
+                    close()
+                }
+            )
+            writeResponse(response)
+            writeTimer.cancel()
+        }
+    }
+
+    public func writeResponseByWriter(ctx: HttpContext, bodyData: Array<UInt8>): Unit {
+        if (conn.isClosed()) {
+            throw HttpException("The connection is disconnected response cannot be written.")
+        }
+        let response = ctx.responseBuilder.build()
+        let request = response.request ?? return ()
+
+        if (!ctx.responseFlushedByUser) {
+            let (cl, chunked) = checkResponseHeader(response, bodyData.size)
+            if (cl.isNone() && !chunked) {
+                throw HttpException("Either Content-Length or chunked must be set.")
+            }
+
+            let connId = ThreadContext.connId
+            writeTimer = HttpTimer(
+                start: writeTimeout,
+                task: {
+                    =>
+                    ThreadContext.connId = connId // set connection id for logger
+                    httpLogWarn(logger, "[HttpEngineConn1#writeResponse writeTimer] write response timeout")
+                    close()
+                    ThreadContext.connId = None // clear connection id
+                }
+            )
+
+            writeWithoutBody(response)
+            ctx.responseFlushedByUser = true
+            ctx.responseFlushedWithChunked = chunked
+        }
+        if (bodyData.size == 0 || (request.method == "HEAD" && response.status / 100 == 2)) {
+            return
+        }
+
+        if (ctx.responseFlushedWithChunked) {
+            this.writeBodyByChunk(HttpRawBody(bodyData))
+        } else {
+            // write body directly
+            this.conn.write(bodyData)
+        }
+        return
+    }
+
+    public func writeUpgradeResponse(ctx: HttpContext): Unit {
+        if (ctx.request.method == "CONNECT") {
+            // http/1.X response to CONNECT request must have status 2XX, and headers should not contain content-length / transfer-encoding
+            // ref: https://www.rfc-editor.org/rfc/rfc9110.html#name-connect
+            let response = ctx.responseBuilder.build()
+            if (response.status / 100 != 2) {
+                throw HttpException(
+                    "Status of response to CONNECT request must be 2XX, if the tunnel is built successfully.")
+            }
+            response.headers.del("content-length")
+            response.headers.del("transfer-encoding")
+            writeWithoutBody(response)
+        } else {
+            // http/1.X response to upgrade request must have status 101
+            // ref: https://www.rfc-editor.org/rfc/rfc9110.html#name-upgrade
+            if (ctx.responseBuilder._status.isNone()) {
+                ctx.responseBuilder.status(HttpStatusCode.STATUS_SWITCHING_PROTOCOLS)
+            }
+            let response = ctx.responseBuilder.build()
+            if (response.status != HttpStatusCode.STATUS_SWITCHING_PROTOCOLS) {
+                throw HttpException("Status of response to upgrade request must be 101, if upgraded successfully.")
+            }
+            writeWithoutBody(response)
+        }
+    }
+
+    // @throws If the size of the body is known and the size of the body is smaller than the value of content-length in the header, throw this Exception.
+    // If the body size is known and content-length is not set, content-length is automatically set in the header.
+    func checkClWithBodySize(response: HttpResponse, contentLengthInHeader: ?Int64): Int64 {
+        match ((response.bodySize, contentLengthInHeader)) {
+            case (Some(bodySize), Some(cl)) =>
+                if (cl > bodySize) {
+                    throw HttpException("Wrote body size less than declared content-length.")
+                }
+                return cl
+            case (None, Some(cl)) => return cl
+            case (Some(bodySize), None) =>
+                response.headers.set("content-length", bodySize.toString())
+                return bodySize
+            case (None, None) => throw HttpException("Unknown body size for Content-Length.")
+        }
+    }
+
+    func consumeRequest(ctx: HttpContext): Unit {
+        try {
+            // clear request body
+            httpLogDebug(logger, "[HttpEngineConn1#consumeRequest]: start read unfinished body")
+            while (ctx.request.body.read(trash) > 0) {}
+            httpLogDebug(logger, "[HttpEngineConn1#consumeRequest]: finish read body")
+        } catch (e: HttpStatusException) {
+            if (!ctx.responseFlushedByUser) {
+                let response = HttpResponseBuilder()
+                    .status(e.statusCode)
+                    .header("connection", "close")
+                    .body(e.message)
+                    .build()
+                writeResponse(response)
+            }
+            close()
+            writeTimer.cancel()
+            return
+        }
+    }
+
+    func writeWithoutBody(response: HttpResponse): Unit {
+        var buf = StringBuilder()
+        buf.append(response.version)
+        buf.append(" ")
+        buf.append(response.status)
+        buf.append(" ")
+        buf.append(response.phrase)
+        buf.append("\r\n")
+        response.headers.writeTo(buf)
+        conn.write(buf.toString())
+    }
+
+    func writeChunk(buf: Array<Byte>): Unit {
+        let sizeLine = buf.size.toHexString() + "\r\n"
+        // no chunk-extension
+        conn.write(sizeLine)
+        if (buf.size > 0) { // last-chunk without data
+            conn.write(buf)
+            conn.write("\r\n")
+        }
+    }
+
+    /**
+     * close the connection
+     */
+    func close(): Unit {
+        if (isClosed()) {
+            return
+        }
+        conn.close()
+    }
+
+    public func isClosed(): Bool {
+        return conn.isClosed()
+    }
+}

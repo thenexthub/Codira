@@ -1,0 +1,420 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package stdx.crypto.digest
+
+import stdx.crypto.common.CryptoException
+
+const SM3_DIGEST_LENGTH: Int64 = 32
+const SM3_BLOCK_SIZE: Int64 = 64
+const SM3_DIGEST_ALGORITHM_NAME: String = "SM3"
+
+foreign func DYN_EVP_MD_CTX_new(msg: CPointer<DynMsg>): CPointer<Unit>
+
+foreign func DYN_EVP_sm3(msg: CPointer<DynMsg>): CPointer<UInt64>
+
+foreign func DYN_EVP_DigestInit_ex(ctx: CPointer<Unit>, mdType: CPointer<UInt64>, impl: CPointer<Unit>,
+    msg: CPointer<DynMsg>): Int32
+
+foreign func DYN_EVP_DigestUpdate(ctx: CPointer<Unit>, d: CPointer<Byte>, len: Int64, msg: CPointer<DynMsg>): Int32
+
+foreign func DYN_EVP_DigestFinal_ex(ctx: CPointer<Unit>, md: CPointer<Byte>, len: CPointer<UIntNative>,
+    msg: CPointer<DynMsg>): Int32
+
+foreign func DYN_EVP_MD_CTX_free(ctx: CPointer<Unit>, msg: CPointer<DynMsg>): Unit
+
+func mdCtxNew(): CPointer<Unit> {
+    let dynMsgPtr = generateDynMsg()
+    let res = unsafe { DYN_EVP_MD_CTX_new(dynMsgPtr) }
+    checkError(dynMsgPtr)
+    return res
+}
+
+func sm3(): CPointer<UInt64> {
+    let dynMsgPtr = generateDynMsg()
+    let res = unsafe { DYN_EVP_sm3(dynMsgPtr) }
+    checkError(dynMsgPtr)
+    return res
+}
+
+func digestInitEx(ctx: CPointer<Unit>, mdType: CPointer<UInt64>): Int32 {
+    let dynMsgPtr = generateDynMsg()
+    let res = unsafe { DYN_EVP_DigestInit_ex(ctx, mdType, CPointer<Unit>(), dynMsgPtr) }
+    checkError(dynMsgPtr)
+    return res
+}
+
+func mdCtxFree(ctx: CPointer<Unit>): Unit {
+    let dynMsgPtr = generateDynMsg()
+    unsafe { DYN_EVP_MD_CTX_free(ctx, dynMsgPtr) }
+    checkError(dynMsgPtr)
+}
+
+const MD5_DIGEST_LENGTH: Int64 = 16
+const MD5_BLOCK_SIZE: Int64 = 64
+const MD5_STRUCT_SIZE: Int64 = 92
+const MD5_DIGEST_ALGORITHM_NAME: String = "MD5"
+
+class MD5CTX {
+    var ptr: CPointer<Byte>
+
+    /**
+     * The Function is init MD5CTX
+     */
+    init() {
+        unsafe {
+            this.ptr = LibC.malloc<Byte>(count: MD5_STRUCT_SIZE)
+            if (this.ptr.isNull()) {
+                throw CryptoException("MD5 init failed due to insufficient memory.")
+            }
+            var ret = md5Init(ptr)
+            if (ret != 1) {
+                LibC.free<Byte>(ptr)
+                ptr = CPointer<Byte>()
+                throw CryptoException("MD5 init failed due to inner error.")
+            }
+        }
+    }
+
+    ~init() {
+        if (!ptr.isNull()) {
+            unsafe { LibC.free<Byte>(ptr) }
+        }
+    }
+}
+
+foreign func DYN_MD5_Init(c: CPointer<Byte>, msg: CPointer<DynMsg>): Int32
+
+foreign func DYN_MD5_Update(c: CPointer<Byte>, data: CPointer<Byte>, len: Int64, msg: CPointer<DynMsg>): Int32
+
+foreign func DYN_MD5_Final(md: CPointer<Byte>, c: CPointer<Byte>, msg: CPointer<DynMsg>): Int32
+
+const SHA1_DIGEST_LENGTH: Int64 = 20
+const SHA1_BLOCK_SIZE: Int64 = 64
+const SHA1_STRUCT_SIZE: Int64 = 96
+const SHA1_DIGEST_ALGORITHM_NAME: String = "SHA1"
+
+class SHACTX {
+    var ptr: CPointer<Byte>
+
+    /**
+     * The Function is init SHACTX
+     */
+    init() {
+        unsafe {
+            this.ptr = LibC.malloc<Byte>(count: SHA1_STRUCT_SIZE)
+            if (this.ptr.isNull()) {
+                throw CryptoException("SHA1 init failed due to insufficient memory")
+            }
+            var ret = sha1Init(ptr)
+            if (ret != 1) {
+                LibC.free<Byte>(ptr)
+                ptr = CPointer<Byte>()
+                throw CryptoException("SHA1 init failed due to inner error")
+            }
+        }
+    }
+
+    ~init() {
+        if (!ptr.isNull()) {
+            unsafe { LibC.free<Byte>(ptr) }
+        }
+    }
+}
+
+foreign func DYN_SHA1_Init(c: CPointer<Byte>, msg: CPointer<DynMsg>): Int32
+
+foreign func DYN_SHA1_Update(c: CPointer<Byte>, data: CPointer<Byte>, len: Int64, msg: CPointer<DynMsg>): Int32
+
+foreign func DYN_SHA1_Final(md: CPointer<Byte>, c: CPointer<Byte>, msg: CPointer<DynMsg>): Int32
+
+const SHA224_DIGEST_LENGTH: Int64 = 28
+const SHA256_DIGEST_LENGTH: Int64 = 32
+const SHA256_BLOCK_SIZE: Int64 = 64
+const SHA224_BLOCK_SIZE: Int64 = SHA256_BLOCK_SIZE
+const SHA256_STRUCT_SIZE: Int64 = 112
+const SHA224_STRUCT_SIZE: Int64 = SHA256_STRUCT_SIZE
+const SHA224_DIGEST_ALGORITHM_NAME: String = "SHA224"
+const SHA256_DIGEST_ALGORITHM_NAME: String = "SHA256"
+
+class SHA224CTX {
+    var ptr: CPointer<Byte>
+
+    /**
+     * The Function is init SHA224CTX
+     */
+    init() {
+        unsafe {
+            this.ptr = LibC.malloc<Byte>(count: SHA224_STRUCT_SIZE)
+            if (this.ptr.isNull()) {
+                throw CryptoException("SHA224 init failed due to insufficient memory")
+            }
+            var ret = sha224Init(ptr)
+            if (ret != 1) {
+                LibC.free<Byte>(ptr)
+                ptr = CPointer<Byte>()
+                throw CryptoException("SHA224 init failed due to inner error")
+            }
+        }
+    }
+
+    ~init() {
+        if (!ptr.isNull()) {
+            unsafe { LibC.free<Byte>(ptr) }
+        }
+    }
+}
+
+class SHA256CTX {
+    var ptr: CPointer<Byte>
+
+    /**
+     * The Function is init SHA256CTX
+     */
+    init() {
+        unsafe {
+            this.ptr = LibC.malloc<Byte>(count: SHA256_STRUCT_SIZE)
+            if (this.ptr.isNull()) {
+                throw CryptoException("SHA256 init failed due to insufficient memory")
+            }
+            var ret = sha256Init(ptr)
+            if (ret != 1) {
+                LibC.free<Byte>(ptr)
+                ptr = CPointer<Byte>()
+                throw CryptoException("SHA256 init failed due to inner error")
+            }
+        }
+    }
+
+    ~init() {
+        if (!ptr.isNull()) {
+            unsafe { LibC.free<Byte>(ptr) }
+        }
+    }
+}
+
+foreign func DYN_SHA224_Init(c: CPointer<Byte>, msg: CPointer<DynMsg>): Int32
+
+foreign func DYN_SHA224_Update(c: CPointer<Byte>, data: CPointer<Byte>, len: Int64, msg: CPointer<DynMsg>): Int32
+
+foreign func DYN_SHA224_Final(md: CPointer<Byte>, c: CPointer<Byte>, msg: CPointer<DynMsg>): Int32
+
+foreign func DYN_SHA256_Init(c: CPointer<Byte>, msg: CPointer<DynMsg>): Int32
+
+foreign func DYN_SHA256_Update(c: CPointer<Byte>, data: CPointer<Byte>, len: Int64, msg: CPointer<DynMsg>): Int32
+
+foreign func DYN_SHA256_Final(md: CPointer<Byte>, c: CPointer<Byte>, msg: CPointer<DynMsg>): Int32
+
+const SHA384_DIGEST_LENGTH: Int64 = 48
+const SHA512_DIGEST_LENGTH: Int64 = 64
+const SHA512_BLOCK_SIZE: Int64 = 128
+const SHA384_BLOCK_SIZE: Int64 = SHA512_BLOCK_SIZE
+const SHA512_STRUCT_SIZE: Int64 = 280
+const SHA384_STRUCT_SIZE: Int64 = SHA512_STRUCT_SIZE
+const SHA384_DIGEST_ALGORITHM_NAME: String = "SHA384"
+const SHA512_DIGEST_ALGORITHM_NAME: String = "SHA512"
+
+class SHA384CTX {
+    var ptr: CPointer<Byte>
+
+    /**
+     * The Function is init SHA384CTX
+     */
+    init() {
+        unsafe {
+            this.ptr = LibC.malloc<Byte>(count: SHA384_STRUCT_SIZE)
+            if (this.ptr.isNull()) {
+                throw CryptoException("SHA384 init failed due to insufficient memory")
+            }
+            var ret = sha384Init(ptr)
+            if (ret != 1) {
+                LibC.free<Byte>(ptr)
+                ptr = CPointer<Byte>()
+                throw CryptoException("SHA384 init failed due to inner error")
+            }
+        }
+    }
+
+    ~init() {
+        if (!ptr.isNull()) {
+            unsafe { LibC.free<Byte>(ptr) }
+        }
+    }
+}
+
+class SHA512CTX {
+    var ptr: CPointer<Byte>
+
+    /**
+     * The Function is init SHA512CTX
+     */
+    init() {
+        unsafe {
+            this.ptr = LibC.malloc<Byte>(count: SHA512_STRUCT_SIZE)
+            if (this.ptr.isNull()) {
+                throw CryptoException("SHA512 init failed due to insufficient memory")
+            }
+            var ret = sha512Init(ptr)
+            if (ret != 1) {
+                LibC.free<Byte>(ptr)
+                ptr = CPointer<Byte>()
+                throw CryptoException("SHA512 init failed due to inner error")
+            }
+        }
+    }
+
+    ~init() {
+        if (!ptr.isNull()) {
+            unsafe { LibC.free<Byte>(ptr) }
+        }
+    }
+}
+
+foreign func DYN_SHA384_Init(c: CPointer<Byte>, msg: CPointer<DynMsg>): Int32
+
+foreign func DYN_SHA384_Update(c: CPointer<Byte>, data: CPointer<Byte>, len: Int64, msg: CPointer<DynMsg>): Int32
+
+foreign func DYN_SHA384_Final(md: CPointer<Byte>, c: CPointer<Byte>, msg: CPointer<DynMsg>): Int32
+
+foreign func DYN_SHA512_Init(c: CPointer<Byte>, msg: CPointer<DynMsg>): Int32
+
+foreign func DYN_SHA512_Update(c: CPointer<Byte>, data: CPointer<Byte>, len: Int64, msg: CPointer<DynMsg>): Int32
+
+foreign func DYN_SHA512_Final(md: CPointer<Byte>, c: CPointer<Byte>, msg: CPointer<DynMsg>): Int32
+
+foreign func DYN_HMAC_CTX_new(msg: CPointer<DynMsg>): UInt64
+
+foreign func DYN_HMAC_Init_ex(
+    ctx: UInt64,
+    key: CPointer<UInt8>,
+    len: Int32,
+    md: UInt64,
+    impl: UInt64,
+    msg: CPointer<DynMsg>
+): Int32
+
+foreign func DYN_HMAC_Update(ctx: UInt64, data: CPointer<UInt8>, len: Int32, msg: CPointer<DynMsg>): Int32
+
+foreign func DYN_HMAC_Final(ctx: UInt64, md: CPointer<UInt8>, len: UInt32, msg: CPointer<DynMsg>): Int32
+
+foreign func DYN_HMAC_CTX_free(ctx: UInt64, msg: CPointer<DynMsg>): Int32
+
+foreign func DYN_EVP_get_digestbyname(name: CString, msg: CPointer<DynMsg>): UInt64
+
+foreign func MallocDynMsg(): CPointer<DynMsg>
+
+foreign func FreeDynMsg(dynMsgPtr: CPointer<DynMsg>): Unit
+
+func hmacCtxNew(): UInt64 {
+    let dynMsgPtr = generateDynMsg()
+    let res = unsafe { DYN_HMAC_CTX_new(dynMsgPtr) }
+    checkError(dynMsgPtr)
+    return res
+}
+
+func getDigestbyname(name: CString): UInt64 {
+    let dynMsgPtr = generateDynMsg()
+    let res = unsafe { DYN_EVP_get_digestbyname(name, dynMsgPtr) }
+    checkError(dynMsgPtr)
+    return res
+}
+
+func md5Init(c: CPointer<Byte>): Int32 {
+    let dynMsgPtr = generateDynMsg()
+    let res = unsafe { DYN_MD5_Init(c, dynMsgPtr) }
+    checkError(dynMsgPtr)
+    return res
+}
+
+func sha1Init(c: CPointer<Byte>): Int32 {
+    let dynMsgPtr = generateDynMsg()
+    let res = unsafe { DYN_SHA1_Init(c, dynMsgPtr) }
+    checkError(dynMsgPtr)
+    return res
+}
+
+func sha224Init(c: CPointer<Byte>): Int32 {
+    let dynMsgPtr = generateDynMsg()
+    let res = unsafe { DYN_SHA224_Init(c, dynMsgPtr) }
+    checkError(dynMsgPtr)
+    return res
+}
+
+func sha256Init(c: CPointer<Byte>): Int32 {
+    let dynMsgPtr = generateDynMsg()
+    let res = unsafe { DYN_SHA256_Init(c, dynMsgPtr) }
+    checkError(dynMsgPtr)
+    return res
+}
+
+func sha384Init(c: CPointer<Byte>): Int32 {
+    let dynMsgPtr = generateDynMsg()
+    let res = unsafe { DYN_SHA384_Init(c, dynMsgPtr) }
+    checkError(dynMsgPtr)
+    return res
+}
+
+func sha512Init(c: CPointer<Byte>): Int32 {
+    let dynMsgPtr = generateDynMsg()
+    let res = unsafe { DYN_SHA512_Init(c, dynMsgPtr) }
+    checkError(dynMsgPtr)
+    return res
+}
+
+func hmacCtxFree(ctx: UInt64): Int32 {
+    let dynMsgPtr = generateDynMsg()
+    let res = unsafe { DYN_HMAC_CTX_free(ctx, dynMsgPtr) }
+    checkError(dynMsgPtr)
+    return res
+}
+
+func generateDynMsg(): CPointer<DynMsg> {
+    unsafe {
+        let dynMsgPtr = MallocDynMsg()
+        if (dynMsgPtr.isNull()) {
+            throw CryptoException("malloc failed")
+        }
+        return dynMsgPtr
+    }
+}
+
+func checkError(dynMsgPtr: CPointer<DynMsg>): Unit {
+    unsafe {
+        if (dynMsgPtr.isNull()) {
+            throw CryptoException("Null pointer check failed.")
+        }
+        try {
+            if (!dynMsgPtr.read().found) {
+                let funcName = CString(dynMsgPtr.read().funcName).toString()
+                throw CryptoException("Can not load openssl library or function ${funcName}.")
+            }
+        } finally {
+            FreeDynMsg(dynMsgPtr)
+        }
+    }
+}
+
+@C
+struct DynMsg {
+    var found = true
+    var funcName = CPointer<UInt8>()
+}

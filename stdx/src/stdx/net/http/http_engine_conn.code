@@ -1,0 +1,93 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package stdx.net.http
+
+import std.net.*
+import stdx.crypto.common.Certificate
+
+abstract class HttpEngineConn {
+    //add Timeout size limit
+    protected var _readTimeout: ?Duration = None
+    protected var _writeTimeout: ?Duration = None
+    protected var _readHeaderTimeout: ?Duration = None
+    protected var _httpKeepAliveTimeout: ?Duration = None
+    protected var _maxRequestHeaderSize: ?Int64 = None
+    protected var _maxRequestBodySize: ?Int64 = None
+
+    protected mut prop readTimeout: Duration {
+        get() {
+            _readTimeout ?? throw HttpException("The readTimeout not set yet.")
+        }
+        set(v) {
+            _readTimeout = v
+        }
+    }
+
+    protected mut prop writeTimeout: Duration {
+        get() {
+            _writeTimeout ?? throw HttpException("The writeTimeout not set yet.")
+        }
+        set(v) {
+            _writeTimeout = v
+        }
+    }
+
+    protected mut prop readHeaderTimeout: Duration {
+        get() {
+            _readHeaderTimeout ?? throw HttpException("The readHeaderTimeout not set yet.")
+        }
+        set(v) {
+            _readHeaderTimeout = v
+        }
+    }
+
+    protected mut prop maxRequestHeaderSize: Int64 {
+        get() {
+            _maxRequestHeaderSize ?? throw HttpException("The maxRequestHeaderSize not set yet.")
+        }
+        set(v) {
+            _maxRequestHeaderSize = v
+        }
+    }
+
+    protected mut prop maxRequestBodySize: Int64 {
+        get() {
+            _maxRequestBodySize ?? throw HttpException("The maxRequestBodySize not set yet.")
+        }
+        set(v) {
+            _maxRequestBodySize = v
+        }
+    }
+
+    protected func isClosed(): Bool
+
+    protected prop clientCertificate: ?Array<Certificate>
+
+    protected func getSocket(): StreamingSocket
+
+    protected func writeResponse(ctx: HttpContext): Unit
+
+    protected func writeResponseByWriter(ctx: HttpContext, bodyData: Array<UInt8>): Unit
+
+    protected func writeUpgradeResponse(ctx: HttpContext): Unit
+}

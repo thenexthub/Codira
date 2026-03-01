@@ -1,0 +1,141 @@
+/*
+ *  Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *  This source file is part of the Codira project, licensed under Apache-2.0
+ *  with Runtime Library Exception.
+ *
+ *  See https://cangjie-lang.cn/pages/LICENSE for license information.
+ */
+
+/**
+ * @file base_memory_cache.code
+ * @brief Memory-based cache implementation base class
+ *
+ */
+
+package stdx.string_intern
+
+import std.collection.{Map, HashMap, Set}
+import std.sync.Mutex
+
+/**
+ * @brief  Cache implementation base class, which stores cached data in map mode.
+ */
+internal abstract class BaseMemoryCache<K, V> <: ICache<K, V> where K <: Hashable & Equatable<K> {
+    protected let cacheItemMap: HashMap<K, ICacheObj<K, V>> = HashMap<K, ICacheObj<K, V>>()
+    protected var lock: Mutex = Mutex()
+    protected var cacheConfigs: ?ICacheConfig
+
+    init(cacheConfigs!: ?ICacheConfig = Option<ICacheConfig>.None) {
+        this.cacheConfigs = cacheConfigs
+    }
+
+    /**
+     * Release a specified number of caches: For example, in the LRU cache, the specified number of least used elements are released.
+     *
+     *  @param numberToReleasee Number of cached elements released
+     *  @return Number of cached elements that are actually released. If 10 elements are requested to be released but there are only three elements in the cache, the value 3 is returned.
+     */
+    public func release(numberToRelease: Int64): Int64
+
+    /**
+     * Cache hit post-processing, which is implemented by subclasses
+     *
+     * @param cacheObj Current hit cache
+     */
+    protected func adjustCacheAfterHit(cacheObj: ICacheObj<K, V>): Unit
+
+    /**
+     * Put a cache object into the cache.
+     * <p>
+     * @param cobj Cache object
+     */
+    public func put(cobj: ICacheObj<K, V>): Unit
+
+    /**
+     * Reset the cache and clear data.
+     */
+    public func initializeCache(): Unit
+
+    /**
+     * Get a cache object from the cache
+     *
+     * @param key Cached key value
+     * @return If the cache element of the corresponding key exists, the type of Option is returned. Otherwise, Option.None is returned.
+     */
+    public func get(key: K): Option<ICacheObj<K, V>> {
+        synchronized(lock) {
+            let valueOP: Option<ICacheObj<K, V>> = cacheItemMap.get(key)
+            if (let Some(value) <- valueOP) {
+                adjustCacheAfterHit(value)
+            }
+            return valueOP
+        }
+    }
+
+    public func putIfAbsent(cobj: ICacheObj<K, V>): ?ICacheObj<K, V> {
+        var key: K = cobj.key
+        var cobjOp = get(key)
+        if (cobjOp.isSome()) {
+            return cobjOp
+        }
+        put(cobj)
+        return None
+    }
+
+    /**
+     * Obtains the size of the current cache.
+     * <p>
+     * @return Number of elements in the cache
+     */
+    public func getSize(): Int64 {
+        return cacheItemMap.size
+    }
+
+    /**
+     * Removes an element object whose key is key from the cache.
+     * <p>
+     * @param key Cache key value
+     * @return Whether the element object corresponding to the cache exists
+     */
+    public open func remove(key: K): Bool {
+        synchronized(lock) {
+            return !cacheItemMap.remove(key).isNone()
+        }
+    }
+
+    /**
+     * Delete all elements from the cache.
+     */
+    public open func removeAll(): Unit {
+        synchronized(lock) {
+            cacheItemMap.clear()
+        }
+    }
+
+    /**
+     * Obtains multiple cache objects based on key values..
+     * <p>
+     * @param keys
+     * @return Multiple objects are stored through a map. The key of the map is the key value, and the value of the map is the cache object.
+     */
+    public func getCacheObjs(keys: Set<K>): Map<K, Option<ICacheObj<K, V>>> {
+        synchronized(lock) {
+            let multipleCacheObjMap = HashMap<K, Option<ICacheObj<K, V>>>()
+            for (key in keys) {
+                multipleCacheObjMap.add(key, cacheItemMap.get(key))
+            }
+            return multipleCacheObjMap
+        }
+    }
+
+    /**
+     * Cache initialization
+     * <p>
+     * @param cacheConfigs Definition of Cache Configuration Attributes
+     */
+    public func initialize(cacheConfigs: ICacheConfig): Unit {
+        this.cacheConfigs = cacheConfigs
+        cacheItemMap.clear()
+        initializeCache()
+    }
+}

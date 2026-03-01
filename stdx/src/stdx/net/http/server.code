@@ -1,0 +1,860 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package stdx.net.http
+
+import std.sync.{AtomicBool, Mutex, AtomicOptionReference}
+import std.net.*
+import std.fs.File
+import stdx.net.tls.common.*
+import stdx.log.{Logger, LogLevel}
+import stdx.crypto.common.{Certificate, PrivateKey, getGlobalCryptoKit}
+
+/**
+ * Server Co-routine pool configurations.
+ */
+public struct ServicePoolConfig {
+    /**
+     * The max number of activate Co-routine.
+     * The value must be greater than 0.
+     */
+    public let capacity: Int64
+
+    /**
+     * The max number of task queue, the pool reject the tasks when the queue is full.
+     * The value must be greater than 0.
+     */
+    public let queueCapacity: Int64
+
+    /**
+     * The preheat size of Co-routine in the pool.
+     * The value must between 1 and capacity.
+     */
+    public let preheat: Int64
+
+    public init(
+        capacity!: Int64 = SERVER_COROUTINE_POOL_CAPACITY,
+        queueCapacity!: Int64 = SERVER_COROUTINE_POOL_QUEUE_CAPACITY,
+        preheat!: Int64 = SERVER_COROUTINE_POOL_PREHEAT
+    ) {
+        this.capacity = capacity
+        this.queueCapacity = queueCapacity
+        this.preheat = preheat
+    }
+}
+
+public class ServerBuilder {
+    var _addr: ?String = None
+    var _port: ?UInt16 = None
+    var _listener: ?ServerSocket = None
+    var _logger: Logger = mutexLogger()
+    var _distributor: HttpRequestDistributor = DirectDistributor()
+    var _protocolServiceFactory: ProtocolServiceFactory = ProtocolServiceFactoryImpl()
+    var _transportConfig: TransportConfig = TransportConfig()
+    var _tlsConfig: ?TlsConfig = None
+
+    var _readTimeout: Duration = Duration.Max
+    var _writeTimeout: Duration = Duration.Max
+    var _readHeaderTimeout: Duration = Duration.Max
+    var _httpKeepAliveTimeout: Duration = Duration.Max
+    var _maxRequestHeaderSize: Int64 = Int64(DEFAULT_MAX_HEADER_LIST_SIZE)
+    var _maxRequestBodySize: Int64 = DEFAULT_MAX_BODY_SIZE
+
+    var _headerTableSize: UInt32 = 4096
+    var _maxConcurrentStreams: UInt32 = INITIAL_MAX_CONCURRENT_STREAMS
+    var _initialWindowSize: UInt32 = DEFAULT_WINDOW_SIZE
+    var _maxFrameSize: UInt32 = MIN_FRAME_SIZE
+    var _maxHeaderListSize: UInt32 = DEFAULT_MAX_HEADER_LIST_SIZE
+    var _enableConnectProtocol: Bool = false
+
+    var _afterBind: () -> Unit = {=>}
+    var _onShutdown: () -> Unit = {=>}
+
+    var _servicePoolConfig: ServicePoolConfig = ServicePoolConfig()
+
+    public init() {}
+
+    /**
+     * Indicates the IP address bound to the generated server, this property must be set.
+     *
+     * @param addr Server IP or domain.
+     * @return ServerBuilder whose addr has been set.
+     */
+    public func addr(addr: String): ServerBuilder {
+        _addr = addr
+        return this
+    }
+
+    /**
+     * Indicates the port number bound to the generated server, this property must be set.
+     *
+     * @param port Server port.
+     * @return ServerBuilder whose port has been set.
+     */
+    public func port(port: UInt16): ServerBuilder {
+        _port = port
+        return this
+    }
+
+    /**
+     * ServerSocket of the generated server, a default listener will be provided.
+     *
+     * @param listener for listening to the bound address and port.
+     * @return ServerBuilder whose listener has been set.
+     */
+    public func listener(listener: ServerSocket): ServerBuilder {
+        _listener = listener
+        return this
+    }
+
+    /**
+     * Logger for the generated server, the default logger will write to Console.stdout, the default LogLevel is INFO, if set to DEBUG,  all handshake information, request, response will be logged.
+     *
+     * @param logger used to record and print logs.
+     * @return ServerBuilder whose logger has been set.
+     */
+    public func logger(logger: Logger): ServerBuilder {
+        _logger = logger
+        return this
+    }
+
+    /**
+     * Distribute the request to HttpRequestHandler by url, a default distributor will be provided.
+     *
+     * @param distributor used to distributes a request to the corresponding HttpRequestHandler for processing based on the path in the URL.
+     * @return ServerBuilder whose distributor has been set.
+     */
+    public func distributor(distributor: HttpRequestDistributor): ServerBuilder {
+        _distributor = distributor
+        return this
+    }
+
+    /**
+     * Generated Server use Protocol,StreamingSocket and HttpRequestDistributor to create ProtocolService instance, a default factory will be provided.
+     *
+     * @param factory used to set up the application layer configuration of the generated server.
+     * @return ServerBuilder whose protocol service factory has been set.
+     */
+    public func protocolServiceFactory(factory: ProtocolServiceFactory): ServerBuilder {
+        _protocolServiceFactory = factory
+        return this
+    }
+
+    /**
+     * Transport layer configuration of the generated server, the default config will be provided.
+     *
+     * @param config used to set up the application layer configuration of the generated server.
+     * @return ServerBuilder whose transport configuration has been set.
+     */
+    public func transportConfig(config: TransportConfig): ServerBuilder {
+        _transportConfig = config
+        return this
+    }
+
+    /**
+     * TLS configuration of the generated server, the default config will be provided.
+     *
+     * @param config configurations required to support TLS.
+     * @return ServerBuilder whose TLS configuration has been set.
+     */
+    public func tlsConfig(config: TlsConfig): ServerBuilder {
+        _tlsConfig = config
+        return this
+    }
+
+    /**
+     * The generated server read the entire request timeout.
+     *
+     * @param timeout specifies the timeout period, value Duration(0) means unlimited, the default value is 0.
+     * @return ServerBuilder whose read timeout configuration has been set.
+     */
+    public func readTimeout(timeout: Duration): ServerBuilder {
+        _readTimeout = checkDuration(timeout)
+        return this
+    }
+
+    /**
+     * The generated server write the entire response timeout.
+     *
+     * @param timeout specifies the timeout period, value Duration(0) means unlimited, the default value is 0.
+     * @return ServerBuilder whose write timeout configuration has been set.
+     */
+    public func writeTimeout(timeout: Duration): ServerBuilder {
+        _writeTimeout = checkDuration(timeout)
+        return this
+    }
+
+    /**
+     * The generated server read header peer request timeout.
+     *
+     * @param timeout specifies the timeout period, value Duration(0) means unlimited, the default value is 0.
+     * @return ServerBuilder whose read header timeout configuration has been set.
+     */
+    public func readHeaderTimeout(timeout: Duration): ServerBuilder {
+        _readHeaderTimeout = checkDuration(timeout)
+        return this
+    }
+
+    /**
+     * Http keep-alive timeout.
+     *
+     * @param timeout specifies the timeout period, value Duration(0) means unlimited, the default value is 0.
+     * @return ServerBuilder whose keep-alive timeout configuration has been set.
+     */
+    public func httpKeepAliveTimeout(timeout: Duration): ServerBuilder {
+        _httpKeepAliveTimeout = checkDuration(timeout)
+        return this
+    }
+
+    /**
+     * The generated server rejects requests that exceed this headers limit.
+     *
+     * @param size max size of headers per request, value 0 means unlimited, the default value is 0.
+     * @return ServerBuilder whose max size of request header has been set.
+     *
+     * @throws IllegalArgumentException, if size is negative.
+     */
+    public func maxRequestHeaderSize(size: Int64): ServerBuilder {
+        if (size < 0) {
+            throw IllegalArgumentException("Headers size shouldn't be negative, got ${size}.")
+        }
+        _maxRequestHeaderSize = size
+        return this
+    }
+
+    /**
+     * The generated server rejects requests that exceed this body limit.
+     *
+     * @param size max size of body per request, value 0 means unlimited, the default value is 0.
+     * @return ServerBuilder whose max size of request body has been set.
+     *
+     * @throws IllegalArgumentException, if size is negative.
+     */
+    public func maxRequestBodySize(size: Int64): ServerBuilder {
+        if (size < 0) {
+            throw IllegalArgumentException("Body size shouldn't be negative, got ${size}.")
+        }
+        _maxRequestBodySize = size
+        return this
+    }
+
+    /**
+     * HTTP2.0 Configuration
+     * Max header table size for hpack encoder/decoder
+     *
+     * @param size max header table size for hpack encoder/decoder, the default value is 4096.
+     * @return ServerBuilder whose header table size has been set.
+     */
+    public func headerTableSize(size: UInt32): ServerBuilder {
+        _headerTableSize = size
+        return this
+    }
+
+    /**
+     * HTTP2.0 Configuration
+     * Max number of concurrent streams per connection
+     *
+     * @param size max number of concurrent streams per connection, the default value is UInt32(2**31 - 1).
+     * @return ServerBuilder whose max number of concurrent streams has been set.
+     */
+    public func maxConcurrentStreams(size: UInt32): ServerBuilder {
+        _maxConcurrentStreams = size
+        return this
+    }
+
+    /**
+     * HTTP2.0 Configuration
+     * Init window size
+     *
+     * @param size init window size, the default value is 65535.
+     * @return ServerBuilder whose initial window size has been set.
+     */
+    public func initialWindowSize(size: UInt32): ServerBuilder {
+        _initialWindowSize = size
+        return this
+    }
+
+    /**
+     * HTTP2.0 Configuration
+     * Max frame size
+     *
+     * @param max frame size, the default value is 16384.
+     * @return ServerBuilder whose max size of frame has been set.
+     */
+    public func maxFrameSize(size: UInt32): ServerBuilder {
+        _maxFrameSize = size
+        return this
+    }
+
+    /**
+     * HTTP2.0 Configuration
+     * Max size of header decoded by hpack decoder
+     *
+     * @param max size of header decoded by hpack decoder, the default value is UInt32.Max.
+     * @return ServerBuilder whose max size of header list has been set.
+     */
+    public func maxHeaderListSize(size: UInt32): ServerBuilder {
+        _maxHeaderListSize = size
+        return this
+    }
+
+    /**
+     * HTTP2.0 Configuration
+     * Enable using CONNECT method to upgrade to websocket
+     *
+     * @param if the value is true, the connection can be upgraded to WebSocket, the default value is false.
+     * @return ServerBuilder whose enableConnectProtocol has been set.
+     */
+    public func enableConnectProtocol(flag: Bool): ServerBuilder {
+        _enableConnectProtocol = flag
+        return this
+    }
+
+    /**
+     * Register the bind callback, by default afterBind will be set to an empty function.
+     *
+     * @param f This callback function is called after ServerSocket bind, before ServerSocket accept.
+     * @return ServerBuilder whose bind callback has been set.
+     */
+    public func afterBind(f: () -> Unit): ServerBuilder {
+        _afterBind = f
+        return this
+    }
+
+    /**
+     * Register the shut down callback, by default onShutdown will be set to none.
+     *
+     * @param f This callback function is called when the generated server is shut down.
+     * @return ServerBuilder whose shut down callback has been set.
+     */
+    public func onShutdown(f: () -> Unit): ServerBuilder {
+        _onShutdown = f
+        return this
+    }
+
+    /**
+     * Service pool config, use to control the protocol-service pool size before server started.
+     *
+     * @param cfg ServicePoolConfig.
+     * @return ServerBuilder whose service pool configuration has been set.
+     */
+    public func servicePoolConfig(cfg: ServicePoolConfig): ServerBuilder {
+        _servicePoolConfig = cfg
+        return this
+    }
+
+    /**
+     * Build a server instance that configured by the builder.
+     *
+     * @return Server that configured by the builder.
+     */
+    public func build(): Server {
+        if (_maxConcurrentStreams < 100) {
+            _logger.warn("[ServerBuilder#build] max concurrent streams num is recommended to be over 100")
+        }
+        if (_initialWindowSize > MAX_WINDOW) {
+            throw IllegalArgumentException("Initial window size should not exceed 2^31-1.")
+        }
+        if (_maxFrameSize < MIN_FRAME_SIZE || _maxFrameSize > MAX_FRAME_SIZE) {
+            throw IllegalArgumentException("Max frame size should not be under 2^14 or over 2^24-1.")
+        }
+        var addr = ""
+        var port: UInt16 = 0
+        if (_listener.isNone()) {
+            addr = _addr ?? throw IllegalArgumentException("The IP address number is not set.")
+            port = _port ?? throw IllegalArgumentException("The port number is not set.")
+        }
+        return Server(
+            _listener: _listener ?? TcpServerSocket(bindAt: IPSocketAddress(addr, port)),
+            _logger: _logger,
+            _distributor: _distributor,
+            _protocolServiceFactory: _protocolServiceFactory,
+            _transportConfig: _transportConfig,
+            _tlsConfig: _tlsConfig,
+            _readTimeout: _readTimeout,
+            _writeTimeout: _writeTimeout,
+            _readHeaderTimeout: _readHeaderTimeout,
+            _httpKeepAliveTimeout: _httpKeepAliveTimeout,
+            _maxRequestHeaderSize: _maxRequestHeaderSize,
+            _maxRequestBodySize: _maxRequestBodySize,
+            _headerTableSize: _headerTableSize,
+            _maxConcurrentStreams: _maxConcurrentStreams,
+            _initialWindowSize: _initialWindowSize,
+            _maxFrameSize: _maxFrameSize,
+            _maxHeaderListSize: _maxHeaderListSize,
+            _enableConnectProtocol: _enableConnectProtocol,
+            _afterBind: _afterBind,
+            _onShutdown: _onShutdown,
+            _servicePoolConfig: _servicePoolConfig
+        )
+    }
+}
+
+public class Server {
+    let pool: CoroutinePool
+    var tlsServerSession: ?TlsSession = None
+
+    private var _connId: UInt64 = 0
+    private var callBackMutex = Mutex()
+
+    var streamPools: ?ConcurrentRingPool<PutSafeRingPool<Any>> = None
+    var arrayPool: ?ArrayPool = None
+
+    Server(
+        let _listener!: ServerSocket,
+        let _logger!: Logger,
+        let _distributor!: HttpRequestDistributor,
+        let _protocolServiceFactory!: ProtocolServiceFactory,
+        let _transportConfig!: TransportConfig,
+        var _tlsConfig!: ?TlsConfig,
+        let _readTimeout!: Duration,
+        let _writeTimeout!: Duration,
+        let _readHeaderTimeout!: Duration,
+        let _httpKeepAliveTimeout!: Duration,
+        let _maxRequestHeaderSize!: Int64,
+        let _maxRequestBodySize!: Int64,
+        let _headerTableSize!: UInt32,
+        let _maxConcurrentStreams!: UInt32,
+        let _initialWindowSize!: UInt32,
+        let _maxFrameSize!: UInt32,
+        let _maxHeaderListSize!: UInt32,
+        let _enableConnectProtocol!: Bool,
+        var _afterBind!: () -> Unit,
+        var _onShutdown!: () -> Unit,
+        let _servicePoolConfig!: ServicePoolConfig,
+        let quit!: AtomicBool = AtomicBool(false)
+    ) {
+        pool = CoroutinePool(_servicePoolConfig.preheat, _servicePoolConfig.capacity, _servicePoolConfig.queueCapacity)
+        pool.logger = _logger
+        if (_tlsConfig.isSome()) {
+            tlsServerSession = getGlobalTlsKit().getTlsServerSession(TLS_CTX_SESSION_NAME)
+        }
+    }
+
+    /* Gets the address bound to this server. */
+    public prop addr: String {
+        get() {
+            (listener.localAddress as IPSocketAddress)?.address.toString() ?? ""
+        }
+    }
+
+    /* Gets the port bound to this server. */
+    public prop port: UInt16 {
+        get() {
+            (listener.localAddress as IPSocketAddress)?.port ?? 0
+        }
+    }
+
+    /* Gets the listener of this server. */
+    public prop listener: ServerSocket {
+        get() {
+            _listener
+        }
+    }
+
+    /* Gets the logger of this server. */
+    public prop logger: Logger {
+        get() {
+            _logger
+        }
+    }
+
+    /* Gets the distributor of this server. */
+    public prop distributor: HttpRequestDistributor {
+        get() {
+            _distributor
+        }
+    }
+
+    /* Gets the protocolServiceFactory of this server. */
+    public prop protocolServiceFactory: ProtocolServiceFactory {
+        get() {
+            _protocolServiceFactory
+        }
+    }
+
+    /* Gets the transportConfig of this server. */
+    public prop transportConfig: TransportConfig {
+        get() {
+            _transportConfig
+        }
+    }
+
+    /* Gets the tls server config, if TLS is not supported, none is returned.*/
+    public func getTlsConfig(): ?TlsConfig {
+        return _tlsConfig
+    }
+
+    /* Gets the readTimeout of this server. */
+    public prop readTimeout: Duration {
+        get() {
+            _readTimeout
+        }
+    }
+
+    /* Gets the writeTimeout of this server. */
+    public prop writeTimeout: Duration {
+        get() {
+            _writeTimeout
+        }
+    }
+
+    /* Gets the readHeaderTimeout of this server. */
+    public prop readHeaderTimeout: Duration {
+        get() {
+            _readHeaderTimeout
+        }
+    }
+
+    /* Gets the httpKeepAliveTimeout of this server. */
+    public prop httpKeepAliveTimeout: Duration {
+        get() {
+            _httpKeepAliveTimeout
+        }
+    }
+
+    /* Gets the maxRequestHeaderSize of this server. */
+    public prop maxRequestHeaderSize: Int64 {
+        get() {
+            _maxRequestHeaderSize
+        }
+    }
+
+    /* Gets the maxRequestBodySize of this server. */
+    public prop maxRequestBodySize: Int64 {
+        get() {
+            _maxRequestBodySize
+        }
+    }
+
+    /* Gets the headerTableSize of this server. */
+    public prop headerTableSize: UInt32 {
+        get() {
+            _headerTableSize
+        }
+    }
+
+    /* Gets the maxConcurrentStreams of this server. */
+    public prop maxConcurrentStreams: UInt32 {
+        get() {
+            _maxConcurrentStreams
+        }
+    }
+
+    /* Gets the initialWindowSize of this server. */
+    public prop initialWindowSize: UInt32 {
+        get() {
+            _initialWindowSize
+        }
+    }
+
+    /* Gets the maxFrameSize of this server. */
+    public prop maxFrameSize: UInt32 {
+        get() {
+            _maxFrameSize
+        }
+    }
+
+    /* Gets the maxHeaderListSize of this server. */
+    public prop maxHeaderListSize: UInt32 {
+        get() {
+            _maxHeaderListSize
+        }
+    }
+
+    /* Gets the enableConnectProtocol of this server. */
+    public prop enableConnectProtocol: Bool {
+        get() {
+            _enableConnectProtocol
+        }
+    }
+
+    /* Gets the servicePoolConfig of this server. */
+    public prop servicePoolConfig: ServicePoolConfig {
+        get() {
+            _servicePoolConfig
+        }
+    }
+
+    /*
+     * Enable the service on the server.
+     *
+     * @throws SocketException, if the port to fail in listening.
+     */
+    public func serve(): Unit {
+        listener.bind()
+        httpLogDebug(logger, "[Server#serve] bindAndListen(${addr}, ${port})")
+        synchronized(callBackMutex) {
+            _afterBind()
+        }
+        while (!quit.load()) {
+            // try accept
+            let conn: StreamingSocket
+            try {
+                conn = listener.accept(timeout: 100 * Duration.millisecond)
+            } catch (e: SocketTimeoutException) {
+                continue
+            } catch (e: SocketException) {
+                if (!quit.load()) {
+                    throw e
+                } else {
+                    return
+                }
+            }
+
+            try {
+                increaseConnId() // count connection id for logger
+                if (logger.enabled(LogLevel.DEBUG)) {
+                    httpLogDebug(logger,
+                        "[conn#${_connId}] [Server#serve] accept a client connection, local addr: ${conn.localAddress}, remote addr: ${conn.remoteAddress}"
+                    )
+                }
+
+                /*
+                 * Since the Server#close may conflict with Worker#run, the AtomicOptionReference is used to store the protocol-service instance.
+                 */
+                let psRef = AtomicOptionReference<ProtocolService>()
+                pool.submit<Unit>(
+                    {
+                        =>
+                        httpLogDebug(logger, "[Server#serve] serve client connection begin")
+                        try {
+                            setTransportConfig(conn)
+                            let ps = protocolService(conn)
+                            psRef.store(ps)
+                            ps.serve()
+                        } catch (e: Exception) {
+                            httpLogWarn(logger, "[Server#serve] failed to serve a client connection, ${e}")
+                            conn.close()
+                        }
+                        httpLogDebug(logger, "[Server#serve] serve client connection end")
+                    },
+                    connId: _connId,
+                    onClose: {
+                        => if (let Some(serv) <- psRef.load()) {
+                            serv.close()
+                        } else {
+                            conn.close()
+                        }
+                    },
+                    onCloseGracefully: {
+                        => if (let Some(serv) <- psRef.load()) {
+                            serv.closeGracefully()
+                        } else {
+                            conn.close()
+                        }
+                    }
+                )
+            } catch (e: Exception) {
+                httpLogWarn(logger,
+                    "[conn#${_connId}] [Server#serve] failed to submit task servicing a client connection, ${e}")
+                conn.close()
+            }
+        }
+    }
+
+    public func close(): Unit {
+        httpLogDebug(logger, "[Server#close] Server closing...")
+        if (quit.load()) {
+            httpLogDebug(logger, "[Server#close] Server already closed")
+            return
+        }
+        quit.store(true)
+        synchronized(callBackMutex) {
+            _onShutdown()
+        }
+        pool.close()
+        _listener.close()
+        streamPools?.close()
+        arrayPool?.close()
+        httpLogDebug(logger, "[Server#close] Server closed")
+    }
+
+    public func closeGracefully(): Unit {
+        httpLogDebug(logger, "[Server#closeGracefully] Server closing...")
+        if (quit.load()) {
+            httpLogDebug(logger, "[Server#closeGracefully] Server already closed")
+            return
+        }
+        quit.store(true)
+        synchronized(callBackMutex) {
+            _onShutdown()
+        }
+        pool.closeGracefully()
+        _listener.close()
+        streamPools?.close()
+        arrayPool?.close()
+        httpLogDebug(logger, "[Server#closeGracefully] Server closed")
+    }
+
+    public func afterBind(f: () -> Unit): Unit {
+        synchronized(callBackMutex) {
+            _afterBind = f
+        }
+    }
+
+    public func onShutdown(f: () -> Unit): Unit {
+        synchronized(callBackMutex) {
+            _onShutdown = f
+        }
+    }
+
+    /**
+     * Update cert dynamically.
+     *
+     * @param certificateChainFile certificate chain file
+     * @param privateKeyFile private key file
+     *
+     * @throws IllegalArgumentException, while certificateChainFile contains null character,
+     * or privateKeyFile contains null character.
+     * @throws HttpException, while the TLS certificate is not configured.
+     */
+    public func updateCert(certificateChainFile: String, privateKeyFile: String): Unit {
+        var cfg = _tlsConfig ?? throw HttpException("The TLS certificate is not configured.")
+        cfg.certificate = (certificateFromFile(certificateChainFile), privateKeyFromFile(privateKeyFile))
+        _tlsConfig = cfg
+    }
+
+    /**
+     * Update cert dynamically.
+     *
+     * @param certChain server certificate
+     * @param certKey server certificate corresponding private key
+     *
+     * @throws HttpException, while the TLS certificate is not configured.
+     */
+    public func updateCert(certChain: Array<Certificate>, certKey: PrivateKey): Unit {
+        var cfg = _tlsConfig ?? throw HttpException("The TLS certificate is not configured.")
+        cfg.certificate = (certChain, certKey)
+        _tlsConfig = cfg
+    }
+
+    /**
+     * Update ca dynamically.
+     *
+     * @param newCaFile CA certificate file
+     *
+     * @throws IllegalArgumentException, while caFile contains null character.
+     * @throws HttpException, while the TLS certificate is not configured.
+     */
+    public func updateCA(newCaFile: String): Unit {
+        var cfg = _tlsConfig ?? throw HttpException("The TLS certificate is not configured.")
+        if (!newCaFile.isEmpty()) {
+            let certificates = certificateFromFile(newCaFile)
+            cfg.verifyMode = CertificateVerifyMode.CustomCA(certificates)
+        }
+        _tlsConfig = cfg
+        if (logger.enabled(LogLevel.DEBUG)) {
+            httpLogDebug(logger, "[Server#updateCA] CA updated successfully")
+        }
+    }
+
+    /**
+     * Update ca dynamically.
+     *
+     * @param newCa CA certificate
+     *
+     * @throws HttpException, while the TLS certificate is not configured.
+     */
+    public func updateCA(newCa: Array<Certificate>): Unit {
+        var cfg = _tlsConfig ?? throw HttpException("The TLS certificate is not configured.")
+        cfg.verifyMode = CustomCA(newCa)
+        _tlsConfig = cfg
+        if (logger.enabled(LogLevel.DEBUG)) {
+            httpLogDebug(logger, "[Server#updateCA] CA updated successfully")
+        }
+    }
+
+    func protocolService(socket: StreamingSocket): ProtocolService {
+        let (protocol, conn) = match ((socket as TlsConnection, _tlsConfig)) {
+            case (Some(conn), _) =>
+                if (logger.enabled(LogLevel.TRACE)) {
+                    httpLogTrace(logger, "[Server#protocolService] Got a TLS socket.")
+                }
+                (alpn(conn.handshakeResult.getOrThrow().alpnProtocol), socket)
+            case (_, Some(cfg)) =>
+                if (logger.enabled(LogLevel.TRACE)) {
+                    httpLogTrace(logger, "[Server#protocolService] Got a TLS configuration, ready for handshake.")
+                }
+                let conn = getGlobalTlsKit().getTlsServer(socket, cfg, session: tlsServerSession)
+                let result = conn.handshake(timeout: Duration.second * 3)
+
+                // TLS handshake result
+                if (logger.enabled(LogLevel.TRACE)) {
+                    httpLogTrace(logger, "[Server#protocolService] TLS handshake result: TLS version = ${result.version}, cipher suite = ${result.cipherSuite}.")
+                }
+
+                (alpn(result.alpnProtocol), conn)
+            case (_, _) => (HTTP1_1, socket)
+        }
+
+        if (logger.enabled(LogLevel.TRACE)) {
+            httpLogTrace(logger, "[Server#protocolService] Protocol: ${protocol}.")
+        }
+
+        let service = protocolServiceFactory.create(protocol, conn)
+        service.server = this
+        return service
+    }
+
+    private func alpn(alpnProtocolName: ?String): Protocol {
+        // alpn protocol ids ref: https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml#alpn-protocol-ids
+        return match (alpnProtocolName) {
+            case Some("h2") => HTTP2_0
+            case Some("http/1.1") | None => HTTP1_1
+            case Some("http/1.0") => HTTP1_0
+            case Some(v) => UnknownProtocol(v)
+        }
+    }
+
+    /**
+     * set readTimeout\writeTimeout\keepAlive\readBufferSize\writeBufferSize
+     */
+    func setTransportConfig(conn: StreamingSocket): Unit {
+        match (conn) {
+            case conn: TcpSocket =>
+                conn.readTimeout = transportConfig.readTimeout
+                conn.writeTimeout = transportConfig.writeTimeout
+                conn.keepAlive = transportConfig.keepAliveConfig
+                if (let Some(wb) <- transportConfig.writeBufferSize) {
+                    conn.sendBufferSize = wb
+                }
+                if (let Some(rb) <- transportConfig.readBufferSize) {
+                    conn.receiveBufferSize = rb
+                }
+            case _ => ()
+        }
+    }
+
+    @OverflowWrapping
+    private func increaseConnId(): Unit {
+        _connId++ // count connection id for logger
+    }
+
+    func certificateFromFile(path: String): Array<Certificate> {
+        getGlobalCryptoKit().certificateFromPem(String.fromUtf8(File.readFrom(path))).map({c => c})
+    }
+
+    func privateKeyFromFile(path: String): PrivateKey {
+        getGlobalCryptoKit().privateKeyFromPem(String.fromUtf8(File.readFrom(path)))
+    }
+}

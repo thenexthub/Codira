@@ -1,0 +1,105 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+package std.unittest.common
+
+import std.collection.enumerate
+import std.convert.Formattable
+
+private func isNonPrintable(char: Rune): Bool {
+    let cp = UInt32(char)
+    // characters with codepoints 0x00..0x1F are basic ascii control characters (C0)
+    // 0x7F is DEL, also a control character
+    // characters with codepoints 0x80..0x9F are extended control characters (C1)
+    // NOTE: some of the characters handled separately in shieldEscapeSeq
+    // are also in this ranges, which is by design
+    if (0x00 <= cp && cp <= 0x1F || 0x7f <= cp && cp <= 0x9f) {
+        return true
+    }
+
+    // TODO: also escape other characters from category r'C' when/if we have API for that
+    // currently, regex /\p{C}/ doesn't work properly
+    return false
+}
+
+private func asCodePointEscape(char: Rune): String {
+    let resultBuilder = StringBuilder("\\u{")
+    let cp = UInt32(char)
+    if (cp <= 0xffff) {
+        resultBuilder.append(cp.format("04x"))
+    } else {
+        resultBuilder.append(cp.format("08x"))
+    }
+    resultBuilder.append(r'}')
+    return resultBuilder.toString()
+}
+
+/**
+ * Escape the given string: print non-printable characters like control characters
+ * as their escaped variants. Also escape any utf-8 sequences longer than 1 byte.
+ * For example, TAB, CR or LF are printed as r'\t', r'\r' and r'\n' respectively,
+ * and will be printed as '\u6211'. All one-byte utf-8 characters are left as-is.
+ * Random-generated data may (and probably will) contain characters that may break the terminal,
+ * so in order to be safe we try to escape such things when printing this data.
+ */
+protected func shieldEscapeSeq(
+    s: String,
+    shieldSingleQuote!: Bool = true,
+    shieldDoubleQuote!: Bool = true,
+    shieldBackslash!: Bool = true,
+    shieldInterpolation!: Bool = true
+): String {
+    let resultBuilder = StringBuilder()
+    let runes = s.toRuneArray()
+    for ((i, ch) in runes |> enumerate) {
+        match (ch) {
+            case r'\0' => resultBuilder.append("\\0")
+            case r'\\' where shieldBackslash => resultBuilder.append("\\\\")
+            case r'\b' => resultBuilder.append("\\b")
+            case r'\f' => resultBuilder.append("\\f")
+            case r'\n' => resultBuilder.append("\\n")
+            case r'\r' => resultBuilder.append("\\r")
+            case r'\t' => resultBuilder.append("\\t")
+            case r'\v' => resultBuilder.append("\\v")
+            case r'\'' where shieldSingleQuote => resultBuilder.append("\\\'")
+            case r'\"' where shieldDoubleQuote => resultBuilder.append("\\\"")
+            case r'\$' where shieldInterpolation && i < runes.size - 1 && runes[i + 1] == r'{' => resultBuilder.append(
+                "\\\$")
+            case _ =>
+                if (isNonPrintable(ch)) {
+                    resultBuilder.append(asCodePointEscape(ch))
+                } else {
+                    resultBuilder.append(ch)
+                }
+        }
+    }
+    return resultBuilder.toString()
+}
+
+extend PrettyPrinter {
+    protected func space() {
+        append(" ")
+    }
+
+    protected func appendLine() {
+        appendLine("")
+    }
+}

@@ -1,0 +1,71 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package stdx.net.tls.common
+
+import std.collection.Map
+import std.deriving.Derive
+import std.net.StreamingSocket
+import stdx.crypto.common.{Certificate, PrivateKey}
+
+@Derive[ToString, Hashable, Equatable]
+public enum TlsVersion {
+    V1_2 | V1_3 | TLCP | ...
+}
+
+/**
+ * Certificate verification mode. A TLS client, once connected, received a server certificate and
+ * should verify it to ensure that the connection has been established to the right peer.
+ * The default behavior is to use the system trust store. However there are cases when it's required
+ * to trust all certificates (in testing and development, usually) or we have a custom CA server whose
+ * certificates couldn't be installed into the system trust store for some reason.
+ */
+public enum CertificateVerifyMode {
+    | Default // default verification mode: validate certificates against the system CAs
+    | TrustAll // trust all certificates
+    | CustomCA(Array<Certificate>) // validate against the provided list of CAs
+    | CustomVerify((Array<Certificate>) -> Bool)
+}
+
+public interface TlsConfig {
+    mut prop verifyMode: CertificateVerifyMode
+    mut prop supportedAlpnProtocols: Array<String>
+    mut prop supportedVersions: Array<TlsVersion>
+    mut prop supportedCipherSuites: Map<TlsVersion, Array<String>> // generalization of old `cipherSuitesV1_x` API
+    mut prop certificate: ?(Array<Certificate>, PrivateKey)
+}
+
+public interface TlsConnection <: StreamingSocket {
+    func handshake(timeout!: ?Duration): TlsHandshakeResult
+    prop handshakeResult: ?TlsHandshakeResult
+}
+
+public interface TlsHandshakeResult {
+    prop version: TlsVersion
+    prop cipherSuite: String
+    prop peerCertificate: Array<Certificate>
+    prop session: ?TlsSession
+    prop alpnProtocol: String
+    prop serverName: String
+}
+
+public interface TlsSession {}

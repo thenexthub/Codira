@@ -1,0 +1,102 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+protected package std.unittest.mock.internal
+
+public struct Call {
+    public let typeArgs: Array<String> // call's type arguments
+    public let receiver: Option<(Object, Array<String>)> // receiver reference and its type arguments
+
+    public Call(
+        _receiver: Option<Object>,
+        _typeArgs: Array<ToString>, // merged type arguments for a call and for the outer declaration
+        public let args: Array<Any>,
+        public let funcInfo: FuncInfo
+    ) {
+        let callTypeArgsSize = funcInfo.typeParams.size
+        let outerDeclTypeArgsSize = _typeArgs.size - callTypeArgsSize
+
+        typeArgs = Array(callTypeArgsSize) { i => _typeArgs[i + outerDeclTypeArgsSize].toString() }
+        receiver = match(_receiver) {
+            case Some(r) => (r, Array(outerDeclTypeArgsSize) { i => _typeArgs[i].toString() })
+            case _ => Option<(Object, Array<String>)>.None
+        }
+    }
+}
+
+public struct FuncInfo {
+    public FuncInfo(
+        public let id: DeclId,
+        public let params: Array<ParameterInfo>,
+        public let typeParams: Array<String>,
+        public let location: (String, Int64, Int64),
+        public let hasImplementation: Bool,
+        public let outerDeclId: Option<DeclId>,
+        public let hasDefaultValue: Bool,
+        public let returnTypeName: String,
+        public let isAccessible: Bool,
+        public let kind: DeclKind
+    ) {}
+}
+
+public enum DeclKind {
+    | Method( /*name:*/ String)
+    | FieldGetter( /*fieldName: */ String, /*hasSetter: */ Bool)
+    | FieldSetter( /*fieldName:*/ String)
+    | PropertyGetter( /*propertyName:*/ String, /*hasSetter:*/ Bool)
+    | PropertySetter( /*propertyName:*/ String)
+    | TopLevelFunction( /*name:*/ String)
+    | StaticMethod( /*name:*/ String)
+    | StaticPropertyGetter( /*name:*/ String)
+    | StaticPropertySetter( /*name:*/ String)
+    | StaticFieldGetter( /*name:*/ String)
+    | StaticFieldSetter( /*name:*/ String)
+    | TopLevelVariableGetter( /*name:*/ String)
+    | TopLevelVariableSetter( /*name:*/ String)
+}
+
+public struct ParameterInfo {
+    public ParameterInfo(
+        public let name: String,
+        public let position: Int64,
+        public let isNamed: Bool,
+        public let hasDefaultValue: Bool
+    ) {}
+}
+
+public struct DeclId <: Equatable<DeclId> & Hashable {
+    public DeclId(
+        public let mangledName: String,
+        public let shortName: String
+    ) {}
+
+    public operator func ==(that: DeclId): Bool {
+        this.mangledName == that.mangledName
+    }
+
+    public operator func !=(that: DeclId): Bool {
+        this.mangledName != that.mangledName
+    }
+
+    public func hashCode(): Int64 {
+        mangledName.hashCode()
+    }
+}

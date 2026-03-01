@@ -1,0 +1,223 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package stdx.net.tls
+
+import std.collection.{Map, HashMap}
+import stdx.net.tls.common.*
+import stdx.crypto.common.*
+import stdx.crypto.x509.*
+
+public struct TlsClientConfig <: TlsConfig {
+    private var _domain: ?String = None
+    private var _supportedAlpnProtocols: Array<String> = Array<String>()
+    private var _certificate: ?(Array<X509Certificate>, PrivateKey) = None
+    private var _signatureAlgorithms: ?Array<SignatureAlgorithm> = None
+    /* level 2 means DH key lengh 2048, ECDH key length 224 */
+    private var _securityLevel: Int32 = 2
+    /* Server certificate verify mode */
+    private var _verifyMode: CertificateVerifyMode = CertificateVerifyMode.Default
+    /* Supported TLS versions */
+    private var _supportedVersions: Array<TlsVersion> = []
+    private var _supportedCipherSuites: Map<TlsVersion, Array<String>> = HashMap<TlsVersion, Array<String>>()
+
+    public init() {}
+
+    /**
+     * securityLevel 0-5， refer to openssl SSL_CTX_set_security_level
+     */
+    public mut prop securityLevel: Int32 {
+        get() {
+            _securityLevel
+        }
+        set(value) {
+            if (value < 0 || value > 5) {
+                throw IllegalArgumentException("SecurityLevel should be from 0 to 5.")
+            }
+            _securityLevel = value
+        }
+    }
+
+    /**
+     * a pair of client certificate to send and the corresponding private key (not sent)
+     */
+    mut prop clientCertificate: ?(Array<X509Certificate>, PrivateKey) {
+        get() {
+            _certificate
+        }
+        set(v) {
+            _certificate = v
+        }
+    }
+
+    /**
+     * specific domain name to request (SNI) or None to not request
+     */
+    public mut prop serverName: ?String {
+        get() {
+            return _domain
+        }
+        set(v) {
+            if (let Some(v) <- v) {
+                checkString(v, "serverName")
+            }
+            _domain = v
+        }
+    }
+
+    public mut prop verifyMode: CertificateVerifyMode {
+        get() {
+            _verifyMode
+        }
+        set(v) {
+            _verifyMode = v
+        }
+    }
+
+    /**
+     * A list of requested ALPN protocol names
+     * client will not negotiate ALPN if the list of empty
+     *
+     * @throws IllegalArgumentException while alpnList contains null character.
+     */
+    public mut prop supportedAlpnProtocols: Array<String> {
+        get() {
+            return _supportedAlpnProtocols
+        }
+        set(v) {
+            for (s in v) {
+                checkString(s, "supportedAlpnProtocols")
+            }
+            _supportedAlpnProtocols = v
+        }
+    }
+
+    public mut prop supportedVersions: Array<TlsVersion> {
+        get() {
+            _supportedVersions
+        }
+        set(v) {
+            _supportedVersions = v
+        }
+    }
+
+    public mut prop supportedCipherSuites: Map<TlsVersion, Array<String>> {
+        get() {
+            _supportedCipherSuites
+        }
+        set(v) {
+            for ((_, cipherSuites) in v) {
+                for (cipherSuite in cipherSuites) {
+                    checkString(cipherSuite, "supportedCipherSuites")
+                }
+            }
+            _supportedCipherSuites = v
+        }
+    }
+
+    /**
+     * Client certificate and the corresponding private key
+     */
+    public mut prop certificate: ?(Array<Certificate>, PrivateKey) {
+        get() {
+            match (_certificate) {
+                case Some(cert) => (cert[0].map({c => c}), cert[1])
+                case None => None
+            }
+        }
+        set(v) {
+            _certificate = match (v) {
+                case Some(cert) => (cert[0].map({c => c as X509Certificate ??
+                    throw TlsException("Only certificates of type `X509Certificate` are allowed.")}), cert[1])
+                case None => None
+            }
+        }
+    }
+
+    public mut prop signatureAlgorithms: ?Array<SignatureAlgorithm> {
+        get() {
+            return _signatureAlgorithms
+        }
+        set(v) {
+            _signatureAlgorithms = v
+        }
+    }
+
+    /*
+     * Callback that is invoked for every handshake providing TLS initial
+     * key data that is useful for debugging and decrypting a recorded
+     * network dump. Should be NEVER used in production because the
+     * provided string parameter is a sensitive data and
+     * exposing it's content may seriously harm connection security.
+     */
+    public var keylogCallback: ?(TlsSocket, String) -> Unit = None
+}
+
+extend TlsContext {
+    func configureClient(cfg: TlsClientConfig, session: ?TlsClientSession): Unit {
+        withContext<Unit> {
+            nativeContext, _ => configureClientContext(nativeContext, cfg, session)
+        }
+    }
+
+    private func configureClientContext(
+        context: CPointer<Ctx>,
+        cfg: TlsClientConfig,
+        session: ?TlsClientSession
+    ): Unit {
+        configureVerifyMode(cfg.verifyMode)
+        configureSecurityLevel(cfg.securityLevel)
+
+        if (let Some((chain, key)) <- cfg.clientCertificate) {
+            setCertificateChainAndPrivateKey(chain, key)
+        }
+
+        setProtoVersions(context, cfg.supportedVersions)
+
+        if (cfg.supportedVersions.contains(V1_2) &&
+            let Some(cipherSuite) <- cfg.supportedCipherSuites.entryView(V1_2).value) {
+            setCipherSuitesV1_2(context, cipherSuite)
+        }
+
+        if (cfg.supportedVersions.contains(V1_3) &&
+            let Some(cipherSuite) <- cfg.supportedCipherSuites.entryView(V1_3).value) {
+            setCipherSuitesV1_3(context, cipherSuite)
+        }
+
+        let alpnList = cfg.supportedAlpnProtocols
+        if (!alpnList.isEmpty()) {
+            setClientAlpnProtos(context, alpnList)
+        }
+
+        if (let Some(signatureAlgorithms) <- cfg.signatureAlgorithms) {
+            setClientSignatureAlgorithms(context, signatureAlgorithms)
+        }
+
+        if (let Some(session) <- session) {
+            session
+                .holder
+                .withNativeSession<Unit> {
+                    nativeSession => unsafe { CODE_TLS_AddSession(context, nativeSession) }
+                }
+        }
+    }
+}

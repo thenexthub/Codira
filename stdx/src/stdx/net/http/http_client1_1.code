@@ -1,0 +1,1157 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This source file is part of the Codira project, licensed under Apache-2.0
+ * with Runtime Library Exception.
+ *
+ * See https://cangjie-lang.cn/pages/LICENSE for license information.
+ */
+
+package stdx.net.http
+
+import std.sync.*
+import std.collection.*
+import std.net.*
+import std.io.*
+import std.sync.*
+import std.convert.Parsable
+import stdx.log.*
+import stdx.net.tls.common.*
+import stdx.encoding.url.URL
+
+// limit the quantity of 1xx responses
+const MAXUNFINALRESPONSES = 5 // max number of 1xx responses
+
+class HttpClient1 <: HttpClient {
+
+    // a map
+    // <addr: HttpEngine1>
+    let h1EngineMap = HashMap<ConnectMapKey, HttpEngine1>()
+    let mapMtx = Mutex()
+
+    let httpProxy: String
+    let httpsProxy: String
+    var isClosed = false
+
+    HttpClient1(let client: Client) {
+        httpProxy = client.httpProxy
+        httpsProxy = client.httpsProxy
+    }
+
+    /**
+     * @param request, the HttpRequest to be sent to the server.
+     * @return HttpResponse.
+     *
+     * @throws HttpException, if proxy or url is invalid.
+     * @throws HttpException, if content-length is not in form of int64, or content-length has different values,
+     *  or the last value of transfer-encoding is not "chunked", or content-length and transfer-encoding are set together.
+     * @throws HttpException, if there is a httpBody but neither content-length nor transfer-encoding be set.
+     * @throws HttpException, if a field-name is not allowed in the trailers, that is field-name in TrailerExcludeList.
+     * @throws HttpException, if too many connections to the same server.
+     * @throws HttpException, if too many 1xx responses.
+     * @throws HttpException, if the Content-Length is wrong.
+     * @throws SocketException or ConnectionException, if something wrong happened in socket.
+     * @throws TlsException, if something wrong happened in TLS.
+     */
+    public func request(request: HttpRequest): HttpResponse {
+        checkRequest(request)
+        let hostInNoProxy = matchNoProxy(request.url.hostName, request.url.port)
+
+        let (targetAddrPort, proxyAddrPort, isToProxy, isToHttpsProxy) = match ((request.url.scheme, hostInNoProxy)) {
+            // no proxy
+            case ("https", true) => (AddrPort(request.url.hostName, request.url.port.ifEmpty("443")), None<AddrPort>,
+                false, false)
+            case ("http", true) => (AddrPort(request.url.hostName, request.url.port.ifEmpty("80")), None<AddrPort>, false,
+                false)
+            // https proxy
+            case ("https", false) => noProxyTarget(request, httpsProxy, "443", "80")
+            // http proxy
+            case ("http", false) => noProxyTarget(request, httpProxy, "80", "80")
+            case _ => throw HttpException("Not HTTP protocol scheme: ${request.url.scheme}")
+        }
+
+        if (client.logger.enabled(LogLevel.DEBUG)) {
+            httpLogDebug(client.logger,
+                "[HttpClient1#request] request target host:${targetAddrPort.addr} port:${targetAddrPort.port}")
+            if (isToProxy) {
+                httpLogDebug(client.logger,
+                    "[HttpClient1#request] request proxy host:${proxyAddrPort.getOrThrow().addr} port:${proxyAddrPort.getOrThrow().port}")
+            }
+        }
+
+        let httpEngine: HttpEngine1
+        let connnectKey: ConnectMapKey = match ((isToProxy, isToHttpsProxy)) {
+            case (false, _) => ConnectMapKey(targetAddrPort, None<AddrPort>)
+            case (true, false) => ConnectMapKey(proxyAddrPort.getOrThrow(), None<AddrPort>)
+            case (true, true) => ConnectMapKey(targetAddrPort, proxyAddrPort)
+        }
+        synchronized(mapMtx) {
+            if (isClosed) {
+                throw HttpException("This client has already closed.")
+            }
+            httpEngine = match (isToProxy) {
+                case false => h1EngineMap.getIfAbsent(connnectKey, HttpEngine1(targetAddrPort, client, this))
+                case true => h1EngineMap.getIfAbsent(connnectKey, HttpEngine1(proxyAddrPort.getOrThrow(), client, this))
+            }
+        }
+
+        if (request.headers.get("host").isEmpty()) {
+            request.headers.set("host", "${httpEngine.addrport.addr}:${httpEngine.addrport.port}")
+        }
+
+        return httpEngine.sendRequest(request, isToProxy, isToHttpsProxy)
+    }
+
+    func noProxyTarget(request: HttpRequest, proxy: String, targetPort: String, proxyPort: String): (AddrPort, Option<AddrPort>, Bool, Bool) {
+        // check port
+        // IPv6 is not considered yet
+        if (proxy.isEmpty()) {
+            return (AddrPort(request.url.hostName, request.url.port.ifEmpty(targetPort)), None, false, false)
+        } else {
+            let proxyUrl = URL.parse(proxy)
+            if (let Some(auth) <- parseProxyAuth(proxyUrl)) {
+                // a client must not generate fields in a TRACE request containing
+                // sensitive data that might be disclosed by the response.
+                // such as Cookie
+                // RFC 9110 9.3.8. TRACE
+                if (request.method != "TRACE") {
+                    request.headers.set("proxy-authorization", auth)
+                }
+            }
+            return (AddrPort(request.url.hostName, request.url.port.ifEmpty(targetPort)), AddrPort(proxyUrl.hostName,
+                    proxyUrl.port.ifEmpty(proxyPort)), true, request.url.scheme == "https")
+        }
+    }
+
+    public func connect(req: HttpRequest): (HttpResponse, ?StreamingSocket) {
+        let resp = request(req)
+        let connNode = match (resp.connNode.getOrThrow() as ConnNode) {
+            case Some(v) => v
+            case None => throw HttpException("Get connection failed.")
+        }
+
+        if (resp.status / 100 == 2) {
+            return (resp, connNode.h1Engine.extractFromConnInUse(connNode))
+        } else {
+            if (resp.body is HttpEmptyBody) {
+                connNode.h1Engine.returnConn(connNode)
+            }
+            return (resp, None)
+        }
+    }
+
+    func close() {
+        synchronized(mapMtx) {
+            isClosed = true
+            for ((_, engine) in h1EngineMap) {
+                engine.close()
+            }
+            h1EngineMap.clear()
+        }
+    }
+}
+
+/**
+ * checkRequest and set content-length or transfer-encoding: chunked.
+ *
+ * if no chunked and the body length can be determined by body.size,
+ * we use the actual body length to reset the content-length;
+ * if no chunked and no content-length, an exception will be thrown.
+ *
+ * trailer section only at the end of a chunked message,
+ * see 9112 7.1.2
+ *
+ * @throws HttpException, if content-length is not in form of int64, or content-length has different values,
+ * or the last value of transfer-encoding is not "chunked", or content-length and transfer-encoding are set together,
+ * or content-length is wrong.
+ * @throws HttpException, if a field-name is not allowed in the trailers, that is field-name in TrailerExcludeList.
+ * @throws HttpException if there is a httpBody but neither content-length nor transfer-encoding be set.
+ */
+func checkRequest(request: HttpRequest) {
+    checkUserAgent(request._version, request.headers)
+    checkConnection(request.headers)
+    let chunked: Bool
+    (request.contentLength, chunked) = checkClAndTe(request.headers)
+    if (request.method == "TRACE" || request.method == "CONNECT") {
+        let length = request.contentLength ?? 0
+        if (length != 0 || chunked) {
+            throw HttpException("The ${request.method} request cannot contain content.")
+        }
+        request.contentLength = 0
+        request.headers.set("content-length", "0")
+        return
+    }
+
+    checkTrailerInHeader(request.headers, false)
+    checkTrailer(request)
+
+    checkExpect(request)
+
+    if (chunked) {
+        return
+    }
+
+    match ((request.contentLength, request.bodySize)) {
+        case (None, Some(bodyLength)) =>
+            request.contentLength = bodyLength
+            request.headers.set("content-length", bodyLength.toString())
+        case (None, None) => throw HttpException("The content-length or transfer-encoding should be set if there is a body.")
+        case (Some(contentLengthValue), Some(bodyLength)) =>
+            if (contentLengthValue > bodyLength) {
+                throw HttpException("The content-length is wrong.")
+            }
+        case _ => ()
+    }
+}
+
+/**
+ * one h1 engine only corresponds to one server
+ * this class support concurrent requests to one server,
+ * it uses pool of connNode underlying to serve different requests.
+ */
+class HttpEngine1 {
+    // configuration
+    let connector: Connector
+    let tlsConfig: ?TlsConfig
+    // max number of connections to the same server
+    let poolSize: Int64
+    let logger: Logger
+
+    // a pool of ConnNode for this client
+    //  idx == 0: plain connNode
+    //  idx == 1: tls connNode
+    let connPool: Array<ConnNodeLinkedList> = [ConnNodeLinkedList(), ConnNodeLinkedList()]
+    let connInUse: Array<ConnNodeLinkedList> = [ConnNodeLinkedList(), ConnNodeLinkedList()]
+    let connLock: Array<Mutex> = [Mutex(), Mutex()]
+    // total number of connections to one server
+    var connNum = AtomicInt64(0)
+    var isClosed = false
+
+    HttpEngine1(
+        let addrport: AddrPort,
+        let client: Client,
+        let httpClient1: HttpClient1
+    ) {
+        connector = client.connector
+        tlsConfig = client.getTlsConfig()
+        poolSize = client.poolSize
+        logger = client.logger
+    }
+
+    /**
+     * @throws HttpException if too many connections to the same server.
+     * @throws HttpException if too many 1xx responses.
+     * @throws SocketException or ConnectionException if something wrong happened in socket.
+     */
+    func sendRequest(request: HttpRequest, isToProxy: Bool, isToHttpsProxy: Bool): HttpResponse {
+        let isTls = if (request.url.scheme == "https") {
+            1
+        } else {
+            0
+        }
+        let (connNode, isFromPool) = getConn(request, isTls, isToProxy, isToHttpsProxy: isToHttpsProxy)
+        try {
+            return connNode.sendRequest(request)
+        } catch (e: ConnectionException) {
+            closeConnInUse(connNode)
+            // prevent connection in the pool is disconnected.
+            // reconnect and resend the request
+            httpLogDebug(logger, "[HttpEngine1#sendRequest] Client1_1 connection failed, reconnect and resend request")
+            reconnectSendRequest(request, isToProxy)
+        } catch (e: SocketException | TlsException) {
+            closeConnInUse(connNode)
+            if (isFromPool) {
+                httpLogDebug(logger,
+                    "[HttpEngine1#sendRequest] Client1_1 connection failed, reconnect and resend request")
+                reconnectSendRequest(request, isToProxy)
+            } else {
+                throw e
+            }
+        } catch (e: Exception) {
+            closeConnInUse(connNode)
+            throw e
+        }
+    }
+
+    private func reconnectSendRequest(request: HttpRequest, isToProxy: Bool): HttpResponse {
+        let isTls = if (request.url.scheme == "https") {
+            1
+        } else {
+            0
+        }
+        let (connNode, _) = getConn(request, isTls, isToProxy, forceNew: true)
+        try {
+            return connNode.sendRequest(request)
+        } catch (e: Exception) {
+            closeConnInUse(connNode)
+            throw e
+        }
+    }
+
+    /**
+     * get connNode if the number of connections does not
+     * reach the upper limit
+     * idx == 0: plain connNode
+     * idx == 1: tls connNode
+     */
+    private func getConn(request: HttpRequest, index: Int64, isToProxy: Bool, forceNew!: Bool = false,
+        isToHttpsProxy!: Bool = false): (ConnNode, Bool) {
+        if (forceNew) {
+            return (createNewConn(request, index, isToProxy, isToHttpsProxy: isToHttpsProxy), false)
+        }
+        if (let Some(connNode) <- tryGetConnFromPool(index)) {
+            return (connNode, true)
+        }
+        return (createNewConn(request, index, isToProxy, isToHttpsProxy: isToHttpsProxy), false)
+    }
+
+    // get a connection from pool
+    private func tryGetConnFromPool(index: Int64): ?ConnNode {
+        synchronized(connLock[index]) {
+            if (isClosed) {
+                throw HttpException("This client has already closed")
+            }
+            if (connPool[index].head.isSome()) {
+                httpLogDebug(logger, "[HttpEngine1#getConn] Client1_1 get conn from pool")
+                let connNode = connPool[index].prepop().getOrThrow()
+                // add connNode in use into connInUse
+                connInUse[index].prepend(connNode)
+                return connNode
+            }
+            return None
+        }
+    }
+
+    private func createNewConn(request: HttpRequest, index: Int64, isToProxy: Bool, isToHttpsProxy!: Bool = false): ConnNode {
+        if (isClosed) {
+            throw HttpException("This client has already closed.")
+        }
+
+        // limit the total connection number
+        if (connNum.fetchAdd(1) >= poolSize) {
+            connNum.fetchAdd(-1)
+            throw HttpException("Too many connections to the same server!")
+        }
+
+        // establish a new connection
+        let connNode: ConnNode
+        try {
+            httpLogDebug(logger, "[HttpEngine1#getConn] Client1_1 get conn new")
+            connNode = ConnNode(client, request, this, index != 0, isToProxy, isToHttpsProxy)
+        } catch (e: Exception) {
+            connNum.fetchAdd(-1)
+            throw e
+        }
+
+        // add connNode in use into connInUse
+        synchronized(connLock[index]) {
+            if (isClosed) {
+                connNum.fetchAdd(-1)
+                connNode.close()
+                throw HttpException("This client has already closed.")
+            }
+            connInUse[index].prepend(connNode)
+        }
+
+        return connNode
+    }
+
+    /**
+     * return connNode to pool
+     * the caller will call this when finish consuming the body.
+     */
+    func returnConn(connNode: ConnNode): Unit {
+        httpLogDebug(logger, "[HttpEngine1#returnConn] Client1_1 returnConn")
+        // connNode closed by client should not be returned to connPool
+        if (connNode.isClosed.load()) {
+            return
+        }
+        if (connNode.shouldClose.load()) {
+            closeConnInUse(connNode)
+            return
+        }
+        let index: Int64 = if (connNode.isTls) {
+            1
+        } else {
+            0
+        }
+        httpLogDebug(logger, "[HttpEngine1#returnConn] Client1_1 return connNode to connPool")
+        synchronized(connLock[index]) {
+            // delete the connNode from connInUse
+            connInUse[index].remove(connNode)
+            // return the connNode in connPool
+            connPool[index].prepend(connNode)
+        }
+    }
+
+    func connect(request: HttpRequest, isTls: Bool, isToHttpsProxy!: Bool = false): StreamingSocket {
+        if (isTls && tlsConfig.isNone()) {
+            throw HttpException("TLS must be configured when HTTPS requests are sent.")
+        }
+        let ips = IPAddress.resolve(addrport.addr)
+        if (ips.size == 0) {
+            throw HttpException("Failed to resolve address ${addrport.addr}.")
+        }
+        var conn = match (isToHttpsProxy) {
+            case false => connector(IPSocketAddress(ips[0], addrport.port))
+            case true => getTunnelConnector(request)
+        }
+        if (let Some(tlsConn) <- (conn as TlsConnection)) {
+            return tlsConn
+        }
+        httpLogDebug(logger,"[HttpEngine1#connect] get conn finish")
+        if (isTls) {
+            let tlsConn = getGlobalTlsKit().getTlsClient(conn, tlsConfig.getOrThrow(), session: None)
+            try {
+                tlsConn.handshake(timeout: None)
+            } catch (e: Exception) {
+                httpLogWarn(logger, "[HttpEngine1#connect] TLS handshake error, the connection is closed.")
+                tlsConn.close()
+                throw e
+            }
+            conn = tlsConn
+            httpLogDebug(logger,"[HttpEngine1#connect] handshake finish")
+        }
+        return conn
+    }
+
+    func getTunnelConnector(request: HttpRequest): StreamingSocket {
+        let headers = HttpHeaders()
+        headers.add("Host", request.url.hostName + ":" + request.url.port)
+        httpLogDebug(logger, "[HttpEngine1#getTunnelConnector] Client1_1 getTunnelConnector,https proxy:" + client.httpsProxy.toString())
+        let req = HttpRequestBuilder().connect().url(client.httpsProxy).version(HTTP1_1).setHeaders(headers).build()
+        let (resp, conn) = httpClient1.connect(req)
+        return conn.getOrThrow()
+    }
+
+    func closeConnInUse(connNode: ConnNode): Unit {
+        let index: Int64 = if (connNode.isTls) {
+            1
+        } else {
+            0
+        }
+        synchronized(connLock[index]) {
+            if (connNode.isClosed.load()) {
+                return
+            }
+            // delete the connNode from connInUse
+            connInUse[index].remove(connNode)
+            // close
+            closeConn(connNode)
+        }
+    }
+
+    func extractFromConnInUse(connNode: ConnNode): BufferedConn {
+        if (connNode.isClosed.load()) {
+            throw HttpException("This client has already closed.")
+        }
+        let index = if (connNode.isTls) {
+            1
+        } else {
+            0
+        }
+        synchronized(connLock[index]) {
+            // delete the connNode from connInUse
+            connInUse[index].remove(connNode)
+            connNum.fetchAdd(-1)
+        }
+        return connNode.conn
+    }
+
+    private func closeConn(connNode: ConnNode): Unit {
+        // close
+        connNode.close()
+        connNum.fetchAdd(-1)
+    }
+
+    func close(): Unit {
+        httpLogDebug(logger, "[HttpEngine1#close] close_begin_connNum: ${connNum.load()}")
+        for (index in 0..2) {
+            synchronized(connLock[index]) {
+                // close connNode in pool
+                while (let Some(connNode) <- connPool[index].prepop()) {
+                    closeConn(connNode)
+                }
+                // close connNode still in use
+                while (let Some(connNode) <- connInUse[index].prepop()) {
+                    closeConn(connNode)
+                    connNode.writeTimer.cancel()
+                    connNode.readTimer.cancel()
+                }
+                isClosed = true
+            }
+        }
+        httpLogDebug(logger, "[HttpEngine1#close] close_end_connNum: ${connNum.load()}")
+    }
+}
+
+class ConnNodeLinkedList {
+    var head: ?ConnNode = None
+
+    func prepend(connNode: ConnNode): Unit {
+        connNode.prev = None
+        connNode.next = head
+        if (let Some(node) <- head) {
+            node.prev = connNode
+        }
+        head = connNode
+    }
+
+    func prepop(): ?ConnNode {
+        return match (head) {
+            case None => head
+            case Some(node) =>
+                head = node.next
+                if (let Some(headNode) <- head) {
+                    headNode.prev = None
+                }
+                node.next = None
+                node
+        }
+    }
+
+    func remove(connNode: ConnNode) {
+        if (let Some(v) <- connNode.prev) {
+            v.next = connNode.next
+        } else {
+            // connNode is in first place
+            head = connNode.next
+        }
+        if (let Some(v) <- connNode.next) {
+            v.prev = connNode.prev
+        }
+        connNode.prev = None
+        connNode.next = None
+    }
+}
+
+class ConnNode <: BodyProviderConn {
+    var prev: ?ConnNode = None
+    var next: ?ConnNode = None
+
+    let shouldClose = AtomicBool(false)
+    let continueMonitor = Monitor()
+    var isClosed = AtomicBool(false)
+
+    let conn: BufferedConn
+    let logger: Logger
+    let readTimeout: Duration
+    let writeTimeout: Duration
+    var readTimer = HttpTimer.empty
+    var writeTimer = HttpTimer.empty
+    let _isReadTimeout = AtomicBool(false)
+    let _isWriteTimeout = AtomicBool(false)
+
+    var isUpgraded = false
+
+    ConnNode(
+        client: Client,
+        request: HttpRequest,
+        let h1Engine: HttpEngine1,
+        let isTls: Bool,
+        let isToProxy: Bool,
+        let isToHttpsProxy: Bool
+    ) {
+        conn = BufferedConn(h1Engine.connect(request, isTls, isToHttpsProxy: isToHttpsProxy))
+        logger = client.logger
+        readTimeout = client.readTimeout
+        writeTimeout = client.writeTimeout
+    }
+
+    public prop isReadTimeout: AtomicBool {
+        get() {
+            _isReadTimeout
+        }
+    }
+
+    prop isWriteTimeout: AtomicBool {
+        get() {
+            _isWriteTimeout
+        }
+    }
+
+    public func getBufferConn(): BufferedConn {
+        return conn
+    }
+
+    public func closeConn(): Unit {
+        h1Engine.closeConnInUse(this)
+    }
+
+    public func returnConn(): Unit {
+        h1Engine.returnConn(this)
+    }
+
+    /**
+     * @throws HttpException if too many 1xx responses.
+     * @throws HttpTimeoutException if read or write timeout.
+     * @throws SocketException or ConnectionException if something wrong happened in socket.
+     */
+    func sendRequest(request: HttpRequest): HttpResponse {
+        httpLogTrace(logger, "[ConnNode#sendRequest] Client1.1 send request.")
+        try {
+            sendRequestTimeout(request)
+        } catch (e: Exception) {
+            writeTimer.cancel()
+            readTimer.cancel()
+            throw match {
+                case isReadTimeout.load() => HttpTimeoutException(
+                    "Client1.1 read response timeout and the connection is closed.")
+                case isWriteTimeout.load() => HttpTimeoutException(
+                    "Client1.1 write request timeout and the connection is closed.")
+                case _ => e
+            }
+        }
+    }
+
+    /**
+     * @throws HttpException if too many 1xx responses.
+     * @throws SocketException or ConnectionException if something wrong happened in socket.
+     */
+    func sendRequestTimeout(request: HttpRequest): HttpResponse {
+        // check request header
+        checkUpgradeAndCloseInHeader(request)
+        // send request header
+        sendRequestHeaderTimeout(request)
+
+        // if Expect, then wait for 100 Continue
+        let expectContinuation = AtomicBool(request.expectContinuation)
+        let shouldSendBody = AtomicBool(true)
+        // send request body
+        let fut = spawn {sendRequestBodyTimeout(request, expectContinuation, shouldSendBody)}
+
+        // read response
+
+        // method is used to decide whether there is a response body
+        // the 1xx response will be discarded
+        setReadTimer(request.readTimeout ?? readTimeout)
+        var response = readResponse(request)
+        if (logger.enabled(LogLevel.DEBUG)) {
+            httpLogDebug(logger, "[ConnNode#sendRequestTimeout] Client1.1 read response ${response}")
+        }
+        // process 1xx response
+        response = process1xxResponse(response, request, expectContinuation, shouldSendBody)
+        shouldSendBody.swap(false)
+        if (expectContinuation.load()) {
+            synchronized(continueMonitor) {
+                continueMonitor.notifyAll()
+            }
+        }
+
+        // client will close the conn after reading the response message containing the "close" connection option
+        // upgrade and connect only depend on the status code
+        if (this.shouldClose.load() && !isUpgraded && request.method != "CONNECT") {
+            match (response.body) {
+                case body: HttpNormalBodyProvider =>
+                    response._body = HttpNormalBody(body)
+                    h1Engine.closeConnInUse(this)
+                case _: HttpEmptyBody => h1Engine.closeConnInUse(this)
+                case _ => ()
+            }
+        }
+        // wait until the sending is complete.
+        // when the sending fails, the sending coroutine generates a log
+        try {
+            fut.get()
+        } catch (e: SocketException) {}
+        // the connNode will be returned or closed
+        // until the caller has finished consuming the body.
+        // h1Engine.returnConn() does this
+        response.connNode = this
+        if (response.body is HttpEmptyBody) {
+            if (isUpgraded || request.method == "CONNECT") {
+                httpLogDebug(logger, "[ConnNode#sendRequestTimeout] connection was not returned to connPool")
+            } else {
+                h1Engine.returnConn(this)
+            }
+        }
+        return response
+    }
+
+    private func checkUpgradeAndCloseInHeader(request: HttpRequest): Unit {
+        // isUpgraded will be true if the HttpRequest is a request for upgrading to WebSocket.
+        // see Client.send(req: HttpRequest)
+        if (!request.headers.get("upgrade").isEmpty()) {
+            isUpgraded = true
+        }
+        if (let Some(values) <- request.headers.getInternal("connection")) {
+            if (values.splitAnyMatch(SYMBOL_COMMA, "close")) {
+                shouldClose.store(true)
+            }
+        }
+    }
+
+    private func sendRequestHeaderTimeout(request: HttpRequest): Unit {
+        let bufferBuilder = StringBuilder()
+        bufferBuilder.append(request.method)
+        bufferBuilder.append(r' ')
+        bufferBuilder.append(requestTarget(request))
+        bufferBuilder.append(r' ')
+        bufferBuilder.append(request.version.toString())
+        bufferBuilder.append("\r\n")
+        bufferBuilder.append(toHeaderString(request.headers))
+
+        let headerSize = bufferBuilder.size
+        // send request line and headers
+        // SocketException means the conn is closed by the server,
+        // client should reconnect the server and resend the request again
+        httpLogDebug(logger, "[ConnNode#sendRequestHeaderTimeout] Client1.1 send request header")
+        setWriteTimer(request.writeTimeout ?? writeTimeout)
+        conn.write(unsafe { bufferBuilder.toString().rawData().slice(0, headerSize) })
+    }
+
+    private func sendRequestBodyTimeout(
+        request: HttpRequest,
+        expectContinuation: AtomicBool,
+        shouldSendBody: AtomicBool
+    ): Unit {
+        // wait until 100 continue or final response
+        if (expectContinuation.load()) {
+            synchronized(continueMonitor) {
+                continueMonitor.wait(timeout: Duration.second)
+            }
+        }
+        // send message body
+        if (shouldSendBody.load()) {
+            httpLogDebug(logger, "[ConnNode#sendRequestTimeout] Client1.1 send request body")
+            try {
+                sendBody(request)
+            } catch (e: SocketException | TlsException) {
+                httpLogWarn(logger, "[ConnNode#sendRequestTimeout] Client1.1 send body failed, since ${e.message}")
+            }
+        }
+        writeTimer.cancel()
+    }
+
+    private func process1xxResponse(
+        initResponse: HttpResponse,
+        request: HttpRequest,
+        expectContinuation: AtomicBool,
+        shouldSendBody: AtomicBool
+    ): HttpResponse {
+        var response = initResponse
+        var countUnfinalResponses = 0
+        while (response.status / 100 == 1) {
+            countUnfinalResponses++
+            // treat 101 as a terminal status
+            if (response.status == 101) {
+                break
+            }
+            if (countUnfinalResponses > MAXUNFINALRESPONSES) {
+                shouldSendBody.swap(false)
+                throw HttpException("Too many 1xx responses.")
+            }
+            // to send body
+            if (expectContinuation.load() && response.status == 100) {
+                expectContinuation.swap(false)
+                synchronized(continueMonitor) {
+                    continueMonitor.notifyAll()
+                }
+            }
+            // a 1xx response is terminated by the end of the header section
+            // it cannot contain content or trailers.
+            // RFC9110 15.2.
+            // there is no need to worry about the body on the connection
+            response = readResponse(request)
+            if (logger.enabled(LogLevel.DEBUG)) {
+                httpLogDebug(logger, "[ConnNode#sendRequestTimeout] Client1.1 read response ${response}")
+            }
+        }
+        return response
+    }
+
+    private func setWriteTimer(writeTimeout: Duration) {
+        writeTimer = HttpTimer(
+            start: writeTimeout,
+            task: {
+                =>
+                if (isClosed.load()) {
+                    return
+                }
+                httpLogWarn(logger, "[ConnNode#sendRequestTimeout] Client1.1 write request timeout")
+                isWriteTimeout.swap(true)
+                h1Engine.closeConnInUse(this)
+            }
+        )
+    }
+
+    private func setReadTimer(readTimeout: Duration) {
+        readTimer = HttpTimer(
+            start: readTimeout,
+            task: {
+                =>
+                if (isClosed.load()) {
+                    return
+                }
+                httpLogWarn(logger, "[ConnNode#sendRequestTimeout readTimer] Client1.1 read response timeout")
+                isReadTimeout.swap(true)
+                h1Engine.closeConnInUse(this)
+            }
+        )
+    }
+
+    private func requestTarget(request: HttpRequest): StringBuilder {
+        // the request target format depends on both the method being requested and
+        // whether the request is to a proxy.
+        // RFC 9112 3.2.
+        let requestTarget = StringBuilder()
+        // The "authority-form" of request-target is only used for CONNECT requests.
+        // It consists of only the uri-host and port number of the tunnel destination,
+        // separated by a colon(":").
+        // RFC 9112 3.2.3.
+        if (request.method == "CONNECT") {
+            // authority-form
+            if (!request.headers.get("Host").isEmpty()) {
+                requestTarget.append(request.headers.getFirst("Host") ?? "")
+            } else {
+                requestTarget.append(request.url.hostName)
+                if (request.url.port.isEmpty()) {
+                    if (request.url.scheme == "https") {
+                        requestTarget.append(":443")
+                    } else if (request.url.scheme == "http") {
+                        requestTarget.append(":80")
+                    }
+                } else {
+                    requestTarget.append(":")
+                    requestTarget.append(request.url.port)
+                }
+            }
+
+        // when a client wishes to request OPTIONS for the server as a whole, as opposed to a specific
+        // named resource of that server, the client send only "*" (%x2A) as the request-target.
+        // for example
+        // OPTIONS http://www.example.org:8001 HTTP/1.1
+        // should be forwarded by the final proxy as
+        // OPTIONS * HTTP/1.1
+        // Host: www.example.org:8001
+        // RFC 9112 3.2.4.
+        } else if (request.method == "OPTIONS") {
+            // asterisk-form
+            if (request.url.path.isEmpty()) {
+                requestTarget.append(ASTERISK)
+            } else {
+                requestTarget.append(canonicalPath(request.url.path))
+            }
+
+        // when making a request to a proxy, other than a CONNECT or server-wide OPTIONS request,
+        // a client send the target URI in "absolute-form" as the request-target
+        } else if (isToProxy) {
+            // absolute-form
+            requestTarget.append(request.url.toString())
+        // origin-form
+        // absolute-path ["?" query]
+        } else {
+            requestTarget.append(canonicalPath(request.url.path))
+            if (let Some(query) <- request.url.query) {
+                requestTarget.append("?")
+                requestTarget.append(query)
+            }
+            if (let Some(fragment) <- request.url.fragment) {
+                requestTarget.append("#")
+                requestTarget.append(fragment)
+            }
+        }
+        return requestTarget
+    }
+
+    /**
+     * read response from connection
+     *
+     * @throws SocketException or ConnectionException if something wrong happened in socket.
+     */
+    private func readResponse(request: HttpRequest): HttpResponse {
+        // response-message = status-line CRLF
+        //                    *( field-line CRLF )
+        //                    CRLF
+        //                    [ message-body ]
+        let responseBuilder = HttpResponseBuilder()
+        // status-line = HTTP-version SP status-code SP [ reason-phrase ]
+        let (version, statusCode) = readStatusLine()
+        // field-line  = field-name ":" OWS field-value OWS
+        let headers = readHeaders()
+        if (let Some(values) <- headers.getInternal("connection")) {
+            if (values.splitAnyMatch(b',', "close")) {
+                shouldClose.store(true)
+            }
+            if (version == "HTTP/1.0" && !values.splitAnyMatch(b',', "keep-alive")) {
+                shouldClose.store(true)
+            }
+        } else if (version == "HTTP/1.0") {
+            shouldClose.store(true)
+        }
+
+        let resp = responseBuilder
+            .version(Protocol.fromString(version))
+            .status(statusCode)
+            .setHeaders(headers)
+            .request(request)
+            .build()
+        // message-body = *OCTET
+        resp._body = getBodyProvider(request.method, resp)
+        return resp
+    }
+
+    private func readStatusLine(): (String, UInt16) {
+        // although the line terminator for the start-line and fields is the sequence CRLF,
+        // a recipient may recognize a single LF as a line terminator and ignore any preceding CR
+        // a bare CR is a CR character not immediately followed by LF,
+        // a recipient of such a bare CR must consider that element to be invalid.
+        // see RFC 9112 2.2.
+        let statusLine = readLine()
+        return parseAndCheckResponseLine(statusLine)
+    }
+
+    private func readHeaders(): HttpHeaders {
+        // HTTP does not place a predefined limit on the length of each field line,
+        // field value, or on the length of a header or trailer section as a whole
+        // RFC 9112 5.4.
+        let header = HttpHeaders()
+
+        // although the line terminator for the start-line and fields is the sequence CRLF,
+        // a recipient may recognize a single LF as a line terminator and ignore any preceding CR
+        // a bare CR is a CR character not immediately followed by LF,
+        // a recipient of such a bare CR must consider that element to be invalid.
+        // RFC 9112 2.2.
+        var line = readLine()
+        while (!line.isEmpty()) {
+            // field-line       = field-name ":" OWS field-value OWS
+            // field-name       = token
+            // field-value      = *field-content
+            // field-content    = field-vchar
+            //                    [ 1*( SP / HTAB / field-vchar ) field-vchar ]
+            // field-vchar      = VCHAR / obs-text
+            // VCHAR            = %x21-7E
+            // obs-text         = %x80-FF
+            // RFC 9110 5.5.
+            let (name, value) = parseAndCheckHeaderLine(line, false)
+            header.add(name, value)
+            line = readLine()
+        }
+        return header
+    }
+
+    private func readLine(): Str {
+        let line = conn.readLine()
+        if (!line.byteMatches({byte => return byte != CR})) {
+            throw HttpException("The status line or header section can not contain raw CR.")
+        }
+        return line
+    }
+
+    /**
+     * get httpBody
+     * the presence of a message body in a response depends on both
+     * the request method to which it is responding and the response status code.
+     * RFC 9112 6.
+     */
+    private func getBodyProvider(method: String, response: HttpResponse): InputStream {
+        let statusCode = response.status
+        let headers = response.headers
+        // any 2xx response to a CONNECT request implies that the connection will become
+        // a tunnel immediately after the empty line that concludes the header fields.
+        // a client must ignore any Content-Length or Transfer-Encoding header fields.
+        if (method == "CONNECT" && statusCode / 100 == 2) {
+            readTimer.cancel()
+            headers.del("transfer-encoding")
+            headers.del("content-length")
+            return HttpEmptyBody.INSTANCE
+        }
+        // any response to a HEAD request and any response with a 1xx, 204, or 304
+        // status code is always terminated by the first empty line after the header fields,
+        // regardless of the header field present in the message, and thus cannot contain
+        // a message body or trailer section.
+        // received in such a message.
+        // RFC 9112 6.3.1. and 6.3.2.
+        // return connNode when no body
+        if (method == "HEAD" || (statusCode / 100 == 1) || statusCode == 204 || statusCode == 304) {
+            readTimer.cancel()
+            return HttpEmptyBody.INSTANCE
+        }
+
+        // body length and chunked
+        // bodyLength > 0       bodyType>0,     means content-length,
+        // isChunked == true    bodyType==None, means chunked,
+        // otherwise            bodyType==-1,   means a response message without a declared message body length
+        let bodyLength: ?Int64
+        let isChunked: Bool
+        var bodyType: ?Int64
+        (bodyLength, isChunked) = checkClAndTe(headers)
+        bodyType = bodyLength
+        if (!isChunked && bodyType == None) {
+            bodyType = -1
+        }
+
+        // read response body from conn,
+        // the connNode will be returned or closed when user finish reading the body
+        match (bodyType) {
+            case Some(value) =>
+                if (value == -1) {
+                    response._bodySize = None
+                    return ResponseBodyProviderUtilConnectionClose(this, readTimer)
+                }
+                // Content-Length = 0
+                if (value == 0) {
+                    readTimer.cancel()
+                    return HttpEmptyBody.INSTANCE
+                }
+                response._bodySize = value
+                return HttpNormalBodyProvider(this, value, readTimer)
+            case None =>
+                checkTrailerInHeader(response.headers, false)
+                response._bodySize = None
+                return HttpChunkedBodyProvider(this, response, readTimer)
+        }
+    }
+
+    /**
+     * @throws SocketException if something wrong happened in socket.
+     */
+    private func sendBody(request: HttpRequest) {
+        let body = request.body
+        // request.contentLength: see checkRequest
+        // None: send body in chunked
+        // Some: send body in Content-Length
+        match (request.contentLength) {
+            // chunked
+            // chunked-body    = *chunk
+            //                   last-chunk
+            //                   trailer-section
+            //                   CRLF
+            // chunk           = chunk-size CRLF
+            // last-chunk      = 1*("0") CRLF
+            // trailer-section = *( field-line CRLF )
+            case None => writeBodyByChunk(body, request.trailers)
+            case Some(contentLen) => writeBodyByCT(body, contentLen)
+        }
+    }
+
+    private func writeBodyByChunk(body: InputStream, trailers: HttpHeaders) {
+        match (body) {
+            case rb: HttpRawBody =>
+                writeChunks(rb.rawBody)
+                writeLastChunk(trailers)
+            case _ =>
+                if (let Some(bb) <- (body as HttpBufferedBody)) {
+                    writeChunks(bb.bytes)
+                }
+                let data = Array<Byte>(CHUNK_SIZE, repeat: 0)
+                var readLen = body.read(data)
+                while (readLen > 0) {
+                    writeChunks(data.slice(0, readLen))
+                    readLen = body.read(data)
+                }
+                writeLastChunk(trailers)
+        }
+    }
+
+    private func writeChunks(body: Array<Byte>): Unit {
+        var sendLen = 0
+        while (sendLen < body.size) {
+            let len = min(CHUNK_SIZE, body.size - sendLen)
+            writeChunk(body.slice(sendLen, len))
+            sendLen += len
+        }
+    }
+
+    private func writeChunk(buf: Array<Byte>): Unit {
+        let size = buf.size.toHexString()
+        // no chunk-extension
+        conn.write(size)
+        conn.write("\r\n")
+        if (buf.size > 0) {
+            conn.write(buf)
+            conn.write("\r\n")
+        }
+    }
+
+    private func writeLastChunk(trailers: HttpHeaders): Unit {
+        // write last-chunk
+        conn.write("0\r\n")
+        // write trailers
+        conn.write(trailers.toString())
+    }
+
+    private func writeBodyByCT(body: InputStream, contentLen: Int64): Unit {
+        if (contentLen == 0) {
+            return
+        }
+        match (body) {
+            case rb: HttpRawBody => conn.write(rb.rawBody.slice(0, contentLen))
+            case _ =>
+                var remainLen = contentLen
+                if (let Some(bb) <- (body as HttpBufferedBody)) {
+                    conn.write(bb.bytes)
+                    remainLen -= bb.length
+                    if (remainLen == 0) {
+                        return
+                    }
+                }
+                let data = Array<Byte>(contentLen, repeat: 0)
+                while (true) {
+                    let readLen = body.read(data.slice(0, remainLen))
+                    if (readLen <= 0 || remainLen < readLen) {
+                        shouldClose.store(true)
+                        httpLogError(logger, "[ConnNode#sendBody] the content-length is wrong")
+                        return
+                    }
+                    conn.write(data.slice(0, readLen))
+                    remainLen -= readLen
+                    if (remainLen == 0) {
+                        return
+                    }
+                }
+        }
+    }
+
+    /**
+     * close the connection
+     */
+    func close(): Unit {
+        if (!isClosed.swap(true)) {
+            conn.close()
+        }
+    }
+}
+
+func toHeaderString(httpHeaders: HttpHeaders): StringBuilder {
+    let stringBuilder = StringBuilder()
+    let host = httpHeaders.getFirst("host") ?? throw HttpException("Request headers must contain host field.")
+    // a user agent that sends Host should send it as the
+    // first field in the header section of a request
+    stringBuilder.append("host: ")
+    stringBuilder.append(host)
+    stringBuilder.append("\r\n")
+    httpHeaders.del("host")
+    httpHeaders.writeTo(stringBuilder)
+    httpHeaders.set("host", host)
+    return stringBuilder
+}
+
+class ResponseBodyProviderUtilConnectionClose <: InputStream & Resource {
+    ResponseBodyProviderUtilConnectionClose(let connNode: ConnNode, let timer: HttpTimer) {}
+    // if there is data in the cache,
+    // the value is returned immediately
+    public func read(buf: Array<Byte>): Int64 {
+        if (connNode.conn.isClosed()) {
+            return 0
+        }
+
+        try {
+            return connNode.conn.read(buf)
+        } catch (e: Exception) {
+            connNode.h1Engine.closeConnInUse(connNode)
+            if (e is ConnectionException) { // socket is closed
+                return 0
+            }
+            throw e
+        }
+    }
+
+    public func close(): Unit {
+        timer.cancel()
+        connNode.h1Engine.closeConnInUse(connNode)
+    }
+
+    public func isClosed(): Bool {
+        connNode.getBufferConn().isClosed()
+    }
+}

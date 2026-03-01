@@ -1,0 +1,192 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package stdx.net.http
+
+open class DefaultQueue<T> {
+    protected var buffer: Array<Option<T>>
+    protected var rear: Int64 = -1
+    protected var front: Int64 = -1
+
+    protected var size_: Int64 = 0
+    protected var capacity_: Int64
+
+    protected var evictEnable: Bool = false
+    protected var evictCount: Int64 = 0
+
+    init() {
+        this(0)
+    }
+
+    init(capacity: Int64) {
+        if (capacity < 0) {
+            throw IllegalArgumentException("Failed to init queue, invalid capacity: ${capacity}.")
+        }
+
+        buffer = Array<Option<T>>(capacity, repeat: Option<T>.None)
+        capacity_ = capacity
+    }
+
+    prop size: Int64 {
+        get() {
+            return size_
+        }
+    }
+
+    prop capacity: Int64 {
+        get() {
+            return capacity_
+        }
+    }
+
+    /**
+     * insert element to the rear
+     */
+    func enqueue(element: T): Bool {
+        if (!prepareForEnqueue()) {
+            return false
+        }
+
+        rear = adjustment(rear + 1)
+        buffer[rear] = element
+        size_++
+        return true
+    }
+
+    /**
+     * remove element from the front
+     */
+    func dequeue(): Option<T> {
+        if (isEmpty()) {
+            return None
+        }
+
+        let v = buffer[front]
+        match {
+            case size == 1 => reset()
+            case _ =>
+                front = adjustment(front + 1)
+                size_--
+        }
+        return v
+    }
+
+    // get from front
+    func get(index: Int64): Option<T> {
+        if (isEmpty() || index >= size || index < 0) { // empty or out of bound
+            return None
+        }
+
+        let pos = adjustment(front + index)
+        return buffer[pos]
+    }
+
+    // get from rear
+    func latest(index: Int64): Option<T> {
+        if (isEmpty() || index >= size || index < 0) { // empty or out of bound
+            return None
+        }
+
+        let pos = adjustment(rear - index)
+        return buffer[pos]
+    }
+
+    func isEmpty(): Bool {
+        return size == 0
+    }
+
+    func isFull(): Bool {
+        return size == capacity
+    }
+
+    /**
+     * Suppose 0<= newPosition < capacity * 2
+     */
+    protected func adjustment(newPosition: Int64): Int64 {
+        return (newPosition + buffer.size) % buffer.size
+    }
+
+    protected func grow(newCapacity: Int64): Unit {
+        evictCount = 0
+        return match {
+            case newCapacity < capacity => throw IllegalArgumentException("Reduce size is not supported.")
+            case newCapacity > capacity => growCapacity(newCapacity)
+            case _ => ()
+        }
+    }
+
+    private func prepareForEnqueue(): Bool {
+        if (isFull()) { // need grow or evict or reject
+            match {
+                case evictEnable => match {
+                    case capacity == 0 => return false // no capacity to evict
+                    case _ =>
+                        front = adjustment(front + 1) // evict from front
+                        size_--
+                        evictCount++
+                }
+                case _ => grow(nextCapacity()) // grow queue to add element
+            }
+        }
+
+        if (isEmpty()) { // it's the first
+            front = 0
+            rear = -1
+        }
+
+        return true
+    }
+
+    private func growCapacity(newCapacity: Int64): Unit {
+        let newBuffer = Array<Option<T>>(newCapacity, {
+            i => if (i < size) {
+                get(i).getOrThrow()
+            } else {
+                None
+            }
+        })
+        buffer = newBuffer
+        capacity_ = newCapacity
+
+        if (size > 0) {
+            front = 0
+            rear = size - 1
+        }
+    }
+
+    private func reset(): Unit {
+        rear = -1
+        front = -1
+        size_ = 0
+    }
+
+    private func nextCapacity(): Int64 {
+        var v: Int64 = capacity
+        var n: Int64 = 0
+
+        while (v != 0) {
+            v >>= 1
+            n++
+        }
+        return 1 << n
+    }
+}

@@ -1,0 +1,357 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package stdx.net.http
+
+import std.time.*
+import std.collection.*
+
+/**
+ * let isTokenTableArr: Array<Rune> = [
+ *   r'!', r'#', r'$', r'%', r'&', r'\'', r'*', r'+', r'-', r'.',
+ *   r'0', r'1', r'2', r'3', r'4', r'5', r'6', r'7', r'8', r'9',
+ *   r'A', r'B', r'C', r'D', r'E', r'F', r'G', r'H', r'I', r'J', r'K', r'L', r'M', r'N', r'O', r'P', r'Q', r'R', r'S', r'T', r'U', r'V', r'W', r'X', r'Y', r'Z',
+ *   r'^', r'_', r'`',
+ *   r'a', r'b', r'c', r'd', r'e', r'f', r'g', r'h', r'i', r'j', r'k', r'l', r'm', r'n', r'o', r'p', r'q', r'r', r's', r't', r'u', r'v', r'w', r'x', r'y', r'z',
+ *   r'|', r'~'
+ * ]
+ * token        = 1*tchar
+ * tchar        = "!" / "#" / "$" / "%" / "&" / "'" / "*"
+ *              / "+" / "-" / "." / "^" / "_" / "`" / "|" / "~"
+ *              / DIGIT / ALPHA
+ *              ; any VCHAR, except delimiters
+ * RFC 9110 5.6.2.
+ * the ISTOKENTABLE come from isTokenTableArr
+ */
+let ISTOKENTABLE: Array<Bool> = [false, false, false, false, false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+    false, false, false, false, false, true, false, true, true, true, true, true, false, false, true, true, false, true,
+    true, false, true, true, true, true, true, true, true, true, true, true, false, false, false, false, false, false,
+    false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true,
+    true, true, true, true, true, true, true, true, false, false, false, true, true, true, true, true, true, true, true,
+    true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true,
+    true, true, false, true, false, true]
+
+public class Cookie {
+    var _cookieName: String
+    var _cookieValue: String
+    // attributes
+    var _expires: ?DateTime
+    var _maxAge: ?Int64
+    var _domain: String
+    var _path: String
+    var _secure: Bool
+    var _httpOnly: Bool
+    // extension-av = <any CHAR except CTLs or ";">
+    // notice that attributes with unrecognized attribute-names are ignored
+    // RFC 6265 5.2.
+    var _others = ArrayList<String>()
+
+    /**
+     * construct a cookie, do some to check
+     * parameters see RFC 6265 4.1.1.
+     *
+     * @param name      cookie-name
+     * @param value     cookie-value
+     * @param expires   expires-av
+     * @param maxAge    max-age-av
+     * @param domain    domain-av
+     * @param path      path-av
+     * @param secure    secure-av
+     * @param httpOnly  httponly-av
+     * @return a cookie instance.
+     *
+     * @throws IllegalArgumentException if name, value, expires, maxAge, domain or path is invalid
+     */
+    public init(name: String, value: String, expires!: ?DateTime = None, maxAge!: ?Int64 = None, domain!: String = "",
+        path!: String = "", secure!: Bool = false, httpOnly!: Bool = false) {
+        // cookie-name = token
+        if (!isCookieNameValid(name)) {
+            throw IllegalArgumentException("Invalid cookie name.")
+        }
+        // cookie-value = *cookie-octet / ( DQUOTE *cookie-octet DQUOTE )
+        if (!isCookieValueValid(value)) {
+            throw IllegalArgumentException("Invalid cookie value.")
+        }
+        _cookieName = name
+        _cookieValue = value
+        // expires-av
+        if (let Some(expiresTime) <- expires) {
+            if (!isCookieExpiresValid(expiresTime.year)) {
+                throw IllegalArgumentException("Invalid cookie expires.")
+            }
+        }
+        _expires = expires
+        // max-age-av
+        // Max-Age        = non-zero-digit *DIGIT
+        // non-zero-digit = %x31-39
+        //                ; digits 1 through 9
+        // DIGIT          = %x30-39
+        //                ; digits 0 through 9
+        if (let Some(maxAgeValue) <- maxAge) {
+            if (maxAgeValue <= 0) {
+                throw IllegalArgumentException("Invalid cookie maxAge.")
+            }
+        }
+        _maxAge = maxAge
+        // <domain> ::= <subdomain> | " "
+        if (!isCookieDomainValid(domain)) {
+            throw IllegalArgumentException("Invalid cookie domain.")
+        }
+        _domain = domain
+        // path-value = <any CHAR except CTLs or ";">
+        if (!isCookiePathValid(path)) {
+            throw IllegalArgumentException("Invalid cookie path.")
+        }
+        _path = path
+        _secure = secure
+        _httpOnly = httpOnly
+    }
+
+    public prop cookieName: String {
+        get() {
+            _cookieName
+        }
+    }
+    public prop cookieValue: String {
+        get() {
+            _cookieValue
+        }
+    }
+    public prop expires: ?DateTime {
+        get() {
+            _expires
+        }
+    }
+    public prop maxAge: ?Int64 {
+        get() {
+            _maxAge
+        }
+    }
+    public prop domain: String {
+        get() {
+            _domain
+        }
+    }
+    public prop path: String {
+        get() {
+            _path
+        }
+    }
+    public prop secure: Bool {
+        get() {
+            _secure
+        }
+    }
+    public prop httpOnly: Bool {
+        get() {
+            _httpOnly
+        }
+    }
+    public prop others: ArrayList<String> {
+        get() {
+            _others
+        }
+    }
+
+    /*
+     * @return set-cookie string which is used in response's Set-Cookie header.
+     */
+    public func toSetCookieString(): String {
+        var cookieStringBuilder: StringBuilder = StringBuilder()
+        cookieStringBuilder.append(cookieName)
+        cookieStringBuilder.append("=")
+        // Processing value
+        cookieStringBuilder.append(cookieValue)
+        // Processing expires:DateTime
+        if (let Some(expiresValue) <- expires) {
+            cookieStringBuilder.append("; Expires=")
+            // The returned format is as follows: Thu, 10 Feb 2022 00:00:00 localtime
+            cookieStringBuilder.append(expiresValue.format(DateTimeFormat.RFC1123))
+        }
+        // Processing maxAge
+        if (let Some(maxAgeValue) <- maxAge) {
+            cookieStringBuilder.append("; Max-Age=")
+            cookieStringBuilder.append(maxAgeValue.toString())
+        }
+        // Processing domain
+        if (!domain.isEmpty()) {
+            var domainString = domain
+            if (domain[0] == b'.') {
+                domainString = domainString[1..]
+            }
+            cookieStringBuilder.append("; Domain=")
+            cookieStringBuilder.append(domainString)
+        }
+        // Processing path
+        if (!path.isEmpty()) {
+            cookieStringBuilder.append("; Path=")
+            cookieStringBuilder.append(path)
+        }
+        // Processing secure
+        if (secure) {
+            cookieStringBuilder.append("; Secure")
+        }
+        // Processing httpOnly
+        if (httpOnly) {
+            cookieStringBuilder.append("; HttpOnly")
+        }
+        return cookieStringBuilder.toString()
+    }
+}
+
+/**
+ * cookie-name = token
+ */
+func isCookieNameValid(name: String): Bool {
+    if (name.isEmpty()) {
+        return false
+    }
+    // if all characters in the string are within the range of ISTOKENTABLE, true is returned
+    return isTokenString(name)
+}
+
+func isTokenString(str: String): Bool {
+    for (byte in str) {
+        if (!isTokenByte(byte)) {
+            return false
+        }
+    }
+    return true
+}
+
+/**
+ * token        = 1*tchar
+ * tchar        = "!" / "#" / "$" / "%" / "&" / "'" / "*"
+ *              / "+" / "-" / "." / "^" / "_" / "`" / "|" / "~"
+ *              / DIGIT / ALPHA
+ *              ; any VCHAR, except delimiters
+ * RFC 9110 5.6.2.
+ */
+func isTokenByte(b: Byte): Bool {
+    let n = Int64(b)
+    return n >= 0 && n < ISTOKENTABLE.size && ISTOKENTABLE[n]
+}
+
+/**
+ * cookie-value = *cookie-octet / ( DQUOTE *cookie-octet DQUOTE )
+ */
+func isCookieValueValid(value: String): Bool {
+    let v = if (value.size >= 2 && value[0] == b'"' && value[value.size - 1] == b'"') {
+        value[1..value.size - 1]
+    } else {
+        value
+    }
+    for (byte in v) {
+        if (!isCookieValueCharValid(byte)) {
+            return false
+        }
+    }
+    return true
+}
+
+/**
+ * cookie-value = *cookie-octet / ( DQUOTE *cookie-octet DQUOTE )
+ * cookie-octet = %x21 / %x23-2B / %x2D-3A / %x3C-5B / %x5D-7E
+ * ; US-ASCII characters excluding CTLs,
+ * ; whitespace DQUOTE, comma, semicolon,
+ * ; and backslash
+ * RFC 6265 4.1.1.
+ */
+func isCookieValueCharValid(byte: UInt8): Bool {
+    return 0x21 <= byte && byte < 0x7f && byte != 0x22 && byte != 0x2c && byte != 0x3b && byte != 0x5c
+}
+
+/**
+ * Check whether expires value of the cookie is valid
+ * day-of-month-value, hour-value, minute-value and second-value
+ * already checked by DateTime
+ * this function only check year-value, the year-value should more than 1600
+ * RFC 6265 5.1.1.
+ */
+func isCookieExpiresValid(year: Int64): Bool {
+    return year >= 1601
+}
+
+/**
+ * Check whether domain name of the cookie is valid.
+ * <domain>      ::= <subdomain> | " "
+ * <subdomain>   ::= <label> | <subdomain> "." <label>
+ * <label>       ::= <letter> [ [ <ldh-str> ] <let-dig> ]
+ * <ldh-str>     ::= <let-dig-hyp> | <let-dig-hyp> <ldh-str>
+ * <let-dig-hyp> ::= <let-dig> | "-"
+ * <let-dig>     ::= <letter> | <digit>
+ * <letter>      ::= any one of the 52 alphabetic characters A through Z in
+ *                   upper case and a through z in lower case
+ * <digit>       ::= any one of the ten digits 0 through 9
+ * RFC 1035 2.3.1.
+ * the restriction on the first character is relaxed to allow either a letter or a digit
+ * RFC 1123 2.1.
+ *
+ * in short, labels must start with a letter or digit, end with letter or digit, and have as
+ * interior characters only letters, digits, and hyphen
+ * names must be 255 characters or less
+ * labels must be 63 characters or less
+ */
+func isCookieDomainValid(domainStr: String): Bool {
+    if (domainStr.isEmpty()) {
+        return true
+    }
+    let domainString = if (domainStr[0] == b'.') {
+        domainStr[1..]
+    } else {
+        domainStr
+    }
+    if (domainString.size > 255) {
+        return false
+    }
+    let domainList = domainString.split(".")
+    for (domain in domainList) {
+        if (domain.isEmpty() || domain.size > 63) {
+            return false
+        }
+        if (domain.startsWith("-") || domain.endsWith("-")) {
+            return false
+        }
+        for (byte in domain) {
+            if (!(byte.isAsciiNumberOrLetter() || byte == b'-')) {
+                return false
+            }
+        }
+    }
+    return true
+}
+
+/**
+ * path-av = "Path=" path-value
+ * path-value = <any CHAR except CTLs or ";">
+ * CHAR (any [USASCII] character)
+ * RFC 6265 4.1.1.
+ */
+func isCookiePathValid(path: String): Bool {
+    for (byte in path) {
+        if (!byte.isAscii() || byte.isAsciiControl() || byte == SEMICOLON) {
+            return false
+        }
+    }
+    return true
+}

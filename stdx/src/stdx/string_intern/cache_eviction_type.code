@@ -1,0 +1,27 @@
+/*
+ *  Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *  This source file is part of the Codira project, licensed under Apache-2.0
+ *  with Runtime Library Exception.
+ *
+ *  See https://cangjie-lang.cn/pages/LICENSE for license information.
+ */
+
+/**
+ * @file i_cache_config.code
+ * @brief Interface for Defining Cache Object Attributes
+ *
+ */
+
+package stdx.string_intern
+
+/**
+ * @brief  Cache Evicting Algorithm Type
+ */
+enum CacheEvictionType {
+    | LRU
+    | FIFO
+    | DEFAULT
+    | Empty
+    | LFU
+    | WTinyLFU
+}

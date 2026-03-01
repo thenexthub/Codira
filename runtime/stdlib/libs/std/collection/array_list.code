@@ -1,0 +1,2304 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This source file is part of the Codira project, licensed under Apache-2.0
+ * with Runtime Library Exception.
+ *
+ * See https://cangjie-lang.cn/pages/LICENSE for license information.
+ */
+
+/**
+ * @file
+ *
+ * This file defines ArrayList and related classes.
+ */
+package std.collection
+
+import std.math.*
+
+/**
+ * ArrayList-based Iterator.
+ *
+ * @since 0.18.2
+ */
+class ArrayListIterator<T> <: Iterator<T> {
+    private var myPosition: Int64 = 0
+    private let myData: ArrayList<T>
+    private let initVersion: Int64
+
+    /**
+     * Initializing ArrayListIterator.
+     *
+     * @param data - data of ArrayList<T>.
+     *
+     * @since 0.18.2
+     */
+    @Frozen
+    init(data: ArrayList<T>) {
+        myData = data
+        initVersion = data.myVersion
+    }
+
+    /**
+     * Returns the next element in the iteration.
+     *
+     * @return Option<T>.
+     *
+     * @throws ConcurrentModificationException if initVersion is not equal to myData.myVersion.
+     *
+     * @since 0.18.2
+     */
+    @Frozen
+    @OverflowWrapping
+    public func next(): Option<T> {
+        if (myData.myVersion != initVersion) {
+            throw ConcurrentModificationException()
+        }
+
+        if (this.myPosition < myData.size) {
+            var v: Option<T> = Some(unsafe { myData.myData.getUnchecked(myPosition) })
+            this.myPosition++
+            return v
+        } else {
+            return None
+        }
+    }
+}
+
+/**
+ * Resizable-array implementation of the Collection.
+ * Implements all Collection operations, and permits all elements, including null.
+ * In addition to implementing the Collection interface, this class provides methods to manipulate the size of the array that is used to store the ArrayList.
+ *
+ * @since 0.18.2
+ */
+public class ArrayList<T> <: List<T> {
+    /* Defines the ArrayList myData type as Array. */
+    var myData: Array<T>
+
+    /* Defines the ArrayList size. */
+    var mySize: Int64
+
+    /* Defines the ArrayList version. */
+    var myVersion: Int64 = 0
+
+    /* Defines the ArrayList default capacity */
+    private static const DEFAULT_CAPACITY: Int64 = 16
+
+    /* Defines the capacity of the ArrayList. */
+    @Frozen
+    public prop capacity: Int64 {
+        get() {
+            this.myData.size
+        }
+    }
+
+    /**
+     * Initializes an empty ArrayList with the default capacity.
+     *
+     * @since 0.18.2
+     */
+    @Frozen
+    public init() {
+        myData = Array<T>(DEFAULT_CAPACITY, repeat: unsafe { zeroValue<T>() })
+        mySize = 0
+    }
+
+    /**
+     * Initializes an empty ArrayList with the specified initial capacity.
+     *
+     * @param capacity incoming initialized capacity.
+     * @throws IllegalArgumentException if the capacity is less than 0.
+     * @since 0.18.2
+     */
+    @Frozen
+    public init(capacity: Int64) {
+        mySize = 0
+        let cap: Int64 = if (capacity >= 0) {
+            capacity
+        } else {
+            throw IllegalArgumentException("Invalid capacity of ArrayList: ${capacity}.")
+        }
+        myData = Array<T>(cap, repeat: unsafe { zeroValue<T>() })
+    }
+
+    /**
+     * Initializes an ArrayList with the specified initial size and specified initial function.
+     *
+     * @param size incoming initialize size.
+     * @param initElement incoming initialize initElement.
+     *
+     * @throws IllegalArgumentException if size is negative.
+     *
+     * @since 0.18.2
+     */
+    @Frozen
+    public init(size: Int64, initElement: (Int64) -> T) {
+        if (size < 0) {
+            throw IllegalArgumentException("Invalid size of ArrayList: ${size}.")
+        }
+        myData = Array<T>(size, initElement)
+        mySize = size
+    }
+
+    @Frozen
+    private init(elements: Array<T>) {
+        myData = elements.clone()
+        mySize = elements.size
+    }
+
+    /**
+     * Initializes an ArrayList with the iterable of elements initial function.
+     *
+     * @param  elements transfer the element type collection.
+     *
+     * @since 0.18.2
+     */
+    @Frozen
+    public init(elements: Collection<T>) {
+        match (elements) {
+            case arr: Array<T> => myData = arr.clone()
+            case _ => myData = elements.toArray()
+        }
+        mySize = elements.size
+    }
+
+    /**
+     * Statically generate an ArrayList with the specified Array.
+     *
+     * @param elements input element type array.
+     *
+     */
+    @Frozen
+    public static func of(elements: Array<T>): ArrayList<T> {
+        return ArrayList(elements)
+    }
+
+    /**
+     * Returns the raw data of the ArrayList.
+     *
+     * @since 0.23.3
+     *
+     */
+    @Frozen
+    public unsafe func getRawArray(): Array<T> {
+        return this.myData
+    }
+
+    /**
+     * Returns the element in this ArrayList as an Array.
+     *
+     * @throws IndexOutOfBoundsException if "mySize" is out of bound.
+     */
+    @Frozen
+    public func toArray(): Array<T> {
+        if (mySize == 0) {
+            return Array<T>()
+        }
+
+        let newArr: Array<T> = Array<T>(mySize, repeat: unsafe { zeroValue<T>() })
+        this.myData.copyTo(newArr, 0, 0, mySize)
+        return newArr
+    }
+
+    /**
+     * Gets the element at the specified location in this ArrayList.
+     *
+     * @param index indicates the index of the get interface.
+     * @return the T type of value.
+     *
+     * @since 0.18.2
+     */
+    @Frozen
+    public func get(index: Int64): ?T {
+        if (index >= mySize || index < 0) {
+            return Option<T>.None
+        }
+        return myData.get(index)
+    }
+
+    @Frozen
+    public prop first: ?T {
+        get() {
+            get(0)
+        }
+    }
+
+    @Frozen
+    public prop last: ?T {
+        get() {
+            get(mySize - 1)
+        }
+    }
+
+    /**
+     * Appends the specified element to the next index of the element at the end of the ArrayList
+     *
+     * @param element the type of the inserted element is T.
+     *
+     */
+    @Frozen
+    public func add(element: T): Unit {
+        if (mySize == myData.size) {
+            grow(mySize + 1)
+        }
+        myData[mySize] = element
+        mySize++
+        myVersion++
+    }
+
+    /**
+     * Adds all elements in the specified collection after the end element of this ArrayList.
+     *
+     * @param elements import elements of the collection type and insert them one by one.
+     * @throws ConcurrentModificationException if there are some system errors.
+     */
+    @Frozen
+    public func add(all!: Collection<T>): Unit {
+        let cSize: Int64 = all.size
+        if (cSize <= 0) {
+            return
+        }
+
+        if (mySize + cSize > myData.size) {
+            grow(mySize + cSize)
+        }
+
+        match (all) {
+            case arr: Array<T> => arr.copyTo(myData, 0, mySize, cSize)
+            case arr: ArrayList<T> => arr.myData.copyTo(myData, 0, mySize, cSize)
+            case _ =>
+                let arr = all.toArray()
+                arr.copyTo(myData, 0, mySize, cSize)
+        }
+        mySize = mySize + cSize
+        myVersion++
+    }
+
+    /**
+     * Inserts the specified element at the specified position in this ArrayList.
+     *
+     * @param index the index of the element to insert.
+     * @param element the element to insert is of type T.
+     * @throws IndexOutOfBoundsException if index is out of range.
+     * @since 0.18.2
+     */
+    @Frozen
+    @OverflowWrapping
+    public func add(element: T, at!: Int64): Unit {
+        checkRangeInsert(at)
+        if (mySize == myData.size) {
+            var newCapacity: Int64 = max(mySize + (mySize >> 1), mySize + 1)
+            let newArr: Array<T> = Array<T>(newCapacity, repeat: unsafe { zeroValue<T>() })
+            myData.copyTo(newArr, 0, 0, at)
+            myData.copyTo(newArr, at, at + 1, mySize - at)
+            myData = newArr
+        } else {
+            myData.copyTo(myData, at, at + 1, mySize - at)
+        }
+
+        myData[at] = element
+        mySize++
+        myVersion++
+    }
+
+    /**
+     * Inserts all of the elements in the specified Collection into this ArrayList, starting at the specified position.
+     *
+     * @param index the index of the element to insert.
+     * @param elements the collection type element to insert.
+     * @throws IndexOutOfBoundsException if index is out of bounds.
+     * @since 0.18.2
+     */
+    @Frozen
+    @OverflowWrapping
+    public func add(all!: Collection<T>, at!: Int64): Unit {
+        checkRangeInsert(at)
+        let cSize: Int64 = all.size
+        if (cSize <= 0) {
+            return
+        }
+
+        if (mySize + cSize > myData.size) {
+            var newCapacity: Int64 = max(mySize + (mySize >> 1), mySize + cSize)
+            let newArray: Array<T> = Array<T>(newCapacity, repeat: unsafe { zeroValue<T>() })
+            myData.copyTo(newArray, 0, 0, at)
+            myData.copyTo(newArray, at, at + cSize, mySize - at)
+            myData = newArray
+        } else {
+            myData.copyTo(myData, at, at + cSize, mySize - at)
+        }
+
+        match (all) {
+            case arr: Array<T> => arr.copyTo(myData, 0, at, cSize)
+            case arr: ArrayList<T> => arr.myData.copyTo(myData, 0, at, cSize)
+            case _ =>
+                let arr = all.toArray()
+                arr.copyTo(myData, 0, at, cSize)
+        }
+        mySize = mySize + cSize
+        myVersion++
+    }
+
+    /**
+     * Removes an element at the specified location from this ArrayList.
+     *
+     * @param index remove an Index of an Element.
+     * @throws IndexOutOfBoundsException if index is out of range.
+     * @since 0.18.2
+     */
+    @Frozen
+    public func remove(at!: Int64): T {
+        checkRange(at)
+        let len: Int64 = mySize - at - 1
+        let removed = myData[at]
+        myData.copyTo(myData, at + 1, at, len)
+        myData[mySize - 1] = unsafe { zeroValue<T>() }
+        mySize--
+        myVersion++
+        return removed
+    }
+
+    /**
+     * Removes multiple elements at the specified location from this ArrayList.
+     *
+     * @param range indexs of element to remove
+     *
+     * @throws IllegalArgumentException if range.step is not equal to 1.
+     * @throws IndexOutOfBoundsException if range.start or range.end is less than zero, or range.end is greater than mySize.
+     *
+     * @since 0.31.3
+     */
+    @Frozen
+    public func remove(range: Range<Int64>): Unit {
+        if (range.isEmpty()) {
+            return
+        }
+
+        if (range.step != 1) {
+            throw IllegalArgumentException("the value of the step should be r'1'")
+        }
+
+        var start: Int64 = range.start
+        var end: Int64 = range.end
+        if (range.isClosed) {
+            end = end + 1
+        }
+
+        // If end is omitted, end = size of this ArrayList.
+        if (!range.hasEnd) {
+            end = this.mySize
+        }
+        // If start is omitted, start = 0.
+        if (!range.hasStart) {
+            start = 0
+        }
+        if (start < 0 || end < 0 || end > this.mySize) {
+            throw IndexOutOfBoundsException(
+                "The size of ArrayList is ${this.size}, but the start is ${start} and the end is ${end}.")
+        }
+
+        let moveLen = this.mySize - end
+        let removeLen = end - start
+        this.myData.copyTo(this.myData, end, start, moveLen)
+        for (i in 0..removeLen) {
+            this.myData[mySize - i - 1] = unsafe { zeroValue<T>() }
+        }
+        mySize = mySize - removeLen
+        myVersion++
+    }
+
+    /**
+     * Removes all of the elements of this ArrayList that satisfy the given predicate.
+     *
+     * @param predicate transfer the condition for determining the deletion.
+     *
+     * @since 0.18.2
+     */
+    @Frozen
+    public func removeIf(predicate: (T) -> Bool): Unit {
+        var i: Int64 = 0
+        for (j in 0..mySize) {
+            var item = myData[j]
+            let lockVersion = myVersion
+            let needDelete = predicate(item)
+            if (myVersion != lockVersion) {
+                throw ConcurrentModificationException("The predicate cannot contain a modify operation.")
+            }
+
+            if (!needDelete) {
+                if (i != j) {
+                    myData[i] = item
+                }
+                i++
+            }
+        }
+
+        if (i < mySize) {
+            for (j in i..mySize) {
+                myData[j] = unsafe { zeroValue<T>() }
+            }
+        }
+        mySize = i
+        myVersion++
+    }
+
+    /**
+     * Removes all of the elements from this ArrayList.
+     *
+     * @since 0.18.2
+     *
+     */
+    @Frozen
+    public func clear(): Unit {
+        if (mySize > 0) {
+            let zero: T = unsafe { zeroValue<T>() }
+            /* Back-to-front traversal can reduce boundary checks and improve performance */
+            for (i in mySize - 1..=0 : -1) {
+                myData[i] = zero
+            }
+            mySize = 0
+        }
+        myVersion++
+    }
+
+    /**
+     * @description Extracts elements from the ArrayList at the specified interval and returns a new ArrayList.
+     * 
+     * @param count the selected interval.
+     * @returns a new ArrayList containing all elements extracted from the source ArrayList at intervals.
+     * @throws IllegalArgumentException, if count < 0.
+     */
+    @When[env != "ohos"]
+    public func step(count: Int64): ArrayList<T> {
+        if (count <= 0) {
+            throw IllegalArgumentException("Step count must be greater than 0!")
+        }
+
+        if (mySize <= 0) {
+            return ArrayList<T>()
+        }
+
+        let newSize: Int64 = (mySize + count - 1) / count
+        var newData: Array<T> = Array<T>(newSize, repeat: unsafe { zeroValue<T>() })
+        let oldLastIndex: Int64 = (newSize - 1) * count
+        var j: Int64 = newSize - 1
+        for (i in oldLastIndex..=0 : -count) {
+            newData[j] = myData[i]
+            j--
+        }
+        return ArrayList<T>(newData)
+    }
+
+    /**
+     * @description Extracts a specific number of elements from the array and returns a new array.
+     * 
+     * @param the number of elements to take.
+     * @returns a new ArrayList with the specified number of elements taken.
+     * @throws IllegalArgumentException, if count < 0.
+     */
+    @When[env != "ohos"]
+    public func take(count: Int64): ArrayList<T> {
+        if (count == 0) {
+            return ArrayList<T>()
+        }
+
+        if (count < 0) {
+            throw IllegalArgumentException("take count must be greater than 0!")
+        }
+        let newSize = min(count, mySize)
+
+        var newData: Array<T> = Array<T>(newSize, repeat: unsafe { zeroValue<T>() })
+        myData.copyTo(newData, 0, 0, newSize)
+        return ArrayList<T>(newData)
+    }
+
+    /**
+     * @description Skips a specific number of elements and returns a new ArrayList.
+     * 
+     * @param count the number of elements to skip.
+     * @returns a new ArrayList with the specified number of elements skipped.
+     * @throws IllegalArgumentException, if count < 0.
+     */
+    @When[env != "ohos"]
+    public func skip(count: Int64): ArrayList<T> {
+        if (count < 0) {
+            throw IllegalArgumentException("skip count must be greater than 0!")
+        }
+        if (count == 0) {
+            var newData: Array<T> = myData.clone()
+            return ArrayList<T>(newData)
+        }
+        if (mySize - count <= 0) {
+            return ArrayList<T>()
+        }
+
+        var newData: Array<T> = Array<T>(mySize - count, repeat: unsafe { zeroValue<T>() })
+        myData.copyTo(newData, count, 0, mySize - count)
+        return ArrayList<T>(newData)
+    }
+
+    /**
+     * @description Returns a new ArrayList<T> containing elements that satisfy the filtering condition.
+     * 
+     * @param predicate the given condition.
+     * @returns a new collection containing elements that satisfy the filtering condition.
+     */
+    @When[env != "ohos"]
+    public func filter(predicate: (T) -> Bool): ArrayList<T> {
+        if (mySize == 0) {
+            return ArrayList<T>()
+        }
+        var newData: Array<T> = Array<T>(mySize, repeat: unsafe { zeroValue<T>() })
+        var j = 0;
+        for (i in 0..mySize) {
+            if (predicate(myData[i])) {
+                newData[j] = myData[i]
+                j++
+            }
+        }
+        return ArrayList<T>(newData.slice(0,j))
+    }
+
+    /**
+     * @description Performs mapping on this ArrayList and returns a new ArrayList.
+     * 
+     * @param transform the given mapping function.
+     * @returns a new ArrayList.
+     */
+    @When[env != "ohos"]
+    public func map<R>(transform: (T) -> R): ArrayList<R> {
+        if (mySize == 0) {
+            return ArrayList<R>()
+        }
+        var newData: Array<R> = Array<R>(mySize, repeat: unsafe { zeroValue<R>() })
+        for (i in mySize - 1..=0 : -1) {
+            newData[i] = transform(myData[i])
+        }
+        return ArrayList<R>(newData)
+    }
+
+    /**
+     * @description Performs filtering and mapping operations simultaneously, returning a new ArrayList.
+     * 
+     * @param transform the given mapping function.
+     * @returns a new ArrayList after filtering and mapping.
+     */
+    @When[env != "ohos"]
+    public func flatMap<R>(transform: (T) -> ArrayList<R>): ArrayList<R> {
+        var newList :ArrayList<R> = ArrayList<R>()
+        for(i in 0..mySize){
+            var tempData = transform(myData[i])
+            newList.add(all: tempData)
+        }
+        return newList
+    }
+
+    /**
+     * @description Applies a transformation closure (transform) to each element in the ArrayList, where the closure returns a new ArrayList
+                    then "flattens" and concatenates all returned ArrayList into a single result ArrayList.
+     * 
+     * @param transform the given mapping function.
+     * @returns the new ArrayList after being "mapped" and "flattened".
+     */
+    @When[env != "ohos"]
+    public func filterMap<R>(transform: (T) -> ?R): ArrayList<R> {
+        if (mySize == 0) {
+            return ArrayList<R>()
+        }
+        var newData: Array<R> = Array<R>(mySize, repeat: unsafe { zeroValue<R>() })
+        var j = 0;
+        for (i in 0..mySize) {
+            match (transform(myData[i])) {
+                case Some(v) =>
+                    newData[j] = v
+                    j++
+                case None => continue
+            }
+        }
+        return ArrayList<R>(newData.slice(0,j))
+    }
+
+    /**
+     * @description Returns a new ArrayList with the given new element inserted between every two elements.
+     * 
+     * @param separator the given element.
+     * @returns a new ArrayList.
+     */
+    @When[env != "ohos"]
+    public func intersperse(separator: T): ArrayList<T> {
+        if (mySize < 2) {
+            var newData: Array<T> = myData.clone()
+            return ArrayList<T>(newData)
+        }
+        let newSize: Int64 = 2 * mySize - 1
+        var newData: Array<T> = Array<T>(newSize, repeat: unsafe { zeroValue<T>() })
+        for (i in 0..mySize - 1) {
+            newData[2 * i] = myData[i]
+            newData[2 * i + 1] = separator
+        }
+        newData[newSize - 1] = myData[mySize - 1]
+        return ArrayList<T>(newData)
+    }
+
+    /**
+     * @description Iterates over all elements and performs the given operation.
+     * 
+     * @param action the given operation function.
+     */
+    @When[env != "ohos"]
+    public func forEach(action: (T) -> Unit): Unit {
+        for (i in 0..mySize) {
+            action(myData[i])
+        }
+    }
+
+    /**
+     * @description Determine whether all elements in the ArrayList satisfy the condition.
+     * 
+     * @param predicate the given condition.
+     * @returns true if all elements in the ArrayList satisfy the condition, otherwise returns false.
+     */
+    @When[env != "ohos"]
+    public func all(predicate: (T) -> Bool): Bool {
+        for (i in 0..mySize) {
+            if (!predicate(myData[i])) {
+                return false
+            }
+        }
+        return true
+    }
+
+    /**
+     * @description Determine whether there is any element in the ArrayList that satisfies the condition.
+     * 
+     * @param predicate the given condition.
+     * @returns Whether there is any element that satisfies the condition.
+     */
+    @When[env != "ohos"]
+    public func any(predicate: (T) -> Bool): Bool {
+        for (i in 0..mySize) {
+            if (predicate(myData[i])) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /**
+     * @description Determine whether all elements in the ArrayList do not satisfy the condition.
+     * 
+     * @param predicate the given condition.
+     * @returns Whether all elements in the current ArrayList do not satisfy the condition.
+     */
+    @When[env != "ohos"]
+    public func none(predicate: (T) -> Bool): Bool {
+        for (i in 0..mySize) {
+            if (predicate(myData[i])) {
+                return false
+            }
+        }
+        return true
+    }
+
+    /**
+     * @description Computes from left to right using the specified initial value.
+     * 
+     * @param initial the given initial value of type R.
+     * @param operation the given computation function.
+     * @returns the final computed value.
+     */
+    @When[env != "ohos"]
+    public func fold<R>(initial: R, operation: (R, T) -> R): R {
+        var result: R = initial
+        for (i in 0..mySize) {
+            result = operation(result, myData[i])
+        }
+        return result
+    }
+
+    /**
+     * @description Compute from left to right using the first element as the initial value.
+     * 
+     * @param operation the given computation function.
+     * @returns the final computed value.
+     */
+    @When[env != "ohos"]
+    public func reduce(operation: (T, T) -> T): Option<T> {
+        if (mySize == 0) {
+            return None<T>
+        }
+        var result: T = myData[0]
+        for (i in 1..mySize) {
+            result = operation(result, myData[i])
+        }
+        return result
+    }
+
+    /**
+     * Reserves capacity for at least additional more elements to be inserted in this ArrayList.
+     *
+     * @param additional ensure that there is sufficient capacity. additional indicates the quantity to be added.
+     *
+     * @since 0.18.2
+     */
+    @Frozen
+    public func reserve(additional: Int64): Unit {
+        if (myData.size - mySize >= additional) {
+            return
+        }
+
+        grow(mySize + additional)
+        myVersion++
+    }
+
+    /**
+     * Incoming Sort by Condition.
+     *
+     * @param comparator transfer the condition to be judged.
+     * @param stable Whether to use stable sorting.
+     *
+     * @since 0.27.3
+     */
+    @Frozen
+    @Deprecated[message: "Use global function `public func sort<T>(data: ArrayList<T>, by!: (T, T) -> Ordering, stable!: Bool = false, descending!: Bool = false): Unit` in std.sort instead."]
+    public func sortBy(stable!: Bool, comparator!: (T, T) -> Ordering): Unit {
+        if (stable) {
+            stableSort(this.myData[0..this.size], comparator)
+        } else {
+            unstableSort(this.myData[0..this.size], comparator)
+        }
+        myVersion++
+    }
+
+    /**
+     * Incoming Sort by Condition.
+     *
+     * @param comparator transfer the condition to be judged.
+     *
+     * @since 0.27.3
+     */
+    @Frozen
+    @Deprecated[message: "Use global function `public func sort<T>(data: ArrayList<T>, by!: (T, T) -> Ordering, stable!: Bool = false, descending!: Bool = false): Unit` in std.sort instead."]
+    public func sortBy(comparator!: (T, T) -> Ordering): Unit {
+        unstableSort(this.myData[0..this.size], comparator)
+        myVersion++
+    }
+
+    /**
+     * Reverses the order of the elements in this ArrayList.
+     *
+     * @since 0.18.2
+     *
+     */
+    @Frozen
+    public func reverse(): Unit {
+        var i: Int64 = 0
+        var j: Int64 = mySize - 1
+        while (i < j) {
+            let tempJ: T = myData[j]
+            myData[j] = myData[i]
+            myData[i] = tempJ
+            i++
+            j--
+        }
+        myVersion++
+    }
+
+    /**
+     * Operator overload slice.
+     *
+     * @param range transfer the range for the slice.
+     *
+     * @throws IllegalArgumentException if the step of range is not 1.
+     * @throws IndexOutOfBoundsException if range is invalid.
+     * @since 0.18.2
+     *
+     */
+    @Frozen
+    public operator func [](range: Range<Int64>): ArrayList<T> {
+        return this.slice(range)
+    }
+
+    /**
+     * The input parameter range is used as the index and the ArrayList corresponding to the index is returned.
+     *
+     * @param range transfer the range for the slice.
+     *
+     * @throws IllegalArgumentException if the step of range is not 1.
+     * @throws IndexOutOfBoundsException if range is invalid.
+     * @since 0.18.2
+     */
+    @Frozen
+    public func slice(range: Range<Int64>): ArrayList<T> {
+        return ArrayList<T>(rangeSlice(this.myData, range, this.size))
+    }
+
+    /**
+     * @throws IllegalArgumentException if the step of range is not 1.
+     * @throws IndexOutOfBoundsException if range is invalid.
+     */
+    @Frozen
+    private func rangeSlice(arr: Array<T>, range: Range<Int64>, size: Int64): Array<T> {
+        if (range.step != 1) {
+            throw IllegalArgumentException("Illegal step ${range.step}, step should be 1.")
+        }
+
+        let start = if (range.hasStart) {
+            range.start
+        } else {
+            0
+        }
+
+        if (start > size) {
+            throw IndexOutOfBoundsException("Range start ${start} is greater than the size ${size}.")
+        } else if (range.start < 0) {
+            throw IndexOutOfBoundsException("Range start ${start} is less than 0.")
+        }
+
+        let end: Int64
+
+        if (range.hasEnd) {
+            if (range.isClosed) {
+                if (range.end > size) {
+                    throw IndexOutOfBoundsException(
+                        "The closed end of the range ${range.end} is greater than or equal to the size ${size}.")
+                }
+                end = range.end + 1
+            } else {
+                if (range.end > size) {
+                    throw IndexOutOfBoundsException(
+                        "The opened end of the range ${range.end} is greater than the size ${size}.")
+                }
+                end = range.end
+            }
+        } else {
+            end = size
+        }
+
+        if (start > end) {
+            throw IndexOutOfBoundsException("The start ${start} is greater than the end ${end}.")
+        }
+
+        return arr[start..end]
+    }
+
+    /**
+     * Clone a new ArrayList.
+     *
+     * @return new ArrayList
+     *
+     * @since 0.18.2
+     */
+    @Frozen
+    public func clone(): ArrayList<T> {
+        return ArrayList<T>(this)
+    }
+
+    /**
+     * Operator overload get.
+     * An exception is reported when no index exists.
+     *
+     * @param index indicates the index of the get interface.
+     * @return the T type of value.
+     * @throws IndexOutOfBoundsException if index is out of range.
+     * @since 0.18.2
+     */
+    @Frozen
+    public operator func [](index: Int64): T {
+        checkRange(index)
+        return this.myData[index]
+    }
+
+    /**
+     * Operator overload set.
+     * An exception is reported when no index exists.
+     *
+     * @param index Index value to be set.
+     * @param value the T type of element.
+     *
+     * @since 0.18.2
+     */
+    @Frozen
+    public operator func [](index: Int64, value!: T): Unit {
+        if (index >= mySize || index < 0) {
+            throw IndexOutOfBoundsException(
+                "index: ${index} cannot be less than 0 or greater than the arraylist size: ${mySize}.")
+        }
+        unsafe { myData.setUnchecked(index, value) }
+    }
+
+    /**
+     * Returns an iterator over the elements in this ArrayList in proper Collection.
+     *
+     * @return Iterator<T>.
+     *
+     * @since 0.18.2
+     */
+    @Frozen
+    public func iterator(): Iterator<T> {
+        return ArrayListIterator<T>(this)
+    }
+
+    /**
+     * Check whether the size is empty. If yes, true is returned. Otherwise, false is returned.
+     *
+     * @return If this size is empty, true is returned. Otherwise, false is returned.
+     *
+     * @since 0.18.2
+     */
+    @Frozen
+    public func isEmpty(): Bool {
+        return mySize == 0
+    }
+
+    /**
+     * Returns the number of elements in this ArrayList.
+     *
+     * @return the size.
+     *
+     * @since 0.18.2
+     */
+    @Frozen
+    public prop size: Int64 {
+        get() {
+            return mySize
+        }
+    }
+
+    /*
+     * Check whether the size range is as expected.
+     *
+     * @param index pass in the index to be checked.
+     *
+     * @throws IndexOutOfBoundsException if index is less than zero or index is greater than or equal to Array size.
+     *
+     * @since 0.18.2
+     */
+    @Frozen
+    private func checkRange(index: Int64): Unit {
+        if (index >= mySize || index < 0) {
+            throw IndexOutOfBoundsException("index: ${index}, size: ${mySize}")
+        }
+    }
+
+    /*
+     * Check whether the size range is as expected.
+     *
+     * @param index pass in the index to be checked.
+     *
+     * @throws IndexOutOfBoundsException if index is less than zero or index is greater than Array size.
+     *
+     * @since 0.18.2
+     */
+    @Frozen
+    private func checkRangeInsert(index: Int64): Unit {
+        if (index > mySize || index < 0) {
+            throw IndexOutOfBoundsException("index: ${index}, size: ${mySize}")
+        }
+    }
+
+    /*
+     * grow capacity.
+     *
+     * @param minCapacity - minCapacity of Int64.
+     *
+     * @since 0.18.2
+     */
+    @Frozen
+    private func grow(minCapacity: Int64, startIndex!: Int64 = 0): Unit {
+        let oldCapacity: Int64 = myData.size
+        var newCapacity: Int64 = oldCapacity + (oldCapacity >> 1)
+        if (newCapacity < minCapacity) {
+            newCapacity = minCapacity
+        }
+        let newArr: Array<T> = Array<T>(newCapacity, repeat: unsafe { zeroValue<T>() })
+        myData.copyTo(newArr, 0, startIndex, mySize)
+        myData = newArr
+    }
+
+    protected func updateVersion(): Unit {
+        myVersion++
+    }
+}
+
+/**
+ * The `ArrayList` conforms `Equatable` interface where `T` is `Equatable`
+ *
+ * @since 0.18.2
+ */
+extend<T> ArrayList<T> <: Equatable<ArrayList<T>> where T <: Equatable<T> {
+    /** overloaded determination == method. */
+    @Frozen
+    public operator func ==(other: ArrayList<T>): Bool {
+        if (this.size != other.size) {
+            return false
+        }
+        /* Back-to-front traversal can reduce boundary checks and improve performance */
+        for (i in this.size - 1..=0 : -1) {
+            if (unsafe { this.myData.getUnchecked(i) != other.myData.getUnchecked(i) }) {
+                return false
+            }
+        }
+        return true
+    }
+
+    /** overloaded determination != method. */
+    @Frozen
+    public operator func !=(other: ArrayList<T>): Bool {
+        return !(this == other)
+    }
+
+    @Frozen
+    public func contains(element: T): Bool {
+        if (this.size == 0) {
+            return false
+        }
+
+        for (i in this) {
+            if (i == element) {
+                return true
+            }
+        }
+
+        return false
+    }
+}
+
+extend<T> ArrayList<T> where T <: Comparable<T> {
+    /**
+     * Sort data in ascending order.
+     *
+     * @param stable Whether to use stable sorting
+     *
+     * @since 0.27.3
+     */
+    @Frozen
+    @Deprecated[message: "Use global function `public func sort<T>(data: ArrayList<T>, stable!: Bool = false, descending!: Bool = false): Unit where T <: Comparable<T>` in std.sort instead."]
+    public func sort(stable!: Bool): Unit {
+        this.sortBy(stable: stable) {lhs: T, rhs: T => lhs.compare(rhs)}
+    }
+
+    @Frozen
+    @Deprecated[message: "Use global function `public func sort<T>(data: ArrayList<T>, stable!: Bool = false, descending!: Bool = false): Unit where T <: Comparable<T>` in std.sort instead."]
+    public func sort(): Unit {
+        this.sortBy() {lhs: T, rhs: T => lhs.compare(rhs)}
+    }
+
+    /**
+     * Sort data in descending order.
+     *
+     * @param stable Whether to use stable sorting
+     *
+     * @since 0.27.3
+     */
+    @Frozen
+    @Deprecated[message: "Use global function `public func sort<T>(data: ArrayList<T>, stable!: Bool = false, descending!: Bool = false): Unit where T <: Comparable<T>` in std.sort instead."]
+    public func sortDescending(stable!: Bool): Unit {
+        this.sortBy(stable: stable) {lhs: T, rhs: T => rhs.compare(lhs)}
+    }
+
+    @Frozen
+    @Deprecated[message: "Use global function `public func sort<T>(data: ArrayList<T>, stable!: Bool = false, descending!: Bool = false): Unit where T <: Comparable<T>` in std.sort instead."]
+    public func sortDescending(): Unit {
+        this.sortBy() {lhs: T, rhs: T => rhs.compare(lhs)}
+    }
+}
+
+extend<T> ArrayList<T> <: ToString where T <: ToString {
+    @Frozen
+    public func toString(): String {
+        return collectionToString<ArrayList<T>, T>(this)
+    }
+}
+
+extend<T> ArrayList<T> {
+    /**
+     * @description Merges two ArrayList into a new ArrayList (the length depends on the shorter ArrayList).
+     * 
+     * @param other one of the ArrayList to be merged.
+     * @returns a new ArrayList.
+     */
+    @When[env != "ohos"]
+    public func zip<R>(other: ArrayList<R>): ArrayList<(T, R)> {
+        let newSize: Int64 = min(mySize, other.size)
+        if (newSize == 0) {
+            return ArrayList<(T, R)>()
+        }
+        var newData: Array<(T, R)> = Array<(T, R)>(newSize, repeat: unsafe { zeroValue<(T, R)>() })
+        for (i in newSize - 1..=0 : -1) {
+            newData[i] = (myData[i], other[i])
+        }
+        return ArrayList<(T, R)>(newData)
+    }
+
+    /**
+     * @description Used to obtain an ArrayList with indices.
+     * 
+     * @returns a new ArrayList with indices.
+     */
+    @When[env != "ohos"]
+    public func enumerate(): ArrayList<(Int64, T)> {
+        if (mySize == 0) {
+            return ArrayList<(Int64, T)>()
+        }
+        var newData: Array<(Int64, T)> = Array<(Int64, T)>(mySize, repeat: unsafe { zeroValue<(Int64, T)>() })
+        for (i in mySize - 1..=0 : -1) {
+            newData[i] = (i, myData[i])
+        }
+        return ArrayList<(Int64, T)>(newData)
+    }
+}
+
+@Frozen
+func collectionToString<C, T>(col: C): String where C <: Collection<T>, T <: ToString {
+    if (col.size == 0) {
+        return "[]"
+    }
+
+    let sb = StringBuilder("[")
+    let it = col.iterator()
+    var tmp: T = it.next().getOrThrow()
+    while (let Some(next) <- it.next()) {
+        sb.append(tmp)
+        unsafe { sb.appendFromUtf8Unchecked(", ".toArray()) }
+        tmp = next
+    }
+    sb.append(tmp)
+    sb.append(r']')
+    return sb.toString()
+}
+
+@Frozen
+func max(a: Int64, b: Int64): Int64 {
+    return if (a >= b) {
+        a
+    } else {
+        b
+    }
+}
+
+// Temporary code, deleted when @Deprecated ends
+func stableSort<T>(data: Array<T>, comparator: (T, T) -> Ordering): Unit {
+    if (data.size < 2) {
+        return
+    }
+    data.timSort(comparator)
+}
+// Temporary code, deleted when @Deprecated ends
+extend<T> Array<T> {
+    // the value range of the parameter: 0 <= begin < end <= array.size - 1
+    @OverflowWrapping
+    private func shortSort(begin: Int64, end: Int64, comparator: (T, T) -> Ordering): Unit {
+        let len = this.size
+        if (len <= 8) {
+            if (len <= 1) {
+                return
+            } else if (len == 2) {
+                this.compareSwap2(begin, end, comparator)
+            } else if (len == 3) {
+                this.compareSwap3(begin, begin + 1, end, comparator)
+            } else {
+                insertionSort(begin, end, comparator)
+            }
+        } else {
+            var temp = TempArray(len, this[begin])
+            let n = getSequenceLength(begin, end, temp, comparator)
+            if (n == len) {
+                return
+            }
+            binaryInsertionSort(begin, end, comparator, n)
+        }
+    }
+
+    @OverflowWrapping
+    private func maybeMerge(
+        startArr: Array<Int64>,
+        lengthArr: Array<Int64>,
+        endIndex: Int64,
+        temp: TempArray<T>,
+        comparator: (T, T) -> Ordering
+    ): Int64 {
+        var index: Int64 = endIndex
+        while (index > 0) {
+            var n: Int64 = index - 1
+            let sn = startArr[n]
+            let sn1 = startArr[n + 1]
+            let ln = lengthArr[n]
+            let ln1 = lengthArr[n + 1]
+            if (n == 0) {
+                if (ln <= ln1) {
+                    this.merge(sn, ln, sn1, ln1, temp, comparator)
+                    lengthArr[n] = ln + ln1
+                    index--
+                }
+                break
+            }
+
+            let s = startArr[n - 1]
+            let l = lengthArr[n - 1]
+            if (l <= ln + ln1) {
+                if (l < ln1) {
+                    this.merge(s, l, sn, ln, temp, comparator)
+                    lengthArr[n - 1] = l + ln
+                    startArr[n] = sn1
+                    lengthArr[n] = ln1
+                    index--
+                } else {
+                    this.merge(sn, ln, sn1, ln1, temp, comparator)
+                    lengthArr[n] = ln + ln1
+                    index--
+                }
+            } else if (ln <= ln1) {
+                this.merge(sn, ln, sn1, ln1, temp, comparator)
+                lengthArr[n] = ln + ln1
+                index--
+            } else {
+                break
+            }
+        }
+        return index
+    }
+
+    @OverflowWrapping
+    private func mergeAll(
+        startArr: Array<Int64>,
+        lengthArr: Array<Int64>,
+        endIndex: Int64,
+        temp: TempArray<T>,
+        comparator: (T, T) -> Ordering
+    ): Unit {
+        var index: Int64 = endIndex
+        while (index > 0) {
+            var n: Int64 = index - 1
+            let sn = startArr[n]
+            let sn1 = startArr[n + 1]
+            let ln = lengthArr[n]
+            let ln1 = lengthArr[n + 1]
+            if (n == 0) {
+                this.merge(sn, ln, sn1, ln1, temp, comparator)
+                break
+            }
+
+            let s = startArr[n - 1]
+            let l = lengthArr[n - 1]
+            if (l < ln1) {
+                this.merge(s, l, sn, ln, temp, comparator)
+                lengthArr[n - 1] = l + ln
+                startArr[n] = sn1
+                lengthArr[n] = ln1
+                index--
+            } else {
+                this.merge(sn, ln, sn1, ln1, temp, comparator)
+                lengthArr[n] = ln + ln1
+                index--
+            }
+        }
+    }
+
+    @OverflowWrapping
+    private func merge(
+        start1: Int64,
+        len1: Int64,
+        start2: Int64,
+        len2: Int64,
+        temp: TempArray<T>,
+        comparator: (T, T) -> Ordering
+    ): Unit {
+        var s1 = start1
+        var l1 = len1
+        var s2 = start2
+        var l2 = len2
+        var lt = this.queryLT(this[s1 + l1 - 1], s2, l2, comparator, true)
+        l2 = lt - s2
+        if (l2 == 0) {
+            return
+        }
+
+        var gt = this.queryGT(this[s2], s1, l1, comparator, false)
+        l1 = l1 - (gt - s1)
+        s1 = gt
+        if (l1 == 0) {
+            return
+        }
+
+        if (l1 == 1) {
+            let t0 = this[s1]
+            this.copyTo(this, s2, s2 - 1, l2)
+            this[s1 + l2] = t0
+        } else if (l2 == 1) {
+            let t0 = this[s2]
+            this.copyTo(this, s1, s1 + 1, l1)
+            this[s1] = t0
+        } else if (l1 <= l2) {
+            mergeFromLeft(s1, l1, s2, l2, temp, comparator)
+        } else {
+            mergeFromRight(s1, l1, s2, l2, temp, comparator)
+        }
+    }
+
+    @OverflowWrapping
+    private func mergeFromLeft(
+        start1: Int64,
+        len1: Int64,
+        start2: Int64,
+        len2: Int64,
+        temp: TempArray<T>,
+        comparator: (T, T) -> Ordering
+    ) {
+        let arr = temp.getArray(len1)
+        this.copyTo(arr, start1, 0, len1)
+        var ti = start1
+        var s1 = 0
+        var l1 = len1
+        var s2 = start2
+        var l2 = len2
+        this[ti] = this[s2]
+        ti++
+        s2++
+        l2--
+        var c1 = 0
+        var c2 = 0
+        var continueBreak = false
+        while (true) {
+            c1 = 0
+            c2 = 0
+            continueBreak = false
+            var t1 = arr[s1]
+            var t2 = this[s2]
+            while (true) {
+                match (comparator(t1, t2)) {
+                    case GT =>
+                        this[ti] = t2
+                        ti++
+                        s2++
+                        l2--
+                        c2++
+                        c1 = 0
+                        if (l2 == 0) {
+                            continueBreak = true
+                            break
+                        }
+                        if (c2 > 4) {
+                            break
+                        }
+
+                        t2 = this[s2]
+                    case _ =>
+                        this[ti] = t1
+                        ti++
+                        s1++
+                        l1--
+                        c1++
+                        c2 = 0
+                        if (l1 == 1) {
+                            continueBreak = true
+                            break
+                        }
+                        if (c1 > 4) {
+                            break
+                        }
+
+                        t1 = arr[s1]
+                }
+            }
+            if (continueBreak) {
+                break
+            }
+            continueBreak = false
+            while (true) {
+                var point = this[s2]
+                c1 = arr.queryGT(point, s1, l1, comparator, false) - s1
+                match (c1) {
+                    case 0 => this[ti] = point
+                    case 1 =>
+                        this[ti] = arr[s1]
+                        this[ti + 1] = point
+                    case 2 =>
+                        this[ti] = arr[s1]
+                        this[ti + 1] = arr[s1 + 1]
+                        this[ti + 2] = point
+                    case _ =>
+                        arr.copyTo(this, s1, ti, c1)
+                        this[ti + c1] = point
+                }
+                ti = ti + c1 + 1
+                s1 += c1
+                l1 -= c1
+                s2++
+                l2--
+                if (l1 == 1 || l2 == 0) {
+                    continueBreak = true
+                    break
+                }
+                point = arr[s1]
+                c2 = this.queryLT(point, s2, l2, comparator, false) - s2
+                match (c2) {
+                    case 0 => this[ti] = point
+                    case 1 =>
+                        this[ti] = this[s2]
+                        this[ti + 1] = point
+                    case 2 =>
+                        this[ti] = this[s2]
+                        this[ti + 1] = this[s2 + 1]
+                        this[ti + 2] = point
+                    case _ =>
+                        this.copyTo(this, s2, ti, c2)
+                        this[ti + c2] = point
+                }
+                ti = ti + c2 + 1
+                s2 += c2
+                l2 -= c2
+                s1++
+                l1--
+                if (l2 == 0 || l1 == 1) {
+                    continueBreak = true
+                    break
+                }
+                if (c1 < 4 || c2 < 4) {
+                    break
+                }
+            }
+            if (continueBreak) {
+                break
+            }
+        }
+        if (l2 == 0) {
+            arr.copyTo(this, s1, ti, l1)
+        }
+        if (l1 == 1) {
+            this.copyTo(this, s2, ti, l2)
+            this[ti + l2] = arr[s1]
+        }
+    }
+
+    @OverflowWrapping
+    private func mergeFromRight(
+        start1: Int64,
+        len1: Int64,
+        start2: Int64,
+        len2: Int64,
+        temp: TempArray<T>,
+        comparator: (T, T) -> Ordering
+    ) {
+        let arr = temp.getArray(len2)
+        this.copyTo(arr, start2, 0, len2)
+        var ti = start2 + len2 - 1
+        var s1 = start1 + len1 - 1
+        var l1 = len1
+        var s2 = len2 - 1
+        var l2 = len2
+        this[ti] = this[s1]
+        ti--
+        s1--
+        l1--
+        var c1 = 0
+        var c2 = 0
+        var continueBreak = false
+        while (true) {
+            c1 = 0
+            c2 = 0
+            continueBreak = false
+            var t1 = this[s1]
+            var t2 = arr[s2]
+            while (true) {
+                match (comparator(t1, t2)) {
+                    case GT =>
+                        this[ti] = t1
+                        ti--
+                        s1--
+                        l1--
+                        c1++
+                        c2 = 0
+                        if (l1 == 0) {
+                            continueBreak = true
+                            break
+                        }
+                        if (c1 > 4) {
+                            break
+                        }
+
+                        t1 = this[s1]
+                    case _ =>
+                        this[ti] = t2
+                        ti--
+                        s2--
+                        l2--
+                        c2++
+                        c1 = 0
+                        if (l2 == 1) {
+                            continueBreak = true
+                            break
+                        }
+                        if (c2 > 4) {
+                            break
+                        }
+                        t2 = arr[s2]
+                }
+            }
+            if (continueBreak) {
+                break
+            }
+            continueBreak = false
+            while (true) {
+                var point = this[s1]
+                let lt = arr.queryLT(point, 0, l2, comparator, true)
+                c2 = l2 - lt
+                match (c2) {
+                    case 0 => this[ti] = point
+                    case 1 =>
+                        this[ti] = arr[s2]
+                        this[ti - 1] = point
+                    case 2 =>
+                        this[ti] = arr[s2]
+                        this[ti - 1] = arr[s2 - 1]
+                        this[ti - 2] = point
+                    case _ =>
+                        arr.copyTo(this, lt, ti - c2 + 1, c2)
+                        this[ti - c2] = point
+                }
+                ti = ti - c2 - 1
+                s2 -= c2
+                l2 -= c2
+                s1--
+                l1--
+                if (l2 == 1 || l1 == 0) {
+                    continueBreak = true
+                    break
+                }
+                point = arr[s2]
+                let gt = this.queryGT(point, start1, l1, comparator, true)
+                c1 = s1 - gt + 1
+                match (c1) {
+                    case 0 => this[ti] = point
+                    case 1 =>
+                        this[ti] = this[s1]
+                        this[ti - 1] = point
+                    case 2 =>
+                        this[ti] = this[s1]
+                        this[ti - 1] = this[s1 - 1]
+                        this[ti - 2] = point
+                    case _ =>
+                        this.copyTo(this, gt, ti - c1 + 1, c1)
+                        this[ti - c1] = point
+                }
+                ti = ti - c1 - 1
+                s1 -= c1
+                l1 -= c1
+                s2--
+                l2--
+                if (l1 == 0 || l2 == 1) {
+                    continueBreak = true
+                    break
+                }
+                if (c1 < 4 || c2 < 4) {
+                    break
+                }
+            }
+            if (continueBreak) {
+                break
+            }
+        }
+        if (l1 == 0) {
+            arr.copyTo(this, 0, ti - l2 + 1, l2)
+        }
+        if (l2 == 1) {
+            this.copyTo(this, start1, start1 + 1, l1)
+            this[start1] = arr[s2]
+        }
+    }
+
+    @OverflowWrapping
+    func timSort(comparator: (T, T) -> Ordering): Unit {
+        if (this.size <= 64) {
+            shortSort(0, this.size - 1, comparator)
+            return
+        }
+
+        // init temp data
+        let mrl = this.getMinRunLength()
+        var temp = TempArray(this.size, this[0])
+        let stackLen = Int64(log2(Float64(this.size) / Float64(mrl) + 2.0)) + 1
+        let startArr = Array<Int64>(stackLen, repeat: 0)
+        let lengthArr = Array<Int64>(stackLen, repeat: 0)
+        var endIndex = -1
+
+        var begin: Int64 = 0
+        while (begin < this.size) {
+            let length = this.size - begin
+            var seqLen = length
+            if (length > 1) {
+                seqLen = getSequenceLength(begin, this.size - 1, temp, comparator)
+                if (seqLen < mrl) {
+                    if (length < mrl) {
+                        binaryInsertionSort(begin, begin + length - 1, comparator, seqLen)
+                        seqLen = length
+                    } else {
+                        binaryInsertionSort(begin, begin + mrl - 1, comparator, seqLen)
+                        seqLen = mrl
+                    }
+                }
+            }
+            endIndex++
+            startArr[endIndex] = begin
+            lengthArr[endIndex] = seqLen
+            begin = begin + seqLen
+            endIndex = this.maybeMerge(startArr, lengthArr, endIndex, temp, comparator)
+        }
+        this.mergeAll(startArr, lengthArr, endIndex, temp, comparator)
+    }
+}
+// Temporary code, deleted when @Deprecated ends
+class TempArray<T> {
+    private var data: Array<T>
+    private let zero: T
+    private let max: Int64
+
+    init(n: Int64, z: T) {
+        this.data = Array<T>()
+        this.max = n >> 1
+        this.zero = z
+    }
+
+    @OverflowWrapping
+    func getArray(n: Int64): Array<T> {
+        if (data.size >= n) {
+            return this.data
+        }
+        var newSize = data.size * 2
+        if (newSize < n) {
+            newSize = n
+        }
+        if (newSize > this.max) {
+            newSize = this.max
+        }
+        this.data = Array<T>(newSize, repeat: this.zero)
+        return this.data
+    }
+}
+
+// Temporary code, deleted when @Deprecated ends
+func unstableSort<T>(data: Array<T>, comparator: (T, T) -> Ordering): Unit {
+    if (data.size < 2) {
+        return
+    }
+    data.introSort(0, data.size - 1, data.depth(), comparator)
+}
+
+// Temporary code, deleted when @Deprecated ends
+extend<T> Array<T> {
+    // the value range of the parameter: 0 <= begin < end <= array.size - 1
+    // end - begin >= 1
+    @OverflowWrapping
+    private func getPartition(begin: Int64, end: Int64, comparator: (T, T) -> Ordering): (Int64, Int64) {
+        let len: Int64 = end - begin + 1
+        let mid: Int64 = (len >> 1) + begin
+        if (len >= 64) {
+            let off: Int64 = len >> 2
+            this.compareSwap3(begin, begin + off, mid, comparator)
+            this.compareSwap3(mid, mid + off, end, comparator)
+        }
+        this.compareSwap3(begin, mid, end, comparator)
+        let pivot: T = this[mid]
+
+        // swap mid and end
+        let temp = this[end]
+        this[end] = pivot
+        this[mid] = temp
+        var pointNum = 0
+        var b = begin
+        var e = end - 1
+
+        // query the first value equal to pivot
+        var first: Int64 = b
+        while (b < e) {
+            let tb = this[b]
+            match (comparator(tb, pivot)) {
+                case LT => b++
+                case EQ =>
+                    pointNum++
+                    first = b
+                    b++
+                    break
+                case GT =>
+                    var continueBreak = false
+                    while (b < e) {
+                        let te = this[e]
+                        match (comparator(pivot, te)) {
+                            case LT => e--
+                            case EQ =>
+                                pointNum++
+                                this[b] = te
+                                this[e] = tb
+                                e--
+                                first = b
+                                b++
+                                continueBreak = true
+                                break
+                            case GT =>
+                                this[b] = te
+                                this[e] = tb
+                                b++
+                                e--
+                                break
+                        }
+                    }
+                    if (continueBreak) {
+                        break
+                    }
+            }
+        }
+
+        // find partition pivot
+        while (b < e) {
+            var tb: T = pivot
+            while (b < e) {
+                tb = this[b]
+                match (comparator(tb, pivot)) {
+                    case LT => b++
+                    case EQ =>
+                        pointNum++
+                        b++
+                    case GT => break
+                }
+            }
+            var te: T = pivot
+            while (b < e) {
+                te = this[e]
+                match (comparator(pivot, te)) {
+                    case LT => e--
+                    case EQ =>
+                        pointNum++
+                        break
+                    case GT => break
+                }
+            }
+            if (b >= e) {
+                break
+            }
+            this[b] = te
+            this[e] = tb
+            b++
+            e--
+        }
+
+        match (comparator(this[b], pivot)) {
+            case GT => ()
+            case _ => b++
+        }
+        this.swap(b, end)
+        if (b - first >= pointNum * pointNum) {
+            return (b - 1, b + 1)
+        } else {
+            // When the number of traversal times is less than the square of the number of pivot
+            // merge a large number of values that are the same as pivot
+            let hi = b
+            b = first
+            e = hi - 1
+            while (b < e) {
+                var te: T = pivot
+                while (b < e) {
+                    te = this[e]
+                    match (comparator(pivot, te)) {
+                        case EQ => e--
+                        case _ => break
+                    }
+                }
+                var tb: T = pivot
+                while (b < e) {
+                    tb = this[b]
+                    match (comparator(tb, pivot)) {
+                        case EQ => break
+                        case _ => b++
+                    }
+                }
+                if (b >= e) {
+                    break
+                }
+                this[b] = te
+                this[e] = tb
+                b++
+                e--
+            }
+            match (comparator(this[b], pivot)) {
+                case EQ => b--
+                case _ => ()
+            }
+            return (b, hi + 1)
+        }
+    }
+
+    // the value range of the parameter: 0 <= begin < end <= array.size - 1
+    @OverflowWrapping
+    func introSort(begin: Int64, end: Int64, depth: Int64, comparator: (T, T) -> Ordering): Unit {
+        var b: Int64 = begin
+        var e: Int64 = end
+        var d: Int64 = depth
+        while (b < e) {
+            let len = e - b + 1
+            if (len <= 16) {
+                if (len == 1) {
+                    return
+                } else if (len == 2) {
+                    this.compareSwap2(b, e, comparator)
+                } else if (len == 3) {
+                    this.compareSwap3(b, b + 1, e, comparator)
+                } else {
+                    this.insertionSort(b, e, comparator)
+                }
+                return
+            }
+            if (d == 0) {
+                this.heapSort(b, e, comparator)
+                return
+            }
+            d--
+            let (lo, hi) = this.getPartition(b, e, comparator)
+
+            // Let the smaller side do recursion
+            // Let the bigger side do loop
+            if (lo - b < e - hi) {
+                this.introSort(b, lo, d, comparator)
+                b = hi
+            } else {
+                this.introSort(hi, e, d, comparator)
+                e = lo
+            }
+        }
+    }
+}
+
+// Temporary code, deleted when @Deprecated ends
+extend<T> Array<T> {
+    // the value range of the parameter: 0 <= i1 < i2 <= array.size - 1
+    func compareSwap2(i1: Int64, i2: Int64, comparator: (T, T) -> Ordering) {
+        let a: T = this[i1]
+        let b: T = this[i2]
+        match (comparator(a, b)) {
+            case GT =>
+                this[i1] = b
+                this[i2] = a
+            case _ => ()
+        }
+    }
+
+    // the value range of the parameter: 0 <= i1 < i2 < i3 <= array.size - 1
+    // Ordering.LT/EQ: a <= b <= c
+    // Ordering.GT   : a >= b >= c
+    func compareSwap3(i1: Int64, i2: Int64, i3: Int64, comparator: (T, T) -> Ordering) {
+        var a: T = this[i1]
+        var b: T = this[i2]
+        var c: T = this[i3]
+        var t: T = a
+        match (comparator(a, b)) {
+            case GT =>
+                t = a
+                a = b
+                b = t
+            case _ => ()
+        }
+        match (comparator(a, c)) {
+            case GT =>
+                t = a
+                a = c
+                c = t
+            case _ => ()
+        }
+        match (comparator(b, c)) {
+            case GT =>
+                t = b
+                b = c
+                c = t
+            case _ => ()
+        }
+        this[i1] = a
+        this[i2] = b
+        this[i3] = c
+    }
+
+    @OverflowWrapping
+    func getMinRunLength() {
+        var n = this.size
+        var r: Int64 = 0
+        while (n >= 64) {
+            r = r | (n & 1)
+            n = n >> 1
+        }
+        return n + r
+    }
+
+    @OverflowWrapping
+    func depth(): Int64 {
+        var x: Int64 = this.size
+        var res: Int64 = 0
+        while (x >= 1) {
+            res++
+            x >>= 1
+        }
+        return res * 2
+    }
+
+    // the value range of the parameter: 0 <= begin < end <= array.size - 1
+    @OverflowWrapping
+    func insertionSort(begin: Int64, end: Int64, comparator: (T, T) -> Ordering): Unit {
+        var i: Int64 = begin + 1
+        while (i <= end) {
+            var point = this[i]
+            var j = i - 1
+            while (j >= begin) {
+                var temp = this[j]
+                match (comparator(temp, point)) {
+                    case GT => this[j + 1] = temp
+                    case _ => break
+                }
+                j--
+            }
+            this[j + 1] = point
+            i++
+        }
+    }
+
+    // the value range of the parameter: 0 <= begin < end <= array.size - 1
+    // end - begin >= 1
+    @OverflowWrapping
+    func getSequenceLength(begin: Int64, end: Int64, temp: TempArray<T>, comparator: (T, T) -> Ordering): Int64 {
+        var b: Int64 = begin
+        var equalNum: Int64 = 1
+        var isAscending: Bool = true
+
+        // Obtains the length of a sequence with the same value.
+        match (comparator(this[b], this[b + 1])) {
+            case LT => isAscending = true
+            case GT => isAscending = false
+            case EQ =>
+                equalNum++
+                b++
+                while (b + 1 <= end) {
+                    match (comparator(this[b], this[b + 1])) {
+                        case LT =>
+                            isAscending = true
+                            break
+                        case GT =>
+                            isAscending = false
+                            break
+                        case EQ =>
+                            equalNum++
+                            b++
+                    }
+                }
+        }
+        if (b >= end) {
+            return equalNum
+        } else if (end - b == 1) {
+            if (isAscending) {
+                return equalNum + 1
+            } else {
+                let te = this[end]
+                this.copyTo(this, begin, begin + 1, equalNum)
+                this[begin] = te
+                return equalNum + 1
+            }
+        }
+        b++
+        var n: Int64 = 1
+        if (isAscending) {
+            while (b + 1 <= end) {
+                match (comparator(this[b], this[b + 1])) {
+                    case GT => break
+                    case _ =>
+                        n++
+                        b++
+                }
+            }
+            return equalNum + n
+        } else {
+            while (b + 1 <= end) {
+                match (comparator(this[b], this[b + 1])) {
+                    case GT =>
+                        n++
+                        b++
+                    case _ => break
+                }
+            }
+
+            // reverse sequence
+            if (equalNum == 1) {
+                var i = begin
+                var j = begin + n // begin + equalNum + n - 1
+                while (i < j) {
+                    this.swap(i, j)
+                    i++
+                    j--
+                }
+                return equalNum + n
+            } else {
+                var i = begin + equalNum
+                var j = i + n - 1
+                while (i < j) {
+                    this.swap(i, j)
+                    i++
+                    j--
+                }
+            }
+
+            if (equalNum == 2) {
+                let t1 = this[begin]
+                let t2 = this[begin + 1]
+                if (n == 1) {
+                    this[begin] = this[begin + 2]
+                    this[begin + 1] = t1
+                    this[begin + 2] = t2
+                } else if (n == 2) {
+                    this[begin] = this[begin + 2]
+                    this[begin + 1] = this[begin + 3]
+                    this[begin + 2] = t1
+                    this[begin + 3] = t2
+                } else {
+                    this.copyTo(this, begin + 2, begin, n)
+                    this[begin + equalNum + n - 2] = t1
+                    this[begin + equalNum + n - 1] = t2
+                }
+            } else {
+                if (n == 1) {
+                    let t = this[begin + equalNum]
+                    this.copyTo(this, begin, begin + 1, equalNum)
+                    this[begin] = t
+                } else if (n == 2) {
+                    let t1 = this[begin + equalNum]
+                    let t2 = this[begin + equalNum + 1]
+                    this.copyTo(this, begin, begin + 2, equalNum)
+                    this[begin] = t1
+                    this[begin + 1] = t2
+                } else {
+                    if (n < equalNum) {
+                        let arr = temp.getArray(n)
+                        this.copyTo(arr, begin + equalNum, 0, n)
+                        this.copyTo(this, begin, begin + n, equalNum)
+                        arr.copyTo(this, 0, begin, n)
+                    } else {
+                        let arr = temp.getArray(equalNum)
+                        this.copyTo(arr, begin, 0, equalNum)
+                        this.copyTo(this, begin + equalNum, begin, n)
+                        arr.copyTo(this, 0, begin + n, equalNum)
+                    }
+                }
+            }
+            return equalNum + n
+        }
+    }
+
+    // the original relative positions of equal elements are not guaranteed.
+    // the value range of the parameter: 0 <= begin < end <= array.size - 1
+    @OverflowWrapping
+    func binaryInsertionSort(begin: Int64, end: Int64, comparator: (T, T) -> Ordering, n: Int64) {
+        var i = begin + n
+        while (i <= end) {
+            let point = this[i]
+            let l = this.binaryQueryGT(point, begin, i - begin, comparator)
+            let moveN = i - l
+            if (moveN == 0) {
+                i++
+                continue
+            }
+            match (moveN) {
+                case 1 => this[i] = this[i - 1]
+                case 2 =>
+                    this[i] = this[i - 1]
+                    this[i - 1] = this[i - 2]
+                case _ => this.copyTo(this, l, l + 1, moveN)
+            }
+            this[l] = point
+            i++
+        }
+    }
+
+    // the value range of the parameter: 0 <= begin < end <= array.size - 1
+    @OverflowWrapping
+    func heapify(begin: Int64, end: Int64, root: Int64, comparator: (T, T) -> Ordering): Unit {
+        var fi: Int64 = root
+        var si = (fi << 1) + 1 // fi * 2 + 1
+        while (begin + si <= end) {
+            // si or (si + 1) is taken only once
+            let s = if (begin + si + 1 <= end) {
+                let s1 = this[begin + si]
+                let s2 = this[begin + si + 1]
+                match (comparator(s1, s2)) {
+                    case LT =>
+                        si++
+                        s2
+                    case _ => s1
+                }
+            } else {
+                this[begin + si]
+            }
+            let f = this[begin + fi]
+            match (comparator(f, s)) {
+                case LT =>
+                    this[begin + fi] = s
+                    this[begin + si] = f
+                case _ => return
+            }
+            fi = si
+            si = (fi << 1) + 1
+        }
+    }
+
+    // the value range of the parameter: 0 <= begin < end <= array.size - 1
+    @OverflowWrapping
+    func heapSort(begin: Int64, end: Int64, comparator: (T, T) -> Ordering): Unit {
+        let len = end - begin + 1
+        var i = (len >> 1) - 1
+
+        // build max or min heap
+        while (i >= 0) {
+            this.heapify(begin, end, i, comparator)
+            i--
+        }
+        i = end
+        while (i > begin) {
+            // swap top and bottom data
+            this.swap(begin, i)
+
+            // reset max or min heap
+            this.heapify(begin, i - 1, 0, comparator)
+            i--
+        }
+    }
+
+    // The queried position is just greater than and equal the previous value.
+    @OverflowWrapping
+    func binaryQueryGT(point: T, start: Int64, len: Int64, comparator: (T, T) -> Ordering): Int64 {
+        var l = start
+        var r = start + len
+        while (l < r) {
+            let m = l + ((r - l) >> 1)
+            match (comparator(point, this[m])) {
+                case LT => r = m
+                case _ => l = m + 1
+            }
+        }
+        return l
+    }
+
+    // The queried position is just less than and equal the next value.
+    @OverflowWrapping
+    func binaryQueryLT(point: T, start: Int64, len: Int64, comparator: (T, T) -> Ordering): Int64 {
+        var l = start
+        var r = start + len
+        while (l < r) {
+            let m = l + ((r - l) >> 1)
+            match (comparator(point, this[m])) {
+                case GT => l = m + 1
+                case _ => r = m
+            }
+        }
+        return l
+    }
+
+    // The queried position is just greater than and equal the previous value.
+    @OverflowWrapping
+    func queryGT(point: T, start: Int64, len: Int64, comparator: (T, T) -> Ordering, r: Bool) {
+        var gallopMax = len
+        if (r) {
+            let end = start + len - 1
+            if (len > 64) {
+                let gallopMid = Int64(sqrt(Float64(len)))
+                match (comparator(point, this[end - gallopMid])) {
+                    case LT => return this.binaryQueryGT(point, start, len - gallopMid, comparator)
+                    case _ => gallopMax = gallopMid
+                }
+            }
+            var ofs = 1
+            var lastOfs = 0
+            while (ofs < gallopMax) {
+                let t = this[end - ofs]
+                match (comparator(point, t)) {
+                    case LT =>
+                        lastOfs = ofs
+                        ofs = (ofs << 1) + 1
+                    case _ => break
+                }
+            }
+            if (ofs > gallopMax) {
+                ofs = gallopMax
+            }
+            return this.binaryQueryGT(point, start + len - ofs, ofs - lastOfs, comparator)
+        } else {
+            if (len > 64) {
+                let gallopMid = Int64(sqrt(Float64(len)))
+                match (comparator(point, this[start + gallopMid])) {
+                    case LT => gallopMax = gallopMid
+                    case _ => return this.binaryQueryGT(point, start + gallopMid, len - gallopMid, comparator)
+                }
+            }
+            var ofs = 1
+            var lastOfs = 0
+            while (ofs < gallopMax) {
+                let t = this[start + ofs]
+                match (comparator(point, t)) {
+                    case LT => break
+                    case _ =>
+                        lastOfs = ofs
+                        ofs = (ofs << 1) + 1
+                }
+            }
+            if (ofs > gallopMax) {
+                ofs = gallopMax
+            }
+            return this.binaryQueryGT(point, start + lastOfs, ofs - lastOfs, comparator)
+        }
+    }
+
+    // The queried position is just less than and equal the next value.
+    @OverflowWrapping
+    func queryLT(point: T, start: Int64, len: Int64, comparator: (T, T) -> Ordering, r: Bool) {
+        var gallopMax = len
+        if (r) {
+            let end = start + len - 1
+            if (len > 64) {
+                let gallopMid = Int64(sqrt(Float64(len)))
+                match (comparator(point, this[end - gallopMid])) {
+                    case GT => gallopMax = gallopMid
+                    case _ => return this.binaryQueryLT(point, start, len - gallopMid, comparator)
+                }
+            }
+            var ofs = 1
+            var lastOfs = 0
+            while (ofs < gallopMax) {
+                let t = this[end - ofs]
+                match (comparator(point, t)) {
+                    case GT => break
+                    case _ =>
+                        lastOfs = ofs
+                        ofs = (ofs << 1) + 1
+                }
+            }
+            if (ofs > gallopMax) {
+                ofs = gallopMax
+            }
+            return this.binaryQueryLT(point, start + len - ofs, ofs - lastOfs, comparator)
+        } else {
+            if (len > 64) {
+                let gallopMid = Int64(sqrt(Float64(len)))
+                match (comparator(point, this[start + gallopMid])) {
+                    case GT => return this.binaryQueryLT(point, start + gallopMid, len - gallopMid, comparator)
+                    case _ => gallopMax = gallopMid
+                }
+            }
+            var ofs = 1
+            var lastOfs = 0
+            while (ofs < gallopMax) {
+                let t = this[start + ofs]
+                match (comparator(point, t)) {
+                    case GT =>
+                        lastOfs = ofs
+                        ofs = (ofs << 1) + 1
+                    case _ => break
+                }
+            }
+            if (ofs > gallopMax) {
+                ofs = gallopMax
+            }
+            return this.binaryQueryLT(point, start + lastOfs, ofs - lastOfs, comparator)
+        }
+    }
+}

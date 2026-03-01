@@ -1,0 +1,556 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/**
+ * @file
+ *
+ * This file defines TreeSet and related classes.
+ */
+package std.collection
+
+public class TreeSet<T> <: OrderedSet<T> where T <: Comparable<T> {
+    /* TreeMap */
+    private var myMap: TreeMap<T, Unit>
+
+    /**
+     * Returns the size.
+     *
+     * @return size.
+     *
+     */
+    public prop size: Int64 {
+        get() {
+            return this.myMap.size
+        }
+    }
+
+    /**
+     * Gets the first node of the TreeSet.
+     *
+     * @return If the first node exists, the element on the first node is returned. Otherwise, None is returned.
+     *
+     */
+    public prop first: ?T {
+        get() {
+            this.myMap.first?[0]
+        }
+    }
+
+    /**
+     * Gets the last node of the TreeSet.
+     *
+     * @return If the last node exists, the element on the last node is returned. Otherwise, None is returned.
+     *
+     */
+    public prop last: ?T {
+        get() {
+            this.myMap.last?[0]
+        }
+    }
+
+    /**
+     * Constructs a new, empty set.
+     */
+    public init() {
+        myMap = TreeMap<T, Unit>()
+    }
+
+    /**
+     * Construct a TreeSet with an incoming collection for initialization.
+     *
+     * @param elements an incoming collection.
+     *
+     */
+    public init(elements: Collection<T>) {
+        this.myMap = TreeMap<T, Unit>()
+        for (i in elements) {
+            this.myMap.add(i, ())
+        }
+    }
+
+    /**
+     * Construct a TreeSet with an incoming array for initialization.
+     *
+     * @param elements an incoming array is initialized.
+     *
+     */
+    private init(elements: Array<T>) {
+        this.myMap = TreeMap<T, Unit>()
+        for (i in elements) {
+            this.myMap.add(i, ())
+        }
+    }
+
+    /**
+     * Constructs a tree map with an incoming size and an initial element for initialization.
+     *
+     * @param size the size of the incoming initial element.
+     * @param initElement an incoming initElement is initialized.
+     *
+     */
+    public init(size: Int64, initElement: (Int64) -> T) {
+        if (size < 0) {
+            throw IllegalArgumentException("Invalid size of TreeSet: ${size}.")
+        }
+        this.myMap = TreeMap<T, Unit>(size, {i => (initElement(i), ())})
+    }
+
+    /**
+     * Statically generate an TreeSet with the specified Array.
+     *
+     * @param elements input element type array.
+     * @return new TreeSet
+     */
+    public static func of(elements: Array<T>): TreeSet<T> {
+        return TreeSet(elements)
+    }
+
+    /**
+     * Checks whether the specified element is contained in this set.
+     *
+     * @param element elements to judge.
+     * @return bool returns true if contained; otherwise, false.
+     *
+     */
+    public func contains(element: T): Bool {
+        return myMap.contains(element)
+    }
+
+    /**
+     * Checks whether the specified collection of elements is all contained in this set.
+     *
+     * @param all collection of elements to be judged.
+     * @return bool returns true if all elements are included, false otherwise.
+     *
+     */
+    public func contains(all!: Collection<T>): Bool {
+        return myMap.contains(all: all)
+    }
+
+    /**
+     * Add element operation. If the element already exists, it will not be added.
+     *
+     * @param element the element to put.
+     * @return Bool returns true if element is added; otherwise, false.
+     *
+     */
+    public func add(element: T): Bool {
+        return this.myMap.add(element, ()).isNone()
+    }
+
+    /**
+     * All elements in the incoming collection are added.
+     *
+     * @param all the collection.
+     *
+     */
+    public func add(all!: Collection<T>): Unit {
+        for (i in all) {
+            this.myMap.add(i, ())
+        }
+    }
+
+    /**
+     * Removes a specified element from a set.
+     *
+     * @param element a specified element.
+     * @return Bool if the removal is successful, true is returned. If the removal fails or the element does not exist, false is returned.
+     *
+     */
+    public func remove(element: T): Bool {
+        return myMap.remove(element).isSome()
+    }
+
+    /**
+     * Traversal removal of elements in this collection.
+     *
+     * @param all the collection.
+     *
+     */
+    public func remove(all!: Collection<T>): Unit {
+        myMap.remove(all: all)
+    }
+
+    /**
+     * Transfer a lambda expression and delete the corresponding element if the condition is met.
+     *
+     * @param predicate transfer a lambda expression for judgment.
+     *
+     */
+    public func removeIf(predicate: (T) -> Bool): Unit {
+        this.myMap.removeIf({e, _ => predicate(e)})
+    }
+
+    /**
+     * Clears all elements.
+     */
+    public func clear(): Unit {
+        this.myMap.clear()
+    }
+
+    /**
+     * Copy a TreeSet.
+     *
+     * @return returns a cloned TreeSet.
+     *
+     */
+    public func clone(): TreeSet<T> {
+        return TreeSet<T>(this)
+    }
+
+    /**
+     * Check whether the size is empty. If yes, true is returned. Otherwise, false is returned.
+     *
+     * @return bool if yes, true is returned. Otherwise, false is returned.
+     *
+     */
+    public func isEmpty(): Bool {
+        return this.myMap.isEmpty()
+    }
+
+    /**
+     * @description Maps all elements of type T in the current TreeSet to elements of type R using the transform function, forming a new TreeSet.
+     *
+     * @param transform the mapping function.
+     * @returns a new TreeSet composed of elements obtained by mapping all elements in the original TreeSet.
+     */
+    @When[env != "ohos"]
+    public func map<R>(transform: (T) -> R): TreeSet<R> where R <: Comparable<R> {
+        var arr: Array<T> = this.toArray()
+        var result: TreeSet<R> = TreeSet<R>()
+        var len = arr.size
+        for (i in 0..len) {
+            result.add(transform(arr[i]))
+        }
+        return result
+    }
+
+    /**
+     * @description Returns a new TreeSet<T> containing elements that satisfy the filtering condition.
+     *
+     * @param predicate the given condition.
+     * @returns a new collection of elements that satisfy the filtering condition.
+     */
+    @When[env != "ohos"]
+    public func filter(predicate: (T) -> Bool): TreeSet<T> {
+        var newMap = myMap.filter({k, v => predicate(k)})
+        var res = TreeSet<T>()
+        res.myMap = newMap
+        return res
+    }
+
+    /**
+     * @description Performs filtering and mapping operations simultaneously, returning a new TreeSet.
+     *
+     * @param transform the given mapping function.
+     * @returns a new TreeSet after filtering and mapping.
+     */
+    @When[env != "ohos"]
+    public func filterMap<R>(transform: (T) -> Option<R>): TreeSet<R> where R <: Comparable<R> {
+        var arr: Array<T> = this.toArray()
+        var result: TreeSet<R> = TreeSet<R>()
+        var len = arr.size
+        for (i in 0..len) {
+            match (transform(arr[i])) {
+                case Some(v) => result.add(v)
+                case None => continue
+            }
+        }
+        return result
+    }
+
+    /**
+     * @description Iterates over all elements and performs the given operation.
+     *
+     * @param action the given operation function.
+     */
+    @When[env != "ohos"]
+    public func forEach(action: (T) -> Unit): Unit {
+        myMap.forEach({k, v => action(k)})
+    }
+
+    /**
+     * @description Determine whether all elements in the TreeSet satisfy the condition.
+     *
+     * @param predicate the given condition.
+     * @returns true if all elements in the TreeSet satisfy the condition, otherwise returns false.
+     */
+    @When[env != "ohos"]
+    public func all(predicate: (T) -> Bool): Bool {
+        return myMap.all({k, v => predicate(k)})
+    }
+
+    /**
+     * @description Determine whether there is any element in the TreeSet that satisfies the condition.
+     *
+     * @param predicate the given condition.
+     * @returns Whether there is any element that satisfies the condition.
+     */
+    @When[env != "ohos"]
+    public func any(predicate: (T) -> Bool): Bool {
+        return myMap.any({k, v => predicate(k)})
+    }
+
+    /**
+     * @description Determine whether all elements in the TreeSet do not satisfy the condition.
+     *
+     * @param predicate the given condition.
+     * @returns Whether all elements in the current TreeSet do not satisfy the condition.
+     */
+    @When[env != "ohos"]
+    public func none(predicate: (T) -> Bool): Bool {
+        return myMap.none({k, v => predicate(k)})
+    }
+
+    /**
+     * @description Computes from left to right using the specified initial value.
+     *
+     * @param initial the given initial value of type R.
+     * @param operation the given computation function.
+     * @returns the final computed value.
+     */
+    @When[env != "ohos"]
+    public func fold<R>(initial: R, operation: (R, T) -> R): R {
+        return myMap.fold<R>(initial, {r, k, v => operation(r, k)})
+    }
+
+    /**
+     * @description Compute from left to right using the first value as the initial value.
+     *
+     * @param operation the given computation function.
+     * @returns the final computed value.
+     */
+    @When[env != "ohos"]
+    public func reduce(operation: (T, T) -> T): Option<T> {
+        if (size <= 0) {
+            return None<T>
+        }
+        var arr: Array<T> = this.toArray()
+        var result: T = arr[0]
+        var len = arr.size
+        for (i in 1..len) {
+            result = operation(result, arr[i])
+        }
+        return result
+    }
+
+    /**
+     * Get an iterator.
+     *
+     * @return the return type is an iterator and contains all elements.
+     *
+     */
+    @Frozen
+    public func iterator(): Iterator<T> {
+        return this.myMap.keys().iterator()
+    }
+
+    /**
+     * Delete the first node of the TreeSet.
+     *
+     * @return If the first node exists, it is deleted and the element it stores is returned. Otherwise, it returns None.
+     *
+     */
+    public func removeFirst(): ?T {
+        return this.myMap.removeFirst()?[0]
+    }
+
+    /**
+     * Delete the last node of the TreeSet.
+     *
+     * @return If the last node exists, it is deleted and the element it stores is returned. Otherwise, it returns None.
+     *
+     */
+    public func removeLast(): ?T {
+        return this.myMap.removeLast()?[0]
+    }
+
+    /**
+     * Gets a descending iterator.
+     * The head node of the iterator is the first node whose value is less than or equal to the marked element, and the tail node is the head node of the original set.
+     *
+     * @param mark Marked element.
+     * @param inclusive Indicates whether the iterator includes the marked element node.
+     * If yes, the iterator includes the marked element node. Otherwise, the iterator does not include the marked element node.
+     *
+     * @return iterator.
+     *
+     */
+    public func backward(mark: T, inclusive!: Bool = true): Iterator<T> {
+        return IteratorForSet<T>(this.myMap.backward(mark, inclusive: inclusive))
+    }
+
+    /**
+     * Gets a Ascending iterator.
+     * The head node of the iterator is the first node with a value greater than or equal to the marked element, and the tail node is the tail node of the original set.
+     *
+     * @param mark Marked element.
+     * @param inclusive Indicates whether the iterator includes the marked element node.
+     * If yes, the iterator includes the marked element node. Otherwise, the iterator does not include the marked element node.
+     *
+     * @return iterator.
+     *
+     */
+    public func forward(mark: T, inclusive!: Bool = true): Iterator<T> {
+        return IteratorForSet<T>(this.myMap.forward(mark, inclusive: inclusive))
+    }
+
+    /**
+     * Retain only duplicate T.
+     * Removes all elements from this collection that are not contained
+     * in the specified collection. This function depends on the contains function.
+     * Please note that. If the incoming interface is a subtype of a malicious implementation.
+     * We do not guarantee the correctness of results for retaining duplicate elements.
+     *
+     * @param all the other set.
+     *
+     */
+    public func retain(all!: Set<T>): Unit {
+        this.myMap.removeIf({k, _ => !all.contains(k)})
+    }
+
+    /**
+     * Returns the element in this TreeSet as an Array.
+     *
+     */
+    public func toArray(): Array<T> {
+        return myMap.keys().toArray()
+    }
+
+    /**
+     * Check whether the set is a subset of other.
+     *
+     * @param other a set of the set type.
+     * @return bool returns true if it is a subset, false otherwise.
+     *
+     */
+    public func subsetOf(other: ReadOnlySet<T>): Bool {
+        return other.contains(all: this.myMap.keys())
+    }
+
+    /**
+     * Computes the intersection of this set and another set.
+     * Returns a new set containing only the elements that are present in both sets.
+     *
+     * @param other Another set to intersect with.
+     * @return A new `TreeSet` containing elements common to both sets.
+     *
+     * Example:
+     * ```
+     * let set1 = TreeSet([1, 2, 3])
+     * let set2 = TreeSet([2, 3, 4])
+     * let result = set1 & set2 // result is [2, 3]
+     * ```
+     */
+    public operator func &(other: ReadOnlySet<T>): TreeSet<T> {
+        let result = TreeSet<T>()
+        for (key in this.myMap.keys() where other.contains(key)) {
+            result.add(key)
+        }
+        return result
+    }
+
+    /**
+     * Computes the union of this set and another set.
+     * Returns a new set containing all unique elements from both sets.
+     *
+     * @param other Another set to unite with.
+     * @return A new `TreeSet` containing all unique elements from both sets.
+     *
+     * Example:
+     * ```
+     * let set1 = TreeSet([1, 2, 3])
+     * let set2 = TreeSet([3, 4, 5])
+     * let result = set1 | set2 // result is [1, 2, 3, 4, 5]
+     * ```
+     */
+    public operator func |(other: ReadOnlySet<T>): TreeSet<T> {
+        let result = this.clone()
+        result.add(all: other)
+        return result
+    }
+
+    /**
+     * Computes the difference of this set and another set.
+     * Returns a new set containing elements that are present in this set but not in the other set.
+     *
+     * @param other Another set to subtract from this set.
+     * @return A new `TreeSet` containing elements unique to this set.
+     *
+     * Example:
+     * ```
+     * let set1 = TreeSet([1, 2, 3])
+     * let set2 = TreeSet([3, 4, 5])
+     * let result = set1 - set2 // result is [1, 2]
+     * ```
+     */
+    public operator func -(other: ReadOnlySet<T>): TreeSet<T> {
+        let result = TreeSet<T>()
+        for (key in this.myMap.keys() where !other.contains(key)) {
+            result.add(key)
+        }
+        return result
+    }
+}
+
+class IteratorForSet<T> <: Iterator<T> where T <: Comparable<T> {
+    private let it: Iterator<(T, Unit)>
+
+    init(it: Iterator<(T, Unit)>) {
+        this.it = it
+    }
+
+    @Frozen
+    public func next(): Option<T> {
+        return it.next()?[0]
+    }
+}
+
+/**
+ * Defines the TreeSet inherits the Equalable method and determines whether == and != methods.
+ *
+ */
+extend<T> TreeSet<T> <: Equatable<TreeSet<T>> {
+    /** overloaded determination equal function. */
+    public operator func ==(other: TreeSet<T>): Bool {
+        if (this.size != other.size) {
+            return false
+        }
+        let iThis = this.iterator()
+        let iThat = other.iterator()
+        for (_ in 0..this.size where iThis.next() != iThat.next()) {
+            return false
+        }
+        return true
+    }
+
+    /** overloaded determination unequal function. */
+    public operator func !=(other: TreeSet<T>): Bool {
+        return !(this == other)
+    }
+}
+
+extend<T> TreeSet<T> <: ToString where T <: ToString {
+    public func toString(): String {
+        return collectionToString<TreeSet<T>, T>(this)
+    }
+}

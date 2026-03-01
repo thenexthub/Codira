@@ -1,0 +1,56 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+package std.unittest.mock
+
+import std.unittest.mock.internal.*
+
+class Invocation {
+    let stubId: StubId
+
+    Invocation(
+        let mockObject: Option<MockObject>,
+        let call: Call,
+        let location: Location
+    ) {
+        stubId = StubId(call.funcInfo, mockObject?.id ?? 0)
+    }
+}
+
+class StubId <: Hashable & Equatable<StubId> {
+    StubId(
+        let funcInfo: FuncInfo,
+        let receiverId: UInt64
+    ) {}
+
+    @OverflowWrapping
+    public func hashCode(): Int64 {
+        return Int64(receiverId) + 31 * funcInfo.id.hashCode()
+    }
+
+    public operator func ==(that: StubId): Bool {
+        return this.receiverId == that.receiverId && this.funcInfo.id == that.funcInfo.id
+    }
+
+    public operator func !=(that: StubId): Bool {
+        return this.receiverId != that.receiverId || this.funcInfo.id != that.funcInfo.id
+    }
+}

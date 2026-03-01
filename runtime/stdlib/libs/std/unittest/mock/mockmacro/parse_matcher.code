@@ -1,0 +1,104 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+macro package std.unittest.mock.mockmacro
+
+import std.ast.*
+
+class Matcher {
+    Matcher(
+        let originalTokens: Tokens,
+        let fullMatcherCall: Tokens,
+        let descriptionString: String,
+        let paramName: Option<Token>
+    ) {}
+}
+
+func parseMatcherFromArg(arg: Argument): ParseResult<Matcher> {
+    var optionName = try {
+        Some(arg.identifier)
+    } catch (e: ASTException) {
+        None<Token>
+    }
+    parseMatcherExpression(arg.expr, paramName: optionName)
+}
+
+func parseMatcherExpression(e: Expr, paramName!: Option<Token> = None): ParseResult<Matcher> {
+    let tokens = try {
+        e.toTokens()
+    } catch (e: Exception) {
+        return ParseResult.Error([SyntaxError.parser()])
+    }
+
+    func error(): ParseResult<Matcher> {
+        return ParseResult.Error([SyntaxError.matcher(tokens)])
+    }
+
+    let description = descriptionString(tokens)
+    let shortMatcherCall: Tokens = match (e) {
+        case callExpr: CallExpr =>
+            parseMatcherCallExpr(callExpr) ?? return error()
+        case exprWithLambda: TrailingClosureExpr =>
+            let exprWithoutLambda = exprWithLambda.expr
+            let lambda = exprWithLambda.lambdaExpr
+            let callWithoutLambda = if (exprWithoutLambda is CallExpr) {
+                exprWithoutLambda as CallExpr
+            } else {
+                parseExpr(quote($exprWithoutLambda ())) as CallExpr
+            }
+            match (parseMatcherCallExpr(callWithoutLambda.getOrThrow())) {
+                case Some(tokens) => quote($tokens $lambda)
+                case None => return error()
+            }
+        case litConst: LitConstExpr =>
+            return Success(Matcher(tokens, quote(Matchers.eq($litConst)), "eq(${description})", paramName))
+        case refExpr: RefExpr =>
+            quote(default($refExpr))
+        case parenExpr: ParenExpr =>
+            return parseMatcherExpression(parenExpr.parenthesizedExpr, paramName: paramName)
+        case _ => return error()
+    }
+    Success(Matcher(tokens, quote(Matchers.$shortMatcherCall), description, paramName))
+}
+
+func parseMatcherCallExpr(callExpr: CallExpr): ?Tokens {
+    let callee = callExpr.callFunc
+    match (callee) {
+        case exprBeforeParen: MemberAccess =>
+            let exprBeforeDot = exprBeforeParen.baseExpr
+            if (!isMatchersRef(exprBeforeDot)) {
+                return None
+            }
+            let funcIdentifier = exprBeforeParen.field
+            let args = callExpr.arguments.toTokens()
+            quote($funcIdentifier($args))
+        case _: RefExpr =>
+            callExpr.toTokens()
+        case _ => None
+    }
+}
+
+func isMatchersRef(e: Expr): Bool {
+    match (e) {
+        case ref: RefExpr where ref.identifier.value == "Matchers" => true
+        case _ => false
+    }
+}

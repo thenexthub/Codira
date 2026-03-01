@@ -1,0 +1,592 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package stdx.net.http
+
+import std.collection.{ArrayList, HashMap}
+
+let H2_EXCLUDE_HEADERS: Array<String> = ["host", "connection", "transfer-encoding", "keep-alive", "upgrade",
+    "proxy-connection"]
+
+// connection preface, "".toArray() can't auto escape, must use toArray()
+let PREFACE: Array<UInt8> = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n".toArray()
+
+// flag types of frame
+// bit value 1 means the flag is true
+const STREAM_END: UInt8 = 0b0000_0001
+const HEADERS_END: UInt8 = 0b0000_0100
+const PADDED: UInt8 = 0b0000_1000
+const HAS_PRIORITY: UInt8 = 0b0010_0000
+const ACK: UInt8 = 0b0000_0001
+
+// All frames begin with a fixed 9-octet header followed by a variable-length frame payload.
+// use upper case
+const FRAME_HEAD_LEN = 9
+
+// for priority in level queue
+const CONTROL_PRIORITY = 1
+const MESSAGE_PRIORITY = 0
+const MAX_URGENCY = 7
+const DEFAULT_URGENCY = 3
+let h2UpgradeProtocols: Array<String> = ["HTTP", "TLS", "WebSocket", "websocket", "h2c", "connect-udp", "connect-ip"]
+
+// https://www.rfc-editor.org/rfc/rfc9113.html#SETTINGS
+enum H2Setting {
+    SettingsHeaderTableSize
+    | SettingsEnablePush
+    | SettingsMaxConcurrentStreams
+    | SettingsInitialWindowSize
+    | SettingsMaxFrameSize
+    | SettingsMaxHeaderListSize
+    | SettingsEnableConnectProtocol
+    | SettingsNoRfc7540Priorities
+    | UnknownSettings
+
+    prop code: UInt16 {
+        get() {
+            match (this) {
+                case SettingsHeaderTableSize => 1
+                case SettingsEnablePush => 2
+                case SettingsMaxConcurrentStreams => 3
+                case SettingsInitialWindowSize => 4
+                case SettingsMaxFrameSize => 5
+                case SettingsMaxHeaderListSize => 6
+                case SettingsEnableConnectProtocol => 8
+                case SettingsNoRfc7540Priorities => 9
+                case _ => 0
+            }
+        }
+    }
+}
+
+func getSettingByCode(code: UInt16): H2Setting {
+    match (code) {
+        case 1 => SettingsHeaderTableSize
+        case 2 => SettingsEnablePush
+        case 3 => SettingsMaxConcurrentStreams
+        case 4 => SettingsInitialWindowSize
+        case 5 => SettingsMaxFrameSize
+        case 6 => SettingsMaxHeaderListSize
+        case 8 => SettingsEnableConnectProtocol
+        case 9 => SettingsNoRfc7540Priorities
+        case _ => UnknownSettings
+    }
+}
+
+func validSetting(setting: H2Setting, value: UInt32) {
+    match (setting) {
+        case SettingsHeaderTableSize => () // no limit
+        case SettingsEnablePush => zeroOrOne(value)
+        case SettingsMaxConcurrentStreams => () // no limit
+        case SettingsInitialWindowSize =>
+            if (value > MAX_WINDOW) {
+                throw HttpConnectionException(FlowControlError,
+                    "Illegal HTTP/2 setting SettingsInitialWindowSize value:${value}.")
+            }
+        case SettingsMaxFrameSize =>
+            if (value < MIN_FRAME_SIZE || value > MAX_FRAME_SIZE) {
+                throw HttpConnectionException(ProtocolError,
+                    "Illegal HTTP/2 setting SettingsMaxFrameSize value:${value}.")
+            }
+        case SettingsMaxHeaderListSize => () // no limit
+        case SettingsEnableConnectProtocol => zeroOrOne(value)
+        case SettingsNoRfc7540Priorities => zeroOrOne(value)
+        case _ => throw HttpException("Unknown HTTP/2 setting.")
+    }
+}
+
+func validSetting(setting: UInt16, value: UInt32) {
+    validSetting(getSettingByCode(setting), value)
+}
+
+func zeroOrOne(value: UInt32): Unit {
+    if (value != 0 && value != 1) {
+        throw HttpConnectionException(ProtocolError, "Illegal HTTP/2 setting value:${value}, should be 0 or 1.")
+    }
+}
+
+func initializeSettings(): HashMap<UInt16, UInt32> {
+    let settings = HashMap<UInt16, UInt32>()
+    settings.add(1, 4096)
+    settings.add(2, 1)
+    settings.add(3, 100) // should NOT be smaller than 100
+    settings.add(4, UInt32(2 ** 16 - 1))
+    settings.add(5, MIN_FRAME_SIZE)
+    settings.add(6, UInt32.Max) // no limit
+    settings.add(8, 0) // SettingsEnableConnectProtocol
+    settings.add(9, 0) // SettingsNoRfc7540Priorities
+    return settings
+}
+
+class HttpConnectionException <: Exception {
+    let h2Error: H2Error
+
+    init(h2Error: H2Error, message: String) {
+        super(message)
+        this.h2Error = h2Error
+    }
+
+    protected override func getClassName(): String {
+        return "HttpConnectionException"
+    }
+}
+
+class HttpStreamException <: Exception {
+    let h2Error: H2Error
+    init(h2Error: H2Error, message: String) {
+        super(message)
+        this.h2Error = h2Error
+    }
+    protected override func getClassName(): String {
+        return "HttpStreamException"
+    }
+}
+
+/*
+ * https://www.rfc-editor.org/rfc/rfc9113.html#ErrorCodes
+ */
+enum H2Error {
+    | NoError
+    | ProtocolError
+    | InternalError
+    | FlowControlError
+    | SettingsTimeout
+    | StreamClosed
+    | FrameSizeError
+    | RefusedStream
+    | Cancel
+    | CompressionError
+    | ConnectError
+    | EnhanceYourCalm
+    | InadequateSecurity
+    | Http_1_1_Required
+
+    prop code: UInt32 {
+        get() {
+            match (this) {
+                case NoError => 0
+                case ProtocolError => 1
+                case InternalError => 2
+                case FlowControlError => 3
+                case SettingsTimeout => 4
+                case StreamClosed => 5
+                case FrameSizeError => 6
+                case RefusedStream => 7
+                case Cancel => 8
+                case CompressionError => 9
+                case ConnectError => 10
+                case EnhanceYourCalm => 11
+                case InadequateSecurity => 12
+                case Http_1_1_Required => 13
+            }
+        }
+    }
+}
+
+enum Status <: ToString & Equatable<Status> {
+    | Idle
+    | ReservedLocal
+    | ReservedRemote
+    | Open
+    | HalfClosedLocal
+    | HalfClosedRemote
+    | Closed
+
+    public func toString(): String {
+        match (this) {
+            case Idle => "Idle"
+            case ReservedLocal => "ReservedLocal"
+            case ReservedRemote => "ReservedRemote"
+            case Open => "Open"
+            case HalfClosedLocal => "HalfClosedLocal"
+            case HalfClosedRemote => "HalfClosedRemote"
+            case Closed => "Closed"
+        }
+    }
+
+    public operator func ==(rhs: Status): Bool {
+        match ((this, rhs)) {
+            case (Idle, Idle) => return true
+            case (ReservedLocal, ReservedLocal) => return true
+            case (ReservedRemote, ReservedRemote) => return true
+            case (Open, Open) => return true
+            case (HalfClosedLocal, HalfClosedLocal) => return true
+            case (HalfClosedRemote, HalfClosedRemote) => return true
+            case (Closed, Closed) => return true
+            case _ => return false
+        }
+    }
+
+    public operator func !=(rhs: Status): Bool {
+        return !(this == rhs)
+    }
+}
+
+/********************************************** frame util ********************************************/
+
+// stream id is a 31bit number, first bit of UInt32 must be zero
+func streamIdOverflow(id: UInt32): Bool {
+    return id > MAX_STREAM_ID
+}
+
+// normal stream id cannot be 0
+func checkStreamId(id: UInt32): Bool {
+    return id != 0 && !streamIdOverflow(id)
+}
+
+// padding cannot have non zero byte
+func checkPad(pad: Array<UInt8>): Bool {
+    for (i in pad) {
+        if (i != 0) {
+            return false
+        }
+    }
+    return true
+}
+
+func decodeFields(decoder: Decoder, fields: ArrayList<UInt8>): FieldsList {
+    decodeFields(decoder, unsafe { fields.getRawArray()[..fields.size] })
+}
+
+func decodeFields(decoder: Decoder, fields: Array<UInt8>): FieldsList {
+    let fieldsList: FieldsList
+    try {
+        fieldsList = decoder.decode(fields)
+    } catch (e: HpackException) {
+        throw HttpConnectionException(CompressionError, e.message)
+    }
+    return fieldsList
+}
+
+/********************************************** byte util ********************************************/
+
+// convert 4 UIn8 to UInt32
+func convertUInt32(a: UInt8, b: UInt8, c: UInt8, d: UInt8): UInt32 {
+    return (UInt32(a) << 24) + (UInt32(b) << 16) + (UInt32(c) << 8) + UInt32(d)
+}
+
+// convert Array<UInt8> to UInt32, the size must le 4
+func readUInt32(src: Array<UInt8>): UInt32 {
+    if (src.size > 4 || src.size <= 1) {
+        throw IllegalArgumentException("Illegal src.")
+    }
+    if (src.size == 2) {
+        return UInt32(readUInt16(src))
+    }
+    if (src.size == 3) {
+        return convertUInt32(0, src[0], src[1], src[2])
+    }
+    convertUInt32(src[0], src[1], src[2], src[3])
+}
+
+// convert 2 UIn8 to UInt16
+func convertUInt16(a: UInt8, b: UInt8): UInt16 {
+    return (UInt16(a) << 8) + UInt16(b)
+}
+
+// convert Array<UInt8> to UInt16, the size must equals 2
+func readUInt16(src: Array<UInt8>): UInt16 {
+    if (src.size != 2) {
+        throw IllegalArgumentException("Illegal size.")
+    }
+    convertUInt16(src[0], src[1])
+}
+
+func isPushStream(id: UInt32): Bool {
+    return id % 2 == 0
+}
+
+public class HttpResponsePusher {
+    private HttpResponsePusher(let engine: HttpEngineConn2) {}
+
+    /**
+     * Return None if get pusher failed.
+     *
+     * @param ctx the request context.
+     * @return Option HttpResponsePusher.
+     */
+    public static func getPusher(ctx: HttpContext): ?HttpResponsePusher {
+        match (ctx.httpConn) {
+            case engineConn: HttpEngineConn2 =>
+                if (engineConn.enablePush) {
+                    return HttpResponsePusher(engineConn)
+                }
+                return None
+            case _ => return None
+        }
+    }
+
+    /**
+     * Push a request to client.
+     *
+     * @param path the request's path.
+     * @param method the request's method.
+     * @param header the request's header.
+     */
+    public func push(path: String, method: String, header: HttpHeaders): Unit {
+        engine.writePush(path, method, header)
+    }
+}
+
+extend HttpResponse {
+    /**
+     * Obtains the server push response.
+     * If None is returned, the server push function is disabled.
+     * If ArrayList is empty, no server push response is returned.
+     *
+     * @return Option<ArrayList<HttpResponse>>
+     */
+    public func getPush(): Option<ArrayList<HttpResponse>> {
+        return match (pushResponses) {
+            case Some(pushStreams) =>
+                let responses = ArrayList<HttpResponse>(pushStreams.size)
+                for (stream in pushStreams) {
+                    let response = if (let Some(v) <- (stream as ClientStream)?.constructPushResponse()) {
+                        v
+                    } else {
+                        continue
+                    }
+                    responses.add(response)
+                }
+                responses
+            case None => None
+        }
+    }
+}
+
+class BytesIOStream {
+    private var buffer = Array<Byte>(32, repeat: 0)
+    private var idx = 0
+    private var len = 0
+
+    prop remainLength: Int64 {
+        get() {
+            len
+        }
+    }
+
+    prop remainCapacity: Int64 {
+        get() {
+            buffer.size - len
+        }
+    }
+
+    func read(dst: Array<Byte>): Int64 {
+        if (dst.size == 0) {
+            return 0
+        }
+
+        let readLen = if (dst.size < len) {
+            dst.size
+        } else {
+            len
+        }
+
+        /**
+         *  Copy from cycle buffer to destination buffer.
+         *
+         *  Case 1:
+         *
+         *        idx
+         *         |
+         *      |--012345678---------|
+         *      |  <--len-->         |
+         *      |       buffer       |
+         *
+         *  Case 2:
+         *
+         *                     idx
+         *                      |
+         *      |5678-----------01234|
+         *      |--->           <-len|
+         *      |       buffer       |
+         */
+        match (idx + len <= buffer.size) {
+            case true => buffer.copyTo(dst, idx, 0, readLen)
+            case false =>
+                let len1 = idx + len - buffer.size
+                match (readLen <= len1) {
+                    case true => buffer.copyTo(dst, idx, 0, readLen)
+                    case false =>
+                        buffer.copyTo(dst, idx, 0, len1)
+                        buffer.copyTo(dst, 0, len1, readLen - len1)
+                }
+        }
+
+        idx += readLen
+        len -= readLen
+        return readLen
+    }
+
+    func write(data: Array<Byte>): Unit {
+        if (len == 0) { // fast reset
+            idx = 0
+        }
+
+        if (data.size > remainCapacity) {
+            grow(remainCapacity + data.size)
+        }
+
+        /**
+         *  Copy data to cycle buffer.
+         *
+         *  Case 1:
+         *
+         *        idx      wBeg          wEnd
+         *         |        |             |
+         *      |--012345678-------------------|
+         *      |  <--len--><--data.size-->    |
+         *      |             buffer           |
+         *
+         *  Case 2:
+         *
+         *             wEnd   idx      wBeg
+         *              |      |        |
+         *      |--------------012345678-------|
+         *      |.size-->      <--len--><--data|
+         *      |             buffer           |
+         *
+         */
+        let wBeg = idx + len
+        let wEnd = wBeg + data.size - 1
+        match (wEnd < buffer.size) {
+            case true => data.copyTo(buffer, 0, wBeg, data.size)
+            case false =>
+                let len1 = wEnd - buffer.size + 1
+                data.copyTo(buffer, 0, wBeg, len1)
+                data.copyTo(buffer, len1, 0, data.size - len1)
+        }
+
+        len += data.size
+    }
+
+    private func grow(minCapacity: Int64): Unit {
+        var newCapacity = buffer.size + (buffer.size >> 1)
+        if (newCapacity < minCapacity) {
+            newCapacity = minCapacity
+        }
+        let newBuffer = Array<Byte>(newCapacity, repeat: 0)
+
+        len = read(newBuffer)
+        idx = 0
+        buffer = newBuffer
+    }
+}
+
+class FieldsWriter {
+    var buffer: Array<Byte>
+    private var bufferIdx = 0
+    var firstFrame = true
+    var blockSize = 0
+    var streamId: UInt32 = 0
+    var streamEnd = false
+    var pushId: UInt32 = 0
+
+    FieldsWriter(let conn: BufferedWriter) {
+        buffer = Array<Byte>(blockSize, repeat: 0)
+        bufferIdx = 0
+    }
+
+    func write(input: Byte): Unit {
+        if (bufferIdx == blockSize) {
+            flush(false)
+        }
+        buffer[bufferIdx] = input
+        bufferIdx++
+    }
+
+    func write(input: ArrayList<Byte>): Unit {
+        let raw = unsafe { input.getRawArray() }
+        var srcIdx = 0
+        let srcEnd = input.size
+
+        while (srcIdx < srcEnd) { // visit source data
+            if (bufferIdx == blockSize) {
+                flush(false)
+            }
+
+            let copyLen = min(srcEnd - srcIdx, blockSize - bufferIdx)
+            raw.copyTo(buffer, srcIdx, bufferIdx, copyLen)
+
+            srcIdx += copyLen
+            bufferIdx += copyLen
+        }
+    }
+
+    func write(input: Array<Byte>): Unit {
+        var srcIdx = 0
+        let srcEnd = input.size
+
+        while (srcIdx < srcEnd) { // visit source data
+            if (bufferIdx == blockSize) {
+                flush(false)
+            }
+
+            let copyLen = min(srcEnd - srcIdx, blockSize - bufferIdx)
+            input.copyTo(buffer, srcIdx, bufferIdx, copyLen)
+
+            srcIdx += copyLen
+            bufferIdx += copyLen
+        }
+    }
+
+    func flush(headerEnd: Bool): Unit {
+        if (firstFrame) {
+            if (pushId == 0) { // header
+                var flag: UInt8 = 0
+                if (streamEnd) {
+                    flag |= STREAM_END
+                }
+                if (headerEnd) {
+                    flag |= HEADERS_END
+                }
+                writeHead(conn, Headers, streamId, flag, UInt32(bufferIdx))
+            } else { // push
+                var flag: UInt8 = 0
+                if (headerEnd) {
+                    flag |= HEADERS_END
+                }
+                writeHead(conn, PushPromise, streamId, flag, UInt32(bufferIdx + 4))
+                conn.writeUInt32(pushId)
+            }
+            if (!headerEnd) {
+                firstFrame = false
+            }
+        } else { // Continuation
+            var flag: UInt8 = 0
+            if (headerEnd) {
+                flag |= HEADERS_END
+                firstFrame = true
+            }
+            writeHead(conn, Continuation, streamId, flag, UInt32(bufferIdx))
+        }
+        conn.write(buffer[..bufferIdx])
+        conn.flush()
+        bufferIdx = 0
+    }
+
+    func finish(): Unit {
+        if (!buffer.isEmpty()) {
+            flush(true)
+        }
+    }
+}

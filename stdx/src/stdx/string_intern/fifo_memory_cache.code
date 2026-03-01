@@ -1,0 +1,36 @@
+/*
+ *  Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *  This source file is part of the Codira project, licensed under Apache-2.0
+ *  with Runtime Library Exception.
+ *
+ *  See https://cangjie-lang.cn/pages/LICENSE for license information.
+ */
+
+package stdx.string_intern
+
+/**
+ * @brief FIFO cache implementation: A bidirectional linked list is used to store cache keys. The linked list indicates first in first out (FIFO) and last in last out.
+ * After the cache is hit, the location of the cache KEy remains marked. When the cache is updated, the new data is also placed in the cache header.
+ */
+class FIFOMemoryCache<K, V> <: BaseDoubleLinkedListMemoryCache<K, V> where K <: Hashable & Equatable<K> {
+    public init(cacheConfigs!: ?ICacheConfig, cacheKeyLinkList!: ILinkList<K> = ConcurrentSkipingLinkList<K>()) {
+        super(cacheConfigs: cacheConfigs, cacheKeyLinkList: cacheKeyLinkList)
+    }
+
+    /**
+     * After the cache is hit, the FIFO algorithm needs to keep the current storage sequence of cache keys unchanged.
+     *
+     * @param cacheObj Current hit cache
+     */
+    protected func adjustCacheAfterHit(_: ICacheObj<K, V>): Unit {
+    }
+
+    /**
+     * After the update is hit, the FIFO algorithm needs to place the cache key at the end of the queue, that is, last-in, first-out, first-in, first-out.
+     *
+     * @param cacheObj Cache to be updated or added
+     */
+    protected func adjustCacheAfterPut(cacheObj: ICacheObj<K, V>, oldObj!: ?ICacheObj<K, V>): Unit {
+        super.cacheKeyLinkList.prepend(cacheObj.key)
+    }
+}

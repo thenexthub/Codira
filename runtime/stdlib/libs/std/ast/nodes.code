@@ -1,0 +1,2033 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package std.ast
+
+public import std.collection.ArrayList
+
+abstract sealed class Node <: ToTokens {
+    init() {}
+    protected var begin_: Position = Position()
+    protected var end_: Position = Position()
+    protected var astKind: String = "node"
+    protected var currentIndent: UInt16 = 0
+    protected var beginNode: Bool = false
+    public mut prop beginPos: Position {
+        get() {
+            begin_
+        }
+        set(v) {
+            begin_ = v
+        }
+    }
+    public mut prop endPos: Position {
+        get() {
+            end_
+        }
+        set(v) {
+            end_ = v
+        }
+    }
+    public func toTokens(): Tokens
+
+    public open func traverse(v: Visitor): Unit {
+        v.visit(this)
+    }
+
+    public func dump(): Unit {
+        beginNode = true
+        print(dump(0))
+    }
+
+    protected func dump(indent: UInt16): String
+}
+
+public class Annotation <: Node {
+    init(at: Token, identifier: Token, lSquare: Token, args: ArrayList<Argument>, rSquare: Token, attrs: Tokens,
+        cond: Option<Expr>) {
+        super()
+        at_ = at
+        identifier_ = identifier
+        lSquare_ = lSquare
+        args_ = args
+        rSquare_ = rSquare
+        attrs_ = attrs
+        cond_ = cond
+    }
+    public init(inputs: Tokens) {
+        super()
+        try {
+            var anno = parseDecl(inputs.append(Token(NL)).append(innerToken_)).annotations[0]
+            this.begin_ = anno.beginPos
+            this.end_ = anno.endPos
+            at_ = anno.at_
+            lSquare_ = anno.lSquare_
+            identifier_ = anno.identifier_
+            rSquare_ = anno.rSquare_
+            attrs_ = anno.attrs_
+            cond_ = anno.cond_
+            args_ = anno.args_
+        } catch (e: ParseASTException | IndexOutOfBoundsException) {
+            throw ASTException("Cannot construct the 'Annotation' node.")
+        }
+    }
+    public init() {}
+    private var innerToken_: Tokens = quote(func innerToken() {})
+    private var at_: Token = Token(TokenKind.AT)
+    private var identifier_: Token = Token(TokenKind.IDENTIFIER, "")
+    // Common annotation
+    private var lSquare_: Token = Token(TokenKind.LSQUARE)
+    private var args_: ArrayList<Argument> = ArrayList<Argument>()
+    private var rSquare_: Token = Token(TokenKind.RSQUARE)
+    // Attribute annotation
+    private var attrs_: Tokens = Tokens()
+    // Condtional Compile
+    private var cond_: Option<Expr> = None<Expr>
+
+    public mut prop at: Token {
+        get() {
+            at_
+        }
+        set(v) {
+            if (v.kind != TokenKind.AT && v.kind != TokenKind.AT_EXCL) {
+                throw ASTException("Illegal TokenKind, TokenKind should be ${AT} or ${AT_EXCL}")
+            }
+            at_ = v
+        }
+    }
+    public mut prop identifier: Token {
+        get() {
+            identifier_
+        }
+        set(v) {
+            identifier_ = v
+        }
+    }
+    public mut prop arguments: ArrayList<Argument> {
+        get() {
+            args_
+        }
+        set(v) {
+            args_ = v
+        }
+    }
+    public mut prop attributes: Tokens {
+        get() {
+            attrs_
+        }
+        set(v) {
+            attrs_ = v
+        }
+    }
+    public mut prop condition: Expr {
+        get() {
+            match (cond_) {
+                case Some(v) => v
+                case None => throw ASTException("Current Annotation node is not `When` annotation")
+            }
+        }
+        set(v) {
+            cond_ = Some(v)
+        }
+    }
+
+    public func toTokens(): Tokens {
+        var ret = Tokens()
+        ret.append(at_).append(identifier_)
+        match (identifier_.value) {
+            case "When" => ret
+                .append(lSquare_)
+                .append(cond_.getOrThrow().toTokens())
+                .append(rSquare_)
+                .append(Token(NL))
+            case "Attribute" =>
+                if (attrs_.size == 0) {
+                    ret.append(Token(NL))
+                } else {
+                    ret.append(lSquare_)
+                    for (i in 0..attrs_.size - 1) {
+                        ret.append(attrs_[i]).append(Token(TokenKind.COMMA))
+                    }
+                    ret.append(attrs_[attrs_.size - 1]).append(rSquare_).append(Token(NL))
+                }
+            case _ =>
+                if (!args_.isEmpty()) {
+                    ret.append(lSquare_)
+                    ret.append(args_.toTokens())
+                    ret.append(rSquare_)
+                }
+                ret.append(Token(NL))
+        }
+        return ret
+    }
+
+    public func traverse(v: Visitor): Unit {
+        v.visit(this)
+        super.traverse(v)
+        if (v.needBreakTraverse()) {
+            return
+        }
+        match (this.cond_) {
+            case Some(node) => node.traverse(v)
+            case _ => ()
+        }
+        return
+    }
+
+    protected func dump(indent: UInt16): String {
+        var ret: String = "Annotation {\n"
+        currentIndent = indent
+        if (indent != 0 || beginNode) {
+            currentIndent++
+        }
+        var childIndent = getIndent(currentIndent)
+        ret += childIndent + "-identifier: ${identifier_.value}\n"
+        for (i in 0..args_.size) {
+            ret += childIndent + "-arguments: ${i}, "
+            ret += args_[i].dump(currentIndent)
+        }
+        for (i in 0..attrs_.size) {
+            ret += childIndent + "-attributes: ${i}, "
+            ret += getTokenIndent("${attrs_[i].value}", attrs_[i], currentIndent)
+        }
+        match (cond_) {
+            case Some(v) =>
+                ret += childIndent + "-condition: "
+                ret += v.dump(currentIndent)
+            case None => ()
+        }
+        ret += getIndent(indent) + "}\n"
+        ret
+    }
+}
+
+public class Modifier <: Node {
+    public init(keyword: Token) {
+        super()
+        kind_ = keyword
+        this.begin_ = kind_.pos
+        this.end_ = Position(begin_.fileID, begin_.line, begin_.column + Int32(kind_.value.size))
+    }
+    public init() {
+    }
+    private var kind_: Token = Token()
+    public mut prop keyword: Token {
+        get() {
+            kind_
+        }
+        set(v) {
+            kind_ = v
+        }
+    }
+    public func toTokens(): Tokens {
+        return Tokens().append(kind_)
+    }
+    public func traverse(v: Visitor): Unit {
+        v.visit(this)
+        super.traverse(v)
+        return
+    }
+
+    protected func dump(indent: UInt16): String {
+        var ret: String = "Modifier {\n"
+        ret += getTokenIndent("-keyword", kind_, indent + 1)
+        ret += getIndent(indent) + "}\n"
+        ret
+    }
+}
+
+public class GenericParam <: Node {
+    init(lAngle: Token, parameters: Tokens, rAngle: Token, commas: Tokens) {
+        super()
+        lAngle_ = lAngle
+        parameters_ = parameters
+        rAngle_ = rAngle
+        commas_ = commas
+    }
+    public init(parameters: Tokens) {
+        super()
+        parameters_ = parameters
+    }
+    public init() {}
+    private var lAngle_: Token = Token(TokenKind.LT)
+    private var parameters_: Tokens = Tokens()
+    private var rAngle_: Token = Token(TokenKind.GT)
+    private var commas_: Tokens = Tokens()
+    public mut prop lAngle: Token {
+        get() {
+            lAngle_
+        }
+        set(v) {
+            checkTokenType(v, LT)
+            lAngle_ = v
+        }
+    }
+    public mut prop parameters: Tokens {
+        get() {
+            parameters_
+        }
+        set(v) {
+            parameters_ = v
+        }
+    }
+    public mut prop rAngle: Token {
+        get() {
+            rAngle_
+        }
+        set(v) {
+            checkTokenType(v, GT)
+            rAngle_ = v
+        }
+    }
+    public func toTokens(): Tokens {
+        var ret = Tokens()
+        if (parameters_.size == 0) {
+            return ret
+        }
+        ret.append(lAngle_)
+        for (i in 0..parameters_.size - 1) {
+            let comma = if (i >= commas_.size) {
+                Token(TokenKind.COMMA)
+            } else {
+                commas_[i]
+            }
+            ret.append(parameters_[i]).append(comma)
+        }
+        return ret.append(parameters_[parameters_.size - 1]).append(rAngle_)
+    }
+
+    public func traverse(v: Visitor): Unit {
+        v.visit(this)
+        super.traverse(v)
+        return
+    }
+
+    protected func dump(indent: UInt16): String {
+        var ret: String = "GenericParam {\n"
+        currentIndent = indent
+        if (indent != 0 || beginNode) {
+            currentIndent++
+        }
+        for (i in 0..parameters_.size) {
+            ret += getIndent(currentIndent) + "-parameters: ${i}, "
+            ret += getTokenIndent(parameters_[i].value, parameters_[i], currentIndent, noNameIndent: true)
+        }
+        ret += getIndent(indent) + "}\n"
+        ret
+    }
+}
+
+/*
+ * GenericConstraint is:
+ *   where T <: A, K <: B
+ */
+public class GenericConstraint <: Node {
+    init(keyword: Token, ty: TypeNode, upbound: Token, upperBounds: ArrayList<TypeNode>, bitAnds: Tokens) {
+        super()
+        keyword_ = keyword
+        ty_ = ty
+        upbound_ = upbound
+        upperBounds_ = upperBounds
+        bitAnds_ = bitAnds
+    }
+
+    public init() {}
+    private var keyword_: Token = Token()
+    private var ty_: TypeNode = RefType()
+    private var upbound_: Token = Token(TokenKind.UPPERBOUND)
+    private var upperBounds_: ArrayList<TypeNode> = ArrayList<TypeNode>()
+    private var bitAnds_: Tokens = Tokens()
+    public mut prop keyword: Token {
+        get() {
+            keyword_
+        }
+        set(v) {
+            checkTokenType(v, WHERE)
+            keyword_ = v
+        }
+    }
+    public mut prop typeArgument: TypeNode {
+        get() {
+            ty_
+        }
+        set(v) {
+            ty_ = v
+        }
+    }
+    public mut prop upperBound: Token {
+        get() {
+            upbound_
+        }
+        set(v) {
+            checkTokenType(v, UPPERBOUND)
+            upbound_ = v
+        }
+    }
+    public mut prop upperBounds: ArrayList<TypeNode> {
+        get() {
+            upperBounds_
+        }
+        set(v) {
+            upperBounds_ = v
+        }
+    }
+    public mut prop bitAnds: Tokens {
+        get() {
+            bitAnds_
+        }
+        set(v) {
+            checkTokensType(v, BITAND)
+            bitAnds_ = v
+        }
+    }
+    public func toTokens(): Tokens {
+        var ret = Tokens()
+        if (isValidToken(keyword_)) {
+            ret.append(keyword_)
+        }
+        ret.append(ty_.toTokens()).append(upbound_)
+        for (i in 0..upperBounds_.size) {
+            ret.append(upperBounds_[i].toTokens())
+            if (i != upperBounds_.size - 1) {
+                let bitAnd = bitAnds_.tryGet(i) ?? Token(TokenKind.BITAND)
+                ret.append(bitAnd)
+            }
+        }
+        ret
+    }
+
+    public func traverse(v: Visitor): Unit {
+        v.visit(this)
+        super.traverse(v)
+        if (v.needBreakTraverse()) {
+            return
+        }
+        ty_.traverse(v)
+        for (upb in upperBounds_) {
+            upb.traverse(v)
+        }
+        return
+    }
+
+    protected func dump(indent: UInt16): String {
+        var ret: String = "GenericConstraint {\n"
+        currentIndent = indent
+        if (indent != 0 || beginNode) {
+            currentIndent++
+        }
+        ret += getTokenIndent("-keyword", keyword_, currentIndent)
+        ret += getIndent(currentIndent) + "-typeArgument: "
+        ret += ty_.dump(currentIndent)
+        ret += getTokenIndent("-upperBound", upbound_, currentIndent)
+        for (i in 0..upperBounds_.size) {
+            ret += getIndent(currentIndent) + "-upperBounds: ${i}, "
+            ret += upperBounds_[i].dump(currentIndent)
+        }
+        ret += getIndent(indent) + "}\n"
+        ret
+    }
+}
+
+/*
+ * Body is:
+ *   {...}
+ * For mutable types, like ClassDecl, StructDecl, InterfaceDecl
+ */
+public class Body <: Node {
+    init(lBrace: Token, decls: ArrayList<Decl>, rBrace: Token) {
+        super()
+        lBrace_ = lBrace
+        this.decls_ = decls
+        rBrace_ = rBrace
+    }
+    public init(decls: ArrayList<Decl>) {
+        super()
+        this.decls_ = decls
+    }
+    public init() {
+        super()
+    }
+    private var lBrace_: Token = Token(TokenKind.LCURL)
+    private var decls_: ArrayList<Decl> = ArrayList<Decl>()
+    private var rBrace_: Token = Token(TokenKind.RCURL)
+    public mut prop lBrace: Token {
+        get() {
+            lBrace_
+        }
+        set(v) {
+            checkTokenType(v, LCURL)
+            lBrace_ = v
+        }
+    }
+    public mut prop decls: ArrayList<Decl> {
+        get() {
+            decls_
+        }
+        set(v) {
+            decls_ = v
+        }
+    }
+    public mut prop rBrace: Token {
+        get() {
+            rBrace_
+        }
+        set(v) {
+            checkTokenType(v, RCURL)
+            rBrace_ = v
+        }
+    }
+    public func toTokens(): Tokens {
+        var ret: Tokens = Tokens()
+        ret.append(lBrace_).append(Token(TokenKind.NL))
+        for (decl in decls) {
+            ret.append(decl.toTokens())
+            if (ret[ret.size - 1].kind != NL) {
+                ret.append(Token(NL).addPosition(decl.endPos))
+            }
+        }
+        var rBracePos = rBrace_.pos
+        // if last pos of ret equal to rbrace.pos, refresh rbrace.pos, for lexer will delete rbrace when see pos equal to node.endPos
+        if (ret[ret.size - 1].pos == rBracePos) {
+            rBracePos = Position(rBracePos.fileID, rBracePos.line, rBracePos.column + 1)
+        }
+        ret.append(((rBrace_)).addPosition(rBracePos))
+        ret.append(Token(NL).addPosition(rBracePos.fileID, rBracePos.line, rBracePos.column + 1))
+        return ret
+    }
+
+    public func traverse(v: Visitor): Unit {
+        v.visit(this)
+        super.traverse(v)
+        if (v.needBreakTraverse()) {
+            return
+        }
+        for (decl in decls_) {
+            decl.traverse(v)
+        }
+        return
+    }
+
+    protected func dump(indent: UInt16): String {
+        var ret: String = "Body {\n"
+        currentIndent = indent
+        if (indent != 0 || beginNode) {
+            currentIndent++
+        }
+        for (i in 0..decls_.size) {
+            ret += getIndent(currentIndent) + "-decls: ${i}, "
+            ret += decls_[i].dump(currentIndent)
+        }
+        ret += getIndent(indent) + "}\n"
+        ret
+    }
+}
+
+/*
+ * Argument is actual parameter Node:
+ *   foo(arg1:value1)
+ *   "arg1:value1" is an Argument type
+ */
+public class Argument <: Node {
+    init(inout_: Token, identifier: Token, colon: Token, expr: Expr, comma: Token) {
+        super()
+        this.inout_ = inout_
+        identifier_ = identifier
+        colon_ = colon
+        expr_ = expr
+        comma_ = comma
+    }
+    public init() {}
+    private var inout_: Token = Token()
+    private var identifier_: Token = Token()
+    private var colon_: Token = Token()
+    private var expr_: Expr = Expr()
+    private var comma_: Token = Token()
+    public mut prop keyword: Token {
+        get() {
+            inout_
+        }
+        set(v) {
+            inout_ = v
+        }
+    }
+    public mut prop identifier: Token {
+        get() {
+            if (identifier_.kind != IDENTIFIER || identifier_.value.isEmpty()) {
+                throw ASTException("Illegal Identifier")
+            }
+            identifier_
+        }
+        set(v) {
+            if (v.kind != IDENTIFIER || v.value.isEmpty()) {
+                throw ASTException("Illegal Identifier")
+            }
+            identifier_ = v
+        }
+    }
+    public mut prop colon: Token {
+        get() {
+            colon_
+        }
+        set(v) {
+            checkTokenType(v, COLON)
+            colon_ = v
+        }
+    }
+    public mut prop expr: Expr {
+        get() {
+            expr_
+        }
+        set(v) {
+            expr_ = v
+        }
+    }
+
+    public func toTokens(): Tokens {
+        var ret = Tokens()
+        if (isValidToken(inout_)) {
+            ret.append(inout_)
+        }
+        if (identifier_.value.isEmpty()) {
+            ret.append(expr_.toTokens())
+        } else {
+            ret.append(identifier)
+            if (isValidToken(colon)) {
+                ret.append(colon)
+            } else {
+                ret.append(Token(TokenKind.COLON))
+            }
+            ret.append(expr_.toTokens())
+        }
+        if (isValidToken(comma_)) {
+            ret.append(comma_)
+        }
+        return ret
+    }
+
+    public func traverse(v: Visitor): Unit {
+        v.visit(this)
+        super.traverse(v)
+        if (v.needBreakTraverse()) {
+            return
+        }
+        expr_.traverse(v)
+        return
+    }
+
+    protected func dump(indent: UInt16): String {
+        var ret: String = "Argument {\n"
+        currentIndent = indent
+        if (indent != 0 || beginNode) {
+            currentIndent++
+        }
+        ret += getTokenIndent("-keyword", inout_, currentIndent)
+        ret += getTokenIndent("-identifier", identifier_, currentIndent)
+        ret += getTokenIndent("-colon", colon_, currentIndent)
+        ret += getIndent(currentIndent) + "-expr: "
+        ret += expr_.dump(currentIndent)
+        ret += getIndent(indent) + "}\n"
+        ret
+    }
+}
+
+/*
+ * MatchCase is the children node of Match Expression:
+ *   var scoreResult: String = match (score) {
+ *       case 0 => "zero" // This is a MatchCase Node
+ *       case 10 | 20 | 30 | 40 | 50 => "fail" // This is a MatchCase Node
+ *       case _ => "not a valid score"
+ *   }
+ */
+public class MatchCase <: Node {
+    init(case_: Token, expr: Option<Expr>, arrow: Token, exprOrDecl: Block) {
+        super()
+        this.case_ = case_
+        expr_ = expr
+        arrow_ = arrow
+        exprOrDecl_ = exprOrDecl
+    }
+    init(case_: Token, patterns: ArrayList<Pattern>, bitOrs: Tokens, where_: Token, patternGuard: Option<Expr>,
+        arrow: Token, exprOrDecl: Block) {
+        super()
+        this.case_ = case_
+        patterns_ = patterns
+        bitOrs_ = bitOrs
+        this.where_ = where_
+        patternGuard_ = patternGuard
+        arrow_ = arrow
+        exprOrDecl_ = exprOrDecl
+    }
+    public init() {}
+    private var case_: Token = Token(TokenKind.CASE)
+    private var expr_: Option<Expr> = None<Expr>
+    private var patterns_: ArrayList<Pattern> = ArrayList<Pattern>()
+    private var bitOrs_: Tokens = Tokens()
+    private var where_: Token = Token()
+    private var patternGuard_: Option<Expr> = None<Expr>
+    private var arrow_: Token = Token(TokenKind.DOUBLE_ARROW)
+    private var exprOrDecl_: Block = Block()
+    public mut prop keywordC: Token {
+        get() {
+            case_
+        }
+        set(v) {
+            checkTokenType(v, CASE)
+            case_ = v
+        }
+    }
+    public mut prop expr: Expr {
+        get() {
+            match (expr_) {
+                case Some(v) => v
+                case None => throw ASTException("Cannot get expression from match case")
+            }
+        }
+        set(v) {
+            expr_ = v
+        }
+    }
+    public mut prop patterns: ArrayList<Pattern> {
+        get() {
+            patterns_
+        }
+        set(v) {
+            patterns_ = v
+        }
+    }
+    public mut prop bitOrs: Tokens {
+        get() {
+            bitOrs_
+        }
+        set(v) {
+            checkTokensType(v, BITOR)
+            bitOrs_ = v
+        }
+    }
+    public mut prop keywordW: Token {
+        get() {
+            where_
+        }
+        set(v) {
+            checkTokenType(v, WHERE)
+            where_ = v
+        }
+    }
+    public mut prop patternGuard: Expr {
+        get() {
+            match (patternGuard_) {
+                case Some(v) => v
+                case None => throw ASTException("Cannot get patternGuard from match case")
+            }
+        }
+        set(v) {
+            patternGuard_ = Some(v)
+        }
+    }
+    public mut prop arrow: Token {
+        get() {
+            arrow_
+        }
+        set(v) {
+            checkTokenType(v, DOUBLE_ARROW)
+            arrow_ = v
+        }
+    }
+    public mut prop block: Block {
+        get() {
+            exprOrDecl_
+        }
+        set(v) {
+            exprOrDecl_ = v
+        }
+    }
+    public func toTokens(): Tokens {
+        var ret = Tokens().append(case_)
+        if (patterns_.isEmpty()) {
+            match (expr_) {
+                case Some(v) => ret.append(v).append(arrow_).append(exprOrDecl_)
+                case None => ()
+            }
+        } else {
+            for (i in 0..patterns_.size - 1) {
+                let bitOr = if (i >= bitOrs.size) {
+                    Token(TokenKind.BITOR)
+                } else {
+                    bitOrs[i]
+                }
+                ret.append(patterns_[i]).append(bitOr)
+            }
+            ret.append(patterns_[patterns_.size - 1])
+            match (patternGuard_) {
+                case Some(v) => ret.append(where_).append(v)
+                case None => ()
+            }
+            ret.append(arrow_).append(exprOrDecl_)
+        }
+        ret
+    }
+
+    public func traverse(v: Visitor): Unit {
+        v.visit(this)
+        super.traverse(v)
+        if (v.needBreakTraverse()) {
+            return
+        }
+        match (expr_) {
+            case Some(node) => node.traverse(v)
+            case None => ()
+        }
+        for (p in patterns_) {
+            p.traverse(v)
+        }
+        match (patternGuard_) {
+            case Some(node) => node.traverse(v)
+            case None => ()
+        }
+        exprOrDecl_.traverse(v)
+        return
+    }
+
+    protected func dump(indent: UInt16): String {
+        var ret: String = "MatchCase {\n"
+        currentIndent = indent
+        if (indent != 0 || beginNode) {
+            currentIndent++
+        }
+        ret += getTokenIndent("-keywordC", case_, currentIndent)
+        match (expr_) {
+            case Some(v) =>
+                ret += getIndent(currentIndent) + "-expr:"
+                ret += v.dump(currentIndent)
+            case None => ()
+        }
+        for (i in 0..patterns_.size) {
+            ret += getIndent(currentIndent) + "-patterns: ${i}, "
+            ret += patterns_[i].dump(currentIndent)
+        }
+        ret += getTokenIndent("-keywordW", where_, currentIndent)
+        match (patternGuard_) {
+            case Some(v) =>
+                ret += getIndent(currentIndent) + "-patternGuard: "
+                ret += v.dump(currentIndent)
+            case None => ()
+        }
+        ret += getTokenIndent("-arrow", arrow_, currentIndent)
+        ret += getIndent(currentIndent) + "-block: "
+        ret += exprOrDecl_.dump(currentIndent)
+        ret += getIndent(indent) + "}\n"
+        ret
+    }
+}
+
+/**
+ * Program is the Codira source File node.
+ */
+public class Program <: Node {
+    init(pkgHeader: PackageHeader, importLists: ArrayList<ImportList>,
+        decls: ArrayList<Decl>, ftrDirective: Option<FeaturesDirective>) {
+        super()
+        pkgHeader_ = pkgHeader
+        importLists_ = importLists
+        decls_ = decls
+        ftrDirective_ = ftrDirective
+    }
+    public init(inputs: Tokens) {
+        try {
+            var program = parseProgram(inputs)
+            this.begin_ = program.beginPos
+            this.end_ = program.endPos
+            this.pkgHeader_ = program.pkgHeader_
+            this.importLists_ = program.importLists_
+            this.decls_ = program.decls_
+            this.ftrDirective_ = program.ftrDirective_
+        } catch (e: ParseASTException) {
+            throw ASTException("Cannot construct the 'Program' node.")
+        }
+    }
+    public init() {
+    }
+
+    private var pkgHeader_: PackageHeader = PackageHeader()
+    private var importLists_: ArrayList<ImportList> = ArrayList<ImportList>()
+    private var decls_: ArrayList<Decl> = ArrayList<Decl>()
+    private var ftrDirective_: Option<FeaturesDirective> = None
+
+    public mut prop featuresDirective: Option<FeaturesDirective> {
+        get() {
+            if (let Some(v) <- ftrDirective_) {
+                return v
+            }
+            return None
+        }
+        set(v) {
+            ftrDirective_ = v
+        }
+    }
+    public mut prop packageHeader: PackageHeader {
+        get() {
+            pkgHeader_
+        }
+        set(v) {
+            pkgHeader_ = v
+        }
+    }
+    public mut prop importLists: ArrayList<ImportList> {
+        get() {
+            importLists_
+        }
+        set(v) {
+            importLists_ = v
+        }
+    }
+    public mut prop decls: ArrayList<Decl> {
+        get() {
+            decls_
+        }
+        set(v) {
+            decls_ = v
+        }
+    }
+    public func toTokens(): Tokens {
+        var ret = Tokens()
+        if (let Some(ftr) <- ftrDirective_) {
+            ret.append(ftr.toTokens())
+        }
+        ret.append(pkgHeader_)
+        if (!importLists_.isEmpty()) {
+            ret.append(importLists_.toTokens())
+        }
+        for (decl in decls_) {
+            ret.append(decl)
+            if (ret[ret.size - 1].kind != NL) {
+                ret.append(Token(NL).addPosition(decl.endPos))
+            }
+        }
+        ret
+    }
+
+    public func traverse(v: Visitor): Unit {
+        v.visit(this)
+        super.traverse(v)
+        if (v.needBreakTraverse()) {
+            return
+        }
+        if (let Some(ftr) <- ftrDirective_) {
+            ftr.traverse(v)
+        }
+        pkgHeader_.traverse(v)
+        for (im in importLists_) {
+            im.traverse(v)
+        }
+        for (decl in decls_) {
+            decl.traverse(v)
+        }
+        return
+    }
+
+    protected func dump(indent: UInt16): String {
+        var ret: String = "Program {\n"
+        currentIndent = indent
+        if (indent != 0 || beginNode) {
+            currentIndent++
+        }
+        if (let Some(ftr) <- ftrDirective_) {
+            ret += getIndent(currentIndent) + "-featuresDirective: "
+            ret += ftr.dump(currentIndent + 1)
+        }
+        ret += getIndent(currentIndent) + "-packageHeader: "
+        ret += pkgHeader_.dump(currentIndent + 1)
+        for (i in 0..importLists_.size) {
+            ret += getIndent(currentIndent) + "-importLists: ${i}, "
+            ret += importLists_[i].dump(currentIndent)
+        }
+        for (i in 0..decls_.size) {
+            ret += getIndent(currentIndent) + "-decls: ${i}, "
+            ret += decls_[i].dump(currentIndent)
+        }
+        ret += getIndent(indent) + "}\n"
+        ret
+    }
+}
+
+public class FeatureId <: Node {
+    init(identifiers: Tokens, dots: Tokens) {
+        super()
+        identifiers_ = identifiers
+        dots_ = dots
+    }
+
+    public init() {}
+    private var identifiers_: Tokens = Tokens()
+    private var dots_: Tokens = Tokens()
+
+    public mut prop identifiers: Tokens {
+        get() {
+            identifiers_
+        }
+        set(v) {
+            checkTokensType(v, IDENTIFIER)
+            identifiers_ = v
+        }
+    }
+    public mut prop dots: Tokens {
+        get() {
+            dots_
+        }
+        set(v) {
+            checkTokensType(v, DOT)
+            dots_ = v
+        }
+    }
+
+    public func toTokens(): Tokens {
+        var ret = Tokens()
+        var idx = 0
+        for (ident in identifiers_) {
+            ret.append(ident)
+            if (idx < dots_.size) {
+                ret.append(dots_[idx])
+                idx++
+            }
+        }
+        return ret
+    }
+
+    public func traverse(v: Visitor): Unit {
+        v.visit(this)
+        super.traverse(v)
+        return
+    }
+
+    protected func dump(indent: UInt16): String {
+        currentIndent = indent
+        var ret: String = "FeatureId {\n"
+        if (indent != 0 || beginNode) {
+            currentIndent++
+        }
+        var idx = 0
+        for (tkn in identifiers_) {
+            ret += getTokenIndent("-identifier", tkn, currentIndent)
+            if (idx < dots_.size) {
+                ret += getTokenIndent("-dot", dots_[idx], currentIndent)
+                idx++
+            }
+        }
+        ret += getIndent(indent) + "}\n"
+        return ret
+    }
+
+}
+
+public class FeaturesSet <: Node {
+    init(lCurl: Token, content: ArrayList<FeatureId>, commas: Tokens, rCurl: Token) {
+        super()
+        this.lCurl_ = lCurl
+        this.content_ = content
+        this.commas_ = commas
+        this.rCurl_ = rCurl
+    }
+
+    public init() {}
+    private var lCurl_: Token = Token()
+    private var content_: ArrayList<FeatureId> = ArrayList<FeatureId>()
+    private var commas_: Tokens = Tokens()
+    private var rCurl_: Token = Token()
+
+    public mut prop lCurl: Token {
+        get() {
+            lCurl_
+        }
+        set(v) {
+            checkTokenType(v, LCURL)
+            lCurl_ = v
+        }
+    }
+    public mut prop content: ArrayList<FeatureId> {
+        get() {
+            content_
+        }
+        set(v) {
+            content_ = v
+        }
+    }
+    public mut prop commas: Tokens {
+        get() {
+            commas_
+        }
+        set(v) {
+            checkTokensType(v, COMMA)
+            commas_ = v
+        }
+    }
+    public mut prop rCurl: Token {
+        get() {
+            rCurl_
+        }
+        set(v) {
+            checkTokenType(v, RCURL)
+            rCurl_ = v
+        }
+    }
+
+    public func toTokens(): Tokens {
+        var ret = Tokens().append(lCurl_)
+        var idx = 0
+        for (item in content_) {
+            ret.append(item.toTokens())
+            if (idx < commas_.size) {
+                ret.append(commas_[idx])
+                idx++
+            }
+        }
+        ret.append(rCurl_)
+    }
+
+    public func traverse(v: Visitor): Unit {
+        v.visit(this)
+        super.traverse(v)
+        if (v.needBreakTraverse()) {
+            return
+        }
+        for (ftrId in content_) {
+            ftrId.traverse(v)
+        }
+        return
+    }
+
+    protected func dump(indent: UInt16): String {
+        currentIndent = indent
+        var ret: String = "FeaturesSet {\n"
+        if (indent != 0 || beginNode) {
+            currentIndent++
+        }
+        var idx = 0
+        ret += getTokenIndent("-lCurl", lCurl_, currentIndent)
+        for (item in content_) {
+            ret += getIndent(currentIndent) + "-FeatureId: "
+            ret += item.dump(currentIndent)
+            if (idx < commas_.size) {
+                ret += getTokenIndent("-comma: ", commas_[idx], currentIndent)
+                idx++
+            }
+        }
+        ret += getTokenIndent("-rCurl", rCurl_, currentIndent)
+        ret += getIndent(indent) + "}\n"
+        return ret
+    }
+}
+
+public class FeaturesDirective <: Node {
+    init(annotations: ArrayList<Annotation>, keyword: Token, featuresSet: FeaturesSet) {
+        super()
+        this.annotations_ = annotations
+        this.keyword_ = keyword
+        this.featuresSet_ = featuresSet
+    }
+
+    public init(inputs: Tokens) {
+        try {
+            let features = parseProgram(inputs).featuresDirective
+            let ftr = features ?? throw ParseASTException()
+            this.begin_ = ftr.beginPos
+            this.end_ = ftr.endPos
+            this.annotations_ = ftr.annotations
+            this.keyword_ = ftr.keyword
+            this.featuresSet_= ftr.featuresSet
+        } catch (e: ParseASTException) {
+            throw ASTException("Cannot construct the 'FeaturesDirective' node.")
+        }
+    }
+
+    public init() {}
+    private var annotations_: ArrayList<Annotation> = ArrayList<Annotation>()
+    private var keyword_: Token = Token()
+    private var featuresSet_: FeaturesSet = FeaturesSet()
+
+    public mut prop annotations: ArrayList<Annotation> {
+        get() {
+            annotations_
+        }
+        set(v) {
+            annotations_ = v
+        }
+    }
+    public mut prop keyword: Token {
+        get() {
+            keyword_
+        }
+        set(v) {
+            checkTokenType(v, FEATURES)
+            keyword_ = v
+        }
+    }
+    public mut prop featuresSet: FeaturesSet {
+        get() {
+            featuresSet_
+        }
+        set(v) {
+            featuresSet_ = v
+        }
+    }
+
+    public func toTokens(): Tokens {
+        var ret = Tokens()
+        for (anno in annotations_) {
+            ret.append(anno.toTokens())
+        }
+        ret.append(keyword_)
+        ret.append(featuresSet_.toTokens())
+        let endTok = ret[ret.size - 1]
+        let endPos = endTok.pos
+        ret.append(Token(TokenKind.NL).addPosition(endPos.fileID, endPos.line, endPos.column + Int32(endTok.value.size)))
+        return ret
+    }
+
+    public func traverse(v: Visitor): Unit {
+        v.visit(this)
+        super.traverse(v)
+        if (v.needBreakTraverse()) {
+            return
+        }
+        featuresSet_.traverse(v)
+        return
+    }
+
+    protected func dump(indent: UInt16): String {
+        currentIndent = indent
+        if (indent != 0 || beginNode) {
+            currentIndent++
+        }
+        var ret: String = "FeaturesDirective {\n"
+        for (i in 0..annotations_.size) {
+            ret += getIndent(currentIndent) + "-annotation: ${i}, "
+            ret += annotations_[i].dump(currentIndent)
+        }
+        ret += getTokenIndent("-keyword", keyword_, currentIndent)
+        ret += getIndent(currentIndent) + "-featuresSet: "
+        ret += featuresSet_.dump(indent + 1)
+        ret += getIndent(indent) + "}\n"
+        return ret
+    }
+}
+
+/**
+ * PackageHeader node represents the package of the current file.
+ * The PackageHeader starts with the keyword package, followed by the package name.
+ */
+public class PackageHeader <: Node {
+    init(accessibleToken: Token, macroToken: Token, keyword: Token, prefixPaths: Tokens, prefixDots: Tokens,
+        pkgIdentifier: Token) {
+        super()
+        accessibleToken_ = accessibleToken
+        macroToken_ = macroToken
+        keyword_ = keyword
+        prefixPaths_ = prefixPaths
+        prefixDots_ = prefixDots
+        pkgIdentifier_ = pkgIdentifier
+    }
+    public init(inputs: Tokens) {
+        try {
+            var pkg = parseProgram(inputs).packageHeader
+            this.begin_ = pkg.beginPos
+            this.end_ = pkg.endPos
+            this.accessibleToken_ = pkg.accessibleToken_
+            this.macroToken_ = checkValid(pkg.macroToken_)
+            this.keyword_ = pkg.keyword_
+            this.prefixPaths_ = pkg.prefixPaths_
+            this.prefixDots_ = pkg.prefixDots_
+            this.pkgIdentifier_ = pkg.pkgIdentifier_
+        } catch (e: ParseASTException) {
+            throw ASTException("Cannot construct the 'PackageHeader' node.")
+        }
+    }
+    public init() {
+        pkgIdentifier_ = Token(TokenKind.IDENTIFIER, "default")
+    }
+    init(isFromDerivation: Bool) {
+        pkgIdentifier_ = Token(TokenKind.IDENTIFIER, "default")
+        isFromDerivation_ = isFromDerivation
+    }
+    private var accessibleToken_: Token = Token(TokenKind.PUBLIC)
+    private var macroToken_: Token = Token()
+    private var keyword_: Token = Token(TokenKind.PACKAGE)
+    private var prefixPaths_: Tokens = Tokens()
+    private var prefixDots_: Tokens = Tokens()
+    private var pkgIdentifier_: Token = Token(TokenKind.IDENTIFIER, "")
+    private var isFromDerivation_ = false
+    public mut prop accessible: Token {
+        get() {
+            accessibleToken_
+        }
+        set(v) {
+            accessibleToken_ = v
+        }
+    }
+    public mut prop keywordM: Token {
+        get() {
+            macroToken_
+        }
+        set(v) {
+            checkTokenType(v, MACRO)
+            macroToken_ = v
+        }
+    }
+    public mut prop keywordP: Token {
+        get() {
+            keyword_
+        }
+        set(v) {
+            checkTokenType(v, PACKAGE)
+            keyword_ = v
+        }
+    }
+    public mut prop prefixPaths: Tokens {
+        get() {
+            prefixPaths_
+        }
+        set(v) {
+            prefixPaths_ = v
+        }
+    }
+    public mut prop prefixDots: Tokens {
+        get() {
+            prefixDots_
+        }
+        set(v) {
+            checkTokensType(v, DOT)
+            prefixDots_ = v
+        }
+    }
+    public mut prop packageIdentifier: Token {
+        get() {
+            pkgIdentifier_
+        }
+        set(v) {
+            pkgIdentifier_ = v
+        }
+    }
+    public func toTokens(): Tokens {
+        var ret = Tokens()
+        if (!isFromDerivation_) {
+            if (isValidPosition(macroToken_)) {
+                ret.append(macroToken_)
+            }
+            ret.append(keyword_)
+            ret = addPackageTokens(ret)
+            let identPos = pkgIdentifier_.pos
+            let identColumn = identPos.column + Int32(pkgIdentifier_.value.size)
+            ret.append(Token(TokenKind.NL).addPosition(identPos.fileID, identPos.line, identColumn))
+        }
+        ret
+    }
+    public func traverse(v: Visitor): Unit {
+        v.visit(this)
+        super.traverse(v)
+        return
+    }
+
+    protected func dump(indent: UInt16): String {
+        currentIndent = indent
+        if (indent != 0 || beginNode) {
+            currentIndent++
+        }
+        var ret: String = "PackageHeader {\n"
+        if (isValidToken(accessibleToken_)) {
+            ret += getTokenIndent("-modifier", accessibleToken_, currentIndent)
+        }
+        if (isValidPosition(macroToken_)) {
+            ret += getTokenIndent("-keywordM", macroToken_, currentIndent)
+        }
+        ret += getTokenIndent("-keywordP", keyword_, currentIndent)
+        for (i in 0..prefixPaths_.size) {
+            ret += getTokenIndent("prefixPath: ${i}", prefixPaths_[i], currentIndent)
+            if (i < prefixDots_.size) {
+                ret += getTokenIndent("dot: ${i}", prefixDots_[i], currentIndent)
+            } else {
+                ret += getTokenIndent("dot: ${i}", Token(TokenKind.DOT), currentIndent)
+            }
+        }
+        ret += getTokenIndent("-packageIdentifier", pkgIdentifier_, currentIndent)
+        ret += getIndent(indent) + "}\n"
+        ret
+    }
+
+    func addPackageTokens(input: Tokens): Tokens {
+        for (i in 0..prefixPaths_.size) {
+            input.append(prefixPaths_[i])
+            if (i < prefixDots_.size) {
+                input.append(prefixDots_[i])
+            } else {
+                input.append(Token(TokenKind.DOT))
+            }
+        }
+        input.append(pkgIdentifier_)
+    }
+}
+
+public enum ImportKind <: ToString {
+    | Single
+    | Alias
+    | All
+    | Multi
+
+    public func toString(): String {
+        return match (this) {
+            case Single => "Single"
+            case Alias => "Alias"
+            case All => "All"
+            case Multi => "Multi"
+        }
+    }
+}
+
+public class ImportContent <: Node {
+    init(importKind: ImportKind, prefixPaths: Tokens, prefixDots: Tokens, identifier: Token, importAlias: Tokens,
+        leftCurl: Token, items: ArrayList<ImportContent>, commas: Tokens, rightCurl: Token) {
+        super()
+        importKind_ = importKind
+        prefixPaths_ = prefixPaths
+        prefixDots_ = prefixDots
+        identifier_ = identifier
+        importAlias_ = importAlias
+        leftCurl_ = leftCurl
+        items_ = items
+        commas_ = commas
+        rightCurl_ = rightCurl
+    }
+    public init() {}
+    private var importKind_: ImportKind = ImportKind.Single
+    private var prefixPaths_: Tokens = Tokens()
+    private var prefixDots_: Tokens = Tokens()
+    private var identifier_: Token = Token()
+    private var importAlias_: Tokens = Tokens()
+    private var leftCurl_: Token = Token()
+    private var items_: ArrayList<ImportContent> = ArrayList<ImportContent>()
+    private var commas_: Tokens = Tokens()
+    private var rightCurl_: Token = Token()
+    private let innerToken_: Tokens = Token(TokenKind.NL) + quote(main() {})
+
+    public mut prop importKind: ImportKind {
+        get() {
+            importKind_
+        }
+        set(v) {
+            importKind_ = v
+        }
+    }
+    public mut prop prefixPaths: Tokens {
+        get() {
+            prefixPaths_
+        }
+        set(v) {
+            prefixPaths_ = v
+        }
+    }
+    public mut prop prefixDots: Tokens {
+        get() {
+            prefixDots_
+        }
+        set(v) {
+            checkTokensType(v, DOT)
+            prefixDots_ = v
+        }
+    }
+    public mut prop identifier: Token {
+        get() {
+            identifier_
+        }
+        set(v) {
+            identifier_ = v
+        }
+    }
+    public mut prop importAlias: Tokens {
+        get() {
+            importAlias_
+        }
+        set(v) {
+            importAlias_ = v
+        }
+    }
+    public mut prop lBrace: Token {
+        get() {
+            leftCurl_
+        }
+        set(v) {
+            checkTokenType(v, LCURL)
+            leftCurl_ = v
+        }
+    }
+    public mut prop items: ArrayList<ImportContent> {
+        get() {
+            items_
+        }
+        set(v) {
+            items_ = v
+        }
+    }
+    public mut prop commas: Tokens {
+        get() {
+            commas_
+        }
+        set(v) {
+            checkTokensType(v, COMMA)
+            commas_ = v
+        }
+    }
+    public mut prop rBrace: Token {
+        get() {
+            rightCurl_
+        }
+        set(v) {
+            checkTokenType(v, RCURL)
+            rightCurl_ = v
+        }
+    }
+    public func isImportAlias(): Bool {
+        return if (let ImportKind.Alias <- importKind_) {
+            true
+        } else {
+            false
+        }
+    }
+    public func isImportAll(): Bool {
+        return if (let ImportKind.All <- importKind_) {
+            true
+        } else {
+            false
+        }
+    }
+    public func isImportMulti(): Bool {
+        return if (let ImportKind.Multi <- importKind_) {
+            true
+        } else {
+            false
+        }
+    }
+    public func isImportSingle(): Bool {
+        return if (let ImportKind.Single <- importKind_) {
+            true
+        } else {
+            false
+        }
+    }
+    public func toTokens(): Tokens {
+        var ret = Tokens()
+        for (i in 0..prefixPaths_.size) {
+            let dot = if (i >= prefixDots_.size) {
+                Token(TokenKind.DOT)
+            } else {
+                prefixDots_[i]
+            }
+            ret.append(prefixPaths_[i]).append(dot)
+        }
+        if (!isImportMulti()) {
+            ret.append(identifier)
+        }
+        if (isImportAll() || isImportSingle()) {
+            return ret
+        }
+        if (isImportAlias()) {
+            ret.append(importAlias_)
+            return ret
+        }
+        ret.append(leftCurl_)
+        for (i in 0..items_.size) {
+            ret.append(items_[i].toTokens())
+            if (i < commas_.size && isValidToken(commas_[i])) {
+                ret.append(commas_[i])
+            }
+        }
+        ret.append(rightCurl_)
+        ret
+    }
+    public func traverse(v: Visitor): Unit {
+        v.visit(this)
+        super.traverse(v)
+        if (v.needBreakTraverse()) {
+            return
+        }
+        for (item in items_) {
+            item.traverse(v)
+        }
+        return
+    }
+
+    protected func dump(indent: UInt16): String {
+        currentIndent = indent
+        var ret: String = ""
+        ret += getIndent(currentIndent) + "-importKind: ${importKind_}\n"
+        for (i in 0..prefixPaths_.size) {
+            ret += getTokenIndent("prefixPath: ${i}", prefixPaths_[i], currentIndent)
+        }
+        ret += getTokenIndent("-identifier", identifier_, currentIndent)
+        if (isImportAll() || isImportSingle()) {
+            return ret
+        }
+        if (isImportAlias()) {
+            for (i in 0..importAlias_.size) {
+                ret += getTokenIndent("-importAlias ${i}", importAlias_[i], currentIndent)
+            }
+            return ret
+        }
+        ret += getTokenIndent("-leftCurl", leftCurl_, currentIndent)
+        for (i in 0..items_.size) {
+            ret += items_[i].dump(currentIndent + 1)
+            if (i < commas_.size && isValidToken(commas_[i])) {
+                ret += getTokenIndent("-comma", commas_[i], currentIndent)
+            }
+        }
+        ret += getTokenIndent("-rightCurl", rightCurl_, currentIndent)
+        ret
+    }
+}
+
+public class ImportList <: Node {
+    init(reExportToken: Token, imp: Token, content: ImportContent) {
+        super()
+        reExportToken_ = reExportToken
+        import_ = imp
+        content_ = content
+    }
+    public init(inputs: Tokens) {
+        try {
+            let importLists = parseProgram(inputs.append(innerToken_)).importLists
+            if (importLists.size == 0) {
+                throw ASTException("Cannot construct the 'ImportList' node.")
+            }
+            let importList = importLists[0]
+            this.begin_ = importList.beginPos
+            this.end_ = importList.endPos
+            this.reExportToken_ = importList.reExportToken_
+            this.import_ = importList.import_
+            this.content_ = importList.content_
+        } catch (e: ParseASTException) {
+            throw ASTException("Cannot construct the 'ImportList' node.")
+        }
+    }
+    public init() {}
+    private var reExportToken_: Token = Token()
+    private var import_: Token = Token(TokenKind.IMPORT)
+    private var content_: ImportContent = ImportContent()
+    private let innerToken_: Tokens = Token(TokenKind.NL) + quote(main() {})
+
+    public mut prop modifier: Token {
+        get() {
+            reExportToken_
+        }
+        set(v) {
+            reExportToken_ = v
+        }
+    }
+    public mut prop keywordI: Token {
+        get() {
+            import_
+        }
+        set(v) {
+            import_ = v
+        }
+    }
+    public mut prop content: ImportContent {
+        get() {
+            content_
+        }
+        set(v) {
+            content_ = v
+        }
+    }
+    public func isImportMulti(): Bool {
+        return content_.isImportMulti()
+    }
+    public func toTokens(): Tokens {
+        var ret = Tokens()
+        if (import_.pos != beginPos && isValidToken(reExportToken_)) {
+            ret.append(reExportToken_)
+        }
+        ret.append(import_)
+        ret.append(content_.toTokens())
+        let endTok = ret[ret.size - 1]
+        let endPos = endTok.pos
+        ret.append(Token(TokenKind.NL).addPosition(endPos.fileID, endPos.line, endPos.column + Int32(endTok.value.size)))
+        ret
+    }
+    public func traverse(v: Visitor): Unit {
+        v.visit(this)
+        super.traverse(v)
+        if (v.needBreakTraverse()) {
+            return
+        }
+        content_.traverse(v)
+        return
+    }
+
+    protected func dump(indent: UInt16): String {
+        currentIndent = indent
+        if (indent != 0 || beginNode) {
+            currentIndent++
+        }
+        var ret: String = "ImportList {\n"
+        if (isValidToken(reExportToken_)) {
+            ret += getTokenIndent("-modifier", reExportToken_, currentIndent)
+        }
+        ret += getTokenIndent("-keywordI", import_, currentIndent)
+        ret += content_.dump(currentIndent)
+        ret += getIndent(indent) + "}\n"
+        ret
+    }
+}
+
+/**
+ * Constructor node represents the values related to enum.
+ * enum TimeUnit1 {
+ *   Year | Month | Day | Hour(Float32) // Constructor node
+ * }
+ */
+public class Constructor <: Node {
+    public init() {
+    }
+    init(annotations: ArrayList<Annotation>, identifier: Token) {
+        super()
+        annotations_ = annotations
+        identifier_ = identifier
+    }
+    init(annotations: ArrayList<Annotation>, identifier: Token, lParen: Token, params: ArrayList<TypeNode>,
+        commas: Tokens, rParen: Token) {
+        super()
+        annotations_ = annotations
+        identifier_ = identifier
+        lParen_ = lParen
+        params_ = params
+        commas_ = commas
+        rParen_ = rParen
+    }
+    private var identifier_: Token = Token(TokenKind.IDENTIFIER, "")
+    private var lParen_: Token = Token()
+    private var params_: ArrayList<TypeNode> = ArrayList<TypeNode>()
+    private var commas_: Tokens = Tokens()
+    private var rParen_: Token = Token()
+    private var annotations_: ArrayList<Annotation> = ArrayList<Annotation>()
+    public mut prop annotations: ArrayList<Annotation> {
+        get() {
+            annotations_
+        }
+        set(v) {
+            annotations_ = v
+        }
+    }
+    public mut prop identifier: Token {
+        get() {
+            identifier_
+        }
+        set(v) {
+            identifier_ = v
+        }
+    }
+    public mut prop lParen: Token {
+        get() {
+            lParen_
+        }
+        set(v) {
+            checkTokenType(v, LPAREN)
+            lParen_ = v
+        }
+    }
+    public mut prop typeArguments: ArrayList<TypeNode> {
+        get() {
+            params_
+        }
+        set(v) {
+            params_ = v
+        }
+    }
+    public mut prop rParen: Token {
+        get() {
+            rParen_
+        }
+        set(v) {
+            checkTokenType(v, RPAREN)
+            rParen_ = v
+        }
+    }
+    public func toTokens(): Tokens {
+        var ret = Tokens()
+        for (i in 0..annotations_.size) {
+            ret.append(annotations_[i].toTokens())
+        }
+        ret.append(identifier_)
+        if (!params_.isEmpty()) {
+            ret.append(lParen_)
+            if (commas_.size == 0) {
+                commas_ = Tokens(Array(params_.size - 1) {
+                    i => Token(TokenKind.COMMA).addPosition(
+                        params_[i].endPos.fileID,
+                        params_[i].endPos.line,
+                        params_[i].endPos.column + 1
+                    )
+                })
+            }
+
+            let lastParamIdx = params_.size - 1
+            for (i in 0..lastParamIdx) {
+                ret.append(params_[i]).append(commas_[i])
+            }
+            ret.append(params_[lastParamIdx])
+            ret.append(rParen_)
+        }
+        ret
+    }
+
+    public func traverse(v: Visitor): Unit {
+        v.visit(this)
+        super.traverse(v)
+        if (v.needBreakTraverse()) {
+            return
+        }
+        for (anno in annotations_) {
+            anno.traverse(v)
+        }
+        for (param in params_) {
+            param.traverse(v)
+        }
+        return
+    }
+
+    protected func dump(indent: UInt16): String {
+        var ret: String = "Constructor {\n"
+        currentIndent = indent
+        if (indent != 0 || beginNode) {
+            currentIndent++
+        }
+        for (i in 0..annotations_.size) {
+            ret += getIndent(currentIndent) + "-annotations: ${i}, "
+            ret += annotations_[i].dump(currentIndent)
+        }
+        ret += getTokenIndent("-identifier", identifier_, currentIndent)
+        for (i in 0..params_.size) {
+            ret += getIndent(currentIndent) + "-typeArguments: ${i}, "
+            ret += params_[i].dump(currentIndent)
+        }
+        ret += getIndent(indent) + "}\n"
+        ret
+    }
+}
+
+extend<T> ArrayList<T> <: ToTokens {
+    public func toTokens(): Tokens {
+        var ret: Tokens = Tokens()
+        match (this) {
+            case decls: ArrayList<Decl> =>
+                for (i in 0..decls.size) {
+                    ret.append(decls[i].toTokens()).append(Token(TokenKind.NL))
+                }
+                ret
+            case nodes: ArrayList<Node> =>
+                for (i in 0..nodes.size) {
+                    ret.append(nodes[i].toTokens())
+                    if (i != nodes.size - 1) {
+                        ret.append(Token(TokenKind.NL))
+                    }
+                }
+                ret
+            case constructors: ArrayList<Constructor> =>
+                for (i in 0..constructors.size) {
+                    ret.append(constructors[i].toTokens())
+                    if (i != constructors.size - 1) {
+                        ret.append(Token(TokenKind.BITOR))
+                    }
+                }
+                ret
+            case arguments: ArrayList<Argument> =>
+                for (i in 0..arguments.size) {
+                    ret.append(arguments[i].toTokens())
+                    if (ret.size != 0 && ret[ret.size - 1].kind != COMMA && i != arguments.size - 1) {
+                        ret.append(Token(COMMA))
+                    }
+                }
+                if (ret.size != 0 && ret[ret.size - 1].kind == COMMA) {
+                    ret.remove(ret.size - 1)
+                }
+                ret
+            case funcParams: ArrayList<FuncParam> =>
+                for (i in 0..funcParams.size) {
+                    ret.append(funcParams[i].toTokens())
+                    if (ret.size != 0 && ret[ret.size - 1].kind != COMMA && i != funcParams.size - 1) {
+                        ret.append(Token(COMMA))
+                    }
+                }
+                if (ret.size != 0 && ret[ret.size - 1].kind == COMMA) {
+                    ret.remove(ret.size - 1)
+                }
+                ret
+            case matchCases: ArrayList<MatchCase> =>
+                for (m in matchCases) {
+                    ret.append(m)
+                }
+                ret
+            case modifiers: ArrayList<Modifier> =>
+                for (i in 0..modifiers.size) {
+                    ret.append(modifiers[i].toTokens())
+                }
+                ret
+            case annotations: ArrayList<Annotation> =>
+                for (i in 0..annotations.size) {
+                    ret.append(annotations[i])
+                }
+                ret
+            case importLists: ArrayList<ImportList> => getImportSpecTokens(importLists)
+            case patterns: ArrayList<Pattern> =>
+                for (i in 0..patterns.size) {
+                    ret.append(patterns[i].toTokens())
+                    if (i != patterns.size - 1) {
+                        ret.append(Token(TokenKind.BITOR))
+                    }
+                }
+                ret
+            case tys: ArrayList<TypeNode> =>
+                for (i in 0..tys.size) {
+                    ret.append(tys[i].toTokens())
+                    if (i != tys.size - 1) {
+                        ret.append(Token(TokenKind.BITAND))
+                    }
+                }
+                ret
+            case _ => throw IllegalArgumentException("Unsupported ArrayList<T> in function toTokens().\n")
+        }
+    }
+}
+
+extend<T> Array<T> <: ToTokens {
+    public func toTokens(): Tokens {
+        match (this) {
+            case elems: Array<Int8> =>
+                var rInt8: Tokens = Tokens()
+                rInt8.append(Token(TokenKind.LSQUARE))
+                for (i in 0..elems.size) {
+                    rInt8.append(elems[i].toTokens())
+                    if (i != elems.size - 1) {
+                        rInt8.append(Token(TokenKind.COMMA))
+                    }
+                }
+                rInt8.append(Token(TokenKind.RSQUARE))
+            case elems: Array<Int16> =>
+                var rInt16: Tokens = Tokens()
+                rInt16.append(Token(TokenKind.LSQUARE))
+                for (i in 0..elems.size) {
+                    rInt16.append(elems[i].toTokens())
+                    if (i != elems.size - 1) {
+                        rInt16.append(Token(TokenKind.COMMA))
+                    }
+                }
+                rInt16.append(Token(TokenKind.RSQUARE))
+            case elems: Array<Int32> =>
+                var rInt32: Tokens = Tokens()
+                rInt32.append(Token(TokenKind.LSQUARE))
+                for (i in 0..elems.size) {
+                    rInt32.append(elems[i].toTokens())
+                    if (i != elems.size - 1) {
+                        rInt32.append(Token(TokenKind.COMMA))
+                    }
+                }
+                rInt32.append(Token(TokenKind.RSQUARE))
+            case elems: Array<Int64> =>
+                var rInt64: Tokens = Tokens()
+                rInt64.append(Token(TokenKind.LSQUARE))
+                for (i in 0..elems.size) {
+                    rInt64.append(elems[i].toTokens())
+                    if (i != elems.size - 1) {
+                        rInt64.append(Token(TokenKind.COMMA))
+                    }
+                }
+                rInt64.append(Token(TokenKind.RSQUARE))
+            case elems: Array<UInt8> =>
+                var rUInt8: Tokens = Tokens()
+                rUInt8.append(Token(TokenKind.LSQUARE))
+                for (i in 0..elems.size) {
+                    rUInt8.append(elems[i].toTokens())
+                    if (i != elems.size - 1) {
+                        rUInt8.append(Token(TokenKind.COMMA))
+                    }
+                }
+                rUInt8.append(Token(TokenKind.RSQUARE))
+                rUInt8
+            case elems: Array<UInt16> =>
+                var rUInt16: Tokens = Tokens()
+                rUInt16.append(Token(TokenKind.LSQUARE))
+                for (i in 0..elems.size) {
+                    rUInt16.append(elems[i].toTokens())
+                    if (i != elems.size - 1) {
+                        rUInt16.append(Token(TokenKind.COMMA))
+                    }
+                }
+                rUInt16.append(Token(TokenKind.RSQUARE))
+            case elems: Array<UInt32> =>
+                var rUInt32: Tokens = Tokens()
+                rUInt32.append(Token(TokenKind.LSQUARE))
+                for (i in 0..elems.size) {
+                    rUInt32.append(elems[i].toTokens())
+                    if (i != elems.size - 1) {
+                        rUInt32.append(Token(TokenKind.COMMA))
+                    }
+                }
+                rUInt32.append(Token(TokenKind.RSQUARE))
+            case elems: Array<UInt64> =>
+                var rUInt64: Tokens = Tokens()
+                rUInt64.append(Token(TokenKind.LSQUARE))
+                for (i in 0..elems.size) {
+                    rUInt64.append(elems[i].toTokens())
+                    if (i != elems.size - 1) {
+                        rUInt64.append(Token(TokenKind.COMMA))
+                    }
+                }
+                rUInt64.append(Token(TokenKind.RSQUARE))
+            case elems: Array<Rune> =>
+                var rChar: Tokens = Tokens()
+                rChar.append(Token(TokenKind.LSQUARE))
+                for (i in 0..elems.size) {
+                    rChar.append(elems[i].toTokens())
+                    if (i != elems.size - 1) {
+                        rChar.append(Token(TokenKind.COMMA))
+                    }
+                }
+                rChar.append(Token(TokenKind.RSQUARE))
+            case elems: Array<Bool> =>
+                var rBool: Tokens = Tokens()
+                rBool.append(Token(TokenKind.LSQUARE))
+                for (i in 0..elems.size) {
+                    rBool.append(elems[i].toTokens())
+                    if (i != elems.size - 1) {
+                        rBool.append(Token(TokenKind.COMMA))
+                    }
+                }
+                rBool.append(Token(TokenKind.RSQUARE))
+            case elems: Array<String> =>
+                var rString: Tokens = Tokens()
+                rString.append(Token(TokenKind.LSQUARE))
+                for (i in 0..elems.size) {
+                    rString.append(elems[i].toTokens())
+                    if (i != elems.size - 1) {
+                        rString.append(Token(TokenKind.COMMA))
+                    }
+                }
+                rString.append(Token(TokenKind.RSQUARE))
+            case _ => throw IllegalArgumentException("Unsupported Array<T> input in function toTokens().\n")
+        }
+    }
+}

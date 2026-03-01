@@ -1,0 +1,42 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/**
+ * @file The file declares the macro Measure.
+ */
+macro package std.unittest.testmacro
+
+import std.ast.*
+
+/**
+ *
+ * The macro @Measure can only be used on a `class` or `top-level func` declared with the @Test macro.
+ * Attributes format: @Measure[<Measurement1>, <Measurement2>, ...].
+ * Accepted attributes: comma-separated non-empty list of Measurement instances.
+ * @see Test
+ * @see Bench
+ *
+ * @throws MacroException if attr is empty.
+ */
+public macro Measure(attr: Tokens, input: Tokens): Tokens {
+    topLevelMacroDriver(MEASURE_MACRO, input, attr, { it => insideParentContext(it.macroIdentifier) })
+}

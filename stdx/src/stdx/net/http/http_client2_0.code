@@ -1,0 +1,958 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This source file is part of the Codira project, licensed under Apache-2.0
+ * with Runtime Library Exception.
+ *
+ * See https://cangjie-lang.cn/pages/LICENSE for license information.
+ */
+
+package stdx.net.http
+
+import std.net.*
+import std.sync.*
+import std.collection.*
+import std.convert.Parsable
+import stdx.encoding.url.*
+import stdx.net.tls.common.*
+import stdx.log.*
+
+class HttpClient2 <: HttpClient {
+    // store all connections, key is domain or host:port
+    let engines = HashMap<ConnectMapKey, HttpClientEngine2>()
+    // store closing connections
+    let closingEngines = HashMap<ConnectMapKey, HttpClientEngine2>(0)
+    let engineLock = Mutex()
+    let connector: Connector
+    let tlsConfig: TlsConfig
+    let proxy: String
+    let client: Client
+    let logger: Logger
+    let localSettings: Map<UInt16, UInt32> = HashMap<UInt16, UInt32>()
+    let readTimeout: Duration
+    let writeTimeout: Duration
+
+    init(client: Client) {
+        this.client = client
+        this.connector = client.connector
+        this.readTimeout = client.readTimeout
+        this.writeTimeout = client.writeTimeout
+        this.proxy = client.httpsProxy
+        this.logger = client.logger
+        // h2c not supported , so if it's plain connection throws
+        this.tlsConfig = client
+            .getTlsConfig()
+            .getOrThrow({
+                => HttpConnectionException(ProtocolError, "HTTP/2 client must have a tls config.")
+            })
+
+        localSettings.add(SettingsHeaderTableSize.code, client.headerTableSize)
+        localSettings.add(SettingsEnablePush.code, if (client.enablePush) {
+            1
+        } else {
+            0
+        })
+        localSettings.add(SettingsMaxConcurrentStreams.code, client.maxConcurrentStreams)
+        localSettings.add(SettingsInitialWindowSize.code, client.initialWindowSize)
+        localSettings.add(SettingsMaxFrameSize.code, client.maxFrameSize)
+        localSettings.add(SettingsMaxHeaderListSize.code, client.maxHeaderListSize)
+        localSettings.add(SettingsEnableConnectProtocol.code, 0)
+        localSettings.add(SettingsNoRfc7540Priorities.code, 0)
+        httpLogDebug(logger, "[HttpClient2#init] HttpClient2 initial success")
+    }
+
+    func close(): Unit {
+        if (engines.isEmpty() && closingEngines.isEmpty()) {
+            httpLogWarn(logger, "[HttpClient2#close] engines are empty.")
+            return
+        }
+        synchronized(engineLock) {
+            for (engine in engines.values()) {
+                engine.close()
+            }
+            engines.clear()
+            for (engine in closingEngines.values()) {
+                engine.close()
+            }
+            closingEngines.clear()
+        }
+        httpLogDebug(logger, "[HttpClient2#close] client closed")
+    }
+
+    public func request(req: HttpRequest): HttpResponse {
+        // get engine, check engine status(rebuild if stream overflow or exception ocurred)
+        if (req.url.scheme != "https") {
+            throw HttpException("Must use https scheme for HTTP/2 request.")
+        }
+        let (targetAddrPort, proxyAddrPort, authority, isToProxy) = parseHostAndPort(req.url)
+        if (let Some(auth) <- authority) {
+            // a client must not generate fields in a TRACE request containing
+            // sensitive data that might be disclosed by the response.
+            // such as Cookie
+            // RFC 9110 9.3.8. TRACE
+            if (req.method != "TRACE") {
+                req.headers.set("proxy-authorization", auth)
+            }
+        }
+        if (req.headers.get("host").isEmpty()) {
+            match (isToProxy) {
+                case false => req.headers.set("host", "${targetAddrPort.addr}:${targetAddrPort.port}")
+                case true => req
+                    .headers
+                    .set("host", "${proxyAddrPort.getOrThrow().addr}:${proxyAddrPort.getOrThrow().port}")
+            }
+        }
+        let connnectKey: ConnectMapKey = match ((isToProxy)) {
+            case false => ConnectMapKey(targetAddrPort, None<AddrPort>)
+            case true => ConnectMapKey(targetAddrPort, proxyAddrPort)
+        }
+        var httpEngine: HttpClientEngine2
+        synchronized(engineLock) {
+            httpEngine = match (engines.get(connnectKey)) {
+                case Some(v) => v
+                case None =>
+                    httpLogDebug(logger, "[HttpClient2#request] start engine to ${connnectKey}")
+                    let engine = createEngine(connnectKey, isToProxy)
+                    engines.add(connnectKey, engine)
+                    engine
+            }
+            // clean closed connection
+            if (let Some(v) <- closingEngines.get(connnectKey)) {
+                if (v.streams.size == 0) {
+                    v.close()
+                    closingEngines.remove(connnectKey)
+                }
+            }
+            // if engine is closing, start a new engine
+            if (httpEngine.quit.load()) {
+                httpLogDebug(logger, "[HttpClient2#request] restart engine to ${connnectKey}")
+                let newHttpEngine = createEngine(connnectKey, isToProxy)
+                engines.add(connnectKey, newHttpEngine)
+            } else if (httpEngine.closing || httpEngine.lastStreamId.load() >= httpEngine.maxStreamId) {
+                httpLogDebug(logger, "[HttpClient2#request] restart engine to ${connnectKey}")
+                // keep most 2 connections to one server
+                if (closingEngines.contains(connnectKey)) {
+                    closingEngines[connnectKey].close()
+                }
+                closingEngines.add(connnectKey, httpEngine)
+                let newHttpEngine = createEngine(connnectKey, isToProxy)
+                engines.add(connnectKey, newHttpEngine)
+            }
+        }
+
+        return httpEngine.request(req)
+    }
+
+    public func connect(req: HttpRequest): (HttpResponse, ?StreamingSocket) {
+        let response = try {
+            request(req)
+        } catch (e: NegotiateException) {
+            throw HttpException("The server doesn't support HTTP/2.")
+        }
+        var socket = None<StreamingSocket>
+        if (response.status / 100 == 2) {
+            socket = response._body as StreamingSocket
+            response._body = HttpEmptyBody.INSTANCE
+        }
+        return (response, socket)
+    }
+
+    /*
+     * do connection handshake in this func
+     */
+    func createEngine(key: ConnectMapKey, isToProxy: Bool): HttpClientEngine2 {
+        var addrPort: AddrPort = match (isToProxy) {
+            case false => key.addrPort
+            case true => key.httpsProxy.getOrThrow()
+        }
+        let ips = IPAddress.resolve(addrPort.addr)
+        if (ips.size == 0) {
+            throw HttpException("Failed to resolve address ${addrPort.addr}.")
+        }
+        let sa = IPSocketAddress(ips[0], addrPort.port)
+        let tmpConn = match (isToProxy) {
+            case false => connector(sa)
+            case true => getTunnelConnector(key.addrPort)
+        }
+        // alpnProtocolsList have been checked before HttpClient2 initial, no need to check again
+        if (let Some(conn) <- (tmpConn as TlsConnection)) {
+            if (logger.enabled(LogLevel.DEBUG)) {
+                httpLogDebug(logger, "[HttpClient2#createEngine] Reused existing TLS connection.")
+            }
+            return HttpClientEngine2(conn, localSettings, logger, readTimeout, writeTimeout)
+        }
+        let tlsConn: TlsConnection
+        try {
+            tlsConn = getGlobalTlsKit().getTlsClient(tmpConn, tlsConfig, session: None)
+        } catch (e: Exception) {
+            tmpConn.close()
+            throw e
+        }
+
+        let result: TlsHandshakeResult
+        try {
+            result = tlsConn.handshake(timeout: None)
+        } catch (e: Exception) {
+            tlsConn.close()
+            throw e
+        }
+        if (logger.enabled(LogLevel.DEBUG)) {
+            httpLogDebug(logger, "[HttpClient2#createEngine] TLS handshake result. TLS Version: ${result.version}, cipher suite: ${result.cipherSuite}")
+        }
+        if (result.alpnProtocol != "h2") {
+            tlsConn.close()
+            throw NegotiateException()
+        }
+        return HttpClientEngine2(tlsConn, localSettings, logger, readTimeout, writeTimeout)
+    }
+
+    func getTunnelConnector(addrPort: AddrPort): StreamingSocket {
+        let headers = HttpHeaders()
+        headers.add("Host", addrPort.addr + ":" + addrPort.port.toString())
+        httpLogDebug(logger, "[HttpClient2#getTunnelConnector] Client2_0 getTunnelConnector,host=${addrPort.addr}:${addrPort.port}")
+        let (resp, conn) = client.connect(proxy, header: headers)
+        return conn.getOrThrow()
+    }
+
+    func parseHostAndPort(url: URL): (AddrPort, ?AddrPort, ?String, Bool) {
+        var proxyAddrPort: Option<AddrPort> = None<AddrPort>
+        let targetAddr: String = url.hostName
+        var targetport: String = url.port.ifEmpty("443")
+        let targetAddrPort: AddrPort = AddrPort(targetAddr, targetport)
+        var auth = None<String>
+        var isToProxy: Bool = false
+        let hostInNoProxy = matchNoProxy(url.hostName, url.port)
+        if (!proxy.isEmpty() && !hostInNoProxy) {
+            // check port
+            // IPv6 is not considered yet
+            let proxyUrl = URL.parse(proxy)
+            let proxyAddr = proxyUrl.hostName
+            let proxyPort = proxyUrl.port.ifEmpty("443")
+            auth = parseProxyAuth(proxyUrl)
+            proxyAddrPort = AddrPort(proxyAddr, proxyPort)
+            isToProxy = true
+        }
+        return (targetAddrPort, proxyAddrPort, auth, isToProxy)
+    }
+}
+
+/*
+ * for every single connection
+ */
+class HttpClientEngine2 {
+    let conn: BufferedConn
+    let quit: AtomicBool = AtomicBool(false)
+    var closing: Bool = false
+    // max stream id can be create in this connection, can be changed by goaway
+    var maxStreamId: UInt32 = MAX_STREAM_ID
+
+    var localWindow: AtomicUInt32 = AtomicUInt32(DEFAULT_WINDOW_SIZE)
+    var remoteWindow: AtomicUInt32 = AtomicUInt32(DEFAULT_WINDOW_SIZE)
+    let remoteWindowMonitor: Monitor = Monitor()
+
+    // streams.size is num of normal stream + push stream
+    let streams: Map<UInt32, ClientStream> = HashMap<UInt32, ClientStream>()
+    let streamsLock = Mutex()
+
+    let encoder: Encoder
+    let decoder: Decoder
+    let fieldsWriter: FieldsWriter
+
+    // headers & continuation will be in FieldsFrame
+    let outputQueue: SPMCLevelQueue<Frame> = SPMCLevelQueue<Frame>(2)
+
+    // Active stream count that created by client
+    let activeClientStreamNum: AtomicUInt32 = AtomicUInt32(0)
+    // Active stream count that created by server
+    let activePPStreamNum: AtomicUInt32 = AtomicUInt32(0)
+    // last ids
+    let lastStreamId: AtomicUInt32 = AtomicUInt32(0)
+    let lastPPStreamId: AtomicUInt32 = AtomicUInt32(0)
+    // setting record: send in write thread, receive in read thread
+    let settingsWaitingQueue = ClosableBlockingQueue<(?Map<UInt16, UInt32>, Timer)>(Int64.Max)
+
+    // ping record
+    let pingWaitingqueue = ClosableBlockingQueue<Timer>(Int64.Max)
+    let localSettings: Map<UInt16, UInt32>
+    let remoteSettings: Map<UInt16, UInt32> = initializeSettings()
+
+    let logger: Logger
+
+    // timeout
+    let readTimeout: Duration
+    let writeTimeout: Duration
+
+    init(socket: StreamingSocket, settings: Map<UInt16, UInt32>, logger: Logger, readTimeout: Duration,
+        writeTimeout: Duration) {
+        this.conn = BufferedConn(socket)
+        this.fieldsWriter = FieldsWriter(conn.bufferedWriter)
+        this.localSettings = settings
+        this.logger = logger
+        this.encoder = Encoder(name: "HttpClientEngine2", _logger: logger)
+        this.decoder = Decoder(encoder, name: "HttpClientEngine2", _logger: logger)
+        this.readTimeout = readTimeout
+        this.writeTimeout = writeTimeout
+
+        // init SETTINGS_HEADER_TABLE_SIZE by user config
+        decoder.setHeaderTableSizeLimit(Int64(localSettings[SettingsHeaderTableSize.code]))
+        encoder.setHeaderTableSizeLimit(Int64(localSettings[SettingsHeaderTableSize.code]))
+        // SETTINGS_MAX_HEADER_LIST_SIZE
+        decoder.maxHeaderListSize = Int64(localSettings[SettingsMaxHeaderListSize.code])
+
+        startSendLoop()
+        exchangePreface(conn)
+        startReceiveLoop()
+    }
+
+    private func exchangePreface(conn: BufferedConn): Unit {
+        conn.write(PREFACE)
+        SettingsFrame(localSettings).writeTo(conn.bufferedWriter)
+        settingsWaitingQueue.enqueue(
+            (None, Timer.once(Duration.minute) {=> close(code: SettingsTimeout, msg: "settings timeout!")}))
+        // receive initial setting
+        let initialSettingFrame = match (Frame.read(conn)) {
+            case Some(v) => v as SettingsFrame
+            case None =>
+                conn.close()
+                throw HttpException("HTTP/2 connection initial failed.")
+        }
+        match (initialSettingFrame) {
+            case Some(v) => onSettingsRead(v)
+            case None =>
+                conn.close()
+                throw HttpException("HTTP/2 connection initial failed.")
+        }
+        httpLogDebug(logger, "[HttpClientEngine2#exchangePreface] HTTP/2 connection initial success")
+    }
+
+    private func startSendLoop() {
+        spawn {
+            sendRequestFrames()
+        }
+    }
+
+    private func startReceiveLoop() {
+        spawn {
+            httpLogTrace(logger, "[HttpClientEngine2#startReceiveLoop] read thread start")
+            do {
+                receiveResponse()
+            } while (!quit.load())
+        }
+    }
+
+    private func sendRequestFrames() {
+        // record last sent max streamid
+        var lastSendId: UInt32 = 0
+        // cache frames which should not send
+        let cacheMap = HashMap<UInt32, ArrayList<Frame>>()
+        httpLogDebug(logger, "[HttpClientEngine2#sendRequestFrames] write thread start")
+        var stream: ?ClientStream = None
+        while (!quit.load()) {
+            let frame = takeFrame(cacheMap, lastSendId + 2) ?? continue
+            httpLogTrace(logger, "[HttpClientEngine2#sendRequestFrames] send frame ${frame}")
+            try {
+                // global frames
+                if (frame.streamId == 0) {
+                    preProcessGlobalFrame(frame)
+                    frame.writeTo(conn.bufferedWriter)
+                    continue
+                }
+                // if stream is None, then it`s already purged
+                try {
+                    stream = getStream(frame) ?? continue
+                } catch (e: HttpConnectionException) {
+                    continue
+                }
+                let parseResult = parseFrame(stream.getOrThrow(), frame, cacheMap, lastSendId)
+                // update value of lastSendId, if has remaining cached frame, no update
+                if (parseResult && !cacheMap.contains(lastSendId + 2)) {
+                    lastSendId = max(lastSendId, frame.streamId)
+                }
+            } catch (e: HttpStreamException) {
+                httpLogWarn(logger, "[HttpClientEngine2#sendRequestFrames] stream exception occurred: ${e.message}")
+                stream?.close(e.h2Error)
+            } catch (e: HttpConnectionException) {
+                httpLogWarn(logger, "[HttpClientEngine2#sendRequestFrames] connection exception occurred: ${e.message}")
+                close(code: e.h2Error, msg: e.message)
+            } catch (e: ConnectionException | SocketException) {
+                if (!quit.load()) {
+                    shutdown()
+                    httpLogWarn(logger,
+                        "[HttpClientEngine2#sendRequestFrames] SocketException during sending request: ${e.message}")
+                } else {
+                    httpLogDebug(logger,
+                        "[HttpClientEngine2#sendRequestFrames] engine already quit, ignore SocketException")
+                }
+            } catch (e: Exception) {
+                httpLogWarn(logger,
+                    "[HttpClientEngine2#sendRequestFrames] exception occurred in write thread: ${e.message}")
+                close(code: H2Error.InternalError, msg: e.message)
+                throw e
+            }
+        }
+    }
+
+    private func takeFrame(cacheMap: HashMap<UInt32, ArrayList<Frame>>, lastSendId: UInt32): ?Frame {
+        // find frame from cacheMap first, if None receive from queue
+        if (let Some(list) <- cacheMap.get(lastSendId)) {
+            httpLogDebug(logger, "[HttpClientEngine2#sendRequestFrames] send cached fieldsFrame: ${lastSendId}")
+            // already checked, must have value
+            let first = list.remove(at: 0)
+            if (list.isEmpty()) {
+                cacheMap.remove(lastSendId)
+            }
+            first
+        } else {
+            outputQueue.receive()
+        }
+    }
+
+    private func parseFrame(stream: ClientStream, frame: Frame, cacheMap: HashMap<UInt32, ArrayList<Frame>>,
+        lastSendId: UInt32): Bool {
+        match (frame) {
+            case frame: FieldsFrame =>
+                // only headers can hit this if , mustn`t happen in trailers
+                // cache headers, resend when previous header is sent
+                if (frame.streamId > lastSendId + 2) {
+                    let list = cacheMap.getIfAbsent(frame.streamId, ArrayList<Frame>())
+                    list.add(frame)
+                    return false
+                }
+                stream.preProcess(frame)
+                fieldsWriter.streamId = frame.streamId
+                fieldsWriter.streamEnd = frame.streamEnd
+                frame.writeTo(fieldsWriter, encoder)
+            case frame: WindowUpdateFrame => frame.writeTo(conn.bufferedWriter)
+            case frame: RstStreamFrame =>
+                let isIdle = stream.status == Idle
+                stream.preProcess(frame)
+                if (!isIdle) {
+                    frame.writeTo(conn.bufferedWriter)
+                }
+            case frame: DataFrame =>
+                // cache data frame, if id bigger than last sent,put it in cache map
+                if (frame.streamId > lastSendId + 2) {
+                    let list = cacheMap[frame.streamId]
+                    list.add(frame)
+                    return false
+                }
+                // flow control
+                waitWindow(frame.payloadLen)
+                try {
+                    stream.preProcess(frame)
+                } catch (e: HttpConnectionException) {
+                    return false
+                }
+                frame.writeTo(conn.bufferedWriter)
+                remoteWindow.fetchSub(frame.payloadLen)
+            case _ => throw HttpException("This frame should not appear ${frame}.")
+        }
+        return true
+    }
+
+    private func waitWindow(size: UInt32): Unit {
+        while (size > remoteWindow.load() && !quit.load()) {
+            remoteWindowMonitor.lock()
+            httpLogDebug(logger,
+                "[HttpClientEngine2#waitWindow] connection wait for window update, current window:${remoteWindow.load()}, toWrite payloadLen:${size}"
+            )
+            remoteWindowMonitor.wait(timeout: Duration.millisecond * 10)
+            remoteWindowMonitor.unlock()
+        }
+    }
+
+    private func receiveResponse(): Unit {
+        let frame: Frame
+        try {
+            frame = match (Frame.read(conn, maxFrameSize: localSettings[SettingsMaxFrameSize.code])) {
+                case Some(v) => v
+                case None => return
+            }
+            httpLogTrace(logger, "[HttpClientEngine2#receiveResponse] receive frame:${frame}")
+        } catch (e: HttpStreamException) {
+            httpLogWarn(logger,
+                "[HttpClientEngine2#receiveResponse] stream exception occurred when reading response: ${e}")
+            return
+        } catch (e: HttpConnectionException) {
+            httpLogWarn(logger,
+                "[HttpClientEngine2#receiveResponse] connection exception occurred when reading response: ${e}")
+            close(code: e.h2Error, msg: e.message)
+            throw HttpException("Error occurred when reading frames.")
+        } catch (e: ConnectionException | SocketException) {
+            if (!quit.load()) {
+                shutdown()
+                httpLogWarn(logger,
+                    "[HttpClientEngine2#receiveResponse] SocketException during receiving response: ${e.message}")
+            } else {
+                httpLogDebug(logger, "[HttpClientEngine2#receiveResponse] engine already quit, ignore SocketException")
+            }
+            return
+        }
+
+        //handle global frame
+        if (frame.streamId == 0) {
+            postProcessGlobalFrame(frame)
+            return
+        }
+
+        //handle other frames
+        match (frame) {
+            case hf: HeadersFrame => readAndDecodeHeaders(hf.streamId, hf.fieldBlock, hf.headerEnd, hf.streamEnd)
+            case pf: PushFrame =>
+                if (localSettings[SettingsEnablePush.code] == 0) {
+                    throw HttpConnectionException(ProtocolError, "Should not receive PushPromise.")
+                }
+                createPushStream(pf)
+                readAndDecodeHeaders(pf.streamId, pf.fieldBlock, pf.headerEnd, false, pushId: pf.promisedId)
+            // connection level flow control, send same size window update when read data frame
+            // except for receive data > window , receive would never block
+            case df: DataFrame =>
+                if (localWindow.load() < 100 * 1024 * 1024) {
+                    sendWindowUpdate(100 * 1024 * 1024)
+                }
+                localWindow.fetchSub(df.payloadLen)
+                processStream(df)
+            case _ => processStream(frame)
+        }
+    }
+
+    // decode header blocks
+    // the first HEADERS_FRAME or PUSH_PROMISE_FRAME is already read
+    private func readAndDecodeHeaders(streamId: UInt32, fieldBlock: Array<UInt8>, headerEndFlag: Bool,
+        streamEndFlag: Bool, pushId!: UInt32 = 0): Unit {
+        let fieldsBlocks = ArrayList<UInt8>()
+        fieldsBlocks.add(all: fieldBlock)
+        var headerEnd = headerEndFlag
+
+        while (!headerEnd) {
+            let cf = Frame
+                .read(conn, maxFrameSize: localSettings[SettingsMaxFrameSize.code])
+                .getOrThrow(
+                    {
+                        => HttpConnectionException(ProtocolError,
+                            "Headers and continuation frames should be continuous on connection level.")
+                    }) as ContinuationFrame ?? throw HttpConnectionException(ProtocolError,
+                "Headers and continuation frames should be continuous on connection level.")
+
+            if (cf.streamId != streamId) {
+                throw HttpConnectionException(ProtocolError, "Unexpected Continuation on stream ${streamId}.")
+            }
+            fieldsBlocks.add(all: cf.fieldBlock)
+            headerEnd = cf.headerEnd
+        }
+
+        let fieldsList = decodeFields(decoder, fieldsBlocks)
+
+        let fieldsFrame = FieldsFrame(streamId, fieldsList, last: streamEndFlag, pushId: pushId)
+        processStream(fieldsFrame)
+    }
+
+    private func processStream(frame: Frame): Unit {
+        let stream: ClientStream = match (getStream(frame)) {
+            case Some(v) => v
+            // receive frame from purged streams or shutdown frame ,ignore
+            case None =>
+                httpLogDebug(logger, "[HttpClientEngine2#processStream] get stream failed ${frame.streamId}")
+                return
+        }
+        try {
+            stream.postProcess(frame)
+        } catch (e: HttpConnectionException) {
+            httpLogWarn(logger, "[HttpClientEngine2#processStream] connection exception occurred: ${e}")
+            close(code: e.h2Error, msg: e.message)
+            throw e
+        } catch (e: HttpStreamException) {
+            httpLogWarn(logger, "[HttpClientEngine2#processStream] stream exception occurred: ${e}")
+            stream.close(e.h2Error)
+        }
+    }
+
+    func createPushStream(frame: PushFrame): Unit {
+        let pushId = frame.promisedId
+        if (pushId % 2 != 0) {
+            throw HttpConnectionException(ProtocolError, "Illegal odd Id.")
+        }
+        if (pushId <= lastPPStreamId.load()) {
+            throw HttpConnectionException(ProtocolError, "Unexpected push id.")
+        }
+        if (activePPStreamNum.load() >= remoteSettings[SettingsMaxConcurrentStreams.code]) {
+            return
+        }
+        let stream = match (getStream(frame)) {
+            case Some(v) => v
+            case None => throw HttpConnectionException(ProtocolError, "Receive push from unknown stream ${frame}.")
+        }
+        lastPPStreamId.store(pushId)
+        activePPStreamNum.fetchAdd(1)
+        let pushStream = ClientStream(pushId, this)
+        synchronized(streamsLock) {
+            streams.add(pushId, pushStream)
+        }
+        stream.pushStreams.add(pushStream)
+        httpLogDebug(logger,
+            "[HttpClientEngine2#createPushStream] received server push on id:${frame.streamId}, push id:${pushId}")
+    }
+
+    /*
+     * this is a sync API, async one can be easily implemented based on this one
+     */
+    func request(req: HttpRequest): HttpResponse {
+        if (req.method == "CONNECT" && remoteSettings[SettingsEnableConnectProtocol.code] == 0) {
+            throw HttpException("Target HTTP/2 server doesn't allow CONNECT method.")
+        }
+        checkUserAgent(req._version, req.headers)
+
+        let stream: ClientStream = send(req)
+        // block in receive
+        httpLogDebug(logger,
+            "[HttpClientEngine2#request] write request on ${stream.streamId} finished, wait for receiving response")
+        return receive(stream)
+    }
+
+    private func send(request: HttpRequest): ClientStream {
+        if (conn.isClosed()) {
+            throw HttpException("Connection closed.") // client should start a new connection
+        }
+        // throw to user thread, doesn't affect existing thread
+        if (activeClientStreamNum.fetchAdd(1) > remoteSettings[SettingsMaxConcurrentStreams.code]) {
+            activeClientStreamNum.fetchSub(1)
+            // try to block follow requests instead of throw exception
+            throw HttpException(
+                "Active streams reach limit: ${remoteSettings[SettingsMaxConcurrentStreams.code]}, please wait a second."
+            )
+        }
+
+        let streamId: UInt32
+        if (lastStreamId.compareAndSwap(0, 1)) {
+            streamId = lastStreamId.load()
+        } else {
+            streamId = lastStreamId.fetchAdd(2) + 2
+        }
+        let stream = ClientStream(streamId, this)
+        httpLogDebug(logger, "[HttpClientEngine2#send] start new stream,id:${streamId}")
+        synchronized(streamsLock) {
+            streams.add(streamId, stream)
+        }
+        // this request is not the first request on the connection and
+        // there is only current stream, send a ping first to check connection
+        if (activeClientStreamNum.load() == 1 && streamId != 1) {
+            sendPing()
+        }
+        stream.send(request)
+        return stream
+    }
+
+    private func receive(stream: ClientStream): HttpResponse {
+        let response: HttpResponse
+        try {
+            httpLogDebug(logger, "[HttpClientEngine2#receive] start construct response of stream ${stream.streamId}")
+            response = stream.constructResponse()
+        } catch (e: HttpConnectionException) {
+            close(code: e.h2Error, msg: e.message)
+            throw HttpException("Transport error on connection: ${e}.")
+        } catch (e: HttpStreamException) {
+            stream.close(e.h2Error)
+            throw HttpException("Transport error on stream: ${e}.")
+        }
+        if (stream.streamId == MAX_STREAM_ID) {
+            sendGoaway(MAX_STREAM_ID, NoError, debugMsg: "stream id used up")
+        }
+        return response
+    }
+
+    func getStream(frame: Frame): ?ClientStream {
+        let id = frame.streamId
+        synchronized(streamsLock) {
+            if (streams.contains(id)) {
+                return streams.get(id)
+            }
+        }
+        if (isPushStream(id) && id > lastPPStreamId.load()) {
+            throw HttpConnectionException(ProtocolError, "Unknown stream :${frame}.")
+        }
+        if (!isPushStream(id) && id > lastStreamId.load()) {
+            throw HttpConnectionException(ProtocolError, "Unknown stream :${frame}.")
+        }
+        // purged stream can ignore frames
+        return None
+    }
+
+    // for push streams
+    func getStream(id: UInt32): ?ClientStream {
+        synchronized(streamsLock) {
+            return streams.get(id)
+        }
+    }
+
+    func close(): Unit {
+        close(msg: "Connection terminated by client.")
+    }
+
+    private func close(code!: H2Error = NoError, msg!: ?String = None) {
+        httpLogDebug(logger,
+            "[HttpClientEngine2#close] HTTP/2 Client closed, error code is ${code.code} , msg is ${msg ?? ""}")
+        sendGoaway(this.lastStreamId.load(), code, debugMsg: msg)
+        // wait 1s to make sure server can receive the goaway
+        sleep(Duration.second)
+        shutdown()
+    }
+
+    private func shutdown(): Unit {
+        httpLogTrace(logger, "[HttpClientEngine2#shutdown] Shutdown.")
+        quit.store(true)
+        // close queue in case queue block at receive
+        settingsWaitingQueue.close()
+        pingWaitingqueue.close()
+        outputQueue.close()
+        // close connection
+        conn.close()
+        synchronized(streamsLock) {
+            for ((_, stream) in streams) {
+                if (stream.status == Closed) {
+                    continue
+                }
+                stream.status = Closed
+                stream.closeConn()
+                stream.remoteWindowMonitor.lock()
+                stream.remoteWindowMonitor.notify()
+                stream.remoteWindowMonitor.unlock()
+                stream.writeTimer.cancel()
+                stream.readTimer.cancel()
+            }
+        }
+        remoteWindowMonitor.lock()
+        remoteWindowMonitor.notifyAll()
+        remoteWindowMonitor.unlock()
+    }
+
+    /*
+     * purged stream may occupy to much memory
+     */
+    func purgeStream(id: UInt32): Unit {
+        if (streamPurged(id)) {
+            return
+        }
+        if (logger.enabled(LogLevel.DEBUG)) {
+            httpLogDebug(logger, "[HttpClientEngine2#purgeStream] purge stream ${id}.")
+        }
+        let stream = synchronized(streamsLock) {
+            streams.remove(id)
+        }
+        if (let Some(_) <- stream) {
+            if (isPushStream(id)) {
+                activePPStreamNum.fetchSub(1)
+            } else {
+                activeClientStreamNum.fetchSub(1)
+            }
+        }
+    }
+
+    func streamPurged(id: UInt32): Bool {
+        if (streams.contains(id)) {
+            return false
+        }
+        if (isPushStream(id)) {
+            return id <= lastPPStreamId.load()
+        } else {
+            return id <= lastStreamId.load()
+        }
+    }
+
+    /*
+     * process global frames to be write
+     * only settings & ping frame need to handle, cause they have to wait for ack
+     */
+    private func preProcessGlobalFrame(frame: Frame): Unit {
+        match (frame) {
+            case f: SettingsFrame =>
+                if (!f.ack) {
+                    settingsWaitingQueue.enqueue(
+                        (f.settings,
+                            Timer.once(Duration.minute) {=> close(code: SettingsTimeout, msg: "settings timeout!")}))
+                }
+            case f: PingFrame =>
+                if (!f.ack) {
+                    pingWaitingqueue.enqueue(
+                        Timer.once(Duration.minute) {=> close(code: ProtocolError, msg: "ping timeout!")})
+                }
+            case _ => ()
+        }
+    }
+
+    /*
+     * process received global frames
+     */
+    private func postProcessGlobalFrame(frame: Frame): Unit {
+        match (frame) {
+            case frame: SettingsFrame => onSettingsRead(frame)
+            case frame: GoawayFrame => onGoawayRead(frame)
+            case frame: WindowUpdateFrame => onWindowUpdateRead(frame)
+            case frame: PingFrame => onPingRead(frame)
+            case _ =>
+                httpLogWarn(logger,
+                    "[HttpClientEngine2#postProcessGlobalFrame] received unexpected global frame: ${frame}")
+                close(code: ProtocolError, msg: "unknown global frame")
+        }
+    }
+
+    /***************************** global frame ********************************/
+
+    private func sendGoaway(lastStreamId: UInt32, errCode: H2Error, debugMsg!: ?String = None) {
+        if (logger.enabled(LogLevel.TRACE)) {
+            httpLogTrace(logger, "[HttpClientEngine2#sendGoaway] prepare to send goaway frame, lastStreamId=${lastStreamId}, errCode=${errCode.code}.")
+        }
+        closing = true
+        let goaway: GoawayFrame
+        match (debugMsg) {
+            case Some(v) => goaway = GoawayFrame(lastStreamId, errCode.code, data: v.toArray())
+            case None => goaway = GoawayFrame(lastStreamId, errCode.code)
+        }
+        outputQueue.send(goaway, CONTROL_PRIORITY)
+    }
+
+    private func onGoawayRead(frame: GoawayFrame): Unit {
+        let code = frame.errorCode
+        httpLogDebug(logger,
+            "[HttpClientEngine2#onGoawayRead] HTTP/2 client received goaway, error code:${code}, debug msg:${String.fromUtf8(frame.debugData)}"
+        )
+        // if error code is NO_ERROR or there is no active stream, close the connection
+        if (streams.size == 0 || code != NoError.code) {
+            shutdown()
+            return
+        }
+        maxStreamId = frame.lastStreamId
+        // need wait for active streams
+        if (maxStreamId > lastStreamId.load()) {
+            return
+        }
+        if (maxStreamId <= lastStreamId.load()) {
+            closing = true
+        }
+    }
+
+    /*
+     * provides a way for a client to easily test a connection.
+     * can be used by an endpoint to measure latency to their peer.
+     */
+    private func sendPing(ack!: Bool = false) {
+        if (logger.enabled(LogLevel.TRACE)) {
+            httpLogTrace(logger, "[HttpClientEngine2#sendPing] prepare to send ping frame, ack=${ack}.")
+        }
+        let pingFrame = PingFrame(isAck: ack)
+        outputQueue.send(pingFrame, CONTROL_PRIORITY)
+    }
+
+    private func onPingRead(frame: PingFrame): Unit {
+        if (frame.ack) {
+            let timer = pingWaitingqueue
+                .dequeue()
+                .getOrThrow({
+                    => HttpConnectionException(ProtocolError, "No ping in queue when receive ack.")
+                })
+            timer.cancel()
+            return
+        }
+        sendPing(ack: true)
+    }
+
+    /*
+     * connection level
+     */
+    private func onWindowUpdateRead(frame: WindowUpdateFrame): Unit {
+        if (remoteWindow.load() + frame.increment > MAX_WINDOW) {
+            throw HttpConnectionException(FlowControlError, "Window over flow.")
+        }
+        remoteWindow.fetchAdd(frame.increment)
+        remoteWindowMonitor.lock()
+        remoteWindowMonitor.notifyAll()
+        remoteWindowMonitor.unlock()
+    }
+
+    /*
+     * for connection level
+     */
+    private func sendWindowUpdate(increment: UInt32): Unit {
+        if (increment == 0) {
+            return
+        }
+        httpLogDebug(logger,
+            "[HttpClientEngine2#sendWindowUpdate] send global window_update:${increment}, current window:${localWindow.load()}"
+        )
+        localWindow.fetchAdd(increment)
+        outputQueue.send(WindowUpdateFrame(0, increment), CONTROL_PRIORITY)
+    }
+
+    private func onSettingsRead(frame: SettingsFrame): Unit {
+        // apply settings when receive ack and stop timeout task
+        if (frame.ack) {
+            let (setting, timer) = settingsWaitingQueue
+                .dequeue()
+                .getOrThrow({
+                    => HttpConnectionException(ProtocolError, "No settings in queue when receive ack.")
+                })
+            timer.cancel()
+            if (let Some(s) <- setting) {
+                localSettings.add(all: s)
+            }
+            return
+        }
+        // non ack
+        sendSettings(true)
+        var seenServerMaxStreamsSetting = false
+        for ((k, v) in frame.settings) {
+            validSetting(k, v)
+            if (k == SettingsHeaderTableSize.code) {
+                // receive SETTINGS_HEADER_TABLE_SIZE by peer Decoder
+                encoder.receiveSettingsHeaderTableSize(Int64(v))
+            }
+            if (k == SettingsMaxHeaderListSize.code) {
+                encoder.maxHeaderListSize = Int64(v)
+            }
+            if (k == SettingsInitialWindowSize.code) {
+                setActiveStreamWindow(v)
+            }
+            if (k == SettingsMaxConcurrentStreams.code) {
+                seenServerMaxStreamsSetting = true
+            }
+            remoteSettings.add(k, v)
+        }
+
+        if (!seenServerMaxStreamsSetting) {
+            remoteSettings.add(SettingsMaxConcurrentStreams.code, DEFAULT_MAX_CONCURRENT_STREAMS)
+        }
+
+        // set fieldsWriter buffer
+        // ensure send first request after receiving first settings frame
+        let fieldsBlockSize = Int64(remoteSettings[SettingsMaxFrameSize.code])
+        if (fieldsWriter.blockSize != fieldsBlockSize) {
+            fieldsWriter.buffer = Array<Byte>(fieldsBlockSize, repeat: 0)
+            fieldsWriter.blockSize = fieldsBlockSize
+        }
+    }
+
+    private func sendSettings(ack: Bool, settings!: ?Map<UInt16, UInt32> = None): Unit {
+        let frame = if (ack) {
+            SettingsFrame()
+        } else {
+            // check
+            SettingsFrame(settings.getOrThrow({
+                => HttpException("Setting is none.")
+            }))
+        }
+        outputQueue.send(frame, CONTROL_PRIORITY)
+    }
+
+    private func setActiveStreamWindow(initialWindow: UInt32): Unit {
+        let increment = Int64(initialWindow) - Int64(this.remoteSettings[SettingsInitialWindowSize.code])
+
+        synchronized(streamsLock) {
+            for (stream in streams.values()) {
+                if (stream.remoteWindow.load() + increment > Int64(MAX_WINDOW)) {
+                    throw HttpConnectionException(FlowControlError,
+                        "SettingsInitialWindowSize cause remote window of stream ${stream.streamId} exceeds max value.")
+                } else {
+                    stream.remoteWindow.fetchAdd(increment)
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,255 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package std.core
+
+@FastNative
+foreign func strcmp(source: CPointer<UInt8>, target: CPointer<UInt8>): Int32
+
+@FastNative
+foreign func strncmp(source: CPointer<UInt8>, target: CPointer<UInt8>, cmpSize: UIntNative): Int32
+
+@FastNative
+foreign func strcasecmp(source: CPointer<UInt8>, target: CPointer<UInt8>): Int32
+
+@Intrinsic
+func convertCStr2Ptr(cs: CString): CPointer<UInt8>
+
+@OverflowWrapping
+func createStrFromCPointer(cp: CPointer<UInt8>): String {
+    if (cp.isNull()) {
+        return String()
+    }
+    var len: Int64 = unsafe { Int64(strlen(cp)) }
+    return String(cp, len)
+}
+
+extend CString <: ToString {
+    public func getChars(): CPointer<UInt8> {
+        return convertCStr2Ptr(this)
+    }
+
+    public func isNull(): Bool {
+        return getChars().isNull()
+    }
+
+    public func size(): Int64 {
+        let chars = getChars()
+        if (chars.isNull()) {
+            return 0
+        }
+        let len = unsafe { strlen(chars) }
+        return Int64(len)
+    }
+
+    public func isEmpty(): Bool {
+        return size() == 0
+    }
+
+    public func isNotEmpty(): Bool {
+        return !isEmpty()
+    }
+
+    public func startsWith(prefix: CString): Bool {
+        let chars = getChars()
+        if (chars.isNull()) {
+            return false
+        }
+        let prefixChars = prefix.getChars()
+        if (prefixChars.isNull()) {
+            return false
+        }
+        let len = unsafe { strlen(chars) }
+        let prefixLen = unsafe { strlen(prefixChars) }
+        if (len < prefixLen) {
+            return false
+        }
+        let cmpRet = unsafe { CODE_CORE_StringMemcmp(chars, prefixChars, prefixLen) }
+        return cmpRet == 0
+    }
+
+    public func endsWith(suffix: CString): Bool {
+        let chars = getChars()
+        if (chars.isNull()) {
+            return false
+        }
+        let suffixChars = suffix.getChars()
+        if (suffixChars.isNull()) {
+            return false
+        }
+        let len = unsafe { strlen(chars) }
+        let suffixLen = unsafe { strlen(suffixChars) }
+        if (len < suffixLen) {
+            return false
+        }
+        let cmpRet = unsafe { strncmp(chars + Int64(len - suffixLen), suffixChars, suffixLen) }
+        return cmpRet == 0
+    }
+
+    public func equals(other: CString): Bool {
+        let chars = getChars()
+        if (chars.isNull() || other.isNull()) {
+            return false
+        }
+        let cmpRet = unsafe { strcmp(chars, other.getChars()) }
+        return cmpRet == 0
+    }
+
+    public func equalsLower(other: CString): Bool {
+        let chars = getChars()
+        if (chars.isNull() || other.isNull()) {
+            return false
+        }
+        let cmpRet = unsafe { strcasecmp(chars, other.getChars()) }
+        return cmpRet == 0
+    }
+
+    /**
+     * @throws IndexOutOfBoundsException if beginIndex is greater than the size of string.
+     * @throws IllegalMemoryException if memory malloc or memcpy_s fails.
+     */
+    public func subCString(beginIndex: UIntNative): CString {
+        var len = UIntNative(size())
+        if (beginIndex > len) {
+            throw IndexOutOfBoundsException(
+                "The begin index is ${beginIndex}, which is greater than the CString length of ${len}.")
+        }
+        return subCString(beginIndex, len - beginIndex)
+    }
+
+    /*
+     * @throws IndexOutOfBoundsException if beginIndex is greater than the size of string.
+     * @throws IllegalMemoryException if memory malloc or memcpy_s fails.
+     */
+    public func subCString(beginIndex: UIntNative, subLen: UIntNative): CString {
+        var buffer = CPointer<UInt8>()
+        var len = UIntNative(size())
+        if (beginIndex > len) {
+            throw IndexOutOfBoundsException(
+                "The begin index is ${beginIndex}, which is greater than the CString length of ${len}.")
+        } else if (beginIndex == len || subLen == 0) {
+            return CString(buffer)
+        }
+        var actualLen = len - beginIndex
+        if (actualLen > subLen) {
+            actualLen = subLen
+        }
+        unsafe {
+            buffer = LibC.malloc(count: Int64(actualLen + 1))
+            if (buffer.isNull()) {
+                throw IllegalMemoryException("Malloc in CString::subCString failed.")
+            }
+            var rc = memcpy_s(buffer, actualLen + 1, getChars() + Int64(beginIndex), actualLen)
+
+            // The 'actualLen' cannot be guaranteed to be copied to the end. Therefore, '\ 0' cannot be
+            // guaranteed by copying 'actualLen + 1'. Therefore, the end needs to be added.
+            if (rc != 0) {
+                LibC.free(buffer)
+                throw IllegalMemoryException("The memcpy_s in subCString failed with error code: ${rc}.")
+            }
+            buffer.write(Int64(actualLen), UInt8(0))
+        }
+        return CString(buffer)
+    }
+
+    /*
+     * @throws Exception if self is null or str is null
+     */
+    public func compare(str: CString): Int32 {
+        let chars = getChars()
+        if (chars.isNull() || str.isNull()) {
+            throw IllegalMemoryException("The two CString values to be compared cannot be null.")
+        }
+        let ret = unsafe { strcmp(chars, str.getChars()) }
+        if (ret > 0) {
+            return 1
+        }
+        if (ret < 0) {
+            return -1
+        }
+        return 0
+    }
+
+    public func toString(): String {
+        let chars = getChars()
+        if (chars.isNull()) {
+            return String()
+        }
+        let len = unsafe { Int64(strlen(chars)) }
+        if (len == 0) {
+            return String()
+        }
+        let data: Array<UInt8> = Array<UInt8>(len, repeat: 0)
+        if (len < STRING_C_THRESHOLD) {
+            var i: Int64 = 0
+            while (i < len) {
+                data[i] = unsafe { chars.read(i) }
+                i++
+            }
+        } else {
+            unsafe {
+                let rawData: CPointerHandle<UInt8> = acquireArrayRawData(data)
+                // If the length of the string is greater than the safe length of the safe function,
+                // it needs to be copied multiple times.
+                var remain = len
+                var offset = 0
+                while (remain >= SECUREC_MEM_MAX_LEN) {
+                    memcpy_s(rawData.pointer + offset, UIntNative(SECUREC_MEM_MAX_LEN), chars + offset,
+                        UIntNative(SECUREC_MEM_MAX_LEN))
+                    offset += SECUREC_MEM_MAX_LEN
+                    remain -= SECUREC_MEM_MAX_LEN
+                }
+                if (remain > 0) {
+                    memcpy_s(rawData.pointer + offset, UIntNative(remain), chars + offset, UIntNative(remain))
+                }
+                releaseArrayRawData(rawData)
+            }
+        }
+        checkInvalid(data.rawptr, data.start, data.start + data.size)
+        return String(data)
+    }
+
+    public func asResource(): CStringResource {
+        return CStringResource(this)
+    }
+}
+
+public struct CStringResource <: Resource {
+    public let value: CString
+    private let isFree: Box<Bool> = Box(false)
+
+    init(p: CString) {
+        this.value = p
+    }
+
+    public func isClosed(): Bool {
+        return isFree.value
+    }
+
+    public func close(): Unit {
+        if (isFree.value) {
+            return
+        }
+        unsafe { LibC.free(value.getChars()) }
+        isFree.value = true
+    }
+}

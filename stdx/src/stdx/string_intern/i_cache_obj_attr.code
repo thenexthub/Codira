@@ -1,0 +1,103 @@
+/*
+ *  Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *  This source file is part of the Codira project, licensed under Apache-2.0
+ *  with Runtime Library Exception.
+ *
+ *  See https://cangjie-lang.cn/pages/LICENSE for license information.
+ */
+
+/**
+ * @file i_cache_obj_attr.code
+ * @brief Interface for Defining Cache Object Attributes
+ *
+ */
+
+package stdx.string_intern
+
+internal import std.time.DateTime
+
+/**
+ * @brief  Attribute encapsulation of the cache element object, and some cache-related attribute definitions of the cache object stored in the general cache.
+ * Each cached object is associated with a cache attribute.
+ */
+interface ICacheObjAttr {
+    mut prop createTime: DateTime
+    mut prop policyWeight: Int64
+    mut prop accessTime: ?DateTime
+    mut prop writeTime: ?DateTime
+    mut prop queueType: QueueType
+}
+
+enum QueueType {
+WINDOW | PROBATION | PROTECTED
+
+    public operator func ==(that: QueueType): Bool {
+        match ((this, that)) {
+            case (WINDOW, WINDOW) => true
+            case (PROBATION, PROBATION) => true
+            case (PROTECTED, PROTECTED) => true
+            case _ => false
+        }
+    }
+
+    public operator func !=(that: QueueType): Bool {
+        !(this == that)
+    }
+}
+
+class DefaultCacheObjAttr <: ICacheObjAttr {
+    private var _createTime: DateTime = DateTime.now()
+
+    private var _accessTime: ?DateTime = None
+
+    private var _writeTime: ?DateTime = None
+
+    private var _policyWeight: Int64 = 0
+
+    private var _queueType = WINDOW
+
+    public mut prop createTime: DateTime {
+        get() {
+            return _createTime
+        }
+        set(createTime) {
+            this._createTime = createTime
+        }
+    }
+
+    public mut prop accessTime: ?DateTime {
+        get() {
+            return _accessTime
+        }
+        set(accessTime) {
+            this._accessTime = accessTime
+        }
+    }
+
+    public mut prop writeTime: ?DateTime {
+        get() {
+            return _writeTime
+        }
+        set(writeTime) {
+            this._writeTime = writeTime
+        }
+    }
+
+    public mut prop policyWeight: Int64 {
+        get() {
+            return _policyWeight
+        }
+        set(policyWeight) {
+            this._policyWeight = policyWeight
+        }
+    }
+
+    public mut prop queueType: QueueType {
+        get() {
+            return _queueType
+        }
+        set(queueType) {
+            this._queueType = queueType
+        }
+    }
+}

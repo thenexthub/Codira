@@ -1,0 +1,742 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This source file is part of the Codira project, licensed under Apache-2.0
+ * with Runtime Library Exception.
+ *
+ * See https://cangjie-lang.cn/pages/LICENSE for license information.
+ */
+
+package stdx.net.http
+
+import std.time.*
+import std.collection.*
+import std.unicode.UnicodeStringExtension
+import std.sync.Mutex
+import std.convert.Parsable
+import std.sort.sort
+import stdx.encoding.url.*
+
+let END_TIME = DateTime.of(year: 9999, month: 1, dayOfMonth: 1, timeZone: TimeZone.UTC)
+// cookieJar's upper bound
+const MAXCOOKIECOUNT = 3000
+const MAXDOMAINCOOKIECOUNT = 50
+// when call removeExcessCookies, evict at least 1000 cookies
+const MAX_COUNT_AFTER_REMOVE = 2000
+
+/**
+ * user agent stores the following fields about each cookie: name,
+ * value, expiry-time, domain, path, creation-time, last-access-time,
+ * persistent-flag, secure-only-flag, and http-only-flag
+ * RFC 6265 5.3. Storage Model
+ */
+class CookieEntry {
+    CookieEntry(
+        let name: String,
+        let value: String,
+        let expiryTime: DateTime,
+        let domain: String,
+        let path: String,
+        var creationTime: DateTime,
+        var lastAccessTime: DateTime,
+        let persistentFlag: Bool,
+        let hostOnlyFlag: Bool,
+        let secureOnlyFlag: Bool,
+        let httpOnlyFlag: Bool
+    ) {}
+}
+
+/**
+ * CookieJar is a member of Client
+ * when making a request, use Client.CookieJar.getCookie to get cookies
+ * when receiving a response, firstly, use static parseSetCookieHeader to parse the cookie,
+ * then use storeCookies to store the cookie
+ */
+public interface CookieJar {
+
+    // the rejectPublicSuffixes is configured to reject public suffixes for security reasons
+    // users can configured them from http://publicsuffix.org/
+    prop rejectPublicSuffixes: ArrayList<String>
+    prop isHttp: Bool
+    func storeCookies(url: URL, cookies: ArrayList<Cookie>): Unit
+    func getCookies(url: URL): ArrayList<Cookie>
+    func removeCookies(domain: String): Unit
+    func clear(): Unit
+    /**
+     * the user agent includes stored cookies in the Cookie Http request header.
+     * RFC 6265 5.4.4.
+     *
+     * @param cookies the cookies to be converted to cookie string.
+     * @return the cookie string.
+     */
+    static func toCookieString(cookies: ArrayList<Cookie>): String {
+        if (cookies.isEmpty()) {
+            return ""
+        }
+        let cookieValueBuilder = StringBuilder()
+        for (cookie in cookies) {
+            cookieValueBuilder.append(cookie.cookieName)
+            cookieValueBuilder.append(r'=')
+            cookieValueBuilder.append(cookie.cookieValue)
+            cookieValueBuilder.append("; ")
+        }
+        // remove last "; "
+        let cookieStr = cookieValueBuilder.toString()
+        return cookieStr[..cookieStr.size - 2]
+    }
+
+    /**
+     * "receive a cookie" from the request-uri with name cookie-name, value cookie-value,
+     * and attributes cookie-attribute-list
+     * parse the field-value of the Set-Cookie header field as a set-cookie-string
+     * RFC 6265 5.2.
+     *
+     * @param response the response to be parse.
+     * @return an ArrayList<Cookie> obtained from the response.
+     */
+    static func parseSetCookieHeader(response: HttpResponse): ArrayList<Cookie> {
+        let setCookieHeader = response.headers.getInternal("set-cookie") ?? return ArrayList<Cookie>(0)
+        let cookieList = ArrayList<Cookie>()
+        for (setCookieString in setCookieHeader) {
+            // split name-value and attributes
+            let nameValueAndAttributes = setCookieString.trimAscii().split(";", 2)
+            if (nameValueAndAttributes.isEmpty()) {
+                continue
+            }
+            let nameAndValue = nameValueAndAttributes[0].trimAscii()
+
+            // if the name-value-pair string lacks a %x3D ("=") character,
+            // ignore the set-cookie-string entirely
+            if (!nameAndValue.contains("=")) {
+                continue
+            }
+            let nameValue = nameAndValue.split("=", 2)
+            let name = nameValue[0].trimAscii()
+
+            // if the name string is empty, ignore the set-cookie-string entirely
+            // check name and value
+            if (!isCookieNameValid(name)) {
+                continue
+            }
+            let value = nameValue[1].trimAscii()
+
+            if (!isCookieValueValid(value)) {
+                continue
+            }
+
+            let cookie = Cookie(name, value)
+            // if the set-cookie-string does not contain a %x3B (";") character
+            // skip the step to parse attributes
+            cookieList.add(cookie)
+            if (nameValueAndAttributes.size == 1) {
+                continue
+            }
+            // parse the attributes
+            let cookieAttributesList = nameValueAndAttributes[1].trimAscii().split(";")
+            parseAttributes(cookie, cookieAttributesList, computeDefaultPath(response.request?.url ?? EMPTY_URL))
+        }
+        return cookieList
+    }
+
+    /*
+     * @param rejectPublicSuffixes the public suffixes to be configured.
+     *  public suffixes can be obtained from https://publicsuffix.org/.
+     * @param isHttp whether the cookieJar is managed by HTTP.
+     * @return a default CookieJar instance.
+     */
+    static func createDefaultCookieJar(rejectPublicSuffixes: ArrayList<String>, isHttp: Bool): CookieJar {
+        return CookieJarImpl(rejectPublicSuffixes, isHttp)
+    }
+}
+
+class CookieJarImpl <: CookieJar {
+    // domain:<path:<name:entry>>
+    var cookieEntries = HashMap<String, HashMap<String, HashMap<String, CookieEntry>>>()
+    let cookieEntriesLock = Mutex()
+
+    var cookieCount = 0
+
+    let _rejectPublicSuffixes: ArrayList<String>
+    let _isHttp: Bool
+
+    public prop rejectPublicSuffixes: ArrayList<String> {
+        get() {
+            return _rejectPublicSuffixes
+        }
+    }
+    public prop isHttp: Bool {
+        get() {
+            return _isHttp
+        }
+    }
+
+    init(rejectPublicSuffixes: ArrayList<String>, isHttp: Bool) {
+        _rejectPublicSuffixes = rejectPublicSuffixes
+        _isHttp = isHttp
+    }
+
+    /**
+     * when the user agent receives a cookie from request-uri with name
+     * cookie-name, value cookie-value, and attributes cookie-attribute-list,
+     * the algorithm to parse the cookie to cookieEntry and store it in cookieJar
+     * RFC 6265 5.3. Storage Model
+     *
+     * @param url the url where the cookies are from.
+     * @param cookies the cookies to be stored in the cookieJar.
+     */
+    public func storeCookies(url: URL, cookies: ArrayList<Cookie>): Unit {
+        let isHttpScheme = (url.scheme == "http" || url.scheme == "https")
+        if (isHttp != isHttpScheme) {
+            return
+        }
+
+        let cononicalizeHost = cononicalizeHostName(url.hostName)
+        let defaultPath = computeDefaultPath(url)
+        synchronized(cookieEntriesLock) {
+            for (cookie in cookies) {
+                doStoreCookie(cookie, cononicalizeHost, defaultPath)
+            }
+        }
+    }
+
+    private func doStoreCookie(cookie: Cookie, cononicalizeHost: String, defaultPath: String): Unit {
+        // cookie name and cookie value
+        let name = cookie.cookieName
+        let value = cookie.cookieValue
+        // set the creation-time and the last-access-time to the current date and time
+        let creationTime = DateTime.nowUTC()
+        let lastAccessTime = creationTime
+        // expiryTime
+        // a cookie is "expired" if the cookie has an expiry date in the past
+        // The user agent must evict all expired cookies from the cookie store
+        // if, at any time, an expired cookie exists in the cookie store
+        let (persistentFlag, expiryTime) = parseExpire(cookie, creationTime) ?? return ()
+        // domain
+        // if the cookie.domain is not set, the domain is an empty string
+        var domain = cookie.domain.toLower().removePrefix(".")
+        var hostOnlyFlag = true
+        // if the user agent is configured to reject "public suffixes" and
+        // the domain-attribute is a public suffix.
+        if (_rejectPublicSuffixes.contains(domain)) {
+            // if domain-attribute is identical to the canonicalized request-host
+            // let the domain-attribute be the empty string, otherwise, ignore the cookie
+            if (cononicalizeHost != domain) {
+                return
+            }
+            domain = ""
+        }
+        if (!domain.isEmpty()) {
+            if (!domainMatch(cononicalizeHost, domain)) {
+                return
+            }
+            hostOnlyFlag = false
+        } else {
+            domain = cononicalizeHost
+        }
+        // path
+        let path = getCookiePath(cookie) ?? defaultPath
+        // if the cookie was received from a "non-HTTP" API and the
+        // cookie’s http-only-flag is set,
+        // abort these steps and ignore the cookie entirely
+        if (cookie.httpOnly && !isHttp) {
+            return
+        }
+
+        // create a cookieEntry and store it in cookieJar
+        let cookieEntry = CookieEntry(name, value, expiryTime, domain, path, creationTime, lastAccessTime,
+            persistentFlag, hostOnlyFlag, cookie.secure, cookie.httpOnly)
+
+        // check cookie counts, cookieJar will remove at least 1000
+        // cookies if the number reaches the boundary
+        if (cookieCount >= MAXCOOKIECOUNT) {
+            removeExcessCookies()
+        }
+
+        // domain:<path:<name:entry>>
+        let nameCookieMap = cookieEntries
+            .getIfAbsent(domain, HashMap<String, HashMap<String, CookieEntry>>())
+            .getIfAbsent(path, HashMap<String, CookieEntry>())
+        // old entry
+        if (let Some(oldCookie) <- nameCookieMap.get(name)) {
+            cookieEntry.creationTime = oldCookie.creationTime
+            nameCookieMap.remove(name)
+            cookieCount--
+        }
+
+        nameCookieMap.add(name, cookieEntry)
+        cookieCount++
+    }
+
+    /**
+     * default-path is the default-path of the request-uri
+     * if the path is empty or
+     * if the first character of the path is not %x2F ("/"),
+     * let cookie-path be the default-path
+     */
+    private func getCookiePath(cookie: Cookie): Option<String> {
+        var path = cookie.path
+        if (path.isEmpty()) {
+            return None
+        } else if (path[0] != b'/') {
+            return None
+        }
+        return path
+    }
+
+    // return value is (persistentFlag, expiryTime), return None if expired
+    private func parseExpire(cookie: Cookie, creationTime: DateTime): ?(Bool, DateTime) {
+        match ((cookie.maxAge, cookie.expires)) {
+            case (Some(deltaSeconds), _) =>
+                // if delta-seconds is less than or equal to zero,
+                // let expiry-time be the earliest representable date and time
+                // a cookie is "expired" if the cookie has an expiry date in the past
+                if (deltaSeconds <= 0) {
+                    return None
+                }
+                (true, creationTime + Duration.second * deltaSeconds)
+            case (None, Some(expired)) =>
+                // a cookie is "expired" if the cookie has an expiry date in the past
+                if (expired < creationTime) {
+                    return None
+                }
+                (true, expired)
+            case (None, None) => (false, END_TIME)
+        }
+    }
+
+    /**
+     * the algorithm to get cookies from a cookieJar and a request-url
+     * RFC 6265 5.4.
+     *
+     * @param url url of the the cookies to be obtained from the cookieJar.
+     * @return an ArrayList<Cookie>.
+     */
+    public func getCookies(url: URL): ArrayList<Cookie> {
+        return match (cookies(url)) {
+            case Some(cookies) => cookies
+            case None => ArrayList<Cookie>()
+        }
+    }
+
+    public func cookies(url: URL): ?ArrayList<Cookie> {
+        if (cookieEntries.isEmpty()) {
+            return None
+        }
+
+        let isSecureProtocol = (url.scheme == "https" || url.scheme == "wss")
+        let isHttpScheme = (url.scheme == "http" || url.scheme == "https")
+        if (isHttp != isHttpScheme) {
+            return None
+        }
+
+        let cookies = ArrayList<Cookie>()
+        let entries = ArrayList<CookieEntry>()
+        let host = cononicalizeHostName(url.hostName)
+        var path = url.path
+        if (path.isEmpty() || path[0] != b'/') {
+            path = SLASH
+        }
+        let hostDomainList = host.split(".")
+        var domainKey = ""
+        // let cookie-list be the set of cookies from the cookie store that meets
+        // the requirements in RFC 6265 5.4.1.
+        synchronized(cookieEntriesLock) {
+            let timeNow = DateTime.nowUTC()
+            for (i in hostDomainList.size - 1..=0 : -1) {
+                domainKey = hostDomainList[i] + "." + domainKey
+                // IP address only domain match the same IP address
+                if (!domainMatch(host, domainKey[0..domainKey.size - 1])) {
+                    continue
+                }
+                // path:<name:entry>
+                let pathCookieMap = cookieEntries.get(domainKey[0..domainKey.size - 1]) ?? continue
+                let pathCookieMapIterator = pathCookieMap.iterator()
+                while (let Some((cookiePath, nameCookieMap)) <- pathCookieMapIterator.next()) {
+                    pathMatch(path, cookiePath) ?? continue
+
+                    // name:entry
+                    computeCookieEntryAttributes(nameCookieMap, entries, timeNow, isSecureProtocol, host)
+
+                    pathCookieMapIterator.removeIf(nameCookieMap.isEmpty)
+                }
+
+                if (pathCookieMap.isEmpty()) {
+                    cookieEntries.remove(domainKey[0..domainKey.size - 1])
+                }
+            }
+        }
+        // the user agent should sort the cookie-list
+        // RFC 6265 5.4.2.
+        let arrEntries = entries.toArray()
+        sort(arrEntries, by: getCookieComparator, stable: true)
+        for (entry in arrEntries) {
+            cookies.add(Cookie(entry.name, entry.value))
+        }
+        return cookies
+    }
+
+    /**
+     * remove all the cookies related to a particular domain.
+     *
+     * @param domain the particular domain the cookies is to be removed.
+     *
+     * @throws IllegalArgumentException if the input domain is
+     *         an invalid cookie domain
+     */
+    public func removeCookies(domain: String): Unit {
+        if (domain.isEmpty() || domain[0] == b'.' || !isCookieDomainValid(domain)) {
+            throw IllegalArgumentException("Invalid cookie domain.")
+        }
+        synchronized(cookieEntriesLock) {
+            // domain:<path:<name:entry>>
+            if (let Some(pathCookieMap) <- cookieEntries.get(domain)) {
+                // path:<name:entry>
+                // count the number of cookies need to be removed
+                for ((_, nameCookieMap) in pathCookieMap) {
+                    cookieCount -= nameCookieMap.size
+                }
+                cookieEntries.remove(domain)
+            }
+        }
+    }
+
+    /**
+     * remove all cookies
+     */
+    public func clear(): Unit {
+        synchronized(cookieEntriesLock) {
+            cookieEntries = HashMap<String, HashMap<String, HashMap<String, CookieEntry>>>()
+            cookieCount = 0
+        }
+    }
+
+    private func computeCookieEntryAttributes(
+        nameCookieMap: HashMap<String, CookieEntry>,
+        entries: ArrayList<CookieEntry>,
+        timeNow: DateTime,
+        isSecureProtocol: Bool,
+        host: String
+    ): Unit {
+        let nameCookieMapIterator = nameCookieMap.iterator()
+        while (let Some((_, entry)) <- nameCookieMapIterator.next()) {
+            // a cookie is expired if the cookie has an expiry date in the past
+            if (entry.expiryTime < timeNow) {
+                nameCookieMapIterator.remove()
+                cookieCount--
+                continue
+            }
+            // if the cookie's secure-only-flag is true,
+            // then the request-uri's scheme must denote a "secure" protocol
+            if (entry.secureOnlyFlag && !isSecureProtocol) {
+                continue
+            }
+            // if the cookie’s http-only-flag is true, then exclude the
+            // cookie if the cookie-string is being generated for a "nonHTTP" API
+            if (entry.httpOnlyFlag && !isHttp) {
+                continue
+            }
+            if (entry.hostOnlyFlag) {
+                if (host == entry.domain) {
+                    // update the last-access-time of each cookie to the current date and time
+                    entry.lastAccessTime = timeNow
+                    entries.add(entry)
+                }
+            } else {
+                // update the last-access-time of each cookie to the current date and time
+                entry.lastAccessTime = timeNow
+                entries.add(entry)
+            }
+        }
+    }
+
+    /*
+     * at any time, the user agent may remove excess cookies from the
+     * cookieJar if the cookieJar exceeds some predetermined upper bound.
+     * the user agent must evict cookies in the following priority order:
+     * 1. expired cookies
+     * 2. cookies that share a domain field with more than a predetermined
+     *    number of other cookies
+     * 3. all cookies
+     * if two cookies have the same removal priority, the user agent must
+     * evict the cookie with the earliest last-access date first
+     * RFC 6265 5.3.
+     */
+    private func removeExcessCookies(): Unit {
+        let cookieEntryList = ArrayList<CookieEntry>()
+
+        // domain:<path:<name:entry>>
+        let cookieEntriesIterator = cookieEntries.iterator()
+        while (let Some((_, pathCookieMap)) <- cookieEntriesIterator.next()) {
+            // path:<name:entry>
+            let domainCookieEntryList = ArrayList<CookieEntry>()
+            let pathCookieMapIterator = pathCookieMap.iterator()
+            while (let Some((_, nameCookieMap)) <- pathCookieMapIterator.next()) {
+                // name:entry
+                removeExcessCookies(nameCookieMap, domainCookieEntryList)
+                pathCookieMapIterator.removeIf(nameCookieMap.isEmpty)
+            }
+
+            // 2. cookies that share a domain field with more than a predetermined
+            //    number of other cookies
+            let domainCookieEntryArray = domainCookieEntryList.toArray()
+            if (domainCookieEntryArray.size > MAXDOMAINCOOKIECOUNT) {
+                sort(domainCookieEntryArray, by: removeCookieComparator, stable: true)
+                cookieEntryList.add(all: domainCookieEntryArray[..MAXDOMAINCOOKIECOUNT])
+                for (entry in domainCookieEntryArray[MAXDOMAINCOOKIECOUNT..]) {
+                    let nameCookieMap = pathCookieMap.get(entry.path) ?? continue
+                    nameCookieMap.remove(entry.name)
+                    cookieCount--
+                    pathCookieMap.removeKeyIf(entry.path, nameCookieMap.isEmpty)
+                }
+            } else {
+                cookieEntryList.add(all: domainCookieEntryArray)
+            }
+            cookieEntriesIterator.removeIf(pathCookieMap.isEmpty)
+        }
+
+        // 3. all cookies
+        if (cookieEntryList.size > MAX_COUNT_AFTER_REMOVE) {
+            let cookieEntryArray = cookieEntryList.toArray()
+            sort(cookieEntryArray, by: removeCookieComparator, stable: true)
+            for (entry in cookieEntryArray[MAX_COUNT_AFTER_REMOVE..]) {
+                let pathCookieMap = cookieEntries.get(entry.domain) ?? continue
+                let nameCookieMap = pathCookieMap.get(entry.path) ?? continue
+                nameCookieMap.remove(entry.name)
+                cookieCount--
+                pathCookieMap.removeKeyIf(entry.path, nameCookieMap.isEmpty)
+                cookieEntries.removeKeyIf(entry.domain, pathCookieMap.isEmpty)
+            }
+        }
+    }
+
+    private func removeExcessCookies(
+        nameCookieMap: HashMap<String, CookieEntry>,
+        domainCookieEntryList: ArrayList<CookieEntry>
+    ): Unit {
+        let nameCookieMapIterator = nameCookieMap.iterator()
+        while (let Some((_, entry)) <- nameCookieMapIterator.next()) {
+            // 1. expired cookies
+            if (entry.expiryTime <= DateTime.nowUTC()) {
+                nameCookieMapIterator.remove()
+                cookieCount--
+            } else {
+                domainCookieEntryList.add(entry)
+            }
+        }
+    }
+}
+
+/**
+ * the algorithm to compute the default-path
+ * RFC 6265 5.1.4.
+ */
+func computeDefaultPath(url: URL): String {
+    let path = url.path
+    if (path.isEmpty() || path[0] != b'/') {
+        return SLASH
+    }
+    let lastIndexOfSlash = path.lastIndexOf(SLASH) ?? 0
+    if (lastIndexOfSlash == 0) {
+        return SLASH
+    }
+    return path[..lastIndexOfSlash]
+}
+
+func getAttributeNameAndValue(cookieAttribute: String): ?(String, String) {
+    let attributeNameValueList = cookieAttribute.trimAscii().split("=", 2)
+    if (attributeNameValueList.isEmpty()) {
+        return None
+    }
+    // attribute-name is case-insensitively
+    // remove any leading or trailing WSP characters from the
+    // attribute-name string and the attribute-value string
+    // RFC 6265 5.2. parse the unparsed-attributes 5.
+    let attributeName = attributeNameValueList[0].trimAscii().toLower()
+    let attributeValue = if (attributeNameValueList.size == 1) {
+        ""
+    } else {
+        attributeNameValueList[1].trimAscii()
+    }
+    return (attributeName, attributeValue)
+}
+
+/**
+ * the algorithm to parse attributes
+ * RFC 6265 5.2.
+ */
+func parseAttributes(cookie: Cookie, cookieAttributesList: Array<String>, defaultPath: String): Unit {
+    for (cookieAttribute in cookieAttributesList) {
+        let (attributeName, attributeValue) = getAttributeNameAndValue(cookieAttribute) ?? continue
+
+        match (attributeName) {
+            // expires-av = "Expires=" sane-cookie-date
+            // sane-cookie-date = <rfc1123-date, defined in [RFC2616], Section 3.3.1>
+            case "expires" =>
+                if (parseExpires(cookie, attributeValue)) {
+                    continue
+                }
+            case "max-age" =>
+                if (attributeValue.isEmpty()) {
+                    continue
+                }
+                cookie._maxAge = Int64.tryParse(attributeValue)
+            case "domain" =>
+                if (attributeValue.isEmpty() || !isCookieDomainValid(attributeValue)) {
+                    continue
+                }
+                // convert the cookie-domain to lower case
+                // if the first char of the attribute-value string is %2E ("."):
+                // let cookie-domain be the attribute-value without the leading %x2E(".") character
+                // otherwise: let cookie-domain be the entire attribute-value
+                // RFC 6265 5.2.3.
+                cookie._domain = if (attributeValue[0] == b'.') {
+                    attributeValue[1..].toLower()
+                } else {
+                    attributeValue.toLower()
+                }
+            case "path" =>
+                // if the attribute-value is empty or
+                // if the first character of the attribute-value is not %x2F ("/"),
+                // let cookie-path be the default-path
+                // RFC 6265 5.2.4.
+                cookie._path = if (attributeValue.isEmpty() || attributeValue[0] != b'/' ||
+                !isCookiePathValid(attributeValue)) {
+                defaultPath
+            } else {
+                attributeValue
+            }
+            case "secure" => cookie._secure = true
+            case "httponly" => cookie._httpOnly = true
+            case _ =>
+                // notice that attributes with unrecognized attribute-names are ignored
+                // RFC 6265 5.2
+                cookie._others.add(cookieAttribute.trimAscii())
+        }
+    }
+}
+
+func parseExpires(cookie: Cookie, attributeValue: String) {
+    if (attributeValue.isEmpty()) {
+        return true
+    }
+    try {
+        let time = DateTime.parse(attributeValue, DateTimeFormat.RFC1123)
+        if (!isCookieExpiresValid(time.year)) {
+            return true
+        }
+        cookie._expires = time
+    // if the attribute-value failed to parse as a cookie date,
+    // ignore the cookie-av
+    // RFC 6265 5.2.1.
+    } catch (e: TimeParseException) {
+        return true
+    }
+    return false
+}
+
+/**
+ * a canonicalized host name is the string generated by the following algorithm
+ * RFC 6265 5.1.2.
+ */
+func cononicalizeHostName(host: String): String {
+    let hostNameBuilder = StringBuilder()
+    let domainNameLabels = host.split(".")
+    for (domainNameLabel in domainNameLabels) {
+        if (domainNameLabel.isEmpty()) {
+            continue
+        }
+        hostNameBuilder.append(domainNameLabel.toLower())
+        hostNameBuilder.append(r'.')
+    }
+    if (hostNameBuilder.size == 0) {
+        return ""
+    } else {
+        let hostNameStr = hostNameBuilder.toString()
+        return hostNameStr[..hostNameStr.size - 1]
+    }
+}
+
+/**
+ * the algorithm to check whether a string domain-matches a given domain string
+ * RFC 6265 5.1.3.
+ */
+func domainMatch(hostString: String, domain: String): Bool {
+    let hostLower = hostString.toLower()
+    let domainLower = domain.toLower()
+    // the domain string and the string are identical
+    if (hostLower == domainLower) {
+        return true
+    }
+    // the domain string is a suffix of the string,
+    // and the last character of the string that is not
+    // included in the domain string is "."
+    // and the string is a host name (not an IP address)
+    // for example:
+    // bar.example.com       domain-matches   example.com
+    // bar.example.com   not domain-matches   le.com
+    // 127.0.0.1         not domain-matches   0.0.1
+    // 127.0.0.1             domain-matches   127.0.0.1
+    let hostEnd = hostLower[hostLower.size - 1]
+    if (hostLower.endsWith("." + domainLower) && hostEnd.isAsciiLetter()) {
+        return true
+    }
+    return false
+}
+
+/**
+ * the algorithm to check whether a request-path path-matches a given cookie-path
+ * RFC 6265 5.1.4.
+ */
+func pathMatch(requestPath: String, cookiePath: String): ?Bool {
+    // the cookie-path and the request-path are identical
+    if (requestPath == cookiePath) {
+        return true
+    }
+    // the cookie-path is a prefix of the request-path,
+    if (requestPath.startsWith(cookiePath)) {
+        // the last character of the cookie-path is "/"
+        // such as cookie-path : /example/path/
+        //         request-path: /example/path/subpath
+        if (cookiePath[cookiePath.size - 1] == b'/') {
+            return true
+        }
+        // or the first character of the request-path that is not
+        // included in the cookie-path is "/"
+        // such as cookie-path  : /example/path
+        //         request-path: /example/path/subpath
+        if (requestPath[cookiePath.size] == b'/') {
+            return true
+        }
+    }
+    return None
+}
+
+/**
+ * the algorithm to sort the cookie-list
+ * RFC 6265 5.4.2.
+ */
+func getCookieComparator(t1: CookieEntry, t2: CookieEntry): Ordering {
+    // cookies with longer paths are listed before
+    // cookies with shorter paths
+    return match {
+        case t1.path.size > t2.path.size => LT
+        case t1.path.size < t2.path.size => GT
+        case _ => match {
+            case t1.creationTime < t2.creationTime => LT
+            case t1.creationTime > t2.creationTime => GT
+            case _ => EQ
+        }
+    }
+}
+
+/**
+ * this comparator is used to remove cookies
+ */
+func removeCookieComparator(t1: CookieEntry, t2: CookieEntry): Ordering {
+    // cookies with later last-access date are listed before
+    // cookies with earlier last-access date
+    return match {
+        case t1.lastAccessTime > t2.lastAccessTime => LT
+        case t1.lastAccessTime < t2.lastAccessTime => GT
+        case _ => EQ
+    }
+}

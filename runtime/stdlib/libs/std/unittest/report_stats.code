@@ -1,0 +1,83 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+package std.unittest
+
+import std.time.DateTime
+
+class Details {
+    var failedCount = 0
+    var passedCount = 0
+    var skippedCount = 0
+    var errorCount = 0
+    var executedSteps = 0
+    var failedSteps = 0
+    var startTimestamp: DateTime = DateTime.now()
+    var duration = Duration.Zero
+
+    Details(var testcode: TestCode, var isAccountedStep: Bool) {
+    }
+    init() {
+        testcode = PASS
+        isAccountedStep = false
+    }
+
+    func add(other: Details) {
+        this.testcode = testcode.mostSevereWith(other.testcode)
+        if (other.isAccountedStep) {
+            failedCount = 0
+            passedCount = 0
+            skippedCount = 0
+            errorCount = 0
+            match (this.testcode) {
+                case PASS => this.passedCount = 1
+                case FAIL => this.failedCount = 1
+                case ERROR | TIMEOUT => this.errorCount = 1
+                case SKIP => this.skippedCount = 1
+                case NORUN => this.passedCount = 1
+            }
+        }
+
+        this.failedSteps += other.failedSteps
+        this.executedSteps += other.executedSteps
+        this.failedCount += other.failedCount
+        this.passedCount += other.passedCount
+        this.skippedCount += other.skippedCount
+        this.errorCount += other.errorCount
+        this.startTimestamp = min(this.startTimestamp, other.startTimestamp)
+        let endTimestamp = max(startTimestamp + duration, other.startTimestamp + other.duration)
+        this.duration = endTimestamp - startTimestamp
+    }
+
+    // NOTE: this does not necessarily correspond to case count as of now:
+    // beforeAll / afterAll failures can produce additional errors
+    prop totalCount: Int64 {
+        get() {
+            failedCount + passedCount + skippedCount + errorCount
+        }
+    }
+
+    prop isSuccess: Bool {
+        get() {
+            !testcode.isFailure()
+        }
+    }
+}

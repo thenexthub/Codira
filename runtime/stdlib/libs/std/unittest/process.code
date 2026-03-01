@@ -1,0 +1,164 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+package std.unittest
+
+import std.process.*
+import std.sync.AtomicOptionReference
+import std.fs.*
+@When[os == "Windows"]
+import std.convert.Parsable
+import std.collection.*
+import std.random.Random
+import std.sync.ReentrantMutex
+
+private let TEMP_DIR = TempDirectory()
+
+struct WrappedProcess {
+    WrappedProcess(
+        private let process: SubProcess,
+        private let stdOutFile: ?Path,
+        private let stdErrFile: ?Path
+    ) {}
+
+    private let status = AtomicOptionReference<CapturedProcessResult>()
+
+    func wait(): Int64 {
+        let exitCode = process.wait()
+        if (status.load().isSome()) {
+            return exitCode
+        }
+
+        let stdOut = readCapturedFrom(stdOutFile)
+        let stdErr = readCapturedFrom(stdErrFile)
+        let result = CapturedProcessResult(stdOut, stdErr)
+        this.status.compareAndSwap(None, Some(result))
+
+        return exitCode
+    }
+
+    func terminate(): Unit {
+        if (status.load().isSome()) {
+            return
+        }
+
+        process.terminateSilent(force: true)
+    }
+
+    func stdout(): Array<Byte> {
+        status.load()?.stdOut ?? []
+    }
+
+    func stderr(): Array<Byte> {
+        status.load()?.stdErr ?? []
+    }
+}
+
+private class CapturedProcessResult {
+    CapturedProcessResult(
+        let stdOut: Array<Byte>,
+        let stdErr: Array<Byte>
+    ) {}
+}
+
+// for tests only, Process.start can't be invoked from tests
+func processStart(ctx: MainExecutionCtx): WrappedProcess {
+    Process.start(ctx)
+}
+
+extend Process {
+    static func start(ctx: MainExecutionCtx): WrappedProcess {
+        let stdout = captureFor(ctx)
+        let stderr = captureFor(ctx)
+        let cmd = ctx.executeCommand
+
+        let process = try {
+            launch(
+                cmd.command, cmd.args.toArray(), environment: cmd.env,
+                stdOut: redirectFor(stdout), stdErr: redirectFor(stderr)
+            )
+        } catch (cause: Exception) {
+            stdout?.close() // std.process does consume these two
+            stderr?.close() // so we only close them in the case of error
+            throw cause
+        }
+
+        return WrappedProcess(process, stdout?.info.path, stderr?.info.path)
+    }
+
+    // NOTE: we never use ProcessRedirect.Pipe because it can't be used
+    // with current std.process due to implementation issues
+    // causing coroutines scheduler stagnation
+    private static func captureFor(ctx: MainExecutionCtx): ?File {
+        match (ctx.outputReporter.capture) {
+            case true => TEMP_DIR.createTempFile(prefix: "test-worker-", suffix: ".stdout")
+            case _ => None
+        }
+    }
+
+    private static func redirectFor(file: ?File): ProcessRedirect {
+        match (file) {
+            case Some(file) => FromFile(file)
+            case None => Inherit
+        }
+    }
+}
+
+extend SubProcess {
+    
+    func terminateSilent(force!: Bool): Unit {
+        if (isAlive()) {
+            // on Linux it's always alive until we invoke waitpid()
+            // however on Windows process dies concurrently
+            // so we do have a race here and there is a chance to kill something
+            // irrelevant but we have no better solution as it's better than nothing
+            // this must be fixed in std.process and the only workaround is to
+            // use isAlive() and catch exceptions
+            try {
+                terminate(force: force)
+            } catch (cause: Exception) {
+                eprintln("Failed to terminate worker process ${pid}: ${cause}")
+            }
+        }
+    }
+}
+
+private func removeFileSilent(path: Path): Unit {
+    try {
+        remove(path)
+    } catch (_) {
+        // ignore, we don't care
+    }
+}
+
+private func readCapturedFrom(path: ?Path): Array<Byte> {
+    match (path) {
+        case Some(path) where exists(path) =>
+            try {
+                File.readFrom(path)
+            } catch (e: Exception) {
+                "Failed to read capture file ${path}: ${e}".toArray()
+            } finally {
+                removeFileSilent(path)
+            }
+        case _ => Array<Byte>()
+    }
+}

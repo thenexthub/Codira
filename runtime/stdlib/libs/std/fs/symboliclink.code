@@ -1,0 +1,97 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/**
+ * @file The file declares HardLink.
+ */
+package std.fs
+
+public class SymbolicLink {
+    private init() {}
+
+    public static func create(link: Path, to!: Path): Unit {
+        SymbolicLink.create(link._rawPath, to: to._rawPath)
+    }
+
+    public static func create(link: String, to!: String): Unit {
+        PathValidator.throwIfEmptyOrContainsNullByte("link", link, true)
+        PathValidator.throwIfEmptyOrContainsNullByte("to", to, true)
+
+        unsafe {
+            try (cPath1 = LibC.mallocCString(link).asResource(), cPath2 = LibC.mallocCString(to).asResource()) {
+                let pRet = CODE_FS_SymLink(cPath1.value, cPath2.value)
+                if (pRet.isNull()) {
+                    throw FSException("Failed malloc in C code!")
+                }
+                let ret = pRet.read()
+                LibC.free(pRet)
+                if (ret.rtnCode == 0) {
+                    return
+                }
+                try {
+                    let errMessage = ret.msg.toString()
+                    throw FSException("Failed to create symbolic link `${link}` to `${to}` return ${ret.rtnCode}: \"${errMessage.trimAscii()}\".")
+                } finally {
+                    LibC.free(ret.msg)
+                }
+            }
+        }
+    }
+
+    public static func readFrom(path: String, recursive!: Bool = false): Path {
+        return SymbolicLink.readFrom(Path(path), recursive: recursive)
+    }
+
+    public static func readFrom(path: Path, recursive!: Bool = false): Path {
+        PathValidator.throwIfEmptyOrContainsNullByte("path", path, true)
+        if (!FileInfo(path).isSymbolicLink()) {
+            throw IllegalArgumentException("The input path `${path}` is not a symbolic link.")
+        }
+
+        if (recursive) {
+            return Path(processPathHeader(path._rawPath, Path.canonicalizePath(path._rawPath)))
+        }
+
+        var result = String.empty
+        unsafe {
+            try (cPath = LibC.mallocCString(path._rawPath).asResource()) {
+                let pRet = CODE_FS_ReadLink(cPath.value)
+
+                if (pRet.isNull()) {
+                    throw FSException("Failed malloc in C code!")
+                }
+                let ret = pRet.read()
+                LibC.free(pRet)
+                try {
+                    result = ret.msg.toString()
+                } finally {
+                    LibC.free(ret.msg)
+                }
+
+                if (ret.rtnCode != 0) {
+                    throw FSException("${result.trimAscii()}.")
+                }
+            }
+        }
+        return Path(result)
+    }
+}

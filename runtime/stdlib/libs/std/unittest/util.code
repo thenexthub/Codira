@@ -1,0 +1,279 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+package std.unittest
+
+import std.collection.*
+import std.fs.*
+import std.sync.Semaphore
+import std.unittest.common.*
+
+foreign {
+    func CODE_FS_IsFileORLinkToFile(path: CString): Int8 // -1: error, 0: false, 1: true
+
+    func CODE_FS_IsDirORLinkToFDir(path: CString): Int8 // -1: error, 0: false, 1: true
+}
+
+extend<K, V> HashMap<K, V> {
+    func getOrInsert(key: K, default: V): V {
+        this.addIfAbsent(key, default)
+        this.get(key).getOrThrow()
+    }
+
+    func getOrInsert(key: K, default: () -> V): V {
+        match (this.get(key)) {
+            case Some(value) => value
+            case None =>
+                let value = default()
+                this.add(key, value)
+                value
+        }
+    }
+}
+
+extend<T> Array<T> {
+    operator func +(elem: T): Array<T> {
+        let tmp = ArrayList(this)
+        tmp.add(elem)
+        tmp.toArray()
+    }
+}
+
+extend<T> Array<T> where T <: Hashable & Equatable<T> {
+    func removeDuplicatesStable(): Array<T> {
+        let set = HashSet<T>()
+        let result = ArrayList<T>()
+        for (x in this where !set.contains(x)) {
+            set.add(x)
+            result.add(x)
+        }
+        result.toArray()
+    }
+}
+
+extend<T> Array<T> where T <: Equatable<T> {
+    func containsFrom(index: Int64, subseq: Array<T>): Bool {
+        if (this.size < index + subseq.size) { false } else {
+            this.slice(index, subseq.size) == subseq
+        }
+    }
+
+    /**
+     * Returns array of parts (including empty), separated by delimiter:
+     * [].split([2]) ~> [[]]
+     * [1, 2].split([2]) ~> [[1], []]
+     * [2, 3].split([2]) ~> [[], [3]]
+     * [2, 2].split([2]) ~> [[], [], []]
+     * [2, 2].split([2, 2]) ~> [[], []]
+     */
+    func split(delimiter: Array<T>): Array<Array<T>> {
+        let parts = ArrayList<Array<T>>()
+        var idxPartStart = 0
+        for (idxAfterPartEnd in 0..this.size where this.containsFrom(idxAfterPartEnd, delimiter)) {
+            parts.add(this.slice(idxPartStart, idxAfterPartEnd - idxPartStart))
+            idxPartStart = idxAfterPartEnd + delimiter.size
+        }
+        parts.add(this.slice(idxPartStart, this.size - idxPartStart))
+        parts.toArray()
+    }
+}
+
+extend Array<Byte> {
+    func split(delimiter: String): Array<Array<Byte>> {
+        split(delimiter.toArray())
+    }
+}
+
+extend<T> ArrayList<T> {
+    func find(pred: (T) -> Bool): Option<T> {
+        for (e in this) {
+            if (pred(e)) {
+                return e
+            }
+        }
+        None
+    }
+
+    func pop(): ?T {
+        if (size == 0) {
+            None
+        } else {
+            remove(at: size - 1)
+        }
+    }
+}
+
+extend DataModelStruct {
+    func tryGet(key: String): ?DataModel {
+        for (field in this.getFields()) {
+            if (field.getName() == key) {
+                return Some(field.getData())
+            }
+        }
+        return None
+    }
+
+    func toJsonString(): String {
+        this.toJson().toString()
+    }
+
+    func toJsonBytes(): Array<Byte> {
+        this.toJsonString().toArray()
+    }
+
+    static func fromJsonBytes(bytes: Array<Byte>): DataModel {
+        let string = String.fromUtf8(bytes)
+        let json = JsonValue.fromStr(string)
+        DataModelStruct.fromJson(json)
+    }
+}
+
+extend DataModel {
+    func asStruct(): DataModelStruct {
+        (this as DataModelStruct) ?? throw Exception("this data is not DataModelStruct")
+    }
+}
+
+extend File {
+    static func exists(path: String): Bool {
+        if (path.contains("\0")) {
+            return false
+        }
+        unsafe {
+            let cPath = LibC.mallocCString(path)
+            let exists: Int8 = CODE_FS_IsFileORLinkToFile(cPath)
+            LibC.free(cPath)
+            return exists > 0
+        }
+    }
+}
+
+extend Directory {
+    static func exists(path: String): Bool {
+        if (path.contains("\0")) {
+            return false
+        }
+        unsafe {
+            let cPath = LibC.mallocCString(path)
+            let exists: Int8 = CODE_FS_IsDirORLinkToFDir(cPath)
+            LibC.free(cPath)
+            return exists > 0
+        }
+    }
+
+    static func ensureExists(path: Path): Unit {
+        if (!Directory.exists(path.toString())) {
+            Directory.create(path, recursive: true)
+        }
+    }
+}
+
+func min<T>(a: T, b: T): T where T <: Comparable<T> {
+    if (a > b) {
+        b
+    } else {
+        a
+    }
+}
+
+func max<T>(a: T, b: T): T where T <: Comparable<T> {
+    if (a < b) {
+        b
+    } else {
+        a
+    }
+}
+
+func mapParallelOrdered<T, V>(bufferSize: Int64, f: (T) -> V): (Iterable<T>) -> Iterator<V> {
+    { iter =>
+        let futuresIter = iter |> map{ x => spawn { f(x) } }
+        ParallelOrderedMapIterator(bufferSize, futuresIter)
+    }
+}
+
+class ParallelOrderedMapIterator<T> <: Iterator<T> {
+    var futures: ArrayList<Future<T>>
+    var currentIdx: Int64 = 0
+    ParallelOrderedMapIterator(let bufferSize: Int64, let iter: Iterator<Future<T>>) {
+        futures = iter.take(bufferSize) |> collectArrayList
+    }
+
+    public func next(): ?T {
+        let result = futures.get(currentIdx) ?? return None
+        if (let Some(fut) <- iter.next()) {
+            futures[currentIdx] = fut
+            currentIdx += 1
+        } else {
+            futures.remove(at: currentIdx)
+        }
+        if (futures.size != 0) {
+            currentIdx = currentIdx % futures.size
+        }
+        result.get()
+    }
+}
+
+class ChainIterator<T> <: Iterator<T> {
+    ChainIterator(let l: Iterator<T>, let r: Iterator<T>) {}
+
+    public override func next(): Option<T> {
+        l.next() ?? r.next()
+    }
+}
+
+func chain<T>(l: Iterable<T>, r: Iterable<T>): Iterable<T> {
+    ChainIterator(l.iterator(), r.iterator())
+}
+
+private class BeforeEachIterator<T> <: Iterator<T> {
+    private let action: (?T) -> Unit
+    private let it: Iterator<T>
+    private var previous: ?T = None
+
+    public init(it: Iterator<T>, action: (previous: ?T) -> Unit) {
+        this.it = it
+        this.action = action
+    }
+
+    public func next(): Option<T> {
+        action(previous)
+        previous = match (it.next()) {
+            case Some(value) => Some(value)
+            case _ => None
+        }
+        return previous
+    }
+}
+
+func beforeEach<T>(action: (previous: ?T) -> Unit): (Iterable<T>) -> Iterator<T> {
+    return { it: Iterable<T> => BeforeEachIterator(it.iterator(), action) }
+}
+
+extend Semaphore {
+    func doWith<R>(f: () -> R): R {
+        this.acquire()
+        try {
+            f()
+        } finally {
+            this.release()
+        }
+    }
+}

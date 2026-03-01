@@ -1,0 +1,39 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+macro package std.unittest.testmacro
+
+import std.ast.*
+
+/**
+ * @Configure macro sets up configuration parameters for function or class
+ * Usage: @Configure[param1: value1, param2: value2, param3: value3]
+ * Each parameter name is a name of option defined in `@UnittestOption` macro or in unittest internals (case-sensitive).
+ * Each value is any Codira expression supported by astlib.
+ * In case if parameter is unknown (not registered via `@UnittestOption` or not defined in unittest internals)
+ * the error about undeclared identifier will be thrown.
+ * In case if type is invalid (e.g. not specified in `@UnittestOption`) the error about unsolvable types will be prined.
+ * For a particular list of configuration options supported by different parts of the framework, please refer to those parts.
+ * Macro can be repeated, in case of paramter duplication, up to type of value, last one will be selected.
+ */
+public macro Configure(args: Tokens, input: Tokens) {
+    return topLevelMacroDriver(CONFIGURE_MACRO, input, args, { it => insideParentContext(it.macroIdentifier) })
+}

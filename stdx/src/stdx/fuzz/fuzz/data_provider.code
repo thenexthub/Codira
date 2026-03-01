@@ -1,0 +1,638 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/**
+ * @file
+ *
+ * This file implements the DataProvider class.
+ */
+
+package stdx.fuzz.fuzz
+
+
+/**
+ * Convert the byte stream to basic cangjie type.
+ *
+ */
+public open class FuzzDataProvider {
+    public let data: Array<UInt8>
+    public var remainingBytes: Int64
+    public var offset: Int64
+
+    init(data: Array<UInt8>) {
+        this.data = data
+        this.remainingBytes = data.size
+        this.offset = 0
+    }
+
+    /**
+     * Construct DataProvider with UInt8 Array.
+     *
+     * @param data Initial data of DataProvider.
+     */
+    public static func withCodiraData(data: Array<UInt8>): FuzzDataProvider {
+        return FuzzDataProvider(data)
+    }
+
+    /**
+     * Construct FuzzDataProvider with CPointer and length.
+     * This is an unsafe function, caller should make sure the data is legal.
+     *
+     * @param data Pointer of initial data.
+     * @param length Length of initial data.
+     */
+    public static unsafe func withNativeData(data: CPointer<UInt8>, length: Int64): FuzzDataProvider {
+        let cangjieData: Array<UInt8> = Array(length, repeat: 0)
+        let ptr: CPointerHandle<UInt8> = acquireArrayRawData(cangjieData)
+        memcpy_s(ptr.pointer, UIntNative(length), data, UIntNative(length))
+        releaseArrayRawData(ptr)
+        return FuzzDataProvider(cangjieData)
+    }
+
+    /**
+     * Consume data as bool.
+     */
+    public open func consumeBool(): Bool {
+        return (this.consumeByteInner() & 1) == 1
+    }
+
+    /**
+     * Return a Bool Array with `count` items.
+     */
+    public open func consumeBools(count: Int64): Array<Bool> {
+        let tmp = this.consumeBytesInner(count)
+        return Array(count, {i => (tmp[i] & 1) == 1})
+    }
+
+    /**
+     * Consume data as byte.
+     */
+    public open func consumeByte(): Byte {
+        return this.consumeByteInner()
+    }
+
+    /**
+     * Return a Byte Array with `count` items.
+     */
+    public open func consumeBytes(count: Int64): Array<Byte> {
+        return this.consumeBytesInner(count)
+    }
+
+    @OverflowWrapping
+    func consumeByteInner(): Byte {
+        if (this.remainingBytes < 1) {
+            throw ExhaustedException("Remaining data is not enough, please increase -max_len=N.")
+        }
+
+        let ret = this.data[offset]
+        this.offset += 1
+        this.remainingBytes -= 1
+        return ret
+    }
+
+    @OverflowWrapping
+    func consumeBytesInner(count: Int64): Array<Byte> {
+        if (count < 0) {
+            throw IllegalArgumentException("Negative count.")
+        }
+        if (remainingBytes < count) {
+            throw ExhaustedException("Remaining data is not enough, please increase -max_len=N.")
+        }
+        let ret = this.data[offset..offset + count]
+        this.offset += count
+        this.remainingBytes -= count
+        return ret
+    }
+
+    @OverflowWrapping
+    func consumeInteger(byteCount: Int64): UInt64 {
+        let buf = this.consumeBytesInner(byteCount)
+        var ret: UInt64 = 0
+        var i = byteCount - 1
+        while (i >= 0) {
+            ret <<= 8
+            ret |= UInt64(buf[i])
+            i--
+        }
+        return ret
+    }
+
+    func consumeIntegerArray(dstPointer: CPointer<UInt8>, byteCount: Int64) {
+        let buf = this.consumeBytesInner(byteCount)
+        unsafe {
+            let srcHandler = acquireArrayRawData(buf)
+            memcpy_s(dstPointer, UIntNative(byteCount), srcHandler.pointer, UIntNative(byteCount))
+            releaseArrayRawData(srcHandler)
+        }
+    }
+
+    /**
+     * Consume data as UInt8.
+     */
+    public open func consumeUInt8(): UInt8 {
+        return this.consumeByteInner()
+    }
+
+    /**
+     * Consume data as UInt16.
+     */
+    @OverflowWrapping
+    public open func consumeUInt16(): UInt16 {
+        return UInt16(consumeInteger(Int64(sizeOf<Int16>())))
+    }
+
+    /**
+     * Consume data as UInt32.
+     */
+    @OverflowWrapping
+    public open func consumeUInt32(): UInt32 {
+        return UInt32(consumeInteger(Int64(sizeOf<Int32>())))
+    }
+
+    /**
+     * Consume data as UInt64.
+     */
+    @OverflowWrapping
+    public open func consumeUInt64(): UInt64 {
+        return UInt64(consumeInteger(Int64(sizeOf<Int64>())))
+    }
+
+    /**
+     * Consume data as Int8.
+     */
+    @OverflowWrapping
+    public open func consumeInt8(): Int8 {
+        return Int8(this.consumeByteInner())
+    }
+
+    /**
+     * Consume data as Int16.
+     */
+    @OverflowWrapping
+    public open func consumeInt16(): Int16 {
+        return Int16(consumeInteger(Int64(sizeOf<Int16>())))
+    }
+
+    /**
+     * Consume data as Int32.
+     */
+    @OverflowWrapping
+    public open func consumeInt32(): Int32 {
+        return Int32(consumeInteger(Int64(sizeOf<Int32>())))
+    }
+
+    /**
+     * Consume data as Int64.
+     */
+    @OverflowWrapping
+    public open func consumeInt64(): Int64 {
+        return Int64(consumeInteger(Int64(sizeOf<Int64>())))
+    }
+
+    /**
+     * Return an UInt8 Array with `count` items.
+     */
+    public open func consumeUInt8s(count: Int64): Array<UInt8> {
+        return this.consumeBytesInner(count)
+    }
+
+    /**
+     * Return an UInt16 Array with `count` items.
+     */
+    @OverflowWrapping
+    public open func consumeUInt16s(count: Int64): Array<UInt16> {
+        let ret = Array<UInt16>(count, repeat: 0)
+        unsafe {
+            let dstHandler = acquireArrayRawData(ret)
+            try {
+                consumeIntegerArray(CPointer<UInt8>(dstHandler.pointer), Int64(sizeOf<Int16>()) * count)
+            } finally {
+                releaseArrayRawData(dstHandler)
+            }
+        }
+        return ret
+    }
+
+    /**
+     * Return an UInt32 Array with `count` items.
+     */
+    @OverflowWrapping
+    public open func consumeUInt32s(count: Int64): Array<UInt32> {
+        let ret = Array<UInt32>(count, repeat: 0)
+        unsafe {
+            let dstHandler = acquireArrayRawData(ret)
+            try {
+                consumeIntegerArray(CPointer<UInt8>(dstHandler.pointer), Int64(sizeOf<Int32>()) * count)
+            } finally {
+                releaseArrayRawData(dstHandler)
+            }
+        }
+        return ret
+    }
+
+    /**
+     * Return an UInt64 Array with `count` items.
+     */
+    @OverflowWrapping
+    public open func consumeUInt64s(count: Int64): Array<UInt64> {
+        let ret = Array<UInt64>(count, repeat: 0)
+        unsafe {
+            let dstHandler = acquireArrayRawData(ret)
+            try {
+                consumeIntegerArray(CPointer<UInt8>(dstHandler.pointer), Int64(sizeOf<Int64>()) * count)
+            } finally {
+                releaseArrayRawData(dstHandler)
+            }
+        }
+        return ret
+    }
+
+    /**
+     * Return an Int8 Array with `count` items.
+     */
+    public open func consumeInt8s(count: Int64): Array<Int8> {
+        let ret = Array<Int8>(count, repeat: 0)
+        unsafe {
+            let dstHandler = acquireArrayRawData(ret)
+            try {
+                consumeIntegerArray(CPointer<UInt8>(dstHandler.pointer), count)
+            } finally {
+                releaseArrayRawData(dstHandler)
+            }
+        }
+        return ret
+    }
+
+    /**
+     * Return an Int16 Array with `count` items.
+     */
+    @OverflowWrapping
+    public open func consumeInt16s(count: Int64): Array<Int16> {
+        let ret = Array<Int16>(count, repeat: 0)
+        unsafe {
+            let dstHandler = acquireArrayRawData(ret)
+            try {
+                consumeIntegerArray(CPointer<UInt8>(dstHandler.pointer), Int64(sizeOf<Int16>()) * count)
+            } finally {
+                releaseArrayRawData(dstHandler)
+            }
+        }
+        return ret
+    }
+
+    /**
+     * Return an Int32 Array with `count` items.
+     */
+    @OverflowWrapping
+    public open func consumeInt32s(count: Int64): Array<Int32> {
+        let ret = Array<Int32>(count, repeat: 0)
+        unsafe {
+            let dstHandler = acquireArrayRawData(ret)
+            try {
+                consumeIntegerArray(CPointer<UInt8>(dstHandler.pointer), Int64(sizeOf<Int32>()) * count)
+            } finally {
+                releaseArrayRawData(dstHandler)
+            }
+        }
+        return ret
+    }
+
+    /**
+     * Return an Int64 Array with `count` items.
+     */
+    @OverflowWrapping
+    public open func consumeInt64s(count: Int64): Array<Int64> {
+        let ret = Array<Int64>(count, repeat: 0)
+        unsafe {
+            let dstHandler = acquireArrayRawData(ret)
+            try {
+                consumeIntegerArray(CPointer<UInt8>(dstHandler.pointer), Int64(sizeOf<Int64>()) * count)
+            } finally {
+                releaseArrayRawData(dstHandler)
+            }
+        }
+        return ret
+    }
+
+    /**
+     * Consume data as Float32.
+     */
+    public open func consumeFloat32(): Float32 {
+        Float32.fromBits(UInt32(consumeInteger(Int64(sizeOf<Int32>()))))
+    }
+
+    /**
+     * Consume data as Float64.
+     */
+    public open func consumeFloat64(): Float64 {
+        Float64.fromBits(UInt64(consumeInteger(Int64(sizeOf<Int64>()))))
+    }
+
+    /**
+     * Consume data as char.
+     * Codira Rune range: [0x0000, 0xD7FF], [0xE000, 0x10FFFF].
+     */
+    @OverflowWrapping
+    public open func consumeRune(): Rune {
+        // The data in range [0x110000, 0xFFFFFFFF] will be chunked, this will
+        // cause waste of random information.
+        let r = UInt32(this.consumeInteger(Int64(sizeOf<Int32>()))) % (0x10FFFF + 1)
+
+        if (0xD7FF < r && r < 0xE000) {
+            // If the Rune is invalid, subtract it to [0,2048).
+            return Rune(r - (0xD7FF + 1))
+        } else {
+            return Rune(r)
+        }
+    }
+
+    /**
+     * Consume data as ascii string. The length of string (in codepoint) is at most `maxLength`.
+     * If remaining byte is not enough, a shorter string will be return.
+     *
+     * @param maxLength max count (in codepoint) of string
+     */
+    public open func consumeAsciiString(maxLength: Int64): String {
+        if (maxLength < 0) {
+            throw IllegalArgumentException("Negative count.")
+        }
+        let consumeCount = if (remainingBytes < maxLength) {
+            remainingBytes
+        } else {
+            maxLength
+        }
+        let ret = this.consumeBytesInner(consumeCount)
+        for (i in 0..consumeCount) {
+            ret[i] &= 0x7F
+        }
+        return unsafe { String.fromUtf8Unchecked(ret) }
+    }
+
+    /**
+     * Consume data as utf8 string. The length of string (in codepoint) is at most `maxLength`.
+     * If remaining byte is not enough, a shorter string will be return.
+     *
+     * @param maxLength max count in codepoint of string
+     */
+    public open func consumeString(maxLength: Int64): String {
+        // Codira Rune range: [0x0000, 0xD7FF], [0xE000, 0x10FFFF], occupying 1 to 4 UTF8.
+        if (maxLength < 0) {
+            throw IllegalArgumentException("Negative count.")
+        }
+        // We assume every codepoint cost 3 bytes on average.
+        let peekCount = if (this.remainingBytes < maxLength * 3) {
+            remainingBytes
+        } else {
+            maxLength * 3
+        }
+
+        // make a copy, because the fixup will change the original data
+        let fixedUtf8: Array<UInt8> = this.data[offset..offset + peekCount].clone()
+        var consumeCount = 0
+        unsafe {
+            let handler = acquireArrayRawData(fixedUtf8)
+            consumeCount = CODE_fix_to_utf8(handler.pointer, fixedUtf8.size)
+            releaseArrayRawData(handler)
+        }
+
+        this.offset += consumeCount
+        this.remainingBytes -= consumeCount
+
+        return unsafe { String.fromUtf8Unchecked(fixedUtf8[0..consumeCount]) }
+    }
+
+    /**
+     * Consume all remaining data as Array<UInt8>
+     */
+    public open func consumeAll(): Array<UInt8> {
+        return this.consumeBytesInner(this.remainingBytes)
+    }
+
+    /**
+     * Consume all remaining data as ascii string.
+     */
+    @OverflowWrapping
+    public open func consumeAllAsAscii(): String {
+        let ret = this.consumeBytesInner(this.remainingBytes)
+        for (i in 0..remainingBytes) {
+            ret[i] &= 0x7F
+        }
+        return unsafe { String.fromUtf8Unchecked(ret) }
+    }
+
+    /**
+     * Consume all remaining data as utf string. Some trailing bytes will not be consumed.
+     */
+    @OverflowWrapping
+    public open func consumeAllAsString(): String {
+        let ret = this.consumeBytesInner(this.remainingBytes)
+        var consumeCount = 0
+        unsafe {
+            let handler = acquireArrayRawData(ret)
+            consumeCount = CODE_fix_to_utf8(handler.pointer, ret.size)
+            releaseArrayRawData(handler)
+        }
+
+        this.offset += consumeCount
+        this.remainingBytes -= consumeCount
+
+        return unsafe { String.fromUtf8Unchecked(ret[0..consumeCount]) }
+    }
+}
+
+public class DebugDataProvider <: FuzzDataProvider {
+    init(data: Array<UInt8>) {
+        super(data)
+    }
+
+    public static func wrap(dp: FuzzDataProvider): DebugDataProvider {
+        return DebugDataProvider(dp.data)
+    }
+
+    public override func consumeBool(): Bool {
+        let ret = super.consumeBool()
+        println("[DEBUG] consumeBool return ${ret}")
+        return ret
+    }
+
+    public override func consumeBools(count: Int64): Array<Bool> {
+        let ret = super.consumeBools(count)
+        println("[DEBUG] consumeBools return ${ret}")
+        return ret
+    }
+
+    public override func consumeByte(): Byte {
+        let ret = super.consumeByte()
+        println("[DEBUG] consumeByte return ${ret}")
+        return ret
+    }
+
+    public override func consumeBytes(count: Int64): Array<Byte> {
+        let ret = super.consumeBytes(count)
+        println("[DEBUG] consumeBytes return ${ret}")
+        return ret
+    }
+
+    public override func consumeUInt8(): UInt8 {
+        let ret = super.consumeUInt8()
+        println("[DEBUG] consumeUInt8 return ${ret}")
+        return ret
+    }
+
+    public override func consumeUInt16(): UInt16 {
+        let ret = super.consumeUInt16()
+        println("[DEBUG] consumeUInt16 return ${ret}")
+        return ret
+    }
+
+    public override func consumeUInt32(): UInt32 {
+        let ret = super.consumeUInt32()
+        println("[DEBUG] consumeUInt32 return ${ret}")
+        return ret
+    }
+
+    public override func consumeUInt64(): UInt64 {
+        let ret = super.consumeUInt64()
+        println("[DEBUG] consumeUInt64 return ${ret}")
+        return ret
+    }
+
+    public override func consumeInt8(): Int8 {
+        let ret = super.consumeInt8()
+        println("[DEBUG] consumeInt8 return ${ret}")
+        return ret
+    }
+
+    public override func consumeInt16(): Int16 {
+        let ret = super.consumeInt16()
+        println("[DEBUG] consumeInt16 return ${ret}")
+        return ret
+    }
+
+    public override func consumeInt32(): Int32 {
+        let ret = super.consumeInt32()
+        println("[DEBUG] consumeInt32 return ${ret}")
+        return ret
+    }
+
+    public override func consumeInt64(): Int64 {
+        let ret = super.consumeInt64()
+        println("[DEBUG] consumeInt64 return ${ret}")
+        return ret
+    }
+
+    public override func consumeUInt8s(count: Int64): Array<UInt8> {
+        let ret = super.consumeUInt8s(count)
+        println("[DEBUG] consumeUInt8s return ${ret}")
+        return ret
+    }
+
+    public override func consumeUInt16s(count: Int64): Array<UInt16> {
+        let ret = super.consumeUInt16s(count)
+        println("[DEBUG] consumeUInt16s return ${ret}")
+        return ret
+    }
+
+    public override func consumeUInt32s(count: Int64): Array<UInt32> {
+        let ret = super.consumeUInt32s(count)
+        println("[DEBUG] consumeUInt32s return ${ret}")
+        return ret
+    }
+
+    public override func consumeUInt64s(count: Int64): Array<UInt64> {
+        let ret = super.consumeUInt64s(count)
+        println("[DEBUG] consumeUInt64s return ${ret}")
+        return ret
+    }
+
+    public override func consumeInt8s(count: Int64): Array<Int8> {
+        let ret = super.consumeInt8s(count)
+        println("[DEBUG] consumeInt8s return ${ret}")
+        return ret
+    }
+
+    public override func consumeInt16s(count: Int64): Array<Int16> {
+        let ret = super.consumeInt16s(count)
+        println("[DEBUG] consumeInt16s return ${ret}")
+        return ret
+    }
+
+    public override func consumeInt32s(count: Int64): Array<Int32> {
+        let ret = super.consumeInt32s(count)
+        println("[DEBUG] consumeInt32s return ${ret}")
+        return ret
+    }
+
+    public override func consumeInt64s(count: Int64): Array<Int64> {
+        let ret = super.consumeInt64s(count)
+        println("[DEBUG] consumeInt64s return ${ret}")
+        return ret
+    }
+
+    public override func consumeFloat32(): Float32 {
+        let ret = super.consumeFloat32()
+        println("[DEBUG] consumeFloat32 return ${ret}")
+        return ret
+    }
+
+    public override func consumeFloat64(): Float64 {
+        let ret = super.consumeFloat64()
+        println("[DEBUG] consumeFloat64 return ${ret}")
+        return ret
+    }
+
+    public override func consumeRune(): Rune {
+        let ret = super.consumeRune()
+        println("[DEBUG] consumeRune return ${ret}")
+        return ret
+    }
+
+    public override func consumeAsciiString(maxLength: Int64): String {
+        let ret = super.consumeAsciiString(maxLength)
+        println("[DEBUG] consumeAsciiString return ${ret}")
+        return ret
+    }
+
+    public override func consumeString(maxLength: Int64): String {
+        let ret = super.consumeString(maxLength)
+        println("[DEBUG] consumeString return ${ret}")
+        return ret
+    }
+
+    public override func consumeAll(): Array<UInt8> {
+        let ret = super.consumeAll()
+        println("[DEBUG] consumeAll return ${ret}")
+        return ret
+    }
+
+    public override func consumeAllAsAscii(): String {
+        let ret = super.consumeAllAsAscii()
+        println("[DEBUG] consumeAllAsAscii return ${ret}")
+        return ret
+    }
+
+    public override func consumeAllAsString(): String {
+        let ret = super.consumeAllAsString()
+        println("[DEBUG] consumeAllAsString return ${ret}")
+        return ret
+    }
+}

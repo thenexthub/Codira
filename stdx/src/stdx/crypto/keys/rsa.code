@@ -1,0 +1,793 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package stdx.crypto.keys
+
+import std.crypto.digest.Digest
+import std.io.*
+import std.math.numeric.BigInt
+import std.sync.AtomicReference
+import stdx.crypto.digest.*
+import stdx.crypto.common.*
+
+public enum PadOption {
+    OAEP(OAEPOption) | PSS(PSSOption) | PKCS1
+}
+
+public struct OAEPOption {
+    let label: String
+    let hash: Digest
+    let mgfHash: Digest
+
+    public init(hash: Digest, mgfHash: Digest, label!: String = "") {
+        this.label = label
+        this.hash = hash
+        this.mgfHash = mgfHash
+    }
+}
+
+public struct PSSOption {
+    let saltLen: Int32
+    public init(saltLen: Int32) {
+        if (saltLen < 0) {
+            throw CryptoException("Salt length can not less than 0.")
+        }
+        this.saltLen = saltLen
+    }
+}
+
+const RSA_MIN_MODULUS_BITS: Int32 = 512
+const RSA_MAX_MODULUS_BITS: Int32 = 16384
+let RSA_MIN_EXPONENT = BigInt(3)
+let RSA_MAX_EXPONENT = BigInt(true, Array<Byte>(32, repeat: 255))
+
+public class RSAPrivateKey <: PrivateKey {
+    var pkey = CPointer<UInt64>()
+    var evpKeyCtx: EVPKEYCTX
+
+    init(blob: DerBlob) {
+        pkey = loadPrivateKey(RSA_id, blob.body)
+        if (pkey.isNull()) {
+            throw CryptoException("Init RSA PrivateKey failed.")
+        }
+        evpKeyCtx = EVPKEYCTX(pkey)
+    }
+
+    public init(bits: Int32) {
+        checkBits(bits)
+        pkey = unsafe { generateRSA(bits, BigInt.parse("65537")) }
+        if (pkey.isNull()) {
+            throw CryptoException("Init RSA PrivateKey failed.")
+        }
+        evpKeyCtx = EVPKEYCTX(pkey)
+    }
+
+    public init(bits: Int32, e: BigInt) {
+        checkBits(bits)
+        checkPublicExponent(e)
+        pkey = unsafe { generateRSA(bits, e) }
+        if (pkey.isNull()) {
+            throw CryptoException("Init RSA PrivateKey failed.")
+        }
+        evpKeyCtx = EVPKEYCTX(pkey)
+    }
+
+    public func encodeToDer(password!: ?String): DerBlob {
+        var blob: DerBlob = encodeToDer()
+        match (password) {
+            case Some(password) => try {
+                var key = GeneralPrivateKey.decodeDer(blob)
+                key.encodeToDer(password: password)
+            } catch (e: CryptoException) {
+                throw CryptoException(e.message)
+            }
+            case None => blob
+        }
+    }
+
+    public func encodeToDer(): DerBlob {
+        var content = getPrivateKeyDer(pkey)
+        keepAlive(this)
+        DerBlob(content)
+    }
+
+    public func encodeToPem(): PemEntry {
+        PemEntry(PemEntry.LABEL_RSA_PRIVATE_KEY, encodeToDer())
+    }
+
+    /**
+     * Encode the key to PemEntry optionally doing encryption using the specified password if any
+     * If the passord is None, then the key will be encoded unencrypted.
+     * An encrypted key produced by this function is always in PKCS8 format.
+     * @throws CryptoException if failed to encode/encrypt or the provided password is empty
+     */
+    public func encodeToPem(password!: ?String): PemEntry {
+        match (password) {
+            case Some(password) => PemEntry(PemEntry.LABEL_ENCRYPTED_PRIVATE_KEY, encodeToDer(password: password))
+            case None => encodeToPem()
+        }
+    }
+
+    public static func decodeDer(blob: DerBlob): RSAPrivateKey {
+        RSAPrivateKey(blob)
+    }
+
+    public static func decodeDer(blob: DerBlob, password!: ?String): RSAPrivateKey {
+        match (password) {
+            case Some(password) => try {
+                var priKey = GeneralPrivateKey.decodeDer(blob, password: password)
+                RSAPrivateKey(priKey.encodeToDer())
+            } catch (e: CryptoException) {
+                throw CryptoException(e.message)
+            }
+            case None => RSAPrivateKey(blob)
+        }
+    }
+
+    public static func decodeFromPem(text: String): RSAPrivateKey {
+        decodeFromPem(text, password: None)
+    }
+
+    public static func decodeFromPem(
+        text: String,
+        password!: ?String
+    ): RSAPrivateKey {
+        try {
+            var priKey = GeneralPrivateKey.decodeFromPem(text, password: password)
+            RSAPrivateKey(priKey.encodeToDer())
+        } catch (e: CryptoException) {
+            throw CryptoException(e.message)
+        }
+    }
+
+    public func sign(hash: Digest, digest: Array<Byte>, padType!: PadOption): Array<Byte> {
+        let result = match (padType) {
+            case PKCS1 => signPKCS1(evpKeyCtx, pkey, hash, digest)
+            case PSS(pss) => signPSS(evpKeyCtx, pkey, hash, digest, pss.saltLen)
+            case OAEP(_) => throw CryptoException("OAEPOption only use in encrypt or decrypt.")
+        }
+        keepAlive(this)
+        result
+    }
+
+    public func decrypt(input: InputStream, output: OutputStream, padType!: PadOption): Unit {
+        match (padType) {
+            case PKCS1 => unsafe { decryptPKCS1(evpKeyCtx, pkey, input, output) }
+            case OAEP(oaep) => unsafe { decryptOAEP(evpKeyCtx, pkey, input, output, oaep.label, oaep.hash, oaep.mgfHash) }
+            case PSS(_) => throw CryptoException("PSSOption only use in sign or verify.")
+        }
+        keepAlive(this)
+    }
+
+    public override func toString(): String {
+        "RSA PRIVATE KEY"
+    }
+
+    ~init() {
+        if (!pkey.isNull()) {
+            keyFree(pkey)
+        }
+    }
+}
+
+public class RSAPublicKey <: PublicKey {
+    var pkey: CPointer<UInt64>
+    var evpKeyCtx: EVPKEYCTX
+
+    init(blob: DerBlob) {
+        pkey = loadPublicKey(RSA_id, blob.body)
+        if (pkey.isNull()) {
+            throw CryptoException("Init RSA PublicKey failed.")
+        }
+        evpKeyCtx = EVPKEYCTX(pkey)
+    }
+
+    public init(pri: RSAPrivateKey) {
+        var content = getPublicKeyDer(pri.pkey)
+        pkey = loadPublicKey(RSA_id, content)
+        if (pkey.isNull()) {
+            throw CryptoException("Init RSA PublicKey failed.")
+        }
+        evpKeyCtx = EVPKEYCTX(pkey)
+    }
+
+    public func encodeToDer(): DerBlob {
+        var content = getPublicKeyDer(pkey)
+        keepAlive(this)
+        DerBlob(content)
+    }
+    public func encodeToPem(): PemEntry {
+        PemEntry(PemEntry.LABEL_PUBLIC_KEY, encodeToDer())
+    }
+
+    public static func decodeDer(blob: DerBlob): RSAPublicKey {
+        RSAPublicKey(blob)
+    }
+
+    public static func decodeFromPem(text: String): RSAPublicKey {
+        try {
+            var pubKey = GeneralPublicKey.decodeFromPem(text)
+            RSAPublicKey(pubKey.encodeToDer())
+        } catch (e: CryptoException | CryptoException) {
+            throw CryptoException(e.message)
+        }
+    }
+
+    public func verify(hash: Digest, digest: Array<Byte>, sig: Array<Byte>, padType!: PadOption): Bool {
+        let result = match (padType) {
+            case PKCS1 => verifyPKCS1(evpKeyCtx, hash, digest, sig)
+            case PSS(pss) => verifyPSS(evpKeyCtx, hash, digest, sig, pss.saltLen)
+            case OAEP(_) => throw CryptoException("OAEPOption only use in encrypt or decrypt.")
+        }
+        result
+    }
+
+    public func encrypt(input: InputStream, output: OutputStream, padType!: PadOption): Unit {
+        match (padType) {
+            case PKCS1 => unsafe { encryptPKCS1(evpKeyCtx, pkey, input, output) }
+            case OAEP(oaep) => unsafe { encryptOAEP(evpKeyCtx, pkey, input, output, oaep.label, oaep.hash, oaep.mgfHash) }
+            case PSS(_) => throw CryptoException("PSSOption only use in sign or verify.")
+        }
+        keepAlive(this)
+    }
+
+    public override func toString(): String {
+        "RSA PUBLIC KEY"
+    }
+
+    ~init() {
+        if (!pkey.isNull()) {
+            keyFree(pkey)
+        }
+    }
+}
+
+func checkBits(bits: Int32) {
+    if (bits < RSA_MIN_MODULUS_BITS) {
+        throw CryptoException("Key size too small, low security level.")
+    }
+    if (bits > RSA_MAX_MODULUS_BITS) {
+        throw CryptoException("Key size too long.")
+    }
+}
+
+func checkPublicExponent(e: BigInt) {
+    let lastBit = e & BigInt(1)
+    if (lastBit == BigInt(0)) {
+        throw CryptoException("Public exponent value is invalid because it is an even number.")
+    }
+    if (e < RSA_MIN_EXPONENT) {
+        throw CryptoException("Public exponent value is too small.")
+    }
+    if (e > RSA_MAX_EXPONENT) {
+        throw CryptoException("Public exponent value is too large.")
+    }
+}
+
+unsafe func generateRSA(bits: Int32, e: BigInt) {
+    let engine = CPointer<UInt64>()
+    var pkey = CPointer<UInt64>()
+    var exp = CPointer<BIGNUM>()
+    var ctx = keyCtxNewId(RSA_id, engine)
+    if (ctx.isNull()) {
+        throw CryptoException("Init RSA PrivateKey failed.")
+    }
+    let binPtr: CPointerHandle<Byte> = acquireArrayRawData(e.toBytes())
+    try (ppkey = LibC.malloc<CPointer<UInt64>>().asResource()) {
+        if (ppkey.value.isNull()) {
+            throw CryptoException("Init RSA PrivateKey failed, malloc failed.")
+        }
+
+        var ret = keygenInit(ctx)
+        if (ret != 1) {
+            throw CryptoException("Init RSA PrivateKey failed.")
+        }
+        ret = setRSABits(ctx, bits)
+        if (ret != 1) {
+            throw CryptoException("Set RSA bits error.")
+        }
+        exp = bin2bn(binPtr.pointer, e.toBytes().size, exp)
+        if (exp.isNull()) {
+            throw CryptoException("Set RSA public exponent error.")
+        }
+        ret = setRSAPubExp(ctx, exp)
+        if (ret != 1) {
+            throw CryptoException("Set RSA public exponent error.")
+        }
+        ppkey.value.write(pkey)
+        ret = keyGenerate(ctx, ppkey.value)
+        if (ret != 1) {
+            throw CryptoException("Generate RSA PrivateKey failed.")
+        }
+        pkey = ppkey.value.read()
+    } finally {
+        bnFree(exp)
+        keyCtxFree(ctx)
+        releaseArrayRawData(binPtr)
+    }
+    pkey
+}
+
+func getPrivateKeyDer(pkey: CPointer<UInt64>) {
+    unsafe {
+        var keySize = getSize(pkey)
+        var readBuf = Array<Byte>(Int64(keySize * 8), repeat: 0)
+        let read: CPointerHandle<Byte> = acquireArrayRawData(readBuf)
+        var readLen: Int32
+        var readPtr = LibC.malloc<CPointer<Byte>>()
+        if (readPtr.isNull()) {
+            releaseArrayRawData(read)
+            throw CryptoException("Init PrivateKey failed.")
+        }
+        readPtr.write(read.pointer)
+        try {
+            readLen = privateKey2d(pkey, readPtr)
+            if (readLen < 0 || Int64(readLen) > readBuf.size) {
+                throw CryptoException("Fail to load private key.")
+            }
+        } finally {
+            LibC.free(readPtr)
+            releaseArrayRawData(read)
+        }
+        readBuf[0..Int64(readLen)]
+    }
+}
+
+func getPublicKeyDer(pkey: CPointer<UInt64>) {
+    unsafe {
+        var keySize = getSize(pkey)
+        var readBuf = Array<Byte>(Int64(keySize * 2), repeat: 0)
+        let read: CPointerHandle<Byte> = acquireArrayRawData(readBuf)
+        var readLen: Int32
+        var readPtr = LibC.malloc<CPointer<Byte>>()
+        if (readPtr.isNull()) {
+            releaseArrayRawData(read)
+            throw CryptoException("Init PublicKey failed.")
+        }
+        readPtr.write(read.pointer)
+        try {
+            readLen = pubKey2d(pkey, readPtr)
+            if (readLen < 0 || Int64(readLen) > readBuf.size) {
+                throw CryptoException("Fail to load public key.")
+            }
+        } finally {
+            LibC.free(readPtr)
+            releaseArrayRawData(read)
+        }
+        readBuf[0..Int64(readLen)]
+    }
+}
+
+func loadPrivateKey(id: Int32, der: Array<Byte>) {
+    unsafe {
+        let derHandle: CPointerHandle<Byte> = acquireArrayRawData(der)
+        var pkey = CPointer<UInt64>()
+        var ppkey = CPointer<CPointer<UInt64>>()
+        var readPtr = LibC.malloc<CPointer<Byte>>()
+        if (readPtr.isNull()) {
+            releaseArrayRawData(derHandle)
+            throw CryptoException("Init PrivateKey failed.")
+        }
+        readPtr.write(derHandle.pointer)
+        try {
+            pkey = d2PrivateKey(id, ppkey, readPtr, der.size)
+            if (pkey.isNull()) {
+                throw CryptoException("Load private key error.")
+            }
+        } finally {
+            LibC.free(readPtr)
+            releaseArrayRawData(derHandle)
+        }
+        pkey
+    }
+}
+
+func loadPublicKey(id: Int32, der: Array<Byte>) {
+    unsafe {
+        let derHandle: CPointerHandle<Byte> = acquireArrayRawData(der)
+        var pkey = CPointer<UInt64>()
+        var ppkey = CPointer<CPointer<UInt64>>()
+        var readPtr = LibC.malloc<CPointer<Byte>>()
+        if (readPtr.isNull()) {
+            releaseArrayRawData(derHandle)
+            throw CryptoException("Init PublicKey failed.")
+        }
+        readPtr.write(derHandle.pointer)
+        try {
+            pkey = d2Pubkey(ppkey, readPtr, der.size)
+            if (pkey.isNull()) {
+                throw CryptoException("Load PublicKey error.")
+            }
+            if (!keyTypeCheck(id, pkey)) {
+                keyFree(pkey)
+                throw CryptoException("Public key type error.")
+            }
+        } finally {
+            LibC.free(readPtr)
+            releaseArrayRawData(derHandle)
+        }
+        return pkey
+    }
+}
+
+func keyTypeCheck(id: Int32, pkey: CPointer<UInt64>) {
+    var baseId = getBaseId(pkey)
+    return match {
+        case baseId == id => true
+        case _ => false
+    }
+}
+
+func getDigest(hash: Digest) {
+    var md = match (hash) {
+        case _: MD5 => md5()
+        case _: SHA1 => sha1()
+        case _: SHA224 => sha224()
+        case _: SHA256 => sha256()
+        case _: SHA384 => sha384()
+        case _: SHA512 => sha512()
+        case _: SM3 => sm3()
+        case _ => throw CryptoException("Digest type error.")
+    }
+    return md
+}
+
+func signPKCS1(ctx: EVPKEYCTX, pkey: CPointer<UInt64>, hash: Digest, data: Array<Byte>) {
+    unsafe {
+        var rsaSize = Int64(getSize(pkey))
+        var sig: Array<UInt8> = Array<UInt8>(Int64(rsaSize), repeat: 0)
+        let sigHandle: CPointerHandle<Byte> = acquireArrayRawData(sig)
+        let dataHandle: CPointerHandle<Byte> = acquireArrayRawData(data)
+        try (sizePtr = LibC.malloc<Int64>().asResource()) {
+            if (sizePtr.value.isNull()) {
+                throw CryptoException("Sign init error, malloc failed.")
+            }
+
+            sizePtr.value.write(rsaSize)
+            var ret = signInit(ctx.ptr)
+            if (ret <= 0) {
+                throw CryptoException("Sign init error.")
+            }
+            ret = setRSAPadding(ctx.ptr, RSA_PKCS1_PADDING)
+            if (ret <= 0) {
+                throw CryptoException("Set rsa padding error.")
+            }
+            ret = setSignatureMD(ctx.ptr, getDigest(hash))
+            if (ret <= 0) {
+                throw CryptoException("Set signature md error.")
+            }
+            ret = sign(ctx.ptr, sigHandle.pointer, sizePtr.value, dataHandle.pointer, data.size)
+            if (ret != 1 || sizePtr.value.read() > rsaSize) {
+                throw CryptoException("Sign error.")
+            }
+            rsaSize = sizePtr.value.read()
+        } finally {
+            releaseArrayRawData(sigHandle)
+            releaseArrayRawData(dataHandle)
+        }
+        sig[0..rsaSize]
+    }
+}
+
+func signPSS(ctx: EVPKEYCTX, pkey: CPointer<UInt64>, hash: Digest, data: Array<Byte>, saltLen: Int32) {
+    unsafe {
+        var rsaSize = Int64(getSize(pkey))
+        var sig: Array<UInt8> = Array<UInt8>(Int64(rsaSize), repeat: 0)
+        let sigHandle: CPointerHandle<Byte> = acquireArrayRawData(sig)
+        let dataHandle: CPointerHandle<Byte> = acquireArrayRawData(data)
+        try (sizePtr = LibC.malloc<Int64>().asResource()) {
+            if (sizePtr.value.isNull()) {
+                throw CryptoException("Sign init error, malloc failed.")
+            }
+
+            sizePtr.value.write(rsaSize)
+            var ret = signInit(ctx.ptr)
+            if (ret <= 0) {
+                throw CryptoException("Sign init error.")
+            }
+            ret = setRSAPadding(ctx.ptr, RSA_PKCS1_PSS_PADDING)
+            if (ret <= 0) {
+                throw CryptoException("Set rsa padding error.")
+            }
+            ret = setSignatureMD(ctx.ptr, getDigest(hash))
+            if (ret <= 0) {
+                throw CryptoException("Set signature md error.")
+            }
+            ret = setRSAPssSaltLen(ctx.ptr, saltLen)
+            if (ret <= 0) {
+                throw CryptoException("Set rsa pss saltlen error.")
+            }
+            ret = sign(ctx.ptr, sigHandle.pointer, sizePtr.value, dataHandle.pointer, data.size)
+            if (ret != 1 || sizePtr.value.read() > rsaSize) {
+                throw CryptoException("Sign error.")
+            }
+            rsaSize = sizePtr.value.read()
+        } finally {
+            releaseArrayRawData(sigHandle)
+            releaseArrayRawData(dataHandle)
+        }
+        sig[0..rsaSize]
+    }
+}
+
+func verifyPKCS1(ctx: EVPKEYCTX, hash: Digest, data: Array<Byte>, sig: Array<Byte>) {
+    unsafe {
+        let sigHandle: CPointerHandle<Byte> = acquireArrayRawData(sig)
+        let dataHandle: CPointerHandle<Byte> = acquireArrayRawData(data)
+        var result: Int32 = 0
+        try {
+            var ret = verifyInit(ctx.ptr)
+            if (ret <= 0) {
+                throw CryptoException("Verify init error.")
+            }
+            ret = setRSAPadding(ctx.ptr, RSA_PKCS1_PADDING)
+            if (ret <= 0) {
+                throw CryptoException("Set rsa padding error.")
+            }
+            ret = setSignatureMD(ctx.ptr, getDigest(hash))
+            if (ret <= 0) {
+                throw CryptoException("Set signature md error.")
+            }
+            result = verify(ctx.ptr, sigHandle.pointer, sig.size, dataHandle.pointer, data.size)
+        } finally {
+            releaseArrayRawData(sigHandle)
+            releaseArrayRawData(dataHandle)
+        }
+        if (result != 1) {
+            return false
+        } else {
+            return true
+        }
+    }
+}
+
+func verifyPSS(
+    ctx: EVPKEYCTX,
+    hash: Digest,
+    data: Array<Byte>,
+    sig: Array<Byte>,
+    saltLen: Int32
+) {
+    unsafe {
+        let sigHandle: CPointerHandle<Byte> = acquireArrayRawData(sig)
+        let dataHandle: CPointerHandle<Byte> = acquireArrayRawData(data)
+        var result: Int32 = 0
+        try {
+            var ret = verifyInit(ctx.ptr)
+            if (ret <= 0) {
+                throw CryptoException("Verify init error.")
+            }
+            ret = setRSAPadding(ctx.ptr, RSA_PKCS1_PSS_PADDING)
+            if (ret <= 0) {
+                throw CryptoException("Set rsa padding error.")
+            }
+            ret = setSignatureMD(ctx.ptr, getDigest(hash))
+            if (ret <= 0) {
+                throw CryptoException("Set signature md error.")
+            }
+            ret = setRSAPssSaltLen(ctx.ptr, saltLen)
+            if (ret <= 0) {
+                throw CryptoException("Set rsa pss saltlen error.")
+            }
+            result = verify(ctx.ptr, sigHandle.pointer, sig.size, dataHandle.pointer, data.size)
+        } finally {
+            releaseArrayRawData(sigHandle)
+            releaseArrayRawData(dataHandle)
+        }
+        if (result != 1) {
+            return false
+        } else {
+            return true
+        }
+    }
+}
+
+unsafe func encryptPKCS1(ctx: EVPKEYCTX, pkey: CPointer<UInt64>, input: InputStream, output: OutputStream) {
+    var keySize = getSize(pkey)
+    var blockSize = Int64(keySize - PKCS1_PADDING_SIZE)
+    if (blockSize < 0) {
+        throw CryptoException("Encounter invalid block size.")
+    }
+    var readbuff = Array<Byte>(blockSize, repeat: 0)
+    var writebuff = Array<Byte>(Int64(keySize), repeat: 0)
+    var inBlock: CPointerHandle<Byte> = acquireArrayRawData(readbuff)
+    var outBlock: CPointerHandle<Byte> = acquireArrayRawData(writebuff)
+    try (outlenPtr = LibC.malloc<Int64>().asResource()) {
+        if (outlenPtr.value.isNull()) {
+            throw CryptoException("Encrypt init error, malloc failed.")
+        }
+
+        var ret = encryInit(ctx.ptr)
+        if (ret <= 0) {
+            throw CryptoException("Encrypt init error.")
+        }
+        ret = setRSAPadding(ctx.ptr, RSA_PKCS1_PADDING)
+        if (ret <= 0) {
+            throw CryptoException("Set rsa padding type error.")
+        }
+        var inLen = input.read(readbuff)
+        do {
+            outlenPtr.value.write(Int64(keySize))
+            ret = encrypt(ctx.ptr, outBlock.pointer, outlenPtr.value, inBlock.pointer, inLen)
+            if (ret != 1 || outlenPtr.value.read() > Int64(keySize)) {
+                throw CryptoException("Encrypt error.")
+            }
+            output.write(writebuff[..outlenPtr.value.read()])
+            inLen = input.read(readbuff)
+        } while (inLen > 0)
+    } finally {
+        releaseArrayRawData(inBlock)
+        releaseArrayRawData(outBlock)
+    }
+}
+
+unsafe func encryptOAEP(
+    ctx: EVPKEYCTX,
+    pkey: CPointer<UInt64>,
+    input: InputStream,
+    output: OutputStream,
+    label: String,
+    hash: Digest,
+    mgfHash: Digest
+) {
+    var keySize = getSize(pkey)
+    var blockSize = Int64(keySize) - 2 * hash.size - 2
+    if (blockSize < 0) {
+        throw CryptoException("RSA_key_size smaller that (2 * hash_size - 2).")
+    }
+    var readbuff = Array<Byte>(blockSize, repeat: 0)
+    var writebuff = Array<Byte>(Int64(keySize), repeat: 0)
+    var inBlock: CPointerHandle<Byte> = acquireArrayRawData(readbuff)
+    var outBlock: CPointerHandle<Byte> = acquireArrayRawData(writebuff)
+    try (outlenPtr = LibC.malloc<Int64>().asResource(), lablePtr = LibC.mallocCString(label).asResource()) {
+        if (outlenPtr.value.isNull() || lablePtr.value.isNull()) {
+            throw CryptoException("Encrypt init error, malloc failed.")
+        }
+
+        var ret = encryInit(ctx.ptr)
+        if (ret <= 0) {
+            throw CryptoException("Encrypt init error.")
+        }
+        ret = setRSAPadding(ctx.ptr, RSA_PKCS1_OAEP_PADDING)
+        if (ret <= 0) {
+            throw CryptoException("Set rsa padding type error.")
+        }
+        ret = keysOAEPSetting(ctx.ptr, lablePtr.value, getDigest(hash), getDigest(mgfHash))
+        if (ret == -1) {
+            throw CryptoException("Set rsa OAEP option error.")
+        }
+        var inLen = input.read(readbuff)
+        do {
+            outlenPtr.value.write(Int64(keySize))
+            ret = encrypt(ctx.ptr, outBlock.pointer, outlenPtr.value, inBlock.pointer, inLen)
+            if (ret != 1 || outlenPtr.value.read() > Int64(keySize)) {
+                throw CryptoException("Encrypt error.")
+            }
+            output.write(writebuff[..outlenPtr.value.read()])
+            inLen = input.read(readbuff)
+        } while (inLen > 0)
+    } finally {
+        releaseArrayRawData(inBlock)
+        releaseArrayRawData(outBlock)
+    }
+}
+
+unsafe func decryptPKCS1(ctx: EVPKEYCTX, pkey: CPointer<UInt64>, input: InputStream, output: OutputStream) {
+    var keySize = getSize(pkey)
+    var blockSize = Int64(keySize)
+    var readbuff = Array<Byte>(blockSize, repeat: 0)
+    var writebuff = Array<Byte>(Int64(keySize), repeat: 0)
+    var inBlock: CPointerHandle<Byte> = acquireArrayRawData(readbuff)
+    var outBlock: CPointerHandle<Byte> = acquireArrayRawData(writebuff)
+    try (outlenPtr = LibC.malloc<Int64>().asResource()) {
+        if (outlenPtr.value.isNull()) {
+            throw CryptoException("Decrypt init error, malloc failed.")
+        }
+
+        var ret = decryptInit(ctx.ptr)
+        if (ret <= 0) {
+            throw CryptoException("Decrypt init error.")
+        }
+        ret = setRSAPadding(ctx.ptr, RSA_PKCS1_PADDING)
+        if (ret <= 0) {
+            throw CryptoException("Set rsa padding error.")
+        }
+
+        var inLen = input.read(readbuff)
+        while (inLen > 0) {
+            outlenPtr.value.write(Int64(keySize))
+            ret = decrypt(ctx.ptr, outBlock.pointer, outlenPtr.value, inBlock.pointer, inLen)
+            if (ret != 1 || outlenPtr.value.read() > Int64(keySize)) {
+                throw CryptoException("Decrypt error.")
+            }
+            output.write(writebuff[..outlenPtr.value.read()])
+            inLen = input.read(readbuff)
+        }
+    } finally {
+        releaseArrayRawData(inBlock)
+        releaseArrayRawData(outBlock)
+    }
+}
+
+unsafe func decryptOAEP(
+    ctx: EVPKEYCTX,
+    pkey: CPointer<UInt64>,
+    input: InputStream,
+    output: OutputStream,
+    label: String,
+    hash: Digest,
+    mgfHash: Digest
+) {
+    var keySize = getSize(pkey)
+    var blockSize = Int64(keySize)
+    var readbuff = Array<Byte>(blockSize, repeat: 0)
+    var writebuff = Array<Byte>(Int64(keySize), repeat: 0)
+    var inBlock: CPointerHandle<Byte> = acquireArrayRawData(readbuff)
+    var outBlock: CPointerHandle<Byte> = acquireArrayRawData(writebuff)
+    try (outlenPtr = LibC.malloc<Int64>().asResource(), lablePtr = LibC.mallocCString(label).asResource()) {
+        if (outlenPtr.value.isNull() || lablePtr.value.isNull()) {
+            throw CryptoException("Decrypt init error, malloc failed.")
+        }
+
+        var ret = decryptInit(ctx.ptr)
+        if (ret <= 0) {
+            throw CryptoException("Decrypt init error.")
+        }
+        ret = setRSAPadding(ctx.ptr, RSA_PKCS1_OAEP_PADDING)
+        if (ret <= 0) {
+            throw CryptoException("Set rsa padding type error.")
+        }
+        ret = keysOAEPSetting(ctx.ptr, lablePtr.value, getDigest(hash), getDigest(mgfHash))
+        if (ret == -1) {
+            throw CryptoException("Set rsa OAEP option error.")
+        }
+        var inLen = input.read(readbuff)
+        while (inLen > 0) {
+            outlenPtr.value.write(Int64(keySize))
+            ret = decrypt(ctx.ptr, outBlock.pointer, outlenPtr.value, inBlock.pointer, inLen)
+            if (ret != 1 || outlenPtr.value.read() > Int64(keySize)) {
+                throw CryptoException("Decrypt error.")
+            }
+            output.write(writebuff[..outlenPtr.value.read()])
+            inLen = input.read(readbuff)
+        }
+    } finally {
+        releaseArrayRawData(inBlock)
+        releaseArrayRawData(outBlock)
+    }
+}
+
+let _privateKeyRsaPhantom = Object()
+let _rsaPrivateKey = AtomicReference<Object>(_privateKeyRsaPhantom)
+
+func keepAlive(o: RSAPrivateKey) {
+    _rsaPrivateKey.store(o)
+    _rsaPrivateKey.store(_privateKeyRsaPhantom)
+}
+
+let _publicKeyRsaPhantom = Object()
+let _rsaPublicKey = AtomicReference<Object>(_publicKeyRsaPhantom)
+
+func keepAlive(o: RSAPublicKey) {
+    _rsaPublicKey.store(o)
+    _rsaPublicKey.store(_publicKeyRsaPhantom)
+}

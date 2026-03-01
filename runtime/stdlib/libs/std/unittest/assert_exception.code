@@ -1,0 +1,90 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/**
+ * @file The file declares the class AssertException.
+ *
+ */
+package std.unittest
+
+/**
+ * The AssertException.
+ *
+ */
+public class AssertException <: Exception {
+    let cause: ?CheckResult
+
+    public init() {
+        super()
+        this.cause = None
+    }
+
+    init(message: String, cause: CheckResult) {
+        super(message)
+        this.cause = cause
+    }
+
+    public init(message: String) {
+        super(message)
+        this.cause = None
+    }
+
+    protected override func getClassName(): String {
+        return "AssertException"
+    }
+}
+
+/**
+ * The AssertIntermediateException.
+ *
+ */
+public class AssertIntermediateException <: Exception {
+    let diagram: PowerAssertDiagram
+
+    public let expression: String
+    public let originalException: Exception
+
+    init(exception: Exception, expression: String, message: String, diagram: PowerAssertDiagram) {
+        super(message)
+        this.originalException = exception
+        this.expression = expression
+        this.diagram = diagram
+    }
+
+    public func getOriginalStackTrace(): String {
+        let traceElementArray = originalException.getStackTrace()
+        var result = "Thrown exception while computing assert expression:\n" + originalException.toString() + "\n"
+        for (element in traceElementArray) {
+            var packageName = element.declaringClass
+            var packageDelimiter = if (packageName.isEmpty()) { "" } else { "." }
+            var methodName = element.methodName
+            var fileName = element.fileName
+            var lineNumber = element.lineNumber.toString()
+            result += "\t at ${packageName}${packageDelimiter}${methodName}(${fileName}:${lineNumber})\n"
+        }
+        return result
+    }
+
+    protected override func getClassName(): String {
+        return "AssertIntermediateException"
+    }
+}

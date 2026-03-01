@@ -1,0 +1,72 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/**
+ * @file
+ *
+ * Defines common constants/type/function for compression/decompression
+ */
+package stdx.compress.zlib
+
+import std.collection.HashMap
+
+/* Return values of the deflate and inflate functions */
+const ZLIB_OK: Int32 = 0 // Execution OK
+const ZLIB_STREAM_END: Int32 = 1 // End of processing input streams
+const ZLIB_NEED_DICT: Int32 = 2 // A preset dictionary is needed
+const ZLIB_STREAM_ERROR: Int32 = -2 // Incorrect input/output stream information
+const ZLIB_DATA_INVALID: Int32 = -3 // Data format error
+const ZLIB_MEM_OPER_FAILURE: Int32 = -4 // Memory-related operation error
+const ZLIB_BUFFER_ERROR: Int32 = -5 // Buffer-related exception
+const ZLIB_VERSION_ERROR: Int32 = -6 // Incompatible version exception
+const ZLIB_OUTPUT_DATA_INCOMPLETE: Int32 = -7 // The output decompressed data is incomplete
+const ZLIB_OTHER_ERROR: Int32 = -1 // Unknown error condition
+
+let error_msg: HashMap<Int32, String> = HashMap<Int32, String>(
+    [
+        (ZLIB_OK, "ZLIB_OK: Execution OK."),
+        (ZLIB_STREAM_END, "ZLIB_STREAM_END: End of processing input streams."),
+        (ZLIB_NEED_DICT, "ZLIB_NEED_DICT: A preset dictionary is needed."),
+        (ZLIB_STREAM_ERROR, "ZLIB_STREAM_ERROR: Incorrect input/output stream information."),
+        (ZLIB_DATA_INVALID, "ZLIB_DATA_INVALID: Data format error."),
+        (ZLIB_MEM_OPER_FAILURE, "ZLIB_MEM_OPER_FAILURE: Memory-related operation error."),
+        (ZLIB_BUFFER_ERROR, "ZLIB_BUFFER_ERROR: Buffer-related exception."),
+        (ZLIB_VERSION_ERROR, "ZLIB_VERSION_ERROR: Incompatible version exception."),
+        (ZLIB_OUTPUT_DATA_INCOMPLETE, "ZLIB_OUTPUT_DATA_INCOMPLETE: The output decompressed data is incomplete."),
+        (ZLIB_OTHER_ERROR, "ZLIB_OTHER_ERROR: Unknown error condition.")
+    ]
+)
+
+/* Zlib Exception */
+public class ZlibException <: Exception {
+    public init(message: String) {
+        super(message)
+    }
+
+    init(code: Int32) {
+        super(error_msg.get(code) ?? "ZLIB_OTHER_ERROR: Unknown error condition.")
+    }
+
+    protected override func getClassName(): String {
+        return "ZlibException"
+    }
+}

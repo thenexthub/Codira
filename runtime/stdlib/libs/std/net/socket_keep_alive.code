@@ -1,0 +1,72 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package std.net
+
+/**
+ * TCP KeepAlive Options
+ */
+public struct SocketKeepAliveConfig <: ToString & Equatable<SocketKeepAliveConfig> {
+    /**
+     * If no data is exchanged within the `idle` period, the probe is performed.
+     */
+    public let idle: Duration
+
+    /**
+     * The interval for sending probe packets is `interval`.
+     */
+    public let interval: Duration
+
+    /**
+     * Number of probe packets are sent before the connection is considered invalid.
+     */
+    public let count: UInt32
+
+    /**
+     * Creates a socket keep alive config instance.
+     * Please note that the actual time granularity could be different depending on the operating system
+     * so could be bumped or rounded if needed correspondingly.
+     *
+     * @throws IllegalArgumentException if the specified idle or interval duration is negative.
+     */
+    public init(
+        idle!: Duration = Duration.second * 45,
+        interval!: Duration = Duration.second * 5,
+        count!: UInt32 = 5
+    ) {
+        this.idle = idle.throwIfNegative("Idle")
+        this.interval = interval.throwIfNegative("Interval")
+        this.count = count
+    }
+
+    public override func toString(): String {
+        "SocketKeepAliveConfig(idle: ${idle}, interval: ${interval}, count: ${count})"
+    }
+
+    public override operator func ==(other: SocketKeepAliveConfig): Bool {
+        idle == other.idle && interval == other.interval && count == other.count
+    }
+
+    public override operator func !=(other: SocketKeepAliveConfig): Bool {
+        !(this == other)
+    }
+}

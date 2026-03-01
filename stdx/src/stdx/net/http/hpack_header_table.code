@@ -1,0 +1,309 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/**
+ * @file
+ *
+ * This is a library for HeaderTable class.
+ */
+
+package stdx.net.http
+
+import stdx.log.*
+import std.collection.*
+
+/**
+ * HPACK HeaderTable
+ * HeaderTable is used to support both `Static Table` and `Dynamic Table` operations of HPACK.
+ *
+ * Static Table: https://www.rfc-editor.org/rfc/rfc7541#appendix-A
+ * Dynamic Table: https://www.rfc-editor.org/rfc/rfc7541#section-2.3.2
+ * Index Address Space: https://www.rfc-editor.org/rfc/rfc7541#section-2.3.3
+ */
+class HeaderTable {
+    private static let STATIC_TABLE = [
+        ("", ""),
+        (":authority", ""),                     //  1
+        (":method", "GET"),                     //  2
+        (":method", "POST"),                    //  3
+        (":path", "/"),                         //  4
+        (":path", "/index.html"),               //  5
+        (":scheme", "http"),                    //  6
+        (":scheme", "https"),                   //  7
+        (":status", "200"),                     //  8
+        (":status", "204"),                     //  9
+        (":status", "206"),                     // 10
+        (":status", "304"),                     // 11
+        (":status", "400"),                     // 12
+        (":status", "404"),                     // 13
+        (":status", "500"),                     // 14
+        ("accept-charset", ""),                 // 15
+        ("accept-encoding", "gzip, deflate"),   // 16
+        ("accept-language", ""),                // 17
+        ("accept-ranges", ""),                  // 18
+        ("accept", ""),                         // 19
+        ("access-control-allow-origin", ""),    // 20
+        ("age", ""),                            // 21
+        ("allow", ""),                          // 22
+        ("authorization", ""),                  // 23
+        ("cache-control", ""),                  // 24
+        ("content-disposition", ""),            // 25
+        ("content-encoding", ""),               // 26
+        ("content-language", ""),               // 27
+        ("content-length", ""),                 // 28
+        ("content-location", ""),               // 29
+        ("content-range", ""),                  // 30
+        ("content-type", ""),                   // 31
+        ("cookie", ""),                         // 32
+        ("date", ""),                           // 33
+        ("etag", ""),                           // 34
+        ("expect", ""),                         // 35
+        ("expires", ""),                        // 36
+        ("from", ""),                           // 37
+        ("host", ""),                           // 38
+        ("if-match", ""),                       // 39
+        ("if-modified-since", ""),              // 40
+        ("if-none-match", ""),                  // 41
+        ("if-range", ""),                  		// 42
+        ("if-unmodified-since", ""),            // 43
+        ("last-modified", ""),                  // 44
+        ("link", ""),                           // 45
+        ("location", ""),                       // 46
+        ("max-forwards", ""),                   // 47
+        ("proxy-authenticate", ""),             // 48
+        ("proxy-authorization", ""),            // 49
+        ("range", ""),                          // 50
+        ("referer", ""),                        // 51
+        ("refresh", ""),                        // 52
+        ("retry-after", ""),                    // 53
+        ("server", ""),                         // 54
+        ("set-cookie", ""),                     // 55
+        ("strict-transport-security", ""),      // 56
+        ("transfer-encoding", ""),              // 57
+        ("user-agent", ""),                     // 58
+        ("vary", ""),                           // 59
+        ("via", ""),                            // 60
+        ("www-authenticate", "")                // 61
+    ]
+
+    let dynamicTable = DefaultQueue<HeaderField>()
+
+    /**
+     * This limit is the last value of the SETTINGS_HEADER_TABLE_SIZE parameter received from the decoder and acknowledged by the encoder.
+     * Reducing the maximum size of the dynamic table can cause entries to be evicted.
+     * https://www.rfc-editor.org/rfc/rfc7541.html#section-6.3
+     */
+    var maxSize: Int64 = 4096
+
+    var size: Int64 = 0
+    var evictedSize: Int64 = 0
+    var evictedCnt: Int64 = 0
+
+    // <name, <value, idx>>
+    static let STATIC_TABLE_MAP = buildStaticMap()
+    let dynamicTableMap = HashMap<String, Map<String, Int64>>()
+
+    private static func buildStaticMap(): HashMap<String, Map<String, Int64>> {
+        let map = HashMap<String, Map<String, Int64>>()
+        for (i in 1..STATIC_TABLE.size) {
+            let key = STATIC_TABLE[i][0]
+            let val = STATIC_TABLE[i][1]
+
+            map.computeIfAbsent(key, {_ => HashMap<String, Int64>()}).add(val, i)
+        }
+        return map
+    }
+
+    /**
+     * Constructor
+     */
+    HeaderTable(let name: String, var _logger: Logger) {}
+
+    /**
+     * Logger
+     */
+    mut prop logger: Logger {
+        get() {
+            return _logger
+        }
+        set(v) {
+            _logger = v
+        }
+    }
+
+    /**
+     * Get HTTP header field from `Static Table` or `Dynamic Table`
+     *
+     * @param index the index value.
+     * @return HeaderField header field associated with `index`.
+     *
+     * @throw HpackException header field not exists.
+     */
+    func get(index: Int64): HeaderField {
+        if (index > 0 && index < STATIC_TABLE.size) {
+            return STATIC_TABLE.get(index).getOrThrow()
+        }
+        let dynamicIndex = index - STATIC_TABLE.size
+        if (0 <= dynamicIndex && dynamicIndex < dynamicTable.size) {
+            return dynamicTable.latest(dynamicIndex).getOrThrow()
+        }
+        throw HpackException(
+            "[${name}.HeaderTable#get] Invalid index: ${index}, staticTableSize: ${STATIC_TABLE.size}, dynamicTableSize: ${dynamicTable.size}."
+        )
+    }
+
+    /**
+     * Insert HTTP header field to `Dynamic Table`
+     *
+     * The index of latest field is always 62.
+     *
+     * Insert operation may cause entry eviction.
+     * https://www.rfc-editor.org/rfc/rfc7541#section-4.4
+     *
+     * @param field new entry to be insert.
+     */
+    func insert(field: HeaderField): Unit {
+        let incrSize = fieldSize(field)
+        reduceSizeTo(maxSize - incrSize) // make sure `size + incrSize <= maxSize`
+
+        dynamicTable.enqueue(field)
+        dynamicTableMap
+            .computeIfAbsent(field[0], {_ => HashMap<String, Int64>()})
+            .add(field[1], dynamicTable.size + evictedCnt)
+        size += incrSize
+
+        if (logger.enabled(LogLevel.TRACE)) {
+            httpLogTrace(logger,
+                "[${name}.HeaderTable#insert] index: ${indexOf(field)}, dynamic table size:${dynamicTable.size}, evicted count:${evictedCnt}, header:(${field[0]}: ${field[1]})"
+            )
+        }
+    }
+
+    /**
+     * Get the index of the HTTP field from `Static Table` or `Dynamic Table`
+     *
+     * @param field HTTP field.
+     * @return Index enum: EntryIndex(v) | NameIndex(v) | NoneIndex
+     */
+    func indexOf(field: HeaderField): Index {
+        let name = field[0]
+        let val = field[1]
+
+        var staticNameIndex: Index = NoneIndex
+        match (STATIC_TABLE_MAP.get(name)) {
+            case Some(values) => match (values.get(val)) {
+                case Some(idx) => return EntryIndex(idx)
+                case None => staticNameIndex = NameIndex(values.values().iterator().next().getOrThrow())
+            }
+            case None => () // no matching
+        }
+
+        match (dynamicTableMap.get(name)) {
+            case Some(values) => match (values.get(val)) {
+                case Some(insertOrder) =>
+                    /**
+                     * index from circular queue rear to front
+                     */
+                    return EntryIndex(
+                    STATIC_TABLE.size + (dynamicTable.size + evictedCnt - insertOrder))
+                case None =>
+                    // return the key index
+                    if (!staticNameIndex.isNone()) {
+                        return staticNameIndex
+                    }
+                    let insertOrder = values.values().iterator().next().getOrThrow()
+                    return NameIndex(STATIC_TABLE.size + (dynamicTable.size + evictedCnt - insertOrder))
+            }
+            case None =>
+                if (!staticNameIndex.isNone()) {
+                    return staticNameIndex
+                }
+                return NoneIndex // no matching
+        }
+    }
+
+    /**
+     * The value will set by user for encoder, and set by peer for decoder, using the SETTINGS_HEADER_TABLE_SIZE.
+     * The initial value is 4,096 octets.
+     */
+    mut prop headerTableSize: Int64 {
+        get() {
+            return maxSize
+        }
+        set(newMaxSize) {
+            if (newMaxSize < maxSize) {
+                reduceSizeTo(newMaxSize)
+            }
+            maxSize = newMaxSize
+        }
+    }
+
+    prop totalEvictedSize: Int64 {
+        get() {
+            return evictedSize
+        }
+    }
+
+    /**
+     * Table size change or insert may cause entry evection.
+     * Reduce util size <= limit.
+     *
+     * https://www.rfc-editor.org/rfc/rfc7541#section-4.3
+     * https://www.rfc-editor.org/rfc/rfc7541#section-4.4
+     */
+    private func reduceSizeTo(limit: Int64) {
+        while (size > limit && !dynamicTable.isEmpty()) { // evict fields until the max size is met, or dynamic table is empty
+            let evictedField = dynamicTable.dequeue() ?? throw HpackException(
+                "Dynamic table not empty but dequeue failed.")
+            removeFromMap(evictedField)
+
+            let decSize = fieldSize(evictedField)
+            size -= decSize
+            evictedSize += decSize
+            evictedCnt++
+
+            if (logger.enabled(LogLevel.TRACE)) {
+                httpLogTrace(logger,
+                    "[${name}.HeaderTable#reduceSizeTo] new limit: ${limit}, dynamicTableSize:${dynamicTable.size}, evicted header:(${evictedField[0]}: ${evictedField[1]})"
+                )
+            }
+        }
+    }
+
+    private func removeFromMap(field: HeaderField) {
+        removeFromMap(field[0], field[1])
+    }
+
+    private func removeFromMap(name: String, val: String): Unit {
+        match (dynamicTableMap.get(name)) {
+            case Some(values) => match (values.get(val)) {
+                case Some(_) =>
+                    values.remove(val)
+                    if (values.isEmpty()) {
+                        dynamicTableMap.remove(name)
+                    }
+                case None => return
+            }
+            case None => return
+        }
+    }
+}

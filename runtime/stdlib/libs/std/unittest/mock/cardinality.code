@@ -1,0 +1,64 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+package std.unittest.mock
+
+class Cardinality {
+    Cardinality(
+        let min!: Int64,
+        let max!: ?Int64 = None
+    ) {
+        require(min >= 0) { "Minimum number of invocation must be a non-negative number, was: ${min}" }
+        if (let Some(max) <- max) {
+            require(max >= 0) { "Maximum number of invocation must be a non-negative number, was: ${max}" }
+            require(max >= min) {
+                "Maximum number of invocation should be greater or equal to minimum, was: min = ${min}, max = ${max}"
+            }
+        }
+    }
+
+    func check(timesInvoked: Int64): CardinalityCheck {
+        if (timesInvoked < min) { return CardinalityCheck.Less }
+        if (let Some(max) <- max) {
+            if (timesInvoked > max) {
+                return CardinalityCheck.More
+            }
+        }
+        return CardinalityCheck.Ok
+    }
+
+    public static func once() { Cardinality(min: 1, max: 1) }
+    public static func atLeastTimes(minTimes: Int64) { Cardinality(min: minTimes) }
+    public static func atLeastOnce() { atLeastTimes(1) }
+    public static func times(min!: Int64, max!: Int64) { Cardinality(min: min, max: max) }
+    public static func times(timesExactly: Int64) { times(min: timesExactly, max: timesExactly) }
+    public static func never() { times(min: 0, max: 0) }
+}
+
+enum CardinalityCheck {
+    Less | Ok | More
+}
+
+func require(condition: Bool, message: () -> String) {
+    if (!condition) {
+        throw IllegalArgumentException(message())
+    }
+}

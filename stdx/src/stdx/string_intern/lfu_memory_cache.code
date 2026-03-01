@@ -1,0 +1,162 @@
+/*
+ *  Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ *  This source file is part of the Codira project, licensed under Apache-2.0
+ *  with Runtime Library Exception.
+ *
+ *  See https://cangjie-lang.cn/pages/LICENSE for license information.
+ */
+
+package stdx.string_intern
+
+import std.collection.HashMap
+
+/**
+ * @brief  LfU cache implementation:
+ *
+ * The bidirectional linked list is used to store cache keys, and the countMap is used to store access times.
+ * In the LRU, the header data of the linked list indicates the most access times, the tail data indicates the least access times, and the tail data is preferentially eliminated.
+ * After the cache is hit, The hit key needs to be placed in the header of the linked list.
+ * When the cache is updated, the new data is also placed in the header of the cache.
+ */
+class LFUMemoryCache<K, V> <: BaseDoubleLinkedListMemoryCache<K, V> where K <: Hashable & Equatable<K> & ToString {
+    var countMap: HashMap<Int64, K> = HashMap<Int64, K>()
+
+    public init(cacheConfigs!: ?ICacheConfig, cacheKeyLinkList!: ILinkList<K> = ConcurrentSkipingLinkList<K>()) {
+        super(cacheConfigs: cacheConfigs, cacheKeyLinkList: cacheKeyLinkList)
+    }
+
+    /**
+     * Put a cache object into the cache.
+     * <p>
+     * @param cobj Cache object
+     */
+    public func put(cobj: ICacheObj<K, V>): Unit {
+        synchronized(super.lock) {
+            let oldOp: Option<ICacheObj<K, V>> = super.cacheItemMap.add(cobj.key, cobj)
+            if (getSize() > this.cacheConfigs.getOrThrow().maxObjects) {
+                release(1)
+            }
+            adjustCacheAfterPut(cobj, oldObj: oldOp)
+        }
+    }
+
+    /**
+     * After the cache is hit, the LFU algorithm needs to update the maintained countMap and cacheKeyLinkList queues for subsequent elimination.
+     * The algorithm process is as shown in the preceding figure.
+     * During the operation, you need to check whether the count of the current node is unique, including the predecessor node and subsequent nodes.
+     * The overall time complexity is O(1).
+     *
+     * @param cacheObj Current hit cache
+     */
+    protected func adjustCacheAfterHit(cacheObj: ICacheObj<K, V>): Unit {
+        var accessTimes = cacheObj.attribute.policyWeight
+        cacheObj.attribute.policyWeight = accessTimes + 1
+        adjustLFUcount(cacheObj.key, accessTimes, accessTimes + 1)
+    }
+
+    /**
+     * Processing after a hit update, which is specified by the LFU algorithm, regardless of whether there is a previous
+     *
+     * @param cacheObj Indicates the cache that is updated or added to the current cache.
+     */
+    protected func adjustCacheAfterPut(cacheObj: ICacheObj<K, V>, oldObj!: ?ICacheObj<K, V>): Unit {
+        var oldCount = 0
+        if (let Some(node) <- oldObj) {
+            oldCount = node.attribute.policyWeight
+        }
+        cacheObj.attribute.policyWeight = 1
+        adjustLFUcount(cacheObj.key, oldCount, 1)
+    }
+
+    private func adjustLFUcount(key: K, oldCount: Int64, newCount: Int64) {
+        var oldCountKeyOp = countMap.get(oldCount)
+
+        var isFirst = false
+        var isNotOnly = false
+        if (let Some(oldCountKey) <- oldCountKeyOp) {
+            if (oldCountKey == key) {
+                isFirst = true
+                isNotOnly = preprocess(key, oldCount, isNotOnly)
+            }
+        }
+
+        var oldPreKey = countMap.get(newCount)
+        countMap.add(newCount, key)
+        if (oldPreKey.isSome()) {
+            super.cacheKeyLinkList.remove(key)
+            super.cacheKeyLinkList.appendBefore(key, oldPreKey)
+            if (isFirst && !isNotOnly) {
+                countMap.remove(oldCount)
+            }
+        } else {
+            if (isFirst) {
+                if (!isNotOnly) {
+                    countMap.remove(oldCount)
+                }
+            } else {
+                super.cacheKeyLinkList.remove(key)
+                super.cacheKeyLinkList.appendBefore(key, oldCountKeyOp)
+            }
+        }
+    }
+
+    private func preprocess(key: K, oldCount: Int64, isNotOnly: Bool) {
+        var resultIsNotOnly = isNotOnly
+        var nextOp = super.cacheKeyLinkList.getNextNode(key)
+        if (let Some(nextNode) <- nextOp) {
+            if (let Some(nextCacheObj) <- super.cacheItemMap.get(nextNode.value)) {
+                if (nextCacheObj.attribute.policyWeight == oldCount) {
+                    resultIsNotOnly = true
+                    countMap.add(oldCount, nextCacheObj.key)
+                }
+            }
+        }
+        return resultIsNotOnly
+    }
+
+    /**
+     * Removes an element object whose key is key from the cache.
+     * <p>
+     * @param key Cache key value
+     * @return Whether the element object corresponding to the cache exists
+     */
+    public func remove(inputKey: K): Bool {
+        synchronized(super.lock) {
+            var cacehObjOp = super.cacheItemMap.get(inputKey)
+            if (let Some(cacheObj) <- cacehObjOp) {
+                removeItem(cacheObj, inputKey)
+            }
+            return super.remove(inputKey)
+        }
+    }
+
+    private func removeItem(cacheObj: ICacheObj<K, V>, inputKey: K) {
+        var oldCount = cacheObj.attribute.policyWeight
+        var oldCountKeyOp = countMap.get(oldCount)
+        var isFirst = false
+        var isNotOnly = false
+        if (let Some(oldCountKey) <- oldCountKeyOp) {
+            if (oldCountKey == inputKey) {
+                isFirst = true
+                isNotOnly = setWhenCacheIsHead(inputKey, oldCount, isNotOnly)
+            }
+        }
+        if (isFirst && !isNotOnly) {
+            countMap.remove(oldCount)
+        }
+    }
+
+    private func setWhenCacheIsHead(inputKey: K, oldCount: Int64, isNotOnly: Bool) {
+        var resultIsNotOnly = isNotOnly
+        var nextOp = super.cacheKeyLinkList.getNextNode(inputKey)
+        if (let Some(nextNode) <- nextOp) {
+            if (let Some(nextCacheObj) <- super.cacheItemMap.get(nextNode.value)) {
+                if (nextCacheObj.attribute.policyWeight == oldCount) {
+                    resultIsNotOnly = true
+                    countMap.add(oldCount, nextCacheObj.key)
+                }
+            }
+        }
+        return resultIsNotOnly
+    }
+}

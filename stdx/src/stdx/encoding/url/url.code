@@ -1,0 +1,1110 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This source file is part of the Codira project, licensed under Apache-2.0
+ * with Runtime Library Exception.
+ *
+ * See https://cangjie-lang.cn/pages/LICENSE for license information.
+ */
+
+/**
+ * @file The file declares the class URL
+ */
+
+package stdx.encoding.url
+
+import std.collection.*
+
+/**
+ * URL objects can be obtained through parsing functions or constructors.
+ * The string to be parsed must comply with RFC3986.
+ * [scheme]://[userinfo@hostname:port][path]?[query]#[fragment]
+ * or
+ * [scheme]:[opaque]?[query]#[fragment]
+ *
+ * @Since 0.19.5
+ */
+public class URL <: ToString {
+    private var _scheme = String.empty
+    private var _opaque = String.empty
+    private var _userInfo: ?UserInfo = None
+    private var _rawUserInfo: ?UserInfo = None
+    private var _host = Host()
+    private var _port = String.empty
+    private var _path = String.empty
+    private var _rawPath = String.empty
+    private var _query = String.empty
+    private var _rawQuery = String.empty
+    private var _fragment = String.empty
+    private var _rawFragment = String.empty
+    /* variables used when parsing raw url */
+    private var _rawUrl = String.empty
+    private var _portEnd: ?Int64 = None
+
+    public prop scheme: String {
+        get() {
+            _scheme
+        }
+    }
+
+    public prop opaque: String {
+        get() {
+            _opaque
+        }
+    }
+
+    public prop userInfo: UserInfo {
+        get() {
+            _userInfo ?? UserInfo.empty
+        }
+    }
+
+    public prop rawUserInfo: UserInfo {
+        get() {
+            _rawUserInfo ?? UserInfo.empty
+        }
+    }
+
+    public prop hostName: String {
+        get() {
+            _host.hostname
+        }
+    }
+
+    public prop host: String {
+        get() {
+            let sb = StringBuilder()
+            if (_host.hostType == Host.IPV6) {
+                sb.append("[")
+                sb.append(_host.hostname)
+                sb.append("]")
+            } else {
+                sb.append(_host.hostname)
+            }
+            if (_port != String.empty) {
+                sb.append(":")
+                sb.append(_port)
+            }
+            return sb.toString()
+        }
+    }
+
+    public prop port: String {
+        get() {
+            _port
+        }
+    }
+
+    public prop path: String {
+        get() {
+            _path
+        }
+    }
+
+    public prop rawPath: String {
+        get() {
+            _rawPath
+        }
+    }
+
+    public prop query: ?String {
+        get() {
+            match {
+                case _query.isEmpty() && !_rawQuery.isEmpty() =>
+                    if (_rawQuery == "?") {
+                        _query = "?"
+                        return ""
+                    }
+                    _query = checkAndDecode(QUERY, _rawQuery)
+                    return _query
+                case !_query.isEmpty() => if (_query == "?") {
+                    return ""
+                } else {
+                    return _query
+                }
+                case _ => return None
+            }
+        }
+    }
+
+    public prop rawQuery: ?String {
+        get() {
+            getQueryOrFrag(_rawQuery, "?")
+        }
+    }
+
+    public prop fragment: ?String {
+        get() {
+            getQueryOrFrag(_fragment, "#")
+        }
+    }
+
+    public prop rawFragment: ?String {
+        get() {
+            getQueryOrFrag(_rawFragment, "#")
+        }
+    }
+
+    public prop queryForm: Form {
+        get() {
+            getQueryForm()
+        }
+    }
+
+    private func getQueryOrFrag(content: String, flag: String): ?String {
+        match {
+            case content.size == 0 => None
+            case content == flag => ""
+            case _ => content
+        }
+    }
+
+    private init() {}
+
+    /**
+     * The scheme and host should be lowercase.
+     * Ref: https://www.rfc-editor.org/rfc/rfc3986#section-6.2.2.1
+     */
+    public init(scheme!: String, hostName!: String, path!: String) {
+        verifyInit(scheme, hostName, path)
+        if (!scheme.isEmpty()) {
+            verifyScheme(scheme)
+        }
+        this._scheme = scheme.ensureAsciiLower()
+        if (hostName.contains(":")) {
+            checkIPv6(hostName)
+        }
+        this._host.hostname = hostName.ensureAsciiLower()
+        if (!scheme.isEmpty() && !path.isEmpty() && path[0] != b'/') {
+            throw UrlSyntaxException("Absolute URL requires an absolute path.")
+        }
+        this._path = path
+        this._rawPath = encode(path, PATH)
+    }
+
+    /**
+     * Parse the original string into a URL object.
+     *
+     * @param rawUrl The URL string.
+     * @return parsed result of URL obj.
+     *
+     * @since 0.19.5
+     *
+     * @throws UrlSyntaxException if there is illegal character in authority,
+     * or if URL is empty or invalid,
+     * or if the path is begin with two slash characters while authority is not present
+     * @throws IllegalArgumentException if there is an invalid utf8 leading code in 'rawUrl'
+     */
+    public static func parse(rawUrl: String): URL {
+        return URL().parseURL(rawUrl)
+    }
+
+    /*
+     * @throws UrlSyntaxException if URL is empty or invalid,
+     * or if the path is begin with two slash characters while authority is not present,
+     * or if protocol scheme is missing
+     * @throws IllegalArgumentException if there is an invalid utf8 leading code in 'rawUrl'
+     */
+    private func parseURL(rawUrl: String): URL {
+        _rawUrl = rawUrl
+        var i = 0
+        while (i < _rawUrl.size) {
+            match (_rawUrl[i]) {
+                case ':' => // find the first part ends with r':', finish parse in this branch
+                    parseScheme(i)
+                    i++
+                    if (i >= _rawUrl.size) {
+                        return this
+                    }
+                    match (_rawUrl[i]) {
+                        case '/' =>
+                            i++
+                            tryParseFromAuthority(i) // the most likely
+                        case '?' => parseQuery(i + 1, findFrag(i + 1))
+                        case '#' => parseFragment(_rawUrl[i + 1.._rawUrl.size])
+                        case _ => _opaque = _rawUrl[i..findQuery(i + 1)]
+                    }
+                    return this
+                case '/' => // find the first part ends with r'/', finish
+                    if (i != 0) {
+                        parsePath(0, findQuery(i + 1))
+                    } else {
+                        tryParseFromAuthority(i + 1)
+                    }
+                    return this
+                case '?' => // find the first part ends with r'?', finish
+                    if (i != 0) {
+                        parsePath(0, i)
+                    }
+                    parseQuery(i + 1, findFrag(i + 1))
+                    return this
+                case '#' => // find the first part ends with r'#', finish
+                    if (i != 0) {
+                        parsePath(0, i)
+                    }
+                    parseFragment(_rawUrl[i + 1.._rawUrl.size])
+                    return this
+                case _ => i++ // continue
+            }
+        }
+        parsePath(0, i)
+        return this
+    }
+
+    private func tryParseFromAuthority(start: Int64): Unit {
+        var i = start
+        match {
+            // scheme:/
+            case i >= _rawUrl.size =>
+                _rawPath = "/"
+                _path = "/"
+            // scheme:/...
+            case _rawUrl[i] != b'/' => parsePath(i - 1, findQuery(i))
+            // scheme://...
+            case _ =>
+                i++
+                if (i == _rawUrl.size) {
+                    throw UrlSyntaxException(_rawUrl, "Missing the authority component.")
+                }
+                if (_rawUrl[i] != b'[') {
+                    parseFromHost(i)
+                } else {
+                    parseFromIpv6Host(i)
+                }
+        }
+    }
+
+    private func parseFromIpv6Host(start: Int64): Unit {
+        var ipv6Mid = -1
+        let end = _rawUrl.size
+        var i = start + 1
+        while (i < end) { // parse and decode ipv6 host
+            if (_rawUrl[i] == b']') {
+                parseIpv6Host(start, ipv6Mid, i)
+                break
+            }
+            if (_rawUrl[i] == b'%') {
+                if (ipv6Mid == -1 && i + 2 < end && _rawUrl[i + 1] == b'2' && _rawUrl[i + 2] == b'5') {
+                    ipv6Mid = i
+                    i += 3
+                    continue
+                }
+            }
+            i++
+        }
+        if (i == end) {
+            throw UrlSyntaxException(_rawUrl[start..], "Missing r']' in host.")
+        }
+        i++
+        if (i == end) {
+            return
+        }
+        match (_rawUrl[i]) { // parse remaining
+            case ':' =>
+                parsePort(i + 1, findPath(i + 1))
+                if (!_portEnd.isNone()) {
+                    throw UrlSyntaxException(_rawUrl[i + 1..], "Invalid url part.")
+                }
+            case '/' => parsePath(i, findQuery(i + 1))
+            case '?' => parseQuery(i + 1, findFrag(i + 1))
+            case '#' => parseFragment(_rawUrl[i + 1..end])
+            case _ => throw UrlSyntaxException(_rawUrl[start..],
+                "A colon connection is required between the host and the port.")
+        }
+    }
+
+    private func parseFromHost(start: Int64): Unit {
+        var end = _rawUrl.size
+        for (i in start..end) {
+            match (_rawUrl[i]) {
+                case '@' => // finish
+                    parseUserInfo(start, i, -1, -1)
+                    let next = i + 1
+                    match {
+                        case end == next => ()
+                        case _rawUrl[next] == b'[' => parseFromIpv6Host(next)
+                        case _ => parseRegHost(next, findPort(next))
+                    }
+                    return
+                case ':' => return findHostOrPath(i + 1, start, i, i + 1) // finish
+                case '/' => parsePath(i, findQuery(i + 1))
+                case '?' => parseQuery(i + 1, findFrag(i + 1))
+                case '#' => parseFragment(_rawUrl[i + 1..end])
+                case _ => continue
+            }
+            end = i
+            break
+        }
+        parseRegHost(start, end) // finish
+    }
+
+    private func findHostOrPath(start: Int64, hostStart: Int64, hostEnd: Int64, portStart: Int64): Unit {
+        var i = start
+        var end = _rawUrl.size
+        while (i < end) {
+            match (_rawUrl[i]) {
+                case '@' => // there is user info before host, finish
+                    parseUserInfo(hostStart, hostEnd, portStart, i)
+                    i++
+                    match {
+                        case i == end => ()
+                        case _rawUrl[i] == b'[' => return parseFromIpv6Host(i)
+                        case _ => parseRegHost(i, findPort(i))
+                    }
+                    return
+                case '/' => parsePath(i, findQuery(i + 1)) // path after host
+                case '?' => parseQuery(i + 1, findFrag(i + 1)) // query after host
+                case '#' => parseFragment(_rawUrl[i + 1..end]) // frag after host
+                case _ =>
+                    i++
+                    continue
+            }
+            break
+        }
+        parsePort(portStart, i)
+        parseRegHost(hostStart, hostEnd)
+    }
+
+    private func findPort(start: Int64): Int64 {
+        let end = _rawUrl.size
+        for (i in start..end) {
+            match (_rawUrl[i]) {
+                case ':' => parsePort(i + 1, findPath(i + 1))
+                case '/' => parsePath(i, findQuery(i + 1))
+                case '?' => parseQuery(i + 1, findFrag(i + 1))
+                case '#' => parseFragment(_rawUrl[i + 1..end])
+                case _ => continue
+            }
+            return i
+        }
+        return end
+    }
+
+    private func findPath(start: Int64): Int64 {
+        let end = _rawUrl.size
+        for (i in start..end) {
+            match (_rawUrl[i]) {
+                case '/' => parsePath(i, findQuery(i + 1))
+                case '?' => parseQuery(i + 1, findFrag(i + 1))
+                case '#' => parseFragment(_rawUrl[i + 1..end])
+                case _ => continue
+            }
+            return i
+        }
+        return end
+    }
+
+    private func findQuery(start: Int64): Int64 {
+        let end = _rawUrl.size
+        for (i in start..end) {
+            match (_rawUrl[i]) {
+                case '?' => parseQuery(i + 1, findFrag(i + 1))
+                case '#' => parseFragment(_rawUrl[i + 1..end])
+                case _ => continue
+            }
+            return i
+        }
+        return end
+    }
+
+    private func findFrag(start: Int64): Int64 {
+        let end = _rawUrl.size
+        for (i in start..end) {
+            let b = _rawUrl[i]
+            if (b == b'#') {
+                parseFragment(_rawUrl[i + 1..end])
+                return i
+            }
+        }
+        return end
+    }
+
+    /*
+     * Parsing scheme
+     * 1. The scheme is case-insensitive.
+     * 2. The first part of the scheme must be a letter.
+     * 3. The symbols available for the scheme can only be selected from alphanumeric and +-.
+     *
+     * @throws UrlSyntaxException if protocol scheme is missing,
+     * or if there is illegal character in URL
+     */
+    private func parseScheme(end: Int64): Unit {
+        _scheme = _rawUrl[..end]
+        var arr = unsafe { _scheme.rawData() }
+        var isRaw = true
+        var b = _rawUrl[0]
+        match {
+            case b.isAsciiLowerCase() => ()
+            case b.isAsciiUpperCase() =>
+                _scheme = _scheme.clone() // clone _scheme when it is necessary to modify the Array<Byte> in it
+                arr = unsafe { _scheme.rawData() }
+                isRaw = false
+                arr[0] = b + 32
+            case _ => throw UrlSyntaxException(_rawUrl[..end], "The first part of the scheme cannot be a non-letter.")
+        }
+        for (i in end - 1..0 : -1) {
+            b = _rawUrl[i]
+            match {
+                case b.isAsciiUpperCase() =>
+                    if (!isRaw) {
+                        arr[i] = b + 32
+                        continue
+                    }
+                    _scheme = _scheme.clone()
+                    arr = unsafe { _scheme.rawData() }
+                    isRaw = false
+                    arr[i] = b + 32
+                case isByteInSet(b, SCHEME) => ()
+                case _ => throw UrlSyntaxException(_rawUrl[..end],
+                    "The scheme must be a combination of letters, digits, and +-. characters.")
+            }
+        }
+    }
+
+    /*
+     * Parses the ipv6 host.
+     *
+     * @throws UrlSyntaxException if IPv6 address in [] is empty,
+     * or the character r']' is missing in host, or IPv6 syntax is invalid,
+     * or there is illegal character in the authority
+     */
+    private func parseIpv6Host(start: Int64, mid: Int64, end: Int64): Unit {
+        if (end - start <= 1) {
+            throw UrlSyntaxException(_rawUrl[start..end], "IPv6 address in [] can't be empty")
+        }
+        let decoded = StringBuilder(end - start + 1)
+        if (mid == -1) {
+            decoded.append(checkAndDecode(IPV6, _rawUrl[start + 1..end]))
+        } else {
+            decoded.append(checkAndDecode(IPV6, _rawUrl[start + 1..mid]))
+            decoded.append(checkAndDecode(ZONE, _rawUrl[mid..end]))
+        }
+        _host.hostname = decoded.toString().ensureAsciiLower()
+        checkIPv6(_host.hostname)
+    }
+
+    private func parseRegHost(start: Int64, end: Int64): Unit {
+        let hostEnd = _portEnd ?? end
+        _host.hostname = checkAndDecode(REG_NAME, _rawUrl[start..hostEnd]).ensureAsciiLower()
+        if (_host.hostname.contains(":")) {
+            throw UrlSyntaxException(_host.hostname, "Invalid URL: IPv6 address literals must within square brackets (\"[\" and \"]\")")
+        }
+    }
+
+    /*
+     * @throws UrlSyntaxException if there is illegal character in URL
+     * @throws IllegalArgumentException if there is an invalid utf8 leading code
+     */
+    private func parsePath(start: Int64, end: Int64): Unit {
+        _path = checkAndDecode(PATH, _rawUrl[start..end])
+        _rawPath = _rawUrl[start..end]
+    }
+
+    private func parsePort(start: Int64, end: Int64): Unit {
+        _port = _rawUrl[start..end]
+        for (b in _port) {
+            if (!isByteInSet(b, DIGIT)) {
+                _portEnd = end
+                _port = ""
+                return
+            }
+        }
+    }
+
+    private func parseQuery(start: Int64, end: Int64): Unit {
+        _rawQuery = if (start == end) {
+            "?"
+        } else {
+            _rawUrl[start..end]
+        }
+    }
+
+    /*
+     * @throws UrlSyntaxException if there is illegal character in URL
+     */
+    private func parseFragment(raw: String): Unit {
+        if (raw.size != 0) {
+            _fragment = checkAndDecode(FRAGMENT, raw)
+            _rawFragment = raw
+        } else {
+            _fragment = "#"
+            _rawFragment = "#"
+        }
+    }
+
+    /*
+     * @throws UrlSyntaxException if there is illegal character in URL
+     */
+    private func parseUserInfo(nameStart: Int64, nameEnd: Int64, passwordStart: Int64, passwordEnd: Int64): Unit {
+        try {
+            let name = checkAndDecode(USERINFO, _rawUrl[nameStart..nameEnd])
+            if (passwordStart != -1) {
+                let password = checkAndDecode(USERINFO, _rawUrl[passwordStart..passwordEnd])
+                _userInfo = UserInfo(name, password)
+                _rawUserInfo = UserInfo(_rawUrl[nameStart..nameEnd], _rawUrl[passwordStart..passwordEnd])
+            } else {
+                _userInfo = UserInfo(name)
+                _rawUserInfo = UserInfo(_rawUrl[nameStart..nameEnd])
+            }
+        } catch (_) {
+            throw UrlSyntaxException("The userinfo contains an invalid encoding sequence.")
+        }
+    }
+
+    private func checkAndDecode(maskTuple: (Int64, Int64), raw: String): String {
+        var decodedArr: ?ArrayList<Byte> = None
+        var i = 0
+        while (i < raw.size) {
+            let b = raw[i]
+            match {
+                case b.isAscii() && !isByteInSet(b, maskTuple) => throw UrlSyntaxException(raw, "Invalid url part.")
+                case b == b'%' =>
+                    if (i + 2 >= raw.size) {
+                        throw UrlSyntaxException(raw, "Invalid URL escape.")
+                    }
+                    let b1 = raw[i + 1]
+                    let b2 = raw[i + 2]
+                    if (!b1.isAsciiHex() || !b2.isAsciiHex()) {
+                        throw UrlSyntaxException(raw, "Invalid URL escape.")
+                    }
+                    let decoded = match (decodedArr) {
+                        case Some(v) => v
+                        case None =>
+                            let arr = ArrayList<Byte>(raw.size)
+                            arr.add(all: raw[..i])
+                            decodedArr = arr
+                            arr
+                    }
+                    decoded.add(hexToDec(b1) << 4 | hexToDec(b2))
+                    i += 3
+                case _ =>
+                    if (let Some(v) <- decodedArr) {
+                        v.add(raw[i])
+                    }
+                    i++
+            }
+        }
+        return match (decodedArr) {
+            case None => raw
+            case Some(v) => unsafe { String.fromUtf8(v.getRawArray()[..v.size]) }
+        }
+    }
+
+    private func checkIPv6(host: String) {
+        var (_, zone, err) = parseIPv6(host)
+        if (err) {
+            throw UrlSyntaxException(host, "Invalid IPv6 address")
+        }
+        for (b in zone) {
+            if (!isByteInSet(b, ZONE)) {
+                throw UrlSyntaxException(zone, "Invalid IPv6 zoneId")
+            }
+        }
+        _host.hostType = Host.IPV6
+    }
+
+    private func verifyScheme(scheme: String): Unit {
+        /* Back-to-front traversal can reduce boundary checks and improve performance */
+        for (i in scheme.size - 1..=0 : -1) {
+            if (i == 0) {
+                if (!isByteInSet(scheme[i], ALPHA)) {
+                    throw UrlSyntaxException(scheme, "The first part of the scheme cannot be a non-letter.")
+                }
+            } else {
+                if (!isByteInSet(scheme[i], SCHEME)) {
+                    throw UrlSyntaxException(scheme,
+                        "The scheme must be a combination of letters, digits, and +-. characters.")
+                }
+            }
+        }
+    }
+
+    private static func verifyInit(scheme: String, hostName: String, path: String): Unit {
+        if (scheme.isEmpty() && !hostName.isEmpty()) {
+            throw UrlSyntaxException("If a hostname exists, the scheme cannot be empty.")
+        }
+        if (!scheme.isEmpty() && hostName.isEmpty() && path.isEmpty()) {
+            throw UrlSyntaxException("If the scheme exists, the hostname or path cannot be empty.")
+        }
+    }
+
+    private func replaceUserInfo(newUrl: URL, userinfo: String) {
+        let tempUserInfo = strToUserInfo(userinfo)
+        newUrl._userInfo = tempUserInfo
+        newUrl._rawUserInfo = match (tempUserInfo.password()) {
+            case Some(i) => UserInfo(encode(tempUserInfo.username(), ENCODE_USERINFO), encode(i, ENCODE_USERINFO))
+            case None => UserInfo(encode(tempUserInfo.username(), ENCODE_USERINFO))
+        }
+    }
+
+    private func strToUserInfo(userinfo: String): UserInfo {
+        let symbolPos = userinfo.indexOf(b':') ?? -1
+        if (symbolPos >= 0) {
+            UserInfo(userinfo[0..symbolPos], userinfo[symbolPos + 1..])
+        } else {
+            UserInfo(userinfo)
+        }
+    }
+
+    private func isDigit(str: String): Bool {
+        for (i in str) {
+            if (!isByteInSet(i, DIGIT)) {
+                return false
+            }
+        }
+        return true
+    }
+
+    private func replacePath(newUrl: URL, path: String) {
+        if (path.isEmpty()) {
+            if (!newUrl._scheme.isEmpty() && newUrl._host.hostname.isEmpty()) {
+                throw UrlSyntaxException(
+                    "If the scheme exists, the host name and path cannot be empty at the same time.")
+            }
+            newUrl._path = String.empty
+            newUrl._rawPath = String.empty
+            return
+        }
+        if (!newUrl._scheme.isEmpty() && path[0] != b'/') {
+            throw UrlSyntaxException("Absolute URL requires an absolute path.")
+        }
+        newUrl._path = path
+        newUrl._rawPath = encode(newUrl._path, PATH)
+    }
+
+    private func replaceQuery(newUrl: URL, query: String) {
+        if (query.isEmpty()) {
+            newUrl._rawQuery = "?"
+            newUrl._query = "?"
+        } else {
+            newUrl._rawQuery = encode(query, QUERY)
+            newUrl._query = query
+        }
+    }
+
+    private func replaceFragment(newUrl: URL, fragment: String) {
+        if (fragment.isEmpty()) {
+            newUrl._rawFragment = "#"
+            newUrl._fragment = "#"
+        } else {
+            newUrl._fragment = fragment
+            newUrl._rawFragment = encode(fragment, FRAGMENT)
+        }
+    }
+
+    public func replace(
+        scheme!: Option<String> = None,
+        userInfo!: Option<String> = None,
+        hostName!: Option<String> = None,
+        port!: Option<String> = None,
+        path!: Option<String> = None,
+        query!: Option<String> = None,
+        fragment!: Option<String> = None
+    ): URL {
+        let newUrl = this.shallowCopy()
+        if (let Some(v) <- scheme) {
+            verifyScheme(v)
+            newUrl._scheme = v.ensureAsciiLower()
+        }
+        if (let Some(v) <- userInfo) {
+            replaceUserInfo(newUrl, v)
+        }
+        if (let Some(v) <- hostName) {
+            if (v.contains(":")) {
+                checkIPv6(v)
+            }
+            newUrl._host.hostname = v.ensureAsciiLower()
+        }
+        if (let Some(v) <- port) {
+            if (!isDigit(v)) {
+                throw UrlSyntaxException("The range of port number string is limited to numeric symbols: 0 ~ 9")
+            }
+            newUrl._port = v
+        }
+        if (let Some(v) <- path) {
+            replacePath(newUrl, v)
+        }
+        var noUserInfo = true
+        if (let Some(v) <- newUrl._userInfo) {
+            if (!v.username().isEmpty()) {
+                noUserInfo = false
+            }
+        }
+        match ((newUrl._scheme.isEmpty(), noUserInfo, newUrl._host.hostname.isEmpty(), newUrl._port.isEmpty(),
+            newUrl._path.isEmpty())) {
+            case (true, _, false, _, _) => throw UrlSyntaxException("If a hostname exists, the scheme cannot be empty.")
+            case (_, false, true, _, _) => throw UrlSyntaxException(
+                "If a userInfo exists, the host name cannot be empty.")
+            case (_, _, true, false, _) => throw UrlSyntaxException("If a port exists, the host name cannot be empty.")
+            case (false, _, true, _, true) => throw UrlSyntaxException(
+                "If the scheme exists, the host name and path cannot be empty at the same time.")
+            case (false, _, _, _, false) =>
+                if (newUrl._path[0] != b'/') {
+                    throw UrlSyntaxException("Absolute URL requires an absolute path.")
+                }
+            case (_, _, _, _, _) => ()
+        }
+        if (let Some(v) <- query) {
+            replaceQuery(newUrl, v)
+        }
+        if (let Some(v) <- fragment) {
+            replaceFragment(newUrl, v)
+        }
+        return newUrl
+    }
+
+    /**
+     * Whether the URL is absolute. If the scheme exists, it is an absolute URL.
+     *
+     * @return true or false
+     *
+     * @since 0.19.3
+     */
+    public func isAbsoluteURL(): Bool {
+        return !scheme.isEmpty()
+    }
+
+    /**
+     * Generate a Form object based on the key-value pair in the query component.
+     * @return the Form that has a parsed query
+     *
+     * @since 0.19.3
+     */
+    private func getQueryForm(): Form {
+        return match {
+            case _rawQuery.size == 0 || _rawQuery == "?" => Form()
+            case _ => Form(_rawQuery)
+        }
+    }
+
+    /**
+     * shallowCopy the URL.
+     *
+     * @return the new URL obj.
+     *
+     * @since 0.19.5
+     */
+    private func shallowCopy(): URL {
+        let url = URL()
+        url._scheme = _scheme
+        url._opaque = _opaque
+        if (let Some(v) <- _userInfo) {
+            url._userInfo = UserInfo(v.username(), v.password())
+        }
+        if (let Some(v) <- _rawUserInfo) {
+            url._rawUserInfo = UserInfo(v.username(), v.password())
+        }
+        url._host = _host
+        url._port = _port
+        url._path = _path
+        url._rawPath = _rawPath
+        url._query = _query
+        url._rawQuery = _rawQuery
+        url._fragment = _fragment
+        url._rawFragment = _rawFragment
+        return url
+    }
+
+    /**
+     * Create a new URL object based on the base URL and reference URL.
+     *
+     * @param The initial URL instance.
+     * @return The absolute URL instance.
+     *
+     * @since 0.19.5
+     */
+    public func resolveURL(ref: URL): URL {
+        let result = ref.shallowCopy()
+        if (!ref.opaque.isEmpty()) {
+            return result
+        }
+        if (!ref.scheme.isEmpty()) {
+            result._rawPath = toAbsolutePath(mergePaths(ref.rawPath, ""))
+        } else {
+            if (ref.hostName.isEmpty() && ref.userInfo.username().isEmpty()) {
+                result._rawPath = toAbsolutePath(mergePaths(_rawPath, ref.rawPath))
+                result._path = decode(result.rawPath)
+                if (ref.rawPath.isEmpty() && ref._rawQuery.isEmpty() && !_rawQuery.isEmpty()) {
+                    result._rawQuery = _rawQuery
+                    result._query = _query
+                }
+                result._userInfo = _userInfo
+                result._rawUserInfo = _rawUserInfo
+                result._host = _host
+                result._port = _port
+            }
+            result._scheme = _scheme
+        }
+        return result
+    }
+
+    /**
+     * Add r'/' before the relative path.
+     *
+     * @param A path
+     * @return Absolute path
+     *
+     * @since 0.38.2
+     */
+    private static func toAbsolutePath(path: String) {
+        if (!path.isEmpty() && path[0] != b'/') {
+            return "/${path}"
+        }
+        return path
+    }
+
+    public static func mergePaths(basePath: String, refPath: String): String {
+        let absPath = if (refPath.isEmpty()) {
+            basePath
+        } else if (refPath[0] == b'/') {
+            /* absolute path */
+            refPath
+        } else {
+            /* relative path */
+            match (basePath.lastIndexOf(b'/')) {
+                case Some(i) => basePath[0..=i] + refPath
+                case None => refPath
+            }
+        }
+        let resultPath = StringBuilder()
+        let variablePaths = ArrayList<String>()
+        var theEndNeedSlashForced = false
+        if (!absPath.isEmpty()) {
+            let paths = absPath.lazySplit("/")
+            theEndNeedSlashForced = isEndSlashNeeded(paths, variablePaths)
+            // If the absPath path starts with a slash (/), the result still starts with a slash (/).
+            if (absPath[0] == b'/') {
+                resultPath.append("/")
+            }
+        }
+        resultPath.append(String.join(variablePaths.toArray(), delimiter: "/"))
+        // If absPath ends with /, the result still ends with /.
+        if ((variablePaths.size != 0 && (absPath[absPath.size - 1] == b'/' || theEndNeedSlashForced))) {
+            resultPath.append("/")
+        }
+        return resultPath.toString()
+    }
+
+    /**
+     * Reassembles the URL into a valid URL string.
+     *
+     * @return The URL string input
+     *
+     * @since 0.19.5
+     */
+    public func toString(): String {
+        /* host should be encoded, the max size of encoded hostName is _host.size * 3, 7 is the num of delimiters*/
+        var size = _scheme.size + _opaque.size + _host.hostname.size * 3 + _port.size + _rawPath.size + _rawQuery.size + _rawFragment.size + 7
+        if (let Some(v) <- _rawUserInfo) {
+            size += v.username().size + (v.password()?.size ?? 0)
+        }
+        let result = StringBuilder(size)
+        if (!_scheme.isEmpty()) {
+            result.append(_scheme)
+            result.append(r':')
+        }
+        if (!_opaque.isEmpty()) {
+            result.append(_opaque)
+        } else {
+            writeUserHostPath(result)
+        }
+        if (!_rawQuery.isEmpty()) {
+            if (_rawQuery != "?") {
+                result.append(r'?')
+            }
+            result.append(_rawQuery)
+        }
+        if (!_rawFragment.isEmpty()) {
+            if (_rawFragment != "#") {
+                result.append(r'#')
+            }
+            result.append(_rawFragment)
+        }
+        return result.toString()
+    }
+
+    private func writeUserHostPath(result: StringBuilder): Unit {
+        if (!_scheme.isEmpty()) {
+            if (!_host.hostname.isEmpty() || !_port.isEmpty() || !_rawPath.isEmpty()) {
+                result.append("//")
+            } else if (let Some(v) <- _rawUserInfo) {
+                if (!v.username().isEmpty()) {
+                    result.append("//")
+                }
+            }
+            if (let Some(v) <- _rawUserInfo) {
+                if (!v.username().isEmpty()) {
+                    result.append(v.toString())
+                    result.append(r'@')
+                }
+            }
+            if (!_host.hostname.isEmpty()) {
+                var host = _host.hostname
+                if (host.contains(":") && !host.startsWith("[") && !host.endsWith("]")) {
+                    host = "[${host}]"
+                }
+                encode(host, HOST, result)
+            }
+            if (!_port.isEmpty()) {
+                result.append(r':')
+                result.append(_port)
+            }
+        }
+        writePath(result)
+    }
+
+    /* If the path is set to "this:that", "this" will be parsed into a scheme during re-parsing.
+        Therefore, "/" is added before the path according to the protocol.
+        Absolute UR requires an absolute path. */
+    private func writePath(result: StringBuilder): Unit {
+        if (!_rawPath.isEmpty()) {
+            if (!_scheme.isEmpty() && _rawPath[0] != b'/') {
+                result.append(r'/')
+            }
+            for (i in 0.._rawPath.size) {
+                if (_rawPath[i] == b'/') {
+                    break
+                }
+                if (_rawPath[i] == b':') {
+                    result.append(r'/')
+                    break
+                }
+            }
+            result.append(_rawPath)
+        }
+    }
+
+    public static func encode(url: String): String {
+        return encodeByTuple(url, ENCODE_URL_CHAR)
+    }
+
+    public static func encodeComponent(component: String): String {
+        return encodeByTuple(component, ENCODE_URL_COMPONENT_CHAR)
+    }
+
+    private static func encodeByTuple(str: String, maskTuple: (Int64, Int64)): String {
+        let buf = Array<Byte>(str.size * 3, repeat: b'%')
+        var index = 0
+        var byte: Byte
+        for (i in 0..str.size) {
+            byte = str[i]
+            if (byte > 128 || !isByteInSet(byte, maskTuple)) {
+                buf[index + 1] = HEX_BYTE_ARR[Int64(byte >> 4)]
+                buf[index + 2] = HEX_BYTE_ARR[Int64(byte & 0xF)]
+                index +=3
+            } else {
+                buf[index] = byte
+                index++
+            }
+        }
+        let result = StringBuilder()
+        unsafe { result.appendFromUtf8Unchecked(buf[..index]) }
+        return result.toString()
+    }
+
+    public static func decode(url: String): String {
+        return decodeByTuple(url, false)
+    }
+
+    public static func decodeComponent(component: String): String {
+        return decodeByTuple(component, true)
+    }
+
+    private static func decodeByTuple(str: String, changeComponent: Bool): String {
+        let runes = str.runes()
+        let sb = StringBuilder()
+        var buffer = ArrayList<UInt8>()
+        var escape = false
+        while (true) {
+            let char = match (runes.next()) {
+                case Some(x) => x
+                case None => break
+            }
+            match (char) {
+                case r'%' =>
+                    let c1 = runes.next() ?? r' '
+                    let c2 = runes.next() ?? r' '
+                    if (!c1.isAsciiHex() || !c2.isAsciiHex()) {
+                        throw UrlSyntaxException("Invalid URL format.")
+                    }
+                    if (!escape) {
+                        buffer = ArrayList<UInt8>()
+                    }
+                    escape = true
+                    let byte = hexToDec(c1) << 4 | hexToDec(c2)
+                    if (changeComponent || !isByteInSet(byte, COMPONENT_CHAR)) {
+                        buffer.add(byte)
+                    } else {
+                        appendArray(sb, buffer, escape)
+                        sb.append("%")
+                        sb.append(c1)
+                        sb.append(c2)
+                        escape = false
+                    }
+                case _ =>
+                    appendArray(sb, buffer, escape)
+                    sb.append(char)
+                    escape = false
+            }
+        }
+        appendArray(sb, buffer, escape)
+        return sb.toString()
+    }
+
+    private static func appendArray(sb: StringBuilder, buffer: ArrayList<UInt8>, escape: Bool) {
+        if (escape) {
+            sb.appendFromUtf8(buffer.toArray())
+        }
+    }
+}
+
+/**
+ * The Userinfo type is an immutable encapsulation of username and
+ * password details for a URL. An existing Userinfo value is guaranteed
+ * to have a username set (potentially empty, as allowed by RFC 2396),
+ * and optionally a password.
+ *
+ * @Since 0.19.5
+ */
+public class UserInfo <: ToString {
+    private var userName: String = String.empty
+    private var passWord = Option<String>.None
+
+    static let empty = UserInfo()
+
+    public init() {}
+
+    public init(userName: String) {
+        this.userName = userName
+    }
+
+    public init(userName: String, passWord: String) {
+        this.userName = userName
+        this.passWord = Option<String>.Some(passWord)
+    }
+
+    public init(userName: String, passWord: Option<String>) {
+        this.userName = userName
+        this.passWord = passWord
+    }
+
+    public func toString(): String {
+        match (passWord) {
+            case Some(p) where !p.isEmpty() => "${userName}:${p}"
+            case _ => userName
+        }
+    }
+    public func password(): Option<String> {
+        return passWord
+    }
+
+    public func username(): String {
+        return userName
+    }
+}
+
+struct Host {
+    static const IPV6: Int8 = 2
+    static const DOMAIN: Int8 = 3
+    var hostname: String = String.empty
+    var hostType: Int8 = Host.DOMAIN
+}

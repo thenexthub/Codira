@@ -1,0 +1,404 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/**
+ * @file
+ *
+ * This is a library for Encoder class.
+ */
+
+package stdx.net.http
+
+import std.collection.HashSet
+import stdx.log.*
+
+/**
+ * HPACK Encoder
+ * A encoder encode HTTP header list to HPACK-encoded data frame.
+ */
+class Encoder {
+    private let headerTable: HeaderTable
+    /**
+     * The value of Server.headerTableSize.
+     * The value will be used when receiving the SETTINGS_HEADER_TABLE_SIZE from peer.
+     * The new maximum table size will be `min(headerTableSizeLimit, SETTINGS_HEADER_TABLE_SIZE)`.
+     * The new maximum table size chosen by encoder will be encoded at the beginning of the first HeaderBlock.
+     */
+    private var headerTableSizeLimit: Int64 = 4096
+
+    /**
+     * Sensitive fields will set by user from decoder.
+     */
+    private let sensitiveFields = HashSet<String>()
+
+    /**
+     * For encoder, this value will set by peer by using the SETTINGS_MAX_HEADER_LIST_SIZE.
+     * The initial value of this setting is unlimited.
+     */
+    var maxHeaderListSize = -1
+
+    /**
+     * New size should be encoded at the begining of the first HeaderBlock.
+     */
+    private var headerTableSizeChanged = false
+
+    let name: String
+    var _logger: Logger
+
+    /**
+     * Constructor
+     */
+    init(name!: String = "unknown", _logger!: Logger = mutexLogger()) {
+        headerTable = HeaderTable("${name}.encoder", _logger)
+        this._logger = _logger
+        this.name = name
+    }
+
+    /**
+     * Logger
+     */
+    mut prop logger: Logger {
+        get() {
+            return _logger
+        }
+        set(v) {
+            _logger = v
+            headerTable.logger = v
+        }
+    }
+
+    /**
+     * Encode HTTP header list to HPACK-encoded data frame.
+     *
+     * @param headerList HTTP header list.
+     * @param maxBlockSize max block size for encoded data.
+     * @return LinkedList<HeaderBlock> HPACK-encoded data frame split into list based on `maxBlockSize`.
+     *
+     * @throws HpackException, if encoded size greater than SettingsMaxHeaderListSize .
+     */
+    func encodeTo(headerList: Iterable<(String, String)>, writer: FieldsWriter): Unit {
+        /*
+         * Dynamic Table Size Update
+         * Dynamic table size update MUST occur at the beginning of the first header block following the change to the dynamic table size.
+         * https://www.rfc-editor.org/rfc/rfc7541#section-4.2
+         * https://www.rfc-editor.org/rfc/rfc7541#section-6.3
+         *
+         *    0   1   2   3   4   5   6   7
+         *  +---+---+---+---+---+---+---+---+
+         *  | 0 | 0 | 1 |   Max size (5+)   |
+         *  +---+---------------------------+
+         */
+        if (headerTableSizeChanged) {
+            encodeIntTo(headerTable.headerTableSize, "001", writer) // set headerTableSize
+            headerTableSizeChanged = false
+        }
+
+        var totalHeaderListSize: Int64 = 0 // headerSize = name.size + value.size + 32
+
+        for (field in headerList) {
+            // check total header list size
+            if (maxHeaderListSize != -1) {
+                totalHeaderListSize += fieldSize(field) //k.size + v.size + 32
+                if (totalHeaderListSize > maxHeaderListSize) {
+                    throw HpackException(
+                        "Total size:${totalHeaderListSize} out of SettingsMaxHeaderListSize :${maxHeaderListSize}.")
+                }
+            }
+
+            if (isSensitiveKey(field[0])) {
+                // Literal Header Field Never Indexed
+                let index = headerTable.indexOf((field[0], ""))
+                match (index) {
+                    // May match the index entry with out value
+                    case EntryIndex(idx) =>
+                        encodeIntTo(idx, "0001", writer) // process as name index
+                        if (logger.enabled(LogLevel.TRACE)) {
+                            httpLogTrace(logger,
+                                "[${this.name}.Encoder#encode] sensitive header:(${field[0]}: ${field[1]}), EntryIndex(${idx})"
+                            )
+                        }
+                    /*
+                     * Literal Header Field Never Indexed
+                     * https://www.rfc-editor.org/rfc/rfc7541#section-6.2.3
+                     *
+                     *    0   1   2   3   4   5   6   7
+                     *  +---+---+---+---+---+---+---+---+
+                     *  | 0 | 0 | 0 | 1 |  Index (4+)   |
+                     *  +---+---+-----------------------+
+                     *  | H |     Value Length (7+)     |
+                     *  +---+---------------------------+
+                     *  | Value String (Length octets)  |
+                     *  +-------------------------------+
+                     */
+                    case NameIndex(idx) =>
+                        encodeIntTo(idx, "0001", writer) // encode name index
+                        if (logger.enabled(LogLevel.TRACE)) {
+                            httpLogTrace(logger,
+                                "[${this.name}.Encoder#encode] sensitive header:(${field[0]}: ${field[1]}), NameIndex(${idx})"
+                            )
+                        }
+                    /*
+                     * Literal Header Field Never Indexed
+                     * https://www.rfc-editor.org/rfc/rfc7541#section-6.2.3
+                     *
+                     *    0   1   2   3   4   5   6   7
+                     *  +---+---+---+---+---+---+---+---+
+                     *  | 0 | 0 | 0 | 1 |       0       |
+                     *  +---+---+-----------------------+
+                     *  | H |     Name Length (7+)      |
+                     *  +---+---------------------------+
+                     *  |  Name String (Length octets)  |
+                     *  +---+---------------------------+
+                     *  | H |     Value Length (7+)     |
+                     *  +---+---------------------------+
+                     *  | Value String (Length octets)  |
+                     *  +-------------------------------+
+                     */
+                    case NoneIndex =>
+                        0x10 |> writer.write
+                        encodeStringTo(field[0], writer)
+                        if (logger.enabled(LogLevel.TRACE)) {
+                            httpLogTrace(logger,
+                                "[${this.name}.Encoder#encode] sensitive header:(${field[0]}: ${field[1]}), NoneIndex")
+                        }
+                }
+                encodeStringTo(field[1], writer)
+            } else {
+                let index = headerTable.indexOf(field)
+                match (index) {
+                    /*
+                     * Indexed Header Field Representation
+                     * https://www.rfc-editor.org/rfc/rfc7541#section-6.1
+                     *
+                     *    0   1   2   3   4   5   6   7
+                     *  +---+---+---+---+---+---+---+---+
+                     *  | 1 |        Index (7+)         |
+                     *  +---+---------------------------+
+                     */
+                    case EntryIndex(idx) =>
+                        encodeIntTo(idx, "1", writer)
+                        if (logger.enabled(LogLevel.TRACE)) {
+                            httpLogTrace(logger,
+                                "[${this.name}.Encoder#encode] header:(${field[0]}: ${field[1]}), EntryIndex(${idx})")
+                        }
+                    /*
+                     * Literal Header Field with Incremental Indexing
+                     * https://www.rfc-editor.org/rfc/rfc7541#section-6.2.1
+                     *
+                     *    0   1   2   3   4   5   6   7
+                     *  +---+---+---+---+---+---+---+---+
+                     *  | 0 | 1 |      Index (6+)       |
+                     *  +---+---+-----------------------+
+                     *  | H |     Value Length (7+)     |
+                     *  +---+---------------------------+
+                     *  | Value String (Length octets)  |
+                     *  +-------------------------------+
+                     */
+                    case NameIndex(idx) =>
+                        encodeIntTo(idx, "01", writer)
+                        encodeStringTo(field[1], writer)
+
+                        headerTable.insert(field) // add entry to table
+                        if (logger.enabled(LogLevel.TRACE)) {
+                            httpLogTrace(logger,
+                                "[${this.name}.Encoder#encode] header:(${field[0]}: ${field[1]}), NameIndex(${idx})")
+                        }
+
+                    /*
+                     * Literal Header Field with Incremental Indexing
+                     * https://www.rfc-editor.org/rfc/rfc7541#section-6.2.1
+                     *
+                     *    0   1   2   3   4   5   6   7
+                     *  +---+---+---+---+---+---+---+---+
+                     *  | 0 | 1 |           0           |
+                     *  +---+---+-----------------------+
+                     *  | H |     Name Length (7+)      |
+                     *  +---+---------------------------+
+                     *  |  Name String (Length octets)  |
+                     *  +---+---------------------------+
+                     *  | H |     Value Length (7+)     |
+                     *  +---+---------------------------+
+                     *  | Value String (Length octets)  |
+                     *  +-------------------------------+
+                     */
+                    case NoneIndex =>
+                        0x40 |> writer.write
+                        encodeStringTo(field[0], writer)
+                        encodeStringTo(field[1], writer)
+
+                        headerTable.insert(field) // add entry to table
+                        if (logger.enabled(LogLevel.TRACE)) {
+                            httpLogTrace(logger,
+                                "[${this.name}.Encoder#encode] header:(${field[0]}: ${field[1]}), NoneIndex")
+                        }
+                }
+            }
+        }
+        writer.finish()
+    }
+
+    func setHeaderTableSizeLimit(limit: Int64): Unit {
+        this.headerTableSizeLimit = limit
+        headerTable.headerTableSize = limit
+    }
+
+    func receiveSettingsHeaderTableSize(settings: Int64): Unit {
+        let newMaxSize = min(settings, this.headerTableSizeLimit)
+
+        headerTable.headerTableSize = newMaxSize
+        headerTableSizeChanged = true
+    }
+
+    func setSensitive(headerField: HeaderField) {
+        sensitiveFields.add(headerField[0])
+    }
+
+    func setInsensitive(headerField: HeaderField) {
+        sensitiveFields.remove(headerField[0])
+    }
+
+    func isSensitiveKey(key: String): Bool {
+        return sensitiveFields.contains(key.toAsciiLower())
+    }
+
+    /**
+     * String Literal Representation
+     * https://www.rfc-editor.org/rfc/rfc7541#section-5.2
+     *
+     *      0   1   2   3   4   5   6   7
+     *  +---+---+---+---+---+---+---+---+
+     *  | H |    String Length (7+)     |
+     *  +---+---------------------------+
+     *  |  String Data (Length octets)  |
+     *  +-------------------------------+
+     */
+    func encodeStringTo(string: String, writer: FieldsWriter): Unit {
+        let rawBytes = unsafe { string.rawData() }
+        let huffmanLength = QuickHuffmanEncoder.lengthOf(rawBytes)
+        let isHuff = rawBytes.size >= huffmanLength // Should use >=, see rfc7541: `C.6.2.  Second Response`
+
+        let prefix = if (isHuff) {
+            "1"
+        } else {
+            "0"
+        }
+        let encodedLength = if (isHuff) {
+            huffmanLength
+        } else {
+            rawBytes.size
+        }
+
+        encodeIntTo(encodedLength, prefix, writer)
+
+        if (logger.enabled(LogLevel.TRACE)) {
+            httpLogTrace(logger, "[${this.name}#encodeString] `${string}` -->")
+        }
+
+        if (isHuff) {
+            QuickHuffmanEncoder.encodeTo(rawBytes, writer)
+            if (logger.enabled(LogLevel.TRACE)) {
+                httpLogTrace(logger, "\t+---+---------------------------+")
+                httpLogTrace(logger, "\t| H | Value Length: ${encodedLength} |")
+                httpLogTrace(logger, "\t+---+---------------------------+")
+            }
+        } else {
+            writer.write(rawBytes)
+            if (logger.enabled(LogLevel.TRACE)) {
+                httpLogTrace(logger, "\t+---+---------------------------+")
+                httpLogTrace(logger, "\t| 0 | Value Length: ${encodedLength} |")
+                httpLogTrace(logger, "\t+---+---------------------------+")
+                httpLogTrace(logger, "\t| ${rawBytes} |")
+                httpLogTrace(logger, "\t+-------------------------------+")
+            }
+        }
+    }
+
+    /**
+     * Integer Representation
+     * https://www.rfc-editor.org/rfc/rfc7541#section-5.1
+     *
+     *    0   1   2   3   4   5   6   7
+     *  +---+---+---+---+---+---+---+---+
+     *  | ? | ? | ? |       Value       |
+     *  +---+---+---+-------------------+
+     *
+     * or
+     *
+     *    0   1   2   3   4   5   6   7
+     *  +---+---+---+---+---+---+---+---+
+     *  | ? | ? | ? | 1   1   1   1   1 |
+     *  +---+---+---+-------------------+
+     *  | 1 |    Value-(2^N-1) LSB      |
+     *  +---+---------------------------+
+     *                 ...
+     *  +---+---------------------------+
+     *  | 0 |    Value-(2^N-1) MSB      |
+     *  +---+---------------------------+
+     */
+    func encodeIntTo(value: Int64, prefix: String, writer: FieldsWriter): Unit {
+        let n = 8 - prefix.size
+        if (n <= 0) {
+            throw HpackException("Invalid prefix: ${prefix}.")
+        }
+
+        let maskN = (1 << n) - 1
+        if (value < maskN) {
+            let b = convert2Byte(prefix) | UInt8(value) // `Byte(value)` not support now
+            writer.write(b)
+            return
+        }
+
+        var b = convert2Byte(prefix) | UInt8(maskN)
+        writer.write(b)
+        var v = value - maskN
+
+        let mask7 = (1 << 7) - 1
+        while (v > mask7) {
+            b = 0x80 | UInt8(v & mask7)
+            writer.write(b)
+            v >>= 7
+        }
+        writer.write(UInt8(v))
+        return
+    }
+
+    func convert2Byte(strValue: String): Byte {
+        var value: Byte = 0
+        let n = strValue.size
+        var mask: Byte = 0x80
+        for (i in 0..n) {
+            if (mask == 0) {
+                throw HpackException("Invalid strValue: ${strValue}.")
+            }
+
+            match (strValue.get(i)) {
+                case Some(48) => // r'0'
+                    () // continue
+                case Some(49) => // r'1'
+                    value |= mask
+                case _ => throw HpackException("Invalid strValue: ${strValue}.")
+            }
+            mask >>= 1
+        }
+        return value
+    }
+}

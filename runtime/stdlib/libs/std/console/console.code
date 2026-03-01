@@ -1,0 +1,61 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/**
+ * @file
+ *
+ * This is a library for console.
+ */
+
+package std.console
+
+@FastNative
+foreign func CODE_BUFFER_Int64ToCPointer(num: Int64, buf: CPointer<UInt8>, destMax: Int64): Int64
+
+@FastNative
+foreign func CODE_BUFFER_UInt64ToCPointer(num: UInt64, buf: CPointer<UInt8>, destMax: Int64): Int64
+
+@FastNative
+foreign func CODE_BUFFER_Float64ToCPointer(num: Float64, buf: CPointer<UInt8>, bufferSize: Int64): Int64
+
+@Deprecated[message: "Use related global functions in the std.env instead."]
+public class Console {
+    init() {}
+    private static let outConsole: ConsoleWriter = ConsoleWriter(Int32(1))
+    private static let errConsole: ConsoleWriter = ConsoleWriter(Int32(2))
+    private static let inConsole: ConsoleReader = ConsoleReader()
+    public static prop stdIn: ConsoleReader {
+        get() {
+            inConsole
+        }
+    }
+    public static prop stdOut: ConsoleWriter {
+        get() {
+            outConsole
+        }
+    }
+    public static prop stdErr: ConsoleWriter {
+        get() {
+            errConsole
+        }
+    }
+}

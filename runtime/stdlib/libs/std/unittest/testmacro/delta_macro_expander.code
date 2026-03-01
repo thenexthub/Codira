@@ -1,0 +1,103 @@
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+ * This source file is part of the Codira project, licensed under Apache-2.0
+ * with Runtime Library Exception.
+ *
+ * See https://cangjie-lang.cn/pages/LICENSE for license information.
+ */
+macro package std.unittest.testmacro
+
+import std.ast.BinaryExpr
+import std.ast.Tokens
+import std.ast.Token
+import std.ast.Expr
+import std.ast.TokenKind
+import std.ast.ASTException
+
+private type FullMacroExpansion = Tokens 
+private type OpLiteral = String
+
+class DeltaMacroExpander {
+    private static let DELTA_NAMED_ARG = "delta"
+    private static let EXPANDED_FUNC_NAME = "isNearExpansion"
+    static prop expandedFuncName: String {
+        get() { EXPANDED_FUNC_NAME }
+    }
+
+    private static func deltaIndex(args: Array<Expr>, input: Tokens) {
+        let argsLastInd = args.size - 1
+        if (argsLastInd < 0) {
+            return -1
+        }
+        input.size - args[argsLastInd].toTokens().size - 2 // '- 2' is used to skip ':' and get index from size
+    }
+
+    private static func isDeltaSuitable(args: Array<Expr>, input: Tokens): Bool {
+        let deltaIndex = deltaIndex(args, input)
+
+        return deltaIndex > 0 && 
+            input[deltaIndex].toTokens().toString() == DELTA_NAMED_ARG &&
+            input[deltaIndex + 1].toTokens().toString() == ":"
+    }
+
+    static func areTwoArgsSuitable(args: Array<Expr>, input: Tokens): Bool {
+        if (args.size != 2) {
+            return false
+        }
+        return isDeltaSuitable(args, input)
+    }
+
+    static func expandCompareExpr(args: Array<Expr>, macroName: String): (FullMacroExpansion, OpLiteral) {
+        let expr = parseDeltaAssertFirstArg(args[0].toTokens(), macroName)
+        let (l, r) = (quote(($(expr.leftExpr))), quote(($(expr.rightExpr))))
+        let isNearMacroExpansion = quote()
+        let funcName = Token(IDENTIFIER, EXPANDED_FUNC_NAME)
+        let (deltaCompareTokens, opLiteral) = match (expr.op.kind) {
+            case GT => (quote($funcName($l, $r, delta: $(args[1]), cmpType: "GT")), ">")
+            case LT => (quote($funcName($l, $r, delta: $(args[1]), cmpType: "LT")), "<") 
+            case GE => (quote($funcName($l, $r, delta: $(args[1]), cmpType: "GE")), ">=") 
+            case LE => (quote($funcName($l, $r, delta: $(args[1]), cmpType: "LE")), "<=") 
+            case NOTEQ => (quote($funcName($l, $r, delta: $(args[1]), cmpType: "NOT_EQ")), "!=")
+            case EQUAL => (quote($funcName($l, $r, delta: $(args[1]), cmpType: "EQ")), "==")           
+            case _ => throw MacroException(
+                    "Invalid syntax for $macroName. " + 
+                    "You must use only <, >, <=, >=, ==, != operators to compare with delta."
+                )
+        }
+        (deltaCompareTokens, opLiteral)
+    }
+
+    static func areThreeArgsSuitable(args: Array<Expr>, input: Tokens): Bool {
+        if (args.size != 3) {
+            return false
+        }
+        return isDeltaSuitable(args, input)
+    }
+
+    static func expandTwoArgsIntoEq(args: Array<Expr>): (FullMacroExpansion, OpLiteral) {
+        let funcName = Token(IDENTIFIER, EXPANDED_FUNC_NAME)
+        (quote($funcName($(args[0]), $(args[1]), delta: $(args[2]), cmpType: "EQ")), "==") 
+    }
+
+    private static func parseDeltaAssertFirstArg(input: Tokens, macroName: String): BinaryExpr {
+        try {
+            let expr = BinaryExpr(input)
+            
+            if (isBinaryOperatorInvalid(expr.op.kind)) {
+                throw MacroException("Invalid syntax for delta ${macroName}: use ${macroName}(x 'compare token' y, ${DELTA_NAMED_ARG}: delta).")
+            } else {
+                expr
+            }
+        } catch (e: ASTException) {
+            throw MacroException("Expected top-level binary compare operator in ${macroName}.")
+        }
+    }
+
+    private static func isBinaryOperatorInvalid(operatorKind: TokenKind) {
+        match (operatorKind) {
+            case TokenKind.GT | TokenKind.LT | TokenKind.GE |
+                TokenKind.LE | TokenKind.NOTEQ | TokenKind.EQUAL => false
+            case _ => true
+        }
+    }
+}

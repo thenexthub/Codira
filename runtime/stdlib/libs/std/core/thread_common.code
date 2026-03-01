@@ -1,0 +1,64 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package std.core
+
+@Intrinsic
+func setThreadObject(thread: Thread): Unit
+
+func handleException(ex: Exception): Unit {
+    let exceptionHandler = Thread.exceptionHandler.load()
+    try {
+        match (exceptionHandler) {
+            case Some(handler) => try {
+                handler(Thread.currentThread, ex)
+            } catch (e: Exception) {
+                eprintln("Thread id: ${Thread.currentThread.id} throws an exception in the exception handler")
+            }
+            case None => ex.printStackTrace()
+        }
+    } catch (e: Exception) {
+        eprintln("While handling the uncaught exception, another exception occurs.")
+    } catch (e: Error) {
+        eprintln("While handling the uncaught exception, another error occurs.")
+    }
+}
+
+/**
+ * Handler for all errors that are not caught by user code.
+ * Make sure no new error/exception are thrown.
+ */
+func handleError(er: Error): Unit {
+    try {
+        match (er) {
+            // No memory left for printing the stack trace, just print the error message.
+            case _: OutOfMemoryError =>
+                eprintln("An exception has occurred:")
+                eprintln("OutOfMemoryError")
+            case _ => er.printStackTrace()
+        }
+    } catch (e: Exception) {
+        eprintln("While handling the uncaught error, another exception occurs.")
+    } catch (e: Error) {
+        eprintln("While handling the uncaught error, another error occurs.")
+    }
+}

@@ -1,0 +1,360 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package stdx.net.http
+
+import std.collection.*
+import std.io.*
+
+/**
+ * HttpHeaders indicates all key-value pairs in the HTTP message field-line.
+ *
+ * Field line. RFC 9110 says:
+ * HTTP uses fields to provide data in the form of extensible name/value pairs with a registered name namespace.
+ * For Example, this section:
+ * Example-Field: Foo, Bar
+ * key: Example-Field, value: Foo, Bar
+ * field-name = token
+ *              token = 1*tchar
+ *              tchar = "!" / "#" / "$" / "%" / "&" / "'" / "*"
+ *                      / "+" / "-" / "." / "^" / "_" / "`" / "|" / "~"
+ *                      / DIGIT / ALPHA
+ *                      ; any VCHAR, except delimiters (DQUOTE and "(),/:;<=>?@[\]{}")
+ *
+ * A field value does not include leading or trailing whitespace.
+ * In any production that uses the list construct, a sender MUST NOT generate empty list elements.
+ */
+public class HttpHeaders <: Iterable<(String, Collection<String>)> {
+    var map = HashMap<Str, HeaderValue>(DEFAULT_HEADER_CAPACITY)
+
+    func reset(): Unit {
+        map.clear()
+    }
+
+    /**
+     * Adds a specified key-value pair to the HttpHeaders.
+     * If value is an empty String or contains only space elements, it will not be added.
+     *
+     * @param name the field name.
+     * @param value the field value.
+     *
+     * @throws HttpException, if field name or value invalid.
+     */
+    public func add(name: String, value: String): Unit {
+        let valueTrim = value.trimAscii()
+        if (!checkField(name, valueTrim)) {
+            return
+        }
+        let nameStr = toLowerCaseStr(name)
+        if (let Some(hv) <- map.get(nameStr)) {
+            var new = hv
+            new.add(valueTrim)
+            map.add(nameStr, new)
+        } else {
+            map.add(nameStr, HeaderValue(valueTrim))
+        }
+    }
+
+    func add(name: Str, value: String): Unit {
+        if (let Some(hv) <- map.get(name)) {
+            var new = hv
+            new.add(value)
+            map.add(name, new)
+        } else {
+            map.add(name, HeaderValue(value))
+        }
+    }
+    /**
+     * Sets the specified key-value pair to the HttpHeaders.
+     * If the specified headers contains the name in this headers fieldMap, the key-value pair in this headers fieldMap is overwritten.
+     * If value is an empty String or contains only space elements, it will not be added.
+     *
+     * @param name the field name.
+     * @param value the field value.
+     *
+     * @throws HttpException if field name or value invalid.
+     */
+    public func set(name: String, value: String): Unit {
+        let valueTrim = value.trimAscii()
+        if (!checkField(name, valueTrim)) {
+            return
+        }
+        let nameStr = toLowerCaseStr(name)
+        map.add(nameStr, HeaderValue(valueTrim))
+    }
+
+    /**
+     * Gets the collection of values to the specified key.
+     *
+     * @param name the field name, case insensitive.
+     *
+     * @return collection of values to the specified key, if the specified key does not exist, return empty collection.
+     */
+    public func get(name: String): Collection<String> {
+        map.get(Str(name)) ?? ArrayList<String>(0)
+    }
+
+    /**
+     * Gets the first value of the specified key.
+     *
+     * @param name the field name, case insensitive.
+     *
+     * @return first value to the specified key, if the specified key does not exist, return None.
+     */
+    public func getFirst(name: String): ?String {
+        map.get(Str(name))?.single.toString()
+    }
+
+    /**
+     * Deletes the specified key-value pair.
+     *
+     * @param name the field name, case insensitive.
+     */
+    public func del(name: String): Unit {
+        map.remove(Str(name))
+    }
+
+    /**
+     * Traverse all elements in the header.
+     *
+     * @return Iterator of key value pairs.
+     */
+    public func iterator(): Iterator<(String, Collection<String>)> {
+        HttpHeadersIterator(map.iterator())
+    }
+
+    /**
+     * Whether the header is empty.
+     *
+     * @return whether the header is empty.
+     */
+    public func isEmpty(): Bool {
+        return map.isEmpty()
+    }
+
+    func toString(): String {
+        var buf = StringBuilder()
+        writeTo(buf)
+        return buf.toString()
+    }
+
+    func writeTo(buf: StringBuilder): Unit {
+        for ((n, v) in map) {
+            if (n == Str("set-cookie")) {
+                buf.append("set-cookie")
+                buf.append(": ")
+                buf.append(v.single)
+                buf.append("\r\n")
+                for (i in 0..v.extra.size) {
+                    buf.append(n)
+                    buf.append(": ")
+                    buf.append(v.extra[i])
+                    buf.append("\r\n")
+                }
+            } else {
+                buf.append(n)
+                buf.append(": ")
+                v.writeTo(buf)
+                buf.append("\r\n")
+            }
+        }
+        buf.append("\r\n")
+    }
+
+    func getInternal(name: String): ?HeaderValue {
+        map.get(Str(name))
+    }
+
+    func addAll(headers: HttpHeaders): Unit {
+        for ((n, hv) in headers.map) {
+            for (v in hv) {
+                add(n, v)
+            }
+        }
+    }
+
+    func clone(): HttpHeaders {
+        let headers = HttpHeaders()
+        for ((n, v) in map) {
+            headers.map.add(n, v.clone())
+        }
+        return headers
+    }
+
+    func clear(): Unit {
+        map.clear()
+    }
+
+    private func checkField(name: String, value: String): Bool {
+        if (name.isEmpty() || !Str(name).byteMatches(isTokenByte)) {
+            throw HttpException("Invalid header name: ${name}.")
+        }
+        if (value.isEmpty()) {
+            return false
+        }
+        if (!Str(value).byteMatches(checkValueBytes)) {
+            throw HttpException("Invalid header value: ${value}.")
+        }
+        return true
+    }
+}
+
+class HttpHeadersIterator <: Iterator<(String, Collection<String>)> {
+    HttpHeadersIterator(let iter: HashMapIterator<Str, HeaderValue>) {}
+
+    public func next(): Option<(String, Collection<String>)> {
+        return match (iter.next()) {
+            case Some((k, v)) => (getString(k), v)
+            case None => None
+        }
+    }
+}
+
+let emptyList = ArrayList<String>(0)
+
+class HeaderValue <: Collection<String> {
+    var _single: String
+    var _extra: ArrayList<String> = emptyList
+
+    init(s: String) {
+        _single = s
+    }
+
+    prop single: String {
+        get() {
+            _single
+        }
+    }
+
+    prop extra: ArrayList<String> {
+        get() {
+            _extra
+        }
+    }
+
+    func isSingle(): Bool {
+        _extra.isEmpty()
+    }
+
+    func add(v: String): Unit {
+        if (_extra.isEmpty()) {
+            _extra = ArrayList<String>(1)
+        }
+        _extra.add(v)
+    }
+
+    func splitAnyMatch(b: Byte, v: String): Bool {
+        splitAnyMatch(b, Str(v))
+    }
+
+    func splitAnyMatch(b: Byte, v: Str): Bool {
+        if (Str(_single).splitAnyMatch(b, v)) {
+            return true
+        }
+        for (i in 0.._extra.size where Str(_extra[i]).splitAnyMatch(b, v)) {
+            return true
+        }
+        return false
+    }
+
+    func splitAllMatch(b: Byte, fn: (Str) -> Bool): Bool {
+        if (!Str(_single).splitAllMatch(b, fn)) {
+            return false
+        }
+        for (i in 0.._extra.size where !Str(_extra[i]).splitAllMatch(b, fn)) {
+            return false
+        }
+        return true
+    }
+
+    func toString(): String {
+        var buf = StringBuilder()
+        writeTo(buf)
+        return buf.toString()
+    }
+
+    func writeTo(buf: StringBuilder): Unit {
+        buf.append(_single)
+        for (i in 0.._extra.size) {
+            buf.append(",")
+            buf.append(_extra[i])
+        }
+    }
+
+    func clone(): HeaderValue {
+        var hv = HeaderValue(_single)
+        if (!_extra.isEmpty()) {
+            hv._extra = _extra.clone()
+        }
+        return hv
+    }
+
+    public prop size: Int64 {
+        get() {
+            _extra.size + 1
+        }
+    }
+
+    public func isEmpty(): Bool {
+        _single.isEmpty()
+    }
+
+    public func iterator(): Iterator<String> {
+        HeaderValueIterator(this)
+    }
+
+    public func removeLastValue(): Unit {
+        if (!_extra.isEmpty()) {
+            // remove from extra
+            let lastValues = _extra[_extra.size - 1]
+            match (lastValues.indexOf(b',')) {
+                case Some(idx) => _extra[_extra.size - 1] = lastValues[..idx]
+                case None => _extra.remove(at: _extra.size - 1) // remove the last values
+            }
+            return
+        }
+        // clear the single value
+        match (_single.indexOf(b',')) {
+            case Some(idx) => _single = _single[..idx]
+            case None => _single = "" // remove the last values
+        }
+        return
+    }
+}
+
+class HeaderValueIterator <: Iterator<String> {
+    var pos = -2
+
+    HeaderValueIterator(var hv: HeaderValue) {}
+
+    public func next(): ?String {
+        if (pos == -2) {
+            pos++
+            return hv.single.toString()
+        }
+        if (pos < hv.extra.size - 1) {
+            pos++
+            return hv.extra[pos].toString()
+        }
+        return None
+    }
+}

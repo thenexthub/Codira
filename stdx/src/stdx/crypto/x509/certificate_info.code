@@ -1,0 +1,75 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package stdx.crypto.x509
+
+import std.time.DateTime
+import stdx.crypto.common.*
+
+public struct X509CertificateInfo {
+    public var serialNumber: SerialNumber
+    public var notBefore: DateTime
+    public var notAfter: DateTime
+    public var subject: ?X509Name
+    public var dnsNames: Array<String>
+    public var emailAddresses: Array<String>
+    public var IPAddresses: Array<IP>
+    public var keyUsage: ?KeyUsage
+    public var extKeyUsage: ?ExtKeyUsage
+
+    public init(
+        serialNumber!: ?SerialNumber = None,
+        notBefore!: ?DateTime = None,
+        notAfter!: ?DateTime = None,
+        subject!: ?X509Name = None,
+        dnsNames!: Array<String> = Array<String>(),
+        emailAddresses!: Array<String> = Array<String>(),
+        IPAddresses!: Array<IP> = Array<IP>(),
+        keyUsage!: ?KeyUsage = None,
+        extKeyUsage!: ?ExtKeyUsage = None
+    ) {
+        for (IPAddress in IPAddresses) {
+            if (IPAddress.size != IPV4_SIZE && IPAddress.size != IPV6_SIZE) {
+                throw X509Exception("Illegal IP address.")
+            }
+        }
+
+        this.serialNumber = serialNumber ?? SerialNumber()
+
+        match (notBefore) {
+            case Some(time) => this.notBefore = time
+            case _ => this.notBefore = DateTime.nowUTC()
+        }
+
+        match (notAfter) {
+            case Some(time) => this.notAfter = time
+            case _ => this.notAfter = this.notBefore.addYears(1)
+        }
+
+        this.subject = subject
+        this.dnsNames = dnsNames
+        this.emailAddresses = emailAddresses
+        this.IPAddresses = IPAddresses
+        this.keyUsage = keyUsage
+        this.extKeyUsage = extKeyUsage
+    }
+}

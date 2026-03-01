@@ -1,0 +1,127 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+namespace MacroMsgFormat;
+
+struct Position {
+  file_id: uint32;
+  line: int32;
+  column: int32;
+}
+
+table Token {
+  kind: uint8;
+  value: string;
+  begin: Position;
+  end: Position;
+  delimiterNum : uint32 = 1;
+}
+
+table IdInfo {
+  name : string;
+  pos : Position;
+}
+
+struct IntValue {
+  val : int64;
+}
+
+struct BoolValue {
+  val : bool;
+}
+
+table TokensValue {
+  val: [Token];
+}
+
+union OptionValue {
+  sValue : string,
+  iValue : IntValue,
+  bValue : BoolValue,
+  tValue : TokensValue
+}
+
+table ItemInfo {
+  key : string;
+  value : OptionValue;
+}
+
+table ChildMsg {
+  childName : string;
+  items : [ItemInfo];
+}
+
+table DefLib {
+  paths : [string];
+}
+
+table Diagnostic {
+  diagSeverity : int32;
+  begin : Position;
+  end : Position;
+  errorMessage : string;
+  mainHint: string;
+}
+
+table MacroCall {
+  id : IdInfo;
+  hasAttrs : bool;
+  args : [Token];
+  attrs : [Token];
+  parentNames : [string];
+  childMsges : [ChildMsg];
+  methodName : string;
+  packageName : string;
+  libPath : string;
+  begin : Position;
+  end : Position;
+}
+
+table MacroResult {
+  id : IdInfo;
+  status : uint8;
+  tks : [Token];
+  items : [ItemInfo];
+  assertParents : [string];
+  diags : [Diagnostic];
+}
+
+table MultiMacroCalls {
+  calls : [MacroCall];
+}
+
+struct ExitTask {
+  flag : bool;
+}
+
+union MsgContent {
+  defLib : DefLib,
+  multiCalls : MultiMacroCalls,
+  macroResult : MacroResult,
+  exitTask : ExitTask
+}
+
+table MacroMsg {
+  content : MsgContent;
+}
+
+root_type MacroMsg;

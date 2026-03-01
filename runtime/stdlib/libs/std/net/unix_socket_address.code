@@ -1,0 +1,107 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package std.net
+
+import std.binary.*
+
+@When[os != "macOS" && os!= "iOS"]
+const MAX_UDS_PATH_LENGTH: Int64 = 108
+
+@When[os == "macOS" || os== "iOS"]
+const MAX_UDS_PATH_LENGTH: Int64 = 104
+
+func findLastNoneZeroIdx(path: Array<Byte>): Int64 {
+    var lastNoneZeroIdx = 0
+    for (i in path.size - 1..=0 : -1) {
+        if (path[i] != 0) {
+            lastNoneZeroIdx = i + 1
+            break
+        }
+    }
+    return lastNoneZeroIdx
+}
+
+public class UnixSocketAddress <: SocketAddress & Equatable<UnixSocketAddress> {
+    let _path: String
+    let _len: Int64
+
+    public init(path: Array<Byte>) {
+        this(unsafe { String.fromUtf8Unchecked(path[..findLastNoneZeroIdx(path)]) })
+    }
+    public init(path: String) {
+        _len = path.size
+        if (_len > MAX_UDS_PATH_LENGTH) {
+            throw IllegalArgumentException("Path size(${_len}) is too long, expect <= ${MAX_UDS_PATH_LENGTH}.")
+        }
+        if (_len == 0) { // Unnamed socket address
+            _path = ""
+        } else if (path[0] == 0) { // Abstract socket address
+            let un = path[1..]
+            if (let Some(idx) <- un.indexOf(0)) {
+                throw IllegalArgumentException(
+                    "Unix domain socket path must not contain interior null bytes: ${un.toArray()}")
+            }
+            _path = path
+        } else { // Pathname socket address
+            if (let Some(idx) <- path.indexOf(0)) {
+                throw IllegalArgumentException(
+                    "Unix domain socket path must not contain interior null bytes: ${path.toArray()}")
+            }
+            _path = path
+        }
+    }
+    public prop size: Int64 {
+        get() {
+            2 + _len
+        }
+    }
+    public prop family: AddressFamily {
+        get() {
+            AddressFamily.UNIX
+        }
+    }
+    public operator func ==(other: UnixSocketAddress): Bool {
+        return _path[0.._len] == other._path[0..other._len]
+    }
+    public operator func !=(other: UnixSocketAddress): Bool {
+        return !(this == other)
+    }
+    public func getAddressBytes(): Array<Byte> {
+        let buf = Array<Byte>(this.size, repeat: 0)
+        // 2bytes family
+        this.family.value.writeLittleEndian(buf)
+        // sun_un path
+        buf[2..] = _path[.._len].toArray()
+        return buf
+    }
+    public func hashCode(): Int64 {
+        var df = DefaultHasher()
+        for (i in 0.._len) {
+            df.write(_path[i])
+        }
+        df.finish()
+    }
+    public func toString(): String {
+        _path[0.._len]
+    }
+}
