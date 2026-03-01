@@ -1,3 +1,0 @@
-// {"signature":"language::Parser::consumeIfAttributeLParen()"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-@opened)

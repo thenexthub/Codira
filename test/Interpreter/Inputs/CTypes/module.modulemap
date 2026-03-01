@@ -1,3 +1,0 @@
-module CTypes {
-  header "CTypes.h"
-}

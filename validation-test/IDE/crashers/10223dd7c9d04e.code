@@ -1,5 +1,0 @@
-// {"kind":"complete","signature":"language::IterableDeclContext::addMemberSilently(language::Decl*, language::Decl*, bool) const"}
-// RUN: not --crash %target-language-ide-test -code-completion --code-completion-token=COMPLETE -code-completion-diagnostics -source-filename %s
-{
-  class a {
-    lazy b: = #^COMPLETE^#

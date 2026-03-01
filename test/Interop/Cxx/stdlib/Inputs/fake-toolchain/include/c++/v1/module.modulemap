@@ -1,4 +1,0 @@
-module FakeToolchain [system] {
-  header "fake-toolchain.h"
-  export *
-}

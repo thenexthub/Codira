@@ -1,6 +1,0 @@
-#ifndef _LIBCPP_CSTDDEF
-#define _LIBCPP_CSTDDEF
-
-#include <stddef.h>
-
-#endif

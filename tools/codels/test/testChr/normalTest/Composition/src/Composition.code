@@ -1,0 +1,49 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+func composition_a(x: Int32): Float32 { Float32(x) }
+func composition_b(x: Float32): Int32 { Int32(x) }
+
+var fg = composition_a ~> composition_b
+let lambdaComp = ({x: Int32 => x}) ~> composition_a // ok
+func h1<T>(x: T): T { x }
+func h2<T>(x: T): T { x }
+var hh = h1<Int32> ~> h2<Int32>
+
+class A1{
+    func asFunc(x: Int32): Int32 {
+        x
+    }
+    init() {
+        var fg1 = A1() ~> init // error: `init` is not a valid expression
+    }
+}
+class B1{
+    func asFunc(x: Float32): Float32 {
+        x
+    }
+}
+let objA = A1()
+let objB1 = B1()
+let af = objA ~> composition_a // ok
+let fb = composition_a ~> objB1 // ok
+let aa1 = objA ~> objA

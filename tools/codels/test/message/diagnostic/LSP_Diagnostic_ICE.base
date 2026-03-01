@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","method":"textDocument/extendPublishDiagnostics","params":{"diagnostics":[{"category":508,"code":508,"message":"'A51' is not accessible in package 'default.AA'","range":{"end":{"character":28,"line":8},"start":{"character":14,"line":8}},"severity":1,"source":"Codira"}],"uri":"file:///home/zzk/project/lsp-package/test/testChr/normalTest/ICE/src/BB/b.code"}}

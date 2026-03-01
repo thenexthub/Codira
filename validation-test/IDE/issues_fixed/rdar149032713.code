@@ -1,4 +1,0 @@
-// RUN: %target-language-ide-test -print-language-file-interface -source-filename %s
-
-@available(*, unavailable)
-extension Foo {}

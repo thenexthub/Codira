@@ -1,3 +1,0 @@
-// {"signature":"language::BoundGenericType::getExpandedGenericArgs()"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-fn a fn b [{ lazy var c = a(d var e = b

@@ -1,0 +1,1 @@
+{"id":9,"jsonrpc":"2.0","result":{"documentChanges":[{"edits":[{"newText":"RR1","range":{"end":{"character":9,"line":10},"start":{"character":7,"line":10}}}],"textDocument":{"uri":"file:///d%3A/sourceCode/TestVscode/movrefile/src/test.code","version":0}}]}}

@@ -1,2 +1,0 @@
-Foo(Foo.h): Func removedFunction() has been removed
-CodiraFoo: Class RemovedClass has been removed

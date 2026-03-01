@@ -1,3 +1,0 @@
-public fn B() {
-  print("B")
-}

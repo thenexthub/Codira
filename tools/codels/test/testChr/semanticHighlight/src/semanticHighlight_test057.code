@@ -1,0 +1,108 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/*函数声明*/
+//函数声明可以出现在抽象类，接口，trait中。
+abstract class C1 {
+    func add() :Int32
+}
+
+func returnAdd(a: Int32, b: Int32): (Int32, Int32) -> Int32 {
+return {a, b => a + b} // Return a lambda expression.
+}
+
+func add(a: Int32, b!: Int32 = 1): Int32 { a + b }
+func defaultPara(){
+    add(3) // invoke add(3, 1), return 4
+    add(3, b: 2) // return 5
+}
+
+//嵌套函数
+func nest() = {
+    let c = 1
+    print("${c}") // OK
+}
+
+func nest_test() = {
+func nest_lv_1(a: Int32, b: Int32) = a + b
+let c = 1
+    func nest() = {   //OK
+    print("${c}") // 1
+    var b = nest_lv_1(1, 2) // b = 3
+    }
+}
+
+//函数返回值类型推断
+//Write return explicitly.
+func return_test_1() = {
+    return 3 // Compilation error.
+}
+
+// Return is not written.
+func return_test_2(a: Int32, b: Int32) = {
+    return_test_1()
+    var c = a + b
+    if (c > 100) {
+        // // Compilation error.
+        return c
+    }
+    return return_test_3()
+}
+
+//相互调用的函数的返回类型依赖关系的环状检查
+func return_test_3(){
+    var ret: Int32 = return_test_2(1,2)
+    return ret
+}
+
+//相互调用的函数的返回类型依赖关系的环状检查
+func return_test_4(a: Int32, add:(Int32, Int32) -> Int32 ) = {
+
+    return_test_1()
+    var c = a + b
+    if (c > 100) {
+        // // Compilation error.
+        return c
+    }
+    return return_test_3()
+}
+
+//函数作为参数
+func addFuncAsPara(a: Int32, add:(Int32, Int32) -> Int32 ) = {
+    let a = add(1,2)
+}
+
+func addFuncAsParaTest(){
+    var c: Int32 = 9
+    let d: Int32 = 9
+    addFuncAsPara(10,{a:Int32, b:Int32 =>
+    a + b+ c+ d})
+}
+
+public func Lambda(){
+    var sum1: (Int32, Int32) -> Int32 = {a, b => a + b}
+    var sum2: (Int32, Int32) -> Int32 = {a: Int32, b => a + b}
+    var sum3 = {a:Int32, b:Int32 => a + b}
+    var display = { => print("Hello") }
+    var a = { => return 1 }
+}
+

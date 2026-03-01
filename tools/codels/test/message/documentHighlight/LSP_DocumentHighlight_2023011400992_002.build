@@ -1,0 +1,9 @@
+cd ${caseProPath}
+mkdir macroBin
+cd macroBin
+mkdir default
+cd ${caseProPath}
+echo "codec build start"
+codec --import-path=./macroBin/default --output-dir=./macroBin/default -p ./src/AA --compile-macro
+codec --import-path=./macroBin/default --no-sub-pkg --output-dir=./macroBin/default -p ./src/AA/BB --compile-macro
+echo "codec build end"

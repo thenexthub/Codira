@@ -1,4 +1,0 @@
-"""
-some
-multiline
-string

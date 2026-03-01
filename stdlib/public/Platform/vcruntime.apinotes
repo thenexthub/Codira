@@ -1,7 +1,0 @@
----
-Name: vcruntime
-Functions:
-- Name: _setjmp
-  Availability: nonlanguage
-  AvailabilityMsg: 'Functions that return more than once are unavailable in language'
-

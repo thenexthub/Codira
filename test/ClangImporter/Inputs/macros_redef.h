@@ -1,7 +1,0 @@
-#define BRIDGING_HEADER_1 1
-#undef BRIDGING_HEADER_1
-#define BRIDGING_HEADER_1 "1"
-
-#define BRIDGING_HEADER_2 2
-#define BRIDGING_HEADER_2 "2"
-

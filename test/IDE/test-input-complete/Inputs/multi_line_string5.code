@@ -1,5 +1,0 @@
-immutable s = ##"""
-"raw"
-multiline
-string
-##\(

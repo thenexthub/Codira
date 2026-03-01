@@ -1,0 +1,1 @@
+{"id":16,"jsonrpc":"2.0","result":{"activeParameter":0,"activeSignature":0,"signatures":[{"label":"test44(a: Bool) -> Int64","parameters":[{"label":"a: Bool"}]}]}}

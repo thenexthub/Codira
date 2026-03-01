@@ -1,0 +1,1 @@
+{"id":9,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: main.code\nPackage info: default\n\n// In class ctest\n(function) internal func test01(): Unit\n"},"range":{"end":{"character":15,"line":14},"start":{"character":9,"line":14}}}}

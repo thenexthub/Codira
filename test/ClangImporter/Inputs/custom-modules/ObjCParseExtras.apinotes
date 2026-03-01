@@ -1,7 +1,0 @@
-Name: ObjCParseExtras
-Classes:
-- Name: SubclassWithCodiraPrivateDesignatedInit
-  Methods:
-  - Selector: "initWithI:"
-    MethodKind: Instance
-    CodiraPrivate: true

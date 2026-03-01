@@ -1,0 +1,60 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+
+class Foo1<TTT1,TTT22> {
+  Foo1(a: Int64){}
+}
+
+extend<TTT1,TTT22> Foo1<TTT1,TTT22>{
+   func name(a: TTT1)  {
+
+       var aa: TTT22
+   }
+}
+
+extend<TTT1,TTT22> Foo1<TTT1,TTT22>{
+   func name2(a: TTT1)  {
+
+       var aa: TTT22
+   }
+}
+
+class Foo<T> {
+    var item: T
+    init(it: T) {
+        item = it
+    }
+}
+
+interface Eq<T> {
+    func equals(other: T): Bool
+}
+
+extend<T> Foo<T> where T <: Eq<T> {
+    func equals(other: Foo<T>): Bool {
+        if (this.item.equals(other.item)) {
+            return true
+        }
+    return false
+    }
+}

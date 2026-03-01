@@ -1,4 +1,0 @@
-module ImportCCharTypes {
-  header "import-cchar-types.h"
-  export *
-}

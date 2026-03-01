@@ -1,0 +1,450 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package codepm.toml
+
+import std.time.{DateTime, Month}
+import std.collection.*
+import stdx.serialization.serialization.*
+import std.convert.*
+
+public abstract class TomlValue <: ToString {
+    var _comment = Comment()
+
+    public mut prop comment: Comment {
+        get() {
+            _comment
+        }
+        set(v) {
+            _comment = v
+        }
+    }
+
+    public func asBool(): TomlBoolean {
+        match (this) {
+            case v: TomlBoolean => v
+            case _ => throw TomlException("Fail to convert to TomlBoolean")
+        }
+    }
+
+    public func asInt(): TomlInteger {
+        match (this) {
+            case v: TomlInteger => v
+            case _ => throw TomlException("Fail to convert to TomlInteger")
+        }
+    }
+
+    public func asFloat(): TomlFloat {
+        match (this) {
+            case v: TomlFloat => v
+            case _ => throw TomlException("Fail to convert to TomlFloat")
+        }
+    }
+
+    public func asString(): TomlString {
+        match (this) {
+            case v: TomlString => v
+            case _ => throw TomlException("Fail to convert to TomlString")
+        }
+    }
+
+    public func asArray(): TomlArray {
+        match (this) {
+            case v: TomlArray => v
+            case _ => throw TomlException("Fail to convert to TomlArray")
+        }
+    }
+
+    public func asObject(): TomlObject {
+        match (this) {
+            case v: TomlObject => v
+            case _ => throw TomlException("Fail to convert to TomlObject")
+        }
+    }
+}
+
+public class TomlString <: TomlValue {
+    private var value_: String
+
+    public init(value: String) {
+        this.value_ = value
+    }
+
+    public prop value: String {
+        get() {
+            return value_
+        }
+    }
+
+    public func toString(): String {
+        return "\"${quotedReplace(value_)}\""
+    }
+}
+
+public class TomlInteger <: TomlValue {
+    private var value_: Int64
+
+    public init(value: Int64) {
+        this.value_ = value
+    }
+
+    public prop value: Int64 {
+        get() {
+            return value_
+        }
+    }
+
+    public func toString(): String {
+        return value_.toString()
+    }
+}
+
+public class TomlFloat <: TomlValue {
+    private var value_: Float64
+
+    public init(value: Float64) {
+        this.value_ = value
+    }
+
+    public prop value: Float64 {
+        get() {
+            return value_
+        }
+    }
+
+    public func toString(): String {
+        return value_.toString()
+    }
+}
+
+public class TomlBoolean <: TomlValue {
+    private var value_: Bool
+
+    public init(value: Bool) {
+        this.value_ = value
+    }
+
+    public prop value: Bool {
+        get() {
+            return value_
+        }
+    }
+
+    public func toString(): String {
+        return value_.toString()
+    }
+}
+
+public class TomlOffsetDatetime <: TomlValue {
+    private var value_: DateTime
+
+    public init(value: DateTime) {
+        this.value_ = value
+    }
+
+    public prop value: DateTime {
+        get() {
+            return value_
+        }
+    }
+
+    public func toString(): String {
+        return value_.toString()
+    }
+}
+
+public class TomlLocalDatetime <: TomlValue {
+    private var value_: LocalDatetime
+
+    public init(value: LocalDatetime) {
+        this.value_ = value
+    }
+
+    public prop value: LocalDatetime {
+        get() {
+            return value_
+        }
+    }
+
+    public func toString(): String {
+        return value_.toString()
+    }
+}
+
+public class TomlLocalDate <: TomlValue {
+    private var value_: LocalDate
+
+    public init(value: LocalDate) {
+        this.value_ = value
+    }
+
+    public prop value: LocalDate {
+        get() {
+            return value_
+        }
+    }
+
+    public func toString(): String {
+        return value_.toString()
+    }
+}
+
+public class TomlLocalTime <: TomlValue {
+    private var value_: LocalTime
+
+    public init(value: LocalTime) {
+        this.value_ = value
+    }
+
+    public prop value: LocalTime {
+        get() {
+            return value_
+        }
+    }
+
+    public func toString(): String {
+        return value_.toString()
+    }
+}
+
+public class TomlArray <: TomlValue {
+    private var value_: ArrayList<TomlValue>
+
+    public init() {
+        this.value_ = ArrayList<TomlValue>()
+    }
+
+    public prop value: ArrayList<TomlValue> {
+        get() {
+            return value_
+        }
+    }
+
+    public init(list: Collection<TomlValue>) {
+        this.value_ = ArrayList<TomlValue>(list)
+    }
+
+    public prop size: Int64 {
+        get() {
+            return value_.size
+        }
+    }
+
+    public func append(tv: TomlValue): Unit {
+        value_.add(tv)
+    }
+
+    public func get(index: Int64): Option<TomlValue> {
+        return value_.get(index)
+    }
+
+    public operator func [](index: Int64): TomlValue {
+        return match (value_.get(index)) {
+            case Some(v) => v
+            case None => throw TomlException("The index ${index} of TomlArray does not exist.")
+        }
+    }
+
+    public func toString(): String {
+        return value_.toString()
+    }
+}
+
+public class TomlObject <: TomlValue {
+    private var data: LinkedHashMap<String, TomlValue>
+
+    public init() {
+        this.data = LinkedHashMap<String, TomlValue>()
+    }
+
+    public init(map: Map<String, TomlValue>) {
+        this.data = LinkedHashMap<String, TomlValue>()
+        for ((k, v) in map) {
+            this.data.add(k, v)
+        }
+    }
+
+    public prop size: Int64 {
+        get() {
+            return data.size
+        }
+    }
+
+    public prop value: LinkedHashMap<String, TomlValue> {
+        get() {
+            return data
+        }
+    }
+
+    public func contains(key: String): Bool {
+        return data.contains(key)
+    }
+
+    public func put(key: String, v: TomlValue): Unit {
+        data.add(key, v)
+    }
+
+    public func get(key: String): Option<TomlValue> {
+        return data.get(key)
+    }
+
+    public operator func [](key: String): TomlValue {
+        return match (data.get(key)) {
+            case Some(v) => v
+            case None => throw TomlException("The Value of TomlObject does not exist")
+        }
+    }
+
+    public operator func [](key: String, value!: TomlValue): Unit {
+        this.put(key, value)
+    }
+
+    public func toString(): String {
+        return data.toString()
+    }
+}
+
+public struct LocalDate <: ToString & Serializable<LocalDate> {
+    public var year: Int64 = 0
+    public var month: Month = Month.of(1)
+    public var day: Int64 = 0
+
+    public init() {}
+
+    public init(year: Int64, month: Month, day: Int64) {
+        this.year = year
+        this.month = month
+        this.day = day
+    }
+
+    public func serialize(): DataModel {
+        return DataModelString(toString())
+    }
+
+    public static func deserialize(dm: DataModel): LocalDate {
+        var dms = match (dm) {
+            case data: DataModelString => data.getValue()
+            case _ => throw Exception("this data is not DataModelStruct")
+        }
+        var result = LocalDate()
+        try {
+            let dateTimeFormats = "yyyy-MM-dd"
+            let t = DateTime.parse(dms, dateTimeFormats)
+            result.year = t.year
+            result.month = t.month
+            result.day = t.dayOfMonth
+        } catch (_: Exception) {
+            return LocalDate()
+        }
+        return result
+    }
+
+    public func toString(): String {
+        return "${year.format("04")}-${month.toInteger().format("02")}-${day.format("02")}"
+    }
+}
+
+public struct LocalTime <: ToString & Serializable<LocalTime> {
+    public var hour: Int64 = 0
+    public var minute: Int64 = 0
+    public var second: Int64 = 0
+    public var nanoSecond: Int64 = 0
+    public var precision: Int64 = 0
+
+    public init() {}
+
+    public init(
+        hour: Int64,
+        minute: Int64,
+        second: Int64,
+        nanosecond!: Int64 = 0
+    ) {
+        this.hour = hour
+        this.minute = minute
+        this.second = second
+        this.nanoSecond = nanosecond
+    }
+
+    public func serialize(): DataModel {
+        return DataModelString(toString())
+    }
+
+    public static func deserialize(dm: DataModel): LocalTime {
+        let dateTimeFormats = ["HH:mm:ss", "HH:mm:ss.SS"]
+        var dms = match (dm) {
+            case data: DataModelString => data.getValue()
+            case _ => throw Exception("this data is not DataModelStruct")
+        }
+        var result = LocalTime()
+        for (fmt in dateTimeFormats) {
+            try {
+                let t = DateTime.parse(dms, fmt)
+                result.hour = t.hour
+                result.minute = t.minute
+                result.second = t.second
+                result.nanoSecond = t.nanosecond
+                break
+            } catch (_: Exception) {
+                return LocalTime()
+            }
+        }
+
+        return result
+    }
+
+    public func toString(): String {
+        let sb = StringBuilder("${hour.format("02")}:${minute.format("02")}:${second.format("02")}")
+        if (precision > 0) {
+            sb.append(".${nanoSecond.format("09")}"[..precision + 1])
+        } else if (nanoSecond > 0) {
+            sb.append(".${nanoSecond.format("09")}".stripLeft("0"))
+        }
+        return sb.toString()
+    }
+}
+
+public struct LocalDatetime <: ToString {
+    public var date: LocalDate
+    public var time: LocalTime
+
+    public init(
+        year: Int64,
+        month: Month,
+        day: Int64,
+        hour!: Int64 = 0,
+        min!: Int64 = 0,
+        sec!: Int64 = 0,
+        nsec!: Int64 = 0
+    ) {
+        this.date = LocalDate(year, month, day)
+        this.time = LocalTime(hour, min, sec, nanosecond: nsec)
+    }
+
+    public init(date: LocalDate, time: LocalTime) {
+        this.date = date
+        this.time = time
+    }
+
+    public func toString(): String {
+        return "${date}T${time}}"
+    }
+}

@@ -1,8 +1,0 @@
-public struct PublicStruct {
-  public fn publicMethod() {}
-  internal fn internalMethod() {}
-  private fn privateMethod() {}
-}
-
-internal struct InternalStruct {}
-private struct PrivateStruct {}

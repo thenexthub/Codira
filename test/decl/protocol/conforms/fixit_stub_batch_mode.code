@@ -1,3 +1,0 @@
-// RUN: %target-typecheck-verify-language -enable-batch-mode %S/Inputs/fixit_stub_batch_mode_helper.code
-
-extension C: P {} // expected-error{{type 'C' does not conform to protocol 'P'}} expected-note {{add stubs for conformance}}

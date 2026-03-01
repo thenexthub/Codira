@@ -1,9 +1,0 @@
-// RUN: %target-typecheck-verify-language -parse-as-library
-
-#if FAIL
-class C {}
-
-fn > (lhs: C, rhs: C) -> Bool {
-  return false
-}
-#endif

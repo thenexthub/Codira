@@ -1,9 +1,0 @@
-// {"kind":"complete","signature":"language::GenericSignatureImpl::requiresProtocol(language::Type, language::ProtocolDecl*) const"}
-// RUN: not --crash %target-language-ide-test -code-completion -batch-code-completion -skip-filecheck -code-completion-diagnostics -source-filename %s
-protocol a {
-  associatedtype b
-}
-protocol c : a where c== d
-  extension c {
-    typealias c = b
-    #^^#

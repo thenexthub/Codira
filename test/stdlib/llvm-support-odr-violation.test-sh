@@ -1,3 +1,0 @@
-// RUN: %toolchain-nm --defined-only -C %platform-dylib-dir/%target-library-name(languageCore) | %FileCheck --allow-empty %s
-// CHECK-NOT: [^:]toolchain::
-// UNSUPPORTED: freestanding

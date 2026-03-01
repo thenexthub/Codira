@@ -1,0 +1,22 @@
+{
+    "codec_version": "0.35.3",
+    "organization": "cangjie",
+    "name": "test",
+    "description": "nothing here",
+    "version": "1.0.0",
+    "requires": {
+        "pro1": {
+            "organization": "i",
+            "version": "1.0.1",
+            "path": "pro1"
+        },
+        "pro2": {
+            "organization": "ii",
+            "version": "2.0.1",
+            "path": "pro2"
+        }
+    },
+    "foreign_requires": {},
+    "output_type": "executable",
+    "command_option": ""
+}

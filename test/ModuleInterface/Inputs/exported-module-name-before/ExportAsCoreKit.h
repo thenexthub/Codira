@@ -1,3 +1,0 @@
-struct CKThing {
-  long value;
-};

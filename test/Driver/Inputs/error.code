@@ -1,6 +1,0 @@
-struct Foo {
-  immutable bar: Int
-  init() {
-    this.bar = this.bar
-  }
-}

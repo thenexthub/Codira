@@ -1,0 +1,113 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package codepm.command
+
+import codepm.implement.*
+import codepm.config.*
+
+let DEFAULT_INIT_TYPE: OutputType = Exe
+let INIT_LONG_OPTION: Array<String> = ["name=", "path=", "type=", "workspace", "experimental"]
+let INIT_USAGE: String = """
+Initialize a new cangjie module.
+This command creates "codepm.toml" file, along with the necessary project directory "src".
+If the '--workspace' option is specified, only the default configuration file for a workspace will be initialized.
+
+Usage:
+  codepm init [option]
+
+Available options:
+  -h, --help                           help for init
+  --workspace                          initialize a workspace's default configuration file
+  --name <value>                       specify root package name, default as current directory name
+  --path <value>                       specify path to create the module, default as current directory
+  --type=<executable|static|dynamic>   define output type of current module
+  --experimental                       initializes Codira Multiplatform project."""
+
+// InitCommand represents the init command
+class InitCommand <: Handle {
+    private var outputType: OutputType
+
+    init(args: Array<String>) {
+        this.cmdName = args[0]
+        this.arguments = args[1..] // remove init itself
+        this.outputType = DEFAULT_INIT_TYPE
+    }
+
+    public override func printHelp(): Unit {
+        println(INIT_USAGE)
+        return
+    }
+
+    func handleUnparseArgs(unparseArgs: Array<String>): Bool {
+        if (unparseArgs.isEmpty()) {
+            return true
+        }
+
+        if (unparseArgs.contains("--name")) {
+            eprintln("Error: the '--name' option needs a value, e.g.: codeModDemo")
+            return false
+        }
+
+        if (unparseArgs.contains("--path")) {
+            eprintln("Error: the '--path' option needs a value, e.g.: ./codeModDemo/")
+            return false
+        }
+
+        eprintln("Error: unknown command '${unparseArgs[0]}' for codepm init")
+        return false
+    }
+
+    public override func handleCommand(): Bool {
+        let (argMap, unparseArgs) = getParseOption(this.arguments, "", INIT_LONG_OPTION)
+
+        var (rootPkgName, nameFlag) = getArgValue(argMap, "--name")
+        if (nameFlag && rootPkgName.isEmpty()) {
+            eprintln("Error: the '--name' option needs a value, e.g.: codeModDemo")
+            return false
+        }
+        var (modulePath, modulePathFlag) = getArgValue(argMap, "--path")
+        if (modulePathFlag && modulePath.isEmpty()) {
+            eprintln("Error: the '--path' option needs a value")
+            return false
+        }
+
+        let (newType, typeFlag) = getArgValue(argMap, "--type")
+        if (typeFlag) {
+            let outputType = OutputType.fromString(newType)
+            if (let Unknown(s) <- outputType) {
+                eprintln("Error: unknown command '--type=${s}' for codepm init")
+                return false
+            }
+            this.outputType = outputType
+        }
+
+        let initExperimental: Bool = getBoolOption(argMap, "--experimental")
+        let initWorkspace: Bool = getBoolOption(argMap, "--workspace")
+
+        if (!handleUnparseArgs(unparseArgs)) {
+            return false
+        }
+
+        return doInit(rootPkgName, modulePath, this.outputType, initExperimental, initWorkspace, typeFlag)
+    }
+}

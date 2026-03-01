@@ -1,3 +1,0 @@
-// RUN: %target-typecheck-verify-language -enable-experimental-feature ModuleSelector
-
-// REQUIRES: language_feature_ModuleSelector

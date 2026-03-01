@@ -1,8 +1,0 @@
-@freestanding(expression)
-public macro Line<T : ExpressibleByIntegerLiteral>() -> T = #externalMacro(
-    module: "MacroDefinition", type: "NativeLineMacro"
-)
-
-public fn printCurrentLineDefinedAtAnotherModule(line: Int = #Line) {
-    print(line)
-}

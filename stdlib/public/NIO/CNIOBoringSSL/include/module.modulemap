@@ -1,4 +1,0 @@
-module CNIOBoringSSL {
-    umbrella header "CNIOBoringSSL.h"
-    export *
-}

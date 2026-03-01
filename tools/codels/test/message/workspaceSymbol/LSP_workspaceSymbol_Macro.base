@@ -1,0 +1,1 @@
+{"id":17,"jsonrpc":"2.0","result":[{"containerName":"default.define","kind":12,"location":{"range":{"end":{"character":18,"line":13},"start":{"character":13,"line":13}},"uri":"file:///d%3A/jenkins/customWorkspace/codenative_x64_windiws_lsp_19188/lsp/test/testChr/normalTest/Macro/src/define/a.code"},"name":"Y1232"}]}

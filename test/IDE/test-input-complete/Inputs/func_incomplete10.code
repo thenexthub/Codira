@@ -1,2 +1,0 @@
-fn foo(x : Int) -> Int {
-  return

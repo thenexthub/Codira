@@ -1,4 +1,0 @@
-module weaklinked_import_helper_clang {
-  header "weaklinked_import_helper_clang.h"
-  export *
-}

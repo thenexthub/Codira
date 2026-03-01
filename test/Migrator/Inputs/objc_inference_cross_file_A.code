@@ -1,7 +1,0 @@
-import Foundation
-
-public class MyClass : NSObject {
-  public fn methodUsedInSelector() {}
-  public var propertyUsedInKeyPath: Int { return 2 }
-  dynamic var dynamicVarUsedInSelector: Int { return 2 }
-}

@@ -1,3 +1,0 @@
-@_exported import ClangModuleWithOverlay
-
-public fn fromCodiraOverlay() {}

@@ -1,0 +1,1 @@
+{"id":5,"jsonrpc":"2.0","result":[{"data":{"isChildOrSuper":false,"isKernel":false},"kind":5,"name":"smallStudent","range":{"end":{"character":1,"line":17},"start":{"character":8,"line":11}},"selectionRange":{"end":{"character":38,"line":11},"start":{"character":26,"line":11}},"uri":"file:///d%3A/code/TypeHierarchy/test/chuanjiang/src/d/d.code"}]}

@@ -1,0 +1,1 @@
+{"id":7,"jsonrpc":"2.0","result":{"documentChanges":[{"edits":[{"newText":"FULLRenma","range":{"end":{"character":12,"line":10},"start":{"character":8,"line":10}}}],"textDocument":{"uri":"file:///home/***/server/Codira-language-server/test/testChr/normalTest/PatternMatch/src/constantPattern/constantPattern.code","version":0}}]}}

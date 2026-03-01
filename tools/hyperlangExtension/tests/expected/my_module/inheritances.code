@@ -1,0 +1,357 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package my_module
+
+import ohos.ark_interop.*
+import ohos.ark_interop_helper.*
+import ohos.base.*
+/***********IMPORT***********/
+/*FIXME: Import details need to be verified and rewritten by user.*/
+/*import {p29} from "./superInterface"*/
+
+
+/***********OBJECT***********/
+
+/*interface A {
+    p: number;
+    }*/
+
+public open class A {
+    
+    protected A(public var p: Float64) { }
+    
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        let obj = context.object()
+        obj["p"] = p.toJSValue(context)
+        obj.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): A {
+        let obj = input.asObject()
+        A(
+        Float64.fromJSValue(context, obj["p"])
+        )
+    }
+    
+}
+
+/*interface B {
+    p1: number;
+    }*/
+
+public open class B <: A {
+    
+    protected B(p: Float64,
+    public var p1: Float64) { super(p) }
+    
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        let obj = context.object()
+        obj["p"] = p.toJSValue(context)
+        obj["p1"] = p1.toJSValue(context)
+        obj.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): B {
+        let obj = input.asObject()
+        B(
+        Float64.fromJSValue(context, obj["p"]),
+        Float64.fromJSValue(context, obj["p1"])
+        )
+    }
+    
+}
+
+/*interface ExportKeyword BuglyLogAdapter {
+    }*/
+
+public open class BuglyLogAdapter <: p29 {
+    
+    protected BuglyLogAdapter(arkts_object: JSObject) { super(arkts_object) }
+    
+    
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        arkts_object.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): BuglyLogAdapter {
+        BuglyLogAdapter(input.asObject())
+    }
+}
+
+/*interface C {
+    f(): void
+    }*/
+
+public open class C {
+    
+    protected C(var arkts_object: JSObject) { }
+    
+    
+    /**
+	 * @brief f(): void
+	 */
+    public func f(): Unit {
+        jsObjApiCall < Unit >( arkts_object, "f", EMPTY_ARG)
+    }
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        arkts_object.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): C {
+        C(input.asObject())
+    }
+}
+
+/*interface D {
+    }*/
+
+public open class D <: C {
+    
+    protected D(arkts_object: JSObject) { super(arkts_object) }
+    
+    
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        arkts_object.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): D {
+        D(input.asObject())
+    }
+}
+
+/*interface E {
+    }*/
+
+public open class E <: A {
+    
+    protected E(p: Float64) { super(p) }
+    
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        let obj = context.object()
+        obj["p"] = p.toJSValue(context)
+        obj.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): E {
+        let obj = input.asObject()
+        E(
+        Float64.fromJSValue(context, obj["p"])
+        )
+    }
+    
+}
+
+/*interface F {
+    g(): void
+    }*/
+
+public open class F <: C {
+    
+    protected F(arkts_object: JSObject) { super(arkts_object) }
+    
+    
+    /**
+	 * @brief g(): void
+	 */
+    public func g(): Unit {
+        jsObjApiCall < Unit >( arkts_object, "g", EMPTY_ARG)
+    }
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        arkts_object.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): F {
+        F(input.asObject())
+    }
+}
+
+/*interface ExportKeyword DeclareKeyword SuperInterface {
+    p: number;
+    }*/
+
+public open class SuperInterface {
+    
+    protected SuperInterface(public var p: Float64) { }
+    
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        let obj = context.object()
+        obj["p"] = p.toJSValue(context)
+        obj.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): SuperInterface {
+        let obj = input.asObject()
+        SuperInterface(
+        Float64.fromJSValue(context, obj["p"])
+        )
+    }
+    
+}
+
+/*class ExportKeyword DeclareKeyword SubClass {
+    p: number;
+    }*/
+
+public class SubClass <: SuperClass {
+    
+    protected SubClass(arkts_object: JSObject) { super(arkts_object) }
+    
+    
+    
+    public func toJSValue(context: JSContext): JSValue {
+        arkts_object.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): SubClass {
+        SubClass(input.asObject())
+    }
+}
+
+/*class ExportKeyword DeclareKeyword SubClass1 {
+    p: number;
+    }*/
+
+public class SubClass1 <: SuperClass1 {
+    
+    protected SubClass1(arkts_object: JSObject) { super(arkts_object) }
+    
+    
+    
+    public func toJSValue(context: JSContext): JSValue {
+        arkts_object.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): SubClass1 {
+        SubClass1(input.asObject())
+    }
+}
+
+/*class ExportKeyword DeclareKeyword SubInterface {
+    p: number;
+    p1: number;
+    }*/
+
+public class SubInterface <: SuperInterface {
+    
+    protected SubInterface(var arkts_object: JSObject) {
+        super(Float64.fromJSValue(getMainContext(), arkts_object["p"])) }
+    
+    
+    public mut prop p1: Float64 {
+        get() {
+            checkThreadAndCall < Float64 >(getMainContext()) {
+                ctx: JSContext => Float64.fromJSValue(ctx, arkts_object["p1"])
+            }
+        }
+        set(v) {
+            checkThreadAndCall < Unit >(getMainContext()) {
+                ctx: JSContext => arkts_object["p1"] = v.toJSValue(ctx)
+            }
+        }
+        
+    }
+    
+    
+    public func toJSValue(context: JSContext): JSValue {
+        arkts_object.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): SubInterface {
+        SubInterface(input.asObject())
+    }
+}
+
+/*class ExportKeyword DeclareKeyword FirstContextualKeyword SuperClass {
+    p: number;
+    }*/
+
+public open class SuperClass {
+    
+    protected SuperClass(var arkts_object: JSObject) { }
+    
+    
+    public mut prop p: Float64 {
+        get() {
+            checkThreadAndCall < Float64 >(getMainContext()) {
+                ctx: JSContext => Float64.fromJSValue(ctx, arkts_object["p"])
+            }
+        }
+        set(v) {
+            checkThreadAndCall < Unit >(getMainContext()) {
+                ctx: JSContext => arkts_object["p"] = v.toJSValue(ctx)
+            }
+        }
+        
+    }
+    
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        arkts_object.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): SuperClass {
+        SuperClass(input.asObject())
+    }
+}
+
+/*class ExportKeyword DeclareKeyword SuperClass1 {
+    p: number;
+    }*/
+
+public open class SuperClass1 {
+    
+    protected SuperClass1(var arkts_object: JSObject) { }
+    
+    
+    public mut prop p: Float64 {
+        get() {
+            checkThreadAndCall < Float64 >(getMainContext()) {
+                ctx: JSContext => Float64.fromJSValue(ctx, arkts_object["p"])
+            }
+        }
+        set(v) {
+            checkThreadAndCall < Unit >(getMainContext()) {
+                ctx: JSContext => arkts_object["p"] = v.toJSValue(ctx)
+            }
+        }
+        
+    }
+    
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        arkts_object.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): SuperClass1 {
+        SuperClass1(input.asObject())
+    }
+}
+

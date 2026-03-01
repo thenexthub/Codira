@@ -1,0 +1,1 @@
+{"id":9,"jsonrpc":"2.0","result":{"documentChanges":[{"edits":[{"newText":"II12","range":{"end":{"character":12,"line":16},"start":{"character":10,"line":16}}}],"textDocument":{"uri":"file:///d%3A/sourceCode/TestVscode/movrefile/src/test.code","version":5}}]}}

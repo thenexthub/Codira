@@ -1,3 +1,0 @@
-// {"signature":"language::constraints::FunctionTypeMismatch::FunctionTypeMismatch(language::constraints::Solution const&, language::ContextualTypePurpose, language::Type, language::Type, toolchain::ArrayRef<unsigned int>, language::constraints::ConstraintLocator*)"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-fn a< each b >->(Int, repeat each b)Float= a(

@@ -1,3 +1,0 @@
-module SomeCModule {
-  header "SomeCModule.h"
-}

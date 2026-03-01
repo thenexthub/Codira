@@ -1,0 +1,1 @@
+{"id":11,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: annotation.code\nPackage info: std.core\n\n(BuiltInType) public Type CString\n"},"range":{"end":{"character":16,"line":9},"start":{"character":9,"line":9}}}}

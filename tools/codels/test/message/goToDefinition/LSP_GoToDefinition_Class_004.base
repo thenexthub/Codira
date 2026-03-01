@@ -1,0 +1,1 @@
+{"id":"9","jsonrpc":"2.0","result":{"range":{"end":{"character":30,"line":30},"start":{"character":19,"line":30}},"uri":"file:///d%3A/code/B055/cangjie_language_server/test/testChr/normalTest/Class/src/Class.code"}}

@@ -1,0 +1,58 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package FollowLambdaCompletion.func_test.normal_completion
+
+interface CustomInterface {
+    func inter_func(aa: (String, Int64) -> Int64): Int64
+}
+
+class CuStomClass <: CustomInterface {
+    let aa: Int64 = 10
+    let bb: String = ""
+
+    public func inter_func(aa: (String, Int64) -> Int64): Int64 {
+        0
+    }
+
+    func member_func1(arg1: Int64, callback: (aa: Int64, bb: String) -> String): String {
+        ""
+    }
+
+    func member_func2() {
+        member_func1
+        inter_func
+    }
+}
+
+struct CustomStruct {
+    var aa: Int64 = 10
+    var bb: String = ""
+
+    public func member_func1(aa: Int64, bb: (arg1: Int64, arg2: String) -> String) {
+        
+    }
+
+    func member_func2() {
+        member_func1
+    }
+}

@@ -1,7 +1,0 @@
-framework module sourcekitdInProc {
-  umbrella header "sourcekitd.h"
-  header "plugin.h"
-  header "CodeCompletionCodiraInterop.h"
-  export *
-  module * { export * }
-}

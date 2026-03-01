@@ -1,3 +1,0 @@
-// {"signature":"(anonymous namespace)::ExprRewriter::finishApply(language::ApplyExpr*, language::Type, language::constraints::ConstraintLocatorBuilder, language::constraints::ConstraintLocatorBuilder)"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-fn a(b : ()->Void c : _->Void) { withoutActuallyEscaping(b do : c

@@ -1,0 +1,22 @@
+{
+  "ExternalDateFunc" : [
+    {"name":"getos" , "parent":"", "lib":"std.posix" },
+    {"name":"gethostname", "parent":"", "lib":"std.posix"},
+    {"name":"getlogin" ,"parent":"", "lib":"std.posix"},
+    {"name":"getcwd" ,"parent":"", "lib":"std.posix"},
+    {"name":"getuid" ,"parent":"", "lib":"std.posix"},
+    {"name":"build" ,"parent":"HttpResponseBuilder", "lib":"stdx.net.http"},
+    {"name":"init" ,"parent":"Client", "lib":"stdx.net.http"},
+    {"name":"readToEnd" ,"parent":"", "lib":"std.io"},
+    {"name":"read" ,"parent":"ConsoleReader", "lib":"std.console"},
+    {"name":"readln" ,"parent":"ConsoleReader", "lib":"std.console"},
+    {"name":"get" ,"parent":"Client", "lib":"stdx.net.http"},
+    {"name":"put" ,"parent":"Client", "lib":"stdx.net.http"}
+  ],
+  "CanonicalizeFunc" : [
+    {"name":"canonicalize" ,"parent":"", "lib":"std.fs"}
+  ],
+  "VerifyFunc" : [
+    {"name":"isInSecureDir" ,"parent":"", "lib":"default"}
+  ]
+}

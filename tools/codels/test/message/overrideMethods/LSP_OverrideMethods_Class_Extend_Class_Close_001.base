@@ -1,0 +1,2 @@
+{"id":"224","jsonrpc":"2.0","result":[{"data":[{"deprecated":false,"insertText":"protected func C1_PROTECTED_F1(): Unit {\n    super.C1_PROTECTED_F1()\n}","isProp":false,"signatureWithRet":"C1_PROTECTED_F1(): Unit"}],"fullPackageName":"ohos_app_cangjie_entry.Pkg1","identifier":"P1_VISIABLE_C1","importItem":"ohos_app_cangjie_entry.Pkg1.P1_VISIABLE_C1","kind":"class"}]}
+

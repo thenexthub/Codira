@@ -1,9 +1,0 @@
-// RUN: %empty-directory(%t)
-// RUN: %target-build-language -emit-module -emit-module-path %t/CodiraLib.languagemodule -I %S/Inputs/conformance-removed/ %S/Inputs/conformance-removed/CodiraLib.language -Xcc -DUSE_PROTO
-// RUN: not grep SomeProto %t/CodiraLib.languagemodule
-// RUN: %target-build-language -typecheck -I %t -I %S/Inputs/custom-modules/ %s
-
-// REQUIRES: objc_interop
-
-import CodiraLib
-class Rdar28282310: Sub {}

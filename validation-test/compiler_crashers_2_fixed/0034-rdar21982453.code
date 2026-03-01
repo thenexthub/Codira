@@ -1,7 +1,0 @@
-// RUN: %target-language-frontend %s -emit-silgen
-
-fn a() {
-    fn f(x: (Void) -> Any) { }
-    var g = { 3 }
-    f { g }
-}

@@ -1,7 +1,0 @@
-import Foundation
-
-@objc(DangerousEscaper)
-public protocol DangerousEscaper {
-  @objc
-  fn mightBeNaughty(_ mayActuallyEscape: () -> ())
-}

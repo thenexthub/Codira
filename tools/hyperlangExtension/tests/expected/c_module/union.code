@@ -1,0 +1,80 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package my_module
+
+@C
+public struct X {
+    let _codebind_opaque_blob: UInt64
+
+    public init() {
+        this._codebind_opaque_blob = unsafe { zeroValue<UInt64>() }
+    }
+}
+
+@C
+public struct _codebind_ty_1 {
+    public let length: Int32
+    public let cproto: Int32
+
+    public init(length: Int32, cproto: Int32) {
+        this.length = length
+        this.cproto = cproto
+    }
+}
+
+@C
+public struct _codebind_ty_2 {
+    public let name: CString
+    public let base: Int32
+
+    public init(name: CString, base: Int32) {
+        this.name = name
+        this.base = base
+    }
+}
+
+@C
+public struct _codebind_ty_3 {
+    public let tab: CPointer<JSCFunctionListEntry>
+    public let len: Int32
+
+    public init(tab: CPointer<JSCFunctionListEntry>, len: Int32) {
+        this.tab = tab
+        this.len = len
+    }
+}
+
+@C
+public struct _codebind_ty_4 {
+    let _codebind_opaque_blob: VArray<UInt64, $2>
+
+    public init() {
+        this._codebind_opaque_blob = unsafe { zeroValue<VArray<UInt64, $2>>() }
+    }
+}
+
+/*FIXME: Non-constant global variable details need to be verified and rewritten by user.*/
+/* union { struct { int length ; /* XXX: should move outside union */ int cproto ; /* XXX: should move outside union */ } func ; struct { const char * name ; int base ; } alias ; struct { const struct JSCFunctionListEntry * tab ; int len ; } prop_list ; const char * str ; int i32 ; int i64 ; double f64 ; } u */
+
+@C
+public struct JSCFunctionListEntry {}

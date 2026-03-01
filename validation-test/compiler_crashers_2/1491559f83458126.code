@@ -1,7 +1,0 @@
-// {"signature":"language::constraints::ConstraintGraph::removeConstraint(language::TypeVariableType*, language::constraints::Constraint*)"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-[{
-    a
-    b
-  }
-c.d<b>

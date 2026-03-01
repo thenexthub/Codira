@@ -1,4 +1,0 @@
-public protocol Awaitable {
-  associatedtype Result
-  fn wait() async -> Result
-}

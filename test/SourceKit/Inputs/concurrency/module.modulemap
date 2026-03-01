@@ -1,3 +1,0 @@
-module ConcurrencyHeader {
-  header "header_concurrency.h"
-}

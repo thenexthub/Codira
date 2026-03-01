@@ -1,0 +1,1 @@
+{"id":"9","jsonrpc":"2.0","result":{"activeParameter":1,"activeSignature":0,"signatures":[{"label":"init()"},{"label":"init(size: Int64, initElement: (Int64) -> Generics-T)","parameters":[{"label":"size: Int64"},{"label":"initElement: (Int64) -> Generics-T"}]},{"label":"init(size: Int64, repeat!: T)","parameters":[{"label":"size: Int64"},{"label":"repeat!: T"}]}]}} 

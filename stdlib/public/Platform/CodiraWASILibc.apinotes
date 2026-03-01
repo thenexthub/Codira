@@ -1,5 +1,0 @@
-Name: CodiraWASILibc
-Globals:
-  # errno macro is importable but we provide explicit Codira wrapper
-  - Name: errno
-    CodiraPrivate: true

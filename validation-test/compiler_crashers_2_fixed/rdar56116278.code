@@ -1,3 +1,0 @@
-// RUN: not %target-typecheck-verify-language
-
-protocol P where A : Int {}

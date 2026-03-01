@@ -1,0 +1,43 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+class Aaa {
+    func ccc(){}
+    init(a:String){}
+    let aa = 11
+}
+func fff(aaa!:Aaa= Aaa("sasasa")) {
+    aaa.ccc()
+    if (aaa.)
+    match (aaa.){}
+    for (i in aaa.)
+}
+
+let score4:Int64 = 90
+var scoreResult4:String = match(score4){
+    case 60 =>"pass"
+    case 70|80 =>"good"
+    case 90 |100 => "excellent"
+    case failscore1 =>
+        let passNeed = 60 - failsco
+        "faild with ${failscore1}, and ${failscore1} nedd to pass"
+}

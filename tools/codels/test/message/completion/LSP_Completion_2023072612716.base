@@ -1,0 +1,1 @@
+{"id":"9","jsonrpc":"2.0","result":[{"deprecated":false,"detail":"","documentation":"","filterText":"fe1","insertText":"fe1","insertTextFormat":1,"kind":2,"label":"fe1","sortText":""},{"deprecated":false,"detail":"(function) internal func fe1(): Unit","documentation":"","filterText":"fe1","insertText":"fe1()","insertTextFormat":1,"kind":2,"label":"fe1()","sortText":""}]}

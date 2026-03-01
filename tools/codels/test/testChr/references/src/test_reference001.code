@@ -1,0 +1,90 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+var atest : int32 = 1
+var def_var = 123456
+let globalVar = 333
+
+public enum Timeunit {
+    Year | Month | Day | Hour
+}
+
+public class Basec {
+    var atest = 1
+    protected var two = 2
+    private var seven = 7
+    static var three = 3
+    protected static var five = 5
+    private static var six = 6
+    
+    var par1 = atest
+    init() {
+        var par2 = atest
+    }
+
+    func test() {
+        var par3 = atest
+        var four = three
+        return four
+    }
+}
+
+
+class fn01 {
+    var def_var = 123456
+
+    func funcA(){
+        var Avar = def_var
+        return Avar
+    }
+
+    func funcB(){
+
+        var Bvar = def_var
+        return Bvar
+    }
+
+    func funcC(){
+        var Cvar = def_var
+        return Cvar
+    }
+}
+
+class fn02{
+    func def_func(){
+        var aaa = "propValue"
+        return aaa
+    }
+
+    func fn02_funcA(){
+        var bbb = def_func()
+        return bbb
+    }
+    func fn02_funcB(){
+        var ccc = def_func()
+        return ccc
+    } 
+    func fn02_funcC(){
+        var ddd = def_func()
+        return ddd
+    }
+  }

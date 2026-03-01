@@ -1,0 +1,22 @@
+{
+	"codec_version": "0.33.2",
+	"organization": "cangjie",
+	"name": "test",
+	"description": "nothing here",
+	"version": "1.0.0",
+	"requires": {
+		"pro1": {
+			"organization": "cangjie",
+			"version": "1.0.0",
+			"path": "./pro1"
+		}
+	},
+	"package_requires": {},
+	"foreign_requires": {},
+	"output_type": "executable",
+	"command_option": "",
+	"condition_option": {},
+	"link_option": "",
+	"cross_compile_configuration": {},
+	"package_configuration": {}
+}

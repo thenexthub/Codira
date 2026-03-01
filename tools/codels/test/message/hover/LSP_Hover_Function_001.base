@@ -1,0 +1,1 @@
+{"id":7,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: function_01.code\nPackage info: default.funcPkg\n\n(function) internal func return_test_1(): Int64\r\n函数返回值类型推断\r\nWrite return explicitly.\n"},"range":{"end":{"character":17,"line":71},"start":{"character":4,"line":71}}}}

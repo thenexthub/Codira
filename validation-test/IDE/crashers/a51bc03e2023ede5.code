@@ -1,3 +1,0 @@
-// {"kind":"complete","signature":"language::constraints::ConstraintSystem::buildDisjunctionForOptionalVsUnderlying(language::Type, language::Type, language::constraints::ConstraintLocator*)"}
-// RUN: not --crash %target-language-ide-test -code-completion --code-completion-token=COMPLETE -source-filename %s
-class a {b: c! = b #^COMPLETE^#

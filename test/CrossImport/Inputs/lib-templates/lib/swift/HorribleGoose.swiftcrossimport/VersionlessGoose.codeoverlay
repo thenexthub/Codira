@@ -1,4 +1,0 @@
----
-# version: 1    # intentionally disabled
-modules:
-- name: _AlwaysImportedOverlay

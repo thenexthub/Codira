@@ -1,3 +1,0 @@
-framework module objc_implementation {
-  header "objc_implementation.h"
-}

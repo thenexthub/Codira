@@ -1,3 +1,0 @@
-// {"kind":"typecheck","signature":"language::DifferentiableAttr::hasBeenTypeChecked() const"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-@differentiable () immutable a, b

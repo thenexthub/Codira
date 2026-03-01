@@ -1,3 +1,0 @@
-framework module PrivateWarning {
-  header "PrivateWarning.h"
-}

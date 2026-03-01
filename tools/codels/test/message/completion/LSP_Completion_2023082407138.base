@@ -1,0 +1,1 @@
+{"id":"9","jsonrpc":"2.0","result":[{"deprecated":false,"detail":"","documentation":"","filterText":"goo","insertText":"goo","insertTextFormat":1,"kind":2,"label":"goo","sortText":""},{"deprecated":false,"detail":"(function) public open func goo(): Unit","documentation":"","filterText":"goo","insertText":"goo()","insertTextFormat":1,"kind":2,"label":"goo()","sortText":""}]}

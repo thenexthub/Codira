@@ -1,4 +1,0 @@
-module AliasCaseErrorEnum {
-  umbrella header "AliasCaseErrorEnum.h"
-  export *
-}

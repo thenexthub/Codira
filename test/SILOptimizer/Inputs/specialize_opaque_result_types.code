@@ -1,4 +1,0 @@
-public protocol Butt {}
-extension Int: Butt {}
-
-public fn exportsOpaqueReturn() -> some Butt { return 0 }

@@ -1,0 +1,65 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package my_module
+
+import ohos.ark_interop.*
+import ohos.ark_interop_helper.*
+import ohos.base.*
+
+/***********METHOD***********/
+/**
+	 * @brief testGeneric(t: T): T
+	 */
+public func testGeneric < T >(t: T): T where T <: JSInteropType<T> {
+    hmsGlobalApiCall < T >( "my_module_genericFunction", "testGeneric", { ctx =>[t.toJSValue(ctx)] }) { ctx, info => T.fromJSValue(ctx, info) }
+}
+
+/**
+	 * @brief testMultiGenericT(t: T, m: M): T
+	 */
+public func testMultiGenericT < T, M >(t: T, m: M): T where T <: JSInteropType<T>, M <: JSInteropType<M> {
+    hmsGlobalApiCall < T >( "my_module_genericFunction", "testMultiGenericT", { ctx =>[t.toJSValue(ctx), m.toJSValue(ctx)] }) { ctx, info => T.fromJSValue(ctx, info) }
+}
+
+/**
+	 * @brief testMultiGenericM(t: T, m: M): M
+	 */
+public func testMultiGenericM < T, M >(t: T, m: M): M where T <: JSInteropType<T>, M <: JSInteropType<M> {
+    hmsGlobalApiCall < M >( "my_module_genericFunction", "testMultiGenericM", { ctx =>[t.toJSValue(ctx), m.toJSValue(ctx)] }) { ctx, info => M.fromJSValue(ctx, info) }
+}
+
+/**
+	 * @brief init(type: string, data: any): void
+	 */
+public func _init(`type`: String, data: JSValue/* FIXME: `any` */): Unit {
+    hmsGlobalApiCall < Unit >( "my_module_genericFunction", "init", { ctx =>[`type`.toJSValue(ctx), data] })
+}
+
+/**
+	 * @brief getObject(extra: number, info: string): void
+	 */
+public func _getObject(extra: Float64, info: String): Unit {
+    hmsGlobalApiCall < Unit >( "my_module_genericFunction", "getObject", { ctx =>[extra.toJSValue(ctx), info.toJSValue(ctx)] })
+}
+
+

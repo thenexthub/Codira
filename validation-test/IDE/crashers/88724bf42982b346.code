@@ -1,4 +1,0 @@
-// {"kind":"complete","signature":"language::ide::printTypeUSR(language::Type, toolchain::raw_ostream&)"}
-// Actual signature: getContextSubstitutions
-// RUN: not --crash %target-language-ide-test -code-completion --code-completion-token=COMPLETE -source-filename %s
-protocol a extension a where Self == { extension a#^COMPLETE^# protocol b

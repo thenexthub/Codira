@@ -1,0 +1,68 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package ohos_app_cangjie_entry.CrossPkgTest
+
+import ohos_app_cangjie_entry.Pkg1.*
+
+class TEST_CLASS_ABSTRCT <: P1_ABSTRACT_C0 {}
+
+class TEST_CLASS_VISIABLE <: P1_VISIABLE_C1 {
+    public func C1_PUBLIC_F1(): Unit {
+    	super.C1_PUBLIC_F1()
+    }
+    protected func C1_PROTECTED_F1(): Unit {
+    	super.C1_PROTECTED_F1()
+    }
+}
+
+class TEST_CLASS_ARGS <: P1_ARGS_C2 {}
+
+open class TEST_CLASS_RET <: P1_RET_C3 {}
+
+class TEST_CLASS_OVERRIDE <: P1_OVERLOAD_C4 {}
+
+class TEST_CLASS_OVERRIDABLE <: P1_OVERRIDABLE_C5 {}
+
+class TEST_CLASS_EXTEND_INTERFACE <: P1_VISIABLE_I0 {}
+
+class TEST_CLASS_EXTEND_ABSTRCT_INTERFACE <: P1_ABSTRACT_C0 & P1_VISIABLE_I0 {}
+
+class TEST_CLASS_EXTEND_CLASS_MULTI_INTERFACE <: P1_VISIABLE_C1 & P1_VISIABLE_I0 & P1_BODY_I1 {}
+
+class TEST_CLASS_REOPEN <: P1_REOPEN_C6 {}
+
+class TEST_CLASS_CLOSE <: P1_CLOSE_C7 {}
+
+class TEST_CLASS_EXTEND_TEMPLATE_INTERFACE<K> <: P1_TEMPLATE_I5<K> {}
+
+class TEST_CLASS_EXTEND_MULTI_TEMPLATE<K, V> <: P1_MULTI_TEMPLATE_I6<K, V> {}
+
+class TEST_CLASS_EXTEND_TWICE <: TEST_CLASS_RET {}
+
+open class TEST_CLASS_IMPLEMENTED_SOME <: P1_RET_C3 {
+    public func C3_WITHRET_F3(): Int32 {
+    	super.C3_WITHRET_F3()
+    }
+}
+
+class TEST_CLASS_BLOCK <: TEST_CLASS_IMPLEMENTED_SOME {}

@@ -1,0 +1,1 @@
+{"id":"9","jsonrpc":"2.0","result":[{"deprecated":false,"detail":"(variable) let unitOne: Unit = ()","documentation":"","filterText":"unitOne","insertText":"unitOne","insertTextFormat":1,"kind":6,"label":"unitOne","sortText":""},{"deprecated":false,"detail":"","documentation":"","filterText":"Unit","insertText":"Unit","insertTextFormat":1,"kind":14,"label":"Unit","sortText":""}]}

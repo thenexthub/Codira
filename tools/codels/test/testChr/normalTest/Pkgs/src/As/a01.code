@@ -1,0 +1,44 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package As 
+
+public open class Base1{
+    var name:String = "Alice"
+}
+class Derived1<:Base1 {
+    var age:UInt8=18
+}
+
+class Derived2<:Base1 {
+    var gender:String = "female"
+}
+
+func a1(){
+    let base1_new:Base1 = Base1()
+    let base2:Base1 = Derived1()
+    let base3:Base1 = Derived2()
+    let castop1 = base1_new as Base1
+    let castop2 = base1_new as Derived1
+    let castop3 = base1_new as Derived2
+}
+

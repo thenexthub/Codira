@@ -1,4 +1,0 @@
-immutable closureValue = { () -> () in
-   class DummyClass {}
-   return ()
-}()

@@ -1,0 +1,1 @@
+{"id":7,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: enum2.code\nPackage info: enum2\n\n// In enum TimeUnit3\n(enum_construct) TimeUnit3<T1, T2>.Day3(T1, T2, T2)\n"},"range":{"end":{"character":20,"line":67},"start":{"character":16,"line":67}}}}

@@ -1,0 +1,1 @@
+{"id":"9","jsonrpc":"2.0","result":{"range":{"end":{"character":21,"line":7},"start":{"character":16,"line":7}},"uri":"file:///d%3A/JenkinsEnv/workspace/Codira-language-server/compile/source/test/testChr/newFeature/extendGenericParam/src/extend.code"}}

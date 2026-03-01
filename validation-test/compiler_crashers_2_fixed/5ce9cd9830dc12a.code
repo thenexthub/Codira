@@ -1,3 +1,0 @@
-// {"signature":"language::DeclAndTypePrinter::Implementation::visitVarDecl(language::VarDecl*)"}
-// RUN: not %target-language-frontend -typecheck %s
-#init

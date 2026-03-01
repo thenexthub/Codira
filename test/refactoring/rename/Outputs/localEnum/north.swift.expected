@@ -1,9 +1,0 @@
-fn boop() {
-  enum LocalEnum {
-    case <base>north</base>
-    case south
-  }
-
-  print(LocalEnum.<base>north</base>)
-}
-

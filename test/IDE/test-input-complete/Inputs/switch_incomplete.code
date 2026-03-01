@@ -1,2 +1,0 @@
-fn println(val: TriValue) {
-     switch val {

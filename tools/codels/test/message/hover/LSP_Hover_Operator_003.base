@@ -1,0 +1,1 @@
+{"id":"448","jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: operator.code\nPackage info: default\n\n// In class A\n(function) internal func [](index: Int64): Int64\n"},"range":{"end":{"character":17,"line":84},"start":{"character":13,"line":84}}}}

@@ -1,0 +1,1 @@
+{"id":"9","jsonrpc":"2.0","result":[{"deprecated":false,"detail":"","documentation":"","filterText":"gd","insertText":"gd","insertTextFormat":1,"kind":2,"label":"gd","sortText":""},{"deprecated":false,"detail":"(function) public func gd(): Unit","documentation":"","filterText":"gd","insertText":"gd()","insertTextFormat":1,"kind":2,"label":"gd()","sortText":""}]}

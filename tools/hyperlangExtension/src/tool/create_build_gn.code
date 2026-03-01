@@ -1,0 +1,91 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package hle.tool
+
+import std.time.DateTime
+
+public func createBuildGn(gconfig: GlobalConfig): String {
+    let moduleName = gconfig.codeModuleName
+
+    let buildGnContent = """
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+import("//build/ohos.gni")
+import("//third_party/cangjie/build/codec.gni")
+
+ohos_code_library("${moduleName}") {
+  source_dir = "src"
+
+  code_deps = [
+    {
+      label = "//third_party/cangjie/ohos_libs/arkui/code:ohos.base"
+      libname = "ohos.base"
+    },
+    {
+      label = "//arkcompiler/cangjie/cangjie_systemapi/frameworks/hilog:ohos.hilog"
+      libname = "ohos.hilog"
+    },
+    {
+      label = "//third_party/cangjie/ohos_libs/interop:ohos.ark_interop"
+      libname = "ohos.ark_interop"
+    },
+    {
+      label = "//third_party/cangjie/ohos_libs/interop:ohos.ark_interop_helper"
+      libname = "ohos.ark_interop_helper"
+    },
+    {
+      label = "//third_party/cangjie/ohos_libs/ability:ohos.ability"
+      libname = "ohos.ability"
+    },
+  ]
+
+  codec_args = [ "-O2" ]
+
+  subsystem_name = "arkcompiler"
+  part_name = "cangjie_systemapi"
+  lib_name = "${moduleName
+        .replace("ohos.", '')}"
+}
+"""
+    return buildGnContent
+}

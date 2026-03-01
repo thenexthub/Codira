@@ -1,6 +1,0 @@
-// RUN: %target-typecheck-verify-language -solver-expression-time-threshold=1
-// REQUIRES: tools-release,no_asan
-
-immutable a = 1
-
-_ = -a + -a - -a + -a - -a

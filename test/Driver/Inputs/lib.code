@@ -1,3 +1,0 @@
-// Used by emit-objc-header.code and others.
-
-fn libraryFunction() {}

@@ -1,3 +1,0 @@
-module CModule {
-  header "cmodule.h"
-}

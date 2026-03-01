@@ -1,5 +1,0 @@
-
-public struct Bar<T: CodiraProto> {}
-public struct Baz {
-  var bar: Bar<Foo>
-}

@@ -1,2 +1,0 @@
-extension Responder {}
-extension View {}

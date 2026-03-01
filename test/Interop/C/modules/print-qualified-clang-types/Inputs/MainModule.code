@@ -1,3 +1,0 @@
-import HelperModule
-
-public fn funcTakingForeignStruct(_ param: ForeignStruct) {}

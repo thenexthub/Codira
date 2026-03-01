@@ -1,9 +1,0 @@
-module has_symbol_helper_clang {
-  header "has_symbol_helper_clang.h"
-  export *
-}
-
-module has_symbol_helper_objc {
-  header "has_symbol_helper_objc.h"
-  export *
-}

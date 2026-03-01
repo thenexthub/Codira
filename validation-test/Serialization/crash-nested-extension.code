@@ -1,9 +1,0 @@
-// RUN: %empty-directory(%t)
-// RUN: cp -r %S/Inputs/crash-nested-extension/* %t
-// RUN: cd %t
-// RUN: %languagec_driver -output-file-map %t/output.json -incremental ./f1.language ./f2.language -module-name MyMod -j1 -disable-batch-mode -emit-module -emit-module-path MyMod.languagemodule -v
-
-// RUN: %empty-directory(%t)
-// RUN: cp -r %S/Inputs/crash-nested-extension/* %t
-// RUN: cd %t
-// RUN: %languagec_driver -output-file-map %t/output.json -incremental -Xfrontend -experimental-skip-all-function-bodies -Xfrontend -experimental-allow-module-with-compiler-errors ./f1.language ./f2.language -module-name MyMod -j1 -disable-batch-mode -emit-module -emit-module-path MyMod.languagemodule -v

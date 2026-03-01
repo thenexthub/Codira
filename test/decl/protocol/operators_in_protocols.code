@@ -1,8 +1,0 @@
-// RUN: %target-typecheck-verify-language
-
-protocol P {
-  static fn << (lhs: Self, rhs: Self) -> Self
-  static fn >> (lhs: Self, rhs: Self) -> Self
-  static fn <<= (lhs: inout Self, rhs: Self)
-  static fn >>= (lhs: inout Self, rhs: Self)
-}

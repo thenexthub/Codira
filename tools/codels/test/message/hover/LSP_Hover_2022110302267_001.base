@@ -1,0 +1,1 @@
+{"id":9,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: main.code\nPackage info: default\n\n// In class AAAA1\n(variable) internal var sss: Int64 = 1\n"},"range":{"end":{"character":22,"line":12},"start":{"character":19,"line":12}}}}

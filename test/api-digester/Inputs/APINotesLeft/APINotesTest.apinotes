@@ -1,7 +1,0 @@
-Name: APINotesTest
-Globals:
-  - Name: ANTGlobalValue
-    CodiraName: OldType.oldMember
-Protocols:
-  - Name: TypeWithMethod
-    CodiraName: CodiraTypeWithMethodLeft

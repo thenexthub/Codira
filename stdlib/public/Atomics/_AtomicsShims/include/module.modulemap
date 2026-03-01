@@ -1,3 +1,0 @@
-module _AtomicsShims {
-  header "_AtomicsShims.h"
-}

@@ -1,0 +1,1 @@
+{"id":9,"jsonrpc":"2.0","result":[{"containerName":"default.extend","kind":12,"location":{"range":{"end":{"character":13,"line":11},"start":{"character":9,"line":11}},"uri":"file:///d%3A/jenkins/customWorkspace/codenative_x64_windiws_lsp_1738/lsp/test/testChr/test/2023091403055/src/a.code"},"name":"kbkk()"}]}

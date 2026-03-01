@@ -1,4 +1,0 @@
-// RUN: not %target-language-frontend %s -typecheck
-// REQUIRES: OS=macosx
-
-immutable array = [Dictionary]()

@@ -1,0 +1,1 @@
+{"id":9,"jsonrpc":"2.0","result":{"documentChanges":[{"edits":[{"newText":"strRename","range":{"end":{"character":11,"line":7},"start":{"character":4,"line":7}}}],"textDocument":{"uri":"file:///d%3A/code/B055/cangjie_language_server/test/testChr/normalTest/Base/src/Base.code","version":0}}]}}

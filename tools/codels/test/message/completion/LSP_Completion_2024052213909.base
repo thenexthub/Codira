@@ -1,0 +1,1 @@
+{"id":6,"jsonrpc":"2.0","result":[{"deprecated":false,"detail":"","documentation":"","filterText":"foo","insertText":"foo","insertTextFormat":1,"kind":2,"label":"foo","sortText":""},{"deprecated":false,"detail":"(function) public func foo(): Unit","documentation":"","filterText":"foo","insertText":"foo()","insertTextFormat":1,"kind":2,"label":"foo()","sortText":""}]}

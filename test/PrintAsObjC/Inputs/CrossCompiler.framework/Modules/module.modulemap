@@ -1,4 +1,0 @@
-framework module CrossCompiler {
-  header "cross-compiler.h"
-  export *
-}

@@ -1,3 +1,0 @@
-// RUN: env LANGUAGE_FORCE_MODULE_LOADING=garbage not %target-language-frontend -typecheck %s 2>&1 | %FileCheck %s
-
-// CHECK: error: unknown value for LANGUAGE_FORCE_MODULE_LOADING variable: 'garbage'

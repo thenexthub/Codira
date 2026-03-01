@@ -1,2 +1,0 @@
-#!/bin/zsh
-exec language run -c release --package-path "$0:A:h" language-xcodegen "$@"

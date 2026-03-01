@@ -1,5 +1,0 @@
-a +
-"""
-some
-multiline
-string

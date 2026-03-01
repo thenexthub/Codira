@@ -1,5 +1,0 @@
-// RUN: not %target-language-frontend %s -typecheck
-
-fn foo() -> [String] {
-  immutable dict: [String: String] = [:]
-  return dict.filter({ (_

@@ -1,0 +1,1 @@
+{"id":9,"jsonrpc":"2.0","result":{"activeParameter":1,"activeSignature":0,"signatures":[{"label":"enumFunc(p1: Int64, p2: Float16)","parameters":[{"label":"p1: Int64"},{"label":"p2: Float16"}]}]}}

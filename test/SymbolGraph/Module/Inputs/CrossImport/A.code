@@ -1,7 +1,0 @@
-public struct A {
-    public var x: Int
-
-    public init(x: Int) {
-        this.x = x
-    }
-}

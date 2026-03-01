@@ -1,0 +1,134 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package codepm.config
+
+import std.collection.*
+import std.fs.*
+import stdx.serialization.serialization.*
+import codepm.toml.*
+import codepm.toml.Decoder as DecoderToml
+import codepm.toml.Encoder as EncoderToml
+
+let MODULE_LOCK_VERSION: UInt64 = 0
+
+// lock file model
+public class ModuleLock <: Serializable<ModuleLock> {
+    public var requires: HashMap<String, DepInfo> = HashMap<String, DepInfo>()
+    public var scripts: HashMap<String, DepInfo> = HashMap<String, DepInfo>()
+    //Used so that we can change format of this file without breaking change
+    var version: UInt64 = MODULE_LOCK_VERSION
+
+    public init() {}
+
+    public init(requires: HashMap<String, DepInfo>) {
+        for ((name, depInfo) in requires) {
+            if (depInfo.isGitDep() && depInfo.pathDepInGit) {
+                continue
+            }
+            this.requires.add(name, depInfo)
+        }
+    }
+
+    public init(requires: HashMap<String, DepInfo>, scripts: HashMap<String, DepInfo>) {
+        for ((name, depInfo) in requires) {
+            if (depInfo.isGitDep() && depInfo.pathDepInGit) {
+                continue
+            }
+            this.requires.add(name, depInfo)
+        }
+        this.scripts = scripts
+    }
+
+    public func serialize(): DataModel {
+        let res = DataModelStruct()
+        res.add(field<UInt64>(VERSION, this.version))
+        res.add(field<HashMap<String, DepInfo>>("requires", this.requires))
+        if (!this.scripts.isEmpty()) {
+            res.add(field<HashMap<String, DepInfo>>("scripts", this.scripts))
+        }
+        return res
+    }
+
+    public static func deserialize(dm: DataModel): ModuleLock {
+        var dms = match (dm) {
+            case data: DataModelStruct => data
+            case _ => throw Exception("this data is not DataModelStruct")
+        }
+        let version = UInt64.deserialize(dms.get(VERSION));
+        if (version != MODULE_LOCK_VERSION) {
+            throw Exception("codepm.lock file has incompatible version")
+        }
+        var result = ModuleLock(HashMap<String, DepInfo>.deserialize(dms.get("requires")))
+        result.version = version
+        result.scripts = HashMap<String, DepInfo>.deserialize(
+            (dms.get("scripts") as DataModelStruct) ?? DataModelStruct())
+        return result
+    }
+}
+
+public func loadLockFile(rootPath: String): (Bool, ModuleLock) {
+    var res = ModuleLock()
+    var lockFile: String = Path(rootPath).join(LOCK_FILE_NAME).toString()
+
+    if (!fileExists(lockFile)) {
+        // This file does not exist by default.
+        return (true, res)
+    }
+
+    try {
+        let file = File(lockFile, Read)
+        let de = DecoderToml(file)
+        let to = de.decode()
+        res = ModuleLock.deserialize(DataModel.fromToml(to))
+        file.close()
+    } catch (_: Exception) {
+        eprintln("Error: parse the '${LOCK_FILE_NAME}' file failed")
+        return (false, res)
+    }
+
+    return (true, res)
+}
+
+public func creatLockFile(rootPath: String, lockFile: ModuleLock): Bool {
+    var lockFilePath: String = Path(rootPath).join(LOCK_FILE_NAME).toString()
+    if (directoryExists(lockFilePath)) {
+        eprintln("Error: failed to create '${LOCK_FILE_NAME}', because a directory with the same name already exists")
+        return false
+    }
+
+    try {
+        var f = File(lockFilePath, Write)
+        let enc = EncoderToml(f)
+        enc.encode(lockFile.serialize())
+        f.close()
+    } catch (e: Exception) {
+        eprintln("Error: generate the '${LOCK_FILE_NAME}' file failed")
+        return false
+    }
+
+    if (!modifyFilePermission(lockFilePath)) {
+        return false
+    }
+
+    return true
+}

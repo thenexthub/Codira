@@ -1,0 +1,117 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package ohos.ark_interop
+
+public type JSLambda = (JSContext, JSCallInfo) -> JSValue
+
+abstract sealed class JSObjectBase <: JSHeapObject {
+    public operator func [](key: JSKeyable): JSValue {
+        JSValue()
+    }
+    public operator func [](key: JSKeyable, value!: JSValue): Unit {}
+}
+
+public class JSObject <: JSObjectBase {}
+
+public class JSString <: JSHeapObject & ToString & JSKeyable {
+    public func toJSValue(_: JSContext): JSValue {
+        JSValue()
+    }
+
+    public func toString(): String {
+        ""
+    }
+
+    public func string(value: String): JSString {
+        JSString()
+    }
+}
+
+public class JSContext {
+    public func function(lambda: JSLambda): JSFunction {
+        JSFunction()
+    }
+
+    public func clazz(ctor: JSLambda, superClass!: ?JSClass = None): JSClass {
+        JSClass()
+    }
+
+    public func undefined(): JSUndefined {
+        JSUndefined()
+    }
+
+    public func string(value: String): JSString {
+        JSString()
+    }
+}
+
+public struct JSCallInfo {
+    public operator func [](index: Int64): JSValue {
+        JSValue()
+    }
+
+    public prop thisArg: JSValue {
+        get() { JSValue() }
+    }
+}
+
+public struct JSValue {
+    public func toString(): String {
+        ""
+    }
+
+    public func toString(_: JSContext): String {
+        ""
+    }
+}
+
+abstract sealed class JSHeapObject {
+    public func toJSValue(): JSValue {
+        JSValue()
+    }
+}
+
+public class JSFunction <: JSHeapObject {}
+
+public interface ToJSValue {
+    func toJSValue(context: JSContext): JSValue
+}
+
+sealed interface JSKeyable <: ToString & ToJSValue {
+}
+
+extend String <: JSKeyable {
+    public func toJSValue(context: JSContext): JSValue {
+        JSValue()
+    }
+}
+
+public class JSClass <: JSHeapObject {
+    public func addMethod(key: JSKeyable, method: JSFunction): Unit {}
+}
+
+public struct JSUndefined {
+    public func toJSValue(): JSValue {
+        JSValue()
+    }
+}

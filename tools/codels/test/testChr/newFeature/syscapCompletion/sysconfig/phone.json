@@ -1,0 +1,9 @@
+{
+  "SysCaps": [
+    "SystemCapability.ArkUI.ArkUI.Full",
+    "SystemCapability.ArkUI.ArkUI.Napi",
+    "SystemCapability.ArkUI.ArkUI.Libuv",
+    "SystemCapability.ArkUI.ArkUI.Lite",
+    "SystemCapability.ArkUI.UiAppearance"
+  ]
+}

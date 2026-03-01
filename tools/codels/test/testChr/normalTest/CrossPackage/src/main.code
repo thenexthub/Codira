@@ -1,0 +1,87 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+import default.A.*
+
+// struct跨包继承场景  Scenarios7
+struct MaimStruct <: AInterface {
+    public func funcAold() {}
+}
+
+let c = MaimStruct().funcAold()
+
+interface MaimInterface <: AInterface {}
+
+// 跨接口继承场景  Scenarios8
+class MCLASS <: MaimInterface {
+    public func funcAold() {}
+}
+
+let cc = MCLASS().funcAold()
+
+interface Eq<T> {
+    func eq(other: T): Bool
+}
+
+interface Ord<T> where T <: Eq<T> {
+    func eq1(other: T): Bool
+}
+
+class G <: Eq<Int64> {
+    public func eq(other: Int64): Bool {
+        return true
+    }
+    public mut prop aaaa111: Int64 {
+        get() {
+            1
+        }
+        set(a) {
+            a + 1
+        }
+    }
+}
+
+func foo<T>(a: T) where T <: Ord<T> {
+    a.eq(a)
+    a.eq1(a)
+}
+
+let csa: String = ""
+
+class dddaa <: ArithmeticException {
+    dddaa() {
+        super()
+    }
+    public override func getClassName(): String {
+        return "ArithmeticException"
+    }
+}
+
+class dddaabb <: ArithmeticException {
+    dddaabb() {
+        super()
+    }
+    public override func getClassName(): String {
+        return "ArithmeticException"
+    }
+}
+

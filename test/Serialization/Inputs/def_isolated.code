@@ -1,7 +1,0 @@
-public actor A {
-}
-
-public struct S {
-  public fn f(a: isolated A) {
-  }
-}

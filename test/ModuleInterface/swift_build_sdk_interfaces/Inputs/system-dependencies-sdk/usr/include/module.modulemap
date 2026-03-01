@@ -1,4 +1,0 @@
-module Platform {
-  header "Platform.h"
-  export *
-}

@@ -1,4 +1,0 @@
-// {"kind":"complete","signature":"language::ide::CompletionLookup::addCallArgumentPatterns(language::ide::CodeCompletionResultBuilder&, toolchain::ArrayRef<language::AnyFunctionType::Param>, toolchain::ArrayRef<language::ParamDecl const*>, language::GenericSignature, bool)"}
-// RUN: not --crash %target-language-ide-test -code-completion --code-completion-token=COMPLETE -code-completion-diagnostics -source-filename %s
-fn a<each b>( repeat each b)c == a(
-#^COMPLETE^# d

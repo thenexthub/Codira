@@ -1,0 +1,51 @@
+# ===----------------------------------------------------------------------===
+#
+#  Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#  DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#  Author: Tunjay Akbarli
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at:
+#
+#  http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+#  Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#  Middletown, DE 19709, New Castle County, USA.
+#
+# ===----------------------------------------------------------------------===
+
+# indent width
+indentWidth = 4 # Range of indentWidth: [0, 8]
+
+# limit length
+linelimitLength = 120 # Range of indentWidth: [1, 120]
+
+# line break type
+lineBreakType = "LF" # "LF" or "CRLF"
+
+# allow Multi-line Method Chain when it's level equal or greater than multipleLineMethodChainLevel
+allowMultiLineMethodChain = false
+
+# if allowMultiLineMethodChain's value is true,
+# and method chain's level is equal or greater than multipleLineMethodChainLevel,
+# method chain will be formatted to multi-line method chain.
+# e.g. A.b().c() level is 2, A.b().c().d() level is 3
+# ObjectA.b().c().d().e().f() =>
+# ObjectA
+#     .b()
+#     .c()
+#     .d()
+#     .e()
+#     .f()
+multipleLineMethodChainLevel = 5 # Range of multipleLineMethodChainLevel: [2, 10]
+
+# allow Multi-line Method Chain when it's length greater than linelimitLength
+multipleLineMethodChainOverLineLength = true

@@ -1,0 +1,1 @@
+{"id":"9","jsonrpc":"2.0","result":{"range":{"end":{"character":10,"line":11},"start":{"character":7,"line":11}},"uri":"file:///d%3A/Work/repo/Char/Fork/cangjie_language_server/test/testChr/normalTest/InitFunction/src/initFunction/InitFunciton.code"}}

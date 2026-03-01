@@ -1,0 +1,1 @@
+{"id":"8","jsonrpc":"2.0","result":{"range":{"end":{"character":5,"line":8},"start":{"character":4,"line":8}},"uri":"file:///d%3A/develop/B082/cangjie_language_server/test/testChr/normalTest/ConCurrency/src/mutex.code"}}

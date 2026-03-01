@@ -1,9 +1,0 @@
-{
-  "clang_flags": ["-Wno-objc-root-class", "-fdebug-prefix-map=$SRC_DIR=.", "-fdebug-prefix-map=$BUILD_DIR=."],
-  "language_flags": ["-file-prefix-map", "$SRC_DIR=.", "-file-prefix-map", "$BUILD_DIR=."],
-  "sources": [
-    "a.code",
-    "c.m",
-  ],
-  "bridging_header": "bridging-header.h"
-}

@@ -1,0 +1,1 @@
+{"id":7,"jsonrpc":"2.0","result":[{"deprecated":false,"detail":"(variable) public var externalList: Array<Int64>","documentation":"","filterText":"externalList","insertText":"externalList","insertTextFormat":1,"kind":6,"label":"externalList","sortText":""}]}

@@ -1,0 +1,1 @@
+{"id":5,"jsonrpc":"2.0","result":[{"data":{"isChildOrSuper":false,"isKernel":true},"kind":5,"name":"Exception","range":{"end":{"character":1,"line":104},"start":{"character":0,"line":54}},"selectionRange":{"end":{"character":8,"line":23},"start":{"character":7,"line":23}},"uri":"file:///home/zzk/project/lsp-package/test/testChr/typeHierarchy/typeAlias/src/main.code"}]} 

@@ -1,3 +1,0 @@
-// {"signature":"getDirectWriteAccessStrategy(language::AbstractStorageDecl const*)"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-fn a(@_nonEphemeral UnsafeRawPointer) var arr { b a(&arr

@@ -1,0 +1,1 @@
+{"id":9,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: main.code\nPackage info: default\n\n// In enum AAAA4\n(enum_construct) AAAA4.A\n"},"range":{"end":{"character":5,"line":45},"start":{"character":4,"line":45}}}}

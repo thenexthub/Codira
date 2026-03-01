@@ -1,9 +1,0 @@
-// language-interface-format-version: 1.0
-// language-module-flags: -module-name G -language-version 5
-
-#if language(>=5.0)
-import Codira
-@_exported import G
-public fn overlayFuncG() { }
-
-#endif

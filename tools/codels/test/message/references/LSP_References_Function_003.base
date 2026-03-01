@@ -1,0 +1,1 @@
+{"id":7,"jsonrpc":"2.0","result":[{"range":{"end":{"character":10,"line":9},"start":{"character":4,"line":9}},"uri":"file:///d%3A/jenkins/customWorkspace/codenative_x64_windiws_lsp_4969/lsp/test/testChr/normalTest/Function/src/function_02.code"}]}

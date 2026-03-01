@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration>
+    <oatconfig>
+        <licensefile></licensefile>
+        <policylist>
+            <policy name="projectPolicy" desc="">
+                <policyitem type="copyright" name="Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved." path=".*" rule="may" group="defaultGroup" filefilter="copyrightPolicyFilter" desc=""/>
+                <policyitem type="copyright" name="REM Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved." path=".*" rule="may" group="defaultGroup" filefilter="copyrightPolicyFilter" desc=""/>
+                <policyitem type="copyright" name="Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved." path=".*" rule="may" group="defaultGroup" filefilter="copyrightPolicyFilter" desc=""/>
+                <policyitem type="copyright" name="REM Copyright (c) Huawei Technologies Co., Ltd. 2026. All rights reserved." path=".*" rule="may" group="defaultGroup" filefilter="copyrightPolicyFilter" desc=""/>
+                <policyitem type="license" name="CC-BY-4.0" path=".*" rule="may" group="defaultGroup" filefilter="defaultPolicyFilter" desc=""/>
+            </policy>
+        </policylist>
+        <filefilterlist>
+            <filefilter name="defaultFilter" desc="Files not to check">
+                <filteritem type="filename" name="COPYRIGHT|COPYRIGHT_EN" desc="doc file"/>
+                <filteritem type="filename" name="*.diff" desc="diff file"/>
+                <filteritem type="filename" name="*.dylib|*.obfmap|*.expect|*.tsv|*.csv|*.der|*.text|*.key|*.zoneinfo.tar.g|errorTimeZone|*.expect|*.csr|*.der|Shanghai|*.info|*.dll|*.so|*.out|*.gz|TyKind.inc|*.base|*.test|*.list" desc="desc files"/>
+            </filefilter>
+            <filefilter name="licenseFileNamePolicyFilter" desc="Filters for LICENSE file policies">
+                <filteritem type="filepath" name="doc/.*" desc="doc目录过滤"/>
+            </filefilter>
+            <filefilter name="defaultPolicyFilter" desc="Files that do not need to be applied specified policy, will be merged with the filter items which has the same filefilter name">
+
+            </filefilter>
+            <filefilter name="copyrightPolicyFilter" desc="">
+
+            </filefilter>
+            <filefilter name="readmeFileNamePolicyFilter" desc="Filters for README file policies">
+            </filefilter>
+            <filefilter name="readmeOpenSourcefileNamePolicyFilter" desc="Filters for README.OpenSource file policies">
+            </filefilter>
+            <filefilter name="binaryFileTypePolicyFilter" desc="Filters for binary file policies">
+            </filefilter>
+        <filefilter name="binaryFileTypePolicyFilter" desc="Filters for binaryFile" >
+            <filteritem type="filename" name="*.pem" desc="HTTP证书文件, 完成检查"/>
+            <filteritem type="filename" name="*.der" desc="HTTP证书文件, 完成检查"/>
+            <filteritem type="filename" name="*.tsv" desc="校验unittest功能需要, 完成检查"/>
+            <filteritem type="filename" name="*.csv" desc="校验unittest功能需要, 完成检查"/>
+            <filteritem type="filename" name="zoneinfo.tar.gz" desc="时区文件, 完成检查"/>
+            <filteritem type="filename" name="Shanghai" desc="时区文件, 完成检查"/>
+            <filteritem type="filename" name="pkg1.jar" desc="codepm测试需要, 完成检查"/>
+            <filteritem type="filename" name="*.png" desc="PNG图片文件, 完成检查"/>
+            <filteritem type="filename" name="*.jpg" desc="PNG图片文件, 完成检查"/>
+		</filefilter>
+        </filefilterlist>
+		<licensematcherlist>
+            <licensematcher name="Apache-2.0 with Runtime Library Exception" desc="If the scanning result is InvalidLicense, you can define matching rules here. Note that quotation marks must be escaped.">
+                <licensetext name="
+                    This source file is part of the Codira project, licensed under Apache-2.0
+					with Runtime Library Exception.
+				 " desc=""/>
+            </licensematcher>
+            <licensematcher name="Apache-2.0 with Runtime Library Exception" desc="If the scanning result is InvalidLicense, you can define matching rules here. Note that quotation marks must be escaped.">
+                <licensetext name="
+                    REM This source file is part of the Codira project, licensed under Apache-2.0
+					REM with Runtime Library Exception.
+				 " desc=""/>
+            </licensematcher>
+        </licensematcherlist>
+    </oatconfig>
+</configuration>

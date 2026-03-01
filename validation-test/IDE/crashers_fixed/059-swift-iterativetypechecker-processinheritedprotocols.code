@@ -1,5 +1,0 @@
-// RUN: %target-language-ide-test -code-completion -code-completion-token=A -source-filename=%s
-protocol e:A.a
-class A{
-protocol c:e
-fn a<H:A.c fn a#^A^#

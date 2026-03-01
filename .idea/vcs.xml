@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/compiler" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/compiler/third_party/boundscheck" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/runtime" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/stdx" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/tools" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/vm/WAMRuntime" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/vm/jsvm" vcs="Git" />
+  </component>
+</project>

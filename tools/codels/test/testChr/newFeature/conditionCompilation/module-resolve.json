@@ -1,0 +1,42 @@
+{
+  "resolves": [
+    {
+      "organization": "cangjie",
+      "name": "conditionCompilation",
+      "path": ".",
+      "packagePath": "/home/zhangpingping/vscode_test/project/conditionCompilation/src/pkg",
+      "packageName": "conditionCompilation/pkg",
+      "version": "1.0.0",
+      "hash": "-2010749122888271395",
+      "isMacroPackage": false,
+      "output_type": "static",
+      "command_option": "--diagnostic-format=noColor",
+      "condition_option": {},
+      "link_option": "",
+      "requires": [],
+      "package_requires": {},
+      "foreign_requires": {},
+      "cross_compile_configuration": {}
+    },
+    {
+      "organization": "cangjie",
+      "name": "conditionCompilation",
+      "path": ".",
+      "packagePath": "/home/zhangpingping/vscode_test/project/conditionCompilation/src",
+      "packageName": "conditionCompilation/default",
+      "version": "1.0.0",
+      "hash": "-2010749122888271395",
+      "isMacroPackage": false,
+      "output_type": "executable",
+      "command_option": "--diagnostic-format=noColor",
+      "condition_option": {},
+      "link_option": "",
+      "requires": [
+        "conditionCompilation/pkg"
+      ],
+      "package_requires": {},
+      "foreign_requires": {},
+      "cross_compile_configuration": {}
+    }
+  ]
+}

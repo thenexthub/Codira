@@ -1,0 +1,1 @@
+{"id":9,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: main.code\nPackage info: default\n\n// In struct AAAA2\n(function) internal func name(): Unit\n"},"range":{"end":{"character":13,"line":29},"start":{"character":9,"line":29}}}}

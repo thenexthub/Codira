@@ -1,5 +1,0 @@
-// {"kind":"complete","signature":"language::MetatypeType::get(language::Type, std::__1::optional<language::MetatypeRepresentation>, language::ASTContext const&)"}
-// RUN: %target-language-ide-test -code-completion --code-completion-token=COMPLETE -code-completion-diagnostics -source-filename %s
-[ .
-#^COMPLETE^#,
-( repeat.a ), (3, .b

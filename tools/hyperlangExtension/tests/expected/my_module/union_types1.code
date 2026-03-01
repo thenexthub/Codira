@@ -1,0 +1,176 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package my_module
+
+import ohos.ark_interop.*
+import ohos.ark_interop_helper.*
+import ohos.base.*
+
+public enum AutoGenType0InunionTypes1 {
+    | BOOLEAN(Bool)
+    | STRING(String)
+    
+    public func toJSValue(context: JSContext): JSValue {
+        match(this) {
+            case BOOLEAN(x) => context.boolean(x).toJSValue()
+            case STRING(x) => context.string(x).toJSValue()
+        }
+    }
+    public static func fromJSValue(context: JSContext, input: JSValue): AutoGenType0InunionTypes1 {
+        
+        if (input.isBoolean()) {
+            return BOOLEAN(Bool.fromJSValue(context, input))
+        } 
+        if(input.isString()) {
+            return STRING(String.fromJSValue(context, input))
+        }
+        throw Exception("unsupport type!")
+    }
+}
+
+public enum AutoGenType1InunionTypes1 {
+    | STRING(String)
+    | NUMBER(Float64)
+    
+    public func toJSValue(context: JSContext): JSValue {
+        match(this) {
+            case STRING(x) => context.string(x).toJSValue()
+            case NUMBER(x) => context.number(x).toJSValue()
+        }
+    }
+    public static func fromJSValue(context: JSContext, input: JSValue): AutoGenType1InunionTypes1 {
+        
+        if(input.isString()) {
+            return STRING(String.fromJSValue(context, input))
+        } 
+        if(input.isNumber()) {
+            return NUMBER(Float64.fromJSValue(context, input))
+        } 
+        throw Exception("unsupport type!")
+    }
+}
+
+// type alias
+public enum a1 {
+    | STRING(String)
+    | NUMBER(Float64)
+    
+    public func toJSValue(context: JSContext): JSValue {
+        match(this) {
+            case STRING(x) => context.string(x).toJSValue()
+            case NUMBER(x) => context.number(x).toJSValue()
+        }
+    }
+    public static func fromJSValue(context: JSContext, input: JSValue): a1 {
+        
+        if(input.isString()) {
+            return STRING(String.fromJSValue(context, input))
+        } 
+        if(input.isNumber()) {
+            return NUMBER(Float64.fromJSValue(context, input))
+        } 
+        throw Exception("unsupport type!")
+    }
+}
+
+
+
+/*class ExportKeyword A {
+    a: a1;
+    b: boolean | String;
+    test1(a:a1): String|number
+    test2(a: string|number): number
+    }*/
+
+public class A {
+    
+    protected A(var arkts_object: JSObject) { }
+    
+    
+    public mut prop a: a1 {
+        get() {
+            checkThreadAndCall < a1 >(getMainContext()) {
+                ctx: JSContext => a1.fromJSValue(ctx, arkts_object["a"])
+            }
+        }
+        set(v) {
+            checkThreadAndCall < Unit >(getMainContext()) {
+                ctx: JSContext => arkts_object["a"] = v.toJSValue(ctx)
+            }
+        }
+        
+    }
+    // property
+    public mut prop b: AutoGenType0InunionTypes1 {
+        get() {
+            checkThreadAndCall < AutoGenType0InunionTypes1 >(getMainContext()) {
+                ctx: JSContext => AutoGenType0InunionTypes1.fromJSValue(ctx, arkts_object["b"])
+            }
+        }
+        set(v) {
+            checkThreadAndCall < Unit >(getMainContext()) {
+                ctx: JSContext => arkts_object["b"] = v.toJSValue(ctx)
+            }
+        }
+        
+    }
+    
+    /**
+	 * @brief test1(a:a1): String|number
+	 */
+	// member function
+    public func test1(a: a1): AutoGenType1InunionTypes1 {
+        jsObjApiCall < AutoGenType1InunionTypes1 >( arkts_object, "test1", { ctx =>[a.toJSValue(ctx)] }) { ctx, info => AutoGenType1InunionTypes1.fromJSValue(ctx, info) }
+    }
+    /**
+	 * @brief test2(a: string|number): number
+	 */
+    public func test2(a: String): Float64 {
+        jsObjApiCall < Float64 >( arkts_object, "test2", { ctx =>[a.toJSValue(ctx)] })
+    }
+    /**
+	 * @brief test2(a: string|number): number
+	 */
+    public func test2(a: Float64): Float64 {
+        jsObjApiCall < Float64 >( arkts_object, "test2", { ctx =>[a.toJSValue(ctx)] })
+    }
+    
+    func toJSValue(context: JSContext): JSValue {
+        arkts_object.toJSValue()
+    }
+    
+    static func fromJSValue(context: JSContext, input: JSValue): A {
+        A(input.asObject())
+    }
+}
+
+/***********METHOD***********/
+/**
+	 * @brief test(a:a1): String|number
+	 */
+	// global func
+public func test(a: a1): AutoGenType1InunionTypes1 {
+    hmsGlobalApiCall < AutoGenType1InunionTypes1 >( "my_module_unionTypes1", "test", { ctx =>[a.toJSValue(ctx)] }) { ctx, info => AutoGenType1InunionTypes1.fromJSValue(ctx, info) }
+}
+
+

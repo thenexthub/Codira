@@ -1,3 +1,0 @@
-// RUN: not %target-language-frontend %s -typecheck
-
-_ = try [ { return .D($0[0]) } ]

@@ -1,3 +1,0 @@
-extern module CodiraShims             "shims/module.modulemap"
-extern module _CodiraConcurrencyShims "shims/module.modulemap"
-extern module CodiraOverlayShims      "shims/module.modulemap"

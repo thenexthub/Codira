@@ -1,0 +1,1 @@
+{"id":"9","jsonrpc":"2.0","result":[{"deprecated":false,"detail":"","documentation":"","filterText":"a","insertText":"a","insertTextFormat":1,"kind":2,"label":"a","sortText":""},{"deprecated":false,"detail":"(function) internal func a(): Unit","documentation":"","filterText":"a","insertText":"a()","insertTextFormat":1,"kind":2,"label":"a()","sortText":""}]}

@@ -1,0 +1,1 @@
+{"id":"19","jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: condition.code\nPackage info: default\n\n(variable) internal var m1: MultiConditionMonitor = MultiConditionMonitor()\n"},"range":{"end":{"character":6,"line":25},"start":{"character":4,"line":25}}}}

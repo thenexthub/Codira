@@ -1,0 +1,67 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/**
+e as T 是一个用于类型转换的表达式，e as T 的类型是Option<T>。其中e 可以是任何类型的表达式，T
+可以是任何具体类型。
+当e 的运行时类型R 是T 的子类型时，e as T 的值为Some(e)，否则值为None。
+as 操作符举例：
+*/
+interface IB {
+
+}
+
+open class Base <:IB{
+var name: String = "Alice"
+}
+class Derived1 <: Base {
+var age: UInt8 = 18
+}
+class Derived2 <: Base {
+var gender: String = "female"
+}
+func main(): Int64 {
+    let base1_rename: Base = Base()
+    let ib = base1_rename as IB
+    let base2: Base = Derived1()
+    let base3: Base = Derived2()
+    let derived1: Derived1 = Derived1()
+    let derived2: Derived2 = Derived2()
+    let castOP1 = base1_rename as Base // castOP = Option<Base>.Some(base1)
+    let castOP2 = base1_rename as Derived1 // castOP = Option<Derived1>.None
+    let castOP3 = base1_rename as Derived2 // castOP = Option<Derived2>.None
+    let castOP4 = base2 as Base // castOP = Option<Base>.Some(base2)
+    let castOP5 = base2 as Derived1 // castOP = Option<Derived1>.Some(base2)
+    let castOP6 = base2 as Derived2 // castOP = Option<Derived2>.None
+    let castOP7 = base3 as Base // castOP = Option<Base>.Some(base3)
+    let castOP8 = base3 as Derived1 // castOP = Option<Derived1>.None
+    let castOP9 = base3 as Derived2 // castOP = Option<Derived2>.Some(base3)
+    let castOP10 = derived1 as Base // castOP = Option<Base>.Some(derived1)
+    let castOP11 = derived1 as Derived1 // castOP = Option<Derived1>.Some(derived1)
+    let castOP12 = derived1 as Derived2 // castOP = Option<Derived2>.None
+    let castOP13 = derived2 as Base // castOP = Option<Base>.Some(derived2)
+    let castOP14 = derived2 as Derived1 // castOP = Option<Derived1>.None
+    let castOP15 = derived2 as Derived2 // castOP = Option<Derived2>.Some(derived2)
+    return 0
+}
+
+

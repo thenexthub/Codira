@@ -1,6 +1,0 @@
-// {"kind":"complete","signature":"language::FragileFunctionKindRequest::evaluate(language::Evaluator&, language::DeclContext*) const"}
-// RUN: not --crash %target-language-ide-test -code-completion --code-completion-token=COMPLETE -code-completion-diagnostics -source-filename %s
-enum a {
-  case ( = {
-      enum b :
-        #^COMPLETE^#

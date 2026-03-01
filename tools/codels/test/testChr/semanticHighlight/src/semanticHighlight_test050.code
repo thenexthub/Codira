@@ -1,0 +1,334 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+import foundation.*
+import component.*
+import systemlib.*
+
+@preview
+func previewFunc(){
+	MyDivClass()
+}
+
+class MyDivClass <: component.Component {
+	func render(){
+		Div(
+			content: .Some<ComponentBase[]>(@{
+				
+			}),
+			style:.Some<DivStyle>(DivStyle(
+				width: .Some<Length>(684.px()),
+				height: .Some<Length>(30.px()),
+				backgroundColor: .Some<Color>(Color(Colors.aqua))
+			))
+		)
+		
+	}
+}
+
+class PageSearchState <: State{
+  var showPageType: String
+  var list: Item<String>[]
+
+  init(list: Item<String>[]){
+    this.list = list
+    this.showPageType = "searchBar"
+  }
+}
+
+class PageSearch <: Component{
+	let state: PageSearchState
+	init(){
+		let data = @{
+			"悟空传" , "微微一笑很倾城" , "大明那些事儿" , "三生三世十里桃花" , "斗破苍穹"
+		}
+		state = PageSearchState(Item<String>.makeArray(data))
+	}
+	func render(){
+		let allSearchStyle = .Some<DivStyle>(DivStyle(
+			flexDirection: Option<FlexDirection>.Some(FlexDirection.column),
+			borderRadius: .Some<Length[]>(@{8.px(), 8.px(), 8.px(), 8.px()})
+		))
+
+		let changeSearchStyle = .Some<DivStyle>(DivStyle(
+			width: .Some<Length>(684.px()),
+	    height: .Some<Length>(30.px()),
+	    margin: .Some<Px[]>(@{41.px(), 0.px(), 0.px(), 10.px()}),
+	    alignItems: Option<AlignItems>.Some(AlignItems.center),
+	    justifyContent: Option<JustifyContent>.Some(JustifyContent.spaceBetween)
+		))
+
+		let spareBarStyle = .Some<DivStyle>(DivStyle(
+			width: .Some<Length>(684.px()),
+	    height: .Some<Length>(16.px())
+	  ))
+
+	  let changeContentStyle = .Some<DivStyle>(DivStyle(
+			width: .Some<Length>(682.px()),
+	    flexWrap: .Some<FlexWrap>(FlexWrap.wrap)
+	  ))
+
+	  let allFindStyle = .Some<TextStyle>(TextStyle(
+	  	fontSize: .Some<Px>(31.px()),
+    	color: .Some<Color>(Color(26, 26, 26)),
+    	height: .Some<Length>(34.px()),
+    	lineHeight: .Some<Px>(34.px())
+	  ))
+
+	  let aChangeSearchStyle = .Some<TextStyle>(TextStyle(
+    	fontSize: .Some<Px>(27.1.px()),
+    	color: .Some<Color>(Color(205, 35, 37)),
+    	height: .Some<Length>(34.px()),
+    	lineHeight: .Some<Px>(34.px()),
+    	padding: .Some<Px[]>(@{0.px(), 0.px(), 0.px(), 10.px()}),
+    	textAlign: .Some<TextAlign>(TextAlign.center)
+    ))
+		
+		let itemBuilderCb = (item: Item<String>, idx: int64) => {
+			Hyperlink(
+				content: .Some<String>(bind(() => { item.value })),
+				style: .Some<TextStyle>(TextStyle(
+					backgroundColor: .Some<Color>(Color(0, 0, 0, 0.05)),
+    			textAlign: .Some<TextAlign>(TextAlign.center),
+    			height: .Some<Length>(50.px()),
+    			borderRadius: .Some<Length[]>(@{8.px(), 8.px(), 8.px(), 8.px()}),
+    			lineHeight: .Some<Px>(50.px()),
+    			padding: .Some<Px[]>(@{10.px(), 20.px(), 10.px(), 20.px()}),
+    			margin: .Some<Px[]>(@{17.px(), 17.px(), 0.px(), 0.px()}),
+    			fontSize: .Some<Px>(27.px()),
+    			color: .Some<Color>(Color(0, 0, 0)),
+    			lines: .Some<int64>(1)
+				))
+				// TODO  onclick="setInputValue($item.name)">
+			)
+		}
+
+		let containerStyle = .Some<DivStyle>(DivStyle(
+			flexDirection: Option<FlexDirection>.Some(FlexDirection.column),
+			alignContent: Option<AlignContent>.Some(AlignContent.center),
+	    alignItems: Option<AlignItems>.Some(AlignItems.center)
+		))
+
+		let searchBarContainerStyle = .Some<DivStyle>(DivStyle(
+	    alignItems: Option<AlignItems>.Some(AlignItems.center),
+	    width: .Some<Length>(Px(696)),
+	    height: .Some<Length>(Px(100)),
+	    margin: .Some<Px[]>(@{0.px(), 33.px(), 0.px(), 17.px()})
+		))
+
+		let panelStyle = .Some<DivStyle>(DivStyle(
+			flexDirection: Option<FlexDirection>.Some(FlexDirection.column),
+	    alignItems: Option<AlignItems>.Some(AlignItems.center),
+	    width: .Some<Length>(Px(700)),
+	    height: .Some<Length>(100.percent()),
+	    margin: .Some<Px[]>(@{0.px(), 33.px(), 0.px(), 17.px()})
+		))
+
+		let imageSearchBackDivSearchStyle = .Some<DivStyle>(DivStyle(
+	    alignItems: Option<AlignItems>.Some(AlignItems.center),
+	    width: .Some<Length>(Px(84)),
+	    height: .Some<Length>(Px(100)),
+	    justifyContent: Option<JustifyContent>.Some(JustifyContent.center)
+	  ))
+
+	  let searchCloseStyle = .Some<DivStyle>(DivStyle(
+	    alignItems: Option<AlignItems>.Some(AlignItems.center),
+	    width: .Some<Length>(Px(64)),
+	    height: .Some<Length>(Px(608)),
+	    borderRadius: .Some<Length[]>(@{8.px(), 8.px(), 8.px(), 8.px()}),
+	    backgroundColor: .Some<Color>(Color(242,242,242))
+	  ))
+
+	  let imageSearchBackDivStyle = .Some<DivStyle>(DivStyle(
+	    alignItems: Option<AlignItems>.Some(AlignItems.center),
+	    width: .Some<Length>(Px(84)),
+	    height: .Some<Length>(Px(100)),
+	    justifyContent: Option<JustifyContent>.Some(JustifyContent.center)
+	  ))
+
+		Div(
+			content: .Some<ComponentBase[]>(@{
+				Div(
+					content: .Some<ComponentBase[]>(@{
+						Div(
+							content: .Some<ComponentBase[]>(@{
+								Image(
+									src: .Some<String>("/Page_Search/img/search_back.png"),
+									style: .Some<ImageStyle>(ImageStyle(
+										width: .Some<Length>(Px(40)),
+						    		height: .Some<Length>(Px(40))
+									))
+								)								
+							}),
+							style: imageSearchBackDivSearchStyle,
+							onClick: Option<(systemlib.EventBase) -> unit>.Some( (evt: systemlib.EventBase) => {
+	              systemlib.routerBack(systemlib.RouterBackObj(.None<String>))
+	            })
+						),
+						Div(
+							content: .Some<ComponentBase[]>(@{
+								Div(
+									content: .Some<ComponentBase[]>(@{
+										Image(
+											src: .Some<String>("/Page_Search/img/search.png"),
+											style: .Some<ImageStyle>(ImageStyle(
+												width: .Some<Length>(Px(33)),
+								    		height: .Some<Length>(Px(33)),
+								    		margin: .Some<Px[]>(@{0.px(), 17.px(), 0.px(), 17.px()})
+											))
+										)
+									}),
+									style: imageSearchBackDivStyle
+								),
+								Input(
+									placeholder: .Some<String>("搜索书籍、作者"),
+									style: .Some<InputStyle>(InputStyle(
+										width: .Some<Length>(Px(440)),
+								    height: .Some<Length>(Px(40)),
+								    color: .Some<Color>(Color(26, 26, 26)),
+								    fontSize: .Some<Px>(Px(28)),
+								    margin: .Some<Px[]>(@{0.px(), 33.px(), 0.px(), 0.px()})
+									))
+									// TODO
+									// onchange
+								),
+								Div(
+									content: .Some<ComponentBase[]>(@{
+									})
+								)
+								// TODO
+								// <div show="{{inputValue!=''}}" class="image_search_back_div" onclick="resetSearchValue">
+				    		//   <image class="image_search_result close_size" src="./img/search_close.png"></image>
+				    		// </div>
+
+							}),
+							style: searchCloseStyle
+						)
+					}),
+					style: searchBarContainerStyle
+				), 
+				// panel
+				Div(
+					content: .Some<ComponentBase[]>(@{
+						If(
+              condition: bind(() => { state.showPageType == "searchBar"  }),
+              then: @{
+                Div(
+                	content: .Some<ComponentBase[]>(@{
+                		Div(
+                			content: .Some<ComponentBase[]>(@{
+                				Text(
+                					content: .Some<String>("大家都在看"),
+                					style: allFindStyle
+                				),
+                				Hyperlink(
+                					content: .Some<String>("换一换"),
+                					style: aChangeSearchStyle
+                				)
+                			}),
+                			style: changeSearchStyle
+                		),
+                		Div(
+                			content: .Some<ComponentBase[]>(@{}),
+                			style: spareBarStyle
+                		),
+                		Div(
+                			content: .Some<ComponentBase[]>(@{
+                				ForEach<Item<String>>(
+                					// hihi
+								          listSource: bind(() => { state.list }),
+								          itemBuilder: itemBuilderCb
+								        )
+                			}),
+                			style: changeContentStyle
+                		)
+                	}),
+                	style: allSearchStyle
+                ),
+                Div(
+                	content: .Some<ComponentBase[]>(@{
+                		Div(
+                			content: .Some<ComponentBase[]>(@{
+                				Text(
+                					content: .Some<String>("书籍热搜榜"),
+                					style: allFindStyle
+                				)
+                			}),
+                			style: changeSearchStyle
+                		),
+                		Div(
+                			content: .Some<ComponentBase[]>(@{}),
+                			style: spareBarStyle
+                		),
+                		Div(
+                			content: .Some<ComponentBase[]>(@{
+
+                			})
+                		)
+                	}),
+                	style: allSearchStyle
+                ),
+                Div(
+                	content: .Some<ComponentBase[]>(@{
+                		Div(
+                			content: .Some<ComponentBase[]>(@{
+                				Text(
+                					content: .Some<String>("搜索历史"),
+                					style: allFindStyle
+                				),
+                				Hyperlink(
+                					content: .Some<String>("清空"),
+                					style: aChangeSearchStyle
+                				)
+                			}),
+                			style: changeSearchStyle
+                		),
+                		Div(
+                			content: .Some<ComponentBase[]>(@{}),
+                			style: spareBarStyle
+                		),
+                		Div(
+                			content: .Some<ComponentBase[]>(@{
+                				ForEach<Item<String>>(
+                					// hihi
+								          listSource: bind(() => { state.list }),
+								          itemBuilder: itemBuilderCb
+								        )
+                			}),
+                			style: changeContentStyle
+                		)
+                	}),
+                	style: allSearchStyle
+                )
+              },
+              els: @{}
+            )
+					}),
+					style: panelStyle
+				)
+			}),
+			style: containerStyle
+		)
+
+	}
+
+}
+

@@ -1,0 +1,12 @@
+{
+  "Modules": {
+    "default": {
+      "deviceSysCap": {
+        "phone": [
+          "/home/project/open_source/lsp/test/testChr/newFeature/syscapCompletion/sysconfig/phone.json",
+          "/home/project/open_source/lsp/test/testChr/newFeature/syscapCompletion/sysconfig/phone-hmos.json"
+        ]
+      }
+    }
+  }
+}

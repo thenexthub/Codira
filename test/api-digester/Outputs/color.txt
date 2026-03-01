@@ -1,2 +1,0 @@
-color: Func Color.hash(into:) has been removed
-color: Var Color.hashValue has been removed

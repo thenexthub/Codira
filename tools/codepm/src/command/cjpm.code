@@ -1,0 +1,131 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package codepm.command
+
+import std.collection.*
+import codepm.implement.*
+
+public let CODEPM_USAGE: String = """
+Codira Project Manager
+
+Usage:
+  codepm [subcommand] [option]
+
+Available subcommands:
+  init             Init a new cangjie module
+  check            Check the dependencies
+  update           Update codepm.lock
+  tree             Display the package dependencies in the source code
+  build            Compile the current module
+  run              Compile and run an executable product
+  test             Unittest a local package or module
+  bench            Run benchmarks in a local package or module
+  clean            Clean up the target directory
+  install          Install a cangjie binary
+  uninstall        Uninstall a cangjie binary
+
+Available options:
+  -h, --help       help for codepm
+  -v, --version    version for codepm
+
+Use "codepm [subcommand] --help" for more information about a command."""
+
+public open class Handle {
+    public var cmdName: String = ""
+    public var arguments: Array<String> = Array<String>()
+
+    public open func handleCommand(): Bool {
+        return false
+    }
+
+    public open func isHelp(): Bool {
+        if (this.arguments.isEmpty()) {
+            return false
+        }
+        return this.arguments.contains("-h") || this.arguments.contains("--help")
+    }
+
+    public open func printHelp(): Unit {
+        return
+    }
+
+    public open func printError(): Unit {
+        eprintln("Error: codepm ${cmdName} failed")
+    }
+
+    public open func printPass(): Unit {
+        println("codepm ${cmdName} success")
+    }
+}
+
+// CpmCommand represents the base command when called without any subcommands
+class CpmCommand <: Handle {
+    private let CODEPM_VERSION: String = "Codira Project Manager: 1.1.0-alpha.70"
+
+    init(args: Array<String>) {
+        this.arguments = args
+    }
+
+    public override func isHelp(): Bool {
+        if (this.arguments.isEmpty()) {
+            return false
+        }
+        return this.arguments[0] == "-h" || this.arguments[0] == "--help"
+    }
+
+    public override func printHelp(): Unit {
+        println(CODEPM_USAGE)
+        return
+    }
+
+    public override func printError(): Unit {
+        eprintln("Error: codepm failed")
+    }
+
+    public override func printPass(): Unit {
+        return
+    }
+
+    func getVersion(): String {
+        return CODEPM_VERSION
+    }
+
+    public override func handleCommand(): Bool {
+        if (this.arguments.size == 0) {
+            println(CODEPM_USAGE)
+            return true
+        }
+
+        let isVersion: Bool = (this.arguments[0] == "-v") || (this.arguments[0] == "--version")
+
+        if (isVersion) {
+            println(getVersion())
+            if (this.arguments.size > 1) {
+                eprintln("Warning: codepm doesn't do job in show usage mode")
+            }
+            return true
+        }
+
+        return checkExpandedCmd(ArrayList<String>(this.arguments))
+    }
+}

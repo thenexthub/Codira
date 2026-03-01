@@ -1,3 +1,0 @@
-// {"signature":"(anonymous namespace)::ConstraintWalker::walkToExprPost(language::Expr*)"}
-// RUN: not %target-language-frontend -typecheck %s
-\.+=

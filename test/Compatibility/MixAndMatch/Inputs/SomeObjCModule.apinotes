@@ -1,9 +1,0 @@
-Name: SomeObjCModule
-Classes:
-- Name: NSRuncibleSpoon
-  CodiraBridge: RuncibleSpoon
-CodiraVersions:
-- Version: 4
-  Classes:
-  - Name: NSRuncibleSpoon
-    CodiraBridge: ""

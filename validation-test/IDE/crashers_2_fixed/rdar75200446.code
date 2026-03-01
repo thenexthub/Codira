@@ -1,3 +1,0 @@
-// RUN: %target-language-ide-test -code-completion -source-filename %s -code-completion-token=COMPLETE
-
-.undefined() #^COMPLETE^#

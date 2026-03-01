@@ -1,0 +1,193 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package codepm.command
+
+import std.argopt.*
+import std.collection.*
+import std.regex.*
+import codepm.util.*
+import codepm.config.*
+
+func getArgValue(argMap: HashMap<String, String>, longOpt: String, shortOpt: String): (String, Bool) {
+    if (argMap.contains(longOpt)) {
+        return (argMap[longOpt], true)
+    }
+    if (argMap.contains(shortOpt)) {
+        return (argMap[shortOpt], true)
+    }
+    return ("", false)
+}
+
+func getArgValue(argMap: HashMap<String, String>, opt: String): (String, Bool) {
+    if (argMap.contains(opt)) {
+        return (argMap[opt], true)
+    }
+    return ("", false)
+}
+
+func getBoolOption(argMap: HashMap<String, String>, arg: String): Bool {
+    return argMap.contains(arg)
+}
+
+func getBoolOption(argMap: HashMap<String, String>, shortArg: String, longArg: String): Bool {
+    return (argMap.contains(shortArg) || argMap.contains(longArg))
+}
+
+public func getParseOption(sysArgs: Array<String>, shortArg: String, longArgList: Array<String>):
+    (HashMap<String, String>, Array<String>) {
+    var ao = ArgOpt(sysArgs, shortArg, longArgList)
+    let argMap: HashMap<String, String> = ao.getArgumentsMap()
+    let unparseArgs = ao.getUnparseArgs()
+    return (argMap, unparseArgs)
+}
+
+public func hasHelpCommand(cmdHandler: Handle): Bool {
+    if (cmdHandler.isHelp()) {
+        cmdHandler.printHelp()
+        if (cmdHandler.arguments.size > 1) {
+            eprintln("Warning: codepm doesn't do job in show usage mode")
+        }
+        return true
+    }
+    return false
+}
+
+func handleTargetDirOption(argMap: HashMap<String, String>): Option<String> {
+    let (newDir, dirFlag) = getArgValue(argMap, "--target-dir")
+    if (dirFlag) {
+        if (newDir.isEmpty()) {
+            eprintln("Error: the target directory can't be empty")
+            return None
+        }
+        if (!safeCheck(newDir, "target-dir")) {
+            return None
+        }
+    }
+    return Some(newDir)
+}
+
+func handleEnableFeaturesOption(argMap: HashMap<String, String>): Result<Array<Feature>, Array<CODEMPError>> {
+    let flag = "enable-features"
+    let (featureString, featuresFlag) = getArgValue(argMap, "--${flag}")
+    if (featuresFlag && !safeCheck(featureString, flag)) {
+        return Err([])
+    }
+    if (featureString.isEmpty()) {
+        return Ok([])
+    }
+
+    featureString.trimAscii().split(",", removeEmpty: true).allResult { it => 
+        QName.fromString(it)
+            .mapErr { e => ErrorWrapper(None, e) }
+            .flatMap { it => Feature.create(it) }.mapErr { e => [ e ] } }
+}
+
+func handleFilterOption(argMap: HashMap<String, String>): Option<String> {
+    let flag = "filter"
+    let (filterOptions, filterFlag) = getArgValue(argMap, "--${flag}")
+    if (filterFlag && !safeCheck(filterOptions, flag)) {
+        return None
+    }
+    if (filterOptions.isEmpty()) {
+        return None
+    }
+    return Some(filterOptions)
+}
+
+func handleTagsOption(argMap: HashMap<String, String>, isInclude!: Bool = true): Option<String> {
+    let flag = if (isInclude) {
+        "include-tags"
+    } else {
+        "exclude-tags"
+    }
+    let (tagsOptions, tagsFlag) = getArgValue(argMap, "--${flag}")
+    if (tagsFlag && !safeCheck(tagsOptions, flag)) {
+        return None
+    }
+    if (tagsOptions.isEmpty()) {
+        return None
+    }
+    return Some(tagsOptions)
+}
+
+public func handleMemberOption(argMap: HashMap<String, String>): Option<String> {
+    let (member, memFlag) = getArgValue(argMap, "--member", "-m")
+    if (memFlag) {
+        if (member.isEmpty()) {
+            eprintln("Error: the member value can't be empty")
+            return None
+        }
+    }
+    return Some(member)
+}
+
+func handleCrossTarget(argMap: HashMap<String, String>): Option<Bool> {
+    let (target, crossCompileFlag) = getArgValue(argMap, "--target")
+    if (crossCompileFlag) {
+        let (hasTarget, validTarget) = crossCompileCheck(target)
+        if (!hasTarget) {
+            return None
+        }
+        return Some(validTarget)
+    }
+    return Some(crossCompileFlag)
+}
+
+func crossCompileCheck(target: String): (Bool, Bool) {
+    if (target.size == 0) {
+        eprintln("Error: the cross-compile target can't be empty")
+        return (false, false)
+    }
+
+    let REGEXP_CROSS_COMPILE = "^([-_a-zA-Z0-9]*)$"
+    var matched = Regex(REGEXP_CROSS_COMPILE)
+    match (matched.find(target)) {
+        case Some(_) =>
+            if (target == targetConfigName) {
+                eprintln("Warning: the current platform is '${target}', the '--target' option will be ignored")
+                return (true, false)
+            }
+            crossCompileTarget = target
+            return (true, true)
+        case None => eprintln("Error: the cross-compile target '${target}' is wrong, the example is 'aarch64-hm-gnu'")
+    }
+
+    return (false, false)
+}
+
+@When[os != "macOS"]
+public func lackCodec(): Bool {
+    targetConfigName = getTargetConfigName() ?? return true
+    return false
+}
+
+@When[os == "macOS"]
+public func lackCodec(): Bool {
+    let maybeTargetConfigName = getTargetConfigName()
+    if (maybeTargetConfigName.isSome()) {
+        targetConfigName = maybeTargetConfigName.getOrThrow()
+        let _ = state.codecPath
+        return false
+    }
+    return true
+}

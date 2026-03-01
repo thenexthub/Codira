@@ -1,0 +1,146 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+namespace IdxFormat;
+
+// Module
+file_identifier "CODEID";
+
+struct Position {
+  file_id:uint32;
+  line:int32;
+  column:int32;
+}
+
+table Location {
+  begin:Position;
+  end:Position;
+  file_uri:string;
+}
+
+table CompletionItem {
+  label:string;
+  insert_text:string;
+}
+
+enum CommentStyle : byte {
+    Line,
+    Block,
+    Doc
+}
+
+enum CommentKind : byte {
+    Ordinary,
+    Annotation,
+    Deprecated
+}
+
+table Token {
+    value: string;
+}
+
+table Comment {
+    style: CommentStyle;
+    kind: CommentKind;
+    info: Token;
+}
+
+table CommentGroup {
+    cms: [Comment];
+}
+
+table CommentGroups {
+    leading_comments: [CommentGroup];
+    inner_comments: [CommentGroup];
+    trailing_comments: [CommentGroup];
+}
+
+table Symbol {
+  id:uint64;
+  name:string;
+  scope:string;
+  location:Location;
+  declaration:Location;
+  kind:uint16;
+  signature:string;
+  return_type:string;
+  is_member_param:bool;
+  modifier:uint8;
+  is_codeo_sym:bool;
+  is_deprecated:bool;
+  cur_module:string;
+  cur_macro_call:Location;
+  completion_items:[CompletionItem];
+  comments:CommentGroups;  
+  syscap:string;
+  pkg_modifier:uint8;
+}
+
+table Ref {
+  location:Location;
+  kind:uint16;
+  id:uint64;
+  is_codeo_ref:bool;
+  is_super:bool;
+}
+
+table Sym2Ref {
+  id:uint64;
+  refs:[Ref];
+}
+
+table Extend {
+  id:uint64;
+  modifier:uint8;
+  interface:string;
+}
+
+table Sym2Extend {
+  id:uint64;
+  extends:[Extend];
+}
+
+table Relation {
+  subject:uint64;
+  kind:uint16;
+  object:uint64;
+}
+
+table HashedPackage {
+  symbol_slab:[Symbol];
+  ref_slab:[Sym2Ref];
+  relation_slab:[Relation];
+  extend_slab:[Sym2Extend];
+  cross_symbol_slab:[CrossSymbol];
+}
+
+table CrossSymbol {
+  id:uint64;
+  name:string;
+  cross_type:uint8;
+  location:Location;
+  container:uint64;
+  container_name:string;
+}
+
+file_extension "idx";
+root_type HashedPackage;

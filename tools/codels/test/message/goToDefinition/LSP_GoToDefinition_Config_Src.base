@@ -1,0 +1,1 @@
+{"id":"7","jsonrpc":"2.0","result":{"range":{"end":{"character":30,"line":11},"start":{"character":12,"line":11}},"uri":"file:///d%3A/DevecoPro/MyApplication12/entry/main/test_no_src_dir_config/src/test/testPkg.code"}}

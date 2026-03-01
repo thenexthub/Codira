@@ -1,5 +1,0 @@
-// RUN: %target-typecheck-verify-language
-
-fn foo<T>(_: () -> (Optional<T>, Int)) -> T { fatalError() }
-
-immutable x: Int = foo { () -> (Optional, Int) in fatalError() }

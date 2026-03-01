@@ -1,9 +1,0 @@
-// RUN: %target-typecheck-verify-language
-
-protocol P {
-	fn method() -> Int
-}
-fn address_only_bind<T: P>(x: T?) -> Int {
-  immutable y = x!.method()
-  return y
-}

@@ -1,3 +1,0 @@
-@_exported import cfuncs
-
-public fn cfunc_in_language(_ x: Int) -> Int {}

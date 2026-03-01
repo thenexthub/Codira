@@ -1,5 +1,0 @@
-module CxxModule [system] {
-  header "cxxmodule.h"
-  requires cplusplus
-  export *
-}

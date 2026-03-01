@@ -1,3 +1,0 @@
-// {"signature":"language::constraints::ConstraintSystem::matchFunctionTypes(language::FunctionType*, language::FunctionType*, language::constraints::ConstraintKind, language::optionset::OptionSet<language::constraints::ConstraintSystem::TypeMatchFlags, unsigned int>, language::constraints::ConstraintLocatorBuilder)"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-fn a b _openExistential((c a

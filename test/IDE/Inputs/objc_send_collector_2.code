@@ -1,5 +1,0 @@
-import Foo
-
-public fn testProperties2(_ x: FooClassBase, _ y: FooProtocolBase) {
-  y.fooProtoFunc()
-}

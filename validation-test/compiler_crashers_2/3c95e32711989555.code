@@ -1,3 +1,0 @@
-// {"signature":"language::constraints::ConstraintLocator::isKeyPathMemberComponent() const"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-\_(error)

@@ -1,8 +1,0 @@
-public protocol P {}
-
-public struct Underlying : P {
-}
-
-public fn returnOpaque() -> some P {
-  return Underlying()
-}

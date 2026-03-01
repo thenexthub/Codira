@@ -1,0 +1,1 @@
+{"id":7,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: function_01.code\nPackage info: default.funcPkg\n\n(function) public func Lambda(): Unit\n"},"range":{"end":{"character":10,"line":9},"start":{"character":4,"line":9}}}}

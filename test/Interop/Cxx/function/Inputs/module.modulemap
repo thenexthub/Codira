@@ -1,9 +1,0 @@
-module DefaultArguments {
-  header "default-arguments.h"
-  export *
-}
-
-module CustomStringBuiltins {
-  header "custom-string-builtins.h"
-  export *
-}

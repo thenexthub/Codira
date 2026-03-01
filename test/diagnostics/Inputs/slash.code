@@ -1,2 +1,0 @@
-public fn /(lhs: String, b: Int) -> Bool { false }
-

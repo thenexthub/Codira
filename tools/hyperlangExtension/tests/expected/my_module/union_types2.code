@@ -1,0 +1,208 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package my_module
+
+import ohos.ark_interop.*
+import ohos.ark_interop_helper.*
+import ohos.base.*
+
+public enum AutoGenType0InunionTypes2 {
+    | NUMBER(Float64)
+    | STRING(String)
+    
+    public func toJSValue(context: JSContext): JSValue {
+        match(this) {
+            case NUMBER(x) => context.number(x).toJSValue()
+            case STRING(x) => context.string(x).toJSValue()
+        }
+    }
+    public static func fromJSValue(context: JSContext, input: JSValue): AutoGenType0InunionTypes2 {
+        
+        if(input.isNumber()) {
+            return NUMBER(Float64.fromJSValue(context, input))
+        }  
+        if(input.isString()) {
+            return STRING(String.fromJSValue(context, input))
+        }
+        throw Exception("unsupport type!")
+    }
+}
+
+public enum AutoGenType1InunionTypes2 {
+    | BOOLEAN(Bool)
+    | STRING(String)
+    
+    public func toJSValue(context: JSContext): JSValue {
+        match(this) {
+            case BOOLEAN(x) => context.boolean(x).toJSValue()
+            case STRING(x) => context.string(x).toJSValue()
+        }
+    }
+    public static func fromJSValue(context: JSContext, input: JSValue): AutoGenType1InunionTypes2 {
+        
+        if (input.isBoolean()) {
+            return BOOLEAN(Bool.fromJSValue(context, input))
+        } 
+        if(input.isString()) {
+            return STRING(String.fromJSValue(context, input))
+        }
+        throw Exception("unsupport type!")
+    }
+}
+
+public enum AutoGenType2InunionTypes2 {
+    | NUMBER(Float64)
+    | _BOOLEAN_STRING___(JSValue/* FIXME: `(boolean | string)[]` */)
+    
+    public func toJSValue(context: JSContext): JSValue {
+        match(this) {
+            case NUMBER(x) => context.number(x).toJSValue()
+            case _BOOLEAN_STRING___(x) => x
+        }
+    }
+    public static func fromJSValue(context: JSContext, input: JSValue): AutoGenType2InunionTypes2 {
+        
+        if(input.isNumber()) {
+            return NUMBER(Float64.fromJSValue(context, input))
+        } 
+        throw Exception("unsupport type!")
+    }
+}
+
+public enum AutoGenType3InunionTypes2 {
+    | NUMBER(Float64)
+    | BOOLEAN__(JSValue/* FIXME: `boolean[]` */)
+    
+    public func toJSValue(context: JSContext): JSValue {
+        match(this) {
+            case NUMBER(x) => context.number(x).toJSValue()
+            case BOOLEAN__(x) => x
+        }
+    }
+    public static func fromJSValue(context: JSContext, input: JSValue): AutoGenType3InunionTypes2 {
+        
+        if(input.isNumber()) {
+            return NUMBER(Float64.fromJSValue(context, input))
+        } 
+        throw Exception("unsupport type!")
+    }
+}
+
+
+/*interface AutoGenType4InunionTypes2 {
+    city: string;
+    zipCode: string;
+    }*/
+
+public open class AutoGenType4InunionTypes2 {
+    
+    protected AutoGenType4InunionTypes2(public var city: String,
+    public var zipCode: String) { }
+    
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        let obj = context.object()
+        obj["city"] = city.toJSValue(context)
+        obj["zipCode"] = zipCode.toJSValue(context)
+        obj.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): AutoGenType4InunionTypes2 {
+        let obj = input.asObject()
+        AutoGenType4InunionTypes2(
+        String.fromJSValue(context, obj["city"]),
+        String.fromJSValue(context, obj["zipCode"])
+        )
+    }
+    
+}
+/***********OBJECT***********/
+
+/*interface UserProfile {
+    array: (number | String)[];
+    test: (num: number | String) => String;
+    test1: number|(boolean | String)[];
+    test2: number| boolean[];
+    name: String;
+    address: {
+      city: String;
+      zipCode: String;
+    };
+    id?: number|String;
+    }*/
+
+public open class UserProfile {
+    
+    protected UserProfile(public var array: Array<AutoGenType0InunionTypes2>,
+    public var test: (AutoGenType0InunionTypes2) -> String,
+    public var test1: AutoGenType2InunionTypes2,
+    public var test2: AutoGenType3InunionTypes2,
+    public var name: String,
+    public var address: AutoGenType4InunionTypes2,
+    public var id!: Option<AutoGenType0InunionTypes2> = None) { }
+    
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        let obj = context.object()
+        obj["array"] = toJSArray < AutoGenType0InunionTypes2 >(context, array, { ctx: JSContext, val: AutoGenType0InunionTypes2 => val.toJSValue(ctx) })
+        obj["test"] = context.function({ ctx, info =>
+            let p0 = AutoGenType0InunionTypes2.fromJSValue(ctx, info[0])
+            let ret = test(p0)
+            ret.toJSValue(ctx)
+        }).toJSValue()
+        obj["test1"] = test1.toJSValue(context)
+        obj["test2"] = test2.toJSValue(context)
+        obj["name"] = name.toJSValue(context)
+        obj["address"] = address.toJSValue(context)
+        if(let Some(v) <- id) {
+            obj["id"] = v.toJSValue(context)
+        }
+        obj.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): UserProfile {
+        let obj = input.asObject()
+        UserProfile(
+        fromJSArray < AutoGenType0InunionTypes2 >(context, obj["array"], { ctx: JSContext, val: JSValue => AutoGenType0InunionTypes2.fromJSValue(ctx, val) }),
+        { num: AutoGenType0InunionTypes2 =>
+            checkThreadAndCall < String >(context, { ctx =>
+                let arg0 = num.toJSValue(ctx)
+                let ret = obj["test"].asFunction().call([arg0])
+                String.fromJSValue(ctx, ret)
+            })
+        },
+        AutoGenType2InunionTypes2.fromJSValue(context, obj["test1"]),
+        AutoGenType3InunionTypes2.fromJSValue(context, obj["test2"]),
+        String.fromJSValue(context, obj["name"]),
+        AutoGenType4InunionTypes2.fromJSValue(context, obj["address"]),
+        id:
+        if(obj["id"].isNull()) {
+            None < AutoGenType0InunionTypes2 >
+        } else {
+            AutoGenType0InunionTypes2.fromJSValue(context, obj["id"])
+        }
+        )
+    }
+    
+}
+

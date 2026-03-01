@@ -1,0 +1,1 @@
+{"id":"56","jsonrpc":"2.0","result":[{"range":{"end":{"character":19,"line":54},"start":{"character":17,"line":54}},"uri":"file:////code_tools/cangjie-language-server/test/testChr/normalTest/Operator/src/operator.code"}]}

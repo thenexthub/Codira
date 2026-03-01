@@ -1,4 +1,0 @@
-public protocol ExternalMutabilityProto {
-    mutating fn foo()
-    subscript() -> Int { mutating get nonmutating set }
-}

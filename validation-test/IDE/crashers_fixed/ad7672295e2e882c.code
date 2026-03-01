@@ -1,4 +1,0 @@
-// {"kind":"complete","signature":"language::ide::CodeCompletionResultType::calculateTypeRelation(language::ide::ExpectedTypeContext const*, language::DeclContext const*, language::ide::USRBasedTypeContext const*) const"}
-// RUN: %target-language-ide-test -code-completion -batch-code-completion -skip-filecheck -code-completion-diagnostics -source-filename %s
-fn b(a : Array<Int>) {
-immutable: Array = a.prefix( #^^#

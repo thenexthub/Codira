@@ -1,3 +1,0 @@
-// RUN: %target-language-ide-test -code-completion -code-completion-token=A -source-filename=%s
-struct d{fn b
-immutable g=b<a immutable a=enum b<j where g:p:#^A^#

@@ -1,0 +1,1064 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package codepm.config
+
+import std.collection.*
+import std.fs.*
+import std.sync.*
+import std.env.*
+import stdx.encoding.json.*
+import stdx.serialization.serialization.*
+import codepm.util.*
+import codepm.toml.*
+import codepm.toml.Decoder as DecoderToml
+
+public let DIR_CURRENT: String = "."
+public let DIR_RUN: String = "."
+public let LOCK_FILE_NAME: String = "codepm.lock"
+public const TARGET: String = "target"
+public const BIN: String = "bin"
+public const UNITTEST_BIN: String = "unittest_bin"
+public const RELEASE: String = "release"
+public const MOCK: String = "mock"
+public const DEBUG: String = "debug"
+public const DIR_SRC: String = "src"
+public const CONFIG_FILE_NAME: String = "codepm.toml"
+public const HISTORY_FILE_NAME: String = ".codepm-history"
+public const DIR_COV_OUTPUT: String = "cov_output"
+public const BUILD_GCNO_OUTPUT: String = "build_gcno_output"
+public const TEST_GCNO_OUTPUT: String = "test_gcno_output"
+public const INCREMENTAL_CACHE: String = "incremental-cache.json"
+public const WORKSPACE_NAME: String = "codepm-workspace"
+public const DEP_INCREMENTAL_CACHE: String = ".dep-cache"
+public var maxParallelSize: Int64 = getCpus()
+public let CUR_PARALLEL_SIZE: AtomicInt64 = AtomicInt64(0)
+public var crossCompileTarget: String = ""
+public var targetConfigName: String = ""
+private let outputTypeToEnum: HashMap<String, OutputType> = HashMap(
+    [
+        ("static", Static),
+        ("dynamic", Dynamic),
+        ("executable", Exe)
+    ]
+)
+
+public enum OutputType <: Serializable<OutputType> & ToString {
+    | Static
+    | Dynamic
+    | Exe
+    | Unknown(String)
+
+    public prop isValid: Bool {
+        get() {
+            match (this) {
+                case Static | Dynamic | Exe => true
+                case Unknown(_) => false
+            }
+        }
+    }
+
+    public prop isLib: Bool {
+        get() {
+            match (this) {
+                case Static | Dynamic => true
+                case Exe | Unknown(_) => false
+            }
+        }
+    }
+
+    public func toString(): String {
+        match (this) {
+            case Static => "static"
+            case Dynamic => "dynamic"
+            case Exe => "executable"
+            case Unknown(s) => s
+        }
+    }
+
+    public prop asCompilerArg: String {
+        get() {
+            match (this) {
+                case Static => "staticlib"
+                case Dynamic => "dylib"
+                case Exe => "exe"
+                case Unknown(s) => s
+            }
+        }
+    }
+
+    public static func fromString(s: String): OutputType {
+        if (let Some(res) <- outputTypeToEnum.get(s)) {
+            return res
+        }
+        return Unknown(s)
+    }
+
+    public func serialize(): DataModel {
+        this.toString().serialize()
+    }
+
+    public static func deserialize(dm: DataModel): OutputType {
+        var dmstr = match (dm) {
+            case data: DataModelString => data
+            case _: DataModelNull => DataModelString("")
+            case _ => throw CliFailError("tried to deserialize OutputType not from the DataModelString")
+        }
+        return fromString(dmstr.getValue())
+    }
+}
+
+extend OutputType <: Equatable<OutputType> {
+    public operator func ==(other: OutputType) {
+        match ((this, other)) {
+            case (Static, Static) => true
+            case (Dynamic, Dynamic) => true
+            case (Exe, Exe) => true
+            case (Unknown(l), Unknown(r)) => l == r
+            case _ => false
+        }
+    }
+}
+
+// Type for running resolve()
+public const RESOLVE_BUILD: String = "build"
+public const RESOLVE_TEST: String = "test"
+public const RESOLVE_CHECK: String = "check"
+public const RESOLVE_INSTALL: String = "install"
+@When[os == "Windows"]
+const NEW_LINE: String = "\r\n"
+@When[os != "Windows"]
+const NEW_LINE: String = "\n"
+@When[os == "Windows"]
+public const SPLIT_ENV: String = ";"
+@When[os != "Windows"]
+public const SPLIT_ENV: String = ":"
+@When[os == "Linux" || os == "macOS"]
+public const WHICH: String = "which"
+@When[os == "Windows"]
+public const WHICH: String = "where.exe"
+
+public func getTargetConfigName(): Option<String> {
+    let (flag, output, errlog) = execWithOutput("codec", ArrayList<String>(["-v"]))
+    if (!flag) {
+        eprintln(errlog)
+        eprintln("Error: failed to run 'codec -v'")
+        return Option.None
+    }
+    if (!output.contains("Target: ")) {
+        eprintln("Error: no target info in output of command 'codec -v':")
+        eprintln(output)
+        return Option.None
+    }
+    return output.split("Target: ")[1].split(NEW_LINE)[0]
+}
+
+public class CpmState {
+    private var __codecInfo: ?CodecInfo = None
+    private var __codecPath: ?String = None
+    private var __isExperimental: ?Bool = None
+
+    init() {}
+
+    public prop codecInfo: CodecInfo {
+        get() {
+            match (__codecInfo) {
+                case None =>
+                    let info = CodecInfo.findCodec()
+                    __codecInfo = info
+                    info
+                case Some(info) => info
+            }
+        }
+    }
+
+    public prop codecPath: String {
+        get() {
+            match (__codecPath) {
+                case None =>
+                    let info = initCodecPath()
+                    __codecPath = info
+                    info
+                case Some(info) => info
+            }
+        }
+    }
+
+    public prop isExperimental: Bool {
+        get() {
+            match (__isExperimental) {
+                case None =>
+                    let value = checkExperimental()
+                    __isExperimental = value
+                    value
+                case Some(value) => value
+            }
+        }
+    }
+
+    private static func checkExperimental(): Bool {
+        let tomlFile = Path(DIR_CURRENT).join(CONFIG_FILE_NAME).toString()
+        if (!fileExists(tomlFile)) {
+            return false
+        }
+        var isExperimental = false
+        try (file = File(tomlFile, Read)) {
+            let de = DecoderToml(file)
+            let to = de.decode()
+            let dms = (DataModel.fromToml(to) as DataModelStruct) ?? throw Exception()
+            isExperimental = match (dms.accessDeep(["profile", "experimental"]) as DataModelBool) {
+                case Some(dmbool) => dmbool.getValue()
+                case _ => false
+            }
+        } catch (e: Exception) {
+            isExperimental = false
+        }
+        return isExperimental
+    }
+
+    @When[os == "macOS"]
+    private static func initCodecPath(): String {
+        let (success, output, _) = execWithOutput(WHICH, ArrayList<String>(["codec"]))
+        if (success) {
+            return output.trimAscii()
+        }
+        throw CliFailError(output)
+    }
+
+    @When[os != "macOS"]
+    private static func initCodecPath(): String {
+        throw CliFailError("codecPath variable should only be used for macOS functions")
+    }
+}
+
+public let state: CpmState = CpmState()
+@When[os == "Linux" || os == "macOS"]
+public const MOVE_COMMAND: String = "mv"
+@When[os == "Linux" || os == "macOS"]
+public const COPY_COMMAND: String = "cp"
+@When[os == "Linux" || os == "macOS"]
+public const REMOVE_OUTPUT: String = ">/dev/null 2>&1"
+
+@When[os == "Linux" || os == "macOS"]
+public func makeExeName(name: String): String {
+    return name
+}
+
+@When[os == "Linux"]
+public let PATH: String = "PATH"
+@When[os == "Linux"]
+public let LD_PATH: String = "LD_LIBRARY_PATH"
+
+@When[os == "Linux"]
+public func makeDylibName(file: String): String {
+    return "lib" + file + ".so"
+}
+
+@When[os == "Linux"]
+public func setLdLibraryPath(ldPath: HashSet<String>): String {
+    var path: String = getLdLibraryConfig(ldPath)
+    if (path.isEmpty()) {
+        return ""
+    }
+    return "LD_LIBRARY_PATH=${path}$LD_LIBRARY_PATH"
+}
+
+@When[os == "Linux"]
+public func getLdLibraryConfig(ldPath: HashSet<String>): String {
+    var path: String = ""
+    for (k in ldPath) {
+        if (directoryExists(k)) {
+            path += "\"${k}\":"
+        }
+    }
+    return path
+}
+
+@When[os == "Linux"]
+public func getNativeLdLibraryConfig(ldPath: HashSet<String>): String {
+    var path: String = ""
+    for (k in ldPath) {
+        if (directoryExists(k)) {
+            path += "${k}:"
+        }
+    }
+    return path
+}
+
+@When[os == "macOS"]
+public let PATH: String = "PATH"
+@When[os == "macOS"]
+public let LD_PATH: String = "DYLD_LIBRARY_PATH"
+
+@When[os == "macOS"]
+public func makeDylibName(file: String): String {
+    return "lib" + file + ".dylib"
+}
+
+@When[os == "macOS"]
+public func setLdLibraryPath(ldPath: HashSet<String>): String {
+    // On certain versions of MacOS, DYLD_LIBRARY_PATH does not propagate
+    // to child processes, so we need to set it manually
+    let finalLdPath = ldPath.clone()
+    if (let Some(pathElements) <- getVariable(LD_PATH)?.split(SPLIT_ENV, removeEmpty: true)) {
+        finalLdPath.add(all: pathElements)
+    }
+    let path: String = getLdLibraryConfig(finalLdPath)
+    if (path.isEmpty()) {
+        return ""
+    }
+    return "${LD_PATH}=${path}$${LD_PATH}"
+}
+
+@When[os == "macOS"]
+public func getLdLibraryConfig(ldPath: HashSet<String>): String {
+    var path: String = ""
+    for (k in ldPath) {
+        if (directoryExists(k)) {
+            path += "\"${k}\":"
+        }
+    }
+    return path
+}
+
+@When[os == "macOS"]
+public func getNativeLdLibraryConfig(ldPath: HashSet<String>): String {
+    var path: String = ""
+    for (k in ldPath) {
+        if (directoryExists(k)) {
+            path += "${k}:"
+        }
+    }
+    return path
+}
+
+@When[os == "Windows"]
+public const PATH_SPLIT_CHAR: String = "\\"
+@When[os == "Windows"]
+public const COMPILE_TOOL: String = "codec.exe"
+@When[os == "Windows"]
+public const CODEPM_TOOL: String = "codepm.exe"
+@When[os == "Windows"]
+public const MOVE_COMMAND: String = "move"
+@When[os == "Windows"]
+public const COPY_COMMAND: String = "copy"
+@When[os == "Windows"]
+public const REMOVE_OUTPUT: String = ">nul 2>nul"
+@When[os == "Windows"]
+public let PATH: String = "Path"
+@When[os == "Windows"]
+public let LD_PATH: String = "Path"
+
+@When[os == "Windows"]
+public func makeDylibName(file: String): String {
+    return "lib" + file + ".dll"
+}
+
+@When[os == "Windows"]
+public func makeExeName(name: String): String {
+    if (name.endsWith(".exe")) {
+        return name
+    }
+    return name + ".exe"
+}
+
+@When[os == "Windows"]
+public func setLdLibraryPath(ldPath: HashSet<String>): String {
+    var path: String = getLdLibraryConfig(ldPath)
+    if (path.isEmpty()) {
+        return ""
+    }
+    return "set Path=${path}%Path% &"
+}
+
+@When[os == "Windows"]
+public func getLdLibraryConfig(ldPath: HashSet<String>): String {
+    var path: String = ""
+    for (k in ldPath) {
+        if (directoryExists(k)) {
+            path += "${k};"
+        }
+    }
+    return path
+}
+
+@When[os == "Windows"]
+public func getNativeLdLibraryConfig(ldPath: HashSet<String>): String {
+    var path: String = ""
+    for (k in ldPath) {
+        if (directoryExists(k)) {
+            path += "${k};"
+        }
+    }
+    return path
+}
+
+@When[os == "Linux" || os == "macOS"]
+public let HOME_ENV: String = "HOME"
+@When[os == "Windows"]
+public let HOME_ENV: String = "USERPROFILE"
+public let DEFAULT_CONFIG_LOCATION: String = getVariable(HOME_ENV).getOrDefault {
+    eprintln("Error: no ${HOME_ENV}");
+    ""
+}
+
+// posix guarantees that there must be $HOME set so no need to git valid alternative if it doesn't exist
+@When[os == "Linux" || os == "macOS"]
+public const PATH_SPLIT_CHAR: String = "/"
+@When[os == "Linux" || os == "macOS"]
+public const COMPILE_TOOL: String = "codec"
+@When[os == "Linux" || os == "macOS"]
+public const CODEPM_TOOL: String = "codepm"
+
+public let LTO_TYPE_LIST: Array<String> = ["thin", "full"]
+public let COMMAND_CACHE: ArrayList<CommandInfo> = ArrayList<CommandInfo>()
+public let SHOW_CACHE: ArrayList<PkgInfo> = ArrayList<PkgInfo>()
+public let CODEPM_COMPILE_INFO: HashMap<String, Float64> = HashMap<String, Float64>()
+public let CACHE_MUTEX: Mutex = Mutex()
+public var memProcess: Future<Thread> = spawn { => return Thread.currentThread}
+
+public class PkgInfo <: Serializable<PkgInfo> {
+    public var name: String = ""
+    public var pid: String = "CODEPM"
+    public var tid: Int64 = 0
+    public var ph: String = ""
+    public var ts: Int64 = 0
+
+    public init() {}
+
+    public init(name: String, ph: String, ts: Int64) {
+        this.name = name
+        this.ph = ph
+        this.ts = ts
+    }
+
+    public func serialize(): DataModel {
+        return DataModelStruct()
+            .add(field<String>(PACKAGE_NAME, this.name))
+            .add(field<String>("pid", this.pid))
+            .add(field<String>("tid", this.tid.toString()))
+            .add(field<String>("ph", this.ph))
+            .add(field<String>("ts", this.ts.toString()))
+    }
+
+    public static func deserialize(_: DataModel): PkgInfo {
+        return PkgInfo()
+    }
+}
+
+public class CommandInfo <: Serializable<CommandInfo> {
+    public var pkgName: String = ""
+    public var pkgCommand: String = ""
+
+    public init() {}
+
+    public init(pkgName: String, pkgCommand: String) {
+        this.pkgName = pkgName
+        this.pkgCommand = pkgCommand
+    }
+
+    public func serialize(): DataModel {
+        return DataModelStruct()
+            .add(field<String>("pkgName", this.pkgName))
+            .add(field<String>("pkgCommand", this.pkgCommand))
+    }
+
+    public static func deserialize(_: DataModel): CommandInfo {
+        return CommandInfo()
+    }
+}
+
+public var GLOBAL_CODEPM_CONFIG_DIR: Path = Path(getVariable("CODEPM_CONFIG") ??
+    DEFAULT_CONFIG_LOCATION + PATH_SPLIT_CHAR + ".codepm")
+
+public open class CommandConfig {
+    public var isCov: Bool = false
+    public var isVerbose: Bool = false
+    public var isCrossCompile: Bool = false
+    public var targetDir: String = ""
+    public var customizedOption: HashSet<String> = HashSet<String>()
+    public var isLto: Bool = false
+    public var ltoValue: String = ""
+    public var isDebug: Bool = false
+    public var memberModule: String = ""
+}
+
+public struct PackageList {
+    private let packages: Array<ResolveItem>
+
+    public init(packages: Iterable<ResolveItem>) {
+        this.packages = packages |> collectArray
+    }
+
+    init() {
+        this([])
+    }
+
+    public prop all: Array<String> {
+        get() {
+            packages |> map {
+                it: ResolveItem => it.fullName
+            } |> collectArray
+        }
+    }
+
+    public func bestFitFeatures(features: HashSet<Feature>): HashMap<String, String> {
+        packages |> filterMap {
+            it: ResolveItem => if (!it.isMultiplatform) {
+                return None<(String, String)>
+            } else {
+                let reversed = it.packagePath._sources.clone()
+                reversed.reverse()
+                for (source in reversed) {
+                    let finalFeatures = it.featureDeducer.addFeature(features).collect()
+                    if (finalFeatures.contains(all: source.features)) {
+                        return Some((it.fullName, getPath(source.outputSuffix.toString(), it.rootPkgName)))
+                    }
+                }
+                return None<(String, String)>
+            }
+        } |> collectHashMap
+    }
+
+    public prop macros: Array<String> {
+        get() {
+            packages |> filterMap {
+                it: ResolveItem => if (it.isMacroPackage) {
+                    it.fullName
+                } else {
+                    None
+                }
+            } |> collectArray
+        }
+    }
+
+    public prop dylib: Array<String> {
+        get() {
+            packages |> filterMap {
+                it: ResolveItem => if (let Dynamic <- it.outputType) {
+                    it.fullName
+                } else {
+                    None
+                }
+            } |> collectArray
+        }
+    }
+    public prop exe: Array<String> {
+        get() {
+            packages |> filterMap {
+                it: ResolveItem => if (let Exe <- it.outputType) {
+                    it.fullName
+                } else {
+                    None
+                }
+            } |> collectArray
+        }
+    }
+    // Record the packages for pure unittest
+    public prop test: Array<String> {
+        get() {
+            packages |> filterMap {
+                it: ResolveItem => if (it.isPureTestPkg()) {
+                    it.fullName
+                } else {
+                    None
+                }
+            } |> collectArray
+        }
+    }
+}
+
+public class BuildConfig <: CommandConfig {
+    public var globalConfig: GlobalConfig = GlobalConfig()
+
+    public var isIncremental: Bool = false
+    public var isRebuild: Bool = false
+    public var isLint: Bool = false
+    public var isInstall: Bool = false
+    public var curModuleName: String = WORKSPACE_NAME
+    public var lastEndTime: Int64 = 0
+    public var packageList: PackageList = PackageList()
+    public var pkgRequireByMacro = HashSet<String>()
+    public var requiredForTests: Bool = false
+    public var requiresMap: HashMap<String, HashSet<String>> = HashMap<String, HashSet<String>>()
+    public var rebuildList: HashSet<String> = HashSet<String>()
+    public var rebuildMacros: HashSet<String> = HashSet<String>()
+    public var indirectRebuilds: HashSet<String> = HashSet<String>()
+    // Record json cache for each module
+    public var jsonInformation: HashMap<String, ArrayList<String>> = HashMap<String, ArrayList<String>>()
+    // Record package cache for each module
+    public var pkgCacheMap: HashMap<String, CacheItem> = HashMap<String, CacheItem>()
+    // Record the module name that has changed json data
+    public var changedModuleList: ArrayList<String> = ArrayList<String>()
+    // Record the codeo timetamp
+    public var codeoTimeMap: HashMap<String, Int64> = HashMap<String, Int64>()
+    public var mockSupported: Bool = false
+    public var originTargetPath: String = TARGET
+    public var exeName: String = "main"
+    public var binDepMap: HashMap<String, BinDeps> = HashMap<String, BinDeps>()
+    public var crossBinDepMap: HashMap<String, BinDeps> = HashMap<String, BinDeps>()
+    public var targetMacroPkgs: HashSet<String> = HashSet<String>() // used by cross compile
+    public var targetMacroMods: HashSet<String> = HashSet<String>() // used by cross compile
+    public var hasSubPkgs: HashSet<String> = HashSet<String>() // record the lib packages that have subPkgs.
+
+    // External config
+    public var scriptConfig: ScriptConfig = ScriptConfig()
+    public var superPkgMap: HashMap<String, SuperPackageConfig> = HashMap<String, SuperPackageConfig>()
+    public var superPkgSubMap: HashMap<String, String> = HashMap<String, String>()
+
+    public func getOptionCacheData(): ArrayList<String> {
+        var cacheData = ArrayList<String>()
+        if (isCov) {
+            cacheData.add("--coverage")
+        }
+        cacheData.add(all: customizedOption)
+        return cacheData
+    }
+}
+
+public class TestConfig <: CommandConfig {
+    public var globalConfig: GlobalConfig = GlobalConfig()
+
+    public var noRun: Bool = false
+    public var skipBuild: Bool = false
+    public var isBench: Bool = false
+    public var dryRun: Bool = false
+    public var filters: ?String = None
+    public var includeTags: ?String = None
+    public var excludeTags: ?String = None
+    public var noColor: Bool = false
+    public var timeoutEach: ?String = None
+    public var nWorkers: ?String = None
+    public var showTags: Bool = false
+    public var noCaptureOutput: Bool = false
+    public var showAllOutput: Bool = false
+    public var randomSeed: ?String = None
+    public var isSpecifiedConcurrency: Bool = false
+    public var testModule: HashSet<String> = HashSet<String>()
+    public var packagesToTest: HashSet<PackageFqName> = HashSet<PackageFqName>()
+    public var packagePathsToTest: HashSet<String> = HashSet<String>()
+    public var isModuleTest: Bool = true
+    public var reportPath: ?String = None
+    public var baselinePath: ?String = None
+    public var reportFormat: ?String = None
+    public var mock: MockSupport = MockSupport.On
+    public var profile: TestProfile = TestProfile(JsonObject())
+    public var originTargetPath: String = TARGET
+    public var envConfig: HashMap<String, EnvInfo> = HashMap<String, EnvInfo>()
+    public var isIncremental: Bool = false
+    public var rebuildList: HashSet<String> = HashSet<String>()
+    public var testPkgs: HashSet<String> = HashSet<String>()
+    public var packageDepMap: HashMap<String, ResolveItem> = HashMap<String, ResolveItem>()
+    public var incrementalCache: HashMap<String, HashMap<String, String>> = HashMap<String, HashMap<String, String>>()
+
+    // dynamic progress
+    public var isProgressReportDisabled: Bool = false
+    public var isProgressReportBrief: Bool = false
+    public var progressReportEntriesLimit: ?Int64 = None
+    public var superPkgSubMap: HashMap<String, String> = HashMap<String, String>()
+
+    public prop origCommand: String {
+        get() {
+            if (isBench) {
+                "bench"
+            } else {
+                "test"
+            }
+        }
+    }
+}
+
+public class RunConfig {
+    public var globalConfig: GlobalConfig = GlobalConfig()
+
+    public var isVerbose: Bool = false
+    public var skipBuild: Bool = false
+    public var isDebug: Bool = false
+    public var rootPkgName: String = ""
+    public var name: String = "main"
+    public var buildArgs: String = ""
+    public var runArgs: String = ""
+    public var enableFeatures: String = ""
+    public var newRunArgs: ArrayList<String> = ArrayList<String>()
+    public var filePath: String = ""
+    public var targetPath: String = ""
+    public var originTargetPath: String = TARGET
+    public var envConfig: HashMap<String, EnvInfo> = HashMap<String, EnvInfo>()
+}
+
+public struct TreeItem {
+    public TreeItem(
+        public let packagePath: CODEMPSource,
+        public let version: String,
+        public let requires: ReadOnlySet<String>
+    ) {}
+}
+
+public class TreeConfig {
+    public var globalConfig: GlobalConfig = GlobalConfig()
+
+    public var noTest: Bool = false
+    public var isVerbose: Bool = false
+    public var defaultPkg: String = ""
+    public var invertPkg: String = ""
+    public var depth: Int32 = -1
+    public var deps: HashMap<String, TreeItem> = HashMap<String, TreeItem>()
+    public var treePkgs: HashSet<String> = HashSet<String>()
+}
+
+public struct PackageInfo {
+    public PackageInfo(
+        public let sources: CODEMPSource,
+        public let hashCode: String,
+        public let timeStamp: Int64,
+        public let hasTestFiles: Bool,
+        public let hasProdFiles: Bool
+    ) {}
+}
+
+public class SuperPackageConfig {
+    public SuperPackageConfig(
+        public let pkgName: String,
+        public let outputType: OutputType
+    ) {}
+
+    public let subPkgSet: HashSet<String> = HashSet<String>()
+}
+
+// Repo: used for central repository
+public enum InstallType {
+    | Default | Repo | Git | Local
+}
+
+public class GitConfig {
+    public var url: String = ""
+    public var branch: String = ""
+    public var tag: String = ""
+    public var commitId: String = ""
+}
+
+public class InstallConfig {
+    public var globalConfig: GlobalConfig = GlobalConfig()
+
+    // common
+    public var list: Bool = false
+    public var installType: InstallType = InstallType.Default
+    public var memberModule: String = ""
+    public var version: String = ""
+    public var debug: Bool = false
+    public var verbose: Bool = false
+    // central repository config
+    public var artifacts: ArrayList<String> = ArrayList<String>()
+    // git config
+    public var gitConfig: GitConfig = GitConfig()
+    // local config
+    public var localPath: String = ""
+    public var skipBuild: Bool = false
+    // build config
+    public var targetDir: String = TARGET
+    public var customizedOption: HashSet<String> = HashSet<String>()
+    public var installName: String = ""
+    // output root
+    public var root: String = ""
+    public var rootBin: String = ""
+    // used for central repository
+    public var rootRepo: String = ""
+    public var rootLibs: String = ""
+    public var rootList: String = ""
+}
+
+public class ScriptConfig {
+    public var moduleName: String = ""
+    public var modulePath: String = ""
+    public var moduleSrcPath: String = ""
+    public var scriptPath: String = ""
+    public var scriptTargetDir: String = ""
+    public var scriptExe: String = ""
+    public var scriptHash: String = ""
+    public var scriptLog: String = ""
+    public var scriptDep: HashMap<String, DepInfo> = HashMap<String, DepInfo>()
+    public var scriptLdPath: HashSet<String> = HashSet<String>()
+    public var isVerbose: Bool = false
+    public var isDebug: Bool = false
+    public var isCrossCompile: Bool = false
+    public var isRelocated: Bool = false
+
+    public init() {}
+    public init(scriptConfig: ScriptConfig) {
+        this.moduleName = scriptConfig.moduleName
+        this.modulePath = scriptConfig.modulePath
+        this.moduleSrcPath = scriptConfig.moduleSrcPath
+        this.scriptPath = scriptConfig.scriptPath
+        this.scriptTargetDir = scriptConfig.scriptTargetDir
+        this.scriptExe = scriptConfig.scriptExe
+        this.scriptHash = scriptConfig.scriptHash
+        this.scriptLog = scriptConfig.scriptLog
+        this.scriptDep = scriptConfig.scriptDep
+        this.isVerbose = scriptConfig.isVerbose
+        this.isDebug = scriptConfig.isDebug
+        this.isCrossCompile = scriptConfig.isCrossCompile
+        this.isRelocated = scriptConfig.isRelocated
+    }
+
+    public func isEmpty(): Bool {
+        return this.moduleName.isEmpty()
+    }
+}
+
+public class Stack<T> {
+    let elem: ArrayList<T> = ArrayList<T>()
+
+    public func top(): Option<T> {
+        if (this.elem.isEmpty()) {
+            return Option.None
+        }
+        return this.elem[this.elem.size - 1]
+    }
+
+    public func push(element: T): Unit {
+        this.elem.add(element)
+        return
+    }
+
+    public func pop(): Bool {
+        if (this.elem.isEmpty()) {
+            return false
+        }
+        this.elem.remove(at: this.elem.size - 1)
+        return true
+    }
+}
+
+public class GlobalConfig {
+    public var isVerbose: Bool = false
+    public var isDebug: Bool = false
+    public var isTest: Bool = false
+    public var isInstall: Bool = false
+    public var isCross: Bool = false
+    public var isIncremental: Bool = false
+    public var isForScript: Bool = false
+    public var isSkipScript: Bool = false
+    public var isProjectCombine: Bool = false
+    public var isAnalysisCompilePerformance: Bool = false
+    public var rootName: String = WORKSPACE_NAME
+    public var resolveType: String = RESOLVE_CHECK
+    public var rootPath: String = DIR_CURRENT
+    public var modulePath: String = DIR_CURRENT
+    public var targetDir: String = TARGET
+    public var compilePerformanceTargetDir: String = ""
+    public var originDir: String = ""
+    public var nativeDir: String = ""
+    public var lockFile: String = LOCK_FILE_NAME
+    public var scriptDir: String = DIR_CURRENT
+    public var scriptList: ArrayList<ScriptConfig> = ArrayList<ScriptConfig>()
+    public var codePathList: ArrayList<String> = ArrayList<String>()
+    public var cLibLinkMap: HashMap<String, ArrayList<String>> = HashMap<String, ArrayList<String>>()
+    public var crossCLibLinkMap: HashMap<String, ArrayList<String>> = HashMap<String, ArrayList<String>>()
+    public var ldPath: HashSet<String> = HashSet<String>()
+    public var overrideCompileOption: String = ""
+    public var nativeOverrideOption: String = ""
+    public var customizedOption: HashSet<String> = HashSet<String>()
+    public var noFeatureDeduce: Bool = false
+    public var enabledFeatures: Array<Feature> = []
+    public var verifiedEnabledFeatures: Array<Feature> = []
+
+    // record git dependency: (url, commitId, localPath)
+    public let gitStack: Stack<(String, String)> = Stack<(String, String)>()
+
+    public init() {}
+    public init(globalConfig: GlobalConfig) {
+        this.isVerbose = globalConfig.isVerbose
+        this.isDebug = globalConfig.isDebug
+        this.isTest = globalConfig.isTest
+        this.isInstall = globalConfig.isInstall
+        this.isCross = globalConfig.isCross
+        this.isIncremental = globalConfig.isIncremental
+        this.isForScript = globalConfig.isForScript
+        this.isSkipScript = globalConfig.isSkipScript
+        this.isProjectCombine = globalConfig.isProjectCombine
+        this.resolveType = globalConfig.resolveType
+        this.rootName = globalConfig.rootName
+        this.rootPath = globalConfig.rootPath
+        this.modulePath = globalConfig.modulePath
+        this.targetDir = globalConfig.targetDir
+        this.originDir = globalConfig.originDir
+        this.nativeDir = globalConfig.nativeDir
+        this.lockFile = globalConfig.lockFile
+        this.scriptDir = globalConfig.scriptDir
+        this.codePathList.add(all: globalConfig.codePathList)
+        this.ldPath.add(all: globalConfig.ldPath)
+        this.cLibLinkMap = globalConfig.cLibLinkMap.clone()
+        for (scriptConfig in globalConfig.scriptList) {
+            this.scriptList.add(ScriptConfig(scriptConfig))
+        }
+        this.overrideCompileOption = globalConfig.overrideCompileOption
+        this.nativeOverrideOption = globalConfig.nativeOverrideOption
+        this.noFeatureDeduce = globalConfig.noFeatureDeduce
+        this.enabledFeatures = globalConfig.enabledFeatures
+        this.verifiedEnabledFeatures = globalConfig.verifiedEnabledFeatures
+    }
+}
+
+public struct ResolveConfig {
+    public var targetPath: String = ""
+    public var packagePath: CODEMPSource = CODEMPSource.empty
+    public var rootPkgName: String = ""
+    public var fullName: String = ""
+    public var outputType: OutputType = Unknown("")
+    public var compileOption: String = ""
+    public var linkOption: String = ""
+    public var nativeCompileOption: String = ""
+    public var nativeLinkOption: String = ""
+    public var customizedOption: HashMap<String, String> = HashMap<String, String>()
+    public var requirePkgs: HashSet<String> = HashSet<String>()
+    public var stdRequirePkgs: HashSet<String> = HashSet<String>()
+    public var outLogFile: String = ""
+    public var errLogFile: String = ""
+    public var nativePath: String = ""
+    public var nativeOutLog: String = ""
+    public var nativeErrLog: String = ""
+    public var targetPlatform: Bool = true
+    public var nativePlatform: Bool = false
+    public var checkDepCodeo: Bool = false
+    public var superPkgCfg: ?SuperPackageConfig = None
+    public var hasTestFiles: Bool = false
+    public var features: HashSet<Feature> = HashSet()
+    public var featureDeducer: FeatureDeducer = FeatureDeducer.empty
+
+    public prop isMultiplatform: Bool {
+        get() {
+            this.packagePath.isMultiplatform
+        }
+    }
+}
+
+public func linkPackage(libName: String, libPath: String, isLto: Bool): ArrayList<String> {
+    let res = ArrayList<String>()
+    let ltoFile = Path(libPath).join(makeLtoName(libName)).toString()
+    if (isLto) {
+        if (fileExists(ltoFile)) {
+            res.add(ltoFile)
+            return res
+        }
+    }
+
+    if (fileExists(Path(libPath).join(makeCodiraStaticlibName(libName)).toString()) || fileExists(
+        Path(libPath).join("lib${libName}.so").toString()) || fileExists(
+        Path(libPath).join("lib${libName}.dll").toString()) || fileExists(
+        Path(libPath).join("lib${libName}.dylib").toString())) {
+        res.add(all: ["-L", libPath, "-l${libName}"])
+    } else if (fileExists(ltoFile)) {
+        res.add(ltoFile)
+    }
+
+    return res
+}
+
+@When[os == "Linux" || os == "Windows"]
+public func forcedLinkPackage(libName: String, libPath: String, isLto: Bool): ArrayList<String> {
+    return linkPackage(libName, libPath, isLto)
+}
+
+@When[os == "macOS"]
+public func forcedLinkPackage(libName: String, libPath: String, isLto: Bool): ArrayList<String> {
+    var res = ArrayList<String>()
+    let staticLibPath = Path(libPath).join(makeCodiraStaticlibName(libName)).toString()
+    let dyLibPath = Path(libPath).join("lib${libName}.dylib").toString()
+    if (fileExists(staticLibPath)) {
+        res.add(staticLibPath)
+    } else if (fileExists(dyLibPath)) {
+        res.add(all: linkPackage(libName, libPath, isLto))
+    }
+    return res
+}
+
+@When[os == "Windows"]
+public func isPackageExist(fileName: String, filePath: String, logFlag: Bool, path: String, _: Bool): Bool {
+    let dylib: String = Path(filePath).join("lib${fileName}.so").toString()
+    let staticlib: String = Path(filePath).join("lib${fileName}.a").toString()
+    let winDylib: String = Path(filePath).join("lib${fileName}.dll").toString()
+    let macDylib: String = Path(filePath).join("lib${fileName}.dylib").toString()
+    if (fileExists(dylib) || fileExists(staticlib) || fileExists(winDylib) || fileExists(macDylib)) {
+        return true
+    }
+
+    if (logFlag) {
+        eprintln("Error: can not find the library '${fileName}' which is listed in ${path}")
+    }
+    return false
+}
+
+@When[os == "Linux" || os == "macOS"]
+public func isPackageExist(fileName: String, filePath: String, logFlag: Bool, path: String, _: Bool): Bool {
+    let ltoFile: String = Path(filePath).join("${fileName}.bc").toString()
+    let dylib: String = Path(filePath).join("lib${fileName}.so").toString()
+    let staticlib: String = Path(filePath).join("lib${fileName}.a").toString()
+    let winDylib: String = Path(filePath).join("lib${fileName}.dll").toString()
+    let macDylib: String = Path(filePath).join("lib${fileName}.dylib").toString()
+    if (fileExists(dylib) || fileExists(staticlib) || fileExists(winDylib) || fileExists(ltoFile) || fileExists(
+        macDylib)) {
+        return true
+    }
+
+    if (logFlag) {
+        eprintln("Error: can not find the library '${fileName}' which is listed in ${path}")
+    }
+    return false
+}
+
+public func isSuperPackageExist(fileName: String, filePath: String, isCrossBin: Bool): Bool {
+    return isDyLibExist(fileName.split(".")[0], filePath, isCrossBin)
+}
+
+@When[os == "Linux"]
+public let DYLIB_POSTFIX: String = ".so"
+@When[os == "Windows"]
+public let DYLIB_POSTFIX: String = ".dll"
+@When[os == "macOS"]
+public let DYLIB_POSTFIX: String = ".dylib"
+
+public func isDyLibExist(pkgName: String, path: String, isCrossBin: Bool): Bool {
+    if (!isCrossBin) {
+        return fileExists(Path(path).join("lib${pkgName}${DYLIB_POSTFIX}").toString())
+    }
+    if (crossCompileTarget.contains("darwin") || crossCompileTarget.contains("apple")) {
+        return fileExists(Path(path).join("lib${pkgName}.dylib").toString())
+    } else if (crossCompileTarget.contains("windows") || crossCompileTarget.contains("w64")) {
+        return fileExists(Path(path).join("lib${pkgName}.dll").toString())
+    } else {
+        return fileExists(Path(path).join("lib${pkgName}.so").toString())
+    }
+}
+
+public func isCLibExist(fileName: String, filePath: String, path: String): Bool {
+    let dylib: String = Path(filePath).join("lib${fileName}.so").toString()
+    let staticlib: String = Path(filePath).join("lib${fileName}.a").toString()
+    let winDylib: String = Path(filePath).join("lib${fileName}.dll").toString()
+    let macDylib: String = Path(filePath).join("lib${fileName}.dylib").toString()
+
+    if (fileExists(dylib) || fileExists(staticlib) || fileExists(winDylib) || fileExists(macDylib)) {
+        return true
+    }
+
+    eprintln("Error: can not find the library '${fileName}' which is listed in ${path}")
+    return false
+}

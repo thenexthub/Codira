@@ -1,4 +1,0 @@
-module RenamedObjc {
-  header "RenamedObjc.h"
-  export *
-}

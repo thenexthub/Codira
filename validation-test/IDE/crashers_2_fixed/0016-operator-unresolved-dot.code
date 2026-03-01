@@ -1,4 +1,0 @@
-// RUN: %target-language-ide-test -code-completion -code-completion-token=A -source-filename=%s
-// REQUIRES: asserts
-
-struct a { fn b(c d: a) { b(c: d) == .#^A^#

@@ -1,8 +1,0 @@
-
-@_transparent public fn negate_bad(_ x: Int) -> Int {
-  return !x
-}
-
-public fn negate(_ x: Int) -> Int {
-  return !x
-}

@@ -1,3 +1,0 @@
-// {"signature":"deriveBodyRawRepresentable_init(language::AbstractFunctionDecl*, void*)"}
-// RUN: not %target-language-frontend -typecheck %s
-a enum a : Int { case = #/

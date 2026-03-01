@@ -1,4 +1,0 @@
-// RUN: %target-typecheck-verify-language
-
-enum Foo: Int { case A }
-extension Foo: RawRepresentable {}

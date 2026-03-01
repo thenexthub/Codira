@@ -1,1 +1,0 @@
-add_language_tool_subdirectory(libCodiraScan)

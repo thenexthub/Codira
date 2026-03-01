@@ -1,0 +1,1 @@
+{"id":5,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: a.code\nPackage info: pkgB.pkg3\n\n(variable) public let ff(A):Unit\n"},"range":{"end":{"character":38,"line":8},"start":{"character":30,"line":8}}}}

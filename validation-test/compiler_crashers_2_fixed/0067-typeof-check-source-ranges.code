@@ -1,3 +1,0 @@
-// RUN: not %target-language-frontend %s -emit-ir
-
-(!type(of:

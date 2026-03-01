@@ -1,4 +1,0 @@
-framework module FWModule {
-  header "FWModule.h"
-  export *
-}

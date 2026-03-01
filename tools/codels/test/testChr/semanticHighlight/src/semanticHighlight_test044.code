@@ -1,0 +1,43 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+trait Num4411  {
+    func plus(a: This, b: This): This
+}
+
+trait Num4421 {
+    func self(a: This): This
+}
+
+append int32 with Num441 , Num442 {
+    func plus(a: int32, b: int32): int32 { a + b }
+    func self(a: int32): int32 { a + 1 }
+}
+
+func semanticHighlight_test044(): int32 {
+    let x: int32  = plus(1,1)
+    let y: int32  = self(1)
+    if ( x == y ) {
+        return 0
+    }
+    return 1
+}

@@ -1,8 +1,0 @@
-public protocol P {}
-public protocol Q {}
-
-public fn wrap<T: P & Q>(_ t: T) -> some P & Q {
-  return t
-}
-
-

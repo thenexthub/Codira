@@ -1,9 +1,0 @@
-framework module WithAuxClangModule {
-  header "WithAuxClangModule.h"
-  export *
-}
-
-framework module AuxClangModule {
-  header "AuxClangModule.h"
-  export *
-}

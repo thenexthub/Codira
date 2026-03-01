@@ -1,0 +1,150 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package default
+//lamda  AR-SR-Lang-1016
+
+
+// 尾闭包  AR-SR-Lang-1016-04
+
+//当函数调用最后一个实参是 lambda 时，我们可以使用尾闭包语法，将 lambda 放在函数调用的尾部，括号外面。
+func f(a: Int64, fn: (Int64)->Int64) { fn(a) }
+func FF2( )  {
+	 f(1, { i => i * i }) // normal function call
+     f(1) { i => i * i } // trailing closures
+}
+
+//当函数调用有且只有一个 lambda 实参时，我们还可以省略 ()，只写 lambda 。
+func f2(fn: (Int64)->Int64) { fn(1) }
+func NBAME22( )  {
+	 f2{ i => i * i }
+}
+
+//需要注意的是，尾闭包语法会优先匹配非柯里化的版本
+func f3(fn: ()->Unit) {} // f1
+func f3()(fn: ()->Unit) {} // f2
+func NAME33( )  {
+	 f3(){} // call f3
+}
+//普通函数调用和构造函数调用都可以使用这个语法，包含 this() 和 super()。
+let array3 = RefArray<Int64>(3) { i => i * 2 } //'array3' has 3 elememts: 0, 2, 4
+
+//lambda表达式的调用 AR-SR-Lang-1016-02
+let f4444: (Int64, Int64)->Int64 = {a: Int64, b: Int64 => a + b}
+
+var f5555: () -> Int32 = { => 123 }
+
+var sum1: (Int32, Int32) -> Int32 = {a, b => a + b}
+
+var sum2: (Int32, Int32) -> Int32 = {a: Int32, b => a + b}
+var sum4 = {a: Int32, b:Int32 => a + b}
+
+var display = { => print("Hello") }
+
+
+func nametest( )  {
+     var a = { => return 1 }
+	 sum1 = {a, b => a + b}
+	 sum2 = {a, b => return a + b} // Same as that in the previous line.
+}
+
+//lamda捕獲
+
+func flamda() {
+        var x = 1
+        let y = 2
+
+    func g() {
+        print("${x}") // OK, captured a mutable variable.
+    }
+    let b = g  // Error, g cannot be assigned to a variable
+
+    g    // Error, g cannot be used as an expression
+    g()  // OK, g can be invoked
+
+    func g2() {
+        g()        // OK, g2 also captured a mutable variable
+    }
+
+    let c = g2 // Error, g2 cannot be assigned to a variable
+
+    func h() {
+        print("${y}")  // OK, captured an immutable variable.
+    }
+    let d = h    // OK, h can be assigned to variable
+
+    let e = { print("${x}") }  // Error, lambda captured a mutable variable, cannot be assigned to a variable
+
+    let i = { x*x }()  // OK, lambda captured a mutable variable, can be invoked.
+    return g  // Error, g cannot be used as a return value.
+}
+/*
+捕获的局部变量必须满足以下规则：
+
+被捕获的局部变量必须在闭包定义之前声明，否则编译报错；
+变量被捕获时必须已经完成初始化，否则编译报错；
+如果函数外有变量，同时函数内有同名的局部变量，函数内的闭包因局部变量的作用域未开始而捕获了函数外的变量时，为避免用户误用，报warning；
+*/
+//需要注意的是，捕获具有传递性，如果一个函数f调用了捕获var变量的函数g，那么函数f同样捕获了var变量，此时，f也不能作为一等公民使用。
+
+// 1. The captured variable must be defined before the closure.
+let x = 4
+func fnow() {
+    var outx = x   // Print 4.
+    let x = 99
+    func f1() {
+        print("${x}")
+    }
+    let f2 = {
+        print("${x}")
+    }
+    f1()          // Print 99.
+    f2()          // Print 99.
+}
+
+// 2. The variable must be initialized before being captured.
+
+func fxxx() {
+    print("${x}")    // Print 4.
+    let x: Int64
+    func f1() {
+        print("${x}")    // Error: x is not initialized yet.
+    }
+    x = 99
+    f1()
+}
+
+// 3. If there is a  local variable in a block, closures capture variables of the same name in the outer scope will report a warning.
+
+func fxxxx() {
+    print("${x}")    // Print 4.
+    func f1() {
+        print("${x}")	// warning
+    }
+    let f2 = {
+        print("${x}")  	// warning
+    }
+    let x = 99
+    f1()   // print 4
+    f2()   // print 4
+}
+

@@ -1,5 +1,0 @@
-public struct Point {
-  public immutable x: Int
-  public immutable y: Int
-  public immutable z: Int = -1
-}

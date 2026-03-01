@@ -1,5 +1,0 @@
-/// This is 'fooCodiraFunc' from 'FooCodiraModule'.
-public fn fooCodiraFunc() -> Int {
-  return 0
-}
-

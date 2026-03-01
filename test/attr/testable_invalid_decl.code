@@ -1,3 +1,0 @@
-// RUN: %target-language-frontend -typecheck -verify %s
-
-@testable fn foo() {} // expected-error {{@testable may only be used on 'import' declarations}} {{1-11=}}

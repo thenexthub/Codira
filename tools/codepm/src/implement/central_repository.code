@@ -1,0 +1,105 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package codepm.implement
+
+import std.fs.*
+import codepm.config.*
+
+// used for central repository
+func processRepoDependencyModule(name: String, version: String, modulePath: String): (Bool, String) {
+    if (version.isEmpty()) {
+        eprintln("Error: the version can't be empty which is listed in 'dependencies' field " +
+            "at ${Path(modulePath).join(CONFIG_FILE_NAME).toString()}")
+        return (false, "")
+    }
+    let (result, output) = loadModuleFromRepo(name, version)
+    if (!result) {
+        if (!output.isEmpty()) {
+            eprintln("Error: ${output}")
+        }
+        return (false, "")
+    }
+    return (true, output)
+}
+
+// used for central repository
+func loadModuleFromRepo(name: String, version: String): (Bool, String) {
+    try {
+        if (let Some(depot) <- Depot.new()) {
+            let dependencyPath = Path(depot.getLocalRepo()).join("${name}-${version}").toString()
+            if (directoryExists(dependencyPath)) {
+                return (true, dependencyPath)
+            }
+
+            let (result, output) = depot.download(name, version)
+            if (!result) {
+                return (false, output)
+            }
+            let p = getPath(depot.getLocalRepo(), "${name}-${version}")
+            return (true, p)
+        } else {
+            return (false, "download error")
+        }
+    } catch (e: Exception) {
+        return (false, "download ${name} exception")
+    }
+}
+
+// used for central repository
+public func setRepoRoot(installConfig: InstallConfig, artifact: String): Bool {
+    if (installConfig.verbose) {
+        println("codepm install: installing ${artifact} from central repository")
+    }
+    let params = artifact.split(":")
+    try {
+        installConfig.globalConfig.rootPath = Path(DEFAULT_CONFIG_LOCATION)
+            .join(".codepm")
+            .join("repository")
+            .join("${params[0]}-${params[1]}")
+            .toString()
+        if (directoryExists(installConfig.globalConfig.rootPath)) {
+            if (installConfig.verbose) {
+                println("codepm install skip downloading ${artifact}: local files exist")
+            }
+            installConfig.globalConfig.targetDir = getPath(installConfig.globalConfig.rootPath, TARGET)
+            return true
+        }
+        if (let Some(depot) <- Depot.new()) {
+            let (result, output) = depot.download(params[0], params[1])
+            if (!result) {
+                eprintln("Error: ${output}")
+                return false
+            }
+            if (installConfig.verbose) {
+                println(output)
+            }
+            installConfig.globalConfig.targetDir = getPath(installConfig.globalConfig.rootPath, TARGET)
+            return true
+        } else {
+            return false
+        }
+    } catch (e: Exception) {
+        println("Error: load module failed with network connection error")
+        return false
+    }
+}

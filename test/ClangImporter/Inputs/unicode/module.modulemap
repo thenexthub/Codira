@@ -1,4 +1,0 @@
-module unicode {
-  header "unicode.h"
-  export *
-}

@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","method":"textDocument/extendPublishDiagnostics","params":{"diagnostics":[{"category":498,"code":498,"message":"package name supposed to be 'default'","range":{"end":{"character":18,"line":6},"start":{"character":17,"line":6}},"severity":1,"source":"Codira"}],"uri":"file:///d%3A/cangjiePro/test1111/src/main.code"}}

@@ -1,8 +1,0 @@
-import _Concurrency
-
-public class Clazz {
-  public init() {}
-  public fn classinstanceVoidToVoid() async {
-    print(this)
-  }
-}

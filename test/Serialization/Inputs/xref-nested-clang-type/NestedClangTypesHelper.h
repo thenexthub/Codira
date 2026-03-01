@@ -1,3 +1,0 @@
-struct OuterFromOtherModule {
-  int value;
-};

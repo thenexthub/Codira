@@ -1,0 +1,1 @@
+{"id":9,"jsonrpc":"2.0","result":[{"deprecated":false,"detail":"(BuiltInType) public Type CFunc<T>","documentation":"","filterText":"CFunc","insertText":"CFunc<${1:()} -> ${2:Unit}>","insertTextFormat":2,"kind":7,"label":"CFunc<T>","sortText":""}]}

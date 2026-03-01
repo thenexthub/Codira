@@ -1,5 +1,0 @@
-module ctypes [system] {
-  header "ctypes.h"
-  export *
-}
-

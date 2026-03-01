@@ -1,3 +1,0 @@
-// RUN: %target-language-ide-test -code-completion -code-completion-token=A -source-filename=%s
-extension{protocol a{fn p)struct A{protocol c
-immutable a{#^A^#

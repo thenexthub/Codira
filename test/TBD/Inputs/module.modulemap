@@ -1,3 +1,0 @@
-module CustomError {
-  header "custom-error.h"
-}

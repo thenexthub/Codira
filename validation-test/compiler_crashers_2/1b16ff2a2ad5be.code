@@ -1,3 +1,0 @@
-// {"signature":"language::Parser::parseAbstractFunctionBody(language::AbstractFunctionDecl*, language::optionset::OptionSet<language::Parser::ParseDeclFlags, unsigned short>)"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-@abi(fn a {

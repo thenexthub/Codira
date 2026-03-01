@@ -1,0 +1,58 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+var a = 1
+
+
+// 泛型类名称+泛型成员变量+主构造成员函数+成员函数重载语法高亮
+class Data<T> {
+    var c = 0
+    static let d: String = "hello"
+    let e: T
+    Data(x:T, let a!: Int64 =1) {
+        this.e = x
+    }
+    init(x: T){
+        this.a = 3
+        this.e = x
+    }
+    func foo(): T {
+        return this.e
+    }
+    func foo(x: Int32): String {
+        this.a.toString()
+    }
+    static func bar<U>(x:U): U {
+        return x
+    }
+
+    static func s_func(): Rune { 'a' }
+}
+
+func run(): Int64 {
+    return Data<Int32>(1, a:2).c
+}
+
+func main(): Int64 {
+    return run()
+}
+

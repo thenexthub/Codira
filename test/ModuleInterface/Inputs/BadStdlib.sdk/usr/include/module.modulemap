@@ -1,4 +1,0 @@
-module HasPointer {
-  header "HasPointer.h"
-  export *
-}

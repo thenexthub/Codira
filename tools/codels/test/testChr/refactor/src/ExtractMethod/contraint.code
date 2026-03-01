@@ -1,0 +1,85 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/**
+ * Created on 2025/7/16
+ */
+package ohos_app_cangjie_entry.ExtractMethod
+
+// check9
+var global_var = 10
+
+class Clazz1 {
+    var aa = 10
+    var bb = 10
+
+    init(a1: Int64, b1: Int64) {
+        // check8
+        this.aa = a1
+        bb = b1
+    }
+
+    func func1() {
+        // check1
+        var bb: Int64
+        // check2
+        if (global_var > 0) {
+            return 0
+        }
+        bb = 10
+        var aa = bb
+        // check3
+        aa = aa + 2
+        bb = bb + 1
+        var cc = aa + bb
+        // check4
+        if (aa > 0) {
+            global_var = global_var + aa
+        } else {
+            global_var = global_var + bb
+        }
+        // check5
+        while (aa > 0) {
+            if (global_var > 10) {
+                break
+            }
+            global_var = global_var - 1
+            aa = aa - 1
+        }
+        // check6
+        try {
+            throw NegativeArraySizeException("xx")
+        } catch (e: NegativeArraySizeException) {
+            print("xxxxxxx")
+        }
+        // check7
+        var x = 10
+        match (x) {
+            case 0 => print("x = 0")
+            case 1 => print("x = 1")
+            case 2 => print("x = 2")
+            case _ => print("x = 0")
+        }
+        return bb
+    }
+}
+

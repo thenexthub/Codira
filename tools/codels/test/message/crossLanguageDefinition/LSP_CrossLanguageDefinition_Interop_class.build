@@ -1,0 +1,8 @@
+cd ${caseProPath}
+mkdir macroBin
+cd macroBin
+mkdir testMacro
+cd ${caseProPath}
+echo "codec build start"
+codec --import-path=./macroBin/testMacro --no-sub-pkg --output-dir=./macroBin/testMacro -p ./src/ark_interop_macro --compile-macro
+echo "codec build end"

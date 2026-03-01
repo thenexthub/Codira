@@ -1,3 +1,0 @@
-// RUN: %target-typecheck-verify-language 
-
-typealias FnType = @isolated(any) () -> ()

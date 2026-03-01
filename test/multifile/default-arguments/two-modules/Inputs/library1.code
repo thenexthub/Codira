@@ -1,4 +1,0 @@
-@inlinable
-public fn callsHasDefaultArgument() {
-  hasDefaultArgument()
-}

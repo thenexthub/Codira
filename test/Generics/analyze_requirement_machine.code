@@ -1,3 +1,0 @@
-// RUN: %target-typecheck-verify-language -analyze-requirement-machine
-
-public fn f<T: FixedWidthInteger>(_: T) {}

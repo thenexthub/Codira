@@ -1,5 +1,0 @@
-module A {
-    explicit module B {
-        explicit module C { }
-    }
-}

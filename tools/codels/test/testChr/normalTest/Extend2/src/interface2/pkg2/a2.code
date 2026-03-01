@@ -1,0 +1,49 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package cangjieextend.interface2.pkg2
+
+import cangjieextend.interface2.base.Foo
+
+private interface I1 {
+    func foo1(): Unit
+}
+internal interface I2 {
+    func foo2(): Unit
+}
+protected interface I3 {
+    func foo3(): Unit
+}
+public interface I4 {
+    func foo4(): Unit
+}
+
+private interface F1 {}
+internal interface F2 {}
+protected interface F3 {}
+public interface F4 {}
+
+extend<T> Foo<T> <: I2 & I3 & I4 where T <: F2 {
+    public func foo2() {}
+    public func foo3() {}
+    public func foo4() {}
+}

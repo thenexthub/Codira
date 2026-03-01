@@ -1,7 +1,0 @@
-// RUN: %target-language-ide-test -code-completion -code-completion-token=A -source-filename=%s
-a{
-protocol e{
-typealias e
-extension{
-immutable b{immutable a={
-#^A^#fn f:e

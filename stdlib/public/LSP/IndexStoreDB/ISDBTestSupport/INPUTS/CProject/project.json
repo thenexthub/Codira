@@ -1,5 +1,0 @@
-{
-  "targets": [
-    { "name": "D", "sources": ["d.c", "e.c"] }
-  ]
-}

@@ -1,8 +1,0 @@
-framework module Some  {
-  header "Some.h"
-  export *
-  module Submodule {
-    header "Submodule.h"
-    export *
-  }
-}

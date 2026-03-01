@@ -1,0 +1,1 @@
+{"id":11,"jsonrpc":"2.0","result":{"range":{"end":{"character":9,"line":16},"start":{"character":8,"line":16}},"uri":"file:///home/code_project/code/lsp/test/testChr/Macro/macroDef/src/B/b.code"}}

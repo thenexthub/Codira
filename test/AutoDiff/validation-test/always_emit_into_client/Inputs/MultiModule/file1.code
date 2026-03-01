@@ -1,4 +1,0 @@
-@_alwaysEmitIntoClient
-public fn f(_ x: Float) -> Float {
-  x
-}

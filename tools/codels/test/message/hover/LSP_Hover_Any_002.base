@@ -1,0 +1,1 @@
+{"id":"9","jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: object.code\nPackage info: std.core\n\n(interface) public interface Any\n"},"range":{"end":{"character":18,"line":12},"start":{"character":15,"line":12}}}}

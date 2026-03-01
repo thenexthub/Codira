@@ -1,0 +1,1 @@
+{"id":"7","jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: testList01.code\nPackage info: default.testList\n\n(variable) public var externalList: Array<Int64>\n"},"range":{"end":{"character":27,"line":9},"start":{"character":15,"line":9}}}}

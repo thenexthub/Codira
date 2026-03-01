@@ -1,2 +1,0 @@
-// RUN: %target-language-ide-test -code-completion -code-completion-token=A -source-filename=%s
-protocol a{struct B<e{immutable a{protocol a{fn a<T:s#^A^#

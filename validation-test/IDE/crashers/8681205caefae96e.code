@@ -1,4 +1,0 @@
-// {"kind":"complete","signature":"language::ide::CompletionLookup::getPostfixKeywordCompletions(language::Type, language::Expr*)"}
-// RUN: not --crash %target-language-ide-test -code-completion --code-completion-token=COMPLETE -code-completion-diagnostics -source-filename %s
-fn a(b: (() -> Float)!) {
-b()#^COMPLETE^#

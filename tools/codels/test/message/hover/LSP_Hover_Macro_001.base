@@ -1,0 +1,1 @@
+{"id":11,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: a.code\nPackage info: default.define\n\n(macro) public macro Y1232(input: Tokens): Tokens\n"},"range":{"end":{"character":10,"line":21},"start":{"character":5,"line":21}}}}

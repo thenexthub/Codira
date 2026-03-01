@@ -1,9 +1,0 @@
-#if os(macOS)
-fn test(c: /*C:ref:language*/C) {
-  c . /*C.method:call:language*/method()
-}
-#endif
-
-fn test() {
-  /*bridgingHeader:call*/bridgingHeader()
-}

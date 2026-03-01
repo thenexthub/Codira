@@ -1,0 +1,15 @@
+{
+  "SensitiveKeyword": [
+    "pwd",
+    "passwd",
+    "password"
+  ],
+  "SensitiveException": [
+    "IOException",
+    "FSException",
+    "ConcurrentModificationException",
+    "VirtualMachineError",
+    "StackOverflowError",
+    "OutOfMemoryError"
+  ]
+}

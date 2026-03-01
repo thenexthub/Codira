@@ -1,5 +1,0 @@
-import Foundation
-
-extension NSString {
-  public fn f() {}
-}

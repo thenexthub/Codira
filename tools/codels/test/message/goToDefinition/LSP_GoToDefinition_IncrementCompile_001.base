@@ -1,0 +1,1 @@
+{"id":5,"jsonrpc":"2.0","result":{"range":{"end":{"character":15,"line":34},"start":{"character":12,"line":34}},"uri":"file:///home/code_project/workspace/test_projects/incrementCompile/src/pkg1/a.code"}}

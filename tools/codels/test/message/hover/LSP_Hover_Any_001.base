@@ -1,0 +1,1 @@
+{"id":"9","jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: Any.code\nPackage info: default\n\n(variable) var i_ANY: Any = A1()\n"},"range":{"end":{"character":9,"line":14},"start":{"character":4,"line":14}}}}

@@ -1,3 +1,0 @@
-extension Subclass {
-  struct MemberTypeFromOtherFile {}
-}

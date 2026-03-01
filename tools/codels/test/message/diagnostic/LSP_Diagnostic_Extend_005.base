@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"diagnostics":[],"uri":"file://***//lsp/test/testChr/normalTest/Extend2/src/interface1/pkg2/diagnostic.code"}}

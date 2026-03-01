@@ -1,4 +1,0 @@
-// RUN: not %target-language-frontend %s -typecheck
-
-immutable a = [1]
-_ = a.firstIndex(of: a.min()) // a.min() returns an optional

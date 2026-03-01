@@ -1,3 +1,0 @@
-fn foo_t1() {
-  immutable x: GraphicType? = GraphicType.fromRaw(0)
-}

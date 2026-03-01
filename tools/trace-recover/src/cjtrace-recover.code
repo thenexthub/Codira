@@ -1,0 +1,302 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+import std.argopt.*
+import std.collection.*
+import std.fs.*
+import std.process.*
+import std.regex.*
+
+foreign func Demangle(name: CString, len: Int64): CString
+
+var symbolMap = HashMap<String, (String, String)>()
+
+func usage() {
+	let usage = """
+Usage: codetrace-recover OPTION
+
+Use symbol mapping files to recover obfuscated exception stacktrace. The supported options are:
+\t-f <file>\tpath to the obfuscated exception stacktrace file
+\t-m <file,...>\tpath to the symbol mapping files
+\t-h\t\tdisplay this help and exit
+\t-v\t\tprint version of codetrace-recover
+"""
+	println(usage)
+}
+
+func printVersion() {
+	println("Codira Trace Recover: 1.1.0-alpha.70")
+}
+
+func needMoreInformation() {
+	eprintln("Try: 'codetrace-recover -h' for more information.")
+}
+
+func getDemangle(name: String) {
+	unsafe {
+		var mangle = LibC.mallocCString(name)
+		var demangle = Demangle(mangle, name.size)
+		var res = demangle.toString()
+		LibC.free(mangle)
+		LibC.free(demangle)
+		return res
+	}
+}
+
+func getFileContent(fileName: String): (Array<Byte>, Bool) {
+	try {
+		let filePath: Path = Path(fileName)
+		let file = File(filePath, Read)
+		let fileLength = file.info.size
+		let bytesBuf: Array<Byte> = Array<Byte>(fileLength, repeat: 0)
+		file.read(bytesBuf)
+		file.close()
+		return (bytesBuf, true)
+	}  catch (e: Exception) {
+		eprintln(e.message)
+		eprintln("Error: failed to read file '${fileName}'")
+		return ([], false)
+	}
+}
+
+func splitByChar(bytesBuf: ArrayList<Byte>, separator: Byte, deleteEmpty!: Bool = true) {
+	var res = ArrayList<ArrayList<Byte>>()
+	var pos = 0
+	var curr = ArrayList<Byte>()
+	while (pos < bytesBuf.size) {
+		if (bytesBuf[pos] == separator) {
+			if (curr.size != 0 || !deleteEmpty) {
+				res.add(curr)
+				curr = ArrayList<Byte>()
+			}
+		} else if (bytesBuf[pos] != UInt8(UInt32(r'\r'))) {
+			curr.add(bytesBuf[pos])
+		}
+		pos++
+	}
+	if (curr.size != 0 || !deleteEmpty) {
+		res.add(curr)
+	}
+
+	return res
+}
+
+func byteArrayListToString(arrList: ArrayList<Byte>) {
+	var arr = Array<Rune>(arrList.size, repeat: Rune(0))
+	for (i in 0..arr.size) {
+		arr[i] = Rune(arrList[i])
+	}
+	var str = String(arr)
+	return str
+}
+
+func getAllMapping(fileNames: String): Bool {
+	var names = splitByChar(ArrayList<Byte>(fileNames), UInt8(UInt32(r',')), deleteEmpty: false)
+	for (i in 0..names.size) {
+		if (!getMapping(byteArrayListToString(names[i]))) {
+			return false
+		}
+	}
+	return true
+}
+
+func getMapping(fileName: String): Bool {
+	var (bytesBuf, succ) = getFileContent(fileName)
+	if (!succ) {
+		return false
+	}
+
+	var lines = splitByChar(ArrayList<Byte>(bytesBuf), UInt8(UInt32(r'\n')))
+	for (i in 0..lines.size) {
+		let line = lines[i]
+		let items = splitByChar(line, UInt8(UInt32(r' ')))
+		// A line should contains original name and obfuscated name,
+		// or original name, obfuscated name and path.
+		// So there should be 2 or 3 item in a line.
+		if (items.size < 2 || items.size > 3) {
+			eprintln("Error: Invalid mapping file '${fileName}'")
+			return false
+		}
+
+		var oriName = byteArrayListToString(items[0])
+		var obfName = byteArrayListToString(items[1])
+		var path = ""
+		if (items.size == 3) {
+			path = byteArrayListToString(items[2])
+		}
+		if (symbolMap.contains(obfName)) {
+			let (existName, existPath) = symbolMap[obfName]
+			if (existName != oriName || (existPath != path && existPath.size != 0 && path.size != 0)) {
+				eprintln("Error: Duplicate symbol '${obfName}'")
+				return false
+			} else if (path.size == 0) {
+				continue
+			}
+		}
+		symbolMap.add(obfName, (oriName, path))
+	}
+
+	return true
+}
+
+func needFilt(name: String): Bool {
+	let nameList = [
+		"user.main",
+        "code_entry$",
+        "_CN8std$core",
+        "rt$"
+	]
+	for (i in 0..nameList.size) {
+		if (name == nameList[i]) {
+			return true
+		}
+	}
+	return false
+}
+
+func recoverTrace(fileName: String): (String, Bool) {
+	var (bytesBuf, succ) = getFileContent(fileName)
+	let findPatten = Regex(#"[\s]*at [\S]*\([\S]*:[\S]*\)"#)
+	let replaceNamePatten = Regex(#"at [\S]*\("#)
+	let replacePathPatten = Regex(#"\(SOURCE:"#)
+	let replaceNumberPatten = Regex(#":0\)"#)
+	var res = ""
+	if (!succ) {
+		return ("", false)
+	}
+
+	var lines = splitByChar(ArrayList<Byte>(bytesBuf), UInt8(UInt32(r'\n')))
+	for (i in 0..lines.size) {
+		var strLine = byteArrayListToString(lines[i])
+		let m = findPatten.matcher(strLine)
+		match (m.fullMatch()) {
+			case Some(md) => ()
+			case None =>
+				res = res + strLine + "\n"
+				continue
+		}
+		var name = ""
+		match (replaceNamePatten.matcher(strLine).find()) {
+			case Some(md) =>
+				var matchString = md.matchString()
+				name = matchString[3..(matchString.size - 1)]
+			case None =>
+				res = res + strLine + "\n"
+				continue
+		}
+
+		if (name.size > 0 && name[0] == UInt8(UInt32(r'_'))) {
+			name = name[1..name.size]
+		}
+
+		if (!symbolMap.contains(name)) {
+			res = res + strLine + "\n"
+			continue
+		}
+
+		let (oriName, path) = symbolMap[name]
+		if (needFilt(oriName)) {
+			continue
+		}
+
+		let dem = getDemangle(oriName)
+		if (dem.size == 0) {
+			eprintln("Error: Failed to demangle symbol '${oriName}'")
+			return ("", false)
+		}
+		strLine = replaceNamePatten.matcher(strLine).replace("at " + dem + "(")
+		strLine = replacePathPatten.matcher(strLine).replace("(" + path + ":")
+		strLine = replaceNumberPatten.matcher(strLine).replace(")")
+
+		res = res + strLine + "\n"
+	}
+
+	return (res, true)
+}
+
+main() {
+	let args = Process.current.arguments
+	let str: String = "m:f:hv"
+	let ao = ArgOpt(args, str, [])
+	let map: HashMap<String, String> = ao.getArgumentsMap()
+	let unparsedArgs = ao.getUnparseArgs()
+	var mapFileNames: String
+	var inputFileName: String
+
+	for (arg in unparsedArgs) {
+		if (arg == "-m" || arg == "-f") {
+			continue
+		}
+		eprintln("Error: invalid option '${unparsedArgs[0]}'")
+		needMoreInformation()
+		return 1
+	}
+
+	if (map.size == 0) {
+		needMoreInformation()
+		return 1
+	}
+
+	let helpOpt: Option<String> = map.get("-h")
+    match (helpOpt) {
+        case Some(v) =>
+			usage();
+			return 0;
+        case _ => ();
+    }
+
+	let versionOpt: Option<String> = map.get("-v")
+    match (versionOpt) {
+        case Some(v) =>
+			printVersion();
+			return 0;
+        case _ => ();
+    }
+
+	let mapOpt: Option<String> = map.get("-m")
+	match (mapOpt) {
+		case Some(v) => mapFileNames = v;
+		case _ =>
+			eprintln("Error: Please specific mapping file with option '-m'");
+			return 1;
+	}
+
+	let inputOpt: Option<String> = map.get("-f")
+	match (inputOpt) {
+		case Some(v) => inputFileName = v;
+		case _ =>
+			eprintln("Error: Please specific input file with option '-f'");
+			return 1;
+	}
+
+	if (!getAllMapping(mapFileNames)) {
+		return 1;
+	}
+
+	let (res, succ) = recoverTrace(inputFileName);
+	if (!succ) {
+		return 1;
+	}
+	print(res);
+
+	return 0
+}

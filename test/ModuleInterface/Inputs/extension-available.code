@@ -1,3 +1,0 @@
-@available(macOS 10.0, *)
-public fn extensionAvailable() {
-}

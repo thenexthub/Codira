@@ -1,7 +1,0 @@
-// RUN: %empty-directory(%t)
-// RUN: cp %s %t/main.language
-// RUN: %target-language-frontend -primary-file %t/main.language %S/Inputs/issue-51014-helper.language -emit-ir -o /dev/null
-
-// https://github.com/apple/language/issues/51014
-
-StateAnimatorGroup<String>().set("")

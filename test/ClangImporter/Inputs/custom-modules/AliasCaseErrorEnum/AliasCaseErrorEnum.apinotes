@@ -1,5 +1,0 @@
----
-Name: AliasCaseErrorEnum
-Tags:
-- Name: AliasError
-  NSErrorDomain: AliasErrorDomain

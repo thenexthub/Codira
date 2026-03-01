@@ -1,6 +1,0 @@
-protocol MagicStringInterpolationProtocol: StringInterpolationProtocol {}
-
-extension MagicStringInterpolationProtocol {
-  mutating fn appendInterpolation<Value>(_ value: Value) {}
-}
-

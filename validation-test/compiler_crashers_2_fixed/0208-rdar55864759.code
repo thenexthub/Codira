@@ -1,3 +1,0 @@
-// RUN: not %target-language-frontend -typecheck %s %S/Inputs/0208-rdar55864759-protocol.code
-struct StringInterpolation: MagicStringInterpolationProtocol {}
-

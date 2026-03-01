@@ -1,2 +1,0 @@
-// Check that we can handle /no/ supplementary outputs.
-// RUN: %target-build-language -typecheck -driver-filelist-threshold=0 %s

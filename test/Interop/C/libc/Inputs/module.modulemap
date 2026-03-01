@@ -1,3 +1,0 @@
-module IncludeSignal {
-  header "include-signal.h"
-}

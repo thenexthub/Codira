@@ -1,0 +1,1 @@
+{"id":9,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: b.code\nPackage info: base\n\n(variable) let a12121: MainThreadContext = MainThreadContext()\n"},"range":{"end":{"character":40,"line":15},"start":{"character":34,"line":15}}}}

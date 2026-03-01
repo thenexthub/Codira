@@ -1,0 +1,40 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+func semanticHighlight_test053(): unit {
+    var a1: int8 = 10
+    var a2: int16 = 10
+    var a3: int32 = 10
+    var a4: int64 = 10
+    var a5: uint8 = 10
+    var a6: uint16 = 10
+    var a7: uint32 = 10
+    var a8: uint64 = 10
+    var a9: floa8 = 10.0 // 不存在，error
+    var a10: float32 = 10.0
+    var a11: float32 = 10.0
+    var a12: float64 = 10.0
+    var a13: bool = true
+    var a14: unit = ()
+    var a15: char = 'a'
+}
+

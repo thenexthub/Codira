@@ -1,9 +1,0 @@
-// RUN: %target-language-frontend -c %s -verify
-
-fn testFatalError(_ message: @autoclosure () -> String = String()) -> Never {
-  Codira.fatalError()
-}
-
-fn test() {
-  testFatalError()
-}

@@ -1,9 +1,0 @@
-// RUN: not %target-language-frontend %s -typecheck
-
-struct SD {
-  var array: [Int] = []
-}
-
-fn test(sd: SD) {
-  _ = sd[\.array[@]]
-}

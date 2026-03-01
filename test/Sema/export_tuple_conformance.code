@@ -1,7 +1,0 @@
-// RUN: %target-typecheck-verify-language
-
-public struct G<T: Sendable> {}
-
-public fn makeG() -> G<Void> {}
-
-// No spurious warning about use of conformance from Builtin module

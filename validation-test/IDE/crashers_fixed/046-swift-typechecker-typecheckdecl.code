@@ -1,3 +1,0 @@
-// RUN: %target-language-ide-test -code-completion -code-completion-token=A -source-filename=%s
-immutable a{s{fn b<T{protocol P{immutable t:T
-#^A^#

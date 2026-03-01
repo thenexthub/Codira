@@ -1,6 +1,0 @@
-// {"kind":"complete","signature":"language::irgen::IRGenModule::emitLazyObjCProtocolDefinition(language::ProtocolDecl*)"}
-// Actual signature: matchCallArguments
-// RUN: %target-language-ide-test -code-completion --code-completion-token=COMPLETE -source-filename %s
-a(
-#^COMPLETE^#[
-""!

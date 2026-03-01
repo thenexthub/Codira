@@ -1,7 +1,0 @@
-// RUN: %language-ide-test -code-completion -source-filename %s -code-completion-token COMPLETE
-
-fn foo() {
-  bar {
-    .dragging(arg1: #^COMPLETE^#, arg2: drag ?? .zero)
-  }
-}

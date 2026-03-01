@@ -1,0 +1,641 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package hle
+
+import std.argopt.*
+import std.fs.*
+import std.collection.*
+import std.collection.concurrent.*
+import std.env.*
+import std.time.*
+import std.sync.*
+import stdx.serialization.serialization.*
+import stdx.encoding.json.*
+import std.process.*
+import hle.tool.*
+import hle.entry.*
+import std.fs.{exists, FileInfo}
+import std.regex.*
+
+const OS_WINDOWS = "Windows"
+const OS_OTHERS = "Others"
+@When[os == "Windows"]
+const OS = OS_WINDOWS
+@When[os != "Windows"]
+const OS = OS_OTHERS
+public const analysisFilePath: String = "./src/dtsparser/analysis.js"
+@When[os == "Windows"]
+public const cBindingsPath: String = "./src/dtsparser/node_modules/.bin/codebind.exe"
+@When[os != "Windows"]
+public const cBindingsPath: String = "./src/dtsparser/node_modules/.bin/codebind"
+let mtx = Mutex()
+let cla = CommandLineArg()
+let HELP_INFO = """
+Usage: main [options]
+
+Description:
+    This tool is designed to generate cangjie bindings for .d.ts or .d.ets files.
+
+Options:
+  -i <file>             The absolute path of the input d.ts or d.ets file (required if -d is not used)
+  -r <file>             The absolute path of the typescript compiler source code
+  -d <directory>        The absolute path of the directory containing d.ts or d.ets file (required if -i is not used)
+  -o <directory>        The directory to save the binding code (optional, defaults to the current directory)
+  -c                    Generate C to Codira bindings
+  --clang-args          The parameters that will be directly passed to clang
+  --no-detect-include-path  Disable automatic include path detection
+  -b <file>             The absolute path of the binding file
+  -j <file>             The absolute path of the d.ts or d.ets file analyzer (optional)
+  --module-name <name>  Customize the generated Codira package name (optional)
+  --lib                 Generate bindings for third-party library (optional)
+  --help                Display this help information
+
+Examples:
+  main -i /path/to/input.d.ts -o /path/to/output -j /path/to/analysis.js
+        Process the specified d.ts file, use the d.ts file analyzer, and output to the specified directory
+  main -d /path/to/input/folder -o /path/to/output -j /path/to/analysis.js
+        Process the d.ts or d.ets file in the specified folder, use the d.ts file analyzer, and output to the specified directory
+  main -d /path/to/input/folder -o /path/to/output -j /path/to/analysis.js --module-name=ohos.hilog
+        Process the d.ts or d.ets file in the specified folder, use the d.ts file analyzer, customize the package name, and output to the specified directory
+"""
+
+func printHelp(): Unit {
+    println(HELP_INFO)
+}
+
+main(args: Array<String>) {
+    let start = MonoTime.now()
+
+    let argSpecs = [
+        Long("module-name", RequiredValue),
+        Long("clang-args", RequiredValue),
+        Long("lib", NoValue),
+        Long("no-detect-include-path", NoValue),
+        Long("help", NoValue),
+        Short(r'r', RequiredValue),
+        Short(r'i', RequiredValue),
+        Short(r'o', RequiredValue),
+        Short(r'j', RequiredValue),
+        Short(r'd', RequiredValue),
+        Short(r'b', RequiredValue),
+        Short(r'h', NoValue),
+        Short(r'c', NoValue)
+    ]
+    let pa = parseArguments(args, argSpecs)
+    if (pa.options.contains("help") || pa.options.contains("h")) {
+        printHelp()
+        return 0
+    }
+    if (!pa.nonOptions.isEmpty()) {
+        println("Error: Unkonwn option: '${pa.nonOptions}'\n")
+        return 1
+    }
+    parseCommandLine(pa)
+
+    if (cla.bindings2C) {
+        println("========Generate C to cangjie bindings Begins!========")
+        let dir = Path(cla.outDir)
+        println("The out dir is:" + dir.toString())
+
+        // check whether codebind exists
+        if (!(exists(cla.bindingsPath) && FileInfo(cla.bindingsPath).isRegular())) {
+            println("Error: generation failed! codebind file ${cla.bindingsPath} not exists, please download codebind or build it first!")
+            return 1
+        }
+
+        if (!cla.arkpath.isEmpty()) {
+            generateCodiraBindingsForC(cla.codeModuleName, cla.arkpath, dir.toString())
+        } else {
+            let fileInfos = ArrayList<FileInfo>()
+            let inputDir = Path(cla.directoryPath)
+            getFiles(fileInfos, inputDir, inputType: InputType.C)
+            if (fileInfos.isEmpty()) {
+                println("Error: generation failed! Not found .h file under ${cla.directoryPath}")
+                return 1
+            }
+
+            let futureList = ArrayList<Future<Unit>>()
+            fileInfos |> forEach { fileInfo => 
+                let future = spawn {
+                    generateCodiraBindingsForC(cla.codeModuleName, fileInfo.path.toString(), dir.toString())
+                }
+                futureList.add(future)
+            }
+            for (f in futureList) {
+                f.get()
+            }
+        }
+        println("========Generate C to cangjie bindings end!========")
+        let end = MonoTime.now()
+        println("total cost of hle: ${end - start}")
+        return 0
+    }
+
+    // we want to get `lz4js` from `src/dtsparser/node_modules/@types/lz4js/`
+    var moduleNameTemp = cla.codeModuleName
+    
+    if (!cla.directoryPath.isEmpty() && moduleNameTemp == "") {
+        if (!cla.directoryPath.endsWith("/")) {
+            cla.directoryPath += "/"
+        }
+        let dir = cla.directoryPath.split("/")
+        if (dir.size >= 2) {
+            moduleNameTemp = dir[dir.size - 2]
+        }
+    }
+
+    // Parse one file
+    if (!cla.arkpath.isEmpty()) {
+        if (cla.arkpath.contains("/") && moduleNameTemp == "") {
+            let dir = cla.arkpath.split("/")
+            if (dir.size >= 2) {
+                moduleNameTemp = dir[dir.size - 2]
+            }
+        }
+        parseOneFiles(moduleNameTemp)
+    }
+
+    // Parse multiple files under a directory
+    if (!cla.directoryPath.isEmpty()) {
+        if (!parseMultipleFiles(moduleNameTemp)) {
+            return 1
+        }
+    }
+
+    let end = MonoTime.now()
+    println("total cost of hle: ${end - start}")
+    return 0
+}
+
+func generateCodiraBindingsForC(moduleName: String, filePath: String, outDir: String): Unit {
+    if (!filePath.endsWith(".h")) {
+        println("Warning: The input file is not a .h file: " + filePath)
+        return
+    }
+
+    let outputFileName = getFileName(filePath).replace(".h", ".code")
+
+    let result = if (cla.autoDect) {"--no-detect-include-path"} else {""}
+    println("The command is: ${cla.bindingsPath} --auto-cstring --array-pointers-in-args --no-layout-test " + result + " -p " + 
+        moduleName + " -o " + outDir + outputFileName + " " + filePath + " -- " + cla.clangArgs)
+
+    let codebindArguments = ArrayList<String>(["--auto-cstring", "--array-pointers-in-args", "--no-layout-test"])
+    if (cla.autoDect) {
+        codebindArguments.add("--no-detect-include-path")
+    }
+    codebindArguments.add(all: ["-p", moduleName, "-o", outDir + outputFileName, filePath, "--"])
+    for (arg in cla.clangArgs.split(" ")) {
+        codebindArguments.add(arg)
+    }
+
+    try {
+        let returnCode = execute(cla.bindingsPath, codebindArguments.toArray())
+        if (returnCode != 0) {
+            println("Error: codebind generate failed, return code is ${returnCode}.")
+        }
+    } catch (e: Exception) {
+        println(e.message)
+        e.printStackTrace()
+    }
+}
+
+func parseCommandLine(pa: ParsedArguments): Unit {
+    let currentPath = getHomeDirectory().toString()
+
+    cla.arkpath = (pa.options.get("i") ?? "") //  输入的ArkTS文件路径
+    cla.outDir = (pa.options.get("o") ?? currentPath) //  输出的Codira文件路径
+    if (!cla.outDir.endsWith("/")) {
+        cla.outDir += "/"
+    }
+    cla.jsASTPath = (pa.options.get("j") ?? analysisFilePath) //  ArkTS文件分析器路径
+    cla.bindingsPath = (pa.options.get("b") ?? cBindingsPath)
+    cla.codeModuleName = (pa.options.get("module-name") ?? "")
+    cla.is3rd = pa.options.contains("lib")
+    cla.autoDect = pa.options.contains("no-detect-include-path")
+    cla.bindings2C = pa.options.contains("c")
+    cla.clangArgs = (pa.options.get("clang-args") ?? "")
+
+    @When[codec_version < "0.59.4"]
+    let pathName = pa.options.get("r") ?? "typescript"
+
+    @When[codec_version >= "0.59.4"]
+    let pathName = Path(pa.options.get("r") ?? "typescript").normalize().toString()
+
+    cla.tsPath = pathName
+
+    cla.directoryPath = (pa.options.get("d") ?? "")
+}
+
+func parseMultipleFiles(moduleNameTemp: String): Bool {
+    let fileInfos = ArrayList<FileInfo>()
+    let dir = Path(cla.directoryPath)
+    getFiles(fileInfos, dir)
+    if (fileInfos.isEmpty()) {
+        println("Error: generation failed! Not found .d.ts or .d.ets file under ${cla.directoryPath}")
+        return false
+    }
+
+    let futureList = ArrayList<Future<Unit>>()
+    let gconfigList = ConcurrentLinkedQueue<GlobalConfig>()
+    for (f in fileInfos) {
+        let future = spawn {
+            parseFilesSpawn(f, dir, moduleNameTemp, gconfigList)
+        }
+        futureList.add(future)
+    }
+    for (f in futureList) {
+        f.get()
+    }
+
+    // collect parent properties and methods in the whole module
+    let gconfigMap = TreeMap<String, GlobalConfig>()  // TreeMap auto-sorts by key
+    
+    for (_ in 0..gconfigList.size) {
+        let gconfig = gconfigList.remove().getOrThrow()
+        gconfigMap[gconfig.module] = gconfig
+    }
+
+    // Build sorted gconfigArray from TreeMap for deterministic ordering
+    let gconfigArray = ArrayList<GlobalConfig>()
+    for ((_, gconfig) in gconfigMap) {
+        gconfigArray.add(gconfig)
+    }
+
+    // Collect parent properties/methods in deterministic order
+    for (gconfig in gconfigArray) {
+        gconfig.gconfigArray = gconfigArray
+        gconfig.collectParentPropertiesAndMethods()
+    }
+
+    // generate code files
+    futureList.clear()
+    for (gconfig in gconfigArray) {
+        let future = spawn {
+            let a2code = A2CODE(gconfig)
+            a2code.transfer()
+        }
+        futureList.add(future)
+    }
+    for (f in futureList) {
+        f.get()
+    }
+
+    return true
+}
+
+func parseOneFiles(moduleNameTemp: String): Unit {
+    let gconfig: GlobalConfig = GlobalConfig(cla.codeModuleName, cla.is3rd)
+    parseFile(cla.arkpath, cla.outDir, cla.jsASTPath, gconfig, moduleNameTemp: moduleNameTemp,
+        tsPath: cla.tsPath)
+    gconfig.gconfigArray = ArrayList<GlobalConfig>([gconfig])
+    gconfig.collectParentPropertiesAndMethods()
+    let a2code = A2CODE(gconfig)
+    a2code.transfer()
+}
+
+func parseFilesSpawn(f: FileInfo, dir: Path, name: String, gconfigList: ConcurrentLinkedQueue<GlobalConfig>): Unit {
+    let basePath = dir.toString().replace("\\", "/")
+    let moduleName = f.path.toString().replace("\\", "/")
+
+    // Get each file's relative path to input direcotry
+    var relativeFilePath = moduleName.split(basePath)[1]
+    if (relativeFilePath != "" && Rune(relativeFilePath[0]) == r'/') {
+        relativeFilePath = relativeFilePath[1..relativeFilePath.size - 1]
+    }
+
+    let relativePathName = Path(relativeFilePath).parent.toString()
+
+    let gconfig: GlobalConfig = GlobalConfig(cla.codeModuleName, cla.is3rd,
+        typeDeclFileArg: getTypeDeclFile(f))
+    parseFile(moduleName, cla.outDir, cla.jsASTPath, gconfig, moduleNameTemp: name,
+        thirdpartyName: moduleName.split("/")[moduleName.split("/").size - 1], relativePathName: relativePathName,
+        tsPath: cla.tsPath)
+    let _ = gconfigList.add(gconfig)
+}
+
+func getTypeDeclFile(file: FileInfo): String {
+    let packageJsonFile = "oh-package.json5"
+    if (let Some(dir) <- file.parentDirectory) {
+        if (exists(dir.path.toString() + "/" + packageJsonFile)) {
+            let fileContent = String.fromUtf8(File.readFrom(dir.path.toString() + "/" + packageJsonFile))
+            let fileName = Regex(##"["']?\s*[types|typings]\s*["']?\s*:\s*["']?(\w+).d.ts\s*"##,
+                    [MultiLine]).find(fileContent, group: true)
+            if (let Some(v) <- fileName) {
+                return v.matchString(1)+ ".d.ts"
+            }
+        }
+    }
+    return "index.d.ts"
+}
+
+func createDir(dir: String) {
+    mtx.lock()
+    if (!exists(dir)) {
+        Directory.create(dir, recursive: true)
+    }
+    mtx.unlock()
+}
+
+func getFileName(arkpath: String) {
+    let arkFileName = if (OS == OS_WINDOWS) {
+        let canonicalPath = arkpath.replace("\\", "/")
+        canonicalPath.split("/")[canonicalPath.split("/").size - 1]
+    } else {
+        arkpath.split("/")[arkpath.split("/").size - 1]
+    }
+    return arkFileName
+}
+
+func parseFile(arkpath: String, outDir: String, jsASTPath: String, gconfig: GlobalConfig,
+    moduleNameTemp!: String = "", thirdpartyName!: ?String = None, relativePathName!: String = "", tsPath!: String = "") {
+    let isInvalid = !exists(arkpath) || !arkpath.endsWith(".d.ts") && !arkpath.endsWith(".d.ets")
+    if (isInvalid) {
+        throw IllegalArgumentException("Invalid arkts input: ${arkpath}")
+    }
+
+    let arkFileName = getFileName(arkpath)
+
+    let module = arkFileName.split("/")[0]
+    let moduleFullName = module
+
+    var moduleName = match (thirdpartyName) {
+        case Some(v) => v
+        case None =>
+            if (module.startsWith("@ohos")) {
+                module.replace("@ohos.", "")
+            } else if (module.startsWith("@hms")) {
+                module.replace("@hms.", "")
+            } else {
+                module
+            }
+    }
+
+    let jsonDir = outDir + "json/arkts/"
+    createDir(jsonDir)
+
+    // Avoid duplicate filename in different directories, append prefix to filename
+    let prefix = if (relativePathName != "") {
+        relativePathName.replace("/", "_") + "_"
+    } else {
+        ""
+    }
+
+    println("========Analyzing ${arkFileName} Begins!========")
+    execute("node", jsASTPath, arkpath, jsonDir, tsPath, prefix)
+
+    var arkJson = ""
+    if (arkFileName.endsWith(".d.ts")) {
+        arkJson = jsonDir + prefix + arkFileName.replace("d.ts", "json")
+    } else if (arkFileName.endsWith(".d.ets")) {
+        arkJson = jsonDir + prefix + arkFileName.replace("d.ets", "json")
+    }
+
+    var fileName = ""
+    if (arkFileName.endsWith(".d.ts")) {
+        fileName = prefix + arkFileName.replace(".d.ts", "")
+    } else if (arkFileName.endsWith(".d.ets")) {
+        fileName = prefix + arkFileName.replace(".d.ets", "")
+    }
+    fileName = fileName.replace("/", "_").replace("-", "_")
+
+    if (!exists(arkJson)) {
+        println("Warning: ${arkJson} generation failed! ${arkFileName} is skipped.\n")
+        return
+    }
+
+    //扫描整个ark json文件，将内容保存在全局变量gconfig里,gconfig的声明在globalConfig.code
+    //如若需要指定code json，可以考虑扩容Global
+    let fileContent = String.fromUtf8(File.readFrom(arkJson))
+    let transform = Transform(fileContent)
+    let jsonContent = JsonValue.fromStr(fileContent)
+    dfs(jsonContent, ArrayList<String>(), transform)
+
+    let outCODEPath = if (gconfig.is3rd) {
+        outDir
+    } else {
+        outDir + "code"
+    }
+
+    createDir(outCODEPath)
+
+    var name = if (gconfig.is3rd && moduleFullName != gconfig.typeDeclFile) {
+        moduleNameTemp + "_" + moduleFullName
+    } else {
+        moduleNameTemp
+    }
+
+    var arkTSModuleName = ""
+    if (!cla.directoryPath.isEmpty()) {
+        if (!cla.directoryPath.endsWith("/")) {
+            cla.directoryPath += "/"
+        }
+        let dir = cla.directoryPath.split("/")
+        if (dir.size >= 2) {
+            arkTSModuleName = dir[dir.size - 2]
+        }
+    } else {
+        let dir = cla.arkpath.split("/")
+        if (dir.size >= 2) {
+            arkTSModuleName = dir[dir.size - 2]
+        }
+    }
+    arkTSModuleName = if (gconfig.is3rd && moduleFullName != gconfig.typeDeclFile) {
+        arkTSModuleName + "_" + removeTsSuffix(moduleName)
+    } else {
+        arkTSModuleName
+    }
+    gconfig.load(transform, prefix + moduleName, name, arkTSModuleName, outCODEPath, fileName)
+    gconfig.showConfig()
+}
+
+func getArrayFromJson(dataModel: DataModelStruct, key: String): JsonArray {
+    return JsonArray.fromStr(dataModel.get(key).toJson().toString()).asArray()
+}
+
+func getFiles(fileInfos: ArrayList<FileInfo>, dir: Path, inputType!: InputType = InputType.ARKTS): Unit {
+    let files = Directory.readFrom(dir)
+    for (f in files) {
+        if (f.isSymbolicLink()) {
+        } else if (f.isDirectory()) {
+            getFiles(fileInfos, f.path)
+        } else if (f.isRegular()) {
+            let fileName = f.path.fileName
+            match (inputType) {
+                case InputType.ARKTS =>
+                    if (fileName.endsWith(".d.ts") || fileName.endsWith(".d.ets")) {
+                        fileInfos.add(f)
+                    }
+                case InputType.C =>
+                    if (fileName.endsWith(".h")) {
+                        fileInfos.add(f)
+                    }
+            }
+        }
+    }
+}
+
+func analyseType(dms: DataModelStruct, transform: Transform, nameSpace: NameSpace) {
+    let typeArray = getArrayFromJson(dms, "type")
+    for (i in 0..typeArray.size()) {
+        let result = TypeType.deserialize(DataModel.fromJson(typeArray[i]))
+        transform.types.add(result.name)
+        nameSpace.types.add(result)
+    }
+}
+
+func analyseConst(dms: DataModelStruct, transform: Transform, nameSpace: NameSpace) {
+    let constArray = getArrayFromJson(dms, "variable")
+    for (i in 0..constArray.size()) {
+        let result = VariableType.deserialize(DataModel.fromJson(constArray[i]))
+        transform.consts.add(result.name)
+        nameSpace.consts.add(result)
+    }
+}
+
+func analyseEnums(dms: DataModelStruct, transform: Transform, nameSpace: NameSpace) {
+    let enumArray = getArrayFromJson(dms, "enum")
+    for (i in 0..enumArray.size()) {
+        let result = EnumType.deserialize(DataModel.fromJson(enumArray[i]))
+        transform.enums.add(result.name)
+        nameSpace.enums.add(result)
+    }
+}
+
+func analyseClasses(dms: DataModelStruct, transform: Transform, nameSpace: NameSpace) {
+    let classArray = getArrayFromJson(dms, "class")
+    for (i in 0..classArray.size()) {
+        let result = ObjectType.deserialize(DataModel.fromJson(classArray[i]))
+        transform.classes.add(result.name)
+        if (result.parents.size > 0) {
+            transform.baseClasses.add(result.parents[0])
+        }
+        result.nameSpace = nameSpace
+        nameSpace.classes[result.name] = result
+        for (parent in result.parents) {
+            if (!nameSpace.childrenMap.contains(parent)) {
+                nameSpace.childrenMap[parent] = ArrayList<String>()
+            }
+            nameSpace.childrenMap[parent].add(result.name)
+        }
+    }
+}
+
+func analyseInterfaces(dms: DataModelStruct, transform: Transform, nameSpace: NameSpace) {
+    let interArray = getArrayFromJson(dms, "interface")
+    for (i in 0..interArray.size()) {
+        let result = ObjectType.deserialize(DataModel.fromJson(interArray[i]))
+        transform.interfaces.add(result.name)
+        if (result.parents.size > 0) {
+            transform.baseInterfaces.add(result.parents[0])
+        }
+        result.nameSpace = nameSpace
+        nameSpace.interfaces[result.name] = result
+        for (parent in result.parents) {
+            if (!nameSpace.childrenMap.contains(parent)) {
+                nameSpace.childrenMap[parent] = ArrayList<String>()
+            }
+            nameSpace.childrenMap[parent].add(result.name)
+        }
+    }
+}
+
+func analyseGlobalVariables(dms: DataModelStruct, transform: Transform, nameSpace: NameSpace) {
+    let methodArray = getArrayFromJson(dms, "method")
+    for (i in 0..methodArray.size()) {
+        let result = MethodType.deserialize(DataModel.fromJson(methodArray[i]))
+        result.namespace = nameSpace
+        nameSpace.methods.add(result)
+    }
+
+    transform.namespaces.add(nameSpace)
+}
+
+func analyseImport(dms: DataModelStruct, transform: Transform) {
+    let importArray = getArrayFromJson(dms, "import")
+    for (i in 0..importArray.size()) {
+        let dms1 = match (DataModel.fromJson(importArray[i])) {
+            case data: DataModelStruct => data
+            case _ => throw IllegalArgumentException("this data is not DataModelStruct")
+        }
+        let dms2 = match (dms1.get("info")) {
+            case data: DataModelStruct => data
+            case _ => throw IllegalArgumentException("this data is not DataModelStruct")
+        }
+        let result = String.deserialize(dms2.get("name"))
+        transform.importInfo.add(result)
+    }
+}
+
+func dfs(contents: JsonValue, track: ArrayList<String>, transform: Transform): Unit {
+
+    //解析json
+    let dm = DataModel.fromJson(JsonValue.fromStr(contents.toString()))
+    let dms = (dm as DataModelStruct) ?? throw IllegalArgumentException("this data is not DataModelStruct")
+
+    let info = HashMap<String, String>.deserialize(dms.get("info"))
+    if (info.size > 0) {
+        track.add(info["name"]) //track用于记录namespace层级关系
+    }
+
+    let nameSpace: NameSpace = NameSpace()
+    nameSpace.spacePath = String.join(track.toArray(), delimiter: "_")
+
+    //解析type
+    analyseType(dms, transform, nameSpace);
+
+    //解析const
+    analyseConst(dms, transform, nameSpace);
+
+    //解析enums
+    analyseEnums(dms, transform, nameSpace);
+
+    //解析classes
+    analyseClasses(dms, transform, nameSpace);
+
+    //解析interfaces
+    analyseInterfaces(dms, transform, nameSpace);
+
+    //解析全局函数
+    analyseGlobalVariables(dms, transform, nameSpace);
+
+    //解析import
+    analyseImport(dms, transform);
+
+    //解析symbols
+    match (dms.get("symbols")) {
+        case symbols: DataModelStruct => 
+            let tmpMap = HashMap<String, String>.deserialize(symbols)
+            for ((k, v) in tmpMap) {
+                transform.symbols[k] = v
+            }
+        case _ => ()
+    }
+
+    let nameSpaceArray = getArrayFromJson(dms, "module")
+    if (nameSpaceArray.size() == 0) {
+        return
+    }
+    for (i in 0..nameSpaceArray.size()) {
+        dfs(nameSpaceArray[i], track, transform)
+    }
+}

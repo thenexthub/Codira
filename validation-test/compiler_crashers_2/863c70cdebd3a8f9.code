@@ -1,9 +1,0 @@
-// {"signature":"language::Decl::getSemanticAvailableAttr(language::AvailableAttr const*) const"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-{
-  @available(*, renamed : "process0") fn a () {
-    async {
-      a
-    }
-  }
-}

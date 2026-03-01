@@ -1,0 +1,49 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+import std.sync.*
+
+class A {
+    init() {}
+}
+func test1() {
+    var obj1 = AtomicBool(true)
+    var aInt8 : AtomicInt8 = AtomicInt8(10)
+    var aInt16 : AtomicInt16 = AtomicInt16(10)
+    var aInt32 : AtomicInt32 = AtomicInt32(10)
+    var aInt64 : AtomicInt64 = AtomicInt64(10)
+    var aUInt8 : AtomicUInt8 = AtomicUInt8(10)
+    var aUInt16 : AtomicUInt16 = AtomicUInt16(10)
+    var aUInt32: AtomicUInt32 = AtomicUInt32(10)
+    var aUInt64 : AtomicUInt64 = AtomicUInt64(10)
+
+    var error1 = AtomicInt64(10)
+    var test1 = Atom
+    var x = obj1.load() // b：true，类型为 Bool
+
+    var t1 = A()
+    var obj2r = AtomicReference(t1)
+    var x1 = obj2r.load() // x 和 t1 是同一个对象
+    var t2 = A()
+    var y = obj2r.compareAndSwap(t2, A()) // t2 和 t1 不是同一个对象，CAS 失败，y:false
+    y = obj2r.compareAndSwap(t1, t2) // CAS 成功，y：true
+}

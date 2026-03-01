@@ -1,0 +1,255 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package codepm.implement
+
+import std.collection.*
+import std.fs.*
+import std.regex.*
+import codepm.toml.Encoder as EncoderToml
+import codepm.config.*
+
+// Command init implement.
+public func doInit(name: String, path: String, outputType: OutputType, initExperimental: Bool, initWorkspace: Bool, typeFlag: Bool): Bool {
+    var rootPkgName: String = ""
+    var modPath: String = ""
+
+    if (initWorkspace) {
+        if (initExperimental) {
+            eprintln("Error: cannot use flag '--workspace' together with '--experimental'")
+            return false
+        }
+        addIgnoreInfo(name, path, typeFlag)
+        modPath = DIR_CURRENT
+        rootPkgName = WORKSPACE_NAME
+    } else {
+        try {
+            (rootPkgName, modPath) = initModule(name, path).getOrThrow()
+        } catch (_: NoneValueException) {
+            return false
+        }
+    }
+
+    if (initWorkspace) {
+        if (!createWorkspace()) {
+            return false
+        }
+    } else {
+        if (!createModule(rootPkgName, modPath, outputType, initExperimental)) {
+            return false
+        }
+    }
+
+    return true
+}
+
+func addIgnoreInfo(name: String, path: String, typeFlag: Bool): Unit {
+    if (!name.isEmpty()) {
+        eprintln("Warning: initialize a workspace, the '--name' option is ignored")
+    }
+    if (!path.isEmpty()) {
+        eprintln("Warning: initialize a workspace, the '--path' option is ignored")
+    }
+    if (typeFlag) {
+        eprintln("Warning: initialize a workspace, the '--type' option is ignored")
+    }
+}
+
+// Init root package name and module path
+func initModule(name: String, path: String): Option<(String, String)> {
+    if (!name.isEmpty() && !nameCheck(name)) {
+        return Option.None
+    }
+
+    var rootPkgName: String = name
+    var modPath: String = ""
+
+    if (!path.isEmpty()) {
+        if (rootPkgName.isEmpty()) {
+            var clearPath: String = path
+            while (clearPath.endsWith(PATH_SPLIT_CHAR)) {
+                clearPath = clearPath.removeSuffix(PATH_SPLIT_CHAR)
+            }
+            let dirIndex = clearPath.lastIndexOf(PATH_SPLIT_CHAR) ?? -1
+            rootPkgName = clearPath[dirIndex + 1..clearPath.size]
+            if (!nameCheck(rootPkgName)) {
+                eprintln("Error: root package name '${rootPkgName}' set by --path is wrong, " +
+                    "please change --path input or set a valid name by option --name")
+                return Option.None
+            }
+        }
+        try {
+            createDirectory(path)
+            modPath = getCanonicalPath(path)
+        } catch (_: Exception) {
+            eprintln("Error: failed to create directory ${path}")
+            return Option.None
+        }
+    } else if (rootPkgName.isEmpty()) {
+        try {
+            var curDir = getCanonicalPath(DIR_CURRENT).split(PATH_SPLIT_CHAR)
+            rootPkgName = curDir[curDir.size - 1]
+        } catch (_: Exception) {
+            eprintln("Error: failed to read current directory")
+            return Option.None
+        }
+        if (!nameCheck(rootPkgName)) {
+            eprintln("Error: root package name '${rootPkgName}' set by current directory is wrong, " +
+                "please change directory name or set a valid name by option --name")
+            return Option.None
+        }
+    }
+
+    if (modPath.isEmpty()) {
+        modPath = getCanonicalPath(DIR_CURRENT)
+    }
+
+    if (!safeCheck(modPath, "")) {
+        return None
+    }
+
+    return (rootPkgName, modPath)
+}
+
+// Create module files
+func createModule(rootPkgName: String, modPath: String, outputType: OutputType, initExperimental: Bool): Bool {
+    let configFileName: String = getPath(modPath, CONFIG_FILE_NAME)
+    let srcDir: String = getPath(modPath, DIR_SRC)
+
+    if (fileExists(configFileName)) {
+        eprintln("Warning: the '${CONFIG_FILE_NAME}' file already exists")
+    } else if (!initTomlFile(rootPkgName, configFileName, outputType, initExperimental)) {
+        return false
+    }
+
+    if (directoryExists(srcDir)) {
+        return true
+    }
+
+    if (!createDirectory(srcDir)) {
+        return false
+    }
+
+    if (let Exe <- outputType) {
+        let mainString = "package ${rootPkgName}\n\nmain(): Int64 {\n    println(\"hello world\")\n    return 0\n}"
+        if (!createAndWriteFile(Path(srcDir).join("main.code").toString(), mainString)) {
+            return false
+        }
+    }
+
+    return true
+}
+
+// Create the workspace 'codepm.toml' file
+func createWorkspace(): Bool {
+    let configFileName: String = getPath(DIR_CURRENT, CONFIG_FILE_NAME)
+    if (fileExists(configFileName)) {
+        eprintln("Warning: the '${CONFIG_FILE_NAME}' file already exists")
+        return true
+    }
+
+    let tomlInfo = TomlInfo(false, true)
+    var dirList = ArrayList<Path>()
+    for (dirInfo in getDirectoryList(DIR_CURRENT)) {
+        dirList.add(dirInfo.path)
+    }
+    let allDirectories = ArrayList<Path>()
+    do {
+        var temp = ArrayList<Path>()
+        for (dir in dirList) {
+            allDirectories.add(dir)
+            for (dirInfo in getDirectoryList(dir.toString())) {
+                temp.add(dirInfo.path)
+            }
+        }
+        dirList = temp
+    } while (dirList.size != 0)
+
+    for (dir in allDirectories) {
+        let srcPath = dir.join(DIR_SRC).toString()
+        let configPath = dir.join(CONFIG_FILE_NAME).toString()
+        if (!directoryExists(srcPath) || !fileExists(configPath)) {
+            continue
+        }
+        tomlInfo.workspace.members.add(getCanonicalPath(dir.toString()))
+    }
+
+    return createTomlFile(configFileName, tomlInfo)
+}
+
+// Init default codepm.toml file.
+func initTomlFile(rootPkgName: String, configFileName: String, outputType: OutputType, initExperimental: Bool): Bool {
+    let (execRes, outInfo, errInfo) = execWithOutput(COMPILE_TOOL, ArrayList<String>(["-v"]))
+    if (!execRes) {
+        eprintln(errInfo)
+        return false
+    }
+    let codecVersion: String = getCodecVersion(outInfo)
+    let tomlInfo: TomlInfo = TomlInfo(rootPkgName, outputType, codecVersion)
+    tomlInfo.profile.isExperimental = initExperimental
+    return createTomlFile(configFileName, tomlInfo)
+}
+
+func createTomlFile(configFileName: String, tomlInfo: TomlInfo): Bool {
+    try {
+        var f = File(configFileName, Write)
+        let enc = EncoderToml(f)
+        enc.encode(tomlInfo.serialize())
+        f.close()
+    } catch (e: Exception) {
+        eprintln("Error: generate the '${CONFIG_FILE_NAME}' file failed")
+        return false
+    }
+    return modifyFilePermission(configFileName)
+}
+
+// Create and open a file named filePath, then write fileString to fileName.
+public func createAndWriteFile(filePath: String, fileString: String, mode!: OpenMode = Write): Bool {
+    if (directoryExists(filePath)) {
+        eprintln("Error: failed to create '${filePath}', because a directory with the same name already exists")
+        return false
+    }
+
+    var f: File = try {
+        File(filePath, mode)
+    } catch (e: Exception) {
+        let errMsg = "Error: create '${filePath}' failed"
+        match (e) {
+            case fse: FSException => eprintln(errMsg + ". ${fse.message}")
+            case _ => eprintln(errMsg)
+        }
+        return false
+    }
+    f.write(unsafe { fileString.rawData() })
+    f.close()
+
+    return modifyFilePermission(filePath)
+}
+
+// Get cangjie compiler version
+func getCodecVersion(input: String): String {
+    let r = Regex("\\d+\\.\\d+\\.\\d+")
+    match (r.find(input)) {
+        case Some(op) => return (op.matchString())
+        case None => return ""
+    }
+}

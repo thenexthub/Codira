@@ -1,3 +1,0 @@
-module somemod2 {
-	header "somemod2.h"
-}

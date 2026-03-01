@@ -1,5 +1,0 @@
-public protocol P {
-  fn f()
-}
-
-public protocol PDerived: P {}

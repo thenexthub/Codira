@@ -1,4 +1,0 @@
-// {"kind":"complete","signature":"language::ParserStatus toolchain::function_ref<language::ParserStatus ()>::callback_fn<language::Parser::parseParameterClause(language::SourceLoc&, toolchain::SmallVectorImpl<language::Parser::ParsedParameter>&, language::SourceLoc&, language::Parser::DefaultArgumentInfo*, language::Parser::ParameterContextKind)::$_0>(long)"}
-// RUN: not --crash %target-language-ide-test -code-completion --code-completion-token=COMPLETE -source-filename %s
-fn 丏(=1 as
-#^COMPLETE^#

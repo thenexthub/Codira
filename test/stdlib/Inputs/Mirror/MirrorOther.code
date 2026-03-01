@@ -1,7 +1,0 @@
-struct OtherStruct {
-  immutable a: OtherOuter.Inner
-  immutable b: OtherOuterGeneric<Int>.Inner<String>
-}
-
-struct OtherOuter {}
-struct OtherOuterGeneric<T> {}

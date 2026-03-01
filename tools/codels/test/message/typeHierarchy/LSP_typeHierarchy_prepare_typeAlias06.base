@@ -1,0 +1,1 @@
+{"id":26,"jsonrpc":"2.0","result":[{"data":{"isChildOrSuper":false,"isKernel":false},"kind":11,"name":"typeAlias02","range":{"end":{"character":38,"line":9},"start":{"character":0,"line":9}},"selectionRange":{"end":{"character":28,"line":9},"start":{"character":17,"line":9}},"uri":"file:///d%3A/code/TypeHierarchy/test/typeAlias/src/main.code"}]}

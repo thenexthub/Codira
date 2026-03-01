@@ -1,4 +1,0 @@
-module MoveOnlyCxxValueType {
-  header "move-only-cxx-value-type.h"
-  requires cplusplus
-}

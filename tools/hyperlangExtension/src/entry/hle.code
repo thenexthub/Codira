@@ -1,0 +1,328 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package hle.entry
+
+import std.ast.*
+import std.fs.*
+import std.sync.*
+import hle.tool.*
+import std.time.DateTime
+import std.collection.*
+import std.fs.{exists, remove}
+
+let fileHead = """
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+"""
+let mtx = Mutex()
+
+public class A2CODE {
+    var gconfig: GlobalConfig
+    var outSrcDir: String = ""
+
+    public init(gconfigArg: GlobalConfig) {
+        gconfig = gconfigArg
+    }
+
+    public func generateTemplateFile(file: String, content: String): Unit {
+        if (exists(file)) {
+            remove(file)
+        }
+
+        let templateFile = File.create(file)
+        templateFile.write(content.toArray())
+        templateFile.close()
+    }
+
+    public func transfer(): Unit {
+        let file = createDirAndFile()
+
+        // First, collect all required union member counts
+        gconfig.collectRequiredUnionMemberCounts()
+
+        let outToken = Tokens()
+        addHeader(outToken)
+        addGenericUnionEnums(outToken)
+        for (i in 0..gconfig.moduleMeta.namespaces.size) {
+            parseNamespaces(i, outToken)
+        }
+
+        file.write(outToken.toString().toArray())
+
+        mtx.lock()
+        generateTemplateFile("${outSrcDir}/ark_api_call_async.code", createArkAPICallAsync(gconfig))
+        generateTemplateFile("${outSrcDir}/business_exception.code", createBusinessExceptioinKit(gconfig))
+        generateTemplateFile("${outSrcDir}/callback_manager.code", createCallbackManager(gconfig))
+        mtx.unlock()
+    }
+
+    private func createDirAndFile(): File {
+        let fileNoExt = camelToUnderscore(removeTsSuffix(gconfig.module))
+
+        if (gconfig.is3rd && (!gconfig.codeModuleName.isEmpty())) {
+            outSrcDir = "${gconfig.outPath}/"
+        } else {
+            outSrcDir = "${gconfig.outPath}/${fileNoExt}/src"
+        }
+
+        if (!exists(outSrcDir)) {
+            Directory.create(outSrcDir, recursive: true)
+        }
+
+        let outfilePath = "${outSrcDir}/${fileNoExt}.code"
+        if (exists(outfilePath)) {
+            remove(outfilePath)
+        }
+
+        return File.create(outfilePath)
+    }
+
+    private func parseNamespaces(i: Int64, outToken: Tokens): Unit {
+        let cns: NameSpace = gconfig.moduleMeta.namespaces[i] //csc:current namespace
+        if (cns.isEmpty()) {
+            return
+        }
+
+        gconfig.exceptionLog.add("********" + cns.spacePath + "********")
+
+        //types
+        if (cns.types.size > 0) {
+            processTypes(cns, outToken)
+        }
+
+        let objectToken: Tokens = Tokens()
+        let componentNames = HashSet<String>()
+
+        //interfaces
+        if (cns.interfaces.size > 0) {
+            objectToken.append(addComment("**********OBJECT**********"))
+            for ((_, i) in cns.interfaces) {
+                objectToken.append(transInterface(i))
+            }
+        }
+
+        //consts
+        if (cns.consts.size > 0) {
+            let constToken = Tokens()
+            for (c in cns.consts) {
+                constToken.append(transConst(c))
+            }
+            outToken.append(constToken + nl)
+        }
+
+        //enums
+        if (cns.enums.size > 0) {
+            processEnums(cns, outToken)
+        }
+
+        //class
+        if (cns.classes.size > 0) {
+            for ((_, c) in cns.classes) {
+                objectToken.append(transClass(c))
+            }
+        }
+
+        if (objectToken.size > 0) {
+            outToken.append(objectToken + nl)
+        }
+
+        //methods
+        if (cns.methods.size > 0) {
+            processMethods(cns, outToken)
+        }
+    }
+
+    private func processTypes(cns: NameSpace, outToken: Tokens): Unit {
+        let typeToken = Tokens()
+        for (t in cns.types) {
+            typeToken.append(transType(t))
+        }
+        outToken.append(typeToken + nl)
+    }
+
+    private func processEnums(cns: NameSpace, outToken: Tokens): Unit {
+        let enumToken: Tokens = Tokens()
+        enumToken.append(addComment("**********ENUM**********"))
+        for (e in cns.enums) {
+            enumToken.append(transEnum(e))
+        }
+        outToken.append(enumToken + nl)
+    }
+
+    private func processMethods(cns: NameSpace, outToken: Tokens): Unit {
+        let methodToken: Tokens = addComment("**********METHOD**********")
+        for (m in cns.methods) {
+            var params = splitUnionParams(m.parameters)
+            params |> forEach {
+                it =>
+                m.parameters = it
+                methodToken.append(transMethod(m))
+            }
+        }
+        if (hasEventAPI(cns.methods)) {
+            outToken.append(declareCallbackManager())
+        }
+        outToken.append(methodToken + nl)
+    }
+
+    // 几个transXX函数都只考虑了只给arkjson的情况
+    public func transInterface(objectType: ObjectType): Tokens {
+        let to = TransObject(objectType, gconfig)
+        to.arkCategory = "interface"
+        to.codeCategory = "class"
+        return to.generate() + nl
+    }
+
+    public func transClass(objectType: ObjectType): Tokens {
+        let to = TransObject(objectType, gconfig)
+        to.arkCategory = "class"
+        to.codeCategory = "class"
+        return to.generate() + nl
+    }
+
+    public func transMethod(methodType: MethodType): Tokens {
+        let tm = TransMethod(methodType, "", gconfig)
+        return tm.generateFunc() + nl //按照非成员函数生成
+    }
+
+    public func transType(typeType: TypeType): Tokens {
+        let ret = Tokens()
+        ret.append(Token(TokenKind.COMMENT, typeType.comment) + nl)
+        ret.append(typeType.generate() + nl)
+        ret
+    }
+
+    public func transConst(constType: VariableType): Tokens {
+        let commentToken = Token(TokenKind.COMMENT, constType.comment)
+        let token = Token(TokenKind.IDENTIFIER, constType.signature())
+        Tokens(commentToken, nl, token, nl)
+    }
+
+    public func transEnum(enumType: EnumType): Tokens {
+        let te = TransEnum(enumType, gconfig)
+        return te.generate() + nl
+    }
+
+    // 添加输出文件的import信息
+    public func addHeader(out: Tokens): Unit {
+        let headToken = Token(TokenKind.COMMENT, fileHead)
+        let moduleName = gconfig.codeModuleName
+        let packageName = Token(TokenKind.IDENTIFIER, moduleName)
+        out.append(headToken + nl)
+        out.append(quote(package ) + packageName + nl + nl)
+        addImport(gconfig, out)
+    }
+    
+    private func addGenericUnionEnums(out: Tokens): Unit {
+        
+        // Add a newline before union enums
+        out.append(nl)
+        
+        for (items in gconfig.requiredUnionMembers) {
+            let ut = UnionType(items[0], items[1], items[2])
+            out.append(ut.genTokens())
+            out.append(nl) // Extra newline after union enums
+        }
+
+        for (item in gconfig.requiredAnonymousInterfaces) {
+            let to = TransObject(item, gconfig)
+            to.arkCategory = "interface"
+            to.codeCategory = "class"
+            out.append(to.generate())
+            out.append(nl) // Extra newline after union enums
+        }
+    }
+
+    public func addImport(gconfig: GlobalConfig, out: Tokens): Unit {
+        handleThirdParty(gconfig, out)
+        handleDefault(out)
+        handleAsyncPlan(out)
+        handleUseBigInt(gconfig, out)
+        handleHashMap(gconfig, out)
+        handleTypeImport(gconfig, out)
+    }
+
+    public func handleTypeImport(gconfig: GlobalConfig, out: Tokens): Unit {
+
+        if (!gconfig.moduleMeta.importInfo.isEmpty()) {
+            out.append(addComment("**********IMPORT**********"))
+            for (i in gconfig.moduleMeta.importInfo) {
+                out.append(addComment("FIXME: Import details need to be verified and rewritten by user."))
+                out.append(addComment(i) + nl)
+            }
+        }
+    }
+
+    public func handleThirdParty(gconfig: GlobalConfig, out: Tokens): Unit {
+        if (!gconfig.is3rd) {
+            out.append(quote(import tpc.*) + nl)
+        }
+    }
+
+    public func handleDefault(out: Tokens): Unit {
+        out.append(quote(import ohos.ark_interop.*) + nl)
+        out.append(quote(import ohos.ark_interop_helper.*) + nl)
+    }
+
+    public func handleAsyncPlan(out: Tokens): Unit {
+        out.append(quote(import ohos.base.*) + nl)
+    }
+
+
+    public func handleUseBigInt(gconfig: GlobalConfig, out: Tokens): Unit {
+        if (gconfig.moduleMeta.useBigInt) {
+            out.append(quote(import std.math.numeric.*) + nl)
+        }
+    }
+
+    public func handleUseContext(gconfig: GlobalConfig, out: Tokens): Unit {
+        if (gconfig.moduleMeta.useContext) {
+            out.append(quote(import tpc.AbilityKit.common) + nl)
+        }
+    }
+
+    public func handleHashMap(gconfig: GlobalConfig, out: Tokens): Unit {
+        if (gconfig.moduleMeta.useHashMap) {
+            out.append(quote(import std.collection.{HashMap}) + nl)
+        }
+    }
+}

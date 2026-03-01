@@ -1,5 +1,0 @@
-// RUN: %target-typecheck-verify-language -disable-objc-interop
-
-
-var x: Any = 1
-var y = x as AnyObject

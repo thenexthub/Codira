@@ -1,6 +1,0 @@
-// language-interface-format-version: 1.0
-// language-module-flags: -static -module-name static
-
-import Codira
-
-public fn f() {}

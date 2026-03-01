@@ -1,5 +1,0 @@
-// {"kind":"complete","signature":"language::PersistentParserState::restoreIDEInspectionDelayedDeclState(language::IDEInspectionDelayedDeclState const&)"}
-// RUN: not --crash %target-language-ide-test -code-completion --code-completion-token=COMPLETE -source-filename %s
-guard {
-#if #^COMPLETE^#
-0

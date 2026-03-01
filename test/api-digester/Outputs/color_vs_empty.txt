@@ -1,1 +1,0 @@
-Enum Color is a new API without '@available'

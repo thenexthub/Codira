@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "typescript": "npm:typescript@4.9.5",
+    "https-proxy-agent": "7.0.6" 
+  },
+  "type":"",
+    "scripts": {
+    "postinstall": "node ./download-binary.js"
+  }
+}

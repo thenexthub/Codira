@@ -1,1 +1,0 @@
-void secret(void);

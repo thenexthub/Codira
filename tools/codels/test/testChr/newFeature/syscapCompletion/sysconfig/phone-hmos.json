@@ -1,0 +1,9 @@
+{
+  "SysCaps": [
+    "SystemCapability.AI.MindSporeLite",
+    "SystemCapability.AI.NeuralNetworkRuntime",
+    "SystemCapability.AtomicserviceComponent.UIComponent",
+	  "SystemCapability.AtomicserviceComponent.atomicservice",
+    "SystemCapability.AI.InsightIntent"
+  ]
+}

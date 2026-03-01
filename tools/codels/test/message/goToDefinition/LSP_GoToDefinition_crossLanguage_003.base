@@ -1,0 +1,1 @@
+{"id":3,"jsonrpc":"2.0","result":{"crossMessage":[{"functionName":"int8","functionParameters":["int8_t","int8_t *"],"retType":"int8_t","targetLanguage":"C"}],"range":{"end":{"character":17,"line":13},"start":{"character":13,"line":13}},"uri":"file:///d%3A/code/cangjieLSP/manifest-lsp/lsp/test/testChr/newFeature/crossLanguage/src/currentDirectory/a.code"}}

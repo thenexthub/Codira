@@ -1,2 +1,0 @@
-import CodiraModuleA
-public fn funcCodiraB() { funcCodiraA() }

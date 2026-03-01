@@ -1,4 +1,0 @@
-module "MyError" {
-  header "MyError.h"
-  export *
-}

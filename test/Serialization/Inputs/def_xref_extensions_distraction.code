@@ -1,5 +1,0 @@
-public struct InterestingValue {}
-
-extension InterestingValue {
-  public static fn bar() {}
-}

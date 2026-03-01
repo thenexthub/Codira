@@ -1,0 +1,234 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package codepm.toml
+
+import std.convert.*
+import std.collection.*
+
+struct Position <: ToString {
+    public var line: Int64 = 0 // Line number, starting at 1.
+    public var start: Int64 = 0 // Start of error, as byte offset starting at 0.
+    public var len: Int64 = 0 // Lenght in bytes.
+
+    public init(line: Int64, start: Int64, len: Int64) {
+        this.line = line
+        this.start = start
+        this.len = len
+    }
+
+    public func toString(): String {
+        return "at line ${line}; start ${start}; length ${len}"
+    }
+}
+
+class Lexer {
+    static let TOML_EOF: Rune = Rune(0)
+
+    let input: Array<Byte>
+    public var start: Int64 = 0
+    public var pos: Int64 = 0
+    var line = 1
+
+    var state: LEXSTATE = LEXSTATE.LEXTOP
+    let items = ArrayList<Item>()
+    let prevWidths = Array<Int64>(4, repeat: 0)
+    var nprev = 0
+    var atEOF = false
+    let stack = ArrayList<LEXSTATE>(10)
+
+    public init(input: Array<Byte>) {
+        this.input = input
+    }
+
+    func nextItem(): Item {
+        while (true) {
+            if (items.size > 0) {
+                return items.remove(at: 0)
+            }
+            state = LexStateMachine.process(this, state)
+        }
+        throw Exception("BUG: unreachable")
+    }
+
+    func push(state: LEXSTATE) {
+        stack.add(state)
+    }
+
+    func pop(): LEXSTATE {
+        if (stack.size == 0) {
+            throw Exception("BUG in lexer: no states to pop")
+        }
+        return stack.remove(at: stack.size - 1)
+    }
+
+    func current(): String {
+        if (start < input.size) {
+            return String.fromUtf8(input[start..pos])
+        }
+        return ""
+    }
+
+    func getPos(): Position {
+        var len = pos - start
+        if (len <= 0) {
+            len = 1
+        }
+        return Position(line, start, len)
+    }
+
+    func emit(typ: ITEMTYPE) {
+        if (start > pos) {
+            error(LexException(input[pos].toString()))
+            return
+        }
+        let item = Item(typ, getPos(), current(), None)
+        items.add(item)
+        start = pos
+    }
+
+    func next(): Rune {
+        if (atEOF) {
+            throw LexException("BUG in lexer: next called after EOF")
+        }
+        if (pos >= input.size) {
+            atEOF = true
+            return Lexer.TOML_EOF
+        }
+        if (input[pos] == b'\n') {
+            line++
+        }
+        prevWidths[3] = prevWidths[2]
+        prevWidths[2] = prevWidths[1]
+        prevWidths[1] = prevWidths[0]
+        if (nprev < 4) {
+            nprev++
+        }
+
+        let (c, w) = Rune.fromUtf8(input[pos..], 0)
+
+        if (isControl(c) || (c == r'\r' && (this.input.size - 1 == this.pos || this.input[this.pos + 1] != b'\n'))) {
+            this.errorControlChar(c)
+            return r'\u{FFFD}'
+        }
+
+        prevWidths[0] = w
+        pos += w
+        return c
+    }
+
+    func ignore() {
+        start = pos
+    }
+
+    func backup() {
+        if (atEOF) {
+            atEOF = false
+            return
+        }
+        if (nprev < 1) {
+            throw LexException("BUG in lexer: backed up too far")
+        }
+        let w = prevWidths[0]
+        prevWidths[0] = prevWidths[1]
+        prevWidths[1] = prevWidths[2]
+        prevWidths[2] = prevWidths[3]
+        nprev--
+        pos -= w
+        if (pos < input.size && input[pos] == b'\n') {
+            line--
+        }
+    }
+
+    func accept(valid: Rune) {
+        if (next() == valid) {
+            return true
+        }
+        backup()
+        return false
+    }
+
+    func peek(): Rune {
+        let c = next()
+        backup()
+        return c
+    }
+
+    func skip(pred: (Rune) -> Bool) {
+        while (true) {
+            let c = next()
+            if (pred(c)) {
+                continue
+            }
+            backup()
+            ignore()
+            return
+        }
+    }
+
+    func error(e: LexException) {
+        if (atEOF) {
+            return errorPrevLine(e)
+        }
+        let item = Item(ITEMTYPE.ERROR, getPos(), "", e)
+        items.add(item)
+        return LEXNIL
+    }
+
+    func errorPrevLine(e: LexException): LEXSTATE {
+        var pos = getPos()
+        pos.line--
+        pos.len = 1
+        pos.start = this.pos - 1
+        let item = Item(ITEMTYPE.ERROR, pos, "", e)
+        items.add(item)
+        return LEXNIL
+    }
+
+    func errorPos(start: Int64, length: Int64, e: LexException): LEXSTATE {
+        var pos = getPos()
+        pos.start = start
+        pos.len = length
+        let item = Item(ITEMTYPE.ERROR, pos, "", e)
+        items.add(item)
+        return LEXNIL
+    }
+
+    func errorf(errStr: String): LEXSTATE {
+        let item: Item
+        if (atEOF) {
+            var pos = getPos()
+            pos.line--
+            pos.len = 1
+            pos.start = this.pos - 1
+            item = Item(ITEMTYPE.ERROR, pos, "", LexException(errStr))
+        } else {
+            item = Item(ITEMTYPE.ERROR, getPos(), "", LexException(errStr))
+        }
+        items.add(item)
+        return LEXNIL
+    }
+
+    func errorControlChar(c: Rune): LEXSTATE {
+        return this.errorPos(this.pos - 1, 1, LexException("TOML files cannot contain control characters: '0x%${c}'"))
+    }
+}

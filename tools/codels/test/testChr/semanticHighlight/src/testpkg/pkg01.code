@@ -1,0 +1,78 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package testpkg
+
+public let one : int32 = 1
+public let two : int32 = 2
+
+public class pkg {
+    var aaa:int32 = 1
+    protected var one:int32 = 1
+    private var a:int32 = 0
+    static var aa:int32 = 0
+    init(a: int32) {
+        this.a = a
+    }
+    public func add(a: int32, b: int32){
+        return a + b + this.one
+    }
+    open func add2(a: int32, b: int32) {
+        return a + b
+    }
+    static func add3(a: int32, b: int32) {
+        return a + b
+    }
+}
+
+public struct Test{
+    let width: int32 = 2
+    let length: int32 = 5
+    init(a:int32, b:int32) {
+        width = a
+        length = b   
+    }
+
+    func area(): int32 {
+        return width * length
+    }
+}
+
+public enum TimeUnit {
+    Year | Month | Day | Hour
+}
+
+public func testpkgFunc(): int32 {
+    return 1
+}
+
+public interface iPkg {
+    let aclass: int32 = 1
+    func foo() : int32
+    default func getNum():int32 {
+        return 1
+    }
+    
+    static func getSum():int32 {
+        return 1
+    }
+}

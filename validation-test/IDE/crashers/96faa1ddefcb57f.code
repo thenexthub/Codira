@@ -1,4 +1,0 @@
-// {"kind":"complete","signature":"language::Demangle::ASTBuilder::findTypeDecl(language::DeclContext*, language::Identifier, language::Identifier, language::Demangle::Node::Kind)"}
-// Actual signature: openTypeParameter
-// RUN: not --crash %target-language-ide-test -code-completion --code-completion-token=COMPLETE -source-filename %s
-struct a<b:RangeReplaceableCollection where b ={ c: b.Element? { #^COMPLETE^#

@@ -1,9 +1,0 @@
-// RUN: %target-language-emit-silgen -verify %s
-
-protocol P {
-  mutating fn foo(_: (Self) -> Void)
-}
-
-fn foo(x: inout P) {
-  x.foo { y in return }
-}

@@ -1,0 +1,26 @@
+{
+  "requires": 
+  {
+    "pro1":{
+        "organization": "i",
+        "version": "1.0.1",
+        "path": "pro1"
+    }
+  },
+  "command_option": "",
+  "package_requires": {
+    "package_option" : {
+      "pro1/pro1_xoo" : "./build/pro1/xoo.codeo",
+      "pro1/pro1_yoo" : "./build/pro1/yoo.codeo",
+      "pro2/pro2_zoo" : "./build/pro2/zoo.codeo"
+    }
+  },
+  "codec_version": "0.23.1",
+  "description": "nothing here",
+  "version": "1.0.0",
+  "organization": "cangjie",
+  "foreign_requires": 
+  {},
+  "name": "test",
+  "output_type": "executable"
+}

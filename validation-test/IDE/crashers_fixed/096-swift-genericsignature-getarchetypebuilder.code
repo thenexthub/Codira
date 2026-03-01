@@ -1,2 +1,0 @@
-// RUN: %target-language-ide-test -code-completion -code-completion-token=A -source-filename=%s
-fn b<T{#^A^#immutable t:T

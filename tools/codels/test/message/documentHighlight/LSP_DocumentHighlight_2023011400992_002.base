@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","id":11,"method":"textDocument/definition","params":{"textDocument":{"uri":"file:///home/code_project/code/def_0117/test/testChr/test/2023011400992/src/a.code"},"position":{"line":8,"character":23}}}

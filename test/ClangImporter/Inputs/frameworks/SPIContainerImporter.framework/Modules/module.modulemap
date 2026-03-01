@@ -1,7 +1,0 @@
-framework module SPIContainerImporter {
-  umbrella header "SPIContainerImporter.h"
-  export *
-  module * {
-    export *
-  }
-}

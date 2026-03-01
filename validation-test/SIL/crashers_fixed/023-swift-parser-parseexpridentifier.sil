@@ -1,2 +1,0 @@
-// RUN: not %target-sil-opt %s
-enum n{fn p<p{p<@convention()>

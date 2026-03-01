@@ -1,0 +1,1 @@
+{"id":11,"jsonrpc":"2.0","result":[{"deprecated":false,"detail":"","documentation":"","filterText":"hehe","insertText":"hehe","insertTextFormat":1,"kind":2,"label":"hehe","sortText":""},{"deprecated":false,"detail":"(function) public func hehe(): Unit","documentation":"","filterText":"hehe","insertText":"hehe()","insertTextFormat":1,"kind":2,"label":"hehe()","sortText":""}]}

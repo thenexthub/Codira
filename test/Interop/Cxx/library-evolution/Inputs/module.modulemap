@@ -1,4 +1,0 @@
-module MyCLibrary {
-  header "my_c_header.h"
-  export *
-}

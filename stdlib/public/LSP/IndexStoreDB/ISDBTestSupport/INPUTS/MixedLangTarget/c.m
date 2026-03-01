@@ -1,8 +1,0 @@
-#import "c.h"
-//#import "main-Codira.h"
-
-@implementation /*C:def*/C
--(void)/*C.method:def*/method {
-//  /*foo:call:objc*/foo(2);
-}
-@end

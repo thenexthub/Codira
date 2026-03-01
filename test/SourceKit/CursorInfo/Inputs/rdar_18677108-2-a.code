@@ -1,6 +1,0 @@
-class CameraController
-{
-  private fn checkDeviceAuthorizationStatus()
-  {
-    AVCaptureDevice.requestAccessForMediaType(AVMediaTypeVideo, completionHandler: { (granted) -> Void in
-}

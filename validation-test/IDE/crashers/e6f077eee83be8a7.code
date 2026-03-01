@@ -1,4 +1,0 @@
-// {"kind":"complete","signature":"language::constraints::ConstraintSystem::getType(language::ASTNode) const"}
-// RUN: not --crash %target-language-ide-test -code-completion --code-completion-token=COMPLETE -code-completion-diagnostics -source-filename %s
-if case (
-#a,#^COMPLETE^# is b

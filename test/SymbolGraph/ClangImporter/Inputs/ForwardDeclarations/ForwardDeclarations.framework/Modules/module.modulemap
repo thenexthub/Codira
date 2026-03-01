@@ -1,3 +1,0 @@
-framework module ForwardDeclarations {
-    header "ForwardDeclaredInterfaceFoo.h"
-}

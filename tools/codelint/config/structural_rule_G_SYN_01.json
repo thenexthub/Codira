@@ -1,0 +1,27 @@
+{
+  "SyntaxKeyword": [
+    "Import",
+    "Let",
+    "Spawn",
+    "Synchronized",
+    "Main",
+    "MacroQuote",
+    "Foreign",
+    "While",
+    "Extend",
+    "Type",
+    "Operator",
+    "GlobalVariable",
+    "Enum",
+    "Class",
+    "Interface",
+    "Struct",
+    "Generic",
+    "When",
+    "Match",
+    "TryCatch",
+    "HigherOrderFunc",
+    "PrimitiveType",
+    "ContainerType"
+  ]
+}

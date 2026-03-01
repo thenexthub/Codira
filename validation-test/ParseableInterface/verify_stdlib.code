@@ -1,7 +1,0 @@
-// Note that this test should still "pass" when Codira.languageinterface has not
-// been generated.
-
-// RUN: %empty-directory(%t)
-// RUN: not ls %platform-module-dir/Codira.languagemodule/%target-cpu.languageinterface || %target-language-frontend -build-module-from-parseable-interface %platform-module-dir/Codira.languagemodule/%target-cpu.languageinterface -parse-stdlib -o %t/Codira.languagemodule
-
-// REQUIRES: nonexecutable_test

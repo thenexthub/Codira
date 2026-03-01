@@ -1,9 +1,0 @@
-// RUN: %target-language-frontend -typecheck -primary-file %S/../Inputs/empty.code %s -verify
-
-struct A: Collection {
-  struct Index: Comparable {}
-}
-
-extension A.Index {
-  // Force validate "A".
-}

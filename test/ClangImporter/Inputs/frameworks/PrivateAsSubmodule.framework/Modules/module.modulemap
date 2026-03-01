@@ -1,7 +1,0 @@
-framework module PrivateAsSubmodule {
-  umbrella header "PrivateAsSubmodule.h"
-  export *
-  module * {
-    export *
-  }
-}

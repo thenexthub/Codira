@@ -1,8 +1,0 @@
-// RUN: %target-language-ide-test -code-completion -code-completion-token=A -source-filename %s
-
-fn test() {
-  immutable cl = { arg in
-    immutable name = arg as String
-    #^A^#
-  }
-}

@@ -1,5 +1,0 @@
-// {"signature":"language::TypeBase::getOptionalObjectType()"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-enum a { b } {
-immutable:
-  String->a = a.b

@@ -1,4 +1,0 @@
-// {"signature":"language::findSyntacticErrorForConsume(language::ModuleDecl*, language::SourceLoc, language::Expr*, toolchain::function_ref<language::Type (language::Expr*)>)"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-fn a(consume : String) {
-  consume consume consume

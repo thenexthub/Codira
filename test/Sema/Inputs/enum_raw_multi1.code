@@ -1,3 +1,0 @@
-fn foo() {
-    immutable _: GraphicType? = GraphicType(rawValue: 0)
-}

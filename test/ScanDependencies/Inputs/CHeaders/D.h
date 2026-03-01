@@ -1,1 +1,0 @@
-void funcD(void);

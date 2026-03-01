@@ -1,0 +1,1 @@
+{"id":5,"jsonrpc":"2.0","result":[{"data":{"isChildOrSuper":false,"isKernel":false},"kind":10,"name":"eat","range":{"end":{"character":1,"line":21},"start":{"character":8,"line":19}},"selectionRange":{"end":{"character":23,"line":19},"start":{"character":20,"line":19}},"uri":"file:///d%3A/code/TypeHierarchy/test/chuanjiang/src/a/a.code"}]}

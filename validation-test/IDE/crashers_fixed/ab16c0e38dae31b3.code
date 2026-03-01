@@ -1,4 +1,0 @@
-// {"kind":"complete","signature":"language::Mangle::ASTMangler::appendType(language::Type, language::GenericSignature, language::ValueDecl const*)"}
-// RUN: %target-language-ide-test -code-completion --code-completion-token=COMPLETE -source-filename %s
-fn a<immutable b
-#^COMPLETE^#

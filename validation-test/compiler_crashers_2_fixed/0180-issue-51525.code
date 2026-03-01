@@ -1,8 +1,0 @@
-// RUN: not %target-language-frontend -typecheck %s
-
-// https://github.com/apple/language/issues/51525
-
-class Graph<V>: Collection {
-  typealias Iterator = AnyIterator<V>
-  typealias Index = Int
-}

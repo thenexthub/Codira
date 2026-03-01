@@ -1,5 +1,0 @@
-import NamedLazyMembers
-
-extension SimpleDoer {
-  fn simplyDoVeryImportantWork(speed: Int, motivation: Int) { }
-}

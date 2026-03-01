@@ -1,0 +1,1 @@
+{"id":10,"jsonrpc":"2.0","result":{"range":{"end":{"character":10,"line":7},"start":{"character":4,"line":7}},"uri":"file:///d%3A/develop/B102/cangjie_language_server/test/testChr/normalTest/Primary/src/p.code"}}

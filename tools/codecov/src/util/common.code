@@ -1,0 +1,310 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package codecov.util
+
+import std.fs.*
+import std.collection.*
+import std.regex.*
+import std.unicode.UnicodeStringExtension
+import std.process.*
+import std.fs.exists as fs_exists
+
+public func getCodeVersion() {
+    return "Codira Coverage: 1.1.0-alpha.70"
+}
+
+public func getCodecovHelp(): String {
+    let helpStr = """
+Usage: codecov [options]
+
+A tool used to summarize the coverage in html reports.
+
+Options:
+  -v, --version                 Print the version number, then exit.
+  -h, --help                    Show this help message, then exit.
+  -r ROOT, --root=ROOT          The root directories of your source files, defaults to '.', the current directory.
+                                File names are reported relative to this root.
+  -o OUTPUT, --output=OUTPUT    The output directories of html reports, defaults to '.', the current directory.
+  -b, --branches                Report the branch coverage. (It is an experimental feature and may generate imprecise branch coverage.)
+  --verbose                     Print some detail messages, including parsing data for the gcov file.
+  --html-details                Generate html reports for each source file.
+  -x, --xml                     Generate a xml report.
+  -j, --json                    Generate a json report.
+  -k, --keep                    Keep gcov files after processing.
+  -s SOURCE, --source=SOURCE    The directories of cangjie source files.
+  -e EXCLUDE, --exclude=EXCLUDE
+                                The cangjie source files starts with EXCLUDE will not be showed in coverage reports.
+  -i INCLUDE, --include=INCLUDE
+                                The cangjie source files starts with INCLUDE will be showed in coverage reports.
+"""
+
+    return helpStr
+}
+
+public func getSimpleUsage(): String {
+    let usage = """
+Usage: codecov [options]
+
+Try 'codecov -h| --help' for more information.
+"""
+    return usage
+}
+
+public func segmentFileNameAndPath(path: String): (String, String) {
+    var curPath = toCanonical(path)
+    var temp: Array<String> = curPath.split(getSep())
+    var fileName: String = temp[temp.size - 1]
+    return (curPath[0..curPath.size - fileName.size], fileName)
+}
+
+// Delete files with a specified suffix in a directory, recursive and non-recursive modes can be selected
+public func deleteFileWithSuffix(path: String, suffix: String, recursive: Bool): Unit {
+    for (subFileInfo in getFileList(path)) {
+        var filePathStr = subFileInfo.path.toString()
+        if (filePathStr.endsWith(suffix)) {
+            remove(filePathStr)
+        }
+    }
+
+    if (recursive) {
+        for (subDirInfo in getDirectoryList(path)) {
+            deleteFileWithSuffix(subDirInfo.path.toString(), suffix, recursive)
+        }
+    }
+
+    return
+}
+
+public func getFileLines(fpath: String): Array<String> {
+    var fileLines: Array<String> = Array<String>()
+    if (!fileExists(fpath)) {
+        println("${fpath} does not exist, get file lines failed.")
+        return fileLines
+    }
+    var bufStr: String = ""
+    try {
+        bufStr = String.fromUtf8(File.readFrom(fpath))
+    } catch (e: Exception) {
+        println("open file: ${fpath} failed, exception: ${e.toString()}")
+        return fileLines
+    }
+    fileLines = bufStr.split("\n")
+    var fileSize = fileLines.size
+    if (fileSize == 1) {
+        return fileLines
+    } else if (fileLines[fileSize - 1].trimAscii().size == 0) {
+        return fileLines[..(fileSize - 1)]
+    } else {
+        return fileLines[..fileSize]
+    }
+}
+
+public func clearFiles(files: Array<String>): Bool {
+    var ret = true
+    for (file in files) {
+        try {
+            remove(file)
+        } catch (e: Exception) {
+            ret = false
+            eprintln("delete file: ${file} failed, exception: ${e.toString()}")
+        }
+    }
+
+    return ret
+}
+
+public func replaceSpecialChar(inputStr: String): String {
+    // '/' is a normal char for path, so change it into _
+    var newStr = inputStr.replace("/", "_")
+    newStr = newStr.replace(#"\"#, "_")
+    return Regex("[^0-9a-zA-Z_.=]", Unicode).matcher(newStr).replaceAll("=")
+}
+
+public func cmp(str1: String, str2: String): Ordering {
+    return str1.compare(str2)
+}
+
+public func cmpInt64(num1: Int64, num2: Int64): Ordering {
+    return num1.compare(num2)
+}
+
+public func modifyEnv(key: String, value: String, separator!: String = ":") {
+    var envValue = Process.current.getEnv(key) ?? ""
+
+    if (envValue.count(value) > 0) {
+        return
+    }
+
+    if (envValue.size != 0) {
+        Process.current.setEnv(key, value + separator + envValue)
+    } else {
+        Process.current.setEnv(key, value)
+    }
+}
+
+public func getAllFilesWithSuffix(dirInfo: String, suffix: String, recursive: Bool): ArrayList<String> {
+    var files: ArrayList<String> = ArrayList<String>()
+
+    for (subFileInfo in getFileList(dirInfo)) {
+        var filePathStr = subFileInfo.path.toString()
+        if (filePathStr.endsWith(suffix)) {
+            files.add(filePathStr)
+        }
+    }
+
+    if (recursive) {
+        for (subDirInfo in getDirectoryList(dirInfo)) {
+            files.add(all: getAllFilesWithSuffix(subDirInfo.path.toString(), suffix, recursive))
+        }
+    }
+
+    return files
+}
+
+/*
+ * Get a relative path, for example:
+ * path = "/usr1/test/src", start="/usr1/test", then relpath = "src"
+ * path = "./src", start="./", 则relpath = "src"
+ * path = "/usr1/test", start = "/usr1/test/src", then relpath = ".."
+ * path = "./", start = "./src", 则relpath = ".."
+ */
+public func getRelPath(path: String, start: String): String {
+    if (!exists(path)) {
+        throw Exception("${path} or ${start} may not exist")
+    }
+
+    var absPath = toCanonical(path)
+    var absStart = toCanonical(start)
+
+    var pathArr = absPath.removePrefix("/").split(getSep())
+    var startArr = absStart.removePrefix("/").split(getSep())
+
+    var pathSize = pathArr.size
+    var startSize = startArr.size
+
+    var pos = 0
+    for (slice in pathArr) {
+        if ((pos > startSize - 1) || (slice != startArr[pos])) {
+            break
+        }
+
+        pos += 1
+    }
+
+    var rel: ArrayList<String> = ArrayList<String>()
+    for (_ in 1..=(startSize - pos)) {
+        rel.add("..")
+    }
+
+    if (pos < pathSize) {
+        rel.add(all: pathArr[pos..=(pathSize - 1)])
+    }
+
+    return String.join(rel.toArray(), delimiter: getSep())
+}
+
+public func getDuplicateElements(inputA: ArrayList<String>, inputB: ArrayList<String>): ArrayList<String> {
+    var duplicateElements: ArrayList<String> = ArrayList<String>()
+    for (element in inputA) {
+        if (inputB.contains(element)) {
+            duplicateElements.add(element)
+        }
+    }
+
+    return duplicateElements
+}
+
+@When[os == "Linux" || os == "macOS"]
+public func getSep(): String {
+    return "/"
+}
+
+@When[os == "Windows"]
+public func getSep(): String {
+    return #"\"#
+}
+
+public func toCanonical(path: String): String {
+    return canonicalize(Path(path)).toString()
+}
+
+@When[os == "Linux" || os == "macOS"]
+public func convertPath(path: String): String {
+    return path
+}
+
+@When[os == "Windows"]
+public func convertPath(path: String): String {
+    // There is a bug in the standard library that cannot be fixed in the short term. cannot recognize the path ".\"
+    if (path == "./") {
+        return "."
+    }
+
+    return path.replace("/", "\\")
+}
+
+func fileExists(path: String): Bool {
+    if (!exists(path)) {
+        return false
+    } else if (FileInfo(path).isRegular()) {
+        return true
+    } else if (FileInfo(path).isSymbolicLink()) {
+        return FileInfo(canonicalize(path)).isRegular()
+    }
+    return false
+}
+
+public func directoryExists(path: String): Bool {
+    if (!exists(path)) {
+        return false
+    } else if (FileInfo(path).isDirectory()) {
+        return true
+    } else if (FileInfo(path).isSymbolicLink()) {
+        return FileInfo(canonicalize(path)).isDirectory()
+    }
+    return false
+}
+
+func getFileList(path: String): ArrayList<FileInfo> {
+    let files = ArrayList<FileInfo>()
+    Directory.walk(path) {
+        info =>
+            if (info.isRegular()) {
+                files.add(info)
+            }
+            true
+    }
+    return files
+}
+
+func getDirectoryList(path: String): ArrayList<FileInfo> {
+    let files = ArrayList<FileInfo>()
+    Directory.walk(path) {
+        info =>
+            if (info.isDirectory()) {
+                files.add(info)
+            }
+            true
+    }
+    return files
+}

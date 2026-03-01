@@ -1,0 +1,31 @@
+{
+	"codec_version": "0.34.2",
+	"organization": "taibai",
+	"name": "logging",
+	"description": "nothing here",
+	"version": "0.0.1",
+	"requires": {
+		"logging": {
+			"organization": "cangjie",
+			"version": "0.0.1",
+			"path": "./logging"
+		},
+        "code":{
+            "organization": "cangjie",
+			"version": "1.0.0",
+			"path": "./code"
+        }
+	},
+	"package_requires":{
+		"path_option": [],
+		"package_option": {}
+	  },
+	"foreign_requires": {},
+	"output_type": "executable",
+	"command_option": "--profile-compile-time -Woff unused",
+	"condition_option": {},
+	"link_option": "",
+	"cross_compile_configuration": {},
+	"build_dir": "build",
+	"package_configuration": {}
+}

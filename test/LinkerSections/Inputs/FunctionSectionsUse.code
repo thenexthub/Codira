@@ -1,3 +1,0 @@
-import FunctionSections
-
-func1()

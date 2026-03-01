@@ -1,5 +1,0 @@
-// {"kind":"complete","signature":"checkLabeledStmtShadowing(language::ASTContext&, language::SourceFile*, language::LabeledStmt*)"}
-// RUN: not --crash %target-language-ide-test -code-completion --code-completion-token=COMPLETE -code-completion-diagnostics -source-filename %s
-immutable:{ immutable a=
-#^COMPLETE^#{
-b:{

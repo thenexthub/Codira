@@ -1,3 +1,0 @@
-// {"signature":"language::PrintingDiagnosticConsumer::printDiagnostic(language::SourceManager&, language::DiagnosticInfo const&)"}
-// RUN: not --crash %target-language-frontend -typecheck -diagnostic-style=toolchain %s
-''

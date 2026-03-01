@@ -1,3 +1,0 @@
-// RUN: not %target-language-frontend %s -typecheck
-
-  { x in x

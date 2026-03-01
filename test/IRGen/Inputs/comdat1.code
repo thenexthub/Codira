@@ -1,5 +1,0 @@
-private final class C {}
-public fn f() {
-  var cs: [C] = []
-  cs.append(C())
-}

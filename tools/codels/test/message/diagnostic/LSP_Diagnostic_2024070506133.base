@@ -1,0 +1,1 @@
+{"id":null,"jsonrpc":"2.0","method":"textDocument/extendPublishDiagnostics","params":{"diagnostics":[{"category":503,"code":503,"message":"the access level of child package can't be higher than that of parent package","range":{"end":{"character":26,"line":13},"start":{"character":0,"line":13}},"severity":1,"source":"Codira"}],"uri":"file:///home/zzk/code/demo/src/a/b/b.code"}}

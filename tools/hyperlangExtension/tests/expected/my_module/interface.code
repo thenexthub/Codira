@@ -1,0 +1,804 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package my_module
+
+import ohos.ark_interop.*
+import ohos.ark_interop_helper.*
+import ohos.base.*
+import std.collection.{ HashMap }
+
+
+/*interface AutoGenType0Ininterface {
+    city: string;
+    zipCode: string;
+    }*/
+
+public open class AutoGenType0Ininterface {
+    
+    protected AutoGenType0Ininterface(public var city: String,
+    public var zipCode: String) { }
+    
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        let obj = context.object()
+        obj["city"] = city.toJSValue(context)
+        obj["zipCode"] = zipCode.toJSValue(context)
+        obj.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): AutoGenType0Ininterface {
+        let obj = input.asObject()
+        AutoGenType0Ininterface(
+        String.fromJSValue(context, obj["city"]),
+        String.fromJSValue(context, obj["zipCode"])
+        )
+    }
+    
+}
+/***********OBJECT***********/
+// 函数重载
+/*interface Calculator {
+    add(x: number, y: number): number
+    add(x: string, y: string): String
+    }*/
+
+public open class Calculator {
+    
+    protected Calculator(var arkts_object: JSObject) { }
+    
+    
+    /**
+	 * @brief add(x: number, y: number): number
+	 */
+    public func add(x: Float64, y: Float64): Float64 {
+        jsObjApiCall < Float64 >( arkts_object, "add", { ctx =>[x.toJSValue(ctx), y.toJSValue(ctx)] })
+    }
+    /**
+	 * @brief add(x: string, y: string): String
+	 */
+    public func add(x: String, y: String): String {
+        jsObjApiCall < String >( arkts_object, "add", { ctx =>[x.toJSValue(ctx), y.toJSValue(ctx)] })
+    }
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        arkts_object.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): Calculator {
+        Calculator(input.asObject())
+    }
+}
+// 函数类型
+/*interface Callback1 {
+    (data: string): void
+    }*/
+
+public open class Callback1 {
+    
+    protected Callback1(var arkts_object: JSObject) { }
+    
+    
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        arkts_object.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): Callback1 {
+        Callback1(input.asObject())
+    }
+}
+
+/*interface ClockConstructor {
+    }*/
+
+public open class ClockConstructor {
+    
+    protected ClockConstructor() { }
+    
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        let obj = context.object()
+        
+        obj.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): ClockConstructor {
+        let obj = input.asObject()
+        ClockConstructor(
+        
+        )
+    }
+    
+}
+// 动态属性
+/*interface Config {
+    (key: string): string | number
+    }*/
+
+public open class Config {
+    
+    protected Config(var arkts_object: JSObject) { }
+    
+    
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        arkts_object.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): Config {
+        Config(input.asObject())
+    }
+}
+// 索引签名
+/*interface Dictionary {
+    (key: string): string
+    }*/
+
+public open class Dictionary {
+    
+    protected Dictionary(var arkts_object: JSObject) { }
+    
+    
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        arkts_object.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): Dictionary {
+        Dictionary(input.asObject())
+    }
+}
+
+/*interface ExportKeyword IWBAPI {
+    authorize(context: common.UIAbilityContext, listener: WbASListener): void
+    authorizeClient(context: Context, listener: WbASListener): void
+    }*/
+
+public open class IWBAPI {
+    
+    protected IWBAPI(var arkts_object: JSObject) { }
+    
+    
+    /**
+	 * @brief authorize(context: common.UIAbilityContext, listener: WbASListener): void
+	 */
+    public func authorize(context: JSValue/* FIXME: `JSValue/* FIXME: `common.UIAbilityContext` */` */, listener: JSValue/* FIXME: `WbASListener` */): Unit {
+        jsObjApiCall < Unit >( arkts_object, "authorize", { ctx =>[context, listener] })
+    }
+    /**
+	 * @brief authorizeClient(context: Context, listener: WbASListener): void
+	 */
+    public func authorizeClient(context: JSValue/* FIXME: `JSValue/* FIXME: `Context` */` */, listener: JSValue/* FIXME: `WbASListener` */): Unit {
+        jsObjApiCall < Unit >( arkts_object, "authorizeClient", { ctx =>[context, listener] })
+    }
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        arkts_object.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): IWBAPI {
+        IWBAPI(input.asObject())
+    }
+}
+// 数组类型
+// list.d.ts
+/*interface List {
+    items: String[];
+    }*/
+
+public open class List {
+    
+    protected List(public var items: Array<String>) { }
+    
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        let obj = context.object()
+        obj["items"] = toJSArray < String >(context, items)
+        obj.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): List {
+        let obj = input.asObject()
+        List(
+        fromJSArray < String >(context, obj["items"])
+        )
+    }
+    
+}
+
+/*interface ExportKeyword LoggerAdapter {
+    setColorLevel(level: LogLevel): void
+    printDiagnoseLog(level: LogLevel, tag: string, msg: string, e: Error | null): void
+    getPubKey(): String
+    getLogPaths(): Array<String>
+    }*/
+
+public open class LoggerAdapter {
+    
+    protected LoggerAdapter(var arkts_object: JSObject) { }
+    
+    
+    /**
+	 * @brief setColorLevel(level: LogLevel): void
+	 */
+    public func setColorLevel(level: JSValue/* FIXME: `LogLevel` */): Unit {
+        jsObjApiCall < Unit >( arkts_object, "setColorLevel", { ctx =>[level] })
+    }
+    /**
+	 * @brief printDiagnoseLog(level: LogLevel, tag: string, msg: string, e: Error | null): void
+	 */
+    public func printDiagnoseLog(level: JSValue/* FIXME: `LogLevel` */, tag: String, msg: String, e: Option<JSValue/* FIXME: `Error` */>): Unit {
+        jsObjApiCall < Unit >( arkts_object, "printDiagnoseLog", { ctx =>[level, tag.toJSValue(ctx), msg.toJSValue(ctx), match(e) {
+                case None => ctx.undefined().toJSValue()
+                case _ => e.getOrThrow()
+            }] })
+    }
+    /**
+	 * @brief getPubKey(): String
+	 */
+    public func getPubKey(): String {
+        jsObjApiCall < String >( arkts_object, "getPubKey", EMPTY_ARG)
+    }
+    /**
+	 * @brief getLogPaths(): Array<String>
+	 */
+    public func getLogPaths(): Array<String> {
+        jsObjApiCall < Array<String> >( arkts_object, "getLogPaths", EMPTY_ARG) { ctx, info => fromJSArray < String >(ctx, info) }
+    }
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        arkts_object.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): LoggerAdapter {
+        LoggerAdapter(input.asObject())
+    }
+}
+// 成员函数
+// person.d.ts
+/*interface Person {
+    name: String;
+    greet(): String
+    }*/
+
+public open class Person {
+    
+    protected Person(var arkts_object: JSObject) { }
+    
+    
+    public mut prop name: String {
+        get() {
+            checkThreadAndCall < String >(getMainContext()) {
+                ctx: JSContext => String.fromJSValue(ctx, arkts_object["name"])
+            }
+        }
+        set(v) {
+            checkThreadAndCall < Unit >(getMainContext()) {
+                ctx: JSContext => arkts_object["name"] = v.toJSValue(ctx)
+            }
+        }
+        
+    }
+    
+    /**
+	 * @brief greet(): String
+	 */
+    public func greet(): String {
+        jsObjApiCall < String >( arkts_object, "greet", EMPTY_ARG)
+    }
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        arkts_object.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): Person {
+        Person(input.asObject())
+    }
+}
+
+/*interface ExportKeyword PluginContainer {
+    registryPlugin(plugin: BasePlugin, cfg: UMConfig): BasePlugin
+    getPluginById(pluginId: string): BasePlugin | undefined
+    }*/
+
+public open class PluginContainer {
+    
+    protected PluginContainer(var arkts_object: JSObject) { }
+    
+    
+    /**
+	 * @brief registryPlugin(plugin: BasePlugin, cfg: UMConfig): BasePlugin
+	 */
+    public func registryPlugin(plugin: BasePlugin, cfg: UMConfig): BasePlugin {
+        jsObjApiCall < BasePlugin >( arkts_object, "registryPlugin", { ctx =>[plugin.toJSValue(ctx), cfg.toJSValue(ctx)] }) { ctx, info => BasePlugin.fromJSValue(ctx, info) }
+    }
+    /**
+	 * @brief getPluginById(pluginId: string): BasePlugin | undefined
+	 */
+    public func getPluginById(pluginId: String): Option<BasePlugin> {
+        jsObjApiCall < Option<BasePlugin> >( arkts_object, "getPluginById", { ctx =>[pluginId.toJSValue(ctx)] }) { ctx, info =>
+            if(info.isNull()) {
+                None < BasePlugin >
+            } else {
+                BasePlugin.fromJSValue(ctx, info)
+            } }
+    }
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        arkts_object.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): PluginContainer {
+        PluginContainer(input.asObject())
+    }
+}
+//只读属性
+/*interface Point {
+    ReadonlyKeywordx: number;
+    ReadonlyKeywordy: number;
+    }*/
+
+public open class Point {
+    
+    protected Point(public let x: Float64,
+    public let y: Float64) { }
+    
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        let obj = context.object()
+        obj["x"] = x.toJSValue(context)
+        obj["y"] = y.toJSValue(context)
+        obj.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): Point {
+        let obj = input.asObject()
+        Point(
+        Float64.fromJSValue(context, obj["x"]),
+        Float64.fromJSValue(context, obj["y"])
+        )
+    }
+    
+}
+// 可选属性
+/*interface Product {
+    price?: number;
+    }*/
+
+public open class Product {
+    
+    protected Product(public var price!: Option<Float64> = None) { }
+    
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        let obj = context.object()
+        if(let Some(v) <- price) {
+            obj["price"] = v.toJSValue(context)
+        }
+        obj.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): Product {
+        let obj = input.asObject()
+        Product(
+        price:
+        if(obj["price"].isNull()) {
+            None < Float64 >
+        } else {
+            Float64.fromJSValue(context, obj["price"])
+        }
+        )
+    }
+    
+}
+
+/*interface UnionInterface {
+    foo(a: string|null): null | String
+    goo(b: undefined | string): String | undefined
+    }*/
+
+public open class UnionInterface {
+    
+    protected UnionInterface(var arkts_object: JSObject) { }
+    
+    
+    /**
+	 * @brief foo(a: string|null): null | String
+	 */
+    public func foo(a: Option<String>): Option<String> {
+        jsObjApiCall < Option<String> >( arkts_object, "foo", { ctx =>[match(a) {
+                case None => ctx.undefined().toJSValue()
+                case _ => a.getOrThrow().toJSValue(ctx)
+            }] }) { ctx, info =>
+            if(info.isNull()) {
+                None < String >
+            } else {
+                String.fromJSValue(ctx, info)
+            } }
+    }
+    /**
+	 * @brief goo(b: undefined | string): String | undefined
+	 */
+    public func goo(b: Option<String>): Option<String> {
+        jsObjApiCall < Option<String> >( arkts_object, "goo", { ctx =>[match(b) {
+                case None => ctx.undefined().toJSValue()
+                case _ => b.getOrThrow().toJSValue(ctx)
+            }] }) { ctx, info =>
+            if(info.isNull()) {
+                None < String >
+            } else {
+                String.fromJSValue(ctx, info)
+            } }
+    }
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        arkts_object.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): UnionInterface {
+        UnionInterface(input.asObject())
+    }
+}
+// 嵌套对象
+/*interface UserProfile {
+    id: number;
+    name: String;
+    address: {
+      city: String;
+      zipCode: String;
+    };
+    }*/
+
+public open class UserProfile {
+    
+    protected UserProfile(public var id: Float64,
+    public var name: String,
+    public var address: AutoGenType0Ininterface) { }
+    
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        let obj = context.object()
+        obj["id"] = id.toJSValue(context)
+        obj["name"] = name.toJSValue(context)
+        obj["address"] = address.toJSValue(context)
+        obj.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): UserProfile {
+        let obj = input.asObject()
+        UserProfile(
+        Float64.fromJSValue(context, obj["id"]),
+        String.fromJSValue(context, obj["name"]),
+        AutoGenType0Ininterface.fromJSValue(context, obj["address"])
+        )
+    }
+    
+}
+
+/*class ExportKeyword DeclareKeyword FirstContextualKeyword BasePlugin {
+    pluginVersion: String;
+    pluginId: Biz_Type;
+    alias: String;
+    alias_h: String;
+    cfg: UMConfig;
+    plugins: PluginContainer;
+    constructor(d12: Biz_Type): void
+    getPluginId(): Biz_Type
+    install(b12: UMConfig, c12: PluginContainer): void
+    uninstall(): void
+    agree(): Promise<void>
+    write(x11: string, y11: Record<string, string | number>, z11: number, a12?: string): void
+    beforeEncode(w11: buffer.Buffer): Promise<buffer.Buffer>
+    }*/
+
+public open class BasePlugin {
+    
+    protected BasePlugin(var arkts_object: JSObject) { }
+    /**
+	 * @brief constructor(d12: Biz_Type): void
+	 */
+    public init(d12: JSValue/* FIXME: `Biz_Type` */) {
+        arkts_object = checkThreadAndCall < JSObject >(getMainContext()) {
+            __ctx =>
+            let clazz = getClassConstructorObj("cases_interface", "BasePlugin").toJSValue().asClass()
+            clazz.new(d12).asObject()
+        }
+    }
+    public init() {
+        arkts_object = checkThreadAndCall < JSObject >(getMainContext()) {
+            __ctx =>
+            let clazz = getClassConstructorObj("cases_interface", "BasePlugin").toJSValue().asClass()
+            clazz.new().asObject()
+        }
+    }
+    
+    public mut prop pluginVersion: String {
+        get() {
+            checkThreadAndCall < String >(getMainContext()) {
+                ctx: JSContext => String.fromJSValue(ctx, arkts_object["pluginVersion"])
+            }
+        }
+        set(v) {
+            checkThreadAndCall < Unit >(getMainContext()) {
+                ctx: JSContext => arkts_object["pluginVersion"] = v.toJSValue(ctx)
+            }
+        }
+        
+    }
+    
+    public mut prop pluginId: JSValue/* FIXME: `Biz_Type` */ {
+        get() {
+            checkThreadAndCall < JSValue/* FIXME: `Biz_Type` */ >(getMainContext()) {
+                ctx: JSContext => arkts_object["pluginId"]
+            }
+        }
+        set(v) {
+            checkThreadAndCall < Unit >(getMainContext()) {
+                ctx: JSContext => arkts_object["pluginId"] = v
+            }
+        }
+        
+    }
+    
+    public mut prop alias: String {
+        get() {
+            checkThreadAndCall < String >(getMainContext()) {
+                ctx: JSContext => String.fromJSValue(ctx, arkts_object["alias"])
+            }
+        }
+        set(v) {
+            checkThreadAndCall < Unit >(getMainContext()) {
+                ctx: JSContext => arkts_object["alias"] = v.toJSValue(ctx)
+            }
+        }
+        
+    }
+    
+    public mut prop alias_h: String {
+        get() {
+            checkThreadAndCall < String >(getMainContext()) {
+                ctx: JSContext => String.fromJSValue(ctx, arkts_object["alias_h"])
+            }
+        }
+        set(v) {
+            checkThreadAndCall < Unit >(getMainContext()) {
+                ctx: JSContext => arkts_object["alias_h"] = v.toJSValue(ctx)
+            }
+        }
+        
+    }
+    
+    public mut prop cfg: UMConfig {
+        get() {
+            checkThreadAndCall < UMConfig >(getMainContext()) {
+                ctx: JSContext => UMConfig.fromJSValue(ctx, arkts_object["cfg"])
+            }
+        }
+        set(v) {
+            checkThreadAndCall < Unit >(getMainContext()) {
+                ctx: JSContext => arkts_object["cfg"] = v.toJSValue(ctx)
+            }
+        }
+        
+    }
+    
+    public mut prop plugins: PluginContainer {
+        get() {
+            checkThreadAndCall < PluginContainer >(getMainContext()) {
+                ctx: JSContext => PluginContainer.fromJSValue(ctx, arkts_object["plugins"])
+            }
+        }
+        set(v) {
+            checkThreadAndCall < Unit >(getMainContext()) {
+                ctx: JSContext => arkts_object["plugins"] = v.toJSValue(ctx)
+            }
+        }
+        
+    }
+    
+    /**
+	 * @brief getPluginId(): Biz_Type
+	 */
+    public func getPluginId(): JSValue/* FIXME: `Biz_Type` */ {
+        jsObjApiCall < JSValue/* FIXME: `Biz_Type` */ >( arkts_object, "getPluginId", EMPTY_ARG) { ctx, info => info }
+    }
+    /**
+	 * @brief install(b12: UMConfig, c12: PluginContainer): void
+	 */
+    public func install(b12: UMConfig, c12: PluginContainer): Unit {
+        jsObjApiCall < Unit >( arkts_object, "install", { ctx =>[b12.toJSValue(ctx), c12.toJSValue(ctx)] })
+    }
+    /**
+	 * @brief uninstall(): void
+	 */
+    public func uninstall(): Unit {
+        jsObjApiCall < Unit >( arkts_object, "uninstall", EMPTY_ARG)
+    }
+    /**
+	 * @brief agree(): Promise<void>
+	 */
+    public func agree(callback: AsyncCallback < JSValue/* FIXME: `Promise<void>` */ >): Unit {
+        jsObjApiCallPromise < JSValue/* FIXME: `Promise<void>` */ >( arkts_object, "agree", callback, EMPTY_ARG) { ctx, info => info }
+    }
+    /**
+	 * @brief write(x11: string, y11: Record<string, string | number>, z11: number, a12?: string): void
+	 */
+    public func write(x11: String, y11: HashMap<String, JSValue/* FIXME: `string | number` */>, z11: Float64, a12!: Option < String >= None): Unit {
+        jsObjApiCall < Unit >( arkts_object, "write", { ctx =>[x11.toJSValue(ctx), hashmap2Record<String, JSValue/* FIXME: `string | number` */>(ctx, y11, { context, i => i }), z11.toJSValue(ctx), match(a12) {
+                case None => ctx.undefined().toJSValue()
+                case _ => a12.getOrThrow().toJSValue(ctx)
+            }] })
+    }
+    /**
+	 * @brief beforeEncode(w11: buffer.Buffer): Promise<buffer.Buffer>
+	 */
+    public func beforeEncode(callback: AsyncCallback < JSValue/* FIXME: `Promise<buffer.Buffer>` */ >, w11: JSValue/* FIXME: `buffer.Buffer` */): Unit {
+        jsObjApiCallPromise < JSValue/* FIXME: `Promise<buffer.Buffer>` */ >( arkts_object, "beforeEncode", callback, { ctx =>[w11] }) { ctx, info => info }
+    }
+    
+    public open func toJSValue(context: JSContext): JSValue {
+        arkts_object.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): BasePlugin {
+        BasePlugin(input.asObject())
+    }
+}
+
+/*class ExportKeyword DeclareKeyword DefaultPluginContainer {
+    ReadonlyKeyword_pluginMap: BasePlugin[];
+    constructor(): void
+    registryPlugin(g12: BasePlugin, h12: UMConfig): BasePlugin
+    getPluginById(e12: Biz_Type): BasePlugin | undefined
+    }*/
+
+public class DefaultPluginContainer <: PluginContainer {
+    
+    protected DefaultPluginContainer(arkts_object: JSObject) { super(arkts_object) }
+    /**
+	 * @brief constructor(): void
+	 */
+    public init() {
+        super(checkThreadAndCall < JSObject >(getMainContext()) {
+            __ctx =>
+            let clazz = getClassConstructorObj("cases_interface", "DefaultPluginContainer").toJSValue().asClass()
+            clazz.new().asObject()
+        })
+    }
+    
+    public prop _pluginMap: Array<BasePlugin> {
+        get() {
+            checkThreadAndCall < Array<BasePlugin> >(getMainContext()) {
+                ctx: JSContext => fromJSArray < BasePlugin >(ctx, arkts_object["_pluginMap"], { ctx: JSContext, val: JSValue => BasePlugin.fromJSValue(ctx, val) })
+            }
+        }
+    }
+    
+    /**
+	 * @brief getPluginById(e12: Biz_Type): BasePlugin | undefined
+	 */
+    public func getPluginById(e12: JSValue/* FIXME: `Biz_Type` */): Option<BasePlugin> {
+        jsObjApiCall < Option<BasePlugin> >( arkts_object, "getPluginById", { ctx =>[e12] }) { ctx, info =>
+            if(info.isNull()) {
+                None < BasePlugin >
+            } else {
+                BasePlugin.fromJSValue(ctx, info)
+            } }
+    }
+    
+    public func toJSValue(context: JSContext): JSValue {
+        arkts_object.toJSValue()
+    }
+    
+    public static func fromJSValue(context: JSContext, input: JSValue): DefaultPluginContainer {
+        DefaultPluginContainer(input.asObject())
+    }
+}
+
+/*class ExportKeyword DeclareKeyword UMConfig {
+    appKey?: String;
+    channel?: String;
+    enableLog?: boolean;
+    }*/
+
+public class UMConfig {
+    
+    protected UMConfig(var arkts_object: JSObject) { }
+    
+    
+    public mut prop appKey: ?String {
+        get() {
+            checkThreadAndCall < ?String >(getMainContext()) {
+                ctx: JSContext =>
+                if(arkts_object["appKey"].isNull()) {
+                    None < String >
+                } else {
+                    String.fromJSValue(ctx, arkts_object["appKey"])
+                }
+            }
+        }
+        set(v) {
+            checkThreadAndCall < Unit >(getMainContext()) {
+                ctx: JSContext => arkts_object["appKey"] = match(v) {
+                    case None => ctx.undefined().toJSValue()
+                    case _ => v.getOrThrow().toJSValue(ctx)
+                }
+            }
+        }
+        
+    }
+    
+    public mut prop channel: ?String {
+        get() {
+            checkThreadAndCall < ?String >(getMainContext()) {
+                ctx: JSContext =>
+                if(arkts_object["channel"].isNull()) {
+                    None < String >
+                } else {
+                    String.fromJSValue(ctx, arkts_object["channel"])
+                }
+            }
+        }
+        set(v) {
+            checkThreadAndCall < Unit >(getMainContext()) {
+                ctx: JSContext => arkts_object["channel"] = match(v) {
+                    case None => ctx.undefined().toJSValue()
+                    case _ => v.getOrThrow().toJSValue(ctx)
+                }
+            }
+        }
+        
+    }
+    
+    public mut prop enableLog: ?Bool {
+        get() {
+            checkThreadAndCall < ?Bool >(getMainContext()) {
+                ctx: JSContext =>
+                if(arkts_object["enableLog"].isNull()) {
+                    None < Bool >
+                } else {
+                    Bool.fromJSValue(ctx, arkts_object["enableLog"])
+                }
+            }
+        }
+        set(v) {
+            checkThreadAndCall < Unit >(getMainContext()) {
+                ctx: JSContext => arkts_object["enableLog"] = match(v) {
+                    case None => ctx.undefined().toJSValue()
+                    case _ => v.getOrThrow().toJSValue(ctx)
+                }
+            }
+        }
+        
+    }
+    
+    
+    func toJSValue(context: JSContext): JSValue {
+        arkts_object.toJSValue()
+    }
+    
+    static func fromJSValue(context: JSContext, input: JSValue): UMConfig {
+        UMConfig(input.asObject())
+    }
+}
+

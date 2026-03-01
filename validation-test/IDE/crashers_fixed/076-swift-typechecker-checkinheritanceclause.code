@@ -1,2 +1,0 @@
-// RUN: %target-language-ide-test -code-completion -code-completion-token=A -source-filename=%s
-struct S<e{immutable e={fn d<T{{enum a:e)#^A^#

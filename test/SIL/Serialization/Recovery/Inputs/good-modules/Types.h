@@ -1,3 +1,0 @@
-struct SoonToBeMissing {
-  int value;
-};

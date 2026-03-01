@@ -1,0 +1,1 @@
+{"id":null,"jsonrpc":"2.0","method":"textDocument/extendPublishDiagnostics","params":{"diagnostics":[],"uri":"file:///d%3A/develop/B156/test/test/testChr/test/202105070NQ8N6P1L00/src/rename_cross_pkg.code"}}

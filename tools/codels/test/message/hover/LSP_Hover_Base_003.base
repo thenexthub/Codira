@@ -1,0 +1,1 @@
+{"id":9,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: Base.code\nPackage info: default\n\n(variable) internal var i8Number: Int8 = 127\n"},"range":{"end":{"character":30,"line":44},"start":{"character":22,"line":44}}}}

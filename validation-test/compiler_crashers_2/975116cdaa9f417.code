@@ -1,3 +1,0 @@
-// {"signature":"language::ExprPattern::updateMatchExpr(language::Expr*) const::FindMatchOperatorDeclRef::walkToExprPre(language::Expr*)"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-fn ~= (a) if case ~= b

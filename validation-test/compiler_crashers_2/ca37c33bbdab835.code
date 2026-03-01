@@ -1,3 +1,0 @@
-// {"signature":"language::constraints::NonEphemeralConversionFailure::emitSuggestionNotes() const"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-fn a(@_nonEphemeral UnsafePointer<Int8>?? ) var b = "" a(b

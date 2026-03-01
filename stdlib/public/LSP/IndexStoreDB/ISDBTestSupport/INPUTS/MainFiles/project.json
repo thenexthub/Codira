@@ -1,8 +1,0 @@
-{
-  "sources": [
-    "main.code",
-    "main1.c",
-    "main2.c",
-  ],
-  "bridging_header": "shared.h",
-}

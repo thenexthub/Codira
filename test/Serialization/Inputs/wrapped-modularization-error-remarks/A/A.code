@@ -1,7 +1,0 @@
-import CxxLib
-
-open class Window {
-    open fn queryInterface(_ iid: IID) -> Int32? {
-        return nil
-    }
-}

@@ -1,1 +1,0 @@
-public fn otherDefaultArguments(x: Int = 0) {}

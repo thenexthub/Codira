@@ -1,5 +1,0 @@
-// RUN: %language-ide-test --code-completion --source-filename %s --code-completion-token=COMPLETE
-
-// https://github.com/apple/language/issues/57105
-
-Foo.#^COMPLETE^#bar ?? baz(_) = baba

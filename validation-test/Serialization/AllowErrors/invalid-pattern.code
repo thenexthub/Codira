@@ -1,7 +1,0 @@
-// RUN: %empty-directory(%t)
-
-// -parse-as-library added so that the PDB isn't added to a TopLevelCodeDecl,
-// which isn't serialized at all
-// RUN: %target-language-frontend -emit-module -o %t/errors.languagemodule -module-name errors -experimental-allow-module-with-compiler-errors -parse-as-library %s
-
-immutable this = 1

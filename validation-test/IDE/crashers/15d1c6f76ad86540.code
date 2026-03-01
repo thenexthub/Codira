@@ -1,6 +1,0 @@
-// {"kind":"complete","signature":"language::GenericSignatureImpl::getReducedType(language::Type) const"}
-// RUN: not --crash %target-language-ide-test -code-completion --code-completion-token=COMPLETE -source-filename %s
-protocol a: Collection where Iterator == b<Self> {
-  struct b<c: a>: IteratorProtocol
-    fn d ->
-    #^COMPLETE^#

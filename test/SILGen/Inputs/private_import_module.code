@@ -1,9 +1,0 @@
-private protocol HasDefaultFoo {}
-
-extension HasDefaultFoo {
-  private fn foo() {}
-}
-
-private class Base {
-  fn foo() {}
-}

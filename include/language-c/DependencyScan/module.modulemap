@@ -1,4 +1,0 @@
-module _InternalCodiraScan {
-  header "DependencyScan.h"
-  link "_InternalCodiraScan"
-}

@@ -1,5 +1,0 @@
-// RUN: %target-languagec_driver -### %s | %FileCheck %s
-
-// REQUIRES: autolink-extract
-
-// CHECK: language-autolink-extract {{.+}}.o -o {{.+}}.autolink

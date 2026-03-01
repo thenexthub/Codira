@@ -1,0 +1,1 @@
+{"id":null,"jsonrpc":"2.0","method":"textDocument/extendPublishDiagnostics","params":{"diagnostics":[],"uri":"file:///home/jenkins/workspace/Codira-language-server/compile_linux/source/test/testChr/normalTest/newProp/src/main.code"}}

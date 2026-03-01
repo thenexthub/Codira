@@ -1,0 +1,400 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package codepm.config
+
+import std.collection.*
+import std.fs.*
+import stdx.serialization.serialization.*
+
+public var COMMON_INFO: CommonInfo = CommonInfo()
+
+public class CommonInfo {
+    public var inWorkspace: Bool = false
+    public var singleModuleName: String = ""
+    public var moduleVersionMap: HashMap<String, String> = HashMap<String, String>()
+    public var isReplaced: Bool = false
+    public var memberModule: String = ""
+    public var members: ArrayList<String> = ArrayList<String>()
+    public var buildMembers: ArrayList<String> = ArrayList<String>()
+    public var testMembers: ArrayList<String> = ArrayList<String>()
+    public var currentMembers: ArrayList<String> = ArrayList<String>()
+    public var compileOption: String = ""
+    public var overrideCompileOption: String = ""
+    public var nativeOverrideCompileOption: String = ""
+    public var linkOption: String = ""
+    public var targetDir: String = ""
+    public var scriptDir: String = ""
+    public var dependencies: HashMap<String, DepInfo> = HashMap<String, DepInfo>()
+    public var testDependencies: HashMap<String, DepInfo> = HashMap<String, DepInfo>()
+    public var scriptDependencies: HashMap<String, DepInfo> = HashMap<String, DepInfo>()
+    public var replaceDeps: HashMap<String, DepInfo> = HashMap<String, DepInfo>()
+    public var ffi: ForeignInterfaces = ForeignInterfaces()
+    public var crossFfi: ForeignInterfaces = ForeignInterfaces()
+    public var targetConfigMap: HashMap<String, TargetConfig> = HashMap<String, TargetConfig>()
+    public var collectCodeoPlatName: HashSet<String> = HashSet<String>()
+    public var localPkgMap: HashMap<String, RequiresPackagesInfo> = HashMap<String, RequiresPackagesInfo>()
+    public var crossPkgMap: HashMap<String, RequiresPackagesInfo> = HashMap<String, RequiresPackagesInfo>()
+
+    public func getNativeOverrideOption(path: String, targetName: String, isDebug: Bool): Bool {
+        if (!this.targetConfigMap.contains(targetName)) {
+            return true
+        }
+        var targetInfo: TargetInfo = this.targetConfigMap[targetName].commonTargetInfo
+        if (isDebug) {
+            if (!replaceTargetInfo(path, targetInfo, this.targetConfigMap[targetName].debugTargetInfo,
+                targetName, false)) {
+                return false
+            }
+        } else {
+            if (!replaceTargetInfo(path, targetInfo, this.targetConfigMap[targetName].releaseTargetInfo, targetName,
+                false)) {
+                return false
+            }
+        }
+        this.nativeOverrideCompileOption = combineOptionString(this.overrideCompileOption,
+            targetInfo.overrideCompileOption)
+        return true
+    }
+
+    public func replaceTargetInfo(path: String, targetName: String, isDebug!: Bool = false, isTest!: Bool = false): Bool {
+        if (this.isReplaced) {
+            return true
+        }
+        this.isReplaced = true
+
+        if (!this.targetConfigMap.contains(targetName)) {
+            return true
+        }
+
+        var targetInfo: TargetInfo = this.targetConfigMap[targetName].commonTargetInfo
+        if (isDebug) {
+            if (!replaceTargetInfo(path, targetInfo, this.targetConfigMap[targetName].debugTargetInfo, targetName,
+                isTest)) {
+                return false
+            }
+        } else {
+            if (!replaceTargetInfo(path, targetInfo, this.targetConfigMap[targetName].releaseTargetInfo, targetName,
+                isTest)) {
+                return false
+            }
+        }
+
+        this.compileOption = combineOptionString(this.compileOption, targetInfo.compileOption)
+        this.overrideCompileOption = combineOptionString(this.overrideCompileOption, targetInfo.overrideCompileOption)
+        this.linkOption = combineOptionString(this.linkOption, targetInfo.linkOption)
+        if (!combineDependencies(path, this.dependencies, targetInfo.dependencies, targetName)) {
+            return false
+        }
+        if (!combineDependencies(path, this.testDependencies, targetInfo.testDependencies, targetName)) {
+            return false
+        }
+        if (!combineDependencies(path, this.scriptDependencies, targetInfo.scriptDependencies, targetName)) {
+            return false
+        }
+        if (!combineDependencies(path, this.replaceDeps, targetInfo.replaceDeps, targetName)) {
+            return false
+        }
+
+        return true
+    }
+}
+
+public class WorkSpace <: Serializable<WorkSpace> {
+    public var members: ArrayList<String> = ArrayList<String>()
+    public var buildMembers: ArrayList<String> = ArrayList<String>()
+    public var testMembers: ArrayList<String> = ArrayList<String>()
+    public var compileOption: String = ""
+    public var overrideCompileOption: String = ""
+    public var linkOption: String = ""
+    public var targetDir: String = ""
+    public var scriptDir: String = ""
+
+    public func serialize(): DataModel {
+        return DataModelStruct()
+            .add(field<ArrayList<String>>("members", this.members))
+            .add(field<ArrayList<String>>("build-members", this.buildMembers))
+            .add(field<ArrayList<String>>("test-members", this.testMembers))
+            .add(field<String>(COMPILE_OPTION, this.compileOption))
+            .add(field<String>(OVERRIDE_COMPILE_OPTION, this.overrideCompileOption))
+            .add(field<String>(LINK_OPTION, this.linkOption))
+            .add(field<String>(TARGET_DIR, this.targetDir))
+            .add(field<String>(SCRIPT_DIR, this.scriptDir))
+    }
+
+    public static func deserialize(dm: DataModel): WorkSpace {
+        var dms = match (dm) {
+            case data: DataModelStruct => data
+            case _ => throw Exception("this data is not DataModelStruct")
+        }
+        var result = WorkSpace()
+        result.members = ArrayList<String>.deserialize((dms.get("members") as DataModelSeq) ?? DataModelSeq())
+        result.buildMembers = ArrayList<String>.deserialize((dms.get("build-members") as DataModelSeq) ??
+            DataModelSeq())
+        result.testMembers = ArrayList<String>.deserialize((dms.get("test-members") as DataModelSeq) ?? DataModelSeq())
+        result.compileOption = String.deserialize((dms.get(COMPILE_OPTION) as DataModelString) ?? DataModelString(""))
+        result.overrideCompileOption = String.deserialize(
+            (dms.get(OVERRIDE_COMPILE_OPTION) as DataModelString) ?? DataModelString(""))
+        result.linkOption = String.deserialize((dms.get(LINK_OPTION) as DataModelString) ?? DataModelString(""))
+        result.targetDir = String.deserialize((dms.get(TARGET_DIR) as DataModelString) ?? DataModelString(""))
+        result.scriptDir = String.deserialize((dms.get(SCRIPT_DIR) as DataModelString) ?? DataModelString(""))
+        return result
+    }
+}
+
+public func checkForWorkspace(rootPath: String, tomlInfo: TomlInfo, memberModule: String, isDebug!: Bool = false,
+    isTest!: Bool = false, checkWorkspaceDir!: Bool = true): Bool {
+    if (tomlInfo.isPkgConfig) {
+        if (!memberModule.isEmpty()) {
+            eprintln("Error: the -m/--member option can only be used in a workspace")
+            return false
+        }
+        COMMON_INFO.singleModuleName = tomlInfo.pkg.name
+        return true
+    }
+    COMMON_INFO.inWorkspace = true
+
+    if (!verifyModuleConfig(tomlInfo, rootPath, rootPath, isTest: isTest)) {
+        return false
+    }
+    let configFilePath: String = Path(rootPath).join(CONFIG_FILE_NAME).toString()
+    if (!safeCheck(tomlInfo.workspace.compileOption, configFilePath)) {
+        return false
+    }
+    COMMON_INFO.compileOption = fixCompileOption(tomlInfo.workspace.compileOption, configFilePath)
+    if (!safeCheck(tomlInfo.workspace.overrideCompileOption, configFilePath)) {
+        return false
+    }
+    COMMON_INFO.overrideCompileOption = fixCompileOption(tomlInfo.workspace.overrideCompileOption, configFilePath)
+    if (!verifyLinkOption(tomlInfo.workspace.linkOption, configFilePath)) {
+        return false
+    }
+    COMMON_INFO.linkOption = tomlInfo.workspace.linkOption
+    if (!safeCheck(tomlInfo.workspace.targetDir, configFilePath)) {
+        return false
+    }
+    COMMON_INFO.targetDir = tomlInfo.workspace.targetDir
+    if (!safeCheck(tomlInfo.workspace.scriptDir, configFilePath)) {
+        return false
+    }
+    COMMON_INFO.scriptDir = tomlInfo.workspace.scriptDir
+
+    if (!verifyMembers(rootPath, tomlInfo.workspace.members, tomlInfo.workspace.buildMembers,
+        tomlInfo.workspace.testMembers, checkWorkspaceDir)) {
+        return false
+    }
+
+    if (!memberModule.isEmpty()) {
+        let memberPath = getPath(rootPath, memberModule)
+        if (!directoryExists(memberPath)) {
+            eprintln("Error: the member module path '${memberModule}' does not exist")
+            return false
+        }
+        COMMON_INFO.memberModule = getCanonicalPath(memberPath)
+        if (!COMMON_INFO.members.contains(COMMON_INFO.memberModule)) {
+            eprintln("Error: the member module path '${memberModule}' does not exist in the members field")
+            return false
+        }
+    }
+
+    COMMON_INFO.dependencies = tomlInfo.dependencies
+    if (isTest) {
+        COMMON_INFO.testDependencies = tomlInfo.testDependencies
+    }
+    COMMON_INFO.scriptDependencies = tomlInfo.scriptDependencies
+    COMMON_INFO.replaceDeps = tomlInfo.replaceDeps
+    if (buildCheckFfi(tomlInfo, targetConfigName, tomlInfo.ffi.cLibs, isDebug)) {
+        COMMON_INFO.ffi = tomlInfo.ffi
+    }
+    if (buildCheckFfi(tomlInfo, crossCompileTarget, tomlInfo.crossFfi.cLibs, isDebug)) {
+        COMMON_INFO.crossFfi = tomlInfo.crossFfi
+    }
+
+    COMMON_INFO.targetConfigMap = tomlInfo.targetConfigMap
+    if (crossCompileTarget.isEmpty()) {
+        return COMMON_INFO.replaceTargetInfo(rootPath, targetConfigName, isDebug: isDebug, isTest: isTest)
+    }
+    if (!COMMON_INFO.replaceTargetInfo(rootPath, crossCompileTarget, isDebug: isDebug, isTest: isTest)) {
+        return false
+    }
+    return COMMON_INFO.getNativeOverrideOption(rootPath, targetConfigName, isDebug)
+}
+
+public func verifyMembers(rootPath: String, members: ArrayList<String>, buildMembers: ArrayList<String>,
+    testMembers: ArrayList<String>, checkWorkspaceDir: Bool): Bool {
+    let tomlDir = Path(rootPath).join(CONFIG_FILE_NAME).toString()
+    if (members.isEmpty()) {
+        eprintln("Error: the members field contains at least one member module at ${tomlDir}")
+        return false
+    }
+    let currentPath = getCanonicalPath(rootPath)
+    for (mem in members) {
+        let realPath = getPath(rootPath, mem)
+        if (!directoryExists(realPath)) {
+            eprintln("Error: the path '${mem}' of members field does not exist at ${tomlDir}")
+            return false
+        }
+        let absoluteMemberPath = getCanonicalPath(realPath)
+        if (checkWorkspaceDir && (absoluteMemberPath == currentPath || !checkParentDir(currentPath, absoluteMemberPath))) {
+            eprintln("Error: the member module '${realPath}' must be in a subdirectory of the workspace at ${tomlDir}")
+            return false
+        }
+        COMMON_INFO.members.add(absoluteMemberPath)
+    }
+
+    let memberSize = COMMON_INFO.members.size
+    for (k in 0..memberSize) {
+        for (v in 0..memberSize) {
+            if (k == v) {
+                continue
+            }
+            if (checkParentDir(COMMON_INFO.members[k], COMMON_INFO.members[v])) {
+                eprintln("Error: member modules are not allowed to be nested at ${tomlDir}")
+                eprintln("    ${COMMON_INFO.members[k]}")
+                eprintln("    ${COMMON_INFO.members[v]}")
+                return false
+            }
+        }
+    }
+
+    if (!verifyBuildMembers(rootPath, buildMembers, tomlDir)) {
+        return false
+    }
+    if (!verifyTestMembers(rootPath, testMembers, tomlDir)) {
+        return false
+    }
+
+    for (mem in COMMON_INFO.testMembers) {
+        if (!COMMON_INFO.buildMembers.contains(mem)) {
+            eprintln("Error: the member module '${mem}' of the test-members field " +
+                "must appear in the build-members field")
+            return false
+        }
+    }
+    return true
+}
+
+public func verifyBuildMembers(rootPath: String, buildMembers: ArrayList<String>, tomlDir: String): Bool {
+    if (buildMembers.isEmpty()) {
+        COMMON_INFO.buildMembers.add(all: COMMON_INFO.members)
+    } else {
+        for (mem in buildMembers) {
+            let memberPath = getPath(rootPath, mem)
+            if (!directoryExists(memberPath)) {
+                eprintln("Error: the path '${mem}' of build-members field does not exist at ${tomlDir}")
+                return false
+            }
+            let absolutePath = getCanonicalPath(memberPath)
+            if (!COMMON_INFO.members.contains(absolutePath)) {
+                eprintln("Error: the member module '${mem}' of the build-members field " +
+                    "must appear in the members field")
+                return false
+            }
+            COMMON_INFO.buildMembers.add(absolutePath)
+        }
+    }
+    return true
+}
+
+public func verifyTestMembers(rootPath: String, testMembers: ArrayList<String>, tomlDir: String): Bool {
+    if (testMembers.isEmpty()) {
+        COMMON_INFO.testMembers.add(all: COMMON_INFO.members)
+    } else {
+        for (mem in testMembers) {
+            let memberPath = getPath(rootPath, mem)
+            if (!directoryExists(mem)) {
+                eprintln("Error: the path '${mem}' of test-members field does not exist at ${tomlDir}")
+                return false
+            }
+            let absolutePath = getCanonicalPath(memberPath)
+            if (!COMMON_INFO.members.contains(absolutePath)) {
+                eprintln("Error: the member module '${mem}' of the test-members field " +
+                    "must appear in the members field")
+                return false
+            }
+            COMMON_INFO.testMembers.add(absolutePath)
+        }
+    }
+    return true
+}
+
+public func verifyTargetDir(rootPath: String, dir: String): Bool {
+    if (dir.isEmpty()) {
+        return true
+    }
+    if (!checkEnvVars(dir, Path(rootPath).join(CONFIG_FILE_NAME).toString())) {
+        return false
+    }
+    COMMON_INFO.targetDir = replaceEnvVars(dir)
+    return true
+}
+
+public func setScriptDir(rootPath: String, dir: String): Bool {
+    if (dir.isEmpty()) {
+        return true
+    }
+    if (!checkEnvVars(dir, Path(rootPath).join(CONFIG_FILE_NAME).toString())) {
+        return false
+    }
+    COMMON_INFO.scriptDir = replaceEnvVars(dir)
+    return true
+}
+
+public func searchModuleFromWorkspace(tomlInfo: TomlInfo, rootPkgName: String, prePath: String): String {
+    for (mem in tomlInfo.workspace.members) {
+        let eachMember = replaceEnvVars(mem)
+        let eachModulePath = getPath(prePath, eachMember)
+        if (!directoryExists(eachModulePath)) {
+            continue
+        }
+        let eachTomlFile = Path(eachModulePath).join(CONFIG_FILE_NAME).toString()
+        if (!fileExists(eachTomlFile)) {
+            continue
+        }
+        let eachTomlInfo = loadModuleFile(eachModulePath) ?? return ""
+        if (eachTomlInfo.pkg.name == rootPkgName) {
+            return getCanonicalPath(eachModulePath)
+        }
+    }
+    return ""
+}
+
+public func buildCheckFfi(tomlInfo: TomlInfo, targetName: String, cLibs: HashMap<String, String>, isDebug: Bool): Bool {
+    if (!tomlInfo.targetConfigMap.contains(targetName)) {
+        return true
+    }
+
+    var targetFfiCLibsMap = tomlInfo.targetConfigMap[targetName].commonTargetInfo.ffi.cLibs
+    for ((k, v) in targetFfiCLibsMap) {
+        cLibs.add(k, v)
+    }
+    if (isDebug) {
+        targetFfiCLibsMap = tomlInfo.targetConfigMap[targetName].debugTargetInfo.ffi.cLibs
+    } else {
+        targetFfiCLibsMap = tomlInfo.targetConfigMap[targetName].releaseTargetInfo.ffi.cLibs
+    }
+    for ((k, v) in targetFfiCLibsMap) {
+        cLibs.add(k, v)
+    }
+
+    return true
+}

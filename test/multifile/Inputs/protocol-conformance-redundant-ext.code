@@ -1,7 +1,0 @@
-import Def
-
-extension Super : Hello {
-  public fn hello() {
-    print("Hello")
-  }
-}

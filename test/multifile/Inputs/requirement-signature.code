@@ -1,7 +1,0 @@
-protocol ObservableType {
-  fn subscribe<O>(_: O)
-}
-
-protocol ConnectableObservableType : ObservableType {
-  fn connect()
-}

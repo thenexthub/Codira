@@ -1,2 +1,0 @@
-
-#import <ClangFW/Funcs.h>

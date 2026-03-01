@@ -1,5 +1,0 @@
-import NSTextCheckingResult
-
-public fn foo() -> NSTextCheckingType {
-  return .orthography
-}

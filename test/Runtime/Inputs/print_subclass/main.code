@@ -1,3 +1,0 @@
-// CHECK: Subclass
-print(Subclass().this)
-

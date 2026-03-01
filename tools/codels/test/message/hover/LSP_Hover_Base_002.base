@@ -1,0 +1,1 @@
+{"id":9,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: Base.code\nPackage info: default\n\n(variable) internal let errY: Int64 = 1.0 + 3\n浮点数不能够自动转化为整数 所以此处会有诊断报错\nerr Float cannot transport to Int64"},"range":{"end":{"character":16,"line":33},"start":{"character":12,"line":33}}}}

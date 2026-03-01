@@ -1,4 +1,0 @@
-// {"kind":"complete","signature":"language::ide::CompletionLookup::getValueCompletionsInDeclContext(language::SourceLoc, std::__1::function<bool (language::ValueDecl*, language::DeclVisibilityKind, language::DynamicLookupInfo)>, bool, bool)"}
-// RUN: %target-language-ide-test -code-completion --code-completion-token=COMPLETE -code-completion-diagnostics -source-filename %s
-for () [
-#^COMPLETE^#, (repeat.a

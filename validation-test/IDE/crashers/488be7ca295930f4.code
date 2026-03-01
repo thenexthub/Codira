@@ -1,5 +1,0 @@
-// {"kind":"complete","signature":"doPrintTypeInterface(language::CompilerInvocation const&, toolchain::StringRef, toolchain::StringRef)"}
-// Actual signature: checkSingleOverride
-// RUN: not --crash %target-language-ide-test -code-completion --code-completion-token=COMPLETE -source-filename %s
-class a { subscript(a) a { set } class b : a { override subscript(a) a {
-#^COMPLETE^#

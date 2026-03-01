@@ -1,0 +1,1 @@
+{"id":7,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: function_01.code\nPackage info: default.funcPkg\n\n(function) internal func add1(a: Int32, b!: Int32 = 1): Int32\n"},"range":{"end":{"character":9,"line":14},"start":{"character":5,"line":14}}}}

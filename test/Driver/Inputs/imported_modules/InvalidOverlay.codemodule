@@ -1,1 +1,0 @@
-This is purposefully invalid, so that we can be sure the compiler doesn't load it when processing the @import in the various headers.

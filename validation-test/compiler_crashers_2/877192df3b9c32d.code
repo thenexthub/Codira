@@ -1,3 +1,0 @@
-// {"signature":"language::TypeBase::computeInvertibleConformances()"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-typealias a = FlattenCollection...

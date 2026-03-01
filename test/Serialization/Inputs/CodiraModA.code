@@ -1,5 +1,0 @@
-import ObjCFail
-
-open class CodiraClsA {
-  public init() {}
-}

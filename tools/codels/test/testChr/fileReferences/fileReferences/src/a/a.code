@@ -1,0 +1,59 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package ohos_app_cangjie_entry.a
+
+public open class testclass {
+	let x = 1
+    static let height = 20
+    public testclass() {
+    }
+}
+
+public struct Rectangle {
+    let width: Int64
+    let height: Int64
+
+    public init(width:Int64, height:Int64) {
+        this.width = width
+        this.height = height
+    }
+
+    public Rectangle(width:Int64) {
+        this.width = width
+        this.height = width
+    }
+}
+
+public open interface I1 { // 'open' modifier is optional.
+}
+
+public type I64 = Int64
+
+func test1() {}
+
+public let s = "1"
+
+enum Color {
+	| RED | GREEN | BLUE
+}
+

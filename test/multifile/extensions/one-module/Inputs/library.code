@@ -1,3 +1,0 @@
-extension Collection where Iterator.Element : Equatable {
-  fn split(around delimiter: [Iterator.Element]) -> ([Iterator.Element], [Iterator.Element]?) { }
-}

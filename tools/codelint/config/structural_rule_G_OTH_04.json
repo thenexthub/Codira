@@ -1,0 +1,7 @@
+{
+  "SensitiveDataVar": [
+    "pwd",
+    "passwd",
+    "password"
+  ]
+}

@@ -1,6 +1,0 @@
-@main
-struct Entry {
-  static fn main() {
-    print("howdy mundo")
-  }
-}

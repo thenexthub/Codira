@@ -1,0 +1,1 @@
+{"id":"9","jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: Class.code\nPackage info: default\n\n// In class B\n(function) internal func init()\n"},"range":{"end":{"character":17,"line":41},"start":{"character":16,"line":41}}}}

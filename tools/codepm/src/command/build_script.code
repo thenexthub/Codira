@@ -1,0 +1,110 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package codepm.command
+
+import std.collection.*
+import std.fs.*
+import codepm.implement.*
+import codepm.config.*
+
+class ScriptArgs {
+    ScriptArgs(let isDebug: Bool, let isVerbose: Bool, let isCross: Bool, let isSkip: Bool) {}
+}
+
+var scriptConfig: ScriptConfig = ScriptConfig()
+
+func getArgList(cmdName: String, args: Array<String>): (Bool, ScriptArgs) {
+    var shortOption: String = ""
+    var longOption: ArrayList<String> = ArrayList<String>(["skip-script"])
+
+    if (DEBUG_CMD.contains(cmdName)) {
+        shortOption = shortOption + "g"
+    }
+
+    if (VERBOSE_CMD.contains(cmdName)) {
+        shortOption = shortOption + "V"
+        longOption.add("verbose")
+    }
+
+    if (CROSS_CMD.contains(cmdName)) {
+        longOption.add("target=")
+    }
+
+    let (argMap, unparseArgs) = getParseOption(args, shortOption, longOption.toArray())
+    if (unparseArgs.contains("--target")) {
+        eprintln("Error: the '--target' option needs a value")
+        return (false, ScriptArgs(false, false, false, false))
+    }
+
+    let skip: Bool = getBoolOption(argMap, "--skip-script")
+    if (skip) {
+        return (true, ScriptArgs(false, false, false, true))
+    }
+
+    var cross: Bool = false
+    if (let Some(val) <- handleCrossTarget(argMap)) {
+        cross = val
+    } else {
+        return (false, ScriptArgs(false, false, false, false))
+    }
+
+    let debug: Bool = getBoolOption(argMap, "-g")
+    let verbose: Bool = getBoolOption(argMap, "-V", "--verbose")
+
+    return (true, ScriptArgs(debug, verbose, cross, skip))
+}
+
+public func runScriptPreCommand(cmdName: String, args: Array<String>): Bool {
+    if (!BUILD_SCRIPT_CMD_PRE.contains(cmdName)) {
+        return true
+    }
+    let (flag, scriptArgs) = getArgList(cmdName, args)
+    if (!flag) {
+        return false
+    }
+    if (scriptArgs.isSkip) {
+        return true
+    }
+    scriptConfig = makeScriptConfig(DIR_CURRENT, scriptArgs.isDebug, scriptArgs.isVerbose, scriptArgs.isCross) ?? return false
+    return runScript(scriptConfig, Pre, cmdName)
+}
+
+public func runScriptPostCommand(cmdName: String): Bool {
+    if (!BUILD_SCRIPT_CMD_POST.contains(cmdName)) {
+        return true
+    }
+    return runScript(scriptConfig, Post, cmdName)
+}
+
+public func postCommandScript(): Bool {
+    try {
+        // return build.code.bak to build.code
+        for (bakScript in RELOCATED_SCRIPT_MAP) {
+            rename(bakScript.removeSuffix("build.code") + "build.code.bak", to: bakScript, overwrite: true)
+        }
+        return true
+    } catch (e: Exception) {
+        eprintln("${e.message}\nError: failed to restore build.code, please check permission")
+        return false
+    }
+}

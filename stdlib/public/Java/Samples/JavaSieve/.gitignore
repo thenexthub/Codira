@@ -1,9 +1,0 @@
-.DS_Store
-/.build
-/Packages
-xcuserdata/
-DerivedData/
-.codepm/configuration/registries.json
-.codepm/xcode/package.xcworkspace/contents.xcworkspacedata
-.netrc
-quadratic-sieve-Java

@@ -1,5 +1,0 @@
-framework module CodiraNameTests {
-  umbrella header "CodiraNameTests.h"
-  export *
-}
-

@@ -1,6 +1,0 @@
-// RUN: %target-typecheck-verify-language -parse -enable-experimental-feature ExtractConstantsFromMembers
-
-// REQUIRES: language_feature_ExtractConstantsFromMembers
-
-@extractConstantsFromMembers
-protocol MyProto {}

@@ -1,0 +1,1 @@
+{"id":"9","jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: map_interface.code\nPackage info: std.collection\n\n(interface) public interface Map<K, V> extends ReadOnlyMap<K,V>\n"},"range":{"end":{"character":36,"line":8},"start":{"character":33,"line":8}}}}

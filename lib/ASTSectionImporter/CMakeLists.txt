@@ -1,9 +1,0 @@
-
-
-add_language_host_library(languageASTSectionImporter STATIC
-  ASTSectionImporter.cpp
-  TOOLCHAIN_LINK_COMPONENTS core)
-target_link_libraries(languageASTSectionImporter PRIVATE
-  languageBasic)
-
-set_language_toolchain_is_available(languageASTSectionImporter)

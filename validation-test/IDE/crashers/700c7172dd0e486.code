@@ -1,3 +1,0 @@
-// {"kind":"complete","signature":"language::ide::PostfixCompletionCallback::Result::tryMerge(language::ide::PostfixCompletionCallback::Result const&, language::DeclContext*)"}
-// RUN: not --crash %target-language-ide-test -code-completion --code-completion-token=COMPLETE -code-completion-diagnostics -source-filename %s
-Int { switch { case Optional.some()#^COMPLETE^#

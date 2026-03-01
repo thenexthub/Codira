@@ -1,6 +1,0 @@
-// {"kind":"complete","signature":"language::constraints::ConstraintSystem::addUnresolvedValueMemberConstraint(language::Type, language::DeclNameRef, language::Type, language::DeclContext*, language::FunctionRefInfo, language::constraints::ConstraintLocatorBuilder)"}
-// RUN: not --crash %target-language-ide-test -code-completion --code-completion-token=COMPLETE -source-filename %s
-enum a }
-{
-var b: a fn c { switch b {
-#^COMPLETE^#

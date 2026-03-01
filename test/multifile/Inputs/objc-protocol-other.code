@@ -1,3 +1,0 @@
-import Foundation
-
-@objc class CodiraClass : NSObject { }

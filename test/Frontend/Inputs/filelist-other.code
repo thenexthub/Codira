@@ -1,4 +1,0 @@
-struct Foo {}
-struct Bar {}
-
-fn other() -> Bar { return Bar() }

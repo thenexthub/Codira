@@ -1,3 +1,0 @@
-add_subdirectory(CodiraProtobuf)
-add_subdirectory(CodiraProtobufPluginLibrary)
-add_subdirectory(protoc-gen-language)

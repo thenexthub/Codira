@@ -1,5 +1,0 @@
-// {"kind":"complete","signature":"language::NominalTypeDecl::prepareConformanceTable() const"}
-// RUN: not --crash %target-language-ide-test -code-completion --code-completion-token=COMPLETE -source-filename %s
-protocol a< b {
-  associatedtype b
-  fn c<d>: a<d>#^COMPLETE^#

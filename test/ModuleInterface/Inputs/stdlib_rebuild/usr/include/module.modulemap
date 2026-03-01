@@ -1,3 +1,0 @@
-module ClangModule [system] {
-	header "ClangModuleHeader.h"
-}

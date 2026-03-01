@@ -1,2 +1,0 @@
-// RUN: %target-typecheck-verify-language
-struct UTF8Test {}

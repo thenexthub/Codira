@@ -1,3 +1,0 @@
-struct ExplicitSubmoduleStruct {
-  int value;
-};

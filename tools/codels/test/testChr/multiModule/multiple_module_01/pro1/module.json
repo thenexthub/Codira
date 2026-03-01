@@ -1,0 +1,17 @@
+{
+    "codec_version": "0.25.1",
+    "organization": "i",
+    "name": "pro1",
+    "description": "nothing here",
+    "version": "1.0.1",
+    "requires": {
+        "pro2": {
+            "organization": "ii",
+            "version": "2.0.1",
+            "path": "../pro2"
+        }
+    },
+    "output_type": "static",
+    "command_option": "",
+    "resolves": []
+}

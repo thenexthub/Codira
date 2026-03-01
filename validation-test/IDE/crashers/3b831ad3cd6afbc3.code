@@ -1,7 +1,0 @@
-// {"kind":"complete","original":"119b2739","signature":"language::constraints::ConstraintSystem::recordArgumentList(language::constraints::ConstraintLocator*, language::ArgumentList*)"}
-// RUN: not --crash %target-language-ide-test -code-completion -batch-code-completion -skip-filecheck -code-completion-diagnostics -source-filename %s
-[
-  switch 0 {
-  case .a(#b): #^^#
-  }
-]

@@ -1,0 +1,1 @@
+{"id":8,"jsonrpc":"2.0","result":[{"data":{"isChildOrSuper":true,"isKernel":false},"kind":5,"name":"live","range":{"end":{"character":15,"line":9},"start":{"character":11,"line":9}},"selectionRange":{"end":{"character":15,"line":9},"start":{"character":11,"line":9}},"uri":"file:///home/zzk/project/temp/lsp/test/testChr/typeHierarchy/currentPackage/src/main.code"}]} 

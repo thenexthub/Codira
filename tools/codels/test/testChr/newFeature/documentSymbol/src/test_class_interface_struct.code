@@ -1,0 +1,101 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+interface I1 {}
+interface I2 {}
+open class C1 <: I1 {}
+class C2 <: C1 & I1 & I2 {}
+
+class C11 {
+    private var a = 1
+    func getA() {
+        a
+    }
+    func setA(value: Int64) {
+        this.a = value
+    }
+}
+
+class Test {
+    static let counter: Int64 = 3
+    var name: String = "lhlalmr"
+    private Test(
+        name: String,
+        annotation!: String = "lhlalmr",
+        var width!: Int64 = 1,
+        private var length!: Int64 = 2,
+        private var height!: Int64 = 3
+    ) {
+        super()
+    }
+}
+
+class B {
+    var a: Int64 = 1
+    var b: () -> Int64
+    init() {
+        b = {3}
+    }
+    init(p: Int64) {
+        this()
+        b = {this.a} // OK
+        b = f // OK
+    }
+    func f(): Int64 {
+        return a
+    }
+}
+
+class C<T> {
+    static func foo<U>(a: U, b: T): U {
+        a
+    }
+    private let f1 = {a: Int64, b: Int64 => a + b}
+}
+var a: Bool = C<Int32>.foo<Bool>(true, 1)
+var b: String = C<Bool>.foo<String>("hello", false)
+func fdsds<V>(a: V) {
+    C<Int32>.foo<V>(a, 0)
+}
+
+struct Rectangle1 {
+    var width1: Int32 = 10
+    var length1: Int32 = 20
+    init(width1: Int32, length1: Int32) {
+        this.width1 = width1
+        this.length1 = length1
+    }
+    init(side: Int32) {
+        this.width1 = side
+        this.length1 = side
+    }
+}
+
+struct B1<X, Y> {
+    B1(
+        x: Int64,
+        y: X,
+        v!: Int64 = 1,
+        private var z!: Y
+    ) {}
+}
+

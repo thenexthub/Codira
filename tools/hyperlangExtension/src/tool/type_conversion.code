@@ -1,0 +1,510 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package hle.tool
+
+import std.ast.*
+import std.collection.*
+
+extend TsType {
+    public func toCODEType(): String {
+        toCODEType(normalize(this))
+    }
+
+    public func toCODETypeTokens(): Tokens {
+        Tokens(Token(TokenKind.IDENTIFIER, toCODEType()))
+    }
+
+    /**
+     * Generates a code expression that converts a code value to a js value.
+     */
+    public func toJSValue(gconfig: GlobalConfig, targetObj: Tokens, ctxParam: Tokens, isOptional!: Bool = false,
+        initValue!: ?String = None): Tokens {
+        toJSValue(normalize(this), gconfig, targetObj, ctxParam, isOptional: isOptional, initValue: initValue)
+    }
+
+    /**
+     * Generates a code expression that creates a code value from a js value.
+     */
+    public func fromJSValue(gconfig: GlobalConfig, targetObj: Tokens, ctxParam: Tokens, isOptional!: Bool = false,
+        initValue!: ?String = None): Tokens {
+        fromJSValue(normalize(this), gconfig, targetObj, ctxParam, isOptional: isOptional, initValue: initValue)
+    }
+}
+
+// preprocess the original type to reveal its real structure
+private func normalize(ty: TsType): TsType {
+    match (ty) {
+        // arkui specific
+        case TsTypeRef("common.UIAbilityContext") => TsTypeRef("JSValue/* FIXME: `${ty.toString()}` */")
+        case TsTypeRef("Context") => TsTypeRef("JSValue/* FIXME: `${ty.toString()}` */")
+        case TsTypeRef("BaseContext") => TsTypeRef("JSValue/* FIXME: `${ty.toString()}` */")
+        case TsTypeRef("common.Context") => TsTypeRef("JSValue/* FIXME: `${ty.toString()}` */")
+
+        // ts data structures
+        case TsTypeRef("Record", arr) => normalize(TsTypeRef("HashMap", arr))
+
+        // js data structures
+        case TsTypeRef("Uint8Array") | TsTypeRef("ArrayBuffer") => TsArray(TsTypeRef("UInt8"))
+        case TsTypeRef("Float32Array") => TsArray(TsTypeRef("Float32"))
+
+        // general case
+        case TsTypeRef(x, arr) => TsTypeRef(x, arr.map(normalize))
+        case TsUnion(arr) => TsUnion(arr.map(normalize))
+        case TsIntersection(arr) => TsIntersection(arr.map(normalize))
+        case TsTuple(arr) => TsTuple(arr.map(normalize))
+        case TsFunction(r, params, t) => TsFunction(normalize(r),
+            params.map {p => TsParameter(p.name, normalize(p.ty), p.optional)}, t)
+        case TsArray(t) => TsArray(normalize(t))
+        case _ => ty
+    }
+}
+
+private func toCODEType(ty: TsType): String {
+    match (ty) {
+        case TsNumber => f64
+        case TsString => str
+        case TsVoid => unit
+        case TsBoolean => bool
+        case TsBigInt => "BigInt"
+        case TsAny => "JSValue/* FIXME: `${ty}` */"
+
+        case TsFunction(ret, params, generics) =>
+            if (generics.size > 0) {
+                // code doesn't support type-node level type parameter
+                // type parameters should be extracted to the outer interface definition
+                println("WARNING: type parameters are not supported in type node - ${ty}")
+            }
+            func opt(p: TsParameter) {
+                if (p.optional) {
+                    quote(?)
+                } else {
+                    quote()
+                }
+            }
+            "(${params.map {it => "${opt(it)}${toCODEType(it.ty)}"} |> collectString<String>(delimiter: ", ")}) -> ${toCODEType(ret)}" +
+                if (generics.size > 0) {
+                "/* FIXME: `${ty}` */"
+            } else {
+                ""
+            }
+        case TsArray(elemTy) => "Array<${toCODEType(elemTy)}>"
+        case TsOptional(elemTy) => "Option<${toCODEType(elemTy)}>"
+        case TsTuple(elems) => "(${elems.map(toCODEType) |> collectString<String>(delimiter: ", ")})"
+        case TsUnion(elems) =>
+            let nonNullTypes: ArrayList<TsType> = ArrayList<TsType>()
+            for (e in elems) {
+                match (e) {
+                    case TsNull | TsUndefined => ()
+                    case _ => nonNullTypes.add(e)
+                }
+            }
+            if (nonNullTypes.size == 1) {
+                return "Option<${toCODEType(nonNullTypes[0])}>"
+            }
+            println("WARNING: type is not supported - ${ty}")
+            "JSValue/* FIXME: `${ty}` */"
+        case TsTypeRef(x) =>
+            if (userDefinedNames.contains(x) || x.startsWith("AutoGenType")) {
+                return x
+            } else {
+                return "JSValue/* FIXME: `${x}` */"
+            }
+        case TsTypeRef("Promise", _) => "JSValue/* FIXME: `${ty}` */"
+        case TsTypeRef(x, arr) =>
+             if (userDefinedNames.contains(x) || x.startsWith("AutoGenType")) {
+                "${x}<${arr.map(toCODEType) |> collectString<String>(delimiter: ", ")}>"
+            } else {
+                "JSValue/* FIXME: `${x}` */"
+            }
+
+        case _ =>
+            println("WARNING: type is not supported - ${ty}")
+            "JSValue/* FIXME: `${ty}` */"
+    }
+}
+
+private func genTo(tsType: TsType, gconfig: GlobalConfig, targetObj: Tokens, ctxParam: Tokens, typeName: ?String,
+    isOptional: Bool, arr!: ?Array<TsType> = None): Tokens {
+    var isEnum = false
+    var isHashMap = false
+    var isAsyncCallback = false
+    var isCallback = false
+    if (let Some(v) <- typeName) {
+        isEnum = gconfig.isEnum(v)
+        isHashMap = v == "HashMap"
+        isAsyncCallback = v == "AsyncCallback"
+        isCallback = v == "Callback"
+    }
+    let get = if (isEnum) {
+        quote(.get())
+    } else {
+        quote()
+    }
+    if (isHashMap) {
+        let firstParam = toCODEType(arr.getOrThrow()[0])
+        let secondParam = toCODEType(arr.getOrThrow()[1])
+        let res = Token(TokenKind.IDENTIFIER, "hashmap2Record<${firstParam}, ${secondParam}>")
+        if (secondParam.startsWith("JSValue")) {
+            quote($(res)($(ctxParam), $(targetObj)$(get), {context, i => i}))
+        } else {
+            quote($(res)($(ctxParam), $(targetObj)$(get), {context, i => i.toJSValue(context)}))
+        }
+    } else if (isCallback) {
+        // Callback<T> = (arg: T) -> Unit
+        let tsFunction = TsFunction(TsVoid, [TsParameter("arg", arr.getOrThrow()[0], false)], [TsGeneric(arr.getOrThrow()[0].toString())])
+        return tsFunction.toJSValue(gconfig, quote($(targetObj)), quote($(ctxParam)), isOptional: isOptional)
+    } else if (isAsyncCallback) {
+        let genericParameter = Token(TokenKind.IDENTIFIER, toCODEType(arr.getOrThrow()[0]))
+        let getOrThrow = if (isOptional) {
+            quote(.getOrThrow())
+        } else {
+            quote()
+        }
+        let toValue = quote(asyncCallbackWrapper<$(genericParameter)>($(ctxParam), $(targetObj)$(getOrThrow)))
+        if (isOptional) {
+            quote(match ($(targetObj)) {
+                case None => $(ctxParam).undefined().toJSValue()
+                case _ => $(toValue)
+            })
+        } else {
+            toValue
+        }
+    } else {
+        let toValue = if (toCODEType(tsType).startsWith("JSValue")) {
+            quote()
+        } else {
+            quote(.toJSValue($(ctxParam)))
+        }
+        if (isOptional) {
+            quote(match ($(targetObj)) {
+                case None => $(ctxParam).undefined().toJSValue()
+                case _ => $(targetObj).getOrThrow()$(get)$(toValue)
+            })
+        } else {
+            quote($(targetObj)$(get)$(toValue))
+        }
+    }
+}
+
+private func wrapJSFunc(ret: TsType, gconfig: GlobalConfig, ctxParam: Tokens, params: Array<TsParameter>, f: Tokens) {
+    // function.toJS would involve params.fromJs
+    let innerCtx = quote(ctx)
+    let callInfo = quote(info)
+    // 1. transform each parameter from js value
+    let transformParams = params.map {
+        p, i =>
+        let varName = Token(TokenKind.IDENTIFIER, "p${i}")
+        let pValue = quote($(callInfo)[$(i)])
+        let pFromJS = fromJSValue(p.ty, gconfig, pValue, innerCtx)
+        quote(let $(varName) = $(pFromJS))
+    } |> reduce {v: Tokens, elem: Tokens => v + nl + elem}
+
+    let paramList = Token(TokenKind.IDENTIFIER,
+        params.map {_: TsParameter, i: Int64 => "p${i}"} |> collectString<String>(delimiter: ", "))
+    // 2. make the call (in code world)
+    let call = quote($(f)($(paramList)))
+    // avoid unused parameter
+    let paramInfos = if (params.isEmpty()) {
+        quote($(innerCtx), _)
+    } else {
+        quote($(innerCtx), $(callInfo))
+    }
+    // 3. transform return value to js as necessary
+    let callAndHandleRet = if (let TsVoid <- ret) {
+        quote($(call)
+            $(innerCtx).undefined().toJSValue())
+    } else {
+        let retToJs = toJSValue(ret, gconfig, quote(ret), innerCtx)
+        quote(let ret = $(call)
+            $(retToJs))
+    }
+    // handle parameters as necessary
+    if (params.isEmpty()) {
+        quote($(ctxParam).function({$(paramInfos) =>
+            $(callAndHandleRet)
+        }).toJSValue())
+    } else {
+        quote($(ctxParam).function({$(paramInfos) =>
+            $(transformParams.getOrThrow())
+            $(callAndHandleRet)
+        }).toJSValue())
+    }
+}
+
+/**
+ * Generates a code expression that converts a code value to a js value.
+ */
+private func toJSValue(tsType: TsType, gconfig: GlobalConfig, targetObj: Tokens, ctxParam: Tokens,
+    isOptional!: Bool = false, initValue!: ?String = None): Tokens {
+    let optional = isOptional && initValue.isNone()
+    match (tsType) {
+        case TsBigInt => quote($(ctxParam).bigint($(targetObj)).toJSValue())
+        case TsTypeRef(typeName) => genTo(tsType, gconfig, targetObj, ctxParam, Some(typeName), optional)
+        case TsTypeRef(typeName, array) => genTo(tsType, gconfig, targetObj, ctxParam, Some(typeName), optional,
+            arr: array)
+        case TsUnion(elems) =>
+            let nonNullTypes: ArrayList<TsType> = ArrayList<TsType>()
+            for (e in elems) {
+                match (e) {
+                    case TsNull | TsUndefined => ()
+                    case _ => nonNullTypes.add(e)
+                }
+            }
+            if (nonNullTypes.size == 1) {
+                return toJSValue(nonNullTypes[0], gconfig, targetObj, ctxParam, isOptional: true)
+            }
+            return genTo(tsType, gconfig, targetObj, ctxParam, None, optional)
+        case TsFunction(ret, params, _) =>
+            if (optional) {
+                let wrapped = wrapJSFunc(ret, gconfig, ctxParam, params, quote(v))
+                quote(match ($(targetObj)) {
+                    case None => $(ctxParam).undefined().toJSValue()
+                    case Some(v) => $(wrapped)
+                })
+            } else {
+                wrapJSFunc(ret, gconfig, ctxParam, params, targetObj)
+            }
+        case TsArray(elemType) => toJSArray(elemType, gconfig, targetObj, ctxParam)
+        case TsTuple(arrayTsType) => toJSTuple(arrayTsType, gconfig, targetObj, ctxParam)
+        case _ => genTo(tsType, gconfig, targetObj, ctxParam, None, optional)
+    }
+}
+
+private func toJSArray(elemType: TsType, gconfig: GlobalConfig, targetObj: Tokens, ctxParam: Tokens): Tokens {
+    let innerType = elemType.toCODETypeTokens()
+    match (elemType) {
+        case TsNumber | TsString | TsBoolean => quote(toJSArray<$(innerType)>($(ctxParam), $(targetObj)))
+        case _ =>
+            let elemCtx = quote(ctx)
+            let elemValue = quote(val)
+            let elemToJS = toJSValue(elemType, gconfig, elemValue, elemCtx)
+            let transformElements = quote({$(elemCtx): JSContext, $(elemValue): $(innerType) => $(elemToJS)})
+            quote(toJSArray<$(innerType)>($(ctxParam), $(targetObj), $(transformElements)))
+    }
+}
+
+private func toJSTuple(arrayTsType: Array<TsType>, gconfig: GlobalConfig, targetObj: Tokens, ctxParam: Tokens): Tokens {
+    var jsArr = quote([)
+    for (i in 0..arrayTsType.size) {
+        jsArr += arrayTsType[i].toJSValue(gconfig, targetObj + quote([$(i)]), ctxParam)
+        if (i != arrayTsType.size - 1) {
+            jsArr += quote(,)
+        }
+    }
+    jsArr += quote(])
+    return quote($(ctxParam).array($(jsArr)).toJSValue())
+}
+
+private func genFrom(tsType: TsType, gconfig: GlobalConfig, targetObj: Tokens, ctxParam: Tokens,
+    isOptional!: Bool = false, initValue!: ?String = None) {
+    let codeType = tsType.toCODETypeTokens()
+    let opt = isOptional && initValue.isNone()
+    let tsTypeStr = tsType.toString()
+    let fromValue = if (toCODEType(tsType).startsWith("JSValue")) {
+        quote($(targetObj))
+    } else {
+        quote(.fromJSValue($(ctxParam),$(targetObj)))
+    }
+    if (gconfig.isEnum(tsTypeStr)) {
+        let parse = if (opt) {
+            quote(tryParse)
+        } else {
+            quote(parse)
+        }
+        let elemType = match (gconfig.moduleMeta.symbols.get(tsTypeStr)) {
+            case Some("enum-string") => quote(String)
+            case Some(_) | None => quote(Int32)
+        }
+        let valueType = if (opt) {
+            quote(Option<$(elemType)>)
+        } else {
+            elemType
+        }
+        return quote($(codeType).$(parse)($(valueType)$(fromValue)))
+    }
+    if (toCODEType(tsType).startsWith("JSValue")) {
+        quote($(fromValue))
+    } else {
+        if (opt) {
+            quote(
+                if ($(targetObj).isNull()) {
+                    None<$(codeType)>
+                } else {
+                    $(codeType)$(fromValue)
+                })
+        } else {
+            quote($(codeType)$(fromValue))
+        }
+    }
+}
+
+private func genFunction(ret: TsType, gconfig: GlobalConfig, targetObj: Tokens, ctxParam: Tokens,
+    params: Array<TsParameter>, isOptional!: Bool = false): Tokens {
+    let innerCtx = quote(ctx)
+
+    // "name0: type0, name1: type1, ..."
+    let paramList = (params
+        .map {
+            p =>
+            let pVar = Token(TokenKind.IDENTIFIER, p.name)
+            let opt = if (p.optional) {
+                quote(?)
+            } else {
+                quote()
+            }
+            quote($(pVar): $(opt)$(p.ty.toCODETypeTokens()))
+        } |> reduce {l: Tokens, r: Tokens => l + quote(,) + r})
+        .getOrDefault {=> quote()}
+
+    // "arg0, arg1, ..."
+    let args = (params.map {
+        _, i =>
+        let pVar = Token(TokenKind.IDENTIFIER, "arg${i}")
+        Tokens(pVar)
+    } |> reduce {
+        l: Tokens, r: Tokens => l + quote(,) + r
+    })
+
+    // "let argX = nameX toJs"
+    let prepareArgs = params.map {
+        p, i =>
+        let pVar = Token(TokenKind.IDENTIFIER, "arg${i}")
+        let pName = Token(TokenKind.IDENTIFIER, p.name)
+        let argToJs = toJSValue(p.ty, gconfig, Tokens(pName), innerCtx, isOptional: p.optional)
+        quote(let $(pVar) = $(argToJs))
+    } |> fold(quote()) {l, r => l + nl + r}
+
+    let call = if (params.size > 0) {
+        quote($(targetObj).asFunction().call([$(args.getOrThrow())]))
+    } else {
+        quote($(targetObj).asFunction().call())
+    }
+    let noReturn = if (let TsVoid <- ret) {
+        true
+    } else {
+        false
+    }
+    let innerBody = if (noReturn) {
+        call
+    } else {
+        let retFromJS = fromJSValue(ret, gconfig, quote(ret), innerCtx)
+        quote(let ret = $(call)
+            $(retFromJS))
+    }
+
+    // avoid unused parameter
+    let innerCtxParam = if (noReturn && params.isEmpty()) {
+        quote(_)
+    } else {
+        innerCtx
+    }
+
+    let funcValue = quote({$(paramList) =>
+        checkThreadAndCall<$(ret.toCODETypeTokens())>($(ctxParam), {$(innerCtxParam) => $(prepareArgs)
+            $(innerBody)
+        })
+    })
+    if (isOptional) {
+        quote(if ($(targetObj).isUndefined()) {
+            None
+        } else {
+            $(funcValue)
+        })
+    } else {
+        funcValue
+    }
+}
+
+private func fromJSValue(tsType: TsType, gconfig: GlobalConfig, targetObj: Tokens, ctxParam: Tokens,
+    isOptional!: Bool = false, initValue!: ?String = None): Tokens {
+    match (tsType) {
+        case TsBigInt => quote($(targetObj).asBigInt().toBigInt())
+        case TsArray(elemType) => fromJSArray(elemType, gconfig, targetObj, ctxParam, isOptional: isOptional,
+            initValue: initValue)
+        case TsTuple(elems) =>
+            var result = quote(\()
+            var index = 0
+            for (e in elems) {
+                let indexQuote = Token(TokenKind.IDENTIFIER, "${index}")
+                let targetObjWithIndex = targetObj + quote(.asArray()[$(indexQuote)])
+                result += genFrom(e, gconfig, targetObjWithIndex, ctxParam, isOptional: isOptional, initValue: initValue)
+                if (index != elems.size - 1) {
+                    result += quote(,)
+                }
+                index += 1
+            }
+            result += quote(\))
+            return result
+        case TsTypeRef("HashMap", array) =>
+            let secondParam = array[1].toCODETypeTokens()
+            var res = Token(TokenKind.IDENTIFIER, "record2Hashmap<${secondParam}>")
+            let fromJSToken = array[1].fromJSValue(gconfig, quote(i), quote(context))
+            if (isOptional) {
+                quote(
+                    if ($(targetObj).isNull()) {
+                        None<HashMap<String, $(secondParam)>>
+                    } else {
+                        $(res)($(ctxParam), $(targetObj), {context, i => $(fromJSToken)})
+                    }
+                )
+            } else {
+                quote($(res)($(ctxParam), $(targetObj), {context, i => $(fromJSToken)}))
+            }
+        case TsTypeRef("Callback", array) =>
+            let tsFunction = TsFunction(TsVoid, [TsParameter("arg", array[0], false)], [TsGeneric(array[0].toString())])
+            tsFunction.fromJSValue(gconfig, quote($(targetObj)), quote($(ctxParam)))
+        case TsUnion(elems) =>
+            let nonNullTypes: ArrayList<TsType> = ArrayList<TsType>()
+            for (e in elems) {
+                match (e) {
+                    case TsNull | TsUndefined => ()
+                    case _ => nonNullTypes.add(e)
+                }
+            }
+            if (nonNullTypes.size == 1) {
+                return fromJSValue(nonNullTypes[0], gconfig, targetObj, ctxParam, isOptional: true)
+            }
+            genFrom(tsType, gconfig, targetObj, ctxParam, isOptional: isOptional, initValue: initValue)
+        case TsFunction(ret, params, _) => genFunction(ret, gconfig, targetObj, ctxParam, params, isOptional: isOptional)
+        case _ => genFrom(tsType, gconfig, targetObj, ctxParam, isOptional: isOptional, initValue: initValue)
+    }
+}
+
+private func fromJSArray(elemType: TsType, gconfig: GlobalConfig, targetObj: Tokens, ctxParam: Tokens,
+    isOptional!: Bool = false, initValue!: ?String = None) {
+    let opt = isOptional && initValue.isNone()
+    let from = if (opt) {
+        quote(fromJSArrayOption)
+    } else {
+        quote(fromJSArray)
+    }
+    match (elemType) {
+        case TsNumber | TsString | TsBoolean => quote($(from)<$(elemType.toCODETypeTokens())>($(ctxParam), $(targetObj)))
+        case _ =>
+            let elemCtx = quote(ctx)
+            let elemValue = quote(val)
+            let elemToJS = fromJSValue(elemType, gconfig, elemValue, elemCtx)
+            let transformElements = quote({$(elemCtx): JSContext, $(elemValue): JSValue => $(elemToJS)})
+            quote($(from)<$(elemType.toCODETypeTokens())>($(ctxParam), $(targetObj), $(transformElements)))
+    }
+}

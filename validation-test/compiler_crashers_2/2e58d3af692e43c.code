@@ -1,3 +1,0 @@
-// {"signature":"language::Parser::parseTypeSimple(language::Diag<>, language::Parser::ParseTypeReason)"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-subscript(a: ~b <

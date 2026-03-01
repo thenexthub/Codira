@@ -1,8 +1,0 @@
-// RUN: not %target-language-frontend -parse %s
-
-// https://github.com/apple/language/issues/60702
-
-@
-#if true
-    print("x")
-#endif

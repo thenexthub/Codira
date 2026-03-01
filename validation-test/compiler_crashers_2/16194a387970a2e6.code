@@ -1,3 +1,0 @@
-// {"signature":"language::TuplePattern::createSimple(language::ASTContext&, language::SourceLoc, toolchain::ArrayRef<language::TuplePatternElt>, language::SourceLoc)"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-switch { case (repeat a

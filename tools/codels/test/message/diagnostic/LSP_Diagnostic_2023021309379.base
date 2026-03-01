@@ -1,0 +1,1 @@
+{"id":null,"jsonrpc":"2.0","method":"textDocument/extendPublishDiagnostics","params":{"diagnostics":[],"uri":"file:///home/code_project/lsp_0219/test/testChr/test/2023021309379/src/pkgb/b.code"}}

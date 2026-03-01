@@ -1,3 +1,0 @@
-module ImplicitComputedProperties {
-  header "implicit-computed-properties.h"
-}

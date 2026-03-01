@@ -1,0 +1,1 @@
+{"id":"9","jsonrpc":"2.0","result":[{"deprecated":false,"detail":"(variable) internal let c: Int64 = 1","documentation":"","filterText":"c","insertText":"c","insertTextFormat":1,"kind":6,"label":"c","sortText":""}]}

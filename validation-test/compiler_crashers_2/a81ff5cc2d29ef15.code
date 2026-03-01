@@ -1,5 +1,0 @@
-// {"signature":"void language::Diagnostic::gatherArgs<language::Identifier, bool, language::TypeRepr*>(language::Identifier, bool, language::TypeRepr*)"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-// REQUIRES: objc_interop
-@objcMembers class a open extension a {
-  ...

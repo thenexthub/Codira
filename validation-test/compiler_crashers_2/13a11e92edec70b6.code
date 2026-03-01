@@ -1,3 +1,0 @@
-// {"signature":"language::Parser::parseStmtConditionElement(toolchain::SmallVectorImpl<language::StmtConditionElement>&, language::Diag<>, language::StmtKind, toolchain::StringRef&)"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-fn a: b[ if immutable

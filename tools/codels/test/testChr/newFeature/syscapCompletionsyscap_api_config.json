@@ -1,0 +1,12 @@
+{
+  "Modules": {
+    "default": {
+      "deviceSysCap": {
+        "phone": [
+          "/home/taoye/cangjie_dev/lsp/test/testChr/newFeature/syscapCompletion/sysconfig/phone.json",
+          "/home/taoye/cangjie_dev/lsp/test/testChr/newFeature/syscapCompletion/sysconfig/phone-hmos.json"
+        ]
+      }
+    }
+  }
+}

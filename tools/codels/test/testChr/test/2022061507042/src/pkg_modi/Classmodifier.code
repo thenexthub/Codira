@@ -1,0 +1,262 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+package pkg_modi
+
+open public class ModifierA{
+    init(deMoA:Int64){
+        var dMA:Int64 = deMoA
+        for (i in 0..5){
+           dMA +=1
+        }
+    }
+    
+    public init(puMoA:Int64,puMoB:Int64){
+        var pMA : Int64 = puMoA
+        var pMB : Int64 = puMoB
+        for (i in 0..5){
+            if (i < 2){
+                pMA +=2
+                continue
+            }else if (i == 3){
+                pMB -=1
+                break
+            }
+        }
+    }
+
+    private init(priMoA:Int64,priMoB:Int64,priMoC:Int64){
+        var prA: Int64 = priMoA
+        var prB: Int64 = priMoB
+        var prC: Int64 = priMoC
+        if (prA+prB+prC == 0){
+            prA +=1
+            prB +=2
+            prC +=3
+        }else if(prA+prB+prC < 0){
+            prA +=10
+            prB +=20
+            prC +=30
+        }
+    }
+
+    protected init(proMoA:Int64,proMoB:Int64,proMoC:Int64,proMoD:Int64){
+        // var proA: Int64 = proMoA
+        // var proB: Int64 = proMoB
+        // var proC: Int64 = proMoC
+        // var proD: Int64 = proMoD
+        // do{
+        //     proA = proB + proC + proD + 1
+        //     continue
+        //     if (proA % 3 == 0) {
+        //         break
+        //     }
+        // }while (proA > 0)
+    }
+
+    func MofuncA(deMoA:Int64){
+        var dMA:Int64 = deMoA
+        for (i in 0..5){
+           dMA +=1
+        }
+        return dMA - deMoA
+    }
+    public func MofuncB(puMoA:Int64,puMoB:Int64){
+        var pMA : Int64 = puMoA
+        var pMB : Int64 = puMoB
+        for (i in 0..5){
+            if (i < 2){
+                pMA +=2
+                continue
+            }else if (i == 3){
+                pMB -=1
+                break
+            }
+        }
+        return pMA + pMB - puMoA - puMoB
+    }
+    private func MofuncC(priMoA:Int64,priMoB:Int64,priMoC:Int64){
+        var prA: Int64 = priMoA
+        var prB: Int64 = priMoB
+        var prC: Int64 = priMoC
+        if (prA+prB+prC == 0){
+            prA +=1
+            prB +=2
+            prC +=3
+        }else if(prA+prB+prC < 0){
+            prA +=10
+            prB +=20
+            prC +=30
+        }
+        return prA + prB + prC - priMoA - priMoB - priMoC
+    }
+    protected func MofuncD(proMoA:Int64,proMoB:Int64,proMoC:Int64,proMoD:Int64){
+        var proA: Int64 = proMoA
+        var proB: Int64 = proMoB
+        var proC: Int64 = proMoC
+        var proD: Int64 = proMoD
+        do{
+            proA = proB + proC + proD + 1
+            continue
+            if (proA % 3 == 0) {
+                break
+            }
+        }while (proA > 0)
+        return proA
+    }
+
+    static func s_MofuncA(deMoA:Int64){
+        var dMA:Int64 = deMoA
+        for (i in 0..5){
+           dMA +=1
+        }
+        return dMA - deMoA
+    }
+    static public func s_MofuncB(puMoA:Int64,puMoB:Int64){
+        var pMA : Int64 = puMoA
+        var pMB : Int64 = puMoB
+        for (i in 0..5){
+            if (i < 2){
+                pMA +=2
+                continue
+            }else if (i == 3){
+                pMB -=1
+                break
+            }
+        }
+        return pMA + pMB - puMoA - puMoB
+    }
+    static private func s_MofuncC(priMoA:Int64,priMoB:Int64,priMoC:Int64){
+        var prA: Int64 = priMoA
+        var prB: Int64 = priMoB
+        var prC: Int64 = priMoC
+        if (prA+prB+prC == 0){
+            prA +=1
+            prB +=2
+            prC +=3
+        }else if(prA+prB+prC < 0){
+            prA +=10
+            prB +=20
+            prC +=30
+        }
+        return prA + prB + prC - priMoA - priMoB - priMoC
+    }
+    static protected func s_MofuncD(proMoA:Int64,proMoB:Int64,proMoC:Int64,proMoD:Int64){
+        var proA: Int64 = proMoA
+        var proB: Int64 = proMoB
+        var proC: Int64 = proMoC
+        var proD: Int64 = proMoD
+        do{
+            proA = proB + proC + proD + 1
+            continue
+            if (proA % 3 == 0) {
+                break
+            }
+        }while (proA > 0)
+        return proA
+    }
+
+    // // private测试
+    let init_default_1 = ModifierA  //同一作用域 private default public protected
+    let init_public_1 = ModifierA  //同一作用域 private default public protected
+    let init_protect_1 = ModifierA  //同一作用域 private default public protected
+    let init_private_1 = ModifierA   //同一作用域 private default public protected
+    let func_private = init_public. //同一作用域 private default public protected
+}
+
+open public class ModifierB <: ModifierA{
+    init (deMoA:Int64){
+        super(deMoA)
+    }
+    // 测试
+    // let init_1 = ModifierA ////父类中的private无法被扩展
+    // let fun_1 = init_1.  //父类中的private无法被扩展
+    // let s_func_1 = ModifierA. ////父类中的private无法被扩展
+}
+
+public class ModifierC <: ModifierB{
+    init (deMoA:Int64){
+        super(deMoA)
+        
+    }
+
+    // 测试
+    let init_1 = ModifierA ////父类中的private无法被扩展
+    let fun_1 = init_1.  //父类中的private无法被扩展
+    let s_func_1 = ModifierA. ////父类中的private无法被扩展
+}
+
+// 构造函数
+
+let init_default = ModifierA
+let init_public = ModifierA(1,-2)
+let init_private = ModifierA(1,-2,3)
+let init_protect = ModifierA(1,-2,3,-4)
+
+
+// 一般成员函数 场景
+let func_default = init_public.MofuncA(1)
+let func_public = init_public.MofuncB(1,-2)
+let func_private = init_public.MofuncC(1,-2,3)
+let func_protect = init_public.MofuncD(1,-2,3,-4)
+
+//本包静态
+let func_default_s = ModifierA.s_MofuncA(1)
+let func_public_s = ModifierA.s_MofuncB(1,-2)
+let func_private_s = ModifierA.s_MofuncC(1,-2,3)
+let func_protect_s = ModifierA.s_MofuncD(1,-2,3,-4)
+
+// 本包的 继承类的场景
+let inherPkg_init_default = ModifierB(2)
+
+let inherPkg_default = inherPkg_init_default.MofuncA(1)
+let inherPkg_public = inherPkg_init_default.MofuncB(1,-2)
+let inherPkg_private = inherPkg_init_default.MofuncC(1,-2,3)
+let inherPkg_protected = inherPkg_init_default.MofuncD(1,-2,3,-4)
+
+//本包继承静态
+let ModifierB_default_s = ModifierB.s_MofuncA(1)
+let ModifierB_public_s = ModifierB.s_MofuncB(1,-2)
+let ModifierB_private_s = ModifierB.s_MofuncC(1,-2,3)
+let ModifierB_protect_s = ModifierB.s_MofuncD(1,-2,3,-4)
+
+//本包深度继承静态
+let ModifierC_default_s = ModifierC.s_MofuncA(1)
+let ModifierC_public_s = ModifierC.s_MofuncB(1,-2)
+let ModifierC_private_s = ModifierC.s_MofuncC(1,-2,3)
+let ModifierC_protect_s = ModifierC.s_MofuncD(1,-2,3,-4)
+
+// 本包的 深层继承类的场景
+let inherPkg_init_default_deep = ModifierC(3)
+
+let inherPkg_default_deep = ModifierC(3).MofuncA(1)
+let inherPkg_public_deep = ModifierC(3).MofuncB(1,-2)
+let inherPkg_private_deep = ModifierC(3).MofuncC(1,-2,3)
+let inherPkg_protected_deep = ModifierC(3).MofuncD(1,-2,3,-4)
+
+//测试
+
+let t1 = ModifierA.   //portect public default
+let t2 = ModifierA(1).  //portect public default
+let t3 = ModifierB.  //portect public default
+let t4 = ModifierB(1).   //portect public default
+let t5 = ModifierC.   //portect public default
+

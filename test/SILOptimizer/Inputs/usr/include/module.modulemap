@@ -1,5 +1,0 @@
-
-module ClosureLifetimeFixupObjC {
-  header "closure_lifetime_fixup_objc.h"
-  export *
-}

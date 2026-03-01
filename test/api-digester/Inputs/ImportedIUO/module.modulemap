@@ -1,3 +1,0 @@
-module ImportedIUO {
-  header "imported_iuo.h"
-}

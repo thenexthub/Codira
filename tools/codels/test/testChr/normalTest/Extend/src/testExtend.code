@@ -1,0 +1,172 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+package default
+extend String {
+    func printSize() {
+        //print(this.size())
+    }
+}
+func name( )  {
+	"123".printSize() // 3
+}
+
+class Foo {}
+
+extend Foo {
+    /**
+    * this extended function
+    */
+    public func fExtend() {}
+    /*
+    *var修饰
+    */
+    mut prop extendedPrpo: Int64 {
+        get() {
+            return extendedPrpo
+        }
+        set(v) {
+            extendedPrpo = v + 1
+        }
+    }
+    static mut prop errorPrpo: Int64 {
+    
+        get() {
+            return errorPrpo
+        }
+        set(v) {
+            errorPrpo = v + 0.1
+        }
+    }
+    static mut prop staticPrpo: Int64 {
+        get() {
+            return 0
+        }
+        set(v) {
+            staticPrpo = v
+        }
+    }
+
+}
+func test1() {
+let a = Foo()
+    a.fExtend()     // ok
+    a.extendedPrpo  //ok
+    Foo.staticPrpo  //ok
+    return 0
+}
+
+class FooGenerics<T> {}
+extend<T> FooGenerics<T> {} // ok
+extend<R> FooGenerics<R> {} // error
+extend FooGenerics {} // error
+
+interface I1 {
+func f1(): Unit
+}
+interface I2 {
+func f2(): Unit
+}
+interface I3 {
+func f3(): Unit
+}
+class MultipleInheritance {}
+extend MultipleInheritance <: I1 & I2 & I3 {
+func f1(): Unit {}
+func f2(): Unit {}
+func f3(): Unit {}
+}
+
+interface I {
+func f(): Unit
+}
+class Single  {}
+extend Single  <: I {
+    func f(): Unit {}
+}
+func testInterfaceExtend() {
+    var i1:I1 = MultipleInheritance()
+    i1.f1()
+
+    var multipleInheritance = MultipleInheritance()
+    multipleInheritance.f1()
+
+    var single  = Single ()
+    single.f()
+
+    var i:I = Single ()
+    i.f()
+}
+
+enum TimeUnit {
+    Year|
+    Month(Int64)|Day(Int64,Int64)
+}
+
+extend TimeUnit {
+    /**
+    * this extended function of enum
+    */
+    public func enumFuncExtend() {}
+    static public func staticFuncExtend() {}
+    /*
+    *var修饰
+    */
+    mut prop extendedPrpo: Int64 {
+        get() {
+            return extendedPrpo
+        }
+        set(v) {
+            extendedPrpo = v + 1
+        }
+    }
+    static mut prop errorPrpo: Int64 {
+    
+        get() {
+            return errorPrpo
+        }
+        //error
+        set(v) {
+            errorPrpo = v + 0.1
+        }
+    }
+    static mut prop staticPrpo: Int64 {
+        get() {
+            return 0
+        }
+        set(v) {
+            staticPrpo = v
+        }
+    }
+}
+
+func testEumExtend() {
+    TimeUnit.Day(1, 2).extendedPrpo //OK
+    TimeUnit.Day(1, 2).errorPrpo //error
+    TimeUnit.Year.extendedPrpo //OK
+    TimeUnit.Year.staticPrpo //error
+    TimeUnit.staticPrpo //OK
+    TimeUnit.enumFuncExtend() //error
+    var day = TimeUnit.Day(1, 2) //ok
+    day.enumFuncExtend() //ok
+    day.staticFuncExtend() //error
+    TimeUnit.staticFuncExtend() //ok
+}

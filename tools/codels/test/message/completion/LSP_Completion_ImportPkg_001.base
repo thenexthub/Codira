@@ -1,0 +1,1 @@
+{"id":"9","jsonrpc":"2.0","result":[{"deprecated":false,"detail":"packageName","documentation":"","filterText":"pkgA","insertText":"pkgA","insertTextFormat":1,"kind":9,"label":"pkgA","sortText":""},{"deprecated":false,"detail":"packageName","documentation":"","filterText":"pkgB","insertText":"pkgB","insertTextFormat":1,"kind":9,"label":"pkgB","sortText":""}]}

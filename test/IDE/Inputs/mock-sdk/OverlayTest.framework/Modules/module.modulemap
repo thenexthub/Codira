@@ -1,7 +1,0 @@
-framework module OverlayTest {
-  umbrella header "OverlayTest.h"
-
-  export *
-  module * { export * }
-}
-

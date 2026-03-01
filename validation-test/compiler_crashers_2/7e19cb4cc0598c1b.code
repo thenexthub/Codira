@@ -1,3 +1,0 @@
-// {"signature":"language::Expr::getArgs() const"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-struct a<immutable b: Int?{ int: Int { b

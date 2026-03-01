@@ -1,0 +1,153 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package hle.tool
+
+import std.collection.*
+import stdx.serialization.serialization.*
+
+public enum TsType {
+    | TsTypeRef(String) // SomeType, without generics
+    | TsTypeRef(String, Array<TsType>) // SomeType<TP1, TP2, ...>, with generics
+    | TsUnion(Array<TsType>) // T1 | T2 | ...
+    | TsIntersection(Array<TsType>) // T1 & T2 & ...
+    | TsTuple(Array<TsType>)
+    | TsFunction(TsType, Array<TsParameter>, Array<TsGeneric>) // (TReturn, ...parameters)
+    | TsArray(TsType)
+    | TsOptional(TsType)
+    | TsNumber // number
+    | TsString // string
+    | TsBoolean // boolean
+    | TsBigInt // bigint
+    | TsSymbol // symbol
+    | TsStringLiteral(String) // string literal type. eg: "abc", "hello"
+    | TsNumberLiteral(Int64) // number literal type // TODO: support floating point numbers
+    | TsTypeLiteral(Array<TsMember>) // raw object type, such as { x: number }
+    | TsRawObjectType // object
+    | TsUnknown // unknown
+    | TsAny // any
+    | TsUndefined // undefined
+    | TsNull // null
+    | TsVoid // void
+    | TsNever // never
+    | TsUnsupportedType(String)
+
+    public static func fromSExp(exp: String): TsType {
+        TypeParser(exp).parse()
+    }
+}
+
+public enum TsMember {
+    // ts property signature, eg: `{ x: number; y: string }`
+    | TsProperty( /*name:*/ String, /*ty:*/ TsType, /*optional:*/ Bool)
+    // ts index signature, eg: `{[x: number]: string; [y: string]: string}`
+    | TsIndexSignature( /*key:*/ TsType, /*ty:*/ TsType)
+    // ts call signature, eg: `{ (): void; (n: number): string }`
+    | TsCallSignature( /*returnType:*/ TsType, /*parameters:*/ Array<TsParameter>, /*generics:*/ Array<TsGeneric>)
+}
+
+// ts parameter, for example, the `x: number` part in `(x: number) => void` or `{ [x: number]: string }`
+public class TsParameter {
+    public TsParameter(var name: String, var ty: TsType, let optional: Bool) {}
+}
+
+public struct TsGeneric {
+    public TsGeneric(let name: String, let constraint!: ?TsType = None) {}
+}
+
+extend TsType <: ToString {
+    public func toString(): String {
+        match (this) {
+            case TsTypeRef(s) => s
+            case TsTypeRef(t, params) => "${t}<${params.map {it => it.toString()} |> collectString<String>(delimiter: ", ")}>"
+            case TsUnion(list) => list.map {it => it.toString()} |> collectString<String>(delimiter: " | ")
+            case TsIntersection(list) => list.map {it => it.toString()} |> collectString<String>(delimiter: " & ")
+            case TsTuple(list) => "(${list.map {it => it.toString()} |> collectString<String>(delimiter: ", ")})"
+            case TsFunction(ret, params, generics) =>
+                let tp = generics.map {it => it.toString()} |> collectString<String>(delimiter: ", ")
+                "${if (tp.isEmpty()) { tp } else { "<${tp}>" }}(${params.map {it => it.toString()} |> collectString<String>(delimiter: ", ")}) => ${ret.toString()}"
+            case TsArray(t) => match (t) {
+                case TsUnion(_) => "(${t.toString()})[]"
+                case _ => "${t.toString()}[]"
+            }
+            case TsOptional(t) => "${t.toString()}?"
+            case TsNumber => "number"
+            case TsString => "string"
+            case TsBoolean => "boolean"
+            case TsBigInt => "bigint"
+            case TsSymbol => "symbol"
+            case TsStringLiteral(s) => "\"${s}\""
+            case TsNumberLiteral(n) => "${n}"
+            case TsTypeLiteral(members) => "{ ${members.map {member => member.toString()} |> collectString<String>(delimiter: "; ")} }"
+            case TsRawObjectType => "object"
+            case TsUnknown => "unknown"
+            case TsAny => "any"
+            case TsUndefined => "undefined"
+            case TsNull => "null"
+            case TsVoid => "void"
+            case TsNever => "never"
+            case TsUnsupportedType(s) => "UnsupportedType[${s}]"
+        }
+    }
+}
+
+extend TsMember <: ToString {
+    public func toString(): String {
+        match (this) {
+            case TsProperty(name, ty, optional) => "${name}${if (optional) { "?" } else { "" }}: ${ty.toString()}"
+            case TsIndexSignature(key, ty) => "[${key.toString()}]: ${ty.toString()}"
+            case TsCallSignature(returnType, parameters, generics) =>
+                let tp = generics.map {it => it.toString()} |> collectString<String>(delimiter: ", ")
+                "${if (tp.isEmpty()) { tp } else { "<${tp}>" }}(${parameters.map {p => p.toString()} |> collectString<String>(delimiter: ", ")}) => ${returnType.toString()}"
+        }
+    }
+}
+
+extend TsParameter <: Serializable<TsParameter> & ToString {
+    public func toString(): String {
+        "${name}${if (this.optional) { "?" } else { "" }}: ${this.ty.toString()}"
+    }
+
+    public func serialize(): DataModel {
+        throw UnsupportedException("todo")
+    }
+
+    public static func deserialize(dm: DataModel): TsParameter {
+        let dms1 = match (dm) {
+            case data: DataModelStruct => data
+            case _ => throw IllegalArgumentException("this data is not DataModelStruct")
+        }
+        let optional = match (dms1.get("optional")) {
+            case data: DataModelBool => Bool.deserialize(data)
+            case _ => false
+        }
+        let typeString = String.deserialize(dms1.get("type"))
+        let parser = TypeParser(typeString)
+        TsParameter(String.deserialize(dms1.get("name")), parser.parse(), optional)
+    }
+}
+
+extend TsGeneric <: ToString {
+    public func toString(): String {
+        "${name}${if (let Some(p) <- constraint) { " extends ${p}" } else { "" }}"
+    }
+}

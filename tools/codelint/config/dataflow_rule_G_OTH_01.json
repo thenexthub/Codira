@@ -1,0 +1,25 @@
+{
+  "SensitiveKeyword": [
+    "pwd",
+    "key",
+    "passwd",
+    "password",
+    "iv",
+    "token",
+    "cipher",
+    "pswd",
+    "psd",
+    "crypt",
+    "dec",
+    "enc",
+    "encode",
+    "auth",
+    "sms",
+    "message",
+    "mail",
+    "session",
+    "secret",
+    "session",
+    "account"
+  ]
+}

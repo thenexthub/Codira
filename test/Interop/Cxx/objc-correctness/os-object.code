@@ -1,8 +1,0 @@
-// RUN: %target-language-frontend -typecheck -verify -I %S/Inputs -cxx-interoperability-mode=language-5.9 %s
-// REQUIRES: objc_interop
-
-import OSObject
-
-extension my_object_t {
-  fn dummy() {}
-}

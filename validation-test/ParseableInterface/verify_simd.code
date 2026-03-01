@@ -1,8 +1,0 @@
-// Note that this test should still "pass" when simd.languageinterface has not been
-// generated.
-
-// RUN: %empty-directory(%t)
-// RUN: test ! -e %platform-sdk-overlay-dir/simd.languagemodule/%target-cpu.languageinterface || %target-language-frontend -build-module-from-parseable-interface %platform-sdk-overlay-dir/simd.languagemodule/%target-cpu.languageinterface -o %t/simd.languagemodule
-
-// REQUIRES: nonexecutable_test
-// REQUIRES: objc_interop

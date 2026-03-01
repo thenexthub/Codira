@@ -1,0 +1,108 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package ohos
+
+import ohos.labels.Hide
+
+@Hide
+open class AAA {
+    open public func xxxx() {
+
+    }
+}
+
+open class BBB {
+    @Hide
+    open public func yyyy() {
+
+    }
+
+    @Hide
+    open public prop name: String {
+        get() {
+            return "BBB"
+        }
+    }
+
+    @Hide
+    public let value: Int64 = 100
+}
+
+@Hide
+extend BBB {
+    // @Hide
+    public func zzzz() {
+
+    }
+}
+
+extend BBB {
+    @Hide
+    public func pppp() {
+
+    }
+}
+
+open class CCC {
+    // @Hide
+    public CCC (
+        @Hide
+        public let x: Int64,
+        public let y: Int64
+    ){
+
+    }
+}
+
+open class DDD {
+    @Hide
+    public init() {
+
+    }
+}
+
+enum EEE {
+    A |
+    B |
+    @Hide
+    AA
+
+    @Hide
+    public func isHidden(): Bool {
+        return true
+    }
+}
+
+@Hide
+public var hiddenGlobal: Int64 = 42
+
+@Hide
+public func hiddenFunc(): Int64 {
+    return 123
+}
+
+public interface T2<T> {
+    @Hide
+    func bar() {
+    }
+}

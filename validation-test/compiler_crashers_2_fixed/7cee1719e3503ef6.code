@@ -1,3 +1,0 @@
-// {"signature":"language::GenericParamKey::findIndexIn(toolchain::ArrayRef<language::GenericTypeParamType*>) const"}
-// RUN: not %target-language-frontend -typecheck %s
-a[[[[ a a?[[a a?

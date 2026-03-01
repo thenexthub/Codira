@@ -1,4 +1,0 @@
-// {"signature":"(anonymous namespace)::ConnectedComponents::unionSets(language::TypeVariableType*, language::TypeVariableType*)"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-immutable b = ( c , d a {
-e b

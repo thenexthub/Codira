@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","method":"textDocument/extendPublishDiagnostics","params":{"diagnostics":[],"uri":"file:///d%3A/DevecoPro/60_pro/MyApplication9/src/A/a.code"}}

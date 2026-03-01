@@ -1,6 +1,0 @@
-// {"kind":"complete","signature":"language::constraints::ConstraintSystem::addConstraintImpl(language::constraints::ConstraintKind, language::Type, language::Type, language::constraints::ConstraintLocatorBuilder, bool)"}
-// RUN: not --crash %target-language-ide-test -code-completion -batch-code-completion -skip-filecheck -code-completion-diagnostics -source-filename %s
-@propertyWrapper struct a {
-wrappedValue: Bool init(wrappedValue: Bool
-var projectedValue init(projectedValue: ) fn b(@a ) {
-b#^^#

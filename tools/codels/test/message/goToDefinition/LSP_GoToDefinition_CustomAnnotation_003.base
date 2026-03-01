@@ -1,0 +1,1 @@
+{"id":27,"jsonrpc":"2.0","result":{"range":{"end":{"character":20,"line":15},"start":{"character":16,"line":15}},"uri":"file:///d%3A/Project/CodiraLSP/dev/lsp/test/testChr/normalTest/CustomAnnotation2/src/main.code"}}

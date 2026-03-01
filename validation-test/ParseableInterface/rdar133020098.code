@@ -1,5 +1,0 @@
-// RUN: %target-language-frontend -typecheck %s
-
-// REQUIRES: OS=macosx
-
-import System

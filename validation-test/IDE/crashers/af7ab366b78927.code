@@ -1,6 +1,0 @@
-// {"kind":"complete","original":"33e6423a","signature":"language::printContext(toolchain::raw_ostream&, language::DeclContext*)"}
-// RUN: not --crash %target-language-ide-test -code-completion -batch-code-completion -skip-filecheck -code-completion-diagnostics -source-filename %s
-extension {
-  subscript -> {
-    @
-    #^^#

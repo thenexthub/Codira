@@ -1,0 +1,1 @@
+{"id":110,"jsonrpc":"2.0","result":{"range":{"end":{"character":12,"line":10},"start":{"character":10,"line":10}},"uri":"file:///home/***/server/Codira-language-server/test/testChr/normalTest/Interface/src/Interface.code"}}

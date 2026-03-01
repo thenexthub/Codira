@@ -1,0 +1,1 @@
+{"id":"9","jsonrpc":"2.0","result":{"range":{"end":{"character":14,"line":10},"start":{"character":8,"line":10}},"uri":"file:///d%3A/Work/repo/Char/Fork/cangjie_language_server/test/testChr/normalTest/CaptureOfVariables/src/cature.code"}}

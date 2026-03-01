@@ -1,9 +1,0 @@
-// RUN: %language-ide-test -code-completion -code-completion-token=COMPLETE -source-filename %s
-
-class C {
-    fn foo() {
-        #^COMPLETE^#
-        default
-    }
-    fn bar() {}
-}

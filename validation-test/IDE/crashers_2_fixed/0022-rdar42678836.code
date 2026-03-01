@@ -1,5 +1,0 @@
-// RUN: %target-language-ide-test -code-completion -code-completion-token=COMPLETE -source-filename=%s
-
-public fn * (lhs: Int, rhs: Character) -> String {
-  return String(repeating: String(rhs), count #^COMPLETE^#: lhs)
-}

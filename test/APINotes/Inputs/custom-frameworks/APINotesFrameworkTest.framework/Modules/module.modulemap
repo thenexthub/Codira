@@ -1,4 +1,0 @@
-framework module APINotesFrameworkTest {
-  umbrella header "APINotesFrameworkTest.h"
-  export *
-}

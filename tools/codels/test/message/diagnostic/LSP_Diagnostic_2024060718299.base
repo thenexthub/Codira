@@ -1,0 +1,1 @@
+{"id":null,"jsonrpc":"2.0","method":"textDocument/extendPublishDiagnostics","params":{"diagnostics":[{"category":511,"code":511,"message":"package name supposed to be 'demo'","range":{"end":{"character":9,"line":6},"start":{"character":8,"line":6}},"severity":1,"source":"Codira"}],"uri":"file:///home/zzk/code/demo/src/main.code"}}

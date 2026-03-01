@@ -1,0 +1,1 @@
+{"id":"157","jsonrpc":"2.0","result":{"range":{"end":{"character":18,"line":16},"start":{"character":12,"line":16}},"uri":"file:///d%3A/test/testChr/newFeature/gotoDefinition4Import/src/pkg/test.code"}}

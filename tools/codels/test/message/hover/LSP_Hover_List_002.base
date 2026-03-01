@@ -1,0 +1,1 @@
+{"id":"7","jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: list01.code\nPackage info: default\n\n(variable) internal let list0: Array<ToString> = [1, 2, 3, emptyList, 3, 2, 1]\n"},"range":{"end":{"character":20,"line":9},"start":{"character":15,"line":9}}}}

@@ -1,4 +1,0 @@
-// {"signature":"(anonymous namespace)::ABIDependencyEvaluator::computeABIDependenciesForModule(language::ModuleDecl*)"}
-// RUN: not %target-language-frontend -typecheck %s
-switch {
-case init

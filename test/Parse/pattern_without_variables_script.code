@@ -1,4 +1,0 @@
-// RUN: %target-typecheck-verify-language
-
-_ = 1
-

@@ -1,3 +1,0 @@
-struct SomeCStruct {
-  int value;
-};

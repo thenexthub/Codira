@@ -1,3 +1,0 @@
-// {"signature":"language::constraints::ConstraintSystem::recordKeyPath(language::KeyPathExpr const*, language::TypeVariableType*, language::TypeVariableType*, language::DeclContext*)"}
-// RUN: not --crash %target-language-frontend -typecheck %s
-enum a { b->a{switch this{case.c(\ d) e
