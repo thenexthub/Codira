@@ -1,0 +1,83 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # Cases for lambda parameters
+cases:
+  - assertion:  If a parameter is required, then each function or method call must contain an argument corresponding to that parameter.
+    call: |-
+      let foo = (p1: string, p2: number) => p1 + p2
+      arktest.assertEQ('string 1', foo('string ', 1))
+
+  - assertion: Expression optional parameter specifies a default value.
+    call: |-
+      let foo = (p1: string, p2: number = 1) => p1 + p2
+      arktest.assertEQ('string 1', foo('string '))
+
+  - assertion: Short-cut notation and identifier'?'':' type effectively means that identifier has type T|undefined with the default value undefined.
+    call: |-
+      let foo = (p1: string, p2?: number) => p1 + p2
+      arktest.assertEQ('param undefined', foo('param '))
+
+  - assertion: Several parameters can be optional, allowing to omit corresponding arguments in a call.
+    call: |-
+      let foo = (p1: number, p2: string = ' params ' , p3?: string) => p1 + p2 + p3
+      arktest.assertEQ('3 params undefined', foo(3))
+      arktest.assertEQ('3 parameters undefined', foo(3, ' parameters '))
+      arktest.assertEQ('3 parameters set', foo(3, ' parameters ', 'set'))
+
+  - assertion: Rest parameters allow lambdas to take arbitrary numbers of arguments.
+    call: |-
+      let foo = (p1: string, ...p2: string[]) => {
+          let str = p1
+          for(let i = 0; i < p2.length; i++) {
+              str += p2[i]
+          }
+          return str
+      }
+      arktest.assertEQ('no rest param', foo('no rest param'))
+      arktest.assertEQ('one rest param', foo('one ', 'rest param'))
+      arktest.assertEQ('two rest params', foo('two ', 'rest ', 'params'))
+
+  - assertion: Optional and rest parameters in lambda.
+    call: |-
+      let foo = (p1: string, p2: string = 'optional', ...p3: string[]) => {
+          let str = p1 + p2
+          for(let i = 0; i < p3.length; i++) {
+              str += p3[i]
+          }
+          return str
+      }
+      arktest.assertEQ('param optional', foo('param '))
+      arktest.assertEQ('optional param set', foo('optional param ', 'set'))
+      arktest.assertEQ('optional and rest params set', foo('optional ', 'and ', 'rest ', 'params ', 'set'))
+
+  - assertion: Optional and rest parameters with different types in lambda.
+    call: |-
+      let foo = (p1: string, p2: int = 1, ...p3: string[]) => {
+          let str = p1 + p2
+          for(let i = 0; i < p3.length; i++) {
+              str += p3[i]
+          }
+          return str
+      }
+      arktest.assertEQ('param 1', foo('param '))
+      arktest.assertEQ('non-default value 2 set', foo('non-default value ', 2, ' set'))
+      arktest.assertEQ('non-default value 3 set in lambda', foo('non-default value ', 3, ' set', ' in lambda'))
+
+  - assertion: Lambda parameter shadows top-level variable.
+    call: |-
+      let p: number = 1
+      let q: number = 1
+      let foo = (p: number) => { p++ }
+      foo(q)
+      arktest.assertEQ(p, 1, "Shadowed variable has unexpected value")

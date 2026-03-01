@@ -1,0 +1,11 @@
+#/bin/bash
+# Helper script for triggering devagent review in CLI mode
+# with JSON output. Makes some assumptions about local setup, use with care.
+
+RULE_FILE="$1"
+PATCH_FILE="$2"
+
+devagent --json --config "${HOME}/devagent/.devagent.toml" \
+    review \
+    --rule "${RULE_FILE}" \
+    "${PATCH_FILE}"

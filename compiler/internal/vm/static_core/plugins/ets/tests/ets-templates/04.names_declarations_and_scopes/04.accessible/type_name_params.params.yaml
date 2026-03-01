@@ -1,0 +1,156 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # Primitives
+  - decl: |-
+      type T = byte
+    check: |-
+      function main() {
+          let a: T = 0x80.toByte(); // -128
+          arktest.assertEQ(foo(a), 0x80.toByte());
+      }
+
+  - decl: |-
+      type T = short
+    check: |-
+      function main() {
+          let a: T = 0x7FFF.toShort(); // 32767
+          arktest.assertEQ(foo(a), 0x7FFF.toShort());
+      }
+
+  - decl: |-
+      type T = int
+    check: |-
+      function main() {
+          let a: T = new Int(127);
+          arktest.assertEQ(foo(a), new Int(127));
+      }
+
+  - decl: |-
+      type T = long
+    check: |-
+      function main() {
+         let a: T = new Long(127);
+         arktest.assertEQ(foo(a), new Long(127));
+      }
+
+  - decl: |-
+      type T = float
+    check: |-
+      function main() {
+          let a: T = new Float(-0.0);
+          arktest.assertEQ(foo(a), new Float(-0.0));
+      }
+
+  - decl: |-
+      type T = double
+    check: |-
+      function main() {
+          let a: T = new Double(-0.0);
+          arktest.assertEQ(foo(a), new Double(-0.0)); // double is an alias to number
+      }
+
+  - decl: |-
+      type T = number
+    check: |-
+      function main() {
+          let a: T = -0.0 as number;
+          arktest.assertEQ(foo(a), -0.0 as number);
+      }
+
+  - decl: |-
+      type T = char
+    check: |-
+      function main() {
+          let a: T = c'a';
+          arktest.assertEQ(foo(a), c'a');
+      }
+
+  - decl: |-
+      type T = boolean
+    check: |-
+      function main() {
+          let a: T = true;
+          arktest.assertEQ(foo(a), true);
+      }
+
+  # Boxed
+  - decl: |-
+      type T = string
+    check: |-
+      function main() {
+          let a: T = "some string";
+          arktest.assertEQ(foo(a), "some string"); // string is an alias to String
+      }
+
+  - decl: |-
+      type T = String
+    check: |-
+      function main() {
+          let a: T = new String("some string");
+          arktest.assertEQ(foo(a), "some string");
+      }
+
+    # Custom
+  - decl: |-
+      type T = int[]
+    check: |-
+      function main() {
+          let a: T = [1, -2];
+          let b = foo(a);
+          arktest.assertEQ(a.length, b.length);
+          arktest.assertEQ(a[0], b[0]);
+          arktest.assertEQ(a[1], b[1]);
+      }
+
+  - decl: |-
+      type T = Int[][]
+    check: |-
+      function main() {
+          let a: T = [[new Int(1)], [new Int(-2)]];
+          let b = foo(a);
+          arktest.assertEQ(a.length, b.length);
+          arktest.assertEQ(a[0].length, b[0].length);
+          arktest.assertEQ(a[1].length, b[1].length);
+          arktest.assertEQ(a[0][0], b[0][0]);
+          arktest.assertEQ(a[1][0], b[1][0]);
+      }
+
+  - decl: |-
+      enum Colors {Red, Blue=3}
+      type T = Colors
+    check: |-
+      function main() {
+          let a: T = Colors.Blue;
+          arktest.assertEQ(foo(a), Colors.Blue);
+      }
+
+  - decl: |-
+        type T = [string, number]
+    check: |-
+      function main() {
+          let a: T = ["str", 1.4];
+          let b = foo(a);
+          arktest.assertEQ(a, b)
+      }
+
+  - decl: |-
+      enum Color {Red, Blue=-2}
+      type T = Color
+
+    check: |- 
+      function main() {
+          let a: T = T.Blue;
+      }

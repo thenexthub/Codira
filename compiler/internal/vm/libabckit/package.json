@@ -1,0 +1,20 @@
+{
+  "name": "libabckit",
+  "version": "1.0.0",
+  "description": "libabckit is a tool for binary manipulation. eslint is needed to ensure codecheck",
+  "main": "index.js",
+  "directories": {
+    "tests": "tests"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "npx eslint",
+    "fix": "npx eslint --fix"
+  },
+  "dependencies": {
+    "eslint": "^9.13.0"
+  },
+  "devDependencies": {
+    "@stylistic/eslint-plugin-js": "^2.9.0"
+  }
+}

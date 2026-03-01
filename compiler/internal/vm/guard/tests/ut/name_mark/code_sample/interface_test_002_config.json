@@ -1,0 +1,13 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep interface interface_test_002.Interface1 {\n    *;\n    }",
+        "-keep interface interface_test_002.Interface2 extends interface_test_002.Interface1 {\n    iMethod3():void;\n    }"
+      ]
+    }
+  }
+}

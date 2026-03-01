@@ -1,0 +1,54 @@
+//===--- AMDGPUAttributes.def ---------------------------------*- C++ -*---===//
+//
+// Copyright (c) NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// Author: Tunjay Akbarli
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
+//
+//===----------------------------------------------------------------------===//
+//
+// This file contains descriptions of the various function attributes
+// that indicate *absence* of the corresponding implicit kernel
+// arguments.
+//
+//===----------------------------------------------------------------------===//
+
+// NOTE: NO INCLUDE GUARD DESIRED!
+
+AMDGPU_ATTRIBUTE(DISPATCH_PTR, "amdgpu-no-dispatch-ptr")
+AMDGPU_ATTRIBUTE(QUEUE_PTR, "amdgpu-no-queue-ptr")
+AMDGPU_ATTRIBUTE(DISPATCH_ID, "amdgpu-no-dispatch-id")
+AMDGPU_ATTRIBUTE(IMPLICIT_ARG_PTR, "amdgpu-no-implicitarg-ptr")
+AMDGPU_ATTRIBUTE(MULTIGRID_SYNC_ARG, "amdgpu-no-multigrid-sync-arg")
+AMDGPU_ATTRIBUTE(HOSTCALL_PTR, "amdgpu-no-hostcall-ptr")
+AMDGPU_ATTRIBUTE(HEAP_PTR, "amdgpu-no-heap-ptr")
+AMDGPU_ATTRIBUTE(WORKGROUP_ID_X, "amdgpu-no-workgroup-id-x")
+AMDGPU_ATTRIBUTE(WORKGROUP_ID_Y, "amdgpu-no-workgroup-id-y")
+AMDGPU_ATTRIBUTE(WORKGROUP_ID_Z, "amdgpu-no-workgroup-id-z")
+AMDGPU_ATTRIBUTE(WORKITEM_ID_X, "amdgpu-no-workitem-id-x")
+AMDGPU_ATTRIBUTE(WORKITEM_ID_Y, "amdgpu-no-workitem-id-y")
+AMDGPU_ATTRIBUTE(WORKITEM_ID_Z, "amdgpu-no-workitem-id-z")
+AMDGPU_ATTRIBUTE(LDS_KERNEL_ID, "amdgpu-no-lds-kernel-id")
+AMDGPU_ATTRIBUTE(DEFAULT_QUEUE, "amdgpu-no-default-queue")
+AMDGPU_ATTRIBUTE(COMPLETION_ACTION, "amdgpu-no-completion-action")
+AMDGPU_ATTRIBUTE(FLAT_SCRATCH_INIT, "amdgpu-no-flat-scratch-init")
+AMDGPU_ATTRIBUTE(CLUSTER_ID_X, "amdgpu-no-cluster-id-x")
+AMDGPU_ATTRIBUTE(CLUSTER_ID_Y, "amdgpu-no-cluster-id-y")
+AMDGPU_ATTRIBUTE(CLUSTER_ID_Z, "amdgpu-no-cluster-id-z")
+
+#undef AMDGPU_ATTRIBUTE

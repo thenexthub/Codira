@@ -1,0 +1,176 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+#! CHECKER      Check IfConversion in JIT
+#! RUN          force_jit: true, options: "", entry: "_GLOBAL::main"
+#! EVENT        /Compilation,_GLOBAL::main,.*COMPILED/
+#! METHOD       "_GLOBAL::main"
+#! PASS_AFTER   "MemoryCoalescing"
+#! INST_NOT     "SelectImm GT i32"
+#! @mem_coalescing_count = BLOCK_COUNT()
+#! PASS_AFTER   "IfConversion"
+#! TRUE         @mem_coalescing_count > BLOCK_COUNT()
+#! INST         "SelectImm GT i32"
+#   Construction before is necessary for compare the quantity of base blocks after pass "MemoryCoalescing" and after "IfConversion",
+#   without variable, you can write only such code.
+#   Equivalent code with variable:
+#       temp = BLOCK_COUNT()
+#       PASS_AFTER("IfConversion")
+#       TRUE(temp > BLOCK_COUNT())
+
+#! CHECKER      Check IfConversion in AOT
+#! SKIP_IF      @architecture == "arm32"
+#! RUN_PAOC     options: ""
+#! METHOD       "_GLOBAL::main"
+#! PASS_AFTER   "MemoryCoalescing"
+#! INST_NOT     "SelectImm GT i32"
+#! @mem_coalescing_count = BLOCK_COUNT()
+#! PASS_AFTER   "IfConversion"
+#! TRUE         @mem_coalescing_count > BLOCK_COUNT()
+#! INST         "SelectImm GT i32"
+#! RUN          options: "", entry: "_GLOBAL::main"
+#! EVENT        "AotEntrypointFound,_GLOBAL::main"
+#   Construction after is necessary for compare the quantity of base blocks after pass "MemoryCoalescing" and after "IfConversion",
+#   without variable, you can write only such code.
+#   Equivalent code with variable:
+#       temp = BLOCK_COUNT()
+#       PASS_AFTER("IfConversion")
+#       TRUE(temp > BLOCK_COUNT())
+
+.function i32 main () <> {
+    movi v0, 0
+    movi v1, 10
+    movi v2, 5
+loop:
+    lda v1
+    jgt v2, inci
+    inci v0, -1
+    jmp done
+inci:
+    inci v0, 1
+done:
+    inci v1, -1
+    lda v1
+    jgtz loop
+    lda v0
+    return
+}
+
+#! CHECKER      Check do not increase limit IfConversion in force JIT
+#! RUN          force_jit: true, options: "", entry: "_GLOBAL::main1"
+#! EVENT        /Compilation,_GLOBAL::ifconv__noinline__,.*COMPILED/
+#! METHOD       "_GLOBAL::ifconv__noinline__"
+#! PASS_AFTER   "MemoryCoalescing"
+#! INST_NOT     "SelectImm LT i32"
+#! PASS_AFTER   "IfConversion"
+#! INST_NOT     "SelectImm LT i32"
+
+#! CHECKER      Check increase limit IfConversion in JIT
+#! RUN          options: "--compiler-hotness-threshold=10 --compiler-profiling-threshold=2 --no-async-jit=true", entry: "_GLOBAL::main1"
+#! EVENT        /Compilation,_GLOBAL::ifconv__noinline__,.*COMPILED/
+#! METHOD       "_GLOBAL::ifconv__noinline__"
+#! PASS_AFTER   "MemoryCoalescing"
+#! INST_NOT     "SelectImm LT i32"
+#! PASS_AFTER   "IfConversion"
+#! INST_COUNT   "SelectImm LT i32", 3
+
+#! CHECKER      Check do not increase limit IfConversion in AOT
+#! SKIP_IF      @architecture == "arm32"
+#! RUN_PAOC     options: ""
+#! EVENT        /Compilation,_GLOBAL::ifconv__noinline__,.*COMPILED/
+#! METHOD       "_GLOBAL::ifconv__noinline__"
+#! PASS_AFTER   "MemoryCoalescing"
+#! INST_NOT     "SelectImm LT i32"
+#! PASS_AFTER   "IfConversion"
+#! INST_NOT     "SelectImm LT i32"
+#! RUN          options: "", entry: "_GLOBAL::main1"
+#! EVENT        "AotEntrypointFound,_GLOBAL::ifconv__noinline__"
+
+#! CHECKER      Check hotness and increase limit IfConversion in PGO AOT
+#! SKIP_IF      @architecture == "arm32"
+#! RUN_PGO_PROF options: "--profile-branches", entry: "_GLOBAL::main1"
+#! RUN_PGO_PAOC options: ""
+#! EVENT        /Compilation,_GLOBAL::ifconv__noinline__,.*COMPILED/
+#! METHOD       "_GLOBAL::main"
+#! PASS_AFTER   "IfConversion"
+#! INST         "hotness=0"
+#! INST_NOT     /hotness=[1-9]/
+#! METHOD       "_GLOBAL::ifconv__noinline__"
+#! PASS_AFTER   "MemoryCoalescing"
+#! INST_NOT     "SelectImm LT i32"
+#! PASS_AFTER   "IfConversion"
+#! INST         /hotness=[1-9]/
+#! INST_COUNT   "SelectImm LT i32", 3
+#! RUN          entry: "_GLOBAL::main1"
+#! EVENT        "AotEntrypointFound,_GLOBAL::ifconv__noinline__"
+
+.function i32 ifconv__noinline__(i32 a0, i32 a1, i32 a2)
+{
+    ldai 10
+    jgt a0, lable_10
+    movi v1, 5
+    movi v2, 2
+    movi v3, 6
+    mulv v1, a1
+    shlv v2, a0 
+    addv v3, a2 
+    jmp exit
+lable_10:
+    movi v1, 4
+    movi v2, 3
+    movi v3, 5
+    mulv v1, a2
+    shlv v2, a1 
+    subv v3, a0 
+    jmp exit
+exit:
+    addv v1, v2
+    add v1, v3
+    return
+}
+
+.function i32 main1 () <> {
+    movi v4, 256
+
+    movi v5, 0       #loop_counter
+loop:
+    lda v5    
+    movi v0, 0
+    movi v1, 10
+    movi v2, 5
+    movi v3, 3097
+    call ifconv__noinline__, v0, v1, v2
+    jne v3, error
+    movi v0, 11
+    movi v3, 4168
+    call ifconv__noinline__, v0, v0, v0
+    jne v3, error
+    inci v5, 1
+    lda v5
+    jne v4, loop
+
+    ldai 0
+    return
+error:
+    lda v3
+    return
+}

@@ -1,0 +1,128 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+ERROR(lex_diag_begin, "lex_diag_begin")
+ERROR(lex_unknown_start_of_token, "unknown start of token: %s", "unknown start of token: %s")
+ERROR(lex_unexpected_digit, "unexpected digit '%s' in %s", "unexpected digit", {
+    "because %s"
+})
+ERROR(lex_cannot_start_with_digit, "cannot start a(n) %s literal with a '%s' digit", "unexpected digit")
+ERROR(lex_expected_digit, "expected %s digit, found '%s'", "expected %s digit")
+ERROR(lex_unexpected_decimal_point, "unexpected decimal point '.' in %s base number", "unexpected decimal point", {
+    "because of this %s prefix"
+    })
+ERROR(lex_unexpected_exponent_part, "unexpected exponent part '%s__' in %s", "unexpected exponent part", {
+    "because %s"
+    })
+ERROR(lex_expected_exponent_part, "expected exponent part in hexadecimal float number '%s'", "expected exponent part", {
+    "because it is hexadecimal float number"
+    })
+ERROR(lex_expected_identifier_after_dollar, "expected identifier after '$', found %s", "expected identifier after '$'")
+ERROR(lex_unrecognized_symbol, "unrecognized symbol '%s'", "unrecognized symbol")
+ERROR(lex_expected_identifier, "expected identifier, found '%s'", "expected identifier")
+ERROR(lex_expected_back_quote, "expected '`', found '%s'", "expected '`'", {
+    "to match this opening backquote"
+})
+ERROR(lex_unterminated_single_line_string, "unterminated single-line string", "unterminated single-line string", {
+    "because this interpolation is not terminated with a '}'",
+})
+ERROR(lex_unterminated_multi_line_string, "unterminated multi-line string", "unterminated multi-line string", {
+    "because this interpolation is not terminated with a '}'",
+})
+
+ERROR(lex_unterminated_interpolation, "unterminated string interpolation", "unterminated string interpolation", {
+    "because it is in single-line string"
+})
+
+ERROR(lex_multiline_string_start_from_newline,
+    "multi-line string must start with newline character", "expected to start with newline character", {
+    "because it is in multi-line string"
+})
+
+ERROR(lex_unterminated_raw_string, "unterminated raw string", "unterminated raw string", {
+     "because it interpolation is not terminated with a '}'",
+ })
+
+ERROR(lex_expected_quote_in_raw_string, "expected '#' or '\"' in raw string, found '%s'", "expected '#' or '\"'", {
+    "because it is raw string prefix"
+})
+
+ERROR(lex_unrecognized_escape, "unrecognized escape '%s' in %s literal", "unrecognized escape", {
+    "because it is in %s literal"
+})
+
+ERROR(lex_unterminated_block_comment, "unterminated block comment", "unterminated block comment")
+
+ERROR(lex_expected_left_bracket, "expected '{' in unicode escape, found '%s'", "expected '{'", {
+    "because it is in this Unicode escape"
+})
+
+ERROR(lex_expected_right_bracket, "expected '}', found '%s'", "expected '}'", {
+    "to match this opening '{'",
+})
+
+ERROR(lex_expected_right_bracket_or_hexadecimal, "expected '}' or hexadecimal digit in unicode escape, found '%s'",
+    "expected '}' or hexadecimal digit", { "because it is in this Unicode escape"})
+
+ERROR(lex_expected_character, "expected a character in rune literal, found '%s'", "expected a character", {
+    "because it is in rune literal"
+})
+
+ERROR(lex_expected_letter_after_underscore, "this cannot be an identifier", "expected a Unicode XID_Continue after underscore")
+
+ERROR(lex_illegal_integer_suffix, "illegal integer suffix '%s'", "expected valid integer type suffix", {
+    "invalid type suffix"
+})
+
+ERROR(lex_illegal_float_suffix, "illegal float number suffix '%s'", "expected valid float number type suffix", {
+    "invalid type suffix"
+})
+
+ERROR(lex_illegal_non_decimal_float, "float suffix can only be in decimal", "expected valid digits", {
+    "invalid type suffix"
+})
+
+ERROR(lex_expected_character_in_char_literal, "expected one character in rune literal", "expected one character in rune literal")
+
+ERROR(lex_unterminated_char_literal, "unterminated rune literal", "unterminated rune literal")
+
+ERROR(lex_characters_overflow, "rune literal may only contain one character", "may only contain one character")
+
+ERROR(lex_unknown_suffix, "unknown suffix '%s' for number literal", "unknown suffix '%s'")
+
+ERROR(lex_illegal_UTF8_encoding_byte, "illegal byte '%s' in UTF-8 encoding", "illegal byte in UTF-8 encoding")
+
+ERROR(lex_illegal_unicode, "illegal character:%s", "illegal character:%s")
+
+WARNING(lex_unsecure_unicode, PARSER, "unsecure character:%s", "unsecure character:%s")
+
+ERROR(lex_illegal_uni_character_literal, "illegal unicode scalar value '\\u{%s}'", "unicode scalar value must be in range '\\u{0000}' to '\\u{D7FF}' or '\\u{E000}' to '\\u{10FFFF}'")
+
+ERROR(lex_too_many_digits, "%s contains too many digits", "too many digits for \\u", {
+    "at most 2 digits in an escaped byte character"
+})
+
+ERROR(lex_unrecognized_char_in_binary_string, "unrecognized character '%s' in %s", "unrecognized character here", {
+    "in %s"
+})
+
+ERROR(lex_diag_end, "lex_diag_end")

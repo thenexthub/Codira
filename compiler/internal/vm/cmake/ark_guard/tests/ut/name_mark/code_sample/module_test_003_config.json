@@ -1,0 +1,12 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep package module_test_003 {\n    *;\n    }"
+      ]
+    }
+  }
+}

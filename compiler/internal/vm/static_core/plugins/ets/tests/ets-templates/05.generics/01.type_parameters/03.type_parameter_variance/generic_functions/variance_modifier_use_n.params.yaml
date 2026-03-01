@@ -1,0 +1,200 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # function declarations are based on param_list.params.yaml and  on func_type_variance_interleaving.yaml
+function_decls:
+  # in type modifier
+  # without body block
+  # T param, void return
+  - decl: |-
+      function foo<in T>(a: T) {};
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  - decl: |-
+      function foo<in T, U>(a: T, b: U, c: V) {};
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  # T param, T return
+  - decl: |-
+      function foo<in T>(a: T): T {};
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  - decl: |-
+      function foo<in T, U, V>(a: T, b: U, c: V): V {};
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  # T array param, void return
+  - decl: |-
+      function foo<in T>(a: T[]) {};
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  # T array param, T array return
+  - decl: |-
+      function foo<in T>(a: T[]): T[] {};
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  # with body block
+  # T param, void return
+  - decl: |-
+      function foo<in T>(a: T) {}
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  - decl: |-
+      function foo<in T, U, V>(a: T, b: U, c: V) {}
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  # T param, T return
+  - decl: |-
+      function foo<in T>(a: T): T {
+          return a;
+      }
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  - decl: |-
+      function foo<in T, U, V>(a: T, b: U, c: V): V {
+          return c;
+      }
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  # T array param, T array return
+  - decl: |-
+      function foo<in T>(a: T[]): T[] {
+          return a;
+      }
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+  # T array param, void return
+  - decl: |-
+      function foo<in T>(a: T[]) {}
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  # out type modifier
+  # without body block
+  # T param, void return
+  - decl: |-
+      function foo<out T>(a: T) {};
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  - decl: |-
+      function foo<out T, U>(a: T, b: U, c: V) {};
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  # T param, T return
+  - decl: |-
+      function foo<out T>(a: T): T {};
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  - decl: |-
+      function foo<out T, U, V>(a: T, b: U, c: V): V {};
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  # T array param, void return
+  - decl: |-
+      function foo<out T>(a: T[]) {};
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  # T array param, T array return
+  - decl: |-
+      function foo<out T>(a: T[]): T[] {};
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  # with body block
+  # T param, void return
+  - decl: |-
+      function foo<out T>(a: T) {}
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  - decl: |-
+      function foo<out T, U, V>(a: T, b: U, c: V) {}
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  # T param, T return
+  - decl: |-
+      function foo<out T>(a: T): T {
+          return a;
+      }
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  - decl: |-
+      function foo<out T, U, V>(a: T, b: U, c: V): V {
+          return c;
+      }
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  # T array param, T array return
+  - decl: |-
+      function foo<out T>(a: T[]): T[] {
+          return a;
+      }
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  # T array param, void return
+  - decl: |-
+      function foo<out T>(a: T[]) {}
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  # function type param
+  # in and out variations
+  # with and without body block
+  - decl: |-
+      function foo<in T1, T2>(p: (p: T2) => T1): T2 { return p as T2 }
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  - decl: |-
+      function foo<T1, out T2>(p: (p: T2) => T1): T2 { return p as T2 }
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  - decl: |-
+      function foo<in T1, out T2>(p: (p: T2) => T1): T2 { return p as T2 }
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  - decl: |-
+      function foo<in T1, T2>(p: (p: T2) => T1): T2 {};
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  - decl: |-
+      function foo<T1, out T2>(p: (p: T2) => T1): T2 {};
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+
+  - decl: |-
+      function foo<in T1, out T2>(p: (p: T2) => T1): T2 {};
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."

@@ -1,0 +1,35 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - doc: Compile-time error as function has already been defined
+    decl: |-
+        namespace A {
+          export function foo(): int { return 1 }
+          export function bar(): int { return 2 }
+        }
+        namespace A {
+          export function foo(): int { return (bar()+1) }
+        }
+
+  - doc: A namespace name can be a qualified name. Still cannot access to non-exported namespace field.
+    decl: |-
+        namespace A {
+          export namespace B {
+            let i: int = 7
+          }
+        }
+        function main() {
+          A.B.i = 8
+        }

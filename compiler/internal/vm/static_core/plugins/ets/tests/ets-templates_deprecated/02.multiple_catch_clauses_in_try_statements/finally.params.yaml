@@ -1,0 +1,300 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    - use: |-
+        let ret:int = 1
+        // finally block with no exception thrown
+        try {
+            if (t1 == t2) throw new Ex()
+            ret = 1
+        } catch (e: Ex) {
+            ret = 1
+        } catch (e) {
+            ret = 1
+        } finally {
+            ret = 0
+        }
+        return ret;
+
+    - use: |-
+        // return from finally block with no exception thrown
+        try {
+            if (t1 == t2) throw new Ex()
+            return 1;
+        } catch (e: Ex) {
+            return 1;
+        } catch (e) {
+            return 1;
+        } finally {
+            return 0;
+        }
+
+    - use: |-
+        // return from finally block with exception thrown
+        try {
+            if (t1 != t2) throw new Ex()
+            return 1;
+        } catch (e: Ex) {
+            return 1;
+        } catch (e: Er) {
+            return 1;
+        } finally {
+            return 0;
+        }
+
+    - defs: |-
+        let ret: int;  // global var, safe for jit warmup.
+        function foo(): int throws {
+            // exception thrown, no suitable catch, propagates outside
+            try {
+                if (t1 != t2) throw new Ex()
+                ret += 1
+            } catch (e: Ex2) {
+                ret += 2
+            } catch (e: Er) {
+                ret += 10
+            } finally {
+                ret += 100
+            }
+            return ret;
+        }
+      use: |-
+        ret = 0;
+        let ok = false;
+        try {
+            foo()
+        } catch (e) {
+            ret += 1000;
+        } finally {
+            ok = ret == 1100;
+        }
+        return ok ? 0 : 1;
+
+    - defs: |-
+        let ret: int;  // global var, safe for jit warmup.
+        function foo(): int {
+            // error thrown, no suitable catch, propagates outside
+            try {
+                if (t1 != t2) throw new Er()
+                ret += 1
+            } catch (e: Ex) {
+                ret += 10
+            } catch (e: Er2) {
+                ret += 2
+            } finally {
+                ret += 100
+            }
+            return ret;
+        }
+      use: |-
+        ret = 0;
+        let ok = false;
+        let t1_orig = t1;
+        try {
+            foo()
+        } catch (e) {
+            ret += 1000;
+        } finally {
+            ok = ret == 1100 && t1 == t1_orig;
+        }
+        return ok ? 0 : 1;
+
+    - defs: |-
+        let ret: int;  // global var, safe for jit warmup.
+        function foo(): int throws {
+            // exception thrown, with suitable catch, no propagation outside
+            try {
+                if (t1 != t2) throw new Ex()
+                ret += 1
+            } catch (e: Er) {
+                ret += 10
+            } catch (e: Ex2) {
+                ret += 2
+            } catch (e: Error) {
+                ret += 100
+            } finally {
+                ret += 1000
+            }
+            return ret;
+        }
+      use: |-
+        ret = 0;
+        let ok = false;
+        try {
+            foo()
+        } catch (e) {
+            ret += 10000;
+        } finally {
+            ok = ret == 1100;
+        }
+        return ok ? 0 : 1;
+
+    - defs: |-
+        let ret: int;  // global var, safe for jit warmup.
+        function foo(): int {
+            // error thrown, with suitable catch, no propagation outside
+            try {
+                if (t1 != t2) throw new Er2()
+                ret += 1
+            } catch (e: Error) {
+                ret += 2
+            } catch (e: Er) {
+                ret += 10
+            } catch (e: Ex) {
+                ret += 100
+            } finally {
+                ret += 1000
+            }
+            return ret;
+        }
+      use: |-
+        ret = 0;
+        let ok = false;
+        let t1_orig = t1;
+        try {
+            foo()
+        } catch (e) {
+            ret += 10000;
+        } finally {
+            ok = ret == 1010 && t1 == t1_orig;
+        }
+        return ok ? 0 : 1;
+
+    - defs: |-
+        let ret: int;  // global var, safe for jit warmup.
+        function foo(): int throws {
+            // exception thrown, with suitable catch, re-thrown from catch
+            try {
+                if (t1 != t2) throw new Ex()
+                ret += 1
+            } catch (e: Er) {
+                ret += 10
+            } catch (e: Ex) {
+                ret += 100
+                throw e
+            } finally {
+                ret += 1000
+            }
+            return ret;
+        }
+      use: |-
+        ret = 0;
+        let ok = false;
+        try {
+            foo()
+        } catch (e) {
+            ret += 10000;
+        } finally {
+            ok = ret == 11100;
+        }
+        return ok ? 0 : 1;
+
+    - defs: |-
+        let ret: int;  // global var, safe for jit warmup.
+        function foo(): int {
+            // error thrown, with suitable catch, re-thrown from catch
+            try {
+                if (t1 != t2) throw new Er2()
+                ret += 1
+            } catch (e: Er) {
+                ret += 10
+                throw e
+            } catch (e: Ex) {
+                ret += 100
+            } finally {
+                ret += 1000
+            }
+            return ret;
+        }
+      use: |-
+        ret = 0;
+        let ok = false;
+        let t1_orig = t1;
+        try {
+            foo()
+        } catch (e) {
+            ret += 10000;
+        } finally {
+            ok = ret == 11010 && t1 == t1_orig;
+        }
+        return ok ? 0 : 1;
+
+    - defs: |-
+        let ret: int;  // global var, safe for jit warmup.
+        function foo(): int throws {
+            // exception thrown, with suitable catch, re-thrown from finally
+            try {
+                if (t1 != t2) throw new Ex()
+                ret += 1
+            } catch (e: Er) {
+                ret += 10
+            } catch (e: Ex) {
+                ret += 100
+            } finally {
+                ret += 1000
+                throw new Ex()
+            }
+        }
+      use: |-
+        ret = 0;
+        let ok = false;
+        try {
+            foo()
+        } catch (e) {
+            ret += 10000;
+        } finally {
+            ok = ret == 11100;
+        }
+        return ok ? 0 : 1;
+
+    - defs: |-
+        let ret: int;  // global var, safe for jit warmup.
+        function foo(): int {
+            let er: Error | null = null;
+            // error thrown, with suitable catch, re-thrown from finally
+            try {
+                if (t1 != t2) throw new Er()
+                ret += 1
+            } catch (e: Er) {
+                ret += 10
+                er = e;
+            } catch (e: Ex) {
+                ret += 100
+            } finally {
+                ret += 1000
+                throw er!
+            }
+        }
+      use: |-
+        ret = 0;
+        let ok = false;
+        let t1_orig = t1;
+        try {
+            foo()
+        } catch (e) {
+            ret += 10000;
+        } finally {
+            ok = ret == 11010 && t1 == t1_orig;
+        }
+        return ok ? 0 : 1;

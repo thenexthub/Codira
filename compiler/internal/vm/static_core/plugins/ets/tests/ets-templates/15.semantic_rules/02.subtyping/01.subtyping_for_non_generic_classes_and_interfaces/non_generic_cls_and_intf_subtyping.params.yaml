@@ -1,0 +1,427 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+cases:
+  # in global var
+  - base: class
+    derived: class
+    clause: extends
+    decl: |-
+      let t: T
+    use:
+      call_base: (t = new T)
+      call_derived: (t = new S)
+      type_base: T
+      type_derived: S
+
+  - base: class
+    derived: class
+    clause: extends
+    decl: |-
+      let t: Object     
+    use:
+      call_base: (t = new Object)
+      call_derived: (t = new S)
+      type_base: Object
+      type_derived: S
+
+  - base: interface
+    derived: class
+    clause: implements
+    decl: |-
+      let a: T
+      let s: S = new S
+      let t: T
+    decl2: t = {}
+    use:
+      call_base: (a = t)
+      call_derived: (a = t = s)
+      type_base: T
+      type_derived: S
+
+  - base: interface
+    derived: interface
+    clause: extends
+    decl: |-
+      let a: T
+      let s: S
+      let t: T
+      class A implements T {}
+      class B implements S {}
+      t = new A
+      s = new B      
+    use:
+      call_base: (a = t)
+      call_derived: (a = s)
+      type_base: T
+      type_derived: S
+
+  - base: interface
+    derived: class
+    clause: implements
+    decl: |-
+      let a: Object  
+      let s: T = new S; 
+    use:
+      call_base: (a = new Object)
+      call_derived: (a = s)
+      type_base: Object
+      type_derived: S
+
+  # in function signature
+  - base: class
+    derived: class
+    clause: extends
+    decl: |-
+      function foo(t: T): T {
+        return t
+      }      
+    use:
+      call_base: foo(new T)
+      call_derived: foo(new S)
+      type_base: T
+      type_derived: S
+
+  - base: class
+    derived: class
+    clause: extends
+    decl: |-
+      function foo(t: Object): Object {
+        return t
+      }      
+    use:
+      call_base: foo(new Object)
+      call_derived: foo(new S)
+      type_base: Object
+      type_derived: S
+
+  - base: interface
+    derived: class
+    clause: implements
+    decl: |-
+      function foo(t: T): T {
+        return t
+      }
+      let s: S = new S
+      let t: T
+    decl2: t = {}
+    use:
+      call_base: foo(t)
+      call_derived: foo(t = s)
+      type_base: T
+      type_derived: S
+
+  - base: interface
+    derived: interface
+    clause: extends
+    decl: |-
+      function foo(t: T): T {
+        return t
+      }
+      let s: S
+      let t: T
+      class A implements T {}
+      class B implements S {}
+      t = new A
+      s = new B      
+    use:
+      call_base: foo(t)
+      call_derived: foo(s)
+      type_base: T
+      type_derived: S
+
+  - base: interface
+    derived: class
+    clause: implements
+    decl: |-
+      function foo(t: Object): Object {
+        return t
+      }    
+      let s: T = new S; 
+    use:
+      call_base: foo(new Object)
+      call_derived: foo(s)
+      type_base: Object
+      type_derived: S
+
+  # in class method signature
+  - base: class
+    derived: class
+    clause: extends
+    decl: |-
+      class A {
+        foo(t: T): T {
+          return t
+        } 
+      }
+    use:
+      call_base: new A().foo(new T)
+      call_derived: new A().foo(new S)
+      type_base: T
+      type_derived: S
+
+  - base: class
+    derived: class
+    clause: extends
+    decl: |-
+      class A {
+        foo(t: Object): Object {
+          return t
+        } 
+      }     
+    use:
+      call_base: new A().foo(new Object)
+      call_derived: new A().foo(new S)
+      type_base: Object
+      type_derived: S
+
+  - base: interface
+    derived: class
+    clause: implements
+    decl: |-
+      class A {
+        foo(t: T): T {
+          return t
+        } 
+      }
+      let s: S = new S
+      let t: T
+    decl2: t = {}
+    use:
+      call_base: new A().foo(t)
+      call_derived: new A().foo(t = s)
+      type_base: T
+      type_derived: S
+
+  - base: interface
+    derived: interface
+    clause: extends
+    decl: |-
+      class C {
+        foo(t: T): T {
+          return t
+        } 
+      }
+      let s: S
+      let t: T
+      class A implements T {}
+      class B implements S {}
+      t = new A
+      s = new B      
+    use:
+      call_base: new C().foo(t)
+      call_derived: new C().foo(s)
+      type_base: T
+      type_derived: S
+
+  - base: interface
+    derived: class
+    clause: implements
+    decl: |-
+      class A {
+        foo(t: Object): Object {
+          return t
+        } 
+      }    
+      let s: T = new S; 
+    use:
+      call_base: new A().foo(new Object)
+      call_derived: new A().foo(s)
+      type_base: Object
+      type_derived: S
+      
+    # in class static method signature
+  - base: class
+    derived: class
+    clause: extends
+    decl: |-
+      class A {
+        static foo(t: T): T {
+          return t
+        } 
+      }
+    use:
+      call_base: A.foo(new T)
+      call_derived: A.foo(new S)
+      type_base: T
+      type_derived: S
+
+  - base: class
+    derived: class
+    clause: extends
+    decl: |-
+      class A {
+        static foo(t: Object): Object {
+          return t
+        } 
+      }     
+    use:
+      call_base: A.foo(new Object)
+      call_derived: A.foo(new S)
+      type_base: Object
+      type_derived: S
+
+  - base: interface
+    derived: class
+    clause: implements
+    decl: |-
+      class A {
+        static foo(t: T): T {
+          return t
+        } 
+      }
+      let s: S = new S
+      let t: T
+    decl2: t = {}
+    use:
+      call_base: A.foo(t)
+      call_derived: A.foo(t = s)
+      type_base: T
+      type_derived: S
+
+  - base: interface
+    derived: interface
+    clause: extends
+    decl: |-
+      class C {
+        static foo(t: T): T {
+          return t
+        } 
+      }
+      let s: S
+      let t: T
+      class A implements T {}
+      class B implements S {}
+      t = new A
+      s = new B      
+    use:
+      call_base: C.foo(t)
+      call_derived: C.foo(s)
+      type_base: T
+      type_derived: S
+
+  - base: interface
+    derived: class
+    clause: implements
+    decl: |-
+      class A {
+        static foo(t: Object): Object {
+          return t
+        } 
+      }    
+      let s: T = new S; 
+    use:
+      call_base: A.foo(new Object)
+      call_derived: A.foo(s)
+      type_base: Object
+      type_derived: S
+
+    # in class field and constructor
+  - base: class
+    derived: class
+    clause: extends
+    decl: |-
+      class A {
+        a: T
+        constructor(a: T) {
+          this.a = a
+        }
+      }  
+    use:
+      call_base: new A(new T).a
+      call_derived: new A(new S).a
+      type_base: T
+      type_derived: S
+
+  - base: class
+    derived: class
+    clause: extends
+    decl: |-
+      class A {
+        a: Object
+        constructor(a: Object) {
+          this.a = a
+        }
+      }     
+    use:
+      call_base: new A(new Object).a
+      call_derived: new A(new S).a
+      type_base: Object
+      type_derived: S
+
+  - base: interface
+    derived: class
+    clause: implements
+    decl: |-
+      class A {
+        a: T
+        constructor(a: T) {
+          this.a = a
+        }
+      }  
+      let s: S = new S
+      let t: T
+    decl2: t = {}
+    use:
+      call_base: new A(t).a
+      call_derived: new A(t = s).a
+      type_base: T
+      type_derived: S
+
+  - base: interface
+    derived: interface
+    clause: extends
+    decl: |-
+      class C {
+        c: T
+        constructor(c: T) {
+          this.c = c
+        }
+      }  
+      let s: S
+      let t: T
+      class A implements T {}
+      class B implements S {}
+      t = new A
+      s = new B      
+    use:
+      call_base: new C(t).c
+      call_derived: new C(s).c
+      type_base: T
+      type_derived: S
+
+  - base: interface
+    derived: class
+    clause: implements
+    decl: |-
+      class A {
+        a: Object
+        constructor(a: Object) {
+          this.a = a
+        }
+      }  
+      let s: T = new S; 
+    use:
+      call_base: new A(new Object).a
+      call_derived: new A(s).a
+      type_base: Object
+      type_derived: S

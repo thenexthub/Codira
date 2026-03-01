@@ -1,0 +1,152 @@
+{#
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+#}
+
+{% if max_loop_count is not defined %}
+    {% set max_loop_count = 10_000_000_000 %}
+{% endif %}
+{% if s2ms is not defined %}
+    {% set s2ms = 1_000 %}
+{% endif %}
+
+const MAX_LOOP_COUNT: long = {{max_loop_count}};
+const MS2NS: long = 1_000_000;
+const S2MS: long = {{s2ms}};
+
+class VmbLauncher {
+
+    static WI: int = {{wi}};
+    static MI: int = {{mi}};
+    static IT: int = {{it}};
+    static WT: int = {{wt}};
+    static FI: int = {{fi}};
+    static loopCount1: long = 0;
+    static totalOps: long = 0;
+    static totalMs: long = 0;
+    static iter: int = 0;
+
+    static log(msg: string): void {
+        // timestamp is needed by GC parser
+        let now: long = Date.now();
+    {% if print_func == 'console' %}
+        console.info(now + " " + msg);
+    {% elif print_func == 'console_println' %}
+        console.println(now + " " + msg);
+    {% elif print_func == 'hilog' %}
+        info(0, "VMB", now + " " + msg);
+    {% else %}
+        print(now + " " + msg);
+    {% endif %}
+    }
+
+    static tune(bench: {{state_name}}): void {
+        let iterMs: number = 1 * S2MS;
+        let loopMs: number = 0;
+        let loopCount: number = 1;
+        while (loopMs < iterMs && loopCount < MAX_LOOP_COUNT) {
+            loopCount = loopCount * 2;
+            let start: number = Date.now();
+            for (let i: number = 0; i < loopCount; i++) {
+                {{method_call}}
+            }
+            loopMs = Date.now() - start;
+        }
+        VmbLauncher.loopCount1 = loopCount * iterMs / loopMs >> 0;
+        if (VmbLauncher.loopCount1 === 0) {
+            VmbLauncher.loopCount1++;
+        }
+        VmbLauncher.log('Tuning: ' + loopCount + ' ops, ' +
+                        loopMs * MS2NS / loopCount + ' ns/op => ' +
+                        VmbLauncher.loopCount1 + ' reps');
+    }
+
+    static runIters(phase: String, count: int, time: int, bench: {{state_name}}): void {
+        let iterMs: long = time * S2MS;
+        VmbLauncher.totalOps = 0;
+        VmbLauncher.totalMs = 0;
+        for (let k: int = 0; k < count; k++) {
+            let ops: long = 0;
+            let elapsedMs: long = 0;
+        {% if gc > 0 %}
+            VmbLauncher.log("Force GC");
+            let gc = GC.startGC(GC.Cause.THRESHOLD);
+            GC.waitForFinishGC(gc);
+            VmbLauncher.log("Force GC");
+            gc = GC.startGC(GC.Cause.THRESHOLD);
+            GC.waitForFinishGC(gc);
+            // No sleep in ETS: sleep({{gc}})
+        {% else %}
+            // No force GC
+        {% endif %}
+            let start: long = Date.now();
+            while (elapsedMs < iterMs) {
+                for (let i: long = 0; i < VmbLauncher.loopCount1; i++) {
+                    {{method_call}}
+                }
+                elapsedMs = Date.now() - start;
+                ops += VmbLauncher.loopCount1;
+            }
+            VmbLauncher.totalOps += ops;
+            VmbLauncher.totalMs += elapsedMs;
+            VmbLauncher.log(phase + " " + VmbLauncher.iter + ":" + ops + " ops, " + 1.0*elapsedMs*MS2NS/ops + " ns/op");
+            VmbLauncher.iter++
+        }
+    }
+
+    static main(): void {
+        let bench: {{state_name}} = new {{state_name}}();
+        VmbLauncher.log("Startup execution started: " + Date.now());
+        {{state_params}}
+        {{state_setup}}
+    {% if fi > 0 %}
+        // Fast Iterations mode
+        VmbLauncher.log('Fast starting {{bench_name}} @ {{fixture}}...');
+        let start: long = Chrono.nanoNow();
+        for(let i: int = 0; i < VmbLauncher.FI; i++) {
+            {{method_call}}
+        }
+        let elapsed: long = Chrono.nanoNow() - start;
+        if (elapsed <= 0) {
+            elapsed = 1;  // 0 is invalid result
+        }
+        VmbLauncher.log("Benchmark result: {{bench_name}} " + 1.0*elapsed/VmbLauncher.FI);
+    {% else %}
+        // Normal mode
+        VmbLauncher.log('Starting {{bench_name}} @ {{fixture}}...');
+        VmbLauncher.tune(bench);
+        if (VmbLauncher.WI > 0) {
+            VmbLauncher.iter = 1;
+            // Re-entering runIters in warmup loop to allow profiler complete the method.
+            // Possible deoptimizations and recompilations is done in warmup instead of measure phase.
+            for (let wi: int = 0; wi < VmbLauncher.WI; ++wi) {
+                VmbLauncher.runIters("Warmup", 1, VmbLauncher.WT, bench);
+            }
+        }
+        VmbLauncher.iter = 1;
+        VmbLauncher.runIters("Iter", VmbLauncher.MI, VmbLauncher.IT, bench);
+        VmbLauncher.log("Benchmark result: {{bench_name}} " + 1.0*VmbLauncher.totalMs*MS2NS/VmbLauncher.totalOps);
+    {% endif %}
+        Consumer.consume(bench);
+    }
+
+}

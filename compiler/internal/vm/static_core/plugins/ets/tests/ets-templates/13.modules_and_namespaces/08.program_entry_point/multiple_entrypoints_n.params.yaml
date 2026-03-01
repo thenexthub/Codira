@@ -1,0 +1,80 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - desc: Explicit, not exported, 'main' function is used as entry point
+      entry_point: main
+      use: |-
+          function main(): void {
+              arktest.assertTrue(false, 'OK, main function is called as expected')
+          }
+
+          export function main1(): void {}
+
+          export namespace NS {
+              export function main(): void {}
+              export function main1(): void {}
+          }
+
+    - desc: Explicit, exported, 'main' function is used as entry point
+      entry_point: main
+      use: |-
+          export function main(): void {
+              arktest.assertTrue(false, 'OK, exported main function is called as expected')
+          }
+
+          export function main1(): void {}
+
+          export namespace NS {
+              export function main(): void {}
+              export function main1(): void {}
+          }
+
+    - desc: Explicit, exported, 'main1' function is used as entry point
+      entry_point: main1
+      use: |-
+          export function main1(): void {
+              arktest.assertTrue(false, 'OK, exported main1 function is called as expected')
+          }
+
+          export namespace NS {
+              export function main(): void {}
+              export function main1(): void {}
+          }
+
+    - desc: Explicit, exported, 'main1' function is used as entry point
+      entry_point: main1
+      use: |-
+          export function main(): void {}
+
+          export function main1(): void {
+              arktest.assertTrue(false, 'OK, exported main1 function is called as expected')
+          }
+
+          export namespace NS {
+              export function main(): void {}
+              export function main1(): void {}
+          }
+
+    - desc: Only a top-level function can be used as entry point
+      entry_point: NS.main
+      use: |-
+          export function main(): void {}
+
+          export function main1(): void {}
+
+          export namespace NS {
+              export function main(): void {}
+              export function main1(): void {}
+          }

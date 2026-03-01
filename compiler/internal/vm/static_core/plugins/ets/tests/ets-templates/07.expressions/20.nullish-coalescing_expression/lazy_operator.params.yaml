@@ -1,0 +1,40 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - description: "If lhs is not null, rhs is not evaluated"
+    main: |-
+      a = 1
+      let x1 = a ?? non_eval()
+      arktest.assertEQ(x1, 1)
+  - description: "If lhs is null, rhs is evaluated"
+    expected_error: '"expected true but was false"'
+    main: |-
+      a = null
+      arktest.expectThrow(() => {let x2 = a ?? non_eval()}, e=>(e instanceof AssertionError))
+  - description: "If lhs is undefined, rhs is evaluated"
+    expected_error: '"expected true but was false"'
+    main: |-
+      a = undefined
+      arktest.expectThrow(() => {let x3 = a ?? non_eval()}, e=>(e instanceof AssertionError))
+  - description: "Parenthesis"
+    main: |-
+      a = 4
+      let x4 = ((a ?? non_eval()) ?? (non_eval() ?? non_eval()))
+      arktest.assertEQ(x4, 4)
+  - description: "New object"
+    main: |-
+      a = new C()
+      let x5 = a ?? non_eval()
+      arktest.assertTrue(x5 instanceof C)

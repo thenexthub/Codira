@@ -1,0 +1,264 @@
+# Copyright (c) 2023-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+coretypes:
+- managed_class: std.core.Object
+  mirror_class: ark::ets::EtsObject
+
+- managed_class: std.core.String
+  mirror_class: ark::ets::EtsString
+
+intrinsics_namespace: ark::ets::intrinsics
+
+intrinsics:
+
+  - name: CompilerEtsLdObjByNameObj
+    space: ets
+    compiler_only: true
+    static: true
+    signature:
+      ret: ref
+      args: [ method, i32, u32, ref ]
+    impl: ark::ets::intrinsics::CompilerEtsLdObjByNameObj
+    clear_flags: [ acc_read ]
+    peephole_func: PeepholeLdObjByName
+
+  - name: CompilerEtsLdObjByNameI32
+    space: ets
+    compiler_only: true
+    static: true
+    signature:
+      ret: i32
+      args: [ method, i32, u32, ref ]
+    impl: ark::ets::intrinsics::CompilerEtsLdObjByNameI32
+    clear_flags: [ acc_read ]
+    peephole_func: PeepholeLdObjByName
+
+  - name: CompilerEtsLdObjByNameI64
+    space: ets
+    compiler_only: true
+    static: true
+    signature:
+      ret: i64
+      args: [ method, i32, u32, ref ]
+    impl: ark::ets::intrinsics::CompilerEtsLdObjByNameI64
+    clear_flags: [ acc_read ]
+    peephole_func: PeepholeLdObjByName
+
+  - name: CompilerEtsLdObjByNameF32
+    space: ets
+    compiler_only: true
+    static: true
+    signature:
+      ret: f32
+      args: [ method, i32, u32, ref ]
+    impl: ark::ets::intrinsics::CompilerEtsLdObjByNameF32
+    clear_flags: [ acc_read ]
+    peephole_func: PeepholeLdObjByName
+
+  - name: CompilerEtsLdObjByNameF64
+    space: ets
+    compiler_only: true
+    static: true
+    signature:
+      ret: f64
+      args: [ method, i32, u32, ref ]
+    impl: ark::ets::intrinsics::CompilerEtsLdObjByNameF64
+    clear_flags: [ acc_read ]
+    peephole_func: PeepholeLdObjByName
+
+  - name: CompilerEtsStObjByNameObj
+    space: ets
+    compiler_only: true
+    static: true
+    signature:
+      ret: void
+      args: [ method, i32, u32, ref, ref ]
+    impl: ark::ets::intrinsics::CompilerEtsStObjByNameObj
+    clear_flags: [  ]
+    peephole_func: PeepholeStObjByName
+
+  - name: CompilerEtsStObjByNameI8
+    space: ets
+    compiler_only: true
+    static: true
+    signature:
+      ret: void
+      args: [ method, i32, u32, ref, i8 ]
+    impl: ark::ets::intrinsics::CompilerEtsStObjByNameI8
+    clear_flags: [  ]
+    peephole_func: PeepholeStObjByName
+
+  - name: CompilerEtsStObjByNameI16
+    space: ets
+    compiler_only: true
+    static: true
+    signature:
+      ret: void
+      args: [ method, i32, u32, ref, i16 ]
+    impl: ark::ets::intrinsics::CompilerEtsStObjByNameI16
+    clear_flags: [  ]
+    peephole_func: PeepholeStObjByName
+
+  - name: CompilerEtsStObjByNameI32
+    space: ets
+    compiler_only: true
+    static: true
+    signature:
+      ret: void
+      args: [ method, i32, u32, ref, i32 ]
+    impl: ark::ets::intrinsics::CompilerEtsStObjByNameI32
+    clear_flags: [  ]
+    peephole_func: PeepholeStObjByName
+
+  - name: CompilerEtsStObjByNameI64
+    space: ets
+    compiler_only: true
+    static: true
+    signature:
+      ret: void
+      args: [ method, i32, u32, ref, i64 ]
+    impl: ark::ets::intrinsics::CompilerEtsStObjByNameI64
+    clear_flags: [  ]
+    peephole_func: PeepholeStObjByName
+
+  - name: CompilerEtsStObjByNameF32
+    space: ets
+    compiler_only: true
+    static: true
+    signature:
+      ret: void
+      args: [ method, i32, u32, ref, f32 ]
+    impl: ark::ets::intrinsics::CompilerEtsStObjByNameF32
+    clear_flags: [  ]
+    peephole_func: PeepholeStObjByName
+
+  - name: CompilerEtsStObjByNameF64
+    space: ets
+    compiler_only: true
+    static: true
+    signature:
+      ret: void
+      args: [ method, i32, u32, ref, f64 ]
+    impl: ark::ets::intrinsics::CompilerEtsStObjByNameF64
+    clear_flags: [  ]
+    peephole_func: PeepholeStObjByName
+
+  - name: CompilerEtsEquals
+    space: ets
+    compiler_only: true
+    static: true
+    signature:
+      ret: u1
+      args: [ ref, ref ]
+    impl: ark::ets::intrinsics::CompilerEtsEquals
+    set_flags: [ commutative ]
+    clear_flags: [ acc_read, heap_inv, no_dce, no_cse, no_hoist ]
+    peephole_func: PeepholeEquals
+
+  - name: CompilerEtsStrictEquals
+    space: ets
+    compiler_only: true
+    static: true
+    signature:
+      ret: u1
+      args: [ ref, ref ]
+    impl: ark::ets::intrinsics::CompilerEtsStrictEquals
+    set_flags: [ commutative ]
+    clear_flags: [ acc_read, heap_inv, no_dce, no_cse, no_hoist ]
+    peephole_func: PeepholeStrictEquals
+
+  - name: CompilerEtsTypeof
+    space: ets
+    compiler_only: true
+    static: true
+    signature:
+      ret: std.core.String
+      args: [ ref ]
+    impl: ark::ets::intrinsics::CompilerEtsTypeof
+    set_flags: [ no_nullptr ]
+    clear_flags: [ acc_read, no_dce ]
+    peephole_func: PeepholeTypeof
+
+  - name: CompilerEtsIstrue
+    space: ets
+    compiler_only: true
+    static: true
+    signature:
+      ret: u1
+      args: [ ref ]
+    impl: ark::ets::intrinsics::CompilerEtsIstrue
+    clear_flags: [ acc_read, require_state, can_throw, heap_inv, no_dce, no_cse, no_hoist  ]
+    need_param_locations: true
+    peephole_func: PeepholeIstrue
+
+  - name: CompilerEtsDoubleToStringDecimal
+    space: ets
+    compiler_only: true
+    static: true
+    signature:
+      ret: std.core.String
+      args: [ ref, u64, u64 ]
+    impl: ark::ets::intrinsics::CompilerDoubleToStringDecimal
+    codegen_arch: [arm64, amd64]
+    codegen_func: CreateDoubleToStringDecimal
+    llvm_codegen_func: EmitDoubleToStringDecimal
+    need_param_locations: true
+
+  - name: CompilerEtsNullcheck
+    space: ets
+    compiler_only: true
+    static: true
+    signature:
+      ret: void
+      args: [ ref ]
+    impl: ark::ets::intrinsics::CompilerEtsNullcheck
+    set_flags: [ no_nullptr ]
+    clear_flags: [ heap_inv, acc_write ]
+    peephole_func: PeepholeNullcheck
+
+  - name: CompilerEtsStringFromCharCodeSingle
+    space: ets
+    compiler_only: true
+    static: true
+    signature:
+      ret: std.core.String
+      args: [ ref, u64 ]
+    codegen_arch: [ arm64, amd64 ]
+    codegen_func: CreateStringFromCharCodeSingle
+    llvm_codegen_func: EmitStringFromCharCodeSingle
+
+  - name: CompilerEtsStringFromCharCodeSingleNoCache
+    space: ets
+    compiler_only: true
+    static: true
+    signature:
+      ret: std.core.String
+      args: [ u64 ]
+    codegen_arch: [ arm64, amd64 ]
+    codegen_func: CreateStringFromCharCode
+    llvm_codegen_func: EmitStringFromCharCode
+
+  - name: CompilerEtsMemmoveUnchecked_Ref
+    space: ets
+    compiler_only: true
+    static: true
+    signature:
+      ret: void
+      args:
+        - std.core.Object\[
+        - std.core.Object\[
+        - i32
+        - i32
+        - i32
+    impl: ark::ets::intrinsics::CompilerMemmoveUnchecked

@@ -1,0 +1,185 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+runner-api-level: 0.0.0.1
+type: workflow
+test-suites:
+    - customScheme
+steps:
+    preparation:
+        order: 0
+        extra:
+            dev-tmp: ${DEV_TMP}
+            hdc-path: ${HDC_PATH}
+            hdc-options: ${HDC_OPTIONS}
+            host-original: "${general.work-dir}/gen/${test-id}"
+            host-output: "${general.work-dir}/intermediate/${test-id}.abc"
+            dev-output: "${steps.preparation.extra.dev-tmp}/${test-id}"
+            dev-output-abc: "${steps.preparation.extra.dev-tmp}/${test-id}.abc"
+            dev-output-ap: "${steps.preparation.extra.dev-tmp}/${test-id}.ap"
+            ark-log-level: info
+            ark-gc-thread-num: "7" #default value, can be overridden by suite config
+    es2abc:
+        order: 10
+        executable-path: ${general.host-tools}/arkcompiler/ets_frontend/es2abc
+        can-be-instrumented: true
+        args:
+            - "--type-extractor"
+            - "--module"
+            - "--merge-abc"
+            - "--extension=${steps.preparation.extra.extension}"
+            - "--output=${steps.preparation.extra.host-output}"
+            - "${steps.preparation.extra.host-original}"
+        timeout: 30
+    mkdir:
+        order: 19
+        executable-path: ${steps.preparation.extra.hdc-path}/hdc
+        args:
+            - "${steps.preparation.extra.hdc-options}"
+            - "shell"
+            - "mkdir -p $(dirname ${steps.preparation.extra.dev-output})"
+    send-file-orig:
+        order: 20
+        executable-path: ${steps.preparation.extra.hdc-path}/hdc
+        args:
+            - "${steps.preparation.extra.hdc-options}"
+            - "file"
+            - "send"
+            - "${steps.preparation.extra.host-original}"
+            - "${steps.preparation.extra.dev-output}"
+    send-file-abc:
+        order: 21
+        executable-path: ${steps.preparation.extra.hdc-path}/hdc
+        args:
+            - "${steps.preparation.extra.hdc-options}"
+            - "file"
+            - "send"
+            - "${steps.preparation.extra.host-output}"
+            - "${steps.preparation.extra.dev-output-abc}"
+    pre-aot-1:
+        order: 30
+        executable-path: ${steps.preparation.extra.hdc-path}/hdc
+        timeout: 180
+        args:
+            - "${steps.preparation.extra.hdc-options}"
+            - "shell"
+            - >-
+                "LD_LIBRARY_PATH=${steps.preparation.extra.dev-tmp}
+                ${steps.preparation.extra.dev-tmp}/ark_js_vm
+                --log-level=${steps.preparation.extra.ark-log-level}
+                --enable-pgo-profiler=true
+                --compiler-pgo-profiler-path=${steps.preparation.extra.dev-output-ap}
+                --asm-interpreter=true
+                --entry-point=${test-id}
+                ${steps.preparation.extra.dev-output-abc}
+                ; echo Exit code: $?"
+    aot-1:
+        order: 40
+        executable-path: ${steps.preparation.extra.hdc-path}/hdc
+        timeout: 180
+        args:
+            - "${steps.preparation.extra.hdc-options}"
+            - "shell"
+            - >-
+                "LD_LIBRARY_PATH=${steps.preparation.extra.dev-tmp}
+                ${steps.preparation.extra.dev-tmp}/ark_aot_compiler
+                --compiler-opt-loop-peeling=true
+                --compiler-fast-compile=false
+                --compiler-opt-inlining=true
+                --compiler-opt-track-field=true
+                --compiler-max-inline-bytecodes=45
+                --compiler-opt-level=2
+                --builtins-dts=${steps.preparation.extra.dev-tmp}/lib_ark_builtins.d.abc
+                --compiler-pgo-profiler-path=${steps.preparation.extra.dev-output-ap}
+                --compiler-target-triple=aarch64-unknown-linux-gnu
+                --aot-file=${steps.preparation.extra.dev-output}
+                ${steps.preparation.extra.dev-output-abc}
+                ; echo Exit code: $?"
+    pre-aot-2:
+        order: 50
+        executable-path: ${steps.preparation.extra.hdc-path}/hdc
+        timeout: 180
+        args:
+            - "${steps.preparation.extra.hdc-options}"
+            - "shell"
+            - >-
+                "LD_LIBRARY_PATH=${steps.preparation.extra.dev-tmp}
+                ${steps.preparation.extra.dev-tmp}/ark_js_vm
+                --log-level=${steps.preparation.extra.ark-log-level}
+                --enable-pgo-profiler=true
+                --compiler-pgo-profiler-path=${steps.preparation.extra.dev-output-ap}
+                --asm-interpreter=true
+                --entry-point=${steps.preparation.extra.dev-output}
+                --aot-file=${steps.preparation.extra.dev-output}
+                ${steps.preparation.extra.dev-output-abc}
+                ; echo Exit code: $?"
+    aot-2:
+        order: 60
+        executable-path: ${steps.preparation.extra.hdc-path}/hdc
+        timeout: 180
+        args:
+            - "${steps.preparation.extra.hdc-options}"
+            - "shell"
+            - >-
+                "LD_LIBRARY_PATH=${steps.preparation.extra.dev-tmp}
+                ${steps.preparation.extra.dev-tmp}/ark_aot_compiler
+                --compiler-opt-loop-peeling=true
+                --compiler-fast-compile=false
+                --compiler-opt-inlining=true
+                --compiler-opt-track-field=true
+                --compiler-max-inline-bytecodes=45
+                --compiler-opt-level=2
+                --builtins-dts=${steps.preparation.extra.dev-tmp}/lib_ark_builtins.d.abc
+                --compiler-pgo-profiler-path=${steps.preparation.extra.dev-output-ap}
+                --compiler-target-triple=aarch64-unknown-linux-gnu
+                --aot-file=${steps.preparation.extra.dev-output}
+                ${steps.preparation.extra.dev-output-abc}
+                ; echo Exit code: $?"
+    file-stat:
+        order: 65
+        executable-path: ${steps.preparation.extra.hdc-path}/hdc
+        args:
+            - "${steps.preparation.extra.hdc-options}"
+            - "shell"
+            - >-
+                stat
+                -c
+                '%s'
+                ${steps.preparation.extra.dev-output}.an
+    ark-with-aot:
+        order: 70
+        executable-path: ${steps.preparation.extra.hdc-path}/hdc
+        timeout: 180
+        args:
+            - "${steps.preparation.extra.hdc-options}"
+            - "shell"
+            - >-
+                "(\time -v env
+                LD_LIBRARY_PATH=${steps.preparation.extra.dev-tmp}
+                ${steps.preparation.extra.dev-tmp}/ark_js_vm
+                --log-level=${steps.preparation.extra.ark-log-level}
+                --gc-thread-num=${steps.preparation.extra.ark-gc-thread-num}
+                --entry-point=${steps.preparation.extra.dev-output}
+                --aot-file=${steps.preparation.extra.dev-output}
+                ${steps.preparation.extra.dev-output-abc}
+                ) ; echo Exit code: $?"
+#            - >-
+#                "(\time -v env
+#                LD_LIBRARY_PATH=${steps.preparation.extra.dev-tmp}
+#                ${steps.preparation.extra.dev-tmp}/ark_js_vm
+#                --log-level=${steps.preparation.extra.ark-log-level}
+#                --entry-point=${steps.preparation.extra.dev-output}
+#                --aot-file=${steps.preparation.extra.dev-output}
+#                ${steps.preparation.extra.dev-output-abc}
+#                ) 2>${steps.preparation.extra.dev-tmp}/err.out;
+#                ; echo Exit code: $?"

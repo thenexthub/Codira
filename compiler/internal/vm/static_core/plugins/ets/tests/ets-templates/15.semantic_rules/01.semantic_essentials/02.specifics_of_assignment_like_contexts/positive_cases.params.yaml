@@ -1,0 +1,31 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # assignable types/values
+cases:
+  - {type1: 'short',  type2: 'byte',   val1: '1',      val2: '2'}
+  - {type1: 'int',    type2: 'short',  val1: '1',      val2: '2'}
+  - {type1: 'long',   type2: 'byte',   val1: '0xff',   val2: '13'}
+  - {type1: 'float',  type2: 'int',    val1: '42.42f', val2: '2'}
+  - {type1: 'double', type2: 'float',  val1: '13.13',  val2: '3.14f'}
+  - {type1: 'number', type2: 'double', val1: '1.1',    val2: '2.2'}
+  - {type1: 'bigint', type2: 'bigint', val1: '2n',     val2: 'new BigInt(13)'}
+  - {type1: 'Object', type2: 'bigint', val1: 'new Object()', val2: '13n'}
+  - {type1: 'Any',    type2: 'int',    val1: '1',      val2: '2'}
+  - {type1: 'string', type2: 'string', val1: '"a"',    val2: '"b"'}
+  - {type1: 'null',   type2: 'null',   val1: 'null',    val2: 'null'}
+  - {type1: 'A',      type2: 'B',      val1: 'new A()', val2: 'new B()'}
+  - {type1: 'undefined',    type2: 'undefined', val1: 'undefined', val2: 'undefined'}
+  - {type1: '(int | null)', type2: 'int',       val1: 'null',      val2: '42'}
+  # wrong (reverse to 14 case) assignment but with nullish coalescing operator
+  - {type1: 'int', type2: '(int | null)', val1: '1', val2: '42', typeguard: '?? 1'}

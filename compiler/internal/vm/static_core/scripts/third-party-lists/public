@@ -1,0 +1,62 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+# Manifest for describing third party dependencies for ARK Runtime.
+
+# Please use following format:
+# * Blank lines are allowed and ignored
+# * One component record per line
+# * Fields in a record are separated by comma (,) without surrounding whitespaces
+# * Record format: lib_name,lib_repo,commit_type,commit_id,patch_mode,submodule_mode
+# ** Whitespaces are not allowed in lib_name
+# ** All URL-unsafe characters in lib_repo should be %-escaped
+# ** commit_type should be one of: branch, tag, commit
+# ** commit_id designates a branch / tag name to clone (passed as is to git clone --branch ...)
+#    If commit_type is commit, commit_id must be a commit hash
+# ** patch_mode should be one of: no_patches, with_patches
+# ** submodule_mode should be one of: no_submodules, with_submodules:submodule1:submodule2:...
+
+
+# ARK common:
+googletest,https://github.com/google/googletest,tag,v1.13.0,with_patches,no_submodules
+utils_native,https://gitee.com/openharmony/utils_native,branch,OpenHarmony-3.2-Beta1,no_patches,no_submodules
+zlib,https://gitee.com/openharmony/third_party_zlib,branch,OpenHarmony-5.0.1-Release,no_patches,no_submodules
+
+# ARK compiler:
+asmjit,https://github.com/asmjit/asmjit,commit,8474400e82c3ea65bd828761539e5d9b25f6bd83,with_patches,no_submodules
+elfio,https://gitee.com/openharmony/third_party_elfio,branch,OpenHarmony_feature_20250328,no_patches,no_submodules
+vixl,https://gitee.com/openharmony/third_party_vixl.git,commit,62c46148189503cc1f220185ab753338211d03f2,with_patches,no_submodules
+zydis,https://github.com/zyantific/zydis,tag,v3.2.1,with_patches,no_submodules
+
+# ARK bytecode verifier:
+rapidcheck,https://github.com/emil-e/rapidcheck,commit,8fafda42e732164db58003e542196e94a28481f9,with_patches,with_submodules:extras/gtest
+
+# ARK tooling:
+asio,https://github.com/chriskohlhoff/asio,tag,asio-1-28-0,no_patches,no_submodules
+websocketpp,https://github.com/zaphoyd/websocketpp,tag,0.8.2,no_patches,no_submodules
+openssl,https://gitee.com/openharmony/third_party_openssl,branch,OpenHarmony-5.0.1-Release,no_patches,no_submodules
+arkcompiler/toolchain,https://gitee.com/openharmony/arkcompiler_toolchain,commit,a69502ef3d4dbcf81b3a7154bf0004cb3d85ffb7,no_patches,no_submodules
+
+# ARK plugins:
+icu,https://gitee.com/openharmony/third_party_icu,branch,OpenHarmony-5.0.1-Release,no_patches,no_submodules
+typescript,https://gitee.com/openharmony/third_party_typescript,branch,OpenHarmony-5.0.1-Release,no_patches,no_submodules
+pcre2,https://gitee.com/openharmony/third_party_pcre2,branch,OpenHarmony_feature_20250328,no_patches,no_submodules

@@ -1,0 +1,134 @@
+####################################################
+# [ETS0XX] General rules                           #
+# openharmony/arkcompiler_ets_frontend/ets2panda   #
+# openharmony/arkcompiler_runtime_core/static_core #
+####################################################
+
+openharmony/arkcompiler_ets_frontend/ets2panda   ETS000_TESTS_ARE_REQUIRED.md
+openharmony/arkcompiler_runtime_core/static_core ETS000_TESTS_ARE_REQUIRED.md
+
+openharmony/arkcompiler_ets_frontend/ets2panda   ETS003_AS_CONVERSION_PRIMITIVE_TYPE.md
+openharmony/arkcompiler_runtime_core/static_core ETS003_AS_CONVERSION_PRIMITIVE_TYPE.md
+
+openharmony/arkcompiler_ets_frontend/ets2panda   ETS004_CATCH_TYPED_PARAMETER.md
+openharmony/arkcompiler_runtime_core/static_core ETS004_CATCH_TYPED_PARAMETER.md
+
+openharmony/arkcompiler_ets_frontend/ets2panda   ETS005_MULTIPLE_CATCH_CLAUSES.md
+openharmony/arkcompiler_runtime_core/static_core ETS005_MULTIPLE_CATCH_CLAUSES.md
+
+openharmony/arkcompiler_ets_frontend/ets2panda   ETS006_ENUM_CAST.md
+openharmony/arkcompiler_runtime_core/static_core ETS006_ENUM_CAST.md
+
+openharmony/arkcompiler_ets_frontend/ets2panda   ETS008_NO_MAGIC_NUMBERS.md
+openharmony/arkcompiler_runtime_core/static_core ETS008_NO_MAGIC_NUMBERS.md
+
+openharmony/arkcompiler_ets_frontend/ets2panda   ETS011_NO_REMOVED_ASSERTIONS.md
+openharmony/arkcompiler_runtime_core/static_core ETS011_NO_REMOVED_ASSERTIONS.md
+
+# https://gitcode.com/nazarovkonstantin/arkcompiler_development_rules/issues/3
+openharmony/arkcompiler_ets_frontend/ets2panda   ETS013_NO_RAW_NEW_DELETE.md
+openharmony/arkcompiler_runtime_core/static_core ETS013_NO_RAW_NEW_DELETE.md
+
+# https://gitcode.com/nazarovkonstantin/arkcompiler_development_rules/issues/4
+openharmony/arkcompiler_ets_frontend/ets2panda   ETS014_ARENA_VS_STD_CONTAINERS.md
+openharmony/arkcompiler_runtime_core/static_core ETS014_ARENA_VS_STD_CONTAINERS.md
+
+openharmony/arkcompiler_ets_frontend/ets2panda   ETS097_ILLEGAL_VERIFIER_TURNING_OFF.md
+openharmony/arkcompiler_runtime_core/static_core ETS097_ILLEGAL_VERIFIER_TURNING_OFF.md
+
+openharmony/arkcompiler_ets_frontend/ets2panda   ETS098_ILLEGAL_VERIFIER_TURNING_OFF_GTEST.md
+openharmony/arkcompiler_runtime_core/static_core ETS098_ILLEGAL_VERIFIER_TURNING_OFF_GTEST.md
+
+openharmony/arkcompiler_ets_frontend/ets2panda   ETS099_ILLEGAL_VERIFIER_CONFIG.md
+openharmony/arkcompiler_runtime_core/static_core ETS099_ILLEGAL_VERIFIER_CONFIG.md
+
+##################################################
+# [ETS4XX] Frontend development rules            #
+# openharmony/arkcompiler_ets_frontend/ets2panda #
+##################################################
+
+openharmony/arkcompiler_ets_frontend/ets2panda         ETS400_NO_FLAGS_FOR_STATE.md
+openharmony/arkcompiler_ets_frontend/ets2panda         ETS401_NO_TYPE_TRAVERSAL.md
+openharmony/arkcompiler_ets_frontend/ets2panda         ETS402_NO_EALLOCATOR_USE.md
+openharmony/arkcompiler_ets_frontend/ets2panda         ETS403_NO_CREATE_SCOPED_ALLOCATOR.md
+
+# One general rule split into several parts for better accuracy
+openharmony/arkcompiler_ets_frontend/ets2panda/checker   ETS404_NO_TYPE_SIZE_INCREASE.md
+openharmony/arkcompiler_ets_frontend/ets2panda/varbinder ETS405_NO_VARIABLE_SIZE_INCREASE.md
+openharmony/arkcompiler_ets_frontend/ets2panda/ir        ETS406_NO_AST_SIZE_INCREASE.md
+
+# One general rule split into several parts for better accuracy
+openharmony/arkcompiler_ets_frontend/ets2panda/checker   ETS407_ALLOCATE_TYPE_IN_EHEAP.md
+openharmony/arkcompiler_ets_frontend/ets2panda/varbinder ETS408_ALLOCATE_VARIABLE_IN_EHEAP.md
+openharmony/arkcompiler_ets_frontend/ets2panda/ir        ETS409_ALLOCATE_AST_IN_EHEAP.md
+
+openharmony/arkcompiler_ets_frontend/ets2panda/checker ETS441_USE_TYPE_RELATION_API.md
+openharmony/arkcompiler_ets_frontend/ets2panda/checker ETS442_NO_AST_PATTERN_HARDCODING.md
+openharmony/arkcompiler_ets_frontend/ets2panda/checker ETS443_NO_IS_TYPE_FOR_SUBTYPES.md
+openharmony/arkcompiler_ets_frontend/ets2panda/checker ETS444_AVOID_IS_ETS_OBJECT_UNION.md
+openharmony/arkcompiler_ets_frontend/ets2panda/checker ETS445_PREFERRED_TYPE_IS_LOCAL.md
+openharmony/arkcompiler_ets_frontend/ets2panda/checker ETS446_NO_AST_MUTATION.md
+openharmony/arkcompiler_ets_frontend/ets2panda/checker ETS447_CHECKER_NO_AST_ALLOCATION.md
+openharmony/arkcompiler_ets_frontend/ets2panda/checker ETS448_NO_SYNTAX_CHECKS_IN_CHECKER.md
+openharmony/arkcompiler_ets_frontend/ets2panda/checker ETS449_NO_BLOAT_PUBLIC_INTERFACE.md
+openharmony/arkcompiler_ets_frontend/ets2panda/checker ETS450_NO_HARDCODED_TYPE_NAMES.md
+openharmony/arkcompiler_ets_frontend/ets2panda/checker ETS451_NO_HARDCODED_TYPE_POINTERS.md
+
+openharmony/arkcompiler_ets_frontend/ets2panda/ir      ETS490_ALL_AST_NODES_MUST_MATCH_SPEC.md
+
+#######################################################################
+# [ETS5XX] Rules for contributing to ArkTS test suites                #
+# openharmony/arkcompiler_ets_frontend/ets2panda/test                 #
+# openharmony/arkcompiler_runtime_core/static_core/plugins/ets/tests/ #
+#######################################################################
+
+openharmony/arkcompiler_ets_frontend/ets2panda/test                ETS501_BYPASS_SMART_CASTING.md
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/tests ETS501_BYPASS_SMART_CASTING.md
+
+openharmony/arkcompiler_ets_frontend/ets2panda/test                ETS502_USE_INSTANCEOF.md
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/tests ETS502_USE_INSTANCEOF.md
+
+openharmony/arkcompiler_ets_frontend/ets2panda/test                ETS503_USE_ASSERTIONS.md
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/tests ETS503_USE_ASSERTIONS.md
+
+##########################################################################
+# [ETS8XX] ArkTS StdLib development rules                                #
+# openharmony/arkcompiler_runtime_core/static_core/plugins/ets/stdlib    #
+# [opt] openharmony/arkcompiler_runtime_core/static_core/plugins/ets/sdk #
+##########################################################################
+
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/stdlib ETS800_DOC_PUBLIC_API.md
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/stdlib ETS801_EXPORTED_FUNCTION_NAME.md
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/stdlib ETS802_PUBLIC_METHOD_NAME.md
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/stdlib ETS803_EXPORTED_TYPE_NAME.md
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/stdlib ETS804_GLOBAL_CONSTANT_NAME.md
+
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/stdlib ETS805_NO_FOR_OF_SYNTAX.md
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/sdk    ETS805_NO_FOR_OF_SYNTAX.md
+
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/stdlib ETS806_NO_LABELED_STATEMENTS.md
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/sdk    ETS806_NO_LABELED_STATEMENTS.md
+
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/stdlib ETS807_NO_TYPEOF_USAGE.md
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/sdk    ETS807_NO_TYPEOF_USAGE.md
+
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/stdlib ETS808_FIXED_SIZE_ARRAY.md
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/sdk    ETS808_FIXED_SIZE_ARRAY.md
+
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/stdlib ETS809_EXPLICITE_RETURN_TYPE.md
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/sdk    ETS809_EXPLICITE_RETURN_TYPE.md
+
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/stdlib ETS810_EXPLICIT_VARIABLE_TYPE.md
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/sdk    ETS810_EXPLICIT_VARIABLE_TYPE.md
+
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/stdlib ETS811_PREFER_INT_OVER_NUMBER.md
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/sdk    ETS811_PREFER_INT_OVER_NUMBER.md
+
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/stdlib ETS812_NO_STRING_CONCATENATION.md
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/sdk    ETS812_NO_STRING_CONCATENATION.md
+
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/stdlib ETS813_INTEGER_EXPONENTIAL_NOTATION.md
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/sdk    ETS813_INTEGER_EXPONENTIAL_NOTATION.md
+
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/stdlib ETS814_NO_OVERLOAD_SET_SYNTAX.md
+openharmony/arkcompiler_runtime_core/static_core/plugins/ets/sdk    ETS814_NO_OVERLOAD_SET_SYNTAX.md

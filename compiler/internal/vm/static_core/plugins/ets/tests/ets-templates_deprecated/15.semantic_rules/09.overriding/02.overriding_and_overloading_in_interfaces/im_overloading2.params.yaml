@@ -1,0 +1,309 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    - decl: |-
+          interface I {
+              // duplicate signatures in overloading
+              meth(p: number): number
+              meth(d: double): double
+          }
+          class X implements I {
+              meth(...p: Any[]): Any {
+                  return p[0]
+              }
+          }
+          let i: I = ((): I => new X)()
+      use: |-
+          arktest.assertEQ(i.meth(42.0), 42.0)
+
+    - decl: |-
+          type J = I
+          interface I {
+              // duplicate signatures in overloading
+              meth(d: J)
+              meth(p: I)
+          }
+          class X implements I {
+              meth(...p: Any[]): Any {
+                  res = p[0]
+              }
+          }
+          let i: I = ((): I => new X)()
+          let j: J = ((): J => new X)()
+          let res: Any
+      use: |-
+          i.meth(i)
+          arktest.assertEQ(res, i)
+          j.meth(j)
+          arktest.assertEQ(res, j)
+
+    - decl: |-
+          interface I {
+              // duplicate signatures in overloading
+              meth(p: number|string|undefined): Object
+              meth(d: string|number|undefined): Object
+          }
+          class X implements I {
+              meth(...p: Any[]): Any {
+                  return p[0]
+              }
+          }
+      use: |-
+          let i: I = ((): I => new X)()
+          arktest.assertEQ(i.meth(42.0), 42.0)
+          arktest.assertEQ(i.meth("abc"), "abc")
+          arktest.assertEQ(i.meth(undefined), undefined)
+
+    - decl: |-
+          // value types
+          interface J {
+              meth(p: short): short
+              meth(p: long): long
+              meth(p: double): double
+              meth(p: boolean): boolean
+              meth(p: char): char
+          }
+          interface I extends J {
+              meth(p: byte): byte
+              meth(p: short): short
+              meth(p: int): int
+              meth(p: long): long
+              meth(p: float): float
+              meth(p: double): double
+              meth(p: boolean): boolean
+              meth(p: char): char
+          }
+          class A implements I {
+              meth(...p: Any[]): Any {
+                  return p[0]
+              }
+          }
+          let i: I = ((): I => new A)()
+          let j: J = ((): J => new A)()
+      use: |-
+          arktest.assertEQ(i.meth(-4 as byte), -4)
+          arktest.assertEQ(i.meth(-3 as short), -3)
+          arktest.assertEQ(i.meth(-2), -2)
+          arktest.assertEQ(i.meth(-1 as long), -1)
+          arktest.assertEQ(i.meth(3.5f), 3.5f)
+          arktest.assertEQ(i.meth(3.14), 3.14)
+          arktest.assertEQ(i.meth(false), false)
+          arktest.assertEQ(i.meth(c'A'), c'A')
+
+          arktest.assertEQ(j.meth(3 as short), 3)
+          arktest.assertEQ(j.meth(1 as long), 1)
+          arktest.assertEQ(j.meth(2.5), 2.5)
+          arktest.assertEQ(j.meth(true), true)
+          arktest.assertEQ(j.meth(c'B'), c'B')
+
+    - decl: |-
+          // enums
+          enum Color { Red, Green = 82, Blue }
+          enum Size { S = "small", M = "medium", L = "large" }
+          interface J {
+              meth(p: Size): Object
+          }
+          interface I extends J {
+              meth(p: Color): int
+              meth(p: Size): string  // overridden
+          }
+          class A implements I {
+              meth(p: Size): string
+              meth(p: Color): int
+              meth(...p: Any[]): Any {
+                  let v = p[0]
+                  if (v instanceof Color) {
+                      return v.valueOf()
+                  } else if (v instanceof Size) {
+                      return v.valueOf()
+                  }
+                  return undefined
+              }
+          }
+          let i: I = ((): I => new A)()
+          let j: J = ((): J => new A)()
+      use: |-
+          arktest.assertEQ(i.meth(Color.Red), 0)
+          arktest.assertEQ(i.meth(Size.L), "large")
+          arktest.assertEQ(j.meth(Size.M), "medium")
+
+    - decl: |-
+          // arrays
+          interface J {
+              meth(p: byte[]): int
+              meth(p: short[]): int
+          }
+          interface I extends J {
+              meth(p: byte[]): int
+              meth(p: short[]): int
+              meth(p: int[]): int
+              meth(p: long[]): int
+              meth(p: float[]): int
+              meth(p: double[]): int
+          }
+          class A implements I {
+              meth(...p: Any[]): Any {
+                  return p[0] instanceof Array ? p[0].length : undefined
+              }
+          }
+          let i: I = ((): I => new A)()
+          let j: J = ((): J => new A)()
+      use: |-
+          arktest.assertEQ(j.meth([0] as byte[]), 1)
+          arktest.assertEQ(j.meth([0, 0] as short[]), 2)
+
+          arktest.assertEQ(i.meth([0] as byte[]), 1)
+          arktest.assertEQ(i.meth([0, 0] as short[]), 2)
+          arktest.assertEQ(i.meth([0, 0, 0]), 3)
+          arktest.assertEQ(i.meth([0, 0, 0, 0] as long[]), 4)
+          arktest.assertEQ(i.meth([0.0f, 0.0f, 0.0f, 0.0f, 0.0f] as float[]), 5)
+          arktest.assertEQ(i.meth([0.0, 0.0, 0.0, 0.0, 0.0, 0.0] as double[]), 6)
+
+    - decl: |-
+          // tuples
+          type T = [number, string]
+          type R = [number, boolean]
+          interface J {
+              meth(p: R): Object
+          }
+          interface I extends J {
+              meth(p: R): number  // overridden
+              meth(p: T): number
+          }
+          class A implements I {
+              meth(p: R): number
+              meth(p: T): number
+              meth(...p: Any[]): Any {
+                  let v = p[0]
+                  if (v instanceof R) {
+                      return v[0]
+                  } else if (v instanceof T) {
+                      return v[0]
+                  }
+                  return undefined
+              }
+          }
+          let i: I = ((): I => new A)()
+          let j: J = ((): J => new A)()
+      use: |-
+          arktest.assertEQ(j.meth([3.14, true] as R), 3.14)
+          arktest.assertEQ(i.meth([2.5, false] as R), 2.5)
+          arktest.assertEQ(i.meth([42.0, "ab"] as T), 42.0)
+
+    - decl: |-
+          // unions
+          interface J {
+              meth(p: string|undefined): Object
+              meth(p: string|number): Object
+          }
+          interface I extends J {
+              meth(p: string|boolean|undefined): string
+              meth(p: string|number|undefined): string
+          }
+          class A implements I {
+              meth(...p: Any[]): Any {
+                  return "" + p[0]
+              }
+          }
+          let i: I = ((): I => new A)()
+          let j: J = ((): J => new A)()
+      use: |-
+          arktest.assertEQ(j.meth(undefined), "undefined")
+          arktest.assertEQ(j.meth(42.0), "42")
+          arktest.assertEQ(i.meth(true), "true")
+          arktest.assertEQ(i.meth("abc"), "abc")
+
+    - decl: |-
+          // function types
+          type FF=(p: number) => string
+          type EE=(p: string) => number
+          interface J {
+              meth(p: FF, q: number): Object
+          }
+          interface I extends J {
+              meth(p: FF, q: number): string
+              meth(p: EE, q: string): number
+          }
+          class A implements I {
+              meth(p: FF, q: number): string
+              meth(p: EE, q: string): number
+              meth(...p: Any[]): Any {
+                  let v = p[1]
+                  if (v instanceof string) {
+                      return p[0](v)
+                  } else if (v instanceof number) {
+                      return p[0](v)
+                  }
+                  return undefined
+              }
+          }
+          function fff(v: number): string {
+              return " " + v + " "
+          }
+          function eee(v: string): number {
+              return v == "" ? 0.0 : 1.0
+          }
+          let i: I = ((): I => new A)()
+          let j: J = ((): J => new A)()
+      use: |-
+          arktest.assertEQ(j.meth(fff, 42.0), " 42 ")
+          arktest.assertEQ(i.meth(fff, 42.0), " 42 ")
+          arktest.assertEQ(i.meth(eee, "X"), 1.0)
+
+    - decl: |-
+          // nullish types
+          type S=string
+          type SN=string|null
+          type SU=string|undefined
+          type SNU=string|null|undefined
+          interface J {
+              meth(p: S)
+              meth(p: SN)
+              meth(p: SU)
+          }
+          interface I extends J {
+              meth(p: SNU)
+          }
+          class A implements I {
+              meth(...p: Any[]): Any {
+                  res = p[0]
+              }
+          }
+          let i: I = ((): I => new A)()
+          let j: J = ((): J => new A)()
+          let res: Any
+      use: |-
+          i.meth(null)
+          arktest.assertEQ(res, null)
+          i.meth(undefined)
+          arktest.assertEQ(res, undefined)
+          i.meth("ABC")
+          arktest.assertEQ(res, "ABC")
+
+          j.meth(null)
+          arktest.assertEQ(res, null)
+          j.meth(undefined)
+          arktest.assertEQ(res, undefined)
+          j.meth("ABC")
+          arktest.assertEQ(res, "ABC")

@@ -1,0 +1,483 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+definitions:
+  - name: obj-ctor
+    template: |
+      .record Obj {}
+      .function void Obj.ctor(Obj a0) <ctor> {
+          return.void
+      }
+tests:
+  - file-name: 'return'
+    isa:
+      title: Return value from method
+      description: >
+        Return from the current method, i.e. restore the frame of method invoker and return control to the
+        invoker. Return value should be in accumulator.
+      exceptions:
+        - x_none
+    commands:
+      - file-name: 'call_s_p'
+        isa:
+          instructions:
+            - sig: return
+              acc: in:b32
+              format: [op_none]
+        description: Check 'return' returns control flow to caller, static call.
+        tags: ['tsan']
+        header-template: []
+        code-template: |
+          .function i32 func(%s) {
+              ldai 0x12345678
+              return
+          }
+          .function i32 main() {
+              %s
+              call func%s
+              movi v0, 0x12345678
+              jeq v0, ok
+              ldai 1
+              return
+          ok:
+        check-type: exit-positive
+        cases:
+          - values:
+              - ''
+              - ''
+              - ''
+          - values:
+              - 'i32 a0'
+              - 'movi v0, 0x12345678'
+              - ', v0'
+          - values:
+              - 'u16 a0, f64 a1'
+              - |
+                #
+                    movi v0, 0
+                    fmovi.64 v1, 1.2
+              - ', v0, v1'
+          - values:
+              - 'i8 a0, f32 a1, i64 a2'
+              - |
+                #
+                    movi v0, 0
+                    fmovi v1, 1.2
+                    movi.64 v2, 0xFF
+              - ', v0, v1, v2'
+          - values:
+              - 'i16 a0, u1 a1, u64 a2, Obj a3'
+              - |
+                #
+                    movi v0, 0
+                    movi v1, 1
+                    movi.64 v2, 0xFF
+                    mov.null v3
+              - ', v0, v1, v2, v3'
+            case-header-template: [obj-ctor]
+
+      - file-name: 'call_v_p'
+        isa:
+          instructions:
+            - sig: return
+              acc: in:b32
+              format: [op_none]
+        description: Check 'return' returns control flow to caller, virtual call.
+        tags: ['tsan']
+        header-template: [obj-ctor]
+        code-template: |
+          .function i32 Obj.func(%s) {
+              ldai 0x12345678
+              return
+          }
+          .function i32 main() {
+              %s
+              newobj v10, Obj
+              call.virt Obj.func%s
+              movi v0, 0x12345678
+              jeq v0, ok
+              ldai 1
+              return
+          ok:
+        check-type: exit-positive
+        cases:
+          - values:
+              - 'Obj a0'
+              - ''
+              - ', v10'
+
+          - values:
+              - 'Obj a0, i32 a1'
+              - 'movi v0, 0x12345678'
+              - ', v10, v0'
+
+          - values:
+              - 'Obj a0, u8 a1, f64 a2'
+              - |
+                #
+                    movi v0, 0
+                    fmovi.64 v1, 1.2
+              - ', v10, v0, v1'
+          - values:
+              - 'Obj a0, i16 a1, f32 a2, i64 a3'
+              - |
+                #
+                    movi v0, 0
+                    fmovi v1, 1.2
+                    movi.64 v2, 0xFF
+              - ', v10, v0, v1, v2'
+
+      - file-name: 'wrong_return'
+        tags: [verifier]
+        runner-options: ['verifier-failure', 'verifier-config']
+        isa:
+          instructions:
+            - sig: return
+              acc: in:b32
+              format: [op_none]
+        header-template: []
+        code-template: |
+          .function i32 func() {
+              ldai 0x12345678
+              %s
+          }
+          .function i32 main() {
+              call.short func
+        check-type: exit-positive
+        description: Check the verifier behavior when expected 'return' is not given.
+        cases:
+          - values: ['']
+          - values: ['return.void']
+          - values: ['return.64']
+          - values: ['return.obj']
+
+      - file-name: 'type'
+        tags: [verifier]
+        bugid: ['1324']
+        runner-options: ['verifier-failure', 'verifier-config']
+        isa:
+          instructions:
+            - sig: return
+              acc: in:b32
+              format: [op_none]
+          verification:
+            - acc_return_type
+        header-template: []
+        code-template: |
+          .record panda.Object <external>
+          .function %s func() {
+              *s
+              return
+          }
+          .function i32 main() {
+              call.short func
+        check-type: exit-positive
+        description: Check that 'return' is used with correct accumulator value and function return type.
+        template-cases:
+          - values: [void]
+          - values: [u1]
+            exclude: [case_i32]
+          - values: [i8]
+            exclude: [case_i32]
+          - values: [u8]
+            exclude: [case_i32]
+          - values: [i16]
+            exclude: [case_i32]
+          - values: [u16]
+            exclude: [case_i32]
+          - values: [i32]
+            exclude: [case_i32]
+          - values: [u32]
+            exclude: [case_i32]
+          - values: [i64]
+          - values: [u64]
+          - values: [f32]
+            exclude: [case_f32]
+            bugid: ['7360']
+            ignore: true
+          - values: [f64]
+          - values: [panda.Object]
+        cases:
+          - values: ['']
+          - values: [ldai 0]
+            id: case_i32
+            bugid: ['1324', '1813']
+          - values: [ldai.64 0]
+          - values: [fldai 0]
+            id: case_f32
+            bugid: ['7360']
+            ignore: true
+          - values: [fldai.64 0]
+          - values: [lda.null]
+          - values: [lda.str "some string"]
+          - values:
+              - initobj Obj.ctor
+            case-header-template: [obj-ctor]
+          - values:
+              - lda.type Obj
+            case-header-template: [obj-ctor]
+
+      - file-name: 'regs_restore_s'
+        isa:
+          instructions:
+            - sig: return
+              acc: in:b32
+              format: [op_none]
+        header-template: []
+        code-template: |
+          .function i32 func(%s) {
+              %s
+              ldai 0
+              return
+          }
+          .function i32 main() {
+              %s
+              call func%s
+              %s
+              ldai 0
+              return
+          set_failure:
+              ldai 1
+              return
+        check-type: none
+        description: Check that after 'return' register are restored in caller after a static call.
+        cases:
+          - values:
+              - ''
+              - ''
+              - 'movi v0, 0x12345678'
+              - ''
+              - |
+                #
+                    ldai 0x12345678
+                    jne v0, set_failure
+            description: 'Register is not used in function.'
+          - values:
+              - 'i32 a0'
+              - 'movi v0, 0x87654321'
+              - 'movi v0, 0x12345678'
+              - ', v0'
+              - |
+                #
+                    ldai 0x12345678
+                    jne v0, set_failure
+            description: 'Register is used in function.'
+          - values:
+              - 'i32 a0'
+              - ''
+              - 'movi v0, 0x12345678'
+              - ', v0'
+              - |
+                #
+                    ldai 0x12345678
+                    jne v0, set_failure
+            description: 'Register is not used in function.'
+          - values:
+              - 'f64 a0, i64 a1'
+              - |
+                #
+                    fmovi.64 v0, 0
+                    movi.64 v1, 0
+              - |
+                #
+                    fmovi.64 v0, 3.1415926535
+                    movi.64 v1, 0x123456789ABCDEF0
+              - ', v0, v1'
+              - |
+                #
+                    fldai.64 3.1415926535
+                    fcmpg.64 v0
+                    jnez set_failure
+                    ldai.64 0x123456789ABCDEF0
+                    cmp.64 v1
+                    jnez set_failure
+            description: 'Registers are used in function.'
+          - values:
+              - 'f64 a0, i64 a1, i32 a2, f64 a3'
+              - |
+                #
+                    fmovi.64 v0, 0
+                    movi.64 v1, 0
+                    movi v2, 0
+                    fmovi.64 v3, 0
+              - |
+                #
+                    fmovi.64 v0, 3.1415926535
+                    movi.64 v1, 0x123456789ABCDEF0
+                    movi v2, 123456789
+                    fmovi.64 v3, 0x8000000000000001
+              - ', v0, v1, v2, v3'
+              - |
+                #
+                    fldai.64 3.1415926535
+                    fcmpg.64 v0
+                    jnez set_failure
+                    ldai.64 0x123456789ABCDEF0
+                    cmp.64 v1
+                    jnez set_failure
+                    ldai 123456789
+                    jne v2, set_failure
+                    fldai.64 0x8000000000000001
+                    fcmpg.64 v3
+                    jnez set_failure
+            description: 'Registers are used in function.'
+
+      - file-name: 'regs_restore_v'
+        isa:
+          instructions:
+            - sig: return
+              acc: in:b32
+              format: [op_none]
+        header-template: []
+        code-template: |
+          .record R {}
+          .function i32 R.func(R a0%s) {
+              %s
+              ldai 0
+              return
+          }
+          .function i32 main() {
+              newobj v10, R
+              %s
+              call.virt R.func, v10%s
+              %s
+              ldai 0
+              return
+          set_failure:
+              ldai 1
+              return
+        check-type: none
+        description: Check that after 'return' register are restored in caller after a virtual call.
+        cases:
+          - values:
+              - ''
+              - ''
+              - 'movi v0, 0x12345678'
+              - ''
+              - |
+                #
+                    ldai 0x12345678
+                    jne v0, set_failure
+            description: 'Register is not used in function.'
+          - values:
+              - ', i32 a1'
+              - 'movi v0, 0x87654321'
+              - 'movi v0, 0x12345678'
+              - ', v0'
+              - |
+                #
+                    ldai 0x12345678
+                    jne v0, set_failure
+            description: 'Register is used in function.'
+          - values:
+              - ', i32 a1'
+              - ''
+              - 'movi v0, 0x12345678'
+              - ', v0'
+              - |
+                #
+                    ldai 0x12345678
+                    jne v0, set_failure
+            description: 'Register is not used in function.'
+          - values:
+              - ', f64 a1, i64 a2'
+              - |
+                #
+                    fmovi.64 v0, 0
+                    movi.64 v1, 0
+              - |
+                #
+                    fmovi.64 v0, 3.1415926535
+                    movi.64 v1, 0x123456789ABCDEF0
+              - ', v0, v1'
+              - |
+                #
+                    fldai.64 3.1415926535
+                    fcmpg.64 v0
+                    jnez set_failure
+                    ldai.64 0x123456789ABCDEF0
+                    cmp.64 v1
+                    jnez set_failure
+            description: 'Registers are used in function.'
+          - values:
+              - ', f64 a1, i64 a2, f32 a3'
+              - |
+                #
+                    fmovi.64 v0, 0
+                    movi.64 v1, 0
+                    fmovi v2, 0
+              - |
+                #
+                    fmovi.64 v0, 3.1415926535
+                    movi.64 v1, 0x123456789ABCDEF0
+                    fmovi v2, 0x80000001
+              - ', v0, v1, v2'
+              - |
+                #
+                    fldai.64 3.1415926535
+                    fcmpg.64 v0
+                    jnez set_failure
+                    ldai.64 0x123456789ABCDEF0
+                    cmp.64 v1
+                    jnez set_failure
+                    fldai 0x80000001
+                    fcmpg v2
+                    jnez set_failure
+            description: 'Registers are used in function.'
+
+      - file-name: 'uninitialized_acc_s_p'
+        tags: [verifier]
+        runner-options: ['verifier-failure', 'verifier-config']
+        isa:
+          instructions:
+            - sig: return
+              acc: in:b32
+              format: [op_none]
+        header-template: []
+        code-template: |
+          .function i32 func() {
+              return
+          }
+          .function i32 main() {
+              call.short func
+        check-type: exit-positive
+        description: Check that verifier reports an error if accumulator is not initialized, static call.
+
+      - file-name: 'uninitialized_acc_v_p'
+        tags: [verifier]
+        runner-options: ['verifier-failure', 'verifier-config']
+        isa:
+          instructions:
+            - sig: return
+              acc: in:b32
+              format: [op_none]
+        header-template: []
+        code-template: |
+          .record R {}
+          .function i32 R.func(R a0) {
+              return
+          }
+          .function i32 main() {
+              newobj v10, R
+              call.virt.short R.func, v10
+        check-type: exit-positive
+        description: Check that verifier reports an error if accumulator is not initialized, virtual call.

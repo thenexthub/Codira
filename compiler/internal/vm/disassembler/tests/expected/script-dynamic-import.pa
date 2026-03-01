@@ -1,0 +1,33 @@
+# source binary: script-dynamic-import.abc
+
+.language ECMAScript
+
+# ====================
+# LITERALS
+
+
+# ====================
+# RECORDS
+
+.record _ESSlotNumberAnnotation {
+}
+
+.record _ESTypeAnnotation <external>
+
+.record _ESTypeInfoRecord {
+}
+
+# ====================
+# METHODS
+
+.function any func_main_0(any a0, any a1, any a2) <static> {
+	lda.str "./script-export.js"
+	dynamicimport
+	ldundefined
+	returnundefined
+}
+
+# ====================
+# STRING
+
+[offset:0x99, name_value:./script-export.js]

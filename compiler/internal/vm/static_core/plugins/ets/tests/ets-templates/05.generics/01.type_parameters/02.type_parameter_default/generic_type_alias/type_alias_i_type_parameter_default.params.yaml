@@ -1,0 +1,99 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - decl: |-
+      interface BaseType<T = SomeType> {}
+      type Base<T = SomeType> = BaseType<T>
+      class DerivedType implements Base {}
+      type Derived = DerivedType
+    use: |-
+      let a = new Derived()
+      arktest.assertTrue(a instanceof BaseType)
+  - decl: |-
+      interface BaseType<T = SomeType> {}
+      type Base<T = SomeType> = BaseType<T>
+      class DerivedType implements Base<OtherType> {}
+      type Derived = DerivedType
+    use: |-
+      let a = new Derived()
+      arktest.assertTrue(a instanceof BaseType)
+  - decl: |-
+      interface BaseType<T = SomeType> {}
+      type Base<T = SomeType> = BaseType<T>
+      class DerivedType<T = OtherType> implements Base<T> {}
+      type Derived<T = OtherType> = DerivedType<T>
+    use: |-
+      let a = new Derived()
+      arktest.assertTrue(a instanceof BaseType)
+  - decl: |-
+      interface BaseType<T = SomeType, U = OtherType> {}
+      type Base<T = SomeType, U = OtherType> = BaseType<T, U>
+      class DerivedType implements Base {}
+      type Derived = DerivedType
+    use: |-
+      let a = new Derived()
+      arktest.assertTrue(a instanceof BaseType)
+  - decl: |-
+      interface BaseType<T, U = OtherType> {}
+      type Base<T, U = OtherType> = BaseType<T, U>
+      class DerivedType implements Base<SomeType> {}
+      type Derived = DerivedType
+    use: |-
+      let a = new Derived()
+      arktest.assertTrue(a instanceof BaseType)
+  - decl: |-
+      interface BaseType<T, U = OtherType> {}
+      type Base<T, U = OtherType> = BaseType<T, U>
+      class DerivedType implements Base<OtherType, SomeType> {}
+      type Derived = DerivedType
+    use: |-
+      let a = new Derived()
+      arktest.assertTrue(a instanceof BaseType)
+  - decl: |-
+      interface BaseType<T, U = OtherType> {}
+      type Base<T, U = OtherType> = BaseType<T, U>
+      class DerivedType<V> implements BaseType<V> {}
+      type Derived<T> = DerivedType<T>
+    use: |-
+      let a = new Derived<SomeType>()
+      arktest.assertTrue(a instanceof BaseType)
+  - decl: |-
+      interface BaseType<T = BaseType<SomeType>> {}
+      type Base<T = BaseType<SomeType>> = BaseType<T>
+      class DerivedType implements Base {}
+      type Derived = DerivedType
+    use: |-
+      let a = new Derived()
+      arktest.assertTrue(a instanceof BaseType)
+  - decl: |-
+      interface BaseType<T, U = SomeType, V = OtherType> {}
+      type Base<T, U = SomeType, V = OtherType> = BaseType<T, U, V>
+    use: |-
+      let a: Base<number> = {}
+      let b: Base<number, OtherType> = {}
+      let c: Base<number, Object, SomeType> = {}
+      arktest.assertTrue(a instanceof BaseType)
+      arktest.assertTrue(b instanceof BaseType)
+      arktest.assertTrue(c instanceof BaseType)
+  - decl: |-
+      interface BaseType<in T, in U = SomeType, out V = OtherType> {}
+      type Base<T, U = SomeType, V = OtherType> = BaseType<T, U, V>
+    use: |-
+      let a: Base<number> = {}
+      let b: Base<number, OtherType> = {}
+      let c: Base<number, Object, SomeType> = {}
+      arktest.assertTrue(a instanceof BaseType)
+      arktest.assertTrue(b instanceof BaseType)
+      arktest.assertTrue(c instanceof BaseType)

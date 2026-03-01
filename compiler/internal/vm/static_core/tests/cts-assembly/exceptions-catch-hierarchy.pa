@@ -1,0 +1,84 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+.record E1 {}
+.record E2 <extends=E1> {}
+.record E3 <extends=E2> {}
+
+.function u1 E1.f(E1 a0) {
+    ldai 10
+    return
+}
+
+.function u1 E2.f(E2 a0) {
+    ldai 0
+    return
+}
+
+.function u1 E3.f(E3 a0) {
+    ldai 20
+    return
+}
+
+.function u1 f1() {
+    newobj v0, E2
+try_begin:
+    throw v0
+    ldai 2
+    return
+try_end:
+
+catch_block_begin:
+    ldai 1
+    return
+
+.catch E3, try_begin, try_end, catch_block_begin
+}
+
+.function u1 f2() {
+try_begin:
+    call f1
+    return
+try_end:
+
+catch_block1_begin:
+    sta.obj v0
+    call.virt E1.f, v0
+    return
+
+catch_block2_begin:
+    ldai 2
+    return
+
+catch_block3_begin:
+    ldai 3
+    return
+
+.catch E1, try_begin, try_end, catch_block1_begin
+.catch E2, try_begin, try_end, catch_block2_begin
+.catchall try_begin, try_end, catch_block3_begin
+}
+
+.function u1 main() {
+    call f2
+    return
+}

@@ -1,0 +1,37 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+cases:
+  - { type: 'int', value: '42' }
+  - { type: 'number', value: '42.0' }
+  - { type: 'byte', value: '127' }
+  - { type: 'short', value: '32767' }
+  - { type: 'long', value: '9223372036854775807' }
+  - { type: 'float', value: '3.14f' }
+  - { type: 'double', value: '3.141592653589793' }
+  - { type: 'bigint', value: '123456789012345678901234567890n' }
+  - { type: 'boolean', value: 'true' }
+  - { type: 'string', value: '"Hello, ArkTS!"' }
+  - { type: 'char', value: "c'A'" }
+  - { type: 'Int', value: '42' }
+  - { type: 'Number', value: '42.0' }
+  - { type: 'Byte', value: '127' }
+  - { type: 'Short', value: '32767' }
+  - { type: 'Long', value: '9223372036854775807' }
+  - { type: 'Float', value: '3.14f' }
+  - { type: 'Double', value: '3.141592653589793' }
+  - { type: 'BigInt', value: '123456789012345678901234567890n' }
+  - { type: 'Boolean', value: 'true' }
+  - { type: 'String', value: '"Hello, ArkTS!"' }
+  - { type: 'Char', value: "c'A'" }  
+  - { type: 'Any', value: '"Anyvalue"' }

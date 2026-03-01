@@ -1,0 +1,85 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+--- # Interfaces with static members and type parameters inside
+cases:
+  - desc: Verify that attempting to cast a readonly property to a mutable property results in a type error.
+    decl: |-
+      interface ReadonlyObj {
+        prop: string;
+      }
+    logic: |-
+      let obj: ReadonlyObj = { prop: "value" };
+      let mutableObj: { prop: string } = obj as { prop: string };
+
+  - desc: Verify that attempting to cast a function to a number results in a type error.
+    decl: |-
+      let func: () => void = () => {};
+    logic: |-
+      let num: number = func as number;
+
+  - desc: Verify that attempting to cast a boolean to a number results in a type error.
+    decl: |-
+      let bool: boolean = true;
+    logic: |-
+      let num: number = bool as number;
+
+  - desc: Verify that attempting to cast null to a number results in a type error.
+    decl: |-
+      let n: null = null;
+    logic: |-
+      let num: number = n as number;
+
+  - desc: Verify that attempting to cast a string to a number results in a type error.
+    decl: |-
+      let str: string = "42";
+    logic: |-
+      let num: number = str as number;
+
+  - desc: Verify that directly assigning a number to a string variable results in a type error.
+    decl: |-
+      let num: number = 42;
+    logic: |-
+      let str: string = num;
+
+  - desc: Verify that attempting to cast a number to a string results in a type error.
+    decl: |-
+      let num: number = 42;
+    logic: |-
+      let str: string = num as string;
+
+  - desc: Verify that attempting to cast a class instance to a number results in a type error.
+    decl: |-
+      let instance = new MyClass();
+    logic: |-
+      let num: number = instance as number;
+
+  - desc: Verify that attempting to cast a class instance to a number results in a type error.
+    decl: |-
+      let undef: undefined = undefined;
+    logic: |-
+      let str: string = undef as string;
+
+  - desc: Verify that attempting to cast an array to a string results in a type error.
+    logic: |-
+      let arr: number[] = [1, 2, 3];
+      let str: string = arr as string;

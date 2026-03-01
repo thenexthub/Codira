@@ -1,0 +1,72 @@
+/**
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+{% from "16.concurrency/02.asynchronous_api/async_api_helper.jinja" import generate_async, call_async %}
+
+{% macro generate_type_name(array_type, content_type) -%}
+{%- if array_type == 'Array' or array_type == 'FixedArray' -%}
+{{array_type}}<{{content_type}}>
+{%- else -%}
+{{content_type}}[]
+{%- endif -%}
+{%- endmacro %}
+
+{% macro generate_complete_test(cases, declaration_type='function') %}
+{% for c in cases %}
+{% for arr_type in ['Array', 'FixedArray', '[]'] %}
+
+{% set type_name = generate_type_name(arr_type, c.type) %}
+{% set async_body %}
+    const value: {{type_name}} = [{{c.value}}]
+    return value
+{% endset %}
+
+/*---
+desc: The return type of an async {{declaration_type}} must be Promise<{{type_name}}>.
+---*/
+
+{{ c.type_declaration }}
+
+{% set assert = 'instanceof ' + c.type if c.type_declaration else '=== ' + c.value %}
+{% set params = {
+    'name': 'noParams',
+    'body': async_body,
+    'return_type': ': Promise<' + type_name + '>',
+    'class_name': 'AsyncMethodReturnClass'
+} %}
+
+{{ generate_async(declaration_type, params) }}
+
+async function startTest(){
+    let result = {{ call_async(declaration_type, params) }}
+    arktest.assertTrue(result instanceof Promise)
+    let awaited_result = await result
+    {% if not arr_type == 'FixedArray' -%}
+    arktest.assertTrue(Array.isArray(awaited_result))
+    {% endif %}
+    arktest.assertTrue(awaited_result[0] {{assert}})
+    {% if arr_type == 'FixedArray' -%}
+    arktest.assertTrue(awaited_result instanceof {{type_name}})
+    {% endif %}
+}
+
+function main(){
+    waitForCompletion(startTest)
+}
+
+{% endfor %}
+{% endfor %}
+{% endmacro %}
+
+

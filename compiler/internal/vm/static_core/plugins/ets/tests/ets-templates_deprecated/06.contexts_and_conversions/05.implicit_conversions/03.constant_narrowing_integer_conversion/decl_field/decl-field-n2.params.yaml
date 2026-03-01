@@ -1,0 +1,26 @@
+# Copyright (c) 2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # from short
+    - { expr: -128 as short, from_type: short, to_type: byte }
+
+    # from int
+    - { expr: 127 as int, from_type: int, to_type: byte }
+    - { expr: -32768 as int, from_type: int, to_type: short }
+
+    # from long
+    - { expr: 127 as long, from_type: long, to_type: byte }
+    - { expr: -32768 as long, from_type: long, to_type: short }
+    - { expr: 2147483647 as long, from_type: long, to_type: int }

@@ -1,0 +1,139 @@
+# Copyright (c) 2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - values:
+          - { type: number, expr: "Double.POSITIVE_INFINITY", eq: "==" }
+          - { type: Number, expr: "new Double(Double.NEGATIVE_INFINITY)", eq: "==" }
+          - { type: byte, expr: "127", eq: "==" }
+          - { type: Byte, expr: "-128", eq: "==" }
+          - { type: short, expr: "32767", eq: "==" }
+          - { type: Short, expr: "-32768", eq: "==" }
+          - { type: int, expr: "2147483647", eq: "==" }
+          - { type: Int, expr: "-2147483648", eq: "==" }
+          - { type: long, expr: "9223372036854775807", eq: "==" }
+          - { type: Long, expr: "-9223372036854775808", eq: "==" }
+          - { type: float, expr: "Float.MAX_VALUE", eq: "==" }
+          - { type: Float, expr: "Float.MIN_VALUE", eq: "==" }
+          - { type: double, expr: "Double.MAX_VALUE", eq: "==" }
+          - { type: Double, expr: "Double.MIN_VALUE", eq: "==" }
+
+    - values:
+          - { type: char, expr: "c'\\uFFFF'", eq: "==" }
+          - { type: Char, expr: "c'\\u7777'", eq: "==" }
+          - { type: boolean, expr: "true", eq: "==" }
+          - { type: Boolean, expr: "false", eq: "==" }
+          - { type: string, expr: '"hello"', eq: "==" }
+          - { type: String, expr: '"HELLO"', eq: "==" }
+
+    - decl: |-
+          class A {}
+          class B extends A {}
+          let a: A = new A()
+          let b: B = new B()
+      values:
+          - { type: A, expr: "a", eq: "===" }
+          - { type: B, expr: "b", eq: "===" }
+          - { type: Object, expr: "a", eq: "===" }
+          - { type: Object, expr: "b", eq: "===" }
+
+    - decl: |-
+          interface I {}
+          interface J extends I {}
+          class A implements I {}
+          class B implements J {}
+          let i: I = new A()
+          let j: J = new B()
+      values:
+          - { type: I, expr: "i", eq: "===" }
+          - { type: J, expr: "j", eq: "===" }
+          - { type: Object, expr: "i", eq: "===" }
+          - { type: Object, expr: "j", eq: "===" }
+
+    - decl: |-
+          let byte_arr: byte[] = [-128]
+          let short_arr: short[] = [-32678]
+          let int_arr: int[] = [-2147483648]
+          let long_arr: long[] = [-9223372036854775808]
+          let float_arr: float[] = [Float.MIN_VALUE]
+          let double_arr: double[] = [Double.MIN_VALUE]
+          let number_arr: number[] = [Double.NaN]
+      values:
+          - { type: "byte[]", expr: "byte_arr", eq: "===" }
+          - { type: "short[]", expr: "short_arr", eq: "===" }
+          - { type: "int[]", expr: "int_arr", eq: "===" }
+          - { type: "long[]", expr: "long_arr", eq: "===" }
+          - { type: "float[]", expr: "float_arr", eq: "===" }
+          - { type: "double[]", expr: "double_arr", eq: "===" }
+          - { type: "number[]", expr: "number_arr", eq: "===" }
+
+    - decl: |-
+          let byte_arr: Byte[] = [127]
+          let short_arr: Short[] = [32767]
+          let int_arr: Int[] = [2147483647]
+          let long_arr: Long[] = [9223372036854775807]
+          let float_arr: Float[] = [Float.MAX_VALUE]
+          let double_arr: Double[] = [Double.MAX_VALUE]
+          let number_arr: Number[] = [Double.NaN]
+      values:
+          - { type: "Byte[]", expr: "byte_arr", eq: "===" }
+          - { type: "Short[]", expr: "short_arr", eq: "===" }
+          - { type: "Int[]", expr: "int_arr", eq: "===" }
+          - { type: "Long[]", expr: "long_arr", eq: "===" }
+          - { type: "Float[]", expr: "float_arr", eq: "===" }
+          - { type: "Double[]", expr: "double_arr", eq: "===" }
+          - { type: "Number[]", expr: "number_arr", eq: "===" }
+
+    - decl: |-
+          let char_arr: char[] = [c'A']
+          let char_arr2: Char[] = [new Char(c'B')]
+          let boolean_arr: boolean[] = [true, false, true]
+          let boolean_arr2: Boolean[] = [new Boolean(true), new Boolean(false)]
+          let string_arr: string[] = ["hello", "world"]
+          let string_arr2: String[] = [new String("HELLO"), new String("WORLD")]
+      values:
+          - { type: "char[]", expr: "char_arr", eq: "===" }
+          - { type: "Char[]", expr: "char_arr2", eq: "===" }
+          - { type: "boolean[]", expr: "boolean_arr", eq: "===" }
+          - { type: "Boolean[]", expr: "boolean_arr2", eq: "===" }
+          - { type: "string[]", expr: "string_arr", eq: "===" }
+          - { type: "String[]", expr: "string_arr2", eq: "===" }
+
+    - decl: |-
+          let obj: Object = new Error()
+          type FOO = (p: int, q: int) => int
+          type BAR = (p: string, q: string) => string
+          let foo: FOO = (p: int, q: int): int => { return p + q }
+          let bar: BAR = (p: string, q: string): string => { return p + q }
+      values:
+          - { type: "FOO", expr: "foo", eq: "===" }
+          - { type: "BAR", expr: "bar", eq: "===" }
+          - { type: "Object", expr: "obj", eq: "===" }
+
+    - decl: |-
+          type UT1 = number | string
+          type UT2 = string | boolean
+          let ut1: UT1 = "hello"
+          let ut2: UT2 = "world"
+      values:
+          - { type: "UT1", expr: "ut1", eq: "===" }
+          - { type: "UT2", expr: "ut2", eq: "===" }
+
+    - decl: |-
+          let t1: [string, boolean] = ["A", true]
+          let t2: [number, Error] = [1.5, new Error()]
+      values:
+          - { type: "[string, boolean]", expr: t1, eq: "===" }
+          - { type: "[number, Error]", expr: t2, eq: "===" }
+          - { type: "[number, Error]", expr: t2, eq: "===" }

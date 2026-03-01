@@ -1,0 +1,303 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - from_type: Byte
+      to_type: byte
+      values:
+          - { expr: new Byte(), val: 0 }
+          - { expr: new Byte(127), val: 127 }
+          - { expr: new Byte(-128), val: -128 }
+
+    - from_type: Byte
+      to_type: short
+      values:
+          - { expr: new Byte(), val: 0 }
+          - { expr: new Byte(127), val: 127 }
+          - { expr: new Byte(-128), val: -128 }
+
+    - from_type: Byte
+      to_type: int
+      values:
+          - { expr: new Byte(), val: 0 }
+          - { expr: new Byte(127), val: 127 }
+          - { expr: new Byte(-128), val: -128 }
+
+    - from_type: Byte
+      to_type: long
+      values:
+          - { expr: new Byte(), val: 0 }
+          - { expr: new Byte(127), val: 127 }
+          - { expr: new Byte(-128), val: -128 }
+
+    - from_type: Byte
+      to_type: float
+      values:
+          - { expr: new Byte(), val: 0.0 }
+          - { expr: new Byte(127), val: 127.0f }
+          - { expr: new Byte(-128), val: -128.0f }
+
+    - from_type: Byte
+      to_type: double
+      values:
+          - { expr: new Byte(), val: 0.0 }
+          - { expr: new Byte(127), val: 127.0 }
+          - { expr: new Byte(-128), val: -128.0 }
+
+    - from_type: Short
+      to_type: short
+      values:
+          - { expr: new Short(), val: 0 }
+          - { expr: new Short(Byte.MIN_VALUE.toShort()), val: -128 }
+          - { expr: new Short(Byte.MAX_VALUE.toShort()), val: 127 }
+          - { expr: new Short(Short.MIN_VALUE), val: -32768 }
+          - { expr: new Short(Short.MAX_VALUE), val: 32767 }
+
+    - from_type: Short
+      to_type: int
+      values:
+          - { expr: new Short(), val: 0 }
+          - { expr: new Short(Byte.MIN_VALUE.toShort()), val: -128 }
+          - { expr: new Short(Byte.MAX_VALUE.toShort()), val: 127 }
+          - { expr: new Short(Short.MIN_VALUE), val: -32768 }
+          - { expr: new Short(Short.MAX_VALUE), val: 32767 }
+
+    - from_type: Short
+      to_type: long
+      values:
+          - { expr: new Short(), val: 0 }
+          - { expr: new Short(Byte.MIN_VALUE.toShort()), val: -128 }
+          - { expr: new Short(Byte.MAX_VALUE.toShort()), val: 127 }
+          - { expr: new Short(Short.MIN_VALUE), val: -32768 }
+          - { expr: new Short(Short.MAX_VALUE), val: 32767 }
+
+    - from_type: Short
+      to_type: float
+      values:
+          - { expr: new Short(), val: 0.0 }
+          - { expr: new Short(Byte.MIN_VALUE.toShort()), val: -128.0f }
+          - { expr: new Short(Byte.MAX_VALUE.toShort()), val: 127.0f }
+          - { expr: new Short(Short.MIN_VALUE), val: -32768.0f }
+          - { expr: new Short(Short.MAX_VALUE), val: 32767.0f }
+
+    - from_type: Short
+      to_type: double
+      values:
+          - { expr: new Short(), val: 0.0 }
+          - { expr: new Short(Byte.MIN_VALUE.toShort()), val: -128 }
+          - { expr: new Short(Byte.MAX_VALUE.toShort()), val: 127 }
+          - { expr: new Short(Short.MIN_VALUE), val: -32768 }
+          - { expr: new Short(Short.MAX_VALUE), val: 32767 }
+
+    - from_type: Int
+      to_type: int
+      values:
+          - { expr: new Int(), val: 0 }
+          - { expr: new Int(Byte.MIN_VALUE.toInt()), val: -128 }
+          - { expr: new Int(Byte.MAX_VALUE.toInt()), val: 127 }
+          - { expr: new Int(Short.MIN_VALUE.toInt()), val: -32768 }
+          - { expr: new Int(Short.MAX_VALUE.toInt()), val: 32767 }
+          - { expr: new Int(Int.MIN_VALUE), val: -2147483648 }
+          - { expr: new Int(Int.MAX_VALUE), val: 2147483647 }
+
+    - from_type: Int
+      to_type: long
+      values:
+          - { expr: new Int(), val: 0 }
+          - { expr: new Int(Byte.MIN_VALUE.toInt()), val: -128 }
+          - { expr: new Int(Byte.MAX_VALUE.toInt()), val: 127 }
+          - { expr: new Int(Short.MIN_VALUE.toInt()), val: -32768 }
+          - { expr: new Int(Short.MAX_VALUE.toInt()), val: 32767 }
+          - { expr: new Int(Int.MIN_VALUE), val: -2147483648 }
+          - { expr: new Int(Int.MAX_VALUE), val: 2147483647 }
+
+    - from_type: Int
+      to_type: float
+      values:
+          - { expr: new Int(), val: 0.0 }
+          - { expr: new Int(Byte.MIN_VALUE.toInt()), val: -128.0f }
+          - { expr: new Int(Byte.MAX_VALUE.toInt()), val: 127.0f }
+          - { expr: new Int(Short.MIN_VALUE.toInt()), val: -32768.0f }
+          - { expr: new Int(Short.MAX_VALUE.toInt()), val: 32767.0f }
+          - { expr: new Int(Int.MIN_VALUE), val: -2147483600.0f } # loss of precision
+          - { expr: new Int(Int.MAX_VALUE), val: 2147483600.0f }  # loss of precision
+
+    - from_type: Int
+      to_type: double
+      values:
+          - { expr: new Int(), val: 0.0 }
+          - { expr: new Int(Byte.MIN_VALUE.toInt()), val: -128.0 }
+          - { expr: new Int(Byte.MAX_VALUE.toInt()), val: 127.0 }
+          - { expr: new Int(Short.MIN_VALUE.toInt()), val: -32768.0 }
+          - { expr: new Int(Short.MAX_VALUE.toInt()), val: 32767.0 }
+          - { expr: new Int(Int.MIN_VALUE), val: -2147483648.0 }
+          - { expr: new Int(Int.MAX_VALUE), val: 2147483647.0 }
+
+    - from_type: Long
+      to_type: long
+      values:
+          - { expr: new Long(), val: 0 }
+          - { expr: new Long(Byte.MIN_VALUE.toLong()), val: -128 }
+          - { expr: new Long(Byte.MAX_VALUE.toLong()), val: 127 }
+          - { expr: new Long(Short.MIN_VALUE.toLong()), val: -32768 }
+          - { expr: new Long(Short.MAX_VALUE.toLong()), val: 32767 }
+          - { expr: new Long(Int.MIN_VALUE.toLong()), val: -2147483648 }
+          - { expr: new Long(Int.MAX_VALUE.toLong()), val: 2147483647 }
+          - { expr: new Long(Long.MIN_VALUE), val: -9223372036854775808 }
+          - { expr: new Long(Long.MAX_VALUE), val: 9223372036854775807 }
+
+    - from_type: Long
+      to_type: float
+      values:
+          - { expr: new Long(), val: 0.0 }
+          - { expr: new Long(Byte.MIN_VALUE.toLong()), val: -128.0f }
+          - { expr: new Long(Byte.MAX_VALUE.toLong()), val: 127.0f }
+          - { expr: new Long(Short.MIN_VALUE.toLong()), val: -32768.0f }
+          - { expr: new Long(Short.MAX_VALUE.toLong()), val: 32767.0f }
+          - { expr: new Long(Int.MIN_VALUE.toLong()), val: -2147483600.0f } # loss of precision
+          - { expr: new Long(Int.MAX_VALUE.toLong()), val: 2147483600.0f }  # loss of precision
+          - { expr: new Long(Long.MIN_VALUE), val: -9223372000000000000.0f } # loss of precision
+          - { expr: new Long(Long.MAX_VALUE), val: 9223372000000000000.0f } # loss of precision
+
+    - from_type: Long
+      to_type: double
+      values:
+          - { expr: new Long(), val: 0.0 }
+          - { expr: new Long(Byte.MIN_VALUE.toLong()), val: -128.0 }
+          - { expr: new Long(Byte.MAX_VALUE.toLong()), val: 127.0 }
+          - { expr: new Long(Short.MIN_VALUE.toLong()), val: -32768.0 }
+          - { expr: new Long(Short.MAX_VALUE.toLong()), val: 32767.0 }
+          - { expr: new Long(Int.MIN_VALUE.toLong()), val: -2147483648.0 }
+          - { expr: new Long(Int.MAX_VALUE.toLong()), val: 2147483647.0 }
+          - { expr: new Long(Long.MIN_VALUE), val: -9223372036854775808.0 }
+          - { expr: new Long(Long.MAX_VALUE), val: 9223372036854775807.0 }
+
+    - from_type: Float
+      to_type: float
+      values:
+          - { expr: new Float(+0.0f), val: +0.0f }
+          - { expr: new Float(-0.0f), val: -0.0f }
+          - { expr: new Float(Byte.MIN_VALUE.toFloat()), val: -128.0f }
+          - { expr: new Float(Byte.MAX_VALUE.toFloat()), val: 127.0f }
+          - { expr: new Float(Short.MIN_VALUE.toFloat()), val: -32768.0f }
+          - { expr: new Float(Short.MAX_VALUE.toFloat()), val: 32767.0f }
+          - { expr: new Float(Int.MIN_VALUE.toFloat()), val: -2.14748365E9f } # loss of precision
+          - { expr: new Float(Int.MAX_VALUE.toFloat()), val: 2.14748365E9f }  # loss of precision
+          - { expr: new Float(Long.MIN_VALUE.toFloat()), val: -9.223372E18f } # loss of precision
+          - { expr: new Float(Long.MAX_VALUE.toFloat()), val: 9.223372E18f } # loss of precision
+          - { expr: new Float(Float.MIN_VALUE), val: 1.4E-45f }
+          - { expr: new Float(Float.MAX_VALUE), val: 3.4028235E38f }
+          - { expr: new Float(Float.NEGATIVE_INFINITY.toFloat()), val: Float.NEGATIVE_INFINITY }
+          - { expr: new Float(Float.POSITIVE_INFINITY.toFloat()), val: Float.POSITIVE_INFINITY }
+
+    - from_type: Float
+      to_type: double
+      values:
+          - { expr: new Float(+0.0f), val: +0.0 }
+          - { expr: new Float(-0.0f), val: -0.0 }
+          - { expr: new Float(Byte.MIN_VALUE.toFloat()), val: -128.0 }
+          - { expr: new Float(Byte.MAX_VALUE.toFloat()), val: 127.0 }
+          - { expr: new Float(Short.MIN_VALUE.toFloat()), val: -32768.0 }
+          - { expr: new Float(Short.MAX_VALUE.toFloat()), val: 32767.0 }
+          - { expr: new Float(Int.MIN_VALUE.toFloat()), val: -2.147483648E9 } # loss of precision
+          - { expr: new Float(Int.MAX_VALUE.toFloat()), val: 2.147483648E9 }  # loss of precision
+          - { expr: new Float(Long.MIN_VALUE.toFloat()), val: -9.223372036854776E18 } # loss of precision
+          - { expr: new Float(Long.MAX_VALUE.toFloat()), val: 9.223372036854776E18 } # loss of precision
+          - { expr: new Float(Float.MIN_VALUE), val: 1.401298464324817E-45 }
+          - { expr: new Float(Float.MAX_VALUE), val: 3.4028234663852886E38 }
+          - { expr: new Float(Float.NEGATIVE_INFINITY.toFloat()), val: Float.NEGATIVE_INFINITY.toDouble() }
+          - { expr: new Float(Float.POSITIVE_INFINITY.toFloat()), val: Float.POSITIVE_INFINITY.toDouble() }
+
+    - from_type: Double
+      to_type: double
+      values:
+          - { expr: new Double(+0.0f), val: +0.0 }
+          - { expr: new Double(-0.0f), val: -0.0 }
+          - { expr: new Double(Byte.MIN_VALUE.toDouble()), val: -128.0 }
+          - { expr: new Double(Byte.MAX_VALUE.toDouble()), val: 127.0 }
+          - { expr: new Double(Short.MIN_VALUE.toDouble()), val: -32768.0 }
+          - { expr: new Double(Short.MAX_VALUE.toDouble()), val: 32767.0 }
+          - { expr: new Double(Int.MIN_VALUE.toDouble()), val: -2147483648.0 }
+          - { expr: new Double(Int.MAX_VALUE.toDouble()), val: 2147483647.0 }
+          - { expr: new Double(Long.MIN_VALUE.toDouble()), val: -9223372036854775808.0 }
+          - { expr: new Double(Long.MAX_VALUE.toDouble()), val: 9223372036854775807.0 }
+          - { expr: new Double(Float.MIN_VALUE.toDouble()), val: Float.MIN_VALUE.toDouble() }
+          - { expr: new Double(Float.MAX_VALUE.toDouble()), val: Float.MAX_VALUE.toDouble() }
+          - { expr: new Double(Float.NEGATIVE_INFINITY.toDouble()), val: Float.NEGATIVE_INFINITY.toDouble() }
+          - { expr: new Double(Float.POSITIVE_INFINITY.toDouble()), val: Float.POSITIVE_INFINITY.toDouble() }
+          - { expr: new Double(Double.MIN_VALUE), val: Double.MIN_VALUE }
+          - { expr: new Double(Double.MAX_VALUE), val: Double.MAX_VALUE }
+          - { expr: new Double(Double.NEGATIVE_INFINITY.toDouble()), val: Double.NEGATIVE_INFINITY.toDouble() }
+          - { expr: new Double(Double.POSITIVE_INFINITY.toDouble()), val: Double.POSITIVE_INFINITY.toDouble() }
+
+    - from_type: Char
+      to_type: char
+      values:
+          - { expr: "new Char(c'\\u0000')", val: "c'\\u0000'" }
+          - { expr: "new Char(c'\\u007f')", val: "c'\\u007F'" }
+          - { expr: "new Char(c'\\u8000')", val: "c'\\u8000'" }
+          - { expr: "new Char(c'\\uff80')", val: "c'\\uFF80'" }
+          - { expr: "new Char(c'\\uffff')", val: "c'\\uFFFF'" }
+          - { expr: "new Char(c'\\ucafe')", val: "c'\\uCAFE'" }
+          - { expr: "new Char(c'R')", val: "c'R'" }
+
+    - from_type: Char
+      to_type: int
+      values:
+          - { expr: "new Char(c'\\u0000')", val: 0 }
+          - { expr: "new Char(c'\\u007f')", val: 127 }
+          - { expr: "new Char(c'\\u8000')", val: 32768 }
+          - { expr: "new Char(c'\\uff80')", val: 65408 }
+          - { expr: "new Char(c'\\uffff')", val: 65535 }
+          - { expr: "new Char(c'\\ucafe')", val: 51966 }
+          - { expr: "new Char(c'R')", val: 82 }
+
+    - from_type: Char
+      to_type: long
+      values:
+          - { expr: "new Char(c'\\u0000')", val: 0 }
+          - { expr: "new Char(c'\\u007f')", val: 127 }
+          - { expr: "new Char(c'\\u8000')", val: 32768 }
+          - { expr: "new Char(c'\\uff80')", val: 65408 }
+          - { expr: "new Char(c'\\uffff')", val: 65535 }
+          - { expr: "new Char(c'\\ucafe')", val: 51966 }
+          - { expr: "new Char(c'R')", val: 82 }
+
+    - from_type: Char
+      to_type: float
+      values:
+          - { expr: "new Char(c'\\u0000')", val: 0.0f }
+          - { expr: "new Char(c'\\u007f')", val: 127.0f }
+          - { expr: "new Char(c'\\u8000')", val: 32768.0f }
+          - { expr: "new Char(c'\\uff80')", val: 65408.0f }
+          - { expr: "new Char(c'\\uffff')", val: 65535.0f }
+          - { expr: "new Char(c'\\ucafe')", val: 51966.0f }
+          - { expr: "new Char(c'R')", val: 82.0f }
+
+    - from_type: Char
+      to_type: double
+      values:
+          - { expr: "new Char(c'\\u0000')", val: 0.0 }
+          - { expr: "new Char(c'\\u007f')", val: 127.0 }
+          - { expr: "new Char(c'\\u8000')", val: 32768.0 }
+          - { expr: "new Char(c'\\uff80')", val: 65408.0 }
+          - { expr: "new Char(c'\\uffff')", val: 65535.0 }
+          - { expr: "new Char(c'\\ucafe')", val: 51966.0 }
+          - { expr: "new Char(c'R')", val: 82.0 }
+
+    - from_type: Boolean
+      to_type: boolean
+      values:
+          - { expr: new Boolean(false), val: 'false' }
+          - { expr: new Boolean(true), val: 'true' }

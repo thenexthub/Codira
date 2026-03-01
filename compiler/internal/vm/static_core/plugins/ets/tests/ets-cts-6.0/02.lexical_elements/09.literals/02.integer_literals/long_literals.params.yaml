@@ -1,0 +1,56 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+--- # List of valid long literals
+cases:
+    # dec
+    - { lit: '0', val: '0' }
+    - { lit: '1', val: '1' }
+    - { lit: '+1', val: '1' }
+    - { lit: '-1', val: '-1' }
+    - { lit: '2147483648', val: '2147483648' }
+    - { lit: '9223372036854775807', val: '9223372036854775807' }
+    - { lit: '1_234_567_890_123_456_789', val: '1234567890123456789' }
+    # hex
+    - { lit: '0x0000000000000000', val: '0' }
+    - { lit: '0X0000000000000001', val: '1' }
+    - { lit: '0xffffffffffffffff', val: '-1' }
+    - { lit: '0X8000000000000000', val: '-9223372036854775808' }
+    - { lit: '0x7fffffffffffffff', val: '9223372036854775807' }
+    - { lit: '0xcafe_CAFE_cafe_CAFE', val: '-3819392238287402242' }
+    # oct
+    - { lit: '0O0000000000000000000000', val: '0' }
+    - { lit: '0o0000000000000000000001', val: '1' }
+    - { lit: '0O1777777777777777777777', val: '-1' }
+    - { lit: '0o1000000000000000000000', val: '-9223372036854775808' }
+    - { lit: '0o0777777777777777777777', val: '9223372036854775807' }
+    - { lit: '0o01_2345_6701_2345_6701_2345', val: '1505851632739161317' }
+    - { lit: '0O0_7_6_6_5_5_4_4_3_3_2_2_1_1_0_0_7_7_6_6_5_5', val: '9056054630290816429' }
+    # bin
+    - { lit: '0b0000000000000000000000000000000000000000000000000000000000000000', val: '0' }
+    - { lit: '0B0000000000000000000000000000000000000000000000000000000000000001', val: '1' }
+    - { lit: '0b1111111111111111111111111111111111111111111111111111111111111111', val: '-1' }
+    - { lit: '0b1000000000000000000000000000000000000000000000000000000000000000', val: '-9223372036854775808' }
+    - { lit: '0B0111111111111111111111111111111111111111111111111111111111111111', val: '9223372036854775807' }
+    - { lit: '0b01010101_01010101_01010101_01010101_01010101_01010101_01010101_01010101', val: '6148914691236517205' }
+    - { lit: '0b00000_00000000_00000000_1010101_01010101_01010101_01010101_01010101_01010101_01010101_01010101', val: '6148914691236517205' }
+    - { lit: '0B1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0_1_0', val: '-6148914691236517206' }

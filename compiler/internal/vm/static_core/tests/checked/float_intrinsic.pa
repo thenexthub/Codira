@@ -1,0 +1,117 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+#! CHECKER      Check call intrinsic which returns float value, through runtime bridge (JIT)
+#! RUN          options: "--compiler-enable-jit=true --no-async-jit=true --compiler-hotness-threshold=0 --compiler-regex='_GLOBAL::test.*'", entry: "_GLOBAL::main"
+#! METHOD       "_GLOBAL::testDouble"
+#! PASS_AFTER   "Codegen"
+#! INST         "Intrinsic.MathCalculateDouble"
+#! METHOD       "_GLOBAL::testFloat"
+#! PASS_AFTER   "Codegen"
+#! INST         "Intrinsic.MathCalculateFloat"
+
+#! CHECKER      Check call intrinsic which returns float value, through runtime bridge (AOT)
+#! SKIP_IF      @architecture == "arm32"
+#! RUN_PAOC     options: "--compiler-regex='_GLOBAL::test.*'"
+#! METHOD       "_GLOBAL::testDouble"
+#! PASS_AFTER   "Codegen"
+#! INST         "Intrinsic.MathCalculateDouble"
+#! METHOD       "_GLOBAL::testFloat"
+#! PASS_AFTER   "Codegen"
+#! INST         "Intrinsic.MathCalculateFloat"
+#! RUN          options: "--compiler-enable-jit=false", entry: "_GLOBAL::main"
+
+.record Math <external>
+
+.function f64 Math.calculateDouble(u32 a0, f64 a1) <external>
+.function f32 Math.calculateFloat(u32 a0, f32 a1) <external>
+
+.function f64 testDouble(u32 a0, f64 a1) {
+    call.short Math.calculateDouble, a0, a1
+    return.64
+}
+
+.function f32 testFloat(u32 a0, f32 a1) {
+    call.short Math.calculateFloat, a0, a1
+    return
+}
+
+.function i32 main() {
+    ldai 0
+    sta v10 # fail index
+
+    ## double
+    inci v10, 1
+    # 0 + 1 + ... + 9 = 45
+    ldai 10
+    sta v0
+    fldai.64 1.0
+    sta.64 v1
+    fldai.64 45.0
+    sta.64 v2
+    call.short testDouble, v0, v1
+    fcmpg.64 v2
+    jnez fail
+
+    inci v10, 1
+    # (0 + 1 + ... + 9) * 2 = 90
+    ldai 10
+    sta v0
+    fldai.64 2.0
+    sta.64 v1
+    fldai.64 90.0
+    sta.64 v2
+    call.short testDouble, v0, v1
+    fcmpg.64 v2
+    jnez fail
+
+    ## float
+    inci v10, 1
+    # 0 + 1 + ... + 9 = 45
+    ldai 10
+    sta v0
+    fldai 1.0
+    sta v1
+    fldai 45.0
+    sta v2
+    call.short testFloat, v0, v1
+    fcmpg v2
+    jnez fail
+
+    inci v10, 1
+    # (0 + 1 + ... + 9) * 2 = 90
+    ldai 10
+    sta v0
+    fldai 2.0
+    sta v1
+    fldai 90.0
+    sta v2
+    call.short testFloat, v0, v1
+    fcmpg v2
+    jnez fail
+
+    ldai 0
+    return
+fail:
+    lda v10
+    return
+}

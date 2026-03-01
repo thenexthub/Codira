@@ -1,0 +1,192 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+
+
+    # negative case, read-only, no $_set
+    - decl: |-
+          class A {
+              ind: string = ''
+              val: number
+              $_get(i: string): number {
+                  return i == this.ind ? this.val : Number.NaN
+              }
+          }
+      code: |-
+          let a: A = new A
+          a['a'] = 42.0  // CTE
+          arktest.assertFalse(true)
+
+    # negative case, read-only, private $_set
+    - decl: |-
+          class A {
+              ind: string = ''
+              val: number
+              $_get(i: string): number {
+                  return i == this.ind ? this.val : Number.NaN
+              }
+              private $_set(i: string, v: number) {
+                  this.ind = i
+                  this.val = v
+              }
+          }
+      code: |-
+          let a: A = new A
+          a['a'] = 42.0  // CTE
+          arktest.assertFalse(true)
+
+    # negative case, write-only, no $_get
+    - decl: |-
+          class A {
+              ind: string = ''
+              val: number
+              $_set(i: string, v: number) {
+                  this.ind = i
+                  this.val = v
+              }
+          }
+      code: |-
+          let a: A = new A
+          a['a'] = 42.0
+          var g = a['a']
+          arktest.assertTrue(false)
+
+    # negative case, write-only, private $_get
+    - decl: |-
+          class A {
+              ind: string = ''
+              val: number
+              private $_get(i: string): number {
+                  return i == this.ind ? this.val : Number.NaN
+              }
+              $_set(i: string, v: number) {
+                  this.ind = i
+                  this.val = v
+              }
+          }
+      code: |-
+          let a: A = new A
+          a['a'] = 42.0
+          let r = a['a']  // CTE
+          arktest.assertTrue(false)
+
+    # negative cases, static is not allowed
+    - decl: |-
+          class A {
+              static $_get(i: string): number {
+                  return 42.0
+              }
+          }
+      code: |-
+          let x = A['a']  // CTE
+
+    - decl: |-
+          class A {
+              static $_get(i: string): number {
+                  return 42.0
+              }
+          }
+      code: |-
+          let a = new A
+          let x = a['a']  // CTE
+
+    - decl: |-
+          class A {
+              static $_set(i: string, v: number) {
+                  return
+              }
+          }
+      code: |-
+          A['a'] = 42.0  // CTE
+
+    - decl: |-
+          class A {
+              static $_set(i: string, v: number) {
+                  return
+              }
+          }
+      code: |-
+          let a = new A
+          a['a'] = 42.0  // CTE
+
+    # negative cases, async is not allowed
+    - decl: |-
+          class A {
+              async $_get(i: string): number {  // CTE
+                  return 42.0
+              }
+          }
+      code: |-
+          let a = new A
+
+    - decl: |-
+          class A {
+              async $_set(i: string, v: number) {  // CTE
+                  return
+              }
+          }
+      code: |-
+          let a = new A
+
+
+    # negative case, calling as ordinary methods, with optional setter value
+    - decl: |-
+        class A {
+            ind: string = ''
+            val: number
+            $_get(i: string): number {
+                return i == this.ind ? this.val : Number.NaN
+            }
+            //  SyntaxError: The special predefined method '$_set' should have exactly two required parameter.
+            $_set(i: string, v: number = 42.0) {
+                this.ind = i
+                this.val = v
+            }
+        }
+      code: |-
+        let a: A = new A
+        a.$_set('a')
+        arktest.assertEQ(42.0, a.$_get('a'))
+
+    # negative case, read-write with class method ref
+    - decl: |-
+        class A {
+            ind: string = ''
+            val: number
+            
+            getN(i: string): number {
+                return i == this.ind ? this.val : Number.NaN
+            }
+        
+            setN(i: string, v: number) {
+                this.ind = i
+                this.val = v
+            }
+            
+            $_get = this.getN
+            $_set = this.setN
+        }
+      code: |-
+        let a: A = new A
+        a['a'] = 42.0 // TypeError: Object type doesn't have proper index access method

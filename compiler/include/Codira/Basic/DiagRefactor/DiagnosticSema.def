@@ -1,0 +1,415 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+ERROR(sema_diag_begin, "")
+
+// General
+ERROR(sema_invalid_node_after_check, "semantic error")
+ERROR(sema_unable_to_infer_decl, "unable to infer declaration type, please add type annotation")
+ERROR(sema_mismatched_types, "mismatched types", "expected '%s', found '%s'")
+ERROR(sema_mismatched_types_multiple_assign, "mismatched types", "the expression has type '%s'")
+ERROR(sema_mismatched_types_because, "mismatched types", "expected '%s', found '%s'", {"expected '%s' because of %s"})
+ERROR(sema_ambiguous_use, "ambiguous use of '%s'")
+ERROR(sema_undeclared_identifier, "undeclared identifier '%s'")
+ERROR(sema_undefined_variable, "variable '%s' is used before being defined")
+ERROR(sema_redefinition, "redefinition of declaration '%s'")
+ERROR(sema_conflict_with_sub_package, "top-level declaration '%s' is conflicted with possible sub-package '%s'")
+ERROR(sema_core_object_not_found_when_no_prelude,
+    "class 'Object' of package 'std/core' is not found, cannot use '--no-prelude' option")
+ERROR(sema_accessibility_with_main_hint, "'%s' declaration uses %s types", "%s '%s' contains %s type")
+ERROR(sema_accessibility, "'%s' declaration uses %s types")
+ERROR(sema_param_miss_match, "mismatched number of parameters", "expected '%s', found '%s'")
+
+// Function
+ERROR(sema_unable_to_infer_return_type, "unable to infer return type, please add type annotation")
+ERROR(sema_unable_to_infer_generic_func, "unable to infer generic argument of this function")
+ERROR(sema_invalid_called_object, "called object is not a function or constructor")
+ERROR(sema_invalid_return, "'return' must be used inside a function body")
+ERROR(sema_invalid_return_in_static_init, "'return' cannot be used inside the static initializer")
+ERROR(sema_wrong_number_of_arguments, "%s for parameter list '%s' in call", "expected %s, found %s")
+ERROR(sema_unordered_arguments, "positional argument cannot appear after named argument")
+ERROR(sema_param_named_mismatched, "parameter name mismatched")
+ERROR(sema_need_named_argument, "missing argument prefix %s for named parameter")
+ERROR(sema_invalid_subscript_assign_parameter, "overloaded operator '[]' can only have one named parameter 'value'")
+ERROR(sema_invalid_subscript_assign_parameter_num,
+    "overloaded operator '[]' should have at least one positional parameter for index")
+ERROR(sema_invalid_subscript_assign_return, "the return type of subscript assignment must be 'Unit'")
+ERROR(sema_overload_conflicts, "%s '%s' has overload conflicts")
+ERROR(sema_static_function_overload_conflicts, "overloaded functions '%s' cannot mix static and non-static")
+ERROR(sema_use_mutable_func_alone, "mutable function '%s' cannot be used alone as reference")
+ERROR(sema_unsafe_func_can_only_be_called, "the unsafe function can only be called rather than as name reference")
+ERROR(sema_ambiguous_match_primitive_extend, "ambiguous match for function call '%s' of these extended type: %s")
+ERROR(sema_immutable_access_mutable_func, "cannot use mutable function on immutable value", "is immutable")
+ERROR(sema_recursive_constructor_call, "recursive constructor calling detected")
+ERROR(sema_cannot_have_default_param, "optional parameter cannot be used in %s function")
+ERROR(sema_trailing_lambda_cannot_used_for_non_function, "trailing lambda cannot be used for %s",
+    "declaration type of parameter: '%s'")
+
+// Expression
+ERROR(sema_unable_to_infer_expr, "unable to infer the type of this expression, please add type annotation")
+ERROR(sema_exceed_num_value_range, "the number '%s' exceeds the value range of type '%s'")
+ERROR(sema_exceed_float_literal_range, "the number '%s' exceeds the value range of floating-point literal")
+WARNING(sema_float_literal_too_large, UNGROUPED,
+    "magnitude of floating-point literal too large for type '%s', maximum is %s")
+WARNING(sema_float_literal_too_small, UNGROUPED,
+    "magnitude of floating-point literal too small for type '%s', minimum is %s")
+ERROR(sema_invalid_unary_expr, "invalid unary operator '%s' on type '%s'")
+ERROR(sema_invalid_unary_expr_with_target, "invalid unary operator '%s' on type '%s' with return type '%s'")
+ERROR(sema_invalid_binary_expr, "invalid binary operator '%s' on type '%s' and '%s'")
+ERROR(sema_invalid_subscript_expr, "invalid subscript operator [] on type '%s' with index %s")
+ERROR(sema_cannot_assign_to_subscript, "cannot assign to this subscript expression")
+ERROR(sema_not_member_of, "'%s' is not a member of %s '%s'")
+ERROR(sema_member_not_imported, "'%s' is not imported")
+ERROR(sema_cannot_assign_to_immutable, "cannot assign to immutable value")
+ERROR(sema_unqualified_left_value_assigned, "'%s' can not be assigned")
+ERROR(sema_not_found_from_generic_upper_bounds, "'%s' is not found for generic type '%s' in its upper bounds")
+ERROR(sema_different_or_pattern, "patterns connected by '|' should be of the same kind", "%s")
+ERROR(sema_var_in_or_pattern, "cannot introduce variables in patterns connected by '|'")
+ERROR(sema_var_in_or_condition, "cannot introduce variables in conditions connected by '||'")
+ERROR(sema_nonexhuastive_patterns, "non-exhaustive patterns", "the selector is of type '%s'")
+WARNING(sema_unreachable_pattern, UNUSED, "unreachable pattern")
+ERROR(sema_lambdaExpr_must_have_type_annotation, "parameters of this lambda expression must have type annotations")
+ERROR(sema_use_func_capture_var_alone, "%s capturing mutable variables needs to be called directly")
+ERROR(sema_enum_constructor_with_param_must_have_args, "enum constructor '%s' must be used with arguments")
+
+ERROR(sema_optional_chain_non_optional, "cannot use optional chaining",
+    "cannot use optional chaining on non-optional value of type '%s'")
+ERROR(sema_capture_before_initialization, "cannot capture variable '%s' before initialization")
+ERROR(sema_interpolation_in_const_pattern, "cannot use string interpolation in constant pattern")
+
+ERROR(sema_cannot_ref_to_pkg_name, "package name cannot be referred independently")
+ERROR(sema_use_expr_without_import, "import '%s' to use the '%s' expression")
+
+// Generic
+ERROR(sema_generic_func_without_type_arg, "type arguments needed for the generic function%s",
+    "cannot infer type arguments for the generic function")
+ERROR(sema_generic_type_inconsistent, "generic types substitutions are inconsistent for '%s'")
+ERROR(sema_generic_argument_no_match, "type argument's number does not match type parameter's number")
+ERROR(sema_generic_constraint_not_looser, "the constraint of type parameter is not looser than parent's constraint")
+ERROR(
+    sema_generic_instantiation_causes_ambiguous_functions, "generic instantiation '%s' causes ambiguous function '%s'")
+
+// where sanity check.
+ERROR(sema_multiple_class_upperbounds,
+    "generic parameter '%s' cannot have two or more class upper bounds '%s' without subtype relation")
+ERROR(sema_generic_param_exist_in_class_irrelevant_upperbound_recursively,
+    "generic parameter '%s' cannot be used in class irrelevant upper bounds '%s'")
+ERROR(sema_generic_param_directly_recursive,
+    "generic parameter '%s' is bounded directly recursively with '%s' which is forbidden")
+ERROR(sema_upper_bound_must_be_class_or_interface,
+    "the upper bound '%s' of generic parameter '%s' must be class or interface")
+
+// Inheritance check
+ERROR(sema_inherit_member_kind_inconsistent, "%s member '%s' cannot have the same name with %s member in %s")
+ERROR(sema_inherit_super_member_kind_inconsistent, "inherited members '%s' have inconsistent decl types")
+ERROR(sema_inherit_member_type_inconsistent,
+    "%s of the inherited %s members '%s' are not identical and not in subtype relation")
+ERROR(sema_inherit_abstract_class_static_unimplement_func,
+    "abstract class '%s' cannot contain unimplemented static %s '%s'")
+ERROR(sema_cannot_override, "cannot override %s '%s'")
+ERROR(sema_invalid_member_visibility_in_class, "the visibility of an '%s' %s must be 'public' or 'protected'")
+ERROR(sema_weak_visibility, "a deriving member must be at least as visible as its base member", "%s")
+ERROR(sema_cannot_inherit_sealed, "cannot %s %s 'sealed' %s '%s'")
+ERROR(sema_inherit_thread_context_invalid,
+    "user defined decl '%s' not support to inherit, implement or extend 'ThreadContext'")
+ERROR(sema_inherit_thread_context_not_open,
+    "'%s' cannot be modified with 'open' when inherit, implement or extend 'ThreadContext'")
+ERROR(sema_inherit_not_return_this,
+    "an open function that returns 'This' must keep the return type 'This' when overridden")
+ERROR(sema_return_type_incompatible,
+    "return type of '%s' is not identical or not a subtype of the overridden/redefined/implement function")
+
+// Spawn
+ERROR(sema_spawn_arg_invalid, "invalid argument of spawn expr, user-defined `ThreadContext` types are prohibited now")
+WARNING(sema_spawn_arg_no_effect, UNGROUPED, "argument of spawn expr does not take effect at current backend")
+
+// Interface
+ERROR(sema_interface_call_with_unimplemented_call, "static invocation contains unimplemented static %s '%s'")
+
+// class / interface / struct
+ERROR(sema_type_uninitialized_static_field, "the static member variable '%s' is not initialized")
+ERROR(sema_instance_func_cannot_be_used_in_finalizer, "instance %s cannot be used in the finalizer")
+ERROR(sema_no_non_param_constructor_in_super_class,
+    "there is no non-parameter constructor in super class, please invoke super call explicitly")
+ERROR(sema_non_abstract_class_cannot_be_sealed, "non-abstract class cannot be modified by 'sealed'")
+ERROR(sema_static_variable_use_generic_parameter, "static member cannot depend on generic parameter '%s'")
+ERROR(sema_cstruct_cannot_impl_interfaces, "struct with @C cannot implement interfaces")
+ERROR(sema_class_need_abstract_modifier_or_func_need_impl,
+    "class '%s' missing abstract modifier, otherwise abstract function or property should be implemented")
+ERROR(sema_need_member_implementation, "implementation of function or property is needed in '%s'")
+ERROR(sema_export_same_private_decl,
+    "currently, it is not possible to export two private declarations with the same name")
+
+// Extend
+ERROR(sema_extend_function_cannot_overridden, "cannot override %s '%s' in extend of supertype")
+ERROR(sema_extend_member_cannot_shadow, "extend member '%s' is not allowed to shadow members of '%s'")
+ERROR(sema_illegal_extended_type, "extending type '%s' is not allowed")
+ERROR(sema_extend_generic_must_be_used, "type parameter%s must be used in extended type")
+ERROR(sema_extend_duplicate_interface, "interface '%s' has been implemented by '%s', please remove it")
+ERROR(sema_extend_not_interface, "expected an interface, found non-interface type", "expected an interface here")
+ERROR(sema_extend_illegal_member, "illegal extend member, only functions, props, associated types are allowed")
+ERROR(sema_extend_use_super, "'super' is not allowed inside an extend declaration")
+ERROR(sema_type_cannot_extend_imported_interface, "%s type '%s' cannot extend imported interface")
+ERROR(sema_c_type_cannot_extend_interface, "c type '%s' cannot support interface extend")
+ERROR(sema_immutable_type_extend_assignment_index_operator,
+    "it's illegal to extend index assignment operator '[](index, value)' for immutable type")
+ERROR(sema_immutable_type_illegal_property, "there cannot have mutable property in immutable type")
+ERROR(sema_interface_is_not_extendable, "interface '%s' is not able to be extended")
+ERROR(sema_invalid_mut_modifier_extend_of_struct, "'mut' modifier is illegal in extend body of '%s'")
+ERROR(sema_extend_check_sequence_cannot_decide, "unable to decide which extension happens first")
+ERROR(sema_export_extend_depend_non_export_extend,
+    "exported extension cannot indirectly export the functions '%s' of the non-exported extension")
+
+// Property
+ERROR(sema_property_must_have_accessors, "property must have accessors")
+ERROR(sema_immutable_property_with_setter, "immutable property cannot have setter")
+ERROR(sema_property_have_same_declaration_in_inherit_mut, "property '%s' should have 'mut' modifier")
+ERROR(sema_property_have_same_declaration_in_inherit_immut, "property '%s' should be immutable")
+ERROR(sema_property_must_implement_both, "property must implement both getter/setter of interface property '%s'")
+
+// Const evaluation
+ERROR(sema_expect_const, "expected 'const' %s", "%s")
+ERROR(sema_cannot_define_var_in_const_funciton, "cannot define 'var' variable in 'const' function")
+ERROR(sema_no_const_init, "cannot define 'const' member function without 'const' constructor")
+ERROR(sema_class_const_init_with_var, "cannot define 'const' constructor with 'var' members in class")
+
+// Annotation
+ERROR(sema_annotation_no_const_init, "class with '@Annotation' should have 'const' constructor")
+ERROR(sema_annotation_arg_target, "'@Annotation' can only have one named argument 'target'")
+ERROR(sema_annotation_arg_target_array_lit, "the argument of '@Annotation' should be array literal")
+WARNING(sema_annotation_non_public, UNGROUPED, "'@Annotation' modifying non-'public' class is invisible at runtime")
+ERROR(sema_annotation_custom_place, "cannot use custom annotation")
+
+// inout
+ERROR(sema_inout_modify_cstring_or_zerosized, "the expression qualified by 'inout' cannot be of %s")
+ERROR(sema_inout_modify_non_ctype, "the type of experssion qualified by 'inout' must meet 'CType' constraint")
+ERROR(sema_inout_must_be_var_variable, "'inout' can only qualify variable defined with 'var'", "%s")
+ERROR(sema_inout_modify_heap_variable,
+    "the variable qualified by 'inout' cannot be directly or indirectly derived from an instance of a 'class'")
+ERROR(sema_inout_can_only_used_in_cfunc_calling, "'inout' can only be used in a 'CFunc' calling")
+ERROR(sema_inout_mismatch, "mismatch 'inout' of function argument with type '%s'")
+
+// Java interoperation
+ERROR(sema_annotation_error_arg_num, "'%s' should have %s arg")
+ERROR(sema_annotation_error_arg_range, "'%s' only supports %s as arg")
+ERROR(sema_annotation_error_object, "'%s' can only modify %s")
+ERROR(sema_java_incorrect_use_between_types,
+    "type annotated with '@Java[\"ext\"]' can only be used within the declaration which has '@Java[\"ext\"]' "
+    "annotation")
+ERROR(sema_java_non_jtype, "%s type in %s '%s' with '@Java' must meet JType constraint")
+ERROR(sema_java_invalid_unit, "%s type in %s '%s' with '@Java' can not be 'Unit'")
+ERROR(sema_java_app_inherit_ext,
+    "only types annotated with '@Java[\"ext\"] can %s from a type annotated with '@Java[\"ext\"]'")
+ERROR(sema_java_unsupported_decl, "%s is not supported in %s '%s' annotated with '@Java'")
+ERROR(sema_missing_java_interop_annotation, "%s '%s' should have '@Java' annotation")
+ERROR(sema_generic_static_access, "cannot access static member with generic parameter in '@Java' types")
+ERROR(sema_primitive_type_as_generics_arg, "only reference types are available for '@Java' generics")
+ERROR(sema_meet_constraint_indirectly, "types that meet constraints by 'extend' cannot be used in '@Java' generics")
+ERROR(
+    sema_static_member_in_interface_must_has_body, "static functions in '@Java'-annotated interfaces must have a body")
+ERROR(sema_extend_a_java_type, "types annotated with '@Java' cannot be extended")
+ERROR(sema_generic_upper_bounds_must_be_java_in_java,
+    "generic type's upper bound in types annotated with '@Java' should be annotated with '@Java' too")
+ERROR(sema_define_java_annotation, "types annotated with '@Java' cannot be annotated with '@Annotation' together")
+ERROR(
+    sema_invalid_use_of_java_annotation, "imported Java annotations can only be used with types annotated with '@Java'")
+ERROR(
+    sema_invalid_use_of_annotation_jffi, "only imported Java annotations can be used with types annotated with '@Java'")
+ERROR(sema_annotation_not_applicable_jffi, "'@%s' not applicable to %s")
+ERROR(sema_cannot_use_annotation_jffi, "cannot use annotation here")
+ERROR(sema_shadow_cannot_in_type_args,
+    "'%s' is not allowd to be used here as type argument, because it shadows field '%s' with its super type '%s'")
+ERROR(sema_unsupported_type_argument_in_java_interop,
+    "type argument in java interoperation should meet 'JType' constraint")
+ERROR(sema_codemapping_struct_generic_not_supported, "codira mirror struct type generic %s is not supported")
+ERROR(sema_codemapping_struct_inheritance_interface_not_supported, "codira mirror struct type inheritance interface is not supported")
+ERROR(sema_codemapping_decl_not_supported, "codira mirror decl type is not supported for %s")
+ERROR(sema_codemapping_method_arg_not_supported, "argument type of codira mirror decl type member function is not supported")
+ERROR(sema_codemapping_method_ret_unsupported, "return type '%s' of function inside %s type is not supported")
+
+// VArray
+ERROR(sema_varray_size_match, "mismatch 'VArray' type's size", "expected size is %s, found %s")
+ERROR(sema_varray_args_number_mismatch, "'VArray' constructor accepts only one argument")
+ERROR(sema_varray_subscript_num, "'VArray' accepts exactly one subscript index with type of 'Int64'")
+ERROR(sema_varray_in_cfunc, "return type of CFunc cannot be 'VArray' type")
+ERROR(sema_varray_arg_type_with_reftype, "'%s' directly or indirectly contains an unsupported type", "contain unsupported instance member variable with type '%s'")
+
+// CFFI
+ERROR(sema_invalid_cfunc_return_type, "return type of CFunc must be instantiated with CType")
+
+// Unit test
+ERROR(sema_mock_disabled,
+    "mocking features are disabled, you can enable them by passing %s compilation option explicitly, or using default "
+    "mode")
+ERROR(sema_mock_not_in_test_mode,
+    "mocking features can be used only in the test mode, please pass %s compilation option to compile the package in "
+    "the test mode")
+ERROR(sema_mock_unsupported_type, "only mocking of classes or interfaces is supported")
+ERROR(sema_mock_wrong_static_decl, "static/top-level declaration to mock shouldn't be private, local, constant or constructor")
+ERROR(sema_mock_doesnt_support_mocking,
+    "'%s' doesn't support mocking, please be sure that its package '%s' is mock-compatible (was compiled with %s "
+    "compilation option)")
+ERROR(sema_mock_frozen_unsupported,
+    "mocking of frozen declarations (marked with @Frozen annotation) are not supported")
+ERROR(sema_mock_frozen_required,
+    "generic wrapper function '%s' for createMock/createSpy calls should be marked with @Frozen annotation")
+
+// effects
+ERROR(sema_command_handle_type_error, "the command handle type must implement 'effect.Command<T>'")
+ERROR(sema_resumption_handle_type_error, "the type of the resumption must extend 'effect.Resumption'")
+ERROR(sema_resumption_incorrect_return_type, "the return type of the resumption ('%s') does not match the type of the try block ('%s')")
+ERROR(sema_command_resumption_mismatch, "the parameter type of the resumption ('%s') does not match the result type of the command ('%s')")
+ERROR(sema_implicit_resume_outside_handler, "'resume' outside of an immediate handler must have a resumption argument")
+ERROR(sema_resume_no_with, "a resumption of non-Unit type '%s' must have a 'with' or 'throwing' clause")
+ERROR(sema_resume_wrong_resumption_type, "resumptions must be of type 'core.Resumption<T>', but actual type is '%s'")
+ERROR(sema_mismatching_handle_block, "The type of this handle block is '%s', which mismatches the smallest common supertype '%s' of previous branches.")
+ERROR(sema_return_in_try_handle_block, "Return statements are not allowed within try/handle blocks")
+ERROR(sema_command_incompatible_type, "type '%s' does not implement compatible instantiations of 'Command<T>'")
+ERROR(sema_resume_throwing_mismatch_type, "the type of the `resume throwing` must be a subtype of core.Exception or core.Error")
+WARNING(sema_useless_command_type, UNUSED, "useless command type")
+
+// @Deprecated - call-site errors:
+ERROR(sema_deprecated_error, "%s '%s' is deprecated%s%s", "deprecated")
+WARNING(sema_deprecated_warning, DEPRECATED, "%s '%s' is deprecated%s%s", "deprecated")
+// @Deprecated - declaration-side errors:
+ERROR(sema_deprecation_weakening, "strictness of @Deprecated can not be weaken on inheritors")
+ERROR(sema_deprecation_override_error, "overridden %s '%s' should be marked with @Deprecated")
+WARNING(sema_deprecation_override_warning, DEPRECATED, "overridden %s '%s' should be marked with @Deprecated")
+ERROR(sema_deprecation_redef_error, "redefined %s '%s' should be marked with @Deprecated")
+WARNING(sema_deprecation_redef_warning, DEPRECATED, "redefined %s '%s' should be marked with @Deprecated")
+
+// common/platform matching
+ERROR(sema_common_open_class_no_init, "please implement the constructor explicitly for common open class '%s'")
+ERROR(sema_multiple_common_implementations, "'common' %s has several platform implementations")
+ERROR(sema_common_direct_extension_has_duplicate_private_members, "declaration 'common' extend '%s' has a conflicting private %s '%s'")
+ERROR(sema_common_direct_extension_has_common_private_members, "'common' and 'private' modifier conflict on %s '%s' declaration")
+ERROR(sema_not_matched, "'%s' %s can not find '%s' match")
+ERROR(sema_platform_var_not_match_let, "'platform' '%s' can not match 'common' '%s'")
+ERROR(sema_platform_init_common_primary_constructor, "'platform' init can not be used to implement primary 'common' constructor")
+ERROR(platform_has_different_kind, "'platform' decl kind(%s) is not equal to 'common'(%s)")
+ERROR(sema_platform_primary_unmatched_var_decl,
+    "parameter in 'platform' primary constructor must also be a member variable declaration "
+    "if it's a member variable declaration in 'common' primary constructor")
+ERROR(common_non_exaustive_platfrom_exaustive_mismatch, "exhaustive 'common' %s cannot be matched with non-exhaustive 'platform' %s")
+ERROR(sema_platform_has_different_type, "'platform' %s type is not equal to 'common' type")
+ERROR(sema_platform_member_must_have_implementation, "the member %s must have body in 'platform' %s")
+ERROR(sema_platform_has_different_modifier, "'platform' %s modifier is not match 'common' modifier")
+ERROR(sema_platform_has_different_annotation, "'platform' %s annotation is not match 'common' annotation")
+ERROR(sema_platform_has_deprecated_annotation, "'%s' annotation is not allowed on platform %s '%s'")
+ERROR(sema_codemp_parameter_default_value_both_sides, "parameter default value should be on either 'common' or 'platform' side, not both")
+ERROR(sema_platform_has_different_parameter, "'platform' function parameter is not match 'common' parameter")
+ERROR(sema_platform_has_different_super_type, "'platform' %s super types is not match 'common' super types")
+ERROR(sema_platform_has_duplicate_extensions, "declaration 'platform' extend '%s' has a conflicting extension")
+ERROR(sema_common_package_has_main, "main function cannot be used in common package part")
+ERROR(sema_common_static_let_cant_be_initialized_in_static_init, "'common' static let '%s' can not be initialized in static init")
+ERROR(sema_common_assign_to_common_immutable_in_ctor, "cannot assign to immutable variable '%s'")
+ERROR(sema_codemp_abstract_class_member_has_no_explicit_modifier, "'%s' abstract class %s must have explicit '%s' or 'abstract' modifier")
+ERROR(sema_explicitly_abstract_can_not_have_body, "abstract %s can not have body")
+ERROR(sema_explicitly_abstract_only_for_codemp_abstract_class, "only common/platform class can have explicitly abstract %s")
+ERROR(sema_open_abstract_platform_can_not_replace_open_common, "open common %s can not be overridden with abstract platform %s")
+ERROR(sema_codemp_non_platform_abstract_member_in_platform_class, "platform abstract class '%s' cannot have non-platform abstract %s")
+ERROR(sema_common_generic_frozen_not_supported, "common/specific declaration %s with generics cannot be @Frozen")
+ERROR(sema_common_generic_rename_not_supported, "common/specific generic rename is not supported yet")
+ERROR(sema_common_platform_annotation_not_allowed, "annotation %s is not allowed on a common/specific declaration")
+
+// java mirror
+ERROR(sema_java_mirror_ctor_arg_must_be_java_mirror, "argument type of java-mirrored constructor must be of @JavaMirror type")
+ERROR(sema_java_mirror_method_arg_must_be_java_mirror, "argument type of java-mirrored function must be of @JavaMirror type")
+ERROR(sema_java_mirror_method_ret_unsupported, "return type '%s' of function inside %s class is not supported")
+ERROR(sema_java_mirror_prop_must_be_java_mirror, "property of java-mirrored declaration must be of @JavaMirror type")
+ERROR(sema_java_mirror_subtype_must_be_annotated, "super declaration '%s' is inheritable only for declaration annotated with @JavaMirror or @JavaImpl")
+ERROR(sema_java_mirror_cannot_inherit_pure_codira_type, "@JavaMirror-annotated declaration cannot inherit pure codira type")
+ERROR(sema_java_impl_cannot_inherit_pure_codira_type, "@JavaImpl-annotated declaration cannot inherit pure codira type")
+ERROR(sema_java_mirror_subtype_anno_must_inherit_mirror, "@JavaImpl-annotated declaration must inherit @JavaMirror-annotated declaration")
+ERROR(sema_java_mirror_cannot_be_extended_with_interface, "@JavaMirror class cannot be extended with interface")
+ERROR(sema_java_impl_cannot_be_extended_with_interface, "@JavaImpl class cannot be extended with interface")
+ERROR(sema_java_impl_redefinition, "redefinition of java declaration '%s'")
+ERROR(sema_java_mirror_interoplib_must_be_imported, "interoplib.interop must be imported to use java interoperability")
+ERROR(sema_java_interop_not_supported, "Java interoperability feature '%s' is not yet supported")
+ERROR(sema_variable_of_java_type, "%s can not store objects of java interoperability type '%s'")
+ERROR(sema_generic_parameter_of_java_type, "Can not instantiate generic '%s' with java interoperability type '%s'")
+WARNING(sema_java_interoplib_version_too_old, UNGROUPED,
+    "java interoplib.interop library's version is too old. Compiler was built expecting versoin '%s'. "
+    "Compatibility problems could happen. Use it at your own risk")
+WARNING(sema_java_interoplib_version_mismatch, UNGROUPED,
+    "java interoplib.interop library's version is '%s', but compiler was built expecting version '%s'. "
+    "Compatibility problems could happen. Use it at your own risk")
+
+ERROR(sema_java_has_default_annotation_args, "'@JavaHasDefault' can't have arguments")
+ERROR(sema_java_has_default_annotation_is_in_wrong_place, "'@JavaHasDefault' can be used only on @JavaMirror interface methods.")
+ERROR(sema_java_has_default_conflict_with_static, "Illegal combination of '@JavaHasDefault' annotation and 'static' modifier.")
+
+// Objective-C mirror
+ERROR(sema_objc_interop_ctor_param_must_be_objc_compatible, "param type of %s constructor must be Objective-C compatible")
+ERROR(sema_objc_interop_method_param_must_be_objc_compatible, "param type of %s method must be Objective-C compatible")
+ERROR(sema_objc_interop_method_ret_must_be_objc_compatible, "return type of %s method must be Objective-C compatible")
+ERROR(sema_objc_interop_prop_must_be_objc_compatible, "%s property type must be Objective-C compatible")
+ERROR(sema_objc_interop_field_must_be_objc_compatible, "%s field type must be Objective-C compatible")
+ERROR(sema_objc_mirror_decl_cannot_inherit, "Objective-C mirror cannot inherit other supertypes")
+ERROR(sema_objc_mirror_subtype_cannot_multiple_inherit, "Objective-C mirror subtype cannot inherit multiple types (only 1 interface or 1 class is allowed)")
+ERROR(sema_objc_mirror_subtype_must_be_annotated, "Objective-C mirror subtype must be annotated with @ObjCMirror or @ObjCImpl")
+ERROR(sema_objc_mirror_subtype_must_inherit_mirror, "@ObjCImpl declaration must inherit @ObjCMirror")
+ERROR(sema_objc_mirror_must_inherit_mirror, "@ObjCMirror declaration cannot inherit not @ObjCMirror declarations")
+ERROR(sema_objc_mirror_interoplib_must_be_imported, "interoplib.objc must be imported to use Objective-C interoperability")
+ERROR(sema_objc_interop_not_supported, "Objective-C interoperability feature '%s' is not yet supported")
+ERROR(sema_objc_pointer_argument_must_be_objc_compatible, "ObjCPointer can only be used with Objective-C compatible types")
+ERROR(sema_objc_interop_toplevel_param_must_be_objc_compatible, "param type of Objective-C mirror top-level function '%s' must be Objective-C compatible")
+ERROR(sema_objc_interop_toplevel_ret_must_be_objc_compatible, "return type of Objective-C mirror top-level function '%s' must be Objective-C compatible")
+
+// CODEMapping for Objective-C
+ERROR(sema_objc_codemapping_inheritance_interface_not_supported, "codira mirror decl type inheritance interface is not supported")
+ERROR(sema_objc_codemapping_generic_not_supported, "codira mirror decl type generic %s is not supported")
+
+ERROR(sema_foreign_name_appeared_in_child, "@ForeignName could not appear on overridden declaration")
+ERROR(sema_foreign_name_conflicting_annotation, "Declaration '%s' has a conflicting @ForeignName annotation")
+ERROR(sema_foreign_name_conflicting_derived_annotation, "Declaration '%s' has a conflicting derived @ForeignName '%s'")
+
+// @IfAvailable
+ERROR(sema_ifavailable_arg_no_name, "the first argument of @IfAvailable expression must have a name")
+ERROR(sema_ifavailable_arg_not_literal, "the first argument of @IfAvailable expression must be a literal expression")
+ERROR(sema_ifavailable_unknow_arg_name, "unknown parameter name '%s'")
+
+// @APILevel
+ERROR(sema_apilevel_multi_anno, "annotate more than one '@!APILevel'")
+WARNING(sema_apilevel_missing_arg, APILEVEL_CHECK,
+    "annotation missing named argument '%s' or unable to read as numerical value")
+ERROR(sema_only_literal_support, "only %s literal values are supported for now")
+ERROR(sema_apilevel_ref_higher,
+    "cannot reference '%s'(level: %s) which higher than level of the current scope(level: %s)")
+WARNING(sema_apilevel_syscap_warning, APILEVEL_CHECK, "inappropriate syscap '%s'")
+ERROR(sema_apilevel_syscap_error, "inappropriate syscap '%s'")
+ERROR(sema_apilevel_multi_diff_syscap, "declaration mark with different syscap")
+ERROR(sema_ifavailable_level_limit,
+    "`@IfAvaliable` feature is not avaliable in device where the APILevel is less than 19 due to missing capatability "
+    "in ROM")
+
+// @Hide
+ERROR(sema_hide_multi_annotation, "cannot be annotated with '@!Hide' more than once")
+ERROR(sema_hide_at_func_param, "function parameter cannot be annotated with '@!Hide'")
+ERROR(sema_hide_missing_hide, "should be marked with '@!Hide' to be hidden")
+ERROR(sema_hide_compile_time_invisible, "'Hide' annotation must be visible at compile time")
+ERROR(sema_hide_diff_param, "the parameter 'isChecked' of '@!Hide' is %s")
+WARNING(sema_hide_must_at_end, APILEVEL_CHECK, "annotation '%s' must be placed below all macros and annotations")
+
+WARNING(sema_unused_import, UNUSED, "unused import '%s'", "unused import")
+
+ERROR(sema_diag_end, "")

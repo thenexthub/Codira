@@ -1,0 +1,51 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - { list: 'max2i, max2d, maxN', call: 'maxFn(i, j)', result: 102 }
+  - { list: 'max2i, max2d, maxN', call: 'maxFn(i, pi)', result: 203.14 }
+  - { list: 'max2i, max2d, maxN', call: 'maxFn(pi, i)', result: 203.14 }
+  - { list: 'max2i, max2d, maxN', call: 'maxFn(pi, 5.5)', result: 205.5 }
+  - { list: 'max2i, max2d, maxN', call: 'maxFn(i, pi, 4)', result: 304 }
+  - { list: 'max2i, max2d, maxN', call: 'maxFn(i, j, 10, 4)', result: 310 }
+  - { list: 'max2i, max2d, maxN', call: 'maxFn(i)', result: 301 }
+  - { list: 'max2i, max2d, maxN', call: 'maxFn(pi)', result: 303.14 }
+
+  - { list: 'max2d, maxN, max2i', call: 'maxFn(i, j)', result: 202 }
+  - { list: 'max2d, maxN, max2i', call: 'maxFn(i, pi)', result: 203.14 }
+  - { list: 'max2d, maxN, max2i', call: 'maxFn(pi, i)', result: 203.14 }
+  - { list: 'max2d, maxN, max2i', call: 'maxFn(pi, 5.5)', result: 205.5 }
+  - { list: 'max2d, maxN, max2i', call: 'maxFn(i, pi, 4)', result: 304 }
+  - { list: 'max2d, maxN, max2i', call: 'maxFn(i, j, 10, 4)', result: 310 }
+  - { list: 'max2d, maxN, max2i', call: 'maxFn(i)', result: 301 }
+  - { list: 'max2d, maxN, max2i', call: 'maxFn(pi)', result: 303.14 }
+
+  - { list: 'maxN, max2i, max2d', call: 'maxFn(i, j)', result: 302 }
+  - { list: 'maxN, max2i, max2d', call: 'maxFn(i, pi)', result: 303.14 }
+  - { list: 'maxN, max2i, max2d', call: 'maxFn(pi, i)', result: 303.14 }
+  - { list: 'maxN, max2i, max2d', call: 'maxFn(pi, 5.5)', result: 305.5 }
+  - { list: 'maxN, max2i, max2d', call: 'maxFn(i, pi, 4)', result: 304 }
+  - { list: 'maxN, max2i, max2d', call: 'maxFn(i, j, 10, 4)', result: 310 }
+  - { list: 'maxN, max2i, max2d', call: 'maxFn(i)', result: 301 }
+  - { list: 'maxN, max2i, max2d', call: 'maxFn(pi)', result: 303.14 }
+
+  - { list: 'max2i, max2d, maxN', call: 'max2i(i, j)', result: 102 }
+  - { list: 'max2i, max2d, maxN', call: 'max2d(i, j)', result: 202 }
+  - { list: 'max2i, max2d, maxN', call: 'maxN(i, j)', result: 302 }
+  - { list: 'max2i, max2d, maxN', call: 'max2d(i, pi)', result: 203.14 }
+  - { list: 'max2i, max2d, maxN', call: 'maxN(i, pi)', result: 303.14 }
+  - { list: 'max2i, max2d, maxN', call: 'max2d(pi, 5.5)', result: 205.5 }
+  - { list: 'max2i, max2d, maxN', call: 'maxN(pi, 5.5)', result: 305.5 }
+  - { list: 'max2i, max2d, maxN', call: 'maxN(i, j, 10, 4)', result: 310 }
+  - { list: 'max2i, max2d, maxN', call: 'maxN(i)', result: 301 }

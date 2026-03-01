@@ -1,0 +1,122 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+enum BundleFlag: i64 {
+    GET_BUNDLE_DEFAULT = 0x00000000,
+    GET_BUNDLE_WITH_ABILITIES = 0x00000001,
+    GET_ABILITY_INFO_WITH_PERMISSION = 0x00000002,
+    GET_ABILITY_INFO_WITH_APPLICATION = 0x00000004,
+    GET_APPLICATION_INFO_WITH_PERMISSION = 0x00000008,
+    GET_BUNDLE_WITH_REQUESTED_PERMISSION = 0x00000010,
+    GET_ALL_APPLICATION_INFO = 0xFFFF0000,
+    GET_ABILITY_INFO_WITH_METADATA = 0x00000020,
+    GET_APPLICATION_INFO_WITH_METADATA = 0x00000040,
+    GET_ABILITY_INFO_SYSTEMAPP_ONLY = 0x00000080,
+    GET_ABILITY_INFO_WITH_DISABLE = 0x00000100,
+    GET_APPLICATION_INFO_WITH_DISABLE = 0x00000200
+}
+
+enum ColorMode: i8 {
+    AUTO_MODE = -1,
+    DARK_MODE = 0,
+    LIGHT_MODE = 1
+}
+
+enum GrantStatus: i8 {
+    PERMISSION_DENIED = -1,
+    PERMISSION_GRANTED = 0
+}
+
+enum AbilityType: String {
+    UNKNOWN = "UNKNOWN",
+    PAGE = "PAGE",
+    SERVICE = "SERVICE",
+    DATA = "DATA"
+}
+
+enum AbilitySubType: i8 {
+    UNSPECIFIED = 0,
+    CA = 1
+}
+
+enum DisplayOrientation: String {
+    UNSPECIFIED = "UNSPECIFIED",
+    LANDSCAPE = "LANDSCAPE",
+    PORTRAIT = "PORTRAIT",
+    FOLLOW_RECENT = "FOLLOW_RECENT"
+}
+
+enum LaunchMode: i8 {
+    SINGLETON = 0,
+    STANDARD = 1
+}
+
+enum InstallErrorCode: i8 {
+    SUCCESS = 0,
+    STATUS_INSTALL_FAILURE = 1,
+    STATUS_INSTALL_FAILURE_ABORTED = 2,
+    STATUS_INSTALL_FAILURE_INVALID = 3,
+    STATUS_INSTALL_FAILURE_CONFLICT = 4,
+    STATUS_INSTALL_FAILURE_STORAGE = 5,
+    STATUS_INSTALL_FAILURE_INCOMPATIBLE = 6,
+    STATUS_UNINSTALL_FAILURE = 7,
+    STATUS_UNINSTALL_FAILURE_BLOCKED = 8,
+    STATUS_UNINSTALL_FAILURE_ABORTED = 9,
+    STATUS_UNINSTALL_FAILURE_CONFLICT = 10,
+    STATUS_INSTALL_FAILURE_DOWNLOAD_TIMEOUT = 0x0B,
+    STATUS_INSTALL_FAILURE_DOWNLOAD_FAILED = 0x0C,
+    STATUS_RECOVER_FAILURE_INVALID = 0x0D,
+    STATUS_ABILITY_NOT_FOUND = 0x40,
+    STATUS_BMS_SERVICE_ERROR = 0x41,
+    STATUS_FAILED_NO_SPACE_LEFT = 0x42,
+    STATUS_GRANT_REQUEST_PERMISSIONS_FAILED = 0x43,
+    STATUS_INSTALL_PERMISSION_DENIED = 0x44,
+    STATUS_UNINSTALL_PERMISSION_DENIED = 0x45
+}
+
+interface BundleOptions {
+    @set("userId") SetUserId(userId: Optional<i32>): void;
+    @get("userId") GetUserId(): Optional<i32>;
+}
+function GetBundleOptions(): BundleOptions;
+
+function GetBundleInfo(bundleName: String, bundleFlags: i32): void;
+function GetAbilityInfo(bundleName: String, abilityName: String): void;
+
+interface OverloadInterface {
+    @overload("getApplicationInfo")
+    GetApplicationInfo2param(bundleName: String, bundleFlags: i32): void;
+
+    @overload("getApplicationInfo")
+    GetApplicationInfoOptional(bundleName: String, bundleFlags: i32, userId: Optional<i32>): void;
+}
+function Get_interface(): OverloadInterface;
+
+function QueryAbilityByWant(bundleFlags: i32, userId: i32): void;
+function GetAllBundleInfo(userId: i32): void;
+function GetAllApplicationInfo(bundleFlags: i32, userId: i32): void;
+function GetNameForUid(uid: i32): void;
+function GetBundleArchiveInfo(hapFilePath: String, bundleFlags: i32): void;
+function GetLaunchWantForBundle(bundleName: String): void;
+function GetAbilityLabel(bundleName: String, abilityName: String): void;
+function GetAbilityIcon(bundleName: String, abilityName: String): void;
+function IsAbilityEnabled(): void;
+function IsApplicationEnabled(bundleName: String): void;

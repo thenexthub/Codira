@@ -1,0 +1,37 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # literal and literal
+  - decl: '"one" : "two"'
+    expected_let: '"one" | "two"'
+    expected_const: '"one" | "two"'
+
+  - decl: '"one" : undefined'
+    expected_let: '"one" | undefined'
+    expected_const: '"one" | undefined'
+
+  - decl: '"one" : null'
+    expected_let: '"one" | null'
+    expected_const: '"one" | null'
+
+  # literal and non-literal
+  - decl: '1 : "two"'
+    expected_let: 'int | "two"'
+    expected_const: 'int | "two"'
+
+# whether to use const to initialise
+const_to_initialise:
+  - "true"
+  - "false"

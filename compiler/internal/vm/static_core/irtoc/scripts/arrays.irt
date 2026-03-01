@@ -1,0 +1,129 @@
+#!/usr/bin/env ruby
+
+# Copyright (c) 2023-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# NB: put the functions generation to the ETS plugin
+
+include_relative 'array_helpers.irt'
+
+macro(:do_checks_ets) do
+    src_size := LoadI(src_obj).Imm(Constants::ARRAY_LENGTH_OFFSET).u32
+    dst_size := LoadI(dst_obj).Imm(Constants::ARRAY_LENGTH_OFFSET).u32
+
+    If(src_start, src_end).GT.Unlikely.b {
+        Goto(:FallToIntrinsic)
+    }
+
+    If(src_end, src_size).GT.Unlikely.b {
+        Goto(:FallToIntrinsic)
+    }
+
+    IfImm(Compare(src_start, 0).LT.b).Imm(0).NE.Unlikely.b {
+        Goto(:FallToIntrinsic)
+    }
+
+    IfImm(Compare(dst_start, 0).LT.b).Imm(0).NE.Unlikely.b {
+        Goto(:FallToIntrinsic)
+    }
+    
+    data_length := Sub(src_end, src_start).u32
+    available_space := Sub(dst_size, dst_start).u32
+    IfImm(Compare(data_length, available_space).GT.b).Imm(0).NE.Unlikely.b {
+        Goto(:FallToIntrinsic)
+    }
+end
+
+def GenerateArrayCopyTo(el_size, cgmode)
+    suffix = el_size.to_s + "B"
+    lowercase_suffix = el_size.to_s + 'b'
+    name_suffix = suffix + (cgmode == :NativePlus ? 'NativePlus' : '')
+    #$regmask = Options.arch_64_bits? ? $temps_mask + :arg0 + :arg1 + :arg2 + :arg3 + :arg4 : $panda_mask
+    $regmask = $panda_mask
+    function("ArrayCopyTo#{name_suffix}".to_sym,
+          params: {src_obj: 'ref', dst_obj: 'ref', dst_start: 'u32', src_start: 'u32', src_end: 'u32'},
+          regmap: $full_regmap,
+          regalloc_set: $regmask,
+          mode: [cgmode]) {
+
+    # Arm32 is not supported
+    if Options.arch == :arm32
+        Intrinsic(:UNREACHABLE).void.Terminator
+        next
+    end
+
+
+if defines.PANDA_WITH_ETS
+    do_checks_ets
+
+    len := Sub(src_end, src_start).u32;
+    el_log_size = Math.log2(el_size).to_i
+    do_array_copy(el_size, el_log_size, src_obj, dst_obj, src_start, dst_start, len)
+
+    Goto(:End)
+
+Label(:FallToIntrinsic)
+    # call Intrinsic
+    ep_offset = get_entrypoint_offset("ARRAY_COPY_TO#{suffix}_SLOW_PATH")
+    name = "ArrayCopyTo#{lowercase_suffix}OddSavedBridge"
+    if cgmode == :FastPath
+      Intrinsic(:SLOW_PATH_ENTRY, src_obj, dst_obj, dst_start, src_start, src_end).AddImm(ep_offset).MethodAsImm(name).Terminator.void
+      Intrinsic(:UNREACHABLE).Terminator.void if defines.DEBUG
+    else # NativePlus
+      name = "StdCore#{['Byte', 'Short', 'Int', 'Long'][Math.log2(el_size)]}CopyTo"
+      Call(src_obj, dst_obj, dst_start, src_start, src_end).Method(name).Terminator.void
+      Goto(:End)
+    end
+end
+
+Label(:End)
+    ReturnVoid().void
+}
+end
+
+GenerateArrayCopyTo(el_size = 1, :FastPath)
+GenerateArrayCopyTo(el_size = 2, :FastPath)
+GenerateArrayCopyTo(el_size = 4, :FastPath)
+GenerateArrayCopyTo(el_size = 8, :FastPath)
+GenerateArrayCopyTo(el_size = 1, :NativePlus)
+GenerateArrayCopyTo(el_size = 2, :NativePlus)
+GenerateArrayCopyTo(el_size = 4, :NativePlus)
+GenerateArrayCopyTo(el_size = 8, :NativePlus)
+
+def GenerateArrayCopyToUnchecked(el_size)
+    suffix = el_size.to_s + "Byte"
+    #$regmask = Options.arch_64_bits? ? $temps_mask + :arg0 + :arg1 + :arg2 + :arg3 + :arg4 : $panda_mask
+    $regmask = $panda_mask
+    function("ArrayCopyToUnchecked#{suffix}".to_sym,
+          params: {src_obj: 'ref', dst_obj: 'ref', dst_start: 'u32', src_start: 'u32', src_end: 'u32'},
+          regmap: $full_regmap,
+          regalloc_set: $regmask,
+          mode: [:FastPath]) {
+
+    # Arm32 is not supported
+    if Options.arch == :arm32
+        Intrinsic(:UNREACHABLE).void.Terminator
+        next
+    end
+
+    len := Sub(src_end, src_start).u32;
+    el_log_size = Math.log2(el_size).to_i
+    do_array_copy(el_size, el_log_size, src_obj, dst_obj, src_start, dst_start, len)
+    ReturnVoid().void
+}
+end
+
+GenerateArrayCopyToUnchecked(el_size = 1)
+GenerateArrayCopyToUnchecked(el_size = 2)
+GenerateArrayCopyToUnchecked(el_size = 4)
+GenerateArrayCopyToUnchecked(el_size = 8)

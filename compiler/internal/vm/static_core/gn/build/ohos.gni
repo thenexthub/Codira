@@ -1,0 +1,175 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+import("ohos-var.gni")
+
+template("ohos_executable") {
+  not_needed(invoker,
+             [
+               "install_images",
+               "part_name",
+               "external_deps",
+             ])
+
+  executable("${target_name}") {
+    forward_variables_from(invoker,
+                           "*",
+                           [
+                             "configs",
+                             "remove_configs",
+                             "public_configs",
+                             "relative_install_dir",
+                             "subsystem_name",
+                             "install_enable",
+                           ])
+    if (defined(invoker.configs)) {
+      configs += invoker.configs
+    }
+
+    if (defined(invoker.public_configs)) {
+      configs += invoker.public_configs
+    }
+    if (defined(invoker.remove_configs)) {
+      configs -= invoker.remove_configs
+    }
+
+    assert(!defined(invoker.output_dir),
+           "output_dir is not allowed to be defined.")
+    output_dir = "${root_out_dir}/bin"
+  }
+}
+
+template("ohos_shared_library") {
+  not_needed(invoker,
+             [
+               "install_images",
+               "part_name",
+               "external_deps",
+               "innerapi_tags",
+               "branch_protector_ret",
+               "subsystem_name",
+               "relative_install_dir",
+               "install_enable",
+               "stack_protector_ret",
+               "license_file",
+             ])
+
+  shared_library("${target_name}") {
+    forward_variables_from(invoker,
+                           "*",
+                           [
+                             "configs",
+                             "remove_configs",
+                             "relative_install_dir",
+                             "subsystem_name",
+                             "install_enable",
+                             "part_name",
+                           ])
+
+    if (defined(invoker.configs)) {
+      configs += invoker.configs
+    }
+
+    if (defined(invoker.remove_configs)) {
+      configs -= invoker.remove_configs
+    }
+
+    assert(!defined(invoker.output_dir),
+           "output_dir is not allowed to be defined.")
+    output_dir = "${root_out_dir}/lib"
+  }
+}
+
+template("ohos_static_library") {
+  not_needed(invoker,
+             [
+               "part_name",
+               "external_deps",
+               "branch_protector_ret",
+               "stack_protector_ret",
+             ])
+
+  static_library("${target_name}") {
+    forward_variables_from(invoker,
+                           "*",
+                           [
+                             "configs",
+                             "remove_configs",
+                             "relative_install_dir",
+                             "subsystem_name",
+                             "install_enable",
+                           ])
+
+    if (defined(invoker.configs)) {
+      configs += invoker.configs
+    }
+
+    if (defined(invoker.remove_configs)) {
+      configs -= invoker.remove_configs
+    }
+  }
+}
+
+template("ohos_prebuilt_etc") {
+  copy("${target_name}") {
+    forward_variables_from(invoker,
+                           "*",
+                           [
+                             "subsystem_name",
+                             "install_enable",
+                             "source",
+                             "module_install_dir",
+                             "part_name",
+                           ])
+    sources = [ invoker.source ]
+    outputs = [ "${target_out_dir}/${invoker.source}" ]
+  }
+}
+
+template("ohos_source_set") {
+  not_needed(invoker,
+             [
+               "public_external_deps",
+               "part_name",
+               "subsystem_name",
+               "external_deps",
+             ])
+
+  source_set(target_name) {
+    forward_variables_from(invoker,
+                           "*",
+                           [
+                             "configs",
+                             "public_configs",
+                             "remove_configs",
+                           ])
+    if (defined(invoker.configs)) {
+      configs += invoker.configs
+    }
+    if (defined(invoker.public_configs)) {
+      configs += invoker.public_configs
+    }
+    if (defined(invoker.remove_configs)) {
+      configs -= invoker.remove_configs
+    }
+  }
+}

@@ -1,0 +1,57 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # Conditional OR for Boolean
+cases:
+  - doc: Conditional OR for 2x Boolean - false false
+    decl: |-
+      let a: Boolean = false;
+      let b: Boolean = false;
+      arktest.assertFalse(a || b);
+
+  - doc: Conditional OR for 2x Boolean - false true
+    decl: |-
+      let a: Boolean = false;
+      let b: Boolean = true;
+      arktest.assertTrue(a || b);
+
+  - doc: Conditional OR for 2x Boolean - true unknown
+    decl: |-
+      let a: Boolean = true;
+      arktest.assertTrue(a || fail());
+
+  - doc: Conditional OR for 2x Boolean - unknown true - left to right execution
+    decl: |-
+      let a: Boolean = true;
+      let expectedException = (e: Error): Boolean => { return (e instanceof AssertionError) }
+      arktest.expectThrow(() => { fail() && a }, expectedException)
+
+  - doc: Conditional OR for 3x Boolean - false false false
+    decl: |-
+      let a: Boolean = false;
+      let b: Boolean = false;
+      let c: Boolean = false;
+      arktest.assertFalse(a || b || c);
+
+  - doc: Conditional OR for 3x Boolean - false false true
+    decl: |-
+      let a: Boolean = false;
+      let b: Boolean = false;
+      let c: Boolean = true;
+      arktest.assertTrue(a || b || c);
+
+  - doc: Conditional OR for 3x Boolean - true unknown false - left to right grouping
+    decl: |-
+      let a: Boolean = true;
+      let b: Boolean = false;
+      arktest.assertTrue(a || fail() || b);

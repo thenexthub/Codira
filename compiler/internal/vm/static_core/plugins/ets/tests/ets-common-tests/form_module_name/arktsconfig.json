@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "package": "entry",
+        "baseUrl": ".",
+        "paths": {
+            "entry/src/main/a": [
+                "./entry/src/main/a.ets"
+            ],
+            "entry": [
+                "./entry"
+            ]
+        },
+        "dependencies": {}
+    }
+}

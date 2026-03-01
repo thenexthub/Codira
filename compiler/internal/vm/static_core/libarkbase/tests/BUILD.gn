@@ -1,0 +1,125 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//arkcompiler/runtime_core/static_core/ark_config.gni")
+import("${ark_root}/tests/unittest_helper.gni")
+
+config("arkbase_test_config") {
+  configs = [
+    "${ark_root}:ark_config",
+    "${ark_root}/libarkbase:arkbase_public_config",
+  ]
+}
+
+arkbase_test_module_out_path = "runtime_core/static_core/libarkbase"
+
+ark_unittest("arkbase_common_tests") {
+  configs = [ ":arkbase_test_config" ]
+  deps = [ "${ark_root}/libarkbase:libarktsbase_static" ]
+  sources = [
+    "alloc_tracker_test.cpp",
+    "arena_allocator_test.cpp",
+    "arena_test.cpp",
+    "base_mem_stats_test.cpp",
+    "base_thread_test.cpp",
+    "bit_helpers_test.cpp",
+    "bit_memory_region_test.cpp",
+    "bit_table_test.cpp",
+    "bit_utils_test.cpp",
+    "bit_vector_test.cpp",
+    "bloom_filter_test.cpp",
+    "code_allocator_test.cpp",
+    "dfx_test.cpp",
+    "expected_test.cpp",
+    "hash_test.cpp",
+    "json_builder_test.cpp",
+    "json_parser_test.cpp",
+    "leb128_test.cpp",
+    "list_test.cpp",
+    "math_helpers_test.cpp",
+    "mem_hooks_test.cpp",
+    "mmap_mem_pool_test.cpp",
+    "mmap_test.cpp",
+    "native_bytes_from_mallinfo_test.cpp",
+    "pandargs_test.cpp",
+    "pool_map_test.cpp",
+    "regmask_test.cpp",
+    "ring_buffer_test.cpp",
+    "ringbuf/lock_free_ring_buffer_test.cpp",
+    "serializer_test.cpp",
+    "small_vector_test.cpp",
+    "span_test.cpp",
+    "string_helpers_test.cpp",
+    "type_converter_tests.cpp",
+    "unique_fd_test.cpp",
+    "utf_test.cpp",
+  ]
+  no_cores = true
+  no_warning_filter = true
+  module_out_path = arkbase_test_module_out_path
+}
+
+ark_unittest("arkbase_mem_range_tests") {
+  configs = [ ":arkbase_test_config" ]
+  deps = [ "${ark_root}/libarkbase:libarktsbase_static" ]
+  sources = [ "mem_range_test.cpp" ]
+  no_cores = true
+  module_out_path = arkbase_test_module_out_path
+}
+
+ark_unittest("arkbase_task_manager_tests") {
+  configs = [ ":arkbase_test_config" ]
+  deps = [ "${ark_root}/libarkbase:libarktsbase_static" ]
+  sources = [
+    "taskmanager/task_scheduler_test.cpp",
+    "taskmanager/task_sheduler_logging_test.cpp",
+    "taskmanager/task_test.cpp",
+  ]
+  no_cores = true
+  module_out_path = arkbase_test_module_out_path
+}
+
+ark_unittest("arkbase_task_manager_utils_tests") {
+  configs = [ ":arkbase_test_config" ]
+  deps = [ "${ark_root}/libarkbase:libarktsbase_static" ]
+  sources = [ "taskmanager/task_utils_test.cpp" ]
+  no_cores = true
+  module_out_path = arkbase_test_module_out_path
+}
+
+ark_unittest("arkbase_task_manager_gc_cases_tests") {
+  configs = [ ":arkbase_test_config" ]
+  deps = [ "${ark_root}/libarkbase:libarktsbase_static" ]
+  sources = [ "taskmanager/task_manager_gc_corner_case_test.cpp" ]
+  no_cores = true
+  module_out_path = arkbase_test_module_out_path
+}
+
+ark_unittest("lock_holder_tests") {
+  configs = [ ":arkbase_test_config" ]
+  deps = [ "${ark_root}/libarkbase:libarktsbase_static" ]
+  sources = [ "lock_holder_test.cpp" ]
+  no_cores = true
+  module_out_path = arkbase_test_module_out_path
+}
+
+ark_unittest_group("arkbase_tests") {
+  deps = [
+    ":arkbase_common_tests",
+    ":arkbase_mem_range_tests",
+    ":arkbase_task_manager_gc_cases_tests",
+    ":arkbase_task_manager_tests",
+    ":arkbase_task_manager_utils_tests",
+    ":lock_holder_tests",
+  ]
+}

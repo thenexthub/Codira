@@ -1,0 +1,262 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          interface I {
+              met(): string
+          }
+          class A implements I {
+              override met(): string {
+                  return "A"
+              }
+          }
+          class B extends A {
+              override met(): string {
+                  return "B"
+              }
+          }
+          class C {
+              met(): string {
+                  return "C"
+              }
+          }
+      use: |-
+          // using class type references
+          let a: A = new A()
+          arktest.assertEQ( a.met(), "A" )
+          let b: B = new B()
+          arktest.assertEQ( b.met(), "B" )
+          let c: C = new C()
+          arktest.assertEQ( c.met(), "C" )
+
+    - decl: |-
+          interface I {
+              met(): string
+          }
+          class A implements I {
+              override met(): string {
+                  return "A"
+              }
+          }
+          class B extends A {
+              override met(): string {
+                  return "B"
+              }
+          }
+          class C {
+              met(): string {
+                  return "C"
+              }
+          }
+          type TA = A
+          type TB = B
+          type TC = C
+      use: |-
+          // using type aliases
+          let a: TA = new TA()
+          arktest.assertEQ( a.met(), "A" )
+          let b: TB = new TB()
+          arktest.assertEQ( b.met(), "B" )
+          let c: TC = new TC()
+          arktest.assertEQ( c.met(), "C" )
+
+    - decl: |-
+          interface I {
+              met(): string {
+                  return "I"
+              }
+          }
+          class A implements I {
+              override met(): string {
+                  return "A"
+              }
+          }
+          class B extends A {
+              override met(): string {
+                  return "B" + super.met()
+              }
+          }
+          class C implements I {}
+      use: |-
+          // using super for referring immediate superclass
+          arktest.assertEQ( new A().met(), "A" )
+          arktest.assertEQ( new B().met(), "BA" )
+          arktest.assertEQ( new C().met(), "I" )
+
+    - decl: |-
+          class Base {
+              met(): string {
+                  return "Base"
+              }
+          }
+          class A extends Base {}
+          class B extends A {
+              override met(): string {
+                  return "B" + super.met()
+              }
+          }
+      use: |-
+          // using super for referring 2nd level superclass
+          arktest.assertEQ( new Base().met(), "Base" )
+          arktest.assertEQ( new A().met(), "Base" )
+          arktest.assertEQ( new B().met(), "BBase" )
+
+    - decl: |-
+          interface I {
+              met(): string {
+                  return "I"
+              }
+          }
+          class A implements I {
+              override met(): string {
+                  return "A"
+              }
+          }
+          class B extends A {
+              override met(): string {
+                  return "B" + super.met()
+              }
+          }
+          class C implements I {}
+          function createA(): A {
+              return new A()
+          }
+          function createB(): B {
+              return new B()
+          }
+          function createC(): C {
+              return new C()
+          }
+      use: |-
+          // using class type expression
+          arktest.assertEQ( createA().met(), "A" )
+          arktest.assertEQ( createB().met(), "BA" )
+          arktest.assertEQ( createC().met(), "I" )
+
+    - decl: |-
+          class X {
+              met(): string {
+                  return "X"
+              }
+          }
+          class Y extends X {}
+          class Z extends Y {}
+          class A<T extends X> {
+              fld: T|null = null
+
+              setFld(p: T) {
+                  this.fld = p
+              }
+
+              m(): string {
+                  return this.fld!.met()
+              }
+          }
+      use: |-
+          // using type parameter constraint
+          let v: A<Z> = new A<Z>()
+          v.setFld(new Z())
+          arktest.assertEQ( v.m(), "X" )
+
+    - decl: |-
+          class X {
+              met(): string {
+                  return "X"
+              }
+          }
+          class Y extends X {
+              override met(): string {
+                  return "Y"
+              }
+          }
+          class Z extends Y {}
+          class A<T extends X> {
+              fld: T|null = null
+
+              setFld(p: T) {
+                  this.fld = p
+              }
+
+              m(): string {
+                  return this.fld!.met()
+              }
+          }
+      use: |-
+          // using type parameter constraint
+          let v: A<Z> = new A<Z>()
+          v.setFld(new Z())
+          arktest.assertEQ( v.m(), "Y" )
+
+    - decl: |-
+        interface MH { name(): string }
+        
+        class A implements MH {
+          name(): string {
+            return 'I am A'
+          }
+        }
+        
+        class B implements MH {
+          name(): string {
+            return 'I am B'
+          }
+        }
+        
+        class C {
+            name(): string {
+                return 'I am C'
+            }
+        }
+        
+        type UT = A | B | C
+
+      use: |-
+        let test0: UT = ((): UT => new A)()
+        arktest.assertEQ('I am A', ((p: UT): string => p.name())(test0))
+        let test1: UT = ((): UT => new B)()
+        arktest.assertEQ('I am B', ((p: UT): string => p.name())(test1))
+        let test2: UT = ((): UT => new C)()
+        arktest.assertEQ('I am C', ((p: UT): string => p.name())(test2))
+
+    - decl: |-
+        interface MH { name(): string }
+        
+        final class A implements MH {
+          name(): string {
+            return 'I am A'
+          }
+        }
+        
+        final class B implements MH {
+          name(): string {
+            return 'I am B'
+          }
+        }
+        
+        final class C {
+            name(): string {
+                return 'I am not MH'
+            }
+        }
+        
+        type UT = MH | C
+
+      use: |-
+        let test0: UT = ((): UT => new A)()
+        arktest.assertEQ('I am A', ((p: UT): string => p.name())(test0))
+        let test1: UT = ((): UT => new B)()
+        arktest.assertEQ('I am B', ((p: UT): string => p.name())(test1))
+        let test2: UT = ((): UT => new C)()
+        arktest.assertEQ('I am not MH', ((p: UT): string => p.name())(test2))

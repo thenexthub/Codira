@@ -1,0 +1,195 @@
+# Copyright (c) 2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+templates:
+  binop: |-
+    % regex_arithm = /(fdiv|fmod|add|sub|mul|and|or|xor|ashr|shr|shl|neg|not)[2i]?/
+    % opc = inst.stripped_mnemonic.match regex_arithm
+    % raise "Wrong binop instruction" unless opc
+    % opc = opc[1].capitalize.gsub('Ashr', 'AShr').gsub('Fdiv', 'Div').gsub('Fmod', 'Mod')
+    auto inst = graph_->CreateInst<%= opc %>(<%= get_type(inst.dtype) %>, GetPc(instruction->GetAddress()));
+    <%=template('operands', inst, '')-%>
+    AddInstruction(inst);
+  binop_z: |-
+    % opc = inst.stripped_mnemonic =~ /div/ ? 'Div' : 'Mod'
+    auto instSaveState = CreateSaveState(compiler::Opcode::SaveState, GetPc(instruction->GetAddress()));
+    auto instCheck = graph_->CreateInstZeroCheck(<%= get_type(inst.dtype) %>, GetPc(instruction->GetAddress()));
+    % if inst.acc_and_operands.last.imm?
+    instCheck->SetInput(0, FindOrCreate32BitConstant(instruction->GetImm<<%= inst.get_format %>, 0>()));
+    % else
+    instCheck->SetInput(0, <%= inst.get_input_string(1) %>);
+    % end
+    instCheck->SetInput(1, instSaveState);
+    auto inst = graph_->CreateInst<%= opc %>(<%= get_type(inst.dtype) %>, GetPc(instruction->GetAddress()));
+    inst->SetInput(0, <%= inst.get_input_string(0) %>);
+    inst->SetInput(1, instCheck);
+    UpdateDefinitionAcc(inst);
+    AddInstruction(instSaveState);
+    AddInstruction(instCheck);
+    AddInstruction(inst);
+  inci: |-
+    auto inst = graph_->CreateInstAdd(<%= get_type(inst.dtype) %>, GetPc(instruction->GetAddress()));
+    inst->SetInput(0, GetDefinition(instruction->GetVReg()));
+    inst->SetInput(1, FindOrCreate32BitConstant(instruction->GetImm<<%=inst.get_format%>, 0>()));
+    AddInstruction(inst);
+    UpdateDefinition(instruction->GetVReg(), inst);
+  cast: |-
+    auto inst = graph_->CreateInstCast(<%= get_type(inst.dtype) %>, GetPc(instruction->GetAddress()));
+    auto input = GetDefinitionAcc();
+    inst->SetInput(0, input);
+    inst->SetOperandsType(compiler::<%= get_type(inst.type(0)) %>);
+    if (!input->HasType()) {
+        input->SetType(compiler::<%= get_type(inst.type(0)) %>);
+    }
+    UpdateDefinitionAcc(inst);
+    AddInstruction(inst);
+  cmp: |-
+    % if inst.mnemonic.include? "obj"
+    auto inst = graph_->CreateInstCompare(compiler::DataType::BOOL, GetPc(instruction->GetAddress()), compiler::ConditionCode::CC_NE);
+    % else
+    auto inst = graph_->CreateInstCmp(<%= get_type(inst.dtype) %>, GetPc(instruction->GetAddress()));
+    % end
+    inst->SetInput(0, GetDefinitionAcc());
+    inst->SetInput(1, GetDefinition(instruction->GetVReg()));
+    inst->SetOperandsType(compiler::<%= get_type(inst.type(0)) %>);
+    % if inst.stripped_mnemonic.start_with? 'fcmp'
+    inst->Set<%= inst.opcode =~ /^fcmpg/ ? 'Fcmpg' : 'Fcmpl' %>();
+    % end
+    AddInstruction(inst);
+    UpdateDefinitionAcc(inst);
+  if: |-
+    %   if inst.acc_and_operands.size > 2
+    auto inst = graph_->CreateInstIf(compiler::DataType::NO_TYPE, GetPc(instruction->GetAddress()), GetDefinitionAcc(),
+                                     GetDefinition(instruction->GetVReg()), compiler::<%= get_type(inst.type(0)) %>, <%= get_cc(inst) %>);
+    %   else
+    auto inst = graph_->CreateInstIf(compiler::DataType::NO_TYPE, GetPc(instruction->GetAddress()), GetDefinitionAcc(),
+                                     FindOrCreateConstant(0), compiler::<%= get_type(inst.type(0)) %>, <%= get_cc(inst) %>);
+    %   end
+    AddInstruction(inst);
+  jump: |-
+  mov: |-
+    % if inst.acc_and_operands[1].imm?
+    %   if inst.mnemonic == "movi"
+    UpdateDefinition(instruction->GetVReg(), FindOrCreate32BitConstant(instruction->GetImm<<%=inst.get_format%>, 0>()));
+    %   else
+    UpdateDefinition(instruction->GetVReg(), FindOrCreateConstant(instruction->GetImm<<%=inst.get_format%>, 0>()));
+    %   end
+    % else
+    % raise "Unsupported instruction type" unless inst.acc_and_operands[1].reg?
+    UpdateDefinition(instruction->GetVReg(), GetDefinition(instruction->GetVReg(1)));
+    % end
+  fmovi: |-
+    % if inst.mnemonic == "fmovi"
+    auto imm = bit_cast<float>(instruction->GetImm<<%=inst.get_format%>, 0>());
+    UpdateDefinition(instruction->GetVReg(), FindOrCreateFloatConstant(imm));
+    % else
+    auto imm = bit_cast<double>(instruction->GetImm<<%=inst.get_format%>, 0>());
+    UpdateDefinition(instruction->GetVReg(), FindOrCreateDoubleConstant(imm));
+    % end
+  sta: |-
+    UpdateDefinition(instruction->GetVReg(), GetDefinitionAcc());
+  lda: |-
+    % if inst.acc_and_operands[1].imm?
+    %   if inst.mnemonic == "ldai"
+    UpdateDefinitionAcc(FindOrCreate32BitConstant(instruction->GetImm<<%=inst.get_format%>, 0>()));
+    %   else
+    UpdateDefinitionAcc(FindOrCreateConstant(instruction->GetImm<<%=inst.get_format%>, 0>()));
+    %   end
+    % elsif inst.acc_and_operands[1].id?
+    BuildLoadFromPool<compiler::Opcode::<%= inst.opcode =~ /lda_type/ ? 'LoadType' : 'LoadString' %>>(instruction);
+    % else
+    % raise "Unsupported instruction type" unless inst.acc_and_operands[1].reg?
+    UpdateDefinitionAcc(GetDefinition(instruction->GetVReg()));
+    % end
+  fldai: |-
+    auto imm = bit_cast<double>(instruction->GetImm<<%=inst.get_format%>, 0>());
+    UpdateDefinitionAcc(FindOrCreateDoubleConstant(imm));
+  operands: |-
+    % inst.inputs.each_with_index do |op, idx|
+    %   if op.imm?
+    inst->SetInput(<%= idx %>, FindOrCreate32BitConstant(instruction->GetImm<<%= inst.get_format %>, 0>()));
+    %   else
+    inst->SetInput(<%= idx %>, <%= inst.get_input_string(idx) %>);
+    %   end
+    % end
+    % if inst.has_dst?
+    %   if inst.acc_and_operands.first.acc?
+    UpdateDefinitionAcc(inst);
+    %   else
+    UpdateDefinition(instruction->GetVReg(), inst);
+    %   end
+    % end
+  return: |-
+    % opcode = inst.opcode.include?('void') ? 'ReturnVoid' : 'Return'
+    auto inst = graph_->CreateInst<%= opcode %>(GetCurrentMethodReturnType(), GetPc(instruction->GetAddress()));
+    <%=template('operands', inst, '')-%>
+    AddInstruction(inst);
+  ecma: |-
+    % additional_deprecated_opcodes = ["JNSTRICTEQUNDEFINED",
+    %                                 "JSTRICTEQUNDEFINED",
+    %                                 "JNEUNDEFINED",
+    %                                 "JEQUNDEFINED",
+    %                                 "JNSTRICTEQNULL",
+    %                                 "JSTRICTEQNULL",
+    %                                 "JNENULL",
+    %                                 "JEQNULL",
+    %                                 "JNSTRICTEQZ",
+    %                                 "JSTRICTEQZ",
+    %                                 "STTOGLOBALRECORD",
+    %                                 "STCONSTTOGLOBALRECORD",
+    %                                 "CREATEREGEXPWITHLITERAL",
+    %                                 "CLOSEITERATOR"]
+
+    % replaced_opcodes = ["JNSTRICTEQ",
+    %                    "JSTRICTEQ",
+    %                    "JNE",
+    %                    "JEQ"]
+    % skipped_opcodes = additional_deprecated_opcodes + replaced_opcodes
+
+    % name = inst.opcode.upcase.split('')[1]
+    % if !(inst.opcode.upcase.include? "DEPRECATED_") && !(skipped_opcodes.include? inst.mnemonic.upcase)
+    %   case name
+    %   when "RETURNUNDEFINED"
+    auto cvatInput = FindOrCreateConstant(0);
+    cvatInput->SetType(compiler::DataType::Type::INT64);
+    auto cvat = graph->CreateInstCastValueToAnyType(0);
+    cvat->SetAnyType(panda::compiler::AnyBaseType::ECMASCRIPT_UNDEFINED_TYPE);
+    cvat->SetInput(0, cvatInput);
+    auto inst = graph_->CreateInstReturn(compiler::DataType::ANY, GetPc(instruction->GetAddress()));
+    inst->SetInput(0, cvat);
+    AddInstruction(cvat);
+    AddInstruction(inst);
+    %   when "RETURN"
+    auto inst = graph_->CreateInstReturn(compiler::DataType::ANY, GetPc(instruction->GetAddress()));
+    inst->SetInput(0, GetDefinitionAcc());
+    AddInstruction(inst);
+    %   when "JFALSE", "JTRUE"
+    %   cmp_imm = name == "JFALSE" ? 0 : 1
+    auto cvatInput = FindOrCreateConstant(<%= cmp_imm %>);
+    cvatInput->SetType(compiler::DataType::INT64);
+    auto cvat = graph_->CreateInstCastValueToAnyType(0);
+    cvat->SetAnyType(panda::compiler::AnyBaseType::ECMASCRIPT_BOOLEAN_TYPE);
+    cvat->SetInput(0, cvat_input);
+    auto ifInst = graph_->CreateInstIf(compiler::DataType::BOOL, GetPc(instruction->GetAddress()), compiler::ConditionCode::CC_EQ);
+    ifInst->SetOperandsType(compiler::DataType::ANY);
+    ifInst->SetInput(0, GetDefinitionAcc());
+    ifInst->SetInput(1, cvat);
+    AddInstruction(cvat);
+    AddInstruction(ifInst);
+    %   else
+    BuildEcma(instruction);
+    %   end
+    % end
+  nop: |-
+  unimplemented: |-
+    // NOTE(msherstennikov): implement

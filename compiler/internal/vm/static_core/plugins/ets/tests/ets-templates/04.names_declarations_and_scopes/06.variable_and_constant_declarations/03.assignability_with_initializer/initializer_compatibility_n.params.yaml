@@ -1,0 +1,37 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+--- # Type, TypeDecl and initializer
+type_and_initializer:
+    - { type: byte, value: 127e10 }
+    - { type: byte, value: '"1"' }
+    - { type: char, value: 127e10 }
+    - { type: char, value: '"01"' }
+    - { type: int, value: new Object() }
+    - { type: long, value: 'true' }
+    - { type: float, value: new Boolean() }
+    - { type: double, value: '"string"' }
+    - { type: Object|null, value: 'undefined' }
+    - { type: Object, value: 'null' }
+    - { type: Boolean, value: 2 }
+    - { type: Boolean, value: new Object() }
+    - { type: string, value: 'null' }

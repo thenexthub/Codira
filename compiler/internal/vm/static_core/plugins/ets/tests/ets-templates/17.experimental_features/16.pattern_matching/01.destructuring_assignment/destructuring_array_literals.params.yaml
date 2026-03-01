@@ -1,0 +1,166 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - doc: |-
+      Destructuring Assignment
+    use: |-
+      let n: number = 1;
+      let s: string = "a";
+      [n,s] = [1.5, "str"];
+      arktest.assertEQ(n, 1.5);
+      arktest.assertEQ(s, "str");
+
+  - doc: |-
+      Destructuring Assignment - trailing omitted elements
+    use: |-
+      let n: number = 1;
+      let s: string = "a";
+      [n,s,,,] = [1.5, "str"];
+      arktest.assertEQ(n, 1.5);
+      arktest.assertEQ(s, "str");
+
+  - doc: |-
+      Destructuring Assignment - mixed types
+    use: |-
+      let n: number = 1;
+      let s: string = "a";
+      [n,s] = [1.5, "str", undefined, new Object()];
+      arktest.assertEQ(n, 1.5);
+      arktest.assertEQ(s, "str");
+
+  - doc: |-
+      Destructuring Assignment - mixed types, omitted elements
+    use: |-
+      let n1: number = 1;
+      let n2: number = 1;
+      let s: string = "a";
+      let o: Object = new Object();
+      [n1,s,,,n2] = [1.5, "str", undefined, new Object(), 2.5];
+      arktest.assertEQ(n1, 1.5);
+      arktest.assertEQ(s, "str");
+      arktest.assertEQ(n2, 2.5);
+
+  - doc: |-
+      Destructuring Assignment - assign the expression to a variable
+    use: |-
+      let n: number = 1;
+      let s: string = "a";
+      let ns = [n,s] = [1.5, "str" as string];
+      arktest.assertEQ(n, 1.5);
+      arktest.assertEQ(s, "str");
+
+      arktest.assertEQ(ns[0], 1.5);
+      arktest.assertEQ(ns[1], "str");
+
+      ns[0] = 2.5;
+      ns[1] = "new str";
+      arktest.assertEQ(ns[0], 2.5);
+      arktest.assertEQ(ns[1], "new str");
+
+  - doc: |-
+      Destructuring Assignment - assign the expression to a variable
+    use: |-
+      let n: number = 1;
+      let s: string = "a";
+      let ns = [n,s,,,] = [1.5, "str" as string];
+      arktest.assertEQ(n, 1.5);
+      arktest.assertEQ(s, "str");
+
+      arktest.assertEQ(ns[0], 1.5);
+      arktest.assertEQ(ns[1], "str");
+
+      ns[0] = 2.5;
+      ns[1] = "new str";
+      arktest.assertEQ(ns[0], 2.5);
+      arktest.assertEQ(ns[1], "new str");
+
+
+  - doc: |-
+      Destructuring Assignment - assign the expression to a variable
+    use: |-
+      let n: number = 1;
+      let s: string = "a";
+      let ns = [n,s] = [1.5, "str" as string, undefined, new Object()];
+      arktest.assertEQ(n, 1.5);
+      arktest.assertEQ(s, "str");
+
+      arktest.assertEQ(ns[0], 1.5);
+      arktest.assertEQ(ns[1], "str");
+
+      ns[0] = 2.5;
+      ns[1] = "new str";
+      arktest.assertEQ(ns[0], 2.5);
+      arktest.assertEQ(ns[1], "new str");
+
+
+  - doc: |-
+      Destructuring Assignment - assign the expression to a variable
+    use: |-
+      let n1: number = 1;
+      let n2: number = 1;
+      let s: string = "a";
+      let o: Object = new Object();
+      let ns = [n1,s,,,n2] = [1.5, "str" as string, undefined, o, 2.5];
+      arktest.assertEQ(n1, 1.5);
+      arktest.assertEQ(s, "str");
+      arktest.assertEQ(n2, 2.5);
+
+      arktest.assertEQ(ns[0], 1.5);
+      arktest.assertEQ(ns[1], "str");
+      arktest.assertEQ(ns[2], undefined);
+      arktest.assertEQ(ns[3], o);
+      arktest.assertEQ(ns[4], 2.5);
+
+      let o2: Object = new Object();
+      ns[0] = 3.1;
+      ns[1] = "new str";
+      ns[2] = undefined;
+      ns[3] = o2
+      ns[4] = 4.1;
+      arktest.assertEQ(ns[0], 3.1);
+      arktest.assertEQ(ns[1], "new str");
+      arktest.assertEQ(ns[2], undefined);
+      arktest.assertEQ(ns[3], o2);
+      arktest.assertEQ(ns[4], 4.1);
+
+  - doc: |-
+      Destructuring Assignment - rhs must be eagarly evaluated
+    decl: |-
+      let res: number = 0;
+      function foo(arg: number): number {
+        res++;
+        return arg;
+      }
+    use: |-
+      let n1: number = 0;
+      let n2: number = 0;
+      res = 0;
+      [n1, n2] = [foo(1), foo(2), foo(3), foo(4)];
+      arktest.assertEQ(n1, 1);
+      arktest.assertEQ(n2, 2);
+      arktest.assertEQ(res, 4); // foo is called 4 times
+
+  - doc: |-
+      Destructuring Assignment - rhs must be eagarly evaluated
+    decl: |-
+      let res: number = 0;
+      function foo(arg: number): number {
+        res++;
+        return arg;
+      }
+    use: |-
+      res = 0;
+      [] = [foo(1), foo(2), foo(3)];
+      arktest.assertEQ(res, 3); // foo is called 3 times

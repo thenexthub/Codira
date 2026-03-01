@@ -1,0 +1,40 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+    # use an alias defined and exported as type from another unit
+
+    - files: ['./mod/mod_1.ets']
+      decl: |-
+          import { MOD_ALIAS1 } from './mod/mod_1.ets'
+      use: |-
+          let v: MOD_ALIAS1 = true  // should be visible here
+          let ok = v
+
+    # use an alias defined and exported from another unit
+
+    - files: ['./mod/mod_2.ets']
+      decl: |-
+          import { MOD_ALIAS2 } from './mod/mod_2.ets'
+      use: |-
+          let v: MOD_ALIAS2 = true  // should be visible here
+          let ok = true
+
+    # use an alias defined and exported as type under a different name from another unit
+
+    - files: ['./mod/mod_3.ets']
+      decl: |-
+          import { X } from './mod/mod_3.ets'
+      use: |-
+          let v: X = true  // should be visible here
+          let ok = v

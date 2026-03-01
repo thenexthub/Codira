@@ -1,0 +1,109 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+category: Set
+sub:
+  - self_type: Iterable<number>
+    self:
+      - new Set<number>()
+      - new Set<number>(Array.of<number>(+0, NaN, Infinity))
+      - new Set<number>(Array.of<number>(-0, -Infinity))
+      - new Set<number>(Array.of<number>(-0, +0, -Infinity, 1, 3))
+    sub:
+      - method: values
+        ret_type: Iterable<number>
+      - method: keys
+        ret_type: Iterable<number>
+      - method: clear
+        ret_type: void
+      - method: entries
+        excluded: true # NOTE (#24570): align test with new tuple types
+        ret_type: Iterable<[Number, Number]>
+      - expr: self.size
+      - self:
+        - new Set<string>(Array.of<string>("", "123"))
+        self_type: Iterable<string>
+        sub:
+          - method: values
+          - method: keys
+      - method: add
+        params:
+          - paramOf '+0', '-0', 'NaN', '1e-30'
+      - method: delete
+        params:
+          - paramOf '+0', '-0', 'NaN', '1e-30'
+      - method: has
+        params:
+          - paramOf '+0', '-0', 'NaN', '1e-30'
+      - method: forEach
+        ret_type: void
+        params:
+          -
+            - |
+              (x: number): void => { self.delete(x) }
+            - |
+              (x: number): void => { self.add(x) }
+            - |
+              (x: number): void => { self.add(-x) }
+# Issue 18208
+      - expr: valsArr
+        setup: |
+          let valsArr = Array.of<string>()
+          self.forEach((): void => { valsArr.push('call') })
+      - self:
+          - new Set<Object|null|undefined>(Array.of<Object|null|undefined>(null))
+          - new Set<Object|null|undefined>(Array.of<Object|null|undefined>(undefined))
+          - new Set<Object|null|undefined>(Array.of<Object|null|undefined>())
+        self_type: Iterable<Object|null|undefined>
+        sub:
+          - method: has
+            params:
+              - paramOf 'null', 'undefined', '0'
+          - method: delete
+            params:
+              - paramOf 'null', 'undefined', '0'
+      - self: null
+        expr: new Set<string>(pars)
+        params:
+          -
+            - |
+              '\uD842'
+            - |
+              '\uDFB7'
+            - |
+              '\uD842a'
+            - |
+              '\uDFB7b'
+            - |
+              'b\uD842'
+            - |
+              'a\uDFB7'
+            - |
+              'a𠮷b'
+      - expr: res
+        setup: |
+            let x = new Set<String>()
+            x.add("key1")
+            let iter = x.values()
+            iter.next()
+            let res = iter.next().done
+            res = res && iter.next().done

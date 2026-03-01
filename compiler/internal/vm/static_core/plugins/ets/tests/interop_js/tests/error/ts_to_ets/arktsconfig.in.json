@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "baseUrl": "${PANDA_ROOT}",
+        "paths": {
+            "escompat": [
+                "${PANDA_ROOT}/plugins/ets/stdlib/escompat"
+            ],
+            "std": [
+                "${PANDA_ROOT}/plugins/ets/stdlib/std"
+            ]
+        },
+        "dependencies": {
+            "test_error_ts": {
+                "language": "js",
+                "ohmUrl": "${CMAKE_CURRENT_BINARY_DIR}/test_error"
+            }
+        }
+    }
+}

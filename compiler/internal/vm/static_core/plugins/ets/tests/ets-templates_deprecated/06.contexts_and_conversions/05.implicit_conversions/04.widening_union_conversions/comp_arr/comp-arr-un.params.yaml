@@ -1,0 +1,183 @@
+# Copyright (c) 2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - to_type: byte|short|int|long # normalized to Long
+      values:
+          - { from_type: 'byte', expr: '127', eq: '==' }
+          - { from_type: 'short', expr: '-7', eq: '==' }
+          - { from_type: 'int', expr: '0xCAFE', eq: '==' }
+          - { from_type: 'long', expr: '0o777', eq: '==' }
+
+    - to_type: Byte|Short|Int|Long # normalized to Byte|Short|Int|Long
+      values:
+          - { from_type: 'Byte', ref_type: 'Byte', expr: '127', eq: '==' }
+          - { from_type: 'Short', ref_type: 'Short', expr: '-7', eq: '==' }
+          - { from_type: 'Int', ref_type: 'Int', expr: '0xCAFE', eq: '==' }
+          - { from_type: 'Long', ref_type: 'Long', expr: '0o777', eq: '==' }
+
+    - to_type: float|double|number # normalized to double
+      values:
+          - { from_type: 'float',  expr: '3.5f', eq: '==' }
+          - { from_type: 'double', expr: '-1.1E-20', eq: '==' }
+          - { from_type: 'number', expr: '1234567e8', eq: '==' }
+
+    - to_type: Float|Double|Number # normalized to Float|Double
+      values:
+          - { from_type: 'Float', ref_type: 'Float', expr: '3.5f', eq: '==' }
+          - { from_type: 'Double', ref_type: 'Double', expr: '-1.1E-20', eq: '==' }
+          - { from_type: 'Number', ref_type: 'Number', expr: '1234567e8', eq: '==' }
+
+    - to_type: byte|short|int|long|float|double # normalized to Double
+      values:
+          - { from_type: 'byte', expr: '127', eq: '==' }
+          - { from_type: 'short', expr: '-7', eq: '==' }
+          - { from_type: 'int', expr: '0xCAFE', eq: '==' }
+          - { from_type: 'long', expr: '0o777', eq: '==' }
+          - { from_type: 'float', expr: '3.5f', eq: '==' }
+          - { from_type: 'double', expr: '-1.1E-20', eq: '==' }
+          - { from_type: 'number', expr: '1234567e8', eq: '==' }
+
+    - to_type: Byte|Short|Int|Long|Float|Double # normalized to Byte|Short|Int|Long|Float|Double
+      values:
+          - { from_type: 'Byte', ref_type: 'Byte', expr: '127', eq: '==' }
+          - { from_type: 'Short', ref_type: 'Short', expr: '-7', eq: '==' }
+          - { from_type: 'Int', ref_type: 'Int', expr: '0xCAFE', eq: '==' }
+          - { from_type: 'Long', ref_type: 'Long', expr: '0o777', eq: '==' }
+          - { from_type: 'Float', ref_type: 'Float', expr: '3.5f', eq: '==' }
+          - { from_type: 'Double', ref_type: 'Double', expr: '-1.1E-20', eq: '==' }
+
+    - to_type: byte|short|int|long|boolean|char|float|double|bigint|string
+      values:
+          - { from_type: 'byte', ref_type: 'Byte', expr: '-128', eq: '==' }
+          - { from_type: 'short', ref_type: 'Short', expr: '32767', eq: '==' }
+          - { from_type: 'int', ref_type: 'Int', expr: '0x7fffffff', eq: '==' }
+          - { from_type: 'long', ref_type: 'Long', expr: '0x8000000000000000', eq: '==' }
+          - { from_type: 'char', ref_type: 'Char', expr: "c'\\uC5C5'", eq: '==' }
+          - { from_type: 'boolean', ref_type: 'Boolean', expr: '!false', eq: '==' }
+          - { from_type: 'float', ref_type: 'Float', expr: '0.0005e04f', eq: '==' }
+          - { from_type: 'double', ref_type: 'Double', expr: '3.1416926e+00', eq: '==' }
+          - { from_type: 'bigint', ref_type: 'BigInt', expr: '11111111111111111111111111111111111111111n', eq: '==' }
+          - { from_type: 'string', ref_type: 'String', expr: '"abcdefghijklmnopqrstuvwxyz"', eq: '==' }
+
+    - decl: |-
+          class A {}
+          class B {}
+          let a: A = {}
+          let b: B = {}
+          let e: Error = {}
+      to_type: A|B|Error
+      values:
+          - { from_type: 'Error', ref_type: '(Object|null)', expr: 'e', eq: '===' }
+          - { from_type: 'A', ref_type: '(Object|null)', expr: 'a', eq: '===' }
+          - { from_type: 'B', ref_type: '(Object|null)', expr: 'b', eq: '===' }
+
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class C extends B {}
+          let c: C = new C()
+      to_type: A|B|null
+      values:
+          - { from_type: 'C', ref_type: 'B', expr: 'c', eq: '===' }
+          - { from_type: 'C', ref_type: 'A', expr: 'c', eq: '===' }
+          - { from_type: 'B', ref_type: 'B', expr: 'c', eq: '===' }
+          - { from_type: 'A', ref_type: 'A', expr: 'c', eq: '===' }
+
+    - decl: |-
+          interface I {}
+          interface J extends I {}
+          interface K {}
+          class A implements J {}
+          class B extends A {}
+          let a: A = new A()
+          let b: B = new B()
+      to_type: Error|I|K
+      values:
+          - { from_type: 'A', ref_type: 'J', expr: 'a', eq: '===' }
+          - { from_type: 'B', ref_type: 'A', expr: 'b', eq: '===' }
+
+    - decl: |-
+          class A {}
+          class B {}
+          type AU = A | undefined
+          type BU = B | undefined
+          let a1: AU = new A()
+          let a2: AU = undefined
+          let b1: BU = new B()
+          let b2: BU = undefined
+      to_type: A|B|undefined
+      values:
+          - { from_type: 'AU', ref_type: 'AU', expr: 'a1', eq: '===' }
+          - { from_type: 'AU', ref_type: 'AU', expr: 'a2', eq: '===' }
+          - { from_type: 'BU', ref_type: 'BU', expr: 'b1', eq: '===' }
+          - { from_type: 'BU', ref_type: 'BU', expr: 'b2', eq: '===' }
+
+    - decl: |-
+          class A {}
+          class B {}
+          type AN = A | null
+          type BN = B | null
+          let a1: AN = new A()
+          let a2: AN = null
+          let b1: BN = new B()
+          let b2: BN = null
+      to_type: null|A|B
+      values:
+          - { from_type: 'AN', ref_type: 'AN', expr: 'a1', eq: '===' }
+          - { from_type: 'AN', ref_type: 'AN', expr: 'a2', eq: '===' }
+          - { from_type: 'BN', ref_type: 'BN', expr: 'b1', eq: '===' }
+          - { from_type: 'BN', ref_type: 'BN', expr: 'b2', eq: '===' }
+
+    - decl: |-
+          class A {}
+          class B {}
+          let a: A = new A()
+          let b: B = new B()
+          let u: undefined = undefined
+          let n: null = null
+      to_type: float|A|null|B|undefined|short|boolean
+      values:
+          - { from_type: 'A', ref_type: 'A', expr: 'a', eq: '===' }
+          - { from_type: 'B', ref_type: 'B', expr: 'b', eq: '===' }
+          - { from_type: 'float', ref_type: 'Float', expr: '2.5e02f', eq: '==' }
+          - { from_type: 'short', ref_type: 'Short', expr: '(0x8001).toShort()', eq: '==' }
+          - { from_type: 'boolean', ref_type: 'Boolean', expr: '!!false', eq: '==' }
+          - { from_type: 'undefined', ref_type: 'undefined', expr: 'u', eq: '==' }
+          - { from_type: 'null', ref_type: 'null', expr: 'n', eq: '==' }
+
+    - decl: |-
+          let u: undefined = undefined
+          let n: null = null
+          let b: Byte = new Byte(11 as byte)
+      to_type: null|undefined|never|Comparable<Byte>|Floating
+      values:
+          - { from_type: 'null', ref_type: 'null', expr: 'n', eq: '==' }
+          - { from_type: 'undefined', ref_type: 'undefined', expr: 'u', eq: '==' }
+          - { from_type: 'number', ref_type: 'Number', expr: 42.0, eq: '==' }
+          - { from_type: 'Comparable<Byte>', ref_type: 'Byte', expr: 'b', eq: '===' }
+
+    - decl: |-
+          class A<T> {}
+          class B<T> extends A<T> {}
+          let a1: A<Long> = new A<Long>()
+          let a2: A<Short> = new A<Short>()
+          let b1: B<Error> = new B<Error>()
+          let b2: B<Boolean> = new B<Boolean>()
+      to_type: A<Long>|A<Short>|B<Error>|B<Boolean>
+      values:
+          - { from_type: 'A<Long>', ref_type: 'A<Long>', expr: 'a1', eq: '===' }
+          - { from_type: 'A<Short>', ref_type: 'A<Short>', expr: 'a2', eq: '===' }
+          - { from_type: 'B<Error>', ref_type: 'B<Error>', expr: 'b1', eq: '===' }
+          - { from_type: 'B<Boolean>', ref_type: 'B<Boolean>', expr: 'b2', eq: '===' }

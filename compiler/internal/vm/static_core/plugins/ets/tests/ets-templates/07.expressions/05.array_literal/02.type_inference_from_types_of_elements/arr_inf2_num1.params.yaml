@@ -1,0 +1,133 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # literals
+    - { val: '[0, 0, 0, 0, 0]', type: Any }
+    - { val: '[0.0, 1.0, 2.0, 3.0, 4.0]', type: number }
+    - { val: '[0, 1.0, 0, 2.0, 0]', type: Any }
+    - { val: '[0.0f]', type: Any }
+    - val: '[0.0f, 1]'
+    - val: '[0.0f, 2.0]'
+
+    # primitives
+    - { val: '[0b01.toByte(), 0b10.toByte(), 0b11.toByte(), 0b01.toByte(), 0b10.toByte(), ]', type: byte }
+    - { val: '[0xF.toShort()]', type: short }
+    - { val: '[0o7.toInt(), 0o6.toInt(), 0o5.toInt(), ]', type: int }
+    - { val: '[new Long(-9223372036854775807)]', type: long }
+    - { val: '[111e11.toFloat(), 222e11.toFloat(), 333e11.toFloat(), ]', type: float }
+    - { val: '[222e22.toDouble()]', type: number }
+    - { val: '[11111111111n]', type: BigInt }
+
+    # boxed
+    - { val: '[new Byte]', type: byte }
+    - { val: '[new Short]', type: short }
+    - { val: '[new Int]', type: int }
+    - { val: '[new Long]', type: long }
+    - { val: '[new Float]', type: float }
+    - { val: '[new Double]', type: number }
+    - { val: '[new BigInt(5)]', type: BigInt }
+
+    # combinations
+    - val: '[0b1, 0xF, 0o7, 1e1, 3.0f, 9223372036854775807]'
+    - val: '[new Byte(), new Short(), new Int(), new Long(), new Float(), new Double()]'
+    - val: '[new Byte(1), new Short(2), new Int(3), new Long(4), new Float(5), new Double(6), 7n]'
+      type: 'Numeric | BigInt'
+    - val: '[0n, 0, new Byte(0), new Short(0), new Int(0), new Long(0), new Float(0), new Double(0)]'
+      type: 'Numeric | BigInt'
+    - val: '[new Byte, new Short(2), new Int(3), new Long(4), new Float(5.0f), new Double(6), 7n]'
+      type: 'Numeric | BigInt'
+
+    # variables
+    - decl: |-
+          let a: byte = 1
+          let b: short = 2
+          let c: int = 3
+          let d: long = 4
+          let e: float = 5
+          let f: double = 6
+      val: '[a, b, c, d, e, f,]'
+
+    - decl: |-
+          let a: Byte = 1
+          let b: Short = 2
+          let c: Int = 3
+          let d: Long = 4
+          let e: Float = 5
+          let f: Double = 6
+      val: '[a, b, c, d, e, f,]'
+
+    - decl: |-
+          let a: byte = 1
+          let b: Short = 2
+          let c: int = 3
+          let d: Long = 4
+          let e: float = 5
+          let f: Double = 6
+          let g: bigint = 7n
+      val: '[a, b, c, d, e, f, g]'
+      type: Object
+
+    - decl: |-
+          let a: Byte = 1
+          let b: short = 2
+          let c: Int = 3
+          let d: long = 4
+          let e: Float = 5
+          let f: double = 6
+          let g: BigInt = new BigInt(7)
+      val: '[a, b, c, d, e, f, g]'
+      type: Object
+
+
+    # variables and constants
+    - decl: |-
+          let a: byte = 1
+          const b: short = 2
+          let c: int = 3
+          const d: long = 4
+          let e: float = 5
+          const f: double = 6
+      val: '[0, a, b, c, d, e, f,]'
+
+    - decl: |-
+          const a: Byte = 1
+          let b: Short = 2
+          const c: Int = 3
+          let d: Long = 4
+          const e: Float = 5
+          let f: Double = 6
+      val: '[a, 0, b, c, d, e, f,]'
+
+    - decl: |-
+          const a: byte = 1
+          let b: Short = 2
+          const c: int = 3
+          let d: Long = 4
+          const e: float = 5
+          let f: Double = 6
+          const g: bigint = 7n
+      val: '[a, b, 0, c, d, e, f, g]'
+      type: Object
+
+    - decl: |-
+          const a: Byte = 1
+          let b: short = 2
+          const c: Int = 3
+          let d: long = 4
+          const e: Float = 5
+          let f: double = 6
+          const g: BigInt = new BigInt(7)
+      val: '[a, b, c, 0, d, e, f, g]'
+      type: Object

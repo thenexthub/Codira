@@ -1,0 +1,15 @@
+{
+  "description": "Config for TestWorkerRunAfterProfiler",
+  "environment": [
+    {
+      "type": "device",
+      "label": "phone"
+    }
+  ],
+  "driver": {
+    "type": "DeviceTest",
+    "py_file": [
+      "toolchain/debug/TestWorkerRunAfterProfiler.py"
+    ]
+  }
+}

@@ -1,0 +1,335 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+cases:
+  - desc: |-
+      >-
+        Checking that type T is a subtype of intersection type (I1 & I2)
+        if T is a subtype of each Ii in case of usage instanceof
+        on literal union types
+    check_variants:
+      - check_data:
+          set_type_I1: "\"Done\" | \"In Progress\" | \"On Review\" | int"
+          check_type_I1: "string | int"
+          set_type_I2: "\"In Progress\" | \"On Review\" | int | float"
+          check_type_I2: "string | int | float"
+          cv_decl_data: |-
+            function check_is_subtype_of_I1(a: Any): boolean {
+              let res: boolean = false
+              if (a instanceof string | int) {
+                if (a instanceof int) {
+                  res = true
+                }
+                else {
+                  if ((a === "Done") ||
+                      (a === "In Progress") ||
+                      (a === "On Review")) {
+                    res = true
+                  }
+                }
+              }
+              if (res) {
+                let b: "Done" | "In Progress" | "On Review" | int =
+                  a as "Done" | "In Progress" | "On Review" | int
+              }
+              return res
+            }
+            function check_is_subtype_of_I2(a: Any): boolean {
+              let res: boolean = false
+              if (a instanceof string | int | float) {
+                if (a instanceof int | float) {
+                  res = true
+                }
+                else {
+                  if ((a === "In Progress") ||
+                      (a === "On Review")) {
+                    res = true
+                  }
+                }
+              }
+              if (res) {
+                if (a instanceof string | float) {
+                  let b: "In Progress" | "On Review" | float =
+                    a as "In Progress" | "On Review" | float
+                }
+                if (a instanceof string) {
+                  let b: "In Progress" | "On Review" =
+                    a as "In Progress" | "On Review"
+                }
+                if (a instanceof int) {
+                  let b: int = a as int
+                }
+                if (a instanceof float) {
+                  let b: float = a as float
+                }
+                let b: "In Progress" | "On Review" | int | float =
+                    a as "In Progress" | "On Review" | int | float
+              }
+              return res
+            }
+        check_values_groups:
+          - check_values_group_data:
+            - { set_type_T:  "int",
+                check_type_T:  "int",
+                is_subtype_of_inter_type: "true",
+                check_value_1: "123",
+                check_value_1_is_subtype_of_inter_type: "true",
+                check_value_2: "456",
+                check_value_2_is_subtype_of_inter_type: "true" }
+            - { set_type_T:  "byte",
+                check_type_T:  "byte",
+                is_subtype_of_inter_type: "false",
+                check_value_1: "4",
+                check_value_1_is_subtype_of_inter_type: "false",
+                check_value_2: "5",
+                check_value_2_is_subtype_of_inter_type: "false" }
+            - { set_type_T:  "short",
+                check_type_T:  "short",
+                is_subtype_of_inter_type: "false",
+                check_value_1: "123",
+                check_value_1_is_subtype_of_inter_type: "false",
+                check_value_2: "456",
+                check_value_2_is_subtype_of_inter_type: "false" }
+            - { set_type_T:  "float",
+                check_type_T:  "float",
+                is_subtype_of_inter_type: "false",
+                check_value_1: "123.0f",
+                check_value_1_is_subtype_of_inter_type: "false",
+                check_value_2: "45.6f",
+                check_value_2_is_subtype_of_inter_type: "false" }
+            - { set_type_T:  "bigint",
+                check_type_T:  "bigint",
+                is_subtype_of_inter_type: "false",
+                check_value_1: "123n",
+                check_value_1_is_subtype_of_inter_type: "false",
+                check_value_2: "456n",
+                check_value_2_is_subtype_of_inter_type: "false" }
+            - { set_type_T:  "string",
+                check_type_T:  "string",
+                is_subtype_of_inter_type: "false",
+                check_value_1: "\"abc\"",
+                check_value_1_is_subtype_of_inter_type: "false",
+                check_value_2: "\"In Progress\"",
+                check_value_2_is_subtype_of_inter_type: "true" }
+            - { set_type_T:  "char",
+                check_type_T:  "char",
+                is_subtype_of_inter_type: "false",
+                check_value_1: "c'a'",
+                check_value_1_is_subtype_of_inter_type: "false",
+                check_value_2: "c'b'",
+                check_value_2_is_subtype_of_inter_type: "false" }
+            - { set_type_T:  "Object",
+                check_type_T:  "Object",
+                is_subtype_of_inter_type: "false",
+                check_value_1: "5n",
+                check_value_1_is_subtype_of_inter_type: "false",
+                check_value_2: "123",
+                check_value_2_is_subtype_of_inter_type: "true" }
+            - { set_type_T:  "Object | undefined",
+                check_type_T:  "Object | undefined",
+                is_subtype_of_inter_type: "false",
+                check_value_1: "567",
+                check_value_1_is_subtype_of_inter_type: "true",
+                check_value_2: "undefined",
+                check_value_2_is_subtype_of_inter_type: "false" }
+            - { set_type_T:  "Object | undefined | null",
+                check_type_T:  "Object | undefined | null",
+                is_subtype_of_inter_type: "false",
+                check_value_1: "null",
+                check_value_1_is_subtype_of_inter_type: "false",
+                check_value_2: "undefined",
+                check_value_2_is_subtype_of_inter_type: "false" }
+            - { set_type_T:  "undefined",
+                check_type_T:  "undefined",
+                is_subtype_of_inter_type: "false",
+                check_value_1: "undefined",
+                check_value_1_is_subtype_of_inter_type: "false",
+                check_value_2: "undefined",
+                check_value_2_is_subtype_of_inter_type: "false" }
+            - { set_type_T:  "null",
+                check_type_T:  "null",
+                is_subtype_of_inter_type: "false",
+                check_value_1: "null",
+                check_value_1_is_subtype_of_inter_type: "false",
+                check_value_2: "null",
+                check_value_2_is_subtype_of_inter_type: "false" }
+            - { set_type_T:  "Any",
+                check_type_T:  "Any",
+                is_subtype_of_inter_type: "false",
+                check_value_1: "5n",
+                check_value_1_is_subtype_of_inter_type: "false",
+                check_value_2: "123",
+                check_value_2_is_subtype_of_inter_type: "true" }
+            - { set_type_T:  "\"In Progress\"",
+                check_type_T: "string",
+                is_subtype_of_inter_type: "true",
+                check_value_1: "\"In Progress\"",
+                check_value_1_is_subtype_of_inter_type: "true",
+                check_value_2: "\"In Progress\"",
+                check_value_2_is_subtype_of_inter_type: "true" }
+            - { set_type_T:  "\"In Progress\" | \"On Review\"",
+                check_type_T: "string",
+                is_subtype_of_inter_type: "true",
+                check_value_1: "\"In Progress\"",
+                check_value_1_is_subtype_of_inter_type: "true",
+                check_value_2: "\"On Review\"",
+                check_value_2_is_subtype_of_inter_type: "true" }
+            - { set_type_T:  "\"On Review\" | int",
+                check_type_T: "string | int",
+                is_subtype_of_inter_type: "true",
+                check_value_1: "\"On Review\"",
+                check_value_1_is_subtype_of_inter_type: "true",
+                check_value_2: "123",
+                check_value_2_is_subtype_of_inter_type: "true" }
+            - { set_type_T:  "\"Done\" | \"On Review\"",
+                check_type_T: "string",
+                is_subtype_of_inter_type: "false",
+                check_value_1: "\"Done\"",
+                check_value_1_is_subtype_of_inter_type: "false",
+                check_value_2: "\"On Review\"",
+                check_value_2_is_subtype_of_inter_type: "true" }
+            - { set_type_T:  "\"Investigating\"",
+                check_type_T: "string",
+                is_subtype_of_inter_type: "false",
+                check_value_1: "\"Investigating\"",
+                check_value_1_is_subtype_of_inter_type: "false",
+                check_value_2: "\"Investigating\"",
+                check_value_2_is_subtype_of_inter_type: "false" }
+            - { set_type_T:  "\"Investigating\" | \"Blocked\"",
+                check_type_T: "string",
+                is_subtype_of_inter_type: "false",
+                check_value_1: "\"Investigating\"",
+                check_value_1_is_subtype_of_inter_type: "false",
+                check_value_2: "\"Blocked\"",
+                check_value_2_is_subtype_of_inter_type: "false" }
+          - check_values_group_data:
+            - { set_type_T:  "long",
+                check_type_T:  "long",
+                is_subtype_of_inter_type: "false",
+                check_value_1: "123",
+                check_value_1_is_subtype_of_inter_type: "false",
+                check_value_2: "456",
+                check_value_2_is_subtype_of_inter_type: "false" }
+            - { set_type_T:  "double",
+                check_type_T:  "double",
+                is_subtype_of_inter_type: "false",
+                check_value_1: "123",
+                check_value_1_is_subtype_of_inter_type: "false",
+                check_value_2: "45.6",
+                check_value_2_is_subtype_of_inter_type: "false" }
+            - { set_type_T:  "number",
+                check_type_T:  "number",
+                is_subtype_of_inter_type: "false",
+                check_value_1: "123",
+                check_value_1_is_subtype_of_inter_type: "false",
+                check_value_2: "45.6",
+                check_value_2_is_subtype_of_inter_type: "false" }
+            - { set_type_T:  "boolean",
+                check_type_T:  "boolean",
+                is_subtype_of_inter_type: "false",
+                check_value_1: "false",
+                check_value_1_is_subtype_of_inter_type: "false",
+                check_value_2: "true",
+                check_value_2_is_subtype_of_inter_type: "false" }
+    decl_variants:
+      - |-
+        [cv_decl_data]
+        function check_value(v: Any,
+                            is_subtype_of_inter_type: boolean,
+                            v_id: int): void {
+          arktest.assertTrue(v instanceof [check_type_T])
+          if (v_id == 1) {
+            arktest.assertEQ(v as [set_type_T], [check_value_1])
+            if (is_subtype_of_inter_type) {
+              arktest.assertTrue(v instanceof [check_type_I1] &&
+                                v instanceof [check_type_I2])
+              arktest.assertEQ(v as [set_type_I1], [check_value_1])
+              arktest.assertEQ(v as [set_type_I2], [check_value_1])
+            }
+          }
+          else {
+            arktest.assertEQ(v as [set_type_T], [check_value_2])
+            if (is_subtype_of_inter_type) {
+              arktest.assertTrue(v instanceof [check_type_I1] &&
+                                v instanceof [check_type_I2])
+              arktest.assertEQ(v as [set_type_I1], [check_value_2])
+              arktest.assertEQ(v as [set_type_I2], [check_value_2])
+            }
+          }
+        }
+        function check(v: [set_type_T],
+                      is_subtype_of_inter_type: boolean,
+                      v_id: int): boolean {
+          let res: boolean = false
+          if (is_subtype_of_inter_type) {
+            arktest.assertTrue(v instanceof [check_type_I1] &&
+                              v instanceof [check_type_I2])
+            arktest.assertTrue(check_is_subtype_of_I1(v))
+            arktest.assertTrue(check_is_subtype_of_I2(v))
+          }
+          check_value(v, is_subtype_of_inter_type, v_id)
+          if (check_is_subtype_of_I1(v)) {
+            arktest.assertTrue(v instanceof [check_type_I1])
+            if (v instanceof [check_type_I1]) {
+              arktest.assertTrue(check_is_subtype_of_I1(v as [set_type_I1]))
+              res = check_is_in_inter_type(v as [set_type_I1],
+                is_subtype_of_inter_type, v_id)
+              arktest.assertEQ(res, is_subtype_of_inter_type)
+              if (!res) {
+                arktest.assertFalse(check_is_subtype_of_I2(v))
+              }
+            }
+          }
+          else {
+            arktest.assertFalse(is_subtype_of_inter_type)
+          }
+          return res
+        }
+        function check_is_in_inter_type(v: [check_type_I1],
+                                      is_subtype_of_inter_type: boolean,
+                                      v_id: int): boolean {
+          let res: boolean = false
+          check_value(v, is_subtype_of_inter_type, v_id)
+          if (check_is_subtype_of_I2(v)) {
+            arktest.assertTrue(is_subtype_of_inter_type)
+            arktest.assertTrue(v instanceof [check_type_I2])
+            if (v instanceof [check_type_I2]) {
+              res = check_as_I2_type(v as [set_type_I2],
+                is_subtype_of_inter_type, v_id)
+            }
+          }
+          return res
+        }
+        function check_as_I2_type(v: [check_type_I2],
+                              is_subtype_of_inter_type: boolean,
+                              v_id: int): boolean {
+          check_value(v, is_subtype_of_inter_type, v_id)
+          return check_is_subtype_of_I2(v)
+        }
+    sub_cases_logic:
+      - |-
+        let v1: [set_type_T] = [check_value_1]
+        let v2: [set_type_T] = [check_value_2]
+        let res: boolean =
+          check(v1, [check_value_1_is_subtype_of_inter_type], 1) &
+          check(v2, [check_value_2_is_subtype_of_inter_type], 2)
+        arktest.assertEQ(res, [is_subtype_of_inter_type])

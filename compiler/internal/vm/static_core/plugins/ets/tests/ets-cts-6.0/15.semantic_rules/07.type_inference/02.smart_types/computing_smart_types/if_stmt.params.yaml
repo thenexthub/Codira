@@ -1,0 +1,376 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+    # function parameter
+    - decl: |-
+          function foo(v: A|null): int {
+              if (v != null) {
+                  if (v.meth_i(1) != 'I1') {
+                      return 1
+                  }
+                  if (v.meth_a(1) != 'A1') {
+                      return 1
+                  }
+                  if (v instanceof C) {
+                      if (v.meth_c(1) != 'C1') {
+                          return 1
+                      }
+                  }
+                  if (v instanceof D) {
+                      if (v.meth_d(1) != 'D1') {
+                          return 1
+                      }
+                  }
+              }
+              return 0
+          }
+      code: |-
+          return foo(new C()) + foo(new D()) + foo(new A()) + foo(null)
+
+    - decl: |-
+          function foo(v: A|null): int {
+              if (v != null) {
+                  if (v instanceof K) {
+                      if (v.meth_k(1) != 'K1') {
+                          return 1
+                      }
+                  }
+              }
+              return 0
+          }
+      tags: 'compile-only, negative'
+      code: |-
+          return foo(new C()) + foo(new D()) + foo(new A()) + foo(null)
+
+    - decl: |-
+          function foo(v?: A): int {
+              if (v != undefined) {
+                  if (v.meth_i(1) != 'I1') {
+                      return 1
+                  }
+                  if (v.meth_a(1) != 'A1') {
+                      return 1
+                  }
+                  if (v instanceof C) {
+                      if (v.meth_c(1) != 'C1') {
+                          return 1
+                      }
+                  }
+                  if (v instanceof D) {
+                      if (v.meth_d(1) != 'D1') {
+                          return 1
+                      }
+                  }
+              }
+              return 0
+          }
+      code: |-
+          return foo(new C()) + foo(new D()) + foo(new A()) + foo()
+
+    - decl: |-
+          function foo(v?: A): int {
+              if (v != undefined) {
+                  if (v instanceof K) {
+                      if (v.meth_k(1) != 'K1') {
+                          return 1
+                      }
+                  }
+              }
+              return 0
+          }
+      tags: 'compile-only, negative'
+      code: |-
+          return foo(new C()) + foo(new D()) + foo(new A()) + foo()
+
+    - decl: |-
+          function foo(v: I): int {
+              if (v.meth_i(1) != 'I1') {
+                  return 1
+              }
+              if (v instanceof A && v.meth_a(1) != 'A1') {
+                  return 1
+              }
+              if (v instanceof C && v.meth_c(1) != 'C1') {
+                  return 1
+              }
+              if (v instanceof K && v.meth_k(1) != 'K1') {
+                  return 1
+              }
+              if (v instanceof D && v.meth_d(1) != 'D1') {
+                  return 1
+              }
+              return 0
+          }
+      code: |-
+          return foo(new C()) + foo(new D()) + foo(new A())
+
+    # method parameter
+    - decl: |-
+          class X {
+              meth(v: A|null): int {
+                  if (v != null) {
+                      if (v.meth_i(1) != 'I1') {
+                          return 1
+                      }
+                      if (v.meth_a(1) != 'A1') {
+                          return 1
+                      }
+                      if (v instanceof C) {
+                          if (v.meth_c(1) != 'C1') {
+                              return 1
+                          }
+                      }
+                      if (v instanceof D) {
+                          if (v.meth_d(1) != 'D1') {
+                              return 1
+                          }
+                      }
+                  }
+                  return 0
+              }
+          }
+      code: |-
+          let x: X = new X()
+          return x.meth(new C()) + x.meth(new D()) + x.meth(new A()) + x.meth(null)
+
+    - decl: |-
+          class X {
+              meth(v: A|null): int {
+                  if (v != null) {
+                      if (v instanceof K) {
+                          if (v.meth_k(1) != 'K1') {
+                              return 1
+                          }
+                      }
+                  }
+                  return 0
+              }
+          }
+      tags: 'compile-only, negative'
+      code: |-
+          let x: X = new X()
+          return x.meth(new C()) + x.meth(new D()) + x.meth(new A()) + x.meth(null)
+
+    - decl: |-
+          class X {
+              meth(v?: A): int {
+                  if (v != undefined) {
+                      if (v.meth_i(1) != 'I1') {
+                          return 1
+                      }
+                      if (v.meth_a(1) != 'A1') {
+                          return 1
+                      }
+                      if (v instanceof C) {
+                          if (v.meth_c(1) != 'C1') {
+                              return 1
+                          }
+                      }
+                      if (v instanceof D) {
+                          if (v.meth_d(1) != 'D1') {
+                              return 1
+                          }
+                      }
+                  }
+                  return 0
+              }
+          }
+      code: |-
+          let x: X = new X()
+          return x.meth(new C()) + x.meth(new D()) + x.meth(new A()) + x.meth()
+
+    - decl: |-
+          class X {
+              meth(v?: A): int {
+                  if (v != undefined) {
+                      if (v instanceof K) {
+                          if (v.meth_k(1) != 'K1') {
+                              return 1
+                          }
+                      }
+                  }
+                  return 0
+              }
+          }
+      tags: 'compile-only, negative'
+      code: |-
+          let x: X = new X()
+          return x.meth(new C()) + x.meth(new D()) + x.meth(new A()) + x.meth()
+
+    - decl: |-
+          class X {
+              meth(v: I): int {
+                  if (v.meth_i(1) != 'I1') {
+                      return 1
+                  }
+                  if (v instanceof A && v.meth_a(1) != 'A1') {
+                      return 1
+                  }
+                  if (v instanceof C && v.meth_c(1) != 'C1') {
+                      return 1
+                  }
+                  if (v instanceof K && v.meth_k(1) != 'K1') {
+                      return 1
+                  }
+                  if (v instanceof D && v.meth_d(1) != 'D1') {
+                      return 1
+                  }
+                  return 0
+              }
+          }
+      code: |-
+          let x: X = new X()
+          return x.meth(new C()) + x.meth(new D()) + x.meth(new A())
+
+    # constructor parameter
+    - decl: |-
+          class X {
+              res: int = 5
+              constructor(v: A|null) {
+                  if (v != null) {
+                      if (v.meth_i(1) != 'I1') {
+                          this.res = 1
+                      }
+                      if (v.meth_a(1) != 'A1') {
+                          this.res = 1
+                      }
+                      if (v instanceof C) {
+                          if (v.meth_c(1) != 'C1') {
+                              this.res = 1
+                          }
+                      }
+                      if (v instanceof D) {
+                          if (v.meth_d(1) != 'D1') {
+                              this.res = 1
+                          }
+                      }
+                  }
+                  this.res = 0
+              }
+          }
+      code: |-
+          return new X(new C()).res + new X(new D()).res + new X(new A()).res + new X(null).res
+
+    - decl: |-
+          class X {
+              res: int = 5
+              constructor(v: A|null) {
+                  if (v != null) {
+                      if (v instanceof K) {
+                          if (v.meth_k(1) != 'K1') {
+                              this.res = 1
+                          }
+                      }
+                  }
+                  this.res = 0
+              }
+          }
+      tags: 'compile-only, negative'
+      code: |-
+          return new X(new C()).res + new X(new D()).res + new X(new A()).res + new X(null).res
+
+    - decl: |-
+          class X {
+              res: int = 5
+              constructor(v?: A) {
+                  if (v != undefined) {
+                      if (v.meth_i(1) != 'I1') {
+                          this.res = 1
+                      }
+                      if (v.meth_a(1) != 'A1') {
+                          this.res = 1
+                      }
+                      if (v instanceof C) {
+                          if (v.meth_c(1) != 'C1') {
+                              this.res = 1
+                          }
+                      }
+                      if (v instanceof D) {
+                          if (v.meth_d(1) != 'D1') {
+                              this.res = 1
+                          }
+                      }
+                  }
+                  this.res = 0
+              }
+          }
+      code: |-
+          return new X(new C()).res + new X(new D()).res + new X(new A()).res + new X().res
+
+    - decl: |-
+          class X {
+              res: int = 5
+              constructor(v?: A) {
+                  if (v != undefined) {
+                      if (v instanceof K) {
+                          if (v.meth_k(1) != 'K1') {
+                              this.res = 1
+                          }
+                      }
+                  }
+                  this.res = 0
+              }
+          }
+      tags: 'compile-only, negative'
+      code: |-
+          return new X(new C()).res + new X(new D()).res + new X(new A()).res + new X().res
+
+    - decl: |-
+          class X {
+              res: int = 5
+              constructor(v: I) {
+                  if (v.meth_i(1) != 'I1') {
+                      this.res = 1
+                  }
+                  if (v instanceof A && v.meth_a(1) != 'A1') {
+                      this.res = 1
+                  }
+                  if (v instanceof C && v.meth_c(1) != 'C1') {
+                      this.res = 1
+                  }
+                  if (v instanceof K && v.meth_k(1) != 'K1') {
+                      this.res = 1
+                  }
+                  if (v instanceof D && v.meth_d(1) != 'D1') {
+                      this.res = 1
+                  }
+                  this.res = 0
+              }
+          }
+      code: |-
+          return new X(new C()).res + new X(new D()).res + new X(new A()).res
+
+    # lambda parameter
+    - code: |-
+          return ((v: A|null): int => {
+              if (v != null) {
+                  if (v.meth_i(1) != 'I1') {
+                      return 1
+                  }
+                  if (v.meth_a(1) != 'A1') {
+                      return 1
+                  }
+                  if (v instanceof C) {
+                      if (v.meth_c(1) != 'C1') {
+                          return 1
+                      }
+                  }
+                  if (v instanceof D) {
+                      if (v.meth_d(1) != 'D1') {
+                          return 1
+                      }
+                  }
+              }
+              return 0
+          })(new C())

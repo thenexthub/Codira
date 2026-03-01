@@ -1,0 +1,8 @@
+### Issue 20599
+std/core/PromiseAllSettledPoisonedThen.ets
+### Issue 20580
+std/core/PromiseAllSettledRejectIgnoredDeferred.ets
+### Issue 20583
+std/core/PromiseAllSettledReject.ets
+### Issue 20584
+std/core/PromiseAllSettledRejectIgnored.ets

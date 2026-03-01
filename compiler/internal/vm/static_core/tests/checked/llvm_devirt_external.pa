@@ -1,0 +1,102 @@
+# Copyright (c) 2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+.record C <external>
+.function i32 C.bar(C a0) <external>
+.function i32 C.call(C a0) <external>
+.function i32 C.call_but_inline(C a0) <external>
+
+.record AotChaTest <extends=C> {
+}
+
+.function i32 AotChaTest.bar(AotChaTest a0) {
+    ldai 95
+    return
+}
+
+.function C AotChaTest.not_main(C a0) {
+    lda.obj a0
+    return.obj
+}
+
+#! CHECKER      Devirt external interface method with local definition
+#! RUN_LLVM     options: "--paoc-panda-files=../../vcalls_aux.checked/test.abc --boot-panda-files=../../vcalls_aux.checked/test.abc --paoc-use-cha=true --llvm-options='--print-before=intrinsics-lowering'"
+#! READ_FILE    "console.out"
+#! LLVM_METHOD  /define protected.*main_1/
+#! INST         /ret i32 95/
+#! METHOD       "_GLOBAL::main_1"
+#! PASS_AFTER   "IrBuilder"
+#! INST         /CallVirtual.*C::bar/
+#! RUN          options: "--boot-panda-files=../../vcalls_aux.checked/test.abc", entry: "_GLOBAL::main_1", result: 95
+#! EVENT        /AotLoadedForClass,.*,AotChaTest/
+.function i32 main_1() {
+    newobj v0, AotChaTest
+    call AotChaTest.not_main, v0
+    sta.obj v0
+    call.virt C.bar, v0
+    return
+}
+
+#! CHECKER      Devirt simple external call
+#! RUN_LLVM     options: "--paoc-panda-files=../../vcalls_aux.checked/test.abc --boot-panda-files=../../vcalls_aux.checked/test.abc --paoc-use-cha=true --llvm-options='--print-before=intrinsics-lowering'"
+#! READ_FILE    "console.out"
+#! LLVM_METHOD  /define protected.*main_2/
+#! INST         /ret i32 48/
+#! METHOD       "_GLOBAL::main_2"
+#! PASS_AFTER   "IrBuilder"
+#! INST         /CallVirtual.*C::bar/
+#! RUN          options: "--boot-panda-files=../../vcalls_aux.checked/test.abc", entry: "_GLOBAL::main_2", result: 48
+#! EVENT        /AotLoadedForClass,.*,AotChaTest/
+.function i32 main_2() {
+    newobj v0, C
+    call AotChaTest.not_main, v0
+    sta.obj v0
+    call.virt C.bar, v0
+    return
+}
+
+#! CHECKER      Optimize and then devirt method with DeoptBundle
+#! RUN_LLVM     options: "--paoc-panda-files=../../vcalls_aux.checked/test.abc --boot-panda-files=../../vcalls_aux.checked/test.abc --paoc-use-cha=true --llvm-options='--print-before=intrinsics-lowering'"
+#! READ_FILE    "console.out"
+#! LLVM_METHOD  /define protected.*main_3/
+#! INST         /ret i32 48/
+#! METHOD       "_GLOBAL::main_3"
+#! PASS_AFTER   "IrBuilder"
+#! INST         /CallVirtual.*C::call_but_inline/
+#! RUN          options: "--boot-panda-files=../../vcalls_aux.checked/test.abc", entry: "_GLOBAL::main_3", result: 48
+#! EVENT        /AotLoadedForClass,.*,AotChaTest/
+.function i32 main_3() {
+    newobj v0, C
+    call AotChaTest.not_main, v0
+    sta.obj v0
+    call.virt C.call_but_inline, v0
+    return
+}
+
+#! CHECKER      Do not devirt external calls containing DeoptBundle even after optimizations
+#! RUN_LLVM     options: "--paoc-panda-files=../../vcalls_aux.checked/test.abc --boot-panda-files=../../vcalls_aux.checked/test.abc --paoc-use-cha=true --llvm-options='--print-before=intrinsics-lowering'"
+#! READ_FILE    "console.out"
+#! LLVM_METHOD  /define protected.*main_4/
+#! INST         /call i32 @"i32 C::call\(C\)/
+#! METHOD       "_GLOBAL::main_4"
+#! PASS_AFTER   "IrBuilder"
+#! INST         /CallVirtual.*C::call/
+#! RUN          options: "--boot-panda-files=../../vcalls_aux.checked/test.abc", entry: "_GLOBAL::main_4", result: 48
+#! EVENT        /AotLoadedForClass,.*,AotChaTest/
+.function i32 main_4() {
+    newobj v0, C
+    call AotChaTest.not_main, v0
+    sta.obj v0
+    call.virt C.call, v0
+    return
+}

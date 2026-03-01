@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+        "package": "@loop_inheritance",
+        "outDir": "${CMAKE_CURRENT_BINARY_DIR}/modules-build/abc",
+        "baseUrl": "."
+    },
+    "include": [
+        "./**/*.ets"
+    ]
+}

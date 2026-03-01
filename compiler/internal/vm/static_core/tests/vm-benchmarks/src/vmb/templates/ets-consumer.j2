@@ -1,0 +1,162 @@
+{#
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+#}
+
+class Consumer {
+
+    public static readonly x1: long = 0x41c64e6d;
+    public static readonly x2: long = 0xd431;
+    private static x3: long = 1;
+    public static boola: boolean = false;
+    public static boolb: boolean = true;
+    public static chara: char = c'X';
+    public static charb: char = c'Y';
+    public static stra: string = 'X';
+    public static strb: string = 'Y';
+    public static bytea: byte = 24;
+    public static byteb: byte = 53;
+    public static shorta: short = 24;
+    public static shortb: short = 53;
+    public static inta: int = 24;
+    public static intb: int = 53;
+    public static longa: long = 24;
+    public static longb: long = 53;
+    public static floata: float = 24.0f;
+    public static floatb: float = 53.0f;
+    public static doublea: double = 24.0;
+    public static doubleb: double = 53.0;
+    public static localObj = new Object();
+    public static localObjs: Object[] = [new Object()];
+    public static pseudorand: long = Date.now();
+
+    public static consumeBool(boolc: boolean): void {
+        if (boolc == Consumer.boola && boolc == Consumer.boolb) {
+            throw new NullPointerError();
+        }
+    }
+
+    public static consumeChar(charc: char): void {
+        if (charc == Consumer.chara && charc == Consumer.charb) {
+            throw new NullPointerError();
+        }
+    }
+
+    public static consumeByte(bytec: byte): void {
+        if (bytec == Consumer.bytea && bytec == Consumer.byteb) {
+            throw new NullPointerError();
+        }
+    }
+
+    public static consumeShort(shortc: short): void {
+        if (shortc == Consumer.shorta && shortc == Consumer.shortb) {
+            throw new NullPointerError();
+        }
+    }
+
+    public static consumeInt(intc: int): void {
+        if (intc == Consumer.inta && intc == Consumer.intb) {
+            throw new NullPointerError();
+        }
+    }
+
+    public static consumeLong(longc: long): void {
+        if (longc == Consumer.longa && longc == Consumer.longb) {
+            throw new NullPointerError();
+        }
+    }
+
+    public static consumeFloat(floatc: float): void {
+        if (floatc == Consumer.floata && floatc == Consumer.floatb) {
+            throw new NullPointerError();
+        }
+    }
+
+    public static consumeDouble(doublec: double): void {
+        if (doublec == Consumer.doublea && doublec == Consumer.doubleb) {
+            throw new NullPointerError();
+        }
+    }
+
+    public static consumeObj(obj: Object): void {
+        Consumer.pseudorand = (Consumer.pseudorand * Consumer.x1 + Consumer.x2);
+        if ((Consumer.pseudorand & Consumer.x3) == 0) {
+            Consumer.x3 = (Consumer.x3 << 1) + (0xad as long);
+            Consumer.localObj = obj;
+        }
+    }
+
+    public static consumeString(strc: string): void {
+        if (strc === Consumer.stra && strc === Consumer.strb) {
+            throw new NullPointerError();
+        }
+    }
+
+    public static consumeObjs(objs: Object[]): void {
+        Consumer.pseudorand = (Consumer.pseudorand * Consumer.x1 + Consumer.x2);
+        if ((Consumer.pseudorand & Consumer.x3) == 0) {
+            Consumer.x3 = (Consumer.x3 << 1) + (0xad as long);
+            Consumer.localObjs = objs;
+        }
+    }
+
+    public static consume(v: boolean): void {
+        Consumer.consumeBool(v);
+    }
+
+    public static consume(v: byte): void {
+        Consumer.consumeByte(v);
+    }
+
+    public static consume(v: char): void {
+        Consumer.consumeChar(v);
+    }
+
+    public static consume(v: short): void {
+        Consumer.consumeShort(v);
+    }
+
+    public static consume(v: int): void {
+        Consumer.consumeInt(v);
+    }
+
+    public static consume(v: long): void {
+        Consumer.consumeLong(v);
+    }
+
+    public static consume(v: float): void {
+        Consumer.consumeFloat(v);
+    }
+
+    public static consume(v: double): void {
+        Consumer.consumeDouble(v);
+    }
+
+    public static consume(v: Object): void {
+        Consumer.consumeObj(v);
+    }
+
+    public static consume(v: Object[]): void {
+        Consumer.consumeObjs(v);
+    }
+
+}

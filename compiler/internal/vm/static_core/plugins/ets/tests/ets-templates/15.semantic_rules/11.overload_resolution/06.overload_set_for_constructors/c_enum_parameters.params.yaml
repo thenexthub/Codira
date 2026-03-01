@@ -1,0 +1,40 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - { list: 'foo1, foo2, foo3, foo4, foo5', call: '1',         result: 'foo1' }
+  - { list: 'foo1, foo2, foo3, foo4, foo5', call: '"S"',       result: 'foo2' }
+  - { list: 'foo1, foo2, foo3, foo4, foo5', call: 'Color.Red', result: 'foo1' }
+  - { list: 'foo1, foo2, foo3, foo4, foo5', call: 'Size.S',    result: 'foo2' }
+
+  - { list: 'foo2, foo3, foo4, foo5, foo1', call: '2',         result: 'foo1' }
+  - { list: 'foo2, foo3, foo4, foo5, foo1', call: '"Red"',     result: 'foo2' }
+  - { list: 'foo2, foo3, foo4, foo5, foo1', call: 'Color.Red', result: 'foo3' }
+  - { list: 'foo2, foo3, foo4, foo5, foo1', call: 'Size.M',    result: 'foo2' }
+
+  - { list: 'foo3, foo4, foo5, foo1, foo2', call: '1',         result: 'foo1' }
+  - { list: 'foo3, foo4, foo5, foo1, foo2', call: '"S"',       result: 'foo2' }
+  - { list: 'foo3, foo4, foo5, foo1, foo2', call: 'Color.Red', result: 'foo3' }
+  - { list: 'foo3, foo4, foo5, foo1, foo2', call: 'Size.S',    result: 'foo4' }
+
+  - { list: 'foo4, foo5, foo1, foo2, foo3', call: '2',         result: 'foo1' }
+  - { list: 'foo4, foo5, foo1, foo2, foo3', call: '"Red"',     result: 'foo2' }
+  - { list: 'foo4, foo5, foo1, foo2, foo3', call: 'Color.Red', result: 'foo5' }
+  - { list: 'foo4, foo5, foo1, foo2, foo3', call: 'Size.M',    result: 'foo4' }
+
+  - { list: 'foo5, foo1, foo2, foo3, foo4', call: '3',         result: 'foo1' }
+  - { list: 'foo5, foo1, foo2, foo3, foo4', call: '"L"',       result: 'foo2' }
+  - { list: 'foo5, foo1, foo2, foo3, foo4', call: 'Color.Red', result: 'foo5' }
+  - { list: 'foo5, foo1, foo2, foo3, foo4', call: 'Size.L',    result: 'foo5' }
+

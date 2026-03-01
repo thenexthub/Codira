@@ -1,0 +1,190 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//arkcompiler/runtime_core/ark_config.gni")
+import("//arkcompiler/runtime_core/libabckit/abckit_config.gni")
+
+config("abckit_config") {
+  cflags_cc = [ "-std=c++17" ]
+  cflags_c = [ "-std=c99" ]
+
+  cflags = [
+    "-pedantic",
+    "-pedantic-errors",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+  ]
+
+  ldflags = []
+
+  if (!is_debug) {
+    defines = [ "NDEBUG" ]
+  }
+
+  if (abckit_with_coverage) {
+    cflags += [
+      "-fprofile-instr-generate",
+      "-fcoverage-mapping",
+      "-mllvm",
+      "-runtime-counter-relocation",
+    ]
+
+    ldflags += [
+      "-fprofile-instr-generate",
+      "-fcoverage-mapping",
+    ]
+  }
+
+  if (abckit_with_sanitizers) {
+    cflags += [
+      "-fsanitize=address",
+      "-fsanitize-address-use-after-scope",
+      "-fsanitize=undefined",
+      "-fno-omit-frame-pointer",
+    ]
+
+    ldflags += [
+      "-lasan",
+      "-lubsan",
+    ]
+  }
+
+  if (defined(ohos_indep_compiler_enable) && ohos_indep_compiler_enable) {
+    configs = []
+  } else {
+    configs = [ sdk_libc_secshared_config ]
+  }
+  configs += [ "$ark_root:ark_config" ]
+}
+
+config("abckit_mock_config") {
+  defines = [ "ABCKIT_ENABLE_MOCK_IMPLEMENTATION" ]
+
+  configs = [ ":abckit_config" ]
+}
+
+group("abckit_packages") {
+  if (abckit_enable) {
+    deps = [
+      "abckit:abckit(${host_toolchain})",
+      "src:libabckit",
+      "src:libabckit_static",
+    ]
+  }
+}
+
+group("abckit_tests") {
+  testonly = true
+  if (abckit_enable && abckit_enable_tests) {
+    deps = [
+      ":abckit_documentation",
+
+      # Issue 24654
+      # ":abckit_status",
+      "tests:abckit_gtests_action",
+      "tests:abckit_mock_gtests_action",
+      "tests:abckit_stress_tests_apps",
+      "tests:arklink_strip_unused_code_gtests_action",
+      "tests/canary:abckit_canary",
+    ]
+  }
+}
+
+group("abckit_clean_scenario_tests") {
+  testonly = true
+  if (abckit_enable && abckit_enable_tests) {
+    deps = [ "tests:abckit_clean_scenarios_action" ]
+  }
+}
+
+group("abckit_tests_full") {
+  testonly = true
+  if (abckit_enable && abckit_enable_tests) {
+    deps = [
+      ":abckit_check_clang_format",
+      ":abckit_check_clang_tidy",
+      ":abckit_tests",
+      "tests/stress:abckit_stress_tests",
+    ]
+  }
+}
+
+action("abckit_status") {
+  script = "scripts/abckit_status.py"
+  args = [
+    "--cppapi",
+    "--capi",
+  ]
+  outputs = [ "$target_gen_dir/abckit_status.csv" ]
+}
+
+action("abckit_documentation") {
+  script = "$abckit_root/scripts/run_script.sh"
+
+  args = [
+    "--script=doxygen",
+    "--ret-code=0",
+    "--env=ABCKIT_DOXYGEN_OUT_DIR=" + rebase_path("$target_gen_dir") +
+        "/doxygen/",
+    "--env=ABCKIT_PROJECT_ROOT=" + rebase_path("$abckit_root"),
+    "--script-args=" + rebase_path("$abckit_root") + "/.doxygen",
+  ]
+
+  outputs = [ "$target_gen_dir/abckit_documentation_status.txt" ]
+}
+
+action("abckit_force_clang_format") {
+  script = "$ark_root_static/scripts/code_style/code_style_check.py"
+  args = [
+    rebase_path("$abckit_root"),
+    "--reformat",
+  ]
+  outputs = [ "$target_gen_dir/generated/tmp/force_clang_format_status.txt" ]
+}
+
+action("abckit_check_clang_format") {
+  script = "$ark_root_static/scripts/code_style/code_style_check.py"
+  args = [ rebase_path("$abckit_root") ]
+  outputs = [ "$target_gen_dir/generated/tmp/check_clang_format_status.txt" ]
+}
+
+action("abckit_check_clang_tidy") {
+  script = "$ark_root_static/scripts/clang-tidy/clang_tidy_check.py"
+  args = [
+    rebase_path("$ark_root_dynamic"),
+    rebase_path("$root_out_dir"),
+    "--check-libabckit",
+    "--filename-filter=libabckit/*",
+    "--header-filter=.*/libabckit/.*",
+  ]
+  outputs = [ "$target_gen_dir/generated/tmp/check_clang_tidy_status.txt" ]
+
+  deps = [
+    "$ark_root_dynamic/assembler:arkassembler_header_deps",
+    "$ark_root_dynamic/compiler:arkcompiler_header_deps",
+    "$ark_root_dynamic/libpandabase:arkbase_header_deps",
+    "$ark_root_dynamic/libpandafile:arkfile_header_deps",
+    "$ark_root_static/assembler:arktsassembler_header_deps",
+    "$ark_root_static/compiler:arktscompiler_header_deps",
+    "$ark_root_static/libarkbase:arktsbase_header_deps",
+    "$ark_root_static/libarkfile:arktsfile_header_deps",
+    "src:libabckit_header_deps",
+    "src/adapter_dynamic:abckit_adapter_dynamic_header_deps",
+    "src/adapter_static:abckit_adapter_static_header_deps",
+    "src/codegen:abckit_codegen_dynamic_source_set_header_deps",
+    "src/codegen:abckit_codegen_static_source_set_header_deps",
+    "src/irbuilder_dynamic:abckit_ir_builder_dynamic_source_set_header_deps",
+    "src/wrappers:abckit_pandasm_wrapper_source_set_header_deps",
+  ]
+}

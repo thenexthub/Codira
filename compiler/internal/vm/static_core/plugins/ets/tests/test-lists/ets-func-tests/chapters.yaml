@@ -1,0 +1,130 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+chapters:
+  - all:
+    - algorithms
+    - arkui
+    - escompat
+    - koala-related-benchmarks
+    - regression
+    - spec
+    - std
+
+  # One folder - one chapter
+  - algorithms-dir:
+    - algorithms
+  - arkui-dir:
+    - arkui
+  - escompat-dir:
+    - escompat
+  - koala-related-benchmarks-dir:
+    - koala-related-benchmarks
+  - regression-dir:
+    - regression
+  - std-containers-dir:
+    - std/containers
+  - std-core-dir:
+    - std/core
+  - std-math-dir:
+    - std/math
+  - std-time-dir:
+    - std/time
+  - std-serialization-dir:
+    - std/serialization
+  - spec1:
+    - spec/conditional-expression
+    - spec/generic
+    - spec/import_export
+    - spec/lambda
+    - spec/never_type
+    - spec/rest-params
+    - spec/string_enum
+    - spec/struct-type
+    - spec/trailing_lambdas
+    - spec/undefined-type
+  - spec2:
+    - spec
+    - exclude:
+      - spec1
+
+  # chapters by several folders
+  - std-core-reflect1:
+    - 'ets-func-tests-templates/std/core/test-ClassGetInstanceMethodByName-*.ets'
+  - std-core1:
+    - 'std/core/BadRadixTest*.ets'
+    - 'std/core/EscapeUnescapeTest*.ets'
+    - 'std/core/EscapeUnescapeURITest*.ets'
+    - 'std/core/GoodRadixTest*.ets'
+    - 'std/core/SortInternalTestLong*.ets'
+    - 'std/core/SortInternalTest*.ets'
+    - 'std/core/SortNotFromBeginningTest*.ets'
+    - 'std/core/SortStringsTest*.ets'
+    - 'std/core/StringAtExceptionTest*.ets'
+    - 'std/core/TypeAssignableFromTest*.ets'
+    - 'std/core/TypeCreateClassTest*.ets'
+    - 'std/core/TypeCreateErasedBodyTest*.ets'
+    - 'std/core/TypeCreateInterfaceTest*.ets'
+    - 'std/core/TypeCreatePrimitiveNameTest*.ets'
+    - 'std/core/TypeCreateVoidTest*.ets'
+    - 'std/core/TypeMethodInvoke*.ets'
+    - 'std/core/TypeMethodInvokeConstructor*.ets'
+    - 'std/core/TypeMethodInvokeVirt*.ets'
+    - 'std/core/TypeMethodResolveConstructor*.ets'
+    - 'std/core/TypeMethodResolveConstructorFew*.ets'
+    - 'std/core/TypeResolve*.ets'
+  - std-core2:
+    - 'std/core/std_core_array*.ets'
+    - 'std/core/std_core_array_exception*.ets'
+  - std-core3:
+    - 'std/core/std_core_boolean*.ets'
+    - 'std/core/std_core_byte*.ets'
+    - 'std/core/std_core_char*.ets'
+    - 'std/core/std_core_constructor*.ets'
+    - 'std/core/std_core_double*.ets'
+    - 'std/core/std_core_float*.ets'
+    - 'std/core/std_core_int*.ets'
+    - 'std/core/std_core_long*.ets'
+    - 'std/core/std_core_regexp*.ets'
+    - 'std/core/std_core_short*.ets'
+    - 'std/core/std_core_string*.ets'
+    - 'std/core/std_core_stringbuilder*.ets'
+    - 'std/core/std_core_typedarrays*.ets'
+  - std-core4:
+    - std/core
+    - exclude:
+      - "std-core1"
+      - "std-core2"
+      - "std-core3"
+
+  - jit-preheat-low:
+    - "std-core-reflect1"
+
+  - jit-preheat-high:
+    - '*'
+    - exclude:
+      - "jit-preheat-low"
+
+  - not-specified:
+    - '*'
+    - exclude:
+      - all

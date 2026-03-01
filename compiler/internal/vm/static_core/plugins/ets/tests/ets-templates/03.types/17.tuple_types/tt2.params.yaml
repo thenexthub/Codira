@@ -1,0 +1,98 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - { type: byte, val: 127 }
+    - { type: short, val: 'Short.MAX_VALUE' }
+    - { type: int, val: 42 }
+    - { type: long, val: Long.MIN_VALUE }
+    - { type: boolean, val: 'true' }
+    - { type: char, val: "c'Z'"}
+    - { type: float, val: Float.POSITIVE_INFINITY }
+    - { type: double, val: 3.1415926 }
+    - { type: number, val: -0.0000001 }
+
+    - { type: Byte, val: new Byte(-128 as byte) }
+    - { type: Short, val: '(Short.MIN_VALUE + 1).toShort()' }
+    - { type: Int, val: '42 * 42' }
+    - { type: Long, val: 'Long.MAX_VALUE - 1' }
+    - { type: Boolean, val: 'true' }
+    - { type: Char, val: "c'Z'"}
+    - { type: Float, val: Float.NEGATIVE_INFINITY }
+    - { type: Double, val: '3.1415926 * 2' }
+    - { type: Number, val: '-0.0000001 + 0.0001' }
+
+    - { type: Any, val: 1 }
+    - { type: "null", val: "null" }
+    - { type: "undefined", val: "undefined" }
+    - { type: "int | string", val: "1" }
+    - { type: "int | string", val: "'abc'" }
+    - { type: "int[]", val: "[1, 0]" }
+    - { type: "Array<int>", val: "[1]" }
+    - { type: "FixedArray<int>", val: "[1, 0]" }
+    - { type: "() => void", val: "(): void => {}" }
+    - { type: "'abc' | 'def'", val: "'abc'" }
+
+    - decl: |-
+        class A {}
+      type: A
+      val: new A()
+
+    - decl: |-
+        class A {}
+        class B extends A {}
+      type: A
+      val: new B()
+
+    - { type: string, val: '"abc"' }
+    - { type: 'string[]', val: '["abc"]' }
+    - { type: 'Object[]', val: '[new Object()]' }
+    - { type: 'Object[]', val: '[[0]]' }
+
+    - decl: |-
+        enum Color { Red, Green, Blue }
+      type: Color
+      val: Color.Green
+
+    - decl: |-
+        enum Color { Red, Green, Blue }
+      type: 'Color[]'
+      val: '[Color.Green]'
+
+    - decl: |-
+        type F = (s: string) => string
+      type: F
+      val: '(s: string): string => { return s + s }'
+
+    - decl: |-
+        type F = (s: string) => string
+        function foo(s: string): string {
+            return "abc" + s
+        }
+      type: F[]
+      val: '[(s: string): string => { return s + s }, foo]'
+
+    - decl: |-
+        type TT = [[int, string], [string, number], boolean]
+      type: TT
+      val: '[[1, "A"], ["B", 2.0], false]'
+
+    - type: 'string|null, number|null'
+      val: 'null, null'
+
+    - type: 'string|undefined, number|undefined'
+      val: 'undefined, 42.0'
+
+    - type: '"A"|"B"|"C"|boolean'
+      val: '"A"'

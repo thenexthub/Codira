@@ -1,0 +1,15 @@
+{
+  "description": "Config for TestMainBasicFuncWithGPSOff",
+  "environment": [
+    {
+      "type": "device",
+      "label": "phone"
+    }
+  ],
+  "driver": {
+    "type": "DeviceTest",
+    "py_file": [
+      "toolchain/performance/TestMainBasicFuncWithGPSOff.py"
+    ]
+  }
+}

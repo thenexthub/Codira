@@ -1,0 +1,78 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+#include <iostream>
+#include "assembly-ins.h"
+
+namespace panda::pandasm {
+
+std::string panda::pandasm::Ins::ToString(std::string endline, bool print_args /* = false */,
+                                          size_t first_arg_idx /* = 0*/) const {
+    std::string full_operation = "";
+    std::string reg_case = "";
+    if (this->IsLabel()) {
+        full_operation += static_cast<const LabelIns *>(this)->Label() +": ";
+    }
+    switch(this->opcode) {
+
+% Panda::instructions.group_by(&:mnemonic).each do |mnemonic, group|
+%  insn = group.first
+%  formats = group.map(&:format)
+%  sig_split = insn["sig"].split(' ')
+%  operands = insn.operands
+%  properties = insn.properties
+        case panda::pandasm::Opcode::<%= insn.asm_token%>: {
+            full_operation += "<%= insn.mnemonic%>";
+% idx_imm = 0
+% idx_reg = 0
+% idx_ids = 0
+% sig_split.length.times do |index|
+% item = sig_split[index]
+% next if index == 0
+% #TODO(knazarov): refactor next line
+% if (item.include?("id") || item.start_with?("imm") && insn.jump?)
+            full_operation += IdToString(<%= idx_ids%>, <%= index == 1 ? "true" : "false"%>);
+%           idx_ids += 1
+% elsif item.start_with?("imm")
+            full_operation += ImmToString(<%= idx_imm%>, <%= index == 1 ? "true" : "false"%>);
+%           idx_imm += 1
+% elsif item.start_with?("v")
+            full_operation += RegToString(<%= idx_reg%>, <%= index == 1 ? "true" : "false"%>, print_args, first_arg_idx);
+%           idx_reg += 1
+% end
+% end
+        } break;
+% end
+% Panda::pseudo_instructions.each do |insn|
+        case panda::pandasm::Opcode::<%= insn.opcode %>: {
+            full_operation += "<%= insn.opcode %>";
+            full_operation += this->OperandsToString(print_args, first_arg_idx);
+        } break;
+% end
+        case panda::pandasm::Opcode::INVALID: {
+            full_operation += "";
+        } break;
+    }
+    return full_operation + endline;
+}
+
+} // namespace panda::pandasm

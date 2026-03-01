@@ -1,0 +1,41 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # Interfaces with static members and type parameters inside
+cases:
+  - desc: Test whether the defined array works properly(Array<number>).
+    logic: |-
+        let array1: Array<number> = [4, 5, 6];
+        let a: number = array1[0];
+        arktest.assertEQ(a, 4);
+  - desc: Test assigning values to elements at specific positions in an array(Array<number>).
+    logic: |-
+        let array1: Array<number> = [0, 0, 0, 0, 0];
+        array1[0] = 4;
+        let a: number = array1[0];
+        arktest.assertEQ(a, 4);
+  - desc: Test to reduce the array length(Array<number>).
+    logic: |-
+        let array1: Array<number> = [0, 1, 2, 3];
+        let a: number = array1.length;
+        arktest.assertEQ(a, 4);
+  - desc: Assignment between test object type variables and arrays(Array<string).
+    logic: |-
+        let array: Array<string> = ["aa", "bb", "cc"];
+        let a: Object = array;
+        arktest.assertEQ(a, array);
+  - desc: Assignment between test object type variables and arrays(Array<number>).
+    logic: |-
+        let array: Array<number> = [1, 2, 3];
+        let a: Object = array;
+        arktest.assertEQ(a, array);

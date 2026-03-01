@@ -1,0 +1,443 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # Cases for fixed arrays
+cases:
+  - desc: Create a one-dimensional fixed array with the data type number.
+    logic: |-
+      let fixedArr: FixedArray<number> = [1, 2, 3];
+      arktest.assertEQ(fixedArr.length, 3);
+      arktest.assertEQ(fixedArr[0], 1);
+      arktest.assertEQ(fixedArr[1], 2);
+      arktest.assertEQ(fixedArr[2], 3);
+
+  - desc: Create a one-dimensional fixed array with the data type string.
+    logic: |-
+      let fixedArr: FixedArray<string> = ["1", "2", "3"];
+      arktest.assertEQ(fixedArr.length, 3);
+      arktest.assertEQ(fixedArr[0], "1");
+      arktest.assertEQ(fixedArr[1], "2");
+      arktest.assertEQ(fixedArr[2], "3");
+
+  - desc: Create a 2D fixed array with the data type number.
+    logic: |-
+      let arr : FixedArray<FixedArray<number>> = [[1, 2, 3], [1, 2, 3]];
+      arktest.assertEQ(arr.length, 2);
+      arktest.assertEQ(arr[0][0], 1);
+      arktest.assertEQ(arr[1][2], 3);
+
+  - desc: Create a 2D fixed array with the data type string.
+    logic: |-
+      let arr : FixedArray<FixedArray<string>> = [['A', 'B', 'C'], ['D', 'E', 'F']];
+      arktest.assertEQ(arr.length, 2);
+      arktest.assertEQ(arr[0].length, 3);
+      arktest.assertEQ(arr[1].length, 3);
+      arktest.assertEQ(arr[0][0], "A");
+      arktest.assertEQ(arr[1][2], "F");
+
+  - desc: An empty array can be inferred as a FixedArray.
+    logic: |-
+      let arr: FixedArray<number> = [];
+      arktest.assertEQ(arr.length, 0);
+
+  - desc: Array length is a non-negative integer number.
+    logic: |-
+      let fixedArr: FixedArray<double> = [1.0, 2.5, 3.7];
+      arktest.assertTrue(fixedArr.length instanceof int);
+      arktest.assertEQ(fixedArr.length, 3);
+
+  - desc: |-
+      >-
+        If the index expression value of an array is less than zero,
+        greater than or equal to that array's length, then RangeError is thrown.
+    logic: |-
+      let x: FixedArray<int> = [3, 4, 5];
+      arktest.assertEQ(x.length, 3);
+      let expectedException = (e: Error): boolean => {
+        return (e instanceof RangeError)
+      }
+      arktest.expectThrow(() => {x[3];}, expectedException)
+      arktest.expectThrow(() => {x[5] = 7;}, expectedException)
+      arktest.expectThrow(() => {x[100];}, expectedException)
+
+  - desc: |-
+      >-
+        If the index expression value of an array is less than zero,
+        greater than or equal to that array's length, then RangeError is thrown.
+    logic: |-
+      let x: FixedArray<int> = [3, 4, 5];
+      arktest.assertEQ(x.length, 3);
+      let foo = (i: int): int => {
+        return x[i];
+      }
+      let expectedException = (e: Error): boolean => {
+        return (e instanceof RangeError)
+      }
+      arktest.expectThrow(() => {foo(3);}, expectedException)
+      arktest.expectThrow(() => {foo(100);}, expectedException)
+      arktest.expectThrow(() => {foo(-1);}, expectedException)
+      arktest.expectThrow(() => {foo(-100);}, expectedException)
+
+  - desc: Changing the values of array elements.
+    logic: |-
+      let x: FixedArray<number> = [1, 2, 3];
+      arktest.assertEQ(x.length, 3);
+      arktest.assertEQ(x[0], 1);
+      x[0] = 0;
+      arktest.assertEQ(x[0], 0);
+
+  - desc: Loop through array elements.
+    logic: |-
+      let arr: FixedArray<number> = [1, 2, 3];
+      arktest.assertEQ(arr.length, 3);
+      let expectedValue = 1;
+      for (const num of arr) {
+          arktest.assertEQ(num, expectedValue);
+          expectedValue++;
+      }
+
+  - desc: Create a one-dimensional fixed array with the data type int.
+    logic: |-
+      let fixedArr: FixedArray<int> = [1, 2, 3];
+      arktest.assertEQ(fixedArr.length, 3);
+      arktest.assertEQ(fixedArr[0], 1);
+      arktest.assertEQ(fixedArr[1], 2);
+      arktest.assertEQ(fixedArr[2], 3);
+
+  - desc: Create a one-dimensional fixed array with the data type boolean.
+    logic: |-
+      let fixedArr: FixedArray<boolean> = [true, false, true];
+      arktest.assertEQ(fixedArr.length, 3);
+      arktest.assertEQ(fixedArr[0], true);
+      arktest.assertEQ(fixedArr[1], false);
+      arktest.assertEQ(fixedArr[2], true);
+
+  - desc: Create a one-dimensional fixed array with the data type short.
+    logic: |-
+      let fixedArr: FixedArray<short> = [1, 2, 3];
+      arktest.assertEQ(fixedArr.length, 3);
+      arktest.assertEQ(fixedArr[0], 1);
+      arktest.assertEQ(fixedArr[1], 2);
+      arktest.assertEQ(fixedArr[2], 3);
+
+  - desc: Create a one-dimensional fixed array with the data type byte.
+    logic: |-
+      let fixedArr: FixedArray<byte> = [1, 2, 3];
+      arktest.assertEQ(fixedArr.length, 3);
+      arktest.assertEQ(fixedArr[0], 1);
+      arktest.assertEQ(fixedArr[1], 2);
+      arktest.assertEQ(fixedArr[2], 3);
+
+  - desc: Create a one-dimensional fixed array with the data type long.
+    logic: |-
+      let fixedArr: FixedArray<long> = [1, 2, 3];
+      arktest.assertEQ(fixedArr.length, 3);
+      arktest.assertEQ(fixedArr[0], 1);
+      arktest.assertEQ(fixedArr[1], 2);
+      arktest.assertEQ(fixedArr[2], 3);
+
+  - desc: Create a one-dimensional fixed array with the data type float.
+    logic: |-
+      let fixedArr: FixedArray<float> = [1.0f, 2.5f, 3.7f];
+      arktest.assertEQ(fixedArr.length, 3);
+      arktest.assertEQ(fixedArr[0], 1.0f);
+      arktest.assertEQ(fixedArr[1], 2.5f);
+      arktest.assertEQ(fixedArr[2], 3.7f);
+
+  - desc: Create a one-dimensional fixed array with the data type double.
+    logic: |-
+      let fixedArr: FixedArray<double> = [1.0, 2.5, 3.7];
+      arktest.assertEQ(fixedArr.length, 3);
+      arktest.assertEQ(fixedArr[0], 1.0);
+      arktest.assertEQ(fixedArr[1], 2.5);
+      arktest.assertEQ(fixedArr[2], 3.7);
+
+  - desc: Create a one-dimensional fixed array with the data type char.
+    logic: |-
+      let fixedArr: FixedArray<char> = [c'1', c'2', c'3', c'a', c'\n', c'\u1010', c'\x7F'];
+      arktest.assertEQ(fixedArr.length, 7);
+      arktest.assertEQ(fixedArr[0], c'1');
+      arktest.assertEQ(fixedArr[1], c'2');
+      arktest.assertEQ(fixedArr[2], c'3');
+      arktest.assertEQ(fixedArr[3], c'a');
+      arktest.assertEQ(fixedArr[4], c'\n');
+      arktest.assertEQ(fixedArr[5], c'\u1010');
+      arktest.assertEQ(fixedArr[6], c'\x7F');
+
+  - desc: Shallow copy by spread operator.
+    sub_cases_logic:
+      - |-
+        let a: FixedArray<int> = [1, 2, 3]
+        let b: FixedArray<int> = [...a]
+        b[0] = 4
+        arktest.assertEQ(a.length, 3)
+        arktest.assertEQ(b.length, 3)
+        arktest.assertEQ(a[0], 1)
+        arktest.assertEQ(a[1], 2)
+        arktest.assertEQ(a[2], 3)
+        arktest.assertEQ(b[0], 4)
+        arktest.assertEQ(b[1], 2)
+        arktest.assertEQ(b[2], 3)
+      - |-
+        let a: int[] = [1, 2, 3]
+        let b: FixedArray<int> = [...a]
+        b[0] = 4
+        arktest.assertEQ(a.length, 3)
+        arktest.assertEQ(b.length, 3)
+        arktest.assertEQ(a[0], 1)
+        arktest.assertEQ(a[1], 2)
+        arktest.assertEQ(a[2], 3)
+        arktest.assertEQ(b[0], 4)
+        arktest.assertEQ(b[1], 2)
+        arktest.assertEQ(b[2], 3)
+      - |-
+        let a: int[] = [1, 2]
+        let b: FixedArray<int> = [3, 4]
+        let t: FixedArray<int> = [...a, ...b]
+        t[0] = 5
+        t[3] = 6
+        arktest.assertEQ(a.length, 2)
+        arktest.assertEQ(b.length, 2)
+        arktest.assertEQ(t.length, 4)
+        arktest.assertEQ(a[0], 1)
+        arktest.assertEQ(a[1], 2)
+        arktest.assertEQ(b[0], 3)
+        arktest.assertEQ(b[1], 4)
+        arktest.assertEQ(t[0], 5)
+        arktest.assertEQ(t[1], 2)
+        arktest.assertEQ(t[2], 3)
+        arktest.assertEQ(t[3], 6)
+      - |-
+        let a: FixedArray<int> = [1, 2]
+        let b: int[] = [3, 4]
+        let e: int[] = []
+        let t: FixedArray<int> = [...e, ...a, ...b]
+        t[0] = 5
+        t[3] = 6
+        arktest.assertEQ(a.length, 2)
+        arktest.assertEQ(b.length, 2)
+        arktest.assertEQ(t.length, 4)
+        arktest.assertEQ(a[0], 1)
+        arktest.assertEQ(a[1], 2)
+        arktest.assertEQ(b[0], 3)
+        arktest.assertEQ(b[1], 4)
+        arktest.assertEQ(t[0], 5)
+        arktest.assertEQ(t[1], 2)
+        arktest.assertEQ(t[2], 3)
+        arktest.assertEQ(t[3], 6)
+      - |-
+        let a: int[] = [1, 2]
+        let b: FixedArray<int> = [3, 4]
+        let e: int[] = []
+        let t: FixedArray<int> = [...a, ...e, ...b]
+        t[0] = 5
+        t[3] = 6
+        arktest.assertEQ(a.length, 2)
+        arktest.assertEQ(b.length, 2)
+        arktest.assertEQ(t.length, 4)
+        arktest.assertEQ(a[0], 1)
+        arktest.assertEQ(a[1], 2)
+        arktest.assertEQ(b[0], 3)
+        arktest.assertEQ(b[1], 4)
+        arktest.assertEQ(t[0], 5)
+        arktest.assertEQ(t[1], 2)
+        arktest.assertEQ(t[2], 3)
+        arktest.assertEQ(t[3], 6)
+      - |-
+        let a: int[] = [1, 2]
+        let b: FixedArray<int> = [3, 4]
+        let e: int[] = []
+        let t: FixedArray<int> = [...a, ...b, ...e]
+        t[0] = 5
+        t[3] = 6
+        arktest.assertEQ(a.length, 2)
+        arktest.assertEQ(b.length, 2)
+        arktest.assertEQ(t.length, 4)
+        arktest.assertEQ(a[0], 1)
+        arktest.assertEQ(a[1], 2)
+        arktest.assertEQ(b[0], 3)
+        arktest.assertEQ(b[1], 4)
+        arktest.assertEQ(t[0], 5)
+        arktest.assertEQ(t[1], 2)
+        arktest.assertEQ(t[2], 3)
+        arktest.assertEQ(t[3], 6)
+
+  - desc: Shallow copy by spread operator.
+    decl: |-
+      class A {
+        v: int = 0
+        constructor(v: int = 0){
+          this.v = v
+        }
+      }
+      class B extends A {
+        constructor(v: int = 0){
+          super(-v)
+        }
+      }
+    sub_cases_logic:
+      - |-
+        let a: FixedArray<A> = [new A(1), new A(2), new A(3)]
+        let b: FixedArray<A> = [...a]
+        b[0] = new A(4)
+        arktest.assertEQ(a.length, 3)
+        arktest.assertEQ(b.length, 3)
+        arktest.assertEQ(a[0].v, 1)
+        arktest.assertEQ(a[1].v, 2)
+        arktest.assertEQ(a[2].v, 3)
+        arktest.assertEQ(b[0].v, 4)
+        arktest.assertEQ(b[1].v, 2)
+        arktest.assertEQ(b[2].v, 3)
+      - |-
+        let a: A[] = [new A(1), new A(2), new A(3)]
+        let b: FixedArray<A> = [...a]
+        b[0] = new A(4)
+        arktest.assertEQ(a.length, 3)
+        arktest.assertEQ(b.length, 3)
+        arktest.assertEQ(a[0].v, 1)
+        arktest.assertEQ(a[1].v, 2)
+        arktest.assertEQ(a[2].v, 3)
+        arktest.assertEQ(b[0].v, 4)
+        arktest.assertEQ(b[1].v, 2)
+        arktest.assertEQ(b[2].v, 3)
+      - |-
+        let a: A[] = [new A(1), new A(2), new B(3)]
+        let b: FixedArray<B> = [new B(4), new B(5)]
+        let t: FixedArray<A> = [...a,  ...b]
+        t[0] = new B(6)
+        t[4] = new A(7)
+        arktest.assertEQ(a.length, 3)
+        arktest.assertEQ(b.length, 2)
+        arktest.assertEQ(t.length, 5)
+        arktest.assertEQ(a[0].v, 1)
+        arktest.assertEQ(a[1].v, 2)
+        arktest.assertEQ(a[2].v, -3)
+        arktest.assertEQ(b[0].v, -4)
+        arktest.assertEQ(b[1].v, -5)
+        arktest.assertEQ(t[0].v, -6)
+        arktest.assertEQ(t[1].v, 2)
+        arktest.assertEQ(t[2].v, -3)
+        arktest.assertEQ(t[3].v, -4)
+        arktest.assertEQ(t[4].v, 7)
+
+  - desc: Covariant fixed array assignment.
+    decl: |-
+      class Animal {}
+      class Dog extends Animal {
+        id: int = 0
+        bark(): int {
+          return this.id
+        }
+      }
+      class Cat extends Animal {}
+    sub_cases_logic:
+      - |-
+        let animals: FixedArray<Animal> = [{id: 123} as Dog, new Cat(), new Animal()]
+        arktest.assertTrue(animals[0] instanceof Dog)
+        arktest.assertEQ((animals[0] as Dog).bark(), 123)
+        arktest.assertTrue(animals[1] instanceof Cat)
+        arktest.assertTrue(animals[2] instanceof Animal)
+      - |-
+        let animals: FixedArray<Animal> = [new Animal(), new Animal(), new Animal()]
+        animals[0] = {id: 123} as Dog
+        animals[1] = new Cat()
+        arktest.assertTrue(animals[0] instanceof Dog)
+        arktest.assertEQ((animals[0] as Dog).bark(), 123)
+        arktest.assertTrue(animals[1] instanceof Cat)
+        arktest.assertTrue(animals[2] instanceof Animal)
+
+  - desc: Covariant fixed array assignment.
+    decl: |-
+      class A {}
+      class B extends A {
+        b_method(): int {
+          return 120
+        }
+      }
+      type HandlerBInt = (a: B, b: int) => int
+      type HandlerAInt = (a: A, b: int) => int
+      const handlerAInt: HandlerAInt = (a: A, b: int): int => {
+        if (a instanceof B){
+          return a.b_method() + b
+        } else {
+          return b
+        }
+      }
+      type HandlerA = (a: A) => int
+      const handlerA: HandlerA = (a: A): int => {
+        if (a instanceof B){
+          return a.b_method()
+        } else {
+          return 0
+        }
+      }
+      type HandlerNothing = () => int
+      const handlerNothing: HandlerNothing = (): int => {
+        return 321
+      }
+    sub_cases_logic:
+      - |-
+        let fs: FixedArray<HandlerBInt> = [handlerAInt, handlerA, handlerNothing]
+        arktest.assertEQ(fs[0](new B(), 3), 123)
+        arktest.assertEQ(fs[1](new B(), 3), 120)
+        arktest.assertEQ(fs[2](new B(), 3), 321)
+      - |-
+        let fs: FixedArray<HandlerBInt|null> = [null, null, null]
+        fs[0] = handlerAInt
+        fs[1] = handlerA
+        fs[2] = handlerNothing
+        arktest.assertEQ((fs[0] as HandlerBInt)(new B(), 3), 123)
+        arktest.assertEQ((fs[1] as HandlerBInt)(new B(), 3), 120)
+        arktest.assertEQ((fs[2] as HandlerBInt)(new B(), 3), 321)
+
+  - desc: Covariant fixed array assignment.
+    decl: |-
+      class A {}
+      class B extends A {
+        field: int
+        constructor(field: int) {
+          this.field = field
+        }
+      }
+      type HandlerB = (x: B) => A
+      type HandlerA = (a: A) => B
+      const handlerA: HandlerA = (a: A): B => {
+        if (a instanceof B){
+          return new B(a.field + 120)
+        } else {
+          return new B(0)
+        }
+      }
+      type HandlerNothing = () => B
+      const handlerNothing: HandlerNothing = (): B => {
+        return new B(321)
+      }
+    sub_cases_logic:
+      - |-
+        let fs: FixedArray<HandlerB> = [handlerA, handlerNothing]
+        let a = fs[0](new B(3))
+        let b = fs[1](new B(3))
+        arktest.assertTrue(a instanceof B)
+        arktest.assertTrue(b instanceof B)
+        arktest.assertEQ((a as B).field, 123)
+        arktest.assertEQ((b as B).field, 321)
+      - |-
+        let fs: FixedArray<HandlerB|null> = [null, null]
+        fs[0] = handlerA
+        fs[1] = handlerNothing
+        let a = (fs[0] as HandlerB)(new B(3))
+        let b = (fs[1] as HandlerB)(new B(3))
+        arktest.assertTrue(a instanceof B)
+        arktest.assertTrue(b instanceof B)
+        arktest.assertEQ((a as B).field, 123)
+        arktest.assertEQ((b as B).field, 321)

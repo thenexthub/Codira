@@ -1,0 +1,72 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    - from_type: short
+      to_type: Byte
+      values:
+          - { expr: 0, val: 0 }
+          - { expr: -128, val: -128 }
+          - { expr: 0x7F, val: 0x7F }
+
+    - from_type: int
+      to_type: Byte
+      values:
+          - { expr: 0, val: 0 }
+          - { expr: -128, val: -128 }
+          - { expr: 0x7F, val: 0x7F }
+
+    - from_type: int
+      to_type: Short
+      values:
+          - { expr: 0, val: 0 }
+          - { expr: -32768, val: -32768 }
+          - { expr: 32767, val: 32767 }
+
+    - from_type: long
+      to_type: Byte
+      values:
+          - { expr: 0, val: 0 }
+          - { expr: -128, val: -128 }
+          - { expr: 0x7F, val: 0x7F }
+
+    - from_type: long
+      to_type: Short
+      values:
+          - { expr: 0, val: 0 }
+          - { expr: -32768, val: -32768 }
+          - { expr: 32767, val: 32767 }
+
+    - from_type: long
+      to_type: Int
+      values:
+          - { expr: 0, val: 0 }
+          - { expr: -2147483648, val: -2147483648 }
+          - { expr: 2147483647, val: 2147483647 }
+
+    - from_type: long
+      to_type: Char
+      values:
+          - { expr: 0, val: "c'\\u0000'" }
+          - { expr: 32767, val: "c'\\u7fff'" }
+          - { expr: 65535, val: "c'\\uFFFF'" }

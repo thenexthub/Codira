@@ -1,0 +1,177 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+category: Uint8ClampedArray
+sub:
+  - self:
+      - |
+        ((): Uint8ClampedArray => { let b: number[] = [-Infinity, Infinity, -NaN, NaN, 0, 4, 1, 2.1, 256.0, 65536.0, -256.0, -65536.0]; let a = new Uint8ClampedArray(b.length); a.set(b); return a; })()
+    self_type: Iterable<number>
+    vars:
+      default_inds: ["self.length", "-self.length", "self.length - 1", "-self.length + 1", 1, -1, 2, 0x8, -0o4, 5, 100, 0, -5, -100]
+      default_inds_undef: ["self.length", "-self.length", "self.length - 1", "-self.length + 1", 1, -1, 2, 0x8, -0o4, 5, 100, 0, -5, -100, "undefined"]
+      default_search: ["NaN", "Infinity", "-Infinity", 0.0, "-0.0", 100, 1]
+      reduce_lambdas:
+        - "() => 1.0"
+        - "(a: number) => a"
+        - "(a: number, b: number) => a + b"
+        - "(a: number, b: number, i) => a + b + i"
+        - "(a: number, b: number, i, selfRef: Uint8ClampedArray) => a + b + i"
+      reduce_u_lambdas:
+        - "(): string => '*'"
+        - "(a: string): string => '*' + a"
+        - "(a: string, b: number): string => a + ',' + b"
+        - "(a: string, b: number, i): string => a + ',' + (b + i)"
+        - "(a: string, b: number, i, selfRef: Uint8ClampedArray): string => a + ',' + (b + i)"
+    sub:
+      - method: "at"
+        params:
+          - paramOf(*default_inds)
+      - method: "slice"
+        ret_type: Iterable<number>
+        params:
+          - paramOf(*default_inds_undef)
+          - paramOf(*default_inds_undef)
+        mandatory: 0
+      - method: "subarray"
+        ret_type: Iterable<number>
+        params:
+          - paramOf(*default_inds_undef)
+          - paramOf(*default_inds_undef)
+        mandatory: 0
+      - method: toString
+        params: []
+      - method: reverse
+        params: []
+      - expr: new Uint8ClampedArray(pars)
+        params:
+          - paramOf("", "-1.0", "0.0", "2.0")
+      - expr: new Uint8ClampedArray(new ArrayBuffer(pars))
+        params:
+          - paramOf("0.0", "8.0", "9.0")
+      - expr: new Uint8ClampedArray(new ArrayBuffer(2 * Uint8ClampedArray.BYTES_PER_ELEMENT), pars)
+        params:
+          - paramOf("undefined", "-1.0", "0.0", "1.0", "2.0", "4.0", "8.0", "9.0")
+      - expr: new Uint8ClampedArray(new ArrayBuffer(2 * Uint8ClampedArray.BYTES_PER_ELEMENT), undefined, undefined)
+      - expr: new Uint8ClampedArray(new ArrayBuffer(2 * Uint8ClampedArray.BYTES_PER_ELEMENT), -1.0, pars)
+        params:
+          - paramOf("undefined", "-1.0", "0.0", "1.0", "3.0")
+      - expr: new Uint8ClampedArray(new ArrayBuffer(2 * Uint8ClampedArray.BYTES_PER_ELEMENT), 0.0, pars)
+        params:
+          - paramOf("undefined", "-1.0", "0.0", "1.0", "3.0")
+      - expr: new Uint8ClampedArray(new ArrayBuffer(2 * Uint8ClampedArray.BYTES_PER_ELEMENT), 1.0, pars)
+        params:
+          - paramOf("undefined", "-1.0", "0.0", "1.0", "3.0")
+      - expr: new Uint8ClampedArray(new ArrayBuffer(2 * Uint8ClampedArray.BYTES_PER_ELEMENT), 8.0, pars)
+        params:
+          - paramOf("undefined", "-1.0", "0.0", "1.0", "3.0")
+      - expr: new Uint8ClampedArray(new ArrayBuffer(2 * Uint8ClampedArray.BYTES_PER_ELEMENT), 9.0, pars)
+        params:
+          - paramOf("undefined", "-1.0", "0.0", "1.0", "3.0")
+      - self:
+          - |
+            ((): Uint8ClampedArray => { let arr = new Array<number>(); arr.push(-1234.0); arr.push(1234.0); let a = new Uint8ClampedArray((arr.values() as Iterable<number>)); return a; })()
+        sub:
+          - method: "values"
+      - method: "copyWithin"
+        ret_type: Iterable<number>
+        params:
+          - paramOf(*default_inds)
+          - paramOf(*default_inds)
+          - paramOf(*default_inds_undef)
+        mandatory: 2
+      - method: "fill"
+        ret_type: Iterable<number>
+        params:
+          - paramOf(11.0, "Infinity")
+          - paramOf(*default_inds)
+          - paramOf(*default_inds)
+        mandatory: 1
+      - method: "reduce"
+        params:
+          - paramOf(*reduce_lambdas)
+      - method: "reduce<string>"
+        params:
+          - paramOf(*reduce_u_lambdas)
+          - paramOf("''")
+      - method: "reduceRight"
+        params:
+          - paramOf(*reduce_lambdas)
+      - method: "reduceRight<string>"
+        params:
+          - paramOf(*reduce_u_lambdas)
+          - paramOf("''")
+      - method: "set"
+        params:
+          - paramOf("new Array<number>(-1, 0, 1024, -1024, 0.1, 2.5, -2.5, Infinity, -Infinity, NaN)")
+          - paramOf(*default_inds)
+        ret_type: void
+        mandatory: 1
+      - expr: Uint8ClampedArray.from(pars)
+        params:
+          -
+            - Array.of<number>(1, 65535, -65535, NaN, Infinity)
+            - new Set<number>(Array.of<number>(1, 65535, -65535, NaN, Infinity))
+            - Array.of<number>(1, 65535, -65535, NaN, Infinity).values()
+      - expr: Uint8ClampedArray.from<number>(pars)
+        params:
+          -
+            - Array.of<number>(1, 2, 3, NaN)
+          -
+            - |
+              (v: number, k: number): number => v * k
+      - method: "lastIndexOf"
+        params:
+          - paramOf(*default_search)
+          - paramOf(*default_inds_undef)
+        mandatory: 1
+      - method: "indexOf"
+        params:
+          - paramOf(*default_search)
+          - paramOf(*default_inds_undef)
+        mandatory: 1
+      - self: null
+        sub:
+          - expr: Uint8ClampedArray.of(pars).length
+            rest:
+              - combinationRest 1, 2, 3, 'NaN'
+          - expr: Uint8ClampedArray.of(pars)
+            rest:
+              - combinationRest 1, 2, 3, 'NaN'
+          - expr: Uint8ClampedArray.of(pars)
+            rest:
+              - combinationRest "NaN", "10.0", "Infinity"
+      - method: "keys"
+      - method: "join"
+        params:
+           - |
+             paramOf("'---'", "''", "undefined")
+        mandatory: 0
+      - method: "includes"
+        params:
+          - paramOf(*default_search)
+          - paramOf(*default_inds_undef)
+        mandatory: 1
+      - method: "valueOf"
+        params: []
+      - method: toLocaleString
+      - method: sort
+        self:
+          - Uint8ClampedArray.of(0, 0.0, 4, 1, 2, -1, 1, 21, 111, 0, 0.0, -Infinity, Infinity, NaN)
+        setup: |
+          const fn1 = (a: number, b: number): %int% => (b - a)%.toInt()%
+          const fn2 = (a: number, b: number): %int% => (a - b)%.toInt()%
+          const fn3 = (a: number): %int% => 0
+          const fn4 = (): %int% => 0
+        params:
+          - paramOf 'fn1', 'fn2', undefined, 'fn3', 'fn4'

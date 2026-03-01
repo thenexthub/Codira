@@ -1,0 +1,58 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//arkcompiler/runtime_core/static_core/ark_config.gni")
+import("${ark_root}/runtime/tests/unittest_helper.gni")
+
+runtime_test_module_out_path = "runtime_core/static_core/runtime"
+
+ark_runtime_unittest("arkruntime_memory_management_test") {
+  deps = [
+    "${ark_root}/pandastdlib:arkstdlib",
+    "${ark_root}/compiler/aot:libarkaotmanager",
+  ]
+  env = [ "PANDA_STD_LIB=" + rebase_path(
+              "${root_gen_dir}/arkcompiler/runtime_core/static_core/pandastdlib/arkstdlib.abc") ]
+  sources = [
+    "card_table_test.cpp",
+    "collection_set_test.cpp",
+    "crossing_map_test.cpp",
+    "epsilon_gcs_test.cpp",
+    "explicit_gc_test.cpp",
+    "g1_analytics_test.cpp",
+    "g1_pause_tracker_test.cpp",
+    "g1gc_fullgc_test.cpp",
+    "g1gc_test.cpp",
+    "gc_log_test.cpp",
+    "gc_root_test.cpp",
+    "gc_task_test.cpp",
+    "heap_verifier_test.cpp",
+    "object_helpers_test.cpp",
+    "panda_smart_pointers_test.cpp",
+    "panda_tl_containers_test.cpp",
+    "tlab_test.cpp",
+  ]
+  module_out_path = runtime_test_module_out_path
+}
+
+ark_runtime_unittest("arkruntime_get_method_test") {
+  sources = [ "getmethod_test.cpp" ]
+  module_out_path = runtime_test_module_out_path
+}
+
+ark_unittest_group("runtime_tests") {
+  deps = [
+    ":arkruntime_get_method_test",
+    ":arkruntime_memory_management_test",
+  ]
+}

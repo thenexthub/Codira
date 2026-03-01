@@ -1,0 +1,113 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+import("//arkcompiler/runtime_core/platform/platform_config.gni")
+
+group("platform_packages") {
+  deps = [ ":libplatform" ]
+}
+
+config("platform_public_config") {
+  include_dirs = [ "$platform_root" ]
+}
+
+config("platform_private_config") {
+  cflags_c = []
+  cflags_cc = [
+    "-Wall",
+    "-Werror",
+    "-Wextra",
+    "-pedantic",
+    "-Wno-invalid-offsetof",
+    "-Wno-gnu-statement-expression",
+    "-fno-rtti",
+    "-std=c++17",
+  ]
+  defines = []
+
+  if (is_fastverify) {
+    cflags_cc += [
+      "-O3",
+      "-ggdb3",
+      "-gdwarf-4",
+      "-fno-omit-frame-pointer",
+      "-D_GLIBCXX_ASSERTIONS",
+    ]
+    cflags_c += [
+      "-O3",
+      "-ggdb3",
+      "-gdwarf-4",
+      "-fno-omit-frame-pointer",
+      "-D_GLIBCXX_ASSERTIONS",
+    ]
+  } else if (is_debug) {
+    cflags_cc += [
+      "-Og",
+      "-ggdb3",
+      "-gdwarf-4",
+    ]
+  } else {
+    defines += [ "NDEBUG" ]
+  }
+
+  if (is_asan) {
+    cflags_cc += [ "-g" ]
+    defines += [ "__SANITIZE_ADDRESS__" ]
+  }
+
+  if (current_cpu == "arm") {
+    cflags_cc += [
+      "-march=armv7-a",
+      "-marm",
+      "-mfpu=vfp",
+    ]
+  }
+}
+
+ohos_static_library("platform_static") {
+  configs = [
+    ":platform_private_config",
+    ":platform_public_config",
+  ]
+  include_dirs = [ "$platform_root" ]
+  sources = [ "hybrid/xgc/xgc.cpp" ]
+
+  part_name = "runtime_core"
+  subsystem_name = "arkcompiler"
+}
+
+ohos_shared_library("libplatform") {
+  deps = [ ":platform_static" ]
+  if (!is_mingw && !is_mac) {
+    output_extension = "so"
+  }
+  innerapi_tags = [ "platformsdk_indirect" ]
+  part_name = "runtime_core"
+  subsystem_name = "arkcompiler"
+}
+
+ohos_static_library("platform_header") {
+  public_configs = [ ":platform_public_config" ]
+
+  part_name = "runtime_core"
+  subsystem_name = "arkcompiler"
+}

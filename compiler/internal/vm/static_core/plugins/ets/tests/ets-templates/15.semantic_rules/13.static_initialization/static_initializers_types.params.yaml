@@ -1,0 +1,89 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+ - type: byte
+   init: 8
+   check: |-
+     arktest.assertEQ(C.v, 8)
+
+ - type: char
+   init: c'A'
+   check: |-
+     arktest.assertEQ(C.v, c'A')
+
+ - type: short
+   init: 2
+   check: |-
+     arktest.assertEQ(C.v, 2)
+
+ - type: long
+   init: 2
+   check: |-
+     arktest.assertEQ(C.v, 2)
+
+ - type: float
+   init: 2.1f
+   check: |-
+     arktest.assertEQ(C.v, 2.1f)
+
+ - type: number
+   init: 3.1
+   check: |-
+     arktest.assertEQ(C.v, 3.1)
+
+ - type: string
+   init: '"some str"'
+   check: |-
+     arktest.assertEQ(C.v, "some str")
+
+ - type: boolean
+   init: |-
+     true
+   check: |-
+     arktest.assertEQ(C.v, true)
+
+ - type: Object
+   def: let i = new Object()
+   init: i
+   check: |-
+     arktest.assertEQ(C.v, i)
+
+ - type: number|string|undefined
+   init: '"str"'
+   check: |-
+     arktest.assertEQ(C.v, "str")
+
+ - type: number|string|undefined
+   init: undefined
+   check: |-
+     arktest.assertEQ(C.v, undefined)
+
+ - type: numnum
+   def: enum numnum { RED, YELLOW, GREEN }
+   init: numnum.GREEN
+   check: |-
+     arktest.assertEQ(C.v, 2)
+
+ - type: Array<string>
+   init: new Array<string>("str \#1","str \#2")
+   check: |-
+     arktest.assertEQ(C.v.length, 2)
+
+ - type: func
+   def: |-
+     type func = (i: int) => int
+   init: (i) => { return i + 1 }
+   check: |-
+     arktest.assertEQ(C.v(3), 4)

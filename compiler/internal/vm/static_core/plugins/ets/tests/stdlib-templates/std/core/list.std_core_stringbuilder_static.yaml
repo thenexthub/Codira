@@ -1,0 +1,126 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+- {
+    method_name: toString,
+    object_type: StringBuilder,
+    param_init_data_types: {"param1":"FixedArray<boolean>"} ,
+    param_types: {"param1":boolean},
+    param_nature: {"param1": primitive},
+    method_return_type: String,
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    param_list: {"param1": "[true, false]"},
+    expected_test_data: '["true", "false"]',
+    verify_test_result_function: compareStringTrivial,
+  }
+- {
+    method_name: toString,
+    object_type: StringBuilder,
+    param_init_data_types: {"param1":"FixedArray<int>"} ,
+    param_types: {"param1":int},
+    param_nature: {"param1": primitive},
+    method_return_type: String,
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    param_list: {"param1": "[256 as int, Int.MAX_VALUE as int, (-256) as int, 0 as int, Int.MIN_VALUE as int]"},
+    expected_test_data: '["256", "2147483647", "-256", "0", "-2147483648"]',
+    verify_test_result_function: compareStringTrivial,
+  }
+- {
+    method_name: toString,
+    object_type: StringBuilder,
+    param_init_data_types: {"param1":"FixedArray<long>"} ,
+    param_types: {"param1":long},
+    param_nature: {"param1": primitive},
+    method_return_type: String,
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    param_list: {"param1": "[256, Long.MAX_VALUE, (-256), 0, Long.MIN_VALUE]"},
+    expected_test_data: '["256", "9223372036854775807", "-256", "0", "-9223372036854775808"]',
+    verify_test_result_function: compareStringTrivial,
+  }
+- {
+    method_name: toString,
+    object_type: StringBuilder,
+    param_init_data_types: {"param1":"FixedArray<short>"} ,
+    param_types: {"param1":short},
+    param_nature: {"param1": primitive},
+    method_return_type: String,
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    param_list: {"param1": "[97 as short, Short.MAX_VALUE as short, (-97) as short, Short.MIN_VALUE as short]"},
+    expected_test_data: '["97", "32767", "-97", "-32768"]',
+    verify_test_result_function: compareStringTrivial,
+  }
+- {
+    method_name: toString,
+    object_type: StringBuilder,
+    param_init_data_types: {"param1":"FixedArray<byte>"} ,
+    param_types: {"param1":byte},
+    param_nature: {"param1": primitive},
+    method_return_type: String,
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    param_list: {"param1": "[97 as byte, Byte.MAX_VALUE as byte, (-97) as byte, Byte.MIN_VALUE as byte]"},
+    expected_test_data: '["97", "127", "-97", "-128"]',
+    verify_test_result_function: compareStringTrivial,
+  }
+- {
+    method_name: toString,
+    object_type: StringBuilder,
+    param_init_data_types: {"param1":"FixedArray<char>"} ,
+    param_types: {"param1":char},
+    param_nature: {"param1": primitive},
+    method_return_type: String,
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    param_list: {"param1": "[c'a', c'x', c'A', c'X']"},
+    expected_test_data: '["a", "x", "A", "X"]',
+    verify_test_result_function: compareStringTrivial,
+  }
+- {
+    method_name: toString,
+    object_type: StringBuilder,
+    param_init_data_types: {"param1":"FixedArray<float>"} ,
+    param_types: {"param1":float},
+    param_nature: {"param1": primitive},
+    method_return_type: String,
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    param_list: {"param1": "[E.toFloat(), (-E).toFloat(), 0.0.toFloat()]"},
+    expected_test_data: '["2.7182817", "-2.7182817", "0"]',
+    verify_test_result_function: compareStringTrivial,
+  }
+- {
+    method_name: toString,
+    object_type: StringBuilder,
+    param_init_data_types: {"param1":"FixedArray<double>"} ,
+    param_types: {"param1":double},
+    param_nature: {"param1": primitive},
+    method_return_type: String,
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    param_list: {"param1": "[E, (-E), 0.0]"},
+    expected_test_data: '["2.718281828459045", "-2.718281828459045", "0"]',
+    verify_test_result_function: compareStringTrivial,
+  }

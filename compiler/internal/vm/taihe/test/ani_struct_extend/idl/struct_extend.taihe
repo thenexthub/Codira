@@ -1,0 +1,107 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+struct A {
+    param1: i32;
+}
+
+struct B {
+    @extends a: A;
+    param2: i32;
+}
+
+struct C {
+    @extends b: B;
+    param3: i32;
+}
+
+function check_A(i: A);
+function create_A(): A;
+
+function check_B(i: B);
+function create_B(): B;
+
+function check_C(i: C);
+function create_C(): C;
+
+struct D {
+    param4: i32;
+}
+
+struct E {
+    @extends d: D;
+    param5: i32;
+}
+
+function check_D(i: D);
+function create_D(): D;
+
+function check_E(i: E);
+function create_E(): E;
+
+@class
+interface Bar {
+    getE(): E;
+    setE(e: E);
+}
+
+@ctor("Bar")
+function getBar(e: E): Bar;
+
+struct F {
+    barF: Bar;
+}
+
+struct G {
+    @extends f: F;
+    barG: Bar;
+}
+
+@class
+struct H {
+    @extends g: G;
+    barH: Bar;
+}
+
+@class
+struct I {
+    @extends h: H;
+    barI: Bar;
+}
+
+@class
+struct J {
+    @extends i: I;
+    barJ: Bar;
+}
+
+function check_Bar(bar: Bar): bool;
+function check_F(f: F): bool;
+function check_G(g: G): bool;
+function check_H(h: H): bool;
+function check_I(i: I): bool;
+function check_J(j: J): bool;
+function create_Bar(e: E): Bar;
+function create_F(e: E): F;
+function create_G(e: E): G;
+function create_H(e: E): H;
+function create_I(e: E): I;
+function create_J(e: E): J;

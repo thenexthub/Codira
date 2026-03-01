@@ -1,0 +1,92 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of int and double infinity equality operators
+numeric_eq:
+  - {left:  "5", right:  "5", op: "==", result:  "true"}
+  - {left:  "10", right: "5", op: "!=", result: "true"}
+  - {left:  "5", right:  "5", op: "!=", result:  "false"}
+  - {left:  "10", right: "5", op: "==", result: "false"}
+  - {left: "1", right:  "1.0", op: "==", result: "true"}
+  - {left: "0", right: "0.5", op: "!=", result:  "true"}
+  - {left: "0", right: "-0", op: "==", result:  "true"}
+
+  - {left:  "5", right:  "5", op: "===", result:  "true"}
+  - {left:  "10", right: "5", op: "!==", result: "true"}
+  - {left:  "5", right:  "5", op: "!==", result:  "false"}
+  - {left:  "10", right: "5", op: "===", result: "false"}
+  - {left: "1", right:  "1.0", op: "===", result: "true"}
+  - {left: "0", right: "0.5", op: "!==", result:  "true"}
+  - {left: "0", right: "-0", op: "===", result:  "true"}
+
+  - {left: "0.1", right: "Double.POSITIVE_INFINITY", op: "!=", result:  "true"}
+  - {left: "0.1", right: "Double.POSITIVE_INFINITY", op: "==", result:  "false"}
+  - {left: "Double.POSITIVE_INFINITY", right: "0.1", op: "!=", result:  "true"}
+  - {left: "Double.POSITIVE_INFINITY", right: "0.1", op: "==", result:  "false"}
+  - {left: "Double.NEGATIVE_INFINITY", right: "0.1", op: "!=", result:  "true"}
+  - {left: "Double.NEGATIVE_INFINITY", right: "0.1", op: "==", result:  "false"}
+  - {left: "0.1", right: "Double.NEGATIVE_INFINITY", op: "!=", result:  "true"}
+  - {left: "0.1", right: "Double.NEGATIVE_INFINITY", op: "==", result:  "false"}
+
+  - {left: "0.3", right: "Double.POSITIVE_INFINITY", op: "!==", result:  "true"}
+  - {left: "0.3", right: "Double.POSITIVE_INFINITY", op: "===", result:  "false"}
+  - {left: "Double.POSITIVE_INFINITY", right: "0.3", op: "!==", result:  "true"}
+  - {left: "Double.POSITIVE_INFINITY", right: "0.3", op: "===", result:  "false"}
+  - {left: "Double.NEGATIVE_INFINITY", right: "0.3", op: "!==", result:  "true"}
+  - {left: "Double.NEGATIVE_INFINITY", right: "0.3", op: "===", result:  "false"}
+  - {left: "0.3", right: "Double.NEGATIVE_INFINITY", op: "!==", result:  "true"}
+  - {left: "0.3", right: "Double.NEGATIVE_INFINITY", op: "===", result:  "false"}
+
+  - {left: "Double.NEGATIVE_INFINITY", right: "Double.NEGATIVE_INFINITY", op: "==", result:  "true"}
+  - {left: "Double.NEGATIVE_INFINITY", right: "Double.NEGATIVE_INFINITY", op: "!=", result:  "false"}
+  - {left: "Double.POSITIVE_INFINITY", right: "Double.POSITIVE_INFINITY", op: "==", result:  "true"}
+  - {left: "Double.POSITIVE_INFINITY", right: "Double.POSITIVE_INFINITY", op: "!=", result:  "false"}
+  - {left: "Double.NEGATIVE_INFINITY", right: "Double.POSITIVE_INFINITY", op: "==", result:  "false"}
+  - {left: "Double.POSITIVE_INFINITY", right: "Double.NEGATIVE_INFINITY", op: "!=", result:  "true"}
+
+  - {left: "Double.NEGATIVE_INFINITY", right: "Double.NEGATIVE_INFINITY", op: "===", result:  "true"}
+  - {left: "Double.NEGATIVE_INFINITY", right: "Double.NEGATIVE_INFINITY", op: "!==", result:  "false"}
+  - {left: "Double.POSITIVE_INFINITY", right: "Double.POSITIVE_INFINITY", op: "===", result:  "true"}
+  - {left: "Double.POSITIVE_INFINITY", right: "Double.POSITIVE_INFINITY", op: "!==", result:  "false"}
+  - {left: "Double.NEGATIVE_INFINITY", right: "Double.POSITIVE_INFINITY", op: "===", result:  "false"}
+  - {left: "Double.POSITIVE_INFINITY", right: "Double.NEGATIVE_INFINITY", op: "!==", result:  "true"}
+
+  - {left: "Double.NaN", right: "Double.NaN", op: "!=", result:  "true"}
+  - {left: "Double.NaN", right: "Double.NaN", op: "==", result:  "false"}
+  - {left: "Double.NaN", right: "0.1", op: "==", result:  "false"}
+  - {left: "Double.NaN", right: "0.1", op: "!=", result:  "true"}
+
+  - {left: "Double.NaN", right: "Double.NaN", op: "!==", result:  "true"}
+  - {left: "Double.NaN", right: "Double.NaN", op: "===", result:  "false"}
+  - {left: "Double.NaN", right: "0.1", op: "===", result:  "false"}
+  - {left: "Double.NaN", right: "0.1", op: "!==", result:  "true"}
+
+  - {left: "0.1", right: "0.0", op: "!=", result:  "true"}
+  - {left: "0.1", right: "0.0", op: "==", result:  "false"}
+  - {left: "+0.0", right: "-0.0", op: "==", result:  "true"}
+  - {left: "-0.0", right: "+0.0", op: "==", result:  "true"}
+  - {left: "+0.0", right: "-0.0", op: "!=", result:  "false"}
+  - {left: "-0.0", right: "+0.0", op: "!=", result:  "false"}
+
+  - {left: "0.1", right: "0.0", op: "!==", result:  "true"}
+  - {left: "0.1", right: "0.0", op: "===", result:  "false"}
+  - {left: "+0.0", right: "-0.0", op: "===", result:  "true"}
+  - {left: "-0.0", right: "+0.0", op: "===", result:  "true"}
+  - {left: "+0.0", right: "-0.0", op: "!==", result:  "false"}
+  - {left: "-0.0", right: "+0.0", op: "!==", result:  "false"}
+  
+  - {left: "new Number(5)", right: "5", op: "===", result:  "true"}
+  - {left: "1", right: "new Long(1)", op: "==", result:  "true"}
+  - {left: "new Short(11)", right: "new Long(11)", op: "==", result:  "true"}
+  - {left: "new Double(0.5)", right: "0.6", op: "!==", result:  "true"}
+  - {left: "new Byte(127) + 1", right: "128", op: "==", result:  "true"}

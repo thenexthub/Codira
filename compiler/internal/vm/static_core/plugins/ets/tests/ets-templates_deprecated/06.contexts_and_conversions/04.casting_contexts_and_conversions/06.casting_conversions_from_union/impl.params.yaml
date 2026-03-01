@@ -1,0 +1,325 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # spec example
+    - from_type: Derived1|Derived2
+      decl: |-
+          class Base {}
+          class Derived1 extends Base {}
+          class Derived2 extends Base {}
+          let d1 = new Derived1()
+          let d2 = new Derived2()
+      types:
+          - { type: 'Base', v: 'd1' }
+          - { type: 'Base', v: 'd2' }
+
+    - from_type: Derived1|Derived2
+      tags: 'compile-only, negative'
+      decl: |-
+          class Base {}
+          class Derived1 extends Base {}
+          class Derived2 {}
+          let d1 = new Derived1()
+      types:
+          - { type: 'Base', v: 'd1' }
+
+    - from_type: Derived1|Derived2
+      tags: 'compile-only, negative'
+      decl: |-
+          class Base {}
+          class Derived1 extends Base {}
+          class Derived2 {}
+          let d2 = new Derived2()
+      types:
+          - { type: 'Base', v: 'd2' }
+
+    # classes and interfaces
+    - from_type: A|B
+      decl: |-
+          interface I {}
+          interface J extends I {}
+          class A implements I {}
+          class B implements J {}
+          let a = new A()
+          let b = new B()
+      types:
+          - { type: 'Object', v: 'a' }
+          - { type: 'I', v: 'a' }
+          - { type: 'Object', v: 'b' }
+          - { type: 'I', v: 'b' }
+
+    - from_type: B|F|C
+      decl: |-
+          interface I {}
+          interface J extends I {}
+          class F implements J {}
+          class B implements J {}
+          class C extends B {}
+          let b = new B()
+          let f = new F()
+          let c = new C()
+      types:
+          - { type: J, v: 'b' }
+          - { type: J, v: 'f' }
+          - { type: J, v: 'c' }
+          - { type: I, v: 'b' }
+          - { type: I, v: 'f' }
+          - { type: I, v: 'c' }
+
+    - from_type: A|B|F
+      tags: 'compile-only, negative'
+      decl: |-
+          interface I {}
+          class A implements I {}
+          interface J extends I {}
+          class F implements J {}
+          class B implements J {}
+          let b = new B()
+      types:
+          - { type: J, v: 'b' }
+
+    - from_type: A|B|F
+      tags: 'compile-only, negative'
+      decl: |-
+          interface I {}
+          class A implements I {}
+          interface J extends I {}
+          class F implements J {}
+          class B implements J {}
+          let a = new A()
+      types:
+          - { type: J, v: 'a' }
+
+    # predefined types
+    - from_type: byte|short|int|long
+      types:
+          - { type: Object, v: '42' }
+          - { type: Integral, v: '42 as long' }
+          - { type: Numeric, v: '42 as byte' }
+
+    - from_type: byte|short|int|long
+      tags: 'compile-only, negative'
+      types:
+          - { type: Floating, v: '42' }
+
+    - from_type: byte|short|int|long
+      tags: 'compile-only, negative'
+      types:
+          - { type: string, v: '42' }
+
+    - from_type: float|double
+      types:
+          - { type: Object, v: '42.0' }
+          - { type: Floating, v: '4.2E1f' }
+          - { type: Numeric, v: '-0.0' }
+
+    - from_type: float|double
+      tags: 'compile-only, negative'
+      types:
+          - { type: Integral, v: '42f' }
+
+    - from_type: float|double
+      tags: 'compile-only, negative'
+      types:
+          - { type: string, v: '42f' }
+
+    # arrays
+    - from_type: Derived1[]|Derived2[]
+      tags: 'compile-only, negative'
+      decl: |-
+          class Base {}
+          class Derived1 extends Base {}
+          class Derived2 extends Base {}
+          let d1a = new Derived1[1]
+          let d2a = new Derived2[1]
+      types:
+          - { type: 'Base[]', v: 'd1a' }
+          - { type: 'Base[]', v: 'd2a' }
+
+    - from_type: Derived1[]|Derived2[]
+      tags: 'compile-only, negative'
+      decl: |-
+          class Base {}
+          class Derived1 extends Base {}
+          class Derived2 {}
+          let d1a = new Derived1[1]
+      types:
+          - { type: 'Base[]', v: 'd1a' }
+
+    - from_type: Derived1[]|Derived2[]
+      tags: 'compile-only, negative'
+      decl: |-
+          class Base {}
+          class Derived1 extends Base {}
+          class Derived2 {}
+          let d2a = new Derived2[1]
+      types:
+          - { type: 'Base[]', v: 'd2a' }
+
+    - from_type: byte[]|short[]|int[]|long[]
+      decl: |-
+          let ia: int[] = [42] as int[]
+      types:
+          - { type: Object, v: 'ia' }
+
+    - from_type: byte[]|short[]|int[]|long[]
+      tags: 'compile-only, negative'
+      decl: |-
+          let ia: int[] = [42] as int[]
+      types:
+          - { type: string, v: 'ia' }
+
+    - from_type: Byte[]|Short[]|Int[]|Long[]
+      tags: 'compile-only, negative'
+      decl: |-
+          let ia: Int[] = [new Int(42)] as Int[]
+      types:
+          - { type: Object, v: 'ia' }
+          - { type: 'Object[]', v: 'ia' }
+          - { type: 'Integral[]', v: 'ia' }
+          - { type: 'Numeric[]', v: 'ia' }
+
+    - from_type: Byte[]|Short[]|Int[]|Long[]
+      tags: 'compile-only, negative'
+      decl: |-
+          let ia: Int[] = [new Int(42)] as Int[]
+      types:
+          - { type: 'Long[]', v: 'ia' }
+
+    - from_type: float[]|double[]
+      decl: |-
+          let da: double[] = [42.0] as double[]
+      types:
+          - { type: Object, v: 'da' }
+
+    - from_type: Float[]|Double[]
+      tags: 'compile-only, negative'
+      decl: |-
+          let da: Double[] = [new Double(42.0)] as Double[]
+      types:
+          - { type: Object, v: 'da' }
+          - { type: 'Object[]', v: 'da' }
+          - { type: 'Floating[]', v: 'da' }
+          - { type: 'Numeric[]', v: 'da' }
+
+    - from_type: Float[]|Double[]
+      tags: 'compile-only, negative'
+      decl: |-
+          let da: Double[] = [new Double(42.0)] as Double[]
+      types:
+          - { type: string, v: 'da' }
+
+    # functions
+    - decl: |-
+          type F = (p: int) => Int
+          type G = (p: long) => Long
+          let f: F = (p: int): Int => { return new Int(p) }
+          let g: G = (p: long): Long => { return new Long(p) }
+      from_type: F|G|int|long
+      types:
+          - { type: 'Object', v: '1' }
+          - { type: 'Object', v: '1 as long' }
+          - { type: 'Object', v: 'f' }
+          - { type: 'Object', v: 'g' }
+
+    - decl: |-
+          type F = (p: int) => Int
+          type G = (p: long) => Long
+          let f: F = (p: int): Int => { return new Int(p) }
+          let g: G = (p: long): Long => { return new Long(p) }
+      from_type: F|G|int|long
+      tags: 'compile-only, negative'
+      types:
+          - { type: 'G', v: 'g' }
+
+    - decl: |-
+          type F = (p: int) => Int
+          type G = (p: long) => Long
+          let f: F = (p: int): Int => { return new Int(p) }
+          let g: G = (p: long): Long => { return new Long(p) }
+      from_type: F|G|int|long
+      tags: 'compile-only, negative'
+      types:
+          - { type: 'F', v: 'g' }
+
+    - decl: |-
+          type F = (p: int) => Int
+          type G = (p: long) => Long
+          let f: F = (p: int): Int => { return new Int(p) }
+          let g: G = (p: long): Long => { return new Long(p) }
+          let fa: F[] = [f, f]
+          let ga: G[] = [g, g, g]
+      from_type: F[]|F|G[]|G|never
+      types:
+          - { type: 'Object', v: f }
+          - { type: 'Object', v: g }
+          - { type: 'Object', v: fa }
+          - { type: 'Object', v: ga }
+
+    - decl: |-
+          type F = (p: int) => Int
+          type G = (p: long) => Long
+          let f: F = (p: int): Int => { return new Int(p) }
+          let g: G = (p: long): Long => { return new Long(p) }
+          let fa: F[] = [f, f]
+          let ga: G[] = [g, g, g]
+      from_type: F[]|F|G[]|G|never
+      tags: 'compile-only, negative'
+      types:
+          - { type: 'F[]', v: fa }
+
+    - decl: |-
+          type F = (p: int) => Int
+          type G = (p: long) => Long
+          let f: F = (p: int): Int => { return new Int(p) }
+          let g: G = (p: long): Long => { return new Long(p) }
+          let fa: F[] = [f, f]
+          let ga: G[] = [g, g, g]
+      from_type: F[]|F|G[]|G|never
+      tags: 'compile-only, negative'
+      types:
+          - { type: 'G[]', v: fa }
+
+    # tuples
+    - decl: |-
+          type TT1 = [string, boolean]
+          type TT2 = [number, boolean]
+          let tt1: TT1 = ['abc', false]
+          let tt2: TT2 = [42.0, true]
+      from_type: string|TT1|TT2
+      types:
+          - { type: 'Object', v: tt1 }
+          - { type: 'Object', v: tt2 }
+          - { type: 'Object', v: '"abc"' }
+
+    - decl: |-
+          type TT1 = [string, boolean]
+          type TT2 = [number, boolean]
+          let tt1: TT1 = ['abc', false]
+          let tt2: TT2 = [42.0, true]
+      from_type: string|TT1|TT2
+      tags: 'compile-only, negative'
+      types:
+          - { type: 'string', v: '"abc"' }
+
+    - decl: |-
+          type TT1 = [string, boolean]
+          type TT2 = [number, boolean]
+          let tt1: TT1 = ['abc', false]
+          let tt2: TT2 = [42.0, true]
+      from_type: string|TT1|TT2
+      tags: 'compile-only, negative'
+      types:
+          - { type: 'string', v: tt1 }

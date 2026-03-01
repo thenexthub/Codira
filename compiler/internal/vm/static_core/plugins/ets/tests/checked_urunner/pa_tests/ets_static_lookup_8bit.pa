@@ -1,0 +1,150 @@
+# Copyright (c) 2024-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#! CHECKER      Static lookup for 8-bit StObjByName JIT
+#! RUN          force_jit: true, options: "--compiler-regex='.*test_store.*'", entry: "_GLOBAL::test_store"
+#! METHOD       "_GLOBAL::test_store"
+#! PASS_AFTER   "IrBuilder"
+#! INST_COUNT   /Intrinsic.CompilerEtsStObjByNameI8/, 2
+#! PASS_AFTER   "Peepholes"
+#! PASS_AFTER_NEXT "Cleanup"
+#! INST_NOT     /Intrinsic.CompilerEtsStObjByNameI8/
+#! INST_COUNT   /i8 *StoreObject/, 2
+
+#! CHECKER      Static lookup for 8-bit StObjByName AOT
+#! SKIP_IF      @architecture == "arm32"
+#! RUN_PAOC     options: "--compiler-regex='.*test_store.*'"
+#! METHOD       "_GLOBAL::test_store"
+#! PASS_AFTER   "IrBuilder"
+#! INST_COUNT   /Intrinsic.CompilerEtsStObjByNameI8/, 2
+#! PASS_AFTER   "Peepholes"
+#! PASS_AFTER_NEXT "Cleanup"
+#! INST_NOT     /Intrinsic.CompilerEtsStObjByNameI8/
+#! INST_COUNT   /i8 *StoreObject/, 2
+#! RUN          entry: "_GLOBAL::test_store"
+
+#! CHECKER      Static lookup for 8-bit LdObjByName JIT
+#! RUN          force_jit: true, options: "--compiler-regex='.*test_load.*'", entry: "_GLOBAL::test_load"
+#! METHOD       "_GLOBAL::test_load"
+#! PASS_AFTER   "IrBuilder"
+#! INST_COUNT   /Intrinsic.CompilerEtsLdObjByNameI32/, 3
+#! PASS_AFTER   "Peepholes"
+#! PASS_AFTER_NEXT "Cleanup"
+#! INST_NOT     /Intrinsic.CompilerEtsLdObjByNameI32/
+#! INST_COUNT   /i8 *LoadObject/, 3
+
+#! CHECKER      Static lookup for 8-bit LdObjByName AOT
+#! SKIP_IF      @architecture == "arm32"
+#! RUN_PAOC     options: "--compiler-regex='.*test_load.*'"
+#! METHOD       "_GLOBAL::test_load"
+#! PASS_AFTER   "IrBuilder"
+#! INST_COUNT   /Intrinsic.CompilerEtsLdObjByNameI32/, 3
+#! PASS_AFTER   "Peepholes"
+#! PASS_AFTER_NEXT "Cleanup"
+#! INST_NOT     /Intrinsic.CompilerEtsLdObjByNameI32/
+#! INST_COUNT   /i8 *LoadObject/, 3
+#! RUN          entry: "_GLOBAL::test_load"
+
+
+.language eTS
+
+.record std.core.Object
+.record A {
+    i8 bar
+    i8 baz
+    i8 foo
+}
+
+.record %%union_prop-i8 {
+    i8 bar
+    i8 baz
+    i8 foo
+}
+
+.function i32 load_bar__noinline__(A a0) {
+    ets.ldobj.name a0, %%union_prop-i8.bar
+    return
+}
+
+.function i32 load_baz__noinline__(A a0) {
+    ets.ldobj.name a0, %%union_prop-i8.baz
+    return
+}
+
+.function i32 load_foo__noinline__(A a0) {
+    ets.ldobj.name a0, %%union_prop-i8.foo
+    return
+}
+
+.function i32 test_store() {
+    newobj v0, A
+    ldai -1
+    ets.stobj.name v0, %%union_prop-i8.bar
+    ets.stobj.name v0, %%union_prop-i8.foo
+
+    call.short load_baz__noinline__, v0
+    jnez error1
+
+    movi v1, -1
+    call.short load_bar__noinline__, v0
+    jne v1, error2
+
+    call.short load_foo__noinline__, v0
+    jne v1, error3
+
+    ldai 0
+    return
+error1:
+    ldai 1
+    return
+error2:
+    ldai 2
+    return
+error3:
+    ldai 3
+    return
+}
+
+.function i32 fill__noinline__(A a0) {
+    ldai -1
+    ets.stobj.name a0, %%union_prop-i8.bar
+    ets.stobj.name a0, %%union_prop-i8.foo
+    return
+}
+
+.function i32 test_load() {
+    newobj v0, A
+    call.short fill__noinline__, v0
+
+    ets.ldobj.name v0, %%union_prop-i8.baz
+    jnez error1
+
+    movi v1, -1
+    ets.ldobj.name v0, %%union_prop-i8.bar
+    jne v1, error2
+
+    ets.ldobj.name v0, %%union_prop-i8.foo
+    jne v1, error3
+
+    ldai 0
+    return
+error1:
+    ldai 1
+    return
+error2:
+    ldai 2
+    return
+error3:
+    ldai 3
+    return
+}

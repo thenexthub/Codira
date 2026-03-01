@@ -1,0 +1,143 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+--- # List of type arguments
+type_arguments:
+  # type argument initiated in base class
+  - base: |-
+      T
+    base_extends: |-
+      <number>
+    constr_extends: |-
+      number
+    value: |-
+      10
+  # type argument initiated in derived class
+  - base: |-
+      T
+    base_extends: |-
+      <T>
+    extends: |-
+      <T>
+    constr_extends: |-
+      T
+    use: |-
+      <number>
+    value: |-
+      10
+  # type argument constrained in derived class
+  - base: |-
+      T
+    base_extends: |-
+      <T>
+    extends: |-
+      <T extends number>
+    constr_extends: |-
+      T
+    use: |-
+      <number>
+    value: |-
+      10
+  # type argument constrained in derived class
+  - base: |-
+      T
+    base_extends: |-
+      <T>
+    extends: |-
+      <T extends D>
+    constr_extends: |-
+      T
+    use: |-
+      <D>
+    value: |-
+      new F()
+    value2: |-
+      11
+  # two type arguments - one initiated in base class, another constrained in derived class
+  - base: |-
+      T1,T2
+    field: |-
+      T1
+    constr: |-
+      T1
+    param: |-
+      T1
+    return: |-
+      T1
+    base_extends: |-
+      <T,number>
+    extends: |-
+      <T extends D>
+    use: |-
+      <D>
+    value: |-
+      new F()
+    value2: |-
+      11
+  # two type arguments - one initiated in base class and constrained in derived class, another
+  # constrained by first argument and forced to covariant usage                     
+  - base: |-
+      T1,out T2 extends T1
+    field: |-
+      T1
+    constr: |-
+      T2
+    param: |-
+      T1
+    return: |-
+      T1
+    base_extends: |-
+      <D,F>
+    constr_extends: |-
+      F
+    extends: |-
+      <T extends D>
+    use: |-
+      <D>
+    value: |-
+      new F()
+    value2: |-
+      11
+  # two type arguments - one constrained by second argument and forced to contravariant usage  
+  #                      and once again constrained in derived class, another initiated in base class
+  - base: |-
+      in T1 extends T2,T2
+    field: |-
+      T2
+    constr: |-
+      T2
+    param: |-
+      T1
+    return: |-
+      T2
+    base_extends: |-
+      <T,D>
+    constr_extends: |-
+      D
+    extends: |-
+      <T extends D>
+    use: |-
+      <D>
+    value: |-
+      new F()
+    value2: |-
+      11

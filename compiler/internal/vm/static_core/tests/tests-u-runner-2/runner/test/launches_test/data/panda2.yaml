@@ -1,0 +1,72 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+runner-api-level: 0.0.0.1
+type: workflow
+workflow-name: arkts-int
+parameters:
+    # common
+    build: ${PANDA_BUILD}
+    work-dir: ${parameters.work-dir}
+    load-runtimes: ${parameters.load-runtimes}
+    # es2panda and verifier
+    opt-level: 2
+    es2panda-timeout: 30
+    verifier-timeout: 30
+    enable-es2panda: True
+    enable-verifier: True
+    extension: ${parameters.extension}
+    es2panda-args: []
+    # ark
+    ark-timeout: 180
+    gc-type: g1-gc
+    full-gc-bombing-frequency: 0
+    heap-verifier: fail_on_verification
+    ark-args: []
+    # adds --boot-panda-files option to verifier with all dependent and the current abc files
+    # adds --boot-panda-files option to ark with all dependent and the current abc files
+    # adds --panda-files option to ark with all dependent and the current abc files
+    is-panda: True
+steps:
+    echo-compiler:
+        executable-path: /usr/bin/echo
+        step-type: compiler
+        args:
+            - ${test-id}
+    echo-verifier:
+        executable-path: /usr/bin/echo
+        step-type: verifier
+        args:
+            - "--boot-panda-files=stdlib"
+            - ${test-id}
+    echo-aot:
+        executable-path: /usr/bin/echo
+        step-type: aot
+        args:
+            - "--boot-panda-files=stdlib"
+            - ${test-id}
+    echo-ark:
+        executable-path: /usr/bin/echo
+        step-type: runtime
+        args:
+            - "--boot-panda-files=stdlib"
+            - ${test-id}

@@ -1,0 +1,100 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # A list of top level declarations
+compileErrorTypes:
+# Incompatible types
+  - "let x: string = 123;"
+  - "let y: number = 'hello';"
+  - "const z: boolean = 1;"
+  
+# Incorrect use of types
+  - "let a: class = Point;"
+  - "type B = interface;"
+  
+# Duplicate
+  - "class Point {} class Point {}"
+  - "interface A {} interface A {}"
+  
+# Incorrect generic
+  - "class GenericClass<T, T> {}"
+  
+# Errors in union types
+  - "type InvalidUnion = string | | number;"
+  - "type EmptyUnion = |;"
+  
+# Incorrect conditional types
+  - "type InvalidConditional = T extends ? string : number;"
+  
+# Errors in async functions
+  - "async function badAsync(): string { return 'data'; }"
+  - "async function missingAwait(): Promise<string> { return Promise; }"
+  
+# Readonly violation
+  - "interface Point { readonly x: number; } let p: Point = { x: 1 }; p.x = 2;"
+  
+# Incorrect function parameters
+  - "function badParams(x: number, x: string): void {}"
+  - "function missingType(x): void {}"
+  
+# Errors in rest parameters
+  - "function badRest(...x: number, y: string): void {}"
+  
+# Incorrect const enum
+  - "const enum BadEnum { A = 'hello', B = 2 }"
+  
+# Errors in ambient declarations
+  - "declare const x;"
+  - "declare function f();"
+  
+# Incompatible overrides
+  - "class Base { method(): number { return 1; } } class Derived extends Base { method(): string { return 'hello'; } }"
+  
+# Using undeclared types
+  - "let x: UndefinedType = 1;"
+  - "function f(): NonExistentType { return 1; }"
+  
+# Errors in classes
+  - "class AbstractClass { abstract method(): void; }"
+  - "class FinalClass final {}"
+  
+# Incorrect interface implementations
+  - "interface I { prop: number; } class C implements I { prop: string; }"
+  
+# Violation of contracts of types
+  - "type StringContainer = { value: string }; let container: StringContainer = { value: 123 };"
+  
+# Circular dependencies
+  - "type A = B; type B = A;"
+  
+# Mixing value and type spaces
+  - "let x: class Point = Point;"
+  - "type Y = let origin;"
+  
+# Invalid array types
+  - "let arr: number[] = [1, '2', 3];"
+  - "let matrix: number[][] = [[1, 2], ['3', 4]];"
+  
+# Promise errors
+  - "async function badPromise(): Promise<number> { return 'string'; }"
+  
+# Invalid enum values
+  - "enum BadEnum { A = computedValue }"
+  - "enum AnotherBad { A = {} }"
+  
+# Type assertion errors
+  - "let x = 'hello' as number;"
+  - "let y = 123 as string;"
+  
+# Invalid module/namespace
+  - "export default;"

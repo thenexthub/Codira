@@ -1,0 +1,2348 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+- {
+    method_name: getLength,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_type_nature: object,
+    init_object_data: '["", "abcd", "фуфу", "abcdфуфу", "你好世界", "abcd你好世界"]',
+    param_init_data_types: {},
+    param_types: {},
+    param_list: {},
+    method_return_type: int,
+    expected_data_type: "FixedArray<int>",
+    expected_test_data: "[0, 4, 4, 8, 4, 8]",
+    verify_test_result_function: comparePrimitiveValue
+  }
+- {
+    method_name: isEmpty,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_type_nature: object,
+    param_init_data_types: {},
+    param_types: {},
+    param_list: {},
+    method_return_type: boolean,
+    init_object_data: '["", "abcd", "фуфу", "abcdфуфу", "你好世界", "abcd你好世界"]',
+    expected_data_type: "FixedArray<boolean>",
+    expected_test_data: "[true, false, false, false, false, false]",
+    verify_test_result_function: comparePrimitiveValue
+  }
+- {
+    method_name: toLowerCase,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_type_nature: object,
+    param_init_data_types: {},
+    param_types: {},
+    param_list: {},
+    method_return_type: String,
+    init_object_data: '["", "abcd", "ABCD", "aBCD"]',
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["", "abcd", "abcd", "abcd"]',
+    verify_test_result_function: compareStringTrivial
+  }
+- {
+    method_name: toUpperCase,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_type_nature: object,
+    param_init_data_types: {},
+    param_types: {},
+    param_list: {},
+    method_return_type: String,
+    init_object_data: '["", "abcd", "aBcD", "ABCD"]',
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["", "ABCD", "ABCD", "ABCD"]',
+    verify_test_result_function: compareStringTrivial
+  }
+- {
+    method_name: trim,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    param_init_data_types: {},
+    param_types: {},
+    param_list: {},
+    method_return_type: String,
+    init_object_data: '["", "abcd", " abcd ", "abcd  ", "  abcd", "x", " y", "z ", " t ", " "]',
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["", "abcd", "abcd", "abcd", "abcd", "x", "y", "z", "t", ""]',
+    verify_test_result_function: compareStringTrivial
+  }
+- {
+    method_name: trimLeft,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_type_nature: object,
+    param_init_data_types: {},
+    param_types: {},
+    param_list: {},
+    method_return_type: String,
+    init_object_data: '["", "abcd",  " abcd ", "abcd  ", "  abcd"]',
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["", "abcd",  "abcd ", "abcd  ", "abcd"]',
+    verify_test_result_function: compareStringTrivial
+  }
+- {
+    method_name: trimRight,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_type_nature: object,
+    param_init_data_types: {},
+    param_types: {},
+    param_list: {},
+    method_return_type: String,
+    init_object_data: '["", "abcd",  "  abcd ", "abcd  ", "  abcd"]',
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["", "abcd",  "  abcd", "abcd", "  abcd"]',
+    verify_test_result_function: compareStringTrivial
+  }
+- {
+    method_name: getChars,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_type_nature: object,
+    param_init_data_types: {},
+    param_types: {},
+    param_list: {},
+    result_nature: array,
+    method_return_type: "char[]",
+    init_object_data: '["", "abcd",]',
+    expected_test_data_item_type: "FixedArray<char>",
+    expected_data_type: "FixedArray<FixedArray<char>>",
+    expected_test_data: "[[], [c'a', c'b', c'c', c'd']]",
+    verify_test_result_function: comparePrimitiveArray
+  }
+
+- {
+    method_name: repeat,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_init_value: '""',
+    init_object_data: '["", " ", "123", "a", "ф", "dф", "你好", "a你", "", " ", "123", "a", "ф", "dф", "你好", "a你"]',
+    param_init_data_types: {"param1": "FixedArray<int>"},
+    param_types: {"param1": int},
+    param_nature: {"param1": primitive},
+    param_list: {"param1": "[1,1,1,1,1,1,1,1,3,3,3,3,3,3,3,3]"},
+    method_return_type: String,
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+
+    expected_test_data:  '["", " ", "123", "a", "ф", "dф", "你好", "a你", "", "   ", "123123123", "aaa", "ффф", "dфdфdф", "你好你好你好", "a你a你a你"]',
+    verify_test_result_function: compareStringTrivial,
+  }
+
+- {
+    method_name: repeat,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_init_value: '""',
+    init_object_data: '["", " ", "123", "a", "ф", "dф", "你好", "a你", "", " ", "123", "a", "ф", "dф", "你好", "a你"]',
+    param_init_data_types: {"param1": "FixedArray<int>"},
+    param_types: {"param1": int},
+    param_nature: {"param1": primitive},
+    param_list: {"param1": "[1,1,1,1,1,1,1,1,3,3,3,3,3,3,3,3]"},
+    method_return_type: String,
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+
+    expected_test_data:  '["", " ", "123", "a", "ф", "dф", "你好", "a你", "", "   ", "123123123", "aaa", "ффф", "dфdфdф", "你好你好你好", "a你a你a你"]',
+    verify_test_result_function: compareStringTrivial,
+  }
+
+- {
+    method_name: equals,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_data: '["", "abcd", "фуфу", "abcdфуфу", "你好世界", "abcd你好世界", "", "abcd", "фуфу", "abcdфуфу", "你好世界", "abcd你好世界"]',
+    param_init_data_types: {"param1": "FixedArray<String>"},
+    param_types: {"param1": String},
+    param_nature: {"param1": object},
+    param_list: {"param1": '["", "abcd", "фуфу", "abcdфуфу", "你好世界", "abcd你好世界", "abcd", "фуфу", "abcdфуфу", "你好世界", "abcd你好世界", ""]'},
+    method_return_type: boolean,
+    expected_data_item_type: boolean,
+    expected_data_type: "FixedArray<boolean>",
+    expected_test_data: "[true, true, true, true, true, true, false, false, false, false, false, false]",
+    verify_test_result_function: comparePrimitiveValue,
+  }
+
+- {
+    method_name: startsWith,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_data: '[" 123", "12345", "abcdefghij", "чижикпыжик", "你好世界你你好世界你好", "12345", "abcdefghij", "чижикпыжик", "你好世界你你好世界你好", "123", "123", "", "123", ""]',
+
+    param_init_data_types: {"param1": "FixedArray<String>"},
+    param_types: {"param1": String},
+    param_nature: {"param1": primitive},
+    param_list: {"param1": '[" ", "12", "abc", "чиж", "你好", "23", "bc", "иж", "好世", " ", "", "", "1234", " "]'},
+    method_return_type: boolean,
+    expected_data_item_type: boolean,
+    expected_data_type: "FixedArray<boolean>",
+
+    expected_test_data: "[true, true, true, true, true, false, false, false, false, false, true, true, false, false]",
+    verify_test_result_function: comparePrimitiveValue,
+  }
+
+- {
+    method_name: endsWith,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_data: '[" 123", "12345", "abcdefghij", "чижикпыжик", "你好世界你你好世界你好", "1234523", "abcdefghijbc", "чижикпыжик", "你好世界你你好世界你好", "123"]',
+    param_init_data_types: {"param1": "FixedArray<String>"},
+    param_types: {"param1": String},
+    param_nature: {"param1": primitive},
+    param_list: {"param1": '[" ", "12", "abc", "чиж", "世界", "23", "bc", "жик", "你好", "23"]'},
+    method_return_type: boolean,
+    expected_data_item_type: char,
+    expected_data_type: "FixedArray<boolean>",
+
+    expected_test_data: "[false, false, false, false, false, true, true, true, true, true]",
+    verify_test_result_function: comparePrimitiveValue,
+  }
+
+- {
+    method_name: endsWith,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_data: '[" abc", "abcde", "abcdefghij", "abcdefhgcdefgh", "abcdefhgcdefgh", "abcdefhgcdefgh", "aBcdefghijbc", "abcdABCD", "abcd ", " abcd"]',
+
+    param_init_data_types: {"param1": "FixedArray<String>", "param2": "FixedArray<int>"},
+    param_types: {"param1": String, "param2": int},
+    param_nature: {"param1": primitive, "param2": primitive},
+    param_list: {"param1": '["a", "c", "abc", "bc", "cd", "bb", "B", "A", " ", "d"]', "param2": "[2, 3, 5, 3, -2, -2, -1, 5, 5, 5]"},
+
+    method_return_type: boolean,
+    expected_data_type: "FixedArray<boolean>",
+    expected_test_data: "[true, true, false, true, false, false, false, true, true, true]",
+    verify_test_result_function: comparePrimitiveValue,
+  }
+
+- {
+    method_name: concat,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_data: '["", "aa", "фф", "你好"]',
+    param_init_data_types: {"param1": "FixedArray<String>"},
+    param_types: {"param1": String},
+    param_nature: {"param1": primitive},
+    param_list: {"param1": '[" ", "12", "abc", "чиж"]'},
+    method_return_type: String,
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+
+    expected_test_data: '[" ", "aa12", "ффabc", "你好чиж"]',
+    verify_test_result_function: compareStringTrivial,
+  }
+
+- {
+    method_name: concat,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_data: '["", "aa", "фф", "你好"]',
+    param_init_data_types: {"param1": "FixedArray<String>", "param2": "FixedArray<String>"},
+    param_types: {"param1": String, "param2": String},
+    param_nature: {"param1": primitive, "param2": primitive},
+    param_list: {"param1": '[" ", "12", "abc", "чиж"]', "param2": '["hello", "哈哈", "哼哼", "Yeah!"]'},
+    method_return_type: String,
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+
+    expected_test_data: '[" hello", "aa12哈哈", "ффabc哼哼", "你好чижYeah!"]',
+    verify_test_result_function: compareStringTrivial,
+  }
+
+- {
+    method_name: compareTo,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_data: '["abcd", "abcd", "hjkl", "hjkl"]',
+    param_init_data_types: {"param1": "FixedArray<String>"},
+    param_types: {"param1": String},
+    param_nature: {"param1": primitive},
+    param_list: {"param1": '["abcd", "hjkl", "abcd", "hjkl"]'},
+    method_return_type: Int,
+    expected_data_item_type: int,
+    expected_data_type: "FixedArray<int>",
+
+    expected_test_data: "[0, -1, 1, 0]",
+    verify_test_result_function: compareCompareToResult,
+  }
+
+- {
+    method_name: charAt,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_data: '["abcdefghij", "чижикпыжик", "你好世界你你好世界你好", "1234567890"]',
+    param_init_data_types: {"param1": "FixedArray<int>"},
+    param_types: {"param1": int},
+    param_nature: {"param1": primitive},
+    param_list: {"param1": "[0,1,2,3]"},
+    method_return_type: char,
+    expected_data_item_type: char,
+    expected_data_type: "FixedArray<char>",
+
+    expected_test_data: "[c'a', c'и', c'世', c'4']",
+    verify_test_result_function: comparePrimitiveValue,
+  }
+
+- {
+    method_name: substring,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_data: '["abcdefhghijk", "abcdefhghijk", "abcdefhghijk", "abcdefhghijk"]',
+
+    param_init_data_types: {"param1": "FixedArray<int>"},
+    param_types: {"param1": int},
+    param_nature: {"param1": primitive},
+    param_list: {"param1": "[0, 1, 10, 11]"},
+    method_return_type: String,
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+
+
+    expected_test_data:  '["abcdefhghijk", "bcdefhghijk", "jk", "k"]',
+    verify_test_result_function: compareStringTrivial,
+  }
+
+- {
+    method_name: contentEquals,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_data: '["abcdefgh", "abcdefgh"]',
+
+    param_init_data_types: {"param1": "FixedArray<String>"},
+    param_types: {"param1": StringBuilder},
+    param_nature: {"param1": object},
+    param_list: {"param1": '["abcdefgh", "hgefgcba"]'},
+
+    method_return_type: boolean,
+    expected_data_item_type: boolean,
+    expected_data_type: "FixedArray<boolean>",
+
+
+    expected_test_data: "[true, false]",
+    verify_test_result_function: comparePrimitiveValue,
+  }
+
+- {
+    method_name: indexOf,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_data: '["abcdefghij", "чижикпыжик", "你好世界你你好世界你好", "abcdefghij", "чижикпыжик", "你好世界你你好世界你好"]',
+
+    param_init_data_types: {"param1": "FixedArray<char>"},
+    param_types: {"param1": char},
+    param_nature: {"param1": primitive},
+    param_list: {"param1": "[c'a', c'к', c'世', c'世', c'a', c'к']"},
+
+    method_return_type: int,
+    expected_data_item_type: int,
+    expected_data_type: "FixedArray<int>",
+
+
+    expected_test_data: "[0, 4, 2, -1, -1, -1]",
+    verify_test_result_function: compareIntPointValue,
+  }
+
+- {
+    method_name: codePointAt,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_data: '["abcdefhghijk", "abcdefhghijk", "abcdefhghijk"]',
+
+    param_init_data_types: {"param1": "FixedArray<int>"},
+    param_types: {"param1": int},
+    param_nature: {"param1": primitive},
+    param_list: {"param1": "[0, 1, 10]"},
+
+    method_return_type: int,
+    expected_data_item_type: int,
+    expected_data_type: "FixedArray<int>",
+
+    expected_test_data:  "[0x61, 0x62, 0x6a]",
+    verify_test_result_function: comparePrimitiveValue,
+  }
+
+- {
+    method_name: codePointCount,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_data: '["abcdefhghijk", "abcdefhghijk", "abcdefhghijk", "☃★♲"]',
+
+    param_init_data_types: {"param1": "FixedArray<int>", "param2": "FixedArray<int>"},
+    param_types: {"param1": int, "param2": int},
+    param_nature: {"param1": primitive, "param2": primitive},
+    param_list: {"param1": "[0, 1, 0, 0]", "param2": "[0, 1, 11, 3]"},
+
+    method_return_type: int,
+    expected_data_item_type: int,
+    expected_data_type: "FixedArray<int>",
+
+    expected_test_data:  "[0, 0, 11, 3]",
+    verify_test_result_function: comparePrimitiveValue,
+  }
+
+- {
+    method_name: indexOf,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_data: '["abcdefghij", "abcdefghij", "abc", "", ""]',
+
+    param_init_data_types: {"param1": "FixedArray<String>"},
+    param_types: {"param1": String},
+    param_nature: {"param1": primitive},
+    param_list: {"param1": '["bcd", "xyz", "", "", "a"]'},
+
+    method_return_type: Int,
+    expected_data_item_type: int,
+    expected_data_type: "FixedArray<int>",
+
+    expected_test_data: "[1, -1, 0, 0, -1]",
+    verify_test_result_function: compareIntPointValue,
+  }
+
+- {
+    method_name: lastIndexOf,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_data: '["abcdegghij", "чижккпыжик", "你好世界你你界界你好", "abcdegghij", "чижккпыжик", "你好世界你你界界你好"]',
+
+    param_init_data_types: {"param1": "FixedArray<char>"},
+    param_types: {"param1": char},
+    param_nature: {"param1": primitive},
+    param_list: {"param1": "[c'g', c'к', c'界', c'界', c'g', c'к']"},
+
+    method_return_type: Int,
+    expected_data_item_type: int,
+    expected_data_type: "FixedArray<int>",
+
+    expected_test_data: "[6, 9, 7, -1, -1, -1]",
+    verify_test_result_function: compareIntPointValue,
+  }
+
+- {
+    method_name: lastIndexOf,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_data: '["abcdefbcdj", "abcdefbcdj"]',
+
+    param_init_data_types: {"param1": "FixedArray<String>"},
+    param_types: {"param1": String},
+    param_nature: {"param1": primitive},
+    param_list: {"param1": '["bcd", "xyz"]'},
+
+    method_return_type: Int,
+    expected_data_item_type: int,
+    expected_data_type: "FixedArray<int>",
+
+    expected_test_data: "[6, -1]",
+    verify_test_result_function: compareIntPointValue,
+  }
+
+- {
+    method_name: trim,
+    object_type: String,
+    init_object_data_type: "String[]",
+    init_object_type: String,
+    init_object_data: '["abcdefgh", "abcdefgh", "abcdefgh"]',
+
+    param_init_data_types: {"param1": "char[][]"},
+    param_types: {"param1": "char[]"},
+    param_nature: {"param1": primitive},
+    param_list: {"param1": "[[c'a', c'h'], [c'a', c'b'], [c'g', c'h']]"},
+
+    method_return_type: String,
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+
+    expected_test_data: '["bcdefg", "cdefgh", "abcdef"]',
+    verify_test_result_function: compareStringTrivial,
+  }
+
+  # Trims all specified characters from the beginning this String.
+- {
+    method_name: trimLeft,
+    object_type: String,
+    init_object_data_type: "String[]",
+    init_object_type: String,
+    init_object_data: '["abcdefgh", "abcdefgh", "abcdefgh", "abcdefgh"]',
+
+    param_init_data_types: {"param1": "char[][]"},
+    param_types: {"param1": "char[]"},
+    param_nature: {"param1": primitive},
+    param_list: {"param1": "[[c'a', c'h'], [c'a', c'b'], [c'g', c'h'], []]"},
+
+    method_return_type: String,
+    expected_data_item_type: String,
+    expected_data_type: "String[]",
+
+    expected_test_data: '["bcdefgh", "cdefgh", "abcdefgh", "abcdefgh"]',
+    verify_test_result_function: compareStringTrivial,
+  }
+
+  # Trims all specified characters from the end of this String.
+- {
+    method_name: trimRight,
+    object_type: String,
+    init_object_data_type: "String[]",
+    init_object_type: String,
+    init_object_data: '["abcdefgh", "abcdefgh", "abcdefgh", "abcdefgh"]',
+
+    param_init_data_types: {"param1": "char[][]"},
+    param_types: {"param1": "char[]"},
+    param_nature: {"param1": primitive},
+    param_list: {"param1": "[[c'a', c'h'], [c'a', c'b'], [c'g', c'h'], []]"},
+
+    method_return_type: String,
+    expected_data_item_type: String,
+    expected_data_type: "String[]",
+
+    expected_test_data: '["abcdefg", "abcdefgh", "abcdef", "abcdefgh"]',
+    verify_test_result_function: compareStringTrivial,
+  }
+
+  # Creates a new string of a specified length in which the beginning of this String is padded with a specified character.
+- {
+    method_name: padLeft,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["abcdefgh", "abcdefgh", "abcdefgh"]',
+
+    param_init_data_types: {"param1": "FixedArray<char>", "param2": "FixedArray<int>"},
+    param_types: {"param1": char, "param2": int},
+    param_nature: {"param1": primitive, "param2": primitive},
+
+    param_list: {"param1": "[c'x', c'y', c'z']", "param2": "[0 , 1 , 13]"},
+
+    method_return_type: String,
+
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["abcdefgh", "abcdefgh", "zzzzzabcdefgh"]',
+    verify_test_result_function: compareStringTrivial,
+  }
+
+  #  Creates a new string of a specified length in which the end of this String is padded with a specified character.
+- {
+    method_name: padRight,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["abcdefgh", "abcdefgh", "abcdefgh"]',
+
+    param_init_data_types: {"param1": "FixedArray<char>", "param2": "FixedArray<int>"},
+    param_types: {"param1": char, "param2": int},
+    param_nature: {"param1": primitive, "param2": primitive},
+
+    param_list: {"param1": "[c'x', c'y', c'z']", "param2": "[0 , 1 , 13]"},
+
+    method_return_type: String,
+
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["abcdefgh", "abcdefgh", "abcdefghzzzzz"]',
+    verify_test_result_function: compareStringTrivial,
+  }
+
+  # Checks that the substring of this string that starts from the specified index starts with the specified prefix.
+- {
+    method_name: startsWith,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["abcdefhgcdefgh", "abcdefhgcdefgh", "abcdefhgcdefgh", "abcdefhgcdefgh", "abcd", "abcd", "abcd", "abcd", "abcd", "abcd", "abcd"]',
+
+    param_init_data_types: {"param1": "FixedArray<String>", "param2": "FixedArray<int>"},
+    param_types: {"param1": String, "param2": int},
+    param_nature: {"param1": primitive, "param2": primitive},
+    param_list: {"param1": '["abc", "cde", "abc", "cde", "abc", "abce", "", "", "", "d", "d"]', "param2": "[0, 2, 5, 8, -2, -2, -2, 2, 10, 3, 4]"},
+
+    method_return_type: boolean,
+
+
+    expected_data_type: "FixedArray<boolean>",
+    expected_test_data: "[true, true, false, true, true, false, true, true, true, true, false]",
+    verify_test_result_function: comparePrimitiveValue
+  }
+
+- {
+    method_name: startsWith,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["abcdefhgcdefgh", "abcdefhgcdefgh", "abcdefhgcdefgh", "abcdefhgcdefgh", "abcd", "abcd", "abcd", "abcd", "abcd", "abcd", "abcd"]',
+
+    param_init_data_types: {"param1": "FixedArray<String>", "param2": "FixedArray<int>"},
+    param_types: {"param1": String, "param2": int},
+    param_nature: {"param1": primitive, "param2": primitive},
+    param_list: {"param1": '["abc", "cde", "abc", "cde", "abc", "abce", "", "", "", "d", "d"]', "param2": "[0, 2, 5, 8, -2, -2, -2, 2, 10, 3, 4]"},
+
+    method_return_type: boolean,
+
+    expected_data_type: "FixedArray<boolean>",
+    expected_test_data: "[true, true, false, true, true, false, true, true, true, true, false]",
+    verify_test_result_function: comparePrimitiveValue
+  }
+
+  # Selects a substring of this String, starting at a specified index and ending at index before another specified index.
+- {
+    method_name: substring,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk"]',
+
+    param_init_data_types: {"param1": "FixedArray<int>", "param2": "FixedArray<int>"},
+    param_types: {"param1": int, "param2": int},
+    param_nature: {"param1": primitive, "param2": primitive},
+    param_list: {"param1": "[0, 1, 2]", "param2": "[3, 4, 5]"},
+
+    method_return_type: String,
+
+
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["abc", "bcd", "cde"]',
+    verify_test_result_function: compareStringTrivial
+ }
+
+- {
+    method_name: substring,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk"]',
+
+    param_init_data_types: {"param1": "FixedArray<int>", "param2": "FixedArray<int>"},
+    param_types: {"param1": int, "param2": int},
+    param_nature: {"param1": primitive, "param2": primitive},
+    param_list: {"param1": "[0, 1, 2]", "param2": "[3, 4, 5]"},
+
+    method_return_type: String,
+
+
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["abc", "bcd", "cde"]',
+    verify_test_result_function: compareStringTrivial
+ }
+
+  # Checks if this String contains the specified string. The search starts from specified index.
+- {
+    method_name: contains,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk",
+    "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk"]',
+
+    param_init_data_types: {"param1": "FixedArray<String>", "param2": "FixedArray<int>"},
+    param_types: {"param1": String, "param2": int},
+    param_nature: {"param1": primitive, "param2": primitive},
+    param_list: {"param1": '["abc", "ijk", "ijkab", "", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk"]', "param2": "[0, 4, 9, 100, -100, 1]"},
+
+    method_return_type: boolean,
+
+    expected_data_type: "FixedArray<boolean>",
+    expected_test_data: "[true, true, false, true, true, false]",
+    verify_test_result_function: comparePrimitiveValue
+}
+
+- {
+    method_name: contains,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk",
+    "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk"]',
+
+    param_init_data_types: {"param1": "FixedArray<String>", "param2": "FixedArray<int>"},
+    param_types: {"param1": String, "param2": int},
+    param_nature: {"param1": primitive, "param2": primitive},
+    param_list: {"param1": '["abc", "ijk", "ijkab", "", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk"]', "param2": "[0, 4, 9, 100, -100, 1]"},
+
+    method_return_type: boolean,
+
+    expected_data_type: "FixedArray<boolean>",
+    expected_test_data: "[true, true, false, true, true, false]",
+    verify_test_result_function: comparePrimitiveValue
+}
+
+  # Replaces all occurrences of the specified character with another specified character.
+  # If no specified character in this string is found then the original string will be returned
+
+- {
+    method_name: replaceChar,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["abcdefccddab", "abcdefccddab", "abcdefccddab", "abcdefccddab"]',
+
+    param_init_data_types: {"param1": "FixedArray<char>", "param2": "FixedArray<char>"},
+    param_types: {"param1": char, "param2": char},
+    param_nature: {"param1": primitive, "param2": primitive},
+    param_list: {"param1": "[c'a', c'b', c'c', c'z']", "param2": "[c'x', c'x', c'x', c'x']"},
+    method_return_type: String,
+
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["xbcdefccddxb", "axcdefccddax", "abxdefxxddab", "abcdefccddab"]',
+    verify_test_result_function: compareStringTrivial,
+}
+
+  #Finds the first occurrence of another String in this String. The search starts from the specified index.
+
+- {
+    method_name: indexOf,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk",
+    "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk",
+    "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk"]',
+
+    param_init_data_types: {"param1": "FixedArray<String>", "param2": "FixedArray<int>"},
+    param_types: {"param1": String, "param2": int},
+    param_nature: {"param1": primitive, "param2": primitive},
+    param_list: {"param1": '["ab", "ab", "ab", "ab", "ijk", "ijk", "ijk", "ijk", "ijk", "ijk", "", "", ""]', "param2": "[0, 2, 8, 12, 0, 2, 8, 12, 23, -2, -2, 22, 23]"},
+    method_return_type: int,
+
+    expected_data_type: "FixedArray<int>",
+    expected_test_data: "[0, 11, 11, -1,  8, 8, 8, 19, -1, 8, 0, 22, 22]",
+    verify_test_result_function: compareIntPointValue
+ }
+
+- {
+    method_name: indexOf,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk",
+    "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk",
+    "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk"]',
+
+    param_init_data_types: {"param1": "FixedArray<String>", "param2": "FixedArray<int>"},
+    param_types: {"param1": String, "param2": int},
+    param_nature: {"param1": primitive, "param2": primitive},
+    param_list: {"param1": '["ab", "ab", "ab", "ab", "ijk", "ijk", "ijk", "ijk", "ijk", "ijk", "", "", ""]', "param2": "[0, 2, 8, 12, 0, 2, 8, 12, 23, -2, -2, 22, 23]"},
+    method_return_type: int,
+
+    expected_data_type: "FixedArray<int>",
+    expected_test_data: "[0, 11, 11, -1,  8, 8, 8, 19, -1, 8, 0, 22, 22]",
+    verify_test_result_function: compareIntPointValue
+ }
+
+  # Finds the first occurrence of a character in this String. The search starts from the specified index.
+
+- {
+    method_name: indexOf,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["abcdefhgcdefgh", "abcdefhgcdefgh", "abcdefhgcdefgh", "abcdefhgcdefgh", "abcdefhgcdefgh",
+    "abcdefhgcdefgh", "abcdefhgcdefgh", "abcdefhgcdefgh", "abcdefhgcdefgh", "abcdefhgcdefgh", "abcdefhgcdefgh"]',
+
+    param_init_data_types: {"param1": "FixedArray<char>", "param2": "FixedArray<int>"},
+    param_types: {"param1": char, "param2": int},
+    param_nature: {"param1": primitive, "param2": primitive},
+    param_list: {"param1": "[c'a', c'a', c'a', c'h', c'h', c'h', c'h', c'h', c'c', c'c', c'c']", "param2": "[0, 2, 8, 0, 2, 8, 14, 15, 0, 2, 8]"},
+
+    method_return_type: int,
+
+    expected_data_type: "FixedArray<int>",
+    expected_test_data: "[0, -1, -1, 6, 6, 13, -1, -1, 2, 2, 8]",
+    verify_test_result_function: compareIntPointValue
+ }
+
+  #Finds the last occurrence of another String in this String. The search starts from the specified index and goes backward.
+
+- {
+    method_name: lastIndexOf,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk",
+    "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk",
+    "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk",
+    "abcdefhgijkabcdefghijk"]',
+
+    param_init_data_types: {"param1": "FixedArray<String>", "param2": "FixedArray<int>"},
+    param_types: {"param1": String, "param2": int},
+    param_nature: {"param1": primitive, "param2": primitive},
+    param_list: {"param1": '["ab", "ab", "ab", "ab", "ijk", "ijk", "ijk", "ijk", "ijk", "ijkl", "eabc", "", "", "", ""]', "param2": "[4, 14, 100, -1, 8, 15, 18, 19, 40, 40, 40, 28, 22, 14, -5]"},
+    method_return_type: int,
+
+    expected_data_type: "FixedArray<int>",
+    expected_test_data: "[0, 11, 11, 0,  8, 8, 8, 19, 19, -1, -1, 22, 22, 14, 0]",
+    verify_test_result_function: compareIntPointValue
+ }
+
+- {
+    method_name: lastIndexOf,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk",
+    "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk",
+    "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk",
+    "abcdefhgijkabcdefghijk"]',
+
+    param_init_data_types: {"param1": "FixedArray<String>", "param2": "FixedArray<int>"},
+    param_types: {"param1": String, "param2": int},
+    param_nature: {"param1": primitive, "param2": primitive},
+    param_list: {"param1": '["ab", "ab", "ab", "ab", "ijk", "ijk", "ijk", "ijk", "ijk", "ijkl", "eabc", "", "", "", ""]', "param2": "[4, 14, 100, -1, 8, 15, 18, 19, 40, 40, 40, 28, 22, 14, -5]"},
+    method_return_type: int,
+
+    expected_data_type: "FixedArray<int>",
+    expected_test_data: "[0, 11, 11, 0,  8, 8, 8, 19, 19, -1, -1, 22, 22, 14, 0]",
+    verify_test_result_function: comparePrimitiveValue
+ }
+
+  # Finds the last occurrence of a character in this String. The search starts from the specified index and goes backward.
+
+- {
+    method_name: lastIndexOf,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["abcdefhgcdefgh", "abcdefhgcdefgh", "abcdefhgcdefgh", "abcdefhgcdefgh", "abcdefhgcdefgh",
+    "abcdefhgcdefgh", "abcdefhgcdefgh", "abcdefhgcdefgh", "abcdefhgcdefgh", "abcdefhgcdefgh"]',
+
+    param_init_data_types: {"param1": "FixedArray<char>", "param2": "FixedArray<int>"},
+    param_types: {"param1": char, "param2": int},
+    param_nature: {"param1": primitive, "param2": primitive},
+    param_list: {"param1": "[c'a', c'a', c'a', c'h', c'h', c'h', c'h', c'c', c'c', c'c']", "param2": "[0, 5, -3, 5, 6, 12, 13, 3, 2, 8]"},
+
+    method_return_type: int,
+
+    expected_data_type: "FixedArray<int>",
+    expected_test_data: "[0, 0, -1, -1, 6, 6, 13, 2, 2, 8]",
+    verify_test_result_function: compareIntPointValue
+ }
+
+  # Gets the byte sequence that is representing the part of this string between begin and end indexes.
+- {
+    method_name: getBytes,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["abcdefgh", "abcdefgh", "abcdefgh", "abcdefgh", "abcdefgh", "abcdefgh", "abcdefgh", "abcdefgh", "abcdefgh"]',
+
+    param_init_data_types: {"param1": "FixedArray<int>", "param2": "FixedArray<int>"},
+    param_types: {"param1": int, "param2": int},
+    param_nature: {"param1": primitive, "param2": primitive},
+    param_list: {"param1": "[0, 0, 0, 1, 1, 1, 2, 2, 2]",
+                 "param2": "[3, 5, 7, 3, 5, 7, 3, 5, 7]"},
+
+    method_return_type: "byte[]",
+    result_nature: array,
+    expected_test_data_item_type: "FixedArray<byte>",
+    expected_data_type: "FixedArray<FixedArray<byte>>",
+    expected_test_data: "[[97 as byte, 98 as byte, 99 as byte], [97 as byte, 98 as byte, 99 as byte, 100 as byte, 101 as byte], [97 as byte, 98 as byte, 99 as byte, 100 as byte, 101 as byte, 102 as byte, 103 as byte], [98 as byte, 99 as byte],  [98 as byte, 99 as byte, 100 as byte, 101 as byte],  [98 as byte, 99 as byte, 100 as byte, 101 as byte, 102 as byte, 103 as byte], [99 as byte],  [99 as byte,100 as byte, 101 as byte], [99 as byte, 100 as byte, 101 as byte, 102 as byte, 103 as byte]]",
+    verify_test_result_function: comparePrimitiveArray
+  }
+
+  # Gets the char sequence that is representing the part of this string between begin and end indexes.
+- {
+    method_name: getChars,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["abcdefgh", "abcdefgh", "abcdefgh", "abcdefgh", "abcdefgh", "abcdefgh", "abcdefgh", "abcdefgh", "abcdefgh"]',
+
+    param_init_data_types: {"param1": "FixedArray<int>", "param2": "FixedArray<int>"},
+    param_types: {"param1": int, "param2": int},
+    param_nature: {"param1": primitive, "param2": primitive},
+    param_list: {"param1": "[0, 0, 0, 1, 1, 1, 2, 2, 2]",
+                 "param2": "[3, 5, 7, 3, 5, 7, 3, 5, 7]"},
+    method_return_type: "char[]",
+    result_nature: array,
+    expected_test_data_item_type: "FixedArray<char>",
+    expected_data_type: "FixedArray<FixedArray<char>>",
+    expected_test_data: "[[c'a', c'b', c'c'], [c'a', c'b', c'c', c'd', c'e'], [c'a', c'b', c'c', c'd', c'e', c'f', c'g'], [c'b', c'c'], [c'b', c'c', c'd', c'e'], [c'b', c'c', c'd', c'e', c'f', c'g'], [c'c'], [c'c', c'd', c'e'], [c'c', c'd', c'e', c'f', c'g']]",
+    verify_test_result_function: comparePrimitiveArray
+  }
+
+- {
+    method_name: big,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["", "Click me"]',
+
+    param_types: {},
+    param_nature: {},
+    param_init_data_types: {},
+    param_list: {},
+
+    method_return_type: String,
+    expected_test_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["<big></big>", "<big>Click me</big>"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: small,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["", "Click me"]',
+
+    param_types: {},
+    param_nature: {},
+    param_init_data_types: {},
+    param_list: {},
+
+    method_return_type: String,
+    expected_test_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["<small></small>", "<small>Click me</small>"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: blink,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["", "Click me"]',
+
+    param_types: {},
+    param_nature: {},
+    param_init_data_types: {},
+    param_list: {},
+
+    method_return_type: String,
+    expected_test_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["<blink></blink>", "<blink>Click me</blink>"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: bold,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["", "Click me"]',
+
+    param_types: {},
+    param_nature: {},
+    param_init_data_types: {},
+    param_list: {},
+
+    method_return_type: String,
+    expected_test_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["<b></b>", "<b>Click me</b>"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: italics,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["", "Click me"]',
+
+    param_types: {},
+    param_nature: {},
+    param_init_data_types: {},
+    param_list: {},
+
+    method_return_type: String,
+    expected_test_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["<i></i>", "<i>Click me</i>"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: strike,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["", "Click me"]',
+
+    param_types: {},
+    param_nature: {},
+    param_init_data_types: {},
+    param_list: {},
+
+    method_return_type: String,
+    expected_test_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["<strike></strike>", "<strike>Click me</strike>"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: sub,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["", "Click me"]',
+
+    param_types: {},
+    param_nature: {},
+    param_init_data_types: {},
+    param_list: {},
+
+    method_return_type: String,
+    expected_test_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["<sub></sub>", "<sub>Click me</sub>"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: sup,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["", "Click me"]',
+
+    param_types: {},
+    param_nature: {},
+    param_init_data_types: {},
+    param_list: {},
+
+    method_return_type: String,
+    expected_test_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["<sup></sup>", "<sup>Click me</sup>"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: fixed,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["", "Click me"]',
+
+    param_types: {},
+    param_nature: {},
+    param_init_data_types: {},
+    param_list: {},
+
+    method_return_type: String,
+    expected_test_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["<tt></tt>", "<tt>Click me</tt>"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: anchor,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Click me", "Click me", ""]',
+
+    param_types: {nameParam: String},
+    param_nature: {nameParam: primitive},
+    param_init_data_types: {nameParam: "FixedArray<String>"},
+    param_list: {nameParam: "['', 'name', '']"},
+
+    method_return_type: String,
+    expected_test_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["<a name=\"\">Click me</a>", "<a name=\"name\">Click me</a>", "<a name=\"\"></a>"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: link,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Click me", "Click me", ""]',
+
+    param_types: {nameParam: String},
+    param_nature: {nameParam: primitive},
+    param_init_data_types: {nameParam: "FixedArray<String>"},
+    param_list: {nameParam: "['', 'http://click.me', '']"},
+
+    method_return_type: String,
+    expected_test_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["<a href=\"\">Click me</a>", "<a href=\"http://click.me\">Click me</a>", "<a href=\"\"></a>"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: fontcolor,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Click me", "Click me", ""]',
+
+    param_types: {nameParam: String},
+    param_nature: {nameParam: primitive},
+    param_init_data_types: {nameParam: "FixedArray<String>"},
+    param_list: {nameParam: "['', 'red', '']"},
+
+    method_return_type: String,
+    expected_test_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["<font color=\"\">Click me</font>", "<font color=\"red\">Click me</font>", "<font color=\"\"></font>"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: fontsize,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Click me", "Click me", ""]',
+
+    param_types: {nameParam: int},
+    param_nature: {nameParam: primitive},
+    param_init_data_types: {nameParam: "FixedArray<int>"},
+    param_list: {nameParam: "[0, 1, 2]"},
+
+    method_return_type: String,
+    expected_test_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["<font size=\"0\">Click me</font>", "<font size=\"1\">Click me</font>", "<font size=\"2\"></font>"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: fontsize,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Click me", "Click me", ""]',
+
+    param_types: {nameParam: int},
+    param_nature: {nameParam: primitive},
+    param_init_data_types: {nameParam: "FixedArray<int>"},
+    param_list: {nameParam: "[0, 1, 2]"},
+
+    method_return_type: String,
+    expected_test_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["<font size=\"0\">Click me</font>", "<font size=\"1\">Click me</font>", "<font size=\"2\"></font>"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    object_type: String,
+    method_name: includes,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Click me", "Click me", "", "Click him"]',
+
+    param_types: {inputs: String},
+    param_nature: {inputs: primitive},
+    param_init_data_types: {inputs: "FixedArray<String>"},
+    param_list: {inputs: '["me", "Me", "Him", ""]'},
+
+    method_return_type: boolean,
+    expected_test_data_item_type: boolean,
+    expected_data_type: "FixedArray<boolean>",
+    expected_test_data: '[true, false, false, true]',
+    verify_test_result_function: comparePrimitiveValue
+  }
+
+- {
+    object_type: String,
+    method_name: includes,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Click me", "Click me", "", "Click him"]',
+
+    param_types: {inputs1: String, inputs2: int},
+    param_nature: {inputs1: primitive, inputs2: primitive},
+    param_init_data_types: {inputs1: "FixedArray<String>", inputs2: "FixedArray<int>"},
+    param_list: {inputs1: '["me", "me", "Him", ""]', inputs2: '[0, 7, 0, 4]'},
+
+    method_return_type: boolean,
+    expected_test_data_item_type: boolean,
+    expected_data_type: "FixedArray<boolean>",
+    expected_test_data: '[true, false, false, true]',
+    verify_test_result_function: comparePrimitiveValue
+  }
+
+- {
+    object_type: String,
+    method_name: charCodeAt,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Click me", "Клик тут"]',
+
+    param_types: {inputs: int},
+    param_nature: {inputs: primitive},
+    param_init_data_types: {inputs: "FixedArray<int>"},
+    param_list: {inputs: '[0, 0]'},
+
+    method_return_type: int,
+    expected_test_data_item_type: int,
+    expected_data_type: "FixedArray<int>",
+    expected_test_data: '[67, 1050]',
+    verify_test_result_function: comparePrimitiveValue
+  }
+
+- {
+    object_type: String,
+    method_name: charCodeAt,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Click me", "Клик тут"]',
+
+    param_types: {inputs: int},
+    param_nature: {inputs: primitive},
+    param_init_data_types: {inputs: "FixedArray<int>"},
+    param_list: {inputs: '[0, 0]'},
+
+    method_return_type: int,
+    expected_test_data_item_type: int,
+    expected_data_type: "FixedArray<int>",
+    expected_test_data: '[67, 1050]',
+    verify_test_result_function: comparePrimitiveValue
+  }
+
+- {
+    object_type: String,
+    method_name: valueOf,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Click me!", "Клик тут?", ""]',
+
+    param_types: {},
+    param_nature: {},
+    param_init_data_types: {},
+    param_list: {},
+
+    method_return_type: "String",
+    result_nature: primitive,
+    expected_test_data_item_type: "String",
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["Click me!", "Клик тут?", ""]',
+    verify_test_result_function: comparePrimitiveValue
+
+  }
+
+- {
+    object_type: String,
+    method_name: padEnd,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Pad me", "", "Do not pad", "Do not pad"]',
+
+    param_types: {fillLength: int, fillChar: char},
+    param_nature: {fillLength: primitive, fillChar: primitive},
+    param_init_data_types: {fillLength: "FixedArray<int>", fillChar: "FixedArray<char>"},
+    param_list: {fillLength: '[10, 10, 5, -2]', fillChar: "[c'!', c'*', c'*', c'*']"},
+
+    method_return_type: "String",
+    expected_test_data_item_type: "String",
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["Pad me!!!!", "**********", "Do not pad", "Do not pad"]',
+    verify_test_result_function: compareStringTrivial
+
+  }
+
+- {
+    object_type: String,
+    method_name: padEnd,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Pad me", "", "Do not pad", "Do not pad"]',
+
+    param_types: {fillLength: int, fillStr: string},
+    param_nature: {fillLength: primitive, fillStr: primitive},
+    param_init_data_types: {fillLength: "FixedArray<int>", fillStr: "FixedArray<string>"},
+    param_list: {fillLength: '[11, 11, 5, -2]', fillStr: '["be", "*", "be", "be"]'},
+
+    method_return_type: "String",
+    expected_test_data_item_type: "String",
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["Pad mebebeb", "***********", "Do not pad", "Do not pad"]',
+    verify_test_result_function: compareStringTrivial
+
+  }
+
+- {
+    object_type: String,
+    method_name: padEnd,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Pad me", "", "Do not pad", "Do not pad"]',
+
+    param_types: {fillLength: int, fillStr: string},
+    param_nature: {fillLength: primitive, fillStr: primitive},
+    param_init_data_types: {fillLength: "FixedArray<int>", fillStr: "FixedArray<string>"},
+    param_list: {fillLength: '[11, 11, 5, -2]', fillStr: '["be", "*", "be", "be"]'},
+
+    method_return_type: "String",
+    expected_test_data_item_type: "String",
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["Pad mebebeb", "***********", "Do not pad", "Do not pad"]',
+    verify_test_result_function: compareStringTrivial
+
+  }
+
+- {
+    object_type: String,
+    method_name: padEnd,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Pad me", "", "Do not pad", "Do not pad"]',
+
+    param_types: {fillLength: int},
+    param_nature: {fillLength: primitive},
+    param_init_data_types: {fillLength: "FixedArray<int>"},
+    param_list: {fillLength: '[10, 10, 5, -2]'},
+
+    method_return_type: "String",
+    expected_test_data_item_type: "String",
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["Pad me    ","          ", "Do not pad", "Do not pad"]',
+    verify_test_result_function: compareStringTrivial
+
+  }
+
+- {
+    object_type: String,
+    method_name: padEnd,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Pad me", "", "Do not pad", "Do not pad"]',
+
+    param_types: {fillLength: int},
+    param_nature: {fillLength: primitive},
+    param_init_data_types: {fillLength: "FixedArray<int>"},
+    param_list: {fillLength: '[10, 10, 5, -2]'},
+
+    method_return_type: "String",
+    expected_test_data_item_type: "String",
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["Pad me    ","          ", "Do not pad", "Do not pad"]',
+    verify_test_result_function: compareStringTrivial
+
+  }
+
+- {
+    object_type: String,
+    method_name: padStart,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Pad me", "", "Do not pad", "Do not pad"]',
+
+    param_types: {fillLength: int, fillChar: char},
+    param_nature: {fillLength: primitive, fillChar: primitive},
+    param_init_data_types: {fillLength: "FixedArray<int>", fillChar: "FixedArray<char>"},
+    param_list: {fillLength: '[10, 10, 5, -1]', fillChar: "[c'!', c'*', c'*', c'*']"},
+
+    method_return_type: "String",
+    expected_test_data_item_type: "String",
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["!!!!Pad me","**********", "Do not pad", "Do not pad"]',
+    verify_test_result_function: compareStringTrivial
+
+  }
+
+- {
+    object_type: String,
+    method_name: padStart,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Pad me", "", "Do not pad", "Do not pad"]',
+
+    param_types: {fillLength: int, fillStr: string},
+    param_nature: {fillLength: primitive, fillStr: primitive},
+    param_init_data_types: {fillLength: "FixedArray<int>", fillStr: "FixedArray<string>"},
+    param_list: {fillLength: '[11, 11, 5, -2]', fillStr: '["be", "*", "be", "be"]'},
+
+    method_return_type: "String",
+    expected_test_data_item_type: "String",
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["bebebPad me", "***********", "Do not pad", "Do not pad"]',
+    verify_test_result_function: compareStringTrivial
+
+  }
+
+- {
+    object_type: String,
+    method_name: padStart,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Pad me", "", "Do not pad", "Do not pad"]',
+
+    param_types: {fillLength: int, fillStr: string},
+    param_nature: {fillLength: primitive, fillStr: primitive},
+    param_init_data_types: {fillLength: "FixedArray<int>", fillStr: "FixedArray<string>"},
+    param_list: {fillLength: '[11, 11, 5, -2]', fillStr: '["be", "*", "be", "be"]'},
+
+    method_return_type: "String",
+    expected_test_data_item_type: "String",
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["bebebPad me", "***********", "Do not pad", "Do not pad"]',
+    verify_test_result_function: compareStringTrivial
+
+  }
+
+- {
+    object_type: String,
+    method_name: padStart,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Pad me", "", "Do not pad", "Do not pad"]',
+
+    param_types: {fillLength: int},
+    param_nature: {fillLength: primitive},
+    param_init_data_types: {fillLength: "FixedArray<int>"},
+    param_list: {fillLength: '[10, 10, 5, -2]'},
+
+    method_return_type: "String",
+    expected_test_data_item_type: "String",
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["    Pad me", "          ", "Do not pad", "Do not pad"]',
+    verify_test_result_function: compareStringTrivial
+
+  }
+
+- {
+    object_type: String,
+    method_name: padStart,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Pad me", "", "Do not pad", "Do not pad"]',
+
+    param_types: {fillLength: int},
+    param_nature: {fillLength: primitive},
+    param_init_data_types: {fillLength: "FixedArray<int>"},
+    param_list: {fillLength: '[10, 10, 5, -2]'},
+
+    method_return_type: "String",
+    expected_test_data_item_type: "String",
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["    Pad me", "          ", "Do not pad", "Do not pad"]',
+    verify_test_result_function: compareStringTrivial
+
+  }
+
+
+- {
+    method_name: substr,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_data: '["abcdefhghijk", "abcdefhghijk", "abcdefhghijk", "abcdefhghijk"]',
+
+    param_init_data_types: {"begin": "FixedArray<int>"},
+    param_types: {"begin": int},
+    param_nature: {"begin": primitive},
+    param_list: {"begin": "[0, 1, 10, 11]"},
+    method_return_type: String,
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+
+
+    expected_test_data:  '["abcdefhghijk", "bcdefhghijk", "jk", "k"]',
+    verify_test_result_function: compareStringTrivial,
+  }
+
+- {
+    method_name: substr,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_data: '["abcdefhghijk", "abcdefhghijk", "abcdefhghijk", "abcdefhghijk"]',
+
+    param_init_data_types: {"begin": "FixedArray<int>"},
+    param_types: {"begin": int},
+    param_nature: {"begin": primitive},
+    param_list: {"begin": "[0, 1, 10, 11]"},
+    method_return_type: String,
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+
+
+    expected_test_data:  '["abcdefhghijk", "bcdefhghijk", "jk", "k"]',
+    verify_test_result_function: compareStringTrivial,
+  }
+
+
+  # Selects a substring of this String, starting at a specified index and ending at index before another specified index.
+- {
+    method_name: substr,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk"]',
+
+    param_init_data_types: {"begin": "FixedArray<int>", "length": "FixedArray<int>"},
+    param_types: {"begin": int, "length": int},
+    param_nature: {"begin": primitive, "length": primitive},
+    param_list: {"begin": "[0, 1, 2]", "length": "[3, 3, 3]"},
+
+    method_return_type: String,
+
+
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["abc", "bcd", "cde"]',
+    verify_test_result_function: compareStringTrivial
+ }
+
+- {
+    method_name: substr,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk"]',
+
+    param_init_data_types: {"begin": "FixedArray<int>", "length": "FixedArray<int>"},
+    param_types: {"begin": int, "length": int},
+    param_nature: {"begin": primitive, "length": primitive},
+    param_list: {"begin": "[0, 1, 2]", "length": "[3, 3, 3]"},
+
+    method_return_type: String,
+
+
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["abc", "bcd", "cde"]',
+    verify_test_result_function: compareStringTrivial
+ }
+
+- {
+    method_name: trimEnd,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Hello Trim End", "     Hello Trim End     ", "\t\n\v  Hello Trim End   \t\n\v", " \t\n\v", ""]',
+
+    param_init_data_types: {},
+    param_types: {},
+    param_nature: {},
+    param_list: {},
+
+    method_return_type: String,
+
+
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["Hello Trim End", "     Hello Trim End", "\t\n\v  Hello Trim End", "", ""]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: trimStart,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Hello Trim Start", "     Hello Trim Start     ", "\t\n\v  Hello Trim Start   \t\n\v", " \t\n\v", ""]',
+
+    param_init_data_types: {},
+    param_types: {},
+    param_nature: {},
+    param_list: {},
+
+    method_return_type: String,
+
+
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["Hello Trim Start", "Hello Trim Start     ", "Hello Trim Start   \t\n\v", "", ""]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: slice,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["\t\n\v  Hello Slice", "The quick brown fox jumps over the lazy dog.", "The quick brown fox jumps over the lazy dog."]',
+
+    param_init_data_types: {"begin": "FixedArray<int>"},
+    param_types: {"begin": int},
+    param_nature: {"begin": primitive},
+    param_list: {"begin": "[5, 31, -4]"},
+
+    method_return_type: String,
+
+
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["Hello Slice", "the lazy dog.", "dog."]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: slice,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["The quick brown fox jumps over the lazy dog.", "The quick brown fox jumps over the lazy dog."]',
+
+    param_init_data_types: {"begin": "FixedArray<int>", "end": "FixedArray<int>"},
+    param_types: {"begin": int, "end": int},
+    param_nature: {"begin": primitive, "end": primitive},
+    param_list: {"begin": "[4, -9]", "end": "[19, -5]"},
+
+    method_return_type: String,
+
+
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["quick brown fox", "lazy"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: slice,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["The quick brown fox jumps over the lazy dog.", "The quick brown fox jumps over the lazy dog.", "The quick brown fox jumps over the lazy dog.", "The quick brown fox jumps over the lazy dog."]',
+
+    param_init_data_types: {"begin": "FixedArray<int>", "end": "FixedArray<int>"},
+    param_types: {"begin": int, "end": int},
+    param_nature: {"begin": primitive, "end": primitive},
+    param_list: {"begin": '[4, -9, 0x00, 0x01]', "end": '[19, 0x68, 4, 8]'},
+
+    method_return_type: String,
+
+
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["quick brown fox", "lazy dog.", "The ", "he quic"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: slice,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["The quick brown fox jumps over the lazy dog.", "The quick brown fox jumps over the lazy dog."]',
+
+    param_init_data_types: {"begin": "FixedArray<int>", "end": "FixedArray<int>"},
+    param_types: {"begin": int, "end": int},
+    param_nature: {"begin": primitive, "end": primitive},
+    param_list: {"begin": "[4, -9]", "end": "[19, -5]"},
+
+    method_return_type: String,
+
+
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["quick brown fox", "lazy"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: slice,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["The quick brown fox jumps over the lazy dog.", "The quick brown fox jumps over the lazy dog."]',
+
+    param_init_data_types: {},
+    param_types: {},
+    param_nature: {},
+    param_list: {},
+
+    method_return_type: String,
+
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["The quick brown fox jumps over the lazy dog.", "The quick brown fox jumps over the lazy dog."]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: toLocaleLowerCase,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["İstanbul", "İstanbul"]',
+
+    param_types: { localeStr: string},
+    param_nature: {localeStr: primitive},
+    param_init_data_types: {localeStr: "FixedArray<string>"},
+    param_list: {localeStr: '["en-US", "tr"]'},
+
+    method_return_type: "String",
+    expected_test_data_item_type: "String",
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["i̇stanbul","istanbul"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: toLocaleLowerCase,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["İstanbul"]',
+
+    param_types: {},
+    param_nature: {},
+    param_init_data_types: {},
+    param_list: {},
+
+    method_return_type: "String",
+    expected_test_data_item_type: "String",
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["i̇stanbul"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: normalize,
+    object_type: String,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Normalize me", "\u0041\u006d\u00e9\u006c\u0069\u0065", "\u0041\u006d\u0065\u0301\u006c\u0069\u0065", "Amélie"]',
+
+    param_types: {},
+    param_nature: {},
+    param_init_data_types: {},
+    param_list: {},
+
+    method_return_type: "String",
+    expected_test_data_item_type: "String",
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["Normalize me", "Amélie", "Amélie", "Amélie"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: normalize,
+    object_type: String,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["祝福世界和平", "\u1E9B\u0323", "\u1E9B\u0323", "𝒉𝒆𝒍𝒍𝒐", "𝒉𝒆𝒍𝒍𝒐", "①", "①"]',
+
+    param_types: { formStr: String},
+    param_nature: {formStr: primitive},
+    param_init_data_types: {formStr: "FixedArray<string>"},
+    param_list: {formStr: '["NFD", "NFKC", "NFKD", "NFD", "NFKD", "NFC", "NFKC"]'},
+
+    method_return_type: "String",
+    expected_test_data_item_type: "String",
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["祝福世界和平", "\u1E69", "\u0073\u0323\u0307", "𝒉𝒆𝒍𝒍𝒐", "hello", "①", "1"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: normalize,
+    object_type: String,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Normalize me", "\u0041\u006d\u00e9\u006c\u0069\u0065", "\u0041\u006d\u0065\u0301\u006c\u0069\u0065", "Amélie",
+                        "Normalize me", "\u0041\u006d\u00e9\u006c\u0069\u0065", "\u0041\u006d\u0065\u0301\u006c\u0069\u0065", "Amélie",
+                        "Normalize me", "\u0041\u006d\u00e9\u006c\u0069\u0065", "\u0041\u006d\u0065\u0301\u006c\u0069\u0065", "Amélie",
+                        "Normalize me", "\u0041\u006d\u00e9\u006c\u0069\u0065", "\u0041\u006d\u0065\u0301\u006c\u0069\u0065", "Amélie"]',
+
+    param_types: { formStr: String},
+    param_nature: {formStr: primitive},
+    param_init_data_types: {formStr: "FixedArray<string>"},
+    param_list: {formStr: '["NFC", "NFC", "NFC", "NFC",
+                            "NFD", "NFD", "NFD", "NFD",
+                            "NFKC", "NFKC", "NFKC", "NFKC",
+                            "NFKD", "NFKD", "NFKD", "NFKD"]'},
+
+    method_return_type: "String",
+    expected_test_data_item_type: "String",
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["Normalize me", "Amélie", "Amélie", "Amélie",
+                          "Normalize me", "Amélie", "Amélie", "Amélie",
+                          "Normalize me", "Amélie", "Amélie", "Amélie",
+                          "Normalize me", "Amélie", "Amélie", "Amélie"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: toWellFormed,
+    object_type: String,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Normalize me", "\u0041\u006d\u00e9\u006c\u0069\u0065", "\u0041\u006d\u0065\u0301\u006c\u0069\u0065", "Amélie", "\uFDDD!@#$%&^*()1234567890\ude51asdhncbchkiw\uFFFD"]',
+
+    param_types: {},
+    param_nature: {},
+    param_init_data_types: {},
+    param_list: {},
+
+    method_return_type: "String",
+    expected_test_data_item_type: "String",
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["Normalize me", "Amélie", "Amélie", "Amélie", "﷝!@#$%&^*()1234567890�asdhncbchkiw�"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: toWellFormed,
+    object_type: String,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["\ude25\ud83d\ude00", "unicode\u20ad\u20a5\u2605", "ABC\u006d\u0065", "\ud83dA\u3042あ", "\uDBFF\u0041", "\uD800\uDBFF", "\u662f\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67\u200d\ud83d\udc66\ud83e\udd3a\u5417"]',
+
+    param_types: {},
+    param_nature: {},
+    param_init_data_types: {},
+    param_list: {},
+
+    method_return_type: "String",
+    expected_test_data_item_type: "String",
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["�😀", "unicode₭₥★", "ABCme", "�Aああ", "�A", "��", "是👨‍👩‍👧‍👦🤺吗"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: search,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk",
+    "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk",
+    "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk", "abcdefhgijkabcdefghijk"]',
+
+    param_init_data_types: {"param1": "FixedArray<String>"},
+    param_types: {"param1": String},
+    param_nature: {"param1": object },
+    param_list: {"param1": '["ab", "ab", "ab", "ab", "ijk", "ijk", "ijk", "ijk", "ijk", "ijk", "", "", ""]'},
+    method_return_type: int,
+
+    expected_data_type: "FixedArray<int>",
+    expected_test_data: "[0, 0, 0, 0, 8, 8, 8, 8, 8, 8, 0, 0, 0]",
+    verify_test_result_function: compareIntPointValue
+ }
+
+- {
+    method_name: replace,
+    object_type: String,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Quick brown fox jumps over a lazy dog", "Съешь же ещё этих мягких французских булок да выпей чаю", "no replacement"]',
+
+    param_types: {w1: String, w2: String},
+    param_nature: {w1: primitive, w2: primitive},
+    param_init_data_types: {w1: "FixedArray<String>", w2: "FixedArray<String>"},
+    param_list: {w1: ["dog", "чаю", "pattern"], w2: ["cat", "кофе", "unreachable"]},
+
+
+    method_return_type: String,
+    expected_test_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["Quick brown fox jumps over a lazy cat", "Съешь же ещё этих мягких французских булок да выпей кофе", "no replacement"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+
+- {
+    method_name: replace,
+    object_type: String,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["xaxbxcx", "xaxbxcx", "xaxbxcx", "bxaxxcx", "xaxbxcx", "xaxbxcx", "xaxbxcx", "xaxbxcx", "xaxbxcx", "xaxbxcx", "xaxbxcx", "xaxbxcx", "xaxbxcx", "xaxbxcx", "xaxbxcx", "xaxbxcx"]',
+
+    param_types: {w1: String, w2: String},
+    param_nature: {w1: primitive, w2: primitive},
+    param_init_data_types: {w1: "FixedArray<String>", w2: "FixedArray<String>"},
+
+    param_list: {
+                 w1: '["x", "b", "x", "bxax", "x", "b", "x", "b", "x", "b", "x", "b", "x", "x()", "b", "b()"]',
+                 w2: '["", "", "[]", "FixedArray<xax>", "[$$]", "[$$]", "[$`]", "[$`]", "[$&]", "[$&]", "[$'']", "[$'']", "[$1]", "[$1]", "[$1]", "[$1]"]'
+                },
+
+    method_return_type: String,
+    expected_test_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["axbxcx", "xaxxcx", "[]axbxcx", "FixedArray<xax>xcx", "[$]axbxcx", "xax[$]xcx", "[]axbxcx", "xax[xax]xcx", "[x]axbxcx", "xax[b]xcx", "[axbxcx]axbxcx", "xax[xcx]xcx","[$1]axbxcx","xaxbxcx","xax[$1]xcx", "xaxbxcx"]',
+    verify_test_result_function: compareStringTrivial
+}
+
+- {
+    method_name: replaceAll,
+    object_type: String,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["It\u0027s a Mad Mad Mad Mad World", "Этот безумный, безумный, безумный, безумный мир"]',
+
+    param_types: {w1: String, w2: String},
+    param_nature: {w1: primitive, w2: primitive},
+    param_init_data_types: {w1: "FixedArray<String>", w2: "FixedArray<String>"},
+    param_list: {w1: ["Mad","безумный"], w2: ["Fun", "сумасшедший"]},
+
+
+    method_return_type: String,
+    expected_test_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["It\u0027s a Fun Fun Fun Fun World", "Этот сумасшедший, сумасшедший, сумасшедший, сумасшедший мир"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: replace,
+    object_type: String,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["Quick brown fox jumps over a lazy dog", "Съешь же ещё этих мягких французских булок да выпей чаю", "no replacement"]',
+
+    param_types: {w1: RegExp, w2: String},
+    param_nature: {w1: object, w2: primitive},
+    param_init_data_types: {w1: "FixedArray<String>", w2: "FixedArray<String>"},
+    param_list: {w1: ["dog", "чаю", "pattern"], w2: ["cat", "кофе", "unreachable"]},
+
+
+    method_return_type: String,
+    expected_test_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["Quick brown fox jumps over a lazy cat", "Съешь же ещё этих мягких французских булок да выпей кофе", "no replacement"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: replaceAll,
+    object_type: String,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["It\u0027s a Mad Mad Mad Mad World", "Этот безумный, безумный, безумный, безумный мир"]',
+
+    param_types: {w1: RegExp, w2: String},
+    param_nature: {w1: regexp, w2: primitive},
+    param_init_data_types: {w1: "FixedArray<String>", w2: "FixedArray<String>"},
+    param_list: {w1: ["Mad","безумный"], w2: ["Fun", "сумасшедший"]},
+
+
+    method_return_type: String,
+    expected_test_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["It\u0027s a Fun Fun Fun Fun World", "Этот сумасшедший, сумасшедший, сумасшедший, сумасшедший мир"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: replaceAll,
+    object_type: String,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '[
+                        "Ninguém é igual a ninguém. Todo o ser humano é um estranho ímpar.",
+                        "Ninguém é igual a ninguém. Todo o ser humano é um estranho ímpar.",
+                        "Ninguém é igual a ninguém. Todo o ser humano é um estranho ímpar.",
+                        "Ninguém é igual a ninguém. Todo o ser humano é um estranho ímpar.",
+
+                        "Ninguém é igual a ninguém. Todo o ser humano é um estranho ímpar.",
+                        "Ninguém é igual a ninguém. Todo o ser humano é um estranho ímpar.",
+                        "Ninguém é igual a ninguém. Todo o ser humano é um estranho ímpar.",
+                        "Ninguém é igual a ninguém. Todo o ser humano é um estranho ímpar.",
+
+                        "Ninguém é igual a ninguém. Todo o ser humano é um estranho ímpar.",
+                        "Ninguém é igual a ninguém. Todo o ser humano é um estranho ímpar.",
+                        "Ninguém é igual a ninguém. Todo o ser humano é um estranho ímpar.",
+                        "Ninguém é igual a ninguém. Todo o ser humano é um estranho ímpar.",
+
+                        "Ninguém é igual a ninguém. Todo o ser humano é um estranho ímpar.",
+                        "Ninguém é igual a ninguém. Todo o ser humano é um estranho ímpar.",
+                        "aaaaaaaaaaaaaaaa aaaaaaaa aaaaaaaaaaaaaaaa",
+                        "Ninguém é igual a ninguém. Todo o ser humano é um estranho ímpar.",
+
+                        "Ninguém é igual a ninguém. Todo o ser humano é um estranho ímpar.",
+                        "Ninguém é igual a ninguém. Todo o ser humano é um estranho ímpar.",
+                        "Ninguém é igual a ninguém. Todo o ser humano é um estranho ímpar.",
+                        "Ninguém é igual a ninguém. Todo o ser humano é um estranho ímpar.",
+                      ]',
+
+    param_types: {w1: String, w2: String},
+    param_nature: {w1: primitive, w2: primitive},
+    param_init_data_types: {w1: "FixedArray<String>", w2: "FixedArray<String>"},
+    param_list: { w1:[
+                      "ninguém",
+                      "é",
+                      "é",
+                      "é",
+                      "é",
+                      "é",
+                      "ninguém",
+                      "ninguém",
+                      "é",
+                      "é",
+                      "ninguém",
+                      ".",
+                      "é",
+                      "é",
+                      "a",
+                      "ninguém",
+                      "Ninguém",
+                      "ninguém",
+                      "é",
+                      "é",
+                    ],
+                  w2:[
+                      "$$",
+                      "$$",
+                      "$$ -",
+                      "$$&",
+                      "$$$",
+                      "$$$$",
+                      "$&",
+                      "($&)",
+                      "($&)",
+                      "($&) $&",
+                      "$'",
+                      "--- $'",
+                      "($')",
+                      "($') $'",
+                      "$<",
+                      "$`",
+                      "$`",
+                      "($`)",
+                      "($`)",
+                      "($`) $`",
+                    ]},
+
+
+    method_return_type: String,
+    expected_test_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '[
+      "Ninguém é igual a $. Todo o ser humano é um estranho ímpar.",
+      "Ningu$m $ igual a ningu$m. Todo o ser humano $ um estranho ímpar.",
+      "Ningu$ -m $ - igual a ningu$ -m. Todo o ser humano $ - um estranho ímpar.",
+      "Ningu$&m $& igual a ningu$&m. Todo o ser humano $& um estranho ímpar.",
+
+      "Ningu$$m $$ igual a ningu$$m. Todo o ser humano $$ um estranho ímpar.",
+      "Ningu$$m $$ igual a ningu$$m. Todo o ser humano $$ um estranho ímpar.",
+      "Ninguém é igual a ninguém. Todo o ser humano é um estranho ímpar.",
+      "Ninguém é igual a (ninguém). Todo o ser humano é um estranho ímpar.",
+
+      "Ningu(é)m (é) igual a ningu(é)m. Todo o ser humano (é) um estranho ímpar.",
+      "Ningu(é) ém (é) é igual a ningu(é) ém. Todo o ser humano (é) é um estranho ímpar.",
+      "Ninguém é igual a . Todo o ser humano é um estranho ímpar.. Todo o ser humano é um estranho ímpar.",
+      "Ninguém é igual a ninguém---  Todo o ser humano é um estranho ímpar. Todo o ser humano é um estranho ímpar--- ",
+
+      "Ningu(m é igual a ninguém. Todo o ser humano é um estranho ímpar.)m ( igual a ninguém. Todo o ser humano é um estranho ímpar.) igual a ningu(m. Todo o ser humano é um estranho ímpar.)m. Todo o ser humano ( um estranho ímpar.) um estranho ímpar.",
+      "Ningu(m é igual a ninguém. Todo o ser humano é um estranho ímpar.) m é igual a ninguém. Todo o ser humano é um estranho ímpar.m ( igual a ninguém. Todo o ser humano é um estranho ímpar.)  igual a ninguém. Todo o ser humano é um estranho ímpar. igual a ningu(m. Todo o ser humano é um estranho ímpar.) m. Todo o ser humano é um estranho ímpar.m. Todo o ser humano ( um estranho ímpar.)  um estranho ímpar. um estranho ímpar.",
+      "$<$<$<$<$<$<$<$<$<$<$<$<$<$<$<$< $<$<$<$<$<$<$<$< $<$<$<$<$<$<$<$<$<$<$<$<$<$<$<$<",
+      "Ninguém é igual a Ninguém é igual a . Todo o ser humano é um estranho ímpar.",
+      " é igual a ninguém. Todo o ser humano é um estranho ímpar.",
+      "Ninguém é igual a (Ninguém é igual a ). Todo o ser humano é um estranho ímpar.",
+      "Ningu(Ningu)m (Ninguém ) igual a ningu(Ninguém é igual a ningu)m. Todo o ser humano (Ninguém é igual a ninguém. Todo o ser humano ) um estranho ímpar.",
+      "Ningu(Ningu) Ningum (Ninguém ) Ninguém  igual a ningu(Ninguém é igual a ningu) Ninguém é igual a ningum. Todo o ser humano (Ninguém é igual a ninguém. Todo o ser humano ) Ninguém é igual a ninguém. Todo o ser humano  um estranho ímpar."
+
+    ]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: match,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_data: '["subject to search", "subject search", "Test Case"]',
+
+    param_init_data_types: {str: "FixedArray<String>"},
+    param_nature: {str: primitive},
+    param_types: {str: String},
+    param_list: {str: '["to", ".*", "[A-Z]"]'},
+
+    method_return_type: "RegExpMatchArray | null",
+    result_nature: RegExpMatchArray,
+    expected_test_data_item_type: "FixedArray<String>",
+    expected_data_type: "FixedArray<FixedArray<String>>",
+    expected_test_data: '[["to"], ["subject search"], ["T", "C"]]',
+    verify_test_result_function: compareRegExpMatchArray
+  }
+
+- {
+    method_name: match,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_data: '["subject search"]',
+
+    param_init_data_types: {str: "FixedArray<String>"},
+    param_nature: {str: primitive},
+    param_types: {str: String},
+    param_list: {str: '["to"]'},
+
+    method_return_type: "RegExpMatchArray | null",
+    result_nature: primitive,
+    expected_test_data_item_type: "RegExpMatchArray | null",
+    expected_data_type: "FixedArray<RegExpMatchArray | null>",
+    expected_test_data: '[null]',
+    verify_test_result_function: comparePrimitiveValue
+  }
+
+- {
+    method_name: match,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_data: '["subject to search", "subject search", "Test Case"]',
+
+    param_init_data_types: {str: "FixedArray<String>"},
+    param_nature: {str: object},
+    param_types: {str: RegExp},
+    param_list: {str: '["to", ".*", "[A-Z]"]'},
+
+    method_return_type: "RegExpMatchArray | null",
+    result_nature: RegExpMatchArray,
+    expected_test_data_item_type: "FixedArray<String>",
+    expected_data_type: "FixedArray<FixedArray<String>>",
+    expected_test_data: '[["to"], ["subject search"], ["T", "C"]]',
+    verify_test_result_function: compareRegExpMatchArray
+  }
+
+- {
+    method_name: split,
+    object_type: String,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["No pattern found", "value0->value1->value2->value3->value4", "\nvalue0\nvalue1\nvalue2\nvalue3\nvalue4\n", "empty", "abcd", "aaaaa"]',
+
+    param_types: {separator: String},
+    param_nature: {separator: primitive},
+    param_init_data_types: {separator: "FixedArray<String>"},
+    param_list: {separator: [ "*", "->", "\n", "", "abcd", "aa"]},
+
+    method_return_type: "String[]",
+    result_nature: "array",
+    expected_test_data_item_type: "FixedArray<String>",
+    expected_data_type: "FixedArray<FixedArray<String>>",
+    expected_test_data: '[["No pattern found"], ["value0", "value1", "value2", "value3", "value4"], ["", "value0", "value1", "value2", "value3", "value4", ""], ["e", "m", "p", "t", "y"], ["", ""], ["", "", "a"]]',
+    verify_test_result_function: comparePrimitiveArray
+  }
+
+- {
+    method_name: split,
+    object_type: String,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["*value0*value1*value2*value3*value4*", "*value0*value1*value2*value3*value4*", "*value0*value1*value2*value3*value4*", "*value0*value1*value2*value3*value4*", "value0", "value0", "empty", "empty"]',
+
+    param_types: {separator: String, limit: int},
+    param_nature: {separator: primitive, limit: object},
+    param_init_data_types: {separator: "FixedArray<String>", limit: "FixedArray<int>"},
+    param_list: {separator: [ "*", "*", "*", "*", "8", "*", "", ""], limit: "[new int(0), new int(1), new int(2), new int(-2), new int(1), new int(10), new int(3), new int(10)]"},
+
+    method_return_type: "String[]",
+    result_nature: "array",
+    expected_test_data_item_type: "FixedArray<String>",
+    expected_data_type: "FixedArray<FixedArray<String>>",
+    expected_test_data: '[[], [""], ["", "value0"], ["", "value0", "value1", "value2", "value3", "value4", ""], ["value0"], ["value0"], ["e", "m", "p"], ["e", "m", "p", "t", "y"]]',
+    verify_test_result_function: comparePrimitiveArray
+  }
+
+- {
+    method_name: split,
+    object_type: String,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["ab", "ab", "ab", "ab", "asdfasdfasdf", "axxb", "axxb", "axxb", "", "", "", ""]',
+
+    param_types: {separator: RegExp},
+    param_nature: {separator: object},
+    param_init_data_types: {separator: "FixedArray<RegExp>"},
+    param_list: {separator: '[ new RegExp("a*?"), new RegExp("a*"), new RegExp("((?=.))"), new RegExp("(?=.)"), new RegExp("d"), new RegExp("x*"), new RegExp("x+"), new RegExp("x"), new RegExp("."), new RegExp(".?"), new RegExp(".??"), new RegExp("()()")]'},
+
+    method_return_type: "String[]",
+    result_nature: "array",
+    expected_test_data_item_type: "FixedArray<String>",
+    expected_data_type: "FixedArray<FixedArray<String>>",
+    expected_test_data: '[["a", "b"], ["", "b"], ["a", "", "b"], ["a", "b"], ["as","fas","fas","f"], ["a", "b"], ["a", "b"], ["a","","b"], [""], [], [], []]',
+    verify_test_result_function: comparePrimitiveArray
+  }
+
+- {
+    method_name: split,
+    object_type: String,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["empty"]',
+
+    param_types: {pattern: RegExp},
+    param_nature: {pattern: object},
+    param_init_data_types: {pattern: "FixedArray<String>"},
+    param_list: {pattern: [""]},
+
+    method_return_type: "String[]",
+    result_nature: "array",
+    expected_test_data_item_type: "FixedArray<String>",
+    expected_data_type: "FixedArray<FixedArray<String>>",
+    expected_test_data: '[["e", "m", "p", "t", "y"]]',
+    verify_test_result_function: comparePrimitiveArray
+  }
+
+- {
+    method_name: split,
+    object_type: String,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["empty", "empty", "empty"]',
+
+    param_types: {pattern: RegExp, limit: int},
+    param_nature: {pattern: object, limit: primitive},
+    param_init_data_types: {pattern: "FixedArray<String>", limit: "FixedArray<int>"},
+    param_list: {pattern: ["", "", ""], limit: [-1, 0, 1]},
+
+    method_return_type: "String[]",
+    result_nature: "array",
+    expected_test_data_item_type: "FixedArray<String>",
+    expected_data_type: "FixedArray<FixedArray<String>>",
+    expected_test_data: '[["e", "m", "p", "t", "y"], [], ["e"]]',
+    verify_test_result_function: comparePrimitiveArray
+  }
+
+- {
+    method_name: split,
+    object_type: String,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["empty", "empty", "empty"]',
+
+    param_types: {pattern: RegExp, limit: int},
+    param_nature: {pattern: object, limit: primitive},
+    param_init_data_types: {pattern: "FixedArray<String>", limit: "FixedArray<int>"},
+    param_list: {pattern: ["", "", ""], limit: [-1, 0, 1]},
+
+    method_return_type: "String[]",
+    result_nature: "array",
+    expected_test_data_item_type: "FixedArray<String>",
+    expected_data_type: "FixedArray<FixedArray<String>>",
+    expected_test_data: '[["e", "m", "p", "t", "y"], [], ["e"]]',
+    verify_test_result_function: comparePrimitiveArray
+  }
+
+- {
+    method_name: split,
+    object_type: String,
+
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["*value0*value1*value2*value3*value4*", "*value0*value1*value2*value3*value4*", "*value0*value1*value2*value3*value4*", "*value0*value1*value2*value3*value4*", "value0", "value0", "empty", "empty"]',
+
+    param_types: {pattern: String, limit: int},
+    param_nature: {pattern: primitive, limit: primitive},
+    param_init_data_types: {pattern: "FixedArray<String>", limit: "FixedArray<int>"},
+    param_list: {pattern: [ "*", "*", "*", "*", "8", "*", "", ""], limit: [0, 1, 2, -2, 1, 10, 3, 10]},
+
+    method_return_type: "String[]",
+    result_nature: "array",
+    expected_test_data_item_type: "FixedArray<String>",
+    expected_data_type: "FixedArray<FixedArray<String>>",
+    expected_test_data: '[[], [""], ["", "value0"], ["", "value0", "value1", "value2", "value3", "value4", ""], ["value0"], ["value0"], ["e", "m", "p"], ["e", "m", "p", "t", "y"]]',
+    verify_test_result_function: comparePrimitiveArray
+  }
+
+- {
+    method_name: toLocaleUpperCase,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["istanbul", "istanbul"]',
+
+    param_types: { localeStr: string},
+    param_nature: {localeStr: primitive},
+    param_init_data_types: {localeStr: "FixedArray<string>"},
+    param_list: {localeStr: '["en-US", "tr"]'},
+
+    method_return_type: "String",
+    expected_test_data_item_type: "String",
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["ISTANBUL","İSTANBUL"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: localeCompare,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["a", "apple", "arcane"]',
+
+    param_types: { localeStr: string},
+    param_nature: {localeStr: primitive},
+    param_init_data_types: {localeStr: "FixedArray<string>"},
+    param_list: {localeStr: '["a", "pear", "apple"]'},
+
+    method_return_type: int,
+    expected_test_data_item_type: int,
+    expected_data_type: "FixedArray<int>",
+    expected_test_data: '[0, -1, 1]',
+    verify_test_result_function: comparePrimitiveValue
+  }
+
+- {
+    method_name: localeCompare,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_data: '["h", "h", "h", "h", "H"]',
+
+    param_types: { localeStr: string},
+    param_nature: {localeStr: primitive},
+    param_init_data_types: {localeStr: "FixedArray<string>"},
+    param_list: {localeStr: '["\x68", "\u0068", "h", "H", "h"]'},
+
+    method_return_type: int,
+    expected_test_data_item_type: int,
+    expected_data_type: "FixedArray<int>",
+    expected_test_data: '[0, 0, 0, -1, 1]',
+    verify_test_result_function: comparePrimitiveValue
+  }
+
+- {
+    method_name: toString,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_type_nature: object,
+    init_object_data: '["", "abcd", "фуфу", "abcdфуфу", "你好世界", "abcd你好世界"]',
+    param_init_data_types: {},
+    param_types: {},
+    param_list: {},
+    method_return_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["", "abcd", "фуфу", "abcdфуфу", "你好世界", "abcd你好世界"]',
+    verify_test_result_function: compareStringTrivial
+  }
+
+- {
+    method_name: search,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_type_nature: object,
+    init_object_data: '["subject to search", "subject to search"]',
+
+    param_init_data_types: {str: "FixedArray<String>"},
+    param_nature: {str: primitive},
+    param_types: {str: String},
+    param_list: {str: '["to", "[A-Z]"]'},
+
+    method_return_type: int,
+    expected_test_data_item_type: 'int',
+    expected_data_type: 'FixedArray<int>',
+    expected_test_data: '[8, -1]',
+    verify_test_result_function: comparePrimitiveValue
+  }
+
+- {
+    method_name: search,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_type_nature: object,
+    init_object_data: '["subject to search", "subject to search"]',
+
+    param_init_data_types: {str: "FixedArray<String>"},
+    param_nature: {str: object},
+    param_types: {str: RegExp},
+    param_list: {str: ["to", "[A-Z]"]},
+
+    method_return_type: int,
+    expected_test_data_item_type: 'int',
+    expected_data_type: 'FixedArray<int>',
+    expected_test_data: '[8, -1]',
+    verify_test_result_function: comparePrimitiveValue
+  }
+
+- {
+    method_name: isWellFormed,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_type_nature: primitive,
+    init_object_data: '["ab\uD800", "abc", "ab\uD83D\uDE04c"]',
+
+    param_init_data_types: {},
+    param_nature: {},
+    param_types: {},
+    param_list: {},
+
+    method_return_type: boolean,
+    expected_data_type: "FixedArray<boolean>",
+    expected_test_data: "[false, true, true]",
+    verify_test_result_function: comparePrimitiveValue
+  }

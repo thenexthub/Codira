@@ -1,0 +1,13 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep class class_test_007.Ns1.ClassB {\n    *;\n    }",
+        "-keep !interface class_test_007.ClassA {\n    *;\n    }"
+      ]
+    }
+  }
+}

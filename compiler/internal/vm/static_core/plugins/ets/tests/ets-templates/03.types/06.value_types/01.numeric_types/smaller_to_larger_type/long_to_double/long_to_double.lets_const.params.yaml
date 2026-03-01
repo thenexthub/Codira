@@ -1,0 +1,50 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+testData:
+  - { initialType: "long", value: "2147483648890", resultType: "double" , result: "2147483648890.0", absError: "0.01", desc: "0. Conversion of the positive decimal long value to the double."}
+  - { initialType: "long", value: "-2147483648891", resultType: "double" , result: "-2147483648891.00_000", absError: "0.0000001", desc: "1. Conversion of the negative decimal long value to the double."}
+  - { initialType: "long", value: "0x1F40000037_a", resultType: "Double" , result: "2147483648_890.0", absError: "0.01", desc: "2. Conversion of the positive hex long value to the double."}
+  - { initialType: "long", value: "-0x1F40000037B", resultType: "Double" , result: "-.2147483648891e13", absError: "0.00000000000001", desc: "3. Conversion of the negative hex long value to the double."}
+  - { initialType: "Long", value: "0o37200000001572", resultType: "double" , result: "0.2147483648890E13", absError: "0.00000000000001", desc: "4. Conversion of the positive octal Long (alias) value to the double."}
+  - { initialType: "Long", value: "-0o3720000000157_3", resultType: "double" , result: "-2_147_483_648_891.0", absError: "0.01", desc: "5. Conversion of the negative octal Long (alias) value to the double."}
+  - { initialType: "Long", value: "-0B11111010000000000000000000000001101111010", resultType: "Double" , result: "-21474836.48890E5", absError: "0.000000001", desc: "6. Conversion of the negative binary Long (alias) value to the Double (alias)."}
+  - { initialType: "Long", value: "0B00011111_010000000000000_000000000001101111011", resultType: "Double" , result: "2147483648891000e-3", absError: "0.0001", desc: "7. Conversion of the positive binary Long (alias) value to the Double (alias)."}
+  - { initialType: "Long", value: "-2147483648891", resultType: "Double" , result: "-2147483648891", absError: "0.1", desc: "8. Conversion of the negative decimal Long (alias) value (min long) to the Double (alias)."}
+  - { initialType: "long", value: "0o777777777777777777777", resultType: "double" , result: "9223372036854775807", absError: "0.1", desc: "9. Conversion of the positive octal long value (max long) to the double."}
+  - { initialType: "Long", value: "0X7FFFFff_FFFFFFFFF", resultType: "double" , result: "9223372036854775807.0", absError: "0.01", desc: "10. Conversion of the hex max Long (alias) value to the double."}
+  - { initialType: "Long", value: "Long.MAX_VALUE", resultType: "double" , result: "9223372036854775807.00_000", absError: "0.000001", desc: "11. Conversion of the max Long (alias) value to the double."}
+  - { initialType: "long", value: "Long.MIN_VALUE", resultType: "Double" , result: "-0b1000000000000000000000000000000000000000000000000000000000000000", absError: "0.1", desc: "12. Conversion of the min long value to the double (alias, as binary)."}
+  - { initialType: "long", value: "Long.MIN_VALUE", resultType: "Double" , result: "-0X8000000000000000", absError: "0.1", desc: "13. Conversion of the min long value to the double (alias, as hex)."}
+  - { initialType: "Long", value: "new Long(-2147483648890)", resultType: "double" , result: "-0O37200000001572", absError: "0.1", desc: "14. Conversion of the negative decimal Long (alias, initialized by the constructor) value (min long) to the double."}
+  - { initialType: "long", value: "new Long(0O37200000001573)", resultType: "Double" , result: "2147483648891E0", absError: "0.1", desc: "15. Conversion of the positive octal long (initialized by the constructor of alias) value (min long) to the Double (alias)."}
+  - { initialType: "long", value: "+0o0", resultType: "double" , result: "0x00", absError: "0.1", desc: "16. Conversion of the octal long value (zero with plus sign) to the double."}
+  - { initialType: "Long", value: "-0x0", resultType: "Double" , result: "0.0", absError: "0.001", desc: "17. Conversion of the hex Long (alias) value (zero with minus sign) to the Double (alias)."}
+  - { initialType: "long", value: "new Long(0b000_00)", resultType: "Double" , result: "-0b0", absError: "0.1", desc: "18. Conversion of the binary long (initialized by the constructor of alias) value (many zero) to the Double (alias)."}
+  - { initialType: "Long", value: "new Long(0)", resultType: "double" , result: "+0o0", absError: "0.1", desc: "19. Conversion of the decimal Long (alias, initialized by the constructor) value (zero) to the double."}
+  - { initialType: "Long", value: "Long.MAX_VALUE", resultType: "double" , result: "0X7FFFFFF_FFFFFFFFF", absError: "0.1", desc: "20. Conversion of the max Long (alias) value to the double (as hex)."}
+  - { initialType: "Long", value: "0X7FFFFFFFFFFFFFFF", resultType: "double" , result: "0X7FFFFFFFFFFFFFFF", absError: "0.1", desc: "21. Conversion of the positive hex Long (alias) value (max long) to the double (as hex)."}
+  - { initialType: "Long", value: "+0o37200000001572", resultType: "double" , result: "0x1F40000037A", absError: "0.1", desc: "22. Conversion of the positive octal Long (alias, with plus sign) value to the double (as hex)."}
+  - { initialType: "long", value: "-2147483648891", resultType: "double" , result: "-0O37200000_001573", absError: "0.1", desc: "23. Conversion of the negative decimal long value to the double (as octal)."}
+  - { initialType: "Long", value: "-0B11111010000000000000000000000001101111010", resultType: "Double" , result: "-0B11111010000000000000000000000001101111010", absError: "0.1", desc: "24. Conversion of the negative binary Long (alias) value to the Double (alias, as binary)."}
+
+   

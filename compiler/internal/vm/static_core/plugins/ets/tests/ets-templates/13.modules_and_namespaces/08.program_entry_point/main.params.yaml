@@ -1,0 +1,178 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # void return type
+    - use: |-
+          // entry point function main, inferred void, positive
+          function main() {
+              arktest.assertTrue(true)
+          }
+
+    - use: |-
+          // entry point function main, explicit void, positive
+          function main(): void {
+              arktest.assertTrue(true)
+          }
+
+    - use: |-
+          // entry point function main, explicit void, compile-time
+          function main(): void {
+              if (true) {
+                  return
+              }
+              return undefined
+          }
+
+    # explicit int return type
+    - use: |-
+          // entry point function main, explicit int, positive
+          function main(): int {
+              return 0
+          }
+
+    - use: |-
+          let v: int|boolean = 0
+          // entry point function main, explicit int, positive
+          function main(): int {
+              let x = v
+              if (x instanceof boolean) {
+                  return 1
+              } else {
+                  return x
+              }
+          }
+
+    - use: |-
+          let v: Array<int|boolean> = [0]
+          // entry point function main, explicit int, positive
+          function main(): int {
+              let x = v[0]
+              if (x instanceof int) {
+                  return x
+              }
+              return 1
+          }
+
+    - use: |-
+          enum Color { Red, Green, Blue }
+          // entry point function main, explicit int, positive
+          function main(): int {
+              return Color.Red
+          }
+
+    # inferred int return type
+    - use: |-
+          // entry point function main, inferred int, positive
+          function main() {
+              return 0
+          }
+
+    - use: |-
+          let v: int|boolean = 0
+          // entry point function main, inferred int, positive
+          function main() {
+              let x = v
+              if (x instanceof int) {
+                  return x
+              }
+              return 1
+          }
+
+    - use: |-
+          let v: Array<int|boolean> = [0]
+          // entry point function main, inferred int, positive
+          function main() {
+              let x = v[0]
+              if (x instanceof int) {
+                  return x
+              }
+              return 1
+          }
+
+    - use: |-
+          let foo: (p: boolean) => int|undefined = (p: boolean): int|undefined => p ? 0 : undefined
+          // entry point function main, inferred int, positive
+          function main() {
+              return foo(true)!
+          }
+
+    # exported function main, void return type
+    - use: |-
+          // entry point exported function main, inferred void, positive
+          let res = ''
+          export function main() {
+              if (true) {
+                  return
+              }
+              arktest.assertNE(res, '')
+          }
+
+    - use: |-
+          // entry point exported function main, explicit void, positive
+          let res = ''
+          export function main(): void {
+              if (true) {
+                  return
+              }
+              arktest.assertNE(res, '')
+          }
+
+    # exported function main, int return type
+    - use: |-
+          // entry point exported function main, inferred int, positive
+          export function main() {
+              return 0
+          }
+
+    - use: |-
+          // entry point exported function main, explicit int, positive
+          export function main(): int {
+              return 0
+          }
+
+    # overloading
+    - use: |-
+          // exported main function is called
+          export function main() {
+              arktest.assertTrue(true)
+          }
+          export function main2(args: string[]) {
+              arktest.assertTrue(false)
+          }
+          export overload main { main, main2 }
+
+    - use: |-
+          //  The top-level exported function serves as the entry point.
+          export function entry(): number {
+              return 10;
+          }
+
+          function main(): void {
+              let a: number = entry();
+              arktest.assertEQ(a, 10);
+          }
+    
+    # Class initialization and function entry verification
+    - use: |-
+          class P {
+            static isInit: number = 1;
+            static mainTest() {
+                arktest.assertTrue(P.isInit === 1);
+            }
+          }
+
+          function main(): void {
+            P.mainTest();
+          }

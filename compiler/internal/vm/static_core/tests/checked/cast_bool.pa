@@ -1,0 +1,110 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+#! CHECKER      Check that cast in bool work for all arch
+#! RUN          force_jit: true, options: "", entry: "_GLOBAL::main_all", result: 0
+#! EVENT        /Compilation,_GLOBAL::main_all,.*COMPILED/
+
+.function u1 main_all() {
+    movi v2, 0xF1F1
+    call __noinline__cast_i32, v2
+    addi -1
+    jnez failure_exit_2
+
+    movi v3, 0x0
+    call __noinline__cast_u32, v3
+    jnez failure_exit_3
+
+    movi v4, 0x0
+    call __noinline__cast_i32, v4
+    jnez failure_exit_4
+
+    movi.64 v5, 0xFAECF0F11234
+    call __noinline__cast_u64, v5
+    addi -1
+    jnez failure_exit_5
+
+    movi.64 v6, 0x100000000
+    call __noinline__cast_i64, v6
+    addi -1
+    jnez failure_exit_6
+
+    movi.64 v7, 0x0
+    call __noinline__cast_u64, v7
+    jnez failure_exit_7
+
+    movi.64 v8, 0x0
+    call __noinline__cast_u64, v8
+    jnez failure_exit_8
+
+    ldai 0
+    return
+
+failure_exit_1:
+    ldai 1
+    return
+failure_exit_2:
+    ldai 2
+    return
+failure_exit_3:
+    ldai 3
+    return
+failure_exit_4:
+    ldai 4
+    return
+failure_exit_5:
+    ldai 5
+    return
+failure_exit_6:
+    ldai 6
+    return
+failure_exit_7:
+    ldai 7
+    return
+failure_exit_8:
+    ldai 8
+    return
+}
+
+.function u1 __noinline__cast_u32(u32 a0) {
+    lda a0
+    u32tou1
+    return
+}
+
+.function u1 __noinline__cast_i32(i32 a0) {
+    lda a0
+    i32tou1
+    return
+}
+
+.function u1 __noinline__cast_u64(u64 a0) {
+    lda.64 a0
+    u64tou1
+    return
+}
+
+.function u1 __noinline__cast_i64(i64 a0) {
+    lda.64 a0
+    i64tou1
+    return
+}

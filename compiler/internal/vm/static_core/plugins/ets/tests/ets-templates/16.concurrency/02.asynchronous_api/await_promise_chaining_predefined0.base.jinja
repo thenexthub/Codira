@@ -1,0 +1,48 @@
+/**
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+{% macro generate_complete_test(cases) %}
+{% for c in cases %}
+{% for type_name in [c.type, c.alias] | select %}
+
+/*---
+desc: Test to wait for Promise<{{type_name}}> Chaining.
+---*/
+
+const value: {{type_name}} = {{c.value}}
+const expectedValue = `${value}.1.2`;
+
+function promiseChaining() {
+  return Promise.resolve(value)
+    .then((result: Any) => {
+      // NOTE (#30899): Bug in overload resolution with implicit conversions. Replace with String(result) after fix.
+      return result + ".1";
+    })
+    .then((result: Any) => {
+      // NOTE (#30899): Bug in overload resolution with implicit conversions. Replace with String(result) after fix.
+      return result + ".2";
+    });
+}
+async function startTest() {
+    const result = await promiseChaining();
+    arktest.assertEQ(result, expectedValue, `Promise Chaining result should be ${expectedValue}`);
+}
+
+function main() {
+    waitForCompletion(startTest);
+}
+{% endfor %}
+{% endfor %}
+{% endmacro %}

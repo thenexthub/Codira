@@ -1,0 +1,184 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//arkcompiler/runtime_core/ark_config.gni")
+import("//arkcompiler/runtime_core/libabckit/abckit_config.gni")
+
+ark_gen_file("abckit_options_gen_h") {
+  template_file = "$ark_root_dynamic/templates/options/options.h.erb"
+  data_file = "$abckit_root/src/options.yaml"
+  requires = [ "$ark_root_dynamic/templates/common.rb" ]
+  output_file = "$target_gen_dir/generated/abckit_options_gen.h"
+}
+
+action("crop_abckit_intrinsics_yaml") {
+  script = "$abckit_root/scripts/fix_intrinsics_yml.sh"
+  args = [
+    rebase_path("abckit_compiler_intrinsics.yaml"),
+    rebase_path("$target_gen_dir/generated/abckit_compiler_intrinsics.yaml"),
+  ]
+  inputs = [ "abckit_compiler_intrinsics.yaml" ]
+  outputs = [ "$target_gen_dir/generated/abckit_compiler_intrinsics.yaml" ]
+}
+
+concat_yamls("abckit_concat_intrinsics_yaml") {
+  extra_dependencies = [
+    "$ark_root_static/runtime:arkruntime_gen_intrinsics_yaml",
+    ":crop_abckit_intrinsics_yaml",
+  ]
+  output_file =
+      get_label_info("$ark_root_static/runtime:arkruntime_gen_intrinsics_yaml",
+                     "target_gen_dir") + "/abckit_intrinsics.yaml"
+  default_file =
+      get_label_info("$ark_root_static/runtime:arkruntime_gen_intrinsics_yaml",
+                     "target_gen_dir") + "/intrinsics.yaml"
+  add_yamls = [ "$target_gen_dir/generated/abckit_compiler_intrinsics.yaml" ]
+}
+
+group("libabckit_header_deps") {
+  deps = [ ":abckit_options_gen_h" ]
+}
+
+libabckit_sources = [
+  "abckit_impl.cpp",
+  "helpers_common.cpp",
+  "ir_impl.cpp",
+  "ir_interface_impl.cpp",
+  "isa_dynamic_impl.cpp",
+  "isa_dynamic_impl_instr_1.cpp",
+  "isa_dynamic_impl_instr_2.cpp",
+  "isa_static_impl.cpp",
+  "metadata_arkts_inspect_impl.cpp",
+  "metadata_arkts_modify_impl.cpp",
+  "metadata_inspect_impl.cpp",
+  "metadata_js_inspect_impl.cpp",
+  "metadata_js_modify_impl.cpp",
+  "metadata_modify_impl.cpp",
+  "metadata_unknown_inspect_impl.cpp",
+  "scoped_timer.cpp",
+  "statuses_impl.cpp",
+]
+
+libabckit_include_dirs = [
+  "$ark_root_dynamic",
+  "$ark_root_dynamic/libabckit/include",
+  "$ark_root_dynamic/libpandabase",
+  "$target_gen_dir/src",
+  "$abckit_root",
+  "$abckit_root/include/",
+]
+
+libabckit_deps = [ ":libabckit_header_deps" ]
+
+ohos_source_set("libabckit_source_set") {
+  sources = libabckit_sources
+
+  include_dirs = libabckit_include_dirs
+
+  configs = [ "$abckit_root:abckit_config" ]
+
+  deps = libabckit_deps
+
+  part_name = "runtime_core"
+  subsystem_name = "arkcompiler"
+}
+
+ohos_source_set("libabckit_source_set_mock") {
+  sources = libabckit_sources
+
+  include_dirs = libabckit_include_dirs
+
+  configs = [ "$abckit_root:abckit_mock_config" ]
+
+  deps = libabckit_deps
+
+  part_name = "runtime_core"
+  subsystem_name = "arkcompiler"
+}
+
+libabckit_so_deps = [
+  "adapter_dynamic:abckit_adapter_dynamic_source_set",
+  "adapter_static:abckit_adapter_static_source_set",
+  "codegen:abckit_codegen_dynamic_source_set",
+  "codegen:abckit_codegen_static_source_set",
+  "irbuilder_dynamic:abckit_ir_builder_dynamic_source_set",
+  "mem_manager:abckit_mem_manager_source_set",
+  "wrappers:abckit_abcfile_wrapper_source_set",
+  "wrappers:abckit_pandasm_wrapper_source_set",
+]
+
+ohos_shared_library("libabckit") {
+  deps = libabckit_so_deps
+  deps += [ ":libabckit_source_set" ]
+
+  configs = [ "$abckit_root:abckit_config" ]
+
+  if (is_linux) {
+    libs = [ "stdc++fs" ]
+  }
+
+  if (is_mingw || is_win) {
+    output_extension = "dll"
+  } else {
+    output_extension = "so"
+  }
+
+  if (enable_hilog) {
+    public_external_deps = [ "hilog:libhilog" ]
+  }
+
+  part_name = "runtime_core"
+  subsystem_name = "arkcompiler"
+}
+
+ohos_source_set("libabckit_mock") {
+  deps = libabckit_so_deps
+  deps += [ ":libabckit_source_set_mock" ]
+
+  configs = [ "$abckit_root:abckit_mock_config" ]
+
+  if (is_linux) {
+    libs = [ "stdc++fs" ]
+  }
+
+  part_name = "runtime_core"
+  subsystem_name = "arkcompiler"
+}
+
+group("libabckit_all") {
+  deps = []
+  deps += libabckit_so_deps
+  deps += [ ":libabckit_source_set" ]
+  deps += [
+    "$ark_root_static/abc2program:arkts_abc2program_static",
+    "$ark_root_static/assembler:libarktsassembler_frontend_static",
+    "$ark_root_static/bytecode_optimizer:libarktsbytecodeopt_frontend_static",
+    "$ark_root_static/libarkbase:libarktsbase_frontend_static",
+    "$ark_root_static/libarkfile:libarktsfile_frontend_static",
+  ]
+}
+
+ohos_static_library("libabckit_static") {
+  deps = [ ":libabckit_all" ]
+  include_dirs = libabckit_include_dirs
+  configs = [ "$abckit_root:abckit_config" ]
+
+  if (enable_hilog) {
+    public_external_deps = [ "hilog:libhilog" ]
+  }
+
+  complete_static_lib = true
+
+  part_name = "runtime_core"
+  subsystem_name = "arkcompiler"
+}

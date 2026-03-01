@@ -1,0 +1,214 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("./guard_test_config.gni")
+
+test_ets_path = "$ark_root/guard/tests"
+abs_test_ets_path = "$abs_ark_root/guard/tests"
+
+test_ets_files = [
+  "ut/member_link/ns_member_linker_field_test",
+  "ut/member_link/ns_member_linker_method_test",
+  "ut/member_link/module_member_linker_field_test",
+  "ut/member_link/module_member_linker_method_test",
+  "ut/name_cache/name_cache_keeper_test_001",
+  "ut/name_mark/code_sample/class_test_001",
+  "ut/name_mark/code_sample/class_test_002",
+  "ut/name_mark/code_sample/class_test_003",
+  "ut/name_mark/code_sample/class_test_004",
+  "ut/name_mark/code_sample/class_test_005",
+  "ut/name_mark/code_sample/class_test_006",
+  "ut/name_mark/code_sample/class_test_007",
+  "ut/name_mark/code_sample/class_test_008",
+  "ut/name_mark/code_sample/class_test_009",
+  "ut/name_mark/code_sample/class_test_010",
+  "ut/name_mark/code_sample/class_test_011",
+  "ut/name_mark/code_sample/class_test_012",
+  "ut/name_mark/code_sample/class_test_013",
+  "ut/name_mark/code_sample/enum_test_001",
+  "ut/name_mark/code_sample/enum_test_002",
+  "ut/name_mark/code_sample/enum_test_003",
+  "ut/name_mark/code_sample/interface_test_001",
+  "ut/name_mark/code_sample/interface_test_002",
+  "ut/name_mark/code_sample/interface_test_003",
+  "ut/name_mark/code_sample/interface_test_004",
+  "ut/name_mark/code_sample/interface_test_005",
+  "ut/name_mark/code_sample/interface_test_006",
+  "ut/name_mark/code_sample/interface_test_007",
+  "ut/name_mark/code_sample/module_test_001",
+  "ut/name_mark/code_sample/module_test_002",
+  "ut/name_mark/code_sample/module_test_003",
+  "ut/name_mark/code_sample/module_test_004",
+  "ut/name_mark/code_sample/module_test_005",
+  "ut/name_mark/code_sample/module_test_006",
+  "ut/name_mark/code_sample/module_test_007",
+  "ut/name_mark/code_sample/module_test_008",
+  "ut/name_mark/code_sample/module_test_009",
+  "ut/name_mark/code_sample/module_test_010",
+  "ut/name_mark/code_sample/module_test_011",
+  "ut/name_mark/code_sample/namespace_test_001",
+  "ut/name_mark/code_sample/namespace_test_002",
+  "ut/name_mark/code_sample/namespace_test_003",
+  "ut/name_mark/code_sample/namespace_test_004",
+  "ut/name_mark/code_sample/namespace_test_005",
+  "ut/obfuscator/code_sample/class/class_demo1",
+  "ut/obfuscator/code_sample/class/class_demo2",
+  "ut/obfuscator/code_sample/class/class_demo3",
+  "ut/obfuscator/code_sample/class/class_get_set",
+  "ut/obfuscator/code_sample/generics/generics_demo1",
+  "ut/obfuscator/code_sample/generics/generics_demo2",
+  "ut/obfuscator/code_sample/generics/generics_extends",
+  "ut/obfuscator/code_sample/annotation_demo",
+  "ut/obfuscator/code_sample/enum_demo",
+  "ut/obfuscator/code_sample/function_demo",
+  "ut/obfuscator/code_sample/function_error_demo",
+  "ut/obfuscator/code_sample/incremental_test",
+  "ut/obfuscator/code_sample/namespace_demo",
+  "ut/obfuscator/code_sample/ns_link_field_test",
+  "ut/obfuscator/code_sample/ns_link_method_test",
+  "ut/obfuscator/code_sample/module_link_field_test",
+  "ut/obfuscator/code_sample/module_link_method_test",
+  "ut/obfuscator/code_sample/obfuscator_test",
+  "ut/obfuscator/code_sample/remove_log_test",
+  "ut/obfuscator/code_sample/toplevel_field_demo",
+  "ut/obfuscator/code_sample/stack_recovery",
+  "ut/obfuscator/code_sample/lambda_demo",
+  "ut/obfuscator/code_sample/array_object_demo",
+  "ut/obfuscator/code_sample/function_async_demo",
+  "ut/obfuscator/code_sample/namespace_default_symbol",
+  "ut/obfuscator/code_sample/union_type_ref",
+  "ut/obfuscator/seeds_dumper_test",
+  "ut/obfuscator_preprocess/preprocess_test_001",
+  "ut/obfuscator_preprocess/preprocess_test_002",
+]
+
+test_ets_projects = [
+  {
+    root_dir = "projects/import_test"
+    files = [
+      "projects/import_test/main",
+      "projects/import_test/export_file",
+      "projects/import_test/common/export_file",
+    ]
+  },
+  {
+    root_dir = "projects/file_path_test"
+    files = [
+      "projects/file_path_test/main",
+      "projects/file_path_test/A",
+      "projects/file_path_test/A1",
+      "projects/file_path_test/dir/bar/A",
+      "projects/file_path_test/dir/bar/foo/A",
+      "projects/file_path_test/dir/foo/A",
+      "projects/file_path_test/dir/foo/B",
+      "projects/file_path_test/foo/A",
+    ]
+  },
+]
+
+ets2abc_mass_gen_abc("gen_test_ets_files") {
+  src_file_list = test_ets_files
+  src_root_dir = test_ets_path
+}
+
+foreach(project, test_ets_projects) {
+  assert(defined(project.root_dir), "root_dir is required!")
+  assert(defined(project.files), "files is required!")
+
+  ark_link_gen_project("gen_project_${project.root_dir}") {
+    src_file_list = project.files
+    dst_abc = "$target_out_dir/${project.root_dir}/modules_static.abc"
+    arktsconfig = "$target_out_dir/${project.root_dir}/arktsconfig.json"
+    src_root_dir = test_ets_path
+    project_root_dir = "$abs_test_ets_path/${project.root_dir}"
+  }
+}
+
+arkguard_host_unittest_action("ArkGuardUnitTest") {
+  module_out_path = "$ark_root"
+
+  sources = [
+    "ut/args_parser_test.cpp",
+    "ut/configuration/configuration_parser_test.cpp",
+    "ut/keep_option_parser_test.cpp",
+    "ut/member_link/member_linker_test.cpp",
+    "ut/name_cache/name_cache_keeper_test.cpp",
+    "ut/name_cache/name_cache_parser_test.cpp",
+    "ut/name_mapping_manager_test.cpp",
+    "ut/name_mark/name_marker_test.cpp",
+    "ut/obfuscator/obfuscator_test.cpp",
+    "ut/obfuscator/seeds_dumper_test.cpp",
+    "ut/obfuscator_preprocess/obfuscator_preprocess_test.cpp",
+    "ut/string_util_test.cpp",
+    "ut/word_reader_test.cpp",
+    "util/execute_util.cpp",
+  ]
+
+  include_dirs = [
+    "$ark_root/libabckit/include",
+    "$ark_root/guard/library",
+    "$ark_root/guard/tests/util/include",
+    "$ark_root/static_core",
+    "$target_gen_dir/../../static_core",
+    "$ark_root",
+  ]
+
+  configs = [
+    "$ark_root/libabckit:abckit_config",
+    "$ark_root/static_core/libarkbase:arkbase_public_config",
+    "$ark_root/guard/abckit_wrapper:abckit_wrapper_public_config",
+    "$ark_root/guard:guard_public_config",
+  ]
+
+  deps = [
+    ":gen_test_ets_files",
+    "$ark_root/guard:guard_shared",
+    "$ark_root/guard/abckit_wrapper:abckit_wrapper_shared",
+    "$ark_root/libabckit/src:libabckit",
+    "$ark_root/static_core/libarkbase:libarktsbase",
+    "$ark_root/static_core/plugins/ets:etsstdlib",
+    "$ark_root/static_core/runtime:libarkruntime",
+  ]
+
+  if (ark_standalone_build) {
+    deps += [ "$ark_third_party_root/libuv:uv" ]
+  } else {
+    external_deps = [ "libuv:uv" ]
+  }
+
+  foreach(project, test_ets_projects) {
+    deps += [ ":gen_project_${project.root_dir}" ]
+  }
+
+  if (is_ohos && is_standard_system) {
+    test_abc_dir = "/data/test"
+  } else {
+    test_abc_dir = rebase_path(target_out_dir)
+  }
+  etsstdlib =
+      rebase_path(get_label_info("$ark_root/static_core/plugins/ets:etsstdlib",
+                                 "target_gen_dir")) + "/etsstdlib.abc"
+
+  guard_test_dir = rebase_path("$ark_root/guard/tests/")
+
+  defines = [
+    "GUARD_ABC_FILE_DIR=\"${test_abc_dir}/\"",
+    "GUARD_UNIT_TEST_DIR=\"${guard_test_dir}/\"",
+    "GUARD_ETS_STD_LIB=\"${etsstdlib}\"",
+  ]
+}
+
+group("host_unittest") {
+  testonly = true
+  deps = [ ":ArkGuardUnitTestAction" ]
+}

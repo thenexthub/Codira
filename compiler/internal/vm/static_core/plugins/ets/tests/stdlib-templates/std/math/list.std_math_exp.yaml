@@ -1,0 +1,237 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+- {
+    method_name: exp,
+    method_nature: function,
+    result_type: double,
+    method_signature:  {v: "double"},
+
+    method_test_index_data:
+      {
+        test1: { v: 0.0, },
+        test2: { v: 1.0,},
+        test3: { v: 2.0, },
+        test4: { v: -1.0, },
+        test5: { v: PI,  },
+        test6: { v: doubleNaN, },
+        test7: { v: doubleInf, },
+        test8: { v: doubleNegInf,},
+      },
+    method_expected_data:
+      {
+        test1: 1.0,
+        test2: E,
+        test3: E * E,
+        test4: 0.36787941,
+        test5: 23.140692633,
+        test6: -doubleNaN,
+        test7: doubleInf,
+        test8: 0.0,
+      },
+  }
+- {
+    method_name: expm1,
+    method_nature: function,
+    result_type: double,
+    method_signature:  {v: "double"},
+
+    method_test_index_data:
+      {
+        test1: {v: -1.0,},
+        test2: {v:  0.0,},
+        test3: {v:  1.0,},
+        test4: {v:  2.0,},
+        test5: {v:  3.0, },
+        test6: {v: doubleNaN,},
+        test7: {v: doubleInf, },
+        test8: { v: doubleNegInf,},
+
+      },
+    method_expected_data:
+      {
+        test1:  -0.63212056,
+        test2:   0.0,
+        test3:   E - 1,
+        test4:   6.389056,
+        test5:   19.08553692,
+        test6:  -doubleNaN,
+        test7:   doubleInf,
+        test8:  -1.0,
+      },
+  }
+- {
+    method_name: power,
+    method_nature: function,
+    result_type: double,
+    method_signature:  {v: "double", u: "double"},
+
+    method_test_index_data:
+      {
+        test1: { v: 2.0, u: 3.0},
+        test2: { v: 4.0, u: 0.5},
+        test3: { v: -2.0, u: 3.0 },
+        test4: { v: -2.0, u: 4.0,},
+        test5: { v: doubleNaN, u: doubleInf},
+        test6: { v: doubleInf, u: doubleInf},
+
+      },
+    method_expected_data:
+      {
+        test1:  8.0,
+        test2:  2.0,
+        test3: -8.0,
+        test4:  16.0,
+        test5: -doubleNaN,
+        test6:  doubleInf,
+      },
+  }
+- {
+    method_name: sqrt,
+    method_nature: function,
+    result_type: double,
+    method_signature:  {v: "double"},
+
+    method_test_index_data:
+      {
+        test1: { v:  0.0},
+        test2: { v:  E},
+        test3: { v:  PI },
+        test4: { v:  4.0,},
+        test5: { v: -1.0 },
+        test6: { v: doubleNaN, },
+        test7: { v: doubleInf, },
+        test8: { v: doubleNegInf,},
+        },
+    method_expected_data:
+      {
+        test1:  0.0,
+        test2:  1.64872127,
+        test3:  1.77245385,
+        test4:  2.0,
+        test5:  doubleNaN,
+        test6: -doubleNaN,
+        test7:  doubleInf,
+        test8:  -doubleNaN
+      },
+  }
+- {
+    method_name: cbrt,
+    method_nature: function,
+    result_type: double,
+    method_signature:  {v: "double"},
+
+    method_test_index_data:
+      {
+        test1: { v: 0.0},
+        test2: { v: E },
+        test3: { v: PI},
+        test4: { v: 8.0 },
+        test5: { v: -0.5 },
+        test6: { v: doubleNaN, },
+        test7: { v: doubleInf, },
+        test8: { v: doubleNegInf, },
+        },
+    method_expected_data:
+      {
+        test1: 0.0,
+        test2: 1.39561243,
+        test3: 1.46459189,
+        test4: 2.0,
+        test5: -0.7937005259840998,
+        test6: -doubleNaN,
+        test7: doubleInf,
+        test8: doubleNegInf
+      },
+  }
+- {
+    method_name: power2,
+    method_nature: function,
+    result_type: double,
+    method_signature:  {v: "double"},
+
+    method_test_index_data:
+      {
+        test1:  { v: -3.0},
+        test2:  { v: -2.0},
+        test3:  { v: -1.0},
+        test4:  { v: -0.5,},
+        test5:  { v:  0.5 },
+        test6:  { v: 1.0 },
+        test7:  { v: 2.0 },
+        test8:  { v: 3.0 },
+        test9:  { v: doubleNaN},
+        test10: { v: doubleInf},
+        test11: { v: doubleNegInf}
+
+      },
+    method_expected_data:
+      {
+        test1:   0.125,
+        test2:   0.25,
+        test3:   0.5,
+        test4:   1 / SQRT2,
+        test5:   SQRT2,
+        test6:   2.0,
+        test7:   4.0,
+        test8:   8.0,
+        test9:   doubleNaN,
+        test10:  doubleInf,
+        test11:  0,
+      },
+  }
+- {
+    method_name: scalbn,
+    method_nature: function,
+    result_type: double,
+    method_signature:  {v: "double", n: "int"},
+
+    method_test_index_data:
+      {
+        test10:  { v: 3.0,  n: 2},
+        test20:  { v: 2.0,  n: 0},
+        test30:  { v: 1.0,  n: 2},
+        test40:  { v: 0.5,  n: 2},
+        test50:  { v: -0.5, n: 2},
+        test60:  { v: -1.0, n: 2},
+        test70:  { v: -2.0, n: 0},
+        test80:  { v: -3.0, n: 2},
+        test90:  { v: doubleNaN, n: 0},
+        test100: { v: doubleInf, n: 0},
+        test110: { v: doubleNegInf, n: 0}
+
+      },
+    method_expected_data:
+      {
+        test10:   12.0,
+        test20:   2.0,
+        test30:   4.0,
+        test40:   2.0,
+        test50:  -2.0,
+        test60:  -4.0,
+        test70:  -2.0,
+        test80:  -12.0,
+        test90:   doubleNaN,
+        test100:  doubleInf,
+        test110:  doubleNegInf,
+      },
+  }

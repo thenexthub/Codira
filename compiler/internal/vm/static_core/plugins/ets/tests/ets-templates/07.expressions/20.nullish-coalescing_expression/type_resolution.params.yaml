@@ -1,0 +1,60 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # type resolution of array literals to Array, array[], and FixedArray types, object literals to class
+  #  and interface types, tuple, function, string literal type
+    - type: "Array<string>"
+      right_hand_value: "[]"
+      init: "new Array<string>()"
+
+    - type: "FixedArray<string>"
+      right_hand_value: "[]"
+      init: '["string"]'
+
+    - type: "string[]"
+      right_hand_value: "[]"
+      init: '["string"]'
+
+    - decl: |-
+        class SomeClass {}
+      type: "SomeClass"
+      right_hand_value: "new SomeClass()"
+      init: "new SomeClass()"
+
+    - decl: |-
+        interface SomeInterface {}
+        class SomeClass implements SomeInterface {}
+      type: "SomeInterface"
+      right_hand_value: "new SomeClass()"
+      init: "new SomeClass()"
+
+    - decl: |-
+        type some_tuple = [int, boolean]
+      type: "some_tuple"
+      right_hand_value: "[1, true]"
+      init: "[1, true]"
+
+    - decl: |-
+        type foo_type = () => int
+        function foo(): int { return 1; }
+      type: "foo_type"
+      right_hand_value: "foo"
+      init: "foo"
+
+    - decl: |-
+        type string_literal = "aa"
+      type: "string_literal"
+      right_hand_value: '"aa"'
+      init: '"aa"'

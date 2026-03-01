@@ -1,0 +1,15 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep class class_test_004.Ns1.ClassA implements class_test_004.Ns1.Interface1 {\n    *;\n    }",
+        "-keep class class_test_004.Ns1.ClassE extends class_test_004.Ns1.ClassB {\n    *;\n    }",
+        "-keepclasswithmembers class class_test_004.Ns1.ClassC {\n    *;\n    }",
+        "-keepclassmembers class class_test_004.Ns1.ClassD extends class_test_004.Ns1.ClassA {\n    *;\n    }"
+      ]
+    }
+  }
+}

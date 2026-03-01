@@ -1,0 +1,27 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+  - {check_type: "Any", static_value: "null", instance_value: "7"}
+  - {check_type: "Object", static_value: "5", instance_value: "\"abc\""}
+  - {check_type: "number", static_value: "3", instance_value: "6.7"}
+  - {check_type: "double", static_value: "3.4", instance_value: "5.0"}
+  - {check_type: "float", static_value: "6.7f", instance_value: "7.3f"}
+  - {check_type: "long", static_value: "9223372036854775807", instance_value: "78945"}
+  - {check_type: "int", static_value: "123", instance_value: "321"}
+  - {check_type: "short", static_value: "325", instance_value: "253"}
+  - {check_type: "byte", static_value: "127", instance_value: "78"}
+  - {check_type: "string", static_value: "\"abc\"", instance_value: "\"defg\""}
+  - {check_type: "bigint", static_value: "12345678901234567890n", instance_value: "5556423623465n"}
+  - {check_type: "char", static_value: "c'\\u2028'", instance_value: "c'z'"}
+  - {check_type: "boolean", static_value: "false", instance_value: "true"}

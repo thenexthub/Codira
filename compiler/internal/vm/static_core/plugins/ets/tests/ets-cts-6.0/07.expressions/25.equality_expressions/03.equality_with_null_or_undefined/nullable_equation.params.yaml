@@ -1,0 +1,178 @@
+# Copyright (c) 2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not value this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - type: |-
+        Int 
+      value: |-
+        Int.MAX_VALUE
+
+    - type: |-
+        Int 
+      value: |-
+        null
+
+    - type: |-
+        Double
+      value: |-
+        Double.MAX_VALUE
+
+    - type: |-
+        Double
+      value: |-
+        Float.MAX_VALUE 
+
+    - type: |-
+        Float 
+      value: |-
+        null
+
+    - type: |-
+        Long 
+      value: |-
+        Long.MAX_VALUE 
+
+    - type: |-
+        Long 
+      value: |-
+        null
+
+    - type: |-
+        Short 
+      value: |-
+        Short.MAX_VALUE
+
+    - type: |-
+        Short 
+      value: |-
+        null
+
+    - type: |-
+        Byte 
+      value: |-
+        Byte.MAX_VALUE
+
+    - type: |-
+        Byte 
+      value: |-
+        null
+
+    - type: |-
+        Boolean 
+      value: |-
+        true
+
+    - type: |-
+        Boolean 
+      value: |-
+        false
+
+    - type: |-
+        Boolean 
+      value: |-
+        null
+
+    - type: |-
+        String 
+      value: |-
+        "some string"
+
+    - type: |-
+        String 
+      value: |-
+        null
+
+    - type: |-
+        bigint
+      value: |-
+        1n
+
+    - type: |-
+        bigint
+      value: |-
+        null
+
+    - type: |-
+        Char
+      value: |-
+        c'p'
+
+    - type: |-
+        Char
+      value: |-
+        null
+        
+    - decl: |-
+        enum StringEnum { A = "str1", B = "str2"}
+        let a: StringEnum = StringEnum.A
+      type: |-
+        StringEnum
+      value: |-
+        a
+
+    - decl: |-
+        enum IntEnum { A = 1, B = 2}
+        let a: IntEnum = IntEnum.A
+      type: |-
+        IntEnum
+      value: |-
+        a
+
+    - decl: |-
+        let a = (): Int => {return 1}
+      type: |-
+        () => Int
+      value: |-
+        a
+
+    - type: |-
+        () => Int
+      value: |-
+        null
+
+    - decl: |-
+        class A {}
+        let a: A = new A()
+      type: |-
+        A
+      value: |-
+        a
+
+    - decl: |-
+        class A {}
+        let a: A = new A()
+      type: |-
+        A
+      value: |-
+        null
+
+    - type: |-
+        number|string
+      value: |-
+        "str"
+
+    - type: |-
+        number|string
+      value: |-
+        null
+
+    - type: |-
+        Object
+      value: |-
+        "str"
+        
+    - type: |-
+        Object
+      value: |-
+        null

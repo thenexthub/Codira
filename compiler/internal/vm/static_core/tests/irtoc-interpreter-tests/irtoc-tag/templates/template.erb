@@ -1,0 +1,96 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+.record DebugUtils <external>
+.function void DebugUtils.checkTag(i64 a0, i64 a1) <external>
+
+<%if @create["func"]%>
+.function i32 <%=@instr["method_id"]%> (<%tmp = 0%><%@instr["in_ops"].each do |p|%><%="i32 a#{tmp}"%><%tmp+=1%><%=", "if tmp != @instr["in_ops"].size%><%end%>) {
+    ldai 42
+    return
+}<%end%>
+<%if @create["type"]%>.record R {}<%end%>
+<%if @create["const_arr"]%><%array = @create["const_arr"]%>.array array <%="#{array["type"]}"%> 4 {0 1 2 3}<%end%>
+<%if @create["obj"] || @create["ctor"]%>
+.record R {
+    <%if @create["static"]%>i64 field0 <static><%end%>
+    i64 field1
+    i64 field2
+    i64[] field3
+    <%if @create["static"]%>i64[] field4 <static><%end%>
+}
+<%if @create["static"]%>
+.function void R.cctor() <cctor> {
+    ldai 10
+    ststatic R.field0
+    movi v0, 10
+    newarr v1, v0, i64[]
+    lda.obj v1
+    ststatic.obj R.field4
+    return.void
+}<%end%>
+.function void R.ctor(R a0, i64 a1, i64 a2) <ctor> {
+    lda a1
+    stobj a0, R.field1
+    lda a2
+    stobj a0, R.field2
+    movi v0, 7
+    newarr v1, v0, i64[]
+    lda.obj v1
+    stobj.obj a0, R.field3
+    return.void
+}
+<%end%>
+
+<%if @create["virt"]%>
+.record A {}
+.function void A.ctor(A a0) <ctor> {
+    return.void
+}
+.function i32 <%="#{@instr["method_id"]}"%> (A a0) {
+    ldai 42
+    return
+}<%end%>
+.function i32 main(){
+    ldai 2
+<%if @create["obj"]%>
+    movi v0, 10
+    movi v1, 20
+    initobj.short R.ctor, v0, v1
+    sta.obj v4<%end%>
+<%if @create["virt"]%>
+    initobj.short A.ctor
+    sta.obj v4<%end%>
+<%if @create["arr"]%><%array = @create["arr"]%>
+    movi v1, <%=array["size"]%>
+    newarr v3, v1, <%=array["type"]%>
+<%if @create["isinstance"]%>    lda.obj v3<%end%>
+<%else%>    movi v3, 10
+<%end%><%if @instr["fill_reg"]%><%@instr["fill_reg"].each do |p|%>
+    movi <%=p%>, 10<%end%><%end%>
+    <%=@instr["sig"]%>
+    movi v1, <%= @instr["dst_reg"]%>
+    movi v2, <%= @instr["expected_tag"]%>
+    call.short DebugUtils.checkTag, v1, v2
+    ldai 0
+    return
+}

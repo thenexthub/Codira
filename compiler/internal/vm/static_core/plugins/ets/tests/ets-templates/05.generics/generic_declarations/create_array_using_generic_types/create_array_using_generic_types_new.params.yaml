@@ -1,0 +1,127 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+--- # Instantiate built-in generic arrays(Array<T>) with types.
+cases_one:
+
+  - type: number
+    desc: Instantiate built-in generic arrays(Array<T>) with number types.
+    expected_values: [1, 2, 3]
+    init_values: (1, 2, 3)
+
+  - type: number
+    desc: Instantiate built-in generic arrays(Array<T>) with binary number types.
+    expected_values: [2, 3, 4]
+    init_values: (0b10, 0b11, 0b100)
+
+  - type: number
+    desc: Instantiate built-in generic arrays(Array<T>) with octal number types.
+    expected_values: [8, 9, 10]
+    init_values: (0o010, 0o011, 0o012)
+
+  - type: number
+    desc: Instantiate built-in generic arrays(Array<T>) with hexadecimal number types.
+    expected_values: [16, 17, 18]
+    init_values: (0x10, 0x11, 0x12)
+
+  - type: "'up' | 'down' | 'left' | 'right'"
+    desc: Instantiate built-in generic arrays(Array<T>) with literal type.
+    expected_values: ["'up'", "'down'", "'left'"]
+    init_values: ('up', 'down', 'left')
+
+  - type: string
+    desc: Instantiate built-in generic arrays(Array<T>) with string types.
+    expected_values: ["\"a\"", "\"b\"", "\"c\""]
+    init_values: ("a", "b", "c")
+
+  - type: string | number
+    desc: Instantiate built-in generic arrays(Array<T>) with union types.
+    expected_values: [1, 2, "'a'"]
+    init_values: (1, 2, 'a')
+
+  - type: int
+    desc: Instantiate built-in generic arrays(Array<T>) with int types.
+    expected_values: [1, 2, 3]
+    init_values: (1, 2, 3)
+
+  - type: long
+    desc: Instantiate built-in generic arrays(Array<T>) with long types.
+    expected_values: [1, 2, 3]
+    init_values: (1, 2, 3)
+
+  - type: float
+    desc: Instantiate built-in generic arrays(Array<T>) with float types.
+    expected_values: [1.1f, 2.2f, 3.3f]
+    init_values: (1.1f, 2.2f, 3.3f)
+
+  - type: double
+    desc: Instantiate built-in generic arrays(Array<T>) with double types.
+    expected_values: [1.111, 2.1111, 3.11111]
+    init_values: (1.111, 2.1111, 3.11111)
+
+  - type: boolean
+    desc: Instantiate built-in generic arrays(Array<T>) with boolean types.
+    expected_values: ['false', 'true', 'true']
+    init_values: (false, true, true)
+
+  - type: bigint
+    desc: Instantiate built-in generic arrays(Array<T>) with bigint types.
+    expected_values: [1n, 2n, 3n]
+    init_values: (1n, 2n, 3n)
+
+  - type: undefined
+    desc: Instantiate built-in generic arrays(Array<T>) with undefined types.
+    expected_values: [undefined, undefined, undefined]
+    init_values: (undefined, undefined, undefined)
+
+  - decl: |-
+      enum ColorSet {Red = 0, Green = 1, Blue = 2}
+    type: ColorSet
+    desc: Instantiate built-in generic arrays(Array<T>) with enumerated types.
+    expected_values: [ColorSet.Red, ColorSet.Green, ColorSet.Blue]
+    init_values: (ColorSet.Red, ColorSet.Green, ColorSet.Blue)
+
+  - type: 'null'
+    desc: Instantiate built-in generic arrays(Array<T>) with null types.
+    expected_values: ['null', 'null', 'null']
+    init_values: (null, null, null)
+
+  - type: Animal
+    desc: Instantiate built-in generic arrays(Array<T>) with class type.
+    decl: |-
+      class Animal {
+        public name: string;
+        constructor(name: string) {
+        this.name = name;
+        }
+      }
+    init_values: (new Animal("Dog"), new Animal("Cat"))
+    expected: |-
+      arktest.assertEQ(tmpArray[0].name, "Dog");
+      arktest.assertEQ(tmpArray[1].name, "Cat");
+
+  - type: string[]
+    desc: Instantiate built-in generic arrays(Array<T>) with string[] type.
+    init_values: (["1", "2", "3"], ["4", "5", "6"], ["7", "8", "9"])
+    expected: |-
+      arktest.assertEQ(tmpArray[0][0], "1");
+      arktest.assertEQ(tmpArray[2][2], "9");

@@ -1,0 +1,275 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - type: number | string
+      value: 1, 'two', 3, 'four'
+      desc: Test an array with a union type of number and string.
+
+    - type: boolean | number
+      value: true, 1, false, 2
+      desc: Test an array with a union type of boolean and number.
+
+    - type: string | boolean
+      value: true, 'hello', false, 'world'
+      desc: Test an array with a union type of string and boolean.
+
+    - type: number | string | boolean
+      value: 1, 'two', false, 3, 'four', true
+      desc: Test an array with a union type of number, string, and boolean.
+
+    - type: Color | number
+      value: Color.Red, 1, Color.Green, 2
+      desc: Test an array with a union type of an enum type and number.
+      enumerate: |-
+          enum Color {
+            Red,
+            Green,
+            Blue
+          }
+
+    - type: Color | string
+      value: Color.Red, 'Green', Color.Blue, 'Red'
+      desc: Test an array with a union type of an enum type and string.
+      enumerate: |-
+          enum Color {
+            Red,
+            Green,
+            Blue
+          }
+
+    - type: Color | boolean
+      value: Color.Red, true, Color.Green, false
+      desc: Test an array with a union type of an enum type and boolean.
+      enumerate: |-
+          enum Color {
+            Red,
+            Green,
+            Blue
+          }
+
+    - type: Color | number | string
+      value: Color.Red, 1, 'Green', Color.Blue, 2, 'Red'
+      desc: Test an array with a union type of an enum type, number, and string.
+      enumerate: |-
+          enum Color {
+            Red,
+            Green,
+            Blue
+          }
+
+    - type: string[] | boolean[]
+      value: |-
+          [true, false], ['a', 'b']
+      desc: Test an array with a union type of a string array and a boolean array.
+
+    - type: boolean | number | undefined
+      value: true, 1, undefined, false, 2
+      desc: Test an array with a union type of optional boolean and number.
+
+    - type: string | boolean | undefined
+      value: false, 'hello', undefined, 'world', true
+      desc: Test an array with a union type of optional string and boolean.
+
+    - type: Color | number | undefined
+      value: Color.Red, 1, undefined, Color.Green, 2
+      desc: Test an array with a union type of an optional enum type and number.
+      enumerate: |-
+          enum Color {
+            Red,
+            Green,
+            Blue
+          }
+
+    - type: number | string | boolean | undefined
+      value: 1, 'two', false, undefined, 3, 'four', true
+      desc: Test an array with a union type of optional number, string, and boolean.
+
+    - type: Color | number | undefined
+      value: Color.Red, 1, undefined, Color.Green, 2
+      desc: Test an array with a union type of an optional enum type and number.
+      enumerate: |-
+          enum Color {
+            Red,
+            Green,
+            Blue
+          }
+
+    - type: Date | number
+      value: new Date(), 10, new Date('2023-01-01'), 20
+      desc: Test an array with a union type of Date and number.
+
+    - type: Date | string
+      value: new Date(), 'Hello', new Date('2023-01-01'), 'World'
+      desc: Test an array with a union type of Date and string.
+
+    - type: Date | boolean
+      value: new Date(), true, new Date('2023-01-01'), false
+      desc: Test an array with a union type of Date and boolean.
+
+    - type: Date | number | string
+      value: new Date(), 10, 'Hello', new Date('2023-01-01'), 20, 'World'
+      desc: Test an array with a union type of Date, number, and string.
+
+    - type: Map<string, number> | number
+      value: (new Map<string, number>()).set('one', 1), 10, (new Map<string, number>()).set('two', 2), 20
+      desc: Test an array with a union type of Map and number.
+
+    - type: Map<string, string> | string
+      value: (new Map<string, string>()).set('key1', 'value1'), 'Hello', (new Map<string, string>()).set('key2', 'value2'), 'World'
+      desc: Test an array with a union type of Map and string.
+
+    - type: Map<string, boolean> | boolean
+      value: (new Map<string, boolean>()).set('bool1', true), true, (new Map<string, boolean>()).set('bool2', false), false
+      desc: Test an array with a union type of Map and boolean.
+
+    - type: Map<string, number | string> | number | string
+      value: (new Map<string, number | string>()).set('item1', 1).set('item2', 'a'), 10, 'Hello', (new Map<string, number | string>()).set('item3', 2).set('item4', 'b'), 20, 'World'
+      desc: Test an array with a union type of Map, number, and string.
+
+    - type: null | number
+      value: null, 10, null, 20
+      desc: Test an array with a union type of null and number.
+
+    - type: null | string
+      value: null, 'Hello', null, 'World'
+      desc: Test an array with a union type of null and string.
+
+    - type: Promise<string> | string
+      value: Promise.resolve('Hello'), 'Hello', Promise.resolve('World'), 'World'
+      desc: Test an array with a union type of Promise and string.
+
+    - type: Promise<string> | boolean
+      value: Promise.resolve('Hello'), true, Promise.resolve('World'), false
+      desc: Test an array with a union type of Promise and boolean.
+
+    - type: Promise<string> | number
+      value: Promise.resolve('Hello'), 1, Promise.resolve('World'), 2
+      desc: Test an array with a union type of Promise and boolean.
+
+    - type: Promise<string> | Error
+      value: Promise.resolve('Hello'), new Error('Error 1'), Promise.resolve('World'), new Error('Error 1')
+      desc: Test an array with a union type of Promise and Error.
+
+    - type: Error | number
+      value: new Error('Error 1'), 10, new Error('Error 2'), 20
+      desc: Test an array with a union type of Error and number.
+
+    - type: Error | string
+      value: new Error('Error 1'), 'test', new Error('Error 2'), 'case'
+      desc: Test an array with a union type of Error and string.
+
+    - type: ArrayBuffer | number
+      value: new ArrayBuffer(8), 10, new ArrayBuffer(16), 20
+      desc: Test an array with a union type of ArrayBuffer and number.
+
+    - type: ArrayBuffer | string
+      value: new ArrayBuffer(8), 'hello', new ArrayBuffer(16), 'world'
+      desc: Test an array with a union type of ArrayBuffer and string.
+
+    - type: DataView | number
+      value: new DataView(new ArrayBuffer(8)), 10, new DataView(new ArrayBuffer(16)), 20
+      desc: Test an array with a union type of DataView and number.
+
+    - type: DataView | string
+      value: new DataView(new ArrayBuffer(8)), 'abc', new DataView(new ArrayBuffer(16)), 'def'
+      desc: Test an array with a union type of DataView and string.
+
+    - type: Int8Array | number
+      value: new Int8Array([1, 2, 3]), 10, new Int8Array([4, 5, 6]), 20
+      desc: Test an array with a union type of Int8Array and number.
+
+    - type: Int8Array | string
+      value: new Int8Array([1, 2, 3]), 'hello', new Int8Array([4, 5, 6]), 'world'
+      desc: Test an array with a union type of Int8Array and string.
+
+    - type: Uint8Array | number
+      value: new Uint8Array([1, 2, 3]), 10, new Uint8Array([4, 5, 6]), 20
+      desc: Test an array with a union type of Uint8Array and number.
+
+    - type: Uint8Array | string
+      value: new Uint8Array([1, 2, 3]), 'hello', new Uint8Array([4, 5, 6]), 'world'
+      desc: Test an array with a union type of Uint8Array and string.
+
+    - type: Uint8ClampedArray | number
+      value: new Uint8ClampedArray([1, 2, 3]), 10, new Uint8ClampedArray([4, 5, 6]), 20
+      desc: Test an array with a union type of Uint8ClampedArray and number.
+
+    - type: Uint8ClampedArray | string
+      value: new Uint8ClampedArray([1, 2, 3]), 'hello', new Uint8ClampedArray([4, 5, 6]), 'world'
+      desc: Test an array with a union type of Uint8ClampedArray and string.
+
+    - type: Int16Array | number
+      value: new Int16Array([1, 2, 3]), 10, new Int16Array([4, 5, 6]), 20
+      desc: Test an array with a union type of Int16Array and number.
+
+    - type: Int16Array | string
+      value: new Int16Array([1, 2, 3]), 'hello', new Int16Array([4, 5, 6]), 'world'
+      desc: Test an array with a union type of Int16Array and string.
+
+    - type: Uint16Array | number
+      value: new Uint16Array([1, 2, 3]), 10, new Uint16Array([4, 5, 6]), 20
+      desc: Test an array with a union type of Uint16Array and number.
+
+    - type: Uint16Array | string
+      value: new Uint16Array([1, 2, 3]), 'hello', new Uint16Array([4, 5, 6]), 'world'
+      desc: Test an array with a union type of Uint16Array and string.
+
+    - type: Int32Array | number
+      value: new Int32Array([1, 2, 3]), 10, new Int32Array([4, 5, 6]), 20
+      desc: Test an array with a union type of Int32Array and number.
+
+    - type: Uint32Array | number
+      value: new Uint32Array([1, 2, 3]), 10, new Uint32Array([4, 5, 6]), 20
+      desc: Test an array with a union type of Uint32Array and number.
+
+    - type: Float32Array | number
+      value: new Float32Array([1.1, 2.2, 3.3]), 10, new Float32Array([4.4, 5.5, 6.6]), 20
+      desc: Test an array with a union type of Float32Array and number.
+
+    - type: Float32Array | string
+      value: new Float32Array([1.1, 2.2, 3.3]), 'hello', new Float32Array([4.4, 5.5, 6.6]), 'world'
+      desc: Test an array with a union type of Float32Array and string.
+
+    - type: Float64Array | string
+      value: new Float64Array([1.1, 2.2, 3.3]), 'hello', new Float64Array([4.4, 5.5, 6.6]), 'world'
+      desc: Test an array with a union type of Float64Array and string.
+
+    - type: BigInt64Array | number
+      value: new BigInt64Array([1n, 2n, 3n]), 10, new BigInt64Array([4n, 5n, 6n]), 20
+      desc: Test an array with a union type of BigInt64Array and number.
+
+    - type: BigUint64Array | string
+      value: new BigUint64Array([1n, 2n, 3n]), 'hello', new BigUint64Array([4n, 5n, 6n]), 'world'
+      desc: Test an array with a union type of BigUint64Array and string.
+  
+    - type: Float32Array | BigInt64Array | string
+      value: new Float32Array([1.1, 2.2, 3.3]), 'hello', new BigInt64Array([4n, 5n, 6n]), 'world'
+      desc: Test an array with a union type of different TypedArrays and string.
+
+    - type: BigUint64Array | (() => number)
+      value: new BigUint64Array([1n, 2n, 3n]), add
+      function: |-
+        function add(): number {
+          return 2;
+        }
+      desc: Test an array with a union type of TypedArray and Function.
+
+    - type: Uint32Array | Error
+      value: new Uint32Array([1, 2, 3]), new Error('Test error')
+      desc: Test an array with a union type of TypedArray and Error.
+
+    - type: Int32Array | Date
+      value: new Int32Array([1, 2, 3]), new Date()
+      desc: Test an array with a union type of TypedArray and Date.

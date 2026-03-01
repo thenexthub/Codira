@@ -1,0 +1,92 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+---
+cases:
+    - to: 'Object'
+      from:
+        - arg: 'new Object'
+    - to: 'C'
+      from:
+        - arg: 'new C'
+        - arg: 'new D'
+    - to: 'I'
+      from:
+        - arg: 'new CI'
+    - to: 'FixedArray<byte>'
+      from:
+        - arg: 'array'
+          decl: 'const array: FixedArray<byte> = [ 0 ]'
+    - to: 'FixedArray<C>'
+      from:
+        - arg: '[ new C ]'
+        - arg: '[ new D ]'
+    - to: 'FixedArray<I>'
+      from:
+        - arg: '[ new CI ]'
+    - to: '() => void'
+      from:
+        - arg: 'f'
+          decl: 'const f = () => {}'
+    - to: 'B|J'
+      from:
+        - arg: 'new B'
+        - arg: 'new CODE'
+    - to: 'A|boolean'
+      from:
+        - arg: 'new A'
+        - arg: 'true'
+    - to: 'string'
+      from:
+        - arg: '"just a test"'
+        - arg: 'c'
+          decl: 'const c: char = 0'
+    - to: 'bigint'
+      from:
+        - arg: '0n'
+        - arg: 'n'
+          decl: 'const n: char = 0'
+        - arg: 'n'
+          decl: 'const n: byte = 0'
+        - arg: 'n'
+          decl: 'const n: short = 0'
+        - arg: 'n'
+          decl: 'const n: int = 0'
+        - arg: 'n'
+          decl: 'const n: long = 0'
+        - arg: 'n'
+          decl: 'const n: float = 0'
+        - arg: 'n'
+          decl: 'const n: double = 0'
+        - arg: 'n'
+          decl: 'const n: number = 0'
+    - to: 'EN'
+      from:
+        - arg: 'EN.a'
+    - to: 'ES'
+      from:
+        - arg: 'ES.a'
+    - to: 'null'
+      from:
+        - arg: 'null'
+    - to: 'undefined'
+      from:
+        - arg: 'undefined'

@@ -1,0 +1,40 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+testData:
+  - { initialType: "byte",   value: "90",   resultType: "short",   result: "0O1_32",   desc: "0. Conversion of the positive decimal byte value to the short."}
+  - { initialType: "byte",   value: "-9_1",   resultType: "short",   result: "-0O1_33",   desc: "1. Conversion of the negative decimal byte value to the short."}
+  - { initialType: "byte",   value: "0x5_A",   resultType: "Short",   result: "0b1011010",   desc: "2. Conversion of the positive hex byte value to the short."}
+  - { initialType: "byte",   value: "-0x5_b",   resultType: "Short",   result: "-0b101_1011",   desc: "3. Conversion of the negative hex byte value to the short."}
+  - { initialType: "Byte",   value: "0o132",   resultType: "short",   result: "0x5A",   desc: "4. Conversion of the positive octal Byte (alias) value to the short."}
+  - { initialType: "Byte",   value: "-0o1_33",   resultType: "short",   result: "-0x5b",   desc: "5. Conversion of the negative octal Byte (alias) value to the short."}
+  - { initialType: "Byte",   value: "-0B00001011011",   resultType: "Short",   result: "-91",   desc: "6. Conversion of the negative binary Byte (alias) value to the Short (alias)."}
+  - { initialType: "Byte",   value: "0B000_0101_1010",   resultType: "Short",   result: "9_0",   desc: "7. Conversion of the positive binary Byte (alias) value to the Short (alias)."}
+  - { initialType: "Byte",   value: "-128",   resultType: "Short",   result: "-128",   desc: "8. Conversion of the negative decimal Byte (alias) value (min byte) to the Short (alias)."}
+  - { initialType: "byte",   value: "0o177",   resultType: "short",   result: "127",   desc: "9. Conversion of the positive octal byte value (max byte) to the short."}
+  - { initialType: "Byte",   value: "Byte.MAX_VALUE",   resultType: "short",   result: "0X7F",   desc: "10. Conversion of the max Byte (alias) value to the short."}
+  - { initialType: "byte",   value: "Byte.MIN_VALUE",   resultType: "Short",   result: "-0b10000000",   desc: "11. Conversion of the min byte value to the short (alias)."}
+  - { initialType: "Byte",   value: "new Byte(-90)",   resultType: "short",   result: "-0o132",   desc: "12. Conversion of the negative decimal Byte (alias, initialized by the constructor) value (min byte) to the short."}
+  - { initialType: "byte",   value: "new Byte(0O1_33)",   resultType: "Short",   result: "91",   desc: "13. Conversion of the positive octal byte (initialized by the constructor of alias) value (min byte) to the Short (alias)."}
+  - { initialType: "byte",   value: "new Byte(0b000_00)",   resultType: "Short",   result: "-0b0",   desc: "14. Conversion of the binary byte (initialized by the constructor of alias) value (many zero) to the Short (alias)."}
+  - { initialType: "Byte",   value: "new Byte(0)",   resultType: "short",   result: "+0o0",   desc: "15. Conversion of the decimal Byte (alias, initialized by the constructor) value (zero) to the short."}
+  - { initialType: "Byte",   value: "-0x0",   resultType: "Short",   result: "0",   desc: "16. Conversion of the hex Byte (alias) value (zero with minus sign) to the Short (alias)."}

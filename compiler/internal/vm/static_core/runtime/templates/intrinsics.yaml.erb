@@ -1,0 +1,106 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+% Runtime::intrinsics.each do |intrinsic|
+- name: <%= intrinsic.name %>
+  space: <%= intrinsic.space %>
+  class_name: <%= intrinsic.class_name if intrinsic.respond_to?(:class_name)%>
+  method_name: <%= intrinsic.method_name if intrinsic.respond_to?(:method_name)%>
+  safepoint_after_call: <%= intrinsic.respond_to?(:safepoint_after_call) && intrinsic.safepoint_after_call %>
+  private: <%= intrinsic.respond_to?(:private) && intrinsic.private %>
+% compiler_only = intrinsic.respond_to?(:compiler_only) && intrinsic.compiler_only
+% raise "incorrect naming of compiler_only intrinsic" if compiler_only and not intrinsic.name.start_with?("Compiler")
+% raise "incorrect naming of not compiler_only intrinsic" if not compiler_only and intrinsic.name.start_with?("Compiler")
+  compiler_only: <%= compiler_only %>
+  signature:
+% stackrange = intrinsic.signature.respond_to?(:stackrange) && intrinsic.signature.stackrange
+% raw_args = intrinsic.signature.args + (stackrange ? ['ptr'] : [])
+% full_args = raw_args.map { |arg| yaml_union_type?(arg) ? '{U' + arg[2..-1] : arg }
+    ret: "<%= intrinsic.signature.ret %>"
+    stackrange: <%= stackrange %>
+    args: <%= full_args %>
+% static = intrinsic.respond_to?(:static) && intrinsic.static
+  static: <%= static %>
+% if intrinsic.respond_to?(:require_flat_check)
+  require_flat_check: <%= intrinsic.require_flat_check %>
+% end
+% if intrinsic.has_impl?
+% if not static and intrinsic.respond_to?(:class_name) and is_string_type(intrinsic.class_name)
+  this_string: true
+% end
+  impl: <%= intrinsic.wrapper_impl %>
+  impl_signature:
+    ret: "<%= get_ret_effective_type(intrinsic.signature.ret) %>"
+%   impl_args = intrinsic.signature.impl_args
+%   impl_args_str = full_args.each_with_index.map { |t, i| get_effective_type(t, impl_args ? impl_args[i] : nil ) }.flatten
+    args: <%= ((!static && !compiler_only)? [get_effective_type(intrinsic.class_name)] : []) + impl_args_str %>
+    strings: <%= full_args.each_with_index.select { |t, i| is_string_type(t) }.map { |t, i| i }.flatten %>
+%   if intrinsic.need_abi_wrapper?
+  orig_impl: <%= intrinsic.impl %>
+  orig_impl_signature:
+    ret: "<%= get_ret_type(intrinsic.signature.ret) %>"
+    args: <%= ((!static && !compiler_only)? [get_type(intrinsic.class_name)] : []) + full_args.map { |t| get_type(t) }.flatten %>
+%   end
+  need_decl: <%= intrinsic.impl.start_with?(Runtime::intrinsics_namespace) %>
+% end
+% if intrinsic.respond_to?(:irtoc_impl)
+  irtoc_impl: <%= intrinsic.irtoc_impl %>
+% end
+% if intrinsic.respond_to?(:peephole_func)
+  peephole_func: <%= intrinsic.peephole_func %>
+% end
+% if intrinsic.respond_to?(:fast_path)
+  fast_path: <%= intrinsic.fast_path %>
+% end
+  safe_intrinsic: <%= intrinsic.respond_to?(:safe_intrinsic) ? intrinsic.safe_intrinsic : false %>
+  clear_flags: <%= intrinsic.respond_to?(:clear_flags) ? intrinsic.clear_flags : [] %>
+  set_flags: <%= intrinsic.respond_to?(:set_flags) ? intrinsic.set_flags : [] %>
+  additional_temps: <%= intrinsic.respond_to?(:additional_temps) ? intrinsic.additional_temps : 0 %>
+% if intrinsic.respond_to?(:llvm_impl)
+  llvm_impl: <%= intrinsic.llvm_impl %>
+% end
+% if intrinsic.respond_to?(:llvm_codegen_func)
+  llvm_codegen_func: <%= intrinsic.llvm_codegen_func %>
+% end
+%   if intrinsic.respond_to?(:codegen_func)
+  codegen_func: <%= intrinsic.codegen_func %>
+  codegen_virt: <%= intrinsic.respond_to?(:codegen_virt) ? intrinsic.codegen_virt : false %>
+  codegen_arch: <%= intrinsic.respond_to?(:codegen_arch) ? intrinsic.codegen_arch : ['amd64', 'arm32', 'arm64'] %>
+% if intrinsic.respond_to?(:can_encode_func)
+  can_encode_func: <%= intrinsic.can_encode_func %>
+% end
+%   else
+  codegen_arch: <%= intrinsic.respond_to?(:codegen_arch) ? intrinsic.codegen_arch : [] %>
+%   end
+  need_nullcheck: <%= intrinsic.respond_to?(:need_nullcheck) ? intrinsic.need_nullcheck : [] %>
+  is_fastpath: <%= intrinsic.respond_to?(:is_fastpath) ? intrinsic.is_fastpath : false %>
+  need_param_locations: <%= intrinsic.respond_to?(:need_param_locations) && intrinsic.need_param_locations %>
+  is_stub: <%= intrinsic.respond_to?(:is_stub) ? intrinsic.is_stub : false %>
+% if intrinsic.respond_to?(:inline_func)
+  inline_func: <%= intrinsic.inline_func %>
+  inline_need_types: <%= intrinsic.respond_to?(:inline_need_types) && intrinsic.inline_need_types %>
+% end
+% if intrinsic.respond_to?(:interop_intrinsic_kind)
+  interop_intrinsic_kind: <%= intrinsic.interop_intrinsic_kind %>
+% end
+  skip_codegen_decl: <%= intrinsic.respond_to?(:skip_codegen_decl) ? intrinsic.skip_codegen_decl : false %>
+% end

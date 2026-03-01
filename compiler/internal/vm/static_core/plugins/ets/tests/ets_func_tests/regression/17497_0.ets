@@ -1,0 +1,51 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/*---
+desc: Issue 17497. Implicit lambda parameter discard is forbidden
+tags: []
+---*/
+
+interface StateContext {
+    attach(cleanup?: () => void): void
+}
+
+class StateContextImpl implements StateContext {
+    lc: () => void = () => {}
+    attach(cleanup?: () => void): void {
+        if(cleanup == undefined) {
+            return;
+        }
+        this.lc = cleanup;
+        this.lc()
+    }
+}
+
+function main() {
+    let data = 12;
+    const sci = new StateContextImpl
+
+    sci.attach()
+    arktest.assertEQ(12, data)
+    sci.attach(() => { data = 0})
+    arktest.assertEQ(0, data)
+}

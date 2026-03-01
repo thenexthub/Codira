@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR="$(realpath "${0}")"
+SCRIPT_DIR="$(dirname "${SCRIPT_DIR}")"
+
+RULES_DIR="${SCRIPT_DIR}/REVIEW_RULES"
+RULES_MAP="${SCRIPT_DIR}/.REVIEW_RULES"
+
+echo 'Validating the contents of the rules'
+${SCRIPT_DIR}/scripts/validate-rules \
+    --rules-dir="${RULES_DIR}" \
+    || echo 'Validation failed'
+
+echo 'Validating the rule map'
+${SCRIPT_DIR}/scripts/validate-rule-mapping \
+    --rules-dir="${RULES_DIR}" \
+    --rules-map="${RULES_MAP}" \
+    || echo 'Validation failed'
+
+exit 0

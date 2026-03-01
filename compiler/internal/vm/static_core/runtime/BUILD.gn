@@ -1,0 +1,1316 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//arkcompiler/runtime_core/static_core/ark_config.gni")
+import("$ark_root/plugins/plugins.gni")
+import("$ark_root/verification/verification.gni")
+
+
+declare_args() {
+  ark_ets_pcre2_newline_patch = true
+}
+
+if (ark_standalone_build) {
+  import("$build_root/ark.gni")
+} else {
+  import("//build/ohos.gni")
+  ohos_prebuilt_etc("runtime.para") {
+    source = "//arkcompiler/runtime_core/static_core/runtime/runtime.para"
+    part_name = "runtime_core"
+    subsystem_name = "arkcompiler"
+    module_install_dir = "etc/param"
+  }
+  ohos_prebuilt_etc("runtime.para.dac") {
+    source = "//arkcompiler/runtime_core/static_core/runtime/runtime.para.dac"
+    part_name = "runtime_core"
+    subsystem_name = "arkcompiler"
+    module_install_dir = "etc/param"
+  }
+}
+
+runtime_yaml = [ "runtime.yaml" ]
+if (enable_irtoc) {
+  runtime_yaml += [ "$ark_root/irtoc/intrinsics.yaml" ]
+}
+runtime_yaml += plugin_runtime_yamls
+
+config("arkruntime_public_config") {
+  include_dirs = [
+    "$ark_root/runtime",
+
+    # The line below needed only for stdlib. It must be removed after stdlib separation from runtime is implemented(#18135).
+    "$ark_root/plugins/ets/runtime/ani/",
+    "$ark_root/runtime/tooling/inspector",
+    get_label_info(
+        "$ark_root/cross_values:cross_values_getters_generate(${default_toolchain})",
+        "target_gen_dir"),
+    "$target_gen_dir",
+    "$target_gen_dir/generated",
+    "$target_gen_dir/include",
+  ]
+
+  include_dirs += platform_include_dirs
+
+  configs = [
+    "$ark_root/libarkbase:arkbase_public_config",
+    "$ark_root/libarkfile:arkfile_public_config",
+    "$ark_root/verification/gen:verification_public_config",
+    "$ark_root/compiler:arkcompiler_public_config",
+  ]
+  configs += plugin_runtime_configs
+  if (defined(ark_static_standalone_build) && ark_static_standalone_build) {
+    include_dirs += [ "$ark_root/../common_runtime" ]
+  } else {
+    configs += [ "$common_runtime_root:common_runtime_public_config" ]
+  }
+}
+
+if (!ark_static_standalone_build) {
+  ohos_shared_headers("runtime_headers") {
+    include_dirs = [
+      "$ark_root/runtime",
+      "$ark_root/plugins/ets/runtime/ani/",
+      "$target_gen_dir",
+      "$target_gen_dir/generated",
+      "$target_gen_dir/include",
+    ]
+    include_dirs += [ get_label_info(
+            "$ark_root/cross_values:cross_values_getters_generate(${default_toolchain})",
+            "target_gen_dir") ]
+    deps = [ "$ark_root/cross_values:cross_values_getters_generate(${default_toolchain})" ]
+
+    include_dirs += platform_include_dirs
+
+    part_name = ark_part_name
+    subsystem_name = "$ark_subsystem_name"
+  }
+}
+
+config("arkruntime_config") {
+  include_dirs = [
+    "$ark_root/compiler",
+    "$ark_root/dprof/libdprof",
+  ]
+  if (ark_standalone_build) {
+    include_dirs += [ "//third_party/icu/icu4c/source" ]
+  }
+
+  cflags_cc = [
+    "-Wno-invalid-offsetof",
+    "-Wno-unused-parameter",
+  ]
+
+  if (current_cpu == "arm64") {
+    asmflags = [ "-march=armv8-a+crc" ]
+  }
+
+  configs = [
+    "$build_root/config/compiler:optimize_speed",
+    "$build_root/config/compiler:no_exceptions",
+    "$build_root/config/compiler:no_rtti",
+  ]
+}
+
+group("arkruntime_header_deps") {
+  deps = [
+    ":arkruntime_gen_entrypoints_entrypoints_gen_S",
+    ":arkruntime_gen_entrypoints_entrypoints_gen_h",
+    ":arkruntime_gen_intrinsics_intrinsics_enum_h",
+    ":arkruntime_gen_intrinsics_intrinsics_gen_h",
+    ":arkruntime_gen_intrinsics_intrinsics_h",
+    ":arkruntime_gen_intrinsics_unimplemented_intrinsics-inl_cpp",
+    ":arkruntime_gen_intrinsics_yaml",
+    ":core_any_intrinsics_inc",
+    ":intrinsics_inl_h",
+    ":isa_gen_libarkruntime_interpreter-inl_gen_h",
+    ":isa_gen_libarkruntime_isa_constants_gen_h",
+    ":language_config_gen_inc",
+    ":libarkruntime_options_gen_h",
+    ":libarkruntime_shorty_values_h",
+    ":plugin_clear_profile_h",
+    ":plugin_destroy_profile_h",
+    ":plugin_dump_profile_h",
+    ":plugin_find_method_in_profile_h",
+    ":plugin_profiling_includes_disasm_h",
+    ":plugin_profiling_includes_h",
+    ":plugin_read_profile_h",
+    ":plugins_asm_defines_def",
+    ":plugins_defines_h",
+    ":plugins_entrypoints_gen_h",
+    ":plugins_inc",
+    ":plugins_interpreters_inl_h",
+    ":profiling_gen_profiling_gen_h",
+    ":substitute_icu_path",
+    "$ark_root/libarkbase:gen_logger_options_h",
+    "$ark_root/verification/gen:isa_gen_verification_gen_abs_int_inl_gen_h",
+    "$ark_root/verification/gen:isa_gen_verification_gen_cflow_iterate_inl_gen_h",
+    "$ark_root/verification/gen:isa_gen_verification_gen_handle_gen_h",
+    "$ark_root/verification/gen:isa_gen_verification_gen_job_fill_gen_h",
+    "$ark_root/verification/gen:verification_abs_int_inl_compat_checks_h",
+    "$ark_root/verification/gen:verification_gen_plugins_gen_inc",
+    "$ark_root/verification/gen:verification_verifier_messages_data_cpp",
+    "$ark_root/verification/gen:verification_verifier_messages_h",
+  ]
+  if (enable_irtoc) {
+    deps += [ ":isa_gen_libarkruntime_irtoc_interpreter_utils_h" ]
+  }
+
+  deps += plugin_arkruntime_header_plugin_deps
+}
+
+_libarkruntime_calculated_sources = [
+  "arch/asm_support.cpp",
+  "assert_gc_scope.cpp",
+  "bridge/bridge.cpp",
+  "cframe.cpp",
+  "cha.cpp",
+  "class.cpp",
+  "class_helper.cpp",
+  "class_initializer.cpp",
+  "class_linker.cpp",
+  "class_linker_extension.cpp",
+  "class_lock.cpp",
+  "compiler.cpp",
+  "compiler_task_manager_worker.cpp",
+  "compiler_thread_pool_worker.cpp",
+  "coretypes/array.cpp",
+  "coretypes/line_string.cpp",
+  "coretypes/string.cpp",
+  "coretypes/string_flatten.cpp",
+  "coroutines/coroutine.cpp",
+  "coroutines/coroutine_events.cpp",
+  "coroutines/coroutine_manager.cpp",
+  "coroutines/coroutine_stats.cpp",
+  "coroutines/coroutine_worker.cpp",
+  "coroutines/coroutine_worker_group.cpp",
+  "coroutines/native_stack_allocator/native_stack_allocator.cpp",
+  "coroutines/priority_queue.cpp",
+  "coroutines/stackful_coroutine.cpp",
+  "coroutines/stackful_coroutine_manager.cpp",
+  "coroutines/stackful_coroutine_state_info.cpp",
+  "coroutines/stackful_coroutine_worker.cpp",
+  "coroutines/threaded_coroutine.cpp",
+  "coroutines/threaded_coroutine_manager.cpp",
+  "default_debugger_agent.cpp",
+  "deoptimization.cpp",
+  "entrypoints/entrypoints.cpp",
+  "exceptions.cpp",
+  "fibers/fiber_context.cpp",
+  "field.cpp",
+  "file_manager.cpp",
+  "gc_task.cpp",
+  "global_object_lock.cpp",
+  "handle_scope.cpp",
+  "hotreload/hotreload.cpp",
+  "imtable_builder.cpp",
+  "init_icu.cpp",
+  "interpreter/interpreter.cpp",
+  "intrinsics.cpp",
+  "jit/libprofile/pgo_file_builder.cpp",
+  "jit/profile_saver_worker.cpp",
+  "jit/profiling_loader.cpp",
+  "jit/profiling_saver.cpp",
+  "language_context.cpp",
+  "loadable_agent.cpp",
+  "lock_order_graph.cpp",
+  "locks.cpp",
+  "mark_word.cpp",
+  "mem/allocator.cpp",
+  "mem/gc/bitmap.cpp",
+  "mem/gc/card_table.cpp",
+  "mem/gc/cmc-gc-adapter/cmc-allocator-adapter.cpp",
+  "mem/gc/cmc-gc-adapter/cmc-gc-adapter.cpp",
+  "mem/gc/epsilon-g1/epsilon-g1.cpp",
+  "mem/gc/epsilon/epsilon.cpp",
+  "mem/gc/epsilon/epsilon_barrier.cpp",
+  "mem/gc/g1/g1-allocator.cpp",
+  "mem/gc/g1/g1-gc.cpp",
+  "mem/gc/g1/g1-helpers.cpp",
+  "mem/gc/g1/g1_analytics.cpp",
+  "mem/gc/g1/g1_pause_tracker.cpp",
+  "mem/gc/g1/hot_cards.cpp",
+  "mem/gc/g1/ref_updater.cpp",
+  "mem/gc/g1/update_remset_task_queue.cpp",
+  "mem/gc/g1/update_remset_thread.cpp",
+  "mem/gc/g1/update_remset_worker.cpp",
+  "mem/gc/gc-hung/gc_hung.cpp",
+  "mem/gc/gc.cpp",
+  "mem/gc/gc_adaptive_marking_stack.cpp",
+  "mem/gc/gc_barrier_set.cpp",
+  "mem/gc/gc_queue.cpp",
+  "mem/gc/gc_root.cpp",
+  "mem/gc/gc_root_type.cpp",
+  "mem/gc/gc_scope.cpp",
+  "mem/gc/gc_scoped_phase.cpp",
+  "mem/gc/gc_settings.cpp",
+  "mem/gc/gc_stats.cpp",
+  "mem/gc/gc_trigger.cpp",
+  "mem/gc/generational-gc-base.cpp",
+  "mem/gc/heap-space-misc/crossing_map.cpp",
+  "mem/gc/heap-space-misc/crossing_map_singleton.cpp",
+  "mem/gc/lang/gc_lang.cpp",
+  "mem/gc/stw-gc/stw-gc.cpp",
+  "mem/gc/workers/gc_worker.cpp",
+  "mem/gc/workers/gc_workers_task_pool.cpp",
+  "mem/gc/workers/gc_workers_task_queue.cpp",
+  "mem/gc/workers/gc_workers_thread_pool.cpp",
+  "mem/heap_manager.cpp",
+  "mem/heap_space.cpp",
+  "mem/heap_verifier.cpp",
+  "mem/internal_allocator.cpp",
+  "mem/mem_stats.cpp",
+  "mem/mem_stats_additional_info.cpp",
+  "mem/mem_stats_default.cpp",
+  "mem/memory_manager.cpp",
+  "mem/object_helpers.cpp",
+  "mem/panda_string.cpp",
+  "mem/refstorage/global_object_storage.cpp",
+  "mem/refstorage/ref_block.cpp",
+  "mem/refstorage/reference_storage.cpp",
+  "mem/region_space.cpp",
+  "mem/rendezvous.cpp",
+  "mem/runslots.cpp",
+  "mem/tlab.cpp",
+  "method.cpp",
+  "methodtrace/trace.cpp",
+  "monitor.cpp",
+  "monitor_object_lock.cpp",
+  "monitor_pool.cpp",
+  "mt_thread_manager.cpp",
+  "object_accessor.cpp",
+  "object_header.cpp",
+  "osr.cpp",
+  "panda_vm.cpp",
+  "plugins.cpp",
+  "profilesaver/profile_dump_info.cpp",
+  "profilesaver/profile_saver.cpp",
+  "regexp/ecmascript/mem/dyn_chunk.cpp",
+  "regexp/ecmascript/regexp_executor.cpp",
+  "regexp/ecmascript/regexp_opcode.cpp",
+  "regexp/ecmascript/regexp_parser.cpp",
+  "runtime.cpp",
+  "runtime_controller.cpp",
+  "runtime_helpers.cpp",
+  "stack_walker.cpp",
+  "string_table.cpp",
+  "thread.cpp",
+  "thread_proxy.cpp",
+  "time_utils.cpp",
+  "timing.cpp",
+  "tooling/backtrace/backtrace.cpp",
+  "tooling/backtrace/symbol_extractor.cpp",
+  "tooling/coverage_listener.cpp",
+  "tooling/debug_inf.cpp",
+  "tooling/debugger.cpp",
+  "tooling/evaluation/expression_loader.cpp",
+  "tooling/inspector/debugger_arkapi.cpp",
+  "tooling/inspector/types/profile_result.cpp",
+  "tooling/pt_default_lang_extension.cpp",
+  "tooling/pt_thread.cpp",
+  "tooling/sampler/lock_free_queue.cpp",
+  "tooling/sampler/sample_writer.cpp",
+  "tooling/sampler/samples_record.cpp",
+  "tooling/sampler/sampling_profiler.cpp",
+  "tooling/sampler/stack_walker_base.cpp",
+  "tooling/sampler/thread_communicator.cpp",
+  "tooling/tools.cpp",
+  "vtable_builder_base.cpp",
+]
+
+if (!is_mingw) {
+  _libarkruntime_calculated_sources += [
+    "dprofiler/dprofiler.cpp",
+    "signal_handler.cpp",
+  ]
+}
+
+_libarkruntime_arch_sources_arm = [
+  "arch/arm/interpreter_support.S",
+  "arch/arm/osr_arm.S",
+  "bridge/arch/arm/compiled_code_to_interpreter_bridge_arm.S",
+  "bridge/arch/arm/compiled_code_to_interpreter_bridge_dyn_arm.S",
+  "bridge/arch/arm/compiled_code_to_runtime_bridge_arm.S",
+  "bridge/arch/arm/deoptimization_arm.S",
+  "bridge/arch/arm/expand_compiled_code_args_dyn_arm.S",
+  "bridge/arch/arm/interpreter_to_compiled_code_bridge_arm.S",
+  "bridge/arch/arm/interpreter_to_compiled_code_bridge_dyn_arm.S",
+  "fibers/arch/arm/get.S",
+  "fibers/arch/arm/switch.S",
+  "fibers/arch/arm/update.S",
+]
+
+_libarkruntime_arch_sources_arm64 = [
+  "arch/aarch64/interpreter_support.S",
+  "arch/aarch64/osr_aarch64.S",
+  "bridge/arch/aarch64/compiled_code_to_interpreter_bridge_aarch64.S",
+  "bridge/arch/aarch64/compiled_code_to_interpreter_bridge_dyn_aarch64.S",
+  "bridge/arch/aarch64/compiled_code_to_runtime_bridge_aarch64.S",
+  "bridge/arch/aarch64/deoptimization_aarch64.S",
+  "bridge/arch/aarch64/expand_compiled_code_args_dyn_aarch64.S",
+  "bridge/arch/aarch64/interpreter_to_compiled_code_bridge_aarch64.S",
+  "bridge/arch/aarch64/interpreter_to_compiled_code_bridge_dyn_aarch64.S",
+  "fibers/arch/aarch64/get.S",
+  "fibers/arch/aarch64/switch.S",
+  "fibers/arch/aarch64/update.S",
+]
+
+_libarkruntime_arch_sources_x86 = [
+  "arch/x86/interpreter_support.S",
+  "arch/x86/osr_x86.S",
+  "bridge/arch/x86/compiled_code_to_interpreter_bridge_x86.S",
+  "bridge/arch/x86/deoptimization_x86.S",
+  "bridge/arch/x86/interpreter_to_compiled_code_bridge_x86.S",
+]
+
+_libarkruntime_arch_sources_amd64 = [
+  "arch/amd64/common_amd64.S",
+  "arch/amd64/interpreter_support.S",
+  "arch/amd64/osr_amd64.S",
+  "bridge/arch/amd64/compiled_code_to_interpreter_bridge_amd64.S",
+  "bridge/arch/amd64/compiled_code_to_interpreter_bridge_dyn_amd64.S",
+  "bridge/arch/amd64/compiled_code_to_runtime_bridge_amd64.S",
+  "bridge/arch/amd64/deoptimization_amd64.S",
+  "bridge/arch/amd64/expand_compiled_code_args_dyn_amd64.S",
+  "bridge/arch/amd64/interpreter_to_compiled_code_bridge_amd64.S",
+  "bridge/arch/amd64/interpreter_to_compiled_code_bridge_dyn_amd64.S",
+  "fibers/arch/amd64/get.S",
+  "fibers/arch/amd64/switch.S",
+  "fibers/arch/amd64/update.S",
+]
+
+if (current_cpu == "arm") {
+  _libarkruntime_calculated_sources += _libarkruntime_arch_sources_arm
+  #TODO add arm32 abi hard
+} else if (current_cpu == "arm64") {
+  _libarkruntime_calculated_sources += _libarkruntime_arch_sources_arm64
+} else if (current_cpu == "x86") {
+  _libarkruntime_calculated_sources += _libarkruntime_arch_sources_x86
+} else if (current_cpu == "amd64" || current_cpu == "x64" ||
+           current_cpu == "x86_64") {
+  _libarkruntime_calculated_sources += _libarkruntime_arch_sources_amd64
+}
+
+if (defined(enable_perf_counters)) {
+  _libarkruntime_calculated_sources += [ "tooling/perf_counter.cpp" ]
+}
+
+if (is_mob) {
+  _libarkruntime_calculated_sources += [
+    "$ark_root/platforms/mobile/runtime/thread.cpp",
+    "$ark_root/platforms/mobile/runtime/verify_app_install.cpp",
+  ]
+} else {
+  _libarkruntime_calculated_sources += [
+    "$ark_root/platforms/common/runtime/thread.cpp",
+    "$ark_root/platforms/common/runtime/verify_app_install.cpp",
+  ]
+}
+
+_libarkruntime_core_vm_sources = [
+  "core/core_class_linker_extension.cpp",
+  "core/core_language_context.cpp",
+  "core/core_vm.cpp",
+]
+_libarkruntime_calculated_sources += _libarkruntime_core_vm_sources
+_libarkruntime_calculated_sources += verifier_sources + plugin_verifier_sources
+_libarkruntime_calculated_sources += plugin_runtime_sources
+
+_libarkruntime_calculated_configs = [
+  "$ark_root/assembler:arkassembler_public_config",
+  "$ark_root/libarkbase:arkbase_public_config",
+  "$ark_root/libarkfile:arkfile_public_config",
+  "$ark_root/compiler:arkcompiler_public_config",
+  "$ark_root/verification/gen:verification_public_config",
+  ":arkruntime_public_config",
+  ":arkruntime_config",
+  "$ark_root/runtime/asm_defines:asmdefines_public_config",
+]
+_libarkruntime_calculated_configs += plugin_runtime_configs
+
+_libarkruntime_calculated_deps = [
+  ":arkruntime_header_deps",
+  "$ark_root/assembler:libarktsassembler",
+  "$ark_root/compiler:libarkcompiler_intrinsics_gen_inl_entrypoints_bridge_asm_macro_inl",
+  "$ark_root/compiler:libarkcompiler_intrinsics_gen_inl_intrinsics_enum_inl",
+  "$ark_root/compiler/aot:libarkaotmanager",
+  "$ark_root/cross_values:cross_values_getters_generate(${default_toolchain})",
+  "$ark_root/libarkbase:libarktsbase",
+  "$ark_root/libarkfile:libarkfile_type_gen_h",
+  "$ark_root/libarkfile:libarktsfile",
+  "$ark_root/libziparchive:libarktsziparchive",
+  "$ark_root/platforms/target_defaults:arktarget_options",
+  "$ark_root/runtime/asm_defines:asm_defines_generator",
+]
+
+if (ark_static_standalone_build) {
+  _libarkruntime_calculated_configs += [ zlib_public_config ]
+  _libarkruntime_calculated_deps += [
+    icui18n_dep,
+    zlib_dep,
+  ]
+}
+
+_libarkruntime_calculated_external_deps = [
+  icui18n_dep,
+  icuuc_dep,
+  sdk_libc_secshared_dep,
+  zlib_dep,
+]
+
+if (ark_ets_interop_js) {
+  _libarkruntime_calculated_external_deps += [
+    "napi:ace_napi",
+    "node:node_header_notice",
+  ]
+}
+
+_libarkruntime_calculated_defines = []
+_libarkruntime_calculated_include_dirs = []
+
+if (ark_ets_pcre2_newline_patch) {
+  action("pcre2_patch_newline") {
+    script = "$ark_root/runtime/templates/gen_pcre2_newline.rb"
+
+    inputs = [
+      "//third_party/pcre2/pcre2/src/pcre2_newline.c",
+      "$ark_root/plugins/ets/runtime/patches/pcre2_newline.patch",
+    ]
+
+    outputs = [ "$target_gen_dir/pcre2/pcre2_newline_patched.stamp" ]
+
+    args = [
+      "--source",
+      rebase_path("//third_party/pcre2/pcre2/src/pcre2_newline.c"),
+      "--patch",
+      rebase_path("$ark_root/plugins/ets/runtime/patches/pcre2_newline.patch"),
+      "--output",
+      rebase_path("$target_gen_dir/pcre2/pcre2_newline_patched.stamp"),
+    ]
+  }
+
+  if (!(ark_standalone_build || ark_static_standalone_build)) {
+    ohos_shared_headers("arkruntime_pcre2") {
+      include_dirs = [ ]
+      deps = [ ":pcre2_patch_newline" ]
+
+      part_name = "runtime_core"
+      subsystem_name = "arkcompiler"
+    }
+  }
+
+}
+
+if (!(ark_standalone_build || ark_static_standalone_build)) {
+  _libarkruntime_calculated_external_deps += [ "pcre2:libpcre2_static" ]
+  _libarkruntime_calculated_external_deps += [ "pcre2:libpcre2_static_16" ]
+} else if (ark_standalone_build) {
+  _libarkruntime_calculated_deps += [
+    "//third_party/pcre2:libpcre2_static",
+    "//third_party/pcre2:libpcre2_static_16",
+  ]
+} else if (ark_static_standalone_build) {
+  _libarkruntime_calculated_deps += [
+    ":libpcre2_16",
+    ":libpcre2_8",
+  ]
+  _libarkruntime_calculated_include_dirs += [ "$target_gen_dir/pcre2/common" ]
+}
+
+if (!ark_standalone_build) {
+  _libarkruntime_calculated_external_deps += [ "napi:ace_napi" ]
+}
+
+_libarkruntime_calculated_deps += plugin_runtime_deps
+_libarkruntime_calculated_deps += plugin_arkruntime_stdlib_plugin_deps
+
+if (!is_mingw) {
+  _libarkruntime_calculated_deps += [ "$ark_root/dprof:libdprof" ]
+}
+
+if (current_cpu == "arm") {
+  _libarkruntime_calculated_deps += [
+    ":bridge_dispatch_arm",
+    ":bridge_dispatch_dyn_arm",
+  ]
+} else if (current_cpu == "arm64") {
+  _libarkruntime_calculated_deps += [
+    ":bridge_dispatch_aarch64",
+    ":bridge_dispatch_dyn_aarch64",
+  ]
+} else if (current_cpu == "amd64" || current_cpu == "x64" ||
+           current_cpu == "x86_64") {
+  _libarkruntime_calculated_deps += [
+    ":bridge_dispatch_amd64",
+    ":bridge_dispatch_dyn_amd64",
+  ]
+}
+
+if (is_ohos && is_standard_system) {
+  _libarkruntime_calculated_defines = [
+    "PANDA_OHOS_USE_INNER_HILOG",
+    "PANDA_USE_HITRACE",
+    "PANDA_USE_QOS",
+    "PANDA_USE_ETS_UTILS",
+  ]
+  _libarkruntime_calculated_external_deps += [
+    "ets_utils:console",
+    "hilog:libhilog",
+    "hitrace:hitrace_meter",
+    "libuv:uv",
+    "qos_manager:qos",
+  ]
+  if (!(ark_standalone_build || ark_static_standalone_build)) {
+    _libarkruntime_calculated_defines += [
+      "OHOS_PANDA_DEBUG_MODE_ENABLE",
+      "OHOS_PANDA_TRACE_ENABLE",
+      "PANDA_OHOS_GET_PARAMETER",
+    ]
+    _libarkruntime_calculated_external_deps += [ "init:libbegetutil" ]
+    _libarkruntime_calculated_deps += [
+      "$ark_root/etc/para:code_coverage.para",
+      "$ark_root/etc/para:code_coverage.para.dac",
+      "$ark_root/runtime:runtime.para",
+      "$ark_root/runtime:runtime.para.dac",
+      "$ark_root/runtime/para:Runtime.para",
+      "$ark_root/runtime/para:Runtime.para.dac",
+    ]
+  }
+}
+
+if (is_safepoint_checkers_build) {
+  _libarkruntime_calculated_defines += [ "SAFEPOINT_TIME_CHECKER_ENABLED" ]
+  _libarkruntime_calculated_sources += [
+    "safepoint_timer.cpp",
+    "timer_table.cpp",
+  ]
+}
+
+ohos_source_set("libarkruntime_set_static") {
+  cflags_cc = [ "-fno-emulated-tls" ]
+  sources = _libarkruntime_calculated_sources
+  deps = []
+  defines = []
+
+  if (enable_irtoc) {
+    sources += [ "$ark_root_gen_dir/generated/irtoc_lib.o" ]
+    if (is_llvm_interpreter || is_llvm_fastpath) {
+      sources += [ "$ark_root_gen_dir/generated/irtoc_llvm_lib.o" ]
+    }
+  }
+
+  public_configs = _libarkruntime_calculated_configs
+  public_configs += [ "$ark_root:ark_config" ]
+
+  if (ark_ets_pcre2_newline_patch) {
+    deps += [ ":pcre2_patch_newline" ]
+    defines += [ "ARK_PCRE2_NEWLINE_PATCH" ]
+  }
+  deps += _libarkruntime_calculated_deps
+
+  if (enable_irtoc) {
+    deps += [ "$ark_root/irtoc:irtoc_generate" ]
+  }
+
+  deps += [
+    ":arkruntime_interpreter_impl",
+    "$ark_root/compiler:libarktscompiler",
+  ]
+
+  external_deps = _libarkruntime_calculated_external_deps
+  defines += _libarkruntime_calculated_defines
+  include_dirs = _libarkruntime_calculated_include_dirs
+
+  part_name = ark_part_name
+  subsystem_name = ark_subsystem_name
+}
+
+ohos_source_set("libarkruntime_set_static_host") {
+  cflags_cc = [ "-fno-emulated-tls" ]
+  sources = _libarkruntime_calculated_sources
+  deps = []
+  defines = []
+
+  public_configs = _libarkruntime_calculated_configs
+  public_configs += [ "$ark_root:ark_host_config" ]
+
+  if (ark_ets_pcre2_newline_patch) {
+    deps += [ ":pcre2_patch_newline" ]
+    defines += [ "ARK_PCRE2_NEWLINE_PATCH" ]
+  }
+
+  deps += _libarkruntime_calculated_deps
+  deps += [
+    ":arkruntime_interpreter_impl_host",
+    "$ark_root/compiler:libarktscompiler_host",
+  ]
+
+  external_deps = _libarkruntime_calculated_external_deps
+  defines += _libarkruntime_calculated_defines
+  include_dirs = _libarkruntime_calculated_include_dirs
+
+  part_name = ark_part_name
+  subsystem_name = ark_subsystem_name
+}
+
+ohos_static_library("libarkruntime_static") {
+  deps = []
+  if (ark_ets_pcre2_newline_patch) {
+    deps += [ ":pcre2_patch_newline" ]
+    defines = [ "ARK_PCRE2_NEWLINE_PATCH" ]
+  }
+  deps += [ ":libarkruntime_set_static" ]
+  output_extension = "a"
+  part_name = ark_part_name
+  subsystem_name = "$ark_subsystem_name"
+}
+
+config("ark_integrate_public_config") {
+  include_dirs = [
+    "$ark_root/plugins/ets/dfx",
+    "$ark_root/plugins/ets/runtime/integrate",
+    "$ark_root/runtime/tooling/inspector",
+  ]
+}
+
+ohos_shared_library("libarkruntime") {
+  public_configs = [ ":ark_integrate_public_config" ]
+  cflags_cc = [ "-fno-emulated-tls" ]
+  ldflags = [ 
+    "-fno-emulated-tls",
+    "-Wl,--exclude-libs,libpcre2_static.a:libpcre2_static_16.a",
+  ]
+
+  deps = []
+  if (ark_ets_pcre2_newline_patch) {
+    deps += [ ":pcre2_patch_newline" ]
+    defines = [ "ARK_PCRE2_NEWLINE_PATCH" ]
+  }
+  deps += [ ":libarkruntime_set_static" ]
+
+  external_deps = []
+  cflags = []
+
+  if (is_gcov_tools) {
+    cflags += coverage_cflags
+    ldflags += coverage_ldflags
+  }
+
+  if (ark_hybrid) {
+    deps += [ "$common_runtime_root:libcommon_runtime" ]
+  }
+
+  if (!(ark_standalone_build || ark_static_standalone_build)) {
+    external_deps += [
+      "pcre2:libpcre2_static",
+      "pcre2:libpcre2_static_16"
+    ]
+  } else if (ark_standalone_build) {
+    deps += [
+      "//third_party/pcre2:libpcre2_static",
+      "//third_party/pcre2:libpcre2_static_16",
+    ]
+  } else if (ark_static_standalone_build) {
+    _libarkruntime_calculated_deps += [
+      ":libpcre2_16",
+      ":libpcre2_8",
+    ]
+  }
+
+  if ((current_cpu == "amd64" || current_cpu == "x64" ||
+       current_cpu == "x86_64") &&
+      (ark_standalone_build || ark_static_standalone_build)) {
+    ldflags += [ "-latomic" ]
+  }
+
+  if (is_mingw || is_mac) {
+    output_extension = "dll"
+  } else {
+    output_extension = "so"
+  }
+  part_name = ark_part_name
+  subsystem_name = "$ark_subsystem_name"
+}
+
+ohos_shared_library("libarkruntime_host") {
+  public_configs = [ ":ark_integrate_public_config" ]
+  ldflags = []
+  ldflags += [ "-Wl,--exclude-libs,libpcre2_static.a:libpcre2_static_16.a" ]
+
+  deps = []
+  if (ark_ets_pcre2_newline_patch) {
+    deps += [ ":pcre2_patch_newline" ]
+    defines = [ "ARK_PCRE2_NEWLINE_PATCH" ]
+  }
+
+  external_deps = []
+  if (current_toolchain == host_toolchain) {
+    deps += [ ":libarkruntime_set_static_host" ]
+  }
+
+  if (ark_hybrid) {
+    deps += [ "$common_runtime_root:libcommon_runtime" ]
+  }
+
+  if (!(ark_standalone_build || ark_static_standalone_build)) {
+    external_deps += [
+      "pcre2:libpcre2_static",
+      "pcre2:libpcre2_static_16"
+    ]
+  } else if (ark_standalone_build) {
+    deps += [
+      "//third_party/pcre2:libpcre2_static",
+      "//third_party/pcre2:libpcre2_static_16",
+    ]
+  } else if (ark_static_standalone_build) {
+    _libarkruntime_calculated_deps += [
+      ":libpcre2_16",
+      ":libpcre2_8",
+    ]
+  }
+
+  if ((current_cpu == "amd64" || current_cpu == "x64" ||
+       current_cpu == "x86_64") &&
+      (ark_standalone_build || ark_static_standalone_build)) {
+    ldflags += [ "-latomic" ]
+  }
+
+  if (is_mingw || is_mac) {
+    output_extension = "dll"
+  } else {
+    output_extension = "so"
+  }
+  part_name = ark_part_name
+  subsystem_name = "$ark_subsystem_name"
+}
+
+config("arkruntime_interpreter_impl_config") {
+  include_dirs = [
+    "$ark_root/compiler",
+    "$ark_root/runtime",
+    "$ark_root/dprof/libdprof",
+    get_label_info(
+        "$ark_root/cross_values:cross_values_getters_generate(${default_toolchain})",
+        "target_gen_dir"),
+    "$target_gen_dir",
+    "$target_gen_dir/generated",
+    "$target_gen_dir/include",
+  ]
+
+  include_dirs += platform_include_dirs
+
+  configs = plugin_runtime_interpreter_impl_configs
+
+  cflags_cc = [
+    "-Wno-invalid-offsetof",
+    "-Wno-unused-parameter",
+  ]
+  defines = []
+
+  if (ark_enable_global_register_variables) {
+    if (current_cpu == "arm64") {
+      cflags_cc += [
+        "-ffixed-x20",
+        "-ffixed-x21",
+        "-ffixed-x22",
+        "-ffixed-x23",
+        "-ffixed-x24",
+        "-ffixed-x25",
+        "-ffixed-x28",
+      ]
+      defines += [ "FFIXED_REGISTERS" ]
+    }
+  }
+}
+
+_arkruntime_interpreter_impl_common_configs = [
+  "$ark_root/libarkbase:arkbase_public_config",
+  "$ark_root/libarkfile:arkfile_public_config",
+  "$ark_root/runtime:arkruntime_public_config",
+  "$ark_root/compiler:arkcompiler_public_config",
+  "$ark_root/verification/gen:verification_public_config",
+  ":arkruntime_interpreter_impl_config",
+]
+
+_arkruntime_interpreter_impl_common_deps = [
+  ":arkruntime_header_deps",
+  "$ark_root/cross_values:cross_values_getters_generate(${default_toolchain})",
+  "$ark_root/libarkbase:libarktsbase",
+  "$ark_root/libarkfile:libarktsfile",
+]
+
+# panda_set_lib_32bit_property not used in android
+ohos_source_set("arkruntime_interpreter_impl") {
+  sources = [ "interpreter/interpreter_impl.cpp" ]
+
+  public_configs = _arkruntime_interpreter_impl_common_configs
+
+  deps = _arkruntime_interpreter_impl_common_deps
+
+  external_deps = [ sdk_libc_secshared_dep ]
+
+  deps += plugin_arkruntime_stdlib_plugin_deps
+
+  public_configs += [ "$ark_root:ark_config" ]
+
+  part_name = ark_part_name
+  subsystem_name = "$ark_subsystem_name"
+}
+
+ohos_source_set("arkruntime_interpreter_impl_host") {
+  sources = [ "interpreter/interpreter_impl.cpp" ]
+
+  public_configs = _arkruntime_interpreter_impl_common_configs
+
+  deps = _arkruntime_interpreter_impl_common_deps
+
+  external_deps = [ sdk_libc_secshared_dep ]
+
+  deps += plugin_arkruntime_stdlib_plugin_deps
+
+  public_configs += [ "$ark_root:ark_host_config" ]
+
+  part_name = ark_part_name
+  subsystem_name = "$ark_subsystem_name"
+}
+
+template("gen_intrinsics_yaml") {
+  assert(defined(invoker.data_files), "data_files required!")
+  assert(defined(invoker.output_file), "output_file required!")
+
+  data_files = string_join(",", rebase_path(invoker.data_files, root_build_dir))
+  template_file = "templates/intrinsics.yaml.erb"
+  requires = string_join(",",
+                         [
+                           rebase_path("templates/runtime.rb", root_build_dir),
+                           rebase_path("$ark_root/libarkbase/utils.rb",
+                                       root_build_dir),
+                         ])
+
+  action("$target_name") {
+    script = "$ark_root/runtime/templates/gen_intrinsics_data.rb"
+
+    # rerun action when data file or template file update
+    inputs = [ template_file ]
+    inputs += invoker.data_files
+
+    outputs = [ invoker.output_file ]
+    args = [
+      rebase_path("templates/runtime.rb", root_build_dir),
+      "-d",
+      data_files,
+      "-t",
+      rebase_path(template_file, root_build_dir),
+      "-o",
+      rebase_path(outputs[0]),
+      "-r",
+      requires,
+    ]
+  }
+}
+
+gen_intrinsics_yaml("arkruntime_gen_intrinsics_yaml") {
+  data_files = runtime_yaml
+  output_file = "$target_gen_dir/intrinsics.yaml"
+}
+
+gen_include_dir = "$target_gen_dir/include"
+
+ark_isa_gen("profiling_gen") {
+  template_files = [ "profiling_gen.h.erb" ]
+  sources = "profiling"
+  destination = "$target_gen_dir/runtime/include"
+}
+
+config("profiling_gen_public_config") {
+  include_dirs =
+      [ get_label_info(":profiling_gen_profiling_gen_h", "target_gen_dir") ]
+}
+
+if (!ark_static_standalone_build) {
+  ohos_shared_headers("runtime_gen_headers") {
+    include_dirs =
+        [ get_label_info(":profiling_gen_profiling_gen_h", "target_gen_dir") ]
+    deps = [ ":profiling_gen_profiling_gen_h" ]
+    part_name = ark_part_name
+    subsystem_name = "$ark_subsystem_name"
+  }
+}
+
+ark_isa_gen("isa_gen_libarkruntime") {
+  template_files = [
+    "interpreter-inl_gen.h.erb",
+    "isa_constants_gen.h.erb",
+  ]
+  if (enable_irtoc) {
+    template_files += [ "irtoc_interpreter_utils.h.erb" ]
+  }
+  sources = "interpreter/templates"
+  destination = gen_include_dir
+}
+
+isa = ark_isa_yaml
+isa_api = "$ark_root/isa/isapi.rb"
+bridge_dispatch_template = "templates/bridge_dispatch.S.erb"
+bridge_dispatch_dyn_template = "templates/bridge_dispatch_dyn.S.erb"
+bridge_archs = [
+  "aarch64",
+  "arm",
+  "armhf",
+  "amd64",
+  "x86",
+]
+foreach(arch, bridge_archs) {
+  ark_gen_file("bridge_dispatch_${arch}") {
+    data = [ isa ]
+    template_file = bridge_dispatch_template
+    output_file = "$gen_include_dir/bridge_dispatch_${arch}.S"
+    api = [ isa_api ]
+    requires = [
+      "templates/bridge_helpers_${arch}.rb",
+      "templates/bridge_helpers_common.rb",
+      "templates/bridge_helpers_static.rb",
+    ]
+    extra_dependencies = [ "$ark_root/isa:isa_combine" ]
+  }
+
+  ark_gen_file("bridge_dispatch_dyn_${arch}") {
+    data = [ isa ]
+    template_file = bridge_dispatch_dyn_template
+    output_file = "$gen_include_dir/bridge_dispatch_dyn_${arch}.S"
+    api = [ isa_api ]
+    requires = [
+      "templates/bridge_helpers_dynamic.rb",
+      "templates/bridge_helpers_common.rb",
+      "templates/bridge_helpers_${arch}.rb",
+    ]
+    extra_dependencies = [ "$ark_root/isa:isa_combine" ]
+  }
+}
+
+ark_gen("arkruntime_gen_entrypoints") {
+  data = [ "$target_gen_dir/entrypoints.yaml" ]
+  template_files = [
+    "entrypoints_gen.h.erb",
+    "entrypoints_gen.S.erb",
+    "entrypoints_compiler.inl.erb",
+  ]
+  api = [ "entrypoints/entrypoints.rb" ]
+  requires = [ "$ark_root/templates/common.rb" ]
+  sources = "entrypoints"
+  destination = "$target_gen_dir/generated"
+  extra_dependencies = [ "$ark_root:concat_entrypoints_yamls" ]
+}
+
+# Substitute ICU path
+action("substitute_icu_path") {
+  script = "templates/substitute_icu_path.rb"
+  outputs = [ "$target_gen_dir/init_icu_gen.cpp" ]
+  if (ark_standalone_build) {
+    args = [
+      rebase_path("templates/init_icu_gen.cpp.erb"),
+      rebase_path("$target_gen_dir/init_icu_gen.cpp"),
+      rebase_path("//third_party"),
+    ]
+  } else {
+    args = [
+      rebase_path("templates/init_icu_gen.cpp.erb"),
+      rebase_path("$target_gen_dir/init_icu_gen.cpp"),
+      rebase_path(ark_third_party_root),
+    ]
+  }
+}
+
+ark_gen("arkruntime_gen_entrypoints_compiler_checksum") {
+  data = [ "entrypoints/entrypoints.yaml" ]
+  template_files = [ "entrypoints_compiler_checksum.inl.erb" ]
+  api = [ "entrypoints/entrypoints.rb" ]
+  sources = "entrypoints"
+  destination = "$target_gen_dir/generated"
+  extra_dependencies =
+      [ "$ark_root/cross_values:cross_values_generate(${default_toolchain})" ]
+  extra_argv = [ rebase_path(
+          get_label_info(
+              "$ark_root/cross_values:cross_values_generate(${default_toolchain})",
+              "target_gen_dir"),
+          root_build_dir) ]
+}
+
+ark_gen("arkruntime_gen_intrinsics") {
+  if (abckit_enable) {
+    data = [ "$target_gen_dir/abckit_intrinsics.yaml" ]
+  } else {
+    data = [ "$target_gen_dir/intrinsics.yaml" ]
+  }
+  template_files = [
+    "intrinsics_gen.h.erb",
+    "intrinsics.h.erb",
+    "intrinsics_enum.h.erb",
+    "unimplemented_intrinsics-inl.cpp.erb",
+  ]
+  api = [ "templates/intrinsics.rb" ]
+  requires = [ "$ark_root/libarkbase/utils.rb" ]
+  sources = "templates"
+  destination = "$target_gen_dir"
+  extra_dependencies = [ ":arkruntime_gen_intrinsics_yaml" ]
+  if (abckit_enable) {
+    extra_dependencies +=
+        [ "$ark_root/../libabckit/src:abckit_concat_intrinsics_yaml" ]
+  }
+}
+
+ark_gen_file("core_any_intrinsics_inc") {
+  template_file = "../runtime/interpreter/templates/core_any_intrinsics.inc.erb"
+  data = [ "$target_gen_dir/../plugin_options.yaml" ]
+  api = [ "$ark_root/templates/plugin_options.rb" ]
+  output_file = "$gen_include_dir/core_any_intrinsics.inc"
+  extra_dependencies = [ "$ark_root:concat_plugins_yamls" ]
+}
+
+ark_gen_file("libarkruntime_options_gen_h") {
+  template_file = "../templates/options/options.h.erb"
+  data = [ "$target_gen_dir/../runtime_options.yaml" ]
+  api = [ "../templates/common.rb" ]
+  output_file = "$target_gen_dir/generated/runtime_options_gen.h"
+  extra_dependencies = [ "$ark_root:merge_runtime_options_yamls" ]
+}
+
+ark_gen_file("libarkruntime_shorty_values_h") {
+  template_file = "templates/shorty_values.h.erb"
+  data = [ "$ark_root/libarkfile/types.yaml" ]
+  api = [ "$ark_root/libarkfile/types.rb" ]
+  output_file = "$target_gen_dir/generated/shorty_values.h"
+}
+
+ark_gen_file("plugins_inc") {
+  extra_dependencies = [ "$ark_root:concat_plugins_yamls" ]
+  template_file = "templates/plugins.inc.erb"
+  data = [ ark_plugin_options_yaml ]
+  api = [ "$ark_root/templates/plugin_options.rb" ]
+  output_file = "$target_gen_dir/plugins.inc"
+}
+
+ark_gen_file("plugins_entrypoints_gen_h") {
+  extra_dependencies = [ "$ark_root:concat_plugins_yamls" ]
+  template_file = "entrypoints/plugins_entrypoints_gen.h.erb"
+  data = [ ark_plugin_options_yaml ]
+  api = [ "$ark_root/templates/plugin_options.rb" ]
+  output_file = "$target_gen_dir/plugins_entrypoints_gen.h"
+}
+
+ark_gen_file("plugins_interpreters_inl_h") {
+  extra_dependencies = [ "$ark_root:concat_plugins_yamls" ]
+  template_file = "templates/plugins_interpreters-inl.h.erb"
+  data = [ ark_plugin_options_yaml ]
+  api = [ "$ark_root/templates/plugin_options.rb" ]
+  output_file = "$target_gen_dir/plugins_interpreters-inl.h"
+}
+
+ark_gen_file("language_config_gen_inc") {
+  extra_dependencies = [ "$ark_root:concat_plugins_yamls" ]
+  template_file = "templates/language_config_gen.inc.erb"
+  data = [ ark_plugin_options_yaml ]
+  api = [ "$ark_root/templates/plugin_options.rb" ]
+  output_file = "$target_gen_dir/language_config_gen.inc"
+}
+
+ark_gen_file("intrinsics_inl_h") {
+  extra_dependencies = [ "$ark_root:concat_plugins_yamls" ]
+  template_file = "templates/intrinsics.inl.h.erb"
+  data = [ ark_plugin_options_yaml ]
+  api = [ "$ark_root/templates/plugin_options.rb" ]
+  output_file = "$target_gen_dir/intrinsics.inl.h"
+}
+
+ark_gen_file("plugins_defines_h") {
+  extra_dependencies = [ "$ark_root:concat_plugins_yamls" ]
+  template_file = "templates/plugins_defines.h.erb"
+  data = [ ark_plugin_options_yaml ]
+  api = [ "$ark_root/templates/plugin_options.rb" ]
+  output_file = "$target_gen_dir/plugins_defines.h"
+}
+
+ark_gen_file("plugins_asm_defines_def") {
+  extra_dependencies = [ "$ark_root:concat_plugins_yamls" ]
+  template_file = "templates/plugins_asm_defines.def.erb"
+  data = [ ark_plugin_options_yaml ]
+  api = [ "$ark_root/templates/plugin_options.rb" ]
+  output_file = "$target_gen_dir/plugins_asm_defines.def"
+}
+
+generated_file("plugin_read_profile_h") {
+  outputs = [ "$target_gen_dir/profiling/generated/read_profile.h" ]
+  contents = plugin_read_profile_paths
+  output_conversion = "list lines"
+}
+generated_file("plugin_clear_profile_h") {
+  outputs = [ "$target_gen_dir/profiling/generated/clear_profile.h" ]
+  contents = plugin_clear_profile_paths
+  output_conversion = "list lines"
+}
+generated_file("plugin_destroy_profile_h") {
+  outputs = [ "$target_gen_dir/profiling/generated/destroy_profile.h" ]
+  contents = plugin_destroy_profile_paths
+  output_conversion = "list lines"
+}
+generated_file("plugin_dump_profile_h") {
+  outputs = [ "$target_gen_dir/profiling/generated/dump_profile.h" ]
+  contents = plugin_dump_profile_paths
+  output_conversion = "list lines"
+}
+generated_file("plugin_find_method_in_profile_h") {
+  outputs = [ "$target_gen_dir/profiling/generated/find_method_in_profile.h" ]
+  contents = plugin_find_method_in_profile_paths
+  output_conversion = "list lines"
+}
+generated_file("plugin_profiling_includes_disasm_h") {
+  outputs =
+      [ "$target_gen_dir/profiling/generated/profiling_includes_disasm.h" ]
+  contents = plugin_profiling_includes_disasm_paths
+  output_conversion = "list lines"
+}
+generated_file("plugin_profiling_includes_h") {
+  outputs = [ "$target_gen_dir/profiling/generated/profiling_includes.h" ]
+  contents = plugin_profiling_includes_paths
+  output_conversion = "list lines"
+}
+generated_file("get_profiling_any_type_h") {
+  outputs = [ "$target_gen_dir/profiling/generated/get_profiling_any_type.h" ]
+  contents = plugin_get_profiling_any_type_paths
+  output_conversion = "list lines"
+}
+
+# NOTE(kirillparshukov): move to third_party scripts
+# Used only in ark_static_standalone_build. For ohos build, use external_deps.
+if (ark_static_standalone_build) {
+  pcre2_lib_dir = "//third_party/pcre2/pcre2"
+  copy("pcre2_copy_config_h") {
+    sources = [ "$pcre2_lib_dir/src/config.h.generic" ]
+    outputs = [ "$target_gen_dir/pcre2/internal/config.h" ]
+  }
+
+  copy("pcre2_copy_pcre2_h") {
+    sources = [ "$pcre2_lib_dir/src/pcre2.h.generic" ]
+    outputs = [ "$target_gen_dir/pcre2/common/pcre2.h" ]
+  }
+
+  ohos_static_library("libpcre2_16") {
+    output_name = "libpcre2_16"
+    deps = [
+      ":pcre2_copy_config_h",
+      ":pcre2_copy_pcre2_h",
+    ]
+    if (ark_ets_pcre2_newline_patch) {
+      deps += [ ":pcre2_patch_newline" ]
+      defines = [ "ARK_PCRE2_NEWLINE_PATCH" ]
+    }
+    sources = [
+      "$pcre2_lib_dir/src/pcre2_auto_possess.c",
+      "$pcre2_lib_dir/src/pcre2_compile.c",
+      "$pcre2_lib_dir/src/pcre2_config.c",
+      "$pcre2_lib_dir/src/pcre2_context.c",
+      "$pcre2_lib_dir/src/pcre2_convert.c",
+      "$pcre2_lib_dir/src/pcre2_dfa_match.c",
+      "$pcre2_lib_dir/src/pcre2_error.c",
+      "$pcre2_lib_dir/src/pcre2_extuni.c",
+      "$pcre2_lib_dir/src/pcre2_find_bracket.c",
+      "$pcre2_lib_dir/src/pcre2_jit_compile.c",
+      "$pcre2_lib_dir/src/pcre2_maketables.c",
+      "$pcre2_lib_dir/src/pcre2_match.c",
+      "$pcre2_lib_dir/src/pcre2_match_data.c",
+      "$pcre2_lib_dir/src/pcre2_newline.c",
+      "$pcre2_lib_dir/src/pcre2_ord2utf.c",
+      "$pcre2_lib_dir/src/pcre2_pattern_info.c",
+      "$pcre2_lib_dir/src/pcre2_script_run.c",
+      "$pcre2_lib_dir/src/pcre2_serialize.c",
+      "$pcre2_lib_dir/src/pcre2_string_utils.c",
+      "$pcre2_lib_dir/src/pcre2_study.c",
+      "$pcre2_lib_dir/src/pcre2_substitute.c",
+      "$pcre2_lib_dir/src/pcre2_substring.c",
+      "$pcre2_lib_dir/src/pcre2_tables.c",
+      "$pcre2_lib_dir/src/pcre2_ucd.c",
+      "$pcre2_lib_dir/src/pcre2_valid_utf.c",
+      "$pcre2_lib_dir/src/pcre2_xclass.c",
+    ]
+    include_dirs = [
+      "$target_gen_dir/pcre2/common",
+      "$target_gen_dir/pcre2/internal",
+    ]
+    sources += [ "$pcre2_lib_dir/src/pcre2_chartables.c" ]
+    cflags = [
+      "-D_GNU_SOURCE",
+      "-DHAVE_CONFIG_H",
+      "-DSUPPORT_PCRE2_16=1",
+      "-DSUPPORT_UNICODE=1",
+      "-DPCRE2_CODE_UNIT_WIDTH=16",
+      "-w",
+    ]
+    part_name = ark_part_name
+    subsystem_name = ark_subsystem_name
+  }
+
+  ohos_static_library("libpcre2_8") {
+    output_name = "libpcre2_8"
+    deps = [
+      ":pcre2_copy_config_h",
+      ":pcre2_copy_pcre2_h",
+    ]
+    if (ark_ets_pcre2_newline_patch) {
+      deps += [ ":pcre2_patch_newline" ]
+      defines = [ "ARK_PCRE2_NEWLINE_PATCH" ]
+    }
+    sources = [
+      "$pcre2_lib_dir/src/pcre2_auto_possess.c",
+      "$pcre2_lib_dir/src/pcre2_chkdint.c",
+      "$pcre2_lib_dir/src/pcre2_compile.c",
+      "$pcre2_lib_dir/src/pcre2_config.c",
+      "$pcre2_lib_dir/src/pcre2_context.c",
+      "$pcre2_lib_dir/src/pcre2_convert.c",
+      "$pcre2_lib_dir/src/pcre2_dfa_match.c",
+      "$pcre2_lib_dir/src/pcre2_error.c",
+      "$pcre2_lib_dir/src/pcre2_extuni.c",
+      "$pcre2_lib_dir/src/pcre2_find_bracket.c",
+      "$pcre2_lib_dir/src/pcre2_jit_compile.c",
+      "$pcre2_lib_dir/src/pcre2_maketables.c",
+      "$pcre2_lib_dir/src/pcre2_match.c",
+      "$pcre2_lib_dir/src/pcre2_match_data.c",
+      "$pcre2_lib_dir/src/pcre2_newline.c",
+      "$pcre2_lib_dir/src/pcre2_ord2utf.c",
+      "$pcre2_lib_dir/src/pcre2_pattern_info.c",
+      "$pcre2_lib_dir/src/pcre2_script_run.c",
+      "$pcre2_lib_dir/src/pcre2_serialize.c",
+      "$pcre2_lib_dir/src/pcre2_string_utils.c",
+      "$pcre2_lib_dir/src/pcre2_study.c",
+      "$pcre2_lib_dir/src/pcre2_substitute.c",
+      "$pcre2_lib_dir/src/pcre2_substring.c",
+      "$pcre2_lib_dir/src/pcre2_tables.c",
+      "$pcre2_lib_dir/src/pcre2_ucd.c",
+      "$pcre2_lib_dir/src/pcre2_valid_utf.c",
+      "$pcre2_lib_dir/src/pcre2_xclass.c",
+    ]
+    include_dirs = [
+      "$target_gen_dir/pcre2/common",
+      "$target_gen_dir/pcre2/internal",
+    ]
+    sources += [ "$pcre2_lib_dir/src/pcre2_chartables.c" ]
+    cflags = [
+      "-D_GNU_SOURCE",
+      "-DHAVE_CONFIG_H",
+      "-DSUPPORT_PCRE2_8=1",
+      "-DSUPPORT_UNICODE=1",
+      "-DPCRE2_CODE_UNIT_WIDTH=8",
+      "-w",
+    ]
+    part_name = ark_part_name
+    subsystem_name = ark_subsystem_name
+  }
+}

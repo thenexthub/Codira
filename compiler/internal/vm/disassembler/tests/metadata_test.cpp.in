@@ -1,0 +1,57 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+#include <iostream>
+#include <string>
+
+#include <gtest/gtest.h>
+#include "disassembler.h"
+
+using namespace panda::disasm;
+
+#cmakedefine DISASM_BIN_DIR "@DISASM_BIN_DIR@/"
+
+TEST(metadata_test, test1)
+{
+    Disassembler d {};
+
+    std::stringstream ss {};
+    d.Disassemble(std::string(DISASM_BIN_DIR) + "meta.bc");
+    d.Serialize(ss, false);
+
+    std::string prog = ss.str();
+
+    EXPECT_TRUE(prog.find(".function u1 GGG() <native, static>") != std::string::npos);
+    EXPECT_TRUE(prog.find(".function u1 FFF() <noimpl, static>") != std::string::npos);
+    EXPECT_TRUE(prog.find(".function u1 A._cctor_(u1 a0) <cctor, static> {\n}") != std::string::npos);
+    EXPECT_TRUE(prog.find(".function u1 A.EEE(A a0, u1 a1) {\n") != std::string::npos);
+    EXPECT_TRUE(prog.find("\tcall.short DDD:(u1), v0") != std::string::npos);
+    EXPECT_TRUE(prog.find(".function u1 A._ctor_(u1 a0) <ctor, static> {\n}") != std::string::npos);
+    EXPECT_TRUE(prog.find(".function u1 DDD(u1 a0) <external, static>") != std::string::npos);
+    EXPECT_TRUE(prog.find("initobj.short A._ctor_:(u1), v0") != std::string::npos);
+    EXPECT_TRUE(prog.find("initobj.short A._cctor_:(u1), v1") != std::string::npos);
+
+    EXPECT_TRUE(prog.find(".record A {\n}") != std::string::npos);
+    EXPECT_TRUE(prog.find(".record B <external>") != std::string::npos);
+}
+
+#undef DISASM_BIN_DIR

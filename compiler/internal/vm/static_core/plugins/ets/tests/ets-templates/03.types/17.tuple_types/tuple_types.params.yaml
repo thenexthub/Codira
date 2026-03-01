@@ -1,0 +1,218 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          type EMPTY_TUPLE = []
+      use: |-
+          let e1: EMPTY_TUPLE = []
+          let e2: [] = []
+          let e1a = e1
+          let e2a = e2
+          arktest.assertTrue( e1a instanceof Object )
+          arktest.assertTrue( e2a instanceof Object )
+          arktest.assertTrue( e1 == e1a && e2 == e2a && e1a != e2a )
+
+    - use: |-
+          let e: [boolean, string] = [true, "A"]
+          arktest.assertTrue( e instanceof Object )
+
+    - decl: |-
+          type TUPLE = [boolean, string]
+      use: |-
+          let e: TUPLE = [true, "A"]
+          arktest.assertTrue( e instanceof Object )
+
+    - use: |-
+          let e: [][] = []  // array of empty tuples
+          let f: [][] = [[]]
+          let g: [][] = [[],[]]
+          arktest.assertTrue( e.length == 0 )
+          arktest.assertTrue( f.length == 1 )
+          arktest.assertTrue( g.length == 2 )
+
+    - use: |-
+          let e: [string, string][] = []    // one-dimensional array of tuples
+          let f: [string, string][][] = []  // two-dimensional array of tuples
+          arktest.assertTrue( e.length == 0 )
+          arktest.assertTrue( f.length == 0 )
+
+          e = [["a", "b"]]
+          f = [e, e]
+          arktest.assertTrue( e[0][0] == "a" )
+          arktest.assertTrue( f[0][0][0] == "a" )
+
+    - decl: |-
+          type TUPLE = [number, string, boolean, Object]
+      use: |-
+          let e: TUPLE = [42.0, "A", true, new Error()]
+          e[0] = 33.0
+          e[1] = "B"
+          e[2] = false
+          e[3] = e
+          arktest.assertTrue( (e[3] as TUPLE)[0] == 33.0 )
+          arktest.assertTrue( (e[3] as TUPLE)[1] == "B" )
+          arktest.assertTrue( (e[3] as TUPLE)[2] == false )
+
+    - decl: |-
+          function foo(v: [number, string]): [string, string] {
+              return [v[1] + v[0], v[1]]
+          }
+      use: |-
+          let res = foo([42.0, "test"])
+          arktest.assertTrue( res[0] === "test42" )
+          arktest.assertTrue( res[1] === "test" )
+
+    - decl: |-
+          class A<T> {
+              private fld: T
+              constructor(p: T) {
+                  this.fld = p
+              }
+              getFld(): T {
+                  return this.fld
+              }
+          }
+      use: |-
+          let a: A<[string, string]> = new A<[string, string]>(["A", "B"])
+          let res = a.getFld()
+          arktest.assertTrue( res[0] === "A" )
+          arktest.assertTrue( res[1] === "B" )
+
+    - decl: |-
+          class A<T extends [number, boolean]> {
+              private fld: T
+              constructor(p: T) {
+                  this.fld = p
+              }
+              getFld(): T {
+                  return this.fld
+              }
+          }
+      use: |-
+          let a: A<[number, boolean]> = new A<[number, boolean]>([1.0, true])
+          let res = a.getFld()
+          arktest.assertTrue( res[0] == 1.0 )
+          arktest.assertTrue( res[1] == true )
+
+    - decl: |-
+          class A<T> {
+              private fld: T
+              constructor(p: T) {
+                  this.fld = p
+              }
+              setFld(p: T) {
+                  this.fld = p
+              }
+              getFld(): T {
+                  return this.fld
+              }
+          }
+      use: |-
+          let a: A<[string|null, string|null] | null> = new A<[string|null, string|null] | null>(null)
+          a.setFld(["A", null])
+          let res = a.getFld()
+          arktest.assertTrue( res![0] === "A" )
+          arktest.assertTrue( res![1] === null )
+
+    - decl: |-
+          const index: int = 1
+      use: |-
+          let e: [string, boolean] = ["A", true]
+          arktest.assertTrue( e[index] == true ) // const indices allowed
+
+    - decl: |-
+          function foo(p: string[]) {
+              return p[0]
+          }
+      use: |-
+          let v = foo(["A", "B"])  // array type must be inferred from context
+          arktest.assertTrue( v == "A" )
+
+    - decl: |-
+          function foo(p: [string, string]) {
+              return p[0]
+          }
+      use: |-
+          let v = foo(["A", "B"])  // tuple type must be inferred from context
+          arktest.assertTrue( v == "A" )
+
+    - use: |-
+          let v: [number, number] = [1.0, 2.0]
+          let t: Object = v
+          let p: [number, number] = t as [number, number]  // cast to tuple
+
+    - use: |-
+          let v: [string] = ["A"]
+          let p = v as [string]  // cast to the same type
+          arktest.assertTrue( p[0] == "A" )
+
+    - use: |-
+          let v: [string]|null = ["A"]
+          v = null
+          let expectedException = (e: Error): boolean => { return (e instanceof NullPointerError) }
+          arktest.expectThrow(() => { v![0] = "A" }, expectedException)
+
+    - decl: |-
+          type TUPLE = [number, string]
+      use: |-
+          let v: [TUPLE, [number, TUPLE]] = [[1.0, "A"], [2.0, [3.0, "B"]]]
+          arktest.assertTrue( v[0][0] == 1.0 )
+          arktest.assertTrue( v[0][1] == "A" )
+          arktest.assertTrue( v[1][0] == 2.0 )
+          arktest.assertTrue( v[1][1][0] == 3.0 )
+          arktest.assertTrue( v[1][1][1] == "B" )
+
+    - use: |-
+          // test Array.push with tuple literal [boolean, int]
+          let arr: Array<[boolean, int]> = new Array<[boolean, int]>()
+          arr.push([true, 1])
+          arr.push([false, 2])
+          arktest.assertTrue( arr.length == 2 )
+          arktest.assertTrue( arr[0][0] == true )
+          arktest.assertTrue( arr[0][1] == 1 )
+          arktest.assertTrue( arr[1][0] == false )
+          arktest.assertTrue( arr[1][1] == 2 )
+
+    - use: |-
+          let v: [string]|null = ():[string]|null => { let x:[string] = ["A"]; return x; }();
+          arktest.assertTrue( v?.[0] == "A" )
+          v = ():[string]|null => { return null; }();
+          arktest.assertTrue( v?.[0] === undefined )
+
+    - use: |-
+          let e: [] = []  // empty tuple
+          arktest.assertTrue( e instanceof Object )
+
+    - decl: |-
+          type TT = [int, string]
+          class A {
+              private fld: TT
+              constructor(p: TT) {
+                  this.fld = p
+              }
+              meth(p: TT) {
+                  this.fld[0] += p[0]
+                  this.fld[1] += p[1]
+              }
+              getFld(): TT {
+                  return this.fld
+              }
+          }
+      use: |-
+          let a: A = new A([0, "0"])
+          a.meth([1, "X"])
+          let res = a.getFld()
+          arktest.assertEQ( res[0], 1 )
+          arktest.assertEQ( res[1], "0X" )

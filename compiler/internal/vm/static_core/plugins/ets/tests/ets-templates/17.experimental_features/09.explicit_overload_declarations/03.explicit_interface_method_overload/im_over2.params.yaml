@@ -1,0 +1,132 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          // method overloaded with multiple parameters with different types
+          interface J {
+              m1(): int { return 0 }
+              m2(i: int): int { return 1 }
+              m3(i: int, j: int): int { return i + j }
+              m4(i: int, j: int, k: int): int { return 3 }
+              m5(i: int, j: double): double { return j + i }
+              m6(i: int, j: int, k: double): int { return 21 }
+              m7(i: double, j: double, k: int): int { return 31 }
+              m8(i: string, j: double): string { return i + j }
+              overload m { m1, m2, m3, m4, m5, m6, m7, m8}
+          }
+          class A implements J {}
+      use: |-
+          let a: A = new A()
+          arktest.assertEQ( a.m(), 0 )
+          arktest.assertEQ( a.m(42), 1 )
+          arktest.assertEQ( a.m(12, 55), 67 )
+          arktest.assertEQ( a.m(12, 55, 42), 3 )
+          arktest.assertEQ( a.m(61, 2.0), 63.0 )
+          arktest.assertEQ( a.m(11, 12, 15e23), 21 )
+          arktest.assertEQ( a.m(2.011e12, 1.98, 88), 31 )
+          arktest.assertEQ( a.m("abc", 18.0), "abc18" )
+
+    - decl: |-
+          // method overloaded with optional parameters
+          interface J {
+              m1(a: Object): int { return 1 }
+              m2(p: int, a: Object): int { return 2 }
+              m3(p: int, a: Object, b?: Object): int { return 3 }
+              m4(p: int, a?: Object, b?: Object, c: Object = new Error()): int { return 4 }
+              overload m { m2, m3, m4, m1 }
+          }
+          class A implements J {}
+      use: |-
+          let a: A = new A()
+          arktest.assertEQ( a.m(a), 1 )
+          arktest.assertEQ( a.m(1), 4 )
+          arktest.assertEQ( a.m(1, a), 2 )
+          arktest.assertEQ( a.m(1, a, a), 3 )
+          arktest.assertEQ( a.m(1, a, a, a), 4 )
+
+    - decl: |-
+          // method overloaded with boxing/unboxing parameters
+          interface J {
+            m1(a: boolean): number { return 1.0 }
+            m2(a: boolean, b: number): number { return 3.0 }
+            overload m { m1, m2 }
+          }
+          class A implements J {}
+      use: |-
+          let a = new A()
+          arktest.assertEQ( a.m(true), 1.0 )
+          arktest.assertEQ( a.m(new Boolean()), 1.0 )
+          arktest.assertEQ( a.m(true, 1.0), 3.0 )
+          arktest.assertEQ( a.m(false, new Double()), 3.0 )
+          arktest.assertEQ( a.m(new Boolean(), new Double()), 3.0 )
+
+    - decl: |-
+          // method overloaded with rest parameters
+          interface J {
+              m1(a: Error, b: Object[]): int { return 1 }
+              m2(a: Error, ...b: Object[]): int { return 2 }
+              m3(a: Error, b: Error, ...c: Object[]): int { return 3 }
+              m4(a: Error, b: Object, c: Object, d: Object): int { return 4 }
+              overload m { m1, m2, m3, m4 }
+          }
+          class A implements J {}
+      use: |-
+          let a: A = new A()
+          arktest.assertEQ( a.m(new Error(), new Object[1]), 1 )
+          arktest.assertEQ( a.m(new Error(), new Long(), new Error()), 2 )
+          arktest.assertEQ( a.m(new Error(), new Error()), 3 )
+          arktest.assertEQ( a.m(new Error(), new Object(), new Object(), new Object()), 4 )
+
+    - decl: |-
+          // method overloaded with type variables
+          class X {}
+          class Y {}
+          interface J<T, U> {
+              m1(a: T): int { return 1 }
+              m2(a: T, b: U): int { return 2 }
+              m3(a: U, b: T, c: U): int { return 3 }
+              overload m { m1, m2, m3 }
+          }
+          class A<T, U> implements J<T, U> {}
+      use: |-
+          let a: A<X, Y> = new A<X, Y>()
+          arktest.assertEQ( a.m(new X()), 1 )
+          arktest.assertEQ( a.m(new X(), new Y()), 2 )
+          arktest.assertEQ( a.m(new Y(), new X(), new Y()), 3 )
+
+    - decl: |-
+          // method overloaded with multiple parameters with dependent types
+          class X {}
+          class Y extends X {}
+          class Z extends Y {}
+          interface J {
+              m1(a: X, b: Y, c: Z): int { return 1 }
+              m2(a: X, b: Y): int { return 2 }
+              m3(a: X): int { return 3 }
+              overload m { m1, m2, m3 }
+          }
+          class A implements J {}
+      use: |-
+          let a: A = new A()
+          let x: X = new X()
+          let y: Y = new Y()
+          let z: Z = new Z()
+          arktest.assertEQ( a.m(x), 3 )
+          arktest.assertEQ( a.m(y), 3 )
+          arktest.assertEQ( a.m(z), 3 )
+          arktest.assertEQ( a.m(x, y), 2 )
+          arktest.assertEQ( a.m(z, z), 2 )
+          arktest.assertEQ( a.m(x, y, z), 1 )
+          arktest.assertEQ( a.m(z, z, z), 1 )

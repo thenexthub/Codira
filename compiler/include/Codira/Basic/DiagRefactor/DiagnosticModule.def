@@ -1,0 +1,37 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+ERROR(module_diag_begin, "")
+// file system error
+ERROR(module_read_file_to_buffer_failed, "read file '%s' failed, reason: '%s'")
+ERROR(module_common_part_path_is_required, "specify common part path of when compiling platform part of package.")
+ERROR(module_read_file_conflicted, "the file '%s' is a duplicate source file")
+WARNING(module_version_not_identical, PACKAGE_IMPORT, "ast file for '%s' created by codec which version is '%s' and current codec version is '%s', it may cause crash because lack information of declaration")
+ERROR(module_open_bcFile_failed, "can't open output file '%s': '%s'")
+ERROR(module_loaded_ast_failed, "validation of %s file '%s' failed, please confirm it was created by compiler whose version is '%s'.")
+ERROR(module_same_name_with_indirect_dependent_pkg, "failed to load dependent package '%s' for package '%s', which have same package name with source package")
+
+// Used by lsp
+ERROR(module_unsupport_circular_dependencies, "packages %s are in circular dependencies.")
+ERROR(module_common_codeo_wrong_package, "common part is for another package '%s', expected the same as for current package '%s'.")
+
+ERROR(module_diag_end, "")

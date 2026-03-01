@@ -1,0 +1,384 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+const success: int = 0;
+const fail:    int = 1;
+
+function main(): int {
+    let failures: int = 0;
+
+    failures += check(createArrayFromArray(), "Create Array object from source array");
+    failures += check(createArrayFromArrayWithOffset(), "Create Array object from source array with given offset");
+
+    failures += check(createFilteredArrayFromGiven(), "Create Array object from source array with applied filter");
+
+    failures += check(testLastIndexOfNotFound(), "Try to find missed item");
+    failures += check(testLastIndexOf4(), "Try to find last item at 4");
+    failures += check(testLastIndexOf3(), "Try to find last item at 3");
+
+
+    failures += check(testMap(), "Try to Array map function");
+
+    failures += check(createArraySetAndGet(), "Create Array from source data");
+
+    {% for ci in copyWithin -%}
+    failures += check({{.ci.name}}(), "Test262: {{.ci.name}}");
+    {%+ endfor %}
+
+
+    if (failures > 0) { return fail; }
+    return success;
+}
+
+function check(result: int, message: String): int {
+    if (result == 0) {
+        return success;
+    }
+    console.println("\nFAILED: " + message);
+    return fail;
+}
+
+const source: FixedArray<{{.item.primitiveType}}> = {{.item.data}};
+
+function createArraySetAndGet(): int {
+    let ss = new ArrayBuffer(source.length.toInt() * {{.item.primitiveSizeBytes}});
+    let target: {{.item.objectType}};
+    try {
+        target = new {{.item.objectType}}(ss);
+    } catch(e) {
+        return fail;
+    }
+    for (let i: int = 0; i < source.length.toInt(); i++) {
+        try {
+            target.set(i, source[i] as {{.item.primitiveType}});
+        } catch(e) {
+            console.print("Catched error at insert via set(int, {{.item.type}})");
+            return fail;
+        }
+    }
+    for (let i: int = 0; i < source.length.toInt(); i++) {
+        let back = target[i]{{.item.cast2primitive}};
+        if (back != source[i]) {
+            console.println("Data mismatch for {{.item.objectType}} " + " expected: " + source[i] + " at " + i + " but actual: " + back);
+            return fail;
+        }
+    }
+
+    // NOTE: comparison of target that filled by set(int, {{.item.type}}) vs target2.$_set(number, {{.item.type}})
+    let target2: {{.item.objectType}};
+    try {
+        target2 = new {{.item.objectType}}(new ArrayBuffer(source.length.toInt() * {{.item.primitiveSizeBytes}}));
+    } catch(e) {
+        return fail;
+    }
+    for (let i: int = 0; i < source.length; i++) {
+        try {
+            target2[i] = source[i] as {{.item.primitiveType}};
+        } catch(e) {
+            console.print("Catched error at insert via $_set(number, {{.item.type}})");
+            return fail;
+        }
+        if (target[i] != target2[i]) {
+            console.print("Data mismatch for $_get(int) vs $_get(int) filled by set(int, {{.item.type}}) vs $_set(number, {{.item.type}})");
+            return fail;
+        }
+    }
+    return success;
+}
+
+function createArrayFromArray(): int {
+    let ss = new ArrayBuffer(source.length.toInt() * {{.item.primitiveSizeBytes}});
+    let target: {{.item.objectType}};
+    try {
+        target = new {{.item.objectType}}(ss);
+    } catch(e) {
+        return fail;
+    }
+
+    try {
+        target.set(source);
+    } catch(e) {
+        return fail;
+    }
+
+    let acc: int = 0;
+
+    let sumExp: {{.item.primitiveType}} = 0;
+    let sumAct: {{.item.primitiveType}} = 0;
+    for (let i: int = 0; i < source.length.toInt(); i++) {
+        sumExp += source[i];
+        sumAct += target[i]{{.item.cast2primitive}};
+    }
+
+    if (sumAct != sumExp) {
+        console.println("Sum mismatch {{.item.objectType}} " + " expected: " + sumExp + " but actual: " + sumAct);
+        acc++;
+    }
+
+    for (let i: int = 0; i < source.length.toInt(); i++) {
+        let back = target[i]{{.item.cast2primitive}};
+
+        if (back != source[i]) {
+            console.println("Data mismatch for {{.item.objectType}} " + " expected: " + source[i] + " at " + i + " but actual: " + back);
+            acc++;
+        }
+    }
+
+    return acc;
+}
+
+
+function createArrayFromArrayWithOffset(): int {
+    let offset: int = 3;
+    let ss = new ArrayBuffer((source.length.toInt() + offset) * {{.item.primitiveSizeBytes}});
+    let target: {{.item.objectType}};
+    try {
+        target = new {{.item.objectType}}(ss);
+    } catch(e) {
+        return fail;
+    }
+    try {
+        target.set(source, offset);
+    } catch(e) {
+        console.println("can't set")
+        return fail;
+    }
+
+    let acc: int = 0;
+
+    for (let i: int = offset; i < source.length.toInt(); i++) {
+        let back = target[i]{{.item.cast2primitive}};;
+
+        if (back != source[i-offset]) {
+            console.println("Data mismatch for {{.item.objectType}} " + " expected: " + source[i] + " at " + i + " but actual: " + back);
+            acc++;
+        }
+    }
+    return acc;
+}
+
+function createFilteredArrayFromGiven(): int {
+    let ss = new ArrayBuffer(source.length.toInt() * {{.item.primitiveSizeBytes}});
+    let origin: {{.item.objectType}};
+    try {
+        origin = new {{.item.objectType}}(ss);
+        origin.set(source);
+    } catch(e) {
+        return fail;
+    }
+
+    let target: {{.item.objectType}};
+    try {
+        target = origin.filter((val: {{.item.type}}, index: int): boolean => { return val{{.item.cast2primitive}} > 0});
+    } catch(e) {
+        return fail;
+    }
+    let targetIdx = 0 as int
+    for (let originIdx = 0; originIdx < origin.length.toInt(); originIdx++) {
+        if (origin[originIdx]{{.item.cast2primitive}} <= 0) {
+            continue;
+        }
+        if (targetIdx >= target.length.toInt()) {
+            console.println("filter: buffer overflow");
+            return fail;
+        }
+        if (target.at(targetIdx) != origin.at(originIdx)) {
+            console.println("wrong filtered item " + target.at(targetIdx));
+            return fail;
+        }
+        targetIdx++
+    }
+    if (targetIdx != target.length.toInt()) {
+        console.println("new element " + target.at(targetIdx));
+        return fail;
+    }
+    return success;
+}
+
+
+function testLastIndexOfNotFound(): int {
+
+  let ss = new ArrayBuffer(source.length.toInt() * {{.item.primitiveSizeBytes}});
+  let target: {{.item.objectType}};
+  try {
+    target = new {{.item.objectType}}(ss);
+    target.set(source);
+  } catch(e) {
+    return fail;
+  }
+
+  let nf: number = target.lastIndexOf({{.item.create}}(11));
+
+  if (nf == -1) { return success; }
+  return fail;
+}
+
+function testLastIndexOf4(): int {
+    let source: FixedArray<{{.item.primitiveType}}> = [10 as {{.item.primitiveType}}, 20 as {{.item.primitiveType}},
+                                             50 as {{.item.primitiveType}}, 50 as {{.item.primitiveType}},
+                                             50 as {{.item.primitiveType}}, 60 as {{.item.primitiveType}}];
+    let ss = new ArrayBuffer(source.length.toInt() * {{.item.primitiveSizeBytes}});
+
+    let target: {{.item.objectType}};
+
+    try {
+        target = new {{.item.objectType}}(ss);
+        target.set(source);
+    } catch(e) {
+        console.println(e);
+        return fail;
+    }
+
+    let result: number = target.lastIndexOf({{.item.create}}(50), 5 as int);
+    if (result == 4) { return success; }
+
+    return fail;
+}
+
+function testLastIndexOf3(): int {
+    let source: FixedArray<{{.item.primitiveType}}> = [10 as {{.item.primitiveType}}, 20 as {{.item.primitiveType}},
+                                             50 as {{.item.primitiveType}}, 50 as {{.item.primitiveType}},
+                                             50 as {{.item.primitiveType}}, 60 as {{.item.primitiveType}}];
+    let ss = new ArrayBuffer(source.length.toInt() * {{.item.primitiveSizeBytes}});
+
+    let target: {{.item.objectType}};
+
+    try {
+        target = new {{.item.objectType}}(ss);
+        target.set(source);
+    } catch(e) {
+        console.println(e);
+        return fail;
+    }
+
+    let result: number = target.lastIndexOf({{.item.create}}(50), 3 as int);
+
+    if (result == 3) { return success; }
+    return fail;
+}
+
+
+
+function testMap(): int {
+    let source: FixedArray<{{.item.primitiveType}}> = [10 as {{.item.primitiveType}}, 20 as {{.item.primitiveType}},
+                                             50 as {{.item.primitiveType}}, 50 as {{.item.primitiveType}},
+                                             50 as {{.item.primitiveType}}, 60 as {{.item.primitiveType}}];
+    let ss = new ArrayBuffer(source.length.toInt() * {{.item.primitiveSizeBytes}});
+
+    let origin: {{.item.objectType}};
+    try {
+        origin = new {{.item.objectType}}(ss);
+        origin.set(source);
+    } catch(e) {
+        console.println(e);
+        return fail;
+    }
+
+    let target: {{.item.objectType}};
+    try {
+        target = origin.map((val: {{.item.type}}, index: int): {{.item.type}} => { return val + {{.item.create}}(1) });
+    } catch(e) {
+        console.println(e);
+        return fail;
+    }
+
+    if (target.length.toInt() != source.length.toInt()) {
+        console.println("Array length mismatch");
+        return fail;
+    }
+
+    for (let i: int = 0; i< source.length.toInt(); i++) {
+        if (target[i]{{.item.cast2primitive}} != source[i] + 1) {
+            console.println("Array data mismatch");
+            return fail;
+        }
+    }
+    return success;
+}
+
+function createFromSource(source: FixedArray<{{.item.primitiveType}}>): {{.item.objectType}} {
+    let ss = new ArrayBuffer(source.length.toInt() * {{.item.primitiveSizeBytes}});
+
+    let origin: {{.item.objectType}};
+
+    try {
+        origin = new {{.item.objectType}}(ss);
+        origin.set(source);
+    } catch(e) {
+        console.println(e);
+        throw new Error("Unable to create typed array");
+    }
+
+    return origin;
+  }
+
+function dump(source: FixedArray<{{.item.type}}>, origin: {{.item.objectType}}): void {
+    console.print("Expected: ");
+    for (let i: int = 0; i< source.length.toInt(); i++) console.print(source[i] + " ");
+    console.println();
+    console.print("Passed: ");
+    for (let i: int = 0; i< origin.length.toInt(); i++) console.print(origin[i] as {{.item.type}} + " ");
+    console.println();
+}
+
+
+function assertArrayEqualsToTypedArray(source: FixedArray<{{.item.primitiveType}}>, origin: {{.item.objectType}}): int {
+    if (origin.length.toInt() != source.length.toInt()) {
+        return fail;
+    }
+    for (let i: int; i< origin.length; i++) {
+        let tv: {{.item.primitiveType}} = origin[i]{{.item.cast2primitive}};;
+        let sv: {{.item.primitiveType}} = source[i];
+        if (tv != sv) {
+            console.println("Unexpected data changed at [" + i + "] " + sv + "->" + tv);
+            return fail;
+        }
+    }
+    return success;
+}
+
+const src: FixedArray<{{.item.primitiveType}}> = [1 as {{.item.primitiveType}},
+                               2 as {{.item.primitiveType}},
+                               3 as {{.item.primitiveType}},
+                               4 as {{.item.primitiveType}},
+                               5 as {{.item.primitiveType}}];
+
+{%+ for ci in copyWithin %}
+function {{.ci.name}}(): int {
+    let origin: {{.item.objectType}};
+
+    let expected: FixedArray<{{.item.primitiveType}}> = [{%+ for ea in ci.expected %}{{.ea}} as {{.item.primitiveType}}, {% endfor %}];
+
+    try {
+        {%- if ci.src is defined %}
+        origin = createFromSource({{.ci.src}});
+        {%- else %}
+        origin = createFromSource(src);
+        {%- endif %}
+    } catch(e) {
+        console.println(e);
+        return fail;
+    }
+    origin.copyWithin({{.ci.params|join(', ')}});
+    return assertArrayEqualsToTypedArray(expected, origin);
+}
+{%+ endfor %}

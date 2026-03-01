@@ -1,0 +1,183 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+enum Color: i32 {
+    red = 1,
+    yellow = 2,
+    blue = 3,
+}
+
+struct Mystruct {
+  testNum: i32;
+  testStr: String;
+}
+
+interface OverloadInterface { 
+    @overload("overloadFunc")
+    OverloadFuncI8(a: i8, b: i8): i8;
+
+    @overload("overloadFunc")
+    OverloadFuncI8I16(a: i8, b: i16): i8;
+
+    @overload("overloadFunc")
+    OverloadFuncI8F32(a: i8, b: f32): i8;
+
+    @overload("overloadFunc")
+    OverloadFuncI8String(a: i8, b: String): i8;
+
+    @overload("overloadFunc")
+    OverloadFuncI16(a: i16, b: i16): i16;
+
+    @overload("overloadFunc")
+    OverloadFuncI32(a: i32, b: i32): i32;
+
+    @overload("overloadFunc")
+    OverloadFuncF32(a: f32, b: f32): f32;
+
+    @overload("overloadFunc")
+    OverloadFuncF64(a: f64, b: f64): f64;
+
+    @overload("overloadFunc")
+    OverloadFuncBool(a: bool, b: bool): bool;
+
+    @overload("overloadFunc")
+    OverloadFuncString(a: String, b: String): String;
+
+    @overload("overloadFunc")
+    OverloadFuncEnum(p0: Color): i32;
+
+    @overload("overloadFunc")
+    OverloadFuncMystruct(p0: Mystruct): String;
+
+    @overload("overloadFunc")
+    OverloadFuncPoint(a: Array<i32>): i32;
+
+    @overload("overloadFunc")
+    OverloadFuncArrayBuffer(a: @arraybuffer Array<u8>): u8;
+
+    @overload("overloadFunc")
+    OverloadFunc5param1(p0: i8, p1: i16, p2: i32, p3: f32, p4: f64): void;
+
+    @overload("overloadFunc")
+    OverloadFunc5paramPrimitive2(
+        p0: bool,
+        p1: String,
+        p2: i8,
+        p3: i16,
+        p4: i32
+    ): bool;
+
+    @overload("overloadFunc")
+    OverloadFunc5paramPrimitive3(
+        p0: f32,
+        p1: f64,
+        p2: bool,
+        p3: String,
+        p4: i8
+    ): f32;
+
+    @overload("overloadFunc")
+    OverloadFunc5paramPrimitive4(
+        p0: String,
+        p1: i16,
+        p2: i32,
+        p3: f32,
+        p4: bool
+    ): String;
+
+    @overload("overloadFunc")
+    OverloadFunc5paramPrimitive5(
+        p0: String,
+        p1: String,
+        p2: String,
+        p3: bool,
+        p4: bool
+    ): String;
+
+    @overload("overloadFunc")
+    OverloadFunc5paramPrimitive6(
+        p0: i16,
+        p1: i32,
+        p2: f32,
+        p3: f64,
+        p4: bool
+    ): i16;
+
+    @overload("overloadFunc")
+    OverloadFunc5paramPrimitive7(
+        p0: String,
+        p1: i8,
+        p2: i16,
+        p3: f32,
+        p4: bool
+    ): String;
+
+    @overload("overloadFunc")
+    OverloadFunc5paramPrimitive8(
+        p0: bool,
+        p1: i8,
+        p2: i32,
+        p3: f64,
+        p4: String
+    ): bool;
+
+    @overload("overloadFunc")
+    OverloadFunc5paramPrimitive9(
+        p0: f64,
+        p1: bool,
+        p2: String,
+        p3: i16,
+        p4: i32
+    ): f64;
+
+    @overload("overloadFunc")
+    OverloadFunc5paramPrimitive10(
+        p0: i8,
+        p1: f32,
+        p2: bool,
+        p3: String,
+        p4: i32
+    ): i8;
+
+    @overload("overloadFunc")
+    OverloadFunc10param(p0: i8, p1: i16, p2: i32, p3: f32, p4: f64, p5: bool, p6: String, p7: Array<i8>, p8:Array<i16>, p9:Array<i32>): void;
+
+    @overload("overloadFunc")
+    OverloadFunc10param1(p0: i8, p1: i16, p2: i32, p3: f32, p4: f64, p5: bool, p6: String, p7: Array<i8>, p8:Mystruct, p9:Color): void;
+
+    @overload("overloadFunc")
+    OverloadFunc10param2(p0: i8, p1: Mystruct, p2: Color, p3: Array<f32>, p4: Array<f64>, p5: Array<bool>, p6: Array<String>, p7: Array<i8>, p8:Array<i16>, p9:Array<i32>): void;
+
+    @overload("overloadFunc")
+    OverloadFunc10param3(p0: i8, p1: i16, p2: i32, p3: f32, p4: f64, p5: bool, p6: String, p7: @arraybuffer Array<u8>, p8:Mystruct, p9:Color): void;
+
+    @overload("overloadFunc")
+    OverloadFunc10param4(p0: i8, p1: i16, p2: i32, p3: f32, p4: f64, p5: bool, p6: String, p7: Array<i8>, p8:@arraybuffer Array<u8>, p9:Color): void;
+
+    @overload("overloadFunc")
+    OverloadFuncEnumRecord(p1:Color, p2:@record Map<String, i16>): void;
+
+    @overload("overloadFunc")
+    OverloadFuncArrayRecord(p1:Array<i32>, p2:@record Map<String, i16>): void;
+}
+
+
+function get_interface(): OverloadInterface;

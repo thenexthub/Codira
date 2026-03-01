@@ -1,0 +1,283 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          class A {}
+          class B {}
+      use: |-
+          let a: A = {}
+          let b: B = {}
+          arktest.assertTrue( a instanceof A )
+          arktest.assertTrue( b instanceof B )
+          arktest.assertTrue( a != b )
+
+    - decl: |-
+          class A {}
+          class B {
+              ref: A = new A()
+          }
+      use: |-
+          let a: A = {}
+          let b1: B = { ref: {} }
+          let b2: B = { ref: a }
+          let b3: B = { ref: new A() }
+          arktest.assertTrue( b1.ref instanceof A )
+          arktest.assertTrue( b2.ref instanceof A )
+          arktest.assertTrue( b3.ref instanceof A )
+          arktest.assertTrue( b2.ref == a )
+
+    - decl: |-
+          class A {
+              b: B|null = null
+          }
+          class B {
+              c: C|null = null
+          }
+          class C {
+              name: string = "";
+              age: number = 0
+          }
+      use: |-
+          let a: A = { b: { c: { age: 42, name: "John" } as C} as B}
+          arktest.assertEQ( a.b!.c!.name, "John" )
+          arktest.assertEQ( a.b!.c!.age, 42 )
+
+    - decl: |-
+        class A {
+            b?: B
+        }
+        class B {
+            c?: C
+        }
+        class C {
+            name: string = "";
+            age: number = 0
+        }
+      use: |-
+        let a: A = { b: { c: { age: 42, name: "John" } as C} as B}
+        arktest.assertEQ( a.b!.c!.name, "John" )
+        arktest.assertEQ( a.b!.c!.age, 42 )
+
+    - decl: |-
+          class A {
+              arr: string[] = new string[2]
+          }
+          function foo(a: A): A {
+              return { arr: [ a.arr[1], a.arr[0] ]}
+          }
+      use: |-
+          arktest.assertTrue( { arr: ["a", "b"] } as A != { arr: ["a", "b"] } as A )
+          let a: A = foo({ arr: ["a", "b"]})
+          arktest.assertTrue( a.arr[0] == "b" )
+          arktest.assertTrue( a.arr[1] == "a" )
+
+    - decl: |-
+          class A {
+              name: string|null = null
+          }
+      use: |-
+          let arr: A[] = new A[2]
+          arr[0] = { name: "John" }
+          arr[1] = { name: "Jack" }
+          arktest.assertTrue( arr[0] instanceof A && arr[0].name == "John" )
+          arktest.assertTrue( arr[1] instanceof A && arr[1].name == "Jack" )
+
+    - decl: |-
+          class A {
+              name: string|null = null
+          }
+      use: |-
+          let arr: A[] = [ { name: "John" }, { name: null } ]
+          arktest.assertTrue( arr[0] instanceof A && arr[0].name == "John" )
+          arktest.assertTrue( arr[1] instanceof A && arr[1].name == null )
+
+    - decl: |-
+          class A {
+              name: string|null = null
+          }
+          class B extends A {
+              age: number
+          }
+      use: |-
+          let b: B = { name: "John", age: 42 }
+          arktest.assertTrue( b instanceof B && b.age == 42 && b.name == "John" )
+          let a: A = b
+          arktest.assertTrue( a instanceof A && a.name == "John" )
+          let c: B = {}
+          arktest.assertTrue( c instanceof B && c.age == 0 && c.name == null )
+
+    - decl: |-
+          class A {
+              age: number = 42
+          }
+      use: |-
+          let a: A = {}
+          arktest.assertTrue( a instanceof A && a.age == 42 )
+
+    - use: |-
+          let v: Object[] = [{}, {}, {}, {}, {}]
+          arktest.assertTrue( v.length == 5 && v[0] instanceof Object && v[0] != v[4] )
+
+    - decl: |-
+          class A {
+              age: number = 1
+          }
+          class B {
+              age: number = 2
+          }
+      use: |-
+          let v: Object[] = [ {} as A, {} as B, {} ]
+          arktest.assertTrue( v[0] instanceof A && (v[0] as A).age == 1 )
+          arktest.assertTrue( v[1] instanceof B && (v[1] as B).age == 2 )
+          arktest.assertTrue( v[2] instanceof Object )
+
+    - decl: |-
+          class A {
+              readonly name: string|null = null
+          }
+      use: |-
+          let a: A = { name: "John" }
+          arktest.assertTrue( a.name == "John" )
+
+    - decl: |-
+          class A {
+              age: number;
+              adult: boolean = false
+          }
+      use: |-
+          let v = 42
+          // expressions in field values
+          let a: A = { age: v, adult: v >= 18 }
+          arktest.assertTrue(a.age == 42 && a.adult)
+
+    - decl: |-
+          class A {
+              fld1: number;
+              fld2: number;
+              fld3: number
+          }
+      use: |-
+          let v = 42
+          // expressions in field values
+          let a: A = { fld1: v++, fld2: v++, fld3: v++ }
+          arktest.assertTrue(v == 45 && a.fld1 == 42 && a.fld2 == 43 && a.fld3 == 44)
+
+    - decl: |-
+          class A {
+              first_name: string|undefined;
+              last_name: string|undefined;
+              full_name: string|undefined
+          }
+          function ln(): string {
+              return "Smith"
+          }
+      use: |-
+          let fn = "John"
+          // expressions in field values
+          let a: A = { first_name: fn, last_name: ln(), full_name: fn + " " + ln() }
+          arktest.assertTrue(a.full_name == "John Smith")
+
+    - decl: |-
+          class A {
+              first_name: string|undefined|null = "John";
+              last_name: string|undefined|null = "Smith"
+          }
+      use: |-
+          // expressions in field values
+          let a: A = { first_name: undefined, last_name: null }
+          arktest.assertTrue(a.first_name === undefined && a.last_name === null)
+    - decl: |-
+          class B {
+              c?: number
+          }
+          class A {
+              b?: B
+          }
+      use: |-
+          let a: A = {}
+          arktest.assertTrue(a instanceof A)
+    - decl: |-
+          class HasTuple {
+              tuple: [boolean, Object] = [false, {}]
+          }
+          class HasArrayOfTuples {
+              tuples: HasTuple[] = []
+           }
+      use: |-
+          let t: HasTuple = {tuple: [true, {}]}
+          arktest.assertTrue(t instanceof HasTuple)
+          let at: HasArrayOfTuples = {tuples: [{tuple: [false, {}]}, t]}
+          arktest.assertTrue(at instanceof HasArrayOfTuples)
+
+    - decl: |-
+          type RecStrBool = Record<"yes" | "no", boolean>
+          class HasRecStrBool {
+              r: RecStrBool = { "yes": true, "no": false }
+          }
+      use: |-
+          let f: HasRecStrBool = { r: {"yes": false, "no": true} }
+          arktest.assertTrue(f instanceof HasRecStrBool)
+          arktest.assertEQ(f.r["yes"], false)
+
+    - decl: |-        
+        class HasMethod {
+            name: string = ''
+            static someStaticMethod(value: HasMethod): string {
+              return value.name;
+            }
+        }
+      use: |-
+        let f: HasMethod = { name: 'Alice' }
+        arktest.assertTrue(f instanceof HasMethod)
+        arktest.assertEQ('Alice', HasMethod.someStaticMethod(f))
+
+    - decl: |-
+        class HasMethod {
+            name: string = ''
+            someMethod(): string {
+              return this.name;
+            }
+        }
+      use: |-
+        let f: HasMethod = { name: 'Alice' }
+        arktest.assertTrue(f instanceof HasMethod)
+        arktest.assertEQ('Alice', f.someMethod())
+
+
+    - decl: |-
+        interface IName {
+          name: string
+        }
+        interface IAge {
+          age: number
+        }
+        class Person implements IName, IAge {
+          _name: string = ''
+          _age: number = 0.0
+        
+          get name(): string { return this._name }
+          get age(): number { return this._age }
+          set name(value: string) { this._name = value }
+          set age(value: number) { this._age = value }
+        }
+      use: |-
+        let f0: Person = { name: 'Alice', age: 17 }
+        let f1: Person = { _name: 'Alice', _age: 17 }
+        
+        arktest.assertTrue(f0 instanceof IName)
+        arktest.assertTrue(f1 instanceof IAge)
+        arktest.assertEQ(f0.age, f1.age)
+        arktest.assertEQ(f0._name, f1.name)
+

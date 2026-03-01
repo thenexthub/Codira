@@ -1,0 +1,211 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+#! CHECKER          Check DMB sinking to one successor
+#! RUN_LLVM     	options: "--llvm-pre-opt=0 --llvm-options='--print-after=mem-barriers'"
+#! READ_FILE    	"console.out"
+#! LLVM_METHOD  	/define.*barrierToSink/
+#! INST         	/br i1/
+#! INST_NEXT 	    /fence|dmb/
+#! INST_NEXT 	    /fence|dmb/
+#! INST_NEXT_NOT 	/fence|dmb/
+
+#! CHECKER          Check DMB deletion if both paths are protected
+#! RUN_LLVM     	options: "--llvm-pre-opt=0 --llvm-options='--print-after=mem-barriers'"
+#! READ_FILE    	"console.out"
+#! LLVM_METHOD  	/define.*barrierToDelete/
+#! INST         	/fence|dmb/
+#! INST_NEXT    	/fence|dmb/
+#! INST_NEXT_NOT    /fence|dmb/
+
+#! CHECKER          Check DMB not sunk with unconditional branch 
+#! RUN_LLVM     	options: "--llvm-pre-opt=0 --llvm-options='--print-after=mem-barriers'"
+#! READ_FILE    	"console.out"
+#! LLVM_METHOD  	/define.*unconditionalBranch/
+#! INST				/fence|dmb/
+#! INST_NEXT		/br/
+#! INST_NEXT_NOT	/fence|dmb/
+
+#! CHECKER          Check DMB not sunk with successor basicblock have two predecessors 
+#! RUN_LLVM     	options: "--llvm-pre-opt=0 --llvm-options='--print-after=mem-barriers'"
+#! READ_FILE    	"console.out"
+#! LLVM_METHOD  	/define.*twoPredecessors/
+#! INST				/fence|dmb/
+#! INST_NEXT		/br i1/
+#! INST_NEXT		/fence|dmb/
+#! INST_NEXT_NOT	/fence|dmb/
+
+#! CHECKER          Check DMB not sunk if object is used before branching 
+#! RUN_LLVM     	options: "--llvm-pre-opt=0 --llvm-options='--print-after=mem-barriers'"
+#! READ_FILE    	"console.out"
+#! LLVM_METHOD  	/define.*useBeforeBranch/
+#! INST				/fence|dmb/
+#! INST_NEXT		/br i1/
+#! INST_NEXT		/fence|dmb/
+#! INST_NEXT_NOT	/fence|dmb/
+
+#! CHECKER          Check DMB not sunk if both path uses object before next dmb 
+#! RUN_LLVM     	options: "--llvm-pre-opt=0 --llvm-options='--print-after=mem-barriers'"
+#! READ_FILE    	"console.out"
+#! LLVM_METHOD  	/define.*useBeforeNewObjectNotSink/
+#! INST				/fence|dmb/
+#! INST_NEXT		/br i1/
+#! INST_NEXT		/fence|dmb/
+#! INST_NEXT		/fence|dmb/
+#! INST_NEXT_NOT	/fence|dmb/
+
+#! CHECKER          Check DMB not deleted if one path use object before dmb. DMB should be sunk instead 
+#! RUN_LLVM     	options: "--llvm-pre-opt=0 --llvm-options='--print-after=mem-barriers'"
+#! READ_FILE    	"console.out"
+#! LLVM_METHOD  	/define.*useBeforeNewObjectNotDelete/
+#! INST				/br i1/
+#! INST_NEXT		/fence|dmb/
+#! INST_NEXT		/fence|dmb/
+#! INST_NEXT		/fence|dmb/
+#! INST_NEXT_NOT	/fence|dmb/
+
+.record A <access.record=public> {
+	i32 a <final>
+}
+
+.record B <access.record=public> {
+	i64 a <final>
+}
+
+.function void A.init(A a0) <ctor> {
+	ldai 2
+	stobj a0, A.a
+	return.void
+}
+
+.function void B.init(B a0) <ctor> {
+	ldai 12
+	stobj a0, B.a
+	return.void
+}
+
+.function void barrierToSink(u1 a0) {
+	initobj.short A.init:(A)
+	sta.obj v1
+	lda a0
+	jnez jump_label_0
+	call.short use1, v1
+	return.void
+jump_label_0:
+	initobj.short A.init:(A)
+	sta.obj v2
+	call.short use2, v1, v2
+	return.void
+}
+
+.function void barrierToDelete(u1 a0) {
+	initobj.short A.init:(A)
+	sta.obj v1
+	lda a0
+	jnez jump_label_0
+	initobj.short A.init:(A)
+	sta.obj v2
+	call.short use2, v1, v2
+	return.void
+jump_label_0:
+	initobj.short B.init:(B)
+	sta.obj v3
+	call.short use3, v1, v3
+	return.void
+}
+
+.function void unconditionalBranch(u1 a0) {
+	initobj.short A.init:(A)
+	sta.obj v1
+jump_label_0:
+	call.short use1, v1
+	jmp jump_label_0
+}
+
+.function void twoPredecessors(u1 a0) {
+	initobj.short A.init:(A)
+	sta.obj v1
+	lda a0
+	jnez jump_label_1
+jump_label_0:
+	call.short use1, v1
+jump_label_1:
+	initobj.short A.init:(A)
+	sta.obj v2
+	call.short use2, v1, v2
+	jmp jump_label_0
+}
+
+.function void useBeforeBranch(u1 a0) {
+	initobj.short A.init:(A)
+	sta.obj v1
+	call.short use1, v1
+	lda a0
+	jnez jump_label_0
+	call.short use4, a0
+jump_label_0:
+	initobj.short A.init:(A)
+	sta.obj v2
+	call.short use2, v1, v2
+	return.void
+}
+
+.function void useBeforeNewObjectNotSink(u1 a0) {
+	initobj.short A.init:(A)
+	sta.obj v1
+	lda a0
+	jnez jump_label_0
+	call.short use1, v1
+	initobj.short A.init:(A)
+	sta.obj v2
+	call.short use2, v1, v2
+	return.void
+jump_label_0:
+	call.short use5, v1
+	initobj.short B.init:(B)
+	sta.obj v3
+	call.short use3, v1, v3
+	return.void
+}
+
+.function void useBeforeNewObjectNotDelete(u1 a0) {
+	initobj.short A.init:(A)
+	sta.obj v1
+	lda a0
+	jnez jump_label_0
+	call.short use1, v1
+	initobj.short A.init:(A)
+	sta.obj v2
+	call.short use2, v1, v2
+	return.void
+jump_label_0:
+	initobj.short B.init:(B)
+	sta.obj v3
+	call.short use3, v1, v3
+	return.void
+}
+
+.function void use1(A a0) <external>
+.function void use2(A a0, A a1) <external>
+.function void use3(A a0, B a1) <external>
+.function void use4(u1 a0) <external>
+.function void use5(A a0) <external>

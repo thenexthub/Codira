@@ -1,0 +1,57 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - { list: 'fB, fS, fI, fL, fF, fN', call: 'b', result: 'fB' }
+  - { list: 'fB, fS, fI, fL, fF, fN', call: 's', result: 'fS' }
+  - { list: 'fB, fS, fI, fL, fF, fN', call: 'i', result: 'fI' }
+  - { list: 'fB, fS, fI, fL, fF, fN', call: 'l', result: 'fL' }
+  - { list: 'fB, fS, fI, fL, fF, fN', call: 'f', result: 'fF' }
+  - { list: 'fB, fS, fI, fL, fF, fN', call: 'n', result: 'fN' }
+
+  - { list: 'fS, fI, fL, fF, fN, fB', call: 'b', result: 'fS' }
+  - { list: 'fS, fI, fL, fF, fN, fB', call: 's', result: 'fS' }
+  - { list: 'fS, fI, fL, fF, fN, fB', call: 'i', result: 'fI' }
+  - { list: 'fS, fI, fL, fF, fN, fB', call: 'l', result: 'fL' }
+  - { list: 'fS, fI, fL, fF, fN, fB', call: 'f', result: 'fF' }
+  - { list: 'fS, fI, fL, fF, fN, fB', call: 'n', result: 'fN' }
+
+  - { list: 'fI, fL, fF, fN, fB, fS', call: 'b', result: 'fI' }
+  - { list: 'fI, fL, fF, fN, fB, fS', call: 's', result: 'fI' }
+  - { list: 'fI, fL, fF, fN, fB, fS', call: 'i', result: 'fI' }
+  - { list: 'fI, fL, fF, fN, fB, fS', call: 'l', result: 'fL' }
+  - { list: 'fI, fL, fF, fN, fB, fS', call: 'f', result: 'fF' }
+  - { list: 'fI, fL, fF, fN, fB, fS', call: 'n', result: 'fN' }
+
+  - { list: 'fL, fF, fN, fB, fS, fI', call: 'b', result: 'fL' }
+  - { list: 'fL, fF, fN, fB, fS, fI', call: 's', result: 'fL' }
+  - { list: 'fL, fF, fN, fB, fS, fI', call: 'i', result: 'fL' }
+  - { list: 'fL, fF, fN, fB, fS, fI', call: 'l', result: 'fL' }
+  - { list: 'fL, fF, fN, fB, fS, fI', call: 'f', result: 'fF' }
+  - { list: 'fL, fF, fN, fB, fS, fI', call: 'n', result: 'fN' }
+
+  - { list: 'fF, fN, fB, fS, fI, fL', call: 'b', result: 'fF' }
+  - { list: 'fF, fN, fB, fS, fI, fL', call: 's', result: 'fF' }
+  - { list: 'fF, fN, fB, fS, fI, fL', call: 'i', result: 'fF' }
+  - { list: 'fF, fN, fB, fS, fI, fL', call: 'l', result: 'fF' }
+  - { list: 'fF, fN, fB, fS, fI, fL', call: 'f', result: 'fF' }
+  - { list: 'fF, fN, fB, fS, fI, fL', call: 'n', result: 'fN' }
+
+  - { list: 'fN, fB, fS, fI, fL, fF', call: 'b', result: 'fN' }
+  - { list: 'fN, fB, fS, fI, fL, fF', call: 's', result: 'fN' }
+  - { list: 'fN, fB, fS, fI, fL, fF', call: 'i', result: 'fN' }
+  - { list: 'fN, fB, fS, fI, fL, fF', call: 'l', result: 'fN' }
+  - { list: 'fN, fB, fS, fI, fL, fF', call: 'f', result: 'fN' }
+  - { list: 'fN, fB, fS, fI, fL, fF', call: 'n', result: 'fN' }
+

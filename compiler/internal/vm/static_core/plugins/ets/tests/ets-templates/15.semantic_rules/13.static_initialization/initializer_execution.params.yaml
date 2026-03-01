@@ -1,0 +1,132 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - decl: |-
+      class C {
+        static f: int = 0
+        static {
+          for(let i: int = 0; i < 10; i++)
+            C.f += i
+        }
+      }
+      function main() {
+        arktest.assertEQ(C.f, 45)
+      }
+
+  - decl: |-
+      class C {
+        static s: int = 1
+        static f: Object|null
+        static {
+          switch(C.s) {
+            case 1:
+              C.f = new Object()
+              break;
+            default:
+              C.f = null
+              break;
+          }
+        }
+      }
+      function main() {
+        arktest.assertNE(C.f, null)
+      }
+
+  - decl: |-
+      class C {
+        static f: Object|null = null
+        static {
+          C.f = (): Object => { return new Object() }
+        }
+      }
+      function main() {
+        arktest.assertNE(C.f, null)
+      }
+
+  - decl: |-
+      let res: int = 1
+      arktest.assertEQ(res, 1)
+      function foo() {
+        res += 1
+      }
+      function main() {
+        res += 2
+        arktest.assertEQ(res, 3)
+        foo()
+        arktest.assertEQ(res, 4)
+      }
+
+  - decl: |-
+      let res: int = 2
+      arktest.assertEQ(res, 2)
+
+  - decl: |-
+      interface I { v: number }
+      class C {
+        static c: I
+        static {
+          C.c = { v: 3.2 }
+        }
+      }
+      function main() {
+        arktest.assertEQ(C.c.v, 3.2)
+      }
+
+  - decl: |-
+      class C {
+        static i: int
+        static {
+          let f: int = 2
+          C.i = f
+        }
+      }
+      function main() {
+        arktest.assertEQ(C.i, 2)
+      }
+
+  - decl: |-
+      class C {
+        static i: int
+        static {
+          {
+            C.i = 4
+          }
+        }
+      }
+      function main() {
+        arktest.assertEQ(C.i, 4)
+      }
+
+  - decl: |-
+      namespace NS {
+        export let i: number = 1
+        static {
+          seq("B")
+        }
+      }
+      
+      let seqstr: string = ""
+      
+      function seq(i: string) {
+        seqstr += ":" + i
+      }
+      
+      function main() {
+        arktest.assertEQ(seqstr, "")
+        seq("A")
+        arktest.assertEQ(seqstr, ":A")
+        NS.i
+        arktest.assertEQ(seqstr, ":A:B")
+      }

@@ -1,0 +1,53 @@
+# Copyright (c) 2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http:#www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of valid regex literals
+regex_literals:
+  # Syntax errors
+  - '/[/'                # Unclosed character class
+  - '/(/'                # Unclosed group
+  - '/a{3,/'             # Incomplete quantifier
+  - '/a{3,2}/'           # Invalid quantifier range (min > max)
+  - '/^abc$/i g'         # Multiple flags not in literal (space between)
+  - '/abc/igx'           # Unknown flag 'x'
+  - '/\1/'               # Invalid backreference (no capturing group)
+
+  # Invalid escape sequences
+  - '/\z/'               # Invalid escape sequence
+  - '/\cX/'              # Invalid control escape (X not A-Z)
+  - '/\u{1234}/'         # Unicode escape without 'u' flag
+  - '/\xGG/'             # Invalid hex escape (GG not hex)
+
+  # Character class errors
+  - '/[a-\d]/'           # Invalid range in character class
+  - '/[\w-\d]/'          # Invalid range with shorthand
+  - '/[z-a]/'            # Invalid range (start > end)
+  - '/[[]/'              # Unescaped [ in character class
+  - '/[\]]/'             # Unescaped ] when not first character
+
+  # Quantifier errors
+  - '/a**/'              # Nested quantifiers
+  - '/a{/'               # Incomplete quantifier
+  - '/a{3,2}/'           # First number larger than second
+  - '/a{999999}/'        # Quantifier too large (implementation dependent)
+
+  # Group errors
+  - '/(?<name/'          # Incomplete named group
+  - '/(?<>abc)/'         # Empty named group
+  - '/(?abc)/'           # Invalid group syntax
+  - '/abc(def/'          # Unclosed group
+
+  # Flag errors
+  - '/abc/ii'            # Duplicate flag
+  - '/abc/1'             # Invalid flag character
+  - '/abc/ g'            # Space before flag (invalid in literal)

@@ -1,0 +1,269 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - doc: |-
+          Use unexpected literal type as an argument for the function
+      tags: |-
+          negative, compile-only
+      decl: |-
+          function foo(i: "some str") { }
+      use: |-
+          let a: "another str" = "another str"
+          foo(a)
+
+    - tags: |-
+          negative, compile-only
+      doc: |-
+          String literal type could not be substituted by its superclass string
+      decl: |-
+          function foo(i: "some str") { }
+      use: |-
+          foo(new string("some str"))
+
+    - doc: |-
+          Use literal type as an argument for the function
+      decl: |-
+          function foo(i: "some str", j: null, k: undefined) {
+              arktest.assertEQ( i, "some str")
+              arktest.assertEQ( j, null)
+              arktest.assertEQ( k, undefined)
+          }
+      use: |-
+          foo("some str", null, undefined)
+
+    - doc: |-
+          String literal type could substitute its superclass
+      decl: |-
+          function foo(i: string, j: null, k: undefined) {
+              arktest.assertEQ( i, "some str")
+              arktest.assertEQ( j, null)
+              arktest.assertEQ( k, undefined)
+          }
+      use: |-
+          foo("some str", null, undefined)
+          let a: string = "some str"
+          foo(a, null, undefined)
+
+    - tags: |-
+          negative, compile-only
+      doc: |-
+          String literal type is overload-equivalent to string
+      decl: |-
+          function foo(i: "some str") {}
+          function foo(i: string) {}
+      use: |-
+
+    - doc: |-
+          Function returns literal type without return type specified.
+      decl: |-
+          function foo_s(i: "some str") {
+              return i
+          }
+          function foo_u(i: undefined) {
+              return i
+          }
+          function foo_n(i: null) {
+              return i
+          }
+      use: |-
+        let a: "some str" = "some str"
+        arktest.assertEQ( foo_s(a), "some str" )
+        arktest.assertEQ( foo_u(undefined), undefined )
+        arktest.assertEQ( foo_n(null), null )
+
+    - doc: |-
+        Function returns literal type having return type specified.
+      decl: |-
+        function foo_s(i: "some str"): "some str" {
+            return i
+        }
+        function foo_u(i: undefined): undefined {
+            return i
+        }
+        function foo_n(i: null): null {
+            return i
+        }
+      use: |-
+        let a: "some str" = "some str"
+        arktest.assertEQ( foo_s(a), "some str" )
+        arktest.assertEQ( foo_u(undefined), undefined )
+        arktest.assertEQ( foo_n(null), null )
+
+    - tags: |-
+          negative, compile-only
+      doc: |-
+          Use custom type, made of literal type, as function parameter. String argument value used.
+      decl: |-
+          type LITERAL = "some str"
+          function foo(i: LITERAL ) { }
+          let a: string = "some str"
+      use: |-
+          foo(a)
+
+    - doc: |-
+          Use custom type, made of literal type, as an argument for the function.
+      decl: |-
+          type LITERAL = "some str"
+          function foo(i: LITERAL ) {
+              arktest.assertEQ( i, "some str" )
+          }
+      use: |-
+          foo("some str")
+          let a: "some str" = "some str"
+          foo(a)
+          let b: LITERAL = "some str"
+          foo(b)
+
+    - doc: |-
+          Use custom union of literal types as an argument for the function. Function return type is not specified.
+      decl: |-
+          type LITERAL = "some str" | undefined | null
+          function foo(i: LITERAL ) {
+              return i
+          }
+      use: |-
+          arktest.assertEQ( foo("some str"), "some str" )
+          arktest.assertEQ( foo(undefined), undefined )
+          arktest.assertEQ( foo(null), null )
+
+    - doc: |-
+          Use custom union of literal types as an argument for the function. Function return type is specified.
+      decl: |-
+          type LITERAL = "some str" | undefined | null
+          function foo(i: LITERAL ): LITERAL {
+              return i
+          }
+      use: |-
+          arktest.assertEQ( foo("some str"), "some str" )
+          arktest.assertEQ( foo(undefined), undefined )
+          arktest.assertEQ( foo(null), null )
+
+    - doc: |-
+          Use literal types as an argument for generic function. Function return type is not specified.
+      decl: |-
+          function foo<G>(i: G ) {
+              return i
+          }
+      use: |-
+          arktest.assertEQ( foo("some str"), "some str" )
+          arktest.assertEQ( foo(undefined), undefined )
+          arktest.assertEQ( foo(null), null )
+
+    - doc: |-
+          Use literal types as an argument for generic function. Function return type is specified.
+      decl: |-
+          type CUSTOM = "some str"
+          function foo<G>(i: G ): G {
+              return i
+          }
+      use: |-
+          let a: CUSTOM = "some str"
+          arktest.assertEQ( foo<CUSTOM>(a), "some str" )
+          arktest.assertEQ( foo<"some str">(a), "some str" )
+          arktest.assertEQ( foo<"another str">("another str"), "another str" )
+          arktest.assertEQ( foo<undefined>(undefined), undefined )
+          arktest.assertEQ( foo<null>(null), null )
+          arktest.assertEQ( foo<"third str"|null|undefined|"forth str">("forth str"), "forth str" )
+
+    - doc: |-
+          Use literal type as lambda return value
+      decl: |-
+          let fooL = (): "literal" => { return "literal" }
+          let fooN = (): null => { return null }
+          let fooU = (): undefined => { return undefined }
+      use: |-
+          arktest.assertEQ( fooL(), "literal" )
+          arktest.assertEQ( fooU(), undefined )
+          arktest.assertEQ( fooN(), null )
+
+    - doc: |-
+          Use literal union type as lambda parameter and return type
+      decl: |-
+          let foo = (i: "literal"|null|undefined): "literal"|null|undefined => { return i }
+      use: |-
+          arktest.assertEQ( foo("literal"), "literal" )
+          arktest.assertEQ( foo(undefined), undefined )
+          arktest.assertEQ( foo(null), null )
+
+    - doc: |-
+          Use rest parameter with literal type/array of literal type
+      decl: |-
+          function fooL(i: int, ...j: "some str"[]) {
+              arktest.assertEQ(i, j.length)
+              for (let m of j) {
+                  arktest.assertEQ(m, "some str")
+              }
+          }
+          function fooS(...j: string[]) {
+              for (let m of j) {
+                  arktest.assertEQ(m, "some str")
+              }
+          }
+      use: |-
+          let a: "some str" = "some str"
+          fooL(1, a)
+          fooL(2, a, a)
+          fooL(3, "some str", a, "some str")
+          fooS(a)
+          let arr2: "some str"[] = [a, a]
+          let arr3: "some str"[] = [a, a, a]
+          fooL(2, ...arr2)
+          fooL(3, ...arr3)
+
+    - tags: |-
+          negative, compile-only
+      doc: |-
+          Use rest parameter of literal array and argument of another literal type
+      decl: |-
+          function foo(...j: "some str"[]) {
+              return j[0]
+          }
+      use: |-
+          fooL("another str")
+
+    - tags: |-
+          negative, compile-only
+      doc: |-
+          Use rest parameter of literal array and argument of unexpected type of Base class
+      decl: |-
+          function foo(...j: "some str"[]) {
+              return j[0]
+          }
+      use: |-
+          foo(new String("some str"))
+
+    - doc: |-
+          Use rest parameter for tuple of literal types
+      decl: |-
+          type TPL = ["some str", "another str", undefined, null]
+          function foo(...j: TPL) {
+              arktest.assertEQ(j[0], "some str")
+              arktest.assertEQ(j[1], "another str")
+              arktest.assertEQ(j[2], undefined)
+              arktest.assertEQ(j[3], null)
+          }
+      use: |-
+          let a: TPL = [ "some str", "another str", undefined, null ]
+          foo(...a)
+
+    - tags: |-
+          negative, compile-only
+      doc: |-
+          Use rest parameter for tuple of literal types and argument of unexpected type of Base class
+      decl: |-
+          type TPL = ["some str, "another str", undefined, null]
+          function foo(...j: TPL) { }
+      use: |-
+          foo( [ "some str", new String("another str"), undefined, null ] )

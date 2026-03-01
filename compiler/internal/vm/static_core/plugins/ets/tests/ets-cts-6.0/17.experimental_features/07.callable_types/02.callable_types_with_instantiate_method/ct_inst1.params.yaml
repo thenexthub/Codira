@@ -1,0 +1,177 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+    - decl: |-
+          // implicit factory call
+          class C {
+              static $_instantiate(f: ()=>C): C {
+                  return f()
+              }
+          }
+      use: |-
+          let x = C()
+          arktest.assertTrue(x instanceof C)
+
+    - decl: |-
+          // implicit factory call with args
+          class C {
+              static $_instantiate(f: ()=>C, p: int[]): C {
+                  return f()
+              }
+          }
+      use: |-
+          let ii: int[] = [1, 2, 3]
+          let x = C(ii)
+          arktest.assertTrue(x instanceof C)
+
+    - decl: |-
+          // explicit factory call
+          class C {
+              static $_instantiate(f: ()=>C): C {
+                  return f()
+              }
+          }
+          class D extends C {}
+      use: |-
+          let x = C.$_instantiate() { return new D() }
+          arktest.assertTrue(x instanceof C)
+
+    - decl: |-
+          // explicit factory call with args
+          class C {
+              static $_instantiate(f: ()=>C, p: ()=>C): C {
+                  return f()
+              }
+          }
+          function foo(): C {
+              return new C()
+          }
+      use: |-
+          let x = C.$_instantiate(foo, foo)
+          arktest.assertTrue(x instanceof C)
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // missing explicit factory
+          class C {
+              static $_instantiate(f: ()=>C): C {
+                  return f()
+              }
+          }
+      use: |-
+          let x = C.$_instantiate()
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // missing explicit factory with args
+          class C {
+              static $_instantiate(f: ()=>C, p: C): C {
+                  return f()
+              }
+          }
+      use: |-
+          let x = C.$_instantiate(new C())
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // wrong type explicit factory
+          class C {
+              static $_instantiate(f: ()=>C): C {
+                  return f()
+              }
+          }
+      use: |-
+          let x = C.$_instantiate(() => { return new Object() })
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // wrong type explicit factory
+          class C {
+              static $_instantiate(f: ()=>C): C {
+                  return f()
+              }
+          }
+          type FU = (() => C) | undefined
+          let f: FU = (): C => { return new C() }
+      use: |-
+          let x = C.$_instantiate(f)
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // wrong factory definition
+          class C {
+              static $_instantiate(f: C): C {
+                  return f
+              }
+          }
+      use: |-
+          let x = C(new C())
+
+    - decl: |-
+          // wrong factory definition with explicit call
+          class C {
+              static $_instantiate(f: C): C {
+                  return f
+              }
+          }
+      use: |-
+          let x = C.$_instantiate(new C())
+          arktest.assertTrue(x instanceof C)
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // the class has no default constructor
+          class C {
+              static $_instantiate(f: ()=>C): C {
+                  return f()
+              }
+              constructor(p: string) {}
+          }
+      use: |-
+          let x = C()
+
+    - decl: |-
+          // the class has no default constructor
+          class C {
+              static $_instantiate(f: ()=>C): C {
+                  return f()
+              }
+              constructor(p: string) {}
+          }
+      use: |-
+          let x = C.$_instantiate() {
+              return new C('')
+          }
+          arktest.assertTrue(x instanceof C)
+
+    - decl: |-
+          // parameterized class
+          class C<T extends String|Number|undefined> {
+              fld: T
+              static $_instantiate(f: ()=>C<String>, p: String): C<String> {
+                  let x: C<String> = f()
+                  x.fld = p
+                  return x
+              }
+              static $_instantiate(f: ()=>C<Number>, p: Number): C<Number> {
+                  let x: C<Number> = f()
+                  x.fld = p
+                  return x
+              }
+          }
+      use: |-
+          let x = C.$_instantiate(() => { return new C<String>() }, '')
+          arktest.assertEQ(x.fld, '')
+          let y = C.$_instantiate(() => { return new C<Number>() }, 42.0)
+          arktest.assertEQ(y.fld, 42.0)

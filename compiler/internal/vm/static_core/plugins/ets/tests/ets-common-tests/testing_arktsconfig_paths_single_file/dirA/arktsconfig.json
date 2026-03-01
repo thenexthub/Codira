@@ -1,0 +1,9 @@
+{
+    "compilerOptions": {
+      "package": "@TestA",
+      "baseUrl": ".",
+      "paths": {
+            "HarB.foo": ["../dirB/foo.ets"]
+      }
+    }
+}

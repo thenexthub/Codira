@@ -1,0 +1,194 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+    # function parameter
+    - decl: |-
+          function bar(p: number|string|boolean|null): int {
+              if (p == null) {
+                  return 0
+              }
+              return 1
+          }
+      code: |-
+          return bar(null)
+
+    - decl: |-
+          function bar(p: number|string|boolean|null): int {
+              if (p instanceof Number) {
+                  if (foo(p) == p + p) {
+                      return 0
+                  }
+              }
+              return 1
+          }
+      code: |-
+          return bar(1.0)
+
+    - decl: |-
+          function bar(p: number|string|boolean|null): int {
+              if (p instanceof String) {
+                  if (foo(p) == p + p) {
+                      return 0
+                  }
+              }
+              return 1
+          }
+      code: |-
+          return bar('X')
+
+    - decl: |-
+          function bar(p: number|string|boolean|null): int {
+              if (p instanceof Boolean) {
+                  if (foo(p) == p ^ p) {
+                      return 0
+                  }
+              }
+              return 1
+          }
+      code: |-
+          return bar(false)
+
+    # method parameter
+    - decl: |-
+          class X {
+              bar(p: number|string|boolean|null): int {
+                  if (p == null) {
+                      return 0
+                  }
+                  return 1
+              }
+          }
+      code: |-
+          return new X().bar(null)
+
+    - decl: |-
+          class X {
+              bar(p: number|string|boolean|null): int {
+                  if (p instanceof Number) {
+                      if (foo(p) == p + p) {
+                          return 0
+                      }
+                  }
+                  return 1
+              }
+          }
+      code: |-
+          return new X().bar(1.0)
+
+    - decl: |-
+          class X {
+              bar(p: number|string|boolean|null): int {
+                  if (p instanceof String) {
+                      if (foo(p) == p + p) {
+                          return 0
+                      }
+                  }
+                  return 1
+              }
+          }
+      code: |-
+          return new X().bar('X')
+
+    - decl: |-
+          class X {
+              bar(p: number|string|boolean|null): int {
+                  if (p instanceof Boolean) {
+                      if (foo(p) == p ^ p) {
+                          return 0
+                      }
+                  }
+                  return 1
+              }
+          }
+      code: |-
+          return new X().bar(false)
+
+    # constructor parameter
+    - decl: |-
+          class X {
+              fld: int = 5
+              constructor(p: number|string|boolean|null) {
+                  if (p == null) {
+                      this.fld = 0
+                      return
+                  }
+                  this.fld = 1
+              }
+          }
+      code: |-
+          return new X(null).fld
+
+    - decl: |-
+          class X {
+              fld: int = 5
+              constructor(p: number|string|boolean|null) {
+                  if (p instanceof Number) {
+                      if (foo(p) == p + p) {
+                          this.fld = 0
+                          return
+                      }
+                  }
+                  this.fld = 1
+              }
+          }
+      code: |-
+          return new X(1.0).fld
+
+    - decl: |-
+          class X {
+              fld: int = 5
+              constructor(p: number|string|boolean|null) {
+                  if (p instanceof String) {
+                      if (foo(p) == p + p) {
+                          this.fld = 0
+                          return
+                      }
+                  }
+                  this.fld = 1
+              }
+          }
+      code: |-
+          return new X('X').fld
+
+    - decl: |-
+          class X {
+              fld: int = 5
+              constructor(p: number|string|boolean|null) {
+                  if (p instanceof Boolean) {
+                      if (foo(p) == p ^ p) {
+                          this.fld = 0
+                          return
+                      }
+                  }
+                  this.fld = 1
+              }
+          }
+      code: |-
+          return new X(true).fld
+
+    # lambda parameter
+    - code: |-
+          return ((p: number|string|boolean|null): int => p == null ? 0 : 1)(null)
+
+    - code: |-
+          return ((p: number|string|boolean|null): int =>
+              p instanceof Number ? foo(p) == p + p ? 0 : 1 : 1)(1.0)
+
+    - code: |-
+          return ((p: number|string|boolean|null): int =>
+              p instanceof String ? foo(p) == p + p ? 0 : 1 : 1)('X')
+
+    - code: |-
+          return ((p: number|string|boolean|null): int =>
+              p instanceof Boolean ? foo(p) == p ^ p ? 0 : 1 : 1)(false)

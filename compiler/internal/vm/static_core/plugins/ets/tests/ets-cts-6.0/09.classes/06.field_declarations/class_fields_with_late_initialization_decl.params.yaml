@@ -1,0 +1,200 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+cases:
+  - desc: |-
+      >-
+        Checking for initialization public field with late initialization
+        from outside of class.
+    check_variants:
+      - {check_type: "long", check_value: "5"}
+      - {check_type: "int", check_value: "5"}
+      - {check_type: "byte", check_value: "5"}
+      - {check_type: "short", check_value: "5"}
+      - {check_type: "double", check_value: "7.3"}
+      - {check_type: "number", check_value: "5"}
+      - {check_type: "float", check_value: "7.3f"}
+      - {check_type: "bigint", check_value: "5n"}
+      - {check_type: "string", check_value: "\"abc\""}
+      - {check_type: "char", check_value: "c'a'"}
+      - {check_type: "boolean", check_value: "false"}
+      - {check_type: "Object", check_value: "5"}
+    decl_variants:
+      - |-
+        class A {
+          field!: [check_type]
+        }
+    sub_cases_logic:
+      - |-
+        let a: A = new A()
+        a.field = [check_value]
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [check_value])
+
+  - desc: |-
+      >-
+        Checking for initialization public field with late initialization
+        from outside of class.
+    check_variants:
+      - {check_type: "C", data_type: "int", init_value: "{data: 5}",
+        check_value: "5", cv_decl_data: "class C {data!: int}"}
+    decl_variants:
+      - |-
+        [cv_decl_data]
+        class A {
+          field!: [check_type]
+        }
+    sub_cases_logic:
+      - |-
+        let a: A = new A()
+        a.field = [init_value]
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertTrue(a.field.data instanceof [data_type])
+        arktest.assertEQ(a.field.data, [check_value])
+
+  - desc: |-
+      >-
+        Checking for initialization private field with late initialization
+        from outside of class.
+    check_variants:
+      - {check_type: "long", check_value: "5"}
+      - {check_type: "int", check_value: "5"}
+      - {check_type: "byte", check_value: "5"}
+      - {check_type: "short", check_value: "5"}
+      - {check_type: "double", check_value: "7.3"}
+      - {check_type: "number", check_value: "5"}
+      - {check_type: "float", check_value: "7.3f"}
+      - {check_type: "bigint", check_value: "5n"}
+      - {check_type: "string", check_value: "\"abc\""}
+      - {check_type: "char", check_value: "c'a'"}
+      - {check_type: "boolean", check_value: "false"}
+      - {check_type: "Object", check_value: "5"}
+    decl_variants:
+      - |-
+        class A {
+          private _field!: [check_type]
+          get field(): [check_type] {
+            return this._field
+          }
+          set field(a: [check_type]) {
+            this._field = a
+          }
+        }
+    sub_cases_logic:
+      - |-
+        let a: A = new A()
+        a.field = [check_value]
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [check_value])
+
+  - desc: |-
+      >-
+        Checking for initialization private field with late initialization
+        from outside of class.
+    check_variants:
+      - {check_type: "C", data_type: "int", init_value: "{data: 5}",
+        check_value: "5", cv_decl_data: "class C {data!: int}"}
+    decl_variants:
+      - |-
+        [cv_decl_data]
+        class A {
+          private _field!: [check_type]
+          get field(): [check_type] {
+            return this._field
+          }
+          set field(a: [check_type]) {
+            this._field = a
+          }
+        }
+    sub_cases_logic:
+      - |-
+        let a: A = new A()
+        a.field = [init_value]
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertTrue(a.field.data instanceof [data_type])
+        arktest.assertEQ(a.field.data, [check_value])
+
+  - desc: |-
+      >-
+        Checking for initialization protected field with late initialization
+        from outside of class.
+    check_variants:
+      - {check_type: "long", check_value: "5"}
+      - {check_type: "int", check_value: "5"}
+      - {check_type: "byte", check_value: "5"}
+      - {check_type: "short", check_value: "5"}
+      - {check_type: "double", check_value: "7.3"}
+      - {check_type: "number", check_value: "5"}
+      - {check_type: "float", check_value: "7.3f"}
+      - {check_type: "bigint", check_value: "5n"}
+      - {check_type: "string", check_value: "\"abc\""}
+      - {check_type: "char", check_value: "c'a'"}
+      - {check_type: "boolean", check_value: "false"}
+      - {check_type: "Object", check_value: "5"}
+    decl_variants:
+      - |-
+        class B {
+          protected _field!: [check_type]
+        }
+        class A extends B {
+          get field(): [check_type] {
+            return this._field
+          }
+          set field(a: [check_type]) {
+            this._field = a
+          }
+        }
+    sub_cases_logic:
+      - |-
+        let a: A = new A()
+        a.field = [check_value]
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [check_value])
+
+  - desc: |-
+      >-
+        Checking for initialization protected field with late initialization
+        from outside of class.
+    check_variants:
+      - {check_type: "C", data_type: "int", init_value: "{data: 5}",
+        check_value: "5", cv_decl_data: "class C {data!: int}"}
+    decl_variants:
+      - |-
+        [cv_decl_data]
+        class B {
+          protected _field!: [check_type]
+        }
+        class A extends B {
+          get field(): [check_type] {
+            return this._field
+          }
+          set field(a: [check_type]) {
+            this._field = a
+          }
+        }
+    sub_cases_logic:
+      - |-
+        let a: A = new A()
+        a.field = [init_value]
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertTrue(a.field.data instanceof [data_type])
+        arktest.assertEQ(a.field.data, [check_value])

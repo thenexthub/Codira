@@ -1,0 +1,115 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+extend Eq {
+    func eq(a : this, b : this) : Bool{}
+}
+
+func foo<X>(a : X , b : X) where X <: Eq{
+    return eq(a,b)
+}
+
+func Foo<T, U>(a: T, b: U): T {
+    return a
+}
+
+func Bar<T>(a:T) {
+    var b: Int32 = 1
+    var c = Foo<T, Int32>(a, b)
+    return c
+}
+
+public struct Test<T> {
+    public let member1 : Int32
+    public var member2: T
+    public init(a:Int32, b: T) {
+        member1 = a
+        member2 = b
+    }
+    public func testNormal(a: Bool) : Bool {
+        return a
+    }
+    public func testGeneric1(t:T): T {
+        return t
+    }
+    public func testGeneric2(t:T, j:Bool): Bool {
+        return j
+    }
+}
+
+extend Add {
+    func add(a: this): this
+}
+
+public struct R1<T> where T <: Add {
+    public let a: T
+    public func test(): T { return a }
+    public func test1(t: T): T { return t }
+}
+
+public struct R2<T> where T <: Add {
+    public let a: T
+    public init(x: Int32, b: T) { a = b }
+    public init(b: T) { a = b }
+}
+
+main(): Unit {
+var title: String = "world"
+var t:Int32
+/* abcd
+   efg
+*/
+let test = Page(
+    component: Div(
+        content: [
+            Text(
+                content  :    """
+                            Hello
+                            """   ,
+                style  : TextStyle(
+                    width : #"
+                                500  "#  ,
+                    height: 100,
+                    textOverflow: a.b,
+                    lines: 1,
+                    flex: [1, 0, 0],
+                    fontSize: 1.px(),
+                    color: Color(0, 0, 0),
+                    margin: [1.px(), 1.px(), 1.px(), 1.px()],
+                    fontWeight: FontWeight.normal
+                )
+             ),
+            // hijknmn
+            Text(
+                hahaha: "11111111111",
+                fontWeight: """
+                   200  """,
+                content: title
+            )
+         ] // uvwxyz
+
+    )
+)
+
+test.Build()
+}
+

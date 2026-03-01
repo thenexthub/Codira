@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2022-2023 Huawei Device Co., Ltd.
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+         http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<configuration ver="2.0">
+    <target name="DebuggerEntryTest">
+        <preparer>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/sample.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/exception.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/arrow_func.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/async_func.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/range_error.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/syntax_exception.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/throw_exception.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/step.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/dropframe.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/variable_first.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/variable_second.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/module_variable.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/export_variable_first.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/export_variable_second.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/container.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/local_variable_scope.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/closure_scope.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/branch.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/common_func.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/watch_variable.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/smart_stepInto.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/local_export.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/module_watch.abc -> /data/test" src="out"/>
+            <option name="push" value="test/test/libjsdebugtest.so -> /data/test" src="out"/>
+            <option name="push" value="test/test/libdebugger_entry.so -> /data/test" src="out"/>
+        </preparer>
+    </target>
+    <target name="DebuggerCInterpTest">
+        <preparer>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/dropframe.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/sample.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/exception.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/arrow_func.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/async_func.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/range_error.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/syntax_exception.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/throw_exception.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/step.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/dropframe.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/variable_first.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/variable_second.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/module_variable.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/export_variable_first.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/export_variable_second.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/container.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/local_variable_scope.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/closure_scope.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/branch.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/common_func.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/watch_variable.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/smart_stepInto.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/local_export.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/module_watch.abc -> /data/test" src="out"/>
+            <option name="push" value="test/test/libjsdebugtest.so -> /data/test" src="out"/>
+            <option name="push" value="test/test/libdebugger_entry.so -> /data/test" src="out"/>
+        </preparer>
+    </target>
+    <target name="DebuggerClientTest">
+        <preparer>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/sample.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/exception.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/arrow_func.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/async_func.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/range_error.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/syntax_exception.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/throw_exception.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/step.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/dropframe.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/variable_first.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/variable_second.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/module_variable.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/export_variable_first.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/export_variable_second.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/container.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/local_variable_scope.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/closure_scope.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/closure_variable.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/branch.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/common_func.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/watch_variable.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/smart_stepInto.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/local_export.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/module_watch.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/variable_properties_with_range.abc -> /data/test" src="out"/>
+        </preparer>
+    </target>
+    <target name="DebuggerCIntClientTest">
+        <preparer>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/sample.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/exception.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/arrow_func.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/async_func.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/range_error.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/syntax_exception.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/throw_exception.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/step.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/dropframe.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/variable_first.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/variable_second.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/module_variable.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/export_variable_first.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/export_variable_second.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/container.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/local_variable_scope.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/closure_scope.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/closure_variable.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/branch.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/common_func.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/watch_variable.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/smart_stepInto.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/local_export.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/module_watch.abc -> /data/test" src="out"/>
+            <option name="push" value="obj/arkcompiler/toolchain/tooling/dynamic/test/variable_properties_with_range.abc -> /data/test" src="out"/>
+        </preparer>
+    </target>
+</configuration>

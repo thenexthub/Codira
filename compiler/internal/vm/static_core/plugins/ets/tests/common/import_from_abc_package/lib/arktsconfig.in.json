@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "package": "@MyLib",
+    "baseUrl": "${CURRENT_SOURCE_DIR}/lib",
+    "cacheDir": "${DEFAULT_CACHE_DIR}",
+    "rootDir": "${CURRENT_SOURCE_DIR}/lib"
+  },
+  "files": [
+    "${CURRENT_SOURCE_DIR}/lib/file1.ets",
+    "${CURRENT_SOURCE_DIR}/lib/dir/file2.ets",
+    "${CURRENT_SOURCE_DIR}/lib/dir/dir2/file3.ets"
+  ]
+}

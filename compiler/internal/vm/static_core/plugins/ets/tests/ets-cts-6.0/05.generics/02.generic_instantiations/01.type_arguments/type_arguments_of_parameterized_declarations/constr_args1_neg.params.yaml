@@ -1,0 +1,95 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+  # classes
+  - use: |-
+      let v: A = new <X> A(new Y())  // Y is not X
+
+  - use: |-
+      let v: A = new <null|X> A(new X())  // syntax error
+
+  - use: |-
+      let v: A = new <null> A(null)  // syntax error
+
+  - use: |-
+      let v: A = new <X> A(new X())  // wrong bound
+    bound: ' extends Y'
+
+  - use: |-
+      let v: A = new <X|null> A(null)  // wrong bound
+    bound: ' extends Object'
+
+  # interfaces
+  - use: |-
+      let v: A = new <I> A(new Y())  // Y is not I
+
+  - use: |-
+      let v: A = new <J|null> A(null)  // wrong bound
+    bound: ' extends I|null'
+
+  # arrays
+  - use: |-
+      let v: A = new <X[]> A(new Object[0])  // wrong array type
+
+  - use: |-
+      let v: A = new <X[]> A(new X[0])  // wrong bound
+    bound: ' extends Y[]'
+
+  - use: |-
+      let v: A = new <X[]|null> A(new X[1][0])  // X[][] is not X[]
+    bound: ' extends X[]|null'
+
+  - use: |-
+      let v: A = new <X[]|null> A(null)  // wrong bound
+    bound: ' extends Object[][]|null'
+
+# aliases
+  - use: |-
+      let v: A<B> = new A<B> (new Color[0])
+    decl: type B = Color[]
+
+  - use: |-
+      let v: A = new <B> A(new Color[0])  // X is not Color
+    decl: type B = X[]
+
+  - use: |-
+      let v: A = new <B> A(new X[1][0])  // syntax error in alias
+    decl: type B = null|X[][]
+
+  - use: |-
+      let v: A = new <B> A(new X[0])  // wrong bound
+    bound: ' extends Y[]'
+    decl: type B = X[]
+
+  - use: |-
+      let v: A = new <B|null> A(new X[0])  // out of bound
+    bound: ' extends X[]'
+    decl: type B = X[]
+
+  # not a reference type
+  - use: |-
+      let v: A = new <Color> A(Color.Red)
+
+  - use: |-
+      let v: A = new <int> A(1)

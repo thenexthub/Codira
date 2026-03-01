@@ -1,0 +1,58 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/**
+ * @file
+ *
+ * This file declares private functions of desugar.
+ */
+#ifndef CODIRA_SEMA_DESUGAR_IN_TYPECHECK_H
+#define CODIRA_SEMA_DESUGAR_IN_TYPECHECK_H
+
+#include "Codira/AST/Node.h"
+#include "Codira/AST/ASTContext.h"
+
+namespace Codira {
+using namespace AST;
+void DesugarOperatorOverloadExpr(ASTContext& ctx, BinaryExpr& be);
+void DesugarOperatorOverloadExpr(ASTContext& ctx, UnaryExpr& ue);
+void DesugarOperatorOverloadExpr(ASTContext& ctx, SubscriptExpr& se);
+void DesugarOperatorOverloadExpr(ASTContext& ctx, AssignExpr& ae);
+void DesugarSubscriptOverloadExpr(ASTContext& ctx, AssignExpr& ae);
+
+void DesugarFlowExpr(ASTContext& ctx, BinaryExpr& fe);
+void DesugarCallExpr(ASTContext& ctx, CallExpr& ce);
+
+/**
+ * Desugar variable-length arguments to array literal. For example:
+ * *************** before desugar ****************
+ * f(true, 1, 2, 3)
+ * *************** after desugar ****************
+ * f(true, [1, 2, 3]) // Suppose the `fixedPositionalArity` is 1.
+ * */
+void DesugarVariadicCallExpr(ASTContext& ctx, CallExpr& ce, size_t fixedPositionalArity);
+
+/** Add primary constructor for class or struct. */
+void DesugarPrimaryCtor(AST::Decl& decl, AST::PrimaryCtorDecl& fd);
+} // namespace Codira
+
+#endif

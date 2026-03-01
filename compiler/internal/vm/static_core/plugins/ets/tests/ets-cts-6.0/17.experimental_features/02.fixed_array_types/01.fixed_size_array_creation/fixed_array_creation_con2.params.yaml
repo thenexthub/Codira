@@ -1,0 +1,251 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+cases:
+  - desc: Create empty FixedArray
+    logic: |-
+      let a = new FixedArray<string>(0, "a")
+      arktest.assertEQ(a.length, 0)
+
+  - desc: |-
+      Create FixedArray with length < 0
+      tags:
+        - negative
+        - compile-only
+    decl: |-
+    sub_cases_logic:
+      - |-
+        let a = new FixedArray<string>(-1, "a")
+      - |-
+        let a = new FixedArray<number>(-30, 0)
+
+  - desc: Create FixedArray with length < 0
+    decl: |-
+      function f(len: int): void {
+        let a = new FixedArray<string>(len, "a")
+      }
+    logic: |-
+      let res: boolean = false
+      let expectedException = (e: Error): boolean => {
+        return true
+      }
+      arktest.expectThrow(() => {f(-1)}, expectedException)
+      arktest.expectThrow(() => {f(-30)}, expectedException)
+
+  - desc: Create FixedArray with predefined types
+    check_variants:
+      - {check_type: "Any"}
+      - {check_type: "Object"}
+    logic: |-
+      let a = new FixedArray<[check_type]>(30, new Object)
+      arktest.assertEQ(a.length, 30)
+      for (let i = 0; i < 30; i++) {
+        arktest.assertTrue(a[i] instanceof Object)
+      }
+
+  - desc: Create FixedArray with predefined types
+    check_variants:
+      - {check_type: "Any", check_value: "undefined"}
+      - {check_type: "Any", check_value: "null"}
+      - {check_type: "Any", check_value: "0"}
+      - {check_type: "Any", check_value: "\"\""}
+      - {check_type: "Object", check_value: "0"}
+      - {check_type: "Object", check_value: "\"\""}
+      - {check_type: "number", check_value: "3"}
+      - {check_type: "double", check_value: "5.7"}
+      - {check_type: "float", check_value: "1.5f"}
+      - {check_type: "long", check_value: "9223372036854775807"}
+      - {check_type: "int", check_value: "123123"}
+      - {check_type: "short", check_value: "325"}
+      - {check_type: "byte", check_value: "127"}
+      - {check_type: "string", check_value: "\"abc\""}
+      - {check_type: "bigint", check_value: "12345678901234567890n"}
+      - {check_type: "char", check_value: "c'\\u2028'"}
+      - {check_type: "boolean", check_value: "true"}
+      - {check_type: "boolean", check_value: "false"}
+    logic: |-
+      let a = new FixedArray<[check_type]>(30, [check_value])
+      arktest.assertEQ(a.length, 30)
+      arktest.assertTrue(a[0] instanceof [check_type])
+      for (let i = 0; i < 30; i++) {
+        arktest.assertEQ(a[i], [check_value])
+      }
+
+  - desc: |-
+      Create FixedArray with wrong type values
+      tags:
+        - negative
+        - compile-only
+    check_variants:
+      - {check_type: "Object", check_value: "undefined"}
+      - {check_type: "Object", check_value: "null"}
+      - {check_type: "number", check_value: "\"abc\""}
+      - {check_type: "int", check_value: "5.7"}
+      - {check_type: "string", check_value: "123"}
+      - {check_type: "boolean", check_value: "\"true\""}
+    logic: |-
+      let a = new FixedArray<[check_type]>(30, [check_value])
+
+  - desc: Create FixedArray with covariant subtypes
+    decl: |-
+      class Animal {
+        name: string = ""
+      }
+      class Dog extends Animal {
+        override name: string = "dog"
+        bark(): string {
+          return this.name
+        }
+      }
+      class Cat extends Animal {
+        override name: string = "cat"
+      }
+    logic: |-
+      let a = new FixedArray<Animal>(30, new Animal)
+      arktest.assertEQ(a.length, 30)
+      arktest.assertTrue(a[0] instanceof Animal)
+      for (let i = 0; i < 30; i++) {
+        arktest.assertEQ((a[i] as Animal).name, "")
+      }
+      let b = new FixedArray<Animal>(30, new Dog)
+      arktest.assertEQ(b.length, 30)
+      arktest.assertTrue(b[0] instanceof Dog)
+      for (let i = 0; i < 30; i++) {
+        arktest.assertEQ((b[i] as Dog).bark(), "dog")
+      }
+      let c = new FixedArray<Animal>(30, new Cat)
+      arktest.assertEQ(c.length, 30)
+      arktest.assertTrue(c[0] instanceof Cat)
+      for (let i = 0; i < 30; i++) {
+        arktest.assertEQ((c[i] as Cat).name, "cat")
+      }
+
+  - desc: |-
+      Create FixedArray with not covariant subtypes
+      tags:
+        - negative
+        - compile-only
+    decl: |-
+      class Animal {}
+      class Dog extends Animal {}
+      class Cat extends Animal {}
+    sub_cases_logic:
+      - |-
+        let a = new FixedArray<Dog>(30, new Animal)
+      - |-
+        let a = new FixedArray<Dog>(30, new Cat)
+
+  - desc: Create FixedArray with covariant function subtypes
+    decl: |-
+      class A {
+        v: int
+        constructor(v: int = 0) {
+          this.v = v
+        }
+      }
+      class B extends A {
+        constructor(v: int = 0) {
+          super(-v)
+        }
+        f(): int {
+          return 13
+        }
+      }
+      type HandlerBInt = (a: B, b: int) => A
+      type HandlerAInt = (a: A, b: int) => B
+      const handlerAInt: HandlerAInt = (a: A, b: int): B => {
+        if (a instanceof B){
+          return new B(a.f() + b)
+        } else {
+          return new B(b)
+        }
+      }
+      type HandlerA = (a: A) => A
+      const handlerA: HandlerA = (a: A): A => {
+        if (a instanceof B){
+          return new A(a.f())
+        } else {
+          return new A
+        }
+      }
+      type HandlerNothing = () => B
+      const handlerNothing: HandlerNothing = (): B => {
+        return new B(567)
+      }
+    logic: |-
+      let a = new FixedArray<HandlerBInt>(30, handlerAInt)
+      arktest.assertEQ(a.length, 30)
+      for (let i = 0; i < 30; i++) {
+        arktest.assertEQ((a[i](new B, 7).v, -20)
+      }
+      let b = new FixedArray<HandlerBInt>(30, handlerA)
+      arktest.assertEQ(b.length, 30)
+      for (let i = 0; i < 30; i++) {
+        arktest.assertEQ((b[i](new B, 7).v, 13)
+      }
+      let c = new FixedArray<HandlerBInt>(30, handlerNothing)
+      arktest.assertEQ(c.length, 30)
+      for (let i = 0; i < 30; i++) {
+        arktest.assertEQ((c[i](new B, 7).v, -567)
+      }
+
+  - desc: |-
+      Create FixedArray with not covariant function subtypes
+      tags:
+        - negative
+        - compile-only
+    decl: |-
+      class A {}
+      class B extends A {}
+      class C extends A {}
+      type HandlerReq = (a: B, b: int) => B
+      type HandlerCInt = (a: C, b: int) => B
+      const handlerCInt: HandlerCInt = (a: C, b: int): B => {
+        return new B
+      }
+      type HandlerBInt = (a: B, b: int) => A
+      const handlerBInt: HandlerBInt = (a: B, b: int): A => {
+        return new B
+      }
+      type HandlerB = (a: B) => A
+      const handlerB: HandlerB = (a: B): A => {
+        return new B
+      }
+      type HandlerBIntInt = (a: B, b: int, c: int) => B
+      const handlerBIntInt: HandlerBIntInt = (a: B, b: int, c: int): B => {
+        return new B
+      }
+      type HandlerNothing = () => C
+      const handlerNothing: HandlerNothing = (): C => {
+        return new C
+      }
+    sub_cases_logic:
+      - |-
+        let a = new FixedArray<HandlerReq>(30, handlerCInt)
+      - |-
+        let a = new FixedArray<HandlerReq>(30, handlerBInt)
+      - |-
+        let a = new FixedArray<HandlerReq>(30, handlerB)
+      - |-
+        let a = new FixedArray<HandlerReq>(30, handlerBIntInt)
+      - |-
+        let a = new FixedArray<HandlerReq>(30, handlerNothing)

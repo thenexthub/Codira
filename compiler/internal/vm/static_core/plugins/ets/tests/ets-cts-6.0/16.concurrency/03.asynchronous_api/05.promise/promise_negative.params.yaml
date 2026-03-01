@@ -1,0 +1,40 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          //implicit cast Promise<void> to Promise<string> - one of the promise chain steps don't return value (void)
+      use: |-
+          const checkPromise: Promise<string> = new Promise<string>(
+              (resolve: (p: string) => void, reject: (p: Error) => void): void => resolve("test")
+          ).then(
+              (data: string) => {return 'test'}
+          ).then(
+              //void chain step - 'TypeError: Type 'Promise<void|String>' cannot be assigned to type 'Promise<String>'
+              (data: string) =>  {
+                  throw new Error(data)
+              }
+          ).catch(
+              (p: Error): string => {}
+          );
+
+    - decl: |-
+          //TODO update after 30498 issue
+      use: |-
+          // test Promise<never>
+          const neverPromise: Promise<never> = new Promise<never>(
+              (): void => {}
+          )
+          // Promise<never> must never be awaited - expect compile time error
+          const neverAwaited: string = await neverPromise

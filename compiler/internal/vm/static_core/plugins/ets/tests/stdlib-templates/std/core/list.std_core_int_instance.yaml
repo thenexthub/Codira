@@ -1,0 +1,369 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+- {
+    method_name: toByte,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[0 as int, 1 as int, Byte.MIN_VALUE.toInt(), Byte.MAX_VALUE.toInt()]",
+    param_init_data_types: {} ,
+    param_types: {},
+    method_return_type: byte,
+    expected_data_item_type: byte,
+    expected_data_type: "FixedArray<byte>",
+    param_list: {},
+    expected_test_data: "[0 as byte, 1 as byte, Byte.MIN_VALUE.toByte(), Byte.MAX_VALUE.toByte()]",
+    verify_test_result_function: comparePrimitiveValue,
+  }
+- {
+    method_name: toShort,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[0 as int, 1 as int, Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()]",
+    param_init_data_types: {} ,
+    param_types: {},
+    method_return_type: short,
+    expected_data_item_type: short,
+    expected_data_type: "FixedArray<short>",
+    param_list: {},
+    expected_test_data: "[0 as short, 1 as short, Short.MIN_VALUE.toShort(), Short.MAX_VALUE.toShort()]",
+    verify_test_result_function: comparePrimitiveValue,
+  }
+- {
+    method_name: toInt,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[0 as int, 1 as int, Int.MIN_VALUE.toInt(), Int.MAX_VALUE.toInt()]",
+    param_init_data_types: {} ,
+    param_types: {},
+    method_return_type: int,
+    expected_data_item_type: int,
+    expected_data_type: "FixedArray<int>",
+    param_list: {},
+    expected_test_data: "[0 as int, 1 as int, Int.MIN_VALUE.toInt(), Int.MAX_VALUE.toInt()]",
+    verify_test_result_function: comparePrimitiveValue,
+  }
+- {
+    method_name: toLong,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[0 as int, 1 as int, Int.MIN_VALUE.toInt(), Int.MAX_VALUE.toInt()]",
+    param_init_data_types: {} ,
+    param_types: {},
+    method_return_type: long,
+    expected_data_item_type: long,
+    expected_data_type: "FixedArray<long>",
+    param_list: {},
+    expected_test_data: "[0 as long, 1 as long, Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()]",
+    verify_test_result_function: comparePrimitiveValue,
+  }
+- {
+    method_name: toFloat,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[0 as int, 1 as int, Int.MIN_VALUE.toInt(), Int.MAX_VALUE.toInt()]",
+    param_init_data_types: {} ,
+    param_types: {},
+    method_return_type: float,
+    expected_data_item_type: float,
+    expected_data_type: "FixedArray<float>",
+    param_list: {},
+    expected_test_data: "[0 as float, 1 as float, Int.MIN_VALUE.toFloat(), Int.MAX_VALUE.toFloat()]",
+    verify_test_result_function: compareFloatPointValue
+  }
+- {
+    method_name: toDouble,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[0 as int, 1 as int, Int.MIN_VALUE.toInt(), Int.MAX_VALUE.toInt()]",
+    param_init_data_types: {} ,
+    param_types: {},
+    method_return_type: double,
+    expected_data_item_type: double,
+    expected_data_type: "FixedArray<double>",
+    param_list: {},
+    expected_test_data: "[0 as double, 1 as double, Int.MIN_VALUE.toDouble(), Int.MAX_VALUE.toDouble()]",
+    verify_test_result_function: compareFloatPointValue
+  }
+- {
+    method_name: byteValue,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[0 as int, 1 as int, Byte.MIN_VALUE.toInt(), Byte.MAX_VALUE.toInt()]",
+    param_init_data_types: {} ,
+    param_types: {},
+    method_return_type: byte,
+    expected_data_item_type: byte,
+    expected_data_type: "FixedArray<byte>",
+    param_list: {},
+    expected_test_data: "[0 as byte, 1 as byte, Byte.MIN_VALUE.toByte(), Byte.MAX_VALUE.toByte()]",
+    verify_test_result_function: comparePrimitiveValue,
+  }
+- {
+    method_name: shortValue,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[0 as int, 1 as int, Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()]",
+    param_init_data_types: {} ,
+    param_types: {},
+    method_return_type: short,
+    expected_data_item_type: short,
+    expected_data_type: "FixedArray<short>",
+    param_list: {},
+    expected_test_data: "[0 as short, 1 as short, Short.MIN_VALUE.toShort(), Short.MAX_VALUE.toShort()]",
+    verify_test_result_function: comparePrimitiveValue,
+  }
+- {
+    method_name: intValue,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[0 as int, 1 as int, Int.MIN_VALUE.toInt(), Int.MAX_VALUE.toInt()]",
+    param_init_data_types: {} ,
+    param_types: {},
+    method_return_type: int,
+    expected_data_item_type: int,
+    expected_data_type: "FixedArray<int>",
+    param_list: {},
+    expected_test_data: "[0 as int, 1 as int, Int.MIN_VALUE.toInt(), Int.MAX_VALUE.toInt()]",
+    verify_test_result_function: comparePrimitiveValue,
+  }
+- {
+    method_name: longValue,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[0 as int, 1 as int, Int.MIN_VALUE.toInt(), Int.MAX_VALUE.toInt()]",
+    param_init_data_types: {} ,
+    param_types: {},
+    method_return_type: long,
+    expected_data_item_type: long,
+    expected_data_type: "FixedArray<long>",
+    param_list: {},
+    expected_test_data: "[0 as long, 1 as long, Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()]",
+    verify_test_result_function: comparePrimitiveValue,
+  }
+- {
+    method_name: floatValue,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[0 as int, 1 as int, Int.MIN_VALUE.toInt(), Int.MAX_VALUE.toInt()]",
+    param_init_data_types: {} ,
+    param_types: {},
+    method_return_type: float,
+    expected_data_item_type: float,
+    expected_data_type: "FixedArray<float>",
+    param_list: {},
+    expected_test_data: "[0 as float, 1 as float, Int.MIN_VALUE.toFloat(), Int.MAX_VALUE.toFloat()]",
+    verify_test_result_function: compareFloatPointValue
+  }
+- {
+    method_name: doubleValue,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[0 as int, 1 as int, Int.MIN_VALUE.toInt(), Int.MAX_VALUE.toInt()]",
+    param_init_data_types: {} ,
+    param_types: {},
+    method_return_type: double,
+    expected_data_item_type: double,
+    expected_data_type: "FixedArray<double>",
+    param_list: {},
+    expected_test_data: "[0 as double, 1 as double, Int.MIN_VALUE.toDouble(), Int.MAX_VALUE.toDouble()]",
+    verify_test_result_function: compareFloatPointValue
+  }
+- {
+    method_name: toString,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[0 as int, 1 as int, Int.MIN_VALUE.toInt(), Int.MAX_VALUE.toInt()]",
+    param_init_data_types: {} ,
+    param_types: {},
+    method_return_type: String,
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    param_list: {},
+    expected_test_data: '["0", "1", "-2147483648", "2147483647"]',
+    verify_test_result_function: compareStringTrivial
+  }
+- {
+    method_name: compareTo,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[125 as int, 126 as int, 124 as int, (-1) as int, (-10) as int, (-11) as int]",
+    param_init_data_types: {"param1": "FixedArray<int>"} ,
+    param_types: {"param1": Int},
+    param_nature: {"param1": object},
+    method_return_type: int,
+    expected_data_item_type: int,
+    expected_data_type: "FixedArray<int>",
+    param_list: {"param1" : "[125 as int, 125 as int, 125 as int, (-2) as int, (-10) as int, (-10) as int]" },
+    expected_test_data: '[0, 1, -1, 1, 0, -1]',
+    verify_test_result_function: compareCompareToResult
+  }
+- {
+    method_name: equals,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[125 as int, 126 as int, 124 as int, (-1) as int, (-10) as int, (-11) as int]",
+    param_init_data_types: {"param1": "FixedArray<int>"} ,
+    param_types: {"param1": Int},
+    param_nature: {"param1": object},
+    method_return_type: boolean,
+    expected_data_item_type: boolean,
+    expected_data_type: "FixedArray<boolean>",
+    param_list: {"param1" : "[125 as int, 125 as int, 125 as int, (-2) as int, (-10) as int, (-10) as int]" },
+    expected_test_data: '[true, false, false, false, true, false]',
+    verify_test_result_function: comparePrimitiveValue
+  }
+- {
+    method_name: add,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[0 as int, 1 as int, (-1) as int, 1 as int]",
+    param_list: {"param1" : "[0 as int, 1 as int, (-1) as int, (-1) as int]" },
+    param_init_data_types: {"param1": "FixedArray<int>"} ,
+    param_types: {"param1": Int},
+    param_nature: {"param1": object},
+    method_return_type: Int,
+    expected_data_item_type: int,
+    expected_data_type: "FixedArray<int>",
+    expected_test_data: '[0 as int, 2 as int, (-2) as int, 0 as int]',
+    verify_test_result_function: compareWrapperObjectValue
+  }
+- {
+    method_name: sub,
+    object_type: Int,
+    init_object_data_type: "FixedArray<byte>",
+    init_object_data: "[0 as byte, 1 as byte, (-1) as byte, 1 as byte]",
+    param_list: {"param1" : "[0 as byte, 1 as byte, (-1) as byte, (-1) as byte]" },
+    param_init_data_types: {"param1": "FixedArray<byte>"} ,
+    param_types: {"param1": Int},
+    param_nature: {"param1": object},
+    method_return_type: Int,
+    expected_data_item_type: int,
+    expected_data_type: "FixedArray<int>",
+    expected_test_data: '[0 as int, 0 as int, 0 as int, 2 as int]',
+    verify_test_result_function: compareWrapperObjectValue
+  }
+- {
+    method_name: mul,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[0 as int, 1 as int, (-1) as int, 1 as int]",
+    param_list: {"param1" : "[0 as int, 1 as int, (-1) as int, (-1) as int]" },
+    param_init_data_types: {"param1": "FixedArray<int>"} ,
+    param_types: {"param1": Int},
+    param_nature: {"param1": object},
+    method_return_type: Int,
+    expected_data_item_type: int,
+    expected_data_type: "FixedArray<int>",
+    expected_test_data: '[0 as int, 1 as int, 1 as int, (-1) as int]',
+    verify_test_result_function: compareWrapperObjectValue
+  }
+- {
+    method_name: div,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[0 as int, 1 as int, (-1) as int, 1 as int]",
+    param_list: {"param1" : "[1 as int, 1 as int, (-1) as int, (-1) as int]" },
+    param_init_data_types: {"param1": "FixedArray<int>"} ,
+    param_types: {"param1": Int},
+    param_nature: {"param1": object},
+    method_return_type: Int,
+    expected_data_item_type: int,
+    expected_data_type: "FixedArray<int>",
+    expected_test_data: '[0 as int, 1 as int, 1 as int, (-1) as int]',
+    verify_test_result_function: compareWrapperObjectValue
+  }
+- {
+    method_name: isLessThan,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[0 as int, 2 as int, 1 as int, 2 as int, 1 as int, (-2) as int]",
+    param_list: {"param1" : "[1 as int, 1 as int, 2 as int, 2 as int, (-1) as int, (-1) as int]" },
+    param_init_data_types: {"param1": "FixedArray<int>"} ,
+    param_types: {"param1": Int},
+    param_nature: {"param1": object},
+    method_return_type: boolean,
+    expected_data_item_type: boolean,
+    expected_data_type: "FixedArray<boolean>",
+    expected_test_data: '[true, false, true, false, false, true]',
+    verify_test_result_function: comparePrimitiveValue
+  }
+- {
+    method_name: isLessThan,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[0 as int, 2 as int, 1 as int, 2 as int, 1 as int, (-2) as int]",
+    param_list: {"param1" : "[1 as int, 1 as int, 2 as int, 2 as int, (-1) as int, (-1) as int]" },
+    param_init_data_types: {"param1": "FixedArray<int>"} ,
+    param_types: {"param1": Int},
+    param_nature: {"param1": object},
+    method_return_type: boolean,
+    expected_data_item_type: boolean,
+    expected_data_type: "FixedArray<boolean>",
+    expected_test_data: '[true, false, true, false, false, true]',
+    verify_test_result_function: comparePrimitiveValue
+  }
+- {
+    method_name: isLessEqualThan,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[0 as int, 2 as int, 1 as int, 2 as int, 1 as int, (-2) as int, (-2) as int]",
+    param_list: {"param1" : "[1 as int, 1 as int, 2 as int, 2 as int, (-1) as int, (-1) as int, (-2) as int]" },
+    param_init_data_types: {"param1": "FixedArray<int>"} ,
+    param_types: {"param1": Int},
+    param_nature: {"param1": object},
+    method_return_type: boolean,
+    expected_data_item_type: boolean,
+    expected_data_type: "FixedArray<boolean>",
+    expected_test_data: '[true, false, true, true, false, true, true]',
+    verify_test_result_function: comparePrimitiveValue
+  }
+- {
+    method_name: isGreaterThan,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[0 as int, 2 as int, 1 as int, 2 as int, 1 as int, (-2) as int, (-2) as int]",
+    param_list: {"param1" : "[1 as int, 1 as int, 2 as int, 2 as int, (-1) as int, (-1) as int, (-2) as int]" },
+    param_init_data_types: {"param1": "FixedArray<int>"} ,
+    param_types: {"param1": Int},
+    param_nature: {"param1": object},
+    method_return_type: boolean,
+    expected_data_item_type: boolean,
+    expected_data_type: "FixedArray<boolean>",
+    expected_test_data: '[false, true, false, false, true, false, false]',
+    verify_test_result_function: comparePrimitiveValue
+  }
+- {
+    method_name: isGreaterEqualThan,
+    object_type: Int,
+    init_object_data_type: "FixedArray<int>",
+    init_object_data: "[0 as int, 2 as int, 1 as int, 2 as int, 1 as int, (-2) as int, (-2) as int]",
+    param_list: {"param1" : "[1 as int, 1 as int, 2 as int, 2 as int, (-1) as int, (-1) as int, (-2) as int]" },
+    param_init_data_types: {"param1": "FixedArray<int>"} ,
+    param_types: {"param1": Int},
+    param_nature: {"param1": object},
+    method_return_type: boolean,
+    expected_data_item_type: boolean,
+    expected_data_type: "FixedArray<boolean>",
+    expected_test_data: '[false, true, false, true, true, false, true]',
+    verify_test_result_function: comparePrimitiveValue
+  }

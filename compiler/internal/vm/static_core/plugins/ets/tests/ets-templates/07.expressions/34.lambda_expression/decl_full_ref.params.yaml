@@ -1,0 +1,48 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # Full declaration with reference arguments
+cases:
+  - desc: no args, no return
+    impl: |-
+      let arg = 0
+      let lf: () => void = () => { arg++ }
+      lf()
+      arktest.assertEQ(1, arg, "lambda call failed")
+
+  - desc: no args
+    impl: |-
+        let f: () => Object = () => { return "Hello, World!" }
+        arktest.assertEQ(f(), "Hello, World!", "no arg failed")
+
+  - desc: one args
+    impl: |-
+        let f: (e: Object) => Object = (e: Object) => { return "Hello, " + e + "!" }
+        arktest.assertEQ(f("World"), "Hello, World!", "one arg failed")
+
+  - desc: two args
+    impl: |-
+        let f: (e: Object, e2: Object) => Object = (e: Object, e2: Object) => { return e + ", " + e2 + "!" }
+        arktest.assertEQ(f("Hello", "World"), "Hello, World!", "two args failed")
+
+  - desc: optional arg
+    impl: |-
+        let f: (e: Object, eo?: Object) => Object = (e: Object, eo?: Object) => { return e + ", " + eo + "!" }
+        arktest.assertEQ(f("Hello"), "Hello, undefined!", "optional arg failed")
+        arktest.assertEQ(f("Hello", "World"), "Hello, World!", "optional arg[2] failed")
+
+  - desc: rest arg
+    impl: |-
+        let f: (e: Object, ...es: Object[]) => Object = (e: Object, ...es: Object[]) => { return e + ", " + (es.length > 0 ? es[0] : "") + "!" }
+        arktest.assertEQ(f("Hello"), "Hello, !", "rest arg failed")
+        arktest.assertEQ(f("Hello", "World", "a", "b"), "Hello, World!", "rest arg[2] failed")

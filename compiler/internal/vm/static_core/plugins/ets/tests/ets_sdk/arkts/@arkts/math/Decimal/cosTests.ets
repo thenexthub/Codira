@@ -1,0 +1,147 @@
+/*
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0(the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { Decimal } from "@arkts.math.Decimal";
+
+function main(): int {
+    const suite = new arktest.ArkTestsuite("Decimal cos API tests");
+    suite.addTest("Decimal cos with specific config", testCosWithSpecificConfigPart001);
+    suite.addTest("Decimal cos with specific config", testCosWithSpecificConfigPart002);
+    suite.addTest("Decimal cos with specific config", testCosWithSpecificConfigPart003);
+    suite.addTest("Decimal cos with specific config", testCosWithSpecificConfigPart004);
+    return suite.run();
+}
+
+function checkCosResult(n: string, pr: double, rm: int, expected: string) {
+    Decimal.precision = pr;
+    Decimal.rounding = rm;
+    arktest.assertEQ(new Decimal(n).cos().valueOf(), expected);
+}
+
+function testCosWithSpecificConfigPart001() {
+    Decimal.set({ precision: 40, rounding: 4, toExpNeg: -9e15, toExpPos: 9e15, minE: -9e15, maxE: 9e15 });
+    checkCosResult('NaN', 40, 4, 'NaN');
+    checkCosResult('0', 20, 4, '1');
+    checkCosResult('-0', 20, 4, '1');
+    checkCosResult('Infinity', 40, 4, 'NaN');
+    checkCosResult('-Infinity', 40, 4, 'NaN');
+
+    checkCosResult('0.00006', 10, 2, '0.9999999983');
+    checkCosResult('0.000000065', 18, 4, '0.999999999999997888');
+
+    checkCosResult('14044.44444444444', 10, 4, '0.04549771706');
+    checkCosResult('-14044.44444444444', 10, 4, '0.04549771706');
+    checkCosResult('5', 8, 5, '0.28366219');
+    checkCosResult('6723', 3, 3, '0.999');
+    checkCosResult('2.04964', 8, 2, '-0.46075321');
+    checkCosResult('476', 6, 1, '0.0486937');
+    checkCosResult('5298612.00024', 2, 3, '-0.26');
+    checkCosResult('12.5703596425462281326763791506392117455', 8, 4, '0.99999204');
+    checkCosResult('2797', 8, 1, '0.55491269');
+    checkCosResult('0.3834777777', 3, 4, '0.927');
+    checkCosResult('16355.3334', 9, 4, '0.979658167');
+    checkCosResult('0.997737586545708065463833973312637902054356957830033', 5, 5, '0.5422');
+    checkCosResult('7803700', 4, 2, '-0.9032');
+    checkCosResult('841822094288189413002174891207354317', 5, 2, '-0.86017');
+    checkCosResult('67942', 8, 3, '-0.33958641');
+    checkCosResult('899999929799999999999919999999999999999999999999999999999999999999999999.99999', 7, 5, '-0.8773558');
+    checkCosResult('0.00058849862302952064864312588263928354414752285369272291803582192021298679', 10, 6, '0.9999998268');
+    checkCosResult('20000000923980793370370313003363533778888888888.7777777777777777', 9, 4, '-0.801329944');
+}
+
+function testCosWithSpecificConfigPart002() {
+    checkCosResult('49.73807738608', 3, 1, '0.864');
+    checkCosResult('88000', 5, 3, '-0.66135');
+    checkCosResult('75465048517642702658117738264729233565816440737178306250850477902340698', 7, 2, '0.4233356');
+    checkCosResult('0.704', 10, 2, '0.7622592047');
+    checkCosResult('0.94828132184399998008581', 6, 5, '0.58308');
+    checkCosResult('0.8', 8, 3, '0.6967067');
+    checkCosResult('0.002', 6, 2, '0.999999');
+    checkCosResult('61688.77777079779777777777777797777777777777777', 1, 4, '0.9');
+    checkCosResult('8111', 7, 2, '0.8296971');
+    checkCosResult('22.1513', 10, 6, '-0.9872031473');
+    checkCosResult('800000000', 8, 2, '-0.98618707');
+    checkCosResult('7332769805669601096865534', 4, 0, '0.8803');
+    checkCosResult('2116627523999999999999999999', 2, 5, '0.58');
+    checkCosResult('16967658790', 8, 4, '0.70645039');
+    checkCosResult('2539668340778777961946252621835163455556224034680348035809827426444170650792306', 8, 2, '-0.49939729');
+    checkCosResult('36', 7, 1, '-0.1279636');
+    checkCosResult('61999992993999.999999999999999999949999999999999994999929999999999992999999999999999999999', 2, 6, '0.99');
+    checkCosResult('0.218944155186302719769455371933055277727070161042429', 10, 4, '0.9761273219');
+    checkCosResult('20', 2, 3, '0.4');
+    checkCosResult('173215504685358227465651988', 10, 4, '-0.671213895');
+    checkCosResult('5769000000000.2222222222222222', 10, 3, '0.4282801932');
+    checkCosResult('0.5', 3, 1, '0.877');
+    checkCosResult('5000000000053', 5, 6, '0.85063');
+    checkCosResult('281084', 5, 6, '0.83761');
+    checkCosResult('80.6', 9, 2, '0.470085225');
+}
+
+function testCosWithSpecificConfigPart003() {
+    checkCosResult('447162', 7, 4, '0.9642869');
+    checkCosResult('6856.6636666666626606066666', 6, 6, '-0.137265');
+    checkCosResult('7.37514', 7, 4, '0.4607514');
+    checkCosResult('1.29', 3, 4, '0.277');
+    checkCosResult('9', 10, 5, '-0.9111302619');
+    checkCosResult('5067', 4, 0, '-0.9254');
+    checkCosResult('482222222222.62217863079410578', 3, 1, '-0.997');
+    checkCosResult('4.2202926299999999999959999999999999999999999999999999990999999999999999999999', 10, 6, '-0.4724745315');
+    checkCosResult('24714170816959', 8, 1, '-0.99806747');
+    checkCosResult('31365220956895733422', 5, 3, '0.99149');
+    checkCosResult('377469441384376095492196870000863.83493122', 1, 0, '0.8');
+    checkCosResult('0.1175', 1, 1, '0.9');
+    checkCosResult('223953406565183766798339942076619761', 5, 4, '0.77106');
+    checkCosResult('9.4', 7, 0, '-0.9996931');
+    checkCosResult('67777777777777733221519976680533200000000000', 7, 4, '0.883886');
+    checkCosResult('3', 7, 0, '-0.9899925');
+    checkCosResult('99127.77777', 8, 3, '-0.44933878');
+    checkCosResult('95555555550.5555555515555555555555555555550055555555555560555555559', 3, 0, '0.0823');
+    checkCosResult('1.3830713', 3, 5, '0.187');
+    checkCosResult('59', 9, 5, '-0.771080223');
+    checkCosResult('1.1', 7, 1, '0.4535961');
+    checkCosResult('1090000000000000000000000000000000000050000000.00004', 4, 1, '0.9972');
+    checkCosResult('8', 1, 6, '-0.1');
+    checkCosResult('43019456219304869332859776', 8, 1, '-0.99906433');
+    checkCosResult('0.0000003104573823727508545651739730202238202717472186710001424', 7, 4, '1');
+}
+
+function testCosWithSpecificConfigPart004() {
+    checkCosResult('81888888888.5555555555555555511111111111111111114304', 8, 6, '0.86581506');
+    checkCosResult('848765718488021014558633685913717744363956181398886593', 5, 0, '-0.97123');
+    checkCosResult('0.4338', 69, 3, '0.907375081713258312704647471639381401468307894324094984616218937905432');
+    checkCosResult('6647167168310148646127', 41, 1, '-0.67876552621688089570465682794229097436017');
+    checkCosResult('14', 44, 5, '0.13673721820783359424892887667173824055164518');
+    checkCosResult('0.815', 74, 3, '0.68586839345673735262969403373783813324713582642679411838288343756307680681');
+    checkCosResult('52666376666220.66', 8, 2, '-0.46217165');
+    checkCosResult('0.1', 58, 6, '0.9950041652780257660955619878038702948385762254150840359594');
+    checkCosResult('5.481638560270924097', 46, 5, '0.6955963080641265200604938991229596548878269881');
+    checkCosResult('616019185645542611168895104511361.514', 73, 0, '-0.9897418432019178091874564214082330932214823767149588163455308944210649199');
+    checkCosResult('58872.6729', 27, 5, '0.71551991401684231627099417');
+    checkCosResult('0.00000000986995340365791470449236832278868084019660524206930178008', 33, 1, '0.999999999999999951292009904810772');
+    checkCosResult('200000000000000000000', 24, 1, '0.167301557725715824849981');
+    checkCosResult('8712357290413741268816184846819797318515482698552148280140735653', 57, 0, '-0.279047254515165435013067136950333012052507338721363544685');
+    checkCosResult('0.0177165009539797142337288907', 37, 1, '0.9998430669018118198896427823538202954');
+    checkCosResult('255555555555555775027123062979747796598651156132669853568621902', 14, 2, '-0.99883756464211');
+    checkCosResult('3741565840746605.71876151239588', 15, 0, '-0.930123581114026');
+    checkCosResult('3050000000000000000000200000000000000000000.0000000000000000000000008', 41, 3, '-0.33127228153577434134804953378906485886176');
+    checkCosResult('0.33482', 27, 4, '0.944469472783453774254728912');
+    checkCosResult('0.1979574070039662', 30, 0, '0.980470333633282159348863278164');
+    checkCosResult('960492.3601219999999', 74, 6, '0.78272168046024997208016985369610426247753755795663609587331768113997535495');
+    checkCosResult('0.1145342', 57, 0, '0.993448125551484394628225244895937689399175688856818869855');
+    checkCosResult('99999999999999999999999.99', 70, 0, '-0.7059760628345569635155393670172360201795320597371430862306924466086157');
+    checkCosResult('0.10859933721171128209598967066', 80, 4, '0.99410888528803407646108267824473898405842663808987770888683180574685964084716924');
+    checkCosResult('2813920.875088303362819', 33, 2, '-0.866254989781355498995879756871368');
+    checkCosResult('35999999999999999999999999999999999999999.999999999999999999999999919', 38, 3, '-0.9562598584240982386154988349219959087');
+}

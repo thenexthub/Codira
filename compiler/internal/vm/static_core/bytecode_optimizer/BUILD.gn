@@ -1,0 +1,256 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+import("//arkcompiler/runtime_core/static_core/ark_config.gni")
+import("//arkcompiler/runtime_core/static_vm_config.gni")
+import("$ark_root/plugins/plugins.gni")
+
+if (ark_standalone_build) {
+  import("$build_root/ark.gni")
+} else {
+  import("//build/ohos.gni")
+}
+
+ohos_static_library("libarktsbytecodeopt_package") {
+  deps = []
+  if (enable_static_vm) {
+    # NOTE: in GN build static and dynamic libraries are mixed.
+    # To remove this if GN refactoring is needed
+    if (ark_static_standalone_build) {
+      deps += [ ":libarktsbytecodeopt" ]
+    } else {
+      deps += [ ":libarktsbytecodeopt_frontend_static" ]
+    }
+  }
+
+  part_name = ark_part_name
+  subsystem_name = "$ark_subsystem_name"
+}
+
+config("bytecodeopt_public_config") {
+  include_dirs = [
+    "$target_gen_dir",
+    "$ark_root/bytecode_optimizer",
+  ]
+  if (enable_bytecode_optimizer && plugin_enable_bytecode_optimizer) {
+    defines = [ "ENABLE_BYTECODE_OPT" ]
+  }
+}
+
+if (!ark_static_standalone_build) {
+  ohos_shared_headers("bytecode_optimizer_headers") {
+    include_dirs = [
+      "$target_gen_dir",
+      "$ark_root/bytecode_optimizer",
+    ]
+    part_name = ark_part_name
+    subsystem_name = "$ark_subsystem_name"
+  }
+}
+
+libarkbytecodeopt_sources = [
+  "$ark_root/bytecode_optimizer/bytecodeopt_peepholes.cpp",
+  "$ark_root/bytecode_optimizer/call_devirtualization.cpp",
+  "$ark_root/bytecode_optimizer/canonicalization.cpp",
+  "$ark_root/bytecode_optimizer/check_resolver.cpp",
+  "$ark_root/bytecode_optimizer/codegen.cpp",
+  "$ark_root/bytecode_optimizer/common.cpp",
+  "$ark_root/bytecode_optimizer/const_array_resolver.cpp",
+  "$ark_root/bytecode_optimizer/optimize_bytecode.cpp",
+  "$ark_root/bytecode_optimizer/reg_acc_alloc.cpp",
+  "$ark_root/bytecode_optimizer/reg_encoder.cpp",
+  "$ark_root/bytecode_optimizer/runtime_adapter.cpp",
+]
+libarkbytecodeopt_sources += plugin_libarkbytecodeopt_sources
+
+libarkbytecodeopt_configs = [
+  "$ark_root:ark_config",
+  ":bytecodeopt_public_config",
+  "$ark_root/compiler:arkcompiler_public_config",
+  "$ark_root/libarkbase:arkbase_public_config",
+  "$ark_root/libarkfile:arkfile_public_config",
+  "$ark_root/assembler:arkassembler_public_config",
+  "$ark_root/runtime:arkruntime_public_config",
+]
+
+libarkbytecodeopt_configs += plugin_bytecodeopt_configs
+
+if (abckit_enable) {
+  libabckit_path = "$ark_root/../libabckit"
+  libabckit_deps = [
+    "$libabckit_path/src/templates/abckit_intrinsics:abckit_ark_gen_abckit_intrinsics_inl",
+    "$libabckit_path/src/templates/abckit_intrinsics:abckit_ark_gen_abckit_intrinsics_vreg_width_h",
+  ]
+}
+
+ohos_shared_library("libarktsbytecodeopt") {
+  sources = libarkbytecodeopt_sources
+
+  configs = libarkbytecodeopt_configs
+
+  deps = [
+    ":bytecodeopt_options_gen_h",
+    ":codegen_call_intrinsics_inc",
+    ":codegen_intrinsics_cpp",
+    ":codegen_visitors_inc",
+    ":get_intrinsic_id_inc",
+    ":isa_gen_arkbytecodeopt_check_width_cpp",
+    ":isa_gen_arkbytecodeopt_check_width_h",
+    ":isa_gen_arkbytecodeopt_insn_selection_cpp",
+    ":isa_gen_arkbytecodeopt_insn_selection_h",
+    ":reg_encoder_visitors_inc",
+    ":runtime_adapter_inc",
+    "$ark_root/assembler:libarktsassembler",
+    "$ark_root/compiler:libarktscompiler",
+    "$ark_root/libarkbase:libarktsbase",
+    "$ark_root/libarkfile:libarktsfile",
+  ]
+
+  deps += plugin_bytecodeopt_deps
+  if (abckit_enable) {
+    deps += libabckit_deps
+  }
+
+  external_deps = [ sdk_libc_secshared_dep ]
+
+  if (is_mingw || is_win) {
+    output_extension = "dll"
+  } else {
+    output_extension = "so"
+  }
+  part_name = ark_part_name
+  subsystem_name = "$ark_subsystem_name"
+}
+
+ohos_static_library("libarktsbytecodeopt_frontend_static") {
+  sources = libarkbytecodeopt_sources
+
+  configs = libarkbytecodeopt_configs
+
+  deps = [
+    ":bytecodeopt_options_gen_h",
+    ":codegen_call_intrinsics_inc",
+    ":codegen_intrinsics_cpp",
+    ":codegen_visitors_inc",
+    ":get_intrinsic_id_inc",
+    ":isa_gen_arkbytecodeopt_check_width_cpp",
+    ":isa_gen_arkbytecodeopt_check_width_h",
+    ":isa_gen_arkbytecodeopt_insn_selection_cpp",
+    ":isa_gen_arkbytecodeopt_insn_selection_h",
+    ":reg_encoder_visitors_inc",
+    ":runtime_adapter_inc",
+    "$ark_root/assembler:libarktsassembler_frontend_static",
+    "$ark_root/compiler:libarktscompiler_frontend_static",
+    "$ark_root/libarkbase:libarktsbase_frontend_static",
+    "$ark_root/libarkfile:libarktsfile_frontend_static",
+  ]
+
+  deps += plugin_bytecodeopt_deps
+
+  if (abckit_enable) {
+    deps += libabckit_deps
+  }
+
+  external_deps = [ sdk_libc_secshared_dep ]
+
+  part_name = ark_part_name
+  subsystem_name = "$ark_subsystem_name"
+}
+
+ark_isa_gen("isa_gen_arkbytecodeopt") {
+  template_files = [
+    "insn_selection.h.erb",
+    "insn_selection.cpp.erb",
+    "check_width.cpp.erb",
+    "check_width.h.erb",
+  ]
+  sources = "templates"
+  destination = "$target_gen_dir/generated"
+  requires = [
+    "bytecode_optimizer_isapi.rb",
+    "$ark_root/assembler/asm_isapi.rb",
+  ]
+}
+
+ark_gen_file("bytecodeopt_options_gen_h") {
+  template_file = "../templates/options/options.h.erb"
+  data = [ "options.yaml" ]
+  api = [ "../templates/common.rb" ]
+  output_file = "$target_gen_dir/generated/bytecodeopt_options_gen.h"
+}
+
+ark_gen_file("reg_encoder_visitors_inc") {
+  extra_dependencies = [ "$ark_root:concat_plugins_yamls" ]
+  template_file = "templates/reg_encoder_visitors.inc.erb"
+  data = [ ark_plugin_options_yaml ]
+  api = [ "$ark_root/templates/plugin_options.rb" ]
+  output_file = "$target_gen_dir/generated/reg_encoder_visitors.inc"
+}
+
+ark_gen_file("runtime_adapter_inc") {
+  extra_dependencies = [ "$ark_root:concat_plugins_yamls" ]
+  template_file = "templates/runtime_adapter_inc.h.erb"
+  data = [ ark_plugin_options_yaml ]
+  api = [ "$ark_root/templates/plugin_options.rb" ]
+  output_file = "$target_gen_dir/generated/runtime_adapter_inc.h"
+}
+
+ark_gen_file("codegen_visitors_inc") {
+  extra_dependencies = [ "$ark_root:concat_plugins_yamls" ]
+  template_file = "templates/codegen_visitors.inc.erb"
+  data = [ ark_plugin_options_yaml ]
+  api = [ "$ark_root/templates/plugin_options.rb" ]
+  output_file = "$target_gen_dir/generated/codegen_visitors.inc"
+}
+
+ark_gen_file("codegen_intrinsics_cpp") {
+  extra_dependencies = [ "$ark_root:concat_plugins_yamls" ]
+  template_file = "templates/codegen_intrinsics.cpp.erb"
+  data = [ ark_plugin_options_yaml ]
+  api = [ "$ark_root/templates/plugin_options.rb" ]
+  output_file = "$target_gen_dir/generated/codegen_intrinsics.cpp"
+}
+
+ark_gen_file("codegen_call_intrinsics_inc") {
+  extra_dependencies = [
+    "$ark_root/runtime:arkruntime_gen_intrinsics_yaml",
+    "$ark_root:concat_plugins_yamls",
+  ]
+  template_file = "templates/codegen_call_intrinsics.inc.erb"
+  data = [
+    "$target_gen_dir/../runtime/intrinsics.yaml",
+    ark_plugin_options_yaml,
+  ]
+  api = [
+    "$ark_root/runtime/templates/intrinsics.rb",
+    "$ark_root/templates/plugin_options.rb",
+  ]
+  output_file = "$target_gen_dir/generated/codegen_call_intrinsics.inc"
+}
+
+ark_gen_file("get_intrinsic_id_inc") {
+  extra_dependencies = [ "$ark_root/runtime:arkruntime_gen_intrinsics_yaml" ]
+  template_file = "templates/get_intrinsic_id.inc.erb"
+  data = [ "$target_gen_dir/../runtime/intrinsics.yaml" ]
+  api = [ "$ark_root/runtime/templates/intrinsics.rb" ]
+  output_file = "$target_gen_dir/generated/get_intrinsic_id.inc"
+}

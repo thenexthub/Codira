@@ -1,0 +1,36 @@
+# Copyright (c) 2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - { type: "byte", newvalue: "1 as byte"}
+    - { type: "short", newvalue: "1 as short"}
+    - { type: "int", newvalue: "1 as int"}
+    - { type: "long", newvalue: "1 as long"}
+    - { type: "float", newvalue: "1 as float"}
+    - { type: "double", newvalue: "1 as double"}
+    - { type: "number", newvalue: "1 as number"}
+    - { type: "char", newvalue: "c'a'"}
+    - { type: "string", newvalue: "\"str2\""}
+    - { type: "boolean", newvalue: "false"}
+    - { type: "Byte", newvalue: "new Byte()"}
+    - { type: "Short", newvalue: "new Short()"}
+    - { type: "Int", newvalue: "new Int()"}
+    - { type: "Long", newvalue: "new Long()"}
+    - { type: "Float", newvalue: "new Float()"}
+    - { type: "Double", newvalue: "new Double()"}
+    - { type: "Number", newvalue: "new Number()"}
+    - { type: "Char", newvalue: "new Char()"}
+    - { type: "String", newvalue: "new String()"}
+    - { type: "Boolean", newvalue: "new Boolean()"}
+    - { type: "Object", newvalue: "new Object()"}

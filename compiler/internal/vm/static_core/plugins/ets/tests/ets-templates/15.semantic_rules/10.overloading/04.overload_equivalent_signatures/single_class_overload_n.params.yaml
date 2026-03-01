@@ -1,0 +1,93 @@
+# Copyright (c) 2024-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # Constructors
+  - decl: |-
+      foo() { res = 1;}
+      foo() { res = 2;}
+
+  - decl: |-
+      foo() { res = 1;}
+      foo(): int { res = 2; return 1;}
+
+  - decl: |-
+      foo(i: number) { res = 1;}
+      foo(j: number) { res = 2;}
+
+  - decl: |-
+      foo(i: Number) { res = 1;}
+      foo(j: Double) { res = 2;}
+
+  - decl: |-
+      foo(i: Number|undefined|null) { res = 1;}
+      foo(j: undefined|null|Number) { res = 2;}
+
+  # Instance methods
+
+  - decl: |-
+      foo() { res = 1;}
+      foo() { res = 2;}
+
+  - decl: |-
+      foo() { res = 1;}
+      foo(): int { res = 2; return 1;}
+
+  - decl: |-
+      foo(): Float { res = 1;}
+      foo(): byte {
+        res = 2;
+        return 1 as byte;
+      }
+
+  - decl: |-
+      foo(i: number) { res = 1;}
+      foo(j: number) { res = 2;}
+
+  - decl: |-
+      foo(i: Number) { res = 1;}
+      foo(j: Double) { res = 2;}
+
+  - decl: |-
+      foo(i: Number|undefined|null) { res = 1;}
+      foo(j: undefined|null|Number) { res = 2;}
+
+  # Static methods
+
+  - decl: |-
+      static foo() { res = 1;}
+      static foo() { res = 2;}
+
+  - decl: |-
+      static foo() { res = 1;}
+      static foo(): int { res = 2; return 1;}
+
+  - decl: |-
+      static foo(): Float { res = 1;}
+      static foo(): byte {
+        res = 2;
+        return 1 as byte;
+      }
+
+  - decl: |-
+      static foo(i: number) { res = 1;}
+      static foo(j: number) { res = 2;}
+
+  - decl: |-
+      static foo(i: Number) { res = 1;}
+      static foo(j: Double) { res = 2;}
+
+  - decl: |-
+      static foo(i: Number|undefined|null) { res = 1;}
+      static foo(j: undefined|null|Number) { res = 2;}

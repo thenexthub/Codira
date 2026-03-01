@@ -1,0 +1,573 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+#
+# Checked tests for basic inlining.
+#
+
+#! CHECKER      Instructions limit
+#! RUN          force_jit: true, options: "--compiler-regex=Test1::main --compiler-inlining-max-insts=8", entry: "Test1::main"
+#! EVENT        /Inline,Test1::main,_GLOBAL::func,.*STATIC,LIMIT/
+#! EVENT_NEXT   /Inline,Test1::main,_GLOBAL::small_func,.*STATIC,SUCCESS/
+
+#! CHECKER      Instructions max size
+#! RUN          force_jit: true, options: "--compiler-regex=Test1::main --compiler-inlining-max-size=6", entry: "Test1::main"
+#! EVENT        /Inline,Test1::main,_GLOBAL::func,.*STATIC,LIMIT/
+#! EVENT_NEXT   /Inline,Test1::main,_GLOBAL::small_func,.*STATIC,SUCCESS/
+
+.record Test1 {}
+
+.function i32 func(i32 a0) {
+    newobj v0, Test1
+    newobj v0, Test1
+    ldai 1
+    add2 a0
+    return
+}
+
+.function i32 small_func(i32 a0) {
+    ldai 1
+    add2 a0
+    return
+}
+
+.function i32 Test1.main() {
+    movi v1, 10
+
+    call.short func, v1
+    call.short small_func, v1
+    add2 v1
+
+    ldai 0
+    return
+}
+
+#! CHECKER      Inline depth limit
+#! RUN          force_jit: true, options: "--compiler-regex=Test1::main_depth --compiler-inlining-max-depth=2", entry: "Test1::main_depth"
+#! EVENTS_COUNT /Inline,Test1::main_depth,_GLOBAL::func_rec,.*STATIC,SUCCESS/, 1
+#! EVENTS_COUNT /Inline,_GLOBAL::func_rec,_GLOBAL::func_rec,.*STATIC,SUCCESS/, 1
+
+.function i32 func_rec(i32 a0) {
+    lda a0
+    jeqz exit
+    subi 1
+    sta a0
+    call.short func_rec, a0
+exit:
+    return
+}
+
+.function i32 Test1.main_depth() {
+    movi v1, 10
+
+    call.short func_rec, v1
+
+    return
+}
+
+#! CHECKER      Check inlined float array
+#! RUN          force_jit: true, options: "--compiler-regex=_GLOBAL::main", entry: "_GLOBAL::main"
+#! EVENT        /Inline,_GLOBAL::main,_GLOBAL::farray,.*STATIC,SUCCESS/
+#! METHOD       "_GLOBAL::main"
+#! PASS_AFTER   "Inline"
+#! INST         "CallStatic.Inlined"
+
+.function void farray(f64[] a0) {
+    ldai 2
+    movi v0, 1
+    fstarr.64 a0, v0
+    return.void
+}
+
+.function i32 main() {
+    movi v0, 5
+    newarr v1, v0, f64[]
+    call.short farray, v1
+    ldai 0
+    return
+}
+
+#! CHECKER      Inline function with dead loop
+#! RUN          force_jit: true, options: "--compiler-regex=_GLOBAL::main1", entry: "_GLOBAL::main1"
+#! EVENT        /Inline,_GLOBAL::main1,_GLOBAL::foo1,.*STATIC,SUCCESS/
+#! METHOD       "_GLOBAL::main1"
+#! PASS_AFTER   "Inline"
+#! INST_NOT     "CallStatic.Inlined"
+#! INST_NOT     "Return.Inlined"
+#! INST_NOT     "SaveStateDeoptimize"
+
+.function i32 foo1() {
+  movi v1, 0
+  ldai 10
+lbl:
+  jle v1, lbl     # jump to 0 offset, never happens
+  ldai 0
+  return
+}
+
+.function i32 main1() {
+  call foo1
+  return
+}
+
+
+#! CHECKER      Change to CallStatic by instructions limit
+#! RUN          force_jit: true, options: "--compiler-regex=Test2::main --compiler-inlining-max-insts=12", entry: "Test2::main"
+#! EVENT        /Inline,Test2::main,Test2::func,.*VIRTUAL,LIMIT/
+#! EVENT_NEXT   /Inline,Test2::main,Test2::func,.*VIRTUAL,DEVIRTUALIZED/
+#! EVENT_NEXT   /Inline,Test2::main,Test2::small_func,.*VIRTUAL,SUCCESS/
+
+#! CHECKER      Change to CallStatic by instructions max size
+#! RUN          force_jit: true, options: "--compiler-regex=Test2::main --compiler-inlining-max-size=6", entry: "Test2::main"
+#! EVENT        /Inline,Test2::main,Test2::func,.*VIRTUAL,LIMIT/
+#! EVENT_NEXT   /Inline,Test2::main,Test2::func,.*VIRTUAL,DEVIRTUALIZED/
+#! EVENT_NEXT   /Inline,Test2::main,Test2::small_func,.*VIRTUAL,SUCCESS/
+
+.record Test2 {}
+
+.function i32 Test2.func(Test2 a0, i32 a1) {
+    newobj v0, Test1
+    newobj v0, Test1
+    newobj v0, Test1
+    newobj v0, Test1
+    ldai 1
+    add2 a1
+    return
+}
+
+.function i32 Test2.small_func(Test2 a0, i32 a1) {
+    ldai 1
+    add2 a1
+    return
+}
+
+.function i32 Test2.main() {
+    newobj v0, Test2
+    movi v1, 10
+
+    call.virt Test2.func, v0, v1
+    call.virt Test2.small_func, v0, v1
+    add2 v1
+
+    ldai 0
+    return
+}
+
+#! CHECKER      Do not inline infinite loop
+#! RUN          force_jit: true, entry: "Test3::main"
+#! EVENT        /Inline,Test3::main,Test3::foo1,.*VIRTUAL,SUCCESS/
+#! EVENT        /Inline,Test3::main,_GLOBAL::foo_inf_loop,.*STATIC,INF_LOOP/
+
+
+.record Test3 {}
+
+.function i32 Test3.foo1(Test3 a0) {
+    ldai 0
+    return
+}
+
+.function i32 foo_inf_loop(i32 a0) {
+    lda a0
+    jeqz exit
+loop:
+    addi 1
+    sta a0
+    jmp loop
+exit:
+    return
+}
+
+.function i32 Test3.main() {
+  newobj v0, Test3
+  call.virt Test3.foo1, v0
+  jeqz exit
+  sta v1
+  call.short foo_inf_loop, v1
+  ldai 0
+exit:
+  return
+}
+
+#! CHECKER  Inline external files in AOT mode
+#! RUN_PAOC     options: "--panda-files=../../inline_external.checked/test.abc --compiler-regex=Test4.*"
+#! METHOD       "Test4::func_A_getConst_static__noinline__"
+#! PASS_AFTER   "IrBuilder"
+#! INST         /CallStatic.*A::getConst/
+#! INST_NOT     "Constant"
+#! PASS_AFTER   "Inline"
+#! INST_NOT     /CallStatic.*A::getConst/
+#! INST         "Constant"
+#! METHOD       "Test4::func_A_getConst_virtual__noinline__"
+#! PASS_AFTER   "IrBuilder"
+#! INST         /CallVirtual.*A::getConst/
+#! INST_NOT     "Constant"
+#! PASS_AFTER   "Inline"
+#! INST_NOT     /CallVirtual.*A::getConst/
+#! INST         "Constant"
+#! METHOD       "Test4::func_A_getParam_static__noinline__"
+#! PASS_AFTER   "IrBuilder"
+#! INST         /CallStatic.*A::getParam/
+#! PASS_AFTER   "Inline"
+#! INST_NOT     /CallStatic.*A::getParam/
+#! METHOD       "Test4::func_A_getParam_virtual__noinline__"
+#! PASS_AFTER   "IrBuilder"
+#! INST         /CallVirtual.*A::getParam/
+#! PASS_AFTER   "Inline"
+#! INST_NOT     /CallVirtual.*A::getParam/
+#! METHOD       "Test4::func_A_getVoid_static__noinline__"
+#! PASS_AFTER   "IrBuilder"
+#! INST         /CallStatic.*A::getVoid/
+#! PASS_AFTER   "Inline"
+#! INST_NOT     /CallStatic.*A::getVoid/
+#! METHOD       "Test4::func_A_getVoid_virtual__noinline__"
+#! PASS_AFTER   "IrBuilder"
+#! INST         /CallVirtual.*A::getVoid/
+#! PASS_AFTER   "Inline"
+#! INST_NOT     /CallVirtual.*A::getVoid/
+#! METHOD       "Test4::func_A_getObj_static__noinline__"
+#! PASS_AFTER   "IrBuilder"
+#! INST         /CallStatic.*A::getObj/
+#! INST_NOT     "LoadObject"
+#! PASS_AFTER   "Inline"
+#! INST_NOT      /CallStatic.*A::getObj/
+#! INST         "LoadObject"
+#! METHOD       "Test4::func_A_getObj_virtual__noinline__"
+#! PASS_AFTER   "IrBuilder"
+#! INST         /CallVirtual.*A::getObj/
+#! INST_NOT     "LoadObject"
+#! PASS_AFTER   "Inline"
+#! INST_NOT     /CallVirtual.*A::getObj/
+#! INST         "LoadObject"
+#! METHOD       "Test4::func_A_setObj_static__noinline__"
+#! PASS_AFTER   "IrBuilder"
+#! INST         /CallStatic.*A::setObj/
+#! INST_NOT     "StoreObject"
+#! PASS_AFTER   "Inline"
+#! INST_NOT     /CallStatic.*A::setObj/
+#! INST         "StoreObject"
+#! METHOD       "Test4::func_A_setObj_virtual__noinline__"
+#! PASS_AFTER   "IrBuilder"
+#! INST         /CallVirtual.*A::setObj/
+#! INST_NOT     "StoreObject"
+#! PASS_AFTER   "Inline"
+#! INST_NOT     /CallVirtual.*A::setObj/
+#! INST         "StoreObject"
+#! METHOD       "Test4::func_A_getObj_wrong_virtual__noinline__"
+#! PASS_AFTER   "IrBuilder"
+#! INST         /CallVirtual.*A::getObj/
+#! INST_NOT     "LoadObject"
+#! PASS_AFTER   "Inline"
+#! INST_NOT      /CallVirtual.*A::getObj/
+#! INST         "LoadObject"
+#! METHOD       "Test4::func_A_setObj_wrong_virtual__noinline__"
+#! PASS_AFTER   "IrBuilder"
+#! INST         /CallVirtual.*A::setObj/
+#! INST_NOT     "StoreObject"
+#! PASS_AFTER   "Inline"
+#! INST_NOT     /CallVirtual.*A::setObj/
+#! INST         "StoreObject"
+#! METHOD       "Test4::func_A_setObj_multiple__noinline__"
+#! PASS_AFTER   "IrBuilder"
+#! INST         /CallStatic.*A::setObj_multiple/
+#! PASS_AFTER   "Inline"
+#! INST_NOT     /CallStatic.*A::setObj_multiple/
+#! METHOD       "Test4::func_A_complexMethod__noinline__"
+#! PASS_AFTER   "IrBuilder"
+#! INST         /CallVirtual.*A::complexMethod/
+#! PASS_AFTER   "Inline"
+#! INST_NOT     /CallVirtual.*A::complexMethod/
+#! METHOD       "Test4::func_A_setObj_unknown_target__noinline__"
+#! PASS_AFTER   "IrBuilder"
+#! INST         /CallStatic.*A::setObj/
+#! PASS_AFTER   "Inline"
+#! INST         /CallStatic.*A::setObj/
+#! RUN          options: "--panda-files=../../inline_external.checked/test.abc", entry: "Test4::main"
+
+#! CHECKER  Don't inline external files in AOT mode without cha
+#! RUN_PAOC     options: "--panda-files=../../inline_external.checked/test.abc --paoc-use-cha=false --compiler-regex=Test4.*"
+#! METHOD       "Test4::func_A_getConst_static__noinline__"
+#! PASS_AFTER   "IrBuilder"
+#! INST         /CallStatic.*A::getConst/
+#! INST_NOT     "Constant"
+#! PASS_AFTER   "Inline"
+#! INST         /CallStatic.*A::getConst/
+#! INST_NOT     "Constant"
+
+.record A {
+    i32 data <external>
+}
+.record A.data <external>
+.function i32 A.getConst() <external,static>
+.function i32 A.getConst_virt(A a0) <external>
+.function i32 A.getParam(i32 a0) <external,static>
+.function i32 A.getParam_virt(A a0, i32 a1) <external>
+.function void A.getVoid() <external,static>
+.function void A.getVoid_virt(A a0) <external>
+.function i32 A.getObj(A a0) <external,static>
+.function i32 A.getObj_virt(A a0) <external>
+.function void A.setObj(A a0, i32 a1) <external,static>
+.function void A.setObjConst_virt(A a0) <external>
+.function void A.setObj_virt(A a0, i32 a1) <external>
+.function i32 A.getObj_wrong_virt(A a0, A a1) <external>
+.function void A.setObj_wrong_virt(A a0, i32 a1, A a2) <external>
+.function void A.setObj_multiple(A a0, i32 a1, i32 a2) <external,static>
+.function i32 A.complexMethod(A a0) <external>
+
+.record Test4 {}
+
+.function i32 Test4.func_A_getConst_static__noinline__() <static> {
+    call A.getConst
+    return 
+}
+
+.function i32 Test4.func_A_getConst_virtual__noinline__() <static> {
+    newobj v0, A
+    call.virt A.getConst_virt, v0
+    return 
+}
+
+.function i32 Test4.func_A_getParam_static__noinline__(i32 a0) <static> {
+    call A.getParam, a0
+    return 
+}
+
+.function i32 Test4.func_A_getParam_virtual__noinline__(i32 a0) <static> {
+    newobj v0, A
+    call.virt A.getParam_virt, v0, a0
+    return 
+}
+
+.function void Test4.func_A_getVoid_static__noinline__() <static> {
+    call A.getVoid
+    return.void
+}
+
+.function void Test4.func_A_getVoid_virtual__noinline__() <static> {
+    newobj v0, A
+    call.virt A.getVoid_virt, v0
+    return.void
+}
+
+.function i32 Test4.func_A_getObj_static__noinline__() <static> {
+    newobj v0, A
+    ldai 0x5
+    stobj v0, A.data
+    call A.getObj, v0
+    return 
+}
+
+.function i32 Test4.func_A_getObj_virtual__noinline__() <static> {
+    newobj v0, A
+    ldai 0x6
+    stobj v0, A.data
+    call.virt A.getObj_virt, v0
+    return 
+}
+
+.function i32 Test4.func_A_setObj_static__noinline__() <static> {
+    newobj v0, A
+    movi v1, 0x7
+    call A.setObj, v0, v1
+    ldobj v0, A.data
+    return 
+}
+
+.function i32 Test4.func_A_setObj_virtual__noinline__() <static> {
+    newobj v0, A
+    movi v1, 0x8
+    call.virt A.setObj_virt, v0, v1
+    ldobj v0, A.data
+    return 
+}
+
+.function i32 Test4.func_A_getObj_wrong_virtual__noinline__() <static> {
+    newobj v0, A
+    newobj v1, A
+    ldai 0x9
+    stobj v0, A.data
+    ldai 0x10
+    stobj v1, A.data
+    call.virt A.getObj_wrong_virt, v0, v1
+    return 
+}
+
+.function i32 Test4.func_A_setObj_wrong_virtual__noinline__() <static> {
+    newobj v0, A
+    newobj v2, A
+    movi v1, 0x11
+    call.virt A.setObj_wrong_virt, v0, v1, v2
+    ldobj v2, A.data
+    return 
+}
+
+.function i32 Test4.func_A_setObjConst_virtual__noinline__() <static> {
+    newobj v0, A
+    call.virt A.setObjConst_virt, v0
+    ldobj v0, A.data
+    return 
+}
+
+.function i32 Test4.func_A_setObj_multiple__noinline__() <static> {
+    newobj v0, A
+    movi v1, 42
+    movi v2, 0
+    call A.setObj_multiple, v0, v1, v2
+    ldobj v0, A.data
+    return
+}
+
+.function i32 Test4.func_A_complexMethod__noinline__() <static> {
+    newobj v0, A
+    call.virt A.complexMethod, v0
+    sta v0
+    ldai 42
+    jeq v0, success
+    ldai 1
+    return
+success:
+    ldai 0
+    return
+}
+
+.function i32 Test4.func_A_setObj_unknown_target__noinline__(A a0) <static> {
+    movi v0, 0
+    call A.setObj, a0, v0
+    ldobj a0, A.data
+    return
+}
+
+.function i32 Test4.func_A_setObj_unknown_target_wrapper__noinline__() <static> {
+    newobj v0, A
+    call Test4.func_A_setObj_unknown_target__noinline__, v0
+    return
+}
+
+.function i32 Test4.main() {
+    movi v0, 0x1
+    call Test4.func_A_getConst_static__noinline__
+    jne v0, error_exit_1
+    movi v0, 0x2
+    call Test4.func_A_getConst_virtual__noinline__
+    jne v0, error_exit_2
+    movi v0, 0x3
+    call Test4.func_A_getParam_static__noinline__, v0
+    jne v0, error_exit_3
+    movi v0, 0x4
+    call Test4.func_A_getParam_virtual__noinline__, v0
+    jne v0, error_exit_4
+    call Test4.func_A_getVoid_static__noinline__, v0
+    call Test4.func_A_getVoid_virtual__noinline__, v0
+    movi v0, 0x5
+    call Test4.func_A_getObj_static__noinline__
+    jne v0, error_exit_5
+    movi v0, 0x6
+    call Test4.func_A_getObj_virtual__noinline__
+    jne v0, error_exit_6
+    movi v0, 0x7
+    call Test4.func_A_setObj_static__noinline__
+    jne v0, error_exit_7
+    movi v0, 0x8
+    call Test4.func_A_setObj_virtual__noinline__
+    jne v0, error_exit_8
+    movi v0, 0x9
+    call Test4.func_A_setObjConst_virtual__noinline__
+    jne v0, error_exit_9
+    movi v0, 0x10
+    call Test4.func_A_getObj_wrong_virtual__noinline__
+    jne v0, error_exit_10
+    movi v0, 0x11
+    call Test4.func_A_setObj_wrong_virtual__noinline__
+    jne v0, error_exit_11
+    call Test4.func_A_setObj_multiple__noinline__
+    jnez error_exit_12
+    call Test4.func_A_complexMethod__noinline__
+    jnez error_exit_13
+    call Test4.func_A_setObj_unknown_target_wrapper__noinline__
+    jnez error_exit_14
+    ldai 0x0
+    return
+error_exit_1:
+    ldai 0x1
+    return
+error_exit_2:
+    ldai 0x2
+error_exit_3:
+    ldai 0x3
+    return
+error_exit_4:
+    ldai 0x4
+    return
+error_exit_5:
+    ldai 0x5
+    return
+error_exit_6:
+    ldai 0x6
+    return
+error_exit_7:
+    ldai 0x7
+    return
+error_exit_8:
+    ldai 0x8
+    return
+error_exit_9:
+    ldai 0x9
+    return
+error_exit_10:
+    ldai 0xa
+    return
+error_exit_11:
+    ldai 0xb
+    return
+error_exit_12:
+    ldai 0xc
+    return
+error_exit_13:
+    ldai 0xd
+    return
+error_exit_14:
+    ldai 0xe
+    return
+}
+
+#! CHECKER  Inline nested calls in AOT mode
+#! RUN_PAOC options: "--panda-files=../../inline.checked/test.abc --compiler-regex=NestedCalls::main"
+#! EVENT    /Inline,NestedCalls::outer,NestedCalls::inner,.*,VIRTUAL,SUCCESS/
+#! EVENT    /Inline,NestedCalls::main,NestedCalls::outer,.*,VIRTUAL,SUCCESS/
+
+#! CHECKER  Inline nested calls in JIT mode
+#! RUN      force_jit: true, entry: "NestedCalls::main", options: "--compiler-regex=NestedCalls::main --compiler-no-cha-inlining"
+#! EVENT    /Inline,NestedCalls::outer,NestedCalls::inner,.*,VIRTUAL,SUCCESS/
+#! EVENT    /Inline,NestedCalls::main,NestedCalls::outer,.*,VIRTUAL,SUCCESS/
+.record NestedCalls {}
+.function i32 NestedCalls.outer(NestedCalls a0) {
+    call.virt NestedCalls.inner, a0
+    return
+}
+.function i32 NestedCalls.inner(NestedCalls a0) {
+    ldai 0
+    return
+}
+.function i32 NestedCalls.main() <static> {
+    newobj v0, NestedCalls
+    call.virt NestedCalls.outer, v0
+    return
+}

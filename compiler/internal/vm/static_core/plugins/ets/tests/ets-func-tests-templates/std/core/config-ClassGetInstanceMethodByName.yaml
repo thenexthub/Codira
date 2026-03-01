@@ -1,0 +1,73 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+access_type:
+  - 'public'
+  - 'protected'
+  - 'private'
+
+find_access_type:
+  - 'public'
+  - 'protected'
+  - 'private'
+  - 'nonexisting'
+
+default_arg_sets:
+  - class_name: 'int'
+    prefix: 'int_'
+    default_value: '5 as int'
+    class_object: 'Class.PRIMITIVE_INT'
+  - class_name: 'String'
+    prefix: 'string_'
+    default_value: '"abc"'
+    class_object: 'Class.from<String>()'
+  - class_name: 'BaseClass'
+    prefix: 'baseclass_'
+    default_value: 'new BaseClass()'
+    class_object: 'Class.from<BaseClass>()'
+  - class_name: 'DerivedClass'
+    prefix: 'derivedclass_'
+    default_value: 'new DerivedClass()'
+    class_object: 'Class.from<DerivedClass>()'
+  - class_name: 'FixedArray<int>'
+    prefix: 'fixedarrayprimitive_'
+    default_value: '[1, 2, 3] as FixedArray<int>'
+    class_object: 'Class.from<FixedArray<int>>()'
+  - class_name: 'undefined'
+    prefix: 'undefined_'
+    default_value: 'undefined'
+    class_object: 'Class.from<undefined>()'
+  - class_name: 'BaseClass | undefined'
+    prefix: 'unionbaseundefined_'
+    default_value: 'undefined'
+    class_object: 'Class.from<BaseClass | undefined>()'
+  - class_name: 'BaseClass | int'
+    prefix: 'unionbaseint_'
+    default_value: '5 as int'
+    class_object: 'Class.from<BaseClass | int>()'
+
+return_only_arg_sets:
+  - class_name: 'void'
+    prefix: 'void_'
+    default_value: ''
+    class_object: 'Class.PRIMITIVE_VOID'
+sep: "---"

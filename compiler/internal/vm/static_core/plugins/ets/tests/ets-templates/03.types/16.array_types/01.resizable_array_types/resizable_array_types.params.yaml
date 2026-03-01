@@ -1,0 +1,58 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+cases:
+    - type: "byte"
+      value: "1"
+    - type: "short"
+      value: "1"
+    - type: "int"
+      value: "1"
+    - type: "long"
+      value: "1"
+    - type: "bigint"
+      value: "1n"
+    - type: "float"
+      value: "1.0f"
+    - type: "double"
+      value: "1.0"
+    - type: "boolean"
+      value: "true"
+    - type: "char"
+      value: "c'a'"
+    - type: "string"
+      value: "'abc'"
+    - type: "Any"
+      value: "1"
+    - type: "Object"
+      value: "new Object()"
+    - type: "null"
+      value: "null"
+    - type: "undefined"
+      value: "undefined"
+    - type: "int | string"
+      value: "1"
+    - type: "int | string"
+      value: "'abc'"
+    - type: "int[]"
+      value: "[1, 0]"
+    - type: "Array<int>"
+      value: "[1]"
+    - type: "FixedArray<int>"
+      value: "[1, 0]"
+    - type: "() => void"
+      value: "(): void => {}"
+    - type: "'abc' | 'def'"
+      value: "'abc'"
+

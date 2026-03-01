@@ -1,0 +1,584 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+cases:
+  - desc: |-
+      Checking for initialization with default values.
+    check_variants:
+      - {check_type: "long",
+        base_value: "0", new_value: "5"}
+      - {check_type: "int",
+        base_value: "0", new_value: "5"}
+      - {check_type: "byte",
+        base_value: "0", new_value: "5"}
+      - {check_type: "short",
+        base_value: "0", new_value: "5"}
+      - {check_type: "double",
+        base_value: "0", new_value: "7.3"}
+      - {check_type: "number",
+        base_value: "0", new_value: "5"}
+      - {check_type: "float",
+        base_value: "0.0f", new_value: "7.3f"}
+      - {check_type: "char",
+        base_value: "c'\\u0000'", new_value: "c'a'"}
+      - {check_type: "boolean",
+        base_value: "false", new_value: "true"}
+      - {check_type: "Object | undefined",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Object | undefined | null",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Any",
+        base_value: "undefined", new_value: "5"}
+    decl_variants:
+      - |-
+        class A {
+          static field: [check_type]
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+        A.field = [new_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [new_value])
+        A.field = [base_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+
+  - desc: |-
+      Checking for initialization with field initializer.
+    check_variants:
+      - {check_type: "long",
+        base_value: "4", new_value: "5"}
+      - {check_type: "int",
+        base_value: "4", new_value: "5"}
+      - {check_type: "byte",
+        base_value: "4", new_value: "5"}
+      - {check_type: "short",
+        base_value: "4", new_value: "5"}
+      - {check_type: "double",
+        base_value: "4", new_value: "7.3"}
+      - {check_type: "number",
+        base_value: "4", new_value: "5"}
+      - {check_type: "float",
+        base_value: "4.5f", new_value: "7.3f"}
+      - {check_type: "bigint",
+        base_value: "4n", new_value: "5n"}
+      - {check_type: "string",
+        base_value: "\"abc\"", new_value: "\"efg\""}
+      - {check_type: "char",
+        base_value: "c'a'", new_value: "c'b'"}
+      - {check_type: "boolean",
+        base_value: "false", new_value: "true"}
+      - {check_type: "Object",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Object | undefined",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Object | undefined | null",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Any",
+        base_value: "4", new_value: "5"}
+    decl_variants:
+      - |-
+        class A {
+          static field: [check_type] = [base_value]
+        }
+      - |-
+        class A {
+          static v: [check_type] = [base_value]
+          static field: [check_type] = A.v
+        }
+      - |-
+        class A {
+          private static _v: [check_type] = [base_value]
+          static get v(): [check_type] {
+            return A._v
+          }
+          static field: [check_type] = A.v
+        }
+      - |-
+        class Base {
+          private static _v: [check_type] = [base_value]
+          static get v(): [check_type] {
+            return Base._v
+          }
+        }
+        class A extends Base {
+          static field: [check_type] = Base.v
+        }
+      - |-
+        function foo(): [check_type] {
+          return [base_value]
+        }
+        class A {
+          static field: [check_type] = foo()
+        }
+      - |-
+        class A {
+          private static v: [check_type] = [base_value]
+          private static _field: [check_type] = A.v
+          static get field(): [check_type] {
+            return A._field
+          }
+          static set field(a: [check_type]) {
+            A._field = a
+          }
+        }
+      - |-
+        class Base {
+          protected static _v: [check_type] = [base_value]
+          static get v(): [check_type] {
+            return Base._v
+          }
+        }
+        class A extends Base {
+          protected static _field: [check_type] = Base.v
+          static get field(): [check_type] {
+            return A._field
+          }
+          static set field(a: [check_type]) {
+            A._field = a
+          }
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+        A.field = [new_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [new_value])
+        A.field = [base_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+
+  - desc: |-
+      Checking for initialization with field initializer.
+    check_variants:
+      - {check_type: "C", data_type: "int",
+        base_obj_lit: "{data: 4}", base_value: "4",
+        new_obj_lit: "{data: 5}", new_value: "5",
+        cv_decl_data: "class C {data: int = 0}"}
+    decl_variants:
+      - |-
+        [cv_decl_data]
+        class A {
+          static field: [check_type] = [base_obj_lit]
+        }
+      - |-
+        [cv_decl_data]
+        class A {
+          static v: [check_type] = [base_obj_lit]
+          static field: [check_type] = A.v
+        }
+      - |-
+        [cv_decl_data]
+        class A {
+          private static _v: [check_type] = [base_obj_lit]
+          static get v(): [check_type] {
+            return A._v
+          }
+          static field: [check_type] = A.v
+        }
+      - |-
+        [cv_decl_data]
+        class Base {
+          private static _v: [check_type] = [base_obj_lit]
+          static get v(): [check_type] {
+            return Base._v
+          }
+        }
+        class A extends Base {
+          static field: [check_type] = Base.v
+        }
+      - |-
+        [cv_decl_data]
+        function foo(): [check_type] {
+          return [base_obj_lit]
+        }
+        class A {
+          static field: [check_type] = foo()
+        }
+      - |-
+        [cv_decl_data]
+        class A {
+          private static v: [check_type] = [base_obj_lit]
+          private static _field: [check_type] = A.v
+          static get field(): [check_type] {
+            return A._field
+          }
+          static set field(a: [check_type]) {
+            A._field = a
+          }
+        }
+      - |-
+        [cv_decl_data]
+        class Base {
+          protected static _v: [check_type] = [base_obj_lit]
+          static get v(): [check_type] {
+            return Base._v
+          }
+        }
+        class A extends Base {
+          protected static _field: [check_type] = Base.v
+          static get field(): [check_type] {
+            return A._field
+          }
+          static set field(a: [check_type]) {
+            A._field = a
+          }
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertTrue(A.field.data instanceof [data_type])
+        arktest.assertEQ(A.field.data, [base_value])
+        A.field = [new_obj_lit]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertTrue(A.field.data instanceof [data_type])
+        arktest.assertEQ(A.field.data, [new_value])
+        A.field = [base_obj_lit]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertTrue(A.field.data instanceof [data_type])
+        arktest.assertEQ(A.field.data, [base_value])
+
+  - desc: |-
+      >-
+        Checking for initialization with different
+        covariant subtype values usage.
+    check_variants:
+      - {check_type: "Animal", check_value: "\"\""}
+      - {check_type: "Dog", check_value: "\"dog\""}
+      - {check_type: "Cat", check_value: "\"cat\""}
+    decl_variants:
+      - |-
+        class Animal {
+          name: string = ""
+        }
+        class Dog extends Animal {
+          constructor () {
+            super()
+            this.name = "dog"
+          }
+        }
+        class Cat extends Animal {
+          constructor () {
+            super()
+            this.name = "cat"
+          }
+        }
+        class C {
+          static field: Animal = new [check_type]
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(C.field instanceof [check_type])
+        arktest.assertEQ(C.field.name, [check_value])
+
+  - desc: |-
+      >-
+        Checking for initialization with different
+        covariant function subtype values usage.
+    check_variants:
+      - {check_type: "HandlerNothing", init_value: "handlerNothing",
+        check_value: "-567"}
+      - {check_type: "HandlerA", init_value: "handlerA",
+        check_value: "13"}
+      - {check_type: "HandlerAInt", init_value: "handlerAInt",
+        check_value: "-20"}
+    decl_variants:
+      - |-
+        class A {
+          v: int
+          constructor(v: int = 0) {
+            this.v = v
+          }
+        }
+        class B extends A {
+          constructor(v: int = 0) {
+            super(-v)
+          }
+          foo(): int {
+            return 13
+          }
+        }
+        type HandlerBInt = (a: B, b: int) => A
+        type HandlerAInt = (a: A, b: int) => B
+        const handlerAInt: HandlerAInt = (a: A, b: int): B => {
+          if (a instanceof B){
+            return new B(a.foo() + b)
+          } else {
+            return new B(b)
+          }
+        }
+        type HandlerA = (a: A) => A
+        const handlerA: HandlerA = (a: A): A => {
+          if (a instanceof B){
+            return new A(a.foo())
+          } else {
+            return new A
+          }
+        }
+        type HandlerNothing = () => B
+        const handlerNothing: HandlerNothing = (): B => {
+          return new B(567)
+        }
+        class C {
+          static field: HandlerBInt = [init_value]
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(C.field instanceof [check_type])
+        arktest.assertEQ(C.field(new B, 7).v, [check_value])
+
+  - desc: |-
+      Checking for changing the value from static block.
+    check_variants:
+      - {check_type: "long",
+        base_value: "4", new_value: "5"}
+      - {check_type: "int",
+        base_value: "4", new_value: "5"}
+      - {check_type: "byte",
+        base_value: "4", new_value: "5"}
+      - {check_type: "short",
+        base_value: "4", new_value: "5"}
+      - {check_type: "double",
+        base_value: "4", new_value: "7.3"}
+      - {check_type: "number",
+        base_value: "4", new_value: "5"}
+      - {check_type: "float",
+        base_value: "4.5f", new_value: "7.3f"}
+      - {check_type: "char",
+        base_value: "c'a'", new_value: "c'b'"}
+      - {check_type: "boolean",
+        base_value: "false", new_value: "true"}
+      - {check_type: "Object | undefined",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Object | undefined | null",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Any",
+        base_value: "4", new_value: "5"}
+    decl_variants:
+      - |-
+        class A {
+          static field: [check_type]
+          static {
+            A.field = [base_value]
+          }
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+        A.field = [new_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [new_value])
+        A.field = [base_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+
+  - desc: |-
+      Checking for changing the value from static block.
+    check_variants:
+      - {check_type: "long",
+        base_value: "4", new_value: "5"}
+      - {check_type: "int",
+        base_value: "4", new_value: "5"}
+      - {check_type: "byte",
+        base_value: "4", new_value: "5"}
+      - {check_type: "short",
+        base_value: "4", new_value: "5"}
+      - {check_type: "double",
+        base_value: "4", new_value: "7.3"}
+      - {check_type: "number",
+        base_value: "4", new_value: "5"}
+      - {check_type: "float",
+        base_value: "4.5f", new_value: "7.3f"}
+      - {check_type: "bigint",
+        base_value: "4n", new_value: "5n"}
+      - {check_type: "string",
+        base_value: "\"abc\"", new_value: "\"efg\""}
+      - {check_type: "char",
+        base_value: "c'a'", new_value: "c'b'"}
+      - {check_type: "boolean",
+        base_value: "false", new_value: "true"}
+      - {check_type: "Object",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Object | undefined",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Object | undefined | null",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Any",
+        base_value: "4", new_value: "5"}
+    decl_variants:
+      - |-
+        class A {
+          static field: [check_type] = [base_value]
+          static {
+            A.field = [new_value]
+          }
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [new_value])
+        A.field = [base_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+        A.field = [new_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [new_value])
+
+  - desc: |-
+      Checking for initialization with namespace usage.
+    check_variants:
+      - {check_type: "long",
+        base_value: "4", new_value: "5"}
+      - {check_type: "int",
+        base_value: "4", new_value: "5"}
+      - {check_type: "byte",
+        base_value: "4", new_value: "5"}
+      - {check_type: "short",
+        base_value: "4", new_value: "5"}
+      - {check_type: "double",
+        base_value: "4", new_value: "7.3"}
+      - {check_type: "number",
+        base_value: "4", new_value: "5"}
+      - {check_type: "float",
+        base_value: "4.5f", new_value: "7.3f"}
+      - {check_type: "bigint",
+        base_value: "4n", new_value: "5n"}
+      - {check_type: "string",
+        base_value: "\"abc\"", new_value: "\"efg\""}
+      - {check_type: "char",
+        base_value: "c'a'", new_value: "c'b'"}
+      - {check_type: "boolean",
+        base_value: "false", new_value: "true"}
+      - {check_type: "Object",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Object | undefined | null",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Any",
+        base_value: "4", new_value: "5"}
+    decl_variants:
+      - |-
+        namespace ns {
+          export class A {
+            static field: [check_type] = [base_value]
+          }
+        }
+      - |-
+        namespace ns {
+          export class A {
+            static v: [check_type] = [base_value]
+            static field: [check_type] = A.v
+          }
+        }
+      - |-
+        namespace ns {
+          export class A {
+            private static _v: [check_type] = [base_value]
+            static get v(): [check_type] {
+              return A._v
+            }
+            static field: [check_type] = A.v
+          }
+        }
+      - |-
+        namespace ns {
+          export class Base {
+            private static _v: [check_type] = [base_value]
+            static get v(): [check_type] {
+              return Base._v
+            }
+          }
+          export class A extends Base {
+            static field: [check_type] = Base.v
+          }
+        }
+      - |-
+        namespace ns {
+          function foo(): [check_type] {
+            return [base_value]
+          }
+          export class A {
+            static field: [check_type] = foo()
+          }
+        }
+      - |-
+        namespace ns {
+          export class A {
+            private static v: [check_type] = [base_value]
+            private static _field: [check_type] = A.v
+            static get field(): [check_type] {
+              return A._field
+            }
+            static set field(a: [check_type]) {
+              A._field = a
+            }
+          }
+        }
+      - |-
+        namespace ns {
+          export class Base {
+            protected static _v: [check_type] = [base_value]
+            static get v(): [check_type] {
+              return Base._v
+            }
+          }
+          export class A extends Base {
+            protected static _field: [check_type] = Base.v
+            static get field(): [check_type] {
+              return A._field
+            }
+            static set field(a: [check_type]) {
+              A._field = a
+            }
+          }
+        }
+      - |-
+        namespace ns {
+          export class A {
+            static field: [check_type]
+            static {
+              A.field = [base_value]
+            }
+          }
+        }
+      - |-
+        namespace ns {
+          export class A {
+            static field: [check_type] = [new_value]
+            static {
+              A.field = [base_value]
+            }
+          }
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(ns.A.field instanceof [check_type])
+        arktest.assertEQ(ns.A.field, [base_value])
+        ns.A.field = [new_value]
+        arktest.assertTrue(ns.A.field instanceof [check_type])
+        arktest.assertEQ(ns.A.field, [new_value])
+        ns.A.field = [base_value]
+        arktest.assertTrue(ns.A.field instanceof [check_type])
+        arktest.assertEQ(ns.A.field, [base_value])

@@ -1,0 +1,85 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of logical complement operator values
+bitwise_complement:
+  - {type:  byte, origin:     0, dest:     -1}
+  - {type:  byte, origin:     1, dest:     -2}
+  - {type:  byte, origin:   127, dest:   -128}
+  - {type:  byte, origin:   -86, dest:     85}
+  - {type:  byte, origin:    15, dest:    -16}
+  - {type:  byte, origin:    51, dest:    -52}
+
+  - {type: short, origin:     0, dest:     -1}
+  - {type: short, origin:     1, dest:     -2}
+  - {type: short, origin:   127, dest:   -128}
+  - {type: short, origin:   -86, dest:     85}
+  - {type: short, origin:    15, dest:    -16}
+  - {type: short, origin:    51, dest:    -52}
+  - {type: short, origin:   255, dest:   -256}
+  - {type: short, origin: 21845, dest: -21846}
+  - {type: short, origin: -3856, dest:   3855}
+  - {type: short, origin: 32767, dest: -32768}
+
+  - {type:   int, origin:     0, dest:     -1}
+  - {type:   int, origin:     1, dest:     -2}
+  - {type:   int, origin:   127, dest:   -128}
+  - {type:   int, origin:   -86, dest:     85}
+  - {type:   int, origin:    15, dest:    -16}
+  - {type:   int, origin:    51, dest:    -52}
+  - {type:   int, origin:   255, dest:   -256}
+  - {type:   int, origin: 21845, dest: -21846}
+  - {type:   int, origin: -3856, dest:   3855}
+  - {type:   int, origin: 2147483647, dest:   -2147483648}
+
+  - {type: long, origin:     0, dest:     -1}
+  - {type: long, origin:     1, dest:     -2}
+  - {type: long, origin:   127, dest:   -128}
+  - {type: long, origin:   -86, dest:     85}
+  - {type: long, origin:    15, dest:    -16}
+  - {type: long, origin:    51, dest:    -52}
+  - {type: long, origin:   255, dest:   -256}
+  - {type: long, origin: 21845, dest: -21846}
+  - {type: long, origin: -3856, dest:   3855}
+  - {type: long,  origin: 9223372036854775807, dest: -9223372036854775808}
+
+  - {type: float, origin: 0.0f,  dest:   -1.0f}
+  - {type: float, origin: 127.0f, dest:   -128.0f}
+  - {type: float, origin: 32767.0f, dest: -32768.0f}
+  - {type: float, origin: 32767.251f, dest: -32768.0f}
+  - {type: float, origin: 32767.851f, dest: -32768.0f}
+  - {type: float, origin: 2147483647.0f, dest: -2147483648.0f}
+  - {type: float, origin: 2147483648.0f, dest: -2147483648.0f}
+  - {type: float, origin: 2147483649.0f, dest: -2147483648.0f}
+
+
+  - {type: double, origin: 0.0,  dest: -1.0}
+  - {type: double, origin: 127.0, dest: -128.0}
+  - {type: double, origin: 32767.0, dest: -32768.0}
+  - {type: double, origin: 32767.251, dest: -32768.0}
+  - {type: double, origin: 32767.851, dest: -32768.0}
+  - {type: double, origin: 2147483647.0, dest:   -2147483648.0}
+  - {type: double, origin: 9223372036854775807.0, dest: -9223372036854775808.0}
+
+
+  - {type: bigint, origin:     0n, dest:     -1n}
+  - {type: bigint, origin:     1n, dest:     -2n}
+  - {type: bigint, origin:   127n, dest:   -128n}
+  - {type: bigint, origin:   -86n, dest:     85n}
+  - {type: bigint, origin:    15n, dest:    -16n}
+  - {type: bigint, origin:    51n, dest:    -52n}
+  - {type: bigint, origin:   255n, dest:   -256n}
+  - {type: bigint, origin: 21845n, dest: -21846n}
+  - {type: bigint, origin: -3856n, dest:   3855n}
+  - {type: bigint,  origin: 9223372036854775807n, dest: -9223372036854775808n}
+  - {type: bigint,  origin: 92233720368547745654568564565807n, dest: -92233720368547745654568564565808n}

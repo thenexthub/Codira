@@ -1,0 +1,428 @@
+/**
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License"
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "plugins/ets/tests/ani/ani_gtest/verify_ani_gtest.h"
+
+namespace ark::ets::ani::verify::testing {
+
+class ObjectSetField{{ Type }}Test : public VerifyAniTest {
+public:
+    static void GetClassAndObject(ani_env *env, ani_class *cls, const char *className, ani_object *object)
+    {
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-vararg)
+        ASSERT_EQ(env->FindClass(className, cls), ANI_OK);
+        ASSERT_NE(*cls, nullptr);
+
+        ani_method ctor {};
+        ASSERT_EQ(env->Class_FindMethod(*cls, "<ctor>", ":", &ctor), ANI_OK);
+
+        ASSERT_EQ(env->Object_New(*cls, ctor, object), ANI_OK);
+        ASSERT_NE(*object, nullptr);
+        // NOLINTEND(cppcoreguidelines-pro-type-vararg)
+    }
+
+    void SetUp() override
+    {
+        VerifyAniTest::SetUp();
+    }
+
+protected:
+    ani_class class_ {};    // NOLINT(misc-non-private-member-variables-in-classes)
+    ani_object object_ {};  // NOLINT(misc-non-private-member-variables-in-classes)
+};
+
+class A {
+public:
+    static ani_field g_field;
+
+    static void NativeFoo(ani_env *env, ani_object)
+    {
+        ani_class cls {};
+        ASSERT_EQ(env->FindClass("ani_verify_test_object_set_field_{{ type }}.Parent", &cls), ANI_OK);
+
+        ASSERT_EQ(env->Class_FindField(cls, "{{ type }}Field", &g_field), ANI_OK);
+    }
+
+    static void NativeBaz(ani_env *env, ani_object)
+    {
+        ani_class cls {};
+        ani_object object {};
+        ObjectSetField{{ Type }}Test::GetClassAndObject(env, &cls, "ani_verify_test_object_set_field_{{ type }}.Parent", &object);
+
+        ani_{{ type }} value = ANI_TRUE;
+        ASSERT_EQ(env->c_api->Object_SetField_{{ Type }}(env, object, g_field, value), ANI_OK);
+    }
+
+    static void NativeBar(ani_env *env, ani_object, ani_ref o, ani_long m)
+    {
+        ani_object object = static_cast<ani_object>(o);
+        ani_field field = reinterpret_cast<ani_field>(m);
+
+        ani_{{ type }} value = ANI_TRUE;
+        ASSERT_EQ(env->c_api->Object_SetField_{{ Type }}(env, object, field, value), ANI_OK);
+    }
+};
+
+ani_field A::g_field = nullptr;
+
+TEST_F(ObjectSetField{{ Type }}Test, wrong_env)
+{
+    GetClassAndObject(env_, &class_, "ani_verify_test_object_set_field_{{ type }}.Parent", &object_);
+    ani_field field {};
+    ASSERT_EQ(env_->Class_FindField(class_, "{{ type }}Field", &field), ANI_OK);
+
+    ani_{{ type }} value = ANI_TRUE;
+    ASSERT_EQ(env_->c_api->Object_SetField_{{ Type }}(nullptr, object_, field, value), ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *", "called from incorrect the native scope"},
+        {"object", "ani_object"},
+        {"field", "ani_field"},
+        {"value", "ani_{{ type }}"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Object_SetField_{{ Type }}", testLines);
+}
+
+TEST_F(ObjectSetField{{ Type }}Test, wrong_object_0)
+{
+    GetClassAndObject(env_, &class_, "ani_verify_test_object_set_field_{{ type }}.Parent", &object_);
+    ani_field field {};
+    ASSERT_EQ(env_->Class_FindField(class_, "{{ type }}Field", &field), ANI_OK);
+
+    ani_{{ type }} value = ANI_TRUE;
+    ASSERT_EQ(env_->c_api->Object_SetField_{{ Type }}(env_, nullptr, field, value), ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"object", "ani_object", "wrong reference"},
+        {"field", "ani_field", "wrong object for field"},
+        {"value", "ani_{{ type }}"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Object_SetField_{{ Type }}", testLines);
+}
+
+TEST_F(ObjectSetField{{ Type }}Test, wrong_object_1)
+{
+    GetClassAndObject(env_, &class_, "ani_verify_test_object_set_field_{{ type }}.Parent", &object_);
+    ani_field field {};
+    ASSERT_EQ(env_->Class_FindField(class_, "{{ type }}Field", &field), ANI_OK);
+
+    ASSERT_EQ(env_->GetNull(reinterpret_cast<ani_ref *>(&object_)), ANI_OK);
+
+    ani_{{ type }} value = ANI_TRUE;
+    ASSERT_EQ(env_->c_api->Object_SetField_{{ Type }}(env_, object_, field, value), ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"object", "ani_object", "wrong reference type: null"},
+        {"field", "ani_field", "wrong object for field"},
+        {"value", "ani_{{ type }}"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Object_SetField_{{ Type }}", testLines);
+}
+
+TEST_F(ObjectSetField{{ Type }}Test, wrong_field_0)
+{
+    GetClassAndObject(env_, &class_, "ani_verify_test_object_set_field_{{ type }}.Parent", &object_);
+
+    ani_static_field field {};
+    ASSERT_EQ(env_->Class_FindStaticField(class_, "static{{ Type }}Field", &field), ANI_OK);
+
+    ani_{{ type }} value = ANI_TRUE;
+    ASSERT_EQ(env_->c_api->Object_SetField_{{ Type }}(env_, object_, reinterpret_cast<ani_field>(field), value),
+              ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"object", "ani_object"},
+        {"field", "ani_field", "wrong type: ani_static_field, expected: ani_field"},
+        {"value", "ani_{{ type }}"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Object_SetField_{{ Type }}", testLines);
+}
+
+TEST_F(ObjectSetField{{ Type }}Test, wrong_field_1)
+{
+    GetClassAndObject(env_, &class_, "ani_verify_test_object_set_field_{{ type }}.Parent", &object_);
+    const auto fakeField = reinterpret_cast<ani_field>(static_cast<long>(0x0ff0f0f));  // NOLINT(google-runtime-int)
+
+    ani_{{ type }} value = ANI_TRUE;
+    ASSERT_EQ(env_->c_api->Object_SetField_{{ Type }}(env_, object_, fakeField, value), ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"object", "ani_object"},
+        {"field", "ani_field", "wrong field"},
+        {"value", "ani_{{ type }}"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Object_SetField_{{ Type }}", testLines);
+}
+
+TEST_F(ObjectSetField{{ Type }}Test, wrong_field_2)
+{
+    GetClassAndObject(env_, &class_, "ani_verify_test_object_set_field_{{ type }}.Parent", &object_);
+
+    ani_{{ type }} value = ANI_TRUE;
+    ASSERT_EQ(env_->c_api->Object_SetField_{{ Type }}(env_, object_, nullptr, value), ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"object", "ani_object"},
+        {"field", "ani_field", "wrong field"},
+        {"value", "ani_{{ type }}"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Object_SetField_{{ Type }}", testLines);
+}
+
+TEST_F(ObjectSetField{{ Type }}Test, wrong_value)
+{
+    GetClassAndObject(env_, &class_, "ani_verify_test_object_set_field_{{ type }}.Parent", &object_);
+    ani_field field {};
+    ASSERT_EQ(env_->Class_FindField(class_, "{{ type }}Field", &field), ANI_OK);
+
+    const ani_{{ type }} value = 2;
+    ASSERT_EQ(env_->c_api->Object_SetField_{{ Type }}(env_, object_, field, value), ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"object", "ani_object"},
+        {"field", "ani_field"},
+        {"value", "ani_{{ type }}", "wrong value for ani_{{ type }}"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Object_SetField_{{ Type }}", testLines);
+}
+
+TEST_F(ObjectSetField{{ Type }}Test, wrong_all_args)
+{
+    const ani_{{ type }} value = 4;
+    ASSERT_EQ(env_->c_api->Object_SetField_{{ Type }}(nullptr, nullptr, nullptr, value), ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *", "called from incorrect the native scope"},
+        {"object", "ani_object", "wrong reference"},
+        {"field", "ani_field", "wrong field"},
+        {"value", "ani_{{ type }}", "wrong value for ani_{{ type }}"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Object_SetField_{{ Type }}", testLines);
+}
+
+TEST_F(ObjectSetField{{ Type }}Test, wrong_type)
+{
+    GetClassAndObject(env_, &class_, "ani_verify_test_object_set_field_{{ type }}.Parent", &object_);
+    ani_field field {};
+    ASSERT_EQ(env_->Class_FindField(class_, "intField", &field), ANI_OK);
+
+    ani_{{ type }} value = ANI_TRUE;
+    ASSERT_EQ(env_->c_api->Object_SetField_{{ Type }}(env_, object_, field, value), ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"object", "ani_object"},
+        {"field", "ani_field", "wrong return type"},
+        {"value", "ani_{{ type }}"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Object_SetField_{{ Type }}", testLines);
+}
+
+TEST_F(ObjectSetField{{ Type }}Test, wrong_object_type)
+{
+    GetClassAndObject(env_, &class_, "ani_verify_test_object_set_field_{{ type }}.Parent", &object_);
+    ani_field field {};
+    ASSERT_EQ(env_->Class_FindField(class_, "{{ type }}Field", &field), ANI_OK);
+    GetClassAndObject(env_, &class_, "ani_verify_test_object_set_field_{{ type }}.Animal", &object_);
+
+    ani_{{ type }} value = ANI_TRUE;
+    ASSERT_EQ(env_->c_api->Object_SetField_{{ Type }}(env_, object_, field, value), ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"object", "ani_object"},
+        {"field", "ani_field", "wrong object for field"},
+        {"value", "ani_{{ type }}"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Object_SetField_{{ Type }}", testLines);
+}
+
+TEST_F(ObjectSetField{{ Type }}Test, object_from_local_scope)
+{
+    const int nr3 = 3;
+    ASSERT_EQ(env_->CreateLocalScope(nr3), ANI_OK);
+    GetClassAndObject(env_, &class_, "ani_verify_test_object_set_field_{{ type }}.Child", &object_);
+    ASSERT_EQ(env_->DestroyLocalScope(), ANI_OK);
+
+    ani_field field {};
+    ASSERT_EQ(env_->Class_FindField(class_, "{{ type }}Field", &field), ANI_OK);
+
+    ani_{{ type }} value = ANI_TRUE;
+    ASSERT_EQ(env_->c_api->Object_SetField_{{ Type }}(env_, object_, field, value), ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"object", "ani_object", "wrong reference"},
+        {"field", "ani_field", "wrong object for field"},
+        {"value", "ani_{{ type }}"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Object_SetField_{{ Type }}", testLines);
+}
+
+TEST_F(ObjectSetField{{ Type }}Test, cross_thread_field_get_from_native_method)
+{
+    GetClassAndObject(env_, &class_, "ani_verify_test_object_set_field_{{ type }}.Parent", &object_);
+    std::array methods = {ani_native_function {"foo", ":", reinterpret_cast<void *>(A::NativeFoo)},
+                          ani_native_function {"baz", ":", reinterpret_cast<void *>(A::NativeBaz)}};
+    ASSERT_EQ(env_->Class_BindNativeMethods(class_, methods.data(), methods.size()), ANI_OK);
+
+    std::thread([this]() {
+        ani_env *env {};
+        ASSERT_EQ(vm_->AttachCurrentThread(nullptr, ANI_VERSION_1, &env), ANI_OK);
+
+        ani_class cls {};
+        ani_object object {};
+        GetClassAndObject(env, &cls, "ani_verify_test_object_set_field_{{ type }}.Parent", &object);
+
+        // In the native "foo" method, the "{{ type }}Field" field is found
+        ASSERT_EQ(env->Object_CallMethodByName_Void(object, "foo", ":"), ANI_OK);
+
+        ASSERT_EQ(vm_->DetachCurrentThread(), ANI_OK);
+    }).join();
+
+    // In the native "baz" method, the "{{ type }}Field" field is called
+    ASSERT_EQ(env_->Object_CallMethodByName_Void(object_, "baz", ":"), ANI_OK);
+}
+
+TEST_F(ObjectSetField{{ Type }}Test, object_from_escape_local_scope)
+{
+    const int nr3 = 3;
+    ASSERT_EQ(env_->CreateEscapeLocalScope(nr3), ANI_OK);
+    ani_object object {};
+    GetClassAndObject(env_, &class_, "ani_verify_test_object_set_field_{{ type }}.Child", &object);
+    ASSERT_EQ(env_->DestroyEscapeLocalScope(object, reinterpret_cast<ani_ref *>(&object_)), ANI_OK);
+    ani_field field {};
+    ASSERT_EQ(env_->Class_FindField(class_, "{{ type }}Field", &field), ANI_OK);
+
+    ani_{{ type }} value = ANI_TRUE;
+    ASSERT_EQ(env_->c_api->Object_SetField_{{ Type }}(env_, object_, field, value), ANI_OK);
+}
+
+TEST_F(ObjectSetField{{ Type }}Test, get_field_on_global_ref)
+{
+    GetClassAndObject(env_, &class_, "ani_verify_test_object_set_field_{{ type }}.Parent", &object_);
+    ani_field field {};
+    ASSERT_EQ(env_->Class_FindField(class_, "{{ type }}Field", &field), ANI_OK);
+
+    ani_object gobject {};
+    ASSERT_EQ(env_->GlobalReference_Create(object_, reinterpret_cast<ani_ref *>(&gobject)), ANI_OK);
+
+    ani_{{ type }} value = ANI_TRUE;
+    ASSERT_EQ(env_->c_api->Object_SetField_{{ Type }}(env_, gobject, field, value), ANI_OK);
+}
+
+TEST_F(ObjectSetField{{ Type }}Test, cross_thread_field_get)
+{
+    ani_field field;
+
+    std::thread([this, &field]() {
+        ani_env *env {};
+        ASSERT_EQ(vm_->AttachCurrentThread(nullptr, ANI_VERSION_1, &env), ANI_OK);
+
+        ani_class cls {};
+        ani_object object {};
+        GetClassAndObject(env, &cls, "ani_verify_test_object_set_field_{{ type }}.Parent", &object);
+        ASSERT_EQ(env->Class_FindField(cls, "{{ type }}Field", &field), ANI_OK);
+
+        ASSERT_EQ(vm_->DetachCurrentThread(), ANI_OK);
+    }).join();
+
+    GetClassAndObject(env_, &class_, "ani_verify_test_object_set_field_{{ type }}.Parent", &object_);
+
+    ani_{{ type }} value = ANI_TRUE;
+    ASSERT_EQ(env_->c_api->Object_SetField_{{ Type }}(env_, object_, field, value), ANI_OK);
+}
+
+// Issue 28700
+TEST_F(ObjectSetField{{ Type }}Test, DISABLED_field_get_from_native_method)
+{
+    GetClassAndObject(env_, &class_, "ani_verify_test_object_set_field_{{ type }}.Parent", &object_);
+
+    std::array methods = {ani_native_function {"bar", "C{std.core.Object}l:", reinterpret_cast<void *>(A::NativeBar)}};
+    ASSERT_EQ(env_->Class_BindNativeMethods(class_, methods.data(), methods.size()), ANI_OK);
+
+    ani_field field;
+    ASSERT_EQ(env_->Class_FindField(class_, "{{ type }}Field", &field), ANI_OK);
+
+    // In the native "bar" method, the "{{ type }}Field" field is called
+    ASSERT_EQ(env_->c_api->Object_CallMethodByName_Void(env_, object_, "bar", "C{std.core.Object}l:", object_, field),
+              ANI_OK);
+}
+
+TEST_F(ObjectSetField{{ Type }}Test, field_get_from_native_method_1)
+{
+    GetClassAndObject(env_, &class_, "ani_verify_test_object_set_field_{{ type }}.Parent", &object_);
+
+    std::array methods = {ani_native_function {"foo", ":", reinterpret_cast<void *>(A::NativeFoo)},
+                          ani_native_function {"baz", ":", reinterpret_cast<void *>(A::NativeBaz)}};
+    ASSERT_EQ(env_->Class_BindNativeMethods(class_, methods.data(), methods.size()), ANI_OK);
+
+    // In the native "foo" method, the "{{ type }}Field" field is found
+    ASSERT_EQ(env_->Object_CallMethodByName_Void(object_, "foo", ":"), ANI_OK);
+    // In the native "baz" method, the "{{ type }}Field" field is called
+    ASSERT_EQ(env_->Object_CallMethodByName_Void(object_, "baz", ":"), ANI_OK);
+}
+
+TEST_F(ObjectSetField{{ Type }}Test, field_get_in_local_scope)
+{
+    GetClassAndObject(env_, &class_, "ani_verify_test_object_set_field_{{ type }}.Parent", &object_);
+    ani_field field {};
+    ASSERT_EQ(env_->Class_FindField(class_, "{{ type }}Field", &field), ANI_OK);
+
+    const int nr3 = 3;
+    ASSERT_EQ(env_->CreateLocalScope(nr3), ANI_OK);
+    ani_{{ type }} value = ANI_TRUE;
+    ASSERT_EQ(env_->c_api->Object_SetField_{{ Type }}(env_, object_, field, value), ANI_OK);
+    ASSERT_EQ(env_->DestroyLocalScope(), ANI_OK);
+}
+
+TEST_F(ObjectSetField{{ Type }}Test, get_parent_field)
+{
+    GetClassAndObject(env_, &class_, "ani_verify_test_object_set_field_{{ type }}.Child", &object_);
+    ani_field field {};
+    ASSERT_EQ(env_->Class_FindField(class_, "{{ type }}Field", &field), ANI_OK);
+
+    ani_{{ type }} value = ANI_TRUE;
+    ASSERT_EQ(env_->c_api->Object_SetField_{{ Type }}(env_, object_, field, value), ANI_OK);
+}
+
+TEST_F(ObjectSetField{{ Type }}Test, success)
+{
+    GetClassAndObject(env_, &class_, "ani_verify_test_object_set_field_{{ type }}.Parent", &object_);
+    ani_field field {};
+    ASSERT_EQ(env_->Class_FindField(class_, "{{ type }}Field", &field), ANI_OK);
+
+    ani_{{ type }} value = ANI_TRUE;
+    ASSERT_EQ(env_->c_api->Object_SetField_{{ Type }}(env_, object_, field, value), ANI_OK);
+}
+
+}  // namespace ark::ets::ani::verify::testing

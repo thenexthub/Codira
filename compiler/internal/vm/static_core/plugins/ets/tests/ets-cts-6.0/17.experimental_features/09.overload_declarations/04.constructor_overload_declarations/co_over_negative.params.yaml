@@ -1,0 +1,192 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    - decl: |-
+          // override-equivalent signatures
+          class A {
+              constructor(p: number) {}
+              constructor(v: double) {}
+          }
+
+    - decl: |-
+          class A {
+              constructor(p: Number) {}
+              constructor(v: Double) {}
+          }
+
+    - decl: |-
+          class A {
+              constructor(p: String) {}
+              constructor(v: string) {}
+          }
+
+    - decl: |-
+          type B = A
+          // override-equivalent signatures
+          class A {
+              constructor(p: A) {}
+              constructor(v: B) {}
+          }
+
+    - decl: |-
+          type B = A
+          // override-equivalent signatures
+          class A {
+              constructor(p: A|string) {}
+              constructor(v: string|B) {}
+          }
+
+    - decl: |-
+          // Parameter names and return types do not influence overload-equivalence
+          type FF=(p: number) => string
+          class A {
+              constructor(i: (i: number) => void) { return 1 }
+              constructor(p: FF) { return 2 }
+          }
+
+    - decl: |-
+          // primitives and boxed with sub/superclass
+          class B {
+              t: string = ""
+              getType(): string {
+                  return this.t
+              }
+              constructor(p: Object) { this.t = "should never be called" }
+              constructor(p: byte) { this.t = "byte" }
+              constructor(p: Byte) { this.t = "Byte" }
+              constructor(p: short) { this.t = "short" }
+              constructor(p: Short) { this.t = "Short" }
+              constructor(p: int) { this.t = "int" }
+              constructor(p: Int) { this.t = "Int" }
+              constructor(p: long) { this.t = "long" }
+              constructor(p: Long) { this.t = "Long" }
+              constructor(p: char) { this.t = "char" }
+              constructor(p: Char) { this.t = "Char" }
+              constructor(p: boolean) { this.t = "boolean" }
+              constructor(p: Boolean) { this.t = "Boolean" }
+              constructor(p: float) { this.t = "float" }
+              constructor(p: Float) { this.t = "Float" }
+              constructor(p: double) { this.t = "double" }
+              constructor(p: Double) { this.t = "Double" }
+          }
+          class A extends B {
+              constructor(p: Object) { super(p) }
+              constructor(p: byte) { super(p) }
+              constructor(p: Byte) { super(p) }
+              constructor(p: short) { super(p) }
+              constructor(p: Short) { super(p) }
+              constructor(p: int) { super(p) }
+              constructor(p: Int) { super(p) }
+              constructor(p: long) { super(p) }
+              constructor(p: Long) { super(p) }
+              constructor(p: char) { super(p) }
+              constructor(p: Char) { super(p) }
+              constructor(p: boolean) { super(p) }
+              constructor(p: Boolean) { super(p) }
+              constructor(p: float) { super(p) }
+              constructor(p: Float) { super(p) }
+              constructor(p: double) { super(p) }
+              constructor(p: Double) { super(p) }
+          }
+
+    - decl: |-
+          // tuples
+          type T = [number, string]
+          type R = [number, boolean]
+          class B {
+              t: string = ""
+              getType(): string {
+                  return this.t
+              }
+              constructor() { this.t = "none" }
+              protected constructor(p: Object) { this.t = "should never be called" }
+              protected constructor(p: T) { this.t = "T" }
+              protected constructor(p: R) { this.t = "R" }
+              protected constructor(p: number[]) { this.t = "number[]" }
+              protected constructor(p: string[]) { this.t = "string[]" }
+              protected constructor(p: Boolean) { this.t = "Boolean" }
+          }
+          class A extends B {
+              constructor() {}
+              constructor(p: Object) { super(p) }
+              constructor(p: T) { super(p) }
+              constructor(p: R) { super(p) }
+              constructor(p: number[]) { super(p) }
+              constructor(p: string[]) { super(p) }
+              constructor(p: Boolean) { super(p) }
+          }
+
+    - decl: |-
+          // function types
+          type FF=(p: number) => string
+          type EE=(p: string) => number
+          class A {
+              t: string = ""
+              getType(): string {
+                  return this.t
+              }
+              constructor() {}
+              constructor(p: Object) { this.t = "should never be called" }
+              constructor(p: () => void) { this.t = "void-void" }
+              constructor(p: FF) { this.t = "FF" }
+              constructor(p: EE) { this.t = "EE" }
+          }
+          function fff(v: number): string {
+              return " " + v + " "
+          }
+          function eee(v: string): number {
+              return v == "" ? 0.0 : 1.0
+          }
+          function foo() {
+              arktest.assertTrue(false)
+          }
+
+    - decl: |-
+          // nullish types
+          type S=string
+          type SN=string|null
+          type SU=string|undefined
+          type SNU=string|null|undefined
+          class A {
+              t: string = ""
+              getType(): string {
+                  return this.t
+              }
+              constructor() {}
+              constructor(p: Object|null|undefined) { this.t = "should never be called" }
+              constructor(p: SN) { this.t = "SN" }
+              constructor(p: SU) { this.t = "SU" }
+              constructor(p: SNU) { this.t = "SNU" }
+              constructor(p: S) { this.t = "S" }
+          }
+
+    - decl: |-
+          // constructor overloaded with optional parameters
+          class A {
+              fld: int
+              constructor(a: Object) { this.fld = 1}
+              constructor(p: int, a: Object) { this.fld = 2 }
+              constructor(p: int, a: Object, b?: Object) { this.fld = 3 }
+              constructor(p: int, a?: Object, b?: Object, c: Object = new Error()) { this.fld = 4 }
+          }

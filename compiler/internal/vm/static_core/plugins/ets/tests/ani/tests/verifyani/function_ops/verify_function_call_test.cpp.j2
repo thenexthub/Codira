@@ -1,0 +1,869 @@
+/**
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License"
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "plugins/ets/tests/ani/ani_gtest/verify_ani_gtest.h"
+
+namespace ark::ets::ani::verify::testing {
+
+class FunctionCall{{ Type }}Test : public VerifyAniTest {
+public:
+    void SetUp() override
+    {
+        VerifyAniTest::SetUp();
+
+        ASSERT_EQ(env_->FindModule("@functionModule.ani_verify_test_function_call_{{ type }}", &module_), ANI_OK);
+
+        std::string_view str("ani");
+        ASSERT_EQ(env_->String_NewUTF8(str.data(), str.size(), &r_), ANI_OK);
+    }
+
+protected:
+    ani_module module_ {};
+    const ani_boolean z_ = ANI_TRUE;  // NOLINT(misc-non-private-member-variables-in-classes)
+    const ani_char c_ = 'a';          // NOLINT(misc-non-private-member-variables-in-classes)
+    const ani_byte b_ = 0x24;         // NOLINT(misc-non-private-member-variables-in-classes)
+    const ani_short s_ = 0x2012;      // NOLINT(misc-non-private-member-variables-in-classes)
+    const ani_int i_ = 0xb0ba;        // NOLINT(misc-non-private-member-variables-in-classes)
+    const ani_long l_ = 0xb1bab0ba;   // NOLINT(misc-non-private-member-variables-in-classes)
+    const ani_float f_ = 0.2609;      // NOLINT(misc-non-private-member-variables-in-classes)
+    const ani_double d_ = 21.03;      // NOLINT(misc-non-private-member-variables-in-classes)
+    ani_string r_ {};                 // NOLINT(misc-non-private-member-variables-in-classes)
+};
+
+class FunctionCall{{ Type }}ATest : public FunctionCall{{ Type }}Test {
+public:
+    // CC-OFFNXT(G.CLS.13) false positive
+    void SetUp() override
+    {
+        FunctionCall{{ Type }}Test::SetUp();
+
+        const int nr0 = 0;
+        const int nr1 = 1;
+        const int nr2 = 2;
+        const int nr3 = 3;
+        const int nr4 = 4;
+        const int nr5 = 5;
+        const int nr6 = 6;
+        const int nr7 = 7;
+        const int nr8 = 8;
+
+        args_[nr0].z = z_;
+        args_[nr1].c = c_;
+        args_[nr2].b = b_;
+        args_[nr3].s = s_;
+        args_[nr4].i = i_;
+        args_[nr5].l = l_;
+        args_[nr6].f = f_;
+        args_[nr7].d = d_;
+        args_[nr8].r = r_;
+    }
+
+protected:
+    static constexpr size_t NR_ARGS = 9;
+    std::array<ani_value, NR_ARGS> args_ {};  // NOLINT(misc-non-private-member-variables-in-classes)
+};
+
+class A {
+public:
+    static ani_function g_function;
+
+    static void NativeFoo(ani_env *env, ani_object)
+    {
+        ani_module module {};
+        ASSERT_EQ(env->FindModule("@functionModule.ani_verify_test_function_call_{{ type }}", &module), ANI_OK);
+
+        ASSERT_EQ(env->Module_FindFunction(module, "voidParamFunction", ":{{ ret }}", &g_function), ANI_OK);
+    }
+
+    template <typename TestType>
+    static void NativeBaz(ani_env *env, ani_object)
+    {
+        ani_{{ type }} result;
+        if constexpr (std::is_same_v<TestType, FunctionCall{{ Type }}ATest>) {
+            ani_value args[2U] = {};
+            ASSERT_EQ(env->c_api->Function_Call_{{ Type }}_A(env, g_function, &result, args), ANI_OK);
+        } else {
+            ASSERT_EQ(env->c_api->Function_Call_{{ Type }}(env, g_function, &result), ANI_OK);
+        }
+    }
+
+    template <typename TestType>
+    static void NativeBar(ani_env *env, ani_object, ani_long m)
+    {
+        ani_function function = reinterpret_cast<ani_function>(m);
+
+        ani_{{ type }} result;
+        if constexpr (std::is_same_v<TestType, FunctionCall{{ Type }}ATest>) {
+            ani_value args[2U] = {};
+            ASSERT_EQ(env->c_api->Function_Call_{{ Type }}_A(env, function, &result, args), ANI_OK);
+        } else {
+            ASSERT_EQ(env->c_api->Function_Call_{{ Type }}(env, function, &result), ANI_OK);
+        }
+    }
+};
+
+ani_function A::g_function = nullptr;
+
+TEST_F(FunctionCall{{ Type }}Test, wrong_env)
+{
+    ani_function function {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "{{ type }}Function", "zcbsilfdC{std.core.String}:{{ ret }}", &function), ANI_OK);
+
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}(nullptr, function, &result, z_, c_, b_, s_, i_, l_, f_, d_, r_),
+              ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *", "called from incorrect the native scope"},
+        {"function", "ani_function"},
+        {"result", "ani_{{ type }} *"},
+        {"...", "       "},
+        {"[0]", "ani_boolean"},
+        {"[1]", "ani_char"},
+        {"[2]", "ani_byte"},
+        {"[3]", "ani_short"},
+        {"[4]", "ani_int"},
+        {"[5]", "ani_long"},
+        {"[6]", "ani_float"},
+        {"[7]", "ani_double"},
+        {"[8]", "ani_ref"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Function_Call_{{ Type }}", testLines);
+}
+
+TEST_F(FunctionCall{{ Type }}Test, wrong_function_0)
+{
+    ani_class cls {};
+    ASSERT_EQ(env_->FindClass("@functionModule.ani_verify_test_function_call_{{ type }}.Parent", &cls), ANI_OK);
+    ani_method method {};
+    ASSERT_EQ(env_->Class_FindMethod(cls, "{{ type }}Method", "zcbsilfdC{std.core.String}:{{ ret }}", &method), ANI_OK);
+
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}(env_, reinterpret_cast<ani_function>(method), &result, z_, c_, b_, s_,
+                                                 i_, l_, f_, d_, r_),
+              ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"function", "ani_function", "wrong type: ani_method, expected: ani_function"},
+        {"result", "ani_{{ type }} *"},
+        {"...", "       "},
+        {"[0]", "ani_boolean"},
+        {"[1]", "ani_char"},
+        {"[2]", "ani_byte"},
+        {"[3]", "ani_short"},
+        {"[4]", "ani_int"},
+        {"[5]", "ani_long"},
+        {"[6]", "ani_float"},
+        {"[7]", "ani_double"},
+        {"[8]", "ani_ref"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Function_Call_{{ Type }}", testLines);
+}
+
+TEST_F(FunctionCall{{ Type }}Test, wrong_function_1)
+{
+    const auto fakeFunction =
+        reinterpret_cast<ani_function>(static_cast<long>(0x0ff0f0f));  // NOLINT(google-runtime-int)
+
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}(env_, fakeFunction, &result, z_, c_, b_, s_, i_, l_, f_, d_, r_),
+              ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"function", "ani_function", "wrong function"},
+        {"result", "ani_{{ type }} *"},
+        {"...", "       ", "wrong method"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Function_Call_{{ Type }}", testLines);
+}
+
+TEST_F(FunctionCall{{ Type }}Test, wrong_function_2)
+{
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}(env_, nullptr, &result, z_, c_, b_, s_, i_, l_, f_, d_, r_),
+              ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"function", "ani_function", "wrong function"},
+        {"result", "ani_{{ type }} *"},
+        {"...", "       ", "wrong method"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Function_Call_{{ Type }}", testLines);
+}
+
+TEST_F(FunctionCall{{ Type }}Test, wrong_result)
+{
+    ani_function function {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "{{ type }}Function", "zcbsilfdC{std.core.String}:{{ ret }}", &function), ANI_OK);
+
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}(env_, function, nullptr, z_, c_, b_, s_, i_, l_, f_, d_, r_),
+              ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"function", "ani_function"},
+        {"result", "ani_{{ type }} *", "wrong pointer for storing 'ani_{{ type }}'"},
+        {"...", "       "},
+        {"[0]", "ani_boolean"},
+        {"[1]", "ani_char"},
+        {"[2]", "ani_byte"},
+        {"[3]", "ani_short"},
+        {"[4]", "ani_int"},
+        {"[5]", "ani_long"},
+        {"[6]", "ani_float"},
+        {"[7]", "ani_double"},
+        {"[8]", "ani_ref"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Function_Call_{{ Type }}", testLines);
+}
+
+TEST_F(FunctionCall{{ Type }}Test, wrong_boolean_arg)
+{
+    ani_function function {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "{{ type }}Function", "zcbsilfdC{std.core.String}:{{ ret }}", &function), ANI_OK);
+
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}(env_, function, &result, 0xb1ba, c_, b_, s_, i_, l_, f_, d_, r_),
+              ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"function", "ani_function"},
+        {"result", "ani_{{ type }} *"},
+        {"...", "       ", "wrong method arguments"},
+        {"[0]", "ani_boolean", "wrong value"},
+        {"[1]", "ani_char"},
+        {"[2]", "ani_byte"},
+        {"[3]", "ani_short"},
+        {"[4]", "ani_int"},
+        {"[5]", "ani_long"},
+        {"[6]", "ani_float"},
+        {"[7]", "ani_double"},
+        {"[8]", "ani_ref"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Function_Call_{{ Type }}", testLines);
+}
+
+TEST_F(FunctionCall{{ Type }}Test, wrong_char_arg)
+{
+    ani_function function {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "{{ type }}Function", "zcbsilfdC{std.core.String}:{{ ret }}", &function), ANI_OK);
+
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}(env_, function, &result, z_, 0xb1bab0ba, b_, s_, i_, l_, f_, d_, r_),
+              ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"function", "ani_function"},
+        {"result", "ani_{{ type }} *"},
+        {"...", "       ", "wrong method arguments"},
+        {"[0]", "ani_boolean"},
+        {"[1]", "ani_char", "wrong value"},
+        {"[2]", "ani_byte"},
+        {"[3]", "ani_short"},
+        {"[4]", "ani_int"},
+        {"[5]", "ani_long"},
+        {"[6]", "ani_float"},
+        {"[7]", "ani_double"},
+        {"[8]", "ani_ref"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Function_Call_{{ Type }}", testLines);
+}
+
+TEST_F(FunctionCall{{ Type }}Test, wrong_byte_arg)
+{
+    ani_function function {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "{{ type }}Function", "zcbsilfdC{std.core.String}:{{ ret }}", &function), ANI_OK);
+
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}(env_, function, &result, z_, c_, 0xb1bab0ba, s_, i_, l_, f_, d_, r_),
+              ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"function", "ani_function"},
+        {"result", "ani_{{ type }} *"},
+        {"...", "       ", "wrong method arguments"},
+        {"[0]", "ani_boolean"},
+        {"[1]", "ani_char"},
+        {"[2]", "ani_byte", "wrong value"},
+        {"[3]", "ani_short"},
+        {"[4]", "ani_int"},
+        {"[5]", "ani_long"},
+        {"[6]", "ani_float"},
+        {"[7]", "ani_double"},
+        {"[8]", "ani_ref"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Function_Call_{{ Type }}", testLines);
+}
+
+TEST_F(FunctionCall{{ Type }}Test, wrong_short_arg)
+{
+    ani_function function {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "{{ type }}Function", "zcbsilfdC{std.core.String}:{{ ret }}", &function), ANI_OK);
+
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}(env_, function, &result, z_, c_, b_, 0xb1bab0ba, i_, l_, f_, d_, r_),
+              ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"function", "ani_function"},
+        {"result", "ani_{{ type }} *"},
+        {"...", "       ", "wrong method arguments"},
+        {"[0]", "ani_boolean"},
+        {"[1]", "ani_char"},
+        {"[2]", "ani_byte"},
+        {"[3]", "ani_short", "wrong value"},
+        {"[4]", "ani_int"},
+        {"[5]", "ani_long"},
+        {"[6]", "ani_float"},
+        {"[7]", "ani_double"},
+        {"[8]", "ani_ref"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Function_Call_{{ Type }}", testLines);
+}
+
+TEST_F(FunctionCall{{ Type }}Test, wrong_ref_arg)
+{
+    ani_function function {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "{{ type }}Function", "zcbsilfdC{std.core.String}:{{ ret }}", &function), ANI_OK);
+
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}(env_, function, &result, z_, c_, b_, s_, i_, l_, f_, d_, nullptr),
+              ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"function", "ani_function"},
+        {"result", "ani_{{ type }} *"},
+        {"...", "       ", "wrong method arguments"},
+        {"[0]", "ani_boolean"},
+        {"[1]", "ani_char"},
+        {"[2]", "ani_byte"},
+        {"[3]", "ani_short"},
+        {"[4]", "ani_int"},
+        {"[5]", "ani_long"},
+        {"[6]", "ani_float"},
+        {"[7]", "ani_double"},
+        {"[8]", "ani_ref", "wrong value"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Function_Call_{{ Type }}", testLines);
+}
+
+TEST_F(FunctionCall{{ Type }}Test, wrong_all_args)
+{
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}(nullptr, nullptr, nullptr, nullptr), ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *", "called from incorrect the native scope"},
+        {"function", "ani_function", "wrong function"},
+        {"result", "ani_{{ type }} *", "wrong pointer for storing 'ani_{{ type }}'"},
+        {"...", "       ", "wrong method"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Function_Call_{{ Type }}", testLines);
+}
+
+TEST_F(FunctionCall{{ Type }}Test, wrong_return_type)
+{
+    ani_function function {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "{{ wrong_ret }}Function", "zcbsilfdC{std.core.String}:{{ wrong_ret_short }}", &function), ANI_OK);
+
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}(env_, function, &result, z_, c_, b_, s_, i_, l_, f_, d_, r_),
+              ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"function", "ani_function", "wrong return type"},
+        {"result", "ani_{{ type }} *"},
+        {"...", "       "},
+        {"[0]", "ani_boolean"},
+        {"[1]", "ani_char"},
+        {"[2]", "ani_byte"},
+        {"[3]", "ani_short"},
+        {"[4]", "ani_int"},
+        {"[5]", "ani_long"},
+        {"[6]", "ani_float"},
+        {"[7]", "ani_double"},
+        {"[8]", "ani_ref"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Function_Call_{{ Type }}", testLines);
+}
+
+TEST_F(FunctionCall{{ Type }}Test, cross_thread_function_call_from_native_function)
+{
+    std::array functions = {
+        ani_native_function {"foo", ":", reinterpret_cast<void *>(A::NativeFoo)},
+        ani_native_function {"baz", ":", reinterpret_cast<void *>(A::NativeBaz<FunctionCall{{ Type }}Test>)}};
+    ASSERT_EQ(env_->Module_BindNativeFunctions(module_, functions.data(), functions.size()), ANI_OK);
+
+    std::thread([this]() {
+        ani_env *env {};
+        ASSERT_EQ(vm_->AttachCurrentThread(nullptr, ANI_VERSION_1, &env), ANI_OK);
+
+        ani_module module {};
+        ASSERT_EQ(env->FindModule("@functionModule.ani_verify_test_function_call_{{ type }}", &module), ANI_OK);
+        ani_function function {};
+        ASSERT_EQ(env->Module_FindFunction(module, "foo", ":", &function), ANI_OK);
+
+        // In the native "foo" function, the "voidParamFunction" function is found
+        ASSERT_EQ(env->Function_Call_Void(function), ANI_OK);
+
+        ASSERT_EQ(vm_->DetachCurrentThread(), ANI_OK);
+    }).join();
+
+    ani_function function {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "baz", ":", &function), ANI_OK);
+    // In the native "baz" function, the "voidParamFunction" function is called
+    ASSERT_EQ(env_->Function_Call_Void(function), ANI_OK);
+}
+
+TEST_F(FunctionCall{{ Type }}Test, cross_thread_function_call)
+{
+    ani_function function {};
+
+    std::thread([this, &function]() {
+        ani_env *env {};
+        ASSERT_EQ(vm_->AttachCurrentThread(nullptr, ANI_VERSION_1, &env), ANI_OK);
+
+        ani_module module {};
+        ASSERT_EQ(env->FindModule("@functionModule.ani_verify_test_function_call_{{ type }}", &module), ANI_OK);
+        ASSERT_EQ(env->Module_FindFunction(module, "{{ type }}Function", "zcbsilfdC{std.core.String}:{{ ret }}", &function),
+                  ANI_OK);
+
+        ASSERT_EQ(vm_->DetachCurrentThread(), ANI_OK);
+    }).join();
+
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}(env_, function, &result, z_, c_, b_, s_, i_, l_, f_, d_, r_), ANI_OK);
+}
+
+// Issue 28700
+TEST_F(FunctionCall{{ Type }}Test, DISABLED_function_call_from_native_function_0)
+{
+    std::array functions = {ani_native_function {
+        "bar", "C{std.core.Object}l:", reinterpret_cast<void *>(A::NativeBar<FunctionCall{{ Type }}Test>)}};
+    ASSERT_EQ(env_->Module_BindNativeFunctions(module_, functions.data(), functions.size()), ANI_OK);
+
+    ani_function function {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "staticVoidParamFunction", ":{{ ret }}", &function), ANI_OK);
+
+    ani_function barFunction {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "staticVoidParamFunction", "l:", &function), ANI_OK);
+
+    // In the native "bar" function, the "voidParamFunction" function is called
+    ASSERT_EQ(env_->Function_Call_Void(barFunction, function), ANI_OK);
+}
+
+TEST_F(FunctionCall{{ Type }}Test, function_call_from_native_function_1)
+{
+    std::array functions = {
+        ani_native_function {"foo", ":", reinterpret_cast<void *>(A::NativeFoo)},
+        ani_native_function {"baz", ":", reinterpret_cast<void *>(A::NativeBaz<FunctionCall{{ Type }}Test>)}};
+    ASSERT_EQ(env_->Module_BindNativeFunctions(module_, functions.data(), functions.size()), ANI_OK);
+
+    ani_function fooFunction {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "foo", ":", &fooFunction), ANI_OK);
+    // In the native "foo" function, the "voidParamFunction" function is found
+    ASSERT_EQ(env_->Function_Call_Void(fooFunction), ANI_OK);
+
+    ani_function bazFunction {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "baz", ":", &bazFunction), ANI_OK);
+    // In the native "baz" function, the "voidParamFunction" function is called
+    ASSERT_EQ(env_->Function_Call_Void(bazFunction), ANI_OK);
+}
+
+TEST_F(FunctionCall{{ Type }}Test, function_call_in_local_scope)
+{
+    ani_function function {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "{{ type }}Function", "zcbsilfdC{std.core.String}:{{ ret }}", &function), ANI_OK);
+
+    const int nr3 = 3;
+    ASSERT_EQ(env_->CreateLocalScope(nr3), ANI_OK);
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}(env_, function, &result, z_, c_, b_, s_, i_, l_, f_, d_, r_), ANI_OK);
+    ASSERT_EQ(env_->DestroyLocalScope(), ANI_OK);
+}
+
+TEST_F(FunctionCall{{ Type }}Test, success)
+{
+    ani_function function {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "{{ type }}Function", "zcbsilfdC{std.core.String}:{{ ret }}", &function), ANI_OK);
+
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}(env_, function, &result, z_, c_, b_, s_, i_, l_, f_, d_, r_), ANI_OK);
+}
+
+TEST_F(FunctionCall{{ Type }}ATest, wrong_env)
+{
+    ani_function function {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "{{ type }}Function", "zcbsilfdC{std.core.String}:{{ ret }}", &function), ANI_OK);
+
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}_A(nullptr, function, &result, args_.data()), ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *", "called from incorrect the native scope"},
+        {"function", "ani_function"},
+        {"result", "ani_{{ type }} *"},
+        {"args", "ani_value *"},
+        {"[0]", "ani_boolean"},
+        {"[1]", "ani_char"},
+        {"[2]", "ani_byte"},
+        {"[3]", "ani_short"},
+        {"[4]", "ani_int"},
+        {"[5]", "ani_long"},
+        {"[6]", "ani_float"},
+        {"[7]", "ani_double"},
+        {"[8]", "ani_ref"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Function_Call_{{ Type }}_A", testLines);
+}
+
+TEST_F(FunctionCall{{ Type }}ATest, wrong_function_0)
+{
+    ani_class cls {};
+    ASSERT_EQ(env_->FindClass("@functionModule.ani_verify_test_function_call_{{ type }}.Parent", &cls), ANI_OK);
+    ani_method method {};
+    ASSERT_EQ(env_->Class_FindMethod(cls, "{{ type }}Method", "zcbsilfdC{std.core.String}:{{ ret }}", &method), ANI_OK);
+
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}_A(env_, reinterpret_cast<ani_function>(method), &result, args_.data()),
+              ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"function", "ani_function", "wrong type: ani_method, expected: ani_function"},
+        {"result", "ani_{{ type }} *"},
+        {"args", "ani_value *"},
+        {"[0]", "ani_boolean"},
+        {"[1]", "ani_char"},
+        {"[2]", "ani_byte"},
+        {"[3]", "ani_short"},
+        {"[4]", "ani_int"},
+        {"[5]", "ani_long"},
+        {"[6]", "ani_float"},
+        {"[7]", "ani_double"},
+        {"[8]", "ani_ref"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Function_Call_{{ Type }}_A", testLines);
+}
+
+TEST_F(FunctionCall{{ Type }}ATest, wrong_function_1)
+{
+    const auto fakeFunction =
+        reinterpret_cast<ani_function>(static_cast<long>(0x0ff0f0f));  // NOLINT(google-runtime-int)
+
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}_A(env_, fakeFunction, &result, args_.data()), ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"function", "ani_function", "wrong function"},
+        {"result", "ani_{{ type }} *"},
+        {"args", "ani_value *", "wrong method"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Function_Call_{{ Type }}_A", testLines);
+}
+
+TEST_F(FunctionCall{{ Type }}ATest, wrong_function_2)
+{
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}_A(env_, nullptr, &result, args_.data()), ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"function", "ani_function", "wrong function"},
+        {"result", "ani_{{ type }} *"},
+        {"args", "ani_value *", "wrong method"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Function_Call_{{ Type }}_A", testLines);
+}
+
+TEST_F(FunctionCall{{ Type }}ATest, wrong_result)
+{
+    ani_function function {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "{{ type }}Function", "zcbsilfdC{std.core.String}:{{ ret }}", &function), ANI_OK);
+
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}_A(env_, function, nullptr, args_.data()), ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"function", "ani_function"},
+        {"result", "ani_{{ type }} *", "wrong pointer for storing 'ani_{{ type }}'"},
+        {"args", "ani_value *"},
+        {"[0]", "ani_boolean"},
+        {"[1]", "ani_char"},
+        {"[2]", "ani_byte"},
+        {"[3]", "ani_short"},
+        {"[4]", "ani_int"},
+        {"[5]", "ani_long"},
+        {"[6]", "ani_float"},
+        {"[7]", "ani_double"},
+        {"[8]", "ani_ref"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Function_Call_{{ Type }}_A", testLines);
+}
+
+TEST_F(FunctionCall{{ Type }}ATest, wrong_args)
+{
+    ani_function function {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "{{ type }}Function", "zcbsilfdC{std.core.String}:{{ ret }}", &function), ANI_OK);
+
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}_A(env_, function, &result, nullptr), ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"function", "ani_function"},
+        {"result", "ani_{{ type }} *"},
+        {"args", "ani_value *", "wrong arguments value"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Function_Call_{{ Type }}_A", testLines);
+}
+
+TEST_F(FunctionCall{{ Type }}ATest, wrong_all_args)
+{
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}_A(nullptr, nullptr, nullptr, nullptr), ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *", "called from incorrect the native scope"},
+        {"function", "ani_function", "wrong function"},
+        {"result", "ani_{{ type }} *", "wrong pointer for storing 'ani_{{ type }}'"},
+        {"args", "ani_value *", "wrong arguments value"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Function_Call_{{ Type }}_A", testLines);
+}
+
+TEST_F(FunctionCall{{ Type }}ATest, wrong_boolean_arg)
+{
+    ani_function function {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "{{ type }}Function", "zcbsilfdC{std.core.String}:{{ ret }}", &function), ANI_OK);
+
+    const int fake{{ Type }} = 0xb1ba;
+    args_[0].i = fake{{ Type }};
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}_A(env_, function, &result, args_.data()), ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"function", "ani_function"},
+        {"result", "ani_{{ type }} *"},
+        {"args", "ani_value *", "wrong method arguments"},
+        {"[0]", "ani_boolean", "wrong value"},
+        {"[1]", "ani_char"},
+        {"[2]", "ani_byte"},
+        {"[3]", "ani_short"},
+        {"[4]", "ani_int"},
+        {"[5]", "ani_long"},
+        {"[6]", "ani_float"},
+        {"[7]", "ani_double"},
+        {"[8]", "ani_ref"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Function_Call_{{ Type }}_A", testLines);
+}
+
+TEST_F(FunctionCall{{ Type }}ATest, wrong_return_type)
+{
+    ani_function function {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "{{ wrong_ret }}Function", "zcbsilfdC{std.core.String}:{{ wrong_ret_short }}", &function), ANI_OK);
+
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}_A(env_, function, &result, args_.data()), ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"function", "ani_function", "wrong return type"},
+        {"result", "ani_{{ type }} *"},
+        {"args", "ani_value *"},
+        {"[0]", "ani_boolean"},
+        {"[1]", "ani_char"},
+        {"[2]", "ani_byte"},
+        {"[3]", "ani_short"},
+        {"[4]", "ani_int"},
+        {"[5]", "ani_long"},
+        {"[6]", "ani_float"},
+        {"[7]", "ani_double"},
+        {"[8]", "ani_ref"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Function_Call_{{ Type }}_A", testLines);
+}
+/*
+TEST_F(FunctionCall{{ Type }}ATest, class_from_local_scope)
+{
+    ani_class cls {};
+    const int nr3 = 3;
+    ASSERT_EQ(env_->CreateLocalScope(nr3), ANI_OK);
+    ASSERT_EQ(env_->FindClass("ani_verify_test_function_call_{{ type }}.Parent", &cls), ANI_OK);
+    ASSERT_EQ(env_->DestroyLocalScope(), ANI_OK);
+
+    ani_static_method method;
+    ASSERT_EQ(env_->Class_FindStaticMethod(cls, "static{{ Type }}Method", "zcbsilfdC{std.core.String}:{{ ret }}", &method),
+              ANI_OK);
+
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Class_CallStaticMethod_{{ Type }}_A(env_, cls, method, &result, args_.data()), ANI_ERROR);
+    // clang-format off
+    std::vector<TestLineInfo> testLines {
+        {"env", "ani_env *"},
+        {"class", "ani_class", "wrong reference"},
+        {"function", "ani_function", "wrong class"},
+        {"result", "ani_{{ type }} *"},
+        {"args", "ani_value *"},
+        {"[0]", "ani_boolean"},
+        {"[1]", "ani_char"},
+        {"[2]", "ani_byte"},
+        {"[3]", "ani_short"},
+        {"[4]", "ani_int"},
+        {"[5]", "ani_long"},
+        {"[6]", "ani_float"},
+        {"[7]", "ani_double"},
+        {"[8]", "ani_ref"},
+    };
+    // clang-format on
+    ASSERT_ERROR_ANI_ARGS_MSG("Function_Call_{{ Type }}_A", testLines);
+}
+*/
+TEST_F(FunctionCall{{ Type }}ATest, cross_thread_function_call_from_native_function)
+{
+    std::array functions = {
+        ani_native_function {"foo", ":", reinterpret_cast<void *>(A::NativeFoo)},
+        ani_native_function {"baz", ":", reinterpret_cast<void *>(A::NativeBaz<FunctionCall{{ Type }}ATest>)}};
+    ASSERT_EQ(env_->Module_BindNativeFunctions(module_, functions.data(), functions.size()), ANI_OK);
+
+    std::thread([this]() {
+        ani_env *env {};
+        ASSERT_EQ(vm_->AttachCurrentThread(nullptr, ANI_VERSION_1, &env), ANI_OK);
+
+        ani_module module {};
+        ASSERT_EQ(env->FindModule("@functionModule.ani_verify_test_function_call_{{ type }}", &module), ANI_OK);
+        ani_function function {};
+        ASSERT_EQ(env->Module_FindFunction(module, "foo", ":", &function), ANI_OK);
+
+        // In the native "foo" function, the "voidParamFunction" function is found
+        ASSERT_EQ(env->Function_Call_Void(function), ANI_OK);
+
+        ASSERT_EQ(vm_->DetachCurrentThread(), ANI_OK);
+    }).join();
+
+    ani_function function {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "baz", ":", &function), ANI_OK);
+    // In the native "baz" function, the "voidParamFunction" function is called
+    ASSERT_EQ(env_->Function_Call_Void(function), ANI_OK);
+}
+
+TEST_F(FunctionCall{{ Type }}ATest, cross_thread_function_call)
+{
+    ani_function function {};
+
+    std::thread([this, &function]() {
+        ani_env *env {};
+        ASSERT_EQ(vm_->AttachCurrentThread(nullptr, ANI_VERSION_1, &env), ANI_OK);
+
+        ani_module module {};
+        ASSERT_EQ(env->FindModule("@functionModule.ani_verify_test_function_call_{{ type }}", &module), ANI_OK);
+        ASSERT_EQ(env->Module_FindFunction(module, "{{ type }}Function", "zcbsilfdC{std.core.String}:{{ ret }}", &function),
+                  ANI_OK);
+
+        ASSERT_EQ(vm_->DetachCurrentThread(), ANI_OK);
+    }).join();
+
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}_A(env_, function, &result, args_.data()), ANI_OK);
+}
+
+// Issue 28700
+TEST_F(FunctionCall{{ Type }}ATest, DISABLED_function_call_from_native_function_0)
+{
+    std::array functions = {ani_native_function {
+        "bar", "C{std.core.Object}l:", reinterpret_cast<void *>(A::NativeBar<FunctionCall{{ Type }}ATest>)}};
+    ASSERT_EQ(env_->Module_BindNativeFunctions(module_, functions.data(), functions.size()), ANI_OK);
+
+    ani_function function {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "staticVoidParamFunction", ":{{ ret }}", &function), ANI_OK);
+
+    ani_function barFunction {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "staticVoidParamFunction", "l:", &function), ANI_OK);
+
+    // In the native "bar" function, the "voidParamFunction" function is called
+    ASSERT_EQ(env_->Function_Call_Void(barFunction, function), ANI_OK);
+}
+
+TEST_F(FunctionCall{{ Type }}ATest, function_call_from_native_function_1)
+{
+    std::array functions = {
+        ani_native_function {"foo", ":", reinterpret_cast<void *>(A::NativeFoo)},
+        ani_native_function {"baz", ":", reinterpret_cast<void *>(A::NativeBaz<FunctionCall{{ Type }}ATest>)}};
+    ASSERT_EQ(env_->Module_BindNativeFunctions(module_, functions.data(), functions.size()), ANI_OK);
+
+    ani_function fooFunction {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "foo", ":", &fooFunction), ANI_OK);
+    // In the native "foo" function, the "voidParamFunction" function is found
+    ASSERT_EQ(env_->Function_Call_Void(fooFunction), ANI_OK);
+
+    ani_function bazFunction {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "baz", ":", &bazFunction), ANI_OK);
+    // In the native "baz" function, the "voidParamFunction" function is called
+    ASSERT_EQ(env_->Function_Call_Void(bazFunction), ANI_OK);
+}
+
+TEST_F(FunctionCall{{ Type }}ATest, function_call_in_local_scope)
+{
+    ani_function function {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "{{ type }}Function", "zcbsilfdC{std.core.String}:{{ ret }}", &function), ANI_OK);
+
+    const int nr3 = 3;
+    ASSERT_EQ(env_->CreateLocalScope(nr3), ANI_OK);
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}_A(env_, function, &result, args_.data()), ANI_OK);
+    ASSERT_EQ(env_->DestroyLocalScope(), ANI_OK);
+}
+
+TEST_F(FunctionCall{{ Type }}ATest, success)
+{
+    ani_function function {};
+    ASSERT_EQ(env_->Module_FindFunction(module_, "{{ type }}Function", "zcbsilfdC{std.core.String}:{{ ret }}", &function), ANI_OK);
+
+    ani_{{ type }} result;
+    ASSERT_EQ(env_->c_api->Function_Call_{{ Type }}_A(env_, function, &result, args_.data()), ANI_OK);
+}
+
+}  // namespace ark::ets::ani::verify::testing

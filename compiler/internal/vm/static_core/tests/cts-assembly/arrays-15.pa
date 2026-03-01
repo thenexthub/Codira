@@ -1,0 +1,262 @@
+# Copyright (c) 2022-2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# The following comment until the empty line must be a valid YAML document
+# containing exact copies of ISA specification assertions relevant to this test.
+
+.function void fill_i8(i8[] a0, i8 a1) {
+	movi v0, 0x0
+loop:
+	lenarr a0
+	jle v0, exit
+	lda a1
+	starr.8 a0, v0
+	inci v0, 0x1
+	jmp loop
+exit:
+	return.void
+}
+
+.function void fill_i16(i16[] a0, i16 a1) {
+	movi v0, 0x0
+loop:
+	lenarr a0
+	jle v0, exit
+	lda a1
+	starr.16 a0, v0
+	inci v0, 0x1
+	jmp loop
+exit:
+	return.void
+}
+
+.function void fill_i32(i32[] a0, i32 a1) {
+	movi v0, 0x0
+loop:
+	lenarr a0
+	jle v0, exit
+	lda a1
+	starr a0, v0
+	inci v0, 0x1
+	jmp loop
+exit:
+	return.void
+}
+
+.function void fill_i64(i64[] a0, i64 a1) {
+	movi v0, 0x0
+loop:
+	lenarr a0
+	jle v0, exit
+	lda.64 a1
+	starr.64 a0, v0
+	inci v0, 0x1
+	jmp loop
+exit:
+	return.void
+}
+
+.function void fill_f32(f32[] a0, f32 a1) {
+	movi v0, 0x0
+loop:
+	lenarr a0
+	jle v0, exit
+	lda a1
+	fstarr.32 a0, v0
+	inci v0, 0x1
+	jmp loop
+exit:
+	return.void
+}
+
+.function void fill_f64(f64[] a0, f64 a1) {
+	movi v0, 0x0
+loop:
+	lenarr a0
+	jle v0, exit
+	lda.64 a1
+	fstarr.64 a0, v0
+	inci v0, 0x1
+	jmp loop
+exit:
+	return.void
+}
+
+.function i32 validate_i8(i8[] a0, i8 a1) {
+	movi v0, 0x0
+loop:
+	lenarr a0
+	jle v0, exit
+	lda v0
+	ldarr.8 a0
+    jne a1, exit_err
+	inci v0, 0x1
+	jmp loop
+exit:
+    ldai 0
+	return
+exit_err:
+    ldai 1
+    return
+}
+
+.function i32 validate_i16(i16[] a0, i16 a1) {
+	movi v0, 0x0
+loop:
+	lenarr a0
+	jle v0, exit
+	lda v0
+	ldarr.16 a0
+    jne a1, exit_err
+	inci v0, 0x1
+	jmp loop
+exit:
+    ldai 0
+	return
+exit_err:
+    ldai 1
+    return
+}
+
+.function i32 validate_i32(i32[] a0, i32 a1) {
+	movi v0, 0x0
+loop:
+	lenarr a0
+	jle v0, exit
+	lda v0
+	ldarr a0
+    jne a1, exit_err
+	inci v0, 0x1
+	jmp loop
+exit:
+    ldai 0
+	return
+exit_err:
+    ldai 1
+    return
+}
+
+.function i32 validate_i64(i64[] a0, i64 a1) {
+	movi v0, 0x0
+loop:
+	lenarr a0
+	jle v0, exit
+	lda v0
+	ldarr.64 a0
+    cmp.64 a1
+    jnez exit_err
+	inci v0, 0x1
+	jmp loop
+exit:
+    ldai 0
+	return
+exit_err:
+    ldai 1
+    return
+}
+
+.function i32 validate_f32(f32[] a0, f32 a1) {
+	movi v0, 0x0
+loop:
+	lenarr a0
+	jle v0, exit
+	lda v0
+	fldarr.32 a0
+    fcmpl a1
+    jnez exit_err
+	inci v0, 0x1
+	jmp loop
+exit:
+    ldai 0
+	return
+exit_err:
+    ldai 1
+    return
+}
+
+.function i32 validate_f64(f64[] a0, f64 a1) {
+	movi v0, 0x0
+loop:
+	lenarr a0
+	jle v0, exit
+	lda v0
+	fldarr.64 a0
+    fcmpl.64 a1
+    jnez exit_err
+	inci v0, 0x1
+	jmp loop
+exit:
+    ldai 0
+	return
+exit_err:
+    ldai 1
+    return
+}
+.function i32 main() {
+    movi v0, 1024
+    movi v1, 0
+    newarr v2, v0, i8[]
+    movi v3, 42
+    call.short fill_i8, v2, v3
+    call.short validate_i8, v2, v3
+    jne v1, error_1
+
+    newarr v2, v0, i16[]
+    call.short fill_i16, v2, v3
+    call.short validate_i16, v2, v3
+    jne v1, error_2
+
+    newarr v2, v0, i32[]
+    call.short fill_i32, v2, v3
+    call.short validate_i32, v2, v3
+    jne v1, error_3
+
+    newarr v2, v0, i64[]
+    movi.64 v3, 42
+    call.short fill_i64, v2, v3
+    call.short validate_i64, v2, v3
+    jne v1, error_4
+
+    newarr v2, v0, f32[]
+    fmovi v3, 42
+    call.short fill_f32, v2, v3
+    call.short validate_f32, v2, v3
+    jne v1, error_5
+
+    newarr v2, v0, f64[]
+    fmovi.64 v3, 42
+    call.short fill_f64, v2, v3
+    call.short validate_f64, v2, v3
+    jne v1, error_6
+
+    ldai 0
+    return
+error_1:
+    ldai 1
+    return
+error_2:
+    ldai 2
+    return
+error_3:
+    ldai 3
+    return
+error_4:
+    ldai 4
+    return
+error_5:
+    ldai 5
+    return
+error_6:
+    ldai 6
+    return
+}

@@ -1,0 +1,92 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          class A {
+              met(): string {
+                  return "S"
+              }
+          }
+      use: |-
+          arktest.assertEQ( A.met(), "S" )
+      expected_out: '"Semantic error ESE0208: ''met'' is an instance property of ''A''"'
+
+    - decl: |-
+            interface I {
+                met(): string {
+                    return "I"
+                }
+            }
+      use: |-
+          arktest.assertEQ( I.met(), "I" )
+      expected_out: '"Semantic error ESE0208: ''met'' is an instance property of ''I''"'
+
+    - decl: |-
+          class A {
+              met(): string {
+                  return "S"
+              }
+          }
+          type TA = A
+      use: |-
+          // class name alias
+          arktest.assertEQ( TA.met(), "S" )
+      expected_out: '"Semantic error ESE0208: ''met'' is an instance property of ''A''"'
+
+    - decl: |-
+          interface I {
+              met(): string {
+                  return "I"
+              }
+          }
+          type TI = I
+      use: |-
+          // interface name alias
+          arktest.assertEQ( TI.met(), "I" )
+      expected_out: '"Semantic error ESE0208: ''met'' is an instance property of ''I''"'
+
+    - decl: |-
+          class A {
+              static met(): string {
+                  return "SA"
+              }
+          }
+          class B {
+              static met(): string {
+                  return "SB"
+              }
+          }
+          type UT = A | B
+      use: |-
+          // class name
+          arktest.assertEQ( UT.met(), "S" )
+      expected_out: '"Semantic error ESE0335: Static union member expression cannot be interpreted."'
+
+    - decl: |-
+          interface I {
+              static met(): string {
+                  return "I"
+              }
+          }
+          interface J {
+              static met(): string {
+                  return "J"
+              }
+          }
+          type UT = I | J
+      use: |-
+          // interface name
+          arktest.assertEQ( UT.met(), "I" )
+      expected_out: '"Semantic error ESE0335: Static union member expression cannot be interpreted."'

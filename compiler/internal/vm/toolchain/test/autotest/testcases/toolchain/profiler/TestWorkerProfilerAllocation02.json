@@ -1,0 +1,15 @@
+{
+  "description": "Config for TestWorkerProfilerAllocation02",
+  "environment": [
+    {
+      "type": "device",
+      "label": "phone"
+    }
+  ],
+  "driver": {
+    "type": "DeviceTest",
+    "py_file": [
+      "toolchain/profiler/TestWorkerProfilerAllocation02.py"
+    ]
+  }
+}

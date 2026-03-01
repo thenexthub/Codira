@@ -1,0 +1,281 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+  # class field
+    - decl: |-
+       class A {
+           fldA: int|null = 1
+       }
+      use: |-
+        let a = new A();
+        a?.fldA = 1;
+
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA++;
+
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        ++a?.fldA;
+
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA--;
+
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        --a?.fldA;
+
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA--;
+
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA += 1;
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA -= 1;
+
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA *= 1;
+
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA /= 1;
+
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA %= 1;
+
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA **= 1;
+
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA <<= 1;
+
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA >>= 1;
+
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA >>>= 1;
+
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA &= 1;
+
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA |= 1;
+
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA ^= 1;
+
+  # array
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[1] = 0;
+
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0]++;
+
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        ++counts?.[0];
+
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0]--;
+
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        --counts?.[0];
+
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0]--;
+
+    - decl: |-
+        let counts: int[] = [1, 2];
+            fldA: int|null = 1
+        }
+      use: |-
+        counts?.[0] += 1;
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] -= 1;
+
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] *= 1;
+
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] /= 1;
+
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] %= 1;
+
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] **= 1;
+
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] <<= 1;
+
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] >>= 1;
+
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] >>>= 1;
+
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] &= 1;
+
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] |= 1;
+
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] ^= 1;
+
+  # complicated class field and array
+    - decl: |-
+        class A {
+            b: B = new B();
+        }
+
+        class B {
+            c: C = new C();
+        }
+
+        class C {
+          value: int|null = 1;
+        }
+      use: |-
+        const a1 = new A();
+        a1.b.c?.value = 1
+
+    - decl: |-
+        let counts: int[][] = [[1, 2], [3. 4]];
+      use: |-
+        counts?.[0][0] = 0;

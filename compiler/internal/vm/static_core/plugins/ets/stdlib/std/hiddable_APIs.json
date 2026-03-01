@@ -1,0 +1,213 @@
+[
+    {
+        "file": "debug/RuntimeDebug.ets",
+        "interfaces": [
+            "RuntimeDebug"
+        ]
+    },
+    {
+        "file": "debug/Logger.ets",
+        "interfaces": [
+            "Logger"
+        ]
+    },
+    {
+        "file": "core/EnumConstant.ets",
+        "interfaces": [
+            "EnumConstant"
+        ]
+    },
+    {
+        "file": "core/Void.ets",
+        "interfaces": [
+            "Void"
+        ]
+    },
+    {
+        "file": "core/RuntimeLinkerErrors.ets",
+        "interfaces": [
+            "LinkerVerificationError",
+            "LinkerUnresolvedClassError",
+            "LinkerUnresolvedFieldError",
+            "LinkerUnresolvedMethodError",
+            "LinkerBadSupertypeError",
+            "LinkerTypeCircularityError",
+            "LinkerMethodConflictError",
+            "LinkerAbstractMethodError",
+            "LinkerClassNotFoundError"
+        ]
+    },
+    {
+        "file": "core/Intl.ets",
+        "interfaces": [
+            "intlLookUpLocale",
+            "intlBestFitLocale",
+            "intlLookUpLocales",
+            "intlBestFitLocales",
+            "intlLocalesToLanguageTags"
+        ]
+    },
+    {
+        "file": "core/Errors.ets",
+        "interfaces": [
+            "JSONTypeError",
+            "CoroutinesLimitExceedError",
+            "InvalidCoroutineOperationError"
+        ]
+    },
+    {
+        "file": "core/Value.ets",
+        "interfaces": [
+            "LambdaValue",
+            "BooleanValue",
+            "ByteValue",
+            "ShortValue",
+            "CharValue",
+            "IntValue",
+            "FloatValue",
+            "DoubleValue",
+            "LongValue",
+            "StringValue",
+            "NullValue",
+            "UndefinedValue",
+            "VoidValue"
+        ]
+    },
+    {
+        "file": "core/DisplayNames.ets",
+        "interfaces": [
+            "DisplayNamesLocaleMatcherOptions",
+            "DisplayNames"
+        ]
+    },
+    {
+        "file": "core/Numeric.ets",
+        "interfaces": [
+            "Floating"
+        ]
+    },
+    {
+        "file": "core/Exceptions.ets",
+        "interfaces": [
+            "NoDataError",
+            "ArgumentOutOfRangeError",
+            "IllegalStateError",
+            "UnsupportedOperationError",
+            "IllegalArgumentError",
+            "RuntimeError"
+        ]
+    },
+    {
+        "file": "core/System.ets",
+        "interfaces": [
+            "stackTraceLines"
+        ]
+    },
+    {
+        "file": "core/TypeCreator.ets",
+        "interfaces": [
+            "TypeAPICreateError",
+            "TypeCreator",
+            "ClassTypeCreator",
+            "InterfaceTypeCreator",
+            "LambdaTypeCreator",
+            "FieldCreator",
+            "ParameterCreator",
+            "MethodCreator",
+            "CallableBody",
+            "CallableBodyDefault",
+            "CallableBodyMethod",
+            "CallableBodyFunction",
+            "CallableBodyErasedFunction"
+        ]
+    },
+    {
+        "file": "core/Parameter.ets",
+        "interfaces": [
+            "Parameter"
+        ]
+    },
+    {
+        "file": "core/AbcFile.ets",
+        "interfaces": [
+            "AbcFileNotFoundError"
+        ]
+    },
+    {
+        "file": "core/UnionCase.ets",
+        "interfaces": [
+            "UnionCase"
+        ]
+    },
+    {
+        "file": "core/Json.ets",
+        "interfaces": [
+            "JsonTypeError"
+        ]
+    },
+    {
+        "file": "containers/ListInt.ets",
+        "interfaces": [
+            "ListInt"
+        ]
+    },
+    {
+        "file": "containers/ListString.ets",
+        "interfaces": [
+            "ListString"
+        ]
+    },
+    {
+        "file": "containers/AVLTree.ets",
+        "interfaces": [
+            "newEmpty",
+            "isEmpty",
+            "isLeaf",
+            "isNode",
+            "height",
+            "newNode",
+            "newLeaf",
+            "addToTree",
+            "mergeTree",
+            "removeFromTree",
+            "lookupTree",
+            "count"
+        ]
+    },
+    {
+        "file": "containers/UndefinableStringArray.ets",
+        "interfaces": [
+            "UndefinableStringArray"
+        ]
+    },
+    {
+        "file": "containers/ListObject.ets",
+        "interfaces": [
+            "ListObject"
+        ]
+    },
+    {
+        "file": "containers/UndefinableObjectArray.ets",
+        "interfaces": [
+            "UndefinableObjectArray"
+        ]
+    },
+    {
+        "file": "containers/ArrayAsListObject.ets",
+        "interfaces": [
+            "ArrayAsListObject"
+        ]
+    },
+    {
+        "file": "containers/ArrayAsListString.ets",
+        "interfaces": [
+            "ArrayAsListString"
+        ]
+    },
+    {
+        "file": "containers/ArrayAsListInt.ets",
+        "interfaces": [
+            "ArrayAsListInt"
+        ]
+    }
+]

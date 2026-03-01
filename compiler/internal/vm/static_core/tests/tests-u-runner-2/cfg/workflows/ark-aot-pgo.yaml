@@ -1,0 +1,82 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+type: workflow
+workflow-name: ark-aot-pgo
+parameters:
+    # ark
+    ark-timeout: 210
+    ark-args: [ ]
+    compiler-enable-jit: "true"
+    ark-aot-profdata-file: "${parameters.work-dir}/intermediate/${test-id}.bin"
+    ark-full-args:
+        - ${parameters.ark-args}
+        - "--compiler-profiling-threshold=0"
+        - "--profilesaver-enabled=true"
+        - "--profile-output=${parameters.ark-aot-profdata-file}"
+    # ark_aot
+    aot-args: [ ]
+    aot-timeout: 30
+    # common
+    build: ${PANDA_BUILD}
+    work-dir: ${parameters.work-dir}
+    load-runtimes: ${parameters.load-runtimes}
+    gc-type: g1-gc
+    full-gc-bombing-frequency: 0
+    heap-verifier: fail_on_verification
+    stdlib: "${parameters.build}/plugins/ets/etsstdlib.abc"
+    output-file: "${parameters.work-dir}/intermediate/${test-id}.abc"
+    paoc-output-file: "${parameters.work-dir}/intermediate/${test-id}.an"
+    # adds --paoc-panda-files option to ark_aot with all dependent and the current abc files
+    # adds --boot-panda-files option to ark with all dependent and the current abc files
+    # adds --panda-files option to ark with all dependent and the current abc files
+    is-panda: true
+    boot-panda-files: ""
+steps:
+    ark-creates-profile-for-aot-pgo:
+        from: ark
+        ark-timeout: ${parameters.ark-timeout}
+        build: ${parameters.build}
+        work-dir: ${parameters.work-dir}
+        heap-verifier: ${parameters.heap-verifier}
+        gc-type: ${parameters.gc-type}
+        full-gc-bombing-frequency: ${parameters.full-gc-bombing-frequency}
+        load-runtimes: ${parameters.load-runtimes}
+        compiler-enable-jit: ${parameters.compiler-enable-jit}
+        boot-panda-files: ${parameters.boot-panda-files}
+        ark-args:
+            - ${parameters.ark-full-args}
+    ark-aot-with-profile:
+        executable-path: ${parameters.build}/bin/ark_aot
+        timeout: ${parameters.aot-timeout}
+        step-type: aot
+        args:
+            - "--gc-type=${parameters.gc-type}"
+            - "--heap-verifier=${parameters.heap-verifier}"
+            - "--load-runtimes=${parameters.load-runtimes}"
+            - "--full-gc-bombing-frequency=${parameters.full-gc-bombing-frequency}"
+            - "--compiler-check-final=true"
+            - "--compiler-ignore-failures=false"
+            - "--paoc-use-profile:path=${parameters.ark-aot-profdata-file},force"
+            - "${parameters.aot-args}"
+            - "--boot-panda-files=${parameters.stdlib}${parameters.boot-panda-files}"
+            - "--paoc-output=${parameters.paoc-output-file}"

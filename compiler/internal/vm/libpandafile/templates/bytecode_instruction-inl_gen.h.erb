@@ -1,0 +1,709 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/* static */
+template<const BytecodeInstMode Mode>
+constexpr bool BytecodeInst<Mode>::HasId(Format format, size_t idx) {
+    switch (format) {
+% insns_uniq_sort_fmts.each do |i| # Panda::formats.each do |fmt|
+%   fmt = i.format
+%   n = i.operands.count(&:id?)
+%   next if n == 0
+    case Format::<%= fmt.pretty.upcase %>:
+        return idx < <%= n %>;
+% end
+    default: {
+        return false;
+    }
+    }
+
+    UNREACHABLE_CONSTEXPR();
+}
+
+/* static */
+template<const BytecodeInstMode Mode>
+constexpr bool BytecodeInst<Mode>::HasVReg(Format format, size_t idx) {
+    switch (format) {
+% insns_uniq_sort_fmts.each do |i| # Panda::formats.each do |fmt|
+%   fmt = i.format
+%   n = i.operands.count(&:reg?)
+%   next if n == 0
+    case Format::<%= fmt.pretty.upcase %>:
+        return idx < <%= n %>;  // NOLINT(readability-magic-numbers)
+% end
+    default: {
+        return false;
+    }
+    }
+
+    UNREACHABLE_CONSTEXPR();
+}
+
+/* static */
+template<const BytecodeInstMode Mode>
+constexpr bool BytecodeInst<Mode>::HasImm(Format format, size_t idx) {
+    switch (format) {
+% insns_uniq_sort_fmts.each do |i| # Panda::formats.each do |fmt|
+%   fmt = i.format
+%   n = i.operands.count(&:imm?)
+%   next if n == 0
+    case Format::<%= fmt.pretty.upcase %>:
+        return idx < <%= n %>;
+% end
+    default: {
+        return false;
+    }
+    }
+
+    UNREACHABLE_CONSTEXPR();
+}
+
+/* static */
+template<const BytecodeInstMode Mode>
+constexpr size_t BytecodeInst<Mode>::Size(Format format) {  // NOLINTNEXTLINE(readability-function-size)
+    switch (format) {
+% Panda::formats.each do |fmt|
+    case Format::<%= fmt.pretty.upcase %>: {
+        constexpr size_t SIZE = <%= fmt.size %>;
+        return SIZE;
+    }
+% end
+    }
+
+    UNREACHABLE_CONSTEXPR();
+}
+
+template <const BytecodeInstMode Mode>
+template <typename BytecodeInst<Mode>::Format format, size_t idx /* = 0 */>
+inline BytecodeId BytecodeInst<Mode>::GetId() const {
+    static_assert(HasId(format, idx), "Instruction doesn't have id operand with such index");
+
+% insns_uniq_sort_fmts.each do |i| # Panda::formats.each do |fmt|
+%   fmt = i.format
+%   n = i.operands.count(&:id?)
+%   next if n == 0
+%
+%   id_ops = i.operands.select(&:id?)
+%   offsets = id_ops.map(&:offset)
+%   widths = id_ops.map(&:width)
+%
+    // Disable check due to clang-tidy bug https://bugs.llvm.org/show_bug.cgi?id=32203
+    // NOLINTNEXTLINE(readability-braces-around-statements, bugprone-suspicious-semicolon)
+    if (format == Format::<%= fmt.pretty.upcase %>) {
+%   if offsets.length == 1 && widths.length == 1
+        return BytecodeId(static_cast<uint32_t>(Read<<%= offsets[0] %>, <%= widths[0] %>>()));
+%   else
+        constexpr std::array<size_t, <%= n %>> OFFSETS{<%= offsets.join(", ") %>};
+        constexpr std::array<size_t, <%= n %>> WIDTHS{<%= widths.join(", ") %>};
+        return BytecodeId(static_cast<uint32_t>(Read<OFFSETS[idx], WIDTHS[idx]>()));
+%   end
+    }
+
+% end
+    UNREACHABLE();
+}
+
+template <const BytecodeInstMode Mode>
+inline void BytecodeInst<Mode>::UpdateId(BytecodeId new_id, uint32_t idx /* = 0 */) {
+    Format format = GetFormat();
+    ASSERT_PRINT(HasId(format, idx), "Instruction doesn't have imm operand with such index");
+
+    if (!HasId(format, idx)) {
+        return;
+    }
+
+% insns_uniq_sort_fmts.each do |i| # Panda::formats.each do |fmt|
+%   fmt = i.format
+%   n = i.operands.count(&:id?)
+%   next if n == 0
+%
+%   id_ops = i.operands.select(&:id?)
+%   offsets = id_ops.map(&:offset)
+%   widths = id_ops.map(&:width)
+%
+    // Disable check due to clang-tidy bug https://bugs.llvm.org/show_bug.cgi?id=32203
+    // NOLINTNEXTLINE(readability-braces-around-statements, bugprone-suspicious-semicolon)
+    if (format == Format::<%= fmt.pretty.upcase %>) {
+        constexpr std::array<size_t, <%= n %>> OFFSETS{<%= offsets.join(", ") %>};
+        constexpr std::array<size_t, <%= n %>> WIDTHS{<%= widths.join(", ") %>};
+        this->Write(new_id.AsRawValue(), OFFSETS[idx] / 8, WIDTHS[idx] / 8);
+        return;
+    }
+
+% end
+    UNREACHABLE();
+}
+
+template<const BytecodeInstMode Mode>
+inline BytecodeId BytecodeInst<Mode>::GetId(size_t idx /* = 0 */) const {
+    Format format = GetFormat();
+    ASSERT_PRINT(HasId(format, idx), "Instruction doesn't have id operand with such index");
+
+    if (!HasId(format, idx)) {
+        return {};
+    }
+
+    switch (format) {
+% insns_uniq_sort_fmts.each do |i| # Panda::formats.each do |fmt|
+%   fmt = i.format
+%   n = i.operands.count(&:id?)
+%   next if n == 0
+%
+%   id_ops = i.operands.select(&:id?)
+%   offsets = id_ops.map(&:offset)
+%   widths = id_ops.map(&:width)
+%
+    case Format::<%= fmt.pretty.upcase %>: {
+        constexpr std::array<size_t, <%= n %>> OFFSETS{<%= offsets.join(", ") %>};
+        constexpr std::array<size_t, <%= n %>> WIDTHS{<%= widths.join(", ") %>};
+        return BytecodeId(static_cast<uint32_t>(Read64(OFFSETS[idx], WIDTHS[idx])));
+    }
+% end
+    default: {
+        break;
+    }
+    }
+
+    UNREACHABLE();
+}
+
+template <const BytecodeInstMode Mode>
+template <typename BytecodeInst<Mode>::Format format, size_t idx /* = 0 */>
+__attribute__ ((visibility("hidden")))
+ALWAYS_INLINE inline uint16_t BytecodeInst<Mode>::GetVReg() const {  // NOLINTNEXTLINE(readability-function-size)
+    static_assert(HasVReg(format, idx), "Instruction doesn't have vreg operand with such index");
+
+% insns_uniq_sort_fmts.each do |i| # Panda::formats.each do |fmt|
+%   fmt = i.format
+%   n = i.operands.count(&:reg?)
+%   next if n == 0
+%
+%   reg_ops = i.operands.select(&:reg?)
+%   offsets = reg_ops.map(&:offset)
+%   widths = reg_ops.map(&:width)
+%
+    // Disable check due to clang-tidy bug https://bugs.llvm.org/show_bug.cgi?id=32203
+    // NOLINTNEXTLINE(readability-braces-around-statements, bugprone-suspicious-semicolon)
+    if constexpr (format == Format::<%= fmt.pretty.upcase %>) {
+        constexpr std::array<size_t, <%= n %>> OFFSETS{<%= offsets.join(", ") %>};
+        constexpr std::array<size_t, <%= n %>> WIDTHS{<%= widths.join(", ") %>};
+        return static_cast<uint16_t>(Read<OFFSETS[idx], WIDTHS[idx]>());
+    }
+
+% end
+    UNREACHABLE();
+}
+
+template<const BytecodeInstMode Mode>
+__attribute__ ((visibility("hidden")))
+ALWAYS_INLINE inline uint16_t BytecodeInst<Mode>::GetVReg(size_t idx /* = 0 */) const {  // NOLINTNEXTLINE(readability-function-size)
+    Format format = GetFormat();
+    ASSERT_PRINT(HasVReg(format, idx), "Instruction doesn't have vreg operand with such index");
+
+    if (!HasVReg(format, idx)) {
+        return 0;
+    }
+
+    switch (format) {
+% insns_uniq_sort_fmts.each do |i| # Panda::formats.each do |fmt|
+%   fmt = i.format
+%   n = i.operands.count(&:reg?)
+%   next if n == 0
+%
+%   reg_ops = i.operands.select(&:reg?)
+%   offsets = reg_ops.map(&:offset)
+%   widths = reg_ops.map(&:width)
+%
+    case Format::<%= fmt.pretty.upcase %>: {
+        constexpr std::array<size_t, <%= n %>> OFFSETS{<%= offsets.join(", ") %>};
+        constexpr std::array<size_t, <%= n %>> WIDTHS{<%= widths.join(", ") %>};
+        if (idx > <%= n - 1 %>) {
+            break;
+        }
+        return static_cast<uint16_t>(Read64(OFFSETS[idx], WIDTHS[idx]));
+    }
+% end
+    default: {
+        break;
+    }
+    }
+
+    UNREACHABLE();
+}
+
+template <const BytecodeInstMode Mode>
+template <typename BytecodeInst<Mode>::Format format, size_t idx /* = 0 */, bool is_signed /* = true */>
+inline auto BytecodeInst<Mode>::GetImm() const {  // NOLINTNEXTLINE(readability-function-size)
+    static_assert(HasImm(format, idx), "Instruction doesn't have imm operand with such index");
+
+% insns_uniq_sort_fmts.each do |i| # Panda::formats.each do |fmt|
+%   fmt = i.format
+%   n = i.operands.count(&:imm?)
+%   next if n == 0
+%
+%   imm_ops = i.operands.select(&:imm?)
+%   offsets = imm_ops.map(&:offset)
+%   widths = imm_ops.map(&:width)
+%
+    // Disable check due to clang-tidy bug https://bugs.llvm.org/show_bug.cgi?id=32203
+    // NOLINTNEXTLINE(readability-braces-around-statements, bugprone-suspicious-semicolon)
+    if constexpr (format == Format::<%= fmt.pretty.upcase %>) {
+        constexpr std::array<size_t, <%= n %>> OFFSETS{<%= offsets.join(", ") %>};
+        constexpr std::array<size_t, <%= n %>> WIDTHS{<%= widths.join(", ") %>};
+        return Read<OFFSETS[idx], WIDTHS[idx], is_signed>();
+    }
+
+% end
+    UNREACHABLE();
+}
+
+template <const BytecodeInstMode Mode>
+inline auto BytecodeInst<Mode>::GetImmCount() const {
+    Format format = GetFormat();
+    auto idx = 0;
+    ASSERT_PRINT(HasImm(format, idx), "Instruction has no imm operand");
+
+    if (!HasImm(format, idx)) {
+        return static_cast<size_t>(0);
+    }
+
+    switch (format) {
+% insns_uniq_sort_fmts.each do |i| # Panda::formats.each do |fmt|
+%   fmt = i.format
+%   n = i.operands.count(&:imm?)
+%   next if n == 0
+
+    case Format::<%= fmt.pretty.upcase %>: {
+        return static_cast<size_t>(<%= n %>);
+    }
+% end
+    default: {
+        break;
+    }
+    }
+
+    UNREACHABLE();
+}
+
+template<const BytecodeInstMode Mode>
+inline auto BytecodeInst<Mode>::GetImm64(size_t idx /* = 0 */) const {
+    Format format = GetFormat();
+    ASSERT_PRINT(HasImm(format, idx), "Instruction doesn't have imm operand with such index");
+
+    if (!HasImm(format, idx)) {
+        return static_cast<int64_t>(0);
+    }
+
+    switch (format) {
+% insns_uniq_sort_fmts.each do |i| # Panda::formats.each do |fmt|
+%   fmt = i.format
+%   n = i.operands.count(&:imm?)
+%   next if n == 0
+%
+%   imm_ops = i.operands.select(&:imm?)
+%   offsets = imm_ops.map(&:offset)
+%   widths = imm_ops.map(&:width)
+%
+    case Format::<%= fmt.pretty.upcase %>: {
+        constexpr std::array<size_t, <%= n %>> OFFSETS{<%= offsets.join(", ") %>};
+        constexpr std::array<size_t, <%= n %>> WIDTHS{<%= widths.join(", ") %>};
+        return Read64<true>(OFFSETS[idx], WIDTHS[idx]);
+    }
+% end
+    default: {
+        break;
+    }
+    }
+
+    UNREACHABLE();
+}
+
+template<const BytecodeInstMode Mode>
+inline auto BytecodeInst<Mode>::GetImmData(size_t idx /* = 0 */) const {
+    Format format = GetFormat();
+    ASSERT_PRINT(HasImm(format, idx), "Instruction doesn't have imm operand with such index");
+
+    if (!HasImm(format, idx)) {
+        return static_cast<int64_t>(0);
+    }
+
+    int64_t imm = 0;
+
+    switch (GetOpcode()) {
+% Panda::instructions.each do |inst|
+%   imm_count = 0
+    case BytecodeInst<Mode>::Opcode::<%= inst.opcode.upcase %>:
+%
+%   inst.operands.each do |op|
+%     if op.imm?
+%         if op.is_float_imm?
+        if (idx == <%=imm_count%>) {
+            // Note: If the immediate value is a floating-point number,
+            // converting it to int64_t may result in precision loss.
+            imm = static_cast<int64_t>(GetImm<BytecodeInstruction::Format::<%=inst.format.pretty.upcase%>, <%=imm_count%>, true>());
+        }
+%         elsif op.is_signed_imm?
+        if (idx == <%=imm_count%>) {
+            imm = static_cast<int64_t>(GetImm<BytecodeInstruction::Format::<%=inst.format.pretty.upcase%>, <%=imm_count%>, true>());
+        }
+%         elsif op.is_unsigned_imm?
+        if (idx == <%=imm_count%>) {
+            imm = static_cast<int64_t>(GetImm<BytecodeInstruction::Format::<%=inst.format.pretty.upcase%>, <%=imm_count%>, false>());
+        }
+%         else
+%            raise "Incorrect imm type #{op.type}"
+%         end
+%         imm_count += 1
+%     end   
+%   end
+        break;
+% end
+    default:
+        break;
+    }
+
+    return imm;
+}
+
+template <const BytecodeInstMode Mode>
+inline typename BytecodeInst<Mode>::Opcode BytecodeInst<Mode>::GetOpcode() const {
+    uint8_t primary = GetPrimaryOpcode();
+    if (primary >= <%= Panda::prefixes.map(&:opcode_idx).min %>) {  // NOLINT(readability-magic-numbers)
+        uint8_t secondary = GetSecondaryOpcode();
+        return static_cast<BytecodeInst::Opcode>((secondary << 8U) | primary);  // NOLINT(hicpp-signed-bitwise)
+    }
+    return static_cast<BytecodeInst::Opcode>(primary);
+}
+
+template <const BytecodeInstMode Mode>
+inline uint8_t BytecodeInst<Mode>::GetSecondaryOpcode() const {
+    ASSERT(GetPrimaryOpcode() >= <%= Panda::prefixes.map(&:opcode_idx).min %>);  // NOLINT(readability-magic-numbers)
+    return ReadByte(1);
+}
+
+/* static */
+template <const BytecodeInstMode Mode>
+constexpr uint8_t BytecodeInst<Mode>::GetMinPrefixOpcodeIndex() {
+    return <%= Panda::prefixes.map(&:opcode_idx).min %>;  // NOLINT(readability-magic-numbers)
+}
+
+template <const BytecodeInstMode Mode>
+inline bool BytecodeInst<Mode>::IsPrefixed() const {
+    return GetPrimaryOpcode() >= <%= Panda::prefixes.map(&:opcode_idx).min %>;  // NOLINT(readability-magic-numbers)
+}
+
+template <const BytecodeInstMode Mode>
+inline typename BytecodeInst<Mode>::Format BytecodeInst<Mode>::GetFormat() const {  // NOLINT(readability-function-size)
+    return GetFormat(GetOpcode());
+}
+
+/* static */
+template <const BytecodeInstMode Mode>
+constexpr typename BytecodeInst<Mode>::Format BytecodeInst<Mode>::GetFormat(Opcode opcode) {  // NOLINT(readability-function-size)
+    switch(opcode) {
+% Panda::instructions.each do |i|
+    case BytecodeInst<Mode>::Opcode::<%= i.opcode.upcase %>:
+        return BytecodeInst<Mode>::Format::<%= i.format.pretty.upcase %>;
+% end
+    default:
+        break;
+    }
+
+    UNREACHABLE();
+}
+
+// NOLINTNEXTLINE(readability-function-size)
+template<const BytecodeInstMode Mode> inline bool BytecodeInst<Mode>::HasFlag(Flags flag) const {
+    switch(GetOpcode()) {
+% Panda::instructions.each do |i|
+%   flag_array = i.real_properties.map {|prop| "Flags::" + prop.upcase}
+%   flag_array += ['0'] if flag_array.empty?
+%   flags = flag_array.join(' | ')
+    case BytecodeInst<Mode>::Opcode::<%= i.opcode.upcase %>:
+        return ((<%= flags %>) & flag) == flag;  // NOLINT(hicpp-signed-bitwise)
+% end
+    default:
+        return false;
+    }
+
+    UNREACHABLE();
+}
+
+// NOLINTNEXTLINE(readability-function-size)
+template<const BytecodeInstMode Mode> inline bool BytecodeInst<Mode>::IsIdMatchFlag(size_t idx, Flags flag) const {
+    switch(GetOpcode()) {
+% Panda::instructions.each do |i|
+%   flag_array = i.real_properties.map {|prop| prop.upcase}
+%   flag_array = [] if flag_array.empty?
+%   ids = []
+%   flag_array.each do |f|
+%     if f == "STRING_ID" || f == "METHOD_ID" || f == "LITERALARRAY_ID"
+%       ids << "Flags::" + f
+%     end
+%   end
+    case BytecodeInst<Mode>::Opcode::<%= i.opcode.upcase %>: {
+%   if ids.empty?
+        return false;
+    }
+%   else
+        constexpr std::array<Flags, <%= ids.size %>> ids_array { <%= ids.join(', ') %> };
+        return ids_array[idx] == flag;
+    }
+%   end
+% end
+    default:
+        return false;
+    }
+}
+
+// NOLINTNEXTLINE(readability-function-size)
+template<const BytecodeInstMode Mode> inline bool BytecodeInst<Mode>::IsThrow(Exceptions exception) const {
+    switch(GetOpcode()) {
+% Panda::instructions.each do |i|
+%   exception_array = i.exceptions.map {|prop| "Exceptions::" + prop.upcase}
+%   exception_array += ['0'] if exception_array.empty?
+%   exceptions = exception_array.join(' | ')
+    case BytecodeInst<Mode>::Opcode::<%= i.opcode.upcase %>:
+        return ((<%= exceptions %>) & exception) == exception;  // NOLINT(hicpp-signed-bitwise)
+% end
+    default:
+        return false;
+    }
+
+    UNREACHABLE();
+}
+
+// NOLINTNEXTLINE(readability-function-size)
+template<const BytecodeInstMode Mode> inline bool BytecodeInst<Mode>::CanThrow() const {
+    switch(GetOpcode()) {
+% Panda::instructions.each do |i|
+    case BytecodeInst<Mode>::Opcode::<%= i.opcode.upcase %>:
+        return <%= i.exceptions != ["x_none"] %>;
+% end
+    default:
+        return false;
+    }
+
+    UNREACHABLE();
+}
+
+// NOLINTNEXTLINE(readability-function-size)
+template<const BytecodeInstMode Mode> std::ostream& operator<<(std::ostream& os, const BytecodeInst<Mode>& inst) {
+    switch(inst.GetOpcode()) {
+% Panda::instructions.each do |inst|
+%   imm_count = 0
+%   reg_count = 0
+%   id_count = 0
+    case BytecodeInst<Mode>::Opcode::<%= inst.opcode.upcase %>:
+        os << "<%= inst.mnemonic %>";
+%   sep = " "
+%   inst.operands.each do |op|
+%     if op.imm?
+%       if op.is_float_imm?
+%         op_str = "\"#{sep}\" << bit_cast<double>(inst.template GetImm<BytecodeInst<Mode>::Format::#{inst.format.pretty.upcase}, #{imm_count}, true>())";
+%       elsif op.is_unsigned_imm?
+%         op_str = "\"#{sep}\" << inst.template GetImm<BytecodeInst<Mode>::Format::#{inst.format.pretty.upcase}, #{imm_count}, false>()";
+%       elsif op.is_signed_imm?
+%         op_str = "\"#{sep}\" << inst.template GetImm<BytecodeInst<Mode>::Format::#{inst.format.pretty.upcase}, #{imm_count}, true>()";
+%       else
+%          raise "Incorrect imm type #{op.type}"
+%       end
+%       imm_count += 1
+%     elsif op.reg?
+%       op_str = "\"#{sep}v\" << inst.template GetVReg<BytecodeInst<Mode>::Format::#{inst.format.pretty.upcase}, #{reg_count}>()";
+%       reg_count += 1
+%     elsif op.id?
+%       op_str = "\"#{sep}id\" << inst.template GetId<BytecodeInst<Mode>::Format::#{inst.format.pretty.upcase}, #{id_count}>()";
+%       id_count += 1
+%     end
+        os << <%= op_str %>;
+%     sep = ', '
+%   end
+        break;
+% end
+    }
+    return os;
+}
+
+template<const BytecodeInstMode Mode> // NOLINTNEXTLINE(readability-function-size)
+std::ostream& operator<<(std::ostream& os, const typename BytecodeInst<Mode>::Opcode& op)
+{
+    switch(op) {
+% Panda::instructions.each do |inst|
+    case BytecodeInst<Mode>::Opcode::<%= inst.opcode.upcase %>:
+        os << "<%= inst.opcode.upcase %>";
+        break;
+% end
+    default:
+        os << "(unknown opcode:) " << static_cast<uint16_t>(op);
+        break;
+
+    }
+    return os;
+}
+
+template <const BytecodeInstMode Mode>
+inline bool BytecodeInst<Mode>::IsPrimaryOpcodeValid() const
+{
+    auto opcode = GetPrimaryOpcode();
+    // NOLINTNEXTLINE(readability-magic-numbers)
+    if (((opcode >= <%= Panda::dispatch_table.invalid_non_prefixed_interval.min %>) &&
+        // NOLINTNEXTLINE(readability-magic-numbers)
+        (opcode <= <%= Panda::dispatch_table.invalid_non_prefixed_interval.max %>)) ||
+        // NOLINTNEXTLINE(readability-magic-numbers)
+        ((opcode >= <%= Panda::dispatch_table.invalid_prefixes_interval.min %>) &&
+        // NOLINTNEXTLINE(readability-magic-numbers)
+        (opcode <= <%= Panda::dispatch_table.invalid_prefixes_interval.max %>))) {
+        // NOLINTNEXTLINE(readability-simplify-boolean-expr)
+        return false;
+    }
+    return true;
+}
+
+// NOLINTNEXTLINE(readability-function-size)
+template<const BytecodeInstMode Mode> inline size_t BytecodeInst<Mode>::GetLiteralIndex() const {
+    switch(GetOpcode()) {
+% Panda::instructions.each do |i|
+%   flag_array = i.real_properties.map {|prop| prop.upcase}
+%   flag_array = [] if flag_array.empty?
+%   count = -1
+%   flag_array.each do |f|
+%     if f == "STRING_ID" || f == "METHOD_ID" || f == "LITERALARRAY_ID"
+%       count += 1
+%     end
+%     if f == "LITERALARRAY_ID"
+%       break
+%     end
+%   end
+    case BytecodeInst<Mode>::Opcode::<%= i.opcode.upcase %>:
+        return <%= count %>;
+        break;
+% end
+    default:
+        return -1;
+        break;
+    }
+}
+
+template<const BytecodeInstMode Mode>
+inline bool BytecodeInst<Mode>::IsJumpInstruction() const {
+    switch(GetOpcode()) {
+% Panda::instructions.each do |i|
+%   if i.jump?
+    case BytecodeInst<Mode>::Opcode::<%= i.opcode.upcase %>:
+        return true;
+%   end
+% end
+    default:
+        return false;
+    }
+
+    UNREACHABLE();
+}
+
+template<const BytecodeInstMode Mode>
+inline bool BytecodeInst<Mode>::IsRangeInstruction() const {
+    switch (GetOpcode()) {
+% Panda::instructions.each do |i|
+%   if i.is_range_instruction?
+    case BytecodeInst<Mode>::Opcode::<%= i.opcode.upcase %>:
+        return true;
+%   end
+% end
+    default:
+        return false;
+    }
+    UNREACHABLE();
+}
+
+template <const BytecodeInstMode Mode>
+inline std::optional<uint64_t> BytecodeInst<Mode>::GetLastVReg() const {
+    Format format = GetFormat();
+    ASSERT_PRINT(HasVReg(format, 0), "Instruction doesn't have VReg operand with such index");
+
+    if (!HasVReg(format, 0)) {
+        return std::nullopt;
+    }
+
+    switch (format) {
+% insns_uniq_sort_fmts.each do |i| # Panda::formats.each do |fmt|
+%   fmt = i.format
+%   n = i.operands.count(&:reg?)
+%   next if n == 0
+%
+    case Format::<%= fmt.pretty.upcase %>: {
+        return GetVReg<BytecodeInstruction::Format::<%=fmt.pretty.upcase%>, <%=n-1%>>();
+    }
+% end
+    default: {
+        break;
+    }
+    }
+
+    UNREACHABLE();
+}
+
+template <const BytecodeInstMode Mode>
+inline std::optional<uint64_t> BytecodeInst<Mode>::GetRangeInsLastRegIdx() const {
+    // For the range instruction, where A stores the number of registers
+    // The actual register index needs to handle 2 cases: B~B+A-1 / B~B+A
+    // range_0 is B~B+A-1
+    // range_1 is B~B+A
+    size_t count = GetImmCount();
+    if (count == 0) {
+        return std::nullopt;
+    }
+    int64_t range_reg_num = GetImmData(count - 1);
+    switch (GetOpcode()) {
+% Panda::instructions.each do |i|
+%   if i.is_range_0?
+    case BytecodeInst<Mode>::Opcode::<%= i.opcode.upcase %>:
+        if (range_reg_num > 0) {
+            return SafeAdd(GetLastVReg().value(), range_reg_num - 1);
+        }
+        return GetLastVReg();
+%   end
+%   if i.is_range_1?
+    case BytecodeInst<Mode>::Opcode::<%= i.opcode.upcase %>:
+        return SafeAdd(GetLastVReg().value(), range_reg_num);
+%   end
+% end
+    default:
+        return std::nullopt;
+    }
+    UNREACHABLE();
+}
+
+template<const BytecodeInstMode Mode>
+inline bool BytecodeInst<Mode>::IsReturnOrThrowInstruction() const {
+    switch (GetOpcode()) {
+% Panda::instructions.each do |i|
+%   if i.is_return_instruction? || i.is_unconditional_throw_instruction?
+    case BytecodeInst<Mode>::Opcode::<%= i.opcode.upcase %>:
+        return true;
+%   end
+% end
+    default:
+        return false;
+    }
+    UNREACHABLE();
+}

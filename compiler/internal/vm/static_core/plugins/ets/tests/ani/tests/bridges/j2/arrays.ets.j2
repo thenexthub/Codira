@@ -1,0 +1,55 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package EtsAniTests
+
+native function print{{ Type }}Arr(a: {{ type }}[]): void
+
+@ani.unsafe.Quick
+native function printQuick{{ Type }}Arr(a: {{ type }}[]): void
+
+function test{{ Type }}Arr() {
+    {% if type == "float" -%}
+        let buff: {{ type }}[] = [Double.toFloat(1.1),
+                                  Double.toFloat(2.2),
+                                  Double.toFloat(3.3),
+                                  Double.toFloat(4.4),
+                                  Double.toFloat(5.5)]
+    {% elif type == "double" -%}
+        let buff: {{ type }}[] = [1.1, 2.2, 3.3, 4.4, 5.5]
+    {% elif type == "boolean" -%}
+        let buff: {{ type }}[] = [true, false, true, false, true]
+    {% elif type == "string" -%}
+        let buff: {{ type }}[] = ["1", "2", "3", "4", "5"]
+    {% elif type == "char" -%}
+        let buff: {{ type }}[] = [Int.toChar(1), Int.toChar(2),Int.toChar(3),Int.toChar(4),Int.toChar(5)]
+    {%- else -%}
+        let buff: {{ type }}[] = [1, 2, 3, 4, 5]
+    {%- endif %}
+    print{{ Type }}Arr(buff)
+    printQuick{{ Type }}Arr(buff)
+}
+
+function main() {
+    loadLibrary("arrays_{{ type }}")
+    test{{ Type }}Arr()
+}

@@ -1,0 +1,1242 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases2:
+  - desc: Basic union type.
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = "Hello, ArkTS!";
+      arktest.assertEQ(value, "Hello, ArkTS!");
+
+  - desc: Basic union type(number - int).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = 66;
+      arktest.assertEQ(value, 66);
+
+  - desc: Basic union type(number calculation).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = 3 * 3;
+      arktest.assertEQ(value, 9);
+
+  - desc: Basic union type(number - float).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = 66.6;
+      arktest.assertEQ(value, 66.6);
+
+  - desc: Basic union type(number - double).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = 66.6666666666;
+      arktest.assertEQ(value,  66.6666666666);
+
+  - desc: Basic union type(number - negative number).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = -0.001;
+      arktest.assertEQ(value,  -0.001);
+
+  - desc: Basic union type(number - scientific notation).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = 5e3;
+      arktest.assertEQ(value, 5000);
+
+  - desc: Basic union type(number - negative scientific notation).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = -2.5e2;
+      arktest.assertEQ(value, -250);
+
+  - desc: Basic union type(number infinity).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = Infinity;
+      arktest.assertEQ(value, Infinity);
+
+  - desc: Basic union type(number -infinity).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = -Infinity;
+      arktest.assertEQ(value, -Infinity);
+
+  - desc: Basic union type(number - precision).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = 0.1 + 0.2;
+      arktest.assertEQ(value, 0.30000000000000004);
+
+  - desc: Basic union type(number - binary).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = 0b1010;
+      arktest.assertEQ(value, 0b1010);
+
+  - desc: Basic union type(number - octal).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = 0o755;
+      arktest.assertEQ(value, 0o755);
+
+  - desc: Basic union type(number - hexadecimal).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = 0x1A3F;
+      arktest.assertEQ(value, 0x1A3F);
+
+  - desc: Basic union type(bigint).
+    dec1: |-
+      type StringOrNumber = string | bigint;
+      let value: StringOrNumber;
+    check: |-
+      value = 123456789012345678901234567890n;
+      arktest.assertEQ(value, 123456789012345678901234567890n);
+
+  - desc: Basic union type(boolean).
+    dec1: |-
+      type StringOrNumber = string | boolean;
+      let value: StringOrNumber;
+    check: |-
+      value = true;
+      arktest.assertEQ(value, true);
+
+  - desc: Basic union type(boolean-false).
+    dec1: |-
+      type StringOrNumber = string | boolean;
+      let value: StringOrNumber;
+    check: |-
+      value = false;
+      arktest.assertEQ(value, false);
+
+  - desc: Basic union type(null).
+    dec1: |-
+      type StringOrNumber = string | null;
+      let value: StringOrNumber;
+    check: |-
+      value = null;
+      arktest.assertEQ(value, null);
+
+  - desc: Basic union type(undefined).
+    dec1: |-
+      type StringOrNumber = string | undefined;
+      let value: StringOrNumber;
+    check: |-
+      value = undefined;
+      arktest.assertEQ(value, undefined);
+
+  - desc: Basic union type(string - template).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      let name: string = "Alice";
+      let age: number = 25;
+      value = `Hello, my name is ${name} and I am ${age} years old.`;
+      arktest.assertEQ(value, 'Hello, my name is Alice and I am 25 years old.');
+
+  - desc: Basic union type(string - '\n').
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = "Hello\nArkTS!";
+      arktest.assertEQ(value, "Hello\nArkTS!");
+
+  - desc: Basic union type(string - '\t').
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = "Hello\tArkTS!";
+      arktest.assertEQ(value, "Hello\tArkTS!");
+
+  - desc: Basic union type(use the string method to assign values).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = ("Hello tArkTS!").length;
+      arktest.assertEQ(value, 13);
+
+  - desc: Basic union type(string trim).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = ("Hello").trim();
+      arktest.assertEQ(value, "Hello");
+
+  - desc: Basic union type(string toUpperCase).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = ("Hello").toUpperCase();
+      arktest.assertEQ(value, "HELLO");
+
+  - desc: Basic union type(string substring).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = ("Hello").substring(0, 1);
+      arktest.assertEQ(value, "H");
+
+  - desc: Basic union type(string indexOf).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = ("Hello").indexOf("Hello");
+      arktest.assertEQ(value, 0);
+
+  - desc: Basic union type(string replace).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = ("Hello").replace("Hello", 'h');
+      arktest.assertEQ(value, 'h');
+
+  - desc: Basic union type(string charat).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = ("Hello").charAt(0).toString();
+      arktest.assertEQ(value, 'H');
+
+  - desc: Basic union type(string lastIndexOf).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = ("Hello").lastIndexOf('1');
+      arktest.assertEQ(value, -1);
+
+  - desc: Basic union type(string replaceAll).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = "hello".replaceAll('l', 'x');
+      arktest.assertEQ(value, 'hexxo');
+
+  - desc: Basic union type(string charcodeat).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = ("ArkTS").charCodeAt(0).toDouble();
+      arktest.assertEQ(value, 65);
+
+  - desc: Basic union type(string lastIndexOf).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber = ("Hello ArkTS, welcome to ArkTS".lastIndexOf("ArkTS"));
+    check: |-
+      arktest.assertEQ(value, 24);
+
+  - desc: Basic union type(string repeat).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber = ("Hello").repeat(0);
+    check: |-
+      arktest.assertEQ(value, "");
+
+  - desc: Basic union type(string padStart).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber = ("5").padStart(3, "0");
+    check: |-
+      arktest.assertEQ(value, "005");
+
+  - desc: Basic union type(string padEnd).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber = ("Hi").padEnd(5, "!");
+    check: |-
+      arktest.assertEQ(value, "Hi!!!");
+
+  - desc: Union types as parameters to type aliases.
+    dec1: |-
+      type ID = string | number;
+      function printValue(id: ID): string {
+        return(`ID: ${id}`);
+      }
+    check: |-
+      arktest.assertEQ(printValue(666), "ID: 666");
+
+  - desc: Union types are assigned as parameters.
+    dec1: |-
+      function printValue(value: string | number): string {
+      return(`Value: ${value}`);
+      }
+    check: |-
+      arktest.assertEQ(printValue("hello"), "Value: hello");
+
+  - desc: Union types are assigned as attributes of a class(modify properties).
+    dec1: |-
+      class Person {
+        name: string;
+        age: number | string;
+
+      constructor(name: string, age: number | string) {
+        this.name = name;
+        this.age = age;
+      }
+
+      printInfo(): string {
+        return(`Name: ${this.name}, Age: ${this.age}`);
+        }
+      }
+    check: |-
+      let person1 = new Person("Alice", 30);
+      person1.age = 31;
+      arktest.assertEQ(person1.printInfo(), 'Name: Alice, Age: 31');
+
+  - desc:  Union types as map types.
+    dec1: |-
+      type ID = string | number;
+      const users = new Map<ID, string>();
+    check: |-
+      users.set("u1", "Alice");
+      arktest.assertEQ(users.get("u1"), "Alice");
+
+  - desc:  Union type + readonly modifier.
+    dec1: |-
+      type ReadonlyData = readonly (string | number)[];
+      const data: ReadonlyData = ["A", 1, "B", 2];
+    check: |-
+      arktest.assertEQ(data[0], 'A');
+
+  - desc:  Basic union type(use the string method to assign values).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = ("Hello tArkTS!").length;
+      arktest.assertEQ(value, 13);
+
+  - desc:  union type + literal type.
+    dec1: |-
+      type Status = "success" | "error" | "loading";
+    check: |-
+      let value: Status;
+      value = 'success';
+      arktest.assertEQ(value, 'success');
+
+  - desc: Union type + generic constraint.
+    dec1: |-
+      function printIfValid<T extends string | number>(value: T) {
+      return(`Valid value: ${value}`);
+      }
+    check: |-
+      arktest.assertEQ(printIfValid('test'), "Valid value: test");
+
+  - desc: Union types are assigned as private variables of the class.
+    dec1: |-
+      class Storage {
+        private data: string | number;
+
+        constructor(initialData: string | number) {
+          this.data = initialData;
+        }
+
+        getData(): string | number {
+          return this.data;
+        }
+
+        setData(newData: string | number) {
+          this.data = newData;
+        }
+      }
+    check: |-
+      const storage = new Storage("hello");
+      arktest.assertEQ(storage.getData(), 'hello');
+
+  - desc: Union type assignment implements state mechanism.
+    dec1: |-
+      type State = 'idle' | 'loading' | 'success' | 'error';
+      type TransitionEvent = 'start' | 'resolve' | 'reject' | 'reset';
+
+      class StateMachine {
+      private state: State = 'idle';
+
+      transition(event: TransitionEvent): State {
+        switch (this.state) {
+          case 'idle':
+            if (event === 'start') this.state = 'loading';
+              break;
+          case 'loading':
+            if (event === 'resolve') this.state = 'success';
+            if (event === 'reject') this.state = 'error';
+              break;
+          default:
+            if (event === 'reset') this.state = 'idle';
+          }
+          return this.state;
+          }
+        }
+    check: |-
+      const sm = new StateMachine();
+      arktest.assertEQ(sm.transition('start'), "loading");
+
+  - desc: Class as a value of a union type.
+    dec1: |-
+      class Cat {
+        name: string = 'cat';
+      }
+      class Dog {
+        name: string = 'dog';
+      }
+      class Frog {
+        name: string = 'frog';
+      }
+      type Animal = Cat | Dog | Frog | number;
+    check: |-
+      let animal: Animal = new Cat();
+      arktest.assertEQ(animal.name, 'cat');
+
+  - desc: Union types as function return values.
+    dec1: |-
+      function getData(flag: boolean): string | int {
+        if (flag) {
+          return "Data is a string";
+        }
+        return "no string"
+      }
+    check: |-
+      arktest.assertEQ(getData(true), "Data is a string");
+
+  - desc: Union types as function return values(return boolean).
+    dec1: |-
+      function getData(flag: string): boolean | int {
+        if (flag === 'yes') {
+          return true;
+        }
+        return false
+      }
+    check: |-
+      arktest.assertEQ(getData('yes'), true);
+
+  - desc: Union types as function return values(return calculate).
+    dec1: |-
+      function getData(flag: string): boolean | number {
+        if (flag === 'float') {
+          return 3 * 3;
+        }
+        return false
+      }
+    check: |-
+      arktest.assertEQ(getData('float'), 9);
+
+  - desc: Interface as a value of union type.
+    dec1: |-
+      interface Circle {
+        kind: "circle";
+        radius: number;
+      }
+
+      interface Square {
+        kind: "square";
+        sideLength: number;
+      }
+      type Shape = Circle | Square;
+    check: |-
+      arktest.assertTrue(true);
+
+  - desc: Basic string union type. The test union type is "red" | "green" | "blue" and red is passed in. The case that matches 1 is expected.
+    dec1: |-
+      function unitedSwitch(input: 'red' | 'green' | 'blue'): string {
+        switch (input) {
+          case 'red':
+            return 'red';
+        case 'green':
+          return 'green';
+        case 'blue':
+          return 'blue';
+        default:
+          return 'fail';
+        }
+      }
+    check: |-
+      let input: 'red' | 'green' | 'blue' = 'red';
+      arktest.assertEQ(unitedSwitch(input), 'red');
+
+  - desc: Union types are used in switch.
+    dec1: |-
+      type BasicUnion = string | number | boolean;
+      function processBasicUnion(value: BasicUnion): string {
+        switch (typeof value) {
+          case 'string':
+            return 'string type';
+          default:
+            return 'Unknown type';
+        }
+      }
+    check: |-
+      arktest.assertEQ(processBasicUnion('string'), 'string type');
+
+  - desc: Basic union type(string - '').
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = 'hello';
+      arktest.assertEQ(value, 'hello');
+
+  - desc: Basic union type(string toLowerCase).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = ("Hello").toLowerCase();
+      arktest.assertEQ(value, "hello");
+
+  - desc: Basic union type(string concat).
+    dec1: |-
+      type StringOrNumber = string | number;
+    check: |-
+      let value: StringOrNumber = "Hello";
+      let value1: StringOrNumber = "ArkTS";
+      arktest.assertEQ(value.concat(" ",value1), "Hello ArkTS");
+
+  - desc: Basic union type(string lastIndexOf).
+    dec1: |-
+      type StringOrNumber = string | number;
+    check: |-
+      let value: StringOrNumber = ("Hello ArkTS, welcome to ArkTS".lastIndexOf("ArkTS"));
+      arktest.assertEQ(value, 24);
+
+  - desc: Basic union type(string includes).
+    dec1: |-
+      type StringOrNumber = string | number;
+    check: |-
+      let value: StringOrNumber = "Hello ArkTS, welcome to ArkTS";
+      arktest.assertEQ(value.includes("ArkTS"), true);
+
+  - desc: Basic union type(string startsWith).
+    dec1: |-
+      type StringOrNumber = string | number;
+    check: |-
+      let value: StringOrNumber = "Hello ArkTS, welcome to ArkTS";
+      arktest.assertEQ(value.startsWith("Hel"), true);
+
+  - desc: Basic union type(string endsWith).
+    dec1: |-
+      type StringOrNumber = string | number;
+    check: |-
+      let value: StringOrNumber = "Hello ArkTS, welcome to ArkTS";
+      arktest.assertEQ(value.endsWith("ArkTS"), true);
+
+  - desc: Basic union type(string repeat).
+    dec1: |-
+      type StringOrNumber = string | number;
+    check: |-
+      let value: StringOrNumber = ("Hello").repeat(0);
+      arktest.assertEQ(value, "");
+
+  - desc: Basic union type(number calculation except).
+    dec1: |-
+      type StringOrNumber = string | number;
+    check: |-
+      let value: StringOrNumber = 3 / 3;
+      arktest.assertEQ(value, 1);
+
+  - desc: Basic union type(number calculation delivery).
+    dec1: |-
+      type StringOrNumber = string | number;
+    check: |-
+      let value: StringOrNumber = 3 % 3;
+      arktest.assertEQ(value, 0);
+
+  - desc: Union types are assigned as parameters(number).
+    dec1: |-
+      function printValue(value: string | number): string {
+        return(`Value: ${value}`);
+      }
+    check: |-
+      arktest.assertEQ(printValue(6), "Value: 6");
+
+  - desc: Union types as parameters to type aliases(string).
+    dec1: |-
+      type ID = string | number;
+      function printValue(id: ID): string {
+        return(`ID: ${id}`);
+      }
+    check: |-
+      arktest.assertEQ(printValue("str"), "ID: str");
+
+  - desc: Union types as generic parameters(string).
+    dec1: |-
+      function printValue<T extends string | number>(value: T): string {
+        return(`Value: ${value}`);
+      }
+    check: |-
+      arktest.assertEQ(printValue("str"), "Value: str");
+
+  - desc: Union types as generic parameters(number).
+    dec1: |-
+      function printValue<T extends string | number>(value: T): string {
+        return(`Value: ${value}`);
+      }
+    check: |-
+      arktest.assertEQ(printValue(66), "Value: 66");
+
+  - desc: Union types are assigned as attributes of a class.
+    dec1: |-
+      class Person {
+        name: string;
+        age: number | string;
+
+      constructor(name: string, age: number | string) {
+        this.name = name;
+        this.age = age;
+      }
+
+      printInfo(): string {
+        return(`Name: ${this.name}, Age: ${this.age}`);
+        }
+      }
+    check: |-
+      let person1 = new Person("Alice", 30);
+      arktest.assertEQ(person1.printInfo(), 'Name: Alice, Age: 30');
+
+  - desc: Union types are assigned as attributes of a class(other type).
+    dec1: |-
+      class Person {
+        name: string;
+        age: number | string;
+
+      constructor(name: string, age: number | string) {
+        this.name = name;
+        this.age = age;
+      }
+
+      printInfo(): string {
+        return(`Name: ${this.name}, Age: ${this.age}`);
+        }
+      }
+    check: |-
+      let person1 = new Person("Bob", "thirty");
+      arktest.assertEQ(person1.printInfo(), 'Name: Bob, Age: thirty');
+
+  - desc: Union types are assigned as attributes of a class(modify properties name).
+    dec1: |-
+      class Person {
+        name: string;
+        age: number | string;
+
+      constructor(name: string, age: number | string) {
+        this.name = name;
+        this.age = age;
+      }
+
+      printInfo(): string {
+        return(`Name: ${this.name}, Age: ${this.age}`);
+        }
+      }
+    check: |-
+      let person1 = new Person("Alice", 30);
+      person1.name = 'Bob';
+      arktest.assertEQ(person1.printInfo(), 'Name: Bob, Age: 30');
+
+  - desc: Union type + null or undefined.
+    dec1: |-
+      type StringOrNumberOrNull = string | number | null | undefined;
+    check: |-
+      let value: StringOrNumberOrNull;
+      value = null;
+      arktest.assertEQ(value, null);
+
+  - desc: Union type + array (mixed type).
+    dec1: |-
+      type MixedArray = (string | number | boolean)[];
+    check: |-
+      let user: MixedArray;
+      user = ["hello", 42, true];
+      arktest.assertEQ(user[0], 'hello');
+
+  - desc: Union type + array (mixed type output number).
+    dec1: |-
+      type MixedArray = (string | number | boolean)[];
+    check: |-
+      let user: MixedArray;
+      user = ["hello", 42, true];
+      arktest.assertEQ(user[1], 42);
+
+  - desc: Union type + array (array operation assignment).
+    dec1: |-
+      type MixedArray = (string | number | boolean)[];
+    check: |-
+      let user: MixedArray;
+      user = ["hello", 42, true];
+      user[1] = 66;
+      arktest.assertEQ(user[1], 66);
+
+  - desc: Union type + array (array operation assignment length).
+    dec1: |-
+      type MixedArray = (string | number | boolean)[];
+    check: |-
+      let user: MixedArray;
+      user = ["hello", 42, true];
+      arktest.assertEQ(user.length, 3);
+
+  - desc: Union type + function return value.
+    dec1: |-
+      function parseInput(input: string): string | number {
+        const parsed = Number(input);
+        return isNaN(parsed) ? input : parsed;
+      }
+    check: |-
+      arktest.assertEQ(parseInput('hello'), 'hello');
+
+  - desc: Union type + function return value(return number).
+    dec1: |-
+      function parseInput(input: string): string | number {
+        const parsed = Number(input);
+        return isNaN(parsed) ? input : parsed;
+      }
+    check: |-
+      arktest.assertEQ(parseInput('666'), 666);
+
+  - desc: Union type + generic constraint(number).
+    dec1: |-
+      function printIfValid<T extends string | number>(value: T) {
+        return(`Valid value: ${value}`);
+      }
+    check: |-
+      arktest.assertEQ(printIfValid(100), "Valid value: 100");
+
+  - desc: Union types as function return values(return int).
+    dec1: |-
+      function getData(flag: string): boolean | int {
+        if (flag === 'int') {
+          return 66;
+        }
+        return false
+      }
+    check: |-
+      arktest.assertEQ(getData('int'), 66);
+
+  - desc: Union types as function return values(return boolean false).
+    dec1: |-
+      function getData(flag: string): boolean | int {
+        if (flag === 'yes') {
+          return true;
+        }
+        return false
+      }
+    check: |-
+      arktest.assertEQ(getData('no'), false);
+
+  - desc: Union type assignment implements state mechanism(resolve).
+    dec1: |-
+      type State = 'idle' | 'loading' | 'success' | 'error';
+      type TransitionEvent = 'start' | 'resolve' | 'reject' | 'reset';
+
+      class StateMachine {
+      private state: State = 'loading';
+
+      transition(event: TransitionEvent): State {
+        switch (this.state) {
+          case 'idle':
+            if (event === 'start') this.state = 'loading';
+              break;
+          case 'loading':
+            if (event === 'resolve') this.state = 'success';
+            if (event === 'reject') this.state = 'error';
+              break;
+          default:
+            if (event === 'reset') this.state = 'idle';
+          }
+          return this.state;
+          }
+        }
+    check: |-
+      const sm = new StateMachine();
+      arktest.assertEQ(sm.transition('resolve'), "success");
+
+  - desc: Union type assignment implements state mechanism(reject).
+    dec1: |-
+      type State = 'idle' | 'loading' | 'success' | 'error';
+      type TransitionEvent = 'start' | 'resolve' | 'reject' | 'reset';
+
+      class StateMachine {
+      private state: State = 'loading';
+
+      transition(event: TransitionEvent): State {
+        switch (this.state) {
+          case 'idle':
+            if (event === 'start') this.state = 'loading';
+              break;
+          case 'loading':
+            if (event === 'resolve') this.state = 'success';
+            if (event === 'reject') this.state = 'error';
+              break;
+          default:
+            if (event === 'reset') this.state = 'idle';
+          }
+          return this.state;
+          }
+        }
+    check: |-
+      const sm = new StateMachine();
+      arktest.assertEQ(sm.transition('reject'), "error");
+
+  - desc: Union type assignment implements state mechanism(reset).
+    dec1: |-
+      type State = 'idle' | 'loading' | 'success' | 'error';
+      type TransitionEvent = 'start' | 'resolve' | 'reject' | 'reset';
+
+      class StateMachine {
+      private state: State = 'error';
+
+      transition(event: TransitionEvent): State {
+        switch (this.state) {
+          case 'idle':
+            if (event === 'start') this.state = 'loading';
+              break;
+          case 'loading':
+            if (event === 'resolve') this.state = 'success';
+            if (event === 'reject') this.state = 'error';
+              break;
+          default:
+            if (event === 'reset') this.state = 'idle';
+          }
+          return this.state;
+          }
+        }
+    check: |-
+      const sm = new StateMachine();
+      arktest.assertEQ(sm.transition('reset'), "idle");
+
+  - desc: Union types as map types(number key).
+    dec1: |-
+      type ID = string | number;
+      const users = new Map<ID, string>();
+    check: |-
+      users.set(2, "Bob");
+      arktest.assertEQ(users.get(2), "Bob");
+
+  - desc: Union types as map types(error key).
+    dec1: |-
+      type ID = string | number;
+      const users = new Map<ID, string>();
+    check: |-
+      users.set(2, "Bob");
+      arktest.assertEQ(users.get(666), undefined);
+
+  - desc: Union type + readonly modifier(output number).
+    dec1: |-
+      type ReadonlyData = readonly (string | number)[];
+    check: |-
+      const data: ReadonlyData = ["A", 1, "B", 2];
+      arktest.assertEQ(data[1], 1);
+
+  - desc: Union types are assigned as private variables of the class(number value).
+    dec1: |-
+      class Storage {
+        private data: string | number;
+        constructor(initialData: string | number) {
+          this.data = initialData;
+        }
+        getData(): string | number {
+          return this.data;
+        }
+        setData(newData: string | number) {
+          this.data = newData;
+        }
+      }
+    check: |-
+      const storage = new Storage(666);
+      arktest.assertEQ(storage.getData(), 666);
+
+  - desc: Basic string union type. The test union type is "red" | "green" | "blue" and green is passed in. The case that matches 2 is expected.
+    dec1: |-
+      function unitedSwitch(input: 'red' | 'green' | 'blue'): string {
+        switch (input) {
+          case 'red':
+            return 'red';
+        case 'green':
+          return 'green';
+        case 'blue':
+          return 'blue';
+        default:
+          return 'fail';
+        }
+      }
+    check: |-
+      let input: 'red' | 'green' | 'blue' = 'green';
+      arktest.assertEQ(unitedSwitch(input), 'green');
+
+  - desc: Basic string union type. The test union type is "red" | "green" | "blue" and blue is passed in. The case that matches 2 is expected.
+    dec1: |-
+      function unitedSwitch(input: 'red' | 'green' | 'blue'): string {
+        switch (input) {
+          case 'red':
+            return 'red';
+        case 'green':
+          return 'green';
+        case 'blue':
+          return 'blue';
+        default:
+          return 'fail';
+        }
+      }
+    check: |-
+      let input: 'red' | 'green' | 'blue' = 'blue';
+      arktest.assertEQ(unitedSwitch(input), 'blue');
+
+  - desc: Joint switch test with literal type.
+    dec1: |-
+      type TrafficLight = 'red' | 'yellow' | 'green' | 'wait';
+      function getTrafficAction(light: TrafficLight): string {
+        switch (light) {
+          case 'red':
+            return 'Stop';
+          case 'yellow':
+            return 'Caution';
+          case 'green':
+            return 'Go';
+          default:
+            return 'wait';
+        }
+      }
+    check: |-
+      arktest.assertEQ(getTrafficAction('red'), 'Stop');
+
+  - desc: Joint switch test with literal type(yellow).
+    dec1: |-
+      type TrafficLight = 'red' | 'yellow' | 'green' | 'wait';
+      function getTrafficAction(light: TrafficLight): string {
+        switch (light) {
+          case 'red':
+            return 'Stop';
+          case 'yellow':
+            return 'Caution';
+          case 'green':
+            return 'Go';
+          default:
+            return 'wait';
+        }
+      }
+    check: |-
+      arktest.assertEQ(getTrafficAction('yellow'), 'Caution');
+
+  - desc: Joint switch test with literal type(green).
+    dec1: |-
+      type TrafficLight = 'red' | 'yellow' | 'green' | 'wait';
+      function getTrafficAction(light: TrafficLight): string {
+        switch (light) {
+          case 'red':
+            return 'Stop';
+          case 'yellow':
+            return 'Caution';
+          case 'green':
+            return 'Go';
+          default:
+            return 'wait';
+        }
+      }
+    check: |-
+      arktest.assertEQ(getTrafficAction('green'), 'Go');
+
+  - desc: Joint switch test with literal type(wait).
+    dec1: |-
+      type TrafficLight = 'red' | 'yellow' | 'green' | 'wait';
+      function getTrafficAction(light: TrafficLight): string {
+        switch (light) {
+          case 'red':
+            return 'Stop';
+          case 'yellow':
+            return 'Caution';
+          case 'green':
+            return 'Go';
+          default:
+            return 'wait';
+        }
+      }
+    check: |-
+      arktest.assertEQ(getTrafficAction('wait'), 'wait');
+
+  - desc: Positive Test Assigning object literal compatible with class and a string to Class | string union.
+    dec1: |-
+      class UB {
+          name: string = "";
+          age: number = 0;
+      }
+      let val_pos: UB | string;
+    check: |-
+      val_pos = {name: "elma", age:10};
+      arktest.assertEQ((val_pos as UB).name, "elma");
+      arktest.assertEQ((val_pos as UB).age, 10);
+      val_pos = "test_string";
+      arktest.assertEQ(val_pos, "test_string");
+
+  - desc: Positive Test Assigning object literal compatible with interface and a number to Interface | number union.
+    dec1: |-
+      interface IV {
+          id: number;
+          label: string;
+      }
+      let val_pos_interface: IV | number;
+    check: |-
+      val_pos_interface = {id: 1, label: "test"};
+      arktest.assertEQ((val_pos_interface as IV).id, 1);
+      arktest.assertEQ((val_pos_interface as IV).label, "test");
+      val_pos_interface = 123;
+      arktest.assertEQ(val_pos_interface, 123);
+
+  - desc: Positive Test Assigning object literal compatible with class and a boolean to Class | boolean union.
+    dec1: |-
+      class UC {
+          flag: boolean = false;
+          data: string = "";
+      }
+      let val_pos_class: UC | boolean;
+    check: |-
+      val_pos_class = {flag: true, data: "example"};
+      arktest.assertEQ((val_pos_class as UC).flag, true);
+      arktest.assertEQ((val_pos_class as UC).data, "example");
+      val_pos_class = false;
+      arktest.assertEQ(val_pos_class, false);
+
+  - desc: Positive Test Assigning object literal compatible with interface and a string to Interface | string union.
+    dec1: |-
+      interface IA_string {
+          name: string;
+          value: number;
+      }
+      let val_pos_interface_string: IA_string | string;
+    check: |-
+      val_pos_interface_string = {name: "interface_elma", value:20};
+      arktest.assertEQ((val_pos_interface_string as IA_string).name, "interface_elma");
+      arktest.assertEQ((val_pos_interface_string as IA_string).value, 20);
+      val_pos_interface_string = "test_interface_string";
+      arktest.assertEQ(val_pos_interface_string, "test_interface_string");
+
+  - desc: Positive Test Assigning object literal compatible with interface and a number to Interface | number union.
+    dec1: |-
+      interface IA_number {
+          id_num: number;
+          label_text: string;
+      }
+      let val_pos_interface_number: IA_number | number;
+    check: |-
+      val_pos_interface_number = {id_num: 2, label_text: "interface_test"};
+      arktest.assertEQ((val_pos_interface_number as IA_number).id_num, 2);
+      arktest.assertEQ((val_pos_interface_number as IA_number).label_text, "interface_test");
+      val_pos_interface_number = 234;
+      arktest.assertEQ(val_pos_interface_number, 234);
+
+  - desc: Positive Test Assigning object literal compatible with interface and a boolean to Interface | boolean union.
+    dec1: |-
+      interface IA_boolean {
+          isActive: boolean;
+          content: string;
+      }
+      let val_pos_interface_boolean: IA_boolean | boolean;
+    check: |-
+      val_pos_interface_boolean = {isActive: false, content: "interface_example"};
+      arktest.assertEQ((val_pos_interface_boolean as IA_boolean).isActive, false);
+      arktest.assertEQ((val_pos_interface_boolean as IA_boolean).content, "interface_example");
+      val_pos_interface_boolean = true;
+      arktest.assertEQ(val_pos_interface_boolean, true);
+
+  - desc: P1 - Union with two distinct classes and a primitive, assigning object literal to class.
+    dec1: |-
+      class P_C1 { p1: string = ""; }
+      class P_C2 { p2: number = 0; }
+      let val_p1: P_C1 | P_C2 | boolean;
+    check: |-
+      val_p1 = { p1: "test_p1" };
+      arktest.assertEQ((val_p1 as P_C1).p1, "test_p1");
+      val_p1 = { p2: 100 };
+      arktest.assertEQ((val_p1 as P_C2).p2, 100);
+      val_p1 = true;
+      arktest.assertEQ(val_p1, true);
+
+  - desc: P2 - Union with two distinct interfaces and a primitive, assigning object literal to interface.
+    dec1: |-
+      interface P_I1 { i1: string; }
+      interface P_I2 { i2: number; }
+      let val_p2: P_I1 | P_I2 | boolean;
+    check: |-
+      val_p2 = { i1: "test_i1" };
+      arktest.assertEQ((val_p2 as P_I1).i1, "test_i1");
+      val_p2 = { i2: 200 };
+      arktest.assertEQ((val_p2 as P_I2).i2, 200);
+      val_p2 = false;
+      arktest.assertEQ(val_p2, false);
+
+  - desc: P3 - Assigning an instance of a class to a class union.
+    dec1: |-
+      class P_C3 { data: string; constructor(d:string){this.data=d;} }
+      class P_C4 { info: number = 0; }
+      let val_p3: P_C3 | P_C4;
+    check: |-
+      val_p3 = new P_C3("hello_p3");
+      arktest.assertEQ((val_p3 as P_C3).data, "hello_p3");
+      let c4_instance = new P_C4();
+      c4_instance.info = 300;
+      val_p3 = c4_instance;
+      arktest.assertEQ((val_p3 as P_C4).info, 300);
+
+  - desc: P4 - Union including null, assigning object literal compatible with a class.
+    dec1: |-
+      class P_C5 { item: string = ""; }
+      let val_p4: P_C5 | null;
+    check: |-
+      val_p4 = { item: "world_p4" };
+      arktest.assertEQ((val_p4 as P_C5).item, "world_p4");
+      val_p4 = null;
+      arktest.assertEQ(val_p4, null);
+
+  - desc: P5 - Union including undefined, assigning object literal compatible with an interface.
+    dec1: |-
+      interface P_I3 { key: number; }
+      let val_p5: P_I3 | undefined;
+    check: |-
+      val_p5 = { key: 777 };
+      arktest.assertEQ((val_p5 as P_I3).key, 777);
+      val_p5 = undefined;
+      arktest.assertEQ(val_p5, undefined);
+
+  - desc: P_Guard_InstanceOf - Class union, use instanceof for cast-less access.
+    dec1: |-
+      class G_C1 { c1_data: string = "c1"; constructor(data:string){this.c1_data=data;} }
+      class G_C2 { c2_val: number = 0; constructor(val:number){this.c2_val=val;} }
+    check: |-
+      let val_guard_c: G_C1 | G_C2;
+
+      val_guard_c = new G_C1("data for c1");
+      arktest.assertEQ(val_guard_c.c1_data, "data for c1");
+
+      val_guard_c = new G_C2(123);
+      arktest.assertEQ(val_guard_c.c2_val, 123);
+
+  - desc: P_DirectAccess_MultiClass - Union of three classes, direct property access after assignment.
+    dec1: |-
+      class DA_C1 { propA: string = "defaultA"; constructor(pa: string){ this.propA = pa; } }
+      class DA_C2 { propB: number = 0; constructor(pb: number){ this.propB = pb; } }
+      class DA_C3 { propC: boolean = false; constructor(pc: boolean){ this.propC = pc; } }
+    check: |-
+      let val_da_mc: DA_C1 | DA_C2 | DA_C3;
+
+      val_da_mc = new DA_C1("valA");
+      arktest.assertEQ(val_da_mc.propA, "valA");
+
+      val_da_mc = new DA_C2(101);
+      arktest.assertEQ(val_da_mc.propB, 101);
+
+      val_da_mc = new DA_C3(true);
+      arktest.assertEQ(val_da_mc.propC, true);
+
+  - desc: P_DirectAccess_ClassMethod - Union of classes with methods, direct method call after assignment.
+    dec1: |-
+      class DA_M1 {
+        private data: string;
+        constructor(d: string) { this.data = d; }
+        get_m1_data(): string { return "M1:" + this.data; }
+      }
+      class DA_M2 {
+        private val: number;
+        constructor(v: number) { this.val = v; }
+        get_m2_val(): number { return this.val * 2; }
+      }
+    check: |-
+      let val_da_m: DA_M1 | DA_M2;
+
+      val_da_m = new DA_M1("test");
+      arktest.assertEQ(val_da_m.get_m1_data(), "M1:test");
+
+      val_da_m = new DA_M2(50);
+      arktest.assertEQ(val_da_m.get_m2_val(), 100);
+
+  - desc: P_DirectAccess_SharedPropNameDifferentTypes - Union of classes with shared property name but different types, direct access after assignment.
+    dec1: |-
+      class DA_S1 { shared_prop: string = "s1_default"; constructor(p: string) { this.shared_prop = p; } }
+      class DA_S2 { shared_prop: number = 0; constructor(p: number) { this.shared_prop = p; } }
+      class DA_S3 { shared_prop: boolean = false; constructor(p: boolean) { this.shared_prop = p; } }
+    check: |-
+      let val_da_s: DA_S1 | DA_S2 | DA_S3;
+
+      val_da_s = new DA_S1("value_is_string");
+      arktest.assertEQ(val_da_s.shared_prop, "value_is_string"); // val_da_s is DA_S1 here
+
+      val_da_s = new DA_S2(999);
+      arktest.assertEQ(val_da_s.shared_prop, 999); // val_da_s is DA_S2 here
+      
+      val_da_s = new DA_S3(true);
+      arktest.assertEQ(val_da_s.shared_prop, true); // val_da_s is DA_S3 here
+
+  - desc: P_DirectAccess_ClassWithOptionalAndPrimitive - Union with class having optional property, and primitives.
+    dec1: |-
+      class DA_Opt {
+        name: string;
+        value?: number;
+        constructor(name: string, value?: number) {
+          this.name = name;
+          if (value !== undefined) {
+            this.value = value;
+          }
+        }
+      }
+    check: |-
+      let val_da_op: DA_Opt | string | null;
+
+      val_da_op = new DA_Opt("obj1", 10);
+      arktest.assertEQ(val_da_op.name, "obj1");   // Direct access: val_da_op is DA_Opt
+      arktest.assertEQ(val_da_op.value, 10);    // Direct access: val_da_op is DA_Opt
+
+      val_da_op = new DA_Opt("obj2");
+      arktest.assertEQ(val_da_op.name, "obj2");   // Direct access: val_da_op is DA_Opt
+      arktest.assertEQ(val_da_op.value, undefined); // Direct access: val_da_op is DA_Opt
+
+      val_da_op = "a string value";
+      arktest.assertEQ(val_da_op, "a string value"); // val_da_op is string
+
+      val_da_op = null;
+      arktest.assertEQ(val_da_op, null); // val_da_op is null

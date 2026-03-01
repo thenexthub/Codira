@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+set -e
+
+main_args=()
+extra_args=()
+
+ninja_flags=()
+ninja_targets=()
+
+after_double_dash=false
+
+save_source_files_for_each_target=false
+verbose=false
+chapters=""
+chapter_id=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -ssf|--save-source-files-for-each-target)
+            save_source_files_for_each_target=true
+            shift
+            ;;
+        -v|--verbose)
+            verbose=true
+            shift
+            ;;
+        --chapters)
+            chapters="$2"
+            shift 2
+            ;;
+        --chapter-id)
+            chapter_id="$2"
+            shift 2
+            ;;
+        --)
+            shift
+            extra_args=("$@")
+            break
+            ;;
+        -*)
+        echo "Unknown option: $1" >&2
+        exit 1
+        ;;
+    esac
+done
+
+if [[ ${#extra_args[@]} -gt 0 ]]; then
+    for arg in "${extra_args[@]}"; do
+        if [[ "$arg" == -* ]]; then
+            ninja_flags+=("$arg")
+        else
+            ninja_targets+=("$arg")
+        fi
+    done
+    if [[ "${verbose}" == "true" ]]; then
+        echo "==========================================="
+        echo "[INFO] Ninja flags: ${ninja_flags[@]}"
+        echo "==========================================="
+        echo "[INFO] Ninja targets: ${ninja_targets[@]}"
+        echo "==========================================="
+    fi
+fi
+
+if [[ "${save_source_files_for_each_target}" == "true" ]]; then
+    for target in "${ninja_targets[@]}"; do
+        file_name="$PWD/component_${target}_component_cpp_files.txt"
+        ninja -t commands ${target} | grep -o '\-c\s\+[^ ]\+' | cut -d' ' -f2 > ${file_name}
+        sed -i "\|third_party/|d" ${file_name}
+    done
+fi
+
+split_array() {
+    local -n arr=$1
+    local parts=$2
+    local part_id=$3
+
+    local total=${#arr[@]}
+    local part_size=$(( (total + parts - 1) / parts ))
+    local start=$((part_id * part_size))
+    local end=$((start + part_size))
+
+    if [[ $end -gt $total ]]; then
+        end=$total
+    fi
+
+    if [[ $start -lt $end ]]; then
+        printf "%s\n" "${arr[@]:$start:$((end - start))}"
+    fi
+}
+
+sort_array() {
+    local -n src_arr=$1
+    local -n dst_arr=$2
+    local IFS=$'\n'
+    dst_arr=($(LC_ALL=C sort <<<"${src_arr[*]}"))
+}
+
+if [[ -n "${chapters}" ]]; then
+    targets_first_layer=()
+    targets_second_layer=()
+    for arg in "${extra_args[@]}"; do
+        if [[ "${arg}" = *"test"* ]]; then
+            mapfile -t targets1 < <(ninja -t query "${arg}" | awk '/^  input:/ {in_input=1; next}
+                                            /^  [a-zA-Z]+:/ {in_input=0}
+                                            in_input && /^    [^ ]/ && $1 != "phony" {print $1}')
+            targets_first_layer+=("${targets1[@]}")
+        fi
+    done
+    for arg in "${targets_first_layer[@]}"; do
+        mapfile -t targets2 < <(ninja -t query "${arg}" | awk '/^  input:/ {in_input=1; next}
+                                            /^  [a-zA-Z]+:/ {in_input=0}
+                                            in_input && /^    [^ ]/ && $1 != "phony" {print $1}')
+        targets_second_layer+=("${targets2[@]}")
+    done
+    sort_array targets_second_layer sorted_array
+    selected_targets=$(split_array sorted_array "${chapters}" "${chapter_id}")
+    ninja_targets=(${selected_targets[@]})
+
+    if [[ "${verbose}" == "true" ]]; then
+        echo "[INFO] Result of first call 'ninja -t query': ${targets_first_layer[@]}"
+        echo "==========================================="
+        echo "[INFO] Result of second call 'ninja -t query': ${targets_second_layer[@]}"
+        echo "==========================================="
+        echo "[INFO] Result after sorting: ${sorted_array[@]}"
+        echo "==========================================="
+        echo "[INFO] Ninja targets is: ${ninja_targets[@]}"
+        echo "==========================================="
+    fi
+fi
+
+set -x
+ninja ${ninja_flags[@]} ${ninja_targets[@]}

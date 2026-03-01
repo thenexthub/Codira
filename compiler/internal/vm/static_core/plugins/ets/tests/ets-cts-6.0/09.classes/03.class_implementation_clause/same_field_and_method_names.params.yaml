@@ -1,0 +1,48 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+--- # List of wildcard type arguments
+class_types:
+    - "abstract"
+    - "final"
+    - ""
+
+cases:
+    - doc: "class method and interface field"
+      interface: "foo: int"
+      class: "foo(): int { return 1;}"
+      tags: "compile-only, negative"
+
+    - doc: "class field and interface method"
+      interface: "foo(): int"
+      class: "foo: int"
+      tags: "compile-only, negative"
+
+    - doc: "class static method and interface non-static field"
+      interface: "foo: int"
+      class: "static foo(): int { return 1;}; foo = 1"
+      tags: "compile-only"
+
+    - doc: "class static field and interface non-static method"
+      interface: "foo(): int"
+      class: "static foo: int; foo() { return 1;}"
+      tags: "compile-only"

@@ -1,0 +1,115 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+cases:
+  # classes
+  - import: |-
+      Ambient as A
+    use: |-
+      arktest.assertEQ(A.a, 1) 
+  - import: |-
+      Ambient as A
+    use: |-
+      arktest.assertEQ(A.x, 1)
+      arktest.assertEQ(A.y, 2.0)
+      arktest.assertEQ(A.z, 'z')
+  - import: |-
+      Ambient as A
+    use: |-
+      arktest.assertEQ(A.x, 'object')
+      arktest.assertEQ(A.y, 1.0)
+      arktest.assertEQ(A.z[0], 72)
+  - import: |-
+      Ambient as A
+    use: |-
+      arktest.assertEQ(A.foo(), 1)
+  - import: |-
+      Ambient
+    use: |-
+      const a: Ambient.A = new Ambient.A()
+      arktest.assertEQ(a.a, 'a')
+  - import: |-
+      Ambient
+    use: |-
+      const a: Ambient.A = { a: 'a'}
+      arktest.assertEQ(a.a, 'a')
+  - import: |-
+      Ambient
+    use: |-
+      arktest.assertEQ(Ambient.NestedAmbient.foo('a'), 'a')
+  - import: |-
+      Ambient as A
+    use: |-
+      const a: A.ColorExp = A.ColorExp.Red
+      arktest.assertEQ(a, 3)
+  - import: |-
+      Ambient as A
+    use: |-
+      const a: A.SeasonExp = A.SeasonExp.Winter
+      arktest.assertEQ(a, 'w')
+  - import: |-
+      Ambient as A
+    use: |-
+      const a: A.MatrixExp = [[1,2],[1,2]]
+      arktest.assertEQ(a[0][0], 1)
+      arktest.assertEQ(a[0][1], 2)
+      arktest.assertEQ(a[1][0], 1)
+      arktest.assertEQ(a[1][1], 2)
+  - import: |-
+      Ambient as A
+    use: |-
+      arktest.assertEQ(A.NestedAmbientExp.x, 2)
+      arktest.assertEQ(A.NestedAmbientExp.y, 2.0)
+      arktest.assertEQ(A.NestedAmbientExp.foo(), 3)
+      const a: A.NestedAmbientExp.A = new A.NestedAmbientExp.A 
+      arktest.assertEQ(a.a, 'a')
+      const i: A.NestedAmbientExp.I = { a: 'a'}
+      arktest.assertEQ(i.a, 'a')
+      const s: A.NestedAmbientExp.Color = A.NestedAmbientExp.Color.Blue
+      arktest.assertEQ(s, 4)
+      const w: A.NestedAmbientExp.Season = A.NestedAmbientExp.Season.Winter
+      arktest.assertEQ(w, 'w')
+      const m: A.NestedAmbientExp.Matrix = [[1,2],[1,2]]
+      arktest.assertEQ(m[0][0], 1)
+      arktest.assertEQ(m[0][1], 2)
+      arktest.assertEQ(m[1][0], 1)
+      arktest.assertEQ(m[1][1], 2)
+  # accessability - not only top-level
+  - import: |-
+      Ambient as A
+    decl: |-
+      function foo(): int {
+        return A.a
+      }
+    use: |-
+      arktest.assertEQ(foo(), 1)
+  - import: |-
+      Ambient as A
+    decl: |-
+      class C {
+        foo(): number {
+          return A.foo()
+        }
+      }
+    use: |-
+      const c: C = new C()
+      arktest.assertEQ(c.foo(), 1)

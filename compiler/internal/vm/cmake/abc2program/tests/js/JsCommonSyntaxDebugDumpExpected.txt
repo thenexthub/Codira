@@ -1,0 +1,565 @@
+# source binary: arkcompiler/runtime_core/abc2program/tests/JsCommonSyntaxDebug.abc
+
+# ====================
+# LITERALS
+
+_ESModuleRecord_1580 { 18 [ i32:0, i32:0, i32:0, i32:6, string:"Config", string:"Config", string:"Derived", string:"Derived", string:"JsPeople", string:"JsPeople", string:"MyClass", string:"MyClass", string:"Person", string:"Person", string:"SecretBox", string:"SecretBox", i32:0, i32:0, ]}
+
+_ESScopeNamesRecord_1541 { 14 [ tag_value:5, string:"Person", tag_value:5, string:"MyClass", tag_value:5, string:"JsPeople", tag_value:5, string:"Base", tag_value:5, string:"Derived", tag_value:5, string:"SecretBox", tag_value:5, string:"Config", ]}
+
+_GLOBAL_1656 { 8 [ tag_value:5, string:"getSecret", tag_value:6, method:.#~@5>#getSecret, tag_value:9, method_affiliate:0, tag_value:2, i32:1, ]}
+
+_GLOBAL_1678 { 2 [ tag_value:2, i32:0, ]}
+
+_GLOBAL_1687 { 2 [ tag_value:2, i32:0, ]}
+
+_GLOBAL_1696 { 2 [ tag_value:2, i32:0, ]}
+
+_GLOBAL_1705 { 2 [ tag_value:2, i32:0, ]}
+
+_GLOBAL_1714 { 2 [ tag_value:2, i32:0, ]}
+
+_GLOBAL_1723 { 2 [ tag_value:2, i32:0, ]}
+
+_GLOBAL_1732 { 8 [ tag_value:5, string:"getName", tag_value:6, method:.#~@2>#getName, tag_value:9, method_affiliate:0, tag_value:2, i32:1, ]}
+
+_GLOBAL_1754 { 2 [ tag_value:2, i32:0, ]}
+
+_GLOBAL_1763 { 2 [ tag_value:2, i32:0, ]}
+
+_GLOBAL_1772 { 2 [ tag_value:2, i32:0, ]}
+
+
+
+# ====================
+# RECORDS
+
+.language ECMAScript
+.record _ESExpectedPropertyCountAnnotation {
+}
+.record.source_file 
+
+.language ECMAScript
+.record _ESModuleRecord {
+	u32 arkcompiler/runtime_core/abc2program/tests/js/JsCommonSyntax.js _ESModuleRecord_1403
+}
+.record.source_file 
+
+.language ECMAScript
+.record _ESScopeNamesRecord {
+	u32 arkcompiler/runtime_core/abc2program/tests/js/JsCommonSyntax.js _ESScopeNamesRecord_1369
+}
+.record.source_file 
+
+.language ECMAScript
+.record _ESSlotNumberAnnotation {
+}
+.record.source_file 
+
+.language ECMAScript
+.record _GLOBAL {
+}
+.record.source_file 
+
+
+# ====================
+# METHODS
+
+.function_kind FunctionKind::NONE
+ _ESExpectedPropertyCountAnnotation
+ ExpectedPropertyCount 2
+ _ESSlotNumberAnnotation
+ SlotNumber 4
+.language ECMAScript
+.function any .#~@0=#Person(any a0, any a1, any a2, any a3, any a4) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	mov v3, a3                               # line: 18446744073709551615           # column: 4294967295
+	mov v4, a4                               # line: 18446744073709551615           # column: 4294967295
+	lda v2                                   # line: 17           # column: 4
+	sta v6                                   # line: 17           # column: 4
+	lda v3                                   # line: 17           # column: 16
+	stobjbyname 0x0, name, v6                # line: 17           # column: 4
+	lda v2                                   # line: 18           # column: 4
+	sta v6                                   # line: 18           # column: 4
+	lda v4                                   # line: 18           # column: 15
+	stobjbyname 0x2, age, v6                 # line: 18           # column: 4
+	lda v2                                   # line: 18446744073709551615           # column: 4294967295
+	return                                   # line: 19           # column: 3
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    5       10         0       4funcObj         any
+	    5       10         1     4newTarget         any
+	    5       10         2           this         any
+	    5       10         3           name         any
+	    5       10         4            age         any
+}
+
+.function_kind FunctionKind::NONE
+ _ESExpectedPropertyCountAnnotation
+ ExpectedPropertyCount 1
+ _ESSlotNumberAnnotation
+ SlotNumber 2
+.language ECMAScript
+.function any .#~@1=#MyClass(any a0, any a1, any a2) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	lda v2                                   # line: 18446744073709551615           # column: 4294967295
+	sta v4                                   # line: 18446744073709551615           # column: 4294967295
+	ldlexvar 0x0, 0x0                        # line: 18446744073709551615           # column: 4294967295
+	callruntime.callinit 0x0, v4             # line: 18446744073709551615           # column: 4294967295
+	lda v2                                   # line: 18446744073709551615           # column: 4294967295
+	return                                   # line: 26           # column: 3
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    3        6         0       4funcObj         any
+	    3        6         1     4newTarget         any
+	    3        6         2           this         any
+}
+
+.function_kind FunctionKind::NONE
+ _ESSlotNumberAnnotation
+ SlotNumber 2
+.language ECMAScript
+.function any .#~@1>#instance_initializer(any a0, any a1, any a2) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	lda v2                                   # line: 18446744073709551615           # column: 4294967295
+	sta v4                                   # line: 18446744073709551615           # column: 4294967295
+	ldundefined                              # line: 23           # column: 2
+	definepropertybyname 0x0, name, v4       # line: 23           # column: 2
+	ldundefined                              # line: 18446744073709551615           # column: 4294967295
+	returnundefined                          # line: 18446744073709551615           # column: 4294967295
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    3        6         0       4funcObj         any
+	    3        6         1     4newTarget         any
+	    3        6         2           this         any
+}
+
+.function_kind FunctionKind::NONE
+ _ESExpectedPropertyCountAnnotation
+ ExpectedPropertyCount 2
+ _ESSlotNumberAnnotation
+ SlotNumber 6
+.language ECMAScript
+.function any .#~@2=#JsPeople(any a0, any a1, any a2, any a3, any a4) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	mov v3, a3                               # line: 18446744073709551615           # column: 4294967295
+	mov v4, a4                               # line: 18446744073709551615           # column: 4294967295
+	lda v2                                   # line: 18446744073709551615           # column: 4294967295
+	sta v6                                   # line: 18446744073709551615           # column: 4294967295
+	ldlexvar 0x0, 0x0                        # line: 18446744073709551615           # column: 4294967295
+	callruntime.callinit 0x0, v6             # line: 18446744073709551615           # column: 4294967295
+	lda v2                                   # line: 34           # column: 4
+	sta v6                                   # line: 34           # column: 4
+	lda v3                                   # line: 34           # column: 16
+	stobjbyname 0x2, name, v6                # line: 34           # column: 4
+	lda v2                                   # line: 35           # column: 4
+	sta v6                                   # line: 35           # column: 4
+	lda v4                                   # line: 35           # column: 15
+	stobjbyname 0x4, age, v6                 # line: 35           # column: 4
+	lda v2                                   # line: 18446744073709551615           # column: 4294967295
+	return                                   # line: 36           # column: 3
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    5       14         0       4funcObj         any
+	    5       14         1     4newTarget         any
+	    5       14         2           this         any
+	    5       14         3           name         any
+	    5       14         4            age         any
+}
+
+.function_kind FunctionKind::NONE
+ _ESSlotNumberAnnotation
+ SlotNumber 2
+.language ECMAScript
+.function any .#~@2>#getName(any a0, any a1, any a2) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	lda v2                                   # line: 39           # column: 11
+	sta v4                                   # line: 39           # column: 11
+	lda v4                                   # line: 39           # column: 16
+	ldobjbyname 0x0, name                    # line: 39           # column: 16
+	return                                   # line: 40           # column: 3
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    3        5         0       4funcObj         any
+	    3        5         1     4newTarget         any
+	    3        5         2           this         any
+}
+
+.function_kind FunctionKind::NONE
+ _ESSlotNumberAnnotation
+ SlotNumber 4
+.language ECMAScript
+.function any .#~@2>#instance_initializer(any a0, any a1, any a2) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	lda v2                                   # line: 18446744073709551615           # column: 4294967295
+	sta v4                                   # line: 18446744073709551615           # column: 4294967295
+	ldundefined                              # line: 30           # column: 2
+	definepropertybyname 0x0, name, v4       # line: 30           # column: 2
+	ldundefined                              # line: 31           # column: 2
+	definepropertybyname 0x2, age, v4        # line: 31           # column: 2
+	ldundefined                              # line: 18446744073709551615           # column: 4294967295
+	returnundefined                          # line: 18446744073709551615           # column: 4294967295
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    3        8         0       4funcObj         any
+	    3        8         1     4newTarget         any
+	    3        8         2           this         any
+}
+
+.function_kind FunctionKind::NONE
+ _ESExpectedPropertyCountAnnotation
+ ExpectedPropertyCount 1
+ _ESSlotNumberAnnotation
+ SlotNumber 2
+.language ECMAScript
+.function any .#~@3=#Base(any a0, any a1, any a2, any a3) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	mov v3, a3                               # line: 18446744073709551615           # column: 4294967295
+	lda v2                                   # line: 45           # column: 4
+	sta v5                                   # line: 45           # column: 4
+	lda v3                                   # line: 45           # column: 15
+	stobjbyname 0x0, msg, v5                 # line: 45           # column: 4
+	lda v2                                   # line: 18446744073709551615           # column: 4294967295
+	return                                   # line: 46           # column: 3
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    4        6         0       4funcObj         any
+	    4        6         1     4newTarget         any
+	    4        6         2           this         any
+	    4        6         3            msg         any
+}
+
+.function_kind FunctionKind::NONE
+ _ESExpectedPropertyCountAnnotation
+ ExpectedPropertyCount 1
+ _ESSlotNumberAnnotation
+ SlotNumber 4
+.language ECMAScript
+.function any .#~@4=#Derived(any a0, any a1, any a2, any a3, any a4) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	mov v3, a3                               # line: 18446744073709551615           # column: 4294967295
+	mov v4, a4                               # line: 18446744073709551615           # column: 4294967295
+	lda v3                                   # line: 51           # column: 10
+	sta v6                                   # line: 51           # column: 10
+	supercallthisrange 0x0, 0x1, v6          # line: 51           # column: 4
+	sta v6                                   # line: 51           # column: 4
+	lda v2                                   # line: 51           # column: 4
+	throw.ifsupernotcorrectcall 0x1          # line: 51           # column: 4
+	lda v6                                   # line: 51           # column: 4
+	sta v2                                   # line: 51           # column: 4
+	lda v2                                   # line: 52           # column: 4
+	throw.ifsupernotcorrectcall 0x0          # line: 52           # column: 4
+	sta v6                                   # line: 52           # column: 4
+	lda v4                                   # line: 52           # column: 17
+	stobjbyname 0x2, extra, v6               # line: 52           # column: 4
+	lda v2                                   # line: 18446744073709551615           # column: 4294967295
+	throw.ifsupernotcorrectcall 0x0          # line: 18446744073709551615           # column: 4294967295
+	return                                   # line: 53           # column: 3
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    5       16         0       4funcObj         any
+	    5       16         1     4newTarget         any
+	    5       16         2           this         any
+	    5       16         3            msg         any
+	    5       16         4          extra         any
+}
+
+.function_kind FunctionKind::NONE
+ _ESExpectedPropertyCountAnnotation
+ ExpectedPropertyCount 1
+ _ESSlotNumberAnnotation
+ SlotNumber 4
+.language ECMAScript
+.function any .#~@5=#SecretBox(any a0, any a1, any a2, any a3) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	mov v3, a3                               # line: 18446744073709551615           # column: 4294967295
+	lda v2                                   # line: 18446744073709551615           # column: 4294967295
+	sta v5                                   # line: 18446744073709551615           # column: 4294967295
+	ldlexvar 0x0, 0x1                        # line: 18446744073709551615           # column: 4294967295
+	callruntime.callinit 0x0, v5             # line: 18446744073709551615           # column: 4294967295
+	lda v2                                   # line: 59           # column: 4
+	sta v5                                   # line: 59           # column: 4
+	lda v3                                   # line: 59           # column: 19
+	stprivateproperty 0x2, 0x0, 0x0, v5      # line: 59           # column: 4
+	lda v2                                   # line: 18446744073709551615           # column: 4294967295
+	return                                   # line: 60           # column: 3
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    4       10         0       4funcObj         any
+	    4       10         1     4newTarget         any
+	    4       10         2           this         any
+	    4       10         3         secret         any
+}
+
+.function_kind FunctionKind::NONE
+ _ESSlotNumberAnnotation
+ SlotNumber 2
+.language ECMAScript
+.function any .#~@5>#getSecret(any a0, any a1, any a2) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	lda v2                                   # line: 62           # column: 11
+	sta v4                                   # line: 62           # column: 11
+	lda v4                                   # line: 62           # column: 11
+	ldprivateproperty 0x0, 0x0, 0x0          # line: 62           # column: 11
+	return                                   # line: 63           # column: 3
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    3        5         0       4funcObj         any
+	    3        5         1     4newTarget         any
+	    3        5         2           this         any
+}
+
+.function_kind FunctionKind::NONE
+ _ESSlotNumberAnnotation
+ SlotNumber 2
+.language ECMAScript
+.function any .#~@5>#instance_initializer(any a0, any a1, any a2) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	lda v2                                   # line: 18446744073709551615           # column: 4294967295
+	sta v4                                   # line: 18446744073709551615           # column: 4294967295
+	ldundefined                              # line: 57           # column: 2
+	callruntime.defineprivateproperty 0x0, 0x0, 0x0, v4 # line: 57           # column: 2
+	ldundefined                              # line: 18446744073709551615           # column: 4294967295
+	returnundefined                          # line: 18446744073709551615           # column: 4294967295
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    3        6         0       4funcObj         any
+	    3        6         1     4newTarget         any
+	    3        6         2           this         any
+}
+
+.function_kind FunctionKind::NONE
+ _ESExpectedPropertyCountAnnotation
+ ExpectedPropertyCount 2
+ _ESSlotNumberAnnotation
+ SlotNumber 8
+.language ECMAScript
+.function any .#~@6=#Config(any a0, any a1, any a2, any a3) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	mov v3, a3                               # line: 18446744073709551615           # column: 4294967295
+	lda v3                                   # line: 67           # column: 13
+	sta v7                                   # line: 67           # column: 14
+	lda v7                                   # line: 67           # column: 15
+	ldobjbyname 0x0, host                    # line: 67           # column: 15
+	sta v4                                   # line: 67           # column: 15
+	lda v7                                   # line: 67           # column: 21
+	ldobjbyname 0x2, port                    # line: 67           # column: 21
+	sta v5                                   # line: 67           # column: 21
+	lda v7                                   # line: 67           # column: 14
+	lda v2                                   # line: 68           # column: 4
+	sta v7                                   # line: 68           # column: 4
+	lda v4                                   # line: 68           # column: 16
+	stobjbyname 0x4, host, v7                # line: 68           # column: 4
+	lda v2                                   # line: 69           # column: 4
+	sta v7                                   # line: 69           # column: 4
+	lda v5                                   # line: 69           # column: 16
+	stobjbyname 0x6, port, v7                # line: 69           # column: 4
+	lda v2                                   # line: 18446744073709551615           # column: 4294967295
+	return                                   # line: 70           # column: 3
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    4       19         0       4funcObj         any
+	    4       19         1     4newTarget         any
+	    4       19         2           this         any
+	    4       19         3              0         any
+	    4       19         4           host         any
+	    4       19         5           port         any
+}
+
+.function_kind FunctionKind::FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 24
+.language ECMAScript
+.function any .func_main_0(any a0, any a1, any a2) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	ldhole                                   # line: 15           # column: 20
+	sta v7                                   # line: 15           # column: 20
+	defineclasswithbuffer 0x0, .#~@0=#Person, _GLOBAL_1696, 0x2, v7 # line: 15           # column: 20
+	sta v5                                   # line: 15           # column: 20
+	sta v6                                   # line: 15           # column: 13
+	lda v5                                   # line: 15           # column: 20
+	ldobjbyname 0x1, prototype               # line: 15           # column: 20
+	sta v8                                   # line: 15           # column: 20
+	lda v5                                   # line: 15           # column: 20
+	stmodulevar 0x4                          # line: 15           # column: 13
+	newlexenvwithname 0x1, _GLOBAL_1705      # line: 22           # column: 21
+	label@14:                                # line: 0           # column: 0
+	ldhole                                   # line: 22           # column: 21
+	sta v7                                   # line: 22           # column: 21
+	defineclasswithbuffer 0x3, .#~@1=#MyClass, _GLOBAL_1714, 0x0, v7 # line: 22           # column: 21
+	sta v5                                   # line: 22           # column: 21
+	sta v6                                   # line: 22           # column: 13
+	lda v5                                   # line: 22           # column: 21
+	ldobjbyname 0x4, prototype               # line: 22           # column: 21
+	sta v8                                   # line: 22           # column: 21
+	sta v8                                   # line: 22           # column: 21
+	definemethod 0x6, .#~@1>#instance_initializer, 0x0 # line: 0           # column: 0
+	stlexvar 0x0, 0x0                        # line: 0           # column: 0
+	lda v5                                   # line: 22           # column: 21
+	label@26:                                # line: 0           # column: 0
+	jmp label@29                             # line: 22           # column: 21
+	label@27:                                # line: 0           # column: 0
+	poplexenv                                # line: 22           # column: 21
+	throw                                    # line: 22           # column: 21
+	label@29:                                # line: 0           # column: 0
+	poplexenv                                # line: 22           # column: 21
+	stmodulevar 0x3                          # line: 22           # column: 13
+	newlexenvwithname 0x1, _GLOBAL_1723      # line: 29           # column: 22
+	label@32:                                # line: 0           # column: 0
+	ldhole                                   # line: 29           # column: 22
+	sta v7                                   # line: 29           # column: 22
+	defineclasswithbuffer 0x7, .#~@2=#JsPeople, _GLOBAL_1732, 0x2, v7 # line: 29           # column: 22
+	sta v5                                   # line: 29           # column: 22
+	sta v6                                   # line: 29           # column: 13
+	lda v5                                   # line: 29           # column: 22
+	ldobjbyname 0x8, prototype               # line: 29           # column: 22
+	sta v8                                   # line: 29           # column: 22
+	sta v8                                   # line: 29           # column: 22
+	definemethod 0xa, .#~@2>#instance_initializer, 0x0 # line: 0           # column: 0
+	stlexvar 0x0, 0x0                        # line: 0           # column: 0
+	lda v5                                   # line: 29           # column: 22
+	label@44:                                # line: 0           # column: 0
+	jmp label@47                             # line: 29           # column: 22
+	label@45:                                # line: 0           # column: 0
+	poplexenv                                # line: 29           # column: 22
+	throw                                    # line: 29           # column: 22
+	label@47:                                # line: 0           # column: 0
+	poplexenv                                # line: 29           # column: 22
+	stmodulevar 0x2                          # line: 29           # column: 13
+	ldhole                                   # line: 43           # column: 11
+	sta v7                                   # line: 43           # column: 11
+	defineclasswithbuffer 0xb, .#~@3=#Base, _GLOBAL_1754, 0x1, v7 # line: 43           # column: 11
+	sta v5                                   # line: 43           # column: 11
+	sta v6                                   # line: 43           # column: 6
+	lda v5                                   # line: 43           # column: 11
+	ldobjbyname 0xc, prototype               # line: 43           # column: 11
+	sta v8                                   # line: 43           # column: 11
+	lda v5                                   # line: 43           # column: 11
+	sta v3                                   # line: 43           # column: 6
+	lda v3                                   # line: 49           # column: 29
+	sta v7                                   # line: 49           # column: 34
+	defineclasswithbuffer 0xe, .#~@4=#Derived, _GLOBAL_1763, 0x2, v7 # line: 49           # column: 34
+	sta v5                                   # line: 49           # column: 34
+	sta v6                                   # line: 49           # column: 13
+	lda v5                                   # line: 49           # column: 34
+	ldobjbyname 0xf, prototype               # line: 49           # column: 34
+	sta v8                                   # line: 49           # column: 34
+	lda v5                                   # line: 49           # column: 34
+	stmodulevar 0x1                          # line: 49           # column: 13
+	newlexenvwithname 0x2, _GLOBAL_1772      # line: 56           # column: 23
+	label@70:                                # line: 0           # column: 0
+	ldhole                                   # line: 56           # column: 23
+	sta v7                                   # line: 56           # column: 23
+	defineclasswithbuffer 0x11, .#~@5=#SecretBox, _GLOBAL_1656, 0x1, v7 # line: 56           # column: 23
+	sta v5                                   # line: 56           # column: 23
+	sta v6                                   # line: 56           # column: 13
+	lda v5                                   # line: 56           # column: 23
+	ldobjbyname 0x12, prototype              # line: 56           # column: 23
+	sta v8                                   # line: 56           # column: 23
+	sta v8                                   # line: 56           # column: 23
+	definemethod 0x14, .#~@5>#instance_initializer, 0x0 # line: 0           # column: 0
+	stlexvar 0x0, 0x1                        # line: 0           # column: 0
+	callruntime.createprivateproperty 0x1, _GLOBAL_1678 # line: 56           # column: 23
+	lda v5                                   # line: 56           # column: 23
+	label@83:                                # line: 0           # column: 0
+	jmp label@86                             # line: 56           # column: 23
+	label@84:                                # line: 0           # column: 0
+	poplexenv                                # line: 56           # column: 23
+	throw                                    # line: 56           # column: 23
+	label@86:                                # line: 0           # column: 0
+	poplexenv                                # line: 56           # column: 23
+	stmodulevar 0x5                          # line: 56           # column: 13
+	ldhole                                   # line: 66           # column: 20
+	sta v7                                   # line: 66           # column: 20
+	defineclasswithbuffer 0x15, .#~@6=#Config, _GLOBAL_1687, 0x1, v7 # line: 66           # column: 20
+	sta v5                                   # line: 66           # column: 20
+	sta v6                                   # line: 66           # column: 13
+	lda v5                                   # line: 66           # column: 20
+	ldobjbyname 0x16, prototype              # line: 66           # column: 20
+	sta v8                                   # line: 66           # column: 20
+	lda v5                                   # line: 66           # column: 20
+	stmodulevar 0x0                          # line: 66           # column: 13
+	ldundefined                              # line: 18446744073709551615           # column: 4294967295
+	returnundefined                          # line: 18446744073709551615           # column: 4294967295
+.catchall :
+	try_begin_label : label@14
+	try_end_label : label@26
+	catch_begin_label : label@27
+	catch_end_label : label@29
+.catchall :
+	try_begin_label : label@32
+	try_end_label : label@44
+	catch_begin_label : label@45
+	catch_end_label : label@47
+.catchall :
+	try_begin_label : label@70
+	try_end_label : label@83
+	catch_begin_label : label@84
+	catch_end_label : label@86
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    3      109         0       4funcObj         any
+	    3      109         1     4newTarget         any
+	    3      109         2           this         any
+	    3      109         3           Base         any
+	  100        9         6         Config         any
+}
+
+# ====================
+# STRING
+.#~@0=#Person
+.#~@1=#MyClass
+.#~@1>#instance_initializer
+.#~@2=#JsPeople
+.#~@2>#instance_initializer
+.#~@3=#Base
+.#~@4=#Derived
+.#~@5=#SecretBox
+.#~@5>#instance_initializer
+.#~@6=#Config
+age
+extra
+host
+msg
+name
+port
+prototype

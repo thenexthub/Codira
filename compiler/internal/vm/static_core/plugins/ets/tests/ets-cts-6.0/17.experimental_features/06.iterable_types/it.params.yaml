@@ -1,0 +1,704 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # negative case, async is not allowed
+    - tags: 'negative, compile-only'
+      decl: |-
+          class C {
+              data: string[] = ['a', 'b', 'c']
+              async $_iterator() {
+                  return new CIterator(this)
+              }
+          }
+          class CIterator implements Iterator<string> {
+              index = 0
+              base: C
+              constructor (base: C) {
+                  this.base = base
+              }
+              next(): IteratorResult<string> {
+                  return {
+                      done: this.index >= this.base.data.length,
+                      value: this.index >= this.base.data.length ? undefined : this.base.data[this.index++]
+                  }
+              }
+          }
+      use: |-
+          let c = new C()
+          let res = ''
+          for (let x of c) {
+              res += x
+          }
+          arktest.assertEQ(res, 'abc')
+
+    # example from the spec, use Symbol.iterator (deprecated)
+    - decl: |-
+          class C {
+              data: string[] = ['a', 'b', 'c'];
+              [Symbol.iterator]() {
+                  return new CIterator(this)
+              }
+          }
+          class CIterator implements Iterator<string> {
+              index = 0
+              base: C
+              constructor (base: C) {
+                  this.base = base
+              }
+              next(): IteratorResult<string> {
+                  return {
+                      done: this.index >= this.base.data.length,
+                      value: this.index >= this.base.data.length ? undefined : this.base.data[this.index++]
+                  }
+              }
+          }
+      use: |-
+          let c = new C()
+          let res = ''
+          for (let x of c) {
+              res += x
+          }
+          arktest.assertEQ(res, 'abc')
+
+    # example from the spec
+    - decl: |-
+          class C {
+              data: string[] = ['a', 'b', 'c']
+              $_iterator() { // Function type is inferred from its body
+                  return new CIterator(this)
+              }
+          }
+          class CIterator implements Iterator<string> {
+              index = 0
+              base: C
+              constructor (base: C) {
+                  this.base = base
+              }
+              next(): IteratorResult<string> {
+                  return {
+                      done: this.index >= this.base.data.length,
+                      value: this.index >= this.base.data.length ? undefined : this.base.data[this.index++]
+                  }
+              }
+          }
+      use: |-
+          let c = new C()
+          let res = ''
+          for (let x of c) {
+              res += x
+          }
+          arktest.assertEQ(res, 'abc')
+
+    # example from the spec, with common abstract base class
+    - decl: |-
+          abstract class RoArray<T> {
+              abstract val(i: int): T
+              abstract len(): number
+              abstract $_iterator(): XIterator<T>
+          }
+
+          class XIterator<T> implements Iterator<T> {
+              index: int = 0
+              data: RoArray<T>
+              constructor(p: RoArray<T>) {
+                  this.data = p
+              }
+              override next(): IteratorResult<T> {
+                  return {
+                      done: this.index >= this.data.len(),
+                      value: this.index >= this.data.len() ? undefined : this.data.val(this.index++)
+                  }
+              }
+          }
+
+          class C extends RoArray<string> {
+              arr: string[] = ['a', 'b', 'c']
+              override val(i: int): string {
+                  return this.arr[i]
+              }
+              override len(): number {
+                  return this.arr.length
+              }
+              $_iterator() {
+                  return new XIterator<string>(this)
+              }
+          }
+
+          class D extends RoArray<string> {
+              arr: string[] = ['d', 'e', 'f']
+              override val(i: int): string {
+                  return this.arr[i]
+              }
+              override len(): number {
+                  return this.arr.length
+              }
+              $_iterator() {
+                  return new XIterator<string>(this)
+              }
+          }
+      use: |-
+          let arr: RoArray<string>[] = [new C(), new D()]
+          let res = ''
+          for (let x of arr) {
+              for (let y of x) {
+                  res += y
+              }
+          }
+          arktest.assertEQ(res, 'abcdef')
+
+    # example from the spec, iterator in superclass
+    - decl: |-
+          interface RoArray<T> {
+              val(i: int): T
+              len(): int
+          }
+
+          class XIterator<T> implements Iterator<T> {
+              index: int = 0
+              data: RoArray<T>
+              constructor(p: RoArray<T>) {
+                  this.data = p
+              }
+              override next(): IteratorResult<T> {
+                  return {
+                      done: this.index >= this.data.len(),
+                      value: this.index >= this.data.len() ? undefined : this.data.val(this.index++)
+                  }
+              }
+          }
+
+          class D {
+              data: RoArray<string>
+              constructor(p: RoArray<string>) {
+                  this.data = p
+              }
+              $_iterator() {
+                  return new XIterator<string>(this.data)
+              }
+          }
+
+          class C extends D implements RoArray<string> {
+              arr: string[] = ['a', 'b', 'c']
+              constructor() {
+                  super(this)
+              }
+              override val(i: int): string {
+                  return this.arr[i]
+              }
+              override len(): int {
+                  return this.arr.length
+              }
+          }
+      use: |-
+          let c = new C()
+          let res = ''
+          for (let x of c) {
+              res += x
+          }
+          arktest.assertEQ(res, 'abc')
+
+    # protected iterator
+    - decl: |-
+          abstract class C implements Iterator<string> {
+              protected $_iterator() {
+                  return this
+              }
+              abstract next(): IteratorResult<string>
+          }
+
+          class D extends C {
+              index = 0
+              data: string[] = ['a', 'b', 'c']
+              next(): IteratorResult<string> {
+                  return {
+                      done: this.index >= this.data.length,
+                      value: this.index >= this.data.length ? undefined : this.data[this.index++]
+                  }
+              }
+              iterate(): string {
+                  let res = ''
+                  for (let x of this) {
+                      res += x
+                  }
+                  return res
+              }
+          }
+
+      use: |-
+          let d = new D()
+          let res = d.iterate()
+          arktest.assertEQ(res, 'abc')
+
+    # private iterator
+    - decl: |-
+          class C implements Iterator<string> {
+              index = 0
+              data: string[] = ['a', 'b', 'c']
+
+              private $_iterator() {
+                  return this
+              }
+              next(): IteratorResult<string> {
+                  return {
+                      done: this.index >= this.data.length,
+                      value: this.index >= this.data.length ? undefined : this.data[this.index++]
+                  }
+              }
+              iterate(): string {
+                  let res = ''
+                  for (let x of this) {
+                      res += x
+                  }
+                  return res
+              }
+          }
+      use: |-
+          let c = new C()
+          let res = c.iterate()
+          arktest.assertEQ(res, 'abc')
+
+    # example from the spec, static
+    - tags: 'compile-only, negative'
+      decl: |-
+          class C {
+              data: string[] = ['a', 'b', 'c']
+              static $_iterator() {
+                  return new CIterator(new C())
+              }
+          }
+          class CIterator implements Iterator<string> {
+              index = 0
+              base: C
+              constructor (base: C) {
+                  this.base = base
+              }
+              next(): IteratorResult<string> {
+                  return {
+                      done: this.index >= this.base.data.length,
+                      value: this.index >= this.base.data.length ? undefined : this.base.data[this.index++]
+                  }
+              }
+          }
+      use: |-
+          let c = new C()
+          let res = ''
+          for (let x of c) {
+              res += x
+          }
+          arktest.assertEQ(res, 'abc')
+
+    # data class is iterator
+    - decl: |-
+          class C implements Iterator<string> {
+              index = 0
+              data: string[] = ['a', 'b', 'c']
+              $_iterator() {
+                  return this
+              }
+              next(): IteratorResult<string> {
+                  return {
+                      done: this.index >= this.data.length,
+                      value: this.index >= this.data.length ? undefined : this.data[this.index++]
+                  }
+              }
+          }
+      use: |-
+          let c = new C()
+          let res = ''
+          for (let x of c) {
+              res += x
+          }
+          arktest.assertEQ(res, 'abc')
+
+    # use indexable class as data source
+    - decl: |-
+          interface Indexable<T> {
+              $_get(i: int): T
+          }
+          class CArray<T> implements Indexable<T> {
+              arr: T[]
+              constructor(p: T[]) {
+                  this.arr = p
+              }
+              $_get(i: int): T {
+                  return this.arr[i]
+              }
+          }
+          class CIterator<T> implements Iterator<T> {
+              index = 0
+              data: Indexable<T>
+              constructor(data: Indexable<T>) {
+                  this.data = data
+              }
+              $_iterator() {
+                  return this
+              }
+              next(): IteratorResult<T> {
+                  try {
+                      let v: T = this.data[this.index++]
+                      return { done: false, value: v }
+                  } catch (e) {
+                      return { done: true, value: undefined }
+                  }
+              }
+          }
+      use: |-
+          let c = new CIterator<string>(new CArray<string>(['a', 'b', 'c']))
+          let res = ''
+          for (let x of c) {
+              res += x
+          }
+          arktest.assertEQ(res, 'abc')
+
+    # iterator of iterators
+    - decl: |-
+          interface Indexable<T> {
+              $_get(i: int): T
+          }
+          class C implements Indexable<string> {
+              data: string[] = ['a', 'b', 'c']
+              $_iterator() {
+                  return new XIterator<string>(this)
+              }
+              $_get(i: int): string {
+                  return this.data[i]
+              }
+          }
+          class D implements Indexable<C> {
+              data: C[] = [new C(), new C(), new C()]
+              $_iterator() {
+                  return new XIterator<C>(this)
+              }
+              $_get(i: int): C {
+                  return this.data[i]
+              }
+          }
+          class XIterator<T> implements Iterator<T> {
+              index = 0
+              data: Indexable<T>
+              constructor (data: Indexable<T>) {
+                  this.data = data
+              }
+              next(): IteratorResult<T> {
+                  try {
+                      let v: T = this.data[this.index++]
+                      return { done: false, value: v }
+                  } catch (e) {
+                      return { done: true, value: undefined }
+                  }
+              }
+          }
+      use: |-
+          let d = new D()
+          let res = ''
+          for (let x of d) {
+              for (let y of x) {
+                  res += y
+              }
+          }
+          arktest.assertEQ(res, 'abcabcabc')
+
+    # iteration over array of iterators
+    - decl: |-
+          type UT = C | D
+
+          class C implements Iterator<string> {
+              data: string[] = ['a', 'b', 'c']
+              index = 0
+              $_iterator() {
+                  return this
+              }
+              next(): IteratorResult<string> {
+                  return {
+                      done: this.index >= this.data.length,
+                      value: this.index >= this.data.length ? undefined : this.data[this.index++]
+                  }
+              }
+          }
+
+          class D implements Iterator<string> {
+              data: string[] = ['d', 'e', 'f']
+              index = 0
+              $_iterator() {
+                  return this
+              }
+              next(): IteratorResult<string> {
+                  return {
+                      done: this.index >= this.data.length,
+                      value: this.index >= this.data.length ? undefined : this.data[this.index++]
+                  }
+              }
+          }
+      use: |-
+          let arr: UT[] = [new C(), new D()]
+          let res = ''
+          for (let y of arr) {
+              for (let x of y) {
+                  res += x
+              }
+          }
+          arktest.assertEQ(res, 'abcdef')
+
+    # iteration over array of iterator and string
+    - decl: |-
+          type UT = C | string
+
+          class C implements Iterator<string> {
+              data: string[] = ['a', 'b', 'c']
+              index = 0
+              $_iterator() {
+                  return this
+              }
+              next(): IteratorResult<string> {
+                  return {
+                      done: this.index >= this.data.length,
+                      value: this.index >= this.data.length ? undefined : this.data[this.index++]
+                  }
+              }
+          }
+
+      use: |-
+          let arr: UT[] = [new C(), 'def']
+          let res = ''
+          for (let y of arr) {
+              for (let x of y) {
+                  res += x
+              }
+          }
+          arktest.assertEQ(res, 'abcdef')
+
+    # iterator in default method in interface
+    - decl: |-
+          let data: string[] = ['a', 'b', 'c']
+          class XIterator implements Iterator<string> {
+              index: int = 0
+              override next(): IteratorResult<string> {
+                  return {
+                      done: this.index >= data.length,
+                      value: this.index >= data.length ? undefined : data[this.index++]
+                  }
+              }
+          }
+          interface I {
+              $_iterator() {
+                  return new XIterator()
+              }
+          }
+          class C implements I {}
+      use: |-
+          let c = new C()
+          let res = ''
+          for (let x of c) {
+              res += x
+          }
+          arktest.assertEQ(res, 'abc')
+
+    # iterator in abstract superclass
+    - decl: |-
+          let data: string[] = ['a', 'b', 'c']
+          class XIterator implements Iterator<string> {
+              index: int = 0
+              override next(): IteratorResult<string> {
+                  return {
+                      done: this.index >= data.length,
+                      value: this.index >= data.length ? undefined : data[this.index++]
+                  }
+              }
+          }
+          abstract class D {
+              $_iterator() {
+                  return new XIterator()
+              }
+          }
+          class C extends D {}
+      use: |-
+          let c = new C()
+          let res = ''
+          for (let x of c) {
+              res += x
+          }
+          arktest.assertEQ(res, 'abc')
+
+    # empty iterator case
+    - decl: |-
+          class C implements Iterator<Object> {
+              $_iterator() {
+                  return this
+              }
+              next(): IteratorResult<Object> {
+                  return { done: true, value: undefined }
+              }
+          }
+      use: |-
+          let c = new C()
+          let res = ''
+          for (let x of c) {
+              res += '.'
+          }
+          arktest.assertEQ(res, '')
+
+    # iterator of iterators on parameterized class
+    - decl: |-
+          class D<T> implements Iterator<T> {
+              index = 0
+              data: T[]
+              constructor(p: T[]) {
+                  this.data = p
+              }
+              $_iterator() {
+                  return this
+              }
+              next(): IteratorResult<T> {
+                  return {
+                      done: this.index >= this.data.length,
+                      value: this.index >= this.data.length ? undefined : this.data[this.index++]
+                  }
+              }
+          }
+      use: |-
+          let nums: Number[] = [1, 2, 3]
+          let arr: D<Number>[] = [new D<Number>(nums), new D<Number>(nums), new D<Number>(nums)]
+          let top = new D<D<Number>>(arr)
+          let res = 0
+          for (let x of top) {
+              for (let y of x) {
+                  res += y
+              }
+          }
+          arktest.assertEQ(res, 18)
+
+    # example from the spec
+    - decl: |-
+        class C implements Iterable<string> {
+            data: string[] = ['a', 'b', 'c']
+            $_iterator() { // Function type is inferred from its body
+                return new CIterator(this)
+            }
+        }
+        class CIterator implements Iterator<string> {
+            index = 0
+            base: C
+            constructor (base: C) {
+                this.base = base
+            }
+            next(): IteratorResult<string> {
+                return {
+                    done: this.index >= this.base.data.length,
+                    value: this.index >= this.base.data.length ? undefined : this.base.data[this.index++]
+                }
+            }
+        }
+      use: |-
+        let c = new C()
+        let res = ''
+        for (let x of c) {
+            res += x
+        }
+        arktest.assertEQ(res, 'abc')
+
+    - decl: |-
+        class C implements Iterable<string> {
+            data: string[] = ['a', 'b', 'c']
+            $_iterator() { // Function type is inferred from its body
+                return new CIterator(this)
+            }
+        }
+        class CIterator implements Iterator<string> {
+            index = 0
+            base: C
+            constructor (base: C) {
+                this.base = base
+            }
+            next(): IteratorResult<string> {
+                return {
+                    done: this.index >= this.base.data.length,
+                    value: this.index >= this.base.data.length ? undefined : this.base.data[this.index++]
+                }
+            }
+        }
+      use: |-
+        let c = new C()
+        let iref = c.$_iterator();
+        
+        let next = iref.next();
+        let result = ''
+        while(!next.done) {
+          result += next.value
+          next = iref.next()
+        }
+        arktest.assertEQ(result, 'abc')
+
+    - decl: |-
+        // Class implements iterable and also is indexable
+        class C implements Iterable<string> {
+            data: string[] = ['a', 'b', 'c']
+            $_iterator() { // Function type is inferred from its body
+                return new CIterator(this)
+            }
+            $_get(index: int): string {
+                return this.data[index]
+            }
+            
+        }
+        class CIterator implements Iterator<string> {
+            index = 0
+            base: C
+            constructor (base: C) {
+                this.base = base
+            }
+            next(): IteratorResult<string> {
+                return {
+                    done: this.index >= this.base.data.length,
+                    value: this.index >= this.base.data.length ? undefined : this.base[this.index++]
+                }
+            }
+        }
+      use: |-
+        let c = new C()
+        let res = ''
+        for (let x of c) {
+            res += x
+        }
+        arktest.assertEQ(res, 'abc')
+
+
+    - decl: |-
+        // Class implements iterable with interface literal implementation
+        class C implements Iterable<string> {
+            data: string[] = ['a', 'b', 'c']
+            index: int = 0;
+        
+            next(): IteratorResult<string> {
+                return {
+                    done: this.index >= this.data.length,
+                    value: this.index >= this.data.length ? undefined : this.data[this.index++]
+                }
+            }
+        
+            $_iterator(): Iterator<string> {
+                this.index = 0;
+                let t: Iterator<string> = { next(): IteratorResult<string> { return this.next() } }
+                return t;
+            }
+ 
+        }
+
+      use: |-
+        let c = new C()
+        let res = ''
+        for (let x of c) {
+            res += x
+        }
+        arktest.assertEQ(res, 'abc')

@@ -1,0 +1,67 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - decl: |-
+      class Base<T = SomeType> {}
+      class Derived extends Base {}
+    use: |-
+      let a = new Derived()
+  - decl: |-
+      class Base<T = SomeType> {}
+      class Derived extends Base<OtherType> {}
+    use: |-
+      let a = new Derived()
+  - decl: |-
+      class Base<T = SomeType> {}
+      class Derived<T = OtherType> extends Base<T> {}
+    use: |-
+      let a = new Derived()
+  - decl: |-
+      class Base<T = SomeType, U = OtherType> {}
+      class Derived extends Base {}
+    use: |-
+      let a = new Derived()
+  - decl: |-
+      class Base<T, U = OtherType> {}
+      class Derived extends Base<SomeType> {}
+    use: |-
+      let a = new Derived()
+  - decl: |-
+      class Base<T, U = OtherType> {}
+      class Derived extends Base<OtherType, SomeType> {}
+    use: |-
+      let a = new Derived()
+  - decl: |-
+      class Base<T, U = OtherType> {}
+      class Derived<V> extends Base<V> {}
+    use: |-
+      let a = new Derived<SomeType>()
+  - decl: |-
+      class Base<T = Base<SomeType>> {}
+      class Derived extends Base {}
+    use: |-
+      let a = new Derived()
+  - decl: |-
+      class Base<T, U = SomeType, V = OtherType> {}
+    use: |-
+      let a = new Base<SomeType>()
+      let b = new Base<SomeType,OtherType>()
+      let c = new Base<SomeType,Object,OtherType>()
+  - decl: |-
+      class Base<in T, in U = SomeType, out V = OtherType> {}
+    use: |-
+      let a = new Base<SomeType>()
+      let b = new Base<SomeType,OtherType>()
+      let c = new Base<SomeType,Object,OtherType>()

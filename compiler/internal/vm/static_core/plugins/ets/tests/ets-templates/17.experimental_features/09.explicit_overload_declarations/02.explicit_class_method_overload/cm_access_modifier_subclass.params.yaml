@@ -1,0 +1,48 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - { mod1: '',        mod2: '',        mod3: '',        modA: '',        modB: ''        }
+  - { mod1: public,    mod2: public,    mod3: public,    modA: public,    modB: public    }
+  - { mod1: protected, mod2: protected, mod3: protected, modA: protected, modB: protected }
+
+  - { mod1: public,    mod2: public,    mod3: '',        modA: '',        modB: public    }
+  - { mod1: public,    mod2: public,    mod3: public,    modA: public,    modB: ''        }
+
+  - { mod1: public,    mod2: public,    mod3: protected, modA: protected, modB: protected }
+  - { mod1: public,    mod2: public,    mod3: public,    modA: protected, modB: protected }
+  - { mod1: protected, mod2: protected, mod3: protected, modA: protected, modB: protected }
+  - { mod1: protected, mod2: protected, mod3: public,    modA: protected, modB: protected }
+
+  - { mod1: public,    mod2: public,    mod3: public,    modA: private,   modB: protected }
+  - { mod1: public,    mod2: public,    mod3: protected, modA: private,   modB: protected }
+  - { mod1: public,    mod2: public,    mod3: private,   modA: private,   modB: protected }
+  - { mod1: protected, mod2: protected, mod3: public,    modA: private,   modB: protected }
+  - { mod1: protected, mod2: protected, mod3: protected, modA: private,   modB: protected }
+  - { mod1: protected, mod2: protected, mod3: private,   modA: private,   modB: protected }
+
+  - { mod1: public,    mod2: public,    mod3: public,    modA: public,    modB: private   }
+  - { mod1: public,    mod2: public,    mod3: protected, modA: public,    modB: private   }
+  - { mod1: public,    mod2: public,    mod3: private,   modA: public,    modB: private   }
+  - { mod1: protected, mod2: protected, mod3: public,    modA: protected, modB: private   }
+  - { mod1: protected, mod2: protected, mod3: protected, modA: protected, modB: private   }
+  - { mod1: protected, mod2: protected, mod3: private,   modA: protected, modB: private   }
+
+  - { mod1: public,    mod2: public,    mod3: public,    modA: private,   modB: private   }
+  - { mod1: public,    mod2: public,    mod3: protected, modA: private,   modB: private   }
+  - { mod1: public,    mod2: public,    mod3: private,   modA: private,   modB: private   }
+  - { mod1: protected, mod2: protected, mod3: public,    modA: private,   modB: private   }
+  - { mod1: protected, mod2: protected, mod3: protected, modA: private,   modB: private   }
+  - { mod1: protected, mod2: protected, mod3: private,   modA: private,   modB: private   }
+

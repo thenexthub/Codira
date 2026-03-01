@@ -1,0 +1,196 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    - descr: 'Method from subinterface overrides method from superinterface'
+      decl: |
+        interface I1 { foo() {} }
+        interface I2 extends I1 {
+          foo() {}
+        }
+
+    - descr: 'Method from subinterface overrides both methods from superinterfaces'
+      decl: |
+        interface I1 { foo() {} }
+        interface I2 { foo() {} }
+        interface I3 extends I1, I2 {
+          foo() {}
+        }
+
+    - descr: 'Method from subinterface overrides both methods from superinterfaces'
+      decl: |
+        class C1 {}
+        class C2 extends C1 {}
+        class C3 extends C2 {}
+
+        interface I1 { 
+          foo(p: C3): C1 {} 
+        }
+        interface I2 { 
+          foo(p: C2): C2 {} 
+        }
+        interface I3 extends I1, I2 {
+          foo(p: C1): C3 {}
+        }
+
+    - descr: 'Methods from subinterfaces refer to the same implementation'
+      decl: |
+        interface I1 { foo() {} }
+        interface I2 { foo() {} }
+        interface I3 extends I1 {}
+        interface I4 extends I1 {}
+        interface I5 extends I3, I4 {}
+
+    - descr: 'Override compatible by parameter method in subinterface'
+      decl: |
+        class Base {}
+        class Derived extends Base {}
+
+        interface I1 {
+          foo(p: Derived) {}
+        }
+        interface I2 extends I1 {
+          foo(p: Base) {}
+        }
+
+    - descr: 'Override compatible by return type method in subinterface'
+      decl: |
+        class Base {}
+        class Derived extends Base {}
+
+        interface I1 {
+          foo(): Base {}
+        }
+        interface I2 extends I1 {
+          foo(): Derived {}
+        }
+
+    - descr: 'Override compatible by parameters and return type method in subinterface'
+      decl: |
+        class Base {}
+        class Derived extends Base {}
+
+        interface I1 {
+          foo(p1: Derived, p2: long): Base {}
+        }
+        interface I2 extends I1 {
+          foo(p1: Base, p2: int): Derived {}
+        }
+
+    - descr: 'Override compatible by generic type parameter method in subinterface'
+      decl: |
+        class C1 {}
+        class C2 extends C1 {}
+
+        interface I1<T> {
+          foo(p: T): C1 {}
+        }
+        interface I2 extends I1<C2> {
+          foo(p: C1): C2 {}
+        }
+
+    - descr: 'Override compatible by generic return type method in subinterface'
+      decl: |
+        class C1 {}
+        class C2 extends C1 {}
+
+        interface I1<T> {
+          foo(p: C2): T {}
+        }
+        interface I2 extends I1<C1> {
+          foo(p: C1): C2 {}
+        }
+
+    - descr: 'Transitive overriding with generic return type method'
+      decl: |
+        class C1 {}
+        class C2 extends C1 {}
+        class C3 extends C2 {}
+
+        interface I1<T1> {
+          foo(p: C3): T1 {}
+        }
+        interface I2<T2 extends C1> extends I1<C1> {
+          foo(p: C2): T2 {}
+        }
+        interface I3 extends I2<C2> {
+          foo(p: C1): C3 {}
+        }
+
+    - descr: 'Transitive overriding with generic type parameter method'
+      decl: |
+        class C1 {}
+        class C2 extends C1 {}
+        class C3 extends C2 {}
+
+        interface I1<T1> {
+          foo(p: T1): C1 {}
+        }
+        interface I2<T2> extends I1<C3> {
+          foo(p: T2): C2 {}
+        }
+        interface I3 extends I2<C2> {
+          foo(p: C1): C3 {}
+        }
+
+    - descr: 'Transitive overriding with generic parameter and return type method'
+      decl: |
+        class C1 {}
+        class C2 extends C1 {}
+        class C3 extends C2 {}
+
+        interface I1<T1> {
+          foo(p: C3): T1 {}
+        }
+        interface I2<T2> extends I1<C1> {
+          foo(p: T2): C2 {}
+        }
+        interface I3 extends I2<C2> {
+          foo(p: C1): C3 {}
+        }
+
+    - descr: 'Method from one superinterface overrides method from another superinterface'
+      decl: |
+        class Base {}
+        class Derived extends Base {}
+
+        interface I1 {
+          foo(p: Base) {}
+        }
+        interface I2 {
+          foo(p: Derived) {}
+        }
+        interface I3 extends I1, I2 {}
+
+    - descr: 'Method from one superinterface overrides method from another superinterface'
+      decl: |
+        class Base {}
+        class Derived extends Base {}
+
+        interface I1 {
+          foo(): Base {}
+        }
+        interface I2 {
+          foo(): Derived {}
+        }
+        interface I3 extends I1, I2 {}

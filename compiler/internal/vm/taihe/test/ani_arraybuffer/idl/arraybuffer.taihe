@@ -1,0 +1,97 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+function SumArrayU8(nums: @arraybuffer Array<u8>): u8;
+function GetArrayBuffer(nums: u8): @arraybuffer Array<u8>;
+function DoubleArrayBuffer(nums: @arraybuffer Array<u8>): @arraybuffer Array<u8>;
+function SumArrayI8(nums: Array<i8>): i8;
+function GetArrayI8(nums: i8): Array<i8>;
+function DoubleI8(nums: Array<i8>): Array<i8>;
+function SumArrayI16(nums: Array<i16>): i16;
+function GetArrayI16(nums: i16): Array<i16>;
+function DoubleI16(nums: Array<i16>): Array<i16>;
+function SumArrayI32(nums: Array<i32>): i32;
+function GetArrayI32(nums: i32): Array<i32>;
+function DoubleI32(nums: Array<i32>): Array<i32>;
+function SumArrayI64(nums: Array<i64>): i64;
+function GetArrayI64(nums: i64): Array<i64>;
+function DoubleI64(nums: Array<i64>): Array<i64>;
+
+function SumArrayF32(nums: Array<f32>): f32;
+function GetArrayF32(nums: f32): Array<f32>;
+function DoubleF32(nums: Array<f32>): Array<f32>;
+
+function SumArrayF64(nums: Array<f64>): f64;
+function GetArrayF64(nums: f64): Array<f64>;
+function DoubleF64(nums: Array<f64>): Array<f64>;
+
+function DoubleBufferToInt8Array(nums: @arraybuffer Array<u8>): @arraybuffer Array<u8>;
+function DoubleBufferToInt16Array(nums: @arraybuffer Array<u8>): @arraybuffer Array<u8>;
+function DoubleBufferToInt32Array(nums: @arraybuffer Array<u8>): @arraybuffer Array<u8>;
+function DoubleBufferToUint16Array(nums: @arraybuffer Array<u8>): @arraybuffer Array<u8>;
+function DoubleBufferToUint32Array(nums: @arraybuffer Array<u8>): @arraybuffer Array<u8>;
+@!sts_inject("""
+export function doubleInt8Array(int8Array: Int8Array): Int8Array  {
+    const arrayBuffer: ArrayBuffer = int8Array.buffer as ArrayBuffer;
+    let result = DoubleBufferToInt8Array(arrayBuffer);
+    return new Int8Array(result);
+}
+""")
+
+@!sts_inject("""
+export function doubleInt16Array(int16Array: Int16Array): Int16Array  {
+    const arrayBuffer: ArrayBuffer = int16Array.buffer as ArrayBuffer;
+    let result = DoubleBufferToInt16Array(arrayBuffer);
+    return new Int16Array(result);
+}
+""")
+
+@!sts_inject("""
+export function doubleInt32Array(int32Array: Int32Array): Int32Array  {
+    const arrayBuffer: ArrayBuffer = int32Array.buffer as ArrayBuffer;
+    let result = DoubleBufferToInt32Array(arrayBuffer);
+    return new Int32Array(result);
+}
+""")
+
+@!sts_inject("""
+export function doubleUint8Array(uint8Array: Uint8Array): Uint8Array  {
+    const arrayBuffer: ArrayBuffer = uint8Array.buffer as ArrayBuffer;
+    let result = DoubleArrayBuffer(arrayBuffer);
+    return new Uint8Array(result);
+}
+""")
+
+@!sts_inject("""
+export function doubleUint16Array(uint16Array: Uint16Array): Uint16Array  {
+    const arrayBuffer: ArrayBuffer = uint16Array.buffer as ArrayBuffer;
+    let result = DoubleBufferToUint16Array(arrayBuffer);
+    return new Uint16Array(result);
+}
+""")
+
+@!sts_inject("""
+export function doubleUint32Array(uint32Array: Uint32Array): Uint32Array  {
+    const arrayBuffer: ArrayBuffer = uint32Array.buffer as ArrayBuffer;
+    let result = DoubleBufferToUint32Array(arrayBuffer);
+    return new Uint32Array(result);
+}
+""")

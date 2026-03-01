@@ -1,0 +1,30 @@
+{
+  "components": [
+    {
+      "componentsName": "etsstdlib",
+      "enableHostAot": true,
+      "abcPath": "/system/framework/etsstdlib_bootabc.abc",
+      "hapPath": "",
+      "modulePath": "",
+      "isFramework": true,
+      "anOutPath": "/system/framework/etsstdlib_bootabc.an",
+      "abcInstallDir": "/system/framework/",
+      "anInstallPath": "/system/framework/etsstdlib_bootabc.an",
+      "arkProfilePath": "",
+      "defaultAotMode": "full"
+    },
+    {
+      "componentsName": "arkoala",
+      "enableHostAot": false,
+      "abcPath": "/system/framework/arkoala.abc",
+      "hapPath": "",
+      "modulePath": "",
+      "isFramework": true,
+      "anOutPath": "/system/framework/arkoala.an",
+      "abcInstallDir": "/system/framework/",
+      "anInstallPath": "/system/framework/arkoala.an",
+      "arkProfilePath": "",
+      "defaultAotMode": "full"
+    }
+  ]
+}

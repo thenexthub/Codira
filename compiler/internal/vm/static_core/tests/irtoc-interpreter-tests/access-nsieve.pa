@@ -1,0 +1,85 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+.language PandaAssembly
+
+.function i32 main() {
+        movi v0, 0x2
+        movi v1, 0x2710
+        movi v2, 0x3
+        movi v3, 0x1
+        movi v4, 0x0
+        movi v6, 0x13881
+        newarr v5, v6, u1[]
+        mov v6, v4
+        mov v7, v3
+        jump_label_8: lda v7
+        jgt v2, jump_label_0
+        shl v3, v7
+        mul2 v1
+        sta v8
+        mov v9, v0
+        jump_label_2: lda v9
+        jgt v8, jump_label_1
+        lda v3
+        starr.8 v5, v9
+        inci v9, 0x1
+        jmp jump_label_2
+        jump_label_1: mov v9, v4
+        mov v10, v0
+        jump_label_7: lda v10
+        jgt v8, jump_label_3
+        lda v10
+        ldarr.8 v5
+        jeqz jump_label_4
+        add v10, v10
+        sta v11
+        jump_label_6: lda v11
+        jgt v8, jump_label_5
+        lda v4
+        starr.8 v5, v11
+        add v11, v10
+        sta v11
+        jmp jump_label_6
+        jump_label_5: lda v9
+        addi 0x1
+        sta v11
+        mov v9, v11
+        jump_label_4: inci v10, 0x1
+        jmp jump_label_7
+        jump_label_3: add v9, v6
+        sta v8
+        lda v7
+        addi 0x1
+        sta v6
+        mov v7, v6
+        mov v6, v8
+        jmp jump_label_8
+        jump_label_0: movi v0, 0x37de
+        lda v6
+        jeq v0, jump_label_9
+        ldai 0xffffffffffffffff
+        return
+        jump_label_9: lda v4
+    ldai 0
+        return
+}

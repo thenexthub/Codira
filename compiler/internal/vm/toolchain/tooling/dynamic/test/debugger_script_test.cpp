@@ -1,0 +1,128 @@
+
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+#include "tooling/dynamic/base/pt_params.h"
+#include "tooling/dynamic/base/pt_returns.h"
+#include "tooling/dynamic/base/pt_script.h"
+#include "debugger_service.h"
+#include "dispatcher.h"
+
+#include "ecmascript/debugger/js_debugger.h"
+#include "ecmascript/js_array.h"
+#include "ecmascript/js_tagged_value-inl.h"
+#include "ecmascript/object_factory.h"
+#include "ecmascript/tests/test_helper.h"
+
+using namespace panda::ecmascript;
+using namespace panda::ecmascript::tooling;
+
+namespace panda::test {
+class DebuggerScriptTest : public testing::Test {
+public:
+    static void SetUpTestCase()
+    {
+        GTEST_LOG_(INFO) << "SetUpTestCase";
+    }
+
+    static void TearDownTestCase()
+    {
+        GTEST_LOG_(INFO) << "TearDownCase";
+    }
+
+    void SetUp() override
+    {
+        TestHelper::CreateEcmaVMWithScope(ecmaVm, thread, scope);
+    }
+
+    void TearDown() override
+    {
+        TestHelper::DestroyEcmaVMWithScope(ecmaVm, scope);
+    }
+
+protected:
+    EcmaVM *ecmaVm {nullptr};
+    EcmaHandleScope *scope {nullptr};
+    JSThread *thread {nullptr};
+};
+
+HWTEST_F_L0(DebuggerScriptTest, ScriptIdTest)
+{
+    std::unique_ptr<PtScript> script = std::make_unique<PtScript>(1, "name_1", "url_1", "source_1");
+    script->SetScriptId(100);
+    ASSERT_EQ(script->GetScriptId(), 100);
+}
+
+HWTEST_F_L0(DebuggerScriptTest, FileNameTest)
+{
+    std::unique_ptr<PtScript> script = std::make_unique<PtScript>(1, "name_1", "url_1", "source_1");
+    script->SetFileName("xx");
+    ASSERT_EQ(script->GetFileName(), "xx");
+}
+
+HWTEST_F_L0(DebuggerScriptTest, UrlTest)
+{
+    std::unique_ptr<PtScript> script = std::make_unique<PtScript>(1, "name_1", "url_1", "source_1");
+    script->SetUrl("121");
+    ASSERT_EQ(script->GetUrl(), "121");
+}
+
+HWTEST_F_L0(DebuggerScriptTest, HashTest)
+{
+    std::unique_ptr<PtScript> script = std::make_unique<PtScript>(1, "name_1", "url_1", "source_1");
+    script->SetHash("111");
+    ASSERT_EQ(script->GetHash(), "111");
+}
+
+HWTEST_F_L0(DebuggerScriptTest, ScriptSourceTest)
+{
+    std::unique_ptr<PtScript> script = std::make_unique<PtScript>(1, "name_1", "url_1", "source_1");
+    script->SetScriptSource("a=1");
+    ASSERT_EQ(script->GetScriptSource(), "a=1");
+}
+
+HWTEST_F_L0(DebuggerScriptTest, SourceMapUrlTest)
+{
+    std::unique_ptr<PtScript> script = std::make_unique<PtScript>(1, "name_1", "url_1", "source_1");
+    script->SetSourceMapUrl("192");
+    ASSERT_EQ(script->GetSourceMapUrl(), "192");
+}
+
+HWTEST_F_L0(DebuggerScriptTest, EndLineTest)
+{
+    std::unique_ptr<PtScript> script = std::make_unique<PtScript>(1, "name_1", "url_1", "source_1");
+    script->SetEndLine(200);
+    ASSERT_EQ(script->GetEndLine(), 200);
+}
+
+HWTEST_F_L0(DebuggerScriptTest, LocationsTest)
+{
+    std::unique_ptr<PtScript> script = std::make_unique<PtScript>(1, "name_1", "url_1", "source_1");
+    std::vector<std::shared_ptr<BreakpointReturnInfo>> locations {};
+    std::shared_ptr<BreakpointReturnInfo> bpInfo = std::make_shared<BreakpointReturnInfo>();
+    std::string invalidBpId = "invalid";
+    bpInfo->SetId(invalidBpId).SetLineNumber(1).SetColumnNumber(0);
+    locations.emplace_back(bpInfo);
+    script->SetLocations(locations);
+    ASSERT_EQ(script->GetLocations().size(), 1);
+}
+}  // namespace panda::test

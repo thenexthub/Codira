@@ -1,0 +1,149 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # duplicate final keyword
+    - decl: |-
+          class A {
+              final public final meth(s: string, n: number): string {  // CTE
+                  return s + n + "A"
+              }
+          }
+      expected_out: "Syntax error ESY0120: Access modifier must precede field and method modifiers."
+
+    # final method cannot be overridden
+    - decl: |-
+          class A {
+              final meth(s: string, n: number): string {
+                  return s + n + "A"
+              }
+          }
+          class F extends A {
+              meth(s: string, n: number): string {  // CTE
+                  return s + n + "F"
+              }
+          }
+      expected_out: "Semantic error ESE0141: meth(s: String, n: Double): String in F cannot override meth(s: String, n: Double): String in A because overridden method is final."
+
+    # cannot reduce the visibility
+    - decl: |-
+          class A {
+              public final meth(s: string, n: number): string {
+                  return s + n + "A"
+              }
+          }
+          class F extends A {
+              private meth(s: string, n: number): string {  // CTE
+                  return s + n + "F"
+              }
+          }
+      expected_out: "Semantic error ESE0141: meth(s: String, n: Double): String in F cannot override meth(s: String, n: Double): String in A because overridden method is final."
+
+    # final method cannot be overridden with another final
+    - decl: |-
+          class A {
+              final meth(s: string, n: number): string {
+                  return s + n + "A"
+              }
+          }
+          class F extends A {
+              final meth(s: string, n: number): string {  // CTE
+                  return s + n + "F"
+              }
+          }
+      expected_out: "Semantic error ESE0141: meth(s: String, n: Double): String in F cannot override meth(s: String, n: Double): String in A because overridden method is final."
+
+    # final method cannot be overridden in descendants
+    - decl: |-
+          class A {
+              final meth(s: string, n: number): string {
+                  return s + n + "A"
+              }
+          }
+          class B extends A {}
+          class C extends B {}
+          class F extends C {
+              meth(s: string, n: number): string {  // CTE
+                  return s + n + "F"
+              }
+          }
+      expected_out: "Semantic error ESE0141: meth(s: String, n: Double): String in F cannot override meth(s: String, n: Double): String in A because overridden method is final."
+
+    # final cannot be abstract
+    - decl: |-
+          abstract class A {
+              abstract final meth(s: string, n: number): string;  // CTE
+          }
+      expected_out: "Semantic error ESE0047: Invalid method modifier(s): an abstract method can't have private, override, static, final or native modifier."
+
+    # final cannot be abstract
+    - decl: |-
+          class A {
+              final abstract meth(s: string, n: number): string;  // CTE
+          }
+      expected_out: "Semantic error ESE0190: A is not abstract and does not override abstract method meth(s: String, n: Double): String in A"
+
+    # final cannot be abstract
+    - decl: |-
+          abstract class A {
+              abstract meth(s: string, n: number): string;
+          }
+          class B extends A {
+              final abstract meth(s: string, n: number): string;  // CTE
+          }
+      expected_out: "Semantic error ESE0190: B is not abstract and does not override abstract method meth(s: String, n: Double): String in B"
+
+    # final cannot be static
+    - decl: |-
+          class A {
+              static final meth(s: string, n: number): string {  // CTE
+                  return s + n + "A"
+              }
+          }
+      expected_out: "Semantic error ESE0048: Invalid method modifier(s): a final method can't have abstract or static modifier."
+
+    # final cannot be static
+    - decl: |-
+          abstract class A {
+              final static meth(s: string, n: number): string {  // CTE
+                  return s + n + "A"
+              }
+          }
+      expected_out: "Semantic error ESE0048: Invalid method modifier(s): a final method can't have abstract or static modifier."
+
+    # final cannot be static and abstract
+    - decl: |-
+          abstract class A {
+              abstract final static meth(s: string, n: number): string;  // CTE
+          }
+      expected_out: "Semantic error ESE0047: Invalid method modifier(s): an abstract method can't have private, override, static, final or native modifier."
+
+    # final method with type parameters cannot be overridden
+    - decl: |-
+          class Z {
+              m(): string { return "Z"}
+          }
+
+          class Y extends Z {
+              m(): string { return "Y" }
+          }
+
+          class A<T extends Z> {
+              final meth(s: T): string { return s.m() + "A" }
+          }
+
+          class B<T extends Z> extends A<T> {
+              meth(s: T): string { return s.m() + "B" }  // CTE
+          }
+      expected_out: " Semantic error ESE0141: meth(s: T): String in B<T> cannot override meth(s: T): String in A<T> because overridden method is final."

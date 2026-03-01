@@ -1,0 +1,1286 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+'1':
+    title: Introduction
+    status: No testable assertions
+'1.1':
+    title: Overall Description
+    status: No testable assertions
+'1.2':
+    title: Lexical and Syntactic Notation
+    status: No testable assertions
+'1.3':
+    title: Terms and Definitions
+    status: No testable assertions
+'2':
+    title: Lexical Elements
+    status: No testable assertions
+'2.1':
+    title: Use of Unicode Characters
+    status: No testable assertions
+'2.2':
+    title: Lexical Input Elements
+    status: No testable assertions
+'2.3':
+    title: White Spaces
+    status: Completed
+'2.4':
+    title: Line Separators
+    status: Completed
+'2.5':
+    title: Tokens
+    status: No testable assertions
+'2.6':
+    title: Identifiers
+    status: Completed
+'2.7':
+    title: Keywords
+    status: Improve
+'2.8':
+    title: Operators and Punctuators
+    status: No testable assertions
+'2.9':
+    title: Literals
+    status: No testable assertions
+2.9.1:
+    title: Numeric Literals
+    status: No testable assertions
+2.9.2:
+    title: Integer Literals
+    status: Completed
+2.9.3:
+    title: Floating-Point Literals
+    status: Completed
+2.9.4:
+    title: Bigint Literals
+    status: Completed
+2.9.5:
+    title: Boolean Literals
+    status: Completed
+2.9.6:
+    title: String Literals
+    status: Completed
+2.9.7:
+    title: Multiline String Literal
+    status: Completed
+2.9.8:
+    title: Regex Literal
+    status: Completed
+2.9.9:
+    title: Null Literal
+    status: Completed
+2.9.10:
+    title: Undefined Literal
+    status: Completed
+'2.10':
+    title: Comments
+    status: Completed
+'2.11':
+    title: Semicolons
+    status: Completed
+'3':
+    title: Types
+    status: No testable assertions
+'3.1':
+    title: Predefined Types
+    status: Completed
+'3.2':
+    title: User-Defined Types
+    status: No testable assertions
+'3.3':
+    title: Using Types
+    status: Completed
+'3.4':
+    title: Named Types
+    status: Completed
+'3.5':
+    title: Type References
+    status: Completed
+'3.6':
+    title: Value Types
+    status: No testable assertions
+3.6.1:
+    title: Numeric Types
+    status: Completed
+3.6.2:
+    title: Integer Types and Operations
+    status: Completed
+3.6.3:
+    title: Floating-Point Types and Operations
+    status: Completed
+3.6.4:
+    title: Type boolean
+    status: Completed
+'3.7':
+    title: Reference Types
+    status: No testable assertions
+'3.8':
+    title: Type Any
+    status: Completed
+'3.9':
+    title: Type Object
+    status: Completed
+'3.10':
+    title: Type never
+    status: Completed
+'3.11':
+    title: Type void
+    status: Completed
+'3.12':
+    title: Type undefined
+    status: Completed
+'3.13':
+    title: Type null
+    status: Completed
+'3.14':
+    title: Type string
+    status: Completed
+'3.15':
+    title: Type bigint
+    status: Completed
+'3.16':
+    title: Literal Types
+    status: Completed
+3.16.1:
+    title: String Literal Types
+    status: Completed
+'3.17':
+    title: Array Types
+    status: Completed
+3.17.1:
+    title: Resizable Array Types
+    status: Completed
+3.17.2:
+    title: Readonly Array Types
+    status: Completed
+'3.18':
+    title: Tuple Types
+    status: Completed
+3.18.1:
+    title: Readonly Tuple Types
+    status: Completed
+'3.19':
+    title: Function Types
+    status: Completed
+3.19.1:
+    title: Type Function
+    status: Completed
+'3.20':
+    title: Union Types
+    status: Completed
+3.20.1:
+    title: Union Types Normalization
+    status: Completed
+3.20.2:
+    title: Access to Common Union Members
+    status: Completed
+3.20.3:
+    title: Keyof Types
+    status: Completed
+'3.21':
+    title: Nullish Types
+    status: Completed
+'3.22':
+    title: Default Values for Types
+    status: Completed
+'4':
+    title: Names, Declarations and Scopes
+    status: No testable assertions
+'4.1':
+    title: Names
+    status: Completed
+'4.2':
+    title: Declarations
+    status: Completed
+'4.3':
+    title: Scopes
+    status: Completed
+'4.4':
+    title: Accessible
+    status: Completed
+'4.5':
+    title: Type Declarations
+    status: Completed
+4.5.1:
+    title: Type Alias Declaration
+    status: Completed
+'4.6':
+    title: Variable and Constant Declarations
+    status: No testable assertions
+4.6.1:
+    title: Variable Declarations
+    status: Completed
+4.6.2:
+    title: Constant Declarations
+    status: Completed
+4.6.3:
+    title: Assignability with Initializer
+    status: Completed
+4.6.4:
+    title: Type Inference from Initializer
+    status: Completed
+'4.7':
+    title: Function Declarations
+    status: Completed
+4.7.1:
+    title: Signatures
+    status: No testable assertions
+4.7.2:
+    title: Parameter List
+    status: Completed
+4.7.3:
+    title: Readonly Parameters
+    status: Completed
+4.7.4:
+    title: Optional Parameters
+    status: Completed
+4.7.5:
+    title: Rest Parameter
+    status: Completed
+4.7.6:
+    title: Shadowing by Parameter
+    status: Completed
+4.7.7:
+    title: Return Type
+    status: Completed
+'5':
+    title: Generics
+    status: No testable assertions
+'5.1':
+    title: Type Parameters
+    status: Completed
+5.1.1:
+    title: Type Parameter Constraint
+    status: Completed
+5.1.2:
+    title: Type Parameter Default
+    status: Completed
+5.1.3:
+    title: Type Parameter Variance
+    status: Completed
+'5.2':
+    title: Generic Instantiations
+    status: Completed
+5.2.1:
+    title: Type Arguments
+    status: Completed
+5.2.2:
+    title: Explicit Generic Instantiations
+    status: Completed
+5.2.3:
+    title: Implicit Generic Instantiations
+    status: Completed
+'5.3':
+    title: Utility Types
+    status: No testable assertions
+5.3.1:
+    title: Awaited Utility Type
+    status: Completed
+5.3.2:
+    title: NonNullable Utility Type
+    status: Completed
+5.3.3:
+    title: Partial Utility Type
+    status: Completed
+5.3.4:
+    title: Required Utility Type
+    status: Completed
+5.3.5:
+    title: Readonly Utility Type
+    status: Completed
+5.3.6:
+    title: Record Utility Type
+    status: Completed
+5.3.7:
+    title: ReturnType Utility Type
+    status: Completed
+5.3.8:
+    title: Utility Type Private Fields
+    status: Completed
+5.3.9:
+    title: Nesting Utility Types
+    status: Completed
+'6':
+    title: Contexts and Conversions
+    status: Completed
+'6.1':
+    title: Assignment-like Contexts
+    status: Completed
+'6.2':
+    title: String Operator Contexts
+    status: Completed
+'6.3':
+    title: Numeric Operator Contexts
+    status: Completed
+6.3.1:
+    title: Numeric Conversions for Relational and Equality Operands
+    status: Completed
+'6.4':
+    title: Implicit Conversions
+    status: Completed
+6.4.1:
+    title: Widening Numeric Conversions
+    status: Completed
+6.4.2:
+    title: Enumeration to Constants Type Conversions
+    status: Completed
+'6.5':
+    title: Numeric Casting Conversions
+    status: Completed
+'7':
+    title: Expressions
+    status: Completed
+'7.1':
+    title: Evaluation of Expressions
+    status: Completed
+7.1.1:
+    title: Type of Expression
+    status: Completed
+7.1.2:
+    title: Normal and Abrupt Completion of Expression Evaluation
+    status: Completed
+7.1.3:
+    title: Order of Expression Evaluation
+    status: Completed
+7.1.4:
+    title: Operator Precedence
+    status: Completed
+7.1.5:
+    title: Evaluation of Arguments
+    status: Completed
+7.1.6:
+    title: Evaluation of Other Expressions
+    status: No testable assertions
+'7.2':
+    title: Literal
+    status: No testable assertions
+'7.3':
+    title: Named Reference
+    status: Completed
+7.3.1:
+    title: Function Reference
+    status: Completed
+7.3.2:
+    title: Method Reference
+    status: Completed
+'7.4':
+    title: Array Literal
+    status: Completed
+7.4.1:
+    title: Array Literal Type Inference from Context
+    status: Completed
+7.4.2:
+    title: Array Type Inference from Types of Elements
+    status: Completed
+'7.5':
+    title: Object Literal
+    status: Completed
+7.5.1:
+    title: Object Literal of Class Type
+    status: Completed
+7.5.2:
+    title: Object Literal of Interface Type
+    status: Completed
+7.5.3:
+    title: Object Literal of Record Type
+    status: Completed
+7.5.4:
+    title: Object Literal Evaluation
+    status: Completed
+'7.6':
+    title: Spread Expression
+    status: Completed
+'7.7':
+    title: Parenthesized Expression
+    status: Completed
+'7.8':
+    title: this Expression
+    status: Completed
+'7.9':
+    title: Field Access Expression
+    status: Completed
+7.9.1:
+    title: Accessing Current Object Fields
+    status: Completed
+7.9.2:
+    title: Accessing SuperClass Properties
+    status: Completed
+'7.10':
+    title: Method Call Expression
+    status: Completed
+7.10.1:
+    title: 'Step 1: Selection of Type to Use'
+    status: Completed
+7.10.2:
+    title: 'Step 2: Selection of Method'
+    status: Completed
+7.10.3:
+    title: 'Step 3: Checking Method Modifiers'
+    status: Completed
+7.10.4:
+    title: Type of Method Call Expression
+    status: Completed
+'7.11':
+    title: Function Call Expression
+    status: Completed
+'7.12':
+    title: Indexing Expressions
+    status: Completed
+7.12.1:
+    title: Array Indexing Expression
+    status: Completed
+7.12.2:
+    title: String Indexing Expression
+    status: Completed
+7.12.3:
+    title: Record Indexing Expression
+    status: Completed
+'7.13':
+    title: Chaining Operator
+    status: Completed
+'7.14':
+    title: New Expressions
+    status: Completed
+'7.15':
+    title: InstanceOf Expression
+    status: Completed
+'7.16':
+    title: Cast Expression
+    status: Completed
+7.16.1:
+    title: Type Inference in Cast Expression
+    status: Completed
+7.16.2:
+    title: Runtime Checking in Cast Expression
+    status: Completed
+'7.17':
+    title: TypeOf Expression
+    status: Completed
+'7.18':
+    title: Ensure-Not-Nullish Expression
+    status: Completed
+'7.19':
+    title: Nullish-Coalescing Expression
+    status: Completed
+'7.20':
+    title: Unary Expressions
+    status: Completed
+7.20.1:
+    title: Postfix Increment
+    status: Completed
+7.20.2:
+    title: Postfix Decrement
+    status: Completed
+7.20.3:
+    title: Prefix Increment
+    status: Completed
+7.20.4:
+    title: Prefix Decrement
+    status: Completed
+7.20.5:
+    title: Unary Plus
+    status: Completed
+7.20.6:
+    title: Unary Minus
+    status: Completed
+7.20.7:
+    title: Bitwise Complement
+    status: Completed
+7.20.8:
+    title: Logical Complement
+    status: Completed
+'7.21':
+    title: Multiplicative Expressions
+    status: Completed
+7.21.1:
+    title: Multiplication
+    status: Completed
+7.21.2:
+    title: Division
+    status: Completed
+7.21.3:
+    title: Remainder
+    status: Completed
+7.21.4:
+    title: Exponentiation
+    status: Completed
+'7.22':
+    title: Additive Expressions
+    status: Completed
+7.22.1:
+    title: String Concatenation
+    status: Completed
+7.22.2:
+    title: Additive Operators for Numeric Types
+    status: Completed
+'7.23':
+    title: Shift Expressions
+    status: Completed
+'7.24':
+    title: Relational Expressions
+    status: Completed
+7.24.1:
+    title: Numeric Relational Operators
+    status: Completed
+7.24.2:
+    title: String Relational Operators
+    status: Completed
+7.24.3:
+    title: Boolean Relational Operators
+    status: Completed
+7.24.4:
+    title: Enumeration Relational Operators
+    status: Completed
+'7.25':
+    title: Equality Expressions
+    status: Completed
+7.25.1:
+    title: Numeric Equality Operators
+    status: Completed
+7.25.2:
+    title: Function Type Equality Operators
+    status: Completed
+7.25.3:
+    title: Extended Equality with null or undefined
+    status: Completed
+'7.26':
+    title: Bitwise and Logical Expressions
+    status: Completed
+7.26.1:
+    title: Integer Bitwise Operators
+    status: Completed
+7.26.2:
+    title: Boolean Logical Operators
+    status: Completed
+'7.27':
+    title: Conditional-And Expression
+    status: Completed
+'7.28':
+    title: Conditional-Or Expression
+    status: Completed
+'7.29':
+    title: Assignment
+    status: Completed
+7.29.1:
+    title: Simple Assignment Operator
+    status: Completed
+7.29.2:
+    title: Compound Assignment Operators
+    status: Needs Update
+7.29.3:
+    title: Left-Hand-Side Expressions
+    status: Needs Update
+'7.30':
+    title: Ternary Conditional Expressions
+    status: Completed
+'7.31':
+    title: String Interpolation Expressions
+    status: Needs Update
+'7.32':
+    title: Lambda Expressions
+    status: Completed
+7.32.1:
+    title: Lambda Signature
+    status: Completed
+7.32.2:
+    title: Lambda Body
+    status: Completed
+7.32.3:
+    title: Lambda Expression Type
+    status: Completed
+7.32.4:
+    title: Runtime Evaluation of Lambda Expressions
+    status: Completed
+'7.33':
+    title: Constant Expressions
+    status: Completed
+'8':
+    title: Statements
+    status: No testable assertions
+'8.1':
+    title: Normal and Abrupt Statement Execution
+    status: No testable assertions
+'8.2':
+    title: Expression Statements
+    status: Completed
+'8.3':
+    title: Block
+    status: Completed
+'8.4':
+    title: Local Declarations
+    status: Completed
+'8.5':
+    title: if Statements
+    status: Completed
+'8.6':
+    title: Loop Statements
+    status: Completed
+'8.7':
+    title: while Statements and do Statements
+    status: Completed
+'8.8':
+    title: for Statements
+    status: Completed
+'8.9':
+    title: for-of Statements
+    status: Completed
+'8.10':
+    title: break Statements
+    status: Completed
+'8.11':
+    title: continue Statements
+    status: Completed
+'8.12':
+    title: return Statements
+    status: Completed
+'8.13':
+    title: switch Statements
+    status: Completed
+'8.14':
+    title: throw Statements
+    status: Completed
+'8.15':
+    title: try Statements
+    status: Completed
+8.15.1:
+    title: catch Clause
+    status: Completed
+8.15.2:
+    title: finally Clause
+    status: Completed
+8.15.3:
+    title: try Statement Execution
+    status: Completed
+'9':
+    title: Classes
+    status: Completed
+'9.1':
+    title: Class Declarations
+    status: Completed
+9.1.1:
+    title: Abstract Classes
+    status: Completed
+'9.2':
+    title: Class Extension Clause
+    status: Completed
+'9.3':
+    title: Class Implementation Clause
+    status: Completed
+9.3.1:
+    title: Implementing Interface Methods
+    status: Completed
+9.3.2:
+    title: Implementing Required Interface Properties
+    status: Completed
+9.3.3:
+    title: Implementing Optional Interface Properties
+    status: Completed
+'9.4':
+    title: Class Members
+    status: Completed
+'9.5':
+    title: Access Modifiers
+    status: Completed
+9.5.1:
+    title: Private Access Modifier
+    status: Completed
+9.5.2:
+    title: Protected Access Modifier
+    status: Completed
+9.5.3:
+    title: Public Access Modifier
+    status: Completed
+'9.6':
+    title: Field Declarations
+    status: Completed
+9.6.1:
+    title: Static and Instance Fields
+    status: Completed
+9.6.2:
+    title: Readonly (Constant) Fields
+    status: Completed
+9.6.3:
+    title: Optional Fields
+    status: Completed
+9.6.4:
+    title: Field Initialization
+    status: Completed
+9.6.5:
+    title: Fields with Late Initialization
+    status: Completed
+9.6.6:
+    title: Overriding Fields
+    status: Needs Update
+'9.7':
+    title: Method Declarations
+    status: Completed
+9.7.1:
+    title: Static Methods
+    status: Completed
+9.7.2:
+    title: Instance Methods
+    status: Completed
+9.7.3:
+    title: Abstract Methods
+    status: Completed
+9.7.4:
+    title: Async Methods
+    status: No testable assertions
+9.7.5:
+    title: Overriding Methods
+    status: Completed
+9.7.6:
+    title: Native Methods
+    status: No testable assertions
+9.7.7:
+    title: Method Body
+    status: Completed
+9.7.8:
+    title: Methods Returning this
+    status: Completed
+'9.8':
+    title: Class Accessor Declarations
+    status: Needs Update
+'9.9':
+    title: Constructor Declaration
+    status: Completed
+9.9.1:
+    title: Formal Parameters
+    status: Completed
+9.9.2:
+    title: Constructor Body
+    status: Completed
+9.9.3:
+    title: Explicit Constructor Call
+    status: Completed
+9.9.4:
+    title: Default Constructor
+    status: Completed
+'9.10':
+    title: Inheritance
+    status: Needs Update
+'10':
+    title: Interfaces
+    status: Needs Update
+'10.1':
+    title: Interface Declarations
+    status: Completed
+'10.2':
+    title: Superinterfaces and Subinterfaces
+    status: Completed
+'10.3':
+    title: Interface Members
+    status: Needs Update
+'10.4':
+    title: Interface Properties
+    status: Completed
+10.4.1:
+    title: Required Interface Properties
+    status: Completed
+10.4.2:
+    title: Optional Interface Properties
+    status: Completed
+'10.5':
+    title: Interface Method Declarations
+    status: Completed
+'10.6':
+    title: Interface Inheritance
+    status: Completed
+'11':
+    title: Enumerations
+    status: Completed
+'11.1':
+    title: Enumeration Integer Values
+    status: Completed
+'11.2':
+    title: Enumeration String Values
+    status: Completed
+'11.3':
+    title: Enumeration Operations
+    status: Completed
+'12':
+    title: Error Handling
+    status: No testable assertions
+'12.1':
+    title: Errors
+    status: Completed
+'13':
+    title: Modules and Namespaces
+    status: No testable assertions
+'13.1':
+    title: Import Directives
+    status: Completed
+13.1.1:
+    title: Bind All with Qualified Access
+    status: Completed
+13.1.2:
+    title: Default Import Binding
+    status: Completed
+13.1.3:
+    title: Selective Binding
+    status: Completed
+13.1.4:
+    title: Import Type Directive
+    status: Completed
+13.1.5:
+    title: Import Path
+    status: Completed
+13.1.6:
+    title: Several Bindings for One Import Path
+    status: Completed
+'13.2':
+    title: Standard Library Usage
+    status: Completed
+'13.3':
+    title: Top-Level Declarations
+    status: Completed
+13.3.1:
+    title: Exported Declarations
+    status: Completed
+'13.4':
+    title: Namespace Declarations
+    status: Completed
+'13.5':
+    title: Export Directives
+    status: No testable assertions
+13.5.1:
+    title: Selective Export Directive
+    status: Completed
+13.5.2:
+    title: Single Export Directive
+    status: Completed
+13.5.3:
+    title: Export Type Directive
+    status: Completed
+13.5.4:
+    title: Re-Export Directive
+    status: Completed
+'13.6':
+    title: Top-Level Statements
+    status: Completed
+'13.7':
+    title: Program Entry Point
+    status: Completed
+'14':
+    title: Ambient Declarations
+    status: Completed
+'14.1':
+    title: Ambient Constant Declarations
+    status: Completed
+'14.2':
+    title: Ambient Function Declarations
+    status: Completed
+'14.3':
+    title: Ambient Overload Function Declarations
+    status: Completed
+'14.4':
+    title: Ambient Class Declarations
+    status: Completed
+14.4.1:
+    title: Ambient Indexer
+    status: Completed
+14.4.2:
+    title: Ambient Call Signature
+    status: Completed
+14.4.3:
+    title: Ambient Iterable
+    status: Completed
+'14.5':
+    title: Ambient Interface Declarations
+    status: Completed
+'14.6':
+    title: Ambient Namespace Declarations
+    status: Completed
+14.6.1:
+    title: Implementing Ambient Namespace Declaration
+    status: Completed
+'14.7':
+    title: Ambient Accessor Declarations
+    status: New
+'15':
+    title: Semantic Rules
+    status: No testable assertions
+'15.1':
+    title: Semantic Essentials
+    status: Completed
+15.1.1:
+    title: Type of Standalone Expression
+    status: Completed
+15.1.2:
+    title: Specifics of Assignment-like Contexts
+    status: Completed
+15.1.3:
+    title: Specifics of Variable Initialization Context
+    status: Completed
+15.1.4:
+    title: Specifics of Numeric Operator Contexts
+    status: Completed
+15.1.5:
+    title: Specifics of String Operator Contexts
+    status: Completed
+15.1.6:
+    title: Other Contexts
+    status: Completed
+15.1.7:
+    title: Specifics of Type Parameters
+    status: Completed
+15.1.8:
+    title: Semantic Essentials Summary
+    status: No testable assertions
+'15.2':
+    title: Subtyping
+    status: Completed
+15.2.1:
+    title: Subtyping for Non-Generic Classes and Interfaces
+    status: Completed
+15.2.2:
+    title: Subtyping for Generic Classes and Interfaces
+    status: Completed
+15.2.3:
+    title: Subtyping for Literal Types
+    status: Completed
+15.2.4:
+    title: Subtyping for Union Types
+    status: Completed
+15.2.5:
+    title: Subtyping for Function Types
+    status: Completed
+15.2.6:
+    title: Subtyping for Fixed-Size Array Types
+    status: New
+15.2.7:
+    title: Subtyping for Intersection Types
+    status: New
+15.2.8:
+    title: Subtyping for Difference Types
+    status: New
+'15.3':
+    title: Type Identity
+    status: Completed
+'15.4':
+    title: Assignability
+    status: Completed
+'15.5':
+    title: Invariance, Covariance and Contravariance
+    status: Completed
+'15.6':
+    title: Compatibility of Call Arguments
+    status: Needs Update
+'15.7':
+    title: Type Inference
+    status: No testable assertions
+15.7.1:
+    title: Type Inference for Numeric Literals
+    status: Needs Update
+15.7.2:
+    title: Return Type Inference
+    status: Completed
+'15.8':
+    title: Smart Casts and Smart Types
+    status: Completed
+15.8.1:
+    title: Type Expression
+    status: New
+15.8.2:
+    title: Intersection Types
+    status: New
+15.8.3:
+    title: Difference Types
+    status: New
+15.8.4:
+    title: Computing Smart Types
+    status: New
+15.8.5:
+    title: Control-flow Graph
+    status: New
+15.8.6:
+    title: Type Expression Simplification
+    status: New
+15.8.7:
+    title: Smart Cast Examples
+    status: New
+'15.9':
+    title: Overriding
+    status: Completed
+15.9.1:
+    title: Overriding in Classes
+    status: Completed
+15.9.2:
+    title: Overriding and Overloading in Interfaces
+    status: Completed
+15.9.3:
+    title: Override-Compatible Signatures
+    status: Completed
+'15.10':
+    title: Overloading
+    status: Completed
+15.10.1:
+    title: Overload Resolution
+    status: Completed
+'15.11':
+    title: Type Erasure
+    status: Completed
+'15.12':
+    title: Static Initialization
+    status: Completed
+15.12.1:
+    title: Static Initialization Safety
+    status: Completed
+'15.13':
+    title: Dispatch
+    status: Completed
+'15.14':
+    title: Compatibility Features
+    status: Completed
+15.14.1:
+    title: Extended Conditional Expressions
+    status: Completed
+'16':
+    title: Concurrency
+    status: No testable assertions
+'16.1':
+    title: Introductory Note
+    status: No testable assertions
+'16.2':
+    title: Concurrency Subsystem Overview
+    status: No testable assertions
+16.2.1:
+    title: Major Concurrency Features
+    status: No testable assertions
+'16.3':
+    title: Asynchronous API
+    status: In Progress
+16.3.1:
+    title: Async Functions
+    status: In Progress
+16.3.2:
+    title: Async Lambdas
+    status: In Progress
+16.3.3:
+    title: Async Methods
+    status: In Progress
+16.3.4:
+    title: await
+    status: Needs Update
+16.3.5:
+    title: Promise
+    status: Completed
+16.3.6:
+    title: Unhandled Rejected Promises
+    status: In Progress
+'16.4':
+    title: Coroutines (Experimental)
+    status: On Hold
+'17':
+    title: Experimental Features
+    status: No testable assertions
+'17.1':
+    title: Type char
+    status: Completed
+17.1.1:
+    title: Character Literals
+    status: Completed
+17.1.2:
+    title: Character Equality Operators
+    status: Completed
+'17.2':
+    title: Fixed-Size Array Types
+    status: Completed
+17.2.1:
+    title: Fixed-Size Array Creation
+    status: Completed
+'17.3':
+    title: Resizable Array Creation Expressions
+    status: Completed
+17.3.1:
+    title: Runtime Evaluation of Array Creation Expressions
+    status: Completed
+'17.4':
+    title: Enumerations Experimental
+    status: No testable assertions
+17.4.1:
+    title: Enumeration with Explicit Type
+    status: Completed
+17.4.2:
+    title: Enumeration Methods
+    status: Completed
+'17.5':
+    title: Indexable Types
+    status: Needs Update
+'17.6':
+    title: Iterable Types
+    status: Completed
+'17.7':
+    title: Callable Types
+    status: Completed
+17.7.1:
+    title: Callable Types with $_invoke Method
+    status: Completed
+17.7.2:
+    title: Callable Types with $_instantiate Method
+    status: Completed
+'17.8':
+    title: Statements
+    status: No testable assertions
+17.8.1:
+    title: For-of Explicit Type Annotation
+    status: Completed
+'17.9':
+    title: Overload Declarations
+    status: On Hold
+17.9.1:
+    title: Function Overload Declarations
+    status: Completed
+17.9.2:
+    title: Class Method Overload Declarations
+    status: On Hold
+17.9.3:
+    title: Interface Method Overload Declarations
+    status: On Hold
+17.9.4:
+    title: Constructor Overload Declarations
+    status: On Hold
+17.9.5:
+    title: Overload Alias Name Same As Function Name
+    status: On Hold
+17.9.6:
+    title: Overload Alias Name Same As Method Name
+    status: On Hold
+'17.10':
+    title: Native Functions and Methods
+    status: Completed
+17.10.1:
+    title: Native Functions
+    status: Completed
+17.10.2:
+    title: Native Methods
+    status: Completed
+17.10.3:
+    title: Native Constructors
+    status: Completed
+'17.11':
+    title: Classes Experimental
+    status: Completed
+17.11.1:
+    title: Final Classes
+    status: Completed
+17.11.2:
+    title: Final Methods
+    status: Completed
+17.11.3:
+    title: Constructor Names
+    status: Completed
+'17.12':
+    title: Default Interface Method Declarations
+    status: Completed
+'17.13':
+    title: Adding Functionality to Existing Types
+    status: Completed
+17.13.1:
+    title: Functions with Receiver
+    status: Completed
+17.13.2:
+    title: Receiver Type
+    status: Completed
+17.13.3:
+    title: Accessors with Receiver
+    status: Completed
+17.13.4:
+    title: Function Types with Receiver
+    status: Completed
+17.13.5:
+    title: Lambda Expressions with Receiver
+    status: Completed
+17.13.6:
+    title: Implicit this in Lambda with Receiver Body
+    status: Completed
+'17.14':
+    title: Trailing Lambdas
+    status: Completed
+'17.15':
+    title: Accessor Declarations
+    status: New
+'18':
+    title: Annotations
+    status: No testable assertions
+'18.1':
+    title: Declaring Annotations
+    status: Completed
+18.1.1:
+    title: Types of Annotation Fields
+    status: Completed
+'18.2':
+    title: Using Annotations
+    status: Completed
+18.2.1:
+    title: Using Single Field Annotations
+    status: Completed
+'18.3':
+    title: Exporting and Importing Annotations
+    status: Completed
+'18.4':
+    title: Ambient Annotations
+    status: Completed
+'18.5':
+    title: Standard Annotations
+    status: Completed
+18.5.1:
+    title: Retention Annotation
+    status: Completed
+18.5.2:
+    title: Target Annotation
+    status: Completed
+'18.6':
+    title: Runtime Access to Annotations
+    status: No testable assertions
+'19':
+    title: Standard Library
+    status: No testable assertions
+'20':
+    title: Implementation Details
+    status: No testable assertions
+'20.1':
+    title: Import Path Lookup
+    status: Completed
+'20.2':
+    title: Modules in Host System
+    status: Completed
+'20.3':
+    title: Getting Type Via Reflection
+    status: Blocked by Spec
+'20.4':
+    title: Ensuring Module Initialization
+    status: Completed
+'20.5':
+    title: Generic and Function Types Peculiarities
+    status: No testable assertions
+'20.6':
+    title: Keyword struct and ArkUI
+    status: Completed
+'20.7':
+    title: OutOfMemoryError for Primitive Type Operations
+    status: Needs Update
+'20.8':
+    title: Make a Bridge Method for Overriding Method
+    status: No testable assertions
+'21':
+    title: Grammar Summary
+    status: No testable assertions
+'22':
+    title: Contributors
+    status: No testable assertions
+'23':
+    title: Index
+    status: No testable assertions

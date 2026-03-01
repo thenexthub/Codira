@@ -1,0 +1,156 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - base: |-
+          foo(): void {
+              res = 1;
+          }
+      derived: |-
+          override foo(): void {
+              res = 2;
+          }
+      call: |-
+          new Derived().foo()
+          arktest.assertEQ(res, 2)
+
+    # different return type
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(): int {
+              res = 1;
+              return 1;
+          }
+      derived: |-
+          override foo(): void {
+              res = 2;
+          }
+
+    # different arguments number 0:1
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(): void {
+              res = 1;
+          }
+      derived: |-
+          override foo(i: int): void {
+              res = 2;
+          }
+
+    # different arguments number 2:1
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(i: int, j: string): void {
+              res = 1;
+          }
+      derived: |-
+          override foo(i: int): void {
+              res = 2;
+          }
+
+    # same arguments 3:3
+    - base: |-
+          foo(i: int, j: string, k: number): void {
+              res = 1;
+          }
+      derived: |-
+          override foo(i: int, j: string, k: number): void {
+              res = 2;
+          }
+      call: |-
+          new Derived().foo(1, "some str", 42.0)
+          arktest.assertEQ(res, 2)
+
+    # same type parameters number
+    - base: |-
+          foo<A, B>(i: A, j: B): void {
+              res = 1;
+          }
+      derived: |-
+          override foo<A, B>(i: A, j: B): void {
+              res = 2;
+          }
+      call: |-
+          new Derived().foo(new Base(), new Derived())
+          arktest.assertEQ(res, 2)
+
+    # same type parameters number, same parameters in override
+    - base: |-
+          foo<A, B>(i: B, j: B): void {
+              res = 1;
+          }
+      derived: |-
+          override foo<A, B>(i: B, j: B): void {
+              res = 2;
+          }
+      call: |-
+          new Derived().foo(new Base(), new Derived())
+          arktest.assertEQ(res, 2)
+
+    # same type parameters number, wrong parameters in prototype 2
+    - tags: 'negative, compile-only'
+      base: |-
+          foo<A, B>(i: B, j: B): void {
+              res = 1;
+          }
+      derived: |-
+          override foo<A, C>(i: A, j: A): void {
+              res = 2;
+          }
+
+    # same type parameters number, same parameters in prototype 2
+    - base: |-
+          foo<A, B>(i: B, j: B): void {
+              res = 1;
+          }
+      derived: |-
+          override foo<A, C>(i: C, j: C): void {
+              res = 2;
+          }
+      call: |-
+          new Derived().foo(new Base(), new Derived())
+          arktest.assertEQ(res, 2)
+
+    # same type parameters number, different parameters
+    - tags: 'negative, compile-only'
+      base: |-
+          foo<A, B>(i: B, j: B): void {
+              res = 1;
+          }
+      derived: |-
+          override foo<A, C>(i: A, j: C): void {
+              res = 2;
+          }
+
+    # different type parameters number
+    - tags: 'negative, compile-only'
+      base: |-
+          foo<A, B>(i: A, j: B): void {
+              res = 1;
+          }
+      derived: |-
+          override foo<B>(i: B, j: B): void {
+              res = 2;
+          }
+
+    # different type parameters number
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(i: Number): void {
+              res = 1;
+          }
+      derived: |-
+          override foo<B>(i: Number): void {
+              res = 2;
+          }

@@ -1,0 +1,104 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+  # type argument is class
+  - use: |-
+      let v = new X()
+      if (foo <X> (v, null) !== v) {  // null is not X
+          return 1;
+      }
+
+  - use: |-
+      let v = new X()
+      if (foo <Y<X>> (v, new Y<X>()) !== v) {  // Y<X> is subclass of X
+          return 1;
+      }
+    bound: ' extends X'
+
+  - use: |-
+      if (foo <Y<X>|null> (null, new Y<X>()) !== null) {  // out of bound
+          return 1;
+      }
+    bound: ' extends Object'
+
+  # type argument is interface
+  - use: |-
+      let v: I = new X()
+      if (foo <J> (v, v) !== v) {  //  J is not I
+          return 1;
+      }
+
+  # type argument is array of classes, interfaces, enums
+  - use: |-
+      let v = new Object[0]
+      if (foo <X[]> (v, new X[0]) !== v) {  // Object is not X
+          return 1;
+      }
+    bound: ' extends Object[]'
+
+  - use: |-
+      let v: I[] = new I[0]
+      if (foo <J[]> (v, v) !== v) {  // J[] is not I[]
+          return 1;
+      }
+
+  - use: |-
+      let v: Color[] = [Color.Red]
+      if (foo <Size[]> (v, [Color.Blue]) !== v) {  // Size[] is not Color[]
+          return 1;
+      }
+    bound: ' extends Object'
+
+  # type argument is alias
+  - use: |-
+      let v: X|null = null
+      if (foo <B|null>(v, new Y()) !== v) {  // X|null is not Y|null
+          return 1;
+      }
+    decl: |-
+      type B = Y
+
+  - use: |-
+      let v: B = null
+      if (foo <B>(v, new Y<X>()) !== v) {  // out of bound
+          return 1;
+      }
+    decl: |-
+      type B = X|null
+    bound: ' extends I'
+
+  - use: |-
+      let v = new X[0]
+      if (foo <B>(v, new Y<X>[0]) !== v) {  // X[] is superclass to Y<X>[]
+          return 1;
+      }
+    decl: |-
+      type B = Y<X>[]|null
+
+  # use interface to create array
+  - use: |-
+      let v: I[] = new I[0] // cannnot use array creation expression with interfaces
+      if (foo <I[]> (v, v) !== v) {
+          return 1;
+      }

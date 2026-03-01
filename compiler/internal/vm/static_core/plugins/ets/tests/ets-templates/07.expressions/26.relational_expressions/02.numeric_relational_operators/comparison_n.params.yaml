@@ -1,0 +1,30 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of non numeric comparison tests
+integer_comparison:
+  - {xtype: 'readonly number []', ytype: number, op: ">=", declare: 'inner'}
+  - {xtype: 'undefined', ytype: number, op: ">=", declare: 'inner'}
+  - {xtype: 'Any', ytype: number, op: ">=", declare: 'inner'}
+  - {xtype: 'int[]', ytype: number, op: ">=", declare: 'inner'}
+  - {xtype: 'never', ytype: number, op: ">=", declare: 'inner'}
+  - {xtype: 'Object', ytype: number, op: ">=", declare: 'inner'}
+  - {xtype: '(n: number) => number', ytype: number, op: ">=", declare: 'inner'}
+  # Smart casts are not applied to global variabes and class fields
+  - {xtype: 'number|string', ytype: number, op: ">=", declare: 'outer'}
+
+  
+
+
+
+

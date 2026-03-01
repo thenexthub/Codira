@@ -1,0 +1,368 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          class C {
+              met(p: number): string {
+                  return "n"
+              }
+          }
+      use: |-
+          // select method with with unboxing
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  "n" )
+          arktest.assertEQ( c.met(new Number()),  "n" )
+
+
+    - decl: |-
+          class C {
+              met(p: Number): string {
+                  return "N"
+              }
+          }
+      use: |-
+          // select method with boxing
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  "N" )
+          arktest.assertEQ( c.met(new Number()),  "N" )
+
+    - decl: |-
+          class C {
+              met(...p: number[]): string {
+                  return "nR"
+              }
+          }
+      use: |-
+          // select method with rest parameter and unboxing
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  "nR" )
+          arktest.assertEQ( c.met(new Number()),  "nR" )
+
+
+    - decl: |-
+          class C {
+              met(...p: Number[]): string {
+                  return "NR"
+              }
+          }
+      use: |-
+          // select method with rest parameter and boxing
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  "NR" )
+          arktest.assertEQ( c.met(new Number()),  "NR" )
+
+    - decl: |-
+          class C {
+              met(p: number, q: number = 0.0): string {
+                  return "nD1"
+              }
+          }
+      use: |-
+          // select method with default parameter and unboxing
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  "nD1" )
+          arktest.assertEQ( c.met(new Number()),  "nD1" )
+
+
+    - decl: |-
+          class C {
+              met(p: Number, q: number = 0.0): string {
+                  return "ND1"
+              }
+          }
+      use: |-
+          // select method with default parameter and boxing
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  "ND1" )
+          arktest.assertEQ( c.met(new Number()),  "ND1" )
+
+
+    - decl: |-
+          class C {
+              met(p: number, q?: Number): string {
+                  return "nD2"
+              }
+          }
+      use: |-
+          // select method with undefined parameter and unboxing
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  "nD2" )
+          arktest.assertEQ( c.met(new Number()),  "nD2" )
+
+
+    - decl: |-
+          class C {
+              met(p: Number, q?: Number): string {
+                  return "ND2"
+              }
+          }
+      use: |-
+          // select method with undefined parameter and boxing
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  "ND2" )
+          arktest.assertEQ( c.met(new Number()),  "ND2" )
+
+    # step2_12
+    # If an overload set is formed from implicit overloads only, then the order of the overload
+    # set corresponds to the textual order of entity declaration.
+    - decl: |-
+          class C {
+              met(...p: number[]): string {
+                  return "nR"
+              }
+              met(p: Number, q: number = 0.0): string {
+                  return "ND1"
+              }
+          }
+      use: |-
+          // select method with rest parameter and default parameter
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  "nR", "Failed at default parameter" )
+          arktest.assertEQ( c.met(1, 2),  "nR", "Failed at rest parameter" )
+
+    # step2_13
+    - decl: |-
+          class C {
+              met(...p: number[]): string {
+                  return "nR"
+              }
+              met(p: Number, q?: Number): string {
+                  return "nR"
+              }
+          }
+      use: |-
+          // select method with rest parameter and undefined parameter
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  "nR", "Failed at default parameter" )
+          arktest.assertEQ( c.met(2, 3),  "nR", "Failed at rest parameter" )
+
+    # step2_14
+    - decl: |-
+          class C {
+              met(p: number, q: number = 0.0): string {
+                  return "nD1"
+              }
+              met(...p: Number[]): string {
+                  return "NR"
+              }
+          }
+      use: |-
+          // select method with rest parameter and default parameter
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  "nD1", "Failed at default parameter" )
+          arktest.assertEQ( c.met(3, 4),  "nD1", "Failed at rest parameter" )
+
+    # step2_15
+    - decl: |-
+          class C {
+              met(p: number, q?: Number): string {
+                  return "nD2"
+              }
+              met(...p: Number[]): string {
+                  return "NR"
+              }
+          }
+      use: |-
+          // select method with rest parameter and default parameter
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  "nD2", "Failed at default parameter" )
+          arktest.assertEQ( c.met(4, 5),  "nD2", "Failed at rest parameter" )
+
+    - decl: |-
+          class C {
+              met(p: number): string {
+                  return 'n'
+              }
+              met(...p: FixedArray<Number>): string {
+                  return 'NR'
+              }
+          }
+      use: |-
+          // select method with/without unboxing and with/without rest
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  'n' )
+          arktest.assertEQ( c.met(new Number(), new Number(), new Number()),  'NR' )
+          arktest.assertEQ( c.met(1, 2,  new Number()),  'NR' )
+
+
+    - decl: |-
+          class C {
+              met(p: Number): string {
+                  return 'N'
+              }
+              met(...p: FixedArray<number>): string {
+                  return 'nR'
+              }
+          }
+      use: |-
+          // select method with boxing and without rest
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  'N' )
+          arktest.assertEQ( c.met(new Number(), new Number(), new Number()),  'nR' )
+          arktest.assertEQ( c.met(1, 2, 3),  'nR' )
+
+    - decl: |-
+          class C {
+              met(p: number): string {
+                  return "n"
+              }
+              met(p: Number, q: number = 0.0): string {
+                  return "ND1"
+              }
+          }
+      use: |-
+          // select method without boxing/unboxing and without default parameter
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  "n" )
+          arktest.assertEQ( c.met(new Number()),  "n" )
+
+
+    - decl: |-
+          class C {
+              met(p: number): string {
+                  return "n"
+              }
+              met(p: number, q: number = 0.0): string {
+                  return "nD1"
+              }
+          }
+      use: |-
+          // select method with unboxing and without default parameter
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  "n" )
+          arktest.assertEQ( c.met(new Number()),  "n" )
+
+
+    - decl: |-
+          class C {
+              met(p: Number): string {
+                  return "N"
+              }
+              met(p: number, q: number = 0.0): string {
+                  return "nD1"
+              }
+          }
+      use: |-
+          // select method with number and without default parameter
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  "N" )
+          arktest.assertEQ( c.met(new Number()),  "N" )
+
+
+    - decl: |-
+          class C {
+              met(p: number): string {
+                  return "n"
+              }
+              met(p: Number, q?: Number): string {
+                  return "ND2"
+              }
+          }
+      use: |-
+          // select method without boxing/unboxing and without undefined parameter
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  "n" )
+          arktest.assertEQ( c.met(new Number()),  "n" )
+
+
+    - decl: |-
+          class C {
+              overload met { metNumber, metNumberAndOptional }
+              metNumber(p: number): string {
+                  return 'n'
+              }
+              metNumberAndOptional(p: number, q?: Number): string {
+                  return 'nD2'
+              }
+
+          }
+      use: |-
+          // select method with number and possible undefined parameter
+          let c: C = new C
+          arktest.assertEQ( c.met(0.0),  'n' )
+          arktest.assertEQ( c.met(new Number(), 20.0),  'nD2' )
+
+    # step2_25
+    - decl: |-
+          class A {
+              met(p: boolean): string {
+                  return "A-" + p
+              }
+          }
+          class B extends A {
+              met(p: Boolean): string {
+                  return "B-" + p
+              }
+          }
+          class C extends B {
+              override met(p: boolean): string {
+                  return "C-" + p
+              }
+          }
+      use: |-
+          let a: A = new C()
+          arktest.assertEQ( a.met(true),  "C-true" ) // overriding
+
+          let b: B = new B()
+          arktest.assertEQ( b.met(false),  "B-false" )
+
+    - decl: |-
+          class C {
+              met(p: number): string {
+                  return "n"
+              }
+              met(...p: number[]): string {
+                  return "nR"
+              }
+              met(p: number, q: number = 0.0): string {
+                  return "nD1"
+              }
+          }
+      use: |-
+          // more than one applicable method
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  "n" )
+
+    - decl: |-
+          class C {
+              met(p: number): string {
+                  return "n"
+              }
+              met(...p: number[]): string {
+                  return "nR"
+              }
+              met(p: number, q?: Number): string {
+                  return "nD2"
+              }
+          }
+      use: |-
+          // more than one applicable method
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  "n" )
+
+    - decl: |-
+        class C {
+            met(p: number): string
+            met(...p: number[]): string
+            met(...args: Any[]): Any {
+              if(args.length = 1) return 'n'
+              return 'nR'
+            }
+        }
+      use: |-
+        // more than one applicable method
+        let c: C = new C()
+        arktest.assertEQ( c.met(0.0),  "n" )
+        arktest.assertEQ( c.met(0.0, 1, 2, 3),  'nR' )

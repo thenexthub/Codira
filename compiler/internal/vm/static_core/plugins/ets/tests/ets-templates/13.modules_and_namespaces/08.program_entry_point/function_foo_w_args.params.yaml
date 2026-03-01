@@ -1,0 +1,132 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # void return type
+    - entry_point: foo
+      cmd_line_args: X, Y
+      use: |-
+          export function foo(args: string[]) {
+              arktest.assertEQ(args[0], 'X')
+              arktest.assertEQ(args[1], 'Y')
+          }
+
+          export function main() { // should not be called
+              arktest.assertTrue(false)
+          }
+
+    # int return type
+    - entry_point: foo
+      cmd_line_args: X, Y
+      use: |-
+          export function foo(args: string[]): int {
+              arktest.assertEQ(args[0], 'X')
+              arktest.assertEQ(args[1], 'Y')
+              return 0
+          }
+
+          export function main() { // should not be called
+              arktest.assertTrue(false)
+          }
+
+    # with overload declarations, void
+    - entry_point: foo1
+      cmd_line_args: X, Y
+      use: |-
+          export overload foo { foo1 }
+
+          export function foo1(args: string[]) {
+              arktest.assertEQ(args[0], 'X')
+              arktest.assertEQ(args[1], 'Y')
+          }
+
+          function main() { // should not be called
+              arktest.assertTrue(false)
+          }
+
+    # with overload declarations, int
+    - entry_point: foo1
+      cmd_line_args: X, Y
+      use: |-
+          export overload foo { foo1 }
+
+          export function foo1(args: string[]): int {
+              arktest.assertEQ(args[0], 'X')
+              arktest.assertEQ(args[1], 'Y')
+              return 0
+          }
+
+          function main(args: string[]): int {
+              return 1
+          }
+
+    # call main from another entry point
+    - entry_point: foo
+      cmd_line_args: X, Y
+      use: |-
+          export function foo(args: string[]) {
+              arktest.assertEQ(main(args), 42)
+          }
+
+          function main(args: string[]): int {
+              arktest.assertEQ(args[0], 'X')
+              arktest.assertEQ(args[1], 'Y')
+              return 42
+          }
+
+    - entry_point: foo
+      cmd_line_args: X, Y
+      use: |-
+          class MyError extends Error {}
+
+          export function foo(args: string[]) {
+              arktest.expectThrow(
+                  () => main(args),
+                  (e: Error) => e instanceof MyError
+              )
+          }
+
+          function main(args: string[]) {
+              arktest.assertEQ(args[0], 'X')
+              arktest.assertEQ(args[1], 'Y')
+              throw new MyError
+          }
+
+    - entry_point: foo
+      cmd_line_args: X, Y
+      use: |-
+          export function foo(args: string[]): int {
+              return main(args) - 1
+          }
+
+          export function main(args: string[]): int {
+              arktest.assertEQ(args[0], 'X')
+              arktest.assertEQ(args[1], 'Y')
+              return 1
+          }
+
+    - entry_point: foo
+      cmd_line_args: X, Y
+      use: |-
+          export function foo(args: string[]): int {
+              arktest.expectThrow(() => { main(args) })
+              return 0
+          }
+
+          export function main(args: string[]): int {
+              if (args.length == 2) {
+                  throw new Error
+              }
+              return 1
+          }

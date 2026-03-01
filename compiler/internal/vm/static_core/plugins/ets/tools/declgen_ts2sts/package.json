@@ -1,0 +1,43 @@
+{
+  "name": "@panda/declgen",
+  "version": "1.0.0",
+  "main": "dist/declgen.js",
+  "bin": "bin/declgen.js",
+  "files": [
+    "build/*"
+  ],
+  "private": true,
+  "license": "Apache-2.0",
+  "scripts": {
+    "tsc": "tsc",
+    "install_tsc": "./script/install_tsc.sh",
+    "webpack": "webpack -t node --config webpack.config.js",
+    "clean": "rimraf build dist bundle",
+    "compile": "npm run tsc",
+    "build": "npm run clean && npm run compile",
+    "pack:declgen": "rimraf bundle && mkdir bundle && npm pack --pack-destination bundle",
+    "pretest": "npm run fix && npm run eslint-check",
+    "test_main": "npm run compile && rimraf test/results && node build/src/TestRunner.js test",
+    "eslint-check": "npx eslint",
+    "eslint-fix": "npm run eslint-check -- --fix",
+    "prettier-fix": "npx prettier --write .",
+    "fix": "npm run prettier-fix && npm run eslint-fix",
+    "declgen": "node ./dist/declgen.js",
+    "test": "npm run compile && TEST_OUT=build/test_artifacts && rimraf ${TEST_OUT} && node build/src/TestRunner.js --testDirPath test/cookbook_tests -t ts_source -t dts_declarations -t package_source --testOutPath ${TEST_OUT}"
+  },
+  "dependencies": {
+    "commander": "^9.4.0",
+    "log4js": "^6.4.0",
+    "typescript": "npm:ohos-typescript@4.9.5-r9"
+  },
+  "devDependencies": {
+    "@eslint/js": "8.57.1",
+    "@types/node": "18.11.7",
+    "typescript-eslint": "8.8.0",
+    "eslint": "8.57.1",
+    "prettier": "3.5.3",
+    "rimraf": "6.0.1",
+    "webpack": "5.72.1",
+    "webpack-cli": "5.0.2"
+  }
+}

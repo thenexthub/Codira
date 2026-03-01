@@ -1,0 +1,411 @@
+# plugin ets_map
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+include_relative '../../../irtoc/scripts/common.irt'
+include_relative '../../../irtoc/scripts/string_helpers.irt'
+include_relative 'common.irt'
+
+module RuntimeConstants
+  MARK_WORD_STATUS_MASK_IN_PLACE = "(ark::MarkWord::MarkWordSize)ark::MarkWord::STATUS_MASK_IN_PLACE"
+  MARK_WORD_STATUS_HASHED_IN_PLACE = "(ark::MarkWord::STATUS_HASHED << ark::MarkWord::STATUS_SHIFT)"
+  MARK_WORD_HASH_CODE_MASK = "(ark::MarkWord::MarkWordSize)ark::MarkWord::HASH_MASK"
+
+  CLASS_STRING_CLASS_FLAG = "ark::Class::STRING_CLASS"
+
+  ETS_CLASS_BOXED_TYPE_FIELD_START = "cross_values::GetEtsClassBoxedTypeFieldStart(graph->GetArch())"
+  ETS_CLASS_BOXED_TYPE_CHAR_MASK_VALUE = "(cross_values::GetEtsClassBoxedTypeCharMaskValue(graph->GetArch()) << " + ETS_CLASS_BOXED_TYPE_FIELD_START + ")"
+  ETS_CLASS_BOXED_TYPE_SHORT_MASK_VALUE = "(cross_values::GetEtsClassBoxedTypeShortMaskValue(graph->GetArch()) << " + ETS_CLASS_BOXED_TYPE_FIELD_START + ")"
+  ETS_CLASS_BOXED_TYPE_INT_MASK_VALUE = "(cross_values::GetEtsClassBoxedTypeIntMaskValue(graph->GetArch()) << " + ETS_CLASS_BOXED_TYPE_FIELD_START + ")"
+  ETS_CLASS_BOXED_TYPE_LONG_MASK_VALUE = "(cross_values::GetEtsClassBoxedTypeLongMaskValue(graph->GetArch()) << " + ETS_CLASS_BOXED_TYPE_FIELD_START + ")"
+  ETS_CLASS_BOXED_TYPE_FLOAT_MASK_VALUE = "(cross_values::GetEtsClassBoxedTypeFloatMaskValue(graph->GetArch()) << " + ETS_CLASS_BOXED_TYPE_FIELD_START + ")"
+  ETS_CLASS_BOXED_TYPE_DOUBLE_MASK_VALUE = "(cross_values::GetEtsClassBoxedTypeDoubleMaskValue(graph->GetArch()) << " + ETS_CLASS_BOXED_TYPE_FIELD_START + ")"
+
+  ETS_CLASS_IS_NULLVALUE_FLAG = "cross_values::GetEtsClassIsNullvalueFlag(graph->GetArch())"
+  ETS_CLASS_IS_BOXED_FLAG = "cross_values::GetEtsClassIsBoxedFlag(graph->GetArch())"
+  ETS_CLASS_IS_VALUE_TYPED_FLAG = "cross_values::GetEtsClassIsValueTypedFlag(graph->GetArch())"
+  ETS_CLASS_IS_BIGINT_FLAG = "cross_values::GetEtsClassIsBigintFlag(graph->GetArch())"
+
+  ETS_CLASS_IS_ENUM_FLAG = "cross_values::GetEtsClassIsEnumFlag(graph->GetArch())"
+
+  INT_MAX = "std::numeric_limits<int>::max()"
+  INT_MIN = "std::numeric_limits<int>::min()"
+end
+
+################################################################
+
+scoped_macro(:isHashedString) do |obj|
+  Compare(LoadI(obj).Imm(Constants::STRING_HASHCODE_OFFSET).u32, 0).NE.b
+end
+
+scoped_macro(:isHashedObject) do |obj|
+  mark_word := LoadI(obj).Imm(Constants::MARK_WORD_OFFSET).u32
+  obj_status := AndI(mark_word).Imm(RuntimeConstants::MARK_WORD_STATUS_MASK_IN_PLACE).u32
+  Compare(obj_status, RuntimeConstants::MARK_WORD_STATUS_HASHED_IN_PLACE).EQ.b
+end
+
+scoped_macro(:isHashed) do |obj, is_string|
+  If(is_string, 0).NE.b {
+    is_hashed_str := isHashedString(obj)
+  } Else {
+    is_hashed_obj := isHashedObject(obj)
+  }
+  is_hashed := Phi(is_hashed_str, is_hashed_obj).b
+end
+
+scoped_macro(:isNullValue) do |flags|
+  is_nullvalue := AndI(flags).Imm(RuntimeConstants::ETS_CLASS_IS_NULLVALUE_FLAG).u32
+end
+
+scoped_macro(:isString) do |klass|
+  flags := LoadI(klass).Imm(Constants::BASE_CLASS_FLAGS_OFFSET).u32
+  is_string := AndI(flags).Imm(RuntimeConstants::CLASS_STRING_CLASS_FLAG).u32
+end
+
+scoped_macro(:isBoxedType) do |flags|
+  AndI(flags).Imm(RuntimeConstants::ETS_CLASS_IS_BOXED_FLAG).u32
+end
+
+scoped_macro(:isValueTypedType) do |flags|
+  AndI(flags).Imm(RuntimeConstants::ETS_CLASS_IS_VALUE_TYPED_FLAG).u32
+end
+
+scoped_macro(:isEnumType) do |flags|
+  AndI(flags).Imm(RuntimeConstants::ETS_CLASS_IS_ENUM_FLAG).u32
+end
+
+# isChar, isShort, isInt, isLong, isFloat, isDouble
+['Char', 'Short', 'Int', 'Long', 'Float', 'Double'].each do |name|
+  scoped_macro(:"is#{name}") do |type|
+    If(type, Cast(eval("RuntimeConstants::ETS_CLASS_BOXED_TYPE_#{name.upcase}_MASK_VALUE")).u32).EQ.Likely {
+      _res1 := Cast(1).b
+    } Else {
+      _res2 := Cast(0).b
+    }
+    Phi(_res1, _res2).b
+  end
+end
+
+scoped_macro(:isBigintType) do |flags|
+  AndI(flags).Imm(RuntimeConstants::ETS_CLASS_IS_BIGINT_FLAG).u32
+end
+
+
+scoped_macro(:fetchHashCodeString) do |obj|
+  LoadI(obj).Imm(Constants::STRING_HASHCODE_OFFSET).u32
+end
+
+scoped_macro(:fetchHashCodeObject) do |obj|
+  mark_word := LoadI(obj).Imm(Constants::MARK_WORD_OFFSET).u32
+  AndI(mark_word).Imm(RuntimeConstants::MARK_WORD_HASH_CODE_MASK).u32
+end
+
+scoped_macro(:fetchHashCode) do |obj, is_string|
+  If(is_string, 0).NE.b {
+    hash_code_str := fetchHashCodeString(obj)
+  } Else {
+    hash_code_obj := fetchHashCodeObject(obj)
+  }
+  hash_code := Phi(hash_code_str, hash_code_obj).u32
+end
+
+
+scoped_macro(:calcHashCode) do |obj, flags|
+  btype := getBoxedType(flags)
+
+  int_max := Cast(RuntimeConstants::INT_MAX).f64
+  int_min := Cast(RuntimeConstants::INT_MIN).f64
+
+  If(isDouble(btype), 1).EQ.b {
+    value_double := LoadI(obj).Imm(EtsConstants::BOX_PRIMITIVE_VALUE_OFFSET).f64
+
+    If(isNan64(value_double), 0).NE.b {
+      hash_code_double_nan := 0
+      Goto(:ValueDoubleDone)
+    }
+    IfImm(Compare(value_double, int_max).GT.b).Imm(0).NE.b {
+      hash_code_double_large_pos := RuntimeConstants::INT_MAX
+      Goto(:ValueDoubleDone)
+    }
+    IfImm(Compare(value_double, int_min).LT.b).Imm(0).NE.b {
+      hash_code_double_large_neg := RuntimeConstants::INT_MIN
+      Goto(:ValueDoubleDone)
+    } Else {
+      hash_code_double_norm := Cast(Cast(value_double).i32).u32
+    }
+Label(:ValueDoubleDone)
+    hash_code_double := Phi(hash_code_double_nan, hash_code_double_large_pos, hash_code_double_large_neg, hash_code_double_norm).u32
+    Goto(:Done)
+  }
+
+  If(isFloat(btype), 1).EQ.b {
+    value_float := LoadI(obj).Imm(EtsConstants::BOX_PRIMITIVE_VALUE_OFFSET).f32
+
+    If(isNan32(value_float), 0).NE.b {
+      hash_code_float_nan := 0
+      Goto(:ValueFloatDone)
+    }
+    IfImm(Compare(Cast(value_float).f64, int_max).GT.b).Imm(0).NE.b {
+      hash_code_float_large_pos := RuntimeConstants::INT_MAX
+      Goto(:ValueFloatDone)
+    }
+    IfImm(Compare(Cast(value_float).f64, int_min).LT.b).Imm(0).NE.b {
+      hash_code_float_large_neg := RuntimeConstants::INT_MIN
+      Goto(:ValueFloatDone)
+    } Else {
+      hash_code_float_norm := Cast(Cast(value_float).i32).u32
+    }
+Label(:ValueFloatDone)
+    hash_code_float := Phi(hash_code_float_nan, hash_code_float_large_pos, hash_code_float_large_neg, hash_code_float_norm).u32
+    Goto(:Done)
+  }
+
+  isIntLong := Or(isInt(btype), isLong(btype)).b
+  If(isIntLong, 1).EQ.b {
+    hash_code_int := LoadI(obj).Imm(EtsConstants::BOX_PRIMITIVE_VALUE_OFFSET).u32
+    Goto(:Done)
+  }
+
+  isCharShort := Or(isChar(btype), isShort(btype)).b
+  If(isChar(btype), 1).EQ.b{
+    hash_code_char := Cast(LoadI(obj).Imm(EtsConstants::BOX_PRIMITIVE_VALUE_OFFSET).u16).u32
+  } Else{
+    If(isShort(btype), 1).EQ.b {
+      hash_code_short := Cast(LoadI(obj).Imm(EtsConstants::BOX_PRIMITIVE_VALUE_OFFSET).i16).u32
+    } Else {
+      hash_code_byte := Cast(LoadI(obj).Imm(EtsConstants::BOX_PRIMITIVE_VALUE_OFFSET).i8).u32
+    }
+  }
+
+
+Label(:Done)
+  hash_code := Phi(hash_code_double, hash_code_float, hash_code_int, hash_code_char, hash_code_short, hash_code_byte).u32
+end
+
+
+scoped_macro(:hashcode_string) do |value, slowpath|
+  str := try_use_cached_flat_str_reject_sliced(value, slowpath)
+  hash := fetchHashCodeString(str) 
+  If(hash, 0).EQ.Unlikely { 
+    GotoGlobal(slowpath)
+  } 
+  Cast(Cast(hash).i32).i64
+end
+################################################################
+
+def GenerateGetHashCodeByValue(cgmode)
+  prefix = (cgmode == :NativePlus ? 'NativePlus': '')
+  function("GetHashCodeByValue#{prefix}".to_sym,
+          params: {obj: 'ref'},
+          regmap: $full_regmap,
+          regalloc_set: $panda_mask,
+          mode: [cgmode]) {
+
+    if Options.arch == :arm32
+      Intrinsic(:UNREACHABLE).Terminator.void
+      next
+    end
+
+    klass := load_class(obj)
+    If(isString(klass), 0).NE {
+      Return(hashcode_string(obj, AsGlobalLabel(:SlowPathEntrypointString))).i64
+    }
+
+    flags := LoadI(klass).Imm(EtsConstants::ETS_CLASS_FLAGS_FROM_RUNTIME_CLASS_OFFSET).u32
+    If(isBoxedType(flags), 0).NE.Likely {
+      Return(Cast(Cast(calcHashCode(obj, flags)).i32).i64).i64
+    }
+    If(isBigintType(flags), 0).NE.Unlikely {
+      Goto(:SlowPathEntrypointBigint)
+    }
+    If(isEnumType(flags), 0).NE.Unlikely {
+      enum_value := LoadI(obj).Imm(EtsConstants::ENUM_VALUE_OFFSET).ref
+      enum_klass := load_class(enum_value)
+      enum_flags := LoadI(enum_klass).Imm(EtsConstants::ETS_CLASS_FLAGS_FROM_RUNTIME_CLASS_OFFSET).u32
+      
+      If(isBoxedType(enum_flags), 0).NE.Likely {
+        Return(Cast(Cast(calcHashCode(enum_value, enum_flags)).i32).i64).i64
+      }
+
+      If(isString(enum_klass), 0).NE {
+        Return(hashcode_string(enum_value, AsGlobalLabel(:SlowPathEntrypointEnumString))).i64
+      }
+    }
+
+    If(isHashedObject(obj), 0).EQ.Unlikely {
+      Goto(:SlowPathEntrypointObject)
+    }
+
+    Return(Cast(Cast(fetchHashCodeObject(obj)).i32).i64).i64
+
+LabelGlobal(:SlowPathEntrypointEnumString)
+  entrypoint = get_entrypoint_offset("GET_HASH_CODE_STRING_ODD_SAVED")
+  Intrinsic(:SLOW_PATH_ENTRY, enum_value).AddImm(entrypoint).MethodAsImm("GetHashCodeStringOddSavedBridge").Terminator.i64
+  Intrinsic(:UNREACHABLE).Terminator.void if defines.DEBUG
+
+LabelGlobal(:SlowPathEntrypointString)
+  if mode == :NativePlus
+    Return(Call(obj).Method('GetHashCodeStringSlowPath').i64).i64
+  else
+    entrypoint = get_entrypoint_offset("GET_HASH_CODE_STRING_ODD_SAVED")
+    Intrinsic(:SLOW_PATH_ENTRY, obj).AddImm(entrypoint).MethodAsImm("GetHashCodeStringOddSavedBridge").Terminator.i64
+    Intrinsic(:UNREACHABLE).Terminator.void if defines.DEBUG
+  end
+
+Label(:SlowPathEntrypointBigint)
+  if mode == :NativePlus
+    Return(Call(obj).Method('GetHashCodeBigintSlowPath').i64).i64
+  else
+    entrypoint = get_entrypoint_offset("GET_HASH_CODE_BIGINT_ODD_SAVED")
+    Intrinsic(:SLOW_PATH_ENTRY, obj).AddImm(entrypoint).MethodAsImm("GetHashCodeBigintOddSavedBridge").Terminator.i64
+    Intrinsic(:UNREACHABLE).Terminator.void if defines.DEBUG
+  end
+
+Label(:SlowPathEntrypointObject)
+  if mode == :NativePlus
+    Return(Call(obj).Method('GetHashCodeBigintSlowPath').i64).i64
+  else
+    entrypoint = get_entrypoint_offset("GET_HASH_CODE_OBJECT_ODD_SAVED")
+    Intrinsic(:SLOW_PATH_ENTRY, obj).AddImm(entrypoint).MethodAsImm("GetHashCodeObjectOddSavedBridge").Terminator.i64
+    Intrinsic(:UNREACHABLE).Terminator.void if defines.DEBUG
+  end
+}
+end
+GenerateGetHashCodeByValue(:FastPath)
+#GenerateGetHashCodeByValue(:NativePlus)
+
+scoped_macro(:compare_float_vals) do |o1, o2, bits|
+  obj1_val := LoadI(o1).Imm(EtsConstants::BOX_PRIMITIVE_VALUE_OFFSET).send(:"u#{bits}")
+  obj2_val := LoadI(o2).Imm(EtsConstants::BOX_PRIMITIVE_VALUE_OFFSET).send(:"u#{bits}")
+
+  is_obj1_nan := send(:"isNan#{bits}", obj1_val)
+  is_obj2_nan := send(:"isNan#{bits}", obj2_val)
+
+  IfImm(Or(is_obj1_nan, is_obj2_nan).b).Imm(0).EQ.Likely {
+    obj1_f := Bitcast(obj1_val).send(:"f#{bits}")
+    obj2_f := Bitcast(obj2_val).send(:"f#{bits}")
+    res_not_nan := Compare(obj1_f, obj2_f).EQ.b
+  } Else {
+    res_nan := And(is_obj1_nan, is_obj2_nan).b
+  }
+
+  res := Phi(res_not_nan, res_nan).b
+end
+
+scoped_macro(:compare_int_vals) do |o1, o2, bits|
+  obj1_val := LoadI(o1).Imm(EtsConstants::BOX_PRIMITIVE_VALUE_OFFSET).send(:"u#{bits}")
+  obj2_val := LoadI(o2).Imm(EtsConstants::BOX_PRIMITIVE_VALUE_OFFSET).send(:"u#{bits}")
+  res := Compare(obj1_val, obj2_val).EQ.b
+end
+
+def GenerateSameValueZero(cgmode)
+  prefix = (cgmode == :NativePlus ? 'NativePlus': '')
+  function("SameValueZero#{prefix}".to_sym,
+          params: {o1: 'ref', o2: 'ref'},
+          regmap: $full_regmap,
+          regalloc_set: $panda_mask,
+          mode: [cgmode]) {
+
+    if Options.arch == :arm32
+      Intrinsic(:UNREACHABLE).Terminator.void
+      next
+    end
+
+    If(o1, o2).EQ.Likely.b {
+      Return(1).b
+    }
+
+    If(o1, 0).EQ.Unlikely.b {
+      Return(0).b
+    }
+
+    If(o2, 0).EQ.Unlikely.b {
+      Return(0).b
+    }
+
+    klass1 := load_class(o1)
+    flags1 := LoadI(klass1).Imm(EtsConstants::ETS_CLASS_FLAGS_FROM_RUNTIME_CLASS_OFFSET).u32
+    If(isValueTypedType(flags1), 0).EQ.Likely.b {
+      Return(0).b
+    }
+
+    klass2 := load_class(o2)
+    flags2 := LoadI(klass2).Imm(EtsConstants::ETS_CLASS_FLAGS_FROM_RUNTIME_CLASS_OFFSET).u32
+    If(isValueTypedType(flags2), 0).EQ.Likely.b {
+      Return(0).b
+    }
+
+    If(isBoxedType(flags1), 0).NE.b {
+      If(isBoxedType(flags2), 0).EQ.b {
+        Goto(:SlowPathEntrypoint)
+      }
+
+      btype1 := getBoxedType(flags1)
+      btype2 := getBoxedType(flags2)
+      If(btype1, btype2).NE.b {
+        Goto(:SlowPathEntrypoint)
+      }
+
+      If(isInt(btype1), 1).EQ.b {
+        Return(compare_int_vals(o1, o2, 32).b).b
+      }
+
+      If(isDouble(btype1), 1).EQ.b {
+        Return(compare_float_vals(o1, o2, 64).b).b
+      }
+
+      If(isFloat(btype1), 1).EQ.b {
+        Return(compare_float_vals(o1, o2, 32).b).b
+      }
+
+      If(isLong(btype1), 1).EQ.b {
+        Return(compare_int_vals(o1, o2, 64).b).b
+      }
+
+      is_16 := Or(isChar(btype1), isShort(btype1)).b
+      If(is_16, 1).EQ.b {
+        Return(compare_int_vals(o1, o2, 16).b).b
+      } Else {
+        Return(compare_int_vals(o1, o2, 8).b).b
+      }
+    }
+
+    If(isString(klass1), 0).NE.b {
+      If(isString(klass1), 0).EQ.b {
+        Goto(:SlowPathEntrypoint)
+      }
+      ep_offset = get_entrypoint_offset("ETS_STRING_EQUALS")
+      flatStr := try_use_cached_flat_str_reject_sliced(o1, AsGlobalLabel(:SlowPathEntrypoint))
+      # StringEqualsCompressed requires flat string as arg0
+      LiveOut(flatStr).DstReg(regmap[:arg0]).ref
+      LiveOut(o2).DstReg(regmap[:arg1]).ref
+      Intrinsic(:TAIL_CALL).AddImm(ep_offset).MethodAsImm("EtsStringEquals").Terminator.b
+      Intrinsic(:UNREACHABLE).Terminator.void if defines.DEBUG
+    }
+
+    nv := ets_nullvalue
+    If(o1, nv).EQ.Unlikely.b {
+      Return(0).b
+    }
+    If(o2, nv).EQ.Unlikely.b {
+      Return(0).b
+    }
+
+  LabelGlobal(:SlowPathEntrypoint)
+    entrypoint = get_entrypoint_offset("SAME_VALUE_ZERO_SLOW_PATH")
+    Intrinsic(:SLOW_PATH_ENTRY, o1, o2).AddImm(entrypoint).MethodAsImm("SameValueZeroUsualBridge").Terminator.b
+    Intrinsic(:UNREACHABLE).Terminator.void if defines.DEBUG
+  }
+end
+
+GenerateSameValueZero(:FastPath)

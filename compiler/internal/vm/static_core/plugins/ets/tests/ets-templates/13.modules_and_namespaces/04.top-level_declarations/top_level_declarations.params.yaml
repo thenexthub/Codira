@@ -1,0 +1,69 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # A list of top level declarations
+topLevelTypes:
+  - class Point {}
+  - interface A {}
+  - enum Enum { v1, v2 }
+  - type Matrix = number[][]
+  
+# Variable declarations
+  - let origin = 1;
+  - "let i: int = 1;"
+  - "let b: byte;"
+  
+# Constant declarations
+  - const b = 1;
+  - "const s = \"str\";"
+  - "const a: int = 1;"
+  
+# Function declarations
+  - "function Dist(x: int, y: int): void {}"
+  
+# Function with receiver
+  - "function daysUntilTheNewYear(this: Date): int { return 0; }"
+  - () => { return }
+
+# Namespace/module
+  - "namespace Geometry { export class Point {} }"
+  
+# Generic types
+  - "class GenericClass<T> { value: T; }"
+  - "interface GenericInterface<T> { getValue(): T; }"
+  - "function genericFunc<T>(arg: T): T { return arg; }"
+  
+# Union
+  - "type StringOrNumber = string | number;"
+  
+# Conditional types
+  - "type Nullable<T> = T | null;"
+  
+# Async/await
+  - "async function fetchData(): Promise<string> { return 'data'; }"
+  
+# Readonly
+  - "interface ReadonlyPoint { readonly x: number; readonly y: number; }"
+  
+# Template literal types
+  - "type EventName<T extends string> = `${T}Changed`;"
+  - "type MethodName = `get${Capitalize<string>}`;"
+  
+# Optional parameters и default values
+  - "function greet(name: string, greeting: string = 'Hello'): string { return greeting + name; }"
+  
+# Const enum
+  - "const enum Direction { Up, Down, Left, Right }"
+  
+# Ambient declarations
+  - "declare const DEBUG: boolean;"

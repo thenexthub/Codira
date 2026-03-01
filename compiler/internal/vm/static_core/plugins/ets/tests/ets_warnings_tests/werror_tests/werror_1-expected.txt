@@ -1,0 +1,5 @@
+[werror_1.ets:21:7] Warning W0001: Suggest 'final' modifier for class.
+[werror_1.ets:21:7] Warning W0002: Suggest 'final' modifier for method.
+[werror_1.ets:28:7] Warning W0001: Suggest 'final' modifier for class.
+[werror_1.ets:28:7] Warning W0002: Suggest 'final' modifier for method.
+[werror_1.ets:34:7] Warning W0001: Suggest 'final' modifier for class.

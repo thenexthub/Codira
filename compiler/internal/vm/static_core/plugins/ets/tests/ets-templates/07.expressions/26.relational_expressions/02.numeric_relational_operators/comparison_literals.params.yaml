@@ -1,0 +1,24 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of literals for comparison tests
+literals_comparison:
+  - {type: 'decimal literal', value: 2, valueWithUndercore: "2_1"}
+  - {type: 'hex literal', value: 0xBAD32, valueWithUndercore: "0xBAD_3"}
+  - {type: 'octal literal',  value: 0o777, valueWithUndercore: "0o777_1"}
+  - {type: 'binary literal',  value: 0b101, valueWithUndercore: "0b101_1"}
+  - {type: 'NaN',  value: NaN, valueWithUndercore: ""}
+
+
+
+

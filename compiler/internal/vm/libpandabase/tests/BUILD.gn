@@ -1,0 +1,75 @@
+# Copyright (c) 2022 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//arkcompiler/runtime_core/ark_config.gni")
+import("$ark_root/tests/test_helper.gni")
+
+host_unittest_action("LibPandaBaseTest") {
+  module_out_path = module_output_path
+  include_dirs = [ "$ark_root/platforms" ]
+
+  sources = [
+    "arch_test.cpp",
+    "arena_allocator_test.cpp",
+    "base_mem_stats_test.cpp",
+    "base_thread_test.cpp",
+    "bit_vector_test.cpp",
+    "cframe_layout_test.cpp",
+    "code_allocator_test.cpp",
+    "json_parser_test.cpp",
+    "math_helpers_test.cpp",
+    "mem_space_test.cpp",
+    "mmap_mem_pool_test.cpp",
+    "pandargs_test.cpp",
+    "pool_map_test.cpp",
+    "regmask_test.cpp",
+    "type_converter_tests.cpp",
+    "unique_fd_test.cpp",
+    "utf_test.cpp",
+    "worker_queue_test.cpp",
+  ]
+
+  if (is_linux) {
+    sources += [
+      "genmc/mutex_test_2.cpp",
+      "logger_test.cpp",
+      "mutex_test.cpp",
+      "stack_guard_test.cpp",
+      "unix_error_test.cpp",
+      "unix_exec_test.cpp",
+      "unix_file_test.cpp",
+      "unix_library_loader_test.cpp",
+      "unix_native_stack_test.cpp",
+      "unix_thread_test.cpp",
+    ]
+  }
+
+  configs = [
+    "$ark_root:ark_config",
+    "$ark_root/libpandabase:arkbase_public_config",
+  ]
+
+  deps = [ "$ark_root/libpandabase:libarkbase_static" ]
+
+  external_deps = [ sdk_libc_secshared_dep ]
+}
+
+group("unittest") {
+  testonly = true
+  deps = [ ":LibPandaBaseTest" ]
+}
+
+group("host_unittest") {
+  testonly = true
+  deps = [ ":LibPandaBaseTestAction" ]
+}

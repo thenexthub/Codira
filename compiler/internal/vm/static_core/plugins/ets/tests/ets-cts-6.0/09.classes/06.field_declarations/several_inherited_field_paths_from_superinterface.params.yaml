@@ -1,0 +1,349 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+cases:
+  - desc: |-
+      >-
+        The same field or property declaration can be inherited
+        from an interface in more than one way. In that case, the field
+        or property is considered to be inherited only once.
+    check_variants:
+      - {check_type: "int",
+        base_value: "0", new_value: "5"}
+      - {check_type: "long",
+        base_value: "0", new_value: "5"}
+      - {check_type: "byte",
+        base_value: "0", new_value: "5"}
+      - {check_type: "short",
+        base_value: "0", new_value: "5"}
+      - {check_type: "double",
+        base_value: "0", new_value: "7.3"}
+      - {check_type: "number",
+        base_value: "0", new_value: "5"}
+      - {check_type: "float",
+        base_value: "0.0f", new_value: "7.3f"}
+      - {check_type: "char",
+        base_value: "c'\\u0000'", new_value: "c'a'"}
+      - {check_type: "boolean",
+        base_value: "false", new_value: "true"}
+      - {check_type: "Object | undefined",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Object | undefined | null",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Any",
+        base_value: "undefined", new_value: "5"}
+    decl_variants:
+      - |-
+        interface I {
+          field: [check_type]
+        }
+        class B implements I {
+            field: [check_type]
+        }
+        class A extends B implements I {
+        }
+    sub_cases_logic:
+      - |-
+        let a: A = new A()
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [base_value])
+        a.field = [new_value]
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [new_value])
+      - |-
+        let a: I = new A()
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [base_value])
+        a.field = [new_value]
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [new_value])
+
+  - desc: |-
+      >-
+        The same field or property declaration can be inherited
+        from an interface in more than one way. In that case, the field
+        or property is considered to be inherited only once.
+    check_variants:
+      - {check_type: "int",
+        base_value: "4", new_value: "5"}
+      - {check_type: "long",
+        base_value: "4", new_value: "5"}
+      - {check_type: "byte",
+        base_value: "4", new_value: "5"}
+      - {check_type: "short",
+        base_value: "4", new_value: "5"}
+      - {check_type: "double",
+        base_value: "4", new_value: "7.3"}
+      - {check_type: "number",
+        base_value: "4", new_value: "5"}
+      - {check_type: "float",
+        base_value: "4.5f", new_value: "7.3f"}
+      - {check_type: "bigint",
+        base_value: "4n", new_value: "5n"}
+      - {check_type: "string",
+        base_value: "\"abc\"", new_value: "\"efg\""}
+      - {check_type: "char",
+        base_value: "c'a'", new_value: "c'b'"}
+      - {check_type: "boolean",
+        base_value: "false", new_value: "true"}
+      - {check_type: "Object",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Object | undefined",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Object | undefined | null",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Any",
+        base_value: "4", new_value: "5"}
+    decl_variants:
+      - |-
+        interface I {
+          field: [check_type]
+        }
+        class B implements I {
+            field: [check_type] = [base_value]
+        }
+        class A extends B implements I {
+          field: [check_type] = [new_value]
+        }
+    sub_cases_logic:
+      - |-
+        let a: A = new A()
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [new_value])
+        a.field = [base_value]
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [base_value])
+      - |-
+        let a: I = new A()
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [new_value])
+        a.field = [base_value]
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [base_value])
+
+  - desc: |-
+      >-
+        The same field or property declaration can be inherited
+        from an interface in more than one way. In that case, the field
+        or property is considered to be inherited only once.
+    check_variants:
+      - {check_type: "int",
+        base_value: "4", new_value: "5"}
+      - {check_type: "long",
+        base_value: "4", new_value: "5"}
+      - {check_type: "byte",
+        base_value: "4", new_value: "5"}
+      - {check_type: "short",
+        base_value: "4", new_value: "5"}
+      - {check_type: "double",
+        base_value: "4", new_value: "7.3"}
+      - {check_type: "number",
+        base_value: "4", new_value: "5"}
+      - {check_type: "float",
+        base_value: "4.5f", new_value: "7.3f"}
+      - {check_type: "bigint",
+        base_value: "4n", new_value: "5n"}
+      - {check_type: "string",
+        base_value: "\"abc\"", new_value: "\"efg\""}
+      - {check_type: "char",
+        base_value: "c'a'", new_value: "c'b'"}
+      - {check_type: "boolean",
+        base_value: "false", new_value: "true"}
+      - {check_type: "Object",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Object | undefined",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Object | undefined | null",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Any",
+        base_value: "4", new_value: "5"}
+    decl_variants:
+      - |-
+        interface I {
+          field: [check_type]
+        }
+        class B implements I {
+            field: [check_type] = [base_value]
+        }
+        class C extends B {
+        }
+        class A extends C implements I {
+        }
+    sub_cases_logic:
+      - |-
+        let a: A = new A()
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [base_value])
+        a.field = [new_value]
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [new_value])
+      - |-
+        let a: I = new A()
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [base_value])
+        a.field = [new_value]
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [new_value])
+
+  - desc: |-
+      >-
+        The same field or property declaration can be inherited
+        from an interface in more than one way. In that case, the field
+        or property is considered to be inherited only once.
+    check_variants:
+      - {check_type: "int",
+        base_value: "4", new_value: "5"}
+      - {check_type: "long",
+        base_value: "4", new_value: "5"}
+      - {check_type: "byte",
+        base_value: "4", new_value: "5"}
+      - {check_type: "short",
+        base_value: "4", new_value: "5"}
+      - {check_type: "double",
+        base_value: "4", new_value: "7.3"}
+      - {check_type: "number",
+        base_value: "4", new_value: "5"}
+      - {check_type: "float",
+        base_value: "4.5f", new_value: "7.3f"}
+      - {check_type: "bigint",
+        base_value: "4n", new_value: "5n"}
+      - {check_type: "string",
+        base_value: "\"abc\"", new_value: "\"efg\""}
+      - {check_type: "char",
+        base_value: "c'a'", new_value: "c'b'"}
+      - {check_type: "boolean",
+        base_value: "false", new_value: "true"}
+      - {check_type: "Object",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Object | undefined",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Object | undefined | null",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Any",
+        base_value: "4", new_value: "5"}
+    decl_variants:
+      - |-
+        interface I {
+          field: [check_type]
+        }
+        class B implements I {
+            field: [check_type] = [base_value]
+        }
+        class C extends B {
+          field: [check_type] = [new_value]
+        }
+        class A extends C implements I {
+          field: [check_type] = [base_value]
+        }
+    sub_cases_logic:
+      - |-
+        let a: A = new A()
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [base_value])
+        a.field = [new_value]
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [new_value])
+      - |-
+        let a: I = new A()
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [base_value])
+        a.field = [new_value]
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [new_value])
+
+  - desc: |-
+      >-
+        The same field or property declaration can be inherited
+        from an interface in more than one way. In that case, the field
+        or property is considered to be inherited only once.
+    check_variants:
+      - {check_type: "int",
+        base_value: "4", new_value: "5"}
+      - {check_type: "long",
+        base_value: "4", new_value: "5"}
+      - {check_type: "byte",
+        base_value: "4", new_value: "5"}
+      - {check_type: "short",
+        base_value: "4", new_value: "5"}
+      - {check_type: "double",
+        base_value: "4", new_value: "7.3"}
+      - {check_type: "number",
+        base_value: "4", new_value: "5"}
+      - {check_type: "float",
+        base_value: "4.5f", new_value: "7.3f"}
+      - {check_type: "bigint",
+        base_value: "4n", new_value: "5n"}
+      - {check_type: "string",
+        base_value: "\"abc\"", new_value: "\"efg\""}
+      - {check_type: "char",
+        base_value: "c'a'", new_value: "c'b'"}
+      - {check_type: "boolean",
+        base_value: "false", new_value: "true"}
+      - {check_type: "Object",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Object | undefined",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Object | undefined | null",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Any",
+        base_value: "4", new_value: "5"}
+    decl_variants:
+      - |-
+        interface I1 {
+          field: [check_type]
+        }
+        interface I2 extends I1 {
+        }
+        class A implements I1, I2 {
+            field: [check_type] = [base_value]
+        }
+      - |-
+        interface I1 {
+          field: [check_type]
+        }
+        interface I2 extends I1 {
+        }
+        class A implements I2, I1 {
+            field: [check_type] = [base_value]
+        }
+    sub_cases_logic:
+      - |-
+        let a: A = new A()
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [base_value])
+        a.field = [new_value]
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [new_value])
+      - |-
+        let a: I1 = new A()
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [base_value])
+        a.field = [new_value]
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [new_value])
+      - |-
+        let a: I2 = new A()
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [base_value])
+        a.field = [new_value]
+        arktest.assertTrue(a.field instanceof [check_type])
+        arktest.assertEQ(a.field, [new_value])

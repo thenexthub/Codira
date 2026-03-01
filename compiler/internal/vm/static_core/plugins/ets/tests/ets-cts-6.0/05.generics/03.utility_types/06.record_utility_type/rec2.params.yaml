@@ -1,0 +1,191 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - type: byte
+      values:
+          - { key: 0, val: 0 }
+          - { key: 0, val: 55 }
+          - { key: Byte.MIN_VALUE, val: Byte.MIN_VALUE }
+          - { key: Byte.MIN_VALUE, val: Byte.MAX_VALUE }
+          - { key: Byte.MAX_VALUE, val: Byte.MAX_VALUE }
+          - { key: Byte.MAX_VALUE, val: Byte.MIN_VALUE }
+
+    - type: short
+      values:
+          - { key: 0, val: 0 }
+          - { key: 0, val: 55 }
+          - { key: Short.MIN_VALUE, val: Short.MIN_VALUE }
+          - { key: Short.MIN_VALUE, val: Short.MAX_VALUE }
+          - { key: Short.MAX_VALUE, val: Short.MAX_VALUE }
+          - { key: Short.MAX_VALUE, val: Short.MIN_VALUE }
+
+    - type: int
+      values:
+          - { key: 0, val: 0 }
+          - { key: 0, val: 55 }
+          - { key: Int.MIN_VALUE, val: Int.MIN_VALUE }
+          - { key: Int.MIN_VALUE, val: Int.MAX_VALUE }
+          - { key: Int.MAX_VALUE, val: Int.MAX_VALUE }
+          - { key: Int.MAX_VALUE, val: Int.MIN_VALUE }
+
+    - type: long
+      values:
+          - { key: 0, val: 0 }
+          - { key: 0, val: 55 }
+          - { key: Long.MIN_VALUE, val: Long.MIN_VALUE }
+          - { key: Long.MIN_VALUE, val: Long.MAX_VALUE }
+          - { key: Long.MAX_VALUE, val: Long.MAX_VALUE }
+          - { key: Long.MAX_VALUE, val: Long.MIN_VALUE }
+
+    - type: float
+      values:
+          - { key: 0.0f, val: 0.0f }
+          - { key: 0.0f, val: 55.0f }
+          - { key: Float.MIN_VALUE, val: Float.MIN_VALUE }
+          - { key: Float.MIN_VALUE, val: Float.MAX_VALUE }
+          - { key: Float.MAX_VALUE, val: Float.MAX_VALUE }
+          - { key: Float.MAX_VALUE, val: Float.MIN_VALUE }
+          - { key: Float.NEGATIVE_INFINITY, val: Float.NEGATIVE_INFINITY }
+          - { key: Float.NEGATIVE_INFINITY, val: Float.POSITIVE_INFINITY }
+          - { key: Float.POSITIVE_INFINITY, val: Float.POSITIVE_INFINITY }
+          - { key: Float.POSITIVE_INFINITY, val: Float.NEGATIVE_INFINITY }
+          - { key: Float.NaN, val: 42.0f }
+          - { key: Float.NaN, val: 84.0f }
+
+    - type: double
+      values:
+          - { key: 0.0, val: 0.0 }
+          - { key: 0.0, val: 55.0 }
+          - { key: Double.MIN_VALUE, val: Double.MIN_VALUE }
+          - { key: Double.MIN_VALUE, val: Double.MAX_VALUE }
+          - { key: Double.MAX_VALUE, val: Double.MAX_VALUE }
+          - { key: Double.MAX_VALUE, val: Double.MIN_VALUE }
+          - { key: Double.NEGATIVE_INFINITY, val: Double.NEGATIVE_INFINITY }
+          - { key: Double.NEGATIVE_INFINITY, val: Double.POSITIVE_INFINITY }
+          - { key: Double.POSITIVE_INFINITY, val: Double.POSITIVE_INFINITY }
+          - { key: Double.POSITIVE_INFINITY, val: Double.NEGATIVE_INFINITY }
+          - { key: Double.NaN, val: 42.0 }
+          - { key: Double.NaN, val: 84.0 }
+
+    - type: string
+      values:
+          - { key: '"a"', val: '""' }
+          - { key: '"a"', val: '"\u0000"' }
+          - { key: '"\u0000"', val: '""' }
+          - { key: '"\u0000"', val: '"a"' }
+          - { key: '" "', val: '" "' }
+          - { key: '" "', val: '"  "' }
+
+    - type: byte|string
+      values:
+          - { key: 0, val: 0 }
+          - { key: 0, val: 55 }
+          - { key: Byte.MIN_VALUE, val: Byte.MIN_VALUE }
+          - { key: Byte.MIN_VALUE, val: Byte.MAX_VALUE }
+          - { key: Byte.MAX_VALUE, val: Byte.MAX_VALUE }
+          - { key: Byte.MAX_VALUE, val: Byte.MIN_VALUE }
+          - { key: '"a"', val: '""' }
+          - { key: '"a"', val: '"\u0000"' }
+          - { key: '"\u0000"', val: '""' }
+          - { key: '"\u0000"', val: '"a"' }
+          - { key: '" "', val: '" "' }
+          - { key: '" "', val: '"  "' }
+
+    - type: short|string
+      values:
+          - { key: 0, val: 0 }
+          - { key: 0, val: 55 }
+          - { key: Short.MIN_VALUE, val: Short.MIN_VALUE }
+          - { key: Short.MIN_VALUE, val: Short.MAX_VALUE }
+          - { key: Short.MAX_VALUE, val: Short.MAX_VALUE }
+          - { key: Short.MAX_VALUE, val: Short.MIN_VALUE }
+          - { key: '"a"', val: '""' }
+          - { key: '"a"', val: '"\u0000"' }
+          - { key: '"\u0000"', val: '""' }
+          - { key: '"\u0000"', val: '"a"' }
+          - { key: '" "', val: '" "' }
+          - { key: '" "', val: '"  "' }
+
+    - type: int|string
+      values:
+          - { key: 0, val: 0 }
+          - { key: 0, val: 55 }
+          - { key: Int.MIN_VALUE, val: Int.MIN_VALUE }
+          - { key: Int.MIN_VALUE, val: Int.MAX_VALUE }
+          - { key: Int.MAX_VALUE, val: Int.MAX_VALUE }
+          - { key: Int.MAX_VALUE, val: Int.MIN_VALUE }
+          - { key: '"a"', val: '""' }
+          - { key: '"a"', val: '"\u0000"' }
+          - { key: '"\u0000"', val: '""' }
+          - { key: '"\u0000"', val: '"a"' }
+          - { key: '" "', val: '" "' }
+          - { key: '" "', val: '"  "' }
+
+    - type: long|string
+      values:
+          - { key: 0, val: 0 }
+          - { key: 0, val: 55 }
+          - { key: Long.MIN_VALUE, val: Long.MIN_VALUE }
+          - { key: Long.MIN_VALUE, val: Long.MAX_VALUE }
+          - { key: Long.MAX_VALUE, val: Long.MAX_VALUE }
+          - { key: Long.MAX_VALUE, val: Long.MIN_VALUE }
+          - { key: '"a"', val: '""' }
+          - { key: '"a"', val: '"\u0000"' }
+          - { key: '"\u0000"', val: '""' }
+          - { key: '"\u0000"', val: '"a"' }
+          - { key: '" "', val: '" "' }
+          - { key: '" "', val: '"  "' }
+
+    - type: float|string
+      values:
+          - { key: 0.0f, val: 0.0f }
+          - { key: 0.0f, val: 55.0f }
+          - { key: Float.MIN_VALUE, val: Float.MIN_VALUE }
+          - { key: Float.MIN_VALUE, val: Float.MAX_VALUE }
+          - { key: Float.MAX_VALUE, val: Float.MAX_VALUE }
+          - { key: Float.MAX_VALUE, val: Float.MIN_VALUE }
+          - { key: Float.NEGATIVE_INFINITY, val: Float.NEGATIVE_INFINITY }
+          - { key: Float.NEGATIVE_INFINITY, val: Float.POSITIVE_INFINITY }
+          - { key: Float.POSITIVE_INFINITY, val: Float.POSITIVE_INFINITY }
+          - { key: Float.POSITIVE_INFINITY, val: Float.NEGATIVE_INFINITY }
+          - { key: Float.NaN, val: 42.0f }
+          - { key: Float.NaN, val: 84.0f }
+          - { key: '"a"', val: '""' }
+          - { key: '"a"', val: '"\u0000"' }
+          - { key: '"\u0000"', val: '""' }
+          - { key: '"\u0000"', val: '"a"' }
+          - { key: '" "', val: '" "' }
+          - { key: '" "', val: '"  "' }
+
+    - type: double|string
+      values:
+          - { key: 0.0, val: 0.0 }
+          - { key: 0.0, val: 55.0 }
+          - { key: Double.MIN_VALUE, val: Double.MIN_VALUE }
+          - { key: Double.MIN_VALUE, val: Double.MAX_VALUE }
+          - { key: Double.MAX_VALUE, val: Double.MAX_VALUE }
+          - { key: Double.MAX_VALUE, val: Double.MIN_VALUE }
+          - { key: Double.NEGATIVE_INFINITY, val: Double.NEGATIVE_INFINITY }
+          - { key: Double.NEGATIVE_INFINITY, val: Double.POSITIVE_INFINITY }
+          - { key: Double.POSITIVE_INFINITY, val: Double.POSITIVE_INFINITY }
+          - { key: Double.POSITIVE_INFINITY, val: Double.NEGATIVE_INFINITY }
+          - { key: Double.NaN, val: 42.0 }
+          - { key: Double.NaN, val: 84.0 }
+          - { key: '"a"', val: '""' }
+          - { key: '"a"', val: '"\u0000"' }
+          - { key: '"\u0000"', val: '""' }
+          - { key: '"\u0000"', val: '"a"' }
+          - { key: '" "', val: '" "' }
+          - { key: '" "', val: '"  "' }

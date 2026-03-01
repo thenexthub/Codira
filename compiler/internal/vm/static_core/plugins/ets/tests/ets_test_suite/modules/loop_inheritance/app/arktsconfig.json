@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "package": "@app",
+        "outDir": "${CMAKE_CURRENT_BINARY_DIR}/modules-build/abc",
+        "baseUrl": ".",
+        "paths": {
+            "@spawn": ["../../spawn"],
+            "@loop_inheritance": ["../src"]
+        }
+    },
+    "include": [
+        "./**/*.ets"
+    ],
+    "references": [
+        { "path": "../src" },
+        { "path": "../../spawn"}
+    ]
+}

@@ -1,0 +1,43 @@
+|
+
+Object Literals Types
+---------------------
+
+Object literal types are used to make the code more flexible. Consider the example:
+
+.. code-block:: typescript
+
+    function greet(person: {name: string}) {
+        console.log("Hello, " + person.name)
+    }
+
+The function ``foo`` can be called with argument of any object instance or object literal that has the ``name`` property of type ``string``.
+
+.. code-block:: typescript
+
+    class Person {
+        name: string = ""
+        age: number = 0
+    }
+
+    let p: Person = {name: "John", age: 5}
+    greet(p) // prints "Hello, John"
+
+    class Cat{
+        name: string = ""
+        breed: string = ""
+        constructor (n: string, b: string) {
+            this.name = n
+            this.breed = b
+        }
+    }
+    let c = new Cat("Kitty", "persian")
+    greet(c) // prints "Hello, Kitty"
+    
+
+Object literal type can be named using type alias:
+
+.. code-block:: typescript
+
+    type NamedObject = {name: string}
+

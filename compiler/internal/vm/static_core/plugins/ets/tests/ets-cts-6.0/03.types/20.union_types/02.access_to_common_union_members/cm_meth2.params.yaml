@@ -1,0 +1,319 @@
+# Copyright (c) 2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # Common methods in superclasses
+    - decl: |-
+          // classes, methods of any type
+          class A {
+              meth(): Object|null|undefined {
+                  return undefined
+              }
+          }
+          abstract class B {
+              meth(): Object|null|undefined {
+                  return null
+              }
+          }
+          class AA extends A {}
+          class BB extends B {}
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+      use: |-
+          arktest.assertTrue(u1.meth() === undefined)
+          arktest.assertTrue(u2.meth() === null)
+
+    - decl: |-
+          // classes, methods of number type
+          abstract class A {
+              meth(): number {
+                  return 42.0
+              }
+          }
+          class B {
+              meth(): number {
+                  return 0
+              }
+          }
+          class AA extends A {}
+          class BB extends B {
+              static meth(): string {
+                  return ''
+              }
+          }
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+      use: |-
+          arktest.assertEQ(u1.meth(), 42.0)
+          arktest.assertEQ(u2.meth(), 0e0)
+
+    - decl: |-
+          // classes, methods of bigint type
+          class A {
+              meth(p: string): bigint {
+                  return 42n
+              }
+          }
+          class B {}
+          class AA extends A {}
+          class BB extends B {
+              meth(p: string): bigint {
+                  return 33n
+              }
+          }
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+      use: |-
+          arktest.assertEQ(u1.meth(''), 42n)
+          arktest.assertEQ(u2.meth(''), 33n)
+
+    - decl: |-
+          // classes, methods of Integral type
+          class A {
+              meth(): string|Integral {
+                  return 'A'
+              }
+          }
+          class B {
+              meth(): string|Integral {
+                  return 'B'
+              }
+          }
+          class AA extends A {
+              meth(): Integral {
+                  return new Int(42)
+              }
+          }
+          class BB extends B {
+              meth(): Integral {
+                  return new Short(33 as short)
+              }
+          }
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+          let u3: A|B = new A
+          let u4: A|B = new B
+      use: |-
+          arktest.assertEQ(u1.meth(), 42)
+          arktest.assertEQ(u2.meth(), 33)
+          arktest.assertEQ(u3.meth(), 'A')
+          arktest.assertEQ(u4.meth(), 'B')
+
+    - decl: |-
+          // classes, methods of Error type
+          abstract class A {
+              meth(p: number): Error {
+                  return new Error('' + p)
+              }
+          }
+          class B extends A {}
+          class AA extends A {}
+          class BB extends B {}
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+      use: |-
+          arktest.assertEQ(u1.meth(42).message, '42')
+          arktest.assertEQ(u2.meth(33).message, '33')
+
+    - decl: |-
+          // classes, methods of union literal type
+          class A {
+              meth(): 'a'|'b'|'c' {
+                  return 'a'
+              }
+          }
+          class B {
+              meth(): 'a'|'b'|'c'|'b'|'a' {
+                  return 'b'
+              }
+          }
+          class AA extends A {
+              meth2(): 'a'|'b'|'c' {
+                  return 'c'
+              }
+          }
+          class BB extends B {
+              meth2(): 'c'|'b'|'a' {
+                  return 'a'
+              }
+          }
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+      use: |-
+          arktest.assertEQ(u1.meth(), 'a')
+          arktest.assertEQ(u2.meth(), 'b')
+          arktest.assertEQ(u1.meth2(), 'c')
+          arktest.assertEQ(u2.meth2(), 'a')
+
+    - decl: |-
+          // classes, methods of union type
+          class A {
+              private meth(): number|null|string {
+                  return 99.0
+              }
+          }
+          class B {
+              private meth(): number {
+                  return 99.0
+              }
+          }
+          class AA extends A {
+              meth(): number|null|string {
+                  return 42.0
+              }
+          }
+          class BB extends B {
+              meth(): 'a'|null|string|number|never {
+                  return null
+              }
+          }
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+      use: |-
+          arktest.assertEQ(u1.meth(), 42.0)
+          arktest.assertEQ(u2.meth(), null)
+
+    - decl: |-
+          // classes, methods of array type
+          class A {
+              meth(p: string[]): string[] {
+                  return ['a', 'b']
+              }
+          }
+          class B {
+              meth(p: string[]): string[] {
+                  return ['c', 'd', 'e']
+              }
+          }
+          class AA extends A {}
+          class BB extends B {}
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+      use: |-
+          let arr: string[] = []
+          arktest.assertEQ(u1.meth(arr)[0], 'a')
+          arktest.assertEQ(u2.meth(arr)[2], 'e')
+
+    - decl: |-
+          // classes, methods of tuple type
+          class A {}
+          class B {
+              meth(): [number, string] {
+                  return [33.0, 'b']
+              }
+          }
+          class AA extends A {
+              meth(): [number, string] {
+                  return [42.0, 'a']
+              }
+          }
+          class BB extends B {}
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+      use: |-
+          arktest.assertEQ(u1.meth()[0], 42.0)
+          arktest.assertEQ(u2.meth()[1], 'b')
+
+    - decl: |-
+          // classes, methods of Record type
+          class A {
+              meth(): Record<string, number> {
+                  return { 'a': 11.0 }
+              }
+          }
+          class B {
+              meth(): Record<string, number> {
+                  return { 'b': 22e0 }
+              }
+          }
+          class AA extends A {}
+          class BB extends B {}
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+      use: |-
+          arktest.assertEQ(u1.meth()['a'], 11.0)
+          arktest.assertEQ(u2.meth()['b'], 22.0)
+
+    - decl: |-
+          // classes, methods of function type
+          class A {
+              meth(x: number): (p: string) => number {
+                  return (p: string): number => p.length + x
+              }
+          }
+          class B {}
+          class AA extends A {}
+          class BB extends B {
+              meth(x: number): (p: string) => number {
+                  return (p: string): number => p.length + x + 1
+              }
+          }
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+      use: |-
+          arktest.assertEQ(u1.meth(11)('abc'), 14)
+          arktest.assertEQ(u2.meth(22)('abc'), 26)
+
+    - decl: |-
+          // classes, methods of type parameters
+          class A<T> {
+              fld: T
+              meth(): T {
+                  return this.fld
+              }
+              constructor(p: T) {
+                  this.fld = p
+              }
+          }
+          class B {
+              meth(): string {
+                  return 'b'
+              }
+          }
+          class AA extends A<string> {
+              constructor(p: string) {
+                  super(p)
+              }
+          }
+          class BB extends B {}
+          let u1: AA|BB = new AA('a')
+          let u2: BB|AA = new BB
+      use: |-
+          arktest.assertEQ(u1.meth(), 'a')
+          arktest.assertEQ(u2.meth(), 'b')
+
+    - decl: |-
+          // classes, methods of enum type
+          enum Color { Red, Green, Blue }
+          class A {
+              meth(): Color {
+                  return Color.Green
+              }
+          }
+          class B {
+              static meth(): Color {
+                  return Color.Red
+              }
+          }
+          class AA extends A {}
+          class BB extends B {
+              meth(): Color {
+                  return Color.Blue
+              }
+          }
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+      use: |-
+          arktest.assertEQ(u1.meth(), Color.Green)
+          arktest.assertEQ(u2.meth(), Color.Blue)

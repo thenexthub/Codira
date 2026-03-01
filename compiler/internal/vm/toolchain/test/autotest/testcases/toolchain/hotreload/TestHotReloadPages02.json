@@ -1,0 +1,15 @@
+{
+  "description": "Config for TestHotReloadPages02",
+  "environment": [
+    {
+      "type": "device",
+      "label": "phone"
+    }
+  ],
+  "driver": {
+    "type": "DeviceTest",
+    "py_file": [
+      "toolchain/hotreload/TestHotReloadPages02.py"
+    ]
+  }
+}

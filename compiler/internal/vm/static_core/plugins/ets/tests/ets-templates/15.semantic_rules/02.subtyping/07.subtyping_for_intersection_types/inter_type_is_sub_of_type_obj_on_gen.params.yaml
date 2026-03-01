@@ -1,0 +1,540 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+cases:
+  - desc: |-
+      >-
+        Checking that intersection type I (defined as I1 & I2)
+        is a subtype of type Object if Ii is a subtype of Object for some i
+        in case of usage instanceof on generic custom types
+    check_variants:
+      - check_data:
+          set_type_I1:
+            "C1<int, null> | C2<number, string> | B2<bigint, undefined> |
+            Other<string>"
+          check_type_I1: "C1 | C2 | B2 | Other"
+          set_type_I2:
+            "B1<int, null> | B1<number, string> | Other<string> | bigint"
+          check_type_I2: "B1 | Other | bigint"
+          cv_decl_data: |-
+            abstract class A<U, V> {}
+            abstract class B1<U, V> extends A<U, V> {}
+            class B2<U, V> extends A<U, V> {
+              b2_v: U | V
+              constructor (p: U | V) {
+                this.b2_v = p
+              }
+            }
+            class C1<U, V> extends B1<U, V> {
+              c1_v: U | V
+              constructor (p: U | V) {
+                this.c1_v = p
+              }
+            }
+            class C2<U, V> extends B1<U, V> {
+              c2_v: U | V
+              constructor (p: U | V) {
+                this.c2_v = p
+              }
+            }
+            class Other<T> {
+              other_v: T
+              constructor (p: T) {
+                this.other_v = p
+              }
+            }
+            function check_C1(a: Any) {
+              arktest.assertTrue(a instanceof C1)
+              arktest.assertEQ((a as C1<int, null>).c1_v as int, 321)
+            }
+            function check_C2(a: Any) {
+              arktest.assertTrue(a instanceof C2)
+              arktest.assertEQ((a as C2<number, string>).c2_v as number,
+                6.7)
+            }
+            function check_B2(a: Any) {
+              arktest.assertTrue(a instanceof B2)
+              arktest.assertEQ((a as B2<bigint, undefined>).b2_v as bigint,
+                123n)
+            }
+            function check_Other(a: Any) {
+              arktest.assertTrue(a instanceof Other)
+              arktest.assertEQ((a as Other<string>).other_v as string,
+                "other")
+            }
+            function check_bigint(a: Any) {
+              arktest.assertTrue(a instanceof bigint)
+              arktest.assertEQ(a as bigint, 5n)
+            }
+        check_values_groups:
+          - check_values_group_data:
+            - { set_type_T: "Object",
+                check_type_T: "Object",
+                set_value_from_I1_inter_I2: "new C1<int, null>(321)",
+                check_value_from_I1_inter_I2_func: "check_C1",
+                set_value_from_I1_diff_I2: "new B2<bigint, undefined>(123n)",
+                check_value_from_I1_diff_I2_func: "check_B2",
+                set_value_from_I2_diff_I1: "5n",
+                check_value_from_I2_diff_I1_func: "check_bigint" }
+            - { set_type_T: "Object",
+                check_type_T: "Object",
+                set_value_from_I1_inter_I2: "new C2<number, string>(6.7)",
+                check_value_from_I1_inter_I2_func: "check_C2",
+                set_value_from_I1_diff_I2: "new B2<bigint, undefined>(123n)",
+                check_value_from_I1_diff_I2_func: "check_B2",
+                set_value_from_I2_diff_I1: "5n",
+                check_value_from_I2_diff_I1_func: "check_bigint" }
+      - check_data:
+          set_type_I1: "C1 | C2| B2 | Other"
+          check_type_I1: "C1 | C2 | B2 | Other"
+          set_type_I2: "B1<int, null> | B1<number, string> | Other | bigint"
+          check_type_I2: "B1 | Other | bigint"
+          cv_decl_data: |-
+            abstract class A<U, V> {}
+            abstract class B1<U, V> extends A<U, V> {}
+            class B2<U=bigint, V=undefined> extends A<U, V> {
+              b2_v: U | V
+              constructor (p: U | V) {
+                this.b2_v = p
+              }
+            }
+            class C1<U = int, V = null> extends B1<U, V> {
+              c1_v: U | V
+              constructor (p: U | V) {
+                this.c1_v = p
+              }
+            }
+            class C2<U = number, V = string> extends B1<U, V> {
+              c2_v: U | V
+              constructor (p: U | V) {
+                this.c2_v = p
+              }
+            }
+            class Other<T = string> {
+              other_v: T
+              constructor (p: T) {
+                this.other_v = p
+              }
+            }
+            function check_C1(a: Any) {
+              arktest.assertTrue(a instanceof C1)
+              arktest.assertEQ((a as C1).c1_v as int, 321)
+            }
+            function check_C2(a: Any) {
+              arktest.assertTrue(a instanceof C2)
+              arktest.assertEQ((a as C2).c2_v as number, 6.7)
+            }
+            function check_B2(a: Any) {
+              arktest.assertTrue(a instanceof B2)
+              arktest.assertEQ((a as B2).b2_v as bigint, 123n)
+            }
+            function check_Other(a: Any) {
+              arktest.assertTrue(a instanceof Other)
+              arktest.assertEQ((a as Other).other_v as string, "other")
+            }
+            function check_bigint(a: Any) {
+              arktest.assertTrue(a instanceof bigint)
+              arktest.assertEQ(a as bigint, 5n)
+            }
+        check_values_groups:
+          - check_values_group_data:
+            - { set_type_T: "Object",
+                check_type_T: "Object",
+                set_value_from_I1_inter_I2: "new C1(321)",
+                check_value_from_I1_inter_I2_func: "check_C1",
+                set_value_from_I1_diff_I2: "new B2(123n)",
+                check_value_from_I1_diff_I2_func: "check_B2",
+                set_value_from_I2_diff_I1: "5n",
+                check_value_from_I2_diff_I1_func: "check_bigint" }
+            - { set_type_T: "Object",
+                check_type_T: "Object",
+                set_value_from_I1_inter_I2: "new C2(6.7)",
+                check_value_from_I1_inter_I2_func: "check_C2",
+                set_value_from_I1_diff_I2: "new B2(123n)",
+                check_value_from_I1_diff_I2_func: "check_B2",
+                set_value_from_I2_diff_I1: "5n",
+                check_value_from_I2_diff_I1_func: "check_bigint" }
+      - check_data:
+          set_type_I1:
+            "III1<int, null> | III2<number, string> |
+            II2<bigint, undefined>"
+          check_type_I1: "III1 | III2 | II2"
+          set_type_I2: "II1<int, null> | II1<number, string> | bigint"
+          check_type_I2: "II1 | bigint"
+          cv_decl_data: |-
+            interface I1<U, V> {}
+            interface I2<U, V> {}
+            interface II1<U, V> extends I1<U, V>, I2<U, V> {}
+            interface II2<U, V> extends I1<U, V>, I2<U, V> {}
+            interface III1<U, V> extends II1<U, V> {}
+            interface III2<U, V> extends II1<U, V> {}
+            class C1<U, V> implements III1<U, V> {
+              c1_v: U | V
+              constructor (p: U | V) {
+                this.c1_v = p
+              }
+            }
+            class C2<U, V> implements III2<U, V>  {
+              c2_v: U | V
+              constructor (p: U | V) {
+                this.c2_v = p
+              }
+            }
+            class C3<U, V> implements II2<U, V>  {
+              c3_v: U | V
+              constructor (p: U | V) {
+                this.c3_v = p
+              }
+            }
+            function check_C1(a: Any) {
+              arktest.assertTrue(a instanceof C1)
+              arktest.assertTrue(a instanceof III1)
+              arktest.assertTrue(a instanceof II1)
+              arktest.assertTrue(a instanceof I1)
+              arktest.assertTrue(a instanceof I2)
+              arktest.assertEQ((a as C1<int, null>).c1_v as int,
+                123)
+            }
+            function check_C2(a: Any) {
+              arktest.assertTrue(a instanceof C2)
+              arktest.assertTrue(a instanceof III2)
+              arktest.assertTrue(a instanceof II1)
+              arktest.assertTrue(a instanceof I1)
+              arktest.assertTrue(a instanceof I2)
+              arktest.assertEQ((a as C2<number, string>).c2_v as number,
+                6.7)
+            }
+            function check_C3(a: Any) {
+              arktest.assertTrue(a instanceof C3)
+              arktest.assertTrue(a instanceof II2)
+              arktest.assertTrue(a instanceof I1)
+              arktest.assertTrue(a instanceof I2)
+              arktest.assertEQ((a as C3<bigint, undefined>).c3_v as bigint,
+                321n)
+            }
+            function check_bigint(a: Any) {
+              arktest.assertTrue(a instanceof bigint)
+              arktest.assertEQ(a as bigint, 5n)
+            }
+        check_values_groups:
+          - check_values_group_data:
+            - { set_type_T: "Object",
+                check_type_T: "Object",
+                set_value_from_I1_inter_I2: "new C1<int, null>(123)",
+                check_value_from_I1_inter_I2_func: "check_C1",
+                set_value_from_I1_diff_I2: "new C3<bigint, undefined>(321n)",
+                check_value_from_I1_diff_I2_func: "check_C3",
+                set_value_from_I2_diff_I1: "5n",
+                check_value_from_I2_diff_I1_func: "check_bigint" }
+            - { set_type_T: "Object",
+                check_type_T: "Object",
+                set_value_from_I1_inter_I2: "new C2<number, string>(6.7)",
+                check_value_from_I1_inter_I2_func: "check_C2",
+                set_value_from_I1_diff_I2: "new C3<bigint, undefined>(321n)",
+                check_value_from_I1_diff_I2_func: "check_C3",
+                set_value_from_I2_diff_I1: "5n",
+                check_value_from_I2_diff_I1_func: "check_bigint" }
+      - check_data:
+          set_type_I1: "III1 | III2 | II2"
+          check_type_I1: "III1 | III2 | II2"
+          set_type_I2: "II1<int, null> | II1<number, string> | bigint"
+          check_type_I2: "II1 | bigint"
+          cv_decl_data: |-
+            interface I1<U, V> {}
+            interface I2<U, V> {}
+            interface II1<U, V> extends I1<U, V>, I2<U, V> {}
+            interface II2<U = bigint, V = undefined> extends I1<U, V>, I2<U, V> {}
+            interface III1<U = int, V = null> extends II1<U, V> {}
+            interface III2<U = number, V = string> extends II1<U, V> {}
+            class C1<U = int, V = null> implements III1<U, V> {
+              c1_v: U | V
+              constructor (p: U | V) {
+                this.c1_v = p
+              }
+            }
+            class C2<U = number, V = string> implements III2<U, V>  {
+              c2_v: U | V
+              constructor (p: U | V) {
+                this.c2_v = p
+              }
+            }
+            class C3<U = bigint, V = undefined> implements II2<U, V>  {
+              c3_v: U | V
+              constructor (p: U | V) {
+                this.c3_v = p
+              }
+            }
+            function check_C1(a: Any) {
+              arktest.assertTrue(a instanceof C1)
+              arktest.assertTrue(a instanceof III1)
+              arktest.assertTrue(a instanceof II1)
+              arktest.assertTrue(a instanceof I1)
+              arktest.assertTrue(a instanceof I2)
+              arktest.assertEQ((a as C1).c1_v as int,
+                123)
+            }
+            function check_C2(a: Any) {
+              arktest.assertTrue(a instanceof C2)
+              arktest.assertTrue(a instanceof III2)
+              arktest.assertTrue(a instanceof II1)
+              arktest.assertTrue(a instanceof I1)
+              arktest.assertTrue(a instanceof I2)
+              arktest.assertEQ((a as C2).c2_v as number,
+                6.7)
+            }
+            function check_C3(a: Any) {
+              arktest.assertTrue(a instanceof C3)
+              arktest.assertTrue(a instanceof II2)
+              arktest.assertTrue(a instanceof I1)
+              arktest.assertTrue(a instanceof I2)
+              arktest.assertEQ((a as C3).c3_v as bigint,
+                321n)
+            }
+            function check_bigint(a: Any) {
+              arktest.assertTrue(a instanceof bigint)
+              arktest.assertEQ(a as bigint, 5n)
+            }
+        check_values_groups:
+          - check_values_group_data:
+            - { set_type_T: "Object",
+                check_type_T: "Object",
+                set_value_from_I1_inter_I2: "new C1(123)",
+                check_value_from_I1_inter_I2_func: "check_C1",
+                set_value_from_I1_diff_I2: "new C3(321n)",
+                check_value_from_I1_diff_I2_func: "check_C3",
+                set_value_from_I2_diff_I1: "5n",
+                check_value_from_I2_diff_I1_func: "check_bigint" }
+            - { set_type_T: "Object",
+                check_type_T: "Object",
+                set_value_from_I1_inter_I2: "new C2(6.7)",
+                check_value_from_I1_inter_I2_func: "check_C2",
+                set_value_from_I1_diff_I2: "new C3(321n)",
+                check_value_from_I1_diff_I2_func: "check_C3",
+                set_value_from_I2_diff_I1: "5n",
+                check_value_from_I2_diff_I1_func: "check_bigint" }
+      - check_data:
+          set_type_I1:
+            "III1<int, null> | III1<bigint, undefined> |
+            II2<number, string>"
+          check_type_I1: "III1 | II2"
+          set_type_I2:
+            "III2<int, null> | III2<number, string> | bigint"
+          check_type_I2: "III2 | bigint"
+          cv_decl_data: |-
+            interface I<U, V> {}
+            interface II1<U, V> extends I<U, V> {}
+            interface II2<U, V> extends I<U, V> {}
+            interface III1<U, V> extends II1<U, V> {}
+            interface III2<U, V> extends II1<U, V> {}
+            class C1<U, V> implements III1<U, V>, III2<U, V> {
+              c1_v: U | V
+              constructor (p: U | V) {
+                this.c1_v = p
+              }
+            }
+            class C2<U, V> implements II2<U, V>, III2<U, V> {
+              c2_v: U | V
+              constructor (p: U | V) {
+                this.c2_v = p
+              }
+            }
+            class C3<U, V> implements III1<U, V> {
+              c3_v: U | V
+              constructor (p: U | V) {
+                this.c3_v = p
+              }
+            }
+            function check_C1(a: Any) {
+              arktest.assertTrue(a instanceof C1)
+              arktest.assertTrue(a instanceof III1)
+              arktest.assertTrue(a instanceof III2)
+              arktest.assertTrue(a instanceof II1)
+              arktest.assertTrue(a instanceof I)
+              arktest.assertEQ((a as C1<int, null>).c1_v as int, 123)
+            }
+            function check_C2(a: Any) {
+              arktest.assertTrue(a instanceof C2)
+              arktest.assertTrue(a instanceof II2)
+              arktest.assertTrue(a instanceof III2)
+              arktest.assertTrue(a instanceof II1)
+              arktest.assertTrue(a instanceof I)
+              arktest.assertEQ((a as C2<number, string>).c2_v as number,
+                6.7)
+            }
+            function check_C3(a: Any) {
+              arktest.assertTrue(a instanceof C3)
+              arktest.assertTrue(a instanceof III1)
+              arktest.assertTrue(a instanceof II1)
+              arktest.assertTrue(a instanceof I)
+              arktest.assertEQ((a as C3<bigint, undefined>).c3_v as bigint,
+                321n)
+            }
+            function check_bigint(a: Any) {
+              arktest.assertTrue(a instanceof bigint)
+              arktest.assertEQ(a as bigint, 5n)
+            }
+        check_values_groups:
+          - check_values_group_data:
+            - { set_type_T: "Object",
+                check_type_T: "Object",
+                set_value_from_I1_inter_I2: "new C1<int, null>(123)",
+                check_value_from_I1_inter_I2_func: "check_C1",
+                set_value_from_I1_diff_I2: "new C3<bigint, undefined>(321n)",
+                check_value_from_I1_diff_I2_func: "check_C3",
+                set_value_from_I2_diff_I1: "5n",
+                check_value_from_I2_diff_I1_func: "check_bigint" }
+            - { set_type_T: "Object",
+                check_type_T: "Object",
+                set_value_from_I1_inter_I2: "new C2<number, string>(6.7)",
+                check_value_from_I1_inter_I2_func: "check_C2",
+                set_value_from_I1_diff_I2: "new C3<bigint, undefined>(321n)",
+                check_value_from_I1_diff_I2_func: "check_C3",
+                set_value_from_I2_diff_I1: "5n",
+                check_value_from_I2_diff_I1_func: "check_bigint" }
+      - check_data:
+          set_type_I1: "C1<Derived, Base> | C2<Base, Derived>"
+          check_type_I1: "C1 | C2"
+          set_type_I2: "C2<Base, Derived> | bigint"
+          check_type_I2: "C2 | bigint"
+          cv_decl_data: |-
+            class C1<in T1, out T2> {
+              readonly c1_v: T2
+              constructor (p: T2) {
+                this.c1_v = p
+              }
+            }
+            class C2<out T1, in T2> {
+              readonly c2_v: T1
+              constructor (p: T1) {
+                this.c2_v = p
+              }
+            }
+            class Base {
+              b_v: bigint
+              constructor (p: bigint) {
+                this.b_v = p
+              }
+            }
+            class Derived extends Base {
+              d_v: int
+              constructor (p: int) {
+                super(0n)
+                this.d_v = p
+              }
+            }
+            function check_C1(a: Any) {
+              arktest.assertTrue(a instanceof C1)
+              arktest.assertEQ(((a as C1<Base, Base>).c1_v as Base).b_v,
+                123n)
+            }
+            function check_C2(a: Any) {
+              arktest.assertTrue(a instanceof C2)
+              arktest.assertEQ(((a as C2<Derived, Base>).c2_v as Derived).d_v,
+                321)
+            }
+            function check_bigint(a: Any) {
+              arktest.assertTrue(a instanceof bigint)
+              arktest.assertEQ(a as bigint, 5n)
+            }
+        check_values_groups:
+          - check_values_group_data:
+            - { set_type_T: "Object",
+                check_type_T: "Object",
+                set_value_from_I1_inter_I2:
+                  "new C2<Derived, Base>(new Derived(321))",
+                check_value_from_I1_inter_I2_func: "check_C2",
+                set_value_from_I1_diff_I2:
+                  "new C1<Base, Base>(new Base(123n))",
+                check_value_from_I1_diff_I2_func: "check_C1",
+                set_value_from_I2_diff_I1: "5n",
+                check_value_from_I2_diff_I1_func: "check_bigint" }
+    decl_variants:
+      - |-
+        [cv_decl_data]
+        function check_value(v: Any, v_id: int): void {
+          if (v_id == 1) {
+            [check_value_from_I1_inter_I2_func](v)
+            [check_value_from_I1_inter_I2_func](v as [set_type_I1])
+            [check_value_from_I1_inter_I2_func](v as [set_type_I2])
+          }
+          else if (v_id == 2) {
+            [check_value_from_I1_diff_I2_func](v)
+            [check_value_from_I1_diff_I2_func](v as [set_type_I1])
+          }
+          else {
+            [check_value_from_I2_diff_I1_func](v)
+            [check_value_from_I2_diff_I1_func](v as [set_type_I2])
+          }
+        }
+        function check_value_as_type_T(v: [set_type_T], v_id: int): void {
+          arktest.assertTrue(v instanceof [check_type_I1] ||
+            v instanceof [check_type_I2])
+          check_value(v, v_id)
+        }
+        function check_is_in_T_type(v: [set_type_I1] | [set_type_I2],
+                                    v_id: int): boolean {
+          check_value(v, v_id)
+          if (v instanceof [check_type_I1]) {
+            check_value(v, v_id)
+            if (v instanceof [check_type_I2]) {
+              arktest.assertEQ(v_id, 1)
+              check_value(v, v_id)
+              arktest.assertTrue(v instanceof [check_type_I1])
+              arktest.assertTrue(v instanceof [check_type_T])
+              if (v instanceof [check_type_T]) {
+                check_value_as_type_T(v, v_id)
+                return true
+              } else {
+                return false
+              }
+            }
+            else {
+              arktest.assertEQ(v_id, 2)
+              check_value(v, v_id)
+              if (v instanceof [check_type_T]) {
+                check_value_as_type_T(v, v_id)
+                return true
+              } else {
+                return false
+              }
+            }
+          }
+          else {
+            arktest.assertEQ(v_id, 3)
+            check_value(v, v_id)
+            if (v instanceof [check_type_T]) {
+              check_value_as_type_T(v, v_id)
+              return true
+            } else {
+              return false
+            }
+          }
+        }
+    sub_cases_logic:
+      - |-
+        let res1: boolean = check_is_in_T_type(
+          [set_value_from_I1_inter_I2], 1)
+        let res2: boolean = check_is_in_T_type(
+          [set_value_from_I1_diff_I2], 2)
+        let res3: boolean = check_is_in_T_type(
+          [set_value_from_I2_diff_I1], 3)
+        arktest.assertTrue(res1 && (res2 || res3))

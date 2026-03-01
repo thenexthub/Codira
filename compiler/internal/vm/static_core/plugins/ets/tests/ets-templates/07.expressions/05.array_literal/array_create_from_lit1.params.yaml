@@ -1,0 +1,32 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of literals
+
+cases:
+  - {type: "byte", vals: ["0", "5", "7", "10"]}
+  - {type: "short", vals: ["9", "15", "13"]}
+  - {type: "int", vals: ["9", "13", "123", "17", "10"]}
+  - {type: "number", vals: ["9", "13", "1", "5.7", "10", "12.4"]}
+  - {type: "double", vals: ["9", "13", "1", "5.7", "10", "12.4"]}
+  - {type: "long", vals: ["9", "13", "9223372036854775807", "5", "10", "12"]}
+  - {type: "float", vals: ["9", "13", "1", "5.7f", "10", "12.4f"]}
+  - {type: "boolean", vals: ["true", "false", "false", "true", "false", "true"]}
+  - {type: "char", vals: ["c'\\u2028'", "c'\\u005c'", "c'\\u0027'", "c'x'", "c'Z'"]}
+  - {type: "String", vals: ["\"ab\"", "\"cd\"", "\"efg\""]}
+  - {type: "object", vals: ["new Object", "new Object", "new Object"], no_check_vals: "true"}
+  - {type: "Number", vals: ["9", "13", "1", "5.7", "10", "12.4"]}
+  - {type: "Boolean", vals: ["true", "false", "false", "true", "false", "true"]}
+  - {type: "MyClass", vals: ["new MyClass", "new MyClass", "new MyClass"], no_check_vals: "true"}
+  - {type: "MyInterface", vals: ["{}", "{}", "{}"], no_check_vals: "true"}
+

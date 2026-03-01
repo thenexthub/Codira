@@ -1,0 +1,84 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    - decl: |-
+          enum Enum: double { first = 2.3, second = 3.4, third = 4.5 }
+      use: |-
+          arktest.assertEQ( Enum.first.valueOf(), 2.3 )
+          arktest.assertEQ( Enum.second.valueOf(), 3.4 )
+          arktest.assertEQ( Enum.third.valueOf(), 4.5 )
+
+    - decl: |-
+          enum Enum: double { first = 10e1, second = 1.1, third = 2.1 } 
+      use: |-
+          arktest.assertEQ( Enum.first.valueOf(), 100 )
+
+    - decl: |-
+          const a: short = 1
+          const b: short = 1
+          enum Enum: short { first = a, second = b, third = b - 1 }
+      use: |-
+          arktest.assertEQ( Enum.first.valueOf(), a )
+          arktest.assertEQ( Enum.second.valueOf(), b )
+          arktest.assertEQ( Enum.third.valueOf(), b - 1 )
+    
+    - decl: |-
+          const a: int = 1
+          const b: int = 2
+          enum Enum: byte { first = a, second = b, third = b - 1 }
+      use: |-
+          arktest.assertEQ( Enum.first.valueOf(), a )
+          arktest.assertEQ( Enum.second.valueOf(), b )
+          arktest.assertEQ( Enum.third.valueOf(), b - 1 )
+
+    - decl: |-
+          const a: byte = 1
+          const b: byte = 2
+          enum Enum: int { first = a, second = b, third = b - 1 }
+      use: |-
+          arktest.assertEQ( Enum.first.valueOf(), a )
+          arktest.assertEQ( Enum.second.valueOf(), b )
+          arktest.assertEQ( Enum.third.valueOf(), b - 1 )
+
+    - decl: |-
+          enum Enum: int { first = 1 }
+      use: |-
+          arktest.assertEQ( Enum.first.valueOf() instanceof int, true )
+
+    - decl: |-
+          enum Enum: double { first = 1.2 }
+      use: |-
+          arktest.assertEQ( Enum.first.valueOf() instanceof double, true )
+
+    - decl: |-
+          const c: byte = 126;
+          enum Enum { a=c, b = c+1 }
+      use: |-
+          arktest.assertEQ(Enum.a.valueOf() instanceof int, true)
+
+    - decl: |-
+          const c: byte = 126;
+          enum Enum: byte { a=c, b = c+1 }
+      use: |-
+          arktest.assertEQ(Enum.a.valueOf() instanceof byte, true)

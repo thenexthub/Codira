@@ -1,0 +1,61 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+---
+cases:
+  # multiply
+  - { use: "1.0f * 1.0f", use_type: ": float", expected_type: float }
+  - { use: "1.0 * 1.0", use_type: ": double", expected_type: double }
+  - { use: "8 * 2", use_type: ": int", expected_type: int }
+  - { use: "63 * 2", use_type: ": int", expected_type: int }
+  - { use: "64 * 2", use_type: ": int", expected_type: int }
+  - { use: "16383 * 2", use_type: ": int", expected_type: int }
+  - { use: "16384 * 2", use_type: ": int", expected_type: int }
+  - { use: "1073741823 * 2", use_type: ": int", expected_type: int }
+  - { use: "1073741824 * (2).toLong()", use_type: ": long | int", expected_type: long }
+  - { use: "9223372036854775807 * (2).toLong()", use_type: ": long", expected_type: long }
+  - { use: "-8 * 2", use_type: ": int", expected_type: int }
+  - { use: "-64 * 2", use_type: ": int", expected_type: int }
+  - { use: "-65 * 2", use_type: ": int", expected_type: int }
+  - { use: "-16384 * 2", use_type: ": int", expected_type: int }
+  - { use: "-16385 * 2", use_type: ": int", expected_type: int }
+  - { use: "-0x4000_0000 * 2", use_type: ": int", expected_type: int }
+  - { use: "-0x4000_0001 * (2).toLong()", use_type: ": long", expected_type: long }
+  - { use: "-0x4000_0000_0000_0000 * (2).toLong()", use_type: ": long", expected_type: long }
+  # divide
+  - { use: "1.0f / 1.0f", use_type: ": float", expected_type: float }
+  - { use: "1.0 / 1.0", use_type: ": double", expected_type: double }
+  - { use: "32 / 2", use_type: ": int", expected_type: int }
+  - { use: "255 / 2", use_type: ": int", expected_type: int }
+  - { use: "256 / 2", use_type: ": int", expected_type: int }
+  - { use: "65535 / 2", use_type: ": int", expected_type: int }
+  - { use: "65536 / 2", use_type: ": int", expected_type: int }
+  - { use: "4294967295 / 2", use_type: ": int", expected_type: int }
+  - { use: "4294967296 / 2", use_type: ": long", expected_type: long }
+  - { use: "8223372036854775808 / 2", use_type: ": long", expected_type: long }
+  - { use: "-16 / 2", use_type: ": int", expected_type: int }
+  - { use: "-256 / 2", use_type: ": int", expected_type: int }
+  - { use: "-257 / 2", use_type: ": int", expected_type: int }
+  - { use: "-65536 / 2", use_type: ": int", expected_type: int }
+  - { use: "-65537 / 2", use_type: ": int", expected_type: int }
+  - { use: "-0x1_0000_0000 / 2", use_type: ": int", expected_type: int }
+  - { use: "-0x1_0000_0010 / 2", use_type: ": long", expected_type: long }
+  - { use: "-8223372036854775808 / 2", use_type: ": long", expected_type: long }

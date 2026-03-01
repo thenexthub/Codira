@@ -1,0 +1,12 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep package module_test_010 {\n    math1:std.core.Function?;\n    math2:std.core.FunctionR2;\n}"
+      ]
+    }
+  }
+}

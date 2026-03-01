@@ -1,0 +1,106 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if both invoke and instantiate are present in the same class
+          class C {
+              static $_invoke() {}
+              static $_instantiate(f: () => C): C { return f() }
+          }
+      use: |-
+          let x = C()
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if both invoke and instantiate are available
+          abstract class A {
+              static $_invoke() {}
+          }
+          abstract class B extends A {}
+          class C extends B {
+              static $_instantiate(f: () => C): C { return f() }
+          }
+      use: |-
+          let x = C()
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if both invoke and instantiate are available
+          class A {
+              static $_instantiate(f: () => A): A { return f() }
+          }
+          class B extends A {}
+          class C extends B {
+              static $_invoke() {}
+          }
+      use: |-
+          let x = C()
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if both invoke and instantiate are available
+          class A {
+              static $_instantiate(f: () => A): A { return f() }
+          }
+          abstract class B extends A {
+              static $_invoke() {}
+          }
+          class C extends B {}
+      use: |-
+          let x = C()
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if invoke is not static, implicit call
+          class C {
+              $_invoke(p: number, q: string): string {
+                  return q + p
+              }
+          }
+      use: |-
+          let x = C(42.0, 'abc')
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if invoke is not static, explicit call
+          class C {
+              $_invoke(p: number, q: string): string {
+                  return q + p
+              }
+          }
+      use: |-
+          let x = C.invoke(42.0, 'abc')
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if instantiate is not static, implicit call
+          class C {
+              $_instantiate(f: ()=>C): C {
+                  return f()
+              }
+          }
+      use: |-
+          let x = C()
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if instantiate is not static, explicit call
+          class C {
+              $_instantiate(f: ()=>C): C {
+                  return f()
+              }
+          }
+      use: |-
+          let x = C.$_instantiate(() => { return new C() })

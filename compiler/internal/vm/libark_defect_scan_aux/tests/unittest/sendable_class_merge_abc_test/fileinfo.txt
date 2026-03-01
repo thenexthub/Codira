@@ -1,0 +1,2 @@
+/sendable_class_merge_abc_test/sendable_base.ts;base;esm;pre_test;pre_test;false
+/sendable_class_merge_abc_test/sendable_class_merge_abc_test.ts;merge_test;esm;test;test;false

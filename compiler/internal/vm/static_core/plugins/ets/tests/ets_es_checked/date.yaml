@@ -1,0 +1,198 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+category: Date
+sub:
+    - expr: new Date(pars).getTimezoneOffset()
+      params:
+        - paramOf 2000, 2020, 2038
+        - paramOf 0, 1,  5, 9, 10, 11
+        - paramOf 1, 20, 10, 5
+        - paramOf 1, 2, 3, 4, 20, 23
+        - paramOf 10, 23, 14, 1, 50
+      mandatory: 2
+    - expr: new Date(pars).valueOf()
+      params:
+        - paramOf 2000, 2020, 2038
+        - paramOf  1,  5, 11
+        - paramOf 1, 20, 10, 5
+        - paramOf 1, 2, 3, 4, 20, 23
+        - paramOf 10, 23, 14, 1, 50
+      mandatory: 2
+    - expr: new Date(pars).getFullYear()
+      params:
+        - paramOf "2019-11-14T00:55:31.000".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).getMonth()
+      params:
+        - paramOf "2019-11-14T00:55:31.000".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).getDate()
+      params:
+        - paramOf "2019-11-14T00:55:31.000".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).getDay()
+      params:
+        - paramOf "2019-11-14T00:55:31.000".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).getHours()
+      params:
+        - paramOf "2019-11-14T00:55:31.000".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).getMinutes()
+      params:
+        - paramOf "2019-11-14T00:55:31.000".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).getSeconds()
+      params:
+        - paramOf "2019-11-14T00:55:31.000".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).getMilliseconds()
+      params:
+        - paramOf "2019-11-14T00:55:31.000".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).getUTCFullYear()
+      params:
+        - paramOf "2019-11-14T00:55:31.000".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).getUTCMonth()
+      params:
+        - paramOf "2019-11-14T00:55:31.000".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).getUTCDate()
+      params:
+        - paramOf "2019-11-14T00:55:31.000".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).getUTCDay()
+      params:
+        - paramOf "2019-11-14T00:55:31.000".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).getUTCHours()
+      params:
+        - paramOf "2019-11-14T00:55:31.000".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).getUTCMinutes()
+      params:
+        - paramOf "2019-11-14T00:55:31.000".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).getUTCSeconds()
+      params:
+        - paramOf "2019-11-14T00:55:31.000".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).getUTCMilliseconds()
+      params:
+        - paramOf "2019-11-14T00:55:31.000".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).getTime()
+      params:
+        - paramOf "2019-11-14T00:55:31.000".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).getTimezoneOffset()
+      params:
+        - paramOf "2019-11-14T00:55:31.000".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).toJSON()
+      params:
+        - paramOf "2019-11-14T00:55:31.000".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).valueOf()
+      params:
+        - paramOf "2019-11-14T00:55:31.000".inspect, "2024-02-28T00:55:31.123".inspect, 12234556789, 1234345565, "2024-02-28T00:55:31.123+06:00".inspect, "1970-01-01T00:00:00.999Z".inspect, "9999-12-31T23:59:59.999Z".inspect
+    - expr: Date.parse(pars)
+      params:
+        - paramOf "2000-11-14T00:55:31.000".inspect, "2024-02-28T00:55:31.123Z".inspect, "2024-02-28T00:55:31.123+06:00".inspect, "2000-11-14".inspect
+    - expr: new Date(pars).toISOString()
+      params:
+        - paramOf "2019-11-14T00:55:31.000".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).toDateString()
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).toUTCString()
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).setFullYear(1999, 2, 10)
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).setMonth(2, 15)
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).setDate(10)
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).setHours(10)
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).setHours(25)
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).setMinutes(11)
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).setMinutes(61)
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).setSeconds(27)
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).setSeconds(61)
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).setMilliseconds(37)
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).setTime(123434337)
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).setUTCFullYear(1975, 2, 10)
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).setUTCMonth(2, 11)
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).setUTCDate(10)
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).setUTCHours(10, 20, 18)
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).setUTCHours(25, 61, 61)
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).setUTCMinutes(11)
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).setUTCMinutes(61)
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).setUTCSeconds(27)
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).setUTCSeconds(61)
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: new Date(pars).setUTCMilliseconds(37)
+      params:
+        - paramOf "2019-11-14T00:55:31.000Z".inspect, "2024-02-28T00:55:31.123Z".inspect, 12234556789, 1234345565
+    - expr: Date.UTC(pars)
+      params:
+        - paramOf 1900, 2017, 1970, 1937
+        - paramOf 10, 11, 2, 6
+        - paramOf 2, 20
+        - paramOf 10, 1
+        - paramOf 23, 2
+        - paramOf 3, 15
+        - paramOf 2, 10
+      mandatory: 2
+    - sub:
+        - expr: now_result
+          setup: |
+            let TIMEOUT = 100000
+            let d1 = Date.now()
+            let d2 = Date.now()
+            let i = 0
+            do {
+              d2 = Date.now()
+              i++;
+            } while ((d2 == d1) && (i < TIMEOUT))
+            let now_result = ((d2 > d1) && (i < TIMEOUT))
+        - expr: typeof Date() == "string"

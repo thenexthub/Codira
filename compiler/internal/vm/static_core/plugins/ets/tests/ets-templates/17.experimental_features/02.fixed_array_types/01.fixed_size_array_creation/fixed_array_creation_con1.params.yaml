@@ -1,0 +1,121 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+  - desc: Create empty FixedArray
+    logic: |-
+      let a = new FixedArray<number>(0)
+      arktest.assertEQ(a.length, 0)
+
+  - desc: Create FixedArray with length < 0
+    decl: |-
+      function f(len: int): void {
+        let a = new FixedArray<number>(len)
+      }
+    logic: |-
+      let res: boolean = false
+      let expectedException = (e: Error): boolean => {
+        return true
+      }
+      arktest.expectThrow(() => {f(-1)}, expectedException)
+      arktest.expectThrow(() => {f(-30)}, expectedException)
+
+  - desc: Create FixedArray with type Object
+    logic: |-
+      let a = new FixedArray<Object>(30)
+      arktest.assertEQ(a.length, 30)
+      for (let i = 0; i < 30; i++) {
+        arktest.assertTrue(a[i] instanceof Object)
+      }
+
+  - desc: Create FixedArray with predefined types
+    check_variants:
+      - {check_type: "number", check_value: "0"}
+      - {check_type: "double", check_value: "0.0"}
+      - {check_type: "float", check_value: "0.0f"}
+      - {check_type: "long", check_value: "0"}
+      - {check_type: "int", check_value: "0"}
+      - {check_type: "short", check_value: "0"}
+      - {check_type: "byte", check_value: "0"}
+      - {check_type: "string", check_value: "\"\""}
+      - {check_type: "bigint", check_value: "0n"}
+      - {check_type: "char", check_value: "c'\\u0000'"}
+      - {check_type: "boolean", check_value: "false"}
+    logic: |-
+      let a = new FixedArray<[check_type]>(30)
+      arktest.assertEQ(a.length, 30)
+      arktest.assertTrue(a[0] instanceof [check_type])
+      for (let i = 0; i < 30; i++) {
+        arktest.assertEQ(a[i], [check_value])
+      }
+
+  - desc: |-
+      >-
+        Create FixedArray with type that has constructor
+        that can be called with no argument provided
+    decl: |-
+      class C {
+        n: number = 0
+        constructor (n: number = 5) {
+          this.n = n
+        }
+      }
+    logic: |-
+      let a = new FixedArray<C>(30)
+      arktest.assertEQ(a.length, 30)
+      arktest.assertTrue(a[0] instanceof C)
+      for (let i = 0; i < 30; i++) {
+        arktest.assertEQ((a[i] as C).n, 5)
+      }
+
+  - desc: |-
+      >-
+        Create FixedArray with type that has constructor
+        that can be called with no argument provided
+    decl: |-
+      class C {
+        n: number = 0
+        constructor (n?: number) {
+          if (n == undefined) {
+            this.n = 5
+          }
+        }
+      }
+    logic: |-
+      let a = new FixedArray<C>(30)
+      arktest.assertEQ(a.length, 30)
+      arktest.assertTrue(a[0] instanceof C)
+      for (let i = 0; i < 30; i++) {
+        arktest.assertEQ((a[i] as C).n, 5)
+      }
+
+  - desc: |-
+      >-
+        Create FixedArray with type that has constructor
+        that can be called with no argument provided
+    decl: |-
+      class C {
+        n: number = 0
+        constructor (...args: Any[]) {
+          if  (args.length == 0) {
+            this.n = 5
+          }
+        }
+      }
+    logic: |-
+      let a = new FixedArray<C>(30)
+      arktest.assertEQ(a.length, 30)
+      arktest.assertTrue(a[0] instanceof C)
+      for (let i = 0; i < 30; i++) {
+        arktest.assertEQ((a[i] as C).n, 5)
+      }

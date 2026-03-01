@@ -1,0 +1,44 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+cases:
+  - { type: '[char, int]', value: "[c'1', 42]", expected_value: "c'1'"}
+  - { type: '[char, double]', value: "[c'1', 42.12]", expected_value: "c'1'"}
+  - { type: '[char, float]', value: "[c'1', 42.1f]", expected_value: "c'1'"}
+  - { type: '[char, int | string]', value: "[c'1', 42]", expected_value: "c'1'"}
+  - { type: '[char, int | string]', value: "[c'1', '42']", expected_value: "c'1'"}
+  - { type: '[char, int[]]', value: "[c'1', [42]]", expected_value: "c'1'"}
+  - { type: '[char, long]', value: "[c'1', 42]", expected_value: "c'1'"}
+  - { type: '[char, null]', value: "[c'1', null]", expected_value: "c'1'"}
+  - { type: '[char, number]', value: "[c'1', 42]", expected_value: "c'1'"}
+  - { type: '[char, short]', value: "[c'1', 42]", expected_value: "c'1'"}
+  - { type: '[char, Any]', value: "[c'1', 42]", expected_value: "c'1'"}
+  - { type: '[char, undefined]', value: "[c'1', undefined]", expected_value: "c'1'"}
+  - { type: '[boolean, byte]', value: '[true, 42]', expected_value: 'true'}
+  - { type: '[boolean, char]', value: "[true, c'1']", expected_value: 'true'}
+  - { type: '[boolean, double]', value: '[true, 42.12]', expected_value: 'true'}
+  - { type: '[boolean, float]', value: '[true, 42.1f]', expected_value: 'true'}
+  - { type: '[boolean, int]', value: '[true, 42]', expected_value: 'true'}
+  - { type: '[boolean, int | string]', value: '[true, 42]', expected_value: 'true'}
+  - { type: '[boolean, int | string]', value: '[true, "42"]', expected_value: 'true'}
+  - { type: '[boolean, int[]]', value: '[true, [42]]', expected_value: 'true'}
+  - { type: '[boolean, long]', value: '[true, 42]', expected_value: 'true'}
+  - { type: '[boolean, null]', value: '[true, null]', expected_value: 'true'}
+  - { type: '[boolean, string]', value: '[true, "42"]', expected_value: 'true'}
+  - { type: '[boolean, number]', value: '[true, 42]', expected_value: 'true'}
+  - { type: '[boolean, short]', value: '[true, 42]', expected_value: 'true'}
+  - { type: '[boolean, undefined]', value: '[true, undefined]', expected_value: 'true'}
+  - { type: '[boolean, Any]', value: '[true, 42]', expected_value: 'true'}
+  - { type: '[null, Any]', value: '[null, 42]', expected_value: 'null'}
+  - { type: '[undefined, Any]', value: '[undefined, 42]', expected_value: 'undefined'}
+  - { type: '[string, number]', value: '["str", 42]', expected_value: '"str"'}

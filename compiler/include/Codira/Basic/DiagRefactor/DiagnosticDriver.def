@@ -1,0 +1,107 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+ERROR(driver_diag_begin, "")
+
+// Common error
+ERROR(no_such_file_or_directory, "No such file or directory: '%s'.")
+ERROR(no_such_directory, "No such directory: '%s'.")
+ERROR(not_a_directory, "Not a directory: '%s'.")
+ERROR(not_a_file, "Not a file: '%s'.")
+ERROR(permission_denied, "Permission denied: '%s'.")
+ERROR(invalid_path, "Invalid path: '%s'.")
+ERROR(no_such_file_or_directory_of_macro_obj, "No such file or directory: '%s', please check if input file exists, separate paths by space if there are multiple input files")
+ERROR(input_file_overwritten_by_generated_output, "The input file '%s' would be overwritten by the generated output.")
+
+// Ignore argument warnings
+WARNING(driver_warning_no_such_file, DRIVER_ARG, "No such file: '%s'")
+WARNING(driver_warning_no_such_file_or_directory, DRIVER_ARG, "No such file or directory: '%s'.%s")
+WARNING(driver_warning_no_such_directory, DRIVER_ARG, "No such directory: '%s'.%s")
+WARNING(driver_warning_not_a_directory, DRIVER_ARG, "Not a directory: '%s'.%s")
+WARNING(driver_warning_not_a_file, DRIVER_ARG, "Not a file: '%s'.%s")
+WARNING(driver_warning_permission_denied, DRIVER_ARG, "Permission denied: '%s'.%s")
+WARNING(driver_warning_invalid_path, DRIVER_ARG, "Invalid path: '%s'.%s")
+WARNING(driver_warning_not_pdba_file, DRIVER_ARG, "Not a .pdba file: '%s' ('%s').%s")
+WARNING(driver_warning_not_codeo_file, DRIVER_ARG, "Not a .codeo file: '%s' ('%s').%s")
+WARNING(driver_warning_not_code_file, DRIVER_ARG, "Not a .code file: '%s' ('%s').%s")
+WARNING(driver_warning_not_chir_file, DRIVER_ARG, "Not a .chir file: '%s' ('%s').%s")
+WARNING(driver_warning_not_bc_file, DRIVER_ARG, "Not a .bc file: '%s' ('%s').%s")
+WARNING(driver_warning_not_archive_file, DRIVER_ARG, "Not a .a file: '%s' ('%s').%s")
+WARNING(driver_warning_not_object_file, DRIVER_ARG, "Not a .o file: '%s' ('%s').%s")
+WARNING(driver_warning_argument_unused, DRIVER_ARG, "the arg '%s' may be unused")
+WARNING(driver_warning_path_close_to_length_limit, DRIVER_ARG, "the path length for %s is close to the system limit (%s characters). The compilation has a possibility to fail.")
+
+// warning of --static-std is not supported for ohos
+WARNING(driver_static_std_for_ohos, DRIVER_ARG, "Statically link packages of the std module is not supported for OHOS")
+
+// driver & option errors
+ERROR(driver_require_package_directory, "expected one package path to build")
+ERROR(driver_require_package_directory_scan_dependency, "expected one package path to scan dependency")
+ERROR(driver_require_one_package_directory, "expect exact one package path to build")
+ERROR(driver_require_one_package_directory_scan_dependency, "expect exact one .codeo file to scan dependency")
+ERROR(driver_source_codeo_empty, "expected one .codeo file to scan dependency")
+ERROR(driver_not_accept_codeo_inputs_when, "not accept .codeo inputs when %s is specified")
+ERROR(driver_source_file_empty, "expected at least one source code file when compiling source code")
+ERROR(driver_invalid_source_file, "source file '%s' doesn't exist")
+ERROR(driver_invalid_file_or_directory, "invalid file or directory '%s'")
+ERROR(driver_invalid_binary_file, "invalid binary file '%s'")
+ERROR(driver_invalid_unsupport_extension, "unsupported output extension '.%s', extension '.%s' is required")
+ERROR(driver_invalid_require_extension, "output to '%s' is not allowed, extension '.%s' is required")
+ERROR(driver_path_exceeds_length_limit, "the path length for %s exceeds the system limit (%s characters)")
+ERROR(driver_unsupported_target_cpu, "cpu type '%s' is not supported for the current target")
+ERROR(driver_require_chir_directory, "expected one chir path to build")
+
+// condition compilation arg error and warnings
+ERROR(driver_cfg_value_err, "user defined condition should be like: k1=v1,k2=v2 or <directory path of cfg.toml>")
+ERROR(driver_cfg_toml_content_err,
+    "user defined condition in cfg.toml should be like: k1 = \"v1\", and each key-value pair occupies a separate line.")
+ERROR(dirver_cfg_invaild_identifier, "user defined condition variable should be a vaild identifier")
+ERROR(dirver_cfg_same_with_builtin, "user defined condition's key can not be the same with builtin condition")
+ERROR(dirver_cfg_key_repeat, "user defined condition's key can not repeat")
+ERROR(dirver_cfg_not_a_dir,
+    "'%s' is not a vaild directory path, please check it or pass the key-value pair like: k1=v1,k2=v2.")
+
+ERROR(driver_cfg_file_read_failed, "read '%s' failed, due to '%s'")
+WARNING(driver_cfg_path_ignored, DRIVER_ARG,
+    "conditional compilation has been set by key-value mode, cfg.toml will be ignored")
+
+
+ERROR(driver_invalid_compile_as_exe, "--compile-as-exe only takes effect when lto mode is enabled")
+ERROR(driver_invalid_compile_as_exe_platform, "Windows, Mac, IOS does not support --compile-as-exe")
+
+WARNING(driver_useless_option, DEPRECATED, "option '%s' is deprecated and will be removed in the future")
+
+// module arg warning
+WARNING(driver_unsupport_compile_package_with_source_file, UNSUPPORT_COMPILE_SOURCE, "when having --package flag, not support compiling packages with source file '%s'")
+WARNING(driver_unsupport_compile_source_file_with_path, UNSUPPORT_COMPILE_SOURCE, "when compiling source file, not support compiling it with directory '%s'")
+
+// warning of deprecated option which will be removed in future
+WARNING(driver_deprecated_option, DEPRECATED, "option '%s' is deprecated and will be removed in future%s.")
+// pgo errors
+ERROR(driver_pgo_both_gen_and_use, "using both '--pgo-instr-gen' and '--pgo-instr-use' is not allowed.")
+ERROR(driver_pgo_invalid_profile_extension, "Not a .profdata file: '%s'")
+
+// Plugin
+ERROR(not_a_valid_plugin, "'%s' is not a valid compiler plugin to be loaded or executed")
+ERROR(plugin_throws_exception, "exception occurs while executing compiler plugin(s)")
+
+ERROR(driver_diag_end, "")

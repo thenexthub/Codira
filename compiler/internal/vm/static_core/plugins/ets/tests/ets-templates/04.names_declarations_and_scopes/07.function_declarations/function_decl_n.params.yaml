@@ -1,0 +1,72 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+--- # List of invalid function declarations
+function_decls:
+    # missing return type
+    - { decl: 'function f(): {}', call: 'f();' }
+
+    # missing name
+    - { decl: 'let f = function (): void {}', call: 'f();' }
+    - { decl: 'function (): void {}', call: '' }
+
+    # keyword as name
+    - { decl: 'function import() {}', call: '' }
+    - { decl: 'function case(): number { return 0.0 }', call: '' }
+
+    # missing parameters
+    - { decl: 'function f: void {}', call: 'f();' }
+    - { decl: 'function f(: void {}', call: 'f();' }
+    - { decl: 'function f): void {}', call: 'f();' }
+
+    # missing colon
+    - { decl: 'function f() void {}', call: 'f();' }
+
+    # missing body
+    - { decl: 'function f(): void', call: 'f();' }
+    - { decl: 'function f(): void {', call: 'f();' }
+    - { decl: 'function f(): void }', call: 'f();' }
+
+    # temp CTE for Initializer of arrowFunc array
+    - decl: |-
+          type BarType = () => void
+          function bar() {}
+          function foo(): BarType[] {
+              let arr: BarType[] = new BarType[1]
+              arr[0] = bar
+              return arr;
+          }
+      call: |-
+          let f: BarType[] = foo();
+          arktest.assertTrue(f instanceof Array && f[0] instanceof BarType && f.length == 1)
+
+    # no params, return enum array
+    - decl: |-
+          enum Color { Red, Green, Blue }
+          function foo(): Color[] {
+              let arr: Color[] = new Color[1]
+              arr[0] = Color.Red
+              return arr;
+          }
+      call: |-
+          let arr: Color[] = foo();
+          arktest.assertTrue(arr instanceof Array && arr[0] instanceof Color && arr.length == 1 && arr[0] == Color.Red)

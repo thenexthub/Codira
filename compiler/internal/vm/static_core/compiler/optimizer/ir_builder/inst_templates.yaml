@@ -1,0 +1,338 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+templates:
+  binop: |-
+    % regex_arithm = /(fdiv|fmod|add|sub|mul|and|or|xor|ashr|shr|shl|neg|not)[2i]?(iv)?/
+    % opc = inst.stripped_mnemonic.match regex_arithm
+    % raise "Wrong binop instruction" unless opc
+    % opc = opc[1].capitalize.gsub('Ashr', 'AShr').gsub('Fdiv', 'Div').gsub('Fmod', 'Mod')
+    auto inst = graph_->CreateInst<%= opc %>(<%= get_type(inst.dtype) %>, GetPc(instruction->GetAddress()));
+    <%=template('operands', inst, '')-%>
+    AddInstruction(inst);
+  binop_z: |-
+    % opc = inst.stripped_mnemonic =~ /^div/ ? 'Div' : 'Mod'
+    auto inst_save_state = CreateSaveState(Opcode::SaveState, GetPc(instruction->GetAddress()));
+    auto inst_check = graph_->CreateInstZeroCheck(<%= get_type(inst.dtype) %>, GetPc(instruction->GetAddress()));
+    % if inst.acc_and_operands.last.imm?
+    if (graph_->IsBytecodeOptimizer()) {
+        inst_check->SetInput(0, FindOrCreate32BitConstant(instruction->GetImm<<%= inst.get_format %>, 0>()));
+    } else {
+        inst_check->SetInput(0, <%= inst.get_input_string(1) %>);
+    }
+    % else
+    %   if (!inst.acc_and_operands[1].acc? && !inst.acc_write?)
+    inst_check->SetInput(0, GetDefinition(instruction->GetVReg<<%=inst.get_format%>, 1>()));
+    %   else
+    inst_check->SetInput(0, <%= inst.get_input_string(1) %>);
+    %   end
+    % end
+    inst_check->SetInput(1, inst_save_state);
+    auto inst = graph_->CreateInst<%= opc %>(<%= get_type(inst.dtype) %>, GetPc(instruction->GetAddress()));
+    if (graph_->IsBytecodeOptimizer()) {
+        inst->SetFlag(inst_flags::NO_HOIST);
+    }
+    inst->SetInput(1, inst_check);
+    % if (!inst.acc_and_operands[0].acc? && !inst.acc_and_operands[1].acc? && !inst.acc_and_operands.last.imm?)
+    inst->SetInput(0, GetDefinition(instruction->GetVReg<<%=inst.get_format%>, 0>()));
+    UpdateDefinition(instruction->GetVReg<<%=inst.get_format%>, 0>(), inst);
+    % else
+    inst->SetInput(0, <%= inst.get_input_string(0) %>);
+    %   if (inst.acc_and_operands[1].acc? || inst.acc_write?)
+    UpdateDefinitionAcc(inst);
+    %   else
+    UpdateDefinition(instruction->GetVReg<<%=inst.get_format%>, 0>(), inst);
+    %   end
+    % end
+    AddInstruction(inst_save_state);
+    AddInstruction(inst_check);
+    AddInstruction(inst);
+  binop_v: |-
+    % regex_arithm = /(addv|subv|mulv|andv|orv|xorv|ashrv|shrv|shlv)$/
+    % opc = inst.stripped_mnemonic.match regex_arithm
+    % raise "Wrong binop instruction" unless opc
+    % opc = opc[1].chop.capitalize.gsub('Ashr', 'AShr')
+    auto inst = graph_->CreateInst<%= opc %>(<%= get_type(inst.dtype) %>, GetPc(instruction->GetAddress()), 
+                                             GetDefinition(instruction->GetVReg<<%=inst.get_format%>, 0>()), 
+                                             GetDefinition(instruction->GetVReg<<%=inst.get_format%>, 1>()));
+    AddInstruction(inst);
+    UpdateDefinition(instruction->GetVReg<<%=inst.get_format%>, 0>(), inst);
+  binop_v2: |-
+    % regex_arithm = /(fdiv|fmod|add|sub|mul|and|or|xor|ashr|shr|shl)2v$/
+    % opc = inst.stripped_mnemonic.match regex_arithm
+    % raise "Wrong binop instruction" unless opc
+    % opc = opc[1].capitalize.gsub('Ashr', 'AShr').gsub('Fdiv', 'Div').gsub('Fmod', 'Mod')
+    auto inst = graph_->CreateInst<%= opc %>(<%= get_type(inst.dtype) %>, GetPc(instruction->GetAddress()), GetDefinitionAcc(), 
+                                             GetDefinition(instruction->GetVReg<<%=inst.get_format%>, 1>()));
+    AddInstruction(inst);
+    UpdateDefinition(instruction->GetVReg<<%=inst.get_format%>, 0>(), inst);
+  inci: |-
+    auto inst = graph_->CreateInstAdd(<%= get_type(inst.dtype) %>, GetPc(instruction->GetAddress()));
+    inst->SetInput(0, GetDefinition(instruction->GetVReg<<%=inst.get_format%>, 0>()));
+    if (graph_->IsBytecodeOptimizer()) {
+        inst->SetInput(1, FindOrCreate32BitConstant(instruction->GetImm<<%=inst.get_format%>, 0>()));
+    } else {
+        inst->SetInput(1, FindOrCreateConstant(instruction->GetImm<<%=inst.get_format%>, 0>()));
+    }
+    AddInstruction(inst);
+    UpdateDefinition(instruction->GetVReg<<%=inst.get_format%>, 0>(), inst);
+  cast: |-
+    auto input = GetDefinitionAcc();
+    auto inst = graph_->CreateInstCast(<%= get_type(inst.dtype) %>, GetPc(instruction->GetAddress()), input, <%= get_type(inst.type(0)) %>);
+    if (!input->HasType()) {
+        input->SetType(<%= get_type(inst.type(0)) %>);
+    }
+    UpdateDefinitionAcc(inst);
+    AddInstruction(inst);
+  cmp: |-
+    % if inst.mnemonic.include? "obj"
+    auto inst = graph_->CreateInstCompare(DataType::BOOL, GetPc(instruction->GetAddress()), GetDefinitionAcc(), 
+                                          GetDefinition(instruction->GetVReg<<%=inst.get_format%>, 0>()), 
+                                          <%= get_type(inst.type(0)) %>, ConditionCode::CC_NE);
+    % else
+    auto inst = graph_->CreateInstCmp(<%= get_type(inst.dtype) %>, GetPc(instruction->GetAddress()), GetDefinitionAcc(), 
+                                      GetDefinition(instruction->GetVReg<<%=inst.get_format%>, 0>()), <%= get_type(inst.type(0)) %>);
+    % end
+    % if inst.stripped_mnemonic.start_with? 'fcmp'
+    inst->Set<%= inst.opcode =~ /^fcmpg/ ? 'Fcmpg' : 'Fcmpl' %>();
+    % end
+    AddInstruction(inst);
+    UpdateDefinitionAcc(inst);
+  if: |-
+    if (graph_->GetMode().IsAbcKit()) {
+    % if inst.acc_and_operands.size > 2
+        auto inst = graph_->CreateInstIf(compiler::DataType::NO_TYPE, GetPc(instruction->GetAddress()), GetDefinitionAcc(),
+                                        GetDefinition(instruction->GetVReg<<%=inst.get_format%>, 0>()), compiler::<%= get_type(inst.type(0)) %>, <%= get_cc(inst) %>);
+    % else
+    %   if inst.mnemonic.include? "obj"
+        auto inst = graph_->CreateInstIf(compiler::DataType::NO_TYPE, GetPc(instruction->GetAddress()), GetDefinitionAcc(),
+                                             graph_->GetOrCreateNullPtr(), compiler::<%= get_type(inst.type(0)) %>, <%= get_cc(inst) %>);
+    %   else
+    %     if ['i64' 'f64' 'b64' 'u64'].include?(inst.type(0))
+        auto inst = graph_->CreateInstIf(compiler::DataType::NO_TYPE, GetPc(instruction->GetAddress()), GetDefinitionAcc(),
+                                             FindOrCreateConstant(0), compiler::<%= get_type(inst.type(0)) %>, <%= get_cc(inst) %>);
+    %     else
+        auto inst = graph_->CreateInstIf(compiler::DataType::NO_TYPE, GetPc(instruction->GetAddress()), GetDefinitionAcc(),
+                                             FindOrCreate32BitConstant(0), compiler::<%= get_type(inst.type(0)) %>, <%= get_cc(inst) %>);
+    %     end
+    %   end
+    % end
+        AddInstruction(inst);
+    } else {
+        Inst *input0 = GetDefinitionAcc();
+    % if inst.acc_and_operands.size > 2
+        Inst *input1 = GetDefinition(instruction->GetVReg<<%=inst.get_format%>, 0>());
+    % else
+    %   if inst.mnemonic.include? "obj"
+        Inst *input1 = graph_->GetOrCreateNullPtr();
+    %   else
+        Inst *input1 = FindOrCreateConstant(0);
+    %   end
+    % end
+        auto inst = graph_->CreateInstCompare(DataType::BOOL, GetPc(instruction->GetAddress()), input0, input1, <%= get_type(inst.type(0)) %>, <%= get_cc(inst) %>);
+        auto inst_jump = graph_->CreateInstIfImm(DataType::NO_TYPE, GetPc(instruction->GetAddress()), inst, 0,
+                                             DataType::BOOL, ConditionCode::CC_NE, graph_->GetMethod());
+        AddInstruction(inst);
+        AddInstruction(inst_jump);
+    }
+  jump: |-
+  mov: |-
+    % if inst.mnemonic.include? "null"
+    UpdateDefinition(instruction->GetVReg<<%=inst.get_format%>, 0>(), graph_->GetOrCreateNullPtr());
+    % elsif inst.acc_and_operands[1].imm?
+    %   if inst.mnemonic == "movi"
+    if (graph_->IsBytecodeOptimizer()) {
+        UpdateDefinition(instruction->GetVReg<<%=inst.get_format%>, 0>(), FindOrCreate32BitConstant(instruction->GetImm<<%=inst.get_format%>, 0>()));
+    } else {
+        UpdateDefinition(instruction->GetVReg<<%=inst.get_format%>, 0>(), FindOrCreateConstant(instruction->GetImm<<%=inst.get_format%>, 0>()));
+    }
+    %   else
+    UpdateDefinition(instruction->GetVReg<<%=inst.get_format%>, 0>(), FindOrCreateConstant(instruction->GetImm<<%=inst.get_format%>, 0>()));
+    %   end
+    % else
+    % raise "Unsupported instruction type" unless inst.acc_and_operands[1].reg?
+    UpdateDefinition(instruction->GetVReg<<%=inst.get_format%>, 0>(), GetDefinition(instruction->GetVReg<<%=inst.get_format%>, 1>()));
+    % end
+  fmovi: |-
+    % if inst.mnemonic == "fmovi"
+    auto imm = bit_cast<float>(instruction->GetImm<<%=inst.get_format%>, 0>());
+    UpdateDefinition(instruction->GetVReg<<%=inst.get_format%>, 0>(), FindOrCreateFloatConstant(imm));
+    % else
+    auto imm = bit_cast<double>(instruction->GetImm<<%=inst.get_format%>, 0>());
+    UpdateDefinition(instruction->GetVReg<<%=inst.get_format%>, 0>(), FindOrCreateDoubleConstant(imm));
+    % end
+  sta: |-
+    UpdateDefinition(instruction->GetVReg<<%=inst.get_format%>, 0>(), GetDefinitionAcc());
+  lda: |-
+    % if inst.mnemonic.include? "null"
+    UpdateDefinitionAcc(graph_->GetOrCreateNullPtr());
+    % elsif inst.acc_and_operands[1].imm?
+    %   if inst.mnemonic == "ldai"
+    if (graph_->IsBytecodeOptimizer()) {
+        UpdateDefinitionAcc(FindOrCreate32BitConstant(instruction->GetImm<<%=inst.get_format%>, 0>()));
+    } else {
+        UpdateDefinitionAcc(FindOrCreateConstant(instruction->GetImm<<%=inst.get_format%>, 0>()));
+    }
+    %   else
+    UpdateDefinitionAcc(FindOrCreateConstant(instruction->GetImm<<%=inst.get_format%>, 0>()));
+    %     if inst.properties.include? "dynamic"
+    BuildCastToAnyNumber(instruction);
+    %     end
+    %   end
+    % elsif inst.acc_and_operands[1].id?
+    %     if inst.opcode =~ /lda_const/
+    BuildLoadConstArray(instruction);
+    %     else
+    if (!GetGraph()->IsAbcKit()) {
+      BuildLoadFromPool<Opcode::<%= inst.opcode =~ /lda_type/ ? 'LoadType' : 'LoadString' %>>(instruction);
+    }
+    #ifdef ENABLE_LIBABCKIT
+    else {
+      reinterpret_cast<AbcKitInstBuilder *>(this)->AbcKitBuildLoadFromPool<Opcode::<%= inst.opcode =~ /lda_type/ ? 'LoadType' : 'LoadString' %>>(instruction);
+    }
+    #endif
+    %     end
+    % else
+    % raise "Unsupported instruction type" unless inst.acc_and_operands[1].reg?
+    UpdateDefinitionAcc(GetDefinition(instruction->GetVReg<<%=inst.get_format%>, 0>()));
+    % end
+  fldai: |-
+    % if inst.mnemonic == "fldai"
+    auto imm = bit_cast<float>(instruction->GetImm<<%=inst.get_format%>, 0>());
+    UpdateDefinitionAcc(FindOrCreateFloatConstant(imm));
+    % else
+    auto imm = bit_cast<double>(instruction->GetImm<<%=inst.get_format%>, 0>());
+    UpdateDefinitionAcc(FindOrCreateDoubleConstant(imm));
+    % end
+    % if inst.properties.include? "dynamic"
+    BuildCastToAnyNumber(instruction);
+    % end
+  operands: |-
+    % inst.inputs.each_with_index do |op, idx|
+    %   if op.imm?
+    if (graph_->IsBytecodeOptimizer()) {
+        inst->SetInput(<%= idx %>, FindOrCreate32BitConstant(instruction->GetImm<<%= inst.get_format %>, 0>()));
+    } else {
+        inst->SetInput(<%= idx %>, <%= inst.get_input_string(idx) %>);
+    }
+    %   else
+    inst->SetInput(<%= idx %>, <%= inst.get_input_string(idx) %>);
+    %   end
+    % end
+    % if inst.has_dst?
+    %   if inst.acc_and_operands.first.acc?
+    UpdateDefinitionAcc(inst);
+    %   else
+    UpdateDefinition(instruction->GetVReg<<%=inst.get_format%>, 0>(), inst);
+    %   end
+    % end
+  return: |-
+    % opcode = inst.opcode.include?('void') ? 'ReturnVoid' : 'Return'
+    auto inst = graph_->CreateInst<%= opcode %>(GetCurrentMethodReturnType(), GetPc(instruction->GetAddress()));
+    <%=template('operands', inst, '')-%>
+    AddInstruction(inst);
+  call: |-
+    % is_range = inst.opcode.include? 'range'
+    % is_virtual = inst.opcode.include? 'virt'
+    % acc_read = inst.acc_read?
+    if (!TryBuildInteropCall(instruction, <%= is_range ? 'true' : 'false' %>, <%= acc_read %>)) {
+      if (graph_->IsAbcKit()) {
+        BuildCallHelper<Opcode::<%= is_virtual ? 'CallVirtual' : 'CallStatic' %>, <%= is_range ? 'true' : 'false' %>, <%= acc_read %>, false>(instruction, this);
+      } else {
+        BuildCallHelper<Opcode::<%= is_virtual ? 'CallVirtual' : 'CallStatic' %>, <%= is_range ? 'true' : 'false' %>, <%= acc_read %>, true>(instruction, this);
+      }
+    }
+  monitor: |-
+    % is_enter = inst.mnemonic.end_with?('enter')
+    BuildMonitor(instruction, GetDefinitionAcc(), <%= is_enter %>);
+  builtin: |-
+    BuildBuiltin(instruction);
+  newobj: |-
+    BuildNewObject(instruction);
+  initobj: |-
+    % is_range = inst.opcode.include? 'range'
+    BuildInitObject(instruction, <%= is_range ? 'true' : 'false' %>);
+  ldobj: |-
+    if (!GetGraph()->IsAbcKit()) {
+      BuildLoadObject< <%= inst.acc_write? %> >(instruction, <%= get_type(inst.dtype) %>);
+    }
+    #ifdef ENABLE_LIBABCKIT
+    else {
+      reinterpret_cast<AbcKitInstBuilder *>(this)->AbcKitBuildLoadObject< <%= inst.acc_write? %> >(instruction, <%= get_type(inst.dtype) %>);
+    }
+    #endif
+  stobj: |-
+    if (!GetGraph()->IsAbcKit()) {
+      BuildStoreObject< <%= inst.acc_read? %> >(instruction, <%= get_type(inst.type(0)) %>);
+    }
+    #ifdef ENABLE_LIBABCKIT
+    else {
+      reinterpret_cast<AbcKitInstBuilder *>(this)->AbcKitBuildStoreObject< <%= inst.acc_read? %> >(instruction, <%= get_type(inst.type(0)) %>);
+    }
+    #endif
+  ldstatic: |-
+    BuildLoadStatic(instruction, <%= get_type(inst.dtype) %>);
+  ststatic: |-
+    BuildStoreStatic(instruction, <%= get_type(inst.type(0)) %>);
+  ldarr: |-
+    BuildLoadArray(instruction, <%= get_type(inst.type(1)) %>);
+  starr: |-
+    BuildStoreArray(instruction, <%= get_type(inst.type(1)) %>);
+  newarr: |-
+    BuildNewArray(instruction);
+  lda.const: |-
+    BuildLoadConstArray(instruction);
+  lenarr: |-
+    BuildLenArray(instruction);
+  checkcast: |-
+    BuildCheckCast(instruction);
+  isinstance: |-
+    BuildIsInstance(instruction);
+  throw: |-
+    BuildThrow(instruction);
+  any: |-
+    % if inst.mnemonic.include? "call"
+    BuildAnyCall< <%= inst.acc_write? %> >(instruction);
+    % end
+  nop: |-
+  unimplemented: |-
+    // TODO(msherstennikov): implement
+  any: |-
+    % name = inst.opcode.split('_')[1]
+    % case name
+    % when "ldbyname"
+    BuildLoadFromAnyByName< <%= inst.acc_write? %> >(instruction, <%= get_type(inst.dtype) %>);
+    % when "stbyname"
+    BuildStoreFromAnyByName< <%= inst.acc_write? %> >(instruction, <%= get_type(inst.type(0)) %>);
+    % when "ldbyidx"
+    BuildLoadFromAnyByIdx(instruction, <%= get_type(inst.dtype) %>);
+    % when "stbyidx"
+    BuildStoreFromAnyByIdx(instruction, <%= get_type(inst.type(0)) %>);
+    % when "ldbyval"
+    BuildLoadFromAnyByVal(instruction, <%= get_type(inst.dtype) %>);
+    % when "stbyval"
+    BuildStoreFromAnyByVal(instruction, <%= get_type(inst.type(0)) %>);
+    % when "isinstance"
+    BuildIsInstanceAny(instruction, <%= get_type(inst.dtype) %>);
+    % else
+    UNREACHABLE();
+    % end

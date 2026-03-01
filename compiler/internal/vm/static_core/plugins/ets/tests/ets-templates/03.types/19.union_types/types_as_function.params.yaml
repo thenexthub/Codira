@@ -1,0 +1,326 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - realType: string
+      type: string | number
+      value1: '"abc"'
+      value2: 'abc'
+
+    - realType: number
+      type: boolean | number
+      value1: 1
+      value2: 1
+
+    - realType: string
+      type: string | boolean
+      value1: '"hello"'
+      value2: "hello"
+
+    - realType: boolean
+      type: number | string | boolean
+      value1: |-
+          true
+      value2: |-
+          true
+
+    - realType: Color
+      type: Color | number
+      value1: Color.Red
+      value2: 0
+      enumerate: |-
+          enum Color {
+            Red,
+            Green,
+            Blue
+          }
+
+    - realType: Color
+      type: Color | string
+      value1: Color.Red
+      value2: 0
+      enumerate: |-
+          enum Color {
+            Red,
+            Green,
+            Blue
+          }
+
+    - realType: boolean
+      type: Color | boolean
+      value1: |-
+          true
+      value2: |-
+          true
+      enumerate: |-
+          enum Color {
+            Red,
+            Green,
+            Blue
+          }
+
+    - realType: Color
+      type: Color | number | string
+      value1: Color.Red
+      value2: 0
+      enumerate: |-
+          enum Color {
+            Red,
+            Green,
+            Blue
+          }
+
+    - realType: boolean[]
+      type: string[] | boolean[] | number
+      value1: |-
+          [true, false]
+      value2: |-
+          true,false
+
+    - realType: boolean
+      type: boolean | number | undefined
+      value1: |-
+          true
+      value2: |-
+          true
+
+    - realType: undefined
+      type: string | boolean | undefined
+      value1: undefined
+      value2: undefined
+
+    - realType: Color
+      type: Color | number | undefined
+      value1: Color.Red
+      value2: 0
+      enumerate: |-
+          enum Color {
+            Red,
+            Green,
+            Blue
+          }
+
+    - realType: number
+      type: number | string | boolean | undefined
+      value1: 1
+      value2: 1
+
+    - realType: Color
+      type: Color | number | undefined
+      value1: Color.Red
+      value2: 0
+      enumerate: |-
+          enum Color {
+            Red,
+            Green,
+            Blue
+          }
+
+    - realType: number
+      type: Date | number
+      value1: 1
+      value2: 1
+
+    - realType: string
+      type: Date | string
+      value1: '"abc"'
+      value2: "abc"
+
+    - realType: boolean
+      type: Date | boolean
+      value1: |-
+          true
+      value2: |-
+          true
+
+    - realType: string
+      type: Date | number | string
+      value1: '"abc"'
+      value2: "abc"
+
+    - realType: Map
+      type: Map<string, number> | number
+      value1: (new Map<string, number>()).set('one', 1)
+      value2: 'one,1'
+
+    - realType: string
+      type: Map<string, string> | string
+      value1: '"1"'
+      value2: "1"
+
+    - realType: boolean
+      type: Map<string, boolean> | boolean
+      value1: |-
+          true
+      value2: |-
+          true
+
+    - realType: number
+      type: Map<string, number | string> | number | string
+      value1: 1
+      value2: 1
+
+    - realType: |-
+          null
+      type: null | number
+      value1: |-
+          null
+      value2: |-
+          null
+
+    - realType: |-
+          null
+      type: null | string
+      value1: |-
+          null
+      value2: |-
+          null
+
+    - realType: Promise
+      type: Promise<string> | string
+      value1: Promise.resolve('Hello')
+      value2: |-
+          [object Object]
+
+    - realType: Error
+      type: Error | number
+      value1: new Error('Error 1')
+      value2: 'Error: Error 1'
+
+    - realType: string
+      type: Error | string
+      value1: '"abc"'
+      value2: "abc"
+
+    - realType: ArrayBuffer
+      type: ArrayBuffer | number
+      value1: new ArrayBuffer(8)
+      value2: |-
+          [object ArrayBuffer]
+
+    - realType: string
+      type: ArrayBuffer | string
+      value1: '"abc"'
+      value2: "abc"
+
+    - realType: DataView
+      type: DataView | number
+      value1: new DataView(new ArrayBuffer(8))
+      value2: |-
+          [object Object]
+
+    - realType: string
+      type: DataView | string
+      value1: '"abc"'
+      value2: "abc"
+
+    - realType: Int8Array
+      type: Int8Array | number
+      value1: new Int8Array([1, 2, 3])
+      value2: '1,2,3'
+
+    - realType: string
+      type: Int8Array | string
+      value1: '"abc"'
+      value2: "abc"
+
+    - realType: Uint8Array
+      type: Uint8Array | number
+      value1: new Uint8Array([1, 2, 3])
+      value2: '1,2,3'
+
+    - realType: string
+      type: Uint8Array | string
+      value1: '"abc"'
+      value2: "abc"
+
+    - realType: Uint8ClampedArray
+      type: Uint8ClampedArray | number
+      value1: new Uint8ClampedArray([1, 2, 3])
+      value2: '1,2,3'
+
+    - realType: string
+      type: Uint8ClampedArray | string
+      value1: '"abc"'
+      value2: "abc"
+
+    - realType: Int16Array
+      type: Int16Array | number
+      value1: new Int16Array([1, 2, 3])
+      value2: '1,2,3'
+
+    - realType: string
+      type: Int16Array | string
+      value1: '"abc"'
+      value2: "abc"
+
+    - realType: Uint16Array
+      type: Uint16Array | number
+      value1: new Uint16Array([1, 2, 3])
+      value2: '1,2,3'
+
+    - realType: string
+      type: Uint16Array | string
+      value1: '"abc"'
+      value2: "abc"
+
+    - realType: Int32Array
+      type: Int32Array | number
+      value1: new Int32Array([1, 2, 3])
+      value2: '1,2,3'
+
+    - realType: Float32Array
+      type: Float32Array | number
+      value1: new Float32Array([1.1, 2.2, 3.3])
+      value2: '1.100000023841858,2.200000047683716,3.299999952316284'
+
+    - realType: string
+      type: Float32Array | string
+      value1: '"abc"'
+      value2: "abc"
+
+    - realType: Float64Array
+      type: Float64Array | string
+      value1: new Float64Array([1.1, 2.2, 3.3])
+      value2: '1.1,2.2,3.3'
+
+    - realType: BigInt64Array
+      type:  BigInt64Array | number
+      value1: new BigInt64Array([1n, 2n, 3n])
+      value2: '1,2,3'
+
+    - realType: BigUint64Array
+      type: BigUint64Array | string
+      value1: new BigUint64Array([1n, 2n, 3n])
+      value2: '1,2,3'
+
+    - realType: Float32Array
+      type: Float32Array | BigInt64Array | string
+      value1: new Float32Array([1.1, 2.2, 3.3])
+      value2: '1.100000023841858,2.200000047683716,3.299999952316284'
+
+    - realType: BigUint64Array
+      type: BigUint64Array | (() => number)
+      value1: new BigUint64Array([1n, 2n, 3n])
+      value2: '1,2,3'
+
+    - realType: Error
+      type: Uint32Array | Error
+      value1: new Uint32Array([1, 2, 3])
+      value2: '1,2,3'
+
+    - realType: Int32Array
+      type: Int32Array | Date
+      value1: new Int32Array([1, 2, 3])
+      value2: '1,2,3'

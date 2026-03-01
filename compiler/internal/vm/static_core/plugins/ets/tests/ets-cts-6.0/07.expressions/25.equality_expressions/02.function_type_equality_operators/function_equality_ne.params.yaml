@@ -1,0 +1,117 @@
+# Copyright (c) 2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not value this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    
+    - decl: |-
+        function foo() {}
+        function bar() {}
+      value: |-
+        foo
+      value2: |-
+        bar
+
+    - decl: |-
+        function foo() {}
+      value: |-
+        foo
+      value2: |-
+        null
+
+    - decl: |-
+        function foo() {}
+      value: |-
+        foo
+      value2: |-
+        undefined
+
+    - decl: |-
+        function foo(p: number): number {return p}
+        function bar(p: number): number {return p}
+      value: |-
+        foo
+      value2: |-
+        bar
+
+    - decl: |-
+        class A {
+          foo() {}
+        }
+        const a = new A()
+        const aa = new A()
+      value: |-
+        a.foo
+      value2: |-
+        aa.foo
+
+    - decl: |-
+        class A {
+          foo() {}
+        }
+        const a = new A()
+      value: |-
+        a.foo
+      value2: |-
+        null
+
+    - decl: |-
+        class A {
+          foo() {}
+        }
+        const a = new A()
+      value: |-
+        a.foo
+      value2: |-
+        undefined
+
+    - decl: |-
+        class A {
+          foo() {}
+          bar() {}
+        }
+        const a = new A()
+      value: |-
+        a.foo
+      value2: |-
+        a.bar
+
+    - decl: |-
+        class A {
+          static foo() {}
+        }
+        class B {
+          static foo() {}
+        }
+      value: |-
+        A.foo
+      value2: |-
+        B.foo
+
+    - decl: |-
+        class A {
+          static foo() {}
+        }
+      value: |-
+        A.foo
+      value2: |-
+        null
+
+    - decl: |-
+        class A {
+          static foo() {}
+        }
+      value: |-
+        A.foo
+      value2: |-
+        undefined

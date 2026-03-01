@@ -1,0 +1,67 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+export type IntAlias = number;
+export declare class Lib2Class {
+    public get val(): number;
+    public set val(value: number);
+    constructor();
+}
+export declare class Lib2Class2 {
+    public get val(): number;
+    public set val(value: number);
+    constructor();
+}
+export declare class EC1 {
+    constructor();
+}
+export declare class B {
+    constructor();
+}
+export declare class C {
+    constructor();
+}
+export declare class D {
+    constructor();
+}
+export declare class E {
+    constructor();
+}
+export declare class F {
+    constructor();
+}
+export declare class G {
+    constructor();
+}
+export declare class H {
+    constructor();
+}
+export declare class O {
+    constructor();
+}
+export declare class P {
+    constructor();
+}
+export type I = string;
+export type J = string;
+export type K = string;
+export type L = string;
+export type M = string;

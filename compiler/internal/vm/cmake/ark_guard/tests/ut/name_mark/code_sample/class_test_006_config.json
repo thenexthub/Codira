@@ -1,0 +1,14 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep @MyAnno1 class class_test_006.Ns1.ClassA {\n    *;\n    }",
+        "-keep class class_test_006.Ns1.ClassB {\n    public field1:i32;\n    }",
+        "-keep class class_test_006.Ns1.ClassC {\n    @MyAnno1 public field1:i32;\n    }"
+      ]
+    }
+  }
+}

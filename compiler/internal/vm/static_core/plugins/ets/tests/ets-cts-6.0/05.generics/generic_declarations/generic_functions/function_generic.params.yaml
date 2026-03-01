@@ -1,0 +1,104 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+--- # Test using generic parameters to implement functions.
+cases:
+  - desc: Tests that when the generic is of type string, the method converts the string to uppercase and returns.
+    decl: |-
+      function processType<T>(input: T): T {
+        if (typeof input === "string") {
+          return (input as string).toUpperCase() as T;
+        }
+          return input;
+      }
+    logic: |-
+      let result = processType<string>("hello");
+      arktest.assertEQ(result, "HELLO");
+
+  - desc: Tests that when the generic is int of string type, supporting + operation.
+    decl: |-
+      function processType<T>(input: T): T {
+        if (typeof input === "string") {
+          return (input + "1") as T;
+        }
+          return input;
+      }
+    logic: |-
+      let result = processType<string>("hello");
+      arktest.assertEQ(result, "hello1");
+
+  - desc: Tests that when the generic is int of number type.
+    decl: |-
+      function processType<T>(input: T): T {
+        return input as T;
+      }
+    logic: |-
+      let result = processType<number>(2);
+      arktest.assertEQ(result, 2);
+
+  - desc: Tests that when the generic is float of number type.
+    decl: |-
+      function processType<T>(input: T): T {
+        return input as T;
+      }
+    logic: |-
+      let result = processType<number>(2.1f);
+      arktest.assertEQ(result, 2.1f);
+
+  - desc: Tests that when the generic is double of number type.
+    decl: |-
+      function processType<T>(input: T): T {
+        return input as T;
+      }
+    logic: |-
+      let result = processType<number>(2.0001);
+      arktest.assertEQ(result, 2.0001);
+
+  - desc: Tests that when the generic is of type float.
+    decl: |-
+      function processType<T>(input: T): T {
+        let output: T = input;
+        return output as T;
+      }
+    logic: |-
+      let result = processType<float>(2.1f);
+      arktest.assertEQ(result, 2.1f);
+
+  - desc: Tests that when the generic is of type double.
+    decl: |-
+      function processType<T>(input: T): T {
+        let output: T = input;
+        return output as T;
+      }
+    logic: |-
+      let result = processType<double>(2.0001);
+      arktest.assertEQ(result, 2.0001);
+
+  - desc: Tests that when the generic is of type Date.
+    decl: |-
+      function processType<T>(input: T): T {
+        return input as T;
+      }
+    logic: |-
+      const date1 = new Date('2023-01-01');
+      let result = processType<Date>(date1);
+      arktest.assertEQ(result.getTime(), date1.getTime());

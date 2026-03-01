@@ -1,0 +1,53 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # Byte operations that would overflow byte but are cast to int
+  - type1: "byte"
+    type2: "byte"
+    val1: "10"
+    val2: "3"
+    expected: "1000"
+
+  - type1: "byte"
+    type2: "byte"
+    val1: "16"
+    val2: "2"
+    expected: "256"
+
+  # Short operations that would overflow short but are cast to int  
+  - type1: "short"
+    type2: "short"
+    val1: "100"
+    val2: "2"
+    expected: "10000"
+
+  - type1: "short"
+    type2: "short"
+    val1: "200"
+    val2: "2"
+    expected: "40000"
+
+  # Int operations that actually overflow
+  - type1: "int"
+    type2: "int"
+    val1: "65536"
+    val2: "2"
+    expected: "2147483647"  # This will vary based on actual overflow behavior
+
+  - type1: "int"
+    type2: "int"
+    val1: "2147483647"
+    val2: "2"
+    expected: "2147483647"  # This will vary based on actual overflow behavior

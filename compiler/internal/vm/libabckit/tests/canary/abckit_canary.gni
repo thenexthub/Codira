@@ -1,0 +1,62 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//arkcompiler/runtime_core/ark_config.gni")
+import("//arkcompiler/runtime_core/libabckit/abckit_config.gni")
+
+template("abckit_standalone_canary") {
+  assert(defined(invoker.input_file), "input_file is required!")
+  assert(defined(invoker.extension), "extension is required!")
+  assert(defined(invoker.configs), "config_file is required!")
+
+  output_file =
+      "$target_out_dir" + "/" + "$target_name" + "." + invoker.extension
+
+  extra_dependencies = []
+  if (defined(invoker.extra_dependencies)) {
+    extra_dependencies += invoker.extra_dependencies
+  }
+
+  action("${target_name}_gen_canary") {
+    script = "$abckit_root/scripts/run_script.sh"
+
+    args = [
+      "--script=" + rebase_path(abckit_root) +
+          "/scripts/generate_standalone_canary.sh",
+      "--ret-code=0",
+      "--script-args=" + rebase_path(invoker.input_file),
+      "--script-args=" + rebase_path("$output_file"),
+    ]
+
+    # rerun action when input file update
+    inputs = [ invoker.input_file ]
+    outputs = [ "$output_file" ]
+    deps = extra_dependencies
+  }
+
+  ohos_executable("${target_name}") {
+    configs = []
+    if (defined(invoker.configs)) {
+      configs += invoker.configs
+    }
+    sources = [ rebase_path("$output_file") ]
+    deps = [ ":${target_name}_gen_canary" ]
+
+    # NOTE: Important! Do not add `include_dirs` to this target!
+    # Compiling this test without `include_dirs` ensures all relative paths are correct
+    # and there are no dependencies from `include` to `src`
+    install_enable = false
+    part_name = "runtime_core"
+    subsystem_name = "arkcompiler"
+  }
+}

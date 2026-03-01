@@ -1,0 +1,58 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  #0
+ - doc: import different files with the same function names. Used all and selective bindings
+   decl: |-
+     import {foo} as A from "./modules/mod1"
+     import * as A from "./modules/mod2"
+   stdout: |-
+     "Syntax error ESY0228: Unexpected token, expected 'from'."
+ #1
+ - doc: import all, same function names from different files
+   decl: |-
+     import * as A from "./modules/mod2"
+     import * as A from "./modules/mod3"
+   stdout: |-
+     "Semantic error ESE0351: Variable 'A' has already been declared."  
+ #2
+ - doc: import default
+   decl: |-
+     import * as A from "./modules/mod_def"
+     import {default as A} from "./modules/mod_def1"
+   stdout: |-
+     "Semantic error ESE0350: Function 'A' is already defined with different type."
+ #3
+ - doc: import default in a different order
+   decl: |-
+     import {default as A} from "./modules/mod_def1"
+     import * as A from "./modules/mod_def"
+   stdout: |-
+     "Semantic error ESE0350: Function 'A' is already defined with different type."
+ #4
+ - doc: ambient import same function
+   decl: |-
+     import foo from "./modules/mod1.d"
+     import foo from "./modules/mod2.d"
+   stdout: |-
+     "Semantic error ESE0358: Cannot find default imported element in the target"
+ #5
+ - doc: ambient import same function with selective binding
+   decl: |-
+     import {foo as A} from "./modules/mod2.d"
+     import {boo as A} from "./modules/mod3.d"
+     A()
+   stdout: |-
+     "Semantic error ESE0130: Function boo is already declared." 

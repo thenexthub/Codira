@@ -1,0 +1,66 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+cases:
+    - decl: |-
+          // overload alias in one
+          class A {
+              overload meth { meth1, meth2 }
+              meth1(p: Object): number {
+                  return 1 // intentionally same return value everywhere
+              }
+              meth2(p: number): number {
+                  return 1
+              }
+          }
+          class B {
+              meth(p: Object): number {
+                  return 1
+              }
+              meth1(p: number): number {
+                  return 1
+              }
+          }
+          let u1: A|B = new A
+      use: |-
+          arktest.assertEQ(u1.meth(), 1)  // CTE: method with overload signature
+      tags: compile-only, negative
+      stdout: |-
+          "Semantic error ESE0124: Expected 1 arguments, got 0."
+
+    - decl: |-
+          // overload alias in both
+          class A {
+              overload meth { meth1, meth2 }
+              meth1(p: Object): number {
+                  return 1 // intentionally same return value everywhere
+              }
+              meth2(p: number): number {
+                  return 1
+              }
+          }
+          class B {
+              overload meth { meth1, meth2 }
+              meth1(p: Object): number {
+                  return 1
+              }
+              meth2(p: number): number {
+                  return 1
+              }
+          }
+          let u1: A|B = new A
+      use: |-
+          arktest.assertEQ(u1.meth(), 1)  // CTE: method with overload signature
+      tags: compile-only, negative
+      stdout: |-
+          "Semantic error ESE0391: Overload declaration cannot be called by union."

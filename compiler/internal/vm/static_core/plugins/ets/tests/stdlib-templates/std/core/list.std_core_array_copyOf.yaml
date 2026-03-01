@@ -1,0 +1,451 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+- {
+    method_name: slice,
+    method_nature: function,
+    result_nature: array,
+    result_type: "FixedArray<boolean>",
+    init_value: "[]",
+    method_signature: { arr: "FixedArray<boolean>", startIndex: int, endIndex: int },
+    method_signature_desc: {first: "boolean_array", second: "boolean_array"},
+    method_throws: "true",
+    method_test_index_data:
+      {
+        test1:
+          {
+            arr: "[true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true]",
+            startIndex: 0,
+            endIndex: 3,
+          },
+        test2:
+          {
+            arr: "[true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true]",
+            startIndex: 13,
+            endIndex: 15,
+          },
+        test3:
+          {
+            arr: "[true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true]",
+            startIndex: 2,
+            endIndex: 5,
+          },
+        test4:
+          {
+            arr: "[true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true]",
+            startIndex: 0,
+            endIndex: arr.length,
+          },
+        test5:
+          {
+            arr: "[true, false, true, false, true, false, true, false, true, false, true, false, true, false]",
+            startIndex: 0,
+            endIndex: arr.length,
+          },
+        test6:
+          {
+            arr: "[]",
+            startIndex: 0,
+            endIndex: arr.length
+          },
+      },
+    method_expected_data:
+      {
+        test1: "[true, true, true]",
+        test2: "[true, true]",
+        test3: "[true, true, true]",
+        test4: "[true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true]",
+        test5: "[true, false, true, false, true, false, true, false, true, false, true, false, true, false]",
+        test6: "[]"
+      },
+  }
+- {
+    method_name: slice,
+    method_nature: function,
+    result_nature: array,
+    result_type: "FixedArray<byte>",
+    init_value: "[]",
+    method_signature:  { arr: "FixedArray<byte>", startIndex: int, endIndex: int },
+    method_signature_desc: {first: "byte_array", second: "byte_array"},
+    method_throws: "true",
+    method_test_index_data:
+      {
+        test1:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 0,
+            endIndex: 3,
+          },
+        test2:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 10,
+            endIndex: 15,
+          },
+        test3:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 2,
+            endIndex: 5,
+          },
+        test4:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 0,
+            endIndex: arr.length,
+          },
+        test5:
+          {
+            arr: "[]",
+            startIndex: 0,
+            endIndex: arr.length
+          },
+      },
+    method_expected_data:
+      {
+        test1: "[0, 1, 2]",
+        test2: "[10, 11, 12, 13, 14]",
+        test3: "[2, 3, 4]",
+        test4: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+        test5: "[]"
+      },
+  }
+- {
+    method_name: slice,
+    method_nature: function,
+    result_nature: array,
+    result_type: "FixedArray<short>",
+    init_value: "[]",
+    method_signature:  { arr: "FixedArray<short>", startIndex: int, endIndex: int },
+    method_signature_desc: {first: "short_array", second: "short_array"},
+    method_throws: "true",
+    method_test_index_data:
+      {
+        test1:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 0,
+            endIndex: 3,
+          },
+        test2:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 10,
+            endIndex: 15,
+          },
+        test3:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 2,
+            endIndex: 5,
+          },
+        test4:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 0,
+            endIndex: arr.length,
+          },
+        test5:
+          {
+            arr: "[]",
+            startIndex: 0,
+            endIndex: arr.length
+          },
+      },
+    method_expected_data:
+     {
+        test1: "[0, 1, 2]",
+        test2: "[10, 11, 12, 13, 14]",
+        test3: "[2, 3, 4]",
+        test4: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+        test5: "[]"
+      },
+  }
+- {
+    method_name: slice,
+    method_nature: function,
+    result_nature: array,
+    result_type: "FixedArray<int>",
+    init_value: "[]",
+    method_signature: { arr: "FixedArray<int>", startIndex: int, endIndex: int },
+    method_signature_desc: {first: "int_array", second: "int_array"},
+    method_throws: "true",
+    method_test_index_data:
+        {
+        test1:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 0,
+            endIndex: 3,
+          },
+        test2:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 10,
+            endIndex: 15,
+          },
+        test3:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 2,
+            endIndex: 5,
+          },
+        test4:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 0,
+            endIndex: arr.length,
+          },
+        test5:
+          {
+            arr: "[]",
+            startIndex: 0,
+            endIndex: arr.length
+          },
+      },
+    method_expected_data:
+       {
+        test1: "[0, 1, 2]",
+        test2: "[10, 11, 12, 13, 14]",
+        test3: "[2, 3, 4]",
+        test4: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+        test5: "[]"
+      },
+  }
+- {
+    method_name: slice,
+    method_nature: function,
+    result_nature: array,
+    result_type: "FixedArray<long>",
+    init_value: "[]",
+    method_signature: { arr: "FixedArray<long>", startIndex: int, endIndex: int },
+    method_signature_desc: {first: "long_array", second: "long_array"},
+    method_throws: "true",
+    method_test_index_data:
+        {
+        test1:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 0,
+            endIndex: 3,
+          },
+        test2:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 10,
+            endIndex: 15,
+          },
+        test3:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 2,
+            endIndex: 5,
+          },
+        test4:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 0,
+            endIndex: arr.length,
+          },
+        test5:
+          {
+            arr: "[]",
+            startIndex: 0,
+            endIndex: arr.length
+          },
+      },
+    method_expected_data:
+       {
+        test1: "[0, 1, 2]",
+        test2: "[10, 11, 12, 13, 14]",
+        test3: "[2, 3, 4]",
+        test4: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+        test5: "[]"
+      },
+  }
+- {
+    method_name: slice,
+    method_nature: function,
+    result_nature: array,
+    result_type: "FixedArray<float>",
+    init_value: "[]",
+    method_signature:{ arr: "FixedArray<float>", startIndex: int, endIndex: int },
+    method_signature_desc: {first: "float_array", second: "float_array"},
+    method_throws: "true",
+    method_test_index_data:
+         {
+        test1:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 0,
+            endIndex: 3,
+          },
+        test2:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 10,
+            endIndex: 15,
+          },
+        test3:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 2,
+            endIndex: 5,
+          },
+        test4:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 0,
+            endIndex: arr.length,
+          },
+        test5:
+          {
+            arr: "[0.1f, 1.1f, 2.2f, 3.3f, 4.4f, 5.5f, 6.6f, 7.77f, 8.88f, 9.99f, 10.10101f, 11.11111f, 12.1212f, 13.1313f, 14.1414f, 15.1515f]",
+            startIndex: 0,
+            endIndex: arr.length,
+          },
+        test6:
+          {
+            arr: "[]",
+            startIndex: 0,
+            endIndex: arr.length
+          },
+      },
+    method_expected_data:
+     {
+        test1: "[0, 1, 2]",
+        test2: "[10, 11, 12, 13, 14]",
+        test3: "[2, 3, 4]",
+        test4: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+        test5: "[0.1f, 1.1f, 2.2f, 3.3f, 4.4f, 5.5f, 6.6f, 7.77f, 8.88f, 9.99f, 10.10101f, 11.11111f, 12.1212f, 13.1313f, 14.1414f, 15.1515f]",
+        test6: "[]"
+      },
+  }
+- {
+    method_name: slice,
+    method_nature: function,
+    result_nature: array,
+    result_type: "FixedArray<double>",
+    init_value: "[]",
+    method_signature: { arr: "FixedArray<double>", startIndex: int, endIndex: int },
+    method_signature_desc: {first: "double_array", second: "double_array"},
+    method_throws: "true",
+    method_test_index_data:
+         {
+        test1:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 0,
+            endIndex: 3,
+          },
+        test2:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 10,
+            endIndex: 15,
+          },
+        test3:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 2,
+            endIndex: 5,
+          },
+        test4:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 0,
+            endIndex: arr.length,
+          },
+        test5:
+          {
+            arr: "[0.1, 1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.77, 8.88, 9.99, 10.10101, 11.11111, 12.1212, 13.1313, 14.1414, 15.1515]",
+            startIndex: 0,
+            endIndex: arr.length,
+          },
+        test6:
+          {
+            arr: "[]",
+            startIndex: 0,
+            endIndex: arr.length
+          },
+      },
+    method_expected_data:
+     {
+        test1: "[0, 1, 2]",
+        test2: "[10, 11, 12, 13, 14]",
+        test3: "[2, 3, 4]",
+        test4: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+        test5: "[0.1, 1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.77, 8.88, 9.99, 10.10101, 11.11111, 12.1212, 13.1313, 14.1414, 15.1515]",
+        test6: "[]"
+      },
+  }
+- {
+    method_name: slice,
+    method_nature: function,
+    result_nature: array,
+    result_type: "FixedArray<char>",
+    init_value: "[]",
+    method_signature:  { arr: "FixedArray<char>", startIndex: int, endIndex: int },
+    method_signature_desc: {first: "char_array", second: "char_array"},
+    method_throws: "true",
+    method_test_index_data:
+         {
+        test1:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 0,
+            endIndex: 3,
+          },
+        test2:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 10,
+            endIndex: 15,
+          },
+        test3:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 2,
+            endIndex: 5,
+          },
+        test4:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            startIndex: 0,
+            endIndex: arr.length,
+          },
+        test5:
+          {
+            arr: "[]",
+            startIndex: 0,
+            endIndex: arr.length
+          },
+      },
+    method_expected_data:
+     {
+        test1: "[0, 1, 2]",
+        test2: "[10, 11, 12, 13, 14]",
+        test3: "[2, 3, 4]",
+        test4: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+        test5: "[]"
+      },
+  }

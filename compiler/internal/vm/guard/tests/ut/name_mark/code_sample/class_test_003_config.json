@@ -1,0 +1,21 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep @MyAnno1 class class_test_003.ClassA {\n    *;\n    }",
+        "-keep class class_test_003.ClassB {\n    public field1:i32;\n    }",
+        "-keep class class_test_003.ClassC {\n    @MyAnno1 public field1:i32;\n    }",
+        "-keep class class_test_003.ClassD {\n    public final field1:i32;\n    }",
+        "-keep class class_test_003.ClassE {\n    @MyAnno1 <fields>;\n    }",
+        "-keep class class_test_003.ClassF {\n    @MyAnno1 *;\n    }",
+        "-keep class class_test_003.ClassG {\n    @MyAnno1 private <fields>;\n    }",
+        "-keep class class_test_003.ClassH {\n    @MyAnno1 private *;\n    }",
+        "-keep class class_test_003.ClassI {\n    static <fields>;\n    }",
+        "-keep class class_test_003.ClassJ {\n    static *;\n    }"
+      ]
+    }
+  }
+}

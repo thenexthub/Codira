@@ -1,0 +1,127 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+interface ICpu {
+    Add(a: i32, b: i32): i32;
+    Sub(a: i32, b: i32): i32;  
+}
+
+function MakeCpu(): ICpu;
+
+function GetCpuSize(r : @record Map<String, ICpu>) : i32;
+
+function GetASize(r : @record Map<i32, Opaque>) : i32;
+
+function GetStringIntSize(r : @record Map<String, i32>) : i32;
+
+function CreateStringString(a : i32) : @record Map<String, String>;
+
+struct Data {
+  a: String;
+  b: i32;
+}
+
+function GetMapfromArray(d : Array<Data>): @record Map<String, i32>;
+
+function GetDatafromMap(m : @record Map<String, Data>, k : String) : Data;
+
+function ForeachMap(r: @record Map<String, String>);
+
+
+function Mapfunc01(m : @record Map<String, bool>): bool;
+function Mapfunc02(m : @record Map<String, i8>): bool;
+function Mapfunc03(m : @record Map<String, i16>): bool;
+function Mapfunc04(m : @record Map<String, i32>): bool;
+function Mapfunc05(m : @record Map<String, i64>): bool;
+function Mapfunc06(m : @record Map<String, f32>): bool;
+function Mapfunc07(m : @record Map<String, f64>): bool;
+function Mapfunc08(m : @record Map<String, String>): bool;
+function Mapfunc09(m : @record Map<String, Array<i8>>): bool;
+function Mapfunc10(m : @record Map<String, Array<i16>>): bool;
+function Mapfunc11(m : @record Map<String, Array<i32>>): bool;
+function Mapfunc12(m : @record Map<String, Array<i64>>): bool;
+function Mapfunc13(m : @record Map<String, Array<@arraybuffer Array<u8>>>): bool;
+function Mapfunc14(m : @record Map<String, Array<bool>>): bool;
+function Mapfunc15(m : @record Map<String, Array<String>>): bool;
+union TypeUnion {
+    a : i32;
+    b : bool;
+    c : String;
+}
+function Mapfunc16(m : @record Map<String, TypeUnion>): bool;
+enum Color: String {
+    RED = "Red",
+    GREEN = "Green",
+    BLUE = "Blue",
+}
+function Mapfunc17(m : @record Map<String, Color>): bool;
+struct Pair {
+    a : String;
+    b : bool;
+}
+function Mapfunc18(m : @record Map<String, Pair>): bool;
+
+interface ICpuZero {
+    Add(a: i32, b: i32): i32;
+    Sub(a: i32, b: i32): i32;
+}
+function MakeICpuZero(): ICpuZero;
+function Mapfunc19(m : @record Map<String, ICpuZero>): bool;
+
+@class
+interface ICpuInfo {
+    Add(a: i32, b: i32): i32;
+    Sub(a: i32, b: i32): i32;
+}
+function MakeICpuInfo(): ICpuInfo;
+function Mapfunc20(m : @record Map<String, ICpuInfo>): bool;
+
+function Mapfunc21(m : @record Map<String, Opaque>): bool;
+function Mapfunc22(m : @record Map<String, @record Map<String, bool>>): bool;
+function Mapfunc23(m : @record Map<String, @record Map<String, i32>>): bool;
+function Mapfunc24(m : @record Map<String, @record Map<String, Array<i32>>>): bool;
+function Mapfunc25(m : @record Map<String, @record Map<String, String>>): bool;
+function Mapfunc26(): @record Map<String, bool>;
+function Mapfunc27(): @record Map<String, i8>;
+function Mapfunc28(): @record Map<String, i16>;
+function Mapfunc29(): @record Map<String, i32>;
+function Mapfunc30(): @record Map<String, i64>;
+function Mapfunc31(): @record Map<String, f32>;
+function Mapfunc32(): @record Map<String, f64>;
+function Mapfunc33(): @record Map<String, String>;
+function Mapfunc34(): @record Map<String, Array<i8>>;
+function Mapfunc35(): @record Map<String, Array<i16>>;
+function Mapfunc36(): @record Map<String, Array<i32>>;
+function Mapfunc37(): @record Map<String, Array<i64>>;
+function Mapfunc38(): @record Map<String, @arraybuffer Array<u8>>;
+function Mapfunc39(): @record Map<String, Array<bool>>;
+function Mapfunc40(): @record Map<String, Array<String>>;
+function Mapfunc41(): @record Map<String, TypeUnion>;
+function Mapfunc42(): @record Map<String, Color>;
+function Mapfunc43(): @record Map<String, Pair>;
+function Mapfunc44(): @record Map<String, ICpuZero>;
+function Mapfunc45(): @record Map<String, ICpuInfo>;
+function Mapfunc46(): @record Map<String, Opaque>;
+function Mapfunc47(): @record Map<String, @record Map<String, bool>>;
+function Mapfunc48(): @record Map<String, @record Map<String, i32>>;
+function Mapfunc49(): @record Map<String, @record Map<String, Array<i32>>>;
+function Mapfunc50(): @record Map<String, @record Map<String, String>>;
+function Mapfunc51(op : Optional< @record Map<String, String>>): @record Map<String, @record Map<String, String>>;

@@ -1,0 +1,251 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # Common fields in superclasses
+    - decl: |-
+          // classes, fields of any type
+          class A {
+              fld: Object|null|undefined
+          }
+          abstract class B {
+              fld: Object|null|undefined = null
+          }
+          class AA extends A {}
+          class BB extends B {}
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+      use: |-
+          arktest.assertTrue(u1.fld === undefined)
+          arktest.assertTrue(u2.fld === null)
+
+    - decl: |-
+          // classes, fields of number type
+          abstract class A {
+              fld: number = 42.0
+          }
+          class B {
+              fld: number
+          }
+          class AA extends A {}
+          class BB extends B {
+              static fld: string = ''
+          }
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+      use: |-
+          arktest.assertEQ(u1.fld, 42.0)
+          arktest.assertEQ(u2.fld, 0e0)
+
+    - decl: |-
+          // classes, fields of bigint type
+          class A {
+              fld: bigint = 42n
+          }
+          class B {}
+          class AA extends A {}
+          class BB extends B {
+              fld: bigint = 33n
+          }
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+      use: |-
+          arktest.assertEQ(u1.fld, 42n)
+          arktest.assertEQ(u2.fld, 33n)
+
+    - decl: |-
+          // classes, fields of Integral type
+          class A {
+              fld: string|Integral = 'A'
+          }
+          class B {
+              fld: string|Integral = 'B'
+          }
+          class AA extends A {
+              fld: Integral = new Int(42)
+          }
+          class BB extends B {
+              fld: Integral = new Short(33 as short)
+          }
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+          let u3: A|B = new A
+          let u4: A|B = new B
+      use: |-
+          arktest.assertEQ(u1.fld, 42)
+          arktest.assertEQ(u2.fld, 33)
+          arktest.assertEQ(u3.fld, 'A')
+          arktest.assertEQ(u4.fld, 'B')
+
+    - decl: |-
+          // classes, fields of Error type
+          abstract class A {
+              fld: Error = new Error('a')
+          }
+          class B extends A {}
+          class AA extends A {}
+          class BB extends B {}
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+      use: |-
+          arktest.assertEQ(u1.fld.message, 'a')
+          arktest.assertEQ(u2.fld.message, 'a')
+
+    - decl: |-
+          // classes, fields of union literal type
+          class A {
+              fld: 'a'|'b'|'c' = 'a'
+          }
+          class B {
+              fld: 'a'|'b'|'c'|'b'|'a' = 'b'
+          }
+          class AA extends A {
+              fld2: 'a'|'b'|'c' = 'c'
+          }
+          class BB extends B {
+              fld2: 'c'|'b'|'a' = 'a'
+          }
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+      use: |-
+          arktest.assertEQ(u1.fld, 'a')
+          arktest.assertEQ(u2.fld, 'b')
+          arktest.assertEQ(u1.fld2, 'c')
+          arktest.assertEQ(u2.fld2, 'a')
+
+    - decl: |-
+          // classes, fields of union type
+          class A {
+              private fld: string|number|undefined = 99.0
+          }
+          class B {
+              private fld: number = 99.0
+          }
+          class AA extends A {
+              fld: string|number|undefined = 42.0
+          }
+          class BB extends B {
+              fld: 'a'|string|number|undefined
+          }
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+      use: |-
+          arktest.assertEQ(u1.fld, 42.0)
+          arktest.assertEQ(u2.fld, undefined)
+
+    - decl: |-
+          // classes, fields of array type
+          class A {
+              fld: string[] = ['a', 'b']
+          }
+          class B {
+              fld: string[] = ['c', 'd', 'e']
+          }
+          class AA extends A {}
+          class BB extends B {}
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+      use: |-
+          arktest.assertEQ(u1.fld[0], 'a')
+          arktest.assertEQ(u2.fld[2], 'e')
+
+    - decl: |-
+          // classes, fields of tuple type
+          class A {}
+          class B {
+              fld: [number, string] = [33.0, 'b']
+          }
+          class AA extends A {
+              fld: [number, string] = [42.0, 'a']
+          }
+          class BB extends B {}
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+      use: |-
+          arktest.assertEQ(u1.fld[0], 42.0)
+          arktest.assertEQ(u2.fld[1], 'b')
+
+    - decl: |-
+          // classes, fields of Record type
+          class A {
+              fld: Record<string, number> = { 'a': 11.0 }
+          }
+          class B {
+              fld: Record<string, number> = { 'b': 22e0 }
+          }
+          class AA extends A {}
+          class BB extends B {}
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+      use: |-
+          arktest.assertEQ(u1.fld['a'], 11.0)
+          arktest.assertEQ(u2.fld['b'], 22.0)
+
+    - decl: |-
+          // classes, fields of function type
+          class A {
+              fld: (p: string) => number = (p: string): number => p.length + 1
+          }
+          class B {}
+          class AA extends A {}
+          class BB extends B {
+              fld: (p: string) => number = (p: string): number => p.length + 10
+          }
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+      use: |-
+          arktest.assertEQ(u1.fld('abc'), 4.0)
+          arktest.assertEQ(u2.fld('abc'), 13.0)
+
+    - decl: |-
+          // classes, fields of type parameters
+          class A<T> {
+              fld: T
+              constructor(p: T) {
+                  this.fld = p
+              }
+          }
+          class B {
+              fld: string = 'b'
+          }
+          class AA extends A<string> {
+              constructor(p: string) {
+                  super(p)
+              }
+          }
+          class BB extends B {}
+          let u1: AA|BB = new AA('a')
+          let u2: BB|AA = new BB
+      use: |-
+          arktest.assertEQ(u1.fld, 'a')
+          arktest.assertEQ(u2.fld, 'b')
+
+    - decl: |-
+          // classes, fields of enum type
+          enum Color { Red, Green, Blue }
+          class A {
+              fld: Color = Color.Green
+          }
+          class B {
+              static fld: Color = Color.Red
+          }
+          class AA extends A {}
+          class BB extends B {
+              fld: Color = Color.Blue
+          }
+          let u1: AA|BB = new AA
+          let u2: AA|BB = new BB
+      use: |-
+          arktest.assertEQ(u1.fld, Color.Green)
+          arktest.assertEQ(u2.fld, Color.Blue)

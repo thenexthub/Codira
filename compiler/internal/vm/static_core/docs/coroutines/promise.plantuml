@@ -1,0 +1,14 @@
+@startuml
+class Promise {
+    + Promise(callback)
+    + then(callback)
+    + catch(callback)
+    + finally(callback)
+    + {static} resolve(Object value)
+    + {static} reject(Object value)
+    + {static} all(Iterable<Promise>)
+    + {static} allSettled(Iterable<Promise>)
+    + {static} any(Iterable<Promise>)
+    + {static} race(Iterable<Promise>)
+}
+@enduml

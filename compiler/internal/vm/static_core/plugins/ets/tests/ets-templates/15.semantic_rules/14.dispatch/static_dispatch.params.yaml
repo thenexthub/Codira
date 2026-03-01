@@ -1,0 +1,163 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of predefined types
+cases:
+  - desc: "Static dispatch, class"
+    decl: |
+      class A {
+        fld: int = 1
+      }
+
+      class B extends A {
+        fld: int = 2
+      }
+    use: |
+        let a: A = new B();
+        arktest.assertEQ(a.fld, 2)
+
+
+  - desc: "Static dispatch, class, namespace"
+    decl: |
+      namespace FirstNamespace {
+        export class A {
+          fld: int = 1
+        }
+        export class B extends A {
+          fld: int = 2
+        }
+      }
+      
+      namespace SecondNamespace {
+        export class C extends FirstNamespace.A {
+          fld: int = 3
+        }
+      }
+    use: |
+      let arr: FirstNamespace.A[] = [new FirstNamespace.A(), new FirstNamespace.B(), new SecondNamespace.C()];
+      let arr3 = arr.map((x: FirstNamespace.A) => x.fld.toString())
+      arktest.assertEQ(arr3.join(" "), "1 2 3")
+
+
+  - desc: "Call union type"
+    decl: |
+      class A {
+        fld: string = "A"
+      }
+      class B {
+        fld: string = "B"
+      }
+      type T = A | B
+      
+      function test(p: T): string {
+        return p.fld
+      }
+    use: |
+      let arr: T[] = [new A(), new B()]
+      let arr2 = arr.map((x: T) => test(x))
+      arktest.assertEQ(arr2.join(" "), "A B")
+      
+
+  - desc: "Static dispatch, interface"
+    decl: |
+      interface I {
+        fld: string
+      }
+      class A implements I {
+        fld: string = "abc";
+      }
+      class B implements I {
+        fld: string = "def";
+      }
+    use: |
+      let a: I = new A()
+      let b: I = new B()
+      arktest.assertEQ(a.fld, "abc")
+      arktest.assertEQ(b.fld, "def")
+      
+
+  - desc: "Static dispatch, interface, namespace"
+    decl: |
+      namespace FirstNamespace {
+        export interface I {
+          fld: string
+        }
+        export class A implements I {
+          fld: string = "abc";
+        }
+      }
+      namespace SecondNamespace {
+        export class B implements FirstNamespace.I {
+          fld: string = "def";
+        }
+      }
+    use: |
+      let a: FirstNamespace.I = new FirstNamespace.A()
+      let b: FirstNamespace.I = new SecondNamespace.B()
+      arktest.assertEQ(a.fld, "abc")
+      arktest.assertEQ(b.fld, "def")
+
+
+  - desc: "Static dispatch, interface extension"
+    decl: |
+      interface I1 {
+        fld1: string
+      }
+      interface I2 extends I1 {
+        fld2: string
+      }
+        
+      class A implements I2 {
+        fld1: string = "a1"
+        fld2: string = "a2"
+      }
+        
+      class B extends A implements I1 {
+        fld1: string = "b1"
+        fld2: string = "b2"
+      }
+    use: |
+      let a: A = new A()
+      let b: A = new B()
+      arktest.assertEQ(a.fld1, "a1")
+      arktest.assertEQ(a.fld2, "a2")
+      arktest.assertEQ(b.fld1, "b1")
+      arktest.assertEQ(b.fld2, "b2")
+
+  - desc: "Static dispatch, several interfaces implementation"
+    decl: |
+      interface I1 {
+        fld: string
+      }
+      interface I2 {
+        fld: string
+      }
+      
+      class A implements I1, I2 {
+          fld: string = "3"
+      }
+
+      class B implements I1, I2 {
+          fld: string = "4"
+      }
+    use: |
+      let a1: I1 = new A()
+      let a2: I2 = new A()
+
+      let b1: I1 = new B()
+      let b2: I2 = new B()
+
+      arktest.assertEQ(a1.fld, "3")
+      arktest.assertEQ(a2.fld, "3")
+      arktest.assertEQ(b1.fld, "4")
+      arktest.assertEQ(b2.fld, "4")

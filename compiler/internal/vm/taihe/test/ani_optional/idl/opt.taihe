@@ -1,0 +1,52 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+function ShowOptionalInt(@optional x: Optional<i32>): void;
+
+function MakeOptionalInt(b: bool): Optional<i32>;
+
+function MakeOptionalArray(b: bool, val: i32, num: i32): Optional<Array<i32>>;
+
+struct ReturnResult {
+    @optional results: Optional<Array<String>>;
+}
+function SendReturnResult(result: ReturnResult): Optional<String>;
+
+struct MyStruct {
+    param1: i32;
+    param2: String;
+}
+
+interface Test {
+    @set("memberStr") SetMemberStr(a: Optional<String>): void;
+    @get("memberStr") GetMemberStr(): Optional<String>;
+    SetIntData(a: String): void;
+
+    ShowOptionalString(a: Optional<String>): Optional<String>;
+    ShowOptionalInt32(a: Optional<i32>): Optional<i32>;
+    ShowOptionalBool(a: Optional<bool>): Optional<bool>;
+    ShowOptionalRecord(a: Optional<@record Map<String, bool>>): Optional<@record Map<String, bool>>;
+    ShowOptionalStruct(a: Optional<MyStruct>): Optional<MyStruct>;
+}
+
+function GetTest(): Test;
+
+function CallCallback(second: bool, cb: (a: String, @optional b: Optional<String>) => void): void;

@@ -1,0 +1,66 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+#ifndef NDEBUG
+
+#include "runtime/interpreter/interpreter_impl.h"
+
+#include "libarkbase/macros.h"
+#include "plugins/ets/runtime/interpreter/interpreter-inl.h"
+#include "runtime/interpreter/runtime_interface.h"
+#include "irtoc_interpreter_utils.h"
+
+namespace ark::interpreter {
+
+// NOLINTBEGIN(readability-identifier-naming)
+// Tests functions for CSA.
+
+% Panda::instructions.each do |i|
+%   namespace = i.namespace == 'core' ? '' : "#{i.namespace}::"
+%   if i.namespace != 'core'
+#ifdef PANDA_WITH_<%= i.namespace.upcase %>
+
+%   end
+%   mnemonic = i.mnemonic.split('.').map { |p| p == '64' ? 'Wide' : p.capitalize }.join
+void CSA_BUILD_ANALYZE_ONLY_DO_NOT_CALL_DYNAMIC_<%= i.handler_name %>(ManagedThread *thread, const uint8_t *pc, Frame *frame, const void *const *dispatch_table) {
+    InstructionHandlerState state(thread, pc, frame, dispatch_table);
+    <%= namespace %>InstructionHandler<RuntimeInterface, true, true, false> handler(&state);
+    handler.template Handle<%= mnemonic %><BytecodeInstruction::Format::<%= i.format.pretty.upcase %>>();
+}
+
+void CSA_BUILD_ANALYZE_ONLY_DO_NOT_CALL_STATIC_<%= i.handler_name %>(ManagedThread *thread, const uint8_t *pc, Frame *frame, const void *const *dispatch_table) {
+    InstructionHandlerState state(thread, pc, frame, dispatch_table);
+    <%= namespace %>InstructionHandler<RuntimeInterface, false, true, false> handler(&state);
+    handler.template Handle<%= mnemonic %><BytecodeInstruction::Format::<%= i.format.pretty.upcase %>>();
+}
+%   if i.namespace != 'core'
+
+#endif // PANDA_WITH_<%= i.namespace.upcase %>
+%   end
+
+% end
+
+// NOLINTEND(readability-identifier-naming)
+
+}  // namespace ark::interpreter
+
+#endif // NDEBUG

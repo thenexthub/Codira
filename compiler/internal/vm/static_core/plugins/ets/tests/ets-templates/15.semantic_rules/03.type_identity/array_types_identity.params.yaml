@@ -1,0 +1,428 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+global_tests_data:
+  check_variants_for_predefined_types:
+    - {check_type: "int",
+      init_lit: "[1, 3, 5]",
+      check_value_0: "1",
+      check_value_1: "3",
+      check_value_2: "5"}
+    - {check_type: "long",
+      init_lit: "[1, 3, 5]",
+      check_value_0: "1",
+      check_value_1: "3",
+      check_value_2: "5"}
+    - {check_type: "byte",
+      init_lit: "[1, 3, 5]",
+      check_value_0: "1",
+      check_value_1: "3",
+      check_value_2: "5"}
+    - {check_type: "short",
+      init_lit: "[1, 3, 5]",
+      check_value_0: "1",
+      check_value_1: "3",
+      check_value_2: "5"}
+    - {check_type: "double",
+      init_lit: "[1.5, 3.7, 5.4]",
+      check_value_0: "1.5",
+      check_value_1: "3.7",
+      check_value_2: "5.4"}
+    - {check_type: "number",
+      init_lit: "[1.5, 3.7, 5.4]",
+      check_value_0: "1.5",
+      check_value_1: "3.7",
+      check_value_2: "5.4"}
+    - {check_type: "float",
+      init_lit: "[1.5f, 3.7f, 5.4f]",
+      check_value_0: "1.5f",
+      check_value_1: "3.7f",
+      check_value_2: "5.4f"}
+    - {check_type: "bigint",
+      init_lit: "[1n, 3n, 5n]",
+      check_value_0: "1n",
+      check_value_1: "3n",
+      check_value_2: "5n"}
+    - {check_type: "string",
+      init_lit: "[\"ab\", \"c\", \"def\"]",
+      check_value_0: "\"ab\"",
+      check_value_1: "\"c\"",
+      check_value_2: "\"def\""}
+    - {check_type: "char",
+      init_lit: "[c'a', c'b', c'c']",
+      check_value_0: "c'a'",
+      check_value_1: "c'b'",
+      check_value_2: "c'c'"}
+    - {check_type: "boolean",
+      init_lit: "[false, true, false]",
+      check_value_0: "false",
+      check_value_1: "true",
+      check_value_2: "false"}
+    - {check_type: "Object",
+      init_lit: "[1, 5n, \"abc\"]",
+      check_value_0: "1",
+      check_value_1: "5n",
+      check_value_2: "\"abc\""}
+    - {check_type: "(Object | undefined)",
+      init_lit: "[undefined, 5n, \"abc\"]",
+      check_value_0: "undefined",
+      check_value_1: "5n",
+      check_value_2: "\"abc\""}
+    - {check_type: "(Object | undefined | null)",
+      init_lit: "[undefined, 5n, null]",
+      check_value_0: "undefined",
+      check_value_1: "5n",
+      check_value_2: "null"}
+    - {check_type: "Any",
+      init_lit: "[undefined, 5n, null]",
+      check_value_0: "undefined",
+      check_value_1: "5n",
+      check_value_2: "null"}
+
+  check_variants_for_custom_types:
+    - {check_type: "C",
+      data_type: "int",
+      init_lit: "[{data: 1}, {data: 3}, {data: 5}]",
+      check_value_0: "1",
+      check_value_1: "3",
+      check_value_2: "5",
+      cv_decl_data: "class C {data: int = 0}"}
+
+cases:
+  - desc: |-
+      >-
+        Checking for Array types T[] and Array<T> are identical
+        on predefined types on assign operations.
+    check_variants: check_variants_for_predefined_types
+    sub_cases_logic:
+      - |-
+        let a: [check_type][] = [init_lit]
+        let b: Array<[check_type]> = a
+        [common_logic]
+      - |-
+        let a: Array<[check_type]> = [init_lit]
+        let b: [check_type][] = a
+        [common_logic]
+    common_logic: |-
+      arktest.assertTrue(a instanceof Array)
+      arktest.assertTrue(b instanceof Array)
+      arktest.assertEQ(b.length, 3)
+      arktest.assertTrue(b[0] instanceof [check_type])
+      arktest.assertEQ(b[0], [check_value_0])
+      arktest.assertTrue(b[1] instanceof [check_type])
+      arktest.assertEQ(b[1], [check_value_1])
+      arktest.assertTrue(b[2] instanceof [check_type])
+      arktest.assertEQ(b[2], [check_value_2])
+      a = b
+      arktest.assertTrue(a instanceof Array)
+      arktest.assertEQ(a.length, 3)
+      arktest.assertTrue(a[0] instanceof [check_type])
+      arktest.assertEQ(a[0], [check_value_0])
+      arktest.assertTrue(a[1] instanceof [check_type])
+      arktest.assertEQ(a[1], [check_value_1])
+      arktest.assertTrue(a[2] instanceof [check_type])
+      arktest.assertEQ(a[2], [check_value_2])
+
+  - desc: |-
+      >-
+        Checking for Array types T[] and Array<T> are identical
+        on custom types on assign operations.
+    check_variants: check_variants_for_custom_types
+    decl_variants:
+      - |-
+        [cv_decl_data]
+    sub_cases_logic:
+      - |-
+        let a: [check_type][] = [init_lit]
+        let b: Array<[check_type]> = a
+        [common_logic]
+      - |-
+        let a: Array<[check_type]> = [init_lit]
+        let b: [check_type][] = a
+        [common_logic]
+    common_logic: |-
+      arktest.assertTrue(a instanceof Array)
+      arktest.assertTrue(b instanceof Array)
+      arktest.assertEQ(b.length, 3)
+      arktest.assertTrue(b[0] instanceof [check_type])
+      arktest.assertTrue(b[0].data instanceof [data_type])
+      arktest.assertEQ(b[0].data, [check_value_0])
+      arktest.assertTrue(b[1] instanceof [check_type])
+      arktest.assertTrue(b[1].data instanceof [data_type])
+      arktest.assertEQ(b[1].data, [check_value_1])
+      arktest.assertTrue(b[2] instanceof [check_type])
+      arktest.assertTrue(b[2].data instanceof [data_type])
+      arktest.assertEQ(b[2].data, [check_value_2])
+      a = b
+      arktest.assertTrue(a instanceof Array)
+      arktest.assertEQ(a.length, 3)
+      arktest.assertTrue(a[0] instanceof [check_type])
+      arktest.assertTrue(a[0].data instanceof [data_type])
+      arktest.assertEQ(a[0].data, [check_value_0])
+      arktest.assertTrue(a[1] instanceof [check_type])
+      arktest.assertTrue(a[1].data instanceof [data_type])
+      arktest.assertEQ(a[1].data, [check_value_1])
+      arktest.assertTrue(a[2] instanceof [check_type])
+      arktest.assertTrue(a[2].data instanceof [data_type])
+      arktest.assertEQ(a[2].data, [check_value_2])
+
+  - desc: |-
+      >-
+        Checking for Array types T[] and Array<T> are identical
+        on predefined types by using cast expression.
+    check_variants: check_variants_for_predefined_types
+    decl_variants:
+      - |-
+        function cast(p: Object) {
+          return p as Array<[check_type]>
+        }
+      - |-
+        function cast(p: Object) {
+          return p as [check_type][]
+        }
+      - |-
+        function cast(p: Object): Array<[check_type]> {
+          return p as Array<[check_type]>
+        }
+      - |-
+        function cast(p: Object): [check_type][] {
+          return p as [check_type][]
+        }
+      - |-
+        function cast(p: Object): [check_type][] {
+          return p as Array<[check_type]>
+        }
+      - |-
+        function cast(p: Object): Array<[check_type]> {
+          return p as [check_type][]
+        }
+    sub_cases_logic:
+      - |-
+        let a: [check_type][] = [init_lit]
+        let b: Array<[check_type]> = cast(a)
+        [common_logic]
+      - |-
+        let a: Array<[check_type]> = [init_lit]
+        let b: [check_type][] = cast(a)
+        [common_logic]
+    common_logic: |-
+      arktest.assertTrue(a instanceof Array)
+      arktest.assertTrue(b instanceof Array)
+      arktest.assertEQ(b.length, 3)
+      arktest.assertTrue(b[0] instanceof [check_type])
+      arktest.assertEQ(b[0], [check_value_0])
+      arktest.assertTrue(b[1] instanceof [check_type])
+      arktest.assertEQ(b[1], [check_value_1])
+      arktest.assertTrue(b[2] instanceof [check_type])
+      arktest.assertEQ(b[2], [check_value_2])
+      a = b
+      arktest.assertTrue(a instanceof Array)
+      arktest.assertEQ(a.length, 3)
+      arktest.assertTrue(a[0] instanceof [check_type])
+      arktest.assertEQ(a[0], [check_value_0])
+      arktest.assertTrue(a[1] instanceof [check_type])
+      arktest.assertEQ(a[1], [check_value_1])
+      arktest.assertTrue(a[2] instanceof [check_type])
+      arktest.assertEQ(a[2], [check_value_2])
+
+  - desc: |-
+      >-
+        Checking for Array types T[] and Array<T> are identical
+        on custom types by using cast expression.
+    check_variants: check_variants_for_custom_types
+    decl_variants:
+      - |-
+        [cv_decl_data]
+        function cast(p: Object) {
+          return p as Array<[check_type]>
+        }
+      - |-
+        [cv_decl_data]
+        function cast(p: Object) {
+          return p as [check_type][]
+        }
+      - |-
+        [cv_decl_data]
+        function cast(p: Object): Array<[check_type]> {
+          return p as Array<[check_type]>
+        }
+      - |-
+        [cv_decl_data]
+        function cast(p: Object): [check_type][] {
+          return p as [check_type][]
+        }
+      - |-
+        [cv_decl_data]
+        function cast(p: Object): [check_type][] {
+          return p as Array<[check_type]>
+        }
+      - |-
+        [cv_decl_data]
+        function cast(p: Object): Array<[check_type]> {
+          return p as [check_type][]
+        }
+    sub_cases_logic:
+      - |-
+        let a: [check_type][] = [init_lit]
+        let b: Array<[check_type]> = cast(a)
+        [common_logic]
+      - |-
+        let a: Array<[check_type]> = [init_lit]
+        let b: [check_type][] = cast(a)
+        [common_logic]
+    common_logic: |-
+      arktest.assertTrue(a instanceof Array)
+      arktest.assertTrue(b instanceof Array)
+      arktest.assertEQ(b.length, 3)
+      arktest.assertTrue(b[0] instanceof [check_type])
+      arktest.assertTrue(b[0].data instanceof [data_type])
+      arktest.assertEQ(b[0].data, [check_value_0])
+      arktest.assertTrue(b[1] instanceof [check_type])
+      arktest.assertTrue(b[1].data instanceof [data_type])
+      arktest.assertEQ(b[1].data, [check_value_1])
+      arktest.assertTrue(b[2] instanceof [check_type])
+      arktest.assertTrue(b[2].data instanceof [data_type])
+      arktest.assertEQ(b[2].data, [check_value_2])
+      a = b
+      arktest.assertTrue(a instanceof Array)
+      arktest.assertEQ(a.length, 3)
+      arktest.assertTrue(a[0] instanceof [check_type])
+      arktest.assertTrue(a[0].data instanceof [data_type])
+      arktest.assertEQ(a[0].data, [check_value_0])
+      arktest.assertTrue(a[1] instanceof [check_type])
+      arktest.assertTrue(a[1].data instanceof [data_type])
+      arktest.assertEQ(a[1].data, [check_value_1])
+      arktest.assertTrue(a[2] instanceof [check_type])
+      arktest.assertTrue(a[2].data instanceof [data_type])
+      arktest.assertEQ(a[2].data, [check_value_2])
+
+  - desc: |-
+      >-
+        Checking for Array types T[] and Array<T> are identical
+        on predefined types on function call.
+    check_variants: check_variants_for_predefined_types
+    decl_variants:
+      - |-
+        function foo(p: Array<[check_type]>): Array<[check_type]> {
+          return p
+        }
+      - |-
+        function foo(p: Array<[check_type]>): [check_type][] {
+          return p
+        }
+      - |-
+        function foo(p: [check_type][]): Array<[check_type]> {
+          return p
+        }
+      - |-
+        function foo(p: [check_type][]): [check_type][] {
+          return p
+        }
+    sub_cases_logic:
+      - |-
+        let a: [check_type][] = [init_lit]
+        let b: Array<[check_type]> = foo(a)
+        [common_logic]
+      - |-
+        let a: Array<[check_type]> = [init_lit]
+        let b: [check_type][] = foo(a)
+        [common_logic]
+    common_logic: |-
+      arktest.assertTrue(a instanceof Array)
+      arktest.assertTrue(b instanceof Array)
+      arktest.assertEQ(b.length, 3)
+      arktest.assertTrue(b[0] instanceof [check_type])
+      arktest.assertEQ(b[0], [check_value_0])
+      arktest.assertTrue(b[1] instanceof [check_type])
+      arktest.assertEQ(b[1], [check_value_1])
+      arktest.assertTrue(b[2] instanceof [check_type])
+      arktest.assertEQ(b[2], [check_value_2])
+      a = b
+      arktest.assertTrue(a instanceof Array)
+      arktest.assertEQ(a.length, 3)
+      arktest.assertTrue(a[0] instanceof [check_type])
+      arktest.assertEQ(a[0], [check_value_0])
+      arktest.assertTrue(a[1] instanceof [check_type])
+      arktest.assertEQ(a[1], [check_value_1])
+      arktest.assertTrue(a[2] instanceof [check_type])
+      arktest.assertEQ(a[2], [check_value_2])
+
+  - desc: |-
+      >-
+        Checking for Array types T[] and Array<T> are identical
+        on custom types on function call.
+    check_variants: check_variants_for_custom_types
+    decl_variants:
+      - |-
+        [cv_decl_data]
+        function foo(p: Array<[check_type]>): Array<[check_type]> {
+          return p
+        }
+      - |-
+        [cv_decl_data]
+        function foo(p: Array<[check_type]>): [check_type][] {
+          return p
+        }
+      - |-
+        [cv_decl_data]
+        function foo(p: [check_type][]): Array<[check_type]> {
+          return p
+        }
+      - |-
+        [cv_decl_data]
+        function foo(p: [check_type][]): [check_type][] {
+          return p
+        }
+    sub_cases_logic:
+      - |-
+        let a: [check_type][] = [init_lit]
+        let b: Array<[check_type]> = foo(a)
+        [common_logic]
+      - |-
+        let a: Array<[check_type]> = [init_lit]
+        let b: [check_type][] = foo(a)
+        [common_logic]
+    common_logic: |-
+      arktest.assertTrue(a instanceof Array)
+      arktest.assertTrue(b instanceof Array)
+      arktest.assertEQ(b.length, 3)
+      arktest.assertTrue(b[0] instanceof [check_type])
+      arktest.assertTrue(b[0].data instanceof [data_type])
+      arktest.assertEQ(b[0].data, [check_value_0])
+      arktest.assertTrue(b[1] instanceof [check_type])
+      arktest.assertTrue(b[1].data instanceof [data_type])
+      arktest.assertEQ(b[1].data, [check_value_1])
+      arktest.assertTrue(b[2] instanceof [check_type])
+      arktest.assertTrue(b[2].data instanceof [data_type])
+      arktest.assertEQ(b[2].data, [check_value_2])
+      a = b
+      arktest.assertTrue(a instanceof Array)
+      arktest.assertEQ(a.length, 3)
+      arktest.assertTrue(a[0] instanceof [check_type])
+      arktest.assertTrue(a[0].data instanceof [data_type])
+      arktest.assertEQ(a[0].data, [check_value_0])
+      arktest.assertTrue(a[1] instanceof [check_type])
+      arktest.assertTrue(a[1].data instanceof [data_type])
+      arktest.assertEQ(a[1].data, [check_value_1])
+      arktest.assertTrue(a[2] instanceof [check_type])
+      arktest.assertTrue(a[2].data instanceof [data_type])
+      arktest.assertEQ(a[2].data, [check_value_2])

@@ -1,0 +1,95 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          let d: int = 0
+          namespace ns {
+            export let i: int
+            export let d: int
+            static {
+              i = 2
+            }
+          }
+          function main() {
+            d = 7
+            arktest.assertEQ(ns.d, 0)
+            arktest.assertEQ(ns.i, 2)
+            arktest.assertEQ(d, 7)
+          }
+
+    - doc: Initialize not exported field
+      decl: |-
+          namespace ns {
+            let i: int
+            export function foo() {
+              return i
+            }
+            static {
+              i = 2
+            }
+          }  
+          function main() {
+            arktest.assertEQ(ns.foo(), 2)
+          }
+
+    - doc: Initialize by calling from another namespace
+      decl: |-
+          namespace ns {
+            export let i: Object
+            export function foo(): Object { return new Object() }
+            static {
+              i = ns2.foo()
+            }
+          }
+          namespace ns2 {
+            export let i: Object
+            export function foo(): Object { return new Object() }
+            static {
+              i = ns.foo()
+            }
+          }
+          function main() {
+            arktest.assertNE(ns.i, null)
+            arktest.assertNE(ns2.i, null)
+          }
+
+    - doc: Let static initializer use variable before it was initialized
+      decl: |-
+          namespace ns {
+            export let i: Object
+            export function foo(): Object { return i }
+            static {
+              ns2.foo()
+              i = new Object()
+            }
+          }
+          namespace ns2 {
+            export let i: Object
+            export function foo(): Object { return i }
+            static {
+              ns.foo()
+              i = new Object()
+            }
+          }
+          function main() {
+            let res: boolean = false
+            try {
+              ns.foo()
+            } catch (e) {
+              arktest.assertTrue(e instanceof NullPointerError|LinkerUnresolvedClassError)
+              res = true
+            }
+            arktest.assertTrue(res)
+          }

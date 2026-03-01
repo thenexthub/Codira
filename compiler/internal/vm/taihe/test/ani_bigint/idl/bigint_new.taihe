@@ -1,0 +1,51 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+function ProcessBigInt(a: @bigint Array<u64>): @bigint Array<u64>;
+
+function PrintBigInt(a: @bigint Array<u64>): void;
+
+function CreateBigInt(a: @bigint Array<u64>): @bigint Array<u64>; 
+
+interface Want {
+    @set SetBigInt(a: @bigint Array<u64>): void;
+    @get GetBigInt(): @bigint Array<u64>;
+}
+function GetWant(): Want;
+
+struct BigInt1 {
+    a: @bigint Array<u64>;
+}
+
+function SetupStructAndPrint(v: BigInt1): void;
+
+function GetBigIntOptional(a: Optional<@bigint Array<u64>>): @bigint Array<u64>; 
+
+function MapBigInt(a: @record Map<String, @bigint Array<u64>>): @record Map<String, @bigint Array<u64>>;
+
+union MyUnion {
+    bigIntValue: @bigint Array<u64>;
+    empty: unit;
+    stringValue: String;
+}
+
+function MakeMyUnion(n: i32): MyUnion;
+function ShowMyUnion(u: MyUnion): void;

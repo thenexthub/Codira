@@ -1,0 +1,26 @@
+From d3def9cb63df274072066c6a14adc6004a9f926f Mon Sep 17 00:00:00 2001
+From: wx1267836 <ermolaeva.varvara@gmail.com>
+Date: Wed, 11 Sep 2024 18:20:24 +0800
+Subject: [PATCH] Fixed standalone gn build
+
+Signed-off-by: varvara <ermolaeva.varvara@gmail.com>
+---
+ BUILD.gn | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/BUILD.gn b/BUILD.gn
+index e4ae434..faaa718 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -49,7 +49,7 @@ ohos_static_library("libZydis") {
+   ]
+
+   configs = [ ":zydis_public_config" ]
+-  if (!ark_standalone_build) {
++  if (!ark_static_standalone_build) {
+     remove_configs = [ "//build/config/compiler:chromium_code" ]
+     configs += [ "//build/config/compiler:no_chromium_code" ]
+   }
+--
+2.37.3-openssl
+

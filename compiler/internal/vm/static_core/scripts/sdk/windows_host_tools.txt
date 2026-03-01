@@ -1,0 +1,7 @@
+bin/arktsconfig.json
+bin/ark_link.exe
+bin/dependency_analyzer.exe
+bin/es2panda.exe
+lib/libes2panda.dll.a
+lib/libes2panda-lib.a
+lib/libes2panda-public.lib

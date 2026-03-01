@@ -1,0 +1,126 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    - decl: |-
+          const index: number = 1.01
+      use: |-
+          let e: [string, boolean] = ["A", true]
+          arktest.assertTrue( e[index] == true ) // only int indices allowed
+
+    - use: |-
+          let e: [string, boolean] = ["A", true]
+          arktest.assertTrue( e[2] == true ) // wrong index
+
+    - use: |-
+          let e: [string, boolean] = ["A", true]
+          arktest.assertTrue( e[-1] == true ) // wrong index
+
+    - decl: |-
+          let index = 40
+          function getIndex(): int {
+              return index + 2;
+          }
+      use: |-
+          let e: [string, boolean] = ["A", true]
+          arktest.assertTrue( e[42 / getIndex()] == true ) // only const indices allowed
+
+    - decl: |-
+          let index: int = 1
+      use: |-
+          let e: [string, boolean] = ["A", true]
+          arktest.assertTrue( e[index] == true ) // only const indices allowed
+
+    - decl: |-
+          const index: int = -1
+      use: |-
+          let e: [string, boolean] = ["A", true]
+          arktest.assertTrue( e[index] == true ) // negative index
+
+    - decl: |-
+          const index: int = 2
+      use: |-
+          let e: [string, boolean] = ["A", true]
+          arktest.assertTrue( e[index] == true ) // out of range index
+
+    - use: |-
+          let e: [] = []  // empty tuple
+          arktest.assertTrue( e[0] instanceof Object ) // out of range index
+
+    - use: |-
+          let e: [] = []  // empty tuple
+          e[0] = null  // out of range index
+
+    - use: |-
+          let e: [number] = ["A"]  // wrong type
+
+    - use: |-
+          let e: [boolean] = ["A"]  // wrong type
+
+    - use: |-
+          let e: [char] = [true]  // wrong type
+
+    - use: |-
+          let v: [1|2|3] = [1]   // wrong type
+
+    - use: |-
+          let e: [Error] = [new Object()]  // wrong type
+
+    - use: |-
+          let v = [1.0, 2.0, 3.0]   // number[] must be inferred from element types
+          let t: [number, number, number] = v  // wrong type
+    - use: |-
+          let v: [number, number] = [1.0, 2.0]
+          let t: Object = v
+          let p: [boolean] = t as [boolean]  // wrong cast
+    - use: |-
+          let v: [string]|null = ():[string]|null => { let x = ["A"]; return x; }(); // when no target type is given, array expression is always inferred as an array
+          arktest.assertTrue( v?.[0] == "A" )
+          v = ():[string]|null => { return null; }();
+          arktest.assertTrue( v?.[0] === undefined )
+
+    - decl: |-
+          type TT = [int|string, string|int]
+          class A {
+              private fld: TT
+              constructor(p: TT) {
+                  this.fld = p
+              }
+              meth(p: TT) {
+                  this.fld[0] += p[0]
+                  this.fld[1] += p[1]
+              }
+              getFld(): TT {
+                  return this.fld
+              }
+          }
+      use: |-
+          let a: A = new A(["0", "0"])
+          a.meth([1, "X"])
+          let res = a.getFld()
+          arktest.assertEQ( res[0], "01" )
+          arktest.assertEQ( res[1], "0X" )
+
+    - use: |-
+          let e: [] = []  // empty tuple
+          arktest.assertTrue(e.length == 0)

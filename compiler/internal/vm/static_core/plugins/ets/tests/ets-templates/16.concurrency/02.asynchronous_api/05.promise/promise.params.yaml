@@ -1,0 +1,172 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          //resolve undefined + then return Promise<Awaited<U|E>> + finally after then step
+          type CHCK = string|undefined
+
+          async function undefinedRetunFunc(passparam: CHCK): Promise<undefined> {
+              return undefined
+          }
+      use: |-
+          const checkPromise: Promise<CHCK> = new Promise<CHCK>(
+              (undefinedRetunFunc, reject: (p: Error) => void): void => undefinedRetunFunc(undefined)
+          ).then(
+             //first undefined chain check
+                (data: CHCK) => {
+                    arktest.assertEQ(data, undefined)
+                    return undefined
+                }
+          ).finally(
+            //check finally execution  
+            () => arktest.assertTrue(true)
+          );
+
+          const checkIfUndefined = await checkPromise
+          //final undefined chain check
+          arktest.assertTrue(typeof checkIfUndefined === "undefined")
+
+    - decl: |-
+          //promise chain with finally check - finally after catch step
+      use: |-
+          const checkPromise: Promise<string> = new Promise<string>(
+              (resolve: (p: string) => void, reject: (p: Error) => void): void => resolve("test")
+          ).then(
+               (data: string) => {return 'test'}
+          ).catch(
+                (p: Error): string => {
+                    if (p instanceof Error) throw new Error((p as Error).message + 'finally')
+                }
+          ).finally(
+                () => arktest.assertTrue(true)
+          );
+        
+          try {
+                await checkPromise
+          } catch (e) {
+              if (e instanceof Error) 
+                  arktest.assertEQ((e as Error).message,'testfinally')
+              else 
+                  arktest.assertTrue(false)
+          }	      
+
+    - decl: |-
+          //classic external resolve-reject function declarations
+          async function resolveFunc(passparam: string): Promise<string> {
+              return passparam
+          }
+
+          async function rejectFunc(passparam: Error) {
+              return passparam
+          }
+      use: |-
+           const checkPromise: Promise<string> = new Promise<string>(
+                (resolveFunc, rejectFunc): void => resolveFunc('test')
+           ).then(
+                resolveFunc
+           );
+        
+           arktest.assertEQ((await checkPromise), 'test')
+
+    - decl: |-
+          const testValue: string = 'COROUTINE_SAFE'
+      use: |-
+          // test Promise safety when passed between coroutines and avoid using in original
+          const sharedPromise: Promise<string> = new Promise<string>(
+              (resolve: (p: string) => void, reject: (p: Error) => void): void => {
+                  if (testValue == 'COROUTINE_SAFE') {
+                      resolve(testValue)
+                  } else {
+                      reject(new Error('COROUTINE_ERROR'))
+                  }
+              }
+          )
+
+          const resultFromOtherCoroutine: string = launch<string, () => string>((): string => {
+              const promiseResult: string = await sharedPromise
+              return promiseResult + '_PROCESSED'
+          }).Await()
+
+          arktest.assertTrue(resultFromOtherCoroutine == 'COROUTINE_SAFE_PROCESSED')          
+
+    - decl: |-
+          const testValue: string = 'BOTH_COROUTINES_SAFE'
+      use: |-
+          // test Promise safety when used in both coroutines, but then called only in one
+          const sharedPromise: Promise<string> = new Promise<string>(
+              (resolve: (p: string) => void, reject: (p: Error) => void): void => {
+                  if (testValue == 'BOTH_COROUTINES_SAFE') {
+                      resolve(testValue)
+                  } else {
+                      reject(new Error('BOTH_COROUTINES_ERROR'))
+                  }
+              }
+          )
+
+          const originalResult: string = await sharedPromise
+          arktest.assertTrue(originalResult == 'BOTH_COROUTINES_SAFE')
+
+          const resultFromOtherCoroutine: string = launch<string, () => string>((): string => {
+              const processedPromise: Promise<string> = sharedPromise.then<string>((value: string): string => {
+                  return value + '_WITH_THEN'
+              })
+              const promiseResult: string = await processedPromise
+              return promiseResult
+          }).Await()
+
+          arktest.assertTrue(resultFromOtherCoroutine == 'BOTH_COROUTINES_SAFE_WITH_THEN')          
+
+    - decl: |-
+          const testValue: string = 'SYNC_COROUTINES_SAFE'
+      use: |-
+          // test Promise safety when then is called in both coroutines with await-based synchronization
+          const sharedPromise: Promise<string> = new Promise<string>(
+              (resolve: (p: string) => void, reject: (p: Error) => void): void => {
+                  if (testValue == 'SYNC_COROUTINES_SAFE') {
+                      resolve(testValue)
+                  } else {
+                      reject(new Error('SYNC_COROUTINES_ERROR'))
+                  }
+              }
+          )
+
+          const originalPromise: Promise<string> = sharedPromise.then<string>((value: string): string => {
+              return value + '_ORIGINAL_THEN'
+          })
+
+          const waitForOriginal: Promise<void> = originalPromise.then(() => {})
+
+          const resultFromOtherCoroutine: string = launch<string, () => string>((): string => {              
+              await waitForOriginal
+                            
+              const otherPromise: Promise<string> = sharedPromise.then<string>((value: string): string => {
+                  return value + '_OTHER_THEN'
+              })
+              
+              const promiseResult: string = await otherPromise
+              return promiseResult
+          }).Await()
+
+          const originalResult: string = await originalPromise
+          
+          arktest.assertTrue(originalResult == 'SYNC_COROUTINES_SAFE_ORIGINAL_THEN')
+          arktest.assertTrue(resultFromOtherCoroutine == 'SYNC_COROUTINES_SAFE_OTHER_THEN')
+
+    - decl: |-
+          //Promise.resolve static method check + one argument constructor
+      use: |-
+          const checkPromise: Promise<string> = Promise.resolve("test")
+
+          arktest.assertEQ((await checkPromise), 'test')

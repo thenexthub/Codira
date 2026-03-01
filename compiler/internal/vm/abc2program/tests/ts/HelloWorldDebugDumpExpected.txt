@@ -1,0 +1,839 @@
+# source binary: arkcompiler/runtime_core/abc2program/tests/HelloWorldDebug.abc
+
+# ====================
+# LITERALS
+
+_ESModuleRecord_1899 { 21 [ i32:4, string:"./a", string:"./b", string:"./d", string:"./e", i32:1, string:"a", string:"a", method_affiliate:0, i32:1, string:"b", method_affiliate:1, i32:1, string:"c", string:"c", i32:1, string:"e", string:"e", method_affiliate:3, i32:1, method_affiliate:2, ]}
+
+_ESScopeNamesRecord_1875 { 8 [ tag_value:5, string:"HelloWorld", tag_value:5, string:"Lit", tag_value:5, string:"NestedLiteralArray", tag_value:5, string:"hoo", ]}
+
+_GLOBAL_1979 { 6 [ tag_value:5, string:"method", tag_value:22, async_generator_method:.#*@3*#method, tag_value:9, method_affiliate:0, ]}
+
+_GLOBAL_1996 { 2 [ tag_value:2, i32:0, ]}
+
+_GLOBAL_2005 { 8 [ tag_value:5, string:"lit", tag_value:6, method:.#~@1>#lit, tag_value:9, method_affiliate:0, tag_value:2, i32:1, ]}
+
+_GLOBAL_2027 { 6 [ tag_value:5, string:"num", tag_value:2, i32:1, tag_value:2, i32:1, ]}
+
+_GLOBAL_2046 { 10 [ tag_value:5, string:"NestedLiteralArray", tag_value:6, method:.#~@2>#NestedLiteralArray, tag_value:9, method_affiliate:0, tag_value:2, i32:1, tag_value:24, literal_array:_GLOBAL_2027, ]}
+
+
+
+# ====================
+# RECORDS
+
+.language ECMAScript
+.record _ESExpectedPropertyCountAnnotation {
+}
+.record.source_file 
+
+.language ECMAScript
+.record _ESModuleRecord {
+	u32 arkcompiler/runtime_core/abc2program/tests/ts/HelloWorld.ts _ESModuleRecord_1889
+}
+.record.source_file 
+
+.language ECMAScript
+.record _ESScopeNamesRecord {
+	u32 arkcompiler/runtime_core/abc2program/tests/ts/HelloWorld.ts _ESScopeNamesRecord_1865
+}
+.record.source_file 
+
+.language ECMAScript
+.record _ESSlotNumberAnnotation {
+}
+.record.source_file 
+
+.language ECMAScript
+.record _GLOBAL {
+}
+.record.source_file 
+
+
+# ====================
+# METHODS
+
+.function_kind FunctionKind::NC_FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 1
+.language ECMAScript
+.function any .#*#add(any a0, any a1, any a2, any a3, any a4) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	mov v3, a3                               # line: 18446744073709551615           # column: 4294967295
+	mov v4, a4                               # line: 18446744073709551615           # column: 4294967295
+	lda v3                                   # line: 75           # column: 44
+	sta v6                                   # line: 75           # column: 48
+	lda v4                                   # line: 75           # column: 48
+	add2 0x0, v6                             # line: 75           # column: 48
+	return                                   # line: 75           # column: 49
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    5        5         0       4funcObj         any
+	    5        5         1     0newTarget         any
+	    5        5         2          0this         any
+	    5        5         3              a         any
+	    5        5         4              b         any
+}
+
+.function_kind FunctionKind::ASYNC_NC_FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 0
+.language ECMAScript
+.function any .#*#asyncArrowFunc(any a0, any a1, any a2) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	asyncfunctionenter                       # line: 18446744073709551615           # column: 4294967295
+	sta v3                                   # line: 18446744073709551615           # column: 4294967295
+	label@5:                                 # line: 0           # column: 0
+	ldundefined                              # line: 18446744073709551615           # column: 4294967295
+	asyncfunctionresolve v3                  # line: 18446744073709551615           # column: 4294967295
+	return                                   # line: 86           # column: 53
+	label@8:                                 # line: 0           # column: 0
+	sta v4                                   # line: 86           # column: 23
+	asyncfunctionreject v3                   # line: 86           # column: 23
+	return                                   # line: 86           # column: 53
+	label@11:                                # line: 0           # column: 0
+.catchall :
+	try_begin_label : label@5
+	try_end_label : label@8
+	catch_begin_label : label@8
+	catch_end_label : label@11
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    3       11         0       4funcObj         any
+	    3       11         1     0newTarget         any
+	    3       11         2          0this         any
+}
+
+.function_kind FunctionKind::ASYNC_GENERATOR_FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 4
+.language ECMAScript
+.function any .#*#asyncGenerateFunc(any a0, any a1, any a2) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	createasyncgeneratorobj v0               # line: 18446744073709551615           # column: 4294967295
+	sta v3                                   # line: 18446744073709551615           # column: 4294967295
+	label@5:                                 # line: 0           # column: 0
+	ldundefined                              # line: 18446744073709551615           # column: 4294967295
+	suspendgenerator v3                      # line: 18446744073709551615           # column: 4294967295
+	lda v3                                   # line: 18446744073709551615           # column: 4294967295
+	resumegenerator                          # line: 18446744073709551615           # column: 4294967295
+	sta v5                                   # line: 18446744073709551615           # column: 4294967295
+	lda v3                                   # line: 18446744073709551615           # column: 4294967295
+	getresumemode                            # line: 18446744073709551615           # column: 4294967295
+	sta v4                                   # line: 18446744073709551615           # column: 4294967295
+	lda.str hello                            # line: 83           # column: 8
+	asyncfunctionawaituncaught v3            # line: 83           # column: 2
+	suspendgenerator v3                      # line: 83           # column: 2
+	lda v3                                   # line: 83           # column: 2
+	resumegenerator                          # line: 83           # column: 2
+	sta v8                                   # line: 83           # column: 2
+	lda v3                                   # line: 83           # column: 2
+	getresumemode                            # line: 83           # column: 2
+	sta v7                                   # line: 83           # column: 2
+	ldai 0x1                                 # line: 83           # column: 2
+	eq 0x0, v7                               # line: 83           # column: 2
+	jeqz label@27                            # line: 83           # column: 2
+	lda v8                                   # line: 83           # column: 2
+	throw                                    # line: 83           # column: 2
+	label@27:                                # line: 0           # column: 0
+	lda v8                                   # line: 83           # column: 2
+	sta v4                                   # line: 83           # column: 2
+	lda v3                                   # line: 83           # column: 2
+	setgeneratorstate 0x2                    # line: 83           # column: 2
+	ldfalse                                  # line: 83           # column: 2
+	sta v7                                   # line: 83           # column: 2
+	asyncgeneratorresolve v3, v4, v7         # line: 83           # column: 2
+	lda v3                                   # line: 83           # column: 2
+	resumegenerator                          # line: 83           # column: 2
+	sta v6                                   # line: 83           # column: 2
+	lda v3                                   # line: 83           # column: 2
+	getresumemode                            # line: 83           # column: 2
+	sta v5                                   # line: 83           # column: 2
+	ldai 0x0                                 # line: 83           # column: 2
+	eq 0x1, v5                               # line: 83           # column: 2
+	jeqz label@65                            # line: 83           # column: 2
+	lda v6                                   # line: 83           # column: 2
+	asyncfunctionawaituncaught v3            # line: 83           # column: 2
+	suspendgenerator v3                      # line: 83           # column: 2
+	lda v3                                   # line: 83           # column: 2
+	resumegenerator                          # line: 83           # column: 2
+	sta v6                                   # line: 83           # column: 2
+	lda v3                                   # line: 83           # column: 2
+	getresumemode                            # line: 83           # column: 2
+	sta v5                                   # line: 83           # column: 2
+	ldai 0x1                                 # line: 83           # column: 2
+	eq 0x2, v5                               # line: 83           # column: 2
+	jeqz label@57                            # line: 83           # column: 2
+	lda v6                                   # line: 83           # column: 2
+	throw                                    # line: 83           # column: 2
+	label@57:                                # line: 0           # column: 0
+	lda v6                                   # line: 83           # column: 2
+	sta v7                                   # line: 83           # column: 2
+	ldtrue                                   # line: 83           # column: 2
+	sta v8                                   # line: 83           # column: 2
+	lda v3                                   # line: 83           # column: 2
+	setgeneratorstate 0x4                    # line: 83           # column: 2
+	asyncgeneratorresolve v3, v7, v8         # line: 83           # column: 2
+	return                                   # line: 84           # column: 1
+	label@65:                                # line: 0           # column: 0
+	ldai 0x1                                 # line: 83           # column: 2
+	eq 0x3, v5                               # line: 83           # column: 2
+	jeqz label@70                            # line: 83           # column: 2
+	lda v6                                   # line: 83           # column: 2
+	throw                                    # line: 83           # column: 2
+	label@70:                                # line: 0           # column: 0
+	lda v6                                   # line: 83           # column: 2
+	ldundefined                              # line: 18446744073709551615           # column: 4294967295
+	sta v4                                   # line: 18446744073709551615           # column: 4294967295
+	ldtrue                                   # line: 18446744073709551615           # column: 4294967295
+	sta v5                                   # line: 18446744073709551615           # column: 4294967295
+	lda v3                                   # line: 18446744073709551615           # column: 4294967295
+	setgeneratorstate 0x4                    # line: 18446744073709551615           # column: 4294967295
+	asyncgeneratorresolve v3, v4, v5         # line: 18446744073709551615           # column: 4294967295
+	return                                   # line: 84           # column: 1
+	label@79:                                # line: 0           # column: 0
+	sta v4                                   # line: 82           # column: 6
+	lda v3                                   # line: 82           # column: 6
+	setgeneratorstate 0x4                    # line: 82           # column: 6
+	lda v4                                   # line: 82           # column: 6
+	asyncgeneratorreject v3                  # line: 82           # column: 6
+	return                                   # line: 84           # column: 1
+	label@85:                                # line: 0           # column: 0
+.catchall :
+	try_begin_label : label@5
+	try_end_label : label@79
+	catch_begin_label : label@79
+	catch_end_label : label@85
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    3       89         0       4funcObj         any
+	    3       89         1     4newTarget         any
+	    3       89         2           this         any
+}
+
+.function_kind FunctionKind::SENDABLE_ASYNC_FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 0
+.language ECMAScript
+.function any .#*#asyncSendableFunction(any a0, any a1, any a2) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	asyncfunctionenter                       # line: 18446744073709551615           # column: 4294967295
+	sta v3                                   # line: 18446744073709551615           # column: 4294967295
+	label@5:                                 # line: 0           # column: 0
+	lda.str use sendable                     # line: 99           # column: 2
+	ldundefined                              # line: 18446744073709551615           # column: 4294967295
+	asyncfunctionresolve v3                  # line: 18446744073709551615           # column: 4294967295
+	return                                   # line: 100           # column: 1
+	label@9:                                 # line: 0           # column: 0
+	sta v4                                   # line: 98           # column: 6
+	asyncfunctionreject v3                   # line: 98           # column: 6
+	return                                   # line: 100           # column: 1
+	label@12:                                # line: 0           # column: 0
+.catchall :
+	try_begin_label : label@5
+	try_end_label : label@9
+	catch_begin_label : label@9
+	catch_end_label : label@12
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    3       12         0       4funcObj         any
+	    3       12         1     4newTarget         any
+	    3       12         2           this         any
+}
+
+.function_kind FunctionKind::FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 24
+.language ECMAScript
+.function any .#*#foo(any a0, any a1, any a2) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	ldundefined                              # line: 40           # column: 2
+	sta v4                                   # line: 40           # column: 2
+	label@5:                                 # line: 0           # column: 0
+	ldai 0xb                                 # line: 41           # column: 11
+	trystglobalbyname 0x0, varA              # line: 41           # column: 4
+	ldai 0x16                                # line: 42           # column: 8
+	trystglobalbyname 0x1, x                 # line: 42           # column: 4
+	label@9:                                 # line: 0           # column: 0
+	ldai 0x1                                 # line: 44           # column: 13
+	trystglobalbyname 0x2, varA              # line: 44           # column: 6
+	label@11:                                # line: 0           # column: 0
+	jmp label@21                             # line: 43           # column: 4
+	label@12:                                # line: 0           # column: 0
+	sta v5                                   # line: 45           # column: 13
+	lda.str inner catch                      # line: 46           # column: 12
+	trystglobalbyname 0x3, msg               # line: 46           # column: 6
+	tryldglobalbyname 0x4, print             # line: 47           # column: 6
+	sta v6                                   # line: 47           # column: 6
+	tryldglobalbyname 0x5, msg               # line: 47           # column: 12
+	sta v7                                   # line: 47           # column: 12
+	lda v6                                   # line: 47           # column: 6
+	callarg1 0x6, v7                         # line: 47           # column: 6
+	label@21:                                # line: 0           # column: 0
+	tryldglobalbyname 0x8, varA              # line: 49           # column: 8
+	sta v5                                   # line: 49           # column: 8
+	lda.str                                  # line: 49           # column: 17
+	stricteq 0x9, v5                         # line: 49           # column: 8
+	jeqz label@28                            # line: 49           # column: 8
+	lda.str null                             # line: 50           # column: 12
+	throw                                    # line: 50           # column: 6
+	label@28:                                # line: 0           # column: 0
+	tryldglobalbyname 0xa, x                 # line: 52           # column: 8
+	sta v5                                   # line: 52           # column: 8
+	ldai 0x64                                # line: 52           # column: 12
+	greater 0xb, v5                          # line: 52           # column: 8
+	jeqz label@36                            # line: 52           # column: 8
+	lda.str max                              # line: 53           # column: 12
+	throw                                    # line: 53           # column: 6
+	jmp label@38                             # line: 53           # column: 6
+	label@36:                                # line: 0           # column: 0
+	lda.str min                              # line: 55           # column: 12
+	throw                                    # line: 55           # column: 6
+	label@38:                                # line: 0           # column: 0
+	jmp label@48                             # line: 40           # column: 2
+	label@39:                                # line: 0           # column: 0
+	sta v5                                   # line: 58           # column: 9
+	lda.str outter catch                     # line: 59           # column: 11
+	trystglobalbyname 0xc, masg              # line: 59           # column: 4
+	tryldglobalbyname 0xd, print             # line: 60           # column: 4
+	sta v6                                   # line: 60           # column: 4
+	tryldglobalbyname 0xe, msg               # line: 60           # column: 10
+	sta v7                                   # line: 60           # column: 10
+	lda v6                                   # line: 60           # column: 4
+	callarg1 0xf, v7                         # line: 60           # column: 4
+	label@48:                                # line: 0           # column: 0
+	ldhole                                   # line: 40           # column: 2
+	sta v5                                   # line: 40           # column: 2
+	jmp label@52                             # line: 40           # column: 2
+	label@51:                                # line: 0           # column: 0
+	sta v5                                   # line: 40           # column: 2
+	label@52:                                # line: 0           # column: 0
+	lda v4                                   # line: 40           # column: 2
+	sta v6                                   # line: 40           # column: 2
+	ldundefined                              # line: 40           # column: 2
+	eq 0x11, v6                              # line: 40           # column: 2
+	jeqz label@66                            # line: 40           # column: 2
+	sta v4                                   # line: 40           # column: 2
+	lda.str error                            # line: 63           # column: 10
+	trystglobalbyname 0x12, msg              # line: 63           # column: 4
+	tryldglobalbyname 0x13, print            # line: 64           # column: 4
+	sta v6                                   # line: 64           # column: 4
+	tryldglobalbyname 0x14, msg              # line: 64           # column: 10
+	sta v7                                   # line: 64           # column: 10
+	lda v6                                   # line: 64           # column: 4
+	callarg1 0x15, v7                        # line: 64           # column: 4
+	label@66:                                # line: 0           # column: 0
+	lda v5                                   # line: 40           # column: 2
+	sta v6                                   # line: 40           # column: 2
+	ldhole                                   # line: 40           # column: 2
+	sta v7                                   # line: 40           # column: 2
+	lda v6                                   # line: 40           # column: 2
+	noteq 0x17, v7                           # line: 40           # column: 2
+	jeqz label@75                            # line: 40           # column: 2
+	lda v6                                   # line: 40           # column: 2
+	throw                                    # line: 40           # column: 2
+	label@75:                                # line: 0           # column: 0
+	ldundefined                              # line: 18446744073709551615           # column: 4294967295
+	returnundefined                          # line: 66           # column: 1
+.catchall :
+	try_begin_label : label@9
+	try_end_label : label@11
+	catch_begin_label : label@12
+	catch_end_label : label@21
+.catchall :
+	try_begin_label : label@5
+	try_end_label : label@38
+	catch_begin_label : label@39
+	catch_end_label : label@48
+.catchall :
+	try_begin_label : label@5
+	try_end_label : label@48
+	catch_begin_label : label@51
+	catch_end_label : label@52
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    3       88         0       4funcObj         any
+	    3       88         1     4newTarget         any
+	    3       88         2           this         any
+	   48       10         5            err         any
+}
+
+.function_kind FunctionKind::GENERATOR_FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 4
+.language ECMAScript
+.function any .#*#generateFunc(any a0, any a1, any a2) {
+	label@0:                                 # line: 0           # column: 0
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	creategeneratorobj v0                    # line: 18446744073709551615           # column: 4294967295
+	sta v3                                   # line: 18446744073709551615           # column: 4294967295
+	ldundefined                              # line: 18446744073709551615           # column: 4294967295
+	suspendgenerator v3                      # line: 18446744073709551615           # column: 4294967295
+	lda v3                                   # line: 18446744073709551615           # column: 4294967295
+	resumegenerator                          # line: 18446744073709551615           # column: 4294967295
+	sta v5                                   # line: 18446744073709551615           # column: 4294967295
+	lda v3                                   # line: 18446744073709551615           # column: 4294967295
+	getresumemode                            # line: 18446744073709551615           # column: 4294967295
+	sta v4                                   # line: 18446744073709551615           # column: 4294967295
+	ldai 0x0                                 # line: 18446744073709551615           # column: 4294967295
+	eq 0x0, v4                               # line: 18446744073709551615           # column: 4294967295
+	jeqz label@18                            # line: 18446744073709551615           # column: 4294967295
+	lda v5                                   # line: 18446744073709551615           # column: 4294967295
+	return                                   # line: 18446744073709551615           # column: 4294967295
+	label@18:                                # line: 0           # column: 0
+	ldai 0x1                                 # line: 18446744073709551615           # column: 4294967295
+	eq 0x1, v4                               # line: 18446744073709551615           # column: 4294967295
+	jeqz label@23                            # line: 18446744073709551615           # column: 4294967295
+	lda v5                                   # line: 18446744073709551615           # column: 4294967295
+	throw                                    # line: 18446744073709551615           # column: 4294967295
+	label@23:                                # line: 0           # column: 0
+	lda v5                                   # line: 18446744073709551615           # column: 4294967295
+	lda.str hello                            # line: 79           # column: 8
+	sta v6                                   # line: 79           # column: 2
+	ldfalse                                  # line: 79           # column: 2
+	sta v7                                   # line: 79           # column: 2
+	createiterresultobj v6, v7               # line: 79           # column: 2
+	suspendgenerator v3                      # line: 79           # column: 2
+	lda v3                                   # line: 79           # column: 2
+	resumegenerator                          # line: 79           # column: 2
+	sta v9                                   # line: 79           # column: 2
+	lda v3                                   # line: 79           # column: 2
+	getresumemode                            # line: 79           # column: 2
+	sta v8                                   # line: 79           # column: 2
+	ldai 0x0                                 # line: 79           # column: 2
+	eq 0x2, v8                               # line: 79           # column: 2
+	jeqz label@41                            # line: 79           # column: 2
+	lda v9                                   # line: 79           # column: 2
+	return                                   # line: 80           # column: 1
+	label@41:                                # line: 0           # column: 0
+	ldai 0x1                                 # line: 79           # column: 2
+	eq 0x3, v8                               # line: 79           # column: 2
+	jeqz label@46                            # line: 79           # column: 2
+	lda v9                                   # line: 79           # column: 2
+	throw                                    # line: 79           # column: 2
+	label@46:                                # line: 0           # column: 0
+	lda v9                                   # line: 79           # column: 2
+	ldundefined                              # line: 18446744073709551615           # column: 4294967295
+	return                                   # line: 80           # column: 1
+	label@49:                                # line: 0           # column: 0
+	throw                                    # line: 78           # column: 0
+	label@50:                                # line: 0           # column: 0
+.catchall :
+	try_begin_label : label@0
+	try_end_label : label@49
+	catch_begin_label : label@49
+	catch_end_label : label@50
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    4       53         0       4funcObj         any
+	    4       53         1     4newTarget         any
+	    4       53         2           this         any
+}
+
+.function_kind FunctionKind::FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 0
+.language ECMAScript
+.function any .#*#goo(any a0, any a1, any a2) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	ldundefined                              # line: 18446744073709551615           # column: 4294967295
+	returnundefined                          # line: 68           # column: 24
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    3        2         0       4funcObj         any
+	    3        2         1     4newTarget         any
+	    3        2         2           this         any
+}
+
+.function_kind FunctionKind::FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 2
+.language ECMAScript
+.function any .#*#hoo(any a0, any a1, any a2) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	fldai 1.230000e+00                       # line: 71           # column: 9
+	trystglobalbyname 0x0, varA              # line: 71           # column: 2
+	createobjectwithbuffer 0x1, _GLOBAL_1979 # line: 72           # column: 12
+	sta v5                                   # line: 72           # column: 12
+	lda v5                                   # line: 72           # column: 12
+	sta v3                                   # line: 72           # column: 6
+	ldundefined                              # line: 18446744073709551615           # column: 4294967295
+	returnundefined                          # line: 73           # column: 1
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    3        8         0       4funcObj         any
+	    3        8         1     4newTarget         any
+	    3        8         2           this         any
+	    3        8         3            obj         any
+}
+
+.function_kind FunctionKind::SENDABLE_FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 0
+.language ECMAScript
+.function any .#*#sendableFunction(any a0, any a1, any a2) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	lda.str use sendable                     # line: 95           # column: 2
+	ldundefined                              # line: 18446744073709551615           # column: 4294967295
+	returnundefined                          # line: 96           # column: 1
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    3        3         0       4funcObj         any
+	    3        3         1     4newTarget         any
+	    3        3         2           this         any
+}
+
+.function_kind FunctionKind::ASYNC_FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 0
+.language ECMAScript
+.function any .#*@3*#method(any a0, any a1, any a2) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	createasyncgeneratorobj v0               # line: 18446744073709551615           # column: 4294967295
+	sta v3                                   # line: 18446744073709551615           # column: 4294967295
+	label@5:                                 # line: 0           # column: 0
+	ldundefined                              # line: 18446744073709551615           # column: 4294967295
+	suspendgenerator v3                      # line: 18446744073709551615           # column: 4294967295
+	lda v3                                   # line: 18446744073709551615           # column: 4294967295
+	resumegenerator                          # line: 18446744073709551615           # column: 4294967295
+	sta v5                                   # line: 18446744073709551615           # column: 4294967295
+	lda v3                                   # line: 18446744073709551615           # column: 4294967295
+	getresumemode                            # line: 18446744073709551615           # column: 4294967295
+	sta v4                                   # line: 18446744073709551615           # column: 4294967295
+	ldundefined                              # line: 18446744073709551615           # column: 4294967295
+	sta v4                                   # line: 18446744073709551615           # column: 4294967295
+	ldtrue                                   # line: 18446744073709551615           # column: 4294967295
+	sta v5                                   # line: 18446744073709551615           # column: 4294967295
+	lda v3                                   # line: 18446744073709551615           # column: 4294967295
+	setgeneratorstate 0x4                    # line: 18446744073709551615           # column: 4294967295
+	asyncgeneratorresolve v3, v4, v5         # line: 18446744073709551615           # column: 4294967295
+	return                                   # line: 72           # column: 72
+	label@21:                                # line: 0           # column: 0
+	sta v4                                   # line: 72           # column: 28
+	lda v3                                   # line: 72           # column: 28
+	setgeneratorstate 0x4                    # line: 72           # column: 28
+	lda v4                                   # line: 72           # column: 28
+	asyncgeneratorreject v3                  # line: 72           # column: 28
+	return                                   # line: 72           # column: 72
+	label@27:                                # line: 0           # column: 0
+.catchall :
+	try_begin_label : label@5
+	try_end_label : label@21
+	catch_begin_label : label@21
+	catch_end_label : label@27
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    3       27         0       4funcObj         any
+	    3       27         1     4newTarget         any
+	    3       27         2           this         any
+}
+
+.function_kind FunctionKind::FUNCTION
+ _ESExpectedPropertyCountAnnotation
+ ExpectedPropertyCount 1
+ _ESSlotNumberAnnotation
+ SlotNumber 2
+.language ECMAScript
+.function any .#~@0=#HelloWorld(any a0, any a1, any a2) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	lda v2                                   # line: 22           # column: 2
+	sta v4                                   # line: 22           # column: 2
+	lda.str HelloWorld                       # line: 22           # column: 8
+	stobjbyname 0x0, str, v4                 # line: 22           # column: 2
+	lda v2                                   # line: 18446744073709551615           # column: 4294967295
+	return                                   # line: 23           # column: 1
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    3        6         0       4funcObj         any
+	    3        6         1     4newTarget         any
+	    3        6         2           this         any
+}
+
+.function_kind FunctionKind::FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 0
+.language ECMAScript
+.function any .#~@1=#Lit(any a0, any a1, any a2) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	lda v2                                   # line: 18446744073709551615           # column: 4294967295
+	return                                   # line: 25           # column: 0
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    3        2         0       4funcObj         any
+	    3        2         1     4newTarget         any
+	    3        2         2           this         any
+}
+
+.function_kind FunctionKind::NONE
+ _ESSlotNumberAnnotation
+ SlotNumber 2
+.language ECMAScript
+.function any .#~@1>#lit(any a0, any a1, any a2) {
+	label@0:                                 # line: 0           # column: 0
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	creategeneratorobj v0                    # line: 18446744073709551615           # column: 4294967295
+	sta v3                                   # line: 18446744073709551615           # column: 4294967295
+	ldundefined                              # line: 18446744073709551615           # column: 4294967295
+	suspendgenerator v3                      # line: 18446744073709551615           # column: 4294967295
+	lda v3                                   # line: 18446744073709551615           # column: 4294967295
+	resumegenerator                          # line: 18446744073709551615           # column: 4294967295
+	sta v5                                   # line: 18446744073709551615           # column: 4294967295
+	lda v3                                   # line: 18446744073709551615           # column: 4294967295
+	getresumemode                            # line: 18446744073709551615           # column: 4294967295
+	sta v4                                   # line: 18446744073709551615           # column: 4294967295
+	ldai 0x0                                 # line: 18446744073709551615           # column: 4294967295
+	eq 0x0, v4                               # line: 18446744073709551615           # column: 4294967295
+	jeqz label@18                            # line: 18446744073709551615           # column: 4294967295
+	lda v5                                   # line: 18446744073709551615           # column: 4294967295
+	return                                   # line: 18446744073709551615           # column: 4294967295
+	label@18:                                # line: 0           # column: 0
+	ldai 0x1                                 # line: 18446744073709551615           # column: 4294967295
+	eq 0x1, v4                               # line: 18446744073709551615           # column: 4294967295
+	jeqz label@23                            # line: 18446744073709551615           # column: 4294967295
+	lda v5                                   # line: 18446744073709551615           # column: 4294967295
+	throw                                    # line: 18446744073709551615           # column: 4294967295
+	label@23:                                # line: 0           # column: 0
+	lda v5                                   # line: 18446744073709551615           # column: 4294967295
+	ldundefined                              # line: 18446744073709551615           # column: 4294967295
+	return                                   # line: 26           # column: 45
+	label@26:                                # line: 0           # column: 0
+	throw                                    # line: 26           # column: 6
+	label@27:                                # line: 0           # column: 0
+.catchall :
+	try_begin_label : label@0
+	try_end_label : label@26
+	catch_begin_label : label@26
+	catch_end_label : label@27
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    4       28         0       4funcObj         any
+	    4       28         1     4newTarget         any
+	    4       28         2           this         any
+}
+
+.function_kind FunctionKind::NONE
+ _ESExpectedPropertyCountAnnotation
+ ExpectedPropertyCount 1
+ _ESSlotNumberAnnotation
+ SlotNumber 2
+.language ECMAScript
+.function any .#~@2=#NestedLiteralArray(any a0, any a1, any a2) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	lda.str use sendable                     # line: 33           # column: 4
+	lda v2                                   # line: 30           # column: 2
+	sta v4                                   # line: 30           # column: 2
+	ldai 0x1                                 # line: 30           # column: 16
+	stobjbyname 0x0, num, v4                 # line: 30           # column: 2
+	lda v2                                   # line: 18446744073709551615           # column: 4294967295
+	return                                   # line: 34           # column: 3
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    3        7         0       4funcObj         any
+	    3        7         1     4newTarget         any
+	    3        7         2           this         any
+}
+
+.function_kind FunctionKind::NONE
+ _ESSlotNumberAnnotation
+ SlotNumber 0
+.language ECMAScript
+.function any .#~@2>#NestedLiteralArray(any a0, any a1, any a2) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	ldundefined                              # line: 18446744073709551615           # column: 4294967295
+	returnundefined                          # line: 31           # column: 32
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    3        2         0       4funcObj         any
+	    3        2         1     4newTarget         any
+	    3        2         2           this         any
+}
+
+.function_kind FunctionKind::FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 30
+.language ECMAScript
+.function any .func_main_0(any a0, any a1, any a2) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 4294967295
+	mov v1, a1                               # line: 18446744073709551615           # column: 4294967295
+	mov v2, a2                               # line: 18446744073709551615           # column: 4294967295
+	definefunc 0x0, .#*#asyncGenerateFunc, 0x0 # line: 18446744073709551615           # column: 4294967295
+	sta v8                                   # line: 18446744073709551615           # column: 4294967295
+	definefunc 0x1, .#*#asyncSendableFunction, 0x0 # line: 18446744073709551615           # column: 4294967295
+	sta v9                                   # line: 18446744073709551615           # column: 4294967295
+	definefunc 0x2, .#*#foo, 0x0             # line: 18446744073709551615           # column: 4294967295
+	sta v11                                  # line: 18446744073709551615           # column: 4294967295
+	definefunc 0x3, .#*#generateFunc, 0x0    # line: 18446744073709551615           # column: 4294967295
+	sta v12                                  # line: 18446744073709551615           # column: 4294967295
+	definefunc 0x4, .#*#goo, 0x0             # line: 18446744073709551615           # column: 4294967295
+	sta v13                                  # line: 18446744073709551615           # column: 4294967295
+	definefunc 0x5, .#*#hoo, 0x0             # line: 18446744073709551615           # column: 4294967295
+	sta v14                                  # line: 18446744073709551615           # column: 4294967295
+	definefunc 0x6, .#*#sendableFunction, 0x0 # line: 18446744073709551615           # column: 4294967295
+	sta v15                                  # line: 18446744073709551615           # column: 4294967295
+	getmodulenamespace 0x1                   # line: 18446744073709551615           # column: 4294967295
+	sta v10                                  # line: 18446744073709551615           # column: 4294967295
+	ldundefined                              # line: 17           # column: 11
+	stmodulevar 0x0                          # line: 17           # column: 11
+	ldhole                                   # line: 21           # column: 17
+	sta v19                                  # line: 21           # column: 17
+	defineclasswithbuffer 0x7, .#~@0=#HelloWorld, _GLOBAL_1996, 0x0, v19 # line: 21           # column: 17
+	sta v17                                  # line: 21           # column: 17
+	sta v18                                  # line: 21           # column: 6
+	lda v17                                  # line: 21           # column: 17
+	ldobjbyname 0x8, prototype               # line: 21           # column: 17
+	sta v20                                  # line: 21           # column: 17
+	lda v17                                  # line: 21           # column: 17
+	sta v3                                   # line: 21           # column: 6
+	ldhole                                   # line: 25           # column: 10
+	sta v19                                  # line: 25           # column: 10
+	defineclasswithbuffer 0xa, .#~@1=#Lit, _GLOBAL_2005, 0x0, v19 # line: 25           # column: 10
+	sta v17                                  # line: 25           # column: 10
+	sta v18                                  # line: 25           # column: 6
+	lda v17                                  # line: 25           # column: 10
+	ldobjbyname 0xb, prototype               # line: 25           # column: 10
+	sta v20                                  # line: 25           # column: 10
+	lda v17                                  # line: 25           # column: 10
+	sta v4                                   # line: 25           # column: 6
+	ldhole                                   # line: 29           # column: 25
+	sta v19                                  # line: 29           # column: 25
+	callruntime.definesendableclass 0xd, .#~@2=#NestedLiteralArray, _GLOBAL_2046, 0x0, v19 # line: 29           # column: 25
+	sta v17                                  # line: 29           # column: 25
+	sta v18                                  # line: 29           # column: 6
+	sta v5                                   # line: 29           # column: 6
+	lda.str                                  # line: 37           # column: 14
+	trystglobalbyname 0xe, string            # line: 37           # column: 5
+	definefunc 0xf, .#*#add, 0x2             # line: 75           # column: 10
+	sta v6                                   # line: 75           # column: 4
+	lda v6                                   # line: 76           # column: 0
+	sta v17                                  # line: 76           # column: 0
+	ldai 0x1                                 # line: 76           # column: 4
+	sta v18                                  # line: 76           # column: 4
+	ldai 0x2                                 # line: 76           # column: 7
+	sta v19                                  # line: 76           # column: 7
+	lda v17                                  # line: 76           # column: 0
+	callargs2 0x10, v18, v19                 # line: 76           # column: 0
+	definefunc 0x12, .#*#asyncArrowFunc, 0x0 # line: 86           # column: 23
+	sta v7                                   # line: 86           # column: 6
+	lda v11                                  # line: 88           # column: 0
+	sta v17                                  # line: 88           # column: 0
+	lda v17                                  # line: 88           # column: 0
+	callarg0 0x13                            # line: 88           # column: 0
+	tryldglobalbyname 0x15, print            # line: 90           # column: 0
+	sta v17                                  # line: 90           # column: 0
+	lda v13                                  # line: 90           # column: 6
+	sta v19                                  # line: 90           # column: 6
+	lda v19                                  # line: 90           # column: 10
+	ldobjbyname 0x16, toString               # line: 90           # column: 10
+	sta v18                                  # line: 90           # column: 10
+	lda v18                                  # line: 90           # column: 10
+	callthis0 0x18, v19                      # line: 90           # column: 10
+	sta v18                                  # line: 90           # column: 6
+	lda v17                                  # line: 90           # column: 0
+	callarg1 0x1a, v18                       # line: 90           # column: 0
+	lda v14                                  # line: 92           # column: 0
+	sta v17                                  # line: 92           # column: 0
+	lda v17                                  # line: 92           # column: 0
+	callarg0 0x1c                            # line: 92           # column: 0
+	ldundefined                              # line: 18446744073709551615           # column: 4294967295
+	returnundefined                          # line: 18446744073709551615           # column: 4294967295
+
+# LOCAL_VARIABLE_TABLE:
+#	 Start   Length  Register           Name   Signature
+	    3       80         0       4funcObj         any
+	    3       80         1     4newTarget         any
+	    3       80         2           this         any
+	    3       80         3     HelloWorld         any
+	    3       80         4            Lit         any
+	    3       80         5  NestedLiteralArray         any
+	    3       80         6            add         any
+	    3       80         7  asyncArrowFunc         any
+	    3       80         8  asyncGenerateFunc         any
+	    3       80         9  asyncSendableFunction         any
+	    3       80        10              b         any
+	    3       80        11            foo         any
+	    3       80        12   generateFunc         any
+	    3       80        13            goo         any
+	    3       80        14            hoo         any
+	    3       80        15  sendableFunction         any
+	   41        5        18  NestedLiteralArray         any
+}
+
+# ====================
+# STRING
+
+.#*#add
+.#*#asyncArrowFunc
+.#*#asyncGenerateFunc
+.#*#asyncSendableFunction
+.#*#foo
+.#*#generateFunc
+.#*#goo
+.#*#hoo
+.#*#sendableFunction
+.#~@0=#HelloWorld
+.#~@1=#Lit
+.#~@2=#NestedLiteralArray
+HelloWorld
+error
+hello
+inner catch
+masg
+max
+min
+msg
+null
+num
+outter catch
+print
+prototype
+str
+string
+toString
+use sendable
+varA
+x

@@ -1,0 +1,624 @@
+# Copyright (c) 2024-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+# arrays
+    - use: |-
+          // empty arrays
+          let a1: Object[] = [], a2: Error[] = []
+          arktest.assertEQ([...a1, ...a2, new Object(), ...a1].length, 1)
+
+    - use: |-
+          // spread of char array
+          let a: char[] = [c'b', c'c']
+          let r = [c'a', ...a, c'd']
+          arktest.assertEQ(r.length, 4)
+          arktest.assertEQ(new String(r), "a,b,c,d")
+
+    - use: |-
+          // spread of byte array
+          let a = [2 as byte, 3 as byte]
+          let r = [1 as byte, ...a, 4 as byte]
+          arktest.assertEQ(r.length, 4)
+          arktest.assertEQ(r[0], 1)
+          arktest.assertEQ(r[1], 2)
+          arktest.assertEQ(r[2], 3)
+          arktest.assertEQ(r[3], 4)
+
+    - use: |-
+          // spread of short array
+          let a = [2 as short, 3 as short]
+          let r = [1 as short, ...a, 4 as short]
+          arktest.assertEQ(r.length, 4)
+          arktest.assertEQ(r[0], 1)
+          arktest.assertEQ(r[1], 2)
+          arktest.assertEQ(r[2], 3)
+          arktest.assertEQ(r[3], 4)
+
+    - use: |-
+          // spread of int array
+          let a = [2, 3]
+          let r = [1, ...a, 4]
+          arktest.assertEQ(r.length, 4)
+          arktest.assertEQ(r[0], 1)
+          arktest.assertEQ(r[1], 2)
+          arktest.assertEQ(r[2], 3)
+          arktest.assertEQ(r[3], 4)
+
+    - use: |-
+          // spread of long array
+          let a: long[] = [2 as long, 3 as long]
+          let r = [1 as long, ...a, 4 as long]
+          arktest.assertEQ(r.length, 4)
+          arktest.assertEQ(r[0], 1)
+          arktest.assertEQ(r[1], 2)
+          arktest.assertEQ(r[2], 3)
+          arktest.assertEQ(r[3], 4)
+
+    - use: |-
+          // spread of float array
+          let a: float[] = [2.0f, 3.0f]
+          let r = [1.0f, ...a, 4.0f]
+          arktest.assertEQ(r.length, 4)
+          arktest.assertEQ(r[0], 1.f)
+          arktest.assertEQ(r[1], 2.f)
+          arktest.assertEQ(r[2], 3.f)
+          arktest.assertEQ(r[3], 4.f)
+
+    - use: |-
+          // spread of double array
+          let a = [2.0, 3.0]
+          let r = [1.0, ...a, 4.0]
+          arktest.assertEQ(r.length, 4)
+          arktest.assertEQ(r[0], 1.)
+          arktest.assertEQ(r[1], 2.)
+          arktest.assertEQ(r[2], 3.)
+          arktest.assertEQ(r[3], 4.)
+
+    - decl: |-
+          type F = (p: number) => number
+      use: |-
+          // spread of function array
+          let a: F[] = [(p: number) => p * 2, (p: number) => p * 3]
+          let b: F[] = [(p: number) => p * 4, (p: number) => p * 5]
+          let res = 1.0
+          for (let el of [...a, ...b]) res += el(res)
+          arktest.assertEQ(res, 360.0)
+
+    - decl: |-
+          enum Color { Red, Green, Blue }
+      use: |-
+          // spread of enums
+          let a: Color[] = [Color.Red, Color.Green]
+          let b: Color[] = [Color.Blue]
+          let r = [...a, ...b]
+          arktest.assertEQ(r.length, 3)
+          arktest.assertEQ(r[0], Color.Red)
+          arktest.assertEQ(r[1], Color.Green)
+          arktest.assertEQ(r[2], Color.Blue)
+
+    - decl: |-
+          const enum Color { Red, Green, Blue }
+      use: |-
+          // spread of enums
+          let a: Color[] = [Color.Red, Color.Green]
+          let b: Color[] = [Color.Blue]
+          let r = [...a, ...b]
+          arktest.assertEQ(r.length, 3)
+          arktest.assertEQ(r[0], 0)
+          arktest.assertEQ(r[1], 1)
+          arktest.assertEQ(r[2], 2)
+
+    - use: |-
+          // expression in parentheses
+          let a1: Number[] = [1.0, 2.0]
+          let r = [...(a1)]
+          arktest.assertEQ(r[0], 1)
+          arktest.assertEQ(r[1], 2)
+
+    - use: |-
+          // ensure-not-nullish expression
+          let a1: Object[]|null = [new Object]
+          arktest.assertEQ([...a1!, new Object].length, 2)
+
+    - decl: |-
+          let a1: Object[]|null = null
+          let expectedException = (e: Error): boolean => {return (e instanceof NullPointerError)}
+      use: |-
+          // ensure-not-nullish expression
+          arktest.expectThrow(() => {[...a1!, new Object].length == 2}, expectedException) // NPE expected
+
+    - decl: |-
+          let a1: Object[]|null = null
+          let a2: Object[]|null = [new Object, new Object]
+      use: |-
+          // nullish-coalescing expression
+          arktest.assertEQ([...(a1 ?? a2)!, new Object].length, 3)
+
+    - decl: |-
+          function foo(): number[] {
+              return [1.0, 2.0]
+          }
+      use: |-
+          // function call in expression
+          let r = [...foo()]
+          arktest.assertEQ(r[0], 1)
+          arktest.assertEQ(r[1], 2)
+
+    - decl: |-
+          function str_filter(s: string[], f: (p: string) => boolean): string[] {
+              let res: string[] = []
+              for (let el of s) if (f(el)) res = [...res, el]
+              return res
+          }
+      use: |-
+          // function call in expression
+          let s = ["h", "", "el", "", "", "l", "", "o"]
+          let r = [...str_filter(s, (item: string) => item.length > 0), "!"]
+          arktest.assertEQ(r.length, 5)
+          arktest.assertEQ(String.join(r, ""), "hello!")
+
+    - use: |-
+          // new expression in expression
+          let r = [...(new number[256])]
+          arktest.assertEQ(r.length, 256)
+          arktest.assertEQ(r[0], 0)
+          arktest.assertEQ(r[255], 0)
+
+    - use: |-
+          // array index expression
+          let a: double[][] = [[2.0, 3.0], []]
+          let r = [1.0, ...a[0], ...a[1], 4.0]
+          arktest.assertEQ(r.length, 4)
+          arktest.assertEQ(r[0], 1)
+          arktest.assertEQ(r[1], 2)
+          arktest.assertEQ(r[2], 3)
+          arktest.assertEQ(r[3], 4)
+
+    - use: |-
+          // tuple index expression
+          let a: [double[], string] = [[2.0, 3.0, 4.0], "X"]
+          let r = [0.0, 1.0, ...a[0]]
+          arktest.assertEQ(r.reduce((sum: double, item: double) => sum + item, 0.0), 10.0)
+
+    - use: |-
+          // assignment expression in expression
+          let a1 = ["1", "2", "3"]
+          let a2 = ["a", "b"]
+          let r = [...a1, ...(a1 = a2), ...a1]
+          arktest.assertEQ("".concat(...r), "123abab")
+
+    - decl: |-
+          let a1 = ["1", "2", "3"]
+          let a2 = ["a", "b"]
+      use: |-
+          // conditional expression in expression
+          let r = [...(a1.length > a2.length ? a1 : a2), "!"]
+          arktest.assertEQ(String.join(r, ""), "123!")
+
+    - decl: |-
+          class A {
+              fld: boolean[]
+              constructor(p: boolean[], q: boolean[]) {
+                  this.fld = [...p, ...q]
+              }
+              meth(): boolean[] {
+                  return [true, true, false, ...this.fld]
+              }
+          }
+      use: |-
+          // use 'this' expression
+          let a: A = new A([false, false], [true, true])
+          arktest.assertEQ(a.meth().length, 7)
+
+    - decl: |-
+          abstract class A {
+              fld: boolean[] = []
+              constructor(p: boolean[]) {
+                  this.fld = p
+              }
+              meth(): boolean[] {
+                return [true, true, false, ...this.fld]
+              }
+          }
+          class B extends A {
+              constructor(p: boolean[], q: boolean[]) {
+                  super([...p, ...q])
+              }
+              meth(): boolean[] {
+                  return [...super.meth(), true]
+              }
+          }
+      use: |-
+          // use 'super' expression
+          let b: B = new B([false, false], [true, true])
+          arktest.assertEQ(b.meth().length, 8)
+
+    - use: |-
+          // spread of arrays
+          let a1: number[][] = [[1.0, 2.0], [3.0, 4.0]]
+          let a2: number[][] = [[5.0, 6.0], []]
+          let r: number[][] = [...a1, [], ...a2]
+          arktest.assertEQ(r.length, 5)
+
+    - use: |-
+          // spread of arrays, flatten array
+          let a1: number[][] = [[1.0, 2.0], [3.0, 4.0]]
+          let a2: number[][] = [[5.0, 6.0], []]
+          let res: number[] = []
+          for (let el of [...a1, ...a2, [7.0]]) res = [...res, ...el]
+          arktest.assertEQ(res.length, 7)
+
+    - use: |-
+          // union of types in result array
+          let a1: Double[] = [1, 2, 3], a2: Short[] = [4, 5], a3: Byte[] = [6]
+          let ar = [-10.0, ...a1, ...a1, ...a2, ...a2, ...a3, 10.0, ...a3]
+          let res = 0.0
+          for (let el of ar) res += (el as Numeric).toDouble()
+          arktest.assertEQ(res, 42.0)
+
+    - use: |-
+          // union of types in result array
+          let a1: Double[] = [1, 2, 3], a2: Short[] = [4, 5], a3: Byte[] = [6]
+          let ar = [-10.0, ...a1, ...a1, ...a2, ...a2, ...a3, 10.0, ...a3]
+          let res = 0.0
+          for (let el of ar) res += (el as Numeric).doubleValue()
+          arktest.assertEQ(res, 42.0)
+
+    - use: |-
+          // union of reference types in result array
+          let a1: (Object|undefined)[] = [new Int(), new Int(), undefined]
+          let a2: (Number|undefined)[] = [42.0, 42.0, undefined]
+          let r = [...a1, ...a2, 42.0]
+          arktest.assertEQ(r[0], 0)
+          arktest.assertEQ(r[1], 0)
+          arktest.assertEQ(r[2], undefined)
+          arktest.assertEQ(r[3], 42)
+          arktest.assertEQ(r[4], 42)
+          arktest.assertEQ(r[5], undefined)
+          arktest.assertEQ(r[6], 42)
+
+    - decl: |-
+          interface I {}
+          interface J {}
+      use: |-
+          // union of reference types in result array
+          let a1: Array<I|null> = [{}, {}, null]
+          let a2: Array<J|null> = [null, {}, {}]
+          let r = [...a1, ...a2, 42.0]
+          arktest.assertTrue(r[0] instanceof I)
+          arktest.assertTrue(r[1] instanceof I)
+          arktest.assertEQ(r[2], null)
+          arktest.assertEQ(r[3], null)
+          arktest.assertTrue(r[4] instanceof J)
+          arktest.assertTrue(r[5] instanceof J)
+          arktest.assertEQ(r[6], 42)
+
+    - decl: |-
+          class A<T> {}
+          class B<T> {}
+          class C<T> {}
+      use: |-
+          // use generics
+          let a1: (null|undefined|never|byte|int|long|double)[] = [1, 2, 3, 4.0]
+          let a2: (A<String>|B<Long>|C<Error>|int)[] = [5, new A<String>, new B<Long>, new C<Error>]
+          let r = [...a1, null, ...a2]
+          arktest.assertEQ(r.length, 9)
+          arktest.assertEQ(r[0], 1)
+          arktest.assertTrue(r[8] instanceof C)
+
+    - decl: |-
+          let a1 = ["1", "2", "3"]
+      use: |-
+          // lambda expression in expression
+          let r = [...((): string[] => a1)(), "!"]
+          arktest.assertEQ(String.join(r, ""), "123!")
+
+    - decl: |-
+          let a1 = ["1", "2", "3"]
+      use: |-
+          // lambda expression in expression
+          let r = [...((p: string[], q: string[]): string[] => [...p, ...q])(a1, a1), "!"]
+          arktest.assertEQ(String.join(r, ""), "123123!")
+
+# tuples
+    - use: |-
+          // spread a tuple to same type tuple
+          let t1: [number, boolean] = [1.0, true]
+          let r: [number, boolean] = [...t1]
+          arktest.assertEQ(r[0], 1.0)
+          arktest.assertTrue(r[1])
+
+    - use: |-
+          // spread tuples to different types
+          let t1: [number] = [1.0]
+          let t2: [boolean] = [true]
+          let r: [number, number, boolean, boolean] = [...t1, ...t1, ...t2, ...t2]
+          arktest.assertEQ(r[0], 1.0)
+          arktest.assertEQ(r[1], 1.0)
+          arktest.assertTrue(r[2] && r[3])
+
+    - use: |-
+          // spread tuples of all value types
+          let t1: [byte, short] = [1 as byte, 2 as short]
+          let t2: [int, long] = [3, 4 as long]
+          let t3: [float, double, boolean] = [5.0f, 6.0, true]
+          let t4: [char, string] = [c'Z', "X"]
+          let r: [byte, short, int, long, float, double, boolean, char, string] = [...t1, ...t2, ...t3, ...t4]
+          arktest.assertEQ(r[0], 1)
+          arktest.assertEQ(r[1], 2)
+          arktest.assertEQ(r[2], 3)
+          arktest.assertEQ(r[3], 4)
+          arktest.assertEQ(r[4], 5.0f)
+          arktest.assertEQ(r[5], 6.0)
+          arktest.assertEQ(r[6], true)
+          arktest.assertEQ(r[7], c'Z')
+          arktest.assertEQ(r[8], "X")
+
+    - decl: |-
+          let a1: [Object, Error]|null = [new Object, new Error]
+      use: |-
+          // ensure-not-nullish expression
+          arktest.assertEQ([...a1!, new Object].length, 3)
+
+    - decl: |-
+          let a1: [Object, Error]|null = null
+          let expectedException = (e: Error): boolean => {return (e instanceof NullPointerError)}
+          let len: int
+      use: |-
+          // ensure-not-nullish expression
+          arktest.expectThrow(
+              () => { len = [...a1!, new Object].length },
+              expectedException // NPE expected
+          )
+
+    - decl: |-
+          let a1: [Object, Error]|null = null
+          let a2: [Object, Error]|null = [new Object, new Error]
+      use: |-
+          // nullish-coalescing expression
+          arktest.assertEQ([...(a1 ?? a2)!, new Object].length, 3)
+
+    - decl: |-
+          let a1: [Object, Error]|null = null
+          let a2: [Object, Error]|null = null
+          let expectedException = (e: Error): boolean => {return (e instanceof NullPointerError)}
+          let len: int
+      use: |-
+          // nullish-coalescing expression
+          arktest.expectThrow(
+              () =>  { len = [...(a1 ?? a2)!, new Object].length },
+              expectedException // NPE expected
+          )
+
+    - decl: |-
+          function foo(): [number, string] {
+              return [1.0, "X"]
+          }
+      use: |-
+          // function call in expression
+          let r: [number, string] = [...foo()]
+          arktest.assertEQ(r[0], 1)
+          arktest.assertEQ(r[1], "X")
+
+    - use: |-
+          // assignment expression in expression
+          let a1: [string, int] = ["1", 10]
+          let a2: [string, int] = ["2", 20]
+          let r: [string, int, string, int, string, int] = [...a1, ...(a1 = a2), ...a1]
+          arktest.assertEQ(r[0], "1")
+          arktest.assertEQ(r[1], 10)
+          arktest.assertEQ(r[2], "2")
+          arktest.assertEQ(r[3], 20)
+          arktest.assertEQ(r[4], "2")
+          arktest.assertEQ(r[5], 20)
+
+    - decl: |-
+          let a1: [int, int] = [1, 2]
+          let a2: [int, int] = [5, 6]
+      use: |-
+          // conditional expression in expression
+          let r: [int, int] = [...(a1[0] > a2[0] ? a1 : a2)]
+          arktest.assertEQ(r[0], 5)
+          arktest.assertEQ(r[1], 6)
+
+    - decl: |-
+          class A {
+              fld: [int, char]
+              constructor(p: int, q: char) {
+                  this.fld = [p, q]
+              }
+              meth(): [int, int, char] {
+                  return [0, ...this.fld]
+              }
+          }
+      use: |-
+          // use this expression
+          let a: A = new A(1, c'Z')
+          let r = a.meth()
+          arktest.assertEQ(r[0], 0)
+          arktest.assertEQ(r[1], 1)
+          arktest.assertEQ(r[2], c'Z')
+
+    - decl: |-
+          abstract class A {
+              fld: [int, char]
+              constructor(p: [int, char]) {
+                  this.fld = p
+              }
+              meth(): [int, int, char] {
+                  return [0, ...this.fld]
+              }
+          }
+          class B extends A {
+              constructor(p: int, q: char) {
+                  super([p, q])
+              }
+              meth(): [int, int, char] {
+                  return [...super.meth()]
+              }
+          }
+      use: |-
+          // use super expression
+          let b: B = new B(1, c'Z')
+          let r = b.meth()
+          arktest.assertEQ(r[0], 0)
+          arktest.assertEQ(r[1], 1)
+          arktest.assertEQ(r[2], c'Z')
+
+    - decl: |-
+          class A<T> {}
+          class B<T> {}
+      use: |-
+          // use generics
+          let a1: [int|A<String>, double|B<Long>] = [1, new B<Long>]
+          let a2: [int|A<Long>, double|B<String>] = [new A<Long>, new B<String>]
+          let r: [A<String>|int, B<Long>|double, A<Long>|int, B<String>|double] = [...a1, ...a2]
+          arktest.assertTrue(r[0] == 1 && r[1] instanceof B && r[2] instanceof A && r[3] instanceof B)
+
+    - decl: |-
+          let a2: [int, int] = [6, 5]
+      use: |-
+          // lambda expression in expression
+          let r: [int, int] = [...((p: [int, int]): [int, int] => [p[1], p[0]])(a2)]
+          arktest.assertEQ(r[0], 5)
+          arktest.assertEQ(r[1], 6)
+
+# FixedArray
+    - use: |-
+          // FixedArray and Array in spread expression
+          let fa1: FixedArray<int> = [1]
+          let a2: int[] = [2, 3, 4]
+          let fa3: FixedArray<int> = [...fa1, ...a2]
+          arktest.assertEQ(fa3.length, 4)
+          arktest.assertEQ(fa3[0], 1)
+          arktest.assertEQ(fa3[3], 4)
+
+    - decl: |-
+          class C {
+              x: int = 13
+          }
+      use: |-
+          // FixedArray in spread expression
+          let a: FixedArray<C> = [new C]
+          let c = [...a]
+          arktest.assertEQ(c.length, 1)
+          arktest.assertEQ(c[0].x, 13)
+
+    - use: |-
+          // FixedArray and Array in spread expression
+          let a: int[] = [100, 101]
+          let fa: FixedArray<int> = [
+              ...((p: int[]): int[] => [p[1], p[0]])(a),
+              10, 11,
+              ...a]
+          arktest.assertEQ(fa.length, 6)
+          arktest.assertEQ(fa[0], 101)
+          arktest.assertEQ(fa[2], 10)
+          arktest.assertEQ(fa[4], 100)
+
+# Iterables
+    - decl: |-
+          let a: Iterable<string> = 'abc'
+      use: |-
+          // iterable of strings in spread expression
+          let r: Array<string> = [...a, ...a]
+          arktest.assertEQ(r.length, 6)
+          arktest.assertEQ(r[0], 'a')
+          arktest.assertEQ(r[1], 'b')
+          arktest.assertEQ(r[2], 'c')
+          arktest.assertEQ(r[3], 'a')
+          arktest.assertEQ(r[4], 'b')
+          arktest.assertEQ(r[5], 'c')
+
+    - decl: |-
+          let a: Iterable<[int, string]> = {
+              1: 'a',
+              2: 'b',
+          } as Record<int, string>
+      use: |-
+          // iterable of tuples in spread expression
+          let r: Array<[int, string]> = [...a, ...a]
+          arktest.assertEQ(r.length, 4)
+          arktest.assertEQ(r[0][0], 1)
+          arktest.assertEQ(r[0][1], 'a')
+          arktest.assertEQ(r[1][0], 2)
+          arktest.assertEQ(r[1][1], 'b')
+          arktest.assertEQ(r[2][0], 1)
+          arktest.assertEQ(r[2][1], 'a')
+          arktest.assertEQ(r[3][0], 2)
+          arktest.assertEQ(r[3][1], 'b')
+
+# Spread to different type
+    - decl: |-
+          let a: [string, string] = ['1', '2']
+      use: |-
+          // spread tuple of strings to tuple of Object
+          let r: [Object, Object] = [...a]
+          arktest.assertEQ(r[0], '1')
+          arktest.assertEQ(r[1], '2')
+
+    - decl: |-
+          let a: string[] = ['1', '2']
+      use: |-
+          // spread array of strings to array of object
+          let r: Array<Object> = [...a]
+          arktest.assertEQ(r.length, 2)
+          arktest.assertEQ(r[0], '1')
+          arktest.assertEQ(r[1], '2')
+
+    - decl: |-
+          let a: FixedArray<string> = ['1', '2']
+      use: |-
+          // spread fixed array of strings to array of objects
+          let r: Array<Object> = [...a]
+          arktest.assertEQ(r.length, 2)
+          arktest.assertEQ(r[0], '1')
+          arktest.assertEQ(r[1], '2')
+
+    - decl: |-
+          let a: Array<string> = ['1', '2']
+      use: |-
+          // spread array of strings to fixed array of objects
+          let r: FixedArray<Object> = [...a]
+          arktest.assertEQ(r.length, 2)
+          arktest.assertEQ(r[0], '1')
+          arktest.assertEQ(r[1], '2')
+
+    - decl: |-
+          let a: [string, string] = ['1', '2']
+      use: |-
+          // spread tuple to array
+          let r: string[] = [...a]
+          arktest.assertEQ(r.length, 2)
+          arktest.assertEQ(r[0], '1')
+          arktest.assertEQ(r[1], '2')
+
+    - decl: |-
+          let a: [string, string] = ['1', '2']
+      use: |-
+          // spread tuple to FixedArray
+          let r: FixedArray<string> = [...a]
+          arktest.assertEQ(r.length, 2)
+          arktest.assertEQ(r[0], '1')
+          arktest.assertEQ(r[1], '2')
+
+    - decl: |-
+          let a: [string, int] = ['1', 2]
+      use: |-
+          // spread tuple to array of Any
+          let r: Any[] = [...a]
+          arktest.assertEQ(r.length, 2)
+          arktest.assertEQ(r[0], '1')
+          arktest.assertEQ(r[1], 2)

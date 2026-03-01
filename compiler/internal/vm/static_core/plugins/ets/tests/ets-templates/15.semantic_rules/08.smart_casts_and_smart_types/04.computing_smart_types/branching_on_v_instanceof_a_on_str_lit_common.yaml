@@ -1,0 +1,47 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+  # Note: each 'check_variant_decl_data'
+  # define different types T and A combinations based on
+  # unions with string literal types and related to them check values for check
+  # branching on "v instanceof A" where T is type of v variable
+  - check_variant_decl_data: |-
+      // type T is type of v variable used for check
+      // branching on "v instanceof A"
+      type T = "Done" | "In Progress" | "On Review" | number | int | undefined
+      type A = int | string
+
+      // type T & A is computed smart type on the positive branch
+      // after branching on "v instanceof A"
+      type T_inter_A = "Done" | "In Progress" | "On Review" | int
+
+      // type T - A is computed smart type on the negative branch
+      // after branching on "v instanceof A"
+      type T_diff_A = number | undefined
+
+      // VarType is type of v variable after branching on
+      // "v instanceof A": on positive branch, on negative branch
+      enum VarType { T_inter_A, T_diff_A }
+      type CheckValueData = [
+        T, // value
+        VarType // value_type
+      ]
+      let check_values: ReadonlyArray<CheckValueData> = [
+        [123, VarType.T_inter_A],
+        ["Done", VarType.T_inter_A],
+        ["In Progress", VarType.T_inter_A],
+        ["On Review", VarType.T_inter_A],
+        [1.7, VarType.T_diff_A],
+        [undefined, VarType.T_diff_A] ]
+      const check_values_number: int = 6

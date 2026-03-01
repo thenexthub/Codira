@@ -1,0 +1,40 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # Cases for additive operations with numeric enums
+cases:
+  - desc: Operation with implicit enum items.
+    decl: |-
+      enum IntEnum { Zero, One, Two }
+    logic: |-
+      arktest.assertEQ(IntEnum.One + IntEnum.Two, 3, "IntEnum.One + IntEnum.Two should equal to 3");
+  - desc: Operation with explicit enum items.
+    decl: |-
+      enum IntEnum { Zero, Five = 5, Seven = 7 }
+    logic: |-
+      arktest.assertEQ(IntEnum.Seven - IntEnum.Five, 2, "IntEnum.Seven - IntEnum.Five should equal to 2");
+  - desc: Operation with next to explicit enum item.
+    decl: |-
+      enum IntEnum { Three = 3, Five = 5, Six }
+    logic: |-
+      arktest.assertEQ(IntEnum.Three - IntEnum.Six, -3, "IntEnum.Three - IntEnum.Six should equal to -3");
+  - desc: Operation with enum item and int.
+    decl: |-
+      enum IntEnum { Zero, One, Two }
+    logic: |-
+      arktest.assertEQ(IntEnum.One + 54, 55, "IntEnum.One + 54 should equal to 55");
+  - desc: Operation with ngative enum item.
+    decl: |-
+      enum IntEnum { MinusOne = -1, Zero, One, Two }
+    logic: |-
+      arktest.assertEQ(IntEnum.MinusOne + IntEnum.One, 0, "IntEnum.MinusOne + IntEnum.One should equal to 0");

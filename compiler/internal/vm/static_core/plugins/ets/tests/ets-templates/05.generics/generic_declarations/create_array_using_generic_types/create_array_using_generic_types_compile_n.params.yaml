@@ -1,0 +1,60 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # Generic array initialization for compile negative.
+error_type_param:
+  #0
+  - desc: When the type does not match, the array Array<T> is instantiated, and the compilation error occurs.
+    logic: "let numArray: Array<number> = [1, \"2\", 3]"
+    stdout: |-
+      "Semantic error ESE0227: Array element at index 1 with type '\"2\"' is not compatible with the target array element type 'Double'"
+  #1
+  - desc: When the type does not match, the array T[] is instantiated, and the compilation error occurs.
+    logic: "let numArray: number[] = [1, \"2\", 3]"
+    stdout: |-
+      "Semantic error ESE0227: Array element at index 1 with type '\"2\"' is not compatible with the target array element type 'Double'"
+  #2
+  - desc: A compilation error occurs when type parameters are added to the non-generic array declaration.
+    logic: "let error: string<number> = \"invalid\""
+    stdout: |-
+      "Semantic error ESE0156: Type alias declaration is not generic, but type parameters were provided"
+  #3
+  - desc: When the array T[] is instantiated with the tuple type, the type does not match, and compilation error occurs.
+    logic: "let numArray: [number, string, boolean][] = [[0, 1, false]]"
+    stdout: |-
+      "Semantic error ESE0057: Array initializer's type is not assignable to tuple type at index: 1"
+  #4
+  - desc: Inheriting subclasses of the same parent class, the type does not match, and compilation error occurs.
+    decl: |-
+      class Animal {}
+      class Dog extends Animal {}
+      class Cat extends Animal {}
+    logic: |-
+      type MyArray<T> = T[];
+      let dogs: MyArray<Dog> = [new Dog(), new Dog()];
+      dogs[1] = new Cat();
+    stdout: |-
+      "Syntax error ESY0040: Illegal start of Type Alias expression."
+  #5
+  - desc: Forcible type conversion, compilation error.
+    decl: |-
+      class Animal {}
+      class Dog extends Animal {}
+      class Cat extends Animal {}
+    logic: |-
+      type MyArray<T> = T[];
+      let dogs: MyArray<Dog> = [new Dog(), new Dog()];
+      let animals: Animal[] = dogs;
+      let cat: Cat = animals[1] as Cat;
+    stdout: |-
+      "Syntax error ESY0040: Illegal start of Type Alias expression."

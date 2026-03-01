@@ -1,0 +1,88 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - doc: Call parent constructor to specify the array length. Create array using 'new'.
+    decl: |-
+      class A<T> extends Array<T> {
+        constructor(length: int) {
+          super(length)
+        }
+      }
+
+      function main() {
+        let i: A<number> = new A<number>(3)
+        i[1] = 7
+
+        arktest.assertTrue(Array.isArray(i))
+        arktest.assertEQ(i.length, 3)
+        arktest.assertEQ(i[1], 7)
+      }
+
+  - doc: Array of custom object type with foreach check
+    decl: |-
+      class A {
+        name: string
+        constructor(i: string) {
+          this.name = i
+        }
+      }
+
+      class C<T> extends Array<T> {
+        constructor(first: T, ...i: T[]) {
+          super(first, ...i)
+        }
+      }
+
+      function main() {
+        let k = ""
+        let i: C<A> = new C<A>(new A("str1"), new A("str2"));
+        i.forEach( (j) => { k += j.name } )
+
+        arktest.assertTrue(i instanceof Array)
+        arktest.assertEQ(i.length, 2)
+        arktest.assertEQ(k, "str1str2")
+      }
+
+  - doc: Array of custom generic object type with iterator check
+    decl: |-
+      class C<T> extends Array<T> {}
+      
+      let k: number = 0
+
+      function main() {
+        k = 0
+        let i: C<number> = new C<number>()
+        i.push(4.0)
+        i.push(5.0)
+        i.push(7.0)
+        for(let j of i) k += j
+        
+        arktest.assertTrue(i instanceof Array)
+        arktest.assertEQ(i.length, 3)
+        arktest.assertEQ(k, 16)
+      }
+
+  - doc: Use new Array() constructor with generic type and verify iterator
+    decl: |-
+      class C<T> extends Array<T> {}
+
+      function main() {
+        let i: string[] = new C<string>();
+        i.push("some str");
+
+        arktest.assertTrue(i instanceof Array)
+        arktest.assertEQ(i.length, 1)
+        arktest.assertEQ(i.at(0), "some str")
+      }

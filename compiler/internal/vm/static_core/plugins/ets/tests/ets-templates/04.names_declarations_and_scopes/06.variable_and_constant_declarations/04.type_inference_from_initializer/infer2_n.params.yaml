@@ -1,0 +1,82 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    - decl: |-
+          let cond = true
+          function foo(p: Int): int { return 1 }
+          function foo(p: int): int { return 2 }
+          function foo(p: number): int { return 3 }
+      tags: 'compile-only, negative'
+      use: |-
+          const b = cond ? 1 : 2  // type of b is int
+          arktest.assertEQ(typeof b, "int")
+          arktest.assertEQ(foo(b), 2)
+
+    - decl: |-
+          let cond = true
+          function foo(p: Int): int { return 1 }
+          function foo(p: int): int { return 2 }
+          function foo(p: number): int { return 3 }
+      tags: 'compile-only, negative'
+      use: |-
+          const b = cond ? 3 : 3.14  // type of b is double
+          arktest.assertEQ(typeof b, "number")
+          arktest.assertEQ(foo(b), 3)
+
+    - decl: |-
+          let cond = true
+          function foo(p: string): int { return 1 }
+      tags: 'compile-only, negative'
+      use: |-
+          const b = cond ? "one" : "two"  // type of b is "one" | "two"
+          arktest.assertTrue(b instanceof "one"|"two")
+          arktest.assertEQ(foo(b), 1)
+
+    - decl: |-
+          let cond = true
+          function foo(p: Int): int { return 1 }
+          function foo(p: int): int { return 2 }
+          function foo(p: "one"): int { return 3 }
+          function foo(p: Int|"one"): int { return 4 }
+      tags: 'compile-only, negative'
+      use: |-
+          const b = cond ? 1 : "one"  // type of b is "one" | Int
+          arktest.assertTrue(b instanceof Int|"one")
+          arktest.assertEQ(foo(b), 4)
+
+    - tags: 'compile-only, negative'
+      use: |-
+          let a = { name: "John" }  // CTE expected
+
+    - decl: |-
+          let arr = new (Object|undefined)[1];  // inferred array of Error|undefined
+      tags: 'negative'
+      use: |-
+          arktest.assertEQ(arr[0], new Object[1])
+
+    - decl: const myC = "1"
+      tags: 'compile-only, negative'
+      use: |-
+        let myC = "1"
+        arktest.assertTrue(myC instanceof "1")

@@ -1,0 +1,405 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+cases:
+  - desc: |-
+      >-
+        Checking for initialization public static readonly optional field
+        with implicit type with field initializer.
+    check_variants:
+      - {check_type: "int | undefined",
+        base_value: "4"}
+      - {check_type: "long | undefined",
+        base_value: "2147483648"}
+      - {check_type: "double | undefined",
+        base_value: "4.5"}
+      - {check_type: "float | undefined",
+        base_value: "4.5f"}
+      - {check_type: "bigint | undefined",
+        base_value: "4n"}
+      - {check_type: "string | undefined",
+        base_value: "\"abc\""}
+      - {check_type: "char | undefined",
+        base_value: "c'a'"}
+      - {check_type: "boolean | undefined",
+        base_value: "false"}
+    decl_variants:
+      - |-
+        class A {
+          static readonly field? = [base_value]
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+
+  - desc: |-
+      >-
+        Checking for initialization public static readonly optional field
+        with implicit type with field initializer.
+    check_variants:
+      - {type: "int", check_type: "int | undefined",
+        base_value: "4"}
+      - {type: "long", check_type: "long | undefined",
+        base_value: "4"}
+      - {type: "byte", check_type: "byte | undefined",
+        base_value: "4"}
+      - {type: "short", check_type: "short | undefined",
+        base_value: "4"}
+      - {type: "double", check_type: "double | undefined",
+        base_value: "4"}
+      - {type: "number", check_type: "number | undefined",
+        base_value: "4"}
+      - {type: "float", check_type: "float | undefined",
+        base_value: "4.5f"}
+      - {type: "bigint", check_type: "bigint | undefined",
+        base_value: "4n"}
+      - {type: "string", check_type: "string | undefined",
+        base_value: "\"abc\""}
+      - {type: "char", check_type: "char | undefined",
+        base_value: "c'a'"}
+      - {type: "boolean", check_type: "boolean | undefined",
+        base_value: "false"}
+      - {type: "Object", check_type: "Object | undefined",
+        base_value: "4"}
+      - {type: "Object | undefined", check_type: "Object | undefined",
+        base_value: "undefined"}
+      - {type: "Object | undefined | null",
+        check_type: "Object | undefined | null",
+        base_value: "null"}
+      - {type: "Any", check_type: "Any | undefined",
+        base_value: "4"}
+    decl_variants:
+      - |-
+        function foo(): [type] {
+          return [base_value]
+        }
+        class A {
+          static readonly field? = foo()
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+
+  - desc: |-
+      >-
+        Checking for initialization public static readonly optional field
+        with implicit type with field initializer.
+    check_variants:
+      - type: "C"
+        check_type: "C | undefined"
+        data_type: "int"
+        base_obj_lit: "{data: 4}"
+        base_value: "4"
+        cv_decl_data: |-
+          class C {
+            data: int
+            constructor(a: int = 0){
+              this.data = a
+            }
+          }
+    decl_variants:
+      - |-
+        [cv_decl_data]
+        class A {
+          static readonly field? = new [type]([base_value])
+        }
+      - |-
+        [cv_decl_data]
+        function foo(): [type] {
+          return [base_obj_lit]
+        }
+        class A {
+          static readonly field? = foo()
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertTrue(A.field!.data instanceof [data_type])
+        arktest.assertEQ(A.field!.data, [base_value])
+
+  - desc: |-
+      >-
+        Checking for initialization private static readonly optional field
+        with implicit type with field initializer.
+    check_variants:
+      - {check_type: "int | undefined",
+        base_value: "4"}
+      - {check_type: "long | undefined",
+        base_value: "2147483648"}
+      - {check_type: "double | undefined",
+        base_value: "4.5"}
+      - {check_type: "float | undefined",
+        base_value: "4.5f"}
+      - {check_type: "bigint | undefined",
+        base_value: "4n"}
+      - {check_type: "string | undefined",
+        base_value: "\"abc\""}
+      - {check_type: "char | undefined",
+        base_value: "c'a'"}
+      - {check_type: "boolean | undefined",
+        base_value: "false"}
+    decl_variants:
+      - |-
+        class A {
+          private static readonly _field? = [base_value]
+          static get field(): [check_type] {
+            return A._field
+          }
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+
+  - desc: |-
+      >-
+        Checking for initialization private static readonly optional field
+        with implicit type with field initializer.
+    check_variants:
+      - {type: "int", check_type: "int | undefined",
+        base_value: "4"}
+      - {type: "long", check_type: "long | undefined",
+        base_value: "4"}
+      - {type: "byte", check_type: "byte | undefined",
+        base_value: "4"}
+      - {type: "short", check_type: "short | undefined",
+        base_value: "4"}
+      - {type: "double", check_type: "double | undefined",
+        base_value: "4"}
+      - {type: "number", check_type: "number | undefined",
+        base_value: "4"}
+      - {type: "float", check_type: "float | undefined",
+        base_value: "4.5f"}
+      - {type: "bigint", check_type: "bigint | undefined",
+        base_value: "4n"}
+      - {type: "string", check_type: "string | undefined",
+        base_value: "\"abc\""}
+      - {type: "char", check_type: "char | undefined",
+        base_value: "c'a'"}
+      - {type: "boolean", check_type: "boolean | undefined",
+        base_value: "false"}
+      - {type: "Object", check_type: "Object | undefined",
+        base_value: "4"}
+      - {type: "Object | undefined", check_type: "Object | undefined",
+        base_value: "undefined"}
+      - {type: "Object | undefined | null",
+        check_type: "Object | undefined | null",
+        base_value: "null"}
+      - {type: "Any", check_type: "Any | undefined",
+        base_value: "4"}
+    decl_variants:
+      - |-
+        function foo(): [type] {
+          return [base_value]
+        }
+        class A {
+          private static readonly _field? = foo()
+          static get field(): [check_type] {
+            return A._field
+          }
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+
+  - desc: |-
+      >-
+        Checking for initialization private static readonly optional field
+        with implicit type with field initializer.
+    check_variants:
+      - type: "C"
+        check_type: "C | undefined"
+        data_type: "int"
+        base_obj_lit: "{data: 4}"
+        base_value: "4"
+        cv_decl_data: |-
+          class C {
+            data: int
+            constructor(a: int = 0){
+              this.data = a
+            }
+          }
+    decl_variants:
+      - |-
+        [cv_decl_data]
+        class A {
+          private static readonly _field? = new [type]([base_value])
+          static get field(): [check_type] {
+            return A._field
+          }
+        }
+      - |-
+        [cv_decl_data]
+        function foo(): [type] {
+          return [base_obj_lit]
+        }
+        class A {
+          private static readonly _field? = foo()
+          static get field(): [check_type] {
+            return A._field
+          }
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertTrue(A.field!.data instanceof [data_type])
+        arktest.assertEQ(A.field!.data, [base_value])
+
+  - desc: |-
+      >-
+        Checking for initialization protected static readonly optional field
+        with implicit type with field initializer.
+    check_variants:
+      - {check_type: "int | undefined",
+        base_value: "4"}
+      - {check_type: "long | undefined",
+        base_value: "2147483648"}
+      - {check_type: "double | undefined",
+        base_value: "4.5"}
+      - {check_type: "float | undefined",
+        base_value: "4.5f"}
+      - {check_type: "bigint | undefined",
+        base_value: "4n"}
+      - {check_type: "string | undefined",
+        base_value: "\"abc\""}
+      - {check_type: "char | undefined",
+        base_value: "c'a'"}
+      - {check_type: "boolean | undefined",
+        base_value: "false"}
+    decl_variants:
+      - |-
+        class B {
+          protected static readonly _field? = [base_value]
+        }
+        class A extends B {
+          static get field(): [check_type] {
+            return A._field
+          }
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+
+  - desc: |-
+      >-
+        Checking for initialization protected static readonly optional field
+        with implicit type with field initializer.
+    check_variants:
+      - {type: "int", check_type: "int | undefined",
+        base_value: "4"}
+      - {type: "long", check_type: "long | undefined",
+        base_value: "4"}
+      - {type: "byte", check_type: "byte | undefined",
+        base_value: "4"}
+      - {type: "short", check_type: "short | undefined",
+        base_value: "4"}
+      - {type: "double", check_type: "double | undefined",
+        base_value: "4"}
+      - {type: "number", check_type: "number | undefined",
+        base_value: "4"}
+      - {type: "float", check_type: "float | undefined",
+        base_value: "4.5f"}
+      - {type: "bigint", check_type: "bigint | undefined",
+        base_value: "4n"}
+      - {type: "string", check_type: "string | undefined",
+        base_value: "\"abc\""}
+      - {type: "char", check_type: "char | undefined",
+        base_value: "c'a'"}
+      - {type: "boolean", check_type: "boolean | undefined",
+        base_value: "false"}
+      - {type: "Object", check_type: "Object | undefined",
+        base_value: "4"}
+      - {type: "Object | undefined", check_type: "Object | undefined",
+        base_value: "undefined"}
+      - {type: "Object | undefined | null",
+        check_type: "Object | undefined | null",
+        base_value: "null"}
+      - {type: "Any", check_type: "Any | undefined",
+        base_value: "4"}
+    decl_variants:
+      - |-
+        function foo(): [type] {
+          return [base_value]
+        }
+        class B {
+          protected static readonly _field? = foo()
+        }
+        class A extends B {
+          static get field(): [check_type] {
+            return A._field
+          }
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+
+  - desc: |-
+      >-
+        Checking for initialization protected static readonly optional field
+        with implicit type with field initializer.
+    check_variants:
+      - type: "C"
+        check_type: "C | undefined"
+        data_type: "int"
+        base_obj_lit: "{data: 4}"
+        base_value: "4"
+        cv_decl_data: |-
+          class C {
+            data: int
+            constructor(a: int = 0){
+              this.data = a
+            }
+          }
+    decl_variants:
+      - |-
+        [cv_decl_data]
+        class B {
+          protected static readonly _field? = new [type]([base_value])
+        }
+        class A extends B {
+          static get field(): [check_type] {
+            return A._field
+          }
+        }
+      - |-
+        [cv_decl_data]
+        function foo(): [type] {
+          return [base_obj_lit]
+        }
+        class B {
+          protected static readonly _field? = foo()
+        }
+        class A extends B {
+          static get field(): [check_type] {
+            return A._field
+          }
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertTrue(A.field!.data instanceof [data_type])
+        arktest.assertEQ(A.field!.data, [base_value])

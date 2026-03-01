@@ -1,0 +1,536 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+  # Note: each 'check_variant_decl_data'
+  # define different types T and A combinations based on
+  # predefined types and related to them check values for check
+  # branching on "v instanceof A" where T is type of v variable
+  - check_variant_decl_data: |-
+      // type T is type of v variable used for check
+      // branching on "v instanceof A"
+      type T = Object | undefined
+      type A = undefined
+
+      // type T & A is computed smart type on the positive branch
+      // after branching on "v instanceof A"
+      type T_inter_A = undefined
+
+      // type T - A is computed smart type on the negative branch
+      // after branching on "v instanceof A"
+      type T_diff_A = Object
+
+      // VarType is type of v variable after branching on
+      // "v instanceof A": on positive branch, on negative branch
+      enum VarType { T_inter_A, T_diff_A }
+      type CheckValueData = [
+        T, // value
+        VarType // value_type
+      ]
+      let check_values: ReadonlyArray<CheckValueData> = [
+        [undefined, VarType.T_inter_A],
+        [5n, VarType.T_diff_A],
+        [123, VarType.T_diff_A],
+        ["abc", VarType.T_diff_A],
+        [c'a', VarType.T_diff_A] ]
+      const check_values_number: int = 5
+
+  - check_variant_decl_data: |-
+      // type T is type of v variable used for check
+      // branching on "v instanceof A"
+      type T = Object | undefined | null
+      type A = Object
+
+      // type T & A is computed smart type on the positive branch
+      // after branching on "v instanceof A"
+      type T_inter_A = Object
+
+      // type T - A is computed smart type on the negative branch
+      // after branching on "v instanceof A"
+      type T_diff_A = undefined | null
+
+      // VarType is type of v variable after branching on
+      // "v instanceof A": on positive branch, on negative branch
+      enum VarType { T_inter_A, T_diff_A }
+      type CheckValueData = [
+        T, // value
+        VarType // value_type
+      ]
+      let check_values: ReadonlyArray<CheckValueData> = [
+        [5n, VarType.T_inter_A],
+        [123, VarType.T_inter_A],
+        ["abc", VarType.T_inter_A],
+        [c'a', VarType.T_inter_A],
+        [undefined, VarType.T_diff_A],
+        [null, VarType.T_diff_A] ]
+      const check_values_number: int = 6
+
+  - check_variant_decl_data: |-
+      // type T is type of v variable used for check
+      // branching on "v instanceof A"
+      type T = Object | undefined | null
+      type A = undefined | null
+
+      // type T & A is computed smart type on the positive branch
+      // after branching on "v instanceof A"
+      type T_inter_A = undefined | null
+
+      // type T - A is computed smart type on the negative branch
+      // after branching on "v instanceof A"
+      type T_diff_A = Object
+
+      // VarType is type of v variable after branching on
+      // "v instanceof A": on positive branch, on negative branch
+      enum VarType { T_inter_A, T_diff_A }
+      type CheckValueData = [
+        T, // value
+        VarType // value_type
+      ]
+      let check_values: ReadonlyArray<CheckValueData> = [
+        [undefined, VarType.T_inter_A],
+        [null, VarType.T_inter_A],
+        [5n, VarType.T_diff_A],
+        [123, VarType.T_diff_A],
+        ["abc", VarType.T_diff_A],
+        [c'a', VarType.T_diff_A] ]
+      const check_values_number: int = 6
+
+  - check_variant_decl_data: |-
+      // type T is type of v variable used for check
+      // branching on "v instanceof A"
+      type T = Object | undefined
+      type A = bigint | number | undefined
+
+      // type T & A is computed smart type on the positive branch
+      // after branching on "v instanceof A"
+      type T_inter_A = bigint | number | undefined
+
+      // type T - A is computed smart type on the negative branch
+      // after branching on "v instanceof A"
+      type T_diff_A = Object // nearest supertype for T - A
+
+      // VarType is type of v variable after branching on
+      // "v instanceof A": on positive branch, on negative branch
+      enum VarType { T_inter_A, T_diff_A }
+      type CheckValueData = [
+        T, // value
+        VarType // value_type
+      ]
+      let check_values: ReadonlyArray<CheckValueData> = [
+        [5n, VarType.T_inter_A],
+        [undefined, VarType.T_inter_A],
+        [7.8, VarType.T_inter_A],
+        ["abc", VarType.T_diff_A],
+        [123, VarType.T_diff_A],
+        [5.6f, VarType.T_diff_A],
+        [c'a', VarType.T_diff_A] ]
+      const check_values_number: int = 7
+
+  - check_variant_decl_data: |-
+      // type T is type of v variable used for check
+      // branching on "v instanceof A"
+      type T = Any
+      type A = Object
+
+      // type T & A is computed smart type on the positive branch
+      // after branching on "v instanceof A"
+      type T_inter_A = Object
+
+      // type T - A is computed smart type on the negative branch
+      // after branching on "v instanceof A"
+      type T_diff_A = Any // nearest supertype for T - A
+
+      // VarType is type of v variable after branching on
+      // "v instanceof A": on positive branch, on negative branch
+      enum VarType { T_inter_A, T_diff_A }
+      type CheckValueData = [
+        T, // value
+        VarType // value_type
+      ]
+      let check_values: ReadonlyArray<CheckValueData> = [
+        [5n, VarType.T_inter_A],
+        [123, VarType.T_inter_A],
+        ["abc", VarType.T_inter_A],
+        [c'a', VarType.T_inter_A],
+        [undefined, VarType.T_diff_A],
+        [null, VarType.T_diff_A] ]
+      const check_values_number: int = 6
+
+  - check_variant_decl_data: |-
+      // type T is type of v variable used for check
+      // branching on "v instanceof A"
+      type T = Any
+      type A = undefined | null
+
+      // type T & A is computed smart type on the positive branch
+      // after branching on "v instanceof A"
+      type T_inter_A = undefined | null
+
+      // type T - A is computed smart type on the negative branch
+      // after branching on "v instanceof A"
+      type T_diff_A = Any // nearest supertype for T - A
+
+      // VarType is type of v variable after branching on
+      // "v instanceof A": on positive branch, on negative branch
+      enum VarType { T_inter_A, T_diff_A }
+      type CheckValueData = [
+        T, // value
+        VarType // value_type
+      ]
+      let check_values: ReadonlyArray<CheckValueData> = [
+        [undefined, VarType.T_inter_A],
+        [null, VarType.T_inter_A],
+        [5n, VarType.T_diff_A],
+        [123, VarType.T_diff_A],
+        ["abc", VarType.T_diff_A],
+        [c'a', VarType.T_diff_A] ]
+      const check_values_number: int = 6
+
+  - check_variant_decl_data: |-
+      // type T is type of v variable used for check
+      // branching on "v instanceof A"
+      type T = int | bigint | boolean | string
+      type A = string | bigint
+
+      // type T & A is computed smart type on the positive branch
+      // after branching on "v instanceof A"
+      type T_inter_A = string | bigint
+
+      // type T - A is computed smart type on the negative branch
+      // after branching on "v instanceof A"
+      type T_diff_A = int | boolean
+
+      // VarType is type of v variable after branching on
+      // "v instanceof A": on positive branch, on negative branch
+      enum VarType { T_inter_A, T_diff_A }
+      type CheckValueData = [
+        T, // value
+        VarType // value_type
+      ]
+      let check_values: ReadonlyArray<CheckValueData> = [
+        ["abc", VarType.T_inter_A],
+        [5n, VarType.T_inter_A],
+        [true, VarType.T_diff_A],
+        [123, VarType.T_diff_A] ]
+      const check_values_number: int = 4
+
+  - check_variant_decl_data: |-
+      // type T is type of v variable used for check
+      // branching on "v instanceof A"
+      type T = bigint | int
+      type A = int
+
+      // type T & A is computed smart type on the positive branch
+      // after branching on "v instanceof A"
+      type T_inter_A = int
+
+      // type T - A is computed smart type on the negative branch
+      // after branching on "v instanceof A"
+      type T_diff_A = bigint
+
+      // VarType is type of v variable after branching on
+      // "v instanceof A": on positive branch, on negative branch
+      enum VarType { T_inter_A, T_diff_A }
+      type CheckValueData = [
+        T, // value
+        VarType // value_type
+      ]
+      let check_values: ReadonlyArray<CheckValueData> = [
+        [123, VarType.T_inter_A],
+        [567, VarType.T_inter_A],
+        [5n, VarType.T_diff_A],
+        [723n, VarType.T_diff_A] ]
+      const check_values_number: int = 4
+
+  - check_variant_decl_data: |-
+      // type T is type of v variable used for check
+      // branching on "v instanceof A"
+      type T = bigint | long
+      type A = long
+
+      // type T & A is computed smart type on the positive branch
+      // after branching on "v instanceof A"
+      type T_inter_A = long
+
+      // type T - A is computed smart type on the negative branch
+      // after branching on "v instanceof A"
+      type T_diff_A = bigint
+
+      // VarType is type of v variable after branching on
+      // "v instanceof A": on positive branch, on negative branch
+      enum VarType { T_inter_A, T_diff_A }
+      type CheckValueData = [
+        T, // value
+        VarType // value_type
+      ]
+      let check_values: ReadonlyArray<CheckValueData> = [
+        [123 as long, VarType.T_inter_A],
+        [567 as long, VarType.T_inter_A],
+        [5n, VarType.T_diff_A],
+        [723n, VarType.T_diff_A] ]
+      const check_values_number: int = 4
+
+  - check_variant_decl_data: |-
+      // type T is type of v variable used for check
+      // branching on "v instanceof A"
+      type T = bigint | byte
+      type A = byte
+
+      // type T & A is computed smart type on the positive branch
+      // after branching on "v instanceof A"
+      type T_inter_A = byte
+
+      // type T - A is computed smart type on the negative branch
+      // after branching on "v instanceof A"
+      type T_diff_A = bigint
+
+      // VarType is type of v variable after branching on
+      // "v instanceof A": on positive branch, on negative branch
+      enum VarType { T_inter_A, T_diff_A }
+      type CheckValueData = [
+        T, // value
+        VarType // value_type
+      ]
+      let check_values: ReadonlyArray<CheckValueData> = [
+        [5 as byte, VarType.T_inter_A],
+        [7 as byte, VarType.T_inter_A],
+        [5n, VarType.T_diff_A],
+        [723n, VarType.T_diff_A] ]
+      const check_values_number: int = 4
+
+  - check_variant_decl_data: |-
+      // type T is type of v variable used for check
+      // branching on "v instanceof A"
+      type T = bigint | short
+      type A = short
+
+      // type T & A is computed smart type on the positive branch
+      // after branching on "v instanceof A"
+      type T_inter_A = short
+
+      // type T - A is computed smart type on the negative branch
+      // after branching on "v instanceof A"
+      type T_diff_A = bigint
+
+      // VarType is type of v variable after branching on
+      // "v instanceof A": on positive branch, on negative branch
+      enum VarType { T_inter_A, T_diff_A }
+      type CheckValueData = [
+        T, // value
+        VarType // value_type
+      ]
+      let check_values: ReadonlyArray<CheckValueData> = [
+        [17 as short, VarType.T_inter_A],
+        [128 as short, VarType.T_inter_A],
+        [5n, VarType.T_diff_A],
+        [723n, VarType.T_diff_A] ]
+      const check_values_number: int = 4
+
+  - check_variant_decl_data: |-
+      // type T is type of v variable used for check
+      // branching on "v instanceof A"
+      type T = bigint | double
+      type A = double
+
+      // type T & A is computed smart type on the positive branch
+      // after branching on "v instanceof A"
+      type T_inter_A = double
+
+      // type T - A is computed smart type on the negative branch
+      // after branching on "v instanceof A"
+      type T_diff_A = bigint
+
+      // VarType is type of v variable after branching on
+      // "v instanceof A": on positive branch, on negative branch
+      enum VarType { T_inter_A, T_diff_A }
+      type CheckValueData = [
+        T, // value
+        VarType // value_type
+      ]
+      let check_values: ReadonlyArray<CheckValueData> = [
+        [1.7, VarType.T_inter_A],
+        [12.8, VarType.T_inter_A],
+        [5n, VarType.T_diff_A],
+        [723n, VarType.T_diff_A] ]
+      const check_values_number: int = 4
+
+  - check_variant_decl_data: |-
+      // type T is type of v variable used for check
+      // branching on "v instanceof A"
+      type T = bigint | number
+      type A = number
+
+      // type T & A is computed smart type on the positive branch
+      // after branching on "v instanceof A"
+      type T_inter_A = number
+
+      // type T - A is computed smart type on the negative branch
+      // after branching on "v instanceof A"
+      type T_diff_A = bigint
+
+      // VarType is type of v variable after branching on
+      // "v instanceof A": on positive branch, on negative branch
+      enum VarType { T_inter_A, T_diff_A }
+      type CheckValueData = [
+        T, // value
+        VarType // value_type
+      ]
+      let check_values: ReadonlyArray<CheckValueData> = [
+        [1.7, VarType.T_inter_A],
+        [12.8, VarType.T_inter_A],
+        [5n, VarType.T_diff_A],
+        [723n, VarType.T_diff_A] ]
+      const check_values_number: int = 4
+
+  - check_variant_decl_data: |-
+      // type T is type of v variable used for check
+      // branching on "v instanceof A"
+      type T = bigint | float
+      type A = float
+
+      // type T & A is computed smart type on the positive branch
+      // after branching on "v instanceof A"
+      type T_inter_A = float
+
+      // type T - A is computed smart type on the negative branch
+      // after branching on "v instanceof A"
+      type T_diff_A = bigint
+
+      // VarType is type of v variable after branching on
+      // "v instanceof A": on positive branch, on negative branch
+      enum VarType { T_inter_A, T_diff_A }
+      type CheckValueData = [
+        T, // value
+        VarType // value_type
+      ]
+      let check_values: ReadonlyArray<CheckValueData> = [
+        [1.7f, VarType.T_inter_A],
+        [12.8f, VarType.T_inter_A],
+        [5n, VarType.T_diff_A],
+        [723n, VarType.T_diff_A] ]
+      const check_values_number: int = 4
+
+  - check_variant_decl_data: |-
+      // type T is type of v variable used for check
+      // branching on "v instanceof A"
+      type T = float | bigint
+      type A = bigint
+
+      // type T & A is computed smart type on the positive branch
+      // after branching on "v instanceof A"
+      type T_inter_A = bigint
+
+      // type T - A is computed smart type on the negative branch
+      // after branching on "v instanceof A"
+      type T_diff_A = float
+
+      // VarType is type of v variable after branching on
+      // "v instanceof A": on positive branch, on negative branch
+      enum VarType { T_inter_A, T_diff_A }
+      type CheckValueData = [
+        T, // value
+        VarType // value_type
+      ]
+      let check_values: ReadonlyArray<CheckValueData> = [
+        [5n, VarType.T_inter_A],
+        [723n, VarType.T_inter_A],
+        [1.7f, VarType.T_diff_A],
+        [12.8f, VarType.T_diff_A] ]
+      const check_values_number: int = 4
+
+  - check_variant_decl_data: |-
+      // type T is type of v variable used for check
+      // branching on "v instanceof A"
+      type T = float | string
+      type A = string
+
+      // type T & A is computed smart type on the positive branch
+      // after branching on "v instanceof A"
+      type T_inter_A = string
+
+      // type T - A is computed smart type on the negative branch
+      // after branching on "v instanceof A"
+      type T_diff_A = float
+
+      // VarType is type of v variable after branching on
+      // "v instanceof A": on positive branch, on negative branch
+      enum VarType { T_inter_A, T_diff_A }
+      type CheckValueData = [
+        T, // value
+        VarType // value_type
+      ]
+      let check_values: ReadonlyArray<CheckValueData> = [
+        ["abc", VarType.T_inter_A],
+        ["efg", VarType.T_inter_A],
+        [1.7f, VarType.T_diff_A],
+        [12.8f, VarType.T_diff_A] ]
+      const check_values_number: int = 4
+
+  - check_variant_decl_data: |-
+      // type T is type of v variable used for check
+      // branching on "v instanceof A"
+      type T = float | char
+      type A = char
+
+      // type T & A is computed smart type on the positive branch
+      // after branching on "v instanceof A"
+      type T_inter_A = char
+
+      // type T - A is computed smart type on the negative branch
+      // after branching on "v instanceof A"
+      type T_diff_A = float
+
+      // VarType is type of v variable after branching on
+      // "v instanceof A": on positive branch, on negative branch
+      enum VarType { T_inter_A, T_diff_A }
+      type CheckValueData = [
+        T, // value
+        VarType // value_type
+      ]
+      let check_values: ReadonlyArray<CheckValueData> = [
+        [c'a', VarType.T_inter_A],
+        [c'b', VarType.T_inter_A],
+        [1.7f, VarType.T_diff_A],
+        [12.8f, VarType.T_diff_A] ]
+      const check_values_number: int = 4
+
+  - check_variant_decl_data: |-
+      // type T is type of v variable used for check
+      // branching on "v instanceof A"
+      type T = number | boolean
+      type A = boolean
+
+      // type T & A is computed smart type on the positive branch
+      // after branching on "v instanceof A"
+      type T_inter_A = boolean
+
+      // type T - A is computed smart type on the negative branch
+      // after branching on "v instanceof A"
+      type T_diff_A = number
+
+      // VarType is type of v variable after branching on
+      // "v instanceof A": on positive branch, on negative branch
+      enum VarType { T_inter_A, T_diff_A }
+      type CheckValueData = [
+        T, // value
+        VarType // value_type
+      ]
+      let check_values: ReadonlyArray<CheckValueData> = [
+        [true, VarType.T_inter_A],
+        [false, VarType.T_inter_A],
+        [1.7, VarType.T_diff_A],
+        [12.8, VarType.T_diff_A] ]
+      const check_values_number: int = 4
+
+
+

@@ -1,0 +1,174 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+- {
+    method_name: valueOf,
+    object_type: Boolean,
+    init_object_data_type: "FixedArray<boolean>",
+    init_object_data: "[true, false]",
+    param_init_data_types: {} ,
+    param_types: {},
+    param_nature: {},
+    method_return_type: boolean,
+    expected_data_item_type: boolean,
+    expected_data_type: "FixedArray<boolean>",
+    param_list: {},
+    expected_test_data: "[true, false]",
+    verify_test_result_function: comparePrimitiveValue,
+  }
+- {
+    method_name: toString,
+    object_type: Boolean,
+    init_object_data_type: "FixedArray<boolean>",
+    init_object_data: "[true, false]",
+    param_init_data_types: {} ,
+    param_types: {},
+    param_nature: {},
+    method_return_type: String,
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    param_list: {},
+    expected_test_data: '["true", "false"]',
+    verify_test_result_function: compareStringTrivial,
+  }
+- {
+    method_name: isTrue,
+    object_type: Boolean,
+    init_object_data_type: "FixedArray<boolean>",
+    init_object_data: "[true, false]",
+    param_init_data_types: {} ,
+    param_types: {},
+    param_nature: {},
+    method_return_type: boolean,
+    expected_data_item_type: boolean,
+    expected_data_type: "FixedArray<boolean>",
+    param_list: {},
+    expected_test_data: "[true, false]",
+    verify_test_result_function: comparePrimitiveValue,
+  }
+- {
+    method_name: isFalse,
+    object_type: Boolean,
+    init_object_data_type: "FixedArray<boolean>",
+    init_object_data: "[true, false]",
+    param_init_data_types: {} ,
+    param_types: {},
+    param_nature: {},
+    method_return_type: boolean,
+    expected_data_item_type: boolean,
+    expected_data_type: "FixedArray<boolean>",
+    param_list: {},
+    expected_test_data: "[false, true]",
+    verify_test_result_function: comparePrimitiveValue,
+  }
+- {
+    method_name: negate,
+    object_type: Boolean,
+    init_object_data_type: "FixedArray<boolean>",
+    init_object_data: "[true, false]",
+    param_init_data_types: {} ,
+    param_types: {},
+    param_nature: {},
+    method_return_type: Boolean,
+    expected_data_item_type: boolean,
+    expected_data_type: "FixedArray<boolean>",
+    param_list: {},
+    expected_test_data: "[false, true]",
+    verify_test_result_function: compareWrapperObjectValue,
+  }
+- {
+    method_name: and,
+    object_type: Boolean,
+    init_object_data_type: "FixedArray<boolean>",
+    init_object_data: "[true, false, true, false]",
+    param_init_data_types: {"param1":"FixedArray<boolean>"} ,
+    param_types: {"param1":Boolean},
+    param_nature: {"param1": object},
+    method_return_type: Boolean,
+    expected_data_item_type: boolean,
+    expected_data_type: "FixedArray<boolean>",
+    param_list: {"param1": "[true, false, false, true]"},
+    expected_test_data: "[true, false, false, false]",
+    verify_test_result_function: compareWrapperObjectValue,
+  }
+- {
+    method_name: or,
+    object_type: Boolean,
+    init_object_data_type: "FixedArray<boolean>",
+    init_object_data: "[true, true, false, false]",
+    param_list: {"param1": "[true, false, false, true]"},
+    param_init_data_types: {"param1":"FixedArray<boolean>"} ,
+    param_types: {"param1":Boolean},
+    param_nature: {"param1": object},
+    method_return_type: Boolean,
+    expected_data_item_type: boolean,
+    expected_data_type: "FixedArray<boolean>",
+    expected_test_data: "[true, true, false, true]",
+    verify_test_result_function: compareWrapperObjectValue,
+  }
+- {
+    method_name: xor,
+    object_type: Boolean,
+    init_object_data_type: "FixedArray<boolean>",
+    init_object_data: "[true, false, true, false]",
+    param_list: {"param1": "[true, false, false, true]"},
+    param_init_data_types: {"param1":"FixedArray<boolean>"} ,
+    param_types: {"param1":Boolean},
+    param_nature: {"param1": object},
+    method_return_type: Boolean,
+    expected_data_item_type: boolean,
+    expected_data_type: "FixedArray<boolean>",
+    expected_test_data: "[false, false, true, true]",
+    verify_test_result_function: compareWrapperObjectValue,
+  }
+- {
+    method_name: compareTo,
+    object_type: Boolean,
+    init_object_data_type: "FixedArray<boolean>",
+    init_object_data: "[true, false, true, false]",
+    param_init_data_types: {"param1":"FixedArray<boolean>"} ,
+    param_types: {"param1":Boolean},
+    param_nature: {"param1": object},
+    method_return_type: int,
+    expected_data_item_type: int,
+    expected_data_type: "FixedArray<int>",
+    param_list: {"param1": "[true, false, false, true]"},
+    expected_test_data: "[0, 0, 1, -1]",
+    verify_test_result_function: compareCompareToResult,
+  }
+- {
+    method_name: equals,
+    object_type: Boolean,
+    init_object_data_type: "FixedArray<boolean>",
+    init_object_data: "[true, false, true, false]",
+    param_init_data_types: {"param1":"FixedArray<boolean>"} ,
+    param_types: {"param1":Boolean},
+    param_nature: {"param1": object},
+    method_return_type: boolean,
+    expected_data_item_type: boolean,
+    expected_data_type: "FixedArray<boolean>",
+    param_list: {"param1": "[true, false, false,true ]"},
+    expected_test_data: "[true, true, false, false]",
+    verify_test_result_function: comparePrimitiveValue,
+  }
+
+

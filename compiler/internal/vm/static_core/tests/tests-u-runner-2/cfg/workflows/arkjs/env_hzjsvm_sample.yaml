@@ -1,0 +1,108 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Set here individual settings
+
+type: environment
+env:
+    # ===================================================================================
+    # Section description
+
+    # This section defines used environment variables for hzjsvm workflow
+    # Values should be set either as environment variables before the runner.sh starts
+    # or explicitly in this yaml configuration file - uncomment the variable and set the correct value.
+
+    # Setting as environment value has higher priority then values here.
+    # If you want to use values in this config - be sure that the mentioned environment
+    # variables not set.
+
+    # All listed here environment variables are used as a full or partial values of
+    # some properties. These properties are declared in workflow or test-suite files
+    # and should not be touched.
+    # But some properties can be set through CLI - in such cases the specified environment
+    # variables are not used. The CLI option has higher priority as it sets the property directly.
+
+    # So, shortly to specify one property either use environment variable or CLI option.
+    # Do NOT mix them.
+
+    # ===================================================================================
+
+    # Path where to the repository concurrency_tests cloned to
+    # This is part of `custom.test-root` and `custom.list-root` properties set for concurrency suites
+    # The full value of `custom.test-root` looks like: ${CONCURRENCY_TESTS}/${custom.suite-name}
+    # Can be overridden with CLI option:
+    # --test-root PATH
+    # The full value `custom.list-root` looks like: ${CONCURRENCY_TESTS}/test-lists
+    # Can be overridden with CLI option:
+    # --list-root PATH
+    # CONCURRENCY_TESTS: PATH
+
+    # Part of `general.work-dir` property
+    # (the path where to temporary files per the test suite saved to).
+    # The full value of `general.work-dir` looks like: ${CONCURRENCY_TESTS_TEMP}/${custom.suite-name}
+    # Can be overridden with CLI option: --work-dir PATH
+    # CONCURRENCY_TESTS_TEMP: PATH
+
+    # Path where OHOS build is located.
+    # This is value of the `general.build` property
+    # Can be overridden with CLI option: --build-dir PATH
+    # OHOS_BUILD: PATH
+    # Path ??? - what difference from OHOS_BUILD
+    # This is value of the `general.build` property
+    # Can be overridden with CLI option: --host-tools PATH
+    # HOST_TOOLS: PATH
+
+    # Path where to temporary files should be copied on the device
+    DEV_TMP: /data/local/tmp
+
+    # Options sets for hdc to communicate with the device. Use empty value for the local device.
+    HDC_OPTIONS: ""
+general:
+    # Path to the OHOS build can be set here.
+    # or overridden with CLI option: --build-dir PATH
+    build: ${OHOS_BUILD}
+    # Path to the OHOS build can be set here.
+    # or overridden with CLI option: --host-tools PATH
+    host-tools: ${HOST_TOOLS}
+    # If you develop tests - use True
+    # If you just run tests and not change them - use False to skip
+    # copying to the work-dir on every runner.sh launch.
+    force-generate: true
+    # Sets logging level. Supported values:
+    # SILENT - default level, minimal output, only the most important messages
+    # SHORT - more detailed output
+    # ALL - the most detailed output
+    # Can be overridden with CLI option: --verbose VALUE
+    verbose: ALL
+    # Sets information for what tests should be output:
+    # NEW - only for the fresh failures
+    # KNOWN - for any failures (both fresh and ignored)
+    # ALL - for all tests, both for failed and passed
+    # Can be overridden with CLI option: --verbose-level VALUE
+    verbose-filter: ALL
+    # Set to True to show progress bar.
+    # It is not recommended to set True if verbose/verbose-fiter are set to ALL
+    # The best usage of True - with verbose=NONE and verbose-filter=NEW
+    show-progress: false
+    # Sets number of used 'threads' to run tests.
+    # set the number like 1, 5 etc.
+    # all - special value to use value from `nproc` utility
+    processes: all
+steps:
+    preparation:
+        extra:
+            # Sets verbose level for `ark_js_vm` binary run on the device
+            # Attention: this is option of the `ark_js_vm`!
+            # Possible values: info, error, debug
+            # For full list see `ark_js_vm` documentation.
+            ark-log-level: info

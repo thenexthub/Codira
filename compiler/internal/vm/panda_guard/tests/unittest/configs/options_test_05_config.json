@@ -1,0 +1,48 @@
+{
+  "abcFilePath": "xxx",
+  "obfAbcFilePath": "xxx",
+  "obfPaFilePath": "xxx",
+  "compileSdkVersion": "xxx",
+  "targetApiVersion": 12,
+  "targetApiSubVersion": "beta3",
+  "filesInfoPath": "",
+  "sourceMapsPath": "",
+  "entryPackageInfo": "xxx",
+  "defaultNameCachePath": "xxx",
+  "skippedRemoteHarList": ["xxx"],
+  "useNormalizedOHMUrl": false,
+  "obfuscationRules": {
+    "disableObfuscation": false,
+    "enableExportObfuscation": true,
+    "enableRemoveLog": true,
+    "enableDecoratorObfuscation": true,
+    "printNameCache": "",
+    "applyNameCache": "",
+    "reservedNames": [],
+    "propertyObfuscation": {
+      "enable": true,
+      "reservedProperties": [],
+      "universalReservedProperties": [
+        "xx.*"
+      ]
+    },
+    "toplevelObfuscation": {
+      "enable": true,
+      "reservedToplevelNames": [],
+      "universalReservedToplevelNames": [
+        "yy."
+      ]
+    },
+    "fileNameObfuscation": {
+      "enable": true,
+      "reservedFileNames": [],
+      "universalReservedFileNames": [
+        ".*zz."
+      ]
+    },
+    "keepOptions": {
+      "enable": true,
+      "keepPaths": []
+    }
+  }
+}

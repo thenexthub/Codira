@@ -1,0 +1,11 @@
+#31608
+ets_tests/codegen_new_obj_call.ets
+
+#24986
+ets_tests/optimize_load_object_boxed.ets
+
+#271
+ets_tests/multiarray.ets
+
+#27260
+ets_tests/lse_parameter_aliasing.ets

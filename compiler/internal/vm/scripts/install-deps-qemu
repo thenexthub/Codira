@@ -1,0 +1,188 @@
+#!/bin/bash
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+#
+# Default argument values
+#
+
+QEMU_VERSION='6.2.0'
+DEFAULT_QEMU_PREFIX="/opt/qemu-$QEMU_VERSION"
+QEMU_PREFIX="$DEFAULT_QEMU_PREFIX"
+
+#
+# Aux functions
+#
+
+function print_help
+{
+    HELP_MESSAGE="
+    It is the script for replacing packaged QEMU with vanilla QEMU $QEMU_VERSION
+    downloaded from the official QEMU web site. We need to provide a
+    replacement because:
+
+    1) Packaged QEMU contains bugs that hurt ARK unit tests.
+    2) Versions prior to $QEMU_VERSION do not play well with gdb-multiarch
+       (at least under Ubuntu 18.04).
+
+    The script should be run with superuser privileges.
+
+    EXAMPLE
+
+    $ ./scripts/install-deps-qemu --help
+    $ ./scripts/install-deps-qemu --qemu-prefix=/usr/local
+
+    SYNOPSIS
+
+    $0 [OPTIONS]
+
+    OPTIONS
+
+    --help, -h            Show this message and exit.
+
+    --qemu-prefix=PREFIX  Installation prefix for QEMU [$DEFAULT_QEMU_PREFIX].
+
+    CAVEATS
+
+    After QEMU is installed, the script attempts to symlink all files
+    from PREFIX/bin/qemu-* to /usr/bin. If other qemu binaries (or symlinks)
+    are already present in /usr/bin, they are left intact.
+
+    "
+
+    echo "$HELP_MESSAGE"
+}
+
+function assert_root
+{
+    if [[ $(id -u) -ne 0 ]] ; then
+        echo "FATAL: Please run as root."
+        exit 1
+    fi
+}
+
+function assert_ubuntu
+{
+    if [ ! -f /etc/os-release ]; then
+        echo "FATAL: /etc/os-release not found. Exiting..."
+        exit 1
+    fi
+
+    . /etc/os-release
+    if [[ "$NAME" != "Ubuntu" ]]; then
+        echo "FATAL: Only Ubuntu is supported. This is not. Exiting..."
+        exit 1
+    fi
+}
+
+function install_vanilla_qemu
+{
+    local prefix="$1"
+    local qemu_name="qemu-$QEMU_VERSION"
+    local arch_name="$qemu_name.tar.xz"
+    local src_path="$prefix/src"
+    local arch_full="$src_path/$arch_name"
+
+    apt-get update
+
+    # Packages taken from: https://wiki.qemu.org/Hosts/Linux
+    apt-get install -y --no-install-recommends -o Dpkg::Options::="--force-overwrite" \
+        libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev \
+        curl tar ninja-build
+
+    mkdir -p "$src_path"
+    curl --retry 5 --retry-delay 0 -L "https://download.qemu.org/$arch_name" -o "$arch_full"
+
+    tar xfJ "$arch_full" -C "$src_path"
+
+    pushd "$src_path/$qemu_name"
+        ./configure --prefix="$prefix"
+        ninja -C ./build test
+        ninja -C ./build install
+    popd
+
+    # Try to symlink binaries to /usr/bin:
+    for fname in "$prefix"/bin/qemu-*; do
+        local lname="/usr/bin/$(basename "$fname")"
+        if [[ ! -f "$lname" ]]; then
+            ln -s "$fname" "$lname"
+        else
+            echo "WARNING: Unable to symlink $fname to $lname: $lname already exists"
+        fi
+    done
+}
+
+#
+# Main logic
+#
+
+#
+# Parse command-line arguments
+#
+
+for i in "$@"
+do
+    case $i in
+    -h|--help)
+        print_help
+        exit 0
+        ;;
+    --qemu-prefix=*)
+        QEMU_PREFIX=${i//[-a-zA-Z0-9]*=/}
+      ;;
+    *)
+      echo "Error: Unsupported flag $i" >&2
+      exit 1
+      ;;
+  esac
+done
+
+assert_root
+assert_ubuntu
+
+qemu_installed_version=$(qemu-aarch64 --version 2>/dev/null \
+    | grep -Eo 'version [[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+' \
+    | head -n1)
+if [[ "$qemu_installed_version" == "" ]]; then
+    qemu_installed_version=$($QEMU_PREFIX/bin/qemu-aarch64 --version 2>/dev/null \
+        | grep -Eo 'version [[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+' \
+        | head -n1)
+fi
+
+qemu_expected_version="version $QEMU_VERSION"
+
+if [[ "$qemu_installed_version" == "$qemu_expected_version" ]]; then
+    echo "Found expected QEMU $QEMU_VERSION, nothing to do"
+    exit 0
+fi
+
+if [[ "$qemu_installed_version" == "" ]]; then
+    echo "No installed QEMU found"
+else
+    echo "Found installed QEMU $qemu_installed_version"
+fi
+
+set -e
+install_vanilla_qemu "$QEMU_PREFIX"
+
+exit 0
+

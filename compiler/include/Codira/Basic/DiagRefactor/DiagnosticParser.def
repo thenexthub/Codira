@@ -1,0 +1,405 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+ERROR(parse_diag_begin, "")
+
+// This is universal diag.
+ERROR(parse_expected_name, "expected %s %s, found %s", "expected %s here", {
+    "%s"
+})
+ERROR(parse_unexpected_newline_between_at_and_mc, "unexpected '<NL>' between '@' and the macro invocation '%s'",
+    "unexpected '<NL>' here")
+ERROR(parse_expect_escape_dollar_token, "expected identifier or '(' after '$'")
+ERROR(parse_varray_type_parameter, "expected type parameters after 'VArray' keyword")
+ERROR(parse_varray_type_args_mismatch, "expected %s between '<' and '>' of 'VArray' type")
+ERROR(parse_expect_integer_literal_varray,
+    "expected an integer literal than or equal to 0 after '$' to specificate the size of 'VArray' type")
+ERROR(parse_varray_with_paren, "expected '(' or '{' after 'VArray' for 'VArray' constructor")
+ERROR(parse_expected_import, "expected 'import' after module name, found %s", "expected 'import' here", {
+    "after module name"
+})
+ERROR(parse_expected_module_name, "expected module name after keyword 'from', found %s", "expected module name here", {
+    "after keyword 'from'"
+})
+ERROR(parse_expected_right_delimiter, "unclosed delimiter: '%s'", "expected '%s' here", {
+    "to match this opening '%s'",
+})
+ERROR(parse_not_allowed_raw_identifier, "escaped identifier with backticks '%s' is not allowed", {
+    "don't use backticks here",
+})
+ERROR(parse_invalid_return_type, "there should be no return type in a %s")
+
+ERROR(parse_unmatched_right_delimiter, "unmatched delimiter: '%s'", "unmatched delimiter")
+
+ERROR(parse_expected_literal, "expected literal after '-', found %s", "expected literal here", {
+    "after this"
+})
+ERROR(parse_expected_pattern, "expected pattern, found %s", "expected pattern here")
+ERROR(parse_expected_backarrow_in_let_cond, "expected '<-' in %s expression, found %s", "expected '<-' here")
+ERROR(parse_expected_left_paren_after, "expected '(' after '%s', found %s", "expected '(' here", {
+    "after this"
+})
+ERROR(parse_expected_left_angle_after, "expected '<' after '%s', found %s", "expected '<' here", {
+    "after this"
+})
+ERROR(parse_expected_expr_or_decl_in, "expected expression or declaration, found %s",
+    "expected expression or declaration here")
+ERROR(parse_expected_catch_or_finally_in_try, "expected 'catch' or 'finally' after try block, found %s",
+    "expected 'catch' or 'finally' here", {"after try block"})
+ERROR(parse_expected_catch_or_handle_or_finally_in_try, "expected 'catch', 'handle' or 'finally' after try block, found %s",
+    "expected 'catch', 'handle' or 'finally' here", {"after try block"})
+ERROR(parse_expected_colon_in_catch_pattern, "expected ':' in exception type pattern, found %s", "expected ':' here")
+ERROR(parse_expected_colon_in_effect_pattern, "expected ':' in effect type pattern, found %s", "expected ':' here")    
+ERROR(parse_expected_wildcard_or_exception_pattern, "expected wildcard or exception type pattern, found %s",
+    "expected wildcard or exception type pattern here")
+ERROR(parse_expected_wildcard_or_effect_pattern, "expected wildcard or effect type pattern, found %s",
+    "expected wildcard or effect type pattern here")
+ERROR(parse_expected_double_arrow_in_case, "expected '=>' in case, found %s",
+    "expected '=>' here")
+ERROR(parse_selector_or_match_expression_body, "expected '(' or '{' after 'match', found %s",
+    "expected '(' or '{' here")
+ERROR(parse_expected_left_brace, "expected '{', found %s", "expected '{' here")
+ERROR(parse_expected_left_paren, "expected '(', found %s", "expected '(' here")
+ERROR(parse_expected_case, "expected 'case' in match, found %s", "expected 'case' here")
+ERROR(parse_unexpected_line_break, "expected '(' after 'quote', found line break", "unexpected line break here")
+ERROR(parse_expected_paren_or_brace_after_try, "expected '(' or '{' after 'try', found %s",
+    "expected '(' or '{' here", {"after this"})
+ERROR(parse_expected_assignment, "expected '=', found %s", "expected '=' here")
+ERROR(parse_expected_in_forin_expression, "expected 'in' in for-in expression, found %s", "expected 'in' here")
+ERROR(parse_expected_while_in_do_while, "expected 'while' in do-while expression, found %s", "expected 'while' here")
+ERROR(parse_expected_double_arrow_in_lambda, "expected '=>' in lambda expression, found %s",
+    "expected '=>' here")
+ERROR(parse_expected_ccd_in_lambda, "expected one of ',', ':' or '=>', found %s",
+    "expected one of ',', ':' or '=>' here")
+ERROR(parse_expected_character, "expected %s, found %s", "expected %s here")
+ERROR(parse_expected_character_after, "expected %s after '%s'")
+ERROR(parse_importing_by_package_name_is_not_supported, "expected '.'", "expected '.' here")
+ERROR(parse_expected_decl, "expected declaration, found %s", "expected declaration here")
+ERROR(parse_expected_one_of_identifier_or_pattern, "expected identifier or pattern after '%s', found %s",
+    "expected identifier or pattern here")
+ERROR(parse_expected_get_or_set_in_prop, "expected 'get' or 'set' in prop body, found %s",
+    "expected 'get' or 'set' here")
+ERROR(parse_expected_where_brace, "expected '{' or 'where', found %s", "expected '{' or 'where' here")
+ERROR(parse_expected_lt_brace, "expected '{' or '<', found %s", "expected '{' or '<' here")
+ERROR(parse_expected_lt_paren, "expected '(' or '<', found %s", "expected '(' or '<' here")
+ERROR(parse_expected_identifier_lp, "expected ')' or identifier, found %s", "expected ')' or identifier here")
+ERROR(parse_expected_dot_lparen, "expected ',' or ')', found %s", "expected ',' or ')' here")
+ERROR(parse_expected_arrow_in_func_type, "expected '->' in function type")
+ERROR(parse_unexpected_colon_in_range, "unexpected ':' in index access", "unexpected ':' here")
+ERROR(parse_expected_lsquare_after, "expected '[' after '%s', found %s", "expected '[' here")
+ERROR(parse_expected_type_argument, "expected type argument")
+ERROR(parse_expected_parameter_rp, "expected one parameter name or ')', found %s", "expected one parameter name or ')' here")
+ERROR(parse_expected_no_newline_after, "expected no new-line character after %s",
+    "expected no new-line character here", {"after %s"})
+ERROR(parse_expected_if_let_andand, "expected '&&', '||', or ')', got 'where'", "did you mean to write '&&'")
+ERROR(parse_duplicated_item, "duplicated %s '%s'%s", "duplicated %s", {"previous one is here"})
+WARNING(parse_nl_warning, PARSER, "possibly confusing line terminator","", {"possibly confusing line terminator between '%s' and '%s'"})
+
+// Declaration related.
+ERROR(parse_illegal_function_name, "'main' declaration doesn't need 'func' keyword", "",
+    {"help: try to remove 'func' keyword"})
+ERROR(parse_expected_macro_decl_define_in_macro_package, "macro declaration must be defined in macro package",
+    "expected to be defined in macro package")
+ERROR(parse_expected_public_before_macro_decl, "macro declaration must be modified with 'public'",
+    "expected 'public' before here")
+ERROR(parse_macro_unexpected_empty_parameter, "unexpected empty parameters in macro declaration",
+    "expected paratmeters here")
+ERROR(parse_macro_expected_right_parameter_nums, "too many parameters in macro declaration",
+    "too many parameters here")
+ERROR(parse_macro_illegal_param_type, "macro declaration's parameter type must be 'Tokens'",
+    "expected 'Tokens' here")
+ERROR(parse_macro_illegal_ret_type, "macro declaration's return type must be 'Tokens'",
+    "expected 'Tokens' here, got '%s'")
+ERROR(parse_macro_illegal_named_param, "cannot use named parameter in macro declaration", "unexpected '!' here", {
+    "expected '%s : Tokens' here"
+})
+ERROR(parse_macro_define_conflicted_with_builtin, "macro declaration name '%s' is conflicted with builtin %s identifier",
+    "unexpected macro identifier here")
+ERROR(parse_macro_call_illegal_with_builtin, "unexpected '[' for builtin macro '%s'", "expected '(' here")
+ERROR(parse_unexpected_declaration_in_scope, "unexpected %s in %s", "unexpected %s", {
+    "in %s"
+})
+ERROR(parse_const_expected_initializer, "const variable declaration must be initialized", "expected a initializer here")
+ERROR(parse_unexpected_const_modifier_on_variable, "unexpected modifier 'const' on var or let variable", "unexpected modifier")
+ERROR(parse_var_must_be_initialized, "variable in top-level scope must be initialized ", "expected '=' here")
+ERROR(parse_expected_one_of_type_or_initializer, "variable declaration '%s' needs either type or initializer",
+    "expected ':' or '=' after variable name")
+ERROR(parse_expected_type_or_init_in_pattern, "variable declaration in pattern needs either type or initializer",
+    "expected ':' or '=' after pattern")
+ERROR(parse_named_parameter_after_unnamed, "unnamed parameters must come before named parameters", "unexpected unnamed parameter here", {
+    "because it must come before this named parameter"
+})
+ERROR(parse_member_parameter_after_regular, "regular parameters must come before member variable parameters", "unexpected parameter here", {
+    "because it must come before this member variable parameter"
+})
+ERROR(parse_decl_cannot_inherit_their_self, "declaration '%s' cannot inherit itself", "illegal super declaration here", {
+    "because '%s' cannot inherit itself"
+})
+ERROR(parse_intrinsic_function_must_be_toplevel, "intrinsic function must be toplevel scope", "intrinsic function must be toplevel scope")
+ERROR(parse_intrinsic_function_cannot_have_body, "intrinsic function cannot have body", "intrinsic function cannot have body")
+ERROR(parse_abstract_func_must_have_return_type, "abstract function must have return type", "abstract function must have return type")
+ERROR(parse_duplicated_get_or_set, "duplicated '%s' in prop", "duplicated '%s'", {"previous one"})
+ERROR(parse_unknown_enum_constructor, "unknown enum constructor", "unknown enum constructor")
+ERROR(parse_getter_setter_cannot_be_generic, "'%s' cannot be generic", "unexpected generic here", {"in '%s'"})
+ERROR(parse_unexpected_where, "unexpected 'where' in non-generic declaration", "unexpected 'where' here",
+    {"because this declaration is non-generic"})
+ERROR(parse_setter_must_contain_one_parameter, "setter must contain 1 parameter", "expected 1 parameter inside")
+ERROR(parse_setter_can_only_accept_one_parameter, "setter can only accept 1 parameter", "can only accept 1 parameter")
+ERROR(parse_duplicated_intrinsic_function, "duplicated intrinsic function '%s'", "duplicated intrinsic function", {
+    "the previous one is here"
+})
+ERROR(parse_missing_body, "body of %s is missing", "missing %s body here")
+ERROR(parse_invalid_super_declaration, "cannot inherit from type: '%s'", "this type cannot be inherited")
+ERROR(parse_static_init_can_not_accept_any_parameter, "static initializer cannot have any parameter")
+ERROR(parse_finalizer_can_not_accept_any_parameter, "finalizer cannot have any parameter")
+
+// Expression related.
+ERROR(parse_invalid_quote_dollar_expr, "invalid expression after the operator '$'")
+ERROR(parse_unexpected_lambda_expr_in_toplevel, "unexpected lambda expression in top-level scope",
+    "unexpected lambda expression in top-level scope")
+ERROR(parse_trailing_closure_only_follow_name, "trailing closure can only be used on function calls with function or variable names")
+ERROR(parse_invalid_left_hand_expr, "invalid left-hand expression of assignment '%s'", "", {
+    "cannot assign to this expression"
+})
+ERROR(parse_chained_none_associative, "%s operators cannot be chained", "")
+ERROR(parse_duplicated_step_op, "duplicated step operator ':' on range expression", "redundant operator", {
+    "previous one",
+    "on range expression"
+})
+ERROR(parse_invalid_step_op, "invalid step operator ':' on %s expression", "invalid operator", {
+    "on %s expression"
+})
+ERROR(parse_expected_expression, "expected expression after %s, found %s", "expected expression here")
+ERROR(parse_invalid_incre_expr, "cannot %s a un-assignable expression", "", {
+    "cannot assign to this expression",
+})
+ERROR(parse_unrecognized_token_after_macro_node, "unrecognized operator %s after declaration",
+    "unrecognized operator", {
+        "after declaration"
+})
+ERROR(parse_expected_operator_or_end, "expected operator or end of expression, found %s",
+    "expected operator or end of expression")
+ERROR(parse_cannot_have_assi_in_init, "cannot have assignment expression in initializer",
+    "cannot have assignment expression here", {})
+ERROR(parse_case_body_cannot_be_empty, "match case cannot be empty", "match case cannot be empty")
+ERROR(parse_redefined_resource_name, "resource name '%s' is already defined", "redefinition of resource name", {
+    "previous one"
+})
+ERROR(parse_newline_not_allowed_between_spawn_and_argument, "unexpected newlines between 'spawn' and the argument followed it")
+ERROR(parse_expected_no_arguments_in_spawn, "expected no %s in lambda expression of spawn", "cannot contain %s", {
+    "in spawn"
+})
+ERROR(parse_invalid_overloaded_operator, "cannot overload operator %s ", "cannot overload this operator")
+ERROR(parse_empty_string_interpolation, "string interpolation cannot be empty", "empty string interpolation")
+ERROR(parse_invalid_unicode_scalar, "code point '%s' is too large", "unrecognized code point")
+ERROR(parse_wildcard_can_not_be_used_as_member_name, "wildcard cannot be used as member name")
+ERROR(parse_unexpected_expected_found, "unexpected %s", "expected %s, found %s")
+ERROR(parse_cannot_operator_a_tuple, "cannot '%s' a tuple")
+
+// Type related.
+ERROR(parse_expected_parentheses, "type before arrow of function type should be surrounded by parentheses")
+ERROR(parse_this_type_not_allow, "'This' type is not allowed")
+ERROR(parse_unexpected_tuple_decl_type, "Legacy tuple type syntax no longer allowed after version 0.28.4",
+    "use ',' instead")
+ERROR(parse_expected_type, "expected type name after %s, found %s", "expected type name here", {
+    "after %s"
+})
+ERROR(parse_newline_not_allowed_between_quest_and_type, "unexpected newlines between '?' and the type followed it")
+ERROR(parse_redundant_arrow_after_func_type, "redundant '->' after function type")
+ERROR(parse_all_parameters_must_be_named, "in a parameter type list, either all parameters must be named, or none of them; mixed is not allowed")
+ERROR(parse_only_tuple_and_func_type_allow_type_parameter_name, "unexpected %s")
+
+// Pattern related.
+ERROR(parse_illegal_declaration_pattern, "%s patterns cannot be used in class or struct body", "", {"in %s body"})
+ERROR(parse_illegal_or_pattern, "'|' is not allowed here", "expected ',' or ')', found '|'")
+ERROR(parse_tuple_pattern_expected_more_field, "1-element tuple pattern is not allowed",
+    "1-element tuple pattern is not allowed")
+ERROR(parse_type_pattern_in_let_cond, "type pattern is not allowed in %s expression",
+    "type pattern is not allowed here")
+
+
+// Import package related.
+ERROR(parse_expected_macro_decl_in_macro_package, "cannot use 'public' on %s declarations in a macro package", "",
+    {"macro package defined here"})
+ERROR(parse_package_as_all, "The alias name should contain '.*' suffix after import-all", "expected '%s*'", {
+    "after import-all"
+})
+ERROR(parse_package_name_length_overflow, "length of package name '%s' overflow", "length overflow", {})
+ERROR(parse_package_name_has_backtick, "cannot using '`' in package name")
+
+
+// Macro related.
+ERROR(parse_illegal_macro_expand_input_args, "unexpected '[' after '\\' for macro argument")
+ERROR(parse_illegal_macro_expand_attr_args, "unexpected '(' after '\\' for macro attribute argument")
+ERROR(parse_illegal_macro_expand_input_args_without_paren, "unexpected parameters for macro invocation here",
+    "expected declaration like: function, enum, class, interface, variable, property, extend ...")
+ERROR(parse_illegal_macro_expand_input_without_paren_in_paramlist, "unexpected parameters for macro invocation",
+    "expected '(' here")
+ERROR(parse_ifavailable_arg_no_name, "@IfAvailable expect an argument name")
+ERROR(parse_ifavailable_not_lambda, "@IfAvailable expect a literal lambda here")
+
+// Annotation related.
+ERROR(parse_unexpected_anno_on, "unexpected annotation '%s' on %s", "unexpected annotation here", {
+    "on %s"
+})
+ERROR(parse_unexpected_overflow_annotation, "unexpected overflow annotation before '%s'",
+    "unexpected overflow annotation", {"before this"})
+ERROR(parse_unrecognized_expression_in_when, "unrecognized expression '%s' in annotation '@When'",
+    "unrecognized expression here")
+ERROR(parse_unrecognized_attr_in_anno, "unrecognized attribute '%s' in annotation '@%s'", "unexpected attribute here")
+WARNING(parse_empty_attribute, PARSER, "empty attribute of annotation '@%s'", "empty attribute here")
+WARNING(parse_duplicated_attr_value, PARSER, "duplicated attribute value: '%s'", "duplicated value here", {
+    "the previous one is here"
+})
+WARNING(parse_unsafe_will_be_ignored, PARSER, "'unsafe' modifier will be ignored in backend '%s'", "will be ignored in backend '%s'")
+ERROR(parse_duplicated_annotation, "duplicated annotation: '%s'", "duplicated annotation here", {
+    "the previous one is here"
+})
+ERROR(parse_conflict_annotation, "'%s' and '%s' annotations conflict on %s", "unexpected annotation", {
+    "because it is conflicted with this"
+})
+ERROR(parse_fail_expected_annotation, "expected annotation '%s'", {
+    "declare annotation before this",
+})
+
+// common/platform
+ERROR(parse_common_and_platform_in_the_same_file, "'common' and 'platform' declarations can not be in the same file")
+ERROR(parse_common_function_must_have_return_type, "'common' function return type must be specified")
+ERROR(parse_platform_function_must_have_return_type, "'platform' function return type must be specified")
+ERROR(parse_platform_function_parameter_cannot_have_default_value, "'platform' %s parameter can not have default value")
+ERROR(parse_platform_member_must_have_implementation, "the member %s must have body in 'platform' %s")
+ERROR(parse_expected_type_with_codemp_var, "'%s' %s type must be specified")
+ERROR(parse_codemp_outdecl_miss_match, "%s is %s, but %s is not %s")
+ERROR(parse_codemp_static_init, "static init can not be '%s'")
+ERROR(parse_common_in_non_common_file, "common declaration must be defined in common package part")
+ERROR(parse_platform_in_non_platform_file, "platform declaration must be defined in platform package part")
+ERROR(parse_codemp_generic_decl, "generic declaration can not be '%s'")
+ERROR(parse_codemp_pattern_decl, "%s pattern can not be '%s'")
+ERROR(parse_codemp_in_common_ctor_required, "at least one constructor is required in common %s '%s'")
+ERROR(parse_explicitly_abstract_only_for_codemp_abstract_class, "only common/platform or Native FFI mirror abstract classes can have explicitly abstract %s")
+
+// Modifier related.
+ERROR(parse_illegal_modifier_in_scope, "unexpected modifier '%s' on %s%s", "unexpected modifier", {
+    "on %s",
+    "in %s"
+})
+ERROR(parse_conflict_modifier, "'%s' and '%s' modifiers conflict on %s", "unexpected modifier", {
+    "because it is conflicted with this",
+    "on %s"
+})
+ERROR(parse_expected_no_modifier, "expected no modifier before %s, found '%s'", "expected no modifier here", {
+    "before %s"
+})
+ERROR(parse_duplicate_modifier, "duplicated modifier: '%s'", "duplicated modifier", {"previous one is here"})
+
+ERROR(parse_duplicate_type_parameter_name, "duplicated type parameter name: '%s'", "duplicated type parameter name",
+    {"previous one is here"})
+ERROR(parse_unexpected_type_in, "unexpected type in '%s'", "unexpected type here", {
+    "in %s"
+})
+WARNING(parse_redundant_modifier, PARSER, "redundant modifier: '%s'", "%s implies '%s'")
+
+ERROR(parse_variable_length_parameter_can_not_be_first, "variable length parameter can not be the first parameter")
+ERROR(parse_variable_length_parameter_must_in_the_end, "variable length parameter must in the end of the parameter list")
+ERROR(parse_variable_length_parameter_only_in_the_foreign_function,
+    "variable length parameter can only show in the foreign function")
+ERROR(parse_foreign_func_should_not_be_generic, "foreign function should not be generic function")
+ERROR(parse_foreign_func_must_declare_return_type, "foreign function must declare its return type")
+ERROR(parse_foreign_function_with_body, "foreign function can not have body")
+ERROR(parse_expected_static_for_const_member_var, "expected static before const member variable",
+    "const member variable must be modified by static")
+
+// @Deprecated annotation
+ERROR(parse_deprecated_wrong_argument, "argument '%s' of @Deprecated should be %s")
+ERROR(parse_deprecated_argument_duplication, "argument '%s' of @Deprecated can not be duplicated")
+ERROR(parse_deprecated_arguments_must_be_lit_const_expr, "argument of @Deprecated is not string literal or boolean value. Variables not allowed")
+ERROR(parse_deprecated_empty_string_argument, "argument '%s' of @Deprecated must not be empty string")
+ERROR(parse_deprecated_unknown_argument, "unknown argument '%s' in @Deprecated")
+ERROR(parse_deprecated_invalid_target, "%s can not be target of @Deprecated")
+
+ERROR(parse_annotation_max_one_argument, "%s requires zero or one%s argument", "expected %s here")
+ERROR(parse_annotation_one_argument, "%s requires exactly one%s argument", "expected %s here")
+// interop
+ERROR(parse_foreign_name_on_ffi_decl_member, "@ForeignName could only be used on FFI declaration member")
+
+// java mirror
+ERROR(parse_java_mirror_function_cannot_have_body, "java-mirrored function '%s' cannot have body", "java-mirrored function cannot have body")
+ERROR(parse_java_mirror_function_must_have_return_type, "java-mirrored function must have return type", "java-mirrored function must have return type")
+ERROR(parse_java_mirror_prop_cannot_have_setter, "java-mirrored property cannot have setter", "java-mirrored property cannot have setter")
+ERROR(parse_java_mirror_prop_cannot_have_getter, "java-mirrored property cannot have getter", "java-mirrored property cannot have getter")
+WARNING(parse_java_mirror_prop_is_deprecated, PARSER, "java-mirrored property is deprecated, use field instead")
+ERROR(parse_java_mirror_decl_cannot_have_primary_ctor, "java-mirrored declaration cannot have primary constructor", "java-mirrored declaration cannot have primary constructor")
+ERROR(parse_java_mirror_constructor_cannot_have_body, "java-mirrored constructor cannot have body", "java-mirrored constructor cannot have body")
+ERROR(parse_java_mirror_cannot_have_private_member, "java-mirrored declaration cannot have private member")
+ERROR(parse_java_mirror_cannot_have_static_init, "java-mirrored declaration cannot have static initializer")
+ERROR(parse_java_mirror_cannot_have_finalizer, "java-mirrored declaration cannot have finalizer")
+ERROR(parse_java_mirror_cannot_have_const_member, "java-mirrored declaration cannot have const member")
+ERROR(parse_java_mirror_cannot_be_sealed, "@JavaMirror declaration cannot be sealed")
+ERROR(parse_java_impl_cannot_be_generic, "@JavaImpl declaration cannot be generic")
+ERROR(parse_java_impl_cannot_be_abstract, "@JavaImpl declaration cannot be abstract")
+ERROR(parse_java_impl_cannot_be_sealed, "@JavaImpl declaration cannot be sealed")
+ERROR(parse_java_impl_cannot_have_static_init, "@JavaImpl declaration cannot have static initializer")
+ERROR(parse_java_mirror_cannot_have_open_prop, "java-mirrored declaration cannot have open property")
+
+// java impl
+ERROR(parse_java_impl_cannot_be_open, "@JavaImpl class cannot be open")
+ERROR(parse_java_impl_cannot_be_interface, "interface cannot be @JavaImpl")
+
+// Objective-C mirror
+ERROR(parse_objc_mirror_cannot_have_primary_ctor, "@ObjCMirror declaration cannot have primary constructor", "@ObjCMirror declaration cannot have primary constructor")
+ERROR(parse_objc_mirror_ctor_cannot_have_body, "@ObjCMirror declaration constructor cannot have body", "@ObjCMirror declaration constructor cannot have body")
+ERROR(parse_objc_mirror_method_cannot_have_body, "@ObjCMirror declaration method '%s' cannot have body", "@ObjCMirror declaration method cannot have body")
+ERROR(parse_objc_mirror_method_must_have_return_type, "@ObjCMirror declaration method must have return type", "@ObjCMirror declaration method must have return type")
+ERROR(parse_objc_mirror_cannot_be_sealed, "@ObjCMirror declaration cannot be sealed")
+ERROR(parse_objc_mirror_cannot_have_private_member, "@ObjCMirror declaration cannot have private member")
+ERROR(parse_objc_mirror_cannot_have_static_init, "@ObjCMirror declaration cannot have static initializer")
+ERROR(parse_objc_mirror_cannot_have_finalizer, "@ObjCMirror declaration cannot have finalizer")
+ERROR(parse_objc_mirror_cannot_have_const_member, "@ObjCMirror declaration cannot have const member")
+ERROR(parse_objc_impl_cannot_be_generic, "@ObjCImpl declaration cannot be generic")
+ERROR(parse_objc_impl_cannot_be_abstract, "@ObjCImpl declaration cannot be abstract")
+ERROR(parse_objc_impl_cannot_be_sealed, "@ObjCImpl declaration cannot be sealed")
+ERROR(parse_objc_impl_cannot_have_static_init, "@ObjCImpl declaration cannot have static initializer")
+ERROR(parse_objc_impl_cannot_be_open, "@ObjCImpl class cannot be open")
+ERROR(parse_objc_impl_cannot_be_interface, "interface cannot be @ObjCImpl")
+ERROR(parse_objc_mirror_field_cannot_have_initializer, "@ObjCMirror declaration field cannot have initializer")
+ERROR(parse_objc_mirror_field_cannot_be_static, "@ObjCMirror declaration field cannot be 'static'")
+ERROR(parse_objc_mirror_prop_cannot_have_getter, "@ObjCMirror declaration property '%s' cannot have getter", "@ObjCMirror declaration property cannot have getter")
+ERROR(parse_objc_mirror_prop_cannot_have_setter, "@ObjCMirror declaration property '%s' cannot have setter", "@ObjCMirror declaration property cannot have setter")
+ERROR(parse_objc_mirror_method_must_have_foreign_name, "@ObjCMirror declaration method with parameters must have @ForeignName annotation", "@ObjCMirror declaration method with parameters must have @ForeignName annotation")
+ERROR(parse_objc_mirror_ctor_must_have_foreign_name, "@ObjCMirror declaration constructor with parameters must have @ForeignName annotation", "@ObjCMirror declaration constructor with parameters must have @ForeignName annotation")
+ERROR(parse_objc_impl_method_must_have_foreign_name, "@ObjCImpl declaration method with parameters must have @ForeignName annotation", "@ObjCImpl declaration method with parameters must have @ForeignName annotation")
+ERROR(parse_objc_impl_ctor_must_have_foreign_name, "@ObjCImpl declaration constructor with parameters must have @ForeignName annotation", "@ObjCImpl declaration constructor with parameters must have @ForeignName annotation")
+ERROR(parse_objc_mirror_func_cannot_be_foreign, "@ObjCMirror top-level function '%s' cannot be foreign")
+ERROR(parse_objc_mirror_func_cannot_be_c, "@ObjCMirror top-level function '%s' cannot be @C")
+ERROR(parse_objc_mirror_func_cannot_be_generic, "@ObjCMirror top-level function '%s' cannot be generic")
+ERROR(parse_objc_mirror_func_cannot_have_body, "@ObjCMirror top-level function '%s' cannot have body")
+ERROR(parse_objc_mirror_func_must_have_explicit_type, "@ObjCMirror top-level function '%s' must have result type explicitly specified")
+ERROR(parse_objc_mirror_func_cannot_be_const, "@ObjCMirror top-level function '%s' cannot be const")
+ERROR(parse_objc_mirror_func_must_be_top_level, "@ObjCMirror function '%s' can only be declared on top-level")
+
+ERROR(parse_objc_interop_not_supported, "Objective-C interoperability feature '%s' is not yet supported")
+
+ERROR(parse_diag_error, "%s", "%s")
+WARNING(parse_diag_warning, PARSER, "%s", "%s")
+
+// Don't add any diag after this kind.
+ERROR(parse_diag_end, "")

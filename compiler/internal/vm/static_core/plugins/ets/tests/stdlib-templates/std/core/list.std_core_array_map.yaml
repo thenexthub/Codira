@@ -1,0 +1,251 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+- {
+    method_name: map,
+    method_nature: function,
+    result_nature: array,
+    result_type: "FixedArray<boolean>",
+    method_signature: { arr: "FixedArray<boolean>", fn : "(value:boolean,index:int,self:FixedArray<boolean>)=>boolean" },
+    method_throws: "false",
+    method_signature_desc: {arr: "boolean_array", fn: "func_boolean_int_boolean_array"},
+    method_test_index_data:
+      {
+        test1:
+          {
+            arr: "[true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true]",
+            fn: '(value:boolean,index:int,self:FixedArray<boolean>): boolean =>  {return !value}',
+          },
+        test1:
+          {
+            arr: "[]",
+            fn: '(value:boolean,index:int,self:FixedArray<boolean>): boolean =>  {return !value}',
+          },
+      },
+    method_expected_data:
+      {
+        test1: "[false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]",
+        test2: "[]"
+      },
+  }
+- {
+    method_name: map,
+    method_nature: function,
+    result_nature: array,
+    result_type: "FixedArray<byte>",
+    method_signature: { arr: "FixedArray<byte>", fn : "(value:byte,index:int,self:FixedArray<byte>)=>byte" },
+    method_throws: "false",
+    method_signature_desc: {arr: "byte_array", fn: "func_byte_int_byte_array"},
+    method_test_index_data:
+      {
+        test1:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            fn: '(value:byte,index:int,self:FixedArray<byte>): byte =>  {return ((value * 2).toByte())}',
+          },
+          test2:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            fn: '(value:byte,index:int,self:FixedArray<byte>): byte =>  {return ((value + index).toByte())}',
+          },
+          test3:
+          {
+            arr: "[]",
+            fn: '(value:byte,index:int,self:FixedArray<byte>): byte =>  {return ((value + index).toByte())}',
+          },
+      },
+    method_expected_data:
+      {
+        test1: "[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]",
+        test2: "[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]",
+        test3: "[]"
+      },
+  }
+- {
+    method_name: map,
+    method_nature: function,
+    result_nature: array,
+    result_type: "FixedArray<short>",
+    method_signature: { arr: "FixedArray<short>", fn : "(value:short,index:int,self:FixedArray<short>)=>short" },
+    method_throws: "false",
+    method_signature_desc: {arr: "short_array", fn: "func_short_int_short_array"},
+    method_test_index_data:
+      {
+        test1:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            fn: '(value:short,index:int,self:FixedArray<short>): short =>  {return ((value * 2).toShort())}',
+          },
+        test2:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            fn: '(value:short,index:int,self:FixedArray<short>): short =>  {return ((value + index).toShort())}',
+          },
+        test3:
+          {
+            arr: "[]",
+            fn: '(value:short,index:int,self:FixedArray<short>): short =>  {return ((value + index).toShort())}',
+          },
+      },
+    method_expected_data:
+      {
+        test1: "[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]",
+        test2: "[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]",
+        test3: "[]"
+      },
+  }
+- {
+    method_name: map,
+    method_nature: function,
+    result_nature: array,
+    result_type: "FixedArray<int>",
+    method_signature: { arr: "FixedArray<int>", fn : "(value:int,index:int,self:FixedArray<int>)=>int" },
+    method_throws: "false",
+    method_signature_desc: {arr: "int_array", fn: "func_int_int_int_array"},
+    method_test_index_data:
+      {
+        test1:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            fn: '(value:int,index:int,self:FixedArray<int>): int =>  {return value * 2}',
+          },
+        test2:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            fn: '(value:int,index:int,self:FixedArray<int>): int =>  {return (value + index).toInt()}',
+          },
+        test3:
+          {
+            arr: "[]",
+            fn: '(value:int,index:int,self:FixedArray<int>): int =>  {return (value + index).toInt()}',
+          },
+
+      },
+    method_expected_data:
+      {
+        test1: "[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]",
+        test2: "[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]",
+        test3: "[]"
+      },
+  }
+- {
+    method_name: map,
+    method_nature: function,
+    result_nature: array,
+    result_type: "FixedArray<long>",
+    method_signature: { arr: "FixedArray<long>", fn : "(value:long,index:int,self:FixedArray<long>)=>long" },
+    method_throws: "false",
+    method_signature_desc: {arr: "long_array", fn: "func_long_int_long_array"},
+    method_test_index_data:
+      {
+        test1:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            fn: '(value:long,index:int,self:FixedArray<long>): long =>  {return value * 2}',
+          },
+        test2:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            fn: '(value:long,index:int,self:FixedArray<long>): long =>  {return (value + index).toLong()}',
+          },
+        test3:
+          {
+            arr: "[]",
+            fn: '(value:long,index:int,self:FixedArray<long>): long =>  {return (value + index).toLong()}',
+          },
+
+      },
+    method_expected_data:
+      {
+        test1: "[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]",
+        test2: "[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]",
+        test3: "[]"
+      },
+  }
+- {
+    method_name: map,
+    method_nature: function,
+    result_nature: array,
+    result_type: "FixedArray<float>",
+    method_signature: { arr: "FixedArray<float>", fn : "(value:float,index:int,self:FixedArray<float>)=>float" },
+    method_throws: "false",
+    method_signature_desc: {arr: "float_array", fn: "func_float_int_float_array"},
+    method_test_index_data:
+      {
+        test1:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            fn: '(value:float,index:int,self:FixedArray<float>): float =>  {return value * 2}',
+          },
+        test2:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            fn: '(value:float,index:int,self:FixedArray<float>): float =>  {return (value + index).toFloat()}',
+          },
+        test3:
+          {
+            arr: "[]",
+            fn: '(value:float,index:int,self:FixedArray<float>): float =>  {return (value + index).toFloat()}',
+          },
+
+      },
+    method_expected_data:
+      {
+        test1: "[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]",
+        test2: "[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]",
+        test3: "[]"
+      },
+  }
+- {
+    method_name: map,
+    method_nature: function,
+    result_nature: array,
+    result_type: "FixedArray<double>",
+    method_signature: { arr: "FixedArray<double>", fn : "(value:double,index:int,self:FixedArray<double>)=>double" },
+    method_throws: "false",
+    method_signature_desc: {arr: "double_array", fn: "func_double_int_double_array"},
+    method_test_index_data:
+      {
+        test1:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            fn: '(value:double,index:int,self:FixedArray<double>): double =>  {return value * 2}',
+          },
+        test2:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            fn: '(value:double,index:int,self:FixedArray<double>): double =>  {return (value + index)}',
+          },
+        test3:
+          {
+            arr: "[]",
+            fn: '(value:double,index:int,self:FixedArray<double>): double =>  {return (value + index)}',
+          },
+      },
+    method_expected_data:
+      {
+        test1: "[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]",
+        test2: "[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]",
+        test3: "[]"
+      },
+  }
+

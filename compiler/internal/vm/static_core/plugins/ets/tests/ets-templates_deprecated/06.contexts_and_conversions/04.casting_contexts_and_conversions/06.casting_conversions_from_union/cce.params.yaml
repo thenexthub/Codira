@@ -1,0 +1,101 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - from_type: boolean|never|number|Error|null
+      types:
+          - { type: Error, v: '1.0' }
+          - { type: Boolean, v: '1.0' }
+          - { type: Number, v: 'new Error()' }
+          - { type: Boolean, v: 'new Error()' }
+          - { type: Error, v: 'false' }
+          - { type: Number, v: 'false' }
+
+    - from_type: FixedArray<string>|byte|FixedArray<byte>|undefined
+      types:
+          - { type: 'Byte', v: '["a"] as FixedArray<string>' }
+          - { type: 'FixedArray<byte>', v: '["a"] as FixedArray<string>' }
+          - { type: 'FixedArray<byte>', v: '0x77 as byte' }
+          - { type: 'FixedArray<string>', v: '0x77 as byte' }
+
+    - decl: |-
+          let d = 42.0
+          let i = 42
+      from_type: Floating|Integral|boolean|never
+      types:
+          - { type: 'string[]', v: d }
+          - { type: 'Boolean', v: i }
+
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class C extends B {}
+          class D {}
+          class G {}
+          let a = new A()
+          let b = new B()
+          let c = new C()
+          let d = new D()
+          let g = new G()
+      from_type: A|B|C|D|G
+      types:
+          - { type: 'A', v: d }
+          - { type: 'B', v: g }
+          - { type: 'D', v: a }
+          - { type: 'C', v: a }
+          - { type: 'C', v: b }
+          - { type: 'G', v: b }
+
+    - decl: |-
+          interface I {}
+          interface J extends I {}
+          class A implements I {}
+          class B implements J {}
+          class C extends B {}
+          class D extends A {}
+          let i: I = new A()
+          let j: J = new B()
+          let c: C = new C()
+          let d: D = new D()
+      from_type: I|J|B|D
+      types:
+          - { type: 'J', v: i }
+          - { type: 'C', v: i }
+          - { type: 'A', v: j }
+          - { type: 'C', v: j }
+          - { type: 'D', v: j }
+          - { type: 'A', v: c }
+          - { type: 'D', v: c }
+
+    - decl: |-
+          type F = (p: int) => Int
+          type G = (p: long) => Long
+          let f: F = (p: int): Int => { return new Int(p) }
+          let g: G = (p: long): Long => { return new Long(p) }
+          let fa: F[] = [f, f]
+          let ga: G[] = [g, g, g]
+      from_type: F[]|F|G[]|G|never
+      types:
+          - { type: 'G', v: f }
+          - { type: 'G[]', v: f }
+          - { type: 'F[]', v: f }
+          - { type: 'F', v: g }
+          - { type: 'F[]', v: g }
+          - { type: 'G[]', v: g }
+          - { type: 'F', v: fa }
+          - { type: 'G', v: fa }
+          - { type: 'G[]', v: fa }
+          - { type: 'F', v: ga }
+          - { type: 'F[]', v: ga }
+          - { type: 'G', v: ga }

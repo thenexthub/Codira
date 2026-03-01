@@ -1,0 +1,54 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    - decl: |-
+          // CTE: implementation is missing
+          function foo(): string;
+          function foo(a: string): string;
+          function foo(a: string, b: string): string;
+      call: |-
+          foo();
+
+    - decl: |-
+          // CTE: implementation does not immediately follow the declarations
+          function foo(): string;
+          function foo(a: string, b: string): string;
+          function bar(): string {
+              return "";
+          }
+          function foo(...p: Any[]): Any {
+              return 42.0;
+          }
+      call: |-
+          foo()
+
+    - decl: |-
+          // CTE: implementation has a wrong name
+          function foo(): string;
+          function foo(a: string, b: string): string;
+          function bar(...p: Any[]): Any {
+              return 42.0;
+          }
+      call: |-
+          foo()

@@ -1,0 +1,217 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # Body
+cases:
+  - desc: single expression
+    impl: |-
+    call: |-
+        let f = () => 'Hello, World!'
+        arktest.assertEQ(f(), 'Hello, World!', 'single expression failed')
+
+  - desc: block
+    impl: |-
+    call: |-
+        let f = () => {
+        let a = 'Hello'
+        let b = ", "
+        let c = 'World!'
+        
+        return a + b + c
+        }
+        arktest.assertEQ(f(), 'Hello, World!', "block failed")
+
+  - desc: capture "this"
+    impl: |-
+        class A {
+            count: number = 0
+
+            test(op: () => void) {
+                op()
+            }
+
+            increment() {
+                this.test(() => { this.count++ })
+            }
+        }
+
+    call: |-
+        let a = new A()
+        a.increment()
+        arktest.assertEQ(a.count, 1, "capture \"this\" failed")
+
+  - desc: capture "super"
+    impl: |-
+        class A {
+            private _count: number = 0
+
+            test(op: () => void) {
+                op()
+            }
+
+            get count(): number{
+                return this._count;
+            }
+
+            set count(p: number){
+                this._count = p;
+            }
+        }
+
+        class B extends A {
+            decrement() {
+                this.test(() => { super.count-- })
+            }
+        }
+    call: |-
+        let b = new B()
+        b.decrement()
+        arktest.assertEQ(b.count, -1, "capture \"super\" failed")
+
+  - desc: capture local variable
+    impl: |-
+        function f() {
+            let y: int = 1
+            let x = () => { return y + 1 }
+            return x()
+        }
+    call: |-
+        arktest.assertEQ(f(), 2, 'use local variable failed')
+
+  - desc: capture local variable
+    impl: |-
+        function f() {
+            let y: int = 1
+            let x = () => { y++ }
+            x()
+            return y
+        }
+    call: |-
+        arktest.assertEQ(f(), 2, 'modify local variable failed')
+
+  - desc: capture formal parameter
+    impl: |-
+        function f(y: int) {
+            let x = () => { return y + 1 }
+            return x()
+        }
+    call: |-
+        arktest.assertEQ(f(4), 5, 'use formal parameter failed')
+
+  - desc: capture formal parameter
+    impl: |-
+        function f(y: int) {
+            let x = () => { y++ }
+            x()
+            return y
+        }
+    call: |-
+        arktest.assertEQ(f(6), 7, 'modify formal parameter failed')
+
+  - desc: capture constant from global scope
+    impl: |-
+      const helloWorld = 'Hello, World!'
+    call: |-
+      let f = () => helloWorld
+      arktest.assertTrue(f instanceof Function0)
+      arktest.assertEQ(f(), 'Hello, World!', 'capture constant failed')
+
+  - desc: capture constant function from global scope
+    impl: |-
+      const helloWorld = () => 'Hello, World!'
+    call: |-
+      let f = () => helloWorld
+      arktest.assertEQ(f()(), 'Hello, World!', 'capture constant failed')
+
+  - desc: capturing within the function scope
+    impl: |-
+        let global1: number = 0
+        let global2: number = 0
+        function capturingFunction() {
+            let local1: number = 0
+            return (local2: number) => {
+                global1 = local1
+                global2 = local2
+                local1 = local2
+            }
+        }
+    call: |-
+        const func1 = capturingFunction()
+        const func2 = capturingFunction()
+
+        func1(11)
+        arktest.assertEQ(global1, 0)
+        arktest.assertEQ(global2, 11)
+
+        func2(22)
+        arktest.assertEQ(global1, 0)
+        arktest.assertEQ(global2, 22)
+
+        func1(33)
+        arktest.assertEQ(global1, 11)
+        arktest.assertEQ(global2, 33)
+
+        func2(44)
+        arktest.assertEQ(global1, 22)
+        arktest.assertEQ(global2, 44)
+
+  - desc: capturing within the loop scope
+    impl: |-
+        const lambda = (): int => { return 1 }
+        const storage = [lambda, lambda, lambda, lambda, lambda]
+    call: |-
+        for(let index = 0; index < storage.length; index++) {
+            storage[index] = () => { 
+                return index
+            }
+        }
+        for(let index = 0; index < storage.length; index++) {
+            arktest.assertEQ(storage[index](), index)
+        }
+  - desc: lambda chain
+    impl: |-
+        let lambda = () => () => () => 1
+    call: |-
+        arktest.assertEQ(lambda()()(), 1, 'lambda chain failed')
+
+  - desc: lambda reassignment with capture
+    impl: |-
+        class IntPair {
+            p1: int
+            p2: int
+            constructor(p1: int, p2: int) {
+                this.p1 = p1
+                this.p2 = p2
+            }
+        }
+
+        function box(lambda: () => int): int { return lambda() }
+        
+        function bar(p: IntPair): int {
+            let f = () => { return p.p1++ }
+            let get0 = f
+
+            f = () => { return ++p.p2 }
+            let get1 = f
+
+            let get2 = get1
+            f = () => { return ++p.p1 }
+            get2 = f
+
+            return box(get0) + box(get1) + box(get2)
+        }
+    call: |-
+        let p = new IntPair(0, 0)
+        arktest.assertEQ(bar(p), 3, 'lambda reassignment failed')
+        arktest.assertEQ(p.p1, 2, 'lambda reassignment failed')
+        arktest.assertEQ(p.p2, 1, 'lambda reassignment failed')

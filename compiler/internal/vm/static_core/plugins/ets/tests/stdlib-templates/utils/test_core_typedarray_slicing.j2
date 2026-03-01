@@ -1,0 +1,451 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+
+const success: int = 0;
+const fail: int = 1;
+
+function main(): int {
+    let failures: int = 0;
+
+    failures += check(testSliceWithOutParam(), "Try to Array slice() function");
+    failures += check(testSliceOneParam(), "Try to Array slice(1) function");
+    failures += check(testSliceTwoParams(), "Try to Array slice(2) function");
+    failures += check(testSliceTwoParamsWithOtherNumber(), "Try to Array slice(2) With Other Number function");
+    failures += check(testSliceOneLengthTwoParams(), "Try to Array slice(2) One Length Two Params function");
+
+    if (failures > 0){
+        console.log("failed");
+        return fail;
+    }
+
+    console.log("All passed");
+    return success;
+}
+
+
+function check(result: int, message: String): int {
+    if (result == 0) {
+        return success;
+    }
+    console.log("\nFAILED: " + message);
+    return fail;
+}
+
+const source: FixedArray<{{.item.primitiveType}}> = {{.item.data}};
+const abnormalSource: FixedArray<{{.item.primitiveType}}> = {{.item.abnormalData}};
+
+
+function testSliceWithOutParam(): int {
+    //let source: FixedArray<{{.item.primitiveType}}> = [10, 20, 30, 40, 50, 60];
+    let ss = new ArrayBuffer(source.length.toInt() * {{.item.primitiveSizeBytes}});
+
+    let origin: {{.item.objectType}};
+
+    try {
+        origin = new {{.item.objectType}}(ss);
+        origin.set(source);
+    } catch(e) {
+        console.log(e);
+        return fail;
+    }
+
+
+    let target: {{.item.objectType}};
+
+    try {
+        target = origin.slice();
+    } catch(e) {
+        console.log(e);
+        return fail;
+    }
+
+    if (target.length.toInt() != origin.length.toInt()) {
+        console.log("Array length mismatch on slice");
+        return fail;
+    }
+
+    //Check all the data copied;
+    for (let i: int = 0; i< origin.length.toInt(); i++) {
+        let tv = target[i]{{.item.cast2primitive}};
+        let ov = origin[i]{{.item.cast2primitive}};
+        console.log(source[i] + "->" + tv + "->" + ov);
+        if (tv != ov) {
+            console.log("Array data mismatch");
+            return fail;
+        }
+    }
+
+    origin= new {{.item.objectType}}(0);
+    if (origin.length.toInt() != 0){
+        return fail;
+    }
+
+    try {
+        target = origin.slice();
+    } catch(e) {
+        console.log(e);
+        return fail;
+    }
+
+    if (target.length.toInt() != 0){
+        return fail;
+    }
+    return success;
+}
+
+function testSliceOneParam(): int {
+    //let source: FixedArray<{{.item.primitiveType}}> = [10, 20, 30, 40, 50, 60];
+    let ss = new ArrayBuffer(source.length.toInt() * {{.item.primitiveSizeBytes}});
+
+    let origin: {{.item.objectType}};
+
+    try {
+        origin = new {{.item.objectType}}(ss);
+        origin.set(source);
+    } catch(e) {
+        console.log(e);
+        return fail;
+    }
+
+    let sliceStart: int = 1;
+    let sliceEnd: int = origin.length.toInt();
+
+    let target: {{.item.objectType}};
+
+    try {
+        target = origin.slice(sliceStart);
+    } catch(e) {
+        console.log(e);
+        return fail;
+    }
+
+    if (target.length.toInt() != origin.length.toInt() - sliceStart) {
+        console.log("Array length mismatch on slice One Params" + target.length);
+        return fail;
+    }
+
+    //Check all the data copied;
+    for (let i: int = sliceStart; i< sliceEnd; i++) {
+        let tv = target[i - sliceStart]{{.item.cast2primitive}};
+        let ov = origin[i]{{.item.cast2primitive}};
+        console.log(source[i] + "->" + tv + "->" + ov);
+        if (tv != ov) {
+            console.log("Array data mismatch");
+            return fail;
+        }
+    }
+
+    sliceStart = 0;
+    try {
+        target = origin.slice(undefined);
+    } catch(e) {
+        console.log(e);
+        return fail;
+    }
+
+    if (target.length.toInt() != origin.length.toInt()) {
+        console.log("Array length mismatch on slice One Params" + target.length);
+        return fail;
+    }
+
+    //Check all the data copied;
+    for (let i: int = sliceStart; i< sliceEnd; i++) {
+        let tv = target[i - sliceStart]{{.item.cast2primitive}};
+        let ov = origin[i]{{.item.cast2primitive}};
+        console.log(source[i] + "->" + tv + "->" + ov);
+        if (tv != ov) {
+            console.log("Array data mismatch");
+            return fail;
+        }
+    }
+
+    return success;
+}
+
+function testSliceTwoParams(): int {
+    //let source: FixedArray<{{.item.primitiveType}}> = [10, 20, 30, 40, 50, 60, 70, 80];
+    let ss = new ArrayBuffer(source.length.toInt() * {{.item.primitiveSizeBytes}});
+
+    let origin: {{.item.objectType}};
+
+    try {
+        origin = new {{.item.objectType}}(ss);
+        origin.set(source);
+    } catch(e) {
+        console.log(e);
+        return fail;
+    }
+
+    let sliceStart: int = 2;
+    let sliceEnd: int = 4;
+
+    let target: {{.item.objectType}};
+
+    try {
+        target = origin.slice(sliceStart, sliceEnd);
+    } catch(e) {
+        console.log(e);
+        return fail;
+    }
+
+    if (target.length.toInt() != sliceEnd - sliceStart) {
+        console.log("Array length mismatch on slice2");
+        return fail;
+    }
+
+    //Check all the data copied;
+    for (let i: int = sliceStart; i< sliceEnd; i++) {
+        let tv = target[i - sliceStart]{{.item.cast2primitive}};
+        let ov = origin[i]{{.item.cast2primitive}};
+        console.log(source[i] + "->" + tv + "->" + ov);
+        if (tv != ov) {
+            console.log("Array data mismatch");
+            return fail;
+        }
+    }
+
+    sliceStart = 0;
+    sliceEnd = origin.length.toInt();
+    try {
+        target = origin.slice(sliceStart, sliceEnd);
+    } catch(e) {
+        console.log(e);
+        return fail;
+    }
+
+    if (target.length.toInt() != sliceEnd - sliceStart) {
+        console.log("Array length mismatch on slice2");
+        return fail;
+    }
+
+    //Check all the data copied;
+    for (let i: int = sliceStart; i< sliceEnd; i++) {
+        let tv = target[i - sliceStart]{{.item.cast2primitive}};
+        let ov = origin[i]{{.item.cast2primitive}};
+        console.log(source[i] + "->" + tv + "->" + ov);
+        if (tv != ov) {
+            console.log("Array data mismatch");
+            return fail;
+        }
+    }
+
+    try {
+        target = origin.slice(sliceStart, undefined);
+    } catch(e) {
+        console.log(e);
+        return fail;
+    }
+
+    if (target.length.toInt() != sliceEnd - sliceStart) {
+        console.log("Array length mismatch on slice2");
+        return fail;
+    }
+
+    //Check all the data copied;
+    for (let i: int = sliceStart; i< sliceEnd; i++) {
+        let tv = target[i - sliceStart]{{.item.cast2primitive}};
+        let ov = origin[i]{{.item.cast2primitive}};
+        console.log(source[i] + "->" + tv + "->" + ov);
+        if (tv != ov) {
+            console.log("Array data mismatch");
+            return fail;
+        }
+    }
+
+    try {
+        target = origin.slice(undefined, undefined);
+    } catch(e) {
+        console.log(e);
+        return fail;
+    }
+
+    if (target.length.toInt() != sliceEnd - sliceStart) {
+        console.log("Array length mismatch on slice2");
+        return fail;
+    }
+
+    //Check all the data copied;
+    for (let i: int = sliceStart; i< sliceEnd; i++) {
+        let tv = target[i - sliceStart]{{.item.cast2primitive}};
+        let ov = origin[i]{{.item.cast2primitive}};
+        console.log(source[i] + "->" + tv + "->" + ov);
+        if (tv != ov) {
+            console.log("Array data mismatch");
+            return fail;
+        }
+    }
+
+    try {
+        target = origin.slice(undefined, sliceEnd);
+    } catch(e) {
+        console.log(e);
+        return fail;
+    }
+
+    if (target.length.toInt() != sliceEnd - sliceStart) {
+        console.log("Array length mismatch on slice2");
+        return fail;
+    }
+
+    //Check all the data copied;
+    for (let i: int = sliceStart; i< sliceEnd; i++) {
+        let tv = target[i - sliceStart]{{.item.cast2primitive}};
+        let ov = origin[i]{{.item.cast2primitive}};
+        console.log(source[i] + "->" + tv + "->" + ov);
+        if (tv != ov) {
+            console.log("Array data mismatch");
+            return fail;
+        }
+    }
+
+    try {
+        target = origin.slice(0, 0);
+    } catch(e) {
+        console.log(e);
+        return fail;
+    }
+
+    if (target.length.toInt() != 0) {
+        console.log("Array length mismatch on slice2");
+        return fail;
+    }
+
+    return success;
+}
+
+function testSliceTwoParamsWithOtherNumber(): int {
+    //let source: FixedArray<{{.item.primitiveType}}> = [10, 20, 30, 40, 50, 60, 70, 80];
+    let ss = new ArrayBuffer(source.length.toInt() * {{.item.primitiveSizeBytes}});
+
+    let origin: {{.item.objectType}};
+
+    try {
+        origin = new {{.item.objectType}}(ss);
+        origin.set(source);
+    } catch(e) {
+        console.log(e);
+        return fail;
+    }
+
+    let sliceStart: int = 4;
+    let sliceEnd: int = 2;
+
+    let target: {{.item.objectType}};
+
+    try {
+        target = origin.slice(sliceStart, sliceEnd);
+    } catch(e) {
+        return fail;
+    }
+
+    if (target.length.toInt() != 0) {
+        console.log("Array length mismatch on slice2");
+        return fail;
+    }
+
+    sliceStart = -1;
+    sliceEnd = origin.length.toInt();
+    try {
+        target = origin.slice(sliceStart, sliceEnd);
+    } catch(e) {
+        return fail;
+    }
+
+    if (target.length.toInt() != sliceEnd - (origin.length + sliceStart)) {
+        console.log("Array length mismatch on slice2");
+        return fail;
+    }
+
+    //Check all the data copied;
+    for (let i: int = (origin.length + sliceStart).toInt(); i< sliceEnd; i++) {
+        let tv = target[(i - (origin.length + sliceStart)).toInt()]{{.item.cast2primitive}};
+        let ov = origin[i]{{.item.cast2primitive}};
+        console.log(source[i] + "->" + tv + "->" + ov);
+        if (tv != ov) {
+            console.log("Array data mismatch");
+            return fail;
+        }
+    }
+
+    sliceStart = 0;
+    sliceEnd = -origin.length.toInt();
+    try {
+        target = origin.slice(sliceStart, sliceEnd);
+    } catch(e) {
+        console.log(e);
+        return fail;
+    }
+
+    if (target.length.toInt() != (origin.length + sliceEnd) - sliceStart) {
+        console.log("Array length mismatch on slice2");
+        return fail;
+    }
+
+    return success;
+}
+
+function testSliceOneLengthTwoParams(): int {
+    let source1: FixedArray<{{.item.type}}> = [{{.item.create}}(10)];
+    let ss = new ArrayBuffer(source1.length.toInt() * {{.item.primitiveSizeBytes}});
+
+    let origin: {{.item.objectType}};
+
+    try {
+        origin = new {{.item.objectType}}(ss);
+        origin.set(source1);
+    } catch(e) {
+        console.log(e);
+        return fail;
+    }
+    
+    let sliceStart: int = 4;
+    let sliceEnd: int = 2;
+
+    let target: {{.item.objectType}};
+
+    try {
+        target = origin.slice(sliceStart, sliceEnd);
+    } catch(e) {
+        return fail;
+    }
+
+    if (target.length.toInt() != 0) {
+        console.log("Array length mismatch on slice2");
+        return fail;
+    }
+
+    sliceStart = 2;
+    sliceEnd = 4;
+    try {
+        target = origin.slice(sliceStart, sliceEnd);
+    } catch(e) {
+        return fail;
+    }
+
+    if (target.length.toInt() != 0) {
+        console.log("Array length mismatch on slice2");
+        return fail;
+    }
+
+    return success;
+}

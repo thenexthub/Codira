@@ -1,0 +1,112 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+#! CHECKER      Intrinsics is enabled
+#! RUN          force_jit: true, options: "--compiler-encode-intrinsics=true --compiler-inlining=false", entry: "_GLOBAL::main"
+#! EVENT        /Compilation,.*_GLOBAL::f/
+#! METHOD       "_GLOBAL::f"
+#! PASS_AFTER   "IrBuilder"
+#! INST         "Abs "
+#! INST         "Min "
+#! ASM_METHOD   "_GLOBAL::f"
+#! ASM_NOT      x64: /call.*r\d+/
+
+#! CHECKER      Intrinsics is enabled Regular AOT
+#! RUN_PAOC     options: "--compiler-encode-intrinsics=true --compiler-inlining=false"
+#! METHOD       "_GLOBAL::f"
+#! PASS_AFTER   "IrBuilder"
+#! INST         "Abs "
+#! INST         "Min "
+#! ASM_METHOD   "_GLOBAL::f"
+#! ASM_NOT      x64: /call.*r\d+/
+#! RUN          entry: "_GLOBAL::main"
+
+#! CHECKER      Intrinsics is enabled LLVM AOT
+#! RUN_LLVM     options: "--compiler-encode-intrinsics=true --compiler-inlining=false --llvm-dump-before"
+#! READ_FILE    "console.out"
+#! INST         "call i64 @llvm.abs.i64"
+#! INST_NEXT    "call i64 @llvm.smin.i64"
+#! METHOD       "_GLOBAL::f"
+#! PASS_AFTER   "IrBuilder"
+#! INST         "Abs "
+#! INST         "Min "
+#! RUN          entry: "_GLOBAL::main"
+
+#! CHECKER      Intrinsics is disable
+#! RUN          force_jit: true, options: "--compiler-encode-intrinsics=false --compiler-inlining=false", entry: "_GLOBAL::main"
+#! EVENT        /Compilation,.*_GLOBAL::f/
+#! METHOD       "_GLOBAL::f"
+#! PASS_AFTER   "IrBuilder"
+#! INST         "Intrinsic.MathAbsI64"
+#! INST         "Intrinsic.MathMinI64"
+#! INST_NOT     "Abs "
+#! INST_NOT     "Min "
+#! ASM_METHOD   "_GLOBAL::f"
+#! ASM_INST     "Intrinsic.MathAbsI64"
+#! ASM          x64: /call.*r\d+/, arm64: "bl"
+#! ASM_INST     "Intrinsic.MathMinI64"
+#! ASM          x64: /call.*r\d+/, arm64: "bl"
+
+#! CHECKER      Intrinsics is disable Regular AOT
+#! RUN_PAOC     options: "--compiler-encode-intrinsics=false --compiler-inlining=false"
+#! METHOD       "_GLOBAL::f"
+#! PASS_AFTER   "IrBuilder"
+#! INST         "Intrinsic.MathAbsI64"
+#! INST         "Intrinsic.MathMinI64"
+#! INST_NOT     "Abs "
+#! INST_NOT     "Min "
+#! ASM_METHOD   "_GLOBAL::f"
+#! ASM_INST     "Intrinsic.MathAbsI64"
+#! ASM          x64: /call.*r\d+/, arm64: "bl"
+#! ASM_INST     "Intrinsic.MathMinI64"
+#! ASM          x64: /call.*r\d+/, arm64: "bl"
+#! RUN          entry: "_GLOBAL::main"
+
+#! CHECKER      Intrinsics is disable LLVM AOT
+#! RUN_LLVM     options: "--compiler-encode-intrinsics=false --compiler-inlining=false --llvm-dump-before"
+#! READ_FILE    "console.out"
+#! INST_NOT     "call i64 @llvm.abs.i64"
+#! INST_NEXT_NOT "call i64 @llvm.smin.i64"
+#! METHOD       "_GLOBAL::f"
+#! PASS_AFTER   "IrBuilder"
+#! INST         "Intrinsic.MathAbsI64"
+#! INST         "Intrinsic.MathMinI64"
+#! INST_NOT     "Abs "
+#! INST_NOT     "Min "
+#! RUN          entry: "_GLOBAL::main"
+
+.record Math <external>
+.function i64 Math.minI64(i64 a0, i64 a1) <external>
+.function i64 Math.absI64(i64 a0) <external>
+.function i64 f(i64 a0, i64 a1) {
+    call.short Math.absI64, a0
+    sta.64 v0
+    call.short Math.minI64, v0, a1
+    return.64
+}
+
+.function i64 main() {
+    movi.64 v0, -1
+    movi.64 v1, 0
+    call.short f, v0, v1
+    return.64
+}

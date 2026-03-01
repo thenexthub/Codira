@@ -1,0 +1,95 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of valid array composites
+array_composite:
+    # empty array
+    - { array: '[]', type: number, len: 0 }
+
+    # array of primitives
+    - { array: '[1, 2, 3]', type: int, len: 3 }
+
+    # array of boxed
+    - { array: '[new Double(3.1415926)]', type: Double, len: 1 }
+
+    # array of strings
+    - { array: '["aaa", "bbb"]', type: string, len: 2 }
+
+    # array of Objects
+    - array: '["aaa", "bbb", "aaa", [true, false], [[1, 2, 3], [4, 5, 6]], new Long(), new Short(), new Number(), new Error(), "ccc",]'
+      type: 'Object'
+      len: 10
+
+    # array of functions
+    - decl: |-
+          type FUNC = (p: int) => int
+      type: FUNC
+      array: '[(p:int):int => {return p+1}, (p:int):int => {return p+2}]'
+      len: 2
+
+    # array of functions
+    - decl: |-
+          function foo() {}
+      type: '(() => void)'
+      array: '[foo, foo, foo]'
+      len: 3
+
+    # array of arrays
+    - type: 'Number[]'
+      array: '[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]]'
+      len: 3
+
+    # array of tuples
+    - type: '[boolean, Error]'
+      array: '[[false, new Error()], [true, new Error()]]'
+      len: 2
+
+    # array of unions
+    - type: '(Number|null|undefined|String)'
+      array: '[3.0, null, "X"]'
+      len: 3
+
+    # array of parameterized objects
+    - decl: |-
+          class A<T> {}
+      type: A<String>
+      array: '[new A<String>(), new A<String>(), new A<String>()]'
+      len: 3
+
+    # array of enums
+    - decl: |-
+          enum Color { Red, Green, Blue }
+      type: Color
+      array: '[Color.Red, Color.Green, Color.Blue]'
+      len: 3
+
+    # array of nullish
+    - type: '(Long|undefined)'
+      array: '[new Long(1 as long), undefined, new Long(2 as long), undefined, new Long(3 as long)]'
+      len: 5
+
+    # array of nullish
+    - decl: |-
+          type TT = [string, boolean]
+      type: '(TT|null)'
+      array: '[null, null, ["a", true] as TT, ["b", false] as TT, null]'
+      len: 5
+
+    # array of objects
+    - decl: |-
+          class A {
+              fld: number
+          }
+      type: A
+      array: '[{fld: 1.0}, {fld: 1.0}, {fld: 1.0}, {fld: 1.0}]'
+      len: 4

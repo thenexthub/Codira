@@ -1,0 +1,46 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+@class
+interface Want {
+    @set SetBundleName(bundleName: Optional<String>): void;
+    @get GetBundleName(): Optional<String>;
+    @set SetAbilityName(abilityName: Optional<String>): void;
+    @get GetAbilityName(): Optional<String>;
+    @set SetDeviceId(deviceId: Optional<String>): void;
+    @get GetDeviceId(): Optional<String>;
+    @set SetUri(uri: Optional<String>): void;
+    @get GetUri(): Optional<String>;
+    @set SetType(type: Optional<String>): void;
+    @get GetType(): Optional<String>;
+    @set SetFlags(flags: Optional<f32>): void;
+    @get GetFlags(): Optional<f32>;
+    @set SetAction(action: Optional<String>): void;
+    @get GetAction(): Optional<String>;
+    @set SetParameters(parameters: Optional<@record Map<String, Opaque>>): void;
+    @get GetParameters(): Optional<@record Map<String, Opaque>>;
+    @set SetEntities(entities: Optional<Array<String>>): void;
+    @get GetEntities(): Optional<Array<String>>;
+    @set SetModuleName(moduleName: Optional<String>): void;
+    @get GetModuleName(): Optional<String>;
+}
+@ctor("Want")
+function CreateWant(): Want;

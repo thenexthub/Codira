@@ -1,0 +1,108 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+version: 0.0.0.1
+type: test-suite
+suite-name: astchecker
+list-root: ${ARKCOMPILER_ETS_FRONTEND_PATH}/ets2panda/test/test-lists/astchecker
+test-root: ${ARKCOMPILER_ETS_FRONTEND_PATH}/ets2panda/test
+
+parameters:
+  work-dir: ${WORK_DIR}/${suite-name}
+  enable-verifier: false
+  build: ${PANDA_BUILD}
+  validator: runner.extensions.validators.astchecker.astchecker_validator.AstCheckerValidator
+  with-js: false
+
+collections:
+  #  js tests
+  ark_tests/ast/parser/js:
+    parameters:
+      extension: js
+      es2panda-workflow-args:
+        - "--dump-ast"
+        - "--extension=${parameters.extension}"
+        - "--thread=0"
+        - "--parse-only"
+  ast/parser/js:
+    parameters:
+      extension: js
+      es2panda-workflow-args:
+        - "--dump-ast"
+        - "--extension=${parameters.extension}"
+        - "--thread=0"
+        - "--parse-only"
+  ast/compiler/js:
+    parameters:
+      extension: js
+      es2panda-workflow-args:
+        - "--dump-ast"
+        - "--extension=${parameters.extension}"
+        - "--thread=0"
+        - "--output=/dev/null"
+  #  ts tests
+  ast/parser/ts:
+    parameters:
+      extension: ts
+      es2panda-workflow-args:
+        - "--dump-ast"
+        - "--extension=${parameters.extension}"
+        - "--thread=0"
+        - "--parse-only"
+  ast/compiler/ts:
+    parameters:
+      extension: ts
+      es2panda-workflow-args:
+        - "--dump-ast"
+        - "--extension=${parameters.extension}"
+        - "--thread=0"
+        - "--output=/dev/null"
+  # as/ts tests
+  ast/parser/as:
+    parameters:
+      extension: ts
+      es2panda-workflow-args:
+        - "--dump-ast"
+        - "--extension=as"
+        - "--thread=0"
+        - "--parse-only"
+  # sts tests
+  ast/compiler/ets:
+    parameters:
+      arktsconfig: "${parameters.build}/tools/es2panda/generated/arktsconfig.json"
+      extension: ets
+      es2panda-workflow-args:
+        - "--dump-ast"
+        - "--extension=${parameters.extension}"
+        - "--thread=0"
+        - "--output=/dev/null"
+        - "--arktsconfig=${parameters.arktsconfig}"
+  ast/parser/ets:
+    parameters:
+      arktsconfig: "${parameters.build}/tools/es2panda/generated/arktsconfig.json"
+      extension: ets
+      es2panda-workflow-args:
+        - "--dump-ast"
+        - "--extension=${parameters.extension}"
+        - "--thread=0"
+        - "--output=/dev/null"
+        - "--arktsconfig=${parameters.arktsconfig}"

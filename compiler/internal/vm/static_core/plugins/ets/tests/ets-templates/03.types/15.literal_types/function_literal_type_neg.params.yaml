@@ -1,0 +1,70 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - doc: |-
+          Use unexpected literal type as an argument for the function
+      decl: |-
+          function foo(i: "some str") { }
+      use: |-
+          let a: "another str" = "another str"
+          foo(a)
+
+    - doc: |-
+          String literal type could not be substituted by its superclass string
+      decl: |-
+          function foo(i: "some str") { }
+      use: |-
+          foo(new string("some str"))
+
+    - doc: |-
+          String literal type is overload-equivalent to string
+      decl: |-
+          function foo(i: "some str") {}
+          function foo(i: string) {}
+
+    - doc: |-
+          Use custom type, made of literal type, as function parameter. String argument value used.
+      decl: |-
+          type LITERAL = "some str"
+          function foo(i: LITERAL ) { }
+          let a: string = "some str"
+      use: |-
+          foo(a)
+
+    - doc: |-
+          Use rest parameter of literal array and argument of another literal type
+      decl: |-
+          function foo(...j: "some str"[]) {
+              return j[0]
+          }
+      use: |-
+          fooL("another str")
+
+    - doc: |-
+          Use rest parameter of literal array and argument of unexpected type of Base class
+      decl: |-
+          function foo(...j: "some str"[]) {
+              return j[0]
+          }
+      use: |-
+          foo(new String("some str"))
+
+    - doc: |-
+          Use rest parameter for tuple of literal types and argument of unexpected type of Base class
+      decl: |-
+          type TPL = ["some str, "another str", undefined, null]
+          function foo(...j: TPL) { }
+      use: |-
+          foo( [ "some str", new String("another str"), undefined, null ] )

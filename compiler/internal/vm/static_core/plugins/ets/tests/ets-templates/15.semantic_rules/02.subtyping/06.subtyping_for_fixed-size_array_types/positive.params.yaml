@@ -1,0 +1,137 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - stype: |-
+          Number
+      value: |-
+          [1,2,3]
+      dtype: |-
+          Object
+      check: |-
+          FixedArray<Number>
+    - stype: |-
+          boolean
+      value: |-
+          [true, false, true]
+      dtype: |-
+          Object
+      check: |-
+          FixedArray<Boolean>
+    - stype: |-
+          J
+      value: |-
+          [{j: 1}, {j: 2}]
+      dtype: |-
+          I
+      check: |-
+          FixedArray<J>
+    - stype: |-
+          bigint
+      value: |-
+          [123n, 1_123n, -123n]
+      dtype: |-
+          Object
+      check: |-
+          FixedArray<BigInt>
+    - stype: |-
+          string[]
+      value: |-
+          [["a", "b"],["a", "b"]]
+      dtype: |-
+          Object
+      check: |-
+          FixedArray<Array>
+    - stype: |-
+          null
+      value: |-
+          [null, null, null]
+      dtype: |-
+          Any
+      check: |-
+          FixedArray<null>
+    - stype: |-
+          undefined
+      value: |-
+          [undefined, undefined, undefined]
+      dtype: |-
+          Any
+      check: |-
+          FixedArray<undefined>
+    - stype: |-
+          Derived
+      value: |-
+          [new Derived, new Derived]
+      dtype: |-
+          Base
+      check: |-
+          FixedArray<Base>
+    - stype: |-
+          String
+      value: |-
+          ['1','2','3']
+      dtype: |-
+          Object
+      check: |-
+          FixedArray<String>
+    - stype: |-
+          'a'
+      value: |-
+          ['a','a','a']
+      dtype: |-
+          Object
+      check: |-
+          FixedArray<String>
+    - stype: |-
+          '1'|'2'|'3'
+      value: |-
+          ['1','2','3']
+      dtype: |-
+          '1'|'2'|'3'|'4'
+      check: |-
+          FixedArray<'1'|'2'|'3'>
+    - stype: |-
+          Base | Derived
+      value: |-
+          [new Base(), new Derived()]
+      dtype: |-
+          Object
+      check: |-
+          FixedArray<Base>
+    - stype: |-
+          String|Number
+      value: |-
+          ['1', 1, 2]
+      dtype: |-
+          Object
+      check: |-
+          FixedArray<Object>
+    - stype: |-
+          [Base, J, string]
+      value: |-
+          [[new Base(), {j: 1}, 'a'], [new Derived(), {j: 2}, 'b']]
+      dtype: |-
+          Object
+      check: |-
+          FixedArray<[Base, J, string]>
+    - stype: |-
+          Derived
+      value: |-
+          [new Derived(), new Derived()]
+      dtype: |-
+          Base
+      customtype: |-
+          yes
+      check: |-
+          FixedArray<Derived>

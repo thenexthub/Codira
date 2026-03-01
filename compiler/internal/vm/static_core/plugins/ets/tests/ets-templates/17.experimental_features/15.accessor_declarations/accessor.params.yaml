@@ -1,0 +1,89 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+  # Below tests are based on code examples from chapter 17.15 spec version 1.2.0-alpha2 TECHNICAL PREVIEW 9
+  - decl: |-
+      let saved_age : number = 0
+      get age(): number { return saved_age }
+      set age(a: number) {
+        if (a < 0) { throw new Error("wrong age") }
+        saved_age = a
+      }
+    tags: []
+    use: |-
+      saved_age = 0
+      arktest.assertEQ(age, 0)
+      age = 1
+      arktest.assertEQ(age, 1)
+
+  - decl: |-
+      let saved_age : number = 0        
+      export get age(): number { return saved_age }
+      export set age(a: number) {
+        if (a < 0) { throw new Error("wrong age") }
+        saved_age = a
+      }
+    tags: []
+    use: |-
+      saved_age = 0
+      arktest.assertEQ(age, 0)
+      age = 1
+      arktest.assertEQ(age, 1)
+
+  - decl: |-
+      native get age(): number;
+      native set age(a: number);
+    tags: [compile-only]
+
+  - decl: |-
+      get magicNumber(): number { return 42 }
+      set randomSeed(a: number) {}
+    tags: []
+    use: |-
+      arktest.assertEQ(magicNumber, 42)
+      randomSeed = 42
+
+  - decl: |-
+      namespace N {
+        let saved_age : number = 0
+        export get age(): number { return saved_age }
+        export set age(a: number) {
+          if (a < 0) { throw new Error("wrong age") }
+          saved_age = a
+        }
+      }
+    tags: []
+    use: |-
+      N.age = 0
+      arktest.assertEQ(N.age, 0)
+      N.age = 18
+      arktest.assertEQ(N.age, 18)
+
+  # get accessor no return type at all on condition the
+  #   type can be inferred from the getter body
+  - decl: |-
+      get some_string() { return "some_string" }
+    tags: []
+    use: |-
+      arktest.assertEQ(some_string, "some_string")

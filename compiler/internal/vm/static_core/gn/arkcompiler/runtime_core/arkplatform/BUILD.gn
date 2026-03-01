@@ -1,0 +1,40 @@
+# Copyright (c) 2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//arkcompiler/runtime_core/platform/platform_config.gni")
+
+group("platform_packages") {
+  deps = [ ":libplatform" ]
+}
+
+config("platform_public_config") {
+  include_dirs = [ "$platform_root" ]
+}
+
+ohos_static_library("platform_static") {
+  include_dirs = [ "../../../../platform" ]
+  sources = [ "../../../../platform/hybrid/xgc/xgc.cpp" ]
+
+  part_name = "runtime_core"
+  subsystem_name = "arkcompiler"
+}
+
+ohos_shared_library("libplatform") {
+  deps = [ ":platform_static" ]
+  output_extension = "so"
+  if (is_mingw) {
+    output_extension = "dll"
+  }
+  part_name = "runtime_core"
+  subsystem_name = "arkcompiler"
+}

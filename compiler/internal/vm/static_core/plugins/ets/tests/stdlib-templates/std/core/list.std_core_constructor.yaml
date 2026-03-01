@@ -1,0 +1,217 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+- {
+    method_name: constructor,
+    object_type: Long,
+    method_return_type: Long,
+    init_object_default: yes,
+    init_object_copy_constructor: yes,
+    init_object_data_4_copy: "[125 as long, (-125) as long, Long.MAX_VALUE, Long.MIN_VALUE, 0 as long]",
+    init_object_data_types: {"param1":"FixedArray<long>"},
+    init_object_param_list: {"param1" : "[125 as long, (-125) as long, Long.MAX_VALUE, Long.MIN_VALUE, 0 as long]"},
+    init_object_param_types: {"param1": long},
+    init_object_param_nature: {"param1": primitive},
+    expected_data_item_type: long,
+    expected_data_type: "FixedArray<long>",
+    expected_test_data: "[125 as long, (-125) as long, Long.MAX_VALUE, Long.MIN_VALUE, 0 as long]",
+    expected_default_data_type: long,
+    expected_default_test_data: 0,
+    verify_test_result_function: compareWrapperObjectValue,
+  }
+- {
+    method_name: constructor,
+    object_type: Int,
+    method_return_type: Int,
+    init_object_default: yes,
+    init_object_copy_constructor: yes,
+    init_object_data_types: {"param1":"FixedArray<int>"},
+    init_object_param_list: {"param1" : "[125 as int, (-125) as int, Int.MAX_VALUE.toInt(), Int.MIN_VALUE, 0 as int]"},
+    init_object_param_types: {"param1": int},
+    init_object_param_nature: {"param1": primitive},
+    expected_data_item_type: int,
+    expected_data_type: "FixedArray<int>",
+    expected_test_data: "[125 as int, (-125) as int, Int.MAX_VALUE.toInt(), Int.MIN_VALUE.toInt(), 0 as int]",
+    expected_default_data_type: int,
+    expected_default_test_data: 0 as int,
+    verify_test_result_function: compareWrapperObjectValue,
+  }
+- {
+    method_name: constructor,
+    object_type: Short,
+    method_return_type: Short,
+    init_object_default: yes,
+    init_object_copy_constructor: yes,
+    init_object_data_types: {"param1":"FixedArray<short>"},
+    init_object_param_list: {"param1" : "[125 as short, (-125) as short, Short.MAX_VALUE.toShort(), Short.MIN_VALUE.toShort(), 0 as short]"},
+    init_object_param_types: {"param1": short},
+    init_object_param_nature: {"param1": primitive},
+    expected_data_item_type: short,
+    expected_data_type: "FixedArray<short>",
+    expected_test_data: "[125 as short, (-125) as short, Short.MAX_VALUE.toShort(), Short.MIN_VALUE.toShort(), 0 as short]",
+    expected_default_data_type: short,
+    expected_default_test_data: 0 as short,
+    verify_test_result_function: compareWrapperObjectValue,
+  }
+- {
+    method_name: constructor,
+    object_type: Byte,
+    method_return_type: Byte,
+    init_object_default: yes,
+    init_object_copy_constructor: yes,
+    init_object_data_types: {"param1":"FixedArray<byte>"},
+    init_object_param_list: {"param1" : "[125 as byte, (-125) as byte, Byte.MAX_VALUE.toByte(), Byte.MIN_VALUE.toByte(), 0 as byte]"},
+    init_object_param_types: {"param1": byte},
+    init_object_param_nature: {"param1": primitive},
+    expected_data_item_type: byte,
+    expected_data_type: "FixedArray<byte>",
+    expected_test_data: "[125 as byte, (-125) as byte, Byte.MAX_VALUE.toByte(), Byte.MIN_VALUE.toByte(), 0 as byte]",
+    expected_default_data_type: byte,
+    expected_default_test_data: 0 as byte,
+    verify_test_result_function: compareWrapperObjectValue,
+  }
+- {
+    method_name: constructor,
+    object_type: Boolean,
+    method_return_type: Boolean,
+    init_object_default: yes,
+    init_object_copy_constructor: yes,
+    init_object_data_types: {"param1":"FixedArray<boolean>"},
+    init_object_param_list: {"param1" : "[true, false]"},
+    init_object_param_types: {"param1": boolean},
+    init_object_param_nature: {"param1": primitive},
+    expected_data_item_type: boolean,
+    expected_data_type: "FixedArray<boolean>",
+    expected_test_data: "[true, false]",
+    expected_default_data_type: boolean,
+    expected_default_test_data: "false",
+    verify_test_result_function: compareWrapperObjectValue,
+  }
+- {
+    method_name: constructor,
+    object_type: Char,
+    method_return_type: Char,
+    init_object_default: yes,
+    init_object_copy_constructor: yes,
+    init_object_data_types: {"param1":"FixedArray<char>"},
+    init_object_param_list: {"param1" : "[c'a', c'z', c'A', c'Z', c'\\u0000']"},
+    init_object_param_types: {"param1": char},
+    init_object_param_nature: {"param1": primitive},
+    expected_data_item_type: char,
+    expected_data_type: "FixedArray<char>",
+    expected_test_data: "[c'a', c'z', c'A', c'Z', c'\\u0000']",
+    expected_default_data_type: char,
+    expected_default_test_data: "c'\\u0000'",
+    verify_test_result_function: compareWrapperObjectValue,
+  }
+- {
+    method_name: constructor,
+    object_type: Float,
+    method_return_type: Float,
+    init_object_default: yes,
+    init_object_copy_constructor: yes,
+    init_object_data_types: {"param1":"FixedArray<float>"},
+    init_object_param_list: {"param1" : "[125.0f, -125.0f, PI.toFloat(), E.toFloat(), 0.0f]"},
+    init_object_param_types: {"param1": float},
+    init_object_param_nature: {"param1": primitive},
+    expected_data_item_type: float,
+    expected_data_type: "FixedArray<float>",
+    expected_test_data: "[125.0f, -125.0f, PI.toFloat(), E.toFloat(), 0.0f]",
+    expected_default_data_type: float,
+    expected_default_test_data: 0.0f,
+    verify_test_result_function: compareWrapperObjectValue,
+  }
+- {
+    method_name: constructor,
+    object_type: Double,
+    method_return_type: Double,
+    init_object_default: yes,
+    init_object_copy_constructor: yes,
+    init_object_data_types: {"param1":"FixedArray<double>"},
+    init_object_param_list: {"param1" : "[125.0, (-125.0), PI, E, 0.0]"},
+    init_object_param_types: {"param1": double},
+    init_object_param_nature: {"param1": primitive},
+    expected_data_item_type: double,
+    expected_data_type: "FixedArray<double>",
+    expected_test_data: "[125.0, (-125.0), PI, E, 0.0]",
+    expected_default_data_type: double,
+    expected_default_test_data: 0.0,
+    verify_test_result_function: compareWrapperObjectValue,
+  }
+- {
+    method_name: constructor,
+    object_type: StringBuilder,
+    method_return_type: StringBuilder,
+    init_object_default: yes,
+    init_object_data_types: {"param1":"FixedArray<String>"},
+    init_object_param_list: {"param1" : '["Hello", "World"]'},
+    init_object_param_types: {"param1": String},
+    init_object_param_nature: {"param1": object},
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["Hello", "World"]',
+    expected_default_data_type: String,
+    expected_default_test_data: '""',
+    verify_test_result_function: compareStringBuilderWithString
+  }
+- {
+    method_name: constructor,
+    object_type: StringBuilder,
+    method_return_type: StringBuilder,
+    init_object_data_types: {"param1":"FixedArray<FixedArray<char>>"},
+    init_object_param_list: {"param1" : "[[c'H', c'e', c'l', c'l', c'o'], [c'W', c'o', c'r', c'l', c'd']]"},
+    init_object_param_types: {"param1": String},
+    init_object_param_nature: {"param1": object},
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["Hello", "World"]',
+    verify_test_result_function: compareStringBuilderWithString
+  }
+- {
+    method_name: constructor,
+    object_type: String,
+    method_return_type: String,
+    init_object_default: yes,
+    init_object_data_types: {"param1":"FixedArray<String>"},
+    init_object_param_list: {"param1" : '["Hello", "World"]'},
+    init_object_param_types: {"param1": String},
+    init_object_param_nature: {"param1": object},
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["Hello", "World"]',
+    expected_default_data_type: String,
+    expected_default_test_data: '""',
+    verify_test_result_function: compareStringTrivial
+  }
+- {
+    method_name: constructor,
+    object_type: String,
+    method_return_type: String,
+    init_object_data_types: {"param1":"FixedArray<FixedArray<char>>"},
+    init_object_param_list: {"param1" : "[[c'H', c'e', c'l', c'l', c'o'], [c'W', c'o', c'r', c'l', c'd']]"},
+    init_object_param_types: {"param1": String},
+    init_object_param_nature: {"param1": object},
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    expected_test_data: '["Hello", "World"]',
+    verify_test_result_function: compareStringTrivial,
+  }

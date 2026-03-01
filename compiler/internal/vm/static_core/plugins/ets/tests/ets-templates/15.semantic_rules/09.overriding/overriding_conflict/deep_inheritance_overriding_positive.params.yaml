@@ -1,0 +1,860 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - hierarchy: |-
+      |  I1 I2   
+      |   \ /    
+      |    C1    
+
+    descr: "Covariant return type"
+    decl: |-
+      class A1 {}
+      class A2 extends A1 {}
+      interface I1 { 
+        foo(): A1 { return new A1() } 
+      }
+      interface I2 {
+        foo(): A2 { return new A2() } 
+      }
+      class C1 implements I1, I2 {
+        foo(): A2 { return new A2() } 
+      } 
+    call: "let c1 = new C1();"
+    assertion: "arktest.assertTrue(c1.foo() instanceof A2, 'Expected c1.foo() return A2');"
+
+  - hierarchy: |-
+      |   I1     
+      |   / \      
+      |  C1 I2   
+      |   \ /    
+      |    C2    
+
+    descr: "Same signature"
+    decl: |-
+      interface I1 {
+        foo(): string { return 'I1.foo' } 
+      } 
+      interface I2 extends I1 {
+        foo(): string { return 'I2.foo' } 
+      }
+      class C1 implements I1 {
+        foo(): string { return 'C1.foo' } 
+      }
+      class C2 extends C1 implements I2 {}
+    call: "let c2 = new C2()"
+    assertion: "arktest.assertEQ(c2.foo(), 'C1.foo')"
+
+  - descr: "No implementation in C1"
+    decl: |-
+      interface I1 {
+        foo(): string { return 'I1.foo' } 
+      } 
+      interface I2 extends I1 {
+        foo(): string { return 'I2.foo' } 
+      }
+      class C1 implements I1 {}
+      class C2 extends C1 implements I2 {}
+    call: "let c2 = new C2()"
+    assertion: "arktest.assertEQ(c2.foo(), 'I1.foo')"
+
+  - descr: "Covariant return type"
+    decl: |-
+      class A1 {}
+      class A2 extends A1 {}
+      class A3 extends A2 {}
+      interface I1 { 
+        foo(): A1 { return new A1() } 
+      }
+      interface I2 extends I1 {
+        foo(): A2 { return new A2() } 
+      }
+      class C1 implements I1 {
+        foo(): A3 { return new A3() } 
+      }
+      class C2 extends C1 implements I2 {}
+    call: "let c2 = new C2()"
+    assertion: "arktest.assertTrue(c2.foo() instanceof A3, 'Expected c2.foo(A1) return A3');"
+
+  - descr: "Contravariant parameter type"
+    decl: |-
+      class A1 {}
+      class A2 extends A1 {}
+      class A3 extends A2 {}
+      interface I1 { 
+        foo(p: A3): string { return 'I1.foo' } 
+      }
+      interface I2 extends I1 {
+        foo(p: A2): string { return 'I2.foo' } 
+      }
+      class C1 implements I1 {
+        foo(p: A1): string { return 'C1.foo' } 
+      }
+      class C2 extends C1 implements I2 {}
+    call: |-
+      let a1 = new A1;
+      let a2 = new A2;
+      let a3 = new A3;
+      let c2 = new C2();
+    assertion: |-
+      arktest.assertEQ(c2.foo(a1), 'C1.foo');
+      arktest.assertEQ(c2.foo(a2), 'C1.foo');
+      arktest.assertEQ(c2.foo(a3), 'C1.foo');
+
+  - descr: "Contravariant parameter type, covariant return type"
+    decl: |-
+      class A1 {}
+      class A2 extends A1 {}
+      class A3 extends A2 {}
+      interface I1 { 
+        foo(p: A3): A1 { return new A1() } 
+      }
+      interface I2 extends I1 {
+        foo(p: A2): A2 { return new A2() } 
+      }
+      class C1 implements I1 {
+        foo(p: A1): A3 { return new A3() } 
+      }
+      class C2 extends C1 implements I2 {}
+    call: |-
+      let a1 = new A1;
+      let a2 = new A2;
+      let a3 = new A3;
+      let c2 = new C2();
+    assertion: |-
+      arktest.assertTrue(c2.foo(a1) instanceof A3, 'Expected c2.foo(A1) return A3');
+      arktest.assertTrue(c2.foo(a2) instanceof A3, 'Expected c2.foo(A2) return A3');
+      arktest.assertTrue(c2.foo(a3) instanceof A3, 'Expected c2.foo(A3) return A3');
+
+  - descr: "Union contravariant parameter type, union covariant return type"
+    decl: |-
+      class A {}
+      class B {}
+      class C {}
+      interface I1 { 
+        foo(p: A | B | C): B { return new B() } 
+      }
+      interface I2 extends I1 {
+        foo(p: A | B): B | C { return new B() } 
+      }
+      class C1 implements I1 {
+        foo(p: A): C { return new C() } 
+      }
+      class C2 extends C1 implements I2 {}
+    call: |-
+      let a = new A;
+      let c2 = new C2();
+    assertion: "arktest.assertTrue(c2.foo(a) instanceof C, 'Expected c2.foo(A) return C');"
+
+  - descr: "Rest parameter type"
+    decl: |-
+      class A1 {}
+      class A2 extends A1 {}
+      class A3 extends A2 {}
+      class B {}
+      interface I1 { 
+        foo(p1: A3, ...p2: B[]): string { return 'I1.foo' } 
+      }
+      interface I2 extends I1 {
+        foo(p1: A2, ...p2: B[]): string { return 'I2.foo' } 
+      }
+      class C1 implements I1 {
+        foo(p1: A1, ...p2: B[]): string { return 'C1.foo' } 
+      }
+      class C2 extends C1 implements I2 {}
+    call: |-
+      let a1 = new A1;
+      let a2 = new A2;
+      let a3 = new A3;
+      let b = new B;
+      let c2 = new C2();
+    assertion: |-
+      arktest.assertEQ(c2.foo(a1), 'C1.foo');
+      arktest.assertEQ(c2.foo(a2), 'C1.foo');
+      arktest.assertEQ(c2.foo(a3), 'C1.foo');
+      arktest.assertEQ(c2.foo(a1, b), 'C1.foo');
+      arktest.assertEQ(c2.foo(a2, b), 'C1.foo');
+      arktest.assertEQ(c2.foo(a3, b), 'C1.foo');
+
+  - hierarchy: |-
+     I1 I2     
+      \ /      
+       C1 I3   
+        \ /    
+         C2    
+
+    descr: "Same signature"
+    decl: |-
+      interface I1 {
+        foo(): string { return 'I1.foo' } 
+      } 
+      interface I2 {
+        foo(): string { return 'I2.foo' } 
+      }
+      class C1 implements I1, I2 {
+        foo(): string { return 'C1.foo' } 
+      }
+      interface I3 {
+        foo(): string { return 'I3.foo' } 
+      }
+      class C2 extends C1 implements I3 {}
+    call: "let c2 = new C2()"
+    assertion: "arktest.assertEQ(c2.foo(), 'C1.foo')"
+
+  - descr: "No implementation in C1"
+    decl: |-
+      class A1 {}
+      class A2 extends A1 {}
+      interface I1 { 
+        foo(): A1 { return new A1() } 
+      }
+      interface I2 {}
+      class C1 implements I1, I2 {}
+      interface I3 {
+        foo(): A1 { return new A2() } 
+      }
+      class C2 extends C1 implements I3 {}
+    call: "let c2 = new C2()"
+    assertion: "arktest.assertFalse(c2.foo() instanceof A2, 'Expected c2.foo() return A1');"
+
+  - descr: "Covariant return type"
+    decl: |-
+      class A1 {}
+      class A2 extends A1 {}
+      class A3 extends A2 {}
+      class A4 extends A3 {}
+      interface I1 { 
+        foo(): A1 { return new A1() } 
+      }
+      interface I2 {
+        foo(): A2 { return new A2() } 
+      }
+      class C1 implements I1, I2 {
+        foo(): A4 { return new A4() } 
+      }
+      interface I3 {
+        foo(): A3 { return new A3() } 
+      }
+      class C2 extends C1 implements I3 {}
+    call: "let c2 = new C2()"
+    assertion: "arktest.assertTrue(c2.foo() instanceof A4, 'Expected c2.foo() return A4');"
+
+  - descr: "Contravariant parameter type"
+    decl: |-
+      class A1 {}
+      class A2 extends A1 {}
+      class A3 extends A2 {}
+      class A4 extends A3 {}
+      interface I1 { 
+        foo(p: A3): string { return 'I1.foo' } 
+      }
+      interface I2 {
+        foo(p: A2): string { return 'I2.foo' } 
+      }
+      class C1 implements I1, I2 {
+        foo(p: A1): string { return 'C1.foo' } 
+      }
+      interface I3 {
+        foo(p: A4): string { return 'I3.foo' } 
+      }
+      class C2 extends C1 implements I3 {}
+    call: |-
+      let a1 = new A1;
+      let a2 = new A2;
+      let a3 = new A3;
+      let a4 = new A4;
+      let c2 = new C2();
+    assertion: |-
+      arktest.assertEQ(c2.foo(a1), 'C1.foo');
+      arktest.assertEQ(c2.foo(a2), 'C1.foo');
+      arktest.assertEQ(c2.foo(a3), 'C1.foo');
+      arktest.assertEQ(c2.foo(a4), 'C1.foo');
+
+  - descr: "Contravariant parameter type, covariant return type"
+    decl: |-
+      class A1 {}
+      class A2 extends A1 {}
+      class A3 extends A2 {}
+      class A4 extends A3 {}
+      interface I1 { 
+        foo(p: A3): A1 { return new A1() }
+      }
+      interface I2 {
+        foo(p: A2): A2 { return new A2() } 
+      }
+      class C1 implements I1, I2 {
+        foo(p: A1): A4 { return new A4() } 
+      }
+      interface I3 {
+        foo(p: A4): A3 { return new A3() } 
+      }
+      class C2 extends C1 implements I3 {}
+    call: |-
+      let a1 = new A1;
+      let a2 = new A2;
+      let a3 = new A3;
+      let a4 = new A4;
+      let c2 = new C2();
+    assertion: |-
+      arktest.assertTrue(c2.foo(a1) instanceof A4, 'Expected c2.foo() return A4');
+      arktest.assertTrue(c2.foo(a2) instanceof A4, 'Expected c2.foo() return A4');
+      arktest.assertTrue(c2.foo(a3) instanceof A4, 'Expected c2.foo() return A4');
+      arktest.assertTrue(c2.foo(a4) instanceof A4, 'Expected c2.foo() return A4');
+
+  - descr: "Union contravariant parameter type, union covariant return type"
+    decl: |-
+      class A {}
+      class B {}
+      class C {}
+      interface I1 { 
+        foo(p: A | B | C): B { return new B() } 
+      }
+      interface I2 {
+        foo(p: A | B): B | C { return new B() } 
+      }
+      class C1 implements I1, I2 {
+        foo(p: A): A | B | C { return new C() } 
+      }
+      interface I3 {
+        foo(p: A | B): A | B { return new A() } 
+      }
+      class C2 extends C1 implements I3 {}
+    call: |-
+      let a = new A;
+      let c2 = new C2();
+    assertion: "arktest.assertTrue(c2.foo(a) instanceof C, 'Expected c2.foo() return C');"
+
+  - descr: "Rest parameter type"
+    decl: |-
+      class A {}
+      class B {}
+      interface I1 { 
+        foo(p: A): string { return 'I1.foo' } 
+      }
+      interface I2 {
+        foo(p1: A, ...p2: B[]): string { return 'I2.foo' } 
+      }
+      class C1 implements I1, I2 {
+        foo(p1: A, ...p2: B[]): string { return 'C1.foo' } 
+      }
+      interface I3 {
+        foo(p1: A, ...p2: B[]): string { return 'I3.foo' } 
+      }
+      class C2 extends C1 implements I3 {}
+    call: |-
+      let a = new A;
+      let b = new B;
+      let c2 = new C2();
+    assertion: |-
+      arktest.assertEQ(c2.foo(a), 'C1.foo');
+      arktest.assertEQ(c2.foo(a, b), 'C1.foo');
+
+  - hierarchy: |-
+     |  I1 I2 I3   
+     |   \ /  /    
+     |    C1 I4 I5 
+     |     \ /__/   
+     |      C2    
+
+    descr: "Same signature"
+    decl: |-
+      interface I1 {
+        foo(): string { return 'I1.foo' } 
+      } 
+      interface I2 {
+        foo(): string { return 'I2.foo' } 
+      }
+      class C1 implements I1, I2 {
+        foo(): string { return 'C1.foo' } 
+      }
+      interface I3 {
+        foo(): string { return 'I3.foo' } 
+      }
+      interface I4 extends I3 {
+        foo(): string { return 'I4.foo' } 
+      }
+      interface I5 {
+        foo(): string { return 'I5.foo' } 
+      }
+      class C2 extends C1 implements I4, I5 {}
+    call: "let c2 = new C2()"
+    assertion: "arktest.assertEQ(c2.foo(), 'C1.foo')"
+
+  - descr: "No implementation in C1"
+    decl: |-
+      interface I1 {
+        foo(): string { return 'I1.foo' } 
+      } 
+      interface I2 {}
+      class C1 implements I1, I2 {}
+      interface I3 {
+        foo(): string { return 'I3.foo' } 
+      }
+      interface I4 extends I3 {}
+      interface I5 {}
+      class C2 extends C1 implements I4, I5 {}
+    call: "let c2 = new C2()"
+    assertion: "arktest.assertEQ(c2.foo(), 'I1.foo')"
+
+  - descr: "Covariant return type"
+    decl: |-
+      class A1 {}
+      class A2 extends A1 {}
+      class A3 extends A2 {}
+      class A4 extends A3 {}
+      interface I1 { 
+        foo(): A1 { return new A1() } 
+      }
+      interface I2 {
+        foo(): A2 { return new A2() } 
+      }
+      class C1 implements I1, I2 {
+        foo(): A4 { return new A4() } 
+      }
+      interface I3 {
+        foo(): A2 { return new A2() } 
+      }
+      interface I4 extends I3 {}
+      interface I5 {
+        foo(): A1 { return new A1() } 
+      }
+      class C2 extends C1 implements I4, I5 {}
+    call: "let c2 = new C2()"
+    assertion: "arktest.assertTrue(c2.foo() instanceof A4, 'Expected c2.foo() return A4');"
+
+  - descr: "Contravariant parameter type"
+    decl: |-
+      class A1 {}
+      class A2 extends A1 {}
+      class A3 extends A2 {}
+      class A4 extends A3 {}
+      interface I1 { 
+        foo(p: A3): string { return 'I1.foo' } 
+      }
+      interface I2 {
+        foo(p: A2): string { return 'I2.foo' } 
+      }
+      class C1 implements I1, I2 {
+        foo(p: A1): string { return 'C1.foo' } 
+      }
+      interface I3 {
+        foo(p: A4): string { return 'I3.foo' } 
+      }
+      interface I4 extends I3 {
+        foo(p: A3): string { return 'I4.foo' } 
+      }
+      interface I5 {
+        foo(p: A2): string { return 'I5.foo' } 
+      }
+      class C2 extends C1 implements I4, I5 {}
+    call: |-
+      let a1 = new A1;
+      let a2 = new A2;
+      let a3 = new A3;
+      let a4 = new A4;
+      let c2 = new C2();
+    assertion: |-
+      arktest.assertEQ(c2.foo(a1), 'C1.foo');
+      arktest.assertEQ(c2.foo(a2), 'C1.foo');
+      arktest.assertEQ(c2.foo(a3), 'C1.foo');
+      arktest.assertEQ(c2.foo(a4), 'C1.foo');
+
+  - descr: "Contravariant parameter type, covariant return type"
+    decl: |-
+      class A1 {}
+      class A2 extends A1 {}
+      class A3 extends A2 {}
+      class A4 extends A3 {}
+      class A5 extends A4 {}
+      interface I1 { 
+        foo(p: A3): A1 { return new A1() }
+      }
+      interface I2 {
+        foo(p: A2): A2 { return new A2() } 
+      }
+      class C1 implements I1, I2 {
+        foo(p: A1): A5 { return new A5() } 
+      }
+      interface I3 {
+        foo(p: A4): A3 { return new A3() } 
+      }
+      interface I4 extends I3 {
+        foo(p: A3): A4 { return new A4() } 
+      }
+      interface I5 {
+        foo(p: A1): A2 { return new A2() } 
+      }
+      class C2 extends C1 implements I4, I5 {}
+    call: |-
+      let a1 = new A1;
+      let a2 = new A2;
+      let a3 = new A3;
+      let a4 = new A4;
+      let c2 = new C2();
+    assertion: |-
+      arktest.assertTrue(c2.foo(a1) instanceof A5, 'Expected c2.foo() return A5');
+      arktest.assertTrue(c2.foo(a2) instanceof A5, 'Expected c2.foo() return A5');
+      arktest.assertTrue(c2.foo(a3) instanceof A5, 'Expected c2.foo() return A5');
+      arktest.assertTrue(c2.foo(a4) instanceof A5, 'Expected c2.foo() return A5');
+
+  - descr: "Union contravariant parameter type, union covariant return type"
+    decl: |-
+      class A {}
+      class B {}
+      class C {}
+      interface I1 { 
+        foo(p: A | B | C): B { return new B() } 
+      }
+      interface I2 {
+        foo(p: A | B): B | C { return new B() } 
+      }
+      class C1 implements I1, I2 {
+        foo(p: A): A | B | C { return new C() } 
+      }
+      interface I3 {
+        foo(p: A | B): A | B { return new A() } 
+      }
+      interface I4 extends I3 {
+        foo(p: A | B): A { return new A() } 
+      }
+      interface I5 {}
+      class C2 extends C1 implements I4, I5 {}
+    call: |-
+      let a = new A;
+      let c2 = new C2();
+    assertion: "arktest.assertTrue(c2.foo(a) instanceof C, 'Expected c2.foo() return C');"
+
+  - descr: "Rest parameter type"
+    decl: |-
+      class A {}
+      class B {}
+      interface I1 { 
+        foo(p: A): string { return 'I1.foo' } 
+      }
+      interface I2 {
+        foo(p1: A, ...p2: B[]): string { return 'I2.foo' } 
+      }
+      class C1 implements I1, I2 {
+        foo(p1: A, ...p2: B[]): string { return 'C1.foo' } 
+      }
+      interface I3 {
+        foo(p1: A, ...p2: B[]): string { return 'I3.foo' } 
+      }
+      interface I4 extends I3 {
+        foo(p: A): string { return 'I4.foo' } 
+      }
+      interface I5 { 
+        foo(p1: A, ...p2: B[]): string { return 'I5.foo' } 
+      }
+      class C2 extends C1 implements I4, I5 {}
+    call: |-
+      let a = new A;
+      let b = new B;
+      let c2 = new C2();
+    assertion: |-
+      arktest.assertEQ(c2.foo(a), 'C1.foo');
+      arktest.assertEQ(c2.foo(a, b), 'C1.foo');
+
+  - descr: "Generic classes and interfaces"
+    decl: |-
+      class A1 {}
+      class A2 extends A1 {}
+      class A3 extends A2 {}
+      interface I1<V1> { 
+        foo(p: V1): A1 { return new A1() } 
+      }
+      interface I2 {}
+      class C1<U1> implements I1<U1>, I2 {}
+      interface I3<V3> {
+        foo(p: V3): A1 | A2 | A3 { return new A3() } 
+      }
+      interface I4<V4> extends I3<V4> {}
+      interface I5 {}
+      class C2<U2> extends C1<U2> implements I4<U2>, I5 {
+        foo(p: U2): A2 { return new A2() } 
+      }
+    call: |-
+      let a1 = new A1;
+      let c2 = new C2<A1>();
+    assertion: "arktest.assertTrue(c2.foo(a1) instanceof A2, 'Expected c2.foo() return A2');"
+
+  - hierarchy: |-
+     |  I1 I2 I3   
+     |   \ /  /    
+     |    C1 I4 I5 I6 I7
+     |     \ /__/  /__/   
+     |      C2    I8  
+     |        \  /
+     |         C3
+
+    descr: "Same signature"
+    decl: |-
+      interface I1 {
+        foo(): string { return 'I1.foo' } 
+      } 
+      interface I2 {
+        foo(): string { return 'I2.foo' } 
+      }
+      class C1 implements I1, I2 {
+        foo(): string { return 'C1.foo' } 
+      }
+      interface I3 {
+        foo(): string { return 'I3.foo' } 
+      }
+      interface I4 extends I3 {
+        foo(): string { return 'I4.foo' } 
+      }
+      interface I5 {
+        foo(): string { return 'I5.foo' } 
+      }
+      class C2 extends C1 implements I4, I5 {
+        foo(): string { return 'C2.foo' } 
+      }
+      interface I6 {
+        foo(): string { return 'I6.foo' } 
+      } 
+      interface I7 {
+        foo(): string { return 'I7.foo' } 
+      }
+      interface I8 extends I6, I7 {
+        foo(): string { return 'I8.foo' } 
+      }
+      class C3 extends C2 implements I7, I8 {}
+    call: "let c3 = new C3()"
+    assertion: "arktest.assertEQ(c3.foo(), 'C2.foo')"
+
+  - descr: "No implementation in C2"
+    decl: |-
+      interface I1 {
+        foo(): string { return 'I1.foo' } 
+      } 
+      interface I2 {
+        foo(): string { return 'I2.foo' } 
+      }
+      class C1 implements I1, I2 {
+        foo(): string { return 'C1.foo' } 
+      }
+      interface I3 {
+        foo(): string { return 'I3.foo' } 
+      }
+      interface I4 extends I3 {
+        foo(): string { return 'I4.foo' } 
+      }
+      interface I5 {
+        foo(): string { return 'I5.foo' } 
+      }
+      class C2 extends C1 implements I4, I5 {}
+      interface I6 {
+        foo(): string { return 'I6.foo' } 
+      } 
+      interface I7 {
+        foo(): string { return 'I7.foo' } 
+      }
+      interface I8 extends I6, I7 {
+        foo(): string { return 'I8.foo' } 
+      }
+      class C3 extends C2 implements I7, I8 {}
+    call: "let c3 = new C3()"
+    assertion: "arktest.assertEQ(c3.foo(), 'C1.foo')"
+
+  - descr: "No implementation in C1, C2"
+    decl: |-
+      interface I1 {} 
+      interface I2 {
+        foo(): string { return 'I2.foo' } 
+      }
+      class C1 implements I1, I2 {}
+      interface I3 {}
+      interface I4 extends I3 {}
+      interface I5 {
+        foo(): string { return 'I5.foo' } 
+      }
+      class C2 extends C1 implements I4, I5 {}
+      interface I6 {} 
+      interface I7 {} 
+      interface I8 extends I6, I7 {
+        foo(): string { return 'I8.foo' } 
+      }
+      class C3 extends C2 implements I8 {}
+    call: "let c3 = new C3()"
+    assertion: "arktest.assertEQ(c3.foo(), 'I2.foo')"
+
+  - descr: "Covariant return type"
+    decl: |-
+      class A1 {}
+      class A2 extends A1 {}
+      class A3 extends A2 {}
+      interface I1 { 
+        foo(): A1 { return new A1() } 
+      }
+      interface I2 {
+        meth(): void {}
+      }
+      class C1 implements I1, I2 {
+        foo(): A2 { return new A2() } 
+      }
+      interface I3 {
+        foo(): A2 { return new A2() } 
+      }
+      interface I4 extends I3 {}
+      interface I5 {
+        foo(): A2 { return new A2() } 
+      }
+      class C2 extends C1 implements I4, I5 {
+        foo(): A3 { return new A3() } 
+      }
+      interface I6 {
+        foo(): A2 { return new A2() } 
+      } 
+      interface I7 {}
+      interface I8 extends I6, I7 {
+        foo(): A2 { return new A2() } 
+      }
+      class C3 extends C2 implements I7, I8 {}
+    call: "let c3 = new C3()"
+    assertion: "arktest.assertTrue(c3.foo() instanceof A3, 'Expected c3.foo() return A3');"
+
+  - descr: "Contravariant parameter type"
+    decl: |-
+      class A1 {}
+      class A2 extends A1 {}
+      class A3 extends A2 {}
+      interface I1 {
+        foo(p: A3): string { return 'I1.foo' } 
+      }
+      interface I2 {
+        foo(p: A2): string { return 'I2.foo' } 
+      }
+      class C1 implements I1, I2 {
+        foo(p: A2): string { return 'C1.foo' } 
+      }
+      interface I3 {
+        foo(p: A2): string { return 'I3.foo' } 
+      }
+      interface I4 extends I3 {}
+      interface I5 {
+        foo(p: A3): string { return 'I5.foo' } 
+      }
+      class C2 extends C1 implements I4, I5 {
+        foo(p: A1): string { return 'C2.foo' } 
+      }
+      interface I6 {
+        foo(p: A2): string { return 'I6.foo' } 
+      } 
+      interface I7 {}
+      interface I8 extends I6, I7 {
+        foo(p: A2): string { return 'I8.foo' } 
+      }
+      class C3 extends C2 implements I7, I8 {}
+    call: |-
+      let a1 = new A1;
+      let c3 = new C3();
+    assertion: "arktest.assertEQ(c3.foo(a1), 'C2.foo')"
+
+  - descr: "Contravariant parameter type, covariant return type"
+    decl: |-
+      class A1 {}
+      class A2 extends A1 {}
+      class A3 extends A2 {}
+      interface I1 {}
+      interface I2 {
+        foo(p: A3): A1 { return new A1() } 
+      }
+      class C1 implements I1, I2 {
+        foo(p: A2): A2 { return new A2() } 
+      }
+      interface I3 {}
+      interface I4 extends I3 {
+        foo(p: A2): A2 { return new A2() } 
+      }
+      interface I5 {}
+      class C2 extends C1 implements I4, I5 {
+        foo(p: A1): A2 { return new A3() } 
+      }
+      interface I6 {
+        foo(p: A1): A3 { return new A3() } 
+      } 
+      interface I7 {}
+      interface I8 extends I6, I7 {}
+      class C3 extends C2 implements I7, I8 {}
+    call: |-
+      let a1 = new A1;
+      let c3 = new C3();
+    assertion: "arktest.assertTrue(c3.foo(a1) instanceof A3, 'Expected c3.foo() return A3');"
+
+  - descr: "Union contravariant parameter type, union covariant return type"
+    decl: |-
+      class D {}
+      class E {}
+      class F {}
+      interface I1 { 
+        foo(p: D): D | E | F { return new E() } 
+      }
+      interface I2 {}
+      class C1 implements I1, I2 {}
+      interface I3 {
+        foo(p: E): D | E { return new D() } 
+      }
+      interface I4 extends I3 {
+        foo(p: D | E): D | E { return new E() } 
+      }
+      interface I5 {}
+      class C2 extends C1 implements I4, I5 {
+        foo(p: D | E): D | E { return new E() } 
+      }
+      interface I6 {
+        foo(p: D | E | F): E { return new E() } 
+      } 
+      interface I7 {}
+      interface I8 extends I6, I7 {}
+      class C3 extends C2 implements I7, I8 {}
+    call: |-
+      let d = new D;
+      let c3 = new C3();
+    assertion: "arktest.assertTrue(c3.foo(d) instanceof E, 'Expected c3.foo() return E');"
+
+  - descr: "Rest parameter type"
+    decl: |-
+      class A {}
+      class B {}
+      interface I1 { 
+        foo(p: A): string { return 'I1.foo' } 
+      }
+      interface I2 {}
+      class C1 implements I1, I2 {}
+      interface I3 {
+        foo(p1: A, ...p2: B[]): string { return 'I3.foo' } 
+      }
+      interface I4 extends I3 {}
+      interface I5 { 
+        foo(p: A): string { return 'I5.foo' } 
+      }
+      class C2 extends C1 implements I4, I5 {
+        foo(p1: A, ...p2: B[]): string { return 'C2.foo' } 
+      }
+      interface I6 {
+        foo(p1: A, ...p2: B[]): string { return 'I6.foo' } 
+      } 
+      interface I7 {}
+      interface I8 extends I6, I7 {
+        foo(p1: A, ...p2: B[]): string { return 'I8.foo' } 
+      }
+      class C3 extends C2 implements I7, I8 {}
+    call: |-
+      let a = new A;
+      let b = new B;
+      let c3 = new C3();
+    assertion: |-
+      arktest.assertEQ(c3.foo(a), 'C2.foo');
+      arktest.assertEQ(c3.foo(a, b), 'C2.foo');

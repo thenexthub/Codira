@@ -1,0 +1,164 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of predefined types
+cases:
+  - desc: "dynamic dispatch, class"
+    decl: |
+      class A {
+        met(): string {return "A"}
+      }
+
+      class B extends A {
+        override met(): string {return "B"}
+      }
+    use: |
+      let arr: A[] = [new A(), new B()];
+      let arr2 = arr.map((x: A) => x.met())
+      arktest.assertEQ(arr2.join(" "), "A B")
+
+
+  - desc: "dynamic dispatch, class, namespace"
+    decl: |
+      namespace FirstNamespace {
+        export class A {
+          met(): string {return "A"}
+        }
+        export class B extends A {
+          override met(): string {return "B"}
+        }
+      }
+      
+      namespace SecondNamespace {
+        export class C extends FirstNamespace.A {
+          override met(): string {return "C"}
+        }
+      }
+    use: |
+      let arr: FirstNamespace.A[] = [new FirstNamespace.A(), new FirstNamespace.B(), new SecondNamespace.C()];
+      let arr2 = arr.map((x: FirstNamespace.A) => x.met())
+      arktest.assertEQ(arr2.join(" "), "A B C")
+
+  - desc: "Dynamic dispatch, class multiple overriding"
+    decl: |
+      class A {
+        met(): string {return "A"}
+      }
+
+      class B extends A {
+        override met(): string {return "B"}
+      }
+
+      class C extends B {
+        override met(): string {return "C"}
+      }
+    use: |
+      let arr: A[] = [new A(), new B(), new C()];
+      let arr2 = arr.map((x: A) => x.met())
+      arktest.assertEQ(arr2.join(" "), "A B C")
+
+  - desc: "Call union type"
+    decl: |
+      class A {
+        met(): string {return "A"}
+      }
+      class B {
+        met(): string {return "B"}
+      }
+      type T = A | B
+      
+      function test(p: T): string {
+        return p.met()
+      }
+    use: |
+      let arr: T[] = [new A(), new B()]
+      let arr2 = arr.map((x: T) => test(x))
+      arktest.assertEQ(arr2.join(" "), "A B")
+      
+
+  - desc: "Dynamic dispatch preserved in cast"
+    decl: |
+      class A {
+        met(): string {return "A"}
+      }
+      
+      class B extends A {
+        override met(): string {return "B"}
+      }
+    use: |
+      let a: A = new B();
+      let b: B = a as B;
+      arktest.assertEQ(b.met(), "B")
+
+
+  - desc: "dynamic dispatch, interface"
+    decl: |
+      interface I {
+        met(): int
+      }
+      class A implements I {
+        met(): int {return 1};
+      }
+      class B implements I {
+        met(): int {return 2};
+      }
+    use: |
+      let a: I = new A()
+      let b: I = new B()
+      arktest.assertEQ(a.met(), 1)
+      arktest.assertEQ(b.met(), 2)
+      
+
+  - desc: "dynamic dispatch, interface, namespace"
+    decl: |
+      namespace FirstNamespace {
+        export interface I {
+          met(): int
+        }
+        export class A implements I {
+          met(): int {return 1};
+        }
+      }
+      namespace SecondNamespace {
+        export class B implements FirstNamespace.I {
+          met(): int {return 2};
+        }
+      }
+    use: |
+      let a: FirstNamespace.I = new FirstNamespace.A()
+      let b: FirstNamespace.I = new SecondNamespace.B()
+      arktest.assertEQ(a.met(), 1)
+      arktest.assertEQ(b.met(), 2)
+
+
+  - desc: "dynamic dispatch, several interfaces implementation"
+    decl: |
+      interface A {
+          foo(x: number)
+      }
+
+      interface B {
+          foo(x: string)
+      }
+
+      class C implements A, B {
+          foo(x: number | string) {
+
+          }
+      }
+    use: |
+      let c1: A = new C()
+      let c2: B = new C()
+
+      c1.foo(111)
+      c2.foo("sss")

@@ -1,0 +1,38 @@
+/*
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+{% for c in cases %}
+/*---
+desc: >-
+    The result of an as expression is the result of the evaluated expr
+    if the actual type of expr is a subtype of target (see Subtyping).
+    Otherwise, ClassCastError is thrown.
+---*/
+
+interface I {}
+interface J {}
+interface K {}
+class A implements I {}
+class B extends A implements J {}
+
+function foo(): void {
+    let a = {{c.val}} as {{c.type}}
+}
+
+function main(): void {
+    let checkException = (e: Error): boolean => { return e instanceof ClassCastError }
+	arktest.expectThrow(() => foo(), checkException)
+}
+{% endfor %}

@@ -1,0 +1,236 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    - decl: |-
+          interface K {
+              meth(p: B, q: A, w: Object): A
+          }
+          interface I extends K {}
+          interface J extends I {
+              meth(p: A, q: Object, w: Any): B  // override-compatible
+          }
+          class X implements J {
+              meth(p: A, q: Object, w: Any): B {
+                  return new B
+              }
+          }
+          let k: K = new X
+          let i: I = new X
+          let j: J = new X
+      use: |-
+          arktest.assertTrue(k.meth(new B, new A, new Object) instanceof A)
+          arktest.assertTrue(i.meth(new B, new A, new Object) instanceof A)
+          arktest.assertTrue(j.meth(new A, new Object, null) instanceof B)
+
+    - decl: |-
+          interface K {
+              meth(p: B, q: A, w: Object): A
+          }
+          interface I extends K {}
+          interface J extends I {
+              meth(p: A, q: Object): B  // CTE: wrong number of parameters
+          }
+      use: |-
+          return
+      tags: 'compile-only, negative'
+
+    - decl: |-
+          interface K {
+              meth(p: B, q: A, w: Object): A
+          }
+          interface I extends K {}
+          interface J extends I {
+              meth(p: A, q: Object, w: A): B // CTE: parameters must be contravariant
+          }
+      use: |-
+          return
+      tags: 'compile-only, negative'
+
+    - decl: |-
+          interface K {
+              meth(p: B, q: A, w: Object): A
+          }
+          interface I extends K {}
+          interface J extends I {
+              meth(p: A, q: Object, w: Object): Object // CTE: return type must be covariant
+          }
+      use: |-
+          return
+      tags: 'compile-only, negative'
+
+    # method returns 'this'
+    - decl: |-
+          interface K {
+              meth(p: B, q: A, w: Object): this
+          }
+          interface I extends K {}
+          interface J extends I {
+              meth(p: A, q: Object, w: Any): this // override-compatible
+          }
+          class X implements J {
+              meth(p: A, q: Object, w: Any): this {
+                  return this
+              }
+          }
+          let k: K = new X
+          let i: I = new X
+          let j: J = new X
+      use: |-
+          arktest.assertTrue(k.meth(new B, new A, new Object) instanceof K)
+          arktest.assertTrue(i.meth(new B, new A, new Object) instanceof I)
+          arktest.assertTrue(j.meth(new A, new Object, null) instanceof J)
+
+    - decl: |-
+          interface K {
+              meth(p: B, q: A, w: Object): Object  // Object  - supertype for 'this'
+          }
+          interface I extends K {}
+          interface J extends I {
+              meth(p: A, q: Object, w: Any): this  // override-compatible
+          }
+          class X implements J {
+              meth(p: A, q: Object, w: Any): this {
+                  return this
+              }
+          }
+          let k: K = new X
+          let i: I = new X
+          let j: J = new X
+      use: |-
+          arktest.assertTrue(k.meth(new B, new A, new Object) instanceof K)
+          arktest.assertTrue(i.meth(new B, new A, new Object) instanceof I)
+          arktest.assertTrue(j.meth(new A, new Object, null) instanceof J)
+
+    - decl: |-
+          interface K {
+              meth(p: B, q: A, w: Object): B  // CTE: Return type can be 'this' or supertype
+          }
+          interface I extends K {}
+          interface J extends I {
+              meth(p: B, q: A, w: Object): this
+          }
+      use: |-
+          return
+      tags: 'compile-only, negative'
+
+    # generics
+    - decl: |-
+          interface K {
+              meth<T extends B, U extends A, V extends Object>(p: T, q: U, w: V): A
+          }
+          interface I extends K {}
+          interface J extends I {
+              meth<T extends A, U extends Object, V>(p: T, q: U, w: V): B  // override-compatible
+          }
+          class X implements J {
+              meth<T extends A, U extends Object, V>(p: T, q: U, w: V): B {
+                  return new B
+              }
+          }
+          let k: K = new X
+          let i: I = new X
+          let j: J = new X
+      use: |-
+          arktest.assertTrue(k.meth<B, A, Object>(new B, new A, new Object) instanceof A)
+          arktest.assertTrue(i.meth<B, A, Object>(new B, new A, new Object) instanceof A)
+          arktest.assertTrue(j.meth<A, Object, Any>(new A, new Object, undefined) instanceof B)
+
+    - decl: |-
+          interface K {
+              meth<T extends B, U extends A, V extends Object>(p: T, q: U, w: V): A
+          }
+          interface I extends K {}
+          interface J extends I {
+              meth<T extends A, U extends Object>(p: T, q: U, w: Any): B  // CTE: Wrong number of type parameters
+          }
+      use: |-
+          return
+      tags: 'compile-only, negative'
+
+    - decl: |-
+          interface K {
+              meth<T extends B, U extends A, V extends Object>(p: T, q: U, w: V): A
+          }
+          interface I extends K {}
+          interface J extends I {
+              meth<T extends A, U extends Object, V extends A>(p: T, q: U, w: V): B  // CTE: Constraints must be contravariant
+          }
+      use: |-
+          return
+      tags: 'compile-only, negative'
+
+    # generic method returns 'this'
+    - decl: |-
+          interface K {
+              meth<T extends B, U extends A, V extends Object>(p: T, q: U, w: V): this
+          }
+          interface I extends K {}
+          interface J extends I {
+              meth<T extends A, U extends Object, V extends Any>(p: T, q: U, w: V): this // override-compatible
+          }
+          class X implements J {
+              meth<T extends A, U extends Object, V extends Any>(p: T, q: U, w: V): this {
+                  return this
+              }
+          }
+          let k: K = new X
+          let i: I = new X
+          let j: J = new X
+      use: |-
+          arktest.assertTrue(k.meth<B, A, Object>(new B, new A, new Object) instanceof K)
+          arktest.assertTrue(i.meth<B, A, Object>(new B, new A, new Object) instanceof I)
+          arktest.assertTrue(j.meth<A, Object, Any>(new A, new Object, undefined) instanceof J)
+
+    - decl: |-
+          interface K {
+              meth<T extends B, U extends A, V extends Object>(p: T, q: U, w: V): K
+          }
+          interface I extends K {}
+          interface J extends I {
+              meth<T extends A, U extends Object, V extends Any>(p: T, q: U, w: V): this // override-compatible
+          }
+          class X implements J {
+              meth<T extends A, U extends Object, V extends Any>(p: T, q: U, w: V): this {
+                  return this
+              }
+          }
+          let k: K = new X
+          let i: I = new X
+          let j: J = new X
+      use: |-
+          arktest.assertTrue(k.meth<B, A, Object>(new B, new A, new Object) instanceof K)
+          arktest.assertTrue(i.meth<B, A, Object>(new B, new A, new Object) instanceof I)
+          arktest.assertTrue(j.meth<A, Object, Any>(new A, new Object, undefined) instanceof J)
+
+    - decl: |-
+          interface K {
+              meth<T extends B, U extends A, V extends Object>(p: T, q: U, w: V): B // CTE: Return type can be 'this' or supertype
+          }
+          interface I extends K {}
+          interface J extends I {
+              meth<T extends A, U extends Object, V extends Any>(p: T, q: U, w: V): this
+          }
+      use: |-
+          return
+      tags: 'compile-only, negative'

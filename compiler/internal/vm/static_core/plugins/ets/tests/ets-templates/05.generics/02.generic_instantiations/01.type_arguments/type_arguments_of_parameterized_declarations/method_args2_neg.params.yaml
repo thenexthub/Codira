@@ -1,0 +1,130 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # type argument is class
+  #0
+  - use: |-
+      let v = new X()
+      if (a.meth <Y> (new X(), v) !== v) {  // Y is not X
+          return 1;
+      }
+    stdout: |-
+      "Semantic error ESE0127: No matching call signature for meth(X, X)"
+  #1
+  - use: |-
+      let v: X|null = null
+      if (a.meth <X> (new X(), v) !== v) {  // null is not allowed
+          return 1;
+      }
+    bound: ' extends X'
+    stdout: |-
+      "Semantic error ESE0127: No matching call signature for meth(X, null)"
+  #2
+  - use: |-
+      if (a.meth <X|null> (new X(), null) !== null) {  // null is out of bound
+          return 1;
+      }
+    bound: ' extends I'
+    stdout: |-
+      "Semantic error ESE0127: No matching call signature for meth(X, null)"
+
+  # type argument is interface
+  #3
+  - use: |-
+      let v = new Y()
+      if (a.meth <I> (v, v) !== v) {  // Y is not I
+          return 1;
+      }
+    stdout: |-
+      "Semantic error ESE0127: No matching call signature for meth(Y, Y)"
+  #4
+  - use: |-
+      let v = new Object()
+      if (a.meth <I|null> (new X(), v) !== v) {  // Object is not I
+          return 1;
+      }
+    bound: ' extends Object|null'
+    stdout: |-
+      "Semantic error ESE0127: No matching call signature for meth(X, Object)"
+
+  # type argument is array of classes, interfaces, enums
+  #5
+  - use: |-
+      let v = new X[0]
+      if (a.meth <X> (new X(), v) !== v) {  // X[] is not X
+          return 1;
+      }
+    bound: ' extends Object[]'
+    stdout: |-
+      "Semantic error ESE0228: Type argument 'X' should be a subtype of 'Array<Object>' constraint"
+  #6
+  - use: |-
+      let v: I[] = new I[0]
+      if (a.meth <Y[]> (new X(), v) !== v) {  // Y[] is not I[]
+          return 1;
+      }
+    stdout: |-
+      "Semantic error ESE0050: Cannot use array creation expression with abstract classes and interfaces."
+  #7
+  - use: |-
+      let v: Color[] = [Color.Red]
+      if (a.meth <Color[][]> (new X(), v) !== v) {  // Color[][] is not Color[]
+          return 1;
+      }
+    bound: ' extends Object'
+    stdout: |-
+      "Semantic error ESE0127: No matching call signature for meth(X, Array<Color>)"
+
+  # type argument is alias
+  #8
+  - use: |-
+      let v = new X()
+      if (a.meth <B> (new X(), v) !== v) {  // Y is not X
+          return 1
+      }
+    decl: |-
+      type B = Y
+    stdout: |-
+      "Semantic error ESE0127: No matching call signature for meth(X, X)"
+  #9
+  - use: |-
+      let v: I[] = [new X()]
+      if (a.meth <B> (v, v) !== v) {  // I[] is not X
+          return 1;
+      }
+    decl: |-
+      type B = I[]
+    stdout: |-
+      "Semantic error ESE0127: No matching call signature for meth(Array<I>, Array<I>)"
+  #10
+  - use: |-
+      let v = new X[0]
+      if (a.meth <B> (new X(), v) !== v) {  // X[] is not X[][]
+          return 1;
+      }
+    decl: |-
+      type B = X[][]|null
+    stdout: |-
+      "Semantic error ESE0127: No matching call signature for meth(X, Array<X>)"
+
+  # create array with interfaces
+  #11
+  - use: |-
+      let v: I[] = new I[0] // cannot use array creation expression with interfaces
+      if (a.meth <I[]> (new X(), v) !== v) {
+          return 1;
+      }
+    stdout: |-
+      "Semantic error ESE0050: Cannot use array creation expression with abstract classes and interfaces."

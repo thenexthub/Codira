@@ -1,0 +1,120 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - type: object | string
+      value: undefined
+      desc: Error assignment of undefined to an array of object or string union type.
+      stdout: |-
+        "Semantic error ESE0227: Array element at index 0 with type 'undefined' is not compatible with the target array element type 'Object|String'"
+
+    - type: string | null
+      value: |-
+          1
+      desc: Error assignment of a number to an array of string or null union type.
+      stdout: |-
+        "Semantic error ESE0227: Array element at index 0 with type 'Int' is not compatible with the target array element type 'String|null'"  
+
+    - type: boolean | object
+      value: null,
+      desc: Error assignment of a number to an array of boolean or object union type.
+      stdout: |-
+        "Semantic error ESE0227: Array element at index 0 with type 'null' is not compatible with the target array element type 'Boolean|Object'"
+
+    - type: Custom | boolean
+      value: '2023-10-10'
+      class: |-
+          class Custom {
+            constructor(value: string) {}
+          }
+      desc: Error assignment of a date string to an array of custom class or number union type.
+      stdout: |-
+        "Semantic error ESE0227: Array element at index 0 with type 'Int' is not compatible with the target array element type 'Custom|Boolean'"  
+
+    - type: string | (() => void) | number
+      value: 1, [true, false]
+      desc: Error assignment of a boolean array to an array of string or function union type.
+      stdout: |-
+        "Semantic error ESE0227: Array element at index 1 with type 'Array<Boolean>' is not compatible with the target array element type 'String|((() => void))|Double'"  
+
+    - type: boolean | float
+      value: '"abc"'
+      desc: Error assignment of a string to an array of boolean or float type.
+      stdout: |-
+        "Semantic error ESE0227: Array element at index 0 with type '\"abc\"' is not compatible with the target array element type 'Boolean|Float'"  
+
+    - type: CustomPromiseClass | Promise<number>
+      value: new Date()
+      class: |-
+          class CustomPromiseClass {
+            constructor(name: string) {}
+          }
+      desc: Error assignment of a date object to an array of custom class or Promise union type.
+      stdout: |-
+        "Semantic error ESE0227: Array element at index 0 with type 'Date' is not compatible with the target array element type 'CustomPromiseClass|Promise<Double>'"  
+
+    - type: number | number[]
+      value: 1, 'a'
+      desc: Error assignment of a string to an array of number or number[] type.
+      stdout: |-
+        "Semantic error ESE0227: Array element at index 1 with type '\"a\"' is not compatible with the target array element type 'Double|Array<Double>'"  
+
+    - type: boolean | bigint
+      value: 1, true
+      desc: Error assignment of a number to an array of boolean or bigint union type.
+      stdout: |-
+        "Semantic error ESE0227: Array element at index 0 with type 'Int' is not compatible with the target array element type 'Boolean|BigInt'"  
+
+    - type: number | Float64Array
+      value: "'123'"
+      desc: Error assignment of a string to an array of number or Float64Array union type.
+      stdout: |-
+        "Semantic error ESE0227: Array element at index 0 with type '\"123\"' is not compatible with the target array element type 'Double|Float64Array'"  
+
+    - type: CustomWeakMapClass | char
+      value: |-
+          true
+      class: |-
+          class CustomWeakMapClass {
+            constructor(prop: string) {}
+          }
+      desc: Error assignment of a TextEncoder object to an array of custom class or WeakMap union type.
+      stdout: |-
+        "Semantic error ESE0227: Array element at index 0 with type 'Boolean' is not compatible with the target array element type 'CustomWeakMapClass|Char'"  
+
+    - type: string | SharedArrayBuffer
+      value: |-
+          1
+      desc: Error assignment of anumber to an array of string or SharedArrayBuffer union type.
+      stdout: |-
+        "Semantic error ESE0371: Cannot find type 'SharedArrayBuffer'."  
+
+    - type: boolean | Float64Array
+      value: 1, true
+      desc: Error assignment of a int  to an array of boolean or Float64Array union type.
+      stdout: |-
+        "Semantic error ESE0227: Array element at index 0 with type 'Int' is not compatible with the target array element type 'Boolean|Float64Array'"  
+
+    - type: string | int
+      value: 1, true
+      desc: Error assignment of a boolean to an array of string or int union type.
+      stdout: |-
+        "Semantic error ESE0227: Array element at index 1 with type 'Boolean' is not compatible with the target array element type 'String|Int'"  
+
+    - type: string | Date
+      value: |-
+          1
+      desc: Error assignment of a number to an array of string or Date union type.
+      stdout: |-
+        "Semantic error ESE0227: Array element at index 0 with type 'Int' is not compatible with the target array element type 'String|Date'"  

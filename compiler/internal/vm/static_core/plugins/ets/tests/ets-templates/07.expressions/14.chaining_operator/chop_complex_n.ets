@@ -1,0 +1,52 @@
+/*
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*---
+desc: Chaining operator, chaining operator with complex nested structures test.
+tags: [compile-only, negative]
+expected_out: 'Semantic error ESE0010: Value is possibly nullish.'
+---*/
+
+class Address {
+   city: string;
+   zipCode?: string;
+
+   constructor(city: string) {
+   this.city = city;
+  }
+}
+
+class Person {
+  name: string;
+  address?: Address;
+
+  constructor(name: string) {
+    this.name = name;
+  }
+}
+
+class Company {
+  CEO?: Person;
+
+  constructor(CEO?: Person) {
+    this.CEO = CEO;
+  }
+}
+
+function main(): void {
+  const company = new Company();
+  company.CEO = new Person("Alice");
+  company.CEO.address = new Address("San Francisco");
+}

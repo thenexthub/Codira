@@ -1,0 +1,11 @@
+{
+    "name": "@panda/sdk",
+    "version": "1.5.0+devel",
+    "main": "package.json",
+    "bin": {
+        "panda-sdk-tslinter": "tslinter/bin/tslinter.js"
+    },
+    "dependencies": {
+        "log4js": "6.4.0"
+    }
+}

@@ -1,0 +1,55 @@
+//===-- GDBRemoteErrno.def --------------------------------------*- C++ -*-===//
+//
+// Copyright (c) NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// Author: Tunjay Akbarli
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
+//
+//===----------------------------------------------------------------------===//
+
+// NOTE: NO INCLUDE GUARD DESIRED!
+
+// HANDLE_ERRNO(name, value)
+#ifndef HANDLE_ERRNO
+#error "HANDLE_ERRNO must be defined"
+#endif
+
+// from gdb's include/gdb/fileio.h
+HANDLE_ERRNO(EPERM,             1)
+HANDLE_ERRNO(ENOENT,            2)
+HANDLE_ERRNO(EINTR,             4)
+HANDLE_ERRNO(EIO,               5)
+HANDLE_ERRNO(EBADF,             9)
+HANDLE_ERRNO(EACCES,           13)
+HANDLE_ERRNO(EFAULT,           14)
+HANDLE_ERRNO(EBUSY,            16)
+HANDLE_ERRNO(EEXIST,           17)
+HANDLE_ERRNO(ENODEV,           19)
+HANDLE_ERRNO(ENOTDIR,          20)
+HANDLE_ERRNO(EISDIR,           21)
+HANDLE_ERRNO(EINVAL,           22)
+HANDLE_ERRNO(ENFILE,           23)
+HANDLE_ERRNO(EMFILE,           24)
+HANDLE_ERRNO(EFBIG,            27)
+HANDLE_ERRNO(ENOSPC,           28)
+HANDLE_ERRNO(ESPIPE,           29)
+HANDLE_ERRNO(EROFS,            30)
+HANDLE_ERRNO(ENOSYS,           88)
+HANDLE_ERRNO(ENAMETOOLONG,     91)
+
+#undef HANDLE_ERRNO

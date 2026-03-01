@@ -1,0 +1,2 @@
+# 31604 the compiler can't compiler big method
+regression/large_number_of_case_statement.ets

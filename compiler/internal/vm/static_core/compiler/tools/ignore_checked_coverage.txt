@@ -1,0 +1,18 @@
+# Example of adding exceptions to check that compiler is compiled:
+#
+# Signature:
+# IGNORE benchmark1 [benchmark2 benchmark3 ...] [FUNCS func1 func2 ...] [ARM32 ARM64 X86_64] [AOT JIT OSR]
+#
+# Examples:
+# IGNORE benchmark                                  - ignoring a benchmark or CTS-assembly test (both osr and jit)
+# IGNORE benchmark FUNCS function                   - ignoring a single function of a benchmark or CTS-assembly test (both osr and jit)
+# IGNORE benchmark FUNCS function ARM32 ARM64 OSR   - ignoring OSR-compilation of a single function of a benchmark or CTS-assembly test for aarch32 and aarch64
+# IGNORE benchmark JIT                              - ignoring JIT-compilation of a benchmark or CTS-assembly test
+
+# Add ignore flags here:
+
+# We can't call runtime with 64 bits pointer to an internal memory on arm (we don't have enought argument registers)
+IGNORE literalarrays-01 FUNCS function main ARM32
+IGNORE literalarrays-02 FUNCS function main ARM32
+IGNORE literalarrays-03 FUNCS function main ARM32
+IGNORE literalarrays-04 FUNCS function main ARM32

@@ -1,0 +1,22 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+cases:
+  - { type: byte,  value: 16,     expected: -17    }
+  - { type: short, value: 300,    expected: -301   }
+  - { type: int,   value: 3000,   expected: -3001  }
+  - { type: long,  value: 50000,  expected: -50001 }
+  - { type: byte,  value: -16,    expected: 15     }
+  - { type: short, value: -300,   expected: 299    }
+  - { type: int,   value: -3000,  expected: 2999   }
+  - { type: long,  value: -50000, expected: 49999  }

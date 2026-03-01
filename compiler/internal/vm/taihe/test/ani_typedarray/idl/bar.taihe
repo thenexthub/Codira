@@ -1,0 +1,158 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+function SumUint8Array(v: @typedarray Array<u8>): i8;
+function NewUint8Array(n: i64, v: i8): @typedarray Array<u8>;
+
+function SumUint16Array(v: @typedarray Array<u16>): i16;
+function NewUint16Array(n: i64, v: i16): @typedarray Array<u16>;
+
+function SumUint32Array(v: @typedarray Array<u32>): i32;
+function NewUint32Array(n: i64, v: i32): @typedarray Array<u32>;
+
+function SumBigUint64Array(v: @typedarray Array<u64>): i64;
+function NewBigUint64Array(n: i64, v: i64): @typedarray Array<u64>;
+
+function SumInt8Array(v: @typedarray Array<i8>): i8;
+function NewInt8Array(n: i64, v: i8): @typedarray Array<i8>;
+
+function SumInt16Array(v: @typedarray Array<i16>): i16;
+function NewInt16Array(n: i64, v: i16): @typedarray Array<i16>;
+
+function SumInt32Array(v: @typedarray Array<i32>): i32;
+function NewInt32Array(n: i64, v: i32): @typedarray Array<i32>;
+
+function SumBigInt64Array(v: @typedarray Array<i64>): i64;
+function NewBigInt64Array(n: i64, v: i64): @typedarray Array<i64>;
+
+function SumFloat32Array(v: @typedarray Array<f32>): f32;
+function NewFloat32Array(n: i64, v: f32): @typedarray Array<f32>;
+
+function SumFloat64Array(v: @typedarray Array<f64>): f64;
+function NewFloat64Array(n: i64, v: f64): @typedarray Array<f64>;
+
+interface TypedArrInfo {
+    CreateUint8Array(a: @typedarray Array<u8>): void;
+    PrintUint8Array(a: @typedarray Array<u8>): @typedarray Array<u8>;
+    @set("Uint8Array") SetUint8Array(a: @typedarray Array<u8>): void;
+    @get("Uint8Array") GetUint8Array(): @typedarray Array<u8>;
+
+    CreateInt8Array(a: @typedarray Array<i8>): void;
+    PrintInt8Array(a: @typedarray Array<i8>): @typedarray Array<i8>;
+    @set("Int8Array") SetInt8Array(a: @typedarray Array<i8>): void;
+    @get("Int8Array") GetInt8Array(): @typedarray Array<i8>;
+
+    CreateUint16Array(a: @typedarray Array<u16>): void;
+    PrintUint16Array(a: @typedarray Array<u16>): @typedarray Array<u16>;
+    @set("Uint16Array") SetUint16Array(a: @typedarray Array<u16>): void;
+    @get("Uint16Array") GetUint16Array(): @typedarray Array<u16>;
+
+    CreateInt16Array(a: @typedarray Array<i16>): void;
+    PrintInt16Array(a: @typedarray Array<i16>): @typedarray Array<i16>;
+    @set("Int16Array") SetInt16Array(a: @typedarray Array<i16>): void;
+    @get("Int16Array") GetInt16Array(): @typedarray Array<i16>;
+
+    CreateUint32Array(a: @typedarray Array<u32>): void;
+    PrintUint32Array(a: @typedarray Array<u32>): @typedarray Array<u32>;
+    @set("Uint32Array") SetUint32Array(a: @typedarray Array<u32>): void;
+    @get("Uint32Array") GetUint32Array(): @typedarray Array<u32>;
+
+    CreateInt32Array(a: @typedarray Array<i32>): void;
+    PrintInt32Array(a: @typedarray Array<i32>): @typedarray Array<i32>;
+    @set("Int32Array") SetInt32Array(a: @typedarray Array<i32>): void;
+    @get("Int32Array") GetInt32Array(): @typedarray Array<i32>;
+
+    CreateUint64Array(a: @typedarray Array<u64>): void;
+    PrintUint64Array(a: @typedarray Array<u64>): @typedarray Array<u64>;
+    @set("Uint64Array") SetUint64Array(a: @typedarray Array<u64>): void;
+    @get("Uint64Array") GetUint64Array(): @typedarray Array<u64>;
+
+    CreateInt64Array(a: @typedarray Array<i64>): void;
+    PrintInt64Array(a: @typedarray Array<i64>): @typedarray Array<i64>;
+    @set("Int64Array") SetInt64Array(a: @typedarray Array<i64>): void;
+    @get("Int64Array") GetInt64Array(): @typedarray Array<i64>;
+
+    CreateFloat32Array(a: @typedarray Array<f32>): void;
+    PrintFloat32Array(a: @typedarray Array<f32>): @typedarray Array<f32>;
+    @set("Float32Array") SetFloat32Array(a: @typedarray Array<f32>): void;
+    @get("Float32Array") GetFloat32Array(): @typedarray Array<f32>;
+
+    CreateFloat64Array(a: @typedarray Array<f64>): void;
+    PrintFloat64Array(a: @typedarray Array<f64>): @typedarray Array<f64>;
+    @set("Float64Array") SetFloat64Array(a: @typedarray Array<f64>): void;
+    @get("Float64Array") GetFloat64Array(): @typedarray Array<f64>;
+
+    ConvertToInt64Array(a: @typedarray Array<u8>, b: @typedarray Array<u16>, c: @typedarray Array<u32>, d: @typedarray Array<u64>, e: @typedarray Array<i8>): @typedarray Array<i64>;
+    ConvertToFloat64Array(a: @typedarray Array<i16>, b: @typedarray Array<i32>, c: @typedarray Array<i64>, d: @typedarray Array<f32>, e: @typedarray Array<f64>): @typedarray Array<f64>;
+
+    GetUint8ArrayOptional(a: Optional<@typedarray Array<u8>>): @typedarray Array<i32>;
+    GetInt8ArrayOptional(a: Optional<@typedarray Array<i8>>): @typedarray Array<i32>;
+    GetUint16ArrayOptional(a: Optional<@typedarray Array<u16>>): @typedarray Array<i32>;
+    GetInt16ArrayOptional(a: Optional<@typedarray Array<i16>>): @typedarray Array<i32>;
+    GetUint32ArrayOptional(a: Optional<@typedarray Array<u32>>): @typedarray Array<i32>;
+    GetInt32ArrayOptional(a: Optional<@typedarray Array<i32>>): @typedarray Array<i32>;
+    GetUint64ArrayOptional(a: Optional<@typedarray Array<u64>>): @typedarray Array<i32>;
+    GetInt64ArrayOptional(a: Optional<@typedarray Array<i64>>): @typedarray Array<i32>;
+    GetFloat32ArrayOptional(a: Optional<@typedarray Array<f32>>): @typedarray Array<i32>;
+    GetFloat64ArrayOptional(a: Optional<@typedarray Array<f64>>): @typedarray Array<i32>;
+
+    MapUint8Arrays(m : @record Map<String, @typedarray Array<u8>>) : @record Map<String, @typedarray Array<u8>>;
+    MapInt8Arrays(m : @record Map<String, @typedarray Array<i8>>) : @record Map<String, @typedarray Array<i8>>;
+    MapUint16Arrays(m : @record Map<String, @typedarray Array<u16>>) : @record Map<String, @typedarray Array<u16>>;
+    MapInt16Arrays(m : @record Map<String, @typedarray Array<i16>>) : @record Map<String, @typedarray Array<i16>>;
+    MapUint32Arrays(m : @record Map<String, @typedarray Array<u32>>) : @record Map<String, @typedarray Array<u32>>;
+    MapInt32Arrays(m : @record Map<String, @typedarray Array<i32>>) : @record Map<String, @typedarray Array<i32>>;
+    MapUint64Arrays(m : @record Map<String, @typedarray Array<u64>>) : @record Map<String, @typedarray Array<u64>>;
+    MapInt64Arrays(m : @record Map<String, @typedarray Array<i64>>) : @record Map<String, @typedarray Array<i64>>;
+    MapFloat32Arrays(m : @record Map<String, @typedarray Array<f32>>) : @record Map<String, @typedarray Array<f32>>;
+    MapFloat64Arrays(m : @record Map<String, @typedarray Array<f64>>) : @record Map<String, @typedarray Array<f64>>;
+}
+function GetTypedArrInfo(): TypedArrInfo;
+
+struct TypedArray1 {
+    a: @typedarray Array<u8>;
+    b: @typedarray Array<i8>;
+    c: @typedarray Array<u16>;
+    d: @typedarray Array<i16>;
+    e: @typedarray Array<u32>;
+    f: @typedarray Array<i32>;
+    g: @typedarray Array<u64>;
+    h: @typedarray Array<i64>;
+    i: @typedarray Array<f32>;
+    j: @typedarray Array<f64>;
+}
+function SetupStructAndPrint(v : TypedArray1) : void;
+
+union MyUnion {
+    u8Value: @typedarray Array<u8>;
+    i8Value: @typedarray Array<i8>;
+    u16Value: @typedarray Array<u16>;
+    i16Value: @typedarray Array<i16>;
+    u32Value: @typedarray Array<u32>;
+    i32Value: @typedarray Array<i32>;
+    u64Value: @typedarray Array<u64>;
+    i64Value: @typedarray Array<i64>;
+    f32Value: @typedarray Array<f32>;
+    f64Value: @typedarray Array<f64>;
+    empty: unit;
+}
+function MakeMyUnion(n: i32): MyUnion;
+function ShowMyUnion(u: MyUnion): void;

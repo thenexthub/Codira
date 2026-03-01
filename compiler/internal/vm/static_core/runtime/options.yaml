@@ -1,0 +1,992 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+module:
+  name: runtime
+  namespace: ark
+
+options:
+- name: version
+  type: bool
+  default: false
+  description: Print version and exit
+
+- name: boot-panda-files
+  type: arg_list_t
+  default:
+      - $ORIGIN/../pandastdlib/arkstdlib.abc
+  description: Boot panda files separated by colon
+  delimiter: ":"
+
+- name: panda-files
+  type: arg_list_t
+  default: []
+  description: Panda files separated by colon which is not within boot-panda-files
+  delimiter: ":"
+
+- name: boot-intrinsic-spaces
+  type: arg_list_t
+  default:
+    - core
+  possible_values:
+    - core
+  description: Load specified intrinsic spaces. This option is for fine tuning. Use load-runtimes instead
+  delimiter: ":"
+
+- name: boot-class-spaces
+  type: arg_list_t
+  default:
+    - core
+  possible_values:
+    - core
+  description: Load specified class spaces. This option is for fine tuning. Use load-runtimes instead
+  delimiter: ":"
+
+- name: runtime-type
+  type: std::string
+  default: core
+  possible_values:
+    - core
+  description: Runtime type. This option is for fine tuning. Use load-runtimes instead
+
+- name: load-runtimes
+  type: arg_list_t
+  default:
+    - core
+  possible_values:
+    - core
+  description: Load specified class and intrinsic spaces and define runtime type
+  delimiter: ":"
+
+- name: runtime-compressed-strings-enabled
+  type: bool
+  default: true
+  description: Enable/disable compressed strings
+
+- name: explicit-concurrent-gc-enabled
+  type: bool
+  default: true
+  description: Enable/disable explicit GC run in concurrent
+
+- name: run-gc-in-place
+  type: bool
+  default: false
+  description: Enable/disable running GC only in place
+
+- name: full-gc-bombing-frequency
+  type: uint32_t
+  default: 0
+  description: Switch on running Full GC collection instead of the one in the trigger queue in the GC thread. Value means frequency - each N collection in the GC thread will be a full collection. Can't be use with run-gc-in-place
+
+- name: run-gc-every-safepoint
+  type: bool
+  default: false
+  description: Run GC on every safepoint. GC will be run only if we use gc-trigger-type=debug and run-gc-in-place=true
+
+- name: compiler-enable-jit
+  type: bool
+  default: true
+  description: Enables/disables JIT compiler
+
+- name: compiler-hotness-threshold
+  type: uint32_t
+  default: 3000
+  description: Threshold for "hotness" counter of the method after that it will be compiled
+
+- name: compiler-profiling-threshold
+  type: uint32_t
+  default: 1500
+  description: Threshold to start method profiling.
+
+- name: compiler-enable-osr
+  type: bool
+  default: true
+  description: Enables/disables OSR compilation
+
+- name: debugger-library-path
+  type: std::string
+  default: ""
+  description: Path to debugger library
+
+- name: debugger-enable
+  type: bool
+  default: false
+  description: Is debugger enabled on runtime create
+
+- name: sampling-profiler-create
+  type: bool
+  default: false
+  description: Is the sampling profiler created and available during runtime execution
+
+- name: profile-branches
+  type: bool
+  default: false
+  description: whether to collect detailed branch statistics data for PGO
+
+- name: sampling-profiler-startup-run
+  type: bool
+  default: false
+  description: Is the sampling profiler runned on runtime startup
+
+- name: sampling-profiler-interval
+  type: uint32_t
+  default: 500
+  description: Sampling profiler interval in microseconds
+
+- name: sampling-profiler-output-file
+  type: std::string
+  default: ""
+  description: Name of file to collect trace in .aspt format
+
+- name: debugger-port
+  type: uint32_t
+  default: 19015
+  description: Port for serving debugger clients via socket
+
+- name: debugger-break-on-start
+  type: bool
+  default: false
+  description: Whether to break threads on creation or not
+
+- name: log-components
+  type: arg_list_t
+  default:
+    - all
+  possible_values:
+    - all
+    - alloc
+    - mm-obj-events
+    - classlinker
+    - common
+    - core
+    - gc
+    - gc_trigger
+    - reference_processor
+    - interpreter
+    - compiler
+    - pandafile
+    - memorypool
+    - runtime
+    - trace
+    - debugger
+    - interop
+    - verifier
+    - compilation_queue
+    - aot
+    - events
+    - scheduler
+    - coroutines
+  description: '[DEPRECATED] Option was moved to libarkbase/utils/logger_options.yaml, use logger::Options instead of runtime options.'
+  delimiter: ":"
+  deprecated: true
+
+- name: compiler-nullcheck
+  type: uint64_t
+  default: 1
+  possible_values:
+    - 0
+    - 1
+  description: Dfx option for compiler-nullcheck
+
+- name: reference-dump
+  type: uint64_t
+  default: 1
+  possible_values:
+    - 0
+    - 1
+  description: Dfx option for reference-dump
+
+- name: signal-catcher
+  type: uint64_t
+  default: 1
+  possible_values:
+    - 0
+    - 1
+  description: Dfx option for signal-catcher
+
+- name: signal-handler
+  type: uint64_t
+  default: 1
+  possible_values:
+    - 0
+    - 1
+  description: Dfx option for signal-handler
+
+- name: sigquit-flag
+  type: uint64_t
+  default: 1
+  possible_values:
+    - 0
+    - 1
+  description: Dfx option for sigquit
+
+- name: sigusr1-flag
+  type: uint64_t
+  default: 1
+  possible_values:
+    - 0
+    - 1
+  description: Dfx option for sigusr1
+
+- name: sigusr2-flag
+  type: uint64_t
+  default: 1
+  possible_values:
+    - 0
+    - 1
+  description: Dfx option for sigusr2
+
+- name: mobile-log-flag
+  type: uint64_t
+  default: 1
+  possible_values:
+    - 0
+    - 1
+  description: Dfx option for mobile-log
+
+- name: dfx-log
+  type: uint64_t
+  default: 0
+  possible_values:
+    - 0
+    - 1
+  description: Dfx option for dfx log
+
+- name: gc-type
+  type: std::string
+  default: g1-gc
+  possible_values:
+    - epsilon
+    - epsilon-g1
+    - stw
+    - g1-gc
+    - cmc-gc
+  description: Type of used GC
+
+- name: ic-enable
+  type: bool
+  default: true
+  description: switch of inline cache
+
+- name: gc-trigger-type
+  type: std::string
+  default: heap-trigger
+  possible_values:
+    - heap-trigger-test
+    - heap-trigger
+    - adaptive-heap-trigger
+    - trigger-heap-occupancy
+    - no-gc-for-start-up
+    - debug
+    - debug-never
+    - pause-time-goal-trigger
+  description: Type of used GC trigger
+
+- name: log-detailed-gc-info-enabled
+  type: bool
+  default: false
+  description: If print INFO log to get more detailed information in GC.
+
+- name: log-detailed-gc-compaction-info-enabled
+  type: bool
+  default: false
+  description: If print INFO log to get more detailed compaction/promotion information per region in GC.
+
+- name: gc-trigger-percent-threshold
+  type: uint32_t
+  default: 15
+  description: Percent of heap for threshold increasing
+
+- name: gc-trigger-adaptive-multiplier
+  type: uint32_t
+  default: 3
+  description: Adjust jump from too frequent gc. New jump calculate as gc-trigger-adaptive-multiplier * max-max-extra-heap-size
+
+- name: max-trigger-percent
+  type: uint32_t
+  default: 45
+  description: Percent of maximum heap size is used as threshold for trigger-heap-occupancy
+
+- name: skip-startup-gc-count
+  type: uint32_t
+  default: 10
+  description: No stw gc count for no-gc-for-start-up
+
+- name: gc-use-nth-alloc-trigger
+  type: bool
+  default: false
+  description: Allow to trigger GC on n-th allocation
+
+- name: init-young-space-size
+  type: uint64_t
+  default: 4194304
+  description: Initial young space size
+
+- name: young-space-size
+  type: uint64_t
+  default: 4194304
+  description: Young space size
+
+- name: young-shared-space-size
+  type: uint64_t
+  default: 524288
+  description: How much space in young-gen are shared (this space is not used for tlabs)
+
+- name: min-extra-heap-size
+  type: uint64_t
+  default: 5242880
+  description: Minimum extra heap size for trigger gc
+
+- name: max-extra-heap-size
+  type: uint64_t
+  default: 8388608
+  description: Maximum extra heap size for trigger gc
+
+- name: gc-debug-trigger-start
+  type: uint64_t
+  default: 0
+  description: First iteration to start returning true in debug trigger
+
+- name: gc-dump-heap
+  type: bool
+  default: false
+  description: Dump heap before and after GC
+
+- name: gc-workers-count
+  type: uint32_t
+  # default value depends on a specific device model
+  default_target_specific:
+    HL1CMSM: 2  # mate 60 pro
+    ohos: 2 # devboard
+    HN1NOAHM: 2 # mate 40 pro
+    default: 2
+  description: Set number of additional GC helper threads. GC uses these threads to speed up collection doing work in parallel.
+
+- name: manage-gc-threads-affinity
+  type: bool
+  default: true
+  description: Manage GC Threads affinity on cores
+
+- name: use-weak-cpu-for-gc-concurrent
+  type: bool
+  default: false
+  description: Set GC Thread on weak cores during concurrent phases
+
+- name: g1-region-garbage-rate-threshold
+  type: uint32_t
+  default: 52
+  description: Specify garbage rate threshold of a tenured region to be included into a mixed collection.
+
+- name: g1-number-of-tenured-regions-at-mixed-collection
+  type: uint32_t
+  default: 20
+  description: Specify a max number of tenured regions which can be collected at mixed collection in G1GC.
+
+- name: g1-track-freed-objects
+  type: std::string
+  default: default
+  possible_values:
+  - default
+  - 'true'
+  - 'false'
+  description: Specify whether G1GC tracks object removing (i.e. update objects count in memstats and log removed objects). Default means true on Release and false otherwise. If the value is true G1GC doesn't delete classes in concurrent phase because it needs to know object size.
+
+- name: gc-marking-stack-new-tasks-frequency
+  type: uint64_t
+  default: 10000000
+  description: Limit the creation rate of tasks during marking in nanoseconds. if average task creation during marking is less than this value - it increases the stack size limit to create tasks less frequently.
+
+- name: gc-root-marking-stack-max-size
+  type: uint32_t
+  default: 186
+  description: The max stack size for root marking in main thread, if it exceeded, we will send a new task to workers. 0 means unlimited.
+
+- name: gc-workers-marking-stack-max-size
+  type: uint32_t
+  default: 200
+  description: The max stack size for marking stage proceed in workers threads, if it exceeded, we will send a new task to other workers. 0 means unlimited.
+
+- name: gc-parallel-marking-enabled
+  type: bool
+  default: true
+  description: Enable parallel marking in GC if it is supported (now it is G1 and STW). If we don't have gc workers, this options will be ignored.
+
+- name: gc-parallel-compacting-enabled
+  type: bool
+  default: true
+  description: Enable parallel compacting in GC if it is supported (now it is G1). If we don't have gc workers, this options will be ignored.
+
+- name: gc-parallel-ref-updating-enabled
+  type: bool
+  default: true
+  description: Enable parallel references updating in GC if it is supported (now it is G1). If we don't have gc workers, this options will be ignored.
+
+- name: long-gc-threshold-ns
+  type: uint64_t
+  default: 40000000
+  description: Specify the threshold for the duration of Full GC before exceeding the execution time
+
+- name: g1-single-pass-compaction-enabled
+  type: bool
+  default: true
+  description: Enable single pass compaction mode for G1 GC if it is supported by VM implementation
+
+- name: reference-processor-enable
+  type: bool
+  default: true
+  description: Enables/disables ReferenceProcessor
+
+- name: log-level
+  type: std::string
+  default: error
+  possible_values:
+  - debug
+  - info
+  - warning
+  - error
+  - fatal
+  description: '[DEPRECATED] Option was moved to libarkbase/utils/logger_options.yaml, use logger::Options instead of runtime options.'
+  deprecated: true
+
+- name: log-stream
+  type: std::string
+  default: std
+  possible_values:
+  - std
+  - file
+  - fast-file
+  - dummy
+  description: '[DEPRECATED] Option was moved to libarkbase/utils/logger_options.yaml, use logger::Options instead of runtime options.'
+  deprecated: true
+
+- name: log-file
+  type: std::string
+  default: ""
+  description: '[DEPRECATED] Option was moved to libarkbase/utils/logger_options.yaml, use logger::Options instead of runtime options.'
+  deprecated: true
+
+- name: gc-enable-tracing
+  type: bool
+  default: false
+  description: enables/disables tracing gc
+
+- name: g1-enable-concurrent-update-remset
+  type: bool
+  default: true
+  description: enables/disables concurrent update remset thread
+
+- name: g1-min-concurrent-cards-to-process
+  type: uint32_t
+  default: 2
+  description: Minimum number of cards to process from queue in update-remset-thread. Higher number consumes less CPU, but can cause higher pause.
+
+- name: g1-hot-cards-processing-frequency
+  type: uint32_t
+  default: 7
+  description: Frequency of proccessing hot cards in update-remset-thread
+
+- name: g1-promotion-region-alive-rate
+  type: uint32_t
+  default: 75
+  description: Minimum percentage of alive bytes in young region to promote it into tenured without moving. 100 value means never.
+
+- name: g1-full-gc-region-fragmentation-rate
+  type: uint32_t
+  default: 10
+  description: Maximum fragmentation percentage for a tenured region with no garbage inside to skip it on full collection. If the region has bigger fragmentation, we will collect it during a full collection in spite of it has no garbage inside. 0 value means we will collect every region.
+
+- name: g1-pause-time-goal
+  description: Enable G1 pause time goal
+  sub_options:
+  - name: max-gc-pause
+    type: uint32_t
+    default: 10
+    description: Maximum sum of G1 GC pauses during gc-pause-interval in milliseconds
+  - name: gc-pause-interval
+    type: uint32_t
+    default: 11
+    description: Time interval for max-gc-pause in milliseconds
+
+- name: distributed-profiling
+  type: bool
+  default: false
+  description: Enable/disable collection of information for distributed profiling
+
+- name: aot-file
+  type: std::string
+  default: ""
+  description: path to aot file
+
+- name: aot-files
+  type: arg_list_t
+  default: []
+  description: List of aot files to be loaded
+  delimiter: ':'
+
+- name: aot-verify-abs-path
+  type: bool
+  default: true
+  description: Use absolute path to panda files in Aot verification
+
+- name: adaptive-tlab-size
+  type: bool
+  default: true
+  description: Enable/disable adaptive TLAB size according to runtime allocation statistics
+
+- name: init-tlab-size
+  type: uint64_t
+  default: 4096
+  description: Initial TLAB size and maximum size of object to be allocated in TLAB. TLAB size remains constant unless adaptive-tlab-size is enabled. Also, this value is used for YoungAllocMaxSize
+
+- name: max-tlab-size
+  type: uint64_t
+  default: 16384
+  description: Max TLAB size. Used when adaptive-tlab-size is enabled
+
+- name: use-tlab-for-allocations
+  type: bool
+  default: true
+  description: Enable/disable TLAB using for object allocations. Now, it is ignored for all GCs. Temporary option for quick switch between modes.
+
+- name: init-heap-size-limit
+  type: uint64_t
+  default: 536870912
+  description: Initial size of pool used for objects (Xms). If it was not set explicitly then it set as heap-size-limit
+
+- name: heap-size-limit
+  type: uint32_t
+  default: 536870912
+  description: Max heap size
+
+- name: internal-memory-size-limit
+  type: uint64_t
+  default_target_specific:
+    arm32: 2147483648
+    default: 8589934592
+  description: Max internal memory used by the VM
+
+- name: frames-memory-size-limit
+  type: uint64_t
+  default: 2147483648
+  description: Max internal memory used for frames in the VM
+
+- name: min-heap-free-percentage
+  type: uint32_t
+  default: 30
+  description: Minimum percentage of free space in heap. Must be 0 <= min-heap-free-percentage <= max-heap-free-percentage <= 100
+
+- name: max-heap-free-percentage
+  type: uint32_t
+  default: 70
+  description: Maximum percentage of free space in heap. Must be 0 <= min-heap-free-percentage <= max-heap-free-percentage <= 100
+
+- name: code-cache-size-limit
+  type: uint64_t
+  default: 33554432
+  description: The limit for compiled code size.
+
+- name: compiler-memory-size-limit
+  type: uint64_t
+  default: 268435456
+  description: Max memory used by the compiler
+
+- name: print-memory-statistics
+  type: bool
+  default: false
+  description: Enable/disable printing memory statistics in the end of the program
+
+- name: print-gc-statistics
+  type: bool
+  default: false
+  description: Enable/disable printing gc statistics in the end of the program
+
+- name: no-async-jit
+  type: bool
+  default: false
+  description: Perform compilation in the main thread or in parallel worker
+
+- name: compiler-queue-type
+  type: std::string
+  default: counter-priority
+  possible_values:
+    - simple
+    - counter-priority
+    - aged-counter-priority
+  description: Type of compiler queue
+
+- name: compiler-task-life-span
+  type: uint32_t
+  default: 500
+  description: A time in milliseconds of task life span in compiler counter priority queue
+
+- name: compiler-queue-max-length
+  type: uint32_t
+  default: 100
+  description: Max length of compiler queue
+
+- name: compiler-epoch-duration
+  type: uint32_t
+  default: 500
+  description: Duration in milliseconds of an epoch in compiler aged counter priority queue
+
+- name: compiler-death-counter-value
+  type: uint32_t
+  default: 500
+  description: Minimum value of aged counter, which will be still considered
+
+- name: limit-standard-alloc
+  type: bool
+  default: false
+  description: Limit standard allocations usage in runtime
+
+- name: internal-allocator-type
+  type: std::string
+  default: default
+  possible_values:
+    - panda_allocators
+    - malloc
+    - default
+  description: Default means using malloc for Release, and panda allocators for Debug builds. If we use malloc, we will ignore limit-standard-alloc option.
+
+- name: finalizer-timeout-ms
+  type: uint32_t
+  default: 10000
+  description: Set finalizer daemon watchdog time
+
+- name: properties
+  type: arg_list_t
+  default:
+    - user.locale=en-US
+  description: command-line property settings of VM
+
+- name: events-output
+  type: std::string
+  default: none
+  possible_values:
+    - none
+    - csv
+    - memory
+    - log
+  description: Specify events output
+
+- name: events-file
+  type: std::string
+  default: events.csv
+  description: Path to events output file (if needed)
+
+- name: mem-alloc-dump-exec
+  type: bool
+  default: false
+  description: true if need to dump
+
+- name: mem-alloc-dump-file
+  type: std::string
+  default: mem_dump.csv
+  description: Path to mem dump file (if needed)
+
+- name: startup-time
+  type: bool
+  default: false
+  description: Print the start time of command execution
+
+- name: max-free
+  type: uint32_t
+  default: 8388608
+  description: Trigger native memory recycling watermark, default 8 M
+
+- name: native-gc-trigger-type
+  type: std::string
+  default: simple-strategy
+  possible_values:
+    - no-native-gc-trigger
+    - simple-strategy
+  description: Type of native gc trigger
+
+- name: profiler-enabled
+  type: bool
+  default: true
+  description: whether open the pgo profiler when jit diabled
+
+- name: profilesaver-sleeping-time-ms
+  type: uint32_t
+  default: 40000
+  description: Set wake up period time of daemon thread for profile saver
+
+- name: profilesaver-delta-number-threshold
+  type: uint64_t
+  default: 0
+  description: delta number threshold of newly added method or class for profile saver
+
+- name: profilesaver-enabled
+  type: bool
+  default: false
+  description: whether open the profilesaver functions
+
+- name: incremental-profilesaver-enabled
+  type: bool
+  default: false
+  description: whether open the incremental profilesaver functions, only work when profiler is enabled
+
+- name: start-as-zygote
+  type: bool
+  default: false
+  description: whether current vm is zygote
+
+- name: verification-mode
+  type: std::string
+  default: ahead-of-time
+  possible_values:
+    - disabled
+    - on-the-fly
+    - ahead-of-time
+  description: Verification mode.
+
+- name: verification-update-cache
+  type: bool
+  default: true
+  description: Whether to update verification result cache
+
+- name: verification-threads
+  type: uint32_t
+  default: 1
+  description: number of verification threads
+
+- name: verification-config-file
+  type: std::string
+  default: "default"
+  description: filename with debug config for verifier
+
+- name: verification-cache-file
+  type: std::string
+  default: ""
+  description: verifier cache filename
+
+- name: enable-fast-heap-verifier
+  type: bool
+  default: true
+  description: Enable fast heap verifier, which is faster than ordinary heap verifier but uses more internal memory
+
+- name: heap-verifier
+  type: arg_list_t
+  default: []
+  possible_values:
+    - pre
+    - into
+    - post
+    - before_g1_concurrent
+    - fail_on_verification
+  description: parameters for heap verification
+  delimiter: ":"
+
+- name: max-global-ref-size
+  type: uint32_t
+  default: 65535
+  description: max size of global reference storage
+
+- name: global-reference-size-check-enabled
+  type: bool
+  default: false
+  description: whether open the global reference size check
+
+- name: concurrent-gc-enabled
+  type: bool
+  default: true
+  description: whether concurrent GC is enabled
+
+- name: snapshot-serialize-enabled
+  type: bool
+  default: false
+  description: whether snapshot serialize is enabled
+
+- name: snapshot-deserialize-enabled
+  type: bool
+  default: true
+  description: whether snapshot deserialize is enabled
+
+- name: snapshot-file
+  type: std::string
+  default: "/system/etc/snapshot"
+  description: snapshot file
+
+- name: framework-abc-file
+  type: std::string
+  default: "strip.native.min.abc"
+  description: snapshot file
+
+- name: boot-an-location
+  type: std::string
+  default: "/data/service/el1/public/for-all-app/framework_ark_cache"
+  description: default path to .an files for boot panda files, try to load ARK .an file from this dir if not empty when enable-an
+
+- name: enable-an
+  description: Try to load ARK .an file for boot panda files from boot-an-location or base on abc file location
+  sub_options:
+  - name: force
+    type: bool
+    default: false
+    description: Crash if there is no .an file for both location based on .abc file and boot-an-location
+
+- name: verify-call-stack
+  type: bool
+  default: false
+  description: Verify call stack before using of the StackWalker
+
+- name: safepoint-backtrace
+  type: bool
+  default: false
+  description: Print backtrace each time a thread gets suspended
+
+- name: aot-string-gc-roots-limit
+  type: uint64_t
+  default: 1000
+  description: Maximum amount of AOT string PLT-slots registered as GC roots
+
+- name: resolve-string-aot-threshold
+  type: uint32_t
+  default: 1
+  description: Minimum amount of ResolveStringAot calls before storing string pointer into PLT-slot
+
+- name: icu-data-path
+  type: std::string
+  default: "default"
+  description: Path to generated icu data file
+
+- name: ark-aot
+  type: bool
+  default: false
+  description: check if runtime start by ark_aot
+
+- name: intrinsics-blacklist
+  type: arg_list_t
+  default: []
+  description: List of methods for which intrinsics should not be linked
+  delimiter: ","
+
+- name: verify-entrypoints
+  type: bool
+  default: false
+  description: Verify compiler entrypoints
+
+- name: ignore-daemon-memory-leaks-threshold
+  type: uint32_t
+  default: 0
+  description: Ignore daemon memory leaks during runtime destruction with the specified threshold
+
+- name: interpreter-type
+  type: std::string
+  default: llvm
+  possible_values: [cpp, irtoc, llvm]
+  description: Interpreter implementation type
+
+- name: abc-layout-profile-location
+  type: std::string
+  default: "/data/profile/"
+  description: Specify the location of abc layout profile
+
+- name: intrusive-test
+  type: uint32_t
+  default: 0
+  description: Numerical identifier of an intrusive test
+
+- name: profile-output
+  type: std::string
+  default: "profile.ap"
+  description: Specify the location the collected profile information
+
+- name: call-profiling-table-size
+  type: uint32_t
+  default: 1000
+  description: Size of call profiling table size
+
+- name: coroutine-stack-size-pages
+  type: uint32_t
+  default: 64
+  description: defines stack size for stackful coroutines (in number of pages)
+
+- name: coroutines-stack-mem-limit
+  type: uint64_t
+  default_target_specific:
+    arm32: 536870912
+    default: 4194304000
+  description: defines the total amount of memory that can be used for stackful coroutine stacks allocation (in bytes)
+
+- name: coroutines-user-limit
+  type: uint64_t
+  default: 0
+  description: The amount of allowed user coroutines (0 to auto)
+
+- name: use-coroutine-pool
+  type: bool
+  default: true
+  description: caches coroutine and coroutine context instances in a pool to speedup creation/destruction
+
+- name: workers-type
+  type: std::string
+  default: taskmanager
+  possible_values:
+  - threadpool
+  - taskmanager
+  description: Set type of additional VM workers. VM uses these workers to speed up internal algorithms (JIT, GC, etc.)
+
+- name: taskmanager-workers-count
+  type: uint32_t
+  # default value depends on a specific device model
+  default_target_specific:
+    HL1CMSM: 3 # mate 60 pro
+    ohos: 2 # devboard
+    HN1NOAHM: 4 # mate 40 pro
+    default: 4
+  description: Number of worker threads for the taskmanager. Option is used only for --worker-type=taskmanager
+
+- name: task-stats-type
+  type: std::string
+  default: no-task-stats
+  possible_values:
+  - no-task-stats
+  - light-task-stats
+  description: Set type of task stats that will collect task manager metrics, if use set `no-task-stats` there will be no stats collection
+
+- name: load-in-boot
+  type: bool
+  default: false
+  description: Load entrypoint panda file in boot-panda-files
+
+- name: use-string-caches
+  type: bool
+  default: true
+  description: Whether to create cache for strings created from integer/floating point numbers.
+
+- name: use-all-strings
+  type: bool
+  default: true
+  description: Whether to create strings with LineString/SlicedString/TreeString or only LineString.
+
+- name: code-coverage-enabled
+  type: bool
+  default: false
+  description: whether ArkTS 1.2 code coverage is enabled.
+
+- name: code-coverage-output
+  type: std::string
+  default: ""
+  description: Specify the location the collected code coverage information.
+
+- name: use-boot-class-filter
+  type: bool
+  default: true
+  description: Whether to use boot class bloom filter to speedup app class lookup.
+
+- name: enable-class-linker-trace
+  type: bool
+  default: false
+  description: Enable class linker trace

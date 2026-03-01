@@ -1,0 +1,42 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - { mod1: 'static',       mod2: '',             mod3: ''             }
+  - { mod1: '',             mod2: 'static',       mod3: ''             }
+  - { mod1: '',             mod2: '',             mod3: 'static'       }
+  - { mod1: 'static',       mod2: 'static',       mod3: ''             }
+  - { mod1: 'static',       mod2: '',             mod3: 'static'       }
+  - { mod1: '',             mod2: 'static',       mod3: 'static'       }
+
+  - { mod1: 'async',        mod2: '',             mod3: ''             }
+  - { mod1: '',             mod2: 'async',        mod3: ''             }
+  - { mod1: '',             mod2: '',             mod3: 'async'        }
+  - { mod1: 'async',        mod2: 'async',        mod3: ''             }
+  - { mod1: 'async',        mod2: '',             mod3: 'async'        }
+  - { mod1: '',             mod2: 'async',        mod3: 'async'        }
+
+  - { mod1: 'async',        mod2: 'static',       mod3: ''             }
+  - { mod1: 'async',        mod2: 'static',       mod3: 'async'        }
+  - { mod1: 'async',        mod2: 'static',       mod3: 'static'       }
+  - { mod1: '',             mod2: 'async',        mod3: 'static'       }
+  - { mod1: '',             mod2: 'static',       mod3: 'async'        }
+  - { mod1: 'async',        mod2: 'async',        mod3: 'static'       }
+  - { mod1: 'static',       mod2: 'static',       mod3: 'async'        }
+
+  - { mod1: 'static async', mod2: 'async',        mod3: 'async'        }
+  - { mod1: 'async',        mod2: 'async static', mod3: 'async'        }
+  - { mod1: 'async',        mod2: 'async',        mod3: 'static async' }
+  - { mod1: 'async static', mod2: 'static async', mod3: 'async'        }
+  - { mod1: 'async',        mod2: 'static async', mod3: 'static async' }

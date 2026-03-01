@@ -1,0 +1,51 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - type: byte
+    val: 1285555
+  - type: short
+    val: 32768
+  - type: int
+    val: 2147483648
+  - type: long
+    val: 9223372036854775808
+  - type: bigint
+    val: 1
+  - type: void
+    val: 1
+  - type: never
+    val: 1
+  - type: "null"
+    val: 1
+  - type: undefined
+    val: 1
+  - type: byte
+    val: "[1, 2]"
+  - type: short
+    val: "[1, 2]"
+  - type: int
+    val: "[1, 2]"
+  - type: long
+    val: "[1, 2]"
+  - type: float
+    val: "[1, 2]"
+  - type: double
+    val: "[1, 2]"
+  - type: NumE
+    val: 2
+    decl: enum NumE {A, B}
+  - type: StrE
+    val: "'aaa'"
+    decl: enum StrE {S1 = "abc", S2 = "bbb"}

@@ -1,0 +1,304 @@
+# Copyright (c) 2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//arkcompiler/runtime_core/ark_config.gni")
+import("$ark_root/tests/test_helper.gni")
+import("$build_root/config/components/ets_frontend/es2abc_config.gni")
+
+abc2prog_test_configs = [
+  "$ark_root:ark_config",
+  "$ark_root/assembler:arkassembler_public_config",
+  "$ark_root/libpandabase:arkbase_public_config",
+  "$ark_root/libpandafile:arkfile_public_config",
+]
+
+abc2prog_test_deps = [
+  "$ark_root/abc2program:abc2program",
+  "$ark_root/assembler:libarkassembler_static",
+  "$ark_root/libpandabase:libarkbase_static",
+  "$ark_root/libpandafile:libarkfile_static",
+]
+
+test_ts_dir = "//arkcompiler/runtime_core/abc2program/tests/ts/"
+test_js_dir = "//arkcompiler/runtime_core/abc2program/tests/js/"
+test_column_number_dir =
+    "//arkcompiler/runtime_core/abc2program/tests/ts/release-column-number/"
+test_line_number_dir =
+    "//arkcompiler/runtime_core/abc2program/tests/ts/release-line-number/"
+test_json_dir = "//arkcompiler/runtime_core/abc2program/tests/json/"
+test_debug_line_number_dir =
+    "//arkcompiler/runtime_core/abc2program/tests/ts/debug-line-number/"
+
+abc2prog_test_release_line_number_files = [
+  "InvalidOpcode",
+  "CommonSyntax",
+  "TsNewFeatrueSyntax",
+]
+
+foreach(file, abc2prog_test_release_line_number_files) {
+  es2abc_gen_abc("gen_${file}_abc") {
+    test_ts = "${test_line_number_dir}${file}.ts"
+    test_abc = "$target_out_dir/${file}.abc"
+
+    src_js = rebase_path(test_ts)
+    dst_file = rebase_path(test_abc)
+    extra_args = [ "--module" ]
+    in_puts = [ test_ts ]
+    out_puts = [ test_abc ]
+  }
+}
+
+abc2prog_test_release_column_number_files = [
+  "ReleaseEnableColumnNumberCallargs",
+  "ReleaseEnableColumnNumberCallthis",
+]
+
+foreach(file, abc2prog_test_release_column_number_files) {
+  es2abc_gen_abc("gen_${file}_abc") {
+    test_ts = "${test_column_number_dir}${file}.ts"
+    test_abc = "$target_out_dir/${file}.abc"
+
+    src_js = rebase_path(test_ts)
+    dst_file = rebase_path(test_abc)
+    extra_args = [
+      "--enable-release-column",
+      "--module",
+    ]
+    in_puts = [ test_ts ]
+    out_puts = [ test_abc ]
+  }
+}
+
+abc2prog_test_debug_line_number_files = [ "TsCommonSyntax" ]
+
+foreach(file, abc2prog_test_debug_line_number_files) {
+  es2abc_gen_abc("gen_${file}_abc") {
+    test_ts = "${test_debug_line_number_dir}${file}.ts"
+    test_abc = "$target_out_dir/${file}.abc"
+
+    src_js = rebase_path(test_ts)
+    dst_file = rebase_path(test_abc)
+    extra_args = [
+      "--debug",
+      "--module",
+    ]
+    in_puts = [ test_ts ]
+    out_puts = [ test_abc ]
+  }
+}
+
+abc2prog_test_js_files = [ "JsCommonSyntax" ]
+
+foreach(file, abc2prog_test_js_files) {
+  es2abc_gen_abc("gen_${file}_abc") {
+    test_js = "${test_js_dir}${file}.js"
+    test_abc = "$target_out_dir/${file}.abc"
+
+    src_js = rebase_path(test_js)
+    dst_file = rebase_path(test_abc)
+    extra_args = [ "--module" ]
+    in_puts = [ test_js ]
+    out_puts = [ test_abc ]
+  }
+}
+
+abc2prog_debug_test_js_files = [ "JsCommonSyntax" ]
+
+foreach(file, abc2prog_debug_test_js_files) {
+  es2abc_gen_abc("gen_${file}_debug_abc") {
+    test_js = "${test_js_dir}${file}.js"
+    test_abc = "$target_out_dir/${file}Debug.abc"
+
+    src_js = rebase_path(test_js)
+    dst_file = rebase_path(test_abc)
+    extra_args = [
+      "--debug",
+      "--module",
+    ]
+    in_puts = [ test_js ]
+    out_puts = [ test_abc ]
+  }
+}
+
+abc2prog_test_ts_files = [
+  "HelloWorld",
+  "Annotations",
+  "etsImplements",
+]
+
+foreach(file, abc2prog_test_ts_files) {
+  es2abc_gen_abc("gen_${file}_abc") {
+    test_ts = "${test_ts_dir}${file}.ts"
+    test_abc = "$target_out_dir/${file}.abc"
+
+    src_js = rebase_path(test_ts)
+    dst_file = rebase_path(test_abc)
+    extra_args = [ "--module" ]
+    if (file == "Annotations") {
+      extra_args += [ "--enable-annotations" ]
+    } else if (file == "etsImplements") {
+      extra_args += [ "--enable-ets-implements" ]
+    }
+    in_puts = [ test_ts ]
+    out_puts = [ test_abc ]
+  }
+}
+
+abc2prog_debug_test_ts_files = [ "HelloWorld" ]
+
+foreach(file, abc2prog_debug_test_ts_files) {
+  es2abc_gen_abc("gen_${file}_debug_abc") {
+    test_ts = "${test_ts_dir}${file}.ts"
+    test_abc = "$target_out_dir/${file}Debug.abc"
+
+    src_js = rebase_path(test_ts)
+    dst_file = rebase_path(test_abc)
+    extra_args = [
+      "--debug",
+      "--module",
+    ]
+    in_puts = [ test_ts ]
+    out_puts = [ test_abc ]
+  }
+}
+
+abc2prog_test_json_files = [ "JsonTest" ]
+
+foreach(file, abc2prog_test_json_files) {
+  es2abc_gen_abc("gen_${file}_abc") {
+    test_json = "${test_json_dir}${file}.json"
+    test_abc = "$target_out_dir/${file}.abc"
+
+    src_js = rebase_path(test_json)
+    dst_file = rebase_path(test_abc)
+    extra_args = [
+      "--module",
+      "--merge-abc",
+    ]
+    in_puts = [ test_json ]
+    out_puts = [ test_abc ]
+  }
+}
+
+abc2prog_include_dirs = [
+  "$ark_root/abc2program",
+  "$ark_root/assembler",
+  "$target_gen_dir",
+  "$target_gen_dir/../",
+  "$target_gen_dir/../../assembler",
+]
+
+script_sources = [
+  "cpp_sources/abc2program_test_utils.cpp",
+  "cpp_sources/debug_line_number.cpp",
+  "cpp_sources/etsImplements_test.cpp",
+  "cpp_sources/hello_world_test.cpp",
+  "cpp_sources/js_common_syntax_test.cpp",
+  "cpp_sources/release_column_number.cpp",
+  "cpp_sources/release_line_number.cpp",
+]
+
+host_unittest_action("Abc2ProgScriptTest") {
+  module_out_path = module_output_path
+  sources = script_sources
+  include_dirs = abc2prog_include_dirs
+  configs = abc2prog_test_configs
+  external_deps = [ sdk_libc_secshared_dep ]
+  deps = abc2prog_test_deps
+  test_abc_dir = rebase_path(target_out_dir)
+  test_abc_dump_dir = rebase_path(test_ts_dir)
+  test_js_abc_dump_dir = rebase_path(test_js_dir)
+  defines = [
+    "GRAPH_TEST_ABC_DIR=\"${test_abc_dir}/\"",
+    "GRAPH_TEST_ABC_DUMP_DIR=\"${test_abc_dump_dir}/\"",
+    "GRAPH_JS_TEST_ABC_DUMP_DIR=\"${test_js_abc_dump_dir}/\"",
+  ]
+
+  foreach(file, abc2prog_test_ts_files) {
+    deps += [ ":gen_${file}_abc" ]
+  }
+  foreach(file, abc2prog_debug_test_ts_files) {
+    deps += [ ":gen_${file}_debug_abc" ]
+  }
+  foreach(file, abc2prog_test_json_files) {
+    deps += [ ":gen_${file}_abc" ]
+  }
+  foreach(file, abc2prog_test_release_column_number_files) {
+    deps += [ ":gen_${file}_abc" ]
+  }
+  foreach(file, abc2prog_test_release_line_number_files) {
+    deps += [ ":gen_${file}_abc" ]
+  }
+  foreach(file, abc2prog_test_js_files) {
+    deps += [ ":gen_${file}_abc" ]
+  }
+  foreach(file, abc2prog_debug_test_js_files) {
+    deps += [ ":gen_${file}_debug_abc" ]
+  }
+  foreach(file, abc2prog_test_debug_line_number_files) {
+    deps += [ ":gen_${file}_abc" ]
+  }
+}
+
+action("gen_filesinfo_action") {
+  script = "handle_fileinfo.py"
+
+  inputs = [ "sourceLang/filesInfo.txt" ]
+  outputs = [ "${target_out_dir}/sourceLang/filesInfo.txt" ]
+  args = [
+    rebase_path("sourceLang/filesInfo.txt"),
+    rebase_path("${target_out_dir}/sourceLang/filesInfo.txt"),
+    rebase_path("./"),
+  ]
+}
+
+es2abc_gen_abc("gen_sourceLang_abc") {
+  test_abc = "$target_out_dir/sourceLang.abc"
+  fileinfo_path = rebase_path("${target_out_dir}/sourceLang/filesInfo.txt")
+  src_js = "@${fileinfo_path}"
+  dst_file = rebase_path(test_abc)
+  extra_args = [
+    "--module",
+    "--merge-abc",
+    "--enable-annotations",
+  ]
+  out_puts = [ test_abc ]
+}
+
+host_unittest_action("Abc2ProgSourceLangTest") {
+  module_out_path = module_output_path
+  sources = [ "cpp_sources/sourceLang_test.cpp" ]
+  include_dirs = abc2prog_include_dirs
+  configs = abc2prog_test_configs
+  external_deps = [ sdk_libc_secshared_dep ]
+  deps = abc2prog_test_deps
+  test_abc_dir = rebase_path(target_out_dir)
+  test_abc_dump_dir = rebase_path(test_ts_dir)
+  defines = [
+    "GRAPH_TEST_ABC_DIR=\"${test_abc_dir}/\"",
+    "GRAPH_TEST_ABC_DUMP_DIR=\"${test_abc_dump_dir}/\"",
+  ]
+
+  deps += [
+    ":gen_filesinfo_action",
+    ":gen_sourceLang_abc",
+  ]
+}
+
+group("host_unittest") {
+  testonly = true
+  deps = [
+    ":Abc2ProgScriptTestAction",
+    ":Abc2ProgSourceLangTestAction",
+  ]
+}

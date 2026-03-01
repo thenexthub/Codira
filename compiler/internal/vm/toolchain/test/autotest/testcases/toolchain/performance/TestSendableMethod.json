@@ -1,0 +1,15 @@
+{
+  "description": "Config for TestSendableMethod",
+  "environment": [
+    {
+      "type": "device",
+      "label": "phone"
+    }
+  ],
+  "driver": {
+    "type": "DeviceTest",
+    "py_file": [
+      "toolchain/performance/TestSendableMethod.py"
+    ]
+  }
+}

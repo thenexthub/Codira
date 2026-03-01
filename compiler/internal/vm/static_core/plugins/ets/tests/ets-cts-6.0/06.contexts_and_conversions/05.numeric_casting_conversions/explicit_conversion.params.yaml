@@ -1,0 +1,43 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+types:
+  - { dtype: Short, dval: 119, type: Byte, val: 0x77 as byte }
+  - { dtype: Int, dval: 119, type: Byte, val: 0x77 as byte }
+  - { dtype: Long, dval: 119, type: Byte, val: 0x77 as byte }
+  - { dtype: Float, dval: 16.0f, type: Byte, val: 16 as byte }
+  - { dtype: Double, dval: 16.0, type: Byte, val: 16 as byte }
+  
+  - { dtype: Int, dval: 21845, type: Short, val: 0x5555 }
+  - { dtype: Long, dval: 21845, type: Short, val: 0x5555 }
+  - { dtype: Float, dval: 32.0f, type: Short, val: 0x20 }
+  - { dtype: Double, dval: 32.0, type: Short, val: 0x20 }
+
+  - { dtype: Long, dval: 303, type: Int, val: 0x12f }
+  - { dtype: Float, dval: 47, type: Int, val: 0x2f }
+  - { dtype: Double, dval: 47, type: Int, val: 0x2f }
+
+  - { dtype: Float, dval: 4.0f, type: Long, val: 4 }
+  - { dtype: Double, dval: 4, type: Long, val: 4 }
+
+  - { dtype: Double, dval: 0.5, type: Float, val: 0.5f }

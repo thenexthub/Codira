@@ -1,0 +1,2 @@
+[remove_async_tests_2.ets:19:11] Warning W0005: Replace asynchronous function with coroutine.
+[remove_async_tests_2.ets:25:1] Warning W0005: Replace asynchronous function with coroutine.

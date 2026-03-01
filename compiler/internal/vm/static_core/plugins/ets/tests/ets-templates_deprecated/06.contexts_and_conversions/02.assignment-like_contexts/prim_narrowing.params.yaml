@@ -1,0 +1,91 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+  - types:
+    - { stype: short, src: Short.MIN_VALUE, dtype: Byte, dst: 0  }
+    - { stype: short, src: Short.MAX_VALUE, dtype: Byte, dst: (-1)  }
+
+    - { stype: int, src: Int.MIN_VALUE, dtype: Byte, dst: 0 }
+    - { stype: int, src: Int.MAX_VALUE, dtype: Byte, dst: (-1) }
+    - { stype: int, src: Int.MIN_VALUE, dtype: Short, dst: 0 }
+    - { stype: int, src: Int.MAX_VALUE, dtype: Short, dst: (-1) }
+
+    - { stype: long, src: Long.MIN_VALUE, dtype: Byte, dst: 0 }
+    - { stype: long, src: Long.MAX_VALUE, dtype: Byte, dst: (-1) }
+    - { stype: long, src: Long.MIN_VALUE, dtype: Short, dst: 0 }
+    - { stype: long, src: Long.MAX_VALUE, dtype: Short, dst: (-1) }
+    - { stype: long, src: Long.MIN_VALUE, dtype: Int, dst: 0 }
+    - { stype: long, src: Long.MAX_VALUE, dtype: Int, dst: (-1) }
+
+    - { stype: float, src: Float.MIN_VALUE, dtype: Byte, dst: 0 }
+    - { stype: float, src: Float.MAX_VALUE, dtype: Byte, dst: (-1) }
+    - { stype: float, src: Float.MIN_VALUE, dtype: Short, dst: 0 }
+    - { stype: float, src: Float.MAX_VALUE, dtype: Short, dst: (-1)  }
+    - { stype: float, src: Float.MIN_VALUE, dtype: Int, dst: 0 }
+    - { stype: float, src: Float.MAX_VALUE, dtype: Int, dst: 2147483647 }
+    - { stype: float, src: Float.MIN_VALUE, dtype: Long, dst: 0 }
+    - { stype: float, src: Float.MAX_VALUE, dtype: Long, dst: 9223372036854775807 }
+
+    - { stype: double, src: Double.MIN_VALUE, dtype: Byte, dst: 0 }
+    - { stype: double, src: Double.MAX_VALUE, dtype: Byte, dst: (-1) }
+    - { stype: double, src: Double.MIN_VALUE, dtype: Short, dst: 0 }
+    - { stype: double, src: Double.MAX_VALUE, dtype: Short, dst: (-1) }
+    - { stype: double, src: Double.MIN_VALUE, dtype: Int, dst: 0 }
+    - { stype: double, src: Double.MAX_VALUE, dtype: Int, dst: 2147483647 }
+    - { stype: double, src: Double.MIN_VALUE, dtype: Long, dst: 0 }
+    - { stype: double, src: Double.MAX_VALUE, dtype: Long, dst: 9223372036854775807 }
+    - { stype: double, src: Double.MIN_VALUE, dtype: Float, dst: 0.0 }
+    - { stype: double, src: Double.MAX_VALUE, dtype: Float, dst: Float.POSITIVE_INFINITY }
+
+    - { stype: float, src: Float.NaN, dtype: Byte, dst: 0 }
+    - { stype: float, src: Float.NaN, dtype: Short, dst: 0 }
+    - { stype: float, src: Float.NaN, dtype: Int, dst: 0 }
+    - { stype: float, src: Float.NaN, dtype: Long, dst: 0 }
+
+    - { stype: float, src: Float.POSITIVE_INFINITY, dtype: Byte, dst: (-1) }
+    - { stype: float, src: Float.POSITIVE_INFINITY, dtype: Short, dst: (-1) }
+    - { stype: float, src: Float.POSITIVE_INFINITY, dtype: Int, dst: 2147483647 }
+    - { stype: float, src: Float.POSITIVE_INFINITY, dtype: Long, dst: 9223372036854775807 }
+
+    - { stype: float, src: Float.NEGATIVE_INFINITY, dtype: Byte, dst: 0 }
+    - { stype: float, src: Float.NEGATIVE_INFINITY, dtype: Short, dst: 0 }
+    - { stype: float, src: Float.NEGATIVE_INFINITY, dtype: Int, dst: -2147483648 }
+    - { stype: float, src: Float.NEGATIVE_INFINITY, dtype: Long, dst: (-9223372036854775808) }
+
+    - { stype: double, src: Double.NaN, dtype: Byte, dst: 0 }
+    - { stype: double, src: Double.NaN, dtype: Short, dst: 0 }
+    - { stype: double, src: Double.NaN, dtype: Int, dst: 0 }
+    - { stype: double, src: Double.NaN, dtype: Long, dst: 0 }
+
+    - { stype: double, src: Double.POSITIVE_INFINITY, dtype: Byte, dst: (-1) }
+    - { stype: double, src: Double.POSITIVE_INFINITY, dtype: Short, dst: (-1) }
+    - { stype: double, src: Double.POSITIVE_INFINITY, dtype: Int, dst: 2147483647 }
+    - { stype: double, src: Double.POSITIVE_INFINITY, dtype: Long, dst: 9223372036854775807 }
+    - { stype: double, src: Double.POSITIVE_INFINITY, dtype: Float, dst: Float.POSITIVE_INFINITY  }
+
+    - { stype: double, src: Double.NEGATIVE_INFINITY, dtype: Byte, dst: 0 }
+    - { stype: double, src: Double.NEGATIVE_INFINITY, dtype: Short, dst: 0 }
+    - { stype: double, src: Double.NEGATIVE_INFINITY, dtype: Int, dst: -2147483648 }
+    - { stype: double, src: Double.NEGATIVE_INFINITY, dtype: Long, dst: (-9223372036854775808) }
+    - { stype: double, src: Double.NEGATIVE_INFINITY, dtype: Float, dst: Float.NEGATIVE_INFINITY }

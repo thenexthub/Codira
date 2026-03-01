@@ -1,0 +1,180 @@
+# Copyright (c) 2023-2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+passes_namespace: ark::llvmbackend::passes
+
+pass_types:
+  module: 'Pass runs on the whole llvm IR module'
+  scc: 'Pass runs on the strongly connected component'
+  function: 'Pass runs on the certain llvm IR function'
+  loop: 'Pass runs on the loop'
+
+llvm_passes:
+
+- name: MarkAlwaysInline
+  description: Set AlwaysInline attribute to calls in root functions.
+  type: [function]
+  setup: default
+
+- name: CleanupInlineModule
+  description: >
+    Remove functions and variables unsuitable for inlining from module.
+  type: [module]
+  setup: default
+
+- name: DiscardInlineModule
+  description: >
+    Discard all functions and global variables from inline module.
+  type: [module]
+  setup: default
+
+- name: MarkInlineModule
+  description: >
+    Mark all functions and global variables from inline module
+    with FUNCTION_MD_INLINE_MODULE metadata.
+  type: [module]
+  setup: default
+
+- name: RemoveUnusedFunctions
+  description: >
+    Remove unused functions from the module.
+    The function is unused if it is not used by any root function.
+    A root function is a function without FUNCTION_MD_INLINE_MODULE metadata
+  type: [module]
+  setup: default
+
+- name: ArkSpeculativeExecution
+  description: Wrapper for SpeculativeExecution pass
+  type: [function]
+  setup: default
+
+- name: InlinePrepare
+  description: Wrapper for InlineAdvisorAnalysis pass
+  type: [module]
+  setup: custom
+
+- name: IrtocInlineChecker
+  description: Pass to check if Irtoc inlining succeeded
+  type: [scc]
+  setup: default
+
+- name: Devirt
+  description: Devirtualization
+  type: [function]
+  setup: custom
+
+- name: CheckExternal
+  description: >
+    Remove `NoInline` attribute from external calls when possible
+    Remove `KeepThis`, see CheckExternal for details
+  type: [function]
+  setup: default
+
+- name: InlineDevirt
+  description: Run Inline+Devirt in loop
+  type: [scc]
+  setup: custom
+
+- name: PruneDeopt
+  description: >
+    Remove deopt bundles when possible otherwise change a record format inside bundles.
+  type: [function]
+  setup: default
+
+- name: ArkGVN
+  description: >
+    The pass removes dominated builtins and replaces it by
+    the dominating value if possible.
+  type: [function]
+  setup: custom
+
+- name: MemBarriers
+  description: >
+    The pass places memory barriers where it is necessary.
+  type: [function]
+  setup: custom
+
+- name: IntrinsicsLowering
+  description: >
+    The pass replaces intrinsic instructions and FRem with corresponding
+    panda function calls.
+  type: [function]
+  setup: custom
+
+- name: PandaRuntimeLowering
+  description: >
+    Lower direct function calls with calls through Ark runtime
+  type: [function]
+  setup: custom
+
+- name: InsertSafepoints
+  description: >
+    The pass places garbage collection safepoints at appropriate
+    locations in the IR.
+  type: [function]
+  setup: default
+
+- name: GepPropagation
+  description: >
+    The pass copies a sequence of instructions that has a GC reference
+    as an input.
+  type: [function]
+  setup: default
+
+- name: GcIntrusion
+  description: >
+    The pass replaces calls with calls using @llvm.experimental.gc.statepoint.
+  type: [function]
+  setup: default
+
+- name: GcIntrusionCheck
+  description: >
+    Transform calls into statepoints to support garbage collection.
+  type: [function]
+  setup: default
+
+- name: FixupPoisons
+  description: >
+    Replace poisons with null pointers
+  type: [function]
+  setup: default
+
+- name: ExpandAtomics
+  description: >
+    Expand atomic operations' pointer operand into 64-bit pointer
+  type: [function]
+  setup: default
+
+- name: AArch64FixupSDiv
+  description: >
+    Replace `select -1, neg, sdiv/srem` instructions with `sdiv/srem` on AArch64
+  type: [function]
+  setup: custom
+
+- name: InferFlags
+  description: >
+    Infer nsw flags
+  type: [function]
+  setup: default
+
+- name: ArkLoopPeeling
+  description: >
+    Run llvm loop peeling
+  type: [loop]
+  setup: default
+
+- name: PropagateLenArray
+  description: >
+    Replace builtin for LenArray with size
+  type: [function]
+  setup: default

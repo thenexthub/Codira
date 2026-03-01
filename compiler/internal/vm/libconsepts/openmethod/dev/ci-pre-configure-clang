@@ -1,0 +1,5 @@
+#!/bin/bash
+
+wget https://apt.toolchain.org/toolchain.sh
+chmod +x toolchain.sh
+sudo ./toolchain.sh $1

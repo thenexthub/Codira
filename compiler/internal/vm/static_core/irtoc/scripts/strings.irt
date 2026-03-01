@@ -1,0 +1,494 @@
+#!/usr/bin/env ruby
+
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+include_relative 'common.irt'
+include_relative 'string_helpers.irt'
+
+# available registers mask for the regalloc made default so that the
+# codegen can still work if the function gets called from the NativePlus
+# version of StringEqual
+$equals_unroll_reg_mask = Options.arch == :arm64 ? $panda_mask : $panda_mask + :tr
+
+function(:StringEqualsUnroll,
+          params: {str1_ref: 'ref', str2_ref: 'ref'},
+          regmap: $full_regmap,
+          regalloc_set: $equals_unroll_reg_mask,
+          mode: [:FastPath]) {
+
+    if Options.arch == :arm32
+      Intrinsic(:UNREACHABLE).void.Terminator
+      next
+    end
+    str1 := Cast(str1_ref).SrcType(Constants::COMPILER_REFERENCE).ptr
+    str2 := Cast(str2_ref).SrcType(Constants::COMPILER_REFERENCE).ptr
+    # Compare first 32 bytes
+    buf1 := LoadI(str1).Imm(Constants::STRING_DATA_OFFSET).u64
+    buf2 := LoadI(str2).Imm(Constants::STRING_DATA_OFFSET).u64
+    If(buf1, buf2).NE.Unlikely.b {
+      Goto(:NotEqual)
+    }
+    diff := load_diff(str1, str2, 8)
+    diff := Or(diff, load_diff(str1, str2, 16)).u64
+    diff := Or(diff, load_diff(str1, str2, 24)).u64
+    If(diff, 0).NE.Unlikely.b {
+      Goto(:NotEqual)
+    }
+    length := LoadI(str1).Imm(Constants::STRING_LENGTH_OFFSET).u32
+    length := Cast(length).SrcType("DataType::UINT32").u64
+    length := unpack_length_with_compression(length, Constants::STRING_LENGTH_SHIFT)
+    last_buf_index := SubI(length).Imm(32).u64
+    last_ptr1 := Add(str1, last_buf_index).ptr
+    last_ptr2 := Add(str2, last_buf_index).ptr
+    first_ptr1 := AddI(str1).Imm(32).ptr
+    first_ptr2 := AddI(str2).Imm(32).ptr
+Label(:Loop)
+    ptr1 := Phi(first_ptr1, next_ptr1).ptr
+    ptr2 := Phi(first_ptr2, next_ptr2).ptr
+    diff := load_diff(ptr1, ptr2, 0)
+    diff := Or(diff, load_diff(ptr1, ptr2, 8)).u64
+    diff := Or(diff, load_diff(ptr1, ptr2, 16)).u64
+    diff := Or(diff, load_diff(ptr1, ptr2, 24)).u64
+    If(diff, 0).NE.Unlikely.b {
+      Goto(:NotEqual)
+    }
+    next_ptr1 := Add(ptr1, 32).ptr
+    If(next_ptr1, last_ptr1).GE.Unlikely.b {
+      diff := load_diff(last_ptr1, last_ptr2, 0)
+      diff := Or(diff, load_diff(last_ptr1, last_ptr2, 8)).u64
+      diff := Or(diff, load_diff(last_ptr1, last_ptr2, 16)).u64
+      diff := Or(diff, load_diff(last_ptr1, last_ptr2, 24)).u64
+      If(diff, 0).NE.Unlikely.b {
+        Goto(:NotEqual)
+      }
+      Return(1).b
+    }
+    next_ptr2 := Add(ptr2, 32).ptr
+    Goto(:Loop)
+Label(:NotEqual)
+    Return(0).b
+}
+
+
+def GenerateCreateStringFromStringTlab(string_compression_enabled)
+  suffix = (string_compression_enabled ? "Compressed" : "")
+  available_regs = $panda_mask
+  function("CreateStringFromStringTlab#{suffix}".to_sym,
+            params: {str: 'ref'},
+            regmap: $full_regmap,
+            regalloc_set: available_regs,
+            mode: [:FastPath]) {
+
+    if Options.arch == :arm32
+      Intrinsic(:UNREACHABLE).Terminator.void
+      ReturnVoid().void
+      next
+    end
+
+    # There is no check of the argument against NullPointer as
+    # it's done in the InstBuilder (see AddArgNullcheckIfNeeded)
+    klass := load_class(str)
+    length := LoadI(str).Imm(Constants::STRING_LENGTH_OFFSET).u32
+    hashcode := LoadI(str).Imm(Constants::STRING_HASHCODE_OFFSET).u32
+    data_size := unpack_length(Cast(length).u64, string_compression_enabled, Constants::STRING_LENGTH_SHIFT)
+
+    new_str := allocate_string_tlab(klass, Cast(data_size).word, :FastPath)
+    StoreI(new_str, length).Imm(Constants::STRING_LENGTH_OFFSET).u32
+    StoreI(new_str, hashcode).Imm(Constants::STRING_HASHCODE_OFFSET).u32
+
+    # Copy string data
+    src_str_data := Add(Cast(str).SrcType(Constants::COMPILER_REFERENCE).ptr, Cast(Constants::STRING_DATA_OFFSET).u64).ptr
+    dst_str_data := Add(new_str, Cast(Constants::STRING_DATA_OFFSET).u64).ptr
+    offs := Cast(0).u64
+    If(data_size, 8).AE.Likely.b {
+      stop := AndI(data_size).Imm(7).u64
+    Label(:CopyLoop_8b)
+      offs1 := Phi(offs, offs2).u64
+      Store(dst_str_data, offs, Load(src_str_data, offs).u64).u64
+      offs2 := AddI(offs1).Imm(8).u64
+      If(offs2, stop).B.Likely.b {
+        Goto(:CopyLoop_8b)
+      }
+    }
+    offs3 := Phi(offs, offs2).u64
+    If(offs3, data_size).B.Likely.b {
+    Label(:CopyLoop_1b)
+      offs4 := Phi(offs3, offs5).u64
+      Store(dst_str_data, offs4, Load(src_str_data, offs4).u8).u8
+      offs5 := AddI(offs4).Imm(1).u64
+      If(offs5, data_size).B.Likely.b {
+        Goto(:CopyLoop_1b)
+      }
+    }
+
+    # String is supposed to be a constant object, so all its data should be visible by all threads
+    Intrinsic(:DATA_MEMORY_BARRIER_FULL).void
+    Return(new_str).ptr
+
+  Label(:SlowPathEntrypoint)
+    entrypoint = get_entrypoint_offset("CREATE_STRING_FROM_STRING_SLOW_PATH")
+    Intrinsic(:SLOW_PATH_ENTRY, str).AddImm(entrypoint).MethodAsImm("CreateStringFromStringOddSavedBridge").Terminator.ptr
+    Intrinsic(:UNREACHABLE).Terminator.void if defines.DEBUG
+  }
+end  # def GenerateCreateStringFromStringTlab
+
+
+def GenerateCreateStringFromCharArrayTlab(string_compression_enabled)
+  suffix = (string_compression_enabled ? "Compressed" : "")
+  available_regs = $panda_mask
+  function("CreateStringFromCharArrayTlab#{suffix}".to_sym,
+            params: {char_offset: 'u32', char_count: 'u32', char_array: 'ref', string_klass: 'ref'},
+            regmap: $full_regmap,
+            regalloc_set: available_regs,
+            mode: [:FastPath]) {
+
+    if Options.arch == :arm32
+      Intrinsic(:UNREACHABLE).Terminator.void
+      ReturnVoid().void
+      next
+    end
+
+    # There is no check of the arguments against NullPointer as
+    # it's done in the InstBuilder (see AddArgNullcheckIfNeeded)
+    arr_offs := AddI(ShlI(Cast(char_offset).u64).Imm(1).u64).Imm(Constants::ARRAY_DATA_OFFSET).u64
+    arr_data := Add(Cast(char_array).SrcType(Constants::COMPILER_REFERENCE).ptr, arr_offs).ptr
+
+    # Allocate a new string
+    if string_compression_enabled
+      compressable := is_array_of_compressable_chars(arr_data, Cast(char_count).u64)
+      If(compressable, 1).EQ.Likely.b {
+        data_size1 := Cast(char_count).word
+      } Else {
+        data_size2 := Cast(ShlI(char_count).Imm(1).u32).word
+      }
+      data_size := Phi(data_size1, data_size2).word
+    else
+      data_size := Cast(ShlI(char_count).Imm(1).u32).word
+    end
+    new_str := allocate_string_tlab(string_klass, data_size, :FastPath)
+    str_data := Add(new_str, Cast(Constants::STRING_DATA_OFFSET).u64).ptr
+
+    # Copy data from char_array to the new string
+    # String length field is set according to SetLength() from runtime/include/coretypes/string.h
+    if string_compression_enabled
+      If(compressable, 1).EQ.Likely.b {
+        compress_u16_to_u8_chars(arr_data, str_data, Cast(char_count).u64)
+        StoreI(new_str, ShlI(char_count).Imm(Constants::STRING_LENGTH_SHIFT).u32).Imm(Constants::STRING_LENGTH_OFFSET).u32
+      } Else {
+        copy_u16_chars(arr_data, str_data, Cast(char_count).u64)
+        StoreI(new_str, OrI(ShlI(char_count).Imm(Constants::STRING_LENGTH_SHIFT).u32).Imm(1).u32).Imm(Constants::STRING_LENGTH_OFFSET).u32
+      }
+    else
+      copy_u16_chars(arr_data, str_data, Cast(char_count).u64)
+      StoreI(new_str, char_count).Imm(Constants::STRING_LENGTH_OFFSET).u32
+    end
+    # String is supposed to be a constant object, so all its data should be visible by all threads
+    Intrinsic(:DATA_MEMORY_BARRIER_FULL).void
+    Return(new_str).ptr
+
+  Label(:SlowPathEntrypoint)
+    entrypoint = get_entrypoint_offset("CREATE_STRING_FROM_CHAR_ARRAY_SLOW_PATH")
+    Intrinsic(:SLOW_PATH_ENTRY, char_offset, char_count, char_array).AddImm(entrypoint).MethodAsImm("CreateStringFromCharArray4ArgBridge").Terminator.ptr
+    Intrinsic(:UNREACHABLE).Terminator.void if defines.DEBUG
+  }
+end  # def GenerateCreateStringFromCharArrayTlab
+
+
+def GenerateCreateStringFromZeroBasedCharArrayTlab(string_compression_enabled)
+  suffix = (string_compression_enabled ? "Compressed" : "")
+  available_regs = $panda_mask
+  function("CreateStringFromZeroBasedCharArrayTlab#{suffix}".to_sym,
+            params: {char_count: 'u32', char_array: 'ref', string_klass: 'ref'},
+            regmap: $full_regmap,
+            regalloc_set: available_regs,
+            mode: [:FastPath]) {
+
+    if Options.arch == :arm32
+      Intrinsic(:UNREACHABLE).Terminator.void
+      ReturnVoid().void
+      next
+    end
+
+    # There is no check of the arguments against NullPointer as
+    # it's done in the InstBuilder (see AddArgNullcheckIfNeeded)
+    arr_data := Add(Cast(char_array).SrcType(Constants::COMPILER_REFERENCE).ptr, Cast(Constants::ARRAY_DATA_OFFSET).u64).ptr
+
+    # Allocate a new string
+    if string_compression_enabled
+      compressable := is_array_of_compressable_chars(arr_data, Cast(char_count).u64)
+      If(compressable, 1).EQ.Likely.b {
+        data_size1 := Cast(char_count).word
+      } Else {
+        data_size2 := Cast(ShlI(char_count).Imm(1).u32).word
+      }
+      data_size := Phi(data_size1, data_size2).word
+    else
+      data_size := Cast(ShlI(char_count).Imm(1).u32).word
+    end
+    new_str := allocate_string_tlab(string_klass, data_size, :FastPath)
+    str_data := Add(new_str, Cast(Constants::STRING_DATA_OFFSET).u64).ptr
+
+    # Copy data from char_array to the new string
+    # String length field is set according to SetLength() from runtime/include/coretypes/string.h
+    if string_compression_enabled
+      If(compressable, 1).EQ.Likely.b {
+        compress_u16_to_u8_chars(arr_data, str_data, Cast(char_count).u64)
+        StoreI(new_str, ShlI(char_count).Imm(Constants::STRING_LENGTH_SHIFT).u32).Imm(Constants::STRING_LENGTH_OFFSET).u32
+      } Else {
+        copy_u16_chars(arr_data, str_data, Cast(char_count).u64)
+        StoreI(new_str, OrI(ShlI(char_count).Imm(Constants::STRING_LENGTH_SHIFT).u32).Imm(1).u32).Imm(Constants::STRING_LENGTH_OFFSET).u32
+      }
+    else
+      copy_u16_chars(arr_data, str_data, Cast(char_count).u64)
+      StoreI(new_str, char_count).Imm(Constants::STRING_LENGTH_OFFSET).u32
+    end
+    # String is supposed to be a constant object, so all its data should be visible by all threads
+    Intrinsic(:DATA_MEMORY_BARRIER_FULL).void
+    Return(new_str).ptr
+
+  Label(:SlowPathEntrypoint)
+    entrypoint = get_entrypoint_offset("CREATE_STRING_FROM_ZERO_BASED_CHAR_ARRAY_SLOW_PATH")
+    Intrinsic(:SLOW_PATH_ENTRY, char_count, char_array).AddImm(entrypoint).MethodAsImm("CreateStringFromZeroBasedCharArray3ArgBridge").Terminator.ptr
+    Intrinsic(:UNREACHABLE).Terminator.void if defines.DEBUG
+  }
+end  # def GenerateCreateStringFromZeroBasedCharArrayTlab
+
+def GenerateStringGetCharsTlab(string_compression_enabled, cgmode)
+  suffix = (string_compression_enabled ? 'Compressed' : '') + (cgmode == :NativePlus ? 'NativePlus' : '')
+  available_regs = $panda_mask
+  function("StringGetCharsTlab#{suffix}".to_sym,
+           params: {str_orig: 'ref', begin_index: 'i32', end_index: 'i32', array_klass: 'ref'},
+           regmap: $full_regmap,
+           regalloc_set: available_regs,
+           mode: [cgmode]) {
+
+    if Options.arch == :arm32
+      Intrinsic(:UNREACHABLE).Terminator.void
+      ReturnVoid().void
+      next
+    end
+
+    if cgmode == :NativePlus
+      str := try_use_cached_flat_str_reject_sliced(str_orig, AsGlobalLabel(:SlowPathEntrypoint))
+    else
+      check_not_tree_string_type(str_orig) if defines.DEBUG
+      # it still can be slice
+      check_string_type(str_orig, AsGlobalLabel(:SlowPathEntrypoint))
+      str := str_orig
+    end
+
+    If(begin_index, end_index).GT.Unlikely.b {
+      Goto(:SlowPathEntrypoint)  # Out of range
+    }
+    If(begin_index, Cast(0).i32).LT.Unlikely.b {
+      Goto(:SlowPathEntrypoint)  # Out of range
+    }
+
+    # Note, 'str' is checked against nullptr in the InstBuilder (see AddArgNullcheckIfNeeded)
+    length := LoadI(str).Imm(Constants::STRING_LENGTH_OFFSET).u32;
+    if string_compression_enabled
+      If(Cast(end_index).u32, ShrI(length).Imm(Constants::STRING_LENGTH_SHIFT).u32).A.Unlikely.b {
+        Goto(:SlowPathEntrypoint)  # Out of range
+      }
+      uncompressed := is_string_uncompressed_u32(length)
+      offset := Shl(begin_index, uncompressed).u32
+    else
+      If(Cast(end_index).u32, length).A.Unlikely.b {
+        Goto(:SlowPathEntrypoint)  # Out of range
+      }
+      uncompressed := Cast(1).u32
+      offset := ShlI(begin_index).Imm(1).u32
+    end
+
+    src_str_data := Add(Cast(str).SrcType(Constants::COMPILER_REFERENCE).ptr, Cast(Constants::STRING_DATA_OFFSET).u64).ptr
+    src_str_data := Add(src_str_data, Cast(offset).u64).ptr
+
+    # Allocate a new array of u16 chars
+    char_count := Sub(Cast(end_index).u32, Cast(begin_index).u32).u64
+    new_arr := allocate_array_of_chars_tlab(array_klass, Cast(char_count).word, cgmode)
+    new_arr_data := Add(new_arr, Cast(Constants::ARRAY_DATA_OFFSET).u64).ptr
+    If(uncompressed, Cast(0).u32).EQ.Likely.b {
+      expand_u8_to_u16_chars(src_str_data, new_arr_data, char_count)
+    }
+    If(uncompressed, Cast(1).u32).EQ.Unlikely.b {
+      copy_u16_chars(src_str_data, new_arr_data, char_count)
+    }
+    # String is supposed to be a constant object, so all its data should be visible by all threads
+    Intrinsic(:DATA_MEMORY_BARRIER_FULL).void
+    Return(new_arr).ptr
+
+  LabelGlobal(:SlowPathEntrypoint)
+  if cgmode == :NativePlus
+    Return(Call(str_orig, begin_index, end_index).Method('StringGetCharsEntrypoint').ptr).ptr
+  else
+    entrypoint = get_entrypoint_offset('STRING_GET_CHARS_SLOW_PATH')
+    Intrinsic(:SLOW_PATH_ENTRY, str_orig, begin_index, end_index).AddImm(entrypoint).MethodAsImm('StringGetChars4ArgBridge').Terminator.ptr
+    Intrinsic(:UNREACHABLE).Terminator.void if defines.DEBUG
+  end
+  }
+end  # def GenerateStringGetCharsTlab
+
+def GenerateStringHashCode(string_compression_enabled, cgmode)
+  suffix = (string_compression_enabled ? "Compressed" : "")
+  suffix = suffix + (cgmode == :NativePlus ? 'NativePlus': '')
+if Options.arch == :arm64
+  available_regs = RegMask.new($full_regmap, :arg0, :callee0, :callee1, :callee2, :callee3)
+elsif Options.arch == :x86_64
+  available_regs = $temps_mask + :arg0 + :callee0 + :caller0 + :caller1
+end
+  function("StringHashCode#{suffix}".to_sym,
+            params: {str: 'ref'},
+            regmap: $full_regmap,
+            regalloc_set: available_regs,
+            mode: [cgmode]) {
+
+    if Options.arch == :arm32
+      Intrinsic(:UNREACHABLE).Terminator.void
+      ReturnVoid().void
+      next
+    end
+
+    # 1. There is no check of the argument against NullPointer as
+    #    it's done in the InstBuilder (see AddArgNullcheckIfNeeded)
+    # 2. Don't check if hashcode is equal to 0 as it's done in the codegen.
+
+    str_data := Add(Cast(str).SrcType(Constants::COMPILER_REFERENCE).ptr, Cast(Constants::STRING_DATA_OFFSET).word).ptr
+    length_packed := LoadI(str).Imm(Constants::STRING_LENGTH_OFFSET).u32
+    if string_compression_enabled
+      length := ShrI(length_packed).Imm(Constants::STRING_LENGTH_SHIFT).u32
+      uncompressed := is_string_uncompressed_u32(length_packed)
+      If(uncompressed, 0).EQ.Likely.b {
+        # String contains 8-bit chars
+        h := u8_string_hashcode(str_data, length)
+        StoreI(str, h).Imm(Constants::STRING_HASHCODE_OFFSET).u32
+        Return(h).u32
+      } Else {
+        # String contains 16-bit chars
+        h := u16_string_hashcode(str_data, length)
+        StoreI(str, h).Imm(Constants::STRING_HASHCODE_OFFSET).u32
+        Return(h).u32
+      }
+    else
+      # String contains 16-bit chars
+      h := u16_string_hashcode(str_data, length_packed)
+      StoreI(str, h).Imm(Constants::STRING_HASHCODE_OFFSET).u32
+      Return(h).u32
+    end
+  }
+end  # def GenerateStringHashCode
+
+def GenerateStringCompareTo(cgmode)
+  suffix = (cgmode == :NativePlus ? 'NativePlus': '')
+  function("StringCompareTo#{suffix}",
+           params: {str1_orig: 'ref', str2_orig: 'ref'},
+           regmap: $full_regmap,
+           regalloc_set: $panda_mask,
+           mode: [cgmode]) {
+
+    # Arm32 is not supported
+    if Options.arch == :arm32
+      Intrinsic(:UNREACHABLE).void.Terminator
+      next
+    end
+
+    if cgmode == :NativePlus
+        str1 := try_use_cached_flat_str_reject_sliced(str1_orig, AsGlobalLabel(:SlowPathEntrypoint))
+        str2 := try_use_cached_flat_str_reject_sliced(str2_orig, AsGlobalLabel(:SlowPathEntrypoint))
+    else
+        check_not_tree_string_type(str1_orig) if defines.DEBUG
+        check_not_tree_string_type(str2_orig) if defines.DEBUG
+        # it still can be slice
+        check_string_type(str1_orig, AsGlobalLabel(:SlowPathEntrypoint))
+        check_string_type(str2_orig, AsGlobalLabel(:SlowPathEntrypoint))
+        str1 := str1_orig
+        str2 := str2_orig
+    end
+
+    Return(macroStringCompareTo(str1, str2)).i32
+
+LabelGlobal(:SlowPathEntrypoint)
+    if cgmode == :NativePlus
+        Return(Call(str1_orig, str2_orig).Method('CoreStringCompareTo').i32).i32
+    else
+      entrypoint = get_entrypoint_offset("STRING_COMPARE_TO_SLOW_PATH")
+      Intrinsic(:SLOW_PATH_ENTRY, str1_orig, str2_orig).AddImm(entrypoint).MethodAsImm("StringCompareToUsualBridge").Terminator.i32
+      Intrinsic(:UNREACHABLE).Terminator.void if defines.DEBUG
+    end
+  }
+end  # def GenerateStringCompareTo
+
+function(:StringFlatCheck,
+          params: {str: 'ref'},
+          regmap: $full_regmap,
+          regalloc_set: $panda_mask,
+          mode: [:FastPath]) {
+
+    if Options.arch == :arm32
+      Intrinsic(:UNREACHABLE).void.Terminator
+      next
+    end
+
+    If(str, 0).EQ {
+      Return(str).ref
+    }
+
+    baseClass := LoadI(str).ref
+    stringType := LoadI(baseClass).Imm(Constants::STRING_TYPE_OFFSET).u64
+    If(stringType, Constants::STRING_TYPE_TREE).EQ {
+        stringCache := LoadI(%tr).Imm(Constants::THREAD_FLATTENED_STRING_CACHE_OFFSET).ref
+        If(stringCache, 0).EQ {
+            Goto(:SlowPathEntrypoint)
+        }
+
+        # cannot cast directly from ref to uint
+        strPtr := Cast(str).ptr
+        strUint := Bitcast(strPtr).word
+        strShifted := ShrI(strUint).Imm(FlattenedStringCacheConstants::ADDRESS_SHIFT).word
+        strMasked := AndI(strShifted).Imm(FlattenedStringCacheConstants::ADDRESS_MASK).word
+        strIndex := Mul(strMasked, FlattenedStringCacheConstants::ENTRY_SIZE).word
+        key := LoadArray(stringCache, strIndex).SetNeedBarrier(true).ref
+        If(key, str).NE {
+            Goto(:SlowPathEntrypoint)
+        }
+        strIndex := AddI(strIndex).Imm(FlattenedStringCacheConstants::VALUE_OFFSET).ref_uint
+        strCached := LoadArray(stringCache, strIndex).SetNeedBarrier(true).ref
+
+        Return(strCached).ref
+    }
+    Return(str).ref
+
+Label(:SlowPathEntrypoint)
+    ep_offset = get_entrypoint_offset("STRING_FLAT_CHECK_SLOW_PATH")
+    Intrinsic(:SLOW_PATH_ENTRY, str).AddImm(ep_offset).MethodAsImm("StringFlatCheckOddSavedBridge").Terminator.ref
+    Intrinsic(:UNREACHABLE).Terminator.void if defines.DEBUG
+}
+
+GenerateStringEquals(lang='', dynamic=false, :FastPath)
+GenerateStringEquals(lang='', dynamic=false, :NativePlus)
+GenerateCreateStringFromStringTlab(string_compression_enabled=true)
+GenerateCreateStringFromStringTlab(string_compression_enabled=false)
+GenerateCreateStringFromCharArrayTlab(string_compression_enabled=true)
+GenerateCreateStringFromCharArrayTlab(string_compression_enabled=false)
+GenerateCreateStringFromZeroBasedCharArrayTlab(string_compression_enabled=true)
+GenerateCreateStringFromZeroBasedCharArrayTlab(string_compression_enabled=false)
+GenerateStringGetCharsTlab(string_compression_enabled=true, :FastPath)
+GenerateStringGetCharsTlab(string_compression_enabled=false, :FastPath)
+GenerateStringGetCharsTlab(string_compression_enabled=true, :NativePlus)
+GenerateStringHashCode(string_compression_enabled=true, :FastPath)
+GenerateStringHashCode(string_compression_enabled=true, :NativePlus)
+GenerateStringHashCode(string_compression_enabled=false, :FastPath)
+GenerateStringCompareTo(:FastPath)
+GenerateStringCompareTo(:NativePlus)
+
+include_plugin 'ets_string'

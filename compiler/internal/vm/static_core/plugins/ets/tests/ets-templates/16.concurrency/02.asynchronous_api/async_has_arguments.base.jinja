@@ -1,0 +1,89 @@
+/**
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+{% set cases = [
+    {
+        'arg1': {
+            'type': 'number',
+            'value': '1.0'
+        },
+        'arg2': {
+            'type': 'string',
+            'value': '"Hello"'
+        },
+        'arg3': {
+            'type': 'boolean',
+            'value': 'true'
+        },
+        'arg4': {
+            'type': 'undefined',
+            'value': 'undefined'
+        },
+        'arg5': {
+            'type': 'null',
+            'value': 'null'
+        },
+        'arg6': {
+            'type': 'int[]',
+            'value': '[1, 2, 3]'
+        }
+    },
+    { 'arg1': { 'type': 'number = 42' } },
+    { 'arg1?': { 'type': 'string' } },
+    {
+        '...args': {
+            'type': 'string[]',
+            'value': '...["Hello", "World"]'
+        }
+    }
+]%}
+
+{% from "16.concurrency/02.asynchronous_api/async_api_helper.jinja" import generate_async, call_async %}
+
+{%- macro generate_args(case) -%}
+{%- set args_list = [] -%}
+{%- for key, value in case.items() -%}
+{%- set _ = args_list.append(key + ': ' + value.type) -%}
+{%- endfor -%}
+{{- args_list | join(', ') -}}
+{%- endmacro -%}
+
+{% macro generate_complete_test(declaration_type='function') %}
+{% for c in cases %}
+
+/*---
+desc: Async {{declaration_type}}s are coroutines that can be called as regular {{declaration_type}}s.
+---*/
+
+{% set params = {
+    'name': 'asyncWithArguments',
+    'args': generate_args(c) | trim,
+    'return_type': ': Promise<void>',
+    'class_name': 'AsyncMethodReturnClass',
+    'arg_values': c.values() | map(attribute='value') | join(', ')
+} %}
+
+{{ generate_async(declaration_type, params) }}
+
+async function startTest(){
+    await {{ call_async(declaration_type, params) }}
+}
+
+function main(){
+    waitForCompletion(startTest)
+}
+
+{% endfor %}
+{% endmacro %}

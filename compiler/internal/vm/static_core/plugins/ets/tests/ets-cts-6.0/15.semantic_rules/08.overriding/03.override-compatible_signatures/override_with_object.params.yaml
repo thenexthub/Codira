@@ -1,0 +1,306 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # CLASS
+    # override-compatible argument (contravariance)
+    - base: |-
+          foo(i: Base): void {
+              res = 1;
+          }
+      derived: |-
+          override foo(i: Object): void {
+              res = 2;
+          }
+      call: new Derived().foo(new Base());
+      result: 2
+
+    # override-compatible argument (contravariance)
+    - base: |-
+          foo(i: Base): void {
+              res = 1;
+          }
+      derived: |-
+          override foo(i: Object): void {
+              res = 2;
+          }
+      call: new Derived().foo(new Object());
+      result: 2
+
+    # override-compatible return type (covariance)
+    - base: |-
+          foo(): Object {
+              res = 1;
+              return new Object();
+          }
+      derived: |-
+          override foo(): Base {
+              res = 2;
+              return new Base();
+          }
+      call: new Derived().foo();
+      result: 2
+
+    # FUNCTION
+    # override-compatible argument (covariance)
+    - base: |-
+          foo(i: (j: Object) => Base): void {
+              i(new Object());
+              res = 1;
+          }
+      derived: |-
+          override foo(i: (j: Base) => Base): void {
+              i(new Base());
+              res = 2;
+          }
+      call: |-
+          new Derived().foo((i:Object): Base => new Base);
+      result: 2
+
+    # override-compatible argument (covariance)
+    - base: |-
+          foo(i: (j: Object) => Base): void {
+              i(new Object());
+              res = 1;
+          }
+      derived: |-
+          override foo(i: (j: Base) => Base): void {
+              i(new Base());
+              res = 2;
+          }
+      call: |-
+          new Derived().foo((i:Base): Base => new Base);
+      result: 2
+
+    # override-compatible return type (invariance)
+    - base: |-
+          foo(i: (j: Object) => Object): void {
+              i(new Object());
+              res = 1;
+          }
+      derived: |-
+          override foo(i: (j: Object) => Object): void {
+              i(new Object());
+              res = 2;
+          }
+      call: |-
+          new Derived().foo((i:Object): Object => { return i });
+      result: 2
+
+    # override-compatible return type (contravariance)
+    - base: |-
+          foo(i: (j: Object) => Base): void {
+              i(new Object());
+              res = 1;
+          }
+      derived: |-
+          override foo(i: (j: Object) => Object): void {
+              i(new Object());
+              res = 2;
+          }
+      call: |-
+          new Derived().foo((i:Object): Object => { return i });
+      result: 2
+
+    # override-compatible return type (contravariance)
+    - base: |-
+          foo(i: (j: Object) => Base): void {
+              i(new Object());
+              res = 1;
+          }
+      derived: |-
+          override foo(i: (j: Object) => Object): void {
+              i(new Object());
+              res = 2;
+          }
+      call: |-
+          new Derived().foo((i:Object): Base => new Base);
+      result: 2
+
+    # VALUE TYPE
+    # override-compatible argument (invariance)
+    - base: |-
+          foo(i: number): void {
+              res = 1;
+          }
+      derived: |-
+          override foo(i: number): void {
+              res = 2;
+          }
+      call: new Derived().foo(1)
+      result: 2
+
+    # override-compatible argument (invariance)
+    - base: |-
+          foo(i: String): void {
+              res = 1;
+          }
+      derived: |-
+          override foo(i: string): void {
+              res = 2;
+          }
+      call: new Derived().foo("str");
+      result: 2
+
+    # override-compatible return type (invariance)
+    - base: |-
+          foo(i: number): number {
+              res = 1;
+              return i;
+          }
+      derived: |-
+          override foo(i: number): number {
+              res = 2;
+              return i;
+          }
+      call: new Derived().foo(1);
+      result: 2
+
+    # override-compatible return type (invariance)
+    - base: |-
+          foo(): String {
+              res = 1
+              return "str1"
+          }
+      derived: |-
+          override foo(): string {
+              res = 2
+              return "str2"
+          }
+      call: new Derived().foo()
+      result: 2
+
+    # ARRAY TYPE
+    # override-compatible argument (invariance)
+    - base: |-
+          foo(i: Object[]): void {
+              res = 1;
+          }
+      derived: |-
+          override foo(i: Object[]): void {
+              res = 2;
+          }
+      call: new Derived().foo(new Object[2]);
+      result: 2
+
+    # override-compatible argument (covariance)
+    - base: |-
+          foo(i: FixedArray<Base>): void {
+              res = 1;
+          }
+      derived: |-
+          override foo(i: FixedArray<Object>): void {
+              res = 2;
+          }
+      call: new Derived().foo(new Object[2]);
+      result: 2
+
+    # override-compatible return type (invariance)
+    - base: |-
+          foo(): Object[] {
+              res = 1;
+              return new Object[2];
+          }
+      derived: |-
+          override foo(): Object[] {
+              res = 2;
+              return new Object[2];
+          }
+      call: new Derived().foo();
+      result: 2
+
+    # override-compatible return type (covariance)
+    - base: |-
+          foo(): FixedArray<Object> {
+              res = 1;
+              return new Object[2];
+          }
+      derived: |-
+          override foo(): FixedArray<Base> {
+              res = 2;
+              return new Base[2];
+          }
+      call: new Derived().foo();
+      result: 2
+
+    # TUPLE TYPE
+    # override-compatible argument (invariance)
+    - base: |-
+          foo(i: [Object, Object]): void {
+              res = 1;
+          }
+      derived: |-
+          override foo(i: [Object, Object]): void {
+              res = 2;
+          }
+      call: |-
+          let i: [Object, Object] = [new Object(), new Object()];
+          new Derived().foo(i);
+      result: 2
+
+    # override-compatible argument (invariance)
+    - base: |-
+          foo(i: [Object, Base]): void {
+              res = 1;
+          }
+      derived: |-
+          override foo(i: [Object, Base]): void {
+              res = 2;
+          }
+      call: |-
+          let i: [Object, Base] = [new Object(), new Base()];
+          new Derived().foo(i);
+      result: 2
+
+    # override-compatible argument (invariance)
+    - base: |-
+          foo(i: [Base, Object]): void {
+              res = 1;
+          }
+      derived: |-
+          override foo(i: [Base, Object]): void {
+              res = 2;
+          }
+      call: |-
+          let i: [Base, Object] = [new Base(), new Object()];
+          new Derived().foo(i);
+      result: 2
+
+    # override-compatible return type (invariance)
+    - base: |-
+          foo(): [Object, Object] {
+              res = 1;
+              return [new Object(), new Object()];
+          }
+      derived: |-
+          override foo(): [Object, Object] {
+              res = 2;
+              return [new Object(), new Object()];
+          }
+      call: new Derived().foo();
+      result: 2
+
+    # override-compatible return type (invariance)
+    - base: |-
+          foo(): [Object, Base] {
+              res = 1;
+              return [new Object(), new Base()];
+          }
+      derived: |-
+          override foo(): [Object, Base] {
+              res = 2;
+              return [new Object(), new Base()];
+          }
+      call: new Derived().foo();
+      result: 2

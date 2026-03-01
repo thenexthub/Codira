@@ -1,0 +1,237 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases2:
+  - desc: Union type error assignment.
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = true;
+
+  - desc: Union type error assignment(array).
+    dec1: |-
+      type StringOrNumber = string | number;
+      let value: StringOrNumber;
+    check: |-
+      value = [1, 2, 3];
+
+  - desc: Union type error assignment(Literal type out of bounds).
+    dec1: |-
+      type StringOrNumber = "active" | "inactive" | "pending";
+      let value: StringOrNumber;
+    check: |-
+      value = "deleted";
+
+  - desc: Union type error assignment(function parameter type does not match typescript).
+    dec1: |-
+      function formatInput(input: string | number): string {
+        return input.toString();
+      }
+    check: |-
+      formatInput(true);
+
+  - desc: Union type error assignment(array element type restrictions-int).
+    dec1: |-
+      type StringOrBoolArray = (string | boolean)[];
+    check: |-
+      function main(): void {
+        const arr: StringOrBoolArray = [
+          "text",
+          true,
+          123
+        ];
+      }
+
+  - desc: Union type error assignment(The union type value of the interface property gave the wrong type).
+    dec1: |-
+      interface Animal {
+        name: string;
+        age: number | string;
+      }
+    check: |-
+        const cat: Animal = {
+          name: "Mimi",
+          age: true
+        };
+
+  - desc: Union type error assignment(promise return value does not match-boolean).
+    dec1: |-
+      type ApiResult = Promise<string | number>;
+    check: |-
+      const result: ApiResult = Promise.resolve(true);
+
+  - desc: Union type error assignment(literal type out of bounds-assignment error assignment).
+    dec1: |-
+      type Status = "active" | "inactive" | "pending";
+    check: |-
+      let value: Status = 1;
+
+  - desc:  Union type error assignment(function parameter type does not match typescript-array).
+    dec1: |-
+      function formatInput(input: string | number): string {
+        return input.toString();
+      }
+    check: |-
+      formatInput([]);
+
+  - desc: Union type error assignment(array element type restrictions-array).
+    dec1: |-
+      type StringOrBoolArray = (string | boolean)[];
+    check: |-
+      function main(): void {
+        const arr: StringOrBoolArray = [
+          "text",
+          true,
+          [1, 2, 3]
+        ];
+      }
+
+  - desc: Union type error assignment(The union type value of the interface property gave the wrong type-array).
+    dec1: |-
+      interface Animal {
+        name: string;
+        age: number | string;
+      }
+    check: |-
+      const cat: Animal = {
+        name: "Mimi",
+        age: [1, 2, 3]
+      };
+
+  - desc: Union type error assignment(promise return value does not match-array).
+    dec1: |-
+      type ApiResult = Promise<string | number>;
+    check: |-
+      const result: ApiResult = Promise.resolve([1, 2, 3]);
+
+  - desc: Union type error assignment(class attribute assignment error).
+    dec1: |-
+      class Item {
+        id: string | number;
+        constructor(id: string | number) {
+          this.id = true;
+        }
+      }
+    check: |-
+
+  - desc: Union type error assignment(class attribute assignment error-array).
+    dec1: |-
+      class Item {
+        id: string | number;
+        constructor(id: string | number) {
+          this.id = [1, 2, 3];;
+        }
+      }
+    check: |-
+
+  - desc: Basic string union type. The test union type is "red" | "green" | "blue" and tests is passed in. The default branch is expected to be executed.
+    dec1: |-
+      function unitedSwitch(input: 'red' | 'green' | 'blue'): string {
+        switch (input) {
+          case 'red':
+            return 'red';
+        case 'green':
+          return 'green';
+        case 'blue':
+          return 'blue';
+        default:
+          return 'fail';
+        }
+      }
+    check: |-
+      let input = "tests";
+      let result = unitedSwitch(input);
+
+  - desc: Number and String combined type(true).
+    dec1: |-
+      function unitedSwitch(input: number | string): string {
+        switch (input) {
+          case 'red':
+            return 'red';
+          case 1:
+            return '1';
+          default:
+            return 'fail';
+        }
+      }
+    check: |-
+      let input = true;
+      let result = unitedSwitch(input);
+
+  - desc: Undefined and 1 combined type(2).
+    dec1: |-
+      function unitedSwitch(input: 1 | string): string {
+        switch (input) {
+          case undefined:
+            return undefined;
+          case 1:
+            return '1';
+          default:
+            return 'fail';
+        }
+      }
+    check: |-
+      let output = unitedSwitch(2);
+
+  - desc: Negative Test, Assigning object literal to union of two structurally identical classes.
+    dec1: |-
+      class UA {
+          name: string = "";
+          age: number = 0;
+      }
+      class UC {
+          name: string = "";
+          age: number = 0;
+      }
+      let val_cte: UA | UC;
+    check: |-
+      val_cte = {name:"aaa", age:10}; // CTE
+
+  - desc: Negative Test, Assigning object literal to union of two structurally identical interfaces.
+    dec1: |-
+      interface IA_neg {
+          id: number;
+          value: string;
+      }
+      interface IB_neg {
+          id: number;
+          value: string;
+      }
+      let val_cte_interface: IA_neg | IB_neg;
+    check: |-
+      val_cte_interface = {id:1, value:"test"}; // CTE
+
+  - desc: N2 - Assigning object literal missing a required property for all interface types.
+    dec1: |-
+      interface N_I1 { req_i1: string; opt_i1?: number; }
+      interface N_I2 { req_i2: boolean; opt_i2?: string; }
+      let val_n2: N_I1 | N_I2;
+    check: |-
+      val_n2 = { opt_i2: "optional" }; // CTE, missing req_i1 or req_i2
+
+  - desc: N3 - Assigning object literal with property type mismatch for a class.
+    dec1: |-
+      class N_C3 { prop_c3: number = 0; }
+      class N_C4 { prop_c4: string = ""; }
+      let val_n3: N_C3 | N_C4;
+    check: |-
+      val_n3 = { prop_c3: "this should be a number" }; // CTE
+
+  - desc: N4 - Assigning object literal with property type mismatch for an interface.
+    dec1: |-
+      interface N_I3 { prop_i3: number; }
+      interface N_I4 { prop_i4: string; }
+      let val_n4: N_I3 | N_I4;
+    check: |-
+      val_n4 = { prop_i4: false }; // CTE, should be string or N_I3 type

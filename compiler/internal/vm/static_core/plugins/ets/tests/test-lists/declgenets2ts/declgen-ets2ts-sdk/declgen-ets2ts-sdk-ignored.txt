@@ -1,0 +1,26 @@
+#FailKind.TSC_FAIL - 6 tests:
+api/@ohos.buffer.ets
+#FailKind.TSC_FAIL - 3 tests:
+api/@ohos.util.LightWeightSet.ets
+api/@ohos.util.LinkedList.ets
+api/@ohos.util.List.ets
+#Arkts_TS_Incompatible - 5 tests:
+api/@ohos.util.ets
+api/@ohos.util.stream.ets
+api/@ohos.util.ArrayList.ets
+api/@ohos.util.Deque.ets
+api/@ohos.xml.ets
+api/UtilHelper.ets
+api/@ohos.util.PlainArray.ets
+arkts/@arkts.math.Decimal.ets
+arkts/@arkts.collections.ets
+api/@ohos.url.ets
+api/@ohos.util.LightWeightMap.ets
+api/@ohos.base.ets
+api/@ohos.uri.ets
+api/@ohos.util.HashMap.ets
+api/@ohos.util.HashSet.ets
+api/@ohos.util.Queue.ets
+api/@ohos.util.Stack.ets
+api/@ohos.util.TreeMap.ets
+api/@ohos.util.TreeSet.ets

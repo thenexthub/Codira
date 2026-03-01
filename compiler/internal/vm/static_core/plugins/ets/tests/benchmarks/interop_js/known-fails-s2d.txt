@@ -1,0 +1,42 @@
+# 19307 Panda issue
+callImportFunction_callAnonym
+callImportFunction_callFun
+
+# 17965 Panda issue
+classInitByRest_test
+classInitByRest_test_1
+
+# 19194 Panda issue
+equalityExtra_compareArrays
+equalityExtra_compareArrowFuncs
+equalityExtra_compareFuncs
+equality_compareObject
+equality_comparePrimitive
+equality_compareString
+
+# 1942 Test should be updated
+testPromise_test
+
+# 2093 rework usage of import
+equality_compareNumber
+getValue_getBigInt
+getValue_getBool
+getValue_getByte
+getValue_getDouble
+getValue_getFloat
+getValue_getInt
+getValue_getLong
+getValue_getNull
+getValue_getNumber
+getValue_getShort
+getValue_getString
+getValue_getUndefined
+mapCallback_test
+reduceCallback_test
+testStringify_testArray
+testStringify_testObject
+testToString_bin
+testToString_chr
+testToString_decimal
+testToString_hex
+testToString_octal

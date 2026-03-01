@@ -1,0 +1,41 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # Short declaration with value arguments
+cases:
+  - desc: no args
+    impl: |-
+        let f = () => { return 1234 }
+        arktest.assertEQ(f(), 1234, "no args failed")
+
+  - desc: one arg
+    impl: |-
+        let f = (e: int) => { return e + 8 }
+        arktest.assertEQ(f(1), 9, "one arg failed")
+
+  - desc: two args
+    impl: |-
+        let f = (e: int, e2: int) => { return e + e2 }
+        arktest.assertEQ(f(1, 2), 3, "two args failed")
+
+  - desc: optional arg
+    impl: |-
+        let f = (e: int, eo?: int) => { return e + (eo ? eo : 1) }
+        arktest.assertEQ(f(8), 9, "optional arg failed")
+        arktest.assertEQ(f(6, 7), 13, "optional arg[2] failed")
+
+  - desc: rest arg
+    impl: |-
+        let f = (e: int, ...es: int[]) => { return e + (es.length > 0 ? es[0] : 1 ) }
+        arktest.assertEQ(f(8), 9, "rest arg failed")
+        arktest.assertEQ(f(7, 1, 2, 3), 8, "rest arg[2] failed")

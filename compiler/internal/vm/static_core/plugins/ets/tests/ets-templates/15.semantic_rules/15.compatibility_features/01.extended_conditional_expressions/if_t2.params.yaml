@@ -1,0 +1,121 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # truthy values
+cases:
+    - { val: '(0x80).toByte()', type: 'byte' }
+    - { val: '(0x8000).toShort()', type: 'short' }
+    - { val: '0x7fffffff', type: 'int' }
+    - { val: '0x7fffffffffffffff.toLong()', type: 'long' }
+    - { val: '0.000001f', type: 'float' }
+    - { val: '0.0000000001', type: 'double' }
+    - { val: '0.000001f', type: 'float' }
+
+    - { val: 'Byte.MIN_VALUE', type: 'byte' }
+    - { val: 'Byte.MAX_VALUE', type: 'byte' }
+
+    - { val: 'Short.MIN_VALUE', type: 'short' }
+    - { val: 'Short.MAX_VALUE', type: 'short' }
+
+    - { val: 'Int.MIN_VALUE', type: 'int' }
+    - { val: 'Int.MAX_VALUE', type: 'int' }
+
+    - { val: 'Long.MIN_VALUE', type: 'long' }
+    - { val: 'Long.MAX_VALUE', type: 'long' }
+
+    - { val: 'Double.POSITIVE_INFINITY', type: 'double' }
+    - { val: 'Double.NEGATIVE_INFINITY', type: 'double' }
+
+    - { val: 'Double.MIN_VALUE', type: 'double' }
+    - { val: 'Double.MAX_VALUE', type: 'double' }
+
+    - { val: 'Float.POSITIVE_INFINITY', type: 'float' }
+    - { val: 'Float.NEGATIVE_INFINITY', type: 'float' }
+
+    - { val: 'Float.MIN_VALUE', type: 'float' }
+    - { val: 'Float.MAX_VALUE', type: 'float' }
+
+    - { val: 'new Byte(Byte.MIN_VALUE)', type: 'Byte' }
+    - { val: 'new Byte(Byte.MAX_VALUE)', type: 'Byte' }
+
+    - { val: 'new Short(Short.MIN_VALUE)', type: 'Short' }
+    - { val: 'new Short(Short.MAX_VALUE)', type: 'Short' }
+
+    - { val: 'new Int(Int.MIN_VALUE)', type: 'Int' }
+    - { val: 'new Int(Int.MAX_VALUE)', type: 'Int' }
+
+    - { val: 'new Long(Long.MIN_VALUE)', type: 'Long' }
+    - { val: 'new Long(Long.MAX_VALUE)', type: 'Long' }
+
+    - { val: 'new Double(Double.POSITIVE_INFINITY)', type: 'Double' }
+    - { val: 'new Double(Double.NEGATIVE_INFINITY)', type: 'Double' }
+    - { val: 'new Double(Double.MIN_VALUE)', type: 'Double' }
+    - { val: 'new Double(Double.MAX_VALUE)', type: 'Double' }
+
+    - { val: 'new Float(Float.POSITIVE_INFINITY)', type: 'Float' }
+    - { val: 'new Float(Float.NEGATIVE_INFINITY)', type: 'Float' }
+    - { val: 'new Float(Float.MIN_VALUE)', type: 'Float' }
+    - { val: 'new Float(Float.MAX_VALUE)', type: 'Float' }
+
+    - { val: '" "', type: 'string' }
+    - { val: '` `', type: 'string' }
+    - { val: 'new String("abc").substring(0, 1)', type: 'string' }
+    - { val: '"\u0000"', type: 'string' }
+    - { val: '"\x00"', type: 'string' }
+    - { val: "c'\\u0001'", type: 'char' }
+
+    - { val: '!false', type: 'boolean' }
+    - { val: 'true', type: 'boolean' }
+
+    - { val: '42 - 21 - 20', type: 'number' }
+    - { val: '42 * (21 - 10 - 10)', type: 'number' }
+
+    - { val: '[]', type: 'byte[]' }
+    - { val: 'new short[0]', type: 'short[]' }
+    - { val: 'new int[0]', type: 'int[]' }
+    - { val: '[]', type: 'long[]' }
+    - { val: 'new float[0][0]', type: 'float[][]' }
+    - { val: 'new double[0]', type: 'double[]' }
+
+    - { val: 'new Object()', type: 'Object' }
+    - { val: 'new Error()', type: 'Error' }
+    - { val: '{} as Object', type: 'Object' }
+    - { val: '[1, 2, 3]', type: 'int[]' }
+    - { val: '[false]', type: 'boolean[]' }
+
+    - val: '(p: number): number => { return p+p }'
+      type: '((p: number) => number)'
+
+    - decl: |-
+        class A {}
+        class B {}
+        type UT = A | B | null
+      type: UT
+      val: new A()
+
+    - decl: |-
+        type TT = [number, string]
+      type: TT
+      val: '[1, ""]'
+
+    - decl: |-
+        interface I {}
+        class A implements I {}
+        type NI = I | null
+      type: NI
+      val: new A()
+
+    - decl: |-
+        enum Color { Red, Green, Blue }
+      type: Color
+      val: Color.Green

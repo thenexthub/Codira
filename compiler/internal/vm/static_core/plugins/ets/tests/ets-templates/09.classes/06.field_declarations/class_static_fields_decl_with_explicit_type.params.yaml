@@ -1,0 +1,512 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+cases:
+  - desc: |-
+      >-
+        Checking for initialization public static field
+        with explicit type with default values.
+    check_variants:
+      - {check_type: "int",
+        base_value: "0", new_value: "5"}
+      - {check_type: "long",
+        base_value: "0", new_value: "5"}
+      - {check_type: "byte",
+        base_value: "0", new_value: "5"}
+      - {check_type: "short",
+        base_value: "0", new_value: "5"}
+      - {check_type: "double",
+        base_value: "0", new_value: "7.3"}
+      - {check_type: "number",
+        base_value: "0", new_value: "5"}
+      - {check_type: "float",
+        base_value: "0.0f", new_value: "7.3f"}
+      - {check_type: "char",
+        base_value: "c'\\u0000'", new_value: "c'a'"}
+      - {check_type: "boolean",
+        base_value: "false", new_value: "true"}
+      - {check_type: "Object | undefined",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Object | undefined | null",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Any",
+        base_value: "undefined", new_value: "5"}
+    decl_variants:
+      - |-
+        class A {
+          static field: [check_type]
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+        A.field = [new_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [new_value])
+        A.field = [base_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+
+  - desc: |-
+      >-
+        Checking for initialization public static field
+        with explicit type with field initializer.
+    check_variants:
+      - {check_type: "int",
+        base_value: "4", new_value: "5"}
+      - {check_type: "long",
+        base_value: "4", new_value: "5"}
+      - {check_type: "byte",
+        base_value: "4", new_value: "5"}
+      - {check_type: "short",
+        base_value: "4", new_value: "5"}
+      - {check_type: "double",
+        base_value: "4", new_value: "7.3"}
+      - {check_type: "number",
+        base_value: "4", new_value: "5"}
+      - {check_type: "float",
+        base_value: "4.5f", new_value: "7.3f"}
+      - {check_type: "bigint",
+        base_value: "4n", new_value: "5n"}
+      - {check_type: "string",
+        base_value: "\"abc\"", new_value: "\"efg\""}
+      - {check_type: "char",
+        base_value: "c'a'", new_value: "c'b'"}
+      - {check_type: "boolean",
+        base_value: "false", new_value: "true"}
+      - {check_type: "Object",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Object | undefined",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Object | undefined | null",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Any",
+        base_value: "4", new_value: "5"}
+    decl_variants:
+      - |-
+        class A {
+          static field: [check_type] = [base_value]
+        }
+      - |-
+        function foo(): [check_type] {
+          return [base_value]
+        }
+        class A {
+          static field: [check_type] = foo()
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+        A.field = [new_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [new_value])
+        A.field = [base_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+
+  - desc: |-
+      >-
+        Checking for initialization public static field
+        with explicit type with field initializer.
+    check_variants:
+      - {check_type: "C", data_type: "int",
+        base_obj_lit: "{data: 4}", base_value: "4",
+        new_obj_lit: "{data: 5}", new_value: "5",
+        cv_decl_data: "class C {data: int = 0}"}
+    decl_variants:
+      - |-
+        [cv_decl_data]
+        class A {
+          static field: [check_type] = [base_obj_lit]
+        }
+      - |-
+        [cv_decl_data]
+        function foo(): [check_type] {
+          return [base_obj_lit]
+        }
+        class A {
+          static field: [check_type] = foo()
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertTrue(A.field.data instanceof [data_type])
+        arktest.assertEQ(A.field.data, [base_value])
+        A.field = [new_obj_lit]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertTrue(A.field.data instanceof [data_type])
+        arktest.assertEQ(A.field.data, [new_value])
+        A.field = [base_obj_lit]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertTrue(A.field.data instanceof [data_type])
+        arktest.assertEQ(A.field.data, [base_value])
+
+  - desc: |-
+      >-
+        Checking for initialization private static field
+        with explicit type with default values.
+    check_variants:
+      - {check_type: "int",
+        base_value: "0", new_value: "5"}
+      - {check_type: "long",
+        base_value: "0", new_value: "5"}
+      - {check_type: "byte",
+        base_value: "0", new_value: "5"}
+      - {check_type: "short",
+        base_value: "0", new_value: "5"}
+      - {check_type: "double",
+        base_value: "0", new_value: "7.3"}
+      - {check_type: "number",
+        base_value: "0", new_value: "5"}
+      - {check_type: "float",
+        base_value: "0.0f", new_value: "7.3f"}
+      - {check_type: "char",
+        base_value: "c'\\u0000'", new_value: "c'a'"}
+      - {check_type: "boolean",
+        base_value: "false", new_value: "true"}
+      - {check_type: "Object | undefined",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Object | undefined | null",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Any",
+        base_value: "undefined", new_value: "5"}
+    decl_variants:
+      - |-
+        class A {
+          private static _field: [check_type]
+          static get field(): [check_type] {
+            return A._field
+          }
+          static set field(a: [check_type]) {
+            A._field = a
+          }
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+        A.field = [new_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [new_value])
+        A.field = [base_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+
+  - desc: |-
+      >-
+        Checking for initialization private static field
+        with explicit type with field initializer.
+    check_variants:
+      - {check_type: "int",
+        base_value: "4", new_value: "5"}
+      - {check_type: "long",
+        base_value: "4", new_value: "5"}
+      - {check_type: "byte",
+        base_value: "4", new_value: "5"}
+      - {check_type: "short",
+        base_value: "4", new_value: "5"}
+      - {check_type: "double",
+        base_value: "4", new_value: "7.3"}
+      - {check_type: "number",
+        base_value: "4", new_value: "5"}
+      - {check_type: "float",
+        base_value: "4.5f", new_value: "7.3f"}
+      - {check_type: "bigint",
+        base_value: "4n", new_value: "5n"}
+      - {check_type: "string",
+        base_value: "\"abc\"", new_value: "\"efg\""}
+      - {check_type: "char",
+        base_value: "c'a'", new_value: "c'b'"}
+      - {check_type: "boolean",
+        base_value: "false", new_value: "true"}
+      - {check_type: "Object",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Object | undefined",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Object | undefined | null",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Any",
+        base_value: "4", new_value: "5"}
+    decl_variants:
+      - |-
+        class A {
+          private static _field: [check_type] = [base_value]
+          static get field(): [check_type] {
+            return A._field
+          }
+          static set field(a: [check_type]) {
+            A._field = a
+          }
+        }
+      - |-
+        function foo(): [check_type] {
+          return [base_value]
+        }
+        class A {
+          private static _field: [check_type] = foo()
+          static get field(): [check_type] {
+            return A._field
+          }
+          static set field(a: [check_type]) {
+            A._field = a
+          }
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+        A.field = [new_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [new_value])
+        A.field = [base_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+
+  - desc: |-
+      >-
+        Checking for initialization private static field
+        with explicit type with field initializer.
+    check_variants:
+      - {check_type: "C", data_type: "int",
+        base_obj_lit: "{data: 4}", base_value: "4",
+        new_obj_lit: "{data: 5}", new_value: "5",
+        cv_decl_data: "class C {data: int = 0}"}
+    decl_variants:
+      - |-
+        [cv_decl_data]
+        class A {
+          private static _field: [check_type] = [base_obj_lit]
+          static get field(): [check_type] {
+            return A._field
+          }
+          static set field(a: [check_type]) {
+            A._field = a
+          }
+        }
+      - |-
+        [cv_decl_data]
+        function foo(): [check_type] {
+          return [base_obj_lit]
+        }
+        class A {
+          private static _field: [check_type] = foo()
+          static get field(): [check_type] {
+            return A._field
+          }
+          static set field(a: [check_type]) {
+            A._field = a
+          }
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertTrue(A.field.data instanceof [data_type])
+        arktest.assertEQ(A.field.data, [base_value])
+        A.field = [new_obj_lit]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertTrue(A.field.data instanceof [data_type])
+        arktest.assertEQ(A.field.data, [new_value])
+        A.field = [base_obj_lit]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertTrue(A.field.data instanceof [data_type])
+        arktest.assertEQ(A.field.data, [base_value])
+
+  - desc: |-
+      >-
+        Checking for initialization protected static field
+        with explicit type with default values.
+    check_variants:
+      - {check_type: "int",
+        base_value: "0", new_value: "5"}
+      - {check_type: "long",
+        base_value: "0", new_value: "5"}
+      - {check_type: "byte",
+        base_value: "0", new_value: "5"}
+      - {check_type: "short",
+        base_value: "0", new_value: "5"}
+      - {check_type: "double",
+        base_value: "0", new_value: "7.3"}
+      - {check_type: "number",
+        base_value: "0", new_value: "5"}
+      - {check_type: "float",
+        base_value: "0.0f", new_value: "7.3f"}
+      - {check_type: "char",
+        base_value: "c'\\u0000'", new_value: "c'a'"}
+      - {check_type: "boolean",
+        base_value: "false", new_value: "true"}
+      - {check_type: "Object | undefined",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Object | undefined | null",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Any",
+        base_value: "undefined", new_value: "5"}
+    decl_variants:
+      - |-
+        class B {
+          protected static _field: [check_type]
+        }
+        class A extends B {
+          static get field(): [check_type] {
+            return A._field
+          }
+          static set field(a: [check_type]) {
+            A._field = a
+          }
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+        A.field = [new_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [new_value])
+        A.field = [base_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+
+  - desc: |-
+      >-
+        Checking for initialization protected static field
+        with explicit type with field initializer.
+    check_variants:
+      - {check_type: "int",
+        base_value: "4", new_value: "5"}
+      - {check_type: "long",
+        base_value: "4", new_value: "5"}
+      - {check_type: "byte",
+        base_value: "4", new_value: "5"}
+      - {check_type: "short",
+        base_value: "4", new_value: "5"}
+      - {check_type: "double",
+        base_value: "4", new_value: "7.3"}
+      - {check_type: "number",
+        base_value: "4", new_value: "5"}
+      - {check_type: "float",
+        base_value: "4.5f", new_value: "7.3f"}
+      - {check_type: "bigint",
+        base_value: "4n", new_value: "5n"}
+      - {check_type: "string",
+        base_value: "\"abc\"", new_value: "\"efg\""}
+      - {check_type: "char",
+        base_value: "c'a'", new_value: "c'b'"}
+      - {check_type: "boolean",
+        base_value: "false", new_value: "true"}
+      - {check_type: "Object",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Object | undefined",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Object | undefined | null",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Any",
+        base_value: "4", new_value: "5"}
+    decl_variants:
+      - |-
+        class B {
+          protected static _field: [check_type] = [base_value]
+        }
+        class A extends B {
+          static get field(): [check_type] {
+            return A._field
+          }
+          static set field(a: [check_type]) {
+            A._field = a
+          }
+        }
+      - |-
+        function foo(): [check_type] {
+          return [base_value]
+        }
+        class B {
+          protected static _field: [check_type] = foo()
+        }
+        class A extends B {
+          static get field(): [check_type] {
+            return A._field
+          }
+          static set field(a: [check_type]) {
+            A._field = a
+          }
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+        A.field = [new_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [new_value])
+        A.field = [base_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+
+  - desc: |-
+      >-
+        Checking for initialization protected static field
+        with explicit type with field initializer.
+    check_variants:
+      - {check_type: "C", data_type: "int",
+        base_obj_lit: "{data: 4}", base_value: "4",
+        new_obj_lit: "{data: 5}", new_value: "5",
+        cv_decl_data: "class C {data: int = 0}"}
+    decl_variants:
+      - |-
+        [cv_decl_data]
+        class B {
+          protected static _field: [check_type] = [base_obj_lit]
+        }
+        class A extends B {
+          static get field(): [check_type] {
+            return A._field
+          }
+          static set field(a: [check_type]) {
+            A._field = a
+          }
+        }
+      - |-
+        [cv_decl_data]
+        function foo(): [check_type] {
+          return [base_obj_lit]
+        }
+        class B {
+          protected static _field: [check_type] = foo()
+        }
+        class A extends B {
+          static get field(): [check_type] {
+            return A._field
+          }
+          static set field(a: [check_type]) {
+            A._field = a
+          }
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertTrue(A.field.data instanceof [data_type])
+        arktest.assertEQ(A.field.data, [base_value])
+        A.field = [new_obj_lit]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertTrue(A.field.data instanceof [data_type])
+        arktest.assertEQ(A.field.data, [new_value])
+        A.field = [base_obj_lit]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertTrue(A.field.data instanceof [data_type])
+        arktest.assertEQ(A.field.data, [base_value])

@@ -1,0 +1,200 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+#include "assembly-ins.h"
+#include "mangling.h"
+
+namespace panda::pandasm {
+bool Ins::Emit(BytecodeEmitter &emitter, const InsPtr &ins, panda_file::MethodItem *method,
+    const std::unordered_map<std::string, panda_file::BaseMethodItem *> &methods,
+    const std::unordered_map<std::string, panda_file::BaseFieldItem *> &fields,
+    const std::unordered_map<std::string, panda_file::BaseClassItem *> &classes,
+    const std::unordered_map<std::string, panda_file::StringItem *> &strings,
+    const std::unordered_map<std::string, panda_file::LiteralArrayItem *> &literalarrays,
+    const std::unordered_map<std::string_view, panda::Label>& labels)
+{
+    if (!ins->IsValidToEmit()) {
+        std::cerr << "Invalid instruction: " << ins->ToString() << std::endl;
+        LOG(FATAL, ASSEMBLER);
+    }
+    switch(ins->opcode) {
+% instruction_hash = Panda::instructions.map { |i| [i.mnemonic, i] }.to_h
+%
+% Panda::instructions.group_by(&:mnemonic).each_pair do |mn, group|
+% insn = group[index_of_max(group.map(&:format).map(&:size))]
+%
+% def type(insn)
+%   src_acc_ops = insn.acc_and_operands.select(&:src?)
+%   src_acc_ops.size != 0 ? src_acc_ops.first.type : 'none'
+% end
+%
+% def op_size(insn)
+%   type(insn)[1..-1].to_i
+% end
+%
+% def operands(insn, regs = "regs")
+%   ops = []
+%   nr = 0
+%   ni = 0
+%   property_idx_start = 0
+%   num_id = 0
+%   insn.operands.each do |op|
+%     if op.reg?
+%       ops << "#{regs}[#{nr}]"
+%       nr += 1
+%     elsif op.imm?
+%       if insn.jump?
+%         ops << 'labels.find(ids[0])->second'
+%       else
+%         from_type, to_type = op_size(insn) == 64 ? ['double', 'int64_t'] : ['float', 'int32_t']
+%         if insn.float?
+%           ops << bit_cast("imms[#{ni}]", to_type, from_type)
+%         elsif type(insn).start_with? 'u' # can hold both float and integer literals
+%           ops << "std::holds_alternative<double>(imms[#{ni}]) ? #{bit_cast("imms[#{ni}]", to_type, from_type)} : std::get<int64_t>(imms[#{ni}])"
+%         else
+%           ops << "std::get<int64_t>(imms[#{ni}])"
+%         end
+%       end
+%       ni += 1
+%     elsif op.id?
+%       id_properties = insn.properties.slice(property_idx_start, insn.properties.length - property_idx_start)
+%       id_properties.each_with_index do |prop, prop_idx|
+%         if prop == 'method_id'
+%           ops << "methods.find(ids[#{num_id}])->second->GetIndex(method)"
+%           property_idx_start += prop_idx + 1
+%           num_id += 1
+%           break
+%         elsif prop == 'string_id'
+%           ops << "strings.find(ids[#{num_id}])->second->GetIndex(method)"
+%           property_idx_start += prop_idx + 1
+%           num_id += 1
+%           break
+%         elsif prop == 'literalarray_id'
+%           ops << "literalarrays.find(ids[#{num_id}])->second->GetIndex(method)"
+%           property_idx_start += prop_idx + 1
+%           num_id += 1
+%           break
+%         else
+%           next
+%         end
+%       end
+%     else
+%       raise "Unexpected operand type"
+%     end
+%   end
+%   ops
+% end
+    case Opcode::<%= insn.asm_token %>: {
+        auto ids = ins->Ids();
+        auto imms = ins->Imms();
+        auto regs = ins->Regs();
+% if insn.jump?
+        if ((ids.size() == 0) || (labels.find(ids[0]) == labels.cend())) {
+            return false;
+        }
+% end
+% num_id = 0
+% insn.properties.each do |prop|
+%   if prop == 'method_id'
+        if ((ids.size() == 0) || (methods.find(ids[<%= num_id %>]) == methods.cend())) {
+            return false;
+        }
+%     num_id += 1
+%   elsif prop == 'string_id'
+        if ((ids.size() == 0) || (strings.find(ids[<%= num_id %>]) == strings.cend())) {
+            return false;
+        }
+%     num_id += 1
+%   elsif prop == 'literalarray_id'
+        if ((ids.size() == 0) || (literalarrays.find(ids[<%= num_id %>]) == literalarrays.cend())) {
+            return false;
+        }
+%     num_id += 1
+%   end
+% end
+% regs_num = 0
+% imms_num = 0
+% insn.operands.each do |op|
+%   if op.reg?
+%     regs_num += 1
+%   elsif op.imm?
+%     imms_num += 1
+%   end
+% end
+% if insn.simple_call?
+%   if imms_num > 0
+        if (imms.size() < <%= imms_num %>) {
+            return false;
+        }
+%   end
+% elsif insn.jump?
+%   if regs_num > 0
+        if (regs.size() < <%= regs_num %>) {
+            return false;
+        }
+%   end
+% else
+%   if regs_num > 0 and imms_num > 0
+        if (regs.size() < <%= regs_num %> || imms.size() < <%= imms_num %>) {
+            return false;
+        }
+%   elsif regs_num > 0
+        if (regs.size() < <%= regs_num %>) {
+            return false;
+        }
+%   elsif imms_num > 0
+        if (imms.size() < <%= imms_num %>) {
+            return false;
+        }
+%   end
+% end
+% if insn.simple_call?
+        auto registers = regs;
+%   call_mnemonics = if insn.mnemonic.end_with?('.short')
+%     [insn.mnemonic]
+%   else
+%     ["#{insn.mnemonic}.short", insn.mnemonic]
+%   end
+%   call_mnemonics.map { |m| instruction_hash[m] }.each do |i|
+%     registers = i.operands.select(&:reg?)
+        if (registers.size() < <%= registers.size + 1 %>) {
+            while (registers.size() < <%= registers.size %>) {
+                registers.push_back(0);
+            }
+            emitter.<%= i.emitter_name %>(<%= operands(i, "registers").join(", ") %>);
+            break;
+        }
+%   end
+% else
+        emitter.<%= insn.emitter_name %>(<%= operands(insn).join(", ") %>);
+% end
+        break;
+    }
+% end
+    default:
+        assert(0);
+    }
+
+    return true;
+}
+
+}

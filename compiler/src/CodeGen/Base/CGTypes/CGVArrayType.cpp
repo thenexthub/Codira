@@ -1,0 +1,110 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+#include "Base/CGTypes/CGVArrayType.h"
+
+#include "CGContext.h"
+#include "CGModule.h"
+
+namespace Codira::CodeGen {
+void CGVArrayType::CalculateSizeAndAlign()
+{
+    if (auto arrayType = llvm::dyn_cast<llvm::ArrayType>(llvmType)) {
+        auto layOut = cgMod.GetLLVMModule()->getDataLayout();
+        size = layOut.getTypeAllocSize(arrayType);
+        align = layOut.getABITypeAlignment(arrayType);
+    }
+}
+
+llvm::Type* CGVArrayType::GenLLVMType()
+{
+    if (llvmType) {
+        return llvmType;
+    }
+
+    auto& varrType = StaticCast<const CHIR::VArrayType&>(chirType);
+    auto varrElementType = varrType.GetElementType();
+    llvmType = llvm::ArrayType::get(CGType::GetOrCreate(cgMod, varrElementType)->GetLLVMType(), varrType.GetSize());
+
+    auto layoutName = "VArray." + std::to_string(varrType.GetSize()) + MangleType(*varrElementType);
+    layoutType = llvm::StructType::getTypeByName(cgCtx.GetLLVMContext(), layoutName);
+    if (layoutType && cgCtx.IsGeneratedStructType(layoutName)) {
+        return llvmType;
+    } else if (!layoutType) {
+        layoutType = llvm::StructType::create(cgCtx.GetLLVMContext(), layoutName);
+    }
+    cgCtx.AddGeneratedStructType(layoutName);
+
+    // VArrayLayout: [sizeOfVArray x T], T is element type. if Array is ref Array, T is i8 addrspece(1) *.
+    SetStructTypeBody(layoutType, std::vector<llvm::Type*>{llvmType});
+
+    return llvmType;
+}
+
+void CGVArrayType::GenContainedCGTypes()
+{
+    auto& varrayType = StaticCast<const CHIR::VArrayType&>(chirType);
+    (void)containedCGTypes.emplace_back(CGType::GetOrCreate(cgMod, varrayType.GetElementType()));
+}
+
+llvm::Constant* CGVArrayType::GenFieldsNumOfTypeInfo()
+{
+    auto fieldsNum = StaticCast<const CHIR::VArrayType&>(chirType).GetSize();
+    return llvm::ConstantInt::get(llvm::Type::getInt16Ty(cgMod.GetLLVMContext()), fieldsNum);
+}
+
+llvm::Constant* CGVArrayType::GenFieldsOfTypeInfo()
+{
+    return CGType::GenFieldsOfTypeInfo();
+}
+
+llvm::Constant* CGVArrayType::GenSourceGenericOfTypeInfo()
+{
+    return CGType::GenSourceGenericOfTypeInfo();
+}
+
+llvm::Constant* CGVArrayType::GenTypeArgsNumOfTypeInfo()
+{
+    return CGType::GenTypeArgsNumOfTypeInfo();
+}
+
+llvm::Constant* CGVArrayType::GenOffsetsOfTypeInfo()
+{
+    return CGType::GenOffsetsOfTypeInfo();
+}
+
+llvm::Constant* CGVArrayType::GenTypeArgsOfTypeInfo()
+{
+   return CGType::GenTypeArgsOfTypeInfo();
+}
+
+llvm::Constant* CGVArrayType::GenSuperOfTypeInfo()
+{
+    auto varrayElementType = DeRef(*StaticCast<const CHIR::VArrayType&>(chirType).GetElementType());
+    auto elemCGType = CGType::GetOrCreate(cgMod, varrayElementType);
+    auto ti = CGType::GetOrCreate(cgMod, varrayElementType)->GetOrCreateTypeInfo();
+    if (elemCGType->IsStaticGI()) {
+        cgCtx.AddDependentPartialOrderOfTypes(ti, this->typeInfo);
+    }
+    return llvm::ConstantExpr::getBitCast(ti, CGType::GetOrCreateTypeInfoPtrType(cgMod.GetLLVMContext()));
+}
+} // namespace Codira::CodeGen

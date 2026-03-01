@@ -1,0 +1,110 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+declarations:
+  # namespaces
+  - >
+    export namespace Ambient { 
+      export const a: string = 'a'
+    }
+  - >
+    export namespace Ambient {
+      export let x: string = 'x'
+      export let y: byte = 0
+      export let z: int = 1
+    }
+  - >
+    export namespace Ambient {
+      export const x: int = 3
+      export const y: string = 'y'
+      export const z: string[] = ['z', 'y']
+    }
+  - >
+    export namespace Ambient {
+      export function foo(): string {
+        return 'f'
+      }
+    }
+  - >
+    export namespace Ambient {
+      export class A { a: int = 1}
+    }
+  - >
+    export namespace Ambient {
+      export interface A { a: int }
+    }
+  - >
+    export namespace Ambient {
+      export namespace NestedAmbient {
+        export function foo(f: int): int {
+          return f
+        }
+      }
+    }
+  - >
+    export namespace Ambient {
+      enum Color {White, Blue, Red}
+      export enum ColorExp {White = 'w', Blue = 'b', Red = 'r'}
+    }
+  - >
+    export namespace Ambient {
+      const enum Season {Winter, Spring, Summer, Autumn}
+      export const enum SeasonExp {Winter = 1, Spring, Summer, Autumn}
+    }
+  - >
+    export namespace Ambient {
+      type MatrixExp = number[][]
+      export const m: MatrixExp = [[1,2],[1,2]]
+    }
+  - >
+    export namespace Ambient {
+      export namespace NestedAmbientExp {
+        export let x: string = 'x'
+        export const y: int = 2
+        export function foo(): string { return 'f' }
+        export class A { a: int = 1 }
+        export interface I {        
+          a: int
+        }
+        export enum Color {White = 'w', Blue = 'b', Red = 'r'}
+        export const enum Season {Winter = 1, Spring, Summer, Autumn}
+        export type Matrix = string[][]
+      }
+    }
+  - >
+    export namespace Ambient { 
+      export const a: string = 'a'
+    }
+  - >
+    export namespace Ambient {
+      export function foo(): string {
+        return 'f'
+      }
+    }
+  - >
+    export namespace Ambient {
+      export namespace WrongNestedAmbient {
+        export function foo(f: string): string {
+          return f
+        }
+      }
+    }

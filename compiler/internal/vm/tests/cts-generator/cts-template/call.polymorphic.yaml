@@ -1,0 +1,916 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+definitions:
+  - name: polymorphic-hdr
+    template: |
+      #
+      .language PandaAssembly
+      .record panda.Class <external>
+      .record panda.Object <external>
+      .record panda.Integer <external>
+      .record panda.Long <external>
+      .record panda.Short <external>
+      .record panda.String <external>
+      .record panda.invoke.MethodHandles <external>
+      .record panda.invoke.MethodHandles$Lookup <external>
+      .record panda.invoke.MethodHandle <external>
+      .record panda.invoke.VarHandle <external>
+      .record panda.invoke.MethodType <external>
+      .record panda.NullPointerException <external>
+      .record panda.reflect.Field <external>
+      .function panda.Object panda.reflect.Field.get(panda.reflect.Field a0, panda.Object a1) <external>
+      .function panda.reflect.Field panda.Class.getField(panda.Class a0, panda.String a1) <external>
+      .function panda.Class panda.Class.forName(panda.String a0) <external>
+      .function panda.invoke.MethodHandles$Lookup panda.invoke.MethodHandles.lookup() <external, static>
+      .function panda.invoke.MethodHandle panda.invoke.MethodHandles$Lookup.findStatic(panda.invoke.MethodHandles$Lookup a0, panda.Class a1, panda.String a2, panda.invoke.MethodType a3) <external>
+      .function panda.invoke.MethodHandle panda.invoke.MethodHandles$Lookup.findVirtual(panda.invoke.MethodHandles$Lookup a0, panda.Class a1, panda.String a2, panda.invoke.MethodType a3) <external>
+      .function panda.invoke.VarHandle panda.invoke.MethodHandles$Lookup.findVarHandle(panda.invoke.MethodHandles$Lookup a0, panda.Class a1, panda.String a2, panda.Class a3) <external>
+      .record W <panda.access = public> {}
+      .record R <panda.access = public, panda.extends = W> {
+        u1          f_boolean <panda.access = public>
+        i8          f_byte    <panda.access = public>
+        u16         f_char    <panda.access = public>
+        i16         f_short   <panda.access = public>
+        i32         f_int     <panda.access = public>
+        i64         f_long    <panda.access = public>
+        f32         f_float   <panda.access = protected>
+        f64         f_double  <panda.access = private>
+      }
+      .record Q <panda.access = public, panda.extends = R> {}
+      # returns int.class for panda.Integer, can be replaced with panda.Integer.TYPE
+      .function panda.Class R.getPrimitiveType(panda.String a0) <static, panda.access=public> {
+          call.short panda.Class.forName, a0
+          sta.obj v1
+          lda.str "TYPE"
+          call.virt.acc.short panda.Class.getField, v1, 1
+          mov.null v0
+          call.virt.acc.short panda.reflect.Field.get, v0, 0
+          return.obj
+      }
+      .function i32 main() {
+          call.short R.test
+          return
+      }
+
+tests:
+  - file-name: 'call.polymorphic'
+    isa:
+      title: Polymorphic calls
+      description: >
+        TODO
+
+    commands:
+      - file-name: 'syntax'
+        isa:
+          instructions:
+            - sig: call.polymorphic method_id, v1:in:top, v2:in:top, v3:in:top, v4:in:top
+              prefix: PandaAssembly
+              acc: out:top
+              format: [pref_op_v1_4_v2_4_v3_4_v4_4_id_16]
+        description: Check call.polymorphic syntax.
+        runner-options: [use-pa, compile-failure, ]
+        tags: ['irtoc_ignore']
+        header-template: [polymorphic-hdr]
+        code-template: |
+          .function i32 panda.invoke.MethodHandle.invoke(panda.invoke.MethodHandle a0, R a1, R a2, R a3) <external>
+          .function i32 R.test() <static, panda.access = public> {
+              call.polymorphic %s
+        check-type: exit-positive
+        cases:
+          - values:
+            - 'panda.invoke.MethodHandle.invoke, v16, v2, v3, v4'
+          - values:
+            - 'panda.invoke.MethodHandle.invoke, v1, v16, v3, v4'
+          - values:
+            - 'panda.invoke.MethodHandle.invoke, v1, v2, v16, v4'
+          - values:
+            - 'panda.invoke.MethodHandle.invoke, v1, v2, v3, v16'
+          - values:
+            - 'panda.invoke.MethodHandle.invoke, v1, v2, v3, v4'
+            runner-options: [use-pa, compile-only, ]
+
+      - file-name: 'uninitialized_regs'
+        isa:
+          instructions:
+            - sig: call.polymorphic method_id, v1:in:top, v2:in:top, v3:in:top, v4:in:top
+              prefix: PandaAssembly
+              acc: out:top
+              format: [pref_op_v1_4_v2_4_v3_4_v4_4_id_16]
+        description: Check that verifier reports an error on unitialized registers.
+        runner-options: [use-pa, verifier-failure, verifier-config, ]
+        tags: ['verifier', 'irtoc_ignore']
+        header-template: [polymorphic-hdr]
+        code-template: |
+          .function i32 panda.invoke.MethodHandle.invoke(panda.invoke.MethodHandle a0, R a1, R a2, R a3) <external>
+          .function i32 R.test() <static, panda.access = public> {
+              %s
+              call.polymorphic panda.invoke.MethodHandle.invoke, v1, v2, v3, v4
+        check-type: exit-positive
+        cases:
+          - values:
+            - ''
+            bugid: ['7636']
+            ignore: true
+          - values:
+            - |
+              #
+                  newobj v1, R
+                  newobj v2, R
+                  newobj v3, R
+            bugid: ['7636']
+            ignore: true
+          - values:
+            - |
+              #
+                  newobj v1, R
+                  newobj v2, R
+                  newobj v3, R
+                  newobj v4, R
+            runner-options: [use-pa, verifier-only, verifier-config, ]
+
+      - file-name: 'npe'
+        isa:
+          exceptions: [x_null]
+        description: Check that NullPointerException is thrown if v1 is null.
+        runner-options: [use-pa, ]
+        tags: ['irtoc_ignore']
+        bugid: ['7637']
+        ignore: true
+        header-template: [polymorphic-hdr]
+        code-template: |
+          .function i32 panda.invoke.MethodHandle.invoke(panda.invoke.MethodHandle a0, R a1) <external>
+          .function i32 R.test() <static, panda.access = public> {
+              mov.null v4
+              newobj v5, R
+            try_begin:
+              call.polymorphic panda.invoke.MethodHandle.invoke, v4, v5
+              ldai 4
+              return
+            try_end:
+            catch_begin:
+              ldai 0
+              return
+            catch_end:
+            .catch panda.NullPointerException, try_begin, try_end, catch_begin, catch_end
+          }
+        check-type: empty
+
+      - file-name: 'call_1s'
+        isa:
+          instructions:
+            - sig: call.polymorphic method_id, v1:in:top, v2:in:top, v3:in:top, v4:in:top
+              prefix: PandaAssembly
+              acc: out:top
+              format: [pref_op_v1_4_v2_4_v3_4_v4_4_id_16]
+        description: Check that polymorphic call is performed for static function with one argument.
+        runner-options: [use-pa, ]
+        tags: ['irtoc_ignore']
+        bugid: ['7634']
+        header-template: [polymorphic-hdr]
+        code-template: |
+          .function panda.invoke.MethodType panda.invoke.MethodType.methodType(panda.Class a0, panda.Class a1) <external, static>
+          %s
+          .function i32 R.inc32(i32 a0) {
+              inci a0, 1
+              lda a0
+              return
+          }
+          .function i32 R.inc64(i64 a0) {
+              ldai.64 2
+              add2.64 a0
+              i64toi32
+              return
+          }
+          .function i32 R.inc16(i16 a0) {
+              inci a0, 3
+              lda a0
+              return
+          }
+          .function i32 R.test() <static, panda.access = public> {
+              call.short panda.invoke.MethodHandles.lookup
+              sta.obj v0   # MethodHandles.Lookup object
+
+              lda.str "panda.Integer"
+              sta.obj v1
+              call.short R.getPrimitiveType, v1
+              sta.obj v1
+              lda.str "%s"
+              sta.obj v2
+              call.short R.getPrimitiveType, v2
+              sta.obj v2
+              call.short panda.invoke.MethodType.methodType, v1, v2
+              sta.obj v1   # MethodType object for (i32)i32
+
+              lda.type R
+              sta.obj v2
+              lda.str "%s"
+              sta.obj v3
+              call.virt panda.invoke.MethodHandles$Lookup.findStatic, v0, v2, v3, v1
+              sta.obj v4    # MethodHandle object
+
+              %s
+              call.polymorphic panda.invoke.MethodHandle.invoke, v4, v6
+              movi v1, 42
+              jeq v1, ok
+              ldai 1
+              return
+          ok:
+              ldai 0
+              return
+          }
+        check-type: empty
+        cases:
+          - values:
+              - .function i32 panda.invoke.MethodHandle.invoke(panda.invoke.MethodHandle a0, i32 a1) <external>
+              - panda.Integer
+              - inc32
+              - movi v6, 41
+          - values:
+              - .function i32 panda.invoke.MethodHandle.invoke(panda.invoke.MethodHandle a0, i64 a1) <external>
+              - panda.Long
+              - inc64
+              - movi.64 v6, 40
+          - values:
+              - .function i32 panda.invoke.MethodHandle.invoke(panda.invoke.MethodHandle a0, i16 a1) <external>
+              - panda.Short
+              - inc16
+              - movi v6, 39
+
+      - file-name: 'call_3s'
+        isa:
+          instructions:
+            - sig: call.polymorphic method_id, v1:in:top, v2:in:top, v3:in:top, v4:in:top
+              prefix: PandaAssembly
+              acc: out:top
+              format: [pref_op_v1_4_v2_4_v3_4_v4_4_id_16]
+        description: Check that polymorphic call is performed for static function with three arguments.
+        runner-options: [use-pa, ]
+        tags: ['irtoc_ignore']
+        bugid: ['7634']
+        header-template: [polymorphic-hdr]
+        code-template: |
+          .function panda.invoke.MethodType panda.invoke.MethodType.methodType(panda.Class a0, panda.Class[] a1) <external, static>
+          %s
+          .function i32 R.sum32(i32 a0, i32 a1, i32 a2) {
+              add a0, a1
+              add2 a2
+              return
+          }
+          .function i32 R.sum64(i64 a0, i64 a1, i64 a2) {
+              lda.64 a0
+              add2.64 a1
+              add2.64 a2
+              i64toi32
+              return
+          }
+          .function i32 R.sum16(i16 a0, i16 a1, i16 a2) {
+              add a0, a1
+              add2 a2
+              return
+          }
+          .function i32 R.test() <static, panda.access = public> {
+              call.short panda.invoke.MethodHandles.lookup
+              sta.obj v0   # MethodHandles.Lookup object
+
+              lda.str "panda.Integer"
+              sta.obj v1
+              call.short R.getPrimitiveType, v1
+              sta.obj v1
+              lda.str "%s"
+              sta.obj v2
+              call.short R.getPrimitiveType, v2
+              movi v3, 3  # 3 arguments
+              newarr v2, v3, panda.Class[]
+              movi v4, 0
+              starr.obj v2, v4
+              inci v4, 1
+              starr.obj v2, v4
+              inci v4, 1
+              starr.obj v2, v4
+              call panda.invoke.MethodType.methodType, v1, v2
+              sta.obj v1   # MethodType object for (i32, i32, i32)i32
+
+              lda.type R
+              sta.obj v2
+              lda.str "%s"
+              sta.obj v3
+              call.virt panda.invoke.MethodHandles$Lookup.findStatic, v0, v2, v3, v1
+              sta.obj v4    # MethodHandle object
+
+              %s
+              call.polymorphic panda.invoke.MethodHandle.invoke, v4, v6, v7, v8
+              movi v1, 42
+              jeq v1, ok
+              ldai 1
+              return
+          ok:
+              ldai 0
+              return
+          }
+        check-type: empty
+        cases:
+          - values:
+              - .function i32 panda.invoke.MethodHandle.invoke(panda.invoke.MethodHandle a0, i32 a1, i32 a2, i32 a3) <external>
+              - panda.Integer
+              - sum32
+              - |
+                #
+                    movi v6, 22
+                    movi v7, 15
+                    movi v8, 5
+          - values:
+              - .function i32 panda.invoke.MethodHandle.invoke(panda.invoke.MethodHandle a0, i64 a1, i64 a2, i64 a3) <external>
+              - panda.Long
+              - sum64
+              - |
+                #
+                    movi.64 v6, -500
+                    movi.64 v7, 1042
+                    movi.64 v8, -500
+          - values:
+              - .function i32 panda.invoke.MethodHandle.invoke(panda.invoke.MethodHandle a0, i16 a1, i16 a2, i16 a3) <external>
+              - panda.Short
+              - sum16
+              - |
+                #
+                    movi v6, 1
+                    movi v7, 2
+                    movi v8, 39
+
+      - file-name: 'call_1v'
+        isa:
+          instructions:
+            - sig: call.polymorphic method_id, v1:in:top, v2:in:top, v3:in:top, v4:in:top
+              prefix: PandaAssembly
+              acc: out:top
+              format: [pref_op_v1_4_v2_4_v3_4_v4_4_id_16]
+        description: Check that polymorphic call is performed for virtual function with one argument.
+        runner-options: [use-pa, ]
+        tags: ['irtoc_ignore']
+        bugid: ['7634']
+        header-template: [polymorphic-hdr]
+        code-template: |
+          .function panda.invoke.MethodType panda.invoke.MethodType.methodType(panda.Class a0, panda.Class a1) <external, static>
+          %s
+          .function i32 R.inc32(R a0, i32 a1) {
+              inci a1, 1
+              lda a1
+              return
+          }
+          .function i32 R.inc64(R a0, i64 a1) {
+              ldai.64 2
+              add2.64 a1
+              i64toi32
+              return
+          }
+          .function i32 R.inc16(R a0, i16 a1) {
+              inci a1, 3
+              lda a1
+              return
+          }
+          .function i32 R.test() <static, panda.access = public> {
+              call.short panda.invoke.MethodHandles.lookup
+              sta.obj v0   # MethodHandles.Lookup object
+
+              lda.str "panda.Integer"
+              sta.obj v1
+              call.short R.getPrimitiveType, v1
+              sta.obj v1
+              lda.str "%s"
+              sta.obj v2
+              call.short R.getPrimitiveType, v2
+              sta.obj v2
+              call.short panda.invoke.MethodType.methodType, v1, v2
+              sta.obj v1   # MethodType object for (i32)i32
+
+              lda.type R
+              sta.obj v2
+              lda.str "%s"
+              sta.obj v3
+              call.virt panda.invoke.MethodHandles$Lookup.findVirtual, v0, v2, v3, v1
+              sta.obj v4    # MethodHandle object
+
+              newobj v5, R
+              %s
+              call.polymorphic panda.invoke.MethodHandle.invoke, v4, v5, v6
+              movi v1, 42
+              jeq v1, ok
+              ldai 1
+              return
+          ok:
+              ldai 0
+              return
+          }
+        check-type: empty
+        cases:
+          - values:
+              - .function i32 panda.invoke.MethodHandle.invoke(panda.invoke.MethodHandle a0, R a1, i32 a2) <external>
+              - panda.Integer
+              - inc32
+              - movi v6, 41
+          - values:
+              - .function i32 panda.invoke.MethodHandle.invoke(panda.invoke.MethodHandle a0, R a1, i64 a2) <external>
+              - panda.Long
+              - inc64
+              - movi.64 v6, 40
+          - values:
+              - .function i32 panda.invoke.MethodHandle.invoke(panda.invoke.MethodHandle a0, R a1, i16 a2) <external>
+              - panda.Short
+              - inc16
+              - movi v6, 39
+
+      - file-name: 'call_2v'
+        isa:
+          instructions:
+            - sig: call.polymorphic method_id, v1:in:top, v2:in:top, v3:in:top, v4:in:top
+              prefix: PandaAssembly
+              acc: out:top
+              format: [pref_op_v1_4_v2_4_v3_4_v4_4_id_16]
+        description: Check that polymorphic call is performed for virtual function with two arguments.
+        runner-options: [use-pa, ]
+        tags: ['irtoc_ignore']
+        bugid: ['7634']
+        header-template: [polymorphic-hdr]
+        code-template: |
+          .function panda.invoke.MethodType panda.invoke.MethodType.methodType(panda.Class a0, panda.Class[] a1) <external, static>
+          %s
+          .function i32 R.sum32(R a0, i32 a1, i32 a2) {
+              add a1, a2
+              return
+          }
+          .function i32 R.sum64(R a0, i64 a1, i64 a2) {
+              lda.64 a1
+              add2.64 a2
+              i64toi32
+              return
+          }
+          .function i32 R.sum16(R a0, i16 a1, i16 a2) {
+              add a1, a2
+              return
+          }
+          .function i32 R.test() <static, panda.access = public> {
+              call.short panda.invoke.MethodHandles.lookup
+              sta.obj v0   # MethodHandles.Lookup object
+
+              lda.str "panda.Integer"
+              sta.obj v1
+              call.short R.getPrimitiveType, v1
+              sta.obj v1
+              lda.str "%s"
+              sta.obj v2
+              call.short R.getPrimitiveType, v2
+              movi v3, 2  # 2 arguments
+              newarr v2, v3, panda.Class[]
+              movi v4, 0
+              starr.obj v2, v4
+              inci v4, 1
+              starr.obj v2, v4
+              call.short panda.invoke.MethodType.methodType, v1, v2
+              sta.obj v1   # MethodType object for (i32, i32)i32
+
+              lda.type R
+              sta.obj v2
+              lda.str "%s"
+              sta.obj v3
+              call.virt panda.invoke.MethodHandles$Lookup.findVirtual, v0, v2, v3, v1
+              sta.obj v4    # MethodHandle object
+
+              newobj v5, R
+              %s
+              call.polymorphic panda.invoke.MethodHandle.invoke, v4, v5, v6, v7
+              movi v1, 42
+              jeq v1, ok
+              ldai 1
+              return
+          ok:
+              ldai 0
+              return
+          }
+        check-type: empty
+        cases:
+          - values:
+              - .function i32 panda.invoke.MethodHandle.invoke(panda.invoke.MethodHandle a0, R a1, i32 a2, i32 a3) <external>
+              - panda.Integer
+              - sum32
+              - |
+                #
+                    movi v6, 0x800000000039
+                    movi v7, 0x7ffffffffff1
+          - values:
+              - .function i32 panda.invoke.MethodHandle.invoke(panda.invoke.MethodHandle a0, R a1, i64 a2, i64 a3) <external>
+              - panda.Long
+              - sum64
+              - |
+                #
+                    movi.64 v6, 0x800000000000002b
+                    movi.64 v7, 0x7fffffffffffffff
+          - values:
+              - .function i32 panda.invoke.MethodHandle.invoke(panda.invoke.MethodHandle a0, R a1, i16 a2, i16 a3) <external>
+              - panda.Short
+              - sum16
+              - |
+                #
+                    movi v6, 0
+                    movi v7, 42
+
+      - file-name: 'call_obj'
+        isa:
+          exceptions: [x_call]
+        description: Check that polymorphic call throws right exception on invalid arguments.
+        runner-options: [use-pa, ]
+        tags: ['irtoc_ignore']
+        bugid: ['7634']
+        header-template: [polymorphic-hdr]
+        code-template: |
+          .function panda.invoke.MethodType panda.invoke.MethodType.methodType(panda.Class a0, panda.Class a1) <external, static>
+          .function R panda.invoke.MethodHandle.invoke(panda.invoke.MethodHandle a0, %s a1) <external>
+          .record panda.Exception <external>
+          .record E <panda.extends = panda.Exception, panda.access = public> {}
+          .record panda.ClassCastException <external>
+          .function R R.throwE(R a0) <static> {
+              newobj v0, E
+              throw v0
+              lda.obj a0
+              return.obj
+          }
+          .function i32 R.test() <static, panda.access = public> {
+              call.short panda.invoke.MethodHandles.lookup
+              sta.obj v0   # MethodHandles.Lookup object
+
+              lda.type R
+              sta.obj v1
+              call.short panda.invoke.MethodType.methodType, v1, v1
+              sta.obj v1   # MethodType object for (R)R
+
+              lda.type R
+              sta.obj v2
+              lda.str "throwE"
+              sta.obj v3
+              call.virt panda.invoke.MethodHandles$Lookup.findStatic, v0, v2, v3, v1
+              sta.obj v4    # MethodHandle object
+
+              newobj v6, %s
+          try_begin:
+              call.polymorphic panda.invoke.MethodHandle.invoke, v4, v6
+              ldai 1
+              return
+          try_end:
+          catch_begin:
+              ldai 0
+              return
+          catch_end:
+          %s
+          }
+        check-type: empty
+        cases:
+          - values:
+            - E
+            - E
+            - .catch panda.ClassCastException, try_begin, try_end, catch_begin, catch_end
+          - values:
+            - W
+            - W
+            - .catch panda.ClassCastException, try_begin, try_end, catch_begin, catch_end
+          - values:
+            - R
+            - R
+            - .catch E, try_begin, try_end, catch_begin, catch_end
+          - values:
+            - Q
+            - Q
+            - .catch E, try_begin, try_end, catch_begin, catch_end
+
+      - file-name: 'call_vh'
+        isa:
+          instructions:
+            - sig: call.polymorphic method_id, v1:in:top, v2:in:top, v3:in:top, v4:in:top
+              prefix: PandaAssembly
+              acc: out:top
+              format: [pref_op_v1_4_v2_4_v3_4_v4_4_id_16]
+        description: Check that polymorphic call is performed for field access.
+        runner-options: [use-pa, ]
+        tags: ['irtoc_ignore']
+        bugid: ['7634']
+        header-template: [polymorphic-hdr]
+        code-template: |
+          %s
+          .function i32 R.test() <static, panda.access = public> {
+              call.short panda.invoke.MethodHandles.lookup
+              sta.obj v0   # MethodHandles.Lookup object
+
+              lda.type R
+              sta.obj v2
+              lda.str "%s"
+              sta.obj v3
+              lda.str "%s"
+              sta.obj v4
+              call.short R.getPrimitiveType, v4
+              sta.obj v4
+              call.virt panda.invoke.MethodHandles$Lookup.findVarHandle, v0, v2, v3, v4
+              sta.obj v5    # VarHandle object
+
+              %s
+              ldai 0
+              return
+          fail:
+              ldai 1
+              return
+          }
+        check-type: empty
+        cases:
+          - values:
+            - .function void panda.invoke.VarHandle.set(panda.invoke.VarHandle a0, R a1, i32 a2) <external>
+            - f_int
+            - panda.Integer
+            - |
+              #
+                  newobj v6, R
+                  movi v7, 42
+                  call.polymorphic panda.invoke.VarHandle.set, v5, v6, v7
+                  lda.null
+                  ldobj v6, R.f_int
+                  jne v7, fail
+          - values:
+            - .function i32 panda.invoke.VarHandle.get(panda.invoke.VarHandle a0, R a1) <external>
+            - f_int
+            - panda.Integer
+            - |
+              #
+                  newobj v6, R
+                  movi v7, 42
+                  lda v7
+                  stobj v6, R.f_int
+                  lda.null
+                  call.polymorphic panda.invoke.VarHandle.get, v5, v6
+                  jne v7, fail
+          - values:
+            - .function void panda.invoke.VarHandle.set(panda.invoke.VarHandle a0, R a1, f64 a2) <external>
+            - f_double
+            - panda.Double
+            - |
+              #
+                  newobj v6, R
+                  fmovi.64 v7, 42.4242
+                  call.polymorphic panda.invoke.VarHandle.set, v5, v6, v7
+                  lda.null
+                  ldobj.64 v6, R.f_double
+                  fcmpg.64 v7
+                  jnez fail
+          - values:
+            - .function f64 panda.invoke.VarHandle.get(panda.invoke.VarHandle a0, R a1) <external>
+            - f_double
+            - panda.Double
+            - |
+              #
+                  newobj v6, R
+                  fmovi.64 v7, 42.4242
+                  lda.64 v7
+                  stobj.64 v6, R.f_double
+                  lda.null
+                  call.polymorphic panda.invoke.VarHandle.get, v5, v6
+                  fcmpg.64 v7
+                  jnez fail
+          - values:
+            - .function f32 panda.invoke.VarHandle.getAndSet(panda.invoke.VarHandle a0, R a1, f32 a2) <external>
+            - f_float
+            - panda.Float
+            - |
+              #
+                  newobj v6, R
+                  fmovi v7, 3.141593    # initial value
+                  lda v7
+                  stobj v6, R.f_float
+                  fmovi v8, 2.718282    # value to set by getAndSet
+                  lda.null
+                  call.polymorphic panda.invoke.VarHandle.getAndSet, v5, v6, v8
+                  fcmpg v7
+                  jnez fail
+                  ldobj v6, R.f_float
+                  fcmpg v8
+                  jnez fail
+          - values:
+            - .function i64 panda.invoke.VarHandle.getAndAdd(panda.invoke.VarHandle a0, R a1, i64 a2) <external>
+            - f_long
+            - panda.Long
+            - |
+              #
+                  newobj v6, R
+                  movi.64 v7, 0x7ffffffffffffffe    # initial value
+                  lda.64 v7
+                  stobj.64 v6, R.f_long
+                  movi.64 v8, 1                     # value to add by getAndAdd
+                  lda.null
+                  call.polymorphic panda.invoke.VarHandle.getAndAdd, v5, v6, v8
+                  cmp.64 v7
+                  jnez fail
+                  ldobj.64 v6, R.f_long
+                  sub2.64 v8
+                  cmp.64 v7
+                  jnez fail
+          - values:
+            - .function i32 panda.invoke.VarHandle.getAndBitwiseOr(panda.invoke.VarHandle a0, R a1, i32 a2) <external>
+            - f_int
+            - panda.Integer
+            - |
+              #
+                  newobj v6, R
+                  movi v7, 0xf0f0f0f0    # initial value
+                  lda v7
+                  stobj v6, R.f_int
+                  movi v8, 0xa5a5a5a5    # value to OR by getAndBitwiseOr
+                  lda.null
+                  call.polymorphic panda.invoke.VarHandle.getAndBitwiseOr, v5, v6, v8
+                  jne v7, fail
+                  or2 v8
+                  sta v9
+                  ldobj v6, R.f_int
+                  jne v9, fail
+          - values:
+            - .function i16 panda.invoke.VarHandle.getAndBitwiseAnd(panda.invoke.VarHandle a0, R a1, i16 a2) <external>
+            - f_short
+            - panda.Short
+            - |
+              #
+                  newobj v6, R
+                  movi v7, 0x5a5a    # initial value
+                  lda v7
+                  stobj v6, R.f_short
+                  movi v8, 0x0f0f    # value to AND by getAndBitwiseAnd
+                  lda.null
+                  call.polymorphic panda.invoke.VarHandle.getAndBitwiseAnd, v5, v6, v8
+                  jne v7, fail
+                  and2 v8
+                  sta v9
+                  ldobj v6, R.f_short
+                  jne v9, fail
+          - values:
+            - .function i8 panda.invoke.VarHandle.getAndBitwiseXor(panda.invoke.VarHandle a0, R a1, i8 a2) <external>
+            - f_byte
+            - panda.Byte
+            - |
+              #
+                  newobj v6, R
+                  ldai 0x35        # initial value
+                  i32toi8
+                  sta v7
+                  stobj v6, R.f_byte
+                  ldai 0x1f        # value to XOR by getAndBitwiseXor
+                  i32toi8
+                  sta v8
+                  lda.null
+                  call.polymorphic panda.invoke.VarHandle.getAndBitwiseXor, v5, v6, v8
+                  jne v7, fail
+                  xor2 v8
+                  sta v9
+                  ldobj v6, R.f_byte
+                  jne v9, fail
+
+      - file-name: 'call_vh_exc'
+        isa:
+          instructions:
+            - sig: call.polymorphic method_id, v1:in:top, v2:in:top, v3:in:top, v4:in:top
+              prefix: PandaAssembly
+              acc: out:top
+              format: [pref_op_v1_4_v2_4_v3_4_v4_4_id_16]
+        description: Check that polymorphic call of VarHandle is throwing exceptions as expected.
+        runner-options: [use-pa, ]
+        tags: ['irtoc_ignore']
+        bugid: ['7634']
+        header-template: [polymorphic-hdr]
+        code-template: |
+          %s
+          .function panda.invoke.VarHandle panda.invoke.MethodHandles.arrayElementVarHandle(panda.Class a0) <external>
+          .function i32 R.test() <static, panda.access = public> {
+              lda.type R[]
+              sta.obj v1
+              call.short panda.invoke.MethodHandles.arrayElementVarHandle, v1
+              sta.obj v1 # VarHandle object
+
+              movi v3, 3         # array size
+              newarr v2, v3, R[]
+              movi v3, 1         # element index
+              newobj v4, R       # object to set in R[1]
+          try_begin:
+              %s
+          try_end:
+              ldai 1
+              return
+          catch_begin:
+              ldai 0
+              return
+          catch_end:
+          }
+          %s
+        check-type: empty
+        cases:
+          - values:
+              # no exceptions case, set R into R[]
+              - .function void panda.invoke.VarHandle.set(panda.invoke.VarHandle a0, R[] a1, i32 a2, R a3) <external>
+              - |
+                #
+                    call.polymorphic panda.invoke.VarHandle.set, v1, v2, v3, v4
+                    ldai 0
+                    ldarr.obj v2
+                    jnez.obj try_end
+                    ldai 1
+                    ldarr.obj v2
+                    jeqz.obj try_end
+                    isinstance R
+                    jeqz try_end
+                    ldai 2
+                    ldarr.obj v2
+                    jeqz.obj catch_begin
+              - ''
+          - values:
+              # no exceptions case. set Q into R[], Q extends R
+              - .function void panda.invoke.VarHandle.set(panda.invoke.VarHandle a0, R[] a1, i32 a2, R a3) <external>
+              - |
+                #
+                    newobj v4, Q
+                    call.polymorphic panda.invoke.VarHandle.set, v1, v2, v3, v4
+                    ldai 0
+                    ldarr.obj v2
+                    jnez.obj try_end
+                    ldai 1
+                    ldarr.obj v2
+                    jeqz.obj try_end
+                    isinstance R
+                    jeqz try_end
+                    ldai 2
+                    ldarr.obj v2
+                    jeqz.obj catch_begin
+              - ''
+          - values:
+              # ClassCastException is expected, set W into R[], W is not R
+              - |
+                .function void panda.invoke.VarHandle.set(panda.invoke.VarHandle a0, R[] a1, i32 a2, W a3) <external>
+                .record panda.ClassCastException <external>
+              - |
+                #
+                    newobj v4, W
+                    call.polymorphic panda.invoke.VarHandle.set, v1, v2, v3, v4
+              - .catch panda.ClassCastException, try_begin, try_end, catch_begin, catch_end
+          - values:
+              # NPE is expected, VarHandle ref is null
+              - .function void panda.invoke.VarHandle.set(panda.invoke.VarHandle a0, R[] a1, i32 a2, R a3) <external>
+              - |
+                #
+                    mov.null v1
+                    call.polymorphic panda.invoke.VarHandle.set, v1, v2, v3, v4
+              - .catch panda.NullPointerException, try_begin, try_end, catch_begin, catch_end
+          - values:
+              # NPE is expected, target array is null
+              - .function void panda.invoke.VarHandle.set(panda.invoke.VarHandle a0, R[] a1, i32 a2, R a3) <external>
+              - |
+                #
+                    mov.null v2
+                    call.polymorphic panda.invoke.VarHandle.set, v1, v2, v3, v4
+              - .catch panda.NullPointerException, try_begin, try_end, catch_begin, catch_end
+          - values:
+              # WrongMethodTypeException is expected
+              - |
+                .function void panda.invoke.VarHandle.set(panda.invoke.VarHandle a0, R[] a1, i32 a2) <external>
+                .record panda.invoke.WrongMethodTypeException <external>
+              - |
+                #
+                    call.polymorphic panda.invoke.VarHandle.set, v1, v2, v3, v4
+              - .catch panda.invoke.WrongMethodTypeException, try_begin, try_end, catch_begin, catch_end
+          - values:
+              # ArrayIndexOutOfBoundsException is expected
+              - |
+                .function void panda.invoke.VarHandle.set(panda.invoke.VarHandle a0, R[] a1, i32 a2, R a3) <external>
+                .record panda.ArrayIndexOutOfBoundsException <external>
+              - |
+                #
+                    movi v3, 100
+                    call.polymorphic panda.invoke.VarHandle.set, v1, v2, v3, v4
+              - .catch panda.ArrayIndexOutOfBoundsException, try_begin, try_end, catch_begin, catch_end
+          - values:
+              # UnsupportedOperationException is expected
+              - |
+                .function void panda.invoke.VarHandle.getAndBitwiseAnd(panda.invoke.VarHandle a0, R[] a1, i32 a2, R a3) <external>
+                .record panda.UnsupportedOperationException <external>
+              - |
+                #
+                    call.polymorphic panda.invoke.VarHandle.getAndBitwiseAnd, v1, v2, v3, v4
+              - .catch panda.UnsupportedOperationException, try_begin, try_end, catch_begin, catch_end

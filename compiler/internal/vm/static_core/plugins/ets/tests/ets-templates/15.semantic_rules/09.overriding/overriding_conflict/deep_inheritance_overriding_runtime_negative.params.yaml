@@ -1,0 +1,116 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - hierarchy: |-
+      |  I1 I2   
+      |   \ /    
+      |    C1    
+
+    decl: |-
+      class A1 {}
+      class A2 extends A1 {}
+      interface I1<U1 extends A2> {
+        foo(p: U1): A1 | A2 { return new A1() } 
+      } 
+      interface I2<U2 extends A1> {
+        foo(p: U2): A1 | A2 { return new A2() } 
+      }
+      class C1<V1 extends A2> implements I1<V1>, I2<V1> {
+        foo(p: V1): A1 | A2 { return new A2() } 
+      }
+    call: |-
+      function f<W extends A2>(p: W): void {
+        new C1<W>().foo(p)
+      }
+    expected_error: "Unknown expected error"
+
+  - hierarchy: |-
+      |   I1     
+      |   / \      
+      |  C1 I2   
+      |   \ /    
+      |    C2    
+
+    decl: |-
+      class A1 {}
+      class A2 extends A1 {}
+      interface I1<U1 extends A1> {
+        foo(p: U1): A1 | A2 { return new A1() } 
+      } 
+      interface I2<U2 extends A2> extends I1<U2> {
+        foo(p: U2): A1 | A2 { return new A1() } 
+      }
+      class C1<V1 extends A1> implements I1<V1> {}
+      class C2<V2 extends A2> extends C1<V2> implements I2<V2> {
+        foo(p: V2): A1 | A2 { return new A2() } 
+      }
+    call: |-
+      function f<W extends A2>(p: W): void {
+        new C2<W>().foo(p)
+      }
+    expected_error: "Unknown expected error"
+
+  - hierarchy: |-
+     |  I1 I2     
+     |   \ /      
+     |    C1 I3   
+     |     \ /    
+     |      C2    
+
+    decl: |-
+      class A1 {}
+      class A2 extends A1 {}
+      interface I1<V1> { 
+        foo(p: V1): A1 { return new A1() } 
+      }
+      interface I2 {}
+      class C1<U1> implements I1<U1>, I2 {}
+      interface I3<V3> {
+        foo(p: V3): A1 | A2 { return new A2() } 
+      }
+      class C2<V2> extends C1<V2> implements I3<V2> {}
+    call: |-
+      function f<W>(p: W): void {
+        new C2<W>().foo(p)
+      }
+    expected_error: "Unknown expected error"
+
+  - hierarchy: |-
+     |  I1 I2 I3   
+     |   \ /  /    
+     |    C1 I4 I5 
+     |     \ /__/   
+     |      C2    
+
+    decl: |-
+      class A1 {}
+      class A2 extends A1 {}
+      class A3 extends A2 {}
+      interface I1<V1> { 
+        foo(p: V1): A1 { return new A1() } 
+      }
+      interface I2 {}
+      class C1<U1> implements I1<U1>, I2 {}
+      interface I3<V3> {
+        foo(p: V3): A1 | A2 | A3 { return new A3() } 
+      }
+      interface I4<V4> extends I3<V4> {}
+      interface I5 {}
+      class C2<U2> extends C1<U2> implements I4<U2>, I5 {}
+    call: |-
+      function f<W>(p: W): void {
+        new C2<W>().foo(p)
+      }
+    expected_error: "Unknown expected error"

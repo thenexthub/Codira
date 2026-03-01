@@ -1,0 +1,307 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//arkcompiler/toolchain/toolchain.gni")
+
+config("hiviewdfx_config") {
+  defines = []
+  if (enable_dump_in_faultlog) {
+    defines += [ "ENABLE_DUMP_IN_FAULTLOG" ]
+  }
+  if (enable_bytrace) {
+    defines += [ "ENABLE_BYTRACE" ]
+    cflags_cc = [ "-Wno-gnu-zero-variadic-macro-arguments" ]
+  }
+  if (enable_hitrace) {
+    defines += [ "ENABLE_HITRACE" ]
+  }
+  if (enable_hilog) {
+    defines += [ "ENABLE_HILOG" ]
+  }
+
+  include_dirs = [ "$hilog_root/include" ]
+}
+
+config("ark_platform_config") {
+  configs = [ ":hiviewdfx_config" ]
+  defines = []
+  if (is_ohos) {
+    defines += [
+      "OHOS_PLATFORM",
+      "UNIX_PLATFORM",
+    ]
+  } else if (is_linux) {
+    defines += [
+      "LINUX_PLATFORM",
+      "UNIX_PLATFORM",
+    ]
+  } else if (is_mingw) {
+    defines += [ "WINDOWS_PLATFORM" ]
+  } else if (target_os == "android") {
+    if (!ark_standalone_build) {
+      defines += [
+        "ANDROID_PLATFORM",
+        "UNIX_PLATFORM",
+      ]
+    } else {
+      defines += [ "UNIX_PLATFORM" ]
+    }
+  } else if (target_os == "ios") {
+    defines += [
+      "UNIX_PLATFORM",
+      "IOS_PLATFORM",
+    ]
+  } else if (is_mac) {
+    defines += [
+      "MAC_PLATFORM",
+      "UNIX_PLATFORM",
+    ]
+  } else {
+    defines += [ "UNIX_PLATFORM" ]
+  }
+}
+
+config("ark_toolchain_common_config") {
+  configs = [
+    ":ark_platform_config",
+    ":ark_toolchain_public_config",
+    ":hiviewdfx_config",
+  ]
+
+  defines = [ "PANDA_ENABLE_LTO" ]
+  cflags_cc = [
+    "-Wall",
+    "-Wshadow",
+    "-Werror",
+    "-Wextra",
+    "-pedantic",
+    "-Wno-invalid-offsetof",
+    "-Wno-gnu-statement-expression",
+    "-pipe",
+    "-Wdate-time",
+    "-funwind-tables",
+    "-fasynchronous-unwind-tables",
+    "-Wformat=2",
+  ]
+
+  cflags_c = []
+
+  if (is_linux) {
+    defines += [
+      "PANDA_TARGET_UNIX",
+      "PANDA_TARGET_LINUX",
+    ]
+    if (!is_asan) {
+      defines += [ "PANDA_USE_FUTEX" ]
+    }
+  } else if (is_mingw) {
+    cflags_cc += [
+      "-std=c++17",
+      "-Wno-ignored-attributes",
+    ]
+    defines += [
+      "PANDA_TARGET_WINDOWS",
+      "_CRTBLD",
+      "__LIBMSVCRT__",
+    ]
+  } else if (is_mac) {
+    defines += [
+      "PANDA_TARGET_UNIX",
+      "PANDA_TARGET_MACOS",
+    ]
+  } else if (target_os == "android") {
+    defines += [
+      "PANDA_TARGET_ANDROID",
+      "PANDA_TARGET_UNIX",
+    ]
+    if (!is_asan) {
+      defines += [ "PANDA_USE_FUTEX" ]
+    }
+    if (!ark_standalone_build) {
+      defines += [ "ENABLE_ANLOG" ]
+    }
+  } else if (target_os == "ios") {
+    defines += [
+      "PANDA_TARGET_UNIX",
+      "PANDA_TARGET_IOS",
+    ]
+  } else {
+    defines += [
+      "PANDA_TARGET_UNIX",
+    ]
+    if (!is_asan) {
+      defines += [ "PANDA_USE_FUTEX" ]
+    }
+    if (!is_standard_system && (current_cpu != "arm" || is_wearable_product)) {
+      defines += [ "PANDA_TARGET_MOBILE" ]
+    }
+  }
+
+  if (current_cpu == "arm") {
+    defines += [
+      "PANDA_TARGET_ARM32_ABI_SOFT=1",
+      "PANDA_TARGET_ARM32",
+      "PANDA_TARGET_32",
+    ]
+  } else if (current_cpu == "arm64") {
+    defines += [
+      "PANDA_TARGET_ARM64",
+      "PANDA_TARGET_64",
+      "PANDA_ENABLE_GLOBAL_REGISTER_VARIABLES",
+      "PANDA_USE_32_BIT_POINTER",
+    ]
+  } else if (current_cpu == "x86") {
+    defines += [ "PANDA_TARGET_X86" ]
+  } else if (current_cpu == "amd64" || current_cpu == "x64" ||
+             current_cpu == "x86_64") {
+    defines += [
+      "PANDA_TARGET_64",
+      "PANDA_TARGET_AMD64",
+      "PANDA_USE_32_BIT_POINTER",
+    ]
+  }
+
+  if (is_fastverify) {
+    cflags_cc += [
+      "-O3",
+      "-ggdb3",
+      "-gdwarf-4",
+      "-fno-omit-frame-pointer",
+      "-D_GLIBCXX_ASSERTIONS",
+    ]
+    cflags_c += [
+      "-O3",
+      "-ggdb3",
+      "-gdwarf-4",
+      "-fno-omit-frame-pointer",
+      "-D_GLIBCXX_ASSERTIONS",
+    ]
+  } else if (is_debug) {
+    cflags_cc += [
+      "-O0",
+      "-ggdb3",
+      "-gdwarf-4",
+    ]
+  } else {
+    defines += [ "NDEBUG" ]
+  }
+  if (toolchain_enable_cmc_gc) {
+    defines += [ "USE_CMC_GC" ]
+  }
+}
+
+config("ark_toolchain_public_config") {
+  defines = []
+
+  cflags_cc = [
+    "-Wno-unused-command-line-argument",
+    "-Wno-variadic-macros",
+    "-Wno-gnu-anonymous-struct",
+    "-Wno-zero-length-array",
+    "-Wno-nested-anon-types",
+    "-Wno-c99-extensions",
+    "-Wno-unused-parameter",
+    "-Wno-shadow",
+    "-Wno-pedantic",
+    "-Wno-gnu-zero-variadic-macro-arguments",
+    "-Wno-unused-lambda-capture",
+    "-Wno-unused-function",
+    "-Wno-unused-variable",
+  ]
+
+  # debug is not compatible with ios for now
+  if (!is_mingw && !is_mac && target_os != "ios") {
+    defines += [
+      "ECMASCRIPT_SUPPORT_CPUPROFILER",
+      "ECMASCRIPT_SUPPORT_HEAPPROFILER",
+      "ECMASCRIPT_SUPPORT_HEAPSAMPLING",
+      "ECMASCRIPT_SUPPORT_SNAPSHOT",
+      "ECMASCRIPT_SUPPORT_DEBUGGER",
+      "ECMASCRIPT_SUPPORT_TRACING",
+    ]
+  } else if (target_os == "android") {
+    defines += [
+      "ECMASCRIPT_SUPPORT_CPUPROFILER",
+      "ECMASCRIPT_SUPPORT_DEBUGGER",
+      "ECMASCRIPT_SUPPORT_TRACING",
+    ]
+  }
+
+  include_dirs = [ "." ]
+}
+
+# ecmascript unit testcase config
+config("toolchain_test_config") {
+  visibility = [
+    "./inspector/test/*",
+    "./test/fuzztest/*",
+    "./tooling/dynamic/test/*",
+    "./websocket/test/*",
+  ]
+
+  configs = [ ":ark_toolchain_common_config" ]
+
+  if (!is_mac) {
+    ldflags = [ "-Wl,-rpath=\$ORIGIN/" ]
+  }
+}
+
+group("ark_toolchain_packages") {
+  deps = []
+  deps += [
+    "./inspector:ark_debugger",
+    "./inspector:connectserver_debugger",
+    "./tooling:libark_ecma_debugger",
+    "./tooling:libarkinspector_plus",
+    "./tooling/dynamic/client:libark_client",
+    "./tooling/dynamic/client/ark_cli:arkdb",
+    "./tooling/dynamic/client/ark_multi:ark_multi",
+  ]
+  if(defined(ohos_indep_compiler_enable) && ohos_indep_compiler_enable) {
+    deps -= [ "./tooling:libarkinspector_plus" ]
+  }
+}
+
+group("ark_toolchain_unittest") {
+  testonly = true
+  deps = []
+  deps += [
+    "./inspector/test:unittest",
+    "./tooling/dynamic/test:unittest",
+    "./websocket/test:unittest",
+    "./tooling/static:unittest",
+  ]
+  if (is_ohos && is_standard_system) {
+    deps += [ "./test/fuzztest:fuzztest" ]
+  }
+}
+
+group("ark_toolchain_host_unittest") {
+  testonly = true
+  deps = []
+
+  # js unittest
+  deps += [
+    "./inspector/test:host_unittest",
+    "./tooling/dynamic/test:host_unittest",
+    "./websocket/test:host_unittest",
+    "./tooling/static:host_unittest",
+  ]
+}
+
+group("runtime_core_host_ut") {
+  testonly = true
+  if (ark_standalone_build) {
+    deps = [ "$ark_root:runtime_core_host_unittest" ]
+  }
+}

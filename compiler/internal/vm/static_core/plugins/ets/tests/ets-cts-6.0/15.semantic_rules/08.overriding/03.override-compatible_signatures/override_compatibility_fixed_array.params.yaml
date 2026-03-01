@@ -1,0 +1,167 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    # FIXED ARRAY, PARAMETER
+    - base: |-
+          foo(i: FixedArray<Base>) {
+              res = 1
+          }
+      derived: |-
+          override foo(i: FixedArray<Base>) {
+              res = 2
+          }
+      call: |-
+          new Derived().foo([new Base()])
+          arktest.assertEQ(res, 2)
+          new Derived().foo([new Derived()])
+          arktest.assertEQ(res, 2)
+          new Base().foo([new Base()])
+          arktest.assertEQ(res, 1)
+          new Base().foo([new Derived()])
+          arktest.assertEQ(res, 1)
+      params: override-compatible with same type parameter
+
+    - base: |-
+          foo(i: FixedArray<Derived>) {
+              res = 1
+          }
+      derived: |-
+          foo(i: FixedArray<Base>) {  // overriding assumed
+              res = 2
+          }
+      call: |-
+          new Derived().foo([new Derived()])
+          arktest.assertEQ(res, 2)
+          new Derived().foo([new Base()])
+          arktest.assertEQ(res, 2)
+          new Base().foo([new Derived()])
+          arktest.assertEQ(res, 1)
+      params: override-compatible parameter (contravariance)
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(i: FixedArray<Base>) {
+              res = 1
+          }
+      derived: |-
+          foo(i: FixedArray<Derived>) { // CTE: not override-compatible
+              res = 2
+          }
+      params: override-incompatible parameter
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(i: FixedArray<Base>) {
+              res = 1
+          }
+      derived: |-
+          override foo(i: FixedArray<Derived>) { // CTE: not override-compatible
+              res = 2
+          }
+      params: override-incompatible parameter
+
+    # FIXED ARRAY, RETURN TYPE
+    - base: |-
+          foo(): FixedArray<Base> {
+              res = 1
+              return [new Base()]
+          }
+          bar(): FixedArray<Derived> {
+              res = 2
+              return [new Derived()]
+          }
+      derived: |-
+          foo(): FixedArray<Base> {
+              res = 3
+              return [new Base()]
+          }
+          override bar(): FixedArray<Derived> {
+              res = 4
+              return [new Derived()]
+          }
+      call: |-
+          new Base().foo()
+          arktest.assertEQ(res, 1)
+          new Base().bar()
+          arktest.assertEQ(res, 2)
+          new Derived().foo()
+          arktest.assertEQ(res, 3)
+          new Derived().bar()
+          arktest.assertEQ(res, 4)
+      params: override-compatible with same return type
+
+    - base: |-
+          foo(): FixedArray<Base> {
+              res = 1
+              return [new Base()]
+          }
+          bar(): FixedArray<Base> {
+              res = 2
+              return [new Base()]
+          }
+      derived: |-
+          foo(): FixedArray<Derived> {
+              res = 3
+              return [new Derived()]
+          }
+          override bar(): FixedArray<Derived> {
+              res = 4
+              return [new Derived()]
+          }
+      call: |-
+          new Base().foo()
+          arktest.assertEQ(res, 1)
+          new Base().bar()
+          arktest.assertEQ(res, 2)
+          new Derived().foo()
+          arktest.assertEQ(res, 3)
+          new Derived().bar()
+          arktest.assertEQ(res, 4)
+      params: override-compatible return type (covariance)
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(): FixedArray<Derived> {
+              res = 1
+              return [new Derived()]
+          }
+      derived: |-
+          override foo(): FixedArray<Base> {
+              res = 2
+              return [new Base()]
+          }
+      params: override-incompatible return type
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(): FixedArray<Derived> {
+              res = 1
+              return [new Derived()]
+          }
+      derived: |-
+          foo(): FixedArray<Base> {
+              res = 2
+              return [new Base()]
+          }
+      params: override-incompatible return type

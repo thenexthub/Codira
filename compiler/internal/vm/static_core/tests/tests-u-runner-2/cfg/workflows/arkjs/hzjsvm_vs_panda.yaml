@@ -1,0 +1,113 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+runner-api-level: 0.0.0.1
+test-suites:
+    - customScheme
+general:
+    build: ${OHOS_BUILD}
+steps:
+    preparation:
+        order: 0
+        extra:
+            opt-level: 2
+            input-file: "${general.work-dir}/gen/${test-id}"
+            output-file-ohos: "${general.work-dir}/intermediate/${test-id}.ohos.abc"
+            output-file-panda: "${general.work-dir}/intermediate/${test-id}.panda.abc"
+            ark-gc-thread-num: "7" #default value, can be overriden by suite config
+            panda-build: ${PANDA_BUILD}
+            stdlib: "${steps.preparation.extra.panda-build}/plugins/ets/etsstdlib.abc"
+            arktsconfig: "${steps.preparation.extra.panda-build}/tools/es2panda/generated/arktsconfig.json"
+            heap-verifier: fail_on_verification
+            gc-type: g1-gc
+            full-gc-bombing-frequency: 0
+    panda-es2panda:
+        order: 10
+        executable-path: ${steps.preparation.extra.panda-build}/bin/es2panda
+        args:
+            - "--arktsconfig=${steps.preparation.extra.arktsconfig}"
+            - "--gen-stdlib=false"
+            - "--extension=ets"
+            - "--opt-level=${steps.preparation.extra.opt-level}"
+            - "--thread=0"
+            - "--output=${steps.preparation.extra.output-file-panda}"
+            - "${steps.preparation.extra.input-file}"
+        timeout: 30
+    panda-ark:
+        order: 20
+        executable-path: "${steps.preparation.extra.panda-build}/bin/ark"
+        timeout: 180
+        args:
+            - '--gc-type=${steps.preparation.extra.gc-type}'
+            - '--heap-verifier=${steps.preparation.extra.heap-verifier}'
+            - '--full-gc-bombing-frequency=${steps.preparation.extra.full-gc-bombing-frequency}'
+            - "--boot-panda-files=${steps.preparation.extra.stdlib}"
+            - "--load-runtimes=ets"
+            - "--compiler-enable-jit=false"
+            - "${steps.preparation.extra.output-file-panda}"
+            - "ETSGLOBAL::main"
+    ohos-copy:
+        order: 30
+        executable-path: /usr/bin/cp
+        args:
+            - "${general.work-dir}/gen/${test-id}"
+            - "${general.work-dir}/gen/${test-id}.ts"
+        timeout: 30
+    ohos-tsc:
+        order: 40
+        executable-path: /usr/bin/tsc
+        args:
+            - "--target"
+            - "esnext"
+            - "--esModuleInterop"
+            - "--forceConsistentCasingInFileNames"
+            - "--alwaysStrict"
+            - "--strict"
+            - "--skipLibCheck"
+            - "--outFile"
+            - "${general.work-dir}/gen/${test-id}.js"
+            - "${general.work-dir}/gen/${test-id}.ts"
+        timeout: 30
+    ohos-es2abc:
+        order: 50
+        executable-path: ${general.build}/arkcompiler/ets_frontend/es2abc
+        args:
+            - "--opt-level=${steps.preparation.extra.opt-level}"
+            - "--extension=${steps.preparation.extra.extension}"
+            - "--module"
+            - "--output=${steps.preparation.extra.output-file-ohos}"
+            - "${general.work-dir}/gen/${test-id}.js"
+        timeout: 30
+        can-be-instrumented: true
+    ohos-ark:
+        order: 60
+        executable-path: ${general.build}/arkcompiler/ets_runtime/ark_js_vm
+        timeout: 180
+        args:
+            - "--gc-thread-num=${steps.preparation.extra.ark-gc-thread-num}"
+            - "${steps.preparation.extra.output-file-ohos}"
+        env:
+            LD_LIBRARY_PATH:
+                - "${general.build}/thirdparty/icu:"
+                - "${general.build}/thirdparty/zlib:"
+                - "${general.build}/arkcompiler/ets_runtime"
+        can-be-instrumented: true

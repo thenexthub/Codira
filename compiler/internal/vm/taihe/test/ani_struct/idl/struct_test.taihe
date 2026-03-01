@@ -1,0 +1,187 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+struct A {
+    param1: i32;
+}
+
+struct B {
+    @extends a: A;
+    @readonly param2: i32;
+}
+
+@class
+struct C {
+    @extends b: B;
+    @readonly param3: i32;
+}
+
+//struct 命名按字母排序后面加数据类型
+struct DBase5 {
+    param1: i8;
+    param2: i16;
+    param3: i32;
+    param4: i64;
+    param5: String;
+}
+
+interface StructD {
+    @set SetStructD(d: DBase5): void;
+    @get GetStructD(): DBase5;
+}
+function GetStructD(): StructD;
+
+struct EBigint {
+    param1: bool;
+    param2: f32;
+    param3: f64;
+    param4: u64;
+}
+
+interface StructE {
+    @set SetStructE(e: EBigint): void;
+    @get GetStructE(): EBigint;
+}
+function GetStructE(): StructE;
+
+struct Pair {
+  a: String;
+  b: String;
+}
+
+union UnionF {
+  sValue: String;      
+  pairValue: Pair;
+}
+
+struct FUnion {
+    param1: Optional<String>;
+    param2: UnionF;
+    param3: @record Map<String, String>;
+}
+
+interface StructF {
+    @set SetStructF(f: FUnion): void;
+    @get GetStructF(): FUnion;
+}
+function GetStructF(): StructF;
+
+struct GArray {
+    param1: @typedarray Array<i8>;
+    param2: @arraybuffer Array<u8>;
+}
+
+interface StructG {
+    @set SetGArray(sa: GArray): void;
+    @get GetGArray(): GArray;
+}
+function GetStructG(): StructG;
+
+struct Color {
+    r: i32;
+    g: i32;
+    b: i32;
+}
+
+@class
+struct Canvas {
+    @extends color: Color;
+    name: String;
+}
+function addNewCanvas(name: String): Canvas; 
+
+struct DB5Readonly {
+    @readonly param1: i8;
+    @readonly param2: i16;
+    @readonly param3: i32;
+    @readonly param4: i64;
+    @readonly param5: String;
+}
+
+interface SDB5Readonly {
+    @set SetDB5Readonly(d: DB5Readonly): void;
+    @get GetDB5Readonly(): DB5Readonly;
+}
+function GetSDB5Readonly(): SDB5Readonly;
+
+struct EBigintReadonly {
+    @readonly param1: bool;
+    @readonly param2: f32;
+    @readonly param3: f64;
+    @readonly param4: u64;
+}
+
+interface SEBReadonly {
+    @set SetSEBReadonly(e: EBigintReadonly): void;
+    @get GetSEBReadonly(): EBigintReadonly;
+}
+function GetSEBReadonly(): SEBReadonly;
+
+struct Size {
+    r: i32;
+    g: i32;
+    b: i32;
+}
+
+struct Brush {
+    @extends size: Size;
+}
+
+@class
+struct Draw {
+    @extends brush: Brush;
+    name: String;
+}
+function AddNewDraw(drawName: String): Draw;
+
+struct Student {
+    @readonly name: String;
+    age: i32;
+}
+function create_student(): Student;
+function process_student(a: Student): Student;
+
+@class
+struct Teacher {
+    @readonly name: String;
+    age: i32;
+}
+
+function create_teacher(): Teacher;
+function process_teacher(a: Teacher): Teacher;
+
+struct F {
+    f: i32;
+}
+
+struct G {
+    @extends f: F;
+    g: i32;
+}
+
+@class
+struct H {
+    @extends g: G;
+    h: i32;
+}
+
+function process_g(a: G): G;
+function process_h(a: H): H;

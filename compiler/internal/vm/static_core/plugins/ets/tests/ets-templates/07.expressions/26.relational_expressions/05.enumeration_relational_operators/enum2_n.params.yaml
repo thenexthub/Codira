@@ -1,0 +1,68 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          enum Color1 { Red, Green, Blue }
+          enum Color2 { Red, Green, Blue }
+          function foo1(p: number): Color1 {
+              if (p == 0) return Color1.Red;
+              else if (p == 1) return Color1.Green;
+              else return Color1.Blue
+          }
+          function foo2(p: number): Color2 {
+              if (p == 0) return Color2.Red;
+              else if (p == 1) return Color2.Green;
+              else return Color2.Blue
+          }
+      checks: |-
+          // different enum types
+          arktest.assertTrue(foo1(0) >= foo2(0))
+      expected: 'Semantic error ESE0114: Bad operand type, the types of the operands must be numeric, same enumeration, or boolean type.'
+
+    - decl: |-
+          enum Color { Red, Green, Blue }
+          enum Size { XS, S, M, L, XL, XXL }
+      checks: |-
+          // different enum types
+          arktest.assertTrue(Color.Red <= Size.XL)
+      expected: 'Semantic error ESE0114: Bad operand type, the types of the operands must be numeric, same enumeration, or boolean type.'
+
+    - decl: |-
+          enum Color { Red = "1", Green = "2", Blue = "3" }
+          enum Size { XS = "0", S = "1", M = "2", L = "3", XL = "4", XXL = "5" }
+          let c = Color.Blue
+      checks: |-
+          // string values, different enum types
+          arktest.assertTrue(c > Size.S)
+          arktest.assertTrue(Size.S < c)
+      expected: 'Semantic error ESE0114: Bad operand type, the types of the operands must be numeric, same enumeration, or boolean type.'
+
+    - decl: |-
+          enum Color { Red, Green, Blue }
+          enum Size { XS, S, M, L, XL, XXL }
+          let c: Color|Size = Color.Red
+          let s: Color|Size = Size.XL
+      checks: |-
+          // compare enums in unions
+          arktest.assertTrue((c as Color) < (s as Size))
+      expected: 'Semantic error ESE0114: Bad operand type, the types of the operands must be numeric, same enumeration, or boolean type.'
+
+    - decl: |-
+          // different types literals - bigint is not a numeric type
+          enum NumT {Bgnt = 1n, Next = 1n + 6}
+      checks: |-
+          arktest.assertTrue(NumT.Bgnt.valueOf() == 1n, "Bigint problem")
+          arktest.assertTrue(NumT.Next.valueOf() <= 1n + 6, "Bigint.Next problem")
+      expected: 'Semantic error ESE0108: Bad operand type, the types of the operands must be numeric type, enum or String.'

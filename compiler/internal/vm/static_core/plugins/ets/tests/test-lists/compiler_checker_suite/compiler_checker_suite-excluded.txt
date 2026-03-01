@@ -1,0 +1,41 @@
+# Disabled as this test needs to reimplement. issue 28520
+ets_tests/escape_analysis_casted.ets
+
+#Disabled as stdlib API was required to change.issue 25232
+ets_tests/ets_escape_array.ets
+
+#NOTE(vpukhov) : #16340 requires ets.equals profiling
+ets_tests/ets_inline_intrinsics.ets
+
+#Disabled as stdlib API was required to change.issue 25232
+ets_tests/ets_string_concat_func.ets
+
+#triggers an OOM segfault in ReallocateBuffer
+ets_tests/ets_stringbuilder_oom.ets
+
+#NOTE : #21521 typeof peephole for numeric types
+ets_tests/ets_typeof_compare1.ets
+ets_tests/ets_typeof_compare5.ets
+ets_tests/ets_typeof_compare2.ets
+ets_tests/ets_typeof_compare3.ets
+ets_tests/ets_typeof_compare4.ets
+ets_tests/ets_typeof_compare6.ets
+
+# 24004 jit assert
+ets_tests/ets_promise_launch.ets
+
+#Disabled - Replace typedarray length LoadObject with constant with external inlining support.issue 28689
+ets_tests/typedarray_get_length_loadobject.ets
+
+#NOTE(pantos) Issue #17103 reassign readonly property
+ets_tests/optimize_load_readonly_static.ets
+ets_tests/optimize_load_readonly_instance.ets
+
+#Disabled as stdlib API was required to change.issue 25232
+ets_tests/memory_coalescing3.ets
+
+#issue #25345
+ets_tests/checks_elimination_no_hoist.ets
+
+# 31351 Excluded due to instruction reordering and LSE is not able to process this case anymore
+ets_tests/lse_load_global_var.ets

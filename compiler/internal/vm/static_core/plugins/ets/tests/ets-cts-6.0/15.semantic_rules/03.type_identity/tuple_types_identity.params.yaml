@@ -1,0 +1,311 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+global_tests_data:
+  global_check_variants:
+    - check_values:
+        - { check_value_0: "7n",
+            check_value_1_0: "5n",
+            check_value_1_1: "null",
+            check_value_1_2: "undefined",
+            check_value_2: "7.9",
+            check_value_3_0: "true",
+            check_value_3_1: "5",
+            check_value_3_2: "\"abc\"",
+            check_value_4: "\"In Progress\"",
+            set_value_5: "new Cat()",
+            check_func_value_5: "check_cat" }
+        - { check_value_0: "undefined",
+            check_value_1_0: "null",
+            check_value_1_1: "undefined",
+            check_value_1_2: "\"bcd\"",
+            check_value_2: "true",
+            check_value_3_0: "\"abc\"",
+            check_value_3_1: "false",
+            check_value_3_2: "321",
+            check_value_4: "\"Done\"",
+            set_value_5: "new Dog()",
+            check_func_value_5: "check_dog" }
+        - { check_value_0: "\"new\"",
+            check_value_1_0: "null",
+            check_value_1_1: "undefined",
+            check_value_1_2: "\"cde\"",
+            check_value_2: "true",
+            check_value_3_0: "\"abc\"",
+            check_value_3_1: "false",
+            check_value_3_2: "123",
+            check_value_4: "\"On Review\"",
+            set_value_5: "new Frog()",
+            check_func_value_5: "check_frog" }
+        - { check_value_0: "10",
+            check_value_1_0: "null",
+            check_value_1_1: "undefined",
+            check_value_1_2: "\"def\"",
+            check_value_2: "true",
+            check_value_3_0: "\"abc\"",
+            check_value_3_1: "false",
+            check_value_3_2: "213",
+            check_value_4: "\"Done\"",
+            set_value_5: "5.7",
+            check_func_value_5: "check_number" }
+      check_data:
+        check_type_a: |-
+          [ Object | undefined,
+            Array<Object | undefined | null>,
+            number | boolean,
+            (int | string | boolean)[],
+            "Done" | "In Progress" | "On Review",
+            Cat | Dog | Frog | number ]
+        check_type_b: |-
+          [ undefined | Object,
+            (undefined | null | Object)[],
+            boolean | number,
+            Array<string | boolean | int>,
+            "In Progress" | "On Review" | "Done",
+            number | Dog | Cat | Frog ]
+        init_lit: |-
+          [ [check_value_0],
+            [[check_value_1_0], [check_value_1_1], [check_value_1_2]],
+            [check_value_2],
+            [[check_value_3_0], [check_value_3_1], [check_value_3_2]],
+            [check_value_4],
+            [set_value_5] ]
+        cv_decl_data: |-
+          class Cat {v: string = "cat"}
+          class Dog {v: bigint = 123n}
+          class Frog {v: int = 5}
+          function check_cat(a: Any) {
+            arktest.assertTrue(a instanceof Cat)
+            arktest.assertEQ((a as Cat).v, "cat")
+          }
+          function check_dog(a: Any) {
+            arktest.assertTrue(a instanceof Dog)
+            arktest.assertEQ((a as Dog).v, 123n)
+          }
+          function check_frog(a: Any) {
+            arktest.assertTrue(a instanceof Frog)
+            arktest.assertEQ((a as Frog).v, 5)
+          }
+          function check_number(a: Any) {
+            arktest.assertTrue(a instanceof number)
+            arktest.assertEQ(a as number, 5.7)
+          }
+          function check_func_0(a: Any) {
+            arktest.assertTrue(a instanceof Object | undefined)
+            arktest.assertTrue(a instanceof undefined | Object)
+            arktest.assertEQ(a as Object | undefined, [check_value_0])
+          }
+          function check_func_1(a: Any) {
+            arktest.assertTrue(a instanceof Array)
+            if (a instanceof Array) {
+              arktest.assertEQ(a.length, 3)
+              arktest.assertTrue(a[0] instanceof Object | undefined | null)
+              arktest.assertTrue(a[0] instanceof undefined | null | Object)
+              arktest.assertEQ(a[0], [check_value_1_0])
+              arktest.assertTrue(a[1] instanceof Object | undefined | null)
+              arktest.assertTrue(a[1] instanceof undefined | null | Object)
+              arktest.assertEQ(a[1], [check_value_1_1])
+              arktest.assertTrue(a[2] instanceof Object | undefined | null)
+              arktest.assertTrue(a[2] instanceof undefined | null | Object)
+              arktest.assertEQ(a[2], [check_value_1_2])
+            }
+          }
+          function check_func_2(a: Any) {
+            arktest.assertTrue(a instanceof number | boolean)
+            arktest.assertTrue(a instanceof boolean | number)
+            arktest.assertEQ(a as number | boolean, [check_value_2])
+          }
+          function check_func_3(a: Any) {
+            arktest.assertTrue(a instanceof Array)
+            if (a instanceof Array) {
+              arktest.assertEQ(a.length, 3)
+              arktest.assertTrue(a[0] instanceof int | string | boolean)
+              arktest.assertTrue(a[0] instanceof string | boolean | int)
+              arktest.assertEQ(a[0], [check_value_3_0])
+              arktest.assertTrue(a[1] instanceof int | string | boolean)
+              arktest.assertTrue(a[1] instanceof string | boolean | int)
+              arktest.assertEQ(a[1], [check_value_3_1])
+              arktest.assertTrue(a[2] instanceof int | string | boolean)
+              arktest.assertTrue(a[2] instanceof string | boolean | int)
+              arktest.assertEQ(a[2], [check_value_3_2])
+            }
+          }
+          function check_func_4(a: Any) {
+            arktest.assertEQ(a as "Done" | "In Progress" | "On Review", [check_value_4])
+          }
+          function check_func_5(a: Any) {
+            arktest.assertTrue(a instanceof Cat | Dog | Frog | number)
+            arktest.assertTrue(a instanceof number | Dog | Cat | Frog)
+            [check_func_value_5](a)
+          }
+
+cases:
+  - desc: |-
+      >-
+        Checking for tuple types A and B are identical
+        on assign operations.
+    check_variants: global_check_variants
+    decl_variants:
+      - |-
+        [cv_decl_data]
+    sub_cases_logic:
+      - |-
+        let a: [check_type_a] = [init_lit]
+        let b: [check_type_b] = a
+        [common_logic]
+      - |-
+        let a: [check_type_b] = [init_lit]
+        let b: [check_type_a] = a
+        [common_logic]
+    common_logic: |-
+      arktest.assertTrue(a instanceof Tuple)
+      arktest.assertTrue(b instanceof Tuple)
+      check_func_0(b[0])
+      check_func_1(b[1])
+      check_func_2(b[2])
+      check_func_3(b[3])
+      check_func_4(b[4])
+      check_func_5(b[5])
+      a = b
+      arktest.assertTrue(a instanceof Tuple)
+      check_func_0(a[0])
+      check_func_1(a[1])
+      check_func_2(a[2])
+      check_func_3(a[3])
+      check_func_4(a[4])
+      check_func_5(a[5])
+
+  - desc: |-
+      >-
+        Checking for tuple types A and B are identical
+        by using cast expression.
+    check_variants: global_check_variants
+    decl_variants:
+      - |-
+        [cv_decl_data]
+        function cast(p: Object) {
+          return p as [check_type_a]
+        }
+      - |-
+        [cv_decl_data]
+        function cast(p: Object) {
+          return p as [check_type_b]
+        }
+      - |-
+        [cv_decl_data]
+        function cast(p: Object): [check_type_a] {
+          return p as [check_type_a]
+        }
+      - |-
+        [cv_decl_data]
+        function cast(p: Object): [check_type_a] {
+          return p as [check_type_b]
+        }
+      - |-
+        [cv_decl_data]
+        function cast(p: Object): [check_type_b] {
+          return p as [check_type_a]
+        }
+      - |-
+        [cv_decl_data]
+        function cast(p: Object): [check_type_b] {
+          return p as [check_type_b]
+        }
+    sub_cases_logic:
+      - |-
+        let a: [check_type_a] = [init_lit]
+        let b: [check_type_b] = cast(a)
+        [common_logic]
+      - |-
+        let a: [check_type_b] = [init_lit]
+        let b: [check_type_a] = cast(a)
+        [common_logic]
+    common_logic: |-
+      arktest.assertTrue(a instanceof Tuple)
+      arktest.assertTrue(b instanceof Tuple)
+      check_func_0(b[0])
+      check_func_1(b[1])
+      check_func_2(b[2])
+      check_func_3(b[3])
+      check_func_4(b[4])
+      check_func_5(b[5])
+      a = b
+      arktest.assertTrue(a instanceof Tuple)
+      check_func_0(a[0])
+      check_func_1(a[1])
+      check_func_2(a[2])
+      check_func_3(a[3])
+      check_func_4(a[4])
+      check_func_5(a[5])
+
+  - desc: |-
+      >-
+        Checking for tuple types A and B are identical
+        on function call.
+    check_variants: global_check_variants
+    decl_variants:
+      - |-
+        [cv_decl_data]
+        function foo(p: [check_type_a]): [check_type_a] {
+          return p
+        }
+      - |-
+        [cv_decl_data]
+        function foo(p: [check_type_a]): [check_type_b] {
+          return p
+        }
+      - |-
+        [cv_decl_data]
+        function foo(p: [check_type_b]): [check_type_a] {
+          return p
+        }
+      - |-
+        [cv_decl_data]
+        function foo(p: [check_type_b]): [check_type_b] {
+          return p
+        }
+    sub_cases_logic:
+      - |-
+        let a: [check_type_a] = [init_lit]
+        let b: [check_type_b] = foo(a)
+        [common_logic]
+      - |-
+        let a: [check_type_b] = [init_lit]
+        let b: [check_type_a] = foo(a)
+        [common_logic]
+    common_logic: |-
+      arktest.assertTrue(a instanceof Tuple)
+      arktest.assertTrue(b instanceof Tuple)
+      check_func_0(b[0])
+      check_func_1(b[1])
+      check_func_2(b[2])
+      check_func_3(b[3])
+      check_func_4(b[4])
+      check_func_5(b[5])
+      a = b
+      arktest.assertTrue(a instanceof Tuple)
+      check_func_0(a[0])
+      check_func_1(a[1])
+      check_func_2(a[2])
+      check_func_3(a[3])
+      check_func_4(a[4])
+      check_func_5(a[5])

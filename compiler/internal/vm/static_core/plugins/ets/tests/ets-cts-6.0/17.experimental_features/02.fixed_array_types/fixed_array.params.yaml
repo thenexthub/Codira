@@ -1,0 +1,57 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+  - use: |-
+      let a : FixedArray<number> = [1, 2, 3]
+  - use: |-
+      let a : FixedArray<string> = ["a", "b", "c"]
+  - use: |-
+      let a : FixedArray<Char> = [c'a']
+  - use: |-
+      let a : FixedArray<byte> = [4]
+  - use: |-
+      let a : FixedArray<short> = [5]
+  - use: |-
+      let a : FixedArray<int> = [6]
+  - use: |-
+      let a : FixedArray<long> = [7]
+  - use: |-
+      let a : FixedArray<float> = [8]
+  - use: |-
+      let a : FixedArray<double> = [9]
+  - use: |-
+      let a : FixedArray<boolean> = [true, false]
+  - use: |-
+      let x = [1, 2, 3]
+  - use: |-
+      let y = [2, 3, 4,] // ok, trailing comma is ignored
+  - use: |-
+      let a = [3, 4, 5]  // allocate array with 3 elements of type number
+      a[1] = 7
+      let y = a[1]
+      let count = a.length // get the number of array elements
+      arktest.assertEQ(y, 7)
+      arktest.assertEQ(count, 3)
+  - use: |-
+      let n = [1, "abc", 2]

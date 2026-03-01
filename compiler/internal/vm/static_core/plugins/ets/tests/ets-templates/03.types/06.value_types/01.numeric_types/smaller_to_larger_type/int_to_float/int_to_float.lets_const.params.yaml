@@ -1,0 +1,47 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+testData:
+  - { initialType: "int", value: "8122025", resultType: "float" , result: "0O367672_51f", desc: "0. Conversion of the positive decimal int value to the float."}
+  - { initialType: "int", value: "-8122026", resultType: "float" , result: "-0O367672_52f", desc: "1. Conversion of the negative decimal int value to the float."}
+  - { initialType: "int", value: "0x7BEEA_9", resultType: "Float" , result: "0b11110111110111010101001f", desc: "2. Conversion of the positive hex int value to the float."}
+  - { initialType: "int", value: "-0x7BEEA_a", resultType: "Float" , result: "-0b11110111110_1110_1010_1010f", desc: "3. Conversion of the negative hex int value to the float."}
+  - { initialType: "Int", value: "0o36767251", resultType: "float" , result: "0x7BEEA9", desc: "4. Conversion of the positive octal Int (alias) value to the float."}
+  - { initialType: "Int", value: "-0o3676725_2", resultType: "float" , result: "-0x7BEEAA", desc: "5. Conversion of the negative octal Int (alias) value to the float."}
+  - { initialType: "Int", value: "-0B11110111110111010101010", resultType: "Float" , result: "-8122.026E3", desc: "6. Conversion of the negative binary Int (alias) value to the Float (alias)."}
+  - { initialType: "Int", value: "0B0001111011_11101110_10101001", resultType: "Float" , result: "812202500e-2", desc: "7. Conversion of the positive binary Int (alias) value to the Float (alias)."}
+  - { initialType: "Int", value: "-2147483648", resultType: "Float" , result: "-2147483648f", desc: "8. Conversion of the negative decimal Int (alias) value (min int) to the Float (alias)."}
+  - { initialType: "int", value: "0o17777777777", resultType: "float" , result: "2147483647f", desc: "9. Conversion of the positive octal int value (max int) to the float."}
+  - { initialType: "Int", value: "0X7FFf_FFFF", resultType: "float" , result: "2147483647.0f", desc: "10. Conversion of the hex max Int (alias) value to the float."}
+  - { initialType: "Int", value: "Int.MAX_VALUE", resultType: "float" , result: "2147483647.00_000f", desc: "11. Conversion of the max Int (alias) value to the float."}
+  - { initialType: "int", value: "Int.MIN_VALUE", resultType: "Float" , result: "-0b10000000000000000000000000000000", desc: "12. Conversion of the min int value to the float (alias, as binary)."}
+  - { initialType: "int", value: "Int.MIN_VALUE", resultType: "Float" , result: "-0X80000000", desc: "13. Conversion of the min int value to the float (alias, as hex)."}
+  - { initialType: "Int", value: "new Int(-8122025)", resultType: "float" , result: "-0O36767251", desc: "14. Conversion of the negative decimal Int (alias, initialized by the constructor) value (min int) to the float."}
+  - { initialType: "int", value: "new Int(0O36767252)", resultType: "Float" , result: "8122026E0", desc: "15. Conversion of the positive octal int (initialized by the constructor of alias) value (min int) to the Float (alias)."}
+  - { initialType: "int", value: "+0o0", resultType: "float" , result: "0x00", desc: "16. Conversion of the octal int value (zero with plus sign) to the float."}
+  - { initialType: "Int", value: "-0x0", resultType: "Float" , result: "0.0", desc: "17. Conversion of the hex Int (alias) value (zero with minus sign) to the Float (alias)."}
+  - { initialType: "int", value: "new Int(0b000_00)", resultType: "Float" , result: "-0b0", desc: "18. Conversion of the binary int (initialized by the constructor of alias) value (many zero) to the Float (alias)."}
+  - { initialType: "Int", value: "new Int(0)", resultType: "float" , result: "+0o0", desc: "19. Conversion of the decimal Int (alias, initialized by the constructor) value (zero) to the float."}
+  - { initialType: "Int", value: "+0o36767252", resultType: "float" , result: "0x7BEEAA", desc: "20. Conversion of the positive octal Int (alias, with plus sign) value to the float."}
+  - { initialType: "Int", value: "Int.MAX_VALUE", resultType: "float" , result: "0X7FFf_FFFF", desc: "21. Conversion of the max Int (alias) value to the float (as hex)."}
+  - { initialType: "Int", value: "0X7FFf_FFFF", resultType: "float" , result: "0X7FFFFFFF", desc: "22. Conversion of the positive hex Int (alias) value (max int) to the float (as hex)."}
+   

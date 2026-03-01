@@ -1,0 +1,113 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+cases:
+
+
+  # function argument
+
+  - decl: |-
+      function foo(p: number): number {
+          return p + 1
+      }
+    code: |-
+      let v: number|string|boolean = true
+      if (!res) {
+          v = 42.0
+      }
+      res = foo(v) == 43.0
+
+  # constructor argument
+  - decl: |-
+      class A {
+          fld: number
+          constructor(p: number) {
+              this.fld = p + 1
+          }
+      }
+    code: |-
+      let v: number|string|boolean = true
+      if (!res) {
+          v = 42.0
+      }
+      let a: A = new A(v)
+      res = a.fld == 43.0
+
+  # method argument
+  - decl: |-
+      class A {
+          meth(p: number): number {
+              return p + 1
+          }
+      }
+    code: |-
+      let v: number|string|boolean = '1.0'
+      let a: A = new A()
+      if (!res) {
+          v = 42.0
+      }
+      res = a.meth(v) == 43.0
+  
+
+  # array literal element
+  - code: |-
+      let v: number|string|boolean = '0.0'
+      let arr: number[]
+      if (!res) {
+          v = 42.0
+      }
+      arr = [v, v + 1, v + 2]
+      res = arr[0] == 42.0 && arr[1] == 43.0 && arr[2] == 44.0
+
+  # object literal
+  - decl: |-
+      class A {
+          f: number
+      }
+    code: |-
+      let v: number|string|boolean = false
+      if (!res) {
+          v = 42.0
+      }
+      let a: A = { f: v + 1 }
+      res = a.f == 43.0
+
+  # array indexing expression
+
+  - code: |-
+      let v: int|string|boolean = false
+      let arr: string[] = ['A', 'B', 'C']
+      if (!res) {
+          v = 1
+      }
+      res = arr[v] == 'B'
+
+  # func types union
+  - decl: |-
+      type F1 = (p: string) => string
+      type F2 = (p: number) => string
+    code: |-
+      let v: F1|F2|string|null = null
+      if (!res) {
+          v = (p: string): string => { return p + '1' }
+      }
+      res = v('X') == 'X1'

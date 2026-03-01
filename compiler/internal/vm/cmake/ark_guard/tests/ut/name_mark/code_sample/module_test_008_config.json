@@ -1,0 +1,43 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep package module_test_008 {\n    foo1({Ustd.core.Int, std.core.String}):void;\n    }",
+        "-keep package module_test_008 {\n    foo2({Ustd.core.Byte, std.core.String}):void;\n    }",
+        "-keep package module_test_008 {\n    foo3({Ustd.core.Short, std.core.String}):void;\n    }",
+        "-keep package module_test_008 {\n    foo4({Ustd.core.Double, std.core.String}):void;\n    }",
+        "-keep package module_test_008 {\n    foo5({Ustd.core.Long, std.core.String}):void;\n    }",
+        "-keep package module_test_008 {\n    foo6({Ustd.core.Float, std.core.String}):void;\n    }",
+        "-keep package module_test_008 {\n    foo7({Ustd.core.Double, std.core.String}):void;\n    }",
+        "-keep package module_test_008 {\n    foo8({Ustd.core.Char, std.core.String}):void;\n    }",
+        "-keep package module_test_008 {\n    foo9({Ustd.core.Boolean, std.core.String}):void;\n    }",
+        "-keep package module_test_008 {\n    foo10({Ustd.core.BigInt, std.core.String}):void;\n    }",
+        "-keep package module_test_008 {\n    foo11(std.core.String):void;\n    }",
+        "-keep package module_test_008 {\n    foo12({Ustd.core.Null, std.core.String}):void;\n    }",
+        "-keep package module_test_008 {\n    foo13(std.core.String):void;\n    }",
+        "-keep package module_test_008 {\n    foo14({Ustd.core.Array, std.core.String}):void;\n    }",
+        "-keep package module_test_008 {\n    foo15(std.core.Object):void;\n    }",
+        "-keep package module_test_008 {\n    foo16(std.core.Int):void;\n    }",
+        "-keep package module_test_008 {\n    fooEx1():{Ustd.core.Int, std.core.String};\n    }",
+        "-keep package module_test_008 {\n    fooEx2():{Ustd.core.Byte, std.core.String};\n    }",
+        "-keep package module_test_008 {\n    fooEx3():{Ustd.core.Short, std.core.String};\n    }",
+        "-keep package module_test_008 {\n    fooEx4():{Ustd.core.Double, std.core.String};\n    }",
+        "-keep package module_test_008 {\n    fooEx5():{Ustd.core.Long, std.core.String};\n    }",
+        "-keep package module_test_008 {\n    fooEx6():{Ustd.core.Float, std.core.String};\n    }",
+        "-keep package module_test_008 {\n    fooEx7():{Ustd.core.Double, std.core.String};\n    }",
+        "-keep package module_test_008 {\n    fooEx8():{Ustd.core.Char, std.core.String};\n    }",
+        "-keep package module_test_008 {\n    fooEx9():{Ustd.core.Boolean, std.core.String};\n    }",
+        "-keep package module_test_008 {\n    fooEx10():{Ustd.core.BigInt, std.core.String};\n    }",
+        "-keep package module_test_008 {\n    fooEx11():std.core.String;\n    }",
+        "-keep package module_test_008 {\n    fooEx12():{Ustd.core.Null, std.core.String};\n    }",
+        "-keep package module_test_008 {\n    fooEx13():std.core.String;\n    }",
+        "-keep package module_test_008 {\n    fooEx14():{Ustd.core.Array, std.core.String};\n    }",
+        "-keep package module_test_008 {\n    fooEx15():std.core.Object;\n    }",
+        "-keep package module_test_008 {\n    fooEx16():std.core.Int;\n    }"
+      ]
+    }
+  }
+}

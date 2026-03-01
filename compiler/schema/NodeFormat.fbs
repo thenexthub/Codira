@@ -1,0 +1,1036 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+namespace NodeFormat;
+
+struct Position {
+  file_id: uint32;
+  line: int32;
+  column: int32;
+}
+
+union AnyExpr {
+  BINARY_EXPR: BinaryExpr,
+  UNARY_EXPR: UnaryExpr,
+  PAREN_EXPR: ParenExpr,
+  LIT_CONST_EXPR: LitConstExpr,
+  CALL_EXPR: CallExpr,
+  REF_EXPR: RefExpr,
+  RETURN_EXPR: ReturnExpr,
+  ASSIGN_EXPR: AssignExpr,
+  MEMBER_ACCESS: MemberAccess,
+  IF_EXPR: IfExpr,
+  BLOCK: Block,
+  LAMBDA_EXPR: LambdaExpr,
+  ARRAY_LIT: ArrayLit,
+  TUPLE_LIT: TupleLit,
+  SUBSCRIPT_EXPR: SubscriptExpr,
+  RANGE_EXPR: RangeExpr,
+  FOR_IN_EXPR: ForInExpr,
+  IS_EXPR: IsExpr,
+  AS_EXPR: AsExpr,
+  TRAILING_CLOSURE_EXPR: TrailingClosureExpr,
+  TYPE_CONV_EXPR: TypeConvExpr,
+  THROW_EXPR: ThrowExpr,
+  TRY_EXPR: TryExpr,
+  PRIMITIVE_TYPE_EXPR: PrimitiveTypeExpr,
+  WHILE_EXPR: WhileExpr,
+  DO_WHILE_EXPR: DoWhileExpr,
+  JUMP_EXPR: JumpExpr,
+  INC_OR_DEC_EXPR: IncOrDecExpr,
+  SPAWN_EXPR: SpawnExpr,
+  SYNCHRONIZED_EXPR: SynchronizedExpr,
+  LET_PATTERN_DESTRUCTOR: LetPatternDestructor,
+  TOKEN_PART: TokenPart,
+  QUOTE_EXPR: QuoteExpr,
+  MATCH_EXPR: MatchExpr,
+  OPTIONAL_EXPR: OptionalExpr,
+  OPTIONAL_CHAIN_EXPR: OptionalChainExpr,
+  MACRO_EXPAND_EXPR: MacroExpandExpr,
+  WILDCARD_EXPR: WildcardExpr,
+  ARRAY_EXPR: ArrayExpr,
+  PERFORM_EXPR: PerformExpr,
+  RESUME_EXPR: ResumeExpr,
+}
+
+table MatchCase {
+  base: NodeBase;
+  patterns: [Pattern];
+  patternguard: Expr;
+  if_pos: Position;
+  arrow_pos: Position;
+  expr_or_decls: Block;
+  bit_or_pos_vec: [Position];
+}
+
+table MatchCaseOther {
+  base: NodeBase;
+  match_expr: Expr;
+  arrow_pos: Position;
+  expr_or_decls: Block;
+}
+
+union AnyPattern {
+  CONST_PATTERN: ConstPattern,
+  WILDCARD_PATTERN: WildcardPattern,
+  VAR_PATTERN: VarPattern,
+  EXCEPT_TYPE_PATTERN: ExceptTypePattern,
+  TYPE_PATTERN: TypePattern,
+  ENUM_PATTERN: EnumPattern,
+  VAR_OR_ENUM_PATTERN: VarOrEnumPattern,
+  TUPLE_PATTERN: TuplePattern,
+  COMMAND_TYPE_PATTERN: CommandTypePattern,
+}
+
+table Pattern {
+  base: NodeBase;
+  pattern: AnyPattern;
+}
+
+table ConstPattern {
+  base: NodeBase;
+  literal: Expr;
+  operator_call_expr: CallExpr;
+}
+
+table WildcardPattern {
+  base: NodeBase;
+}
+
+table VarPattern {
+  base: NodeBase;
+  var_decl: VarDecl;
+}
+
+table ExceptTypePattern {
+  base: NodeBase;
+  pattern: Pattern;
+  pattern_pos: Position;
+  colon_pos: Position;
+  types: [Type];
+  bit_or_pos_vec: [Position];
+}
+
+table CommandTypePattern {
+  base: NodeBase;
+  pattern: Pattern;
+  pattern_pos: Position;
+  colon_pos: Position;
+  types: [Type];
+  bit_or_pos_vec: [Position];
+}
+
+table TypePattern {
+  base: NodeBase;
+  pattern: Pattern;
+  colon_pos: Position;
+  type: Type;
+}
+
+table EnumPattern {
+  base: NodeBase;
+  ref: Expr;
+  left_paren_pos: Position;
+  patterns: [Pattern];
+  right_paren_pos: Position;
+  comma_pos_vec: [Position];
+}
+
+table VarOrEnumPattern {
+  base: NodeBase;
+  identifier: string;
+  pattern: Pattern;
+}
+
+table TuplePattern {
+  base: NodeBase;
+  left_paren_pos: Position;
+  patterns: [Pattern];
+  right_paren_pos: Position;
+  comma_pos_vec: [Position];
+}
+
+table BinaryExpr {
+  base: NodeBase;
+  left_expr: Expr;
+  right_expr: Expr;
+  operator_kind: uint16;
+  operator_pos: Position;
+}
+
+table IsExpr {
+  base: NodeBase;
+  expr: Expr;
+  is_type: Type;
+  is_pos: Position;
+}
+
+table AsExpr {
+  base: NodeBase;
+  expr: Expr;
+  as_type: Type;
+  as_pos: Position;
+}
+
+table UnaryExpr {
+  base: NodeBase;
+  expr: Expr;
+  operator_kind: uint16;
+  operator_pos: Position;
+}
+
+table WildcardExpr {
+  base: NodeBase;
+}
+
+table ArrayExpr {
+  base: NodeBase;
+  type: Type;
+  leftParenPos: Position;
+  args : [FuncArg];
+  rightParenPos: Position;
+  isValueArray: bool;
+}
+
+table ParenExpr {
+  base: NodeBase;
+  left_paren_pos: Position;
+  expr: Expr;
+  right_paren_pos: Position;
+}
+
+table LitConstExpr {
+  base: NodeBase;
+  literal: string;
+  literal_const_kind: uint16;
+  delimiter_num: uint16;
+  string_kind: uint16;
+  is_single_quote: bool;
+}
+
+table FuncArg { // not in FuncParams
+  base: NodeBase;
+  name: string;
+  name_pos: Position;
+  colon_pos: Position;
+  expr: Expr;
+  comma_pos: Position;
+  withInout: bool;
+}
+
+table CallExpr {
+  base: NodeBase;
+  base_func: Expr; // FIXME: RefExpr or MemberAccess.
+  left_paren_pos: Position;
+  args: [FuncArg];
+  right_paren_pos: Position;
+}
+
+table RefExpr {
+  base: NodeBase;
+  ref: Reference;
+  left_angle_pos: Position;
+  type_arguments: [Type];
+  right_angle_pos: Position;
+  is_this: bool;
+  is_super: bool;
+  is_quote_dollar: bool;
+}
+
+table ReturnExpr {
+  base: NodeBase;
+  return_pos: Position;
+  expr: Expr;
+}
+
+table AssignExpr {
+  base: NodeBase;
+  left_value: Expr;
+  assign_op: uint16;
+  assign_pos: Position;
+  right_expr: Expr;
+}
+
+table MemberAccess {
+  base: NodeBase;
+  base_expr: Expr;
+  dot_pos: Position;
+  field: string;
+  field_pos: Position;
+  left_angle_pos: Position;
+  type_arguments: [Type];
+  right_angle_pos: Position;
+}
+
+table IfExpr {
+  base: NodeBase;
+  if_pos: Position;
+  cond_expr: Expr;
+  body: Block;
+  has_else: bool;
+  else_pos: Position;
+  else_body: Expr;
+  isElseIf: bool;
+  left_paren_pos: Position;
+  right_paren_pos: Position;
+}
+
+table LetPatternDestructor {
+  base: NodeBase;
+  patterns: [Pattern];
+  bit_or_pos_vec: [Position];
+  backarrow_pos: Position;
+  initializer: Expr;
+}
+
+table LambdaExpr {
+  base: NodeBase;
+  body: FuncBody;
+  mockSupported: bool;
+}
+
+table ArrayLit {
+  // {1,2,3,4,5}
+  base: NodeBase;
+  left_curl_pos: Position;
+  children: [Expr];
+  comma_pos_vec: [Position];
+  right_curl_pos: Position;
+}
+
+table TupleLit {
+  // (1,2,3,4,5)
+  base: NodeBase;
+  left_paren_pos: Position;
+  children: [Expr];
+  comma_pos_vec: [Position];
+  right_paren_pos: Position;
+}
+
+table SubscriptExpr {
+  // array[3][4]
+  base: NodeBase;
+  base_expr: Expr;
+  left_square_pos: Position;
+  index_exprs: [Expr];
+  right_square_pos: Position;
+  is_tuple_access: bool;
+}
+
+table MatchExpr {
+  base: NodeBase;
+  match_mode: bool;
+  left_paren_pos: Position;
+  selector: Expr;
+  right_paren_pos: Position;
+  left_curl_pos: Position;
+  match_cases: [MatchCase];
+  match_case_others: [MatchCaseOther];
+  right_curl_pos: Position;
+}
+
+table RangeExpr {
+  // let range1 = 0..10:2
+  base: NodeBase;
+  start_expr: Expr;
+  range_pos: Position;
+  stop_expr: Expr;
+  colon_pos: Position;
+  step_expr: Expr;
+  is_closed: bool;
+}
+
+table ForInExpr {
+  base: NodeBase;
+  left_paren_pos: Position;
+  pattern: Pattern;
+  in_pos: Position;
+  in_expr: Expr;
+  right_paren_pos: Position;
+  if_pos: Position;
+  pattern_guard: Expr;
+  body: Block;
+}
+
+table WhileExpr {
+  base: NodeBase;
+  while_pos: Position;
+  left_paren_pos: Position;
+  cond_expr: Expr;
+  right_paren_pos: Position;
+  body: Block;
+}
+
+table SpawnExpr {
+  base: NodeBase;
+  spawn_pos: Position;
+  task_expr: Expr;
+  has_arg: bool;
+  spawn_arg_expr: Expr;
+  left_paren_pos: Position;
+  right_paren_pos: Position;
+}
+
+table SynchronizedExpr {
+  base: NodeBase;
+  sync_pos: Position;
+  left_paren_pos: Position;
+  mutex_expr: Expr;
+  right_paren_pos: Position;
+  body: Block;
+}
+
+table TrailingClosureExpr {
+  base: NodeBase;
+  left_lambda: Position;
+  expr: Expr;
+  lambda: LambdaExpr;
+  right_lambda: Position;
+}
+
+table TypeConvExpr {
+  base: NodeBase;
+  type: Type;
+  left_paren_pos: Position;
+  expr: Expr;
+  right_paren_pos: Position;
+}
+
+table ThrowExpr {
+  base: NodeBase;
+  expr: Expr;
+}
+
+table PerformExpr {
+  base: NodeBase;
+  expr: Expr;
+}
+
+table ResumeExpr {
+  base: NodeBase;
+  with_pos: Position;
+  with_expr: Expr;
+  throwing_pos: Position;
+  throwing_expr: Expr;
+}
+
+table Handler {
+  handler_pos: Position;
+  command_pattern: Pattern;
+  handle_block: Block;
+}
+
+table TryExpr {
+  base: NodeBase;
+  resource_spec: [VarDecl];
+  is_resource_spec: bool;
+  try_block: Block;
+  catch_blocks: [Block];
+  catch_patterns: [Pattern]; // Pattern
+  finally_pos: Position;
+  finally_block: Block;
+  resource_spec_lparen_pos: Position;
+  resource_spec_rparen_pos: Position;
+  resource_spec_comma_pos_vec: [Position];
+  catch_pos_vec: [Position];
+  catch_left_paren_pos_vec: [Position];
+  catch_right_paren_pos_vec: [Position];
+  handlers: [Handler];
+}
+
+table DoWhileExpr {
+  base: NodeBase;
+  do_pos: Position;
+  body: Block;
+  while_pos: Position;
+  left_paren_pos: Position;
+  cond_expr: Expr;
+  right_paren_pos: Position;
+}
+
+table IncOrDecExpr {
+  base: NodeBase;
+  operator_kind: uint16;
+  operator_pos: Position;
+  expr: Expr;
+}
+
+table OptionalExpr {
+  base: NodeBase;
+  baseExpr: Expr;
+  quest_pos: Position;
+}
+
+table OptionalChainExpr {
+  base: NodeBase;
+  expr: Expr;
+}
+
+table Token {
+  kind: uint16;
+  value: string;
+  pos: Position;
+}
+
+table TokenPart {
+  tokens: [Token];
+}
+
+table QuoteExpr {
+  base: NodeBase;
+  left_paren_pos: Position;
+  exprs: [Expr];
+  right_paren_pos: Position;
+}
+
+table Reference { // This is not a node.
+  identifier: string;
+  identifier_pos: Position;
+}
+
+table FuncParamList {
+  base: NodeBase;
+  left_paren_pos: Position;
+  params: [FuncParam];
+  right_paren_pos: Position;
+}
+
+union MacroParam {
+  MACRO_EXPAND_PARAM: MacroExpandParam,
+}
+
+table FuncParam {
+  // (a: Int32, b! : Int32)
+  nodeBase: NodeBase;
+  base: VarDecl;
+  colon_pos: Position;
+  assignment: Expr;
+  comma_pos: Position;
+  is_named_param: bool;
+  is_member_param: bool;
+  not_mark_pos: Position;
+  has_let_or_var: bool;
+  macroParam: MacroParam;
+}
+
+table FuncBody {
+  base: NodeBase;
+  // paramList not support Curry Func
+  param_list: FuncParamList; // FIXME
+  arrow_pos: Position; // '=>'
+  colon_pos: Position; // ':'
+  ret_type: Type;
+  has_body: bool;
+  body: Block; // maybe a better name
+  generic: Generic;
+}
+
+table JumpExpr {
+  base: NodeBase;
+  is_break: bool;
+}
+
+table Expr {
+  base: NodeBase;
+  expr: AnyExpr;
+}
+
+table PrimitiveTypeExpr {
+    base: NodeBase;
+    kind: uint16;
+}
+
+union AnyType {
+  REF_TYPE: RefType,
+  PRIMITIVE_TYPE: PrimitiveType,
+  FUNC_TYPE: FuncType,
+  THIS_TYPE: ThisType,
+  PAREN_TYPE: ParenType,
+  QUALIFIED_TYPE: QualifiedType,
+  OPTION_TYPE: OptionType,
+  TUPLE_TYPE: TupleType,
+  VARRAY_TYPE: VArrayType,
+  CONSTANT_TYPE: ConstantType
+}
+
+table TypeBase {
+  base: NodeBase;
+  comma_pos: Position;
+  type_parameter_name: string;
+  colon_pos: Position;
+  type_pos: Position;
+  bit_and_pos: Position;
+}
+
+table RefType {
+  // T<Int32, Int64> or T
+  base: TypeBase;
+  ref: Reference;
+  left_angle_pos: Position;
+  type_arguments: [Type];
+  right_angle_pos: Position;
+}
+
+table PrimitiveType {
+  base: TypeBase;
+  type_str: string;
+  kind: uint16;
+}
+
+table FuncType {
+  base: TypeBase;
+  left_paren_pos: Position;
+  param_types: [Type];
+  right_paren_pos: Position;
+  arrow_pos: Position;
+  ret_type: Type;
+  isC: bool;
+}
+
+table ThisType {
+  base: TypeBase;
+}
+
+table ParenType {
+  base: TypeBase;
+  left_paren_pos: Position;
+  type: Type;
+  right_paren_pos: Position;
+}
+
+table QualifiedType {
+  base: TypeBase;
+  base_type: Type;
+  dot_pos: Position;
+  field: string;
+  field_pos: Position;
+  left_angle_pos: Position;
+  type_arguments: [Type];
+  right_angle_pos: Position;
+}
+
+table OptionType {
+  base: TypeBase;
+  component_type: Type;
+  quest_num: int;
+  quest_vector: [Position];
+}
+
+table TupleType {
+  base: TypeBase;
+  field_types: [Type];
+  left_paren_pos: Position;
+  right_paren_pos: Position;
+  comma_pos_vector: [Position];
+}
+
+table VArrayType {
+  base: TypeBase;
+  varrayPos: Position;
+  leftAnglePos: Position;
+  typeArgument: Type;
+  constantType: Type;
+  rightAnglePos: Position;
+}
+
+table ConstantType {
+  base: TypeBase;
+  constantExpr: Expr;
+  dollarPos: Position;
+}
+
+table Type {
+  base: TypeBase;
+  type: AnyType;
+}
+
+table VarDecl {
+  base: DeclBase;
+  type: Type;
+  colon_pos: Position;
+  initializer: Expr;    // 2 + 3
+  assign_pos: Position; // Pos of "="
+  is_var: bool;         // var or let
+  isEnumConstruct: bool;
+  emptyKeyword: bool;
+}
+
+table VarWithPatternDecl {
+  base: DeclBase;
+  type: Type;
+  colon_pos: Position;
+  initializer: Expr;
+  pattern: Pattern;
+  assign_pos: Position;
+  is_var: bool;
+}
+
+table FuncDecl {
+  base: DeclBase;
+  left_paren_pos: Position;
+  right_paren_pos: Position;
+  func_body: FuncBody;
+  is_setter: bool;
+  is_getter: bool;
+  op_kind: int32; // operator kind for operator function
+  isEnumConstruct: bool;
+}
+
+table MainDecl {
+  base: DeclBase;
+  func_body: FuncBody;
+}
+
+table MacroDecl {
+  base: DeclBase;
+  leftParenPos: Position;
+  rightParenPos: Position;
+  func_body: FuncBody;
+}
+
+table StructBody {
+  base: NodeBase;
+  left_curl_pos: Position;
+  decls: [Decl];
+  right_curl_pos: Position;
+}
+
+table StructDecl {
+  base: DeclBase;
+  body: StructBody;
+  upper_bound_pos: Position; // pos of <:
+  super_types: [Type];
+  generic: Generic;
+}
+
+table ClassBody {
+  base: NodeBase;
+  left_curl_pos: Position;
+  decls: [Decl];
+  right_curl_pos: Position;
+}
+
+table ClassDecl {
+  base: DeclBase;
+  upper_bound_pos: Position; // position of <:
+  super_types: [Type];       // [B,C] in  A <: B,C
+  body: ClassBody;
+  sub_decls: [Decl];         // represent set
+}
+
+table InterfaceBody {
+  base: NodeBase;
+  left_curl_pos: Position;
+  decls: [Decl];
+  right_curl_pos: Position;
+}
+
+table InterfaceDecl {
+  base: DeclBase;
+  upper_bound_pos: Position; // position of <:
+  super_types: [Type];
+  body: InterfaceBody;
+  sub_decls: [Decl]; // represent set
+}
+
+table EnumDecl {
+  base: DeclBase;
+  has_arguments: bool;
+  left_curl_pos: Position;
+  constructors: [Decl];
+  bit_or_pos_vec: [Position];
+  members: [Decl];
+  right_curl_pos: Position;
+  upper_bound_pos: Position;
+  super_interface_types: [Type];
+  hasEllipsis: bool;
+  ellipsis_pos: Position;
+}
+
+table GenericParamDecl {
+  base: DeclBase;
+  comma_pos: Position;
+}
+
+table PrimaryCtorDecl {
+  base: DeclBase;
+  func_body: FuncBody;
+}
+
+table PropDecl {
+  base: VarDecl;
+  colon_pos: Position;
+  left_curl_pos: Position;
+  getters: [FuncDecl];
+  setters: [FuncDecl];
+  right_curl_pos: Position;
+}
+
+table GenericConstraint {
+  base: NodeBase;
+  where_pos: Position;
+  type: RefType;
+  operator_pos: Position;
+  upper_bound: [Type];
+  bit_and_pos_vec: [Position];
+  comma_pos: Position;
+}
+
+table Generic {
+  left_angle_pos: Position;
+  type_parameters: [GenericParamDecl];
+  right_angle_pos: Position;
+  generic_constraints: [GenericConstraint];
+  content: string;
+}
+
+table Annotation {
+  base: NodeBase;
+  kind: uint16;
+  identPos: Position;
+  identifier: string;
+  args: [FuncArg]; // For special annos
+  overflow_strategy: string;
+  attrs: [string];
+  condExpr: Expr;
+  left_square_pos: Position;
+  right_square_pos: Position;
+  is_compile_time_visible: bool;
+}
+
+table Modifier {
+  base: NodeBase;
+  kind: uint16;
+  is_explicit: bool;
+}
+
+table DeclBase {
+  base: NodeBase;
+  identifier: string;
+  identifier_pos: Position;
+  keyword_pos: Position;
+  annotations: [Annotation];
+  modifiers: [Modifier]; // Set of Modifier
+  generic: Generic;
+  isConst: bool;
+}
+
+table TypeAliasDecl {
+  base: DeclBase;
+  assign_pos: Position;
+  type: Type;
+  generic: Generic;
+}
+
+table ExtendDecl {
+  base: DeclBase;
+  extended_type: Type;
+  upper_bound_pos: Position;
+  interfaces: [Type];
+  where_pos: Position;
+  left_curl_pos: Position;
+  members: [Decl];
+  right_curl_pos: Position;
+}
+
+union AnyDecl {
+  FUNC_DECL: FuncDecl,
+  MAIN_DECL: MainDecl,
+  VAR_DECL: VarDecl,
+  VAR_WITH_PATTERN_DECL: VarWithPatternDecl,
+  STRUCT_DECL: StructDecl,
+  CLASS_DECL: ClassDecl,
+  INTERFACE_DECL: InterfaceDecl,
+  GENERIC_PARAM_DECL: GenericParamDecl,
+  PRIMARY_CTOR_DECL: PrimaryCtorDecl,
+  PROP_DECL: PropDecl,
+  ENUM_DECL: EnumDecl,
+  TYPE_ALIAS_DECL: TypeAliasDecl,
+  EXTEND_DECL: ExtendDecl,
+  MACRO_DECL: MacroDecl,
+  MACRO_EXPAND_DECL: MacroExpandDecl,
+  FUNC_PARAM: FuncParam,
+  MACRO_EXPAND_PARAM: MacroExpandParam
+}
+
+table Decl {
+  base: DeclBase;
+  decl: AnyDecl;
+}
+
+union AnyNode {
+  EXPR: Expr,
+  DECL: Decl,
+  TYPE: Type,
+  PATTERN: Pattern,
+  FILE: File,
+  PACKAGE_SPEC: PackageSpec,
+  IMPORT_SPEC: ImportSpec,
+  ANNOTATION: Annotation,
+  FEATURES_DIRECTIVE: FeaturesDirective
+}
+
+table Block {
+  base: NodeBase;
+  left_curl_pos: Position;  // '{'
+  body: [Node]; // write unions into vector
+  right_curl_pos: Position; // '}'
+  is_unsafe: bool;
+  unsafe_pos: Position; // 'unsafe'
+}
+
+table MacroInvocation {
+  fullName: string;
+  identifier: string;
+  identifierPos: Position;
+  leftSquarePos: Position;
+  rightSquarePos: Position;
+  leftParenPos: Position;
+  rightParenPos: Position;
+  atPos: Position;
+  attrs: [Token];
+  args: [Token];
+  decl: Decl;
+  hasParenthesis: bool;
+  is_compile_time_visible: bool;
+}
+
+table MacroExpandExpr {
+  base: NodeBase;
+  invocation: MacroInvocation;
+  identifier: string;
+  identifierPos: Position;
+  annotations: [Annotation];
+  modifiers: [Modifier]; // Set of Modifier
+}
+
+table MacroExpandDecl {
+  base: DeclBase;
+  invocation: MacroInvocation;
+}
+
+table MacroExpandParam {
+  base: FuncParam;
+  invocation: MacroInvocation;
+}
+
+table File {
+  base: NodeBase;
+  fileName: string;
+  filePath: string;
+  package: PackageSpec;
+  imports: [ImportSpec];
+  decls: [Decl];
+  feature: FeaturesDirective;
+}
+
+table FeatureId {
+  base: NodeBase;
+  identifiers: [string];
+  identPoses: [Position];
+  dotPoses: [Position];
+}
+
+table FeaturesSet {
+  base: NodeBase;
+  lCurlPos: Position;
+  content: [FeatureId];
+  commaPoses: [Position];
+  rCurlPos: Position;
+}
+
+table FeaturesDirective {
+  base: NodeBase;
+  annotations: [Annotation];
+  featuresSet: FeaturesSet;
+  featuresPos: Position;
+}
+
+enum AccessibleKind:uint8 {
+  ACCESSIBLE_PUBLIC,
+  ACCESSIBLE_PROTECTED,
+  ACCESSIBLE_INTERNAL,
+}
+
+table PackageSpec {
+  base: NodeBase;
+  macroPos:Position;
+  packagePos:Position;
+  prefixPaths:[string];
+  prefixPoses:[Position];
+  prefixDotPoses:[Position];
+  packageName:string;
+  packageNamePos:Position;
+  accessible:AccessibleKind=ACCESSIBLE_PUBLIC;
+  hasMacro:bool;
+}
+
+enum ImportKind:int8 {
+  IMPORT_SINGLE,
+  IMPORT_ALIAS,
+  IMPORT_ALL,
+  IMPORT_MULTI,
+}
+
+table ImportContent {
+  base:NodeBase;
+  kind:ImportKind;
+  prefixPaths:[string];
+  prefixPoses:[Position];
+  prefixDotPoses:[Position];
+  identifier:string;
+  identifierPos:Position;
+  asPos:Position;
+  asIdentifier:string;
+  asIdentifierPos:Position;
+  leftCurlPos:Position;
+  items:[ImportContent];
+  commaPoses:[Position];
+  rightCurlPos:Position;
+}
+
+enum ReExportKind:int8{
+  REEXPORT_PRIVATE,
+  REEXPORT_INTERNAL,
+  REEXPORT_PROTECTED,
+  REEXPORT_PUBLIC,
+}
+
+table ImportSpec {
+  base: NodeBase;
+  reExport:ReExportKind=REEXPORT_PRIVATE;
+  importPos:Position;
+  content:ImportContent;
+}
+
+table NodeBase {
+  begin: Position;
+  end: Position;
+  ast_kind: string;
+}
+
+table Node {
+  base: NodeBase;
+  root: AnyNode;
+}
+
+root_type Node;

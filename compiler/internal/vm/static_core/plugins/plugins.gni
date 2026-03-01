@@ -1,0 +1,251 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//arkcompiler/runtime_core/static_core/ark_config.gni")
+
+plugin_ark_host_linux_tools_packages = []
+plugin_ark_host_mac_tools_packages = []
+plugin_ark_host_windows_tools_packages = []
+plugin_ark_packages = []
+
+plugin_ark_configs = []
+plugin_libarkassembler_configs = []
+plugin_runtime_configs = []
+plugin_runtime_interpreter_impl_configs = []
+plugin_bytecodeopt_configs = []
+
+plugin_arkruntime_header_plugin_deps = []
+plugin_arkruntime_stdlib_plugin_deps = []
+plugin_assembler_deps = []
+plugin_bytecodeopt_deps = []
+plugin_compiler_deps = []
+plugin_runtime_deps = []
+
+plugin_arkdisassembler_sources = []
+plugin_libarkassembler_sources = []
+plugin_libarkbytecodeopt_sources = []
+plugin_libarkcompiler_sources = []
+plugin_runtime_sources = []
+plugin_verifier_sources = []
+plugin_abc2program_sources = []
+
+plugin_entrypoints_yamls = []
+plugin_inst_templates_yamls = []
+plugin_option_yamls = []
+plugin_runtime_options_yamls = []
+plugin_compiler_options_yamls = []
+plugin_runtime_yamls = []
+
+plugin_irtoc_scripts = []
+plugin_irtoc_plugins = []
+
+plugin_isa_paths = []
+
+plugin_create_pipeline_paths = []
+plugin_read_profile_paths = []
+plugin_destroy_profile_paths = []
+plugin_find_method_in_profile_paths = []
+plugin_dump_profile_paths = []
+plugin_clear_profile_paths = []
+plugin_profiling_includes_paths = []
+plugin_profiling_includes_disasm_paths = []
+plugin_get_profiling_any_type_paths = []
+
+# Plugin tests list
+plugin_unittests = []
+
+plugin_enable_bytecode_optimizer = false
+
+# All paths and labels in the exported variables should be source-absolute.
+
+foreach(plugin, ark_enabled_plugins) {
+  print("Reading plugin sources: $plugin ($current_toolchain)")
+  _plugin_dir = "$ark_root/plugins/$plugin"
+  _plugin_vars = {
+  }
+
+  # To read variables defined by plugins into a scope while avoiding conflict
+  # with the current scope, we read plugin.gn which should be a wrapper around
+  # subproject_sources.gn that simply `import`s the latter. The import command
+  # is more powerful than read_file in that it resolves paths relative to the
+  # current file and also has `current_cpu`, etc. values defined which allows to
+  # write more conventional GN code.
+  _plugin_vars = read_file("$_plugin_dir/plugin.gn", "scope")
+
+  if (defined(_plugin_vars.enable_bytecode_optimizer)) {
+    plugin_bytecodeopt_configs += [ "$_plugin_dir:bytecodeopt" ]
+    plugin_enable_bytecode_optimizer = plugin_enable_bytecode_optimizer ||
+                                       _plugin_vars.enable_bytecode_optimizer
+  }
+
+  plugin_ark_host_linux_tools_packages +=
+      [ "$_plugin_dir:ark_host_linux_tools_packages" ]
+  plugin_ark_host_windows_tools_packages +=
+      [ "$_plugin_dir:ark_host_windows_tools_packages" ]
+  plugin_ark_host_mac_tools_packages +=
+      [ "$_plugin_dir:ark_host_mac_tools_packages" ]
+  plugin_ark_packages += [ "$_plugin_dir:ark_packages" ]
+
+  plugin_ark_configs += [ "$_plugin_dir:ark_config" ]
+  plugin_libarkassembler_configs += [ "$_plugin_dir:assembler" ]
+  plugin_runtime_configs += [ "$_plugin_dir:runtime" ]
+  plugin_runtime_interpreter_impl_configs +=
+      [ "$_plugin_dir:runtime_interpreter_impl" ]
+
+  plugin_assembler_deps += [ "$_plugin_dir:assembler_deps" ]
+
+  if (defined(_plugin_vars.arkruntime_header_sub_deps)) {
+    foreach(sub_dep, _plugin_vars.arkruntime_header_sub_deps) {
+      plugin_arkruntime_header_plugin_deps += [ sub_dep ]
+    }
+  }
+  if (defined(_plugin_vars.arkruntime_stdlib_sub_deps)) {
+    foreach(sub_dep, _plugin_vars.arkruntime_stdlib_sub_deps) {
+      plugin_arkruntime_stdlib_plugin_deps += [ sub_dep ]
+    }
+  }
+  if (defined(_plugin_vars.arkbytecodeopt_deps)) {
+    foreach(sub_dep, _plugin_vars.arkbytecodeopt_deps) {
+      plugin_bytecodeopt_deps += [ sub_dep ]
+    }
+  }
+  if (defined(_plugin_vars.arkcompiler_deps)) {
+    foreach(sub_dep, _plugin_vars.arkcompiler_deps) {
+      plugin_compiler_deps += [ sub_dep ]
+    }
+  }
+  if (defined(_plugin_vars.arkruntime_deps)) {
+    foreach(sub_dep, _plugin_vars.arkruntime_deps) {
+      plugin_runtime_deps += [ sub_dep ]
+    }
+  }
+
+  if (defined(_plugin_vars.srcs_abc2program)) {
+    foreach(src, _plugin_vars.srcs_abc2program) {
+      plugin_abc2program_sources += [ "$_plugin_dir/$src" ]
+    }
+  }
+  if (defined(_plugin_vars.srcs_disassembler)) {
+    foreach(src, _plugin_vars.srcs_disassembler) {
+      plugin_arkdisassembler_sources += [ "$_plugin_dir/$src" ]
+    }
+  }
+  if (defined(_plugin_vars.srcs_assembler)) {
+    foreach(src, _plugin_vars.srcs_assembler) {
+      plugin_libarkassembler_sources += [ "$_plugin_dir/$src" ]
+    }
+  }
+  if (defined(_plugin_vars.srcs_bytecode_optimizer)) {
+    foreach(src, _plugin_vars.srcs_bytecode_optimizer) {
+      plugin_libarkbytecodeopt_sources += [ "$_plugin_dir/$src" ]
+    }
+  }
+  if (defined(_plugin_vars.srcs_compiler)) {
+    foreach(src, _plugin_vars.srcs_compiler) {
+      plugin_libarkcompiler_sources += [ "$_plugin_dir/$src" ]
+    }
+  }
+  if (defined(_plugin_vars.srcs_runtime)) {
+    foreach(src, _plugin_vars.srcs_runtime) {
+      plugin_runtime_sources += [ "$_plugin_dir/$src" ]
+    }
+  }
+  if (defined(_plugin_vars.configs_runtime)) {
+    foreach(src, _plugin_vars.configs_runtime) {
+      plugin_runtime_configs += [ "$_plugin_dir/$src" ]
+    }
+  }
+  if (defined(_plugin_vars.srcs_verification)) {
+    foreach(src, _plugin_vars.srcs_verification) {
+      plugin_verifier_sources += [ "$_plugin_dir/$src" ]
+    }
+  }
+
+  if (defined(_plugin_vars.entrypoints_yaml_path)) {
+    plugin_entrypoints_yamls +=
+        [ "$_plugin_dir/${_plugin_vars.entrypoints_yaml_path}" ]
+  }
+  if (defined(_plugin_vars.inst_templates_yaml_path)) {
+    plugin_inst_templates_yamls +=
+        [ "$_plugin_dir/${_plugin_vars.inst_templates_yaml_path}" ]
+  }
+  if (defined(_plugin_vars.option_yaml_path)) {
+    plugin_option_yamls += [ "$_plugin_dir/${_plugin_vars.option_yaml_path}" ]
+  }
+  if (defined(_plugin_vars.runtime_option_yaml_path)) {
+    foreach(src, _plugin_vars.runtime_option_yaml_path) {
+      plugin_runtime_options_yamls += [ "$_plugin_dir/$src" ]
+    }
+  }
+  if (defined(_plugin_vars.compiler_options_yaml_path)) {
+    plugin_compiler_options_yamls +=
+        [ "$_plugin_dir/${_plugin_vars.compiler_options_yaml_path}" ]
+  }
+  if (defined(_plugin_vars.runtime_yamls)) {
+    plugin_runtime_yamls +=
+        rebase_path(_plugin_vars.runtime_yamls, "", _plugin_dir)
+  }
+  if (defined(_plugin_vars.irtoc_scripts)) {
+    plugin_irtoc_scripts +=
+        rebase_path(_plugin_vars.irtoc_scripts, "", _plugin_dir)
+  }
+  if (defined(_plugin_vars.irtoc_plugins)) {
+    plugin_irtoc_plugins +=
+        rebase_path(_plugin_vars.irtoc_plugins, "", _plugin_dir)
+  }
+  if (defined(_plugin_vars.srcs_isa)) {
+    plugin_isa_paths += rebase_path(_plugin_vars.srcs_isa, "", _plugin_dir)
+  }
+
+  if (defined(_plugin_vars.create_pipeline)) {
+    plugin_create_pipeline_paths +=
+        [ rebase_path(_plugin_vars.create_pipeline, "", _plugin_dir) ]
+  }
+  if (defined(_plugin_vars.read_profile)) {
+    plugin_read_profile_paths +=
+        [ rebase_path(_plugin_vars.read_profile, "", _plugin_dir) ]
+  }
+  if (defined(_plugin_vars.destroy_profile)) {
+    plugin_destroy_profile_paths +=
+        [ rebase_path(_plugin_vars.destroy_profile, "", _plugin_dir) ]
+  }
+  if (defined(_plugin_vars.find_method_in_profile)) {
+    plugin_find_method_in_profile_paths +=
+        [ rebase_path(_plugin_vars.find_method_in_profile, "", _plugin_dir) ]
+  }
+  if (defined(_plugin_vars.dump_profile)) {
+    plugin_dump_profile_paths +=
+        [ rebase_path(_plugin_vars.dump_profile, "", _plugin_dir) ]
+  }
+  if (defined(_plugin_vars.clear_profile)) {
+    plugin_clear_profile_paths +=
+        [ rebase_path(_plugin_vars.clear_profile, "", _plugin_dir) ]
+  }
+  if (defined(_plugin_vars.profiling_includes)) {
+    plugin_profiling_includes_paths +=
+        [ rebase_path(_plugin_vars.profiling_includes, "", _plugin_dir) ]
+  }
+  if (defined(_plugin_vars.profiling_includes_disasm)) {
+    plugin_profiling_includes_disasm_paths +=
+        [ rebase_path(_plugin_vars.profiling_includes_disasm, "", _plugin_dir) ]
+  }
+  if (defined(_plugin_vars.get_profiling_any_type)) {
+    plugin_get_profiling_any_type_paths +=
+        [ rebase_path(_plugin_vars.get_profiling_any_type, "", _plugin_dir) ]
+  }
+  if (defined(_plugin_vars.unittests_list)) {
+    foreach(plugin_unittest, _plugin_vars.unittests_list) {
+      plugin_unittests += [ "${_plugin_dir}/${plugin_unittest}" ]
+    }
+  }
+}

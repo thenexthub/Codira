@@ -1,0 +1,81 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+# '--verification-mode=disabled' this option here is added to save test logic and remove verifier error
+#! CHECKER      Check on nullptr before mov object was disabled in deoptimization
+#! RUN          force_jit: true, options: "--verification-mode=disabled --compiler-hotness-threshold=0 --interpreter-type=irtoc --compiler-enable-jit=true --gc-type=g1-gc", entry: "_GLOBAL::main_1"
+
+#! CHECKER      Check on nullptr before mov object was worked in case without deoptimization
+#! RUN          force_jit: true, options: "--verification-mode=disabled --compiler-hotness-threshold=0 --interpreter-type=irtoc --compiler-enable-jit=true --gc-type=g1-gc", entry: "_GLOBAL::main_2", abort: 6
+
+
+.record panda.String <external>
+.record panda.NullPointerException <external>
+
+.function panda.String panda.NullPointerException.getMessage(panda.NullPointerException a0) <external>
+
+.record A {
+    i32 data
+}
+
+.function i32 call_ldobj_i32(A a0) {
+    newobj v1, A
+    movi v0, 0
+jump_label_2:
+try_begin:
+    lda v0
+    jgtz jump_label_1   # We try to load object only once, for the first time
+    ldobj a0, A.data    # This load will trigger an exception and deoptimization will happen, we will lost obj v1
+    jmp jump_label_1
+
+jump_label_1:
+    newobj v2, A
+    mov.obj v3, v1  # We check this mov, when in v1 is nullptr and v3 will be rewritten
+    mov.obj v3, a0
+
+    ldai 0
+    return
+try_end:
+
+catch_block1_begin:  # This code already will be executed by interpreter
+    movi v0, 1
+    jmp jump_label_2
+
+.catch panda.NullPointerException, try_begin, try_end, catch_block1_begin
+}
+
+.function u1 main_1() {
+    mov.null v0              # Load null instead of real object to get exception inside call_ldobj_i32
+    call call_ldobj_i32, v0
+    jnez error_exit_1
+    ldai 0
+    return
+error_exit_1:
+    ldai 1
+    return
+}
+
+.function u1 main_2() {
+    mov.null v0
+    mov.obj v1, v0  # Mov null object in compiled code without deoptimization, check should work
+    return
+}

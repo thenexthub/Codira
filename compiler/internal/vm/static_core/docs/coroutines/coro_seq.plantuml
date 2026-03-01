@@ -1,0 +1,21 @@
+@startuml
+participant "Runtime::Initialize"
+"Runtime::Initialize" -> CoroutineManager: Create
+activate CoroutineManager
+"Runtime::Initialize" -> CoroutineManager: Launch(Method, args)
+CoroutineManager -> "Coroutine: main": Create
+CoroutineManager -> "Coroutine: main": Invoke "main"
+activate "Coroutine: main"
+"Coroutine: main" -> CoroutineManager: Launch
+CoroutineManager -> "Coroutine: foo": Create
+CoroutineManager -> CoroutineManager: Suspend("Coroutine: main")
+deactivate "Coroutine: main"
+CoroutineManager -> "Coroutine: foo": Invoke "foo"
+activate "Coroutine: foo"
+deactivate "Coroutine: main"
+"Coroutine: foo" -> CoroutineManager: Terminate
+deactivate "Coroutine: foo"
+CoroutineManager -> CoroutineManager: Resume("Coroutine: main")
+activate "Coroutine: main"
+deactivate "Coroutine: main"
+@enduml

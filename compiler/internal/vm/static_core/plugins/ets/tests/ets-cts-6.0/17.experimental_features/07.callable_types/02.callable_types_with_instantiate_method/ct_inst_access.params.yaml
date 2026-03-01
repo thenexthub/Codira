@@ -1,0 +1,179 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+    - decl: |-
+          // private instantiate from same-class another instantiate
+          class C {
+              fld: string = ''
+              public static $_instantiate(f: ()=>C, p: number): C { return C('' + p) }
+              private static $_instantiate(f: ()=>C, p: string): C {
+                  let x = f()
+                  x.fld = p
+                  return x
+              }
+          }
+      use: |-
+          arktest.assertEQ(C(42.0).fld, '42')
+
+    - decl: |-
+          // private instantiate from same-class method
+          class C {
+              fld: string = ''
+              private static $_instantiate(f: ()=>C, p: string): C {
+                  let x = f()
+                  x.fld = p
+                  return x
+              }
+              meth(p: number): C {
+                  return C('' + p)
+              }
+          }
+      use: |-
+          arktest.assertEQ(new C().meth(42.0).fld, '42')
+
+    - decl: |-
+          // protected instantiate from same-class another instantiate
+          class C {
+              fld: string = ''
+              public static $_instantiate(f: ()=>C, p: number): C { return C('' + p) }
+              protected static $_instantiate(f: ()=>C, p: string): C {
+                  let x = f()
+                  x.fld = p
+                  return x
+              }
+          }
+      use: |-
+          arktest.assertEQ(C(42.0).fld, '42')
+
+    - decl: |-
+          // protected instantiate from same-class method
+          class C {
+              fld: string = ''
+              protected static $_instantiate(f: ()=>C, p: string): C {
+                  let x = f()
+                  x.fld = p
+                  return x
+              }
+              meth(p: number): C {
+                  return C('' + p)
+              }
+          }
+      use: |-
+          arktest.assertEQ(new C().meth(42.0).fld, '42')
+
+    - decl: |-
+          // protected instantiate from subclass instantiate
+          class B {
+              fld: string = ''
+              protected static $_instantiate(f: ()=>B, p: string): B {
+                  let x = f()
+                  x.fld = p
+                  return x
+              }
+          }
+          class C extends B {
+              public static $_instantiate(f: ()=>C, p: number): B { return C('' + p) }
+          }
+      use: |-
+          arktest.assertEQ(C(42.0).fld, '42')
+
+    - decl: |-
+          // protected instantiate from subclass method
+          class B {
+              fld: string = ''
+              protected static $_instantiate(f: ()=>B, p: string): B {
+                  let x = f()
+                  x.fld = p
+                  return x
+              }
+          }
+          class C extends B {
+              meth(p: number): B {
+                  return C('' + p)
+              }
+          }
+      use: |-
+          arktest.assertEQ(new C().meth(42.0).fld, '42')
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // protected instantiate from another class instantiate
+          class B {
+              fld: string = ''
+              protected static $_instantiate(f: ()=>B, p: string): B {
+                  let x = f()
+                  x.fld = p
+                  return x
+              }
+          }
+          class C {
+              public static $_instantiate(f: ()=>C, p: number): B { return B('' + p) }
+          }
+      use: |-
+          arktest.assertEQ(C(42.0).fld, '42')
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // protected instantiate from another class method
+          class B {
+              fld: string = ''
+              protected static $_instantiate(f: ()=>B, p: string): B {
+                  let x = f()
+                  x.fld = p
+                  return x
+              }
+          }
+          class C {
+              meth(p: number): B {
+                  return B('' + p)
+              }
+          }
+      use: |-
+          arktest.assertEQ(new C().meth(42.0).fld, '42')
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // private instantiate from subclass instantiate
+          class B {
+              fld: string = ''
+              private static $_instantiate(f: ()=>B, p: string): B {
+                  let x = f()
+                  x.fld = p
+                  return x
+              }
+          }
+          class C extends B {
+              public static $_instantiate(f: ()=>C, p: number): B { return B('' + p) }
+          }
+      use: |-
+          arktest.assertEQ(C(42.0).fld, '42')
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // private instantiate from subclass method
+          class B {
+              fld: string = ''
+              private static $_instantiate(f: ()=>B, p: string): B {
+                  let x = f()
+                  x.fld = p
+                  return x
+              }
+          }
+          class C extends B {
+              meth(p: number): B {
+                  return B('' + p)
+              }
+          }
+      use: |-
+          arktest.assertEQ(new C().meth(42.0).fld, '42')

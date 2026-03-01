@@ -1,0 +1,121 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+  # classes
+  - use: |-
+      let v: A<X> = new A<X> (new X())
+
+  - use: |-
+      let v: A<X|null> = new A<X|null> (new X())
+
+  - use: |-
+      let v: A<X|null> = new A<X|null> (null)
+
+  - use: |-
+      let v: A<X> = new A<X> (new X())
+    bound: ' extends X'
+
+  - use: |-
+      let v: A<X|null> = new A<X|null> (new X())
+    bound: ' extends X|null'
+
+  - use: |-
+      let v: A<X|null> = new A<X|null> (null)
+    bound: ' extends Object|null'
+
+  # interfaces
+  - use: |-
+      let v: A<I> = new A<I> (new X())
+
+  - use: |-
+      let v: A<I|null> = new A<I|null> (new Y())
+
+  - use: |-
+      let v: A<I|null> = new A<I|null> (null)
+
+  - use: |-
+      let v: A<I> = new A<I> (new X())
+    bound: ' extends I'
+
+  - use: |-
+      let v: A<I|null> = new A<I|null> (new Y())
+    bound: ' extends I|null'
+
+  - use: |-
+      let v: A<I|null> = new A<I|null> (null)
+    bound: ' extends Object|null'
+
+  # arrays
+  - use: |-
+      let v: A<X[]> = new A<X[]> (new X[0])
+
+  - use: |-
+      let v: A<X[]|null> = new A<X[]|null> (new X[0])
+
+  - use: |-
+      let v: A<X[]|null> = new A<X[]|null> (null)
+
+  - use: |-
+      let v: A<X[]|null> = new A<X[]|null> (new X[0])
+    bound: ' extends X[]|null'
+
+  - use: |-
+      let v: A<X[]|null> = new A<X[]|null> (null)
+    bound: ' extends Object|null'
+
+  - use: |-
+      let v: A<X[]> = new A<X[]> (new X[0])
+
+# aliases
+  - use: |-
+      let v: A<B> = new A<B> (new X[0] [0])
+    decl: type B = X[][]|null
+
+  - use: |-
+      let v: A<B|null> = new A<B|null> (null)
+    decl: type B = I[]|null
+
+  - use: |-
+      let v: A<B> = new A<B> (new Y[0])
+    decl: type B = Y[]
+
+  # tuples
+  - use: |-
+      let v: A<[X, X]> = new A<[X, X]> ([new X(), new X()])
+
+  - use: |-
+      let v: A<[X, X]|null> = new A<[X, X]|null> ([new X(), new X()])
+
+  - use: |-
+      let v: A<[X, X]|null> = new A<[X, X]|null> (null)
+
+  # FixedArray
+  - use: |-
+      let v: A<FixedArray<X>> = new A<FixedArray<X>> ([new X()])
+
+  - use: |-
+      let v: A<FixedArray<X>|null> = new A<FixedArray<X>|null> ([new X()])
+
+  - use: |-
+      let v: A<FixedArray<X>|null> = new A<FixedArray<X>|null> (null)

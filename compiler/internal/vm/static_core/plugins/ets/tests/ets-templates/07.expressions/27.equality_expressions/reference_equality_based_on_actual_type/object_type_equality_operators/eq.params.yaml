@@ -1,0 +1,166 @@
+# Copyright (c) 2024-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # numerical equality
+    - case1:
+          - '-128 as byte'
+      case2:
+          - '-128 as short'
+          - '-128'
+          - '-128 as long'
+          - '-128.0f'
+          - '-128.0'
+
+    - case1:
+          - '-128 as short'
+      case2:
+          - '-128 as byte'
+          - '-128'
+          - '-128 as long'
+          - '-128.0f'
+          - '-128.0'
+
+    - case1:
+          - '-128'
+      case2:
+          - '-128 as byte'
+          - '-128 as short'
+          - '-128 as long'
+          - '-128.0f'
+          - '-128.0'
+
+    - case1:
+          - '-128 as long'
+      case2:
+          - '-128 as byte'
+          - '-128 as short'
+          - '-128'
+          - '-128.0f'
+          - '-128.0'
+
+    - case1:
+          - '-128.0f'
+      case2:
+          - '-128 as byte'
+          - '-128 as short'
+          - '-128'
+          - '-128 as long'
+          - '-128.0'
+
+    - case1:
+          - '-128.0'
+      case2:
+          - '-128 as byte'
+          - '-128 as short'
+          - '-128'
+          - '-128 as long'
+          - '-128.0f'
+
+    - case1:
+          - c'\u007f'
+      case2:
+          - '127 as byte'
+          - '127 as short'
+          - '127'
+          - '127 as long'
+          - '127.0f'
+          - '127.0'
+
+    - case1:
+          - c'\uffff'
+      case2:
+          - '65535'
+          - '65535 as long'
+          - '65535.0f'
+          - '65535.0'
+
+    - case1:
+          - '0'
+      case2:
+          - '0 as byte'
+          - '0 as short'
+          - '0 as long'
+          - '0.0f'
+          - '0.0'
+          - c'\u0000'
+
+    - case1:
+          - new Double(0.0)
+      case2:
+          - new Byte(0 as byte)
+          - new Short(0 as short)
+          - new Int(0)
+          - new Long(0 as long)
+          - new Float(0.0f)
+          - new Char(c'\u0000')
+
+    # string equality
+    - case1:
+          - "'abc def'"
+      case2:
+          - '`abc def`'
+          - new String('abc def')
+
+    - case1:
+          - "''"
+      case2:
+          - '``'
+          - new String('')
+
+    # boolean equality
+    - case1:
+          - 'true'
+      case2:
+          - new Boolean(true)
+
+    - case1:
+          - 'false'
+      case2:
+          - new Boolean(false)
+
+    # enumeration  equality
+    - decl: |-
+          enum Color { Red, Green = 0, Blue }
+      case1:
+          - Color.Red
+      case2:
+          - Color.values()[0]
+          - Color.Green
+          - "Color.getValueOf('Red')"
+          - "Color.getValueOf('Green')"
+
+    - decl: |-
+          enum Size { Small = "S", Medium = "M", medium = "M" }
+      case1:
+          - Size.Medium
+      case2:
+          - Size.medium
+          - Size.values()[1]
+          - "Size.getValueOf('Medium')"
+          - "Size.getValueOf('medium')"
+
+    # bigint equality
+    - case1:
+          - 12345n
+      case2:
+          - new BigInt(12345)
+          - new BigInt('12345')
+
+    - case1:
+          - '0n'
+      case2:
+          - '-0n'
+          - new BigInt()
+          - new BigInt(0.0)

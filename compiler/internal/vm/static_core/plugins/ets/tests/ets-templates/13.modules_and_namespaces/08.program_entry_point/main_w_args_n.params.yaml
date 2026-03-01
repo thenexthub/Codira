@@ -1,0 +1,91 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # void return type
+    - cmd_line_args: X, Y
+      use: |-
+          function main(args: string[]) {
+              arktest.assertEQ(args[0], 'X')
+              arktest.assertEQ(args[1], 'Y')
+              arktest.assertTrue(false)
+          }
+
+    # int return type
+    - cmd_line_args: X, Y
+      use: |-
+          export function main(args: string[]): int {
+              arktest.assertEQ(args[0], 'X')
+              arktest.assertEQ(args[1], 'Y')
+              return 1
+          }
+
+    # with overload declarations, void
+    - cmd_line_args: X, Y
+      tags: 'compile-only'
+      use: |-
+          export overload main { main1, main }
+
+          export function main(args: string[]) {
+              arktest.assertEQ(args[0], 'X')
+              arktest.assertEQ(args[1], 'Y')
+          }
+
+          function main1() { // should not be called
+              arktest.assertTrue(false)
+          }
+
+    # with overload declarations, int
+    - cmd_line_args: X, Y
+      tags: 'compile-only'
+      use: |-
+          export overload main { main1, main }
+
+          export function main(args: string[]): int {
+              arktest.assertEQ(args[0], 'X')
+              arktest.assertEQ(args[1], 'Y')
+              return 0
+          }
+
+          function main1(args: string[]): int {
+              return 1
+          }
+    
+    # entry point function cannot have overloading, void return type
+    - cmd_line_args: X, Y
+      tags: 'compile-only, negative'
+      use: |-
+          export overload main { main1, main2, main }
+
+          export function main1(args: string[]) {
+              arktest.assertTrue(false)
+          }
+
+          export function main2(args: string[]) {
+              arktest.assertTrue(false)
+          }
+
+    # entry point function cannot have overloading, int return type
+    - cmd_line_args: X, Y
+      tags: 'compile-only, negative'
+      use: |-
+          export overload main { main1, main, main2 }
+
+          export function main1(args: string[]): int {
+              return 1
+          }
+
+          export function main2(args: string[]): int {
+              return 1
+          }

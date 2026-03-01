@@ -1,0 +1,205 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of value equality operators
+cases:
+  - doc: For loop without any statement configured, no spaces ()
+    decl: |-
+      let m = 0;
+      for (;;) {
+        if( m++ > 1) break;
+      }
+      arktest.assertEQ( m, 3 );
+
+  - doc: For loop without any statement configured, spase as delimiter
+    decl: |-
+      let m = 0;
+      for ( ; ; ) {
+        if( m++ > 1) break;
+      }
+      arktest.assertEQ( m, 3 );
+
+  - doc: For loop with init as the only configured statement. Creating variable with already existing name during the for loop initialization.
+    decl: |-
+      let m = "string";
+      for (let m = 1;;) {
+        if(m == 1) break;
+      }
+      arktest.assertEQ( m, "string" );
+
+  - doc: For loop with expression as the only configured statement. Creating variable with already existing name at the for loop body.
+    decl: |-
+      let m = "string";
+      for (; 1;) {
+        let m = 1;
+        if(m == 1) break;
+      }
+      arktest.assertEQ( m, "string" );
+
+  - doc: For loop with forUpdate as the only configured statement. Variable was created outside of the loop body and gets changed as forUpdate.
+    decl: |-
+      let m : int;
+      for (;; m++) {
+        if(m > 1) break;
+      }
+      arktest.assertEQ( m, 2 );
+
+  - doc: For loop with init and conditional statements configured.
+    decl: |-
+      let m: int = 0;
+      for (let i = 0; i < 10;) {
+        m += ++i;
+      }
+      arktest.assertEQ( m, 55);
+
+  - doc: For loop with init and forUpdate statements configured.
+    decl: |-
+      let m: int = 0;
+      for (let i = 0;;i++) {
+        m = i;
+        if(i > 10) break;
+      }
+      arktest.assertEQ( m, 11 );
+
+  - doc: For loop with condition and forUpdate statements configured. Verify 'continue' statement.
+    decl: |-
+      let m: int = 10;
+      for (; m > 0; m--) { 
+        if(1) continue;
+        arktest.assertTrue( false );
+      }
+      arktest.assertEQ( m, 0 );
+
+  - doc: For loop with all parameters configured.
+    decl: |-
+      let sum = 0;
+      for (let i: int = 1; i < 4; i++) {
+        sum += i;
+      }
+      arktest.assertEQ( sum, 6 );
+
+  - doc: For loop with multiple init options configured.
+    decl: |-
+      let sum = 1;
+      for(let i = 0, j = 0; i<5; i++) {
+        sum += i + j;
+        j--;
+      }
+      arktest.assertEQ( sum, 1 );
+
+  - doc: For loop with multiple forUpdate options configured.
+    decl: |-
+      let sum = 0;
+      for(let i = 0, j = 0; j<5; i++, i--, j++) {
+        sum += i + j;
+      }
+      arktest.assertEQ( sum, 10 );
+
+  - doc: For loop with complicated expression option configured.
+    decl: |-
+      let o: Object|null = new Object();
+      let o1: Object|null = null;
+      let i = 0;
+      for(; ( (o1 ?? o) && i<5); i++ ) { }
+      arktest.assertEQ( i, 5 );
+
+  - doc: For loop with complicated forUpdate option configured.
+    decl: |-
+      let c:string = '';
+      for(let a = 0, b: string='string' ; a<10 ; a++, b += String.fromCharCode( (a+40).toDouble()) ) {
+        c = b;
+      }
+      arktest.assertEQ( c, "string)*+,-./01" );
+
+  - doc: For loop with complicated forUpdate option configured.
+    add: |-
+      function foo(i: int): int {
+        return ++i;
+      }
+    decl: |-
+      let a:int;
+      for(a  =0 ; a<10 ; a=foo(a) ) {
+        if(a >= 0) continue;
+        arktest.assertTrue( false );
+      }
+      arktest.assertEQ( a, 10 );
+
+  - doc: For loop with complicated forUpdate option configured.
+    add: |-
+      class A {
+        foo(i: int): int {
+          return ++i;
+        }
+      }
+    decl: |-
+      let a:int;
+      for(a = 0 ; a<10 ; a = new A().foo(a) ) {
+        continue;
+      }
+      arktest.assertEQ( a, 10 );
+
+  - doc: For loop with number type in init.
+    decl: |-
+      let a:number;
+      for(let i: number = 0 ; i<10 ; i += 1.01 ) {
+        a = i;
+      }
+      arktest.assertEQ( a, 9.09 );
+
+  - doc: For loop with float type in init.
+    decl: |-
+      let a:float;
+      for(let i: float = 0 ; i<10 ; i += 1.01 ) {
+        a = i;
+      }
+      arktest.assertLT( 9, a )
+
+  - doc: For loop with double type in init.
+    decl: |-
+      let a:double;
+      for(let i: double = 0 ; i<10 ; i += 1.01 ) {
+        a = i;
+      }
+      arktest.assertEQ( a, 9.09 )
+
+  - doc: For loop with Int type in init.
+    decl: |-
+      let a:Int = 0;
+      for(let i: Int = 0 ; i<10 ; i += 1 ) {
+        a = i;
+      }
+      arktest.assertEQ( a, 9 );
+
+  - doc: For loop with Number type in init.
+    decl: |-
+      let a:Number = 0;
+      for(let i: Number = 0 ; i<10 ; i += 1.01 ) {
+        a = i;
+      }
+      arktest.assertEQ( a, 9.09 );
+
+  - doc: For loop with Double type in init.
+    decl: |-
+      let a:Double = 0.0;
+      for(let i: Double = 0 ; i<10 ; i += 1.01 ) {
+        a = i;
+      }
+      arktest.assertEQ( a, 9.09 );
+
+  - doc: For loop with Float type in init.
+    decl: |-
+      let a:Float = 0.0f;
+      for(let i: Float = 0.0f ; i<10.0f ; i += 1.01f ) {
+        a = i;
+      }
+      arktest.assertTrue( a > 9 );

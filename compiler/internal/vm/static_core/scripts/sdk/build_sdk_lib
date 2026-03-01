@@ -1,0 +1,565 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Arguments: build_dir, cmake_arguments, ninja_targets
+set -x
+
+function build_panda() {
+    local build_dir="$1"
+    local cmake_arguments="$2"
+    local ninja_targets="$3"
+
+    local product_build="OFF"
+    if [ "$PANDA_SDK_BUILD_TYPE" = "$BUILD_TYPE_RELEASE" ]; then
+        product_build="ON"
+    fi
+
+    CONCURRENCY=${NPROC_PER_JOB:=$(nproc)}
+    COMMONS_CMAKE_ARGS="\
+        -GNinja \
+        -S$ARK_ROOT \
+        -DCMAKE_BUILD_TYPE=$PANDA_SDK_BUILD_TYPE \
+        -DPANDA_SDK_BUILD=true \
+        -DPANDA_PRODUCT_BUILD=$product_build \
+        -DPANDA_WITH_ECMASCRIPT=OFF \
+        -DPANDA_WITH_ETS=ON \
+        -DPANDA_WITH_JAVA=OFF \
+        -DPANDA_WITH_ACCORD=OFF \
+        -DPANDA_WITH_CODIRA=OFF \
+        -DPANDA_WITH_HZ_ECMASCRIPT=OFF \
+        -DPANDA_WITH_TESTS_JAVA_ECMASCRIPT=OFF \
+        -DPANDA_TS_BINDINGS=ON"
+
+    # shellcheck disable=SC2086
+    ${OHOS_SDK_NATIVE}/build-tools/cmake/bin/cmake -B"$build_dir" ${COMMONS_CMAKE_ARGS[@]} $cmake_arguments
+    # shellcheck disable=SC2086
+    ninja -C"$build_dir" -j"${CONCURRENCY}" $ninja_targets
+}
+
+# Arguments: src, dst, file_list, include_pattern
+function copy_into_sdk() {
+    local src="$1"
+    local dst="$2"
+    local file_list="$3"
+    local include_pattern="$4"
+    local exclude_pattern='\(/tests/\|/test/\)'
+
+    # Below construction (cd + find + cp --parents) is used to copy
+    # all files listed in file_list with their relative paths
+    # Example: cd /path/to/panda && cp --parents runtime/include/cframe.h /dst
+    # Result: /dst/runtime/include/cframe.h
+    mkdir -p "$dst"
+    cd "$src"
+    for FILE in $(cat "$file_list"); do
+        # See ets2panda's CMakeLists.txt for sdk arktsconfig peculiarities description.  
+        if [[ "$FILE" == "bin/arktsconfig.json" ]]; then
+            mkdir -p "$dst/bin"
+            cp "$src/bin/arktsconfig_to_deliver.json" "$dst/bin/arktsconfig.json"
+        else
+            for F in $(find "$FILE" -type f | grep "$include_pattern" | grep -v "$exclude_pattern"); do
+                cp --parents "$F" "$dst"
+            done
+        fi
+    done
+
+}
+
+function copy_abc_files() {
+    local build_dir="$1"
+    mkdir -p "$PANDA_SDK_PATH"/ets
+    if [[ -f "$build_dir"/plugins/ets/sdk/etssdk.abc ]]; then
+        [[ -f "$PANDA_SDK_PATH"/ets/etssdk.abc ]] || cp "$build_dir"/plugins/ets/sdk/etssdk.abc "$PANDA_SDK_PATH"/ets
+    fi
+    if [[ -f "$build_dir"/plugins/ets/etsstdlib.abc ]]; then
+        cp "$build_dir"/plugins/ets/etsstdlib.abc "$PANDA_SDK_PATH"/ets
+        mkdir -p "${PANDA_SDK_PATH}/ets/stdlib"
+        cp -r "$build_dir"/plugins/ets/stdlib/decls "${PANDA_SDK_PATH}/ets/stdlib"
+    fi
+}
+
+function linux_arm64_tools() {
+    echo "> Building linux arm64 tools..."
+    local extra_llvm_opts=""
+    if [[ "${PANDA_LLVM_BACKEND}" == "ON" ]]; then
+        local llvm_target="${LLVM_BIN_AARCH64_RELEASE}"
+        if [[ "${PANDA_SDK_BUILD_TYPE}" == "${BUILD_TYPE_DEBUG}" ]]; then
+            llvm_target="${LLVM_BIN_AARCH64_DEBUG}"
+        fi
+        if [[ "${PANDA_SDK_BUILD_TYPE}" == "FastVerify" ]]; then
+            llvm_target="${LLVM_BIN_AARCH64_FASTVERIFY}"
+        fi
+        extra_llvm_opts="\
+        -DLLVM_TARGET_PATH=${llvm_target} \
+        -DLLVM_HOST_PATH=${LLVM_BIN_X86_64_RELEASE} \
+        "
+    fi
+    local linux_arm64_build_dir="$SDK_BUILD_ROOT/linux_arm64_host_tools"
+    local linux_arm64_cmake_args=" \
+        -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cross-clang-14-qemu-aarch64.cmake \
+        -DPANDA_LLVM_BACKEND=${PANDA_LLVM_BACKEND} \
+        ${extra_llvm_opts} \
+        -DPANDA_BUILD_LLVM_BINARIES=${PANDA_BUILD_LLVM_BINARIES} \
+        -DPANDA_BUILD_LLVM_BINARIES_PATH_ROOT=${SDK_BUILD_ROOT}/llvm_binaries"
+    local linux_arm64_build_targets="ark ark_aot ark_disasm ark_link es2panda e2p_test_plugin verifier ani_helpers aspt_converter dependency_analyzer"
+    build_panda "$linux_arm64_build_dir" "$linux_arm64_cmake_args" "$linux_arm64_build_targets"
+    copy_into_sdk "$linux_arm64_build_dir" "$PANDA_SDK_PATH/linux_arm64_host_tools" "$SCRIPT_DIR"/linux_arm64_host_tools.txt
+    copy_abc_files "$linux_arm64_build_dir"
+}
+
+function linux_tools() {
+    echo "> Building linux tools..."
+
+    local extra_llvm_opts=""
+    if [[ "${PANDA_LLVM_BACKEND}" == "ON" ]]; then
+        # HOST = TARGET
+        local llvm_target="${LLVM_BIN_X86_64_RELEASE}"
+        if [[ "${PANDA_SDK_BUILD_TYPE}" == "${BUILD_TYPE_DEBUG}" ]]; then
+            llvm_target="${LLVM_BIN_X86_64_DEBUG}"
+        fi
+        if [[ "${PANDA_SDK_BUILD_TYPE}" == "FastVerify" ]]; then
+            llvm_target="${LLVM_BIN_X86_64_DEBUG}"
+        fi
+        extra_llvm_opts="\
+            -DLLVM_TARGET_PATH=${llvm_target} \
+            -DLLVM_HOST_PATH=${llvm_target}\
+            "
+    fi
+
+    local linux_build_dir="$SDK_BUILD_ROOT/linux_host_tools"
+    local linux_cmake_args=" \
+        -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/host_clang_14.cmake \
+        -DPANDA_CROSS_AARCH64_TOOLCHAIN_FILE=cmake/toolchain/cross-ohos-musl-aarch64.cmake \
+        -DTOOLCHAIN_SYSROOT=$OHOS_SDK_NATIVE/sysroot \
+        -DTOOLCHAIN_CLANG_ROOT=$OHOS_SDK_NATIVE/llvm \
+        -DPANDA_ETS_INTEROP_JS=ON \
+        -DPANDA_LLVM_BACKEND=${PANDA_LLVM_BACKEND} \
+        ${extra_llvm_opts} \
+        -DPANDA_BUILD_LLVM_BINARIES=${PANDA_BUILD_LLVM_BINARIES} \
+        -DPANDA_BUILD_LLVM_BINARIES_PATH_ROOT=${SDK_BUILD_ROOT}/llvm_binaries"
+    local linux_build_targets="ark ark_aot ets_interop_js_napi ark_disasm ark_link es2panda etssdk e2p_test_plugin verifier ani_helpers aspt_converter dependency_analyzer"
+    build_panda "$linux_build_dir" "$linux_cmake_args" "$linux_build_targets"
+    copy_into_sdk "$linux_build_dir" "$PANDA_SDK_PATH/linux_host_tools" "$SCRIPT_DIR"/linux_host_tools.txt
+    mv "$PANDA_SDK_PATH/linux_host_tools/lib/module/ets_interop_js_napi.so" "$PANDA_SDK_PATH/linux_host_tools/lib/libets_interop_js_napi.so"
+    rm -r "$PANDA_SDK_PATH/linux_host_tools/lib/module"
+    copy_abc_files "$linux_build_dir"
+}
+
+function windows_tools() {
+    echo "> Building windows tools..."
+    local windows_build_dir="$SDK_BUILD_ROOT/windows_host_tools"
+    local windows_cmake_args="-DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cross-clang-14-x86_64-w64-mingw32-static.cmake"
+    local windows_build_targets="es2panda ark_link dependency_analyzer"
+    build_panda "$windows_build_dir" "$windows_cmake_args" "$windows_build_targets"
+    copy_into_sdk "$windows_build_dir" "$PANDA_SDK_PATH/windows_host_tools" "$SCRIPT_DIR"/windows_host_tools.txt
+}
+
+function ohos_arm64() {
+    echo "> Building runtime for OHOS ARM64..."
+    local ohos_build_dir="$SDK_BUILD_ROOT/ohos_arm64"
+    local taget_sdk_dir="$PANDA_SDK_PATH/ohos_arm64"
+    local extra_llvm_opts=""
+    if [[ "${PANDA_LLVM_BACKEND}" == "ON" ]]; then
+        if [[ "${PANDA_SDK_BUILD_TYPE}" == "FastVerify" ]]; then
+            extra_llvm_opts="\
+            -DLLVM_TARGET_PATH=${LLVM_BIN_OHOS_FASTVERIFY} \
+            -DLLVM_HOST_PATH=${LLVM_BIN_X86_64_RELEASE} \
+            "
+        else
+            extra_llvm_opts="\
+            -DLLVM_TARGET_PATH=${LLVM_BIN_OHOS_RELEASE} \
+            -DLLVM_HOST_PATH=${LLVM_BIN_X86_64_RELEASE} \
+            "
+        fi
+    fi
+    local target_cmake_args=" \
+        -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cross-ohos-musl-aarch64.cmake \
+        -DTOOLCHAIN_SYSROOT=$OHOS_SDK_NATIVE/sysroot \
+        -DTOOLCHAIN_CLANG_ROOT=$OHOS_SDK_NATIVE/llvm \
+        -DPANDA_ETS_INTEROP_JS=ON \
+        -DPANDA_LLVM_BACKEND=${PANDA_LLVM_BACKEND} \
+        -DPANDA_WITH_SAFEPOINT_CHECKER=${PANDA_WITH_SAFEPOINT_CHECKER} \
+        -DPANDA_TRACK_INTERNAL_ALLOCATIONS=${PANDA_TRACK_INTERNAL_ALLOCATIONS} \
+        ${extra_llvm_opts} \
+        -DPANDA_BUILD_LLVM_BINARIES=${PANDA_BUILD_LLVM_BINARIES} \
+        -DPANDA_BUILD_LLVM_BINARIES_PATH_ROOT=${SDK_BUILD_ROOT}/llvm_binaries"
+    local ohos_build_targets="ark ark_aot arkruntime arkassembler ets_interop_js_napi e2p_test_plugin ani_helpers aspt_converter dependency_analyzer"
+    build_panda "$ohos_build_dir" "$target_cmake_args" "$ohos_build_targets"
+    copy_into_sdk "$ohos_build_dir" "$taget_sdk_dir" "$SCRIPT_DIR"/ohos_arm64.txt
+
+    echo "> Copying headers into SDK..."
+    local headers_dst="$taget_sdk_dir"/include
+    # Source headers
+    copy_into_sdk "$ARK_ROOT" "$headers_dst" "$SCRIPT_DIR"/headers.txt '\(\.h$\|\.inl$\|\.inc$\)'
+    # Generated headers
+    copy_into_sdk "$ohos_build_dir" "$headers_dst" "$SCRIPT_DIR"/gen_headers.txt '\(\.h$\|\.inl$\|\.inc$\|\.idl$\)'
+    copy_abc_files "$ohos_build_dir"
+}
+
+function ohos_arm32() {
+    echo "> Building runtime for OHOS ARM32..."
+    local ohos_build_dir="$SDK_BUILD_ROOT/ohos_arm32"
+    local taget_sdk_dir="$PANDA_SDK_PATH/ohos_arm32"
+    local target_cmake_args=" \
+        -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cross-ohos-musl-arm32.cmake \
+        -DTOOLCHAIN_SYSROOT=$OHOS_SDK_NATIVE/sysroot \
+        -DTOOLCHAIN_CLANG_ROOT=$OHOS_SDK_NATIVE/llvm \
+        -DPANDA_ETS_INTEROP_JS=ON \
+        -DPANDA_LLVM_BACKEND=${PANDA_LLVM_BACKEND} \
+        -DPANDA_BUILD_LLVM_BINARIES=${PANDA_BUILD_LLVM_BINARIES} \
+        -DPANDA_BUILD_LLVM_BINARIES_PATH_ROOT=${SDK_BUILD_ROOT}/llvm_binaries"
+    local ohos_build_targets="ark arkruntime arkassembler ets_interop_js_napi ani_helpers aspt_converter dependency_analyzer"
+    build_panda "$ohos_build_dir" "$target_cmake_args" "$ohos_build_targets"
+    copy_into_sdk "$ohos_build_dir" "$taget_sdk_dir" "$SCRIPT_DIR"/ohos_arm32.txt
+    copy_abc_files "$ohos_build_dir"
+}
+
+function ts_linter() {
+    echo "> Building tslinter..."
+    local linter_root="$ARK_ROOT/tools/es2panda/linter"
+    (cd "$linter_root" && npm install && npm run install-ohos-typescript && npm run build)
+    local tgz="$(ls "$linter_root"/bundle/panda-tslinter*tgz)"
+    mkdir -p "$PANDA_SDK_PATH"/tslinter
+    tar -xf "$tgz" -C "$PANDA_SDK_PATH"/tslinter
+    mv "$PANDA_SDK_PATH"/tslinter/package/* "$PANDA_SDK_PATH"/tslinter/
+    rm -rf "$PANDA_SDK_PATH"/tslinter/node_modules
+    rm -rf "$PANDA_SDK_PATH"/tslinter/package
+
+    # Clean up
+    rm "$tgz"
+    rm "$linter_root"/package-lock.json
+    rm -rf "$linter_root"/build
+    rm -rf "$linter_root"/bundle
+    rm -rf "$linter_root"/dist
+    rm -rf "$linter_root"/node_modules
+}
+
+function es2panda_driver() {
+    echo "> Building es2panda driver"
+    local ts_bindings_root="$ETS_FRONTEND_ROOT/ets2panda/bindings"
+    (cd "$ts_bindings_root" && npm install && npm run run)
+    local build_system_root="$ETS_FRONTEND_ROOT/ets2panda/driver/build_system"
+    (cd "$build_system_root" && npm install && npm run build)
+    mkdir -p "$PANDA_SDK_PATH"/driver/build_system
+    cp -r "$build_system_root"/dist "$PANDA_SDK_PATH"/driver/build_system/
+    cp -rL "$build_system_root"/node_modules "$PANDA_SDK_PATH"/driver/build_system/
+    cp "$build_system_root"/package.json "$PANDA_SDK_PATH"/driver/build_system/
+
+    rm -rf "$ts_bindings_root"/dist "$ts_bindings_root"/ts_bindings.node "$ts_bindings_root"/tsconfig.tsbuildinfo "$build_system_root"/dist
+}
+
+function ets_std_lib() {
+    echo "> Copying ets std lib into SDK..."
+    mkdir -p "$PANDA_SDK_PATH"/ets/stdlib
+    cp -r "$ARK_ROOT"/plugins/ets/stdlib/std "$PANDA_SDK_PATH"/ets/stdlib
+    cp -r "$ARK_ROOT"/plugins/ets/stdlib/escompat "$PANDA_SDK_PATH"/ets/stdlib
+}
+
+function ets_sdk() {
+    echo "> Copying ets sdk into SDK..."
+    mkdir -p "$PANDA_SDK_PATH"/ets/sdk
+    cp -r "$ARK_ROOT"/plugins/ets/sdk "$PANDA_SDK_PATH"/ets/sdk
+}
+
+function icu_dat_file() {
+    echo "> Copying icu data file into SDK..."
+    mkdir -p "$PANDA_SDK_PATH"/icu/data
+    cp -r "$ARK_ROOT"/third_party/icu/ohos_icu4j/data/icu*dat "$PANDA_SDK_PATH"/icu/data/
+}
+
+function print_help() {
+    HELP_MESSAGE="
+    This script builds Panda SDK.
+
+    SYNOPSIS
+
+    $0 /path/to/panda/sdk/destination [OPTIONS]
+
+    OPTIONS
+
+    --help, -h              Show this message and exit.
+
+    --build_type=...        [Release/Debug/FastVerify] Set build type
+
+    --ohos_arm32            Run building for OHOS ARM32
+
+    --ohos_arm64            Run building for OHOS ARM64
+
+    --linux_arm64_tools     Run building linux arm64 tools
+
+    --linux_tools           Run building linux tools
+
+    --windows_tools         Run building windows tools
+
+    --ts_linter             Run building ts_linter
+
+    --es2panda_driver       Run building build_system
+
+    --ets_std_lib           Copy ets std lib into SDK
+
+    --ets_sdk               Copy ets sdk into SDK
+
+    --icu_dat_file          Copy icu data file into SDK
+
+    --panda_llvm_backend    Run building LLVM backend (default)
+
+    --no_panda_llvm_backend Run build without LLVM backend
+
+    --llvm_prebuilts_aarch64_debug=..
+                            Path to debug llvm prebuilts for aarch64
+
+    --llvm_prebuilts_aarch64_release=..
+                            Path to release llvm prebuilts for aarch64
+
+    --llvm_prebuilts_aarch64_fastverify=..
+                            Path to fastverify llvm prebuilts for aarch64
+
+    --llvm_prebuilts_x86_64_debug=..
+                            Path to debug llvm prebuilts for x86_64
+
+    --llvm_prebuilts_x86_64_release=..
+                            Path to release llvm prebuilts for x86_64
+
+    --llvm_prebuilts_ohos_release=..
+                            Path to release llvm prebuilts for ohos (aarch64)
+
+    --llvm_prebuilts_ohos_fastverify=..
+                            Path to fastverify llvm prebuilts for ohos (aarch64)
+
+    --panda_build_llvm_bin  Run building LLVM-binaries
+
+    --safepoint_checker_build Enable intrinsic timing data collection for ohos (aarch64)
+
+    --panda_track_internal_allocations
+                            Enable internal memory profiling statistics for ohos (aarch64)
+    "
+
+    echo "$HELP_MESSAGE"
+}
+
+function enable_ohos_sdk_native() {
+    OHOS_SDK_ARCH_NAME=ohos-sdk.tar.gz
+    SDK_VERSION_STAGE='Release'
+    OHOS_SDK_VERSION='5.0.2'
+    local OHOS_SDK_NATIVE_URL=${OHOS_SDK_NATIVE_URL:-"https://repo.huaweicloud.com/harmonyos/os/${OHOS_SDK_VERSION}-Release/ohos-sdk-windows_linux-public.tar.gz"}
+
+    # Search for default OHOS SDK native or download it
+    if [ -z "$OHOS_SDK_NATIVE" ]; then
+        local OHOS_SDK_NATIVE_DEFAULT_1=/opt/ohos-sdk/native
+        local OHOS_SDK_NATIVE_DEFAULT_2="$(realpath ./native)"
+        if [ -d "$OHOS_SDK_NATIVE_DEFAULT_1" ]; then
+            OHOS_SDK_NATIVE="$OHOS_SDK_NATIVE_DEFAULT_1"
+        elif [ -d "$OHOS_SDK_NATIVE_DEFAULT_2" ]; then
+            OHOS_SDK_NATIVE="$OHOS_SDK_NATIVE_DEFAULT_2"
+        else
+            if [ -z "$OHOS_SDK_NATIVE_URL" ]; then
+                echo "Error: OHOS SDK not found, please set OHOS_SDK_NATIVE or OHOS_SDK_NATIVE_URL environment variable"
+                exit 1
+            fi
+
+            curl --retry 5 -Lo "${OHOS_SDK_ARCH_NAME}" "${OHOS_SDK_NATIVE_URL}"
+            tar -xf "${OHOS_SDK_ARCH_NAME}"
+            unzip -q ohos-sdk/linux/native-linux-x64-"${OHOS_SDK_VERSION}"*-"${SDK_VERSION_STAGE}".zip
+            rm "${OHOS_SDK_ARCH_NAME}"
+            OHOS_SDK_NATIVE="$(realpath ./native)"
+        fi
+    fi
+}
+
+function set_default() {
+    echo "No arguments provided. Set default-configuration."
+    OHOS_ARM32="true"
+    OHOS_ARM64="true"
+    LINUX_ARM64_TOOLS="true"
+    LINUX_TOOLS="true"
+    WINDOWS_TOOLS="true"
+    TS_LINTER="true"
+    ES2PANDA_DRIVER="true"
+    ETS_STD_LIB="true"
+    ETS_SDK="true"
+    ICU_DAT_FILE="true"
+}
+
+function parse_options() {
+    local has_args="false"
+    for i in "$@"; do
+        local ERROR_ARG=""
+        case $i in
+        -h|--help)
+            print_help
+            exit 0
+            ;;
+        --build_type=*)
+            TYPE_ARG=${i//[-a-zA-Z0-9]*=/}
+            if [[ "$TYPE_ARG" = "Release" ]]; then
+                PANDA_SDK_BUILD_TYPE="Release"
+            fi
+            if [[ "$TYPE_ARG" = "Debug" ]]; then
+                PANDA_SDK_BUILD_TYPE="Debug"
+            fi
+            if [[ "$TYPE_ARG" = "FastVerify" ]]; then
+                PANDA_SDK_BUILD_TYPE="FastVerify"
+            fi
+            shift
+            ;;
+        --ohos_arm32)
+            OHOS_ARM32="true"
+            has_args="true"
+            shift
+            ;;
+        --ohos_arm64)
+            OHOS_ARM64="true"
+            has_args="true"
+            shift
+            ;;
+        --linux_arm64_tools)
+            LINUX_ARM64_TOOLS="true"
+            has_args="true"
+            shift
+            ;;
+        --linux_tools)
+            LINUX_TOOLS="true"
+            has_args="true"
+            shift
+            ;;
+        --windows_tools)
+            WINDOWS_TOOLS="true"
+            has_args="true"
+            shift
+            ;;
+        --ts_linter)
+            TS_LINTER="true"
+            has_args="true"
+            shift
+            ;;
+        --es2panda_driver)
+            ES2PANDA_DRIVER="true"
+            has_args="true"
+            shift
+            ;;
+        --ets_std_lib)
+            ETS_STD_LIB="true"
+            has_args="true"
+            shift
+            ;;
+        --ets_sdk)
+            ETS_SDK="true"
+            has_args="true"
+            shift
+            ;;
+        --icu_dat_file)
+            ICU_DAT_FILE="true"
+            has_args="true"
+            shift
+            ;;
+        --panda_llvm_backend)
+            PANDA_LLVM_BACKEND="ON"
+            shift
+            ;;
+        --no_panda_llvm_backend)
+            PANDA_LLVM_BACKEND="OFF"
+            shift
+            ;;
+        --llvm_prebuilts_aarch64_debug=*)
+            LLVM_BIN_AARCH64_DEBUG="${i#"--llvm_prebuilts_aarch64_debug"}"
+            shift;;
+        --llvm_prebuilts_aarch64_release=*)
+            LLVM_BIN_AARCH64_RELEASE="${i#"--llvm_prebuilts_aarch64_release="}"
+            shift;;
+        --llvm_prebuilts_aarch64_fastverify=*)
+            LLVM_BIN_AARCH64_FASTVERIFY="${i#"--llvm_prebuilts_aarch64_fastverify="}"
+            shift;;
+        --llvm_prebuilts_x86_64_debug=*)
+            LLVM_BIN_X86_64_DEBUG="${i#"--llvm_prebuilts_x86_64_debug="}"
+            shift;;
+        --llvm_prebuilts_x86_64_release=*)
+            LLVM_BIN_X86_64_RELEASE="${i#"--llvm_prebuilts_x86_64_release="}"
+            shift;;
+        --llvm_prebuilts_ohos_release=*)
+            LLVM_BIN_OHOS_RELEASE="${i#"--llvm_prebuilts_ohos_release="}"
+            shift;;
+        --llvm_prebuilts_ohos_fastverify=*)
+            LLVM_BIN_OHOS_FASTVERIFY="${i#"--llvm_prebuilts_ohos_fastverify="}"
+            shift;;
+        --panda_build_llvm_bin)
+            PANDA_BUILD_LLVM_BINARIES="ON"
+            shift
+            ;;
+        --safepoint_checker_build)
+            PANDA_WITH_SAFEPOINT_CHECKER="ON"
+            shift
+            ;;
+        --panda_track_internal_allocations)
+            PANDA_TRACK_INTERNAL_ALLOCATIONS=1
+            shift
+            ;;
+        *)
+            ERROR_ARG="YES"
+        esac
+
+        if [[ -n "${ERROR_ARG}" ]]; then
+            echo "Error: Unsupported flag $i" >&2
+            exit 1
+        fi
+    done
+
+    if [ "$has_args" = "false" ]; then
+        set_default
+    fi
+}
+
+function build_sdk_targets() {
+    if [ "$OHOS_ARM32" = "true" ]; then 
+        ohos_arm32
+    fi
+
+    if [ "$OHOS_ARM64" = "true" ]; then 
+        ohos_arm64
+    fi
+
+    if [ "$LINUX_ARM64_TOOLS" = "true" ]; then
+        linux_arm64_tools
+    fi
+
+    if [ "$LINUX_TOOLS" = "true" ]; then
+        linux_tools
+    fi
+
+    if [ "$WINDOWS_TOOLS" = "true" ]; then
+        windows_tools
+    fi
+
+    if [ "$TS_LINTER" = "true" ]; then
+        ts_linter
+    fi
+
+    if [ "$ES2PANDA_DRIVER" = "true" ]; then
+        es2panda_driver
+    fi
+
+    if [ "$ETS_STD_LIB" = "true" ]; then
+        ets_std_lib
+    fi
+
+    if [ "$ETS_SDK" = "true" ]; then
+        ets_sdk
+    fi
+
+    if [ "$ICU_DAT_FILE" = "true" ]; then
+        icu_dat_file
+    fi
+}
+
+function usage() {
+    print_help
+    exit 1
+}

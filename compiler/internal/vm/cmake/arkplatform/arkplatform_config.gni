@@ -1,0 +1,29 @@
+# Copyright (c) 2023-2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+if (!defined(ark_standalone_build)) {
+  ark_standalone_build = false
+}
+
+if (ark_standalone_build) {
+  import("//build/config/sanitizers/sanitizers.gni")
+  enable_platform = false
+  import("$build_root/ark.gni")
+  import("$build_root/config/build_type.gni")
+} else {
+  import("//build/config/components/toolchain/build_type.gni")
+  import("//build/config/sanitizers/sanitizers.gni")
+  import("//build/ohos.gni")
+}
+
+platform_root = "//arkcompiler/runtime_core/platform"

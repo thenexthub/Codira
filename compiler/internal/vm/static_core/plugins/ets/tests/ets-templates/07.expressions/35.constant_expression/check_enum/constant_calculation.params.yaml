@@ -1,0 +1,43 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+cases:
+  - { type: byte, value: 26, sign: '*', expected: 260 }
+  - { type: byte, value: 26, sign: '/', expected: 2  }
+  - { type: byte, value: 26, sign: '%', expected: 6   }
+  - { type: byte, value: 26, sign: '+', expected: 36  }
+  - { type: byte, value: 26, sign: '-', expected: 16  }
+
+  - { type: short, value: 260, sign: '*', expected: 2600  }
+  - { type: short, value: 260, sign: '/', expected: 26 }
+  - { type: short, value: 260, sign: '%', expected: 0  }
+  - { type: short, value: 260, sign: '+', expected: 270  }
+  - { type: short, value: 260, sign: '-', expected: 250  }
+
+  - { type: long, value: 5006,  sign: '*', expected: 50060 }
+  - { type: long, value: 50006, sign: '/', expected: 5000 }
+  - { type: long, value: 50006, sign: '%', expected: 6 }
+  - { type: long, value: 50006, sign: '+', expected: 50016 }
+  - { type: long, value: 50006, sign: '-', expected: 49996 }
+
+  - { type: float, value: 123.2f, sign: '*', expected: 1232 }
+  - { type: float, value: 123.2f, sign: '/', expected: 12.32f }
+  - { type: float, value: 123.2f, sign: '%', expected: 123.2f%10 }
+  - { type: float, value: 123.2f, sign: '+', expected: 133.2f }
+  - { type: float, value: 123.2f, sign: '-', expected: 113.2f }
+
+  - { type: number, value: 5051.9, sign: '*', expected: 50519 }
+  - { type: number, value: 5051.9, sign: '/', expected: 5051.9/10 }
+  - { type: number, value: 5051.9, sign: '%', expected: 5051.9%10 }
+  - { type: number, value: 5051.9, sign: '+', expected: 5061.9 }
+  - { type: number, value: 5051.9, sign: '-', expected: 5041.9 }

@@ -1,0 +1,67 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of predefined types
+cases:
+  - decl: |
+      interface I {
+        fld1: string
+        fld2: int
+      }
+      class A implements I {
+        fld1: string = "abc"
+        fld2: int = 1
+      }
+      class B implements I {
+        fld1: string = "def"
+        fld2: int = 2
+      }
+    use: |
+      let a: A = new A()
+      let b: B = new B()
+      arktest.assertEQ(a.fld1, "abc")
+      arktest.assertEQ(a.fld2, 1)
+      arktest.assertEQ(b.fld1, "def")
+      arktest.assertEQ(b.fld2, 2)
+
+  - decl: |
+      class A<T> {
+        foo<T>(): this { return this }
+      }
+      class B {}
+    use: |
+      let a: A<B> = new A<B>()
+      let b = a.foo().foo()
+
+  - decl: |
+      interface I {
+        fld1: string
+        fld2: number
+      }
+    use: |
+      let i: I | null = {fld1: 'dfgd', fld2: 5}
+      i.fld1
+
+
+  - decl: |
+      class A {
+        fld1: string = "abc"
+      }
+      class B {
+        fld1: number = 1
+      }
+    use: |
+      let a: A | B = new A()
+      arktest.assertEQ(a.fld1, "abc")
+      let b: A | B = new B()
+      arktest.assertEQ(b.fld1, 1)

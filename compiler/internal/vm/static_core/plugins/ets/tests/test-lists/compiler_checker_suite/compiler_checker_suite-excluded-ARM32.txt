@@ -1,0 +1,20 @@
+#inlining of the following intrinsics is only enabled for these two targets (PANDA_TARGET_AMD64 OR PANDA_TARGET_ARM64)
+ets_tests/ets_isFinite.ets
+
+#AOT mode for arm32 is not supported
+ets_tests/ets_string_from_char_code.ets
+ets_tests/external_inlining/ext_inlining_1.ets
+ets_tests/external_inlining/ext_inlining_2.ets
+ets_tests/external_inlining/ext_inlining_3.ets
+ets_tests/external_inlining/ext_inlining_4.ets
+ets_tests/external_inlining/ext_inlining_5.ets
+ets_tests/external_inlining/ext_inlining_6.ets
+ets_tests/inlining_test/inline_external_test.ets
+ets_tests/ets_escompat_typed_arrays_fill.ets
+ets_tests/ets_escompat_typed_arrays_fill_part2.ets
+
+#No deoptimization occurs in String.split on arm32
+ets_tests/loop_idioms/memmove_bailout.ets
+ets_tests/loop_idioms/memmove_supported.ets
+ets_tests/loop_idioms/memmove_supported_part2.ets
+ets_tests/loop_idioms/memmove_unsupported.ets

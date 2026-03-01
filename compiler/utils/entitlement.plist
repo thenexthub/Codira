@@ -1,0 +1,16 @@
+<!--
+Copyright (c) Huawei Technologies Co., Ltd. 2025. All rights reserved.
+This source file is part of the Codira project, licensed under Apache-2.0
+with Runtime Library Exception.
+
+See https://codira-lang.cn/pages/LICENSE for license information.
+-->
+
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.get-task-allow</key>
+    <true/>
+</dict>
+</plist>

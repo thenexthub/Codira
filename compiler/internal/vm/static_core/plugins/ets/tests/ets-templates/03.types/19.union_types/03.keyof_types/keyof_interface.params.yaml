@@ -1,0 +1,89 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+  # Fields
+  - def: |-
+      i: byte
+    check:
+      - '"i"'
+
+  - def: |-
+      i: int
+      j: boolean
+      k: string
+      n: number
+      O_1: Object
+    check:
+      - '"i"'
+      - '"j"'
+      - '"k"'
+      - '"n"'
+      - '"O_1"'
+
+  - def: |-
+      i: int|byte|string|undefined
+      j: undefined|char|null
+    check:
+      - '"i"'
+      - '"j"'
+
+  - def: |-
+      longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_: long
+    check:
+      - '"longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_"'
+
+  # Fields and methods
+  - def: |-
+      var2: number[]
+      foo: number[]
+      var1()
+      bar() { return true }
+    check:
+      - '"bar"'
+      - '"foo"'
+      - '"var1"'
+      - '"var2"'
+
+    # Overloading
+  - def: |-
+      foo()
+      foo(i: int)
+      foo(j: number)
+    check:
+      - '"foo"'
+
+    # Different types check
+  - def: |-
+      i: string|number|undefined|null
+    check:
+      - '"i"'
+
+  - decl: |-
+      type custom = int
+    def: |-
+      i: custom
+    check:
+      - '"i"'
+
+  - decl: |-
+      enum ENUM {Red, Orange, Green}
+    def: |-
+      i: ENUM
+    check:
+      - '"i"'
+
+  - def: |-
+      i?: boolean
+    check:
+      - '"i"'

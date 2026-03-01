@@ -1,0 +1,30 @@
+# Copyright (c) 2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+#! CHECKER      ark_aot inlines external constructor
+#! SKIP_IF      @architecture == "arm32"
+#! RUN_PAOC     options: "--compiler-inline-external-methods-aot=true"
+#! EVENT        /Inline,_GLOBAL::bar,Test::.ctor,.*STATIC,SUCCESS/
+
+.record Test <external>
+
+.function void Test.init(Test a0) <ctor,external>
+
+.function Test bar() {
+    newobj v0, Test
+    call.short Test.init, v0
+    lda.obj v0
+    return.obj
+}
+

@@ -1,0 +1,70 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    - call: |-
+          // x.foo(p: FA)
+          arktest.assertEQ((x.foo(fa) as FA)("A", 1.0), "A1")
+          arktest.assertEQ((x.foo(fb) as FB)("A"), "FBA")
+          arktest.assertEQ((x.foo(fc) as FC)(), "FC")
+          arktest.assertEQ((x.foo(fd) as FD)("A", 1.0), "FDA1")
+          arktest.assertEQ((x.foo(fe) as FE)("x", "y"), "FExy")
+
+          // x.foo(p: FB, x1: int)
+          arktest.assertEQ((x.foo(fb, 0) as FB)("A"), "FBA")
+          arktest.assertEQ((x.foo(fc, 0) as FC)(), "FC")
+
+          // x.foo(p: FC, x1: int, x2: int)
+          arktest.assertEQ((x.foo(fc, 0, 0) as FC)(), "FC")
+
+          // x.foo(p: FD, x1: int, x2: int, x3: int)
+          arktest.assertEQ((x.foo(fd, 0, 0, 0) as FD)("A", 1.0), "FDA1")
+
+          // x.foo(p: FE, x1: int, x2: int, x3: int, x4: int)
+          arktest.assertEQ((x.foo(fb, 0, 0, 0, 0) as FB)("A"), "FBA")
+          arktest.assertEQ((x.foo(fc, 0, 0, 0, 0) as FC)(), "FC")
+          arktest.assertEQ((x.foo(fe, 0, 0, 0, 0) as FE)("x", "y"), "FExy")
+
+    - tags: 'compile-only, negative'
+      call: |-
+          x.foo(fa, 0)
+
+    - tags: 'compile-only, negative'
+      call: |-
+          x.foo(fa, 0, 0)
+
+    - tags: 'compile-only, negative'
+      call: |-
+          x.foo(fb, 0, 0)
+
+    - tags: 'compile-only, negative'
+      call: |-
+          x.foo(fa, 0, 0, 0)
+
+    - tags: 'compile-only, negative'
+      call: |-
+          x.foo(fb, 0, 0, 0)
+
+    - tags: 'compile-only, negative'
+      call: |-
+          x.foo(fa, 0, 0, 0, 0)

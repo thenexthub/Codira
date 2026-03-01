@@ -1,0 +1,167 @@
+From e59ccfa19d0cfb3f4eb802c2086911388a084333 Mon Sep 17 00:00:00 2001
+From: "evgenii.generalov" <evgenii.generalov@bell-sw.com>
+Date: Mon, 22 Dec 2025 15:51:39 +0300
+Subject: [PATCH] Support MacOS
+
+Issue: https://gitcode.com/openharmony/arkcompiler_runtime_core/issues/8818
+Change-Id: Idc709f1c61740b2c4b9ef5c0f4efff7d54c3c84f
+Signed-off-by: evgenii.generalov <evgenii.generalov@bell-sw.com>
+---
+ BUILD.gn                | 10 ++++----
+ CMakeLists.txt          |  4 ----
+ src/code-buffer-vixl.cc | 53 +++++++++++++++++++++++------------------
+ src/code-buffer-vixl.h  |  4 ++++
+ 4 files changed, 39 insertions(+), 32 deletions(-)
+
+diff --git a/BUILD.gn b/BUILD.gn
+index 7fbdb5e9de..b1b46829a1 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -31,7 +31,10 @@ config("vixl_public_config") {
+     defines += [ "VIXL_DEBUG" ]
+   }
+ 
+-  defines += [ "PANDA_BUILD" ]
++  defines += [
++    "PANDA_BUILD",
++    "VIXL_CODE_BUFFER_MMAP"
++  ]
+ 
+   if (defined(ark_standalone_build) && ark_standalone_build) {
+     cflags_cc = [ "-Wno-bitwise-instead-of-logical" ]
+@@ -128,11 +131,8 @@ ohos_static_library("libvixl") {
+       "-mfpu=vfp",
+     ]
+   }
+-
+   if (is_mac) {
+-    cflags_cc += [ "-DVIXL_CODE_BUFFER_MALLOC" ]
+-  } else {
+-    cflags_cc += [ "-DVIXL_CODE_BUFFER_MMAP" ]
++    defines += [ "PANDA_TARGET_MACOS" ]
+   }
+ 
+   public_configs = [ ":vixl_public_config" ]
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 9a5029d0d5..9ae96af76f 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -37,11 +37,7 @@ set(VIXL_DIR
+     .
+     src/ )
+ 
+-if (PANDA_TARGET_MACOS)
+-set(VIXL_FLAGS -DVIXL_CODE_BUFFER_MALLOC -DPANDA_BUILD)
+-else()
+ set(VIXL_FLAGS -DVIXL_CODE_BUFFER_MMAP -DPANDA_BUILD)
+-endif()
+ 
+ set(VIXL_AARCH32_SOURCES
+     src/aarch32/assembler-aarch32.cc
+diff --git a/src/code-buffer-vixl.cc b/src/code-buffer-vixl.cc
+index 9f5df3471e..4f83df6d21 100644
+--- a/src/code-buffer-vixl.cc
++++ b/src/code-buffer-vixl.cc
+@@ -53,9 +53,9 @@ CodeBuffer::CodeBuffer(size_t capacity)
+   VIXL_CHECK(buffer_ != NULL);
+   // Aarch64 instructions must be word aligned, we assert the default allocator
+   // always returns word align memory.
+-  if (buffer_ != MAP_FAILED) {
+-      VIXL_ASSERT(IsWordAligned(buffer_));
+-      cursor_ = buffer_;
++  if (IsValid()) {
++    VIXL_ASSERT(IsWordAligned(buffer_));
++    cursor_ = buffer_;
+   }
+ }
+ 
+@@ -93,28 +93,20 @@ CodeBuffer::~CodeBuffer() VIXL_NEGATIVE_TESTING_ALLOW_EXCEPTION {
+ }
+ 
+ 
+-void CodeBuffer::SetExecutable() {
+ #ifdef VIXL_CODE_BUFFER_MMAP
++void CodeBuffer::SetExecutable() {
+   int ret = mprotect(buffer_, capacity_, PROT_READ | PROT_EXEC);
+   VIXL_CHECK(ret == 0);
+-#else
+-  // This requires page-aligned memory blocks, which we can only guarantee with
+-  // mmap.
+-  VIXL_UNIMPLEMENTED();
+-#endif
+ }
++#endif
+ 
+ 
+-void CodeBuffer::SetWritable() {
+ #ifdef VIXL_CODE_BUFFER_MMAP
++void CodeBuffer::SetWritable() {
+   int ret = mprotect(buffer_, capacity_, PROT_READ | PROT_WRITE);
+   VIXL_CHECK(ret == 0);
+-#else
+-  // This requires page-aligned memory blocks, which we can only guarantee with
+-  // mmap.
+-  VIXL_UNIMPLEMENTED();
+-#endif
+ }
++#endif
+ 
+ // For some reason OHOS toolchain doesn't have this function
+ #ifdef PANDA_TARGET_MOBILE
+@@ -186,14 +178,29 @@ void CodeBuffer::Grow(size_t new_capacity) {
+   buffer_ = static_cast<byte*>(realloc(buffer_, new_capacity));
+   VIXL_CHECK(buffer_ != NULL);
+ #elif defined(VIXL_CODE_BUFFER_MMAP)
+-  buffer_ = static_cast<byte*>(
+-      mremap(buffer_, capacity_, new_capacity, MREMAP_MAYMOVE));
+-  VIXL_CHECK(buffer_ != MAP_FAILED);
+-  if ((mmap_max_ != 0) && (new_capacity > mmap_max_)) {
+-    // Force crash - allocated too much
+-    printf(" Allocated too much memory.\n");
+-    VIXL_UNREACHABLE();
+-  }
++#ifdef PANDA_TARGET_MACOS
++    auto new_buffer = reinterpret_cast<byte*>(mmap(buffer_,
++                                                   new_capacity,
++                                                   PROT_READ | PROT_WRITE,
++                                                   MAP_PRIVATE | MAP_ANONYMOUS,
++                                                   -1,
++                                                   0));
++    VIXL_CHECK(new_buffer != MAP_FAILED);
++    if (buffer_ != new_buffer) {
++      memcpy(new_buffer, buffer_, capacity_);
++      munmap(buffer_, capacity_);
++      buffer_ = new_buffer;
++    }
++#else
++    buffer_ = static_cast<byte*>(
++        mremap(buffer_, capacity_, new_capacity, MREMAP_MAYMOVE));
++    VIXL_CHECK(buffer_ != MAP_FAILED);
++#endif
++    if ((mmap_max_ != 0) && (new_capacity > mmap_max_)) {
++      // Force crash - allocated too much
++      printf(" Allocated too much memory.\n");
++      VIXL_UNREACHABLE();
++    }
+ #else
+ #error Unknown code buffer allocator.
+ #endif
+diff --git a/src/code-buffer-vixl.h b/src/code-buffer-vixl.h
+index 3ba73df63b..3dd94c8c9e 100644
+--- a/src/code-buffer-vixl.h
++++ b/src/code-buffer-vixl.h
+@@ -69,7 +69,11 @@ class CodeBuffer {
+ #endif
+ 
+   bool IsValid() const {
++#ifdef VIXL_CODE_BUFFER_MMAP
+     return (buffer_ != MAP_FAILED);
++#else
++    return (buffer_ != nullptr);
++#endif
+   }
+ 
+   ptrdiff_t GetOffsetFrom(ptrdiff_t offset) const {
+-- 
+2.52.0
+

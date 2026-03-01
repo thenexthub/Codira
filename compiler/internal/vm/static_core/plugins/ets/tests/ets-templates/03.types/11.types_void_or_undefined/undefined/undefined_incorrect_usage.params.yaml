@@ -1,0 +1,33 @@
+# Copyright (c) 2024-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not usage this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of named type declaration operations
+incorrect_cases:
+  - { declaration: 'undefined class A {}', usage: 'let a = new A' }
+  - { declaration: 'class undefined {}', usage: 'let a = new undefined()' }
+  - { declaration: 'class MCU implements undefined {}', usage: 'let a = new MCU'}
+  - { declaration: 'class MCU extends undefined {}', usage: 'let a = new MCU'}
+  - { declaration: 'interface undefined {}',  usage: 'let a: undefined'}
+  - { declaration: 'undefined interface I {}', usage: 'let a = 1' }
+  - { declaration: 'undefined function foo() { return 1}', usage: 'arktest.assertTrue(foo() == 2)' }
+  - { declaration: 'function undefined() { return 1}', usage: 'arktest.assertTrue(undefined() == 1)' }
+  - { declaration: 'undefined foo() { return 1}', usage: 'arktest.assertTrue(foo() == 1)' }
+  - { declaration: 'function foo(undefined int) { return 1}', usage: 'arktest.assertTrue(foo() == undefined)' }
+  - { declaration: 'class A { undefined:int = 1 }', usage: 'arktest.assertTrue(new A().undefined == 1)' }
+  - { declaration: 'class A { static undefined:int = 1 }', usage: 'arktest.assertTrue(A.undefined == 1)' }
+  - { declaration: 'class A { undefined:undefined = undefined }', usage: 'arktest.assertTrue(new A().undefined == undefined)' }
+  - { declaration: 'class A { undefined foo() { return 1} }', usage: 'arktest.assertTrue(new A().foo() == 1)' }
+  - { declaration: 'class A { undefined() { return 1} }', usage: 'arktest.assertTrue(new A().undefined() == 1)' }
+  - { declaration: 'class A implements undefined { }', usage: 'arktest.assertTrue(new A() instanceof A)' }
+  - { declaration: 'class A undefined String { }', usage: 'arktest.assertTrue(new A() instanceof A)' }
+  - { declaration: 'undefined A { }', usage: 'arktest.assertTrue(new A() instanceof A)' }

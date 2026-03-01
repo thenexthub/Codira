@@ -1,0 +1,241 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+@!namespace("my_ns", "inner")
+enum Color: i32 {
+    red = 1,
+    yellow = 2,
+    blue = 3,
+    green = 4,
+    black = 5,
+}
+
+union union_primitive {
+  sValue: String;      
+  i8Value: i8;  
+}
+
+struct Mystruct{
+  _string: String; 
+  _i8: i8;  
+}
+
+struct ErrorResponse {
+    success: bool; 
+    errorCode: i16; 
+    errorMessage: String;
+}
+
+function Primitives_noreturn(a: i32, b: f64, c: bool, d: String, e: i8): void;
+function Primitives_return(a: i32, b: f64, c: bool, d: String, e: i8): String;
+
+function Containers_noreturn(a: Array<i8>, b: Array<i16>, c: Array<f32>, d: Array<f64>, e: union_primitive): void;
+function Containers_return(a: Array<i8>, b: Array<i16>, c: Array<f32>, d: Array<f64>, e: union_primitive): String;
+
+function Enum_noreturn(a: Color, b : Color, c : Color, d : Color, e : Color): void;
+function Enum_return(a: Color, b : Color, c : Color, d : Color, e : Color): String;
+
+interface TestInterface{
+    Noparam_noreturn(): void;
+
+    Primitives_noreturn(a: i8): void;
+    Primitives_noreturn1(a: i16): void;
+    Primitives_noreturn2(a: i32): void;
+    Primitives_noreturn3(a: f32): void;
+    Primitives_noreturn4(a: f64): void;
+    Primitives_noreturn5(a: bool): void;
+    Primitives_noreturn6(a: String): void;
+    Primitives_noreturn7(a: i64): void;
+    
+
+    Primitives_return(a: i32): i32;
+    Containers_noreturn1(a: Array<i8>): void;
+    Containers_noreturn2(a: union_primitive): void;
+    Containers_noreturn3(a: @arraybuffer Array<u8>): void;
+    Containers_noreturn4(a: Color): void;
+    Containers_noreturn5(a: @record Map<String, i32>): void;
+
+
+    Containers_return(a: union_primitive): String;
+
+    Func_ErrorResponse(): ErrorResponse;
+
+    @overload("OverloadFunc")
+    OverloadFunc_i8(a: i8, b: i8): void;
+
+    @overload("OverloadFunc")
+    OverloadFunc_i16(a: Array<i8>, b: @arraybuffer Array<u8>): String;
+
+    @overload("OverloadFunc")
+    OverloadFunc_i32(): void;
+
+    @overload("OverloadFunc")
+    OverloadFunc_f32(a: Mystruct): Mystruct;
+
+    @get getName(): String;
+    @get geti8(): i8;
+    @get geti16(): i16;
+    @get geti32(): i32;
+    @get geti64(): i16;
+    @get getf32(): f32;
+    @get getf64(): f64;
+    @get getbool(): bool;
+    @get getArraybuffer(): @arraybuffer Array<u8>;
+    @get getArray():Array<i8>;
+    @get getunion():union_primitive;
+    @get getrecord():@record Map<String, i8>;
+    @get getColorEnum():Color;
+
+}
+
+interface Test1 {
+    Fun1(): void;
+    Fun2(): void;
+}
+
+interface Ttest2 {
+    Fun1(): void;
+    Fun2(): void;
+}
+
+interface Test3 {
+    Fun1(): void;
+    Fun2(): void;
+}
+
+interface Test4 {
+    Fun1(): void;
+    Fun2(): void;
+}
+
+interface Test5 {
+    Fun1(): void;
+    Fun2(): void;
+}
+
+interface Test6 {
+    Fun1(): void;
+    Fun2(): void;
+}
+
+interface Test7 {
+    Fun1(): void;
+    Fun2(): void;
+}
+
+interface Test8 {
+    Fun1(): void;
+    Fun2(): void;
+}
+
+interface Test9 {
+    Fun1(): void;
+    Fun2(): void;
+}
+
+interface Test10 {
+    Fun1(): void;
+    Fun2(): void;
+}
+
+interface Test11 {
+    Fun1(): void;
+    Fun2(): void;
+}
+
+interface Test12 {
+    Fun1(): void;
+    Fun2(): void;
+}
+
+interface Test13 {
+    Fun1(): void;
+    Fun2(): void;
+}
+
+interface Test14 {
+    fun1(): void;
+    fun2(): void;
+}
+
+interface Test15 {
+    Fun1(): void;
+    Fun2(): void;
+}
+
+interface Test16 {
+    Fun1(): void;
+    Fun2(): void;
+}
+
+interface Test17 {
+    Fun1(): void;
+    Fun2(): void;
+}
+
+interface Test18 {
+    Fun1(): void;
+    Fun2(): void;
+}
+
+interface Test19 {
+    Fun1(): void;
+    Fun2(): void;
+}
+
+interface Test20 {
+    Fun1(): void;
+    Fun2(): void;
+}
+
+interface TestA {
+    Fun1(): String;
+}
+interface TestB : TestA {
+    Fun2(): String;
+}
+interface TestC : TestA{
+    Fun3(): String;
+}
+
+
+function get_interface(): TestInterface;
+function PrintTestInterfaceName(testiface: TestInterface): String;
+function PrintTestInterfaceNumberi8(testiface: TestInterface): i8;
+function PrintTestInterfaceNumberi16(testiface: TestInterface): i16;
+function PrintTestInterfaceNumberi32(testiface: TestInterface): i32;
+function PrintTestInterfaceNumberi64(testiface: TestInterface): i64;
+function PrintTestInterfaceNumberf32(testiface: TestInterface): f32;
+function PrintTestInterfaceNumberf64(testiface: TestInterface): f64;
+function PrintTestInterfacebool(testiface: TestInterface): bool;
+function PrintTestInterfaceArraybuffer(testiface: TestInterface): @arraybuffer Array<u8>;
+
+function PrintTestInterfaceArray(testiface: TestInterface): Array<i8>;
+function PrintTestInterfaceUnion(testiface: TestInterface): union_primitive;
+function PrintTestInterfaceRecord(testiface: TestInterface): @record Map<String, i8>;
+function PrintTestInterfaceEnum(testiface: TestInterface): Color;
+
+function get_interface_1(): Test1;
+function get_interface_20(): Test20;
+
+function get_interface_A(): TestA;
+function get_interface_B(): TestB;
+function get_interface_C(): TestC;

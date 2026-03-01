@@ -1,0 +1,102 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+- {
+    name: char,
+    init_value: "0 as char",
+    array_sizes: {1, 2, 10, 100},
+  }
+- {
+    name: boolean,
+    init_value: "false",
+    array_sizes: {1, 2, 10, 100},
+  }
+- {
+    name: byte,
+    init_value: "0 as byte",
+    array_sizes: {1, 2, 10, 100},
+  }
+- {
+    name: short,
+    init_value: "0 as short",
+    array_sizes: {1, 2, 10, 100},
+  }
+- {
+  name: int,
+  init_value: "0 as int",
+  array_sizes: {1, 2, 10, 100},
+  }
+- {
+    name: long,
+    init_value: "0 as long",
+    array_sizes: {1, 2, 10, 100},
+  }
+- {
+    name: float,
+    init_value: "0.0f",
+    array_sizes: {1, 2, 10, 100},
+  }
+- {
+    name: double,
+    init_value: "0 as double",
+    array_sizes: {1, 2, 10, 100},
+  }
+- {
+    name: Char,
+    init_value: "new Char()",
+    array_sizes: {1, 2, 10, 100},
+  }
+- {
+    name: Boolean,
+    init_value: "new Boolean()",
+    array_sizes: {1, 2, 10, 100},
+  }
+- {
+    name: Byte,
+    init_value: "new Byte()",
+    array_sizes: {1, 2, 10, 100},
+  }
+- {
+    name: Short,
+    init_value: "new Short()",
+    array_sizes: {1, 2, 10, 100},
+  }
+- {
+    name: Int,
+    init_value: "new Int()",
+    array_sizes: {1, 2, 10, 100},
+  }
+- {
+  name: Long,
+  init_value: "new Long()",
+  array_sizes: {1, 2, 10, 100},
+  }
+- {
+    name: Float,
+    init_value: "new Float()",
+    array_sizes: {1, 2, 10, 100},
+  }
+- {
+  name: Double,
+  init_value: "new Double()",
+  array_sizes: {1, 2, 10, 100},
+}

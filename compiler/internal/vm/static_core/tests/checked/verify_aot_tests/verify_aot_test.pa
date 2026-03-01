@@ -1,0 +1,99 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+.function i32 __noinline__call_func() <external>
+
+.record VerifyAotTest { }
+
+.function i32 VerifyAotTest.main() {
+    call.short __noinline__call_func
+    return
+}
+
+
+#! CHECKER      Verify AOT file with cha
+#! RUN_PAOC     options: "--panda-files=../../verify_aot_tests_file1.checked/test.abc --paoc-use-cha=true"
+#! RUN          options: "--panda-files=../../verify_aot_tests_file1.checked/test.abc", entry: "VerifyAotTest::main", result: 1
+#! EVENT        /AotManager,.*test.*,ADDED/
+#! EVENT        /AotManager,.*test.*,VERIFIED/
+
+#! CHECKER      Verify AOT file without cha
+#! RUN_PAOC     options: "--panda-files=../../verify_aot_tests_file1.checked/test.abc --paoc-use-cha=false"
+#! RUN          options: "--panda-files=../../verify_aot_tests_file1.checked/test.abc", entry: "VerifyAotTest::main", result: 1
+#! EVENT        /AotManager,.*test.*,ADDED/
+#! EVENT        /AotManager,.*test.*,VERIFIED/
+
+#! CHECKER      Wrong AOT file with cha
+#! RUN_PAOC     options: "--panda-files=../../verify_aot_tests_file1.checked/test.abc --paoc-use-cha=true"
+#! RUN          options: "--panda-files=../../verify_aot_tests_file2.checked/test.abc", entry: "VerifyAotTest::main", abort: 6
+#! EVENT        /AotManager,.*test.*,ADDED/
+#! EVENT        /AotManager,.*test.*,CHA_VERIFY_FAILED/
+
+#! CHECKER      Wrong AOT file without cha
+#! RUN_PAOC     options: "--panda-files=../../verify_aot_tests_file1.checked/test.abc --paoc-use-cha=false"
+#! RUN          options: "--panda-files=../../verify_aot_tests_file2.checked/test.abc", entry: "VerifyAotTest::main", abort: 6
+#! EVENT        /AotManager,.*test.*,ADDED/
+#! EVENT        /AotManager,.*test.*,FILE_VERIFY_FAILED/
+
+#! CHECKER      Wrong path to AOT file with cha
+#! RUN_PAOC     options: "--panda-files=../../verify_aot_tests_file1.checked/test.abc --paoc-use-cha=true --paoc-location /dev/null"
+#! RUN          options: "--panda-files=../../verify_aot_tests_file1.checked/test.abc", entry: "VerifyAotTest::main", abort: 6
+#! EVENT        /AotManager,.*test.*,ADDED/
+#! EVENT        /AotManager,.*test.*,CHA_VERIFY_FAILED/
+
+#! CHECKER      Wrong path to AOT file without cha
+#! RUN_PAOC     options: "--panda-files=../../verify_aot_tests_file1.checked/test.abc --paoc-use-cha=false --paoc-location /dev/null"
+#! RUN          options: "--panda-files=../../verify_aot_tests_file1.checked/test.abc", entry: "VerifyAotTest::main", abort: 6
+#! EVENT        /AotManager,.*test.*,ADDED/
+#! EVENT        /AotManager,.*test.*,FILE_VERIFY_FAILED/
+
+#! CHECKER      Wrong path to boot panda files
+#! RUN_PAOC     options: "--panda-files=../../verify_aot_tests_file1.checked/test.abc --paoc-use-cha=true --paoc-boot-location /dev/null"
+#! RUN          options: "--panda-files=../../verify_aot_tests_file1.checked/test.abc", entry: "VerifyAotTest::main", abort: 6
+#! EVENT        /AotManager,.*test.*,ADDED/
+#! EVENT        /AotManager,.*test.*,CHA_VERIFY_FAILED/
+
+#! CHECKER      Test on boot-locations
+#! RUN_PAOC     options: "  --paoc-use-cha=true --paoc-boot-panda-locations /dev/null/arkstdlib.abc"
+#! EVENT_NOT    /Paoc,.*different files/
+#! EVENT_NOT    /Paoc,.*number of locations/
+
+#! CHECKER      Wrong file in boot-locations
+#! RUN_PAOC     options: "--paoc-use-cha=true --paoc-boot-panda-locations /dev/null/test.abc", abort: 6
+#! EVENT        /Paoc,.*different files/
+
+#! CHECKER      Wrong numbers of files in boot-locations
+#! RUN_PAOC     options: "--paoc-use-cha=true --paoc-boot-panda-locations /dev/null/arkstdlib.abc:/dev/null/test.abc", abort: 6
+#! EVENT        /Paoc,.*Numbers of files/
+
+#! CHECKER      Verify AOT file with cha and relative path
+#! RUN_PAOC     options: "--panda-files=../../verify_aot_tests_file1.checked/test.abc --paoc-use-cha=true --aot-verify-abs-path=false"
+#! RUN          options: "--panda-files=../../verify_aot_tests_file1.checked/test.abc --aot-verify-abs-path=false", entry: "VerifyAotTest::main", result: 1
+#! EVENT        /AotManager,.*test.*,ADDED/
+#! EVENT        /AotManager,.*test.*,VERIFIED/
+
+
+#! CHECKER      Wrong AOT file with relative path
+#! RUN_PAOC     options: "--panda-files=../../verify_aot_tests_file1.checked/test.abc --paoc-use-cha=true"
+#! RUN          options: "--panda-files=../../verify_aot_tests_file1.checked/test.abc --aot-verify-abs-path=false", entry: "VerifyAotTest::main", abort: 6
+#! EVENT        /AotManager,.*test.*,ADDED/
+#! EVENT        /AotManager,.*test.*,CHA_VERIFY_FAILED/

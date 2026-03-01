@@ -1,0 +1,15 @@
+{
+  "description": "Config for TestMainExceptionBreakpoints02",
+  "environment": [
+    {
+      "type": "device",
+      "label": "phone"
+    }
+  ],
+  "driver": {
+    "type": "DeviceTest",
+    "py_file": [
+      "toolchain/debug/TestMainExceptionBreakpoints02.py"
+    ]
+  }
+}

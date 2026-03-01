@@ -1,0 +1,83 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of pairwise test cases for equality operators on different numeric types
+numeric_eq:
+  - {left: "11", left_type: "byte", right: "11", right_type: "byte", op: "==", result: "true"}
+  - {left: "23", left_type: "byte", right: "45", right_type: "short", op: "===", result: "false"}
+  - {left: "55", left_type: "byte", right: "12", right_type: "int", op: "!=", result: "true"}
+  - {left: "13", left_type: "byte", right: "24", right_type: "long",  op: "!==", result: "true"}
+  - {left: "33", left_type: "byte", right: "33.0f", right_type: "float", op: "==", result: "true"}
+  - {left: "21", left_type: "byte", right: "21.0", right_type: "double", op: "==", result: "true"}
+  - {left: "127", left_type: "byte", right: "127n", right_type: "bigint", op: "==", result: "true"}
+  - {left: "-3", left_type: "short", right: "-3", right_type: "byte", op: "==", result: "true"}
+  - {left: "-1", left_type: "short", right: "1", right_type: "short", op: "===", result: "false"}
+  - {left: "127", left_type: "short", right: "128", right_type: "int", op: "!=", result: "true"}
+  - {left: "-128", left_type: "short", right: "-122", right_type: "long",  op: "!==", result: "true"}
+  - {left: "1", left_type: "short", right: "1.0f", right_type: "float", op: "==", result: "true"}
+  - {left: "32767", left_type: "short", right: "32767.0", right_type: "double", op: "==", result: "true"}
+  - {left: "-32768", left_type: "short", right: "-32768n", right_type: "bigint", op: "==", result: "true"}
+  - {left: "13", left_type: "int", right: "13", right_type: "byte", op: "==", result: "true"}
+  - {left: "127", left_type: "int", right: "145", right_type: "short", op: "===", result: "false"}
+  - {left: "-1", left_type: "int", right: "1", right_type: "int", op: "!=", result: "true"}
+  - {left: "897", left_type: "int", right: "789", right_type: "long",  op: "!==", result: "true"}
+  - {left: "1342", left_type: "int", right: "1342.0f", right_type: "float", op: "==", result: "true"}
+  - {left: "-9", left_type: "int", right: "-9.0", right_type: "double", op: "==", result: "true"}
+  - {left: "40000", left_type: "int", right: "40000n", right_type: "bigint", op: "==", result: "true"}
+  - {left: "1", left_type: "long", right: "1", right_type: "byte", op: "==", result: "true"}
+  - {left: "32768", left_type: "long", right: "-32768", right_type: "short", op: "===", result: "false"}
+  - {left: "2341", left_type: "long", right: "12311", right_type: "int", op: "!=", result: "true"}
+  - {left: "2", left_type: "long", right: "-2", right_type: "long",  op: "!==", result: "true"}
+  - {left: "231", left_type: "long", right: "231.0f", right_type: "float", op: "==", result: "true"}
+  - {left: "-1", left_type: "long", right: "-1.0", right_type: "double", op: "==", result: "true"}
+  - {left: "213", left_type: "long", right: "213n", right_type: "bigint", op: "==", result: "true"}
+  - {left: "33.0f", left_type: "float", right: "33", right_type: "byte", op: "==", result: "true"}
+  - {left: "32766.9f", left_type: "float", right: "32767", right_type: "short", op: "===", result: "false"}
+  - {left: "11.9f", left_type: "float", right: "12", right_type: "int", op: "!=", result: "true"}
+  - {left: "-0.1f", left_type: "float", right: "0", right_type: "long",  op: "!==", result: "true"}
+  - {left: "3.14159f", left_type: "float", right: "3.14159f", right_type: "float", op: "==", result: "true"}
+  - {left: "-3.0f", left_type: "float", right: "-3.0", right_type: "double", op: "==", result: "true"}
+  - {left: "14678.0f", left_type: "float", right: "14678n", right_type: "bigint", op: "==", result: "true"}
+  - {left: "127.0", left_type: "double", right: "127", right_type: "byte", op: "==", result: "true"}
+  - {left: "7.1", left_type: "double", right: "7", right_type: "short", op: "===", result: "false"}
+  - {left: "12321.1", left_type: "double", right: "12321", right_type: "int", op: "!=", result: "true"}
+  - {left: "9863.0", left_type: "double", right: "4", right_type: "long",  op: "!==", result: "true"}
+  - {left: "11.0", left_type: "double", right: "11.0f", right_type: "float", op: "==", result: "true"}
+  - {left: "387.321", left_type: "double", right: "387.321", right_type: "double", op: "==", result: "true"}
+  - {left: "90.0", left_type: "double", right: "90n", right_type: "bigint", op: "==", result: "true"}
+  - {left: "1n", left_type: "bigint", right: "0b1", right_type: "byte", op: "==", result: "true"}
+  - {left: "1111n", left_type: "bigint", right: "1112", right_type: "short", op: "===", result: "false"}
+  - {left: "1111n", left_type: "bigint", right: "1112", right_type: "short", op: "==", result: "false"}
+  - {left: "-2147483648n", left_type: "bigint", right: "-2147483648", right_type: "int", op: "!=", result: "false"}
+  - {left: "2n", left_type: "bigint", right: "2", right_type: "long",  op: "!==", result: "false"}
+  - {left: "36n", left_type: "bigint", right: "35.0f", right_type: "float", op: "===", result: "false"}
+  - {left: "24n", left_type: "bigint", right: "24.1", right_type: "double", op: "===", result: "false"}
+  - {left: "121n", left_type: "bigint", right: "212n", right_type: "bigint", op: "===", result: "false"}
+  - {left: "2", left_type: "byte", right: "1", right_type: "byte", op: "===", result: "false"}
+  - {left: "1", left_type: "byte", right: "2", right_type: "byte", op: "!=", result: "true"}
+  - {left: "-2", left_type: "byte", right: "-1", right_type: "byte",  op: "!==", result: "true"}
+  - {left: "-34", left_type: "byte", right: "-34", right_type: "short", op: "==", result: "true"}
+  - {left: "3", left_type: "byte", right: "3", right_type: "short", op: "!=", result: "false"}
+  - {left: "11", left_type: "byte", right: "11", right_type: "short",  op: "!==", result: "false"}
+  - {left: "0b1000011", left_type: "byte", right: "67", right_type: "int", op: "==", result: "true"}
+  - {left: "2", left_type: "byte", right: "1", right_type: "int", op: "===", result: "false"}
+  - {left: "88", left_type: "byte", right: "99", right_type: "int",  op: "!==", result: "true"}
+  - {left: "2", left_type: "byte", right: "2", right_type: "long", op: "==", result: "true"}
+  - {left: "4", left_type: "byte", right: "4", right_type: "long", op: "===", result: "true"}
+  - {left: "100", left_type: "byte", right: "1000", right_type: "long", op: "!=", result: "true"}
+  - {left: "22", left_type: "byte", right: "23.0f", right_type: "float", op: "!=", result: "true"}
+  - {left: "33", left_type: "byte", right: "-33.0f", right_type: "float",  op: "!==", result: "true"}
+  - {left: "1", left_type: "byte", right: "1.2", right_type: "double", op: "!=", result: "true"}
+  - {left: "24", left_type: "byte", right: "789.2", right_type: "double",  op: "!==", result: "true"}
+  - {left: "1", left_type: "byte", right: "2n", right_type: "bigint", op: "!=", result: "true"}
+  - {left: "1", left_type: "byte", right: "2n", right_type: "bigint",  op: "!==", result: "true"}

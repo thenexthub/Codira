@@ -1,0 +1,169 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+#include "Codira/Basic/Display.h"
+
+#include <codecvt>
+#include <cassert>
+
+#include "Codira/Basic/Print.h"
+#include "Codira/Utils/CheckUtils.h"
+#include "Codira/Utils/Unicode.h"
+
+namespace Codira {
+static const int UNICODE_OUTPUT_WIDTH = 8;
+static const std::vector<std::pair<uint32_t, uint32_t>> combining = {
+#define BIND(left, right) {left, right},
+#include "Codira/Basic/DisplayColumn.def"
+#undef BIND
+};
+static int WideCharWidth(char32_t ucs)
+{
+    if (ucs == 0x0a) { // newline character:'\n'
+        return 1;
+    }
+    if (ucs == 0x09) { // It is horizontal tab.
+        return HORIZONTAL_TAB_LEN;
+    }
+    // Other control characters.
+    if ((0 <= ucs && ucs <= 0x8) || (0xb <= ucs && ucs <= 0x1f) || ucs == 0x7f) {
+        return UNICODE_OUTPUT_WIDTH;
+    }
+    if (ucs > 0x7f && ucs < 0xa0) {
+        return 0;
+    }
+
+    auto pred = [](auto& combine, auto& u) {
+        return u.first > combine.second;
+    };
+
+    // Binary search in table of non-spacing characters.
+    if (std::binary_search(combining.begin(), combining.end(), std::make_pair(ucs, ucs), pred)) {
+        return 0;
+    }
+    // If we arrive here, ucs is not a combining or C0/C1 control character.
+    return 1 + static_cast<int>((ucs >= 0x1100 && (ucs <= 0x115f || ucs == 0x2329 || ucs == 0x232a ||
+               (ucs >= 0x2e80 && ucs <= 0xa4cf && ucs != 0x303f) ||
+               (ucs >= 0xac00 && ucs <= 0xd7a3) || /* Hangul Syllables */
+               (ucs >= 0xf900 && ucs <= 0xfaff) || /* CODEK Compatibility Ideographs */
+               (ucs >= 0xfe10 && ucs <= 0xfe19) || /* Vertical forms */
+               (ucs >= 0xfe30 && ucs <= 0xfe6f) || /* CODEK Compatibility Forms */
+               (ucs >= 0xff00 && ucs <= 0xff60) || /* Fullwidth Forms */
+               (ucs >= 0xffe0 && ucs <= 0xffe6) ||
+               (ucs >= 0x20000 && ucs <= 0x2fffd) ||
+               (ucs >= 0x30000 && ucs <= 0x3fffd))));
+}
+
+std::basic_string<char32_t> UTF8ToChar32(const std::string& str)
+{
+    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> conv;
+    return conv.from_bytes(str);
+}
+
+std::string Char32ToUTF8(const char32_t& str)
+{
+    auto s = std::basic_string<char32_t>{static_cast<char32_t>(str)};
+    return Char32ToUTF8(s);
+}
+
+std::string Char32ToUTF8(const std::basic_string<char32_t>& str)
+{
+    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> conv;
+    std::string res;
+#ifndef CODIRA_ENABLE_GCOV
+    try {
+#endif
+        res = conv.to_bytes(str);
+#ifndef CODIRA_ENABLE_GCOV
+    } catch (const std::range_error& e) {
+        res = "";
+    }
+#endif
+    return res;
+}
+
+std::string ConvertUnicode(const int32_t& str)
+{
+    return "\\u{" + ToHexString(str, NORMAL_CODEPOINT_LEN) + "}";
+}
+
+std::string ConvertChar(const int32_t& ch)
+{
+    if (ch < 0) {
+        return "terminated";
+    }
+    if (static_cast<char32_t>(ch) > ASCII_BASE) {
+        return Char32ToUTF8(static_cast<char32_t>(ch));
+    }
+    auto c = static_cast<uint8_t>(ch);
+    static std::unordered_map<uint8_t, std::string> escapeMap = {
+        {'\t', "tab"}, {'\n', "new line"},
+    };
+    if (escapeMap.count(c) > 0) {
+        return std::string{escapeMap[c]} + " character";
+    }
+    // Control character.
+    if (c < 0x20 || c == 0x7f) {
+        return "\\u{" + ToHexString(ch, NORMAL_CODEPOINT_LEN) + "}";
+    }
+    return Char32ToUTF8(static_cast<char32_t>(ch));
+}
+
+size_t DisplayWidth(const std::basic_string<char32_t>& pwcs)
+{
+    int width = 0;
+    for (auto s : pwcs) {
+        width += WideCharWidth(s);
+    }
+    width = width < 0 ? -width : width; // If it only contains escape.
+    return static_cast<size_t>(width);
+}
+
+// If str contains illegal utf-8 string, UTF8ToChar32 will throw a range_error.
+size_t DisplayWidth(const std::string& str) noexcept
+{
+    size_t len;
+#ifndef CODIRA_ENABLE_GCOV
+    try {
+#endif
+        len = DisplayWidth(UTF8ToChar32(str));
+#ifndef CODIRA_ENABLE_GCOV
+    } catch (const std::range_error&) {
+        len = str.size();
+    }
+#endif
+    return len;
+}
+
+std::string GetSpaceBeforeTarget(const std::string& content, int column)
+{
+    CODEC_ASSERT(!content.empty() && "source content is empty");
+    if (content.empty()) {
+        return {};
+    }
+    CODEC_ASSERT(column > 0);
+    column = static_cast<int>(std::min(static_cast<size_t>(column), content.size() + 1));
+    auto length = Unicode::DisplayWidth(content.substr(0, static_cast<size_t>(column - 1)));
+    return std::string(static_cast<size_t>(static_cast<unsigned>(length)), ' ');
+}
+}
+

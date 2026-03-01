@@ -1,0 +1,145 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - desc: Accessing a specific type attribute after type narrowing(type narrowing null).
+      function: |-
+          function processNullableValue(input: string | null | undefined): string {
+            if (input != null) { 
+              return input.trim(); 
+            }
+            return 'default';
+          }
+      use: |-
+            arktest.assertEQ(processNullableValue(null), 'default');
+            arktest.assertEQ(processNullableValue(' str'), 'str');
+  
+    - desc: Accessing a specific type attribute after type narrowing(type narrowing of class instances).
+      class: |-
+          class Dog {
+            bark(): string {
+              return('Woof!');
+            }
+            sleep(): string {
+              return('sleeping');
+            }
+          }
+
+          class Cat {
+            meow() {
+              return('Meow!');
+            }
+            sleep(): string {
+              return('sleeping');
+            }
+          }
+          type Animal = Cat | Dog;
+      use: |-
+            let animal: Animal = new Dog();
+
+            if (animal instanceof Dog) {
+              let dog: Dog = animal as Dog
+              arktest.assertEQ(dog.bark(), 'Woof!');
+            }          
+            arktest.assertEQ(animal.sleep(), 'sleeping');
+
+    - desc: Accessing a specific type attribute after type narrowing(type narrowing of number).
+      class: |-
+          type Primitive = number | boolean;
+      use: |-
+            let p: Primitive = 7
+            if (p instanceof Number) {
+              let i: number = p as number
+              arktest.assertEQ(i, 7);
+            }
+
+    - desc: Accessing a specific type attribute after type narrowing(type narrowing of boolean).
+      function: |-
+          function test(value: boolean | int): boolean | int {
+            if (typeof value === "boolean") {
+              return value;
+            } else {
+              return value;
+            }
+          }
+      use: |-
+            let tmp1 = test(true);
+            arktest.assertEQ(tmp1, true);
+            let tmp2 = test(2);
+            arktest.assertEQ(tmp2, 2);
+
+    - desc: Accessing a specific type attribute after type narrowing(type narrowing of literal).
+      function: |-
+          type HTTPMethod = "GET" | "POST" | "PUT";
+          function logMethod(method: HTTPMethod): string {
+            if (method === "GET") {
+              return "Read operation";
+            } else {
+              return "write operation";
+            }
+          }
+      use: |-
+          arktest.assertEQ(logMethod("GET"), "Read operation");
+          arktest.assertEQ(logMethod("POST"), "write operation");
+          arktest.assertEQ(logMethod("PUT"), "write operation");
+
+    - desc: Accessing a specific type attribute after type narrowing(using the switch statement).
+      function: |-
+          type TrafficLight = "red" | "yellow" | "green";
+          function driveAction(light: TrafficLight): string {
+            switch (light) {
+              case "red":
+                return "Stop";
+              case "green":
+                return "Go";
+              default:
+                return "Prepare";
+            }
+          }
+      use: |-
+          arktest.assertEQ(driveAction("red"), "Stop");
+          arktest.assertEQ(driveAction("yellow"), "Prepare");
+
+    - desc: Accessing a specific type attribute after type narrowing(type narrowing of literal and variable).
+      function: |-
+          type GameState = "loading" | "playing" | "paused" | "gameover";
+
+          function transitionState(currentState: GameState, input: "start" | "pause" | "resume" | "end"): GameState {
+            switch (currentState) {
+              case "loading":
+                if (input === "start") return "playing";
+                break;
+              case "playing":
+                if (input === "pause") return "paused";
+                if (input === "end") return "gameover";
+                break;
+              case "paused":
+                if (input === "resume") return "playing";
+                if (input === "end") return "gameover";
+                break;
+              default:
+                return currentState;
+            }
+            return currentState;
+          }
+      use: |- 
+          let state: GameState = "loading";
+          state = transitionState(state, "start");
+          arktest.assertEQ(state, "playing");
+          state = transitionState(state, "pause");
+          arktest.assertEQ(state, "paused");
+          state = transitionState(state, "resume");
+          arktest.assertEQ(state, "playing");
+          state = transitionState(state, "end");
+          arktest.assertEQ(state, "gameover");

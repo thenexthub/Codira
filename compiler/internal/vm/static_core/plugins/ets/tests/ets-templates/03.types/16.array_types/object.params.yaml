@@ -1,0 +1,39 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # value types
+    - { type: 'byte[]', vals: '[3, 2, 1]', assert: '[0] == 3' }
+    - { type: 'short[]', vals: '[3, 2, 1]', assert: '[0] == 3' }
+    - { type: 'int[]', vals: '[3, 2, 1]', assert: '[0] == 3' }
+    - { type: 'long[]', vals: '[3, 2, 1]', assert: '[0] == 3' }
+    - { type: 'float[]', vals: '[3, 2, 1]', assert: '[0] == 3' }
+    - { type: 'double[]', vals: '[3, 1, 2]', assert: '[0] == 3' }
+    - { type: 'char[]', vals: "[c'A', c'B', c'C']", assert: "[0] == c'A'" }
+    - { type: 'boolean[]', vals: '[true, false, true]', assert: '[0] == true' }
+    - decl: |-
+        enum Color { Red, Green, Blue }
+      type: 'Color[]'
+      vals: '[Color.Red, Color.Green, Color.Blue]'
+      assert: '[0] == Color.Red'
+
+    # reference types
+    - { type: 'Byte[]', vals: '[new Byte(127 as byte), new Byte(2 as byte), new Byte(1 as byte)]', assert: '[0] == 127' }
+    - { type: 'Error[]', vals: '[new Error("A"), new Error("B"), new Error("C")]', assert: '[0].message == "A"' }
+    - { type: 'string[][]', vals: 'new string[2][2]; arr[1][1] = "ABC"', assert: '[1][1] == "ABC"' }
+    - decl: |-
+        type Z = Object|undefined
+      type: 'Z[][]'
+      vals: 'new Z[2][2]'
+      assert: '[1][0] == undefined'

@@ -1,0 +1,64 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+union Union {
+  sValue: String;
+  iValue: i32;
+}
+
+interface ExampleInterface {
+
+    FuncPrimitiveI8(param1: Optional<i8>): void;
+    FuncPrimitiveI16(param1: Optional<i16>): void;
+    FuncPrimitiveI32(param1: Optional<i32>): void;
+    FuncPrimitiveI64(param1: Optional<i64>): void;
+    FuncPrimitiveF32(param1: Optional<f32>): void;
+    FuncPrimitiveF64(param1: Optional<f64>): void;
+    FuncPrimitiveBool(param1: Optional<bool>): void;
+    FuncPrimitiveString(param1: Optional<String>): void;
+    
+    FuncArray(param1: Optional<Array<i32>>):void;
+    FuncBuffer(param1: Optional<@arraybuffer Array<u8>>):void;
+    FuncUnion(param1: Optional<Union>):void;
+    FuncMap(param1: Optional<@record Map<String,i32>>):void;
+
+    @get GetName(): Optional<String>;
+    @get Geti8(): Optional<i8>;
+    @get Geti16(): Optional<i16>;
+    @get Geti32(): Optional<i32>;
+    @get Geti64(): Optional<i64>;  // 注意：这里应该是 i64，你可能需要修正类型
+    @get Getf32(): Optional<f32>;
+    @get Getf64(): Optional<f64>;
+    @get Getbool(): Optional<bool>;
+    @get GetArraybuffer(): Optional<@arraybuffer Array<u8>>;
+
+}
+
+function GetInterface(): ExampleInterface;
+function PrintTestInterfaceName(testiface: ExampleInterface): void;
+function PrintTestInterfaceNumberi8(testiface: ExampleInterface): void;
+function PrintTestInterfaceNumberi16(testiface: ExampleInterface): void;
+function PrintTestInterfaceNumberi32(testiface: ExampleInterface): void;
+function PrintTestInterfaceNumberi64(testiface: ExampleInterface): void;
+function PrintTestInterfaceNumberf32(testiface: ExampleInterface): void;
+function PrintTestInterfaceNumberf64(testiface: ExampleInterface): void;
+function PrintTestInterfacebool(testiface: ExampleInterface): void;
+function PrintTestInterfaceArraybuffer(testiface: ExampleInterface): void;

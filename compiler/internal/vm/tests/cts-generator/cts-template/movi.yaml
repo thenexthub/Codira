@@ -1,0 +1,195 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+definitions: []
+tests:
+  - file-name: "movi"
+    isa:
+      title: Move immediate-to-register
+      description: >
+        Move integer immediate into a register. For short formats immediate is sign extended to operand size.
+      exceptions:
+        - x_none
+      verification:
+        - none
+    commands:
+      - file-name: "imm_4_8_16_32"
+        isa:
+          instructions:
+            - sig: movi v:out:i32, imm:i32
+              acc: none
+              format: [op_v_4_imm_4, op_v_8_imm_8, op_v_8_imm_16, op_v_8_imm_32]
+              opcode_idx: [0x9, 0xa, 0xb, 0xc]
+        description: Check movi with various values.
+        tags: ['tsan']
+        check-type: no-check
+        code-template: |
+          #
+              ldai %s
+              movi v0, %s
+              jne v0, set_failure
+              ldai 0
+              return
+          set_failure:
+              ldai 1
+        cases:
+          - values:
+              - 0
+              - 0
+          - values:
+              - 1
+              - 1
+          - values:
+              - -1
+              - -1
+          - values:
+              - 0xF
+              - 0xF
+          - values:
+              - -0xF
+              - -0xF
+          - values:
+              - 0x7F
+              - 0x7F
+          - values:
+              - -0x7F
+              - -0x7F
+          - values:
+              - 0xFF
+              - 0xFF
+          - values:
+              - -0xFF
+              - -0xFF
+          - values:
+              - 0x7FFF
+              - 0x7FFF
+          - values:
+              - -0x7FFF
+              - -0x7FFF
+          - values:
+              - 0xFFFF
+              - 0xFFFF
+          - values:
+              - -0xFFFF
+              - -0xFFFF
+          - values:
+              - 0x7FFFFFFF
+              - 0x7FFFFFFF
+          - values:
+              - -0x7FFFFFFF
+              - -0x7FFFFFFF
+          - values:
+              - 0xFFFFFFFF
+              - 0xFFFFFFFF
+          - values:
+              - -0xFFFFFFFF
+              - -0xFFFFFFFF
+          - values:
+              - 0x12345678
+              - 0x12345678
+          - values:
+              - -0x12345678
+              - -0x12345678
+          - values:
+              - 0xFEDCBA98
+              - 0xFEDCBA98
+          - values:
+              - -0xFEDCBA98
+              - -0xFEDCBA98
+
+
+      - file-name: "vd_4_8"
+        isa:
+          instructions:
+            - sig: movi v:out:i32, imm:i32
+              acc: none
+              format: [op_v_4_imm_4, op_v_8_imm_8, op_v_8_imm_16, op_v_8_imm_32]
+              opcode_idx: [0x9, 0xa, 0xb, 0xc]
+        check-type: no-check
+        code-template: |
+          #
+              ldai 1
+              movi %s, 1
+              jne %s, set_failure
+              ldai 0
+              return
+          set_failure:
+              ldai 1
+        description: Check movi instruction with different register numbers (8 bit).
+        cases:
+          - values:
+              - v0
+              - v0
+          - values:
+              - v1
+              - v1
+          - values:
+              - v15
+              - v15
+          - values:
+              - v16
+              - v16
+          - values:
+              - v255
+              - v255
+
+
+      - file-name: "err"
+        isa:
+          instructions:
+            - sig: movi v:out:i32, imm:i32
+              acc: none
+              format: [op_v_4_imm_4, op_v_8_imm_8, op_v_8_imm_16, op_v_8_imm_32]
+              opcode_idx: [0x9, 0xa, 0xb, 0xc]
+        header-template: []
+        runner-options: [compile-failure]
+        check-type: exit-positive
+        description: Check movi instruction with syntax error.
+        code-template: |
+          .record panda.Object <external>
+          .function i32 main() {
+              movi %s
+        cases:
+          - values:
+              - ''
+          - values:
+              - v0, v1
+          - values:
+              - v256, 0
+          - values:
+              - v65536, 0
+          - values:
+              - a0, 0
+          - values:
+              - 1, 0
+          - values:
+              - v0
+          - values:
+              - v0, null
+          - values:
+              - v0, ""
+          - values:
+              - v0, panda.Object
+          - values:
+              - v0, 10e10
+          - values:
+              - v0, 0.0000003

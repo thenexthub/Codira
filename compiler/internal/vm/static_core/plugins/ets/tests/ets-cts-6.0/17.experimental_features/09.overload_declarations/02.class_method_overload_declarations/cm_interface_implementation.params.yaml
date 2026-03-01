@@ -1,0 +1,46 @@
+# Copyright (c 2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License";
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - { list: 'f1',                 param: '1',     value: 'f1' }
+  - { list: 'f2',                 param: 'true',  value: 'f2' }
+  - { list: 'f3',                 param: '2.5',   value: 'f3' }
+  - { list: 'f4',                 param: '"Kim"', value: 'f4' }
+  - { list: 'f5',                 param: '8, 12', value: 'f5' }
+  - { list: 'f1, f2',             param: 'true',  value: 'f2' }
+  - { list: 'f1, f3',             param: '2.5',   value: 'f3' }
+  - { list: 'f1, f4',             param: '15',    value: 'f1' }
+  - { list: 'f1, f5',             param: '8, 12', value: 'f5' }
+  - { list: 'f2, f3',             param: 'true',  value: 'f2' }
+  - { list: 'f2, f4',             param: '"Kim"', value: 'f4' }
+  - { list: 'f2, f5',             param: '8, 12', value: 'f5' }
+  - { list: 'f3, f4',             param: '"Kim"', value: 'f4' }
+  - { list: 'f3, f5',             param: '12',    value: 'f3' }
+  - { list: 'f4, f5',             param: '8, 12', value: 'f5' }
+  - { list: 'f1, f2, f3',         param: '1',     value: 'f1' }
+  - { list: 'f1, f2, f4',         param: 'true',  value: 'f2' }
+  - { list: 'f1, f2, f5',         param: '8, 12', value: 'f5' }
+  - { list: 'f1, f3, f4',         param: '"Kim"', value: 'f4' }
+  - { list: 'f1, f3, f5',         param: '1',     value: 'f1' }
+  - { list: 'f1, f4, f5',         param: '8, 12', value: 'f5' }
+  - { list: 'f2, f3, f4',         param: '10.5',  value: 'f3' }
+  - { list: 'f2, f3, f5',         param: '15',    value: 'f3' }
+  - { list: 'f2, f4, f5',         param: 'false', value: 'f2' }
+  - { list: 'f1, f2, f3, f4',     param: '10.5',  value: 'f3' }
+  - { list: 'f1, f2, f3, f5',     param: 'true',  value: 'f2' }
+  - { list: 'f1, f2, f3, f4, f5', param: '15',    value: 'f1' }
+  - { list: 'f1, f2, f3, f4, f5', param: 'false', value: 'f2' }
+  - { list: 'f1, f2, f3, f4, f5', param: '10.5',  value: 'f3' }
+  - { list: 'f1, f2, f3, f4, f5', param: '"Mao"', value: 'f4' }
+  - { list: 'f1, f2, f3, f4, f5', param: '8, 12', value: 'f5' }

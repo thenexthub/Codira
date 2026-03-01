@@ -1,0 +1,164 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          interface J {
+              foo1(p: C1): string;
+              foo(p: C2): string;
+              foo3(p: C3): string;
+              overload foo { foo3, foo1, foo } // foo3(C3), foo1(C1), foo(C2)
+          }
+          interface K extends J {
+              foo3(p: C2): string;
+              // inherited overload foo { foo3, foo1, foo } // foo3(C2), foo1(C1), foo(C2)
+          }
+          class A implements K {
+              foo1(p: C1) { return 'A.1' }
+              foo(p: C1) { return 'A.2' }
+              foo3(p: C1) { return 'A.3' }
+              // inherited overload foo { foo3, foo1, foo } // foo3(C1), foo1(C1), foo(C1)
+          }
+      main: |-
+          let j: J = ((): J => new A)()
+          arktest.assertEQ(j.foo(new C3), 'A.3')
+          arktest.assertEQ(j.foo(new C2), 'A.1')
+          arktest.assertEQ(j.foo(new C1), 'A.1')
+
+          let k: K = ((): K => new A)()
+          arktest.assertEQ(k.foo(new C3), 'A.3')
+          arktest.assertEQ(k.foo(new C2), 'A.3')
+          arktest.assertEQ(k.foo(new C1), 'A.1')
+
+          let a: A = ((): A => new A)()
+          arktest.assertEQ(a.foo(new C3), 'A.3')
+          arktest.assertEQ(a.foo(new C2), 'A.3')
+          arktest.assertEQ(a.foo(new C1), 'A.3')
+
+    - decl: |-
+          interface J {
+              foo1(p: C1): string;
+              foo2(p: C2): string;
+              foo(p: C3): string;
+              overload foo { foo, foo2, foo1 } // foo(C3), foo2(C2), foo1(C1)
+          }
+          interface K {}
+          interface M extends J, K {
+              foo1(p: C1): string;
+              foo2(p: C1): string;
+              foo(p: C2): string;
+              // inherited overload foo { foo, foo2, foo1 } // foo(C2), foo2(C1), foo1(C1)
+          }
+          class A implements M {
+              foo1(p: C1) { return 'A.1' }
+              foo2(p: C1) { return 'A.2' }
+              foo(p: C2) { return 'A.3' }
+              // inherited overload foo { foo, foo2, foo1 } // foo(C2), foo2(C1), foo1(C1)
+          }
+      main: |-
+          let j: J = ((): J => new A)()
+          arktest.assertEQ(j.foo(new C3), 'A.3')
+          arktest.assertEQ(j.foo(new C2), 'A.2')
+          arktest.assertEQ(j.foo(new C1), 'A.1')
+
+          let m: M = ((): M => new A)()
+          arktest.assertEQ(m.foo(new C3), 'A.3')
+          arktest.assertEQ(m.foo(new C2), 'A.3')
+          arktest.assertEQ(m.foo(new C1), 'A.2')
+
+          let a: A = ((): A => new A)()
+          arktest.assertEQ(a.foo(new C3), 'A.3')
+          arktest.assertEQ(a.foo(new C2), 'A.3')
+          arktest.assertEQ(a.foo(new C1), 'A.2')
+
+    - decl: |-
+          interface J {
+              foo1(p: C1): string;
+              foo(p: C2): string;
+              foo3(p: C3): string;
+              overload foo { foo3, foo, foo1 } // foo3(C3), foo(C2), foo1(C1)
+          }
+          interface K extends J {}
+          interface M extends J {
+              foo1(p: C1): string;
+          }
+          interface L extends K, M {
+              foo(p: C1): string;
+              foo3(p: C2): string;
+              // inherited overload foo { foo3, foo, foo1 } // foo3(C2), foo(C1), foo1(C1)
+          }
+          class A implements L {
+              foo1(p: C1) { return 'A.1' }
+              foo(p: C1) { return 'A.2' }
+              foo3(p: C1) { return 'A.3' }
+              // inherited overload foo { foo3, foo, foo1 } // foo3(C1), foo(C1), foo1(C1)
+          }
+      main: |-
+          let j: J = ((): J => new A)()
+          arktest.assertEQ(j.foo(new C3), 'A.3')
+          arktest.assertEQ(j.foo(new C2), 'A.2')
+          arktest.assertEQ(j.foo(new C1), 'A.1')
+
+          let k: K = ((): K => new A)()
+          arktest.assertEQ(k.foo(new C3), 'A.3')
+          arktest.assertEQ(k.foo(new C2), 'A.2')
+          arktest.assertEQ(k.foo(new C1), 'A.1')
+
+          let m: M = ((): M => new A)()
+          arktest.assertEQ(m.foo(new C3), 'A.3')
+          arktest.assertEQ(m.foo(new C2), 'A.2')
+          arktest.assertEQ(m.foo(new C1), 'A.1')
+
+          let l: L = ((): L => new A)()
+          arktest.assertEQ(l.foo(new C3), 'A.3')
+          arktest.assertEQ(l.foo(new C2), 'A.3')
+          arktest.assertEQ(l.foo(new C1), 'A.2')
+
+          let a: A = ((): A => new A)()
+          arktest.assertEQ(a.foo(new C3), 'A.3')
+          arktest.assertEQ(a.foo(new C2), 'A.3')
+          arktest.assertEQ(a.foo(new C1), 'A.3')
+
+    - decl: |-
+          interface J {
+              foo1(p: C1) { return 'J.1' }
+              foo(p: C2) { return 'J.2' }
+              foo3(p: C3) { return 'J.3' }
+              overload foo { foo3, foo1, foo } // foo3(C3), foo1(C1), foo(C2)
+          }
+          interface K extends J {
+              foo3(p: C2) { return 'K.2' }
+              // inherited overload foo { foo3, foo1, foo } // foo3(C2), foo1(C1), foo(C2)
+          }
+          class A implements K {
+              foo1(p: C1) { return 'A.1' }
+              foo(p: C1) { return 'A.2' }
+              foo3(p: C1) { return 'A.3' }
+              // inherited overload foo { foo3, foo1, foo } // foo3(C1), foo1(C1), foo(C1)
+          }
+      main: |-
+          let j: J = {}
+          arktest.assertEQ(j.foo(new C3), 'J.3')
+          arktest.assertEQ(j.foo(new C2), 'J.1')
+          arktest.assertEQ(j.foo(new C1), 'J.1')
+
+          let k: K = {}
+          arktest.assertEQ(k.foo(new C3), 'K.2')
+          arktest.assertEQ(k.foo(new C2), 'K.2')
+          arktest.assertEQ(k.foo(new C1), 'J.1')
+
+          let a: A = {}
+          arktest.assertEQ(a.foo(new C3), 'A.3')
+          arktest.assertEQ(a.foo(new C2), 'A.3')
+          arktest.assertEQ(a.foo(new C1), 'A.3')

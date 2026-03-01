@@ -1,0 +1,43 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+testData:
+  - { initialType: "int", value: "8122025", resultType: "long" , result: "0O367672_51", desc: "0. Conversion of the positive decimal int value to the long."}
+  - { initialType: "int", value: "-8122026", resultType: "long" , result: "-0O367672_52", desc: "1. Conversion of the negative decimal int value to the long."}
+  - { initialType: "int", value: "0x7BEEA_9", resultType: "Long" , result: "0b11110111110111010101001", desc: "2. Conversion of the positive hex int value to the long."}
+  - { initialType: "int", value: "-0x7BEEA_a", resultType: "Long" , result: "-0b11110111110_1110_1010_1010", desc: "3. Conversion of the negative hex int value to the long."}
+  - { initialType: "Int", value: "0o36767251", resultType: "long" , result: "0x7BEEA9", desc: "4. Conversion of the positive octal Int (alias) value to the long."}
+  - { initialType: "Int", value: "-0o3676725_2", resultType: "long" , result: "-0x7BEEAA", desc: "5. Conversion of the negative octal Int (alias) value to the long."}
+  - { initialType: "Int", value: "-0B11110111110111010101010", resultType: "Long" , result: "-8122026", desc: "6. Conversion of the negative binary Int (alias) value to the Long (alias)."}
+  - { initialType: "Int", value: "0B0001111011_11101110_10101001", resultType: "Long" , result: "8122025", desc: "7. Conversion of the positive binary Int (alias) value to the Long (alias)."}
+  - { initialType: "Int", value: "-2147483648", resultType: "Long" , result: "-2147483648", desc: "8. Conversion of the negative decimal Int (alias) value (min int) to the Long (alias)."}
+  - { initialType: "int", value: "0o17777777777", resultType: "long" , result: "2147483647", desc: "9. Conversion of the positive octal int value (max int) to the long."}
+  - { initialType: "Int", value: "Int.MAX_VALUE", resultType: "long" , result: "0X7FFfFFFF", desc: "10. Conversion of the max Int (alias) value to the long."}
+  - { initialType: "int", value: "Int.MIN_VALUE", resultType: "Long" , result: "-0b10000000000000000000000000000000", desc: "11. Conversion of the min int value to the long (alias)."}
+  - { initialType: "Int", value: "new Int(-8122025)", resultType: "long" , result: "-0O36767251", desc: "12. Conversion of the negative decimal Int (alias, initialized by the constructor) value (min int) to the long."}
+  - { initialType: "int", value: "new Int(0O36767252)", resultType: "Long" , result: "8122026", desc: "13. Conversion of the positive octal int (initialized by the constructor of alias) value (min int) to the Long (alias)."}
+  - { initialType: "Int", value: "-0x0", resultType: "Long" , result: "0", desc: "14. Conversion of the hex Int (alias) value (zero with minus sign) to the Long (alias)."}
+  - { initialType: "int", value: "new Int(0b000_00)", resultType: "Long" , result: "-0b0", desc: "15. Conversion of the binary int (initialized by the constructor of alias) value (many zero) to the Long (alias)."}
+  - { initialType: "Int", value: "new Int(0)", resultType: "long" , result: "+0o0", desc: "16. Conversion of the decimal Int (alias, initialized by the constructor) value (zero) to the long."}
+  - { initialType: "Int", value: "+0o36767252", resultType: "long" , result: "0x7BEEAA", desc: "17. Conversion of the positive octal Int (alias, with plus sign) value to the long."}
+  - { initialType: "int", value: "+0o0", resultType: "long" , result: "0x00", desc: "18. Conversion of the octal int value (zero with plus sign) to the long."}
+   

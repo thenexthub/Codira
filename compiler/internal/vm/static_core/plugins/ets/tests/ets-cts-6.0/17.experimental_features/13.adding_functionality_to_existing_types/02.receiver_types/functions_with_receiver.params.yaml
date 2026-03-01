@@ -1,0 +1,188 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+  - decl: |
+      function f(this: number[]) {}
+    use: |
+      let n: number[] = [0, 1, 2]
+      f(n)
+  - decl: |
+      function f(this: number[]) {}
+    use: |
+      let n: number[] = [0, 1, 2]
+      n.f()
+  - decl: |
+      function f(this: Number) {}
+    use: |
+      let n: Number = 1
+      f(n)
+  - decl: |
+      function f(this: Number) {}
+    use: |
+      let n: Number = 1
+      n.f()
+  - decl: |
+      interface I {}
+      function f(this: I) {}
+    use: |
+      let i: I = {}
+      f(i)
+  - decl: |
+      interface I {}
+      function f(this: I) {}
+    use: |
+      let i: I = {}
+      i.f()
+  - decl: |
+      interface I {}
+      function f<T>(this: T) {}
+    use: |
+      let i: I = {}
+      f(i)
+  - decl: |
+      interface I {}
+      function f<T>(this: T) {}
+    use: |
+      let i: I = {}
+      i.f()
+  - decl: |
+      function f(this: number) {}
+    use: |
+      let n: number = 1
+      f(n)
+  - decl: |
+      function f(this: number) {}
+    use: |
+      let n: number = 1
+      n.f()
+  - decl: |
+      function f(this: byte) {}
+    use: |
+      let n: byte = 1
+      f(n)
+  - decl: |
+      function f(this: byte) {}
+    use: |
+      let n: byte = 1
+      n.f()
+  - decl: |
+      function f(this: short) {}
+    use: |
+      let n: short = 1
+      f(n)
+  - decl: |
+      function f(this: short) {}
+    use: |
+      let n: short = 1
+      n.f()
+  - decl: |
+      function f(this: int) {}
+    use: |
+      let n: int = 1
+      f(n)
+  - decl: |
+      function f(this: int) {}
+    use: |
+      let n: int = 1
+      n.f()
+  - decl: |
+      function f(this: long) {}
+    use: |
+      let n: long = 1
+      f(n)
+  - decl: |
+      function f(this: long) {}
+    use: |
+      let n: long = 1
+      n.f()
+  - decl: |
+      function f(this: bigint) {}
+    use: |
+      let n: bigint = 1n
+      f(n)
+  - decl: |
+      function f(this: bigint) {}
+    use: |
+      let n: bigint = 1n
+      n.f()
+  - decl: |
+      function f(this: float) {}
+    use: |
+      let n: float = 1.0f
+      f(n)
+  - decl: |
+      function f(this: float) {}
+    use: |
+      let n: float = 1.0f
+      n.f()
+  - decl: |
+      function f(this: double) {}
+    use: |
+      let n: double = 1.0
+      f(n)
+  - decl: |
+      function f(this: double) {}
+    use: |
+      let n: double = 1.0
+      n.f()
+  - decl: |
+      function f(this: boolean) {}
+    use: |
+      let n: boolean = true
+      f(n)
+  - decl: |
+      function f(this: boolean) {}
+    use: |
+      let n: boolean = true
+      n.f()
+  - decl: |
+      function f(this: string) {}
+    use: |
+      let n: string = "abc"
+      f(n)
+  - decl: |
+      function f(this: string) {}
+    use: |
+      let n: string = "abc"
+      n.f()
+  - decl: |
+      function f(this: char) {}
+    use: |
+      let n: char = c'a'
+      f(n)
+  - decl: |
+      function f(this: char) {}
+    use: |
+      let n: char = c'a'
+      n.f()
+  - decl: |
+      function f(this: Function) {}
+    use: |
+      let n: Function = (): void => {}
+      f(n)
+  - decl: |
+      function f(this: Function) {}
+    use: |
+      let n: Function = (): void => {}
+      n.f()

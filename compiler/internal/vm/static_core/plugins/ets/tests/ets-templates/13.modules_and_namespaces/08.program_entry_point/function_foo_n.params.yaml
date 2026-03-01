@@ -1,0 +1,152 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # entry point function cannot have overloading, void return type
+    - entry_point: foo
+      tags: negative
+      use: |-
+          export overload foo { foo1 }
+
+          export function foo1() {
+              arktest.assertTrue(true)
+          }
+
+          export function main() {
+              arktest.assertTrue(true)
+          }
+
+    - entry_point: foo
+      tags: negative
+      use: |-
+          overload foo { foo1 }
+          export { foo, foo1, main }
+
+          function foo1() {
+              arktest.assertTrue(true)
+          }
+
+          function main() {
+              arktest.assertTrue(true)
+          }
+
+    - entry_point: main
+      tags: 'compile-only, negative'
+      use: |-
+          overload main { foo1, main }
+          export { foo1, main }
+
+          function foo1() { // should not be called
+              arktest.assertTrue(false)
+          }
+
+          function main() {
+              arktest.assertTrue(true)
+          }
+
+    # entry point function cannot have overloading, int return type
+    - entry_point: foo
+      tags: negative
+      use: |-
+          export overload foo { foo1 }
+
+          export function foo1(): int {
+              return 0
+          }
+
+          export function main(): int {
+              return 0
+          }
+
+    - entry_point: main
+      tags: 'compile-only, negative'
+      use: |-
+          export overload main { foo1, main }
+
+          export function foo1(): int {
+              return 1
+          }
+
+          export function main(): int {
+              return 0
+          }
+
+    - entry_point: foo
+      tags: negative
+      use: |-
+          overload foo { foo1 }
+
+          function foo1(): int {
+              return 0
+          }
+
+          function main(): int {
+              return 0
+          }
+
+          export { main, foo, foo1 }
+
+    - entry_point: main
+      tags: 'compile-only, negative'
+      use: |-
+          overload main { foo1, main }
+
+          function foo1(): int {
+              return 1
+          }
+
+          function main(): int {
+              return 0
+          }
+
+          export { main, foo1 }
+
+    # call main from another entry point
+    - entry_point: foo
+      tags: negative
+      use: |-
+          export function foo() {
+              main()
+              arktest.assertTrue(false)
+          }
+
+    # return value from namespace
+    - entry_point: foo
+      tags: negative
+      use: |-
+          namespace NS {
+              export let retCode: int
+              export function foo() {
+                  arktest.assertEQ(retCode, 0)
+              }
+          }
+
+          export function foo() {
+              NS.retCode = 42
+              NS.foo()
+          }
+
+          export function main(): int {
+              return 0
+          }
+    
+    # entry point function cannot have overloading, void return type
+    - entry_point: main
+      tags: 'compile-only, negative'
+      use: |-
+          export overload main { foo1, main }
+
+          export function foo1() { // should not be called
+              arktest.assertTrue(false)
+          }

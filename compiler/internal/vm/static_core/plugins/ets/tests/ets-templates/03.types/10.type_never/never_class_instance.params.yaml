@@ -1,0 +1,50 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of types
+types:
+    - decl: |-
+          type NT = string | number | never
+      use: |-
+          let x: NT = 42.0
+          arktest.assertEQ( x as number, 42.0 )
+          x = "abc"
+          arktest.assertEQ( x as string, "abc" )
+
+    - use: |-
+          let x: (number|never)[] = [1.0, 2.0, 3.0]
+          arktest.assertEQ( x[2] as number, 3.0 )
+
+    - use: |-
+          let x: (string|never)[] = ['1', '2', '3']
+          arktest.assertEQ( x[2] as string, '3' )
+
+    - decl: |-
+          class A<T> {}
+      use: |-
+          let x: A<never> = new A<never>()
+          arktest.assertTrue( x instanceof Object )
+
+    - use: |-
+          let x: Record<string, never|null> = { "abc": null }
+          arktest.assertTrue( x instanceof Record )
+
+    - use: |-
+          let x: (never|null|undefined) = null
+          arktest.assertEQ( x, null )
+          x = undefined
+          arktest.assertEQ( x, undefined )
+
+    - use: |-
+          let x: never[] = [] as never[]
+          arktest.assertTrue( x instanceof Array )

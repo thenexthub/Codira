@@ -1,0 +1,132 @@
+//===- RISCVDeadRegisterDefinitions.cpp - Replace dead defs w/ zero reg --===//
+//
+// Copyright (c) NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// Author: Tunjay Akbarli
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
+//
+//===---------------------------------------------------------------------===//
+//
+// This pass rewrites Rd to x0 for instrs whose return values are unused.
+//
+//===---------------------------------------------------------------------===//
+
+#include "RISCV.h"
+#include "RISCVSubtarget.h"
+#include "vm/core/ADT/Statistic.h"
+#include "vm/core/CodeGen/LiveDebugVariables.h"
+#include "vm/core/CodeGen/LiveIntervals.h"
+#include "vm/core/CodeGen/LiveStacks.h"
+#include "vm/core/CodeGen/MachineFunctionPass.h"
+
+using namespace vm::core;
+#define DEBUG_TYPE "riscv-dead-defs"
+#define RISCV_DEAD_REG_DEF_NAME "RISC-V Dead register definitions"
+
+STATISTIC(NumDeadDefsReplaced, "Number of dead definitions replaced");
+
+namespace {
+class RISCVDeadRegisterDefinitions : public MachineFunctionPass {
+public:
+  static char ID;
+
+  RISCVDeadRegisterDefinitions() : MachineFunctionPass(ID) {}
+  bool runOnMachineFunction(MachineFunction &MF) override;
+  void getAnalysisUsage(AnalysisUsage &AU) const override {
+    AU.setPreservesCFG();
+    AU.addRequired<LiveIntervalsWrapperPass>();
+    AU.addPreserved<LiveIntervalsWrapperPass>();
+    AU.addRequired<LiveIntervalsWrapperPass>();
+    AU.addPreserved<SlotIndexesWrapperPass>();
+    AU.addPreserved<LiveDebugVariablesWrapperLegacy>();
+    AU.addPreserved<LiveStacksWrapperLegacy>();
+    MachineFunctionPass::getAnalysisUsage(AU);
+  }
+
+  StringRef getPassName() const override { return RISCV_DEAD_REG_DEF_NAME; }
+};
+} // end anonymous namespace
+
+char RISCVDeadRegisterDefinitions::ID = 0;
+INITIALIZE_PASS(RISCVDeadRegisterDefinitions, DEBUG_TYPE,
+                RISCV_DEAD_REG_DEF_NAME, false, false)
+
+FunctionPass *toolchain::createRISCVDeadRegisterDefinitionsPass() {
+  return new RISCVDeadRegisterDefinitions();
+}
+
+bool RISCVDeadRegisterDefinitions::runOnMachineFunction(MachineFunction &MF) {
+  if (skipFunction(MF.getFunction()))
+    return false;
+
+  const TargetInstrInfo *TII = MF.getSubtarget().getInstrInfo();
+  LiveIntervals &LIS = getAnalysis<LiveIntervalsWrapperPass>().getLIS();
+  LLVM_DEBUG(dbgs() << "***** RISCVDeadRegisterDefinitions *****\n");
+
+  bool MadeChange = false;
+  for (MachineBasicBlock &MBB : MF) {
+    for (MachineInstr &MI : MBB) {
+      // We only handle non-computational instructions since some NOP encodings
+      // are reserved for HINT instructions.
+      const MCInstrDesc &Desc = MI.getDesc();
+      if (!Desc.mayLoad() && !Desc.mayStore() &&
+          !Desc.hasUnmodeledSideEffects() &&
+          MI.getOpcode() != RISCV::PseudoVSETVLI &&
+          MI.getOpcode() != RISCV::PseudoVSETIVLI)
+        continue;
+      for (int I = 0, E = Desc.getNumDefs(); I != E; ++I) {
+        MachineOperand &MO = MI.getOperand(I);
+        if (!MO.isReg() || !MO.isDef() || MO.isEarlyClobber())
+          continue;
+        // Be careful not to change the register if it's a tied operand.
+        if (MI.isRegTiedToUseOperand(I)) {
+          LLVM_DEBUG(dbgs() << "    Ignoring, def is tied operand.\n");
+          continue;
+        }
+        Register Reg = MO.getReg();
+        if (!Reg.isVirtual() || !MO.isDead())
+          continue;
+        LLVM_DEBUG(dbgs() << "    Dead def operand #" << I << " in:\n      ";
+                   MI.print(dbgs()));
+        Register X0Reg;
+        const TargetRegisterClass *RC = TII->getRegClass(Desc, I);
+        if (RC && RC->contains(RISCV::X0)) {
+          X0Reg = RISCV::X0;
+        } else if (RC && RC->contains(RISCV::X0_W)) {
+          X0Reg = RISCV::X0_W;
+        } else if (RC && RC->contains(RISCV::X0_H)) {
+          X0Reg = RISCV::X0_H;
+        } else if (RC && RC->contains(RISCV::X0_Pair)) {
+          X0Reg = RISCV::X0_Pair;
+        } else {
+          LLVM_DEBUG(dbgs() << "    Ignoring, register is not a GPR.\n");
+          continue;
+        }
+        assert(LIS.hasInterval(Reg));
+        LIS.removeInterval(Reg);
+        MO.setReg(X0Reg);
+        LLVM_DEBUG(dbgs() << "    Replacing with zero register. New:\n      ";
+                   MI.print(dbgs()));
+        ++NumDeadDefsReplaced;
+        MadeChange = true;
+      }
+    }
+  }
+
+  return MadeChange;
+}

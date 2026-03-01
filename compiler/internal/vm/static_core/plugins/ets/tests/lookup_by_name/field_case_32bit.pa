@@ -1,0 +1,67 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+.language eTS
+
+.record std.core.Object
+.record A {
+    i32 baz
+}
+.record B {
+    i32 bar
+    i32 baz
+}
+
+.function i32 A.%%get-bar(A a0) <access.function=public> {
+    ldai 15
+    return
+}
+
+.record %%union_prop-i32 {
+    i32 bar
+    i32 baz
+}
+
+.function i32 main() {
+    newobj v0, A
+    newobj v1, B
+    movi v2, 15
+    lda v2
+    ldai 2
+    ets.ldobj.name v0, %%union_prop-i32.bar
+    movi v3, 5
+    add2 v3
+    movi v4, 20
+    jne v4, error1
+    stobj v1, B.baz
+    ldai 3
+    ets.ldobj.name v1, %%union_prop-i32.baz
+    jne v4, error2
+    ldai 0
+    return
+error1:
+    ldai 1
+    return
+error2:
+    ldai 2
+    return
+}

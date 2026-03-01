@@ -1,0 +1,26 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+cases:
+  - { type: byte,   value: 10,    expression: '< 102.1f', expected: 'yes 10'   }
+  - { type: short,  value: 260,   expression: '<= 25',    expected: 'no 260'   }
+  - { type: int,    value: -30,   expression: '>= 0',     expected: 'no -30'   }
+  - { type: long,   value: -260,  expression: '== -259',  expected: 'no -260'  }
+  - { type: float,  value: 26.0f, expression: '== 26.0f',    expected: 'yes 26'   }
+  - { type: number, value: 26.0,  expression: '== 26',    expected: 'yes 26'   }
+  - { type: number, value: 26.3,  expression: '== 26.3',  expected: 'yes 26.3' }
+
+  - { type: string,   value: '"p"',  expression: '== "p"',   expected: 'yes p'    }
+  - { type: string,   value: '"p"',  expression: '>= "W"',   expected: 'yes p'    }
+  - { type: float,  value: 26.7f, expression: '== 26.7f',  expected: 'yes 26.7' }
+  - { type: number, value: 26.3,  expression: '== 26.3', expected: 'yes 26.3' }

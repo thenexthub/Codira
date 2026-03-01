@@ -1,0 +1,128 @@
+{#
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+#}
+
+const MAX_LOOP_COUNT = 10_000_000_000;
+const MS2NS = 1_000_000;
+const S2MS = 1_000;
+
+class VmbLauncher {
+
+    static WI = {{wi}};
+    static MI = {{mi}};
+    static IT = {{it}};
+    static WT = {{wt}};
+    static FI = {{fi}};
+    static loopCount1 = 0;
+    static totalOps = 0;
+    static totalMs = 0;
+    static iter = 0;
+
+    static log(msg) {
+    {% if print_func == 'console' %}
+        console.info(msg);
+    {% else %}
+        print(msg);
+    {% endif %}
+    }
+
+    static tune(bench) {
+        let iterMs = 1 * S2MS;
+        let loopMs = 0;
+        let loopCount = 1;
+        while (loopMs < iterMs && loopCount < MAX_LOOP_COUNT) {
+            loopCount = loopCount * 2;
+            let start = Date.now();
+            for (let i = 0; i < loopCount; i++) {
+                {{method_call}}
+            }
+            loopMs = Date.now() - start;
+        }
+        VmbLauncher.loopCount1 = loopCount * iterMs / loopMs >> 0;
+        if (VmbLauncher.loopCount1 === 0) {
+            VmbLauncher.loopCount1++;
+        }
+        VmbLauncher.log('Tuning: ' + loopCount + ' ops, ' +
+                        loopMs * MS2NS / loopCount + ' ns/op => ' +
+                        VmbLauncher.loopCount1 + ' reps');
+    }
+
+    static runIters(phase, count, time, bench) {
+        let iterMs = time * S2MS;
+        VmbLauncher.totalOps = 0;
+        VmbLauncher.totalMs = 0;
+        for (let k = 0; k < count; k++) {
+            let ops = 0;
+            let elapsedMs = 0;
+            let start = Date.now();
+            while (elapsedMs < iterMs) {
+                for (let i = 0; i < VmbLauncher.loopCount1; i++) {
+                    {{method_call}}
+                }
+                elapsedMs = (Date.now()) - start;
+                ops += VmbLauncher.loopCount1;
+            }
+            VmbLauncher.totalOps += ops;
+            VmbLauncher.totalMs += elapsedMs;
+            VmbLauncher.log(phase + " " + VmbLauncher.iter + ":" + ops + " ops, " + 1.0*elapsedMs*MS2NS/ops + " ns/op");
+            VmbLauncher.iter++
+        }
+    }
+
+    static main() {
+        let bench = new {{state_name}}();
+        VmbLauncher.log("Startup execution started: " + (Date.now()));
+        {{state_params}}
+        {{state_setup}}
+    {% if fi > 0 %}
+        // Fast Iterations mode
+        VmbLauncher.log('Fast starting {{bench_name}} @ {{fixture}}...');
+        let start = Date.now();
+        for (let i = 0; i < VmbLauncher.FI; i++) {
+            {{method_call}}
+        }
+        let elapsed = Date.now() - start;
+        if (elapsed <= 0) {
+            elapsed = 1; // 0 is invalid result
+        }
+        VmbLauncher.log("Benchmark result: {{bench_name}} " + 1.0*elapsed*MS2NS/VmbLauncher.FI);
+    {% else %}
+        // Normal mode
+        VmbLauncher.log('Starting {{bench_name}} @ {{fixture}}...');
+        VmbLauncher.tune(bench);
+        if (VmbLauncher.WI > 0) {
+            VmbLauncher.iter = 1;
+            // Re-entering runIters in warmup loop to allow profiler complete the method.
+            // Possible deoptimizations and recompilations is done in warmup instead of measure phase.
+            for (let wi = 0; wi < VmbLauncher.WI; ++wi) {
+                VmbLauncher.runIters("Warmup", 1, VmbLauncher.WT, bench);
+            }
+        }
+        VmbLauncher.iter = 1;
+        VmbLauncher.runIters("Iter", VmbLauncher.MI, VmbLauncher.IT, bench);
+        VmbLauncher.log("Benchmark result: {{bench_name}} " + 1.0*VmbLauncher.totalMs*MS2NS/VmbLauncher.totalOps);
+    {% endif %}
+        Consumer.consumeObj(bench);
+    }
+
+}

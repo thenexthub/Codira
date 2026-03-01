@@ -1,0 +1,1 @@
+[suggest_final_for_classes_1.ets:15:7] Warning W0001: Suggest 'final' modifier for class.

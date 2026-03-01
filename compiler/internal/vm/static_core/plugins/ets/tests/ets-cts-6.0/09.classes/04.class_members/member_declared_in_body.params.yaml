@@ -1,0 +1,20 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of valid class members
+own_members:
+  - { decl: "f: int = 2;", call: "", check: "arktest.assertTrue( y.f == 2 )" }
+  - { decl: "f: int = 3; set F(f: int) { this.f = f; }; get F(): int { return this.f; }", call: "y.F = 10;", check: "arktest.assertTrue( y.F == 10 )" }
+  - { decl: "f: int; constructor() { this.f = 1; }; ", call: "", check: "y.f == 1;" }
+  - { decl: "f: int = 0; constructor() { this.f += 1; }; constructor(f: int) { this.f += f; }", call: "y = new C(4)", check: "y.f == 4;" }
+  - { decl: "static f: int = 5; ", call: "", check: "C.f == 5;" }

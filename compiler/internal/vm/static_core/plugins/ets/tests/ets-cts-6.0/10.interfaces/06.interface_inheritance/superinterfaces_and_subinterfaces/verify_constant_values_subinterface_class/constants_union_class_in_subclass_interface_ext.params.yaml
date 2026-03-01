@@ -1,0 +1,410 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+--- # Interfaces with static members and type parameters inside
+cases:
+  - desc: Verify whether the constant values UnionTypeClass_number remain consistent in the subclass interface.
+    decl: |-
+      class UnionTypeClass {
+        public value: number | boolean;
+        constructor(value: number | boolean) {
+          this.value = value;
+        }
+      }
+      interface ParentInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass;
+      }
+      interface SubInterface extends ParentInterface {}
+      class MyClass implements SubInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass = new UnionTypeClass(11);
+      }
+      class SubClass extends MyClass {}
+    logic: |-
+      const sub = new SubClass();
+      arktest.assertEQ(sub.CONSTANT_VALUE.value, 11);
+
+  - desc: Verify whether the constant values UnionTypeClass_boolean remain consistent in the subclass interface.
+    decl: |-
+      class UnionTypeClass {
+        public value: number | boolean;
+        constructor(value: number | boolean) {
+          this.value = value;
+        }
+      }
+      interface ParentInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass;
+      }
+      interface SubInterface extends ParentInterface {}
+      class MyClass implements SubInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass = new UnionTypeClass(true);
+      }
+      class SubClass extends MyClass {}
+    logic: |-
+      const sub = new SubClass();
+      arktest.assertEQ(typeof sub.CONSTANT_VALUE.value, 'boolean');
+
+  - desc: Verify whether the constant values UnionTypeClass_class remain consistent in the subclass interface.
+    decl: |-
+      class User {
+        value_name: string;
+        constructor() {
+          this.value_name = "test_name";
+        }
+      }
+      interface SomeInterface {
+        value_name: string;
+      }
+      class UnionTypeClass {
+        public value: User | SomeInterface;
+        constructor(value: User | SomeInterface) {
+          this.value = value;
+        }
+      }
+      interface ParentInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass;
+      }
+      interface SubInterface extends ParentInterface {}
+      class MyClass implements SubInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass = new UnionTypeClass(new User());
+      }
+      class SubClass extends MyClass {}
+    logic: |-
+      const sub = new SubClass();
+      arktest.assertEQ(sub.CONSTANT_VALUE.value.value_name, "test_name");
+
+      
+
+  - desc: Verify whether the constant values UnionTypeClass_interface remain consistent in the subclass interface.
+    decl: |-
+      class User {
+        user_name: string;
+        constructor() {
+          this.user_name = "test_name";
+        }
+      }
+      interface SomeInterface {
+        user_name: string;
+      }
+      class UnionTypeClass {
+        public value: User | SomeInterface;
+        constructor(value: User | SomeInterface) {
+          this.value = value;
+        }
+      }
+      const obj1: SomeInterface = { user_name: "Object1" };
+      interface ParentInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass;
+      }
+      interface SubInterface extends ParentInterface {}
+      class MyClass implements SubInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass = new UnionTypeClass(obj1);
+      }
+      class SubClass extends MyClass {}
+    logic: |-
+      const sub = new SubClass();
+      arktest.assertEQ(sub.CONSTANT_VALUE.value.user_name, "Object1");
+
+  - desc: Verify whether the constant values UnionTypeClass_Date remain consistent in the subclass interface.
+    decl: |-
+      enum MyConstants {
+        enum_value = 42,
+      }
+      class UnionTypeClass {
+        public enum_value: Date | MyConstants;
+        constructor(value: Date | MyConstants) {
+          this.enum_value = value;
+        }
+      }
+      const date = new Date(2023, 10, 1);
+      interface ParentInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass;
+      }
+      interface SubInterface extends ParentInterface {}
+      class MyClass implements SubInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass = new UnionTypeClass(date);
+      }
+      class SubClass extends MyClass {}
+    logic: |-
+      const sub = new SubClass();
+      arktest.assertEQ(sub.CONSTANT_VALUE.enum_value, date);
+
+  - desc: Verify whether the constant values UnionTypeClass_Date remain consistent in the subclass interface.
+    decl: |-
+      enum MyConstants {
+        enum_value = 42,
+      }
+      class UnionTypeClass {
+        public enum_value: Date | MyConstants;
+        constructor(enum_value: Date | MyConstants) {
+          this.enum_value = enum_value;
+        }
+      }
+      const date = new Date(2023, 10, 1);
+      interface ParentInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass;
+      }
+      interface SubInterface extends ParentInterface {}
+      class MyClass implements SubInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass = new UnionTypeClass(MyConstants.enum_value);
+      }
+      class SubClass extends MyClass {}
+    logic: |-
+      const sub = new SubClass();
+      arktest.assertEQ(sub.CONSTANT_VALUE.enum_value, MyConstants.enum_value);
+#未解决
+  - desc: Verify whether the constant values UnionTypeClass_null[] remain consistent in the subclass interface.
+    decl: |-
+      class UnionTypeClass {
+        public value: null[] | undefined[];
+        constructor(value: null[] | undefined[]) {
+          this.value = value;
+        }
+      }
+      const temp_value: null[] = [null, null];
+      interface ParentInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass;
+      }
+      interface SubInterface extends ParentInterface {}
+      class MyClass implements SubInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass = new UnionTypeClass(temp_value);
+      }
+      class SubClass extends MyClass {}
+    logic: |-
+      const sub = new SubClass();
+      arktest.assertEQ((sub.CONSTANT_VALUE.value as null[])[0], null);
+
+
+  - desc: Verify whether the constant values UnionTypeClass_undefined[] remain consistent in the subclass interface.
+    decl: |-
+      class UnionTypeClass {
+        public value: null[] | undefined[];
+        constructor(value: null[] | undefined[]) {
+          this.value = value;
+        }
+      }
+      const temp_value: undefined[] = [undefined, undefined];
+      interface ParentInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass;
+      }
+      interface SubInterface extends ParentInterface {}
+      class MyClass implements SubInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass = new UnionTypeClass(temp_value);
+      }
+      class SubClass extends MyClass {}
+    logic: |-
+      const sub = new SubClass();
+      arktest.assertEQ((sub.CONSTANT_VALUE.value as undefined[])[0], undefined);
+
+  - desc: Verify whether the constant values UnionTypeClass_int[] remain consistent in the subclass interface.
+    decl: |-
+      class UnionTypeClass {
+        public value: int[] | string[];
+        constructor(value: int[] | string[]) {
+          this.value = value;
+        }
+      }
+      const temp_value: int[] = [1, 2, 3];
+      interface ParentInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass;
+      }
+      interface SubInterface extends ParentInterface {}
+      class MyClass implements SubInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass = new UnionTypeClass(temp_value);
+      }
+      class SubClass extends MyClass {}
+    logic: |-
+      const sub = new SubClass();
+      arktest.assertEQ((sub.CONSTANT_VALUE.value as int[])[0], 1);
+
+  - desc: Verify whether the constant values UnionTypeClass_string[] remain consistent in the subclass interface.
+    decl: |-
+      class UnionTypeClass {
+        public value: int[] | string[];
+        constructor(value: int[] | string[]) {
+          this.value = value;
+        }
+      }
+      const temp_value: string[] = ["a", "b", "c"];
+      interface ParentInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass;
+      }
+      interface SubInterface extends ParentInterface {}
+      class MyClass implements SubInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass = new UnionTypeClass(temp_value);
+      }
+      class SubClass extends MyClass {}
+    logic: |-
+      const sub = new SubClass();
+      arktest.assertEQ((sub.CONSTANT_VALUE.value as string[])[0], "a");
+
+  - desc: Verify whether the constant values UnionTypeClass_number[] remain consistent in the subclass interface.
+    decl: |-
+      class UnionTypeClass {
+        public value: number[] | boolean[];
+        constructor(value: number[] | boolean[]) {
+          this.value = value;
+        }
+      }
+      const temp_value: number[] = [2, 3, 4];
+      interface ParentInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass;
+      }
+      interface SubInterface extends ParentInterface {}
+      class MyClass implements SubInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass = new UnionTypeClass(temp_value);
+      }
+      class SubClass extends MyClass {}
+    logic: |-
+      const sub = new SubClass();
+      arktest.assertEQ((sub.CONSTANT_VALUE.value as number[])[0], 2);
+
+  - desc: Verify whether the constant values UnionTypeClass_boolean[] remain consistent in the subclass interface.
+    decl: |-
+      class UnionTypeClass {
+        public value: number[] | boolean[];
+        constructor(value: number[] | boolean[]) {
+          this.value = value;
+        }
+      }
+      const temp_value: boolean[] = [true, false, true];
+      interface ParentInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass;
+      }
+      interface SubInterface extends ParentInterface {}
+      class MyClass implements SubInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass = new UnionTypeClass(temp_value);
+      }
+      class SubClass extends MyClass {}
+    logic: |-
+      const sub = new SubClass();
+      arktest.assertEQ((sub.CONSTANT_VALUE.value as boolean[])[0], true);
+
+  - desc: Verify whether the constant values UnionTypeClass_interface[] remain consistent in the subclass interface.
+    decl: |-
+      class User {
+        user_name: string;
+        constructor() {
+          this.user_name = "test_name";
+        }
+      }
+      interface SomeInterface {
+        user_name: string;
+      }
+      class UnionTypeClass {
+        public user_name: User[] | SomeInterface[];
+        constructor(user_name: User[] | SomeInterface[]) {
+          this.user_name = user_name;
+        }
+      }
+      const obj1: SomeInterface = { user_name: "Object1" };
+      const obj2: SomeInterface = { user_name: "Object2" };
+      const user_name: SomeInterface[] = [obj1, obj2];
+      interface ParentInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass;
+      }
+      interface SubInterface extends ParentInterface {}
+      class MyClass implements SubInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass = new UnionTypeClass(user_name);
+      }
+      class SubClass extends MyClass {}
+    logic: |-
+      const sub = new SubClass();
+      arktest.assertEQ((sub.CONSTANT_VALUE.user_name as SomeInterface[])[0].user_name, "Object1");
+
+  - desc: Verify whether the constant values UnionTypeClass_interface[] remain consistent in the subclass interface.
+    decl: |-
+      class User {
+        user_name: string;
+        constructor() {
+          this.user_name = "test_name";
+        }
+      }
+      interface SomeInterface {
+        interface_name: string;
+      }
+      class UnionTypeClass {
+        public value: User[] | SomeInterface[];
+        constructor(value: User[] | SomeInterface[]) {
+          this.value = value;
+        }
+      }
+      const temp_value: User[] = [new User(), new User()];
+      interface ParentInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass;
+      }
+      interface SubInterface extends ParentInterface {}
+      class MyClass implements SubInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass = new UnionTypeClass(temp_value);
+      }
+      class SubClass extends MyClass {}
+    logic: |-
+      const sub = new SubClass();
+      arktest.assertEQ((sub.CONSTANT_VALUE.value as User[])[0].user_name, "test_name");
+
+  - desc: Verify whether the constant values UnionTypeClass_Date[] remain consistent in the subclass interface.
+    decl: |-
+      enum MyConstants {
+        enum_value = 42,
+      }
+      class UnionTypeClass {
+        public enum_value: Date[] | MyConstants[];
+        constructor(enum_value: Date[] | MyConstants[]) {
+          this.enum_value = enum_value;
+        }
+      }
+      const date = new Date(2023, 10, 1);
+      const temp_value: Date[] = [date, date];
+      interface ParentInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass;
+      }
+      interface SubInterface extends ParentInterface {}
+      class MyClass implements SubInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass = new UnionTypeClass(temp_value);
+      }
+      class SubClass extends MyClass {}
+    logic: |-
+      const sub = new SubClass();
+      arktest.assertEQ((sub.CONSTANT_VALUE.enum_value as Date[])[0], date);
+
+  - desc: Verify whether the constant values UnionTypeClass_Date[] remain consistent in the subclass interface.
+    decl: |-
+      enum MyConstants {
+        enum_value = 42,
+      }
+      class UnionTypeClass {
+        public enum_value: Date[] | MyConstants[];
+        constructor(enum_value: Date[] | MyConstants[]) {
+          this.enum_value = enum_value;
+        }
+      }
+      const temp_value: MyConstants[] = [MyConstants.enum_value, MyConstants.enum_value];
+      interface ParentInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass;
+      }
+      interface SubInterface extends ParentInterface {}
+      class MyClass implements SubInterface {
+        readonly CONSTANT_VALUE: UnionTypeClass = new UnionTypeClass(temp_value);
+      }
+      class SubClass extends MyClass {}
+    logic: |-
+      const sub = new SubClass();
+      arktest.assertEQ((sub.CONSTANT_VALUE.enum_value as MyConstants[])[0], MyConstants.enum_value);

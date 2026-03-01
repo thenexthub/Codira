@@ -1,0 +1,55 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+export declare let a1: string;
+export declare function b1(num: number): void;
+export declare class c1 {
+    public get a(): string;
+    public set a(value: string);
+    public b(): string;
+    constructor();
+}
+export declare class c3 extends c1 {
+    public get a(): string;
+    public set a(value: string);
+    public b(): string;
+    constructor();
+}
+export type d1 = string;
+export declare enum e1 {
+    a = 0,
+    b = 1,
+    c = 2,
+}
+export declare interface f1 {
+    a: string;
+    b: number;
+    c: () => void;
+}
+export declare class c5 implements f1 {
+    constructor();
+    public get a(): string;
+    public set a(value: string);
+    public get b(): number;
+    public set b(value: number);
+    public get c(): () => void;
+    public set c(value: () => void);
+}

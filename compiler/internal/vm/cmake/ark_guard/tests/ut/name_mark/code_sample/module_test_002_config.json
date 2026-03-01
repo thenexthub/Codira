@@ -1,0 +1,12 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep package module_test_002 {\n    @MyAnno1 foo1(i32, i32):void;\n    }"
+      ]
+    }
+  }
+}

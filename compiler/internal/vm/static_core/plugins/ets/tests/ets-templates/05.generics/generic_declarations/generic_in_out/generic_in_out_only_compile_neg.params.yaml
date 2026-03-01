@@ -1,0 +1,41 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+  - desc: Verify the application of the invariability of the 'in' keyword in a set.
+    dec1: |-
+      interface SetWrapper<in T> {
+        setValue: Set<T>;
+      }
+      function createSetWrapper<T>(setValue: Set<T>): SetWrapper<T> {
+        return { setValue };
+      }
+    check: |-
+      const anySetWrapper = createSetWrapper<object>(new Set<object>());
+      const numberSetWrapper: SetWrapper<number> = anySetWrapper;
+    stdout: |-
+      "Semantic error ESE0331: Type Parameter 'T' is declared as 'in' but occurs in 'invariant' position."
+
+  - desc: Verify the covariance of the 'out' keyword in the map.
+    dec1: |-
+      interface MapWrapper<out K, out V> {
+        map: Map<K, V>;
+      }
+      function createMapWrapper<K, V>(map: Map<K, V>): MapWrapper<K, V> {
+        return { map };
+      }
+    check: |-
+      const numberMapWrapper = createMapWrapper<string, number>(new Map<string, number>);
+      const anyMapWrapper: MapWrapper<string, object> = numberMapWrapper;
+    stdout: |-
+      "Semantic error ESE0331: Type Parameter 'K' is declared as 'out' but occurs in 'invariant' position."

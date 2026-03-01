@@ -1,0 +1,52 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # default value
+  - decl: |-
+      type foo1_o = (x?: int = 1) => int
+
+  - decl: |-
+      type foo2_o = (x1: int, x2?: int = 1) => int
+
+  - decl: |-
+      type foo2_ood = (x1?: int, x2?: int = 1) => int
+
+  - decl: |-
+      type foo2_odo = (x1?: int = 1, x2?: int) => int
+
+  - decl: |-
+      type foo2_odod = (x1?: int = 1, x2?: int = 1) => int
+
+  - decl: |-
+      type foo3_ood = (x1: int, x2?: int, x3?: int = 1) => int
+
+  - decl: |-
+      type foo3_odo = (x1: int, x2?: int = 1, x3?: int) => int
+
+  - decl: |-
+      type foo3_odod = (x1: int, x2?: int = 1, x3?: int = 1) => int
+
+  # non-optional after optional
+  - decl: |-
+      type foo = (x1?: int, x2: int) => int
+
+  - decl: |-
+      type foo = (x1?: int, x2: int, x3?: int) => int
+
+  - decl: |-
+      type foo = (x1?: int, x2?: int, x3: int) => int
+
+  - decl: |-
+      type foo = (x1?: int, x2: int, x3: int) => int

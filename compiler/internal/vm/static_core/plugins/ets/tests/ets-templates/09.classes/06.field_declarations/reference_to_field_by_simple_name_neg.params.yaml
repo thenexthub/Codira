@@ -1,0 +1,342 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+  - desc: |-
+      >-
+        A class can inherit more than one field or property with the
+        same name from its superinterfaces, or from both its superclass
+        and superinterfaces. However, an attempt to refer to such a field
+        or property by its simple name within the class body causes
+        a compile-time error.
+    params: |-
+      simple, single class
+    decl_variants:
+      - |-
+        class A {
+          x: int = 5
+          foo(): void {
+            x++
+          }
+        }
+      - |-
+        class A {
+          x: int = 5
+          constructor() {
+            x++
+          }
+        }
+      - |-
+        class A {
+          x: int = 5
+          y: int = x
+        }
+      - |-
+        class A {
+          x: int = 5
+          static {
+            x++
+          }
+        }
+    expected_out:
+      - |-
+        "Semantic error ESE0145: Property 'x' must be accessed through 'this'"
+      - |-
+        "Semantic error ESE0145: Property 'x' must be accessed through 'this'"
+      - |-
+        "Semantic error ESE0145: Property 'x' must be accessed through 'this'"
+      - |-
+        "Expected CTE output is unknown"
+
+  - desc: |-
+      >-
+        A class can inherit more than one field or property with the
+        same name from its superinterfaces, or from both its superclass
+        and superinterfaces. However, an attempt to refer to such a field
+        or property by its simple name within the class body causes
+        a compile-time error.
+    params: |-
+      simple, single interface
+    decl_variants:
+      - |-
+        interface I {
+          x: int
+          methI(): void {
+            x++
+          }
+        }
+    expected_out:
+      - |-
+        "Semantic error ESE0145: Property 'x' must be accessed through 'this'"
+
+  - desc: |-
+      >-
+        A class can inherit more than one field or property with the
+        same name from its superinterfaces, or from both its superclass
+        and superinterfaces. However, an attempt to refer to such a field
+        or property by its simple name within the class body causes
+        a compile-time error.
+    params: |-
+      inherit field from superclass
+    decl_variants:
+      - |-
+        class A {
+          x: int = 5
+        }
+        class B extends A {
+          foo(): void {
+            x++
+          }
+        }
+      - |-
+        class A {
+          x: int = 5
+        }
+        class B extends A {
+          constructor() {
+            super()
+            x++
+          }
+        }
+      - |-
+        class A {
+          x: int = 5
+        }
+        class B extends A {
+          y: int = x
+        }
+      - |-
+        class A {
+          x: int = 5
+        }
+        class B extends A {
+          static {
+            x++
+          }
+        }
+    expected_out:
+      - |-
+        "Semantic error ESE0145: Property 'x' must be accessed through 'this'"
+      - |-
+        "Semantic error ESE0145: Property 'x' must be accessed through 'this'"
+      - |-
+        "Semantic error ESE0145: Property 'x' must be accessed through 'this'"
+      - |-
+        "Expected CTE output is unknown"
+
+  - desc: |-
+      >-
+        A class can inherit more than one field or property with the
+        same name from its superinterfaces, or from both its superclass
+        and superinterfaces. However, an attempt to refer to such a field
+        or property by its simple name within the class body causes
+        a compile-time error.
+    params: |-
+      implementing property from single interface
+    decl_variants:
+      - |-
+        interface I {
+          x: int
+        }
+        class A implements I {
+          x: int = 5
+          foo(): void {
+            x++
+          }
+        }
+      - |-
+        interface I {
+          x: int
+        }
+        class A implements I {
+          x: int = 5
+          constructor() {
+            x++
+          }
+        }
+      - |-
+        interface I {
+          x: int
+        }
+        class A implements I {
+          x: int = 5
+          y: int = x
+        }
+      - |-
+        interface I {
+          x: int
+        }
+        class A implements I {
+          x: int = 5
+          static {
+            x++
+          }
+        }
+    expected_out:
+      - |-
+        "Semantic error ESE0145: Property 'x' must be accessed through 'this'"
+      - |-
+        "Semantic error ESE0145: Property 'x' must be accessed through 'this'"
+      - |-
+        "Semantic error ESE0145: Property 'x' must be accessed through 'this'"
+      - |-
+        "Expected CTE output is unknown"
+
+  - desc: |-
+      >-
+        A class can inherit more than one field or property with the
+        same name from its superinterfaces, or from both its superclass
+        and superinterfaces. However, an attempt to refer to such a field
+        or property by its simple name within the class body causes
+        a compile-time error.
+    params: |-
+      two superinterfaces with same property
+    decl_variants:
+      - |-
+        interface I1 {
+          x: int
+        }
+        interface I2 {
+          x: int
+        }
+        class A implements I1, I2 {
+          x: int = 5
+          foo(): void {
+            x++
+          }
+        }
+      - |-
+        interface I1 {
+          x: int
+        }
+        interface I2 {
+          x: int
+        }
+        class A implements I1, I2 {
+          x: int = 5
+          constructor() {
+            x++
+          }
+        }
+      - |-
+        interface I1 {
+          x: int
+        }
+        interface I2 {
+          x: int
+        }
+        class A implements I1, I2 {
+          x: int = 5
+          y: int = x
+        }
+      - |-
+        interface I1 {
+          x: int
+        }
+        interface I2 {
+          x: int
+        }
+        class A implements I1, I2 {
+          x: int = 5
+          static {
+            x++
+          }
+        }
+    expected_out:
+      - |-
+        "Semantic error ESE0145: Property 'x' must be accessed through 'this'"
+      - |-
+        "Semantic error ESE0145: Property 'x' must be accessed through 'this'"
+      - |-
+        "Semantic error ESE0145: Property 'x' must be accessed through 'this'"
+      - |-
+        "Expected CTE output is unknown"
+
+  - desc: |-
+      >-
+        A class can inherit more than one field or property with the
+        same name from its superinterfaces, or from both its superclass
+        and superinterfaces. However, an attempt to refer to such a field
+        or property by its simple name within the class body causes
+        a compile-time error.
+    params: |-
+      two superinterfaces with same property, one superclass with same field name
+    decl_variants:
+      - |-
+        class A {
+          x: int = 5
+        }
+        interface I1 {
+          x: int
+        }
+        interface I2 {
+          x: int
+        }
+        class B extends A implements I1, I2 {
+          foo(): void {
+            x++
+          }
+        }
+      - |-
+        class A {
+          x: int = 5
+        }
+        interface I1 {
+          x: int
+        }
+        interface I2 {
+          x: int
+        }
+        class B extends A implements I1, I2 {
+          constructor() {
+            super()
+            x++
+          }
+        }
+      - |-
+        class A {
+          x: int = 5
+        }
+        interface I1 {
+          x: int
+        }
+        interface I2 {
+          x: int
+        }
+        class B extends A implements I1, I2 {
+          y: int = x
+        }
+      - |-
+        class A {
+          x: int = 5
+        }
+        interface I1 {
+          x: int
+        }
+        interface I2 {
+          x: int
+        }
+        class B extends A implements I1, I2 {
+          static {
+            x++
+          }
+        }
+    expected_out:
+      - |-
+        "Semantic error ESE0145: Property 'x' must be accessed through 'this'"
+      - |-
+        "Semantic error ESE0145: Property 'x' must be accessed through 'this'"
+      - |-
+        "Semantic error ESE0145: Property 'x' must be accessed through 'this'"
+      - |-
+        "Expected CTE output is unknown"

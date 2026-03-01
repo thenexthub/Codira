@@ -1,0 +1,95 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          let size = 0  // int, zero-length array
+      use: |-
+          let v = new string[size]
+          arktest.assertEQ(v.length, 0)
+
+    - decl: |-
+          const size = 256  // int
+      use: |-
+          let v = new number[size]
+          v[255] = 42.0
+          arktest.assertEQ(v.length, 256)
+          arktest.assertEQ(v[255], 42.0)
+
+    - decl: |-
+          let size: Int = new Int(1)  // int alias
+      use: |-
+          let v: number[] = new number[size]
+          v[0] = 42.0
+          arktest.assertEQ(v.length, 1)
+          arktest.assertEQ(v[0], 42.0)
+
+    - decl: |-
+          const size: byte = 10
+      use: |-
+          let v: Error[] = new Error[size]
+          v[9] = new Error()
+          arktest.assertEQ(v.length, 10)
+          arktest.assertTrue(v[9] instanceof Error)
+
+    - decl: |-
+          let size: Byte = new Byte(0x7f as byte)  // byte alias
+      use: |-
+          let v: Error[] = new Error[size]
+          v[0x7e] = new Error()
+          arktest.assertEQ(v.length, 0x7f)
+          arktest.assertTrue(v[0x7e] instanceof Error)
+
+    - decl: |-
+          const size: short = 0o52
+      use: |-
+          let v: Number[] = new Number[size]
+          v[0o37] = new Number(42.0)
+          arktest.assertEQ(v.length, 0o52)
+          arktest.assertEQ(v[0o37], 42.0)
+
+    - decl: |-
+          let size: Short = new Short(0b0101 as short)  // short alias
+      use: |-
+          let v: Long[] = new Long[size]
+          v[0b0100] = new Long(42 as long)
+          arktest.assertEQ(v.length, 0b0101)
+          arktest.assertEQ(v[0b0100], 42)
+
+    - decl: |-
+          let size1: byte = 7
+          let size2: short = 8
+          const size3: int = 9
+      use: |-
+          let v: string[][][] = new string[size1][size2][size3]
+          v[size1 - 1][size2 - 1][size3 - 1] = "abc"
+          arktest.assertEQ(v.length, size1)
+          arktest.assertEQ(v[size1 - 1][size2 - 1][size3 - 1], "abc")
+
+    - decl: |-
+          enum Color { Red, Green, Blue }
+          let size = 3
+      use: |-
+          let v: Color[] = new Color[size](Color.Red)
+          v[0] = Color.Blue
+          arktest.assertEQ(v.length, 3)
+          arktest.assertEQ(v[0], Color.Blue)
+
+    - decl: |-
+          enum Color { Red, Green, Blue }
+      use: |-
+          let v: char[][] = new char[Color.Green][Color.Blue]
+          v[0][0] = c'@'
+          arktest.assertEQ(v.length, 1)
+          arktest.assertEQ(v[0][0], c'@')

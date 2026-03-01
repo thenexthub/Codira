@@ -1,0 +1,125 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+ 
+.container {
+    display: flex;
+    padding: 12px 24px;
+    align-items: center;
+}
+.title {
+    font-family: 'Roboto Mono';
+    font-size: 32px;
+    font-weight: 600;
+    margin-right: 42px;
+}
+.linksContainer {
+    display: flex;
+    gap: 24px
+}
+.link {
+    font-family: 'Roboto Mono';
+    font-size: 18px;
+    margin-top: 8px;
+    color: var(--primary1) !important;
+}
+.settings {
+    margin-left: auto;
+    cursor: pointer;
+    padding: 8px;
+}
+.menu {
+    background: var(--divider);
+    width: 245px;
+}
+.menuItem, .menuItem > span {
+    color: var(--text-color) !important;
+    align-items: center;
+}
+.pop > div:before {
+    display: flex;
+}
+.pop {
+    div > svg > path:last-child {
+        fill: var(--divider) !important;
+    }
+}
+.switch {
+    margin: 0 !important;
+}
+.switch {
+    span {
+        margin: 0 !important;
+    }
+}
+.switch {
+    input:checked ~ span {
+        background-color: var(--primary1) !important;
+        outline: none !important;
+    }
+    input:focus ~ span {
+        outline: none !important;
+    }
+}
+.color {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--divider);
+    border-radius: 4px;
+    cursor: pointer;
+}
+.colorContainer {
+    display: flex;
+    gap: 4px;
+    padding: 5px 7px;
+    flex-wrap: wrap;
+}
+
+.hr {
+    width: 100%;
+    height: 1px;
+    background-color: var(--text-color);
+    margin: 4px 0;
+    opacity: 0.3;
+}
+.versionsContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 5px 7px;
+}
+.versionTitle {
+    color: var(--text-color);
+    margin-bottom: 0 !important;
+    margin-right: 4px;
+    opacity: 0.3;
+}
+.preTag {
+    margin: 0 !important;
+    color: var(--text-color);
+    font-family: 'Roboto Mono';
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 12px;
+}
+.preTag > span {
+    width: 190px;
+}

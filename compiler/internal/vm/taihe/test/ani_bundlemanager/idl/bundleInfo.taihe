@@ -1,0 +1,67 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+interface BundleInfo {
+    @get GetName(): String;
+    @get GetVendor(): String;
+    @get GetVersionCode(): i32;
+    @get GetVersionName(): String;
+    @get GetMinCompatibleVersionCode(): String;
+    @get GetTargetVersion(): i32;
+    @get GetInstallTime(): i32;
+    @get GetUpdateTime(): i32;
+    @get GetAppIndex(): i32;
+}
+function GetBundleInfo(): BundleInfo; 
+
+interface ReqPermissionDetail {
+    @set("name") SetName(name: String): void;
+    @get("name") GetName(): String;
+    @set("moduleName") SetModuleName(moduleName: String): void;
+    @get("moduleName") GetModuleName(): String;
+    @set("reason") SetReason(reason: String): void;
+    @get("reason") GetReason(): String;
+    @set("reasonId") SetReasonId(reasonId: i32): void;
+    @get("reasonId") GetReasonId(): i32;
+}
+function GetReqPermissionDetail(): ReqPermissionDetail;
+
+interface UsedScene {
+    @set("abilities") SetAbilities(deviceId: Array<String>): void;
+    @get("abilities") GetAbilities(): Array<String>;
+    @set("when") SetWhen(when: String): void;
+    @get("when") GetWhen(): String;
+}
+function GetIUsedScene(): UsedScene;
+
+interface SignatureInfo {
+    @get GetAppId(): String;
+    @get GetFingerprint(): String;
+    @get GetAppIdentifier(): String;
+    @get GetCertificate(): String;
+}
+function GetISignatureInfo(): SignatureInfo;
+
+interface AppCloneIdentity {
+    @get GetBundleName(): String;
+    @get GetAppIndex(): i32;
+}
+function GetAppCloneIdentity(): AppCloneIdentity;

@@ -1,0 +1,50 @@
+/*
+ * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// NOLINTNEXTLINE(readability-function-size)
+ark::llvmbackend::BridgeType GetBridgeTypeInternal(ark::compiler::RuntimeInterface::EntrypointId id)
+{
+    switch (id) {
+% Compiler::entrypoints.each do |entrypoint|
+        case ark::compiler::RuntimeInterface::EntrypointId::<%= entrypoint.enum_name %>:
+            return ark::llvmbackend::BridgeType::<%= entrypoint.bridge %>;
+% end
+        default:
+            ASSERT_DO(false, (std::cerr << "Cannot get bridge for EntrypointId = " << static_cast<int>(id)
+                                        << std::endl));
+            UNREACHABLE();
+    }
+}
+
+// NOLINTNEXTLINE(readability-function-size)
+llvm::FunctionType *GetEntrypointDeclaration(llvm::LLVMContext &ctx, llvm::Module *module, ark::compiler::RuntimeInterface::EntrypointId id)
+{
+    constexpr auto GC_SPACE = ark::llvmbackend::LLVMArkInterface::GC_ADDR_SPACE;
+    // We hope that ARK will not use segmentated memory and size_t will have the same width as uintptr_t
+    // NOLINTNEXTLINE(readability-identifier-naming)
+    auto size_type = llvm::Type::getIntNTy(ctx, module->getDataLayout().getPointerSizeInBits(0));
+    switch (id) {
+% Compiler::entrypoints.each do |entrypoint|
+        case ark::compiler::RuntimeInterface::EntrypointId::<%= entrypoint.enum_name %>:
+            return llvm::FunctionType::get(<%= llvm_type_getter(entrypoint.signature[0], 'GC_SPACE') %>,
+                       {<%= entrypoint.signature[1..-1].select {|t| t != '...' }.map { |t| llvm_type_getter(t, 'GC_SPACE') }.join(', ') %>},
+                       <%= entrypoint.variadic? %>);
+% end
+        default:
+            ASSERT_DO(false, (std::cerr << "Cannot get entrypoint signature by EntrypointId = " << static_cast<int>(id)
+                                        << std::endl));
+            UNREACHABLE();
+    }
+}

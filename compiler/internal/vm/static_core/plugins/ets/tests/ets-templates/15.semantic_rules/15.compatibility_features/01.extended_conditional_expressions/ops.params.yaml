@@ -1,0 +1,63 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - { val: 'Long.MIN_VALUE', type: 'long', truthy: true }
+    - { val: '0', type: 'long', truthy: false }
+    - { val: 'Long.MAX_VALUE', type: 'long', truthy: true }
+
+    - { val: 'new Long(Long.MIN_VALUE)', type: 'Long', truthy: true }
+    - { val: 'new Long()', type: 'Long', truthy: false }
+    - { val: 'new Long(Long.MAX_VALUE)', type: 'Long', truthy: true }
+
+    - { val: 'Number.POSITIVE_INFINITY', type: 'number', truthy: true }
+    - { val: 'Number.NEGATIVE_INFINITY', type: 'number', truthy: true }
+    - { val: 'Number.MIN_VALUE', type: 'number', truthy: true }
+    - { val: 'Number.MAX_VALUE', type: 'number', truthy: true }
+    - { val: 'Number.NaN', type: 'number', truthy: false }
+    - { val: '-0.0', type: 'number', truthy: false }
+
+    - { val: 'new Number(Number.POSITIVE_INFINITY)', type: 'Number', truthy: true }
+    - { val: 'new Number(Number.NEGATIVE_INFINITY)', type: 'Number', truthy: true }
+    - { val: 'new Number(Number.MIN_VALUE)', type: 'Number', truthy: true }
+    - { val: 'new Number(Number.MAX_VALUE)', type: 'Number', truthy: true }
+    - { val: 'new Number(Number.NaN)', type: 'Number', truthy: false }
+    - { val: 'new Number(0.0)', type: 'Number', truthy: false }
+
+    - { val: 'new String("\u0000\u0000").substring(0, 0)', type: 'string', truthy: false }
+    - { val: 'new String("\u0000\u0000").substring(0, 1)', type: 'string', truthy: true }
+
+    - { val: "c'\\u0000'", type: 'char', truthy: false }
+    - { val: "c' '", type: 'char', truthy: true }
+    - { val: "new Char(c'\\u0000')", type: 'Char', truthy: false }
+    - { val: "new Char(c' ')", type: 'Char', truthy: true }
+
+    - { val: '!false', type: 'boolean', truthy: true }
+    - { val: '!true', type: 'boolean', truthy: false }
+    - { val: 'new Boolean(!false)', type: 'Boolean', truthy: true }
+    - { val: 'new Boolean(!true)', type: 'Boolean', truthy: false }
+
+    - { val: '[]', type: 'number[]', truthy: true }
+    - { val: 'new string[0]', type: 'string[]', truthy: true }
+
+    - { val: 'new Object()', type: 'Object', truthy: true }
+    - { val: '{} as Object', type: 'Object|null', truthy: true }
+
+    - { val: 'null', type: 'Object|null', truthy: false }
+    - { val: 'undefined', type: 'Object|undefined', truthy: false }
+
+    - { val: '0n', type: 'bigint', truthy: false }
+
+    - { type: 'Color', val: 'Color.Red', truthy: false }
+    - { type: 'Size', val: 'Size.L', truthy: true }

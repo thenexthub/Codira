@@ -1,0 +1,19 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keepPath": {
+        "reservedPaths": [
+          "entry/src/main/Main1",
+          "entry/src/main/Main2"
+        ],
+        "universalReservedPaths": [
+          "entry/src/main/Main?",
+          "entry/**/main/Main4"
+        ]
+      }
+    }
+  }
+}

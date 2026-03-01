@@ -1,0 +1,85 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+# a0 * 0 + a1
+.function i64 mza(i64 a0, i64 a1) <static> {
+  movi.64 v0, 0
+  lda.64 a0
+  mul2.64 v0
+  add2.64 a1
+  return.64
+}
+
+# a0 * a1 + 0
+.function i64 maz(i64 a0, i64 a1) <static> {
+  movi.64 v0, 0
+  lda.64 a0
+  mul2.64 a1
+  add2.64 v0
+  return.64
+}
+
+# a0 - a1 * 0
+.function i64 mzs(i64 a0, i64 a1) <static> {
+  movi.64 v0, 0
+  lda.64 a1
+  mul2.64 v0
+  sta.64 v0
+  lda.64 a0
+  sub2.64 v0
+  return.64
+}
+
+# 0 - a0 * a1
+.function i64 msz(i64 a0, i64 a1) <static> {
+  movi.64 v0, 0
+  lda.64 a0
+  mul2.64 a1
+  sta.64 v1
+  lda.64 v0
+  sub2.64 v1
+  return.64
+}
+
+.function i32 main() <static> {
+  movi.64 v0, 21
+  movi.64 v1, 17
+  call.short mza, v0, v1
+  sta.64 v2
+  call.short maz, v0, v1
+  sta.64 v3
+  call.short mzs, v0, v1
+  sta.64 v4
+  call.short msz, v0, v1
+  add2.64 v2
+  add2.64 v3
+  add2.64 v4
+  # (a * 0 + b) + (a * b + 0) + (a - b * 0) + (0 - a * b) => a + b
+  movi.64 v0, 38
+  cmp.64 v0
+  jnez error
+  ldai 0
+  return
+error:
+  ldai 1
+  return
+}

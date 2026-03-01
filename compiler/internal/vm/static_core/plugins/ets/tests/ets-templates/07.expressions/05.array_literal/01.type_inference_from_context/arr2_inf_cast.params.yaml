@@ -1,0 +1,285 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # casting context
+    - use: |-
+          // casting context, array of value types
+          let a = [!true, true, true] as Array<boolean>
+          arktest.assertEQ(a[0], false)
+          arktest.assertEQ(a[1], true)
+          arktest.assertEQ(a[2], true)
+          arktest.assertEQ(a.length, 3)
+
+    - use: |-
+          // casting context, array of value types
+          let a = [1, 2, 3, -9223372036854775807 - 1] as Array<long>
+          arktest.assertEQ(a[3], -9223372036854775808)
+          arktest.assertEQ(a.length, 4)
+
+    - use: |-
+          // casting context, array of array of value types
+          let a = [[-2147483647, 2, ], [3, ], [2 + 2, 5, 2147483646 + 1, ], [], ] as Array<Array<int>>
+          arktest.assertEQ(a.length, 4)
+          arktest.assertEQ(a[0][0], -2147483647)
+          arktest.assertEQ(a[2][2], 2147483647)
+
+    - use: |-
+          // casting context, array of value types
+          let a = [Number.NaN, 0, 3.14, 1.7976931348623157e+308, ] as Array<number>
+          arktest.assertTrue(Number.isNaN(a[0]))
+          arktest.assertEQ(a[3], 1.7976931348623157e+308)
+          arktest.assertEQ(a.length, 4)
+
+    - use: |-
+          // casting context, array of value types
+          let a = [false, true, true] as Array<Boolean>
+          arktest.assertEQ(a[0], false)
+          arktest.assertEQ(a[1], true)
+          arktest.assertEQ(a[2], true)
+          arktest.assertEQ(a.length, 3)
+
+    - use: |-
+          // casting context, array of value types
+          let a = [1, 2, 3, -9223372036854775808,] as Array<Long>
+          arktest.assertEQ(a[3], -9223372036854775808)
+          arktest.assertEQ(a.length, 4)
+
+    - use: |-
+          // casting context, array of value types
+          let a = [Number.NaN, 0, 3.14, 1.7976931348623157e+308, ] as Array<Number>
+          arktest.assertTrue(Number.isNaN(a[0]))
+          arktest.assertEQ(a[3], 1.7976931348623157e+308)
+          arktest.assertEQ(a.length, 4)
+
+    - use: |-
+          // casting context, array of array of value types
+          let a = [[1.7976931348623157e+308, 2, ], [3, ], [4, 5, 6, ], [], ] as Array<Array<Number>>
+          arktest.assertEQ(a.length, 4)
+          arktest.assertEQ(a[0][0], 1.7976931348623157e+308)
+          arktest.assertEQ(a[2][2], 6.0)
+
+    - use: |-
+          // casting context, array of strings
+          let a = ['1', '2', '', '-9223372036854775808', ] as Array<string>
+          arktest.assertEQ(a[3], '-9223372036854775808')
+          arktest.assertEQ(a.length, 4)
+
+    - use: |-
+          // casting context, array of strings
+          let a = ['x', 'x' + '1', 'x' + '2', 'x' + '3', ] as Array<string>
+          arktest.assertEQ(a[0], 'x')
+          arktest.assertEQ(a[1], 'x1')
+          arktest.assertEQ(a[2], 'x2')
+          arktest.assertEQ(a[3], 'x3')
+          arktest.assertEQ(a.length, 4)
+
+    - decl: |-
+          function bar(i: Int): Char {
+              let v: Int = i + 1
+              return v.toChar()
+          }
+      use: |-
+          // casting context, array of chars
+          let a = [bar(42), bar(43), bar(44), ] as Array<Char>
+          arktest.assertEQ(a[0], c'+')
+          arktest.assertEQ(a[1], c',')
+          arktest.assertEQ(a[2], c'-')
+          arktest.assertEQ(a.length, 3)
+
+    - use: |-
+          // casting context, array of array of strings
+          let s = '1'
+          let a = [[s, s + s,], ['', '-9223372036854775808',], ] as Array<Array<String>>
+          arktest.assertEQ(a[0][0], '1')
+          arktest.assertEQ(a[0][1], '11')
+          arktest.assertEQ(a[1][0], '')
+          arktest.assertEQ(a[1][1], '-9223372036854775808')
+          arktest.assertEQ(a.length, 2)
+
+    - use: |-
+          // casting context, array of bigint
+          let a = [1n, 2n, 33333333333333333333333333333333333333333333333333n] as Array<bigint>
+          arktest.assertEQ(a[1], 2n)
+          arktest.assertEQ(a[2], 33333333333333333333333333333333333333333333333333n)
+          arktest.assertEQ(a.length, 3)
+
+    - use: |-
+          // casting context, array of array of bigint
+          let a = [[11111111111111111111111111111111111111111111111n], [2n], [33333333333333333333333333333333333333333333333333n]] as Array<Array<bigint>>
+          arktest.assertEQ(a[0][0], 11111111111111111111111111111111111111111111111n)
+          arktest.assertEQ(a[2][0], 33333333333333333333333333333333333333333333333333n)
+          arktest.assertEQ(a.length, 3)
+
+    - decl: |-
+          class A {}
+      use: |-
+          // casting context, array of A
+          let a = [{}] as Array<A>
+          arktest.assertTrue(a[0] instanceof A)
+          arktest.assertEQ(a.length, 1)
+
+    - decl: |-
+          class A<T> {}
+          let v = new A<Number>
+          let q = new A<Number>
+      use: |-
+          // casting context, array of A<T>
+          let a = [v, q] as Array<A<Number>>
+          arktest.assertEQ(a[0], v)
+          arktest.assertEQ(a[1], q)
+          arktest.assertEQ(a.length, 2)
+
+    - use: |-
+          // casting context, array of array
+          let a = [["a", 1, true, 2n]] as Array<Array<Object>>
+          arktest.assertEQ(a[0][0] as string,  "a")
+          arktest.assertEQ(a[0][1] as int,  1)
+          arktest.assertEQ(a[0][2] as boolean,  true)
+          arktest.assertEQ(a[0][3] as bigint,  2n)
+          arktest.assertEQ(a.length, 1)
+
+    - decl: |-
+          enum Color { Red, Green, Blue }
+      use: |-
+          // casting context, array of enums
+          let a = [Color.Red, Color.Blue] as Array<Color>
+          arktest.assertEQ(a[0], Color.Red)
+          arktest.assertEQ(a[1], Color.Blue)
+          arktest.assertEQ(a.length, 2)
+
+    - decl: |-
+          enum Color { Red, Green, Blue }
+      use: |-
+          // casting context, array of array of enums
+          let a = [[Color.Red, Color.Blue]] as Array<Array<Color>>
+          arktest.assertEQ(a[0][0], Color.Red)
+          arktest.assertEQ(a[0][1], Color.Blue)
+          arktest.assertEQ(a.length, 1)
+
+    - decl: |-
+          enum Color { Red, Green, Blue }
+          type F = (p: Color) => int
+      use: |-
+          // casting context, array of functions
+          let a = [(p: Color): int => p.valueOf(), (p: Color): int => p.valueOf() + 1, (p: Color): int => p.valueOf() + 2] as Array<F>
+          arktest.assertEQ(a[0](Color.Red), 0)
+          arktest.assertEQ(a[1](Color.Red), 1)
+          arktest.assertEQ(a[2](Color.Blue), 4)
+          arktest.assertEQ(a.length, 3)
+
+    - decl: |-
+          enum Color { Red, Green, Blue }
+          type F = (p: Color) => int
+      use: |-
+          // casting context, array of array of functions
+          let a = [[(p: Color): int => p.valueOf()], [(p: Color): int => p.valueOf() + 1], [(p: Color): int => p.valueOf() + 2]] as Array<Array<F>>
+          arktest.assertEQ(a[0][0](Color.Red), 0)
+          arktest.assertEQ(a[1][0](Color.Red), 1)
+          arktest.assertEQ(a[2][0](Color.Blue), 4)
+          arktest.assertEQ(a.length, 3)
+
+    - decl: |-
+          let u: undefined = undefined
+          let n: null = null
+          let o: Object = {}
+      use: |-
+          // casting context, array of unions
+          let a = [n, o, o, u] as Array<null|undefined|Object>
+          arktest.assertEQ(a[0], null)
+          arktest.assertEQ(a[1] as Object, o)
+          arktest.assertEQ(a[2] as Object, o)
+          arktest.assertEQ(a[3], undefined)
+          arktest.assertEQ(a.length, 4)
+
+    - use: |-
+          // casting context, array of unions
+          let a = [true, 1, 'a', null] as Array<boolean|int|string|null>
+          arktest.assertEQ(a[0] as boolean, true)
+          arktest.assertEQ(a[1] as int, 1)
+          arktest.assertEQ(a[2] as string, 'a')
+          arktest.assertEQ(a[3], null)
+          arktest.assertEQ(a.length, 4)
+
+    - use: |-
+          // casting context, array of array of unions
+          let a = [[true, 1, 'a', null]] as Array<Array<boolean|int|string|null>>
+          arktest.assertEQ(a[0][0] as boolean, true)
+          arktest.assertEQ(a[0][1] as int, 1)
+          arktest.assertEQ(a[0][2] as string, 'a')
+          arktest.assertEQ(a[0][3], null)
+          arktest.assertEQ(a.length, 1)
+
+    - decl: |-
+          let e = new Error
+      use: |-
+          // casting context, array of union with value types
+          let a = [e, false, (p: string): string => p + p, 42] as Array<Number|Error|((p: string)=>string)|Boolean>
+          arktest.assertEQ(a[0] as Error, e)
+          arktest.assertEQ(a[1] as Boolean, false)
+          arktest.assertEQ((a[2] as ((p: string) => string))('a'), 'aa')
+          arktest.assertEQ(a[3] as Number, 42)
+          arktest.assertEQ(a.length, 4)
+
+    - decl: |-
+          let e = new Error
+      use: |-
+          // casting context, array of array of union with value types
+          let a = [[e], [false], [(p: string): string => p + p], [42]] as Array<Array<Number|Error|((p: string)=>string)|Boolean>>
+          arktest.assertEQ(a[0][0] as Error, e)
+          arktest.assertEQ(a[1][0] as Boolean, false)
+          arktest.assertEQ((a[2][0] as ((p: string) => string))('a'), 'aa')
+          arktest.assertEQ(a[3][0] as Number, 42)
+          arktest.assertEQ(a.length, 4)
+
+    - decl: |-
+          type T = Array<Number>|Array<String>|Array<Boolean>
+      use: |-
+          // casting context, union of arrays
+          let a = [false, !false, false] as T
+          arktest.assertEQ((a as Array<Boolean>)[0], false)
+          arktest.assertEQ((a as Array<Boolean>)[1], true)
+          arktest.assertEQ((a as Array<Boolean>)[2], false)
+          arktest.assertEQ((a as Array<Boolean>).length, 3)
+
+    - decl: |-
+          type T = Array<Number>|Array<String>|Array<Boolean>
+      use: |-
+          // casting context, union of arrays
+          let a = [1, 2, 43] as T
+          arktest.assertEQ((a as Array<Number>)[0], 1)
+          arktest.assertEQ((a as Array<Number>)[1], 2)
+          arktest.assertEQ((a as Array<Number>)[2], 43)
+          arktest.assertEQ((a as Array<Number>).length, 3)
+
+    - decl: |-
+          let s = '4'
+      use: |-
+          // casting context, union of arrays
+          let a = ['1', '2', s + '3'] as Array<Number>|Array<String>|Array<Boolean>
+          arktest.assertEQ((a as Array<String>)[0], '1')
+          arktest.assertEQ((a as Array<String>)[1], '2')
+          arktest.assertEQ((a as Array<String>)[2], '43')
+          arktest.assertEQ((a as Array<String>).length, 3)
+
+    - decl: |-
+          enum Color { Red, Green, Blue }
+          enum Size { S, M, L, XL }
+      use: |-
+          // casting context, array of union of enums
+          let a = [Color.Red, Color.Green, Size.XL] as Array<Color|Size>
+          arktest.assertEQ(a[0] as Color, Color.Red)
+          arktest.assertEQ(a[1] as Color, Color.Green)
+          arktest.assertEQ(a[2] as Size, Size.XL)
+          arktest.assertEQ(a.length, 3)

@@ -1,0 +1,79 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+  - description: "Cannot use compound assignment with boolean and number"
+    declarations:
+      - "let a: boolean = true"
+      - "let b: int = 5"
+    operation: "a += b"
+    expected_error: "Bad operand type, the types of the operands must be numeric type, enum or String."
+
+  - description: "Cannot use compound assignment with null and number"
+    declarations:
+      - "let a: int = 5"
+    operation: "a += null"
+    expected_error: "Bad operand type, the types of the operands must be numeric type, enum or String."
+
+  - description: "Cannot use compound assignment with undefined and number"
+    declarations:
+      - "let a: int = 5"
+    operation: "a += undefined"
+    expected_error: "Bad operand type, the types of the operands must be numeric type, enum or String."
+
+  - description: "Cannot use -= operator with string"
+    declarations:
+      - "let a: string = 'hello'"
+    operation: "a -= 'world'"
+    expected_error: "Bad operand type, the types of the operands must be numeric type."
+
+  - description: "Cannot use *= operator with boolean"
+    declarations:
+      - "let a: boolean = true"
+    operation: "a *= false"
+    expected_error: "Bad operand type, the types of the operands must be numeric type."
+
+  - description: "Cannot use /= operator with string"
+    declarations:
+      - "let a: string = 'hello'"
+    operation: "a /= 'world'"
+    expected_error: "Bad operand type, the types of the operands must be numeric type."
+
+  - description: "Cannot use %= operator with boolean"
+    declarations:
+      - "let a: boolean = true"
+    operation: "a %= true"
+    expected_error: "Bad operand type, the types of the operands must be numeric type."
+
+  - description: "Cannot use compound assignment with potentially undefined variable"
+    declarations:
+      - "let a: int | undefined = undefined"
+    operation: "a += 5"
+    expected_error: "Bad operand type: multiple types left in the normalized union type (Int|undefined). Unions are not allowed in binary expressions except equality."
+
+  - description: "Cannot use compound assignment with potentially null variable"
+    declarations:
+      - "let a: int | null = null"
+    operation: "a += 5"
+    expected_error: "Bad operand type: multiple types left in the normalized union type (Int|null). Unions are not allowed in binary expressions except equality."
+      

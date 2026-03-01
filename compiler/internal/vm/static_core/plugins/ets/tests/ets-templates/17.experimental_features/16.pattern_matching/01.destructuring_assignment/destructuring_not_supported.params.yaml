@@ -1,0 +1,47 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - doc: in function parameter
+    decl: |-
+      function foo([arg1, arg2]: number[]) {}
+    use: |-
+      foo([1,2,3,4]);
+    expected_out: "Semantic error ESE0017: Only abstract or native methods can't have body."
+
+  - doc: in for-of loop
+    decl: |-
+      let arr: [number,string][] = [[1.1, "a"],[1.2, "b"]];
+    use: |-
+      let a: number = 0;
+      let b: string = "";
+      for ([a,b] of arr) {}
+    expected_out: "Semantic error ESE0099: Cannot obtain iterator type in 'for-of' statement."
+
+  - doc: rest arguments
+    use: |-
+      let a: number = 0;
+      let b: number = 0;
+      let rest: number[];
+      [a,b,...rest] = [1,2,3,4,5]
+    expected_out: "Syntax error ESY165518: Rest is not supported in destructuring."
+
+  - doc: default argument
+    use: |-
+      let arr: (number|undefined)[] = [1, undefined, 3]
+      let a: number|undefined = 0;
+      let b: number = 0;
+      let c: number|undefined = 0;
+      [a, b=42, c] = arr;
+    expected_out: "Syntax error ESY125256: Default is not supported in destructuring."

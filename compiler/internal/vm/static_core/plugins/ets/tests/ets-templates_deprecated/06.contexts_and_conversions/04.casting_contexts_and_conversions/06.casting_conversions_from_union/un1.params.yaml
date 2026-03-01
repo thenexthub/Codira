@@ -1,0 +1,153 @@
+# Copyright (c) 2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - from_type: byte|short|int|long|float|double
+      types:
+          - { type: Byte, v: '-128 as byte' }
+          - { type: Short, v: '-32768 as short' }
+          - { type: Int, v: '32767' }
+          - { type: Long, v: '0x7fffffff00000000 as long' }
+          - { type: Float, v: '1.2345f' }
+          - { type: Double, v: '1.23456789' }
+
+    - from_type: int|boolean|string|float|double|byte|undefined|short|null
+      types:
+          - { type: 'null', v: 'null' }
+          - { type: 'undefined', v: 'undefined' }
+          - { type: 'String', v: '"123"' }
+          - { type: 'Float', v: '1.23f' }
+          - { type: 'Double', v: '-1.2345678' }
+          - { type: 'Int', v: '1' }
+
+    - decl: |-
+          let b: byte = 0x77 as byte
+          let ba: byte[] = new byte[1]
+          let s: string = "ghj"
+          let sa: string[] = ['qwe'] as string[]
+      from_type: string|string[]|byte|byte[]|undefined
+      types:
+          - { type: 'String', v: s }
+          - { type: 'string[]', v: sa }
+          - { type: 'Byte', v: b }
+          - { type: 'byte[]', v: ba }
+
+    - decl: |-
+          type N1 = long[]|Number[]
+          type N2 = string|undefined
+          type N3 = Error|Boolean[]|number[]
+          type UT = N1|N2|N3
+          let la: long[] = [42 as long] as long[]
+          let nab: Number[] = [new Number()] as Number[]
+          let s: string = "abc"
+          let e: Error = new Error()
+          let bab: Boolean[] = [new Boolean()] as Boolean[]
+          let na: number[] = [42.0] as number[]
+      from_type: UT
+      types:
+          - { type: 'long[]', v: la }
+          - { type: 'Object', v: la }
+          - { type: 'Number[]', v: nab }
+          - { type: 'Object', v: nab }
+          - { type: 'String', v: s }
+          - { type: 'Object', v: s }
+          - { type: 'Error', v: e }
+          - { type: 'Object', v: e }
+          - { type: 'Boolean[]', v: bab }
+          - { type: 'Object', v: bab }
+          - { type: 'number[]', v: na }
+          - { type: 'Object', v: na }
+
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class C extends B {}
+          class D {}
+          class G {}
+          let a = new A()
+          let b = new B()
+          let c = new C()
+          let d = new D()
+          let g = new G()
+      from_type: A|B|C|D|G
+      types:
+          - { type: 'A', v: a }
+          - { type: 'B', v: b }
+          - { type: 'C', v: c }
+          - { type: 'D', v: d }
+          - { type: 'G', v: g }
+          - { type: 'A', v: b }
+          - { type: 'A', v: c }
+          - { type: 'B', v: c }
+
+    - decl: |-
+          interface I {}
+          interface J extends I {}
+          class A implements I {}
+          class B implements J {}
+          class C extends B {}
+          class D extends A {}
+          let i: I = new A()
+          let j: J = new B()
+          let c: C = new C()
+          let d: D = new D()
+      from_type: I|J|B|D
+      types:
+          - { type: 'I', v: i }
+          - { type: 'J', v: j }
+          - { type: 'I', v: j }
+          - { type: 'C', v: c }
+          - { type: 'B', v: c }
+          - { type: 'J', v: c }
+          - { type: 'I', v: c }
+          - { type: 'D', v: d }
+          - { type: 'A', v: d }
+          - { type: 'I', v: d }
+
+    - decl: |-
+          type F = (p: int) => Int
+          type G = (p: long) => Long
+          let f: F = (p: int): Int => { return new Int(p) }
+          let g: G = (p: long): Long => { return new Long(p) }
+      from_type: F|G|int|long
+      types:
+          - { type: 'F', v: f }
+          - { type: 'G', v: g }
+
+    - decl: |-
+          type F = (p: int) => Int
+          type G = (p: long) => Long
+          let f: F = (p: int): Int => { return new Int(p) }
+          let g: G = (p: long): Long => { return new Long(p) }
+          let fa: F[] = [f, f]
+          let ga: G[] = [g, g, g]
+      from_type: F[]|F|G[]|G|never
+      types:
+          - { type: 'F', v: f }
+          - { type: 'G', v: g }
+          - { type: 'F[]', v: fa }
+          - { type: 'Object', v: fa }
+          - { type: 'G[]', v: ga }
+          - { type: 'Object', v: ga }
+
+    - decl: |-
+          type TT1 = [string, boolean]
+          type TT2 = [number, boolean]
+          let tt1: TT1 = ['abc', false]
+          let tt2: TT2 = [42.0, true]
+      from_type: string|TT1|TT2
+      types:
+          - { type: TT1, v: tt1 }
+          - { type: TT2, v: tt2 }
+          - { type: String, v: '"abc"' }

@@ -1,0 +1,54 @@
+/**
+ * Copyright (c) 2021-2024 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+{%- for number, param in item.param_list.items() %}
+const TEST_DATA_{{.number|upper}} : {{.item.param_init_data_types[number]}} = {{.item.param_list[number]}};
+{%- endfor %}
+const TEST_DATA_EXPECTED : {{.item.expected_data_type}} = {{.item.expected_test_data}};
+
+function main(): int {
+{%- if item.max_attempt is defined %}
+  let max_test : int = {{.item.max_attempt}}
+{%- else %}
+  let max_test : int = TEST_DATA_EXPECTED.length;
+{%- endif %}
+  let passed_counter : int = 0;
+  for (let i = 0; i < max_test; i++) {
+  {%- for number, param in item.param_list.items() %}
+    let {{.number}} : {{.item.param_types[number]}} = (TEST_DATA_{{.number|upper}}[i]);
+    printData("{{.number}}", {{.number}});
+  {%- endfor %}
+  {%- if item.verify_region is not defined %}
+    let expected = TEST_DATA_EXPECTED[i]
+  {% endif %}
+  {%- if item.method_return_type != "void" %}
+    let actual : {{.item.method_return_type}} =  {{.item.method_name}}({{.item.param_list.keys()|list|join(', ')}});
+  {%- else %}
+    {{.item.method_name}}({{.item.param_list.keys()|list|join(', ')}});
+    let actual : {{.item.param_types[item.result_storage]}} = {{.item.result_storage}}
+  {%- endif %}
+  printActualData(actual)
+  printExpectedData(TEST_DATA_EXPECTED[i])
+  if ({{.item.verify_test_result_function}}(actual, expected)) {
+      console.print("PASSED");
+      passed_counter++;
+    } else {
+      console.print("FAILED")
+    }
+    console.println();
+  }
+  arktest.assertEQ(passed_counter, max_test)
+  return 0;
+}

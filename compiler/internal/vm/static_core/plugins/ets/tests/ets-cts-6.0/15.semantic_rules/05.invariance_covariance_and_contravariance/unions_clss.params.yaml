@@ -1,0 +1,119 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    # assignment
+    - decl: |-
+          let sup: A|null|string|undefined = a
+          let sub: B|null|string|undefined = b
+      use: |-
+          sup = sub
+          arktest.assertEQ(sup, b)
+
+    - decl: |-
+          let sup: A|null|string|undefined = a
+          let sub: B|null|string|undefined = b
+      use: |-
+          sub = sup
+      tags: 'compile-only, negative'
+
+    # class literal
+    - decl: |-
+          class X {
+              f: A|null|string|undefined = a
+          }
+          let sub: B|null|string|undefined = b
+      use: |-
+          let x: X = { f: sub }
+          arktest.assertEQ(x.f, b)
+
+    - decl: |-
+          class X {
+              f: B|null|string|undefined = b
+          }
+          let sup: A|null|string|undefined = a
+      use: |-
+          let x: X = { f: sup }
+      tags: 'compile-only, negative'
+
+    # interface literal
+    - decl: |-
+          interface I {
+              f: A|null|string|undefined
+          }
+          let sub: B|null|string|undefined = b
+      use: |-
+          let i: I = { f: sub }
+          arktest.assertEQ(i.f, b)
+
+    - decl: |-
+          interface I {
+              f: B|null|string|undefined
+          }
+          let sup: A|null|string|undefined = a
+      use: |-
+          let i: I = { f: sup }
+      tags: 'compile-only, negative'
+
+    # array literal
+    - decl: |-
+          let sub: B|null|string|undefined = b
+      use: |-
+          let arr: Array<A|null|string|undefined> = [sub]
+          arktest.assertEQ(arr[0], b)
+
+    - decl: |-
+          let sup: A|null|string|undefined = a
+      use: |-
+          let arr: Array<B|null|string|undefined> = [sup]
+      tags: 'compile-only, negative'
+
+    # tuple literal
+    - decl: |-
+          let sub: B|null|string|undefined = b
+      use: |-
+          let tup: [A|null|string|undefined, A|null|string|undefined] = [sub, sub]
+          arktest.assertEQ(tup[0], b)
+          arktest.assertEQ(tup[1], b)
+
+    - decl: |-
+          let sup: A|null|string|undefined = a
+      use: |-
+          let tup: [B|null|string|undefined, B|null|string|undefined] = [sup, sup]
+      tags: 'compile-only, negative'
+
+    # call context
+    - decl: |-
+          let sup: A|null|string|undefined = a
+          let sub: B|null|string|undefined = b
+      use: |-
+          ((p: A|null|string|undefined) => {
+              arktest.assertEQ(p, b)
+          })(sub)
+
+    - decl: |-
+          let sup: A|null|string|undefined = a
+          let sub: B|null|string|undefined = b
+      use: |-
+          ((p: B|null|string|undefined) => {})(sup)
+      tags: 'compile-only, negative'

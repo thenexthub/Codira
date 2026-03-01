@@ -1,0 +1,58 @@
+# Copyright (c) 2024-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # Conditional OR for boolean
+cases:
+  - doc: Conditional OR for 2x boolean - false false
+    decl: |-
+      let a: boolean = false;
+      let b: boolean = false;
+      arktest.assertFalse(a || b);
+
+  - doc: Conditional OR for 2x boolean - false true
+    decl: |-
+      let a: boolean = false;
+      let b: boolean = true;
+      arktest.assertTrue(a || b);
+
+  - doc: Conditional OR for 2x boolean - true unknown
+    decl: |-
+      let a: boolean = true;
+      arktest.assertTrue(a || fail());
+
+  - doc: Conditional OR for 2x boolean - unknown true - left to right execution
+    expected_error: '"expected true but was false"'
+    decl: |-
+      let a: boolean = true;
+      let expectedException = (e: Error): boolean => { return (e instanceof AssertionError) }
+      arktest.expectThrow(() => { fail() && a }, expectedException);
+
+  - doc: Conditional OR for 3x boolean - false false false
+    decl: |-
+      let a: boolean = false;
+      let b: boolean = false;
+      let c: boolean = false;
+      arktest.assertFalse(a || b || c);
+
+  - doc: Conditional OR for 3x boolean - false false true
+    decl: |-
+      let a: boolean = false;
+      let b: boolean = false;
+      let c: boolean = true;
+      arktest.assertTrue(a || b || c);
+
+  - doc: Conditional OR for 3x boolean - true unknown false - left to right grouping
+    decl: |-
+      let a: boolean = true;
+      let b: boolean = false;
+      arktest.assertTrue(a || fail() || b);

@@ -1,0 +1,211 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # void return type
+    - use: |-
+          // entry point function main, inferred void, negative
+          function main() {
+              arktest.assertTrue(false)
+          }
+
+    - use: |-
+          // entry point function main, explicit void, negative
+          function main(): void {
+              arktest.assertTrue(false)
+          }
+
+    - tags: compile-only
+      use: |-
+          // entry point function main, explicit void, compile-time negative
+          function main(): void {
+              if (false) {
+                  return 1  // CTE, wrong return type
+              }
+              return
+          }
+
+    # explicit int return type
+    - use: |-
+          // entry point function main, explicit int, negative
+          function main(): int {
+              return 1
+          }
+
+    - use: |-
+          enum Color { Red, Green, Blue }
+          // entry point function main, explicit int, negative
+          function main(): int {
+              return Color.Green
+          }
+
+    - tags: compile-only
+      use: |-
+          // entry point function main, explicit int, compile-time negative
+          let res = ''
+          function main(): int {
+              if (res == '') {
+                  throw new Error()
+              }
+          }
+
+    - tags: compile-only
+      use: |-
+          // entry point function main, explicit int, compile-time negative
+          function main(): int {
+              if (false) {
+                  return // CTE, wrong return type
+              }
+              return 0
+          }
+
+    # inferred int return type
+    - use: |-
+          // entry point function main, inferred int, negative
+          function main() {
+              return 1
+          }
+
+    # exported function main, void return type
+    - use: |-
+          // entry point exported function main, inferred void, negative
+          let res = ''
+          export function main() {
+              if (true) {
+                  arktest.assertNE(res, '')
+              }
+              return
+          }
+
+    - use: |-
+          // entry point exported function main, explicit void, negative
+          let res = ''
+          export function main(): void {
+              if (true) {
+                  arktest.assertNE(res, '')
+              }
+              return
+          }
+
+    # exported function main, int return type
+    - use: |-
+          // entry point exported function main, inferred int, negative
+          export function main() {
+              return 1
+          }
+
+    - use: |-
+          // entry point exported function main, explicit int, negative
+          export function main(): int {
+              return 1
+          }
+
+    # invalid return type
+    - tags: compile-only
+      use: |-
+          let res = ''
+          function main(): void {
+              return res == '' ? 0 : 1 // CTE, wrong return type
+          }
+
+    - tags: compile-only
+      use: |-
+          enum Color { Red, Green, Blue }
+          let res = ''
+          function main(): void {
+              return res == '' ? Color.Red : Color.Green // CTE, wrong return type
+          }
+
+    - use: |-
+          enum Color { Red, Green, Blue }
+          let res = ''
+          function main() {
+              return res == '' ? Color.Red : Color.Green
+          }
+
+    - use: |-
+          function main() {
+              return 0.0
+          }
+
+    - tags: compile-only
+      use: |-
+          function main(): int {
+              return 0.0  // wrong return type
+          }
+
+    - tags: compile-only
+      use: |-
+          function main(): number { // wrong return type
+              return 0.0
+          }
+
+    - tags: compile-only
+      use: |-
+          function main(): byte { // wrong return type
+              return (0).toByte()
+          }
+
+    - tags: compile-only
+      use: |-
+          let res = ''
+          function main(): string { // wrong return type
+              return res
+          }
+
+    - use: |-
+          let v: int|string = 0
+          function main() {
+              return v
+          }
+
+    - tags: compile-only
+      use: |-
+          let v: int|string = 0
+          function main(): int {
+              let x = v
+              if (x != undefined) {
+                  return x  // wrong return type
+              }
+              return 0
+          }
+
+    # overloading
+    - tags: compile-only
+      use: |-
+          function main(): void
+          function main(p: string[]): void
+          function main(...p: Any[]): Any { // CTE, overload signatures not permitted
+              if (true) {
+                  return
+              }
+              throw new Error()
+          }
+
+    - tags: compile-only
+      use: |-
+          function main(): int
+          function main(p: string[]): int
+          function main(...p: Any[]): Any { // CTE, overload signatures not permitted
+              if (true) {
+                  return 0
+              }
+              throw new Error()
+          }
+
+    # The unhandled error led to the exit
+    - use: |-
+          function main(): void {
+              throw new Error();
+          }

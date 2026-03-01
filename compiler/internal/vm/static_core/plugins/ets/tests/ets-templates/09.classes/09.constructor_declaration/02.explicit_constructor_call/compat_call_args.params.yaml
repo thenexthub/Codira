@@ -1,0 +1,169 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          class A {
+              p1: Object
+              p2: Any
+              constructor(p1: Object, p2: Any) {
+                  this.p1 = p1
+                  this.p2 = p2
+              }
+          }
+          class B extends A {
+              // calling 'super' with different parameter types
+              constructor(p: int) { super(p, p + 1) }
+              constructor(p: long) { super(p, p + 2) }
+              constructor(p: float) { super(p, p + 3f) }
+              constructor(p: Error) { super(p, null) }
+              constructor(p: [Object, Any]) { super(p[0], p[1]) }
+          }
+      main: |-
+          let b = new B(1)
+          arktest.assertEQ(b.p1, 1)
+          arktest.assertEQ(b.p2, 2)
+
+          b = new B(1 as long)
+          arktest.assertEQ(b.p1, 1)
+          arktest.assertEQ(b.p2, 3)
+
+          b = new B(1f)
+          arktest.assertEQ(b.p1, 1f)
+          arktest.assertEQ(b.p2, 4f)
+
+          b = new B(new Error)
+          arktest.assertTrue(b.p1 instanceof Error)
+          arktest.assertEQ(b.p2, null)
+
+          b = new B(['abc', undefined])
+          arktest.assertEQ(b.p1, 'abc')
+          arktest.assertEQ(b.p2, undefined)
+
+    - decl: |-
+          class A {
+              fld: Object[]
+              constructor(p: string, ...q: Object[]) {
+                  this.fld = [p, ...q]
+              }
+              constructor(p: int, ...q: (string|boolean)[]) {
+                  this.fld = [p, ...q]
+              }
+              constructor(...p: (boolean|float)[]) {
+                  this.fld = [...p]
+              }
+          }
+          class B extends A {
+              // calling 'super' with rest parameter of array
+              constructor(p: int) { super('a', 'b', 'c', 'd') }
+              constructor(p: string) { super(1, ...['a', true, false, 'b']) }
+              constructor(p: float) { super(p, p, true, false) }
+              constructor(p: boolean) { super(...[true, false], ...[1f, 2f])}
+          }
+      main: |-
+          let b = new B(1)
+          arktest.assertEQ(b.fld.length, 4)
+          arktest.assertEQ(b.fld[0], 'a')
+          arktest.assertEQ(b.fld[3], 'd')
+
+          b = new B('')
+          arktest.assertEQ(b.fld.length, 5)
+          arktest.assertEQ(b.fld[0], 1)
+          arktest.assertEQ(b.fld[1], 'a')
+          arktest.assertEQ(b.fld[2], true)
+          arktest.assertEQ(b.fld[3], false)
+          arktest.assertEQ(b.fld[4], 'b')
+
+          b = new B(1f)
+          arktest.assertEQ(b.fld.length, 4)
+          arktest.assertEQ(b.fld[0], 1f)
+          arktest.assertEQ(b.fld[1], 1f)
+          arktest.assertEQ(b.fld[2], true)
+          arktest.assertEQ(b.fld[3], false)
+
+          b = new B(true)
+          arktest.assertEQ(b.fld.length, 4)
+          arktest.assertEQ(b.fld[0], true)
+          arktest.assertEQ(b.fld[1], false)
+          arktest.assertEQ(b.fld[2], 1f)
+          arktest.assertEQ(b.fld[3], 2f)
+
+    - decl: |-
+          class A {
+              fld: [string, Object, int, boolean]
+              constructor(...p: [string, Object, int, boolean]) {
+                  this.fld = [...p]
+              }
+          }
+          class B extends A {
+              constructor(p: int) { super('c', 'd', p, true) }
+              // calling 'super' with spread of tuple arguments
+              constructor(q: string) { super(...[q, q, 1, false]) }
+              constructor(q: int, p: [string, Object, int, boolean]) { super(...p) }
+          }
+      main: |-
+          let t: [string, Object, int, boolean] = ['a', 'b', 1, true]
+          let b = new B(1, t)
+          arktest.assertEQ(b.fld[0], 'a')
+          arktest.assertEQ(b.fld[1], 'b')
+          arktest.assertEQ(b.fld[2], 1)
+          arktest.assertEQ(b.fld[3], true)
+
+          b = new B('b')
+          arktest.assertEQ(b.fld[0], 'b')
+          arktest.assertEQ(b.fld[1], 'b')
+          arktest.assertEQ(b.fld[2], 1)
+          arktest.assertEQ(b.fld[3], false)
+
+          b = new B(2)
+          arktest.assertEQ(b.fld[0], 'c')
+          arktest.assertEQ(b.fld[1], 'd')
+          arktest.assertEQ(b.fld[2], 2)
+          arktest.assertEQ(b.fld[3], true)
+
+    - decl: |-
+          class A {
+              fld: [Object, Object, int, int]
+              constructor(...p: [Object, Object, int, int]) {
+                  this.fld = [...p]
+              }
+          }
+          class B extends A {
+            // calling 'super' with multiple spread arguments for one tuple
+            constructor(p: int) { super(...['a', 'b'], ...[p, p]) }
+          }
+      main: |-
+          let b = new B(1)
+          arktest.assertEQ(b.fld[0], 'a')
+          arktest.assertEQ(b.fld[1], 'b')
+          arktest.assertEQ(b.fld[2], 1)
+          arktest.assertEQ(b.fld[3], 1)
+
+    - decl: |-
+          class A {
+              fld: [Object, string, int, int]
+              constructor(...p: [Object, string, int, int]) {
+                  this.fld = [...p]
+              }
+          }
+          class B extends A {
+              // calling 'super' with argument and spread argument for one tuple
+              constructor(p: int) { super('a', ...['b', 1, 11]) }
+          }
+      main: |-
+          let b = new B(1)
+          arktest.assertEQ(b.fld[0], 'a')
+          arktest.assertEQ(b.fld[1], 'b')
+          arktest.assertEQ(b.fld[2], 1)
+          arktest.assertEQ(b.fld[3], 11)

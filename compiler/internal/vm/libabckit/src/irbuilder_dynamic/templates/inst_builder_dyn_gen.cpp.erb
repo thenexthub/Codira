@@ -1,0 +1,396 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+<%
+require 'yaml'
+
+Instruction.class_eval do
+  def get_input_idx(index, kind)
+    res = 0
+    index += 1 if has_dst?
+    acc_and_operands.each_with_index do |op, i|
+      break if i == index
+      res += 1 if op.send(kind)
+    end
+    res
+  end
+
+  def inputs
+    @inputs ||= acc_and_operands.select { |x| !x.dst? }
+  end
+
+  def has_dst?
+    !acc_and_operands.empty? && acc_and_operands.first.dst?
+  end
+
+  def get_input_string(index)
+    op = inputs[index]
+    return "GetDefinitionAcc()" if op.acc?
+    return "FindOrCreateConstant(instruction->GetImm<#{get_format}, #{get_input_idx(index, :imm?)}>())" if op.imm?
+    return "GetDefinition(instruction->GetId(#{get_input_idx(index, :id?)}).GetOffset())" if op.id?
+    raise "Invalid operand" unless op.reg?
+    return "GetDefinition(instruction->GetVReg(#{get_input_idx(index, :reg?)}))"
+  end
+
+  def get_format
+    return "BytecodeInst::Format::#{format.pretty.upcase}"
+  end
+
+end
+
+def get_type(type)
+  @type_map ||= {
+    'u1' => 'DataType::BOOL',
+    'i8' => 'DataType::INT8',
+    'i16' => 'DataType::INT16',
+    'i32' => 'DataType::INT32',
+    'i64' => 'DataType::INT64',
+    'u8' => 'DataType::UINT8',
+    'u16' => 'DataType::UINT16',
+    'u32' => 'DataType::UINT32',
+    'u64' => 'DataType::UINT64',
+    'b32' => 'DataType::UINT32',
+    'b64' => 'DataType::UINT64',
+    'f32' => 'DataType::FLOAT32',
+    'f64' => 'DataType::FLOAT64',
+    'ref' => 'DataType::REFERENCE',
+    'any' => 'DataType::ANY',
+    'i8[]' => 'DataType::INT8',
+    'i16[]' => 'DataType::INT16',
+    'i32[]' => 'DataType::INT32',
+    'i64[]' => 'DataType::INT64',
+    'u8[]' => 'DataType::UINT8',
+    'u16[]' => 'DataType::UINT16',
+    'u32[]' => 'DataType::UINT32',
+    'u64[]' => 'DataType::UINT64',
+    'b32[]' => 'DataType::UINT32',
+    'b64[]' => 'DataType::UINT64',
+    'f32[]' => 'DataType::FLOAT32',
+    'f64[]' => 'DataType::FLOAT64',
+    'ref[]' => 'DataType::REFERENCE',
+    'none' => 'DataType::NO_TYPE'}
+  return 'DataType::ANY' if @type_map[type].nil?
+  #  raise "Unknown type #{type}" if @type_map[type].nil?
+  return @type_map[type]
+end
+
+def get_template_by_inst(inst)
+  if (inst.namespace == "ecmascript")
+    return "ecma"
+  else
+    return get_template(inst.stripped_mnemonic)
+  end
+end
+
+def get_template(mn)
+  @tmpl_map ||= {
+    /ldarr/ => "ldarr",
+    /starr$/ => "starr",
+    /^return.*/ => "return",
+    /^[uf]?cmp/ => "cmp",
+    /^[ifu][813264]{1,2}to[ifu][813264]{1,2}$/ => "cast",
+    /^j(eq|ne|lt|gt|le|ge|stricteq|nstricteq)(z|null|undefined)?$/ => "if",
+    /^jmp.*/ => "jump",
+    /(fdiv|fmod|add|sub|mul|and|or|xor|ashr|shr|shl|neg|not)[2i]?$/ => "binop",
+    /^(div|mod)u?[2i]?$/ => "binop_z",
+    /^inci$/ => "inci",
+    /^movi?$/ => "mov",
+    /^fmovi?$/ => "fmovi",
+    /^sta$/ => "sta",
+    /^ldai?$/ => "lda",
+    /^fldai?$/ => "fldai",
+    /^lenarr$/ => "lenarr",
+    /^newarr$/ => "newarr",
+    /^call/ => "call",
+    /^newobj/ => "newobj",
+    /^initobj/ => "initobj",
+    /^ldobj/ => "ldobj",
+    /^stobj/ => "stobj",
+    /^ldstatic/ => "ldstatic",
+    /^ststatic/ => "ststatic",
+    /^isinstance/ => "isinstance",
+    /^checkcast/ => "checkcast",
+    /^throw/ => "throw",
+    /^monitor/ => "monitor",
+    /^nop/ => "nop",
+    /^builtin/ => "builtin",
+    /^ecma/ => "ecma",
+    /^$/ => "unimplemented"
+  }
+  res = @tmpl_map.select { |k, v| mn.match k }
+  raise "Template not found or multiple match: #{mn}" unless res.size == 1
+  return res.first[1]
+end
+
+def template(name, inst, indent, context = {})
+  @inst_yaml ||= YAML.load_file(File.join(File.dirname(__FILE__), 'inst_templates.yaml'))
+  raise "Template '#{name}' not found in templates file" unless @inst_yaml['templates'].key? name
+  indent + ERB.new(@inst_yaml['templates'][name], nil, '%-').result(binding).gsub("\n", "\n#{indent}")
+end
+
+def get_cc(inst)
+  return 'ark::compiler::ConditionCode::CC_EQ' if inst.opcode.start_with? 'jeq'
+  return 'ark::compiler::ConditionCode::CC_NE' if inst.opcode.start_with? 'jne'
+  return 'ark::compiler::ConditionCode::CC_LT' if inst.opcode.start_with? 'jlt'
+  return 'ark::compiler::ConditionCode::CC_GT' if inst.opcode.start_with? 'jgt'
+  return 'ark::compiler::ConditionCode::CC_LE' if inst.opcode.start_with? 'jle'
+  return 'ark::compiler::ConditionCode::CC_GE' if inst.opcode.start_with? 'jge'
+  return 'ark::compiler::ConditionCode::CC_EQ' if inst.opcode.start_with? 'jstricteq'
+  return 'ark::compiler::ConditionCode::CC_NE' if inst.opcode.start_with? 'jnstricteq'
+  raise 'get_cc: wrong opcode #{inst.opcode}'
+end
+
+%>
+
+#include "libabckit/src/irbuilder_dynamic/inst_builder_dyn.h"
+#include "libabckit/src/irbuilder_dynamic/ir_builder_dyn.h"
+#include "static_core/compiler/optimizer/ir/inst.h"
+#include "libabckit/src/irbuilder_dynamic/bytecode_inst.h"
+#include "libabckit/src/irbuilder_dynamic/bytecode_inst-inl.h"
+#include "libabckit/src/irbuilder_dynamic/inst_builder_dyn-inl.h"
+
+namespace libabckit {
+
+% additional_deprecated_opcodes = ["JNSTRICTEQUNDEFINED",
+%                                 "JSTRICTEQUNDEFINED",
+%                                 "JNEUNDEFINED",
+%                                 "JEQUNDEFINED",
+%                                 "JNSTRICTEQNULL",
+%                                 "JSTRICTEQNULL",
+%                                 "JNENULL",
+%                                 "JEQNULL",
+%                                 "JNSTRICTEQZ",
+%                                 "JSTRICTEQZ",
+%                                 "STTOGLOBALRECORD",
+%                                 "STCONSTTOGLOBALRECORD",
+%                                 "CREATEREGEXPWITHLITERAL",
+%                                 "CLOSEITERATOR"]
+
+% replaced_opcodes = ["JNSTRICTEQ",
+%                    "JSTRICTEQ",
+%                    "JNE",
+%                    "JEQ"]
+
+% skipped_opcodes = additional_deprecated_opcodes + replaced_opcodes
+
+// NOLINTNEXTLINE(readability-function-size)
+void InstBuilder::BuildInstruction(const BytecodeInst* instruction) {
+    switch(instruction->GetOpcode()) {
+% Panda::instructions.each do |inst|
+%   if !(inst.opcode.upcase.include? "DEPRECATED_") && !(skipped_opcodes.include? inst.mnemonic.upcase)
+%     tmpl = inst.mnemonic.include?('polymorphic') ? 'unimplemented' : get_template_by_inst(inst)
+    // NOLINTNEXTLINE(bugprone-branch-clone)
+    case BytecodeInst::Opcode::<%= inst.opcode.upcase %>: {
+%     if tmpl == 'unimplemented'
+       // Not implemented
+       failed_ = true;
+%     else
+<%= template(tmpl, inst, ' ' * 8) %>
+%     end
+      return; }
+%   end
+% end
+    }
+}
+
+// NOLINTNEXTLINE(readability-function-size)
+int64_t InstBuilder::GetInstructionJumpOffset(const BytecodeInst* inst) {
+    switch(inst->GetOpcode()) {
+% Panda::instructions.each do |inst|
+%   if !(inst.opcode.upcase.include? "DEPRECATED_") && !(skipped_opcodes.include? inst.mnemonic.upcase)
+    // NOLINTNEXTLINE(bugprone-branch-clone)
+    case BytecodeInst::Opcode::<%= inst.opcode.upcase %>:
+%     if inst.jump?
+        return inst->GetImm<BytecodeInst::Format::<%= inst.format.pretty.upcase %>, 0, true>();
+%     else
+        return INVALID_OFFSET;
+%     end
+%   end
+% end
+    }
+    return INVALID_OFFSET;
+}
+
+// NOTE(vpukhov): Move this logic from core into plugins/ecmascript
+// Currently we support two strategies for building IR from ecma.* instructions:
+//   1) Each ecma.* instruction is translated to a corresponding intrinsic call.
+//      This is used for bytecode optimizer and slow paths during compiling
+//      to native code (in both JIT and AOT modes).
+//   2) Semantics of each ecma.* instruction is taken from the corresponding
+//      IRtoC handler and is inlined into compiled function.
+//      This is used only for native compilation (again, both JIT and AOT).
+// InstBuilder::BuildEcma selects proper strategy and calls relevant builder.
+
+// NOLINTNEXTLINE(readability-function-size)
+void InstBuilder::BuildEcma([[maybe_unused]] const BytecodeInst* bcInst)
+{
+#ifdef ENABLE_BYTECODE_OPT
+    switch (bcInst->GetOpcode()) {
+% Panda::instructions.select{|b| b.namespace == "ecmascript"}.each do |inst|
+%   if !(inst.opcode.upcase.include? "DEPRECATED_") && !(skipped_opcodes.include? inst.mnemonic.upcase)
+        case BytecodeInst::Opcode::<%= inst.opcode.upcase %>:
+%     if inst.compilable? && inst.inlinable?
+            // +compilable, +inlinable: ecma.* -> intrinsics for BCO, inline IRtoC otherwise:
+            if (GetGraph()->IsBytecodeOptimizer()) {
+                BuildEcmaAsIntrinsics(bcInst);
+            } else {
+                BuildEcmaAsIntrinsics<true>(bcInst);
+            }
+%     elsif inst.compilable?
+            // +compilable, -inlinable: ecma.* -> intrinsics for all scenarios:
+            BuildEcmaAsIntrinsics(bcInst);
+%     else
+%        abort "isa.yaml inconsistency: #{inst.opcode.upcase} is not compilable, but inlinable" if inst.inlinable?
+            // -compilable, -inlinable: ecma.* -> intrinsics for BCO, fail IR builder otherwise:
+            if (GetGraph()->IsBytecodeOptimizer()) {
+                BuildEcmaAsIntrinsics(bcInst);
+            } else {
+                failed_ = true;
+            }
+%     end
+            return;
+%   end
+% end
+        default: {
+            failed_ = true;
+            std::cerr << "Unknown ecma.* opcode: " << static_cast<int>(bcInst->GetOpcode()) << std::endl;
+            return;
+        }
+    }
+#endif
+}
+
+template <bool WITH_SPECULATIVE>
+void InstBuilder::BuildEcmaAsIntrinsics(const BytecodeInst* bcInst) // NOLINT(readability-function-size)
+{
+    switch (bcInst->GetOpcode()) {
+% Panda::instructions.select{|b| b.namespace == "ecmascript"}.each do |inst|
+%   if !(inst.opcode.upcase.include? "DEPRECATED_") && !(skipped_opcodes.include? inst.mnemonic.upcase)
+%     opc = inst.opcode.upcase
+%     name = opc
+%     acc_read = inst.acc.include?("in")
+%     acc_write = inst.acc.include?("out")
+%     ret_type = acc_write ? "ark::compiler::DataType::ANY" : "ark::compiler::DataType::VOID"
+%     iname = inst.intrinsic_name ? inst.intrinsic_name : opc
+%     intrinsicId = "ark::compiler::RuntimeInterface::IntrinsicId::DYN_" + iname
+%     intrinsic_external_js_id = "ark::compiler::RuntimeInterface::IntrinsicId::DYN_" + opc
+        case BytecodeInst::Opcode::<%= opc %>:
+        {
+            auto intrinsicId = <%= intrinsic_external_js_id %>;
+
+            auto inst = GetGraph()->CreateInstIntrinsic(<%= ret_type %>, GetPc(bcInst->GetAddress()), intrinsicId);
+
+%     params_arr = inst.operands
+%     format = "BytecodeInst::Format::" + inst.format.pretty.upcase
+%     range_should_exclude_last = (name.include? "NEWOBJRANGE") || (name.include? "SUPERCALLTHISRANGE") || (name.include? "SUPERCALLARROWRANGE") || (name.include? "CALLRANGE")
+%     is_range_call = (name.include? "CALLTHISRANGE") || (name.include? "CREATEOBJECTWITHEXCLUDEDKEYS") || range_should_exclude_last
+%     need_newtarget = (name.include? "SUPERCALLSPREAD") || (name.include? "SUPERCALL")
+%     num_vregs = params_arr.select{|b| b.reg?}.length
+%     num_imms = params_arr.select{|b| b.imm?}.length
+%     num_ids = params_arr.select{|b| b.id?}.length
+%     num_inputs = acc_read ? num_vregs + 1 : num_vregs + 0
+%     if range_should_exclude_last
+%       num_inputs = num_inputs - 1
+%     end
+%     if need_newtarget
+%       num_inputs = num_inputs + 1
+%     end
+%     has_ic_slot = inst.properties.include?('ic_slot') || inst.properties.include?('jit_ic_slot')
+%     if is_range_call
+            size_t argsCount = <%= num_inputs %>U + static_cast<size_t>(bcInst->GetImm<<%= format %>, <%= has_ic_slot ? 1 : 0 %>, false>());
+%     else
+            size_t argsCount {<%= num_inputs %>U};
+%     end
+%     if need_newtarget
+            if (GetGraph()->IsBytecodeOptimizer()) {
+                --argsCount;
+            }
+%     end
+            inst->ReserveInputs(argsCount);
+            inst->AllocateInputTypes(GetGraph()->GetAllocator(), argsCount);
+            // NOLINTNEXTLINE(readability-braces-around-statements, bugprone-suspicious-semicolon)
+            if constexpr (WITH_SPECULATIVE) {
+                inst->SetInlined(true);
+            }
+%     if acc_read
+            {
+                auto input = GetDefinitionAcc();
+                inst->AppendInput(input);
+                inst->AddInputType(ark::compiler::DataType::ANY);
+            }
+%     end
+%     imm_index = 0
+%     vreg_index = 0
+%     id16_index = 0
+%     params_arr.each do |param|
+%       if param.imm?
+            auto imm<%= imm_index %> = static_cast<uint32_t>(bcInst->GetImm<<%= format %>, <%= imm_index %>, false>());
+            inst->AddImm(GetGraph()->GetAllocator(), imm<%= imm_index %>);
+%           imm_index = imm_index + 1
+%       elsif param.reg?
+            {
+                auto input = GetDefinition(bcInst->GetVReg(<%= vreg_index %>));
+                inst->AppendInput(input);
+                inst->AddInputType(ark::compiler::DataType::ANY);
+            }
+%           vreg_index = vreg_index + 1
+%       elsif param.id?
+%         if inst.properties.include?("method_id")
+            auto mIdx<%= id16_index %> = bcInst->GetId(<%= id16_index %>).AsRawValue();
+            mIdx<%= id16_index %> = GetRuntime()->ResolveMethodIndex(GetGraph()->GetMethod(), mIdx<%= id16_index %>);
+            inst->AddImm(GetGraph()->GetAllocator(), mIdx<%= id16_index %>);
+%         elsif inst.properties.include?("string_id")
+            auto stringId<%= id16_index %> = bcInst->GetId(<%= id16_index %>).AsRawValue();
+            stringId<%= id16_index %> = GetRuntime()->ResolveMethodIndex(GetGraph()->GetMethod(), stringId<%= id16_index %>);
+            inst->AddImm(GetGraph()->GetAllocator(), stringId<%= id16_index %>);
+%         elsif inst.properties.include?("literalarray_id")
+            auto literalarrayId<%= id16_index %> = bcInst->GetId(<%= id16_index %>).AsRawValue();
+            literalarrayId<%= id16_index %> = GetRuntime()->ResolveMethodIndex(GetGraph()->GetMethod(), literalarrayId<%= id16_index %>);
+            inst->AddImm(GetGraph()->GetAllocator(), literalarrayId<%= id16_index %>);
+%         end
+%         id16_index = id16_index + 1
+%       end
+%     end
+%     if is_range_call
+%           range_reg_idx = (name.include? "CREATEOBJECTWITHEXCLUDEDKEYS") ? 1 : 0
+%           imm_arg_num = has_ic_slot ? 'imm1' : 'imm0'
+%           num_actual_vregs = range_should_exclude_last ? imm_arg_num : imm_arg_num + " + 1"
+            size_t startReg = bcInst->GetVReg(<%= range_reg_idx %>);
+            for (uint32_t i = 1; i < <%= num_actual_vregs %>; ++i) {
+                auto input = GetDefinition(startReg + i);
+                inst->AppendInput(input);
+                inst->AddInputType(ark::compiler::DataType::ANY);
+            }
+%     end
+            AddInstruction(inst);
+%     if acc_write
+            UpdateDefinitionAcc(inst);
+%     end
+            break; }
+%   end
+% end
+        default:
+            failed_ = true;
+            std::cerr << "unknown Ecma opcode!" << static_cast<int>(bcInst->GetOpcode()) << std::endl;
+  }
+}
+}  // namespace libabckit

@@ -1,0 +1,133 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          function foo<T extends Object>(p: T): number {
+              return p.toString().length
+          }
+      use: |-
+          arktest.assertEQ( foo<out>(0.0), 1 ) // CTE: wildcard in type arguments
+
+    - decl: |-
+          function foo<T extends Object>(p: T): number {
+              return p.toString().length
+          }
+      use: |-
+          arktest.assertEQ( foo<out Number>(0.0), 1 ) // CTE: wildcard in type arguments
+
+    - decl: |-
+          function foo<T extends Object>(p: T): number {
+              return p.toString().length
+          }
+      use: |-
+          arktest.assertEQ( foo<in Number>(0.0), 1 ) // CTE: wildcard in type arguments
+
+    - decl: |-
+          function bar(p: string): string {
+              return p + p
+          }
+          let ft = "bar"
+      use: |-
+          arktest.assertEQ( ft("A"), "AA" ) // CTE: not a function type called
+
+    - decl: |-
+          function bar(p: string): string {
+              return p + p
+          }
+          let ft: ((p: string) => string)|null = bar
+      use: |-
+          arktest.assertEQ( ft("A"), "AA" ) // CTE: no ?. for nullish expression
+
+    - decl: |-
+          function foo() {}
+      use: |-
+          let e = foo() // CTE: void cannot be used as type annotation
+
+    - decl: |-
+          function bar(callee: () => void): void {}
+      use: |-
+          bar("A") // CTE: not a function type called
+
+    - decl: |-
+          function bar(callee: () => void): void {
+            callee()
+          }
+      use: |-
+          bar((): int => { return 1 }) // CTE: No matching call signature
+
+    - decl: |-
+          type LO = (() => void) | Object        
+          function foo(input: LO): Boolean { return true }
+      use: |-
+        foo(null) // CTE: No matching call signature
+
+    - decl: |-
+        type LO = (() => void) | Object        
+        function foo(input: LO): Boolean { return true }
+      use: |-
+        foo(undefined) // CTE: No matching call signature
+        
+
+    - decl: |-
+          function bar(callee: () => void): void {
+            callee()
+          }
+      use: |-
+          bar((a: int): void => {}) // CTE: No matching call signature
+
+    - decl: |-
+          function bar(callee: (a: int) => void): void {
+            callee(1)
+          }
+      use: |-
+          bar((a: int, b: int): void => {}) // CTE: No matching call signature
+
+    - decl: |-
+        function foo(s: Object, i: Object, b: Object): Boolean {
+          calls++
+          return s instanceof String &&  i instanceof int && b instanceof Boolean
+        }
+        type LT = null | (s: Object, i: Object, b: Object) => Boolean
+        function getLambdaOrNull(value: Boolean = false): LT {
+          return value ? (s: Object, i: Object, b: Object) => foo(s, i, b) : null
+        }
+      use: |-
+        let lc: LT = getLambdaOrNull()
+        let r = lc.('Hello', 42, true)
+
+    - decl: |-
+        function foo(s: Object, i: Object, b: Object): Boolean {
+          calls++
+          return s instanceof String &&  i instanceof int && b instanceof Boolean
+        }
+        type LT = null | (s: Object, i: Object, b: Object) => Boolean
+        function getLambdaOrNull(value: Boolean = false): LT {
+          return value ? (s: Object, i: Object, b: Object) => foo(s, i, b) : null
+        }
+      use: |-
+        let lc: LT = getLambdaOrNull()
+        let r = lc('Hello', 42, true)
+
+    - decl: |-
+        let calls: int = 0;
+        interface User {
+          name: string;
+          age: number;
+        }
+        type LP = () => User
+      use: |-
+        let value = ((up: LP): User => { return up() }) () { return {name: 'Alice', age: 16 } }
+        arktest.assertEQ('Alice', value.name)
+        arktest.assertTrue(value instanceof User)

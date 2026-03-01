@@ -1,0 +1,79 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+import("//arkcompiler/runtime_core/static_core/ark_config.gni")
+if (ark_standalone_build) {
+  import("$build_root/ark.gni")
+} else {
+  import("//build/ohos.gni")
+}
+
+config("asmdefines_public_config") {
+  include_dirs = [ "$target_gen_dir/generated/" ]
+
+  if (ark_standalone_build || ark_static_standalone_build) {
+    include_dirs += [
+      "//third_party/icu/icu4c/source/common",
+      "//third_party/icu/icu4c/source/i18n",
+      "//third_party/icu/icu4c/source",
+      "$ark_third_party_root/icu",
+    ]
+  }
+}
+
+ohos_static_library("asm_defines") {
+  sources = [ "defines.cpp" ]
+  configs = [
+    "$ark_root:ark_config",
+    "$ark_root/runtime:arkruntime_public_config",
+    "$ark_root/libarkbase:arkbase_public_config",
+    "$ark_root/libarkfile:arkfile_public_config",
+  ]
+  cflags_cc = [
+    "-Wno-invalid-offsetof",
+    "-S",
+    "-fno-lto",
+  ]
+  output_dir = "$target_gen_dir/generated"
+  output_extension = "S"
+  output_name = "libasm_defines"
+  deps = [
+    "$ark_root/libarkbase:coherency_line_size_h",
+    "$ark_root/libarkfile:libarktsfile",
+    "$ark_root/runtime:arkruntime_header_deps",
+  ]
+
+  external_deps = [ sdk_libc_secshared_dep ]
+
+  part_name = ark_part_name
+  subsystem_name = ark_subsystem_name
+}
+
+action("asm_defines_generator") {
+  script = "$ark_root/runtime/asm_defines/defines_generator.rb"
+  outputs = [ "$target_gen_dir/generated/asm_defines.h" ]
+  args = [
+    rebase_path("$target_gen_dir/generated/libasm_defines.S", root_build_dir),
+    rebase_path(outputs[0]),
+  ]
+  deps = [ ":asm_defines" ]
+}

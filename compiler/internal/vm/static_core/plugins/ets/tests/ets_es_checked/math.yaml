@@ -1,0 +1,155 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+category: Math
+sub:
+  - vars:
+      tricky: ["Number(0.0)", "Number(-0.0)", "Number(1.0)", "Number(-1.0)", "NaN", "-NaN", "Infinity", "-Infinity", "Number(1e18)", "Number(0.0078125)", "Number(-5.0)"]
+    sub:
+      - method: Math.abs
+        params:
+          - paramOf(*tricky)
+      - method: Math.acos
+        params:
+          - paramOf(*tricky)
+      - method: Math.acosh
+        params:
+          - paramOf(*tricky)
+      - method: Math.asin
+        params:
+          - paramOf(*tricky)
+      - method: Math.asinh
+        params:
+          - paramOf(*tricky)
+      - method: Math.atan
+        params:
+          - paramOf(*tricky)
+      - method: Math.atan2
+        params:
+          - paramOf(*tricky)
+          - paramOf(*tricky)
+        special:
+          - match: 1e18, (-5\.0|-1\.0)
+            action: silence warn
+      - method: Math.atanh
+        params:
+          - paramOf(*tricky)
+      - method: Math.cbrt
+        params:
+          - paramOf(*tricky)
+        special:
+          - match: -5\.0
+            action: silence warn
+      - method: Math.ceil
+        params:
+          - paramOf(*tricky)
+      - method: Math.clz32
+        params:
+          - paramOf(*tricky)
+      - method: Math.cos
+        params:
+          - paramOf(*tricky)
+      - method: Math.cosh
+        params:
+          - paramOf(*tricky)
+      - method: Math.exp
+        params:
+          - paramOf(*tricky)
+      - method: Math.expm1
+        params:
+          - paramOf(*tricky)
+      - method: Math.floor
+        params:
+          - paramOf(*tricky)
+      - method: Math.fround
+        params:
+          - paramOf(*tricky)
+      - method: Math.hypot
+        params: []
+        rest:
+          - combinationRest(2.7, 3.14, -1, 0, 2, "Infinity")
+          - combinationRest(2.7, "Infinity", "NaN", 0)
+      - method: Math.imul
+        params:
+          - paramOf(*tricky)
+          - paramOf(*tricky)
+      - method: Math.log
+        params:
+          - paramOf(*tricky)
+      - method: Math.log10
+        params:
+          - paramOf("1e22", *tricky)
+      - method: Math.log1p
+        params:
+          - paramOf(*tricky)
+      - method: Math.log2
+        params:
+          - paramOf(*tricky)
+      - method: Math.max
+        params: []
+        rest:
+          - combinationRest "NaN", "-Infinity", "Infinity", "1.1", "NaN"
+          - combinationRest "-0.0", "0.0", "-1.0", "20.1"
+      - method: Math.min
+        params: []
+        rest:
+          - combinationRest "NaN", "-Infinity", "Infinity", "1.1", "NaN"
+          - combinationRest "-0.0", "0.0", "-1.0", "20.1"
+      - method: Math.pow
+        params:
+          - paramOf(2.7, 3.14, -1, 2, -3, -0.5)
+          - paramOf(11, 12, 0.5, 0.1, 1, 0, 2, 5, -8, 1e10, -1e10, 1000000000000000.1)
+        special:
+          - match: 3\.14, 0\.1
+            action: silence warn
+      - method: Math.round
+        params:
+          - paramOf(*tricky)
+      - method: Math.sign
+        params:
+          - paramOf(*tricky)
+      - method: Math.sin
+        params:
+          - paramOf(*tricky)
+      - method: Math.sinh
+        params:
+          - paramOf(*tricky)
+      - method: Math.sqrt
+        params:
+          - paramOf(*tricky)
+      - method: Math.tan
+        params:
+          - paramOf(*tricky)
+      - method: Math.tanh
+        params:
+          - paramOf(*tricky)
+      - method: Math.trunc
+        params:
+          - paramOf(*tricky)
+      - expr: Math.E
+      - expr: Math.LN10
+      - expr: Math.LN2
+      - expr: Math.LOG10E
+      - expr: Math.LOG2E
+      - expr: Math.PI
+      - expr: Math.SQRT1_2
+      - expr: Math.SQRT2

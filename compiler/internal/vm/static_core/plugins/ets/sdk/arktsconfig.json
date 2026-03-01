@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "baseUrl": "../../",
+        "paths": {
+            "std": [
+                "ets/stdlib/std"
+            ],
+            "escompat": [
+                "ets/stdlib/escompat"
+            ]
+        },
+        "outDir": "../cache"
+    },
+    "files" : [
+        "./api/@ohos.buffer.ets",
+        "./arkts/@arkts.math.Decimal.ets"
+    ]
+}

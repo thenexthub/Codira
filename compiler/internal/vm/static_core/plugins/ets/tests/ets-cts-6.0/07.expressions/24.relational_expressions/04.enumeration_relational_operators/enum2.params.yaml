@@ -1,0 +1,162 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          enum Color1 { Red, Green, Blue }
+          enum Color2 { Red, Green, Blue }
+          function foo1(p: number): Color1 {
+              if (p == 0) return Color1.Red;
+              else if (p == 1) return Color1.Green;
+              else return Color1.Blue
+          }
+          function foo2(p: number): Color2 {
+              if (p == 0) return Color2.Red;
+              else if (p == 1) return Color2.Green;
+              else return Color2.Blue
+          }
+      tags: [compile-only, negative]
+      use: |-
+          // different enum types
+          arktest.assertTrue(foo1(0) >= foo2(0))
+
+    - decl: |-
+          enum Color { Red, Green, Blue }
+          enum Size { XS, S, M, L, XL, XXL }
+      tags: [compile-only, negative]
+      use: |-
+          // different enum types
+          arktest.assertTrue(Color.Red <= Size.XL)
+
+    - decl: |-
+          enum Color { Red = "1", Green = "2", Blue = "3" }
+          enum Size { XS = "0", S = "1", M = "2", L = "3", XL = "4", XXL = "5" }
+          let c = Color.Blue
+      tags: [compile-only, negative]
+      use: |-
+          // string values, different enum types
+          arktest.assertTrue(c > Size.S)
+          arktest.assertTrue(Size.S < c)
+
+    - decl: |-
+          enum Size { XS, S, M, L, XL, XXL }
+      use: |-
+          // compare enum to int
+          arktest.assertTrue(0 >= Size.XS)
+          arktest.assertTrue(Size.XS <= 0)
+
+    - decl: |-
+          enum Color { Red = "1", Green = "2", Blue = "3" }
+      use: |-
+          // compare enum to string
+          arktest.assertTrue(Color.Blue > "2")
+          arktest.assertTrue("2" <= Color.Blue )
+
+
+    - decl: |-
+          enum Color { Red, Green, Blue }
+          enum Size { XS, S, M, L, XL, XXL }
+          let c: Color|Size = Color.Red
+          let s: Color|Size = Size.XL
+      tags: [compile-only, negative]
+      use: |-
+          // compare enums in unions
+          arktest.assertTrue((c as Color) < (s as Size))
+
+    - decl: |-
+          // different numeric types literals
+          enum Color { Red = 0B11111111111111111111111111111111, Green, Blue = 0xF, White, Gray, Black, Pink}
+      use: |-
+          arktest.assertTrue(Color.Red == -1, "Red problem")
+          arktest.assertTrue(Color.Green == 0, "Green problem")
+          arktest.assertTrue(Color.Blue == 15, "Blue problem")
+          arktest.assertTrue(Color.White == 16, "White problem")
+
+    - decl: |-
+          // different numeric types literals - different types
+          const b: byte = 1
+          const d: double = 1.234
+          enum NumT {Doub = d, Next = d + 2, Byt = b}
+      use: |-
+          arktest.assertTrue(NumT.Doub.valueOf() == d, "Mixed num types problem")
+
+    - decl: |-
+          // different numeric types literals - double
+          const d: double = 1.234
+          enum NumT {Doub = d, Next = d + 2.2}
+      use: |-
+          arktest.assertTrue(NumT.Doub.valueOf() == d, "Double problem")
+          arktest.assertTrue(NumT.Next.valueOf() >= d + 2.2, "Double.Next problem")
+
+    - decl: |-
+          // different numeric types literals - double
+          enum NumT {Doub = 1.234, Next = 1.234 + 2.2}
+      use: |-
+          arktest.assertTrue(NumT.Doub.valueOf() == 1.234, "Double problem")
+          arktest.assertTrue(NumT.Next.valueOf() <= 1.234 + 2.2, "Double.Next problem")
+
+    - decl: |-
+          // different numeric types literals - float
+          const f: float = 2.3456f
+          enum NumT {Flo = f, Next = f + 1.1f}
+      use: |-
+          arktest.assertTrue(NumT.Flo.valueOf() == f, "Float problem")
+          arktest.assertTrue(NumT.Next.valueOf() > f , "Float.Next problem")
+
+    - decl: |-
+          const f: float = 2.3456f
+          enum NumT {Flo = f, Next = f + 1.1f}
+      use: |-
+          arktest.assertTrue(NumT.Flo.valueOf() == f, "Float problem")
+          arktest.assertTrue(NumT.Next.valueOf() == f + 1.1f, "Float.Next problem")
+
+    - decl: |-
+          // different numeric types literals - byte
+          const b: byte = 1
+          enum NumT {Byt = b, Next = b + 2}
+      use: |-
+          arktest.assertTrue(NumT.Byt.valueOf() == b, "Byte problem")
+          arktest.assertTrue(NumT.Next.valueOf() >=  b + 1, "Byte.Next problem")
+
+    - decl: |-
+          // different numeric types literals - short
+          const s: Short = 1
+          enum NumT {Shrt = s, Next = s + 3}
+      use: |-
+          arktest.assertTrue(NumT.Shrt.valueOf() == s, "Short problem")
+          arktest.assertTrue(NumT.Next.valueOf() >= s + 3, "Short.Next problem")
+
+    - decl: |-
+          // different numeric types literals - int
+          const i:int = 1
+          enum NumT {Itn = i, Next = i + 4}
+      use: |-
+          arktest.assertTrue(NumT.Itn.valueOf() == i, "Int problem")
+          arktest.assertTrue(NumT.Next.valueOf() <= i+4, "Int.Next problem")
+
+    - decl: |-
+          // different numeric types literals - long
+          const l: long = 0xFFFF
+          enum NumT {Lng = l, Next = l + 5}
+      use: |-
+          arktest.assertTrue(NumT.Lng.valueOf() == l, "Long problem")
+          arktest.assertTrue(NumT.Next.valueOf() === l + 5, "Long.Next problem")
+
+    - decl: |-
+          // different types literals - bigint is not a numeric type
+          enum NumT {Bgnt = 1n, Next = 1n + 6}
+      tags: [compile-only, negative]
+      use: |-
+          arktest.assertTrue(NumT.Bgnt.valueOf() == 1n, "Bigint problem")
+          arktest.assertTrue(NumT.Next.valueOf() <= 1n + 6, "Bigint.Next problem")

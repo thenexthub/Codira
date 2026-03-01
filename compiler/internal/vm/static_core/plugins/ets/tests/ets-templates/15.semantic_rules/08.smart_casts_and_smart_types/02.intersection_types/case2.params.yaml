@@ -1,0 +1,491 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    # if statement
+    - decl: |-
+          let i: I = new B()
+      use: |-
+          if (i instanceof A) {
+              arktest.assertEQ(i.methI(), 'methI')
+              arktest.assertEQ(i.methA(), 'methA')
+              return
+          }
+          arktest.assertTrue(false, 'i should be instance of A')
+
+    - use: |-
+          ((i: I) => {
+              if (i instanceof A) {
+                  arktest.assertEQ(i.methI(), 'methI')
+                  arktest.assertEQ(i.methA(), 'methA')
+                  return
+              }
+              arktest.assertTrue(false, 'i should be instance of A')
+          })(new B)
+
+    - decl: |-
+          function foo(i: I) {
+              if (i instanceof A) {
+                  arktest.assertEQ(i.methI(), 'methI')
+                  arktest.assertEQ(i.methA(), 'methA')
+              } else {
+                  arktest.assertTrue(false, 'i should be instance of A')
+              }
+          }
+      use: |-
+          foo(new B())
+
+    - decl: |-
+          let i: I = new B()
+      use: |-
+          if (!(i instanceof A)) {
+              arktest.assertTrue(false, 'i should be instance of A')
+          } else {
+              arktest.assertEQ(i.methI(), 'methI')
+              arktest.assertEQ(i.methA(), 'methA')
+          }
+
+    - use: |-
+          ((i: I) => {
+              if (!(i instanceof A)) {
+                  arktest.assertTrue(false, 'i should be instance of A')
+              } else {
+                  arktest.assertEQ(i.methI(), 'methI')
+                  arktest.assertEQ(i.methA(), 'methA')
+              }
+          })(new B())
+
+    - decl: |-
+          function foo(i: I) {
+              if (!(i instanceof A)) {
+                  arktest.assertTrue(false, 'i should be instance of A')
+                  return
+              }
+              arktest.assertEQ(i.methI(), 'methI')
+              arktest.assertEQ(i.methA(), 'methA')
+          }
+      use: |-
+          foo(new B())
+
+    - decl: |-
+          let a: A = new B()
+      use: |-
+          if (a instanceof I) {
+              arktest.assertEQ(a.methI(), 'methI')
+              arktest.assertEQ(a.methA(), 'methA')
+              return
+          }
+          arktest.assertTrue(false, 'a should be instance of I')
+
+    - use: |-
+          ((a: A) => {
+              if (a instanceof I) {
+                  arktest.assertEQ(a.methI(), 'methI')
+                  arktest.assertEQ(a.methA(), 'methA')
+                  return
+              }
+              arktest.assertTrue(false, 'a should be instance of I')
+          })(new B())
+
+    - decl: |-
+          function foo(a: A) {
+              if (a instanceof I) {
+                  arktest.assertEQ(a.methI(), 'methI')
+                  arktest.assertEQ(a.methA(), 'methA')
+              } else {
+                  arktest.assertTrue(false, 'a should be instance of I')
+              }
+          }
+      use: |-
+          foo(new B)
+
+    - decl: |-
+          let a: A = new B()
+      use: |-
+          if (!(a instanceof I)) {
+              arktest.assertTrue(false, 'a should be instance of I')
+          } else {
+              arktest.assertEQ(a.methI(), 'methI')
+              arktest.assertEQ(a.methA(), 'methA')
+          }
+
+    - use: |-
+          ((a: A) => {
+              if (!(a instanceof I)) {
+                  arktest.assertTrue(false, 'a should be instance of I')
+              } else {
+                  arktest.assertEQ(a.methI(), 'methI')
+                  arktest.assertEQ(a.methA(), 'methA')
+              }
+          })(new B())
+
+    - decl: |-
+          function foo(a: A) {
+              if (!(a instanceof I)) {
+                  arktest.assertTrue(false, 'a should be instance of I')
+                  return
+              }
+              arktest.assertEQ(a.methI(), 'methI')
+              arktest.assertEQ(a.methA(), 'methA')
+          }
+      use: |-
+          foo(new B)
+
+    # ternary expression
+    - decl: |-
+          let i: I = new B()
+      use: |-
+          arktest.assertEQ(i instanceof A ? i.methI() : '', 'methI')
+          arktest.assertEQ(i instanceof A ? i.methA() : '', 'methA')
+
+    - use: |-
+          ((i:I) => {
+              arktest.assertEQ(i instanceof A ? i.methI() : '', 'methI')
+              arktest.assertEQ(i instanceof A ? i.methA() : '', 'methA')
+          })(new B)
+
+    - decl: |-
+          function foo(i: I) {
+              arktest.assertEQ(i instanceof A ? i.methI() : '', 'methI')
+              arktest.assertEQ(i instanceof A ? i.methA() : '', 'methA')
+          }
+      use: |-
+          foo(new B())
+
+    - decl: |-
+          let i: I = new B()
+      use: |-
+          arktest.assertEQ(!(i instanceof A) ? '' : i.methI(), 'methI')
+          arktest.assertEQ(!(i instanceof A) ? '' : i.methA(), 'methA')
+
+    - use: |-
+          ((i: I) => {
+              arktest.assertEQ(!(i instanceof A) ? '' : i.methI(), 'methI')
+              arktest.assertEQ(!(i instanceof A) ? '' : i.methA(), 'methA')
+          })(new B)
+
+    - decl: |-
+          function foo(i: I) {
+              arktest.assertEQ(!(i instanceof A) ? '' : i.methI(), 'methI')
+              arktest.assertEQ(!(i instanceof A) ? '' : i.methA(), 'methA')
+          }
+      use: |-
+          foo(new B())
+
+    - decl: |-
+          let a: A = new B()
+      use: |-
+          arktest.assertEQ(a instanceof I ? a.methI() : '', 'methI')
+          arktest.assertEQ(a instanceof I ? a.methA() : '', 'methA')
+
+    - use: |-
+          ((a: A) => {
+              arktest.assertEQ(a instanceof I ? a.methI() : '', 'methI')
+              arktest.assertEQ(a instanceof I ? a.methA() : '', 'methA')
+          })(new B)
+
+    - decl: |-
+          function foo(a: A) {
+              arktest.assertEQ(a instanceof I ? a.methI() : '', 'methI')
+              arktest.assertEQ(a instanceof I ? a.methA() : '', 'methA')
+          }
+      use: |-
+          foo(new B())
+
+    - decl: |-
+          let a: A = new B()
+      use: |-
+          arktest.assertEQ(!(a instanceof I) ? '' : a.methI(), 'methI')
+          arktest.assertEQ(!(a instanceof I) ? '' : a.methA(), 'methA')
+
+    - use: |-
+          (a: A) => {
+              arktest.assertEQ(!(a instanceof I) ? '' : a.methI(), 'methI')
+              arktest.assertEQ(!(a instanceof I) ? '' : a.methA(), 'methA')
+          })(new B)
+
+    - decl: |-
+          function foo(a: A) {
+              arktest.assertEQ(!(a instanceof I) ? '' : a.methI(), 'methI')
+              arktest.assertEQ(!(a instanceof I) ? '' : a.methA(), 'methA')
+          }
+      use: |-
+          foo(new B())
+
+    # while statement
+    - decl: |-
+          let i: I = new B()
+      use: |-
+          while (i instanceof A) {
+              arktest.assertEQ(i.methI(), 'methI')
+              arktest.assertEQ(i.methA(), 'methA')
+              return
+          }
+          arktest.assertTrue(false, 'i should be instance of A')
+
+    - use: |-
+          ((i: I) => {
+              while (i instanceof A) {
+                  arktest.assertEQ(i.methI(), 'methI')
+                  arktest.assertEQ(i.methA(), 'methA')
+                  return
+              }
+              arktest.assertTrue(false, 'i should be instance of A')
+          })(new B)
+
+    - decl: |-
+          function foo(i: I) {
+              while (i instanceof A) {
+                  arktest.assertEQ(i.methI(), 'methI')
+                  arktest.assertEQ(i.methA(), 'methA')
+                  return
+              }
+              arktest.assertTrue(false, 'i should be instance of A')
+          }
+      use: |-
+          foo(new B())
+
+    - decl: |-
+          let i: I = new B()
+      use: |-
+          while (!(i instanceof A)) {
+              arktest.assertTrue(false, 'i should be instance of A')
+              return
+          }
+          arktest.assertEQ(i.methI(), 'methI')
+          arktest.assertEQ(i.methA(), 'methA')
+
+    - use: |-
+          ((i: I) => {
+              while (!(i instanceof A)) {
+                  arktest.assertTrue(false, 'i should be instance of A')
+                  return
+              }
+              arktest.assertEQ(i.methI(), 'methI')
+              arktest.assertEQ(i.methA(), 'methA')
+          })(new B)
+
+    - decl: |-
+          function foo(i: I) {
+              while (!(i instanceof A)) {
+                  arktest.assertTrue(false, 'i should be instance of A')
+                  return
+              }
+              arktest.assertEQ(i.methI(), 'methI')
+              arktest.assertEQ(i.methA(), 'methA')
+          }
+      use: |-
+          foo(new B())
+
+    - decl: |-
+          let a: A = new B()
+      use: |-
+          while (a instanceof I) {
+              arktest.assertEQ(a.methI(), 'methI')
+              arktest.assertEQ(a.methA(), 'methA')
+              return
+          }
+          arktest.assertTrue(false, 'a should be instance of I')
+
+    - use: |-
+          ((a: A) => {
+              while (a instanceof I) {
+                  arktest.assertEQ(a.methI(), 'methI')
+                  arktest.assertEQ(a.methA(), 'methA')
+                  return
+              }
+              arktest.assertTrue(false, 'a should be instance of I')
+          })(new B)
+
+    - decl: |-
+          function foo(a: A) {
+              while (a instanceof I) {
+                  arktest.assertEQ(a.methI(), 'methI')
+                  arktest.assertEQ(a.methA(), 'methA')
+                  return
+              }
+              arktest.assertTrue(false, 'a should be instance of I')
+          }
+      use: |-
+          foo(new B())
+
+    - decl: |-
+          let a: A = new B()
+      use: |-
+          while (!(a instanceof I)) {
+              arktest.assertTrue(false, 'a should be instance of I')
+              return
+          }
+          arktest.assertEQ(a.methI(), 'methI')
+          arktest.assertEQ(a.methA(), 'methA')
+
+    - use: |-
+          ((a: A) => {
+              while (!(a instanceof I)) {
+                  arktest.assertTrue(false, 'a should be instance of I')
+                  return
+              }
+              arktest.assertEQ(a.methI(), 'methI')
+              arktest.assertEQ(a.methA(), 'methA')
+          })(new B)
+
+    - decl: |-
+          function foo(a: A) {
+              while (!(a instanceof I)) {
+                  arktest.assertTrue(false, 'a should be instance of I')
+                  return
+              }
+              arktest.assertEQ(a.methI(), 'methI')
+              arktest.assertEQ(a.methA(), 'methA')
+          }
+      use: |-
+          foo(new B())
+
+    # for statement
+    - decl: |-
+          let i: I = new B()
+      use: |-
+          for (; i instanceof A;) {
+              arktest.assertEQ(i.methI(), 'methI')
+              arktest.assertEQ(i.methA(), 'methA')
+              return
+          }
+          arktest.assertTrue(false, 'i should be instance of A')
+
+    - use: |-
+          ((i: I) => {
+              for (; i instanceof A;) {
+                  arktest.assertEQ(i.methI(), 'methI')
+                  arktest.assertEQ(i.methA(), 'methA')
+                  return
+              }
+              arktest.assertTrue(false, 'i should be instance of A')
+          })(new B)
+
+    - decl: |-
+          function foo(i: I) {
+              for (; i instanceof A;) {
+                  arktest.assertEQ(i.methI(), 'methI')
+                  arktest.assertEQ(i.methA(), 'methA')
+                  return
+              }
+              arktest.assertTrue(false, 'i should be instance of A')
+          }
+      use: |-
+          foo(new B())
+
+    - decl: |-
+          let i: I = new B()
+      use: |-
+          for (; !(i instanceof A);) {
+              arktest.assertTrue(false, 'i should be instance of A')
+              return
+          }
+          arktest.assertEQ(i.methI(), 'methI')
+          arktest.assertEQ(i.methA(), 'methA')
+
+    - use: |-
+          ((i: I) => {
+              for (; !(i instanceof A);) {
+                  arktest.assertTrue(false, 'i should be instance of A')
+                  return
+              }
+              arktest.assertEQ(i.methI(), 'methI')
+              arktest.assertEQ(i.methA(), 'methA')
+          })(new B)
+
+    - decl: |-
+          function foo(i: I) {
+              for (; !(i instanceof A);) {
+                  arktest.assertTrue(false, 'i should be instance of A')
+                  return
+              }
+              arktest.assertEQ(i.methI(), 'methI')
+              arktest.assertEQ(i.methA(), 'methA')
+          }
+      use: |-
+          foo(new B())
+
+    - decl: |-
+          let a: A = new B()
+      use: |-
+          for (; a instanceof I;) {
+              arktest.assertEQ(a.methI(), 'methI')
+              arktest.assertEQ(a.methA(), 'methA')
+              return
+          }
+          arktest.assertTrue(false, 'a should be instance of I')
+
+    - use: |-
+          ((a: A) => {
+              for (; a instanceof I;) {
+                  arktest.assertEQ(a.methI(), 'methI')
+                  arktest.assertEQ(a.methA(), 'methA')
+                  return
+              }
+              arktest.assertTrue(false, 'a should be instance of I')
+          })(new B)
+
+    - decl: |-
+          function foo(a: A) {
+              for (; a instanceof I;) {
+                  arktest.assertEQ(a.methI(), 'methI')
+                  arktest.assertEQ(a.methA(), 'methA')
+                  return
+              }
+              arktest.assertTrue(false, 'a should be instance of I')
+          }
+      use: |-
+          foo(new B())
+
+    - decl: |-
+          let a: A = new B()
+      use: |-
+          for (; !(a instanceof I);) {
+              arktest.assertTrue(false, 'a should be instance of I')
+              return
+          }
+          arktest.assertEQ(a.methI(), 'methI')
+          arktest.assertEQ(a.methA(), 'methA')
+
+    - use: |-
+          ((a: A) => {
+              for (; !(a instanceof I);) {
+                  arktest.assertTrue(false, 'a should be instance of I')
+                  return
+              }
+              arktest.assertEQ(a.methI(), 'methI')
+              arktest.assertEQ(a.methA(), 'methA')
+          })(new B)
+
+    - decl: |-
+          function foo(a: A) {
+              for (; !(a instanceof I);) {
+                  arktest.assertTrue(false, 'a should be instance of I')
+                  return
+              }
+              arktest.assertEQ(a.methI(), 'methI')
+              arktest.assertEQ(a.methA(), 'methA')
+          }
+      use: |-
+          foo(new B())

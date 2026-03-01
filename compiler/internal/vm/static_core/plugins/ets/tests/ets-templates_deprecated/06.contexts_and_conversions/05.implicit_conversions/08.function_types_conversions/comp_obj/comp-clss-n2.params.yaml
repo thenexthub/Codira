@@ -1,0 +1,243 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # classes
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class C extends B {}
+          let a: A = new A()
+          let b: B = new B()
+          let c: C = new C()
+
+          function foo(p: B): B {
+              return b
+          }
+      type: '(p: A) => B'
+
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class C extends B {}
+          let a: A = new A()
+          let b: B = new B()
+          let c: C = new C()
+
+          function foo(p: B): B {
+              return b
+          }
+      type: '(p: B) => C'
+
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class C extends B {}
+          let a: A = new A()
+          let b: B = new B()
+          let c: C = new C()
+
+          function foo(p: B): B {
+              return b
+          }
+      type: '(p: A) => C'
+
+    # interfaces
+    - decl: |-
+          interface I {}
+          interface J extends I {}
+          class A implements J {}
+          let a: A = new A()
+
+          function foo(p: J): I {
+              return a
+          }
+      type: '(p: I) => I'
+
+    - decl: |-
+          interface I {}
+          interface J extends I {}
+          class A implements J {}
+          let a: A = new A()
+
+          function foo(p: J): I {
+              return a
+          }
+      type: '(p: J) => J'
+
+    - decl: |-
+          interface I {}
+          interface J extends I {}
+          class A implements J {}
+          let a: A = new A()
+
+          function foo(p: J): I {
+              return a
+          }
+      type: '(p: I) => J'
+
+    # arrays
+    - decl: |-
+          class A {}
+          class B extends A {}
+          let a: A[] = new A[1]
+          let b: B[] = new B[1]
+
+          function foo(p: B[]): A[] {
+              return a
+          }
+      type: '(p: A[]) => A[]'
+
+    - decl: |-
+          class A {}
+          class B extends A {}
+          let a: A[] = new A[1]
+          let b: B[] = new B[1]
+
+          function foo(p: B[]): A[] {
+              return a
+          }
+      type: '(p: B[]) => B[]'
+
+    - decl: |-
+          class A {}
+          class B extends A {}
+          let a: A[] = new A[1]
+          let b: B[] = new B[1]
+
+          function foo(p: B[]): A[] {
+              return a
+          }
+      type: '(p: A[]) => B[]'
+
+    # unions
+    - decl: |-
+          type T1 = String|Boolean
+          type T2 = Number|String|Boolean
+          let t1: T1 = "test"
+          let t2: T2 = 42.0
+          function foo(p: T1): T2 {
+              return t2
+          }
+      type: '(p: T2) => T2'
+
+    - decl: |-
+          type T1 = String|Boolean
+          type T2 = Number|String|Boolean
+          let t1: T1 = "test"
+          let t2: T2 = 42.0
+          function foo(p: T1): T2 {
+              return t2
+          }
+      type: '(p: T1) => T1'
+
+    - decl: |-
+          type T1 = String|Boolean
+          type T2 = Number|String|Boolean
+          let t1: T1 = "test"
+          let t2: T2 = 42.0
+          function foo(p: T1): T2 {
+              return t2
+          }
+      type: '(p: T2) => T1'
+
+    # nullish
+    - decl: |-
+          let t1: number = 1.0
+          let t2: number|null = 2.0
+
+          function foo(p: number): number|null {
+              return t2
+          }
+      type: '(p: number|null) => number|null'
+
+    - decl: |-
+          let t1: number = 1.0
+          let t2: number|null = 2.0
+
+          function foo(p: number): number|null {
+              return t2
+          }
+      type: '(p: number) => number'
+
+    - decl: |-
+          let t1: number = 1.0
+          let t2: number|null = 2.0
+
+          function foo(p: number): number|null {
+              return t2
+          }
+      type: '(p: number|null) => number'
+
+    # primitive
+    - decl: |-
+          function foo(p: Float): float {
+              return 1.5f
+          }
+      type: '(p: Floating) => float'
+
+    - decl: |-
+          function foo(p: double): Object {
+              return 1.5f
+          }
+      type: '(p: double) => Numeric'
+
+    - decl: |-
+          let t1: long = Long.MIN_VALUE
+          function foo(p: Numeric): Numeric {
+              return t1
+          }
+      type: '(p: Numeric) => Integral'
+
+    - decl: |-
+          let t1: long = Long.MIN_VALUE
+          function foo(p: Numeric): Numeric {
+              return t1
+          }
+      type: '(p: Object) => Numeric'
+
+    # enums
+    - decl: |-
+          enum Color { Red, Green, Blue }
+          function foo(p: Color): Object {
+              return new Object()
+          }
+      type: '(p: Color) => Color'
+
+    - decl: |-
+          enum Color { Red, Green, Blue }
+          function foo(p: Color): Color {
+              return Color.Green
+          }
+      type: '(p: Object) => Color'
+
+    # tuples
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class C extends B {}
+          let bb: [B, B] = [new B(), new B()]
+          function foo(p: [B, B]): [B, B] {
+              return bb
+          }
+      type: '(p: Object) => [B, B]'
+
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class C extends B {}
+          function foo(p: [B, B]): Object {
+              return new Object()
+          }
+      type: '(p: [B, B]) => [B, B]'

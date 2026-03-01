@@ -1,0 +1,68 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          //Common lambda syntax check
+          @Retention("SOURCE")
+          @interface TestAnnotation {}
+
+          async function ethalonAsyncFunc(): Promise<string> {
+              return "testResult"
+          }
+      use: |-
+          //annotation + async keyword + parameter list + rest operator + return type. Code block
+          const fullLambdaBlock = @TestAnnotation async(p: string, ...arr: Int[]): Promise<string> => {
+              return Promise.resolve("testResult")
+          }
+        
+          //parameter list + rest operator + return type. Code block
+          const fullLambdaBlock2 = (p: string, ...arr: Int[]): Promise<string> => {
+              return Promise.resolve("testResult")
+          }
+        
+          //async keyword + default parameter + return type. Code block
+          const lambdaBlockDefParam = async(p : string = "testResult"): Promise<string> => {
+              return Promise.resolve(`${p}`)
+          }
+        
+          //async keyword + optional parameter + return type. Code expression
+          const fullLambdaExpression = async(p?: string): Promise<string> => 
+              Promise.resolve("testResult")
+            
+          //shortest lambda without parameters, implicit type, code expression
+          const shortestLambdaExpression = () => Promise.resolve("testResult")
+        
+          //chaining lamdas
+          const lambdaChainingThen = () => Promise.resolve("")
+              .then(
+                  (data: string) => {return 'testResult'}
+              )
+            
+          const lambdaChainingThenTwice = () => Promise.resolve("")
+              .then(
+                  (data: string) => {return 'secondIteration'}
+              ).then(
+                  (data: string) => {return 'testResult'}
+              )
+              
+          //ethalon async nonlambda function
+          const ethalon = await ethalonAsyncFunc()
+          
+          arktest.assertEQ(ethalon, await fullLambdaBlock("", 1))
+          arktest.assertEQ(ethalon, await fullLambdaBlock2("", 1))
+          arktest.assertEQ(ethalon, await lambdaBlockDefParam())
+          arktest.assertEQ(ethalon, await fullLambdaExpression(""))
+          arktest.assertEQ(ethalon, await lambdaChainingThen())
+          arktest.assertEQ(ethalon, await lambdaChainingThenTwice())

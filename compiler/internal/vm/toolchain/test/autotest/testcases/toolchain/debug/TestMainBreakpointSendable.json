@@ -1,0 +1,15 @@
+{
+  "description": "Config for TestMainBreakpointsSendable",
+  "environment": [
+    {
+      "type": "device",
+      "label": "phone"
+    }
+  ],
+  "driver": {
+    "type": "DeviceTest",
+    "py_file": [
+      "toolchain/debug/TestMainBreakpointsSendable.py"
+    ]
+  }
+}

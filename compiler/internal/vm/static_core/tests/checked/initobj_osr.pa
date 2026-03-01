@@ -1,0 +1,70 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+
+# '--verification-mode=disabled' this option here is added to save test logic and remove verifier error
+#! CHECKER     Acc undefined value [pri | 0] after return from initobj with OSR'ed initializer
+#! RUN          options: "--verification-mode=disabled --interpreter-type=irtoc --compiler-enable-jit=true --compiler-check-final=true --compiler-force-unresolved=true --compiler-hotness-threshold=3 --enable-an --no-async-jit=true", entry: "_GLOBAL::main"
+#! EVENT        /OsrEntry,classTest::_ctor_,.*,AFTER_IFRAME,SUCCESS/
+
+.record classTest
+{
+    i64[] nums
+}
+
+.function void main()
+{
+    call.short func_with_initobj:()
+
+    sta.obj v1
+    ldobj.obj v1, classTest.nums
+
+    return.void
+}
+
+.function classTest func_with_initobj()
+{
+    movi v1, 1000
+    initobj.short classTest._ctor_:(classTest, i32), v1
+
+    return.obj
+}
+
+.function void classTest._ctor_(classTest a0, i32 a1)
+{
+    newarr v1, a1, i64[]
+    movi v2, 0
+    lda a1
+
+loop:
+    starr v1, v2
+    inci v2, 1
+
+    jeq v2, exit
+    jmp loop
+
+exit:
+    lda.obj v1
+    stobj.obj a0, classTest.nums
+
+    return.void
+}

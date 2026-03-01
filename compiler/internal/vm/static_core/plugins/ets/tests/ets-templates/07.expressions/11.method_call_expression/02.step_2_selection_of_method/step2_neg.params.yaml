@@ -1,0 +1,95 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          class C {
+              met(p: number): string {
+                  return 'n'
+              }
+              met(p: Number): string {
+                  return 'N'
+              }
+          }
+      use: |-
+          // select method with no boxing/unboxing
+          let c: C = new C
+
+    - decl: |-
+          class C {
+              met(...p: FixedArray<number>): string {
+                  return "nR"
+              }
+              met(...p: FixedArray<Number>): string {
+                  return "NR"
+              }
+          }
+      use: |-
+          // select method with rest parameter
+          let c: C = new C
+
+    - decl: |-
+          class C {
+              met(p: number, q: number = 0.0): string {
+                  return "nD1"
+              }
+              met(p: Number, q: number = 0.0): string {
+                  return "ND1"
+              }
+          }
+      use: |-
+          // select method with default parameter
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  "nD1" )
+          arktest.assertEQ( c.met(new Number()),  "ND1" )
+
+    - decl: |-
+          class C {
+              met(p: number, q?: Number): string {
+                  return "nD2"
+              }
+              met(p: Number, q?: Number): string {
+                  return "ND2"
+              }
+          }
+      use: |-
+          // select method with undefined parameter
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  "nD2" )
+          arktest.assertEQ( c.met(new Number()),  "ND2" )
+
+    # step2_12
+    # The best candidate is the candidate that requires no transformation for all arguments.
+    # If such a candidate is available, then other candidates are not considered.
+
+    - decl: |-
+          class C {
+              met(p: number): string {
+                  return "n"
+              }
+              met(p: Number): string {
+                  return "N"
+              }
+              met(...p: FixedArray<number>): string {
+                  return "nR"
+              }
+              met(...p: FixedArray<Number>): string {
+                  return "NR"
+              }
+          }
+      use: |-
+          // select method without boxing/unboxing and without rest
+          let c: C = new C()
+          arktest.assertEQ( c.met(0.0),  "n" )
+          arktest.assertEQ( c.met(new Number()),  "n" )

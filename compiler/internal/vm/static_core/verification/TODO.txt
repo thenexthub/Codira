@@ -1,0 +1,25 @@
+1. [x] MT support:
+  - [x] Updating typesystem put under lock (ClassLinker::AddFile)
+  - [x] (using atomic flag) Verification of method put under lock to exclude double verification at the same time, or make verified_ field atomic
+    (? is writing to the field at the same time from different thread same value needs to be synced, may be set it volatile only?)
+    (double verification is very rare case, and verification is to be expected idempotent operation)
+  - [x] Passing PandaTypes to absint by const ref, because absint is not expected to change PandaTypes
+        (and using RWLock, because of ClassLinker::AddFile)
+  - [x] Minor: type_image is not thread-safe currently
+
+1a. Redesign verification into job-queue and separate thread for verifier.
+    Remove all locks in verifier thread for accessing typesystem
+
+2. Refactor bitvector and relation to speedup things
+3. Refactor typesystem (see todo's in source code files)
+
+4. Extend origins setup to all instructions and method entrance
+5. Support origins recalc on LUB of contexts
+
+6. Currently in CheckMethodsArgs types of arguments are checked with respect to typecasting in past
+   - done Introduce the same mechanism in checkcast
+   - Return error if checkcast fail wrt typecasting in past?
+
+7. done Origins: at method entry, give different @start origins to parameters!
+8. Think about hash collisions of Method::UniqId(), Class::UniqId(), Field::UniqId()....
+   for class add consideration of file checksum.

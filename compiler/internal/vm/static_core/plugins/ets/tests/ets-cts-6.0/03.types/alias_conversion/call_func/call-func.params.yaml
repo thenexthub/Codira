@@ -1,0 +1,281 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - from_type: byte
+      to_type: Byte
+      values:
+          - { expr: new Byte(0), val: 0 }
+          - { expr: 0x7F.toByte(), val: 127 }
+          - { expr: 0x80.toByte(), val: -128 }
+
+    - from_type: byte
+      to_type: Short
+      values:
+          - { expr: new Byte(0), val: 0 }
+          - { expr: 0x7F.toByte(), val: 127 }
+          - { expr: 0x80.toByte(), val: -128 }
+
+    - from_type: short
+      to_type: Short
+      values:
+          - { expr: new Short(0), val: 0 }
+          - { expr: 0x007F.toShort(), val: 127 }
+          - { expr: 0xFF80.toShort(), val: -128 }
+          - { expr: 0x7FFF.toShort(), val: 32767 }
+          - { expr: 0x8000.toShort(), val: -32768 }
+
+    - from_type: byte
+      to_type: Int
+      values:
+          - { expr: new Byte(0), val: 0 }
+          - { expr: 0x7F.toByte(), val: 127 }
+          - { expr: 0x80.toByte(), val: -128 }
+
+    - from_type: short
+      to_type: Int
+      values:
+          - { expr: new Short(0), val: 0 }
+          - { expr: 0x007F.toShort(), val: 127 }
+          - { expr: 0xFF80.toShort(), val: -128 }
+          - { expr: 0x7FFF.toShort(), val: 32767 }
+          - { expr: 0x8000.toShort(), val: -32768 }
+
+    - from_type: int
+      to_type: Int
+      values:
+          - { expr: new Int(0), val: 0 }
+          - { expr: 0x0000007F.toInt(), val: 127 }
+          - { expr: 0xFFFFFF80.toInt(), val: -128 }
+          - { expr: 0x00007FFF.toInt(), val: 32767 }
+          - { expr: 0xFFFF8000.toInt(), val: -32768 }
+          - { expr: 0x7FFFFFFF.toInt(), val: 2147483647 }
+          - { expr: 0x80000000.toInt(), val: -2147483648 }
+
+    - from_type: char
+      to_type: Int
+      values:
+          - { expr: "c'\\u0000'", val: 0 }
+          - { expr: "c'\\u007F'", val: 127 }
+          - { expr: "c'\\u8000'", val: 32768 }
+          - { expr: "c'\\uFF80'", val: 65408 }
+          - { expr: "c'\\uFFFF'", val: 65535 }
+
+    - from_type: byte
+      to_type: Long
+      values:
+          - { expr: new Byte(0), val: 0 }
+          - { expr: 0x7F.toByte(), val: 127 }
+          - { expr: 0x80.toByte(), val: -128 }
+
+    - from_type: short
+      to_type: Long
+      values:
+          - { expr: new Short(0), val: 0 }
+          - { expr: 0x007F.toShort(), val: 127 }
+          - { expr: 0xFF80.toShort(), val: -128 }
+          - { expr: 0x7FFF.toShort(), val: 32767 }
+          - { expr: 0x8000.toShort(), val: -32768 }
+
+    - from_type: int
+      to_type: Long
+      values:
+          - { expr: new Int(0), val: 0 }
+          - { expr: 0x0000007F.toInt(), val: 127 }
+          - { expr: 0xFFFFFF80.toInt(), val: -128 }
+          - { expr: 0x00007FFF.toInt(), val: 32767 }
+          - { expr: 0xFFFF8000.toInt(), val: -32768 }
+          - { expr: 0x7FFFFFFF.toInt(), val: 2147483647 }
+          - { expr: 0x80000000.toInt(), val: -2147483648 }
+
+    - from_type: long
+      to_type: Long
+      values:
+          - { expr: new Long(0), val: 0 }
+          - { expr: 0x000000000000007F.toLong(), val: 127 }
+          - { expr: 0xFFFFFFFFFFFFFF80.toLong(), val: -128 }
+          - { expr: 0x0000000000007FFF.toLong(), val: 32767 }
+          - { expr: 0xFFFFFFFFFFFF8000.toLong(), val: -32768 }
+          - { expr: 0x000000007FFFFFFF.toLong(), val: 2147483647 }
+          - { expr: 0xFFFFFFFF80000000.toLong(), val: -2147483648 }
+          - { expr: 0x8000000000000000.toLong(), val: -9223372036854775808 }
+          - { expr: 0x7FFFFFFFFFFFFFFF.toLong(), val: 9223372036854775807 }
+
+    - from_type: char
+      to_type: Long
+      values:
+          - { expr: "c'\\u0000'", val: 0 }
+          - { expr: "c'\\u007F'", val: 127 }
+          - { expr: "c'\\u8000'", val: 32768 }
+          - { expr: "c'\\uFF80'", val: 65408 }
+          - { expr: "c'\\uFFFF'", val: 65535 }
+
+    - from_type: byte
+      to_type: Float
+      values:
+          - { expr: new Byte(0), val: 0.0.toFloat() }
+          - { expr: 0x7F.toByte(), val: 127.0.toFloat() }
+          - { expr: 0x80.toByte(), val: -128.0.toFloat() }
+
+    - from_type: short
+      to_type: Float
+      values:
+          - { expr: new Short(0), val: 0.0.toFloat() }
+          - { expr: 0x007F.toShort(), val: 127.0.toFloat() }
+          - { expr: 0xFF80.toShort(), val: -128.0.toFloat() }
+          - { expr: 0x7FFF.toShort(), val: 32767.0.toFloat() }
+          - { expr: 0x8000.toShort(), val: -32768.0.toFloat() }
+
+    - from_type: int
+      to_type: Float
+      values:
+          - { expr: new Int(0), val: 0 }
+          - { expr: 0x0000007F.toInt(), val: 127.0.toFloat() }
+          - { expr: 0xFFFFFF80.toInt(), val: -128.0.toFloat() }
+          - { expr: 0x00007FFF.toInt(), val: 32767.0.toFloat() }
+          - { expr: 0xFFFF8000.toInt(), val: -32768.0.toFloat() }
+          - { expr: 0x7FFFFFFF.toInt(), val: 2147483647.0.toFloat() }
+          - { expr: 0x80000000.toInt(), val: -2147483648.0.toFloat() }
+
+    - from_type: long
+      to_type: Float
+      values:
+          - { expr: new Long(0), val: 0 }
+          - { expr: 0x000000000000007F.toLong(), val: 127.0.toFloat() }
+          - { expr: 0xFFFFFFFFFFFFFF80.toLong(), val: -128.0.toFloat() }
+          - { expr: 0x0000000000007FFF.toLong(), val: 32767.0.toFloat() }
+          - { expr: 0xFFFFFFFFFFFF8000.toLong(), val: -32768.0.toFloat() }
+          - { expr: 0x000000007FFFFFFF.toLong(), val: 2147483647.0.toFloat() }
+          - { expr: 0xFFFFFFFF80000000.toLong(), val: -2147483648.0.toFloat() }
+          - { expr: 0x8000000000000000.toLong(), val: -9223372036854775808.0.toFloat() }
+          - { expr: 0x7FFFFFFFFFFFFFFF.toLong(), val: 9223372036854775807.0.toFloat() }
+
+    - from_type: float
+      to_type: Float
+      values:
+          - { expr: new Float(+0.0), val: new Float(+0.0) }
+          - { expr: new Float(-0.0), val: new Float(-0.0) }
+          - { expr: Float.MIN_VALUE, val: Float.MIN_VALUE }
+          - { expr: Float.MAX_VALUE, val: Float.MAX_VALUE }
+          - { expr: Float.NEGATIVE_INFINITY, val: Float.NEGATIVE_INFINITY }
+          - { expr: Float.POSITIVE_INFINITY, val: Float.POSITIVE_INFINITY }
+
+    - from_type: char
+      to_type: Float
+      values:
+          - { expr: "c'\\u0000'", val: new Float(0.0) }
+          - { expr: "c'\\u007F'", val: new Float(127.0) }
+          - { expr: "c'\\u8000'", val: new Float(32768.0) }
+          - { expr: "c'\\uFF80'", val: new Float(65408.0) }
+          - { expr: "c'\\uFFFF'", val: new Float(65535.0) }
+
+    - from_type: byte
+      to_type: Double
+      values:
+          - { expr: new Byte(0), val: 0.0 }
+          - { expr: 0x7F.toByte(), val: 127.0 }
+          - { expr: 0x80.toByte(), val: -128.0 }
+
+    - from_type: short
+      to_type: Double
+      values:
+          - { expr: new Short(0), val: 0.0.toDouble() }
+          - { expr: 0x007F.toShort(), val: 127.0.toDouble() }
+          - { expr: 0xFF80.toShort(), val: -128.0.toDouble() }
+          - { expr: 0x7FFF.toShort(), val: 32767.0.toDouble() }
+          - { expr: 0x8000.toShort(), val: -32768.0.toDouble() }
+
+    - from_type: int
+      to_type: Double
+      values:
+          - { expr: new Int(0), val: 0.0.toDouble() }
+          - { expr: 0x0000007F.toInt(), val: 127.0.toDouble() }
+          - { expr: 0xFFFFFF80.toInt(), val: -128.0.toDouble() }
+          - { expr: 0x00007FFF.toInt(), val: 32767.0.toDouble() }
+          - { expr: 0xFFFF8000.toInt(), val: -32768.0.toDouble() }
+          - { expr: 0x7FFFFFFF.toInt(), val: 2147483647.0.toDouble() }
+          - { expr: 0x80000000.toInt(), val: -2147483648.0.toDouble() }
+
+    - from_type: long
+      to_type: Double
+      values:
+          - { expr: new Long(0), val: 0 }
+          - { expr: 0x000000000000007F.toLong(), val: 127.0.toDouble() }
+          - { expr: 0xFFFFFFFFFFFFFF80.toLong(), val: -128.0.toDouble() }
+          - { expr: 0x0000000000007FFF.toLong(), val: 32767.0.toDouble() }
+          - { expr: 0xFFFFFFFFFFFF8000.toLong(), val: -32768.0.toDouble() }
+          - { expr: 0x000000007FFFFFFF.toLong(), val: 2147483647.0.toDouble() }
+          - { expr: 0xFFFFFFFF80000000.toLong(), val: -2147483648.0.toDouble() }
+          - { expr: 0x8000000000000000.toLong(), val: -9223372036854775808.0.toDouble() }
+          - { expr: 0x7FFFFFFFFFFFFFFF.toLong(), val: 9223372036854775807.0.toDouble() }
+
+    - from_type: float
+      to_type: Double
+      values:
+          - { expr: +0.0.toFloat(), val: +0.0.toDouble() }
+          - { expr: -0.0.toFloat(), val: -0.0.toDouble() }
+          - { expr: Float.MIN_VALUE, val: Float.MIN_VALUE.toDouble() }
+          - { expr: Float.MAX_VALUE, val: Float.MAX_VALUE.toDouble() }
+          - { expr: Float.NEGATIVE_INFINITY, val: Float.NEGATIVE_INFINITY.toDouble() }
+          - { expr: Float.POSITIVE_INFINITY, val: Float.POSITIVE_INFINITY.toDouble() }
+
+    - from_type: double
+      to_type: Double
+      values:
+          - { expr: '+0.0', val: +0.0.toDouble() }
+          - { expr: '-0.0', val: -0.0.toDouble() }
+          - { expr: Double.MIN_VALUE, val: Double.MIN_VALUE }
+          - { expr: Double.MAX_VALUE, val: Double.MAX_VALUE }
+          - { expr: Double.NEGATIVE_INFINITY, val: Double.NEGATIVE_INFINITY }
+          - { expr: Double.POSITIVE_INFINITY, val: Double.POSITIVE_INFINITY }
+
+    - from_type: char
+      to_type: Double
+      values:
+          - { expr: "c'\\u0000'", val: 0.0.toDouble() }
+          - { expr: "c'\\u007F'", val: 127.0.toDouble() }
+          - { expr: "c'\\u8000'", val: 32768.0.toDouble() }
+          - { expr: "c'\\uFF80'", val: 65408.0.toDouble() }
+          - { expr: "c'\\uFFFF'", val: 65535.0.toDouble() }
+
+    - from_type: number
+      to_type: Number
+      values:
+          - { expr: '+0.0', val: +0.0 as number }
+          - { expr: '-0.0', val: -0.0 as number }
+          - { expr: Number.MIN_VALUE, val: Number.MIN_VALUE }
+          - { expr: Number.MAX_VALUE, val: Number.MAX_VALUE }
+          - { expr: Number.NEGATIVE_INFINITY, val: Number.NEGATIVE_INFINITY }
+          - { expr: Number.POSITIVE_INFINITY, val: Number.POSITIVE_INFINITY }
+
+    - from_type: byte
+      to_type: Char
+      values:
+          - { expr: new Byte(0), val: "c'\\u0000'" }
+          - { expr: new Byte(127), val: "c'\\u007F'" }
+          - { expr: new Byte(-128), val: "c'\\uFF80'" }
+
+    - from_type: char
+      to_type: Char
+      values:
+          - { expr: "c'\\u0000'", val: "c'\\u0000'" }
+          - { expr: "c'\\u007F'", val: "c'\\u007F'" }
+          - { expr: "c'\\uFF80'", val: "c'\\uFF80'" }
+          - { expr: "c'\\uCAFE'", val: "c'\\uCAFE'" }
+
+    - from_type: boolean
+      to_type: Boolean
+      values:
+          - { expr: '!true', val: 'false' }
+          - { expr: '!false', val: 'true' }

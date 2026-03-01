@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>${Title}</title>
+    <style>
+        .test_steps_body {
+            overflow-x: auto;
+            padding: 10px;
+            border: 1px gray dotted;
+        }
+
+        .test_result {
+            font-family: monospace;
+            line-height: 1.2rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .result_output {
+            width: 100%;
+            border: 1px dotted gray;
+            padding: 10px;
+        }
+
+        .result_output--expected {
+            padding-right: 2px;
+        }
+
+        .result_output--actual {
+            padding-left: 2px;
+            border-left: none;
+        }
+
+        .output_line {
+            border-bottom: 1px dotted grey;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .output_line--passed {
+            color: green;
+        }
+
+        .output_line--failed {
+            color: red;
+        }
+
+        .test_status--passed {
+            color: green;
+            font-weight: bold;
+        }
+
+        .test_status--failed {
+            color: brown;
+            font-weight: bold;
+        }
+
+        .result_output_error {
+            color: brown;
+        }
+
+
+
+    </style>
+</head>
+<body class="test">
+
+<h1 class="test_header">${Title}</h1>
+<p class="test_path">${Path}</p>
+<p class="test_status">Result: <span class="${status_class}">${Status}</span></p>
+<p class="test_status">Execution time: ${Time}</p>
+
+<h2 class="test_steps_header">Steps to reproduce</h2>
+<pre class="test_steps_body">${Reproduce}</pre>
+
+<div class="test_result result">
+    <div class="result_output result_output--expected">
+        <h2 class="result_output_header">Expected output</h2>
+        ${Expected}
+    </div>
+    <div class="result_output result_output--actual">
+        <h2 class="result_output_header">Actual output</h2>
+        ${Actual}
+        <pre class="result_output_error">${Error}</pre>
+        <p class="result_output_retcode">Return code: ${ReturnCode}</p>
+    </div>
+</div>
+
+</body>
+</html>

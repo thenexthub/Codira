@@ -1,0 +1,270 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+    - decl: |-
+          // no parameters
+          abstract class C {
+              static $_invoke(): number { return 42.0 }
+          }
+      use: |-
+          let x = C()
+          arktest.assertEQ(x, 42.0)
+
+    - decl: |-
+          // no parameters
+          class C {
+              static $_invoke(): number { return 42.0 }
+          }
+      use: |-
+          arktest.assertEQ(C.$_invoke(), 42.0)
+
+    - decl: |-
+          // no parameters, use type alias
+          type A = C
+          class C {
+              static $_invoke(): number { return 42.0 }
+          }
+      use: |-
+          let x = A()
+          arktest.assertEQ(x, 42.0)
+
+    - decl: |-
+          // no parameters, use type alias
+          type A = C
+          abstract class C {
+              static $_invoke(): number { return 42.0 }
+          }
+      use: |-
+          let x = A.$_invoke()
+          arktest.assertEQ(x, 42.0)
+
+    - decl: |-
+          // void return, implicit type
+          class C {
+              static res = 0
+              static $_invoke() { C.res = 1 }
+          }
+      use: |-
+          C.res = 0
+          C()
+          arktest.assertEQ(C.res, 1)
+
+    - decl: |-
+          // void return, explicit type
+          class C {
+              static res = 0
+              static $_invoke(): void { C.res = 1 }
+          }
+      use: |-
+          C.res = 0
+          C()
+          arktest.assertEQ(C.res, 1)
+
+    - decl: |-
+          // singleton
+          class C {
+              static instance: C|null|undefined = undefined
+              static $_invoke(): C {
+                  if (C.instance == undefined) {
+                      C.instance = new C()
+                  }
+                  return C.instance!
+              }
+          }
+      use: |-
+          arktest.assertEQ(C(), C())
+          arktest.assertEQ(C.$_invoke(), C.$_invoke())
+          arktest.assertEQ(C.$_invoke(), C())
+
+    - decl: |-
+          // with parameters
+          class Add {
+              static $_invoke(a: number, b: number): number { return a + b }
+          }
+          class Sub {
+              static $_invoke(a: number, b: number): number { return a - b }
+          }
+          class Mul {
+              static $_invoke(a: number, b: number): number { return a * b }
+          }
+          class Div {
+              static $_invoke(a: number, b: number): number { return a / b }
+          }
+      use: |-
+          let x = Div(Mul(Add(1.0, 2.0), 3.0), 2.0)
+          arktest.assertEQ(x, (1.0 + 2.0) * 3.0 / 2.0)
+          let y = Div.$_invoke(Mul.$_invoke(Add.$_invoke(1.0, 2.0), 3.0), 2.0)
+          arktest.assertEQ(y, x)
+
+    - decl: |-
+          // arbitrary number of parameters
+          class Sum {
+              static $_invoke(...numbers: number[]): number {
+                  let sum = 0.0
+                  for (let n of numbers) sum += n
+                  return sum
+              }
+          }
+      use: |-
+          arktest.assertEQ(Sum(), 0.0)
+          arktest.assertEQ(Sum(11.0), 11.0)
+          arktest.assertEQ(Sum(12, 13, 14, 15, 16, 17, 18, 19, -1, -2, -3), 118.0)
+
+          arktest.assertEQ(Sum.$_invoke(), 0.0)
+          arktest.assertEQ(Sum.$_invoke(11.0), 11.0)
+          arktest.assertEQ(Sum.$_invoke(12, 13, 14, 15, 16, 17, 18, 19, -1, -2, -3), 118.0)
+
+    - decl: |-
+          // shadowed invoke
+          class A<T> {
+              static $_invoke(): string { return 'A' }
+          }
+          class B<T> extends A<T> {
+              static $_invoke(): string { return 'B' }
+          }
+          class C<T> extends B<T> {
+              static $_invoke(): string { return 'C' }
+          }
+      use: |-
+          arktest.assertEQ(C(), 'C')
+          arktest.assertEQ(B(), 'B')
+          arktest.assertEQ(A(), 'A')
+
+    - decl: |-
+          // overloaded invoke
+          class B {
+              static $_invoke(n: number): number { return n + n }
+              static $_invoke(p: string): string { return p }
+          }
+          class C extends B {
+              static $_invoke(p: string): string { return p + p }
+              static $_invoke(p: string, q: boolean): string { return p + q }
+          }
+      use: |-
+          arktest.assertEQ(C(33.0), 66.0)
+          arktest.assertEQ(C('abc'), 'abcabc')
+          arktest.assertEQ(C('abc', false), 'abcfalse')
+
+          arktest.assertEQ(B(42.0), 84.0)
+          arktest.assertEQ(B('abc'), 'abc')
+
+    - decl: |-
+          // overloaded invoke
+          class B {
+              static $_invoke(n: number): number { return n + n }
+              static $_invoke(p: string): string { return p }
+          }
+          class C extends B {
+              static $_invoke(p: string): string { return p + p }
+              static $_invoke(p: string, q: boolean): string { return p + q }
+          }
+      use: |-
+          arktest.assertEQ(C(33.0), 66.0)
+          arktest.assertEQ(C('abc'), 'abcabc')
+          arktest.assertEQ(C('abc', false), 'abcfalse')
+
+          arktest.assertEQ(B(42.0), 84.0)
+          arktest.assertEQ(B('abc'), 'abc')
+
+    - decl: |-
+          // mix of static and instance invoke
+          class A {
+              static $_invoke(): string { return 'A' }
+          }
+          class B extends A {
+              $_invoke(): string { return 'B' }
+          }
+          class C extends B {
+              $_invoke(): string { return 'C' }
+          }
+      use: |-
+          arktest.assertEQ(C(), 'A')
+          arktest.assertEQ(B(), 'A')
+          arktest.assertEQ(A(), 'A')
+
+          arktest.assertEQ(new C().$_invoke(), 'C')
+          arktest.assertEQ(new B().$_invoke(), 'B')
+
+    - decl: |-
+          // mix of static and instance invoke
+          class B {
+              static $_invoke(): string { return 'B' }
+              $_invoke(): string { return 'b' }
+          }
+          class C extends B {
+              static $_invoke(): C { return new C() }
+          }
+      use: |-
+          arktest.assertEQ(C().$_invoke(), 'b')
+          arktest.assertEQ(B.$_invoke(), 'B')
+          arktest.assertEQ(new B().$_invoke(), 'b')
+
+    - decl: |-
+          // error propagation from invoke
+          class B {
+              static $_invoke(p: boolean): string {
+                  if (p) {
+                      throw new Error('invoke error')
+                  }
+                  return 'B'
+              }
+          }
+          class C extends B {
+              $_invoke(): C { return new C() }
+          }
+          function foo(p: boolean): string {
+              return C(p)
+          }
+      use: |-
+          let checkException = (e: Error): boolean => { return e instanceof Error }  
+          arktest.expectThrow(() => {
+              foo(true)
+          }, checkException)
+
+    - decl: |-
+          // call chain of invoke
+          class A<T> {
+              static $_invoke(): number { return 42.0 }
+          }
+          class B<T> {
+              static $_invoke() { return A() }
+          }
+          class C<T> {
+              static $_invoke() { return B() }
+          }
+      use: |-
+          arktest.assertEQ(C(), 42.0)
+
+    - decl: |-
+          // invoke calls another invoke
+          class C {
+              static $_invoke() { return C('abc') }
+              static $_invoke(p: string) { return p }
+          }
+      use: |-
+          arktest.assertEQ(C(), 'abc')
+
+    - decl: |-
+          // invoke returns array
+          class C {
+              static $_invoke(...numbers: number[]): number[] {
+                    return numbers
+              }
+          }
+      use: |-
+          arktest.assertEQ(C().length, 0)
+          arktest.assertEQ(C(1.0)[0], 1.0)
+          arktest.assertEQ(C(1.0, 2.0, 3.0)[2], 3.0)
+          arktest.assertEQ(C.$_invoke(1.0)[0], 1.0)
+          arktest.assertEQ(C.$_invoke(1.0, 2.0, 3.0)[1], 2.0)

@@ -1,0 +1,89 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+  - { src_type: byte, src_val: 0, dst_type: short, dst_val: 0 }
+  - { src_type: byte, src_val: 127, dst_type: short, dst_val: 127 }
+  - { src_type: byte, src_val: -128, dst_type: short, dst_val: -128 }
+  - { src_type: byte, src_val: 0, dst_type: int, dst_val: 0 }
+  - { src_type: byte, src_val: 127, dst_type: int, dst_val: 127 }
+  - { src_type: byte, src_val: -128, dst_type: int, dst_val: -128 }
+  - { src_type: byte, src_val: 0, dst_type: long, dst_val: 0 }
+  - { src_type: byte, src_val: 127, dst_type: long, dst_val: 127 }
+  - { src_type: byte, src_val: -128, dst_type: long, dst_val: -128 }
+  - { src_type: byte, src_val: 0, dst_type: float, dst_val: 0.0 }
+  - { src_type: byte, src_val: 127, dst_type: float, dst_val: 127.0 }
+  - { src_type: byte, src_val: -128, dst_type: float, dst_val: -128.0 }
+  - { src_type: byte, src_val: 0, dst_type: double, dst_val: 0.0 }
+  - { src_type: byte, src_val: 127, dst_type: double, dst_val: 127.0 }
+  - { src_type: byte, src_val: -128, dst_type: double, dst_val: -128.0 }
+
+  - { src_type: char, src_val: Int.toChar(0), src_to_dst: "Char.toInt(src)", dst_type: int, dst_val: 0 }
+  - { src_type: char, src_val: "c'\\uFFFF'", src_to_dst: "Char.toInt(src)", dst_type: int, dst_val: 0x0000FFFF }
+  - { src_type: char, src_val: Int.toChar(0), src_to_dst: "Char.toLong(src)", dst_type: long, dst_val: 0 }
+  - { src_type: char, src_val: "c'\\uFFFF'", src_to_dst: "Char.toLong(src)", dst_type: long, dst_val: 0x000000000000FFFF }
+  - { src_type: char, src_val: Int.toChar(0), src_to_dst: "Char.toFloat(src)", dst_type: float, dst_val: 0.0 }
+  - { src_type: char, src_val: "c'\\uFFFF'", src_to_dst: "Char.toFloat(src)", dst_type: float, dst_val: 65535.0 }
+  - { src_type: char, src_val: Int.toChar(0), src_to_dst: "Char.toDouble(src)", dst_type: double, dst_val: 0.0 }
+  - { src_type: char, src_val: "c'\\uFFFF'", src_to_dst: "Char.toDouble(src)", dst_type: double, dst_val: 65535.0 }
+
+  - { src_type: short, src_val: 0, dst_type: int, dst_val: 0 }
+  - { src_type: short, src_val: 32_767, dst_type: int, dst_val: 32_767 }
+  - { src_type: short, src_val: -32_768, dst_type: int, dst_val: -32_768 }
+  - { src_type: short, src_val: 0, dst_type: long, dst_val: 0 }
+  - { src_type: short, src_val: 32_767, dst_type: long, dst_val: 32_767 }
+  - { src_type: short, src_val: -32_768, dst_type: long, dst_val: -32_768 }
+  - { src_type: short, src_val: 0, dst_type: float, dst_val: 0.0 }
+  - { src_type: short, src_val: 32_767, dst_type: float, dst_val: 32_767.0 }
+  - { src_type: short, src_val: -32_768, dst_type: float, dst_val: -32_768.0 }
+  - { src_type: short, src_val: 0, dst_type: double, dst_val: 0.0 }
+  - { src_type: short, src_val: 32_767, dst_type: double, dst_val: 32_767.0 }
+  - { src_type: short, src_val: -32_768, dst_type: double, dst_val: -32_768.0 }
+
+  - { src_type: int, src_val: 0, dst_type: long, dst_val: 0 }
+  - { src_type: int, src_val: 2147483647, dst_type: long, dst_val: 2147483647 }
+  - { src_type: int, src_val: -2147483648, dst_type: long, dst_val: -2147483648 }
+  - { src_type: int, src_val: 0, dst_type: float, dst_val: 0.0 }
+  - { src_type: int, src_val: 2147483647, dst_type: float, dst_val: 2.147483648e9 }
+  - { src_type: int, src_val: -2147483648, dst_type: float, dst_val: -2.147483648e9 }
+  - { src_type: int, src_val: 0, dst_type: double, dst_val: 0.0 }
+  - { src_type: int, src_val: 2147483647, dst_type: double, dst_val: 2.147483647e9 }
+  - { src_type: int, src_val: -2147483648, dst_type: double, dst_val: -2.147483648e9 }
+
+  - { src_type: long, src_val: 0, dst_type: float, dst_val: 0.0 }
+  - { src_type: long, src_val: 9223372036854775807, dst_type: float, dst_val: 9.223372036854776e18 }
+  - { src_type: long, src_val: -9223372036854775808, dst_type: float, dst_val: -9.223372036854776e18 }
+  - { src_type: long, src_val: 0, dst_type: double, dst_val: 0.0 }
+  - { src_type: long, src_val: 9223372036854775807, dst_type: double, dst_val: 9.223372036854776e18 }
+  - { src_type: long, src_val: -9223372036854775808, dst_type: double, dst_val: -9.223372036854776e18 }
+
+  - { src_type: float, src_val: -0.0f, dst_type: double, dst_val: -0.0 }
+  - { src_type: float, src_val: +0.0f, dst_type: double, dst_val: +0.0 }
+    # +max
+  - { src_type: float, src_val: 3.4028234663852886e38f, dst_type: double, dst_val: 3.4028234663852886e38 }
+    # +min
+  - { src_type: float, src_val: 1.401298464324817e-45f, dst_type: double, dst_val: 1.401298464324817e-45 }
+    # -max
+  - { src_type: float, src_val: -3.4028234663852886e38f, dst_type: double, dst_val: -3.4028234663852886e38 }
+    # -min
+  - { src_type: float, src_val: -Float.MIN_VALUE, dst_type: double, dst_val: -1.401298464324817e-45 }

@@ -1,0 +1,37 @@
+' Copyright (c) 2021-2024 Huawei Device Co., Ltd.
+' Licensed under the Apache License, Version 2.0 (the "License");
+' you may not use this file except in compliance with the License.
+' You may obtain a copy of the License at
+'
+' http://www.apache.org/licenses/LICENSE-2.0
+'
+' Unless required by applicable law or agreed to in writing, software
+' distributed under the License is distributed on an "AS IS" BASIS,
+' WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+' See the License for the specific language governing permissions and
+' limitations under the License.
+
+@startuml
+skinparam monochrome true
+title G1: garbage collection flow
+:Process not processed cards from CardTable to fill RemSets;
+:Add all Eden regions to the Collection Set;
+if (Mixed) then(Yes)
+    :Select and add some old regions to the Collection Set
+     We can use these metrics for selection:
+     - last time when this region participated in GC or when it was created
+     - number of GCs it survived
+     - occupied space;
+endif
+:Collect Roots for regions in the Collection Set:
+Roots from stack
+Class roots, string roots etc
+__Heap roots collected via RemSets__;
+:Mark objects by traversing object stack obtained from the roots;
+:Compact: copy marked/alive objects to the old regions(create new if required)
+Note: only if occupied by alive objects space in region < some threshold;
+:Update references to the moved objects;
+:Update RemSets(remove freed regions from RemSets, mark cards with moved objects as "dirty");
+:Return freed regions to region space;
+stop
+@enduml

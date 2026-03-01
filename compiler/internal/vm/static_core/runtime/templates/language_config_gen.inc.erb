@@ -1,0 +1,75 @@
+/*
+ * Copyright (c) 2021-2024 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+% Common::plugins.each do |plugin_lang, plugin_opts|
+% next unless plugin_opts["language_config"]
+class <%= plugin_lang.capitalize %>LanguageConfig {
+public:
+    static constexpr panda_file::SourceLang LANG = <%= plugin_opts["lang_enum"] %>;
+    static constexpr LangTypeT LANG_TYPE = LANG_TYPE_<%= plugin_opts["language_config"]["lang_type"].upcase %>;
+    static constexpr MTModeT MT_MODE = MT_MODE_<%= plugin_opts["language_config"]["mt_mode"].upcase %>;
+    static constexpr bool HAS_VALUE_OBJECT_TYPES = <%= plugin_opts["language_config"]["has_value_object_types"].downcase %>;
+};
+
+% end
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define TEMPLATE_CLASS_LANGUAGE_CONFIG(x)  \
+% Common::plugins.each do |plugin_lang, plugin_opts|
+% next unless plugin_opts["language_config"]
+    template class x< <%= plugin_lang.capitalize %>LanguageConfig >; \
+% end
+    template class x< PandaAssemblyLanguageConfig >
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define TEMPLATE_CLASS_LANGUAGE_CONFIG_AND_ARGS(x, ...)  \
+% Common::plugins.each do |plugin_lang, plugin_opts|
+% next unless plugin_opts["language_config"]
+    template class x< <%= plugin_lang.capitalize %>LanguageConfig , __VA_ARGS__ >; \
+% end
+    template class x< PandaAssemblyLanguageConfig, __VA_ARGS__ >
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define TEMPLATE_GC_CREATE_GC()  \
+% Common::plugins.each do |plugin_lang, plugin_opts|
+% next unless plugin_opts["language_config"]
+    template GC *CreateGC< <%= plugin_lang.capitalize %>LanguageConfig >(GCType gc_type, ObjectAllocatorBase *object_allocator, const GCSettings &settings);  \
+% end
+    template GC *CreateGC< PandaAssemblyLanguageConfig >(GCType gc_type, ObjectAllocatorBase *object_allocator, const GCSettings &settings)
+
+#ifndef NDEBUG
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define TEMPLATE_GC_IS_MUTATOR_ALLOWED() \
+% Common::plugins.each do |plugin_lang, plugin_opts|
+% next unless plugin_opts["language_config"]
+template<> bool GCLang<<%= plugin_lang.capitalize %>LanguageConfig>::IsMutatorAllowed() \
+{ \
+    return !IsGCRunning() || PandaVM::GetCurrent()->GetMutatorLock()->HasLock(); \
+} \
+% end
+template<> bool GCLang<PandaAssemblyLanguageConfig>::IsMutatorAllowed() \
+{ \
+    return !IsGCRunning() || PandaVM::GetCurrent()->GetMutatorLock()->HasLock(); \
+}
+#else
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define TEMPLATE_GC_IS_MUTATOR_ALLOWED() \
+template <class LanguageConfig> \
+bool GCLang<LanguageConfig>::IsMutatorAllowed() \
+{ \
+    return false; \
+}
+#endif
+

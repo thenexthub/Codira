@@ -1,0 +1,221 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # readonly array
+    - expected_out: |-
+          Semantic error ESE0318: Type 'ReadonlyArray<null|T>' cannot be assigned to type 'Array<null|T>'
+      decl: |-
+          class A<T> {
+              fld: (null|T)[]
+              constructor(p: readonly (null|T)[]) {
+                  this.fld = p // CTE: cannot assign readonly array to read-write array
+              }
+          }
+
+    - expected_out: |-
+          Semantic error ESE0058: Cannot modify an array or tuple content that has the readonly parameter
+      decl: |-
+          class A<T, U> {
+              fld: ReadonlyArray<T|U|null>
+              constructor(p: readonly (T|U|null)[]) {
+                  this.fld = p
+                  p[0] = null // CTE: cannot change an element of readonly array
+              }
+          }
+
+    - expected_out: |-
+          Semantic error ESE0058: Cannot modify an array or tuple content that has the readonly parameter
+      decl: |-
+          class A<T> {
+              fld: ReadonlyArray<T|null>
+              constructor(p: readonly (null|T)[]) {
+                  this.fld = p
+                  this.fld[0] = null // CTE: cannot change an element of ReadonlyArray
+              }
+          }
+
+    # readonly tuple
+    - expected_out: |-
+          Semantic error ESE0318: Type 'readonly [T, U]' cannot be assigned to type '[T, U]'
+      decl: |-
+          class A<T, U> {
+              fld: [T, U]
+              constructor(p: readonly [T, U]) {
+                  this.fld = p // CTE: cannot assign readonly tuple to read-write tuple
+              }
+          }
+
+    - expected_out: |-
+          Semantic error ESE0058: Cannot modify an array or tuple content that has the readonly parameter
+      decl: |-
+          class A<T extends string[], U> {
+              fld: readonly [T, U]
+              constructor(p: readonly [T, U]) {
+                  this.fld = p
+                  p[0] = ['x', 'y']  // CTE: cannot change an element of readonly tuple
+              }
+          }
+
+    - expected_out: |-
+          Semantic error ESE0058: Cannot modify an array or tuple content that has the readonly parameter
+      decl: |-
+          class A<T extends string, U> {
+              fld: readonly [FixedArray<T>, (p: T) => Array<T>]
+              constructor(p: readonly [FixedArray<T>, (p: T) => Array<T>]) {
+                  this.fld = p
+                  this.fld[0] = ['x', 'y']  // CTE: cannot change an element of readonly tuple
+              }
+          }
+
+    # optional parameters
+    - expected_out: |-
+          Syntax error ESY0219: A required parameter cannot follow an optional parameter.
+          Syntax error ESY0014: Required parameter follows default parameter(s).
+      decl: |-
+          class A<T, U, V> {
+              fld: Array<T|U|V|undefined>
+              constructor(b?: T, s: U, i?: V) { // CTE: required parameter after optional
+                  this.fld = [b, s, i]
+              }
+          }
+
+    # optional parameters with default value
+    - expected_out: |-
+          Syntax error ESY0219: A required parameter cannot follow an optional parameter.
+          Syntax error ESY0014: Required parameter follows default parameter(s).
+      decl: |-
+          enum Color { Red, Green, Blue }
+          class A<T> {
+              p: Color
+              q: T
+              constructor(p: Color = Color.Green, q: T) { // CTE: required parameter after optional
+                  this.p = p
+                  this.q = q
+              }
+          }
+
+    # rest parameter with [] array
+    - expected_out: |-
+          Semantic error ESE0058: Cannot modify an array or tuple content that has the readonly parameter
+      decl: |-
+          class A<T extends Object> {
+              fld: readonly T[][]
+              constructor(...p: readonly T[][]) {
+                  this.fld = p
+                  p[0] = [new Object] // CTE: cannot update readonly array
+              }
+          }
+
+    # rest parameter with Array<T> array
+    - expected_out: |-
+          Semantic error ESE0058: Cannot modify an array or tuple content that has the readonly parameter
+      decl: |-
+          class A<T> {
+              fld: ReadonlyArray<ReadonlyArray<T|null>>
+              constructor(...p: readonly Array<Array<T|null>>) {
+                  this.fld = p
+                  p[0] = [null] // CTE: cannot update readonly array
+              }
+          }
+
+    # rest parameter with tuple
+    - expected_out: |-
+          Semantic error ESE0127: No matching construct signature for cons_parameters_gen_n_10.A("abc", "def")
+      decl: |-
+          class A<T, U> {
+              fld: [T, T, U]
+              constructor(...p: [T, T, U]) {
+                  this.fld = p
+              }
+          }
+      use: |-
+          let a = new A<string, number>('abc', 'def') // CTE: not enough arguments
+
+    - expected_out: |-
+          Semantic error ESE0127: No matching construct signature for cons_parameters_gen_n_11.A("abc", "def", Double, Double)
+      decl: |-
+          class A<T, U> {
+              fld: [T, T, U]
+              constructor(...p: [T, T, U]) {
+                  this.fld = p
+              }
+          }
+      use: |-
+          let a = new A<string, number>('abc', 'def', 1.0, 2.0) // CTE: too many arguments
+
+    - expected_out: |-
+          Semantic error ESE0127: No matching construct signature for cons_parameters_gen_n_12.A(Boolean, "abc", Double)
+      decl: |-
+          class A<T, U> {
+              fld: [T, T, U]
+              constructor(...p: [T, T, U]) {
+                  this.fld = p
+              }
+          }
+      use: |-
+          let a = new A<string, number>(true, 'abc', 2.0) // CTE: wrong argument type
+
+    - expected_out: |-
+          Semantic error ESE0058: Cannot modify an array or tuple content that has the readonly parameter
+      decl: |-
+          class A<T, V, W> {
+              fld: readonly [T|undefined, V|W]
+              constructor(...p: readonly [T|undefined, V|W]) {
+                  this.fld = p
+                  p[0] = undefined // CTE: cannot update readonly tuple
+              }
+          }
+
+    # [] spread to rest
+    - expected_out: |-
+          Semantic error ESE0127: No matching construct signature for cons_parameters_gen_n_14.A(Double)
+          Semantic error ESE0323: Type 'Double' is not compatible with rest parameter type 'String' at index 1
+      decl: |-
+          class A<T> {
+              p: T[]
+              constructor(...obj: T[]) {
+                  this.p = obj
+              }
+          }
+          let arr: number[] = [0.0, 1.0, 2.0]
+      use: |-
+          let a = new A<string>(...arr) // CTE: wrong type array
+
+    # tuple spread to rest
+    - expected_out: |-
+          Semantic error ESE0127: No matching construct signature for cons_parameters_gen_n_15.A(Boolean, [String, Double|undefined])
+      decl: |-
+          class A<T, U, V> {
+              tup: readonly [T, U, V|undefined]
+              constructor(...tup: [T, U, V|undefined]) {
+                  this.tup = tup
+              }
+          }
+          let tup: [string, number|undefined] = [ 'abc', undefined ]
+      use: |-
+          let a = new A<boolean, string, number>(true, ...tup) // CTE: spread argument must correspond to rest parameter
+
+    - expected_out: |-
+          Semantic error ESE0127: No matching construct signature for cons_parameters_gen_n_16.A([String, Double|undefined])
+      decl: |-
+          class A<T, U, V> {
+              tup: readonly [T, U, V|undefined]
+              constructor(...tup: [T, U, V|undefined]) {
+                  this.tup = tup
+              }
+          }
+          let tup: [string, number|undefined] = [ 'abc', undefined ]
+      use: |-
+          let a = new A<boolean, string, number>(...tup) // CTE: wrong number of arguments

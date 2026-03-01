@@ -1,0 +1,259 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+cases:
+  - desc: |-
+      >-
+        Checking that intersection type I (defined as I1 & I2)
+        is a subtype of type Object if Ii is a subtype of Object for some i
+        in case of usage instanceof on predefined types
+    check_variants:
+      - check_data:
+          check_type_I1: "int | bigint | boolean | string"
+          check_type_I2: "string | char | bigint | float"
+        check_values_groups:
+          - check_values_group_data:
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "\"abc\"",
+                check_value_from_I1_diff_I2: "true",
+                check_value_from_I2_diff_I1: "c'a'" }
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "5n",
+                check_value_from_I1_diff_I2: "123",
+                check_value_from_I2_diff_I1: "7.8f" }
+      - check_data:
+          check_type_I1: "bigint | int"
+          check_type_I2: "int | string"
+        check_values_groups:
+          - check_values_group_data:
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "123",
+                check_value_from_I1_diff_I2: "5n",
+                check_value_from_I2_diff_I1: "\"abc\"" }
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "567",
+                check_value_from_I1_diff_I2: "723n",
+                check_value_from_I2_diff_I1: "\"efg\"" }
+      - check_data:
+          check_type_I1: "bigint | long"
+          check_type_I2: "long | string"
+        check_values_groups:
+          - check_values_group_data:
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "123 as long",
+                check_value_from_I1_diff_I2: "5n",
+                check_value_from_I2_diff_I1: "\"abc\"" }
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "567 as long",
+                check_value_from_I1_diff_I2: "723n",
+                check_value_from_I2_diff_I1: "\"efg\"" }
+      - check_data:
+          check_type_I1: "bigint | byte"
+          check_type_I2: "byte | string"
+        check_values_groups:
+          - check_values_group_data:
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "5 as byte",
+                check_value_from_I1_diff_I2: "5n",
+                check_value_from_I2_diff_I1: "\"abc\"" }
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "7 as byte",
+                check_value_from_I1_diff_I2: "723n",
+                check_value_from_I2_diff_I1: "\"efg\"" }
+      - check_data:
+          check_type_I1: "bigint | short"
+          check_type_I2: "short | string"
+        check_values_groups:
+          - check_values_group_data:
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "17 as short",
+                check_value_from_I1_diff_I2: "5n",
+                check_value_from_I2_diff_I1: "\"abc\"" }
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "128 as short",
+                check_value_from_I1_diff_I2: "723n",
+                check_value_from_I2_diff_I1: "\"efg\"" }
+      - check_data:
+          check_type_I1: "bigint | double"
+          check_type_I2: "double | string"
+        check_values_groups:
+          - check_values_group_data:
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "1.7",
+                check_value_from_I1_diff_I2: "5n",
+                check_value_from_I2_diff_I1: "\"abc\"" }
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "12.8",
+                check_value_from_I1_diff_I2: "723n",
+                check_value_from_I2_diff_I1: "\"efg\"" }
+      - check_data:
+          check_type_I1: "bigint | number"
+          check_type_I2: "number | string"
+        check_values_groups:
+          - check_values_group_data:
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "1.7",
+                check_value_from_I1_diff_I2: "5n",
+                check_value_from_I2_diff_I1: "\"abc\"" }
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "12.8",
+                check_value_from_I1_diff_I2: "723n",
+                check_value_from_I2_diff_I1: "\"efg\"" }
+      - check_data:
+          check_type_I1: "bigint | float"
+          check_type_I2: "float | string"
+        check_values_groups:
+          - check_values_group_data:
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "1.7f",
+                check_value_from_I1_diff_I2: "5n",
+                check_value_from_I2_diff_I1: "\"abc\"" }
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "12.8f",
+                check_value_from_I1_diff_I2: "723n",
+                check_value_from_I2_diff_I1: "\"efg\"" }
+      - check_data:
+          check_type_I1: "float | bigint"
+          check_type_I2: "bigint | string"
+        check_values_groups:
+          - check_values_group_data:
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "5n",
+                check_value_from_I1_diff_I2: "1.7f",
+                check_value_from_I2_diff_I1: "\"abc\"" }
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "723n",
+                check_value_from_I1_diff_I2: "12.8f",
+                check_value_from_I2_diff_I1: "\"efg\"" }
+      - check_data:
+          check_type_I1: "float | string"
+          check_type_I2: "string | bigint"
+        check_values_groups:
+          - check_values_group_data:
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "\"abc\"",
+                check_value_from_I1_diff_I2: "1.7f",
+                check_value_from_I2_diff_I1: "5n" }
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "\"efg\"",
+                check_value_from_I1_diff_I2: "12.8f",
+                check_value_from_I2_diff_I1: "7n" }
+      - check_data:
+          check_type_I1: "float | char"
+          check_type_I2: "char | bigint"
+        check_values_groups:
+          - check_values_group_data:
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "c'a'",
+                check_value_from_I1_diff_I2: "1.7f",
+                check_value_from_I2_diff_I1: "5n" }
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "c'b'",
+                check_value_from_I1_diff_I2: "12.8f",
+                check_value_from_I2_diff_I1: "7n" }
+      - check_data:
+          check_type_I1: "number | boolean"
+          check_type_I2: "boolean | string"
+        check_values_groups:
+          - check_values_group_data:
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "true",
+                check_value_from_I1_diff_I2: "7.8",
+                check_value_from_I2_diff_I1: "\"abc\"" }
+            - { check_type_T: "Object",
+                check_value_from_I1_inter_I2: "false",
+                check_value_from_I1_diff_I2: "7.8",
+                check_value_from_I2_diff_I1: "\"abc\"" }
+    decl_variants:
+      - |-
+        function check_value(v: Any, v_id: int): void {
+          if (v_id == 1) {
+            arktest.assertEQ(v as [check_type_I1],
+              [check_value_from_I1_inter_I2])
+            arktest.assertEQ(v as [check_type_I2],
+              [check_value_from_I1_inter_I2])
+          }
+          else if (v_id == 2) {
+            arktest.assertEQ(v as [check_type_I1],
+              [check_value_from_I1_diff_I2])
+          }
+          else {
+            arktest.assertEQ(v as [check_type_I2],
+              [check_value_from_I2_diff_I1])
+          }
+        }
+        function check_value_as_type_T(v: [check_type_T], v_id: int): void {
+          arktest.assertTrue(v instanceof [check_type_I1] ||
+            v instanceof [check_type_I2])
+          check_value(v, v_id)
+        }
+        function check_is_in_T_type(v: [check_type_I1] | [check_type_I2],
+                                    v_id: int): boolean {
+          check_value(v, v_id)
+          if (v instanceof [check_type_I1]) {
+            check_value(v, v_id)
+            if (v instanceof [check_type_I2]) {
+              arktest.assertEQ(v_id, 1)
+              check_value(v, v_id)
+              arktest.assertEQ(v, [check_value_from_I1_inter_I2])
+              arktest.assertTrue(v instanceof [check_type_I1])
+              arktest.assertTrue(v instanceof [check_type_T])
+              if (v instanceof [check_type_T]) {
+                check_value_as_type_T(v, v_id)
+                return true
+              } else {
+                return false
+              }
+            }
+            else {
+              arktest.assertEQ(v_id, 2)
+              check_value(v, v_id)
+              arktest.assertEQ(v, [check_value_from_I1_diff_I2])
+              if (v instanceof [check_type_T]) {
+                check_value_as_type_T(v, v_id)
+                return true
+              } else {
+                return false
+              }
+            }
+          }
+          else {
+            arktest.assertEQ(v_id, 3)
+            check_value(v, v_id)
+            arktest.assertEQ(v, [check_value_from_I2_diff_I1])
+            if (v instanceof [check_type_T]) {
+              check_value_as_type_T(v, v_id)
+              return true
+            } else {
+              return false
+            }
+          }
+        }
+    sub_cases_logic:
+      - |-
+        let res1: boolean = check_is_in_T_type(
+          [check_value_from_I1_inter_I2], 1)
+        let res2: boolean = check_is_in_T_type(
+          [check_value_from_I1_diff_I2], 2)
+        let res3: boolean = check_is_in_T_type(
+          [check_value_from_I2_diff_I1], 3)
+        arktest.assertTrue(res1 && (res2 || res3))

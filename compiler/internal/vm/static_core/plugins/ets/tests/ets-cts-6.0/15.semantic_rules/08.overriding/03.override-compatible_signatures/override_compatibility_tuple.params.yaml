@@ -1,0 +1,237 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # TUPLE, PARAMETER
+    - base: |-
+          foo(i: TPL_BB) {
+              res = 1
+          }
+          foo2(i: TPL_BD) {
+              res = 2
+          }
+          foo3(i: TPL_DD) {
+              res = 3
+          }
+      derived: |-
+          override foo(i: TPL_BB) {
+              res = 4
+          }
+          foo2(i: TPL_BD) { // override assumed
+              res = 5
+          }
+          override foo3(i: TPL_DD) {
+              res = 6
+          }
+      call: |-
+          new Derived().foo(bb)
+          arktest.assertEQ(res, 4)
+          new Derived().foo2(bd)
+          arktest.assertEQ(res, 5)
+          new Derived().foo3(dd)
+          arktest.assertEQ(res, 6)
+      params: override-compatible with same parameter
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(i: TPL_OB) {
+              res = 1
+          }
+      derived: |-
+          override foo(i: TPL_BD) {
+              res = 2
+          }
+      params: overload-incompatible parameter
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(i: TPL_OB) {
+              res = 1
+          }
+      derived: |-
+          foo(i: TPL_BD) { // override assumed
+              res = 2
+          }
+      params: overload-incompatible parameter
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(i: TPL_DO) {
+              res = 1
+          }
+      derived: |-
+          override foo(i: TPL_DD) {
+              res = 2
+          }
+      params: overload-incompatible parameter
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(i: TPL_DO) {
+              res = 1
+          }
+      derived: |-
+          foo(i: TPL_DD) { // override assumed
+              res = 2
+          }
+      params: overload-incompatible parameter
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(i: TPL_OOO) {
+              res = 1
+          }
+      derived: |-
+          override foo(i: TPL_BBB) {
+              res = 2
+          }
+      params: overload-compatible parameter
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(i: TPL_OO) {
+              res = 1
+          }
+      derived: |-
+          foo(i: TPL_DD) {
+              res = 2
+          }
+      params: overload-incompatible parameter
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(i: TPL_BD) {
+              res = 1
+          }
+      derived: |-
+          override oo(i: TPL_BB) {
+              res = 2
+          }
+      params: overload-incompatible parameter
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(i: TPL_BB) {
+              res = 1
+          }
+      derived: |-
+          override foo(i: TPL_DD) {
+              res = 2
+          }
+      params: override-incompatible parameter
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(i: TPL_DD) {
+              res = 1
+          }
+      derived: |-
+          override foo(i: TPL_BB) {
+              res = 2
+          }
+      params: override-incompatible parameter
+
+    # TUPLE, RETURN TYPE
+    - base: |-
+          foo(): TPL_BB {
+              res = 1
+              return bb
+          }
+      derived: |-
+          foo(): TPL_BB {
+              res = 2
+              return bb
+          }
+      call: |-
+          new Derived().foo()
+          arktest.assertEQ(res, 2)
+      params: override-compatible with same return type
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(): TPL_BD {
+              res = 1
+              return bd
+          }
+      derived: |-
+          override foo(): TPL_BB {
+              res = 2
+              return bb
+          }
+      params: override-incompatible return type
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(): TPL_BD {
+              res = 1
+              return bd
+          }
+      derived: |-
+          foo(): TPL_BB {
+              res = 2
+              return bb
+          }
+      params: override-incompatible return type
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(): TPL_OB {
+              res = 1
+              return ob
+          }
+      derived: |-
+          override foo(): TPL_BD {
+              res = 2
+              return bd
+          }
+      params: override-incompatible return type
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(): TPL_OB {
+              res = 1
+              return ob
+          }
+      derived: |-
+          foo(): TPL_BD {
+              res = 2
+              return bd
+          }
+      params: override-incompatible return type
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(): TPL_BB {
+              res = 1
+              return bb
+          }
+      derived: |-
+          override foo(): TPL_OD {
+              res = 2
+              return od
+          }
+      params: override-incompatible return type
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(): TPL_BB {
+              res = 1
+              return bb
+          }
+      derived: |-
+          foo(): TPL_OD {
+              res = 2
+              return od
+          }
+      params: override-incompatible return type

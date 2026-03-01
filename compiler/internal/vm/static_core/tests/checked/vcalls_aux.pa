@@ -1,0 +1,73 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+#
+# This is an auxiliary class that is loaded at runtime for Unresolved tests
+#
+#
+
+.record panda.Object <external>
+.function void panda.Object._init_(panda.Object a0) <ctor, external>
+
+.record C {
+    panda.Object a <static>
+    i32 b
+    u32 c <static>
+}
+
+.function i32 C.foo() <static> {
+    ldai 0xc
+    return
+}
+
+.function i32 C.bar(C a0) {
+    ldai 0x30
+    return
+}
+
+.function i32 C.call_but_inline(C a0) {
+    call.short C.bar, a0
+    return
+}
+
+.function i32 C.bar__noinline__(C a0) {
+    ldai 0x30
+    return
+}
+
+.function i32 C.call(C a0) {
+    call.short C.bar__noinline__, a0
+    return
+}
+
+.function void C._clinit_() <cctor> {
+    ldai 87
+    ststatic C.c
+    return.void
+}
+
+.function void C._init_(C a0) <ctor> {
+    call.short panda.Object._init_, a0
+    mov.obj v0, a0
+    ldai 0x49
+    stobj a0, C.b
+    return.void
+}

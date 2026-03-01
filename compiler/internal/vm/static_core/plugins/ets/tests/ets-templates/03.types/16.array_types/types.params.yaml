@@ -1,0 +1,57 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # value types
+    - { type: 'FixedArray<byte>', vals: '[3, 2, 1]', val: '0x7f', assert: 'arr[0] == Byte.MAX_VALUE' }
+    - { type: 'FixedArray<short>', vals: '[3, 2, 1]', val: '0x7fff', assert: 'arr[0] == Short.MAX_VALUE' }
+    - { type: 'int[]', vals: '[3, 2, 1]', val: '0x7fffffff', assert: 'arr[0] == Int.MAX_VALUE' }
+    - { type: 'long[]', vals: '[3, 2, 1]', val: '0x7fffffffffffffff', assert: 'arr[0] == Long.MAX_VALUE' }
+    - { type: 'FixedArray<float>', vals: '[3, 2, 1]', val: 1.5f, assert: 'arr[0] == 1.5f' }
+    - { type: 'double[]', vals: '[3, 1, 2]', val: -1.5, assert: 'arr[0] == -1.5' }
+    - { type: 'char[]', vals: "[c'A', c'B', c'C']", val: c'Z', assert: "arr[0] == c'Z'" }
+    - { type: 'boolean[]', vals: '[true, false, true]', val: 'false', assert: 'arr[0] == false' }
+    - decl: |-
+        enum Color { Red, Green, Blue }
+      type: 'Color[]'
+      vals: '[Color.Red, Color.Green, Color.Blue]'
+      val: Color.Green
+      assert: 'arr[0] == Color.Green'
+
+    # reference types
+    - { type: 'Byte[]', vals: '[new Byte(127), new Byte(2), new Byte(1)]', val: new Byte(42), assert: 'arr[0] == 42' }
+    - { type: 'Error[]', vals: '[new Error("A"), new Error("B"), new Error("C")]', val: new Error("D"), assert: 'arr[0].message == "D"' }
+
+    # type aliases
+    - decl: |-
+        type A = Object|undefined
+      type: A[]
+      vals: 'new A[2]'
+      val: 'new Boolean(true)'
+      assert: 'arr[0] instanceof Boolean && (arr[0] as Boolean)'
+
+    - decl: |-
+        type A = (Object|null)[]
+      type: A
+      vals: '[null, null]'
+      val: 'new Error("X")'
+      assert: 'arr[0] instanceof Error && (arr[0] as Error).message == "X"'
+
+    - decl: |-
+        type A = int[]
+        type B = A[]
+      type: B
+      vals: '[[1, 2], [3, 4]]'
+      val: '[5, 6]'
+      assert: 'arr[0][0] + arr[0][1] == 11'

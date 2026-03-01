@@ -1,0 +1,57 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of string concatenation expression tests
+cases:
+  - desc: Multi string concats.
+    logic: |-
+      arktest.assertEQ("str1 " + "str2 " + "str3", "str1 str2 str3");
+  - desc: String concats with 2 numbers.
+    logic: |-
+      arktest.assertEQ("str" + 2 + 3, "str23");
+  - desc: Sum concats with string .
+    logic: |-
+      arktest.assertEQ(2 + 3 + "str", "5str");
+  - desc: Two numbers concat with string .
+    logic: |-
+      arktest.assertEQ(2 + (3 + "str"), "23str");
+  - desc: String concats brackets in the left part of expression.
+    logic: |-
+      arktest.assertEQ(("str1 " + "str2 ") + "str3", "str1 str2 str3");
+  - desc: String concats brackets in the right part of expression.
+    logic: |-
+      arktest.assertEQ("str1 " + ("str2 " + "str3"), "str1 str2 str3");
+  - desc: String concats brackets in 2 parts of expression.
+    logic: |-
+      arktest.assertEQ(("str1 " + "str2 ") + ("str3 " + "str4"), "str1 str2 str3 str4");
+  - desc: String concats nested brackets expression.
+    logic: |-
+      arktest.assertEQ("str1 " + (("str2 " + "str3 ") + "str4"), "str1 str2 str3 str4");
+  - desc: String concats with sum.
+    logic: |-
+      arktest.assertEQ("str" + (2 + 3), "str5");
+  - desc: String concats with subtraction.
+    logic: |-
+      arktest.assertEQ("str" + (3 - 2), "str1");
+  - desc: String concats with multiplication.
+    logic: |-
+      arktest.assertEQ("str" + 2 * 3, "str6");
+  - desc: String concats with division.
+    logic: |-
+      arktest.assertEQ("str" + 6 / 3, "str2");
+  - desc: String concats with string comparison.
+    logic: |-
+      arktest.assertEQ("str " + ("str1" == "str1") , "str true");
+  - desc: String comparison concats with string.
+    logic: |-
+      arktest.assertEQ(("str1" === "str2") + " str", "false str");

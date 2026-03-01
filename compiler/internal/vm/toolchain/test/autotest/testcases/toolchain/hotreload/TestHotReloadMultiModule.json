@@ -1,0 +1,15 @@
+{
+  "description": "Config for TestHotReloadMultiModule",
+  "environment": [
+    {
+      "type": "device",
+      "label": "phone"
+    }
+  ],
+  "driver": {
+    "type": "DeviceTest",
+    "py_file": [
+      "toolchain/hotreload/TestHotReloadMultiModule.py"
+    ]
+  }
+}

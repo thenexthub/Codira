@@ -1,0 +1,175 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    # assignment, contravariance in arguments, union type argument
+    - decl: |-
+          // contravariance in arguments
+          let sub1: (p: B|A) => Any = (p: B|A): Any => 1
+          let sub2: (p: B|string|number) => Any = (p: B|string|number): Any => 2
+          let sub3: (p: A|boolean|null|undefined) => Any = (p: A|boolean|null|undefined): Any => 3
+      use: |-
+          let superFoo: (p: B) => Any = (p: B): Any => 0
+          arktest.assertEQ(superFoo(new B), 0)
+          superFoo = sub1
+          arktest.assertEQ(superFoo(new B), 1)
+          superFoo = sub2
+          arktest.assertEQ(superFoo(new B), 2)
+          superFoo = sub3
+          arktest.assertEQ(superFoo(new B), 3)
+
+    - decl: |-
+          let superFoo: (p: B) => Any = (p: B): Any => 0
+
+          // contravariance in arguments
+          let sub1: (p: B|A) => Any = (p: B|A): Any => 1
+      use: |-
+          sub1 = superFoo
+      tags: 'compile-only, negative'
+
+    - decl: |-
+          let superFoo: (p: B) => Any = (p: B): Any => 0
+
+          // contravariance in arguments
+          let sub2: (p: B|string|number) => Any = (p: B|string|number): Any => 2
+      use: |-
+          sub2 = superFoo
+      tags: 'compile-only, negative'
+
+    - decl: |-
+          let superFoo: (p: B) => Any = (p: B): Any => 0
+
+          // contravariance in arguments
+          let sub3: (p: A|boolean|null|undefined) => Any = (p: A|boolean|null|undefined): Any => 3
+      use: |-
+          sub3 = superFoo
+      tags: 'compile-only, negative'
+
+    # assignment, covariance in return type, union type
+    - decl: |-
+          // covariance in return type
+          let sub1: (p: B) => A|B|null = (p: B): A|B|null => a
+          let sub2: (p: B) => string|Array<B>|B|undefined = (p: B): string|Array<B>|B|undefined => b
+          let sub3: (p: B) => number|int|long|double|float = (p: B): number|int|long|double|float => 3
+      use: |-
+          let superFoo: (p: B) => Any = (p: B): Any => 0
+          arktest.assertEQ(superFoo(new B), 0)
+          superFoo = sub1
+          arktest.assertEQ(superFoo(new B), a)
+          superFoo = sub2
+          arktest.assertEQ(superFoo(new B), b)
+          superFoo = sub3
+          arktest.assertEQ(superFoo(new B), 3)
+
+    - decl: |-
+          // covariance in return type
+          let superFoo: (p: B) => Any = (p: B): Any => 0
+          let sub1: (p: B) => A|B|null = (p: B): A|B|null => a
+      use: |-
+          sub1 = superFoo
+      tags: 'compile-only, negative'
+
+    - decl: |-
+          // covariance in return type
+          let superFoo: (p: B) => Any = (p: B): Any => 0
+          let sub2: (p: B) => string|Array<B>|B|undefined = (p: B): string|Array<B>|B|undefined => b
+      use: |-
+          sub2 = superFoo
+      tags: 'compile-only, negative'
+
+    - decl: |-
+          // covariance in return type
+          let superFoo: (p: B) => Any = (p: B): Any => 0
+          let sub3: (p: B) => number|int|long|double|float = (p: B): number|int|long|double|float => 3
+      use: |-
+          sub3 = superFoo
+      tags: 'compile-only, negative'
+
+    # call context, contravariance in arguments, union type argument
+    - decl: |-
+          // contravariance in arguments
+          let sub1: (p: B|A) => Any = (p: B|A): Any => 1
+          let sub2: (p: B|string|number) => Any = (p: B|string|number): Any => 2
+          let sub3: (p: A|boolean|null|undefined) => Any = (p: A|boolean|null|undefined): Any => 3
+      use: |-
+          // supertype is (p: B) => Any
+          ((p: (p: B) => Any) => { arktest.assertEQ(p(new B), 1) })(sub1);
+          ((p: (p: B) => Any) => { arktest.assertEQ(p(new B), 2) })(sub2);
+          ((p: (p: B) => Any) => { arktest.assertEQ(p(new B), 3) })(sub3);
+
+    - decl: |-
+          let superFoo: (p: B) => Any = (p: B): Any => 0
+      use: |-
+          // subtype is (p: B|A) => Any
+          ((p: (p: B|A) => Any) => {})(superFoo)
+      tags: 'compile-only, negative'
+
+    - decl: |-
+          let superFoo: (p: B) => Any = (p: B): Any => 0
+      use: |-
+          // subtype is (p: B|string|number) => Any
+          ((p: (p: B|string|number) => Any) => {})(superFoo)
+      tags: 'compile-only, negative'
+
+    - decl: |-
+          let superFoo: (p: B) => Any = (p: B): Any => 0
+      use: |-
+          // subtype is (p: A|boolean|null|undefined) => Any
+          ((p: (p: A|boolean|null|undefined) => Any) => {})(superFoo)
+      tags: 'compile-only, negative'
+
+    # call context, covariance in return type, union type
+    - decl: |-
+          // covariance in return type
+          let sub1: (p: B) => A|B|null = (p: B): A|B|null => a
+          let sub2: (p: B) => string|Array<B>|B|undefined = (p: B): string|Array<B>|B|undefined => b
+          let sub3: (p: B) => number|int|long|double|float = (p: B): number|int|long|double|float => 3
+      use: |-
+          // supertype is (p: B) => Any
+          ((p: (p: B) => Any) => { arktest.assertEQ(p(new B), a) })(sub1);
+          ((p: (p: B) => Any) => { arktest.assertEQ(p(new B), b) })(sub2);
+          ((p: (p: B) => Any) => { arktest.assertEQ(p(new B), 3) })(sub3);
+
+    - decl: |-
+          // covariance in return type
+          let superFoo: (p: B) => Any = (p: B): Any => 0
+      use: |-
+          // subtype is (p: B) => A|B|null
+          ((p: (p: B) => A|B|null) => {})(superFoo)
+      tags: 'compile-only, negative'
+
+    - decl: |-
+          // covariance in return type
+          let superFoo: (p: B) => Any = (p: B): Any => 0
+      use: |-
+          // subtype is (p: B) => string|Array<B>|B|undefined
+          ((p: (p: B) => string|Array<B>|B|undefined) => {})(superFoo)
+      tags: 'compile-only, negative'
+
+    - decl: |-
+          // covariance in return type
+          let superFoo: (p: B) => Any = (p: B): Any => 0
+      use: |-
+          // subtype is (p: B) => number|int|long|double|float
+          ((p: (p: B) => number|int|long|double|float) => {})(superFoo)
+      tags: 'compile-only, negative'

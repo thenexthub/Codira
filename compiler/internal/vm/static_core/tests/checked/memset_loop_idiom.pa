@@ -1,0 +1,129 @@
+# Copyright (c) 2022-2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#! CHECKER      Replace loop with memset intrinsic
+#! RUN          force_jit: true, options: "--compiler-regex=_GLOBAL::fill", entry: "_GLOBAL::main", result: 0
+#! EVENT        /Compilation,_GLOBAL::fill,.*COMPILED/
+#! METHOD       "_GLOBAL::fill"
+#! PASS_AFTER   "LoopIdioms"
+#! INST         "Intrinsic"
+#! ASM_METHOD   "_GLOBAL::fill"
+#! ASM_INST     "Intrinsic.LIB_CALL_MEMSET_8"
+
+#! CHECKER      Replace loop with memset intrinsic (AOT)
+#! RUN_PAOC     options: "--compiler-regex=_GLOBAL::fill"
+#! EVENT        /Compilation,_GLOBAL::fill,.*COMPILED/
+#! METHOD       "_GLOBAL::fill"
+#! PASS_AFTER   "LoopIdioms"
+#! INST         "Intrinsic"
+#! ASM_METHOD   "_GLOBAL::fill"
+#! ASM_INST     "Intrinsic.LIB_CALL_MEMSET_8"
+.function void fill(i8[] a0, i8 a1) {
+	movi v0, 0x0
+loop:
+	lenarr a0
+	jle v0, exit
+	lda a1
+	starr.8 a0, v0
+	inci v0, 0x1
+	jmp loop
+exit:
+	return.void
+}
+
+.function i32 main() {
+    movi v0, 14
+    newarr v1, v0, i8[]
+    movi v2, 42
+    call.short fill, v1, v2
+
+    movi v3, 0
+    movi v4, 1
+loop:
+    lenarr v1
+    jle v3, exit_succ
+    lda v3
+    ldarr.8 v1
+    jne v2, exit_err
+    add v3, v4
+    sta v3
+    jmp loop
+exit_err:
+    ldai 1
+    return
+exit_succ:
+    ldai 0
+    return
+}
+
+#! CHECKER      Replace inner loop with memset intrinsic
+#! RUN          force_jit: true, options: "--compiler-regex=_GLOBAL::fill2", entry: "_GLOBAL::main2", result: 0
+#! EVENT        /Compilation,_GLOBAL::fill2,.*COMPILED/
+#! METHOD       "_GLOBAL::fill2"
+#! PASS_AFTER   "LoopIdioms"
+#! INST         "Intrinsic"
+#! ASM_METHOD   "_GLOBAL::fill2"
+#! ASM_INST     "Intrinsic.LIB_CALL_MEMSET_8"
+
+#! CHECKER      Replace inner loop with memset intrinsic (AOT)
+#! RUN_PAOC     options: "--compiler-regex=_GLOBAL::fill2"
+#! EVENT        /Compilation,_GLOBAL::fill2,.*COMPILED/
+#! METHOD       "_GLOBAL::fill2"
+#! PASS_AFTER   "LoopIdioms"
+#! INST         "Intrinsic"
+#! ASM_METHOD   "_GLOBAL::fill2"
+#! ASM_INST     "Intrinsic.LIB_CALL_MEMSET_8"
+.function void fill2(i8[] a0, i8 a1, i32 a2) {
+	movi v0, 0x0
+outer_loop:
+    lda a2
+    jle v0, outer_exit
+    movi v1, 0x0
+loop:
+	lenarr a0
+	jle v1, exit
+	lda a1
+	starr.8 a0, v1
+	inci v1, 0x1
+	jmp loop
+exit:
+    inci v0, 0x1
+    jmp outer_loop
+outer_exit:
+	return.void
+}
+
+.function i32 main2() {
+    movi v0, 14
+    newarr v1, v0, i8[]
+    movi v2, 42
+    call fill2, v1, v2, v2
+
+    movi v3, 0
+    movi v4, 1
+loop:
+    lenarr v1
+    jle v3, exit_succ
+    lda v3
+    ldarr.8 v1
+    jne v2, exit_err
+    add v3, v4
+    sta v3
+    jmp loop
+exit_err:
+    ldai 1
+    return
+exit_succ:
+    ldai 0
+    return
+}

@@ -1,0 +1,104 @@
+#
+#     Copyright (c) 2021-2025 Huawei Device Co., Ltd.
+#     Licensed under the Apache License, Version 2.0 (the "License");
+#     you may not use this file except in compliance with the License.
+#     You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+#     Unless required by applicable law or agreed to in writing, software
+#     distributed under the License is distributed on an "AS IS" BASIS,
+#     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#     See the License for the specific language governing permissions and
+#     limitations under the License.
+#
+
+chapters:
+  - all:
+    - 02.lexical_elements
+    - 03.types
+    - 04.names_declarations_and_scopes
+    - 05.generics
+    - 06.contexts_and_conversions
+    - 07.expressions
+    - 08.statements
+    - 09.classes
+    - 10.interfaces
+    - 11.enumerations
+    - 12.error_handling
+    - 13.compilation_units
+    - 14.ambient_declarations
+    - 15.semantic_rules
+    - 17.experimental_features
+    - 18.annotations
+    - 19.standard_library
+    - 20.implementation_details
+    - 21.artks_ts_compatibility
+    - 22.grammar_summary
+    
+  # One folder - one chapter
+  - chapter02:
+    - 02.lexical_elements
+  - chapter03:
+    - 03.types
+  - chapter04:
+    - 04.names_declarations_and_scopes
+  - chapter05:
+    - 05.generics
+  - chapter06:
+    - 06.contexts_and_conversions
+  - chapter07:
+    - 07.expressions
+  - chapter08:
+    - 08.statements
+  - chapter09:
+    - 09.classes
+  - chapter10:
+    - 10.interfaces
+  - chapter11:
+    - 11.enumerations
+  - chapter12:
+    - 12.error_handling
+  - chapter13:
+    - 13.compilation_units
+  - chapter14:
+    - 14.ambient_declarations
+  - chapter15:
+    - 15.semantic_rules
+  - chapter17:
+    - 17.experimental_features
+  - chapter18:
+    - 18.annotations
+  - chapter19:
+    - 19.standard_library
+  - chapter20:
+    - 20.implementation_details
+  - chapter21:
+    - 21.artks_ts_compatibility
+  - chapter22:
+    - 22.grammar_summary
+
+  # chapters by several folders
+  - chapters02-05:
+    - 02.lexical_elements
+    - 03.types
+    - 04.names_declarations_and_scopes
+    - 05.generics
+  - chapters06-09:
+    - 06.contexts_and_conversions
+    - 07.expressions
+    - 08.statements
+    - 09.classes
+  - chapters10-12:
+    - 10.interfaces
+    - 11.enumerations
+    - 12.error_handling
+  - chapters13-17:
+    - 13.compilation_units
+    - 14.ambient_declarations
+    - 15.semantic_rules
+    - 17.experimental_features
+  - non-specified:
+    - '*'
+    - exclude:
+      - all

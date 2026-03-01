@@ -1,0 +1,345 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//arkcompiler/runtime_core/common_runtime/common_runtime.gni")
+
+crt_sources = [
+  "base/c_string.cpp",
+  "base/mem_utils.cpp",
+  "base/sys_call.cpp",
+  "base/time_utils.cpp",
+  "base/utf_helper.cpp",
+  "common/page_cache.cpp",
+  "common/run_type.cpp",
+  "common_runtime/base_runtime.cpp",
+  "common_runtime/base_runtime_param.cpp",
+  "heap/allocator/allocator.cpp",
+  "heap/allocator/fix_heap.cpp",
+  "heap/allocator/memory_map.cpp",
+  "heap/allocator/region_manager.cpp",
+  "heap/allocator/regional_heap.cpp",
+  "heap/allocator/treap.cpp",
+  "heap/ark_collector/ark_collector.cpp",
+  "heap/ark_collector/copy_barrier.cpp",
+  "heap/ark_collector/enum_barrier.cpp",
+  "heap/ark_collector/idle_barrier.cpp",
+  "heap/ark_collector/marking_barrier.cpp",
+  "heap/ark_collector/post_marking_barrier.cpp",
+  "heap/ark_collector/preforward_barrier.cpp",
+  "heap/ark_collector/remark_barrier.cpp",
+  "heap/barrier/barrier.cpp",
+  "heap/collector/collector.cpp",
+  "heap/collector/collector_proxy.cpp",
+  "heap/collector/collector_resources.cpp",
+  "heap/collector/copy_data_manager.cpp",
+  "heap/collector/finalizer_processor.cpp",
+  "heap/collector/gc_request.cpp",
+  "heap/collector/gc_stats.cpp",
+  "heap/collector/heuristic_gc_policy.cpp",
+  "heap/collector/marking_collector.cpp",
+  "heap/collector/task_queue.cpp",
+  "heap/collector/utils.cpp",
+  "heap/heap.cpp",
+  "heap/heap_allocator.cpp",
+  "heap/heap_manager.cpp",
+  "heap/heap_visitor.cpp",
+  "heap/space/from_space.cpp",
+  "heap/space/large_space.cpp",
+  "heap/space/nonmovable_space.cpp",
+  "heap/space/old_space.cpp",
+  "heap/space/to_space.cpp",
+  "heap/space/young_space.cpp",
+  "heap/verification.cpp",
+  "log/log.cpp",
+  "mutator/mutator.cpp",
+  "mutator/mutator_manager.cpp",
+  "mutator/satb_buffer.cpp",
+  "mutator/thread_local.cpp",
+  "objects/base_object.cpp",
+  "objects/base_string.cpp",
+  "objects/base_string_table.cpp",
+  "objects/composite_base_class.cpp",
+  "profiler/heap_profiler_listener.cpp",
+  "taskpool/runner.cpp",
+  "taskpool/task_queue.cpp",
+  "taskpool/taskpool.cpp",
+  "tests/test_hooks.cpp",
+  "thread/thread_holder.cpp",
+  "thread/thread_holder_manager.cpp",
+]
+
+if (is_mingw) {
+  crt_sources += [
+    "platform/windows/cpu.cpp",
+    "platform/windows/os.cpp",
+    "platform/windows/thread.cpp",
+  ]
+} else {
+  crt_sources += [ "platform/unix/map.cpp" ]
+  if (is_mac) {
+    crt_sources += [
+      "platform/unix/mac/cpu.cpp",
+      "platform/unix/mac/os.cpp",
+      "platform/unix/mac/thread.cpp",
+    ]
+  } else if (is_ohos || target_os == "android") {
+    crt_sources += [
+      "platform/unix/linux/cpu.cpp",
+      "platform/unix/linux/os.cpp",
+      "platform/unix/linux/thread.cpp",
+    ]
+  } else if (is_linux) {
+    crt_sources += [
+      "platform/unix/linux/cpu.cpp",
+      "platform/unix/linux/os.cpp",
+      "platform/unix/linux/thread.cpp",
+    ]
+  }
+}
+
+ohos_source_set("libarkcommon_runtime") {
+  configs = [
+    ":common_components_common_config",
+    ":common_components_public_config",
+  ]
+
+  sources = crt_sources
+
+  include_dirs = [
+    ".",
+    "..",
+  ]
+
+  external_deps = [ "bounds_checking_function:libsec_shared" ]
+
+  part_name = "runtime_core"
+  subsystem_name = "arkcompiler"
+}
+
+config("common_components_public_config") {
+  configs = []
+  defines = []
+  ldflags = []
+
+  if (ark_hybrid) {
+    defines += [ "ARK_HYBRID" ]
+
+    if (current_cpu == "amd64" || current_cpu == "x64" ||
+        current_cpu == "x86_64") {
+      ldflags += [ "-latomic" ]
+    }
+  }
+}
+
+config("common_components_common_config") {
+  configs = [ "${crt_root}:common_runtime_public_config" ]
+  defines = []
+
+  if (is_ohos) {
+    defines += [ "ENABLE_COLD_STARTUP_GC_POLICY" ]
+  }
+  defines += [ "NEXT_OPTIMIZATION_MACRO" ]
+
+  cflags_cc = [
+    "-Wall",
+    "-Wshadow",
+    "-Werror",
+    "-Wextra",
+    "-pedantic",
+    "-Wno-invalid-offsetof",
+    "-Wno-gnu-statement-expression",
+    "-pipe",
+    "-Wdate-time",
+    "-funwind-tables",
+    "-fno-rtti",
+    "-fasynchronous-unwind-tables",
+    "-Wformat=2",
+    "-std=c++17",
+  ]
+
+  cflags_cc += [
+    "-Wno-unused-lambda-capture",
+    "-Wno-unused-command-line-argument",
+    "-Wno-variadic-macros",
+    "-Wno-gnu-anonymous-struct",
+    "-Wno-zero-length-array",
+    "-Wno-nested-anon-types",
+    "-Wno-c99-extensions",
+    "-Wno-unused-parameter",
+    "-Wno-shadow",
+    "-Wno-pedantic",
+    "-Wno-gnu-zero-variadic-macro-arguments",
+    "-Wno-unused-lambda-capture",
+    "-Wno-unused-function",
+    "-Wno-unused-variable",
+    "-Wno-unused-but-set-variable",
+  ]
+  cflags_c = []
+
+  if (is_ohos) {
+    defines += [ "PANDA_TARGET_OHOS" ]
+  }
+
+  if (is_fastverify) {
+    cflags_cc += [
+      "-O2",
+      "-ggdb3",
+      "-gdwarf-4",
+      "-fno-omit-frame-pointer",
+      "-D_GLIBCXX_ASSERTIONS",
+    ]
+    cflags_c += [
+      "-O2",
+      "-ggdb3",
+      "-gdwarf-4",
+      "-fno-omit-frame-pointer",
+      "-D_GLIBCXX_ASSERTIONS",
+    ]
+  } else if (is_debug) {
+    cflags_cc += [
+      "-O0",
+      "-ggdb3",
+      "-gdwarf-4",
+    ]
+  } else {
+    defines += [ "NDEBUG" ]
+  }
+
+  if (is_asan) {
+    defines += [ "RUN_WITH_ASAN" ]
+  }
+
+  if (current_cpu == "arm") {
+    defines += [
+      "PANDA_TARGET_ARM32_ABI_SOFT=1",
+      "PANDA_TARGET_ARM32",
+      "PANDA_TARGET_32",
+    ]
+  } else if (current_cpu == "arm64") {
+    defines += [
+      "PANDA_TARGET_ARM64",
+      "PANDA_TARGET_64",
+      "PANDA_ENABLE_GLOBAL_REGISTER_VARIABLES",
+    ]
+  } else if (current_cpu == "x86") {
+    defines += [ "PANDA_TARGET_X86" ]
+  } else if (current_cpu == "amd64" || current_cpu == "x64" ||
+             current_cpu == "x86_64") {
+    defines += [
+      "PANDA_TARGET_64",
+      "PANDA_TARGET_AMD64",
+    ]
+  }
+}
+
+# common_components unit testcase config
+config("common_components_test_config") {
+  visibility = [ "./*" ]
+
+  configs = [
+    ":common_components_public_config",
+    "${crt_root}:common_runtime_public_config",
+  ]
+
+  if (!is_mac) {
+    ldflags = [ "-Wl,-rpath=\$ORIGIN/" ]
+  } else {
+    ldflags = [ "-Wl" ]
+  }
+
+  if (!ark_standalone_build) {
+    ldflags += [ "-Wl,--lto-O0" ]
+  }
+}
+
+ohos_shared_library("libark_common_components_test") {
+  testonly = true
+  stack_protector_ret = false
+
+  configs = [ ":common_components_test_config" ]
+
+  deps = [ ":libarkcommon_runtime" ]
+
+  public_configs = [ ":common_components_public_config" ]
+
+  external_deps = []
+  if (!ark_standalone_build) {
+    public_external_deps = hiviewdfx_ext_deps
+  } else {
+    external_deps += hiviewdfx_ext_deps
+  }
+
+  ldflags = []
+  if (!ark_standalone_build) {
+    ldflags += [ "-Wl,--lto-O0" ]
+  }
+
+  install_enable = false
+  if (!is_mingw && !is_mac) {
+    output_extension = "so"
+  }
+
+  part_name = "runtime_core"
+  subsystem_name = "arkcompiler"
+}
+
+ohos_shared_library("libark_common_components_fuzz_test") {
+  testonly = true
+  stack_protector_ret = false
+
+  configs = [ ":common_components_test_config" ]
+
+  sources = [
+    "base/utf_helper.cpp",
+    "log/log.cpp",
+  ]
+
+  if (is_mingw) {
+    sources += [
+      "platform/windows/cpu.cpp",
+      "platform/windows/os.cpp",
+    ]
+  } else if (is_mac) {
+    sources += [
+      "platform/unix/mac/cpu.cpp",
+      "platform/unix/mac/os.cpp",
+    ]
+  } else if (is_ohos || target_os == "android") {
+    sources += [
+      "platform/unix/linux/cpu.cpp",
+      "platform/unix/linux/os.cpp",
+    ]
+  } else if (is_linux) {
+    sources += [
+      "platform/unix/linux/cpu.cpp",
+      "platform/unix/linux/os.cpp",
+    ]
+  }
+
+  public_configs = [ ":common_components_public_config" ]
+
+  external_deps = []
+
+  ldflags = []
+  if (!ark_standalone_build) {
+    ldflags += [ "-Wl,--lto-O0" ]
+  }
+
+  install_enable = false
+  if (!is_mingw && !is_mac) {
+    output_extension = "so"
+  }
+
+  part_name = "runtime_core"
+  subsystem_name = "arkcompiler"
+}

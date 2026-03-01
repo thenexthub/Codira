@@ -1,0 +1,68 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+cases:
+    - '3.14f'
+    - '3.141_592f'
+    - '.5f'
+    - '1e10f'
+    - '1E10f'
+
+    - '0.0f'
+    - '0.f'
+    - '.0f'
+
+    - '0.e1f'
+    - '0.0e1f'
+    - '0.0e+1f'
+    - '0.0e-1f'
+    - '0.0e-11f'
+
+    - '0.E1f'
+    - '0.0E1f'
+    - '0.0E+1f'
+    - '0.0E-1f'
+    - '0.0E-11f'
+
+    - '.0e0f'
+    - '.0e+1f'
+    - '.0e-1f'
+    - '.0e11f'
+
+    - '.0E0f'
+    - '.0E+1f'
+    - '.0E-1f'
+    - '.0E11f'
+
+    - '1e0f'
+    - '1e-1f'
+    - '1e+1f'
+
+    - '1E0f'
+    - '1E-1f'
+    - '1E+1f'
+
+    - '-1234567890.12345678901234567890f'
+    - '-123_456_7890.123_456_789_01234567890f'
+    - '-1_123_456.789_123e11f'
+    - '-1_123.7e1_1f'
+    - '1_2_3.4_5_6_7_8_9_0e1_2f'

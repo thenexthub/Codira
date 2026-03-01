@@ -1,0 +1,40 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+  - {check_type: "Any", implement_value_1: "null",
+      implement_value_2: "7", new_value: "\"abc\""}
+  - {check_type: "Object", implement_value_1: "5",
+      implement_value_2: "\"abc\"", new_value: "7"}
+  - {check_type: "number", implement_value_1: "3",
+      implement_value_2: "6.7", new_value: "13"}
+  - {check_type: "double", implement_value_1: "3.4",
+      implement_value_2: "5.0", new_value: "15"}
+  - {check_type: "float", implement_value_1: "6.7f",
+      implement_value_2: "7.3f", new_value: "9.8f"}
+  - {check_type: "long", implement_value_1: "9223372036854775807",
+      implement_value_2: "78945", new_value: "9223372036854775000"}
+  - {check_type: "int", implement_value_1: "123",
+      implement_value_2: "321", new_value: "321321"}
+  - {check_type: "short", implement_value_1: "325",
+      implement_value_2: "253", new_value: "536"}
+  - {check_type: "byte", implement_value_1: "127",
+      implement_value_2: "78", new_value: "15"}
+  - {check_type: "string", implement_value_1: "\"abc\"",
+      implement_value_2: "\"defg\"", new_value: "\"hijk\""}
+  - {check_type: "bigint", implement_value_1: "12345678901234567890n",
+      implement_value_2: "5556423623465n", new_value: "123123n"}
+  - {check_type: "char", implement_value_1: "c'\\u2028'",
+      implement_value_2: "c'z'", new_value: "c'x'"}
+  - {check_type: "boolean", implement_value_1: "false",
+      implement_value_2: "true", new_value: "false"}

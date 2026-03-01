@@ -1,0 +1,99 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - doc: Same name for variables
+    decl: |-
+      namespace ns {
+        export let i: int
+        let i: int
+      }
+
+  - doc: Same name for variables, second one exported
+    decl: |-
+      namespace ns {
+        let i: int
+        export let i: int
+      }
+
+  - doc: Same name used for different types - function and variable
+    decl: |-
+      namespace ns {
+        let i: int
+        export function i(): void {}
+      }
+
+  - doc: Same name used for different types - function and class
+    decl: |-
+      namespace ns {
+        export function i(): void {}
+        class i {}
+      }
+
+  - doc: Same name used for different types - class and type
+    decl: |-
+      namespace ns {
+        export class i {}
+        type i = Array<string>
+      }
+
+  - doc: Same name used for different types - type and enum
+    decl: |-
+      namespace ns {
+        export type i = Array<string>
+        enum i {ONE, TWO}
+      }
+
+  - doc: Same name used for different types - variable and namespace
+    decl: |-
+      namespace ns {
+        export let i: int = 1
+        namespace i {}
+      }
+
+  - doc: Same name used for merged namespaces
+    decl: |-
+      namespace ns1 {
+        export let i: int = 1
+        export function foo() {}
+      }
+      namespace ns2 { }
+      namespace ns1 {
+        let i: int = 1
+        export function bar() {}
+      }
+
+  - doc: Same name used for merged namespaces
+    decl: |-
+      namespace ns1 {
+        export let i: int = 1
+        export function foo() {}
+      }
+      namespace ns2 { }
+      namespace ns1 {
+        let i: int = 1
+        export function bar() {}
+      }
+
+  - doc: Static initializer used only at the first call to namespace member
+    decl: |-
+      namespace ns1 {
+        export let i: int = 1
+        export function foo() {}
+      }
+      namespace ns2 { }
+      namespace ns1 {
+        let i: int = 1
+        export function bar() {}
+      }

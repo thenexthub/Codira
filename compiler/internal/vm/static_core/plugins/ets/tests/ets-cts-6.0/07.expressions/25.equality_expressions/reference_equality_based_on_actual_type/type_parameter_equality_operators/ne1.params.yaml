@@ -1,0 +1,116 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # not compatible types
+    - type: Number
+      case1:
+          - '127.0'
+      case2:
+          - "'127.0'"
+          - 127n
+          - 'true'
+
+    - type: String
+      case1:
+          - new String('127.0')
+      case2:
+          - new Number(127.0)
+          - new BigInt(127)
+          - new Boolean(false)
+
+    - type: bigint
+      case1:
+          - new BigInt(0)
+      case2:
+          - new Int()
+          - "'0'"
+
+    - type: A
+      decl: |-
+          class A {}
+          class B {}
+      case1:
+          - new A()
+      case2:
+          - new B()
+          - "'A {}'"
+
+    # not equal values
+    - type: A
+      decl: |-
+          class A {}
+      case1:
+          - new A()
+      case2:
+          - new A()
+
+    - type: Boolean
+      case1:
+          - new Boolean(false)
+      case2:
+          - new Boolean(true)
+
+    - type: Boolean
+      case1:
+          - 'true'
+      case2:
+          - 'false'
+
+    - type: Number
+      case1:
+          - '0.0'
+      case2:
+          - Double.POSITIVE_INFINITY
+          - Double.NEGATIVE_INFINITY
+          - Double.NaN
+          - Float.NaN
+          - new Double(Double.NaN)
+          - new Float(Float.NaN)
+
+    - type: bigint
+      case1:
+          - new BigInt(1)
+      case2:
+          - new BigInt(2)
+
+    - type: Color
+      decl: |-
+          enum Color { Red, Green, Blue }
+      case1:
+          - Color.Red
+
+    - type: Size
+      decl: |-
+          enum Size { Small = "S", Medium = "M", Large = "L" }
+      case1:
+          - Size.Small
+      case2:
+          - Size.Medium
+          - "'M'"
+
+    - type: string
+      case1:
+          - "'0'"
+      case2:
+          - "'\\u0000'"
+          - "' '"
+
+    - type: string
+      case1:
+          - new String('ABCDEFGHIJKLMNOPRSTUVWXYZ')
+      case2:
+          - new String('ABCDEFGHIJKLMNOPRSTUVWXYZ ')
+          - new String('ABCDEFGHIJKLMNOPRSTUVWXYZ  ')
+          - new String('ABCDEFGHIJKLMNOPRSTUVWXYZ\u0000')

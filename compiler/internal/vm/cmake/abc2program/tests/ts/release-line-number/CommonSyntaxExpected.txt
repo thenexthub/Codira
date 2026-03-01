@@ -1,0 +1,963 @@
+# source binary: arkcompiler/runtime_core/abc2program/tests/CommonSyntax.abc
+
+# ====================
+# LITERALS
+
+_ESModuleRecord_2662 { 8 [ i32:0, i32:0, i32:0, i32:1, string:"ClassA", string:"ClassA", i32:0, i32:0, ]}
+
+_ESScopeNamesRecord_2628 { 12 [ tag_value:5, string:"Person", tag_value:5, string:"fetchData", tag_value:5, string:"TestA", tag_value:5, string:"ClassA", tag_value:5, string:"Parent", tag_value:5, string:"Child", ]}
+
+_GLOBAL_2698 { 8 [ tag_value:5, string:"sayHello", tag_value:6, method:.#~@4>#sayHello, tag_value:9, method_affiliate:0, tag_value:2, i32:1, ]}
+
+_GLOBAL_2720 { 8 [ tag_value:5, string:"sayHello", tag_value:6, method:.#~@5>#sayHello, tag_value:9, method_affiliate:0, tag_value:2, i32:1, ]}
+
+_GLOBAL_2742 { 4 [ tag_value:5, string:"mySymbol", tag_value:5, string:"prop", ]}
+
+_GLOBAL_2756 { 6 [ tag_value:2, i32:1, tag_value:2, i32:2, tag_value:2, i32:3, ]}
+
+_GLOBAL_2775 { 14 [ tag_value:5, string:"name", tag_value:5, string:"Alice", tag_value:5, string:"age", tag_value:2, i32:25, tag_value:5, string:"greet", tag_value:6, method:.#*#greet^1, tag_value:9, method_affiliate:0, ]}
+
+_GLOBAL_2812 { 8 [ tag_value:5, string:"gender", tag_value:5, string:"男", tag_value:5, string:"grade", tag_value:5, string:"2", ]}
+
+_GLOBAL_2836 { 6 [ tag_value:2, i32:1, tag_value:2, i32:2, tag_value:2, i32:3, ]}
+
+_GLOBAL_2855 { 8 [ tag_value:5, string:"greet", tag_value:6, method:.#~@0>#greet, tag_value:9, method_affiliate:0, tag_value:2, i32:1, ]}
+
+_GLOBAL_2877 { 2 [ tag_value:2, i32:0, ]}
+
+_GLOBAL_2886 { 2 [ tag_value:2, i32:0, ]}
+
+
+
+# ====================
+# RECORDS
+
+.language ECMAScript
+.record _ESExpectedPropertyCountAnnotation {
+}
+.record.source_file 
+
+.language ECMAScript
+.record _ESModuleRecord {
+	u32 arkcompiler/runtime_core/abc2program/tests/ts/release-line-number/CommonSyntax.ts _ESModuleRecord_2652
+}
+.record.source_file 
+
+.language ECMAScript
+.record _ESScopeNamesRecord {
+	u32 arkcompiler/runtime_core/abc2program/tests/ts/release-line-number/CommonSyntax.ts _ESScopeNamesRecord_2618
+}
+.record.source_file 
+
+.language ECMAScript
+.record _ESSlotNumberAnnotation {
+}
+.record.source_file 
+
+.language ECMAScript
+.record _GLOBAL {
+}
+.record.source_file 
+
+
+# ====================
+# METHODS
+
+.function_kind FunctionKind::NC_FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 5
+.language ECMAScript
+.function any .#*#(any a0, any a1, any a2, any a3) {
+	tryldglobalbyname 0x0, console           # line: 133           # column: 0
+	sta v0                                   # line: 133           # column: 0
+	ldobjbyname 0x1, log                     # line: 133           # column: 0
+	callthis1 0x3, v0, a3                    # line: 133           # column: 0
+	returnundefined                          # line: 134           # column: 0
+}
+
+.function_kind FunctionKind::NC_FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 5
+.language ECMAScript
+.function any .#*#^1(any a0, any a1, any a2, any a3) {
+	tryldglobalbyname 0x0, console           # line: 135           # column: 0
+	sta v0                                   # line: 135           # column: 0
+	ldobjbyname 0x1, error                   # line: 135           # column: 0
+	sta v1                                   # line: 135           # column: 0
+	lda.str An error occurred:               # line: 135           # column: 0
+	sta v2                                   # line: 135           # column: 0
+	lda v1                                   # line: 135           # column: 0
+	callthis2 0x3, v0, v2, a3                # line: 135           # column: 0
+	returnundefined                          # line: 136           # column: 0
+}
+
+.function_kind FunctionKind::NC_FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 10
+.language ECMAScript
+.function any .#*#^2(any a0, any a1, any a2, any a3) {
+	tryldglobalbyname 0x0, console           # line: 158           # column: 0
+	sta v0                                   # line: 158           # column: 0
+	ldobjbyname 0x1, error                   # line: 158           # column: 0
+	sta v1                                   # line: 158           # column: 0
+	lda.str YY start throw error             # line: 158           # column: 0
+	sta v2                                   # line: 158           # column: 0
+	lda v1                                   # line: 158           # column: 0
+	callthis1 0x3, v0, v2                    # line: 158           # column: 0
+	tryldglobalbyname 0x5, console           # line: 159           # column: 0
+	sta v0                                   # line: 159           # column: 0
+	ldobjbyname 0x6, log                     # line: 159           # column: 0
+	sta v1                                   # line: 159           # column: 0
+	lda.str yy execute then                  # line: 159           # column: 0
+	sta v2                                   # line: 159           # column: 0
+	lda v1                                   # line: 159           # column: 0
+	callthis1 0x8, v0, v2                    # line: 159           # column: 0
+	returnundefined                          # line: 160           # column: 0
+}
+
+.function_kind FunctionKind::NC_FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 5
+.language ECMAScript
+.function any .#*#^3(any a0, any a1, any a2, any a3) {
+	tryldglobalbyname 0x0, console           # line: 161           # column: 0
+	sta v0                                   # line: 161           # column: 0
+	ldobjbyname 0x1, error                   # line: 161           # column: 0
+	sta v1                                   # line: 161           # column: 0
+	lda.str yy occur error                   # line: 161           # column: 0
+	sta v2                                   # line: 161           # column: 0
+	lda v1                                   # line: 161           # column: 0
+	callthis1 0x3, v0, v2                    # line: 161           # column: 0
+	returnundefined                          # line: 162           # column: 0
+}
+
+.function_kind FunctionKind::NC_FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 5
+.language ECMAScript
+.function any .#*#^4(any a0, any a1, any a2) {
+	tryldglobalbyname 0x0, console           # line: 163           # column: 0
+	sta v0                                   # line: 163           # column: 0
+	ldobjbyname 0x1, error                   # line: 163           # column: 0
+	sta v1                                   # line: 163           # column: 0
+	lda.str yy occur finally                 # line: 163           # column: 0
+	sta v2                                   # line: 163           # column: 0
+	lda v1                                   # line: 163           # column: 0
+	callthis1 0x3, v0, v2                    # line: 163           # column: 0
+	returnundefined                          # line: 164           # column: 0
+}
+
+.function_kind FunctionKind::NC_FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 5
+.language ECMAScript
+.function any .#*#^5(any a0, any a1, any a2, any a3) {
+	tryldglobalbyname 0x0, console           # line: 192           # column: 0
+	sta v0                                   # line: 192           # column: 0
+	ldobjbyname 0x1, log                     # line: 192           # column: 0
+	sta v1                                   # line: 192           # column: 0
+	lda.str resolved                         # line: 192           # column: 0
+	sta v2                                   # line: 192           # column: 0
+	lda v1                                   # line: 192           # column: 0
+	callthis2 0x3, v0, v2, a3                # line: 192           # column: 0
+	returnundefined                          # line: 193           # column: 0
+}
+
+.function_kind FunctionKind::NC_FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 5
+.language ECMAScript
+.function any .#*#^6(any a0, any a1, any a2, any a3) {
+	tryldglobalbyname 0x0, console           # line: 196           # column: 0
+	sta v0                                   # line: 196           # column: 0
+	ldobjbyname 0x1, error                   # line: 196           # column: 0
+	sta v1                                   # line: 196           # column: 0
+	lda.str caught                           # line: 196           # column: 0
+	sta v2                                   # line: 196           # column: 0
+	lda v1                                   # line: 196           # column: 0
+	callthis2 0x3, v0, v2, a3                # line: 196           # column: 0
+	returnundefined                          # line: 197           # column: 0
+}
+
+.function_kind FunctionKind::NC_FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 5
+.language ECMAScript
+.function any .#*#^7(any a0, any a1, any a2) {
+	tryldglobalbyname 0x0, console           # line: 199           # column: 0
+	sta v0                                   # line: 199           # column: 0
+	ldobjbyname 0x1, log                     # line: 199           # column: 0
+	sta v1                                   # line: 199           # column: 0
+	lda.str cleanup done                     # line: 199           # column: 0
+	sta v2                                   # line: 199           # column: 0
+	lda v1                                   # line: 199           # column: 0
+	callthis1 0x3, v0, v2                    # line: 199           # column: 0
+	returnundefined                          # line: 200           # column: 0
+}
+
+.function_kind FunctionKind::FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 7
+.language ECMAScript
+.function any .#*#defaultGreet(any a0, any a1, any a2, any a3) {
+	ldundefined                              # line: 100           # column: 0
+	stricteq 0x0, a3                         # line: 100           # column: 0
+	jeqz label@5                             # line: 100           # column: 0
+	lda.str js                               # line: 100           # column: 0
+	sta a3                                   # line: 100           # column: 0
+	label@5:                                 # line: 0           # column: 0
+	tryldglobalbyname 0x1, console           # line: 101           # column: 0
+	sta v0                                   # line: 101           # column: 0
+	ldobjbyname 0x2, log                     # line: 101           # column: 0
+	sta v1                                   # line: 101           # column: 0
+	lda.str Hello,                           # line: 101           # column: 0
+	sta v2                                   # line: 101           # column: 0
+	lda a3                                   # line: 101           # column: 0
+	add2 0x4, v2                             # line: 101           # column: 0
+	sta v2                                   # line: 101           # column: 0
+	lda v1                                   # line: 101           # column: 0
+	callthis1 0x5, v0, v2                    # line: 101           # column: 0
+	returnundefined                          # line: 102           # column: 0
+}
+
+.function_kind FunctionKind::ASYNC_FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 13
+.language ECMAScript
+.function any .#*#fetchAndDisplayData(any a0, any a1, any a2) {
+	nop                                      # line: 18446744073709551615           # column: 0
+	asyncfunctionenter                       # line: 18446744073709551615           # column: 0
+	sta v0                                   # line: 18446744073709551615           # column: 0
+	label@3:                                 # line: 0           # column: 0
+	mov v1, v0                               # line: 18446744073709551615           # column: 0
+	ldlexvar 0x0, 0x0                        # line: 140           # column: 0
+	callarg0 0x0                             # line: 140           # column: 0
+	asyncfunctionawaituncaught v0            # line: 140           # column: 0
+	suspendgenerator v0                      # line: 140           # column: 0
+	lda v0                                   # line: 140           # column: 0
+	resumegenerator                          # line: 140           # column: 0
+	sta v4                                   # line: 140           # column: 0
+	lda v0                                   # line: 140           # column: 0
+	getresumemode                            # line: 140           # column: 0
+	sta v5                                   # line: 140           # column: 0
+	ldai 0x1                                 # line: 140           # column: 0
+	eq 0x2, v5                               # line: 140           # column: 0
+	jeqz label@19                            # line: 140           # column: 0
+	lda v4                                   # line: 140           # column: 0
+	throw                                    # line: 140           # column: 0
+	label@19:                                # line: 0           # column: 0
+	tryldglobalbyname 0x3, console           # line: 141           # column: 0
+	sta v5                                   # line: 141           # column: 0
+	ldobjbyname 0x4, log                     # line: 141           # column: 0
+	callthis1 0x6, v5, v4                    # line: 141           # column: 0
+	label@23:                                # line: 0           # column: 0
+	jmp label@34                             # line: 141           # column: 0
+	label@24:                                # line: 0           # column: 0
+	sta v3                                   # line: 142           # column: 0
+	mov v1, v0                               # line: 142           # column: 0
+	tryldglobalbyname 0x8, console           # line: 143           # column: 0
+	sta v4                                   # line: 143           # column: 0
+	ldobjbyname 0x9, error                   # line: 143           # column: 0
+	sta v5                                   # line: 143           # column: 0
+	lda.str An error occurred:               # line: 143           # column: 0
+	sta v6                                   # line: 143           # column: 0
+	lda v5                                   # line: 143           # column: 0
+	callthis2 0xb, v4, v6, v3                # line: 143           # column: 0
+	label@34:                                # line: 0           # column: 0
+	mov v1, v0                               # line: 143           # column: 0
+	ldundefined                              # line: 18446744073709551615           # column: 0
+	asyncfunctionresolve v0                  # line: 18446744073709551615           # column: 0
+	return                                   # line: 145           # column: 0
+	label@38:                                # line: 0           # column: 0
+	sta v2                                   # line: 138           # column: 0
+	lda v2                                   # line: 138           # column: 0
+	asyncfunctionreject v1                   # line: 138           # column: 0
+	return                                   # line: 145           # column: 0
+.catchall :
+	try_begin_label : label@3
+	try_end_label : label@23
+	catch_begin_label : label@24
+	catch_end_label : label@24
+.catchall :
+	try_begin_label : label@3
+	try_end_label : label@38
+	catch_begin_label : label@38
+	catch_end_label : label@38
+}
+
+.function_kind FunctionKind::FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 4
+.language ECMAScript
+.function any .#*#fetchData(any a0, any a1, any a2) {
+	tryldglobalbyname 0x0, Promise           # line: 125           # column: 0
+	sta v0                                   # line: 125           # column: 0
+	definefunc 0x1, .#*@1*#, 0x2             # line: 125           # column: 0
+	sta v1                                   # line: 125           # column: 0
+	mov v2, v0                               # line: 125           # column: 0
+	mov v3, v1                               # line: 125           # column: 0
+	newobjrange 0x2, 0x2, v2                 # line: 125           # column: 0
+	return                                   # line: 130           # column: 0
+}
+
+.function_kind FunctionKind::NC_FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 6
+.language ECMAScript
+.function any .#*#greet(any a0, any a1, any a2, any a3) {
+	tryldglobalbyname 0x0, console           # line: 77           # column: 0
+	sta v0                                   # line: 77           # column: 0
+	ldobjbyname 0x1, log                     # line: 77           # column: 0
+	sta v1                                   # line: 77           # column: 0
+	lda.str Hello,                           # line: 77           # column: 0
+	sta v2                                   # line: 77           # column: 0
+	lda a3                                   # line: 77           # column: 0
+	add2 0x3, v2                             # line: 77           # column: 0
+	sta v2                                   # line: 77           # column: 0
+	lda v1                                   # line: 77           # column: 0
+	callthis1 0x4, v0, v2                    # line: 77           # column: 0
+	returnundefined                          # line: 78           # column: 0
+}
+
+.function_kind FunctionKind::NONE
+ _ESSlotNumberAnnotation
+ SlotNumber 8
+.language ECMAScript
+.function any .#*#greet^1(any a0, any a1, any a2) {
+	tryldglobalbyname 0x0, console           # line: 86           # column: 0
+	sta v0                                   # line: 86           # column: 0
+	ldobjbyname 0x1, log                     # line: 86           # column: 0
+	sta v1                                   # line: 86           # column: 0
+	lda.str Hello,                           # line: 86           # column: 0
+	sta v2                                   # line: 86           # column: 0
+	lda a2                                   # line: 86           # column: 0
+	ldobjbyname 0x3, name                    # line: 86           # column: 0
+	add2 0x5, v2                             # line: 86           # column: 0
+	sta v2                                   # line: 86           # column: 0
+	lda v1                                   # line: 86           # column: 0
+	callthis1 0x6, v0, v2                    # line: 86           # column: 0
+	returnundefined                          # line: 87           # column: 0
+}
+
+.function_kind FunctionKind::FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 1
+.language ECMAScript
+.function any .#*#sum(any a0, any a1, any a2, any a3, any a4) {
+	lda a4                                   # line: 30           # column: 0
+	add2 0x0, a3                             # line: 30           # column: 0
+	return                                   # line: 31           # column: 0
+}
+
+.function_kind FunctionKind::NC_FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 4
+.language ECMAScript
+.function any .#*@1*#(any a0, any a1, any a2, any a3, any a4) {
+	newlexenv 0x1                            # line: 18446744073709551615           # column: 0
+	lda a3                                   # line: 18446744073709551615           # column: 0
+	stlexvar 0x0, 0x0                        # line: 18446744073709551615           # column: 0
+	tryldglobalbyname 0x0, setTimeout        # line: 126           # column: 0
+	sta v0                                   # line: 126           # column: 0
+	definefunc 0x1, .#*@1**#, 0x0            # line: 126           # column: 0
+	sta v1                                   # line: 126           # column: 0
+	ldai 0x3e8                               # line: 126           # column: 0
+	sta v2                                   # line: 126           # column: 0
+	lda v0                                   # line: 126           # column: 0
+	callargs2 0x2, v1, v2                    # line: 126           # column: 0
+	returnundefined                          # line: 129           # column: 0
+}
+
+.function_kind FunctionKind::NC_FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 2
+.language ECMAScript
+.function any .#*@1**#(any a0, any a1, any a2) {
+	ldlexvar 0x0, 0x0                        # line: 127           # column: 0
+	sta v0                                   # line: 127           # column: 0
+	lda.str Data fetched successfully!       # line: 127           # column: 0
+	sta v1                                   # line: 127           # column: 0
+	lda v0                                   # line: 127           # column: 0
+	callarg1 0x0, v1                         # line: 127           # column: 0
+	returnundefined                          # line: 128           # column: 0
+}
+
+.function_kind FunctionKind::NONE
+ _ESExpectedPropertyCountAnnotation
+ ExpectedPropertyCount 2
+ _ESSlotNumberAnnotation
+ SlotNumber 4
+.language ECMAScript
+.function any .#~@0=#Person(any a0, any a1, any a2, any a3, any a4) {
+	lda a3                                   # line: 112           # column: 0
+	stobjbyname 0x0, name, a2                # line: 112           # column: 0
+	lda a4                                   # line: 113           # column: 0
+	stobjbyname 0x2, age, a2                 # line: 113           # column: 0
+	lda a2                                   # line: 114           # column: 0
+	return                                   # line: 114           # column: 0
+}
+
+.function_kind FunctionKind::NONE
+ _ESSlotNumberAnnotation
+ SlotNumber 8
+.language ECMAScript
+.function any .#~@0>#greet(any a0, any a1, any a2) {
+	tryldglobalbyname 0x0, console           # line: 117           # column: 0
+	sta v0                                   # line: 117           # column: 0
+	ldobjbyname 0x1, log                     # line: 117           # column: 0
+	sta v1                                   # line: 117           # column: 0
+	lda.str Hello,                           # line: 117           # column: 0
+	sta v2                                   # line: 117           # column: 0
+	lda a2                                   # line: 117           # column: 0
+	ldobjbyname 0x3, name                    # line: 117           # column: 0
+	add2 0x5, v2                             # line: 117           # column: 0
+	sta v2                                   # line: 117           # column: 0
+	lda v1                                   # line: 117           # column: 0
+	callthis1 0x6, v0, v2                    # line: 117           # column: 0
+	returnundefined                          # line: 118           # column: 0
+}
+
+.function_kind FunctionKind::NONE
+ _ESSlotNumberAnnotation
+ SlotNumber 2
+.language ECMAScript
+.function any .#~@2=#TestA(any a0, any a1, any a2, any a3) {
+	lda a3                                   # line: 149           # column: 0
+	stobjbyname 0x0, value, a2               # line: 149           # column: 0
+	lda a2                                   # line: 149           # column: 0
+	return                                   # line: 149           # column: 0
+}
+
+.function_kind FunctionKind::FUNCTION
+ _ESExpectedPropertyCountAnnotation
+ ExpectedPropertyCount 1
+ _ESSlotNumberAnnotation
+ SlotNumber 4
+.language ECMAScript
+.function any .#~@3=#ClassA(any a0, any a1, any a2) {
+	ldlexvar 0x0, 0x1                        # line: 153           # column: 0
+	sta v0                                   # line: 153           # column: 0
+	throw.undefinedifholewithname TestA      # line: 153           # column: 0
+	ldai 0x64                                # line: 153           # column: 0
+	sta v1                                   # line: 153           # column: 0
+	mov v2, v0                               # line: 153           # column: 0
+	mov v3, v1                               # line: 153           # column: 0
+	newobjrange 0x0, 0x2, v2                 # line: 153           # column: 0
+	stobjbyname 0x2, a, a2                   # line: 153           # column: 0
+	lda a2                                   # line: 154           # column: 0
+	return                                   # line: 154           # column: 0
+}
+
+.function_kind FunctionKind::FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 0
+.language ECMAScript
+.function any .#~@4=#Parent(any a0, any a1, any a2) {
+	lda a2                                   # line: 173           # column: 0
+	return                                   # line: 173           # column: 0
+}
+
+.function_kind FunctionKind::NONE
+ _ESSlotNumberAnnotation
+ SlotNumber 0
+.language ECMAScript
+.function any .#~@4>#sayHello(any a0, any a1, any a2) {
+	lda.str Hello from Parent                # line: 175           # column: 0
+	return                                   # line: 176           # column: 0
+}
+
+.function_kind FunctionKind::FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 0
+.language ECMAScript
+.function any .#~@5=#Child(any a0, any a1, any a2, any a3) {
+	callruntime.supercallforwardallargs a0   # line: 179           # column: 0
+	sta v0                                   # line: 179           # column: 0
+	lda a2                                   # line: 179           # column: 0
+	throw.ifsupernotcorrectcall 0x1          # line: 179           # column: 0
+	lda v0                                   # line: 18446744073709551615           # column: 0
+	throw.ifsupernotcorrectcall 0x0          # line: 18446744073709551615           # column: 0
+	lda v0                                   # line: 179           # column: 0
+	return                                   # line: 179           # column: 0
+}
+
+.function_kind FunctionKind::NONE
+ _ESSlotNumberAnnotation
+ SlotNumber 5
+.language ECMAScript
+.function any .#~@5>#sayHello(any a0, any a1, any a2) {
+	lda a2                                   # line: 182           # column: 0
+	ldsuperbyname 0x0, sayHello              # line: 182           # column: 0
+	callthis0 0x2, a2                        # line: 182           # column: 0
+	sta v0                                   # line: 182           # column: 0
+	lda.str  and Child                       # line: 182           # column: 0
+	add2 0x4, v0                             # line: 182           # column: 0
+	return                                   # line: 183           # column: 0
+}
+
+.function_kind FunctionKind::FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 229
+.language ECMAScript
+.function any .func_main_0(any a0, any a1, any a2) {
+	ldai 0x19                                # line: 18446744073709551615           # column: 0
+	sta v0                                   # line: 18446744073709551615           # column: 0
+	newlexenv 0x2                            # line: 18446744073709551615           # column: 0
+	definefunc 0x0, .#*#defaultGreet, 0x0    # line: 18446744073709551615           # column: 0
+	sta v1                                   # line: 18446744073709551615           # column: 0
+	definefunc 0x1, .#*#fetchAndDisplayData, 0x0 # line: 18446744073709551615           # column: 0
+	sta v2                                   # line: 18446744073709551615           # column: 0
+	definefunc 0x2, .#*#fetchData, 0x0       # line: 18446744073709551615           # column: 0
+	stlexvar 0x0, 0x0                        # line: 18446744073709551615           # column: 0
+	lda.str Alice                            # line: 16           # column: 0
+	sta v3                                   # line: 16           # column: 0
+	fldai 3.140000e+00                       # line: 18           # column: 0
+	sta v4                                   # line: 18           # column: 0
+	ldundefined                              # line: 20           # column: 0
+	sta v5                                   # line: 20           # column: 0
+	ldnull                                   # line: 21           # column: 0
+	sta v6                                   # line: 21           # column: 0
+	tryldglobalbyname 0x3, Symbol            # line: 22           # column: 0
+	callarg0 0x4                             # line: 22           # column: 0
+	sta v7                                   # line: 22           # column: 0
+	ldbigint 10                              # line: 23           # column: 0
+	sta v8                                   # line: 23           # column: 0
+	createobjectwithbuffer 0x6, _GLOBAL_2742 # line: 24           # column: 0
+	sta v9                                   # line: 24           # column: 0
+	createarraywithbuffer 0x7, _GLOBAL_2756  # line: 27           # column: 0
+	sta v10                                  # line: 27           # column: 0
+	definefunc 0x8, .#*#sum, 0x2             # line: 29           # column: 0
+	sta v11                                  # line: 29           # column: 0
+	ldai 0x1                                 # line: 29           # column: 0
+	sta v12                                  # line: 29           # column: 0
+	ldai 0x2                                 # line: 29           # column: 0
+	sta v13                                  # line: 29           # column: 0
+	lda v11                                  # line: 32           # column: 0
+	callargs2 0x9, v12, v13                  # line: 32           # column: 0
+	tryldglobalbyname 0xb, Date              # line: 34           # column: 0
+	sta v11                                  # line: 34           # column: 0
+	mov v14, v11                             # line: 34           # column: 0
+	newobjrange 0xc, 0x1, v14                # line: 34           # column: 0
+	tryldglobalbyname 0xe, console           # line: 36           # column: 0
+	sta v11                                  # line: 36           # column: 0
+	ldobjbyname 0xf, log                     # line: 36           # column: 0
+	sta v13                                  # line: 36           # column: 0
+	lda v12                                  # line: 36           # column: 0
+	ldobjbyvalue 0x11, v10                   # line: 36           # column: 0
+	sta v10                                  # line: 36           # column: 0
+	mov v14, v11                             # line: 36           # column: 0
+	mov v15, v3                              # line: 36           # column: 0
+	mov v16, v0                              # line: 36           # column: 0
+	mov v17, v4                              # line: 36           # column: 0
+	mov v18, v5                              # line: 36           # column: 0
+	mov v19, v6                              # line: 36           # column: 0
+	mov v20, v7                              # line: 36           # column: 0
+	mov v21, v8                              # line: 36           # column: 0
+	mov v22, v9                              # line: 36           # column: 0
+	mov v23, v10                             # line: 36           # column: 0
+	lda v13                                  # line: 36           # column: 0
+	callthisrange 0x13, 0x9, v14             # line: 36           # column: 0
+	ldai 0x12                                # line: 36           # column: 0
+	greatereq 0x15, v0                       # line: 39           # column: 0
+	jeqz label@69                            # line: 39           # column: 0
+	tryldglobalbyname 0x16, console          # line: 40           # column: 0
+	sta v3                                   # line: 40           # column: 0
+	ldobjbyname 0x17, log                    # line: 40           # column: 0
+	sta v4                                   # line: 40           # column: 0
+	lda.str Adult                            # line: 40           # column: 0
+	sta v5                                   # line: 40           # column: 0
+	lda v4                                   # line: 40           # column: 0
+	callthis1 0x19, v3, v5                   # line: 40           # column: 0
+	jmp label@77                             # line: 40           # column: 0
+	label@69:                                # line: 0           # column: 0
+	tryldglobalbyname 0x1b, console          # line: 42           # column: 0
+	sta v3                                   # line: 42           # column: 0
+	ldobjbyname 0x1c, log                    # line: 42           # column: 0
+	sta v4                                   # line: 42           # column: 0
+	lda.str Minor                            # line: 42           # column: 0
+	sta v5                                   # line: 42           # column: 0
+	lda v4                                   # line: 42           # column: 0
+	callthis1 0x1e, v3, v5                   # line: 42           # column: 0
+	label@77:                                # line: 0           # column: 0
+	lda.str Monday                           # line: 46           # column: 0
+	sta v3                                   # line: 46           # column: 0
+	lda.str Monday                           # line: 48           # column: 0
+	strictnoteq 0x20, v3                     # line: 48           # column: 0
+	jeqz label@86                            # line: 48           # column: 0
+	lda.str Friday                           # line: 51           # column: 0
+	strictnoteq 0x21, v3                     # line: 51           # column: 0
+	jeqz label@95                            # line: 51           # column: 0
+	jmp label@104                            # line: 51           # column: 0
+	label@86:                                # line: 0           # column: 0
+	tryldglobalbyname 0x22, console          # line: 49           # column: 0
+	sta v3                                   # line: 49           # column: 0
+	ldobjbyname 0x23, log                    # line: 49           # column: 0
+	sta v4                                   # line: 49           # column: 0
+	lda.str Start of the week                # line: 49           # column: 0
+	sta v5                                   # line: 49           # column: 0
+	lda v4                                   # line: 49           # column: 0
+	callthis1 0x25, v3, v5                   # line: 49           # column: 0
+	jmp label@112                            # line: 49           # column: 0
+	label@95:                                # line: 0           # column: 0
+	tryldglobalbyname 0x27, console          # line: 52           # column: 0
+	sta v3                                   # line: 52           # column: 0
+	ldobjbyname 0x28, log                    # line: 52           # column: 0
+	sta v4                                   # line: 52           # column: 0
+	lda.str End of the week                  # line: 52           # column: 0
+	sta v5                                   # line: 52           # column: 0
+	lda v4                                   # line: 52           # column: 0
+	callthis1 0x2a, v3, v5                   # line: 52           # column: 0
+	jmp label@112                            # line: 52           # column: 0
+	label@104:                               # line: 0           # column: 0
+	tryldglobalbyname 0x2c, console          # line: 55           # column: 0
+	sta v3                                   # line: 55           # column: 0
+	ldobjbyname 0x2d, log                    # line: 55           # column: 0
+	sta v4                                   # line: 55           # column: 0
+	lda.str Midweek                          # line: 55           # column: 0
+	sta v5                                   # line: 55           # column: 0
+	lda v4                                   # line: 55           # column: 0
+	callthis1 0x2f, v3, v5                   # line: 55           # column: 0
+	label@112:                               # line: 0           # column: 0
+	ldai 0x5                                 # line: 55           # column: 0
+	sta v3                                   # line: 55           # column: 0
+	ldai 0x0                                 # line: 55           # column: 0
+	sta v4                                   # line: 55           # column: 0
+	mov v5, v4                               # line: 55           # column: 0
+	label@117:                               # line: 0           # column: 0
+	lda v3                                   # line: 59           # column: 0
+	less 0x31, v5                            # line: 59           # column: 0
+	jeqz label@129                           # line: 59           # column: 0
+	tryldglobalbyname 0x32, console          # line: 60           # column: 0
+	sta v6                                   # line: 60           # column: 0
+	ldobjbyname 0x33, log                    # line: 60           # column: 0
+	callthis1 0x35, v6, v5                   # line: 60           # column: 0
+	lda v5                                   # line: 59           # column: 0
+	tonumeric 0x37                           # line: 59           # column: 0
+	inc 0x38                                 # line: 59           # column: 0
+	sta v5                                   # line: 59           # column: 0
+	jmp label@117                            # line: 59           # column: 0
+	label@129:                               # line: 0           # column: 0
+	mov v5, v4                               # line: 59           # column: 0
+	label@130:                               # line: 0           # column: 0
+	lda v3                                   # line: 65           # column: 0
+	less 0x39, v5                            # line: 65           # column: 0
+	jeqz label@142                           # line: 65           # column: 0
+	tryldglobalbyname 0x3a, console          # line: 66           # column: 0
+	sta v6                                   # line: 66           # column: 0
+	ldobjbyname 0x3b, log                    # line: 66           # column: 0
+	callthis1 0x3d, v6, v5                   # line: 66           # column: 0
+	lda v5                                   # line: 67           # column: 0
+	tonumeric 0x3f                           # line: 67           # column: 0
+	inc 0x40                                 # line: 67           # column: 0
+	sta v5                                   # line: 67           # column: 0
+	jmp label@130                            # line: 67           # column: 0
+	label@142:                               # line: 0           # column: 0
+	tryldglobalbyname 0x41, console          # line: 71           # column: 0
+	sta v6                                   # line: 71           # column: 0
+	ldobjbyname 0x42, log                    # line: 71           # column: 0
+	callthis1 0x44, v6, v5                   # line: 71           # column: 0
+	lda v5                                   # line: 72           # column: 0
+	tonumeric 0x46                           # line: 72           # column: 0
+	inc 0x47                                 # line: 72           # column: 0
+	sta v5                                   # line: 72           # column: 0
+	lda v3                                   # line: 73           # column: 0
+	less 0x48, v5                            # line: 73           # column: 0
+	jnez label@142                           # line: 73           # column: 0
+	definefunc 0x49, .#*#greet, 0x1          # line: 76           # column: 0
+	sta v5                                   # line: 76           # column: 0
+	lda.str js                               # line: 79           # column: 0
+	sta v6                                   # line: 79           # column: 0
+	lda v5                                   # line: 79           # column: 0
+	callarg1 0x4a, v6                        # line: 79           # column: 0
+	createobjectwithbuffer 0x4c, _GLOBAL_2775 # line: 82           # column: 0
+	sta v5                                   # line: 82           # column: 0
+	ldobjbyname 0x4d, greet                  # line: 89           # column: 0
+	callthis0 0x4f, v5                       # line: 89           # column: 0
+	lda.str Js                               # line: 92           # column: 0
+	sta v6                                   # line: 92           # column: 0
+	lda.str Hello,                           # line: 93           # column: 0
+	sta v7                                   # line: 93           # column: 0
+	lda v6                                   # line: 93           # column: 0
+	add2 0x51, v7                            # line: 93           # column: 0
+	sta v6                                   # line: 93           # column: 0
+	lda.str !                                # line: 93           # column: 0
+	add2 0x52, v6                            # line: 93           # column: 0
+	createobjectwithbuffer 0x53, _GLOBAL_2812 # line: 96           # column: 0
+	lda v5                                   # line: 97           # column: 0
+	ldobjbyname 0x54, gender                 # line: 97           # column: 0
+	lda v5                                   # line: 97           # column: 0
+	ldobjbyname 0x56, grade                  # line: 97           # column: 0
+	lda v1                                   # line: 103           # column: 0
+	callarg0 0x58                            # line: 103           # column: 0
+	createarraywithbuffer 0x5a, _GLOBAL_2836 # line: 106           # column: 0
+	sta v1                                   # line: 106           # column: 0
+	createemptyarray 0x5b                    # line: 107           # column: 0
+	sta v5                                   # line: 107           # column: 0
+	lda v1                                   # line: 107           # column: 0
+	starrayspread v5, v4                     # line: 107           # column: 0
+	lda v5                                   # line: 107           # column: 0
+	ldobjbyname 0x5c, length                 # line: 107           # column: 0
+	sta v1                                   # line: 107           # column: 0
+	ldai 0x4                                 # line: 107           # column: 0
+	stownbyvalue 0x5e, v5, v1                # line: 107           # column: 0
+	lda v1                                   # line: 107           # column: 0
+	inc 0x60                                 # line: 107           # column: 0
+	sta v1                                   # line: 107           # column: 0
+	lda v3                                   # line: 107           # column: 0
+	stownbyvalue 0x61, v5, v1                # line: 107           # column: 0
+	lda v1                                   # line: 107           # column: 0
+	inc 0x63                                 # line: 107           # column: 0
+	ldhole                                   # line: 110           # column: 0
+	sta v1                                   # line: 110           # column: 0
+	defineclasswithbuffer 0x64, .#~@0=#Person, _GLOBAL_2855, 0x2, v1 # line: 110           # column: 0
+	sta v1                                   # line: 110           # column: 0
+	ldobjbyname 0x65, prototype              # line: 110           # column: 0
+	lda.str Alice                            # line: 120           # column: 0
+	sta v3                                   # line: 120           # column: 0
+	mov v14, v1                              # line: 120           # column: 0
+	mov v15, v3                              # line: 120           # column: 0
+	mov v16, v0                              # line: 120           # column: 0
+	newobjrange 0x67, 0x3, v14               # line: 120           # column: 0
+	sta v0                                   # line: 120           # column: 0
+	ldobjbyname 0x69, greet                  # line: 121           # column: 0
+	callthis0 0x6b, v0                       # line: 121           # column: 0
+	ldlexvar 0x0, 0x0                        # line: 132           # column: 0
+	callarg0 0x6d                            # line: 132           # column: 0
+	sta v0                                   # line: 132           # column: 0
+	ldobjbyname 0x6f, then                   # line: 132           # column: 0
+	sta v1                                   # line: 132           # column: 0
+	definefunc 0x71, .#*#, 0x1               # line: 132           # column: 0
+	sta v3                                   # line: 132           # column: 0
+	lda v1                                   # line: 132           # column: 0
+	callthis1 0x72, v0, v3                   # line: 132           # column: 0
+	sta v0                                   # line: 132           # column: 0
+	ldobjbyname 0x74, catch                  # line: 134           # column: 0
+	sta v1                                   # line: 134           # column: 0
+	definefunc 0x76, .#*#^1, 0x1             # line: 134           # column: 0
+	sta v3                                   # line: 134           # column: 0
+	lda v1                                   # line: 134           # column: 0
+	callthis1 0x77, v0, v3                   # line: 134           # column: 0
+	lda v2                                   # line: 146           # column: 0
+	callarg0 0x79                            # line: 146           # column: 0
+	ldhole                                   # line: 148           # column: 0
+	sta v0                                   # line: 148           # column: 0
+	defineclasswithbuffer 0x7b, .#~@2=#TestA, _GLOBAL_2877, 0x1, v0 # line: 148           # column: 0
+	sta v0                                   # line: 148           # column: 0
+	ldobjbyname 0x7c, prototype              # line: 148           # column: 0
+	lda v0                                   # line: 148           # column: 0
+	stlexvar 0x0, 0x1                        # line: 148           # column: 0
+	ldhole                                   # line: 152           # column: 0
+	sta v0                                   # line: 152           # column: 0
+	defineclasswithbuffer 0x7e, .#~@3=#ClassA, _GLOBAL_2886, 0x0, v0 # line: 152           # column: 0
+	sta v0                                   # line: 152           # column: 0
+	ldobjbyname 0x7f, prototype              # line: 152           # column: 0
+	lda v0                                   # line: 152           # column: 0
+	stmodulevar 0x0                          # line: 152           # column: 0
+	tryldglobalbyname 0x81, a                # line: 157           # column: 0
+	sta v0                                   # line: 157           # column: 0
+	ldobjbyname 0x82, then                   # line: 157           # column: 0
+	sta v1                                   # line: 157           # column: 0
+	definefunc 0x84, .#*#^2, 0x1             # line: 157           # column: 0
+	sta v2                                   # line: 157           # column: 0
+	lda v1                                   # line: 157           # column: 0
+	callthis1 0x85, v0, v2                   # line: 157           # column: 0
+	sta v0                                   # line: 157           # column: 0
+	ldobjbyname 0x87, catch                  # line: 160           # column: 0
+	sta v1                                   # line: 160           # column: 0
+	definefunc 0x89, .#*#^3, 0x1             # line: 160           # column: 0
+	sta v2                                   # line: 160           # column: 0
+	lda v1                                   # line: 160           # column: 0
+	callthis1 0x8a, v0, v2                   # line: 160           # column: 0
+	sta v0                                   # line: 160           # column: 0
+	ldobjbyname 0x8c, finally                # line: 162           # column: 0
+	sta v1                                   # line: 162           # column: 0
+	definefunc 0x8e, .#*#^4, 0x0             # line: 162           # column: 0
+	sta v2                                   # line: 162           # column: 0
+	lda v1                                   # line: 162           # column: 0
+	callthis1 0x8f, v0, v2                   # line: 162           # column: 0
+	lda v9                                   # line: 168           # column: 0
+	ldobjbyname 0x91, foo                    # line: 168           # column: 0
+	callthis0 0x93, v9                       # line: 168           # column: 0
+	ldobjbyname 0x95, bar                    # line: 169           # column: 0
+	sta v0                                   # line: 169           # column: 0
+	lda v4                                   # line: 169           # column: 0
+	ldobjbyvalue 0x97, v0                    # line: 169           # column: 0
+	sta v0                                   # line: 169           # column: 0
+	ldobjbyname 0x99, baz                    # line: 170           # column: 0
+	callthis0 0x9b, v0                       # line: 170           # column: 0
+	ldhole                                   # line: 173           # column: 0
+	sta v0                                   # line: 173           # column: 0
+	defineclasswithbuffer 0x9d, .#~@4=#Parent, _GLOBAL_2698, 0x0, v0 # line: 173           # column: 0
+	sta v0                                   # line: 173           # column: 0
+	ldobjbyname 0x9e, prototype              # line: 173           # column: 0
+	defineclasswithbuffer 0xa0, .#~@5=#Child, _GLOBAL_2720, 0x0, v0 # line: 179           # column: 0
+	sta v0                                   # line: 179           # column: 0
+	ldobjbyname 0xa1, prototype              # line: 179           # column: 0
+	mov v14, v0                              # line: 179           # column: 0
+	newobjrange 0xa3, 0x1, v14               # line: 186           # column: 0
+	sta v0                                   # line: 186           # column: 0
+	tryldglobalbyname 0xa5, console          # line: 187           # column: 0
+	sta v1                                   # line: 187           # column: 0
+	ldobjbyname 0xa6, log                    # line: 187           # column: 0
+	sta v2                                   # line: 187           # column: 0
+	lda v0                                   # line: 187           # column: 0
+	ldobjbyname 0xa8, sayHello               # line: 187           # column: 0
+	callthis0 0xaa, v0                       # line: 187           # column: 0
+	sta v0                                   # line: 187           # column: 0
+	lda v2                                   # line: 187           # column: 0
+	callthis1 0xac, v1, v0                   # line: 187           # column: 0
+	tryldglobalbyname 0xae, somePromise      # line: 190           # column: 0
+	sta v0                                   # line: 190           # column: 0
+	ldobjbyname 0xaf, then                   # line: 191           # column: 0
+	sta v1                                   # line: 191           # column: 0
+	definefunc 0xb1, .#*#^5, 0x1             # line: 191           # column: 0
+	sta v2                                   # line: 191           # column: 0
+	lda v1                                   # line: 191           # column: 0
+	callthis1 0xb2, v0, v2                   # line: 191           # column: 0
+	sta v0                                   # line: 191           # column: 0
+	ldobjbyname 0xb4, catch                  # line: 195           # column: 0
+	sta v1                                   # line: 195           # column: 0
+	definefunc 0xb6, .#*#^6, 0x1             # line: 195           # column: 0
+	sta v2                                   # line: 195           # column: 0
+	lda v1                                   # line: 195           # column: 0
+	callthis1 0xb7, v0, v2                   # line: 195           # column: 0
+	sta v0                                   # line: 195           # column: 0
+	ldobjbyname 0xb9, finally                # line: 198           # column: 0
+	sta v1                                   # line: 198           # column: 0
+	definefunc 0xbb, .#*#^7, 0x0             # line: 198           # column: 0
+	sta v2                                   # line: 198           # column: 0
+	lda v1                                   # line: 198           # column: 0
+	callthis1 0xbc, v0, v2                   # line: 198           # column: 0
+	tryldglobalbyname 0xbe, someObj          # line: 203           # column: 0
+	ldobjbyname 0xbf, very                   # line: 205           # column: 0
+	ldobjbyname 0xc1, deep                   # line: 205           # column: 0
+	ldobjbyname 0xc3, property               # line: 205           # column: 0
+	sta v0                                   # line: 205           # column: 0
+	ldobjbyname 0xc5, toString               # line: 207           # column: 0
+	callthis0 0xc7, v0                       # line: 207           # column: 0
+	tryldglobalbyname 0xc9, someObj          # line: 209           # column: 0
+	ldobjbyname 0xca, prop1                  # line: 210           # column: 0
+	sta v0                                   # line: 210           # column: 0
+	ldnull                                   # line: 209           # column: 0
+	strictnoteq 0xcc, v0                     # line: 209           # column: 0
+	jeqz label@348                           # line: 209           # column: 0
+	ldundefined                              # line: 209           # column: 0
+	strictnoteq 0xcd, v0                     # line: 209           # column: 0
+	jeqz label@348                           # line: 209           # column: 0
+	lda v0                                   # line: 211           # column: 0
+	ldobjbyname 0xce, prop2                  # line: 211           # column: 0
+	callthis0 0xd0, v0                       # line: 211           # column: 0
+	sta v0                                   # line: 211           # column: 0
+	ldobjbyname 0xd2, method                 # line: 212           # column: 0
+	sta v1                                   # line: 212           # column: 0
+	ldnull                                   # line: 209           # column: 0
+	strictnoteq 0xd4, v1                     # line: 209           # column: 0
+	jeqz label@348                           # line: 209           # column: 0
+	ldundefined                              # line: 209           # column: 0
+	strictnoteq 0xd5, v1                     # line: 209           # column: 0
+	jeqz label@348                           # line: 209           # column: 0
+	lda v1                                   # line: 212           # column: 0
+	callthis0 0xd6, v0                       # line: 212           # column: 0
+	label@348:                               # line: 0           # column: 0
+	tryldglobalbyname 0xd8, getContext       # line: 215           # column: 0
+	callarg0 0xd9                            # line: 215           # column: 0
+	ldobjbyname 0xdb, config                 # line: 216           # column: 0
+	sta v0                                   # line: 216           # column: 0
+	ldnull                                   # line: 215           # column: 0
+	strictnoteq 0xdd, v0                     # line: 215           # column: 0
+	jeqz label@363                           # line: 215           # column: 0
+	ldundefined                              # line: 215           # column: 0
+	strictnoteq 0xde, v0                     # line: 215           # column: 0
+	jeqz label@363                           # line: 215           # column: 0
+	lda.str someKey                          # line: 217           # column: 0
+	ldobjbyvalue 0xdf, v0                    # line: 217           # column: 0
+	sta v0                                   # line: 217           # column: 0
+	ldobjbyname 0xe1, toLowerCase            # line: 218           # column: 0
+	callthis0 0xe3, v0                       # line: 218           # column: 0
+	label@363:                               # line: 0           # column: 0
+	returnundefined                          # line: 18446744073709551615           # column: 0
+}
+
+# ====================
+# STRING
+ and Child
+!
+.#*#
+.#*#^1
+.#*#^2
+.#*#^3
+.#*#^4
+.#*#^5
+.#*#^6
+.#*#^7
+.#*#defaultGreet
+.#*#fetchAndDisplayData
+.#*#fetchData
+.#*#greet
+.#*#sum
+.#*@1*#
+.#*@1**#
+.#~@0=#Person
+.#~@2=#TestA
+.#~@3=#ClassA
+.#~@4=#Parent
+.#~@5=#Child
+10
+Adult
+Alice
+An error occurred:
+Data fetched successfully!
+Date
+End of the week
+Friday
+Hello from Parent
+Hello, 
+Js
+Midweek
+Minor
+Monday
+Promise
+Start of the week
+Symbol
+TestA
+YY start throw error
+a
+age
+bar
+baz
+catch
+caught
+cleanup done
+config
+console
+deep
+error
+finally
+foo
+gender
+getContext
+grade
+greet
+js
+length
+log
+method
+name
+prop1
+prop2
+property
+prototype
+resolved
+sayHello
+setTimeout
+someKey
+someObj
+somePromise
+then
+toLowerCase
+toString
+value
+very
+yy execute then
+yy occur error
+yy occur finally

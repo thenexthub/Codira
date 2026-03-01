@@ -1,0 +1,180 @@
+#!/usr/bin/env ruby
+
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+include_relative 'common.irt'
+
+if Options.arch == :arm64
+    # In case of Aarch64 6 registers are enough: use 5 callee regs and 1 temp reg.
+    $monitors_mask = RegMask.new($full_regmap, :tmp1, :callee0, :callee1, :callee2, :callee3, :callee4)
+else
+    $monitors_mask = $panda_mask
+end
+
+function(:MonitorEnterFastPath,
+          params: {monitor: 'ptr'},
+          regmap: $full_regmap,
+          regalloc_set: $monitors_mask,
+          mode: [:FastPath]) {
+    if Options.arch == :arm32
+        Intrinsic(:UNREACHABLE).Terminator.void
+        next
+    end
+
+    # Load native thread id, go to slow path if it is unknown
+    ntid := Cast(LoadI(%tr).Imm(Constants::INTERNAL_THREAD_ID_OFFSET).u32).SrcType("DataType::Type::UINT32").mw
+    If(ntid, 0).EQ.mw.Unlikely { Goto(:SlowPath) }
+
+    # Load MTManagedThread::local_objects_locked_ size and capacity, go to slow path if list should be extended
+    locked_list_capacity := LoadI(%tr).Imm(Constants::LOCKED_OBJECTS_CAPACITY_OFFSET).u32
+    locked_list_size := LoadI(%tr).Imm(Constants::LOCKED_OBJECTS_SIZE_OFFSET).u32
+    If(locked_list_capacity, locked_list_size).LE.u32.Unlikely { Goto(:SlowPath) }
+
+Label(:CasLoop)
+    if Options.arch == :x86_64
+        mark_word := LoadI(monitor).Imm(Constants::MARK_WORD_OFFSET).mw
+    else
+        addr := Add(monitor, Constants::MARK_WORD_OFFSET).ptr
+        mark_word := Intrinsic(:LOAD_ACQUIRE_MARK_WORD_EXCLUSIVE, addr).mw
+    end
+
+    # Go to slow path if mark word's state is neither Unlock, nor Lightweight lock
+    If(And(mark_word, Constants::MARK_WORD_STATUS_MASK).mw, 0).NE.mw.Unlikely { Goto(:SlowPath) }
+
+    # If both thread id and locks count fields are zero then set thread id to current thread's id
+    If(And(mark_word, Constants::MARK_WORD_LWL_THREAD_ID_AND_COUNTER_MASK).mw, 0).EQ.mw.Unlikely {
+        shifted_ntid := Shl(ntid, Constants::MARK_WORD_LWL_THREAD_ID_OFFSET).mw
+        new_mark_word := Or(mark_word, shifted_ntid).mw
+    }
+    phi_mw := Phi(mark_word, new_mark_word).mw
+
+    # Increment locks count by 1
+    final_mark_word := Add(phi_mw, Constants::MARK_WORD_LWL_COUNTER_INC).mw
+    # Check that locks count didn't overflow and go to slow path if it did
+    If(Shr(final_mark_word, Constants::MARK_WORD_LWL_THREAD_ID_OFFSET).mw, ntid).NE.mw.Unlikely {
+        Goto(:SlowPath)
+    }
+    # Try to update mark word, retry on failure
+    if Options.arch == :x86_64
+        addr := Add(monitor, Constants::MARK_WORD_OFFSET).ptr
+        If(Intrinsic(:COMPARE_AND_SET_MARK_WORD, addr, mark_word, final_mark_word).b, 0).EQ.b {
+            Goto(:CasLoop)
+        }
+    else
+        addr := Add(monitor, Constants::MARK_WORD_OFFSET).ptr
+        If(Intrinsic(:STORE_RELEASE_MARK_WORD_EXCLUSIVE, addr, final_mark_word).b, 0).NE.b {
+            Goto(:CasLoop)
+        }
+    end
+
+    # Push new LockObjectInfo instance to MTManagedThread's local_objects_locked_ list
+    locked_objects_base := LoadI(%tr).Imm(Constants::LOCKED_OBJECTS_DATA_OFFSET).ptr
+    locked_objects_offset_u32 := Mul(locked_list_size, Constants::LOCKED_OBJECT_INFO_SIZE).u32
+    if Options.arch_64_bits?
+        locked_objects_offset := Cast(locked_objects_offset_u32).SrcType("DataType::Type::UINT32").u64
+    else
+        locked_objects_offset := locked_objects_offset_u32
+    end
+    locked_objects_addr := Add(locked_objects_base, locked_objects_offset).ptr
+    StoreI(locked_objects_addr, monitor).Imm(Constants::LOCKED_OBJECT_INFO_MONITOR_OFFSET).ptr
+    StoreI(locked_objects_addr, %fp).Imm(Constants::LOCKED_OBJECT_INFO_FRAME_OFFSET).ptr
+
+    # Increment local_objects_locked_ size
+    new_len := Add(locked_list_size, 1).u32
+    StoreI(%tr, new_len).Imm(Constants::LOCKED_OBJECTS_SIZE_OFFSET).u32
+    Goto(:Exit)
+
+Label(:SlowPath)
+    ep_offset = get_entrypoint_offset("MONITOR_ENTER_SLOW_PATH")
+    Intrinsic(:SLOW_PATH_ENTRY, monitor).AddImm(ep_offset).MethodAsImm("MonitorEnterOddSavedBridge").Terminator.void
+    Intrinsic(:UNREACHABLE).Terminator.void if defines.DEBUG
+Label(:Exit)
+    ReturnVoid().void
+}
+
+function(:MonitorExitFastPath,
+          params: {monitor: 'ptr'},
+          regmap: $full_regmap,
+          regalloc_set: $monitors_mask,
+          mode: [:FastPath]) {
+    if Options.arch == :arm32
+        Intrinsic(:UNREACHABLE).Terminator.void
+        next
+    end
+
+    # Load native thread id, go to slow path if it is unknown
+    ntid := Cast(LoadI(%tr).Imm(Constants::INTERNAL_THREAD_ID_OFFSET).u32).SrcType("DataType::Type::UINT32").mw
+    If(ntid, 0).EQ.mw.Unlikely { Goto(:SlowPath) }
+    shifted_ntid := Shl(ntid, Constants::MARK_WORD_LWL_THREAD_ID_OFFSET).mw
+
+Label(:CasLoop)
+    if Options.arch == :x86_64
+        mark_word := LoadI(monitor).Imm(Constants::MARK_WORD_OFFSET).mw
+    else
+        addr := Add(monitor, Constants::MARK_WORD_OFFSET).ptr
+        mark_word := Intrinsic(:LOAD_ACQUIRE_MARK_WORD_EXCLUSIVE, addr).mw
+    end
+
+    # Xor current thread id and mark word's thread id and then check that:
+    # 1) thread id is zero (that means that mark word's thread id equal to current thread id);
+    # 2) mark word state is zero too (it corresponds to Lightweight lock in case of non-zero thread id).
+    # If one of these conditions does not holds go to slow path.
+    If(And(Xor(mark_word, shifted_ntid).mw, Constants::MARK_WORD_STATUS_MASK_AND_LWL_THREAD_ID_MASK).mw, 0).NE.mw.Unlikely {
+        Goto(:SlowPath)
+    }
+
+    # Decrement locks count by 1
+    decremented_mw := SubI(mark_word).Imm(Constants::MARK_WORD_LWL_COUNTER_INC).mw
+
+    # Clear the thread id field if locks count was decremented down to 0
+    If(And(decremented_mw, Constants::MARK_WORD_LWL_COUNTER_MASK).mw, 0).EQ.mw {
+        new_mark_word := Xor(decremented_mw, shifted_ntid).mw
+    }
+    final_mark_word := Phi(decremented_mw, new_mark_word).mw
+
+    # Try to update mark word, retry on failure
+    if Options.arch == :x86_64
+        addr := Add(monitor, Constants::MARK_WORD_OFFSET).ptr
+        If(Intrinsic(:COMPARE_AND_SET_MARK_WORD, addr, mark_word, final_mark_word).b, 0).EQ.b {
+            Goto(:CasLoop)
+        }
+    else
+        addr := Add(monitor, Constants::MARK_WORD_OFFSET).ptr
+        If(Intrinsic(:STORE_RELEASE_MARK_WORD_EXCLUSIVE, addr, final_mark_word).b, 0).NE.b {
+            Goto(:CasLoop)
+        }
+    end
+
+    # Decrement size of MTManagedThread's local_objects_locked_ list
+    locked_list_size := LoadI(%tr).Imm(Constants::LOCKED_OBJECTS_SIZE_OFFSET).u32
+    new_len := SubI(locked_list_size).Imm(1).u32
+    StoreI(%tr, new_len).Imm(Constants::LOCKED_OBJECTS_SIZE_OFFSET).u32
+    Goto(:Exit)
+
+Label(:SlowPath)
+    ep_offset = get_entrypoint_offset("MONITOR_EXIT_SLOW_PATH")
+    Intrinsic(:SLOW_PATH_ENTRY, monitor).AddImm(ep_offset).MethodAsImm("MonitorExitOddSavedBridge").Terminator.void
+    Intrinsic(:UNREACHABLE).Terminator.void if defines.DEBUG
+Label(:Exit)
+    ReturnVoid().void
+}

@@ -1,0 +1,424 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+- {
+  method_name: valueOf,
+  object_type: BigInt,
+  init_object_data_type: "FixedArray<bigint>",
+  init_object_data: '[-100n, 0n, 100000n, 999999999n]',
+
+  param_types: {},
+  param_nature: {},
+  param_init_data_types: {},
+  param_list: {},
+
+  method_return_type: bigint,
+  expected_data_item_type: bigint,
+  expected_data_type: "FixedArray<bigint>",
+  expected_test_data: "[-100n, 0n, 100000n, 999999999n]",
+  verify_test_result_function: comparePrimitiveValue
+
+}
+
+- {
+  method_name: toString,
+  object_type: BigInt,
+  init_object_data_type: "FixedArray<int>",
+  init_object_type: int,
+  init_object_data: "[1, 2, 3, 4]",
+
+  param_init_data_types: {},
+  param_types: {},
+  param_nature: {},
+  param_list: {},
+
+  method_return_type: String,
+
+  expected_data_item_type: String,
+  expected_data_type: "FixedArray<String>",
+  expected_test_data: '["1", "2", "3", "4"]',
+  verify_test_result_function: compareStringTrivial
+}
+
+- {
+  method_name: toString,
+  object_type: BigInt,
+  init_object_data_type: "FixedArray<int>",
+  init_object_type: int,
+  init_object_data: "[10, 1024, -556, 100000, 0]",
+
+  param_init_data_types: {"param1":"FixedArray<Double>"},
+  param_types: {"param1":double},
+  param_nature: {"param1": primitive},
+  param_list: {"param1": '[2, 10, 16, 8, 20]'},
+
+  method_return_type: String,
+
+  expected_data_item_type: String,
+  expected_data_type: "FixedArray<String>",
+  expected_test_data: '["1010", "1024", "-22c", "303240", "0"]',
+  verify_test_result_function: compareStringTrivial
+}
+
+- {
+  method_name: toString,
+  object_type: BigInt,
+  init_object_data_type: "FixedArray<BigInt>",
+  init_object_type: BigInt,
+  init_object_data: "[51063684789608676731n,
+                      51063684789608676731n,
+                      51063684789608676731n,
+                      51063684789608676731n,
+                      51063684789608676731n,
+                      51063684789608676731n,
+                      51063684789608676731n,
+                      51063684789608676731n]",
+
+  param_init_data_types: {"param1":"FixedArray<Double>"},
+  param_types: {"param1":double},
+  param_nature: {"param1": primitive},
+  param_list: {"param1": '[2, 7, 8, 10, 16, 25, 33, 36]'},
+
+  method_return_type: String,
+
+  expected_data_item_type: String,
+  expected_data_type: "FixedArray<String>",
+  expected_test_data: '["101100010010100110101001101100010011100111001001000111110101111011",
+                        "160264635036320613544430",
+                        "5422465154234711076573",
+                        "51063684789608676731",
+                        "2c4a6a6c4e7247d7b",
+                        "196hgdefn5n57j6",
+                        "ukai493s1o83t",
+                        "aryhhjmcdyf0b"]',
+  verify_test_result_function: compareStringTrivial,
+  message_on_fail: "Actual and expected values aren't equal. Actual: ${actual}, expected: ${expected}."
+}
+
+- {
+  method_name: toString,
+  object_type: BigInt,
+  init_object_data_type: "FixedArray<BigInt>",
+  init_object_type: BigInt,
+  init_object_data: "[-63709978348888212256n,
+                      -63709978348888212256n,
+                      -63709978348888212256n,
+                      -63709978348888212256n,
+                      -63709978348888212256n,
+                      -63709978348888212256n,
+                      -63709978348888212256n,
+                      -63709978348888212256n]",
+
+  param_init_data_types: {"param1":"FixedArray<Double>"},
+  param_types: {"param1":double},
+  param_nature: {"param1": primitive},
+  param_list: {"param1": '[2, 7, 8, 10, 16, 25, 33, 36]'},
+
+  method_return_type: String,
+
+  expected_data_item_type: String,
+  expected_data_type: "FixedArray<String>",
+  expected_test_data: '["-110111010000100111010011111100001000100101010011110100001100100000",
+                        "-222030645101644051536136",
+                        "-6720472374104523641440",
+                        "-63709978348888212256",
+                        "-374274fc2254f4320",
+                        "-1hilmde2h13kef6",
+                        "-156hj3tjo179rp",
+                        "-dg1dyh0nlbc4g"]',
+  verify_test_result_function: compareStringTrivial,
+  message_on_fail: "Actual and expected values aren't equal. Actual: ${actual}, expected: ${expected}."
+}
+
+- {
+  method_name: toString,
+  object_type: BigInt,
+  init_object_data_type: "FixedArray<BigInt>",
+  init_object_type: BigInt,
+  init_object_data: "[29853410893954857835n,
+                      29853410893954857835n,
+                      29853410893954857835n,
+                      29853410893954857835n,
+                      29853410893954857835n,
+                      29853410893954857835n,
+                      29853410893954857835n,
+                      29853410893954857835n]",
+
+  param_init_data_types: {"param1":"FixedArray<Double>"},
+  param_types: {"param1":double},
+  param_nature: {"param1": primitive},
+  param_list: {"param1": '[2, 7, 8, 10, 16, 25, 33, 36]'},
+
+  method_return_type: String,
+
+  expected_data_item_type: String,
+  expected_data_type: "FixedArray<String>",
+  expected_test_data: '["11001111001001100100111110000100110110011111101001011101101101011",
+                        "104306550510566145541033",
+                        "3171144760466375135553",
+                        "29853410893954857835",
+                        "19e4c9f09b3f4bb6b",
+                        "k0lahdflfoamda",
+                        "htlu8udq3sj1a",
+                        "6at8myaa93kh7"]',
+  verify_test_result_function: compareStringTrivial,
+  message_on_fail: "Actual and expected values aren't equal. Actual: ${actual}, expected: ${expected}."
+}
+
+- {
+  method_name: toString,
+  object_type: BigInt,
+  init_object_data_type: "FixedArray<BigInt>",
+  init_object_type: BigInt,
+  init_object_data: "[-51063684789608676731n,
+                      -51063684789608676731n,
+                      -51063684789608676731n,
+                      -51063684789608676731n,
+                      -51063684789608676731n,
+                      -51063684789608676731n,
+                      -51063684789608676731n,
+                      -51063684789608676731n]",
+
+  param_init_data_types: {"param1":"FixedArray<Double>"},
+  param_types: {"param1":double},
+  param_nature: {"param1": primitive},
+  param_list: {"param1": '[2, 7, 8, 10, 16, 25, 33, 36]'},
+
+  method_return_type: String,
+
+  expected_data_item_type: String,
+  expected_data_type: "FixedArray<String>",
+  expected_test_data: '["-101100010010100110101001101100010011100111001001000111110101111011",
+                        "-160264635036320613544430",
+                        "-5422465154234711076573",
+                        "-51063684789608676731",
+                        "-2c4a6a6c4e7247d7b",
+                        "-196hgdefn5n57j6",
+                        "-ukai493s1o83t",
+                        "-aryhhjmcdyf0b"]',
+  verify_test_result_function: compareStringTrivial,
+  message_on_fail: "Actual and expected values aren't equal. Actual: ${actual}, expected: ${expected}."
+}
+
+- {
+  method_name: toString,
+  object_type: BigInt,
+  init_object_data_type: "FixedArray<BigInt>",
+  init_object_type: BigInt,
+  init_object_data: "[60383732539666137261n,
+                      60383732539666137261n,
+                      60383732539666137261n,
+                      60383732539666137261n,
+                      60383732539666137261n,
+                      60383732539666137261n,
+                      60383732539666137261n,
+                      60383732539666137261n]",
+
+  param_init_data_types: {"param1":"FixedArray<Double>"},
+  param_types: {"param1":double},
+  param_nature: {"param1": primitive},
+  param_list: {"param1": '[2, 7, 8, 10, 16, 25, 33, 36]'},
+
+  method_return_type: String,
+
+  expected_data_item_type: String,
+  expected_data_type: "FixedArray<String>",
+  expected_test_data: '["110100010111111110000111001101000101101110111111110000000010101101",
+                        "213052216124432301451362",
+                        "6427760715055677600255",
+                        "60383732539666137261",
+                        "345fe1cd16eff00ad",
+                        "1fd1j84e7bk7jfb",
+                        "136nqha96qrf40",
+                        "cqrmeqmyga8bx"]',
+  verify_test_result_function: compareStringTrivial,
+  message_on_fail: "Actual and expected values aren't equal. Actual: ${actual}, expected: ${expected}."
+}
+
+- {
+  method_name: toString,
+  object_type: BigInt,
+  init_object_data_type: "FixedArray<BigInt>",
+  init_object_type: BigInt,
+  init_object_data: "[-85265749682314499570n,
+                      -85265749682314499570n,
+                      -85265749682314499570n,
+                      -85265749682314499570n,
+                      -85265749682314499570n,
+                      -85265749682314499570n,
+                      -85265749682314499570n,
+                      -85265749682314499570n]",
+
+  param_init_data_types: {"param1":"FixedArray<Double>"},
+  param_types: {"param1":double},
+  param_nature: {"param1": primitive},
+  param_list: {"param1": '[2, 7, 8, 10, 16, 25, 33, 36]'},
+
+  method_return_type: String,
+
+  expected_data_item_type: String,
+  expected_data_type: "FixedArray<String>",
+  expected_test_data: '["-1001001111101001100110010111001010000101001101110110101010111110010",
+                        "-305441144103500144435426",
+                        "-11175146271205156652762",
+                        "-85265749682314499570",
+                        "-49f4ccb9429bb55f2",
+                        "-275d14h2nj02o7k",
+                        "-1i40q6k39d8bj8",
+                        "-hzt4poohcelte"]',
+  verify_test_result_function: compareStringTrivial,
+  message_on_fail: "Actual and expected values aren't equal. Actual: ${actual}, expected: ${expected}."
+}
+
+- {
+  method_name: toString,
+  object_type: BigInt,
+  init_object_data_type: "FixedArray<BigInt>",
+  init_object_type: BigInt,
+  init_object_data: "[26958043318278087215n,
+                      26958043318278087215n,
+                      26958043318278087215n,
+                      26958043318278087215n,
+                      26958043318278087215n,
+                      26958043318278087215n,
+                      26958043318278087215n,
+                      26958043318278087215n]",
+
+  param_init_data_types: {"param1":"FixedArray<Double>"},
+  param_types: {"param1":double},
+  param_nature: {"param1": primitive},
+  param_list: {"param1": '[2, 7, 8, 10, 16, 25, 33, 36]'},
+
+  method_return_type: String,
+
+  expected_data_item_type: String,
+  expected_data_type: "FixedArray<String>",
+  expected_test_data: '["10111011000011110001101011001000101110001100011101110001000101111",
+                        "66156534404423125414454",
+                        "2730361531056143561057",
+                        "26958043318278087215",
+                        "1761e3591718ee22f",
+                        "i270e7h6ggmedf",
+                        "g5cfi2jvoppd2",
+                        "5otbot0g2mnfz"]',
+  verify_test_result_function: compareStringTrivial,
+  message_on_fail: "Actual and expected values aren't equal. Actual: ${actual}, expected: ${expected}."
+}
+
+- {
+  method_name: toString,
+  object_type: BigInt,
+  init_object_data_type: "FixedArray<BigInt>",
+  init_object_type: BigInt,
+  init_object_data: "[-85726978516900663641n,
+                      -85726978516900663641n,
+                      -85726978516900663641n,
+                      -85726978516900663641n,
+                      -85726978516900663641n,
+                      -85726978516900663641n,
+                      -85726978516900663641n,
+                      -85726978516900663641n]",
+
+  param_init_data_types: {"param1":"FixedArray<Double>"},
+  param_types: {"param1":double},
+  param_nature: {"param1": primitive},
+  param_list: {"param1": '[2, 7, 8, 10, 16, 25, 33, 36]'},
+
+  method_return_type: String,
+
+  expected_data_item_type: String,
+  expected_data_type: "FixedArray<String>",
+  expected_test_data: '["-1001010010110110011011010001100001010010111011010000101000101011001",
+                        "-306324321556233114213366",
+                        "-11226633214122732050531",
+                        "-85726978516900663641",
+                        "-4a5b368c297685159",
+                        "-27d6cd1a55fhbkg",
+                        "-1id4v0inl43te6",
+                        "-i3ba5ntz5eb89"]',
+  verify_test_result_function: compareStringTrivial,
+  message_on_fail: "Actual and expected values aren't equal. Actual: ${actual}, expected: ${expected}."
+}
+
+- {
+  method_name: toString,
+  object_type: BigInt,
+  init_object_data_type: "FixedArray<BigInt>",
+  init_object_type: BigInt,
+  init_object_data: "[0n, 1n, -1n, 10n, -10n, 100n, -100n, 1000n, -1000n, 10000n, -10000n,
+                      0n, 1n, -1n, 10n, -10n, 100n, -100n, 1000n, -1000n, 10000n, -10000n,
+                      0n, 1n, -1n, 10n, -10n, 100n, -100n, 1000n, -1000n, 10000n, -10000n,
+                      0n, 1n, -1n, 10n, -10n, 100n, -100n, 1000n, -1000n, 10000n, -10000n,
+                      0n, 1n, -1n, 10n, -10n, 100n, -100n, 1000n, -1000n, 10000n, -10000n,
+                      0n, 1n, -1n, 10n, -10n, 100n, -100n, 1000n, -1000n, 10000n, -10000n,
+                      0n, 1n, -1n, 10n, -10n, 100n, -100n, 1000n, -1000n, 10000n, -10000n,
+                      0n, 1n, -1n, 10n, -10n, 100n, -100n, 1000n, -1000n, 10000n, -10000n]",
+
+  param_init_data_types: {"param1":"FixedArray<Double>"},
+  param_types: {"param1":double},
+  param_nature: {"param1": primitive},
+  param_list: {"param1": '[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                           7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+                           8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+                           10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
+                           16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+                           25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
+                           33, 33, 33, 33, 33, 33, 33, 33, 33, 33, 33,
+                           36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36]'},
+
+  method_return_type: String,
+  expected_data_item_type: String,
+  expected_data_type: "FixedArray<String>",
+  expected_test_data: '["0", "1", "-1", "1010", "-1010", "1100100", "-1100100", "1111101000", "-1111101000", "10011100010000", "-10011100010000",
+                        "0", "1", "-1", "13", "-13", "202", "-202", "2626", "-2626", "41104", "-41104",
+                        "0", "1", "-1", "12", "-12", "144", "-144", "1750", "-1750", "23420", "-23420",
+                        "0", "1", "-1", "10", "-10", "100", "-100", "1000", "-1000", "10000", "-10000",
+                        "0", "1", "-1", "a", "-a", "64", "-64", "3e8", "-3e8", "2710", "-2710",
+                        "0", "1", "-1", "a", "-a", "40", "-40", "1f0", "-1f0", "g00", "-g00",
+                        "0", "1", "-1", "a", "-a", "31", "-31", "ua", "-ua", "961", "-961",
+                        "0", "1", "-1", "a", "-a", "2s", "-2s", "rs", "-rs", "7ps", "-7ps"]',
+  verify_test_result_function: compareStringTrivial,
+  message_on_fail: "Actual and expected values aren't equal. Actual: ${actual}, expected: ${expected}."
+}
+
+- {
+  method_name: toString,
+  object_type: BigInt,
+  init_object_data_type: "FixedArray<BigInt>",
+  init_object_type: BigInt,
+  init_object_data: "[0n, 0n, 0n, 0n, 0n, 0n, 0n]",
+
+  param_init_data_types: {"param1":"FixedArray<Double>"},
+  param_types: {"param1":double},
+  param_nature: {"param1": primitive},
+  param_list: {"param1": '[-1, 0, 1, 37, -Infinity, +Infinity, NaN]'},
+
+  method_return_type: String,
+  expected_data_item_type: String,
+  expected_data_type: "FixedArray<String>",
+  expected_test_data: '["", "", "", "", "", "", ""]',
+  verify_test_result_function: compareStringTrivial,
+  message_on_fail: "Actual and expected values aren't equal. Actual: ${actual}, expected: ${expected}.",
+  method_throws: true,
+  expected_exception_type: RangeError,
+  expected_exception_message: "toString() radix argument must be between 2 and 36"
+}

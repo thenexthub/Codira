@@ -1,0 +1,473 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+overload_function_decls:
+  - decl: |-
+      function foo(): void
+      function foo(x: string): void
+      function foo(...args: Any[]): Any {
+        arktest.assertEQ(args.length, 0)
+      }
+    call: |-
+      foo()
+
+  - decl: |-
+      function foo(): void
+      function foo(x: string): void
+      function foo(...args: Any[]): Any {
+        arktest.assertEQ(args.length, 1)
+        arktest.assertTrue(args[0] instanceof string)
+        arktest.assertEQ(args[0], "abcd")
+      }
+    call: |-
+      foo("abcd")
+
+  - decl: |-
+      function foo(x: string): void
+      function foo(x: int): void
+      function foo(...args: Any[]): Any {
+        if (args[0] instanceof int) {
+          arktest.assertEQ(args[0], 321)
+        } else {
+          arktest.assertTrue(args[0] instanceof string)
+          arktest.assertEQ(args[0], "abcd")
+        }
+      }
+    call: |-
+      foo(321)
+      foo("abcd")
+
+  - decl: |-
+      function foo(x: string): boolean
+      function foo(y: int): boolean
+      function foo(...args: Any[]): Any {
+        if (args[0] instanceof int) {
+          arktest.assertEQ(args[0], 231)
+          return true
+        } else {
+          arktest.assertTrue(args[0] instanceof string)
+          arktest.assertEQ(args[0], "efg")
+          return false
+        }
+      }
+    call: |-
+      let res_num = foo(231)
+      let res_str = foo("efg")
+      arktest.assertTrue(res_num instanceof boolean)
+      arktest.assertEQ(res_num, true)
+      arktest.assertTrue(res_str instanceof boolean)
+      arktest.assertEQ(res_str, false)
+
+  - decl: |-
+      function foo(x: string): int
+      function foo(y: string): string
+      function foo(...args: Any[]): Any {
+        arktest.assertTrue(args[0] instanceof string)
+        if (args[0] == "abc") {
+          return 123
+        } else {
+          arktest.assertEQ(args[0], "efg")
+          return "321"
+        }
+      }
+    call: |-
+      let res1 = foo("abc")
+      let res2 = foo("efg")
+      arktest.assertTrue(res1 instanceof int)
+      arktest.assertEQ(res1, 123)
+      arktest.assertTrue(res2 instanceof string)
+      arktest.assertEQ(res2, "321")
+
+  - decl: |-
+      enum Results {Str, Num}
+      function foo(x: string): Results
+      function foo(x: int): Results
+      function foo(...args: Any[]): Any {
+        if (args[0] instanceof int) {
+          arktest.assertEQ(args[0], 123)
+          return Results.Num
+        } else {
+          arktest.assertTrue(args[0] instanceof string)
+          arktest.assertEQ(args[0], "defg")
+          return Results.Str
+        }
+      }
+    call: |-
+      let res_num = foo(123)
+      let res_str = foo("defg")
+      arktest.assertTrue(res_num instanceof Results)
+      arktest.assertEQ(res_num, Results.Num)
+      arktest.assertTrue(res_str instanceof Results)
+      arktest.assertEQ(res_str, Results.Str)
+
+  - decl: |-
+      function foo(a: int): int
+      function foo(a: int, b: double, c: string): string
+      function foo(...args: Any[]): Any {
+        if (args.length == 1) {
+          arktest.assertTrue(args[0] instanceof int)
+          arktest.assertEQ(args[0], 123)
+          return 213
+        } else {
+          arktest.assertEQ(args.length, 3)
+          arktest.assertTrue(args[0] instanceof int)
+          arktest.assertEQ(args[0], 456)
+          arktest.assertTrue(args[1] instanceof double)
+          arktest.assertEQ(args[1], 789.0)
+          arktest.assertTrue(args[2] instanceof string)
+          arktest.assertEQ(args[2], "321")
+          return "312"
+        }
+      }
+    call: |-
+      let res_1arg = foo(123)
+      let res_3args = foo(456, 789.0, "321")
+      arktest.assertTrue(res_1arg instanceof int)
+      arktest.assertEQ(res_1arg, 213)
+      arktest.assertTrue(res_3args instanceof string)
+      arktest.assertEQ(res_3args, "312")
+
+  - decl: |-
+      function foo(x: string): string[]
+      function foo(x: int): boolean
+      function foo(...args: Any[]): Any {
+        arktest.assertTrue(args[0] instanceof string)
+        return ["ef", "g"]
+      }
+    call: |-
+      let res = foo("abcd")
+      arktest.assertTrue(res instanceof Array)
+      arktest.assertEQ(res.length, 2)
+      arktest.assertTrue(res[0] instanceof string)
+      arktest.assertEQ(res[0], "ef")
+      arktest.assertEQ(res[1], "g")
+
+  - decl: |-
+      function foo(x: string): string[]
+      function foo(x: int): int[]
+      function foo(...args: Any[]): Any {
+        if (args[0] instanceof int) {
+          let res: int[] = [-1, 5]
+          res[0] = args[0] + 1
+          return res
+        } else {
+          arktest.assertTrue(args[0] instanceof string)
+          let res: string[] = ["123", "def"]
+          res[0] = args[0] + "c"
+          return res
+        }
+      }
+    call: |-
+      let res1 = foo(3)
+      arktest.assertTrue(res1 instanceof Array)
+      arktest.assertEQ(res1.length, 2)
+      arktest.assertTrue(res1[0] instanceof int)
+      arktest.assertEQ(res1[0], 4)
+      arktest.assertEQ(res1[1], 5)
+      let res2 = foo("ab")
+      arktest.assertTrue(res2 instanceof Array)
+      arktest.assertEQ(res2.length, 2)
+      arktest.assertTrue(res2[0] instanceof string)
+      arktest.assertEQ(res2[0], "abc")
+      arktest.assertEQ(res2[1], "def")
+
+  - decl: |-
+      function foo(a: int[]): int
+      function foo(a: string):string
+      function foo(a: boolean, b: int): boolean
+      function foo(...args: Any[]): Any {
+        let arg0 = args[0]
+        if (arg0 instanceof Array) {
+          arktest.assertEQ(arg0.length, 2)
+          arktest.assertTrue(arg0[0] instanceof int)
+          arktest.assertEQ(arg0[0], 321)
+          arktest.assertEQ(arg0[1], 476)
+          return 567
+        }
+        else if (arg0 instanceof string) {
+          arktest.assertEQ(arg0.length, 2)
+          arktest.assertEQ(arg0, "ab")
+          return arg0 + "c"
+        } else {
+          arktest.assertTrue(args[0] instanceof boolean)
+          arktest.assertTrue(args[1] instanceof int)
+          if (args[0]) {
+            arktest.assertEQ(args[1], 347)
+          } else {
+            arktest.assertEQ(args[1], 743)
+          }
+          return !args[0]
+        }
+      }
+    call: |-
+      let res1 = foo([321, 476])
+      arktest.assertTrue(res1 instanceof int)
+      arktest.assertEQ(res1, 567)
+      let res2 = foo("ab")
+      arktest.assertTrue(res2 instanceof string)
+      arktest.assertEQ(res2, "abc")
+      let res3 = foo(true, 347)
+      arktest.assertTrue(res3 instanceof boolean)
+      arktest.assertEQ(res3, false)
+      let res4 = foo(false, 743)
+      arktest.assertTrue(res4 instanceof boolean)
+      arktest.assertEQ(res4, true)
+
+
+  - decl: |-
+      function foo(x: string, y: int): string
+      function foo(x: int): boolean
+      function foo(x: int | string, boolean): int
+      function foo(...args: Any[]): Any {
+        if (args.length == 2) {
+          if (args[1] instanceof boolean) {
+            if (args[0] instanceof int) {
+              arktest.assertEQ(args[0], 456)
+              arktest.assertEQ(args[1], true)
+              return 123
+            } else {
+              arktest.assertTrue(args[0] instanceof string)
+              arktest.assertEQ(args[0], "efg")
+              arktest.assertEQ(args[1], false)
+              return 321
+            }
+          } else {
+            arktest.assertTrue(args[0] instanceof string)
+            arktest.assertTrue(args[1] instanceof int)
+            arktest.assertEQ(args[0], "cba")
+            arktest.assertEQ(args[1], 789)
+            return "abc"
+          }
+        } else {
+          arktest.assertTrue(args[0] instanceof int)
+          arktest.assertEQ(args[0], 987)
+          return true
+        }
+      }
+    call: |-
+      let res1 = foo(456, true)
+      arktest.assertTrue(res1 instanceof int)
+      arktest.assertEQ(res1, 123)
+      let res2 = foo("efg", false)
+      arktest.assertTrue(res2 instanceof int)
+      arktest.assertEQ(res2, 321)
+      let res3 = foo("cba", 789)
+      arktest.assertTrue(res3 instanceof string)
+      arktest.assertEQ(res3, "abc")
+      let res4 = foo(987)
+      arktest.assertTrue(res4 instanceof boolean)
+      arktest.assertEQ(res4, true)
+
+  - decl: |-
+      class A {}
+      class B extends A {
+        b_method(): int {
+          return 123
+        }
+      }
+      class C extends A {
+        c_method(): int {
+          return 567
+        }
+      }
+      function foo(x: string): string
+      function foo(x: A): int
+      function foo(...args: Any[]): Any {
+        let arg0 = args[0]
+        if (arg0 instanceof B){
+          return arg0.b_method()
+        }
+        else if (arg0 instanceof C){
+          return arg0.c_method()
+        } else {
+          arktest.assertTrue(arg0 instanceof string)
+          return arg0 + "c"
+        }
+      }
+    call: |-
+      let res1 = foo(new B())
+      let res2 = foo(new C())
+      let res3 = foo("ab")
+      arktest.assertTrue(res1 instanceof int)
+      arktest.assertEQ(res1, 123)
+      arktest.assertTrue(res2 instanceof int)
+      arktest.assertEQ(res2, 567)
+      arktest.assertTrue(res3 instanceof string)
+      arktest.assertEQ(res3, "abc")
+
+  - decl: |-
+      class A {}
+      class B extends A {}
+      class C extends A {}
+      function foo(x: A): C
+      function foo(x: B): B
+      function foo(...args: Any[]): Any {
+        if (args[0] instanceof A){
+          return new C()
+        }
+        else {
+          arktest.assertTrue(args[0] instanceof B)
+          return new B()
+        }
+      }
+    call: |-
+      let res = foo(new B())
+      arktest.assertTrue(res instanceof C)
+
+  - decl: |-
+      class A {}
+      class B extends A {
+        b_method(): int {
+          return 123
+        }
+      }
+      type HandlerAInt = (a: A, b: int) => int
+      const handlerAInt: HandlerAInt = (a: A, b: int): int => {
+        if (a instanceof B){
+          return a.b_method() + b
+        } else {
+          return b
+        }
+      }
+      type HandlerA = (a: A) => int
+      const handlerA: HandlerA = (a: A): int => {
+        if (a instanceof B){
+          return a.b_method()
+        } else {
+          return 0
+        }
+      }
+      type HandlerNothing = () => int
+      const handlerNothing: HandlerNothing = (): int => {
+        return 567
+      }
+      function foo(x: string): string
+      function foo(x: A, fb: (a: B, b: int) => int): int
+      function foo(...args: Any[]): Any {
+        let arg0 = args[0]
+        if (arg0 instanceof B){
+          let f = args[1] as ((a: B, b: int) => int)
+          return f(arg0, 7)
+        } else {
+          arktest.assertTrue(arg0 instanceof string)
+          return arg0 + "c"
+        }
+      }
+    call: |-
+      let res1 = foo(new B(), handlerAInt)
+      let res2 = foo(new B(), handlerA)
+      let res3 = foo(new B(), handlerNothing)
+      let res4 = foo("ab")
+      arktest.assertTrue(res1 instanceof int)
+      arktest.assertEQ(res1, 130)
+      arktest.assertTrue(res2 instanceof int)
+      arktest.assertEQ(res2, 123)
+      arktest.assertTrue(res2 instanceof int)
+      arktest.assertEQ(res2, 567)
+      arktest.assertTrue(res3 instanceof string)
+      arktest.assertEQ(res3, "abc")
+
+  - decl: |-
+      class A {}
+      class B extends A {
+        field: int
+        constructor(field: int) {
+          this.field = field
+        }
+      }
+      type HandlerA = (a: A) => B
+      const handlerA: HandlerA = (a: A): B => {
+        if (a instanceof B){
+          return new B(a.field + 123)
+        } else {
+          return new B(0)
+        }
+      }
+      type HandlerNothing = () => B
+      const handlerNothing: HandlerNothing = (): B => {
+        return new B(567)
+      }
+      function foo(x: string): string
+      function foo(x: A, fb: (x: B) => A): int
+      function foo(...args: Any[]): Any {
+        let arg0 = args[0]
+        if (arg0 instanceof B){
+          let f = args[1] as ((x: B) => A)
+          let f_res = f(arg0)
+          if (f_res instanceof B) {
+            return f_res.field
+          } else {
+            return -1
+          }
+        } else {
+          arktest.assertTrue(arg0 instanceof string)
+          return arg0 + "c"
+        }
+      }
+    call: |-
+      let res1 = foo(new B(7), handlerA)
+      let res2 = foo(new B(345), handlerNothing)
+      let res3 = foo("ab")
+      arktest.assertTrue(res1 instanceof int)
+      arktest.assertEQ(res1, 130)
+      arktest.assertTrue(res2 instanceof int)
+      arktest.assertEQ(res2, 567)
+      arktest.assertTrue(res3 instanceof string)
+      arktest.assertEQ(res3, "abc")
+
+  - decl: |-
+      class A {}
+      class B extends A {
+        b_method(): int {
+          return 123
+        }
+      }
+      function foo(x: string): string
+      function foo(x: A, fb: (a: B, b: int) => int): int
+      function foo(...args: Any[]): Any {
+        let arg0 = args[0]
+        if (arg0 instanceof B){
+          let f = args[1] as ((a: B, b: int) => int)
+          return f(arg0, 7)
+        } else {
+          arktest.assertTrue(arg0 instanceof string)
+          return arg0 + "c"
+        }
+      }
+    call: |-
+      let i: int = 10
+      const lambda1 = (a: B, b: int) => a.b_method() + b + i
+      const lambda2 = (a: B) => a.b_method() + i
+      const lambda3 = () => i + 10
+      let res1 = foo(new B(), lambda1)
+      let res2 = foo(new B(), lambda2)
+      let res3 = foo(new B(), lambda3)
+      let res4 = foo("ab")
+      arktest.assertTrue(res1 instanceof int)
+      arktest.assertEQ(res1, 140)
+      arktest.assertTrue(res2 instanceof int)
+      arktest.assertEQ(res2, 133)
+      arktest.assertTrue(res2 instanceof int)
+      arktest.assertEQ(res2, 20)
+      arktest.assertTrue(res3 instanceof string)
+      arktest.assertEQ(res3, "abc")

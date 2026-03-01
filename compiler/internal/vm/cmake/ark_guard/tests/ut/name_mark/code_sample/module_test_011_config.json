@@ -1,0 +1,12 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep package module_test_011 {\n    field1:std.core.Tuple?;\n    field2:std.core.Tu?le2;\n}"
+      ]
+    }
+  }
+}

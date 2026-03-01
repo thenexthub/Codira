@@ -1,0 +1,112 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+    # 0
+    - sig2: 'p1: byte, p2: short, p3: int, p4: long, p5: float, p6: double, p7: boolean, p8: char'
+
+    # 1
+    - sig2: 'p1: Byte, p2: Short, p3: Int, p4: Long, p5: Float, p6: Double, p7: Boolean, p8: Char'
+
+    # 2
+    - sig2: 'p1: FixedArray<Int>, p2: Object, p3: FixedArray<Int>'
+
+    # 3
+    - sig2: 'p1: FixedArray<A3>, p2: FixedArray<Object>'
+      decl: |-
+          export class A3 {}
+          export class B3 {}
+
+    # 4
+    - sig2: 'p1: [string, int], p2: [string, int]'
+
+    # 5
+    - sig2: 'p: (p1: Byte, p2: Short, p3: Int, p4: Long, p5: Float, p6: Double, p7: Boolean) => [Byte, Short, Int, Long, Float, Double, Boolean, Char]'
+
+    # 6
+    - sig2: 'p2: () => Object|null'
+
+    # 7
+    - sig2: 'p1: Color, p2: Color'
+      decl: |-
+          export enum Color { Red, Green, Blue }
+          export enum Size { S, M, L, XL }
+
+    # 8
+    - sig2: 'p1: A8, p2?: Object'
+      decl: |-
+          export class A8 {}
+          export class B8 {}
+
+    # 9
+    - sig2: 'p1: B9, p2?: B9'
+      decl: |-
+          export class A9 {}
+          export class B9 {}
+
+    # 10
+    - sig2: 'p1: B10, p2: B10 = new B10()'
+      decl: |-
+          export class A10 {}
+          export class B10 {}
+
+    # 11
+    - sig2: 'p1: Object, ...p2: boolean[]'
+
+    # 12
+    - sig2: 'p1: Object|null'
+
+    # 13
+    - sig2: 'p1: Object|undefined'
+
+    # 14
+    - sig2: 'p1: Object|null'
+
+    # 15
+    - sig2: 'p1: Object|null'
+
+    # 16
+    - sig2: 'p1: Object|undefined'
+
+    # 17
+    - sig2: 'p1: Object|null'
+
+    # 18
+    - sig2: 'p2: Error|Double|null'
+
+    # 19
+    - sig2: 'p1: number, p2: number'
+
+    # 20
+    - sig2: 'p1: A20, p2: A20'
+      decl: |-
+          export class A20 {}
+          export class B20 extends A20 {}
+
+    # 21
+    - sig2: 'p1: boolean|string, p2: number|boolean, p3: string[]|number, p4: boolean[]|string[], p5: number[]|boolean[], p6: undefined|null|number[]'
+
+    # 22
+    - sig2: 'p1: Int|null'
+
+    # 23
+    - sig2: 'p1: B23'
+      decl: |-
+          export class A23 {
+              f1: int
+              f2: int
+          }
+          export class B23 {
+              f1: long
+              f2: long
+          }

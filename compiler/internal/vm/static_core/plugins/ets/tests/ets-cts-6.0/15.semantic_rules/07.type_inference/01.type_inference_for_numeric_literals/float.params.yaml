@@ -1,0 +1,59 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+---
+cases:
+  # literal
+  - { use: "1.0f", expected_type: float }
+  - { use: "1.0", expected_type: double }
+  # literal minus
+  - { use: "-1.0f", expected_type: float }
+  - { use: "-1.0", expected_type: double }
+  # explicit type of variable
+  # literal
+  - { use: "1.0f", use_type: ": float", expected_type: float }
+  - { use: "1.0", use_type: ": double", expected_type: double }
+  # literal minus
+  - { use: "-1.0f", use_type: ": float", expected_type: float }
+  - { use: "-1.0", use_type: ": double", expected_type: double }
+  # add
+  - { use: "1.0f + 1.0f", use_type: ": float", expected_type: float }
+  - { use: "1.0 + 1.0", use_type: ": double", expected_type: double }
+  # subtract
+  - { use: "1.0f - 1.0f", use_type: ": float", expected_type: float }
+  - { use: "1.0 - 1.0", use_type: ": double", expected_type: double }
+  # multiply
+  - { use: "1.0f * 1.0f", use_type: ": float", expected_type: float }
+  - { use: "1.0 * 1.0", use_type: ": double", expected_type: double }
+  # divide
+  - { use: "1.0f / 1.0f", use_type: ": float", expected_type: float }
+  - { use: "1.0 / 1.0", use_type: ": double", expected_type: double }
+  # ternary
+  - { use: "condition_true ? 1.0f : 1.0", use_type: ": float", expected_type: float }
+  - { use: "condition_true ? 1.0 : 1.0f", use_type: ": double", expected_type: double }
+  # union type valid narrowing
+  - { use: "Double.MAX_VALUE", use_type: ": float | double", expected_type: double }
+  - { use: "Double.MIN_VALUE", use_type: ": float | double", expected_type: double }
+
+# whether to use const to initialise
+const_to_initialise:
+  - "true"
+  - "false"

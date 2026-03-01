@@ -1,0 +1,68 @@
+/*
+ * Copyright (c) 2021-2024 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "disassembler.h"
+
+namespace ark::disasm {
+
+pandasm::Type Disassembler::PFTypeToPandasmType(const panda_file::Type& type, panda_file::ProtoDataAccessor& pda,
+                                                size_t& refIdx) const {
+    pandasm::Type pandasmType;
+
+    switch (type.GetId()) {
+% PandaFile::types.each do |type|
+    case panda_file::Type::TypeId::<%= type.name.upcase %>:
+% if (type.name == "reference")
+        pandasmType = pandasm::Type::FromDescriptor(StringDataToString(file_->GetStringData(pda.GetReferenceType(refIdx++))));
+% elsif (type.name == "tagged")
+        pandasmType = pandasm::Type("any", 0);
+% else
+        pandasmType = pandasm::Type("<%= type.name %>", 0);
+% end
+        break;
+% end
+    }
+
+    return pandasmType;
+}
+
+pandasm::Type Disassembler::FieldTypeToPandasmType(const uint32_t& type) const {
+    pandasm::Type fieldType;
+
+    auto pfType = panda_file::Type::GetTypeFromFieldEncoding(type);
+
+    switch (pfType.GetId()) {
+% PandaFile::types.each do |type|
+% if (type.name != "reference" && type.name != "tagged")
+    case panda_file::Type::TypeId::<%= type.name.upcase %>:
+        fieldType = pandasm::Type("<%= type.name %>", 0);
+        break;
+% end
+% end
+    case panda_file::Type::TypeId::TAGGED:
+        fieldType = pandasm::Type("any", 0);
+        break;
+    default:
+        panda_file::File::EntityId fieldId(type);
+        std::string typeName = StringDataToString(file_->GetStringData(fieldId));
+
+        fieldType = pandasm::Type::FromDescriptor(typeName);
+        break;
+    }
+
+    return fieldType;
+}
+
+} // namespace ark::disasm

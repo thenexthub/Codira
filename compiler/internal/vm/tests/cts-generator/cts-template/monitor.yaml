@@ -1,0 +1,371 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+definitions:
+  - name: PandaAssembly
+    template: |
+      .language PandaAssembly
+      .record panda.Class <external>
+      .record panda.Object <external>
+      .record panda.String <external>
+      .record panda.Thread <external>
+      .record panda.Enum <external>
+      .record panda.Thread$State <external, panda.enum>
+      .record panda.Runnable <external, panda.interface>
+      .record panda.NullPointerException <external>
+      .record panda.IllegalMonitorStateException <external>
+
+      .function void panda.Object.ctor(panda.Object a0) <external, ctor>
+
+      .function panda.String panda.Enum.name(panda.Enum a0) <external>
+
+      .function u1 panda.Thread.holdsLock(panda.Object a0) <static, external>
+      .function panda.Thread$State panda.Thread.getState(panda.Thread a0) <external>
+      .function void panda.Thread.setDaemon(panda.Thread a0, u1 a1) <external>
+      .function void panda.Thread.start(panda.Thread a0) <external>
+      .function void panda.Thread.ctor(panda.Thread a0, panda.Runnable a1) <external, ctor>
+
+      .function u1 panda.String.equals(panda.String a0, panda.Object a1) <external>
+
+      .record RL <panda.implements=panda.Runnable> {
+        panda.Object monitor
+        u1 entered_monitor <panda.volatile>
+      }
+
+      .function void RL.ctor(RL a0, panda.Object a1) <ctor> {
+        call.short panda.Object.ctor, a0
+        lda.obj a1
+        stobj.obj a0, RL.monitor
+        return.void
+      }
+
+      .function void RL.run(RL a0) <panda.access=public> {
+        ldobj.obj a0, RL.monitor
+        monitorenter
+      loop:
+        ldai 1
+        stobj a0, RL.entered_monitor
+        jmp loop
+        return.void
+      }
+
+      .function panda.Object getNull() {
+        lda.null
+        return.obj
+      }
+tests:
+  - file-name: 'monitor'
+    isa:
+      title: Monitor instructions
+      description: |
+        Monitor instructions are used to synchronize object access between threads. Each object
+        is associated with a monitor, each monitor has a counter that allows to control access to
+        the monitor object.
+        These instructions take object reference in accumulator as input. If accumulator contains null then
+        NullPointerException is thrown.
+        On monitorenter VM thread tries to get ownership of the monitor in the following manner: if
+        monitor count is equal to zero, then it means that monitor doesn't belong to any thread. In
+        that case monitor is acquired by thread and monitor count is set to 1. The thread becomes the
+        monitor owner. If monitor is alread belongs to the thread, monitor count is incremented by one.
+        If monitor belongs to another thread, current thread is blocked and may try to enter the monitor
+        again.
+        On monitorexit VM thread release monitor in the following manner: thread decrements monitor count.
+        If monitor count turns out to be zero after than, then thread exits monitor and monitor is not longer
+        acquired. Other threads may try to gain ownership of the monitor. If thread tries to execute monitorexit
+        on the monitor which it doesn't own, IllegalMonitorStateException is thrown.
+    commands:
+      - file-name: 'null_monitor'
+        description: Check panda.NullPointerException when accumulator contains null
+        isa:
+          instructions:
+            - sig: monitorenter
+              acc: in:ref
+              prefix: PandaAssembly
+              exceptions: [x_null]
+              format: [pref_op_none]
+            - sig: monitorexit
+              acc: in:ref
+              prefix: PandaAssembly
+              format: [pref_op_none]
+          exceptions:
+            - x_null
+        header-template: ['PandaAssembly']
+        tags: ['irtoc_ignore']
+        runner-options: ['use-pa']
+        check-type: empty
+        code-template: |
+          .function i32 main() {
+            jmp try_begin
+          catch_NPE_block_begin:
+            ldai 0
+            return
+          try_begin:
+            call.short getNull
+            %s
+            ldai 1
+            return
+          try_end:
+          .catch panda.NullPointerException, try_begin, try_end, catch_NPE_block_begin
+          }
+        cases:
+          - values: ['monitorenter']
+          - values: ['monitorexit']
+
+      - file-name: 'invalid_monitor_type'
+        description: Check verification failure when accumulator contains neither object, not null
+        isa:
+          instructions:
+            - sig: monitorenter
+              acc: in:ref
+              prefix: PandaAssembly
+              exceptions: [x_null]
+              format: [pref_op_none]
+            - sig: monitorexit
+              acc: in:ref
+              prefix: PandaAssembly
+              format: [pref_op_none]
+          verification:
+            - acc_obj_or_null
+        header-template: ['PandaAssembly']
+        runner-options: ['verifier-failure', 'verifier-config', 'use-pa']
+        check-type: exit-positive
+        tags: ['verifier', 'pa-verifier']
+        code-template: |
+          .function i32 main() {
+            %s
+            *s
+        cases:
+          - values: ['monitorenter']
+          - values: ['monitorexit']
+        template-cases:
+          - values:
+              - ldai 0
+          - values:
+              - ldai.64 0
+          - values:
+              - fldai 0
+          - values:
+              - fldai.64 0
+
+      - file-name: 'exit_not_owned_monitor'
+        description: |
+          Check panda.IllegalMonitorStateException on monitorexit when a monitor associated with
+          a value in accumulator not owned by any thread
+        isa:
+          instructions:
+            - sig: monitorexit
+              acc: in:ref
+              prefix: PandaAssembly
+              format: [pref_op_none]
+          exceptions:
+            - x_monitor
+        header-template: ['PandaAssembly']
+        tags: ['irtoc_ignore']
+        runner-options: ['use-pa']
+        check-type: empty
+        code-template: |
+          .function i32 main() {
+            jmp try_begin
+          catch_IMSE_block_begin:
+            ldai 0
+            return
+          try_begin:
+            newobj v0, panda.Object
+            lda.obj v0
+            monitorexit
+            ldai 1
+            return
+          try_end:
+          .catch panda.IllegalMonitorStateException, try_begin, try_end, catch_IMSE_block_begin
+          }
+
+      - file-name: 'exit_monitor_owned_by_other_thread'
+        description: |
+          Check panda.IllegalMonitorStateException on monitorexit when a monitor associated with
+          a value in accumulator is owned by other thread
+        isa:
+          instructions:
+            - sig: monitorexit
+              acc: in:ref
+              prefix: PandaAssembly
+              format: [pref_op_none]
+          exceptions:
+            - x_monitor
+        header-template: ['PandaAssembly']
+        tags: ['irtoc_ignore']
+        runner-options: ['use-pa']
+        check-type: empty
+        code-template: |
+          .function i32 main() {
+            newobj v0, panda.Object
+            initobj.short RL.ctor, v0
+            sta.obj v1
+            initobj panda.Thread.ctor, v1
+            sta.obj v2
+            movi v3, 1
+            call.virt.short panda.Thread.setDaemon, v2, v3
+
+            call.virt.short panda.Thread.start, v2
+          loop:
+            ldobj v1, RL.entered_monitor
+            jeqz loop
+          try_begin:
+            lda.obj v0
+            monitorexit
+          try_end:
+            ldai 1
+            return
+          catch_IMSE_block_begin:
+            ldai 0
+            return
+          .catch panda.IllegalMonitorStateException, try_begin, try_end, catch_IMSE_block_begin
+          }
+
+      - file-name: 'enter_exit_monitor'
+        description: Check how monitor's ownership changed by monitorenter and monitorexit sequences
+        isa:
+          instructions:
+            - sig: monitorexit
+              acc: in:ref
+              prefix: PandaAssembly
+              format: [pref_op_none]
+            - sig: monitorexit
+              acc: in:ref
+              prefix: PandaAssembly
+              format: [pref_op_none]
+        header-template: ['PandaAssembly']
+        runner-options: ['use-pa']
+        code-template: |
+          .function i32 main() {
+            %s
+            *s
+            call.short panda.Thread.holdsLock, v0
+        template-cases:
+          - values:
+            - |
+              #
+                newobj v0, panda.Object
+                lda.obj v0
+          - values:
+            - |
+              #
+                movi v0, 0
+                newarr v0, v0, i32[]
+                lda.obj v0
+        cases:
+          - description: Check that a thread owns a monitor after first monitorexit instruction
+            values:
+              - 'monitorenter'
+            case-check-type: 'check-negative'
+          - description: Check that a thread owns a monitor after several executed monitorexit instructions
+            values:
+              - |
+                #
+                  monitorenter
+                  monitorenter
+            case-check-type: 'check-negative'
+          - description: |
+              Check that a thread does not own a monitor after execution of monitorenter instruction
+              followed by monitorexit instruction
+            values:
+              - |
+                #
+                  monitorenter
+                  monitorexit
+            case-check-type: 'check-positive'
+          - description: |
+              Check that a thread owns a monitor if amount of executed monitorexit instructions is less than amount
+              of executed monitorenter instructions
+            values:
+              - |
+                #
+                  monitorenter
+                  monitorenter
+                  monitorexit
+            case-check-type: 'check-negative'
+          - description: |
+              Check that a thread does not own a monitor if amount of executed monitorexit instructions is the same as
+              amount of executed monitorenter instructions
+            values:
+              - |
+                #
+                  monitorenter
+                  monitorenter
+                  monitorexit
+                  monitorexit
+            case-check-type: 'check-positive'
+
+      - file-name: 'block_on_monitorenter'
+        description: |
+          Check that a thread will be blocked on monitorenter if a monitor is already owned by other thread and
+          will acquired the monitor when other thread will release it
+        isa:
+          instructions:
+            - sig: monitorexit
+              acc: in:ref
+              prefix: PandaAssembly
+              format: [pref_op_none]
+            - sig: monitorexit
+              acc: in:ref
+              prefix: PandaAssembly
+              format: [pref_op_none]
+        header-template: ['PandaAssembly']
+        tags: ['irtoc_ignore']
+        runner-options: ['use-pa']
+        check-type: empty
+        code-template: |
+          .function i32 main() {
+            newobj v0, panda.Object
+            initobj.short RL.ctor, v0
+            sta.obj v1
+            initobj panda.Thread.ctor, v1
+            sta.obj v2
+            movi v3, 1
+            call.virt.short panda.Thread.setDaemon, v2, v3
+
+            lda.obj v0
+            monitorenter
+
+            call.virt.short panda.Thread.start, v2
+
+            lda.str "BLOCKED"
+            sta.obj v3
+            # wait until a thread is blocked on a monitor
+          wait_for_block_loop:
+            call.virt.short panda.Thread.getState, v2
+            sta.obj v4
+            call.short panda.Enum.name, v4
+            sta.obj v4
+            call.virt.short panda.String.equals, v3, v4
+            jeqz wait_for_block_loop
+            # release the monitor
+            lda.obj v0
+            monitorexit
+            # wait until the thread enter the monitor
+          wait_for_enter_loop:
+            ldobj v1, RL.entered_monitor
+            jeqz wait_for_enter_loop
+
+            ldai 0
+            return
+          }

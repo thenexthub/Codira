@@ -1,0 +1,24 @@
+From 52e585158cdd6d076045b87785f05d718529c91b Mon Sep 17 00:00:00 2001
+From: Aleksandr Semenov <smallcsf@gmail.com>
+Date: Mon, 17 Apr 2023 19:53:18 +0300
+Subject: [PATCH 4/4] Mark asmjit headers as system
+---
+ CMakeLists.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 7d352b4..097c8b3 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -403,7 +403,7 @@ if (NOT ASMJIT_EMBED)
+                     CFLAGS     ${ASMJIT_PRIVATE_CFLAGS}
+                     CFLAGS_DBG ${ASMJIT_PRIVATE_CFLAGS_DBG}
+                     CFLAGS_REL ${ASMJIT_PRIVATE_CFLAGS_REL})
+-  target_include_directories(asmjit BEFORE INTERFACE ${ASMJIT_INCLUDE_DIRS})
++  target_include_directories(asmjit SYSTEM BEFORE INTERFACE ${ASMJIT_INCLUDE_DIRS})
+   target_compile_options(asmjit INTERFACE ${ASMJIT_CFLAGS})
+   set_target_properties(asmjit PROPERTIES POSITION_INDEPENDENT_CODE ON)
+   add_library(AsmJit::AsmJit ALIAS asmjit)
+-- 
+2.25.1
+

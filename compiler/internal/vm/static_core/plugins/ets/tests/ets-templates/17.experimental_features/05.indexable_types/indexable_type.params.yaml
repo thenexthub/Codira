@@ -1,0 +1,446 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # positive case, read-write
+    - decl: |-
+          class A {
+              ind: string = ''
+              val: number
+              $_get(i: string): number {
+                  return i == this.ind ? this.val : Number.NaN
+              }
+              $_set(i: string, v: number) {
+                  this.ind = i
+                  this.val = v
+              }
+          }
+      code: |-
+          let a: A = new A
+          a['a'] = 42.0
+          arktest.assertEQ(42.0, a['a'])
+          a['a'] = 43.0
+          arktest.assertEQ(43.0, a['a'])
+
+    # positive case, read-only, no $_set
+    - decl: |-
+          class A {
+              ind: string = ''
+              val: number
+              $_get(i: string): number {
+                  return i == this.ind ? this.val : Number.NaN
+              }
+          }
+      code: |-
+          let a: A = new A
+          arktest.assertTrue(Number.isNaN(a['a']))
+          arktest.assertEQ(0.0, a[''])
+
+    # positive case, read-only, private $_set
+    - decl: |-
+          class A {
+              ind: string = ''
+              val: number
+              $_get(i: string): number {
+                  return i == this.ind ? this.val : Number.NaN
+              }
+              private $_set(i: string, v: number) {
+                  this.ind = i
+                  this.val = v
+              }
+          }
+      code: |-
+          let a: A = new A
+          arktest.assertTrue(Number.isNaN(a['a']))
+          arktest.assertEQ(0.0, a[''])
+
+    # positive case, write-only, no $_get
+    - decl: |-
+          class A {
+              ind: string = ''
+              val: number
+              $_set(i: string, v: number) {
+                  this.ind = i
+                  this.val = v
+              }
+          }
+      code: |-
+          let a: A = new A
+          a['a'] = 42.0
+          arktest.assertEQ(42.0, a.val)
+
+    # positive case, write-only, private $_get
+    - decl: |-
+          class A {
+              ind: string = ''
+              val: number
+              private $_get(i: string): number {
+                  return i == this.ind ? this.val : Number.NaN
+              }
+              $_set(i: string, v: number) {
+                  this.ind = i
+                  this.val = v
+              }
+          }
+      code: |-
+          let a: A = new A
+          a['a'] = 42.0
+          arktest.assertEQ(42.0, a.val)
+
+    # positive case, public read-write
+    - decl: |-
+          class A {
+              ind: string = ''
+              val: number
+              public $_get(i: string): number {
+                  return i == this.ind ? this.val : Number.NaN
+              }
+              public $_set(i: string, v: number) {
+                  this.ind = i
+                  this.val = v
+              }
+          }
+
+          class B extends A {
+              push(ind: string, val: number) {
+                  super[ind] = val
+              }
+              pull(ind: string): number {
+                  return super[ind]
+              }
+          }
+      code: |-
+          let b = new B
+          b.push('a', 11.0)
+          arktest.assertEQ(11.0, b.pull('a'));
+
+    # positive case, protected read-write
+    - decl: |-
+          class A {
+              ind: string = ''
+              val: number
+              protected $_get(i: string): number {
+                  return i == this.ind ? this.val : Number.NaN
+              }
+              protected $_set(i: string, v: number) {
+                  this.ind = i
+                  this.val = v
+              }
+          }
+
+          class B extends A {
+              push(ind: string, val: number) {
+                  super[ind] = val
+              }
+              pull(ind: string): number {
+                  return super[ind]
+              }
+          }
+      code: |-
+          let b = new B
+          b.push('a', 11.0)
+          arktest.assertEQ(11.0, b.pull('a'));
+
+    # positive case, private read-write
+    - decl: |-
+          class B {
+              ind: string = ''
+              val: number
+              private $_get(i: string): number {
+                  return i == this.ind ? this.val : Number.NaN
+              }
+              private $_set(i: string, v: number) {
+                  this.ind = i
+                  this.val = v
+              }
+              public push(ind: string, val: number) {
+                  this[ind] = val
+              }
+              public pull(ind: string): number {
+                  return this[ind]
+              }
+          }
+      code: |-
+          let b = new B
+          b.push('a', 11.0)
+          arktest.assertEQ(11.0, b.pull('a'));
+
+    # positive case, calling as ordinary methods
+    - decl: |-
+          class A {
+              ind: string = ''
+              val: number
+              $_get(i: string): number {
+                  return i == this.ind ? this.val : Number.NaN
+              }
+              $_set(i: string, v: number) {
+                  this.ind = i
+                  this.val = v
+              }
+          }
+      code: |-
+          let a: A = new A
+          a.$_set('a', 42.0)
+          arktest.assertEQ(42.0, a.$_get('a'))
+          a.$_set('a', 43.0)
+          arktest.assertEQ(43.0, a.$_get('a'))
+
+    # positive case, array value
+    - decl: |-
+          let empty: number[] = []
+          class A {
+              ind: string = ''
+              val: number[] = []
+              $_get(i: string): number[] {
+                  return i == this.ind ? this.val : empty
+              }
+              $_set(i: string, v: number[]) {
+                  this.ind = i
+                  this.val = v
+              }
+          }
+      code: |-
+          let a: A = new A
+          a['a'] = [42.0]
+          arktest.assertEQ(42.0, a['a'][0])
+          a['a'] = [43.0, 44.0]
+          arktest.assertEQ(44.0, a['a'][1])
+
+    - decl: |-
+          let empty: number[] = []
+          class A {
+              ind: int
+              val: number[] = []
+              $_get(i: int): number[] {
+                  return i == this.ind ? this.val : empty
+              }
+              $_set(i: int, v: number[]) {
+                  this.ind = i
+                  this.val = v
+              }
+          }
+      code: |-
+          let a: A = new A
+          a[0] = [42.0]
+          arktest.assertEQ(42.0, a[0][0]) 
+          a[1] = [43.0, 44.0]
+          arktest.assertEQ(44.0, a[1][1]) 
+
+    - decl: |-
+          let empty: number[] = []
+          class A {
+              ind: int
+              val: number[] = []
+              $_get(i: int): number[] {
+                  return i == this.ind ? this.val : empty
+              }
+              $_set(i: int, v: number[]) {
+                  this.ind = i
+                  this.val = v
+              }
+          }
+      code: |-
+          let a: A[] = [new A, new A]
+          a[0][0] = [42.0]
+          arktest.assertEQ(42.0, a[0][0][0]) 
+          a[1][1] = [43.0, 44.0]
+          arktest.assertEQ(44.0, a[1][1][1]) 
+
+    # positive case, another indexable class value
+    - decl: |-
+          let empty: number[] = []
+          class A {
+              ind: int
+              val: B = new B
+              $_get(i: int): B {
+                  return i == this.ind ? this.val : new B
+              }
+              $_set(i: int, v: B) {
+                  this.ind = i
+                  this.val = v
+              }
+          }
+          class B {
+              ind: int
+              val: number[] = []
+              $_get(i: int): number[] {
+                  return i == this.ind ? this.val : empty
+              }
+              $_set(i: int, v: number[]) {
+                  this.ind = i
+                  this.val = v
+              }
+          }
+      code: |-
+          let a: A = new A
+          let b1: B = new B
+          a[0] = b1
+          a[0][0] = [42.0]
+          arktest.assertEQ(42.0, a[0][0][0]) 
+          let b2: B = new B
+          a[1] = b2
+          a[1][1] = [43.0, 44.0]
+          arktest.assertEQ(44.0, a[1][1][1])
+
+    # positive case, calling as ordinary methods via method reference
+    - decl: |-
+        class A {
+            ind: string = ''
+            val: number
+            $_get(i: string): number {
+                return i == this.ind ? this.val : Number.NaN
+            }
+            $_set(i: string, v: number) {
+                this.ind = i
+                this.val = v
+            }
+        }
+      code: |-
+        let a: A = new A
+        let sa = a.$_set
+        let sg = a.$_get
+        
+        sa('a', 42.0)
+        arktest.assertEQ(42.0, sg('a'))
+        sa('a', 43.0)
+        arktest.assertEQ(43.0, sg('a'))
+
+    # positive case, calling as ordinary methods
+    - decl: |-
+        type NOS = number | string
+        class A {
+            ind: string = ''
+            val: NOS = Number.NaN
+        
+            $_get(i: string): NOS {
+                return i == this.ind ? this.val : Number.NaN
+            }
+            $_set(i: string, v: number) {
+                this.ind = i
+                this.val = v
+            }
+            $_set(i: string, v: string) {
+                this.ind = i
+                this.val = v
+            }
+        
+        }
+      code: |-
+        let a: A = new A
+        a.$_set('a', 42.0)
+        arktest.assertEQ(42.0, a.$_get('a'))
+        a.$_set('a', '43.0')
+        arktest.assertEQ('43.0', a.$_get('a'))
+
+    # positive case, provide multiple setters
+    - decl: |-
+        type NOS = number | string
+        class A {
+            ind: string = ''
+            val: NOS = Number.NaN
+        
+            $_get(i: string): NOS {
+                return i == this.ind ? this.val : Number.NaN
+            }
+            $_set(i: string, v: number) {
+                this.ind = i
+                this.val = v
+            }
+            $_set(i: string, v: string) {
+                this.ind = i
+                this.val = v
+            }
+        
+        }
+      code: |-
+        let a: A = new A
+        a['a'] = 42.0
+        arktest.assertEQ(42.0, a.$_get('a'))
+        a['a'] = '43.0'
+        arktest.assertEQ('43.0', a.$_get('a'))   
+
+    # positive case, calling as ordinary methods with trailing lambda arg
+    - decl: |-
+        type TL = () => number
+        class A {
+            ind: string = ''
+            val: number
+            $_get(i: string): number {
+                return i == this.ind ? this.val : Number.NaN
+            }
+            $_set(i: string, v: TL) {
+                this.ind = i
+                this.val = v()
+            }
+        }
+      code: |-
+        let a: A = new A
+        a.$_set('a') {
+          return 42.0
+        }
+        arktest.assertEQ(42.0, a.$_get('a'))
+        a.$_set('a') {
+          return 43.0
+        }
+        arktest.assertEQ(43.0, a.$_get('a'))
+
+    # positive case, provide multiple setters with overload
+    - decl: |-
+        type NOS = number | string
+        class A {
+            ind: string = ''
+            val: NOS = Number.NaN
+        
+            $_get(i: string): NOS {
+                return i == this.ind ? this.val : Number.NaN
+            }
+        
+            set_N(i: string, v: number) {
+                this.ind = i
+                this.val = v
+            }
+            set_S(i: string, v: string) {
+                this.ind = i
+                this.val = v
+            }
+            overload $_set { set_N, set_S }
+        
+        }
+      code: |-
+        let a: A = new A
+        a['a'] = 42.0
+        arktest.assertEQ(42.0, a.$_get('a'))
+        a.$_set('a', '43.0')
+        arktest.assertEQ('43.0', a.$_get('a'))
+
+    # positive case, calling as indexed with IIFE
+    - decl: |-
+        type TL = () => number
+        class A {
+            ind: string = ''
+            val: number
+            $_get(i: string): number {
+                return i == this.ind ? this.val : Number.NaN
+            }
+            $_set(i: string, v: TL) {
+                this.ind = i
+                this.val = v()
+            }
+        }
+      code: |-
+        let a: A = new A
+        a['a'] = (() => { return 42.0 })
+        arktest.assertEQ(42.0, a.$_get('a'))        
+        a['a'] = (() => { return 43.0 })
+        arktest.assertEQ(43.0, a.$_get('a'))

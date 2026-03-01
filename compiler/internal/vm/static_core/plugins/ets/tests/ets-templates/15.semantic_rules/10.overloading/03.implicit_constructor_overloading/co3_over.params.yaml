@@ -1,0 +1,168 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          // constructor overloaded with multiple parameters with different types
+          class A {
+              i: int
+              d: double
+              s: string = ""
+              constructor() {}
+              constructor(i: int) { this.i = i }
+              constructor(i: int, j: int) { this.i = i + j }
+              constructor(i: int, j: int, k: int) { this.i = 3 }
+              constructor(i: int, j: double) { this.d = j + i }
+              constructor(i: int, j: int, k: double) { this.d = 123.0 }
+              constructor(i: double, j: double, k: int) { this.d = i + j + k }
+              constructor(i: string, j: double) { this.s = i + j }
+          }
+      use: |-
+          let a: A = new A()
+          arktest.assertEQ(a.i, 0)
+          arktest.assertEQ(a.d, 0.0)
+          arktest.assertEQ(a.s, "")
+          a = new A(12345)
+          arktest.assertEQ(a.i, 12345)
+          arktest.assertEQ(a.d, 0.0)
+          arktest.assertEQ(a.s, "")
+          a = new A(11, 22)
+          arktest.assertEQ(a.i, 33)
+          arktest.assertEQ(a.d, 0.0)
+          arktest.assertEQ(a.s, "")
+          a = new A(1, 2, 3)
+          arktest.assertEQ(a.i, 3)
+          arktest.assertEQ(a.d, 0.0)
+          arktest.assertEQ(a.s, "")
+          a = new A(90, 90.0)
+          arktest.assertEQ(a.i, 0)
+          arktest.assertEQ(a.d, 180.0)
+          arktest.assertEQ(a.s, "")
+          a = new A(0, 0, 0.0)
+          arktest.assertEQ(a.i, 0)
+          arktest.assertEQ(a.d, 123.0)
+          arktest.assertEQ(a.s, "")
+          a = new A(1.0, -1.0, 42)
+          arktest.assertEQ(a.i, 0)
+          arktest.assertEQ(a.d, 42.0)
+          arktest.assertEQ(a.s, "")
+          a = new A("", 0.00014)
+          arktest.assertEQ(a.i, 0)
+          arktest.assertEQ(a.d, 0.0)
+          arktest.assertEQ(a.s, "0.00014")
+
+    - decl: |-
+          // constructor overloaded with optional parameters
+          class A {
+              fld: int
+              constructor(a: Object) { this.fld = 1}
+              constructor(p: int, a: Object) { this.fld = 2 }
+              constructor(p: int, a: int, b?: Object) { this.fld = 3 }
+              constructor(p: int, a: int, b: int, c: Object = new Error()) { this.fld = 4 }
+          }
+      use: |-
+          let a: A = new A(new Error())
+          arktest.assertEQ(a.fld, 1)
+          a = new A(1, a)
+          arktest.assertEQ(a.fld, 2)
+          a = new A(1, 1)
+          arktest.assertEQ(a.fld, 2)
+          a = new A(1, 1, a)
+          arktest.assertEQ(a.fld, 3)
+          a = new A(1, 1, 1)
+          arktest.assertEQ(a.fld, 3)
+          a = new A(1, 1, 1, a)
+          arktest.assertEQ(a.fld, 4)
+
+    - decl: |-
+          // constructor overloaded with value types
+          class A {
+              fld: number
+              constructor(a: boolean) { this.fld = 1.0 }
+              constructor(a: Boolean, b: Number) { this.fld = 5.0 }
+          }
+      use: |-
+          let a = new A(true)
+          arktest.assertEQ(a.fld,  1.0)
+          a = new A(new Boolean())
+          arktest.assertTrue(a.fld == 1.0)
+          a = new A(true, 1.0)
+          arktest.assertTrue(a.fld == 5.0)
+          a = new A(false, new Double())
+          arktest.assertTrue(a.fld == 5.0)
+          a = new A(new Boolean(), new Double())
+          arktest.assertEQ(a.fld, 5.0)
+
+    - decl: |-
+          // constructor overloaded with rest parameters
+          class A {
+              fld: int
+              constructor(a: Error, b: FixedArray<int>) { this.fld = 1 }
+              constructor(a: Error, b: int, ...c: FixedArray<int>) { this.fld = 2 }
+              constructor(a: Error, b: Error, ...c: int[]) { this.fld = 3 }
+              constructor(a: Error, b: Object, c: Object, d: Object) { this.fld = 4 }
+          }
+      use: |-
+          arktest.assertEQ(new A(new Error(), [1]).fld, 1)
+          arktest.assertEQ(new A(new Error(), 1, 2, 3, 4).fld, 2)
+          arktest.assertEQ(new A(new Error(), new Error()).fld, 3)
+          arktest.assertEQ(new A(new Error(), new Object(), new Object(), new Object()).fld, 4)
+
+    - decl: |-
+          // constructor overloaded with type variables
+          class X {}
+          class Y {}
+          class A<T, U> {
+              fld: int
+              constructor(a: T) { this.fld =  1 }
+              constructor(a: T, b: U) { this.fld =  2 }
+              constructor(a: U, b: T, c: U) { this.fld =  3 }
+          }
+      use: |-
+          let a: A<X, Y> = new A<X, Y>(new X())
+          arktest.assertEQ(a.fld, 1)
+          a = new A<X, Y>(new X(), new Y())
+          arktest.assertEQ(a.fld, 2)
+          a = new A<X, Y>(new Y(), new X(), new Y())
+          arktest.assertEQ(a.fld, 3)
+
+    - decl: |-
+          // constructor overloaded with multiple parameters with dependent types
+          class X {}
+          class Y extends X {}
+          class Z extends Y {}
+          class A {
+              fld: int
+              constructor(a: X, b: Y, c: Z) { this.fld =  1 }
+              constructor(a: X, b: Y) { this.fld =  2 }
+              constructor(a: X) { this.fld =  3 }
+          }
+      use: |-
+          let x: X = new X()
+          let y: Y = new Y()
+          let z: Z = new Z()
+          let a: A = new A(x)
+          arktest.assertEQ(a.fld, 3)
+          a = new A(y)
+          arktest.assertEQ(a.fld, 3)
+          a = new A(z)
+          arktest.assertEQ(a.fld, 3)
+          a = new A(x, y)
+          arktest.assertEQ(a.fld, 2)
+          a = new A(z, z)
+          arktest.assertEQ(a.fld, 2)
+          a = new A(x, y, z)
+          arktest.assertEQ(a.fld, 1)
+          a = new A(z, z, z)
+          arktest.assertEQ(a.fld, 1)

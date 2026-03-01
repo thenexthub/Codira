@@ -1,0 +1,153 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+declarations:
+  # classes with no body
+  #0
+  - decl: |-
+      declare class A
+    stdout: |-
+      "Syntax error ESY0004: Ambient class declarations must have a body."
+  #1
+  - decl: |-
+      declare final class B
+    stdout: |-
+      "Syntax error ESY0004: Ambient class declarations must have a body."
+  #2
+  - decl: |-
+      declare abstract class C
+    stdout: |-
+      "Syntax error ESY0004: Ambient class declarations must have a body."
+  #3
+  - decl: |-
+      class A {}
+      declare class B extends A
+    stdout: |-
+      "Syntax error ESY0004: Ambient class declarations must have a body."
+  #4
+  - decl: |-
+      interface A {}
+      declare class B implements A
+    stdout: |-
+      "Syntax error ESY0004: Ambient class declarations must have a body."
+  #5
+  - decl: |-
+      declare class A<T1, T2>
+    stdout: |-
+      "Syntax error ESY0004: Ambient class declarations must have a body."
+
+  # classes fields with initializers
+  #6
+  - decl: |-
+      declare class A {
+          a: number = 1;
+      }
+    stdout: |-
+      "Semantic error ESE0125: Initializers are not allowed in ambient contexts."
+  #7
+  - decl: |-
+      declare final class B {
+          b: number = 1;
+      }
+    stdout: |-
+      "Semantic error ESE0125: Initializers are not allowed in ambient contexts."
+  #8
+  - decl: |-
+      declare abstract class C {
+          c: number = 1;
+      }
+    stdout: |-
+      "Semantic error ESE0125: Initializers are not allowed in ambient contexts."
+  #9
+  - decl: |-
+      class A {}
+
+      declare class B extends A {
+          b: number = 1;
+      }
+    stdout: |-
+      "Semantic error ESE0125: Initializers are not allowed in ambient contexts."
+  #10
+  - decl: |-
+      interface A {}
+
+      declare class B implements A {
+          b: number = 1;
+      }
+    stdout: |-
+      "Semantic error ESE0125: Initializers are not allowed in ambient contexts."
+  #11
+  - decl: |-
+      declare class A<T1, T2>
+    stdout: |-
+      "Syntax error ESY0004: Ambient class declarations must have a body."
+
+  # constructor, method and accessor declarations with bodies
+  #12
+  - decl: |-
+      declare class A {
+          a: number;
+          constructor(a: number) {
+              this.a = a;
+          }
+      }
+    stdout: |-
+      "Semantic error ESE0083: Native, Abstract and Declare methods cannot have body."
+  #13
+  - decl: |-
+      declare final class B {
+          foo(b: number): number { return b }
+      }
+    stdout: |-
+      "Semantic error ESE0083: Native, Abstract and Declare methods cannot have body."
+  #14
+  - decl: |-
+      declare abstract class C {
+          foo(): void { console.log('c') }
+      }
+    stdout: |-
+      "Semantic error ESE0083: Native, Abstract and Declare methods cannot have body."
+  #15
+  - decl: |-
+      class A {}
+
+      declare class B extends A {
+          f: int
+          get foo(): int { return 1 }
+          set foo(f: int) { this.f = f }
+      }
+    stdout: |-
+      "Semantic error ESE0083: Native, Abstract and Declare methods cannot have body."
+
+  # private modifier
+  #16
+  - decl: |-
+      declare class WithPrivateField {
+         private x: int
+      }
+    stdout: |-
+      "Syntax error ESY0238: Methods or fields should not be decorated with private in ambient class."
+  #17
+  - decl: |-
+      declare class WithPrivateMethod {
+          private foo(): int
+      }
+    stdout: |-
+      "Syntax error ESY0238: Methods or fields should not be decorated with private in ambient class."
+  #18
+  - decl: |-
+      declare class WithPrivateConstructor {
+          private constructor()
+      }
+    stdout: |-
+      "Syntax error ESY0238: Methods or fields should not be decorated with private in ambient class."

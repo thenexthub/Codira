@@ -1,0 +1,108 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    - decl: |-
+          function foo(p?: Object, q: Object) {}  // CTE, default before required
+      call: foo(new Object(), new Object())
+
+    - decl: |-
+          function foo(p: string = 'abc', q: string) {}  // CTE, default before required
+      call: foo('def', 'ghi')
+
+    - decl: |-
+          function foo(e: string = 'abc') {
+              e = null;    // CTE, cannot assign null to string type
+          }
+      call: foo()
+
+    - decl: |-
+          function foo(e: string = 'abc') {}
+      call: foo(null)  // CTE, cannot set null for string type'
+
+    - decl: |-
+          function foo(e?: string = 'abc') {} // CTE, ambiguity
+      call: foo()
+
+    - decl: |-
+        // omitting different arguments
+        function foo(a: int = 1, b: int = 2, c: int = 3): int {
+          return a + b + c
+        }
+      call: |-
+        arktest.assertEQ( foo(, 11), 15 )
+        arktest.assertEQ( foo(,, 11), 14 )
+        arktest.assertEQ( foo(11,, 11), 24 )
+        arktest.assertEQ( foo(,,), 6 )
+
+    - decl: |-
+        type OptL = () => int
+        function foo(i: int, ov?: OptL = () => 0): int { / CTE, ambiguity
+            return ov()
+        }
+      call: |-
+        foo(0)
+
+    - decl: |-
+        type OptL = () => int
+        class OptionalMethodOwner {
+          test(i: int, ov?: OptL = () => 0): int {
+              return ov()
+          }
+        }
+
+      call: |-
+        const test = new OptionalMethodOwner
+        arktest.assertEQ(0, test.test(1))
+
+    - decl: |-
+        type OptL = () => int
+        class OptionalMethodOwner {
+          static test(i: int, ov?: OptL = () => 0): int {
+              return ov()
+          }
+        }
+
+      call: |-
+        arktest.assertEQ(0, OptionalMethodOwner.test(1))
+
+    - decl: |-
+        //This form with the default value can be used only for functions or methods with an implementation body
+        function foo(p: number | undefined = undefined)
+        function foo(...p: Any[]): Any {}
+      call: foo()
+
+    - decl: |-
+        //This form with the default value can be used only for functions or methods with an implementation body
+        class OMO {
+          foo(p: number | undefined = undefined)
+          foo(...p: Any[]): Any {}
+        }
+      call: |-
+        let test = new OMO
+        test.foo()
+
+    - decl: |-
+        // If type annotation is omitted and type can't be inferred, then a compile-time error occurs
+        function foo (p = {f: 1}) {}
+      call: ''

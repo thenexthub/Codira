@@ -1,0 +1,79 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+        interface Template<T> {
+            foo(p: T): string { return "generic" }
+            foo(p: number): string { return "non-generic" }
+        }
+        class C implements Template<number> {}
+      call: |-
+        let instantiation = new C
+        arktest.assertEQ(instantiation.foo(1), "generic", "Textually first method call expected")
+
+    - decl: |-
+        interface Template<T> {
+            foo(p: number): string { return "non-generic" }
+            foo(p: T): string { return "generic" }
+        }
+        class C implements Template<number> {}
+      call: |-
+        let instantiation = new C
+        arktest.assertEQ(instantiation.foo(1), "non-generic", "Textually first method call expected")
+
+    - decl: |-
+        class A {}
+        interface Template<T> {
+            foo(p: T): int { return 1 }
+            foo(p: A): A { return p }
+        }
+        class C implements Template<A> {}
+      call: |-
+        let instantiation = new C
+        arktest.assertEQ(instantiation.foo(new A), 1, "Textually first method call expected")
+
+    - decl: |-
+        interface Template<U, V> {
+            foo(p1: U, p2: V): string { return "generic" }
+            foo(p1: int, p2: string): string { return "non-generic" }
+        }
+        class C implements Template<int, string> {}
+      call: |-
+        let instantiation = new C
+        arktest.assertEQ(instantiation.foo(1, "str"), "generic", "Textually first method call expected")
+
+    - decl: |-
+        class A {}
+        class B extends A {}
+        interface Template<T extends A> {
+            foo(x: T): string { return "generic" }
+            foo(x: B): string { return "non-generic" }
+        }
+        class C implements Template<B> {}
+      call: |-
+        let instantiation = new C
+        arktest.assertEQ(instantiation.foo(new B), "generic", "Textually first method call expected")
+
+    - decl: |-
+        class A {}
+        class B extends A {}
+        interface Template<T extends A> {
+            foo(x: B): string { return "non-generic" }
+            foo(x: T): string { return "generic" }
+        }
+        class C implements Template<B> {}
+      call: |-
+        let instantiation = new C
+        arktest.assertEQ(instantiation.foo(new B), "non-generic", "Textually first method call expected")

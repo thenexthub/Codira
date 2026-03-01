@@ -1,0 +1,169 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - doc: |-
+          Union type U (U1 | ... | Un) is a subtype of union type V (V1 | ... | Vm) if
+          there is at least one type Vj (i in 1..m) for every type Ui (i in 1..n), i.e., Ui
+          is a subtype of Vj (see Subtyping).
+      decl: |-
+          let a: string | number | boolean = 'abc'
+          let b: string | number = 42
+      check: |-
+          a = 'abc'
+          b = 42
+          arktest.assertTrue(a instanceof String)
+          a = b // OK, u2 is wider
+          arktest.assertTrue(a instanceof number)
+
+    - doc: |-
+          Union type U (U1 | ... | Un) is a subtype of union type V (V1 | ... | Vm) if
+          there is at least one type Vj (i in 1..m) for every type Ui (i in 1..n), i.e., Ui
+          is a subtype of Vj (see Subtyping).
+      decl: |-
+          class Base {}
+          class Derived extends Base {}
+          
+          let x: Base | string = new Base
+          const y: Derived | string = 'just a test'
+      check: |-
+          x = new Base
+          arktest.assertTrue(x instanceof Base)
+          x = y // OK, Derived is subtype of Base
+          arktest.assertTrue(x instanceof String)
+
+    - doc: |-
+          Non-union type T is a subtype of union type U (U1 | ... | Un) if T is assignable to a type of Ui
+      decl: |-
+          let u: number | string = 1 // ok
+      check: |-
+          u = 'aa' // ok
+          arktest.assertTrue(u instanceof String)
+          u = 1 // ok, int is converted to number
+          arktest.assertTrue(u instanceof number)
+
+    - doc: |-
+          Union type U (U1 | ... | Un) is a subtype of non-union type T if each Ui
+          is a subtype of T.
+      decl: |-
+          let a: '1' | '2' = '1'
+      check: |-
+          arktest.assertTrue(a instanceof String)
+          let b: string = a // ok, literals fit type 'string'
+          arktest.assertTrue(b instanceof String)
+
+    - doc: |-
+          If union type normalization produces a single type, then this type is used
+          instead of the initial set of union types.
+      decl: |-
+          let u: 'abc' | 'cde' | string // type of 'u' is string
+      check: |-
+          u = 'xyz'
+          arktest.assertTrue(u instanceof String)
+
+    - doc: |-
+          unions of fixed arrays subtyping
+      decl: |-
+          let ab: FixedArray<'a'>|FixedArray<'b'> = ['a', 'a', 'a']
+          const a: FixedArray<'a'> = ['a', 'a']
+      check: |-
+          ab = a
+          arktest.assertTrue(ab instanceof FixedArray<String>)
+
+    - doc: |-
+          unions of fixed arrays subtyping
+      decl: |-
+          class A {}
+          class B extends A {}
+          class C {}
+          let ac: FixedArray<A>|FixedArray<C> = [new A, new B]
+          let b: FixedArray<B> = [new B, new B]
+      check: |-
+          arktest.assertTrue(b instanceof FixedArray<A>)
+          ac = b
+          arktest.assertTrue(ac instanceof FixedArray<A>)
+
+    - doc: |-
+          unions of functions subtyping
+      decl: |-
+          class A {}
+          class B extends A {}
+          class C {}
+          type FooA = (a: A) => B
+          type FooB = (b: B) => A
+          type FooC = () => C
+          let fooAB: FooB|FooC = (b: B): A => {return b as A}
+      check: |-
+          fooAB = (a: A): B => {return a as B}
+
+    - doc: |-
+          unions with enum subtyping
+      decl: |-
+          enum Color { Red, Green, Blue }
+          type WithEnum = Color|String|Number
+          let v: WithEnum = Color.Green
+      check: |-
+          v = Color.Green
+          arktest.assertTrue(v instanceof Color)
+          v = 'a'
+          arktest.assertTrue(v instanceof String)
+          v = 1.0
+          arktest.assertTrue(v instanceof Number)
+
+    - doc: |-
+          subtyping between unions - subtype with less union members
+      decl: |-
+          class A {}
+          class B {}
+          class C extends A {}
+          class D extends B {}
+          class E {}
+          let cd: C|D = new C
+      check: |-
+          let abe: A|B|E =  new E
+          arktest.assertTrue(abe instanceof E)
+          abe = cd
+          arktest.assertTrue(abe instanceof C)
+
+    - doc: |-
+          subtyping between unions
+      decl: |-
+          class A {}
+          class B {}
+          class E {}
+          class C extends A {}
+          class D extends B {}
+          class F extends E {}
+          let cdf: C|D|F = new F
+      check: |-
+          let abe: A|B|E =  new E
+          arktest.assertTrue(abe instanceof E)
+          abe = cdf
+          arktest.assertTrue(abe instanceof F)
+
+    - doc: |-
+          subtyping between unions - subtype with more union members
+      decl: |-
+          class A {}
+          class B {}
+          class E {}
+          class C extends A {}
+          class D extends B {}
+          class F extends D {}
+          let cdf: C|D|F = new F
+      check: |-
+          let ab: A|B =  new B
+          arktest.assertTrue(ab instanceof B)
+          ab = cdf
+          arktest.assertTrue(ab instanceof F)

@@ -1,0 +1,56 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+{%- for key, data in item.method_name.items() %}
+function test_{{.data}}_{{.key}}(dataView: DataView): void {
+    let ret: number = 0;
+{%- for paramKey, data in item.method_params.items() %}
+    {%- if item.method_params[paramKey]["littleEndian"] != null %}
+    dataView.{{.item.method_name[key]}}({{.item.method_params[paramKey]["byteOffset"]}}, {{.item.method_params[paramKey]["value"]}}, {{.item.method_params[paramKey]["littleEndian"]}})
+    {%- else %}
+    dataView.{{.item.method_name[key]}}({{.item.method_params[paramKey]["byteOffset"]}}, {{.item.method_params[paramKey]["value"]}})
+    {%- endif %}
+
+    {%- if item.method_params2[paramKey]["littleEndian"] != null %}
+    ret = dataView.{{.item.method_name2[key]}}({{.item.method_params2[paramKey]["byteOffset"]}}, {{.item.method_params2[paramKey]["littleEndian"]}})
+    {%- else %}
+    ret = dataView.{{.item.method_name2[key]}}({{.item.method_params2[paramKey]["byteOffset"]}})
+    {%- endif %}
+    arktest.assertTrue(ret == {{.item.expected_test_result[key][paramKey]}})
+{%endfor %}}
+{%endfor %}
+
+function main(): int {
+    let failures = 0
+    let buffer = new ArrayBuffer({{.item.buffer_size}})
+    {%- if item.constructor_params["byteOffset"] != null and item.constructor_params["byteLength"] != null %}
+    let dataView = new DataView(buffer, {{.item.constructor_params["byteOffset"]}}, {{.item.constructor_params["byteLength"]}})
+    {%- elif item.constructor_params["byteOffset"] != null %}
+    let dataView = new DataView(buffer, {{.item.constructor_params["byteOffset"]}})
+    {%- else %}
+    let dataView = new DataView(buffer)
+    {%- endif %}
+{%- for key, data in item.method_name.items() %}
+    test_{{.data}}_{{.key}}(dataView)
+{%endfor %}
+    return failures;
+}

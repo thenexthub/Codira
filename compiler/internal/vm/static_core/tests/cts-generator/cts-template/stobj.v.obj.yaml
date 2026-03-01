@@ -1,0 +1,534 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+definitions:
+  - name: pandasm_header
+    template: |
+      .language PandaAssembly
+      .record panda.Object <external>
+      .record Q {}
+      .record R {
+        u1             fu1
+        u8             fu8
+        i8             fi8
+        u16            fu16
+        i16            fi16
+        u32            fu32
+        i32            fi32
+        u64            fu64
+        i64            fi64
+        f32            ff32
+        f64            ff64
+        # objects
+        i32[]          fi32Array
+        Q              fQ
+        Q[]            fQArray
+        R              fR
+        R[]            fRArray
+        panda.Object   fObj
+        panda.Object[] fObjArray
+      }
+tests:
+  - file-name: "stobj.v.obj"
+    isa:
+      title: Store register content into object field
+      description: >
+        Store register content into object field by field_id.
+      instructions:
+        - sig: stobj.v.obj v1:in:ref, v2:in:ref, field_id
+          acc: none
+          format: [op_v1_4_v2_4_id_16]
+    commands:
+      - file-name: "check_if_regs_initialized"
+        description: Check that verifier reports error if source registers are not initialized.
+        isa:
+          description: Store register content into object field by field_id.
+        header-template: ['pandasm_header']
+        check-type: exit-positive
+        tags: ['verifier']
+        runner-options: ['verifier-failure', 'verifier-config']
+        code-template: |
+          %s
+          .function i32 main() {
+            newobj v0, R
+            %s
+        cases:
+          - values:
+            - ""
+            - stobj.v.obj v1, v0, R.fR
+          - values:
+            - ""
+            - stobj.v.obj v0, v2, R.fR
+          - values:
+            - |
+              # v0 (value) not initialized in the frame
+              .function void check(R a0) <static> {
+                stobj.v.obj v0, a0, R.fR
+                return.void
+              }
+            - call.short check, v0
+          - values:
+            - |
+              # v0 (object) not initialized in the frame
+              .function void check(R a0) <static> {
+                lda.obj a0
+                stobj.v.obj a0, v0, R.fR
+                return.void
+              }
+            - call.short check, v0
+
+      - file-name: "with_null_ref_p"
+        description: Check that NullPointerException is thrown if source ref is null.
+        isa:
+          exceptions:
+            - x_null
+        header-template: ['pandasm_header']
+        tags: []
+        check-type: empty
+        code-template: |
+          .record panda.NullPointerException <external>
+          .function R get_null() {
+            lda.null
+            return.obj
+          }
+          .function i32 main() {
+            call.short get_null
+            sta.obj v2
+            %s
+          try_begin:
+            stobj.v.obj v1, v2, %s
+            ldai 1
+            return
+          try_end:
+            ldai 0
+            return
+          .catch panda.NullPointerException, try_begin, try_end, try_end
+          }
+        cases:
+          - values:
+            - mov.null v1
+            - R.fR
+          - values:
+            - newobj v1, Q
+            - R.fQ
+          - values:
+            - |
+              #
+                movi v1, 10
+                newarr v1, v1, i32[]
+            - R.fi32Array
+
+      - file-name: "with_non_object_ref_p"
+        description: >
+          Check that verifier reports error when the 2nd operand is not a ref to
+          an object (other than array).
+        isa:
+          verification:
+            - v2_object
+        header-template: ['pandasm_header']
+        check-type: exit-positive
+        tags: ['verifier']
+        runner-options: ['verifier-failure', 'verifier-config']
+        code-template: |
+          .function i32 main() {
+            %s
+            newobj v1, Q
+            stobj.v.obj v1, v0, R.fQ   # v0 is not a ref to obj
+        cases:
+          - values:
+            - movi v0, 0
+          - values:
+            - movi v0, 1
+          - values:
+            - movi.64 v0, 0x00
+          - values:
+            - movi.64 v0, 0xCAFECAFECAFECAFE
+          - values:
+            - fmovi.64 v0, 0.0
+          - values:
+            - fmovi.64 v0, 6.62607015
+          - values:
+            - |
+              #
+                movi v1, 10
+                newarr v0, v1, R[]
+
+      - file-name: "with_static_field_id_p"
+        description: >
+          Check that verifier reports error when the field doesn't resolve to
+          a non-static object field.
+        isa:
+          verification:
+            - field_id_non_static
+        header-template: []
+        check-type: exit-positive
+        tags: ['verifier']
+        runner-options: ['verifier-failure', 'verifier-config']
+        code-template: |
+          .record W {
+            W   static_field  <static>
+            W[] static_array  <static>
+          }
+          .function void W.foo(W a0) {
+            return.void
+          }
+          .record random_record {
+            W random_field
+          }
+          .function void random_function() {
+            return.void
+          }
+          .function i32 main() {
+            newobj v0, W
+            mov.null v1
+            stobj.v.obj v1, v0, %s
+        cases:
+          # resolves to a static object field
+          - values:
+            - W.static_field
+            runner-options: ['compile-failure']
+          # resolves to a static object array
+          - values:
+            - W.static_array
+            runner-options: ['compile-failure']
+          # resolves to a non-existing object field
+          - values:
+            - W.field_not_exists
+            runner-options: ['compile-failure']
+          # resolves to objects's method
+          - values:
+            - W.foo
+            runner-options: ['compile-failure']
+          # resolves to some other object
+          - values:
+            - random_record
+            runner-options: ['compile-failure']
+          # resolves to some static function
+          - values:
+            - random_function
+            runner-options: ['compile-failure']
+          # resolves to a field name in a wrong object
+          - values:
+            - random_record.random_field
+          # cannot resolve, because it's a i32 number
+          - values:
+            - 0
+            runner-options: ['compile-failure']
+          # cannot resolve, because it's a f64 number
+          - values:
+            - -1.1
+            runner-options: ['compile-failure']
+          # cannot resolve, because it's a "null" string
+          - values:
+            - "null"
+            runner-options: ['compile-failure']
+
+      - file-name: "with_wrong_v1_type_p"
+        description: >
+          Check that verifier reports error when v1 contains a value of type
+          not corresponding to the bytecode.
+        isa:
+          verification:
+            - v1_type
+        header-template: ['pandasm_header']
+        check-type: exit-positive
+        tags: ['verifier']
+        runner-options: ['verifier-failure', 'verifier-config']
+        code-template: |
+          .function i32 main() {
+            newobj v0, R
+            %s
+            stobj.v.obj v1, v0, %s
+        cases:
+          # store into object field
+          - values:
+            - movi v1, 0
+            - R.fQ
+          - values:
+            - movi.64 v1, 1
+            - R.fQ
+          - values:
+            - fmovi.64 v1, 0x7FFFFFFFFFFFFFFF
+            - R.fQ
+          - values:
+            - |
+              #
+                lda.type R
+                sta.obj v1
+            - R.fQ
+          - values:
+            - newobj v1, panda.Object
+            - R.fQ
+          - values:
+            - |
+              #
+                movi v1, 10
+                newarr v1, v1, Q[]
+            - R.fQ
+          # store into object array field
+          - values:
+            - movi v1, 0
+            - R.fQArray
+          - values:
+            - movi.64 v1, 1
+            - R.fQArray
+          - values:
+            - fmovi.64 v1, 0x7FFFFFFFFFFFFFFF
+            - R.fQArray
+          - values:
+            - newobj v1, Q
+            - R.fQArray
+          - values:
+            - newobj v1, panda.Object
+            - R.fQArray
+          - values:
+            - |
+              #
+                movi v1, 10
+                newarr v1, v1, R[]
+            - R.fQArray
+          - values:
+            - |
+              #
+                movi v1, 10
+                newarr v1, v1, panda.Object[]
+            - R.fQArray
+          # store into i32[] array field
+          - values:
+            - movi v1, 0
+            - R.fi32Array
+          - values:
+            - movi.64 v1, 1
+            - R.fi32Array
+          - values:
+            - fmovi.64 v1, 0x7FFFFFFFFFFFFFFF
+            - R.fi32Array
+          - values:
+            - |
+              #
+                lda.type R
+                sta.obj v1
+            - R.fi32Array
+          - values:
+            - |
+              #
+                movi v1, 10
+                newarr v1, v1, Q[]
+            - R.fi32Array
+          # store into panda.Object field
+          - values:
+            - movi v1, 0
+            - R.fObj
+          - values:
+            - movi.64 v1, 1
+            - R.fObj
+          - values:
+            - fmovi.64 v1, 0x7FFFFFFFFFFFFFFF
+            - R.fObj
+          - values:
+            - newobj v1, panda.Object
+            - R.fObj
+            runner-options: ['verifier-only', 'verifier-config']
+          - values:
+            - |
+              #
+                lda.type R
+                sta.obj v1
+            - R.fObj
+            runner-options: ['verifier-only', 'verifier-config']
+            bugid: ['3594']
+            ignore: true
+          - values:
+            - |
+              #
+                lda.str ""
+                sta.obj v1
+            - R.fObj
+            runner-options: ['verifier-only', 'verifier-config']
+          - values:
+            - mov.null v1
+            - R.fObj
+            runner-options: ['verifier-only', 'verifier-config']
+          - values:
+            - |
+              #
+                movi v1, 10
+                newarr v1, v1, Q[]
+            - R.fObj
+            runner-options: ['verifier-only', 'verifier-config']
+          # store into panda.Object[] field
+          - values:
+            - movi v1, 0
+            - R.fObjArray
+          - values:
+            - movi.64 v1, 1
+            - R.fObjArray
+          - values:
+            - fmovi.64 v1, 0x7FFFFFFFFFFFFFFF
+            - R.fObjArray
+          - values:
+            - newobj v1, panda.Object
+            - R.fObjArray
+          - values:
+            - |
+              #
+                lda.type R
+                sta.obj v1
+            - R.fObjArray
+          - values:
+            - |
+              #
+                lda.str ""
+                sta.obj v1
+            - R.fObjArray
+          - values:
+            - mov.null v1
+            - R.fObjArray
+            runner-options: ['verifier-only', 'verifier-config']
+          - values:
+            - |
+              #
+                movi v1, 10
+                newarr v1, v1, Q[]
+            - R.fObjArray
+            runner-options: ['verifier-only', 'verifier-config']
+          - values:
+            - |
+              #
+                movi v1, 10
+                newarr v1, v1, panda.Object[]
+            - R.fObjArray
+            runner-options: ['verifier-only', 'verifier-config']
+
+      - file-name: "op_v1_4_v2_4_id_16"
+        description: >
+          Check that compiler reports error when the register number
+          is out of 4 bit size.
+        isa:
+          instructions:
+            - sig: stobj.v.obj v1:in:ref, v2:in:ref, field_id
+              acc: none
+              format: [op_v1_4_v2_4_id_16]
+        header-template: ['pandasm_header']
+        runner-options: ['compile-failure']
+        check-type: exit-positive
+        code-template: |
+          .function i32 main() {
+            stobj.v.obj %s, R.fQ
+        cases:
+          - values: ['v15, v15']
+            runner-options: ['compile-only']
+          - values: ['v16, v15']
+          - values: ['v15, v16']
+          - values: ['v255, v0']
+          - values: ['v15, v256']
+          - values: ['v65535, v65535']
+          - values: ['v32767, v0']
+
+      - file-name: "into_all_field_types_p"
+        description: Check that register value is stored in field.
+        isa:
+          description: Store register content into object field by field_id.
+        header-template: ['pandasm_header']
+        check-type: exit-positive
+        tags: ['tsan']
+        code-template: |
+          .function i32 main() {
+            movi v6, 12345
+            newobj v0, R
+            %s
+            ldai 12345
+            stobj.v.obj v1, v0, R.%s
+            jeq v6, cont
+            ldai 2
+            return
+          cont:
+            ldobj.v.obj v2, v0, R.%s
+            lda.obj v2
+            jeq.obj v1, success
+            ldai 1
+            return
+          success:
+        cases:
+          - values:
+            - |
+              #
+                # store null into Q type field
+                mov.null v1
+            - fQ
+            - fQ
+          - values:
+            - |
+              #
+                # store null into Q[] type field
+                mov.null v1
+            - fQArray
+            - fQArray
+          - values:
+            - |
+              #
+                # store null into panda.Object type field
+                mov.null v1
+            - fObj
+            - fObj
+          - values:
+            - |
+              #
+                # store null into panda.Object[] type field
+                mov.null v1
+            - fObjArray
+            - fObjArray
+          - values:
+            - |
+              #
+                # store Q into Q type field
+                newobj v1, Q
+            - fQ
+            - fQ
+          - values:
+            - |
+              #
+                # store Q[] into Q[] type field
+                movi v1, 10
+                newarr v1, v1, Q[]
+            - fQArray
+            - fQArray
+          - values:
+            - |
+                # store Q into panda.Object type field
+                  newobj v1, Q
+            - fObj
+            - fObj
+          - values:
+            - |
+                # store Q[] into panda.Object type field
+                  movi v1, 10
+                  newarr v1, v1, Q[]
+            - fObj
+            - fObj
+          - values:
+            - |
+                # store Q[] into panda.Object[] type field
+                  movi v1, 10
+                  newarr v1, v1, Q[]
+            - fObjArray
+            - fObjArray

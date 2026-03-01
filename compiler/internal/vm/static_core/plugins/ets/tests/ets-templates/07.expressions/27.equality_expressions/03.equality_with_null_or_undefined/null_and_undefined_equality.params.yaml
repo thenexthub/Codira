@@ -1,0 +1,248 @@
+# Copyright (c) 2024-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - use: |-
+        let a: undefined;
+        arktest.assertTrue( a == undefined )
+
+    - use: |-
+        let a: undefined;
+        arktest.assertTrue( a == null )
+
+    - use: |-
+        let a: undefined;
+        arktest.assertFalse( a != null )
+
+    - use: |-
+        let a: undefined;
+        arktest.assertTrue( a !== null )
+
+    - use: |-
+        let a: undefined|null;
+        arktest.assertTrue( a == undefined )
+
+    - use: |-
+        let a: undefined;
+        arktest.assertTrue( a === undefined )
+
+    - use: |-
+        let a: undefined|null;
+        arktest.assertTrue( a === undefined )
+
+    - use: |-
+        let a: undefined;
+        arktest.assertFalse( a != undefined )
+
+    - use: |-
+        let a: undefined|null;
+        arktest.assertFalse( a != undefined )
+
+    - use: |-
+        let a: undefined;
+        arktest.assertFalse( a !== undefined )
+
+    - use: |-
+        let a: undefined|null;
+        arktest.assertFalse( a !== undefined )
+
+    - use: |-
+        let a: null = null;
+        arktest.assertTrue( a == undefined )
+
+    - use: |-
+        let a: null = null;
+        arktest.assertTrue( a == null )
+
+    - use: |-
+        let a: null = null;
+        arktest.assertFalse( a != null )
+
+    - use: |-
+        let a: null = null;
+        arktest.assertFalse( a !== null )
+
+    - use: |-
+        let a: null = null;
+        arktest.assertFalse( a === undefined )
+
+    - use: |-
+        let a: null = null;
+        arktest.assertFalse( a != undefined )
+
+    - use: |-
+        let a: null = null;
+        arktest.assertTrue( a !== undefined )
+
+    - decl: |-
+        class A {}
+      use: |-
+        let a: A|undefined|null;
+        arktest.assertTrue( a == undefined )
+
+    - decl: |-
+        class A {}
+      use: |-
+        let a: A|undefined|null;
+        arktest.assertTrue( a == null )
+
+    - decl: |-
+        class A {}
+      use: |-
+        let a: A|undefined|null;
+        arktest.assertTrue( a !== null )
+
+    - decl: |-
+        class A {}
+      use: |-
+        let a: A|undefined|null = new A();
+        arktest.assertFalse( a == null )
+
+    - decl: |-
+        class A {}
+      use: |-
+        let a: A|undefined|null = new A();
+        arktest.assertFalse( a == undefined )
+
+    - use: |-
+        arktest.assertFalse( ((): void => {}) == null )
+
+    - use: |-
+        arktest.assertFalse( ((): void => {}) == undefined )
+
+    - use: |-
+        arktest.assertFalse( 3 == null )
+
+    - use: |-
+        arktest.assertTrue( 3 != null )
+
+    - use: |-
+        arktest.assertFalse( 3 === null )
+
+    - use: |-
+        arktest.assertTrue( 3 !== null )
+
+    - use: |-
+        let a: number = 3
+        arktest.assertFalse( a == undefined )
+
+    - use: |-
+        arktest.assertFalse( 3 == undefined )
+        
+    - use: |-
+        let a: number = 3
+        arktest.assertTrue( a != undefined )
+
+    - use: |-
+        arktest.assertTrue( 3 != undefined )
+
+    - use: |-
+        let a: number = 3
+        arktest.assertFalse( a === undefined )
+
+    - use: |-
+        arktest.assertFalse( 3 === undefined )
+        
+    - use: |-
+        let a: number = 3
+        arktest.assertTrue( a !== undefined )
+
+    - use: |-
+        arktest.assertTrue( 3 !== undefined )
+
+    - decl: |-
+        function foo(x: string | null): boolean {
+          return x == null;
+        }
+      use: |-
+        arktest.assertTrue( foo(null) )
+
+    - decl: |-
+        function foo(x: string | null): boolean {
+          return x != null;
+        }
+      use: |-
+        arktest.assertFalse( foo(null) )
+
+    - decl: |-
+        function foo(x: String | undefined): boolean {
+          return x != undefined;
+        }
+      use: |-
+        arktest.assertFalse( foo(undefined) )
+
+    - decl: |-
+        function foo(x: string | null | undefined): boolean {
+          return x == null;
+        }
+      use: |-
+        arktest.assertTrue( foo(null) )
+
+    - decl: |-
+        function foo(x: Object | null | undefined): boolean {
+          return x == null;
+        }
+      use: |-
+        arktest.assertTrue( foo(undefined) )
+
+    - decl: |-
+        function foo(x: String | null | undefined): boolean {
+          return x == null;
+        }
+      use: |-
+        arktest.assertTrue( !foo("") )
+
+    - decl: |-
+        class A {}
+      use: |-
+        let a: A;
+        arktest.assertTrue( a != null )
+
+    - decl: |-
+        class A {}
+      use: |-
+        let a: A;
+        arktest.assertTrue( a != undefined );
+
+    - decl: |-
+        function foo(x: string | undefined): boolean {
+          return x == undefined
+        }
+      use: |-
+        arktest.assertTrue( foo(undefined) )
+
+    - decl: |-
+        function foo(x: String | null): boolean {
+          return x == null
+        }
+      use: |-
+        arktest.assertTrue( foo(null) )
+
+    - use: |-
+        //local smart cast
+        let x: string|undefined = "test"
+        arktest.assertFalse(x == undefined)
+        arktest.assertFalse(x === undefined)
+
+    - use: |-
+        //local smart cast
+        let x: string|null = "test"
+        arktest.assertFalse(x == null)
+        arktest.assertFalse(x === null)
+
+    - use: |-
+        arktest.assertTrue(!undefined)
+        arktest.assertTrue(!null)
+    
+    

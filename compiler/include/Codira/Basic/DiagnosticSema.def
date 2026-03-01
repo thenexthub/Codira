@@ -1,0 +1,310 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+ERROR(sema_diag_begin, "")
+ERROR(sema_diag_report_error_message, "%s")
+NOTE(sema_diag_report_note_message, "%s")
+ERROR(sema_incompatible_expo_target_type,
+    "the type of an exponentiation expression is either 'Int64' or 'Float64', which conflicts the type '%s' required "
+    "by the context")
+ERROR(sema_ambiguous_expo_right_operand_type,
+    "both 'Int64' and 'Float64' is compatible with the right operand's type of this exponentiation (assignment) "
+    "expression; please give an explicit one")
+ERROR(sema_not_a_type, "'%s' is not a type")
+ERROR(sema_incompatible_func_body_and_return_type, "the return type of this function cannot be calculated from the function body and all the return expressions")
+ERROR(sema_type_must_toplevel, "%s type must be toplevel")
+ERROR(sema_undeclared_type_name, "undeclared type name '%s'")
+ERROR(sema_undeclared_identifier, "undeclared identifier '%s'")
+ERROR(sema_redefinition, "redefinition of declaration '%s'")
+ERROR(sema_expand_macro_redefinition, "redefinition of macro '%s'")
+NOTE(sema_previous_decl, "'%s' is previously declared here")
+ERROR(sema_used_before_initialization, "variable '%s' is used before initialization")
+ERROR(sema_global_var_used_before_initialization,
+    "global/static variable '%s' is used before initialization during initializing '%s'")
+ERROR(sema_duplicated_item_in_enum, "'%s' is already exist in enum '%s'")
+ERROR(sema_invalid_constructor_in_enum, "invalid constructor in enum declaration")
+ERROR(sema_multiple_constructor_in_enum, "find multiple constructor '%s' of enum declaration")
+ERROR(sema_enum_constructor_type_not_match, "no matching enum constructor '%s' for given arguments")
+ERROR(sema_invalid_enum_member_access, "base of member access can not be enum variable")
+ERROR(sema_invalid_type_param_of_enum_member_access,
+    "type arguments cannot appear after '%s' when enum type '%s' is given")
+ERROR(sema_invalid_loop_control, "'break' or 'continue' must be used inside a loop")
+ERROR(sema_cannot_currying, "%s cannot have more than one parameter list")
+ERROR(sema_value_type_recursive, "value type recursive detected: '%s'")
+ERROR(sema_inheritance_cycle, "inheritance cycle detected: '%s'")
+ERROR(sema_typealias_cycle, "type cycle detected: '%s'")
+ERROR(sema_typealias_external_refer_internal, "'%s' type '%s' refers to '%s' type '%s'")
+ERROR(sema_invalid_coalescing,
+    "type of left operand does not support coalescing operation. coalescing is only valid for 'Option'")
+ERROR(sema_div_zero, "division by 0")
+ERROR(sema_mod_zero, "mod by 0")
+ERROR(sema_arithmetical_op_overflow, "overflow in '%s' calculation")
+ERROR(sema_shift_count_overflow, "shift count overflow")
+ERROR(sema_negative_shift_count, "shift count is negative")
+ERROR(sema_func_capture_var_cannot_assign, "%s captured a mutable variable %s, %s cannot be assigned to a variable")
+ERROR(sema_func_capture_var_cannot_return, "%s captured a mutable variable %s, %s cannot be used as a return value")
+ERROR(sema_func_capture_var_cannot_param, "%s captured a mutable variable %s, %s cannot be used as a param")
+ERROR(sema_func_capture_var_cannot_expr, "%s captured a mutable variable %s, %s cannot be used as a expression")
+ERROR(sema_invalid_unary_expr, "invalid unary operator '%s' on type '%s'")
+NOTE(sema_invalid_unary_expr_note, "you may want to implement operator func %s() for type '%s'")
+ERROR(sema_fail_flow_expr_operand_has_named_param, "flow operand cannot contain named parameter")
+ERROR(sema_operator_overload_invalid_num_parameter, "invalid number of parameters for operator '%s'")
+ERROR(sema_operator_overload_built_in_unary_operator,
+    "operator func %s() of type %s is a built-in function and cannot be overridden")
+ERROR(sema_operator_overload_built_in_binary_operator,
+    "operator func %s(%s) of type %s is a built-in function and cannot be overridden")
+ERROR(sema_operator_overload_can_not_has_default_param,
+    "optional parameter can not be used in operator overload function")
+ERROR(sema_empty_arrayLit_type_undefined, "array literal type cannot be inferred")
+ERROR(sema_inconsistency_elemType, "inconsistent element type for %s literal")
+ERROR(sema_tuple_pattern_not_match, "%s isn't a tuple to match tuple pattern")
+ERROR(sema_unsupport_operator, "not supported operator: '%s'")
+ERROR(sema_array_size_type_error, "array size must be of type Int64")
+ERROR(sema_array_expression_param_type_error, "array init expression parameter's type must be type Int64")
+ERROR(sema_array_expression_type_error, "array init expression must has type (Int64)->T")
+ERROR(sema_array_single_element_type_error, "array init with single element must be subtype of 'List' or 'Collection'")
+ERROR(sema_array_element_type_error, "array initialize element type error")
+ERROR(sema_array_too_much_argument, "too much arguments given for array constructor, only accept 0~2 arguments")
+ERROR(sema_array_first_arg_cannot_be_named, "array's first argument cannot be named argument")
+ERROR(sema_array_second_arg_cannot_be_named, "array's second argument cannot be named argument when type is (Int64)->T")
+ERROR(sema_array_second_wrong_named_arg, "array's second argument must have named prefix 'repeat:' when type is T")
+ERROR(sema_pointer_too_much_argument, "too much arguments given for CPointer constructor, only accept 0~1 arguments")
+ERROR(sema_cfunc_too_many_arguments, "too many arguments given to CFunc constructor, only accept 1 argument")
+ERROR(
+    sema_pointer_single_element_type_error, "the single argument of CPointer constructor must be 'CPointer' or 'CFunc'")
+ERROR(sema_pointer_unknow_generic_type, "'CPointer' generic type cannot be inferred")
+ERROR(sema_builtin_invalid_index, "%s index must be an integer literal")
+ERROR(sema_builtin_index_in_bound, "%s index must be in bounds")
+ERROR(sema_tuple_element_cmp_not_bool, "the '%s' operation between type '%s' and type '%s' is not evaluated to a Bool")
+ERROR(sema_tuple_cmp_not_supported, "operator '%s' between tuple type '%s' and '%s' is not supported")
+ERROR(sema_step_non_zero_range, "step cannot be zero in range expression")
+ERROR(sema_inconsistency_range_elemType, "start and stop must be of the same type in range expression")
+ERROR(sema_range_step_not_int64, "step must be Int64 in range expression")
+ERROR(sema_no_match_function_declaration_for_call, "no matching function declaration for function call '%s'")
+ERROR(sema_no_match_function_declaration_for_ref, "no matching function declaration for function reference '%s'")
+ERROR(sema_no_match_constructor, "no matching constructor for call '%s'")
+ERROR(sema_ambiguous_arg_type, "ambiguous arguments type in call expression")
+ERROR(sema_ambiguous_match, "ambiguous match for function call '%s'")
+ERROR(sema_ambiguous_constructor_match, "ambiguous match for constructor call '%s'")
+ERROR(sema_ambiguous_func_ref, "ambiguous match for reference '%s'")
+ERROR(sema_mismatched_type_for_pattern_in_vardecl, "the pattern in this variable declaration can not match its type")
+ERROR(sema_parameters_and_arguments_mismatch, "parameters and arguments mismatch")
+ERROR(sema_cstruct_cannot_autobox, "struct with @C cannot implicitly used as '%s'")
+ERROR(sema_unit_cannot_as_cfunc_arg, "Unit cannot be used as argument type of CFunc")
+ERROR(sema_overload_conflicts, "%s '%s' has overload conflicts")
+ERROR(sema_no_match_operator_function_call, "no matching function for operator '()' function call")
+ERROR(sema_pattern_can_not_be_assigned, "the pattern isn't irrefutable pattern and it can not be initialized")
+ERROR(sema_unknown_named_argument, "unknown named argument prefix '%s:'")
+ERROR(sema_multiple_named_argument, "named argument prefix '%s:' cannot appeared more than once in call")
+ERROR(sema_invalid_named_arguments, "invalid named arguments prefix '%s:', target is not a named parameter")
+ERROR(sema_unsupport_named_argument, "named argument cannot be used in variable function call")
+ERROR(sema_pattern_literal_expected, "only const literal is allowed in const pattern")
+ERROR(sema_pattern_not_match, "%s pattern is not matched")
+ERROR(sema_not_overload_in_match, "no overloaded '==' function in match case pattern")
+ERROR(sema_type_incompatible, "type incompatible in this %s")
+ERROR(sema_subscript_set_not_supported, "type %s does not have operator func [](index, value) for index type %s")
+ERROR(sema_subscript_get_set_not_supported,
+    "type %s does not have both operator func [](index) and operator func [](index, value) for index type %s")
+ERROR(sema_tuple_pattern_with_correct_size_expected, "tuple pattern with correct size expected")
+ERROR(sema_enum_pattern_param_size_error, "enum pattern's parameters size is wrong")
+ERROR(sema_match_case_must_have_default,
+    "at least one default case, such as wildcard pattern, variable pattern or '[...]' for sequence pattern in match "
+    "case.")
+ERROR(sema_match_case_has_no_type, "this match case has no type")
+ERROR(sema_package_internal_decl_obtain_illegal, "%s '%s' in package '%s' cannot be obtained")
+ERROR(sema_package_name_conflict, "package name '%s' is conflicted with other imported package name, please use 'as' to eliminate conflict.")
+ERROR(sema_invalid_access_control, "can not access field '%s'")
+ERROR(sema_invalid_access_function, "can not access function '%s'")
+ERROR(sema_invalid_file_hash, "There is invalid file hash in access control check")
+ERROR(sema_func_no_override_or_redefine_modifier, "do not need '%s' modifier for %s '%s'")
+ERROR(sema_unexpected_param_for_entry, "'main' cannot be defined with parameter whose type is not 'Array<String>'")
+ERROR(sema_unexpected_return_type_for_entry, "return type of 'main' is not 'Integer' or 'Unit'")
+ERROR(sema_redefinition_entry, "multiple 'main's are found in source files")
+ERROR(sema_missing_entry, "'main' is missing")
+ERROR(sema_numeric_convert_must_be_numeric, "the expression for numeric type conversion must have a numeric type")
+ERROR(sema_cfunc_ctor_must_be_cpointer, "argument type of 'CFunc' constructor must be of type 'CPointer'")
+ERROR(sema_ref_not_be_type, "expected member name or constructor call after '%s' type name")
+ERROR(
+    sema_expr_in_forin_must_has_iterator, "the type %s of expression in for-in expression does not implement Iterator")
+ERROR(sema_forin_pattern_must_be_irrefutable, "the pattern in for-in expression must be irrefutable")
+ERROR(sema_wrong_forin_guard, "pattern guard should be Boolean type")
+ERROR(sema_generics_type_variable_not_defined, "generics type variable '%s' has not defined")
+ERROR(sema_generic_type_argument_not_match_constraint, "generics type arguments do not match the constraint of '%s'")
+NOTE(sema_which_constraint_not_match, "'%s' is not a subtype of %s")
+ERROR(sema_generic_type_without_type_argument, "generic type should be used with type argument")
+ERROR(sema_non_generic_function_with_type_argument, "non-generic function should not be used with type argument")
+ERROR(sema_throw_expr_with_wrong_type, "the object thrown must derive from `core.Exception`")
+ERROR(sema_except_catch_type_error, "the exception catch type must be class and extends from core.Exception or core.Error")
+ERROR(sema_no_core_object, "`core` package should be imported")
+ERROR(sema_invalid_intrinsic_decl, "intrinsic function '%s' cannot be declared in '%s' package")
+ERROR(sema_generic_infinite_instantiation, "generic infinite instantiation")
+ERROR(sema_forbid_generic_nonstatic_method, "non-static generic member function '%s' is not supported")
+ERROR(sema_forbid_generic_constructor, "generic constructor '%s' is not supported")
+ERROR(sema_forbid_generic_finalizer, "generic finalizer '%s' is not supported")
+ERROR(sema_import_not_in_current_module,
+    "this package does not belong to the current module, please write its module name explicitly.")
+ERROR(sema_flow_expressions_use_this_or_super, "'%s' is not allowed to be used in flow expressions")
+ERROR(sema_symbol_not_collected, "reference node named '%s' is not collected in symbol table.")
+ERROR(sema_cannot_convert_literal, "cannot convert %s literal to type '%s'")
+ERROR(sema_cannot_have_parameter, "%s cannot have parameter")
+
+// C FFI Sema Prepare Check.
+ERROR(sema_only_cfunc_can_use_annotation, "only CFunc can use '%s'")
+ERROR(sema_annotation_error_arg_num, "'%s' should have %s arg")
+ERROR(sema_annotation_calling_conv_not_support, "'@CallingConv' have not support '%s' yet")
+ERROR(sema_annotation_invalid_args_type, "'%s' arg should be right type")
+ERROR(sema_unexpected_wrapper, "unexpected %s")
+ERROR(sema_native_var_error, "variable can not be modified with 'foreign' and implicit @C.")
+
+// C FFI Sema Check.
+ERROR(sema_illegal_scope_use_of_annotation, "'%s' can only be used in top-level scope")
+ERROR(sema_illegal_use_of_annotation, "%s cannot be modified with '%s'")
+ERROR(sema_cffi_cannot_have_type_param, "%s cannot have type parameters")
+ERROR(sema_unsafe_function_invoke_failed, "unsafe function or native function should be invoked in unsafe context.")
+ERROR(sema_func_capture_var_not_ctype, "captured variable mustn't be struct with @C")
+ERROR(sema_cfunc_cannot_capture_var, "cannot capture variable %s in CFunc lambda expression")
+ERROR(sema_cfunc_cannot_capture_this, "'%s' is not allowed to be captured in CFunc lambda expression")
+ERROR(sema_illegal_ctype_generic_argument, "generic argument mustn't be struct with @C")
+ERROR(sema_illegal_cpointer_generic_type, "generic type of CPointer must be instantiated with CType")
+ERROR(sema_invalid_cfunc_arg_type, "arguments type of CFunc must be instantiated with CType")
+ERROR(sema_cfunc_type, "cfunc type must be a function type")
+ERROR(sema_invalid_tuple_field_ctype, "tuple member mustn't be struct with @C")
+ERROR(sema_enum_pattern_func_cty_error, "member func '%s' is forbidden in enum '%s' with @C")
+ERROR(sema_enum_pattern_func_param_cty_error, "member func '%s' of enum '%s' mustn't has struct with @C")
+ERROR(sema_illegal_ctype_member, "non-static member variable '%s' of %s '%s' cannot be struct with @C")
+ERROR(sema_illegal_member_of_cstruct, "member variable '%s' of struct '%s' with @C must be instantiated with CType")
+ERROR(sema_cfunc_cannot_have_unit_args, "CFunc cannot have arguments of type Unit")
+ERROR(sema_cstruct_cannot_have_unit_fields, "member variables cannot be type Unit in struct with @C")
+ERROR(sema_cfunc_cannot_have_named_args, "CFunc cannot have named arguments")
+ERROR(sema_cfunc_var_cannot_have_var_param, "CFunc with variable-length parameters cannot be assigned to variables")
+
+// class / interface / struct
+ERROR(sema_inheritance_non_ref_type, "inheritance is not a ref type: '%s'")
+ERROR(sema_class_uninitialized_field,
+    "the uninitialized member variable '%s' is not initialized in the constructor of class or struct")
+ERROR(sema_this_or_super_not_allowed_to_initialize_non_static_member,
+    "'%s' is not allowed to initialize non-static member")
+ERROR(sema_this_or_super_not_allowed_to_initialize_static_member, "'%s' is not allowed to initialize static member")
+ERROR(sema_illegal_usage_of_super_member, "super member '%s' is not allowed to be used before calling super()")
+ERROR(sema_illegal_usage_of_member, "'%s' is not allowed to be accessed before all member variables are initialized")
+ERROR(sema_invalid_assignment_to_this_expr, "cannot assign a value to 'this'")
+ERROR(sema_invalid_override_member_in_class,
+    "cannot override non-abstract %s '%s' with abstract %s")
+ERROR(sema_invalid_override_or_redefine_member_in_interface,
+    "cannot override implemented interface %s '%s' with abstract %s")
+ERROR(sema_illegal_this_in_interface, "'this' can not be used in interface")
+ERROR(sema_use_super_in_interface, "'super' cannot be used in interface")
+ERROR(sema_super_use_error_inside_non_class, "'super' can only be used in class")
+ERROR(sema_assignment_of_member_variable_cannot_use_this_or_super, "'%s' is not allowed to be used in %s")
+ERROR(sema_illegal_super_alone, "invalid super expression, it can only be used on the left-hand side of a dot")
+ERROR(sema_abstract_class_can_not_be_instantiated, "abstract class '%s' can not be instantiated")
+ERROR(sema_interface_can_not_be_instantiated, "interface '%s' can not be instantiated")
+ERROR(sema_non_inheritable_super_class, "super class '%s' is not inheritable")
+ERROR(sema_superclass_must_be_placed_at_first, "super class '%s' must be placed at the beginning of supertype list")
+ERROR(sema_illegal_multi_inheritance, "only one super class may appear in supertype list of class '%s'")
+ERROR(sema_invalid_this_call_outside_ctor, "invalid calling '%s' outside the constructor")
+ERROR(sema_privated_abstract_func_in_class, "private abstract %s is forbidden in abstract class '%s'")
+ERROR(sema_invalid_string_implementation, "the type '%s' should implement interface 'ToString' in the 'core' package")
+ERROR(sema_invalid_tokens_implementation, "the type '%s' should implement interface 'ToTokens' in the 'ast' package")
+ERROR(sema_multiple_primary_constructors, "%s '%s' cannot have more than one primary constructor")
+ERROR(sema_interface_is_not_inheritable, "'%s' interface is not able to be inherited")
+ERROR(sema_interface_is_not_implementable, "'%s' interface is not able to be implemented explicitly")
+ERROR(sema_inherit_duplicate_interface, "%s '%s' inherits or implements duplicate interface '%s'")
+ERROR(sema_return_unit, "return expressions in a constructor must be either 'return' or 'return ()'")
+ERROR(sema_illegal_place_of_calling_this_or_super, "call to '%s' must be first expression in constructor of %s '%s'")
+ERROR(sema_illegal_place_of_calling_this_primary_constructor, "invalid calling 'this' in primary constructor ")
+ERROR(sema_this_super_use_error_outside_class, "'%s' cannot be used outside class or struct or interface")
+ERROR(sema_missing_func_body, "%s '%s' can not be abstract")
+ERROR(sema_interface_member_must_be_implemented, "interface %s '%s' must be implemented in '%s'")
+ERROR(sema_interface_member_must_be_implemented_in_struct, "interface %s '%s' must be implemented in '%s'")
+ERROR(sema_member_variable_can_not_shadow, "the variable '%s' must not shadow a member variable of the supertype")
+ERROR(sema_missing_overridden_func, "'override' %s '%s' does not have an overridden %s in its supertype")
+ERROR(sema_missing_redefined_func, "'redef' %s '%s' does not have a redefined 'static' %s in its supertype")
+ERROR(sema_static_and_non_static_member_cannot_have_same_name,
+    "%s member '%s' cannot have the same name with %s member in %s")
+ERROR(sema_generic_member_type_argument_different,
+    " type argument of function '%s' is different in parent class or interfaces")
+ERROR(sema_c_type_cannot_implement_interface, "c type '%s' cannot implement interface")
+
+ERROR(sema_illegal_access_non_static_member, "'%s' is non-static member, cannot access by type name")
+ERROR(sema_illegal_access_interface_field, "field '%s' cannot be accessed without interface name '%s'")
+ERROR(sema_illegal_access_inner_classlike, "inner %s '%s' cannot be accessed without name '%s'")
+ERROR(sema_cannot_modify_var, "instance member variable '%s' cannot be modified in immutable function")
+ERROR(sema_illegal_capture_this, "'this' is not allowed to be captured in constructor of %s")
+ERROR(sema_object_cannot_access_static_member, "object cannot access static member '%s'")
+ERROR(sema_abstract_method_cannot_be_accessed_directly, "abstract method '%s' cannot be accessed directly")
+ERROR(sema_return_type_invariance,
+    "return type of '%s' can only be class/interface type which implements or inherits the interface type '%s'")
+ERROR(sema_static_members_cannot_call_members, "non-static variable '%s' cannot be referenced from a static context")
+ERROR(sema_class_inherit_non_class_nor_interface, "class '%s' can only inherit a class or implement interfaces")
+ERROR(sema_type_implement_non_interface, "%s '%s' can only implement interface")
+ERROR(sema_interface_inherit_non_interface, "interface '%s' can only inherit interface")
+ERROR(sema_generic_in_operator_overload, "generic is not allowed in operator overload function")
+ERROR(sema_illegal_this_outside_struct_constructor,
+    "'this' is only allowed to be used inside constructor or function for struct")
+ERROR(sema_static_function_cannot_access_non_static_member,
+    "'%s' is non-static member, cannot be accessed by static function '%s'")
+ERROR(sema_static_variable_cannot_access_non_static_member,
+    "'%s' is non-static member, cannot be accessed by static variable")
+ERROR(sema_static_lambdaExpr_cannot_access_non_static,
+    "invalid use of non-static member '%s' in static lambda expression")
+ERROR(sema_redef_modify_static_func, "'redef' cannot be used to modify an instance '%s'")
+ERROR(sema_illegal_member_used_in_open_constructor,
+    "instance member %s '%s' cannot be accessed in the constructor of open class '%s'")
+ERROR(sema_finalizer_forbidden_in_class, "finalizer is forbidden in class '%s' that is %s")
+
+// expose
+ERROR(sema_generic_no_member_match_in_upper_bounds,
+    "no member match for generic member access when searching in upper bounds")
+ERROR(sema_generic_ambiguous_method_match_in_upper_bounds,
+    "ambiguous method '%s' match for generic member access function call when searching in upper bounds")
+ERROR(sema_generic_no_method_match_in_upper_bounds,
+    "no method '%s' match for generic member access function call when searching in upper bounds")
+ERROR(sema_cannot_instantiated_by_incomplete_type,
+    "can not instantiate '%s' by %s for it has unimplemented static member")
+ERROR(sema_invalid_field_expose_access, "'%s' is not a static member of %s '%s'")
+
+// mut
+ERROR(sema_capture_this_or_instance_field_in_func, "'%s' cannot be captured in the %s")
+ERROR(sema_use_this_as_an_expression_in_func, "'this' cannot be used as an expression in the %s")
+ERROR(sema_incompatible_mut_modifier_between_struct_and_interface,
+    "'mut' modifier of '%s' is incompatible with that in interface '%s'")
+ERROR(sema_immutable_function_cannot_access_mutable_function,
+    "immutable function '%s' cannot access mutable function '%s'")
+
+// This
+ERROR(sema_invalid_position_of_this_type, "'This' type is not allowed here")
+
+// Property
+ERROR(sema_property_override_implement_type_diff, "The type of the override/implement property must be the same")
+//
+WARNING(typealias_unused_type_parameters, UNUSED, "type arg(s) %s are not used")
+WARNING(
+    sema_capture_has_shadow_variable, SEMANTICS, "the variable '%s' actually captures this decl %p, can not captures the decl %p")
+WARNING(sema_useless_exception_type, UNUSED, "useless exception type")
+WARNING(sema_ignore_open, UNUSED, "the current member should not have 'open' modifier because it is in a non-inheritable class")
+
+NOTE(sema_found_candidate_decl, "found candidate")
+NOTE(sema_found_possible_candidate_decl, "found possible candidate")
+
+// Do not add diagnostic information below this information.
+ERROR(sema_diag_end, "")

@@ -1,0 +1,262 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    # generic function
+    - decl: |-
+          function test<T>(p: Object) {
+              return p instanceof T
+          }
+
+    - decl: |-
+          function test<T>(p: Object) {
+              return p instanceof Array
+          }
+
+    - decl: |-
+          function test<T>(p: Object) {
+              return p instanceof Array
+          }
+
+    - decl: |-
+          function test<T extends Error>(p: Object) {
+              return p instanceof T
+          }
+
+    - decl: |-
+          function test<T extends Error>(p: Object) {
+              return p instanceof Array
+          }
+
+    - decl: |-
+          function test<T extends string>(p: Object) {
+              return p instanceof Array
+          }
+
+    # generic class
+    - decl: |-
+          class A<T> {
+              test(p: Object) {
+                  return p instanceof T
+              }
+          }
+
+    - decl: |-
+          class A<T> {
+              test(p: Object) {
+                  return p instanceof A
+              }
+          }
+
+    - decl: |-
+          class A<T> {
+              test(p: Object) {
+                  return p instanceof Array
+              }
+          }
+
+    - decl: |-
+          class A<T extends Error> {
+              test(p: Object) {
+                  return p instanceof T
+              }
+          }
+
+    - decl: |-
+          class A<T extends Error> {
+              test(p: Object) {
+                  return p instanceof Array
+              }
+          }
+
+    - decl: |-
+          class A<T extends number> {
+              test(p: Object) {
+                  return p instanceof A
+              }
+          }
+
+    # generic class method
+    - decl: |-
+          class A {
+              test<T>(p: Object) {
+                  return p instanceof T
+              }
+          }
+
+    - decl: |-
+          class A {
+              test<T>(p: Object) {
+                  return p instanceof A<T>
+              }
+          }
+
+    - decl: |-
+          class A {
+              test<T>(p: Object) {
+                  return p instanceof Array
+              }
+          }
+
+    - decl: |-
+          class A {
+              test<T extends Error>(p: Object) {
+                  return p instanceof T
+              }
+          }
+
+    - decl: |-
+          class A {
+              test<T extends Error>(p: Object) {
+                  return p instanceof Array
+              }
+          }
+
+    - decl: |-
+          class A {
+              test<T extends number>(p: Object) {
+                  return p instanceof A<number>
+              }
+          }
+
+    # generic interface
+    - decl: |-
+          interface I<T> {
+              test(p: Object) {
+                  return p instanceof T
+              }
+          }
+
+    - decl: |-
+          interface I<T> {
+              test(p: Object) {
+                  return p instanceof I
+              }
+          }
+
+    - decl: |-
+          interface I<T> {
+              test(p: Object) {
+                  return p instanceof I
+              }
+          }
+
+    - decl: |-
+          interface I<T extends Error> {
+              test(p: Object) {
+                  return p instanceof T
+              }
+          }
+
+    - decl: |-
+          interface I<T extends Error> {
+              test(p: Object) {
+                  return p instanceof I
+              }
+          }
+
+    - decl: |-
+          interface I<T extends string> {
+              test(p: Object) {
+                  return p instanceof I
+              }
+          }
+
+    # generic tuple
+    - decl: |-
+          class A<T, U> {
+              test(p: Object) {
+                  p instanceof [T, U]
+              }
+          }
+
+    - decl: |-
+          class A<T> {
+              test(p: Object) {
+                  p instanceof [T, string]
+              }
+          }
+
+    # generic function
+    - decl: |-
+          function test<T, U>(p: Object) {
+              return p instanceof (p: T) => U
+          }
+
+    - decl: |-
+          function test<T>(p: Object) {
+              return p instanceof (p: T) => void
+          }
+
+    # generic class, covariant type parameter
+    - decl: |-
+          class X {}
+          class Y extends X {}
+          class A<out T> {
+              readonly fld: T
+              constructor(p: T) {
+                  this.fld = p
+              }
+              test() {
+                  return p instanceof T
+              }
+          }
+      use: |-
+          let x = new A<X>(new X)
+          console.log(x.fld instanceof Any)
+
+
+    - decl: |-
+          class A<out T> {
+              test(p: Object) {
+                  return p instanceof A
+              }
+          }
+
+    - decl: |-
+          class A<out T> {
+              test(p: Object) {
+                  return p instanceof Array
+              }
+          }
+
+    - decl: |-
+          class A<out T extends Error> {
+              test(p: Object) {
+                  return p instanceof T
+              }
+          }
+
+    - decl: |-
+          class A<out T extends Error> {
+              test(p: Object) {
+                  return p instanceof Array
+              }
+          }
+
+    - decl: |-
+          class A<out T extends number> {
+              test(p: Object) {
+                  return p instanceof A
+              }
+          }

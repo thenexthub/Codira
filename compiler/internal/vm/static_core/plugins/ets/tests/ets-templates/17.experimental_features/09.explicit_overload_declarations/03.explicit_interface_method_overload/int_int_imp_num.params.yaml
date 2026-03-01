@@ -1,0 +1,117 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - int1: |-
+          m1(p: byte) { return 'byte' }
+          m1(p?: int) { return 'int' } // implicitly overloaded method
+          m2(p: long) { return 'long' }
+          // overloads defined in interface I1
+          overload foo1 { m2, m1 }
+          overload foo2 { m1, m2 }
+      int2: |-
+          // overloads from I1 overridden in I2
+          overload foo1 { m1, m2 }
+          overload foo2 { m2, m1 }
+      use: |-
+          arktest.assertEQ(a.foo1(1 as byte), 'byte')
+          arktest.assertEQ(a.foo1(1 as int), 'int')
+          arktest.assertEQ(a.foo1(1 as long), 'long')
+          arktest.assertEQ(a.foo1(1), 'byte')
+          arktest.assertEQ(a.foo1(), 'int')
+
+          arktest.assertEQ(a.foo2(1 as byte), 'long')
+          arktest.assertEQ(a.foo2(1 as int), 'long')
+          arktest.assertEQ(a.foo2(1 as long), 'long')
+          arktest.assertEQ(a.foo2(1), 'long')
+          arktest.assertEQ(a.foo2(), 'int')
+
+    - int1: |-
+          m1(p: byte): string;
+          m1(p?: int): string; // implicitly overloaded method
+          m2(p: long): string;
+          // overloads defined in interface I1
+          overload foo1 { m2, m1 }
+          overload foo2 { m1, m2 }
+      int2: |-
+          // overridden methods
+          m1(p: byte) { return 'byte' }
+          m1(p?: int) { return 'int' } // implicitly overloaded method
+          m2(p: long) { return 'long' }
+          // overloads from I1 overridden in I2
+          overload foo1 { m1, m2 }
+          overload foo2 { m2, m1 }
+      use: |-
+          arktest.assertEQ(a.foo1(1 as byte), 'byte')
+          arktest.assertEQ(a.foo1(1 as int), 'int')
+          arktest.assertEQ(a.foo1(1 as long), 'long')
+          arktest.assertEQ(a.foo1(1), 'byte')
+          arktest.assertEQ(a.foo1(), 'int')
+
+          arktest.assertEQ(a.foo2(1 as byte), 'long')
+          arktest.assertEQ(a.foo2(1 as int), 'long')
+          arktest.assertEQ(a.foo2(1 as long), 'long')
+          arktest.assertEQ(a.foo2(1), 'long')
+          arktest.assertEQ(a.foo2(), 'int')
+
+    - int1: |-
+          m1(p: byte) { return 'byte' }
+          m1(p?: int) { return 'int' } // implicitly overloaded method
+          m2(p: long) { return 'long' }
+          // overloads defined in interface I1
+          overload m1 { m1, m2 }
+          overload m2 { m2, m1 }
+      int2: |-
+          // overloads from I1 overridden in I2
+          overload m1 { m2, m1 }
+          overload m2 { m1, m2 }
+      use: |-
+          arktest.assertEQ(a.m1(1 as byte), 'long')
+          arktest.assertEQ(a.m1(1 as int), 'long')
+          arktest.assertEQ(a.m1(1 as long), 'long')
+          arktest.assertEQ(a.m1(1), 'long')
+          arktest.assertEQ(a.m1(), 'int')
+
+          arktest.assertEQ(a.m2(1 as byte), 'byte')
+          arktest.assertEQ(a.m2(1 as int), 'int')
+          arktest.assertEQ(a.m2(1 as long), 'long')
+          arktest.assertEQ(a.m2(1), 'byte')
+          arktest.assertEQ(a.m2(), 'int')
+
+    - int1: |-
+          m1(p: byte) { return 'x' }
+          m1(p?: int) { return 'x' } // implicitly overloaded method
+          m2(p: long) { return 'long' }
+          // overloads defined in interface I1
+          overload m1 { m1, m2 }
+          overload m2 { m2, m1 }
+      int2: |-
+          //overridden methods
+          m1(p: byte) { return 'byte' }
+          m1(p?: int) { return 'int' } // implicitly overloaded method
+          // overloads from I1 overridden in I2
+          overload m1 { m2, m1 }
+          overload m2 { m1, m2 }
+      use: |-
+          arktest.assertEQ(a.m1(1 as byte), 'long')
+          arktest.assertEQ(a.m1(1 as int), 'long')
+          arktest.assertEQ(a.m1(1 as long), 'long')
+          arktest.assertEQ(a.m1(1), 'long')
+          arktest.assertEQ(a.m1(), 'int')
+
+          arktest.assertEQ(a.m2(1 as byte), 'byte')
+          arktest.assertEQ(a.m2(1 as int), 'int')
+          arktest.assertEQ(a.m2(1 as long), 'long')
+          arktest.assertEQ(a.m2(1), 'byte')
+          arktest.assertEQ(a.m2(), 'int')

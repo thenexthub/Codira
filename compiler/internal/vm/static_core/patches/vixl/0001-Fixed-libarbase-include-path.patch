@@ -1,0 +1,29 @@
+From 28075ea997384c27635cc7b96942ab9d3dae9084 Mon Sep 17 00:00:00 2001
+From: ivagin <>
+Date: Wed, 11 Jun 2025 21:48:13 +0800
+Subject: [PATCH] Fixed libarbase include path
+
+---
+ src/utils-vixl.h | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/utils-vixl.h b/src/utils-vixl.h
+index 12746635..cbed73c5 100644
+--- a/src/utils-vixl.h
++++ b/src/utils-vixl.h
+@@ -42,9 +42,9 @@
+ #endif
+ 
+ #ifdef VIXL_USE_PANDA_ALLOC
+-#include "mem/arena_allocator_stl_adapter.h"
+-#include "mem/arena_allocator.h"
+-#include "utils/arena_containers.h"
++#include "libarkbase/mem/arena_allocator_stl_adapter.h"
++#include "libarkbase/mem/arena_allocator.h"
++#include "libarkbase/utils/arena_containers.h"
+ #else
+ #include <list>
+ #include <map>
+-- 
+2.42.0-openssl
+

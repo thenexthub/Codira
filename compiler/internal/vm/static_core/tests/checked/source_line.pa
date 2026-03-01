@@ -1,0 +1,96 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+.record Test {}
+
+.function i32 Test.func(i32 a0) {
+    lda a0
+    jeqz exit
+    subi 10
+    return
+exit:
+    return
+}
+
+.function i32 Test.main() {
+    movi v1, 10
+
+    call.short Test.func, v1
+
+    return
+}
+
+.record Test1 {}
+
+.function i32 Test1.func__noinline__(i32 a0, i32 a1) {
+    lda a0
+    shli 1
+    sta v0
+    lda a1
+    muli 2
+    sta v1
+    sub v0, v1
+    return
+
+}
+
+.function i32 Test1.main() {
+    movi v0, 10
+
+    call.short Test1.func__noinline__, v0, v0
+
+    return
+}
+
+#! CHECKER      Check printing source line in ir dump
+#! RUN          force_jit: true, options: "--compiler-regex=Test::main --compiler-dump:source-line", entry: "Test::main"
+#! EVENTS_COUNT /Inline,Test::main,Test::func,.*STATIC,SUCCESS/, 1
+#! METHOD       "Test::main"
+#! PASS_AFTER   "IrBuilder"
+#! INST         "source_line.pa:28"
+#! INST_NEXT    "source_line.pa:30"
+#! INST_NOT     "source_line.pa:18"
+#! METHOD       "Test::main"
+#! PASS_AFTER   "Inline"
+#! INST         "source_line.pa:18"
+#! INST_NEXT    "source_line.pa:30"
+#! INST_NOT     "source_line.pa:28"
+
+#! CHECKER      Check printing source line in ir dump after peepholes and lowering
+#! RUN          force_jit: true, options: "--compiler-regex=Test1::func__noinline__ --compiler-dump:source-line", entry: "Test1::main"
+#! METHOD       "Test1::func__noinline__"
+#! PASS_AFTER   "IrBuilder"
+#! INST         "source_line.pa:37"
+#! INST_NEXT    "source_line.pa:40"
+#! INST         "Shl"
+#! INST_NEXT    "Mul"
+#! INST_NEXT    "Sub"
+#! INST_NOT     "ShlI"
+#! INST_NOT     "Add"
+#! METHOD       "Test1::func__noinline__"
+#! PASS_AFTER   "Codegen"
+#! INST         "source_line.pa:37"
+#! INST_NEXT    "source_line.pa:40"
+#! INST         "ShlI"
+#! INST_NEXT    "Add"
+#! INST_NEXT    "Sub"
+#! INST_NOT     "Mull"

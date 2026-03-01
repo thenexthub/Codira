@@ -1,0 +1,58 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          function foo(...p: number[]): number {
+              return p.length
+          }
+      use: |-
+          let na: number[] = []
+          arktest.assertEQ( foo(...na), 0 )
+
+    - decl: |-
+          function foo(a: number, ...b: Boolean[]): string {
+              return "A"
+          }
+      use: |-
+          let ba: Boolean[] = [new Boolean(true), new Boolean(false)]
+          arktest.assertEQ( foo(1.0, ...ba), "A" )
+
+    - decl: |-
+          class A {}
+          function foo(...p: A[]): string {
+              return "A"
+          }
+      use: |-
+          let v: A[] = [new A()]
+          arktest.assertEQ( foo(...v), "A" )
+
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class C extends B {}
+          function foo(...p: A[]): string {
+              return "A"
+          }
+      use: |-
+          let v: A[] = [new A(), new B(), new C()]
+          arktest.assertEQ( foo(...v), "A" )
+
+    - decl: |-
+          function foo(...a: number[]): string {
+              return "N"
+          }
+      use: |-
+          let arr: number[] = [1.0, 2.0]
+          arktest.assertEQ( foo(...arr, ...arr), "N" )

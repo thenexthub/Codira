@@ -1,0 +1,117 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of string concatenation with not string tests
+cases:
+  - desc: String concats with null.
+    logic: |-
+      arktest.assertEQ("str " + null, "str null");
+  - desc: String concats with undefined.
+    logic: |-
+      arktest.assertEQ("str " + undefined, "str undefined");
+  - desc: String concats with boolean true.
+    logic: |-
+      arktest.assertEQ("boolean " + true, "boolean true");
+  - desc: String concats with boolean false.
+    logic: |-
+      arktest.assertEQ("boolean " + false, "boolean false");
+  - desc: String concats with array.
+    logic: |-
+      arktest.assertEQ("array " + [1, 2], "array 1,2");
+  - desc: String concats with tuple.
+    logic: |-
+      arktest.assertEQ("tuple " + [1, "Two"], "tuple 1,Two");
+  - desc: String concats with enum value.
+    decl: |-
+      enum Color { Red, Green, Blue }
+    logic: |-
+      arktest.assertEQ("color " + Color.Green, "color 1");
+  - desc: String concats with enum explicit value.
+    decl: |-
+      enum Color { Red, Green = 7, Blue }
+    logic: |-
+      arktest.assertEQ("color " + Color.Green, "color 7");
+  - desc: String concats with enum next to explicit value.
+    decl: |-
+      enum Color { Red, Green = 7, Blue }
+    logic: |-
+      arktest.assertEQ("color " + Color.Blue, "color 8");
+  - desc: String concats with string enum value.
+    decl: |-
+      enum Color { Red = 'Red', Green = 'Green', Blue = 'Light Blue' }
+    logic: |-
+      arktest.assertEQ("color " + Color.Blue, "color Light Blue");
+  - desc: String concats with enum item.
+    decl: |-
+      enum Color { Red, Green, Blue }
+    logic: |-
+      arktest.assertEQ("color " + Color[Color.Red], "color Red");
+  - desc: String concats with function.
+    decl: |-
+      function nop() {}
+    logic: |-
+      arktest.assertEQ("function " + nop, "function " + nop.toString());
+  - desc: String concats with variable.
+    decl: |-
+      let v: Int = 2;
+    logic: |-
+      arktest.assertEQ("variable " + v, "variable 2");
+  - desc: String variable concats with number variable.
+    decl: |-
+      let v1: String = "str ";
+      let v2: number = 1;
+    logic: |-
+      arktest.assertEQ(v1 + v2, "str 1");
+  - desc: String concats with constant.
+    decl: |-
+      const c = 2;
+    logic: |-
+      arktest.assertEQ("constant " + c, "constant 2");
+  - desc: String constant concats with number constant.
+    decl: |-
+      const c1 = "str ";
+      const c2 = 1;
+    logic: |-
+      arktest.assertEQ(c1 + c2, "str 1");
+  - desc: String concats with class field.
+    decl: |-
+      class Cat {
+        name: String;
+        constructor(name: String) {
+          this.name = name;
+        }
+      }
+      let cat1 = new Cat("Tom");
+    logic: |-
+      arktest.assertEQ("cat " + cat1.name, "cat Tom");
+  - desc: Static string class field concats with number.
+    decl: |-
+      class Dog {
+        static name = "Pete";
+      }
+    logic: |-
+      arktest.assertEQ(Dog.name + 1, "Pete1");
+  - desc: String concats with returned value.
+    decl: |-
+      class Fish {
+        static swim(): Int { return 1; }
+      }
+    logic: |-
+      arktest.assertEQ("str " + Fish.swim(), "str 1");
+  - desc: String returned value concats with number.
+    decl: |-
+      class Bird {
+        static fly(): String { return "Fly "; }
+      }
+    logic: |-
+      arktest.assertEQ(Bird.fly() + 2, "Fly 2");

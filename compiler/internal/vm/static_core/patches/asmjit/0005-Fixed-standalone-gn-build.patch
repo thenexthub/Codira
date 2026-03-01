@@ -1,0 +1,26 @@
+From 4147290f02a89cac7709c4be2a93f54b3f88ee2d Mon Sep 17 00:00:00 2001
+From: wx1267836 <ermolaeva.varvara@gmail.com>
+Date: Wed, 11 Sep 2024 18:14:41 +0800
+Subject: [PATCH] Fixed standalone gn build
+
+Signed-off-by: varvara <ermolaeva.varvara@gmail.com>
+---
+ BUILD.gn | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/BUILD.gn b/BUILD.gn
+index 5f977b8..c324757 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -19,7 +19,7 @@ config("asmjit_public_config") {
+     include_dirs = [
+         "$ark_third_party_root/asmjit/src",
+     ]
+-    if (ark_standalone_build) {
++    if (ark_static_standalone_build) {
+         ldflags = [ "-lrt" ]
+     }
+ }
+--
+2.37.3-openssl
+

@@ -1,0 +1,471 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          type UT = number | string | null | undefined
+          function foo(p: Number): string {
+              return 'N'
+          }
+          function foo(p: Number|null): string {
+              return 'NN'
+          }
+          function foo(p: UT): string {
+              return 'UT'
+          }
+      use: |-
+          // select the first-match function
+          arktest.assertEQ( foo(new Number()), 'N' )
+          arktest.assertEQ( foo(null), 'NN' )
+          arktest.assertEQ( foo(undefined), 'UT' )
+          arktest.assertEQ( foo('abc'), 'UT' )
+
+
+    - decl: |-
+          type UT = '1' | '2' | '3' | number
+          function foo(p: Number|null): string {
+              return 'NN'
+          }
+          function foo(p: UT): string {
+              return 'UT'
+          }
+      use: |-
+          // select the first-match function
+          arktest.assertEQ( foo(1.0), 'NN' )
+          arktest.assertEQ( foo(null), 'NN' )
+          arktest.assertEQ( foo('1'), 'UT' )
+
+
+    - decl: |-
+          type UT = '1' | '2' | '3' | number
+          function foo(p: Number|null): string {
+              return 'NN'
+          }
+          function foo(p: UT): string {
+              return 'UT'
+          }
+          function foo(p: number): string {
+              return 'N'
+          }
+      use: |-
+          // select the first-match function
+          arktest.assertEQ( foo(1.0), 'NN' )
+          arktest.assertEQ( foo(null), 'NN' )
+          arktest.assertEQ( foo('2'), 'UT' )
+
+    - decl: |-
+          function foo(p: number): string {
+              return 'N'
+          }
+          function foo(p: number|null|undefined): string {
+              return 'NN'
+          }
+      use: |-
+          // select the first-match function
+          arktest.assertEQ( foo(0.0), 'N' )
+          arktest.assertEQ( foo(null), 'NN' )
+          arktest.assertEQ( foo(undefined), 'NN' )
+
+
+    - decl: |-
+          function foo(p: long): string {
+              return 'L'
+          }
+          function foo(p: number): string {
+              return 'N'
+          }
+          let v1: byte = 1
+          let v2: short = 1
+          let v3: int = 1
+          let v4: long = 1
+          let v5: float = 1.0f
+          let v6: double = 1.0
+      use: |-
+          // select function with argument widening
+          arktest.assertEQ( foo(v1), 'L' )
+          arktest.assertEQ( foo(v2), 'L' )
+          arktest.assertEQ( foo(v3), 'L' )
+          arktest.assertEQ( foo(v4), 'L' )
+          arktest.assertEQ( foo(v5), 'N' )
+          arktest.assertEQ( foo(v6), 'N' )
+
+
+    - decl: |-
+          function foo(p: number): string {
+              return 'N'
+          }
+          function foo(p: long): string {
+              return 'L'
+          }
+          let v1: byte = 1
+          let v2: short = 1
+          let v3: int = 1
+          let v4: long = 1
+          let v5: float = 1.0f
+          let v6: double = 1.0
+      use: |-
+          // select function with argument widening
+          arktest.assertEQ( foo(v1), 'N' )
+          arktest.assertEQ( foo(v2), 'N' )
+          arktest.assertEQ( foo(v3), 'N' )
+          arktest.assertEQ( foo(v4), 'N' )
+          arktest.assertEQ( foo(v5), 'N' )
+          arktest.assertEQ( foo(v6), 'N' )
+
+
+    - decl: |-
+          function foo(...p: FixedArray<int>): string {
+              return "IR"
+          }
+          function foo(...p: FixedArray<number>): string {
+              return "NR"
+          }
+      use: |-
+          // select function with rest parameter
+          arktest.assertEQ( foo(0 as byte), "IR" )
+          arktest.assertEQ( foo(0 as short), "IR" )
+          arktest.assertEQ( foo(0 as int), "IR" )
+          arktest.assertEQ( foo(0 as long), "NR" )
+          arktest.assertEQ( foo(0.0f ), "NR" )
+          arktest.assertEQ( foo(0.0 ), "NR" )
+
+
+    - decl: |-
+          function foo(...p: FixedArray<number>): string {
+              return "FAR"
+          }
+          function foo(...p: Array<number>): string {
+              return "AR"
+          }
+      use: |-
+          // select function with rest parameter
+          arktest.assertEQ( foo(1.0), "FAR" )
+          arktest.assertEQ( foo(new Number()), "FAR" )
+
+
+    - decl: |-
+          function foo(...p: Array<number>): string {
+              return "AR"
+          }
+          function foo(...p: FixedArray<number>): string {
+              return "FAR"
+          }
+      use: |-
+          // select function with rest parameter
+          arktest.assertEQ( foo(1.0), "AR" )
+          arktest.assertEQ( foo(new Number()), "AR" )
+
+
+    - decl: |-
+          function foo(p: number, q: number = 0.0): string {
+              return "ND1"
+          }
+          function foo(p: number|null|undefined, q: number = 1.0): string {
+              return "NND1"
+          }
+      use: |-
+          // select function with default parameter
+          arktest.assertEQ( foo(0.0), "ND1" )
+          arktest.assertEQ( foo(new Number()), "ND1" )
+          arktest.assertEQ( foo(0.0, 1.0), "ND1" )
+          arktest.assertEQ( foo(new Number(), new Number()), "ND1" )
+          arktest.assertEQ( foo(null), "NND1" )
+          arktest.assertEQ( foo(null, 0.0), "NND1" )
+          arktest.assertEQ( foo(undefined), "NND1" )
+          arktest.assertEQ( foo(undefined, 0.0), "NND1" )
+
+
+    - decl: |-
+          function foo(p: number|null|undefined, q: number = 1.0): string {
+              return "NND1"
+          }
+          function foo(p: number, q: number = 0.0): string {
+              return "ND1"
+          }
+      use: |-
+          // select function with default parameter
+          arktest.assertEQ( foo(0.0), "NND1" )
+          arktest.assertEQ( foo(new Number()), "NND1" )
+          arktest.assertEQ( foo(0.0, 1.0), "NND1" )
+          arktest.assertEQ( foo(new Number(), new Number()), "NND1" )
+          arktest.assertEQ( foo(null), "NND1" )
+          arktest.assertEQ( foo(null, 0.0), "NND1" )
+          arktest.assertEQ( foo(undefined), "NND1" )
+          arktest.assertEQ( foo(undefined, 0.0), "NND1" )
+
+
+    - decl: |-
+          function foo(p: Number|null|undefined, q?: Number): string {
+              return "NND2"
+          }
+          function foo(p: Number, q?: Number): string {
+              return "ND2"
+          }
+      use: |-
+          // select function with undefined parameter
+          arktest.assertEQ( foo(0.0), "NND2" )
+          arktest.assertEQ( foo(new Number()), "NND2" )
+          arktest.assertEQ( foo(0.0, 1.0), "NND2" )
+          arktest.assertEQ( foo(new Number(), new Number()), "NND2" )
+          arktest.assertEQ( foo(0.0, undefined), "NND2" )
+          arktest.assertEQ( foo(null), "NND2" )
+          arktest.assertEQ( foo(null, undefined), "NND2" )
+          arktest.assertEQ( foo(undefined), "NND2" )
+          arktest.assertEQ( foo(undefined, undefined), "NND2" )
+
+
+    - decl: |-
+          function foo(p: Number, q?: Number): string {
+              return "ND2"
+          }
+          function foo(p: Number|null|undefined, q?: Number): string {
+              return "NND2"
+          }
+      use: |-
+          // select function with undefined parameter
+          arktest.assertEQ( foo(0.0), "ND2" )
+          arktest.assertEQ( foo(new Number()), "ND2" )
+          arktest.assertEQ( foo(0.0, 1.0), "ND2" )
+          arktest.assertEQ( foo(new Number(), new Number()), "ND2" )
+          arktest.assertEQ( foo(0.0, undefined), "ND2" )
+          arktest.assertEQ( foo(null), "NND2" )
+          arktest.assertEQ( foo(null, 0.0), "NND2" )
+          arktest.assertEQ( foo(null, undefined), "NND2" )
+          arktest.assertEQ( foo(undefined), "NND2" )
+          arktest.assertEQ( foo(undefined, 0.0), "NND2" )
+          arktest.assertEQ( foo(undefined, undefined), "NND2" )
+
+
+    - decl: |-
+          function foo(p: number|null|undefined, q: number = 1.0): string {
+              return "NND1"
+          }
+          function foo(...p: number[]): string {
+              return "NR"
+          }
+      use: |-
+          // select function with rest parameter and default parameter
+          arktest.assertEQ( foo(), "NR" )
+          arktest.assertEQ( foo(0.0), "NND1" )
+          arktest.assertEQ( foo(1.0, 2.0), "NND1" )
+          arktest.assertEQ( foo(null), "NND1" )
+          arktest.assertEQ( foo(undefined), "NND1" )
+          arktest.assertEQ( foo(1.0, 2.0, 3.0), "NR" )
+          arktest.assertEQ( foo(1.0, 2.0, 3.0, 4.0), "NR" )
+
+
+    - decl: |-
+          function foo(...p: number[]): string {
+              return "NR"
+          }
+          function foo(p: number|null|undefined, q: number = 1.0): string {
+              return "NND1"
+          }
+      use: |-
+          // select function with rest parameter and default parameter
+          arktest.assertEQ( foo(), "NR" )
+          arktest.assertEQ( foo(0.0), "NR" )
+          arktest.assertEQ( foo(1.0, 2.0), "NR" )
+          arktest.assertEQ( foo(null), "NND1" )
+          arktest.assertEQ( foo(undefined), "NND1" )
+          arktest.assertEQ( foo(1.0, 2.0, 3.0), "NR" )
+          arktest.assertEQ( foo(1.0, 2.0, 3.0, 4.0), "NR" )
+
+    - decl: |-
+          function foo(p: number|null|undefined, q?: number): string {
+              return "NND1"
+          }
+          function foo(...p: number[]): string {
+              return "NR"
+          }
+      use: |-
+          // select function with rest parameter and undefined parameter
+          arktest.assertEQ( foo(), "NR" )
+          arktest.assertEQ( foo(0.0), "NND1" )
+          arktest.assertEQ( foo(1.0, 2.0), "NND1" )
+          arktest.assertEQ( foo(null), "NND1" )
+          arktest.assertEQ( foo(undefined), "NND1" )
+          arktest.assertEQ( foo(1.0, 2.0, 3.0), "NR" )
+          arktest.assertEQ( foo(1.0, 2.0, 3.0, 4.0), "NR" )
+
+
+    - decl: |-
+          function foo(...p: number[]): string {
+              return "NR"
+          }
+          function foo(p: number|null|undefined, q?: number): string {
+              return "NND1"
+          }
+      use: |-
+          // select function with rest parameter and undefined parameter
+          arktest.assertEQ( foo(), "NR" )
+          arktest.assertEQ( foo(0.0), "NR" )
+          arktest.assertEQ( foo(1.0, 2.0), "NR" )
+          arktest.assertEQ( foo(null), "NND1" )
+          arktest.assertEQ( foo(undefined), "NND1" )
+          arktest.assertEQ( foo(1.0, 2.0, 3.0), "NR" )
+          arktest.assertEQ( foo(1.0, 2.0, 3.0, 4.0), "NR" )
+
+
+    - decl: |-
+          function foo(p: number): string {
+              return 'N'
+          }
+          function foo(...p: FixedArray<number>): string {
+              return "NR"
+          }
+          function foo(...p: FixedArray<float>): string {
+              return "FR"
+          }
+      use: |-
+          // select function and without rest
+          arktest.assertEQ( foo(), 'NR' )
+          arktest.assertEQ( foo(0 as byte), 'N' )
+          arktest.assertEQ( foo(0 as short), 'N' )
+          arktest.assertEQ( foo(0 as int), 'N' )
+          arktest.assertEQ( foo(0 as long), 'N' )
+          arktest.assertEQ( foo(0.0f), 'N' )
+          arktest.assertEQ( foo(0.0), 'N' )
+
+          arktest.assertEQ( foo(0 as byte, 0 as byte), 'NR' )
+          arktest.assertEQ( foo(0 as short, 0 as short), 'NR' )
+          arktest.assertEQ( foo(0 as int, 0 as int), 'NR' )
+          arktest.assertEQ( foo(0 as long, 0 as long), 'NR' )
+          arktest.assertEQ( foo(0.0f, 0.0f), 'NR' )
+          arktest.assertEQ( foo(0.0, 0.0), 'NR' )
+
+
+    - decl: |-
+          function foo(p: number): string {
+              return 'N'
+          }
+          function foo(...p: FixedArray<float>): string {
+              return "FR"
+          }
+          function foo(...p: FixedArray<number>): string {
+              return "NR"
+          }
+      use: |-
+          // select function and without rest
+          arktest.assertEQ( foo(), 'FR' )
+          arktest.assertEQ( foo(0 as byte), 'N' )
+          arktest.assertEQ( foo(0 as short), 'N' )
+          arktest.assertEQ( foo(0 as int), 'N' )
+          arktest.assertEQ( foo(0 as long), 'N' )
+          arktest.assertEQ( foo(0.0f), 'N' )
+          arktest.assertEQ( foo(0.0), 'N' )
+
+          arktest.assertEQ( foo(0 as byte, 0 as byte), 'FR' )
+          arktest.assertEQ( foo(0 as short, 0 as short), 'FR' )
+          arktest.assertEQ( foo(0 as int, 0 as int), 'FR' )
+          arktest.assertEQ( foo(0 as long, 0 as long), 'FR' )
+          arktest.assertEQ( foo(0.0f, 0.0f), 'FR' )
+          arktest.assertEQ( foo(0.0, 0.0), 'NR' )
+
+
+    - decl: |-
+          function foo(p: number): string {
+              return 'N'
+          }
+          function foo(p: number|null|undefined): string {
+              return 'NN'
+          }
+          function foo(p: number, q?: number): string {
+              return "ND2"
+          }
+          function foo(p: number, q?: number, r: number = 1.0): string {
+              return "ND3"
+          }
+      use: |-
+          // select function with and without undefined parameter
+          arktest.assertEQ( foo(0.0), 'N' )
+          arktest.assertEQ( foo(null), 'NN' )
+          arktest.assertEQ( foo(undefined), 'NN' )
+          arktest.assertEQ( foo(0.0, 0.0), 'ND2' )
+          arktest.assertEQ( foo(0.0, undefined), 'ND2' )
+          arktest.assertEQ( foo(0.0, 0.0, 0.0), 'ND3' )
+          arktest.assertEQ( foo(0.0, undefined, 0.0), 'ND3' )
+          arktest.assertEQ( foo(0.0, 0.0, undefined), 'ND3' )
+          arktest.assertEQ( foo(0.0, undefined, undefined), 'ND3' )
+
+    - decl: |-
+          function foo(p: number): string {
+              return 'N'
+          }
+          function foo(...p: number[]): string {
+              return "NR"
+          }
+          function foo(p: number, q: number = 0.0): string {
+              return "ND1"
+          }
+      use: |-
+          // more than one applicable function
+          arktest.assertEQ( foo(), 'NR' )
+          arktest.assertEQ( foo(0.0), 'N' )
+          arktest.assertEQ( foo(0.0, 0.0), 'NR' )
+          arktest.assertEQ( foo(0.0, undefined), 'ND1' )
+          arktest.assertEQ( foo(0.0, 0.0, 0.0), 'NR' )
+
+
+    - decl: |-
+          function foo(p: number): string {
+              return 'N'
+          }
+          function foo(p: number, q: number = 0.0): string {
+              return "ND1"
+          }
+          function foo(...p: number[]): string {
+              return "NR"
+          }
+      use: |-
+          // more than one applicable function
+          arktest.assertEQ( foo(), 'NR' )
+          arktest.assertEQ( foo(0.0), 'N' )
+          arktest.assertEQ( foo(0.0, 0.0), 'ND1' )
+          arktest.assertEQ( foo(0.0, undefined), 'ND1' )
+          arktest.assertEQ( foo(0.0, 0.0, 0.0), 'NR' )
+
+
+    - decl: |-
+          function foo(p: number, q: number = 0.0): string {
+              return "ND1"
+          }
+          function foo(p: number): string {
+              return 'N'
+          }
+          function foo(...p: number[]): string {
+              return "NR"
+          }
+      use: |-
+          // more than one applicable function
+          arktest.assertEQ( foo(), 'NR' )
+          arktest.assertEQ( foo(0.0), 'ND1' )
+          arktest.assertEQ( foo(0.0, 0.0), 'ND1' )
+          arktest.assertEQ( foo(0.0, undefined), 'ND1' )
+          arktest.assertEQ( foo(0.0, 0.0, 0.0), 'NR' )
+
+
+    - decl: |-
+          type UT = int|number
+          function foo(p: UT): string {
+              return 'UT'
+          }
+          function foo(p: string|number): string {
+              return 'SN'
+          }
+      use: |-
+          // duplicate functions
+          arktest.assertEQ( foo(1.0), 'UT' )
+          arktest.assertEQ( foo(1 as int), 'UT' )
+          arktest.assertEQ( foo('abc'), 'SN' )

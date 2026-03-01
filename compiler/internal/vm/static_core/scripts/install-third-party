@@ -1,0 +1,293 @@
+#!/usr/bin/env bash
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+set -e
+
+MSG_PREFIX="[ARK THIRD PARTY]"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+ARK_ROOT=$SCRIPT_DIR/..
+ARK_THIRD_PARTY_DIR=$ARK_ROOT/third_party
+ARK_THIRD_PARTY_FORCE_CLONE=no
+ARK_INSTALL_NODE=yes
+NUM_CLONE_ATTEMPTS=5
+
+MIRROR_ARK_THIRD_PARTY_MANIFEST="$SCRIPT_DIR/extras/third-party-lists/mirror"
+PUBLIC_ARK_THIRD_PARTY_MANIFEST="$SCRIPT_DIR/third-party-lists/public"
+if [ -f "${MIRROR_ARK_THIRD_PARTY_MANIFEST}" ]; then
+    ARK_THIRD_PARTY_MANIFEST="${MIRROR_ARK_THIRD_PARTY_MANIFEST}"
+else
+    ARK_THIRD_PARTY_MANIFEST="${PUBLIC_ARK_THIRD_PARTY_MANIFEST}"
+fi
+
+function print_help() {
+    HELP_MESSAGE="
+    This script installs build-time third party dependencies for ARK Runtime.
+
+    SYNOPSIS
+
+    $0 [OPTIONS]
+
+    OPTIONS
+
+    --help, -h         Show this message and exit.
+
+    --manifest=FILE    Path to the manifest. Default: $ARK_THIRD_PARTY_MANIFEST
+
+    --force-clone      Remove local repositories and re-clone everything anew
+
+    --clone-attempts=N Try to clone N times. Default: $NUM_CLONE_ATTEMPTS
+
+    --node             Install node js to third-party
+
+    --repo-name=repo   install specific repo
+
+    CAVEAT
+    * Manifest file format is documented in the default manifest.
+    "
+
+    echo "$HELP_MESSAGE"
+}
+
+declare -a REPOS=()
+
+for opt in "$@"; do
+    case $opt in
+    -h|--help)
+        print_help
+        exit 0
+        ;;
+    --manifest=*)
+        ARK_THIRD_PARTY_MANIFEST=${opt//[-a-zA-Z0-9]*=/}
+        ;;
+    --force-clone)
+        ARK_THIRD_PARTY_FORCE_CLONE=yes
+        ;;
+    --clone-attempts=*)
+        NUM_CLONE_ATTEMPTS=${opt//[-a-zA-Z0-9]*=/}
+        ;;
+    --node)
+        ARK_INSTALL_NODE=yes
+        ;;
+    --repo-name=*)
+        REPOS+=("${opt#*=}")
+        ;;
+    *)
+      echo "Error: Unsupported flag $opt" >&2
+      exit 1
+      ;;
+  esac
+done
+
+
+mapfile -t REPOS< <(for r in "${REPOS[@]}"; do echo "$r"; done | sort -u)
+readonly -a REPOS
+
+function requested_repo() {
+    for one_repo in "${REPOS[@]}"
+    do
+        if [[ "${one_repo}" == "$1" ]]
+        then
+            return 0
+        fi
+    done
+    return 1
+}
+
+function clone_repository_branch() {
+    local lib_repo="$1"
+    local lib_dir="$2"
+    local commit_id="$3"  # branch or tag name, the syntax is the same
+
+    for i in `seq 1 $NUM_CLONE_ATTEMPTS`
+    do
+        echo "$MSG_PREFIX Cloning $lib_dir, attempt $i / $NUM_CLONE_ATTEMPTS"
+
+        GIT_SSL_NO_VERIFY=true git clone --verbose --depth=1 --branch "$commit_id" \
+            "$lib_repo" "$lib_dir" || continue
+
+        return
+    done
+
+    echo "$MSG_PREFIX Failed to clone $lib_dir"
+    exit 1
+}
+
+function clone_repository() {
+    local lib_repo="$1"
+    local lib_dir="$2"
+
+    for i in `seq 1 $NUM_CLONE_ATTEMPTS`
+    do
+        echo "$MSG_PREFIX Cloning $lib_dir, attempt $i / $NUM_CLONE_ATTEMPTS"
+        GIT_SSL_NO_VERIFY=true git clone --verbose "$lib_repo" "$lib_dir" || continue
+
+        pushd "$lib_dir"
+            git checkout "$commit_id"
+        popd
+        return
+    done
+
+    echo "$MSG_PREFIX Failed to clone $lib_dir"
+    exit 1
+}
+
+function apply_patches() {
+    local lib_name="$1"
+    local lib_dir="$2"
+
+    local patch_dir="$ARK_ROOT/patches/$lib_name"
+    if [[ ! -d "$patch_dir" ]] ; then
+        echo "$MSG_PREFIX No patch directory $patch_dir for $lib_name"
+        exit 1
+    fi
+
+    pushd "$lib_dir"
+        readarray -t patches <<< "$(find "$patch_dir" -name '*.patch' | sort)"
+        for patch in "${patches[@]}"
+        do
+            git apply --ignore-space-change --check "$patch"
+            git am --ignore-space-change "$patch"
+        done
+    popd
+}
+
+function process_manifest() {
+    local manifest="$1"
+
+    while read -r component || [[ -n $component ]] # '-n' check for case if we forgot new line at the end of file
+    do
+        component=$(echo "$component" | perl -lane 'chomp; s/^\s+//; s/\s+$//; print $_')
+
+        if [[ "$component" == "" || "$component" =~ ^# ]] ; then
+            continue
+        fi
+
+        IFS=',' read -r -a info <<< "$component"
+        local lib_name="${info[0]}"
+        local lib_repo="${info[1]}"
+        local commit_type="${info[2]}"
+        local commit_id="${info[3]}"
+        local patch_mode="${info[4]}"
+        local submodule_mode="${info[5]}"
+        if [[ ${#REPOS[@]} -ne 0 ]] && ! requested_repo "${lib_name}" ; then
+            continue
+        fi
+
+        local lib_dir="$ARK_THIRD_PARTY_DIR/$lib_name"
+
+        if [[ -d "$lib_dir" && ${#REPOS[@]} -eq 0 ]] ; then
+            echo "$MSG_PREFIX $lib_dir already exists. Skip download."
+            continue
+        fi;
+
+        if [[ "$commit_type" == "branch" || "$commit_type" == "tag" ]] ; then
+            clone_repository_branch "$lib_repo" "$lib_dir" "$commit_id"
+        elif [[ "$commit_type" == "commit" ]] ; then
+            clone_repository "$lib_repo" "$lib_dir"
+        else
+            echo "$MSG_PREFIX Invalid commit type for $lib_name: $commit_type"
+            exit 1
+        fi
+
+        if [[ "$patch_mode" == "with_patches" ]] ; then
+            apply_patches "$lib_name" "$lib_dir"
+        elif [[ "$patch_mode" != "no_patches" ]] ; then
+            echo "$MSG_PREFIX Invalid patch mode for $lib_name: $patch_mode"
+            exit 1
+        fi
+
+        if [[ "$submodule_mode" =~ ^with_submodules: ]] ; then
+            # Split by delimiter and remove "with_submodules" keyword:
+            IFS=':' read -r -a submodules <<< "$submodule_mode"
+            submodules=("${submodules[@]:1}")
+            pushd "$lib_dir"
+                for submodule in "${submodules[@]}"
+                do
+                    git submodule update --init "$submodule"
+                done
+            popd
+        elif [[ "$submodule_mode" != "no_submodules" ]] ; then
+            echo "$MSG_PREFIX Invalid submodule mode for $lib_name: $submodule_mode"
+            exit 1
+        fi
+
+    done < "$manifest"
+}
+
+if [[ "$ARK_INSTALL_NODE" == "yes" ]] ; then
+    NODE_VERSION="v18.13.0"
+    DISTRO="linux-x64"
+    if [ -f "$SCRIPT_DIR/extras/install_nodejs.sh" ]; then
+        bash $SCRIPT_DIR/extras/install_nodejs.sh --node-version=${NODE_VERSION} --distro=${DISTRO}
+    else
+        if [ ! -d "${ARK_THIRD_PARTY_DIR}/nodejs" ]
+        then
+            echo "-- Downloading nodejs for interop tests"
+            ARCHIVE_NAME=node-${NODE_VERSION}-${DISTRO}.tar.xz
+            mkdir -p ${ARK_THIRD_PARTY_DIR}/nodejs
+            wget --no-check-certificate -P ${ARK_THIRD_PARTY_DIR}/nodejs https://nodejs.org/dist/${NODE_VERSION}/${ARCHIVE_NAME}
+            tar -xJf ${ARK_THIRD_PARTY_DIR}/nodejs/${ARCHIVE_NAME} -C ${ARK_THIRD_PARTY_DIR}/nodejs
+            rm ${ARK_THIRD_PARTY_DIR}/nodejs/${ARCHIVE_NAME}
+            echo "-- Downloading nodejs stub lib for tsbindings windows"
+            NODE_API_STUB_LIB="libnode_api-windows.zip"
+            wget --no-check-certificate -P ${ARK_THIRD_PARTY_DIR}/nodejs https://github.com/napi-bindings/node-api-stub/releases/download/8.0.0/${NODE_API_STUB_LIB}
+            unzip ${ARK_THIRD_PARTY_DIR}/nodejs/${NODE_API_STUB_LIB} -d ${ARK_THIRD_PARTY_DIR}/nodejs/node-${NODE_VERSION}-${DISTRO}/lib/
+            rm ${ARK_THIRD_PARTY_DIR}/nodejs/${NODE_API_STUB_LIB}
+        fi
+    fi
+fi
+
+if [[ "$ARK_THIRD_PARTY_FORCE_CLONE" == "yes" ]] ; then
+    if [[ -L "$ARK_THIRD_PARTY_DIR/arkcompiler/toolchain" ]] ; then
+        # remove all folders in third_party except arkcompiler if arkcompiler/toolchain is symlink
+        cd "$ARK_THIRD_PARTY_DIR" && rm -rf `ls | grep -v arkcompiler`
+    else
+        rm -rf "$ARK_THIRD_PARTY_DIR"
+    fi
+fi
+
+if [[ -d "$ARK_THIRD_PARTY_DIR" && ${#REPOS[@]} -eq 0 ]] ; then
+    echo "$MSG_PREFIX Third-party dependencies are found in $ARK_THIRD_PARTY_DIR"
+    echo "$MSG_PREFIX If you need to update all, restart this script with --force-clone"
+fi
+
+if [[ ${#REPOS[@]} -ne 0 ]] ; then
+    for third_party_repo in "${REPOS[@]}"
+    do
+        rm -rf "$ARK_THIRD_PARTY_DIR/${third_party_repo}"
+    done
+fi
+
+echo "$MSG_PREFIX Third-party dependencies are not found in $ARK_THIRD_PARTY_DIR"
+
+if [[ ! -f "$ARK_THIRD_PARTY_MANIFEST" ]] ; then
+    echo "$MSG_PREFIX Invalid manifest file '$ARK_THIRD_PARTY_MANIFEST'"
+    exit 1
+fi
+
+echo "$MSG_PREFIX Using manifest $ARK_THIRD_PARTY_MANIFEST"
+process_manifest "$ARK_THIRD_PARTY_MANIFEST"
+
+echo "$MSG_PREFIX Third-party dependencies installed"
+exit 0
+

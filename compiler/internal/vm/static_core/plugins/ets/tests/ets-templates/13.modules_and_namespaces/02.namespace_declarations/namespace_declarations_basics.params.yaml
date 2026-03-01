@@ -1,0 +1,292 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # 0. Class in namespace
+  - decl: |-
+        namespace myNamespace {
+          export class nsClass {
+            private static text: string = "defaultText"
+            constructor() {
+              nsClass.text = "foo from myClass"
+            }
+              static foo() {
+                return nsClass.text
+            }
+          }
+        }
+
+    use: |-
+        arktest.assertEQ(myNamespace.nsClass.foo(), "defaultText")
+
+  # 1. Interface in namespace
+  - decl: |-
+        namespace myNamespace {
+          export interface nsInterface {
+            name: string
+            age: number
+          }
+        }
+    use: |-
+        let myIfce: myNamespace.nsInterface = {name: "ABC", age: 123}
+
+  # 2. Enum in namespace
+  - decl: |-
+        namespace myNamespace {
+          export enum nsEnum { White, Blue = 2, Red = 2 }
+          export enum nsSeason { Winter = "Зима", Spring = "Primavera", Summer = "夏天", Autumn = "秋天" }
+        }
+    use: |-
+        arktest.assertEQ(myNamespace.nsEnum.Red.valueOf(), 2)
+        arktest.assertEQ(myNamespace.nsSeason.Spring.valueOf(), "Primavera")
+        arktest.assertEQ(myNamespace.nsSeason.Summer.valueOf(), "夏天")
+        arktest.assertEQ(myNamespace.nsSeason.Autumn.valueOf(), "秋天")
+        arktest.assertEQ(myNamespace.nsSeason.Winter.valueOf(), "Зима")
+
+  # 3. Type alias in namespace
+  - decl: |-
+        namespace myNamespace {
+          export type Vector = number[]
+          export function max(x: Vector): number {
+            let m = x[0]
+            for (let v of x)
+            if (v > m) v = m
+            return m
+          }
+        }
+    use: |-
+        let x: myNamespace.Vector = [3, 2, 1]
+        arktest.assertEQ(myNamespace.max(x), 3)
+
+  # 4. Variable in namespace
+  - decl: |-
+        namespace myNamespace {
+          export let nsVariable = 13
+          export const nsConstValue = 42
+        }
+    use: |-
+        arktest.assertNE(myNamespace.nsVariable, 41) 
+        myNamespace.nsVariable = 43
+        arktest.assertEQ(myNamespace.nsVariable, 43) 
+
+  # 5. Constant in namespace
+  - decl: |-
+        namespace myNamespace {
+          export const nsConstValue = 42
+        }
+    use: |-
+        arktest.assertEQ(myNamespace.nsConstValue, 42)
+
+  # 6 Access inside namespace
+  - decl: |-
+        namespace myNamespace {
+          export const nsConstValue = 53
+          export function returnConst() {
+            return myNamespace.nsConstValue
+          }
+
+        }
+    use: |-
+        arktest.assertEQ(myNamespace.returnConst(), 53)
+
+  # 7. Function inside namespace
+  - decl: |-
+        namespace myNamespace {
+          export function foo() {
+            return "foo"
+          }
+        }
+    use: |-
+      arktest.assertEQ(myNamespace.foo(), "foo")
+
+  # 8. Embedded Namespace
+  - decl: |-
+        namespace myNamespace {
+          export namespace embeddedNamespace {
+            export function foo() {
+              return "embeddedFoo"
+             }
+          }
+        }
+    use: |-
+        arktest.assertEQ(myNamespace.embeddedNamespace.foo(), "embeddedFoo")
+
+  # 9. Namespace with qualified name
+  - decl: |-
+      namespace A.B.C {
+        export function foo() {
+          return "quialifiedFoo"
+        }
+      }
+    use: |-
+      arktest.assertEQ(A.B.C.foo(), "quialifiedFoo")
+
+  # 10. Namespaces with identical namespace names in a single compilation unit (including embedded namespaces cases) form a single namespace
+  - decl: |-
+      namespace A {
+        export function foo() {
+          return "SingleFoo"
+        }
+      }
+      namespace A {
+        export function bar() {
+          return "SingleBar"
+        }
+      }
+    use: |-
+      arktest.assertEQ(A.foo(), "SingleFoo")
+      arktest.assertEQ(A.bar(), "SingleBar")
+
+  # 11. Extended Namespaces with identical namespace
+  - decl: |-
+      namespace A {
+        export function foo() {
+          return "Foo1"
+        }
+      }
+      namespace A.B {
+        export function foo() {
+          return "Foo2"
+        }
+      }      
+      namespace A.B.C {
+        export function foo() {
+          return "Foo3"
+        }
+      }
+    use: |-
+      arktest.assertEQ(A.foo(), "Foo1")
+      arktest.assertEQ(A.B.foo(), "Foo2")
+      arktest.assertEQ(A.B.C.foo(), "Foo3")
+
+  # 12. Extended Namespaces with qualified name
+  - decl: |-
+        namespace A {
+          export let variable1 = 1
+        
+          export namespace C {
+            export let variable11 = 11
+          }
+        }
+        
+        namespace A.C {
+          export let variable12 = 12
+        }
+    use: |-
+      arktest.assertEQ(A.variable1, 1)
+      arktest.assertEQ(A.C.variable11, 11)
+      arktest.assertEQ(A.C.variable12, 12)
+
+  # 13. Namespace vs local variable visibility
+  - decl: |-
+        namespace NS2 {
+          export let variable = 1234
+        }
+          
+        class myClass {
+          public variable = 4321
+        }
+    use: |-
+        let NS2: myClass = new myClass()
+        arktest.assertEQ(NS2.variable, 4321)
+
+  # 14. Namespace vs local variable visibility
+  - decl: |-
+        import {NS2 as NS2} from "./namespace_storage"
+    use: |-
+        let NS2: string = "Test should pass"
+        arktest.assertEQ(NS2, "Test should pass")
+
+  # 15. Case sensitivity
+  - decl: |-
+      namespace NS15 {
+        export function foo1() {
+          return "FOO15"
+        }
+      }
+      namespace ns15 {
+        export function foo1() {
+          return "foo15_low"
+        }
+      }
+    use: |-
+      arktest.assertEQ(ns15.foo1(), "foo15_low")
+      arktest.assertEQ(NS15.foo1(), "FOO15")  
+
+  # 16. Calling method inside same namespace
+  - decl: |-
+      namespace NS16 {
+        function foo1() {
+          return "Foo16"
+        }
+        export function foo2() {
+          return foo1()
+        }
+      }
+    use: |-
+      arktest.assertEQ(NS16.foo2(), "Foo16")
+
+  # 17. Accessing namespace members inside the namespace
+  - decl: |-
+      namespace NS17 {
+        export function foo() {
+          return "Foo17"
+        }
+        export function boo() {
+          return foo()
+        }  
+      }
+    use: |-
+      arktest.assertEQ(NS17.boo(), "Foo17")
+
+  # 18. Accessing namespace members inside the namespace
+  - decl: |-
+      namespace NS18 {
+        function foo() {
+          return "Foo18"
+        }
+        export function boo() {
+          return foo()
+        }  
+      }
+    use: |- 
+      arktest.assertEQ(NS18.boo(), "Foo18")
+  
+
+  # 19. Accessing namespace members inside the namespace
+  - decl: |-
+      namespace NS19 {
+        export function foo() {
+          return "Foo19"
+        }
+        export function boo() {
+          return NS19.foo()
+        }  
+      }
+    use: |-
+      arktest.assertEQ(NS19.boo(), "Foo19")
+
+  # 20. Impported Namespace vs local Nanmespace visibility
+  - decl: |-
+      import {Space1 as mySpace} from "./namespace_storage"
+  
+        export namespace Space1 {
+          export function foo() {
+            return "Local Space1"
+        }
+        export let nsVar = 1234
+        export const nsConst = 2345
+      }
+    use: |-
+      arktest.assertEQ(Space1.foo(), "Local Space1")

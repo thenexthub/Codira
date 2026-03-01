@@ -1,0 +1,279 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # TYPE PARAMETER, PARAMETER
+    - base: |-
+          class Base<T> {
+              foo<U>(i: T, j: U) {
+                  res = 1
+              }
+          }
+      derived: |-
+          class Derived<T> extends Base<T> {
+              override foo<U>(i: T, j: U) {
+                  res = 2
+              }
+          }
+      call: |-
+          new Derived<Object>().foo(new Object, new Object)
+          arktest.assertEQ(res, 2)
+      params: override-compatible with no constraints
+
+    - tags: 'negative, compile-only'
+      base: |-
+          class Base<T> {
+              foo(i: T) {
+                  res = 1
+              }
+          }
+      derived: |-
+          class Derived<T> extends Base<T> {
+              override foo<J extends T>(i: J) {
+                  res = 2
+              }
+          }
+      params: different number of type parameters
+
+    - base: |-
+          class Base {
+              foo<T>(i: T): T {
+                  res = 1
+                  return i
+              }
+          }
+      derived: |-
+          class Derived extends Base {
+              override foo<T>(i: T): T {
+                  res = 2
+                  return i
+              }
+          }
+      call: |-
+          new Derived().foo(new Derived())
+          arktest.assertEQ(res, 2)
+      params: override-compatible type parameter, no constraints
+
+    - base: |-
+          class Base {
+              foo<T extends Base>(i: T) {
+                  res = 1
+              }
+          }
+      derived: |-
+          class Derived extends Base {
+              override foo<J extends Object>(i: J) {
+                  res = 2
+              }
+          }
+      call: |-
+          new Derived().foo(new Base())
+          arktest.assertEQ(res, 2)
+          new Derived().foo(new Derived())
+          arktest.assertEQ(res, 2)
+      params: override-compatible type parameter (contravariant)
+
+    - base: |-
+          class Base {
+              foo<T extends Base>(i: T) {
+                  res = 1
+              }
+          }
+      derived: |-
+          class Derived extends Base {
+              override foo<J extends Base>(i: J) {
+                  res = 2
+              }
+          }
+      call: |-
+          new Derived().foo(new Base())
+          arktest.assertEQ(res, 2)
+          new Derived().foo(new Derived())
+          arktest.assertEQ(res, 2)
+      params: override-compatible type parameter (invariant)
+
+    - tags: 'negative, compile-only'
+      base: |-
+          class Base {
+              foo<T extends Object>(i: T) {
+                  res = 1
+              }
+          }
+      derived: |-
+          class Derived extends Base {
+              override foo<J extends Base>(i: J) {
+                  res = 2
+              }
+          }
+      params: override-incompatible type parameter (covariant)
+
+    - decl: |-
+          interface I {}
+          interface II extends I {}
+          class A implements I {}
+          class B extends A {}
+          class C implements II {}
+          class D extends A implements II {}
+      base: |-
+          class Base {
+              foo<T extends II>(i: T) {
+                  res = 1
+              }
+          }
+      derived: |-
+          class Derived extends Base {
+              override foo<J extends I>(i: J) {
+                  res = 2
+              }
+          }
+      call: |-
+          new Derived().foo(new A)
+          arktest.assertEQ(res, 2)
+          new Derived().foo(new B)
+          arktest.assertEQ(res, 2)
+          new Derived().foo(new C)
+          arktest.assertEQ(res, 2)
+          new Derived().foo(new D)
+          arktest.assertEQ(res, 2)
+      params: override-compatible type parameter (contravariance)
+
+    - tags: 'negative, compile-only'
+      decl: |-
+          interface I {}
+          interface II extends I {}
+      base: |-
+          class Base {
+              foo<T extends I>(i: T) {
+                  res = 1
+              }
+          }
+      derived: |-
+          class Derived extends Base {
+              override foo<J extends II>(i: J) {
+                  res = 2
+              }
+          }
+      params: override-incompatible type parameter (covariance)
+
+    - tags: 'negative, compile-only'
+      decl: |-
+          interface I {}
+      base: |-
+          class Base {
+              foo<T extends I, U extends I>(i: T, j: U) {
+                  res = 1
+              }
+          }
+      derived: |-
+          class Derived extends Base {
+              override foo<J extends I>(i: J, j: J) {
+                  res = 2
+              }
+          }
+      params: different number of type parameters
+
+    - decl: |-
+          interface I {}
+          interface II extends I {}
+      base: |-
+          class Base {
+              foo<T extends II, U extends I>(i: T, j: U) {
+                  res = 1
+              }
+          }
+      derived: |-
+          class Derived extends Base {
+              override foo<J extends Any, U>(i: J, j: U) {
+                  res = 2
+              }
+          }
+      call: |-
+          new Derived().foo(new Object, new Object)
+          arktest.assertEQ(res, 2)
+      params: override-compatible type parameter
+
+    # TYPE PARAMETER, RETURN TYPE
+    - base: |-
+          class Base {
+              foo<T>(i: T): T {
+                  res = 1
+                  return i
+              }
+          }
+      derived: |-
+          class Derived extends Base {
+              override foo<J>(i: J): J {
+                  res = 2
+                  return i
+              }
+          }
+      call: |-
+          new Derived().foo(new Derived())
+          arktest.assertEQ(res, 2)
+      params: override-compatible with same return type, no constraints
+
+    - base: |-
+          class Base {
+              foo<T extends Base>(i: T): T {
+                  res = 1
+                  return i
+              }
+          }
+      derived: |-
+          class Derived extends Base {
+              override foo<J extends Base>(i: J): J {
+                  res = 2
+                  return i
+              }
+          }
+      call: |-
+          new Derived().foo(new Derived())
+          arktest.assertEQ(res, 2)
+      params: override-compatible with same return type, same constraints
+
+    - base: |-
+          class Base {
+              foo<T extends Base>(i: T): T {
+                  res = 1
+                  return i
+              }
+          }
+      derived: |-
+          class Derived extends Base {
+              override foo<J extends Object>(i: J): J {
+                  res = 2
+                  return i
+              }
+          }
+      call: |-
+          new Derived().foo(new Derived())
+          arktest.assertEQ(res, 2)
+      params: override-compatible return type (contravariance)
+
+    - tags: 'negative, compile-only'
+      base: |-
+          class Base {
+              foo<T extends Object>(i: T): T {
+                  res = 1
+                  return i
+              }
+          }
+      derived: |-
+          class Derived extends Base {
+              override foo<J extends Base>(i: J): J {
+                  res = 2
+                  return i
+              }
+          }
+      params: override-incompatible constraints (covariance)

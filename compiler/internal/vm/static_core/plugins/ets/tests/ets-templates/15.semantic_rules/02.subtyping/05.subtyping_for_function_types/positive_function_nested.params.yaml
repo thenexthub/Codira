@@ -1,0 +1,121 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # single params
+    - subtype: |-
+        (x: fooBBtype) => Derived = (x: fooBBtype) => { return fooBD(new Base)}
+      supertype: |-
+        (x: fooBDtype) => Base = (x: fooBDtype) => { return fooBB(new Base)}
+      subtype_params: |-
+        fooBB
+      supertype_params: |-
+        fooBD
+
+    - subtype: |-
+        (x: fooDBtype) => Derived = (x: fooDBtype) => { return fooBD(new Base)}
+      supertype: |-
+        (x: fooBDtype) => Base = (x: fooBDtype) => { return fooDB(new Derived)}
+      subtype_params: |-
+        fooDB
+      supertype_params: |-
+        fooBD
+
+    - subtype: |-
+        (x: fooDBtype) => Derived = (x: fooDBtype) => { return fooDD(new Derived)}
+      supertype: |-
+        (x: fooDDtype) => Base = (x: fooDDtype) => { return fooDB(new Derived)}
+      subtype_params: |-
+        fooDB
+      supertype_params: |-
+        fooDD
+
+    - subtype: |-
+        (x: fooDDtype) => Derived = (x: fooDDtype) => { return fooBD(new Base)}
+      supertype: |-
+        (x: fooBDtype) => Derived = (x: fooBDtype) => { return fooDD(new Derived)}
+      subtype_params: |-
+        fooDD
+      supertype_params: |-
+        fooBD
+      skip_return_check: yes
+
+    # subtype has less parameters
+    - subtype: |-
+        (x: fooBBNtype) => Derived = (x: fooBBNtype) => { return fooBDN(new Base, 1)}
+      supertype: |-
+        (x: fooBBtype, y: number) => Base = (x: fooBBtype, y: number) => { return fooBB(new Base)}
+      subtype_params: |-
+        fooBBN
+      supertype_params: |-
+        fooBB, 1
+      supertype_params2: |-
+        fooBBN, 1
+
+    - subtype: |-
+        (x: fooBBOtype) => Derived = (x: fooBBOtype) => { return fooBDO(new Base, 1)}
+      supertype: |-
+        (x: fooBBtype, y?: number) => Base = (x: fooBBtype, y?: number) => { return fooBB(new Base)}
+      subtype_params: |-
+        fooBBO
+      supertype_params: |-
+        fooBB
+      supertype_params2: |-
+        fooBBO, 1
+
+    # subtype has less parameters, parameter is identical and return type covariant
+    - subtype: |-
+        (x: fooBBNtype) => Derived = (x: fooBBNtype) => { return fooBDN(new Base, 1)}
+      supertype: |-
+        (x: fooBDtype, y: number) => Base = (x: fooBDtype, y: number) => { return fooBB(new Base)}
+      subtype_params: |-
+        fooBBN
+      supertype_params: |-
+        fooBD, 1
+      supertype_params2: |-
+        fooBBN, 1
+
+    - subtype: |-
+        (x: fooBBOtype) => Base = (x: fooBBOtype) => { return fooBDO(new Base, 1)}
+      supertype: |-
+        (x: fooBDtype, y?: number) => Base = (x: fooBDtype, y?: number) => { return fooBB(new Base)}
+      subtype_params: |-
+        fooBBO
+      supertype_params: |-
+        fooBD
+      supertype_params2: |-
+        fooBBO, 1
+
+    # subtype has less parameters, parameter is contravariant and return type covariant
+    - subtype: |-
+        (x: fooDBNtype) => Derived = (x: fooDBNtype) => { return fooBDN(new Base, 1)}
+      supertype: |-
+        (x: fooBDtype, y: number) => Base = (x: fooBDtype, y: number) => { return fooBB(new Base)}
+      subtype_params: |-
+        fooDBN
+      supertype_params: |-
+        fooBD, 1
+      supertype_params2: |-
+        fooDBN, 1
+
+    - subtype: |-
+        (x: fooDBOtype) => Derived = (x: fooDBOtype) => { return fooBDO(new Base, 1)}
+      supertype: |-
+        (x: fooBDtype, y?: number) => Base = (x: fooBDtype, y?: number) => { return fooBB(new Base)}
+      subtype_params: |-
+        fooDBO
+      supertype_params : |-
+        fooBD, 1
+      supertype_params2: |-
+        fooDBO, 1

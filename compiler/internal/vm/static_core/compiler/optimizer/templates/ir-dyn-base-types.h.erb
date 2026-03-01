@@ -1,0 +1,259 @@
+/**
+ * Copyright (c) 2021-2024 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#ifndef COMPILER_OPTIMIZER_TEMPLATES_IR_DYN_BASE_TYPES_H
+#define COMPILER_OPTIMIZER_TEMPLATES_IR_DYN_BASE_TYPES_H
+
+#include "compiler/optimizer/ir/datatype.h"
+#include "compiler/optimizer/code_generator/encode.h"
+#include "profiling/profiling.h"
+#include "source_languages.h"
+
+<%= Common::include_plugin_files "compiler_base_types", "header_path_implementation_codegen" %>
+<%= Common::include_plugin_files "compiler_extensions", "main_header_path" %>
+
+namespace ark::compiler {
+
+class CompareAnyTypeInst;
+class CastAnyTypeValueInst;
+class CastValueToAnyTypeInst;
+class GetAnyTypeNameInst;
+class AnyTypeCheckInst;
+class EncodeVisitor;
+class Inst;
+template <size_t N>
+class FixedInputsInst;
+class HclassCheckInst;
+
+inline AnyBaseType NumericDataTypeToAnyType([[maybe_unused]] ark::compiler::DataType::Type type,
+                                            ark::SourceLanguage language) {
+    ASSERT(type == ark::compiler::DataType::Type::UINT8 || type == ark::compiler::DataType::Type::INT8 ||
+           type == ark::compiler::DataType::Type::UINT16 || type == ark::compiler::DataType::Type::INT16 ||
+           type == ark::compiler::DataType::Type::UINT32 || type == ark::compiler::DataType::Type::INT32 ||
+           type == ark::compiler::DataType::Type::UINT64 || type == ark::compiler::DataType::Type::INT64 ||
+           type == ark::compiler::DataType::Type::FLOAT32 || type == ark::compiler::DataType::Type::FLOAT64);
+
+    switch(language) {  // NOLINT(hicpp-multiway-paths-covered)
+% Common::each_plugin_suboption("compiler_base_types", "func_resolve_numeric_type") do |func, plugin_lang, plugin_opts|
+% raise "Expected dynamic language" unless plugin_opts["language_config"]["lang_type"] == "dynamic"
+    case ark::SourceLanguage::<%= plugin_lang %>:
+        return <%= func %>(type);
+% end
+    default:
+        ASSERT(false && "This feature is not supported for this language");
+        return AnyBaseType::UNDEFINED_TYPE;
+    }
+}
+
+inline AnyBaseType GetAnyStringType(ark::SourceLanguage language) {
+    switch(language) {  // NOLINT(hicpp-multiway-paths-covered)
+% Common::each_plugin_suboption("compiler_base_types", "func_resolve_string_type") do |func, plugin_lang, plugin_opts|
+% raise "Expected dynamic language" unless plugin_opts["language_config"]["lang_type"] == "dynamic"
+    case ark::SourceLanguage::<%= plugin_lang %>:
+        return <%= func %>();
+% end
+    default:
+        ASSERT(false && "This feature is not supported for this language");
+        return AnyBaseType::UNDEFINED_TYPE;
+    }
+}
+
+/*
+ * Checks that the exact type of `any` value that is subtype of `type` also can be subtype of `superType`.
+ * Returns `true` if the `type` is equal to or subtype of `superType` (i.e `type` is `STRING_TYPE` and
+ * `superType` is `OBJECT_TYPE`).
+ * Returns `false` if there is no subtype relationship beetween `type` an `superType` (i.e `type` is `INT_TYPE`
+ * and `superType` is `OBJECT_TYPE`)
+ * Return `nullopt` if the `superType` is subtype of `type` (i.e `type` is `OBJECT` and `superType` is `STRING`).
+ * In this case we need to check exact type at the runtime.
+ */
+inline std::optional<bool> IsAnyTypeCanBeSubtypeOf([[maybe_unused]] ark::SourceLanguage language,
+                                                   [[maybe_unused]] AnyBaseType superType,
+                                                   [[maybe_unused]] AnyBaseType type,
+                                                   [[maybe_unused]] profiling::AnyInputType superAllowedTypes = profiling::AnyInputType::DEFAULT,
+                                                   [[maybe_unused]] profiling::AnyInputType allowedTypes = profiling::AnyInputType::DEFAULT) {
+    switch(language) {  // NOLINT(hicpp-multiway-paths-covered)
+% Common::each_plugin_suboption("compiler_base_types", "func_is_any_type_can_be_subtype_of") do |func, plugin_lang, plugin_opts|
+% raise "Expected dynamic language" unless plugin_opts["language_config"]["lang_type"] == "dynamic"
+    case ark::SourceLanguage::<%= plugin_lang %>:
+        return <%= func %>(superType, type, superAllowedTypes, allowedTypes);
+% end
+    default:
+        ASSERT(false && "This feature is not supported for this language");
+        return false;
+    }
+}
+
+inline ark::compiler::DataType::Type AnyBaseTypeToDataType([[maybe_unused]] AnyBaseType anyType) {
+    switch(anyType) {
+        case AnyBaseType::UNDEFINED_TYPE:
+            return ark::compiler::DataType::Type::ANY;
+% Common::each_plugin_suboption("compiler_base_types", "list_types") do |list_types, plugin_lang|
+%   has_bool_type = false
+%   list_types.each do |type_name, type_pair|
+        case AnyBaseType::<%= plugin_lang %>_<%= type_name %>:
+            return <%= type_pair %>;
+%     if (type_pair.include?("BOOL"))
+%       if (has_bool_type)
+%         abort 'Compiler does not support two dynamic boolean types(See example in Peephole::VisitIfImm)'
+%       end
+%       has_bool_type = true
+%     end
+%   end
+% end
+        default:
+            return ark::compiler::DataType::Type::ANY;
+    }
+
+    return ark::compiler::DataType::Type::ANY;
+}
+
+inline const char *AnyTypeTypeToString(AnyBaseType anyType)
+{
+    static constexpr auto COUNT = static_cast<uint32_t>(AnyBaseType::COUNT);
+    static constexpr std::array<const char *, COUNT> ANYBASETYPE_NAMES = {
+        "UNDEFINED_TYPE",
+% Common::each_plugin_suboption("compiler_base_types", "list_types") do |list_types, plugin_lang|
+%   list_types.each_key do |type_name|
+        "<%= plugin_lang %>_<%= type_name %>",
+%   end
+% end
+    };
+    auto idx = static_cast<uint32_t>(anyType);
+    ASSERT(idx < COUNT);
+    return ANYBASETYPE_NAMES[idx];
+}
+
+inline bool TryCompareAnyTypePluginGen([[maybe_unused]] const ark::compiler::CompareAnyTypeInst *cati,
+                                       [[maybe_unused]] ark::compiler::EncodeVisitor *enc) {
+
+% Common::each_plugin_suboption("compiler_base_types", "func_compare_implementation_codegen") do |func|
+    if (<%= func %>(cati, enc)) {
+        return true; // NOLINT(readability-simplify-boolean-expr)
+    }
+% end
+
+    return false;
+}
+
+inline bool TryGetAnyTypeNamePluginGen([[maybe_unused]] const ark::compiler::GetAnyTypeNameInst *cati,
+                                       [[maybe_unused]] ark::compiler::EncodeVisitor *enc) {
+
+% Common::each_plugin_suboption("compiler_base_types", "func_get_name_implementation_codegen") do |func|
+    if (<%= func %>(cati, enc)) {
+        return true; // NOLINT(readability-simplify-boolean-expr)
+    }
+% end
+
+    return false;
+}
+
+inline bool TryCastAnyTypeValuePluginGen([[maybe_unused]] const ark::compiler::CastAnyTypeValueInst *cati,
+                                         [[maybe_unused]] ark::compiler::EncodeVisitor *enc) {
+
+% Common::each_plugin_suboption("compiler_base_types", "func_cast_implementation_codegen") do |func|
+    if (<%= func %>(cati, enc)) {
+        return true; // NOLINT(readability-simplify-boolean-expr)
+    }
+% end
+
+    return false;
+}
+
+inline bool TryCastValueToAnyTypePluginGen([[maybe_unused]] const ark::compiler::CastValueToAnyTypeInst *cvai,
+                                           [[maybe_unused]] ark::compiler::EncodeVisitor *enc) {
+
+% Common::each_plugin_suboption("compiler_base_types", "func_cast_to_any_implementation_codegen") do |func|
+    if (<%= func %>(cvai, enc)) {
+        return true; // NOLINT(readability-simplify-boolean-expr)
+    }
+% end
+
+    return false;
+}
+
+inline bool TryAnyTypeCheckPluginGen([[maybe_unused]] ark::compiler::AnyTypeCheckInst *checkInst,
+                                     [[maybe_unused]] ark::compiler::EncodeVisitor *enc) {
+
+% Common::each_plugin_suboption("compiler_base_types", "func_any_type_check_implementation_codegen") do |func|
+    if (<%= func %>(checkInst, enc)) {
+        return true; // NOLINT(readability-simplify-boolean-expr)
+    }
+% end
+
+    return false;
+}
+
+inline bool TryHclassCheckPluginGen([[maybe_unused]] ark::compiler::HclassCheckInst *checkInst,
+                                     [[maybe_unused]] ark::compiler::EncodeVisitor *enc) {
+
+% Common::each_plugin_suboption("compiler_base_types", "func_hclass_check_implementation_codegen") do |func|
+    if (<%= func %>(checkInst, enc)) {
+        return true; // NOLINT(readability-simplify-boolean-expr)
+    }
+% end
+
+    return false;
+}
+
+inline bool TryIsDynHeapObject([[maybe_unused]] compiler::AnyBaseType type) {
+
+% Common::each_plugin_suboption("compiler_base_types", "func_is_dyn_heap_object") do |func|
+    if (<%= func %>(type)) {
+        return true; // NOLINT(readability-simplify-boolean-expr)
+    }
+% end
+
+    return false;
+}
+
+inline bool TryObjByIndexCheckPluginGen([[maybe_unused]] const ark::compiler::FixedInputsInst<2U> *checkInst,
+                                        [[maybe_unused]] ark::compiler::EncodeVisitor *enc,
+                                        [[maybe_unused]] LabelHolder::LabelId id) {
+
+% Common::each_plugin_suboption("compiler_base_types", "func_obj_by_index_check_implementation_codegen") do |func|
+    if (<%= func %>(checkInst, enc, id)) {
+        return true; // NOLINT(readability-simplify-boolean-expr)
+    }
+% end
+
+    return false;
+}
+
+inline bool TryLoadConstantPoolGen([[maybe_unused]] const ark::compiler::Inst *inst, 
+                                   [[maybe_unused]] ark::compiler::EncodeVisitor *enc) {
+
+% Common::each_plugin_suboption("compiler_base_types", "func_load_constant_pool") do |func|
+    if (<%= func %>(inst, enc)) {
+        return true; // NOLINT(readability-simplify-boolean-expr)
+    }
+% end
+    return false;
+}
+
+inline bool TryLoadLexicalEnvGen([[maybe_unused]] const ark::compiler::Inst *inst, 
+                                 [[maybe_unused]] ark::compiler::EncodeVisitor *enc) {
+
+% Common::each_plugin_suboption("compiler_base_types", "func_load_lexical_env") do |func|
+    if (<%= func %>(inst, enc)) {
+        return true; // NOLINT(readability-simplify-boolean-expr)
+    }
+% end
+    return false;
+}
+
+} // namespace ark::compiler
+
+#endif // COMPILER_OPTIMIZER_TEMPLATES_IR_DYN_BASE_TYPES_H

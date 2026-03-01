@@ -1,0 +1,6 @@
+{
+    "compilerOptions": {
+        "cacheDir": "${CMAKE_CURRENT_BINARY_DIR}",
+        "rootDir": "${CMAKE_CURRENT_SOURCE_DIR}"
+    }
+}

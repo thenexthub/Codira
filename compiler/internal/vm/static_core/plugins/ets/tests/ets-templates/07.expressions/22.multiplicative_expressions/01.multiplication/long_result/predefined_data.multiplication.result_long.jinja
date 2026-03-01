@@ -1,0 +1,138 @@
+/**
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+ 
+{% set small_value_max_min_long_test_data = [
+  {'type1': 'long', 'value1': '123', 'type2': 'long', 'value2': '100', 'resultType': 'long', 'result': '12300','desc': '0. Multiplication of positive long with small value.'},
+  {'type1': 'long', 'value1': '-10', 'type2': 'long', 'value2': '0x2_0A', 'resultType': 'long', 'result': '-5220','desc': '1. Multiplication of long with small value (decimal, hex).'},
+  {'type1': 'Long', 'value1': '0o74', 'type2': 'long', 'value2': '-0b101', 'resultType': 'long', 'result': '-300','desc': '2. Multiplication of long with small value (octal, binary).'},
+  {'type1': 'long', 'value1': '-0o7_4', 'type2': 'Long', 'value2': '-0x1Ff', 'resultType': 'long', 'result': '30660','desc': '3. Multiplication of long with small value (octal, hex).'},
+  {'type1': 'Long', 'value1': '-23_00', 'type2': 'long', 'value2': '0b10_01', 'resultType': 'long', 'result': '-0x50d_C','desc': '4. Multiplication of long with small value (decimal, binary).'},
+  {'type1': 'long', 'value1': '0o74', 'type2': 'long', 'value2': '10', 'resultType': 'long', 'result': '0b1_001_011_000','desc': '5. Multiplication of long with small value (octal, decimal).'},
+  {'type1': 'long', 'value1': '-0x1a', 'type2': 'Long', 'value2': '-0b100_1', 'resultType': 'long', 'result': '0o352','desc': '6. Multiplication of long with small value (hex, binary).'},
+
+  {'type1': 'long', 'value1': '123', 'type2': 'long', 'value2': '0x0', 'resultType': 'long', 'result': '0b0','desc': '7. Multiplication of positive long with small value and 0 (hex).'},
+  {'type1': 'long', 'value1': '0', 'type2': 'Long', 'value2': '-0x1', 'resultType': 'long', 'result': '0o00','desc': '8. Multiplication of positive long with small value (hex) and 0.'},
+
+  {'type1': 'byte', 'value1': '123', 'type2': 'long', 'value2': '2', 'resultType': 'long', 'result': '246','desc': '9. Multiplication of positive byte and long with small value.'},
+  {'type1': 'short', 'value1': '-3', 'type2': 'long', 'value2': '0x1_a', 'resultType': 'long', 'result': '-78','desc': '10. Multiplication of negative short and positive long with small value (decimal, hex).'},
+  {'type1': 'long', 'value1': '-0o7_4', 'type2': 'int', 'value2': '-0x1Ff', 'resultType': 'long', 'result': '30660','desc': '11. Multiplication of negative long with small value and negative int (octal, hex).'},
+  {'type1': 'int', 'value1': '+0o74', 'type2': 'Long', 'value2': '-0b101', 'resultType': 'long', 'result': '-300','desc': '12. Multiplication of positive int and negative slong with small value (octal, binary).'},
+  {'type1': 'short', 'value1': '-10', 'type2': 'long', 'value2': '0x2_0A', 'type3': 'byte', 'value3': '-0b10', 'resultType': 'long', 'result': '10440','desc': '13. Multiplication of byte, short and long with small value.'},
+  {'type1': 'long', 'value1': '-10', 'type2': 'int', 'value2': '0x2_0A', 'type3': 'byte', 'value3': '-0b10', 'resultType': 'long', 'result': '10440','desc': '14. Multiplication of byte, long with small value and int.'},
+  {'type1': 'short', 'value1': '-10', 'type2': 'int', 'value2': '0x2_0A', 'type3': 'Long', 'value3': '-0b10', 'resultType': 'long', 'result': '10440','desc': '15. Multiplication of long with small value, short and int.'},
+
+  {'type1': 'Long', 'value1': 'new Long(123)', 'type2': 'long', 'value2': '100', 'resultType': 'long', 'result': '12300','desc': '16. Multiplication of positive long and alias Long (long with small value).'},
+  {'type1': 'long', 'value1': '-10', 'type2': 'Long', 'value2': 'new Long(-0x2_0A)', 'resultType': 'long', 'result': '5220','desc': '17. Multiplication of positive long and negative alias Long (long with small value).'},
+  {'type1': 'byte', 'value1': '+123', 'type2': 'Long', 'value2': 'new Long(2)', 'resultType': 'long', 'result': '246','desc': '18. Multiplication of byte and alias Long (long with small value).'},
+  {'type1': 'short', 'value1': '-3', 'type2': 'Long', 'value2': 'new Long(0x1_a)', 'resultType': 'long', 'result': '-78','desc': '19. Multiplication of short and alias Long (long with small value)'},
+
+  {'type1': 'long', 'value1': '-10', 'type2': 'Int', 'value2': '0x2_0A', 'type3': 'byte', 'value3': '-0b10', 'resultType': 'long', 'result': '10440','desc': '20. Multiplication of byte, long with small value and positive alias Int.'},
+  {'type1': 'long', 'value1': '1_0', 'type2': 'Int', 'value2': 'new Int(-0x20A)', 'type3': 'short', 'value3': '-0b00010', 'resultType': 'Long', 'result': '10440','desc': '21. Multiplication of long with small value, short and negative alias Int.'},
+
+  {'type1': 'Int', 'value1': 'Int.MAX_VALUE', 'type2': 'long', 'value2': '-1', 'resultType': 'long', 'result': '-2147483647', 'desc': '22. Multiplication of Max Int and long = -1.'}, 
+  {'type1': 'Int', 'value1': 'Int.MAX_VALUE', 'type2': 'Long', 'value2': '1', 'resultType': 'long', 'result': '2147483647', 'desc': '23. Multiplication of Max Int and long = 1.'},
+  {'type1': 'int', 'value1': 'Int.MAX_VALUE', 'type2': 'long', 'value2': '0', 'resultType': 'long', 'result': '0', 'desc': '24. Multiplication of Max Int and long = 0.'},
+  {'type1': 'int', 'value1': '-Int.MAX_VALUE', 'type2': 'long', 'value2': '-1', 'resultType': 'long', 'result': 'Int.MAX_VALUE', 'desc': '25. Multiplication of negative Max Int and long = -1.'},
+
+  {'type1': 'Int', 'value1': 'Int.MIN_VALUE', 'type2': 'long', 'value2': '1', 'resultType': 'long', 'result': '-2147483648', 'desc': '26. Multiplication of Min Int and long = 1.'},
+  {'type1': 'int', 'value1': 'Int.MIN_VALUE', 'type2': 'long', 'value2': '0', 'resultType': 'Long', 'result': '0', 'desc': '27. Multiplication of Min Int and long = 0.'},
+  {'type1': 'long', 'value1': '-(Int.MIN_VALUE.toLong())', 'type2': 'long', 'value2': '-1', 'resultType': 'long', 'result': '-2147483648', 'desc': '28. Multiplication of negative Min Int as long (the conversion by toLong()) and long = -1.'},
+  {'type1': 'Int', 'value1': 'Int.MIN_VALUE', 'type2': 'long', 'value2': '-1', 'resultType': 'long', 'result': '2147483648', 'desc': '29. Multiplication of Min Int and long = -1.'}, 
+
+  {'type1': 'long', 'value1': '9223372036854775807', 'type2': 'long', 'value2': '1', 'resultType': 'long', 'result': '9223372036854775807', 'desc': '30. Multiplication of Max Long (decimal) and long = 1.'},
+  {'type1': 'long', 'value1': '0x7FFFFFFFFFFFFFFF', 'type2': 'long', 'value2': '1', 'resultType': 'long', 'result': '9223372036854775807', 'desc': '31. Multiplication of Max Long (hex) and long = 1.'},
+  {'type1': 'long', 'value1': '0o777_777_777_777_777_777_777', 'type2': 'long', 'value2': '1', 'resultType': 'long', 'result': '9223372036854775807', 'desc': '32. Multiplication of Max Long (octal) and long = 1.'},
+  {'type1': 'long', 'value1': '0b111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111', 'type2': 'long', 'value2': '1', 'resultType': 'long', 'result': '9223372036854775807', 'desc': '33. Multiplication of Max Long (binary) and long = 1.'},
+  
+  {'type1': 'Long', 'value1': '-9223372036854775808', 'type2': 'long', 'value2': '1', 'resultType': 'long', 'result': '-9223372036854775808', 'desc': '34. Multiplication of Min Long (decimal) and long = 1.'},
+  {'type1': 'Long', 'value1': '-0b1000000000000000000000000000000000000000000000000000000000000000', 'type2': 'Long', 'value2': '1', 'resultType': 'long', 'result': '-9223372036854775808', 'desc': '35. Multiplication of Min Long (binary) and long = 1.'},
+  {'type1': 'Long', 'value1': '-0x8_000_000_000_000_000', 'type2': 'Long', 'value2': '1', 'resultType': 'long', 'result': '-9223372036854775808', 'desc': '36. Multiplication of Min Long (hex) and long = 1.'},
+  {'type1': 'Long', 'value1': '-0o1000000000000000000000', 'type2': 'Long', 'value2': '1', 'resultType': 'long', 'result': '-9223372036854775808', 'desc': '37. Multiplication of Min Long (octal) and long = 1.'},
+ 
+]%}
+
+{% set long_test_data = [
+
+  {'type1': 'long', 'value1': '2147483649', 'type2': 'long', 'value2': '2147483700', 'resultType': 'long', 'result': '4611686132244021300','desc': '0. Multiplication of positive longs.'},
+  {'type1': 'long', 'value1': '-2147483649', 'type2': 'long', 'value2': '-2147483700', 'resultType': 'long', 'result': '4611686132244021300','desc': '1. Multiplication of negative longs.'},
+  
+  {'type1': 'long', 'value1': '-0x80_00_00_01', 'type2': 'long', 'value2': '0o00_2000000_0064', 'resultType': 'long', 'result': '-4611686132244021300','desc': '2. Multiplication of longs (hex, octal).'},
+  {'type1': 'long', 'value1': '-0B1000_0000_0000_0000_0000_0000_0000_0001', 'type2': 'long', 'value2': '-2_147_483_700', 'resultType': 'long', 'result': '0X4000001A80000034','desc': '3. Multiplication of longs (binary, decimal).'},
+
+  {'type1': 'Long', 'value1': 'new Long(123)', 'type2': 'Long', 'value2': 'new Long(0o100)', 'resultType': 'long', 'result': '7872','desc': '4. Multiplication of alias Long (decimal, octal).'},
+  {'type1': 'Long', 'value1': 'new Long(-0b10)', 'type2': 'Long', 'value2': 'new Long(0x2_0A)', 'resultType': 'long', 'result': '-1044','desc': '5. Multiplication of alias Long (binary, hex).'},
+
+  {'type1': 'Long', 'value1': 'new Long(-3)', 'type2': 'Byte', 'value2': 'new Byte(0x1_a)', 'resultType': 'long', 'result': '-78','desc': '6. Multiplication of alias Long and alias Byte.'},
+  {'type1': 'Short', 'value1': 'new Short(-3)', 'type2': 'Long', 'value2': 'new Long(0x1_a)', 'resultType': 'long', 'result': '-78','desc': '7. Multiplication of alias Short and alias Long.'},
+  {'type1': 'Int', 'value1': 'new Int(0o74)', 'type2': 'Long', 'value2': 'new Long(-0b101)', 'resultType': 'long', 'result': '-300','desc': '8. Multiplication of alias Int and alias Long.'},  
+
+  {'type1': 'Long', 'value1': 'new Long(1_000000000000000)', 'type2': 'Int', 'value2': 'new Int(-0x20A)', 'type3': 'Byte', 'value3': 'new Byte(-0b00010)', 'resultType': 'long', 'result': '1044000000000000000','desc': '9. Multiplication of alias Byte, alias Long and alias Int.'},
+  {'type1': 'Short', 'value1': 'new Short(1_0)', 'type2': 'Long', 'value2': 'new Long(-0xB9739F99468000)', 'type3': 'Byte', 'value3': 'new Byte(-0b00010)', 'resultType': 'long', 'result': '1044000000000000000','desc': '10. Multiplication of alias Byte, alias Short and alias Long.'},
+  {'type1': 'Short', 'value1': 'new Short(2_0)', 'type2': 'Int', 'value2': 'new Int(-0x20A)', 'type3': 'Long', 'value3': 'new Long(-0b0010110101111001100010000011110100100000000000000)', 'resultType': 'long', 'result': '1044000000000000000','desc': '11. Multiplication of alias Long, alias Short and alias Int.'},
+
+  {'type1': 'Long', 'value1': 'new Long(-2)', 'type2': 'Int', 'value2': 'Int.MAX_VALUE',  'resultType': 'long', 'result': '-4294967294', 'desc': '12. Multiplication of Max Int and negative alias Long'}, 
+  {'type1': 'Int', 'value1': 'Int.MAX_VALUE', 'type2': 'Long', 'value2': 'new Long(10)', 'resultType': 'long', 'result': '21474836470', 'desc': '13. Multiplication of Max Int and positive alias Long.'},
+  {'type1': 'int', 'value1': 'Int.MAX_VALUE', 'type2': 'Long', 'value2': 'new Long(0)', 'resultType': 'long', 'result': '0', 'desc': '14. Multiplication of Max Int and alias Long = 0.'},
+  {'type1': 'Long', 'value1': 'new Long(-1)', 'type2': 'int', 'value2': '-Int.MAX_VALUE', 'resultType': 'long', 'result': '2147483647', 'desc': '15. Multiplication of negative Max Int and -1.'},
+
+  {'type1': 'Int', 'value1': 'Int.MIN_VALUE', 'type2': 'Long', 'value2': 'new Long(2)', 'resultType': 'long', 'result': '-4294967296', 'desc': '16. Multiplication of Min Int and positive alias Long.'},
+  {'type1': 'int', 'value1': 'Int.MIN_VALUE', 'type2': 'Long', 'value2': 'new Long(0x000000000_000)', 'resultType': 'long', 'result': '0', 'desc': '17. Multiplication of Min Int and alias Long = 0.'},
+  {'type1': 'long', 'value1': '-(Int.MIN_VALUE.toLong())', 'type2': 'Long', 'value2': 'new Long(-2)', 'resultType': 'long', 'result': '-4294967296', 'desc': '18. Multiplication of negative Min Int as long (the conversion by toLong()) and negative alias Long.'},
+  {'type1': 'Int', 'value1': 'Int.MIN_VALUE', 'type2': 'Long', 'value2': 'new Long(-1)', 'resultType': 'long', 'result': '2147483648', 'desc': '19. Multiplication of Min Int and alias Long = -1.'}, 
+
+  {'type1': 'long', 'value1': 'Long.MAX_VALUE', 'type2': 'int', 'value2': '-1', 'resultType': 'long', 'result': '-9223372036854775807', 'desc': '20. Multiplication of Max Long and int = -1.'}, 
+  {'type1': 'long', 'value1': 'Long.MAX_VALUE', 'type2': 'int', 'value2': '1', 'resultType': 'long', 'result': '9223372036854775807', 'desc': '21. Multiplication of Max Long and int = 1.'},
+  {'type1': 'Long', 'value1': 'Long.MAX_VALUE', 'type2': 'int', 'value2': '0', 'resultType': 'long', 'result': '0', 'desc': '22. Multiplication of Max Long and int = 0.'},
+  {'type1': 'long', 'value1': '-Long.MAX_VALUE', 'type2': 'int', 'value2': '-1', 'resultType': 'long', 'result': 'Long.MAX_VALUE', 'desc': '23. Multiplication of negative Max Long and int = -1.'},
+  {'type1': 'Long', 'value1': 'Long.MIN_VALUE', 'type2': 'int', 'value2': '1', 'resultType': 'long', 'result': '-9223372036854775808', 'desc': '24. Multiplication of Min Long and int = 1.'},
+  {'type1': 'long', 'value1': 'Long.MIN_VALUE', 'type2': 'int', 'value2': '0', 'resultType': 'long', 'result': '0', 'desc': '25. Multiplication of Min Long and int = 0.'},
+  {'type1': 'Long', 'value1': '-Long.MIN_VALUE', 'type2': 'int', 'value2': '-1', 'resultType': 'long', 'result': 'Long.MIN_VALUE', 'desc': '26. Multiplication of negative Min Long and int = -1.'},
+
+  {'type1': 'long', 'value1': 'Long.MAX_VALUE', 'type2': 'Long', 'value2': 'new Long(-1)', 'resultType': 'long', 'result': '-9223372036854775807', 'desc': '27. Multiplication of Max Long and alias Long = -1.'}, 
+  {'type1': 'long', 'value1': 'Long.MAX_VALUE', 'type2': 'Long', 'value2': 'new Long(1)', 'resultType': 'long', 'result': '9223372036854775807', 'desc': '28. Multiplication of Max Long and alias Long = 1.'},
+  {'type1': 'Long', 'value1': 'Long.MAX_VALUE', 'type2': 'Long', 'value2': 'new Long(0)', 'resultType': 'long', 'result': '0', 'desc': '29. Multiplication of Max Long and alias Long = 0.'},
+  {'type1': 'long', 'value1': '-Long.MAX_VALUE', 'type2': 'Long', 'value2': 'new Long(-1)', 'resultType': 'long', 'result': 'Long.MAX_VALUE', 'desc': '30. Multiplication of negative Max Long and alias Long = -1.'},
+  {'type1': 'Long', 'value1': 'Long.MIN_VALUE', 'type2': 'Long', 'value2': 'new Long(1)', 'resultType': 'long', 'result': '-9223372036854775808', 'desc': '31. Multiplication of Min Long and alias Long = 1.'},
+  {'type1': 'long', 'value1': 'Long.MIN_VALUE', 'type2': 'Long', 'value2': 'new Long(0)', 'resultType': 'long', 'result': '0', 'desc': '32. Multiplication of Min Long and alias Long = 0.'},
+  {'type1': 'Long', 'value1': '-Long.MIN_VALUE', 'type2': 'Long', 'value2': 'new Long(-1)', 'resultType': 'long', 'result': 'Long.MIN_VALUE', 'desc': '33. Multiplication of negative Min Long and alias Long = -1.'},
+
+  {'type1': 'long', 'value1': '9223372036854775807', 'type2': 'int', 'value2': '1', 'resultType': 'long', 'result': '9223372036854775807', 'desc': '34. Multiplication of Max Long (decimal) and int = 1.'},
+  {'type1': 'long', 'value1': '0x7FFFFfFFFFFFfFFF', 'type2': 'int', 'value2': '1', 'resultType': 'long', 'result': '9223372036854775807', 'desc': '35. Multiplication of Max Long (hex) and int = 1.'},
+  {'type1': 'long', 'value1': '0o777_777_777_777_777_777_777', 'type2': 'int', 'value2': '1', 'resultType': 'long', 'result': '9223372036854775807', 'desc': '36. Multiplication of Max Long (octal) and int = 1.'},
+  {'type1': 'long', 'value1': '0b111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111', 'type2': 'int', 'value2': '1', 'resultType': 'long', 'result': '9223372036854775807', 'desc': '37. Multiplication of Max Long (binary) and int = 1.'},
+  
+  {'type1': 'Long', 'value1': '-9223372036854775808', 'type2': 'int', 'value2': '1', 'resultType': 'long', 'result': '-9223372036854775808', 'desc': '38. Multiplication of Min Long (decimal) and int = 1.'},
+  {'type1': 'Long', 'value1': '-0b1000000000000000000000000000000000000000000000000000000000000000', 'type2': 'int', 'value2': '1', 'resultType': 'long', 'result': '-9223372036854775808', 'desc': '39. Multiplication of Min Long (binary) and int = 1.'},
+  {'type1': 'Long', 'value1': '-0x8_000_000_000_000_000', 'type2': 'int', 'value2': '1', 'resultType': 'long', 'result': '-9223372036854775808', 'desc': '40. Multiplication of Min Long (hex) and int = 1.'},
+  {'type1': 'Long', 'value1': '-0o1000000000000000000000', 'type2': 'Int', 'value2': '1', 'resultType': 'long', 'result': '-9223372036854775808', 'desc': '41. Multiplication of Min Long (octal) and int = 1.'},
+  
+  {'type1': 'long', 'value1': '0x80_00_00_01', 'type2': 'long', 'value2': '0o00_2000000_0064', 'resultType': 'long', 'result': '4611686132244021300','desc': '42. Multiplication of positive longs (hex, octal).'},
+  {'type1': 'Long', 'value1': 'new Long(0x80_00_00_01)', 'type2': 'Long', 'value2': 'new Long(0o00_2000000_0064)', 'resultType': 'long', 'result': '4611686132244021300','desc': '43. Multiplication positive alias Longs (hex, octal).'},
+  
+  {'type1': 'long', 'value1': '(+2147483649).toLong()', 'type2': 'long', 'value2': '(+2147483700).toLong()', 'resultType': 'long', 'result': '4611686132244021300','desc': '44. Multiplication of longs with the type conversion by toLong(). First operand - declared as long and positive value, second operand - declared as long and positive value.'},
+  {'type1': 'Long', 'value1': '(-2147483649).toLong()', 'type2': 'Long', 'value2': '(2147483700).toLong()', 'resultType': 'long', 'result': '-4611686132244021300','desc': '45. Multiplication of positive longs with the type conversion by toLong(). First operand - declared as alias Long and negative value, second operand - declared as alias Long and positive value.'},
+  {'type1': 'long', 'value1': '(-2147483649).toLong()', 'type2': 'long', 'value2': '(-2147483700).toLong()', 'resultType': 'long', 'result': '4611686132244021300','desc': '46. Multiplication of positive longs with the type conversion by toLong(). First operand - declared as long and negative value, second operand - declared as long and negative value.'},
+  {'type1': 'Long', 'value1': '(2147483649).toLong()', 'type2': 'Long', 'value2': '(-2147483700).toLong()', 'resultType': 'long', 'result': '-4611686132244021300','desc': '47. Multiplication of positive longs with the type conversion by toLong(). First operand - declared as alias Long and positive value, second operand - declared as alias Long and negative value.'},
+
+  {'type1': 'long', 'value1': '(-12).toLong()', 'type2': 'Long', 'value2': '(-10).toLong()', 'resultType': 'long', 'result': '120','desc': '48. Multiplication of negative decimal longs with the type conversion by toLong().'},
+  {'type1': 'long', 'value1': '(-0b10).toLong()', 'type2': 'long', 'value2': '(0xA).toLong()', 'resultType': 'long', 'result': '-20','desc': '49. Multiplication of negative binary and positive hex longs with the type conversion by toLong().'},
+  {'type1': 'long', 'value1': '(0o5).toLong()', 'type2': 'Long', 'value2': '(-0xa).toLong()', 'resultType': 'long', 'result': '-50','desc': '50. Multiplication of positive octal and negative hex longs with the type conversion by toLong().'},
+  {'type1': 'Long', 'value1': '(+0o2).toLong()', 'type2': 'Long', 'value2': '(+0b10).toLong()', 'resultType': 'long', 'result': '4','desc': '51. Multiplication of positive octal (with plus sign) and positive binary (with plus sign) longs with the type conversion by toLong().'},
+
+  {'type1': 'int', 'value1': '5', 'type2': 'long', 'value2': '(0).toLong()', 'resultType': 'long', 'result': '0','desc': '52. Multiplication of positive int and 0 as long (the conversion by toLong()).'},
+  {'type1': 'int', 'value1': '-5', 'type2': 'Long', 'value2': '(0).toLong()', 'resultType': 'long', 'result': '0','desc': '53. Multiplication of negative int and 0 as alias Long (the conversion by toLong()).'},
+  {'type1': 'Long', 'value1': '-(Int.MIN_VALUE.toLong())', 'type2': 'Long', 'value2': 'new Long(-0o00_24)', 'resultType': 'long', 'result': '-42949672960', 'desc': '54. Multiplication of negative Min Int as Long (the conversion by toLong()) and negative alias Long.'},
+
+]%}

@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+      "baseUrl": "${PANDA_ROOT}",
+      "paths": {
+          "escompat": [
+              "${PANDA_ROOT}/plugins/ets/stdlib/escompat"
+          ],
+          "std": [
+              "${PANDA_ROOT}/plugins/ets/stdlib/std"
+          ]
+      },
+      "dependencies": {
+		"esvaluewithstringkey_js": { "language": "js", "ohmUrl": "${CMAKE_CURRENT_BINARY_DIR}/esvaluewithstringkey" }
+      }
+  }
+}

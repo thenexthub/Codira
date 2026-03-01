@@ -1,0 +1,145 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+# Positive cases for overriding both base class and interface method with default implementation
+---
+cases:
+  - descr: Public interface and private base class method overridden by the public one.
+    decl: |-
+      class Base {
+        private foo() { res = 4; }
+      }
+
+      interface Interface {
+        foo() { res = 5; }
+      }
+
+      class Derived extends Base implements Interface {
+        public override foo() { res = 11; }
+      }
+    use: |-
+      new Derived().foo();
+      arktest.assertEQ(res, 11);
+
+  - descr: Public base class and private interface method overridden by the public one.
+    decl: |-
+      class Base {
+        public foo() { res = 4; }
+      }
+
+      interface Interface {
+        private foo() { res = 5; }
+      }
+      
+      class Derived extends Base implements Interface {
+        public override foo() { res = 11; }
+      }
+    use: |-
+      new Derived().foo();
+      arktest.assertEQ(res, 11);
+
+  - descr: Public and private interface methods overridden by the public one.
+    decl: |-
+      interface I1 {
+        foo() { res = 4; }
+      }
+
+      interface I2 {
+        private foo() { res = 5; }
+      }
+      
+      class Derived implements I1, I2 {
+        public override foo() { res = 11; }
+      }
+    use: |-
+      new Derived().foo();
+      arktest.assertEQ(res, 11);
+
+  - descr: Protected base class and public interface method overridden by the public one.
+    decl: |-
+      class Base {
+        protected foo() { res = 4; }
+      }
+
+      interface Interface {
+        foo() { res = 5; }
+      }
+      
+      class Derived extends Base implements Interface {
+        public override foo() { res = 11; }
+      }
+    use: |-
+      new Derived().foo();
+      arktest.assertEQ(res, 11);
+
+  - descr: Protected base class and private interface method overridden by the public one.
+    decl: |-
+      class Base {
+        protected foo() { res = 4; }
+      }
+
+      interface Interface {
+        private foo() { res = 5; }
+      }
+      
+      class Derived extends Base implements Interface {
+        public override foo() { res = 11; }
+      }
+    use: |-
+      new Derived().foo();
+      arktest.assertEQ(res, 11);
+
+  - descr: Protected base class and public interface method overridden by the protected one.
+    decl: |-
+      class Base {
+        protected foo() { res = 4; }
+      }
+
+      interface Interface {
+        foo() { res = 5; }
+      }
+      
+      class Derived extends Base implements Interface {
+        protected override foo() { res = 11; }
+        public call_foo() { this.foo(); }
+      }
+    use: |-
+      new Derived().call_foo();
+      arktest.assertEQ(res, 11);
+
+  - descr: Protected base class and private interface method overridden by the protected one.
+    decl: |-
+      class Base {
+        protected foo() { res = 4; }
+      }
+
+      interface Interface {
+        private foo() { res = 5; }
+      }
+      
+      class Derived extends Base implements Interface {
+        protected override foo() { res = 11; }
+        public call_foo() { this.foo(); }
+      }
+    use: |-
+      new Derived().call_foo();
+      arktest.assertEQ(res, 11);

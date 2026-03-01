@@ -1,0 +1,245 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+- {
+    method_name: forEach,
+    method_nature: procedure,
+    result: arr,
+    result_nature: array,
+    result_type: "FixedArray<boolean>",
+    method_signature: { arr: "FixedArray<boolean>", fn : "(value:boolean)=>void" },
+    method_throws: "false",
+    method_signature_desc: {arr: "boolean_array", fn: "func_boolean"},
+    method_test_index_data:
+      {
+        test1:
+          {
+            arr: "[false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]",
+            fn: '(value:boolean): void =>  {!value}',
+          },
+        test2:
+          {
+            arr: "[]",
+            fn: '(value:boolean): void =>  {!value}',
+          },
+      },
+      method_expected_data:
+      {
+        test1: "[true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true]",
+        test2: "[]"
+      },
+  }
+- {
+    method_name: forEach,
+    method_nature: procedure,
+    result: arr,
+    result_nature: array,
+    result_type: "FixedArray<byte>",
+    method_signature: { arr: "FixedArray<byte>", fn : "(value:byte)=>void" },
+    method_throws: "false",
+    method_signature_desc: {arr: "byte_array", fn: "func_byte"},
+    method_test_index_data:
+      {
+        test1:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            fn: '(value:byte): void =>  {((value * 2).toByte())}',
+          },
+        test2:
+          {
+            arr: "[]",
+            fn: '(value:byte): void =>  {((value * 2).toByte())}',
+          },
+      },
+      method_expected_data: {
+        test1: "[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]",
+        test2: "[]"
+      },
+  }
+- {
+    method_name: forEach,
+    method_nature: procedure,
+    result: arr,
+    result_nature: array,
+    result_type: "FixedArray<short>",
+    method_signature: { arr: "FixedArray<short>", fn : "(value:short)=>void" },
+    method_throws: "false",
+    method_signature_desc: {arr: "short_array", fn: "func_short"},
+    method_test_index_data:
+      {
+        test1:
+          {
+            arr: "[0 ,1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            fn: '(value:short): void =>  {((value * 2).toShort())}',
+          },
+        test2:
+          {
+            arr: "[]",
+            fn: '(value:short): void =>  {((value * 2).toShort())}',
+          },
+      },
+      method_expected_data:
+        {
+        test1: "[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]",
+        test2: "[]"
+        },
+  }
+- {
+    method_name: forEach,
+    method_nature: procedure,
+    result: arr,
+    result_nature: array,
+    result_type: "FixedArray<int>",
+    method_signature: { arr: "FixedArray<int>", fn : "(value:int)=>void" },
+    method_throws: "false",
+    method_signature_desc: {arr: "int_array", fn: "func_int"},
+    method_test_index_data:
+      {
+        test1:
+          {
+            arr: "[0 ,1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            fn: '(value:int): void =>  {value * 2}',
+          },
+        test2:
+          {
+            arr: "[]",
+            fn: '(value:int): void =>  {value * 2}',
+          },
+      },
+      method_expected_data:
+        {
+        test1: "[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]",
+        test2: "[]"
+      },
+  }
+- {
+    method_name: forEach,
+    method_nature: procedure,
+    result: arr,
+    result_nature: array,
+    result_type: "FixedArray<long>",
+    method_signature: { arr: "FixedArray<long>", fn : "(value:long)=>void" },
+    method_throws: "false",
+    method_signature_desc: {arr: "long_array", fn: "func_long"},
+    method_test_index_data:
+      {
+       test1:
+         {
+          arr: "[0 ,1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+          fn: '(value:long): void =>  {value * 2}',
+        },
+      test2:
+         {
+          arr: "[]",
+          fn: '(value:long): void =>  {value * 2}',
+        },
+      },
+      method_expected_data:
+        {
+        test1: "[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]",
+        test2: "[]"
+      },
+  }
+- {
+    method_name: forEach,
+    method_nature: procedure,
+    result: arr,
+    result_nature: array,
+    result_type: "FixedArray<float>",
+    method_signature: { arr: "FixedArray<float>", fn : "(value:float)=>void" },
+    method_throws: "false",
+    method_signature_desc: {arr: "float_array", fn: "func_float"},
+    method_test_index_data:
+       {
+        test1:
+          {
+            arr: "[0 ,1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            fn: '(value:float): void =>  {value * 2}', 
+          },
+        test2:
+          {
+            arr: "[]",
+            fn: '(value:float): void =>  {value * 2}', 
+          },
+      },
+      method_expected_data:
+        {
+        test1: "[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]",
+        test2: "[]"
+      },
+  }
+- {
+    method_name: forEach,
+    method_nature: procedure,
+    result: arr,
+    result_nature: array,
+    result_type: "FixedArray<double>",
+    method_signature: { arr: "FixedArray<double>", fn : "(value:double)=>void" },
+    method_throws: "false",
+    method_signature_desc: {arr: "double_array", fn: "func_double"},
+    method_test_index_data:
+       {
+        test1:
+          {
+            arr: "[0 ,1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]",
+            fn: '(value:double): void =>  {value * 2}', 
+          },
+        test2:
+          {
+            arr: "[]",
+            fn: '(value:double): void =>  {value * 2}', 
+          },  
+      },
+      method_expected_data:
+        {
+        test1: "[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30]",
+        test2: "[]"
+      },
+  }
+- {
+    method_name: forEach,
+    method_nature: procedure,
+    result: arr,
+    result_nature: array,
+    result_type: "FixedArray<char>",
+    method_signature: { arr: "FixedArray<char>", fn : "(value:char)=>void" },
+    method_throws: "false",
+    method_signature_desc: {arr: "char_array", fn: "func_char"},
+    method_test_index_data:
+       {
+        test1:
+          {
+            arr: "[c'\\x00', c'\\x01', c'\\x02', c'\\x03', c'\\x04', c'\\x05', c'\\x06', c'\\x07', c'\\x08', c'\\x09', c'\\x0A', c'\\x0B', c'\\x0C', c'\\x0D', c'\\x0E', c'\\x0F']",
+            fn: '(value:char): void =>  {(value.toInt() * 2).toChar()}', 
+          },
+        test2:
+          {
+            arr: "[]",
+            fn: '(value:char): void =>  {(value.toInt() * 2).toChar()}', 
+          },
+      },
+      method_expected_data:
+        {
+        test1: "[c'\\x00', c'\\x02', c'\\x04', c'\\x06', c'\\x08', c'\\x0A', c'\\x0C', c'\\x0E', c'\\x10', c'\\x12', c'\\x14', c'\\x16', c'\\x18', c'\\x1A', c'\\x1C', c'\\x1E']",
+        test2: "[]"
+      },
+  }

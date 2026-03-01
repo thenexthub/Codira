@@ -1,0 +1,217 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    # Examples from Specification
+
+    - decl: |-
+          type BadUnion4 = 1 | 2   // Compile-time error
+      use: ''
+
+    - decl: |-
+          type BadUnion5 = 1 | 2.0   // Compile-time error
+      use: ''
+
+    - decl: |-
+          type BadUnion6 = 1 | 1.0  // Compile-time error
+      use: ''
+
+    # Circular references
+    - decl: |-
+          type UT = number | string | UT  // CTE: circular reference
+      use: ''
+
+    - decl: |-
+          type UT1 = number | string | UT2
+          type UT2 = number | string | UT3
+          type UT3 = number | string | UT1  // CTE: circular reference
+      use: ''
+
+    # Union type arrays
+    - decl: |-
+          type UT1 = string | boolean
+      use: |-
+          let v: UT1[] = new UT1[2]  // CTE: must be nullable union type in arrays
+
+    # Wrong literals in union
+    - decl: |-
+          type UT = string | 1 | boolean  // CTE: numeric literal not allowed
+      use: ''
+
+    - decl: |-
+          type UT = number | null | c'A'  // CTE: char literals not allowed
+      use: ''
+
+    - decl: |-
+          type UT = number | true | string  // CTE: boolean literals not allowed
+      use: ''
+
+    - decl: |-
+          enum Color { Red, Green, Blue }
+          type UT = number | Color.Blue | "A"  // CTE: enum literals not allowed
+      use: ''
+
+    # Wrong type assignments
+    - decl: |-
+          type UT = string | boolean | null
+      use: |-
+          let v: UT = undefined  // CTE: wrong value
+
+    - decl: |-
+          type UT = number | boolean | undefined
+      use: |-
+          let v: UT = null  // CTE: wrong value
+
+    - decl: |-
+          type UT = 'A' | 'B' | 'c'
+      use: |-
+          let v: UT = 'C'  // CTE: wrong literal
+
+    - decl: |-
+          type UT = string | number | null
+      use: |-
+          let v: UT = true  // CTE: wrong literal
+
+    - decl: |-
+          type AB = 'A' | 'B'
+          type CD = 'C' | 'D'
+          type ABCD = AB | CD | null | undefined
+      use: |-
+          let v: ABCD = ''  // CTE: wrong literal
+
+    - decl: |-
+          type UT = string | boolean | null
+          function foo(): UT | undefined {
+              return undefined
+          }
+      use: |-
+          let v: UT = foo()  // CTE: wrong type
+
+    - decl: |-
+          type UT = '1' | '2' | number
+          function foo(): string | number {
+              return '1'
+          }
+      use: |-
+          let v: UT = foo()  // CTE: wrong type
+
+    - decl: |-
+          type UT = string | boolean
+      use: |-
+          let v: UT[] = ['hello', 42]  // CTE: wrong element type
+
+    - decl: |-
+          type UT = string[] | boolean
+      use: |-
+          let v: UT = [1, 2, 3]  // CTE: wrong elements type
+
+    - decl: |-
+          type UT = Error[] | number[] | null
+      use: |-
+          let v: UT = [true, false, false]  // CTE: wrong elements type
+
+    - decl: |-
+          type UT = string | number | undefined
+          class C {
+              a: UT
+          }
+      use: |-
+          let c: C = new C()
+          c.a = false  // CTE: wrong type
+
+    - decl: |-
+          class B {}
+          class C {}
+          type UT = B | C[]
+      use: |-
+          let v: UT = new B[0]  // CTE: wrong type
+
+    - decl: |-
+          type UT = number | string
+          class C<T> {
+              fld: T | undefined
+          }
+      use: |-
+          let c: C<UT> = new C<UT>()
+          c.fld = new Object()  // CTE: wrong type
+
+    - decl: |-
+          enum Color { Red, Green, Blue }
+          enum Size { S, M, L, XL }
+      use: |-
+          let v: Color|string = Size.XL  // CTE: wrong type
+
+    - decl: |-
+          type F1 = () => number
+          type F2 = (p: string) => string
+      use: |-
+          let v: F1|F2|number = (p: string): number => { return 0 }  // CTE: wrong type
+
+    - decl: |-
+          interface I {}
+          interface J {}
+      use: |-
+          let v: I|J = new Object()  // CTE: wrong type
+
+    - decl: |-
+          type UT = Record<number, string> | Record<string, number>
+      use: |-
+          let a: UT = { 1: 2 }  // CTE: wrong type
+
+    - decl: |-
+          type UT = [boolean, boolean, string] | boolean[]
+      use: |-
+          let v: UT = ['true', true, false]  // CTE: wrong type
+
+    # Wrong type arguments
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class C extends A {}
+          type UT = B | C
+
+          function foo<T extends A|null>(p: T): string {
+              return p instanceof B ? 'B' : 'C'
+          }
+      use: |-
+          arktest.assertNE(foo<UT>(new Object()), 'C')  // CTE: wrong argument type
+
+    - decl: |-
+          function foo(p: boolean|int): string {
+              return p instanceof Int ? 'I' : 'B'
+          }
+      use: |-
+          arktest.assertNE(foo(42.5), 'B')  // CTE: wrong argument type
+
+    # Wrong comparing
+    - decl: |-
+          type strs = "abc" | "def"
+          let str: strs = "abc"
+      use: |-
+          arktest.assertTrue(str == "ghi")  // CTE: wrong comparing
+
+    - decl: |-
+          type strs = "abc" | "def"
+          let str: strs = "abc"
+      use: |-
+          arktest.assertTrue(str === "ghi")  // CTE: wrong comparing

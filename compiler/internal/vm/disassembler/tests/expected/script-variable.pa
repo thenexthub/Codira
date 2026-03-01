@@ -1,0 +1,33 @@
+# source binary: script-variable.abc
+
+.language ECMAScript
+
+# ====================
+# LITERALS
+
+
+# ====================
+# RECORDS
+
+.record _ESSlotNumberAnnotation {
+}
+
+.record _ESTypeAnnotation <external>
+
+.record _ESTypeInfoRecord {
+}
+
+# ====================
+# METHODS
+
+.function any func_main_0(any a0, any a1, any a2) <static> {
+	ldai 0x1
+	sttoglobalrecord 0x0, "a"
+	ldundefined
+	returnundefined
+}
+
+# ====================
+# STRING
+
+[offset:0x99, name_value:a]

@@ -1,0 +1,8 @@
+{
+    "compilerOptions": {
+        "package": "@panda/lib",
+        "cacheDir": "${DEFAULT_CACHE_DIR}",
+        "rootDir": "${CURRENT_SOURCE_DIR}/lib",
+        "baseUrl": "${CURRENT_SOURCE_DIR}/lib"
+    }
+}

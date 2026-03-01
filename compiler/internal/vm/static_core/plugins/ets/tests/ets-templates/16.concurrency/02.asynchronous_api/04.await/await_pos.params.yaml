@@ -1,0 +1,160 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          // Promise in function argument, no error
+          function foo(r: Promise<int>): int {
+              return waitForCompletion(async () => await r)
+          }
+          async function bar(p: int): Promise<int> {
+              return p + 1
+          }
+      use: |-
+          arktest.assertTrue(foo(bar(1)) == 2)
+
+    - decl: |-
+          // Error in launch function propagates outside
+          function foo(r: Promise<int>): int {
+              return waitForCompletion(async () => await r)
+          }
+          async function bar(p: int): Promise<int> {
+              if (p == 1) {
+                  throw new Error('ABC')
+              }
+              return p + 1
+          }
+      use: |-
+          try {
+              foo(bar(1))
+              arktest.assertTrue(false)
+          } catch (e) {
+              if (e instanceof Error) {
+                arktest.assertTrue(e.message == 'ABC')  // expected
+              }
+              else {
+                arktest.assertTrue(false)
+              }
+          }
+
+    - decl: |-
+          // Error in await function propagates outside
+          function foo(r: Promise<int>, p: int): int {
+              if (p == 1) {
+                  throw new Error('ABC')
+              }
+              return waitForCompletion(async () => await r)
+          }
+          async function bar(p: int): Promise<int> {
+              return p + 1
+          }
+      use: |-
+          try {
+              foo(bar(1), 1)
+              arktest.assertTrue(false)
+          } catch (e) {
+            if (e instanceof Error) {
+              arktest.assertTrue(e.message == 'ABC')  // expected
+            } else {
+              arktest.assertTrue(false)
+            }
+          }
+
+    - decl: |-
+          // Error in one promise should not affect other running promises
+          async function foo(p: int): Promise<string> {
+              if (p == 2) {
+                  throw new Error('X')
+              }
+              return `${p}`
+          }
+
+          function bar(p: Promise<string>): string {
+              try {
+                  return waitForCompletion(async () => await p)
+              } catch (e) {
+                  if (e instanceof Error) {
+                    return e.message
+                  }
+                  return ''
+              }
+          }
+
+          let arr: Promise<string>[]
+      use: |-
+          let res = ''
+          arr = [foo(1), foo(2), foo(3)]
+          for (let v of arr) res += bar(v)
+          arktest.assertTrue(res == '1X3')
+
+    - decl: |-
+          async function foo(p: string): Promise<string> {
+              return p + p
+          }
+          class A {
+              fld: Promise<string>
+              constructor() {
+                  this.fld = foo('')
+              }
+              constructor(p: Promise<string>) {
+                  this.fld = p
+              }
+              meth(): Promise<string> {
+                  return this.fld
+              }
+          }
+          function p1(): Promise<string>|null|undefined { return foo('A') }
+          function p2(): Promise<string>|null|undefined { return null }
+      use: |-
+          // array element
+          let arr: Promise<string>[] = [foo('A')]
+          arktest.assertEQ(waitForCompletion(async () => await arr[0]), 'AA')
+
+          // tuple element
+          let tup: [boolean, Promise<string>] = [false, foo('A')]
+          arktest.assertEQ(waitForCompletion(async () => await tup[1]), 'AA')
+
+          // union type
+          let ut: boolean|number|Promise<string> = foo('A')
+          arktest.assertEQ(waitForCompletion(async () => await (ut as Promise<string>)), 'AA')
+
+          // nullish type
+          let nt: Promise<string>|null|undefined = p1()
+          arktest.assertEQ(waitForCompletion(async () => await nt!), 'AA')
+
+          nt = p2()
+          try {
+              waitForCompletion(async () => await nt!)
+              arktest.assertTrue(false)
+          } catch (e) {
+              // OK
+          }
+
+          // function call
+          let f: (p: Promise<string>) => Promise<string> = (p: Promise<string>): Promise<string> => p
+          arktest.assertEQ(waitForCompletion(async () => await f(foo('A'))), 'AA')
+
+          // instance field
+          let a: A = { fld: foo('A') }
+          arktest.assertEQ(waitForCompletion(async () => await a.fld), 'AA')
+
+          // method call
+          let b: A = new A(foo('A'))
+          arktest.assertEQ(waitForCompletion(async () => await b.meth()), 'AA')
+
+          // conditional expression
+          let expr1 = foo('A')
+          let expr2 = foo('B')
+          arktest.assertEQ(waitForCompletion(async () => await (a instanceof A ? expr1 : expr2)), 'AA')
+          arktest.assertEQ(waitForCompletion(async () => await (!(a instanceof A) ? expr1 : expr2)), 'BB')

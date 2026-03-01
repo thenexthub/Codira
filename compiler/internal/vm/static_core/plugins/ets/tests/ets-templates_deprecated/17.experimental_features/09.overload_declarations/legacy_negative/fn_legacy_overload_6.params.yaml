@@ -1,0 +1,156 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+  - defs: |-
+      function foo() {}
+      function foo(): void {}
+    tags: "compile-only, negative"
+
+  - defs: |-
+      function foo(): void {}
+      function foo(): void {}
+    tags: "compile-only, negative"
+
+  - defs: |-
+      function foo(): int {
+        return 0;
+      }
+      native function foo(): void;
+    tags: "compile-only, negative"
+
+  - defs: |-
+      function foo(): int {
+        return 0;
+      }
+      function foo(): short {
+        return 0 as short;
+      }
+    tags: "compile-only, negative"
+
+  - defs: |-
+      function foo(... a: byte): void {}
+      native function foo(... b: byte): long;
+    tags: "compile-only, negative"
+
+  - defs: |-
+      function foo<T, U>(a: T, b: U): T {
+        return a;
+      }
+      function foo<V, T>(a: V, b: T): V {
+        return a;
+      }
+    tags: "compile-only, negative"
+
+  - defs: |-
+      function foo<T, U>(a: T, b: U): T {
+        return a;
+      }
+      function foo<V, T>(a: V, b: T): int {
+        return 1;
+      }
+    tags: "compile-only, negative"
+
+  - defs: |-
+      interface I {}
+      interface J {}
+      class A implements I, J {}
+
+      function foo(a: I): int {
+          return 1;
+      }
+      function foo(a: J): int {
+          return 2;
+      }
+    use: |-
+      let i: int = foo(new A());
+      arktest.assertEQ(i, 1);
+
+  - defs: |-
+      class A {}
+      class B {}
+
+      function foo(a: A|null): int {
+          return 1;
+      }
+      function foo(a: B|null): int {
+          return 2;
+      }
+    use: |-
+      let i: int = foo(null);
+      arktest.assertEQ(i, 1);
+
+  - defs: |-
+      function foo(...p: int[]): int {
+          return 1;
+      }
+      function foo(...p: boolean[]): int {
+          return 2;
+      }
+    use: |-
+      let i: int = foo(1, true)
+    tags: "compile-only, negative"
+
+  - defs: |-
+      function foo(...p: int[]): int {
+          return 1;
+      }
+      function foo(...p: boolean[]): int {
+          return 2;
+      }
+    use: |-
+      let i: int = foo()
+    tags: "compile-only, negative"
+
+  - defs: |-
+      function foo(...p: int[]): int {
+          return 1;
+      }
+      function foo(...p: long[]): int {
+          return 2;
+      }
+    use: |-
+      let i: int = foo()
+    tags: "compile-only, negative"
+
+  - defs: |-
+       function foo(...p: int[]): int {
+           return 1;
+       }
+       function foo(...p: boolean[]): int {
+           return 2;
+       }
+    use: |-
+      let i: int = foo()
+    tags: "compile-only, negative"
+
+  - defs: |-
+      function foo(...p: float[]): int {
+          return 1;
+      }
+      function foo(...p: double[]): int {
+          return 2;
+      }
+    use: |-
+      let i: int = foo()
+    tags: "compile-only, negative"

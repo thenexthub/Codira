@@ -1,0 +1,155 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # override base method as arguments are the same
+  - { base: "i: Number|undefined|null", derived: "i: undefined|Number|null", call: "undefined", res: 2 }
+  - { base: "i: Number|undefined|null", derived: "i: undefined|null|Number", call: "null", res: 2 }
+  # override base method with different usage primary and alias types
+  - { base: "i: Number, j: number", derived: "i: number, k: Number", call: "new Number(), 1", res: 2 }
+  - { base: "i: Number, j: number", derived: "i: number, k: Number", call: "1, new Number()", res: 2 }
+
+# Class
+  # override using different aliases to the same type
+  - { base: "i: Number", derived: "i: Double", call: "new Number()", res: 2 }
+  - { base: "i: Number", derived: "i: Double", call: "new Double()", res: 2 }
+  - { base: "i: Double", derived: "i: Number", call: "new Number()", res: 2 }
+  - { base: "i: Double", derived: "i: Number", call: "new Double()", res: 2 }
+  # CTE due to args covariance
+  - base: "i: A"
+    derived: "i: B"
+    tags: "compile-only, negative"
+    call: "new A()"
+    res: 0
+    expected_error: |-
+      /* @@@ label2 Error TypeError: No matching call signature */
+  - base: "i: A"
+    derived: "i: B"
+    call: "new B()"
+    tags: "compile-only, negative"
+    res: 0
+    expected_error: |-
+      /* @@@ label2 Error TypeError: No matching call signature */
+  # correct override due to args contravariance
+  - { base: "i: B", derived: "i: A", call: "new A()", res: 2 }
+  - { base: "i: B", derived: "i: A", call: "new B()", res: 2 }
+
+# Function
+  # paramval is the same, retval is contravariant -> OK
+  - base: "i: FUN_AB"
+    derived: "i: FUN_AA"
+    call: "faa"
+    res: 2
+  # paramval is the same, retval is covariant -> OK
+  - { base: "i: FUN_AB", derived: "i: FUN_AC", call: "fac", res: 2 }
+  # paramval is the same, retval is the same -> OK
+  - { base: "i: FUN_AB", derived: "i: FUN_AB", call: "fab", res: 2 }
+
+  # paramval is covariant, retval is the same -> CTE
+  - base: "i: FUN_AB"
+    derived: "i: FUN_BB"
+    call: "fbb"
+    res: 0
+    tags: "compile-only, negative"
+    expected_error: |-
+      /* @@@ label1 Error TypeError: Cannot override */
+  # paramval is covariant, retval is covariant -> CTE
+  - base: "i: FUN_AB"
+    derived: "i: FUN_BC"
+    call: "fbc"
+    res: 0
+    tags: "compile-only, negative"
+    expected_error: |-
+      /* @@@ label1 Error TypeError: Cannot override */
+  # paramval is covariant, retval is contravariant -> CTE
+  - base: "i: FUN_AB"
+    derived: "i: FUN_BA"
+    call: "fbc"
+    res: 0
+    tags: "compile-only, negative"
+    expected_error: |-
+      /* @@@ label1 Error TypeError: Cannot override */
+
+  # paramval is contravariant, retval is the same -> OK
+  - base: "i: FUN_BB"
+    derived: "i: FUN_AB"
+    call: "fab"
+    res: 2
+  # paramval is contravariant, retval is covariant -> OK
+  - base: "i: FUN_BB"
+    derived: "i: FUN_AC"
+    call: "fbc"
+    res: 2
+  # paramval is contravariant, retval is contravariant -> OK
+  - base: "i: FUN_BB"
+    derived: "i: FUN_AA"
+    call: "faa"
+    res: 2
+
+# Array
+  # override (alias)
+  - { base: "i: number[]", derived: "i: double[]", call: "new number[1]", res: 2 }
+  - { base: "i: number[]", derived: "i: double[]", call: "new double[2]", res: 2 }
+  - { base: "i: string[]", derived: "i: String[]", call: "new string[2]", res: 2 }
+  - { base: "i: string[]", derived: "i: String[]", call: "new String[1]", res: 2 }
+  # not-related types -> CTE
+  - base: "i: FixedArray<int>"
+    derived: "i: FixedArray<float>"
+    call: "new int[2]"
+    res: 0
+    tags: "compile-only, negative"
+    expected_error: |-
+      /* @@@ label1 Error TypeError: Cannot override */
+  - base: "i: int[]"
+    derived: "i: float[]"
+    call: "new float[1]"
+    res: 0
+    tags: "compile-only, negative"
+    expected_error: |-
+      /* @@@ label1 Error TypeError: Cannot override */
+  - base: "i: int[]"
+    derived: "i: double[]"
+    call: "new double[2]"
+    res: 0
+    tags: "compile-only, negative"
+    expected_error: |-
+      /* @@@ label1 Error TypeError: Cannot override */
+  - base: "i: FixedArray<A>"
+    derived: "i: FixedArray<B>"
+    call: "[new A()]"
+    res: 0
+    tags: "compile-only, negative"
+    expected_error: |-
+      /* @@@ label1 Error TypeError: Cannot override */
+  # using of covariant relationship -> CTE
+  - base: "i: FixedArray<A>"
+    derived: "i: FixedArray<B>"
+    call: "[new A()]"
+    res: 0
+    tags: "compile-only, negative"
+    expected_error: |-
+      /* @@@ label1 Error TypeError: Cannot override */
+  - base: "i: A[]"
+    derived: "i: B[]"
+    call: "[new B()]"
+    res: 2
+  # using of contravariant relationship -> OK
+  - base: "i: FixedArray<B>"
+    derived: "i: FixedArray<A>"
+    call: "[new B()]"
+    res: 2
+  - base: "i: B[]"
+    derived: "i: A[]"
+    call: "[new B()]"
+    res: 2

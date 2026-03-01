@@ -1,0 +1,220 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+.record A {}
+.record B {}
+
+#! CHECKER      CheckCast Elimination applied, replaced by Deoptimize.
+#! RUN          force_jit: true, options: "", entry: "_GLOBAL::main1"
+#! METHOD       "_GLOBAL::main1"
+#! PASS_AFTER   "IrBuilder"
+#! INST         "CheckCast"
+#! PASS_AFTER   "Inline"
+#! INST_NOT     "CheckCast"
+#! INST         "Deoptimize"
+
+.function u1 main1() {
+    newobj v0, A
+    lda.obj v0
+
+try_begin:
+    checkcast B
+    ldai 1
+    return
+try_end:
+
+catch_begin:
+    ldai 0
+    return
+
+.catchall try_begin, try_end, catch_begin
+}
+
+#! CHECKER      CheckCast Elimination applied, remove redundant checkcast for field value.
+#! RUN          force_jit: true, options: "", entry: "_GLOBAL::main2"
+#! METHOD       "_GLOBAL::main2"
+#! PASS_AFTER   "IrBuilder"
+#! INST         "CheckCast"
+#! PASS_AFTER   "ChecksElimination"
+#! INST_NOT     "CheckCast"
+
+.record C {
+    A a
+}
+
+.function u1 main2() {
+    newobj v0, C
+    ldobj.obj v0, C.a
+try_begin:
+    checkcast A
+    ldai 0
+    return
+try_end:
+
+catch_begin:
+    ldai 1
+    return
+
+.catchall try_begin, try_end, catch_begin
+}
+
+#! CHECKER      CheckCast Elimination applied, remove redundant checkcast for method return value.
+#! RUN          force_jit: true, options: "--compiler-inlining=false", entry: "_GLOBAL::main3"
+#! METHOD       "_GLOBAL::test1"
+#! PASS_AFTER   "IrBuilder"
+#! INST         "CheckCast"
+#! PASS_AFTER   "ChecksElimination"
+#! INST_NOT     "CheckCast"
+
+.function A createA() {
+    newobj v0, A
+    lda.obj v0
+    return.obj
+}
+
+.function void test1(u1 a0) {
+    lda a0
+    jnez make_call
+    newobj v1, A
+    lda.obj v1
+    jmp check
+make_call:
+    call.short createA
+check:
+    checkcast A
+    return.void
+}
+
+.function u1 main3() {
+try_begin:
+    movi v0, 0
+    call.short test1, v0
+    movi v0, 1
+    call.short test1, v0
+    ldai 0
+    return
+try_end:
+
+catch_begin:
+    ldai 1
+    return
+
+.catchall try_begin, try_end, catch_begin
+}
+
+#! CHECKER      CheckCast is replaced by Deoptimize because both inputs have type A and cannot be cast to B.
+#! RUN          force_jit: true, options: "--compiler-inlining=false", entry: "_GLOBAL::main4"
+#! METHOD       "_GLOBAL::test2"
+#! PASS_AFTER   "IrBuilder"
+#! INST         "CheckCast"
+#! PASS_AFTER   "ChecksElimination"
+#! INST_NOT     "CheckCast"
+#! INST         "Deoptimize"
+#! PASS_BEFORE  "EscapeAnalysis"
+#! INST_COUNT   "NewObject", 2
+#! PASS_AFTER   "EscapeAnalysis"
+#! INST_COUNT   "NewObject", 2
+
+.function u1 test2(u1 a0) {
+    newobj v0, A
+    newobj v1, A
+    lda a0
+    jnez check_second
+    lda.obj v0
+    jmp try_begin
+check_second:
+    lda.obj v1
+try_begin:
+    checkcast B
+    ldai 1
+    return
+try_end:
+catch_begin:
+    ldai 0
+    return
+.catchall try_begin, try_end, catch_begin
+}
+
+.function u1 main4() {
+    movi v0, 0
+    call.short test2, v0
+    jnez exit_failure
+    movi v0, 1
+    call.short test2, v0
+    return
+exit_failure:
+    ldai 2
+    return
+}
+
+#! CHECKER      Remove redundant checkcast for variable updated in loop.
+#! RUN          force_jit: true, options: "", entry: "_GLOBAL::main5"
+#! METHOD       "_GLOBAL::main5"
+#! PASS_AFTER   "IrBuilder"
+#! INST         "CheckCast"
+#! PASS_AFTER   "ChecksElimination"
+#! INST_NOT     "CheckCast"
+
+.function u1 main5() {
+    newobj v0, A
+    movi v1, 3
+try_begin:
+    lda.obj v0
+    checkcast A
+    newobj v0, A
+    inci v1, -1
+    lda v1
+    jnez try_begin
+    ldai 0
+    return
+try_end:
+catch_begin:
+    ldai 1
+    return
+.catchall try_begin, try_end, catch_begin
+}
+
+#! CHECKER      Not applied, checkcast should throw during the second iteration.
+#! RUN          force_jit: true, options: "", entry: "_GLOBAL::main6"
+#! METHOD       "_GLOBAL::main6"
+#! PASS_AFTER   "Codegen"
+#! INST         "CheckCast"
+
+.function u1 main6() {
+    newobj v0, A
+    movi v1, 3
+try_begin:
+    lda.obj v0
+    checkcast A
+    newobj v0, B
+    inci v1, -1
+    lda v1
+    jnez try_begin
+    ldai 3
+    return
+try_end:
+catch_begin:
+    lda v1
+    subi 2
+    return
+.catchall try_begin, try_end, catch_begin
+}

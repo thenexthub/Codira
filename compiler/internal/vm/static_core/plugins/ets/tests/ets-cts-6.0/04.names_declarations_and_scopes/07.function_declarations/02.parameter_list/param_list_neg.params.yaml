@@ -1,0 +1,99 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+function_decls:
+    # arguments mismatch
+    - { decl: 'function f(a: int): void {}', call: 'f();' }
+    - { decl: 'function f(): void {}', call: 'f(42);' }
+
+    # missing parameter type
+    - { decl: 'function f(a): void {}', call: 'f(0);' }
+    - { decl: 'function f(a: int, b:): int { return 42; }', call: 'f(42, 0);' }
+
+    # same name parameters
+    - { decl: 'function f(a: int, a: boolean): void {}', call: 'f(0, false);' }
+
+    # mismatch in parameter types
+    - decl: |-
+          function foo<T>(a: U): U {
+              return a;
+          }
+      call: |-
+          let v: Error = foo<Error>(new Error())
+
+    # missing comma in parameter types
+    - decl: |-
+          function foo<T U>(a: T, b: U): U {
+              return b;
+          }
+      call: |-
+          foo<Error, Error>(new Error(), new Error())
+
+    # keyword as parameter type
+    - decl: |-
+          function foo<do, U>(a: do, b: U): U {
+              return b;
+          }
+      call: |-
+          foo<Long, Boolean>(new Long(), new Boolean(true))
+
+    - decl: |-
+          function foo<T, class>(a: T, b: class): T {
+              return a;
+          }
+      call: |-
+          foo<Long, Boolean>(new Long(), new Boolean(true))
+
+    # keyword as parameter name
+    - decl: |-
+          function foo<T, U>(do: T, b: U): U {
+              return b;
+          }
+      call: |-
+          foo<Long, Boolean>(new Long(), new Boolean(true))
+
+    - decl: |-
+          function foo<T, U>(a: T, case: U): T {
+              return a;
+          }
+      call: |-
+          foo<Long, Boolean>(new Long(), new Boolean(true))
+
+  # temp CTE for Initializer of arrowFunc array
+    - decl: |-
+        type BarType = () => void
+        function bar() {}
+        function foo(a: BarType[]) {}
+      call: |-
+        let arr: BarType[] = new BarType[1]
+        arr[0] = bar
+        foo(arr);
+
+    # enum array param, void return
+    - decl: |-
+          enum Color { Red, Green, Blue }
+          function foo(a: Color[]) {}
+      call: |-
+          let arr: Color[] =  new Color[1]
+          arr[0] = Color.Red
+          foo(arr);

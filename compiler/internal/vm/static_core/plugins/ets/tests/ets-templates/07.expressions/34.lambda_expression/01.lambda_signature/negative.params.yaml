@@ -1,0 +1,54 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # Signature negative cases
+cases:
+  - desc: A lambda expression declares two formal parameters with the same name
+    impl: |-
+        let f = (a: int, a: long) => a + a
+
+  - desc: A formal parameter contains no type provided, and the type cannot be derived by type inference
+    impl: |-
+        let f = (a, b) => a + b
+
+  - desc: A required parameter cannot follow an optional parameter.
+    impl: |-
+      let f = (a?: String, b: String) => a + b
+
+  - desc: A required parameter cannot follow an optional parameter.
+    impl: |-
+      let f = (a: String = 'test ', b: String) => a + b
+
+  - desc: A rest parameter is not last in parameter list.
+    impl: |-
+      let f = (...a: string[], b: string) => a[0] + b
+
+  - desc: A rest parameter is neither array nor tuple.
+    impl: |-
+      let f = (a: string, ...b: string) => a + b
+
+  - desc: Generic lambda.
+    impl: |-
+      let f = <T>(p: T) => T
+
+  - desc: Readonly array as lambda parameter.
+    impl: |-
+      (array: readonly string[]) => {
+          array[0] = 'test'
+      }
+
+  - desc: Readonly tuple as lambda parameter.
+    impl: |-
+      (tuple: readonly [number, string]) => {
+          tuple[0] = 1
+      }

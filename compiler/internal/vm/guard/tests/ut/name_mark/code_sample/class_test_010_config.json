@@ -1,0 +1,23 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep class class_test_010.Class? {\n   *;\n   }",
+        "-keep class class_test**B {\n   *;\n   }",
+        "-keep class class_test_010.*C {\n   *;\n   }",
+        "-keep class class_test_010.*Foo<1> {\n   *;\n   }",
+        "-keep class class_test_010.Dog1 {\n  public meth?d():void;\n  }",
+        "-keep class class_test_010.Dog2 {\n  public he**ld():void;\n  }",
+        "-keep class class_test_010.Dog3 {\n  public te*t():void;\n  }",
+        "-keep class class_test_010.Dog4 {\n  public *Foo<1>():void;\n}",
+        "-keep class class_test_010.Cat1 {\n  public meth?d:i32;\n  }",
+        "-keep class class_test_010.Cat2 {\n  public he**ld:i32;\n }",
+        "-keep class class_test_010.Cat3 {\n  public te*t:i32;\n  }",
+        "-keep class class_test_010.Cat4 {\n  public *Foo<1>:i32;\n  }"
+      ]
+    }
+  }
+}

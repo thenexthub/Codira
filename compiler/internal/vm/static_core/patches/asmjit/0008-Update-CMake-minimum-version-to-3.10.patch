@@ -1,0 +1,24 @@
+From 5d83c99c4970acd25df76f6950d787b4e7701a6c Mon Sep 17 00:00:00 2001
+From: Bolshov Maxim <>
+Date: Sat, 27 Dec 2025 20:32:20 +0300
+Subject: [PATCH] Update CMake minimum version to 3.10
+
+Update CMake minimum required version from 3.5 to 3.10 to
+suppress deprecation warnings when building with newer CMake.
+---
+ CMakeLists.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 097c8b3..69eb062 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,4 +1,4 @@
+-cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
++cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
+ 
+ cmake_policy(PUSH)
+ 
+-- 
+2.51.0
+

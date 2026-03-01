@@ -1,0 +1,16 @@
+{
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ],
+    "parser": "@typescript-eslint/parser",
+    "plugins": ["@typescript-eslint"],
+    "rules": {
+      "@typescript-eslint/explicit-function-return-type": ["error"],
+      "react-hooks/exhaustive-deps": "off",
+      "no-useless-escape": "off",
+      "quotes": ["error", "single", { "avoidEscape": true, "allowTemplateLiterals": false }],
+      "curly": ["error", "all"],
+      "brace-style": ["error", "1tbs", { "allowSingleLine": false }]
+    }
+}

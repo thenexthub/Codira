@@ -1,0 +1,95 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - dtype: |-
+          J
+      value: |-
+          [{}, {}]
+      stype: |-
+          I
+    - dtype: |-
+          bigint
+      value: |-
+          123n
+      stype: |-
+          Object
+    - dtype: |-
+          string[]
+      value: |-
+          [["a", "b"],["a", "b"]]
+      stype: |-
+          Object
+    - dtype: |-
+          null
+      value: |-
+          [null, null, null]
+      stype: |-
+          Any
+    - dtype: |-
+          undefined
+      value: |-
+          [undefined, undefined, undefined]
+      stype: |-
+          Any
+    - dtype: |-
+          Derived
+      value: |-
+          [new Derived, new Derived]
+      stype: |-
+          Base
+    - dtype: |-
+          String
+      value: |-
+          ['1','2','3']
+      stype: |-
+          Object
+    - dtype: |-
+          '1'|'2'|'3'
+      value: |-
+          ['1','2','3']
+      stype: |-
+          '1'|'2'|'3'|'4'
+    - dtype: |-
+          'a'
+      value: |-
+          ['a','a','a']
+      stype: |-
+          Object	
+    - dtype: |-
+          Base|Derived
+      value: |-
+          [new Base(), new Derived()]
+      stype: |-
+          Object
+    - dtype: |-
+          String | Number
+      value: |-
+          ['1', 1, 2]
+      stype: |-
+          Object		  
+    - dtype: |-
+          [Base, J, string]
+      value: |-
+          [[new Base(), {j: 1}, 'a'], [new Derived(), {j: 2}, 'b']]
+      stype: |-
+          Object
+    - dtype: |-
+          Derived
+      value: |-
+          [new Derived(), new Derived()]
+      stype: |-
+          Base
+      customtype: |-
+          yes

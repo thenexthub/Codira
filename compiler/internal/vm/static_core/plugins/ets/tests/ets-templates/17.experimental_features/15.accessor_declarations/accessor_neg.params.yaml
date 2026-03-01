@@ -1,0 +1,133 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # Below tests are based on code examples from chapter 17.15 spec version 1.2.0-alpha2 TECHNICAL PREVIEW 9
+  # non-native accessor has no body
+  - decl: |-
+      let saved_age = 0        
+      get age(): number;
+      set age(a: number);
+    expected_out: "Semantic error ESE0017: Only abstract or native methods can't have body."
+
+  - decl: |-
+      let saved_age = 0        
+      export get age(): number;
+      export set age(a: number);
+    expected_out: "Semantic error ESE0017: Only abstract or native methods can't have body."
+
+  # native accessor has a body
+  - decl: |-
+        native get age(): number {}
+        native set age(a: number) {}
+    expected_out: "Semantic error ESE0083: Native, Abstract and Declare methods cannot have body."
+
+  # get-accessor without return type and can't infer it
+  - decl: |-
+      get magicNumber() { }
+    expected_out: "Semantic error ESE0086: Getter must return a value"
+
+  # set-accessor without parameters
+  - decl: |-
+      let saved_age = 0        
+      get age(): number {}
+      set age() {}
+    expected_out: "Semantic error ESE0130: Function age is already declared."
+
+  # set-accessor with more than one parameter
+  - decl: |-
+      let saved_age = 0        
+      get age(): number {}
+      set age(a: number, b: number) {}
+    expected_out: "Syntax error ESY0063: Setter must have exactly one formal parameter."
+
+  # set-accessor with return type
+  - decl: |-
+      let saved_age = 0        
+      get age(): number {}
+      set age(a: number): number { return 42; }
+    expected_out: "Syntax error ESY0241: Setter must not have return type even if it is void."
+
+  # set-accessor with optional parameter 1
+  - decl: |-
+      let saved_age = 0        
+      get age(): number {}
+      set age(a?: number): {}
+    expected_out: "Syntax error ESY0241: Setter must not have return type even if it is void."
+
+  # set-accessor with optional parameter 2
+  - decl: |-
+      let saved_age = 0        
+      get age(): number {}
+      set age(a?: number = 1): {}
+    expected_out: "Syntax error ESY0241: Setter must not have return type even if it is void."
+
+  # getter is used in a call expression (like a function)
+  - decl: |-
+      get age(): number { return 42 }
+    use: |-
+      age()
+    expected_out: "Semantic error ESE0289: This expression is not callable."
+
+  # setter is used in a call expression (like a function)
+  - decl: |-
+      set age(a: number): {}
+    use: |-
+      age(42)
+    expected_out: "Syntax error ESY0241: Setter must not have return type even if it is void."
+
+  # getter is used in a call expression (like a function)
+  - decl: |-
+      get age(): number { return 42 }
+    use: |-
+      age()
+    expected_out: "Semantic error ESE0289: This expression is not callable."
+
+  # Get-accessor name is the same as that of another entity in a scope
+  - decl: |-
+      let name = "Bob"
+      get name(): string { return "Alice" }
+    expected_out: "Semantic error ESE0351: Variable 'name' has already been declared."
+
+  # Set-accessor name is the same as that of another entity in a scope
+  - decl: |-
+      let name = "Bob"
+      set name(a: string)  { }
+    expected_out: "Semantic error ESE0351: Variable 'name' has already been declared."
+
+  # Names of two getters in a scope are the same
+  - decl: |-
+      get name(): string { return "Alice" }
+      get name(): string { return "Malice" }
+    expected_out: "Semantic error ESE0219: Duplicate accessor definition"
+
+  # Names of two setters in a scope are the same
+  - decl: |-
+      set name(a: string) { }
+      set name(a: string) { }
+    expected_out: "Semantic error ESE0130: Function name is already declared."
+
+  # Getter is used in the position of a left-hand-side expression in an Assignment
+  - decl: |-
+      get magicNumber(): number { return 42 }
+    use: |-
+      magicNumber = 42
+    expected_out: "Semantic error ESE0209: Cannot assign to this property because it is readonly."
+
+  # Setter is used to get a value.
+  - decl: |-
+      set randomSeed(a: number) {}
+    use: |-
+      arktest.assertEQ(randomSeed, 42)
+    expected_out: "Semantic error ESE0211: Cannot read from this property because it is writeonly."

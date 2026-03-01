@@ -1,0 +1,51 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+.language eTS
+
+.record Base <ets.extends=std.core.Object, access.record=public> {}
+.record Derv1 <ets.extends=Base, access.record=public> {}
+.record Derv2 <ets.extends=Derv1, access.record=public> {}
+.record Derv3 <ets.extends=Derv2, access.record=public> {}
+.record Derv4 <ets.extends=Derv3, access.record=public> {}
+.record Derv11 <ets.extends=Derv1, access.record=public> {}
+.record D <ets.extends=std.core.Object, access.record=public> {}
+.record E <ets.extends=D, access.record=public> {}
+.record std.core.Object <external>
+.function void D.foo(D a0, {UDerv11,Derv4} a1) <access.function=public> { return.void }
+.function void E.foo(E a0, {UDerv11,Derv3} a1) <access.function=public> { return.void }
+.function void E.foo(E a0, Derv1 a1) <access.function=public> { return.void }
+.function void E._ctor_(E a0) <ctor, access.function=public> {
+	return.void
+}
+.function void Derv11._ctor_(Derv11 a0) <ctor, access.function=public> {
+	return.void
+}
+.function i32 main() <static, access.function=public> {
+	initobj.short E._ctor_:(E)
+	sta.obj v0
+	initobj.short Derv11._ctor_:(Derv11)
+	sta.obj v1
+	call.virt.short E.foo:(E,{UDerv11,Derv3}), v0, v1
+	ldai 1
+	return
+}

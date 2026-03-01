@@ -1,0 +1,29 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+#
+E/verifier: Cannot link class: Cannot find method 'bar (Lstd/core/String;)D' in class 'declarations_n.ETSGLOBAL'
+E/verifier: Verifier error 54: Cache miss for method at offset
+E/verifier: Verifier error 62: Cannot resolve method id
+E/verifier: Method verification failed: void import_declarations_n_0.ETSGLOBAL::usage()
+E/verifier: Class verification failed: 'import_declarations_n_0.ETSGLOBAL' method: void import_declarations_n_0.ETSGLOBAL::usage()
+E/runtime: Cannot initialize class 'import_declarations_n_0.ETSGLOBAL'
+Unhandled exception: std.core.LinkerVerificationError

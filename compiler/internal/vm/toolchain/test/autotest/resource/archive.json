@@ -1,0 +1,80 @@
+[
+    {
+        "application project": "MultiWorker01",
+        "hap name": "MultiWorker01.hap",
+        "bundle name": "com.example.multiWorker01"
+    },
+    {
+        "application project": "MultiWorker02",
+        "hap name": "MultiWorker02.hap",
+        "bundle name": "com.example.multiWorker02"
+    },
+    {
+        "application project": "MultiWorker03",
+        "hap name": "MultiWorker03.hap",
+        "bundle name": "com.example.multiWorker03"
+    },
+    {
+        "application project": "MultiWorker04",
+        "hap name": "MultiWorker04.hap",
+        "bundle name": "com.example.multiWorker04"
+    },
+    {
+        "application project": "MultiWorker05",
+        "hap name": "MultiWorker05.hap",
+        "bundle name": "com.example.multiWorker05"
+    },
+    {
+        "application project": "MultiWorker06",
+        "hap name": "MultiWorker06.hap",
+        "bundle name": "com.example.multiWorker06"
+    },
+    {
+        "application project": "MultiWorker07",
+        "hap name": "MultiWorker07.hap",
+        "bundle name": "com.example.multiWorker07"
+    },
+    {
+        "application project": "MultiWorker08",
+        "hap name": "MultiWorker02.hap",
+        "bundle name": "com.example.multiWorker08"
+    },
+    {
+        "application project": "TaskPool01",
+        "hap name": "TaskPool01.hap",
+        "bundle name": "com.example.taskPool01"
+    },
+    {
+        "application project": "TaskPool02",
+        "hap name": "TaskPool02.hap",
+        "bundle name": "com.example.taskPool02"
+    },
+    {
+        "application project": "Native01",
+        "hap name": "Native01.hap",
+        "bundle name": "com.example.native01"
+    },
+    {
+        "application project": "Native02",
+        "hap name": "Native02.hap",
+        "bundle name": "com.example.native02"
+    },
+    {
+        "application project": "MainInstance01",
+        "hap name": "MainInstance01.hap",
+        "bundle name": "com.example.mainInstance01"
+    },
+    {
+        "application project": "HotReloadHarHsp01",
+        "hap name": ["HotReloadHarHsp01.hap", "HspDiscovery.hsp"],
+        "bundle name": "com.example.HotReloadHarHsp01",
+        "hqf name": ["HotReloadHarHsp01.hqf", "HspDiscovery.hap"]
+    },
+    {
+        "application project": "HotReloadPages01",
+        "hap name": "HotReloadPages01.hap",
+        "bundle name": "com.example.HotReloadPages01",
+        "hqf name": [["HotReloadPages01.01.hqf"], ["HotReloadPages01.02.hqf"],
+                     ["HotReloadPages01.03.hqf"], ["HotReloadPages01.04.hqf"]]
+    }
+]

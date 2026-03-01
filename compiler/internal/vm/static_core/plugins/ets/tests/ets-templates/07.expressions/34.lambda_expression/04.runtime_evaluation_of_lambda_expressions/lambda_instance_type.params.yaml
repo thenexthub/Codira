@@ -1,0 +1,102 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # Cases for lambda instance types
+cases:
+  - lambda_type: |-
+      () => void
+    lambda_body: |-
+      () => { }
+
+  - lambda_type: |-
+      () => int
+    lambda_body: |-
+      () => { return 123 }
+
+  - lambda_type: |-
+      (x: int) => void
+    lambda_body: |-
+      (x: int) => { return }
+
+  - lambda_type: |-
+      (x: int) => int
+    lambda_body: |-
+      (x: int) => { return x }
+
+  - lambda_type: |-
+      (x: Any) => Any
+    lambda_body: |-
+      (x: Any) => { return x }
+
+  - lambda_type: |-
+      (x: Object) => Object
+    lambda_body: |-
+      (x: Object) => { return x }
+
+  - lambda_type: |-
+      () => never
+    lambda_body: |-
+      () => { throw new Error("lambda never returns") }
+
+  - lambda_type: |-
+      (x: null) => null
+    lambda_body: |-
+      (x: null) => { return null }
+
+  - lambda_type: |-
+      (x: undefined) => undefined
+    lambda_body: |-
+      (x: undefined) => { return undefined }
+
+  - lambda_type: |-
+      (x: int[]) => int[]
+    lambda_body: |-
+      (x: int[]) => { return x }
+
+  - lambda_type: |-
+      (x: int | double | string) => int | double | string
+    lambda_body: |-
+      (x: int | double | string) => { return x }
+
+  - lambda_type: |-
+      (...x: int[]) => int
+    lambda_body: |-
+      (...x: int[]) => { return 1 }
+
+  - decl: |-
+      class A {}
+    lambda_type: |-
+      (x: A) => A
+    lambda_body: |-
+      (x: A) => { return x }
+
+  - decl: |-
+      interface I {}
+    lambda_type: |-
+      (x: I) => I
+    lambda_body: |-
+      (x: I) => { return x }
+
+  - decl: |-
+      type foo_type = (p: int) => int
+    lambda_type: |-
+      (x: foo_type) => foo_type
+    lambda_body: |-
+      (x: foo_type) => { return x }
+
+  - decl: |-
+      type tuple_type = [int, double, string]
+    lambda_type: |-
+      (x: tuple_type) => tuple_type
+    lambda_body: |-
+      (x: tuple_type) => { return x }

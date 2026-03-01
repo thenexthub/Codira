@@ -1,0 +1,231 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+import("//arkcompiler/runtime_core/platform/hybrid_config.gni")
+import("//arkcompiler/runtime_core/static_core/ark_config.gni")
+import("$build_root/config/components/ets_frontend/es2abc_config.gni")
+
+template("interop_test") {
+  assert(defined(invoker.js), "js must be defined")
+  assert(defined(invoker.ets), "ets must be defined")
+
+  if (defined(invoker.js_module)) {
+    lines_helpers = []
+    count_helpers = 0
+    foreach(file, invoker.js_module) {
+      line_helper =
+          rebase_path(file) + ";" + get_path_info(file, "name") + ";commonjs;" +
+          get_path_info(file, "file") + ";${target_name}"
+      lines_helpers += [ line_helper ]
+      count_helpers += 1
+    }
+    js_helpers_file = ""
+    if (count_helpers > 1) {
+      js_helpers_list = rebase_path(
+              "$target_out_dir/${target_name}/${target_name}_helpers_list.txt")
+      write_file(js_helpers_list, lines_helpers)
+      js_helpers_file = "@$js_helpers_list"
+    } else {
+      files_helpers = invoker.js_module
+      js_helpers_file = rebase_path(files_helpers[0])
+    }
+    jsabc_helpers_file =
+        "$target_out_dir/${target_name}/${target_name}_helpers_js.abc"
+
+    es2abc_gen_abc("${target_name}_helpers_jsabc") {
+      extra_visibility = [ ":*" ]
+      src_js = js_helpers_file
+      dst_file = rebase_path(jsabc_helpers_file)
+      extra_args = []
+      if (count_helpers > 1) {
+        extra_args += [ "--commonjs" ]
+      }
+      extra_args += [ "--merge-abc" ]
+      extra_args += [ "--module" ]
+      in_puts = invoker.js_module
+      out_puts = [ jsabc_helpers_file ]
+    }
+  }
+
+  lines = []
+  count = 0
+  foreach(file, invoker.js) {
+    line = rebase_path(file) + ";" + get_path_info(file, "name") +
+           ";commonjs;" + get_path_info(file, "file") + ";${target_name}"
+    lines += [ line ]
+    count += 1
+  }
+  js_file = ""
+  if (count > 1) {
+    js_list =
+        rebase_path("$target_out_dir/${target_name}/${target_name}_list.txt")
+    write_file(js_list, lines)
+    js_file = "@$js_list"
+  } else {
+    files = invoker.js
+    js_file = rebase_path(files[0])
+  }
+  jsabc_file = "$target_out_dir/${target_name}/${target_name}_js.abc"
+  sts_file = invoker.ets
+  stsabc_file = "$target_out_dir/${target_name}/" +
+                get_path_info(sts_file, "name") + ".abc"
+
+  es2abc_gen_abc("${target_name}_jsabc") {
+    extra_visibility = [ ":*" ]
+    src_js = js_file
+    dst_file = rebase_path(jsabc_file)
+    extra_args = []
+    if (count > 1) {
+      extra_args += [ "--commonjs" ]
+      extra_args += [ "--merge-abc" ]
+    }
+    in_puts = invoker.js
+    out_puts = [ jsabc_file ]
+  }
+  js_deps = [ ":${target_name}_jsabc" ]
+  if (defined(invoker.js_modules)) {
+    foreach(js_file, invoker.js_modules) {
+      js_module_path = rebase_path(js_file)
+      js_module_name = get_path_info(js_file, "name")
+      js_module_abc = "$target_out_dir/${target_name}/${js_module_name}.abc"
+      es2abc_gen_abc("${target_name}_${js_module_name}_jsabc") {
+        extra_visibility = [ ":*" ]
+        src_js = js_module_path
+        dst_file = rebase_path(js_module_abc)
+        extra_args = [
+          "--module",
+          "--merge-abc",
+        ]
+        in_puts = [ "${js_file}" ]
+        out_puts = [ js_module_abc ]
+      }
+      js_deps += [ ":${target_name}_${js_module_name}_jsabc" ]
+    }
+  }
+
+  es2panda_gen("${target_name}_stsabc") {
+    inputs = [ sts_file ]
+    outputs = [ stsabc_file ]
+
+    args = [
+      "--extension=ets",
+      "--opt-level=2",
+      "--output=" + rebase_path(stsabc_file),
+      rebase_path(sts_file),
+    ]
+    if (defined(invoker.arktsconfig)) {
+      args += [
+        "--arktsconfig",
+        rebase_path(invoker.arktsconfig),
+      ]
+    }
+  }
+
+  ohos_shared_library("${target_name}_module") {
+    forward_variables_from(invoker, [ "sources" ])
+    configs = [
+      "$ark_root:ark_config",
+      "$ark_root/runtime:arkruntime_public_config",
+      "$ark_root/plugins/ets/runtime/interop_js:interop_js_public_config",
+    ]
+    if (defined(invoker.configs)) {
+      configs += invoker.configs
+    }
+    deps = [
+      "$ark_root/libarkbase:libarktsbase",
+      "$ark_root/runtime:libarkruntime",
+      "$arkui_root/napi:ace_napi",
+    ]
+    if (defined(invoker.deps)) {
+      deps += invoker.deps
+    }
+    relative_install_dir = "module"
+    part_name = "runtime_core"
+    subsystem_name = "arkcompiler"
+  }
+
+  action(target_name) {
+    sources = [
+      jsabc_file,
+      stsabc_file,
+    ]
+    deps =
+        js_deps + [
+          ":${target_name}_stsabc",
+          "$ark_root/plugins/ets:etsstdlib",
+          "$ark_root/plugins/ets/runtime/interop_js:ets_interop_js_napi",
+          "$ark_root/tools/ark_js_napi_cli:ark_js_napi_cli(${host_toolchain})",
+          "$etsruntime_root:libark_jsruntime",
+          "$etsruntime_root/ecmascript/compiler:stub.an",
+        ]
+    if (defined(invoker.sources)) {
+      deps += [ ":${target_name}_module" ]
+    }
+    if (defined(invoker.js_module)) {
+      deps += [ ":${target_name}_helpers_jsabc" ]
+    }
+    outputs = [ "$target_out_dir/${target_name}/" ]
+    script = "$ark_root/plugins/ets/tests/interop_js/run_test.sh"
+    args = []
+    ld_lib_path = "LD_LIBRARY_PATH=" +
+                  rebase_path("${root_out_dir}/arkcompiler/ets_runtime")
+    ld_lib_path += ":" + rebase_path("${root_out_dir}/arkcompiler/runtime_core")
+    ld_lib_path += ":" + rebase_path("${root_out_dir}/arkui/napi")
+    ld_lib_path +=
+        ":" + rebase_path("$root_out_dir/thirdparty/bounds_checking_function")
+    ld_lib_path += ":" + rebase_path("$root_out_dir/thirdparty/libuv")
+    ld_lib_path += ":" + rebase_path("$root_out_dir/thirdparty/icu")
+    args += [
+      "--env",
+      ld_lib_path,
+    ]
+    args += [
+      "--module",
+      rebase_path(
+          "${root_out_dir}/arkcompiler/runtime_core/libets_interop_js_napi.so"),
+      "--module",
+      rebase_path(
+          "${root_out_dir}/arkcompiler/runtime_core/libinterop_test_helper.so"),
+      "--module",
+      rebase_path(
+          "${root_out_dir}/arkcompiler/runtime_core/lib${target_name}_module.so"),
+    ]
+    args += [
+      "--etsstdlib",
+      rebase_path(
+          "${root_gen_dir}/arkcompiler/runtime_core/static_core/plugins/ets/etsstdlib.abc"),
+    ]
+    args += [
+      "--dir",
+      rebase_path("$target_out_dir/${target_name}"),
+    ]
+    cmd =
+        rebase_path("${root_out_dir}/arkcompiler/runtime_core/ark_js_napi_cli")
+    cmd += " --open-ark-tools true"
+    cmd += " --stub-file " +
+           rebase_path("${root_gen_dir}/arkcompiler/ets_runtime/stub.an")
+    cmd += " --entry-point ${target_name}"
+    cmd += " --enable-force-gc=false"
+    cmd += " " + rebase_path(jsabc_file)
+    args += [ cmd ]
+  }
+}

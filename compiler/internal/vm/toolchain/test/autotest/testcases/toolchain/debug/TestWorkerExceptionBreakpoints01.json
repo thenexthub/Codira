@@ -1,0 +1,16 @@
+
+{
+  "description": "Config for TestWorkerExceptionBreakpoints01",
+  "environment": [
+    {
+      "type": "device",
+      "label": "phone"
+    }
+  ],
+  "driver": {
+    "type": "DeviceTest",
+    "py_file": [
+      "toolchain/debug/TestWorkerExceptionBreakpoints01.py"
+    ]
+  }
+}

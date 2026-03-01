@@ -1,0 +1,13 @@
+# 1 is module mode, 0 is script mode
+# testcases
+js/script-variable.js 0
+# dynamic-import testcases
+dynamic-import/script-dynamic-import.js 0
+# module testcases
+module/module-import-file.js 1
+module/module-start-export.js 1
+module/module-regular-import.js 1
+module/module-local-export.js 1
+module/module-indirect-export.js 1
+module/module-namespace-import.js 1
+module/module-multi-import.js 1

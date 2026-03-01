@@ -1,0 +1,117 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+#include "ani.h"
+#include <string>
+#include <iostream>
+#include <cstring>
+#include <cassert>
+#include <vector>
+#include <algorithm>
+#include "libarkbase/utils/logger.h"
+
+[[maybe_unused]] static void GetStdString(ani_env *env, ani_string str, std::string &result)
+{
+    ani_size sz {};
+    LOG_IF(env->String_GetUTF8Size(str, &sz) != ANI_OK, FATAL, ANI) << "Failed to get string size";
+    result.resize(sz + 1);
+
+    LOG_IF(env->String_GetUTF8SubString(str, 0, sz, result.data(), result.size(), &sz) != ANI_OK, FATAL, ANI) << "Failed to get substring";
+
+    result.resize(sz);
+}
+
+[[maybe_unused]] static bool Equal(double a1, double a2)
+{
+    return std::abs(a1 - a2) < 0.000001F;
+}
+
+template <typename ValueType>
+std::vector<ValueType> EtsArrToVec(ValueType *buf, ani_size sizeArr)
+{
+    LOG_IF(buf == nullptr, FATAL, ANI) << "Array empty, failed to get array";
+
+    std::vector<ValueType> vec;
+    vec.reserve(sizeArr);
+    for (ani_size i = 0; i < sizeArr; i++) {
+        vec.push_back(buf[i]);
+    }
+    return vec;
+}
+
+void print{{ Type }}Arr(ani_env *env, ani_array arr)
+{
+    ani_size len;
+    LOG_IF(env->Array_GetLength(arr, &len) != ANI_OK, FATAL, ANI) << "Failed to get array's length";
+    ani_ref elem {};
+    {% if type == "string" -%}
+        std::string str;
+    {%- else %}
+        const uint32_t bufferSize = 5U;
+        ani_{{ type }} buff[bufferSize] = {};
+    {%- endif %}
+    for (size_t i = 0; i < len; ++i) {
+        LOG_IF(env->Array_Get(arr, i, &elem) != ANI_OK, FATAL, ANI) << "Failed to get array";
+        {% if type == "string" -%}
+            auto string = reinterpret_cast<ani_string>(elem);
+            GetStdString(env, string, str);
+            LOG_IF(str != std::to_string(i + 1), FATAL, ANI) << "str '" << str << "' not equal to '" <<  std::to_string(i + 1) << "'";
+        {%- else %}
+            LOG_IF(env->Object_CallMethodByName_{{ Type }}(static_cast<ani_object>(elem), "to{{ Type }}", nullptr, &buff[i]) != ANI_OK, FATAL, ANI) << "Failed to call to{{ Type }} method for {{ type }}";
+        {%- endif %}
+    }
+    {% if type != "string" -%}
+        auto vec = EtsArrToVec<ani_{{ type }}>(buff, len);
+        for (size_t i = 0; i < bufferSize; ++i) {
+            {% if type == "double" or type == "float" -%}
+                LOG_IF(!Equal(buff[i], 1.1 * (i + 1)), FATAL, ANI) << "'" << buff[i] << "' not equal to '" << 1.1 * (i + 1) << "'";
+            {%- elif type == "boolean" -%}
+                LOG_IF(buff[i] != (i + 1) % 2, FATAL, ANI) << "'" << buff[i] << "' not equal to '" << (i + 1) % 2 << "'";
+            {%- else %}
+                LOG_IF(buff[i] != static_cast<int>(i + 1), FATAL, ANI) << "'" << buff[i] << "' not equal to '" << i + 1 << "'";
+            {%- endif %}
+        }
+    {%- endif %}
+}
+
+const std::vector<ani_native_function> g_{{ type }}Methods = {
+    {"print{{ Type }}Arr", nullptr, reinterpret_cast<void *>(print{{ Type }}Arr)},
+    {"printQuick{{ Type }}Arr", nullptr, reinterpret_cast<void *>(print{{ Type }}Arr)},
+};
+
+ANI_EXPORT ani_status ANI_Constructor(ani_vm *vm, uint32_t *result)
+{
+    ani_env *env;
+
+    LOG_IF(vm->GetEnv(ANI_VERSION_1, &env) != ANI_OK, FATAL, ANI) << "Unsupported ANI_VERSION_1";
+
+    static const char *moduleName = "EtsAniTests";
+    ani_module module;
+
+    LOG_IF(env->FindModule(moduleName, &module) != ANI_OK, FATAL, ANI) << "Not found '" << moduleName << "'";
+
+    for (auto &m : g_{{ type }}Methods) {
+        LOG_IF(env->Module_BindNativeFunctions(module, &m, 1) != ANI_OK, FATAL, ANI) << "Failed to bind function '" << m.name << "'";
+    }
+    *result = ANI_VERSION_1;
+    return ANI_OK;
+}

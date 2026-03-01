@@ -1,0 +1,129 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+    - decl: |-
+          // private invoke from same-class another invoke
+          class C {
+              private static $_invoke(p: string) { return p }
+              public static $_invoke() { return C('abc') }
+          }
+      use: |-
+          arktest.assertEQ(C(), 'abc')
+
+    - decl: |-
+          // private invoke from same-class method
+          class C {
+              private static $_invoke(p: string) { return p + p }
+              meth(): string {
+                  return C('abc')
+              }
+          }
+      use: |-
+          arktest.assertEQ(new C().meth(), 'abcabc')
+
+    - decl: |-
+          // protected invoke from same-class another invoke
+          class C {
+              protected static $_invoke(p: string) { return p }
+              public static $_invoke() { return C('abc') }
+          }
+      use: |-
+          arktest.assertEQ(C(), 'abc')
+
+    - decl: |-
+          // protected invoke from same-class method
+          class C {
+              protected static $_invoke(p: string) { return p + p }
+              meth(): string {
+                  return C('abc')
+              }
+          }
+      use: |-
+          arktest.assertEQ(new C().meth(), 'abcabc')
+
+    - decl: |-
+          // protected invoke from subclass invoke
+          class B {
+              protected static $_invoke(p: string) { return p }
+          }
+          class C extends B {
+              public static $_invoke() { return B('abc') }
+          }
+      use: |-
+          arktest.assertEQ(C(), 'abc')
+
+    - decl: |-
+          // protected invoke from subclass method
+          class B {
+              protected static $_invoke(p: string) { return p + p }
+          }
+          class C extends B {
+              meth(): string {
+                  return B('abc')
+              }
+          }
+      use: |-
+          arktest.assertEQ(new C().meth(), 'abcabc')
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // protected invoke from another class invoke
+          class B {
+              protected static $_invoke(p: string) { return p }
+          }
+          class C {
+              public static $_invoke() { return B('abc') }
+          }
+      use: |-
+          arktest.assertEQ(C(), 'abc')
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // protected invoke from another class method
+          class B {
+              protected static $_invoke(p: string) { return p + p }
+          }
+          class C {
+              meth(): string {
+                  return B('abc')
+              }
+          }
+      use: |-
+          arktest.assertEQ(new C().meth(), 'abcabc')
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // private invoke from subclass invoke
+          class B {
+              private static $_invoke(p: string) { return p }
+          }
+          class C extends B {
+              public static $_invoke() { return B('abc') }
+          }
+      use: |-
+          arktest.assertEQ(C(), 'abc')
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // private invoke from subclass method
+          class B {
+              private static $_invoke(p: string) { return p + p }
+          }
+          class C extends B {
+              meth(): string {
+                  return B('abc')
+              }
+          }
+      use: |-
+          arktest.assertEQ(new C().meth(), 'abcabc')

@@ -1,0 +1,136 @@
+# Copyright (c) 2023-2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+module:
+  name: llvm
+  namespace: ark::llvmbackend
+  description: LLVM AOT compiler for panda
+
+options:
+  - name: llvm-allow-breakage
+    type: bool
+    default: false
+    description: Skip errors during LLVM IR generation
+  - name: llvm-fallback
+    type: bool
+    default: true
+    description: Use Ark Compiler as fallback
+  - name: llvm-inlining
+    type: bool
+    default: true
+    description: >
+      Enable inlining optimization. Default value is overridden by explicit
+      --compiler-inlining which in turn can be overridden by passing this
+      option explicitly
+  - name: llvm-pre-opt
+    type: uint32_t
+    default: 0
+    description: >
+      Level of pre-optimization that LLVMAOT does.
+      0 means running small number of Ark passes before compiling by LLVM.
+      1 means same as 0 but allows Ark Inliner to perform inlining
+      2 is the same as 1 but runs more Ark passes
+  - name: llvm-recursive-inlining
+    type: bool
+    default: true
+    description: Enable inlining for recursive calls
+  - name: llvm-dump-before
+    type: bool
+    default: false
+    description: Whether generated LLVM module should be dumped before optimization passes are run
+  - name: llvm-dump-after
+    type: bool
+    default: false
+    description: Whether generated LLVM module should be dumped after optimization passes are run
+  - name: llvm-dump-codeinfo
+    type: bool
+    default: false
+    description: Print generated code info
+  - name: llvm-dump-obj
+    type: bool
+    default: false
+    description: >
+      Whether llvm backend should dump generated object files.
+      The object files will be dumped to a "llvm-output-{module-number}.o" files in the current working directory,
+      if a file exists it will be overwritten
+  - name: llvm-dump-stackmaps
+    type: bool
+    default: false
+    description: Dump a textual representation of .llvm_stackmaps section into "llvm-stackmaps.txt"
+  - name: llvm-gc
+    type: bool
+    default: true
+    description: Run GC intrusion pass
+  - name: llvm-gc-check
+    type: bool
+    default: false
+    description: Run invariant checks after GC intrusion pass
+  - name: llvm-log
+    type: arg_list_t
+    default:
+      - none
+    possible_values:
+      - none
+      - all
+      - infra
+      - stackmaps
+      - ir
+    description: Set log llvm components
+    delimiter: ","
+  - name: llvm-pipeline
+    type: std::string
+    default: ""
+    description: >
+      File with a sequence of llvm's passes, that will be involved into optimization
+      pipeline.
+  - name: llvm-deopts
+    type: bool
+    default: true
+    description: Generate deoptimizations
+  - name: llvm-options
+    type: std::string
+    default: ""
+    description: String with command line options that directly passed into llvm.
+  - name: llvm-builtin-wrb
+    type: bool
+    default: true
+    description: Whether WRB are generated via builtin.
+  - name: llvm-inline-module
+    type: std::string
+    default: ""
+    description: A supplemental LLVM IR bitcode module with additional functions to be inlined
+  - name: llvmaot-methods-per-module
+    type: uint64_t
+    default: 4096
+    description: Number of methods to compile in one llvm module
+  - name: llvm-break-ir-regex
+    type: std::string
+    default: ""
+    description: Debug only. LLVM compiler will break IR on purpose for the functions matching the regex
+    tags: [debug, test]
+  - name: llvm-cpu
+    type: std::string
+    default: "cortex-a55"
+    description: Set target cpu
+  - name: llvm-triple
+    type: std::string
+    default: "aarch64v8.2a-unknown-linux-gnu"
+    description: Set target triple
+  - name: llvmaot-threads
+    type: int32_t
+    default: -1
+    description: >
+      Enables parallel compilation of different modules (see also --llvmaot-methods-per-module)
+      in LLVMAOT mode. Default value is -1 and compilation is sequential. Bigger values allow
+      to specify amount of parallel compilation threads. Value 0 allows to check available
+      hardware parallelism level (#CPUs) automatically.

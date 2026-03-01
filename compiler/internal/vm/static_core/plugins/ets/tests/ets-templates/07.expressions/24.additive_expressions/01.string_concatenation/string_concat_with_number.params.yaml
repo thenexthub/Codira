@@ -1,0 +1,162 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of string concatenation with number tests
+cases:
+  - desc: String concats with decimal number.
+    logic: |-
+      arktest.assertEQ("decimal number is " + 123, "decimal number is 123");
+  - desc: Decimal number concats with string.
+    logic: |-
+      arktest.assertEQ(123 + " is decimal number", "123 is decimal number");
+  - desc: String concats with zero.
+    logic: |-
+      arktest.assertEQ("zero is " + 0, "zero is 0");
+  - desc: Zero concats with string.
+    logic: |-
+      arktest.assertEQ(0 + " is zero", "0 is zero");
+  - desc: String concats with negative number.
+    logic: |-
+      arktest.assertEQ("negative number is " + -1, "negative number is -1");
+  - desc: Negative number concats with string.
+    logic: |-
+      arktest.assertEQ(-327 + " is negative number", "-327 is negative number");
+  - desc: String concats with underscored number.
+    logic: |-
+      arktest.assertEQ("underscored number is " + 1_000_000, "underscored number is 1000000");
+  - desc: Underscored number concats with string.
+    logic: |-
+      arktest.assertEQ(1_000 + " is underscored number", "1000 is underscored number");
+  - desc: String concats with negative underscored number.
+    logic: |-
+      arktest.assertEQ("negative underscored number is " + -1_000, "negative underscored number is -1000");
+  - desc: Negative underscored number concats with string.
+    logic: |-
+      arktest.assertEQ(-3_23 + " is negative underscored number", "-323 is negative underscored number");
+  - desc: String concats with hex number.
+    logic: |-
+      arktest.assertEQ("hex number is " + 0xA2E, "hex number is 2606");
+  - desc: Hex number concats with string.
+    logic: |-
+      arktest.assertEQ(0x134 + " is hex number", "308 is hex number");
+  - desc: String concats with hex zero.
+    logic: |-
+      arktest.assertEQ("hex zero is " + 0x0, "hex zero is 0");
+  - desc: Hex zero concats with string.
+    logic: |-
+      arktest.assertEQ(0x0 + " is hex zero", "0 is hex zero");
+  - desc: String concats with negative hex number.
+    logic: |-
+      arktest.assertEQ("negative hex number is " + -0x790, "negative hex number is -1936");
+  - desc: Negative hex number concats with string.
+    logic: |-
+      arktest.assertEQ(-0xFFFF + " is negative hex number", "-65535 is negative hex number");
+  - desc: String concats with octal number.
+    logic: |-
+      arktest.assertEQ("octal number is " + 0o702, "octal number is 450");
+  - desc: Octal number concats with string.
+    logic: |-
+      arktest.assertEQ(0o067 + " is octal number", "55 is octal number");
+  - desc: String concats with octal zero.
+    logic: |-
+      arktest.assertEQ("octal zero is " + 0o0, "octal zero is 0");
+  - desc: Octal zero concats with string.
+    logic: |-
+      arktest.assertEQ(0o0 + " is octal zero", "0 is octal zero");
+  - desc: String concats with negative octal number.
+    logic: |-
+      arktest.assertEQ("negative octal number is " + -0o0762, "negative octal number is -498");
+  - desc: Negative octal number concats with string.
+    logic: |-
+      arktest.assertEQ(-0o326 + " is negative octal number", "-214 is negative octal number");
+  - desc: String concats with binary number.
+    logic: |-
+      arktest.assertEQ("binary number is " + 0b101, "binary number is 5");
+  - desc: Binary number concats with string.
+    logic: |-
+      arktest.assertEQ(0b011 + " is binary number", "3 is binary number");
+  - desc: String concats with binary zero.
+    logic: |-
+      arktest.assertEQ("binary zero is " + 0b0, "binary zero is 0");
+  - desc: Binary zero concats with string.
+    logic: |-
+      arktest.assertEQ(0b0 + " is binary zero", "0 is binary zero");
+  - desc: String concats with negative binary number.
+    logic: |-
+      arktest.assertEQ("negative binary number is " + -0b101, "negative binary number is -5");
+  - desc: Negative binary number concats with string.
+    logic: |-
+      arktest.assertEQ(-0b011 + " is negative binary number", "-3 is negative binary number");
+  - desc: String concats with BigInt.
+    logic: |-
+      arktest.assertEQ("BigInt is " + 123n, "BigInt is 123");
+  - desc: BigInt concats with string.
+    logic: |-
+      arktest.assertEQ(123n + " is BigInt", "123 is BigInt");
+  - desc: String concats with BigInt zero.
+    logic: |-
+      arktest.assertEQ("BigInt zero is " + 0n, "BigInt zero is 0");
+  - desc: BigInt zero concats with string.
+    logic: |-
+      arktest.assertEQ(0n + " is BigInt zero", "0 is BigInt zero");
+  - desc: String concats with negative BigInt.
+    logic: |-
+      arktest.assertEQ("negative BigInt is " + -123n, "negative BigInt is -123");
+  - desc: Negative BigInt concats with string.
+    logic: |-
+      arktest.assertEQ(-123n + " is negative BigInt", "-123 is negative BigInt");
+  - desc: String concats with byte.
+    logic: |-
+      arktest.assertEQ("byte is " + (1 as byte), "byte is 1");
+  - desc: Byte concats with string.
+    logic: |-
+      arktest.assertEQ(1 as byte + " is byte", "1 is byte");
+  - desc: String concats with short.
+    logic: |-
+      arktest.assertEQ("short is " + (1 as short), "short is 1");
+  - desc: Short concats with string.
+    logic: |-
+      arktest.assertEQ(1 as short + " is short", "1 is short");
+  - desc: String concats with long.
+    logic: |-
+      arktest.assertEQ("long is " + (1 as long), "long is 1");
+  - desc: Long concats with string.
+    logic: |-
+      arktest.assertEQ(1 as long + " is long", "1 is long");
+  - desc: String concats with float.
+    logic: |-
+      arktest.assertEQ("float is " + (1 as float), "float is 1");
+  - desc: Float concats with string.
+    logic: |-
+      arktest.assertEQ(1 as float + " is float", "1 is float");
+  - desc: String concats with double.
+    logic: |-
+      arktest.assertEQ("double is " + (1 as double), "double is 1");
+  - desc: Double concats with string.
+    logic: |-
+      arktest.assertEQ(1 as double + " is double", "1 is double");
+  - desc: String concats with max long number.
+    logic: |-
+      arktest.assertEQ("max long number is " + 9223372036854775807, "max long number is 9223372036854775807");
+  - desc: Max long number concats with string.
+    logic: |-
+      arktest.assertEQ(9223372036854775807 + " is max long number", "9223372036854775807 is max long number");
+  - desc: NaN concats with string.
+    logic: |-
+      arktest.assertEQ(NaN + " is not a number", "NaN is not a number");
+  - desc: String concats with positive infinity.
+    logic: |-
+      arktest.assertEQ("Positive infinity is " + Double.POSITIVE_INFINITY, "Positive infinity is Infinity");
+  - desc: String concats with negative infinity.
+    logic: |-
+      arktest.assertEQ("Negative infinity is " + Double.NEGATIVE_INFINITY, "Negative infinity is -Infinity");

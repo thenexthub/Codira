@@ -1,0 +1,63 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - vals:
+          - { type: 'string', expr: 'new C<string>("").meth()' }
+          - { type: 'object', expr: 'new C<B>(new B()).meth()' }
+          - { type: 'number', expr: 'new C<Number>(new Number()).meth()' }
+          - { type: 'boolean', expr: 'new C<Boolean>(new Boolean()).meth()' }
+          - { type: 'bigint', expr: 'new C<BigInt>(1000000000000000000000000000000n).meth()' }
+
+    - decl: |-
+          type F = (p: string) => string
+          function foo(p: string): string {
+              return p + p
+          }
+      vals:
+          - { type: 'function', expr: 'new C<F>(foo).meth()' }
+          - { type: 'function', expr: 'new C<F>((p: string): string => { return p}).meth()' }
+
+    - vals:
+          - { type: 'object', expr: 'new C<string[]>([""]).meth()' }
+          - { type: 'object', expr: 'new C<B[]>([new B()]).meth()' }
+          - { type: 'object', expr: 'new C<Number[]>([new Number()]).meth()' }
+          - { type: 'object', expr: 'new C<Boolean[]>([new Boolean()]).meth()' }
+          - { type: 'object', expr: 'new C<BigInt[]>([1000000000000000000000000000000n]).meth()' }
+
+    - decl: |-
+          let b: B|undefined = undefined
+      vals:
+          - { type: 'undefined', expr: 'new C<B|undefined>(b).meth()' }
+
+    - decl: |-
+          type BU = B|undefined
+          let b: BU[] = [undefined]
+      vals:
+          - { type: 'object', expr: 'new C<BU[]>(b).meth()' }
+
+    - decl: |-
+          let b: B|null = null
+      vals:
+          - { type: 'object', expr: 'new C<B|null>(b).meth()' }
+
+    - decl: |-
+          type BN = B|null
+          let b: BN[] = [null]
+      vals:
+          - { type: 'object', expr: 'new C<BN[]>(b).meth()' }
+
+    - vals:
+          - { type: 'object', expr: 'new C<A|B>(new A()).meth()' }
+          - { type: 'object', expr: 'new C<B|A|null>(new B()).meth()' }

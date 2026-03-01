@@ -1,0 +1,88 @@
+/*
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+{% set cases = [
+    {
+        'body': 'return 12',
+        'return_type': ': Promise<int>',
+        'description': 'An attempt to call await from a non-asynchronous function (0)',
+    },{
+        'body': 'return "ok"',
+        'return_type': ': Promise<string>',
+        'description': 'An attempt to call await from a non-asynchronous function (1)',
+    },{
+        'body': 'return ["ok", "34_12", 12, true]',
+        'return_type': ': Promise<Array<string|int|boolean>>',
+        'description': 'An attempt to call await from a non-asynchronous function (2)',
+    },{
+        'body': 'return',
+        'return_type': ': Promise<void>',
+        'description': 'An attempt to call await from a non-asynchronous function (3)',
+    },{
+        'body': '',
+        'return_type': ': Promise<void>',
+        'description': 'An attempt to call await from a non-asynchronous function (4)',
+    },{
+        'body': 'return',
+        'return_type': '',
+        'description': 'An attempt to call await from a non-asynchronous function (5)',
+    },{
+        'body': '',
+        'return_type': '',
+        'description': 'An attempt to call await from a non-asynchronous function (6)',
+    },{
+        'body': 'const value: undefined = undefined; return value',
+        'return_type': ': Promise<undefined>',
+        'description': 'An attempt to call await from a non-asynchronous function (7)',
+    },{
+        'body': 'const value: null = null; return value',
+        'return_type': ': Promise<null>',
+        'description': 'An attempt to call await from a non-asynchronous function (8)',
+    },{
+        'body': 'const value: Object = new Object(); return value',
+        'return_type': ': Promise<Object>',
+        'description': 'An attempt to call await from a non-asynchronous function (9)',
+    }
+] %}
+
+{% from "16.concurrency/02.asynchronous_api/async_api_helper.jinja" import generate_async, call_async %}
+
+{%macro generate_complete_test(declaration_type='function')%}
+{% for c in cases %}
+
+ /*---
+desc: {{c.description}}
+tags: [compile-only, negative]
+---*/
+
+{% set params = {
+    'name': 'noParams',
+    'body': c.body,
+    'return_type': c.return_type,
+    'class_name': 'AsyncMethodReturnClass'
+} %}
+
+{{ generate_async(declaration_type, params) }}
+
+function test(){
+    await {{ call_async(declaration_type, params) }}
+}
+
+function main(){
+    test()
+}
+
+{% endfor %}
+{% endmacro %}

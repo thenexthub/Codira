@@ -1,0 +1,666 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+#include "Utils/CGUtils.h"
+
+#include <queue>
+#include <sstream>
+#include <cctype>
+
+#include "llvm/Bitcode/BitcodeWriter.h"
+#include "llvm/IR/InstrTypes.h"
+#include "llvm/IR/Type.h"
+#include "llvm/Support/Casting.h"
+
+#include "Base/CGTypes/CGEnumType.h"
+#include "Utils/CGCommonDef.h"
+#include "CGModule.h"
+#include "IRBuilder.h"
+#include "Codira/Basic/Linkage.h"
+#include "Codira/Basic/StringConvertor.h"
+#include "Codira/CHIR/Expression/Terminator.h"
+#include "Codira/CHIR/Type/StructDef.h"
+#include "Codira/CHIR/Type/Type.h"
+#include "Codira/CHIR/Value.h"
+#include "Codira/Option/Option.h"
+#include "Codira/Utils/CheckUtils.h"
+
+using ChirTypeKind = Codira::CHIR::Type::TypeKind;
+using namespace Codira::CHIR;
+
+namespace {
+// type mangling look-up table
+const std::unordered_map<ChirTypeKind, std::string> TYPE_MANGLING_LUT = {
+    {ChirTypeKind::TYPE_INT8, "a"},
+    {ChirTypeKind::TYPE_INT16, "s"},
+    {ChirTypeKind::TYPE_INT32, "i"},
+    {ChirTypeKind::TYPE_INT64, "l"},
+    {ChirTypeKind::TYPE_INT_NATIVE, "q"},
+    {ChirTypeKind::TYPE_UINT8, "h"},
+    {ChirTypeKind::TYPE_UINT16, "t"},
+    {ChirTypeKind::TYPE_UINT32, "j"},
+    {ChirTypeKind::TYPE_UINT64, "m"},
+    {ChirTypeKind::TYPE_UINT_NATIVE, "r"},
+    {ChirTypeKind::TYPE_FLOAT16, "Dh"},
+    {ChirTypeKind::TYPE_FLOAT32, "f"},
+    {ChirTypeKind::TYPE_FLOAT64, "d"},
+    {ChirTypeKind::TYPE_RUNE, "c"},
+    {ChirTypeKind::TYPE_BOOLEAN, "b"},
+    {ChirTypeKind::TYPE_UNIT, "u"},
+    {ChirTypeKind::TYPE_NOTHING, "n"},
+    {ChirTypeKind::TYPE_CSTRING, "k"},
+    {ChirTypeKind::TYPE_VOID, "u"},
+};
+
+void GetGenericArgsFromCHIRTypeHelper(const Codira::CHIR::Type& type, std::vector<size_t> path,
+    std::vector<Codira::CodeGen::GenericTypeAndPath>& res)
+{
+    auto baseType = Codira::CodeGen::DeRef(type);
+    if (baseType->IsGeneric()) {
+        (void)res.emplace_back(
+            Codira::CodeGen::GenericTypeAndPath(dynamic_cast<const Codira::CHIR::GenericType&>(*baseType), path));
+        return;
+    }
+
+    size_t idx = 0;
+    for (auto typeArg : baseType->GetTypeArgs()) {
+        path.emplace_back(idx);
+        GetGenericArgsFromCHIRTypeHelper(*typeArg, path, res);
+        path.pop_back();
+        ++idx;
+    }
+}
+} // namespace
+
+namespace Codira {
+namespace CodeGen {
+int64_t GetIntMaxOrMin(IRBuilder2& irBuilder, const CHIR::IntType& ty, bool isMax)
+{
+    auto tyKind = irBuilder.GetTypeKindFromType(ty);
+    auto minMax = G_SIGNED_INT_MAP.at(tyKind);
+    return isMax ? minMax.second : minMax.first;
+}
+
+
+std::vector<llvm::Metadata*> UnwindGenericRelateType(llvm::LLVMContext& llvmCtx, const CHIR::Type& ty)
+{
+    std::vector<llvm::Metadata*> tyArgMeta{};
+    if (ty.IsGeneric()) {
+        return tyArgMeta;
+    }
+
+    if (ty.GetTypeArgs().size() > 0) {
+        std::string ttName = CGType::GetNameOfTypeTemplateGV(ty);
+        tyArgMeta.emplace_back(llvm::MDString::get(llvmCtx, ttName));
+        auto tyArg = ty.GetTypeArgs()[0];
+        if (tyArg->IsValueType()) {
+            std::string tiName = CGType::GetNameOfTypeInfoGV(*tyArg);
+            tyArgMeta.emplace_back(llvm::MDString::get(llvmCtx, tiName));
+        } else {
+            auto ti = UnwindGenericRelateType(llvmCtx, *DeRef(*tyArg));
+            if (!ti.empty()) {
+                tyArgMeta.emplace_back(llvm::MDTuple::get(llvmCtx, ti));
+            }
+        }
+    }
+    return tyArgMeta;
+}
+
+uint64_t GetUIntMax(IRBuilder2& irBuilder, const CHIR::IntType& ty)
+{
+    auto tyKind = irBuilder.GetTypeKindFromType(ty);
+    return G_UNSIGNED_INT_MAP.at(tyKind);
+}
+
+std::string GetTypeName(const CGType* type)
+{
+    static const std::unordered_map<std::string, std::string> typeNameMap = {
+        {UNIT_TYPE_STR, "Unit"},
+    };
+    auto llvmType = type->GetLLVMType();
+    std::string name;
+    // # isStructTy
+    // such as `%Ref.Type = type{}`,
+    // we can get the string "%Ref.Type" by calling `type->getStructName()`.
+    // # Otherwise
+    // such as `i8`
+    // we can get the string "i8" by calling `type->print()`.
+    if (llvmType->isStructTy()) {
+        name = GetCodeGenTypeName(llvmType);
+    } else {
+        std::string typeStr;
+        llvm::raw_string_ostream rso(typeStr);
+        llvmType->print(rso);
+        name = rso.str();
+        if (llvmType->isPointerTy() && !type->IsCGFunction()) {
+            auto baseType = type->GetPointerElementType()->GetLLVMType();
+            if (baseType->isStructTy()) {
+                name = GetCodeGenTypeName(baseType);
+            }
+        }
+    }
+    CODEC_ASSERT(!name.empty());
+    if (auto it = typeNameMap.find(name); it != typeNameMap.end()) {
+        name = it->second;
+    }
+    return name;
+}
+
+namespace {
+std::string ConstantValueToString(const CHIR::Constant& expr)
+{
+    std::string res;
+    if (expr.IsBoolLit()) {
+        res = std::to_string(expr.GetBoolLitVal());
+    } else if (expr.IsFloatLit()) {
+        res = std::to_string(expr.GetFloatLitVal());
+    } else if (expr.IsSignedIntLit()) {
+        res = std::to_string(expr.GetSignedIntLitVal());
+    } else if (expr.IsUnSignedIntLit()) {
+        res = std::to_string(expr.GetUnsignedIntLitVal());
+    } else if (expr.IsRuneLit()) {
+        res = std::to_string(expr.GetRuneLitVal());
+    } else {
+        CODEC_ABORT();
+    }
+    return res;
+}
+
+std::tuple<bool, std::string> IsAllConstantNode(const std::vector<CHIR::Value*>& args)
+{
+    if (args.empty()) {
+        return std::make_tuple(false, "");
+    }
+
+    bool isAllConstantNode = true;
+    std::string serialized = "";
+    for (auto node : args) {
+        if (!node->IsLocalVar()) {
+            isAllConstantNode = false;
+            break;
+        }
+        auto localVar = StaticCast<const CHIR::LocalVar*>(node);
+        auto expr = localVar->GetExpr();
+        if (auto constant = DynamicCast<const Constant*>(expr); constant &&
+            (constant->IsBoolLit() || constant->IsIntLit() || constant->IsFloatLit() || constant->IsRuneLit())) {
+            serialized += "{" + ConstantValueToString(*constant) + localVar->GetType()->ToString() + "}";
+            continue;
+        }
+        CODEC_NULLPTR_CHECK(expr);
+        bool isEleConstant = false;
+        std::string serializedEle = "";
+        if (expr->GetExprKind() == CHIR::ExprKind::TUPLE && localVar->GetType()->IsTuple()) {
+            std::tie(isEleConstant, serializedEle) = IsConstantTuple(StaticCast<const CHIR::Tuple&>(*expr));
+            serializedEle += "Tuple";
+        } else if (expr->GetExprKind() == CHIR::ExprKind::VARRAY) {
+            std::tie(isEleConstant, serializedEle) = IsConstantVArray(StaticCast<const CHIR::VArray&>(*expr));
+            serializedEle += "VArray";
+        } else {
+            isAllConstantNode = false;
+            break;
+        }
+        if (isEleConstant) {
+            serialized += "{" + serializedEle + "}";
+            continue;
+        } else {
+            isAllConstantNode = false;
+            break;
+        }
+    }
+
+    if (!isAllConstantNode) {
+        serialized = "";
+    }
+    return std::make_tuple(isAllConstantNode, serialized);
+}
+} // namespace
+
+std::tuple<bool, std::string> IsConstantArray(const CHIR::RawArrayLiteralInit& arrayLiteralInit)
+{
+    const auto& operands = arrayLiteralInit.GetOperands();
+    const std::vector<CHIR::Value*> args(operands.begin() + 1, operands.end());
+    return IsAllConstantNode(args);
+}
+
+std::tuple<bool, std::string> IsConstantVArray(const CHIR::VArray& varray)
+{
+    return IsAllConstantNode(varray.GetOperands());
+}
+
+std::tuple<bool, std::string> IsConstantTuple(const CHIR::Tuple& tuple)
+{
+    return IsAllConstantNode(tuple.GetOperands());
+}
+
+bool IsReferenceType(const CHIR::Type& ty, CGModule& cgMod)
+{
+    if (ty.IsRef()) {
+        return IsReferenceType(*StaticCast<const CHIR::RefType&>(ty).GetBaseType(), cgMod);
+    }
+    if (ty.IsEnum()) {
+        auto enumCGType = StaticCast<CGEnumType*>(CGType::GetOrCreate(cgMod, &ty));
+        return enumCGType->IsCommonEnum() || enumCGType->IsOptionLikeRef() || enumCGType->IsOptionLikeT();
+    }
+    return ty.IsClass() || ty.IsBox() || ty.IsRawArray();
+}
+
+bool IsAllConstantValue(const std::vector<CGValue*>& args)
+{
+    return !args.empty() && std::all_of(args.begin(), args.end(), [](auto it) {
+        return llvm::dyn_cast<llvm::Constant>(it->GetRawValue());
+    });
+}
+
+bool SaveToBitcodeFile(const llvm::Module& module, const std::string& bcFilePath)
+{
+    std::error_code errorCode;
+#ifdef _WIN32
+    std::optional<std::string> tempPath = StringConvertor::NormalizeStringToUTF8(bcFilePath);
+    CODEC_ASSERT(tempPath.has_value() && "Incorrect file name encoding.");
+    llvm::raw_fd_ostream os(tempPath.value(), errorCode);
+#else
+    llvm::raw_fd_ostream os(bcFilePath, errorCode);
+#endif
+    llvm::WriteBitcodeToFile(module, os);
+    if (errorCode) {
+        Errorln("Failed to write bitcode to file:", errorCode.message());
+        return false;
+    }
+    os.close();
+    return true;
+}
+
+uint64_t GetTypeSize(const CGModule& cgMod, llvm::Type& ty)
+{
+    return cgMod.GetLLVMModule()->getDataLayout().getTypeAllocSize(&ty);
+}
+
+uint64_t GetTypeSize(const CGModule& cgMod, const CHIR::Type& ty)
+{
+    if (ty.IsUnit() || ty.IsNothing()) {
+        return 0U;
+    }
+    auto cgType = CGType::GetOrCreate(const_cast<CGModule&>(cgMod), &ty);
+    return GetTypeSize(cgMod, *cgType->GetLLVMType());
+}
+
+uint64_t GetTypeAlignment(const CGModule& cgMod, const CHIR::Type& ty)
+{
+    if (ty.IsUnit() || ty.IsNothing()) {
+        return 1U;
+    }
+    auto cgType = CGType::GetOrCreate(const_cast<CGModule&>(cgMod), &ty);
+    return GetTypeAlignment(cgMod, *cgType->GetLLVMType());
+}
+
+uint64_t GetTypeAlignment(const CGModule& cgMod, llvm::Type& ty)
+{
+    return cgMod.GetLLVMModule()->getDataLayout().getABITypeAlignment(&ty);
+}
+
+bool IsZeroSizedTypeInC(const CGModule& cgMod, const CHIR::Type& chirTy)
+{
+    if (chirTy.IsRef()) {
+        return IsZeroSizedTypeInC(cgMod, *StaticCast<const CHIR::RefType&>(chirTy).GetBaseType());
+    }
+    // For windows-gnu target, an (nested) empty struct is not treated as zero-sized type.
+    return chirTy.IsUnit() || chirTy.IsNothing() ||
+        (cgMod.GetCGContext().GetCompileOptions().target.os != Triple::OSType::WINDOWS &&
+            GetTypeSize(cgMod, chirTy) == 0);
+}
+
+bool IsTypeContainsRef(llvm::Type* type)
+{
+    if (type->isPointerTy() && type->getPointerAddressSpace() == 1) {
+        return true;
+    }
+    if (auto st = llvm::dyn_cast<llvm::StructType>(type)) {
+        return std::any_of(st->element_begin(), st->element_end(), IsTypeContainsRef);
+    }
+    if (auto at = llvm::dyn_cast<llvm::ArrayType>(type)) {
+        return IsTypeContainsRef(at->getElementType());
+    }
+    if (auto vt = llvm::dyn_cast<llvm::VectorType>(type)) {
+        return IsTypeContainsRef(vt->getScalarType());
+    }
+    return false;
+}
+
+void CollectLinkNameUsedInMetaInsert(
+    std::queue<const llvm::MDNode*>& queueMD, const llvm::MDOperand& op, std::unordered_set<std::string>& ctxSet)
+{
+    const llvm::MDNode* mdNodeOp = llvm::dyn_cast_or_null<llvm::MDNode>(op);
+    if (mdNodeOp) {
+        // Add the MDNode to the queue.
+        queueMD.push(mdNodeOp);
+    } else {
+        // Add leaf node.
+        const llvm::MDString* mds = llvm::dyn_cast<llvm::MDString>(op);
+        if (mds) {
+            ctxSet.emplace(mds->getString());
+        }
+    }
+}
+
+void CollectLinkNameUsedInMeta(const llvm::NamedMDNode* n, std::unordered_set<std::string>& ctxSet)
+{
+    if (!n) {
+        return;
+    }
+    std::unordered_set<const llvm::Metadata*> mdVisitedSet;
+    std::queue<const llvm::MDNode*> queueMD;
+    for (unsigned i = 0; i < n->getNumOperands(); i++) {
+        queueMD.push(n->getOperand(i));
+    }
+    while (!queueMD.empty()) {
+        const llvm::MDNode* front = queueMD.front();
+        queueMD.pop();
+        for (unsigned i = 0; i < front->getNumOperands(); i++) {
+            if (mdVisitedSet.find(front->getOperand(i).get()) == mdVisitedSet.end()) {
+                CollectLinkNameUsedInMetaInsert(queueMD, front->getOperand(i), ctxSet);
+                mdVisitedSet.insert(front->getOperand(i).get());
+            }
+        }
+    }
+}
+
+CHIR::CustomTypeDef* GetTypeDefFromImplicitUsedFuncParam(
+    const CGModule& cgModule, const std::string& funcName, const size_t paramIndex)
+{
+    auto func = cgModule.GetCGContext().GetImplicitUsedFunc(funcName);
+    CODEC_ASSERT(func);
+    auto fType = dynamic_cast<CHIR::FuncType*>(func->GetType());
+    auto classBaseType = dynamic_cast<CHIR::RefType*>(fType->GetParamType(paramIndex))->GetBaseType();
+    CODEC_ASSERT(classBaseType);
+    auto classDef = dynamic_cast<CHIR::ClassType*>(classBaseType)->GetClassDef();
+    CODEC_ASSERT(classDef);
+    return classDef;
+}
+
+bool IsGetElementRefOfClass(const CHIR::Expression& expr, CHIR::CHIRBuilder& builder)
+{
+    if (expr.GetExprKind() != CHIR::ExprKind::GET_ELEMENT_REF) {
+        return false;
+    }
+    auto& getEleRef = dynamic_cast<const CHIR::GetElementRef&>(expr);
+    auto baseType = getEleRef.GetLocation()->GetType()->GetTypeArgs()[0];
+    auto& path = getEleRef.GetPath();
+    CODEC_ASSERT(!path.empty());
+    for (size_t idx = 0; idx < path.size() - 1; ++idx) {
+        baseType = GetFieldOfType(*baseType, path[idx], builder);
+    }
+    return baseType->IsClass();
+}
+
+bool IsCHIRWrapper(const std::string& chirFuncName)
+{
+    auto endsWith = [](const std::string& str, const std::string& suffix) -> bool {
+        return str.size() >= suffix.size() && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+    };
+    return endsWith(chirFuncName, "_cc_imported_wrapper") || endsWith(chirFuncName, "_cc_wrapper") ||
+        endsWith(chirFuncName, "_cc_abstractFunc_wrapper");
+}
+
+llvm::GlobalValue::LinkageTypes CHIRLinkage2LLVMLinkage(Linkage chirLinkage)
+{
+    switch (chirLinkage) {
+        case Linkage::WEAK_ODR:
+            return llvm::GlobalValue::WeakODRLinkage;
+        case Linkage::EXTERNAL:
+            return llvm::GlobalValue::ExternalLinkage;
+        case Linkage::INTERNAL:
+            return llvm::GlobalValue::InternalLinkage;
+        case Linkage::LINKONCE_ODR:
+            return llvm::GlobalValue::LinkOnceODRLinkage;
+        default:
+            return llvm::GlobalValue::ExternalLinkage;
+    }
+}
+
+void AddLinkageTypeMetadata(
+    llvm::GlobalObject& globalObject, llvm::GlobalValue::LinkageTypes linkageType, bool markByMD)
+{
+    if (!markByMD) {
+        globalObject.setLinkage(linkageType);
+        return;
+    }
+
+    static const std::unordered_map<llvm::GlobalValue::LinkageTypes, std::string> linkageType2Str = {
+        {llvm::GlobalValue::ExternalLinkage, "ExternalLinkage"},
+        {llvm::GlobalValue::AvailableExternallyLinkage, "AvailableExternallyLinkage"},
+        {llvm::GlobalValue::LinkOnceAnyLinkage, "LinkOnceAnyLinkage"},
+        {llvm::GlobalValue::LinkOnceODRLinkage, "LinkOnceODRLinkage"},
+        {llvm::GlobalValue::WeakAnyLinkage, "WeakAnyLinkage"},
+        {llvm::GlobalValue::WeakODRLinkage, "WeakODRLinkage"},
+        {llvm::GlobalValue::AppendingLinkage, "AppendingLinkage"},
+        {llvm::GlobalValue::InternalLinkage, "InternalLinkage"},
+        {llvm::GlobalValue::PrivateLinkage, "PrivateLinkage"},
+        {llvm::GlobalValue::ExternalWeakLinkage, "ExternalWeakLinkage"},
+        {llvm::GlobalValue::CommonLinkage, "CommonLinkage"},
+    };
+    auto linkageTypeStr = linkageType2Str.find(linkageType);
+    CODEC_ASSERT(linkageTypeStr != linkageType2Str.end());
+    auto md = llvm::MDTuple::get(
+        globalObject.getContext(), {llvm::MDString::get(globalObject.getContext(), linkageTypeStr->second)});
+    globalObject.addMetadata("LinkageType", *md);
+}
+
+llvm::GlobalValue::LinkageTypes GetLinkageTypeOfGlobalObject(const llvm::GlobalObject& globalObject)
+{
+    static const std::unordered_map<std::string, llvm::GlobalValue::LinkageTypes> str2LinkageType = {
+        {"ExternalLinkage", llvm::GlobalValue::ExternalLinkage},
+        {"AvailableExternallyLinkage", llvm::GlobalValue::AvailableExternallyLinkage},
+        {"LinkOnceAnyLinkage", llvm::GlobalValue::LinkOnceAnyLinkage},
+        {"LinkOnceODRLinkage", llvm::GlobalValue::LinkOnceODRLinkage},
+        {"WeakAnyLinkage", llvm::GlobalValue::WeakAnyLinkage},
+        {"WeakODRLinkage", llvm::GlobalValue::WeakODRLinkage},
+        {"AppendingLinkage", llvm::GlobalValue::AppendingLinkage},
+        {"InternalLinkage", llvm::GlobalValue::InternalLinkage},
+        {"PrivateLinkage", llvm::GlobalValue::PrivateLinkage},
+        {"ExternalWeakLinkage", llvm::GlobalValue::ExternalWeakLinkage},
+        {"CommonLinkage", llvm::GlobalValue::CommonLinkage},
+    };
+    if (auto md = globalObject.getMetadata("LinkageType"); md) {
+        auto linkageTypeStr = llvm::cast<llvm::MDString>(md->getOperand(0))->getString().str();
+        auto linkageType = str2LinkageType.find(linkageTypeStr);
+        CODEC_ASSERT(linkageType != str2LinkageType.end());
+        return linkageType->second;
+    } else {
+        return globalObject.getLinkage();
+    }
+}
+
+CGType* FixedCGTypeOfFuncArg(CGModule& cgMod, const CHIR::Value& chirFuncArg, llvm::Value& llvmValue)
+{
+    auto chirFuncArgType = chirFuncArg.GetType();
+    auto cgType = CGType::GetOrCreate(cgMod, chirFuncArgType);
+    bool byRef = chirFuncArgType->IsStruct() || chirFuncArgType->IsTuple() || chirFuncArgType->IsVArray() ||
+        chirFuncArgType->IsUnit() || chirFuncArgType->IsNothing() ||
+        (chirFuncArgType->IsEnum() && (StaticCast<CGEnumType*>(cgType)->PassByReference()));
+    if (byRef) {
+        auto refType = CGType::GetRefTypeOf(cgMod.GetCGContext().GetCHIRBuilder(), *chirFuncArgType);
+        cgType =
+            CGType::GetOrCreate(cgMod, refType, CGType::TypeExtraInfo(llvmValue.getType()->getPointerAddressSpace()));
+    }
+    cgMod.SetOrUpdateMappedCGValue(&chirFuncArg, std::make_unique<CGValue>(&llvmValue, cgType));
+    return cgType;
+}
+
+void ClearOldIRDumpFiles(const std::string& output, const std::string& pkgName)
+{
+    // Clear all previously dumped IR phase directories for the given package.
+    // New IR dumping now uses numbered directories with human-readable phase suffixes
+    // (e.g. 0_TranslateCHIRNode, 1_GenExtensionDefs, ... Final, Incre). Instead of a
+    // fixed maxSubDirNum heuristic we remove any matching directories under <pkg>_IR.
+    std::string dumpDir;
+    if (FileUtil::IsDir(output)) {
+        dumpDir = FileUtil::JoinPath(output, pkgName + "_IR");
+    } else {
+        dumpDir = FileUtil::GetFileBase(output) + "_IR";
+    }
+    if (!FileUtil::FileExist(dumpDir)) {
+        return;
+    }
+    FileUtil::RemoveDirectoryRecursively(dumpDir);
+}
+
+std::string GenDumpPath(const std::string& output, const std::string& pkgName, const std::string& subName,
+    const std::string& srcFileName, const std::string& suffix)
+{
+    std::string dumpPath, dumpDir, subDir;
+    if (FileUtil::IsDir(output)) {
+        dumpDir = FileUtil::JoinPath(output, pkgName + "_IR");
+    } else {
+        dumpDir = FileUtil::GetFileBase(output) + "_IR";
+    }
+    subDir = FileUtil::JoinPath(dumpDir, subName);
+    dumpPath = FileUtil::JoinPath(subDir, srcFileName + "."+ suffix);
+    return dumpPath;
+}
+
+void DumpIR(const llvm::Module& llvmModule, const std::string& filePath)
+{
+    if (filePath.empty()) {
+        llvmModule.print(llvm::outs(), nullptr);
+        return;
+    }
+
+    std::string normalizedPath = filePath;
+#ifdef _WIN32
+    std::optional<std::string> tempPath = StringConvertor::NormalizeStringToUTF8(filePath);
+    CODEC_ASSERT(tempPath.has_value() && "Incorrect file name encoding.");
+    normalizedPath = tempPath.value();
+#endif
+    if (FileUtil::CreateDirs(normalizedPath) < 0) {
+        return;
+    }
+    std::error_code errorCode;
+    llvm::raw_fd_ostream fileOS(normalizedPath, errorCode);
+    llvmModule.print(fileOS, nullptr);
+}
+
+llvm::StructType* GetLLVMStructType(
+    CGModule& cgMod, const std::vector<CHIR::Type*>& elementTypes, const std::string& name)
+{
+    auto& cgCtx = cgMod.GetCGContext();
+    auto& llvmCtx = cgMod.GetLLVMContext();
+    auto layoutType = llvm::StructType::getTypeByName(llvmCtx, name);
+    if (layoutType && cgCtx.IsGeneratedStructType(name)) {
+        return layoutType;
+    } else if (!layoutType) {
+        layoutType = llvm::StructType::create(llvmCtx, name);
+    }
+    cgCtx.AddGeneratedStructType(layoutType->getName().str());
+
+    std::vector<llvm::Type*> elemTypes;
+    for (auto elemType : elementTypes) {
+        auto paramCGType = CGType::GetOrCreate(cgMod, elemType);
+        elemTypes.emplace_back(paramCGType->GetLLVMType());
+    }
+    SetStructTypeBody(layoutType, elemTypes);
+    return layoutType;
+}
+
+std::vector<GenericTypeAndPath> GetGenericArgsFromCHIRType(const CHIR::Type& type)
+{
+    std::vector<GenericTypeAndPath> res;
+    std::vector<size_t> path;
+    GetGenericArgsFromCHIRTypeHelper(type, path, res);
+    return res;
+}
+
+CHIR::Type* GetTypeInnerType(const CHIR::Type& type, const GenericTypeAndPath& gtAndPath)
+{
+    auto& path = gtAndPath.GetPath();
+    size_t idx = 0;
+    const CHIR::Type* res = DeRef(type);
+    while (idx < path.size()) {
+        const auto& pathPoint = path[idx];
+        auto typeArgsOfRes = res->GetTypeArgs();
+        CODEC_ASSERT(pathPoint < typeArgsOfRes.size() && "Invalid generic type path.");
+        res = DeRef(*typeArgsOfRes[pathPoint]);
+        ++idx;
+    }
+    return const_cast<CHIR::Type*>(res);
+}
+
+bool IsThisArgOfStructMethod(const CHIR::Value& chirValue)
+{
+    if (!chirValue.IsParameter()) {
+        return false;
+    }
+
+    auto& chirParam = StaticCast<const CHIR::Parameter&>(chirValue);
+    auto chirFunc = chirParam.GetTopLevelFunc();
+    if (!chirFunc || !chirFunc->GetNumOfParams() || chirFunc->GetParam(0) != &chirParam) {
+        return false;
+    }
+    if (chirFunc->TestAttr(CHIR::Attribute::STATIC) || !IsStructOrExtendMethod(*chirFunc)) {
+        return false;
+    }
+    return true;
+}
+
+bool IsModifiableClass(const CHIR::Type& chirTy)
+{
+    if (!chirTy.IsClass()) {
+        return false;
+    }
+    auto classDef = StaticCast<const CHIR::ClassType&>(chirTy).GetClassDef();
+    return classDef->IsClass() &&
+        !classDef->TestAttr(CHIR::Attribute::COMPILER_ADD) && !classDef->TestAttr(CHIR::Attribute::VIRTUAL);
+}
+
+bool IsSizeTrustedInCompileUnit(CGModule& cgMod, const CHIR::Type& chirTy)
+{
+    if (!IsModifiableClass(chirTy)) {
+        return false;
+    }
+    auto cgType = CGType::GetOrCreate(cgMod, &chirTy);
+    if (!cgType->GetSize()) {
+        return false;
+    }
+    auto typePackageName = StaticCast<const CHIR::ClassType&>(chirTy).GetClassDef()->GetPackageName();
+    auto compileUnitPkgName = cgMod.GetCGContext().GetCHIRPackage().GetName();
+    CODEC_ASSERT(!typePackageName.empty() && !compileUnitPkgName.empty() && "Invalid package name.");
+    size_t pos = 0;
+    char ch = typePackageName[pos];
+    while (ch == compileUnitPkgName[pos]) {
+        if (ch == '.') {
+            return true;
+        }
+        ++pos;
+        if (pos == typePackageName.size() || pos == compileUnitPkgName.size()) {
+            return true;
+        }
+        ch = typePackageName[pos];
+    }
+    return false;
+}
+
+void ReplaceDelimiterAfterOrgName(std::string& packageName) {
+    if (auto splitterIt = packageName.find("::"); splitterIt != std::string::npos) {
+        packageName.replace(splitterIt, 2U, "/");
+    }
+}
+} // namespace CodeGen
+} // namespace Codira

@@ -1,0 +1,5 @@
+#31475 False positive passed tests on runner-2
+09.classes/02.class_extension_clause/class_superclass_non_private/class_no_pri30.ets
+
+#31741
+10.interfaces/06.interface_inheritance/Interface_inheritance_class_implementation/child_interface_constants_inheritance_verification/child_interface_constants_inheritance_verification_14.ets

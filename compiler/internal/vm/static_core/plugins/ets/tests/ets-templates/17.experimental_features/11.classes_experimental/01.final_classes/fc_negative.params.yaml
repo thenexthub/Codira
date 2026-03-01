@@ -1,0 +1,52 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # double final
+    - decl: |-
+          class A {}
+          final final class F extends A {}  // CTE
+      expected_out: "Syntax error ESY0115: Duplicated modifier is not allowed."
+
+    # abstract final
+    - decl: |-
+          class A {}
+          final abstract class F extends A {}  // CTE
+      expected_out: "Semantic error ESE0186: Cannot use both 'final' and 'abstract' modifiers."
+
+    # cannot extend final class
+    - decl: |-
+          class A {}
+          final class B extends A {}
+          class F extends B {}  // CTE
+      expected_out: "Semantic error ESE0178: Cannot inherit with 'final' modifier."
+
+    # cannot extend final class
+    - decl: |-
+          final class A {}
+          abstract class F extends A {}  // CTE
+      expected_out: "Semantic error ESE0178: Cannot inherit with 'final' modifier."
+
+    # cannot extend final class
+    - decl: |-
+          final class A {}
+          final class F extends A {}  // CTE
+      expected_out: "Semantic error ESE0178: Cannot inherit with 'final' modifier."
+
+    # cannot extend final class, with type parameters
+    - decl: |-
+          interface I {}
+          final class A<T extends I> {}
+          class F<T extends I> extends A<T> {}  // CTE
+      expected_out: "Semantic error ESE0178: Cannot inherit with 'final' modifier."

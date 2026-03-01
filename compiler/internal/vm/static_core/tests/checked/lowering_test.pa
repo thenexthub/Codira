@@ -1,0 +1,64 @@
+# Copyright (c) 2023-2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#! CHECKER      Lowering And to Test
+#! RUN          force_jit: true, options: "--compiler-enable-events=true --compiler-events-path=./events.csv", entry: "_GLOBAL::main"
+#! METHOD       "_GLOBAL::__noinline__call_foo"
+#! PASS_BEFORE  "LoopUnroll"
+#! INST_NOT     "And"
+#! INST_NOT     "If "
+#! PASS_AFTER   "LoopUnroll"
+#! INST         "And"
+#! INST_NOT     "If "
+#! PASS_AFTER   "Codegen"
+#! INST_NOT     "And"
+#! INST         "If TST_NE"
+#! EVENT        /_GLOBAL::__noinline__call_foo,loop-unroll,.*without side exits/
+
+.function i32 __noinline__call_foo(i32 a0, i32 a1, i32 a2) {
+    mov v0, a0
+    mov v1, a1
+    mov v2, a2
+    movi v3, 0x1
+
+jump_label_1:
+    lda v3
+    jge v0, jump_label_0
+    lda v3
+    shli 0x1
+    sta v4
+    lda v3
+    addi 0x1
+    sta v3
+    add2 v2
+    sta v2
+    jmp jump_label_1
+
+jump_label_0:
+    movi v0, 0x0
+    ldai 0x13c3
+    jeq v2, jump_label_2
+    movi v0, 0x1
+
+jump_label_2:
+    lda v0
+    return
+}
+
+.function u1 main() {
+    movi v0, 0x64
+    movi v1, 0x1
+    movi v2, 0xa
+    call __noinline__call_foo, v0, v1, v2
+    return
+}

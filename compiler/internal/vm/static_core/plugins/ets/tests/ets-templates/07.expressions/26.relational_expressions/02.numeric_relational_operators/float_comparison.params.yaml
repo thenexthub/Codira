@@ -1,0 +1,156 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of integer comparison tests
+float_comparison:
+  # >, no type promotion
+
+  - {xtype: double, xalias: Double, xvalue:  0.0, ytype: double, yalias: Double, yvalue:  1.0, op: ">", result: "false"}
+  - {xtype: double, xalias: Double, xvalue:  1.0, ytype: double, yalias: Double, yvalue:  0.0, op: ">", result: "true"}
+  - {xtype: double, xalias: Double, xvalue: -1.0, ytype: double, yalias: Double, yvalue:  0.0, op: ">", result: "false"}
+  - {xtype: double, xalias: Double, xvalue:  0.0, ytype: double, yalias: Double, yvalue: -1.0, op: ">", result: "true"}
+
+  # >, with type promotion
+
+  - {xtype: float, xalias: Float, xvalue:  0.0f, ytype: float, yalias: Float, yvalue:  1.0f, op: ">", result: "false"}
+  - {xtype: float, xalias: Float, xvalue:  1.0f, ytype: float, yalias: Float, yvalue:  0.0f, op: ">", result: "true"}
+  - {xtype: float, xalias: Float, xvalue: -1.0f, ytype: float, yalias: Float, yvalue:  0.0f, op: ">", result: "false"}
+  - {xtype: float, xalias: Float, xvalue:  0.0f, ytype: float, yalias: Float, yvalue: -1.0f, op: ">", result: "true"}
+
+  # <, no type promotion
+
+  - {xtype: double, xalias: Double, xvalue:  0.0, ytype: double, yalias: Double, yvalue:  1.0, op: "<", result: "true"}
+  - {xtype: double, xalias: Double, xvalue:  1.0, ytype: double, yalias: Double, yvalue:  0.0, op: "<", result: "false"}
+  - {xtype: double, xalias: Double, xvalue: -1.0, ytype: double, yalias: Double, yvalue:  0.0, op: "<", result: "true"}
+  - {xtype: double, xalias: Double, xvalue:  0.0, ytype: double, yalias: Double, yvalue: -1.0, op: "<", result: "false"}
+
+  # <, with type promotion
+
+  - {xtype: float, xalias: Float, xvalue:  0.0f, ytype: float, yalias: Float, yvalue:  1.0f, op: "<", result: "true"}
+  - {xtype: float, xalias: Float, xvalue:  1.0f, ytype: float, yalias: Float, yvalue:  0.0f, op: "<", result: "false"}
+  - {xtype: float, xalias: Float, xvalue: -1.0f, ytype: float, yalias: Float, yvalue:  0.0f, op: "<", result: "true"}
+  - {xtype: float, xalias: Float, xvalue:  0.0f, ytype: float, yalias: Float, yvalue: -1.0f, op: "<", result: "false"}
+
+  # >=, no type promotion
+
+  - {xtype: double, xalias: Double, xvalue:  0.0, ytype: double, yalias: Double, yvalue:  1.0, op: ">=", result: "false"}
+  - {xtype: double, xalias: Double, xvalue:  1.0, ytype: double, yalias: Double, yvalue:  0.0, op: ">=", result: "true"}
+  - {xtype: double, xalias: Double, xvalue: -1.0, ytype: double, yalias: Double, yvalue:  0.0, op: ">=", result: "false"}
+  - {xtype: double, xalias: Double, xvalue:  0.0, ytype: double, yalias: Double, yvalue: -1.0, op: ">=", result: "true"}
+
+  # >=, with type promotion
+
+  - {xtype: double, xalias: Double, xvalue:  0.0, ytype: float, yalias: Float, yvalue:  1.0f, op: ">=", result: "false"}
+  - {xtype: double, xalias: Double, xvalue:  1.0, ytype: float, yalias: Float, yvalue:  0.0f, op: ">=", result: "true"}
+  - {xtype: double, xalias: Double, xvalue: -1.0, ytype: float, yalias: Float, yvalue:  0.0f, op: ">=", result: "false"}
+  - {xtype: double, xalias: Double, xvalue:  0.0, ytype: float, yalias: Float, yvalue: -1.0f, op: ">=", result: "true"}
+
+  # <=, no type promotion
+
+  - {xtype: double, xalias: Double, xvalue:  0.0, ytype: double, yalias: Double, yvalue:  1.0, op: "<=", result: "true"}
+  - {xtype: double, xalias: Double, xvalue:  1.0, ytype: double, yalias: Double, yvalue:  0.0, op: "<=", result: "false"}
+  - {xtype: double, xalias: Double, xvalue: -1.0, ytype: double, yalias: Double, yvalue:  0.0, op: "<=", result: "true"}
+  - {xtype: double, xalias: Double, xvalue:  0.0, ytype: double, yalias: Double, yvalue: -1.0, op: "<=", result: "false"}
+
+  # <=, with type promotion
+
+  - {xtype: float, xalias: Float, xvalue:  0.0f, ytype: float, yalias: Float, yvalue:  1.0f, op: "<=", result: "true"}
+  - {xtype: float, xalias: Float, xvalue:  1.0f, ytype: float, yalias: Float, yvalue:  0.0f, op: "<=", result: "false"}
+  - {xtype: float, xalias: Float, xvalue: -1.0f, ytype: float, yalias: Float, yvalue:  0.0f, op: "<=", result: "true"}
+  - {xtype: float, xalias: Float, xvalue:  0.0f, ytype: float, yalias: Float, yvalue: -1.0f, op: "<=", result: "false"}
+
+  # >=, <=
+
+  - {xtype: Double, xalias: Double, xvalue: (0.0), ytype: Float, yalias: Float, yvalue: (-0.0), op: ">=", result: "true"}
+  - {xtype: Double, xalias: Double, xvalue: (0.0), ytype: Float, yalias: Float, yvalue: (-0.0), op: "<=", result: "true"}
+
+  - {xtype: Double, xalias: Double, xvalue: (1.0), ytype: Float, yalias: Float, yvalue: (1.0), op: ">=", result: "true"}
+  - {xtype: Double, xalias: Double, xvalue: (1.0), ytype: Float, yalias: Float, yvalue: (1.0), op: "<=", result: "true"}
+
+  - {xtype: Double, xalias: Double, xvalue: (-1.0), ytype: Float, yalias: Float, yvalue: (-1.0), op: ">=", result: "true"}
+  - {xtype: Double, xalias: Double, xvalue: (-1.0), ytype: Float, yalias: Float, yvalue: (-1.0), op: "<=", result: "true"}
+
+
+  - {xtype: double, xalias: Double, xvalue: 0.0, ytype: double, yalias: Double, yvalue: -0.0, op: ">=", result: "true"}
+  - {xtype: double, xalias: Double, xvalue: 0.0, ytype: double, yalias: Double, yvalue: -0.0, op: "<=", result: "true"}
+
+  - {xtype: double, xalias: Double, xvalue: 1.0, ytype: double, yalias: Double, yvalue: 1.0, op: ">=", result: "true"}
+  - {xtype: double, xalias: Double, xvalue: 1.0, ytype: double, yalias: Double, yvalue: 1.0, op: "<=", result: "true"}
+
+  - {xtype: double, xalias: Double, xvalue: -1.0, ytype: double, yalias: Double, yvalue: -1.0, op: ">=", result: "true"}
+  - {xtype: double, xalias: Double, xvalue: -1.0, ytype: double, yalias: Double, yvalue: -1.0, op: "<=", result: "true"}
+
+  # NaNs
+
+  - {xtype: float, xalias: Float, xvalue: "sqrt(-1.0f)", ytype: float, yalias: Float, yvalue: 0.0f, op: ">", result: "false"}
+  - {xtype: float, xalias: Float, xvalue: 0.0f, ytype: float, yalias: Float, yvalue: "sqrt(-1.0f)", op: ">", result: "false"}
+
+  - {xtype: float, xalias: Float, xvalue: "sqrt(-1.0f)", ytype: float, yalias: Float, yvalue: 0.0f, op: "<", result: "false"}
+  - {xtype: float, xalias: Float, xvalue: 0.0f, ytype: float, yalias: Float, yvalue: "sqrt(-1.0f)", op: "<", result: "false"}
+
+  - {xtype: float, xalias: Float, xvalue: "sqrt(-1.0f)", ytype: float, yalias: Float, yvalue: 0.0f, op: ">=", result: "false"}
+  - {xtype: float, xalias: Float, xvalue: 0.0f, ytype: float, yalias: Float, yvalue: "sqrt(-1.0f)", op: ">=", result: "false"}
+
+  - {xtype: float, xalias: Float, xvalue: "sqrt(-1)", ytype: float, yalias: Float, yvalue: 0.0f, op: "<=", result: "false"}
+  - {xtype: float, xalias: Float, xvalue: 0.0f, ytype: float, yalias: Float, yvalue: "sqrt(-1.0f)", op: "<=", result: "false"}
+
+  - {xtype: double, xalias: Double, xvalue: "sqrt(-1)", ytype: double, yalias: Double, yvalue: 0.0, op: ">", result: "false"}
+  - {xtype: double, xalias: Double, xvalue: 0.0, ytype: double, yalias: Double, yvalue: "sqrt(-1)", op: ">", result: "false"}
+
+  - {xtype: double, xalias: Double, xvalue: "sqrt(-1)", ytype: double, yalias: Double, yvalue: 0.0, op: "<", result: "false"}
+  - {xtype: double, xalias: Double, xvalue: 0.0, ytype: double, yalias: Double, yvalue: "sqrt(-1)", op: "<", result: "false"}
+
+  - {xtype: double, xalias: Double, xvalue: "sqrt(-1)", ytype: double, yalias: Double, yvalue: 0.0, op: ">=", result: "false"}
+  - {xtype: double, xalias: Double, xvalue: 0.0, ytype: double, yalias: Double, yvalue: "sqrt(-1)", op: ">=", result: "false"}
+
+  - {xtype: double, xalias: Double, xvalue: "sqrt(-1)", ytype: double, yalias: Double, yvalue: 0.0, op: "<=", result: "false"}
+  - {xtype: double, xalias: Double, xvalue: 0.0, ytype: double, yalias: Double, yvalue: "sqrt(-1)", op: "<=", result: "false"}
+
+  # INFs
+
+  - {xtype: float, xalias: Float, xvalue: "log(0.0f)", ytype: float, yalias: Float, yvalue: 0.0f, op: "<", result: "true"}
+  - {xtype: float, xalias: Float, xvalue: "log(0.0f)", ytype: float, yalias: Float, yvalue: 0.0f, op: "<=", result: "true"}
+  - {xtype: float, xalias: Float, xvalue: "log(0.0f)", ytype: float, yalias: Float, yvalue: 0.0f, op: ">", result: "false"}
+  - {xtype: float, xalias: Float, xvalue: "log(0.0f)", ytype: float, yalias: Float, yvalue: 0.0f, op: ">=", result: "false"}
+
+  - {xtype: float, xalias: Float, xvalue: 0.0f, ytype: float, yalias: Float, yvalue: 1.0f/0.0f, op: "<", result: "true"}
+  - {xtype: float, xalias: Float, xvalue: 0.0f, ytype: float, yalias: Float, yvalue: 1.0f/0.0f, op: "<=", result: "true"}
+  - {xtype: float, xalias: Float, xvalue: 0.0f, ytype: float, yalias: Float, yvalue: 1.0f/0.0f, op: ">", result: "false"}
+  - {xtype: float, xalias: Float, xvalue: 0.0f, ytype: float, yalias: Float, yvalue: 1.0f/0.0f, op: ">=", result: "false"}
+
+  - {xtype: float, xalias: Float, xvalue: "log(0.0f)", ytype: float, yalias: Float, yvalue: 1.0f/0.0f, op: "<", result: "true"}
+  - {xtype: float, xalias: Float, xvalue: "log(0.0f)", ytype: float, yalias: Float, yvalue: 1.0f/0.0f, op: "<=", result: "true"}
+  - {xtype: float, xalias: Float, xvalue: "log(0.0f)", ytype: float, yalias: Float, yvalue: 1.0f/0.0f, op: ">", result: "false"}
+  - {xtype: float, xalias: Float, xvalue: "log(0.0f)", ytype: float, yalias: Float, yvalue: 1.0f/0.0f, op: ">=", result: "false"}
+
+
+  - {xtype: double, xalias: Double, xvalue: "log(0)", ytype: double, yalias: Double, yvalue: 0.0, op: "<", result: "true"}
+  - {xtype: double, xalias: Double, xvalue: "log(0)", ytype: double, yalias: Double, yvalue: 0.0, op: "<=", result: "true"}
+  - {xtype: double, xalias: Double, xvalue: "log(0)", ytype: double, yalias: Double, yvalue: 0.0, op: ">", result: "false"}
+  - {xtype: double, xalias: Double, xvalue: "log(0)", ytype: double, yalias: Double, yvalue: 0.0, op: ">=", result: "false"}
+
+  - {xtype: double, xalias: Double, xvalue: 0.0, ytype: double, yalias: Double, yvalue: 1.0/0.0, op: "<", result: "true"}
+  - {xtype: double, xalias: Double, xvalue: 0.0, ytype: double, yalias: Double, yvalue: 1.0/0.0, op: "<=", result: "true"}
+  - {xtype: double, xalias: Double, xvalue: 0.0, ytype: double, yalias: Double, yvalue: 1.0/0.0, op: ">", result: "false"}
+  - {xtype: double, xalias: Double, xvalue: 0.0, ytype: double, yalias: Double, yvalue: 1.0/0.0, op: ">=", result: "false"}
+
+  - {xtype: double, xalias: Double, xvalue: "log(0)", ytype: double, yalias: Double, yvalue: 1.0/0.0, op: "<", result: "true"}
+  - {xtype: double, xalias: Double, xvalue: "log(0)", ytype: double, yalias: Double, yvalue: 1.0/0.0, op: "<=", result: "true"}
+  - {xtype: double, xalias: Double, xvalue: "log(0)", ytype: double, yalias: Double, yvalue: 1.0/0.0, op: ">", result: "false"}
+  - {xtype: double, xalias: Double, xvalue: "log(0)", ytype: double, yalias: Double, yvalue: 1.0/0.0, op: ">=", result: "false"}
+
+  # =, for 0 and -0
+
+  - {xtype: double, xalias: Double, xvalue:  0.0, ytype: double, yalias: Double, yvalue:  -0.0, op: "==", result: "true"}
+  - {xtype: float, xalias: Float, xvalue:  0.0f, ytype: float, yalias: Float, yvalue:  -0.0f, op: "==", result: "true"}
+

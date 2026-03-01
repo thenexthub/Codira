@@ -1,0 +1,256 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # array of objects
+    - val: '[new Object, new Object]'
+
+    - val: '[[new Object], [new Object]]'
+
+    - decl: |-
+          let a = new Object
+          const b = new Object
+      val: '[a, b, ]'
+
+    - decl: |-
+          let a = [new Object]
+          const b = new Object
+      val: '[a, [new Object], [b]]'
+
+    - val: '[new Error, new Error, new Error]'
+
+    - decl: |-
+          let a: Error = new Error
+          const b = new Error
+          let c = b
+      val: '[[c], [b], [new Error], [a], [new Error], ]'
+
+    # array of strings
+    - val: "['a', 'b', 'c']"
+
+    - val: "[['a'], ['b'], ['c']]"
+
+    - decl: |-
+          let a: string = 'a'
+          let b: string = 'b'
+          const c: string = 'c'
+      val: '[a, b, c]'
+
+    - decl: |-
+          const a: string = 'a'
+          let b: string = 'b'
+          let c: string = 'c'
+      val: '[[a], [b], [c]]'
+
+    - decl: |-
+          let a: string = 'a'
+          let b: string = 'b'
+          const c: string = 'c'
+      val: "[a, b, c, 'd', 'e', ]"
+
+    - decl: |-
+          const a: string = 'a'
+          let b: string = 'b'
+          let c: string = 'c'
+      val: "[['1'], ['2'], [a], [b], [c]]"
+
+    - decl: |-
+          function foo(p: string): string {
+              return p + p
+          }
+      val: "[foo('a'), foo('b'), foo('c')]"
+
+    - decl: |-
+          function foo(p: string): string {
+              return p + p
+          }
+      val: "[[foo('a')], [foo('b')], [foo('c')]]"
+
+    # array of user classes
+    - decl: |-
+          class A {}
+          let a = new A
+          const b = new A
+          let c = b
+      val: '[{} as A, a, new A, b, c, ]'
+
+    - decl: |-
+          class A {}
+          let a = new A
+          const b = new A
+          let c = b
+      val: '[[c], [{} as A], [a], [new A], [b]]'
+
+    # array of interfaces
+    - decl: |-
+          interface I {}
+          class A implements I {}
+          let a = new A
+      val: '[{} as A, a, new A]'
+
+    - decl: |-
+          interface I {}
+          class A implements I {}
+          let a = new A
+      val: '[[{} as A], [a], [new A]]'
+
+    # array of enums
+    - decl: |-
+          enum Color { Red, Green, Blue }
+      val: '[Color.Red, Color.Green]'
+
+    - decl: |-
+          enum Color { Red, Green, Blue }
+      val: '[[Color.Red], [Color.Green]]'
+
+    # array of functions
+    - decl: |-
+          type F = (p: number) => number
+          function foo(p: number): number {
+              return p + p
+          }
+      val: '[foo, foo, foo]'
+
+    - decl: |-
+          let cnt: number
+          type F = () => number
+          function foo(): number {
+              return cnt++
+          }
+          function bar(): number {
+              return ++cnt
+          }
+          function baz(): number {
+              return cnt--
+          }
+          let a = [foo, bar, baz, foo]
+      val: a
+
+    - decl: |-
+          type F = (p: number) => number
+          function foo(p: number): number {
+              return p + p
+          }
+      val: '[foo, foo, (p: number): number => 0]'
+
+    - decl: |-
+          type F = (p: number) => number
+          function foo(p: number): number {
+              return p + p
+          }
+      val: '[[(p: number): number => 0], [foo], [foo]]'
+
+    - val: '[() => {}, () => {}]'
+
+    - val: '[[() => {}], [() => {}]]'
+
+    - decl: |-
+          type F = (p: string) => string
+          let a: F = (p: string): string => p + p
+          let b: F = (p: string): string => p + p + p
+          let c: F = (p: string): string => p + p + p + p
+      val: '[a, b, c]'
+
+    - decl: |-
+          type F = (p: string) => string
+          let a: F = (p: string): string => p + p
+          let b: F = (p: string): string => p + p + p
+          let c: F = (p: string): string => p + p + p + p
+      val: '[[a], [b], [c]]'
+
+    # array of tuples
+    - decl: |-
+          type T = [number, string]
+          let a: T = [1, '1']
+          let b: T = [2, '1']
+      val: "[a, b, a, [3, '3'] as T]"
+
+    - decl: |-
+          type T = [number, string]
+          let a: T = [1, '1']
+          let b: T = [2, '1']
+      val: "[[a], [b], [a], [[3, '3'] as T]]"
+
+    - decl: |-
+          let a: [number, string] = [1, '1']
+          let b: [number, string] = [2, '1']
+      val: '[a, b, a]'
+
+    - decl: |-
+          let a: [number, string] = [1, '1']
+          let b: [number, string] = [2, '1']
+      val: '[[a], [b], [a]]'
+
+    # array of booleans
+    - decl: |-
+          let a = false
+          const b = true
+      val: '[a, true, true, b, false,]'
+
+    - decl: |-
+          let a = false
+          const b = true
+      val: '[[true], [true], [a], [false], [b]]'
+
+    - decl: |-
+          let a = new Boolean(false)
+          const b = new Boolean(true)
+      val: '[new Boolean(), a, new Boolean(), new Boolean(), b, ]'
+
+    - decl: |-
+          let a = new Boolean(false)
+          const b = new Boolean(true)
+      val: '[[b,], [new Boolean(),], [a,], [new Boolean(),], [new Boolean(),], ]'
+
+    # array of nullish
+    - decl: |-
+          let a: Error|undefined
+          let b: Error|undefined = new Error
+      val: '[a, b]'
+
+    - decl: |-
+          let a: Error|undefined
+          let b: Error|undefined = new Error
+      val: '[[a], [b]]'
+
+    - decl: |-
+          let a: Error|undefined
+          let b: Error|undefined = new Error
+      val: '[a, b]'
+
+    - decl: |-
+          let a: Error|undefined
+          let b: Error|undefined = new Error
+      val: '[[a], [b]]'
+
+    # array of chars
+    - val: "[c'1', c'2']"
+
+    - decl: |-
+          let a: char = c'a'
+          const b: char = c'b'
+          let c = b
+      val: '[c, b, a]'
+
+    - decl: |-
+          let a: char = c'a'
+          const b: char = c'b'
+          let c = b
+      val: "[c'd', c, c'e', b, a]"
+
+    - decl: |-
+          let a: Char = new Char(c'a')
+          const b: Char = new Char(c'b')
+          let c = b
+      val: '[c, b, a,]'

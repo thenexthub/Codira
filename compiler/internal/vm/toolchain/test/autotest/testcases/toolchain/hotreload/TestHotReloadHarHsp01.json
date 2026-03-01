@@ -1,0 +1,15 @@
+{
+  "description": "Config for TestHotReloadHarHsp01",
+  "environment": [
+    {
+      "type": "device",
+      "label": "phone"
+    }
+  ],
+  "driver": {
+    "type": "DeviceTest",
+    "py_file": [
+      "toolchain/hotreload/TestHotReloadHarHsp01.py"
+    ]
+  }
+}

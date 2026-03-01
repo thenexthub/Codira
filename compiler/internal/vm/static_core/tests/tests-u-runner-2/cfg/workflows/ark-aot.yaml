@@ -1,0 +1,45 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+type: workflow
+workflow-name: ark-aot
+parameters:
+    aot-timeout: 30
+    build: ${PANDA_BUILD}
+    work-dir: ${parameters.work-dir}
+    heap-verifier: fail_on_verification:pre:into:before_g1_concurrent:post
+    gc-type: g1-gc
+    full-gc-bombing-frequency: 0
+    load-runtimes: ${parameters.load-runtimes}
+    aot-args: []
+    stdlib: "${parameters.build}/plugins/ets/etsstdlib.abc"
+    output-file: "${parameters.work-dir}/intermediate/${test-id}.abc"
+    paoc-output-file: "${parameters.work-dir}/intermediate/${test-id}.an"
+    # adds --paoc-panda-files option to ark_aot with all dependent and the current abc files
+    is-panda: true
+    boot-panda-files: ""
+steps:
+    ark-aot:
+        executable-path: ${parameters.build}/bin/ark_aot
+        timeout: ${parameters.aot-timeout}
+        step-type: aot
+        args:
+            - "--gc-type=${parameters.gc-type}"
+            - "--heap-verifier=${parameters.heap-verifier}"
+            - "--load-runtimes=${parameters.load-runtimes}"
+            - "--full-gc-bombing-frequency=${parameters.full-gc-bombing-frequency}"
+            - "--compiler-check-final=true"
+            - "--compiler-ignore-failures=false"
+            - "${parameters.aot-args}"
+            - "--boot-panda-files=${parameters.stdlib}${parameters.boot-panda-files}"
+            - "--paoc-output=${parameters.paoc-output-file}"

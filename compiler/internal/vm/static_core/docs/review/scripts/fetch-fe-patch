@@ -1,0 +1,19 @@
+#!/bin/bash
+# Helper script for fetching patches to ArkTS front-end.
+# Makes some assumptions about local and remote setup, use with care.
+
+REPO_ROOT="$HOME/panda-1/arkcompiler_ets_frontend"
+FEATURE_BRANCH=upstream/OpenHarmony_feature_20250702
+PR_NUMBER="$1"
+PR_BRANCH="pr_${PR_NUMBER}"
+
+cd "${REPO_ROOT}"
+    git checkout -q master
+    git fetch -q -Ppa upstream
+    git fetch -q upstream \
+        "+refs/merge-requests/${PR_NUMBER}/head:${PR_BRANCH}"
+    git checkout -q "${PR_BRANCH}"
+    git --no-pager diff ${FEATURE_BRANCH}...
+    git checkout -q -
+    git branch -q -D "${PR_BRANCH}"
+cd -

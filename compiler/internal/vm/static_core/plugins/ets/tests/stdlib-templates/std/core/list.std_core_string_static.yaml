@@ -1,0 +1,72 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+- {
+    method_name: join,
+    object_type: String,
+
+    param_init_data_types: {"param1":"String[][]", "param2": "FixedArray<String>"},
+    param_types: {"param1":"String[]", "param2": "String"},
+    param_nature: {"param1": primitive, "param2": primitive},
+    param_list: {"param1": '[["Ah.", "Satan", "sees", "Natasha"]]', "param2": '[" ", " ", " ", " "]'}, 
+    method_return_type: String,
+
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    
+    expected_test_data: '["Ah. Satan sees Natasha"]',
+    verify_test_result_function: compareStringTrivial,
+  }
+
+- {
+    method_name: join,
+    object_type: String,
+
+    param_init_data_types: {"param1":"String[][]", "param2": "FixedArray<String>", "prefix": "FixedArray<String>", "suffix": "FixedArray<String>"},
+    param_types: {"param1":"String[]", "param2": "String", "prefix": "String", "suffix": "String"},
+    param_nature: {"param1": primitive, "param2": primitive, "param3": primitive, "param4": primitive},
+    param_list: {"param1": '[["Ah.", "Satan", "sees", "Natasha"]]', "param2": '[" "]', "prefix": '["PX"]', "suffix": '["SX"]'}, 
+    method_return_type: String,
+
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    
+    expected_test_data: '["PXAh.SX PXSatanSX PXseesSX PXNatashaSX"]',
+    verify_test_result_function: compareStringTrivial,
+  }
+
+- {
+    method_name: fromCharCode,
+    object_type: String,
+
+    param_init_data_types: {},
+    param_types: {},
+    param_nature: {},
+    param_list: {}, 
+    method_return_type: String,
+
+    expected_data_item_type: String,
+    expected_data_type: "FixedArray<String>",
+    
+    expected_test_data: '[""]',
+    verify_test_result_function: compareStringTrivial,
+  }

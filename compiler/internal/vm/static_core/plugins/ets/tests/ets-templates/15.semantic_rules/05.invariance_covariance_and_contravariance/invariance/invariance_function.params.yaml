@@ -1,0 +1,136 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - argtype:
+      number
+    input:
+      1
+
+  - argtype:
+      Number
+    input:
+      1
+
+  - argtype:
+      string
+    input:
+      "\"hey there\""
+
+  - argtype:
+      String
+    input:
+      "\"hey there\""
+
+  - argtype:
+      char
+    input:
+      "c'C'"
+
+  - argtype:
+      Char
+    input:
+      "c'C'"
+
+  - argtype:
+      int
+    input:
+      1
+
+  - argtype:
+      Int
+    input:
+      1
+
+  - argtype:
+      double
+    input:
+      1.1
+
+  - argtype:
+      Double
+    input:
+      1.2
+
+  - argtype:
+      float
+    input:
+      -0.2f
+
+  - argtype:
+      Float
+    input:
+      -0.0000008f
+
+  - argtype:
+      Object
+    input:
+      new Object()
+
+  - argtype:
+      A
+    customobj: |-
+      class A {}
+    input:
+      new A()
+
+  - argtype:
+      E
+    customobj: |-
+      enum E { S, M, L }
+    input:
+      E.S
+
+  - argtype:
+      B
+    customobj: |-
+      class A {}
+      class B extends A {}
+    input:
+      new B()
+
+  - argtype:
+      A
+    customobj: |-
+      interface I {}
+      class A implements I {}
+    input:
+      new A()
+
+  - argtype:
+      tpl
+    customobj: |-
+      type tpl = [string, number]
+    input:
+      ["v", 2.1]
+
+  - argtype:
+      number[]
+    input:
+      [1, 2.1]
+
+  - argtype:
+      String|undefined|null
+    input:
+      "\"abc\""
+
+  - argtype:
+      String|undefined|null
+    input:
+      "undefined"
+
+  - argtype:
+      String|undefined|null
+    input:
+      "null"

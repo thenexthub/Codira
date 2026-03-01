@@ -1,0 +1,399 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+#include "Codira/CHIR/AST2CHIR/Utils.h"
+
+#include "Codira/AST/Utils.h"
+#include "Codira/CHIR/Utils.h"
+
+namespace Codira {
+namespace CHIR {
+
+inline std::map<Codira::AST::Attribute, Attribute> g_attrMap = {
+    {Codira::AST::Attribute::GENERIC_INSTANTIATED, Attribute::GENERIC_INSTANTIATED},
+    {Codira::AST::Attribute::STATIC, Attribute::STATIC}, {Codira::AST::Attribute::FOREIGN, Attribute::FOREIGN},
+    {Codira::AST::Attribute::MUT, Attribute::MUT}, {Codira::AST::Attribute::INTERNAL, Attribute::INTERNAL},
+    {Codira::AST::Attribute::PUBLIC, Attribute::PUBLIC}, {Codira::AST::Attribute::PRIVATE, Attribute::PRIVATE},
+    {Codira::AST::Attribute::PROTECTED, Attribute::PROTECTED},
+    {Codira::AST::Attribute::ABSTRACT, Attribute::ABSTRACT}, {Codira::AST::Attribute::OPEN, Attribute::VIRTUAL},
+    {Codira::AST::Attribute::OVERRIDE, Attribute::OVERRIDE}, {Codira::AST::Attribute::REDEF, Attribute::REDEF},
+    {Codira::AST::Attribute::SEALED, Attribute::SEALED}, {Codira::AST::Attribute::OPERATOR, Attribute::OPERATOR},
+    {Codira::AST::Attribute::COMPILER_ADD, Attribute::COMPILER_ADD},
+    {Codira::AST::Attribute::IMPLICIT_ADD, Attribute::NO_DEBUG_INFO},
+    {Codira::AST::Attribute::GENERIC, Attribute::GENERIC}, {Codira::AST::Attribute::IMPORTED, Attribute::IMPORTED},
+    {Codira::AST::Attribute::NO_REFLECT_INFO, Attribute::NO_REFLECT_INFO},
+    {Codira::AST::Attribute::COMMON, Attribute::COMMON}, {Codira::AST::Attribute::PLATFORM, Attribute::PLATFORM},
+    {Codira::AST::Attribute::JAVA_MIRROR, Attribute::JAVA_MIRROR},
+    {Codira::AST::Attribute::OBJ_C_MIRROR, Attribute::OBJ_C_MIRROR},
+    {Codira::AST::Attribute::HAS_INITED_FIELD, Attribute::HAS_INITED_FIELD},
+    {Codira::AST::Attribute::UNSAFE, Attribute::UNSAFE}};
+
+void TranslateFunctionGenericUpperBounds(CHIRType& chirTy, const AST::FuncDecl& func)
+{
+    CODEC_NULLPTR_CHECK(func.funcBody);
+    if (func.funcBody->generic) {
+        // We need to translate functions' generic type and fill their upperBounds during translation.
+        for (auto& type : func.funcBody->generic->typeParameters) {
+            chirTy.TranslateType(*type->ty);
+        }
+        // Must fill upper bounds after translation all generics.
+        for (auto& type : func.funcBody->generic->typeParameters) {
+            chirTy.FillGenericArgType(StaticCast<AST::GenericsTy>(*type->ty));
+        }
+    }
+}
+
+FuncType* AdjustVarInitType(
+    const FuncType& funcType, const AST::Decl& outerDecl, CHIRBuilder& builder, CHIRType& chirType)
+{
+    auto params = funcType.GetParamTypes();
+    std::vector<Type*> paramsTy;
+    paramsTy.reserve(params.size() + 1); // additional 1 means the type of this.
+    auto thisTy = chirType.TranslateType(*outerDecl.ty);
+    // ClassLike decl has already been added ref type by `TranslateType`, so we just needs add ref type to
+    // constructor and mut function of non-classLike type.
+    if (outerDecl.astKind == AST::ASTKind::STRUCT_DECL) {
+        paramsTy.emplace_back(builder.GetType<RefType>(thisTy));
+    } else {
+        paramsTy.emplace_back(thisTy);
+    }
+    paramsTy.insert(paramsTy.end(), params.begin(), params.end());
+
+    return builder.GetType<FuncType>(paramsTy, funcType.GetReturnType());
+}
+
+FuncType* AdjustFuncType(FuncType& funcType, const AST::FuncDecl& funcDecl, CHIRBuilder& builder, CHIRType& chirType)
+{
+    auto params = funcType.GetParamTypes();
+    // Instance member function needs to add this type.
+    if (IsInstanceMember(funcDecl)) {
+        std::vector<Type*> paramsTy;
+        paramsTy.reserve(params.size() + 1); // additional 1 means the type of this.
+        auto thisTy = chirType.TranslateType(*funcDecl.outerDecl->ty);
+        // ClassLike decl has already been added ref type by `TranslateType`, so we just needs add ref type to
+        // constructor and mut function of non-classLike type.
+        if (IsStructMutFunction(funcDecl)) {
+            paramsTy.emplace_back(builder.GetType<RefType>(thisTy));
+        } else {
+            paramsTy.emplace_back(thisTy);
+        }
+        paramsTy.insert(paramsTy.end(), params.begin(), params.end());
+
+        if (funcDecl.TestAttr(AST::Attribute::CONSTRUCTOR) || funcDecl.IsFinalizer()) {
+            return builder.GetType<FuncType>(paramsTy, builder.GetVoidTy());
+        } else {
+            return builder.GetType<FuncType>(paramsTy, funcType.GetReturnType());
+        }
+    }
+    return &funcType;
+}
+
+DebugLocation GetDeclLoc(const CHIRContext& cctx, const AST::Decl& decl)
+{
+    auto& begin = decl.identifier.Begin();
+    return TranslateLocationWithoutScope(cctx, begin, decl.identifier.End());
+}
+
+DebugLocation TranslateLocationWithoutScope(
+    const CHIRContext& context, const Codira::Position& beginPos, const Codira::Position& endPos)
+{
+    // Note: AST2CHIL adaptation of scopeInfo is needed.
+    return {context.GetSourceFileName(beginPos.fileID), beginPos.fileID,
+        {unsigned(beginPos.line), unsigned(beginPos.column)}, {unsigned(endPos.line), unsigned(endPos.column)}, {0}};
+}
+
+std::vector<GenericType*> GetGenericParamType(const AST::Decl& decl, CHIRType& chirType)
+{
+    std::vector<GenericType*> ts;
+    AST::Generic* generic = nullptr;
+    if (auto funcDecl = DynamicCast<const AST::FuncDecl*>(&decl); funcDecl) {
+        generic = funcDecl->funcBody->generic.get();
+    } else {
+        generic = decl.generic.get();
+    }
+    if (!decl.TestAttr(AST::Attribute::GENERIC)) {
+        return ts;
+    }
+    CODEC_NULLPTR_CHECK(generic);
+    for (auto& genericTy : generic->typeParameters) {
+        ts.emplace_back(StaticCast<GenericType*>(chirType.TranslateType(*(genericTy->ty))));
+    }
+    return ts;
+}
+
+std::string GetNameOfDefinedPackage(const AST::FuncDecl& funcDecl)
+{
+    if (funcDecl.outerDecl != nullptr && funcDecl.outerDecl->genericDecl != nullptr) {
+        return funcDecl.outerDecl->genericDecl->fullPackageName;
+    }
+    if (funcDecl.genericDecl != nullptr) {
+        return funcDecl.genericDecl->fullPackageName;
+    }
+    return funcDecl.fullPackageName;
+}
+
+AttributeInfo BuildAttr(const AST::AttributePack& attr)
+{
+    AttributeInfo attrInfo;
+    for (auto& it : std::as_const(g_attrMap)) {
+        if (attr.TestAttr(it.first)) {
+            attrInfo.SetAttr(it.second, true);
+        }
+    }
+    return attrInfo;
+}
+
+AttributeInfo BuildVarDeclAttr(const AST::VarDecl& decl)
+{
+    auto attrInfo = BuildAttr(decl.GetAttrs());
+    if (!decl.isVar) {
+        attrInfo.SetAttr(Attribute::READONLY, true);
+    }
+    if (decl.isConst) {
+        attrInfo.SetAttr(Attribute::CONST, true);
+    }
+    return attrInfo;
+}
+
+bool IsStructMutFunction(const AST::FuncDecl& function)
+{
+    if (function.outerDecl == nullptr) {
+        return false;
+    }
+    if (function.outerDecl->astKind == AST::ASTKind::STRUCT_DECL) {
+        return function.TestAnyAttr(AST::Attribute::CONSTRUCTOR, AST::Attribute::MUT);
+    }
+    if (function.outerDecl->astKind == AST::ASTKind::EXTEND_DECL &&
+        RawStaticCast<AST::ExtendDecl*>(function.outerDecl)->extendedType->ty->IsStruct()) {
+        return function.TestAnyAttr(AST::Attribute::CONSTRUCTOR, AST::Attribute::MUT);
+    }
+    return false;
+}
+
+bool CollectFrozenFuncDecl(const AST::FuncDecl& funcDecl, const GlobalOptions& opts)
+{
+    return opts.IsCHIROptimizationLevelOverO2() && funcDecl.isFrozen && !funcDecl.TestAttr(AST::Attribute::ABSTRACT);
+}
+
+bool IsLocalVarDecl(const AST::Decl& decl)
+{
+    return decl.astKind == AST::ASTKind::VAR_DECL &&
+        !decl.TestAttr(AST::Attribute::STATIC) && !decl.TestAttr(AST::Attribute::GLOBAL);
+}
+
+bool IsSrcImportedDecl(const AST::Decl& decl, const GlobalOptions& opts)
+{
+    if (!decl.TestAttr(AST::Attribute::IMPORTED)) {
+        return false;
+    }
+    // 1. imported const func or var
+    if (decl.IsConst()) {
+        return true;
+    }
+    // 2. imported frozen func
+    if (decl.astKind == AST::ASTKind::FUNC_DECL) {
+        if (CollectFrozenFuncDecl(StaticCast<const AST::FuncDecl&>(decl), opts)) {
+            return true;
+        }
+    }
+    // 3. static member var, need to check static init func
+    if (decl.TestAttr(AST::Attribute::STATIC) && decl.astKind == AST::ASTKind::VAR_DECL &&
+        decl.outerDecl != nullptr && decl.outerDecl->IsNominalDecl()) {
+        for (auto& member : decl.outerDecl->GetMemberDecls()) {
+            if (member->TestAttr(AST::Attribute::CONSTRUCTOR) && member->TestAttr(AST::Attribute::STATIC)) {
+                if (IsSrcCodeImportedGlobalDecl(*member, opts)) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+bool IsSrcCodeImportedGlobalDecl(const AST::Decl& decl, const GlobalOptions& opts)
+{
+    return IsSrcImportedDecl(decl, opts) && !IsLocalVarDecl(decl);
+}
+
+bool IsSymbolImportedDecl(const AST::Decl& decl, const GlobalOptions& opts)
+{
+    return decl.TestAttr(AST::Attribute::IMPORTED) && !IsSrcImportedDecl(decl, opts);
+}
+
+AST::Decl* GetOuterDecl(const AST::Decl& decl)
+{
+    auto outerDecl = decl.outerDecl;
+    if (auto func = DynamicCast<const AST::FuncDecl*>(&decl); func && func->ownerFunc != nullptr) {
+        outerDecl = func->ownerFunc->outerDecl;
+    }
+    return outerDecl;
+}
+
+bool IsLocalFunc(const AST::FuncDecl& func)
+{
+    auto outerDecl = GetOuterDecl(func);
+    return outerDecl != nullptr &&
+        (outerDecl->astKind == AST::ASTKind::FUNC_DECL || outerDecl->astKind == AST::ASTKind::VAR_DECL);
+}
+
+const std::unordered_set<std::string> OVERFLOW_OPERATOR_NAMES{"+", "-", "*", "/"};
+
+bool IsOverflowOperator(const std::string& name)
+{
+    return OVERFLOW_OPERATOR_NAMES.find(name) != OVERFLOW_OPERATOR_NAMES.end();
+}
+
+/// Check whether a type can be integer type. This may change when spec changes.
+bool CanBeIntegerType(const Type& type)
+{
+    return type.IsInteger() || type.IsGeneric();
+}
+///@{
+/// These two functions are used by TranslateNonStaticMemberFuncCall
+/// Any operator that has different behaviours on integer types when @Overflow changes, if defined in an
+/// interface that can be extended by integer types, needs to be split into three operator funcs, so that when
+/// called, the integer overflow strategy of this overloaded operator can be match the call site overflow
+/// strategy.
+/// Operators to be split: +, -, *, /(only in MIN/-1)
+/// Definition: when can an interface be implemented by integer types?
+/// The current definition is that any interface can, but it may change when spec changes,
+/// e.g. interface with This as return type cannot be implemented by
+/// structs (to which all integer types belong), but for now that feature has not been implemented.
+bool IsOverflowOperator(const std::string& name, const FuncType& type)
+{
+    auto params = type.GetParamTypes();
+    if (params.size() == 1 && IsOverflowOperator(name)) {
+        return CanBeIntegerType(*params[0]) && CanBeIntegerType(*type.GetReturnType());
+    }
+    if (params.size() == 0 && name == "-") {
+        return CanBeIntegerType(*type.GetReturnType());
+    }
+    return false;
+}
+
+std::string OverflowStrategyPrefix(OverflowStrategy ovf)
+{
+    switch (ovf) {
+        case OverflowStrategy::WRAPPING:
+            return "&";
+        case OverflowStrategy::THROWING:
+            return "~";
+        default:
+            return "%";
+    }
+}
+
+void SetCompileTimeValueFlagRecursivly(Func& initFunc)
+{
+    auto setConstFlagForLambda = [](BlockGroup& body) {
+        std::function<VisitResult(Expression&)> preVisit = [&preVisit](Expression& expr) {
+            if (expr.GetExprKind() == CHIR::ExprKind::LAMBDA) {
+                auto& lambda = StaticCast<Lambda&>(expr);
+                lambda.SetCompileTimeValue();
+                Visitor::Visit(*lambda.GetBody(), preVisit);
+            }
+            return VisitResult::CONTINUE;
+        };
+        Visitor::Visit(body, preVisit);
+    };
+    setConstFlagForLambda(*initFunc.GetBody());
+}
+
+MemberVarInfo GetMemberVarByName(const CustomTypeDef& def, const std::string& varName)
+{
+    auto vars = def.GetAllInstanceVars();
+    for (auto it = vars.crbegin(); it != vars.crend(); ++it) {
+        if (it->name == varName) {
+            return *it;
+        }
+    }
+    CODEC_ABORT();
+    return MemberVarInfo{.attributeInfo = AttributeInfo{}};
+}
+
+Type* GetInstMemberTypeByName(const CustomType& rootType, const std::vector<std::string>& names, CHIRBuilder& builder)
+{
+    return GetInstMemberTypeByNameCheckingReadOnly(rootType, names, builder).first;
+}
+
+std::pair<Type*, bool> GetInstMemberTypeByNameCheckingReadOnly(
+    const CustomType& rootType, const std::vector<std::string>& names, CHIRBuilder& builder)
+{
+    if (names.empty()) {
+#ifdef NDEBUG
+        return {const_cast<CustomType*>(&rootType), false};
+#else
+        CODEC_ABORT();
+#endif
+    }
+    auto customTypeDef = rootType.GetCustomTypeDef();
+    std::unordered_map<const GenericType*, Type*> instMap;
+    rootType.GetInstMap(instMap, builder);
+    auto currentName = names.front();
+    auto member = GetMemberVarByName(*customTypeDef, currentName);
+    // if one member is readonly in path, the result is readonly
+    bool isReadOnly = member.TestAttr(Attribute::READONLY);
+    auto memberTy = ReplaceRawGenericArgType(*member.type, instMap, builder);
+    if (names.size() > 1) {
+        auto pureMemberTy = memberTy->StripAllRefs();
+        if (pureMemberTy->IsNominal()) {
+            auto subNames = names;
+            subNames.erase(subNames.begin());
+            auto [memberType, isMemberReadOnly] =
+                GetInstMemberTypeByNameCheckingReadOnly(*StaticCast<CustomType*>(pureMemberTy), subNames, builder);
+            return {memberType, isReadOnly || isMemberReadOnly};
+        } else if (pureMemberTy->IsGeneric()) {
+            auto subNames = names;
+            subNames.erase(subNames.begin());
+            auto [memberType, isMemberReadOnly] =
+                GetInstMemberTypeByNameCheckingReadOnly(*StaticCast<GenericType*>(pureMemberTy), subNames, builder);
+            return {memberType, isReadOnly || isMemberReadOnly};
+        } else {
+            CODEC_ABORT();
+        }
+    }
+    return {memberTy, isReadOnly};
+}
+
+std::pair<Type*, bool> GetInstMemberTypeByNameCheckingReadOnly(
+    const GenericType& rootType, const std::vector<std::string>& names, CHIRBuilder& builder)
+{
+    // Find the most child class type
+    Type* concreteType = nullptr;
+    for (auto upperBound : rootType.GetUpperBounds()) {
+        auto upperBoundCustomType = StaticCast<CustomType*>(upperBound->StripAllRefs());
+        if (upperBoundCustomType->GetCustomTypeDef()->IsClassLike()) {
+            if (concreteType == nullptr) {
+                concreteType = upperBound;
+            } else {
+                if (upperBoundCustomType->IsEqualOrSubTypeOf(*concreteType, builder)) {
+                    concreteType = upperBound;
+                }
+            }
+        }
+    }
+    CODEC_NULLPTR_CHECK(concreteType);
+    return GetInstMemberTypeByNameCheckingReadOnly(
+        *StaticCast<CustomType*>(concreteType->StripAllRefs()), names, builder);
+}
+} // namespace CHIR
+} // namespace Codira

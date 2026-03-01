@@ -1,0 +1,113 @@
+# Copyright (c) 2022-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("../../toolchain.gni")
+
+libarkinspector_sources = [
+  "init.cpp",
+  "connection/endpoint_base.cpp",
+  "connection/ohos_ws/ohos_ws_server.cpp",
+  "connection/ohos_ws/ohos_ws_server_endpoint.cpp",
+  "connection/server_endpoint_base.cpp",
+  "debugger/breakpoint.cpp",
+  "debugger/breakpoint_storage.cpp",
+  "debugger/conditional_breakpoint.cpp",
+  "debugger/debug_info_cache.cpp",
+  "debugger/debuggable_thread.cpp",
+  "debugger/object_repository.cpp",
+  "debugger/thread_state.cpp",
+  "error.cpp",
+  "evaluation/evaluation_engine.cpp",
+  "inspector.cpp",
+  "inspector_server.cpp",
+  "json_serialization/jrpc_error.cpp",
+  "session_manager.cpp",
+  "source_manager.cpp",
+  "types/custom_url_breakpoint_response.cpp",
+  "types/debugger_call_function_on_request.cpp",
+  "types/debugger_evaluation_request.cpp",
+  "types/exception_details.cpp",
+  "types/location.cpp",
+  "types/object_preview.cpp",
+  "types/profile_result.cpp",
+  "types/remote_object.cpp",
+  "types/scope.cpp",
+  "types/url_breakpoint_request.cpp",
+  "types/url_breakpoint_response.cpp",
+]
+
+config("libarkinspector_config") {
+  cflags_cc = [
+    "-fexceptions",
+    "-Wno-invalid-offsetof",
+    "-Wno-null-pointer-subtraction",
+    "-Wno-error=unknown-warning-option",
+  ]
+  include_dirs = [ "./" ]
+  include_dirs += [ "../" ]
+  include_dirs += [ "../../" ]
+  defines = []
+  if (enable_hilog) {
+    defines += [ "ENABLE_HILOG" ]
+  }
+  # required for arkcompiler_toolchain compilation
+  if (is_ohos) {
+    defines += [ "OHOS_PLATFORM" ]
+  }
+}
+
+ohos_static_library("libarkinspector_plus_static") {
+  sources = libarkinspector_sources
+
+  configs = [
+    "../..:ark_toolchain_common_config",
+    ":libarkinspector_config"
+  ]
+  external_deps = [
+    "bounds_checking_function:libsec_shared",
+    "runtime_core:libarktscompiler",
+    "runtime_core:arktsdisassembler",
+    "runtime_core:libarktsbase",
+  ]
+  deps = [
+    "../../websocket:libwebsocket_server", 
+    "../hybrid_step:arkhybridstep",
+  ]
+
+  if (is_mingw || is_win) {
+    output_extension = "dll"
+  } else if (is_mac) {
+    output_extension = "dylib"
+  } else {
+    output_extension = "so"
+  }
+  part_name = "toolchain"
+  subsystem_name = "arkcompiler"
+}
+
+group("unittest") {
+  testonly = true
+
+  # deps file
+  deps = [
+    "tests:arkinspector_tests",
+  ]
+}
+
+group("host_unittest") {
+  testonly = true
+
+  deps = [
+    "tests:arkinspector_testsAction",
+  ]
+}

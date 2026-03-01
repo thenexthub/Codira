@@ -1,0 +1,120 @@
+# Copyright (c) 2022 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+if (!defined(ark_standalone_build)) {
+  ark_standalone_build = false
+}
+
+if (target_cpu == "arm64") {
+  TARGET = "aarch64"
+}
+
+declare_args() {
+  toolchain_enable_cmc_gc = false
+}
+
+if (defined(enable_cmc_gc)) {
+  toolchain_enable_cmc_gc = enable_cmc_gc
+}
+
+if (!ark_standalone_build) {
+  build_root = "//build"
+  ark_third_party_root = "//third_party"
+  import("$build_root/config/components/toolchain/build_type.gni")
+  import("$build_root/ohos.gni")
+} else {
+  ark_third_party_root = "//build/third_party_gn"
+  import("$build_root/ark.gni")
+  import("$build_root/config/build_type.gni")
+}
+ark_root = "//arkcompiler/runtime_core"
+js_root = "//arkcompiler/ets_runtime"
+global_root = "//base/global/i18n"
+hilog_root = "//base/hiviewdfx/hilog/interfaces/native/innerkits"
+qos_root = "//foundation/resourceschedule/qos_manager"
+compile_llvm_online = false
+
+enable_leak_check = false
+enable_cow_array = true
+enable_coverage = false
+enable_asm_assert = false
+ark_compile_mode = "debug"
+if (defined(is_arkui_x) && is_arkui_x && defined(runtime_mode) &&
+    runtime_mode == "release") {
+  ark_compile_mode = "release"
+}
+
+asan_lib_path = "/usr/lib/llvm-10/lib/clang/10.0.0/lib/linux"
+
+# under /system/lib64 dir
+arkcompiler_relative_lib_path = "module/arkcompiler"
+if (is_standard_system || ark_standalone_build) {
+  icu_part_name = "icu"
+  icu_subsystem_name = "thirdparty"
+} else {
+  icu_part_name = "i18n"
+  icu_subsystem_name = "global"
+}
+
+if (defined(is_arkui_x) && is_arkui_x && target_os == "ios") {
+  sdk_libc_secshared_dep = "bounds_checking_function:libsec_static"
+} else {
+  sdk_libc_secshared_dep = "bounds_checking_function:libsec_shared"
+}
+
+# ohos device, windows previewer, mac previewer
+enable_hilog = !ark_standalone_build && !(defined(is_arkui_x) && is_arkui_x) &&
+               (is_ohos || is_mingw || is_mac)
+enable_dump_in_faultlog =
+    !ark_standalone_build && !(defined(is_arkui_x) && is_arkui_x) && is_ohos &&
+    is_standard_system
+enable_bytrace =
+    !ark_standalone_build && !(defined(is_arkui_x) && is_arkui_x) && is_ohos &&
+    is_standard_system
+enable_hitrace =
+    !ark_standalone_build && !(defined(is_arkui_x) && is_arkui_x) && is_ohos &&
+    is_standard_system
+
+hiviewdfx_deps = []
+hiviewdfx_ext_deps = []
+if (enable_dump_in_faultlog) {
+  hiviewdfx_ext_deps += [
+    "faultloggerd:libfaultloggerd",
+    "init:libbegetutil",
+  ]
+}
+if (enable_bytrace) {
+  hiviewdfx_ext_deps += [ "hitrace:hitrace_meter" ]
+}
+if (enable_hitrace) {
+  hiviewdfx_ext_deps += [ "hitrace:libhitracechain" ]
+}
+if (enable_hilog) {
+  hiviewdfx_ext_deps += [ "hilog:libhilog" ]
+}
+
+enable_target_compilation =
+    !ark_standalone_build && !is_mac && !(defined(is_arkui_x) && is_arkui_x) &&
+    current_cpu == "arm64"
+
+have_local_code_sign = false
+if (defined(global_parts_info) &&
+    defined(global_parts_info.security_code_signature) &&
+    global_parts_info.security_code_signature) {
+  have_local_code_sign = true
+}
+enable_local_code_sign = false
+if (have_local_code_sign && enable_target_compilation) {
+  enable_local_code_sign = true
+}
+sdk_libc_secshared_ext_dep = "bounds_checking_function:libsec_static"

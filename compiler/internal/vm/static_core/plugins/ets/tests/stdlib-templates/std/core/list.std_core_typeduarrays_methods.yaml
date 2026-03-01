@@ -1,0 +1,83 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+- {
+  objectType: "Uint8Array",
+  type: "number",
+  primitiveType: "byte",
+  elementType: "byte",
+  cast2primitive: ".toByte()",
+  create: "",
+  primitiveSizeBytes: 1,
+  primitiveTypeWide: "short",
+  sourceElementsType: "number",
+  data: "[0 as byte, 18 as byte, 37 as byte, 72 as byte, Byte.MAX_VALUE]",
+  abnormalData: "[(180).toByte(), (221).toByte(), (0xFF).toByte()]",
+}
+
+- {
+  objectType: "Uint16Array",
+  type: "number",
+  primitiveType: "short",
+  elementType: "short",
+  cast2primitive: ".toShort()",
+  create: "",
+  primitiveSizeBytes: 2,
+  primitiveTypeWide: "int",
+  sourceElementsType: "number",
+  data: "[0 as short, 10234 as short, 21445 as short, Short.MAX_VALUE]",
+  abnormalData: "[(43690).toShort(), (55321).toShort(), (65504).toShort(), (0xFFFF).toShort()]",
+}
+
+- {
+  objectType: "Uint32Array",
+  type: "number",
+  primitiveType: "int",
+  elementType: "int",
+  cast2primitive: ".toInt()",
+  create: "",
+  primitiveSizeBytes: 4,
+  primitiveTypeWide: "long",
+  sourceElementsType: "number",
+  data: "[0, 1073741824, Int.MAX_VALUE]",
+  abnormalData: "[]",
+  # Note: uncomment once the issue(21569) is fixed
+  # abnormalData: "[3221225472 as int, 3758096384 as int, 4026531840 as int, 4160749568 as int]",
+}
+
+- {
+  objectType: "Uint8ClampedArray",
+  type: "number",
+  primitiveType: "short",
+  elementType: "short",
+  cast2primitive: ".toShort()",
+  create: "",
+  primitiveSizeBytes: 1,
+  primitiveTypeWide: "short",
+  sourceElementsType: "number",
+  data: "[(0).toShort(), (18).toShort(), (37).toShort(), (72).toShort(), Byte.MAX_VALUE, (180).toShort(), (221).toShort(), (0xFF).toShort()]",
+  abnormalData: "[]",
+}
+
+- {
+  objectType: "BigUint64Array",
+  type: "BigInt",
+  elementType: "bigint",
+  primitiveType: "long",
+  cast2primitive: ".getULong()",
+  create: "new BigInt",
+  primitiveSizeBytes: 8,
+  sourceElementsType: "long",
+  data: "[0 as long, 1073741824 as long, 2147483648 as long, 3221225472 as long, 3758096384 as long, 4026531840 as long, 4160749568 as long, 4294967295 as long]",
+  abnormalData: "[]",
+}

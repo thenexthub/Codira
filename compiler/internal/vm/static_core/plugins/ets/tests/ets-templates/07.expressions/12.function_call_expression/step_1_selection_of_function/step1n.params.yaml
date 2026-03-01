@@ -1,0 +1,108 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - desc: This is an overloading case, but it is not supported by current implementation.
+      decl: |-
+          function foo(p: boolean): string {
+              return "b"
+          }
+          function foo(p: boolean, q: boolean = false): string {
+              return "bD2"
+          }
+          function foo(p: boolean = true): string {
+              return "b2"
+          }
+          function foo(...p: boolean[]): string {
+              return "bR"
+          }
+      use: |-
+          // value types
+          arktest.assertEQ( foo(), "b1" )
+          arktest.assertEQ( foo(undefined), "b1" )
+          arktest.assertEQ( foo(true), "b" )
+          arktest.assertEQ( foo(true, false), "bD2" )
+          arktest.assertEQ( foo(true, undefined), "bD2" )
+          arktest.assertEQ( foo(true, false, true), "bR" )
+
+    - desc: This is an overloading case, but it is not supported by current implementation.
+      decl: |-
+          function foo(p: boolean): string {
+              return "b"
+          }
+          function foo(p: boolean, q?: boolean): string {
+              return "bD1"
+          }
+          function foo(p?: boolean): string {
+              return "b1"
+          }
+          function foo(...p: boolean[]): string {
+              return "bR"
+          }
+      use: |-
+          // value types
+          arktest.assertEQ( foo(), "b1" )
+          arktest.assertEQ( foo(undefined), "b1" )
+          arktest.assertEQ( foo(true), "b" )
+          arktest.assertEQ( foo(true, false), "bD1" )
+          arktest.assertEQ( foo(true, undefined), "bD1" )
+          arktest.assertEQ( foo(true, false, true), "bR" )
+          
+    - decl: |-
+          function foo(...p: number[]): string {
+              return "nR"
+          }
+          function foo(p: number, q: number = 0.0): string {
+              return "nD1"
+          }
+          function foo(p: number, q?: Number): string {
+              return "nD2"
+          }
+      use: |-
+          // more than one applicable function
+          arktest.assertEQ( foo(0.0), "nR" )
+
+    - decl: |-
+          function foo(p: number): string {
+              return "n"
+          }
+          function foo(...p: number[]): string {
+              return "nR"
+          }
+          function foo(p: number, q: number = 0.0): string {
+              return "nD1"
+          }
+          function foo(p: number, q?: Number): string {
+              return "nD2"
+          }
+      use: |-
+          // no applicable function
+          arktest.assertEQ( foo(), "n" )
+
+    - decl: |-
+          function foo(p: number): string {
+              return "n"
+          }
+          function foo(p: number, q?: Number): string {
+              return "nD2"
+          }
+          function foo(p: Number, q?: Number): string {
+              return "ND2"
+          }
+      use: |-
+          // select function with unboxing and without undefined parameter
+          arktest.assertEQ( foo(0.0), "n" )
+          arktest.assertEQ( foo(new Number()), "n" )
+
+

@@ -1,0 +1,399 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - doc: Override as number of type parameters is the same
+      decl: |-
+          class A {}
+          class B {}
+          interface I {}
+          class C implements I {}
+          class Base<T,S> {
+              foo(i: T, j: S) {
+                res = 11;
+              }
+
+              static foo<X,Y>(i: X, j: Y) {
+                res = 12;
+              }
+          }
+          class Derived<T,S> extends Base<T,S> {
+              foo(i: T, j: S) {
+                res = 21;
+              }
+
+              static foo<X,Y>(i: X, j: Y) {
+                res = 22;
+              }
+          }
+      use: |-
+          new Derived<A, B>().foo(new A(), new B());
+          arktest.assertEQ(res, 21);
+          new Derived<B, I>().foo(new B(), new C());
+          arktest.assertEQ(res, 21);
+          Derived.foo<Number, String>(new Number(), new String());
+          arktest.assertEQ(res, 22);
+
+    - doc: Override as type parameter of derived class function is contravariant to those used in base class
+      decl: |-
+          class A {}
+          class B extends A {}
+          class Base {
+              foo(i: B) {
+                res = 11;
+              }
+
+              static foo(i: B) {
+                res = 12;
+              }
+          }
+          class Derived extends Base {
+              foo(i: A) {
+                res = 21;
+              }
+
+              static foo(i: A) {
+                res = 22;
+              }
+          }
+      use: |-
+          new Derived().foo(new A());
+          arktest.assertEQ(res, 21);
+          new Derived().foo(new B());
+          arktest.assertEQ(res, 21);
+          Derived.foo(new A());
+          arktest.assertEQ(res, 22);
+          Derived.foo(new B());
+          arktest.assertEQ(res, 22);
+
+    - doc: Override as type parameter of derived class function is invariant to those used in base class
+      decl: |-
+          interface I {}
+          class A implements I {}
+          class Base {
+              foo(i: I) {
+                res = 11;
+              }
+
+              static foo(i: I) {
+                res = 12;
+              }
+          }
+          class Derived extends Base {
+              foo(i: I) {
+                res = 21;
+              }
+
+              static foo(i: I) {
+                res = 22;
+              }
+          }
+      use: |-
+          new Derived().foo(new A());
+          arktest.assertEQ(res, 21);
+          let i: I = new A();
+          new Derived().foo(i);
+          arktest.assertEQ(res, 21);
+          Derived.foo(new A());
+          arktest.assertEQ(res, 22);
+          Derived.foo(i);
+          arktest.assertEQ(res, 22);
+
+    - doc: override as type parameter of derived class function is contravariant to those used in base class
+      decl: |-
+          interface I {}
+          class A implements I {}
+          class Base {
+              foo(i: A) {
+                res = 11;
+              }
+
+              static foo(i: A) {
+                res = 12;
+              }
+          }
+          class Derived extends Base {
+              foo(i: I) {
+                res = 21;
+              }
+
+              static foo(i: I) {
+                res = 22;
+              }
+          }
+      use: |-
+          let i: I = new A();
+          new Derived().foo(i);
+          arktest.assertEQ(res, 21);
+          new Derived().foo(new A());
+          arktest.assertEQ(res, 21);
+          Derived.foo(i as I);
+          arktest.assertEQ(res, 22);
+          Derived.foo(new A());
+          arktest.assertEQ(res, 22);
+
+    - doc: Different number of type parameters
+      decl: |-
+          class A {}
+          class B extends A {}
+          class Base<T,S> {
+              foo(i: T, j: S) {
+                res = 11;
+              }
+
+              static foo<X,Y>(i: X, j: Y) {
+                res = 12;
+              }
+          }
+          class Derived<T,S> extends Base<T,S> {
+              foo(i: T) {
+                res = 21;
+              }
+
+              static foo<X>(i: X) {
+                res = 22;
+              }
+          }
+      use: |-
+          let a = new A();
+          new Derived<A, B>().foo(new A(), new B());
+          arktest.assertEQ(res, 11);
+          new Derived<A, B>().foo(new A());
+          arktest.assertEQ(res, 21);
+          new Derived<A, B>().foo(a);
+          arktest.assertEQ(res, 21);
+          Derived.foo<A>(a);
+          arktest.assertEQ(res, 22);
+          Derived.foo<A, B>(new A(), new B());
+          arktest.assertEQ(res, 12);
+          Derived.foo<A>(new A());
+          arktest.assertEQ(res, 22);
+
+    - doc: |-
+          CTE due to different return types.
+      tags: compile-only, negative
+      decl: |-
+          class A {}
+          class B extends A {}
+          class Base<T,S> {
+              foo(i: T, j: S) {
+                res = 11;
+              }
+          }
+          class Derived<T,S> extends Base<T,S> {
+              /* @@ label */foo(i: T, j: S): int {
+                res = 21;
+                return 1;
+              }
+          }
+      use: |-
+          new Derived<A, B>();
+      expected_error: |-
+          /* @@@ label Error TypeError: Cannot override */
+
+    - doc: |-
+          Base method is overridden as return type B covariant to A.
+      decl: |-
+          class A {}
+          class B extends A {}
+          class Base<T, S> {
+              foo(i: T, j: S): A {
+                res = 11;
+                return new A();
+              }
+              static foo<T, S>(i: T, j: S): A {
+                res = 12;
+                return new A();
+              }
+          }
+          class Derived<T, S> extends Base<T, S> {
+              foo(i: T, j: S): B {
+                res = 21;
+                return new B();
+              }
+              static foo<T, S>(i: T, j: S): B {
+                res = 22;
+                return new B();
+              }
+          }
+      use: |-
+          new Derived<Number, String>().foo(new Number(), new String());
+          arktest.assertEQ(res, 21);
+          Derived.foo<Number, String>(new Number(), new String());
+          arktest.assertEQ(res, 22);
+
+    - doc: |-
+          Base method is overridden as return type A invariant to A.
+      decl: |-
+          class A {}
+          class B extends A {}
+          class Base<T,S> {
+              foo(i: T, j: S): A {
+                res = 11;
+                return new A();
+              }
+              static foo<T, S>(i: T, j: S): A {
+                res = 12;
+                return new A();
+              }
+          }
+          class Derived<T,S> extends Base<T,S> {
+              foo(i: T, j: S): A {
+                res = 21;
+                return new A();
+              }
+              static foo<T, S>(i: T, j: S): A {
+                res = 22;
+                return new A();
+              }
+          }
+      use: |-
+          new Derived<A,B>().foo(new A(), new B());
+          arktest.assertEQ(res, 21);
+          Derived.foo<A, B>(new A(), new B());
+          arktest.assertEQ(res, 22);
+
+    - doc: |-
+          CTE as return type A contravariant to B.
+      tags: compile-only, negative
+      decl: |-
+          class A {}
+          class B extends A {}
+          class Base<T, S> {
+              foo(i: T, j: S): B {
+                res = 11;
+                return new B();
+              }
+              static foo(i: T, j: S): B {
+                res = 12;
+                return new B();
+              }
+          }
+          class Derived<T, S> extends Base<T, S> {
+              /* @@ label1 */foo(i: T, j: S): A {
+                res = 21;
+                return new A();
+              }
+              static /* @@ label2 */foo(i: T, j: S): A {
+                res = 22;
+                return new A();
+              }
+          }
+      use: |-
+          new Derived<Number, String>();
+      expected_error: |-
+          /* @@@ label1 Error TypeError: Cannot override */
+          /* @@@ label2 Error TypeError: Cannot override */
+
+    # Tuple
+    - doc: |-
+          Different order in tuples
+      decl: |-
+          type TPL_BF = [boolean, float];
+          type TPL_FB = [float, boolean];
+          
+          class Base {
+              foo(i: TPL_BF) { res = 11; }
+              static foo(i: TPL_BF) { res = 12; }
+          }
+          
+          class Derived extends Base {
+              foo(i: TPL_FB) { res = 21; }
+              static foo(i: TPL_FB) { res = 22; }
+          }
+      use: |-
+          new Derived().foo([1.0f, true]);
+          arktest.assertEQ(res, 21);
+          Derived.foo([1.0f, true]);
+          arktest.assertEQ(res, 22);
+
+    - doc: |-
+          CTE due to covariant relationship presence
+          pair C -> E is covariant
+          pair E -> C is contravariant
+      decl: |-
+          class C {}
+          class D extends C {}
+          class E extends D {}
+
+          type TPL_CE = [C, E];
+          type TPL_EC = [E, C];
+
+          class Base {
+              foo(i: TPL_CE) { res = 11; }
+              static foo(i: TPL_CE) { res = 12; }
+          }
+
+          class Derived extends Base {
+              foo(i: TPL_EC) { res = 21; }
+              static foo(i: TPL_EC) { res = 22; }
+          }
+      use: |-
+          new Derived().foo([new E, new C]);
+          arktest.assertEQ(res, 21);
+          Derived.foo([new E, new C]);
+          arktest.assertEQ(res, 22);
+
+    - doc: |-
+          CTE due to different length of tuples
+      decl: |-
+          class C {}
+          class D extends C {}
+          class E extends D {}
+
+          type TPL_CD = [C, D];
+          type TPL_CDE = [C, D, E];
+
+          class Base {
+              foo(i: TPL_CD) { res = 11; }
+          }
+
+          class Derived extends Base {
+              foo(i: TPL_CDE) { res = 21; }
+          }
+      use: |-
+          let a = new Derived();
+          let tpl_cd: TPL_CD = [new C(), new D()];
+          let tpl_cde: TPL_CDE = [new C(), new D(), new E()];
+          a.foo(tpl_cd);
+          arktest.assertEQ(res, 11);
+          a.foo(tpl_cde);
+          arktest.assertEQ(res, 21);
+
+    - doc: |-
+          Overriding instance method having arguments of tuple with contravariant reference types.
+      decl: |-
+          class C {}
+          class D extends C {}
+          class E extends D {}
+
+          type TPL_CD = [C, D];
+          type TPL_DE = [D, E];
+
+          class Base {
+              foo(i: TPL_DE) { res = 11; }
+              static foo(i: TPL_DE) { res = 12; }
+          }
+
+          class Derived extends Base {
+              foo(i: TPL_CD) { res = 21; }
+              static foo(i: TPL_CD) { res = 22; }
+          }
+      use: |-
+          let a = new Derived();
+          let tpl1: TPL_CD = [new C(), new D()];
+          a.foo(tpl1);
+          arktest.assertEQ(res, 21);
+          Derived.foo(tpl1);
+          arktest.assertEQ(res, 22);

@@ -1,0 +1,118 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+# Check that OOM during class loading is handled correctly
+
+.record panda.Object <external>
+.record panda.OutOfMemoryError <external>
+.record Object <external>
+.record panda.Class <external>
+
+.function panda.Object Object.createNonMovable(panda.Class a0) <external>
+
+.record A {
+    A next
+
+    i64 f0
+    i64 f1
+    i64 f2
+    i64 f3
+    i64 f4
+    i64 f5
+    i64 f6
+    i64 f7
+    i64 f8
+    i64 f9
+
+    i64 f10
+    i64 f11
+    i64 f12
+    i64 f13
+    i64 f14
+    i64 f15
+    i64 f16
+    i64 f17
+    i64 f18
+    i64 f19
+}
+
+.function void A.ctor(A a0) <ctor> {
+    return.void
+}
+
+.function i32 main() {
+    movi v0, 100000
+    movi v1, 0
+    lda.type A
+    sta.obj v3
+    call Object.createNonMovable, v3
+    checkcast A
+    sta.obj v3
+    call.short A.ctor, v3
+    mov.obj v6, v3
+label_trystart:
+    lda v1
+    jge v0, label_foo
+    lda.type A
+    sta.obj v4
+    call Object.createNonMovable, v4
+    checkcast A
+    sta.obj v4
+    call.short A.ctor, v4
+    stobj.v.obj v4, v3, A.next
+    mov.obj v3, v4
+    inci v1, 1
+label_tryend:
+    jmp label_trystart
+label_catch:
+    jmp label_foo
+label_foo:
+    call.short foo, v6
+    ldai 1
+label_fooend:
+    return
+label_catch2:
+    ldai 0
+    return
+
+.catch panda.OutOfMemoryError, label_trystart, label_tryend, label_catch
+.catch panda.OutOfMemoryError, label_foo, label_fooend, label_catch2
+}
+
+.function panda.Object[] foo(A a0) {
+    movi v0, 0
+    mov v1, v0
+    mov.obj v0, a0
+label_1:
+    lda.obj v0
+    jeqz.obj label_0
+    ldobj.v.obj v0, v0, A.next
+    lda v1
+    addi 1
+    sta v2
+    mov v1, v2
+    jmp label_1
+label_0:
+    newarr v0, v1, A[]
+    lda.obj v0
+    return.obj
+}

@@ -1,0 +1,58 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+/*---
+desc: >-
+    The derived interface must provide a valid overriding overload signature (or signatures) for all overload
+    signatures of the base interface(s)
+---*/
+
+let res: int = 0;
+
+interface Parent1 {
+  greet(message: string): void;
+}
+
+interface Parent2 {
+  greet(message: number): void;
+}
+
+interface Child extends Parent1, Parent2 {}
+
+class ChildClass implements Child {
+  greet(...p: Any[]): Any {
+    if (p[0] instanceof "string") {
+      res = 1
+    } else {
+      res = 2
+    }
+  }
+}
+
+function main(): void {
+  let failed: boolean = false
+  const child = new ChildClass();
+  child.greet("str")
+  arktest.assertEQ(res, 1)
+  child.greet(1)
+  arktest.assertEQ(res, 2)
+}

@@ -1,0 +1,5 @@
+[warnings_suppression_begin_end_2.ets:25:11] Warning W0005: Replace asynchronous function with coroutine.
+[warnings_suppression_begin_end_2.ets:32:1] Warning W0005: Replace asynchronous function with coroutine.
+[warnings_suppression_begin_end_2.ets:65:11] Warning W0006: Replace the lambda function with a regular function.
+[warnings_suppression_begin_end_2.ets:75:13] Warning W0004: Boost Equality Statement. Change sides of binary expression.
+[warnings_suppression_begin_end_2.ets:80:13] Warning W0004: Boost Equality Statement. Change sides of binary expression.

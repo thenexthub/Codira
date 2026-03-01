@@ -1,0 +1,77 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - from_type: byte
+      to_type: byte
+      values:
+          - { expr: 0 as byte, val: 0 }
+          - { expr: Byte.MIN_VALUE, val: -128 }
+          - { expr: Byte.MAX_VALUE, val: 127 }
+          - { expr: -128 as byte, val: -128 }
+          - { expr: 127 as byte, val: 127 }
+
+    - from_type: short
+      to_type: short
+      values:
+          - { expr: 0, val: 0 }
+          - { expr: Short.MIN_VALUE, val: -32_768 }
+          - { expr: Short.MAX_VALUE, val: 32_767 }
+          - { expr: -32768, val: -32_768 }
+          - { expr: 32767, val: 32_767 }
+
+    - from_type: int
+      to_type: int
+      values:
+          - { expr: 0, val: 0 }
+          - { expr: Int.MIN_VALUE, val: -2147483648 }
+          - { expr: Int.MAX_VALUE, val: 2147483647 }
+          - { expr: -2147483648, val: -2147483648 }
+          - { expr: 2147483647, val: 2147483647 }
+
+    - from_type: long
+      to_type: long
+      values:
+          - { expr: 0, val: 0 }
+          - { expr: Long.MIN_VALUE, val: -9223372036854775808 }
+          - { expr: Long.MAX_VALUE, val: 9223372036854775807 }
+          - { expr: -9223372036854775808, val: -9223372036854775808 }
+          - { expr: 9223372036854775807, val: 9223372036854775807 }
+
+    - from_type: float
+      to_type: float
+      values:
+          - { expr: +0.0f, val: +0.0f }
+          - { expr: -0.0f, val: -0.0f }
+          - { expr: 3.4028234663852886e38f, val: 3.4028234663852886e38f }
+          - { expr: 1.401298464324817e-45f, val: 1.401298464324817e-45f }
+          - { expr: -3.4028234663852886e38f, val: -3.4028234663852886e38f }
+          - { expr: -1.401298464324817e-45f, val: -1.401298464324817e-45f }
+
+    - from_type: double
+      to_type: double
+      values:
+          - { expr: +0.0, val: +0.0 }
+          - { expr: -0.0, val: -0.0 }
+          - { expr: 3.4028234663852886e38, val: 3.4028234663852886e38 }
+          - { expr: 1.401298464324817e-45, val: 1.401298464324817e-45 }
+          - { expr: -3.4028234663852886e38, val: -3.4028234663852886e38 }
+          - { expr: -1.401298464324817e-45, val: -1.401298464324817e-45 }
+
+    - from_type: char
+      to_type: char
+      values:
+          - { expr: "c'\\u0000'", val: 0 }
+          - { expr: "c'\\u0FFF'", val: 4095 }
+          - { expr: "c'\\uFFFF'", val: 65535 }

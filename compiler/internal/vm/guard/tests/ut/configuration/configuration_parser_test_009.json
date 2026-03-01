@@ -1,0 +1,13 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep class XXX {\n    foo1():{Ustd.core.String, std.core.Int};\n    }",
+        "-keep class XXX {\n    foo2():{Ustd.core.Array, std.core.String};\n    }"
+      ]
+    }
+  }
+}

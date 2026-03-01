@@ -1,0 +1,40 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+  - {check_type: "Any", base_value: "null",
+      override_value_1: "7", override_value_2: "\"abc\"", new_value: "5.7"}
+  - {check_type: "Object", base_value: "5",
+      override_value_1: "\"abc\"", override_value_2: "7", new_value: "7.8"}
+  - {check_type: "number", base_value: "3",
+      override_value_1: "6.7", override_value_2: "13", new_value: "15.6"}
+  - {check_type: "double", base_value: "3.4",
+      override_value_1: "5.0", override_value_2: "15", new_value: "17.3"}
+  - {check_type: "float", base_value: "6.7f",
+      override_value_1: "7.3f", override_value_2: "9.8f", new_value: "3.4f"}
+  - {check_type: "long", base_value: "9223372036854775807",
+      override_value_1: "78945", override_value_2: "357", new_value: "127"}
+  - {check_type: "int", base_value: "123",
+      override_value_1: "321", override_value_2: "321321", new_value: "753"}
+  - {check_type: "short", base_value: "325",
+      override_value_1: "253", override_value_2: "536", new_value: "537"}
+  - {check_type: "byte", base_value: "127",
+      override_value_1: "78", override_value_2: "15", new_value: "117"}
+  - {check_type: "string", base_value: "\"abc\"",
+      override_value_1: "\"efg\"", override_value_2: "\"ijk\"", new_value: "\"lmn\""}
+  - {check_type: "bigint", base_value: "12345678901234567890n",
+      override_value_1: "555642n", override_value_2: "123n", new_value: "321n"}
+  - {check_type: "char", base_value: "c'\\u2028'",
+      override_value_1: "c'x'", override_value_2: "c'y'", new_value: "c'z'"}
+  - {check_type: "boolean", base_value: "false",
+      override_value_1: "true", override_value_2: "false", new_value: "true"}

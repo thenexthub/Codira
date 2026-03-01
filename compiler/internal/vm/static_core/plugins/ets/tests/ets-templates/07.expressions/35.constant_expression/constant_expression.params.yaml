@@ -1,0 +1,48 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+cases:
+  - use: |
+      enum Num { One, Two }
+  - use: |
+      enum Str { Str1 = "abc", Str2 = "cde" }
+  - use: |
+      enum Num { One = 1, Two = 2 }
+  - use: |
+      const value1: int = 1
+      const value2: int = 2
+      enum Num { One = value1, Two = value2 }
+  - use: |
+      enum Bool { False = !true ? 1 : 2, True = !false ? 3 : 4 }
+  - use: |
+      enum Unary { Plus = +3, Minus = -3, Tilda = ~3 }
+  - use: |
+      enum Binary { Sum = 3 + 3, Sub = 3 - 3, Mul = 3 * 3, Div = 3 / 3, Mod = 3 % 3 }
+  - use: |
+      enum Shift { Left = 3 << 3, Right = 3 >> 3, Unsigned = 3 >>> 3 }
+  - use: |
+      enum Comp { Less = 3 < 3 ? 1 : 2, Greater = 3 > 3 ? 3 : 4, EQGreater = 3 >= 3 ? 5 : 6, EQLess = 3 <= 3 ? 7 : 8 }
+      enum Comp2 { EQ = 3 == 3 ? 1 : 2, NotEQ = 3 != 3 ? 3 : 4 }
+  - use: |
+      enum BitOp { And = 3 & 3, Xor = 3 ^ 3, Or = 3 | 3 }
+  - use: |
+      enum Parenthesized { Par = (3 + 3) }
+  - use: |
+      const num1: int = 1
+      const num2: int = 2
+      enum Num { Num1 = num1, Num2 = num2 }
+  - decl: |
+      const num1: int = 1
+      const num2: int = 2
+    use: |
+      enum Num { Num1 = num1, Num2 = num2 }

@@ -1,0 +1,207 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - decl: |-
+      CLASS
+  - decl: |-
+      ENUMERATION
+  - decl: |-
+      FUNCTION
+  - decl: |-
+      FUNCTION_WITH_RECEIVER
+  - decl: |-
+      INTERFACE
+  - decl: |-
+      NAMESPACE
+  - decl: |-
+      TYPE_ALIAS
+    retention: 'SOURCE'
+  - decl: |-
+      VARIABLE
+    retention: 'SOURCE'
+
+  - decl: |-
+      CLASS_FIELD
+  - decl: |-
+      CLASS_METHOD
+  - decl: |-
+      CLASS_GETTER
+  - decl: |-
+      CLASS_SETTER
+
+  - decl: |-
+      INTERFACE_PROPERTY
+  - decl: |-
+      INTERFACE_METHOD
+  - decl: |-
+      INTERFACE_GETTER
+  - decl: |-
+      INTERFACE_SETTER
+
+  - decl: |-
+      PARAMETER
+
+  - decl: |-
+      TYPE
+    retention: 'SOURCE'
+
+  - decl: |-
+      LAMBDA
+    retention: 'SOURCE'
+
+# Structs are only used to define UI components, it should be translated at 'plugin after parser' phase.
+#  - decl: |-
+#      STRUCT
+
+targets:
+  - target: |-
+      @MyAnnotation
+      class CTest {}
+    decl: |-
+      CLASS
+
+  - target: |-
+      @MyAnnotation
+      enum Color {Red, Green, Blue}
+    decl: |-
+      ENUMERATION
+
+  - target: |-
+      @MyAnnotation
+      function fun() {}
+    decl: |-
+      FUNCTION
+
+  - target: |-
+      @MyAnnotation
+      function fun(this: Dummy) {}
+    decl: |-
+      FUNCTION_WITH_RECEIVER
+
+  - target: |-
+      @MyAnnotation
+      interface ITest {}
+    decl: |-
+      INTERFACE
+
+  - target: |-
+      @MyAnnotation
+      namespace NS {}
+    decl: |-
+      NAMESPACE
+
+  - target: |-
+      @MyAnnotation type TA = Dummy
+    decl: |-
+      TYPE_ALIAS
+
+  - target: |-
+      @MyAnnotation let Greet: String = 'Hello Annotations'
+    decl: |-
+      VARIABLE
+
+  - target: |-
+      class MyClass {
+        @MyAnnotation field?: String
+      }
+    decl: |-
+      CLASS_FIELD
+
+  - target: |-
+      class MyClass {
+        private _foo: int = 0
+        @MyAnnotation get foo(): int { return this._foo }
+      }
+    decl: |-
+      CLASS_GETTER
+
+  - target: |-
+      class MyClass {
+        private _foo: int = 0
+        @MyAnnotation set foo(nv: int) { this._foo = nv }
+      }
+    decl: |-
+      CLASS_SETTER
+
+  - target: |-
+      class MyClass {
+        @MyAnnotation foo(): int { return 0 }
+      }
+    decl: |-
+      CLASS_METHOD
+
+  - target: |-
+      interface MyInterface {
+        @MyAnnotation foo(): int
+      }
+    decl: |-
+      INTERFACE_METHOD
+
+  - target: |-
+      interface MyInterface {
+        @MyAnnotation name?: string
+      }
+    decl: |-
+      INTERFACE_PROPERTY
+
+  - target: |-
+      interface MyInterface {
+        @MyAnnotation get f(): int
+      }
+    decl: |-
+      INTERFACE_GETTER
+
+  - target: |-
+      interface MyInterface {
+        @MyAnnotation set f(i: int)
+      }
+    decl: |-
+      INTERFACE_SETTER
+
+  - target: |-
+      function boo(@MyAnnotation param: int) {}
+    decl: |-
+      PARAMETER
+
+  - target: |-
+      let x: @MyAnnotation String = 'Hello Annotation'
+    decl: |-
+      TYPE
+
+  - target: |-
+      let x: @MyAnnotation () => void = () => {}
+    decl: |-
+      TYPE
+
+  - target: |-
+      let x: @MyAnnotation (this: Dummy) => void = (this: Dummy) => {}
+    decl: |-
+      TYPE
+
+  - target: |-
+      let x: () => void = @MyAnnotation () => {}
+    decl: |-
+      LAMBDA
+
+  - target: |-
+      let x: (this: Dummy) => void = @MyAnnotation (this: Dummy) => {}
+    decl: |-
+      LAMBDA
+
+#  - target: |-
+#      // Structs are only used to define UI components, it should be translated at 'plugin after parser' phase.
+#      @MyAnnotation struct MyStruct {}
+#    decl: |-
+#      STRUCT

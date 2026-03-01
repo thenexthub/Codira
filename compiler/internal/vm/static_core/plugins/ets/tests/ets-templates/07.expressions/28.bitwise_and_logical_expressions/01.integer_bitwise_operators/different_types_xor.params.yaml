@@ -1,0 +1,42 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of operands
+
+cases:
+    - { typex: byte, x: 1, typey: short, y: 1, result: 0 }
+    - { typex: byte, x: 1, typey: int, y: 1, result: 0 }
+    - { typex: byte, x: 1, typey: long, y: 1, result: 0 }
+    - { typex: byte, x: 1, typey: bigint, y: 1n, result: 0n }
+    - { typex: byte, x: 1, typey: float, y: 1.0f, result: 0 }
+    - { typex: byte, x: 1, typey: double, y: 1, result: 0 }
+    
+    - { typex: short, x: 1, typey: int, y: 1, result: 0 }
+    - { typex: short, x: 1, typey: long, y: 1, result: 0 }
+    - { typex: short, x: 1, typey: bigint, y: 1n, result: 0n }
+    - { typex: short, x: 1, typey: float, y: 1.0f, result: 0 }
+    - { typex: short, x: 1, typey: double, y: 1, result: 0 }
+    
+    - { typex: int, x: 1, typey: long, y: 1, result: 0 }
+    - { typex: int, x: 1, typey: bigint, y: 1n, result: 0n }
+    - { typex: int, x: 1, typey: float, y: 1.0f, result: 0 }
+    - { typex: int, x: 1, typey: double, y: 1, result: 0 }
+
+    - { typex: long, x: 1, typey: bigint, y: 1n, result: 0n }
+    - { typex: long, x: 1, typey: float, y: 1.0f, result: 0 }
+    - { typex: long, x: 1, typey: double, y: 1, result: 0 }
+    
+    - { typex: bigint, x: 1n, typey: float, y: 1.0f, result: 0n }
+    - { typex: bigint, x: 1n, typey: double, y: 1, result: 0n }
+
+    - { typex: float, x: 1.0f, typey: double, y: 1, result: 0 }

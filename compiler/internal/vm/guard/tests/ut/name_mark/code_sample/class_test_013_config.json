@@ -1,0 +1,17 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep class class_test_013.ClassA { public f1:f64; }",
+        "-keepclasswithmembers class class_test_013.ClassB { public f1:f64; }",
+        "-keepclassmembers class class_test_013.ClassC { public f1:f64; }",
+        "-keep class class_test_013.ClassD { public f1:f32; }",
+        "-keepclasswithmembers class class_test_013.ClassE { public f1:f32; }",
+        "-keepclassmembers class class_test_013.ClassF { public f1:f32; }"
+      ]
+    }
+  }
+}

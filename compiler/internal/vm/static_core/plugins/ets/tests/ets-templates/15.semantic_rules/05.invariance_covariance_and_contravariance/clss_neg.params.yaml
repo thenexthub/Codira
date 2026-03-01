@@ -1,0 +1,420 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    # subtyping in classes, call context
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class BBox<T> {}  // invariance
+          let boxA: BBox<A> = new BBox<A>
+      use: |-
+          ((p: BBox<B>) => {})(boxA)
+
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class BBox<T> {}  // invariance
+          let boxB: BBox<B> = new BBox<B>
+      use: |-
+          ((p: BBox<A>) => {})(boxB)
+
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class BBox<out T> {}  // covariance
+          let boxA: BBox<A> = new BBox<A>
+      use: |-
+          ((p: BBox<B>) => {})(boxA)
+
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class BBox<in T> {}  // contravariance
+          let boxB: BBox<B> = new BBox<B>
+      use: |-
+          ((p: BBox<A>) => {})(boxB)
+
+    # subtyping in classes, assignment
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class BBox<T> {}  // invariance
+          let boxA: BBox<A> = new BBox<A>
+      use: |-
+          boxA = new BBox<B>
+
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class BBox<T> {}  // invariance
+          let boxB: BBox<B> = new BBox<B>
+      use: |-
+          boxB = new BBox<A>
+
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class BBox<out T> {}  // covariance
+          let boxB: BBox<B> = new BBox<B>
+      use: |-
+          boxB = new BBox<A>
+
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class BBox<in T> {}  // contravariance
+          let boxA: BBox<A> = new BBox<A>
+      use: |-
+          boxA = new BBox<B>
+
+    # subtyping in classes/interfaces, call context
+    - decl: |-
+          interface I {}
+          class B implements I {}
+          class BBox<T> {}  // invariance
+          let boxI: BBox<I> = new BBox<I>
+      use: |-
+          ((p: BBox<B>) => {})(boxI)
+
+    - decl: |-
+          interface I {}
+          class B implements I {}
+          class BBox<T> {}  // invariance
+          let boxB: BBox<B> = new BBox<B>
+      use: |-
+          ((p: BBox<I>) => {})(boxB)
+
+    - decl: |-
+          interface I {}
+          class B implements I {}
+          class BBox<out T> {}  // covariance
+          let boxI: BBox<I> = new BBox<I>
+      use: |-
+          ((p: BBox<B>) => {})(boxI)
+
+    - decl: |-
+          interface I {}
+          class B implements I {}
+          class BBox<in T> {}  // contravariance
+          let boxB: BBox<B> = new BBox<B>
+      use: |-
+          ((p: BBox<I>) => {})(boxB)
+
+    # subtyping in classes/interfaces, assignment
+    - decl: |-
+          interface I {}
+          class B implements I {}
+          class BBox<T> {}  // invariance
+          let boxI: BBox<I> = new BBox<I>
+      use: |-
+          boxI = new BBox<B>
+
+    - decl: |-
+          interface I {}
+          class B implements I {}
+          class BBox<T> {}  // invariance
+          let boxB: BBox<B> = new BBox<B>
+      use: |-
+          boxB = new BBox<I>
+
+    - decl: |-
+          interface I {}
+          class B implements I {}
+          class BBox<out T> {}  // covariance
+          let boxB: BBox<B> = new BBox<B>
+      use: |-
+          boxB = new BBox<I>
+
+    - decl: |-
+          interface I {}
+          class B implements I {}
+          class BBox<in T> {}  // contravariance
+          let boxI: BBox<I> = new BBox<I>
+      use: |-
+          boxI = new BBox<B>
+
+    # subtyping in interfaces, call context
+    - decl: |-
+          interface I {}
+          interface J extends I {}
+          class BBox<T> {}  // invariance
+          let boxI: BBox<I> = new BBox<I>
+      use: |-
+          ((p: BBox<J>) => {})(boxI)
+    - decl: |-
+          interface I {}
+          interface J extends I {}
+          class BBox<T> {}  // invariance
+          let boxJ: BBox<J> = new BBox<J>
+      use: |-
+          ((p: BBox<I>) => {})(boxJ)
+
+    - decl: |-
+          interface I {}
+          interface J extends I {}
+          class BBox<out T> {}  // covariance
+          let boxI: BBox<I> = new BBox<I>
+      use: |-
+          ((p: BBox<J>) => {})(boxI)
+
+    - decl: |-
+          interface I {}
+          interface J extends I {}
+          class BBox<in T> {}  // contravariance
+          let boxJ: BBox<J> = new BBox<J>
+      use: |-
+          ((p: BBox<I>) => {})(boxJ)
+
+    # subtyping in interfaces, assignment
+    - decl: |-
+          interface I {}
+          interface J extends I {}
+          class BBox<T> {}  // invariance
+          let boxI: BBox<I> = new BBox<I>
+      use: |-
+          boxI = new BBox<J>
+
+    - decl: |-
+          interface I {}
+          interface J extends I {}
+          class BBox<T> {}  // invariance
+          let boxJ: BBox<J> = new BBox<J>
+      use: |-
+          boxJ = new BBox<I>
+
+    - decl: |-
+          interface I {}
+          interface J extends I {}
+          class BBox<out T> {}  // covariance
+          let boxJ: BBox<J> = new BBox<J>
+      use: |-
+          boxJ = new BBox<I>
+
+    - decl: |-
+          interface I {}
+          interface J extends I {}
+          class BBox<in T> {}  // contravariance
+          let boxI: BBox<I> = new BBox<I>
+      use: |-
+          boxI = new BBox<J>
+
+    # subtyping in functions, call context
+    - decl: |-
+          class BBox<T> {} // invariance
+          let boxSup = new BBox<(p: string, q: number) => Object>
+      use: |-
+          ((p: BBox<() => string>) => {})(boxSup)
+
+    - decl: |-
+          class BBox<T> {} // invariance
+          let boxSub = new BBox<() => string>
+      use: |-
+          ((p: BBox<(p: string, q: number) => Object>) => {})(boxSub)
+
+    - decl: |-
+          class BBox<out T> {} // covariance
+          let boxSup = new BBox<(p: string, q: number) => Object>
+      use: |-
+          ((p: BBox<() => string>) => {})(boxSup)
+
+    - decl: |-
+          class BBox<in T> {} // contravariance
+          let boxSub = new BBox<() => string>
+      use: |-
+          ((p: BBox<(p: string, q: number) => Object>) => {})(boxSub)
+
+    # subtyping in functions, assignment
+    - decl: |-
+          class BBox<T> {} // invariance
+          let boxSup = new BBox<(p: string, q: number) => Object>
+      use: |-
+          boxSup = new BBox<() => string>
+
+    - decl: |-
+          class BBox<T> {} // invariance
+          let boxSub = new BBox<() => string>
+      use: |-
+          boxSub = new BBox<(p: string, q: number) => Object>
+
+    - decl: |-
+          class BBox<out T> {} // covariance
+          let boxSub = new BBox<() => string>
+      use: |-
+          boxSub = new BBox<(p: string, q: number) => Object>
+
+    - decl: |-
+          class BBox<in T> {} // contravariance
+          let boxSup = new BBox<(p: string, q: number) => Object>
+      use: |-
+          boxSup = new BBox<() => string>
+
+    # subtyping in unions, call context
+    - decl: |-
+          class BBox<T> {}  // invariance
+          let boxSup: BBox<string|number|boolean|null> = new BBox<string|number|boolean|null>
+      use: |-
+          ((p: BBox<string|boolean|null>) => {})(boxSup)
+
+    - decl: |-
+          class BBox<T> {}  // invariance
+          let boxSub: BBox<string|boolean|null> = new BBox<string|boolean|null>
+      use: |-
+          ((p: BBox<string|number|boolean|null>) => {})(boxSub)
+
+    - decl: |-
+          class BBox<out T> {}  // covariance
+          let boxSup: BBox<string|number|boolean|null> = new BBox<string|number|boolean|null>
+      use: |-
+          ((p: BBox<string|boolean|null>) => {})(boxSup)
+
+    - decl: |-
+          class BBox<in T> {}  // contravariance
+          let boxSub: BBox<string|boolean|null> = new BBox<string|boolean|null>
+      use: |-
+          ((p: BBox<string|number|boolean|null>) => {})(boxSub)
+
+    # subtyping in unions, assignment
+    - decl: |-
+          class BBox<T> {}  // invariance
+          let boxSup: BBox<string|number|boolean|null> = new BBox<string|number|boolean|null>
+      use: |-
+          boxSup = new BBox<string|boolean|null>
+
+    - decl: |-
+          class BBox<T> {}  // invariance
+          let boxSub: BBox<string|boolean|null> = new BBox<string|boolean|null>
+      use: |-
+          boxSub = new BBox<string|number|boolean|null>
+
+    - decl: |-
+          class BBox<out T> {}  // covariance
+          let boxSub: BBox<string|boolean|null> = new BBox<string|boolean|null>
+      use: |-
+          boxSub = new BBox<string|number|boolean|null>
+
+    - decl: |-
+          class BBox<in T> {}  // contravariance
+          let boxSup: BBox<string|number|boolean|null> = new BBox<string|number|boolean|null>
+      use: |-
+          boxSup = new BBox<string|boolean|null>
+
+    # subtyping in FixedArrays, call context
+    - decl: |-
+          class BBox<T> {}  // invariance
+          let boxSup: BBox<FixedArray<Object>> = new BBox<FixedArray<Object>>
+      use: |-
+          ((p: BBox<FixedArray<string>>) => {})(boxSup)
+
+    - decl: |-
+          class BBox<T> {}  // invariance
+          let boxSub: BBox<FixedArray<string>> = new BBox<FixedArray<string>>
+      use: |-
+          ((p: BBox<FixedArray<Object>>) => {})(boxSub)
+
+    - decl: |-
+          class BBox<out T> {}  // covariance
+          let boxSup: BBox<FixedArray<Object>> = new BBox<FixedArray<Object>>
+      use: |-
+          ((p: BBox<FixedArray<string>>) => {})(boxSup)
+
+    - decl: |-
+          class BBox<in T> {}  // contravariance
+          let boxSub: BBox<FixedArray<string>> = new BBox<FixedArray<string>>
+      use: |-
+          ((p: BBox<FixedArray<Object>>) => {})(boxSub)
+
+    # subtyping in FixedArrays, assignment
+    - decl: |-
+          class BBox<T> {}  // invariance
+          let boxSup: BBox<FixedArray<Object>> = new BBox<FixedArray<Object>>
+      use: |-
+          boxSup = new BBox<FixedArray<string>>
+
+    - decl: |-
+          class BBox<T> {}  // invariance
+          let boxSub: BBox<FixedArray<string>> = new BBox<FixedArray<string>>
+      use: |-
+          boxSub = new BBox<FixedArray<Object>>
+
+    - decl: |-
+          class BBox<out T> {}  // covariance
+          let boxSub: BBox<FixedArray<string>> = new BBox<FixedArray<string>>
+      use: |-
+          boxSub = new BBox<FixedArray<Object>>
+
+    - decl: |-
+          class BBox<in T> {}  // contravariance
+          let boxSup: BBox<FixedArray<Object>> = new BBox<FixedArray<Object>>
+      use: |-
+          boxSup = new BBox<FixedArray<string>>
+
+    # subtyping in literals, call context
+    - decl: |-
+          class BBox<T> {}  // invariance
+          let boxSup: BBox<string> = new BBox<string>
+      use: |-
+          ((p: BBox<"ABC">) => {})(boxSup)
+
+    - decl: |-
+          class BBox<T> {}  // invariance
+          let boxSub: BBox<"ABC"> = new BBox<"ABC">
+      use: |-
+          ((p: BBox<string>) => {})(boxSub)
+
+    - decl: |-
+          class BBox<out T> {}  // covariance
+          let boxSup: BBox<string> = new BBox<string>
+      use: |-
+          ((p: BBox<"ABC">) => {})(boxSup)
+
+    - decl: |-
+          class BBox<in T> {}  // contravariance
+          let boxSub: BBox<"ABC"> = new BBox<"ABC">
+      use: |-
+          ((p: BBox<string>) => {})(boxSub)
+
+    # subtyping in literals, assignment
+    - decl: |-
+          class BBox<T> {}  // invariance
+          let boxSup: BBox<string> = new BBox<string>
+      use: |-
+          boxSup = new BBox<"ABC">
+
+    - decl: |-
+          class BBox<T> {}  // invariance
+          let boxSub: BBox<"ABC"> = new BBox<"ABC">
+      use: |-
+          boxSub = new BBox<string>
+
+    - decl: |-
+          class BBox<out T> {}  // covariance
+          let boxSub: BBox<"ABC"> = new BBox<"ABC">
+      use: |-
+          boxSub = new BBox<string>
+
+    - decl: |-
+          class BBox<in T> {}  // contravariance
+          let boxSup: BBox<string> = new BBox<string>
+      use: |-
+          boxSup = new BBox<"ABC">

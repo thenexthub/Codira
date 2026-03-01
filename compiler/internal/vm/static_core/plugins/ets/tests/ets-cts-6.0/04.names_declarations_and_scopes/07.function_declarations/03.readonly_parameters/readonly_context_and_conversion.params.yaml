@@ -1,0 +1,101 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # readonly argument could not be used as read-write.
+    # array
+    - tags: |-
+        compile-only, negative
+      decl: |-
+        function foo(i: int[]) {
+            return 2;
+        }
+      use: |-
+        function main() {
+            let ro = [1, 2] as readonly int[];
+            foo(ro);
+        }
+
+    - tags: |-
+        compile-only, negative
+      decl: |-
+        function foo(i: Array<int>) {
+            return 2;
+        }
+      use: |-
+        function main() {
+            let ro = new Array<int>(1) as ReadonlyArray<int>;
+            foo(ro);
+        }
+
+    - tags: |-
+        compile-only, negative
+      decl: |-
+        type TPL = [number, string]
+        function foo(i: TPL) {
+            return 2;
+        }
+      use: |-
+        function main() {
+            let ro: readonly TPL = [1.1, "str"];
+            foo(ro);
+        }
+
+  # read-write argument could be used as readonly.
+    - tags: |-
+        compile-only
+      decl: |-
+        function foo(i: readonly int[]) {
+            return 1;
+        }
+        function foo(i: int[]) {
+            return 2;
+        }
+      use: |-
+        function main() {
+            let rw: int[] = [1, 2];
+            foo(rw);
+        }
+
+  # std:Array, not dependent on the place in code
+    - tags: |-
+        compile-only, negative
+      decl: |-
+        function foo(i: readonly Array<int>) {
+            return 1;
+        }
+        function foo(i: Array<int>) {
+            return 2;
+        }
+      use: |-
+        function main() {
+            let rw: Array<int> = new Array<int>(1);
+            foo(rw);
+        }
+
+    - tags: |-
+        compile-only, negative
+      decl: |-
+        type TPL = [number, string]
+        function foo(i: readonly TPL) {
+            return 1;
+        }
+        function foo(i: TPL) {
+            return 2;
+        }
+      use: |-
+        function main() {
+            let rw: TPL = [1.1, "str"];
+            foo(rw);
+        }

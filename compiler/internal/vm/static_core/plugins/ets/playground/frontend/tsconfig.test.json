@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+      "target": "es6",
+      "module": "commonjs",
+      "declaration": true,
+      "outDir": "./lib",
+      "strict": true,
+      "jsx": "react-jsx",
+      "skipLibCheck": true,
+      "allowJs": true,
+      "esModuleInterop": true,
+      "noImplicitAny": false,
+      "plugins": [
+        {
+          "name": "typescript-plugin-css-modules"
+        }
+      ]
+    },
+    "include": ["src","stories", "*.svg", "./custom.d.ts"],
+    "exclude": ["node_modules", "**/__tests__/*"]
+  }
+  

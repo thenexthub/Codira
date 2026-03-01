@@ -1,0 +1,45 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+{% for c in cases %}
+/*---
+desc: >-
+    Variance is how subtyping between types relates to subtyping between derived types.
+    Unions are covariant on nested functions.
+tags: [{{c.tags}}]
+---*/
+
+class A {}
+class B extends A {}
+
+type SuperFunc = (p: A, q: B|string, w: number|undefined) => A
+type SubFunc = (p: A, q: A|string) => B
+
+let superFoo: SuperFunc = (p: A, q: B|string, w: number|undefined): A => { return new A }
+let subFoo: SubFunc = (p: A, q: A|string): B => { return new B }
+
+{{c.decl}}
+
+function main() {
+    {{c.use|indent}}
+}
+{% endfor %}

@@ -1,0 +1,58 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          interface A {
+              name: string|null
+          }
+      use: |-
+          let a: A = { age: 42 } // CTE, no such field
+
+    - decl: |-
+          class B {
+              name: string|null = null
+          }
+      use: |-
+          let b: B = { name: 0 }  // CTE, type is wrong
+
+    - decl: |-
+          interface A {
+              name: string|null
+          }
+      use: |-
+          let a: A = { name: "John", name: "James" } // CTE, duplicate field
+
+    - decl: |-
+          interface A {
+              name?: string
+              age: number
+          }
+      use: |-
+          let a: A = { name: "John" } // CTE, missed field
+
+    - decl: |-
+          interface A {
+              age: number
+          }
+      use: |-
+          let a: A = {} // CTE, non-optional property must be assigned a value.
+
+    - decl: |-
+        interface A {
+            name: string | null
+            foo(): void
+        }
+      use: |-
+        let a: A = { name: 'John' } // CTE, empty method foo is not specified in literal

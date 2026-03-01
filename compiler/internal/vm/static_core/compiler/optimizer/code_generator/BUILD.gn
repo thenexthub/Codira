@@ -1,0 +1,243 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+import("//arkcompiler/runtime_core/static_core/ark_config.gni")
+if (ark_standalone_build) {
+  import("$build_root/ark.gni")
+} else {
+  import("//build/ohos.gni")
+}
+
+if (enable_codegen) {
+  config("arkencoder_config") {
+    include_dirs = [ "$ark_root/compiler/optimizer/code_generator" ]
+    cflags_cc = [ "-DPANDA_BUILD" ]
+    if (ark_static_standalone_build) {
+      ldflags = [ "-ldl" ]
+    }
+    if (target_cpu == "amd64" || target_cpu == "x64" ||
+        target_cpu == "x86_64") {
+      configs = [
+        "$ark_third_party_root/asmjit:asmjit_public_config",
+        "$ark_third_party_root/zydis:zydis_public_config",
+      ]
+    }
+  }
+
+  ohos_shared_library("libarkencoder") {
+    sources = [
+      "encode.cpp",
+      "target/asm_printer.cpp",
+      "target/target.cpp",
+    ]
+    deps = []
+    defines = []
+
+    if (ark_static_standalone_build) {
+      deps += [ sdk_libc_secshared_dep ]
+    }
+
+    external_deps = [ sdk_libc_secshared_dep ]
+
+    if (target_cpu == "x86") {
+      sources += [
+        "target/x86/callconv.cpp",
+        "target/x86/encode.cpp",
+        "target/x86/regfile.cpp",
+      ]
+      include_dirs =
+          [ "$ark_root/compiler/optimizer/code_generator/target/x86" ]
+    } else if (target_cpu == "amd64" || target_cpu == "x64" ||
+               target_cpu == "x86_64") {
+      if (!is_mingw) {
+        # Add vixl for cross-compilation
+        external_deps += [ vixl_dep ]
+
+        sources += [
+          "target/amd64/callconv.cpp",
+          "target/amd64/encode.cpp",
+          "target/amd64/regfile.cpp",
+        ]
+        include_dirs = [
+          "$ark_third_party_root/asmjit/src",
+          "$ark_third_party_root/zydis/include",
+          "$ark_third_party_root/zydis/zycore/include",
+        ]
+        deps += [
+          "$ark_third_party_root/asmjit:libasmjit",
+          "$ark_third_party_root/zydis:libZydis",
+        ]
+      }
+    } else if (target_cpu == "arm") {
+      sources += [
+        "target/aarch32/callconv.cpp",
+        "target/aarch32/encode.cpp",
+        "target/aarch32/regfile.cpp",
+      ]
+      include_dirs =
+          [ "$ark_root/compiler/optimizer/code_generator/target/aarch32" ]
+      defines += [ "USE_VIXL_ARM32" ]
+
+      external_deps += [ vixl_dep ]
+    } else if (target_cpu == "arm64") {
+      sources += [
+        "target/aarch64/callconv.cpp",
+        "target/aarch64/encode.cpp",
+        "target/aarch64/regfile.cpp",
+      ]
+      include_dirs =
+          [ "$ark_root/compiler/optimizer/code_generator/target/aarch64" ]
+      defines += [ "USE_VIXL_ARM64" ]
+
+      external_deps += [ vixl_dep ]
+    }
+
+    if (is_mac) {
+      defines += [ "VIXL_CODE_BUFFER_MALLOC" ]
+    } else {
+      defines += [ "VIXL_CODE_BUFFER_MMAP" ]
+    }
+    configs = [
+      "$ark_root:ark_config",
+      "$ark_root/libarkbase:arkbase_public_config",
+      "$ark_root/compiler:arkcompiler_public_config",
+      ":arkencoder_config",
+    ]
+
+    deps += [
+      "$ark_root/compiler:libarkcompiler_intrinsics_gen_inl_can_encode_builtin_inl",
+      "$ark_root/compiler:libarkcompiler_intrinsics_gen_inl_generate_operations_intrinsic_graph_inl",
+      "$ark_root/compiler:libarkcompiler_intrinsics_gen_inl_generate_operations_intrinsic_inst_inl",
+      "$ark_root/compiler:libarkcompiler_intrinsics_gen_inl_get_intrinsics_inl",
+      "$ark_root/compiler:libarkcompiler_intrinsics_gen_inl_get_intrinsics_names_inl",
+      "$ark_root/compiler:libarkcompiler_intrinsics_gen_inl_intrinsic_codegen_test_inl",
+      "$ark_root/compiler:libarkcompiler_intrinsics_gen_inl_intrinsics_enum_inl",
+      "$ark_root/compiler:libarkcompiler_intrinsics_gen_inl_intrinsics_ir_build_inl",
+      "$ark_root/compiler:libarkcompiler_opcodes_h_arch_info_gen_h",
+      "$ark_root/libarkbase:libarktsbase",
+      "$ark_root/compiler:arktscompiler_header_deps",
+    ]
+
+    if (is_mingw || is_win) {
+      output_extension = "dll"
+    } else {
+      output_extension = "so"
+    }
+    part_name = ark_part_name
+    subsystem_name = "$ark_subsystem_name"
+  }
+
+  ohos_static_library("libarkencoder_frontend_dependency_static") {
+    sources = [
+      "target/asm_printer.cpp",
+      "target/target.cpp",
+    ]
+    deps = []
+    defines = []
+
+    external_deps = [ sdk_libc_secshared_dep ]
+
+    if (target_cpu == "x86") {
+      sources += [
+        "target/x86/callconv.cpp",
+        "target/x86/encode.cpp",
+        "target/x86/regfile.cpp",
+      ]
+      include_dirs =
+          [ "$ark_root/compiler/optimizer/code_generator/target/x86" ]
+    } else if (target_cpu == "amd64" || target_cpu == "x64" ||
+               target_cpu == "x86_64") {
+      if (!is_mingw) {
+        external_deps += [ vixl_dep ]
+
+        sources += [
+          "target/amd64/callconv.cpp",
+          "target/amd64/encode.cpp",
+          "target/amd64/regfile.cpp",
+        ]
+        include_dirs = [
+          "$ark_third_party_root/asmjit/src",
+          "$ark_third_party_root/zydis/include",
+          "$ark_third_party_root/zydis/zycore/include",
+        ]
+        deps += [
+          "$ark_third_party_root/asmjit:libasmjit_frontend_static",
+          "$ark_third_party_root/zydis:libZydis",
+        ]
+      }
+    } else if (target_cpu == "arm") {
+      sources += [
+        "target/aarch32/callconv.cpp",
+        "target/aarch32/encode.cpp",
+        "target/aarch32/regfile.cpp",
+      ]
+      defines = [ "USE_VIXL_ARM32" ]
+      include_dirs =
+          [ "$ark_root/compiler/optimizer/code_generator/target/aarch32" ]
+      external_deps += [ vixl_dep ]
+    } else if (target_cpu == "arm64") {
+      sources += [
+        "target/aarch64/callconv.cpp",
+        "target/aarch64/encode.cpp",
+        "target/aarch64/regfile.cpp",
+      ]
+      defines = [ "USE_VIXL_ARM64" ]
+      include_dirs =
+          [ "$ark_root/compiler/optimizer/code_generator/target/aarch64" ]
+      external_deps += [ vixl_dep ]
+    }
+
+    if (is_mac) {
+      defines += [ "VIXL_CODE_BUFFER_MALLOC" ]
+    } else {
+      defines += [ "VIXL_CODE_BUFFER_MMAP" ]
+    }
+    configs = [
+      "$ark_root:ark_config",
+      "$ark_root/libarkbase:arkbase_public_config",
+      "$ark_root/compiler:arkcompiler_public_config",
+      ":arkencoder_config",
+    ]
+
+    deps += [
+      "$ark_root/compiler:libarkcompiler_intrinsics_gen_inl_can_encode_builtin_inl",
+      "$ark_root/compiler:libarkcompiler_intrinsics_gen_inl_generate_operations_intrinsic_graph_inl",
+      "$ark_root/compiler:libarkcompiler_intrinsics_gen_inl_generate_operations_intrinsic_inst_inl",
+      "$ark_root/compiler:libarkcompiler_intrinsics_gen_inl_get_intrinsics_inl",
+      "$ark_root/compiler:libarkcompiler_intrinsics_gen_inl_get_intrinsics_names_inl",
+      "$ark_root/compiler:libarkcompiler_intrinsics_gen_inl_intrinsics_enum_inl",
+      "$ark_root/compiler:libarkcompiler_intrinsics_gen_inl_intrinsics_ir_build_inl",
+      "$ark_root/compiler:libarkcompiler_opcodes_h_arch_info_gen_h",
+      "$ark_root/libarkbase:libarktsbase_frontend_static",
+      "$ark_root/compiler:arktscompiler_header_deps",
+    ]
+    part_name = ark_part_name
+    subsystem_name = ark_subsystem_name
+  }
+
+  ohos_static_library("libarkencoder_frontend_static") {
+    sources = [ "encode.cpp" ]
+    deps = [ ":libarkencoder_frontend_dependency_static" ]
+    part_name = ark_part_name
+    subsystem_name = ark_subsystem_name
+  }
+}

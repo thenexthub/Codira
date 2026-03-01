@@ -1,0 +1,41 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - { type: Object,              value: 'new Object()',     param: 'value',             result: 'object'  }
+  - { type: Byte,                value: 'new Byte(-1)',     param: 'value',             result: 'int'     }
+  - { type: Short,               value: 'new Short(-1)',    param: 'value',             result: 'int'     }
+  - { type: Int,                 value: 'new Int(-1)',      param: 'value',             result: 'int'     }
+  - { type: Long,                value: 'new Long(-1)',     param: 'value',             result: 'double'  }
+  - { type: Boolean,             value: 'false',            param: 'value',             result: 'boolean' }
+  - { type: Float,               value: 'new Float(3.14f)', param: 'value',             result: 'double'  }
+  - { type: Number,              value: 'new Double(3.14)', param: 'value',             result: 'double'  }
+  - { type: String,              value: '"abc"',            param: 'value',             result: 'string'  }
+  - { type: Color,               value: 'Color.Red',        param: 'value',             result: 'Color'   }
+  - { type: T,                   value: '[3.14, "abc"]',    param: 'value',             result: 'T'       }
+  - { type: R,                   value: '[14, false]',      param: 'value',             result: 'R'       }
+  - { type: boolean,             value: 'false',            param: '[value]',           result: 'object'  }
+  - { type: string,              value: '"abc"',            param: '[value, "xyz"]',    result: 'object'  }
+  - { type: int,                 value: '10',               param: 'value, 20',         result: 'i+i'     }
+  - { type: int,                 value: '1',                param: '"a?", value',       result: 'objects' }
+  - { type: boolean,             value: 'false',            param: 'value, Color.Blue', result: 'b+o?'    }
+  - { type: boolean,             value: 'true',             param: 'value, undefined',  result: 'b+o?'    }
+  - { type: SN,                  value: '"ABC"',            param: 'value',             result: 'string'  }
+  - { type: SN,                  value: 'null',             param: 'value',             result: 'SN'      }
+  - { type: SU,                  value: '"ABC"',            param: 'value',             result: 'string'  }
+  - { type: SU,                  value: 'undefined',        param: 'value',             result: 'SU'      }
+  - { type: SNU,                 value: '"ABC"',            param: 'value',             result: 'string'  }
+  - { type: SNU,                 value: 'null',             param: 'value',             result: 'SN'      }
+  - { type: SNU,                 value: 'undefined',        param: 'value',             result: 'SU'      }
+  - { type: FixedArray<boolean>, value: '[false]',          param: 'value',             result: 'object'  }

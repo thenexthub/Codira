@@ -1,0 +1,40 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # type inference
+  - decl: |-
+      let v: int|null = 5
+      let w = v!
+    use: |-
+      w = null
+
+  - decl: |-
+      let v: int|undefined = 5
+      let w = v!
+    use: |-
+      w = undefined
+
+  - decl: |-
+      let v: int|null|undefined = 5
+      let w = v!
+    use: |-
+      w = undefined
+
+  # assignment with type narrowing with unions
+  - decl: |-
+      let v: string|boolean|number|null|undefined = 'a'
+      let w: string|boolean|number = 1.0
+    use: |-
+      w = v

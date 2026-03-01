@@ -1,0 +1,58 @@
+From f58f7c23994ef9805523b8e7e31f47c9e1a6ee32 Mon Sep 17 00:00:00 2001
+From: Bolshov Maxim <>
+Date: Sat, 27 Dec 2025 20:23:58 +0300
+Subject: [PATCH] Update CMake minimum versions to 3.10
+
+Update CMake minimum required versions to 3.10 to suppress
+deprecation warnings when building with newer CMake:
+- Update root CMakeLists.txt from 3.5 to 3.10
+- Update googlemock/CMakeLists.txt from 3.5 to 3.10
+- Update googletest/CMakeLists.txt from 3.5 to 3.10
+---
+ CMakeLists.txt            | 2 +-
+ googlemock/CMakeLists.txt | 2 +-
+ googletest/CMakeLists.txt | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 6af4143..b500b73 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,7 +1,7 @@
+ # Note: CMake support is community-based. The maintainers do not use CMake
+ # internally.
+ 
+-cmake_minimum_required(VERSION 3.5)
++cmake_minimum_required(VERSION 3.10)
+ 
+ if (POLICY CMP0048)
+   cmake_policy(SET CMP0048 NEW)
+diff --git a/googlemock/CMakeLists.txt b/googlemock/CMakeLists.txt
+index 5c1f0da..870585e 100644
+--- a/googlemock/CMakeLists.txt
++++ b/googlemock/CMakeLists.txt
+@@ -36,7 +36,7 @@ endif()
+ # as ${gmock_SOURCE_DIR} and to the root binary directory as
+ # ${gmock_BINARY_DIR}.
+ # Language "C" is required for find_package(Threads).
+-cmake_minimum_required(VERSION 3.5)
++cmake_minimum_required(VERSION 3.10)
+ cmake_policy(SET CMP0048 NEW)
+ project(gmock VERSION ${GOOGLETEST_VERSION} LANGUAGES CXX C)
+ 
+diff --git a/googletest/CMakeLists.txt b/googletest/CMakeLists.txt
+index 95bfa44..d6a88aa 100644
+--- a/googletest/CMakeLists.txt
++++ b/googletest/CMakeLists.txt
+@@ -46,7 +46,7 @@ endif()
+ 
+ # Project version:
+ 
+-cmake_minimum_required(VERSION 3.5)
++cmake_minimum_required(VERSION 3.10)
+ cmake_policy(SET CMP0048 NEW)
+ project(gtest VERSION ${GOOGLETEST_VERSION} LANGUAGES CXX C)
+ 
+-- 
+2.51.0
+

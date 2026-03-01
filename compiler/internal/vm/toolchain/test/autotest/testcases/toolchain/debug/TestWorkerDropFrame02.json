@@ -1,0 +1,15 @@
+{
+  "description": "Config for TestWorkerDropFrame02",
+  "environment": [
+    {
+      "type": "device",
+      "label": "phone"
+    }
+  ],
+  "driver": {
+    "type": "DeviceTest",
+    "py_file": [
+      "toolchain/debug/TestWorkerDropFrame02.py"
+    ]
+  }
+}

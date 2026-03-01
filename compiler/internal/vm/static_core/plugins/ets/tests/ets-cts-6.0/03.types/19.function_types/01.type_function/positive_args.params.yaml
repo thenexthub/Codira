@@ -1,0 +1,99 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+  - type: byte
+    use: 1 as byte
+    assert: byte
+  - type: short
+    use: 1 as short
+    assert: short
+  - type: int
+    use: 1
+    assert: int
+  - type: long
+    use: 1 as long
+    assert: long
+  - type: float
+    use: 1.0f
+    assert: float
+  - type: double
+    use: 1.0
+    assert: double
+  - type: char
+    use: "c'1'"
+    assert: char
+  - type: boolean
+    use: "true"
+    assert: boolean
+  - type: Object
+    use: new Object()
+    assert: Object
+  - type: String
+    use: "'abc'"
+    assert: String
+  - type: "Any"
+    use: "1"
+    assert: "Any"
+  - type: "null"
+    use: "null"
+    assert: "null"
+  - type: "undefined"
+    use: "undefined"
+    assert: "undefined"
+  - type: "int | string"
+    use: "1"
+    assert: int
+  - type: "int | string"
+    use: "'abc'"
+    assert: string
+  - type: "FixedArray<number> | FixedArray<string>"
+    use: "['abc']"
+    assert: FixedArray<string>
+  - type: "FixedArray<number> | FixedArray<string>"
+    use: "[1]"
+    assert: FixedArray<number>
+  - type: "Array<number> | Array<string>"
+    use: "['abc']"
+    assert: Array
+  - type: "Array<number> | Array<string>"
+    use: "[1]"
+    assert: Array
+  - type: "int[]"
+    use: "[1, 0]"
+    assert: "int[]"
+  - type: "Array<int>"
+    use: "[1]"
+    assert: Array
+  - type: "() => void"
+    use: "(): void => {}"
+    assert: Function
+  - type: "() => int"
+    use: "(): int => { return 1 }"
+    assert: Function
+  - type: "(p: int) => void"
+    use: "(p: int): void => {}"
+    assert: Function
+  - type: "'abc' | 'def'"
+    use: "'abc'"
+    assert: string

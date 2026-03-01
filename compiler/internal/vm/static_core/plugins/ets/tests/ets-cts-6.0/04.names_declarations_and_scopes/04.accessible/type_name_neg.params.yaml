@@ -1,0 +1,103 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # SyntaxError Variable 'A' has already been declared.
+  - decl: |-
+      type A = String;
+      let A: int = 2;
+
+  # Use variable which is already in use
+  - decl: |-
+      let A: int = 2;
+      type A = String;
+
+  # Circular reference
+  - decl: |-
+      type A = B;
+      type B = A;
+
+  # Outside of valid declaration area
+  - decl: |-
+      class A {
+          type B = String;
+      }
+
+  # Outside of visibility area
+  - decl: |-
+      {
+          type A = String;
+      }
+      let a: A;
+
+  - decl: |-
+      function foo() {
+          type B = String;
+      }
+      let a: B = "hi there";
+
+  - decl: |-
+      function foo() {
+          let a: B = "hi there";
+      }
+      function main() {
+          type B = String;
+          foo();
+      }
+
+  - decl: |-
+      function main() {
+          try {
+              type B = String;
+          } catch (e) {
+              arktest.assertTrue(false)
+          }
+          let a: B;
+      }
+
+  - decl: |-
+      function main() {
+          for(let i: int = 0; i<1; i++) {
+              type B = String;
+          }
+          let a: B;
+      }
+
+  - decl: |-
+      function main() {
+          while(1) {
+              type B = Float;
+          }
+          let a: B;
+      }
+
+  - decl: |-
+      function main() {
+          do {
+              type B = Float;
+          } while(0)
+          let a: B;
+      }
+
+  - decl: |-
+      function main() {
+          switch (1) {
+              case 1:
+                  type B = String;
+                  break;
+              default:
+                  arktest.assertTrue(false);
+          }
+          let a: B;
+      }

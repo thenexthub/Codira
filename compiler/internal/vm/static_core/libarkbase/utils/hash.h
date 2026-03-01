@@ -1,0 +1,176 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+#ifndef LIBPANDABASE_UTILS_HASH_H
+#define LIBPANDABASE_UTILS_HASH_H
+
+#include "murmur3_hash.h"
+
+namespace ark {
+
+// Now, murmur3 hash is used by default
+template <uint32_t SEED_VALUE>
+using DefaultHash = MurmurHash32<SEED_VALUE>;
+
+// Default seed which is used in hash functions.
+// NOTE: To create different seed for your purposes,
+// one must define it here and create new alias hash class
+static constexpr uint32_t DEFAULT_SEED = 0x12345678U;
+
+// Hash class alias with the default seed inside.
+using Hash = DefaultHash<DEFAULT_SEED>;
+
+/**
+ * @brief Create 32 bits Hash from @param key via @param seed.
+ * @param key - a key which should be hashed
+ * @param len - length of the key in bytes
+ * @param seed - seed which is used to calculate hash
+ * @return 32 bits hash
+ */
+inline uint32_t GetHash32WithSeed(const uint8_t *key, size_t len, uint32_t seed)
+{
+    return Hash::GetHash32WithSeed(key, len, seed);
+}
+
+/**
+ * @brief Create 32 bits Hash from @param key.
+ * @param key - a key which should be hashed
+ * @param len - length of the key in bytes
+ * @return 32 bits hash
+ */
+inline uint32_t GetHash32(const uint8_t *key, size_t len)
+{
+    return Hash::GetHash32(key, len);
+}
+
+/**
+ * @brief Create 32 bits Hash from MUTF8 @param string.
+ * @param string - a pointer to the MUTF8 string
+ * @return 32 bits hash
+ */
+inline uint32_t GetHash32String(const uint8_t *mutf8String)
+{
+    return Hash::GetHash32String(mutf8String);
+}
+
+/**
+ * @brief Create 32 bits Hash from MUTF8 @param string.
+ * @param string - a pointer to the MUTF8 string
+ * @param seed - seed which is used to calculate hash
+ * @return 32 bits hash
+ */
+inline uint32_t GetHash32StringWithSeed(const uint8_t *mutf8String, uint32_t seed)
+{
+    return Hash::GetHash32StringWithSeed(mutf8String, seed);
+}
+
+constexpr uint32_t FNV_INITIAL_SEED = 0x811c9dc5;
+
+/// Works like FNV hash but operates over 4-byte words at a time instead of single bytes
+template <typename Item>
+uint32_t PseudoFnvHashItem(Item item, uint32_t seed = FNV_INITIAL_SEED)
+{
+    // NOLINTNEXTLINE(readability-braces-around-statements)
+    if constexpr (sizeof(Item) <= 4) {
+        constexpr uint32_t PRIME = 16777619U;
+        return (seed ^ static_cast<uint32_t>(item)) * PRIME;
+    } else if constexpr (sizeof(Item) == 8) {  // NOLINT(readability-misleading-indentation)
+        auto item1 = static_cast<uint64_t>(item);
+        uint32_t hash = PseudoFnvHashItem(static_cast<uint32_t>(item1), seed);
+        constexpr uint32_t FOUR_BYTES = 32U;
+        return PseudoFnvHashItem(static_cast<uint32_t>(item1 >> FOUR_BYTES), hash);
+    } else {
+        static_assert(sizeof(Item *) == 0, "PseudoFnvHashItem can only be called on types of size 1, 2, 4 or 8");
+    }
+}
+
+/// Works like FNV hash but operates over 4-byte words at a time instead of single bytes
+// CC-OFFNXT(G.FUD.06) perf critical
+inline uint32_t PseudoFnvHashString(const uint8_t *str, uint32_t hash = FNV_INITIAL_SEED)
+{
+    while (true) {
+        // NOLINTNEXTLINE(readability-implicit-bool-conversion, cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        if (!str[0U] || !str[1U] || !str[2U] || !str[3U]) {
+            break;
+        }
+        constexpr uint32_t BYTE = 8U;
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        uint32_t word32 = str[0];
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        word32 |= static_cast<uint32_t>(str[1]) << BYTE;
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        word32 |= static_cast<uint32_t>(str[2U]) << (BYTE * 2U);
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        word32 |= static_cast<uint32_t>(str[3U]) << (BYTE * 3U);
+        hash = PseudoFnvHashItem(word32, hash);
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        str += sizeof(uint32_t);
+    }
+    while (*str != 0) {
+        hash = PseudoFnvHashItem(*str, hash);
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        ++str;
+    }
+    return hash;
+}
+
+// NOTE(romanov,dyadov) Either rename to PseudoFnvHash or implement and call original FNV
+template <typename Container>
+uint32_t FnvHash(const Container &data, uint32_t hash = FNV_INITIAL_SEED)
+{
+    for (const auto value : data) {
+        hash = PseudoFnvHashItem(value, hash);
+    }
+    return hash;
+}
+
+/// Combine lhash and rhash
+inline size_t MergeHashes(size_t lhash, size_t rhash)
+{
+    constexpr const size_t MAGIC_CONSTANT = 0x9e3779b9;
+    size_t shl = lhash << 6U;
+    size_t shr = lhash >> 2U;
+    return lhash ^ (rhash + MAGIC_CONSTANT + shl + shr);
+}
+
+/// Combine lhash and rhash
+// this overload is only enabled when it can't conflict with the size_t one
+template <typename T = uint32_t, typename std::enable_if_t<(sizeof(size_t) != sizeof(T)), int> = 0>
+inline uint32_t MergeHashes(uint32_t lhash, uint32_t rhash)
+{
+    // note that the numbers are for 32 bits specifically, see https://github.com/HowardHinnant/hash_append/issues/7
+    constexpr const uint32_t MAGIC_CONSTANT = 0x9e3779b9;
+    uint32_t shl = lhash << 6U;
+    uint32_t shr = lhash >> 2U;
+    return lhash ^ (rhash + MAGIC_CONSTANT + shl + shr);
+}
+
+struct PairHash {
+public:
+    template <typename T, typename U>
+    std::size_t operator()(const std::pair<T, U> &x) const
+    {
+        return MergeHashes(std::hash<T>()(x.first), std::hash<U>()(x.second));
+    }
+};
+}  // namespace ark
+
+#endif  // LIBPANDABASE_UTILS_HASH_H

@@ -1,0 +1,10 @@
+# Not included in cmake
+ets-common-tests/bouncing_peas/bouncing_peas_unit_native.ets
+ets-common-tests/atomics/skipped_rendezvous_channel.ets
+ets-common-tests/atomics/skipped_wait_timeout.ets
+ets-common-tests/atomics/skipped_cyclic_barrier.ets
+ets-common-tests/atomics/base_operation_compare_exchange.ets
+
+# TODO(dkofanov): deprecated directory-globbing package import
+ets-common-tests/recursive_import/recursive_import_binds_all.ets
+ets-common-tests/package_static_block_test/package_test01.ets

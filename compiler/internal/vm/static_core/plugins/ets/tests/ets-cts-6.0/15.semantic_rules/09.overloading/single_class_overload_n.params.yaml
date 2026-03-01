@@ -1,0 +1,363 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # Constructors
+  - decl: |-
+      constructor() { res = 1;}
+      constructor(i: boolean) { res = 17;}
+      constructor(i: byte) { res = 15;}
+      constructor(i: short) { res = 2;}
+      constructor(i: int) { res = 4;}
+      constructor(i: long) { res = 6;}
+      constructor(i: float) { res = 8;}
+      constructor(i: double) { res = 10;}
+      constructor(i: char) { res = 12;}
+      constructor(i: string) { res = 14;}
+      constructor(i: int, j: int) { res = 19;}
+      constructor(i: Gen<T>) { res = 20;}
+      constructor(i: Gen2<T, S>) { res = 21;}
+      constructor(i: Number|undefined|null) { res = 22;}
+      constructor(i: number, j: Number) { res = 23;}
+    use: |-
+      new Base<String, Number>();
+      arktest.assertEQ( res, 1);
+
+      new Base<String, Number>(1 as short);
+      arktest.assertEQ( res, 2);
+
+      new Base<String, Number>(new Short());
+      arktest.assertEQ( res, 2);
+
+      new Base<String, Number>(1 as int);
+      arktest.assertEQ( res, 4);
+
+      new Base<String, Number>(new Int());
+      arktest.assertEQ( res, 4);
+
+      new Base<String, Number>(1 as long);
+      arktest.assertEQ( res, 6);
+
+      new Base<String, Number>(new Long());
+      arktest.assertEQ( res, 6);
+
+      new Base<String, Number>(1.1.toFloat());
+      arktest.assertEQ( res, 8);
+
+      new Base<String, Number>(new Float());
+      arktest.assertEQ( res, 8);
+
+      new Base<String, Number>(1.2 as double);
+      arktest.assertEQ( res, 10);
+
+      new Base<String, Number>(new Number());
+      arktest.assertEQ( res, 10);
+
+      new Base<String, Number>(c'A');
+      arktest.assertEQ( res, 12);
+
+      new Base<String, Number>(new Char());
+      arktest.assertEQ( res, 12);
+
+      new Base<String, Number>("some str");
+      arktest.assertEQ( res, 14);
+
+      new Base<String, Number>(1 as byte);
+      arktest.assertEQ( res, 15);
+
+      new Base<String, Number>(new Byte());
+      arktest.assertEQ( res, 15);
+
+      new Base<String, Number>(false);
+      arktest.assertEQ( res, 17);
+
+      new Base<String, Number>(new Boolean());
+      arktest.assertEQ( res, 17);
+
+      new Base<String, Number>(1 as int, 1 as int);
+      arktest.assertEQ( res, 19);
+
+      new Base<Number, String>(new Gen<Number>());
+      arktest.assertEQ( res, 20);
+
+      new Base<Number, String>(new Gen2<Number, String>());
+      arktest.assertEQ( res, 21);
+
+      new Base<String, Number>(undefined);
+      arktest.assertEQ( res, 22);
+
+      new Base<String, Number>(null);
+      arktest.assertEQ( res, 22);
+
+      new Base<String, Number>(1.1 as number, new Number());
+      arktest.assertEQ( res, 23);
+
+      new Base<String, Number>(new Number(), 1.1 as number);
+      arktest.assertEQ( res, 23);
+
+  - tags: negative, compile-only
+    decl: |-
+      foo() { res = 1;}
+      foo() { res = 2;}
+
+  - tags: negative, compile-only
+    decl: |-
+      foo() { res = 1;}
+      foo(): int { res = 2; return 1;}
+
+  - tags: negative, compile-only
+    decl: |-
+      foo(i: number) { res = 1;}
+      foo(j: number) { res = 2;}
+
+  - tags: negative, compile-only
+    decl: |-
+      foo(i: Number) { res = 1;}
+      foo(j: Double) { res = 2;}
+
+  - tags: negative, compile-only
+    decl: |-
+      foo(i: Number|undefined|null) { res = 1;}
+      foo(j: undefined|null|Number) { res = 2;}
+
+  # Instance methods
+  - decl: |-
+      foo() { res = 1;}
+      foo(i: boolean) { res = 17;}
+      foo(i: byte) { res = 15;}
+      foo(i: short) { res = 2;}
+      foo(i: int) { res = 4;}
+      foo(i: long) { res = 6;}
+      foo(i: float) { res = 8;}
+      foo(i: double) { res = 10;}
+      foo(i: char) { res = 12;}
+      foo(i: string) { res = 14;}
+      foo(i: int, j: int) { res = 19;}
+      foo(i: Gen<T>) { res = 20;}
+      foo(i: Gen2<T, S>) { res = 21;}
+      foo(i: Number|undefined|null) { res = 22;}
+    use: |-
+      let a = new Base<Number, String>();
+      a.foo();
+      arktest.assertEQ( res, 1);
+
+      a.foo(1 as short);
+      arktest.assertEQ( res, 2);
+
+      a.foo(new Short());
+      arktest.assertEQ( res, 2);
+
+      a.foo(1 as int);
+      arktest.assertEQ( res, 4);
+
+      a.foo(new Int());
+      arktest.assertEQ( res, 4);
+
+      a.foo(1 as long);
+      arktest.assertEQ( res, 6);
+
+      a.foo(new Long());
+      arktest.assertEQ( res, 6);
+
+      a.foo(1.1.toFloat());
+      arktest.assertEQ( res, 8);
+
+      a.foo(new Float());
+      arktest.assertEQ( res, 8);
+
+      a.foo(1.2 as double);
+      arktest.assertEQ( res, 10);
+
+      a.foo(new Number());
+      arktest.assertEQ( res, 10);
+
+      a.foo(c'A');
+      arktest.assertEQ( res, 12);
+
+      a.foo(new Char());
+      arktest.assertEQ( res, 12);
+
+      a.foo("some str");
+      arktest.assertEQ( res, 14);
+
+      a.foo(1 as byte);
+      arktest.assertEQ( res, 15);
+
+      a.foo(new Byte());
+      arktest.assertEQ( res, 15);
+
+      a.foo(false);
+      arktest.assertEQ( res, 17);
+
+      a.foo(new Boolean());
+      arktest.assertEQ( res, 17);
+
+      a.foo(1 as int, 1 as int);
+      arktest.assertEQ( res, 19);
+
+      a.foo(new Gen<Number>());
+      arktest.assertEQ( res, 20);
+
+      a.foo(new Gen2<Number, String>());
+      arktest.assertEQ( res, 21);
+
+      a.foo(undefined);
+      arktest.assertEQ( res, 22);
+
+      a.foo(null);
+      arktest.assertEQ( res, 22);
+
+  - tags: negative, compile-only
+    decl: |-
+      foo() { res = 1;}
+      foo() { res = 2;}
+
+  - tags: negative, compile-only
+    decl: |-
+      foo() { res = 1;}
+      foo(): int { res = 2; return 1;}
+
+  - tags: negative, compile-only
+    decl: |-
+      foo(): Float { res = 1;}
+      foo(): byte {
+        res = 2;
+        return 1 as byte;
+      }
+
+  - tags: negative, compile-only
+    decl: |-
+      foo(i: number) { res = 1;}
+      foo(j: number) { res = 2;}
+
+  - tags: negative, compile-only
+    decl: |-
+      foo(i: Number) { res = 1;}
+      foo(j: Double) { res = 2;}
+
+  - tags: negative, compile-only
+    decl: |-
+      foo(i: Number|undefined|null) { res = 1;}
+      foo(j: undefined|null|Number) { res = 2;}
+
+  # Static methods
+  - decl: |-
+      static foo() { res = 1;}
+      static foo(i: boolean) { res = 17;}
+      static foo(i: byte) { res = 15;}
+      static foo(i: short) { res = 2;}
+      static foo(i: int) { res = 4;}
+      static foo(i: long) { res = 6;}
+      static foo(i: float) { res = 8;}
+      static foo(i: double) { res = 10;}
+      static foo(i: char) { res = 12;}
+      static foo(i: string) { res = 14;}
+      static foo(i: int, j: int) { res = 19;}
+      static foo(i: Number|undefined|null) { res = 20;}
+    use: |-
+      Base.foo();
+      arktest.assertEQ( res, 1);
+  
+      Base.foo(1 as short);
+      arktest.assertEQ( res, 2);
+  
+      Base.foo(new Short());
+      arktest.assertEQ( res, 2);
+  
+      Base.foo(1 as int);
+      arktest.assertEQ( res, 4);
+  
+      Base.foo(new Int());
+      arktest.assertEQ( res, 4);
+  
+      Base.foo(1 as long);
+      arktest.assertEQ( res, 6);
+  
+      Base.foo(new Long());
+      arktest.assertEQ( res, 6);
+  
+      Base.foo(1.1.toFloat());
+      arktest.assertEQ( res, 8);
+  
+      Base.foo(new Float());
+      arktest.assertEQ( res, 8);
+  
+      Base.foo(1.2 as double);
+      arktest.assertEQ( res, 10);
+  
+      Base.foo(new Number());
+      arktest.assertEQ( res, 10);
+  
+      Base.foo(c'A');
+      arktest.assertEQ( res, 12);
+  
+      Base.foo(new Char());
+      arktest.assertEQ( res, 12);
+  
+      Base.foo("some str");
+      arktest.assertEQ( res, 14);
+  
+      Base.foo(1 as byte);
+      arktest.assertEQ( res, 15);
+  
+      Base.foo(new Byte());
+      arktest.assertEQ( res, 15);
+  
+      Base.foo(false);
+      arktest.assertEQ( res, 17);
+  
+      Base.foo(new Boolean());
+      arktest.assertEQ( res, 17);
+  
+      Base.foo(1 as int, 1 as int);
+      arktest.assertEQ( res, 19);
+  
+      Base.foo(undefined);
+      arktest.assertEQ( res, 20);
+  
+      Base.foo(null);
+      arktest.assertEQ( res, 20);
+
+  - tags: negative, compile-only
+    decl: |-
+      static foo() { res = 1;}
+      static foo() { res = 2;}
+
+  - tags: negative, compile-only
+    decl: |-
+      static foo() { res = 1;}
+      static foo(): int { res = 2; return 1;}
+
+  - tags: negative, compile-only
+    decl: |-
+      static foo(): Float { res = 1;}
+      static foo(): byte {
+        res = 2;
+        return 1 as byte;
+      }
+
+  - tags: negative, compile-only
+    decl: |-
+      static foo(i: number) { res = 1;}
+      static foo(j: number) { res = 2;}
+
+  - tags: negative, compile-only
+    decl: |-
+      static foo(i: Number) { res = 1;}
+      static foo(j: Double) { res = 2;}
+
+  - tags: negative, compile-only
+    decl: |-
+      static foo(i: Number|undefined|null) { res = 1;}
+      static foo(j: undefined|null|Number) { res = 2;}

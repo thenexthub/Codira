@@ -1,0 +1,116 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # classes
+  - use: |-
+      let v: A<X> = new A<X> (new Y())  // Y is not X
+    stdout: |-
+      "Semantic error ESE0046: Type 'Y' is not compatible with type 'X' at index 1"
+
+  - use: |-
+      let v: A<null|J> = new A<null|X> (new X())  // syntax error
+    stdout: |-
+      "Semantic error ESE0318: Type 'A<null|X>' cannot be assigned to type 'A<null|J>'"
+
+  - use: |-
+      let v: A<null> = new A<undefined> (null)  // syntax error
+    stdout: |-
+      "Semantic error ESE0046: Type 'null' is not compatible with type 'undefined' at index 1"
+
+  - use: |-
+      let v: A<X> = new A<X> (new X())
+    bound: ' extends Y'
+    stdout: |-
+      "Semantic error ESE0228: Type argument 'X' should be a subtype of 'Y' constraint"
+
+  - use: |-
+      let v: A<X|null> = new A<X|null> (null)
+    bound: ' extends Object'
+    stdout: |-
+      "Semantic error ESE0228: Type argument 'X|null' should be a subtype of 'Object' constraint"
+
+  # interfaces
+  - use: |-
+      let v: A<I> = new A<I> (new Y())  // Y is not I
+    stdout: |-
+      "Semantic error ESE0046: Type 'Y' is not compatible with type 'I' at index 1"
+
+  - use: |-
+      let v: A<J|null> = new A<J|null> (null)  // wrong bound
+    bound: ' extends I|null'
+    stdout: |-
+      "Semantic error ESE0228: Type argument 'J|null' should be a subtype of 'I|null' constraint"
+
+  # arrays
+  - use: |-
+      let v: A<X[]> = new A<X[]> (new Object[0])  // wrong array type
+    stdout: |-
+      "Semantic error ESE0046: Type 'Array<Object>' is not compatible with type 'Array<X>' at index 1"
+
+  - use: |-
+      let v: A<X[]> = new A<X[]> (new X[0])  // wrong bound
+    bound: ' extends Y[]'
+    stdout: |-
+      "Semantic error ESE0228: Type argument 'Array<X>' should be a subtype of 'Array<Y>' constraint"
+
+  - use: |-
+      let v: A<X[]|null> = new A<X[]|null> (new X[1][0])  // X[][] is not X[]
+    bound: ' extends X[]|null'
+    stdout: |-
+      "Semantic error ESE0046: Type 'Array<Array<X>>' is not compatible with type 'Array<X>|null' at index 1"
+
+  - use: |-
+      let v: A<X[]|null> = new A<X[]|null> (null)  // wrong bound
+    bound: ' extends Object[][]|null'
+    stdout: |-
+      "Semantic error ESE0228: Type argument 'Array<X>|null' should be a subtype of 'Array<Array<Object>>|null' constraint"
+
+  # aliases
+  - use: |-
+      let v: A<B> = new A<B> (new Color[0])  // X is not Color
+    decl: type B = X[]
+    stdout: |-
+      "Semantic error ESE0046: Type 'Array<Color>' is not compatible with type 'Array<X>' at index 1"
+
+  - use: |-
+      let v: A<B> = new A<B> (new X[1])
+    decl: type B = null|X[][]
+    stdout: |-
+      "Semantic error ESE0046: Type 'Array<X>' is not compatible with type 'null|Array<Array<X>>' at index 1"
+
+  - use: |-
+      let v: A<B> = new A<B> (new X[0])  // wrong bound
+    bound: ' extends Y[]'
+    decl: type B = X[]
+    stdout: |-
+      "Semantic error ESE0228: Type argument 'Array<X>' should be a subtype of 'Array<Y>' constraint"
+
+  - use: |-
+      let v: A<B|null> = new A<B|null> (new X[0])  // out of bound
+    bound: ' extends X[]'
+    decl: type B = X[]
+    stdout: |-
+      "Semantic error ESE0228: Type argument 'Array<X>|null' should be a subtype of 'Array<X>' constraint"
+
+  # not a reference type
+  - use: |-
+      let v: A<Color> = new A<Color> (Color)
+    stdout: |-
+      "Semantic error ESE0122: Class name can't be the argument of function or method."
+
+  - use: |-
+      let v: A<int> = new A<int> (1.0)
+    stdout: |-
+      "Semantic error ESE0046: Type 'Double' is not compatible with type 'Int' at index 1"

@@ -1,0 +1,37 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+cases:
+  - { type: byte, value: 10, sign: '<<',  expected: 80 }
+  - { type: byte, value: 10, sign: '>>',  expected: 1  }
+  - { type: byte, value: 10, sign: '>>>', expected: 1  }
+
+  - { type: short, value: 20, sign: '<<',  expected: 160  }
+  - { type: short, value: 20, sign: '>>',  expected: 2    }
+  - { type: short, value: 20, sign: '>>>', expected: 2    }
+
+  - { type: int, value: 38, sign: '<<',  expected: 304  }
+  - { type: int, value: 38, sign: '>>',  expected: 4    }
+  - { type: int, value: 38, sign: '>>>', expected: 4    }
+
+  - { type: long, value: 46, sign: '<<',  expected: 368 }
+  - { type: long, value: 46, sign: '>>',  expected: 5   }
+  - { type: long, value: 46, sign: '>>>', expected: 5   }
+
+  - { type: float, value: 53.2f, sign: '<<',  expected: 424 }
+  - { type: float, value: 53.2f, sign: '>>',  expected: 6   }
+  - { type: float, value: 53.2f, sign: '>>>', expected: 6   }
+
+  - { type: number, value: 61.9, sign: '<<',  expected: 488 }
+  - { type: number, value: 61.9, sign: '>>',  expected: 7   }
+  - { type: number, value: 61.9, sign: '>>>', expected: 7   }

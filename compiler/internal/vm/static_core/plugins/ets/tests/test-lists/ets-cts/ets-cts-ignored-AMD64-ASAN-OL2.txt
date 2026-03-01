@@ -1,0 +1,16 @@
+#30736
+15.semantic_rules/07.type_inference/01.type_inference_for_numeric_literals/integer_74.ets
+#30738
+15.semantic_rules/07.type_inference/01.type_inference_for_numeric_literals/integer_75.ets
+#30740
+15.semantic_rules/07.type_inference/01.type_inference_for_numeric_literals/integer_78.ets
+#30742
+15.semantic_rules/07.type_inference/01.type_inference_for_numeric_literals/integer_79.ets
+#31698
+15.semantic_rules/07.type_inference/01.type_inference_for_numeric_literals/integer_154.ets
+#30730
+15.semantic_rules/07.type_inference/01.type_inference_for_numeric_literals/integer_155.ets
+#31679
+15.semantic_rules/07.type_inference/01.type_inference_for_numeric_literals/integer_158.ets
+#30734
+15.semantic_rules/07.type_inference/01.type_inference_for_numeric_literals/integer_159.ets

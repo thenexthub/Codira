@@ -1,0 +1,43 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+category: Global
+sub:
+  - vars:
+      radix_values: [2, 8, 10, 16, -1.0, 0.0, 1.0, "NaN", 60.0, 36.0, 37.0]
+      test_values_number: ["NaN", "-Infinity", "Infinity", "1.1", "123.456", "0o11"]
+      test_values_string: ["'NaN'", "'-Infinity'", "'Infinity'", "'1.1'", "'123.456'", "'0o11'", "'false'", "'true'", "'null'", "'undefined'", "'+0'", "'-0'", "'+0.0'", "'-0.0'", "'+1'", "'-1'", "'0xff'", "'ff'", "'0xff.ff'", "'777'", "'11'", "'99'", "'077'", "'099'", "'-099'", "'-0x88'"]
+    sub:
+      - method: isFinite
+        params:
+          - paramOf(*test_values_number)
+      - method: parseFloat
+        params:
+          - paramOf(*test_values_string)
+      - method: parseInt
+        params:
+          - paramOf(*test_values_string)
+          - paramOf(*radix_values)
+        mandatory: 1
+      - method: isNaN
+        params:
+          - paramOf(*test_values_number)

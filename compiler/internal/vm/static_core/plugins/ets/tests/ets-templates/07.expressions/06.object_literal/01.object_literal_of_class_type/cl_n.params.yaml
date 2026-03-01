@@ -1,0 +1,103 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          class A {
+              constructor(p: Object) {}
+          }
+      use: |-
+          let a: A = {} // CTE, no parameterless constructor
+
+    - decl: |-
+          class A {
+              constructor(p: Object) {
+                  this.fld = p
+              }
+              fld: Object|null
+          }
+      use: |-
+          let a: A = { fld: new Object() } // CTE, no parameterless constructor
+
+    - decl: |-
+          class A {
+              constructor(p: Object) {}
+              private constructor() {}
+          }
+      use: |-
+          let a: A = {} // CTE, parameterless constructor is not accessible
+
+    - decl: |-
+          class A {
+              name: string|null = null
+          }
+      use: |-
+          let a: A = { age: 42 } // CTE, no such field
+
+    - decl: |-
+          class A {
+              private name: string|null = null
+          }
+      use: |-
+          let a: A = { name: "John" } // CTE, field is not accessible
+
+    - decl: |-
+          class B {
+              name: string|null = null
+          }
+      use: |-
+          let b: B = { name: 0 }  // CTE, type is wrong
+
+    - decl: |-
+          class B {
+              public static name: string|null = null
+          }
+      use: |-
+          let b: B = { name: "John" }  // CTE, not a member field
+
+    - decl: |-
+          class A {
+              name: string|null;
+              age: number = 0
+          }
+      use: |-
+          let a: A = { name: "John", age: 42, name: "James" } // CTE, duplicate field
+
+    - decl: |-
+          class A {
+              name: string|null;
+              age: number = 0
+          }
+      use: |-
+          let a = { name: "John", age: 42 } // CTE, type cannot be inferred
+
+    - decl: |-
+        interface IName {
+          name: string
+        }
+        interface IAge {
+          age: number
+        }
+        class Person implements IName, IAge {
+          private _name: string = ''
+          private _age: number = 0.0
+        
+          get name(): string { return this._name }
+          get age(): number { return this._age }
+          set name(value: string) { this._name = value }
+          set age(value: number) { this._age = value }
+        }
+      use: |-
+        let f1: Person = { _name: 'Alice', _age: 17 }
+        

@@ -1,0 +1,323 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+---
+cases:
+  # literal - only either int or long
+  - { use: "16", expected_type: int }
+  - { use: "127", expected_type: int }
+  - { use: "128", expected_type: int }
+  - { use: "32767", expected_type: int }
+  - { use: "32768", expected_type: int }
+  - { use: "2147483647", expected_type: int }
+  - { use: "2147483648", expected_type: long }
+  - { use: "0x7FFF_FFFF_FFFF_FFFF", expected_type: long }
+  # literal minus
+  - { use: "-16", expected_type: int }
+  - { use: "-128", expected_type: int }
+  - { use: "-129", expected_type: int }
+  - { use: "-32768", expected_type: int }
+  - { use: "-32769", expected_type: int }
+  - { use: "-2147483648", expected_type: int }
+  - { use: "-2147483649", expected_type: long }
+  - { use: "-0x8000_0000_0000_0000", expected_type: long }
+  # literal bitwise complement
+  - { use: "~16", expected_type: int }
+  - { use: "~127", expected_type: int }
+  - { use: "~128", expected_type: int }
+  - { use: "~32768", expected_type: int }
+  - { use: "~32769", expected_type: int }
+  - { use: "~2147483647", expected_type: int }
+  - { use: "~2147483648", expected_type: long }
+  - { use: "~0x7FFF_FFFF_FFFF_FFFF", expected_type: long }
+  # literal minus bitwise complement
+  - { use: "~-16", expected_type: int }
+  - { use: "~-127", expected_type: int }
+  - { use: "~-128", expected_type: int }
+  - { use: "~-32767", expected_type: int }
+  - { use: "~-32768", expected_type: int }
+  - { use: "~-2147483648", expected_type: int }
+  - { use: "~-2147483649", expected_type: long }
+  - { use: "~-0x7FFF_FFFF_FFFF_FFFF", expected_type: long }
+  # literal bitwise complement minus
+  - { use: "-~16", expected_type: int }
+  - { use: "-~126", expected_type: int }
+  - { use: "-~127", expected_type: int }
+  - { use: "-~32766", expected_type: int }
+  - { use: "-~32766", expected_type: int }
+  - { use: "-~2147483647", expected_type: int }
+  - { use: "-~2147483648", expected_type: long }
+  - { use: "-~0x7FFF_FFFF_FFFF_FFFF", expected_type: long }
+  # explicit type of variable, hex is only int or long
+  # literal
+  - { use: "16", use_type: ": byte", expected_type: byte }
+  - { use: "127", use_type: ": byte", expected_type: byte }
+  - { use: "128", use_type: ": short", expected_type: short }
+  - { use: "32767", use_type: ": short", expected_type: short }
+  - { use: "32768", use_type: ": int", expected_type: int }
+  - { use: "2147483647", use_type: ": int", expected_type: int }
+  - { use: "2147483648", use_type: ": long", expected_type: long }
+  - { use: "9223372036854775807", use_type: ": long", expected_type: long }
+  # literal minus
+  - { use: "-16", use_type: ": byte", expected_type: byte }
+  - { use: "-128", use_type: ": byte", expected_type: byte }
+  - { use: "-129", use_type: ": short", expected_type: short }
+  - { use: "-32768", use_type: ": short", expected_type: short }
+  - { use: "-32769", use_type: ": int", expected_type: int }
+  - { use: "-0x8000_0000", use_type: ": int", expected_type: int }
+  - { use: "-0x8000_0001", use_type: ": long", expected_type: long }
+  - { use: "-0x8000_0000_0000_0000", use_type: ": long", expected_type: long }
+  # literal bitwise complement
+  - { use: "~16", use_type: ": byte", expected_type: byte }
+  - { use: "~127", use_type: ": byte", expected_type: byte }
+  - { use: "~128", use_type: ": short", expected_type: short }
+  - { use: "~32767", use_type: ": short", expected_type: short }
+  - { use: "~32768", use_type: ": int", expected_type: int }
+  - { use: "~2147483647", use_type: ": int", expected_type: int }
+  - { use: "~2147483648", use_type: ": long", expected_type: long }
+  - { use: "~9223372036854775807", use_type: ": long", expected_type: long }
+  # literal minus bitwise complement
+  - { use: "~-16", use_type: ": byte", expected_type: byte }
+  - { use: "~-128", use_type: ": byte", expected_type: byte }
+  - { use: "~-129", use_type: ": short", expected_type: short }
+  - { use: "~-32768", use_type: ": short", expected_type: short }
+  - { use: "~-32769", use_type: ": int", expected_type: int }
+  - { use: "~-2147483648", use_type: ": int", expected_type: int }
+  - { use: "~-2147483649", use_type: ": long", expected_type: long }
+  - { use: "~-9223372036854775807", use_type: ": long", expected_type: long }
+  # literal bitwise complement minus
+  - { use: "-~16", use_type: ": byte", expected_type: byte }
+  - { use: "-~126", use_type: ": byte", expected_type: byte }
+  - { use: "-~127", use_type: ": short", expected_type: short }
+  - { use: "-~32766", use_type: ": short", expected_type: short }
+  - { use: "-~32767", use_type: ": int", expected_type: int }
+  - { use: "-~2147483647", use_type: ": int", expected_type: int }
+  - { use: "-~2147483648", use_type: ": long", expected_type: long }
+  - { use: "-~9223372036854775807", use_type: ": long", expected_type: long }
+  # bitwise or
+  - { use: "14|1", use_type: ": byte", expected_type: byte }
+  - { use: "126|1", use_type: ": byte", expected_type: byte }
+  - { use: "126|2", use_type: ": short", expected_type: short }
+  - { use: "32766|1", use_type: ": short", expected_type: short }
+  - { use: "32766|2", use_type: ": int", expected_type: int }
+  - { use: "2147483646|1", use_type: ": int", expected_type: int }
+  - { use: "2147483646|2", use_type: ": long", expected_type: long }
+  - { use: "9223372036854775806|1", use_type: ": long", expected_type: long }
+  - { use: "-16|1", use_type: ": byte", expected_type: byte }
+  - { use: "-126|1", use_type: ": byte", expected_type: byte }
+  - { use: "-129|1", use_type: ": short", expected_type: short }
+  - { use: "-32766|2", use_type: ": short", expected_type: short }
+  - { use: "-32769|1", use_type: ": int", expected_type: int }
+  - { use: "-0x7FFF_FFFF|2", use_type: ": int", expected_type: int }
+  - { use: "-0x8000_0000|-1", use_type: ": long", expected_type: long }
+  - { use: "-0x7FFF_FFFF_FFFF_FFFF|2", use_type: ": long", expected_type: long }
+  # bitwise and
+  - { use: "16&1", use_type: ": byte", expected_type: byte }
+  - { use: "127&1", use_type: ": byte", expected_type: byte }
+  - { use: "128&1", use_type: ": short", expected_type: short }
+  - { use: "32767&1", use_type: ": short", expected_type: short }
+  - { use: "32768&1", use_type: ": int", expected_type: int }
+  - { use: "2147483647&1", use_type: ": int", expected_type: int }
+  - { use: "2147483648&1", use_type: ": long", expected_type: long }
+  - { use: "9223372036854775807&1", use_type: ": long", expected_type: long }
+  - { use: "-16&1", use_type: ": byte", expected_type: byte }
+  - { use: "-128&1", use_type: ": byte", expected_type: byte }
+  - { use: "-129&1", use_type: ": short", expected_type: short }
+  - { use: "-32768&1", use_type: ": short", expected_type: short }
+  - { use: "-32769&1", use_type: ": int", expected_type: int }
+  - { use: "-0x8000_0000&1", use_type: ": int", expected_type: int }
+  - { use: "-0x8000_0001&1", use_type: ": long", expected_type: long }
+  - { use: "-0x8000_0000_0000_0000&1", use_type: ": long", expected_type: long }
+  # bitwise xor
+  - { use: "16^1", use_type: ": byte", expected_type: byte }
+  - { use: "126^1", use_type: ": byte", expected_type: byte }
+  - { use: "129^1", use_type: ": short", expected_type: short }
+  - { use: "32766^1", use_type: ": short", expected_type: short }
+  - { use: "32769^1", use_type: ": int", expected_type: int }
+  - { use: "2147483646^1", use_type: ": int", expected_type: int }
+  - { use: "2147483649^1", use_type: ": long", expected_type: long }
+  - { use: "9223372036854775806^1", use_type: ": long", expected_type: long }
+  - { use: "-16^1", use_type: ": byte", expected_type: byte }
+  - { use: "-127^1", use_type: ": byte", expected_type: byte }
+  - { use: "-130^1", use_type: ": short", expected_type: short }
+  - { use: "-32767^1", use_type: ": short", expected_type: short }
+  - { use: "-32770^1", use_type: ": int", expected_type: int }
+  - { use: "-0x7FFF_FFFF^1", use_type: ": int", expected_type: int }
+  - { use: "-0x8000_0000^1", use_type: ": long", expected_type: long }
+  - { use: "-0x7FFF_FFFF_FFFF_FFFF^1", use_type: ": long", expected_type: long }
+  # lshift
+  - { use: "8 << 1", use_type: ": byte", expected_type: byte }
+  - { use: "63 << 1", use_type: ": byte", expected_type: byte }
+  - { use: "64 << 1", use_type: ": short", expected_type: short }
+  - { use: "16383 << 1", use_type: ": short", expected_type: short }
+  - { use: "16384 << 1", use_type: ": int", expected_type: int }
+  - { use: "1073741823 << 1", use_type: ": int", expected_type: int }
+  - { use: "1073741824 << 1", use_type: ": long", expected_type: long }
+  - { use: "9223372036854775807 << 1", use_type: ": long", expected_type: long }
+  - { use: "-8 << 1", use_type: ": byte", expected_type: byte }
+  - { use: "-64 << 1", use_type: ": byte", expected_type: byte }
+  - { use: "-65 << 1", use_type: ": short", expected_type: short }
+  - { use: "-16384 << 1", use_type: ": short", expected_type: short }
+  - { use: "-16385 << 1", use_type: ": int", expected_type: int }
+  - { use: "-0x4000_0000 << 1", use_type: ": int", expected_type: int }
+  - { use: "-0x4000_0001 << 1", use_type: ": long", expected_type: long }
+  - { use: "-0x4000_0000_0000_0000 << 1", use_type: ": long", expected_type: long }
+  # rshift
+  - { use: "32 >> 1", use_type: ": byte", expected_type: byte }
+  - { use: "255 >> 1", use_type: ": byte", expected_type: byte }
+  - { use: "256 >> 1", use_type: ": short", expected_type: short }
+  - { use: "65535 >> 1", use_type: ": short", expected_type: short }
+  - { use: "65536 >> 1", use_type: ": int", expected_type: int }
+  - { use: "4294967295 >> 1", use_type: ": int", expected_type: int }
+  - { use: "4294967296 >> 1", use_type: ": long", expected_type: long }
+  - { use: "8223372036854775808 >> 1", use_type: ": long", expected_type: long }
+  - { use: "-16 >> 1", use_type: ": byte", expected_type: byte }
+  - { use: "-256 >> 1", use_type: ": byte", expected_type: byte }
+  - { use: "-257 >> 1", use_type: ": short", expected_type: short }
+  - { use: "-65536 >> 1", use_type: ": short", expected_type: short }
+  - { use: "-65537 >> 1", use_type: ": int", expected_type: int }
+  - { use: "-0x1_0000_0000 >> 1", use_type: ": int", expected_type: int }
+  - { use: "-0x1_0000_0010 >> 1", use_type: ": long", expected_type: long }
+  - { use: "-8223372036854775808 >> 1", use_type: ": long", expected_type: long }
+  # unsigned rshift
+  - { use: "32 >>> 1", use_type: ": byte", expected_type: byte }
+  - { use: "255 >>> 1", use_type: ": byte", expected_type: byte }
+  - { use: "256 >>> 1", use_type: ": short", expected_type: short }
+  - { use: "65535 >>> 1", use_type: ": short", expected_type: short }
+  - { use: "65536 >>> 1", use_type: ": int", expected_type: int }
+  - { use: "4294967295 >>> 1", use_type: ": int", expected_type: int }
+  - { use: "4294967296 >>> 1", use_type: ": long", expected_type: long }
+  - { use: "9223372036854775807 >>> 1", use_type: ": long", expected_type: long }
+  - { use: "-16 >>> 25", use_type: ": byte", expected_type: byte }
+  - { use: "-256 >>> 25", use_type: ": byte", expected_type: byte }
+  - { use: "-256 >>> 24", use_type: ": short", expected_type: short }
+  - { use: "-65536 >>> 17", use_type: ": short", expected_type: short }
+  - { use: "-65536 >>> 16", use_type: ": int", expected_type: int }
+  - { use: "-0x1_0000_0000 >>> 33", use_type: ": int", expected_type: int }
+  - { use: "-0x1_0000_0000 >>> 32", use_type: ": long", expected_type: long }
+  - { use: "-9223372036854775807 >>> 1", use_type: ": long", expected_type: long }
+  # add
+  - { use: "15 + 1", use_type: ": byte", expected_type: byte }
+  - { use: "126 + 1", use_type: ": byte", expected_type: byte }
+  - { use: "127 + 1", use_type: ": short", expected_type: short }
+  - { use: "32766 + 1", use_type: ": short", expected_type: short }
+  - { use: "32767 + 1", use_type: ": int", expected_type: int }
+  - { use: "2147483646 + 1", use_type: ": int", expected_type: int }
+  - { use: "2147483647 + (1).toLong()", use_type: ": long", expected_type: long }
+  - { use: "9223372036854775806 + 1", use_type: ": long", expected_type: long }
+  - { use: "-17 + 1", use_type: ": byte", expected_type: byte }
+  - { use: "-129 + 1", use_type: ": byte", expected_type: byte }
+  - { use: "-130 + 1", use_type: ": short", expected_type: short }
+  - { use: "-32769 + 1", use_type: ": short", expected_type: short }
+  - { use: "-32770 + 1", use_type: ": int", expected_type: int }
+  - { use: "-0x8000_0000 + 1", use_type: ": int", expected_type: int }
+  - { use: "-0x8000_0002 + 1", use_type: ": long", expected_type: long }
+  # subtract
+  - { use: "17 - 1", use_type: ": byte", expected_type: byte }
+  - { use: "128 - 1", use_type: ": byte", expected_type: byte }
+  - { use: "129 - 1", use_type: ": short", expected_type: short }
+  - { use: "32768 - 1", use_type: ": short", expected_type: short }
+  - { use: "32769 - 1", use_type: ": int", expected_type: int }
+  - { use: "2147483648 - 1", use_type: ": int", expected_type: int }
+  - { use: "2147483649 - 1", use_type: ": long", expected_type: long }
+  - { use: "9223372036854775807 - 1", use_type: ": long", expected_type: long }
+  - { use: "-15 - 1", use_type: ": byte", expected_type: byte }
+  - { use: "-127 - 1", use_type: ": byte", expected_type: byte }
+  - { use: "-128 - 1", use_type: ": short", expected_type: short }
+  - { use: "-32767 - 1", use_type: ": short", expected_type: short }
+  - { use: "-32768 - 1", use_type: ": int", expected_type: int }
+  - { use: "-0x7FFF_FFFF - 1", use_type: ": int", expected_type: int }
+  - { use: "-0x8000_0000 - (1).toLong()", use_type: ": long", expected_type: long }
+  - { use: "-0x7FFF_FFFF_FFFF_FFFF - 1", use_type: ": long", expected_type: long }
+  # multiply
+  - { use: "8 * 2", use_type: ": byte", expected_type: byte }
+  - { use: "63 * 2", use_type: ": byte", expected_type: byte }
+  - { use: "64 * 2", use_type: ": short", expected_type: short }
+  - { use: "16383 * 2", use_type: ": short", expected_type: short }
+  - { use: "16384 * 2", use_type: ": int", expected_type: int }
+  - { use: "1073741823 * 2", use_type: ": int", expected_type: int }
+  - { use: "1073741824 * (2).toLong()", use_type: ": long | int", expected_type: long }
+  - { use: "9223372036854775807 * (2).toLong()", use_type: ": long", expected_type: long }
+  - { use: "-8 * 2", use_type: ": byte", expected_type: byte }
+  - { use: "-64 * 2", use_type: ": byte", expected_type: byte }
+  - { use: "-65 * 2", use_type: ": short", expected_type: short }
+  - { use: "-16384 * 2", use_type: ": short", expected_type: short }
+  - { use: "-16385 * 2", use_type: ": int", expected_type: int }
+  - { use: "-0x4000_0000 * 2", use_type: ": int", expected_type: int }
+  - { use: "-0x4000_0001 * (2).toLong()", use_type: ": long", expected_type: long }
+  - { use: "-0x4000_0000_0000_0000 * (2).toLong()", use_type: ": long", expected_type: long }
+  # divide
+  - { use: "32 / 2", use_type: ": byte", expected_type: byte }
+  - { use: "255 / 2", use_type: ": byte", expected_type: byte }
+  - { use: "256 / 2", use_type: ": short", expected_type: short }
+  - { use: "65535 / 2", use_type: ": short", expected_type: short }
+  - { use: "65536 / 2", use_type: ": int", expected_type: int }
+  - { use: "4294967295 / 2", use_type: ": int", expected_type: int }
+  - { use: "4294967296 / 2", use_type: ": long", expected_type: long }
+  - { use: "8223372036854775808 / 2", use_type: ": long", expected_type: long }
+  - { use: "-16 / 2", use_type: ": byte", expected_type: byte }
+  - { use: "-256 / 2", use_type: ": byte", expected_type: byte }
+  - { use: "-257 / 2", use_type: ": short", expected_type: short }
+  - { use: "-65536 / 2", use_type: ": short", expected_type: short }
+  - { use: "-65537 / 2", use_type: ": int", expected_type: int }
+  - { use: "-0x1_0000_0000 / 2", use_type: ": int", expected_type: int }
+  - { use: "-0x1_0000_0010 / 2", use_type: ": long", expected_type: long }
+  - { use: "-8223372036854775808 / 2", use_type: ": long", expected_type: long }
+  # remainder
+  - { use: "16 % 17", use_type: ": byte", expected_type: byte }
+  - { use: "127 % 128", use_type: ": byte", expected_type: byte }
+  - { use: "128 % 129", use_type: ": short", expected_type: short }
+  - { use: "32767 % 32768", use_type: ": short", expected_type: short }
+  - { use: "32768 % 32769", use_type: ": int", expected_type: int }
+  - { use: "2147483647 % 2147483648", use_type: ": int", expected_type: int }
+  - { use: "2147483648 % 2147483649", use_type: ": long", expected_type: long }
+  - { use: "9223372036854775806 % 9223372036854775807", use_type: ": long", expected_type: long }
+  - { use: "-16 % 17", use_type: ": byte", expected_type: byte }
+  - { use: "-128 % 129", use_type: ": byte", expected_type: byte }
+  - { use: "-129 % 130", use_type: ": short", expected_type: short }
+  - { use: "-32768 % 32769", use_type: ": short", expected_type: short }
+  - { use: "-32769 % 32740", use_type: ": int", expected_type: int }
+  - { use: "-0x7000_0000 % 0x7000_0001", use_type: ": int", expected_type: int }
+  - { use: "-0x8000_0001 % 0x8000_0002", use_type: ": long", expected_type: long }
+  - { use: "-0x7000_0000_0000_0000 % 0x7000_0000_0000_0001", use_type: ": long", expected_type: long }
+  # ternary
+  - { use: "condition_true ? 16 : 2147483647", use_type: ": byte", expected_type: byte }
+  - { use: "condition_true ? 127 : 2147483647", use_type: ": byte", expected_type: byte }
+  - { use: "condition_true ? 128 : 2147483647", use_type: ": short", expected_type: short }
+  - { use: "condition_true ? 32767 : 2147483647", use_type: ": short", expected_type: short }
+  - { use: "condition_true ? 32768 : 2147483647", use_type: ": int", expected_type: int }
+  - { use: "condition_true ? 2147483648 : 32768", use_type: ": long", expected_type: long }
+  - { use: "condition_true ? 9223372036854775807 : 2147483647", use_type: ": long", expected_type: long }
+  - { use: "condition_true ? -16 : 2147483647", use_type: ": byte", expected_type: byte }
+  - { use: "condition_true ? -128 : 2147483647", use_type: ": byte", expected_type: byte }
+  - { use: "condition_true ? -129 : 2147483647", use_type: ": short", expected_type: short }
+  - { use: "condition_true ? -32768 : 2147483647", use_type: ": short", expected_type: short }
+  - { use: "condition_true ? -32769 : 2147483647", use_type: ": int", expected_type: int }
+  - { use: "condition_true ? -2147483648 : 9223372036854775807", use_type: ": long", expected_type: long }
+  # union type valid narrowing
+  - { use: "256", use_type: ": byte | int", expected_type: int }
+  - { use: "32768", use_type: ": short | int", expected_type: int }
+  - { use: "2147483648", use_type: ": int | long", expected_type: long }
+
+# whether to use const to initialise
+const_to_initialise:
+  - "true"
+  - "false"

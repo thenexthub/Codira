@@ -1,0 +1,138 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+declarations:
+  # Ambient declarations cannot include executable code. As a consequence, they have no initializers.
+  #0
+  - decl: |-
+      declare let x = 5: int;
+    stdout: |-
+      "Syntax error ESY0227: Unexpected token 'int'."
+  #1
+  - decl: |-
+      declare const PI = 3.14: double;
+    stdout: |-
+      "Syntax error ESY0227: Unexpected token 'double'."
+  #2
+  - decl: |-
+      declare class A {
+          s: string = "should fail"
+      }
+    stdout: |-
+      "Semantic error ESE0125: Initializers are not allowed in ambient contexts."
+
+  # Ambient functions, methods, and constructors have no body.
+  #3
+  - decl: |-
+      declare function fun(x: int): void {}
+    stdout: |-
+      "Semantic error ESE0083: Native, Abstract and Declare methods cannot have body."
+  #4
+  - decl: |-
+      declare class A {
+          constructor() {}
+      }
+    stdout: |-
+      "Semantic error ESE0083: Native, Abstract and Declare methods cannot have body."
+  #5
+  - decl: |-
+      declare class A {
+          foo(): int { return 0 }
+      }
+    stdout: |-
+      "Semantic error ESE0083: Native, Abstract and Declare methods cannot have body."
+  #6
+  - decl: |-
+      declare class A {
+          get foo(): int { return 42 }
+      }
+    stdout: |-
+      "Semantic error ESE0083: Native, Abstract and Declare methods cannot have body."
+
+  # Ambient functions cannot have parameters
+  #7
+  - decl: |-
+      declare function foo(int param = 1)
+    stdout: |-
+      "Syntax error ESY0194: Parameter declaration should have an explicit type annotation."
+
+  # A compile-time error occurs if an explicit return type is not specified for an ambient function declaration
+  #8
+  - decl: |-
+      declare function foo()
+    stdout: |-
+      "Semantic error ESE0018: Native and Declare methods should have explicit return type."
+
+  # The modifier ‘async’ cannot be used in an ambient context
+  #9
+  - decl: |-
+      declare async function foo() {}
+    stdout: |-
+      "Semantic error ESE0083: Native, Abstract and Declare methods cannot have body."
+
+  # A compile-time error occurs if the modifier ‘declare’ is used in a context that is already ambient
+  #10
+  - decl: |-
+      declare namespace Ambient {
+          declare namespace NestedAmbient {
+          }
+      }
+    stdout: |-
+      "Syntax error ESY0104: A 'declare' modifier cannot be used in an already ambient context."
+
+  # Some illegal code, should fail
+  #11
+  - decl: |-
+      declare declare let x: int
+    stdout: |-
+      "Syntax error ESY0227: Unexpected token 'declare'."
+  #12  
+  - decl: |-
+      function foo() {
+          declare const C: char
+      }
+    stdout: |-
+      "Semantic error ESE0143: Unresolved reference declare"
+  #13
+  - decl: |-
+      class A {
+          declare let y: int
+      }
+    stdout: |-
+      "Syntax error ESY0227: Unexpected token 'let'."
+  #14
+  - decl: |-
+      declare {}
+    stdout: |-
+      "Semantic error ESE0143: Unresolved reference declare"
+  #15
+  - decl: |-
+      declare declare
+    stdout: |-
+      "Syntax error ESY0227: Unexpected token 'declare'."
+  #16
+  - decl: |-
+      declare const HelloWithType: String = "Hello"
+    stdout: |-
+      "Semantic error ESE0153: Initializers are not allowed in ambient contexts: HelloWithType"
+  #17
+  - decl: |-
+      declare const ConstWithType: int = 42
+    stdout: |-
+      "Semantic error ESE0153: Initializers are not allowed in ambient contexts: ConstWithType"
+  #18
+  - decl: |-
+      class A {}
+      declare const a = new A;
+    stdout: |-
+      "Semantic error ESE0175: A 'const' initializer in an ambient context must be a string or numeric literal: a"

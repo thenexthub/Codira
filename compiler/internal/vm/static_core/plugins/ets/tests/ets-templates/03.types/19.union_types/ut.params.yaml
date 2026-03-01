@@ -1,0 +1,580 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # nullable union type arrays
+    - decl: |-
+          type UT = number | undefined | string
+      use: |-
+          let u: UT[] = new UT[2]
+          arktest.assertTrue(u[0] === undefined && u[1] === undefined)
+          u[1] = 'abc'
+          arktest.assertTrue(u[0] === undefined && u[1] == 'abc')
+          u[1] = 42.0
+          arktest.assertTrue(u[0] === undefined && u[1] == 42.0)
+
+    # literals
+    - decl: |-
+          type UT = 'A' | 'B' | 'C' | 'D' | 'E' | 'F'
+      use: |-
+          let v: UT = 'A'
+          arktest.assertEQ(v + '', 'A')
+          v = "F"
+          arktest.assertEQ(v + "", 'F')
+
+    - decl: |-
+          type UT = undefined | 'A' | 'B' | 'C' | 'D' | 'E' | 'F'
+      use: |-
+          let v: UT = 'A'
+          arktest.assertEQ(v, 'A')
+          v = 'F'
+          arktest.assertEQ(v, 'F')
+          v = undefined
+          arktest.assertTrue(v === undefined)
+
+          let va: UT[] = new UT[2]
+          arktest.assertTrue(va[0] === undefined && va[1] === undefined)
+          va[1] = 'F'
+          arktest.assertTrue(va[0] === undefined && va[1] === 'F')
+
+    - decl: |-
+          type UT = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | undefined
+      use: |-
+          let v: UT = 'A'
+          arktest.assertEQ(v, 'A')
+          v = undefined
+          arktest.assertTrue(v === undefined)
+
+          let va: UT[] = new UT[2]
+          arktest.assertTrue(va[0] === undefined && va[1] === undefined)
+          va[1] = 'F'
+          arktest.assertTrue(va[0] === undefined && va[1] === 'F')
+
+    - decl: |-
+          type LT = 'A' | 'B' | 'C' | never | null | 'F'
+          type UT = null | LT | 'D' | 'E' | 'F' | undefined
+      use: |-
+          let v: UT = 'A'
+          arktest.assertEQ(v, 'A')
+          v = undefined
+          arktest.assertTrue(v === undefined)
+          v = null
+          arktest.assertTrue(v === null)
+
+          let va: UT[] = new UT[2]
+          arktest.assertTrue(va[0] === undefined && va[1] === undefined)
+          va[0] = null
+          va[1] = 'F'
+          arktest.assertTrue(va[0] === null && va[1] === 'F')
+          va[0] = 'A'
+          va[1] = undefined
+          arktest.assertTrue(va[0] === 'A' && va[1] === undefined)
+
+    - decl: |-
+          type AB = 'A' | '\u000B'
+          type CD = '\u000C' | 'D'
+          type ABCD = AB | CD | ''
+      use: |-
+          let v: ABCD = 'A'
+          arktest.assertEQ(v, 'A')
+          v = '\u000B'
+          arktest.assertEQ(v, '\u000B')
+          v = '\u000C'
+          arktest.assertEQ(v, '\u000C')
+          v = 'D'
+          arktest.assertEQ(v, 'D')
+          v = ''
+          arktest.assertEQ(v, '')
+
+    # Multiline string literal
+    - decl: |-
+          type UT = `1st line
+              2nd line
+              3rd line` | `abc
+              def` | 'X' | "Y"
+      use: |-
+          let v: UT = "X"
+          arktest.assertEQ(v, 'X')
+          v = `Y`
+          arktest.assertEQ(v, 'Y')
+          v = `1st line
+          2nd line
+          3rd line`
+          arktest.assertEQ(v, `1st line
+          2nd line
+          3rd line`)
+          v = `abc
+          def`
+          arktest.assertEQ(v, `abc
+          def`)
+
+    - decl: |-
+          type UT = `abc
+
+              def\u0000` | undefined
+      use: |-
+          let v: UT[] = new UT[1]
+          arktest.assertTrue(v[0] === undefined)
+          v[0] = `abc
+
+          def\u0000`
+          arktest.assertEQ(v[0], `abc
+
+          def\u0000`)
+
+    # Arrays
+    - decl: |-
+          type UT = char[] | boolean
+      use: |-
+          let v: UT = true
+          arktest.assertTrue(v)
+          v = [c'A', c'B']
+          arktest.assertEQ(v[0], c'A')
+          arktest.assertEQ(v[1], c'B')
+          v = false
+          arktest.assertFalse(v)
+
+    - decl: |-
+          type UT = bigint | String[][] | Numeric
+      use: |-
+          let v: UT = 1234567890123456789012345678901234567890n
+          arktest.assertEQ(v, 1234567890123456789012345678901234567890n)
+          v = new Float(3.5f)
+          arktest.assertEQ(v, 3.5f)
+          v = [['a', 'b'], ['A', 'B']]
+          arktest.assertTrue(v instanceof Array && v[0][0] == 'a' && v[1][1] == 'B')
+
+    - decl: |-
+          type UT = int[] | short[] | byte[] | Int[] | Short[] | Byte[]
+      use: |-
+          let v: UT = new int[2]
+          v[0] = Int.MAX_VALUE
+          arktest.assertEQ(v[0], Int.MAX_VALUE)
+          v = new short[2]
+          v[0] = Short.MAX_VALUE
+          arktest.assertEQ(v[0], Short.MAX_VALUE)
+          v = new byte[2]
+          v[0] = Byte.MAX_VALUE
+          arktest.assertEQ(v[0], Byte.MAX_VALUE)
+          v = new Byte[2]
+          v[0] = new Byte(1 as byte)
+          arktest.assertEQ(v[0], 1)
+          v = new Short[2]
+          v[0] = new Short(2 as short)
+          arktest.assertEQ(v[0], 2)
+          v = new Int[2]
+          v[0] = new Int(3)
+          arktest.assertEQ(v[0], 3)
+
+    - decl: |-
+          type UT = string[] | char[] | string | char
+      use: |-
+          let v: UT|undefined = 'abc'
+          arktest.assertTrue(v instanceof String && v == 'abc')
+          v = c'\u0001'
+          arktest.assertTrue(v instanceof Char && v == c'\u0001')
+          v = ['a', 'b', '\u0000']
+          arktest.assertTrue(v instanceof Array && v[0] == 'a' && v[2] == '\u0000')
+          v = [c'\u0001', c'\u0002', c'A']
+          arktest.assertTrue(v instanceof Array && v[0] == c'\u0001' && v[2] == c'A')
+
+    # Boxed types
+    - decl: |-
+          type UT = boolean | number
+          function foo(p: UT): string {
+              return p instanceof Number ? 'N' : 'B'
+          }
+      use: |-
+          arktest.assertEQ(foo(false), 'B')
+          arktest.assertEQ(foo(42.0), 'N')
+
+    - decl: |-
+          type UT = char | short
+          let v: UT = -32768 as short
+      use: |-
+          v = -32768 as short
+          arktest.assertEQ(v, -32768)
+          v = c'\uFFFF'
+          arktest.assertEQ(v, c'\uFFFF')
+
+    - decl: |-
+          type UT = string | char
+          let v: UT|undefined
+      use: |-
+          v = 'abc'
+          arktest.assertTrue(v instanceof String && v == 'abc')
+          v = c'\u0001'
+          arktest.assertTrue(v instanceof Char && v == c'\u0001')
+          v = ''
+          arktest.assertTrue(v instanceof String && v == '')
+
+    - decl: |-
+          type UT = int | Floating
+          let v: UT|null
+      use: |-
+          v = 42
+          arktest.assertTrue(v instanceof Int && v == 42)
+          v = new Float(3.14f)
+          arktest.assertTrue(v instanceof Floating && v == 3.14f)
+
+    - decl: |-
+          type UT = number | Integral
+          let v: UT|null
+      use: |-
+          v = 3.14
+          arktest.assertTrue(v instanceof Number && v == 3.14)
+          v = new Int(42)
+          arktest.assertTrue(v instanceof Int && v == 42)
+
+    # Class types
+    - decl: |-
+          class B {}
+          class C {}
+          type UT = B | C
+      use: |-
+          let v: UT = new B()
+          arktest.assertTrue(v instanceof B)
+          v = new C()
+          arktest.assertTrue(v instanceof C)
+
+    - decl: |-
+          class B {}
+          class C {}
+          type UT = B[] | C[]
+      use: |-
+          let v: UT = new B[1]
+          arktest.assertTrue(v instanceof Array)
+          v = new C[1]
+          arktest.assertTrue(v instanceof Array)
+
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class C extends A {}
+          type UT = B | C
+
+          function foo<T extends A|null>(p: T): string {
+              return p instanceof B ? 'B' : 'C'
+          }
+      use: |-
+          let v: UT = new B()
+          arktest.assertEQ(foo<UT>(v), 'B')
+          v = new C()
+          arktest.assertEQ(foo<UT>(v), 'C')
+
+    - decl: |-
+          type UT = number | string
+          class C<T> {
+              fld: T | null = null
+          }
+      use: |-
+          let c: C<UT> = new C<UT>()
+          c.fld = 42.0
+          arktest.assertEQ(c.fld, 42.0)
+          c.fld = '42'
+          arktest.assertEQ(c.fld, '42')
+          c.fld = null
+          arktest.assertTrue(c.fld === null)
+
+    - decl: |-
+          enum Size { S, M, L, XL }
+          class A {
+              name: string = ''
+              age: number = 0
+          }
+          class B {
+              id: Number|null = null
+              size: Size = Size.S
+          }
+          type UT = A | B
+      use: |-
+          let v: UT = new A()
+          arktest.assertTrue(v instanceof A)
+          v = new B()
+          arktest.assertTrue(v instanceof B)
+
+    - decl: |-
+          type UT = Integral | Floating
+          let v: UT|null
+      use: |-
+          v = new Byte(0x7F as byte)
+          arktest.assertTrue(v instanceof Integral)
+          arktest.assertTrue((v as Integral).toByte() == 127)
+
+          v = new Byte(0x7F as byte)
+          arktest.assertTrue(v instanceof Integral)
+          arktest.assertTrue((v as Integral).byteValue() == 127)
+
+          v = new Number(2.5)
+          arktest.assertTrue(v instanceof Floating)
+          arktest.assertTrue((v as Floating).toDouble() == 2.5)
+
+          v = new Number(2.5)
+          arktest.assertTrue(v instanceof Floating)
+          arktest.assertTrue((v as Floating).doubleValue() == 2.5)
+
+    # Enums
+    - decl: |-
+          enum Color { Red, Green, Blue }
+          type UT = Color | Error
+      use: |-
+          let v: UT = new Error()
+          arktest.assertTrue(v instanceof Error)
+          v = Color.Blue
+          arktest.assertEQ(v, Color.Blue)
+
+    - decl: |-
+          enum Color { Red, Green, Blue }
+          enum Size { S, M, L, XL }
+          type UT = Color | Size | Size[]
+      use: |-
+          let v: UT = Color.Red
+          arktest.assertEQ(v, Color.Red)
+          v = Size.XL
+          arktest.assertEQ(v, Size.XL)
+          v = Color.Blue
+          arktest.assertEQ(v, Color.Blue)
+          v = [Size.S, Size.M, Size.L, Size.XL]
+          arktest.assertTrue(v instanceof Array && v[3] == Size.XL)
+
+    - decl: |-
+          enum Color { Red = 'r', Green = 'g', Blue = 'b' }
+          enum Size { S, M, L, XL }
+          type UT = Color | Size
+      use: |-
+          let v: UT = Color.Red
+          arktest.assertEQ(v, Color.Red)
+          v = Size.XL
+          arktest.assertEQ(v, Size.XL)
+          v = Color.Blue
+          arktest.assertEQ(v, Color.Blue)
+
+    - decl: |-
+          enum Color { Red, Green, Blue }
+          type UT = Color | int | undefined
+          let v: UT
+      use: |-
+          v = 0
+          arktest.assertEQ(v, 0)
+          v = Color.Blue
+          arktest.assertEQ(v, Color.Blue)
+          v = 1
+          arktest.assertEQ(v, 1)
+          v = Color.Green
+          arktest.assertEQ(v, Color.Green)
+          v = 0x7fffffff
+          arktest.assertEQ(v, 0x7fffffff)
+
+    - decl: |-
+          enum Color { Red = 'r', Green = 'g', Blue = 'b' }
+          type UT = string | Color | undefined
+          let v: UT
+      use: |-
+          v = 'r'
+          arktest.assertEQ(v, 'r')
+          v = Color.Blue
+          arktest.assertEQ(v, Color.Blue)
+          v = 'g'
+          arktest.assertEQ(v, 'g')
+          v = Color.Green
+          arktest.assertEQ(v, Color.Green)
+          v = 'abcdef'
+          arktest.assertEQ(v, 'abcdef')
+
+    # Functions
+    - decl: |-
+          type F1 = () => number
+          type F2 = (p: string) => string
+          type UT = F1 | F2 | number
+      use: |-
+          let v: UT = 42.0
+          arktest.assertEQ(v, 42.0)
+          v = (): number => { return 16.0 }
+          arktest.assertEQ((v as F1)(), 16.0)
+          v = (p: string): string => p + " " + p
+          arktest.assertEQ((v as F2)('hello'), 'hello hello')
+
+    - decl: |-
+          type F1 = (p: string) => string
+          type F2 = (p: F1, q: string) => string
+          type UT = F1 | string | F2[]
+      use: |-
+          let v: UT = "abc"
+          arktest.assertEQ(v, 'abc')
+          v = (p: string): string => p + " " + p
+          arktest.assertEQ((v as F1)('hello'), 'hello hello')
+          v = [(p: F1, q: string): string => p(q) + "Z"] as F2[]
+          arktest.assertEQ(v[0]((p: string): string => p + "Y", "X"), "XYZ")
+
+    # Interfaces
+    - decl: |-
+          interface I {}
+          interface J {}
+          class A implements I {}
+          class B implements J {}
+          type UT = I | J
+      use: |-
+          let i: I = {} as A
+          let j: J = {} as B
+          let v: UT = i
+          arktest.assertTrue(v instanceof I)
+          v = j
+          arktest.assertTrue(v instanceof J)
+
+    # Records
+    - decl: |-
+          type UT = Record<number, string> | Record<string, number>
+      use: |-
+          let a: UT = { 1: 'A' } as Record<number, string>
+          let b: UT = { 'A': 1 } as Record<string, number>
+          // swap values
+          let t: UT = a
+          a = b
+          b = t
+          arktest.assertEQ((a as Record<string, number>)['A'], 1)
+          arktest.assertEQ((b as Record<number, string>)[1], 'A')
+
+    - decl: |-
+          type UT<N, S> = Record<N, S> | Record<S, N>
+      use: |-
+          let a: UT<number, string> = { 1: 'A' } as Record<number, string>
+          let b: UT<number, string> = { 'A': 1 } as Record<string, number>
+          // swap values
+          let t: UT<number, string> = a
+          a = b
+          b = t
+          arktest.assertEQ((a as Record<string, number>)['A'], 1)
+          arktest.assertEQ((b as Record<number, string>)[1], 'A')
+
+    # Tuples
+    - decl: |-
+          type UT = [boolean, boolean, string] | boolean[]
+      use: |-
+          let v: UT = [true, true, false]
+          arktest.assertTrue(v instanceof Array && !v[2])
+          v = [true, true, 'false'] as [boolean, boolean, string]
+          arktest.assertTrue(v[2] == 'false')
+
+    - decl: |-
+          type UT = [boolean, boolean] | [number, number]
+      use: |-
+          let v: UT = [true, true] as [boolean, boolean]
+          v = [0.0, 0.0] as [number, number]
+
+    # Nullish types
+    - decl: |-
+          type UT1 = Number | null
+          type UT2 = string | null
+          type UT3 = boolean | char | null
+          type UT = UT1 | UT2 | UT3
+      use: |-
+          let v: UT = 1.0
+          arktest.assertEQ(v, 1.0)
+          v = 'A'
+          arktest.assertEQ(v, 'A')
+          v = true
+          arktest.assertEQ(v, true)
+          v = c'A'
+          arktest.assertEQ(v, c'A')
+          v = null
+          arktest.assertTrue(v === null)
+
+    # Types and literals
+    - decl: |-
+          type UT = Error | 'hello' | 'world'
+      use: |-
+          let v: UT = new Error()
+          arktest.assertTrue(v instanceof Error)
+          v = 'hello'
+          arktest.assertEQ(v, 'hello')
+          v = 'world'
+          arktest.assertEQ(v, 'world')
+
+    - decl: |-
+          type UT = 'hello' | int | boolean
+          function foo(p: UT): string {
+              if (p == 'hello') return 'S'
+              else if (p instanceof Int) return 'I'
+              else return 'B'
+          }
+      use: |-
+          let v: UT = false
+          arktest.assertEQ(foo(v), 'B')
+          v = 42
+          arktest.assertEQ(foo(v), 'I')
+          v = 'hello'
+          arktest.assertEQ(foo(v), 'S')
+
+    - decl: |-
+          type F = (p: string) => string
+          type UT = F | '3.14'
+      use: |-
+          let v: UT = (p: string): string => p + p
+          arktest.assertEQ((v as F)('A'), 'AA')
+          v = '3.14'
+          arktest.assertEQ(v, '3.14')
+
+    - decl: |-
+          type UT = Error[] | number[] | null
+      use: |-
+          let v: UT = null
+          arktest.assertTrue(v === null)
+          v = [11.0, 12.0, 13.0]
+          arktest.assertTrue(v instanceof Array && v[0] == 11.0)
+          v = [new Error('Msg1'), new Error('Msg2')]
+          arktest.assertTrue(v instanceof Array && v[1].message == 'Msg2')
+
+    - decl: |-
+          type UT = string | number | undefined
+          class C {
+              a: UT
+              b: UT
+              a2b() {
+                  this.b = this.a
+              }
+              b2a() {
+                  this.a = this.b
+              }
+          }
+      use: |-
+          let c: C = new C()
+          arktest.assertTrue(c.a === undefined && c.b === undefined)
+          c.a = 'A'
+          arktest.assertTrue(c.a == 'A' && c.b === undefined)
+          c.a2b()
+          arktest.assertTrue(c.a == 'A' && c.b == 'A')
+          c.b = 33.0
+          arktest.assertTrue(c.a == 'A' && c.b == 33.0)
+          c.b2a()
+          arktest.assertTrue(c.a == 33.0 && c.b == 33.0)
+
+  # Examples from Specification
+    - decl: |-
+        type GoodUnion1 = int | double
+      use: ''
+
+    - decl: |-
+        type GoodUnion2 = Int | Double
+      use: ''
+
+    - decl: |-
+        type GoodUnion3 = int | Double
+      use: ''
+
+    - decl: |-
+        function cond(): boolean {
+            return true
+        }
+      use: |-
+        let x = cond() ? new Int(): new Double()

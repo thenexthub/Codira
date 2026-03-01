@@ -1,0 +1,196 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # CLASS, METHOD PARAMETER
+    - base: |-
+          foo(i: Base): void {
+              res = 1;
+          }
+          bar(i: Derived): void {
+              res = 2;
+          }
+      derived: |-
+          foo(i: Base): void {
+              res = 3;
+          }
+          override bar(i: Derived): void {
+              res = 4;
+          }
+      call: |-
+          new Base().foo(new Base())
+          arktest.assertEQ(res, 1)
+          new Base().bar(new Derived())
+          arktest.assertEQ(res, 2)
+          new Derived().foo(new Base())
+          arktest.assertEQ(res, 3)
+          new Derived().bar(new Derived())
+          arktest.assertEQ(res, 4)
+      doc: Class/Interface type
+      params: override-compatible with same type parameter
+
+    - base: |-
+          foo(i: Derived): void {
+              res = 1
+          }
+      derived: |-
+          override foo(i: Base): void {
+              res = 2
+          }
+      call: |-
+          new Base().foo(new Derived())
+          arktest.assertEQ(res, 1)
+          new Derived().foo(new Base())
+          arktest.assertEQ(res, 2)
+          new Derived().foo(new Derived())
+          arktest.assertEQ(res, 2)
+      doc: Class/Interface type
+      params: override-compatible parameter (contravariance)
+
+    - base: |-
+          foo(i: Derived): void {
+              res = 1
+          }
+      derived: |-
+          foo(i: Base): void { // overriding assumed
+              res = 2
+          }
+      call: |-
+          new Base().foo(new Derived())
+          arktest.assertEQ(res, 1)
+          new Derived().foo(new Base())
+          arktest.assertEQ(res, 2)
+          new Derived().foo(new Derived())
+          arktest.assertEQ(res, 2)
+      doc: Class/Interface type
+      params: override-compatible parameter (contravariance)
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(i: Base): void {
+              res = 1;
+          }
+      derived: |-
+          override foo(i: Derived): void {
+              res = 2;
+          }
+      doc: Class/Interface type
+      params: override-incompatible parameter
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(i: Base): void {
+              res = 1;
+          }
+      derived: |-
+          foo(i: Derived): void {  // overriding assumed
+              res = 2;
+          }
+      doc: Class/Interface type
+      params: override-incompatible parameter
+
+    # CLASS, METHOD RETURN TYPE
+    - base: |-
+          foo(): Base {
+              res = 1;
+              return new Base();
+          }
+          bar(): Derived {
+              res = 2;
+              return new Derived();
+          }
+      derived: |-
+          foo(): Base {
+              res = 3;
+              return new Base();
+          }
+          bar(): Derived {
+              res = 4;
+              return new Derived();
+          }
+      call: |-
+          new Base().foo()
+          arktest.assertEQ(res, 1)
+          new Base().bar()
+          arktest.assertEQ(res, 2)
+          new Derived().foo()
+          arktest.assertEQ(res, 3)
+          new Derived().bar()
+          arktest.assertEQ(res, 4)
+      doc: Class/Interface type
+      params: override-compatible with same return type
+
+    - base: |-
+          foo(): Base {
+              res = 1;
+              return this;
+          }
+      derived: |-
+          override foo(): Derived {
+              res = 2;
+              return this;
+          }
+      call: |-
+          new Base().foo();
+          arktest.assertEQ(res, 1)
+          new Derived().foo();
+          arktest.assertEQ(res, 2)
+      doc: Class/Interface type
+      params: override-compatible return type (covariance)
+
+    - base: |-
+          foo(): Base {
+              res = 1;
+              return this;
+          }
+      derived: |-
+          foo(): Derived {
+              res = 2;
+              return this;
+          }
+      call: |-
+          new Base().foo();
+          arktest.assertEQ(res, 1)
+          new Derived().foo();
+          arktest.assertEQ(res, 2)
+      doc: Class/Interface type
+      params: override-compatible return type (covariance)
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(): Derived {
+              res = 1;
+              return new Derived();
+          }
+      derived: |-
+          override foo(): Base {
+              res = 2;
+              return new Base();
+          }
+      doc: Class/Interface type
+      params: override-incompatible return type
+
+    - tags: 'negative, compile-only'
+      base: |-
+          foo(): Derived {
+              res = 1;
+              return new Derived();
+          }
+      derived: |-
+          foo(): Base {
+              res = 2;
+              return new Base();
+          }
+      doc: Class/Interface type
+      params: override-incompatible return type

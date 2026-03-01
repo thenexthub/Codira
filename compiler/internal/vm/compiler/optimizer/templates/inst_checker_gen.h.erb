@@ -1,0 +1,83 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+#include "compiler/optimizer/ir/graph_visitor.h"
+#include "compiler/optimizer/ir/graph.h"
+
+namespace panda::compiler {
+
+class InstChecker : public GraphVisitor {
+public:
+    explicit InstChecker(const Graph *graph) : graph_(graph) {}
+
+    const ArenaVector<BasicBlock *> &GetBlocksToVisit() const override
+    {
+        return graph_->GetBlocksRPO();
+    }
+
+    template<typename... Args>
+    static bool CheckType(DataType::Type type, Args... types) {
+        return ((types == type) || ...);
+    }
+
+    static DataType::Type GetInputType(Inst* inst, size_t input)
+    {
+        return inst->GetInput(input).GetInst()->GetType();
+    }
+
+    static void Run(const Graph *graph)
+    {
+        InstChecker(graph).VisitGraph();
+    }
+
+% IR::instructions.each do |inst|
+    static void Visit<%= inst.opcode %>([[maybe_unused]] GraphVisitor *v, [[maybe_unused]] Inst *inst)
+    {
+%   if !inst.has_dst?
+        ASSERT(!inst->HasUsers());
+%   elsif !inst.dst.pseudo?
+        ASSERT_DO(CheckType(inst->GetType(), <%= inst.dst.types.map { |x| Operand::cpp_type(x) }.join(', ') %>),
+            std::cerr << "Wrong dst type '" << DataType::ToString(inst->GetType()) << "' for inst:\n" << *inst << std::endl);
+%   end
+%   if inst.inputs.any? { |x| x.is_dyn? }
+    }
+%     next
+%   end
+        CHECK_EQ(inst->GetInputsCount(), <%= inst.inputs.size %>U);
+%   inst.inputs.each_with_index do |operand, i|
+%     if operand.has('save_state')
+        ASSERT(inst->GetInput(<%= i %>).GetInst()->IsSaveState());
+%     else
+        ASSERT_DO(CheckType(GetInputType(inst, <%= i %>), <%= operand.types.map { |x| Operand::cpp_type(x) }.join(', ') %>),
+            std::cerr << "Wrong input <%= i %> type '" << DataType::ToString(GetInputType(inst, <%= i %>)) << "' for inst:\n" << *inst << std::endl);
+%     end
+%   end
+    }
+% end
+
+#include "optimizer/ir/visitor.inc"
+
+private:
+    const Graph *graph_{nullptr};
+};
+
+}  // namespace panda::compiler

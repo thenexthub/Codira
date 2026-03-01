@@ -1,0 +1,69 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  #0
+  - parametrize:
+      T = SomeType, T = OtherType
+    stdout: |-
+      "Semantic error ESE0182: Duplicate type parameter 'T'."
+  #1
+  - parametrize:
+      T, T = SomeType
+    stdout: |-
+      "Semantic error ESE0182: Duplicate type parameter 'T'."
+  #2
+  - parametrize:
+      T = SomeType, U
+    stdout: |-
+      "Syntax error ESY0179: Required type parameters may not follow optional type parameters."
+  #3
+  - parametrize:
+      T = 10
+    stdout: |-
+      "Syntax error ESY0138: Invalid Type."
+  #4
+  - parametrize:
+      T = true
+    stdout: |-
+      " Semantic error ESE0017: Only abstract or native methods can't have body."
+  #5
+  - parametrize:
+      T = Base<T>
+    stdout: |-
+      "Semantic error ESE0183: Type Parameter T should be defined before use."
+  #6
+  - parametrize:
+      T1, T2 = SomeType, T3
+    stdout: |-
+      "Syntax error ESY0179: Required type parameters may not follow optional type parameters."
+  #7
+  - parametrize:
+      T1 = T2, T2 = T1
+    stdout: |-
+      "Semantic error ESE0183: Type Parameter T2 should be defined before use."
+  #8
+  - parametrize:
+      in T1, out U
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+  #9
+  - parametrize: #30580
+      T
+    params: |
+      x: T | undefined = 4
+    main: |
+      foo<string>(1)
+    stdout: |-
+      "Semantic error ESE0046: Type 'Int' is not compatible with type 'undefined|String' at index 1"

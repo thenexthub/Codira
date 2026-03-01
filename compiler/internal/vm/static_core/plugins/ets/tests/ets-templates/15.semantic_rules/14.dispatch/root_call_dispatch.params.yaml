@@ -1,0 +1,74 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of predefined types
+cases:
+  - desc: "Static and dynamic dispatch, class, root call"
+    test: |
+      class A {
+        fld: int = 1
+        met(): string {return "A"}
+      }
+
+      class B extends A {
+        fld: int = 2
+        override met(): string {return "B"}
+      }
+    
+      let a: A = new B();
+      arktest.assertEQ(a.fld, 2) // static dispatch
+      arktest.assertEQ(a.met(), "B") // dynamic dispatch
+
+  - desc: "Static and dynamic dispatch, interface, root call"
+    test: |
+      interface I {
+        fld: string
+        met(): int
+      }
+      class A implements I {
+        fld: string = "abc";
+        met(): int {return 1};
+      }
+      class B implements I {
+        fld: string = "def";
+        met(): int {return 2};
+      }
+
+      let a: I = new A()
+      let b: I = new B()
+      arktest.assertEQ(a.fld, "abc")
+      arktest.assertEQ(a.met(), 1)
+      arktest.assertEQ(b.fld, "def")
+      arktest.assertEQ(b.met(), 2)
+
+  - desc: "dynamic dispatch, several interfaces implementation"
+    test: |
+      interface A {
+          foo(x: number)
+      }
+
+      interface B {
+          foo(x: string)
+      }
+
+      class C implements A, B {
+          foo(x: number | string) {
+
+          }
+      }
+
+      let c1: A = new C()
+      let c2: B = new C()
+
+      c1.foo(111)
+      c2.foo("sss")

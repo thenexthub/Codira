@@ -1,0 +1,128 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+.function i32 xorv_not_i32(i32 a0, i32 a1) <static> {
+    ldai -1
+    xor2v v0, a0
+    xorv v0, a1
+    lda v0
+    return
+}
+
+.function i64 xorv_not_i64(i64 a0, i64 a1) <static> {
+    ldai.64 -1
+    xor2v.64 v0, a0
+    lda.64 v0
+    xor2v.64 v0, a1
+    lda.64 v0
+    return.64
+}
+
+.function i32 andv_not_i32(i32 a0, i32 a1) <static> {
+    ldai -1
+    xor2v v0, a0
+    andv v0, a1
+    lda v0
+    return
+}
+
+.function i64 andv_not_i64(i64 a0, i64 a1) <static> {
+    ldai.64 -1
+    xor2v.64 v0, a0
+    lda.64 v0
+    and2v.64 v0, a1
+    lda.64 v0
+    return.64
+}
+
+.function i32 orv_not_i32(i32 a0, i32 a1) <static> {
+    ldai -1
+    xor2v v0, a0
+    orv v0, a1
+    lda v0
+    return
+}
+
+.function i64 orv_not_i64(i64 a0, i64 a1) <static> {
+    ldai.64 -1
+    xor2v.64 v0, a0
+    lda.64 v0
+    or2v.64 v0, a1
+    lda.64 v0
+    return.64
+}
+
+.function i32 main() {
+    movi v0, 0x00ff00ff
+    movi v1, 0x00ff00ff
+    call.short xorv_not_i32, v0, v1
+    movi v0, -1
+    jne v0, exit_error_0
+    movi v0, 0xffff0000
+    movi v1, 0x12345678
+    call.short andv_not_i32, v0, v1
+    movi v0, 0x5678
+    jne v0, exit_error_1
+    movi v0, 0xff00ff00
+    movi v1, 0x0ff00ff0
+    call.short orv_not_i32, v0, v1
+    movi v0, 0x0fff0fff
+    jne v0, exit_error_2
+    movi.64 v0, 0x00ff00ff00ff00ff
+    movi.64 v1, 0x00ff00ff00ff00ff
+    call.short xorv_not_i64, v0, v1
+    movi.64 v0, -1
+    cmp.64 v0
+    jnez exit_error_3
+    movi.64 v0, 0xffff0000ffff0000
+    movi.64 v1, 0x1234567887654321
+    call.short andv_not_i64, v0, v1
+    movi.64 v0, 0x567800004321
+    cmp.64 v0
+    jnez exit_error_4
+    movi.64 v0, 0xff00ff00ff00ff00
+    movi.64 v1, 0x0ff00ff00ff00ff0
+    call.short orv_not_i64, v0, v1
+    movi.64 v0, 0x0fff0fff0fff0fff
+    cmp.64 v0
+    jnez exit_error_5
+    ldai 0
+    return
+exit_error_0:
+    ldai 1
+    return
+exit_error_1:
+    ldai 2
+    return
+exit_error_2:
+    ldai 3
+    return
+exit_error_3:
+    ldai 4
+    return
+exit_error_4:
+    ldai 5
+    return
+exit_error_5:
+    ldai 6
+    return
+}

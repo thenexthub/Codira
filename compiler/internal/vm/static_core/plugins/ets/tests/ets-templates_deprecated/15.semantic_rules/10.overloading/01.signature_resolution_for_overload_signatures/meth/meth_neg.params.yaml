@@ -1,0 +1,108 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    - decl: |-
+          // CTE: implementation is missing
+          class X {
+              foo(): string;
+              foo(a: string): string;
+              foo(a: string, b: string): string;
+          }
+      call: |-
+          new X().foo()
+
+    - decl: |-
+          // CTE: implementation does not immediately follow the declarations
+          class X {
+              foo(): string;
+              foo(a: string, b: string): string;
+              bar(): string {
+                  return "";
+              }
+              foo(...p: Any[]): Any {
+                  return 42.0;
+              }
+          }
+      call: |-
+          new X().foo()
+
+    - decl: |-
+          // CTE: implementation has a wrong name
+          class X {
+              foo(): string;
+              foo(a: string, b: string): string;
+              bar(...p: Any[]): Any {
+                  return 42.0;
+              }
+          }
+      call: |-
+          new X().foo()
+
+    - decl: |-
+          // CTE: different access modifiers not permitted
+          class X {
+              private foo(p: string): string
+              foo(p: number): number
+              foo(...p: Any[]): Any {
+                  return p
+              }
+          }
+      call: |-
+          let v = new X().foo(42.0)
+
+    - decl: |-
+          // CTE: different access modifiers not permitted
+          class X {
+              protected foo(p: string): string
+              foo(p: number): number
+              foo(...p: Any[]): Any {
+                  return p
+              }
+          }
+      call: |-
+          let v = new X().foo("abc")
+
+    - decl: |-
+          // CTE: different access modifiers not permitted
+          class X {
+              foo(p: string): string
+              foo(p: number): number
+              private foo(...p: Any[]): Any {
+                  return p
+              }
+          }
+      call: |-
+          let v = new X().foo(42.0)
+
+    - decl: |-
+          // CTE: different access modifiers not permitted
+          class X {
+              private foo(p: string): string
+              protected foo(p: number): number
+              public foo(...p: Any[]): Any {
+                  return p
+              }
+          }
+      call: |-
+          let v = new X().foo("abc")

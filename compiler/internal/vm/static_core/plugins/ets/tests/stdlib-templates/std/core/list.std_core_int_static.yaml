@@ -1,0 +1,63 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+- {
+    method_name: valueOf,
+    object_type: Int,
+    param_init_data_types: {"param1":"FixedArray<int>"} ,
+    param_types: {"param1":int},
+    param_nature: {"param1": primitive},
+    method_return_type: Int,
+    expected_data_item_type: int,
+    expected_data_type: "FixedArray<int>",
+    param_list: {"param1": "[(-1) as int, 0 as int, 1 as int, Int.MAX_VALUE as int, Int.MIN_VALUE as int]"},
+    expected_test_data: "[(-1) as int, 0 as int, 1 as int, Int.MAX_VALUE as int, Int.MIN_VALUE as int]",
+    verify_test_result_function: compareWrapperObjectValue,
+  }
+- {
+    method_name: parseInt,
+    object_type: Int,
+    param_init_data_types: { "param1": "FixedArray<String>", "param2": "FixedArray<Int>" } ,
+    param_types: { "param1": String, "param2": "Int" },
+    param_nature: { "param1": primitive, "param2": primitive },
+    method_return_type: Int,
+    expected_data_item_type: Int,
+    expected_data_type: "FixedArray<Int>",
+    param_list: {
+      "param1": '["123", "123", "-123", "+123", "-2147483648", "2147483647", "-0", "+0", "  -123  ", "\t123\n",
+        "101010", "-101010", "1111111111111111111111111111111", "12", "-52", "17777777777",
+        "A", "FF", "-2A", "7FFFFFFF", "7fffffff", "0x1A", "0XFF",
+        "z", "Z", "1Z", "-A", "  Z1  ",
+        "0x1A", "123abc", "42.99", "0xFFG"]',
+      "param2": '[0, 10, 10, 10, 10, 10, 10, 10, 10, 10,
+        2, 2, 2, 8, 8, 8,
+        16, 16, 16, 16, 16, 16, 16,
+        36, 36, 36, 36, 36,
+        0, 10, 10, 16]',
+    },
+    expected_test_data: '[123, 123, -123, 123, -2147483648, 2147483647, 0, 0, -123, 123,
+      42, -42, 2147483647, 10, -42, 2147483647,
+      10, 255, -42, 2147483647, 2147483647, 26, 255,
+      35, 35, 71, -10, 1261,
+      0, 123, 42, 255]',
+    verify_test_result_function: compareWrapperObjectValue,
+  }

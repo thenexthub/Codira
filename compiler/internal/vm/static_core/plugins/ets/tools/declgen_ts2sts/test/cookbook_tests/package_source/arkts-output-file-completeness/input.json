@@ -1,0 +1,7 @@
+[
+    "./index.d.ets",
+    "./tspack/a.ts",
+    "./tspack/b.ts",
+    "./jspack/pack.d.ets",
+    "./jspack/pack.js"
+]

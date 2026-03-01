@@ -1,0 +1,226 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+- {
+    name: char,
+    init_values: {"0 as char", "1 as char", "Char.MIN_VALUE as char", "Char.MAX_VALUE as char"},
+    value_name: Char,
+    primitive: true
+  }
+- {
+    name: boolean,
+    init_values: {"false", "true"},
+    value_name: Boolean,
+    primitive: true
+  }
+- {
+    name: byte,
+    init_values: {"0 as byte", "1 as byte", "-1 as byte", "Byte.MIN_VALUE as byte", "Byte.MAX_VALUE as byte"},
+    value_name: Byte,
+    primitive: true
+  }
+- {
+    name: short,
+    init_values: {"0 as short", "1 as short", "-1 as short", "Short.MIN_VALUE as short", "Short.MAX_VALUE as short"},
+    value_name: Short,
+    primitive: true
+  }
+- {
+    name: int,
+    init_values: {"0 as int", "1 as int", "-1 as int", "Int.MIN_VALUE as int", "Int.MAX_VALUE as int"},
+    value_name: Int,
+    primitive: true
+  }
+- {
+    name: long,
+    init_values: {"0 as long", "1 as long", "-1 as long", "Long.MIN_VALUE as long", "Long.MAX_VALUE as long"},
+    value_name: Long,
+    primitive: true
+  }
+- {
+    name: float,
+    init_values: {"0.0f", "1.0f", "-1.0f", "Float.MIN_VALUE", "Float.MAX_VALUE"},
+    value_name: Float,
+    primitive: true
+  }
+- {
+    name: double,
+    init_values: {"0.0 as double", "1.0 as double", "-1.0 as double", "Double.MIN_VALUE as double", "Double.MAX_VALUE as double"},
+    value_name: Double,
+    primitive: true
+  }
+- {
+    name: Char,
+    init_values: {"Char.valueOf(0 as char)", "Char.valueOf(1 as char)", "Char.valueOf(Char.MIN_VALUE as char)", "Char.valueOf(Char.MAX_VALUE as char)"},
+    value_name: Char,
+    primitive: false
+  }
+- {
+    name: Boolean,
+    init_values: {"Boolean.valueOf(false)", "Boolean.valueOf(true)"},
+    value_name: Boolean,
+    primitive: false
+  }
+- {
+    name: Byte,
+    init_values: {"Byte.valueOf(0 as byte)", "Byte.valueOf(1 as byte)", "Byte.valueOf(-1 as byte)", "Byte.valueOf(Byte.MIN_VALUE as byte)", "Byte.valueOf(Byte.MAX_VALUE as byte)"},
+    value_name: Byte,
+    primitive: false
+  }
+- {
+    name: Short,
+    init_values: {"Short.valueOf(0 as short)", "Short.valueOf(1 as short)", "Short.valueOf(-1 as short)", "Short.valueOf(Short.MIN_VALUE as short)", "Short.valueOf(Short.MAX_VALUE as short)"},
+    value_name: Short,
+    primitive: false
+  }
+- {
+    name: Int,
+    init_values: {"Int.valueOf(0 as int)", "Int.valueOf(1 as int)", "Int.valueOf(-1 as int)", "Int.valueOf(Int.MIN_VALUE as int)", "Int.valueOf(Int.MAX_VALUE as int)"},
+    value_name: Int,
+    primitive: false
+  }
+- {
+    name: Long,
+    init_values: {"Long.valueOf(0 as long)", "Long.valueOf(1 as long)", "Long.valueOf(-1 as long)", "Long.valueOf(Long.MIN_VALUE as long)", "Long.valueOf(Long.MAX_VALUE as long)"},
+    value_name: Long,
+    primitive: false
+  }
+- {
+    name: Float,
+    init_values: {"Float.valueOf(0.0f)", "Float.valueOf(1.0f)", "Float.valueOf(-1.0f)", "Float.valueOf(Float.MIN_VALUE)", "Float.valueOf(Float.MAX_VALUE)"},
+    value_name: Float,
+    primitive: false
+  }
+- {
+    name: Double,
+    init_values: {"Double.valueOf(0.0 as double)", "Double.valueOf(1.0 as double)", "Double.valueOf(-1.0 as double)", "Double.valueOf(Double.MIN_VALUE as double)", "Double.valueOf(Double.MAX_VALUE as double)"},
+    value_name: Double,
+    primitive: false
+  }
+- {
+    name: String,
+    init_values: {'""', '"\u0000 abcd"', '"abcd"', '"\u0000"'},
+    value_name: String,
+    primitive: false
+  }
+- {
+    name: "FixedArray<char>",
+    init_values: {"[0 as char]", "[0 as char, 1 as char, Char.MIN_VALUE as char, Char.MAX_VALUE as char]"},
+    value_name: Array,
+    primitive: false
+  }
+- {
+    name: "FixedArray<boolean>",
+    init_values: {"[false]", "[false, true]"},
+    value_name: Array,
+    primitive: false
+  }
+- {
+    name: "FixedArray<byte>",
+    init_values: {"[0 as byte] as FixedArray<byte>", "[0 as byte, 1 as byte, -1 as byte, Byte.MIN_VALUE as byte, Byte.MAX_VALUE as byte] as FixedArray<byte>"},
+    value_name: Array,
+    primitive: false
+  }
+- {
+    name: "FixedArray<short>",
+    init_values: {"[0 as short] as FixedArray<short>", "[0 as short, 1 as short, -1 as short, Short.MIN_VALUE as short, Short.MAX_VALUE as short] as FixedArray<short>"},
+    value_name: Array,
+    primitive: false
+  }
+- {
+    name: "FixedArray<int>",
+    init_values: {"[0 as int] as FixedArray<int>", "[0 as int, 1 as int, -1 as int, Int.MIN_VALUE as int, Int.MAX_VALUE as int] as FixedArray<int>"},
+    value_name: Array,
+    primitive: false
+  }
+- {
+    name: "FixedArray<long>",
+    init_values: {"[0 as long] as FixedArray<long>", "[0 as long, 1 as long, -1 as long, Long.MIN_VALUE as long, Long.MAX_VALUE as long] as FixedArray<long>"},
+    value_name: Array,
+    primitive: false
+  }
+- {
+    name: "FixedArray<float>",
+    init_values: {"[0.0f] as FixedArray<float>", "[0.0f, 1.0f, -1.0f, Float.MIN_VALUE, Float.MAX_VALUE] as FixedArray<float>"},
+    value_name: Array,
+    primitive: false
+  }
+- {
+    name: "FixedArray<double>",
+    init_values: {"[0.0 as double] as FixedArray<double>", "[0.0 as double, 1.0 as double, -1.0 as double, Double.MIN_VALUE as double, Double.MAX_VALUE as double] as FixedArray<double>"},
+    value_name: Array,
+    primitive: false
+  }
+- {
+    name: "FixedArray<Char>",
+    init_values: {"[Char.valueOf(0 as char)] as FixedArray<Char>", "[Char.valueOf(0 as char), Char.valueOf(1 as char), Char.valueOf(Char.MIN_VALUE as char), Char.valueOf(Char.MAX_VALUE as char)] as FixedArray<Char>"},
+    value_name: Array,
+    primitive: false
+  }
+- {
+    name: "FixedArray<Boolean>",
+    init_values: {"[Boolean.valueOf(false)] as FixedArray<Boolean>", "[Boolean.valueOf(false), Boolean.valueOf(true)] as FixedArray<Boolean>"},
+    value_name: Array,
+    primitive: false
+  }
+- {
+    name: "FixedArray<Byte>",
+    init_values: {"[Byte.valueOf(0 as byte)] as FixedArray<Byte>", "[Byte.valueOf(0 as byte), Byte.valueOf(1 as byte), Byte.valueOf(-1 as byte), Byte.valueOf(Byte.MIN_VALUE as byte), Byte.valueOf(Byte.MAX_VALUE as byte)] as FixedArray<Byte>"},
+    value_name: Array,
+    primitive: false
+  }
+- {
+    name: "FixedArray<Short>",
+    init_values: {"[Short.valueOf(0 as short)] as FixedArray<Short>", "[Short.valueOf(0 as short), Short.valueOf(1 as short), Short.valueOf(-1 as short), Short.valueOf(Short.MIN_VALUE as short), Short.valueOf(Short.MAX_VALUE as short)] as FixedArray<Short>"},
+    value_name: Array,
+    primitive: false
+  }
+- {
+    name: "FixedArray<Int>",
+    init_values: {"[Int.valueOf(0 as int)] as FixedArray<Int>", "[Int.valueOf(0 as int), Int.valueOf(1 as int), Int.valueOf(-1 as int), Int.valueOf(Int.MIN_VALUE as int), Int.valueOf(Int.MAX_VALUE as int)] as FixedArray<Int>"},
+    value_name: Array,
+    primitive: false
+  }
+- {
+    name: "FixedArray<Long>",
+    init_values: {"[Long.valueOf(0 as long)] as FixedArray<Long>", "[Long.valueOf(0 as long), Long.valueOf(1 as long), Long.valueOf(-1 as long), Long.valueOf(Long.MIN_VALUE as long), Long.valueOf(Long.MAX_VALUE as long)] as FixedArray<Long>"},
+    value_name: Array,
+    primitive: false
+  }
+- {
+    name: "FixedArray<Float>",
+    init_values: {"[Float.valueOf(0.0f)] as FixedArray<Float>", "[Float.valueOf(0.0f), Float.valueOf(1.0f), Float.valueOf(-1.0f), Float.valueOf(Float.MIN_VALUE), Float.valueOf(Float.MAX_VALUE)] as FixedArray<Float>"},
+    value_name: Array,
+    primitive: false
+  }
+- {
+    name: "FixedArray<Double>",
+    init_values: {"[Double.valueOf(0.0 as double)] as FixedArray<Double>", "[Double.valueOf(0.0 as double), Double.valueOf(1.0 as double), Double.valueOf(-1.0 as double), Double.valueOf(Double.MIN_VALUE as double), Double.valueOf(Double.MAX_VALUE as double)] as FixedArray<Double>"},
+    value_name: Array,
+    primitive: false
+  }
+- {
+    name: "FixedArray<String>",
+    init_values: {'[""] as FixedArray<String>', '["", "\u0000 abcd", "abcd", "\u0000"] as FixedArray<String>'},
+    value_name: Array,
+    primitive: false
+  }

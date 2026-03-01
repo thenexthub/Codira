@@ -1,0 +1,7 @@
+# Process test causes failure on timeout - see issue https://gitee.com/openharmony/arkcompiler_runtime_core/issues/I9W32L
+std/core/ProcessTest.ets
+# End issue https://gitee.com/openharmony/arkcompiler_runtime_core/issues/I9W32L
+
+# 24811 thread-safe containers tests may cause failure on timeout or CoroutineLimitExceedError in JIT_REPEARS - see issue https://gitee.com/openharmony/arkcompiler_runtime_core/issues/IBUDOL
+std/containers/BlockingQueue/AddAndPollStress.ets
+# End issue https://gitee.com/openharmony/arkcompiler_runtime_core/issues/IBUDOL

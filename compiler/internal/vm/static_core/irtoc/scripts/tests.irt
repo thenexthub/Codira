@@ -1,0 +1,213 @@
+#!/usr/bin/env ruby
+
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+include_relative 'common.irt'
+
+function(:IrtocTestCfg, params: {"buf" => 'ptr', "size" => 'u64'}, mode: [:Native]) {
+    if Options.arch == :arm32
+      Intrinsic(:UNREACHABLE).Terminator.void
+      ReturnVoid().void
+      next
+    end
+
+    i0 := 0
+    r0 := 0
+    While((i := (i_phi := Phi(i0, i1).u64)), size).NE {
+        res := WhilePhi(r0, phi2).u64
+
+        offset := Mul(i, 8).u64
+        value := Load(buf, offset).u64
+        If(And(i, 1).u64, 0).EQ {
+            If(And(value, 1).u64, 0).EQ {
+                r1 := Add(res, 2).u64
+                v0 := Add(value, 2).u64
+                Store(buf, offset, v0).u64
+            } Else {
+                r2 := Add(res, 1).u64
+                v1 := Add(value, 1).u64
+                Store(buf, offset, v1).u64
+            }
+            phi1 := Phi(r1, r2).u64
+        } Else {
+            r3 := Sub(res, 1).u64
+            v2 := Sub(value, 1).u64
+            Store(buf, offset, v2).u64
+        }
+        phi2 := Phi(phi1, r3).u64
+        i1 := Add(i, 1).u64
+    }
+    Return(res).u64
+}
+
+function(:IrtocTestCfgLabels, params: {"buf" => 'ptr', "size" => 'u64'}, mode: [:Native]) {
+    if Options.arch == :arm32
+      Intrinsic(:UNREACHABLE).Terminator.void
+      ReturnVoid().void
+      next
+    end
+    i0 := 0
+    r0 := 0
+
+    Label(:Head)
+    i_phi := Phi(i0, i1).u64
+    res := Phi(r0, phi2).u64
+    i := i_phi
+    If(i, size).EQ.Unlikely {
+      Goto(:Exit)
+    }
+
+    offset := Mul(i, 8).u64
+    value := Load(buf, offset).u64
+
+    If(And(i, 1).u64, 0).NE { Goto(:Else1) }
+        If(And(value, 1).u64, 0).NE { Goto(:Else2) }
+            r1 := Add(res, 2).u64
+            v0 := Add(value, 2).u64
+            Store(buf, offset, v0).u64
+            Goto(:IfCont2)
+        Label(:Else2)
+            r2 := Add(res, 1).u64
+            v1 := Add(value, 1).u64
+            Store(buf, offset, v1).u64
+        Label(:IfCont2)
+        phi1 := Phi(r1, r2).u64
+        Goto(:IfCont1)
+    Label(:Else1)
+        r3 := Sub(res, 1).u64
+        v2 := Sub(value, 1).u64
+        Store(buf, offset, v2).u64
+    Label(:IfCont1)
+    phi2 := Phi(phi1, r3).u64
+    i1 := Add(i, 1).u64
+    Goto(:Head)
+    Label(:Exit)
+    Return(res).u64
+}
+
+function(:IrtocTestAddValues, params: {a: 'i64', b: 'i64'}, mode: [:Native]) {
+    v := Add(a, b).i64
+    Return(v).i64
+}
+
+function(:IrtocTestIncMaxValue, params: {a: 'u64', b: 'u64'}, mode: [:Native]) {
+    If(a, b).GE {
+        v1 := Add(a, 1).u64
+    }
+    Else {
+        v2 := Add(b, 1).u64
+    }
+    phi := Phi(v1, v2).u64
+    Return(phi).u64
+}
+
+function(:IrtocTestIncMaxValueLabels, params: {a: 'u64', b: 'u64'}, mode: [:Native]) {
+    If(a, b).GE {
+        Goto(:l1)
+    } Else {
+        Goto(:l2)
+    }
+Label(:l1)
+    v1 := Add(a, 1).u64
+    Goto(:l3)
+Label(:l2)
+    v2 := Add(b, 1).u64
+Label(:l3)
+    Return(Phi(v1, v2).u64).u64
+}
+
+function(:IrtocTestSeqLabels, params: {a: 'u64'}, mode: [:Native]) {
+    If(a, 10).LE {
+       ret1 := AddI(a).Imm(1).u64
+       Goto(:end)
+    }
+    If(a, 100).LE {
+       ret2 := AddI(a).Imm(2).u64
+       Goto(:end)
+    }
+    ret3 := AddI(a).Imm(3).u64
+Label(:end)
+    Return(Phi(ret1, ret2, ret3).u64).u64
+}
+
+# Return `TestCall(TestCall(n) * n)`
+function(:IrtocTestRelocations, params: {"n" => 'u32'}, mode: [:Native]) {
+    res := Call(n).Method("TestCall").u32
+    res := Mul(res, n).u32
+    res := Call(res).Method("TestCall").u32
+    Return(res).u32
+}
+
+function(:IrtocTestRelocations2,
+            params: {a0: 'word', a1: 'word', f0: 'f64', a2: 'word', a3: 'word', a4: 'word', f1: 'f64', f2: 'f64', a5: 'word', a6: 'word', f3: 'f64', a7: 'word', a8: 'word', a9: 'word', f4: 'f64'}, mode: [:Native]) {
+    fres := Call(f0).Method("IncrementFloat").f64
+    fres := Add(fres, Call(f1).Method("IncrementFloat").f64).f64
+    fres := Add(fres, Call(f2).Method("IncrementFloat").f64).f64
+    fres := Add(fres, Call(f3).Method("IncrementFloat").f64).f64
+    fres := Add(fres, Call(f4).Method("IncrementFloat").f64).f64
+    ares := Call(a0).Method("IncrementInt").word
+    ares := Add(ares, Call(a1).Method("IncrementInt").word).word
+    ares := Add(ares, Call(a2).Method("IncrementInt").word).word
+    ares := Add(ares, Call(a3).Method("IncrementInt").word).word
+    ares := Add(ares, Call(a4).Method("IncrementInt").word).word
+    ares := Add(ares, Call(a5).Method("IncrementInt").word).word
+    ares := Add(ares, Call(a6).Method("IncrementInt").word).word
+    ares := Add(ares, Call(a7).Method("IncrementInt").word).word
+    ares := Add(ares, Call(a8).Method("IncrementInt").word).word
+    ares := Add(ares, Call(a9).Method("IncrementInt").word).word
+
+    res := Add(ares, Cast(fres).SrcType("DataType::FLOAT64").word).word
+    Return(res).word
+}
+
+# Return sum of all numbers from 0 to `n`
+# Fixed issue: #6890
+# Problem: `Goto` right after `If` block with only `Goto` inside leads to wrong graph
+function(:IrtocTestLabels, params: {n: 'word'}, mode: [:Native]) {
+    res_init := 0
+    i_init := 0
+Label(:Header)
+    res := Phi(res_init, res_next).word
+    i := Phi(i_init, i_next).word
+
+    res_next := Add(res, i).word
+    i_next := AddI(i).Imm(1).word
+    If(i_next, n).GT.Unlikely.b {
+        Goto(:Tail)
+    }
+    Goto(:Header)
+Label(:Tail)
+    Return(res_next).word
+}
+
+function(:IrtocTestReturnBeforeLabel, params: {n: 'word'}, mode: [:Native]) {
+    If(n, 100).GT.b {
+        Goto(:Exit1)
+    } Else {
+        Goto(:Exit2)
+    }
+Label(:Exit1)
+    Return(1).word
+Label(:Exit2)
+    Return(2).word
+}

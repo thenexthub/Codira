@@ -1,0 +1,76 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+    - decl: |-
+          // missing explicit factory
+          class C {
+              static $_instantiate(f: ()=>C): C {
+                  return f()
+              }
+          }
+      use: |-
+          let x = C.$_instantiate()
+
+    - decl: |-
+          // missing explicit factory with args
+          class C {
+              static $_instantiate(f: ()=>C, p: C): C {
+                  return f()
+              }
+          }
+      use: |-
+          let x = C.$_instantiate(new C())
+
+    - decl: |-
+          // wrong type explicit factory
+          class C {
+              static $_instantiate(f: ()=>C): C {
+                  return f()
+              }
+          }
+      use: |-
+          let x = C.$_instantiate(() => { return new Object() })
+
+    - decl: |-
+          // wrong type explicit factory
+          class C {
+              static $_instantiate(f: ()=>C): C {
+                  return f()
+              }
+          }
+          type FU = (() => C) | undefined
+          let f: FU = (): C => { return new C() }
+      use: |-
+          let x = C.$_instantiate(f)
+
+    - decl: |-
+          // wrong factory definition
+          class C {
+              static $_instantiate(f: C): C {
+                  return f
+              }
+          }
+      use: |-
+          let x = C(new C())
+
+    - decl: |-
+          // the class has no default constructor
+          class C {
+              static $_instantiate(f: ()=>C): C {
+                  return f()
+              }
+              constructor(p: string) {}
+          }
+      use: |-
+          let x = C()

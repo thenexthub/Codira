@@ -1,0 +1,65 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+version: 0.0.0.1
+type: test-suite
+suite-name: unit-tests
+test-root: ${ARKCOMPILER_RUNTIME_CORE_PATH}/static_core/plugins/ets/tests
+list-root: ${ARKCOMPILER_RUNTIME_CORE_PATH}/static_core/plugins/ets/tests/test-lists/unit-tests
+
+parameters:
+    extension: ets
+    load-runtimes: ets
+    work-dir: ${WORK_DIR}/${suite-name}
+
+collections:
+    ets-common-tests: |-
+    ets-common-tests/atomics:
+        parameters:
+            ark-test-suite-args:
+                - "--coroutine-impl=stackful"
+                - "--coroutine-workers-count=0"
+    ets-common-tests/intrinsics/stringbuilder_oom.ets:
+        parameters:
+            ark-test-suite-args:
+                - "--compiler-enable-osr=false"
+    ets-common-tests/devirt_adv_tests/test_0_same_hierarchy.ets:
+        parameters:
+            aot-test-suite-args:
+                - "--panda-files=${parameters.work-dir}/intermediate/ets-common-tests/devirt_adv_tests/imported_hierarchy/test_0_same_hierarchy_ext_module.ets.abc"
+    ets-common-tests/devirt_adv_tests/test_1_final_method.ets:
+        parameters:
+            aot-test-suite-args:
+                - "--panda-files=${parameters.work-dir}/intermediate/ets-common-tests/devirt_adv_tests/ext_module_final_method/test_1_final_method_ext_module.ets.abc"
+    ets-common-tests/devirt_adv_tests/test_2_final_class_0_n.ets:
+        parameters:
+            aot-test-suite-args:
+                - "--panda-files=${parameters.work-dir}/intermediate/ets-common-tests/devirt_adv_tests/ext_module_final_class/test_2_final_class_0_n_ext_module.ets.abc"
+    ets-common-tests/devirt_adv_tests/test_2_final_class_1_n.ets:
+        parameters:
+            aot-test-suite-args:
+                - "--panda-files=${parameters.work-dir}/intermediate/ets-common-tests/devirt_adv_tests/ext_module_final_class/test_2_final_class_1_n_ext_module.ets.abc"
+    ets-common-tests/devirt_adv_tests/test_3_interface.ets:
+        parameters:
+            aot-test-suite-args:
+                - "--panda-files=${parameters.work-dir}/intermediate/ets-common-tests/devirt_adv_tests/ext_module_interface/test_3_interface_ext_module.ets.abc"
+    ets_test_suite/strings: |-

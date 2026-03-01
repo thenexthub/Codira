@@ -1,0 +1,7 @@
+##23081 Leftovers from bit operations on floats, verifier failure with opt-level=0
+06.contexts_and_conversions/04.casting_contexts_and_conversions/sequenced_42.ets
+04.names_declarations_and_scopes/06.variable_and_constant_declarations/04.type_inference_from_initializer/infer2_10.ets
+04.names_declarations_and_scopes/06.variable_and_constant_declarations/04.type_inference_from_initializer/infer2_9.ets
+
+#24859
+17.experimental_features/03.resizable_array_creation_expressions/01.runtime_evaluation_of_array_creation_expressions/expr_2.ets

@@ -1,0 +1,67 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+--- # list of values
+values:
+  - { left: 0.0f, right: 0.0f, result: "true" }
+  - { left: 1.0f, right: 0.0f, result: "false" }
+  - { left: 0.0f, right: 1.0f, result: "true" }
+  - { left: 1.0f, right: 1.0f, result: "true" }
+  - { left: -1.0f, right: 0.0f, result: "true" }
+  - { left: -1.0f, right: 1.0f, result: "true" }
+  - { left: -1.0f, right: -1.0f, result: "true" }
+  - { left: Float.MIN_VALUE, right: 0.0f, result: "false" }
+  - { left: Float.MIN_VALUE, right: 3.1415927f, result: "true" }
+  - { left: Float.MIN_VALUE, right: -Float.MIN_VALUE, result: "false" }
+  - { left: Float.MIN_VALUE, right: Float.MAX_VALUE, result: "true" }
+  - { left: Float.MIN_VALUE, right: Float.NaN, result: "false" }
+  - { left: Float.MIN_VALUE, right: Float.POSITIVE_INFINITY, result: "true" }
+  - { left: Float.MIN_VALUE, right: Float.NEGATIVE_INFINITY, result: "false" }
+  - { left: Float.MIN_VALUE, right: Float.MIN_VALUE, result: "true" }
+  - { left: Float.MAX_VALUE, right: 0.0f, result: "false" }
+  - { left: Float.MAX_VALUE, right: 3.1415927f, result: "false" }
+  - { left: Float.MAX_VALUE, right: -Float.MAX_VALUE, result: "false" }
+  - { left: Float.MAX_VALUE, right: Float.NaN, result: "false" }
+  - { left: Float.MAX_VALUE, right: Float.POSITIVE_INFINITY, result: "true" }
+  - { left: Float.MAX_VALUE, right: Float.NEGATIVE_INFINITY, result: "false" }
+  - { left: Float.MAX_VALUE, right: Float.MAX_VALUE, result: "true" }
+  - { left: Float.NaN, right: 0.0f, result: "false" }
+  - { left: Float.NaN, right: Float.NaN, result: "false" }
+  - { left: Float.NaN, right: -Float.NaN, result: "false" }
+  - { left: Float.NaN, right: 3.1415927f, result: "false" }
+  - { left: Float.NaN, right: Float.POSITIVE_INFINITY, result: "false" }
+  - { left: Float.NaN, right: Float.NEGATIVE_INFINITY, result: "false" }
+  - { left: Float.POSITIVE_INFINITY, right: 0.0f, result: "false" }
+  - { left: Float.POSITIVE_INFINITY, right: 3.1415927f, result: "false" }
+  - { left: Float.POSITIVE_INFINITY, right: -Float.POSITIVE_INFINITY, result: "false" }
+  - { left: Float.POSITIVE_INFINITY, right: Float.NEGATIVE_INFINITY, result: "false" }
+  - { left: Float.POSITIVE_INFINITY, right: Float.POSITIVE_INFINITY, result: "true" }
+  - { left: Float.NEGATIVE_INFINITY, right: 0.0f, result: "true" }
+  - { left: Float.NEGATIVE_INFINITY, right: 3.1415927f, result: "true" }
+  - { left: Float.NEGATIVE_INFINITY, right: -Float.NEGATIVE_INFINITY, result: "true" }
+  - { left: Float.NEGATIVE_INFINITY, right: Float.NEGATIVE_INFINITY, result: "true" }
+  - { left: 3.1415927f, right: 3.1415927410125732421875f, result: "true" }
+  - { left: 3.1415927f, right: 3.14159265f, result: "true" } # rounding error
+  - { left: 3.1415927f, right: 3.1415928f, result: "true" } # rounding error
+  - { left: 1.25f, right: 1.25000011920928955078125f, result: "true" } # closest maximum value
+  - { left: 1.25f, right: 1.24999988079071044921875f, result: "false" } # closest minimum value
+  - { left: 1.25f, right: 1.25f, result: "true" }

@@ -1,0 +1,2 @@
+# 27197
+05.generics/03.utility_types/03.readonly_utility_type/readonly_type_6.ets

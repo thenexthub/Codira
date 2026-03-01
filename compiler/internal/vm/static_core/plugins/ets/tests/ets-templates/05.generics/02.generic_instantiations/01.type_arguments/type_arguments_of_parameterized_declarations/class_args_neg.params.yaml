@@ -1,0 +1,193 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # type argument is class
+  #0
+  - use: |-
+      let v: A<X> = new A<X>(new Y())  // Y is not X
+    bound: ' extends Object'
+    stdout: |-
+      "Semantic error ESE0046: Type 'Y' is not compatible with type 'X' at index 1"
+  #1
+  - use: |-
+      let v: A<X> = new A<X>(new X())  // X is out of the bound
+    bound: ' extends Y|null'
+    stdout: |-
+      "Semantic error ESE0228: Type argument 'X' should be a subtype of 'Y|null' constraint"
+  #2
+  - use: |-
+      let v: A<X> = new A<X|null>(null) // shouldn't assign to subclass
+    stdout: |-
+      "Semantic error ESE0318: Type 'A<X|null>' cannot be assigned to type 'A<X>'"
+  #3
+  - use: |-
+      let v: A<null|X> = new A<X>(new X()) // syntax error
+    stdout: |-
+      "Semantic error ESE0318: Type 'A<X>' cannot be assigned to type 'A<null|X>'"
+  #4
+  - use: |-
+      let v: A<A<X>> = new A<A<X>>(new A<Y>(new Y()))  // A<Y> is not A<X>
+    stdout: |-
+      "Semantic error ESE0046: Type 'A<Y>' is not compatible with type 'A<X>' at index 1"
+
+  # type argument is interface
+  #5
+  - use: |-
+      let v: A<I> = new A<I>(new Y())  // Y doesn't implement I
+    bound: ' extends Object|null'
+    stdout: |-
+      "Semantic error ESE0046: Type 'Y' is not compatible with type 'I' at index 1"
+  #6
+  - use: |-
+      let v: A<A<I>> = new A<A<I>>(new A<Y>(new Y()))  // A<Y> is not A<I>
+    stdout: |-
+      "Semantic error ESE0046: Type 'A<Y>' is not compatible with type 'A<I>' at index 1"
+
+  # type argument is array of classes, interfaces, enums
+  #7
+  - use: |-
+      let v: A<X[]> = new A<X[]>(new Y[0]) // Y[] is not X[]
+    stdout: |-
+      "Semantic error ESE0127: No matching construct signature for class_args_neg_7.A(Array<Y>)"
+  #8
+  - use: |-
+      let v: A<A<X>[]> = new A<A<X>[]>(new A<Y>[0]) // A<X>[] is not A<Y>[]
+    stdout: |-
+      "Semantic error ESE0127: No matching construct signature for class_args_neg_8.A(Array<A<Y>>)"
+  #9
+  - use: |-
+      let v: A<A<X[]>[]> = new A<A<X[]>[]>(new A<Y[]>[0])  // Y[] is not X[]
+    bound: ' extends Object[]'
+    stdout: |-
+      "Semantic error ESE0228: Type argument 'Array<X>' should be a subtype of 'Array<Object>' constraint"
+  #10
+  - use: |-
+      let v: A<I[]> = new A<I[]>(new Y[0])  // Y doesn't implement I
+    bound: ' extends Object'
+    stdout: |-
+      "Semantic error ESE0046: Type 'Array<Y>' is not compatible with type 'Array<I>' at index 1"
+  #11
+  - use: |-
+      let v: A<A<I>[]> = new A<A<I>[]>(new A<Y>[0])  // Y doesn't implement I
+    stdout: |-
+      "Semantic error ESE0270: No Matching Parameterless Constructor, parameter count 1"
+  #12
+  - use: |-
+      let v: A<A<I[]>[]> = new A<A<I[]>[]>(new A<Y[]>[0])  // Y doesn't implement I
+    bound: ' extends Object[]|null'
+    stdout: |-
+      "Semantic error ESE0228: Type argument 'Array<I>' should be a subtype of 'Array<Object>|null' constraint"
+  #13
+  - use: |-
+      let v: A<Color[]> = new A<Color[]>(new Size[0])  // Size is not Color
+    stdout: |-
+      "Semantic error ESE0270: No Matching Parameterless Constructor, parameter count 2"
+  #14
+  - use: |-
+      let v: A<A<Color[]>[]> = new A<A<Color[]>[]>(new A<Size[]>[0])  // Size[] is not Color[]
+    stdout: |-
+      "Semantic error ESE0270: No Matching Parameterless Constructor, parameter count 1"
+
+  # type argument is alias
+  #15
+  - use: |-
+      let v: A<B> = new A<B>(new X())  // X is not  Y
+    decl: |-
+      type B = Y
+    stdout: |-
+      "Semantic error ESE0046: Type 'X' is not compatible with type 'Y' at index 1"
+  #16
+  - use: |-
+      let v: A<B> = new A<B>(new A<X>(new X()))  // A<X> is not A<Y>
+    decl: |-
+      type B = A<Y>
+    stdout: |-
+      "Semantic error ESE0127: No matching construct signature for class_args_neg_16.A(A<X>)"
+  #17
+  - use: |-
+      let v: A<B> = new A<B>(new X[0])  // X[] is not Y[]
+    decl: |-
+      type B = Y[]
+    stdout: |-
+      "Semantic error ESE0046: Type 'Array<X>' is not compatible with type 'Array<Y>' at index 1"
+  #18
+  - use: |-
+      let v: A<B> = new A<B>(new A<X>[0])  // A<X>[] is not A<Y>[]
+    decl: |-
+      type B = A<Y>[]
+    stdout: |-
+      "Semantic error ESE0270: No Matching Parameterless Constructor, parameter count 1"
+  #19
+  - use: |-
+      let v: A<B> = new A<B>(new A<X[]>[0])  // X is not Y
+    decl: |-
+      type B = A<Y[]>[]
+    stdout: |-
+      "Semantic error ESE0127: No matching construct signature for class_args_neg_19.A(Array<A<Array<X>>>)"
+  #20
+  - use: |-
+      let v: A<A<B>[]> = new A<A<B>[]>(new A<B>[0])  // arg is out of bound
+    decl: |-
+      type B = Y[]
+    bound: ' extends X[]|null'
+    stdout: |-
+      "Semantic error ESE0228: Type argument 'Array<A<Array<Y>>>' should be a subtype of 'Array<X>|null' constraint"
+
+    # use interfaces to create array
+  #21
+  - use: |-
+      let v: A<I[]> = new A<I[]>(new I[0]) // Cannot use array creation expression with interfaces.
+    stdout: |-
+      "Semantic error ESE0050: Cannot use array creation expression with abstract classes and interfaces."
+  #22
+  - use: |-
+      let v: A<A<I[]>[]> = new A<A<I[]>[]>([new A<I[]>(new I[0])]) // Cannot use array creation expression with interfaces.
+    stdout: |-
+      "Semantic error ESE0050: Cannot use array creation expression with abstract classes and interfaces."
+
+  # type argument is tuple
+  #23
+  - use: |-
+      let v: A<[X, X]> = new A<[X, X]|null>(null) // shouldn't assign to subclass
+    stdout: |-
+      "Semantic error ESE0318: Type 'A<[X, X]|null>' cannot be assigned to type 'A<[X, X]>'"
+  #24
+  - use: |-
+      let v: A<null|[X, X]> = new A<[X, X]>([new X(), new X()]) // syntax error
+    stdout: |-
+      "Semantic error ESE0318: Type 'A<[X, X]>' cannot be assigned to type 'A<null|[X, X]>'"
+  #25
+  - use: |-
+      let v: A<A<[X, X]>> = new A<A<[X, X]>>(new A<[Y, Y]]>([new Y(), new Y()]))  // A<Y> is not A<X>
+    stdout: |-
+      "Semantic error ESE0046: Type 'Boolean' is not compatible with type 'A<[X, X]>' at index 1"
+
+  # type argument is FixedArray
+  #26
+  - use: |-
+      let v: A<FixedArray<X>> = new A<FixedArray<X>|null>(null) // shouldn't assign to subclass
+    stdout: |-
+      "Semantic error ESE0318: Type 'A<FixedArray<X>|null>' cannot be assigned to type 'A<FixedArray<X>>'"
+  #27
+  - use: |-
+      let v: A<null|FixedArray<X>> = new A<FixedArray<X>>([new X()]) // syntax error
+    stdout: |-
+      "Semantic error ESE0318: Type 'A<FixedArray<X>>' cannot be assigned to type 'A<null|FixedArray<X>>'"
+  #28
+  - use: |-
+      let v: A<A<FixedArray<X>>> = new A<A<FixedArray<X>>>([new A<FixedArray<Y>>(new Y())])
+      // A<FixedArray<Y>> is not A<FixedArray<X>>
+    stdout: |-
+      "Semantic error ESE0046: Type 'Y' is not compatible with type 'FixedArray<Y>' at index 1"

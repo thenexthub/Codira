@@ -1,0 +1,71 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # covariant/contravariant cases, subtyping of functions
+    #0
+    - use: |-
+        let cls = new Cls<Derived>(new Base())
+      stdout: |-
+        "Semantic error ESE0046: Type 'Base' is not compatible with type 'Derived' at index 1"
+    #1
+    - use: |-
+        let cls = new Cls<fooSubtype>(fooBase)
+      stdout: |-
+        "Semantic error ESE0371: Cannot find type 'fooSubtype'."
+    #2
+    - use: |-
+        let cls = new Cls<[Derived, fooBaseType]>([new Base(), fooBase])
+      stdout: |-
+        "Semantic error ESE0057: Array initializer's type is not assignable to tuple type at index: 0"
+    #3
+    - use: |-
+        let cls = new Cls<[Derived, fooSubtypeType]>([new Derived(), fooBase])
+      stdout: |-
+        "Semantic error ESE0057: Array initializer's type is not assignable to tuple type at index: 1"
+    #4
+    - use: |-
+        let cls = new Cls<FixedArray<Derived>>([new Base()])
+      stdout: |-
+        "Semantic error ESE0046: Type 'Array<Base>' is not compatible with type 'FixedArray<Derived>' at index 1"
+    #5
+    - use: |-
+        let cls = new Cls<Derived | fooBaseType>(new Base())
+      stdout: |-
+        "Semantic error ESE0046: Type 'Base' is not compatible with type 'Derived|(((p1: Derived, p2: Derived) => Base))' at index 1"
+    #6
+    - use: |-
+        let cls = new Cls<Base | fooSubtypeType>(fooBase)
+      stdout: |-
+        "Semantic error ESE0046: Type '((p1: Derived, p2: Derived) => Base)' is not compatible with type 'Base|(((p1: Derived, p2: Base) => Derived))' at index 1"
+    #7
+    - use: |-
+        let cls = new Cls<Array<Derived>>([new Base()])
+      stdout: |-
+        "Semantic error ESE0046: Type 'Array<Base>' is not compatible with type 'Array<Derived>' at index 1"
+    #8
+    - use: |-
+        let cls = new Cls<Array<fooSubtypeType>>([fooBase])
+      stdout: |-
+        "Semantic error ESE0046: Type 'Array<((p1: Derived, p2: Derived) => Base)>' is not compatible with type 'Array<((p1: Derived, p2: Base) => Derived)>' at index 1"
+    #9
+    - use: |-
+        let cls = new Cls<Derived[]>([new Base()])
+      stdout: |-
+        "Semantic error ESE0046: Type 'Array<Base>' is not compatible with type 'Array<Derived>' at index 1"
+    #10
+    - use: |-
+        let cls = new Cls<fooSubtypeType[]>([fooBase])
+      stdout: |-
+        "Semantic error ESE0046: Type 'Array<((p1: Derived, p2: Derived) => Base)>' is not compatible with type 'Array<((p1: Derived, p2: Base) => Derived)>' at index 1"

@@ -1,0 +1,117 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    - decl: |-
+          let s: number = 42
+      use: |-
+          // assignment-like context, variable declaration
+          let v1: number = Color.Red
+          arktest.assertEQ(v1, 0.0)
+
+          let v2: number = Color.Green + Color.Blue
+          arktest.assertEQ(v2, 201.0)
+
+          let v3: number = s + Color.Blue + 33
+          arktest.assertEQ(v3, 176.0)
+
+          // assignment-like context, constant declaration
+          const c1: number = Color.Red
+          arktest.assertEQ(c1, 0.0)
+
+          const c2: number = Color.Green + Color.Blue
+          arktest.assertEQ(c2, 201.0)
+
+          const c3: number = s + Color.Blue + 34
+          arktest.assertEQ(c3, 177.0)
+
+    - decl: |-
+          let s: int = 42
+          let v: number
+      use: |-
+          // assignment-like context, variable assignment
+          v = Color.Red
+          arktest.assertEQ(v, 0.0)
+
+          v = Color.Green + Color.Blue
+          arktest.assertEQ(v, 201.0)
+
+          v = s + Color.Blue + 12
+          arktest.assertEQ(v, 155.0)
+
+    - decl: |-
+          let s: number = 42.0
+          class A {
+              meth(p: number): number {
+                  return p + 2.0
+              }
+          }
+      use: |-
+          // call context, method
+          let a: A = new A()
+          arktest.assertEQ(a.meth(Color.Red), 2.0)
+          arktest.assertEQ(a.meth(Color.Green + Color.Blue), 203.0)
+          arktest.assertEQ(a.meth(s + Color.Blue), 145.0)
+
+    - decl: |-
+          let s: number = 42
+          class A {
+              fld: number
+          }
+      use: |-
+          // composite object
+          let a: A = { fld: Color.Red }
+          arktest.assertEQ(a.fld, 0.0)
+          a = { fld: Color.Blue + Color.Green }
+          arktest.assertEQ(a.fld, 201.0)
+          a = { fld: s + Color.Blue + 1 }
+          arktest.assertEQ(a.fld, 144.0)
+
+    - decl: |-
+          let s: number = 42.0
+      use: |-
+          // composite array
+          let v: number[] = [ Color.Red ]
+          arktest.assertEQ(v[0], 0.0)
+          v = [ Color.Green + Color.Blue, Color.Blue + s ]
+          arktest.assertEQ(v[0], 201.0)
+          arktest.assertEQ(v[1], 143.0)
+
+    - decl: |-
+          let s: double = 42.2    
+          let union1: string | number
+          let union2: int | object
+          let union3: Array<string> | Any | BigInt
+      use: |-
+          // conversion to union type considering the value type of the enum base type
+          union1 = Color.Blue
+          arktest.assertEQ(union1, 101.0)
+          arktest.assertTrue(union1 instanceof number)
+          
+          union2 = Color.Red + Color.Green
+          arktest.assertEQ(union2, 100.0)
+          arktest.assertTrue(union2 instanceof number)
+
+          union3 = Color.Red + Color.Blue + s
+          arktest.assertEQ(union3, 143.2)
+          arktest.assertTrue(union3 instanceof number)

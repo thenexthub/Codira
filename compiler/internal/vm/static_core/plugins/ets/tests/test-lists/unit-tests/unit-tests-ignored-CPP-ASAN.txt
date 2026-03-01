@@ -1,0 +1,5 @@
+# 24970
+ets-common-tests/taskpool/group_tasks.ets
+
+# 24986
+ets-common-tests/generics/generics_method.ets

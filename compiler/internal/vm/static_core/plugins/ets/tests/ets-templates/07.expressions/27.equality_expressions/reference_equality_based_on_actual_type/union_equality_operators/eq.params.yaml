@@ -1,0 +1,122 @@
+# Copyright (c) 2024-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # numerical equality
+    - type1: int|boolean
+      type2: string|long
+      case1:
+          - '-128'
+          - new Int(-128)
+      case2:
+          - '-128 as long'
+          - new Long(-128 as long)
+
+    - type1: number|string
+      type2: Object|null
+      case1:
+          - '127.0'
+          - new Double(127.0)
+      case2:
+          - '127 as short'
+          - '127'
+          - '127 as long'
+          - new Byte(127 as byte)
+          - new Short(127 as short)
+          - new Float(127.0f)
+
+    - type1: byte|short|Error
+      type2: char|long|Error
+      case1:
+          - '0 as byte'
+          - '0 as short'
+          - new Byte(0 as byte)
+          - new Short(0 as short)
+      case2:
+          - '0 as long'
+          - c'\u0000'
+          - new Long(0 as long)
+          - new Char(c'\u0000')
+
+    # string equality
+    - type1: number|string|boolean
+      type2: char|Error|string|null
+      case1:
+          - "'abc def'"
+      case2:
+          - '`abc def`'
+          - new String('abc def')
+
+    - type1: Object|string
+      type2: Error|string
+      case1:
+          - "''"
+          - '``'
+      case2:
+          - new String('')
+
+    # boolean equality
+    - type1: Error|number|boolean
+      type2: string|number|boolean
+      case1:
+          - 'true'
+      case2:
+          - new Boolean(true)
+
+    - type1: A|boolean
+      type2: B|boolean
+      decl: |-
+          class A {}
+          class B extends A {}
+      case1:
+          - 'false'
+      case2:
+          - new Boolean(false)
+
+    # enumeration  equality
+    - decl: |-
+          enum Color { Red, Green, Blue }
+      type1: Color|string
+      type2: number|Color|null
+      case1:
+          - Color.Red
+      case2:
+          - Color.values()[0]
+
+    - decl: |-
+          enum Size { Small = "S", Medium = "M", Large = "L" }
+      type1: number|Size|boolean
+      type2: boolean|Size
+      case1:
+          - Size.values()[1]
+      case2:
+          - Size.Medium
+
+    # bigint equality
+    - type1: long|bigint
+      type2: bigint|int
+      case1:
+          - 12345n
+      case2:
+          - new BigInt(12345)
+          - new BigInt('12345')
+
+    - type1: boolean|bigint
+      type2: bigint|string
+      case1:
+          - '0n'
+          - new BigInt()
+      case2:
+          - '-0n'
+          - new BigInt(0.0)

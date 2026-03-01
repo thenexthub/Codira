@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "package": "Entry",
+    "baseUrl": "${CURRENT_SOURCE_DIR}",
+    "cacheDir": "${DEFAULT_CACHE_DIR}",
+    "dependencies": {
+      "@MyLib": { "path": "${LIB_SOURCE_ABC}", "mainFile": "file1" }
+    }
+  }
+}

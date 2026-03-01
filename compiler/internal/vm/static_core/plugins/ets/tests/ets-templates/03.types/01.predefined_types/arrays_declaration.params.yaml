@@ -1,0 +1,96 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+--- # List of predefined types
+default_value:
+  - type: FixedArray<byte>
+    value: "[0, 1]"
+  - type: FixedArray<short>
+    value: "[0, 1]"
+  - type: FixedArray<int>
+    value: "[0, 1]"
+  - type: FixedArray<long>
+    value: "[0, 1]"
+  - type: FixedArray<bigint>
+    value: "[0n, 1n]"
+  - type: FixedArray<float>
+    value: "[0.0f, 1.0f]"
+  - type: FixedArray<double>
+    value: "[0.0, 1.0]"
+  - type: FixedArray<char>
+    value: "[c'a', c'b']"
+  - type: FixedArray<boolean>
+    value: "[true, false]"
+  - type: FixedArray<null>
+    value: "[null]"
+  - type: FixedArray<undefined>
+    value: "[undefined]"
+  - type: FixedArray<Object>
+    value: "[new Object()]"
+  - type: ""
+    value: "[0, 1]"
+  - type: ""
+    value: "[0, 1]"
+  - type: ""
+    value: "[0, 1]"
+  - type: ""
+    value: "[0, 1]"
+  - type: ""
+    value: "[0, 1]"
+  - type: ""
+    value: "[0.0, 1.0]"
+  - type: ""
+    value: "[0.0, 1.0]"
+  - type: ""
+    value: "['a', 'b']"
+  - type: ""
+    value: "[true, false]"
+  - type: ""
+    value: "[null]"
+  - type: ""
+    value: "[undefined]"
+  - type: ""
+    value: "[new Object()]"
+  - type: Array<byte>
+    value: ""
+  - type: Array<short>
+    value: ""
+  - type: Array<int>
+    value: ""
+  - type: Array<long>
+    value: ""
+  - type: Array<bigint>
+    value: ""
+  - type: Array<float>
+    value: ""
+  - type: Array<double>
+    value: ""
+  - type: Array<char>
+    value: ""
+  - type: Array<boolean>
+    value: ""
+  - type: Array<null>
+    value: "[null]"
+  - type: Array<undefined>
+    value: ""
+  - type: Array<Object>
+    value: ""

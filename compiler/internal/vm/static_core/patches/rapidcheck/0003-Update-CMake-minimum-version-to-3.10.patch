@@ -1,0 +1,24 @@
+From d5b3e3d3f7a83d90ac82fd62de32c0a14605a2f4 Mon Sep 17 00:00:00 2001
+From: Bolshov Maxim <>
+Date: Sat, 27 Dec 2025 20:34:51 +0300
+Subject: [PATCH] Update CMake minimum version to 3.10
+
+Update CMake minimum required version from 3.0 to 3.10 to
+suppress deprecation warnings when building with newer CMake.
+---
+ CMakeLists.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f5b3aa2..984a7f9 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,4 +1,4 @@
+-cmake_minimum_required(VERSION 3.0)
++cmake_minimum_required(VERSION 3.10)
+ project(rapidcheck CXX)
+ 
+ # Don't warn about symbol visibility for static libraries with CMake 3.3 and later.
+-- 
+2.51.0
+

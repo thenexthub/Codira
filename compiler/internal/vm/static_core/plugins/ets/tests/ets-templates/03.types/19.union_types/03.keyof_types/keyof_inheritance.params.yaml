@@ -1,0 +1,227 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+types:
+  - abstract class
+  - final class
+  - class
+
+cases:
+  # combinations of empty final/abstract/common classes
+  - decl: |-
+      type t1 = keyof A
+      type t2 = keyof B
+      class A {}
+      class B extends A {}
+    check: |-
+      let a: t1|number
+      let b: t2|number
+      arktest.assertEQ(typeof a, 'number')
+      arktest.assertEQ(typeof b, 'number')
+
+
+  - decl: |-
+      type t1 = keyof A
+      type t2 = keyof B
+      abstract class A {}
+      class B extends A {}
+    check: |-
+      let a: t1|number
+      let b: t2|number
+      arktest.assertEQ(typeof a, 'number')
+      arktest.assertEQ(typeof b, 'number')
+
+
+  - decl: |-
+      type t1 = keyof A
+      type t2 = keyof B
+      abstract class A {}
+      abstract class B extends A {}
+    check: |-
+      let a: t1|number
+      let b: t2|number
+      arktest.assertEQ(typeof a, 'number')
+      arktest.assertEQ(typeof b, 'number')
+
+
+  - decl: |-
+      type t1 = keyof A
+      type t2 = keyof B
+      class A {}
+      final class B extends A {}
+    check: |-
+      let a: t1|number
+      let b: t2|number
+      arktest.assertEQ(typeof a, 'number')
+      arktest.assertEQ(typeof b, 'number')
+
+
+  - decl: |-
+      type t1 = keyof A
+      type t2 = keyof B
+      abstract class A {}
+      final class B extends A {}
+    check: |-
+      let a: t1|number
+      let b: t2|number
+      arktest.assertEQ(typeof a, 'number')
+      arktest.assertEQ(typeof b, 'number')
+
+
+  # Interfaces
+  - decl: |-
+      type t1 = keyof I
+      type t2 = keyof II
+      interface I {}
+      interface II extends I {}
+    check: |-
+      let a: t1|number
+      let b: t2|number
+      arktest.assertEQ(typeof a, 'number')
+      arktest.assertEQ(typeof b, 'number')
+
+
+  - decl: |-
+      type t1 = keyof I
+      type t2 = keyof II
+      interface I {
+        foo: int
+        jay()
+      }
+      interface II extends I {
+        bar: string
+        jay(i: number)
+      }
+    check: |-
+      let a: t1 = "foo"
+      let b: "foo" | "jay" = a
+      a = b
+  
+      let c: t2 = a
+      let d: "bar" | "foo" | "jay" = c
+      c = d
+
+
+  # Interfaces + class
+  - decl: |-
+      type t1 = keyof I
+      type t2 = keyof A
+      interface I {}
+      class A implements I {}
+    check: |-
+      let a: t1|number
+      let b: t2|number
+      arktest.assertEQ(typeof a, 'number')
+      arktest.assertEQ(typeof b, 'number')
+
+
+  - decl: |-
+      type t1 = keyof I
+      type t2 = keyof A
+      interface I {
+        foo: int
+        bar()
+      }
+      class A implements I {
+        bar() {}
+        bar(i: int) {}
+        jay(i: number) {}
+        raf = true
+        foo = 1
+      }
+    check: |-
+      let a: t1 = "foo"
+      let b: "foo" | "bar" = a
+      a = b
+      
+      let c: t2 = a
+      let d: "bar" | "foo" | "jay" | "raf" = c
+      c = d
+
+
+  - decl: |-
+      type t1 = keyof I
+      type t2 = keyof A
+      interface I {
+        foo: int
+        bar()
+      }
+      abstract class A implements I {
+        abstract bar1()
+        foo1: boolean
+      }
+    check: |-
+      let a: t1 = "foo"
+      let b: "foo" | "bar" = a
+      a = b
+      
+      let c: t2 = a
+      let d: "bar" | "foo" | "foo1" | "bar1" = c
+      c = d
+
+
+  - decl: |-
+      type t1 = keyof I
+      type t2 = keyof A
+      interface I {
+        foo: int
+        bar()
+      }
+      final class A implements I {
+        bar() {}
+        bar1() {}
+        foo1: boolean = true
+        foo = 2
+      }
+    check: |-
+      let a: t1 = "foo"
+      let b: "foo" | "bar" = a
+      a = b
+      
+      let c: t2 = a
+      let d: "bar" | "foo" | "bar1" | "foo1" = c
+      c = d
+
+
+# empty interface|non-empty class
+  - decl: |-
+      type t1 = keyof I
+      type t2 = keyof A
+      interface I { }
+      final class A implements I {
+        bar() {}
+        foo = true
+      }
+    check: |-
+      let a: t1|number
+      arktest.assertEQ(typeof a, 'number')
+      
+      let b: t2 = "foo"
+      let c: "bar" | "foo" = b
+      b = c
+
+
+  # empty class|non-empty interface
+  - decl: |-
+      type t1 = keyof I
+      type t2 = keyof A
+      interface I {
+        foo: int
+        bar()
+      }
+      abstract class A implements I { }
+    check: |-
+      let a: t1 = "foo"
+      let b: t2 = a
+      a = b
+

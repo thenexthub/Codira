@@ -1,0 +1,298 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+    - decl: |-
+          // calling a static method, not a callable type case
+          class C {
+              static $_instantiate() { return 'abc' }
+          }
+      use: |-
+          arktest.assertEQ(C.$_instantiate(), 'abc')
+
+    - decl: |-
+          // calling a static method with a factory, not a callable type case
+          class C {
+              static $_instantiate(f: () => C) { return 'abc' }
+          }
+          function foo(): C {
+              return new C()
+          }
+      use: |-
+          arktest.assertEQ(C.$_instantiate(foo), 'abc')
+
+    - decl: |-
+          // no parameters, implicit void return
+          class C {
+              static inst: C|null = null
+              static $_instantiate(f: () => C) { C.inst = f() }
+          }
+      use: |-
+          C.inst = null
+          C()
+          arktest.assertTrue(C.inst instanceof C)
+
+    - decl: |-
+          // no parameters, explicit void return
+          class C {
+              static inst: C|null = null
+              static $_instantiate(f: () => C): void { C.inst = f() }
+          }
+      use: |-
+          C.inst = null
+          C()
+          arktest.assertTrue(C.inst instanceof C)
+
+    - decl: |-
+          // using type alias
+          type A = C
+          class C {
+              static $_instantiate(f: () => C, p: string): string {
+                  return f().meth(p)
+              }
+              meth(p: string): string { return p + p }
+          }
+      use: |-
+          arktest.assertEQ(A('abc'), 'abcabc')
+
+    - decl: |-
+          // singleton with implicit factory
+          class C {
+              static instance: C|null|undefined = null
+              static $_instantiate(f: () => C): C {
+                  if (C.instance == null) {
+                      C.instance = f()
+                  }
+                  return C.instance!
+              }
+          }
+      use: |-
+          arktest.assertEQ(C(), C())
+
+    - decl: |-
+          // singleton with explicit factory
+          class C {
+              static instance: C|null|undefined = null
+              static $_instantiate(f: () => C): C {
+                  if (C.instance == null) {
+                      C.instance = f()
+                  }
+                  return C.instance!
+              }
+          }
+      use: |-
+          let f: ()=>C = (): C => new C()
+          arktest.assertEQ(C.$_instantiate(f), C.$_instantiate(f))
+
+    - decl: |-
+          // using parameters
+          enum Color { Red, Green, Blue }
+          class C {
+              clr: Color|undefined
+              static $_instantiate(f: ()=>C, clr: Color): [C, C, C] {
+                  let c = f()
+                  c.clr = clr
+                  return [c, c, c]
+              }
+          }
+      use: |-
+          let x = C(Color.Green)
+          arktest.assertEQ(x[0], x[1])
+          arktest.assertEQ(x[1], x[2])
+
+    - decl: |-
+          // using rest parameters
+          class Conc {
+              static $_instantiate(f: ()=>Conc, ...strings: string[]): Conc {
+                  let ss = ''
+                  for (let s of strings) ss += s
+                  let res = f()
+                  res.s = ss
+                  return res
+              }
+              s: string = 'X'
+          }
+      use: |-
+          arktest.assertEQ(Conc().s, '')
+          arktest.assertEQ(Conc('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h').s, 'abcdefgh')
+
+    - decl: |-
+          // shadowed instantiate
+          class A {
+              static $_instantiate(f: ()=>A): A { return f() }
+          }
+          class B extends A {
+              static $_instantiate(f: ()=>B): B { return f() }
+          }
+          class C extends B {
+              static $_instantiate(f: ()=>C): C { return f() }
+          }
+      use: |-
+          let a = A()
+          arktest.assertTrue(a instanceof A)
+          arktest.assertFalse(a instanceof B)
+          arktest.assertFalse(a instanceof C)
+          let b = B()
+          arktest.assertTrue(b instanceof A)
+          arktest.assertTrue(b instanceof B)
+          arktest.assertFalse(b instanceof C)
+          let c = C()
+          arktest.assertTrue(c instanceof A)
+          arktest.assertTrue(c instanceof B)
+          arktest.assertTrue(c instanceof C)
+
+    - decl: |-
+          // shadowed instantiate
+          class A {
+              name: string = 'X'
+              static $_instantiate(f: ()=>A, p: number): A { return foo(f, 'A', p) }
+          }
+          class B extends A {
+              static $_instantiate(f: ()=>B, p: number): B { return foo(f, 'B', p) as B }
+          }
+          class C extends B {
+              static $_instantiate(f: ()=>C, p: number): C { return foo(f, 'C', p) as C }
+          }
+          function foo(f: ()=>A, p: string, n: number): A {
+              let r = f()
+              r.name = p + n
+              return r
+          }
+      use: |-
+          arktest.assertEQ(A(1.0).name, 'A1')
+          arktest.assertEQ(B(2.0).name, 'B2')
+          arktest.assertEQ(C(3.0).name, 'C3')
+
+    - decl: |-
+          // overloaded instantiate
+          class C {
+              static $_instantiate(f: ()=>C, p: number): number { return p + p }
+              static $_instantiate(f: ()=>C, p: string): string { return p + p }
+          }
+      use: |-
+          // implicit factory arg
+          arktest.assertEQ(C(42.0), 84.0)
+          arktest.assertEQ(C('abc'), 'abcabc')
+          // explicit factory arg
+          arktest.assertEQ(C.$_instantiate(() => { return new C() }, 42.0), 84.0)
+          arktest.assertEQ(C.$_instantiate(() => { return new C() }, 'abc'), 'abcabc')
+
+    - decl: |-
+          // overloaded instantiate
+          class B {
+              static $_instantiate(f: ()=>B, p: number): number { return p + p }
+          }
+          class C extends B {
+              static $_instantiate(f: ()=>C, p: string): string { return p + p }
+          }
+      use: |-
+          // implicit factory arg
+          arktest.assertEQ(C(42.0), 84.0)
+          arktest.assertEQ(C('abc'), 'abcabc')
+          // explicit factory arg
+          arktest.assertEQ(C.$_instantiate(() => { return new C() }, 42.0), 84.0)
+          arktest.assertEQ(C.$_instantiate(() => { return new C() }, 'abc'), 'abcabc')
+
+    - decl: |-
+          // mix of static and instance instantiate
+          class B {
+              static $_instantiate(f: ()=>B, p: number): number {
+                  return f().$_instantiate(f, p)
+              }
+              $_instantiate(f: ()=>B, p: number): number { return p + p }
+          }
+          class C extends B {
+              static $_instantiate(f: ()=>C, p: string): string {
+                  return f().$_instantiate(f, p)
+              }
+              $_instantiate(f: ()=>C, p: string): string { return '1' + p }
+          }
+          function foo_C(): C {
+              return new C()
+          }
+      use: |-
+          arktest.assertEQ(C('abc'), '1abc')
+          arktest.assertEQ(B(42.0), 84.0)
+          arktest.assertEQ(C(42.0), 84.0)
+
+    - decl: |-
+          // error propagation from instantiate
+          class MyError extends Error {}
+          class C {
+              static $_instantiate(f: ()=>C, p: boolean): C {
+                  if (p) {
+                      throw new MyError()
+                  }
+                  return f()
+              }
+          }
+      use: |-
+          let checkException = (e: Error): boolean => { return e instanceof MyError }  
+          arktest.expectThrow(() => {
+              C(true)
+          }, checkException)
+
+    - decl: |-
+          // error propagation from instantiate
+          class MyError extends Error {}
+          class C {
+              static $_instantiate(f: ()=>C, p: boolean): C {
+                  return f()
+              }
+              constructor() {
+                  throw new MyError()
+              }
+          }
+      use: |-
+          let checkException = (e: Error): boolean => { return e instanceof MyError }  
+          arktest.expectThrow(() => {
+              C(true)
+          }, checkException)
+
+    - decl: |-
+          // using trailing lambda as explicit factory
+          class C {
+              fld: number = 0.0
+              static $_instantiate(f: ()=>C): C {
+                  let x = f()
+                  x.fld = 1.0
+                  return x
+              }
+          }
+      use: |-
+          let x = C.$_instantiate() { return new C() }
+          arktest.assertEQ(x.fld, 1.0)
+
+    - decl: |-
+          // instantiate returns the factory
+          class C {
+              static $_instantiate(f: ()=>C): ()=>C { return f }
+          }
+      use: |-
+          arktest.assertTrue(C()() instanceof C)
+          arktest.assertTrue(C.$_instantiate(() => { return new C() })() instanceof C)
+
+    - decl: |-
+          // instantiate returns array
+          class C {
+              static $_instantiate(f: ()=>C): C[] {
+                  let x: C[] = [f(), f(), f()]
+                  return x
+              }
+          }
+      use: |-
+          for (let z of C())
+              arktest.assertTrue(z instanceof C)
+
+          for (let z of C.$_instantiate() { return new C() })
+              arktest.assertTrue(z instanceof C)

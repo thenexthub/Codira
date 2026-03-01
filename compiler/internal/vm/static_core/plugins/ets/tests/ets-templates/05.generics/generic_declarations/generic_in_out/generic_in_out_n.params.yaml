@@ -1,0 +1,191 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+generic_in_out:
+  #0
+  - desc: Verify the covariance of the 'out' keyword.
+    dec1: |-
+      interface A<out T> {
+        value: T;
+      }
+    check: |-
+      const a: A<number> = { value: 42 };
+      const b: A<object> = a;
+    stdout: |-
+      "Semantic error ESE0333: Type Parameter 'T' is declared as 'out' but occurs in 'in' position."
+  #1
+  - desc: Verify the covariance of the 'out' keyword, and act on the function.
+    dec1: |-
+      interface A<out T> {
+        value: T;
+      }
+      function createA<T>(value: T): A<T> {
+        return { value };
+      }
+    check: |-
+      const numberA = createA(42);
+      const objectA: A<object> = numberA;
+    stdout: |-
+      "Semantic error ESE0333: Type Parameter 'T' is declared as 'out' but occurs in 'in' position."
+  #2
+  - desc: To verify the covariance of an array.
+    dec1: |-
+      interface ArrayWrapper<out T> {
+        values: T[];
+      }
+      function createArrayWrapper<T>(values: T[]): ArrayWrapper<T> {
+        return { values };
+      }
+    check: |-
+      const numberWrapper = createArrayWrapper<int>([1, 2, 3]);
+      const anyWrapper: ArrayWrapper<object> = numberWrapper;
+    stdout: |-
+      "Semantic error ESE0331: Type Parameter 'T' is declared as 'out' but occurs in 'invariant' position."      
+  #3
+  - desc: Verify the application of the covariance of the 'out' keyword to the function return value.
+    dec1: |-
+      interface FunctionWrapper<out T> {
+        func: () => T;
+      }
+      function createFunctionWrapper<T>(func: () => T): FunctionWrapper<T> {
+        return { func };
+      }
+    check: |-
+      const numberFunctionWrapper = createFunctionWrapper(() => 42);
+      const anyFunctionWrapper: FunctionWrapper<object> = numberFunctionWrapper;
+    stdout: |-
+      "Semantic error ESE0333: Type Parameter 'T' is declared as 'out' but occurs in 'in' position."
+  #4
+  - desc: Verify the combined use of the keywords in and out.
+    dec1: |-
+      interface FunctionWrapper<in T, out U> {
+        func: (value: T) => U;
+      }
+      function createFunctionWrapper<T, U>(func: (value: T) => U): FunctionWrapper<T, U> {
+        return { func };
+      }
+    check: |-
+      const numberFunctionWrapper = createFunctionWrapper<number, number>((value: number) => value * 2);
+      const anyFunctionWrapper: FunctionWrapper<number, object> = numberFunctionWrapper;
+    stdout: |-
+      "Semantic error ESE0333: Type Parameter 'U' is declared as 'out' but occurs in 'in' position."
+  #5
+  - desc: Verify the application of the covariance of the out keyword in readonlyArray.
+    dec1: |-
+      interface ReadonlyArrayWrapper<out T> {
+        values: T[];
+      }
+      function createReadonlyArrayWrapper<T>(values: T[]): ReadonlyArrayWrapper<T> {
+        return { values };
+      }
+    check: |-
+      const numberWrapper = createReadonlyArrayWrapper<int>([1, 2, 3]);
+      const anyWrapper: ReadonlyArrayWrapper<object> = numberWrapper;
+    stdout: |-
+      "Semantic error ESE0331: Type Parameter 'T' is declared as 'out' but occurs in 'invariant' position."
+  #6
+  - desc: Verify the application of the contravariance of the in keyword in callback functions.
+    dec1: |-
+      interface CallbackWrapper<in T> {
+        callback: (value: T) => void;
+      }
+      function createCallbackWrapper<T>(callback: (value: T) => void): CallbackWrapper<T> {
+        return { callback };
+      }
+    check: |-
+      let a: number = 10.0;
+      const anyCallbackWrapper = createCallbackWrapper((value: object) => {
+        a = (value as number) + 1;
+      });
+      const numberCallbackWrapper: CallbackWrapper<number> = anyCallbackWrapper;
+      numberCallbackWrapper.callback(42.0);
+    stdout: |-
+      "Semantic error ESE0332: Type Parameter 'T' is declared as 'in' but occurs in 'out' position."
+  #7
+  - desc: Shows the inverse behavior of generics on input parameters.
+    dec1: |-
+      interface Consumer<in T> {
+        consume(item: T): T;
+      }
+      class AnimalConsumer implements Consumer<Animal> {
+        consume(item: Animal): Animal {
+          return item;
+        }
+      }
+      class DogConsumer extends AnimalConsumer {
+        consume(item: Dog): Dog {
+          return item;
+        }
+      }
+      class Animal {}
+      class Dog extends Animal {}
+    check: |-
+      const animalConsumer: Consumer<Dog> = new AnimalConsumer();
+      const result = animalConsumer.consume(new Dog());
+    stdout: |-
+      "Semantic error ESE0332: Type Parameter 'T' is declared as 'in' but occurs in 'out' position."
+  #8
+  - desc: Verify the combination of covariance and inversion.
+    dec1: |-
+      let a: number = 10;
+      interface A<out T> {
+        value: T;
+      }
+      interface Consumer<in T> {
+        consume(value: T): void;
+      }
+      function createA<T>(value: T): A<T> {
+        return { value };
+      }
+      class AnyConsumer implements Consumer<object> {
+        consume(value: object): void {
+          a = 11;
+        }
+      }
+    check: |-
+      const numberA = createA(42);
+      const anyA: A<object> = numberA;
+      const anyConsumer = new AnyConsumer();
+      const numberConsumer: Consumer<number> = anyConsumer;
+      numberConsumer.consume(anyA.value);
+    stdout: |-
+      "Semantic error ESE0333: Type Parameter 'T' is declared as 'out' but occurs in 'in' position."
+  #9
+  - desc: Verify the application of contravariance of the in keyword 'in' function parameters.
+    dec1: |-
+      interface FunctionWrapper<in T> {
+        func: (value: T) => void;
+      }
+      function createFunctionWrapper<T>(func: (value: T) => void): FunctionWrapper<T> {
+        return { func };
+      }
+    check: |-
+      let a: number = 10;
+      const anyFunctionWrapper = createFunctionWrapper((value: object) => {
+        a = 11;
+      });
+      const numberFunctionWrapper: FunctionWrapper<number> = anyFunctionWrapper;
+      numberFunctionWrapper.func(42);
+    stdout: |-
+      "Semantic error ESE0332: Type Parameter 'T' is declared as 'in' but occurs in 'out' position."
+  #10
+  - desc: Verify the covariance of the 'out' keyword.
+    dec1: |-
+      interface A<out T> {
+        value: T;
+      }
+    check: |-
+      const a: A<string> = { value: 'hello' };
+      const b: A<object> = a;
+    stdout: |-
+      "Semantic error ESE0333: Type Parameter 'T' is declared as 'out' but occurs in 'in' position."

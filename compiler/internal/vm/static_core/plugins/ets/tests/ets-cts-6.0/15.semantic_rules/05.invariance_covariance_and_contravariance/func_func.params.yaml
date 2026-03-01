@@ -1,0 +1,201 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    # assignment, contravariance in arguments, function type argument, case 1
+    - decl: |-
+          let sup: (p: B) => Any = (p: B): Any => 0
+          let sub: (p: A) => Any = (p: A): Any => 1
+
+          let subFoo: (p: (p: B) => Any) => Any = (p: (p: B) => Any): Any => 20
+      use: |-
+          let superFoo: (p: (p: A) => Any) => Any = (p: (p: A) => Any): Any => 10
+          arktest.assertEQ(superFoo(sub), 10)
+          arktest.assertEQ(subFoo(sup), 20)
+          arktest.assertEQ(subFoo(sup), 20)
+          superFoo = subFoo
+          arktest.assertEQ(superFoo(sub), 20)
+
+    - decl: |-
+          let superFoo: (p: (p: A) => Any) => Any = (p: (p: A) => Any): Any => 10
+          let subFoo: (p: (p: B) => Any) => Any = (p: (p: B) => Any): Any => 20
+      use: |-
+          subFoo = superFoo
+      tags: 'compile-only, negative'
+
+    # assignment, contravariance in arguments, function type argument, case 2
+    - decl: |-
+          let sup: (p: string|number) => Any = (p: string|number): Any => 0
+          let sub: (p: string|number|undefined) => Any = (p: string|number|undefined): Any => 1
+
+          let subFoo: (p: (p: string|number) => Any) => Any = (p: (p: string|number) => Any): Any => 20
+      use: |-
+          let superFoo: (p: (p: string|number|undefined) => Any) => Any = (p: (p: string|number|undefined) => Any): Any => 10
+          arktest.assertEQ(superFoo(sub), 10)
+          arktest.assertEQ(subFoo(sup), 20)
+          arktest.assertEQ(subFoo(sup), 20)
+          superFoo = subFoo
+          arktest.assertEQ(superFoo(sub), 20)
+
+    - decl: |-
+          let superFoo: (p: (p: string|number|undefined) => Any) => Any = (p: (p: string|number|undefined) => Any): Any => 10
+          let subFoo: (p: (p: string|number) => Any) => Any = (p: (p: string|number) => Any): Any => 20
+      use: |-
+          subFoo = superFoo
+      tags: 'compile-only, negative'
+
+    # assignment, contravariance in arguments, function type argument, case 3
+    - decl: |-
+          let sup: (p: (p: Any) => Object) => Any = (p: (p: Any) => Object): Any => 0
+          let sub: (p: (p: Object) => Any) => Any = (p: (p: Object) => Any): Any => 1
+
+          let subFoo: (p: (p: (p: Any) => Object) => Any) => Any = (p: (p: (p: Any) => Object) => Any): Any => 20
+      use: |-
+          let superFoo: (p: (p: (p: Object) => Any) => Any) => Any = (p: (p: (p: Object) => Any) => Any): Any => 10
+          arktest.assertEQ(superFoo(sub), 10)
+          arktest.assertEQ(subFoo(sup), 20)
+          arktest.assertEQ(subFoo(sup), 20)
+          superFoo = subFoo
+          arktest.assertEQ(superFoo(sub), 20)
+
+    - decl: |-
+          let superFoo: (p: (p: (p: Object) => Any) => Any) => Any = (p: (p: (p: Object) => Any) => Any): Any => 10
+          let subFoo: (p: (p: (p: Any) => Object) => Any) => Any = (p: (p: (p: Any) => Object) => Any): Any => 20
+      use: |-
+          subFoo = superFoo
+      tags: 'compile-only, negative'
+
+    # assignment, covariance in return type, function type return, case 1
+    - decl: |-
+          let sup: (p: A) => Object = (p: A): Object => a
+          let sub: (p: A) => boolean = (p: A): boolean => p === b
+
+          // covariance in return type
+          let subFoo: (p: Object) => ((p: A) => boolean) = (p: Object): ((p: A) => boolean) => sub
+      use: |-
+          let superFoo: (p: Object) => ((p: A) => Object) = (p: Object): ((p: A) => Object) => sup
+          arktest.assertEQ(superFoo(a)(a), a)
+          arktest.assertEQ(subFoo(a)(a), false)
+          arktest.assertEQ(subFoo(a)(b), true)
+          superFoo = subFoo
+          arktest.assertEQ(superFoo(a)(a), false)
+          arktest.assertEQ(superFoo(a)(b), true)
+
+    - decl: |-
+          let sup: (p: A) => Object = (p: A): Object => a
+          let sub: (p: A) => boolean = (p: A): boolean => p === b
+
+          // covariance in return type
+          let superFoo: (p: Object) => ((p: A) => Object) = (p: Object): ((p: A) => Object) => sup
+          let subFoo: (p: Object) => ((p: A) => boolean) = (p: Object): ((p: A) => boolean) => sub
+      use: |-
+          subFoo = superFoo
+      tags: 'compile-only, negative'
+
+    # assignment, covariance in return type, function type return, case 2
+    - decl: |-
+          let sup: (p: A) => string|boolean|number|null = (p: A): string|boolean|number|null => null
+          let sub: (p: A) => boolean|number = (p: A): boolean|number => p === b
+
+          // covariance in return type
+          let subFoo: (p: Object) => ((p: A) => boolean|number) = (p: Object): ((p: A) => boolean|number) => sub
+      use: |-
+          let superFoo: (p: Object) => ((p: A) => string|boolean|number|null) = (p: Object): ((p: A) => string|boolean|number|null) => sup
+          arktest.assertEQ(superFoo(a)(a), null)
+          arktest.assertEQ(subFoo(a)(a), false)
+          arktest.assertEQ(subFoo(a)(b), true)
+          superFoo = subFoo
+          arktest.assertEQ(superFoo(a)(a), false)
+          arktest.assertEQ(superFoo(a)(b), true)
+
+    - decl: |-
+          let sup: (p: A) => string|boolean|number|null = (p: A): string|boolean|number|null => null
+          let sub: (p: A) => boolean|number = (p: A): boolean|number => p === b
+
+          // covariance in return type
+          let superFoo: (p: Object) => ((p: A) => string|boolean|number|null) = (p: Object): ((p: A) => string|boolean|number|null) => sup
+          let subFoo: (p: Object) => ((p: A) => boolean|number) = (p: Object): ((p: A) => boolean|number) => sub
+      use: |-
+          subFoo = superFoo
+      tags: 'compile-only, negative'
+
+    # assignment, covariance in return type, function type return, case 3
+    - decl: |-
+          let sup: (p: A) => ((p: string) => number) = (p: A): ((p: string) => number) => (p: string): number => 10
+          let sub: (p: A) => ((p: Object) => number) = (p: A): ((p: Object) => number) => (p: Object): number => 20
+
+          // covariance in return type
+          let subFoo: (p: Object) => ((p: A) => ((p: Object) => number)) = (p: Object): ((p: A) => ((p: Object) => number)) => sub
+      use: |-
+          let superFoo: (p: Object) => ((p: A) => ((p: string) => number)) = (p: Object): ((p: A) => ((p: string) => number)) => sup
+          arktest.assertEQ(superFoo(a)(a)("abc"), 10)
+          arktest.assertEQ(subFoo(a)(a)(new Object), 20)
+          superFoo = subFoo
+          arktest.assertEQ(superFoo(a)(a)(new Object), 20)
+
+    - decl: |-
+          let sup: (p: A) => ((p: string) => number) = (p: A): ((p: string) => number) => (p: string): number => 10
+          let sub: (p: A) => ((p: Object) => number) = (p: A): ((p: Object) => number) => (p: Object): number => 20
+
+          // covariance in return type
+          let superFoo: (p: Object) => ((p: A) => ((p: string) => number)) = (p: Object): ((p: A) => ((p: string) => number)) => sup
+          let subFoo: (p: Object) => ((p: A) => ((p: Object) => number)) = (p: Object): ((p: A) => ((p: Object) => number)) => sub
+      use: |-
+          subFoo = superFoo
+      tags: 'compile-only, negative'
+
+    # call context, contravariance in arguments, function type argument, case 1
+    - decl: |-
+          let sub: (p: A) => Any = (p: A): Any => 1
+
+          let subFoo: (p: (p: B) => Any) => Any = (p: (p: B) => Any): Any => 20
+      use: |-
+          // supertype is (p: (p: A) => Any) => Any
+          ((p: ((p: (p: A) => Any) => Any)) => { arktest.assertEQ(p(sub), 20) })(subFoo)
+
+    - decl: |-
+          let superFoo: (p: (p: A) => Any) => Any = (p: (p: A) => Any): Any => 10
+      use: |-
+          // subtype is (p: (p: B) => Any) => Any
+          ((p: ((p: (p: B) => Any) => Any)) => {})(superFoo)
+      tags: 'compile-only, negative'
+
+    # call context, covariance in return type, function type return, case 1
+    - decl: |-
+          let sub: (p: A) => boolean = (p: A): boolean => p === b
+
+          // covariance in return type
+          let subFoo: (p: Object) => ((p: A) => boolean) = (p: Object): ((p: A) => boolean) => sub
+      use: |-
+          // supertype is (p: Object) => ((p: A) => Object)
+          ((p: ((p: Object) => ((p: A) => Object))) => { arktest.assertEQ(p(a)(a), false) })(subFoo)
+
+    - decl: |-
+          let sup: (p: A) => Object = (p: A): Object => a
+
+          // covariance in return type
+          let superFoo: (p: Object) => ((p: A) => Object) = (p: Object): ((p: A) => Object) => sup
+      use: |-
+          // subtype is (p: Object) => ((p: A) => boolean)
+          ((p: ((p: Object) => ((p: A) => boolean))) => {})(superFoo)
+      tags: 'compile-only, negative'

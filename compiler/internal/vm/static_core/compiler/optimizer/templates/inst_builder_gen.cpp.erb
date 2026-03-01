@@ -1,0 +1,275 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+<%
+require 'yaml'
+
+Instruction.class_eval do
+  def get_input_idx(index, kind)
+    res = 0
+    index += 1 if has_dst?
+    acc_and_operands.each_with_index do |op, i|
+      break if i == index
+      res += 1 if op.send(kind)
+    end
+    res
+  end
+
+  def inputs
+    @inputs ||= acc_and_operands.select { |x| !x.dst? }
+  end
+
+  def has_dst?
+    !acc_and_operands.empty? && acc_and_operands.first.dst?
+  end
+
+  def get_input_string(index)
+    op = inputs[index]
+    return "GetDefinitionAcc()" if op.acc?
+    return "FindOrCreateConstant(instruction->GetImm<#{get_format}, #{get_input_idx(index, :imm?)}>())" if op.imm?
+    return "GetDefinition(instruction->GetId<#{get_format}, BytecodeInstruction::Opcode, #{get_input_idx(index, :id?)}>().GetOffset())" if op.id?
+    raise "Invalid operand" unless op.reg?
+    return "GetDefinition(instruction->GetVReg<#{get_format}, #{get_input_idx(index, :reg?)}>())"
+  end
+
+  def get_format
+    return "BytecodeInstruction::Format::#{format.pretty.upcase}"
+  end
+
+end
+
+def get_type(type)
+  @type_map ||= {
+    'u1' => 'DataType::BOOL',
+    'i8' => 'DataType::INT8',
+    'i16' => 'DataType::INT16',
+    'i32' => 'DataType::INT32',
+    'i64' => 'DataType::INT64',
+    'u8' => 'DataType::UINT8',
+    'u16' => 'DataType::UINT16',
+    'u32' => 'DataType::UINT32',
+    'u64' => 'DataType::UINT64',
+    'b32' => 'DataType::UINT32',
+    'b64' => 'DataType::UINT64',
+    'f32' => 'DataType::FLOAT32',
+    'f64' => 'DataType::FLOAT64',
+    'ref' => 'DataType::REFERENCE',
+    'any' => 'DataType::ANY',
+    'i8[]' => 'DataType::INT8',
+    'i16[]' => 'DataType::INT16',
+    'i32[]' => 'DataType::INT32',
+    'i64[]' => 'DataType::INT64',
+    'u8[]' => 'DataType::UINT8',
+    'u16[]' => 'DataType::UINT16',
+    'u32[]' => 'DataType::UINT32',
+    'u64[]' => 'DataType::UINT64',
+    'b32[]' => 'DataType::UINT32',
+    'b64[]' => 'DataType::UINT64',
+    'f32[]' => 'DataType::FLOAT32',
+    'f64[]' => 'DataType::FLOAT64',
+    'ref[]' => 'DataType::REFERENCE',
+    'none' => 'DataType::NO_TYPE'}
+  raise "Unknown type #{type}" if @type_map[type].nil?
+  @type_map[type]
+end
+
+@tmpl_map ||= {
+  /ldarr/ => "ldarr",
+  /starr$/ => "starr",
+  /^return.*/ => "return",
+  /^[uf]?cmp/ => "cmp",
+  /^[ifu][813264]{1,2}to[ifu][813264]{1,2}$/ => "cast",
+  /^j(eq|ne|lt|gt|le|ge)z?$/ => "if",
+  /^jmp.*/ => "jump",
+  /(fdiv|fmod|add|sub|mul|and|or|xor|ashr|shr|shl|neg|not)[2i]?(iv)?$/ => "binop",
+  /(addv|subv|mulv|andv|orv|xorv|ashrv|shrv|shlv)$/ => "binop_v",
+  /(fdiv|fmod|add|sub|mul|and|or|xor|ashr|shr|shl)2v$/ => "binop_v2",
+  /^(div|mod)u?[2i]?v?(2v)?$/ => "binop_z",
+  /^inci$/ => "inci",
+  /^movi?$/ => "mov",
+  /^fmovi?$/ => "fmovi",
+  /^sta$/ => "sta",
+  /^ldai?$/ => "lda",
+  /^fldai?$/ => "fldai",
+  /^lenarr$/ => "lenarr",
+  /^newarr$/ => "newarr",
+  /^call/ => "call",
+  /^newobj/ => "newobj",
+  /^initobj/ => "initobj",
+  /^ldobj/ => "ldobj",
+  /^stobj/ => "stobj",
+  /^ldstatic/ => "ldstatic",
+  /^ststatic/ => "ststatic",
+  /^isinstance/ => "isinstance",
+  /^checkcast/ => "checkcast",
+  /^throw/ => "throw",
+  /^monitor/ => "monitor",
+  /^nop/ => "nop",
+  /^builtin/ => "builtin",
+  /^any?$/ => "unimplemented",
+  /^$/ => "unimplemented"
+}
+Panda::prefixes.select{|p| !p.public?}.each do |p|
+  @tmpl_map[p.name] = p.name
+end
+
+def get_template(mn)
+  res = @tmpl_map.select { |k, v| mn.match k }
+  raise "Template not found or multiple match: #{mn}" unless res.size == 1
+  return res.first[1]
+end
+
+def template(name, inst, indent, context = {})
+  @inst_yaml ||= YAML.load_file(File.join(File.dirname(__FILE__), 'inst_templates.yaml'))
+  raise "Template '#{name}' not found in templates file" unless @inst_yaml['templates'].key? name
+  indent + erb_new(@inst_yaml['templates'][name], trim_mode: '%-').result(binding).gsub("\n", "\n#{indent}")
+end
+
+def get_cc(inst)
+  return 'ConditionCode::CC_EQ' if inst.opcode.start_with? 'jeq'
+  return 'ConditionCode::CC_NE' if inst.opcode.start_with? 'jne'
+  return 'ConditionCode::CC_LT' if inst.opcode.start_with? 'jlt'
+  return 'ConditionCode::CC_GT' if inst.opcode.start_with? 'jgt'
+  return 'ConditionCode::CC_LE' if inst.opcode.start_with? 'jle'
+  return 'ConditionCode::CC_GE' if inst.opcode.start_with? 'jge'
+  raise 'get_cc: wrong opcode #{inst.opcode}'
+end
+
+%>
+
+#include "compiler_logger.h"
+#include "optimizer/ir_builder/inst_builder.h"
+#include "optimizer/ir_builder/ir_builder.h"
+#include "optimizer/ir/inst.h"
+#include "libarkfile/bytecode_instruction.h"
+#include "libarkfile/bytecode_instruction-inl.h"
+#include "optimizer/ir_builder/inst_builder-inl.h"
+#include "include/coretypes/tagged_value.h"
+#ifdef PANDA_WITH_IRTOC
+#include "irtoc_builder.cpp"
+#endif
+#ifdef ENABLE_LIBABCKIT
+#include "abckit_inst_builder-inl.h"
+#endif
+
+namespace ark::compiler {
+// NOLINTBEGIN(readability-identifier-naming)
+// NOLINTNEXTLINE(readability-function-size)
+void InstBuilder::BuildInstruction(const BytecodeInstruction* instruction) {
+    switch(instruction->GetOpcode()) {
+% Panda::instructions.each_with_index do |inst, idx|
+%   tmpl = inst.mnemonic.include?('polymorphic') ? 'unimplemented' : get_template(inst.stripped_mnemonic)
+    // NOLINTNEXTLINE(bugprone-branch-clone)
+    case BytecodeInstruction::Opcode::<%= inst.opcode.upcase %>: {
+%   if tmpl == 'unimplemented'
+       // Not implemented
+       failed_ = true;
+%   else
+<%= template(tmpl, inst, ' ' * 8) %>
+%   end
+        break;
+    }
+% end
+    }
+}
+
+// NOLINTNEXTLINE(readability-function-size)
+int64_t InstBuilder::GetInstructionJumpOffset(const BytecodeInstruction* inst) {
+    switch(inst->GetOpcode()) {
+% Panda::instructions.each_with_index do |inst, idx|
+    // NOLINTNEXTLINE(bugprone-branch-clone)
+    case BytecodeInstruction::Opcode::<%= inst.opcode.upcase %>:
+%   if inst.jump?
+        return inst->GetImm<BytecodeInstruction::Format::<%= inst.format.pretty.upcase %>, 0>();
+%   else
+        return INVALID_OFFSET;
+%   end
+% end
+    }
+    return INVALID_OFFSET;
+}
+
+// NOLINTNEXTLINE(readability-function-size)
+bool IrBuilderInliningAnalysis::IsSuitableForInline(const BytecodeInstruction* inst) {
+    switch(inst->GetOpcode()) {
+% runtime_insts = [/^(div|mod)u?[2i]?/, /^call/, /(ld|st|len|new)(arr|obj)/, /throw/, /^initobj/, /^checkcast/, /^ldstatic/, /^ststatic/, /^lda.type/, /^lda.str/, /^lda.const/, /^isinstance/, /^builtin/,
+%                  /^monitor/,
+%                  /^ets.typeof/, /^ets.call.name/, /^ets.nullcheck/, /^ets.equals/, /^ets.strictequals/
+%                 ]
+% Panda::instructions.each do |inst|
+    // NOLINTNEXTLINE(bugprone-branch-clone)
+    case BytecodeInstruction::Opcode::<%= inst.opcode.upcase %>:
+%   if runtime_insts.any? { |x| x.match?(inst.mnemonic) }
+        hasRuntimeCalls_ = true;
+        return !g_options.IsCompilerInlineSimpleOnly();
+%   else
+        return true;
+%   end
+% end
+    }
+    return false;
+}
+
+// NOLINTNEXTLINE(readability-function-size)
+bool IrBuilderExternalInliningAnalysisForLLVMAot::IsSuitableForInline(const BytecodeInstruction* inst) {
+    switch(inst->GetOpcode()) {
+% acceptable_insts = [/^(f?)mov/, /^(f?)lda/, /^(f?)sta/, /^return/, /^(f?)add/, /^(f?)sub/, /^(f?)mul/, /^(x?)or/, /^and/, /^(f?)neg/, /^not/, /^(a?)shr/, /^shl/, /^inc/, /^(u|f)?cmp/, /^[ifu][813264]{1,2}to[ifu][813264]{1,2}$/]
+% object_insts = [/^ldobj/, /^stobj/]
+% Panda::instructions.each do |inst|
+    // NOLINTNEXTLINE(bugprone-branch-clone)
+    case BytecodeInstruction::Opcode::<%= inst.opcode.upcase %>:
+%   if acceptable_insts.any? { |x| x.match?(inst.mnemonic) }
+%     if runtime_insts.any? { |x| x.match?(inst.mnemonic) }
+        return false;
+%     else
+        return true;
+%     end
+%   elsif object_insts.any? { |x| x.match?(inst.mnemonic) }
+        return true;
+%   elsif inst.jump?
+        return true;
+%   else
+        return false;
+%   end
+% end
+    }
+    return false;
+}
+
+// NOLINTNEXTLINE(readability-function-size)
+bool IrBuilderExternalInliningAnalysis::IsSuitableForInline(const BytecodeInstruction* inst) {
+    switch(inst->GetOpcode()) {
+    // NOTE(compiler): Exclude methods with 'ets.ldobj.*' instructions from external inlinig as it is impossible 
+    //                 to pass 'File Index' value without changing sinature of these instructions in isa.yml #27876
+% blacklisted_insts = ['ets.ldobj.name.obj', 'ets.ldobj.name.64', 'ets.ldobj.name']
+% Panda::instructions.select { |inst| blacklisted_insts.include?(inst.mnemonic) }.each do |inst|  
+    // NOLINTNEXTLINE(bugprone-branch-clone)
+    case BytecodeInstruction::Opcode::<%= inst.opcode.upcase %>:
+        return false;
+% end
+    default:
+        return true;
+    }
+    return true;
+}
+// NOLINTEND(readability-identifier-naming)
+}  // namespace ark::compiler

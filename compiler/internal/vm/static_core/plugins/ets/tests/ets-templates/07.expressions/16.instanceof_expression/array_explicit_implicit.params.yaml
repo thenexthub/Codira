@@ -1,0 +1,124 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - type: 'Any[]'
+    effective_elem_type: 'Any'
+    decl: 'let elem: Any = null'
+    init: '[elem, elem]'
+
+  - type: 'undefined[]'
+    effective_elem_type: 'undefined'
+    init: '[undefined, undefined]'
+
+  - type: 'null[]'
+    effective_elem_type: 'null'
+    init: '[null, null]'
+
+  - type: 'byte[]'
+    effective_elem_type: 'byte'
+    decl: 'let elem: byte = 1'
+    init: '[elem, elem]'
+
+  - type: 'short[]'
+    effective_elem_type: 'short'
+    decl: 'let elem: short = 1'
+    init: '[elem, elem]'
+
+  - type: 'int[]'
+    effective_elem_type: 'Numeric'
+    init: '[1, 1]'
+
+  - type: 'long[]'
+    effective_elem_type: 'Numeric'
+    init: '[2147483648, 2147483648]'
+
+  - type: 'float[]'
+    effective_elem_type: 'Numeric'
+    init: '[1.0f, 1.0f]'
+
+  - type: 'double[]'
+    effective_elem_type: 'double'
+    init: '[1.0, 1.0]'
+
+  - type: 'bigint[]'
+    effective_elem_type: 'bigint'
+    init: '[1n, 1n]'
+
+  - type: 'boolean[]'
+    effective_elem_type: 'boolean'
+    init: '[true, false]'
+
+  - type: 'char[]'
+    effective_elem_type: 'char'
+    init: "[c'a', c'a']"
+
+  - type: 'string[]'
+    effective_elem_type: 'string'
+    init: '["string", "string"]'
+
+  - type: 'Object[]'
+    effective_elem_type: 'Object'
+    decl: 'let elem: Object = new Object()'
+    init: '[elem, elem]'
+
+  - type: "'aa'[]"
+    effective_elem_type: 'string'
+    init: '["aa", "aa"]'
+
+  - type: 'A[]'
+    effective_elem_type: 'A'
+    decl: |-
+      class A {}
+      let elem: A = new A
+    init: '[elem, elem]'
+
+  - type: 'I[]'
+    effective_elem_type: 'I'
+    decl: |-
+      interface I {}
+      class A implements I {}
+      let elem: I = new A
+    init: '[elem, elem]'
+
+  - type: 'A<int>[]'
+    effective_elem_type: 'A'
+    decl: |-
+      class A<T> {}
+      let elem: A<int> = new A<int>
+    init: '[elem, elem]'
+
+  - type: 'I<int>[]'
+    effective_elem_type: 'I'
+    decl: |-
+      interface I<T> {}
+      class A<T> implements I<T> {}
+      let elem: I<int> = new A<int>
+    init: '[elem, elem]'
+
+  - type: 'Color[]'
+    effective_elem_type: 'Color'
+    decl: 'enum Color { Red, Green, Blue }'
+    init: '[Color.Red, Color.Green]'
+
+  - type: 'foo_type[]'
+    effective_elem_type: 'foo_type'
+    decl: |-
+      type foo_type = (a: string) => string
+      let elem: foo_type = (a: string) => a
+    init: '[elem, elem]'
+
+syntax:
+  - 'explicit'
+  - 'implicit'

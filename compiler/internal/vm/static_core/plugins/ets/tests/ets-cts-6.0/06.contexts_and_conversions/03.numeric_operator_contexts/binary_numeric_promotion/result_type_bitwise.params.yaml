@@ -1,0 +1,104 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+  - { type: byte, val: 1 as byte, rt: byte, rv: 1 as byte, op: '&', res: 3 }
+  - { type: byte, val: 1 as byte, rt: short, rv: 1, op: '^', res: 3 }
+
+  - { type: byte, val: 1 as byte, rt: int, rv: 1, op: '&', res: 3 }
+  - { type: byte, val: 1 as byte, rt: long, rv: 1, op: '^', res: 4 }
+  - { type: byte, val: 1 as byte, rt: float, rv: 1.0f, op: '&', res: 3 }
+  - { type: byte, val: 1 as byte, rt: double, rv: 4, op: '^', res: 4 }
+
+  - { type: byte, val: 1 as byte, rt: Byte, rv: new Byte(1 as byte), op: '|', res: 3 }
+  - { type: byte, val: 1 as byte, rt: Short, rv: new Short(1), op: '&', res: 3 }
+
+  - { type: byte, val: 1 as byte, rt: Int, rv: new Int(1), op: '|', res: 3 }
+  - { type: byte, val: 1 as byte, rt: Long, rv: new Long(1), op: '&', res: 4 }
+  - { type: byte, val: 1 as byte, rt: Float, rv: new Float(1.0f), op: '|', res: 3 }
+  - { type: byte, val: 1 as byte, rt: Double, rv: new Double(1.0), op: '&', res: 4 }
+
+  - { type: short, val: 1, rt: byte, rv: 1 as byte, op: '^', res: 3 }
+  - { type: short, val: 1, rt: short, rv: 1, op: '|', res: 3 }
+
+  - { type: short, val: 1, rt: int, rv: 1, op: '^', res: 3 }
+  - { type: short, val: 1, rt: long, rv: 1, op: '|', res: 4 }
+  - { type: short, val: 1, rt: float, rv: 1.0f, op: '^', res: 3 }
+  - { type: short, val: 1, rt: double, rv: 1.0, op: '&', res: 4 }
+
+  - { type: short, val: 1, rt: Byte, rv: new Byte(1 as byte), op: '&', res: 3 }
+  - { type: short, val: 1, rt: Short, rv: new Short(1), op: '^', res: 3 }
+
+  - { type: short, val: 1, rt: Int, rv: new Int(1), op: '&', res: 3 }
+  - { type: short, val: 1, rt: Long, rv: new Long(1), op: '^', res: 4 }
+  - { type: short, val: 1, rt: Float, rv: new Float(1.0f), op: '^', res: 3 }
+  - { type: short, val: 1, rt: Double, rv: new Double(1.0), op: '|', res: 4 }
+
+
+  - { type: int, val: 1, rt: byte, rv: 1 as byte, op: '&', res: 3 }
+  - { type: int, val: 1, rt: short, rv: 1, op: '^', res: 3 }
+
+  - { type: int, val: 1, rt: int, rv: 1, op: '&', res: 3 }
+  - { type: int, val: 1, rt: long, rv: 1, op: '^', res: 4 }
+  - { type: int, val: 1, rt: float, rv: 1.0f, op: '^', res: 3 }
+  - { type: int, val: 1, rt: double, rv: 1.0, op: '|', res: 4 }
+
+  - { type: int, val: 1, rt: Byte, rv: new Byte(1 as byte), op: '|', res: 3 }
+  - { type: int, val: 1, rt: Short, rv: new Short(1), op: '&', res: 3 }
+
+  - { type: int, val: 1, rt: Int, rv: new Int(1), op: '|', res: 3 }
+  - { type: int, val: 1, rt: Long, rv: new Long(1), op: '&', res: 4 }
+  - { type: int, val: 1, rt: Float, rv: new Float(1.0f), op: '&', res: 3 }
+  - { type: int, val: 1, rt: Double, rv: new Double(1.0), op: '^', res: 4 }
+
+  - { type: long, val: 1, rt: byte, rv: 1 as byte, op: '^', res: 4 }
+  - { type: long, val: 1, rt: short, rv: 1, op: '|', res: 4 }
+
+  - { type: long, val: 1, rt: int, rv: 1, op: '^', res: 4 }
+  - { type: long, val: 1, rt: long, rv: 1, op: '|', res: 4 }
+  - { type: long, val: 1, rt: float, rv: 1.0f, op: '|', res: 3 }
+  - { type: long, val: 1, rt: double, rv: 1.0, op: '&', res: 4 }
+
+  - { type: long, val: 1, rt: Byte, rv: new Byte(1 as byte), op: '&', res: 4 }
+  - { type: long, val: 1, rt: Short, rv: new Short(1), op: '^', res: 4 }
+
+  - { type: long, val: 1, rt: Int, rv: new Int(1), op: '&', res: 4 }
+  - { type: long, val: 1, rt: Long, rv: new Long(1), op: '^', res: 4 }
+  - { type: long, val: 1, rt: Float, rv: new Float(1.0f), op: '&', res: 3 }
+  - { type: long, val: 1, rt: Double, rv: new Double(1.0), op: '^', res: 4 }
+
+  - { type: IntEnum, val: IntEnum.One, rt: byte, rv: 1 as byte, op: '&', res: 3 }
+  - { type: IntEnum, val: IntEnum.One, rt: short, rv: 1, op: '^', res: 3 }
+
+  - { type: IntEnum, val: IntEnum.One, rt: int, rv: 1, op: '&', res: 3 }
+  - { type: IntEnum, val: IntEnum.One, rt: long, rv: 1, op: '^', res: 3 }
+  - { type: IntEnum, val: IntEnum.One, rt: float, rv: 1.0f, op: '^', res: 3 }
+  - { type: IntEnum, val: IntEnum.One, rt: double, rv: 1.0, op: '|', res: 3 }
+
+  - { type: IntEnum, val: IntEnum.One, rt: Byte, rv: new Byte(1 as byte), op: '|', res: 3 }
+  - { type: IntEnum, val: IntEnum.One, rt: Short, rv: new Short(1), op: '&', res: 3 }
+
+  - { type: IntEnum, val: IntEnum.One, rt: Int, rv: new Int(1), op: '|', res: 3 }
+  - { type: IntEnum, val: IntEnum.One, rt: Long, rv: new Long(1), op: '&', res: 3 }
+  - { type: IntEnum, val: IntEnum.One, rt: Float, rv: new Float(1.0f), op: '&', res: 3 }
+  - { type: IntEnum, val: IntEnum.One, rt: Double, rv: new Double(1.0), op: '^', res: 3 }

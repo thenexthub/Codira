@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+      "baseUrl": "${CMAKE_CURRENT_SOURCE_DIR}",
+      "paths": {
+        "escompat": [
+          "${PANDA_ROOT}/plugins/ets/stdlib/escompat"
+        ],
+        "std": [
+          "${PANDA_ROOT}/plugins/ets/stdlib/std"
+        ]
+      },
+      "dependencies": {
+        "testDecl" : {
+            "language": "js",
+            "path": "${CMAKE_CURRENT_SOURCE_DIR}/testDecl.d.ets",
+            "ohmUrl": "../../plugins/ets/tests/interop_js/tests/test_interface_optional_args/ts_to_ets/test_interface_optional_args_dynamic"
+        }
+      }
+    }
+}

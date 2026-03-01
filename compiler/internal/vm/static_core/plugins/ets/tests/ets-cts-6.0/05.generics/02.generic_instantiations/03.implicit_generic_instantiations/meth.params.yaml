@@ -1,0 +1,254 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          class Cls {
+              // no constraints
+              foo<T, U>(p: T, q: U): [T, U] {
+                  return [p, q]
+              }
+          }
+      use: |-
+          let cls = new Cls()
+          let z = cls.foo(1.0, true)
+          arktest.assertTrue(z instanceof object && z[0] instanceof number && z[1] instanceof boolean)
+          arktest.assertTrue(z[0] == 1.0 && z[1])
+
+          let y = cls.foo(new Error(), "abc")
+          arktest.assertTrue(y instanceof object && y[0] instanceof object && y[1] instanceof string)
+          arktest.assertTrue(y[0] instanceof Error && y[1] == "abc")
+
+          let x = cls.foo(z, y)
+          arktest.assertTrue(x[0][0] == 1.0 && x[0][1] && x[1][0] instanceof Error && x[1][1] == "abc")
+
+          let w = cls.foo(null, undefined)
+          arktest.assertTrue(w[0] === null && w[1] === undefined)
+
+    - decl: |-
+          class Cls {
+              // no constraints, function arguments with tuple
+              foo<T, U>(p: T, q: U): [T, U] {
+                  return [p, q]
+              }
+          }
+      use: |-
+          let cls = new Cls()
+          let v = cls.foo((p: number): number => p * p, (p: number): number => p + p)
+          arktest.assertTrue(v[0](5.0) == 25.0 && v[1](42.0) == 84.0)
+
+    - decl: |-
+          class Cls {
+              // no constraints, union
+              foo<T, U>(p: T, q: U): T|U {
+                  return (p! as object).toString() > (q! as object).toString() ? p : q
+              }
+          }
+      use: |-
+          let cls = new Cls()
+
+          let v = cls.foo(1.0, 11.0)
+          arktest.assertTrue(v as number == 11.0)
+
+          let w = cls.foo(["a", "b", "c", "d"], [1, 2])
+          arktest.assertTrue((w as string[]).length == 4)
+
+    - decl: |-
+          class Bar {
+              static bar<T>(p: T): Array<T> {
+                  let x = Array<T>(5)
+                  return x.fill(p)
+              }
+          }
+
+          class Foo {
+              // no constraints
+              foo<T, U>(p: T, q: U): [Array<T>, Array<U>] {
+                  return [Bar.bar(p), Bar.bar(q)]
+              }
+          }
+      use: |-
+          let err = new Error()
+          let z = new Foo().foo(42.0f, err)
+          arktest.assertTrue(z[0][0] == 42.0f && z[0][4] == 42.0f && z[1][0] == err && z[1][4] == err)
+
+    - decl: |-
+          class A {}
+          class B extends A {}
+
+          class Cls {
+              // with class type constraints
+              foo<T extends U, U extends Object>(p: T, q: U): boolean {
+                  return p.toString() + q.toString() > ""
+              }
+          }
+      use: |-
+          let cls = new Cls()
+          arktest.assertTrue(cls.foo(new Object(), new Object()))
+          arktest.assertTrue(cls.foo(new A(), new Object()))
+          arktest.assertTrue(cls.foo(new B(), new Object()))
+          arktest.assertTrue(cls.foo(new A(), new A()))
+          arktest.assertTrue(cls.foo(new B(), new A()))
+          arktest.assertTrue(cls.foo(new B(), new B()))
+
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class C extends A {}
+          class Cls {
+              // with union type constraints
+              foo<T extends B|C, U extends number|never|B|null|boolean>(p: T, q: U): boolean {
+                  return "" + p + q > ""
+              }
+          }
+      use: |-
+          let cls = new Cls()
+          arktest.assertTrue(cls.foo(new C(), true))
+          arktest.assertTrue(cls.foo(new B(), new B()))
+          arktest.assertTrue(cls.foo(new C(), 42.0))
+          arktest.assertTrue(cls.foo(new B(), null))
+
+    - decl: |-
+          class Cls {
+              foo <T> (p: T, q: T): T {
+                  return p ?? q
+              }
+          }
+      use: |-
+          let cls = new Cls()
+          let a = new Object()
+          let b = "abc"
+          arktest.assertFalse(cls.foo(a, b) instanceof String)
+
+    - decl: |-
+          class Cls {
+              foo <T> (p: T, q: T): T {
+                  return p ?? q
+              }
+          }
+      use: |-
+          let cls = new Cls()
+          let a = "a"
+          let b = "b"
+          arktest.assertEQ(cls.foo(a, b), "a")
+
+    - decl: |-
+          class Cls {
+              foo <T> (p: T, q: T): T {
+                  return p ?? q
+              }
+          }
+      use: |-
+          let cls = new Cls()
+          arktest.assertEQ(cls.foo("a", "b"), "a")      
+  # specific cases: tuple types, FixedArray, Any, union types, bigint, literal types, function types,
+  # undefined, null, Array<T> or T[]
+    - decl: |-
+        class Cls {
+            foo<T>(p: T): T {
+                return p
+            }
+        }
+      use: |-
+        let arg: [number, string] = [1, "abc"]
+        let z = new Cls().foo(arg)
+        arktest.assertTrue(z[0] instanceof number)
+        arktest.assertTrue(z[1] instanceof string)
+    - decl: |-
+        class Cls {
+            foo<T>(p: T): T {
+                return p
+            }
+        }
+      use: |-
+        let arg: FixedArray<number> = [1]
+        let z = new Cls().foo(arg)
+        arktest.assertTrue(z[0] instanceof number)
+    - decl: |-
+        class Cls {
+            foo<T>(p: T): T {
+                return p
+            }
+        }
+      use: |-
+        let arg: Any = null
+        let z = new Cls().foo(arg)
+        arktest.assertTrue(z instanceof Any)
+    - decl: |-
+        class Cls {
+            foo<T>(p: T): T {
+                return p
+            }
+        }
+      use: |-
+        let z = new Cls().foo(123n)
+        arktest.assertTrue(z instanceof bigint)
+    - decl: |-
+        class Cls {
+            foo<T>(p: T): T {
+                return p
+            }
+        }
+      use: |-
+        let arg: "aa" | "bb" = "aa"
+        let z = new Cls().foo(arg)
+        arktest.assertTrue(z instanceof string)
+    - decl: |-
+        function foo1(): number { return 1 }
+        class Cls {
+            foo<T>(p: T): T {
+                return p
+            }
+        }
+      use: |-
+        let z = new Cls().foo(foo1)
+        arktest.assertTrue(z() instanceof number)
+    - decl: |-
+        class Cls {
+            foo<T>(p: T): T {
+                return p
+            }
+        }
+      use: |-
+        let z = new Cls().foo(undefined)
+        arktest.assertTrue(z instanceof undefined)
+    - decl: |-
+        class Cls {
+            foo<T>(p: T): T {
+                return p
+            }
+        }
+      use: |-
+        let z = new Cls().foo(null)
+        arktest.assertTrue(z instanceof null)
+    - decl: |-
+        class Cls {
+            foo<T>(p: T): T {
+                return p
+            }
+        }
+      use: |-
+        let arg: Array<number> = [1]
+        let z = new Cls().foo(arg)
+        arktest.assertTrue(z[0] instanceof number)
+    - decl: |-
+        class Cls {
+            foo<T>(p: T): T {
+                return p
+            }
+        }
+      use: |-
+        let arg: number[] = [1]
+        let z = new Cls().foo(arg)
+        arktest.assertTrue(z[0] instanceof number)

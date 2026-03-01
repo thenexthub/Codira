@@ -1,0 +1,87 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of operations with overflow
+operations:
+  - {
+      value1: 0x7FFF_FFFE, type1: "int", 
+      value2: 1, type2: "int", 
+      operation: "+", 
+      result_value: 0x7FFF_FFFF, result_type: "int"
+    }
+  - {
+      value1: 0x7FFF_FFFF, type1: "int", 
+      value2: 0, type2: "int", 
+      operation: "+", 
+      result_value: 0x7FFF_FFFF, result_type: "int"
+    }
+  - {
+      value1: 0x7FFF_FFFF, type1: "int", 
+      value2: 1, type2: "int", 
+      operation: "+", 
+      result_value: -0x8000_0000, result_type: "int"
+    }
+  - {
+      value1: -0x7FFF_FFFF, type1: "int", 
+      value2: -1, type2: "int", 
+      operation: "+", 
+      result_value: -0x8000_0000, result_type: "int"
+    }
+  - {
+      value1: -0x8000_0000, type1: "int", 
+      value2: 0, type2: "int", 
+      operation: "-", 
+      result_value: -0x8000_0000, result_type: "int"
+    }
+  - {
+      value1: -0x8000_0000, type1: "int", 
+      value2: 1, type2: "int", 
+      operation: "-", 
+      result_value: 0x7FFF_FFFF, result_type: "int"
+    }
+  - {
+      value1: 0x7FFF_FFFF_FFFF_FFFE, type1: "long", 
+      value2: 1, type2: "long", 
+      operation: "+", 
+      result_value: 0x7FFF_FFFF_FFFF_FFFF, result_type: "long"
+    }
+  - {
+      value1: 0x7FFF_FFFF_FFFF_FFFF, type1: "long", 
+      value2: 0, type2: "long", 
+      operation: "+", 
+      result_value: 0x7FFF_FFFF_FFFF_FFFF, result_type: "long"
+    }
+  - {
+      value1: 0x7FFF_FFFF_FFFF_FFFF, type1: "long", 
+      value2: 1, type2: "long", 
+      operation: "+", 
+      result_value: -0x8000_0000_0000_0000, result_type: "long"
+    }
+  - {
+      value1: -0x7FFF_FFFF_FFFF_FFFF, type1: "long", 
+      value2: 1, type2: "long", 
+      operation: "-", 
+      result_value: -0x8000_0000_0000_0000, result_type: "long"
+    }
+  - {
+      value1: -0x8000_0000_0000_0000, type1: "long", 
+      value2: 0, type2: "long", 
+      operation: "-", 
+      result_value: -0x8000_0000_0000_0000, result_type: "long"
+    }
+  - {
+      value1: -0x8000_0000_0000_0000, type1: "long", 
+      value2: 1, type2: "long", 
+      operation: "-", 
+      result_value: 0x7FFF_FFFF_FFFF_FFFF, result_type: "long"
+    }

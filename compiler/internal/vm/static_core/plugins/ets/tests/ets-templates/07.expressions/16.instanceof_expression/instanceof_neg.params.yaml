@@ -1,0 +1,103 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - expr: 'void'
+    types:
+      - { type: 'Any' }
+      - { type: 'null' }
+      - { type: 'undefined' }
+      - { type: 'Object' }
+      - { type: 'never' }
+      - { type: 'void' }
+
+  - expr: 'never'
+    types:
+      - { type: 'Any' }
+      - { type: 'null' }
+      - { type: 'undefined' }
+      - { type: 'Object' }
+      - { type: 'never' }
+      - { type: 'void' }
+
+  - expr: 'null'
+    types:
+      - { type: 'void' }
+
+  - expr: 'undefined'
+    types:
+      - { type: 'void' }
+
+  - expr: 'Object'
+    types:
+      - { type: 'Any' }
+      - { type: 'null' }
+      - { type: 'undefined' }
+      - { type: 'Object' }
+      - { type: 'never' }
+      - { type: 'void' }
+
+  - expr: '(() => {})()' # void
+    types:
+      - { type: 'Any' }
+      - { type: 'null' }
+      - { type: 'undefined' }
+      - { type: 'Object' }
+      - { type: 'never' }
+      - { type: 'void' }
+
+  - expr: '((): Any => "abc")()'
+    types:
+      - { type: '"abc"' }
+
+  - expr: '[1, 2]'
+    types:
+      - { type: 'Array<int>' }
+      - { type: 'FixedArray' }
+
+  - decl: |-
+      let a: Array<number> = [1.0, 2.0]
+    expr: '((): Any => a)()'
+    types:
+      - { type: 'Array<number>' }
+      - { type: 'FixedArray' }
+
+  - decl: |-
+      let a: FixedArray<number> = [1.0, 2.0]
+    expr: '((): Any => a)()'
+    types:
+      - { type: 'Array<number>' }
+      - { type: 'FixedArray' }
+
+  - decl: |-
+      type TT = [int, string]
+      let a: TT = [42, "abc"]
+    expr: '((): Any => a)()'
+    types:
+      - { type: 'Array<int>' }
+      - { type: 'FixedArray' }
+      - { type: 'TT' }
+
+  - decl: |-
+      class A<T> {}
+    expr: '((): Any => new A<string>())()'
+    types:
+      - { type: 'A<string>' }
+      - { type: 'A<>' }
+
+  - decl: |-
+      let a: Record<string, int> = { '1': 1 }
+    expr: '((): Any => a)()'
+    types:
+      - { type: 'Record<string, int>' }

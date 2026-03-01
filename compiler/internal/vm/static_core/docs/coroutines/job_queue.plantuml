@@ -1,0 +1,5 @@
+@startuml
+interface JobQueue {
+    + put(Promise, Coroutine)
+}
+@enduml

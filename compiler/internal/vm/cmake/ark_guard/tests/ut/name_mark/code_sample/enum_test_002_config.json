@@ -1,0 +1,13 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep enum enum_test_002.Ns1.Color1 {\n    *;\n    }",
+        "-keep enum enum_test_002.Ns1.Color2 {\n    YELLOW;\n    }"
+      ]
+    }
+  }
+}

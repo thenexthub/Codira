@@ -1,0 +1,69 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+     # Common fields in classes - negative cases
+    - decl: |-
+          // classes, fields of different types
+          class A {
+              fld: number = 42.0
+          }
+          class B {}
+          let u1: A|B = new A
+      use: |-
+          arktest.assertEQ(u1.fld * 2, 84.0)  // CTE: no fld in class B
+      stdout: |-
+          "Semantic error ESE0244: Member type must be the same for all union objects."
+
+    - decl: |-
+          // classes, fields of different types
+          class A {
+              fld: number = 42.0
+          }
+          class B {
+              fld: string = 'abc'
+          }
+          let u1: A|B = new A
+      use: |-
+          arktest.assertEQ(u1.fld * 2, 84.0)  // CTE: different types
+      stdout: |-
+          "Semantic error ESE0244: Member type must be the same for all union objects."
+
+    - decl: |-
+          // classes, fields of different types
+          class A {
+              fld: number[] = [42.0]
+          }
+          class B {
+              fld: string[] = ['abc']
+          }
+          let u1: A|B = new A
+      use: |-
+          arktest.assertEQ(u1.fld[0] * 2, 84.0)  // CTE: different types
+      stdout: |-
+          "Semantic error ESE0244: Member type must be the same for all union objects."
+      
+    - decl: |-
+          // satatic fields of the same type
+          class A {
+              fld: number = 42.0
+          }
+          class B {
+              static fld: number = 1.1
+          }
+          let u1: A|B = new A
+      use: |-
+          arktest.assertEQ(u1.fld, 42.0)  // CTE: fld is a static property of 'B'
+      stdout: |-
+          "Semantic error ESE0207: 'fld' is a static property of 'B'"  

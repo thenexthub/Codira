@@ -1,0 +1,86 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # empty array
+  - use: |-
+      let v1: FixedArray<A> = []
+      arktest.assertTrue(v1 instanceof FixedArray<A>, "expect instance of FixedArray<A>")
+      let v2: FixedArray<double> = []
+      arktest.assertTrue(v2 instanceof FixedArray<double>, "expect instance of FixedArray<double>")
+      let v3: FixedArray<int> = []
+      arktest.assertTrue(v3 instanceof FixedArray<int>, "expect instance of FixedArray<int>")
+      let v4: FixedArray<string> = []
+      arktest.assertTrue(v4 instanceof FixedArray<string>, "expect instance of FixedArray<string>")
+      let v5: FixedArray<null> = []
+      arktest.assertTrue(v5 instanceof FixedArray<null>, "expect instance of FixedArray<null>")
+      let v6: FixedArray<undefined> = []
+      arktest.assertTrue(v6 instanceof FixedArray<undefined>, "expect instance of FixedArray<undefined>")
+
+  # non-empty array
+  - use: |-
+      let v1: FixedArray<A> = [new A]
+      arktest.assertTrue(v1 instanceof FixedArray<A>, "expect instance of FixedArray<A>")
+      arktest.assertTrue(v1[0] instanceof A, "expect instance of A")
+      let v2: FixedArray<double> = [1.0]
+      arktest.assertTrue(v2 instanceof FixedArray<double>, "expect instance of FixedArray<double>")
+      arktest.assertTrue(v2[0] instanceof double, "expect instance of double")
+      let v3: FixedArray<int> = [1]
+      arktest.assertTrue(v3 instanceof FixedArray<int>, "expect instance of FixedArray<int>")
+      arktest.assertTrue(v3[0] instanceof int, "expect instance of int")
+      let v4: FixedArray<string> = ["string"]
+      arktest.assertTrue(v4 instanceof FixedArray<string>, "expect instance of FixedArray<string>")
+      arktest.assertTrue(v4[0] instanceof string, "expect instance of string")
+      let v5: FixedArray<null> = [null]
+      arktest.assertTrue(v5 instanceof FixedArray<null>, "expect instance of FixedArray<null>")
+      arktest.assertTrue(v5[0] instanceof null, "expect instance of null")
+      let v6: FixedArray<undefined> = [undefined]
+      arktest.assertTrue(v6 instanceof FixedArray<undefined>, "expect instance of FixedArray<undefined>")
+      arktest.assertTrue(v6[0] instanceof undefined, "expect instance of undefined")
+
+  # non-trivial cases based on instanceof.ets tests design
+  - use: |-
+      let v1 = [1, 2] instanceof FixedArray<int>
+      arktest.assertTrue(v1 instanceof boolean, "expect boolean v1")
+      arktest.assertTrue(!v1, "expect v1 to be false")
+      let v2 = ((p: boolean) => p ? 1 : 0)([1, 2] instanceof FixedArray<int>)
+      arktest.assertEQ(v2, 0, "expect v2 to be 0")
+
+  - decl: |-
+      let a: Array<number> = [1.0, 2.0]
+    use: |-
+      let v1 = ((): Any => a)() instanceof FixedArray<double>
+      arktest.assertTrue(v1 instanceof boolean, "expect boolean v1")
+      arktest.assertTrue(!v1, "expect v1 to be false")
+      let v2 = ((p: boolean) => p ? 1 : 0)(((): Any => a)() instanceof FixedArray<double>)
+      arktest.assertEQ(v2, 0, "expect v2 to be 0")
+
+  - decl: |-
+      let a: FixedArray<number> = [1.0, 2.0]
+    use: |-
+      let v1 = ((): Any => a)() instanceof FixedArray<number>
+      arktest.assertTrue(v1 instanceof boolean, "expect boolean v1")
+      arktest.assertTrue(v1, "expect v1 to be true")
+      let v2 = ((p: boolean) => p ? 1 : 0)(((): Any => a)() instanceof FixedArray<number>)
+      arktest.assertEQ(v2, 1, "expect v2 to be 1")
+
+  - decl: |-
+      type TT = [int, string]
+      let a: TT = [42, "abc"]
+    use: |-
+      let v1 = ((): Any => a)() instanceof FixedArray<int>
+      arktest.assertTrue(v1 instanceof boolean, "expect boolean v1")
+      arktest.assertTrue(!v1, "expect v1 to be false")
+      let v2 = ((p: boolean) => p ? 1 : 0)(((): Any => a)() instanceof FixedArray<int>)
+      arktest.assertEQ(v2, 0, "expect v2 to be 0")

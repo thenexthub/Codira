@@ -1,0 +1,85 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+ 
+ .container {
+  display: flex;
+  width: 600px;
+  min-height: 200px;
+  background: var(--divider);
+  padding-bottom: 12px;
+  flex-direction: column;
+  border-bottom: 1px dashed var(--text-color);
+  margin-bottom: 12px;
+}
+.checkbox {
+  font-family: "Roboto Mono";
+
+  input:checked ~ span {
+    background-color: var(--primary1) !important;
+    outline: none !important;
+  }
+  input:focus ~ span {
+    outline: none !important;
+  }
+}
+.label {
+  font-family: "Roboto Mono";
+  font-weight: 600;
+}
+.btn {
+  background-color: transparent !important;
+  color: var(--text-color) !important;
+  border: 1px solid var(--text-color) !important;
+  border-radius: 4px;
+  padding: 4px 16px;
+  font-family: "Roboto Mono";
+  box-shadow: none !important;
+}
+.btn:hover {
+  color: var(--primary1) !important;
+  border: 1px solid var(--primary1) !important;
+}
+.btnCancel {
+  background-color: transparent !important;
+  color: var(--text-color) !important;
+  border: 1px solid var(--text-color) !important;
+  border-radius: 4px;
+  padding: 4px 16px;
+  font-family: "Roboto Mono";
+  box-shadow: none !important;
+}
+.btnContainer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+.optionsContainer {
+  flex: 1 1 auto;
+}
+.header {
+  color: var(--text-color) !important;
+  font-family: "Roboto Mono";
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 14px;
+}

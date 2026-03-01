@@ -1,0 +1,186 @@
+# Copyright (c) 2021-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License")
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+function_decls:
+    - decl: |-
+          let i = 0
+          let foo = () => {  // infer void
+              i += 1
+          }
+      call: |-
+          i = 0
+          foo()
+          arktest.assertTrue(i == 1)
+
+    - decl: |-
+          let i = 0
+          let foo = () => {  // infer void
+              i += 1
+              return
+          }
+      call: |-
+          i = 0
+          foo()
+          arktest.assertTrue(i == 1)
+
+    - decl: |-
+          let s = "foo"
+          let foo = () => {  // infer string
+              return s
+          }
+      call: |-
+          let v: string = foo()
+          arktest.assertTrue(foo() == "foo")
+
+    - decl: |-
+          let s: int = 42
+          let foo = () => {  // infer int
+              return s
+          }
+      call: |-
+          let v: int = foo()
+          arktest.assertTrue(foo() == 42)
+
+    - decl: |-
+          let s: number = 1.0
+          let foo = () => {  // infer number
+              return s
+          }
+      call: |-
+          let v: number = foo()
+          arktest.assertTrue(foo() == 1.0)
+
+    - decl: |-
+          let s = new Error()
+          let foo = () => {  // infer Error
+              return s
+          }
+      call: |-
+          let v: Error = foo()
+          arktest.assertTrue(foo() instanceof Error)
+
+    - decl: |-
+          let s: number[] = [1.0, 2.0, 3.0]
+          let foo = () => {  // infer number[]
+              return s
+          }
+      call: |-
+          let v = foo()
+          arktest.assertTrue(v instanceof number[] && v.length == 3)
+
+    - decl: |-
+          let s: Boolean[] = new Boolean[0]
+          let foo = () => {  // infer Boolean[]
+              return s
+          }
+      call: |-
+          let v = foo()
+          arktest.assertTrue(v instanceof Boolean[] && v.length == 0)
+
+    - decl: |-
+          let s: Long[][] = new Long[1][1]
+          let foo = () => {  // infer Long[][]
+              if (s != null)
+                  return s
+              else
+                  return new Long[2][2]
+          }
+      call: |-
+          let v: Long[][] = foo()
+          arktest.assertTrue(foo() instanceof Long[][])
+
+    - decl: |-
+          let s: long[][] = new long[1][1]
+          let foo = () => {  
+              if (s != null)
+                  return s
+              else
+                  return new Error[1][1]
+          }
+      call: |-
+          let v: long[][] = foo() as long[][]
+          v[0][0] = 0
+          arktest.assertEQ(v[0][0], 0)
+
+    - decl: |-
+          let s: Long[][] = new Long[1][1]
+          let foo = () => {  
+              if (s == null)
+                  return s
+              else
+                  return new Error[1]
+          }
+      call: |-
+          let v: Error[] = foo() as Error[]
+          arktest.assertEQ(v.length, 1)
+
+    - decl: |-
+          let s: Long[][] | null = new Long[1][1]
+          let foo = () => {  
+              if (s != null)
+                  return s
+              else
+                  return new Error()
+          }
+      call: |-
+          let v = foo()
+          arktest.assertTrue(v instanceof Object)
+
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class C extends A {}
+          type TypeB = B
+          type TypeC = C
+          let s = 1
+
+          let foo = () => {  
+              if (s == 0)
+                  return new TypeB()
+              else
+                  return new TypeC()
+          }
+      call: |-
+          let v: A = foo()
+          arktest.assertTrue(foo() instanceof A)
+
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class C extends B {}
+          class D extends B {}
+          let s = 1
+
+          let foo = () => {  
+              if (s == 0)
+                  return new C()
+              else
+                  return new D()
+          }
+      call: |-
+          let v: B[] = new B[1]
+          v[0] = foo()
+          arktest.assertTrue(foo() instanceof D)
+
+    - decl: |-
+          let s = new Object()
+          let foo = () => {    
+            if (s != null)
+                return true
+            else
+                return [true]
+          }
+      call: |-
+          let v = foo()
+          arktest.assertTrue(v instanceof boolean|boolean[])

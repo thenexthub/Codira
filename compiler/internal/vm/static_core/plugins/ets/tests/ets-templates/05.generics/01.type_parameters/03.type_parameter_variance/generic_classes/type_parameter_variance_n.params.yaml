@@ -1,0 +1,43 @@
+# Copyright (c) 2024-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  #0
+  - case: { param: "in T",  expression: "f(): T { return 'p' as T }"   }
+    stdout: |-
+      "Semantic error ESE0332: Type Parameter 'T' is declared as 'in' but occurs in 'out' position."
+  #1
+  - case: { param: "in T",  expression: "f(p: T): T { return p }"      }
+    stdout: |-
+      "Semantic error ESE0332: Type Parameter 'T' is declared as 'in' but occurs in 'out' position."
+  #2
+  - case: { param: "in T",  expression: "field: T = 'a' as T"          }
+    stdout: |-
+      "Semantic error ESE0331: Type Parameter 'T' is declared as 'in' but occurs in 'invariant' position."
+  #3
+  - case: { param: "in T",  expression: "readonly field: T = 'a' as T" }
+    stdout: |-
+      "Semantic error ESE0332: Type Parameter 'T' is declared as 'in' but occurs in 'out' position."
+  #4
+  - case: { param: "out T", expression: "f(p: T) {}"                   }
+    stdout: |-
+      "Semantic error ESE0333: Type Parameter 'T' is declared as 'out' but occurs in 'in' position."
+  #5
+  - case:  { param: "out T", expression: "f(p: T): T { return p }"      }
+    stdout: |-
+      "Semantic error ESE0333: Type Parameter 'T' is declared as 'out' but occurs in 'in' position."
+  #6
+  - case:  { param: "out T", expression: "field: T = 'a' as T"          }
+    stdout: |-
+      "Semantic error ESE0331: Type Parameter 'T' is declared as 'out' but occurs in 'invariant' position."

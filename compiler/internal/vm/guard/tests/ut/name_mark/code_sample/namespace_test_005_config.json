@@ -1,0 +1,14 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep namespace namespace_test_005.Ns1 {\n    *;\n    }",
+        "-keep !package namespace_test_005.Ns2 {\n    *;\n    }",
+        "-keep package namespace_test_005.Ns3 {\n    *;\n    }"
+      ]
+    }
+  }
+}

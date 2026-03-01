@@ -1,0 +1,71 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+#! CHECKER      Check the memory coalescing algorithm for may aliased objects 
+#! SKIP_IF      @architecture != "arm64"
+#! RUN_PAOC     options: "--compiler-inlining false --compiler-lse false"
+#! EVENT        /Compilation,_GLOBAL::main,.*COMPILED/
+#! EVENT        /Compilation,_GLOBAL::cannotProveDistinctObjects,.*COMPILED/
+#! EVENT        /Compilation,_GLOBAL::mayChangeFields,.*COMPILED/
+#! EVENT_NOT    /Inline.*/
+#! METHOD       "_GLOBAL::cannotProveDistinctObjects"
+#! PASS_BEFORE  "MemoryCoalescing"
+#! INST_COUNT   /LoadObject/, 2
+#! INST_COUNT   /StoreObject/, 1
+#! INST_NOT     "LoadObjectPair"
+#! PASS_AFTER   "MemoryCoalescing"
+#! INST_COUNT   /LoadObject/, 2
+#! INST_COUNT   /StoreObject/, 1
+#! INST_NOT     "LoadObjectPair"
+#! RUN          options: "", entry: "_GLOBAL::main", result: 0
+
+.record A {
+    i32 a
+    i32 b
+}
+
+.function void mayChangeFields(A a0, A a1, i32 a2, i32 a3) {
+    return.void
+}
+
+.function void cannotProveDistinctObjects(A a0, A a1) {
+    ldobj a0, A.a
+    sta v0
+    ldai 3
+    stobj a1, A.a
+    ldobj a0, A.b
+    sta v1
+    call mayChangeFields, a0, a1, v0, v1
+    return.void
+}
+
+.function i32 main() {
+    newobj v0, A
+    newobj v1, A
+    ldai 1
+    stobj v0, A.a
+    ldai 2
+    stobj v0, A.b
+    call cannotProveDistinctObjects, v0, v1
+    ldai 0
+    return
+}

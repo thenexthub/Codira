@@ -1,0 +1,124 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+--- # List of integer or ("|") operations
+integer_or:
+  - {xorigin:    0, yorigin:    0, op: "|", dest:    0, xbits: "0b00000000", ybits: "0b00000000", dbits: "0b00000000"}
+  - {xorigin:    0, yorigin:   85, op: "|", dest:   85, xbits: "0b00000000", ybits: "0b01010101", dbits: "0b01010101"}
+  - {xorigin:    0, yorigin:  -86, op: "|", dest:  -86, xbits: "0b00000000", ybits: "0b10101010", dbits: "0b10101010"}
+  - {xorigin:    0, yorigin:   15, op: "|", dest:   15, xbits: "0b00000000", ybits: "0b00001111", dbits: "0b00001111"}
+  - {xorigin:    0, yorigin:  -16, op: "|", dest:  -16, xbits: "0b00000000", ybits: "0b11110000", dbits: "0b11110000"}
+  - {xorigin:    0, yorigin:   51, op: "|", dest:   51, xbits: "0b00000000", ybits: "0b00110011", dbits: "0b00110011"}
+  - {xorigin:    0, yorigin:  -52, op: "|", dest:  -52, xbits: "0b00000000", ybits: "0b11001100", dbits: "0b11001100"}
+  - {xorigin:    0, yorigin: -127, op: "|", dest: -127, xbits: "0b00000000", ybits: "0b10000001", dbits: "0b10000001"}
+  - {xorigin:    0, yorigin: -103, op: "|", dest: -103, xbits: "0b00000000", ybits: "0b10011001", dbits: "0b10011001"}
+  - {xorigin:    0, yorigin:  102, op: "|", dest:  102, xbits: "0b00000000", ybits: "0b01100110", dbits: "0b01100110"}
+  - {xorigin:   85, yorigin:    0, op: "|", dest:   85, xbits: "0b01010101", ybits: "0b00000000", dbits: "0b01010101"}
+  - {xorigin:   85, yorigin:   85, op: "|", dest:   85, xbits: "0b01010101", ybits: "0b01010101", dbits: "0b01010101"}
+  - {xorigin:   85, yorigin:  -86, op: "|", dest:   -1, xbits: "0b01010101", ybits: "0b10101010", dbits: "0b11111111"}
+  - {xorigin:   85, yorigin:   15, op: "|", dest:   95, xbits: "0b01010101", ybits: "0b00001111", dbits: "0b01011111"}
+  - {xorigin:   85, yorigin:  -16, op: "|", dest:  -11, xbits: "0b01010101", ybits: "0b11110000", dbits: "0b11110101"}
+  - {xorigin:   85, yorigin:   51, op: "|", dest:  119, xbits: "0b01010101", ybits: "0b00110011", dbits: "0b01110111"}
+  - {xorigin:   85, yorigin:  -52, op: "|", dest:  -35, xbits: "0b01010101", ybits: "0b11001100", dbits: "0b11011101"}
+  - {xorigin:   85, yorigin: -127, op: "|", dest:  -43, xbits: "0b01010101", ybits: "0b10000001", dbits: "0b11010101"}
+  - {xorigin:   85, yorigin: -103, op: "|", dest:  -35, xbits: "0b01010101", ybits: "0b10011001", dbits: "0b11011101"}
+  - {xorigin:   85, yorigin:  102, op: "|", dest:  119, xbits: "0b01010101", ybits: "0b01100110", dbits: "0b01110111"}
+  - {xorigin:  -86, yorigin:    0, op: "|", dest:  -86, xbits: "0b10101010", ybits: "0b00000000", dbits: "0b10101010"}
+  - {xorigin:  -86, yorigin:   85, op: "|", dest:   -1, xbits: "0b10101010", ybits: "0b01010101", dbits: "0b11111111"}
+  - {xorigin:  -86, yorigin:  -86, op: "|", dest:  -86, xbits: "0b10101010", ybits: "0b10101010", dbits: "0b10101010"}
+  - {xorigin:  -86, yorigin:   15, op: "|", dest:  -81, xbits: "0b10101010", ybits: "0b00001111", dbits: "0b10101111"}
+  - {xorigin:  -86, yorigin:  -16, op: "|", dest:   -6, xbits: "0b10101010", ybits: "0b11110000", dbits: "0b11111010"}
+  - {xorigin:  -86, yorigin:   51, op: "|", dest:  -69, xbits: "0b10101010", ybits: "0b00110011", dbits: "0b10111011"}
+  - {xorigin:  -86, yorigin:  -52, op: "|", dest:  -18, xbits: "0b10101010", ybits: "0b11001100", dbits: "0b11101110"}
+  - {xorigin:  -86, yorigin: -127, op: "|", dest:  -85, xbits: "0b10101010", ybits: "0b10000001", dbits: "0b10101011"}
+  - {xorigin:  -86, yorigin: -103, op: "|", dest:  -69, xbits: "0b10101010", ybits: "0b10011001", dbits: "0b10111011"}
+  - {xorigin:  -86, yorigin:  102, op: "|", dest:  -18, xbits: "0b10101010", ybits: "0b01100110", dbits: "0b11101110"}
+  - {xorigin:   15, yorigin:    0, op: "|", dest:   15, xbits: "0b00001111", ybits: "0b00000000", dbits: "0b00001111"}
+  - {xorigin:   15, yorigin:   85, op: "|", dest:   95, xbits: "0b00001111", ybits: "0b01010101", dbits: "0b01011111"}
+  - {xorigin:   15, yorigin:  -86, op: "|", dest:  -81, xbits: "0b00001111", ybits: "0b10101010", dbits: "0b10101111"}
+  - {xorigin:   15, yorigin:   15, op: "|", dest:   15, xbits: "0b00001111", ybits: "0b00001111", dbits: "0b00001111"}
+  - {xorigin:   15, yorigin:  -16, op: "|", dest:   -1, xbits: "0b00001111", ybits: "0b11110000", dbits: "0b11111111"}
+  - {xorigin:   15, yorigin:   51, op: "|", dest:   63, xbits: "0b00001111", ybits: "0b00110011", dbits: "0b00111111"}
+  - {xorigin:   15, yorigin:  -52, op: "|", dest:  -49, xbits: "0b00001111", ybits: "0b11001100", dbits: "0b11001111"}
+  - {xorigin:   15, yorigin: -127, op: "|", dest: -113, xbits: "0b00001111", ybits: "0b10000001", dbits: "0b10001111"}
+  - {xorigin:   15, yorigin: -103, op: "|", dest:  -97, xbits: "0b00001111", ybits: "0b10011001", dbits: "0b10011111"}
+  - {xorigin:   15, yorigin:  102, op: "|", dest:  111, xbits: "0b00001111", ybits: "0b01100110", dbits: "0b01101111"}
+  - {xorigin:  -16, yorigin:    0, op: "|", dest:  -16, xbits: "0b11110000", ybits: "0b00000000", dbits: "0b11110000"}
+  - {xorigin:  -16, yorigin:   85, op: "|", dest:  -11, xbits: "0b11110000", ybits: "0b01010101", dbits: "0b11110101"}
+  - {xorigin:  -16, yorigin:  -86, op: "|", dest:   -6, xbits: "0b11110000", ybits: "0b10101010", dbits: "0b11111010"}
+  - {xorigin:  -16, yorigin:   15, op: "|", dest:   -1, xbits: "0b11110000", ybits: "0b00001111", dbits: "0b11111111"}
+  - {xorigin:  -16, yorigin:  -16, op: "|", dest:  -16, xbits: "0b11110000", ybits: "0b11110000", dbits: "0b11110000"}
+  - {xorigin:  -16, yorigin:   51, op: "|", dest:  -13, xbits: "0b11110000", ybits: "0b00110011", dbits: "0b11110011"}
+  - {xorigin:  -16, yorigin:  -52, op: "|", dest:   -4, xbits: "0b11110000", ybits: "0b11001100", dbits: "0b11111100"}
+  - {xorigin:  -16, yorigin: -127, op: "|", dest:  -15, xbits: "0b11110000", ybits: "0b10000001", dbits: "0b11110001"}
+  - {xorigin:  -16, yorigin: -103, op: "|", dest:   -7, xbits: "0b11110000", ybits: "0b10011001", dbits: "0b11111001"}
+  - {xorigin:  -16, yorigin:  102, op: "|", dest:  -10, xbits: "0b11110000", ybits: "0b01100110", dbits: "0b11110110"}
+  - {xorigin:   51, yorigin:    0, op: "|", dest:   51, xbits: "0b00110011", ybits: "0b00000000", dbits: "0b00110011"}
+  - {xorigin:   51, yorigin:   85, op: "|", dest:  119, xbits: "0b00110011", ybits: "0b01010101", dbits: "0b01110111"}
+  - {xorigin:   51, yorigin:  -86, op: "|", dest:  -69, xbits: "0b00110011", ybits: "0b10101010", dbits: "0b10111011"}
+  - {xorigin:   51, yorigin:   15, op: "|", dest:   63, xbits: "0b00110011", ybits: "0b00001111", dbits: "0b00111111"}
+  - {xorigin:   51, yorigin:  -16, op: "|", dest:  -13, xbits: "0b00110011", ybits: "0b11110000", dbits: "0b11110011"}
+  - {xorigin:   51, yorigin:   51, op: "|", dest:   51, xbits: "0b00110011", ybits: "0b00110011", dbits: "0b00110011"}
+  - {xorigin:   51, yorigin:  -52, op: "|", dest:   -1, xbits: "0b00110011", ybits: "0b11001100", dbits: "0b11111111"}
+  - {xorigin:   51, yorigin: -127, op: "|", dest:  -77, xbits: "0b00110011", ybits: "0b10000001", dbits: "0b10110011"}
+  - {xorigin:   51, yorigin: -103, op: "|", dest:  -69, xbits: "0b00110011", ybits: "0b10011001", dbits: "0b10111011"}
+  - {xorigin:   51, yorigin:  102, op: "|", dest:  119, xbits: "0b00110011", ybits: "0b01100110", dbits: "0b01110111"}
+  - {xorigin:  -52, yorigin:    0, op: "|", dest:  -52, xbits: "0b11001100", ybits: "0b00000000", dbits: "0b11001100"}
+  - {xorigin:  -52, yorigin:   85, op: "|", dest:  -35, xbits: "0b11001100", ybits: "0b01010101", dbits: "0b11011101"}
+  - {xorigin:  -52, yorigin:  -86, op: "|", dest:  -18, xbits: "0b11001100", ybits: "0b10101010", dbits: "0b11101110"}
+  - {xorigin:  -52, yorigin:   15, op: "|", dest:  -49, xbits: "0b11001100", ybits: "0b00001111", dbits: "0b11001111"}
+  - {xorigin:  -52, yorigin:  -16, op: "|", dest:   -4, xbits: "0b11001100", ybits: "0b11110000", dbits: "0b11111100"}
+  - {xorigin:  -52, yorigin:   51, op: "|", dest:   -1, xbits: "0b11001100", ybits: "0b00110011", dbits: "0b11111111"}
+  - {xorigin:  -52, yorigin:  -52, op: "|", dest:  -52, xbits: "0b11001100", ybits: "0b11001100", dbits: "0b11001100"}
+  - {xorigin:  -52, yorigin: -127, op: "|", dest:  -51, xbits: "0b11001100", ybits: "0b10000001", dbits: "0b11001101"}
+  - {xorigin:  -52, yorigin: -103, op: "|", dest:  -35, xbits: "0b11001100", ybits: "0b10011001", dbits: "0b11011101"}
+  - {xorigin:  -52, yorigin:  102, op: "|", dest:  -18, xbits: "0b11001100", ybits: "0b01100110", dbits: "0b11101110"}
+  - {xorigin: -127, yorigin:    0, op: "|", dest: -127, xbits: "0b10000001", ybits: "0b00000000", dbits: "0b10000001"}
+  - {xorigin: -127, yorigin:   85, op: "|", dest:  -43, xbits: "0b10000001", ybits: "0b01010101", dbits: "0b11010101"}
+  - {xorigin: -127, yorigin:  -86, op: "|", dest:  -85, xbits: "0b10000001", ybits: "0b10101010", dbits: "0b10101011"}
+  - {xorigin: -127, yorigin:   15, op: "|", dest: -113, xbits: "0b10000001", ybits: "0b00001111", dbits: "0b10001111"}
+  - {xorigin: -127, yorigin:  -16, op: "|", dest:  -15, xbits: "0b10000001", ybits: "0b11110000", dbits: "0b11110001"}
+  - {xorigin: -127, yorigin:   51, op: "|", dest:  -77, xbits: "0b10000001", ybits: "0b00110011", dbits: "0b10110011"}
+  - {xorigin: -127, yorigin:  -52, op: "|", dest:  -51, xbits: "0b10000001", ybits: "0b11001100", dbits: "0b11001101"}
+  - {xorigin: -127, yorigin: -127, op: "|", dest: -127, xbits: "0b10000001", ybits: "0b10000001", dbits: "0b10000001"}
+  - {xorigin: -127, yorigin: -103, op: "|", dest: -103, xbits: "0b10000001", ybits: "0b10011001", dbits: "0b10011001"}
+  - {xorigin: -127, yorigin:  102, op: "|", dest:  -25, xbits: "0b10000001", ybits: "0b01100110", dbits: "0b11100111"}
+  - {xorigin: -103, yorigin:    0, op: "|", dest: -103, xbits: "0b10011001", ybits: "0b00000000", dbits: "0b10011001"}
+  - {xorigin: -103, yorigin:   85, op: "|", dest:  -35, xbits: "0b10011001", ybits: "0b01010101", dbits: "0b11011101"}
+  - {xorigin: -103, yorigin:  -86, op: "|", dest:  -69, xbits: "0b10011001", ybits: "0b10101010", dbits: "0b10111011"}
+  - {xorigin: -103, yorigin:   15, op: "|", dest:  -97, xbits: "0b10011001", ybits: "0b00001111", dbits: "0b10011111"}
+  - {xorigin: -103, yorigin:  -16, op: "|", dest:   -7, xbits: "0b10011001", ybits: "0b11110000", dbits: "0b11111001"}
+  - {xorigin: -103, yorigin:   51, op: "|", dest:  -69, xbits: "0b10011001", ybits: "0b00110011", dbits: "0b10111011"}
+  - {xorigin: -103, yorigin:  -52, op: "|", dest:  -35, xbits: "0b10011001", ybits: "0b11001100", dbits: "0b11011101"}
+  - {xorigin: -103, yorigin: -127, op: "|", dest: -103, xbits: "0b10011001", ybits: "0b10000001", dbits: "0b10011001"}
+  - {xorigin: -103, yorigin: -103, op: "|", dest: -103, xbits: "0b10011001", ybits: "0b10011001", dbits: "0b10011001"}
+  - {xorigin: -103, yorigin:  102, op: "|", dest:   -1, xbits: "0b10011001", ybits: "0b01100110", dbits: "0b11111111"}
+  - {xorigin:  102, yorigin:    0, op: "|", dest:  102, xbits: "0b01100110", ybits: "0b00000000", dbits: "0b01100110"}
+  - {xorigin:  102, yorigin:   85, op: "|", dest:  119, xbits: "0b01100110", ybits: "0b01010101", dbits: "0b01110111"}
+  - {xorigin:  102, yorigin:  -86, op: "|", dest:  -18, xbits: "0b01100110", ybits: "0b10101010", dbits: "0b11101110"}
+  - {xorigin:  102, yorigin:   15, op: "|", dest:  111, xbits: "0b01100110", ybits: "0b00001111", dbits: "0b01101111"}
+  - {xorigin:  102, yorigin:  -16, op: "|", dest:  -10, xbits: "0b01100110", ybits: "0b11110000", dbits: "0b11110110"}
+  - {xorigin:  102, yorigin:   51, op: "|", dest:  119, xbits: "0b01100110", ybits: "0b00110011", dbits: "0b01110111"}
+  - {xorigin:  102, yorigin:  -52, op: "|", dest:  -18, xbits: "0b01100110", ybits: "0b11001100", dbits: "0b11101110"}
+  - {xorigin:  102, yorigin: -127, op: "|", dest:  -25, xbits: "0b01100110", ybits: "0b10000001", dbits: "0b11100111"}
+  - {xorigin:  102, yorigin: -103, op: "|", dest:   -1, xbits: "0b01100110", ybits: "0b10011001", dbits: "0b11111111"}
+  - {xorigin:  102, yorigin:  102, op: "|", dest:  102, xbits: "0b01100110", ybits: "0b01100110", dbits: "0b01100110"}

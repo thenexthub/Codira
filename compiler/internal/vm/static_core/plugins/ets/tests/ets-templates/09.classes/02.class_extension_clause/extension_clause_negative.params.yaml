@@ -1,0 +1,136 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # class extension clause negative tests
+extension_negative:
+  - decl: |- 
+      interface I {}
+    use: |-
+      I
+    expected: |-
+      "Semantic error ESE0176: The super type of 'C' class is not extensible."
+  - decl: |- 
+      enum MyEnum { One = 1, Two, Three}
+    use: |-
+      MyEnum
+    expected: |-
+      "Semantic error ESE0176: The super type of 'C' class is not extensible."
+  - decl: |- 
+      enum MyEnum { One = 1, Two, Three}
+      type MyEnumType = MyEnum
+    use: |-
+      MyEnumType
+    expected: |-
+      "Semantic error ESE0176: The super type of 'C' class is not extensible."
+  - decl: |- 
+      type MyUnion = string|number|undefined
+    use: |-
+      MyUnion
+    expected: |-
+      "Semantic error ESE0176: The super type of 'C' class is not extensible."
+  - decl: |- 
+      type Foo = () => void
+    use: |-
+      Foo
+    expected: |-
+      "Semantic error ESE0176: The super type of 'C' class is not extensible."
+  - decl: |-
+      class A {
+        a: int = 1
+        b: string = 'a'
+      }
+      type MyPartial = Partial<A>
+    use: |-
+      MyPartial
+    expected: |-
+      "Semantic error ESE0176: The super type of 'C' class is not extensible."
+  - decl: |-
+      class A {
+        a?: int = 1
+        b?: string = 'a'
+      }
+      type MyRequired = Required<A>
+    use: |-
+      MyRequired
+    expected: |-
+      "Semantic error ESE0176: The super type of 'C' class is not extensible."
+  - decl: |-
+      class A {
+        a: int = 1
+        b: string = 'a'
+      }
+      type MyReadonly = Readonly<A>
+    use: |-
+      MyReadonly
+    expected: |-
+      "Semantic error ESE0176: The super type of 'C' class is not extensible."
+  - decl: |- 
+      class A<T> {}
+    use: |-
+      A<T>
+    expected: |-
+      "Semantic error ESE0176: The super type of 'C' class is not extensible."
+  - decl: |- 
+      class A<T> {}
+    use: |-
+      A<?>
+    expected: |-
+      "Semantic error ESE0176: The super type of 'C' class is not extensible."
+  - decl: |- 
+      class A<T> {}
+    use: |-
+      A<_>
+    expected: |-
+      "Semantic error ESE0176: The super type of 'C' class is not extensible."
+  - use: |-
+      D
+    expected: |-
+      "Semantic error ESE0310: Cyclic inheritance involving C."
+  - decl: |- 
+      namespace N {
+        export class ND {}
+      }
+    use: |-
+      ND
+    expected: |-
+      "Semantic error ESE0176: The super type of 'C' class is not extensible."
+  - use: |-
+      B
+    expected: |-
+      "Semantic error ESE0176: The super type of 'C' class is not extensible."
+  - decl: |-
+      final class Final {}
+    use: |-
+      Final
+    expected: |-
+      "Semantic error ESE0178: Cannot inherit with 'final' modifier."
+  - decl: |-
+      type FAS = FixedArray<string>
+    use: |-
+      FAS
+    expected: |-
+      "Semantic error ESE0176: The super type of 'C' class is not extensible."
+  - decl: |-
+      type FAN = FixedArray<number>
+    use: |-
+      FAN
+    expected: |-
+      "Semantic error ESE0176: The super type of 'C' class is not extensible."
+  - decl: |-
+      class A {}
+      type FAC = FixedArray<A>
+    use: |-
+      FAC
+    expected: |-
+      "Semantic error ESE0176: The super type of 'C' class is not extensible."
+

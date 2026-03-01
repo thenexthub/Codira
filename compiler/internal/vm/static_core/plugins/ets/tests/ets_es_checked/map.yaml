@@ -1,0 +1,107 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+category: Map
+sub:
+  - self:
+      - new Map<number, string>()
+      - new Map<number, string>().set(+0, "1").set(NaN, "2").set(Infinity, "5").set(-Infinity, "6")
+      - new Map<number, string>().set(+0, "1").set(-0, "2").set(1e30, "3")
+    self_type: Iterable<[Number, string]>
+    vars:
+      default_keys: ['+0', '-0', 'NaN', '1e-30', '1e+30', 'Infinity', '-Infinity']
+      default_values: ['"1"', '"2"', '""', '"3"']
+    sub:
+      - method: values
+        excluded: true # NOTE (#24570): align test with new tuple types
+        ret_type: Iterable<string>
+      - method: keys
+        excluded: true # NOTE (#24570): align test with new tuple types
+        ret_type: Iterable<number>
+      - method: clear
+        ret_type: void
+      - method: entries
+        excluded: true # NOTE (#24570): align test with new tuple types
+        ret_type: Iterable<[Number, string]>
+      - expr: self.size
+        excluded: true # NOTE (#24570): align test with new tuple types
+      - method: set
+        excluded: true # NOTE (#24570): align test with new tuple types
+        ret_type: Iterable<[Number, string]>
+        params:
+          - paramOf(*default_keys)
+          - paramOf(*default_values)
+      - method: delete
+        excluded: true # NOTE (#24570): align test with new tuple types
+        params:
+          - paramOf(*default_keys)
+      - method: has
+        excluded: true # NOTE (#24570): align test with new tuple types
+        params:
+          - paramOf(*default_keys)
+      - method: get
+        excluded: true # NOTE (#24570): align test with new tuple types
+        params:
+          - paramOf(*default_keys)
+      - method: forEach
+        excluded: true # NOTE (#24570): align test with new tuple types
+        ret_type: void
+        params:
+          -
+            - |
+              (v: string, k: number): void => { self.set(-k, v + v) }
+# Issue 18208
+      - expr: valsArr
+        excluded: true # NOTE (#24570): align test with new tuple types
+        setup: |
+          let valsArr = Array.of<string>()
+          self.forEach((): void => { valsArr.push('call') })
+      - expr: valsArr
+        excluded: true # NOTE (#24570): align test with new tuple types
+        setup: |
+          let valsArr = Array.of<string>()
+          self.forEach((v: string, k: number): void => { valsArr.push(v) })
+      - expr: valsArr
+        excluded: true # NOTE (#24570): align test with new tuple types
+        setup: |
+          let valsArr = Array.of<string>()
+          let s1: ReadonlyMap<number, string> = self
+          s1.forEach((v: string, k: number): void => { valsArr.push(v) })
+      - self: null
+        expr: new Map<number, string>(pars)
+        excluded: true # NOTE (#24570): align test with new tuple types
+        ret_type: Iterable<[Number, string]>
+        params:
+          -
+            - |
+              Array.of<[Number, string]>([0, ""] as [Number, string])
+            - |
+              new Set<[Number, string]>(Array.of<[Number, string]>([0, "123"] as [Number, string], [0, "132"] as [Number, string], [0, "312"] as [Number, string]))
+      - expr: res
+        excluded: true # NOTE (#24570): align test with new tuple types
+        setup: |
+            let x = new Map<string, number>()
+            x.set("key1", 1)
+            let iter = x.entries()
+            iter.next()
+            let res = iter.next().done
+            res = res && iter.next().done

@@ -1,0 +1,535 @@
+# Copyright (c) 2024-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          async function foo(p: int): Promise<Int> {
+              return p + p
+          }
+      use: |-
+          // Promise of primitive
+          arktest.assertTrue((await foo(42)) == 84)
+
+    - decl: |-
+          async function foo(p: int): Promise<Int> {
+              return (async (x:int): Promise<int> => x + x)(p)
+          }
+      use: |-
+          // Promise of primitive
+          arktest.assertTrue((await foo(42)) == 84)
+
+    - decl: |-
+          async function foo(p: Double): Promise<Double> {
+              return p + p
+          }
+      use: |-
+          // Promise of boxed
+          arktest.assertTrue((await foo(new Double(42.0))) == 84.0)
+
+    - decl: |-
+          async function foo(p: Double): Promise<Double> {
+              return (async (x: Double): Promise<Double> => x + x)(p)
+          }
+      use: |-
+          // Promise of boxed
+          arktest.assertTrue((await foo(new Double(42.0))) == 84.0)
+
+    - decl: |-
+          async function foo(p: int): Promise<string> {
+              return `${p}`
+          }
+      use: |-
+          // Promise of string
+          let r = foo(42)
+          arktest.assertTrue((await r) == '42')
+
+    - decl: |-
+          async function foo(p: int): Promise<string> {
+              return (async (x: string): Promise<string> => x + x)(`${p}`)
+          }
+      use: |-
+          // Promise of string
+          let r = foo(42)
+          arktest.assertTrue((await r) == '4242')
+
+    - decl: |-
+          async function foo(p: int): Promise<String> {
+              return new String(`${p}`)
+          }
+      use: |-
+          // Promise of String
+          arktest.assertTrue((await foo(42)) instanceof String)
+
+    - decl: |-
+          async function foo(p: int): Promise<String> {
+              return (async (x: int): Promise<String> => new String(`${x}`))(p)
+          }
+      use: |-
+          // Promise of String
+          arktest.assertTrue((await foo(42)) instanceof String)
+
+    - decl: |-
+          class A {}
+
+          async function foo(p: Object): Promise<Object> {
+              return p
+          }
+      use: |-
+          // Promise of Object
+          arktest.assertTrue((await foo(new A())) instanceof A)
+
+    - decl: |-
+          class A {}
+
+          async function foo(p: Object): Promise<Object> {
+              return (async (x: Object): Promise<Object> => x)(p)
+          }
+      use: |-
+          // Promise of Object
+          arktest.assertTrue((await foo(new A())) instanceof A)
+
+    - decl: |-
+          async function foo(p: Number|undefined): Promise<Number|undefined> {
+              return p instanceof Number ? p + 1 : p
+          }
+      use: |-
+          // Promise of nullish
+          arktest.assertTrue((await foo(42)) == 43)
+
+    - decl: |-
+          async function foo(p: Number|undefined): Promise<Number|undefined> {
+              return (async (x: Number|undefined): Promise<Number|undefined> => x instanceof Number ? x + 1 : x)(p)
+          }
+      use: |-
+          // Promise of nullish
+          arktest.assertTrue((await foo(42)) == 43)
+
+    - decl: |-
+          async function foo(p: Number|null): Promise<Number|null> {
+              return p instanceof Number ? p + 1 : p
+          }
+      use: |-
+          // Promise of nullish
+          arktest.assertTrue((await foo(42)) == 43)
+
+    - decl: |-
+          async function foo(p: Number|null): Promise<Number|null> {
+              return (async (x: Number|null): Promise<Number|null> => x instanceof Number ? x + 1 : x)(p)
+          }
+      use: |-
+          // Promise of nullish
+          arktest.assertTrue((await foo(42)) == 43)
+
+    - decl: |-
+          async function foo(p: Int|null|undefined): Promise<Int|null|undefined> {
+              return p == null || p == undefined ? p : p + 1
+          }
+      use: |-
+          // Promise of nullish
+          arktest.assertTrue((await foo(42)) == 43)
+
+    - decl: |-
+          async function foo(p: Int|null|undefined): Promise<Int|null|undefined> {
+              let q = async (p: Int|null|undefined): Promise<Int|null|undefined> => {
+                  return p == null || p == undefined ? p : p + 1
+              }
+              return q(p)
+          }
+      use: |-
+          // Promise of nullish
+          arktest.assertTrue((await foo(42)) == 43)
+
+    - decl: |-
+          async function foo(p: string): Promise<string> {
+              return p + p
+          }
+
+          async function bar(p: string): Promise<Promise<string>> {
+              return foo(p)
+          }
+      use: |-
+          // Promise of promise
+          arktest.assertTrue((await bar('A')) == 'AA')
+
+    - decl: |-
+          async function foo(p: string): Promise<string> {
+              return (async (x: string): Promise<string> => x + x)(p)
+          }
+
+          async function bar(p: string): Promise<Promise<string>> {
+              return (async (x: string): Promise<Promise<string>> => foo(x))(p)
+          }
+      use: |-
+          // Promise of promise
+          arktest.assertTrue((await bar('A')) == 'AA')
+
+    - decl: |-
+          async function foo(): Promise<int[]> {
+              return launch<int[], () => int[]>((): int[] => [1, 2, 3]).Await()
+          }
+      use: |-
+          // Promise of array
+          let q: int[] = await foo()
+          arktest.assertTrue(q[0] == 1 && q[1] == 2 && q[2] == 3)
+
+    - decl: |-
+          async function foo(): Promise<(p: string) => string> {
+              return (p: string): string => { return p + p }
+          }
+      use: |-
+          // Promise of function
+          arktest.assertTrue((await foo())('A') == 'AA')
+
+    - decl: |-
+          type FT = (p: string) => string
+          async function foo(): Promise<FT> {
+              let f = (p: string): string => p + p
+              return (async (): Promise<FT> => f)()
+          }
+      use: |-
+          // Promise of function
+          arktest.assertTrue((await foo())('A') == 'AA')
+
+    - decl: |-
+          type UT = number | string | boolean
+          async function foo(p: int): Promise<UT> {
+              return p == 0 ? true : p > 0 ? new Number(p) : `${p}`
+          }
+      use: |-
+          // Promise of union
+          let q: boolean|number|string = await foo(-1)
+          arktest.assertTrue(q as string == '-1')
+
+    - decl: |-
+          type UT = number | string | boolean
+          async function foo(p: int): Promise<UT> {
+              let f = async (x: int): Promise<UT> => x == 0 ? true : x > 0 ? new Number(x) : `${x}`
+              return f(p)
+          }
+      use: |-
+          // Promise of union
+          let q: boolean|number|string = await foo(-1)
+          arktest.assertTrue(q as string == '-1')
+
+    - decl: |-
+          async function foo(p: int): Promise<[Boolean, Error]> {
+              return [p > 0, new Error()] as [Boolean, Error]
+          }
+      use: |-
+          // Promise of tuple
+          let q: [Boolean, Error] = await foo(42)
+          arktest.assertTrue(q[0] && (q[1] instanceof Error))
+
+    - decl: |-
+          async function foo(p: int): Promise<[Boolean, Error]> {
+              return launch<[Boolean, Error], (x: int) => [Boolean, Error]>((x: int): [Boolean, Error] => [x > 0, new Error()], p).Await()
+          }
+      use: |-
+          // Promise of tuple
+          let q: [Boolean, Error] = await foo(42)
+          arktest.assertTrue(q[0] && (q[1] instanceof Error))
+
+    - decl: |-
+          async function foo(p: string): Promise<BigInt> {
+              return new BigInt(p)
+          }
+      use: |-
+          // Promise of BigInt
+          let q: BigInt = await foo('123456789012345678901234567890')
+          arktest.assertTrue(q == 123456789012345678901234567890n)
+
+    - decl: |-
+          async function foo(p: string): Promise<BigInt> {
+              return (async (x: BigInt): Promise<BigInt> => x)(new BigInt(p))
+          }
+      use: |-
+          // Promise of BigInt
+          let q: BigInt = await foo('123456789012345678901234567890')
+          arktest.assertTrue(q == 123456789012345678901234567890n)
+
+    - decl: |-
+          async function foo(p: bigint): Promise<bigint> {
+              return p
+          }
+      use: |-
+          // Promise of bigint
+          let q: bigint = await foo(123456789012345678901234567890n)
+          arktest.assertTrue(q == 123456789012345678901234567890n)
+
+    - decl: |-
+          async function foo(p: bigint): Promise<bigint> {
+              return (async (x: bigint): Promise<bigint> => x)(p)
+          }
+      use: |-
+          // Promise of bigint
+          let q: bigint = await foo(123456789012345678901234567890n)
+          arktest.assertTrue(q == 123456789012345678901234567890n)
+
+    - decl: |-
+          async function foo(p: number, q: number): Promise<Number> {
+              return p + q
+          }
+      use: |-
+          // Array of promises
+          let arr: Promise<Number>[] = [
+              foo(1, 1),
+              foo(2, 2),
+              foo(3, 3),
+              foo(4, 4),
+              foo(5, 5),
+              foo(6, 6),
+              foo(7, 7),
+              foo(8, 8),
+              foo(9, 9),
+              foo(0, 0),
+          ]
+          let cnt = 0.0
+          for (let v of arr) cnt += (await v)
+          arktest.assertTrue(cnt == 90.0)
+
+    - decl: |-
+          async function foo(p: number, q: number): Promise<Number> {
+              return (async (x: number): Promise<number> => x + q)(p)
+          }
+      use: |-
+          // Array of promises
+          let arr: Promise<Number>[] = [
+              foo(1, 1),
+              foo(2, 2),
+              foo(3, 3),
+              foo(4, 4),
+              foo(5, 5),
+              foo(6, 6),
+              foo(7, 7),
+              foo(8, 8),
+              foo(9, 9),
+              foo(0, 0),
+          ]
+          let cnt = 0.0
+          for (let v of arr) cnt += (await v)
+          arktest.assertTrue(cnt == 90.0)
+
+    - decl: |-
+          enum Color { Red, Green, Blue }
+
+          async function foo(p: int): Promise<Color> {
+              return p > 0 ? Color.Green : Color.Blue
+          }
+      use: |-
+          // Promise of enum
+          arktest.assertTrue((await foo(42)) == Color.Green)
+
+    - decl: |-
+          enum Color { Red, Green, Blue }
+
+          async function foo(p: int): Promise<Color> {
+              return (async (x: int): Promise<Color> => p > 0 ? Color.Green : Color.Blue)(p)
+          }
+      use: |-
+          // Promise of enum
+          arktest.assertTrue((await foo(42)) == Color.Green)
+
+    - decl: |-
+          enum Color { R="red", G="green", B="blue" }
+
+          async function foo(p: int): Promise<Color> {
+              return p > 0 ? Color.G : Color.B
+          }
+      use: |-
+          // Promise of string-based enum
+          arktest.assertTrue((await foo(-42)) == Color.B)
+
+    - decl: |-
+          enum Color { R="red", G="green", B="blue" }
+
+          async function foo(p: int): Promise<Color> {
+              return (async (x: int): Promise<Color> => x > 0 ? Color.G : Color.B)(p)
+          }
+      use: |-
+          // Promise of string-based enum
+          arktest.assertTrue((await foo(-42)) == Color.B)
+
+    - decl: |-
+          async function foo<T>(p: T): Promise<T> {
+              return p
+          }
+
+          class A<T> {
+              fld: Promise<T>
+              constructor(p: T) {
+                  this.fld = foo<T>(p)
+              }
+              meth(): Awaited<T> {
+                  return await this.fld
+              }
+          }
+      use: |-
+          // Promise of T
+          let a: A<string> = new A<string>("abc")
+          arktest.assertTrue(a.meth() == "abc")
+
+    - decl: |-
+          function bar<T>(p: T): T {
+              return p
+          }
+          async function foo<T>(p: T): Promise<T> {
+              return launch<T, (t: T) => T>(bar<T>, p).Await();
+          }
+
+          class A<T> {
+              fld: Promise<T>
+              constructor(p: T) {
+                  this.fld = foo<T>(p)
+              }
+              meth(): Awaited<T> {
+                  return await this.fld
+              }
+          }
+      use: |-
+          // Promise of T
+          let a: A<string> = new A<string>("abc")
+          arktest.assertTrue(a.meth() == "abc")
+
+    - decl: |-
+          class A {
+              fld: Promise<string>|null|undefined
+          }
+          async function foo(p: number): Promise<string> {
+              return '' + p
+          }
+      use: |-
+          // Promise in object literal
+          let a: A = { fld: foo(42.0) }
+          arktest.assertTrue((await a.fld!) == '42')
+
+    - decl: |-
+          class A {
+              fld: Promise<string>|null|undefined
+          }
+          async function foo(p: number): Promise<string> {
+              return (async (x: number): Promise<string> => '' + x)(p)
+          }
+      use: |-
+          // Promise in object literal
+          let a: A = { fld: foo(42.0) }
+          arktest.assertTrue((await a.fld!) == '42')
+
+    - decl: |-
+          let s = 'ABC'
+          async function foo(p: () => Promise<string>): Promise<string> {
+              return await p()
+          }
+      use: |-
+          // Launch in argument lambda
+          let r = await foo((): Promise<string> => (async (): Promise<string> => s)())
+          arktest.assertTrue(r == 'ABC')
+
+    - decl: |-
+          let s = 'ABC'
+          async function foo(p: () => Promise<string>): Promise<string> {
+              return p()
+          }
+      use: |-
+          // Launch in argument lambda
+          let r = await foo((): Promise<string> => (async (): Promise<string> => s)())
+          arktest.assertTrue(r == 'ABC')
+
+    - decl: |-
+          let s = 'ABC'
+          async function foo(p: () => Promise<string>): Promise<string> {
+              return await p()
+          }
+      use: |-
+          // Launch in trailing lambda
+          let r = await foo(async (): Promise<string> => s)
+          arktest.assertTrue(r == 'ABC')
+
+    - decl: |-
+          let s = 'ABC'
+          async function foo(p: () => Promise<string>): Promise<string> {
+              return p()
+          }
+      use: |-
+          // Launch in trailing lambda
+          let r = await foo(async (): Promise<string> => s)
+          arktest.assertTrue(r == 'ABC')
+
+    - decl: |-
+          let s = 'A'
+          async function foo(p: string): Promise<string> {
+              return p + p
+          }
+      use: |-
+          // Resolve async function promise in chained then
+          let r = foo(s)
+              .then((p: string): string => p + p)
+              .then((p: string): string => p + p)
+
+          arktest.assertTrue((await r) == 'AAAAAAAA')
+
+    - decl: |-
+        type EN = Error|null
+        let s = 'A'
+        async function foo(p: string): Promise<string> {
+            return p + p
+        }
+      use: |-
+        // Throw error in chained "then" and catch them in the following chained "catch"
+        let r: Promise<string> = foo(s)
+            .then((p: string): string => { throw new Error(p) })
+            .catch((p: EN): string => p!.message + p!.message)
+
+        arktest.assertTrue((await r) == 'AAAA')
+
+    - decl: |-
+        type EN = Error|null
+        let s = 'A'
+        async function foo(p: string): Promise<string> {
+            if (p == 'A') {
+                throw new Error('E')
+            }
+            return 'X'
+        }
+      use: |-
+        // Throw error in chained catch
+        // await is forbidden for non-async functions
+        let r: Promise<string> = foo(s)
+            .then((p: string): string => p + p)
+            .catch((p: EN): string => { throw p! })
+
+        try {
+            await r
+        } catch (e) {
+            arktest.assertTrue((e as Error).message == 'E')
+            return
+        }
+        arktest.assertTrue(false)
+
+    - decl: |-
+        type EN = Error|null
+        let s = 'A'
+        async function foo(p: string): Promise<string> {
+            if (p == 'A') {
+                throw new Error('E')
+            }
+            return 'X'
+        }
+      use: |-
+        // Catch error in chained catch
+        let r = foo(s)
+            .then((p: string): string => p + p)  // skipped
+            .catch((p: EN): string => p!.message)
+            .then((p: string): string => p + p)
+
+        arktest.assertTrue((await r) == 'EE')

@@ -1,0 +1,415 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # class field
+    #0
+    - decl: |-
+       class A {
+           fldA: int|null = 1
+       }
+      use: |-
+        let a = new A();
+        a?.fldA = 1;
+      stdout: |-
+        "Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #1
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA++;
+      stdout: |-
+        "Syntax error ESY0053: Invalid left-hand side operator."
+    #2
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        ++a?.fldA;
+      stdout: |-
+        "Syntax error ESY0071: Invalid left-hand side in prefix operation."
+    #3
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA--;
+      stdout: |-
+        "Syntax error ESY0053: Invalid left-hand side operator."
+    #4
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        --a?.fldA;
+      stdout: |-
+        "Syntax error ESY0071: Invalid left-hand side in prefix operation."
+    #5
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA--;
+      stdout: |-
+        "Syntax error ESY0053: Invalid left-hand side operator."
+    #6
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA += 1;
+      stdout: |-
+        "Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #7
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA -= 1;
+      stdout: |-
+        "Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #8
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA *= 1;
+      stdout: |-
+        "Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #9
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA /= 1;
+      stdout: |-
+        "Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #10
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA %= 1;
+      stdout: |-
+        "Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #11
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA **= 1;
+      stdout: |-
+        "Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #12
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA <<= 1;
+      stdout: |-
+        "Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #13
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA >>= 1;
+      stdout: |-
+        "Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #14
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA >>>= 1;
+      stdout: |-
+        "Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #15
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA &= 1;
+      stdout: |-
+        "Syntax error ESY0072: Invalid left-hand side in assignment expression."
+    #16
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA |= 1;
+      stdout: |-
+        "Syntax error ESY0072: Invalid left-hand side in assignment expression."
+    #17
+    - decl: |-
+        class A {
+            fldA: int|null = 1
+        }
+      use: |-
+        let a = new A();
+        a?.fldA ^= 1;
+      stdout: |-
+        "Syntax error ESY0072: Invalid left-hand side in assignment expression."
+    #18
+    - decl: |-
+        class A {
+            fldA: boolean|null = true
+        }
+      use: |-
+        let a = new A();
+        a?.fldA &&= true;
+      stdout: |-
+        "Syntax error ESY0227: Unexpected token '&&='."
+    #19
+    - decl: |-
+        class A {
+            fldA: boolean|null = true
+        }
+      use: |-
+        let a = new A();
+        a?.fldA ||= true;
+      stdout: |-
+        "Syntax error ESY0227: Unexpected token '||='."
+    #20
+    - decl: |-
+        class A {
+            fldA: int|null = true
+        }
+      use: |-
+        let a = new A();
+        a?.fldA ??= 1;
+      stdout: |-
+        "Syntax error ESY0227: Unexpected token '??='."
+  
+  # array
+    #21
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[1] = 0;
+      stdout: |-
+        "Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #22
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0]++;
+      stdout: |-
+        "Syntax error ESY0053: Invalid left-hand side operator."
+    #23
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        ++counts?.[0];
+      stdout: |-
+        "Syntax error ESY0071: Invalid left-hand side in prefix operation."
+    #24
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0]--;
+      stdout: |-
+        "Syntax error ESY0053: Invalid left-hand side operator."
+    #25
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        --counts?.[0];
+      stdout: |-
+        "Syntax error ESY0071: Invalid left-hand side in prefix operation."
+    #26
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0]--;
+      stdout: |-
+        "Syntax error ESY0053: Invalid left-hand side operator."
+    #27
+    - decl: |-
+        let counts: int[] = [1, 2];
+            fldA: int|null = 1
+        }
+      use: |-
+        counts?.[0] += 1;
+      stdout: |-
+        "Syntax error ESY0038: Label must be followed by a loop statement."
+    #28
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] -= 1;
+      stdout: |-
+        "Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #29
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] *= 1;
+      stdout: |-
+        "Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #30
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] /= 1;
+      stdout: |-
+        "Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #31
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] %= 1;
+      stdout: |-
+        " Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #32
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] **= 1;
+      stdout: |-
+        "Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #33
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] <<= 1;
+      stdout: |-
+        "Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #34
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] >>= 1;
+      stdout: |-
+        "Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #35
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] >>>= 1;
+      stdout: |-
+        "Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #36
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] &= 1;
+      stdout: |-
+        "Syntax error ESY0072: Invalid left-hand side in assignment expression."
+    #37
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] |= 1;
+      stdout: |-
+        "Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #38
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] ^= 1;
+      stdout: |-
+        "Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #39
+    - decl: |-
+        let counts: boolean[] = [true, true];
+      use: |-
+        counts?.[0] &&= true;
+      stdout: |-
+        "Syntax error ESY0227: Unexpected token '&&='."
+    #40
+    - decl: |-
+        let counts: boolean[] = [true, true];
+      use: |-
+        counts?.[0] ||= true;
+      stdout: |-
+        "Syntax error ESY0227: Unexpected token '||='."
+    #41
+    - decl: |-
+        let counts: int[] = [1, 2];
+      use: |-
+        counts?.[0] ??= 1;
+      stdout: |-
+        "Syntax error ESY0227: Unexpected token '??='."
+
+  # complicated class field and array
+    #42
+    - decl: |-
+        class A {
+            b: B = new B();
+        }
+          
+        class B {
+            c: C = new C();
+        }
+          
+        class C {
+          value: int|null = 1;
+        }
+      use: |-
+        const a1 = new A();
+        a1.b.c?.value = 1
+      stdout: |-
+        "Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #43
+    - decl: |-
+        let counts: int[][] = [[1, 2], [3. 4]];
+      use: |-
+        counts?.[0][0] = 0;
+      stdout: |-
+        "Semantic error ESE0025: Invalid left-hand side of assignment expression"
+    #44
+    - decl: |-
+        class Calculator {
+            static add(a: number, b: number): number {
+                return a + b;
+            }
+        }
+      use: |-
+        Calculator?.add(1, 2)
+      stdout: |-
+        "Syntax error ESY0318: Class cannot be used as object."

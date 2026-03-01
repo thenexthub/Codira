@@ -1,0 +1,183 @@
+# Copyright (c) 2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - doc: |-
+          Use literal type as a class variable type
+      decl: |-
+          class A {
+              i: "some str" = "some str"
+              j: undefined = undefined
+              k: null = null
+          }
+      use: |-
+          let a: A = new A()
+          arktest.assertEQ( a.i, "some str" )
+          arktest.assertEQ( a.j, undefined )
+          arktest.assertEQ( a.k, null )
+
+    - doc: |-
+          Set class field of literal type via custom constructor without arguments
+      decl: |-
+          class A {
+              i: "some str"
+              j: undefined
+              k: null
+
+              constructor() {
+                  this.i = "some str"
+                  this.j = undefined
+                  this.k = null
+              }
+          }
+      use: |-
+          let a: A = new A()
+          arktest.assertEQ( a.i, "some str" )
+          arktest.assertEQ( a.j, undefined )
+          arktest.assertEQ( a.k, null )
+
+    - doc: |-
+          Set class field of literal type via custom constructor with arguments
+      decl: |-
+          class A {
+              i: "some str"
+              j: undefined
+              k: null
+
+              constructor() {
+                  this.i = "some str"
+                  this.j = undefined
+                  this.k = null
+              }
+
+              constructor(i: "some str", j: undefined, k: null) {
+                  this.i = i
+                  this.j = j
+                  this.k = k
+              }
+          }
+      use: |-
+          let i: "some str" = "some str"
+          let j: undefined = undefined
+          let k: null = null
+          let b: A = new A(i, j, k)
+          arktest.assertEQ( b.i, "some str" )
+          arktest.assertEQ( b.j, undefined )
+          arktest.assertEQ( b.k, null )
+
+    - tags: |-
+        negative, compile-only
+      doc: |-
+        Initialize class field of literal type using its supertype string
+      decl: |-
+        class A {
+            i: "some str" = new string("some str")
+        }
+      use: |-
+
+    - tags: |-
+          negative, compile-only
+      doc: |-
+          Contravariance at constructor argument is not allowed
+      decl: |-
+          class A {
+              i: "some str"
+              constructor(i: "some str") {
+                  this.i = i
+              }
+          }
+      use: |-
+          new A(new string("some str"))
+
+    - tags: |-
+          negative, compile-only
+      doc: |-
+          Edit class field of literal type using different literal
+      decl: |-
+          class A {
+              i: "some str" = "some str"
+          }
+      use: |-
+          new A().i = "another str"
+
+    - doc: |-
+        Call class method of literal type using supertype as an argument (incorrect)
+      decl: |-
+        class A {
+            foo(i: string) {
+                return i
+            }
+        }
+      use: |-
+        let a = new A()
+        arktest.assertEQ( a.foo(new string("some str")), "some str" )
+        arktest.assertEQ( a.foo("some str"), "some str" )
+
+    - tags: |-
+          negative, compile-only
+      doc: |-
+          Literal string and usual string are overload equivalent, which leads to CTE
+      decl: |-
+          class A {
+              foo(i: "some str") { return 1 }
+              foo(i: string) { return 2 }
+          }
+      use: |-
+
+    - doc: |-
+          Class method return type is compatible to its supertype
+      decl: |-
+          class A {
+              foo(): "1" { return "1" }
+              bar(): string { return "2" }
+          }
+      use: |-
+          let a = new A()
+          let b: string = a.foo()
+          arktest.assertEQ( b, "1" )
+          let c: "1" = a.foo()
+          arktest.assertEQ( c, "1" )
+          let d: string = a.bar()
+          arktest.assertEQ( d, "2" )
+
+    - tags: |-
+          negative, compile-only
+      doc: |-
+          Class method return type is not compatible to its subtype
+      decl: |-
+          class A {
+              bar(): "2" { return "str" }
+          }
+      use: |-
+          let a: "2" = new A().bar()
+
+    - doc: |-
+          Readonly string literal could be used
+      decl: |-
+          class A {
+              readonly i: "some str" = "some str"
+          }
+      use: |-
+          arktest.assertEQ( new A().i, "some str")
+
+    - tags: |-
+          negative, compile-only
+      doc: |-
+          Readonly string literal cannot be changed
+      decl: |-
+          class A {
+              readonly i: "some str" = "some str"
+          }
+      use: |-
+          new A().i = "some str"

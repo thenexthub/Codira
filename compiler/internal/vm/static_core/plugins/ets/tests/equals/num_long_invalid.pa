@@ -1,0 +1,52 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+.language eTS
+
+.record std.core.Object <external>
+.record std.core.String <external>
+
+.record std.core.Double <external>
+.function void std.core.Double._ctor_(std.core.Double a0, f64 a1) <ctor, external, access.function=public>
+.record std.core.Long <external>
+.function void std.core.Long._ctor_(std.core.Long a0, i64 a1) <ctor, external, access.function=public>
+
+.function i32 main() <static> {
+    ldai 0x5
+    i32tof64
+    sta.64 v0
+    initobj.short std.core.Double._ctor_:(std.core.Double,f64), v0
+    sta.obj v0
+    ldai 0x6
+    i32toi64
+    sta.64 v1
+    initobj.short std.core.Long._ctor_:(std.core.Long,i64), v1
+    sta.obj v1
+    movi v2, 0x0
+    ets.equals v0, v1
+    jne v2, error
+    ldai 0x0
+    return
+error:
+    ldai 0x1
+    return
+}

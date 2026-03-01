@@ -1,0 +1,211 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+--- # create array using generic extend types.
+case:
+  - desc: Using type aliases to instantiate a multi-dimensional array T[].
+    decl: |-
+      type MyArray<T> = T[][][];
+    logic: |-
+      let arr: MyArray<number> = [[[1, 2, 3]]];
+      arktest.assertEQ(arr[0][0][0], 1);
+
+  - desc: Instantiated array T[] with object type.
+    decl: |-
+      interface Person {
+          name: string;
+          age: number;
+          hobbies: string[];
+      }
+      type MyArray<T> = T[];
+    logic: |-
+      let numArray: MyArray<Person> = [
+        {
+          name: "John",
+          age: 30,
+          hobbies: ["reading", "swimming"]
+        },
+        {
+          name: "Alex",
+          age: 30,
+          hobbies: ["reading", "swimming"]
+        }
+      ];
+      arktest.assertEQ(numArray[0].name, "John");
+      arktest.assertEQ(numArray[0].age, 30);
+      arktest.assertEQ(numArray[0].hobbies[0], "reading");
+      arktest.assertEQ(numArray[1].name, "Alex");
+
+  - desc: Instantiate built-in generic arrays(Array<T>) with object types.
+    decl: |-
+      interface Person {
+        name: string;
+        age: number;
+        hobbies: string[];
+      }
+      type MyArray<T> = Array<T>;
+    logic: |-
+      let numArray: MyArray<Person> = new Array<Person>(
+        {
+          name: "John",
+          age: 30,
+          hobbies: ["reading", "swimming"]
+        }
+      );
+      arktest.assertEQ(numArray[0].name, "John");
+
+  - desc: Instantiate built-in generic arrays(Array<T>) with string[] type.
+    decl: |-
+      type MyArray<T> = Array<T>;
+    logic: |-
+      let numArray: MyArray<string[]> = new Array<string[]>(
+        ["1", "2", "3"],
+        ["4", "5", "6"],
+        ["7", "8", "9"]
+      );
+      arktest.assertEQ(numArray[0][0], "1");
+      arktest.assertEQ(numArray[2][2], "9");
+
+  - desc: Complex generic type parameters.
+    decl: |-
+      type Pair<T, U> = [T, U];
+      type ComplexArray = Pair<number, string>[];
+    logic: |-
+      let arr: ComplexArray = [[1, "a"], [2, "b"]];
+      arktest.assertEQ(arr[0][0], 1);
+
+  - desc: Empty array initialization.
+    decl: |-
+      class Box1<T> {
+        value: T;
+        constructor(v: T) { this.value = v; }
+      }
+    logic: |-
+      let emptyArray: Box1<boolean>[] = [];
+      arktest.assertEQ(emptyArray.length, 0);
+
+  - desc: Instantiated array T[] with string[] type.
+    decl: |-
+      type MyArray<T> = T[][];
+    logic: |-
+      let numArray: MyArray<string> = [
+        ["0", "1", "2"],
+        ["3", "4", "5"],
+        ["6", "7", "8"]
+      ];
+      arktest.assertEQ(numArray[0][0], "0");
+      arktest.assertEQ(numArray[2][2], "8");
+
+  - desc: Instantiated array T[] with object type.
+    decl: |-
+      interface Person {
+        name: string;
+        age: number;
+        hobbies: string[];
+      }
+      type MyArray<T> = T[];
+    logic: |-
+      let numArray: MyArray<Person> = [
+        {
+          name: "John",
+          age: 30,
+          hobbies: ["reading", "swimming"]
+        },
+        {
+          name: "Alex",
+          age: 30,
+          hobbies: ["reading", "swimming"]
+        }
+      ];
+      arktest.assertEQ(numArray[0].name, "John");
+      arktest.assertEQ(numArray[1].name, "Alex");
+
+  - desc: Instantiated array T[] with tuple type.
+    logic: |-
+      let numArray: [number, string, boolean][] = [
+        [0, "a", false],
+        [0, "a", false]
+      ] ;
+      arktest.assertEQ(numArray[0][0], 0);
+      arktest.assertEQ(numArray[1][2], false);
+
+  - desc: Instantiate built-in generic arrays(Array<T>) with number[] type.
+    logic: |-
+        let numArray: Array<number[]> = new Array<number[]>(
+          [1, 2, 3],
+          [4, 5, 6],
+          [7, 8, 9]
+        );
+        arktest.assertEQ(numArray[0][0], 1);
+        arktest.assertEQ(numArray[2][2], 9);
+
+  - desc: Instantiate built-in generic arrays(Array<T>) with tuple type.
+    logic: |-
+      let numArray: Array<[number, string, boolean]> = new Array<[number, string, boolean]>([0, "a", false]);
+      arktest.assertEQ(numArray[0][0], 0);
+      arktest.assertEQ(numArray[0][1], "a");
+      arktest.assertEQ(numArray[0][2], false);
+  
+  - desc: |-
+      Instantiate built-in generic arrays(Array<T>) with function type.
+      tags:
+        - positive
+        - compile-only
+    decl: |-
+      let tmp: number = 1;
+    logic: |-
+        let callbacks: Array<() => void> = [
+          () => { tmp++; },
+          () => { tmp++; }
+        ];
+        callbacks.forEach(cb => cb());
+        arktest.assertEQ(tmp, 3);
+
+  - desc: |-
+      Constraint array instantiation type in type alias.
+      tags:
+        - negative
+        - compile-only
+    logic: |-
+        type MyArray<T extends number> = T[];
+        let arr: MyArray<string> = ["a", "b", "a"];
+
+  - desc: Instantiate built-in generic arrays(Array<T>) with byte types.
+    logic: |-
+        let numArray: Array<byte> = new Array<byte>(1 as byte, 2 as byte, 3 as byte);
+        arktest.assertEQ(numArray[0], 1);
+        arktest.assertEQ(numArray[1], 2);
+        arktest.assertEQ(numArray[2], 3);
+
+  - desc: Instantiate built-in generic arrays(Array<T>) with short types.
+    logic: |-
+        let numArray: Array<short> = new Array<short>(1 as short, 2 as short, 3 as short);
+        arktest.assertEQ(numArray[0], 1);
+        arktest.assertEQ(numArray[1], 2);
+        arktest.assertEQ(numArray[2], 3);
+
+  - desc: Instantiate built-in generic arrays(Array<T>) with char types.
+    logic: |-
+        let numArray: Array<char> = new Array<char>(Int.toChar(1), Int.toChar(2), Int.toChar(3));
+        arktest.assertEQ(numArray[0], 1);
+        arktest.assertEQ(numArray[1], 2);
+        arktest.assertEQ(numArray[2], 3);

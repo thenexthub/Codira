@@ -1,0 +1,13 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep namespace namespace_test_002.Ns1.Ns2 {\n    method0():void;\n    }",
+        "-keep namespace namespace_test_002.Ns1 {\n    @MyAnno1 method1():void;\n    }"
+      ]
+    }
+  }
+}

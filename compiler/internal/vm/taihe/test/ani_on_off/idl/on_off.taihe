@@ -1,0 +1,93 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+interface IBase {
+    @on_off
+    onSet(a: () => void): void;
+
+    @on_off
+    offSet(a: () => void): void;
+
+    @on_off(name = "mytest")
+    mytestNew();
+
+    @on_off("type_name")
+    onTest(): i32;
+}
+
+@on_off(name = "mytest")
+function mytestGlobalnew(): i32;
+
+@class
+interface Color {
+    add(a: i32): i32;
+}
+
+@on_off
+@static("Color")
+function onGlobalnew(): i32;
+
+function getIBase(a: String, b: String): IBase;
+
+// on test
+@on_off
+function onFoo(a: () => void): void;
+
+@on_off
+function onBar(a: () => void): void;
+
+@on_off("my_baz")
+function onBaz(a: i32, cb: () => void): void;
+
+// off test
+@on_off
+function offFoo(a: () => void): void;
+
+@on_off
+function offBar(a: () => void): void;
+
+@on_off("my_baz")
+function offBaz(a: i32, cb: () => void): void;
+
+@class
+interface BaseCls {
+}
+
+@static("BaseCls")
+@on_off
+function onFooStatic(a: () => void): void;
+
+@static("BaseCls")
+@on_off
+function offFooStatic(a: () => void): void;
+
+// same number of param
+@on_off("funcI")
+function onFuncI(a: (b: i32) => void): void;
+
+@on_off("funcB")
+function onFuncB(a: (b: bool) => void): void;
+
+@on_off("funcI")
+function offFuncI(a: (b: i32) => void): void;
+
+@on_off("funcB")
+function offFuncB(a: (b: bool) => void): void;

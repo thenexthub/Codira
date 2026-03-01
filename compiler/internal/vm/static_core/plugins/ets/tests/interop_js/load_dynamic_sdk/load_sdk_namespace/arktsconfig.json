@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "baseUrl": "../../../../../..",
+        "paths": {
+            "std": ["plugins/ets/stdlib/std"],
+            "escompat": ["plugins/ets/stdlib/escompat"],
+            "api": ["plugins/ets/sdk/api"],
+            "arkts": ["plugins/ets/sdk/arkts"]
+        },
+        "dependencies": {
+            "@ohos.hilog": {
+                "language": "js",
+                "path": "plugins/ets/tests/interop_js/load_dynamic_sdk/load_sdk_namespace/testDecl.d.ets",
+                "ohmUrl": "@ohos:load_dynamic_sdk_namespace_test_module"
+            }
+        }
+    }
+}

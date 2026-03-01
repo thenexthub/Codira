@@ -1,0 +1,74 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+.record C <external>
+.function i32 C.bar(C a0) <external>
+
+.record AotChaTest <extends=C> {
+    C instance
+}
+
+# It is required so that AoT compiler would have at least one compiled function
+.function i32 CompilationStub() {
+    ldai 42
+    return
+}
+
+.function i32 AotChaTest.bar(AotChaTest a0) {
+    ldai 95
+    return
+}
+
+.function i32 AotChaTest.main() {
+    newobj v0, AotChaTest
+    ldobj.obj v0, AotChaTest.instance
+    jeqz.obj not_inlined_call
+    sta.obj v0
+not_inlined_call:
+    call.virt C.bar, v0
+    return
+}
+
+#! CHECKER      aot without cha using panda files
+#! RUN_PAOC     options: "--boot-panda-files=../../vcalls_aux.checked/test.abc --paoc-use-cha=false", env: "ASAN_OPTIONS=detect_leaks=0"
+#! METHOD       "AotChaTest::main"
+#! PASS_AFTER   "Codegen"
+#! INST         /ResolveVirtual.*C::bar/
+#! INST         /CallResolvedVirtual.*C::bar/
+#! RUN          options: "--boot-panda-files=../../vcalls_aux.checked/test.abc", entry: "AotChaTest::main", env: "ASAN_OPTIONS=detect_leaks=0", result: 95
+#! EVENT        /AotLoadedForClass,.*,AotChaTest/
+
+#! CHECKER      aot with cha using panda files
+#! RUN_PAOC     options: "--boot-panda-files=../../vcalls_aux.checked/test.abc --paoc-use-cha=true", env: "ASAN_OPTIONS=detect_leaks=0"
+#! METHOD       "AotChaTest::main"
+#! PASS_AFTER   "Codegen"
+#! INST         /ResolveVirtual.*C::bar/
+#! RUN          options: "--boot-panda-files=../../vcalls_aux.checked/test.abc", entry: "AotChaTest::main", result: 95
+#! EVENT        /AotLoadedForClass,.*,AotChaTest/
+
+#! CHECKER      invalid aot panda files
+#! RUN_PAOC     options: "--paoc-use-cha=true", env: "ASAN_OPTIONS=detect_leaks=0"
+#! RUN          options: "--boot-panda-files=../../vcalls_aux.checked/test.abc", entry: "AotChaTest::main", abort: 6
+
+#! CHECKER      invalid runtime panda files
+#! RUN_PAOC     options: "--boot-panda-files=../../vcalls_aux.checked/test.abc --paoc-use-cha=true", env: "ASAN_OPTIONS=detect_leaks=0"
+#! RUN          options: "", entry: "AotChaTest::main", abort: 6

@@ -1,0 +1,798 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+- {
+    object_type: RegExp,
+    object_constructor_signature: { pattern: String },
+    method_name: test,
+    method_nature: function,
+    result_type: boolean,
+    method_signature: { input: String },
+    method_throws: "true",
+    method_signature_desc: { input: StringSimple },
+    object_constructor_index_data:
+      {
+        test10: { pattern: '"foo"' },
+        test20: { pattern: '"table"' },
+        test30: { pattern: '"ball"'},
+        test40: { pattern: '"foot"'},
+        test50: { pattern: '"a*"' },
+        test60: { pattern: '"a?"' },
+        test70: { pattern: '"a?"'},
+        test80: { pattern: '"a*"'},
+        test90: { pattern: '"abc"' },
+      },
+    method_test_index_data:
+      {
+        test10: { input: '"table football"' },
+        test20: { input: '"table football"' },
+        test30: { input: '"table football"' },
+        test40: { input: '"table football"' },
+        test50: { input: '"aabaac"' },
+        test60: { input: '"ab"' },
+        test70: { input: '"b"'},
+        test80: { input:  '"a"'},
+        test90: { input: '"ABC"' },
+      },
+    method_expected_data:
+      {
+        test10: "true",
+        test20: "true",
+        test30: "true",
+        test40: "true",
+        test50: "true",
+        test60: "true",
+        test70: "true",
+        test80: "true",
+        test90: "false",
+      },
+  }
+- {
+    object_type: RegExp,
+    object_constructor_signature: { pattern: String },
+    method_name: test,
+    method_nature: function,
+    result_type: boolean,
+    method_signature: { input: String },
+    method_throws: "true",
+    method_signature_desc: { input: StringBindToBound },
+    object_constructor_index_data:
+      {
+        test10: { pattern: '"^abc"' },
+        test20: { pattern: '"^abc"' },
+        test30: { pattern: '"^abc"' },
+        test40: { pattern: '"abc$"' },
+        test50: { pattern: '"abc$"' },
+      },
+    method_test_index_data:
+      {
+        test10: { input: '"ab\nabc"' },
+        test20: { input: '"abcbc"' },
+        test30: { input: '"xyzabcbc"' },
+        test40: { input:  '"xyzabcabc"'},
+        test50: { input:  '"xyzabcaxc"'}
+      },
+    method_expected_data:
+      {
+        test10: "false",
+        test20: "true",
+        test30: "false",
+        test40: "true",
+        test50: "false",
+      },
+  }
+- {
+    object_type: RegExp,
+    object_constructor_signature: { pattern: String },
+    method_name: test,
+    method_nature: function,
+    result_type: boolean,
+    method_signature: { input: String },
+    method_throws: "true",
+    method_signature_desc: { input: StringRange },
+    object_constructor_index_data:
+      {
+        test10: { pattern: '"[a-f]*"' },
+        test20: { pattern: '"[a-f]*"' },
+        test30: { pattern: '"[a-f]"' },
+        test40: { pattern: '"[^a-f]"' },
+        test50: { pattern: '"[a-f]{1,3}"' },
+        test60: { pattern: '"[a-f]{0,3}"' },
+        test70: { pattern: '"[a-f]*"' },
+        test80: { pattern: '"[a-f]+"' },
+        test90: { pattern: '"[a-f]+"' },
+        test100: { pattern: '"[a-f]?"' },
+      },
+    method_test_index_data:
+      {
+        test10: { input: '"ababc"' },
+        test20: { input: '"xyzwv"' },
+        test30: { input: '"x"'},
+        test40: { input: '"x"'},
+        test50: { input: '"ababc"' },
+        test60: { input: '"xyz"'},
+        test70: { input: '"xyz"'},
+        test80: { input: '"axyz"'},
+        test90: { input: '"xyz"'},
+        test100: { input: '"xyz"'}
+      },
+    method_expected_data:
+      {
+        test10: "true",
+        test20: "true",
+        test30: "false",
+        test40: "true",
+        test50: "true",
+        test60: "true",
+        test70: "true",
+        test80: "true",
+        test90: "false",
+        test100: "true"
+      },
+  }
+- {
+    object_type: RegExp,
+    object_constructor_signature: { pattern: String },
+    method_name: test,
+    method_nature: function,
+    result_type: boolean,
+    method_signature: { input: String },
+    method_throws: "true",
+    method_signature_desc: { input: StringWhiteSpaces },
+    object_constructor_index_data:
+      {
+        test10: { pattern: '"."' },
+        test11: { pattern: '".+:"' },
+        test20: { pattern: '"a\\n"' },
+        test30: { pattern: '"\\s"' },
+      },
+    method_test_index_data:
+      {
+        test10: { input: '"\na"' },
+        test11: { input: '"aaaa:aa"' },
+        test20: { input: '"a\n"' },
+        test30: { input: '"\n"' },
+      },
+    method_expected_data:
+      {
+        test10: "true",
+        test11: "true",
+        test20: "true",
+        test30: "true",
+      },
+  }
+- {
+    object_type: RegExp,
+    object_constructor_signature: { pattern: String },
+    method_name: test,
+    method_nature: function,
+    result_type: boolean,
+    method_signature: { input: String },
+    method_throws: "true",
+    method_signature_desc: { input: StringAnchor},
+    object_constructor_index_data:
+      {
+        test10: { pattern: '"er\\B"' },
+        test20: { pattern: '"d\\b"' },
+      },
+    method_test_index_data:
+      {
+        test10: { input: '"erv"' },
+        test20: { input: '"bad good"' },
+      },
+    method_expected_data:
+      {
+        test10: "true",
+        test20: "true",
+      },
+  }
+- {
+    object_type: RegExp,
+    object_constructor_signature: { pattern: String },
+    method_name: test,
+    method_nature: function,
+    result_type: boolean,
+    method_signature: { input: String },
+    method_throws: "true",
+    method_signature_desc: { input: StringLookAheadBehind },
+    object_constructor_index_data:
+      {
+        test10: { pattern: '"a(?=a)"' },
+        test20: { pattern: '"a(?=a)"' },
+        test30: { pattern: '"a(?!a)"' },
+        test40: { pattern: '"^a(?!a)"' },
+        test50: { pattern: '"(?=(a+))"' },
+        test60: { pattern: '"a(?=a(?=b))"' },
+        test70: { pattern: '"(?<=(?<!b)a)a"' },
+      },
+    method_test_index_data:
+      {
+
+        test10: { input: '"aabc"' },
+        test20: { input: '"ababc"' },
+        test30: { input: '"ababc"' },
+        test40: { input: '"aa"' },
+        test50: { input: '"baaabac"' },
+        test60: { input: '"caab"' },
+        test70: { input: '"caab"' },
+      },
+    method_expected_data:
+      {
+        test10: "true",
+        test20: "false",
+        test30: "true",
+        test40: "false",
+        test50: "true",
+        test60: "true",
+        test70: "true",
+      },
+  }
+- {
+    object_type: RegExp,
+    object_constructor_signature: { pattern: String },
+    method_name: test,
+    method_nature: function,
+    result_type: boolean,
+    method_signature: { input: String },
+    method_throws: "true",
+    method_signature_desc: { input: StringGroup },
+    object_constructor_index_data:
+      {
+        test10: { pattern: '"(((ab)|(cd)|(de))|((ef)|(gh)|(jk)))"' },
+        test20: { pattern: '"(aa|ba|b|c)*"' },
+        test30: { pattern: '"(z)((a+)?(b+)?(c))*"' },
+        test40: { pattern: '"()|"' },
+      },
+    method_test_index_data:
+      {
+        test10: { input: '"cabd"' },
+        test20: { input: '"aabaac"' },
+        test30: { input: '"zaacbbbcac"' },
+        test40: { input: '""' },
+      },
+    method_expected_data:
+      {
+        test10: "true",
+        test20: "true",
+        test30: "true",
+        test40: "true",
+      },
+  }
+- {
+    object_type: RegExp,
+    object_constructor_signature: { pattern: String, flags: String },
+    method_name: test,
+    method_nature: function,
+    result_type: boolean,
+    method_signature: { input: String },
+    method_throws: "true",
+    method_signature_desc: { input: StringWithFlags },
+    object_constructor_index_data:
+      {
+        test1: { pattern: '"."', flags: '"s"' },
+        test2: { pattern: '"abc"', flags: '"i"'  },
+        test3: { pattern: '"[a-z]"', flags: '"i"' },
+        test4: { pattern: '"[^a-b]"', flags: '"i"' },
+        test5: { pattern: '"[a-zA-Z\\u1F43C]{1,3}"', flags: '"u"'},
+        test6: { pattern: '"zap\\u1F43C"', flags: '"u"'}
+      },
+    method_test_index_data:
+      {
+        test1: { input: '"\n"' },
+        test2: { input: '"ABC"' },
+        test3: { input: '"A"' },
+        test4: { input: '"Z"' },
+        test5: { input: '"zapPAZ🐼"'},
+        test6: { input: '"zap🐼"'}
+      },
+    method_expected_data:
+      {
+        test1: "true",
+        test2: "true",
+        test3: "true",
+        test4: "true",
+        test5: "true",
+        test6: "false",
+      },
+  }
+- {
+    object_type: RegExp,
+    object_constructor_signature: { pattern: String, flags: String },
+    method_name: test,
+    method_nature: function,
+    result_type: boolean,
+    method_signature: { input: String },
+    method_throws: "true",
+    method_signature_desc: { input: StringWithUnicodeFlag },
+    object_constructor_index_data:
+      {
+        test1: { pattern: '"\u{12345}"', flags: '"u"' },
+        test2: { pattern: '"\u{12345}"', flags: '"u"' },
+        test3: { pattern: '"\u{12345}"', flags: '"u"' },
+        test4: { pattern: '"\u{12345}\u{23456}"', flags: '"u"' },
+        test5: { pattern: '"\u{12345}\u{23456}"', flags: '"u"' },
+        test6: { pattern: '"\u{12345}\u{23456}"', flags: '"u"' },
+        test7: { pattern: '"\u{12345}\u{23456}"', flags: '"u"' },
+        test8: { pattern: '"\u{12345}(?:\u{23456})"', flags: '"u"' },
+        test9: { pattern: '"\u{12345}(?:\u{23456})"', flags: '"u"' },
+        test10: { pattern: '"\u{12345}(?:\u{23456})"', flags: '"u"' },
+        test11: { pattern: '"\u{12345}(?:\u{23456})"', flags: '"u"' },
+        test12: { pattern: '"\u{12345}|\u{23456}"', flags: '"u"' },
+        test13: { pattern: '"\u{12345}|\u{23456}"', flags: '"u"' },
+        test14: { pattern: '"\u{12345}|\u{23456}"', flags: '"u"' },
+        test15: { pattern: '"\u{12345}|\u{23456}"', flags: '"u"' },
+        test16: { pattern: '"(\u{12345}|\u{23456}).\\1"', flags: '"u"' },
+        test17: { pattern: '"(\u{12345}|\u{23456}).\\1"', flags: '"u"' },
+        test18: { pattern: '"\u{12345}{3}"', flags: '"u"' },
+        # test19: { pattern: '"\u{12345}{3}"', flags: '""' }, issue #15549
+        test20: { pattern: '"\ud808\udf45{3}"', flags: '"u"' },
+        test21: { pattern: '"\ud808\udf45{3}"', flags: '"u"' },
+        test22: { pattern: '"\u{12345}{3}"', flags: '"u"' },
+      },
+    method_test_index_data:
+      {
+        test1: { input: '"\u{12345}"' },
+        test2: { input: '"\ud808\udf45"' },
+        test3: { input: '"\udf45"' },
+        test4: { input: '"a\u{12345}\u{23456}b"' },
+        test5: { input: '"b\u{12345}\u{23456}c"' },
+        test6: { input: '"a\udf45\u{23456}b"' },
+        test7: { input: '"b\udf45\u{23456}c"' },
+        test8: { input: '"a\u{12345}\u{23456}b"' },
+        test9: { input: '"b\u{12345}\u{23456}c"' },
+        test10: { input: '"a\udf45\u{23456}b"' },
+        test11: { input: '"b\udf45\u{23456}c"' },
+        test12: { input: '"a\u{12345}b"' },
+        test13: { input: '"b\u{23456}c"' },
+        test14: { input: '"a\udf45\ud84db"' },
+        test15: { input: '"b\udf45\ud808c"' },
+        test16: { input: '"\u{12345}b\u{12345}"' },
+        test17: { input: '"\u{12345}b\u{23456}"' },
+        test18: { input: '"\u{12345}\u{12345}\u{12345}"'},
+        # test19: { input: '"\u{12345}\udf45\udf45"'},
+        test20: { input: '"\u{12345}\udf45\udf45"'},
+        test21: { input: '"\u{12345}\u{12345}\u{12345}"'},
+        test22: { input: '"\u{12345}\udf45\udf45"'},
+      },
+    method_expected_data:
+      {
+        test1: "true",
+        test2: "true",
+        test3: "false",
+        test4: "true",
+        test5: "true",
+        test6: "false",
+        test7: "false",
+        test8: "true",
+        test9: "true",
+        test10: "false",
+        test11: "false",
+        test12: "true",
+        test13: "true",
+        test14: "false",
+        test15: "false",
+        test16: "true",
+        test17: "false",
+        test18: "true",
+        # test19: "true",
+        test20: "false",
+        test21: "true",
+        test22: "false",
+      },
+  }
+- {
+    object_type: RegExp,
+    object_constructor_signature: { pattern: String },
+    method_name: exec,
+    method_nature: function,
+    result_type: RegExpExecArray | null,
+    method_signature: { input: String },
+    method_throws: "true",
+    method_signature_desc: { input: String },
+    object_constructor_index_data:
+      {
+        test1: { pattern: '""' },
+        test2: { pattern: '".*"' },
+        test3: { pattern: '"^[a-z]$"'},
+        test4: { pattern: '"^[a-z]$"'}
+      },
+    method_test_index_data:
+      {
+        test1: { input: '""' },
+        test2: { input: '"aaaaa"' },
+        test3: { input: '"abcdefghjiklmnopqrstxyz"'},
+        test4: { input: '"ABCDEFGHJIKLMNOPQRSTXYZ"'}
+     },
+    method_expected_data:
+      {
+        test1: 'new RegExpExecArray(0, "", [""])',
+        test2: 'new RegExpExecArray(0, "aaaaa", ["aaaaa"])',
+        test3: 'null as RegExpExecArray | null',
+        test4: 'null as RegExpExecArray | null'
+      },
+  }
+
+- {
+    object_type: RegExp,
+    object_constructor_signature: { pattern: String, flags: String },
+    method_name: match,
+    method_nature: function,
+    result_type: RegExpMatchArray | null,
+    method_signature: { str: String },
+    method_throws: "true",
+    method_signature_desc: { str: String },
+    object_constructor_index_data:
+    {
+      test1: { pattern: '"."', flags: '"y"' },
+      test2: { pattern: '"b(.).(.)."', flags: '""'},
+      test3: { pattern: '"(a)"', flags: '"du"'},
+      test4: { pattern: '".(a)."', flags: '"du"'},
+      test5: { pattern: '".(a)(.)"', flags: '"du"'},
+      test6: { pattern: '".(\\w\\w)"', flags: '"du"'},
+      test7: { pattern: '"(\\w\\w\\w)"', flags: '"du"'},
+      test8: { pattern: '"(\\w\\w)(\\w)"', flags: '"du"'},
+    },
+    param_types: {str: String},
+    param_nature: {str: primitive},
+    param_init_data_types: {str: "String[]"},
+    method_test_index_data:
+    {
+      test1: { str: '"abc"'},
+      test2: { str: '"abcdefg"'},
+      test3: { str: '"bab"'},
+      test4: { str: '"bab"'},
+      test5: { str: '"bab"'},
+      test6: { str: '"bab"'},
+      test7: { str: '"bab"'},
+      test8: { str: '"bab"'},
+    },
+    method_expected_data:
+    {
+      test1: 'new RegExpMatchArray(0, "abc", ["a"])',
+      test2: 'new RegExpMatchArray(1, "abcdefg", ["bcdef", "c", "e"])',
+      test3: 'new RegExpMatchArray(1, "bab", ["a", "a"], [[1, 2], [1, 2]])',
+      test4: 'new RegExpMatchArray(0, "bab", ["bab", "a"], [[0, 3], [1, 2]])',
+      test5: 'new RegExpMatchArray(0, "bab", ["bab", "a", "b"], [[0, 3], [1, 2], [2, 3]])',
+      test6: 'new RegExpMatchArray(0, "bab", ["bab", "ab"], [[0, 3], [1, 3]])',
+      test7: 'new RegExpMatchArray(0, "bab", ["bab", "bab"], [[0, 3], [0, 3]])',
+      test8: 'new RegExpMatchArray(0, "bab", ["bab", "ba", "b"], [[0, 3], [0, 2], [2, 3]])',
+    }
+}
+
+- {
+    object_type: RegExp,
+    object_constructor_signature: { pattern: String, flags: String },
+    method_name: match,
+    method_nature: function,
+    result_type: RegExpMatchArray | null,
+    method_signature: { str: String },
+    method_throws: "true",
+    method_signature_desc: { str: String },
+    object_constructor_index_data:
+    {
+      test1: { pattern: '"."', flags: '"gy"' },
+      test2: { pattern: '"b(.).(.)."', flags: '"g"'},
+      test3: { pattern: '"(a)"', flags: '"gdu"'},
+      test4: { pattern: '".(a)."', flags: '"gdu"'},
+      test5: { pattern: '".(a)(.)"', flags: '"gdu"'},
+      test6: { pattern: '".(\\w\\w)"', flags: '"gdu"'},
+      test7: { pattern: '"(\\w\\w\\w)"', flags: '"gdu"'},
+      test8: { pattern: '"(\\w\\w)(\\w)"', flags: '"gdu"'},
+      test9: { pattern: '"a"', flags: '"g"' },
+    },
+    param_types: {str: String},
+    param_nature: {str: primitive},
+    param_init_data_types: {str: "String[]"},
+    method_test_index_data:
+    {
+      test1: { str: '"abc"'},
+      test2: { str: '"abcdefg"'},
+      test3: { str: '"bab"'},
+      test4: { str: '"bab"'},
+      test5: { str: '"bab"'},
+      test6: { str: '"bab"'},
+      test7: { str: '"bab"'},
+      test8: { str: '"bab"'},
+      test9: { str: '"bc"'},
+    },
+    method_expected_data:
+    {
+      test1: '(() => { let res = new RegExpMatchArray(-1, "", ["a", "b", "c"]); res.index = undefined;
+              res.input = undefined; return res; })()',
+      test2: '(() => { let res = new RegExpMatchArray(-1, "", ["bcdef"]); res.index = undefined;
+              res.input = undefined; return res; })()',
+      test3: '(() => { let res = new RegExpMatchArray(-1, "", ["a"], [[1,2],[1,2]]); res.index = undefined;
+              res.input = undefined; return res; })()',
+      test4: '(() => { let res = new RegExpMatchArray(-1, "", ["bab"], [[0,3],[1,2]]); res.index = undefined;
+              res.input = undefined; return res })()',
+      test5: '(() => { let res = new RegExpMatchArray(-1, "", ["bab"], [[0,3], [1,2], [2,3]]); res.index = undefined;
+              res.input = undefined; return res; })()',
+      test6: '(() => { let res = new RegExpMatchArray(-1, "", ["bab"], [[0,3],[1,3]]); res.index = undefined;
+              res.input = undefined; return res })()',
+      test7: '(() => { let res = new RegExpMatchArray(-1, "", ["bab"], [[0,3],[0,3]]); res.index = undefined;
+              res.input = undefined; return res })()',
+      test8: '(() => { let res = new RegExpMatchArray(-1, "", ["bab"], [[0,3], [0,2], [2,3]]); res.index = undefined;
+              res.input = undefined; return res; })()',
+      test9: 'null as RegExpMatchArray | null',
+    }
+}
+
+
+- {
+    object_type: RegExp,
+    object_constructor_signature: { pattern: String },
+    method_name: search,
+    method_nature: function,
+    result_type: double,
+    method_signature: { input: String },
+    method_throws: "true",
+    method_signature_desc: { input: StringSimple },
+    object_constructor_index_data:
+      {
+        test10: { pattern: '"foo"' },
+        test20: { pattern: '"table"' },
+        test30: { pattern: '"ball"'},
+        test40: { pattern: '"foot"'},
+        test50: { pattern: '"a*"' },
+        test60: { pattern: '"a?"' },
+        test70: { pattern: '"a?"'},
+        test80: { pattern: '"a+"'},
+        test90: { pattern: '"abc"' },
+      },
+    method_test_index_data:
+      {
+        test10: { input: '"table football"' },
+        test20: { input: '"table football"' },
+        test30: { input: '"table football"' },
+        test40: { input: '"table football"' },
+        test50: { input: '"bbbaabaac"' },
+        test60: { input: '"ab"' },
+        test70: { input: '"b"'},
+        test80: { input:  '"ba"'},
+        test90: { input: '"bbbABC"' },
+      },
+    method_expected_data:
+      {
+        test10: "6",
+        test20: "0",
+        test30: "10",
+        test40: "6",
+        test50: "0",
+        test60: "0",
+        test70: "0",
+        test80: "1",
+        test90: "-1",
+      },
+  }
+- {
+    object_type: RegExp,
+    object_constructor_signature: { pattern: String },
+    method_name: search,
+    method_nature: function,
+    result_type: double,
+    method_signature: { input: String },
+    method_throws: "true",
+    method_signature_desc: { input: StringBindToBound },
+    object_constructor_index_data:
+      {
+        test10: { pattern: '"^abc"' },
+        test20: { pattern: '"^abc"' },
+        test30: { pattern: '"^abc"' },
+        test40: { pattern: '"abc$"' },
+        test50: { pattern: '"abc$"' },
+      },
+    method_test_index_data:
+      {
+        test10: { input: '"ab\nabc"' },
+        test20: { input: '"abcbc"' },
+        test30: { input: '"xyzabcbc"' },
+        test40: { input:  '"xyzabcabc"'},
+        test50: { input:  '"xyzabcaxc"'}
+      },
+    method_expected_data:
+      {
+        test10: "-1",
+        test20: "0",
+        test30: "-1",
+        test40: "6",
+        test50: "-1",
+      },
+  }
+
+- {
+  object_type: RegExp,
+  object_constructor_signature: { pattern: String },
+  method_name: split,
+  method_nature: function,
+  result_type: 'String[]',
+  result_nature: 'array',
+  method_signature: { str: String, limit: Int },
+  method_signature_desc: { str: String, limit: Int },
+
+  method_throws: "true",
+  object_constructor_index_data:
+    {
+      test10: { pattern: '"b"' },
+      test20: { pattern: '"->"' },
+      test30: { pattern: '"\n"' },
+      test40: { pattern: '""' },
+      test50: { pattern: '"abcd"' },
+      test60: { pattern: '"a+"'},
+      test70: { pattern: '"a?"'},
+    },
+  method_test_index_data:
+    {
+      test10: { str: '"No pattern found"', limit: 1 },
+      test20: { str: '"value0->value1->value2->value3->value4"', limit: 3 },
+      test30: { str: '"\nvalue0\nvalue1\nvalue2\nvalue3\nvalue4\n"', limit: 7 },
+      test40: { str:  '"empty"', limit: 2},
+      test50: { str:  '"abcd"', limit: 2},
+      test60: { str: '"aaaaa"', limit: 3},
+      test70: { str: '"aaaaa"', limit: 6},
+    },
+  method_expected_data:
+    {
+      test10: '["No pattern found"]',
+      test20: '["value0", "value1", "value2"]',
+      test30: '["", "value0", "value1", "value2", "value3", "value4", ""]',
+      test40: '["e", "m"]',
+      test50: '["", ""]',
+      test60: '["", ""]',
+      test70: '["", "", "", "", "", ""]'
+    },
+}
+- {
+  object_type: RegExp,
+  object_constructor_signature: { pattern: String, flags: String },
+  method_name: replace,
+  method_nature: function,
+  result_type: 'String',
+  result_nature: 'primitive',
+  method_signature: { str: String, replaceValue: String },
+  method_signature_desc: { str: String, replaceValue: String },
+
+  method_throws: "true",
+  object_constructor_index_data:
+    {
+      test01: { pattern: '"x"', flags: '""' },
+      test02: { pattern: '"x"', flags: '"g"' },
+      test03: { pattern: '"b"', flags: '""' },
+      test04: { pattern: '"b"', flags: '"g"' },
+
+      test05: { pattern: '"x"', flags: '""' },
+      test06: { pattern: '"x"', flags: '"g"' },
+      test07: { pattern: '"b"', flags: '""' },
+      test08: { pattern: '"b"', flags: '"g"' },
+
+      test09: { pattern: '"x"', flags: '""' },
+      test10: { pattern: '"x"', flags: '"g"' },
+      test11: { pattern: '"b"', flags: '""' },
+      test12: { pattern: '"b"', flags: '"g"' },
+
+      test13: { pattern: '"x"', flags: '""' },
+      test14: { pattern: '"x"', flags: '"g"' },
+      test15: { pattern: '"b"', flags: '""' },
+      test16: { pattern: '"b"', flags: '"g"' },
+
+      test17: { pattern: '"x"', flags: '""' },
+      test18: { pattern: '"x"', flags: '"g"' },
+      test19: { pattern: '"b"', flags: '""' },
+      test20: { pattern: '"b"', flags: '"g"' },
+
+      test21: { pattern: '"x"', flags: '""' },
+      test22: { pattern: '"x"', flags: '"g"' },
+      test23: { pattern: '"b"', flags: '""' },
+      test24: { pattern: '"b"', flags: '"g"' },
+
+      test25: { pattern: '"x"', flags: '""' },
+      test26: { pattern: '"x()"', flags: '""' },
+      test27: { pattern: '"x"', flags: '"g"' },
+      test28: { pattern: '"x()"', flags: '"g"' },
+
+      test29: { pattern: '"b"', flags: '""' },
+      test30: { pattern: '"b()"', flags: '""' },
+      test31: { pattern: '"b"', flags: '"g"' },
+      test32: { pattern: '"b()"', flags: '"g"' },
+
+      test33: { pattern: '"(.)(?=(.))"', flags: '"g"'}
+    },
+  method_test_index_data:
+    {
+      test01: { str: '"xaxbxcx"', replaceValue: '""' },
+      test02: { str: '"xaxbxcx"', replaceValue: '""' },
+      test03: { str: '"xaxbxcx"', replaceValue: '""' },
+      test04: { str: '"xaxbxcx"', replaceValue: '""' },
+
+      test05: { str: '"xaxbxcx"', replaceValue: '"[]"' },
+      test06: { str: '"xaxbxcx"', replaceValue: '"[]"' },
+      test07: { str: '"xaxbxcx"', replaceValue: '"[]"' },
+      test08: { str: '"xaxbxcx"', replaceValue: '"[]"' },
+
+      test09: { str: '"xaxbxcx"', replaceValue: '"[$$]"' },
+      test10: { str: '"xaxbxcx"', replaceValue: '"[$$]"' },
+      test11: { str: '"xaxbxcx"', replaceValue: '"[$$]"' },
+      test12: { str: '"xaxbxcx"', replaceValue: '"[$$]"' },
+
+      test13: { str: '"xaxbxcx"', replaceValue: '"[$`]"' },
+      test14: { str: '"xaxbxcx"', replaceValue: '"[$`]"' },
+      test15: { str: '"xaxbxcx"', replaceValue: '"[$`]"' },
+      test16: { str: '"xaxbxcx"', replaceValue: '"[$`]"' },
+
+      test17: { str: '"xaxbxcx"', replaceValue: '"[$&]"' },
+      test18: { str: '"xaxbxcx"', replaceValue: '"[$&]"' },
+      test19: { str: '"xaxbxcx"', replaceValue: '"[$&]"' },
+      test20: { str: '"xaxbxcx"', replaceValue: '"[$&]"' },
+
+      test21: { str: '"xaxbxcx"', replaceValue: '"[$'']"' },
+      test22: { str: '"xaxbxcx"', replaceValue: '"[$'']"' },
+      test23: { str: '"xaxbxcx"', replaceValue: '"[$'']"' },
+      test24: { str: '"xaxbxcx"', replaceValue: '"[$'']"' },
+
+      test25: { str: '"xaxbxcx"', replaceValue: '"[$1]"' },
+      test26: { str: '"xaxbxcx"', replaceValue: '"[$1]"' },
+      test27: { str: '"xaxbxcx"', replaceValue: '"[$1]"' },
+      test28: { str: '"xaxbxcx"', replaceValue: '"[$1]"' },
+
+      test29: { str: '"xaxbxcx"', replaceValue: '"[$1]"' },
+      test30: { str: '"xaxbxcx"', replaceValue: '"[$1]"' },
+      test31: { str: '"xaxbxcx"', replaceValue: '"[$1]"' },
+      test32: { str: '"xaxbxcx"', replaceValue: '"[$1]"' },
+
+      test33: { str: '"abc"', replaceValue: '"[$$$$$$1$$$$$11$01$2$21$02$020$002$3$03]"' },
+    },
+  method_expected_data:
+    {
+      test01: '"axbxcx"',
+      test02: '"abc"',
+      test03: '"xaxxcx"',
+      test04: '"xaxxcx"',
+      test05: '"[]axbxcx"',
+      test06: '"[]a[]b[]c[]"',
+      test07: '"xax[]xcx"',
+      test08: '"xax[]xcx"',
+      test09: '"[$]axbxcx"',
+      test10: '"[$]a[$]b[$]c[$]"',
+      test11: '"xax[$]xcx"',
+      test12: '"xax[$]xcx"',
+      test13: '"[]axbxcx"',
+      test14: '"[]a[xa]b[xaxb]c[xaxbxc]"',
+      test15: '"xax[xax]xcx"',
+      test16: '"xax[xax]xcx"',
+      test17: '"[x]axbxcx"',
+      test18: '"[x]a[x]b[x]c[x]"',
+      test19: '"xax[b]xcx"',
+      test20: '"xax[b]xcx"',
+      test21: '"[axbxcx]axbxcx"',
+      test22: '"[axbxcx]a[bxcx]b[cx]c[]"',
+      test23: '"xax[xcx]xcx"',
+      test24: '"xax[xcx]xcx"',
+      test25: '"[$1]axbxcx"',
+      test26: '"[]axbxcx"',
+      test27: '"[$1]a[$1]b[$1]c[$1]"',
+      test28: '"[]a[]b[]c[]"',
+      test29: '"xax[$1]xcx"',
+      test30: '"xax[]xcx"',
+      test31: '"xax[$1]xcx"',
+      test32: '"xax[]xcx"',
+      test33: '"[$$$1$$a1abb1bb0$002$3$03][$$$1$$b1bcc1cc0$002$3$03]c"'
+    },
+}

@@ -1,0 +1,165 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - type: 'Any|undefined'
+    effective_type: 'Any|undefined'
+    decl: 'let elem: Any = null'
+    init1: 'elem'
+    init2: 'undefined'
+
+  - type: 'undefined|null'
+    effective_type: 'undefined|null'
+    init1: 'undefined'
+    init2: 'null'
+
+  - type: 'null|byte'
+    effective_type: 'null|byte'
+    decl: 'let elem: byte = 1'
+    init1: 'null'
+    init2: 'elem'
+
+  - type: 'byte|short'
+    effective_type: 'byte|short'
+    decl: |-
+      let elem1: byte = 1
+      let elem2: short = 1
+    init1: 'elem1'
+    init2: 'elem2'
+
+  - type: 'short|int'
+    effective_type: 'short|int'
+    decl: |-
+      let elem1: short = 1
+      let elem2: int = 1
+    init1: 'elem1'
+    init2: 'elem2'
+
+  - type: 'int|long'
+    effective_type: 'int|long'
+    decl: |-
+      let elem1: int = 1
+      let elem2: long = 2147483648
+    init1: 'elem1'
+    init2: 'elem2'
+
+  - type: 'long|bigint'
+    effective_type: 'long|bigint'
+    init1: '2147483648'
+    init2: '1n'
+
+  - type: 'float|bigint'
+    effective_type: 'float|bigint'
+    init1: '1.0f'
+    init2: '1n'
+
+  - type: 'double|bigint'
+    effective_type: 'double|bigint'
+    init1: '1.0'
+    init2: '1n'
+
+  - type: 'bigint|boolean'
+    effective_type: 'bigint|boolean'
+    init1: '1n'
+    init2: 'true'
+
+  - type: 'boolean|char'
+    effective_type: 'boolean|char'
+    init1: 'true'
+    init2: "c'a'"
+
+  - type: 'char|string'
+    effective_type: 'char|string'
+    init1: "c'a'"
+    init2: '"string"'
+
+  - type: 'string|Object'
+    effective_type: 'string|Object'
+    decl: 'let elem: Object = new Object()'
+    init1: '"string"'
+    init2: "elem"
+
+  - type: "Object|'aa'"
+    effective_type: 'Object|string'
+    decl: 'let elem: Object = new Object()'
+    init1: 'elem'
+    init2: '"aa"'
+
+  - type: "'aa'|A"
+    effective_type: 'string|A'
+    decl: |-
+      class A {}
+      let elem: A = new A
+    init1: '"aa"'
+    init2: 'elem'
+
+  - type: 'A|I'
+    effective_type: 'A|I'
+    decl: |-
+      class A {}
+      let elem1: A = new A
+      interface I {}
+      class B implements I {}
+      let elem2: I = new B()
+    init1: 'elem1'
+    init2: 'elem2'
+
+  - type: 'I|A<int>'
+    effective_type: 'I|A'
+    decl: |-
+      interface I {}
+      class B implements I {}
+      let elem1: I = new B()
+      class A<T> {}
+      let elem2: A<int> = new A<int>
+    init1: 'elem1'
+    init2: 'elem2'
+
+  - type: 'A<int>|I<int>'
+    effective_type: 'A|I'
+    decl: |-
+      class A<T> {}
+      let elem1: A<int> = new A<int>
+      interface I<T> {}
+      class B<T> implements I<T> {}
+      let elem2: I<int> = new B<int>()
+    init1: 'elem1'
+    init2: 'elem2'
+
+  - type: 'I<int>|Color'
+    effective_type: 'I|Color'
+    decl: |-
+      interface I<T> {}
+      class A<T> implements I<T> {}
+      let elem1: I<int> = new A<int>()
+      enum Color { Red, Green, Blue }
+    init1: 'elem1'
+    init2: 'Color.Red'
+
+  - type: 'Color|foo_type'
+    effective_type: 'Color|foo_type'
+    decl: |-
+      type foo_type = (a: string) => string
+      let elem: foo_type = (a: string) => a
+      enum Color { Red, Green, Blue }
+    init1: 'elem'
+    init2: 'Color.Red'
+
+  - type: 'foo_type|int'
+    effective_type: 'foo_type|int'
+    decl: |-
+      type foo_type = (a: string) => string
+      let elem: foo_type = (a: string) => a
+    init1: 'elem'
+    init2: '1'

@@ -1,0 +1,517 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+- {
+    method_name: upperBoundSearch,
+    method_nature: function,
+    result_type: int,
+    method_signature:  { arr: "FixedArray<boolean>", key: "boolean", startIndex: int, endIndex: int },
+    method_signature_desc: {first: "boolean_array", key: "boolean", startIndex: int, endIndex: int},
+    method_throws: "true",
+    method_test_index_data:
+      {
+        test10:
+          {
+            arr: "[false, false, false, false, true, true, true, true, true]",
+            key: "true",
+            startIndex: 1,
+            endIndex: 6
+          },
+        test20:
+          {
+            arr: "[false, false, false, false, true, true, true, true, true]",
+            key: "false",
+            startIndex: 2,
+            endIndex: 6
+          },
+        test30:
+          {
+            arr: "[false, false, false, false, false, false, false, false, false]",
+            key: "true",
+            startIndex: 2,
+            endIndex: 6
+
+          },
+        test40:
+          {
+            arr: "[true, true, true, true, true, true, true, true, true, true]",
+            key: "false",
+            startIndex: 2,
+            endIndex: 6
+          },
+      },
+    method_expected_data:
+      {
+        test10: 6,
+        test20: 4,
+        test30: 6,
+        test40: 2,
+      },
+  }
+- {
+    method_name: upperBoundSearch,
+    method_nature: function,
+    result_type: int,
+    method_signature:  { arr: "FixedArray<byte>", key: "byte", startIndex: int, endIndex: int },
+    method_signature_desc: {first: "byte_array", key: "byte", startIndex: int, endIndex: int},
+    method_throws: "true",
+    method_test_index_data:
+      {
+        test10:
+          {
+            arr: "[0,1,2,3,4,5,6,7,7,7,7,7,8,9,10,11,12,13,14,15,16]",
+            key: 7,
+            startIndex: 2,
+            endIndex: 14 
+          },
+        test20:
+          {
+            arr: "[7,7,7,7,7,8,9,10,11,12,13,14,15,16]",
+            key: 7,
+            startIndex: 1,
+            endIndex: 8
+          },
+
+        test30:
+          {
+            arr: "[0,1,2,3,4,5,6,7,7,7,7,7]",
+            key: 7,
+            startIndex: 1,
+            endIndex: 9 
+          },
+        test40:
+          {
+            arr: "[0,1,2,3,4,5,6,7,7,7,7,7,8,9,10,11]",
+            key: 25,
+            startIndex: 1,
+            endIndex: 11
+          },
+        test50:
+          {
+            arr: "[2,3,4,5,6,7,7,7,7,7,8,9,10,11,12]",
+            key: 1,
+            startIndex: 1,
+            endIndex: 11
+
+          },
+        test60:
+          {
+            arr: "[0,1,2,3,4,5,6,8,9,10,11]",
+            key: 7,
+            startIndex: 1,
+            endIndex: 8
+          },
+      },
+    method_expected_data:
+      {
+        test10: 12,
+        test20: 5,
+        test30: 9,
+        test40: 11,
+        test50: 1,
+        test60: 7,
+      },
+  }
+- {
+    method_name: upperBoundSearch,
+    method_nature: function,
+    result_type: int,
+    method_signature:  { arr: "FixedArray<short>", key: "short", startIndex: int, endIndex: int },
+    method_signature_desc: {first: "short_array", key: "short", startIndex: int, endIndex: int},
+    method_throws: "true",
+    method_test_index_data:
+      {
+        test10:
+          {
+            arr: "[0,1,2,3,4,5,6,7,7,7,7,7,8,9,10,11,12,13,14,15,16]",
+            key: 7,
+            startIndex: 2,
+            endIndex: 14 
+          },
+        test20:
+          {
+            arr: "[7,7,7,7,7,8,9,10,11,12,13,14,15,16]",
+            key: 7,
+            startIndex: 1,
+            endIndex: 8
+          },
+
+        test30:
+          {
+            arr: "[0,1,2,3,4,5,6,7,7,7,7,7]",
+            key: 7,
+            startIndex: 1,
+            endIndex: 9 
+          },
+        test40:
+          {
+            arr: "[0,1,2,3,4,5,6,7,7,7,7,7,8,9,10,11]",
+            key: 25,
+            startIndex: 1,
+            endIndex: 11
+          },
+        test50:
+          {
+            arr: "[2,3,4,5,6,7,7,7,7,7,8,9,10,11,12]",
+            key: 1,
+            startIndex: 1,
+            endIndex: 11
+
+          },
+        test60:
+          {
+            arr: "[0,1,2,3,4,5,6,8,9,10,11]",
+            key: 7,
+            startIndex: 1,
+            endIndex: 8
+          },
+      },
+    method_expected_data:
+      {
+        test10: 12,
+        test20: 5,
+        test30: 9,
+        test40: 11,
+        test50: 1,
+        test60: 7,
+      },
+  }
+- {
+    method_name: upperBoundSearch,
+    method_nature: function,
+    result_type: int,
+    method_signature:  { arr: "FixedArray<int>", key: "int", startIndex: int, endIndex: int },
+    method_signature_desc: {first: "int_array", key: "int", startIndex: int, endIndex: int},
+    method_throws: "true",
+    method_test_index_data:
+      {
+        test10:
+          {
+            arr: "[0,1,2,3,4,5,6,7,7,7,7,7,8,9,10,11,12,13,14,15,16]",
+            key: 7,
+            startIndex: 2,
+            endIndex: 14 
+          },
+        test20:
+          {
+            arr: "[7,7,7,7,7,8,9,10,11,12,13,14,15,16]",
+            key: 7,
+            startIndex: 1,
+            endIndex: 8
+          },
+
+        test30:
+          {
+            arr: "[0,1,2,3,4,5,6,7,7,7,7,7]",
+            key: 7,
+            startIndex: 1,
+            endIndex: 9 
+          },
+        test40:
+          {
+            arr: "[0,1,2,3,4,5,6,7,7,7,7,7,8,9,10,11]",
+            key: 25,
+            startIndex: 1,
+            endIndex: 11
+          },
+        test50:
+          {
+            arr: "[2,3,4,5,6,7,7,7,7,7,8,9,10,11,12]",
+            key: 1,
+            startIndex: 1,
+            endIndex: 11
+
+          },
+        test60:
+          {
+            arr: "[0,1,2,3,4,5,6,8,9,10,11]",
+            key: 7,
+            startIndex: 1,
+            endIndex: 8
+          },
+      },
+    method_expected_data:
+      {
+        test10: 12,
+        test20: 5,
+        test30: 9,
+        test40: 11,
+        test50: 1,
+        test60: 7,
+      },
+  }
+- {
+    method_name: upperBoundSearch,
+    method_nature: function,
+    result_type: int,
+    method_signature:  { arr: "FixedArray<long>", key: "long", startIndex: int, endIndex: int },
+    method_signature_desc: {first: "long_array", key: "long", startIndex: int, endIndex: int},
+    method_throws: "true",
+    method_test_index_data:
+      {
+        test10:
+          {
+            arr: "[0,1,2,3,4,5,6,7,7,7,7,7,8,9,10,11,12,13,14,15,16]",
+            key: 7,
+            startIndex: 2,
+            endIndex: 14 
+          },
+        test20:
+          {
+            arr: "[7,7,7,7,7,8,9,10,11,12,13,14,15,16]",
+            key: 7,
+            startIndex: 1,
+            endIndex: 8
+          },
+
+        test30:
+          {
+            arr: "[0,1,2,3,4,5,6,7,7,7,7,7]",
+            key: 7,
+            startIndex: 1,
+            endIndex: 9 
+          },
+        test40:
+          {
+            arr: "[0,1,2,3,4,5,6,7,7,7,7,7,8,9,10,11]",
+            key: 25,
+            startIndex: 1,
+            endIndex: 11
+          },
+        test50:
+          {
+            arr: "[2,3,4,5,6,7,7,7,7,7,8,9,10,11,12]",
+            key: 1,
+            startIndex: 1,
+            endIndex: 11
+
+          },
+        test60:
+          {
+            arr: "[0,1,2,3,4,5,6,8,9,10,11]",
+            key: 7,
+            startIndex: 1,
+            endIndex: 8
+          },
+      },
+    method_expected_data:
+      {
+        test10: 12,
+        test20: 5,
+        test30: 9,
+        test40: 11,
+        test50: 1,
+        test60: 7,
+      },
+  }
+- {
+    method_name: upperBoundSearch,
+    method_nature: function,
+    result_type: int,
+    method_signature:  { arr: "FixedArray<float>", key: "float", startIndex: int, endIndex: int },
+    method_signature_desc: {first: "float_array", key: "float", startIndex: int, endIndex: int},
+    method_throws: "true",
+    method_test_index_data:
+      {
+        test10:
+          {
+            arr: "[0,1,2,3,4,5,6,7,7,7,7,7,8,9,10,11,12,13,14,15,16]",
+            key: 7,
+            startIndex: 2,
+            endIndex: 14 
+          },
+        test20:
+          {
+            arr: "[7,7,7,7,7,8,9,10,11,12,13,14,15,16]",
+            key: 7,
+            startIndex: 1,
+            endIndex: 8
+          },
+
+        test30:
+          {
+            arr: "[0,1,2,3,4,5,6,7,7,7,7,7]",
+            key: 7,
+            startIndex: 1,
+            endIndex: 9 
+          },
+        test40:
+          {
+            arr: "[0,1,2,3,4,5,6,7,7,7,7,7,8,9,10,11]",
+            key: 25,
+            startIndex: 1,
+            endIndex: 11
+          },
+        test50:
+          {
+            arr: "[2,3,4,5,6,7,7,7,7,7,8,9,10,11,12]",
+            key: 1,
+            startIndex: 1,
+            endIndex: 11
+
+          },
+        test60:
+          {
+            arr: "[0,1,2,3,4,5,6,8,9,10,11]",
+            key: 7,
+            startIndex: 1,
+            endIndex: 8
+          },
+      },
+    method_expected_data:
+      {
+        test10: 12,
+        test20: 5,
+        test30: 9,
+        test40: 11,
+        test50: 1,
+        test60: 7,
+      },
+  }
+- {
+    method_name: upperBoundSearch,
+    method_nature: function,
+    result_type: int,
+    method_signature:  { arr: "FixedArray<double>", key: "double", startIndex: int, endIndex: int },
+    method_signature_desc: {first: "double_array", key: "double", startIndex: int, endIndex: int},
+    method_throws: "true",
+    method_test_index_data:
+      {
+        test10:
+          {
+            arr: "[0,1,2,3,4,5,6,7,7,7,7,7,8,9,10,11,12,13,14,15,16]",
+            key: 7,
+            startIndex: 2,
+            endIndex: 14 
+          },
+        test20:
+          {
+            arr: "[7,7,7,7,7,8,9,10,11,12,13,14,15,16]",
+            key: 7,
+            startIndex: 1,
+            endIndex: 8
+          },
+
+        test30:
+          {
+            arr: "[0,1,2,3,4,5,6,7,7,7,7,7]",
+            key: 7,
+            startIndex: 1,
+            endIndex: 9 
+          },
+        test40:
+          {
+            arr: "[0,1,2,3,4,5,6,7,7,7,7,7,8,9,10,11]",
+            key: 25,
+            startIndex: 1,
+            endIndex: 11
+          },
+        test50:
+          {
+            arr: "[2,3,4,5,6,7,7,7,7,7,8,9,10,11,12]",
+            key: 1,
+            startIndex: 1,
+            endIndex: 11
+
+          },
+        test60:
+          {
+            arr: "[0,1,2,3,4,5,6,8,9,10,11]",
+            key: 7,
+            startIndex: 1,
+            endIndex: 8
+          },
+      },
+    method_expected_data:
+      {
+        test10: 12,
+        test20: 5,
+        test30: 9,
+        test40: 11,
+        test50: 1,
+        test60: 7,
+      },
+  }
+- {
+    method_name: upperBoundSearch,
+    method_nature: function,
+    result_type: int,
+    method_signature:  { arr: "FixedArray<char>", key: "char", startIndex: int, endIndex: int },
+    method_signature_desc: {first: "char_array", key: "char", startIndex: int, endIndex: int},
+    method_throws: "true",
+    method_test_index_data:
+      {
+        test10:
+          {
+            arr: "[0,1,2,3,4,5,6,7,7,7,7,7,8,9,10,11,12,13,14,15,16]",
+            key: 7,
+            startIndex: 2,
+            endIndex: 14 
+          },
+        test20:
+          {
+            arr: "[7,7,7,7,7,8,9,10,11,12,13,14,15,16]",
+            key: 7,
+            startIndex: 1,
+            endIndex: 8
+          },
+
+        test30:
+          {
+            arr: "[0,1,2,3,4,5,6,7,7,7,7,7]",
+            key: 7,
+            startIndex: 1,
+            endIndex: 9 
+          },
+        test40:
+          {
+            arr: "[0,1,2,3,4,5,6,7,7,7,7,7,8,9,10,11]",
+            key: 25,
+            startIndex: 1,
+            endIndex: 11
+          },
+        test50:
+          {
+            arr: "[2,3,4,5,6,7,7,7,7,7,8,9,10,11,12]",
+            key: 1,
+            startIndex: 1,
+            endIndex: 11
+
+          },
+        test60:
+          {
+            arr: "[0,1,2,3,4,5,6,8,9,10,11]",
+            key: 7,
+            startIndex: 1,
+            endIndex: 8
+          },
+      },
+    method_expected_data:
+      {
+        test10: 12,
+        test20: 5,
+        test30: 9,
+        test40: 11,
+        test50: 1,
+        test60: 7,
+      },
+  }

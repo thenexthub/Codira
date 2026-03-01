@@ -1,0 +1,188 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+  - desc: |-
+      A string value for enumeration constants must be set explicitly
+    decl_variants:
+      - |-
+        enum Enum: string { first = "A", second = "B", third = "B" }
+      - |-
+        const enum Enum: string { first = "A", second = "B", third = "B" }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(Enum.first instanceof Enum)
+        arktest.assertTrue(Enum.second instanceof Enum)
+        arktest.assertTrue(Enum.third instanceof Enum)
+        arktest.assertTrue(Enum.first.valueOf() instanceof string)
+        arktest.assertTrue(Enum.second.valueOf() instanceof string)
+        arktest.assertTrue(Enum.third.valueOf() instanceof string)
+        arktest.assertEQ(Enum.first.valueOf(), "A")
+        arktest.assertEQ(Enum.second.valueOf(), "B")
+        arktest.assertEQ(Enum.third.valueOf(), "B")
+      - |-
+        let e1 = Enum.first
+        let e2 = Enum.second
+        let e3 = Enum.third
+        arktest.assertEQ("" + e1 + e2 + e3, "ABB")
+      - |-
+        const e1 = Enum.first
+        const e2 = Enum.second
+        const e3 = Enum.third
+        arktest.assertEQ("" + e1 + e2 + e3, "ABB")
+
+  - desc: |-
+      A string value for enumeration constants must be set explicitly
+    decl_variants:
+      - |-
+        enum Enum: string { _first = "A", _second = "B", _third = "B" }
+      - |-
+        const enum Enum: string { _first = "A", _second = "B", _third = "B" }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(Enum._first instanceof Enum)
+        arktest.assertTrue(Enum._second instanceof Enum)
+        arktest.assertTrue(Enum._third instanceof Enum)
+        arktest.assertTrue(Enum._first.valueOf() instanceof string)
+        arktest.assertTrue(Enum._second.valueOf() instanceof string)
+        arktest.assertTrue(Enum._third.valueOf() instanceof string)
+        arktest.assertEQ(Enum._first.toString(), "A")
+        arktest.assertEQ(Enum._second.toString(),  "B")
+        arktest.assertEQ(Enum._third.toString(), "B")
+
+  - desc: |-
+      >-
+        A string value for enumeration constants must be set explicitly
+        params: constant expression
+    decl_variants:
+      - |-
+        const a = "ABC"
+        enum Enum: string { e1 = a, e2 = "DEF" }
+      - |-
+        const a = "ABC"
+        const enum Enum: string { e1 = a, e2 = "DEF" }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(Enum.e1 instanceof Enum)
+        arktest.assertTrue(Enum.e2 instanceof Enum)
+        arktest.assertTrue(Enum.e1.valueOf() instanceof string)
+        arktest.assertTrue(Enum.e2.valueOf() instanceof string)
+        arktest.assertEQ(Enum.e1.toString(), "ABC")
+        arktest.assertEQ(Enum.e2.toString(), "DEF")
+
+  - desc: |-
+      >-
+        A string value for enumeration constants must be set explicitly
+        params: constant expression
+    decl_variants:
+      - |-
+        const a = "ABC"
+        enum Enum: string { e1 = a + a, e2 = a + "DEF" }
+      - |-
+        const a = "ABC"
+        const enum Enum: string { e1 = a + a, e2 = a + "DEF" }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(Enum.e1 instanceof Enum)
+        arktest.assertTrue(Enum.e2 instanceof Enum)
+        arktest.assertTrue(Enum.e1.valueOf() instanceof string)
+        arktest.assertTrue(Enum.e2.valueOf() instanceof string)
+        arktest.assertEQ(Enum.e1.toString(), "ABCABC")
+        arktest.assertEQ(Enum.e2.toString(), "ABCDEF")
+
+  - desc: |-
+      A string value for enumeration constants must be set explicitly
+    decl_variants:
+      - |-
+        enum Enum: string { e1 = "A", e2 = "B", e3 = "C" }
+      - |-
+        const enum Enum: string { e1 = "A", e2 = "B", e3 = "C" }
+    sub_cases_logic:
+      - |-
+        let v = Enum.e3
+        arktest.assertTrue(v instanceof Enum)
+        arktest.assertTrue(v.valueOf() instanceof string)
+        switch (v) {
+          case Enum.e1: arktest.assertTrue(false); break;
+          case Enum.e2: arktest.assertTrue(false); break;
+          case Enum.e3: arktest.assertEQ(v.toString(), "C"); break;
+        }
+
+  - desc: |-
+      A string value for enumeration constants must be set explicitly
+    decl_variants:
+      - |-
+        enum Color: string { Red = "red", Green = "green", Blue = "blue" }
+      - |-
+        const enum Color: string { Red = "red", Green = "green", Blue = "blue" }
+    sub_cases_logic:
+      - |-
+        let r: string = Color.Red
+        arktest.assertEQ(r, "red")
+        let g: string = Color.Green
+        arktest.assertEQ(g, "green")
+        let b: string = Color.Blue
+        arktest.assertEQ(b, "blue")
+
+  - desc: |-
+      A string value for enumeration constants must be set explicitly
+    decl_variants:
+      - |-
+        enum Color: string { Red = "red", Green = "green", Blue = "blue" }
+        function foo(p: string): boolean {
+          return p == "blue"
+        }
+      - |-
+        const enum Color: string { Red = "red", Green = "green", Blue = "blue" }
+        function foo(p: string): boolean {
+          return p == "blue"
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertEQ(foo(Color.Red), false)
+        arktest.assertEQ(foo(Color.Green), false)
+        arktest.assertEQ(foo(Color.Blue), true)
+
+  - desc: |-
+      A string value for enumeration constants must be set explicitly
+    decl_variants:
+      - |-
+        enum Template: string {
+          t1 = "Line 1\nLine 2",
+          t2 = "Line 3\nLine 4"
+        }
+      - |-
+        const enum Template: string {
+          t1 = "Line 1\nLine 2",
+          t2 = "Line 3\nLine 4"
+        }
+    sub_cases_logic:
+      - |-
+        let v1 = Template.t1
+        let v2 = Template.t2
+        arktest.assertTrue(v1 instanceof Template)
+        arktest.assertTrue(v2 instanceof Template)
+        arktest.assertTrue(v1.valueOf() instanceof string)
+        arktest.assertTrue(v2.valueOf() instanceof string)
+        arktest.assertEQ(v1.toString(), "Line 1\nLine 2")
+        arktest.assertEQ(v2.toString(), "Line 3\nLine 4")

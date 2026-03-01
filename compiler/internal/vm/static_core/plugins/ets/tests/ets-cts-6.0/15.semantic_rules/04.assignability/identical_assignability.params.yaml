@@ -1,0 +1,117 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+cases:
+  # Array Type Identity
+  - type1: 'string[]'
+    value: '["a", "b", "c"]'
+    type2: 'Array<string>'
+  
+  - type1: 'number[]'
+    value: '[1, 2, 3]'
+    type2: 'Array<number>'
+  
+  - type1: 'boolean[]'
+    value: '[true, false, true]'
+    type2: 'Array<boolean>'
+  
+  - type1: 'C[]'
+    value: '[new C("John")]'
+    type2: 'Array<C>'
+
+  # Tuple Type Identity
+  - type1: '[string, number]'
+    value: '["hello", 42]'
+  
+  - type1: '[boolean, string, number]'
+    value: '[true, "test", 100]'
+  
+  - type1: '[string, number]'
+    value: '["test", 42]'
+
+  # Union Type Identity (with permutation)
+  - type1: 'string | number'
+    value: '"hello"'
+    type2: 'number | string'
+  
+  - type1: '"success" | "error" | "loading"'
+    value: '"success"'
+    type2: '"error" | "loading" | "success"'
+  
+  - type1: 'boolean | null | undefined'
+    value: 'true'
+    type2: 'undefined | null | boolean'
+  
+  - type1: 'C | number'
+    value: 'new C("John")'
+    type2: 'number | C'
+
+  # Complex Types
+  - type1: '(string | number)[][]'
+    value: '[["a"], [1]]'
+    type2: 'Array<Array<string | number>>'
+  
+  - type1: '[string | number, boolean]'
+    value: '["test", true]'
+    type2: '[number | string, boolean]'
+  
+  - type1: '(x: string) => number'
+    value: '(x: string) => x.length'
+    type2: '(param: string) => number'
+
+  # Literal Types
+  - type1: '"hello"'
+    value: '"hello"'
+  
+  - type1: '"42"'
+    value: '"42"'
+  
+  - type1: 'undefined'
+    value: 'undefined'
+
+  # Function Types
+  - type1: '() => void'
+    value: '() => {}'
+  
+  - type1: '(a: number) => string'
+    value: '(a: number) => a.toString()'
+    type2: '(x: number) => string'
+
+  # Object Type
+  - type1: 'C'
+    value: '{ name: "Alice"}'
+
+  # Generic Types
+  - type1: 'Promise<string>'
+    value: 'Promise.resolve("hello")'
+  
+  - type1: 'Map<string, number>'
+    value: '{"string": 1}'
+
+  # Mixed Complex Types
+  - type1: 'Array<string | number>'
+    value: '["a", 1, "b"]'
+    type2: '(string | number)[]'
+  
+  - type1: '[Array<string>, number]'
+    value: '[["a", "b"], 42]'
+    type2: '[string[], number]'

@@ -1,0 +1,56 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - doc: |-
+      >-
+        A compile-time error occurs if
+        rhsExpression is of a tuple type, and a lhsExpression corresponds to absent tuple element
+    use: |-
+      let n: number = 1;
+      let s: string = "a";
+      [n,s] = [1.5];
+    expected_out: "Syntax error ESY82935: Initializer of length '1' provides no value for every element in destructuring of length '2'."
+
+  - doc: "Destructuring Assignment - FixedArrays"
+    decl: |-
+      function fixed_array(): FixedArray<number> {
+        return [1,2,3,4,5];
+      }
+    use: |-
+      let str: string = "";
+      [str] = fixed_array();
+    expected_out: "Semantic error ESE0318: Type 'Double' cannot be assigned to type 'String'"
+
+  - doc: "Destructuring Assignment - Resizable Arrays"
+    decl: |-
+      function resizable_array(): number[] {
+        return [1,2,3,4,5];
+      }
+    use: |-
+      let str: string = "";
+      [str] = resizable_array();
+    expected_out: "Semantic error ESE0318: Type 'Double' cannot be assigned to type 'String'"
+
+  - doc: |-
+      >-
+        A compile-time error occurs if
+        type of an array or tuple element is not assignable (see Assignability) to the type of corresponding lhsExpression;
+    decl: |-
+      let tpl: [number,string] = [1.5, "str"];
+    use: |-
+      let n1: number = 1;
+      let n2: number = 2;
+      [n1,n2] = tpl;
+    expected_out: "Semantic error ESE0318: Type 'String' cannot be assigned to type 'Double'"

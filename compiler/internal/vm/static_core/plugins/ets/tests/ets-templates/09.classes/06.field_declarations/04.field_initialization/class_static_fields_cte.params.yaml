@@ -1,0 +1,103 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+  - desc: |-
+      Checking on static field has no initializer.
+    check_variants:
+      - {check_type: "bigint"}
+      - {check_type: "string"}
+      - {check_type: "Object"}
+    decl_variants:
+      - |-
+        class A {
+          static field: [check_type]
+        }
+
+  - desc: |-
+      Checking on static field has no initializer.
+    decl_variants:
+      - |-
+        class C {}
+        class A {
+          static field: C
+        }
+
+  - desc: |-
+      >-
+        Checking for initialization with different
+        not covariant subtype values usage.
+    check_variants:
+      - {check_value_type: "Cat"}
+      - {check_value_type: "Animal"}
+    decl_variants:
+      - |-
+        class Animal {}
+        class Dog extends Animal {}
+        class Cat extends Animal {}
+        class C {
+          static field: Dog = new [check_value_type]
+        }
+
+  - desc: |-
+      >-
+        Checking for initialization with different
+        not covariant function subtype values usage.
+    check_variants:
+      - {check_value: "handlerCInt"}
+      - {check_value: "handlerBInt"}
+      - {check_value: "handlerB"}
+      - {check_value: "handlerBIntInt"}
+      - {check_value: "handlerNothing"}
+    decl_variants:
+      - |-
+        class A {}
+        class B extends A {}
+        class C extends A {}
+        type HandlerReq = (a: B, b: int) => B
+        const handlerReq: HandlerReq = (a: B, b: int): B => {
+          return new B
+        }
+        type HandlerCInt = (a: C, b: int) => B
+        const handlerCInt: HandlerCInt = (a: C, b: int): B => {
+          return new B
+        }
+        type HandlerBInt = (a: B, b: int) => A
+        const handlerBInt: HandlerBInt = (a: B, b: int): A => {
+          return new B
+        }
+        type HandlerB = (a: B) => A
+        const handlerB: HandlerB = (a: B): A => {
+          return new B
+        }
+        type HandlerBIntInt = (a: B, b: int, c: int) => B
+        const handlerBIntInt: HandlerBIntInt = (a: B, b: int, c: int): B => {
+          return new B
+        }
+        type HandlerNothing = () => C
+        const handlerNothing: HandlerNothing = (): C => {
+          return new C
+        }
+        class D {
+          static field: HandlerReq = [check_value]
+        }
+
+  - desc: |-
+      >-
+        Error: TS2302:
+        Static members cannot reference class type parameters
+    decl_variants:
+      - |-
+        class A<T> {
+          static field: T
+        }

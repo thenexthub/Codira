@@ -1,0 +1,279 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+# (mult) XXX to Float
+- {
+    type1: "Float", value1: "10.0f",
+    type2: "Float", value2: "2.3f",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "23"
+  }
+- {
+    type1: "Double", value1: "10.0",
+    type2: "Float", value2: "2.3f",
+    operation: "*", op_name: "mult",
+    result: "22.999999523162842"
+  }
+- {
+    type1: "Long", value1: "10",
+    type2: "Float", value2: "2.3f",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "23"
+  }
+- {
+    type1: "Int", value1: "10",
+    type2: "Float", value2: "2.3f",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "23"
+  }
+- {
+    type1: "Short", value1: "10",
+    type2: "Float", value2: "2.3f",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "23"
+  }
+- {
+    type1: "Byte", value1: "10",
+    type2: "Float", value2: "2.3f",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "23"
+  }
+# (mult) XXX to Double
+- {
+    type1: "Float", value1: "10.0f",
+    type2: "Double", value2: "2.3",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "23"
+  }
+- {
+    type1: "Double", value1: "10.0",
+    type2: "Double", value2: "2.3",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "23"
+  }
+- {
+    type1: "Long", value1: "10",
+    type2: "Double", value2: "2.3",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "23"
+  }
+- {
+    type1: "Int", value1: "10",
+    type2: "Double", value2: "2.3",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "23"
+  }
+- {
+    type1: "Short", value1: "10",
+    type2: "Double", value2: "2.3",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "23"
+  }
+- {
+    type1: "Byte", value1: "10",
+    type2: "Double", value2: "2.3",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "23"
+  }
+# (mult) XXX to Long
+- {
+    type1: "Float", value1: "10.0f",
+    type2: "Long", value2: "23",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "230"
+  }
+- {
+    type1: "Double", value1: "10.0",
+    type2: "Long", value2: "23",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "230"
+  }
+- {
+    type1: "Long", value1: "10",
+    type2: "Long", value2: "23",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "230"
+  }
+- {
+    type1: "Int", value1: "10",
+    type2: "Long", value2: "23",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "230"
+  }
+- {
+    type1: "Short", value1: "10",
+    type2: "Long", value2: "23",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "230"
+  }
+- {
+    type1: "Byte", value1: "4",
+    type2: "Long", value2: "23",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "92"
+  }
+# (mult) XXX to Int
+- {
+    type1: "Float", value1: "10.0f",
+    type2: "Int", value2: "23",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "230"
+  }
+- {
+    type1: "Double", value1: "10.0",
+    type2: "Int", value2: "23",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "230"
+  }
+- {
+    type1: "Long", value1: "10",
+    type2: "Int", value2: "23",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "230"
+  }
+- {
+    type1: "Int", value1: "10",
+    type2: "Int", value2: "23",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "230"
+  }
+- {
+    type1: "Short", value1: "10",
+    type2: "Int", value2: "23",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "230"
+  }
+- {
+    type1: "Byte", value1: "4",
+    type2: "Int", value2: "23",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "92"
+  }
+# (mult) XXX to Short
+- {
+    type1: "Float", value1: "10.0f",
+    type2: "Short", value2: "23",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "230"
+  }
+- {
+    type1: "Double", value1: "10.0",
+    type2: "Short", value2: "23",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "230"
+  }
+- {
+    type1: "Long", value1: "10",
+    type2: "Short", value2: "23",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "230"
+  }
+- {
+    type1: "Int", value1: "10",
+    type2: "Short", value2: "23",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "230"
+  }
+- {
+    type1: "Short", value1: "10",
+    type2: "Short", value2: "23",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "230"
+  }
+- {
+    type1: "Byte", value1: "4",
+    type2: "Short", value2: "23",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "92"
+  }
+# (mult) XXX to Byte
+- {
+    type1: "Float", value1: "10.0f",
+    type2: "Byte", value2: "4",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "40"
+  }
+- {
+    type1: "Double", value1: "10.0",
+    type2: "Byte", value2: "4",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "40"
+  }
+- {
+    type1: "Long", value1: "10",
+    type2: "Byte", value2: "4",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "40"
+  }
+- {
+    type1: "Int", value1: "10",
+    type2: "Byte", value2: "4",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "40"
+  }
+- {
+    type1: "Short", value1: "10",
+    type2: "Byte", value2: "4",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "40"
+  }
+- {
+    type1: "Byte", value1: "4",
+    type2: "Byte", value2: "4",
+    operation: "*", op_name: "mult",
+    casting: ".toInt()",
+    result: "16"
+  }

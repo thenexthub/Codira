@@ -1,0 +1,135 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - decl: |-
+      class Derived<T> extends Base {
+        protected protected_foo(y: T) { res = 11; }
+        caller(y: T) {
+          this.protected_foo(y)
+        }
+      }
+    use: |-
+      new Derived<Number>().caller(new Number(3));
+      arktest.assertEQ(res, 11);
+      
+
+  #override-compatible (without override keyword)
+  - decl: |-
+      class Derived extends Base implements Interface {
+        public public_foo() { res = 11; }
+      }
+    use: |-
+      new Derived().public_foo();
+      arktest.assertEQ(res, 11);
+
+  - decl: |-
+      class Derived extends Base {
+        protected protected_foo(a: Number) { res = 11; }
+        get_protected_foo(i: Number) { this.protected_foo(i); }
+      }
+    use: |-
+      new Derived().get_protected_foo(new Number());
+      arktest.assertEQ(res, 11);
+
+  - decl: |-
+      class Derived<T,S> extends Gen2<T,S> {
+        protected foo(y: S) { res = 11; }
+        get_foo(y: S) { this.foo(y) }
+      }
+    use: |-
+      new Derived<String, Number>().get_foo(new Number());
+      arktest.assertEQ(res, 11);
+
+  - decl: |-
+      class Derived extends Base {
+        internal_foo() { res = 11; }
+      }
+    use: |-
+      new Derived().internal_foo();
+      arktest.assertEQ(res, 11);
+
+  # not overload-equivalent
+  - decl: |-
+      class Derived extends Gen<Number> {
+        protected foo(y: String) { res = 11; }
+        get_foo(i: String) { this.foo(i); }
+      }
+    use: |-
+      new Derived().get_foo(new String());
+      arktest.assertEQ(res, 11);
+
+  - decl: |-
+      class Derived extends Base {
+        public public_foo(i: number) {
+          res = 11;
+          return 1;
+        }
+      }
+    use: |-
+      let a = new Derived();
+      a.public_foo();
+      arktest.assertEQ(res, 1);
+      a.public_foo(new Number());
+      arktest.assertEQ(res, 11);
+
+  - decl: |-
+      class Derived extends Base {
+        protected protected_foo(x: String) { res = 11; }
+        get_foo(a: Number) { this.protected_foo(a) }
+        get_foo(a: String) { this.protected_foo(a) }
+      }
+    use: |-
+      let a = new Derived();
+      a.get_foo(new Number());
+      arktest.assertEQ(res, 2);
+      a.get_foo("some str");
+      arktest.assertEQ(res, 11);
+
+  - decl: |-
+      class Derived extends Base {
+        protected protected_foo(i: Number, x: String) { res = 11; }
+        get_foo(a: Number) { this.protected_foo(a) }
+        get_foo(a: Number, b: String) { this.protected_foo(a, b) }
+      }
+    use: |-
+      let a = new Derived();
+      a.get_foo(new Number());
+      arktest.assertEQ(res, 2);
+      a.get_foo(new Number(), "some str");
+      arktest.assertEQ(res, 11);
+
+  # access_modifier_over_34
+  - decl: |-
+      class Derived extends Base {
+        protected protected_foo(i: number) { res = 11; }
+        get_foo(a: Number) { this.protected_foo(a) }
+      }
+    use: |-
+      let a = new Derived();
+      a.get_foo(1 as number);
+      arktest.assertEQ(res, 11);
+
+  - decl: |-
+      class Derived extends Base {
+        protected protected_foo(i: Gen2<Number, String>) { res = 11; }
+        get_foo(a: Number) { this.protected_foo(a) }
+        get_foo(a: Gen2<Number, String>) { this.protected_foo(a) }
+      }
+    use: |-
+      let a = new Derived();
+      a.get_foo(new Number());
+      arktest.assertEQ(res, 2);
+      a.get_foo(new Gen2<Number, String>());
+      arktest.assertEQ(res, 11);

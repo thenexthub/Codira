@@ -1,0 +1,282 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+definitions: []
+tests:
+  - file-name: shri
+    isa:
+      title: Two address binary operation with immediate on accumulator
+      description: >
+        Perform specified binary operation on accumulator and immediate and store result into accumulator.
+        Immediate is sign extended to operand size.
+      exceptions:
+        - x_none
+    commands:
+      - file-name: op_imm_8_zero
+        isa:
+          instructions:
+            - sig: shri imm:i32
+              acc: inout:i32
+              format: [op_imm_8]
+        code-template: |
+          #
+              ldai 0
+              shri %s
+              movi v0, 0
+              jne v0, set_failure
+              ldai 0
+              return
+          set_failure:
+              ldai 1
+              return
+        check-type: none
+        description: Check `shri` with zero and various values.
+        cases:
+          - values: ["0"]
+          - values: ["1"]
+          - values: ["-1"]
+          - values: ["0xF"]
+          - values: ["-0xF"]
+          - values: ["0x7F"]
+          - values: ["-0x7F"]
+          - values: ["0x80"]
+          - values: ["-0x80"]
+          - values: ["0xFF"]
+          - values: ["-0xFF"]
+
+
+      - file-name: op_imm_8_pone
+        isa:
+          instructions:
+            - sig: shri imm:i32
+              acc: inout:i32
+              format: [op_imm_8]
+        code-template: |
+          #
+              ldai 1
+              shri %s
+              movi v0, %s
+              jne v0, set_failure
+              ldai 0
+              return
+          set_failure:
+              ldai 1
+              return
+        check-type: none
+        description: Check `shri` with +1 and various values.
+        cases:
+          - values: ["0", "0x1"]
+          - values: ["1", "0x0"]
+          - values: ["-1", "0x0"]
+          - values: ["0xF", "0x0"]
+          - values: ["-0xF", "0x0"]
+          - values: ["0x7F", "0x0"]
+          - values: ["-0x7F", "0x0"]
+          - values: ["0x80", "0x1"]
+          - values: ["-0x80", "0x1"]
+          - values: ["0xFF", "0x0"]
+          - values: ["-0xFF", "0x0"]
+
+
+      - file-name: op_imm_8_none
+        isa:
+          instructions:
+            - sig: shri imm:i32
+              acc: inout:i32
+              format: [op_imm_8]
+        code-template: |
+          #
+              ldai -1
+              shri %s
+              movi v0, %s
+              jne v0, set_failure
+              ldai 0
+              return
+          set_failure:
+              ldai 1
+              return
+        check-type: none
+        description: Check `shri` with -1 and various values.
+        cases:
+          - values: ["0", "0xFFFFFFFF"]
+          - values: ["1", "0x7FFFFFFF"]
+          - values: ["-1", "0x1"]
+          - values: ["0xF", "0x1FFFF"]
+          - values: ["-0xF", "0x7FFF"]
+          - values: ["0x7F", "0x1"]
+          - values: ["-0x7F", "0x7FFFFFFF"]
+          - values: ["0x80", "0xFFFFFFFF"]
+          - values: ["-0x80", "0xFFFFFFFF"]
+          - values: ["0xFF", "0x1"]
+          - values: ["-0xFF", "0x7FFFFFFF"]
+
+
+      - file-name: op_imm_8_pmax
+        isa:
+          instructions:
+            - sig: shri imm:i32
+              acc: inout:i32
+              format: [op_imm_8]
+        code-template: |
+          #
+              ldai 0x7FFFFFFF
+              shri %s
+              movi v0, %s
+              jne v0, set_failure
+              ldai 0
+              return
+          set_failure:
+              ldai 1
+              return
+        check-type: none
+        description: Check `shri` with +max and various values.
+        cases:
+          - values: ["0", "0x7FFFFFFF"]
+          - values: ["1", "0x3FFFFFFF"]
+          - values: ["-1", "0x0"]
+          - values: ["0xF", "0xFFFF"]
+          - values: ["-0xF", "0x3FFF"]
+          - values: ["0x7F", "0x0"]
+          - values: ["-0x7F", "0x3FFFFFFF"]
+          - values: ["0x80", "0x7FFFFFFF"]
+          - values: ["-0x80", "0x7FFFFFFF"]
+          - values: ["0xFF", "0x0"]
+          - values: ["-0xFF", "0x3FFFFFFF"]
+
+
+      - file-name: op_imm_8_nmax
+        isa:
+          instructions:
+            - sig: shri imm:i32
+              acc: inout:i32
+              format: [op_imm_8]
+        code-template: |
+          #
+              ldai -0x80000000
+              shri %s
+              movi v0, %s
+              jne v0, set_failure
+              ldai 0
+              return
+          set_failure:
+              ldai 1
+              return
+        check-type: none
+        description: Check `shri` with -max and various values.
+        cases:
+          - values: ["0", "0x80000000"]
+          - values: ["1", "0x40000000"]
+          - values: ["-1", "0x1"]
+          - values: ["0xF", "0x10000"]
+          - values: ["-0xF", "0x4000"]
+          - values: ["0x7F", "0x1"]
+          - values: ["-0x7F", "0x40000000"]
+          - values: ["0x80", "0x80000000"]
+          - values: ["-0x80", "0x80000000"]
+          - values: ["0xFF", "0x1"]
+          - values: ["-0xFF", "0x40000000"]
+
+
+      - file-name: vals
+        isa:
+          instructions:
+            - sig: shri imm:i32
+              acc: inout:i32
+              format: [op_imm_8]
+        code-template: |
+          #
+              ldai %s
+              shri %s
+              movi v0, %s
+              jne v0, set_failure
+              ldai 0
+              return
+          set_failure:
+              ldai 1
+              return
+        check-type: none
+        description: Check `shri` with various values.
+        tags: ['tsan']
+        cases:
+          - values: ["0x63E63B2F", "0xBE", "0x1"]
+          - values: ["0xF9F74D5A", "0x58", "0xF9"]
+          - values: ["0x81AEE3B9", "0x65", "0x40D771D"]
+          - values: ["0x9B9557C3", "0x85", "0x4DCAABE"]
+          - values: ["0xC5ED0766", "0x31", "0x62F6"]
+          - values: ["0xEF4830FD", "0x21", "0x77A4187E"]
+          - values: ["0x877BAE93", "0xC9", "0x43BDD7"]
+          - values: ["0x25269B98", "0x84", "0x25269B9"]
+          - values: ["0xE970E92F", "0xB4", "0xE97"]
+          - values: ["0xC150CCA6", "0xEB", "0x182A19"]
+
+
+      - file-name: type
+        isa:
+          verification:
+            - acc_type
+        tags: ['verifier']
+        runner-options: ['verifier-failure', 'verifier-config']
+        header-template: []
+        code-template: |
+          #
+          .record panda.Object <external>
+          .function i32 main() {
+              %s
+              shri 0
+        check-type: exit-positive
+        description: Check 'shri' with incorrect acc type.
+        cases:
+          - values: [ldai.64 0]
+          - values: [fldai 0]
+            bugid: ['7315']
+          - values: [fldai.64 0]
+          - values: [lda.null]
+          - values: [lda.type panda.Object]
+          - values: ['lda.type i32[]']
+          - values: [lda.str ""]
+          - values:
+            - |
+              #
+                  newobj v0, panda.Object
+                  lda.obj v0
+          - values:
+            - |
+              #
+                  movi v0, 10
+                  newarr v0, v0, i32[]
+                  lda.obj v0
+
+
+      - file-name: uninitialized_acc
+        isa:
+          instructions:
+            - sig: shri imm:i32
+              acc: inout:i32
+              format: [op_imm_8]
+        description: Check 'shri' with uninitialized accumulator.
+        tags: ['verifier']
+        runner-options: ['verifier-failure', 'verifier-config']
+        code-template: |
+            #
+                shri 0
+        check-type: exit-positive

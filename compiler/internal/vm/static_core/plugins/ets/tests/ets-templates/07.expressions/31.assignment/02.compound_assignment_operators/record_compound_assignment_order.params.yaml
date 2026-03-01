@@ -1,0 +1,51 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - desc: 'Positive case for record assignment'
+    main: |-
+      (getRecord()[getIndex("Mary")]) *= getValue(-1)
+      arktest.assertEQ(map["Mary"], 2)
+    assert_result: '"getRecord getIndex getValue "'
+
+  - desc: 'Negative case for record assignment, record reference completed abruptly'
+    record: 'true'
+    main: |-
+      let expectedException = (e: Error): boolean => { return (e instanceof Error) }
+      arktest.expectThrow(() => { (getRecord()[getIndex("Mary")]) *= getValue(-1) }, expectedException)
+      arktest.assertEQ(map["Mary"], -2)
+    assert_result: '"getRecord "'
+
+  - desc: 'Negative case for record assignment, index reference completed abruptly'
+    index: 'true'
+    main: |-
+      let expectedException = (e: Error): boolean => { return (e instanceof Error) }
+      arktest.expectThrow(() => { (getRecord()[getIndex("Mary")]) *= getValue(-1) }, expectedException)
+      arktest.assertEQ(map["Mary"], -2)
+    assert_result: '"getRecord getIndex "'
+
+  - desc: 'Negative case for record assignment, rhs reference completed abruptly'
+    value: 'true'
+    main: |-
+      let expectedException = (e: Error): boolean => { return (e instanceof Error) }
+      arktest.expectThrow(() => { (getRecord()[getIndex("Mary")]) *= getValue(-1) }, expectedException)
+      arktest.assertEQ(map["Mary"], -2)
+    assert_result: '"getRecord getIndex getValue "'
+
+  - desc: 'Negative case for record assignment, binary operation completed abruptly'
+    main: |-
+      let expectedException = (e: Error): boolean => { return (e instanceof ArithmeticError) }
+      arktest.expectThrow(() => { getRecord()[getIndex("Mary")] /= (2 - getValue(2)) }, expectedException)
+      arktest.assertEQ(map["Mary"], -2)
+    assert_result: '"getRecord getIndex getValue "'

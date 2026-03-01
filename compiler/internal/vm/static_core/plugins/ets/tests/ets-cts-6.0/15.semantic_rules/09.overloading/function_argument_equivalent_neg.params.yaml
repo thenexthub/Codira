@@ -1,0 +1,55 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - { arg: "i: byte", call: "new Byte(1)" }
+  - { arg: "i: Byte", call: "new Byte()" }
+  - { arg: "i: short", call: "new Short(1)"  }
+  - { arg: "i: Short", call: "new Short()" }
+  - { arg: "i: int", call: "new Int(1)" }
+  - { arg: "i: Int", call: "new Int()" }
+  - { arg: "i: long", call: "new Long(1)"  }
+  - { arg: "i: Long", call: "new Long()" }
+  - { arg: "i: float", call: "new Float(1.1)" }
+  - { arg: "i: Float", call: "new Float()"  }
+  - { arg: "i: double", call: "new Double(1.2)"  }
+  - { arg: "i: number", call: "1.2 as number" }
+  - { arg: "i: Number", call: "new Number(1.2)"  }
+  - { arg: "i: char", call: "c'x'" }
+  - { arg: "i: Char", call: "new Char()" }
+  - { arg: "i: string", call: "'some str'" }
+  - { arg: "i: String", call: "'some str'" }
+  - { arg: "i: boolean", call: "false" }
+  - { arg: "i: Boolean", call: "new Boolean()" }
+  - { arg: "i: Number|undefined|null", call: "undefined" }
+  - { arg: "i: FUN", call: "() => { return true; }" }
+  - { arg: "i: TPL", call: "c" }
+  - { arg: "i: Array<int>", call: "[1, 2]" }
+  - { arg: "i: FixedArray<number>", call: "[1.5, 2.3]" }
+  - { arg: "i: byte[]", call: "[new Byte(1), new Byte(2)]" }
+  - { arg: "i: short[]", call: "[new Short(1), new Short(2)]" }
+  - { arg: "i: int[]", call: "[new Int(1), new Int(2)]" }
+  - { arg: "i: long[]", call: "[new Long(1), new Long(2)]" }
+  - { arg: "i: float[]", call: "[new Float(1.5), new Float(2.2)]" }
+  - { arg: "i: double[]", call: "[1.4, 2.7]" }
+  - { arg: "i: string[]", call: "['str1', 'str2']" }
+  - { arg: "i: boolean[]", call: "[true, false]" }
+  - { arg: "...i: byte[]", call: "new Byte(1), new Byte(2)" }
+  - { arg: "...i: short[]", call: "new Short(1), new Short(2)" }
+  - { arg: "...i: int[]", call: "1, 2" }
+  - { arg: "...i: long[]", call: "new Long(1), new Long(2)" }
+  - { arg: "...i: float[]", call: "new Float(1.3), new Float(2.1)" }
+  - { arg: "...i: double[]", call: "1.4, 2.2" }
+  - { arg: "...i: string[]", call: "'str1', 'str2'" }
+  - { arg: "...i: boolean[]", call: "true, false" }

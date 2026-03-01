@@ -1,0 +1,23 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep class class_test_011.A1 {\n  public foo(%):void;\n  }",
+        "-keep class class_test_011.A2 {\n  public foo(i?2, std.core.St**g):void;\n  }",
+        "-keep class class_test_011.A3 {\n  public foo(***):void;\n  }",
+        "-keep class class_test_011.A4 {\n  public foo(...):void;\n  }",
+        "-keep class class_test_011.B1 {\n  public foo():%;\n  }",
+        "-keep class class_test_011.B2 {\n  public foo(%):{Ustd.core.Int, std.core.String};\n  }",
+        "-keep class class_test_011.B3 {\n  public foo():***;\n  }",
+        "-keep class class_test_011.C1 {\n  public field:%;\n  }",
+        "-keep class class_test_011.C1 {\n  public field2:%;\n  }",
+        "-keep class class_test_011.C2 {\n  public field:std.core.St**g;\n  }",
+        "-keep class class_test_011.C3 {\n  public field:***;\n  }",
+        "-keep class class_test_011.C4 {\n  public field:?32;\n  }"
+      ]
+    }
+  }
+}

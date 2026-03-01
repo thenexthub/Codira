@@ -1,0 +1,93 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+declarations:
+  # namespaces
+  - >
+    declare namespace Ambient {}
+  - >
+    declare namespace Ambient {
+      let x: int
+      let y: double
+      let z: string
+    }
+  - >
+    declare namespace Ambient {
+      const x: Object
+      const y: float
+      const z: Byte[]
+    }
+  - >
+    declare namespace Ambient {
+      function foo(): void
+    }
+  - >
+    declare namespace Ambient {
+      class A {}
+    }
+  - >
+    declare namespace Ambient {
+      interface A {}
+    }
+  - >
+    declare namespace Ambient {
+      namespace NestedAmbient {
+      }
+    }
+  - >
+    declare namespace Ambient {
+      enum Color {White, Blue, Red}
+      export enum ColorExp {White, Blue, Red}
+    }
+  - >
+    declare namespace Ambient {
+      const enum Season {Winter, Spring, Summer, Autumn}
+      export const enum SeasonExp {Winter, Spring, Summer, Autumn}
+    }
+  - >
+    declare namespace Ambient {
+      type Matrix = number[][]
+      export type MatrixExp = number[][]
+    }
+  - >
+    declare namespace Ambient {
+      namespace NestedAmbient {
+        let x: int
+        const y: float
+        function foo(): void
+          class A {}
+          interface I {}
+          enum Color {White, Blue, Red}
+          const enum Season {Winter, Spring, Summer, Autumn}
+          type Matrix = number[][]
+      } 
+      export namespace NestedAmbientExp {
+        export let x: int
+        export const y: float
+        export function foo(): void
+        export class A {}
+        export interface I {}
+        export enum Color {White, Blue, Red}
+        export const enum Season {Winter, Spring, Summer, Autumn}
+        export type Matrix = number[][]
+      }
+    }

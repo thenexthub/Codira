@@ -1,0 +1,82 @@
+/*
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0(the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { Decimal } from "@arkts.math.Decimal";
+
+function main(): int {
+    const suite = new arktest.ArkTestsuite("Decimal ln API tests part 9");
+    suite.addTest("Decimal ln with specific config", testLnWithSpecificConfig001);
+    suite.addTest("Decimal ln with specific config", testLnWithSpecificConfig002);
+    suite.addTest("Decimal ln with specific config", testLnWithSpecificConfig003);
+    suite.addTest("Decimal ln with specific config", testLnWithSpecificConfig004);
+    return suite.run();
+}
+
+function checkLnResult(n: string, expected: string, sd: double, rm: int) {
+    Decimal.precision = sd;
+    Decimal.rounding = rm;
+    arktest.assertEQ(new Decimal(n).ln().valueOf(), expected);
+}
+
+function testLnWithSpecificConfig001() {
+    Decimal.set({ precision: 40, rounding: 4, toExpNeg: 0, toExpPos: 0, minE: -9e15, maxE: 9e15 });
+    checkLnResult('8.37869137029350445E+900', '2.07445227543587787134124946870990167444156501037595873e+3', 54, 1);
+    checkLnResult('5.23468330E+979', '2.255886112387006112695230143368806974046102370335747e+3', 52, 4);
+    checkLnResult('5.9982205441659493126046E+2517', '6e+3', 1, 2);
+    checkLnResult('7E+5', '1.3458835614025541e+1', 17, 1);
+    checkLnResult('8.36991087473514132639620816460727714124539564560E+114871900769', '2.64502326e+11', 9, 1);
+    checkLnResult('9.9102170675767525486462268743104768E+722282888', '2e+9', 1, 5);
+    checkLnResult('88.7213950103796184597368396487398', '4.4855e+0', 5, 1);
+    checkLnResult('8.245971550E+8358202', '1.92454734391578027453548100134030572e+7', 36, 2);
+    checkLnResult('9.12243E-50019117136', '-1.1517327347986588780346729255272976018954e+11', 41, 0);
+    checkLnResult('3E+762827674466452', '1.756475631749768085398731e+15', 25, 4);
+    checkLnResult('7.88476026918002602572814E-990381735', '-2.280438217319647492655582971583716101855286985546894e+9', 52, 3);
+    checkLnResult('1.93876182E+451', '1.0391279265e+3', 11, 2);
+}
+
+function testLnWithSpecificConfig002() {
+    checkLnResult('7.3740736325E+654774', '2e+6', 1, 6);
+    checkLnResult('7E+4834316708582532', '1.113142558799418024006562114e+16', 28, 4);
+    checkLnResult('8.419903621598494995504679345354396264274607872E-81228', '-1.87032251335338520070667445258625347255285029857514040215222e+5', 60, 2);
+    checkLnResult('5043072.7', '1.543352611697716150423861515247087376581267e+1', 43, 0);
+    checkLnResult('9.967071401753478835579846245480959735737425E-30800642339454', '-7.092109991e+13', 10, 6);
+    checkLnResult('7.9191984564270720102158323147796783178696538378E+4299108154110', '9.89906234e+12', 9, 3);
+    checkLnResult('64572.983932271806289465556', '1.10755513969156443144229910347268775332908e+1', 42, 1);
+    checkLnResult('1.937714E+843491028282664', '1.942209867797881766126295470773e+15', 31, 0);
+    checkLnResult('3.22623980772186395511829472880667363767934689738221E+295688495330', '6.808479215178688102694343822133e+11', 31, 6);
+    checkLnResult('3.1424008119820360904816828115594380261542633787339288E+6142101067398', '1.4142710357454596074562853825e+13', 29, 0);
+    checkLnResult('8.799993E-79577', '-1.832306391942611440981400905118e+5', 32, 0);
+}
+
+function testLnWithSpecificConfig003() {
+    checkLnResult('8.70504056438959496505198875861603616462926E-5971', '-1.374657168803434206833683423555e+4', 31, 4);
+    checkLnResult('8.4006029856E+923125420044', '2.1e+12', 2, 3);
+    checkLnResult('4.0119839E-3299350', '-7.59703273728404749704426251310976420299891015285939e+6', 51, 2);
+    checkLnResult('4.3302768368838848441860607605878081415720594735E+76594', '1.7636566824426052100565028315589397992162e+5', 41, 3);
+    checkLnResult('3.8E+329784205242', '7.59356194896453019208845913197638776266462015689e+11', 48, 6);
+    checkLnResult('7.6732416747937E+1102', '2.53948651164891795785685349144456466914229134475e+3', 48, 2);
+    checkLnResult('2.077820490683659388975846E+723625853', '1.666210102754220135345042493516555e+9', 34, 4);
+    checkLnResult('6.688785E-28910', '-6.65658346062145642467325909920069259e+4', 36, 6);
+}
+
+function testLnWithSpecificConfig004() {
+    checkLnResult('6.0136041193424216912E-17927305397954', '-4.1279146166878774234420729153e+13', 29, 3);
+    checkLnResult('5.096332862894596814711832511046074722E+745', '1.71705441551516514163775766e+3', 27, 5);
+    checkLnResult('6.811927352E+97672323', '2.248988368565745651603981641555e+8', 31, 0);
+    checkLnResult('7.48744078897258414951220797837E+890299', '2.05e+6', 5, 0);
+    checkLnResult('9.9786940300229550246920496767E+159423', '3.6708732373261279057236148539102006386167991e+5', 44, 2);
+    checkLnResult('2.38741991405492015313119224178735E+9478681816955', '2.182547145295516879843288985e+13', 28, 2);
+    checkLnResult('2.766573766937788216474557230E+30', '7.00951624371767949074247262566550894e+1', 37, 4);
+}

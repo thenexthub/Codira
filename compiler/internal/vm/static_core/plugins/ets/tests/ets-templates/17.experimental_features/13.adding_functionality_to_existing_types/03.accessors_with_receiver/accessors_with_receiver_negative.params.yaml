@@ -1,0 +1,151 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - desc: "A compile-time error occurs if an accessor is used in the form of a function or a method call."
+    decl: |
+      class A {
+        member: int = 0
+      }
+      set m(this: A, param: int) {
+        this.member = param
+      }
+    use: |
+      let a = new A()
+      m(a, 1)
+    expected_out: "Semantic error ESE0059: Extension accessor can't be used as a method call or function call."
+
+  - desc: "A compile-time error occurs if an accessor is used in the form of a function or a method call."
+    decl: |
+      class A {
+        member: int = 0
+      }
+      get m(this: A): int {
+        return this.member
+      }
+    use: |
+      let a = new A()
+      a.m()
+    expected_out: "Semantic error ESE0059: Extension accessor can't be used as a method call or function call."
+
+  - desc: "The keyword this can be used inside a function with receiver. It corresponds to the first parameter. 
+          Otherwise, a compile-time error occurs. The type of parameter this is called the receiver type"
+    decl: |
+      set m(this: null, param: int) {}
+    use: ""
+    expected_out: "Semantic error ESE0082: Extension function can only defined for class, interface or array."
+    
+  - desc: "The keyword this can be used inside a function with receiver. It corresponds to the first parameter. 
+          Otherwise, a compile-time error occurs. The type of parameter this is called the receiver type"
+    decl: |
+      get m(this: Any): int {}
+    use: ""
+    expected_out: "Semantic error ESE0082: Extension function can only defined for class, interface or array."
+    
+  - desc: "The keyword this can be used inside a function with receiver. It corresponds to the first parameter. 
+          Otherwise, a compile-time error occurs. The type of parameter this is called the receiver type"
+    decl: |
+      class A {m: int}
+      class B {m: int}
+      get m(this: A|B): int {}
+    use: ""
+    expected_out: "Semantic error ESE0082: Extension function can only defined for class, interface or array."
+    
+  - desc: "If the receiver type is a class type or an interface type, then private or protected members are not accessible
+           (see Accessible) within the body of a function with receiver. Only public members can be accessed."
+    decl: |
+      class A {
+        private _m: int
+      }
+      get m(this: A): int {
+        return this._m
+      }
+    use: "Semantic error ESE0082: Extension function can only defined for class, interface or array."
+    expected_out: "Semantic error ESE0293: Property _m is not visible here."
+    
+  - desc: "If the receiver type is a class type or an interface type, then private or protected members are not accessible
+           (see Accessible) within the body of a function with receiver. Only public members can be accessed."
+    decl: |
+      class A {
+        protected _m: int
+      }
+      get m(this: A): int {
+        return this._m
+      }
+    use: ""
+    expected_out: "Semantic error ESE0293: Property _m is not visible here."
+    
+  - desc: "A get-accessor (getter) must have the keyword this as the only getter parameter (receiverParameter) and an explicit
+           return type. Additional param in getter"
+    decl: |
+      class A {
+        _m: int
+      }
+      get m(this: A, param: int): int {
+        return this._m
+      }
+    use: ""
+    expected_out: "Syntax error ESY0022: Extension Getter can only have 1 parameter."
+    
+  - desc: "A get-accessor (getter) must have the keyword this as the only getter parameter (receiverParameter) and an explicit
+           return type. No explicit return type in getter"
+    decl: |
+      class A {
+        _m: int
+      }
+      get m(this: A) {
+        return this._m
+      }
+    use: ""
+    expected_out: "Expected output is unknown"
+    
+  - desc: "A set-accessor (setter) must have a keyword this as a first setter parameter (receiver parameter), one other parameter,
+           and no return type. Two params"
+    decl: |
+      class A {
+        _m: int
+        _n: string
+      }
+      set m(this: A, param1: int, param2: string) {
+        this._m = param1;
+        this._n = param2;
+      }
+    use: ""
+    expected_out: "Syntax error ESY0023: Extension Setter can only have 2 parameters."
+    
+  - desc: "A set-accessor (setter) must have a keyword this as a first setter parameter (receiver parameter), one other parameter,
+           and no return type. Return type"
+    decl: |
+      class A {
+        _m: int
+      }
+      set m(this: A, param: int): void {
+        this._m = param;
+      }
+    use: ""
+    expected_out: "Syntax error ESY0241: Setter must not have return type even if it is void."
+    
+  - desc: "The keyword this can be used inside an accessor with receiver. It corresponds to the first parameter. Other-
+           wise, a compile-time error occurs."
+    decl: |
+      class A {
+        _m: int
+      }
+      class B extends A {}
+      set m(this: A, param: int) {
+        this = new B()
+        this._m = param;
+      }
+    use: ""
+    expected_out: "Syntax error ESY0072: Invalid left-hand side in assignment expression."

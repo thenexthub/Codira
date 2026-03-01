@@ -1,0 +1,416 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+#include "Codira/CHIR/GenerateVTable/WrapVirtualFunc.h"
+
+#include "Codira/CHIR/CHIRBuilder.h"
+#include "Codira/CHIR/Utils.h"
+#include "Codira/CHIR/AST2CHIR/Utils.h"
+#include "Codira/Mangle/CHIRManglingUtils.h"
+
+using namespace Codira;
+using namespace Codira::CHIR;
+
+namespace {
+bool FuncTypeMatch(const FuncType& parentFuncType, const FuncType& curFuncType)
+{
+    std::function<bool(const Type&, const Type&)> typeIsMatched =
+        [&typeIsMatched](const Type& type1, const Type& type2) {
+        if (type1.GetTypeKind() != type2.GetTypeKind()) {
+            return false;
+        }
+        if (type1.IsGeneric() && type2.IsGeneric()) {
+            return true;
+        }
+        auto typeArgs1 = type1.GetTypeArgs();
+        auto typeArgs2 = type2.GetTypeArgs();
+        if (typeArgs1.size() != typeArgs2.size()) {
+            return false;
+        }
+        for (size_t i = 0; i < typeArgs1.size(); ++i) {
+            if (!typeIsMatched(*typeArgs1[i], *typeArgs2[i])) {
+                return false;
+            }
+        }
+        return true;
+    };
+    auto paramTypeIsMatched = [&typeIsMatched](const Type& type1, const Type& type2) {
+        if ((type1.IsGeneric() || type1.IsRef()) && (type2.IsGeneric() || type2.IsRef())) {
+            return true;
+        } else {
+            return typeIsMatched(type1, type2);
+        }
+    };
+    auto parentFuncParamTypes = parentFuncType.GetParamTypes();
+    auto curFuncParamTypes = curFuncType.GetParamTypes();
+    CODEC_ASSERT(parentFuncParamTypes.size() == curFuncParamTypes.size());
+    for (size_t i = 0; i < parentFuncParamTypes.size(); ++i) {
+        if (!paramTypeIsMatched(*parentFuncParamTypes[i], *curFuncParamTypes[i])) {
+            return false;
+        }
+    }
+    auto returnTypeIsMatched = [&typeIsMatched](const Type& type1, const Type& type2) {
+        if (type1.IsGeneric() && type2.IsGeneric()) {
+            return true;
+        }
+        if (type1.IsRef() && type2.IsRef()) {
+            return true;
+        }
+        return typeIsMatched(type1, type2);
+    };
+    return returnTypeIsMatched(*parentFuncType.GetReturnType(), *curFuncType.GetReturnType());
+}
+
+bool JudgeIfNeedVirtualWrapper(const VirtualFuncInfo& parentFuncInfo, const FuncBase& virtualFunc, const Type& selfTy, CHIRBuilder& builder)
+{
+    /** if struct and enum inherit interface, for non-static function, wrapper func is needed
+     *  because `this` in struct is value type, and in interface is ref type
+     *  but for static function, we need to follow rules below
+     */
+    if (!selfTy.IsClassOrArray() && !virtualFunc.TestAttr(Attribute::STATIC)) {
+        return true;
+    }
+    /*  there are two cases which need to wrap virtual function:
+     *  case 1:
+     *  this case is a little complex, the following 4 conditions must be satisfied:
+     *    a. one class inherit two different interfaces, these two interfaces don't have parent-child relationship
+     *    b. these two interfaces have the same method, one is abstract but the other is not.
+     *    c. the interface which its method has default implementation has generic type parameter.
+     *    d. this sub class doesn't override the method in the interface.
+     *     e.g:
+     *     interface I1    { func foo(): Unit }
+     *     interface I2<T> { func foo() {}    }
+     *     class A <: I1 & I2<Bool> {}
+     *  case 2:
+     *  one class inherit another class, there is an open method in the parent class and the sub class override
+     *  this method. But the two methods' parameter types are different.
+     *     e.g:
+     *     open class A<T> {
+     *         public open func foo(a: T) {}
+     *     }
+     *     class B <: A<Bool> {
+     *         public func foo(a: Bool) {}
+     *     }
+    */
+    // case 1
+    auto funcParentType = virtualFunc.GetParentCustomTypeDef()->GetType();
+    if (funcParentType != &selfTy && funcParentType->IsGenericRelated() &&
+        !funcParentType->IsEqualOrSubTypeOf(*parentFuncInfo.typeInfo.parentType, builder)) {
+        return true;
+    }
+    // case 2
+    auto parentFuncType = parentFuncInfo.typeInfo.originalType;
+    return !FuncTypeMatch(*parentFuncType, *virtualFunc.GetFuncType());
+}
+
+// maybe we can not deserialize virutal wrapper function, because it's not in source code
+void TryDeleteVirtuallWrapperFunc(CustomTypeDef& customTypeDef, FuncBase& finalFunc, CHIRBuilder& builder)
+{
+    if (!customTypeDef.TestAttr(Attribute::PLATFORM)) {
+        return;
+    }
+    if (!finalFunc.TestAttr(Attribute::FINAL)) {
+        return;
+    }
+    auto allMethods = customTypeDef.GetMethods();
+    for (auto method : allMethods) {
+        if (!method->TestAttr(Attribute::DESERIALIZED) || !method->TestAttr(Attribute::VIRTUAL)) {
+            continue;
+        }
+        if (finalFunc.Get<WrappedRawMethod>()->GetSrcCodeIdentifier() !=
+            method->Get<WrappedRawMethod>()->GetSrcCodeIdentifier()) {
+            continue;
+        }
+        if (finalFunc.GetFuncType()->IsEqualOrSubTypeOf(*method->GetFuncType(), builder)) {
+            method->FuncBase::DestroySelf();
+            return;
+        }
+    }
+}
+} // namespace
+
+WrapVirtualFunc::WrapVirtualFunc(CHIRBuilder& builder,
+    const CompilationCache& increCachedInfo, const IncreKind incrementalKind, const bool targetIsWin)
+    : builder(builder), increCachedInfo(increCachedInfo), incrementalKind(incrementalKind), targetIsWin(targetIsWin)
+{
+}
+
+void WrapVirtualFunc::CheckAndWrap(CustomTypeDef& customTypeDef)
+{
+    auto selfTy = customTypeDef.GetType();
+    for (auto& [parentTy, infos] : customTypeDef.GetVTable()) {
+        if (parentTy == selfTy) {
+            continue;
+        }
+        auto parentDef = parentTy->GetCustomTypeDef();
+        auto parentVTableIt = parentDef->GetVTable().find(StaticCast<ClassType*>(parentDef->GetType()));
+        CODEC_ASSERT(parentVTableIt != parentDef->GetVTable().end());
+        CODEC_ASSERT(parentVTableIt->second.size() == infos.size());
+        for (size_t i = 0; i < infos.size(); ++i) {
+            auto& info = infos[i];
+            if (!info.instance) {
+                continue;
+            }
+            auto& parentInfo = parentVTableIt->second[i];
+            auto wrapper = CreateVirtualWrapperIfNeeded(info, parentInfo, *selfTy, customTypeDef, *parentTy);
+            if (incrementalKind != IncreKind::INVALID) {
+                HandleVirtualFuncWrapperForIncrCompilation(wrapper, *info.instance);
+            }
+            if (!wrapper) {
+                continue;
+            }
+            customTypeDef.UpdateVtableItem(*parentTy, i, wrapper, selfTy);
+        }
+    }
+}
+
+void WrapVirtualFunc::HandleVirtualFuncWrapperForIncrCompilation(const FuncBase* wrapper, const FuncBase& curFunc)
+{
+    CODEC_ASSERT(!curFunc.GetSrcCodeIdentifier().empty());
+    const auto& cachedVirDep = increCachedInfo.virtualFuncDep;
+    const std::string& rawMangleName = curFunc.GetRawMangledName();
+    // compiler add func doesn't have rawMangle
+    if (curFunc.TestAttr(Attribute::COMPILER_ADD) && rawMangleName.empty()) {
+        return;
+    }
+    if (rawMangleName.empty()) {
+        CODEC_ABORT();
+        return;
+    }
+    if (wrapper) {
+        curVirtFuncWrapDep.emplace(rawMangleName, wrapper->GetIdentifierWithoutPrefix());
+    }
+    if (incrementalKind != IncreKind::INCR || cachedVirDep.empty()) {
+        return;
+    }
+    if (auto it = cachedVirDep.find(rawMangleName); it != cachedVirDep.end()) {
+        if (wrapper) {
+            if (it->second != wrapper->GetIdentifierWithoutPrefix()) {
+                delVirtFuncWrapForIncr[rawMangleName] = it->second;
+            }
+        } else {
+            delVirtFuncWrapForIncr[rawMangleName] = it->second;
+        }
+    }
+}
+
+WrapVirtualFunc::WrapperFuncGenericTable WrapVirtualFunc::GetReplaceTableForVirtualFunc(
+    const ClassType& parentTy, const std::string& funcIdentifier, const VirtualFuncInfo& parentFuncInfo)
+{
+    auto genericParentTypeArgs = parentTy.GetCustomTypeDef()->GetGenericTypeParams();
+    auto instParentTypeArgs = parentTy.GetTypeArgs();
+    if (!genericParentTypeArgs.empty()) {
+        CODEC_ASSERT(genericParentTypeArgs.size() == instParentTypeArgs.size());
+    }
+    WrapperFuncGenericTable resultTable;
+    size_t newGenericIdx = 0;
+    for (size_t i = 0; i < genericParentTypeArgs.size(); ++i) {
+        auto instArgTy = instParentTypeArgs[i];
+        if (instArgTy->IsGeneric() || instArgTy->IsClassOrArray()) {
+            resultTable.replaceTable.emplace(genericParentTypeArgs[i], instArgTy);
+        } else {
+            auto srcIdentifier = 'T' + std::to_string(newGenericIdx++);
+            auto tyIdentifier = funcIdentifier + '_' + srcIdentifier;
+            auto funcGenericParam = builder.GetType<GenericType>(tyIdentifier, srcIdentifier);
+            funcGenericParam->orphanFlag = true;
+            funcGenericParam->SetUpperBounds(std::vector<Type*>{instArgTy});
+            funcGenericParam->skipCheck = true;
+            resultTable.replaceTable.emplace(genericParentTypeArgs[i], funcGenericParam);
+            resultTable.inverseReplaceTable.emplace(funcGenericParam, instArgTy);
+        }
+    }
+    auto& parentMethodGenericTys = parentFuncInfo.typeInfo.methodGenericTypeParams;
+    for (auto& parentMethodGenericTy : parentMethodGenericTys) {
+        auto srcIdentifier = "fT" + std::to_string(newGenericIdx++);
+        auto tyIdentifier = funcIdentifier + '_' + srcIdentifier;
+        auto funcGenericParam = builder.GetType<GenericType>(tyIdentifier, srcIdentifier);
+        resultTable.funcGenericTypeParams.emplace_back(funcGenericParam);
+        resultTable.replaceTable.emplace(parentMethodGenericTy, funcGenericParam);
+    }
+    CODEC_ASSERT(resultTable.funcGenericTypeParams.size() == parentMethodGenericTys.size());
+    for (size_t i = 0; i < resultTable.funcGenericTypeParams.size(); ++i) {
+        std::vector<Type*> newUpperBounds;
+        for (auto ty : parentMethodGenericTys[i]->GetUpperBounds()) {
+            newUpperBounds.emplace_back(ReplaceRawGenericArgType(*ty, resultTable.replaceTable, builder));
+        }
+        resultTable.funcGenericTypeParams[i]->SetUpperBounds(newUpperBounds);
+    }
+    return resultTable;
+}
+
+void WrapVirtualFunc::CreateVirtualWrapperFunc(Func& func, FuncType& wrapperTy,
+    const VirtualFuncInfo& funcInfo, Type& selfTy, WrapVirtualFunc::WrapperFuncGenericTable& genericTable)
+{
+    auto rawFunc = funcInfo.instance;
+    auto wrapperRetTy = wrapperTy.GetReturnType();
+    BlockGroup* body = builder.CreateBlockGroup(func);
+    func.InitBody(*body);
+
+    std::vector<Value*> args;
+    for (auto ty : wrapperTy.GetParamTypes()) {
+        args.emplace_back(builder.CreateParameter(ty, INVALID_LOCATION, func));
+    }
+
+    auto entry = builder.CreateBlock(body);
+    body->SetEntryBlock(entry);
+    auto ret =
+        CreateAndAppendExpression<Allocate>(builder, builder.GetType<RefType>(wrapperRetTy), wrapperRetTy, entry);
+    func.SetReturnValue(*ret->GetResult());
+
+    Type* instParentType = funcInfo.typeInfo.parentType;
+    if (instParentType->IsClassOrArray() || (instParentType->IsStruct() && rawFunc->TestAttr(Attribute::MUT))) {
+        instParentType = builder.GetType<RefType>(instParentType);
+    }
+    auto instTy =
+        StaticCast<FuncType*>(ReplaceRawGenericArgType(wrapperTy, genericTable.inverseReplaceTable, builder));
+    auto paramInstTy = instTy->GetParamTypes();
+    if (!rawFunc->TestAttr(Attribute::STATIC)) {
+        paramInstTy[0] = instParentType;
+    }
+
+    Type* applyRetTy = rawFunc->GetFuncType()->GetReturnType();
+    if (applyRetTy->IsGenericRelated()) {
+        applyRetTy = instTy->GetReturnType();
+    }
+
+    CODEC_ASSERT(args.size() == paramInstTy.size());
+    for (size_t i = 0; i < paramInstTy.size(); ++i) {
+        args[i] = TypeCastOrBoxIfNeeded(*args[i], *paramInstTy[i], builder, *entry, INVALID_LOCATION);
+    }
+    std::vector<Type*> instArgTypes;
+    instArgTypes.reserve(genericTable.funcGenericTypeParams.size());
+    for (auto& funcGenericParam : genericTable.funcGenericTypeParams) {
+        instArgTypes.emplace_back(funcGenericParam);
+    }
+    auto thisInstTy = &selfTy;
+    if (thisInstTy->IsClassOrArray()) {
+        thisInstTy = builder.GetType<RefType>(thisInstTy);
+    }
+    auto apply = CreateAndAppendExpression<Apply>(builder, applyRetTy, rawFunc, FuncCallContext{
+        .args = args,
+        .instTypeArgs = instArgTypes,
+        .thisType = thisInstTy}, entry);
+    apply->SetDebugLocation(rawFunc->GetDebugLocation());
+    auto res = TypeCastOrBoxIfNeeded(*apply->GetResult(), *wrapperRetTy, builder, *entry, INVALID_LOCATION);
+    CreateAndAppendExpression<Store>(builder, builder.GetUnitTy(), res, func.GetReturnValue(), entry);
+    entry->AppendExpression(builder.CreateTerminator<Exit>(entry));
+}
+
+FuncType* WrapVirtualFunc::GetWrapperFuncType(FuncType& parentFuncTyWithoutThisArg,
+    Type& selfTy, const std::unordered_map<const GenericType*, Type*>& replaceTable, bool isStatic)
+{
+    auto erasedFuncTy =
+        StaticCast<FuncType*>(ReplaceRawGenericArgType(parentFuncTyWithoutThisArg, replaceTable, builder));
+    auto wrapperParamTy = erasedFuncTy->GetParamTypes();
+    auto wrapperRetTy = erasedFuncTy->GetReturnType();
+
+    if (!isStatic) {
+        Type* thisArgTy = builder.GetType<RefType>(&selfTy); // builder.GetType<RefType>(funcInfo.typeInfo.parentType);
+        if (!selfTy.IsClassOrArray()) {
+            thisArgTy = builder.GetType<RefType>(builder.GetAnyTy());
+        }
+        wrapperParamTy.insert(wrapperParamTy.begin(), thisArgTy);
+    }
+    return builder.GetType<FuncType>(wrapperParamTy, wrapperRetTy);
+}
+
+FuncType* WrapVirtualFunc::RemoveThisArg(FuncType* funcTy)
+{
+    auto paramTys = funcTy->GetParamTypes();
+    auto retTy = funcTy->GetReturnType();
+    return builder.GetType<FuncType>(std::vector<Type*>(paramTys.begin() + 1, paramTys.end()), retTy);
+}
+
+// change this function to class method, to much args in functions called by this function
+FuncBase* WrapVirtualFunc::CreateVirtualWrapperIfNeeded(const VirtualFuncInfo& funcInfo,
+    const VirtualFuncInfo& parentFuncInfo, Type& selfTy, CustomTypeDef& customTypeDef, const ClassType& parentTy)
+{
+    auto curFunc = funcInfo.instance;
+    // 1. Judge if need virtual wrapper
+    if (!JudgeIfNeedVirtualWrapper(parentFuncInfo, *curFunc, selfTy, builder)) {
+        return nullptr;
+    }
+    auto isStatic = curFunc->TestAttr(Attribute::STATIC);
+    auto parentFuncTy = parentFuncInfo.typeInfo.originalType;
+    auto parentFuncTyWithoutThisArg = !isStatic ? RemoveThisArg(parentFuncTy) : parentFuncTy;
+    auto funcIdentifier = CHIRMangling::GenerateVirtualFuncMangleName(curFunc, customTypeDef, &parentTy, true);
+    // ensure every method is wrapped exactly once. This occurs in split operator, where three vtable entries use
+    // the same function
+    if (auto ca = wrapperCache.find(funcIdentifier); ca != wrapperCache.cend()) {
+        return ca->second;
+    }
+    // 2. Collect replace map for generic type params
+    auto genericTable = GetReplaceTableForVirtualFunc(parentTy, funcIdentifier, parentFuncInfo);
+    // 3. Get func type
+    auto wrapperTy =
+        GetWrapperFuncType(*parentFuncTyWithoutThisArg, selfTy, genericTable.replaceTable, isStatic);
+    // 4. Create the function
+    auto funcSrcIdentifier = "";
+    auto rawMangledName = "";
+    auto packageName = customTypeDef.GetPackageName();
+    bool isImported =
+        customTypeDef.TestAttr(Attribute::IMPORTED) && parentTy.GetCustomTypeDef()->TestAttr(Attribute::IMPORTED);
+    bool parentIsFromExtend = ParentDefIsFromExtend(customTypeDef, *parentTy.GetClassDef());
+    FuncBase* funcBase = nullptr;
+    if (isImported && !parentIsFromExtend) {
+        funcBase = builder.CreateImportedVarOrFunc<ImportedFunc>(wrapperTy,
+            funcIdentifier, funcSrcIdentifier, rawMangledName, packageName, genericTable.funcGenericTypeParams);
+    } else {
+        funcBase = builder.CreateFunc(INVALID_LOCATION, wrapperTy, funcIdentifier, funcSrcIdentifier, "", packageName,
+            genericTable.funcGenericTypeParams);
+    }
+    CODEC_NULLPTR_CHECK(funcBase);
+    funcBase->Set<WrappedRawMethod>(curFunc);
+    funcBase->AppendAttributeInfo(curFunc->GetAttributeInfo());
+    funcBase->EnableAttr(Attribute::NO_REFLECT_INFO);
+    customTypeDef.AddMethod(funcBase);
+    // For codemp, try delete virutal wrapper function when final func gererated.
+    TryDeleteVirtuallWrapperFunc(customTypeDef, *funcBase, builder);
+    funcBase->Set<LinkTypeInfo>(Linkage::EXTERNAL);
+    if (parentIsFromExtend) {
+        // weak_odr is invalid in windows, we have to set internal
+        if (targetIsWin) {
+            funcBase->Set<LinkTypeInfo>(Linkage::INTERNAL);
+        } else {
+            funcBase->Set<LinkTypeInfo>(Linkage::WEAK_ODR);
+        }
+    }
+
+    wrapperCache[std::move(funcIdentifier)] = funcBase;
+    if (isImported && !parentIsFromExtend) {
+        return funcBase;
+    }
+    // 5. Create the function body if the raw function is not imported
+    auto func = StaticCast<Func*>(funcBase);
+    CreateVirtualWrapperFunc(*func, *wrapperTy, funcInfo, selfTy, genericTable);
+    return func;
+}
+
+VirtualWrapperDepMap&& WrapVirtualFunc::GetCurVirtFuncWrapDep()
+{
+    return std::move(curVirtFuncWrapDep);
+}
+
+VirtualWrapperDepMap&& WrapVirtualFunc::GetDelVirtFuncWrapForIncr()
+{
+    return std::move(delVirtFuncWrapForIncr);
+}

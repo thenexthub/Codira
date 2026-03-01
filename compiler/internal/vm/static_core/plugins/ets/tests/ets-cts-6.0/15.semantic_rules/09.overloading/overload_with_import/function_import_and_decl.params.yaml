@@ -1,0 +1,30 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - { import: '* as FM',          list: 'foo0, FM.foo01',        call: '',            res: 0  }
+    - { import: '* as FM',          list: 'foo0, FM.foo02',        call: 'true',        res: 2  }
+    - { import: '* as FM',          list: 'FM.foo03, foo0',        call: '10 as short', res: 3  }
+    - { import: '* as FM',          list: 'FM.foo06, foo0',        call: '7.4f',        res: 6  }
+    - { import: '* as FM',          list: 'foo0, Math.abs',        call: -7,            res: 7  }
+    - { import: '* as FM',          list: 'foo0, Math.max',        call: '',            res: 0  }
+    - { import: '* as FM',          list: 'Math.abs, foo0',        call: '',            res: 0  }
+    - { import: '* as FM',          list: 'Math.max, foo0',        call: '7, 24',       res: 24 }
+    - { import: '{ foo04, foo07 }', list: 'foo0, foo04',           call: '',            res: 0  }
+    - { import: '{ foo04, foo07 }', list: 'foo0, foo07',           call: 10.5,          res: 7  }
+    - { import: '{ foo05, foo09 }', list: 'foo05, foo0',           call: '10 as long',  res: 5  }
+    - { import: '{ foo05, foo09 }', list: 'foo09, foo0',           call: '',            res: 0  }
+    - { import: '{ foo10 }',        list: 'foo0, Math.abs, foo10', call: '',            res: 0  }
+    - { import: '{ foo10 }',        list: 'foo0, Math.abs, foo10', call: -6,            res: 6  }
+    - { import: '{ foo10 }',        list: 'foo0, Math.abs, foo10', call: '[-6, 6.3]',   res: 10 }

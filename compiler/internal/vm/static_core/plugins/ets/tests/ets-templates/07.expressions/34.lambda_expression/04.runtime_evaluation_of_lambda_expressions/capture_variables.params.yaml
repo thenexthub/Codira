@@ -1,0 +1,64 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # Cases for variable captures
+cases:
+  - decl: |-
+      function foo() {
+      let y: int = 1
+        let x = () => { return y + 1 } // 'y' is *captured*.
+        arktest.assertEQ(x(), 2, 'y capture failed')
+      }
+    use: |-
+      foo()
+
+  - decl: |-
+      function foo() {
+      let y: int = 1
+        let x = () => { y++ } // 'y' is *captured*.
+        arktest.assertEQ(y, 1, 'y before capture failed')
+        x()
+        arktest.assertEQ(y, 2, 'y after capture failed')
+      }
+    use: |-
+      foo()
+
+  - decl: |-
+      function capturingFunction() { // Function scope
+        let v: number = 0 // A captured variable
+        return (p: number, expected_v: number) => {
+          arktest.assertEQ(v, expected_v, 'function scope capture failed for v')
+          v = p
+        }
+      }
+    use: |-
+      let func1 = capturingFunction ()
+      let func2 = capturingFunction ()
+      // Note: func1 and func2 are two different function type instances
+      //  and their calls work with their own version of variable 'v'
+      func1(11, 0)
+      func2(22, 0)
+      func1(33, 11)
+      func2(44, 22)
+
+  - decl: |-
+      const l = () => { return 1 }
+      const storage = [l, l, l, l, l] // fill array with some lambdas
+    use: |-
+      for (let index = 0; index < 5; index++) {
+        storage [index] = () => { return index }
+       // Every lambda captures loop index variable
+      }
+      for (let index = 0; index < 5; index++) {
+        arktest.assertEQ(storage[index](), index, 'loop index variable capture failed')
+      }

@@ -1,0 +1,76 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of operations with implicit type conversion
+operations:
+  - {
+      value1: 5, type1: "byte", 
+      value2: 3, type2: "byte", 
+      operation: "+", 
+      result_value: 8, result_type: "int"
+    }
+  - {
+      value1: 6, type1: "byte", 
+      value2: 1, type2: "short", 
+      operation: "-", 
+      result_value: 5, result_type: "int"
+    }
+  - {
+      value1: 5, type1: "int", 
+      value2: -3, type2: "byte", 
+      operation: "+", 
+      result_value: 2, 
+      result_type: "int"
+    }
+  - {
+      value1: 11, type1: "byte", 
+      value2: 122, type2: "long", 
+      operation: "+", 
+      result_value: 133, result_type: "long"
+    }
+  - {
+      value1: 44, type1: "short", 
+      value2: 73, type2: "short", 
+      operation: "-", 
+      result_value: -29, result_type: "int"
+    }
+  - {
+      value1: -34, type1: "short", 
+      value2: 4, type2: "int", 
+      operation: "-", 
+      result_value: -38, result_type: "int"
+    }
+  - {
+      value1: 41, type1: "long", 
+      value2: 42, type2: "short", 
+      operation: "+", 
+      result_value: 83, result_type: "long"
+    }
+  - {
+      value1: 44932, type1: "int", 
+      value2: 7345, type2: "int", 
+      operation: "-", 
+      result_value: 37587, result_type: "int"
+    }
+  - {
+      value1: 492, type1: "int", 
+      value2: 75, type2: "long", 
+      operation: "+", 
+      result_value: 567, result_type: "long"
+    }
+  - {
+      value1: 9209732, type1: "long", 
+      value2: 759376, type2: "long", 
+      operation: "-", 
+      result_value: 8450356, result_type: "long"
+    }

@@ -1,0 +1,97 @@
+#
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+#
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "arkdb-tests"
+version = "0.1.0"
+authors = []
+package-mode = false
+description = ""
+
+[tool.poetry.dependencies]
+python = "^3.10"
+trio = ">=0.26.0"
+trio-chrome-devtools-protocol = "0.5.0, !=0.6.0"
+pytest_trio = "^0.8.0"
+chrome-devtools-protocol = "^0.4.0"
+pytest-datadir = "*"
+rich = ">=13.7.1"
+wsproto = "^1.2.0"
+# wsproto = { git = "https://github.com/python-hyper/wsproto.git", rev = "9423fc03c470b94a3885c30d81a803a175c0755e" }
+types-pyyaml = "^6.0.12.20240724"
+
+[tool.poetry.group.dev.dependencies]
+build = "*"
+black = "*"
+flake8 = "7.2.0"
+isort = "*"
+mypy = "~1.10"
+flake8-async = "25.4.1"
+trio-typing = "*"
+add-license-header = "^2.2.0"
+
+[tool.pytest.ini_options]
+trio_mode = true
+testpaths = ["src"]
+dev_log = true
+log_cli = true
+log_cli_level = "CRITICAL"
+addopts = "-p no:logging"
+filterwarnings = ['ignore:trio.run\(..., strict_exception_groups=False\)']
+
+[tool.black]
+line-length = 120
+
+[tool.mypy]
+color_output = true
+# disallow_untyped_defs = true
+check_untyped_defs = true
+warn_redundant_casts = true
+no_implicit_optional = true
+strict_optional = true
+plugins = "trio_typing.plugin"
+mypy_path = "$MYPY_CONFIG_FILE_DIR/src"
+incremental = false
+
+# [[tool.mypy.overrides]]
+# module = ["trio_cdp"]
+# ignore_missing_imports = true
+
+[tool.isort]
+profile = "black"
+line_length = 120
+multi_line_output = 3
+skip_gitignore = true
+skip_glob = [
+    "**/migrations/*",
+    "**/settings/*",
+    ".venv/*",
+    "**/.pytest_cache/*",
+    "**/.mypy_cache/*",
+]
+src_paths = ["src"]

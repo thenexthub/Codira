@@ -1,0 +1,63 @@
+# Copyright (c) 2024-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          function eq(p: Object, q: String): boolean {
+          	arktest.assertEQ(p, q)
+          	arktest.assertEQ(q, p)
+          	return true
+          }
+
+          class A<T extends Object, U extends String> {
+              meth(t: T, u: U): boolean {
+                  return eq(t, u)
+              }
+          }
+      code: |-
+          let a: A<string, string> = new A<string, string>()
+          arktest.assertTrue(a.meth('a', 'a'))
+
+    - decl: |-
+          let p: Object
+          let q: string
+
+          class A<T extends Object, U extends String> {
+              meth(t: T, u: U): boolean {
+                  p = t
+                  q = u
+          	arktest.assertEQ(p, q)
+          	arktest.assertEQ(q, p)
+          	return true
+              }
+          }
+      code: |-
+          let a: A<string, string> = new A<string, string>()
+          arktest.assertTrue(a.meth('a', 'a'))
+
+    - decl: |-
+          function eq(p: Object|null|undefined, q: Object|null|undefined): boolean {
+          	arktest.assertEQ(p, q)
+          	arktest.assertEQ(q, p)
+          	return true
+          }
+
+          class A<T extends Object|null, U extends Number|undefined> {
+              meth(t: T, u: U): boolean {
+                  return eq(t, u)
+              }
+          }
+      code: |-
+          let a: A<number, number> = new A<number, number>()
+          arktest.assertTrue(a.meth(1.0, 1.0))

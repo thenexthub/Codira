@@ -1,0 +1,321 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+  - expr: 'void'
+    types:
+      - { type: 'Any', res: cte }
+      - { type: 'null', res: cte }
+      - { type: 'undefined', res: cte }
+      - { type: 'Object', res: cte }
+      - { type: 'never', res: cte }
+      - { type: 'void', res: cte }
+
+  - expr: 'never'
+    types:
+      - { type: 'Any', res: cte }
+      - { type: 'null', res: cte }
+      - { type: 'undefined', res: cte }
+      - { type: 'Object', res: cte }
+      - { type: 'never', res: cte }
+      - { type: 'void', res: cte }
+
+  - expr: 'null'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 1 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 0 }
+      - { type: 'never', res: 0 }
+      - { type: 'void', res: cte }
+
+  - expr: 'undefined'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 1 }
+      - { type: 'Object', res: 0 }
+      - { type: 'never', res: 0 }
+      - { type: 'void', res: cte }
+
+  - expr: 'Object'
+    types:
+      - { type: 'Any', res: cte }
+      - { type: 'null', res: cte }
+      - { type: 'undefined', res: cte }
+      - { type: 'Object', res: cte }
+      - { type: 'never', res: cte }
+      - { type: 'void', res: cte }
+
+  - expr: '(() => {})()' # void
+    types:
+      - { type: 'Any', res: cte }
+      - { type: 'null', res: cte }
+      - { type: 'undefined', res: cte }
+      - { type: 'Object', res: cte }
+      - { type: 'never', res: cte }
+      - { type: 'void', res: cte }
+
+  - expr: '((): never => { throw new Error })()' # never
+    types:
+      - { type: 'Any', res: rte }
+
+  - expr: '((): Any => null)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 1 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 0 }
+      - { type: 'never', res: 0 }
+
+  - expr: '((): Any => undefined)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 1 }
+      - { type: 'Object', res: 0 }
+      - { type: 'never', res: 0 }
+
+  - expr: '((): Any => new Object)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'never', res: 0 }
+
+  - decl: |-
+        type FF = () => Any
+    expr: '((): Any => "abc")'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'FF', res: 1 }
+      - { type: 'string', res: 0 }
+      - { type: 'never', res: 0 }
+
+  - expr: '((): Any => "abc")()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'string', res: 1 }
+      - { type: 'String', res: 1 }
+      - { type: '"abc"', res: cte }
+
+  - expr: '((): Any => 0)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'string', res: 0 }
+      - { type: 'byte', res: 0 }
+      - { type: 'short', res: 0 }
+      - { type: 'int', res: 1 }
+      - { type: 'Int', res: 1 }
+      - { type: 'long', res: 0 }
+      - { type: 'float', res: 0 }
+      - { type: 'double', res: 0 }
+
+  - expr: '((): Any => 0.5)()'
+    types:
+      - { type: 'byte', res: 0 }
+      - { type: 'short', res: 0 }
+      - { type: 'int', res: 0 }
+      - { type: 'long', res: 0 }
+      - { type: 'float', res: 0 }
+      - { type: 'double', res: 1 }
+      - { type: 'Double', res: 1 }
+      - { type: 'number', res: 1 }
+      - { type: 'Number', res: 1 }
+
+  - expr: '((): Any => true)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'string', res: 0 }
+      - { type: 'int', res: 0 }
+      - { type: 'boolean', res: 1 }
+      - { type: 'Boolean', res: 1 }
+
+  - expr: '((): Any => false)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'string', res: 0 }
+      - { type: 'int', res: 0 }
+      - { type: 'boolean', res: 1 }
+      - { type: 'Boolean', res: 1 }
+
+  - expr: '((): Any => 0n)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'string', res: 0 }
+      - { type: 'int', res: 0 }
+      - { type: 'bigint', res: 1 }
+      - { type: 'BigInt', res: 1 }
+
+  - decl: |-
+      enum Color { Red, Green }
+    expr: '((): Any => Color.Red)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'string', res: 0 }
+      - { type: 'int', res: 0 }
+      - { type: 'Color', res: 1 }
+
+  - decl: |-
+      enum Color { Red = 'r', Green = 'g' }
+    expr: '((): Any => Color.Red)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'string', res: 0 }
+      - { type: 'int', res: 0 }
+      - { type: 'Color', res: 1 }
+
+  - decl: |-
+      const enum Color { Red, Green }
+    expr: '((): Any => Color.Red)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'string', res: 0 }
+      - { type: 'int', res: 0 }
+      - { type: 'Int', res: 0 }
+      - { type: 'Color', res: 1 }
+
+  - decl: |-
+      const enum Color { Red = 'r', Green = 'g' }
+    expr: '((): Any => Color.Red)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'string', res: 0 }
+      - { type: 'String', res: 0 }
+      - { type: 'int', res: 0 }
+      - { type: 'Color', res: 1 }
+
+  - expr: '[1, 2]'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'Array', res: 1 }
+      - { type: 'Array<int>', res: cte }
+      - { type: 'FixedArray', res: cte }
+      - { type: 'FixedArray<int>', res: 0 }
+
+  - decl: |-
+      let a: Array<number> = [1.0, 2.0]
+    expr: '((): Any => a)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'Array', res: 1 }
+      - { type: 'Array<number>', res: cte }
+      - { type: 'FixedArray', res: cte }
+      - { type: 'FixedArray<double>', res: 0 }
+
+  - decl: |-
+      let a: FixedArray<number> = [1.0, 2.0]
+    expr: '((): Any => a)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'Array', res: 0 }
+      - { type: 'Array<number>', res: cte }
+      - { type: 'FixedArray', res: cte }
+      - { type: 'FixedArray<number>', res: 1 }
+
+  - decl: |-
+      type TT = [int, string]
+      let a: TT = [42, "abc"]
+    expr: '((): Any => a)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'string', res: 0 }
+      - { type: 'int', res: 0 }
+      - { type: 'Array', res: 0 }
+      - { type: 'Array<int>', res: cte }
+      - { type: 'FixedArray', res: cte }
+      - { type: 'FixedArray<int>', res: 0 }
+      - { type: 'TT', res: cte }
+      - { type: 'Tuple2', res: 1 }
+
+  - decl: |-
+      class A<T> {}
+    expr: '((): Any => new A<string>())()'
+    types:
+      - { type: 'string', res: 0 }
+      - { type: 'A', res: 1 }
+      - { type: 'A<string>', res: cte }
+      - { type: 'A<>', res: cte }
+
+  - decl: |-
+      let func = (p: int) => p + p
+    expr: '((): Any => func)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'Function', res: 1 }
+      - { type: '((p: Any) => never)', res: 1 }
+
+  - decl: |-
+      let a: Record<string, int> = { '1': 1 }
+    expr: '((): Any => a)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'Object', res: 1 }
+      - { type: 'Record', res: 1 }
+      - { type: 'Record<string, int>', res: cte }

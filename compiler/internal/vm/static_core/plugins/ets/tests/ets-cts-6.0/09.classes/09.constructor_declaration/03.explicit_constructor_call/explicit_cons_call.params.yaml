@@ -1,0 +1,877 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    - decl: |-
+          // call another constructor in the same class
+          class A {
+              fld: string
+              constructor noArgs() {
+                  this('hello')
+              }
+              constructor(p: string) {
+                  this.fld = p
+              }
+          }
+      use: |-
+          arktest.assertEQ(new A('abc').fld, 'abc')
+          arktest.assertEQ(new A.noArgs().fld, 'hello')
+
+    - decl: |-
+          // call constructors in the same class
+          class A {
+              fld: string
+              constructor noArgs() {
+                  this.fromNumber(42.0)
+              }
+              constructor fromNumber(p: number) {
+                  this('' + p)
+              }
+              constructor(p: string) {
+                  this.fld = p
+              }
+          }
+      use: |-
+          arktest.assertEQ(new A('abc').fld, 'abc')
+          arktest.assertEQ(new A.noArgs().fld, '42')
+          arktest.assertEQ(new A.fromNumber(3.14).fld, '3.14')
+
+    - decl: |-
+          // call constructor in superclass
+          abstract class A {
+              fld: string
+              constructor fromNumber(p: number) {
+                  this.fld = '' + p
+              }
+              constructor fromBoolean(p: boolean) {
+                  this.fromNumber(p ? 1.0 : 0.0)
+              }
+          }
+          class B extends A {
+              constructor(p?: number) {
+                  if (p == undefined) {
+                      super.fromBoolean(false)
+                  } else {
+                      super.fromNumber(p)
+                  }
+              }
+              constructor fromInt(p: int) {
+                  this(p)
+              }
+          }
+      use: |-
+          arktest.assertEQ(new B().fld, '0')
+          arktest.assertEQ(new B(42.0).fld, '42')
+          arktest.assertEQ(new B.fromInt(12345).fld, '12345')
+
+    - decl: |-
+          // call constructors in superclasses
+          abstract class A {
+              fld: string
+              constructor fromString(p: string) {
+                  this.fld = p
+              }
+              constructor fromNumber(p: number) {
+                  this.fromString('' + p)
+              }
+          }
+          abstract class B extends A {
+              constructor(p?: string|number) {
+                  if (p == undefined) {
+                      super.fromString('')
+                      return
+                  } else if (p instanceof number) {
+                      super.fromNumber(++p)
+                      return
+                  }
+                  super.fromString(p)
+              }
+          }
+          class C extends B {
+              constructor(p: Any) {
+                  if (p instanceof string) {
+                      super(p)
+                  } else if (p instanceof number) {
+                      super(p)
+                  } else {
+                      super()
+                  }
+              }
+          }
+      use: |-
+          arktest.assertEQ(new C(null).fld, '')
+          arktest.assertEQ(new C(undefined).fld, '')
+          arktest.assertEQ(new C(true).fld, '')
+          arktest.assertEQ(new C('abc').fld, 'abc')
+          arktest.assertEQ(new C(42.0).fld, '43')
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to a field
+          class A {
+              s: string
+              fld: string = 'hello'
+              constructor fromString(p: string) {
+                  this.s = p
+              }
+              constructor() {
+                  this.fromString(this.fld)  // CTE, cannot use this.fld
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to a field
+          class A {
+              s: string
+              readonly fld: string = 'hello'
+              constructor fromString(p: string) {
+                  this.s = p
+              }
+              constructor() {
+                  this.fromString(this.fld)  // CTE, cannot use this.fld
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to a field
+          class A {
+              s: string
+              fld: string = 'hello'
+              constructor noArgs() {
+                  this(this.fld)  // CTE, cannot use this.fld
+              }
+              constructor(p: string) {
+                  this.s = p
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to a field
+          class A {
+              s: string
+              readonly fld: string = 'hello'
+              constructor noArgs() {
+                  this(this.fld)  // CTE, cannot use this.fld
+              }
+              constructor(p: string) {
+                  this.s = p
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to an instance method
+          class A {
+              s: string
+              constructor fromString(p: string) {
+                  this.s = p
+              }
+              constructor() {
+                  this.fromString(this.meth())  // CTE, cannot use this.meth()
+              }
+              meth(): string {
+                  return 'hello'
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to an instance method
+          class A {
+              s: string
+              constructor(p: string) {
+                  this.s = p
+              }
+              constructor noArgs() {
+                  this(this.meth())  // CTE, cannot use this.meth()
+              }
+              meth(): string {
+                  return 'hello'
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to an instance method
+          class A {
+              s: string
+              constructor fromFunc(p: () => string) {
+                  this.s = p()
+              }
+              constructor() {
+                  this.fromFunc(this.meth)  // CTE, cannot use this.meth
+              }
+              meth(): string {
+                  return 'hello'
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to an instance method
+          class A {
+              s: string
+              constructor(p: () => string) {
+                  this.s = p()
+              }
+              constructor noArgs() {
+                  this(this.meth)  // CTE, cannot use this.meth
+              }
+              meth(): string {
+                  return 'hello'
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to this
+          class A {
+              s: string|undefined
+              constructor fromObj(p: A) {
+                  this.s = p.s ?? 'hello'
+              }
+              constructor() {
+                  this.fromObj(this)  // CTE, cannot use this in args
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to this
+          class A {
+              s: string|undefined
+              constructor(p: A) {
+                  this.s = p.s ?? 'hello'
+              }
+              constructor noArgs() {
+                  this(this)  // CTE, cannot use this in args
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to a super field
+          class A {
+              s: string
+              readonly fld: string = 'hello'
+              constructor fromString(p: string) {
+                  this.s = p
+              }
+          }
+          class B extends A {
+              constructor fromString(p: string) {
+                  super.fromString(p)
+              }
+              constructor() {
+                  this.fromString(super.fld) // CTE, cannot use super field in args
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to a super field
+          class A {
+              s: string
+              readonly fld: string = 'hello'
+              constructor fromString(p: string) {
+                  this.s = p
+              }
+          }
+          class B extends A {
+              constructor fromString(p: string) {
+                  super.fromString(p)
+              }
+              constructor() {
+                  super.fromString(super.fld) // CTE, cannot use super field in args
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to a super field
+          class A {
+              s: string
+              fld: string = 'hello'
+              constructor(p: string) {
+                  this.s = p
+              }
+          }
+          class B extends A {
+              constructor(p: string) {
+                  super(p)
+              }
+              constructor noArgs() {
+                  this(super.fld) // CTE, cannot use super field in args
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to a super field
+          class A {
+              s: string
+              fld: string = 'hello'
+              constructor(p: string) {
+                  this.s = p
+              }
+          }
+          class B extends A {
+              constructor(p: string) {
+                  super(p)
+              }
+              constructor noArgs() {
+                  super(super.fld) // CTE, cannot use super field in args
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to a super method
+          class A {
+              s: string
+              constructor fromString(p: string) {
+                  this.s = p
+              }
+              meth(): string {
+                  return 'hello'
+              }
+          }
+          class B extends A {
+              constructor fromString(p: string) {
+                  super.fromString(p)
+              }
+              constructor() {
+                  this.fromString(super.meth()) // CTE, cannot use super method in args
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to a super method
+          class A {
+              s: string
+              constructor fromString(p: string) {
+                  this.s = p
+              }
+              meth(): string {
+                  return 'hello'
+              }
+          }
+          class B extends A {
+              constructor fromString(p: string) {
+                  super.fromString(p)
+              }
+              constructor() {
+                  super.fromString(super.meth()) // CTE, cannot use super method in args
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to a super method
+          class A {
+              s: string
+              constructor(p: string) {
+                  this.s = p
+              }
+              meth(): string {
+                  return 'hello'
+              }
+          }
+          class B extends A {
+              constructor(p: string) {
+                  super(p)
+              }
+              constructor noArgs() {
+                  this(super.meth()) // CTE, cannot use super method in args
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to a super method
+          class A {
+              s: string
+              constructor(p: string) {
+                  this.s = p
+              }
+              meth(): string {
+                  return 'hello'
+              }
+          }
+          class B extends A {
+              constructor(p: string) {
+                  super(p)
+              }
+              constructor noArgs() {
+                  super(super.meth()) // CTE, cannot use super method in args
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to a super method
+          class A {
+              s: string
+              constructor fromFunc(p: () => string) {
+                  this.s = p()
+              }
+              meth(): string {
+                  return 'hello'
+              }
+          }
+          class B extends A {
+              constructor fromFunc(p: () => string) {
+                  super.fromFunc(p)
+              }
+              constructor() {
+                  this.fromFunc(super.meth) // CTE, cannot use super method in args
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to a super method
+          class A {
+              s: string
+              constructor fromFunc(p: () => string) {
+                  this.s = p()
+              }
+              meth(): string {
+                  return 'hello'
+              }
+          }
+          class B extends A {
+              constructor fromFunc(p: () => string) {
+                  super.fromFunc(p)
+              }
+              constructor() {
+                  super.fromFunc(super.meth) // CTE, cannot use super method in args
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to a super method
+          class A {
+              s: string
+              constructor(p: () => string) {
+                  this.s = p()
+              }
+              meth(): string {
+                  return 'hello'
+              }
+          }
+          class B extends A {
+              constructor(p: () => string) {
+                  super(p)
+              }
+              constructor noArgs() {
+                  this(super.meth) // CTE, cannot use super method in args
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to a super method
+          class A {
+              s: string
+              constructor(p: () => string) {
+                  this.s = p()
+              }
+              meth(): string {
+                  return 'hello'
+              }
+          }
+          class B extends A {
+              constructor(p: () => string) {
+                  super(p)
+              }
+              constructor noArgs() {
+                  super(super.meth) // CTE, cannot use super method in args
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to super
+          class A {
+              s: string|undefined
+              constructor fromObj(p: A) {
+                  this.s = p.s ?? 'hello'
+              }
+          }
+          class B extends A {
+              constructor fromObj(p: A) {
+                  super.fromObj(p)
+              }
+              constructor() {
+                  this.fromObj(super) // CTE, cannot use super in args
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to super
+          class A {
+              s: string|undefined
+              constructor fromObj(p: A) {
+                  this.s = p.s ?? 'hello'
+              }
+          }
+          class B extends A {
+              constructor fromObj(p: A) {
+                  super.fromObj(p)
+              }
+              constructor() {
+                  super.fromObj(super) // CTE, cannot use super in args
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to super
+          class A {
+              s: string|undefined
+              constructor(p: A) {
+                  this.s = p.s ?? 'hello'
+              }
+          }
+          class B extends A {
+              constructor(p: A) {
+                  super(p)
+              }
+              constructor noArgs() {
+                  this(super) // CTE, cannot use super in args
+              }
+          }
+
+    - tags: 'compile-only, negative'
+      decl: |-
+          // CTE if arguments of an explicit constructor call refer to super
+          class A {
+              s: string|undefined
+              constructor(p: A) {
+                  this.s = p.s ?? 'hello'
+              }
+          }
+          class B extends A {
+              constructor(p: A) {
+                  super(p)
+              }
+              constructor noArgs() {
+                  super(super) // CTE, cannot use super in args
+              }
+          }
+
+    - decl: |-
+          class A {
+              p: string|undefined
+              constructor(p?: string) {
+                  this.p = p
+              }
+          }
+          class B extends A {
+              s: string[]
+              constructor(...s: string[]) {
+                  super()
+                  this.s = s
+              }
+          }
+      use: |-
+          let b = new B()
+          arktest.assertEQ(b.p, undefined)
+          arktest.assertEQ(b.s.length, 0)
+
+          b = new B('a')
+          arktest.assertEQ(b.p, undefined)
+          arktest.assertEQ(b.s.length, 1)
+          arktest.assertEQ(b.s[0], 'a')
+
+          b = new B('a', 'b', 'c')
+          arktest.assertEQ(b.p, undefined)
+          arktest.assertEQ(b.s.length, 3)
+          arktest.assertEQ(b.s[0], 'a')
+          arktest.assertEQ(b.s[1], 'b')
+          arktest.assertEQ(b.s[2], 'c')
+
+    - decl: |-
+          class A {
+              p: string|undefined
+              constructor(p?: string) {
+                  this.p = p
+              }
+          }
+          class B extends A {
+              s: string[]
+              constructor(...s: string[]) {
+                  super(undefined)
+                  this.s = s
+              }
+          }
+      use: |-
+          let b = new B()
+          arktest.assertEQ(b.p, undefined)
+          arktest.assertEQ(b.s.length, 0)
+
+          b = new B('a')
+          arktest.assertEQ(b.p, undefined)
+          arktest.assertEQ(b.s.length, 1)
+          arktest.assertEQ(b.s[0], 'a')
+
+          b = new B('a', 'b', 'c')
+          arktest.assertEQ(b.p, undefined)
+          arktest.assertEQ(b.s.length, 3)
+          arktest.assertEQ(b.s[0], 'a')
+          arktest.assertEQ(b.s[1], 'b')
+          arktest.assertEQ(b.s[2], 'c')
+
+    - decl: |-
+          class A {
+              p: string|undefined
+              constructor(p?: string) {
+                  this.p = p
+              }
+          }
+          class B extends A {
+              s: string[]
+              constructor(...s: string[]) {
+                  super('super')
+                  this.s = s
+              }
+          }
+      use: |-
+          let b = new B()
+          arktest.assertEQ(b.p, 'super')
+          arktest.assertEQ(b.s.length, 0)
+
+          b = new B('a')
+          arktest.assertEQ(b.p, 'super')
+          arktest.assertEQ(b.s.length, 1)
+          arktest.assertEQ(b.s[0], 'a')
+
+          b = new B('a', 'b', 'c')
+          arktest.assertEQ(b.p, 'super')
+          arktest.assertEQ(b.s.length, 3)
+          arktest.assertEQ(b.s[0], 'a')
+          arktest.assertEQ(b.s[1], 'b')
+          arktest.assertEQ(b.s[2], 'c')
+
+    - decl: |-
+          class A {
+              s: string[]
+              constructor(...s: string[]) {
+                  this.s = s
+              }
+          }
+          class B extends A {
+              constructor(p1: string, p2: string) {
+                  super(p1, p2)
+              }
+          }
+      use: |-
+          let b = new B('a', 'b')
+          arktest.assertEQ(b.s.length, 2)
+          arktest.assertEQ(b.s[0], 'a')
+          arktest.assertEQ(b.s[1], 'b')
+
+    - decl: |-
+          class A {
+              s: string[]
+              constructor(...s: string[]) {
+                  this.s = s
+              }
+          }
+          class B extends A {
+              constructor(p1: string, p2?: string) {
+                  super(p1, p2 ?? 'b')
+              }
+          }
+      use: |-
+          let b = new B('a')
+          arktest.assertEQ(b.s.length, 2)
+          arktest.assertEQ(b.s[0], 'a')
+          arktest.assertEQ(b.s[1], 'b')
+
+          b = new B('a', undefined)
+          arktest.assertEQ(b.s.length, 2)
+          arktest.assertEQ(b.s[0], 'a')
+          arktest.assertEQ(b.s[1], 'b')
+
+          b = new B('a', 'c')
+          arktest.assertEQ(b.s.length, 2)
+          arktest.assertEQ(b.s[0], 'a')
+          arktest.assertEQ(b.s[1], 'c')
+
+    - decl: |-
+          class A {
+              s: string[]
+              constructor(...s: string[]) {
+                  this.s = s
+              }
+          }
+          class B extends A {
+              constructor(p1: string, p2: string) {
+                  super(...[p1, p2])
+              }
+          }
+      use: |-
+          let b = new B('a', 'b')
+          arktest.assertEQ(b.s.length, 2)
+          arktest.assertEQ(b.s[0], 'a')
+          arktest.assertEQ(b.s[1], 'b')
+
+    - decl: |-
+          class A {
+              s: string[]
+              constructor(...s: string[]) {
+                  this.s = s
+              }
+          }
+          class B extends A {
+              constructor(p1?: string, p2: string = 'b') {
+                  super(p1 ?? 'x', p2)
+              }
+          }
+      use: |-
+          let b = new B()
+          arktest.assertEQ(b.s.length, 2)
+          arktest.assertEQ(b.s[0], 'x')
+          arktest.assertEQ(b.s[1], 'b')
+
+          b = new B('y')
+          arktest.assertEQ(b.s.length, 2)
+          arktest.assertEQ(b.s[0], 'y')
+          arktest.assertEQ(b.s[1], 'b')
+
+          b = new B('y', 'z')
+          arktest.assertEQ(b.s.length, 2)
+          arktest.assertEQ(b.s[0], 'y')
+          arktest.assertEQ(b.s[1], 'z')
+
+    - decl: |-
+          class A {
+              s: string[]
+              constructor(...s: string[]) {
+                  this.s = s
+              }
+          }
+          class B extends A {
+              constructor(...p: string[]) {
+                  super(...p)
+              }
+          }
+      use: |-
+          let b = new B()
+          arktest.assertEQ(b.s.length, 0)
+
+          b = new B('a', 'b', 'c')
+          arktest.assertEQ(b.s[0], 'a')
+          arktest.assertEQ(b.s[1], 'b')
+          arktest.assertEQ(b.s[2], 'c')
+
+    - tags: compile-only, negative
+      decl: |-
+          class A {
+              s: string[]
+              constructor(...s: string[]) {
+                  this.s = s
+              }
+          }
+          class B extends A {
+              constructor(p1: string, ...p2: string[]) {
+                  super(p1 + p1, ...p2)
+              }
+          }
+
+    - decl: |-
+          class A {
+              p1: string[]
+              p2: string[]
+              constructor(p1: string[] = [], p2: string[] = []) {
+                  this.p1 = p1
+                  this.p2 = p2
+              }
+          }
+          class B extends A {
+              constructor(...p: string[]) {
+                  super(p)
+              }
+          }
+      use: |-
+          let b = new B('a', 'b', 'c')
+          arktest.assertEQ(b.p1.length, 3)
+          arktest.assertEQ(b.p2.length, 0)
+
+          b = new B()
+          arktest.assertEQ(b.p1.length, 0)
+          arktest.assertEQ(b.p2.length, 0)
+
+    - decl: |-
+          class A {
+              p1: string[]
+              p2: string[]
+              constructor(p1: string[] = [], p2: string[] = []) {
+                  this.p1 = p1
+                  this.p2 = p2
+              }
+          }
+          class B extends A {
+              constructor(...p: string[]) {
+                  super(p, undefined)
+              }
+          }
+      use: |-
+          let b = new B('a', 'b', 'c')
+          arktest.assertEQ(b.p1.length, 3)
+          arktest.assertEQ(b.p2.length, 0)
+
+          b = new B()
+          arktest.assertEQ(b.p1.length, 0)
+          arktest.assertEQ(b.p2.length, 0)
+
+    - decl: |-
+          class A {
+              p1: string[]
+              p2: string[]
+              constructor(p1: string[] = [], p2: string[] = []) {
+                  this.p1 = p1
+                  this.p2 = p2
+              }
+          }
+          class B extends A {
+              constructor(...p: string[]) {
+                  super(undefined, p)
+              }
+          }
+      use: |-
+          let b = new B('a', 'b', 'c')
+          arktest.assertEQ(b.p1.length, 0)
+          arktest.assertEQ(b.p2.length, 3)
+
+          b = new B()
+          arktest.assertEQ(b.p1.length, 0)
+          arktest.assertEQ(b.p2.length, 0)

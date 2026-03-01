@@ -1,0 +1,94 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+#! CHECKER      Black method list
+#! RUN_PAOC     options: "--compiler-inlining=false --compiler-regex='^(?!(Test::f1|Test::f2|Test::f3)$).*'"
+#! RUN          options: "", entry: "_GLOBAL::main", result: 58
+#! EVENT        "AotEntrypointFound,_GLOBAL::func1"
+#! EVENT        "AotEntrypointFound,_GLOBAL::func2"
+#! EVENT        "AotEntrypointFound,_GLOBAL::func3"
+#! EVENT        "AotEntrypointFound,_GLOBAL::main"
+#! EVENT_NOT    "AotEntrypointFound,Test::f1"
+#! EVENT_NOT    "AotEntrypointFound,Test::f2"
+#! EVENT_NOT    "AotEntrypointFound,Test::f3"
+
+.record Test {}
+
+.function i32 Test.f1() {
+    ldai 1
+    return
+}
+
+.function i32 Test.f2() {
+    ldai 2
+    return
+}
+
+.function i32 Test.f3() {
+    ldai 3
+    return
+}
+
+.function i32 func1(i32 a0) {
+    ldai 2
+    add2 a0
+    return
+}
+
+.function i32 func2(i32 a0) {
+    ldai 2
+    mul2 a0
+    return
+}
+
+.function i32 func3(i32 a0) {
+    call.short func1, a0
+    sta a0
+    call.short func2, a0
+    return
+}
+  
+.function i32 main() {
+    movi v1, 10
+ 
+    call.short func1, v1
+    sta v1
+    call.short func2, v1
+    sta v1
+    call.short func3, v1
+    sta v1
+
+    call.short Test.f1
+    add2 v1
+    sta v1
+
+    call.short Test.f2
+    add2 v1
+    sta v1
+
+    call.short Test.f3
+    add2 v1
+    sta v1
+
+    return
+}
+

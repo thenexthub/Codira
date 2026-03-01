@@ -1,0 +1,132 @@
+# source binary: module-multi-import.abc
+
+.language ECMAScript
+
+# ====================
+# LITERALS
+
+0 0x685 { 4 [ string:"fun", method:fun, method_affiliate:2, i32:1, ]}
+3 0x375 { 4 [ string:"fun1", method:fun1, method_affiliate:2, i32:1, ]}
+1 0x5ff { 11 [ ModuleTag: REGULAR_IMPORT, local_name: a, import_name: a, module_request: ./module-multi-export.js; ModuleTag: REGULAR_IMPORT, local_name: b1, import_name: b1, module_request: ./module-multi-export.js; ModuleTag: REGULAR_IMPORT, local_name: b2, import_name: b2, module_request: ./module-multi-export.js; ModuleTag: REGULAR_IMPORT, local_name: c, import_name: c, module_request: ./module-multi-export.js; ModuleTag: REGULAR_IMPORT, local_name: dd, import_name: default, module_request: ./module-multi-export.js; ModuleTag: REGULAR_IMPORT, local_name: ee, import_name: default, module_request: ./module-multi-export.js; ModuleTag: REGULAR_IMPORT, local_name: ff, import_name: f, module_request: ./module-multi-export.js; ModuleTag: REGULAR_IMPORT, local_name: g, import_name: g, module_request: ./module-multi-export.js; ModuleTag: REGULAR_IMPORT, local_name: hh, import_name: h, module_request: ./module-multi-export.js; ModuleTag: NAMESPACE_IMPORT, local_name: n, module_request: ./module-multi-export.js; ModuleTag: NAMESPACE_IMPORT, local_name: ns, module_request: ./module-multi-export.js; ]}
+2 0x492 { 3 [ ModuleTag: LOCAL_EXPORT, local_name: a, export_name: a; ModuleTag: LOCAL_EXPORT, local_name: b, export_name: b; ModuleTag: LOCAL_EXPORT, local_name: c, export_name: c; ]}
+4 0x2f9 { 12 [ ModuleTag: LOCAL_EXPORT, local_name: ClassB, export_name: ClassB, module_request: ./module-export-file.js; ModuleTag: LOCAL_EXPORT, local_name: FunctionC, export_name: FunctionC, module_request: ./module-export-file.js; ModuleTag: LOCAL_EXPORT, local_name: a, export_name: a, module_request: ./module-export-file.js; ModuleTag: LOCAL_EXPORT, local_name: b1, export_name: b1, module_request: ./module-export-file.js; ModuleTag: LOCAL_EXPORT, local_name: b2, export_name: b2, module_request: ./module-export-file.js; ModuleTag: LOCAL_EXPORT, local_name: d, export_name: dd, module_request: ./module-export-file.js; ModuleTag: LOCAL_EXPORT, local_name: e, export_name: ee, module_request: ./module-export-file.js; ModuleTag: LOCAL_EXPORT, local_name: f, export_name: f, module_request: ./module-export-file.js; ModuleTag: LOCAL_EXPORT, local_name: g, export_name: g, module_request: ./module-export-file.js; ModuleTag: LOCAL_EXPORT, local_name: h, export_name: h, module_request: ./module-export-file.js; ModuleTag: INDIRECT_EXPORT, export_name: c, import_name: c, module_request: ./module-export-file.js; ModuleTag: STAR_EXPORT, module_request: ./module-export-file.js; ]}
+
+# ====================
+# RECORDS
+
+.record _ESConcurrentModuleRequestsAnnotation {
+}
+
+.record _ESSlotNumberAnnotation {
+}
+
+.record _ESTypeAnnotation <external>
+
+.record module-export-file {
+	u8 pkgName@ = 0x0
+	u8 isCommonjs = 0x0
+	u32 moduleRecordIdx = 0x492
+}
+
+.record module-multi-export {
+	u8 pkgName@ = 0x0
+	u8 isCommonjs = 0x0
+	u32 moduleRecordIdx = 0x2f9
+}
+
+.record module-multi-import {
+	u8 pkgName@ = 0x0
+	u8 isCommonjs = 0x0
+	u32 moduleRecordIdx = 0x5ff
+}
+
+# ====================
+# METHODS
+
+.function any module-export-file.func_main_0(any a0, any a1, any a2) <static> {
+	ldai 0x1
+	stmodulevar 0x0
+	ldai 0x2
+	stmodulevar 0x1
+	ldai 0x3
+	stmodulevar 0x2
+	ldundefined
+	returnundefined
+}
+
+.function any module-multi-export.ClassB(any a0, any a1, any a2) <static> {
+	lda a2
+	return
+}
+
+.function any module-multi-export.FunctionC(any a0, any a1, any a2) <static> {
+	ldundefined
+	returnundefined
+}
+
+.function any module-multi-export.fun1(any a0, any a1, any a2, any a3, any a4) <static> {
+	lda a4
+	add2 0x0, a3
+	return
+}
+
+.function any module-multi-export.func_main_0(any a0, any a1, any a2) <static> {
+	definefunc 0x0, module-multi-export.FunctionC:(any,any,any), 0x0
+	stmodulevar 0x1
+	ldai 0x1
+	stmodulevar 0x2
+	ldai 0x2
+	stmodulevar 0x3
+	ldai 0x3
+	stmodulevar 0x4
+	ldai 0x5
+	stmodulevar 0x5
+	ldai 0x6
+	stmodulevar 0x6
+	ldai 0x7
+	stmodulevar 0x7
+	ldai 0x8
+	stmodulevar 0x8
+	ldai 0x9
+	stmodulevar 0x9
+	ldhole
+	sta v0
+	defineclasswithbuffer 0x1, module-multi-export.ClassB:(any,any,any), { 4 [ string:"fun1", method:fun1, method_affiliate:2, i32:1, ]}, 0x0, v0
+	sta v0
+	ldobjbyname 0x2, "prototype"
+	lda v0
+	stmodulevar 0x0
+	ldundefined
+	returnundefined
+}
+
+.function any module-multi-import.ClassA(any a0, any a1, any a2) <static> {
+	lda.str "test"
+	stobjbyname 0x0, "str", a2
+	lda a2
+	return
+}
+
+.function any module-multi-import.fun(any a0, any a1, any a2, any a3, any a4) <static> {
+	lda a4
+	add2 0x0, a3
+	return
+}
+
+.function any module-multi-import.func_main_0(any a0, any a1, any a2) <static> {
+	getmodulenamespace 0x0
+	getmodulenamespace 0x0
+	ldhole
+	sta v0
+	defineclasswithbuffer 0x0, module-multi-import.ClassA:(any,any,any), { 4 [ string:"fun", method:fun, method_affiliate:2, i32:1, ]}, 0x0, v0
+	ldobjbyname 0x1, "prototype"
+	ldundefined
+	returnundefined
+}
+
+# ====================
+# STRING
+
+[offset:0x120, name_value:prototype]
+[offset:0x4e5, name_value:str]
+[offset:0x4ea, name_value:test]

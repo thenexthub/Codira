@@ -1,0 +1,545 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # type inference
+  - decl: |-
+      let v: int|null = 5
+      let w = v
+    use: |-
+      arktest.assertEQ(w = null, null)
+      arktest.assertEQ(w = 42, 42)
+
+  - decl: |-
+      let v: int|undefined = 5
+      let w = v
+    use: |-
+      arktest.assertEQ(w = undefined, undefined)
+      arktest.assertEQ(w = 42, 42)
+
+  - warmup: 'no-warmup'
+    decl: |-
+      let v: int|null|undefined = 5
+      let w = v
+    use: |-
+      arktest.assertEQ(w, 5)
+      w = undefined
+      arktest.assertEQ(w, undefined)
+      w = null
+      arktest.assertEQ(w, null)
+
+  # assignment with type narrowing
+  - decl: |-
+      let v: int|null = 5
+      let w: int
+    use: |-
+      arktest.assertEQ(w = v!, 5)
+      arktest.assertEQ(w = w + v! + 42, 52)
+      arktest.assertEQ(w = w != 0 ? v! : 42, 5)
+      arktest.assertEQ(w = (w != 0 ? v : w)!, 5)
+
+  - decl: |-
+      let v: int|null = 5
+      let w: int
+    use: |-
+      arktest.assertEQ(w = v!, 5)
+      arktest.assertEQ(w = w + v! + 42, 52)
+      arktest.assertEQ(w = w != 0 ? v! : 42, 5)
+      arktest.assertEQ(w = (w != 0 ? v : w)!, 5)
+
+  - decl: |-
+      let v: int|undefined = 5
+      let w: int
+    use: |-
+      arktest.assertEQ(w = v!, 5)
+      arktest.assertEQ(w = w + v! + 42, 52)
+      arktest.assertEQ(w = w != 0 ? v! : 42, 5)
+      arktest.assertEQ(w = (w != 0 ? v : w)!, 5)
+
+  - decl: |-
+      let v: int|undefined = 5
+      let w: int|null
+    use: |-
+      arktest.assertEQ(w = v!, 5)
+      arktest.assertEQ(w = w! + v! + 42, 52)
+      arktest.assertEQ(w = w! != 0 ? v! : 42, 5)
+      arktest.assertEQ(w = (w! != 0 ? v : w)!, 5)
+
+  - decl: |-
+      let v: int|undefined|null = 5
+      let w: int
+    use: |-
+      arktest.assertEQ(w = v!, 5)
+      arktest.assertEQ(w = w + v! + 42, 52)
+      arktest.assertEQ(w = w != 0 ? v! : 42, 5)
+      arktest.assertEQ(w = (w != 0 ? v : w)!, 5)
+
+  # assignment with type narrowing with unions
+  - decl: |-
+      let v: string|boolean|number|null|undefined = 'a'
+      let w: string|boolean|number = 1.0
+    use: |-
+      w = v!
+      arktest.assertEQ(w, 'a')
+
+  - decl: |-
+      let v: string|boolean|number|null|undefined
+      let w: string|boolean|number = 1.0
+    use: |-
+      arktest.expectThrow(
+          () => { w = v! },
+          (e: Error) => e instanceof NullPointerError
+      )
+
+  # getting value of nullish variable in expression
+  - decl: |-
+      let v: int|null = null
+      let w: int
+    use: |-
+      arktest.expectThrow(
+          () => { w = v! },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { w = w + v! + 42 },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { w = w == 0 ? v! : 42 },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { w = (w == 0 ? v : w)! },
+          (e: Error) => e instanceof NullPointerError
+      )
+
+  - decl: |-
+      let v: int|undefined
+      let w: int
+    use: |-
+      arktest.expectThrow(
+          () => { w = v! },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { w = w * v! * 42 },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { w = w == 0 ? v! : 42 },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { w = (w == 0 ? v : w)! },
+          (e: Error) => e instanceof NullPointerError
+      )
+
+  - decl: |-
+      let v: int|null|undefined
+      let w: int
+    use: |-
+      arktest.expectThrow(
+          () => { w = v! },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { w = w - v! - 42 },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { w = w == 0 ? v! : 42 },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { w = (w == 0 ? v : w)! },
+          (e: Error) => e instanceof NullPointerError
+      )
+
+  # nullish array reference
+  - decl: |-
+      let v: null|Object[] = null
+      let w: Object[] = ['']
+      let e: Object = ''
+    use: |-
+      arktest.expectThrow(
+          () => { e = v![0] },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { v![0] = e },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ((w.length == 0 ? v! : w)[0], '')
+      arktest.expectThrow(
+          () => { e = (w.length != 0 ? v! : w)[0] },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { (w.length != 0 ? v! : w)[0] = e },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ((w.length == 0 ? v : w)![0], '')
+      arktest.expectThrow(
+          () => { e = (w.length != 0 ? v : w)![0] },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { (w.length != 0 ? v : w)![0] = e },
+          (e: Error) => e instanceof NullPointerError
+      )
+
+  - decl: |-
+      let v: Array<Object>|undefined
+      let w: Array<Object> = ['abc']
+      let e: Object
+    use: |-
+      arktest.expectThrow(
+          () => { e = v![0] },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { v![0] = e },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ((w.length == 0 ? v! : w)[0], 'abc')
+      arktest.expectThrow(
+          () => { e = (w.length != 0 ? v! : w)[0] },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { (w.length != 0 ? v! : w)[0] = e },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ((w.length == 0 ? v : w)![0], 'abc')
+      arktest.expectThrow(
+          () => { e = (w.length != 0 ? v : w)![0] },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { (w.length != 0 ? v : w)![0] = e },
+          (e: Error) => e instanceof NullPointerError
+      )
+
+  - decl: |-
+      let v: null|FixedArray<int>|undefined
+      let w: FixedArray<int> = [42]
+      let e: int
+    use: |-
+      arktest.assertEQ(w![0], 42)
+      arktest.expectThrow(
+          () => { e = v![0] },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { v![0] = e },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ((w.length == 0 ? v! : w!)[0], 42)
+      arktest.expectThrow(
+          () => { e = (w.length != 0 ? v! : w)[0] },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { (w.length != 0 ? v! : w)[0] = e },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ((w.length == 0 ? v : w)![0], 42)
+      arktest.expectThrow(
+          () => { e = (w.length != 0 ? v : w)![0] },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { (w.length != 0 ? v : w)![0] = e },
+          (e: Error) => e instanceof NullPointerError
+      )
+
+  # nullish tuple reference
+  - decl: |-
+      let v: [string, bigint]|null = null
+      let w: [string, bigint] = ['1', 1n]
+      let e: string = ''
+    use: |-
+      arktest.assertEQ(w![0], '1')
+      arktest.expectThrow(
+          () => { e = v![0] },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { v![0] = e },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ((e != '' ? v! : w!)[0], '1')
+      arktest.expectThrow(
+          () => { e = (e == '' ? v! : w)[0] },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { (e == '' ? v! : w)[0] = e },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ((e != '' ? v : w)![0], '1')
+      arktest.expectThrow(
+          () => { e = (e == '' ? v : w)![0] },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { (e == '' ? v : w)![0] = e },
+          (e: Error) => e instanceof NullPointerError
+      )
+
+  - decl: |-
+      let v: [bigint, string]|undefined
+      let w: [bigint, string] = [1n, '1']
+      let e: string = ''
+    use: |-
+      arktest.assertEQ(w![1], '1')
+      arktest.expectThrow(
+          () => { e = v![1] },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { v![1] = e },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ((e != '' ? v! : w!)[1], '1')
+      arktest.expectThrow(
+          () => { e = (e == '' ? v! : w!)[1] },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { (e == '' ? v! : w)[1] = e },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ((e != '' ? v : w)![1], '1')
+      arktest.expectThrow(
+          () => { e = (e == '' ? v : w)![1] },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { (e == '' ? v : w)![1] = e },
+          (e: Error) => e instanceof NullPointerError
+      )
+
+  # nullish object reference
+  - decl: |-
+      class A {
+          fld: Any = 'abc'
+      }
+      let v: A|null = null
+      let w: A = new A
+      let e: Any = ''
+    use: |-
+      arktest.assertEQ(w!.fld, 'abc')
+      arktest.expectThrow(
+          () => { e = v!.fld },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ((e != '' ? v! : w).fld, 'abc')
+      arktest.expectThrow(
+          () => { e = (e == '' ? v! : w).fld },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ((e != '' ? v : w)!.fld, 'abc')
+      arktest.expectThrow(
+          () => { e = (e == '' ? v : w)!.fld },
+          (e: Error) => e instanceof NullPointerError
+      )
+
+  - decl: |-
+      class A {
+          fld: Any = 'abc'
+      }
+      let v: A|undefined = undefined
+      let w: A = new A
+      let e: Any = ''
+    use: |-
+      arktest.assertEQ(w!.fld, 'abc')
+      arktest.expectThrow(
+          () => { e = v!.fld },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ((e != '' ? v! : w).fld, 'abc')
+      arktest.expectThrow(
+          () => { e = (e == '' ? v! : w).fld },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ((e != '' ? v : w)!.fld, 'abc')
+      arktest.expectThrow(
+          () => { e = (e == '' ? v : w)!.fld },
+          (e: Error) => e instanceof NullPointerError
+      )
+
+  - decl: |-
+      class A {
+          meth(): Any {
+              return 'abc'
+          }
+      }
+      let v: A|null = null
+      let w: A = new A
+      let e: Any = ''
+    use: |-
+      arktest.assertEQ(w!.meth(), 'abc')
+      arktest.expectThrow(
+          () => { e = v!.meth() },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ((e != '' ? v! : w).meth(), 'abc')
+      arktest.expectThrow(
+          () => { e = (e == '' ? v! : w).meth() },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ((e != '' ? v : w)!.meth(), 'abc')
+      arktest.expectThrow(
+          () => { e = (e == '' ? v : w)!.meth() },
+          (e: Error) => e instanceof NullPointerError
+      )
+
+  - decl: |-
+      class A<T> {
+          meth(p: T): T {
+              return p
+          }
+      }
+      let v: A<string>|undefined = undefined
+      let w: A<string> = new A<string>()
+      let e: Any = ''
+    use: |-
+      arktest.assertEQ(w!.meth('abc'), 'abc')
+      arktest.expectThrow(
+          () => { e = v!.meth('abc') },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ((e != '' ? v! : w).meth('abc'), 'abc')
+      arktest.expectThrow(
+          () => { e = (e == '' ? v! : w).meth('abc') },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ((e != '' ? v : w)!.meth('abc'), 'abc')
+      arktest.expectThrow(
+          () => { e = (e == '' ? v : w)!.meth('abc') },
+          (e: Error) => e instanceof NullPointerError
+      )
+
+  # nullish function reference
+  - decl: |-
+      let v: ((p: int) => string)|null = null
+      let w: ((p: int) => string)|null = (p: int) => 'a' + p
+      let e: string = ''
+    use: |-
+      arktest.assertEQ(w!(42), 'a42')
+      arktest.expectThrow(
+          () => { e = v!(42) },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ((e != '' ? v! : w!)(42), 'a42')
+      arktest.expectThrow(
+          () => { e = (e == '' ? v! : w!)(42) },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ((e != '' ? v : w)!(42), 'a42')
+      arktest.expectThrow(
+          () => { e = (e == '' ? v : w)!(42) },
+          (e: Error) => e instanceof NullPointerError
+      )
+
+  - decl: |-
+      let v: ((p: int) => string)|undefined
+      let w: (p: int) => string = (p: int) => 'a' + p
+      let e: string = ''
+    use: |-
+      arktest.assertEQ(w!(42), 'a42')
+      arktest.expectThrow(
+          () => { e = v!(42) },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ((e != '' ? v! : w)(42), 'a42')
+      arktest.expectThrow(
+          () => { e = (e == '' ? v! : w)(42) },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ((e != '' ? v : w)!(42), 'a42')
+      arktest.expectThrow(
+          () => { e = (e == '' ? v : w)!(42) },
+          (e: Error) => e instanceof NullPointerError
+      )
+
+  # Any type reference
+  - decl: |-
+      let v: Any = null
+      let w: Any = new Error('msg')
+      let e: string = ''
+    use: |-
+      arktest.assertEQ((w as Error|null)!.message, 'msg')
+      arktest.assertEQ((w! as Error).message, 'msg')
+      arktest.expectThrow(
+          () => { e = (v! as Error).message },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { e = (v as Error|null)!.message },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ(((e != '' ? v! : w!) as Error).message, 'msg')
+      arktest.expectThrow(
+          () => { e = 'abc' + ((e == '' ? v! : w!) as Error).message },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ(((e != '' ? v : w)! as Error).message, 'msg')
+      arktest.expectThrow(
+          () => { e = 'abc' + ((e == '' ? v : w)! as Error).message },
+          (e: Error) => e instanceof NullPointerError
+      )
+
+  - decl: |-
+      let v: Any = undefined
+      let w: Any = new Error('msg')
+      let e: string = ''
+    use: |-
+      arktest.assertEQ((w as Error|undefined)!.message, 'msg')
+      arktest.assertEQ((w! as Error).message, 'msg')
+      arktest.expectThrow(
+          () => { e = (v! as Error).message },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.expectThrow(
+          () => { e = (v as Error|undefined)!.message },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ(((e != '' ? v! : w!) as Error).message, 'msg')
+      arktest.expectThrow(
+          () => { e = 'abc' + ((e == '' ? v! : w) as Error).message },
+          (e: Error) => e instanceof NullPointerError
+      )
+      arktest.assertEQ(((e != '' ? v : w)! as Error).message, 'msg')
+      arktest.expectThrow(
+          () => { e = 'abc' + ((e == '' ? v : w)! as Error).message },
+          (e: Error) => e instanceof NullPointerError
+      )
+
+  # multiple '!' operators
+  - decl: |-
+      let v: string|null|undefined = 'abc'
+    use: |-
+      let w = v!!
+      arktest.assertEQ(w, 'abc')
+
+  - decl: |-
+      let v: string|null|undefined
+      let e: string = ''
+    use: |-
+      arktest.expectThrow(
+          () => { e = v!! },
+          (e: Error) => e instanceof NullPointerError
+      )

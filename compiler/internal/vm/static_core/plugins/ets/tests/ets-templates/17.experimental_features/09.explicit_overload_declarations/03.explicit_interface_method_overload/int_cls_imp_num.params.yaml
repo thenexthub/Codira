@@ -1,0 +1,120 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - int: |-
+          m1(p?: int): string;
+          m2(p: long): string;
+          m2(p: float): string; // implicitly overloaded method
+          // overloads defined in interface
+          overload foo1 { m1, m2 }
+          overload foo2 { m2, m1 }
+      cls: |-
+          // overloaded methods implemented in class
+          m1(p?: int) { return 'int' }
+          m2(p: long) { return 'long' }
+          m2(p: float) { return 'float' } // implicitly overloaded method
+      use: |-
+          arktest.assertEQ(a.foo1(1 as int), 'int')
+          arktest.assertEQ(a.foo1(1 as long), 'long')
+          arktest.assertEQ(a.foo1(1f), 'float')
+          arktest.assertEQ(a.foo1(1), 'int')
+          arktest.assertEQ(a.foo1(), 'int')
+
+          arktest.assertEQ(a.foo2(1 as int), 'long')
+          arktest.assertEQ(a.foo2(1 as long), 'long')
+          arktest.assertEQ(a.foo2(1f), 'float')
+          arktest.assertEQ(a.foo2(1), 'long')
+          arktest.assertEQ(a.foo2(), 'int')
+
+    - int: |-
+          m1(p?: int): string;
+          m2(p: long): string;
+          m2(p: float): string; // implicitly overloaded method
+          // overloads defined in interface
+          overload foo1 { m2, m1 }
+          overload foo2 { m1, m2 }
+      cls: |-
+          // overloaded methods implemented in class
+          m1(p?: int) { return 'int' }
+          m2(p: long) { return 'long' }
+          m2(p: float) { return 'float' } // implicitly overloaded method
+          // overloads overridden in class
+          overload foo1 { m1, m2 }
+          overload foo2 { m2, m1 }
+      use: |-
+          arktest.assertEQ(a.foo1(1 as int), 'int')
+          arktest.assertEQ(a.foo1(1 as long), 'long')
+          arktest.assertEQ(a.foo1(1f), 'float')
+          arktest.assertEQ(a.foo1(1), 'int')
+          arktest.assertEQ(a.foo1(), 'int')
+
+          arktest.assertEQ(a.foo2(1 as int), 'long')
+          arktest.assertEQ(a.foo2(1 as long), 'long')
+          arktest.assertEQ(a.foo2(1f), 'float')
+          arktest.assertEQ(a.foo2(1), 'long')
+          arktest.assertEQ(a.foo2(), 'int')
+
+    - int: |-
+          m1(p?: int): string;
+          m2(p: long): string;
+          m2(p: float): string; // implicitly overloaded method
+          // overloads defined in interface
+          overload m1 { m1, m2 }
+          overload m2 { m2, m1 }
+      cls: |-
+          // overloaded methods implemented in class
+          m1(p?: int) { return 'int' }
+          m2(p: long) { return 'long' }
+          m2(p: float) { return 'float' } // implicitly overloaded method
+      use: |-
+          arktest.assertEQ(a.m1(1 as int), 'int')
+          arktest.assertEQ(a.m1(1 as long), 'long')
+          arktest.assertEQ(a.m1(1f), 'float')
+          arktest.assertEQ(a.m1(1), 'int')
+          arktest.assertEQ(a.m1(), 'int')
+
+          arktest.assertEQ(a.m2(1 as int), 'long')
+          arktest.assertEQ(a.m2(1 as long), 'long')
+          arktest.assertEQ(a.m2(1f), 'float')
+          arktest.assertEQ(a.m2(1), 'long')
+          arktest.assertEQ(a.m2(), 'int')
+
+    - int: |-
+          m1(p?: int): string;
+          m2(p: long): string;
+          m2(p: float): string; // implicitly overloaded method
+          // overloads defined in interface
+          overload m1 { m2, m1 }
+          overload m2 { m1, m2 }
+      cls: |-
+          // overloaded methods implemented in class
+          m1(p?: int) { return 'int' }
+          m2(p: long) { return 'long' }
+          m2(p: float) { return 'float' } // implicitly overloaded method
+          // overloads overridden in class
+          overload m1 { m1, m2 }
+          overload m2 { m2, m1 }
+      use: |-
+          arktest.assertEQ(a.m1(1 as int), 'int')
+          arktest.assertEQ(a.m1(1 as long), 'long')
+          arktest.assertEQ(a.m1(1f), 'float')
+          arktest.assertEQ(a.m1(1), 'int')
+          arktest.assertEQ(a.m1(), 'int')
+
+          arktest.assertEQ(a.m2(1 as int), 'long')
+          arktest.assertEQ(a.m2(1 as long), 'long')
+          arktest.assertEQ(a.m2(1f), 'float')
+          arktest.assertEQ(a.m2(1), 'long')
+          arktest.assertEQ(a.m2(), 'int')

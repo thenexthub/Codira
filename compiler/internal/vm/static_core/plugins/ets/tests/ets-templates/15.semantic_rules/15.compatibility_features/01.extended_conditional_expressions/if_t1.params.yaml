@@ -1,0 +1,79 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # truthy literals and expressions
+cases:
+    - '1'
+    - '0x7F.toByte()'
+    - '0x7FFF.toShort()'
+    - '0x7FFFFFFF.toInt()'
+    - '0x7FFFFFFFFFFFFFFF as long'
+    - '(0.0001).toFloat()'
+    - '1e22.toDouble()'
+    - '0.0000001 as number'
+
+    - '-1'
+    - 'new Byte(-1)'
+    - 'new Short(-1)'
+    - 'new Int(-1)'
+    - 'new Float(-1)'
+    - 'new Double(-1)'
+    - '-1 as number'
+
+    - 'Byte.MIN_VALUE'
+    - 'Byte.MAX_VALUE'
+    - 'Short.MIN_VALUE'
+    - 'Short.MAX_VALUE'
+    - 'Int.MIN_VALUE'
+    - 'Int.MAX_VALUE'
+    - 'Long.MIN_VALUE'
+    - 'Long.MAX_VALUE'
+    - 'Double.POSITIVE_INFINITY'
+    - 'Double.NEGATIVE_INFINITY'
+    - 'Double.MIN_VALUE'
+    - 'Double.MAX_VALUE'
+    - 'Float.POSITIVE_INFINITY'
+    - 'Float.NEGATIVE_INFINITY'
+    - 'Float.MIN_VALUE'
+    - 'Float.MAX_VALUE'
+
+    - new byte(11)
+    - new short(1111)
+    - new int(111111)
+    - new float(11111111.0)
+    - new double(1111111111.0)
+    - new number(1e33 as number)
+
+    - '" "'
+    - '` `'
+    - new String("abc").substring(0, 1)
+    - '"\u0000"'
+    - '"\x00"'
+    - c'1'
+
+    - '!false'
+    - 'true'
+    - '!!true'
+    - 'new Boolean(true)'
+    - '!(new Boolean(false))'
+
+    - 42 - 21 - 20
+    - 42 * (21 - 10 - 10)
+
+    - 'new number[0]'
+    - 'new boolean[0][0]'
+    - 'new Object()'
+    - 'new Error()'
+    - '{} as Object'
+    - '[1, 2, 3]'
+    - '[false]'

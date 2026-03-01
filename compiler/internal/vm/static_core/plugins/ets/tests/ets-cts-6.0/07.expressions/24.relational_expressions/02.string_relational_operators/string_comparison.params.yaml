@@ -1,0 +1,144 @@
+# Copyright (c) 2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of string comparison conditions
+string_comparison:
+  - {left: '', right: '', op: "<", result: "false"}
+  - {left: ' ', right: '', op: "<", result: "false"}
+  - {left: '', right: '\n', op: "<", result: "true"}
+  - {left: '\r', right: '', op: "<", result: "false"}
+  - {left: "'aa", right: "'aa", op: "<", result: "false"}
+  - {left: 'aa', right: 'aaa', op: "<", result: "true"}
+  - {left: 'ac', right: 'dc', op: "<", result: "true"}
+  - {left: 'AAAAAB', right: 'AAAAAAA', op: "<", result: "false"}
+  - {left: 'AAAAAA', right: 'aaaaaa', op: "<", result: "true"}
+  - {left: '~', right: '~A', op: "<", result: "true"}
+  - {left: 'alea iacta est', right: 'alea iacta est', op: "<", result: "false"}
+  - {left: '987654321', right: '987654321', op: "<", result: "false"}
+  - {left: '0987654321', right: '987654321', op: "<", result: "true"}
+  - {left: '!@#$%^&*()_+-=`~\"\\|[]{}/?.><\\,', right: '!@#$%^&*()_+-=`~\"\\|[]{}/?.><\\, ', op: "<", result: "true"}
+  - {left: '\xff\xfe\xac 1\x003\x00,\x005\x006\x00', right: '\xff\xfe\xac 1\x003\x00,\x005\x006\x00', op: "<", result: "false"}
+  - {left: '\xff\xfe\xac 1\x003\x00,\x005\x006\x00', right: '\xff\xfe\xac 1\x003\x00,\x005\x007\x00', op: "<", result: "true"}
+  # surrogate
+  - {left: '\u{D800}', right: '\u{D800}', op: "<", result: "false"}
+  - {left: '\u{D800}', right: '\u{D801}', op: "<", result: "true"}
+  - {left: '\u{DC00}', right: '\u{DC00}', op: "<", result: "false"}
+  - {left: '\u{DC00}', right: '\u{DC01}', op: "<", result: "true"}
+  - {left: '\u{DBFF}\u{DFFF}', right: '\u{DBFF}\u{DFFF}', op: "<", result: "false"}
+  - {left: '\u{DBFF}\u{DFFA}', right: '\u{DBFF}\u{DFFF}', op: "<", result: "true"}
+  # utf-16
+  - {left: '\u{A123}', right: '\u{A122}', op: "<", result: "false"}
+  - {left: '\u{A123}', right: '\u{A124}', op: "<", result: "true"}
+  # utf-32
+  - {left: '\u{00000069}', right: '\u{00000068}', op: "<", result: "false"}
+  - {left: '\u{00000068}', right: '\u{00000069}', op: "<", result: "true"}
+
+  - {left: '', right: '', op: "<=", result: "true"}
+  - {left: ' ', right: '', op: "<=", result: "false"}
+  - {left: '', right: '\n', op: "<=", result: "true"}
+  - {left: '\r', right: '', op: "<=", result: "false"}
+  - {left: "'aa", right: "'aa", op: "<=", result: "true"}
+  - {left: 'aa', right: 'aaa', op: "<=", result: "true"}
+  - {left: 'ac', right: 'dc', op: "<=", result: "true"}
+  - {left: 'AAAAAB', right: 'AAAAAAA', op: "<=", result: "false"}
+  - {left: 'AAAAAA', right: 'aaaaaa', op: "<=", result: "true"}
+  - {left: '~', right: '~', op: "<=", result: "true"}
+  - {left: 'alea iacta est', right: 'alea iacta est', op: "<=", result: "true"}
+  - {left: '987654321', right: '987654321', op: "<=", result: "true"}
+  - {left: '0987654321', right: '987654321', op: "<=", result: "true"}
+  - {left: '!@#$%^&*()_+-=`~\"\\|[]{}/?.>,<\\', right: '!@#$%^&*()_+-=`~\"\\|[]{}/?.>,<\\', op: "<=", result: "true"}
+  - {left: '\xff\xfe\xac 1\x003\x00,\x005\x006\x00', right: '\xff\xfe\xac 1\x003\x00,\x005\x006\x00', op: "<=", result: "true"}
+  - {left: '\xff\xfe\xac 1\x003\x00,\x005\x007\x00', right: '\xff\xfe\xac 1\x003\x00,\x005\x006\x00', op: "<=", result: "false"}
+  # surrogate
+  - {left: '\u{D800}', right: '\u{D800}', op: "<=", result: "true"}
+  - {left: '\u{D801}', right: '\u{D800}', op: "<=", result: "false"}
+  - {left: '\u{D800}', right: '\u{D801}', op: "<=", result: "true"}
+  - {left: '\u{DC00}', right: '\u{DC00}', op: "<=", result: "true"}
+  - {left: '\u{DC01}', right: '\u{DC00}', op: "<=", result: "false"}
+  - {left: '\u{DC00}', right: '\u{DC01}', op: "<=", result: "true"}
+  - {left: '\u{DBFF}\u{DFFF}', right: '\u{DBFF}\u{DFFF}', op: "<=", result: "true"}
+  - {left: '\u{DBFF}\u{DFFF}', right: '\u{DBFF}\u{DFFA}', op: "<=", result: "false"}
+  - {left: '\u{DBFA}\u{DFFF}', right: '\u{DBFF}\u{DFFF}', op: "<=", result: "true"}
+  # utf-16
+  - {left: '\u{A123}', right: '\u{A123}', op: "<=", result: "true"}
+  - {left: '\u{A123}', right: '\u{A122}', op: "<=", result: "false"}
+  - {left: '\u{A122}', right: '\u{A123}', op: "<=", result: "true"}
+  # utf-32
+  - {left: '\u{00000068}', right: '\u{00000068}', op: "<=", result: "true"}
+  - {left: '\u{00000069}', right: '\u{00000068}', op: "<=", result: "false"}
+  - {left: '\u{00000068}', right: '\u{00000069}', op: "<=", result: "true"}
+
+  - {left: '', right: '', op: ">", result: "false"}
+  - {left: ' ', right: '', op: ">", result: "true"}
+  - {left: '', right: '\n', op: ">", result: "false"}
+  - {left: '\r', right: '', op: ">", result: "true"}
+  - {left: "'aa", right: "'aa", op: ">", result: "false"}
+  - {left: 'aa', right: 'aaa', op: ">", result: "false"}
+  - {left: 'ac', right: 'dc', op: ">", result: "false"}
+  - {left: 'AAAAAB', right: 'AAAAAAA', op: ">", result: "true"}
+  - {left: 'AAAAAA', right: 'aaaaaa', op: ">", result: "false"}
+  - {left: '~', right: '~', op: ">", result: "false"}
+  - {left: 'alea iacta est', right: 'alea iacta est', op: ">", result: "false"}
+  - {left: '987654321', right: '987654321', op: ">", result: "false"}
+  - {left: '0987654321', right: '987654321', op: ">", result: "false"}
+  - {left: '!@#$%^&*()_+-=`~\"\\|[]{}/?.>,<\\', right: '!@#$%^&*()_+-=`~\"\\|[]{}/?.>,<\\', op: ">", result: "false"}
+  - {left: '\xff\xfe\xac 1\x003\x00,\x005\x006\x00', right: '\xff\xfe\xac 1\x003\x00,\x005\x006\x00', op: ">", result: "false"}
+  - {left: '\xff\xfe\xac 1\x003\x00,\x005\x007\x00', right: '\xff\xfe\xac 1\x003\x00,\x005\x006\x00', op: ">", result: "true"}
+  # surrogate
+  - {left: '\u{D800}', right: '\u{D800}', op: ">", result: "false"}
+  - {left: '\u{D801}', right: '\u{D800}', op: ">", result: "true"}
+  - {left: '\u{DC00}', right: '\u{DC00}', op: ">", result: "false"}
+  - {left: '\u{DC01}', right: '\u{DC00}', op: ">", result: "true"}
+  - {left: '\u{DBFF}\u{DFFF}', right: '\u{DBFF}\u{DFFF}', op: ">", result: "false"}
+  - {left: '\u{DBFF}\u{DFFF}', right: '\u{DBFF}\u{DFFA}', op: ">", result: "true"}
+  # utf-16
+  - {left: '\u{A123}', right: '\u{A122}', op: ">", result: "true"}
+  - {left: '\u{A123}', right: '\u{A123}', op: ">", result: "false"}
+  # utf-32
+  - {left: '\u{00000068}\u{00000065}\u{0000006c}\u{0000006c}\u{0000006f}', right: '\u{00000068}\u{00000065}\u{0000006c}\u{0000006c}\u{0000006f}', op: ">", result: "false"}
+  - {left: '\u{00000068}\u{00000065}\u{0000006c}\u{0000006d}\u{0000006f}', right: '\u{00000068}\u{00000065}\u{0000006c}\u{0000006c}\u{0000006f}', op: ">", result: "true"}
+
+  - {left: '', right: '', op: ">=", result: "true"}
+  - {left: ' ', right: '', op: ">=", result: "true"}
+  - {left: '', right: '\n', op: ">=", result: "false"}
+  - {left: '\r', right: '', op: ">=", result: "true"}
+  - {left: "'aa", right: "'aa", op: ">=", result: "true"}
+  - {left: 'aa', right: 'aaa', op: ">=", result: "false"}
+  - {left: 'ac', right: 'dc', op: ">=", result: "false"}
+  - {left: 'AAAAAB', right: 'AAAAAAA', op: ">=", result: "true"}
+  - {left: 'AAAAAA', right: 'aaaaaa', op: ">=", result: "false"}
+  - {left: '~', right: '~', op: ">=", result: "true"}
+  - {left: 'alea iacta est', right: 'alea iacta est', op: ">=", result: "true"}
+  - {left: '987654321', right: '987654321', op: ">=", result: "true"}
+  - {left: '9876543210', right: '987654321', op: ">=", result: "true"}
+  - {left: '!@#$%^&*()_+-=`~\"\\|[]{}/?.>,<\\', right: '!@#$%^&*()_+-=`~\"\\|[]{}/?.>,<\\', op: ">=", result: "true"}
+  - {left: '\xff\xfe\xac 1\x003\x00,\x005\x006\x00', right: '\xff\xfe\xac 1\x003\x00,\x005\x006\x00', op: ">=", result: "true"}
+  - {left: '\xff\xfe\xac 1\x003\x00,\x005\x007\x00', right: '\xff\xfe\xac 1\x003\x00,\x005\x006\x00', op: ">=", result: "true"}
+# surrogate
+  - {left: '\u{D800}', right: '\u{D800}', op: ">=", result: "true"}
+  - {left: '\u{D801}', right: '\u{D800}', op: ">=", result: "true"}
+  - {left: '\u{D800}', right: '\u{D801}', op: ">=", result: "false"}
+  - {left: '\u{DC00}', right: '\u{DC00}', op: ">=", result: "true"}
+  - {left: '\u{DC01}', right: '\u{DC00}', op: ">=", result: "true"}
+  - {left: '\u{DC00}', right: '\u{DC01}', op: ">=", result: "false"}
+  - {left: '\u{DBFF}\u{DFFF}', right: '\u{DBFF}\u{DFFF}', op: ">=", result: "true"}
+  - {left: '\u{DBFF}\u{DFFF}', right: '\u{DBFF}\u{DFFA}', op: ">=", result: "true"}
+  - {left: '\u{DBFA}\u{DFFF}', right: '\u{DBFF}\u{DFFF}', op: ">=", result: "false"}
+# utf-16
+  - {left: '\u{A123}', right: '\u{A122}', op: ">=", result: "true"}
+  - {left: '\u{A123}', right: '\u{A123}', op: ">=", result: "true"}
+  - {left: '\u{A122}', right: '\u{A123}', op: ">=", result: "false"}
+# utf-32
+  - {left: '\u{00000068}\u{00000065}\u{0000006c}\u{0000006c}\u{0000006f}', right: '\u{00000068}\u{00000065}\u{0000006c}\u{0000006c}\u{0000006f}', op: ">=", result: "true"}
+  - {left: '\u{00000068}\u{00000065}\u{0000006c}\u{0000006d}\u{0000006f}', right: '\u{00000068}\u{00000065}\u{0000006c}\u{0000006c}\u{0000006f}', op: ">=", result: "true"}
+  - {left: '\u{00000067}\u{00000065}\u{0000006c}\u{0000006c}\u{0000006f}', right: '\u{00000068}\u{00000065}\u{0000006c}\u{0000006c}\u{0000006f}', op: ">=", result: "false"}

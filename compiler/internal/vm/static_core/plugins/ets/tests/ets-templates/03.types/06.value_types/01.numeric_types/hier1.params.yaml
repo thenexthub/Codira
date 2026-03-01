@@ -1,0 +1,198 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+cases:
+    - lg: 'short = 10 as short'
+      sm: 'byte = 7 as byte'
+      ops:
+          - { op: '=', val: 7 }
+          - { op: '+=', val: 17 }
+          - { op: '-=', val: 3 }
+          - { op: '*=', val: 70 }
+          - { op: '/=', val: 1 }
+          - { op: '%=', val: 3 }
+          - { op: '&=', val: 2 }
+          - { op: '|=', val: 15 }
+          - { op: '^=', val: 13 }
+          - { op: '<<=', val: 1280 }
+          - { op: '>>=', val: 0 }
+          - { op: '>>>=', val: 0 }
+    - lg: 'int = 10'
+      sm: 'byte = 7 as byte'
+      ops:
+          - { op: '=', val: 7 }
+          - { op: '+=', val: 17 }
+          - { op: '-=', val: 3 }
+          - { op: '*=', val: 70 }
+          - { op: '/=', val: 1 }
+          - { op: '%=', val: 3 }
+          - { op: '&=', val: 2 }
+          - { op: '|=', val: 15 }
+          - { op: '^=', val: 13 }
+          - { op: '<<=', val: 1280 }
+          - { op: '>>=', val: 0 }
+          - { op: '>>>=', val: 0 }
+    - lg: 'long = 10 as long'
+      sm: 'byte = 7 as byte'
+      ops:
+          - { op: '=', val: 7 }
+          - { op: '+=', val: 17 }
+          - { op: '-=', val: 3 }
+          - { op: '*=', val: 70 }
+          - { op: '/=', val: 1 }
+          - { op: '%=', val: 3 }
+          - { op: '&=', val: 2 }
+          - { op: '|=', val: 15 }
+          - { op: '^=', val: 13 }
+          - { op: '<<=', val: 1280 }
+          - { op: '>>=', val: 0 }
+          - { op: '>>>=', val: 0 }
+    - lg: 'float = 16.0f'
+      sm: 'byte = 4 as byte'
+      ops:
+          - { op: '=', val: 4 }
+          - { op: '+=', val: 20 }
+          - { op: '-=', val: 12 }
+          - { op: '*=', val: 64 }
+          - { op: '/=', val: 4 }
+          - { op: '%=', val: 0 }
+    - lg: 'double = 16.0 as double'
+      sm: 'byte = 4 as byte'
+      ops:
+          - { op: '=', val: 4 }
+          - { op: '+=', val: 20 }
+          - { op: '-=', val: 12 }
+          - { op: '*=', val: 64 }
+          - { op: '/=', val: 4 }
+          - { op: '%=', val: 0 }
+
+    - lg: 'int = 10'
+      sm: 'short = 7 as short'
+      ops:
+          - { op: '=', val: 7 }
+          - { op: '+=', val: 17 }
+          - { op: '-=', val: 3 }
+          - { op: '*=', val: 70 }
+          - { op: '/=', val: 1 }
+          - { op: '%=', val: 3 }
+          - { op: '&=', val: 2 }
+          - { op: '|=', val: 15 }
+          - { op: '^=', val: 13 }
+          - { op: '<<=', val: 1280 }
+          - { op: '>>=', val: 0 }
+          - { op: '>>>=', val: 0 }
+    - lg: 'long = 10 as long'
+      sm: 'short = 7 as short'
+      ops:
+          - { op: '=', val: 7 }
+          - { op: '+=', val: 17 }
+          - { op: '-=', val: 3 }
+          - { op: '*=', val: 70 }
+          - { op: '/=', val: 1 }
+          - { op: '%=', val: 3 }
+          - { op: '&=', val: 2 }
+          - { op: '|=', val: 15 }
+          - { op: '^=', val: 13 }
+          - { op: '<<=', val: 1280 }
+          - { op: '>>=', val: 0 }
+          - { op: '>>>=', val: 0 }
+    - lg: 'float = 16.0f'
+      sm: 'short = 4 as short'
+      ops:
+          - { op: '=', val: 4 }
+          - { op: '+=', val: 20 }
+          - { op: '-=', val: 12 }
+          - { op: '*=', val: 64 }
+          - { op: '/=', val: 4 }
+          - { op: '%=', val: 0 }
+    - lg: 'double = 16.0 as double'
+      sm: 'short = 4 as short'
+      ops:
+          - { op: '=', val: 4 }
+          - { op: '+=', val: 20 }
+          - { op: '-=', val: 12 }
+          - { op: '*=', val: 64 }
+          - { op: '/=', val: 4 }
+          - { op: '%=', val: 0 }
+
+    - lg: 'long = 10 as long'
+      sm: 'int = 7 as int'
+      ops:
+          - { op: '=', val: 7 }
+          - { op: '+=', val: 17 }
+          - { op: '-=', val: 3 }
+          - { op: '*=', val: 70 }
+          - { op: '/=', val: 1 }
+          - { op: '%=', val: 3 }
+          - { op: '&=', val: 2 }
+          - { op: '|=', val: 15 }
+          - { op: '^=', val: 13 }
+          - { op: '<<=', val: 1280 }
+          - { op: '>>=', val: 0 }
+          - { op: '>>>=', val: 0 }
+    - lg: 'float = 16.0f'
+      sm: 'int = 4 as int'
+      ops:
+          - { op: '=', val: 4 }
+          - { op: '+=', val: 20 }
+          - { op: '-=', val: 12 }
+          - { op: '*=', val: 64 }
+          - { op: '/=', val: 4 }
+          - { op: '%=', val: 0 }
+    - lg: 'double = 16.0 as double'
+      sm: 'int = 4 as int'
+      ops:
+          - { op: '=', val: 4 }
+          - { op: '+=', val: 20 }
+          - { op: '-=', val: 12 }
+          - { op: '*=', val: 64 }
+          - { op: '/=', val: 4 }
+          - { op: '%=', val: 0 }
+
+    - lg: 'float = 16.0f'
+      sm: 'long = 4 as long'
+      ops:
+          - { op: '=', val: 4 }
+          - { op: '+=', val: 20 }
+          - { op: '-=', val: 12 }
+          - { op: '*=', val: 64 }
+          - { op: '/=', val: 4 }
+          - { op: '%=', val: 0 }
+    - lg: 'double = 16.0 as double'
+      sm: 'long = 4 as long'
+      ops:
+          - { op: '=', val: 4 }
+          - { op: '+=', val: 20 }
+          - { op: '-=', val: 12 }
+          - { op: '*=', val: 64 }
+          - { op: '/=', val: 4 }
+          - { op: '%=', val: 0 }
+
+    - lg: 'double = 16.0 as double'
+      sm: 'float = 4.0f'
+      ops:
+          - { op: '=', val: 4 }
+          - { op: '+=', val: 20 }
+          - { op: '-=', val: 12 }
+          - { op: '*=', val: 64 }
+          - { op: '/=', val: 4 }
+          - { op: '%=', val: 0 }

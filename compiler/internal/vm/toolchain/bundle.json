@@ -1,0 +1,64 @@
+{
+    "name": "@ohos/toolchain",
+    "version": "3.1",
+    "description": "arkcompiler toolchain",
+    "homePage": "https://gitcode.com/openharmony",
+    "license": "Apache License 2.0",
+    "publishAs": "code-segment",
+    "scripts": {},
+    "dirs": [],
+    "segment": {
+        "destPath": "arkcompiler/toolchain"
+    },
+    "component": {
+        "name": "toolchain",
+        "subsystem": "arkcompiler",
+        "syscap": [],
+        "features": [],
+        "adapted_system_type": [
+            "standard"
+        ],
+        "rom": "",
+        "ram": "",
+        "deps": {
+            "components": [
+                "bounds_checking_function",
+                "ets_runtime",
+                "runtime_core",
+                "faultloggerd",
+                "init",
+                "hitrace",
+                "hilog",
+                "hisysevent",
+                "json",
+                "libuv",
+                "cJSON",
+                "openssl",
+                "ffrt"
+            ],
+            "third_party": []
+        },
+        "build": {
+            "sub_component": [
+                "//arkcompiler/toolchain:ark_toolchain_packages"
+            ],
+            "inner_kits": [
+                {
+                    "name": "//arkcompiler/toolchain/websocket:libwebsocket_server",
+                    "header": {
+                        "header_files": [
+                            "http.h",
+                            "server/websocket_server.h",
+                            "web_socket_frame.h",
+                            "websocket_base.h"
+                        ],
+                        "header_base": "//arkcompiler/toolchain/websocket"
+                    }
+                }
+            ],
+            "test": [
+                "//arkcompiler/toolchain:ark_toolchain_unittest"
+            ]
+        }
+    }
+}

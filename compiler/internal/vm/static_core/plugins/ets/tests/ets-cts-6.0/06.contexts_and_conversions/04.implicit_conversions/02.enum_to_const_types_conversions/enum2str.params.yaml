@@ -1,0 +1,153 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          let s: string = "Z"
+      use: |-
+          // assignment-like context, variable declaration
+          let v1: string = Color.Red
+          arktest.assertEQ(v1, "r")
+
+          let v2: string = Color.Green + Color.Blue
+          arktest.assertEQ(v2, "gb")
+
+          let v3: string = s + Color.Blue + "X"
+          arktest.assertEQ(v3, "ZbX")
+
+          // assignment-like context, constant declaration
+          const c1: string = Color.Red
+          arktest.assertEQ(c1, "r")
+
+          const c2: string = Color.Green + Color.Blue
+          arktest.assertEQ(c2, "gb")
+
+          const c3: string = s + Color.Blue + "X"
+          arktest.assertEQ(c3, "ZbX")
+
+    - decl: |-
+          let s: string = "Z"
+          let v: string
+      use: |-
+          // assignment-like context, variable assignment
+          v = Color.Red
+          arktest.assertEQ(v, "r")
+
+          v = Color.Green + Color.Blue
+          arktest.assertEQ(v, "gb")
+
+          v = s + Color.Blue + "X"
+          arktest.assertEQ(v, "ZbX")
+
+    - decl: |-
+          let s: string = "Z"
+          class A {
+              fld1: string = Color.Red
+              fld2: string = Color.Blue + Color.Green
+              fld3: string = s + Color.Green + "X"
+          }
+      use: |-
+          // assignment-like context, field declaration
+          let a: A = new A()
+          arktest.assertEQ(a.fld1, "r")
+          arktest.assertEQ(a.fld2, "bg")
+          arktest.assertEQ(a.fld3, "ZgX")
+
+    - decl: |-
+          let s: string = "Z"
+          class A {
+              fld1: string = ""
+              fld2: string = ""
+              fld3: string = ""
+          }
+      use: |-
+          // assignment-like context, field assignment
+          let a: A = new A()
+          a.fld1 = Color.Red
+          a.fld2 = Color.Blue + Color.Green
+          a.fld3 = s + Color.Green + "X"
+          arktest.assertEQ(a.fld1, "r")
+          arktest.assertEQ(a.fld2, "bg")
+          arktest.assertEQ(a.fld3, "ZgX")
+
+    - decl: |-
+          let s: string = "Z"
+          function foo(p: string): string {
+              return p + "!"
+          }
+      use: |-
+          // call context, function
+          arktest.assertEQ(foo(Color.Red), "r!")
+          arktest.assertEQ(foo(Color.Green + Color.Blue), "gb!")
+          arktest.assertEQ(foo(s + Color.Blue + "X"), "ZbX!")
+
+    - decl: |-
+          let s: string = "Z"
+          class A {
+              meth(p: string): string {
+                  return p + "!"
+              }
+          }
+      use: |-
+          // call context, method
+          let a: A = new A()
+          arktest.assertEQ(a.meth(Color.Red), "r!")
+          arktest.assertEQ(a.meth(Color.Green + Color.Blue), "gb!")
+          arktest.assertEQ(a.meth(s + Color.Blue + "X"), "ZbX!")
+
+    - decl: |-
+          let s: string = "Z"
+          class A {
+              fld: string = ""
+              constructor(p: string) {
+                  this.fld = p
+              }
+          }
+      use: |-
+          // call context, constructor
+          arktest.assertEQ(new A(Color.Red).fld, "r")
+          arktest.assertEQ(new A(Color.Green + Color.Blue).fld, "gb")
+          arktest.assertEQ(new A(s + Color.Blue + "X").fld, "ZbX")
+
+    - decl: |-
+          let s: string = "Z"
+      use: |-
+          // call context, lambda
+          arktest.assertEQ(((p: string): string => { return p + "!" })(Color.Red), "r!")
+          arktest.assertEQ(((p: string): string => { return p + "!" })(Color.Green + Color.Blue), "gb!")
+          arktest.assertEQ(((p: string): string => { return p + "!" })(s + Color.Blue + "X"), "ZbX!")
+
+    - decl: |-
+          let s: string = "Z"
+          class A {
+              fld: string = ""
+          }
+      use: |-
+          // composite object
+          let a: A = { fld: Color.Red }
+          arktest.assertEQ(a.fld, "r")
+          a = { fld: Color.Blue + Color.Green }
+          arktest.assertEQ(a.fld, "bg")
+          a = { fld: s + Color.Blue + "!" }
+          arktest.assertEQ(a.fld, "Zb!")
+
+    - decl: |-
+          let s: string = "Z"
+      use: |-
+          // composite array
+          let v: string[] = [ Color.Red ]
+          arktest.assertEQ(v[0], "r")
+          v = [ Color.Green + Color.Blue, Color.Blue + s + "!" ]
+          arktest.assertEQ(v[0], "gb")
+          arktest.assertEQ(v[1], "bZ!")

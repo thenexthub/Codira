@@ -1,0 +1,83 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - doc: Verify access at the top-level statements level
+    decl: |-
+      let i = NS.i
+      NS.foo()
+      let j = NS.i
+      function main() {
+        arktest.assertEQ(i, 0)
+        arktest.assertEQ(j, 1)
+      }
+
+  - doc: Verify access at the function level
+    decl: |-
+      let cntr: int = 1
+      function main() {
+        NS.foo()
+        arktest.assertEQ(NS.i, cntr)
+        let c: NS.X = new NS.X(Number.MIN_VALUE, Number.MAX_VALUE)
+        arktest.assertEQ(c.at(0), Number.MIN_VALUE)
+        arktest.assertEQ(c.at(1), Number.MAX_VALUE)
+        arktest.assertEQ(c.length, 2)
+        cntr += 1
+      }
+
+  - doc: Verify access from the class constructor
+    decl: |-
+      let cntr: int = 2
+      class C {
+        f: int = 0
+        constructor() {
+          NS.i++
+          NS.foo()
+          this.f = NS.i
+        }
+      }
+      function main() {
+        let c = new C()
+        arktest.assertEQ(c.f, cntr)
+        cntr += 2
+      }
+
+  - doc: Verify access from the class method
+    decl: |-
+      let cntr: int = 1
+      class C {
+        f: int = 0
+        bar() {
+          NS.foo()
+          this.f = NS.i
+        }
+      }
+      function main() {
+        let c: C = new C()
+        c.bar()
+        arktest.assertEQ(c.f, cntr)
+        cntr += 1
+      }
+
+  - doc: Verify access from the class variable
+    decl: |-
+      let cntr: int = 1
+      class C {
+        f: int = NS.i
+      }
+      function main() {
+        NS.foo()
+        arktest.assertEQ(new C().f, cntr)
+        cntr += 1
+      }

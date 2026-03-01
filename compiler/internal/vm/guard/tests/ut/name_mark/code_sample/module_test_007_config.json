@@ -1,0 +1,27 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep package module_test_007 {\n    v1: {Ustd.core.Int, std.core.String};\n    }",
+        "-keep package module_test_007 {\n    v2: {Ustd.core.Byte, std.core.String};\n    }",
+        "-keep package module_test_007 {\n    v3: {Ustd.core.Short, std.core.String};\n    }",
+        "-keep package module_test_007 {\n    v4: {Ustd.core.Double, std.core.String};\n    }",
+        "-keep package module_test_007 {\n    v5: {Ustd.core.Long, std.core.String};\n    }",
+        "-keep package module_test_007 {\n    v6: {Ustd.core.Float, std.core.String};\n    }",
+        "-keep package module_test_007 {\n    v7: {Ustd.core.Double, std.core.String};\n    }",
+        "-keep package module_test_007 {\n    v8: {Ustd.core.Char, std.core.String};\n    }",
+        "-keep package module_test_007 {\n    v9: {Ustd.core.Boolean, std.core.String};\n    }",
+        "-keep package module_test_007 {\n    v10:{Ustd.core.BigInt, std.core.String};\n    }",
+        "-keep package module_test_007 {\n    v11:std.core.String;\n    }",
+        "-keep package module_test_007 {\n    v12:{Ustd.core.Null, std.core.String};\n    }",
+        "-keep package module_test_007 {\n    v13:std.core.String;\n    }",
+        "-keep package module_test_007 {\n    v14:{Ustd.core.Array, std.core.String};\n    }",
+        "-keep package module_test_007 {\n    v15:std.core.Object;\n    }",
+        "-keep package module_test_007 {\n    v16:std.core.Int;\n    }"
+      ]
+    }
+  }
+}

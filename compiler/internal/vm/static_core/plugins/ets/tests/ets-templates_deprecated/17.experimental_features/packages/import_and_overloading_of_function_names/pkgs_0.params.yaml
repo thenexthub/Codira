@@ -1,0 +1,202 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+    # 0
+    - sig1: 'p1: byte, p2: short, p3: int, p4: long, p5: float, p6: double, p7: boolean'
+      arg1: '127 as byte, -128 as short, 0, -1 as long, -0.001f, 99.99, false'
+      sig2: 'p1: byte, p2: short, p3: int, p4: long, p5: float, p6: double, p7: boolean, p8: char'
+      arg2: "127 as byte, -128 as short, 0, -1 as long, -0.001f, 99.99, false, c'2'"
+
+    # 1
+    - sig1: 'p1: Byte, p2: Short, p3: Int, p4: Long, p5: Float, p6: Double, p7: Boolean'
+      arg1: 'new Byte(127 as byte), new Short(-128 as short), new Int(), new Long(-1 as long), new Float(-0.001f), new Number(99.99), new Boolean(false)'
+      sig2: 'p1: Byte, p2: Short, p3: Int, p4: Long, p5: Float, p6: Double, p7: Boolean, p8: Char'
+      arg2: "new Byte(127 as byte), new Short(-128 as short), new Int(), new Long(-1 as long), new Float(-0.001f), new Number(99.99), new Boolean(false), new Char(c'2')"
+
+    # 2
+    - sig1: 'p1: Object, p2: FixedArray<char>, p3: FixedArray<Int>'
+      arg1: 'a2, a2, a1'
+      sig2: 'p1: FixedArray<int>, p2: Object, p3: FixedArray<Char>'
+      arg2: 'a1, a2, a2'
+      decl: |-
+          let a1: FixedArray<int> = [1, 2, 3]
+          let a2: FixedArray<char> = [c'a', c'b']
+
+    # 3
+    - sig1: 'p1: FixedArray<A>, p2: FixedArray<B>'
+      arg1: '[new A(), new A()], [new B(), new B()]'
+      sig2: 'p1: FixedArray<A>, p2: FixedArray<Object>'
+      arg2: '[new A(), new A()], [new Object(), new Object()]'
+      decl: |-
+          class A {}
+          class B {}
+
+    # 4
+    - sig1: 'p1: [int, string], p2: [string, int]'
+      arg1: '[1, "A"], ["B", 2]'
+      sig2: 'p1: [string, int], p2: [string, int]'
+      arg2: '["A", 1], ["B", 2]'
+
+    # 5
+    - sig1: 'p: (p1: byte, p2: short, p3: int, p4: long, p5: float, p6: double, p7: boolean) => [byte, short, int, long, float, double, boolean, char]'
+      arg1: 'func1'
+      sig2: 'p: (p1: Byte, p2: Short, p3: Int, p4: Long, p5: Float, p6: Double, p7: Boolean) => [Byte, Short, Int, Long, Float, Double, Boolean, Char]'
+      arg2: 'func2'
+      decl: |-
+          function func1(p1: byte, p2: short, p3: int, p4: long, p5: float, p6: double, p7: boolean)
+              : [byte, short, int, long, float, double, boolean, char] {
+              return [p1, p2, p3, p4, p5, p6, p7, c'1']
+          }
+          function func2(p1: Byte, p2: Short, p3: Int, p4: Long, p5: Float, p6: Double, p7: Boolean)
+              : [Byte, Short, Int, Long, Float, Double, Boolean, Char] {
+              return [p1, p2, p3, p4, p5, p6, p7, new Char(c'1')]
+          }
+      tags: 'negative, compile-only'
+
+    # 6
+    - sig1: 'p1: () => void'
+      arg1: '(): void => {}'
+      sig2: 'p2: () => Object|null'
+      arg2: '(): Object|null => { return null }'
+
+    # 7
+    - sig1: 'p1: Size, p2: Color'
+      arg1: 'Size.XL, Color.Red'
+      sig2: 'p1: Color, p2: Color'
+      arg2: 'Color.Red, Color.Green'
+      decl: |-
+          enum Color { Red, Green, Blue }
+          enum Size { S, M, L, XL }
+
+    # 8
+    - sig1: 'p1: B, p2?: Object'
+      arg1: 'new B(), new A()'
+      sig2: 'p1: A, p2?: Object'
+      arg2: 'new A(), new B()'
+      decl: |-
+          class A {}
+          class B {}
+
+    # 9
+    - sig1: 'p1: A, p2?: A'
+      arg1: 'new A()'
+      sig2: 'p1: B, p2?: B'
+      arg2: 'new B()'
+      decl: |-
+          class A {}
+          class B {}
+
+    # 10
+    - sig1: 'p1: A, p2: A = new A()'
+      arg1: 'new A()'
+      sig2: 'p1: B, p2: B = new B()'
+      arg2: 'new B()'
+      decl: |-
+          class A {}
+          class B {}
+
+    # 11
+    - sig1: '...p2: FixedArray<Boolean>'
+      arg1: 'new Boolean(), new Boolean(true), new Boolean(false)'
+      sig2: 'p1: Object, ...p2: FixedArray<boolean>'
+      arg2: 'new Object(), true, false, true'
+
+    # 12
+    - sig1: 'p1: Byte|null'
+      arg1: 'new Byte()'
+      sig2: 'p1: Object|null'
+      arg2: 'new Object()'
+
+    # 13
+    - sig1: 'p1: Short|undefined'
+      arg1: 'new Short()'
+      sig2: 'p1: Object|undefined'
+      arg2: 'new Object()'
+
+    # 14
+    - sig1: 'p1: Int|null'
+      arg1: 'new Int()'
+      sig2: 'p1: Object|null'
+      arg2: 'new Object()'
+
+    # 15
+    - sig1: 'p1: Long|null'
+      arg1: 'new Long()'
+      sig2: 'p1: Object|null'
+      arg2: 'new Object()'
+
+    # 16
+    - sig1: 'p1: Float|undefined'
+      arg1: 'new Float()'
+      sig2: 'p1: Object|undefined'
+      arg2: 'new Object()'
+
+    # 17
+    - sig1: 'p1: Double|null'
+      arg1: 'new Number()'
+      sig2: 'p1: Object|null'
+      arg2: 'new Object()'
+
+    # 18
+    - sig1: 'p1: Boolean|Char|undefined'
+      arg1: 'new Char()'
+      sig2: 'p2: Error|Double|null'
+      arg2: 'new Double()'
+
+    # 19
+    - sig1: 'p1: double, p2: double'
+      arg1: '1.5, 1.5'
+      sig2: 'p1: number, p2: number'
+      arg2: '2.5, 2.5'
+      tags: 'compile-only, negative'
+
+    # 20
+    - sig1: 'p1: A, p2: B'
+      arg1: 'new B(), new B()'
+      sig2: 'p1: A, p2: A'
+      arg2: 'new A(), new A()'
+      decl: |-
+          class A {}
+          class B extends A {}
+
+    # 21
+    - sig1: 'p1: string|boolean, p2: boolean|number, p3: number|string[], p4: string[]|boolean[], p5: boolean[]|number[], p6: number[]|undefined|null'
+      arg1: '"", false, 1.5, ["", ""] as string[], [false] as boolean[], null'
+      sig2: 'p1: boolean|string, p2: number|boolean, p3: string[]|number, p4: boolean[]|string[], p5: number[]|boolean[], p6: undefined|null|number[]'
+      arg2: 'true, 1.5, [] as string[], [false] as boolean[], [1.5] as number[], undefined'
+      tags: 'compile-only, negative'
+
+    # 22
+    - sig1: 'p1: Int|null|undefined'
+      arg1: 'x1'
+      sig2: 'p1: Int|null'
+      arg2: 'x2'
+      decl: |-
+          let x1: Int|null|undefined = new Int()
+          let x2: Int|null = null
+
+    # 23
+    - sig1: 'p1: A'
+      arg1: '{ f1: 1, f2: 2 } as A'
+      sig2: 'p1: B'
+      arg2: '{ f1: 1 as long, f2: 2 as long } as B'
+      decl: |-
+          class A {
+              f1: int
+              f2: int
+          }
+          class B {
+              f1: long
+              f2: long
+          }

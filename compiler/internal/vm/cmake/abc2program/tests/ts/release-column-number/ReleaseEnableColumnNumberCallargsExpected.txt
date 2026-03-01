@@ -1,0 +1,469 @@
+# source binary: arkcompiler/runtime_core/abc2program/tests/ReleaseEnableColumnNumberCallargs.abc
+
+# ====================
+# LITERALS
+
+_ESModuleRecord_989 { 6 [ i32:0, i32:0, i32:0, i32:0, i32:0, i32:0, ]}
+
+_ESScopeNamesRecord_985 
+
+
+
+# ====================
+# RECORDS
+
+.language ECMAScript
+.record _ESExpectedPropertyCountAnnotation {
+}
+.record.source_file 
+
+.language ECMAScript
+.record _ESModuleRecord {
+	u32 arkcompiler/runtime_core/abc2program/tests/ts/release-column-number/ReleaseEnableColumnNumberCallargs.ts _ESModuleRecord_989
+}
+.record.source_file 
+
+.language ECMAScript
+.record _ESScopeNamesRecord {
+	u32 arkcompiler/runtime_core/abc2program/tests/ts/release-column-number/ReleaseEnableColumnNumberCallargs.ts _ESScopeNamesRecord_985
+}
+.record.source_file 
+
+.language ECMAScript
+.record _ESSlotNumberAnnotation {
+}
+.record.source_file 
+
+.language ECMAScript
+.record _GLOBAL {
+}
+.record.source_file 
+
+
+# ====================
+# METHODS
+
+.function_kind FunctionKind::FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 3
+.language ECMAScript
+.function any .#*#callRange(any a0, any a1, any a2, any a3, any a4, any a5, any a6) {
+	tryldglobalbyname 0x0, print             # line: 28           # column: 0
+	sta v0                                   # line: 28           # column: 0
+	lda.str callRange                        # line: 28           # column: 0
+	sta v1                                   # line: 28           # column: 0
+	lda v0                                   # line: 28           # column: 4
+	callarg1 0x1, v1                         # line: 28           # column: 4
+	returnundefined                          # line: 29           # column: 0
+}
+
+.function_kind FunctionKind::FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 3
+.language ECMAScript
+.function any .#*#callarg1(any a0, any a1, any a2, any a3) {
+	tryldglobalbyname 0x0, print             # line: 19           # column: 0
+	sta v0                                   # line: 19           # column: 0
+	lda.str callarg1                         # line: 19           # column: 0
+	sta v1                                   # line: 19           # column: 0
+	lda v0                                   # line: 19           # column: 4
+	callarg1 0x1, v1                         # line: 19           # column: 4
+	returnundefined                          # line: 20           # column: 0
+}
+
+.function_kind FunctionKind::FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 3
+.language ECMAScript
+.function any .#*#callargs2(any a0, any a1, any a2, any a3, any a4) {
+	tryldglobalbyname 0x0, print             # line: 22           # column: 0
+	sta v0                                   # line: 22           # column: 0
+	lda.str callargs2                        # line: 22           # column: 0
+	sta v1                                   # line: 22           # column: 0
+	lda v0                                   # line: 22           # column: 4
+	callarg1 0x1, v1                         # line: 22           # column: 4
+	returnundefined                          # line: 23           # column: 0
+}
+
+.function_kind FunctionKind::FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 3
+.language ECMAScript
+.function any .#*#callargs3(any a0, any a1, any a2, any a3, any a4, any a5) {
+	tryldglobalbyname 0x0, print             # line: 25           # column: 0
+	sta v0                                   # line: 25           # column: 0
+	lda.str callargs3                        # line: 25           # column: 0
+	sta v1                                   # line: 25           # column: 0
+	lda v0                                   # line: 25           # column: 4
+	callarg1 0x1, v1                         # line: 25           # column: 4
+	returnundefined                          # line: 26           # column: 0
+}
+
+.function_kind FunctionKind::FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 3
+.language ECMAScript
+.function any .#*#test(any a0, any a1, any a2) {
+	tryldglobalbyname 0x0, print             # line: 16           # column: 0
+	sta v0                                   # line: 16           # column: 0
+	lda.str callargs0                        # line: 16           # column: 0
+	sta v1                                   # line: 16           # column: 0
+	lda v0                                   # line: 16           # column: 4
+	callarg1 0x1, v1                         # line: 16           # column: 4
+	returnundefined                          # line: 17           # column: 0
+}
+
+.function_kind FunctionKind::FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 3
+.language ECMAScript
+.function any .#*#withRestParams(any a0, any a1, any a2, any a3) {
+	copyrestargs 0x0                         # line: 30           # column: 0
+	tryldglobalbyname 0x0, print             # line: 31           # column: 0
+	sta v0                                   # line: 31           # column: 0
+	lda.str withRestParams                   # line: 31           # column: 0
+	sta v1                                   # line: 31           # column: 0
+	lda v0                                   # line: 31           # column: 4
+	callarg1 0x1, v1                         # line: 31           # column: 4
+	returnundefined                          # line: 32           # column: 0
+}
+
+.function_kind FunctionKind::FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 16
+.language ECMAScript
+.function any .func_main_0(any a0, any a1, any a2) {
+	mov v0, a0                               # line: 18446744073709551615           # column: 0
+	mov v1, a1                               # line: 18446744073709551615           # column: 0
+	mov v2, a2                               # line: 18446744073709551615           # column: 0
+	definefunc 0x0, .#*#callRange, 0x4       # line: 18446744073709551615           # column: 0
+	sta v3                                   # line: 18446744073709551615           # column: 0
+	definefunc 0x1, .#*#callarg1, 0x1        # line: 18446744073709551615           # column: 0
+	sta v4                                   # line: 18446744073709551615           # column: 0
+	definefunc 0x2, .#*#callargs2, 0x2       # line: 18446744073709551615           # column: 0
+	sta v5                                   # line: 18446744073709551615           # column: 0
+	definefunc 0x3, .#*#callargs3, 0x3       # line: 18446744073709551615           # column: 0
+	sta v6                                   # line: 18446744073709551615           # column: 0
+	definefunc 0x4, .#*#test, 0x0            # line: 18446744073709551615           # column: 0
+	sta v7                                   # line: 18446744073709551615           # column: 0
+	definefunc 0x5, .#*#withRestParams, 0x0  # line: 18446744073709551615           # column: 0
+	sta v8                                   # line: 18446744073709551615           # column: 0
+	lda v7                                   # line: 33           # column: 0
+	sta v10                                  # line: 33           # column: 0
+	lda v10                                  # line: 33           # column: 0
+	callarg0 0x6                             # line: 33           # column: 2
+	lda v4                                   # line: 33           # column: 0
+	sta v10                                  # line: 33           # column: 0
+	ldai 0x1                                 # line: 33           # column: 0
+	sta v11                                  # line: 33           # column: 0
+	lda v10                                  # line: 33           # column: 0
+	callarg1 0x8, v11                        # line: 33           # column: 9
+	lda v5                                   # line: 33           # column: 0
+	sta v10                                  # line: 33           # column: 0
+	ldai 0x1                                 # line: 33           # column: 0
+	sta v11                                  # line: 33           # column: 0
+	ldai 0x2                                 # line: 33           # column: 0
+	sta v12                                  # line: 33           # column: 0
+	lda v10                                  # line: 33           # column: 0
+	callargs2 0xa, v11, v12                  # line: 33           # column: 21
+	lda v6                                   # line: 33           # column: 0
+	sta v10                                  # line: 33           # column: 0
+	ldai 0x1                                 # line: 33           # column: 0
+	sta v11                                  # line: 33           # column: 0
+	ldai 0x2                                 # line: 33           # column: 0
+	sta v12                                  # line: 33           # column: 0
+	ldai 0x3                                 # line: 33           # column: 0
+	sta v13                                  # line: 33           # column: 0
+	lda v10                                  # line: 33           # column: 0
+	callargs3 0xc, v11, v12, v13             # line: 33           # column: 37
+	lda v3                                   # line: 33           # column: 0
+	sta v10                                  # line: 33           # column: 0
+	ldai 0x1                                 # line: 33           # column: 0
+	sta v11                                  # line: 33           # column: 0
+	ldai 0x2                                 # line: 33           # column: 0
+	sta v12                                  # line: 33           # column: 0
+	ldai 0x3                                 # line: 33           # column: 0
+	sta v13                                  # line: 33           # column: 0
+	ldai 0x4                                 # line: 33           # column: 0
+	sta v14                                  # line: 33           # column: 0
+	lda v10                                  # line: 33           # column: 0
+	callrange 0xe, 0x4, v11                  # line: 33           # column: 56
+	lda v8                                   # line: 33           # column: 0
+	sta v10                                  # line: 33           # column: 0
+	ldai 0x1                                 # line: 34           # column: 0
+	sta v11                                  # line: 34           # column: 0
+	ldai 0x2                                 # line: 34           # column: 0
+	sta v12                                  # line: 34           # column: 0
+	ldai 0x3                                 # line: 34           # column: 0
+	sta v13                                  # line: 34           # column: 0
+	ldai 0x4                                 # line: 34           # column: 0
+	sta v14                                  # line: 34           # column: 0
+	ldai 0x5                                 # line: 34           # column: 0
+	sta v15                                  # line: 34           # column: 0
+	ldai 0x6                                 # line: 34           # column: 0
+	sta v16                                  # line: 34           # column: 0
+	ldai 0x7                                 # line: 34           # column: 0
+	sta v17                                  # line: 34           # column: 0
+	ldai 0x8                                 # line: 34           # column: 0
+	sta v18                                  # line: 34           # column: 0
+	ldai 0x9                                 # line: 34           # column: 0
+	sta v19                                  # line: 34           # column: 0
+	ldai 0xa                                 # line: 34           # column: 0
+	sta v20                                  # line: 34           # column: 0
+	ldai 0xb                                 # line: 35           # column: 0
+	sta v21                                  # line: 35           # column: 0
+	ldai 0xc                                 # line: 35           # column: 0
+	sta v22                                  # line: 35           # column: 0
+	ldai 0xd                                 # line: 35           # column: 0
+	sta v23                                  # line: 35           # column: 0
+	ldai 0xe                                 # line: 35           # column: 0
+	sta v24                                  # line: 35           # column: 0
+	ldai 0xf                                 # line: 35           # column: 0
+	sta v25                                  # line: 35           # column: 0
+	ldai 0x10                                # line: 35           # column: 0
+	sta v26                                  # line: 35           # column: 0
+	ldai 0x11                                # line: 35           # column: 0
+	sta v27                                  # line: 35           # column: 0
+	ldai 0x12                                # line: 35           # column: 0
+	sta v28                                  # line: 35           # column: 0
+	ldai 0x13                                # line: 35           # column: 0
+	sta v29                                  # line: 35           # column: 0
+	ldai 0x14                                # line: 35           # column: 0
+	sta v30                                  # line: 35           # column: 0
+	ldai 0x15                                # line: 36           # column: 0
+	sta v31                                  # line: 36           # column: 0
+	ldai 0x16                                # line: 36           # column: 0
+	sta v32                                  # line: 36           # column: 0
+	ldai 0x17                                # line: 36           # column: 0
+	sta v33                                  # line: 36           # column: 0
+	ldai 0x18                                # line: 36           # column: 0
+	sta v34                                  # line: 36           # column: 0
+	ldai 0x19                                # line: 36           # column: 0
+	sta v35                                  # line: 36           # column: 0
+	ldai 0x1a                                # line: 36           # column: 0
+	sta v36                                  # line: 36           # column: 0
+	ldai 0x1b                                # line: 36           # column: 0
+	sta v37                                  # line: 36           # column: 0
+	ldai 0x1c                                # line: 36           # column: 0
+	sta v38                                  # line: 36           # column: 0
+	ldai 0x1d                                # line: 36           # column: 0
+	sta v39                                  # line: 36           # column: 0
+	ldai 0x1e                                # line: 36           # column: 0
+	sta v40                                  # line: 36           # column: 0
+	ldai 0x1f                                # line: 37           # column: 0
+	sta v41                                  # line: 37           # column: 0
+	ldai 0x20                                # line: 37           # column: 0
+	sta v42                                  # line: 37           # column: 0
+	ldai 0x21                                # line: 37           # column: 0
+	sta v43                                  # line: 37           # column: 0
+	ldai 0x22                                # line: 37           # column: 0
+	sta v44                                  # line: 37           # column: 0
+	ldai 0x23                                # line: 37           # column: 0
+	sta v45                                  # line: 37           # column: 0
+	ldai 0x24                                # line: 37           # column: 0
+	sta v46                                  # line: 37           # column: 0
+	ldai 0x25                                # line: 37           # column: 0
+	sta v47                                  # line: 37           # column: 0
+	ldai 0x26                                # line: 37           # column: 0
+	sta v48                                  # line: 37           # column: 0
+	ldai 0x27                                # line: 37           # column: 0
+	sta v49                                  # line: 37           # column: 0
+	ldai 0x28                                # line: 37           # column: 0
+	sta v50                                  # line: 37           # column: 0
+	ldai 0x29                                # line: 38           # column: 0
+	sta v51                                  # line: 38           # column: 0
+	ldai 0x2a                                # line: 38           # column: 0
+	sta v52                                  # line: 38           # column: 0
+	ldai 0x2b                                # line: 38           # column: 0
+	sta v53                                  # line: 38           # column: 0
+	ldai 0x2c                                # line: 38           # column: 0
+	sta v54                                  # line: 38           # column: 0
+	ldai 0x2d                                # line: 38           # column: 0
+	sta v55                                  # line: 38           # column: 0
+	ldai 0x2e                                # line: 38           # column: 0
+	sta v56                                  # line: 38           # column: 0
+	ldai 0x2f                                # line: 38           # column: 0
+	sta v57                                  # line: 38           # column: 0
+	ldai 0x30                                # line: 38           # column: 0
+	sta v58                                  # line: 38           # column: 0
+	ldai 0x31                                # line: 38           # column: 0
+	sta v59                                  # line: 38           # column: 0
+	ldai 0x32                                # line: 38           # column: 0
+	sta v60                                  # line: 38           # column: 0
+	ldai 0x33                                # line: 39           # column: 0
+	sta v61                                  # line: 39           # column: 0
+	ldai 0x34                                # line: 39           # column: 0
+	sta v62                                  # line: 39           # column: 0
+	ldai 0x35                                # line: 39           # column: 0
+	sta v63                                  # line: 39           # column: 0
+	ldai 0x36                                # line: 39           # column: 0
+	sta v64                                  # line: 39           # column: 0
+	ldai 0x37                                # line: 39           # column: 0
+	sta v65                                  # line: 39           # column: 0
+	ldai 0x38                                # line: 39           # column: 0
+	sta v66                                  # line: 39           # column: 0
+	ldai 0x39                                # line: 39           # column: 0
+	sta v67                                  # line: 39           # column: 0
+	ldai 0x3a                                # line: 39           # column: 0
+	sta v68                                  # line: 39           # column: 0
+	ldai 0x3b                                # line: 39           # column: 0
+	sta v69                                  # line: 39           # column: 0
+	ldai 0x3c                                # line: 39           # column: 0
+	sta v70                                  # line: 39           # column: 0
+	ldai 0x3d                                # line: 40           # column: 0
+	sta v71                                  # line: 40           # column: 0
+	ldai 0x3e                                # line: 40           # column: 0
+	sta v72                                  # line: 40           # column: 0
+	ldai 0x3f                                # line: 40           # column: 0
+	sta v73                                  # line: 40           # column: 0
+	ldai 0x40                                # line: 40           # column: 0
+	sta v74                                  # line: 40           # column: 0
+	ldai 0x41                                # line: 40           # column: 0
+	sta v75                                  # line: 40           # column: 0
+	ldai 0x42                                # line: 40           # column: 0
+	sta v76                                  # line: 40           # column: 0
+	ldai 0x43                                # line: 40           # column: 0
+	sta v77                                  # line: 40           # column: 0
+	ldai 0x44                                # line: 40           # column: 0
+	sta v78                                  # line: 40           # column: 0
+	ldai 0x45                                # line: 40           # column: 0
+	sta v79                                  # line: 40           # column: 0
+	ldai 0x46                                # line: 40           # column: 0
+	sta v80                                  # line: 40           # column: 0
+	ldai 0x47                                # line: 41           # column: 0
+	sta v81                                  # line: 41           # column: 0
+	ldai 0x48                                # line: 41           # column: 0
+	sta v82                                  # line: 41           # column: 0
+	ldai 0x49                                # line: 41           # column: 0
+	sta v83                                  # line: 41           # column: 0
+	ldai 0x4a                                # line: 41           # column: 0
+	sta v84                                  # line: 41           # column: 0
+	ldai 0x4b                                # line: 41           # column: 0
+	sta v85                                  # line: 41           # column: 0
+	ldai 0x4c                                # line: 41           # column: 0
+	sta v86                                  # line: 41           # column: 0
+	ldai 0x4d                                # line: 41           # column: 0
+	sta v87                                  # line: 41           # column: 0
+	ldai 0x4e                                # line: 41           # column: 0
+	sta v88                                  # line: 41           # column: 0
+	ldai 0x4f                                # line: 41           # column: 0
+	sta v89                                  # line: 41           # column: 0
+	ldai 0x50                                # line: 41           # column: 0
+	sta v90                                  # line: 41           # column: 0
+	ldai 0x51                                # line: 42           # column: 0
+	sta v91                                  # line: 42           # column: 0
+	ldai 0x52                                # line: 42           # column: 0
+	sta v92                                  # line: 42           # column: 0
+	ldai 0x53                                # line: 42           # column: 0
+	sta v93                                  # line: 42           # column: 0
+	ldai 0x54                                # line: 42           # column: 0
+	sta v94                                  # line: 42           # column: 0
+	ldai 0x55                                # line: 42           # column: 0
+	sta v95                                  # line: 42           # column: 0
+	ldai 0x56                                # line: 42           # column: 0
+	sta v96                                  # line: 42           # column: 0
+	ldai 0x57                                # line: 42           # column: 0
+	sta v97                                  # line: 42           # column: 0
+	ldai 0x58                                # line: 42           # column: 0
+	sta v98                                  # line: 42           # column: 0
+	ldai 0x59                                # line: 42           # column: 0
+	sta v99                                  # line: 42           # column: 0
+	ldai 0x5a                                # line: 42           # column: 0
+	sta v100                                 # line: 42           # column: 0
+	ldai 0x5b                                # line: 43           # column: 0
+	sta v101                                 # line: 43           # column: 0
+	ldai 0x5c                                # line: 43           # column: 0
+	sta v102                                 # line: 43           # column: 0
+	ldai 0x5d                                # line: 43           # column: 0
+	sta v103                                 # line: 43           # column: 0
+	ldai 0x5e                                # line: 43           # column: 0
+	sta v104                                 # line: 43           # column: 0
+	ldai 0x5f                                # line: 43           # column: 0
+	sta v105                                 # line: 43           # column: 0
+	ldai 0x60                                # line: 43           # column: 0
+	sta v106                                 # line: 43           # column: 0
+	ldai 0x61                                # line: 43           # column: 0
+	sta v107                                 # line: 43           # column: 0
+	ldai 0x62                                # line: 43           # column: 0
+	sta v108                                 # line: 43           # column: 0
+	ldai 0x63                                # line: 43           # column: 0
+	sta v109                                 # line: 43           # column: 0
+	ldai 0x64                                # line: 43           # column: 0
+	sta v110                                 # line: 43           # column: 0
+	ldai 0x65                                # line: 44           # column: 0
+	sta v111                                 # line: 44           # column: 0
+	ldai 0x66                                # line: 44           # column: 0
+	sta v112                                 # line: 44           # column: 0
+	ldai 0x67                                # line: 44           # column: 0
+	sta v113                                 # line: 44           # column: 0
+	ldai 0x68                                # line: 44           # column: 0
+	sta v114                                 # line: 44           # column: 0
+	ldai 0x69                                # line: 44           # column: 0
+	sta v115                                 # line: 44           # column: 0
+	ldai 0x6a                                # line: 44           # column: 0
+	sta v116                                 # line: 44           # column: 0
+	ldai 0x6b                                # line: 44           # column: 0
+	sta v117                                 # line: 44           # column: 0
+	ldai 0x6c                                # line: 44           # column: 0
+	sta v118                                 # line: 44           # column: 0
+	ldai 0x6d                                # line: 44           # column: 0
+	sta v119                                 # line: 44           # column: 0
+	ldai 0x6e                                # line: 44           # column: 0
+	sta v120                                 # line: 44           # column: 0
+	ldai 0x6f                                # line: 45           # column: 0
+	sta v121                                 # line: 45           # column: 0
+	ldai 0x70                                # line: 45           # column: 0
+	sta v122                                 # line: 45           # column: 0
+	ldai 0x71                                # line: 45           # column: 0
+	sta v123                                 # line: 45           # column: 0
+	ldai 0x72                                # line: 45           # column: 0
+	sta v124                                 # line: 45           # column: 0
+	ldai 0x73                                # line: 45           # column: 0
+	sta v125                                 # line: 45           # column: 0
+	ldai 0x74                                # line: 45           # column: 0
+	sta v126                                 # line: 45           # column: 0
+	ldai 0x75                                # line: 45           # column: 0
+	sta v127                                 # line: 45           # column: 0
+	ldai 0x76                                # line: 45           # column: 0
+	sta v128                                 # line: 45           # column: 0
+	ldai 0x77                                # line: 45           # column: 0
+	sta v129                                 # line: 45           # column: 0
+	ldai 0x78                                # line: 45           # column: 0
+	sta v130                                 # line: 45           # column: 0
+	ldai 0x79                                # line: 46           # column: 0
+	sta v131                                 # line: 46           # column: 0
+	ldai 0x7a                                # line: 46           # column: 0
+	sta v132                                 # line: 46           # column: 0
+	ldai 0x7b                                # line: 46           # column: 0
+	sta v133                                 # line: 46           # column: 0
+	ldai 0x7c                                # line: 46           # column: 0
+	sta v134                                 # line: 46           # column: 0
+	ldai 0x7d                                # line: 46           # column: 0
+	sta v135                                 # line: 46           # column: 0
+	ldai 0x7e                                # line: 46           # column: 0
+	sta v136                                 # line: 46           # column: 0
+	ldai 0x7f                                # line: 46           # column: 0
+	sta v137                                 # line: 46           # column: 0
+	ldai 0x80                                # line: 46           # column: 0
+	sta v138                                 # line: 46           # column: 0
+	lda v10                                  # line: 33           # column: 0
+	wide.callrange 0x80, v11                 # line: 33           # column: 78
+	ldundefined                              # line: 18446744073709551615           # column: 0
+	returnundefined                          # line: 18446744073709551615           # column: 0
+}
+
+# ====================
+# STRING
+.#*#callRange
+.#*#callarg1
+.#*#callargs2
+.#*#callargs3
+.#*#test
+.#*#withRestParams
+callRange
+callarg1
+callargs0
+callargs2
+callargs3
+print
+withRestParams

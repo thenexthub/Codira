@@ -1,0 +1,10 @@
+{
+  "/tmp/abckit_nodejs/deps/v8/test/mjsunit/regress/wasm/regress-810973b.js": "137",
+  "/tmp/abckit_nodejs/test/fixtures/snapshot/typescript.js": "timeout",
+  "/tmp/abckit_nodejs/tools/eslint/node_modules/@stylistic/eslint-plugin-js/dist/newline-per-chained-call.js": "ASSERTION FAILED: nameToFunction.count(parentName) == 1",
+  "/tmp/abckit_nodejs/tools/eslint/node_modules/eslint/lib/rules/newline-per-chained-call.js": "ASSERTION FAILED: nameToFunction.count(parentName) == 1",
+  "/tmp/abckit_nodejs/tools/eslint/node_modules/eslint/lib/rules/object-shorthand.js": "ASSERTION FAILED: nameToFunction.count(parentName) == 1",
+  "/tmp/abckit_nodejs/tools/eslint/node_modules/eslint/lib/rules/prefer-arrow-callback.js": "ASSERTION FAILED: nameToFunction.count(parentName) == 1",
+  "/tmp/abckit_nodejs/deps/npm/node_modules/@npmcli/arborist/lib/query-selector-all.js": "ASSERTION FAILED: nameToClass.count(parentName) == 1",
+  "/tmp/abckit_test262/implementation-contributed/v8/mjsunit/es6/destructuring.js": "1"
+}

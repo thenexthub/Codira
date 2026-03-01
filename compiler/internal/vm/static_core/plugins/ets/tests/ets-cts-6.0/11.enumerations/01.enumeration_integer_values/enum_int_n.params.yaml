@@ -1,0 +1,80 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+cases:
+  - desc: |-
+      Not a constant expression
+    decl_variants:
+      - |-
+        const a: int = 2147483647
+        const b: int = 2147483647 - 1
+        let c: int = 2147483647 - 2
+        enum Enum { first = a, second = b, third = c }
+      - |-
+        const a: int = 2147483647
+        const b: int = 2147483647 - 1
+        let c: int = 2147483647 - 2
+        const enum Enum { first = a, second = b, third = c }
+      - |-
+        enum Enum1 { first = 42, second }
+        enum Enum2 { first = Enum1.first.valueOf(), second }
+      - |-
+        const enum Enum1 { first = 42, second }
+        const enum Enum2 { first = Enum1.first.valueOf(), second }
+
+  - desc: |-
+      Wrong init type
+    decl_variants:
+      - |-
+        enum Enum { first = 1, second = 1.2 }
+      - |-
+        const enum Enum { first = 1, second = 1.2 }
+      - |-
+        enum Enum { first = 1, second = false }
+      - |-
+        const enum Enum { first = 1, second = false }
+
+  - desc: |-
+      Wrong type
+    decl_variants:
+      - |-
+        enum Enum1 { first = 42, second }
+        enum Enum2 { first = 42, second }
+      - |-
+        const enum Enum1 { first = 42, second }
+        const enum Enum2 { first = 42, second }
+    logic: |-
+      let v: Enum2 = Enum1.first
+
+  - desc: |-
+      Not allowed conversion
+    decl_variants:
+      - |-
+        enum Enum1 { first = -1, second, third = -42 }
+        enum Enum2 { first = -1, second, third = -42 }
+      - |-
+        const enum Enum1 { first = -1, second, third = -42 }
+        const enum Enum2 { first = -1, second, third = -42 }
+    logic: |-
+      let v: Enum1 = Enum1.first
+      let q: Enum2 = v as Enum2
+

@@ -1,0 +1,286 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          type F = (p: string) => number
+          function foo(p: string): number {
+              return p.length
+          }
+      use: |-
+          let f: F = (p: string): number => { return p.length }
+          arktest.assertEQ( f("abcdef"), foo("ABCDEF") )
+
+    - decl: |-
+          class A {
+              fld: number = 3.5
+              public getFld(): number {
+                  return this.fld
+              }
+          }
+          class B extends A {}
+
+          function foo<T extends A>(p: T): number {
+              return p.getFld()
+          }
+          type F<T extends A> = (p: T) => number
+      use: |-
+          let f: F<B> = (v: B): number => { return v.getFld() }
+          arktest.assertEQ( f(new B()), foo<B>(new B()) )
+
+    - decl: |-
+          let globl: number = 3.5
+          type VoidFunc = () => void
+          function foo(n: number, f: VoidFunc): number {
+              f()
+              f()
+              return n + globl
+          }
+      use: |-
+          globl = 3.5
+          let res = foo(2.0, ():void => { globl *= 2.0 })
+          arktest.assertEQ( res, 16.0 )
+
+    - decl: |-
+          let globl: number = 3.5
+          type VoidFunc = () => void
+          function foo(n: number, f: VoidFunc): number {
+              f()
+              f()
+              return n + globl
+          }
+      use: |-
+          globl = 3.5
+          let res = foo(2.0) {
+              globl *= 2.0
+          }
+          arktest.assertEQ( res, 16.0 )
+
+    - decl: |-
+          let globl: number = 0.0
+
+          type VoidFunc = () => void
+          let lambda: VoidFunc = ():void => {}
+
+          function foo(n: number, f: VoidFunc): number {
+              globl += n
+              f()
+              return globl
+          }
+      use: |-
+          globl = 3.5
+          lambda = (): void => {
+              if (globl < 10.0) {
+                  foo(4.0, lambda);
+              }
+          }
+          arktest.assertEQ( foo(2.0, lambda), 13.5 )
+
+    - decl: |-
+          let globl: number = 0.0
+
+          type VoidFunc = () => void
+          let lambda: VoidFunc = ():void => {}
+
+          function foo(n: number, f: VoidFunc): number {
+              globl += n
+              f()
+              return globl
+          }
+      use: |-
+          globl = 3.5
+          lambda = (): void => {
+              if (globl < 10.0) {
+                  foo(4.0) {
+                      lambda()
+                  }
+              }
+          }
+          let res: number = foo(2.0) {
+              lambda()
+          }
+          arktest.assertEQ( res, 13.5 )
+
+    - decl: |-
+          type ss = (p: string) => string
+          let globl = ""
+          function bar(p: string): string {
+              globl += p
+              return globl
+          }
+          let nbar: ss|undefined
+      use: |-
+          globl = "G"
+          arktest.assertTrue( nbar?.("abc") === undefined )
+          arktest.assertEQ( globl, "G" )
+
+    - decl: |-
+          type ss = (p: string) => string
+          let globl = ""
+          function bar(p: string): string {
+              globl += p
+              return globl
+          }
+          let nbar: ss|null
+      use: |-
+          globl = "G"
+          nbar = bar
+          arktest.assertEQ( nbar?.("abc"), "Gabc" )
+          arktest.assertEQ( globl, "Gabc" )
+
+    - decl: |-
+          let globl: number = 0.0
+          type NumberFunc = () => number
+          type UT = NumberFunc | number
+          function foo(): number {
+              return globl
+          }
+      use: |-
+          let v: UT = 3.14
+          arktest.assertEQ( v as number, 3.14 )
+          v = foo
+          globl = 9.81
+          arktest.assertEQ( (v as NumberFunc)(), 9.81 )
+
+    - decl: |-
+          let globl: number = 0.0
+          type NumberFunc = () => number
+          type UT = NumberFunc | number
+      use: |-
+          let v: UT = 3.14
+          arktest.assertEQ( v as number, 3.14 )
+          v = (): number => { return globl }
+          globl = 9.81
+          arktest.assertEQ( (v as NumberFunc)(), 9.81 )
+
+    - decl: |-
+          function foo(): int { return 1 }
+          function call(callee: () => int): int {
+            return callee()
+          }
+          class A {
+            static method(): int { return 2 }
+            method(): int { return 3 }
+          }
+      use: |-
+          arktest.assertEQ(call(foo), 1)
+          arktest.assertEQ(call(A.method), 2)
+          arktest.assertEQ(call((new A).method), 3)
+
+    - decl: |-
+        let calls: int = 0;
+      use: |-
+        calls = 0;
+        ((): void => { calls++ }) ()
+        arktest.assertEQ(1, calls)
+
+    - decl: |-
+        let calls: int = 0;
+        function foo(s: Object, i: Object, b: Object): Boolean {
+          calls++
+          return s instanceof String &&  i instanceof int && b instanceof Boolean
+        }
+        type LT = (s: Object, i: Object, b: Object) => Boolean
+      use: |-
+        calls = 0;
+        let ll: LT = (s: Object, i: Object, b: Object) => foo(s, i, b)
+        let r = ll("Hello", 42, true)
+        arktest.assertTrue(r)
+        arktest.assertEQ(1, calls)
+
+    - decl: |-
+        let calls: int = 0;
+        function foo(s: Object, i: Object, b: Object): Boolean {
+          calls++
+          return s instanceof String &&  i instanceof int && b instanceof Boolean
+        }
+        type LT = null | (s: Object, i: Object, b: Object) => Boolean
+        function getLambdaOrNull(value: Boolean = false): LT {
+          return value ? (s: Object, i: Object, b: Object) => foo(s, i, b) : null
+        }
+
+      use: |-
+        calls = 0;
+        let ll: LT = getLambdaOrNull()
+        let r: Boolean | undefined = ll?.('Hello', 42, true)
+        arktest.assertEQ(undefined, r)
+        arktest.assertEQ(0, calls)
+        
+        ll = getLambdaOrNull(true)
+        r = ll?.('Hello', 42, true)
+        arktest.assertEQ(true, r)
+        arktest.assertEQ(1, calls)
+
+    - decl: |-
+        let calls: int = 0;
+        function foo(s: Object, i: Object, b: Object): Boolean {
+          calls++
+          return s instanceof String &&  i instanceof int && b instanceof Boolean
+        }
+        type LT = null | (s: Object, i: Object, b: Object) => Boolean
+        function getLambdaOrNull(value: Boolean = false): LT {
+          return value ? (s: Object, i: Object, b: Object) => foo(s, i, b) : null
+        }
+
+      use: |-
+        calls = 0;
+        let r = getLambdaOrNull()?.('Hello', 42, true)
+        arktest.assertEQ(0, calls)
+        r = getLambdaOrNull(true)?.('Hello', 42, true)
+        arktest.assertEQ(1, calls)
+
+    - decl: |-
+        let calls: int = 0;
+      use: |-
+        calls = 0;
+        let value = (() => { return 42 }) ()
+        arktest.assertEQ(42, value)
+
+    - decl: |-
+        let calls: int = 0;
+      use: |-
+        let value = ((p1: int, p2: int) => { return p1 + p2 }) (40, 2)
+        arktest.assertEQ(42, value)
+
+    - decl: |-
+        let calls: int = 0;
+      use: |-
+        let value = ((p1: int, p2: () => int) => { return p1 + p2() }) (40, () => 2)
+        arktest.assertEQ(42, value)
+
+    - decl: |-
+        let calls: int = 0;
+        interface User {
+          name: string;
+          age: number;
+        }
+      use: |-
+        let value = ((): User => { return {name: 'Alice', age: 16 } }) ()
+        arktest.assertEQ('Alice', value.name)
+        arktest.assertTrue(value instanceof User)
+
+    - decl: |-
+        let calls: int = 0;
+        interface User {
+          name: string;
+          age: number;
+        }
+        type LP = () => User
+      use: |-
+        let lp: LP = () => { return {name: 'Alice', age: 16 } }
+        let value = ((up: LP): User => { return up() }) (lp)
+        arktest.assertEQ('Alice', value.name)
+        arktest.assertTrue(value instanceof User)
+
+

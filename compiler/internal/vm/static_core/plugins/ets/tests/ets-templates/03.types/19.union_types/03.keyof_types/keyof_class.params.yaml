@@ -1,0 +1,152 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+types:
+  - abstract class
+  - final class
+  - class
+
+cases:
+  # Fields
+  - def: |-
+      i: byte = 0
+    check: 
+      - '"i"'
+
+  - def: |-
+      i = 0
+      j = true
+      k = "some str"
+      n = 1.1
+      O_1 = new Object()
+    check: 
+      - '"i"'
+      - '"j"'
+      - '"k"'
+      - '"n"'
+      - '"O_1"'
+
+  - def: |-
+      i: int|byte|string|undefined = 0
+      j: undefined|char|null = c'S'
+    check: 
+      - '"i"'
+      - '"j"'
+
+  - def: |-
+      longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_ = 0
+    check: 
+      - '"longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_longvarname_"'
+
+  # Fields and methods
+  - def: |-
+      var2: number[] = new number[1]
+      foo: number[] = new number[2]
+      var1() {}
+      bar() { return true }
+    check: 
+      - '"var2"'
+      - '"foo"'
+      - '"var1"'
+      - '"bar"'
+
+  # Static
+  - def: |-
+      static a = 1
+    check: 
+      - '"a"'
+
+  - def: |-
+      static foo() {}
+    check: 
+      - '"foo"'
+
+  - def: |-
+      static foo() {}
+      static bar = 1
+    check: 
+      - '"bar"'
+      - '"foo"'
+
+  - def: |-
+      static sfoo() {}
+      foo() {}
+      static sbar = 1
+      bar = 1
+    check: 
+      - '"bar"'
+      - '"foo"'
+      - '"sbar"'
+      - '"sfoo"'
+
+  # Overloading
+  - def: |-
+      foo() {}
+      foo(i: int) {}
+      foo(j: number) {}
+      constructor() {}
+    check: 
+      - '"foo"'
+
+  # Access modifiers
+  - def: |-
+      public var1 = 1
+      protected var2 = false
+      private var3 = "str"
+      private bar(i: int) {}
+      public bar() {}
+      foo() {}
+      protected jay() {}
+      private raf() {}
+    check:
+      - '"foo"'
+      - '"var1"'
+      - '"bar"'
+
+  # Different types check
+  - def: |-
+      i: string|number|undefined|null = "str"
+    check:
+      - '"i"'
+
+  - decl: |-
+      type custom = int
+    def: |-
+      i: custom = 1
+    check:
+      - '"i"'
+
+  - decl: |-
+      enum ENUM {Red, Orange, Green}
+    def: |-
+      i: ENUM = ENUM.Green
+    check:
+      - '"i"'
+
+  - def: |-
+      i?: boolean = true
+    check:
+      - '"i"'
+
+    # field initialized at constructor level
+  - def: |-
+      i: int
+      constructor() { this.i = 1 }
+    check:
+      - '"i"'
+
+    # readonly field
+  - def: |-
+      readonly i: int = 1
+    check:
+      - '"i"'

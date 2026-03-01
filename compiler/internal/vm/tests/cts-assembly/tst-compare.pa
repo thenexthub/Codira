@@ -1,0 +1,305 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+#
+# Tests on Compare with CC_TST_EQ/CC_TST_NE condition code.
+#
+.function i32 testVarsEqZeroI32(i32 a0, i32 a1) {
+    lda a0
+    and2 a1
+    jeqz ret_true
+    ldai 0
+    return
+ret_true:
+    ldai 1
+    return
+}
+
+.function i32 testVarsNeZeroI32(i32 a0, i32 a1) {
+    lda a0
+    and2 a1
+    jnez ret_true
+    ldai 0
+    return
+ret_true:
+    ldai 1
+    return
+}
+
+.function i32 testVarSmallImmEqZeroI32(i32 a0) {
+    ldai 0x5
+    and2 a0
+    jeqz ret_true
+    ldai 0
+    return
+ret_true:
+    ldai 1
+    return
+}
+
+.function i32 testVarSmallImmNeZeroI32(i32 a0) {
+    ldai 0x5
+    and2 a0
+    jnez ret_true
+    ldai 0
+    return
+ret_true:
+    ldai 1
+    return
+}
+
+.function i32 testVarLargeImmEqZeroI32(i32 a0) {
+    ldai 0xffb1ab1a
+    and2 a0
+    jeqz ret_true
+    ldai 0
+    return
+ret_true:
+    ldai 1
+    return
+}
+
+.function i32 testVarLargeImmNeZeroI32(i32 a0) {
+    ldai 0xffb1ab1a
+    and2 a0
+    jnez ret_true
+    ldai 0
+    return
+ret_true:
+    ldai 1
+    return
+}
+
+.function i32 testVarsEqZeroI64(i64 a0, i64 a1) {
+    lda.64 a0
+    and2.64 a1
+    movi.64 v0, 0
+    cmp.64 v0
+    jeqz ret_true
+    ldai 0
+    return
+ret_true:
+    ldai 1
+    return
+}
+
+.function i32 testVarsNeZeroI64(i64 a0, i64 a1) {
+    lda.64 a0
+    and2.64 a1
+    movi.64 v0, 0
+    cmp.64 v0
+    jnez ret_true
+    ldai 0
+    return
+ret_true:
+    ldai 1
+    return
+}
+
+.function i32 testVarSmallImmEqZeroI64(i64 a0) {
+    ldai.64 0x5
+    and2.64 a0
+    movi.64 v0, 0
+    cmp.64 v0
+    jeqz ret_true
+    ldai 0
+    return
+ret_true:
+    ldai 1
+    return
+}
+
+.function i32 testVarSmallImmNeZeroI64(i64 a0) {
+    ldai.64 0x5
+    and2.64 a0
+    movi.64 v0, 0
+    cmp.64 v0
+    jnez ret_true
+    ldai 0
+    return
+ret_true:
+    ldai 1
+    return
+}
+
+.function i32 testVarLargeImmEqZeroI64(i64 a0) {
+    ldai.64 0xffffb1ab1ab1ab1a
+    and2.64 a0
+    movi.64 v0, 0
+    cmp.64 v0
+    jeqz ret_true
+    ldai 0
+    return
+ret_true:
+    ldai 1
+    return
+}
+
+.function i32 testVarLargeImmNeZeroI64(i64 a0) {
+    ldai.64 0xffffb1ab1ab1ab1a
+    and2.64 a0
+    movi.64 v0, 0
+    cmp.64 v0
+    jnez ret_true
+    ldai 0
+    return
+ret_true:
+    ldai 1
+    return
+}
+
+.function i32 main() {
+    movi v0, 0x01010101
+    movi v1, 0x10101010
+    movi v2, 0xffffffff
+    movi v3, 0x0
+
+    call.short testVarsEqZeroI32, v0, v1
+    jeqz error_0
+    call.short testVarsEqZeroI32, v0, v0
+    jnez error_1
+    call.short testVarsNeZeroI32, v0, v1
+    jnez error_2
+    call.short testVarsNeZeroI32, v0, v0
+    jeqz error_3
+    call.short testVarSmallImmEqZeroI32, v3
+    jeqz error_4
+    call.short testVarSmallImmEqZeroI32, v2
+    jnez error_5
+    call.short testVarSmallImmNeZeroI32, v3
+    jnez error_6
+    call.short testVarSmallImmNeZeroI32, v2
+    jeqz error_7
+    call.short testVarLargeImmEqZeroI32, v3
+    jeqz error_8
+    call.short testVarLargeImmEqZeroI32, v2
+    jnez error_9
+    call.short testVarLargeImmNeZeroI32, v3
+    jnez error_10
+    call.short testVarLargeImmNeZeroI32, v2
+    jeqz error_11
+
+    movi.64 v0, 0x0101010101010101
+    movi.64 v1, 0x1010101010101010
+    movi.64 v2, 0xffffffffffffffff
+    movi.64 v3, 0x0
+
+    call.short testVarsEqZeroI64, v0, v1
+    jeqz error_12
+    call.short testVarsEqZeroI64, v0, v0
+    jnez error_13
+    call.short testVarsNeZeroI64, v0, v1
+    jnez error_14
+    call.short testVarsNeZeroI64, v0, v0
+    jeqz error_15
+    call.short testVarSmallImmEqZeroI64, v3
+    jeqz error_16
+    call.short testVarSmallImmEqZeroI64, v2
+    jnez error_17
+    call.short testVarSmallImmNeZeroI64, v3
+    jnez error_18
+    call.short testVarSmallImmNeZeroI64, v2
+    jeqz error_19
+    call.short testVarLargeImmEqZeroI64, v3
+    jeqz error_20
+    call.short testVarLargeImmEqZeroI64, v2
+    jnez error_21
+    call.short testVarLargeImmNeZeroI64, v3
+    jnez error_22
+    call.short testVarLargeImmNeZeroI64, v2
+    jeqz error_23
+
+    ldai 0
+    return
+error_0:
+    ldai 1
+    return
+error_1:
+    ldai 2
+    return
+error_2:
+    ldai 3
+    return
+error_3:
+    ldai 4
+    return
+error_4:
+    ldai 5
+    return
+error_5:
+    ldai 6
+    return
+error_6:
+    ldai 7
+    return
+error_7:
+    ldai 8
+    return
+error_8:
+    ldai 9
+    return
+error_9:
+    ldai 10
+    return
+error_10:
+    ldai 11
+    return
+error_11:
+    ldai 12
+    return
+error_12:
+    ldai 13
+    return
+error_13:
+    ldai 14
+    return
+error_14:
+    ldai 15
+    return
+error_15:
+    ldai 16
+    return
+error_16:
+    ldai 17
+    return
+error_17:
+    ldai 18
+    return
+error_18:
+    ldai 19
+    return
+error_19:
+    ldai 20
+    return
+error_20:
+    ldai 21
+    return
+error_21:
+    ldai 22
+    return
+error_22:
+    ldai 23
+    return
+error_23:
+    ldai 24
+    return
+}

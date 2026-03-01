@@ -1,0 +1,82 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          function foo(a: number, ...b: Boolean[]): string {
+              return "A"
+          }
+      use: |-
+          // incompatible types
+          let arr: Object[] = [new Object(), new Object()]
+          arktest.assertEQ( foo(1.0, ...arr), "A" )
+
+    - decl: |-
+          class A {}
+          function foo(p1: A, p2: A): string {
+              return "A"
+          }
+      use: |-
+          // cannot use spread operator for foo
+          let arr: A[] = [new A(), new A()]
+          arktest.assertEQ( foo(...arr), "A" )
+
+    - decl: |-
+          class A {}
+          class B extends A {}
+          class C extends B {}
+          function foo(...p: B[]): string {
+              return "B"
+          }
+      use: |-
+          // incompatible types
+          let arr: A[] = [new B(), new C()]
+          arktest.assertEQ( foo(...arr), "B" )
+
+    - desc: This is an overloading case, but it is not supported by current implementation.
+      decl: |-
+          class A {}
+          class B extends A {}
+          class C extends B {}
+          function foo(...p: A[]): string {
+              return "A"
+          }
+          function foo(...p: B[]): string {
+              return "B"
+          }
+          function foo(...p: C[]): string {
+              return "C"
+          }
+      use: |-
+          let v: B[] = [new B(), new C()]
+          arktest.assertEQ( foo(...v), "B" )
+
+    - desc: This is an overloading case, but it is not supported by current implementation.
+      decl: |-
+          class A {}
+          class B extends A {}
+          class C extends B {}
+          function foo(...p: A[]): string {
+              return "A"
+          }
+          function foo(...p: B[]): string {
+              return "B"
+          }
+          function foo(...p: C[]): string {
+              return "C"
+          }
+      use: |-
+          let v: C[] = [new C()]
+          arktest.assertEQ( foo(...v), "C" )
+

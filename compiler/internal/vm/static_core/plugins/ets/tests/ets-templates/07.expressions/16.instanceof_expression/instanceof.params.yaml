@@ -1,0 +1,282 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - expr: 'null'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 1 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 0 }
+      - { type: 'never', res: 0 }
+
+  - expr: 'undefined'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 1 }
+      - { type: 'Object', res: 0 }
+      - { type: 'never', res: 0 }
+
+  - expr: '((): never => { throw new Error })()' # never
+    types:
+      - { type: 'Any', res: rte }
+
+  - expr: '((): Any => null)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 1 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 0 }
+      - { type: 'never', res: 0 }
+
+  - expr: '((): Any => undefined)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 1 }
+      - { type: 'Object', res: 0 }
+      - { type: 'never', res: 0 }
+
+  - expr: '((): Any => new Object)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'never', res: 0 }
+
+  - decl: |-
+        type FF = () => Any
+    expr: '((): Any => "abc")'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'FF', res: 1 }
+      - { type: 'string', res: 0 }
+      - { type: 'never', res: 0 }
+
+  - expr: '((): Any => "abc")()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'string', res: 1 }
+      - { type: 'String', res: 1 }
+
+  - expr: '((): Any => 0)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'string', res: 0 }
+      - { type: 'byte', res: 0 }
+      - { type: 'short', res: 0 }
+      - { type: 'int', res: 1 }
+      - { type: 'Int', res: 1 }
+      - { type: 'long', res: 0 }
+      - { type: 'float', res: 0 }
+      - { type: 'double', res: 0 }
+
+  - expr: '((): Any => 0.5)()'
+    types:
+      - { type: 'byte', res: 0 }
+      - { type: 'short', res: 0 }
+      - { type: 'int', res: 0 }
+      - { type: 'long', res: 0 }
+      - { type: 'float', res: 0 }
+      - { type: 'double', res: 1 }
+      - { type: 'Double', res: 1 }
+      - { type: 'number', res: 1 }
+      - { type: 'Number', res: 1 }
+
+  - expr: '((): Any => true)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'string', res: 0 }
+      - { type: 'int', res: 0 }
+      - { type: 'boolean', res: 1 }
+      - { type: 'Boolean', res: 1 }
+
+  - expr: '((): Any => false)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'string', res: 0 }
+      - { type: 'int', res: 0 }
+      - { type: 'boolean', res: 1 }
+      - { type: 'Boolean', res: 1 }
+
+  - expr: '((): Any => 0n)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'string', res: 0 }
+      - { type: 'int', res: 0 }
+      - { type: 'bigint', res: 1 }
+      - { type: 'BigInt', res: 1 }
+
+  - decl: |-
+      enum Color { Red, Green }
+    expr: '((): Any => Color.Red)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'string', res: 0 }
+      - { type: 'int', res: 0 }
+      - { type: 'Color', res: 1 }
+
+  - decl: |-
+      enum Rating: double { A = 1.0, B = 1.5 }
+    expr: '((): Any => Rating.B)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'string', res: 0 }
+      - { type: 'double', res: 0 }
+      - { type: 'Rating', res: 1 }
+
+  - decl: |-
+      enum Color { Red = 'r', Green = 'g' }
+    expr: '((): Any => Color.Red)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'string', res: 0 }
+      - { type: 'int', res: 0 }
+      - { type: 'Color', res: 1 }
+
+  - decl: |-
+      const enum Color { Red, Green }
+    expr: '((): Any => Color.Red)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'string', res: 0 }
+      - { type: 'int', res: 0 }
+      - { type: 'Int', res: 0 }
+      - { type: 'Color', res: 1 }
+
+  - decl: |-
+      const enum Rating: double { A = 1.0, B = 1.5 }
+    expr: '((): Any => Rating.B)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'string', res: 0 }
+      - { type: 'double', res: 0 }
+      - { type: 'Double', res: 0 }
+      - { type: 'Rating', res: 1 }
+
+  - decl: |-
+      const enum Color { Red = 'r', Green = 'g' }
+    expr: '((): Any => Color.Red)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'string', res: 0 }
+      - { type: 'String', res: 0 }
+      - { type: 'int', res: 0 }
+      - { type: 'Color', res: 1 }
+
+  - expr: '[1, 2]'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'Array', res: 1 }
+
+  - decl: |-
+      let a: Array<number> = [1.0, 2.0]
+    expr: '((): Any => a)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'Array', res: 1 }
+
+  - decl: |-
+      let a: FixedArray<number> = [1.0, 2.0]
+    expr: '((): Any => a)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'Array', res: 0 }
+
+  - decl: |-
+      type TT = [int, string]
+      let a: TT = [42, "abc"]
+    expr: '((): Any => a)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'string', res: 0 }
+      - { type: 'int', res: 0 }
+      - { type: 'Array', res: 0 }
+      - { type: 'Tuple2', res: 1 }
+
+  - decl: |-
+      class A<T> {}
+    expr: '((): Any => new A<string>())()'
+    types:
+      - { type: 'string', res: 0 }
+      - { type: 'A', res: 1 }
+
+  - decl: |-
+      let func = (p: int) => p + p
+    expr: '((): Any => func)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'null', res: 0 }
+      - { type: 'undefined', res: 0 }
+      - { type: 'Object', res: 1 }
+      - { type: 'Function', res: 1 }
+      - { type: '((p: Any) => never)', res: 1 }
+
+  - decl: |-
+      let a: Record<string, int> = { '1': 1 }
+    expr: '((): Any => a)()'
+    types:
+      - { type: 'Any', res: 1 }
+      - { type: 'Object', res: 1 }
+      - { type: 'Record', res: 1 }

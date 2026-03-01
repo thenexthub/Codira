@@ -1,0 +1,14 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep class class_test_009.ClassC {\n   public method1(i32, class_test_009.ClassA):class_test_009.ClassB;\n    }",
+        "-keep class class_test_009.ClassC {\n   public method2(i32, {Uclass_test_009.ClassA,std.core.String}):{Uclass_test_009.ClassB, std.core.String};\n    }",
+        "-keep class class_test_009.ClassC {\n   public method3(i32, std.core.Array):class_test_009.ClassB;\n    }"
+      ]
+    }
+  }
+}

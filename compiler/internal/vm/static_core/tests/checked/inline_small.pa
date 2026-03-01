@@ -1,0 +1,148 @@
+# Copyright (c) 2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#
+# Checked tests for small methods inlining.
+#
+
+#! CHECKER      Inline depth limit
+#! RUN          force_jit: true, options: "--compiler-regex=A::main  --compiler-inlining-max-depth=0 --compiler-inlining-recursive-calls-limit=1 --compiler-inlining-always-inline-bc-size=12", entry: "A::main"
+#! EVENTS_COUNT /Inline,C::Set,D::Set,.*STATIC,SUCCESS/, 1
+#! EVENTS_COUNT /Inline,B::Set,C::Set,.*STATIC,SUCCESS/, 1
+#! EVENTS_COUNT /Inline,A::Set,B::Set,.*STATIC,SUCCESS/, 1
+#! EVENTS_COUNT /Inline,A::main,A::Set,.*STATIC,SUCCESS/, 1
+#! EVENTS_COUNT /Inline,C::Get,D::Get,.*STATIC,SUCCESS/, 1
+#! EVENTS_COUNT /Inline,B::Get,C::Get,.*STATIC,SUCCESS/, 1
+#! EVENTS_COUNT /Inline,A::Get,B::Get,.*STATIC,SUCCESS/, 1
+#! EVENTS_COUNT /Inline,A::main,A::Get,.*STATIC,SUCCESS/, 1
+
+#! CHECKER      Inline depth limit at Regular AOT
+#! RUN_PAOC     options: "--compiler-regex=A::main --compiler-inlining-max-depth=0 --compiler-inlining-recursive-calls-limit=1 --compiler-inlining-always-inline-bc-size=12"
+#! EVENTS_COUNT /Inline,C::Set,D::Set,.*STATIC,SUCCESS/, 1
+#! EVENTS_COUNT /Inline,B::Set,C::Set,.*STATIC,SUCCESS/, 1
+#! EVENTS_COUNT /Inline,A::Set,B::Set,.*STATIC,SUCCESS/, 1
+#! EVENTS_COUNT /Inline,A::main,A::Set,.*STATIC,SUCCESS/, 1
+#! EVENTS_COUNT /Inline,D::Get,D::GetModified,.*STATIC,SUCCESS/, 0
+#! EVENTS_COUNT /Inline,C::Get,D::Get,.*STATIC,SUCCESS/, 1
+#! EVENTS_COUNT /Inline,B::Get,C::Get,.*STATIC,SUCCESS/, 1
+#! EVENTS_COUNT /Inline,A::Get,B::Get,.*STATIC,SUCCESS/, 1
+#! EVENTS_COUNT /Inline,A::main,A::Get,.*STATIC,SUCCESS/, 1
+#! RUN          entry: "A::main"
+
+#! CHECKER      Inline depth limit at Regular AOT PGO
+#! RUN_PGO_PROF entry: "A::main"
+#! RUN_PGO_PAOC options: "--compiler-regex=A::main --compiler-inlining-max-depth=0 --compiler-inlining-recursive-calls-limit=1 --compiler-inlining-always-inline-bc-size=12"
+#! EVENTS_COUNT /Inline,C::Set,D::Set,.*STATIC,SUCCESS/, 1
+#! EVENTS_COUNT /Inline,B::Set,C::Set,.*STATIC,SUCCESS/, 1
+#! EVENTS_COUNT /Inline,A::Set,B::Set,.*STATIC,SUCCESS/, 1
+#! EVENTS_COUNT /Inline,A::main,A::Set,.*STATIC,SUCCESS/, 1
+#! EVENTS_COUNT /Inline,D::Get,D::GetModified,.*STATIC,SUCCESS/, 0
+#! EVENTS_COUNT /Inline,C::Get,D::Get,.*STATIC,SUCCESS/, 1
+#! EVENTS_COUNT /Inline,B::Get,C::Get,.*STATIC,SUCCESS/, 1
+#! EVENTS_COUNT /Inline,A::Get,B::Get,.*STATIC,SUCCESS/, 1
+#! EVENTS_COUNT /Inline,A::main,A::Get,.*STATIC,SUCCESS/, 1
+#! RUN          entry: "A::main"
+
+.record D {
+    i32 val_
+}
+# Large method:
+.function i32 D.GetModified(D a0) {
+    jmp entry
+entry:
+    ldobj a0, D.val_
+    addi 1
+    addi 1
+    addi 1
+    addi 1
+    return
+}
+.function i32 D.Get(D a0) {
+    call.short D.GetModified, a0
+    return
+}
+.function void D.Set(D a0, i32 a1) {
+    lda a1
+    stobj a0, D.val_
+    return.void
+}
+
+.record C {
+    D nested_
+}
+.function i32 C.Get(C a0) {
+    ldobj.obj a0, C.nested_
+    sta.obj v0
+    call.short D.Get, v0
+    return
+}
+.function void C.Set(C a0, i32 a1) {
+    ldobj.obj a0, C.nested_
+    sta.obj v0
+    call.short D.Set, v0, a1
+    return.void
+}
+
+.record B {
+    C nested_
+}
+.function i32 B.Get(B a0) {
+    ldobj.obj a0, B.nested_
+    sta.obj v0
+    call.short C.Get, v0
+    return
+}
+.function void B.Set(B a0, i32 a1) {
+    ldobj.obj a0, B.nested_
+    sta.obj v0
+    call.short C.Set, v0, a1
+    return.void
+}
+
+.record A {
+    B nested_
+}
+.function i32 A.Get(A a0) {
+    ldobj.obj a0, A.nested_
+    sta.obj v0
+    call.short B.Get, v0
+    return
+}
+.function void A.Set(A a0, i32 a1) {
+    ldobj.obj a0, A.nested_
+    sta.obj v0
+    call.short B.Set, v0, a1
+    return.void
+}
+
+
+.function i32 A.main() {
+    newobj v0, A
+    newobj v1, B
+    lda.obj v1
+    stobj.obj v0, A.nested_ 
+    newobj v2, C
+    lda.obj v2
+    stobj.obj v1, B.nested_ 
+    newobj v3, D
+    lda.obj v3
+    stobj.obj v2, C.nested_
+ 
+    ldai 38
+    sta v4
+    call.short A.Set, v0, v4
+    ldai 0
+    call.short A.Get, v0
+    subi 42
+    return
+}

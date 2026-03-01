@@ -1,0 +1,116 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+  - ETS:
+      bytecodeopt:
+        codegen_intrinsics_inc: plugins/ets/bytecode_optimizer/visitors/ets_codegen_intrinsics.inc
+        codegen_visitors_inc: plugins/ets/bytecode_optimizer/visitors/codegen_visitors.inc
+        reg_encoder_visitors_inc: plugins/ets/bytecode_optimizer/visitors/reg_encoder_visitors.inc
+        runtime_adapter_inc: plugins/ets/compiler/runtime_adapter_ets.h
+        runtime_adapter_class: ark::EtsBytecodeOptimizerRuntimeAdapter
+        need_to_run_simplify_string_builder_inl: plugins/ets/compiler/optimizer/optimizations/need_to_run_simplify_string_builder.inl
+      lang_enum_id: 5
+      lang_context_class: ark::ets::EtsLanguageContext
+      lang_context_header_path: plugins/ets/runtime/ets_language_context.h
+      additional_interpter_inl: plugins/ets/runtime/interpreter/interpreter-inl.h
+      entrypoints_header_path: plugins/ets/runtime/ets_entrypoints.h
+      language_config:
+        lang_type: static
+        mt_mode: task
+        has_value_object_types: false
+        has_any_insturction_handlers: true
+      ctor_name: <ctor>
+      cctor_name: <cctor>
+
+      directive_name: eTS
+      string_class_descriptor: Lstd/core/String;
+      any:
+        handlers_path: plugins/ets/runtime/interpreter/any_opcodes.inc
+
+      Intrinsics:
+        header: plugins/ets/runtime/intrinsics_declaration.h
+        codegen: plugins/ets/compiler/codegen_intrinsics_ets_ext.inl.h
+        inlining_expansion_inl_h: plugins/ets/compiler/intrinsics_inlining_expansion_ets.inl.h
+        inlining_expansion_switch_case_inl: plugins/ets/compiler/intrinsics_inlining_expansion_switch_case_ets.inl
+        ir_build_static_call_inl: plugins/ets/compiler/intrinsics_ir_build_static_call_ets.inl
+        ir_build_virtual_call_inl: plugins/ets/compiler/intrinsics_ir_build_virtual_call_ets.inl
+        ir_build_inl_h: plugins/ets/compiler/intrinsics_ir_build_ets.inl.h
+        intrinsics_peephole_inl_h: plugins/ets/compiler/intrinsics_peephole_ets.inl.h
+        loop_idioms_memmove_intrinsic_id_switch_case_inl: plugins/ets/compiler/optimizer/loop_idioms_memmove_intrinsic_id_switch_case_ets.inl
+        loop_idioms_customize_memmove_intrinsic_switch_case_inl: plugins/ets/compiler/optimizer/loop_idioms_customize_memmove_intrinsic_switch_case_ets.inl
+
+      Tests:
+        inst_generator_test: plugins/ets/tests/compiler/inst_generator_test_ext.inc
+
+      Disasm:
+        language_interface_path: plugins/ets/disassembler/disasm_ets_plugin.inc
+
+      Abc2Prog:
+        language_interface_path: plugins/ets/abc2program/abc2program_ets_plugin.h
+
+      logger:
+        components:
+          - name: ani
+          - name: ets
+          - name: ets_napi
+          - name: ets_interop_js
+
+      Verification:
+        header: plugins/ets/verification/ets_plugin.h
+        plugin_class: ark::verifier::plugin::EtsPlugin
+
+      irtoc_files:
+        - plugins_interpreter_handlers: plugins/ets/irtoc_scripts/interpreter_handlers.irt
+        - plugins_main_loop: plugins/ets/irtoc_scripts/interpreter_main_loop.irt
+        - plugins_string_builder: plugins/ets/irtoc_scripts/string_builder.irt
+        - plugins_string: plugins/ets/irtoc_scripts/string.irt
+
+      Metadatas:
+        - RecordMetadata:
+            new_class_name: ark::pandasm::extensions::ets::RecordMetadata
+            header_path: plugins/ets/assembler/extension/ets_meta.h
+        - FieldMetadata:
+            new_class_name: ark::pandasm::extensions::ets::FieldMetadata
+            header_path: plugins/ets/assembler/extension/ets_meta.h
+        - FunctionMetadata:
+            new_class_name: ark::pandasm::extensions::ets::FunctionMetadata
+            header_path: plugins/ets/assembler/extension/ets_meta.h
+        - ParamMetadata:
+            new_class_name: ark::pandasm::extensions::ets::ParamMetadata
+            header_path: plugins/ets/assembler/extension/ets_meta.h
+      compiler_extensions:
+        header_path_compiler_inst_builder_extension: plugins/ets/compiler/optimizer/ir_builder/ets_inst_builder.h
+        header_path_compiler_interface_extension: plugins/ets/compiler/ets_compiler_interface.h
+        header_path_implementation_codegen: plugins/ets/compiler/optimizer/ets_codegen_extensions.h
+        load_immediate_codegen: LoadImmediateCodegen
+        get_native_method_codegen: EtsGetNativeMethod
+        get_native_method_managed_class_codegen: EtsGetNativeMethodManagedClass
+        get_method_native_pointer_codegen: EtsGetMethodNativePointer
+        get_native_api_env_codegen: EtsGetNativeApiEnv
+        begin_native_method_codegen: EtsBeginNativeMethod
+        end_native_method_prim_codegen: EtsEndNativeMethodPrim
+        end_native_method_obj_codegen: EtsEndNativeMethodObj
+        check_native_exception_codegen: EtsCheckNativeException
+        wrap_object_native_codegen: EtsWrapObjectNative
+        resolve_call_by_name: ResolveCallByNameCodegen
+        pipeline_includes: plugins/ets/compiler/optimizer/ets_pipeline_includes.inl.h
+        optimizations_after_unroll: plugins/ets/compiler/optimizer/ets_optimizations_after_unroll.inl
+      runtime_defines:
+        defines_header_path: plugins/ets/runtime/asm_defines/defines.h
+        asm_defines_def: plugins/ets/runtime/asm_defines/asm_defines.def
+      llvmbackend_extensions:
+        - emit_intrinsic: plugins/ets/libllvmbackend/ets_emit_intrinsic_llvm_ir_constructor_gen.inl
+        - get_intrinsic_id_inc: plugins/ets/libllvmbackend/ets_get_intrinsic_id_llvm_ark_interface_gen.inl
+        - get_intrinsic_id_func: GetEtsIntrinsicId
+        - llvm_ir_constructor: plugins/ets/libllvmbackend/ets_llvm_ir_constructor_gen.inl
+        - llvm_ir_constructor_h: plugins/ets/libllvmbackend/ets_llvm_ir_constructor_h_gen.inl

@@ -1,0 +1,126 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+main(): Int64 {
+    return run()
+
+}
+
+func run(): Int64 {
+   var day :Right = Right()
+   print(Right.Monday(1,3).toString()) // 231
+   return 0
+}
+
+class Wrong{
+    var a:Int32 = 1
+    var b:String = #"xyz\nxyz"#
+    var c:String = """
+    lmn\nlmn"""
+    class Monday{
+        var a:Int32 = 1
+        func monday(a:Int32,b!:Int32=10):Int32{
+            return a+b
+        }
+        class Tuesday{
+             var a:Int32 =1
+             func tuesday(a:Int32,b!:Int32=1):Int32{
+                 return (a+b)*2
+             }
+             class Wednesday{
+                 var a:Int32 =1
+                 func wednesday(a:Int32,b!:Int32=1):Int32{
+                     return (a+b)*3
+                 }
+                 class Thursday{
+                     var a:Int32 =1
+                     func thurday(a:Int32,b!:Int32=1):Int32{
+                         return (a+b)*4
+                     }
+                     class Friday{
+                         var a:Int32 =1
+                         func friday(a:Int32,b!:Int32=1):Int32{
+                             return (a+b)*5
+                         }
+                         class Saturday{
+                             var a:Int32 =1
+                             func saturday(a:Int32,b!:Int32=1):Int32{
+                                 return (a+b)*6
+                             }
+                             class Sunday{
+                                  var a:Int32 =1
+                                  func sunday(a:Int32,b!:Int32=1):Int32{
+                                      func sunda(a:Int32,b!:Int32=1):Int32{
+                                          func sund(a:Int32,b!:Int32=1){
+                                              func sun(a:Int32,b!:Int32=1):Int32{
+                                                  func su(a:Int32,b!:Int32=1){
+                                                      var c:Int32 = (a+b)*11
+                                                      return c
+                                                  }
+                                                  var c:Int32 = (a+b)*10 + su(a)
+                                                  return c
+                                              }
+                                              var c:Int32 = (a+b)*9 + sun(a)
+                                              return c
+                                          }
+                                          var c:Int32 = (a+b)*8 + sund(a)
+                                          return c
+                                      }
+                                      var c:Int32 = (a+b)*7 + sunda(a)
+                                      return c
+                                  }
+                                  var b: Int32 = 2
+                              }
+                              var b: Int32 = 2
+                         }
+                         var b: Int32 = 2
+                       }
+                       var b: Int32 = 2
+                  }
+                  var b: Int32 = 2
+             }
+             var b: Int32 = 2
+        }
+        var b: Int32 = 2
+    }
+    var d: Int32 = 2
+}
+
+
+class Right{
+    var a:Int32 = 1
+    var b:String = #"xyz\nxyz"#
+    var c:String = """
+    lmn\nlmn"""
+    static func Monday(a:Int32,b:Int32):Int32{
+        var m:Int32 = a*2
+        var n:Int32 = b*2
+        return Tuesday(m,b:a,a:b)
+    }
+    static func Tuesday(o:Int32,a!:Int32=2,b!:Int32=3):Int32{
+        return o*100+a*10+b
+    }
+
+}
+
+
+

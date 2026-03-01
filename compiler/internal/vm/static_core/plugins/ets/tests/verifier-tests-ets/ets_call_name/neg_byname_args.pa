@@ -1,0 +1,97 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+.language eTS
+
+.record ets.annotation.Module <external>
+
+.record std.core.Console <external>
+
+.record std.core.ETSGLOBAL <external> {
+	std.core.Console console <static, external, access.field=public>
+}
+
+.record std.core.Object <external>
+
+.record std.core.String <external>
+
+.record std.core.StringBuilder <external>
+
+.record neg_byname_args.%%union_prop-AB <ets.abstract, ets.extends=std.core.Object, access.record=public> {
+}
+
+.record neg_byname_args.A <ets.extends=std.core.Object, access.record=public> {
+}
+
+.record neg_byname_args.B <ets.extends=std.core.Object, access.record=public> {
+}
+
+.record neg_byname_args.ETSGLOBAL <ets.abstract, ets.extends=std.core.Object, access.record=public> {
+}
+
+.function std.core.String std.core.StringBuilder.concatStrings(std.core.String a0, std.core.String a1) <external, static, access.function=public>
+
+.function void neg_byname_args.ETSGLOBAL._cctor_() <cctor, static> {
+	return.void
+}
+
+.function void neg_byname_args.ETSGLOBAL.byname({Uneg_byname_args.A,neg_byname_args.B} a0) <static, access.function=public> {
+	call.short neg_byname_args.ETSGLOBAL.getArg:()
+	sta.obj v2
+	lda.obj a0
+	sta.obj v3
+	lda.obj v2
+	sta.obj v4
+	ets.call.name.short neg_byname_args.%%union_prop-AB.foo:(neg_byname_args.%%union_prop-AB,std.core.String), v3, v4
+	return.void
+}
+
+.function std.core.Object neg_byname_args.ETSGLOBAL.getArg() <static, access.function=public> {
+	mov.null v0
+	lda.obj v0
+	return.obj
+}
+
+.function void neg_byname_args.ETSGLOBAL.main() <static, access.function=public> {
+	initobj.short neg_byname_args.A._ctor_:(neg_byname_args.A)
+	call.acc.short neg_byname_args.ETSGLOBAL.byname:({Uneg_byname_args.A,neg_byname_args.B}), v0, 0x0
+	return.void
+}
+
+.function void std.core.Console.log(std.core.Console a0, std.core.String a1) <external, access.function=public>
+
+.function void std.core.Object._ctor_(std.core.Object a0) <ctor, external, access.function=public>
+
+.function void neg_byname_args.%%union_prop-AB.foo(neg_byname_args.%%union_prop-AB a0, std.core.String a1) <ets.abstract, noimpl, access.function=public>
+
+.function void neg_byname_args.A._ctor_(neg_byname_args.A a0) <ctor, access.function=public> {
+	call.short std.core.Object._ctor_:(std.core.Object), a0
+	return.void
+}
+
+.function void neg_byname_args.A.foo(neg_byname_args.A a0, std.core.String a1) <access.function=public> {
+	ldstatic.obj std.core.ETSGLOBAL.console
+	call.acc.short std.core.Console.log:(std.core.Console,std.core.String), a1, 0x0
+	return.void
+}
+
+.function void neg_byname_args.B._ctor_(neg_byname_args.B a0) <ctor, access.function=public> {
+	call.short std.core.Object._ctor_:(std.core.Object), a0
+	return.void
+}
+
+.function void neg_byname_args.B.foo(neg_byname_args.B a0, std.core.String a1) <access.function=public> {
+	ldstatic.obj std.core.ETSGLOBAL.console
+	call.acc.short std.core.Console.log:(std.core.Console,std.core.String), a1, 0x0
+	return.void
+}

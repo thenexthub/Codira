@@ -1,0 +1,211 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - int1: |-
+          m1(p: short): string { return 'short' }
+          m2<T>(p: T): string { return 'GEN' }
+          m3(p: byte): string { return 'byte' }
+          // overloads defined in interface I1
+          overload foo1 { m2, m1 }
+          overload foo2 { m1, m3, m2 }
+          overload foo3 { m3, m2 }
+          overload foo4 { m2, m3, m1 }
+      int2: |-
+          // overloads from I1 overridden in I2
+          overload foo1 { m1, m2, m3 }
+          overload foo2 { m2, m3, m1 }
+          overload foo3 { m3, m1, m2 }
+          overload foo4 { m1, m3, m2 }
+      use: |-
+          arktest.assertEQ(a.foo1(1 as byte), 'short')
+          arktest.assertEQ(a.foo1(1 as short), 'short')
+          arktest.assertEQ(a.foo1(1 as int), 'GEN')
+          arktest.assertEQ(a.foo1(1), 'short')
+          arktest.assertEQ(a.foo1<short>(1 as short), 'GEN')
+
+          arktest.assertEQ(a.foo2(1 as byte), 'GEN')
+          arktest.assertEQ(a.foo2(1 as short), 'GEN')
+          arktest.assertEQ(a.foo2(1 as int), 'GEN')
+          arktest.assertEQ(a.foo2(1), 'GEN')
+          arktest.assertEQ(a.foo2<byte>(1 as byte), 'GEN')
+
+          arktest.assertEQ(a.foo3(1 as byte), 'byte')
+          arktest.assertEQ(a.foo3(1 as short), 'short')
+          arktest.assertEQ(a.foo3(1 as int), 'GEN')
+          arktest.assertEQ(a.foo3(1), 'byte')
+          arktest.assertEQ(a.foo3<byte>(1 as byte), 'GEN')
+
+          arktest.assertEQ(a.foo4(1 as byte), 'short')
+          arktest.assertEQ(a.foo4(1 as short), 'short')
+          arktest.assertEQ(a.foo4(1 as int), 'GEN')
+          arktest.assertEQ(a.foo4(1), 'short')
+          arktest.assertEQ(a.foo4<short>(1 as short), 'GEN')
+
+    - int1: |-
+          m1(p: float): string { return 'float' }
+          m2(p: number): string { return 'number' }
+          m3<T>(p: T): string { return 'GEN' }
+          // overloads defined in interface I1
+          overload foo1 { m2, m1, m3 }
+          overload foo2 { m1, m3, m2 }
+          overload foo3 { m3, m2, m1 }
+          overload foo4 { m2, m3 }
+      int2: |-
+          // overloads overridden in I2
+          overload foo1 { m1, m2, m3 }
+          overload foo2 { m2, m3, m1 }
+          overload foo3 { m3, m1, m2 }
+          overload foo4 { m1, m3, m2 }
+      use: |-
+          arktest.assertEQ(a.foo1(1f), 'float')
+          arktest.assertEQ(a.foo1(1 as number), 'number')
+          arktest.assertEQ(a.foo1(1 as long), 'float')
+          arktest.assertEQ(a.foo1(1), 'float')
+          arktest.assertEQ(a.foo1(1.0), 'float')
+          arktest.assertEQ(a.foo1<long>(1 as long), 'GEN')
+
+          arktest.assertEQ(a.foo2(1f), 'number')
+          arktest.assertEQ(a.foo2(1 as number), 'number')
+          arktest.assertEQ(a.foo2(1 as long), 'number')
+          arktest.assertEQ(a.foo2(1), 'number')
+          arktest.assertEQ(a.foo2(1.0), 'number')
+          arktest.assertEQ(a.foo2<float>(1f), 'GEN')
+
+          arktest.assertEQ(a.foo3(1f), 'GEN')
+          arktest.assertEQ(a.foo3(1 as number), 'GEN')
+          arktest.assertEQ(a.foo3(1 as long), 'GEN')
+          arktest.assertEQ(a.foo3(1), 'GEN')
+          arktest.assertEQ(a.foo3(1.0), 'GEN')
+          arktest.assertEQ(a.foo3<float>(1f), 'GEN')
+
+          arktest.assertEQ(a.foo4(1f), 'float')
+          arktest.assertEQ(a.foo4(1 as number), 'GEN')
+          arktest.assertEQ(a.foo4(1 as long), 'float')
+          arktest.assertEQ(a.foo4(1), 'float')
+          arktest.assertEQ(a.foo4(1.0), 'float')
+          arktest.assertEQ(a.foo4<number>(1.0), 'GEN')
+
+    - int1: |-
+          m1(p: short): string;
+          m2<T>(p: T): string;
+          m3(p: byte): string { return 'byte' }
+          // overloads defined in interface I1
+          overload foo1 { m2, m3, m1 }
+          overload foo2 { m2, m3, m1 }
+          overload foo3 { m1, m3, m2 }
+          overload foo4 { m1, m3, m2 }
+      int2: |-
+          // overridden methods
+          m1(p: short): string { return 'short' }
+          m2<T>(p: T): string { return 'GEN' }
+          // overloads overridden in I2
+          overload foo1 { m1, m2, m3 }
+          overload foo3 { m3, m1, m2 }
+      use: |-
+          arktest.assertEQ(a.foo1(1 as byte), 'short')
+          arktest.assertEQ(a.foo1(1 as short), 'short')
+          arktest.assertEQ(a.foo1(1 as int), 'GEN')
+          arktest.assertEQ(a.foo1(1), 'short')
+          arktest.assertEQ(a.foo1<short>(1 as short), 'GEN')
+
+          arktest.assertEQ(a.foo2(1 as byte), 'GEN')
+          arktest.assertEQ(a.foo2(1 as short), 'GEN')
+          arktest.assertEQ(a.foo2(1 as int), 'GEN')
+          arktest.assertEQ(a.foo2(1), 'GEN')
+          arktest.assertEQ(a.foo2<byte>(1 as byte), 'GEN')
+
+          arktest.assertEQ(a.foo3(1 as byte), 'byte')
+          arktest.assertEQ(a.foo3(1 as short), 'short')
+          arktest.assertEQ(a.foo3(1 as int), 'GEN')
+          arktest.assertEQ(a.foo3(1), 'byte')
+          arktest.assertEQ(a.foo3<byte>(1 as byte), 'GEN')
+
+          arktest.assertEQ(a.foo4(1 as byte), 'short')
+          arktest.assertEQ(a.foo4(1 as short), 'short')
+          arktest.assertEQ(a.foo4(1 as int), 'GEN')
+          arktest.assertEQ(a.foo4(1), 'short')
+          arktest.assertEQ(a.foo4<short>(1 as short), 'GEN')
+
+    - int1: |-
+          m1(p: short): string { return 'short' }
+          m2(p: int): string;
+          m3<T>(p: T): string;
+          // overloads defined in interface I1 under method names
+          overload m1 { m2, m1 }
+          overload m2 { m1, m3, m2 }
+          overload m3 { m1, m3, m2 }
+      int2: |-
+          // overloaded default interface methods implemented in I2
+          m2(p: int): string { return 'int' }
+          m3<T>(p: T): string { return 'GEN' }
+          // overloads defined in interface I1 and overridden in I2
+          overload m1 { m1, m2, m3 }
+          overload m3 { m3, m1, m2 }
+      use: |-
+          arktest.assertEQ(a.m1(1 as byte), 'short')
+          arktest.assertEQ(a.m1(1 as short), 'short')
+          arktest.assertEQ(a.m1(1 as int), 'int')
+          arktest.assertEQ(a.m1(1), 'short')
+          arktest.assertEQ(a.m1<short>(1 as short), 'GEN')
+
+          arktest.assertEQ(a.m2(1 as byte), 'short')
+          arktest.assertEQ(a.m2(1 as short), 'short')
+          arktest.assertEQ(a.m2(1 as int), 'GEN')
+          arktest.assertEQ(a.m2(1), 'short')
+          arktest.assertEQ(a.m2<short>(1 as short), 'GEN')
+
+          arktest.assertEQ(a.m3(1 as byte), 'GEN')
+          arktest.assertEQ(a.m3(1 as short), 'GEN')
+          arktest.assertEQ(a.m3(1 as int), 'GEN')
+          arktest.assertEQ(a.m3(1), 'GEN')
+          arktest.assertEQ(a.m3<short>(1 as short), 'GEN')
+
+    - int1: |-
+          m1(p: float): string { return 'float' }
+          m2(p: number): string;
+          m3<T>(p: T): string { return 'x' }
+          // overloads defined in interface I1 under method names
+          overload m1 { m1, m2, m3 }
+          overload m2 { m1, m2 }
+          overload m3 { m2, m1, m3 }
+      int2: |-
+          // overloads defined in interface I1 and overridden in I2
+          overload m1 { m2, m3, m1 }
+          overload m2 { m1, m3, m2 }
+          overload m3 { m3, m2, m1 }
+          // overloaded default interface methods implemented in I2
+          m2(p: number): string { return 'number' }
+          m3<T>(p: T): string { return 'GEN' }
+      use: |-
+          arktest.assertEQ(a.m1(1f), 'number')
+          arktest.assertEQ(a.m1(1 as number), 'number')
+          arktest.assertEQ(a.m1(1 as long), 'number')
+          arktest.assertEQ(a.m1(1), 'number')
+          arktest.assertEQ(a.m1(1.0), 'number')
+          arktest.assertEQ(a.m1<number>(1.0), 'GEN')
+
+          arktest.assertEQ(a.m2(1f), 'float')
+          arktest.assertEQ(a.m2(1 as number), 'GEN')
+          arktest.assertEQ(a.m2(1 as long), 'float')
+          arktest.assertEQ(a.m2(1), 'float')
+          arktest.assertEQ(a.m2(1.0), 'float')
+          arktest.assertEQ(a.m2<float>(1f), 'GEN')
+
+          arktest.assertEQ(a.m3(1f), 'GEN')
+          arktest.assertEQ(a.m3(1 as number), 'GEN')
+          arktest.assertEQ(a.m3(1 as long), 'GEN')
+          arktest.assertEQ(a.m3(1), 'GEN')
+          arktest.assertEQ(a.m3(1.0), 'GEN')
+          arktest.assertEQ(a.m3<long>(1 as long), 'GEN')

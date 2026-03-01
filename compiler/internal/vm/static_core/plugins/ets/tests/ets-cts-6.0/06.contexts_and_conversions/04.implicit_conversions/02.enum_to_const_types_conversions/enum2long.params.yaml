@@ -1,0 +1,153 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          let s: number = 42
+      use: |-
+          // assignment-like context, variable declaration
+          let v1: number = Color.Red
+          arktest.assertEQ(v1, 0.0)
+
+          let v2: number = Color.Green + Color.Blue
+          arktest.assertEQ(v2, 7523377976305298605)
+
+          let v3: number = s + Color.Blue + 1
+          arktest.assertEQ(v3, 3761688988152649369)
+
+          // assignment-like context, constant declaration
+          const c1: number = Color.Red
+          arktest.assertEQ(c1, 0.0)
+
+          const c2: number = Color.Green + Color.Blue
+          arktest.assertEQ(c2, 7523377976305298605)
+
+          const c3: number = s + Color.Blue + 1
+          arktest.assertEQ(c3, 3761688988152649369)
+
+    - decl: |-
+          let s: int = 42
+          let v: number
+      use: |-
+          // assignment-like context, variable assignment
+          v = Color.Red
+          arktest.assertEQ(v, 0.0)
+
+          v = Color.Green + Color.Blue
+          arktest.assertEQ(v, 7523377976305298605)
+
+          v = s + Color.Blue + 1
+          arktest.assertEQ(v, 3761688988152649369)
+
+    - decl: |-
+          let s: int = 42
+          class A {
+              fld1: int = Color.Red
+              fld2: number = Color.Blue + Color.Green
+              fld3: long = s + Color.Green - 42
+          }
+      use: |-
+          // assignment-like context, field declaration
+          let a: A = new A()
+          arktest.assertEQ(a.fld1, 0.0)
+          arktest.assertEQ(a.fld2, 7523377976305298605)
+          arktest.assertEQ(a.fld3, 3761688988152649302)
+
+    - decl: |-
+          let s: int = 42
+          class A {
+              fld1: long
+              fld2: long
+              fld3: long
+          }
+      use: |-
+          // assignment-like context, field assignment
+          let a: A = new A()
+          a.fld1 = Color.Red
+          a.fld2 = Color.Blue + Color.Green
+          a.fld3 = s + Color.Green + 1
+          arktest.assertEQ(a.fld1, 0.0)
+          arktest.assertEQ(a.fld2, 7523377976305298605)
+          arktest.assertEQ(a.fld3, 3761688988152649345)
+
+    - decl: |-
+          let s: int = 42
+          function foo(p: long): number {
+              return p + 1
+          }
+      use: |-
+          // call context, function
+          arktest.assertEQ(foo(Color.Red), 1.0)
+          arktest.assertEQ(foo(Color.Green + Color.Blue), 7523377976305298606)
+          arktest.assertEQ(foo(s + Color.Blue + 2), 3761688988152649370)
+
+    - decl: |-
+          let s: number = 42.0
+          class A {
+              meth(p: number): number {
+                  return p + 2.0
+              }
+          }
+      use: |-
+          // call context, method
+          let a: A = new A()
+          arktest.assertEQ(a.meth(Color.Red), 2.0)
+          arktest.assertEQ(a.meth(Color.Green + Color.Blue),  7523377976305298000)
+          arktest.assertEQ(a.meth(s + Color.Blue), 3761688988152649370)
+
+    - decl: |-
+          let s: int = 42
+          class A {
+              fld: long
+              constructor(p: long) {
+                  this.fld = p
+              }
+          }
+      use: |-
+          // call context, constructor
+          arktest.assertEQ(new A(Color.Red).fld, 0.0)
+          arktest.assertEQ(new A(Color.Green + Color.Blue).fld, 7523377976305298605)
+          arktest.assertEQ(new A(s + Color.Blue + 10).fld, 3761688988152649355)
+
+    - decl: |-
+          let s: int = 42
+      use: |-
+          // call context, lambda
+          arktest.assertEQ(((p: number): number => { return p })(Color.Red), 0.0)
+          arktest.assertEQ(((p: long): long => { return p })(Color.Green + Color.Blue), 7523377976305298605)
+          arktest.assertEQ(((p: long): long => { return p })(s + Color.Blue + 5), 3761688988152649350)
+
+    - decl: |-
+          let s: number = 42
+          class A {
+              fld: number
+          }
+      use: |-
+          // composite object
+          let a: A = { fld: Color.Red }
+          arktest.assertEQ(a.fld, 0.0)
+          a = { fld: Color.Blue + Color.Green }
+          arktest.assertEQ(a.fld, 7523377976305298605)
+          a = { fld: s + Color.Blue + 1 }
+          arktest.assertEQ(a.fld, 3761688988152649369)
+
+    - decl: |-
+          let s: number = 42.0
+      use: |-
+          // composite array
+          let v: number[] = [ Color.Red ]
+          arktest.assertEQ(v[0], 0.0)
+          v = [ Color.Green + Color.Blue, Color.Blue + s ]
+          arktest.assertEQ(v[0], 7523377976305298605)
+          arktest.assertEQ(v[1], 3761688988152649368)

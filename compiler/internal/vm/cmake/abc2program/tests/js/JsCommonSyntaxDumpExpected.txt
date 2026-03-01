@@ -1,0 +1,357 @@
+# source binary: arkcompiler/runtime_core/abc2program/tests/JsCommonSyntax.abc
+
+# ====================
+# LITERALS
+
+_ESModuleRecord_1448 { 18 [ i32:0, i32:0, i32:0, i32:6, string:"Config", string:"Config", string:"Derived", string:"Derived", string:"JsPeople", string:"JsPeople", string:"MyClass", string:"MyClass", string:"Person", string:"Person", string:"SecretBox", string:"SecretBox", i32:0, i32:0, ]}
+
+_ESScopeNamesRecord_1409 { 14 [ tag_value:5, string:"Person", tag_value:5, string:"MyClass", tag_value:5, string:"JsPeople", tag_value:5, string:"Base", tag_value:5, string:"Derived", tag_value:5, string:"SecretBox", tag_value:5, string:"Config", ]}
+
+_GLOBAL_1524 { 2 [ tag_value:2, i32:0, ]}
+
+_GLOBAL_1533 { 2 [ tag_value:2, i32:0, ]}
+
+_GLOBAL_1542 { 8 [ tag_value:5, string:"getName", tag_value:6, method:.#~@2>#getName, tag_value:9, method_affiliate:0, tag_value:2, i32:1, ]}
+
+_GLOBAL_1564 { 2 [ tag_value:2, i32:0, ]}
+
+_GLOBAL_1573 { 2 [ tag_value:2, i32:0, ]}
+
+_GLOBAL_1582 { 8 [ tag_value:5, string:"getSecret", tag_value:6, method:.#~@5>#getSecret, tag_value:9, method_affiliate:0, tag_value:2, i32:1, ]}
+
+_GLOBAL_1604 { 2 [ tag_value:2, i32:0, ]}
+
+_GLOBAL_1613 { 2 [ tag_value:2, i32:0, ]}
+
+
+
+# ====================
+# RECORDS
+
+.language ECMAScript
+.record _ESExpectedPropertyCountAnnotation {
+}
+.record.source_file 
+
+.language ECMAScript
+.record _ESModuleRecord {
+	u32 arkcompiler/runtime_core/abc2program/tests/js/JsCommonSyntax.js _ESModuleRecord_1284
+}
+.record.source_file 
+
+.language ECMAScript
+.record _ESScopeNamesRecord {
+	u32 arkcompiler/runtime_core/abc2program/tests/js/JsCommonSyntax.js _ESScopeNamesRecord_1250
+}
+.record.source_file 
+
+.language ECMAScript
+.record _ESSlotNumberAnnotation {
+}
+.record.source_file 
+
+.language ECMAScript
+.record _GLOBAL {
+}
+.record.source_file 
+
+
+# ====================
+# METHODS
+
+.function_kind FunctionKind::NONE
+ _ESExpectedPropertyCountAnnotation
+ ExpectedPropertyCount 2
+ _ESSlotNumberAnnotation
+ SlotNumber 4
+.language ECMAScript
+.function any .#~@0=#Person(any a0, any a1, any a2, any a3, any a4) {
+	lda a3                                   # line: 17           # column: 0
+	stobjbyname 0x0, name, a2                # line: 17           # column: 0
+	lda a4                                   # line: 18           # column: 0
+	stobjbyname 0x2, age, a2                 # line: 18           # column: 0
+	lda a2                                   # line: 19           # column: 0
+	return                                   # line: 19           # column: 0
+}
+
+.function_kind FunctionKind::NONE
+ _ESExpectedPropertyCountAnnotation
+ ExpectedPropertyCount 1
+ _ESSlotNumberAnnotation
+ SlotNumber 2
+.language ECMAScript
+.function any .#~@1=#MyClass(any a0, any a1, any a2) {
+	ldlexvar 0x0, 0x0                        # line: 18446744073709551615           # column: 0
+	callruntime.callinit 0x0, a2             # line: 18446744073709551615           # column: 0
+	lda a2                                   # line: 26           # column: 0
+	return                                   # line: 26           # column: 0
+}
+
+.function_kind FunctionKind::NONE
+ _ESSlotNumberAnnotation
+ SlotNumber 2
+.language ECMAScript
+.function any .#~@1>#instance_initializer(any a0, any a1, any a2) {
+	ldundefined                              # line: 23           # column: 0
+	definepropertybyname 0x0, name, a2       # line: 23           # column: 0
+	returnundefined                          # line: 18446744073709551615           # column: 0
+}
+
+.function_kind FunctionKind::NONE
+ _ESExpectedPropertyCountAnnotation
+ ExpectedPropertyCount 2
+ _ESSlotNumberAnnotation
+ SlotNumber 6
+.language ECMAScript
+.function any .#~@2=#JsPeople(any a0, any a1, any a2, any a3, any a4) {
+	ldlexvar 0x0, 0x0                        # line: 18446744073709551615           # column: 0
+	callruntime.callinit 0x0, a2             # line: 18446744073709551615           # column: 0
+	lda a3                                   # line: 34           # column: 0
+	stobjbyname 0x2, name, a2                # line: 34           # column: 0
+	lda a4                                   # line: 35           # column: 0
+	stobjbyname 0x4, age, a2                 # line: 35           # column: 0
+	lda a2                                   # line: 36           # column: 0
+	return                                   # line: 36           # column: 0
+}
+
+.function_kind FunctionKind::NONE
+ _ESSlotNumberAnnotation
+ SlotNumber 2
+.language ECMAScript
+.function any .#~@2>#getName(any a0, any a1, any a2) {
+	lda a2                                   # line: 39           # column: 0
+	ldobjbyname 0x0, name                    # line: 39           # column: 0
+	return                                   # line: 40           # column: 0
+}
+
+.function_kind FunctionKind::NONE
+ _ESSlotNumberAnnotation
+ SlotNumber 4
+.language ECMAScript
+.function any .#~@2>#instance_initializer(any a0, any a1, any a2) {
+	ldundefined                              # line: 30           # column: 0
+	definepropertybyname 0x0, name, a2       # line: 30           # column: 0
+	ldundefined                              # line: 31           # column: 0
+	definepropertybyname 0x2, age, a2        # line: 31           # column: 0
+	returnundefined                          # line: 18446744073709551615           # column: 0
+}
+
+.function_kind FunctionKind::NONE
+ _ESExpectedPropertyCountAnnotation
+ ExpectedPropertyCount 1
+ _ESSlotNumberAnnotation
+ SlotNumber 2
+.language ECMAScript
+.function any .#~@3=#Base(any a0, any a1, any a2, any a3) {
+	lda a3                                   # line: 45           # column: 0
+	stobjbyname 0x0, msg, a2                 # line: 45           # column: 0
+	lda a2                                   # line: 46           # column: 0
+	return                                   # line: 46           # column: 0
+}
+
+.function_kind FunctionKind::NONE
+ _ESExpectedPropertyCountAnnotation
+ ExpectedPropertyCount 1
+ _ESSlotNumberAnnotation
+ SlotNumber 4
+.language ECMAScript
+.function any .#~@4=#Derived(any a0, any a1, any a2, any a3, any a4) {
+	mov v1, a3                               # line: 51           # column: 0
+	supercallthisrange 0x0, 0x1, v1          # line: 51           # column: 0
+	sta v0                                   # line: 51           # column: 0
+	lda a2                                   # line: 51           # column: 0
+	throw.ifsupernotcorrectcall 0x1          # line: 51           # column: 0
+	lda v0                                   # line: 52           # column: 0
+	throw.ifsupernotcorrectcall 0x0          # line: 52           # column: 0
+	lda a4                                   # line: 52           # column: 0
+	stobjbyname 0x2, extra, v0               # line: 52           # column: 0
+	lda v0                                   # line: 18446744073709551615           # column: 0
+	throw.ifsupernotcorrectcall 0x0          # line: 18446744073709551615           # column: 0
+	lda v0                                   # line: 53           # column: 0
+	return                                   # line: 53           # column: 0
+}
+
+.function_kind FunctionKind::NONE
+ _ESExpectedPropertyCountAnnotation
+ ExpectedPropertyCount 1
+ _ESSlotNumberAnnotation
+ SlotNumber 4
+.language ECMAScript
+.function any .#~@5=#SecretBox(any a0, any a1, any a2, any a3) {
+	ldlexvar 0x0, 0x1                        # line: 18446744073709551615           # column: 0
+	callruntime.callinit 0x0, a2             # line: 18446744073709551615           # column: 0
+	lda a3                                   # line: 59           # column: 0
+	stprivateproperty 0x2, 0x0, 0x0, a2      # line: 59           # column: 0
+	lda a2                                   # line: 60           # column: 0
+	return                                   # line: 60           # column: 0
+}
+
+.function_kind FunctionKind::NONE
+ _ESSlotNumberAnnotation
+ SlotNumber 2
+.language ECMAScript
+.function any .#~@5>#getSecret(any a0, any a1, any a2) {
+	lda a2                                   # line: 62           # column: 0
+	ldprivateproperty 0x0, 0x0, 0x0          # line: 62           # column: 0
+	return                                   # line: 63           # column: 0
+}
+
+.function_kind FunctionKind::NONE
+ _ESSlotNumberAnnotation
+ SlotNumber 2
+.language ECMAScript
+.function any .#~@5>#instance_initializer(any a0, any a1, any a2) {
+	ldundefined                              # line: 57           # column: 0
+	callruntime.defineprivateproperty 0x0, 0x0, 0x0, a2 # line: 57           # column: 0
+	returnundefined                          # line: 18446744073709551615           # column: 0
+}
+
+.function_kind FunctionKind::NONE
+ _ESExpectedPropertyCountAnnotation
+ ExpectedPropertyCount 2
+ _ESSlotNumberAnnotation
+ SlotNumber 8
+.language ECMAScript
+.function any .#~@6=#Config(any a0, any a1, any a2, any a3) {
+	lda a3                                   # line: 67           # column: 0
+	ldobjbyname 0x0, host                    # line: 67           # column: 0
+	sta v0                                   # line: 67           # column: 0
+	lda a3                                   # line: 67           # column: 0
+	ldobjbyname 0x2, port                    # line: 67           # column: 0
+	sta v1                                   # line: 67           # column: 0
+	lda v0                                   # line: 68           # column: 0
+	stobjbyname 0x4, host, a2                # line: 68           # column: 0
+	lda v1                                   # line: 69           # column: 0
+	stobjbyname 0x6, port, a2                # line: 69           # column: 0
+	lda a2                                   # line: 70           # column: 0
+	return                                   # line: 70           # column: 0
+}
+
+.function_kind FunctionKind::FUNCTION
+ _ESSlotNumberAnnotation
+ SlotNumber 24
+.language ECMAScript
+.function any .func_main_0(any a0, any a1, any a2) {
+	nop                                      # line: 15           # column: 0
+	ldhole                                   # line: 15           # column: 0
+	sta v0                                   # line: 15           # column: 0
+	defineclasswithbuffer 0x0, .#~@0=#Person, _GLOBAL_1524, 0x2, v0 # line: 15           # column: 0
+	sta v0                                   # line: 15           # column: 0
+	ldobjbyname 0x1, prototype               # line: 15           # column: 0
+	lda v0                                   # line: 15           # column: 0
+	stmodulevar 0x4                          # line: 15           # column: 0
+	newlexenv 0x1                            # line: 22           # column: 0
+	label@9:                                 # line: 0           # column: 0
+	ldhole                                   # line: 22           # column: 0
+	sta v1                                   # line: 22           # column: 0
+	defineclasswithbuffer 0x3, .#~@1=#MyClass, _GLOBAL_1533, 0x0, v1 # line: 22           # column: 0
+	sta v1                                   # line: 22           # column: 0
+	ldobjbyname 0x4, prototype               # line: 22           # column: 0
+	definemethod 0x6, .#~@1>#instance_initializer, 0x0 # line: 22           # column: 0
+	stlexvar 0x0, 0x0                        # line: 22           # column: 0
+	label@16:                                # line: 0           # column: 0
+	jmp label@21                             # line: 22           # column: 0
+	label@17:                                # line: 0           # column: 0
+	sta v0                                   # line: 22           # column: 0
+	poplexenv                                # line: 22           # column: 0
+	lda v0                                   # line: 22           # column: 0
+	throw                                    # line: 22           # column: 0
+	label@21:                                # line: 0           # column: 0
+	poplexenv                                # line: 22           # column: 0
+	lda v1                                   # line: 22           # column: 0
+	stmodulevar 0x3                          # line: 22           # column: 0
+	newlexenv 0x1                            # line: 29           # column: 0
+	label@25:                                # line: 0           # column: 0
+	ldhole                                   # line: 29           # column: 0
+	sta v1                                   # line: 29           # column: 0
+	defineclasswithbuffer 0x7, .#~@2=#JsPeople, _GLOBAL_1542, 0x2, v1 # line: 29           # column: 0
+	sta v1                                   # line: 29           # column: 0
+	ldobjbyname 0x8, prototype               # line: 29           # column: 0
+	definemethod 0xa, .#~@2>#instance_initializer, 0x0 # line: 29           # column: 0
+	stlexvar 0x0, 0x0                        # line: 29           # column: 0
+	label@32:                                # line: 0           # column: 0
+	jmp label@37                             # line: 29           # column: 0
+	label@33:                                # line: 0           # column: 0
+	sta v0                                   # line: 29           # column: 0
+	poplexenv                                # line: 29           # column: 0
+	lda v0                                   # line: 29           # column: 0
+	throw                                    # line: 29           # column: 0
+	label@37:                                # line: 0           # column: 0
+	poplexenv                                # line: 29           # column: 0
+	lda v1                                   # line: 29           # column: 0
+	stmodulevar 0x2                          # line: 29           # column: 0
+	ldhole                                   # line: 43           # column: 0
+	sta v0                                   # line: 43           # column: 0
+	defineclasswithbuffer 0xb, .#~@3=#Base, _GLOBAL_1564, 0x1, v0 # line: 43           # column: 0
+	sta v0                                   # line: 43           # column: 0
+	ldobjbyname 0xc, prototype               # line: 43           # column: 0
+	defineclasswithbuffer 0xe, .#~@4=#Derived, _GLOBAL_1573, 0x2, v0 # line: 49           # column: 0
+	sta v0                                   # line: 49           # column: 0
+	ldobjbyname 0xf, prototype               # line: 49           # column: 0
+	lda v0                                   # line: 49           # column: 0
+	stmodulevar 0x1                          # line: 49           # column: 0
+	newlexenv 0x2                            # line: 56           # column: 0
+	label@51:                                # line: 0           # column: 0
+	ldhole                                   # line: 56           # column: 0
+	sta v1                                   # line: 56           # column: 0
+	defineclasswithbuffer 0x11, .#~@5=#SecretBox, _GLOBAL_1582, 0x1, v1 # line: 56           # column: 0
+	sta v1                                   # line: 56           # column: 0
+	ldobjbyname 0x12, prototype              # line: 56           # column: 0
+	definemethod 0x14, .#~@5>#instance_initializer, 0x0 # line: 56           # column: 0
+	stlexvar 0x0, 0x1                        # line: 56           # column: 0
+	callruntime.createprivateproperty 0x1, _GLOBAL_1604 # line: 56           # column: 0
+	label@59:                                # line: 0           # column: 0
+	jmp label@64                             # line: 56           # column: 0
+	label@60:                                # line: 0           # column: 0
+	sta v0                                   # line: 56           # column: 0
+	poplexenv                                # line: 56           # column: 0
+	lda v0                                   # line: 56           # column: 0
+	throw                                    # line: 56           # column: 0
+	label@64:                                # line: 0           # column: 0
+	poplexenv                                # line: 56           # column: 0
+	lda v1                                   # line: 56           # column: 0
+	stmodulevar 0x5                          # line: 56           # column: 0
+	ldhole                                   # line: 66           # column: 0
+	sta v0                                   # line: 66           # column: 0
+	defineclasswithbuffer 0x15, .#~@6=#Config, _GLOBAL_1613, 0x1, v0 # line: 66           # column: 0
+	sta v0                                   # line: 66           # column: 0
+	ldobjbyname 0x16, prototype              # line: 66           # column: 0
+	lda v0                                   # line: 66           # column: 0
+	stmodulevar 0x0                          # line: 66           # column: 0
+	returnundefined                          # line: 18446744073709551615           # column: 0
+.catchall :
+	try_begin_label : label@9
+	try_end_label : label@16
+	catch_begin_label : label@17
+	catch_end_label : label@17
+.catchall :
+	try_begin_label : label@25
+	try_end_label : label@32
+	catch_begin_label : label@33
+	catch_end_label : label@33
+.catchall :
+	try_begin_label : label@51
+	try_end_label : label@59
+	catch_begin_label : label@60
+	catch_end_label : label@60
+}
+
+# ====================
+# STRING
+.#~@0=#Person
+.#~@1=#MyClass
+.#~@1>#instance_initializer
+.#~@2=#JsPeople
+.#~@2>#instance_initializer
+.#~@3=#Base
+.#~@4=#Derived
+.#~@5=#SecretBox
+.#~@5>#instance_initializer
+.#~@6=#Config
+age
+extra
+host
+msg
+name
+port
+prototype

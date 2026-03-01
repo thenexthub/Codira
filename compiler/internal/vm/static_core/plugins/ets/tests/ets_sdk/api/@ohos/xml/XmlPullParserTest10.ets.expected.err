@@ -1,0 +1,29 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+#
+testXmlPullParserConstructor0020 failed, error: BusinessError: Unexpected token: xml version="1.0" encoding="utf-8"
+testXmlPullParserConstructor0019 failed, error: BusinessError: unterminated entity ref
+testXmlPullParserConstructor0018 failed, error: BusinessError: unterminated entity ref
+testXmlPullParserConstructor0015 failed, error: BusinessError: Illegal: "]]>" outside CDATA section
+testXmlPullParserConstructor0014 failed, error: BusinessError: Illegal: "]]>" outside CDATA section
+testXmlPullParserConstructor0013 failed, error: BusinessError: Unexpected token
+testXmlPullParserConstructor0008 failed, error: BusinessError: The node name contains invalid characters: &

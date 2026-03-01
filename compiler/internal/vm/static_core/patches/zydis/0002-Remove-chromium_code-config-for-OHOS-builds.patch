@@ -1,0 +1,27 @@
+From f770e2cf7d3705bced9405eb8f2f0cd4f94a313f Mon Sep 17 00:00:00 2001
+From: Vladislav Ivanishin <ivanishin.vladislav@huawei.com>
+Date: Wed, 2 Nov 2022 10:37:25 +0300
+Subject: [PATCH] Remove chromium_code config for OHOS builds
+
+This config enables extra warnings with -Werror resulting in Zydis build
+failure. The standalone Ark GN build does not have this config now.
+---
+ BUILD.gn | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/BUILD.gn b/BUILD.gn
+index 9852761..0e0744b 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -49,4 +49,8 @@ ohos_static_library("libZydis") {
+   ]
+ 
+   configs = [ ":zydis_public_config" ]
++  if (!ark_standalone_build) {
++    remove_configs = [ "//build/config/compiler:chromium_code" ]
++    configs += [ "//build/config/compiler:no_chromium_code" ]
++  }
+ }
+-- 
+2.37.3
+

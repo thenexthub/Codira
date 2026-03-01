@@ -1,0 +1,71 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+  - description: "Byte += int literal"
+    target_type: "byte"
+    operand_type: "literal"
+    op: "+="
+    initial: "100"
+    operand: "1000"
+    expected: "76"
+
+  - description: "Byte += int variable"
+    target_type: "byte"
+    operand_type: "int"
+    op: "+="
+    initial: "50"
+    operand: "1000"
+    expected: "26"
+
+  - description: "Short += int literal"
+    target_type: "short"
+    operand_type: "literal"
+    op: "+="
+    initial: "1000"
+    operand: "100000"
+    expected: "-30072"
+
+  - description: "Short += int variable"
+    target_type: "short"
+    operand_type: "int"
+    op: "+="
+    initial: "1000"
+    operand: "100000"
+    expected: "-30072"
+
+  - description: "Byte *= int with overflow"
+    target_type: "byte"
+    operand_type: "int"
+    op: "*="
+    initial: "10"
+    operand: "100"
+    expected: "-24"
+
+  - description: "Short *= int with overflow"
+    target_type: "short"
+    operand_type: "int"
+    op: "*="
+    initial: "100"
+    operand: "1000"
+    expected: "-31072"

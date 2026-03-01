@@ -1,0 +1,28 @@
+# Copyright (c) 2023-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+- {
+    property_name: length,
+    object_type: String,
+    init_object_data_type: "FixedArray<String>",
+    init_object_type: String,
+    init_object_type_nature: object,
+    init_object_data: '["", "abcd", "фуфу", "abcdфуфу", "你好世界", "abcd你好世界"]',
+    param_init_data_types: {},
+    param_types: {},
+    param_list: {},
+    method_return_type: int,
+    expected_data_type: "FixedArray<int>",
+    expected_test_data: "[0, 4, 4, 8, 4, 8]",
+    verify_test_result_function: comparePrimitiveValue
+  }

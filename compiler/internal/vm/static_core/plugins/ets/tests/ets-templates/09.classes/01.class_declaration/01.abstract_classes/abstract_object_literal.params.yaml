@@ -1,0 +1,63 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+cases:
+  - decl: |-
+      c1: int;
+      c2: string;
+      constructor() {
+        this.c1 = 1
+        this.c2 = 'c'
+      }
+      foo(f: int): string|number {
+        return f + 1
+      }
+    call: |-
+      let c: C = { 
+        c1: 2,
+        c2: 'c2'
+      }
+      arktest.assertEQ(c.c1, 2)
+      arktest.assertEQ(c.c2, 'c2')
+      arktest.assertEQ(c.foo(1), 2)
+
+  - decl: |-
+      c1: A;
+      c2: B;
+      constructor() {
+        this.c1 = new A()
+        this.c2 = new B()
+      }
+      foo(f: A): string {
+        return f.a
+      }
+    call: |-
+      let c: C = { 
+        c1: { a: 'aa'},
+        c2: { a: 'aaa', b: 'bb'}
+      }
+      arktest.assertEQ(c.c1.a, 'aa')
+      arktest.assertEQ(c.c2.a, 'aaa')
+      arktest.assertEQ(c.c2.b, 'bb')
+      arktest.assertEQ(c.foo(c.c1), 'aa')
+      arktest.assertEQ(c.foo(c.c2), 'aaa')
+

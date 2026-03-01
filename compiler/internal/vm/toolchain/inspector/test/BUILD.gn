@@ -1,0 +1,71 @@
+# Copyright (c) 2024-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//arkcompiler/toolchain/test/test_helper.gni")
+import("//arkcompiler/toolchain/toolchain.gni")
+
+module_output_path = "toolchain/toolchain"
+
+host_unittest_action("InspectorConnectTest") {
+  module_out_path = module_output_path
+
+  include_dirs = [ "$toolchain_root/inspector" ]
+
+  sources = [
+    # test file
+    "connect_server_test.cpp",
+    "inspector_test.cpp",
+  ]
+
+  configs = [ "$toolchain_root:toolchain_test_config" ]
+
+  deps = [
+    "$toolchain_root/inspector:ark_debugger",
+    "$toolchain_root/inspector:connectserver_debugger",
+    "$toolchain_root/websocket:websocket_client",
+    "$toolchain_root/websocket:libwebsocket_server",
+  ]
+
+  # hiviewdfx libraries
+  external_deps = hiviewdfx_ext_deps
+  if (is_arkui_x && target_os == "ios") {
+    external_deps += [ "openssl:libcrypto_static" ]
+  } else {
+    external_deps += [ "openssl:libcrypto_shared" ]
+  }
+
+  external_deps += [ "bounds_checking_function:libsec_shared" ]
+  deps += hiviewdfx_deps
+}
+
+group("unittest") {
+  testonly = true
+
+  # deps file
+  deps = [ ":InspectorConnectTest" ]
+
+  if (is_mac) {
+    deps -= [ ":InspectorConnectTest" ]
+  }
+}
+
+group("host_unittest") {
+  testonly = true
+
+  # deps file
+  deps = [ ":InspectorConnectTestAction" ]
+
+  if (is_mac) {
+    deps -= [ ":InspectorConnectTestAction" ]
+  }
+}

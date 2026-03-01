@@ -1,0 +1,92 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - func_type: '(x: Object) => string' # One param function all mandatory
+    func: '(x: Object) => {return "s"}'
+    rhs_types:
+      - { type: '((x: Object) => string)', res: 'true' } # Zero positive
+      - { type: '((x: string) => Object)', res: 'true' } # Object is supertype of string for param (contravariance) and string is subtype of Object for return type (covariance)
+      - { type: '((x: Object) => ''a'')', res: 'false' } # Not covariant return type, string is not subtype of literal
+      - { type: '((x: Any) => Object)', res: 'false' } # Not contravariant param type, Object is not supertype of Any
+      - { type: '((x?: Object) => string)', res: 'false' } # Optional parameter in super type instead of mandatory
+      - { type: '(() => string)', res: 'false' } # Less parameters in super type
+      - { type: '((x: Object, y: Object) => string)', res: 'true' } # Ok, more parameters in super type
+      - { type: '((x: Object, y?: Object) => string)', res: 'true' } # Ok, more parameters in super type + optional
+      - { type: '((x: Object, ...y: Array) => string)', res: 'true' } # Ok, more parameters in super type + rest
+#9
+  - func_type: '(x: number[]) => null'
+    func: '(x: number[]) => {}'
+    rhs_types:
+      - { type: '((...x: Array) => null)', res: 'true' } # Rest parameter in supertype but not rest in subtype
+
+
+  - func_type: '(x: number, y: string) => undefined' # several params contravariance
+    func: '(x: number, y: string) => {return undefined}'
+    rhs_types:
+      - { type: '(x: float, y: Any) => undefined', res: 'false' } # 2 param is not contravariant
+      - { type: '(x: Object, y: ''a'') => undefined', res: 'false' } # 1 param is not contravariant
+      - { type: '(x: float, y: ''a'') => undefined', res: 'true' } # All params contravariant
+#13
+  - decl: | # Optional params
+      class Parent {}
+      class Child extends Parent {}
+      class GrandChild extends Child {}
+    func_type: '(x: Parent, y?: Child, z?: GrandChild) => GrandChild'
+    func: '(x: Parent, y?: Child, z?: GrandChild) => {return new GrandChild()}'
+    rhs_types:
+      - { type: '(x: Parent, y?: Child, z?: GrandChild) => GrandChild', res: 'true' } # Zero positive
+      - { type: '(x: GrandChild, y?: GrandChild, z?: GrandChild) => Parent', res: 'true' } # Correct covariance/contravariance
+      - { type: '(x: Parent) => GrandChild', res: 'false' } # less parameters in super type, all optionals are missed
+      - { type: '(x: Parent, y?: Child) => GrandChild', res: 'false' } # less parameters in super type, some optionals are missed
+      - { type: '(x: Parent, y?: Parent, z?: GrandChild) => GrandChild', res: 'false' } # Optional param is not contravariant
+      - { type: '(x: Parent, y: Child, z?: GrandChild) => GrandChild', res: 'false' } # Mandatory param in place of optional
+      - { type: '(x?: Parent, y?: Child, z?: GrandChild) => GrandChild', res: 'true' } # Optional param in place of mandatory
+
+#20
+  - func_type: '(x: bigint, y: char = c''a'') => void' # Optional param with default value
+    func: '(x: bigint, y: char = c''a'') => {}'
+    rhs_types:
+      - { type: '(x: bigint, y?: char) => void', res: 'true' } # Optional param without default value in place of optional with default value
+      - { type: '(x: bigint, y: char) => void', res: 'false' } # Mandatory param in place of optional with default
+      - { type: '(x: bigint) => void', res: 'false' } # less parameters in super type, optional with default value is missed
+      - { type: '(x: bigint, y: Any = c''a'') => void', res: 'false' } # Optional with default is not contravariant
+
+#24
+  - func_type: '(x: boolean, ...y: Object[]) => Object' # Rest param
+    func: '(x: boolean, ...y: Object[]) => {return new Object()}'
+    rhs_types:
+      - { type: '(x: boolean, ...y: Array) => Object', res: 'true' } # Zero positive
+      - { type: '(x: boolean, ...y: Array) => Any', res: 'true' } # Correct covariance and contravariance
+      - { type: '(x: boolean, y: Array) => Object', res: 'false' } # Non-rest parameter in place of rest
+      - { type: '(x: boolean, y: Array, ...z: Array) => Object', res: 'false' } # Non-rest parameter in place of rest, but another rest in the end
+      - { type: '(x: boolean, ...y: Array) => Object', res: 'false' } # Rest param is not contravariant
+
+#29
+  - func_type: '(x: Array<number>, y: string, z: null) => undefined' # Covariance and contravariance for different types
+    func: '(x: Array<number>, y: string, z: null) => {return undefined}'
+    rhs_types:
+      - { type: '(x: Array, y: string, z: null) => undefined', res: 'true' } # Zero positive
+      - { type: '(x: Array, y: ''a'', z: null) => void', res: 'true' } # Correct covariance and contravariance
+      - { type: '(x: FixedArray<number>, y: string, z: null) => undefined', res: 'false' }
+      - { type: '(x: Array, y: string, z: never) => undefined', res: 'true' }
+
+#34
+  - func_type: '(x: [int, string]) => [string, int]' # Specific typle cases
+    func: '(x: [int, string]) => {return [x[1], x[0]]}'
+    rhs_types:
+      - { type: '((x: Tuple) => Tuple)', res: 'true' }
+      - { type: '((x: Tuple) => Array)', res: 'true' }
+      - { type: '((x: Array) => Array)', res: 'true' }
+

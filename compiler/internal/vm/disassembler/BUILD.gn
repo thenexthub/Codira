@@ -1,0 +1,203 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+import("//arkcompiler/runtime_core/ark_config.gni")
+
+config("arkdisassembler_public_config") {
+  defines = [ "PANDA_WITH_ECMASCRIPT" ]
+}
+
+arkdisassembler_sources = [
+  "$target_gen_dir/bc_ins_to_pandasm_ins.cpp",
+  "$target_gen_dir/get_ins_info.cpp",
+  "$target_gen_dir/opcode_translator.cpp",
+  "$target_gen_dir/type_to_pandasm_type.cpp",
+  "disassembler.cpp",
+]
+
+arkdisassembler_configs = [
+  ":arkdisassembler_public_config",
+  "$ark_root:ark_config",
+  "$ark_root/libpandabase:arkbase_public_config",
+  "$ark_root/assembler:arkassembler_public_config",
+  "$ark_root/libpandafile:arkfile_public_config",
+]
+
+foreach(plugin, enabled_plugins) {
+  print("add disassembler plugin: $plugin")
+  plugin_dir = "$ark_root/plugins/$plugin"
+
+  source_files = read_file("$plugin_dir/subproject_sources.gn", "scope")
+  if (defined(source_files.srcs_disassembler_path)) {
+    source_file = "$plugin_dir/${source_files.srcs_disassembler_path}"
+    src_scope = read_file(source_file, "scope")
+    foreach(src, src_scope.srcs) {
+      arkdisassembler_sources += [ "$plugin_dir/disassembler/$src" ]
+    }
+    src_scope = {
+    }
+  }
+  source_files = []
+}
+
+ohos_shared_library("arkdisassembler") {
+  stack_protector_ret = false
+  sources = arkdisassembler_sources
+
+  include_dirs = [
+    "$ark_root/disassembler",
+    "$target_gen_dir",
+  ]
+
+  configs = arkdisassembler_configs
+
+  deps = [
+    ":disasm_plugins_inc",
+    ":get_language_specific_metadata_inc",
+    ":isa_gen_ark_disam_bc_ins_to_pandasm_ins_cpp",
+    ":isa_gen_ark_disam_get_ins_info_cpp",
+    ":isa_gen_ark_disam_opcode_translator_cpp",
+    ":type_to_pandasm_type_cpp",
+    "$ark_root/assembler:libarkassembler",
+    "$ark_root/libpandabase:libarkbase",
+    "$ark_root/libpandafile:libarkfile",
+  ]
+
+  external_deps = [ sdk_libc_secshared_dep ]
+
+  if (!is_standard_system) {
+    relative_install_dir = "ark"
+  }
+  output_extension = "so"
+  if (is_mingw) {
+    output_extension = "dll"
+  }
+
+  part_name = "runtime_core"
+  subsystem_name = "arkcompiler"
+}
+
+ohos_static_library("arkdisassembler_frontend_static") {
+  stack_protector_ret = false
+  sources = arkdisassembler_sources
+
+  include_dirs = [
+    "$ark_root/disassembler",
+    "$target_gen_dir",
+  ]
+
+  configs = arkdisassembler_configs
+
+  deps = [
+    ":disasm_plugins_inc",
+    ":get_language_specific_metadata_inc",
+    ":isa_gen_ark_disam_bc_ins_to_pandasm_ins_cpp",
+    ":isa_gen_ark_disam_get_ins_info_cpp",
+    ":isa_gen_ark_disam_opcode_translator_cpp",
+    ":type_to_pandasm_type_cpp",
+    "$ark_root/assembler:libarkassembler_frontend_static",
+    "$ark_root/libpandabase:libarkbase_frontend_static",
+    "$ark_root/libpandafile:libarkfile_frontend_static",
+  ]
+  external_deps = [ sdk_libc_secshared_dep ]
+  if (enable_hilog) {
+    external_deps += [ "hilog:libhilog" ]
+  }
+
+  part_name = "runtime_core"
+  subsystem_name = "arkcompiler"
+}
+
+ohos_executable("ark_disasm") {
+  sources = [ "disasm.cpp" ]
+
+  include_dirs = [
+    "$target_gen_dir",
+    "$root_gen_dir/libpandabase",
+  ]
+
+  configs = [
+    "$ark_root:ark_config",
+    "$ark_root/assembler:arkassembler_public_config",
+    "$ark_root/libpandabase:arkbase_public_config",
+    "$ark_root/libpandafile:arkfile_public_config",
+  ]
+
+  deps = [
+    ":arkdisassembler_frontend_static",
+    "$ark_root/assembler:libarkassembler_frontend_static",
+    "$ark_root/libpandabase:libarkbase_frontend_static",
+    "$ark_root/libpandafile:libarkfile_frontend_static",
+  ]
+
+  external_deps = [ sdk_libc_secshared_dep ]
+  if (enable_hilog) {
+    external_deps += [ "hilog:libhilog" ]
+  }
+
+  libs = platform_libs
+  if (!is_mac && !is_mingw && (is_build_sdk && !is_ohos)) {
+    ldflags = platform_ldflags
+  }
+
+  install_enable = false
+  part_name = "runtime_core"
+  subsystem_name = "arkcompiler"
+}
+
+ark_isa_gen("isa_gen_ark_disam") {
+  template_files = [
+    "opcode_translator.cpp.erb",
+    "bc_ins_to_pandasm_ins.cpp.erb",
+    "get_ins_info.cpp.erb",
+  ]
+  sources = "templates"
+  destination = "$target_gen_dir"
+  requires = [
+    "$ark_root//assembler/asm_isapi.rb",
+    "$ark_root//libpandafile/pandafile_isapi.rb",
+  ]
+}
+
+ark_gen_file("type_to_pandasm_type_cpp") {
+  template_file =
+      "$ark_root/disassembler/templates/type_to_pandasm_type.cpp.erb"
+  data_file = "$ark_root/libpandafile/types.yaml"
+  requires = [ "$ark_root/libpandafile/types.rb" ]
+  output_file = "$target_gen_dir/type_to_pandasm_type.cpp"
+}
+
+ark_gen_file("disasm_plugins_inc") {
+  extra_dependencies = [ "$ark_root:concat_plugins_yamls" ]
+  template_file = "templates/disasm_plugins.inc.erb"
+  data_file = "$target_gen_dir/../plugin_options.yaml"
+  requires = [ "$ark_root/templates/plugin_options.rb" ]
+  output_file = "$target_gen_dir/disasm_plugins.inc"
+}
+
+ark_gen_file("get_language_specific_metadata_inc") {
+  extra_dependencies = [ "$ark_root:concat_plugins_yamls" ]
+  template_file = "templates/get_language_specific_metadata.inc.erb"
+  data_file = "$target_gen_dir/../plugin_options.yaml"
+  requires = [ "$ark_root/templates/plugin_options.rb" ]
+  output_file = "$target_gen_dir/get_language_specific_metadata.inc"
+}

@@ -1,0 +1,61 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of hard keywords
+cases:
+    - {keyword: abstract}
+    - {keyword: as}
+    - {keyword: async}
+    - {keyword: await}
+    - {keyword: break}
+    - {keyword: case}
+    - {keyword: class}
+    - {keyword: const}
+    - {keyword: constructor}
+    - {keyword: continue}
+    - {keyword: default}
+    - {keyword: do}
+    - {keyword: else}
+    - {keyword: enum, specific_error: 'Syntax error ESY0126: Variable declaration expected.'}
+    - {keyword: export}
+    - {keyword: extends}
+    - {keyword: 'false', specific_error: 'Syntax error ESY0315: Number, string or computed value property name ''false'' is not allowed, use classes to access data by property names that are identifiers'}
+    - {keyword: final}
+    - {keyword: for}
+    - {keyword: function}
+    - {keyword: if}
+    - {keyword: implements}
+    - {keyword: import}
+    - {keyword: in}
+    - {keyword: instanceof}
+    - {keyword: interface}
+    - {keyword: let}
+    - {keyword: native}
+    - {keyword: new}
+    - {keyword: 'null', specific_error: 'Syntax error ESY0315: Number, string or computed value property name ''null'' is not allowed, use classes to access data by property names that are identifiers'}
+    - {keyword: overload}
+    - {keyword: override}
+    - {keyword: private}
+    - {keyword: protected}
+    - {keyword: public}
+    - {keyword: return}
+    - {keyword: static}
+    - {keyword: super}
+    - {keyword: switch}
+    - {keyword: this}
+    - {keyword: throw}
+    - {keyword: 'true', specific_error: '[hard_n_41.ets:35:5] Syntax error ESY0315: Number, string or computed value property name ''true'' is not allowed, use classes to access data by property names that are identifiers'}
+    - {keyword: try}
+    - {keyword: typeof}
+    - {keyword: undefined}
+    - {keyword: while}

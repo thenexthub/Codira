@@ -1,0 +1,56 @@
+# Copyright (c) 2023 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//arkcompiler/runtime_core/ark_root.gni")
+import("$build_root/test.gni")
+
+module_output_path = "runtime_core/runtime_core"
+
+template("host_unittest_action") {
+  _target_name_ = "${target_name}"
+
+  # unittest for phone running
+  ohos_unittest(_target_name_) {
+    forward_variables_from(invoker, "*")
+  }
+
+  _module_out_path_ = invoker.module_out_path
+
+  # unittest for host running
+  action("${_target_name_}Action") {
+    testonly = true
+
+    _host_test_target_ = ":${_target_name_}(${host_toolchain})"
+    _root_out_dir_ = get_label_info(_host_test_target_, "root_out_dir")
+
+    deps = [ _host_test_target_ ]
+
+    script = "//arkcompiler/ets_runtime/script/run_ark_executable.py"
+
+    args = [
+      "--script-file",
+      rebase_path(_root_out_dir_) +
+          "/tests/unittest/${_module_out_path_}/${_target_name_}",
+      "--expect-output",
+      "0",
+      "--env-path",
+      rebase_path(_root_out_dir_) + "/arkcompiler/ets_runtime:" +
+          rebase_path(_root_out_dir_) + "/thirdparty/zlib:" +
+          rebase_path(_root_out_dir_) + "/thirdparty/icu:",
+      "--timeout-limit",
+      "1200",
+    ]
+
+    outputs = [ "$target_out_dir/${_target_name_}/" ]
+  }
+}

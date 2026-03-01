@@ -1,0 +1,243 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # Record key is a union of string literal types
+    - use: |-
+          // key is a union of literal types
+          let idx: short = 0
+          let r: Record<"1"|"2"|"3", Short> = {
+              "1": (idx += 1),
+              "2": idx++,
+              "3": ++idx,
+          }
+          arktest.assertTrue(idx == 3)
+          arktest.assertTrue(r["1"] == 1 && r["2"] == 1 && r["3"] == 3)
+          r["1"] = new Short(10)
+          r["2"] = new Short(20)
+          r["3"] = new Short(30)
+          arktest.assertTrue(r["1"] == 10 && r["2"] == 20 && r["3"] == 30)
+
+    - use: |-
+          // key is a union of literal types
+          let idx: Short = 0
+          let r: Record<"11"|"12"|"13", Short> = {
+              "11": idx,
+              "12": idx,
+              "13": idx,
+          }
+          let i = "11"
+          arktest.assertEQ(r[i], 0)
+          arktest.assertEQ(r["12"], 0)
+          arktest.assertEQ(r["13"], 0)
+
+    # Record key is a union of string literal types and string
+    - use: |-
+          // key is a union of literal types and string, literals in indices
+          let idx: int = 0
+          let r: Record<"1"|"2"|"3"|string, Int> = {
+              "1": idx + 1,
+              "2": idx + 2,
+          }
+          arktest.assertTrue(r["1"] == 1 && r["2"] == 2 && r["3"] == undefined)
+          r["1"] = 90
+          r["3"] = 92
+          arktest.assertTrue(r["1"] == 90 && r["2"] == 2 && r["3"] == 92)
+
+    - use: |-
+          // key is a union of literal types and string, expression in index
+          let idx: int = 0
+          let r: Record<string|"1"|"2"|"3", Int> = {
+              "1": idx + 1,
+              "2": idx + 2,
+          }
+          let i1 = "1"
+          let i2 = "2"
+          arktest.assertTrue(r[i1] == 1 && r[i2] == 2 && r[i1 + i2] == undefined)
+
+    - decl: |-
+          function foo(p: int): string {
+              return "" + p
+          }
+      use: |-
+          // key is a union of literal types and string, expression in index
+          let idx: number = 0
+          let r: Record<"1"|"2"|"3"|string, Number> = {
+              "1": idx + 1,
+              "2": idx + 2,
+          }
+          arktest.assertTrue(r[foo(1)] == 1 && r[foo(2)] == 2 && r[foo(3)] == undefined)
+          r[foo(1)] = 99
+          arktest.assertTrue(r["1"] == 99 && r["2"] == 2 && r["3"] == undefined)
+
+    # Record key is of numeric type
+    - use: |-
+          // key is of numeric type
+          const b0: byte = 0, b_max = Byte.MAX_VALUE, b_min: byte = Byte.MIN_VALUE
+          let r: Record<Byte, Byte|null> = {}
+          r[b0] = null
+          r[b_max] = b_max
+          r[b_min] = b_min
+          arktest.assertTrue(r[b0] === null && r[b_max] == b_max && r[b_min] == b_min)
+          arktest.assertTrue(r[new Byte(99)] === undefined)
+
+    - use: |-
+          // key is of numeric type, constants
+          const s0: short = 0, s_max = Short.MAX_VALUE, s_min = Short.MIN_VALUE
+          let r: Record<Short, Short|undefined> = {}
+          r[s0] = undefined
+          r[s_min] = s_min
+          r[s_max] = s_max
+          arktest.assertTrue(r[s0] === undefined && r[s_min] == s_min && r[s_max] == s_max)
+          arktest.assertTrue(r[new Short(99)] === undefined)
+
+    - decl: |-
+          let v0 = 0, v1 = 1, v_max = Int.MAX_VALUE, v_min = Int.MIN_VALUE
+      use: |-
+          // key is of numeric type, variables
+          let r: Record<Int, Int|null|undefined> = { 1: v1 }
+          r[v0] = null
+          r[v1] = undefined
+          r[v_min] = v_min
+          r[v_max] = v_max
+          arktest.assertTrue(r[v0] === null && r[v1] === undefined && r[v_min] == v_min && r[v_max] == v_max)
+          arktest.assertTrue(r[99] === undefined)
+
+    - decl: |-
+          function foo(p: int): long {
+              let arr: long[] = [0, Long.MIN_VALUE, Long.MAX_VALUE, 99]
+              return arr[p]
+          }
+      use: |-
+          // key is of numeric type, function call expressions
+          let r: Record<Long, Long> = {}
+          r[foo(0)] = new Long()
+          r[foo(1)] = Long.MIN_VALUE
+          r[foo(2)] = Long.MAX_VALUE
+          arktest.assertTrue(r[foo(0)] == 0 && r[foo(1)] == Long.MIN_VALUE && r[foo(2)] == Long.MAX_VALUE)
+          arktest.assertTrue(r[foo(3)] === undefined)
+
+    - decl: |-
+          let arr: float[] = [0.0f, Float.MIN_VALUE, Float.MAX_VALUE, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY, Float.NaN]
+      use: |-
+          // key is of numeric type, array access expressions
+          let r: Record<Float, Float|string> = { 1.0f: 1.0f }
+          r[arr[0]] = 0.0f
+          r[arr[1]] = Float.MIN_VALUE
+          r[arr[2]] = Float.MAX_VALUE
+          r[arr[3]] = Float.NEGATIVE_INFINITY
+          r[arr[4]] = Float.POSITIVE_INFINITY
+          r[arr[5]] = Float.NaN
+          arktest.assertTrue(r[arr[0]] == 0.0f && r[arr[1]] == Float.MIN_VALUE && r[arr[2]] == Float.MAX_VALUE)
+          arktest.assertTrue(r[arr[3]] == Float.NEGATIVE_INFINITY && r[arr[4]] == Float.POSITIVE_INFINITY)
+          arktest.assertTrue(Float.isNaN(r[arr[5]] as Float) && r[99.0f] === undefined)
+          r[arr[3]] = "3"
+          r[arr[4]] = "4"
+          r[arr[5]] = "5"
+          arktest.assertTrue(r[arr[0]] == 0.0f && r[arr[1]] == Float.MIN_VALUE && r[arr[2]] == Float.MAX_VALUE)
+          arktest.assertTrue(r[arr[3]] == "3" && r[arr[4]] == "4")
+          arktest.assertTrue(r[arr[5]] == "5" && r[99.0f] === undefined)
+
+    # Record key is a union of numeric and string
+    - use: |-
+          // key is a union of numeric and string
+          const b0: byte = 0, b_max = Byte.MAX_VALUE, b_min: byte = Byte.MIN_VALUE
+          let r: Record<byte|string, Byte|null> = {}
+          r[b0] = null
+          r[b_max] = b_max
+          r[b_min] = b_min
+          r["" + b0] = null
+          r["" + b_max] = b_max
+          r["" + b_min] = b_min
+          arktest.assertTrue(r[b0] === null && r[b_max] == b_max && r[b_min] == b_min)
+          arktest.assertTrue(r["" + b0] === null && r["" + b_max] == b_max && r["" + b_min] == b_min)
+          arktest.assertTrue(r[new Byte(99)] === undefined)
+          arktest.assertTrue(r["99"] === undefined)
+
+    - use: |-
+          // key is of numeric type, constants
+          const s0: short = 0, s_max = Short.MAX_VALUE, s_min = Short.MIN_VALUE
+          let r: Record<String|Short, Short|undefined> = {}
+          r[s0] = undefined
+          r[s_min] = s_min
+          r[s_max] = s_max
+          r["" + s0] = undefined
+          r["" + s_min] = s_min
+          r["" + s_max] = s_max
+          arktest.assertTrue(r[s0] === undefined && r[s_min] == s_min && r[s_max] == s_max)
+          arktest.assertTrue(r["" + s0] === undefined && r["" + s_min] == s_min && r["" + s_max] == s_max)
+          arktest.assertTrue(r[new Short(99)] === undefined)
+          arktest.assertTrue(r["99"] === undefined)
+
+    - decl: |-
+          let arr: Double[] = [0.0, Double.MIN_VALUE, Double.MAX_VALUE, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Double.NaN]
+      use: |-
+          // key is of numeric type, array access expressions
+          let r: Record<Double|string, Double|string> = { 1.0: 1.0 }
+          // double -> double
+          r[arr[0]] = 0.0
+          r[arr[1]] = Double.MIN_VALUE
+          r[arr[2]] = Double.MAX_VALUE
+          r[arr[3]] = Double.NEGATIVE_INFINITY
+          r[arr[4]] = Double.POSITIVE_INFINITY
+          r[arr[5]] = Double.NaN
+          arktest.assertTrue(r[arr[0]] == 0.0 && r[arr[1]] == Double.MIN_VALUE && r[arr[2]] == Double.MAX_VALUE)
+          arktest.assertTrue(r[arr[3]] == Double.NEGATIVE_INFINITY && r[arr[4]] == Double.POSITIVE_INFINITY)
+          arktest.assertTrue(Double.isNaN(r[arr[5]] as Double) && r[99.0] === undefined)
+          // double -> string
+          r[arr[3]] = "3"
+          r[arr[4]] = "4"
+          r[arr[5]] = "5"
+          arktest.assertTrue(r[arr[0]] == 0.0 && r[arr[1]] == Double.MIN_VALUE && r[arr[2]] == Double.MAX_VALUE)
+          arktest.assertTrue(r[arr[3]] == "3" && r[arr[4]] == "4")
+          arktest.assertTrue(r[arr[5]] == "5" && r[99.0] === undefined)
+          // string -> double
+          r["" + arr[0]] = 0.0
+          r["" + arr[1]] = Double.MIN_VALUE
+          r["" + arr[2]] = Double.MAX_VALUE
+          r["" + arr[3]] = Double.NEGATIVE_INFINITY
+          r["" + arr[4]] = Double.POSITIVE_INFINITY
+          r["" + arr[5]] = Double.NaN
+          arktest.assertTrue(r["" + arr[0]] == 0.0 && r["" + arr[1]] == Double.MIN_VALUE && r["" + arr[2]] == Double.MAX_VALUE)
+          arktest.assertTrue(r["" + arr[3]] == Double.NEGATIVE_INFINITY && r["" + arr[4]] == Double.POSITIVE_INFINITY)
+          arktest.assertTrue(Double.isNaN(r["" + arr[5]] as Double) && r["99"] === undefined)
+          // string -> string
+          r["" + arr[3]] = "3"
+          r["" + arr[4]] = "4"
+          r["" + arr[5]] = "5"
+          arktest.assertTrue(r["" + arr[0]] == 0.0 && r["" + arr[1]] == Double.MIN_VALUE && r["" + arr[2]] == Double.MAX_VALUE)
+          arktest.assertTrue(r["" + arr[3]] == "3" && r["" + arr[4]] == "4")
+          arktest.assertTrue(r["" + arr[5]] == "5" && r["99"] === undefined)
+
+    - use: |-
+          // key is a union of number and string
+          let r: Record<number|string, Number|undefined> = {
+              0: 0,
+              1: 1,
+              2: 2,
+              "0": 10,
+              "1": 11,
+              "2": 12,
+          }
+          arktest.assertTrue(r[0] == 0 && r[1] == 1 && r[2] == 2 && r["0"] == 10 && r["1"] == 11 && r["2"] == 12 && r[3] == undefined && r["3"] == undefined)
+          r[1] = 100
+          r["1"] = r[1]! + 1
+          arktest.assertTrue(r[0] == 0 && r[1] == 100 && r[2] == 2 && r["0"] == 10 && r["1"] == 101 && r["2"] == 12 && r[3] == undefined && r["3"] == undefined)
+          r["0"] = 300
+          r[0] = r["0"]! + 1
+          arktest.assertTrue(r[0] == 301 && r[1] == 100 && r[2] == 2 && r["0"] == 300 && r["1"] == 101 && r["2"] == 12 && r[3] == undefined && r["3"] == undefined)
+          r["2"] = undefined
+          arktest.assertTrue(r[0] == 301 && r[1] == 100 && r[2] == 2 && r["0"] == 300 && r["1"] == 101 && r["2"] == undefined && r[3] == undefined && r["3"] == undefined)
+          r[2] = undefined
+          arktest.assertTrue(r[0] == 301 && r[1] == 100 && r[2] == undefined && r["0"] == 300 && r["1"] == 101 && r["2"] == undefined && r[3] == undefined && r["3"] == undefined)

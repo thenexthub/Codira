@@ -1,0 +1,3 @@
+build-sdk/sdk/icu
+build-sdk/sdk/icu/data
+build-sdk/sdk/icu/data/icudt72l.dat

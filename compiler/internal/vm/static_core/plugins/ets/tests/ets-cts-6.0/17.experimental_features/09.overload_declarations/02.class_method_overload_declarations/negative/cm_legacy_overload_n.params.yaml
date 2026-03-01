@@ -1,0 +1,425 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    - decl: |-
+          // override-equivalent signatures
+          class A {
+              meth(p: number) {}
+              meth(p: double) {}
+          }
+
+    - decl: |-
+          // override-equivalent signatures, different return types
+          class A {
+              meth(p: double): string { return "" + p }
+              meth(p: number): Error { return new Error() }
+          }
+
+    - decl: |-
+          type B = A
+          // override-equivalent signatures
+          class A {
+              meth(p: A) {}
+              meth(p: B) {}
+          }
+
+    - decl: |-
+          type B = A
+          // override-equivalent signatures, different return types
+          class A {
+              meth(p: A): string { return "" }
+              meth(p: B): B { return p }
+          }
+
+    - decl: |-
+          // override-equivalent signatures
+          class A {
+              meth(p: A|string|null) {}
+              meth(p: string|A|null) {}
+          }
+
+    - decl: |-
+          // override-equivalent signatures, different return types
+          class A {
+              meth(p: A|string|null): Error { return new Error() }
+              meth(p: string|A|null): string { return "" + p }
+          }
+    - decl: |-
+          // primitives and boxed
+          class A {
+              meth(p: Object): string { return "Object" } // should never be called
+              meth(p: byte): string { return "byte" }
+              meth(p: Short): string { return "short" }
+              meth(p: int): string { return "int" }
+              meth(p: Long): string { return "long" }
+              meth(p: Boolean): string { return "boolean" }
+              meth(p: float): string { return "float" }
+              meth(p: Double): string { return "double" }
+          }
+
+    - decl: |-
+          // primitives and boxed, with sub/superclass
+          abstract class B {
+              meth(p: Object): string { return "" } // should never be called
+              meth(p: byte): string { return "byte" }
+              meth(p: short): string { return "short" }
+              meth(p: int): string { return "int" }
+              meth(p: long): string { return "long" }
+              meth(p: boolean): string { return "boolean" }
+              meth(p: float): string { return "float" }
+              meth(p: double): string { return "double" }
+          }
+          class A extends B {
+              meth(p: Object): string { return "" } // should never be called
+              meth(p: byte): string { return "byte" }
+              meth(p: short): string { return "short" }
+              meth(p: int): string { return "int" }
+              meth(p: long): string { return "long" }
+              meth(p: Boolean): string { return "boolean" }
+              meth(p: Float): string { return "float" }
+              meth(p: Double): string { return "double" }
+          }
+
+    - decl: |-
+          // primitives and boxed, different return types
+          class A {
+              meth(p: Byte): Byte { return Byte.MAX_VALUE as Byte }
+              meth(p: short): short { return Short.MIN_VALUE }
+              meth(p: Int): Int { return Int.MAX_VALUE as Int }
+              meth(p: long): long { return Long.MIN_VALUE }
+              meth(p: boolean): boolean { return false as boolean }
+              meth(p: Float): Float { return Float.MAX_VALUE as Float }
+              meth(p: double): double { return Double.MIN_VALUE }
+          }
+
+    - decl: |-
+          // enums
+          enum Color { Red, Green=82, Blue }
+          enum Size { S="small", M="medium", L="large" }
+          class A {
+              meth(p: Object): string { return "" } // should never be called
+              meth(p: int): string { return "int" }
+              meth(p: string): string { return "string" }
+              meth(p: Color): string { return "Color" }
+              meth(p: Size): string { return "Size" }
+          }
+
+    - decl: |-
+          // enums, different return types
+          enum Color { Red, Green=82, Blue }
+          enum Size { S="small", M="medium", L="large" }
+          enum Status { ready, set, go }
+          class Ex extends Error {}
+          let ex: Ex = new Ex()
+          class A {
+              meth(p: Color): void { if (p.valueOf() >= 2) throw ex }
+              meth(p: Size): string { return "Size" }
+              meth(p: Status): Size { if (p.valueOf() >= 2) throw ex; else return Size.L }
+          }
+
+    - decl: |-
+          // enums, with sub/superclass
+          enum Color { Red, Green=82, Blue }
+          enum Size { S="small", M="medium", L="large" }
+          abstract class B {
+              meth(p: Object): string { return "" } // should never be called
+              meth(p: int): string { return "int" }
+              meth(p: Color): string { return "" }
+              meth(p: Size): string { return "Size" }
+              abstract meth(p: string): string
+          }
+          class A extends B {
+              meth(p: Object): string { return "" } // should never be called
+              meth(p: string): string { return "string" }
+              meth(p: Color): string { return "Color" }
+          }
+
+    - decl: |-
+          // arrays
+          enum Color { Red, Green = 82, Blue }
+          enum Size { S="small", M="medium", L="large" }
+          class A {
+              meth(p: Object): string { return "" } // should never be called
+              meth(p: FixedArray<A>): string { return "A" }
+              meth(p: FixedArray<Color>): string { return "Color" }
+              meth(p: FixedArray<Size>): string { return "Size" }
+              meth(p: FixedArray<Object>): string { return "Object" }
+              meth(p: FixedArray<Int>): string { return "Int" }
+              meth(p: FixedArray<Short>): string { return "Short" }
+              meth(p: FixedArray<Byte>): string { return "Byte" }          
+              meth(p: FixedArray<Long>): string { return "Long" }
+              meth(p: FixedArray<Boolean>): string { return "Boolean" }
+              meth(p: FixedArray<Float>): string { return "Float" }
+              meth(p: FixedArray<Double>): string { return "Double" }
+          }
+
+    - decl: |-
+          // arrays of primitives and boxed, different return types
+          class Ex extends Error {}
+          let ex: Ex = new Ex()
+          class A {
+              meth(p: byte[]): byte { if (p.length == 0) throw ex; else return Byte.MIN_VALUE }
+              meth(p: Byte[]): Byte { return Byte.MAX_VALUE as Byte }
+              meth(p: short[]): short { return Short.MIN_VALUE }
+              meth(p: Short[]): Short { if (p.length == 0) throw ex; else return Short.MAX_VALUE as Short }
+              meth(p: int[]): int { if (p.length == 0) throw ex; else return Int.MIN_VALUE }
+              meth(p: Int[]): Int { return Int.MAX_VALUE as Int }
+              meth(p: long[]): long { return Long.MIN_VALUE }
+              meth(p: Long[]): long { if (p.length == 0) throw ex; else return Long.MAX_VALUE as Long }
+              meth(p: boolean[]): boolean { return false }
+              meth(p: Boolean[]): Boolean { return true as Boolean }
+              meth(p: float[]): float { if (p.length == 0) throw ex; else return Float.MIN_VALUE }
+              meth(p: Float[]): Float { return Float.MAX_VALUE as Float }
+              meth(p: double[]): double { return Double.MIN_VALUE }
+              meth(p: Double[]): Double { if (p.length == 0) throw ex; else return Double.MAX_VALUE as Double }
+          }
+
+    - decl: |-
+          // arrays, from sub/superclass
+          enum Color { Red, Green = 82, Blue }
+          enum Size { S="small", M="medium", L="large" }
+          class B {
+              meth(p: Object): string { return "" } // should never be called
+              meth(p: FixedArray<A>): string { return "A" }
+              meth(p: FixedArray<Object>): string { return "" }
+              meth(p: FixedArray<byte>): string { return "" }
+              meth(p: FixedArray<short>): string { return "short" }
+              meth(p: FixedArray<int>): string { return "int" }
+              meth(p: FixedArray<long>): string { return "" }
+              meth(p: FixedArray<boolean>): string { return "boolean" }
+              meth(p: FixedArray<float>): string { return "" }
+              meth(p: FixedArray<double>): string { return "" }
+              meth(p: FixedArray<Byte>): string { return "" }
+              meth(p: FixedArray<Short>): string { return "" }
+              meth(p: FixedArray<Int>): string { return "" }
+              meth(p: FixedArray<Long>): string { return "" }
+              meth(p: FixedArray<Boolean>): string { return "" }
+              meth(p: FixedArray<Float>): string { return "Float" }
+              meth(p: FixedArray<Double>): string { return "" }
+              meth(p: FixedArray<Color>): string { return "" }
+              meth(p: FixedArray<Size>): string { return "Size" }
+          }
+          class A extends B {
+              meth(p: Object): string { return "" } // should never be called
+              meth(p: FixedArray<Object>): string { return "Object" }
+              meth(p: FixedArray<byte>): string { return "byte" }
+              meth(p: FixedArray<long>): string { return "long" }
+              meth(p: FixedArray<float>): string { return "float" }
+              meth(p: FixedArray<double>): string { return "double" }
+              meth(p: FixedArray<Byte>): string { return "Byte" }
+              meth(p: FixedArray<Short>): string { return "Short" }
+              meth(p: FixedArray<Int>): string { return "Int" }
+              meth(p: FixedArray<Long>): string { return "Long" }
+              meth(p: FixedArray<Boolean>): string { return "Boolean" }
+              meth(p: FixedArray<Double>): string { return "Double" }
+              meth(p: FixedArray<Color>): string { return "Color" }
+          }
+
+    - decl: |-
+          // tuples
+          type T = [number, string]
+          type R = [number, boolean]
+          class A {
+              meth(p: Object): string { return "" } // should never be called
+              meth(p: T): string { return "T" }
+              meth(p: R): string { return "R" }
+              meth(p: FixedArray<number>): string { return "number" }
+              meth(p: FixedArray<string>): string { return "string" }
+              meth(p: boolean): string { return "boolean" }
+          }
+
+    - decl: |-
+          // tuples, different return types
+          type T = [number, string]
+          type R = [number, boolean]
+          class Ex extends Error {}
+          let ex: Ex = new Ex()
+          class A {
+              meth(p: Object): string { return "" } // should never be called
+              meth(p: T): int { return 33 }
+              meth(p: R): string { if (p[0] == 0) throw ex; else return "R" }
+          }
+
+    - decl: |-
+          // tuples with sub/superclass
+          type T = [number, string]
+          type R = [number, boolean]
+          abstract class B {
+              meth(p: Object): string { return "" } // should never be called
+              meth(p: T): string { return "" }
+              meth(p: R): string { return "R" }
+              meth(p: FixedArray<number>): string { return "" }
+              meth(p: FixedArray<string>): string { return "string" }
+              meth(p: boolean): string { return "boolean" }
+          }
+          class A extends B {
+              meth(p: Object): string { return "" } // should never be called
+              meth(p: [number, string]): string { return "T" }
+              meth(p: FixedArray<number>): string { return "number" }
+          }
+
+    - decl: |-
+          // unions
+          type U=number|string
+          type V=Boolean|Double
+          class A {
+              meth(p: Object): string { return "" } // should never be called
+              meth(p: U): string { return "U" }
+              meth(p: V): string { return "V" }
+              meth(p: number): string { return "number" }
+              meth(p: Boolean): string { return "Boolean" }
+              meth(p: string): string { return "string" }
+          }
+
+    - decl: |-
+          // unions with sub/superclass
+          type U=number|string
+          type V=Boolean|Double
+          class B {
+              meth(p: Object): string { return "" } // should never be called
+              meth(p: U): string { return "U" }
+              meth(p: V): string { return "" }
+              meth(p: Boolean): string { return "" }
+              meth(p: string): string { return "string" }
+          }
+          class A extends B {
+              meth(p: Object): string { return "" } // should never be called
+              meth(p: V): string { return "V" }
+              meth(p: number): string { return "number" }
+              meth(p: Boolean): string { return "Boolean" }
+          }
+
+    - decl: |-
+          // unions, different return types
+          type U=number|string
+          type V=Boolean|Double
+          class Ex extends Error {}
+          let ex: Ex = new Ex()
+          class A {
+              meth(p: Object): string { return "" } // should never be called
+              meth(p: U): int {
+                  if (p instanceof Number) {
+                      throw ex
+                  } else {
+                      return 333
+                  }
+              }
+              meth(p: V): number { return 1.0 }
+          }
+
+    - decl: |-
+          // function types
+          type FF=(p: number) => string
+          type EE=(p: string) => number
+          class A {
+              meth(p: Object): string { return "" } // should never be called
+              meth(p: () => void): string { return "void-void" }
+              meth(p: (p: number) => void): string { return "number-void" }
+              meth(p: FF): string { return "FF" }
+              meth(p: EE): string { return "EE" }
+          }
+
+    - decl: |-
+          // function types with sub/superclass
+          type FF=(p: number) => string
+          type EE=(p: string) => number
+          abstract class B {
+              meth(p: Object): string { return "" } // should never be called
+              meth(p: () => void): string { return "" }
+              meth(p: FF): string { return "FF" }
+              meth(p: EE): string { return "" }
+          }
+          class A extends B {
+              meth(p: Object): string { return "" } // should never be called
+              meth(p: () => void): string { return "void-void" }
+              meth(p: (p: number) => void): string { return "number-void" }
+              meth(p: (p: string) => number): string { return "EE" }
+          }
+
+    - decl: |-
+          // function types, different return types
+          type FF=(p: number) => string
+          type EE=(p: string) => number
+          class Ex extends Error {}
+          let ex: Ex = new Ex()
+          class A {
+              meth(p: Object): string { return "" } // should never be called
+              meth(p: FF): string {
+                  if (ex instanceof Ex) {
+                      return "FF"
+                  } else {
+                      throw ex
+                  }
+              }
+              meth(p: EE): int { return 12 }
+          }
+
+    - decl: |-
+          // nullish types with different return types
+          type S=string
+          type SN=string|null
+          type SU=string|undefined
+          type SNU=string|null|undefined
+          class Ex extends Error {}
+          let ex: Ex = new Ex()
+          class A {
+              meth(p: Object|null|undefined): string { return "" } // should never be called
+              meth(p: SN): string { if (ex instanceof Ex) return "SN"; else throw ex }
+              meth(p: SU): number { return 1.0 }
+              meth(p: SNU): boolean { if (p==null) throw ex; else return true }
+              meth(p: S): Error { return ex }
+          }
+
+    - decl: |-
+          // nullish types
+          type S=string
+          type SN=string|null
+          type SU=string|undefined
+          type SNU=string|null|undefined
+          class A {
+              meth(p: Object|null|undefined): string { return "" } // should never be called
+              meth(p: SN): string { return "SN" }
+              meth(p: SU): string { return "SU" }
+              meth(p: SNU): string { return "SNU" }
+              meth(p: S): string { return "S" }
+          }
+
+    - decl: |-
+          // nullish types with sub/superclass
+          type S=string
+          type SN=string|null
+          type SU=string|undefined
+          type SNU=string|null|undefined
+          class B {
+              meth(p: Object|null|undefined): string { return "" } // should never be called
+              meth(p: SN): string { return "" }
+              meth(p: SU): string { return "SU" }
+              meth(p: S): string { return "" }
+          }
+          class A extends B {
+              meth(p: Object|null|undefined): string { return "" } // should never be called
+              meth(p: SN): string { return "SN" }
+              meth(p: SNU): string { return "SNU" }
+              meth(p: S): string { return "S" }
+          }

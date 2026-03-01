@@ -1,0 +1,371 @@
+# Copyright (c) 2024-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          // classes, methods of any type
+          class A {
+              meth(): Object|null|undefined {
+                  return undefined
+              }
+          }
+          class B {
+              meth(): Object|null|undefined {
+                  return null
+              }
+          }
+          let u1: A|B = new A
+          let u2: A|B = new B
+      use: |-
+          arktest.assertTrue(u1.meth() === undefined)
+          arktest.assertTrue(u2.meth() === null)
+
+    - decl: |-
+          // classes, methods of number type
+          class A {
+              meth(): number {
+                  return 42.0
+              }
+          }
+          class B {
+              meth(): number {
+                  return 0
+              }
+          }
+          let u1: A|B = new A
+          let u2: A|B = new B
+      use: |-
+          arktest.assertEQ(u1.meth(), 42.0)
+          arktest.assertEQ(u2.meth(), 0e0)
+
+    - decl: |-
+          // classes, methods of bigint type
+          class A {
+              meth(p: string): bigint {
+                  return 42n
+              }
+          }
+          class B {
+              meth(p: string): bigint {
+                  return 33n
+              }
+          }
+          let u1: A|B = new A
+          let u2: A|B = new B
+      use: |-
+          arktest.assertEQ(u1.meth(''), 42n)
+          arktest.assertEQ(u2.meth(''), 33n)
+
+    - decl: |-
+          // classes, methods of Integral type
+          class A {
+              meth(p: Integral): string {
+                  return 'a' + p
+              }
+          }
+          class B {
+              meth(p: Integral): string {
+                  return 'b' + p
+              }
+          }
+          let u1: A|B = new A
+          let u2: A|B = new B
+      use: |-
+          arktest.assertEQ(u1.meth(new Int(42)), 'a42')
+          arktest.assertEQ(u2.meth(new Short()), 'b0')
+
+    - decl: |-
+          // classes, methods of Error type
+          class A {
+              meth(p: Object): Error {
+                  return new Error('a')
+              }
+          }
+          class B {
+              meth(p: Object): Error {
+                  return new Error('b')
+              }
+          }
+          let u1: A|B = new A
+          let u2: A|B = new B
+      use: |-
+          arktest.assertEQ(u1.meth(new Object()).message, 'a')
+          arktest.assertEQ(u2.meth(new Object()).message, 'b')
+
+    - decl: |-
+          // classes, methods of union literal type
+          class A {
+              meth(p: 'a'|'b'): 'a'|'b'|'c' {
+                  return 'a'
+              }
+          }
+          class B {
+              meth(p: 'a'|'b'): 'a'|'b'|'c'|'b'|'a' {
+                  return 'b'
+              }
+          }
+          let u1: A|B = new A
+          let u2: A|B = new B
+      use: |-
+          arktest.assertEQ(u1.meth('b'), 'a')
+          arktest.assertEQ(u2.meth('a'), 'b')
+
+    - decl: |-
+          // classes, methods of union type
+          class A {
+              meth(): number|null|string {
+                  return 42.0
+              }
+          }
+          class B {
+              meth(): 'a'|null|string|number|never {
+                  return 'a'
+              }
+          }
+          let u1: A|B = new A
+          let u2: A|B = new B
+      use: |-
+          arktest.assertEQ(u1.meth(), 42.0)
+          arktest.assertEQ(u2.meth(), 'a')
+
+    - decl: |-
+          // classes, methods of array type
+          class A {
+              meth(p?: number|string|'a'|'b'): string[] {
+                  return ['a', 'b']
+              }
+          }
+          class B {
+              meth(p?: number|string): string[] {
+                  return ['c', 'd', 'e']
+              }
+          }
+          let u1: A|B = new A
+          let u2: A|B = new B
+      use: |-
+          arktest.assertEQ(u1.meth()[0], 'a')
+          arktest.assertEQ(u2.meth()[2], 'e')
+
+    - decl: |-
+          // classes, methods of tuple type
+          class A {
+              meth(p: int = 1): [number, string] {
+                  return [42.0, 'a']
+              }
+          }
+          class B {
+              meth(p: int = 2): [number, string] {
+                  return [33.0, 'b']
+              }
+          }
+          let u1: A|B = new A
+          let u2: A|B = new B
+      use: |-
+          arktest.assertEQ(u1.meth()[0], 42.0)
+          arktest.assertEQ(u2.meth()[1], 'b')
+
+    - decl: |-
+          // classes, methods of Record type
+          class A {
+              meth(p: null|char[]): Record<string, number> {
+                  return { 'a': 11.0 }
+              }
+          }
+          class B {
+              meth(p: char[]|null): Record<string, number> {
+                  return { 'b': 22e0 }
+              }
+          }
+          let u1: A|B = new A
+          let u2: A|B = new B
+      use: |-
+          arktest.assertEQ(u1.meth(null)['a'], 11.0)
+          arktest.assertEQ(u2.meth(null)['b'], 22.0)
+
+    - decl: |-
+          // classes, methods of function type
+          class A {
+              meth(p: 'a'): (p: string) => number {
+                  return (p: string): number => p.length + 1
+              }
+          }
+          class B {
+              meth(q: 'a'): (p: string) => number {
+                  return (p: string): number => p.length + 10
+              }
+          }
+          let u1: A|B = new A
+          let u2: A|B = new B
+      use: |-
+          arktest.assertEQ(u1.meth('a')('abc'), 4.0)
+          arktest.assertEQ(u2.meth('a')('abc'), 13.0)
+
+    - decl: |-
+          // classes, methods of type parameters
+          class A<T> {
+              fld: T
+              meth(): T {
+                  return this.fld
+              }
+              constructor(p: T) {
+                  this.fld = p
+              }
+          }
+          class B {
+              meth(): string {
+                  return 'b'
+              }
+          }
+          let u1: A<string>|B = new A<string>('a')
+          let u2: A<string>|B = new B
+      use: |-
+          arktest.assertEQ(u1.meth(), 'a')
+          arktest.assertEQ(u2.meth(), 'b')
+
+    - decl: |-
+          // classes, methods of enum type
+          enum Color { Red, Green, Blue }
+          class A {
+              meth(...arr: number[]): Color {
+                  return Color.Green
+              }
+          }
+          class B {
+              meth(...arr: number[]): Color {
+                  return Color.Blue
+              }
+          }
+          let u1: A|B = new A
+          let u2: A|B = new B
+      use: |-
+          let arr: number[] = []
+          arktest.assertEQ(u1.meth(...arr), Color.Green)
+          arktest.assertEQ(u2.meth(...arr), Color.Blue)
+
+    - decl: |-
+          // interface one - classes, methods of any type
+          interface I { meth(): Object|null|undefined }
+          class A implements I {
+              meth(): Object|null|undefined {
+                  return undefined
+              }
+          }
+          class B {
+              meth(): Object|null|undefined {
+                  return null
+              }
+          }
+          let u1: A|B = new A
+          let u2: A|B = new B
+      use: |-
+          arktest.assertTrue(u1.meth() === undefined)
+          arktest.assertTrue(u2.meth() === null)
+
+    - decl: |-
+          // interface both - classes, methods of any type
+          interface I { meth(): Object|null|undefined }
+          interface J { meth(): Object|null|undefined }
+          class A implements I {
+              meth(): Object|null|undefined {
+                  return undefined
+              }
+          }
+          class B implements J {
+              meth(): Object|null|undefined {
+                  return null
+              }
+          }
+          let u1: A|B = new A
+          let u2: A|B = new B
+      use: |-
+          arktest.assertTrue(u1.meth() === undefined)
+          arktest.assertTrue(u2.meth() === null)
+
+    - decl: |-
+          // interface one - classes, methods of any type, union with interface
+          interface I { meth(): Object|null|undefined }
+          class A implements I {
+              meth(): Object|null|undefined {
+                  return undefined
+              }
+          }
+          class B {
+              meth(): Object|null|undefined {
+                  return null
+              }
+          }
+          let u1: I|B = new A
+          let u2: I|B = new B
+      use: |-
+          arktest.assertTrue(u1.meth() === undefined)
+          arktest.assertTrue(u2.meth() === null)
+
+    - decl: |-
+          // interface both - classes, methods of any type, union with interface
+          interface I { meth(): Object|null|undefined }
+          interface J { meth(): Object|null|undefined }
+          class A implements I {
+              meth(): Object|null|undefined {
+                  return undefined
+              }
+          }
+          class B implements J {
+              meth(): Object|null|undefined {
+                  return null
+              }
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertTrue(u1.meth() === undefined)
+          arktest.assertTrue(u2.meth() === null)
+
+    - decl: |-
+          // classes, methods of any type, one extends
+          class A {
+              meth(): Object|null|undefined {
+                  return undefined
+              }
+          }
+          class B {
+              meth(): Object|null|undefined {
+                  return null
+              }
+          }
+          class C extends A {}
+          let u1: A|B = new C
+          let u2: A|B = new B
+      use: |-
+          arktest.assertTrue(u1.meth() === undefined)
+          arktest.assertTrue(u2.meth() === null)
+
+    - decl: |-
+          // classes, methods of any type, both extend
+          class A {
+              meth(): Object|null|undefined {
+                  return undefined
+              }
+          }
+          class B {
+              meth(): Object|null|undefined {
+                  return null
+              }
+          }
+          class C extends A {}
+          class D extends B {}
+          let u1: A|B = new C
+          let u2: A|B = new D
+      use: |-
+          arktest.assertTrue(u1.meth() === undefined)
+          arktest.assertTrue(u2.meth() === null)

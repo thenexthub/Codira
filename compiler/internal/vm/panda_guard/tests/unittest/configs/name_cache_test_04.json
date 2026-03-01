@@ -1,0 +1,19 @@
+{
+  "/entry/src/test1/test2.ets": {
+    "IdentifierCache": {
+      "#test3": "c"
+    },
+    "MemberMethodCache": {
+      "test7:9:18": "g"
+    },
+    "obfName": "/entry/src/a/b.ets"
+  },
+  "entryPackageInfo": "entry|1.0.0",
+  "compileSdkVersion": "5.0.0.1",
+  "PropertyCache": {
+    "test3": "c"
+  },
+  "FileNameCache": {
+    "test1": "a"
+  }
+

@@ -1,0 +1,105 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - type: 'Any'
+    decl: 'let elem: Any = null'
+    init: '[elem, elem]'
+
+  - type: 'undefined'
+    init: '[undefined, undefined]'
+
+  - type: 'null'
+    init: '[null, null]'
+
+  - type: 'byte'
+    decl: 'let elem: byte = 1'
+    init: '[elem, elem]'
+
+  - type: 'short'
+    decl: 'let elem: short = 1'
+    init: '[elem, elem]'
+
+  - type: 'int'
+    init: '[1, 1]'
+
+  - type: 'long'
+    init: '[2147483648, 2147483648]'
+
+  - type: 'float'
+    init: '[1.0f, 1.0f]'
+
+  - type: 'double'
+    init: '[1.0, 1.0]'
+
+  - type: 'bigint'
+    init: '[1n, 1n]'
+
+  - type: 'boolean'
+    init: '[true, false]'
+
+  - type: 'char'
+    init: "[c'a', c'a']"
+
+  - type: 'string'
+    init: '["string", "string"]'
+
+  - type: 'Object'
+    decl: 'let elem: Object = new Object()'
+    init: '[elem, elem]'
+
+  - type: '[string, int]'
+    decl: 'let elem: [string, int] = ["string", 1]'
+    init: '[elem, elem]'
+
+  - type: '"aa"'
+    init: '["aa", "aa"]'
+
+  - top_decl: 'class A {}'
+    type: 'A'
+    decl: 'let elem: A = new A'
+    init: '[elem, elem]'
+
+  - top_decl: |-
+      interface I {}
+      class A implements I {}
+    type: 'I'
+    decl: 'let elem: I = new A()'
+    init: '[elem, elem]'
+
+  - top_decl: 'class A<T> {}'
+    type: 'A<int>'
+    decl: 'let elem: A<int> = new A<int>'
+    init: '[elem, elem]'
+
+  - top_decl: |-
+      interface I<T> {}
+      class A<T> implements I<T> {}
+    type: 'I<int>'
+    decl: 'let elem: I<int> = new A<int>()'
+    init: '[elem, elem]'
+
+  - top_decl: 'enum Color { Red, Green, Blue }'
+    type: 'Color'
+    init: '[Color.Red, Color.Green]'
+
+  - top_decl: |-
+      type foo_type = (a: string) => string
+    type: 'foo_type'
+    decl: 'let elem: foo_type = (a: string) => a'
+    init: '[elem, elem]'
+
+syntax:
+  - square
+  - diamond

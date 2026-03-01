@@ -1,0 +1,97 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    - descr: Less specific signature appended to more specific one
+      decl: |-
+        class A {}
+        class B {}
+        function foo(v: A): number { return 1 }
+        function foo<T>(v: T): number { return 2 }
+      call: |-
+        arktest.assertEQ(foo(new A), 1, 'foo1 call expected');
+        arktest.assertEQ(foo(new B), 2, 'foo2 call expected');
+
+    - descr: More specific signature prepended to less specific one
+      decl: |-
+        class A {}
+        class B {}
+        function foo<T>(v: T): number { return 1 }
+        function foo(v: A): number { return 2 }
+      call: |-
+        arktest.assertEQ(foo(new A), 1, 'foo1 call expected');
+        arktest.assertEQ(foo(new B), 1, 'foo1 call expected');
+
+    - descr: Less specific signature appended to more specific one
+      decl: |-
+        class A1 {}
+        class A2 extends A1 {}
+        function foo(v: A2): number { return 1 }
+        function foo<T extends A1>(v: T): number { return 2 }
+      call: |-
+        arktest.assertEQ(foo(new A1), 2, 'foo2 call expected');
+        arktest.assertEQ(foo(new A2), 1, 'foo1 call expected');
+
+    - descr: More specific signature prepended to less specific one
+      decl: |-
+        class A1 {}
+        class A2 extends A1 {}
+        function foo<T extends A1>(v: T): number { return 1 }
+        function foo(v: A2): number { return 2 }
+      call: |-
+        arktest.assertEQ(foo(new A1), 1, 'foo1 call expected');
+        arktest.assertEQ(foo(new A2), 1, 'foo1 call expected');
+
+    - descr: Less specific signature in derived class
+      decl: |-
+        class A1 {}
+        class A2 extends A1 {}
+        class C1<T> {
+          foo(v: T): string { return 'foo1' }
+        }
+        class C2 extends C1<A2> {
+          foo(v: A1): string { return 'foo2' } // Overrides foo1
+        }
+      call: |-
+        let a1 = new A1;
+        let a2 = new A2;
+        let c2 = new C2;
+        arktest.assertEQ(c2.foo(a1), 'foo2', 'foo2 call expected');
+        arktest.assertEQ(c2.foo(a2), 'foo2', 'foo2 call expected');
+
+    - descr: More specific signature prepended to less specific one
+      decl: |-
+        class A1 {}
+        class A2 extends A1 {}
+        class C1<T> {
+          foo(v: T): string { return 'foo1' }
+        }
+        class C2 extends C1<A1> {
+          foo(v: A2): string { return 'foo2' }
+        }
+      call: |-
+        let a1 = new A1;
+        let a2 = new A2;
+        let c2 = new C2;
+        arktest.assertEQ(c2.foo(a1), 'foo1', 'foo1 call expected');
+        arktest.assertEQ(c2.foo(a2), 'foo2', 'foo2 call expected');

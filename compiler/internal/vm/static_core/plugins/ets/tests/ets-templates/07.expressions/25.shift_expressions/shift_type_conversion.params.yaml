@@ -1,0 +1,145 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of shift operator with type conversion test cases
+cases:
+  - {
+      desc: "Left shift operator on byte and short",
+      lo_type: "byte",
+      lo_value: "0b101",
+      shift_op: "<<", 
+      ro_type: "short",
+      ro_value: "0b1",
+      result_type: "int",
+      result_value: "0b1010"
+    }
+  - {
+      desc: "Signed right shift operator on short and byte",
+      lo_type: "short",
+      lo_value: "0b101",
+      shift_op: ">>", 
+      ro_type: "byte",
+      ro_value: "0b1",
+      result_type: "int",
+      result_value: "0b10"
+    }
+  - {
+      desc: "Unsigned right shift operator on short and long",
+      lo_type: "short",
+      lo_value: "0b101",
+      shift_op: ">>", 
+      ro_type: "long",
+      ro_value: "0b1",
+      result_type: "int",
+      result_value: "0b10"
+    }
+  - {
+      desc: "Left shift operator on byte and long",
+      lo_type: "byte",
+      lo_value: "0b101",
+      shift_op: "<<", 
+      ro_type: "long",
+      ro_value: "0b1",
+      result_type: "int",
+      result_value: "0b1010"
+    }
+  - {
+      desc: "Signed right shift operator on long and byte",
+      lo_type: "long",
+      lo_value: "0b101",
+      shift_op: ">>", 
+      ro_type: "byte",
+      ro_value: "0b1",
+      result_type: "long",
+      result_value: "0b10"
+    }
+  - {
+      desc: "Unsigned right shift operator on int and long",
+      lo_type: "int",
+      lo_value: "0b101",
+      shift_op: ">>", 
+      ro_type: "long",
+      ro_value: "0b1",
+      result_type: "int",
+      result_value: "0b10"
+    }
+  - {
+      desc: "Left shift operator on byte and long",
+      lo_type: "byte",
+      lo_value: "0b101",
+      shift_op: "<<", 
+      ro_type: "long",
+      ro_value: "0b1",
+      result_type: "int",
+      result_value: "0b1010"
+    }
+  - {
+      desc: "Signed right shift operator on long and short",
+      lo_type: "long",
+      lo_value: "0b101",
+      shift_op: ">>", 
+      ro_type: "short",
+      ro_value: "0b1",
+      result_type: "long",
+      result_value: "0b10"
+    }
+  - {
+      desc: "Unsigned 6 bits right shift operator on float and long",
+      lo_type: "float",
+      lo_value: "0b0010_1000_0000_0000_0000_0000",
+      shift_op: ">>>", 
+      ro_type: "long",
+      ro_value: "0b11_0011",
+      result_type: "int",
+      result_value: "0b101"
+    }
+  - {
+      desc: "Left 6 bits shift operator on double and float both truncated",
+      lo_type: "double",
+      lo_value: "9.83",
+      shift_op: "<<", 
+      ro_type: "float",
+      ro_value: "33.011f",
+      result_type: "long",
+      result_value: "0b0001_0010_0000_0000_0000_0000_0000_0000_0000_0000"
+    }
+  - {
+      desc: "Signed 6 bits right shift operator on int and double truncated",
+      lo_type: "int",
+      lo_value: "0b101",
+      shift_op: ">>", 
+      ro_type: "double",
+      ro_value: "34.45",
+      result_type: "int",
+      result_value: "0b1"
+    }
+  - {
+      desc: "Left shift operator on bigint and bigint",
+      lo_type: "bigint",
+      lo_value: "7552n",
+      shift_op: "<<", 
+      ro_type: "bigint",
+      ro_value: "35n",
+      result_type: "bigint",
+      result_value: "259484744155136n"
+    }
+  - {
+      desc: "Signed right shift operator on bigint and bigint",
+      lo_type: "bigint",
+      lo_value: "7853695147552n",
+      shift_op: ">>", 
+      ro_type: "bigint",
+      ro_value: "35n",
+      result_type: "bigint",
+      result_value: "228n"
+    }

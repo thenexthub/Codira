@@ -1,0 +1,13 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep class class_test_012.ClassB {\n    public f?:%;\n    }",
+        "-keep class class_test_012.ClassC {\n    public foo1():{U%,%};\n    }"
+      ]
+    }
+  }
+}

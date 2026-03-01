@@ -1,0 +1,62 @@
+# 348
+ets-common-tests/atomics/nonconcurrent_signed_unsigned_operations_test.ets
+
+# 30894
+ets-common-tests/taskpool/common_tasks.ets
+
+# 28002
+ets-common-tests/imported_modules_TL_exec_2/a.ets
+ets-common-tests/imported_modules_TL_exec_1/a.ets
+
+# 24932
+# TypeError: Cannot use type 'void' as value.  [cast_type_lambda.ets:41:16]
+ets-common-tests/lambda/cast_type_lambda.ets
+
+# 249333
+# E/verifier: Cannot link class: Cannot find field 'int_1' in class 'ambient_const_vars.ETSGLOBAL'
+ets-common-tests/exporting-ambient-decl/main.ets
+
+# 25057
+ets-common-tests/annotation_import_export_test/AmbientImportAl.ets
+
+#31108
+ets-common-tests/atomics/base_operation_add.ets
+ets-common-tests/atomics/base_operation_and.ets
+
+#32560
+ets-common-tests/atomics/base_operation_compare_exchange.ets
+
+#31217
+ets-common-tests/atomics/base_operation_sub.ets
+
+#31104
+ets-common-tests/atomics/base_operation_or.ets
+
+#31918
+ets-common-tests/atomics/base_operation_store.ets
+
+#31166
+ets-common-tests/atomics/base_operation_xor.ets
+
+#32070
+ets-common-tests/atomics/base_operation_biguint.ets
+
+#32837
+ets-common-tests/taskpool/asyncrunner_tasks.ets
+
+#31210
+ets-common-tests/taskpool/long_task.ets
+
+# 24986
+ets-common-tests/generics/generics_methods.ets
+ets-common-tests/intrinsics/bigint64array_sort.ets
+ets-common-tests/intrinsics/uint32array_sort.ets
+
+#32560
+ets-common-tests/atomics/base_operation_compare_exchange.ets
+
+#32382
+ets-common-tests/atomics/base_operation_load.ets
+
+#32032
+ets-common-tests/atomics/base_operation_exchange.ets

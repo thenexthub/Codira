@@ -1,0 +1,28 @@
+{
+  "entry.src.main.ets.file_1.ets": {
+    "#obfName": "a.ets",
+    "foo()void": "a",
+    "foo(i32)void": "a",
+    "foo1()void": "b",
+    "foo1(i32)void": "a",
+    "Anno": "c",
+    "ClassA": {
+      "#obfName": "d",
+      "sField": "a",
+      "field1": "b",
+      "field2 f64": "c",
+      "method1()void": "d",
+      "method1(std.core.String)void": "d",
+      "method2()void": "e",
+      "method2(i32)void": "d"
+    },
+    "Color": {
+      "#obfName": "e",
+      "RED entry.src.main.ets.file_1.Color": "a",
+      "GREEN entry.src.main.ets.file_1.Color": "b",
+      "BLUE entry.src.main.ets.file_1.Color": "c"
+    },
+    "VAR1": "f",
+    "VAR2": "g"
+  }
+}

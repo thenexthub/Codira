@@ -1,0 +1,102 @@
+/*
+ * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// NOLINTNEXTLINE(readability-function-size)
+const char *GetIntrinsicInternalName(ark::compiler::RuntimeInterface::IntrinsicId id)
+{
+#ifndef NDEBUG
+    switch (id) {
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_FMOD:
+            return "__panda_intrinsic_LibCallFmod";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_FMODF:
+            return "__panda_intrinsic_LibCallFmodF";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_LDEXP:
+            return "__panda_intrinsic_LibCallLdExp";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_LDEXPF:
+            return "__panda_intrinsic_LibCallLdExpF";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_EXP2:
+            return "__panda_intrinsic_LibCallExp2";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_EXP2F:
+            return "__panda_intrinsic_LibCallExp2F";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_MEM_COPY:
+            return "__panda_intrinsic_LibCallMemCopy";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_MEM_MOVE:
+            return "__panda_intrinsic_LibCallMemMove";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_MEM_SET:
+            return "__panda_intrinsic_LibCallMemSet";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_MEMSET_8:
+            return "__panda_intrinsic_LibCallMemSet8";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_MEMSET_16:
+            return "__panda_intrinsic_LibCallMemSet16";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_MEMSET_32:
+            return "__panda_intrinsic_LibCallMemSet32";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_MEMSET_64:
+            return "__panda_intrinsic_LibCallMemSet64";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_MEMSET_F32:
+            return "__panda_intrinsic_LibCallMemSetF32";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_MEMSET_F64:
+            return "__panda_intrinsic_LibCallMemSetF64";
+% Runtime::intrinsics.each do |intrinsic|
+        case ark::compiler::RuntimeInterface::IntrinsicId::<%= intrinsic.enum_name %>:
+            return "<%= intrinsic.llvm_internal_name %>";
+% end
+        default:
+            ASSERT_DO(false, (std::cerr << "Cannot get intrinsic name by IntrinsicId = " << static_cast<int>(id)
+                                        << std::endl));
+            UNREACHABLE();
+    }
+#else
+    switch (id) {
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_FMOD:
+            return "<%= 'lc_' + 1.to_s(16)  %>";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_FMODF:
+            return "<%= 'lc_' + 2.to_s(16)  %>";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_LDEXP:
+            return "<%= 'lc_' + 3.to_s(16)  %>";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_LDEXPF:
+            return "<%= 'lc_' + 4.to_s(16)  %>";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_EXP2:
+            return "<%= 'lc_' + 5.to_s(16)  %>";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_EXP2F:
+            return "<%= 'lc_' + 6.to_s(16)  %>";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_MEM_COPY:
+            return "<%= 'lc_' + 7.to_s(16)  %>";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_MEM_MOVE:
+            return "<%= 'lc_' + 8.to_s(16)  %>";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_MEM_SET:
+            return "<%= 'lc_' + 9.to_s(16)  %>";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_MEMSET_8:
+            return "<%= 'lc_' + 10.to_s(16)  %>";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_MEMSET_16:
+            return "<%= 'lc_' + 11.to_s(16)  %>";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_MEMSET_32:
+            return "<%= 'lc_' + 12.to_s(16)  %>";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_MEMSET_64:
+            return "<%= 'lc_' + 13.to_s(16)  %>";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_MEMSET_F32:
+            return "<%= 'lc_' + 14.to_s(16)  %>";
+        case ark::compiler::RuntimeInterface::IntrinsicId::LIB_CALL_MEMSET_F64:
+            return "<%= 'lc_' + 15.to_s(16)  %>";
+% Runtime::intrinsics.each_with_index do |intrinsic, index|
+        case ark::compiler::RuntimeInterface::IntrinsicId::<%= intrinsic.enum_name %>:
+            return "<%= 'i_' + index.to_s(16) %>";
+% end
+        default:
+            ASSERT_DO(false, (std::cerr << "Cannot get intrinsic name by IntrinsicId = " << static_cast<int>(id)
+                                        << std::endl));
+            UNREACHABLE();
+    }
+#endif
+}

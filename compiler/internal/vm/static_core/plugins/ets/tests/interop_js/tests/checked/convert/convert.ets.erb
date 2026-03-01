@@ -1,0 +1,166 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+% imports = ['deepEqual', 'js_set', 'js_check_set'] + @type_infos.map { |type_info| "js_get_#{type_info.name}" }
+import { <%= imports.join(', ') %> }
+    from "convert.js"
+
+class EtsClass {
+    int_value: int;
+    constructor(value: int) {
+        this.int_value = value;
+    }
+}
+
+class OtherEtsClass {
+    int_value: int;
+    constructor(value: int) {
+        this.int_value = value;
+    }
+}
+
+let const_obj = new EtsClass(1);
+function create_obj(): EtsClass | null {
+    return new EtsClass(1);
+}
+function create_null_obj(): EtsClass | null {
+    return null;
+}
+
+//! CHECKER      Test utility js method deepEqual
+//! RUN          entry: "convert.test_deep_equal", options: "--compiler-enable-jit=false"
+
+function js_set_object_for_equal(index: int, value: EtsClass | null): int {
+    return js_set(index, value) as int;
+}
+
+function test_deep_equal(): int {
+    js_set_object_for_equal(0, create_obj());
+    let obj = create_obj();
+    js_set_object_for_equal(1, obj);
+    if (js_check_set() as int != 0) {
+        return -1;
+    }
+    obj!.int_value = 2;
+    js_set_object_for_equal(1, obj);
+    if (js_check_set() as int == 0) {
+        return -2;
+    }
+    obj!.int_value = 1;
+    js_set_object_for_equal(1, obj);
+    if (js_check_set() as int != 0) {
+        return -3;
+    }
+    let other_class_obj = new OtherEtsClass(1);
+    if (js_set(1, other_class_obj) as int != 1) {
+        return 1;
+    }
+    if (js_check_set() as int == 0) {
+        return -4;
+    }
+    return 0;
+}
+
+% @type_infos.each do |type_info|
+% if type_info.unwrap
+//! CHECKER      call_js_get_<%= type_info.name %> compare INT and JIT
+//! RUN          entry: "test_js_get_<%= type_info.name %>", options: "--compiler-enable-jit=true --compiler-hotness-threshold=1 --no-async-jit true --compiler-regex=convert.ETSGLOBAL::call_js_get_<%= type_info.name %>"
+//! EVENT        /Compilation,convert.ETSGLOBAL::call_js_get_<%= type_info.name %>,.*,COMPILED/
+//! METHOD       "call_js_get_<%= type_info.name %>"
+//! PASS_AFTER   "IrBuilder"
+//! INST_NOT     /CallStatic.*jscall::\$_invoke/
+//! INST         "Intrinsic.CompilerJSCallFunction"
+//! INST_NEXT    "Intrinsic.CompilerConvertLocalToJSValue"
+% if ["String","boolean", "double"].include?(type_info.name)
+//! INST_NEXT    "Intrinsic.JSRuntimeGetValue<%= type_info.name.capitalize %>"
+% else
+//! INST         "Intrinsic.JSRuntimeGetValueDouble"
+//! INST_NEXT    "Cast f64"
+% end
+//! PASS_AFTER   "InteropIntrinsicOptimization"
+//! INST_NOT     /Intrinsic.JSRuntimeGetValue.*/
+//! INST         "Intrinsic.CompilerConvertLocalTo<%= type_info.unwrap.capitalize %>"
+
+function call_js_get_<%= type_info.name %>(): <%= type_info.type %> {
+    return js_get_<%= type_info.name %>() as <%= type_info.type %>;
+}
+
+function test_js_get_<%= type_info.name %>(): int {
+    let value_int = call_js_get_<%= type_info.name %>();
+    let value_jit = call_js_get_<%= type_info.name %>();
+    if (value_int != value_jit) {
+        return 1;
+    }
+    return 0;
+}
+% end # if type_info.unwrap
+
+//! CHECKER      call_js_get_jsvalue_<%= type_info.name %> compare INT and JIT
+//! RUN          entry: "test_js_get_jsvalue_<%= type_info.name %>", options: "--compiler-enable-jit=true --compiler-hotness-threshold=1 --no-async-jit true --compiler-regex=convert.ETSGLOBAL::call_js_get_jsvalue_<%= type_info.name %>"
+//! EVENT        /Compilation,convert.ETSGLOBAL::call_js_get_jsvalue_<%= type_info.name %>,.*,COMPILED/
+//! METHOD       "call_js_get_jsvalue_<%= type_info.name %>"
+//! PASS_AFTER   "IrBuilder"
+//! INST_NOT     /CallStatic.*jscall::\$_invoke/
+//! INST         "Intrinsic.CompilerJSCallFunction"
+//! INST_NEXT    "Intrinsic.CompilerConvertLocalToJSValue"
+//! PASS_AFTER   "Codegen"
+//! INST_NEXT    "Intrinsic.CompilerConvertLocalToJSValue" # cannot be removed
+
+function call_js_get_jsvalue_<%= type_info.name %>(): JSValue {
+    return js_get_<%= type_info.name %>();
+}
+
+function test_js_get_jsvalue_<%= type_info.name %>(): int {
+    let value_int = call_js_get_jsvalue_<%= type_info.name %>();
+    let value_jit = call_js_get_jsvalue_<%= type_info.name %>();
+    if (!(deepEqual(value_int, value_jit) as boolean)) {
+        return 1;
+    }
+    return 0;
+}
+
+//! CHECKER      call_js_set_<%= type_info.name %> compare INT and JIT
+//! RUN          entry: "test_js_set_<%= type_info.name %>", options: "--compiler-enable-jit=true --compiler-hotness-threshold=1 --no-async-jit true --compiler-regex=convert.ETSGLOBAL::call_js_set_<%= type_info.name %>"
+//! EVENT        /Compilation,convert.ETSGLOBAL::call_js_set_<%= type_info.name %>,.*,COMPILED/
+//! METHOD       "call_js_set_<%= type_info.name %>"
+//! PASS_AFTER   "IrBuilder"
+//! INST_NOT     /CallStatic.*jscall::\$_invoke/
+//! INST         "Intrinsic.CompilerJSCallCheck"
+//! INST_NEXT    "Intrinsic.CompilerConvertI32ToLocal"
+//! INST_NEXT    "Intrinsic.CompilerConvert<%= type_info.wrap %>ToLocal"
+//! INST_NEXT    "Intrinsic.CompilerJSCallFunction"
+
+function call_js_set_<%= type_info.name %>(index: int, value: <%= type_info.type %>): int {
+    return js_set(index, value) as int;
+}
+
+function test_js_set_<%= type_info.name %>(): int {
+    if (call_js_set_<%= type_info.name %>(0, <%= type_info.value %> as <%= type_info.type %>) != 0) {
+        return -1;
+    }
+    if (call_js_set_<%= type_info.name %>(1, <%= type_info.value %> as <%= type_info.type %>) != 1) {
+        return -2;
+    }
+    return js_check_set() as int;
+}
+
+% end

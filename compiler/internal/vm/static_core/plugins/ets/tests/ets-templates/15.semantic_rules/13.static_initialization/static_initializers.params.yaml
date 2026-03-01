@@ -1,0 +1,141 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+ - decl: |-
+     class C {
+       static v: int = 0
+       static {
+         C.v += 1
+       }
+     }
+   check: |-
+     arktest.assertEQ(C.v, 1)
+
+ - decl: |-
+     class C {
+       static v?: int
+       static { }
+     }
+   check: |-
+     arktest.assertEQ(C.v, undefined)
+
+ - decl: |-
+     abstract class C {
+       static v: int = 0
+       static {
+         C.v += 1
+       }
+     }
+   check: |-
+     arktest.assertEQ(C.v, 1)
+
+ - decl: |-
+     abstract class C {
+       static v?: int
+       static { }
+     }
+   check: |-
+     arktest.assertEQ(C.v, undefined)
+
+ - decl: |-
+     class A {
+       f: int = 7
+     }
+     class C {
+       static v: int
+       static {
+         C.v = new A().f
+       }
+     }
+   check: |-
+     arktest.assertEQ(C.v, 7)
+
+ - decl: |-
+     class A {
+       var: int = 7
+       static f: A
+       static {
+         A.f = new A()
+       }
+     }
+     class C {
+       static v: A
+       static {
+         C.v = A.f
+       }
+     }
+   check: |-
+     arktest.assertEQ(C.v.var, 7)
+
+ - decl: |-
+     class A<T> {
+       f: T
+       constructor(f: T) {
+         this.f = f
+       }
+     }
+     abstract class C {
+       static v: number
+       static {
+         C.v = new A<number>(4).f
+       }
+     }
+   check: |-
+     arktest.assertEQ(C.v, 4)
+
+ - decl: |-
+     class A<T> {
+       f: T
+       constructor(f: T) {
+         this.f = f
+       }
+     }
+     class C extends A<number> {
+       static v: number
+       static {
+         C.v = new A<number>(4).f
+       }
+       constructor() {
+         super(1)
+       }
+     }
+   check: |-
+     arktest.assertEQ(C.v, 4)
+
+ - decl: |-
+     class C {
+       private static _i: int
+       static get i(): int {
+         return C._i
+       }
+       static set i(i: int) {
+         C._i = i + 1
+       }
+       static {
+         C.i = 2
+       }
+     }
+   check: |-
+     arktest.assertEQ(C.i, 3)
+
+ - decl: |-
+     class C {
+       static readonly i: int
+       static {
+         C.i = 2
+       }
+     }
+   check: |-
+     arktest.assertEQ(C.i, 2)

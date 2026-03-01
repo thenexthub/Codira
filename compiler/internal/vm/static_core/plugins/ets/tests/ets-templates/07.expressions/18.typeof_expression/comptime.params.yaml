@@ -1,0 +1,44 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - { name: 'int', decl: 'const c:EN = EN.a', desc: 'enum' }
+    - { name: 'string', decl: 'const c:ES = ES.a', desc: 'enum' }
+    - { name: 'bigint', decl: 'const c:bigint = 123n', desc: 'bigint' }
+    - { name: 'boolean', decl: 'const c:boolean = true', desc: 'boolean' }
+    - { name: 'number', decl: 'const c:number = 123', desc: 'numeric type' }
+    - { name: 'byte', decl: 'const c:byte = 123', desc: 'byte type' }
+    - { name: 'short', decl: 'const c:short = 123', desc: 'short type' }
+    - { name: 'int', decl: 'const c:int = 123', desc: 'int type' }
+    - { name: 'long', decl: 'const c:long = 123', desc: 'long type' }
+    - { name: 'float', decl: 'const c:float = 123.1f', desc: 'float type' }
+    - { name: 'number', decl: 'const c:double = 123.8', desc: 'numeric type' }
+    - { name: 'object', decl: 'const c:C = new C', desc: 'any class or interface' }
+    - { name: 'object', decl: 'const c:I = new C', desc: 'any class or interface' }
+    - { name: 'object', decl: 'const c:C|null = new C', desc: 'T|null - T is a class (but not Object), interface or array' }
+    - { name: 'object', decl: 'const c:I|null = new C', desc: 'T|null - T is a class (but not Object), interface or array' }
+    - { name: 'object', decl: 'const c:bigint[]|null = [ 1n, 2n, 3n, 4n, 5n]', desc: 'T|null - T is a class (but not Object), interface or array' }
+    - { name: 'object', decl: 'const c:boolean[]|null = [ true, false, true, false ]', desc: 'T|null - T is a class (but not Object), interface or array' }
+    - { name: 'object', decl: 'const c:number[]|null = [ 1, 2, 3, 4, 5]', desc: 'T|null - T is a class (but not Object), interface or array' }
+    - { name: 'object', decl: 'const c:byte[]|null = [ 1, 2, 3, 4, 5]', desc: 'T|null - T is a class (but not Object), interface or array' }
+    - { name: 'object', decl: 'const c:short[]|null = [ 1, 2, 3, 4, 5]', desc: 'T|null - T is a class (but not Object), interface or array' }
+    - { name: 'object', decl: 'const c:int[]|null = [ 1, 2, 3, 4, 5]', desc: 'T|null - T is a class (but not Object), interface or array' }
+    - { name: 'object', decl: 'const c:long[]|null = [ 1, 2, 3, 4, 5]', desc: 'T|null - T is a class (but not Object), interface or array' }
+    - { name: 'object', decl: 'const c:float[]|null = [ 1, 2, 3, 4, 5]', desc: 'T|null - T is a class (but not Object), interface or array' }
+    - { name: 'object', decl: 'const c:double[]|null = [ 1, 2, 3, 4, 5]', desc: 'T|null - T is a class (but not Object), interface or array' }
+    - { name: 'object', decl: 'const c:C|null = null', desc: 'T|null - T is a class (but not Object), interface or array' }
+    - { name: 'string', decl: 'const c:string = "Just a test"', desc: 'string' }
+    - { name: 'undefined', decl: 'const c = undefined', desc: 'undefined' }
+    - { name: 'object', decl: 'const c = null', desc: 'null' }
+    - { name: 'function', decl: 'function c() {}', desc: 'any function type' }

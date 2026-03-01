@@ -1,0 +1,100 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+.language PandaAssembly
+
+.record R {
+    i32 field0 <static>
+    i32 field1 <static>
+    i32 field2
+    i32 field3
+}
+
+.function void R.foo(R a0) {
+    return.void
+}
+.function void R.bar() <static> {
+    return.void
+}
+.function void R.ctr(R a0) <ctor> {
+    return.void
+}
+
+#! CHECKER    Option compiler-force-unresolved is off
+#! RUN_PAOC   options: "--compiler-inlining=false --compiler-non-optimizing=true"
+#! METHOD     "_GLOBAL::main"
+#! PASS_AFTER "IrBuilder"
+#! INST_NOT   "ResolveStatic"
+#! INST_NOT   "CallResolvedStatic"
+#! INST_NOT   "ResolveVirtual"
+#! INST_NOT   "CallResolvedVirtual"
+#! INST_NOT   "ResolveObjectField"
+#! INST_NOT   "LoadResolvedObjectField"
+#! INST_NOT   "StoreResolvedObjectField"
+#! INST_NOT   "ResolveObjectFieldStatic"
+#! INST_NOT   "LoadResolvedObjectFieldStatic"
+#! INST_NOT   "StoreResolvedObjectFieldStatic"
+#! INST       "CallStatic"
+#! INST_NEXT  "CallStatic"
+#! INST_NEXT  "CallVirtual"
+#! INST_NEXT  "LoadObject"
+#! INST_NEXT  "StoreStatic"
+#! INST_NEXT  "LoadStatic"
+#! INST_NEXT  "StoreObject"
+
+#! CHECKER    Option compiler-force-unresolved is on
+#! RUN_PAOC   options: "--compiler-force-unresolved=true --compiler-inlining=false --compiler-non-optimizing=true"
+#! METHOD     "_GLOBAL::main"
+#! PASS_AFTER "IrBuilder"
+#! INST_NOT   "CallStatic"
+#! INST_NOT   "CallVirtual"
+#! INST_NOT   "LoadObject"
+#! INST_NOT   "StoreStatic"
+#! INST_NOT   "LoadStatic"
+#! INST_NOT   "StoreObject"
+#! INST       "ResolveStatic"
+#! INST_NEXT  "CallResolvedStatic"
+#! INST_NEXT  "ResolveStatic"
+#! INST_NEXT  "CallResolvedStatic"
+#! INST_NEXT  "ResolveVirtual"
+#! INST_NEXT  "CallResolvedVirtual"
+#! INST_NEXT  "ResolveObjectField"
+#! INST_NEXT  "LoadResolvedObjectField"
+#! INST_NEXT  "ResolveObjectFieldStatic"
+#! INST_NEXT  "StoreResolvedObjectFieldStatic"
+#! INST_NEXT  "ResolveObjectFieldStatic"
+#! INST_NEXT  "LoadResolvedObjectFieldStatic"
+#! INST_NEXT  "ResolveObjectField"
+#! INST_NEXT  "StoreResolvedObjectField"
+
+.function i32 main() <static> {
+    call.short R.bar:()
+    initobj.short R.ctr:(R)
+    sta.obj v1
+    call.virt.short R.foo:(R), v1
+    ldobj v1, R.field2
+    ststatic R.field0
+    ldstatic R.field1
+    stobj v1, R.field3
+    ldai 0
+    return
+}

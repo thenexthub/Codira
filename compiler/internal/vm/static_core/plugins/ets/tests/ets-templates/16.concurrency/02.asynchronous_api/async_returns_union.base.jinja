@@ -1,0 +1,99 @@
+/*
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+{% from "16.concurrency/02.asynchronous_api/async_api_helper.jinja" import generate_async, call_async %}
+
+{% set cases = [
+    {
+        'declare_classes': True,
+        'type': 'Cat | Mouse',
+        'value': 'new Cat()',
+        'expected_type': 'Cat',
+        'expected_value': 'awaited_result.name, "Tom"'
+    },
+    {
+        'declare_classes': True,
+        'type': 'Cat | null',
+        'value': 'null',
+        'expected_type': 'null',
+        'expected_value': 'awaited_result, null'
+    },
+    {   
+        'declare_classes': True,
+        'type': 'Mouse | string',
+        'value': '"Hello"',
+        'expected_type': 'string',
+        'expected_value': 'awaited_result, "Hello"'
+    },
+    {
+        'type': 'string | number',
+        'value': '42',
+        'expected_type': 'number',
+        'expected_value': 'awaited_result, 42'
+    },
+    {
+        'type': 'string | null',
+        'value': 'null',
+        'expected_type': 'null',
+        'expected_value': 'awaited_result, null'
+    },
+    {
+        'type': 'string | null | undefined',
+        'value': '"Hello"',
+        'expected_type': 'string',
+        'expected_value': 'awaited_result, "Hello"'
+    }
+]%}
+
+{% macro generate_complete_test(declaration_type='function') %}
+{% for c in cases %}
+
+/*---
+desc: The return type of an async {{declaration_type}} must be Promise<{{c.type}}>.
+---*/
+
+{% if c.declare_classes -%}
+class Cat { name: string = "Tom" }
+class Mouse { name: string = "Jerry" }
+{%- endif %}
+
+{% set async_body -%}
+    const value: {{c.type}} = {{c.value}}
+    return value
+{%- endset %}
+
+{%- set params = {
+    'name': 'noParams',
+    'body': async_body,
+    'return_type': ': Promise<' + c.type + '>',
+    'class_name': 'AsyncMethodReturnClass'
+} -%}
+
+{{ generate_async(declaration_type, params) }}
+
+async function startTest(){
+    let result = {{ call_async(declaration_type, params) }}
+    arktest.assertTrue(result instanceof Promise)
+    let awaited_result = await result
+    arktest.assertTrue(awaited_result instanceof {{c.expected_type}})
+    arktest.assertEQ({{c.expected_value}})
+}
+
+function main(){
+    waitForCompletion(startTest)
+}
+
+{% endfor %}
+{% endmacro %}

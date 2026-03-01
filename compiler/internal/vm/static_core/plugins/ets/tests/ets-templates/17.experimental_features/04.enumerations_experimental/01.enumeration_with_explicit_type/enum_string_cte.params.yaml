@@ -1,0 +1,121 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+cases:
+  - desc: |-
+      Strings must be set explicitly
+    decl_variants:
+      - |-
+        enum Enum: string { first, second, third }
+      - |-
+        const enum Enum: string { first, second, third }
+      - |-
+        enum Enum: string { first = "a", second = "b", third }
+      - |-
+        const enum Enum: string { first = "a", second = "b", third }
+
+  - desc: |-
+      Cannot use numeric values
+    decl_variants:
+      - |-
+        enum Enum: string { first = 11 }
+      - |-
+        const enum Enum: string { first = 11 }
+      - |-
+        enum Enum: string { first = "11", second = "12", third = 13 }
+      - |-
+        const enum Enum: string { first = "11", second = "12", third = 13 }
+      - |-
+        enum Enum: string { first = 5.6 }
+      - |-
+        const enum Enum: string { first = 5.6 }
+      - |-
+        enum Enum: string { first = "11", second = "12", third = 5.6 }
+      - |-
+        const enum Enum: string { first = "11", second = "12", third = 5.6 }
+      - |-
+        enum Enum: string { first = 3.2f }
+      - |-
+        const enum Enum: string { first = 3.2f }
+      - |-
+        enum Enum: string { first = "11", second = "12", third = 3.2f }
+      - |-
+        const enum Enum: string { first = "11", second = "12", third = 3.2f }
+
+  - desc: |-
+      Cannot use null
+    decl_variants:
+      - |-
+        enum Enum: string { first = null }
+      - |-
+        const enum Enum: string { first = null }
+      - |-
+        enum Enum: string { first = "11", second = null, third = "13" }
+      - |-
+        const enum Enum: string { first = "11", second = null, third = "13" }
+
+  - desc: |-
+      Cannot use undefined
+    decl_variants:
+      - |-
+        enum Enum: string { first = undefined }
+      - |-
+        const enum Enum: string { first = undefined }
+      - |-
+        enum Enum: string { first = "11", second = undefined, third = "13" }
+      - |-
+        const enum Enum: string { first = "11", second = undefined, third = "13" }
+
+  - desc: |-
+      Not a constant
+    decl_variants:
+      - |-
+        let a = "ABC"
+        enum Enum: string { e1 = a, e2 = "DEF" }
+      - |-
+        let a = "ABC"
+        const enum Enum: string { e1 = a, e2 = "DEF" }
+
+  - desc: |-
+      Wrong type
+    decl_variants:
+      - |-
+        enum Enum1: string { first = "a", second = "b" }
+        enum Enum2: string { first = "a", second = "b" }
+      - |-
+        const enum Enum1: string { first = "a", second = "b" }
+        const enum Enum2: string { first = "a", second = "b" }
+    logic: |-
+      let v: Enum2 = Enum1.first
+
+  - desc: |-
+      Not allowed conversion
+    decl_variants:
+      - |-
+        enum Enum1: string { e1 = "a", e2 = "b", e3 = "c" }
+        enum Enum2: string { e1 = "a", e2 = "b", e3 = "c" }
+      - |-
+        const enum Enum1: string { e1 = "a", e2 = "b", e3 = "c" }
+        const enum Enum2: string { e1 = "a", e2 = "b", e3 = "c" }
+    logic: |-
+      let v: Enum1 = Enum1.first
+      let q: Enum2 = v as Enum2

@@ -1,0 +1,87 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  #0
+  - case:
+      T = SomeType, T = OtherType
+    decl:
+      class SomeType {}
+      class OtherType {}
+    stdout: |-
+      "Semantic error ESE0182: Duplicate type parameter 'T'."
+  #1
+  - case:
+      T, T = SomeType
+    decl:
+      class SomeType {}
+      class OtherType {}
+    stdout: |-
+      "Semantic error ESE0182: Duplicate type parameter 'T'."
+  #2
+  - case:
+      T = SomeType, V
+    decl:
+      class SomeType {}
+      class OtherType {}
+    stdout: |-
+      "Syntax error ESY0179: Required type parameters may not follow optional type parameters."
+  #3
+  - case: 
+      T = 5
+    decl:
+      class SomeType {}
+      class OtherType {}
+    stdout: |-
+      "Syntax error ESY0138: Invalid Type."
+  #4
+  - case:
+      T = true
+    decl:
+      class SomeType {}
+      class OtherType {}
+    stdout: |-
+      "Syntax error ESY0138: Invalid Type."
+  #5
+  - case:
+      T = Base<T>
+    decl:
+      class SomeType {}
+      class OtherType {}
+    stdout: |-
+      "Semantic error ESE0183: Type Parameter T should be defined before use."
+  #6
+  - case:
+      T1, T2 = SomeType, T3
+    decl:
+      class SomeType {}
+      class OtherType {}
+    stdout: |-
+      "Syntax error ESY0179: Required type parameters may not follow optional type parameters."
+  #7
+  - case:
+      T1 = T2, T2 = T1
+    decl:
+      class SomeType {}
+      class OtherType {}
+    stdout: |-
+      "Semantic error ESE0183: Type Parameter T2 should be defined before use."  
+  #8
+  - case:
+      in out U, out T = SomeType
+    decl:
+      class SomeType {}
+      class OtherType {}
+    stdout: |-
+      "Syntax error ESY0121: Field type annotation expected."

@@ -1,0 +1,175 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+function Multiply(a: i32, b: i32): i32;
+function BaseCFunc(testBoolean : i32): bool;
+function BaseAFunc(testBoolean : bool): void;
+function BaseBFunc(testBoolean : bool): bool;
+
+// String
+struct Foo {
+  testNum: i32;
+  testStr: String;
+}
+
+function BaseDFunc(testBoolean : String): bool;
+function BaseEFunc(b:Foo):String;
+function BaseHFunc(a:i32,b:i64):String;
+function BaseIFunc(a:f64,b:f32):String;
+function BaseFunc1(b:f32):f32;
+function BaseFunc2(b:f32):void;
+function BaseFunc3(a:f32,b:f64):f64;
+function BaseFunc4(b:f64):f64;
+function BaseFunc5(b:f64):void;
+function BaseFunc6(a:String):void;
+function BaseFunc7(a:String):String;
+function BaseFunc8(a:String,b:i32):String;
+function BaseFunc9(a:String,b:i32,c:i64,d:bool,e:f32):void;
+
+// void
+function BaseFunc10():void;
+function BaseFunc11(a:i32,b:bool):void;
+function BaseFunc12(a:i32,b:i64):void;
+function BaseFunc13(a:i32,b:String):void;
+function BaseFunc14(a:i64,b:bool):void;
+function BaseFunc15(a:i64,b:f32):void;
+function BaseFunc16(a:i64,b:f64):void;
+function BaseFunc17(a:f32,b:bool):void;
+function BaseFunc18(a:f32,b:String):void;
+function BaseFunc19(a:f64,b:String):void;
+function BaseFunc20(a:f64,b:bool):void;
+function BaseFunc21(option1:Optional<i32>,option2:Optional<i64>):void;
+function BaseFunc22(option1:Optional<f32>,option2:Optional<f64>):void;
+function BaseFunc23(option1:Optional<String>,option2:Optional<bool>):void;
+function BaseFunc24(option1:Optional<i16>,option2:Optional<i64>):void;
+
+enum Bar:i8 {
+  RED = 0,
+  GREEN = 1,
+  BLUE = 2,
+}
+
+interface PrimitivesVoid {
+  TestBaseFunc1():void;
+  TestBaseFunc2(option1:i32,option2:bool):void;
+  TestBaseFunc3(option1:i32,option2:i64):void;
+  TestBaseFunc4(option1:i32,option2:String):void;
+  TestBaseFunc5(option1:i64,option2:bool):void;
+  TestBaseFunc6(option1:i64,option2:f32):void;
+  TestBaseFunc7(option1:i64,option2:f64):void;
+  TestBaseFunc8(option1:f32,option2:bool):void;
+  TestBaseFunc9(option1:f32,option2:String):void;
+  TestBaseFunc10(option1:f64,option2:String):void;
+  TestBaseFunc11(option1:f64,option2:bool):void;
+  TestBaseFunc12(option1:Optional<i32>,option2:Optional<i64>):void;
+  TestBaseFunc13(option1:Optional<f32>,option2:Optional<f64>):void;
+  TestBaseFunc14(option1:Optional<String>,option2:Optional<bool>):void;
+  TestBaseFunc15(option1:Optional<i16>,option2:Optional<i64>):void;
+  TestBaseFunc16(option1:i8,option2:i16):void;
+  TestBaseFunc17(option1:Array<i32>,option2:Array<i8>):void;
+  TestBaseFunc18(option1:Array<i16>,option2:Array<i64>):void;
+  TestBaseFunc19(option1:Array<f32>,option2:Array<f64>):void;
+  TestBaseFunc20(option1:Array<bool>,option2:Array<String>):void;
+}
+
+function get_interface(): PrimitivesVoid;
+
+interface PrimitivesBoolean {
+  TestBaseBoolFunc1(option1:bool):void;
+  TestBaseBoolFunc2(option1:bool):i32;
+  TestBaseBoolFunc3(option1:bool):bool;
+  TestBaseBoolFunc4(option1:Optional<bool>):bool;
+
+  @gen_async("TestBaseBoolFunc5Async")
+  @gen_promise("TestBaseBoolFunc5Promise")
+  TestBaseBoolFunc5(option1:bool):bool;
+  @get getBoolTest(): bool;
+  TestBaseBoolFunc7(option1:@record Map<String,bool>):bool;
+}
+
+function get_interface_bool(): PrimitivesBoolean;
+
+
+@class
+interface PrimitivesBooleanClass{
+
+}
+
+@static("PrimitivesBooleanClass")
+function TestBaseBoolFunc6():bool;
+
+
+
+interface PrimitivesInteger {
+  TestBaseIntegerFunc1(option1:i8):i8;
+  TestBaseIntegerFunc2(option1:i8,option2:i16):i8;
+  TestBaseIntegerFunc3(option1:i8,option2:i16):void;
+  TestBaseIntegerFunc4(option1:i8,option2:i16):i16;
+  TestBaseIntegerFunc5(option1:i8,option2:i32):i8;
+  TestBaseIntegerFunc6(option1:i8,option2:i32):i32;
+  TestBaseIntegerFunc7(option1:i8,option2:i32):void;
+  TestBaseIntegerFunc8(option1:i8,option2:i64):i64;
+  TestBaseIntegerFunc9(option1:i8,option2:i64):i8;
+  TestBaseIntegerFunc10(option1:i8,option2:f32):f32;
+  TestBaseIntegerFunc11(option1:i8,option2:f32):i8;
+  TestBaseIntegerFunc12(option1:i8,option2:f64):f64;
+  TestBaseIntegerFunc13(option1:i8,option2:i64):i8;
+  TestBaseIntegerFunc14(option1:i8,option2:String):String;
+  TestBaseIntegerFunc15(option1:i8,option2:String):i8;
+  TestBaseIntegerFunc16(option1:i8,option2:bool):bool;
+  TestBaseIntegerFunc17(option1:i8,option2:bool):i8;
+  TestBaseIntegerFunc18(option1:i16):i16;
+  TestBaseIntegerFunc19(option1:i16):void;
+  TestBaseIntegerFunc20(option1:i16,option2:i32):i16;
+  TestBaseIntegerFunc21(option1:i16,option2:i64):i16;
+  TestBaseIntegerFunc22(option1:i32):i32;
+  TestBaseIntegerFunc23(option1:i32):void;
+  TestBaseIntegerFunc24(option1:i32,option2:i64):i32;
+  TestBaseIntegerFunc25(option1:i32,option2:i8):i32;
+  TestBaseIntegerFunc26(option1:i64):i64;
+  TestBaseIntegerFunc27(option1:i64):void;
+  TestBaseIntegerFunc28(option1:i64,option2:String):String;
+  TestBaseIntegerFunc29(option1:i64,option2:String):i64;
+  TestBaseIntegerFunc30(option1:f32):f32;
+  TestBaseIntegerFunc31(option1:f32):void;
+  TestBaseIntegerFunc32(option1:f32,option2:f64):f32;
+  TestBaseIntegerFunc33(option1:f32,option2:f64):f64;
+  TestBaseIntegerFunc34(option1:f64):f64;
+  TestBaseIntegerFunc35(option1:f64):void;
+  @get getI8testattribute():i8;
+  @get getI16testattribute():i16;
+  @get getI32testattribute():i32;
+  @get getI64testattribute():i64;
+  @get getf32testattribute():f32;
+  @get getf64testattribute():f64;
+}
+
+function get_interface_interger(): PrimitivesInteger;
+@!sts_inject("""
+export const CONSTANT_BOOL_TRUE = true;
+export const CONSTANT_BOOL_FALSE = false;
+""")
+
+@const
+enum TestConst:i32 {
+  CONSTANT_I32_001 = 10000,
+  CONSTANT_I32_002 = 10001,
+}

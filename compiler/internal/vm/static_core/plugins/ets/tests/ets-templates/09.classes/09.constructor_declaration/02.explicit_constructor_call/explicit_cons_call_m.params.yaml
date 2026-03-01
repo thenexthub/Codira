@@ -1,0 +1,636 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          // Call constructor with several parameters
+          class A {
+              k1: string
+              k2: string
+              k3: string
+              lambda1: (() => void)|undefined
+              lambda2: (() => void)|undefined
+              constructor(k1: string, k2: string, k3: string, lambda1?: () => void, lambda2?: () => void) {
+                  this.k1 = k1
+                  this.k2 = k2
+                  this.k3 = k3
+                  this.lambda1 = lambda1
+                  this.lambda2 = lambda2
+              }
+          }
+      use: |-
+          let a1 = new A('1', '2', '3')
+          arktest.assertEQ(a1.k1, '1')
+          arktest.assertEQ(a1.k2, '2')
+          arktest.assertEQ(a1.k3, '3')
+          arktest.assertEQ(a1.lambda1, undefined)
+          arktest.assertEQ(a1.lambda2, undefined)
+
+    - decl: |-
+          // Call 'this' constructor with several parameters
+          class A {
+              k1: string
+              k2: string
+              k3: string
+              lambda1: (() => void)|undefined
+              lambda2: (() => void)|undefined
+              constructor(k1: string, k2: string, k3: string, lambda1?: () => void, lambda2?: () => void) {
+                  this.k1 = k1
+                  this.k2 = k2
+                  this.k3 = k3
+                  this.lambda1 = lambda1
+                  this.lambda2 = lambda2
+              }
+              constructor(k1: int, k2: int, k3: int, lambda1?: () => void, lambda2?: () => void) {
+                  this('' + k1, '' + k2, '' + k3, lambda1, lambda2)
+              }
+          }
+      use: |-
+          let x = ''
+          let a1 = new A(1, 2, 3, undefined, () => { x = 'x' })
+          arktest.assertEQ(a1.k1, '1')
+          arktest.assertEQ(a1.k2, '2')
+          arktest.assertEQ(a1.k3, '3')
+          arktest.assertEQ(a1.lambda1, undefined)
+          a1.lambda2!()
+          arktest.assertEQ(x, 'x')
+
+    - decl: |-
+          // Call 'super' constructor with several parameters
+          class A {
+              k1: string
+              k2: string
+              k3: string
+              lambda1: (() => void)|undefined
+              lambda2: (() => void)|undefined
+              constructor(k1: string, k2: string, k3: string, lambda1?: () => void, lambda2?: () => void) {
+                  this.k1 = k1
+                  this.k2 = k2
+                  this.k3 = k3
+                  this.lambda1 = lambda1
+                  this.lambda2 = lambda2
+              }
+          }
+          class B extends A {
+              k0: string
+              constructor(k0: string, k1: string, k2: string, k3: string, lambda1?: () => void, lambda2?: () => void) {
+                  super(k1, k2, k3, lambda1, lambda2)
+                  this.k0 = k0
+              }
+          }
+      use: |-
+          let x: string = ''
+          let b1 = new B('0', '1', '2', '3', () => { x = 'x' })
+          arktest.assertEQ(b1.k0, '0')
+          arktest.assertEQ(b1.k1, '1')
+          arktest.assertEQ(b1.k2, '2')
+          arktest.assertEQ(b1.k3, '3')
+          b1.lambda1!()
+          arktest.assertEQ(x, 'x')
+          arktest.assertEQ(b1.lambda2, undefined)
+
+    - decl: |-
+          // Call constructor with multiple parameters
+          class A {
+              k1: string
+              k2: string
+              k3: string
+              lambda1: () => void
+              lambda2: (() => void)|undefined
+              lambda3: (() => void)|undefined
+              constructor(k1: string, k2: string, k3: string, lambda1: () => void, lambda2?: () => void, lambda3?: () => void) {
+                  this.k1 = k1
+                  this.k2 = k2
+                  this.k3 = k3
+                  this.lambda1 = lambda1
+                  this.lambda2 = lambda2
+                  this.lambda3 = lambda3
+              }
+          }
+      use: |-
+          let a1: A|undefined
+          let v1: string = ''
+          let a2 = new A(
+              '1',
+              '2',
+              '3',
+              () => { a1 = new A('5', '6', '7', () => { v1 += 'lambda1' }) },
+              () => { v1 += 'lambda2' },
+              () => { v1 += 'lambda3' }
+          )
+          arktest.assertEQ(a2.k1, '1')
+          arktest.assertEQ(a2.k2, '2')
+          arktest.assertEQ(a2.k3, '3')
+          a2.lambda1()
+          a2.lambda2!()
+          a2.lambda3!()
+          arktest.assertEQ(a1!.k1, '5')
+          arktest.assertEQ(a1!.k2, '6')
+          arktest.assertEQ(a1!.k3, '7')
+          a1!.lambda1()
+          arktest.assertEQ(v1, 'lambda2lambda3lambda1')
+
+    - decl: |-
+          // Call 'this' constructor with multiple parameters
+          class A {
+              k1: string
+              k2: string
+              k3: string
+              lambda1: () => void
+              lambda2: (() => void)|undefined
+              lambda3: (() => void)|undefined
+              constructor(k1: string, k2: string, k3: string, lambda1: () => void, lambda2?: () => void, lambda3?: () => void) {
+                  this.k1 = k1
+                  this.k2 = k2
+                  this.k3 = k3
+                  this.lambda1 = lambda1
+                  this.lambda2 = lambda2
+                  this.lambda3 = lambda3
+              }
+              constructor(k1: (p: string) => string, k2: (p: int) => string, k3: (p: boolean) => string, lambda1: () => void) {
+                  this(k1('1'), k2(2), k3(true), lambda1, undefined)
+              }
+          }
+      use: |-
+          let a1: A|undefined
+          let v1: string = ''
+          let a2 = new A(
+              (p: string) => '' + p,
+              (p: int) => '' + p,
+              (p: boolean) => '' + p,
+              () => { a1 = new A('5', '6', '7', () => { v1 += 'lambda1' }) },
+          )
+          arktest.assertEQ(a2.k1, '1')
+          arktest.assertEQ(a2.k2, '2')
+          arktest.assertEQ(a2.k3, 'true')
+          a2.lambda1()
+          arktest.assertEQ(a1!.k1, '5')
+          arktest.assertEQ(a1!.k2, '6')
+          arktest.assertEQ(a1!.k3, '7')
+          a1!.lambda1()
+          arktest.assertEQ(v1, 'lambda1')
+
+    - decl: |-
+          // Call 'super' constructor with multiple parameters
+          class A {
+              k1: string
+              k2: string
+              k3: string
+              lambda1: () => void
+              lambda2: (() => void)|undefined
+              lambda3: (() => void)|undefined
+              constructor(k1: string, k2: string, k3: string, lambda1: () => void, lambda2?: () => void, lambda3?: () => void) {
+                  this.k1 = k1
+                  this.k2 = k2
+                  this.k3 = k3
+                  this.lambda1 = lambda1
+                  this.lambda2 = lambda2
+                  this.lambda3 = lambda3
+              }
+          }
+          class B extends A {
+              lambda0: (p: string) => string
+              constructor(lambda0: (p: string) => string, k1: string, k2: string, k3: string, lambda1: () => void, lambda2?: () => void, lambda3?: () => void) {
+                  super(k1, k2, k3, lambda1, lambda2, lambda3)
+                  this.lambda0 = lambda0
+              }
+          }
+      use: |-
+          let a1: A|undefined
+          let v1: string = ''
+          let b2 = new B(
+              (p: string) => '@' + p,
+              '1',
+              '2',
+              '3',
+              () => { a1 = new A('5', '6', '7', () => { v1 += 'lambda1' }) },
+              () => { v1 += 'lambda2' },
+              () => { v1 += 'lambda3' }
+          )
+          arktest.assertEQ(b2.lambda0('abc'), '@abc')
+          arktest.assertEQ(b2.k1, '1')
+          arktest.assertEQ(b2.k2, '2')
+          arktest.assertEQ(b2.k3, '3')
+          b2.lambda1()
+          b2.lambda2!()
+          b2.lambda3!()
+          arktest.assertEQ(a1!.k1, '5')
+          arktest.assertEQ(a1!.k2, '6')
+          arktest.assertEQ(a1!.k3, '7')
+          a1!.lambda1()
+          arktest.assertEQ(v1, 'lambda2lambda3lambda1')
+
+    - decl: |-
+          // Call constructor with many parameters
+          enum Color { Red, Green, Blue }
+          class A {
+              p1: () => number
+              p2: string
+              p3: (p1: int) => [int, boolean, string]
+              p4: FixedArray<byte>
+              p5: [string, string]
+              p6: (p1: string) => string[]
+              p7: undefined|(double[])
+              p8: undefined|(() => void)
+              p9: Record<string, int>
+              p10: Color
+
+              constructor(
+                  p1: () => number,
+                  p2: string,
+                  p3: (p1: int) => [int, boolean, string],
+                  p4: FixedArray<byte>,
+                  p5: [string, string],
+                  p6: (p1: string) => string[],
+                  p7?: double[],
+                  p8?: () => void,
+                  p9: Record<string, int> = { '1': 10 },
+                  p10: Color = Color.Blue
+              ) {
+                  this.p1 = p1
+                  this.p2 = p2
+                  this.p3 = p3
+                  this.p4 = p4
+                  this.p5 = p5
+                  this.p6 = p6
+                  this.p7 = p7
+                  this.p8 = p8
+                  this.p9 = p9
+                  this.p10 = p10
+              }
+          }
+      use: |-
+          let s: string = ''
+          let a = new A(
+              () => 42.0,
+              'abc',
+              (p: int) => [p, p > 0, '' + p],
+              [127 as byte, -128 as byte],
+              ['A', 'B'],
+              (p: string) => [p, p, p],
+              [1.0, 2.0, 3.0],
+              () => { s = 'called' }
+          )
+          arktest.assertEQ(a.p1(), 42.0)
+          arktest.assertEQ(a.p2, 'abc')
+          let tuple = a.p3(144)
+          arktest.assertEQ(tuple[0], 144)
+          arktest.assertEQ(tuple[1], true)
+          arktest.assertEQ(tuple[2], '144')
+          arktest.assertEQ(a.p4[0], 127)
+          arktest.assertEQ(a.p4[1], -128)
+          let tuple2 = a.p5
+          arktest.assertEQ(tuple2[0], 'A')
+          arktest.assertEQ(tuple2[1], 'B')
+          let stringArray = a.p6('hello')
+          arktest.assertTrue(stringArray.every((e: string, i: int, a: Array<string>) => e == 'hello'))
+          let doubleArray = a.p7!
+          arktest.assertTrue(doubleArray.every((e: double, i: int, a: Array<double>) => i + 1 == e))
+          a.p8!()
+          arktest.assertEQ(s, 'called')
+          arktest.assertEQ(a.p9!['1'], 10)
+          arktest.assertEQ(a.p10, Color.Blue)
+
+    - decl: |-
+          // Call 'this' constructor with many parameters
+          enum Color { Red, Green, Blue }
+          class A {
+              p1: () => number
+              p2: string
+              p3: (p1: int) => [int, boolean, string]
+              p4: FixedArray<byte>
+              p5: [string, string]
+              p6: (p1: string) => string[]
+              p7: undefined|(double[])
+              p8: undefined|(() => void)
+              p9: Record<string, int>
+              p10: Color
+
+              constructor(
+                  p1: () => number,
+                  p2: string,
+                  p3: (p1: int) => [int, boolean, string],
+                  p4: FixedArray<byte>,
+                  p5: [string, string],
+                  p6: (p1: string) => string[],
+                  p7?: double[],
+                  p8?: () => void,
+                  p9: Record<string, int> = { '1': 10 },
+                  p10: Color = Color.Blue
+              ) {
+                  this.p1 = p1
+                  this.p2 = p2
+                  this.p3 = p3
+                  this.p4 = p4
+                  this.p5 = p5
+                  this.p6 = p6
+                  this.p7 = p7
+                  this.p8 = p8
+                  this.p9 = p9
+                  this.p10 = p10
+              }
+
+              constructor(
+                  p1: (p1: int) => [int, boolean, string],
+                  p2: FixedArray<byte>,
+                  p3: [string, string],
+                  p4: (p1: string) => string[],
+                  p5?: double[],
+                  p6?: () => void,
+                  p7?: () => number,
+                  p8?: string,
+              ) {
+                  this(
+                      p7 ?? () => 43.0,
+                      p8 ?? 'abcdef',
+                      p1,
+                      p2,
+                      p3,
+                      p4,
+                      p5,
+                      p6,
+                      { '2': 20 }
+                  )
+              }
+          }
+      use: |-
+          let s: string = ''
+          let a = new A(
+              (p: int) => [p, p > 0, '' + p],
+              [127 as byte, -128 as byte],
+              ['A', 'B'],
+              (p: string) => [p, p, p],
+              [1.0, 2.0, 3.0],
+              () => { s = 'called' }
+          )
+          arktest.assertEQ(a.p1(), 43.0)
+          arktest.assertEQ(a.p2, 'abcdef')
+          let tuple = a.p3(12)
+          arktest.assertEQ(tuple[0], 12)
+          arktest.assertEQ(tuple[1], true)
+          arktest.assertEQ(tuple[2], '12')
+          arktest.assertEQ(a.p4[0], 127)
+          arktest.assertEQ(a.p4[1], -128)
+          let tuple2 = a.p5
+          arktest.assertEQ(tuple2[0], 'A')
+          arktest.assertEQ(tuple2[1], 'B')
+          let stringArray = a.p6('hello')
+          arktest.assertTrue(stringArray.every((e: string, i: int, a: Array<string>) => e == 'hello'))
+          let doubleArray = a.p7!
+          arktest.assertTrue(doubleArray.every((e: double, i: int, a: Array<double>) => i + 1 == e))
+          a.p8!()
+          arktest.assertEQ(s, 'called')
+          arktest.assertEQ(a.p9!['2'], 20)
+          arktest.assertEQ(a.p10, Color.Blue)
+
+    - decl: |-
+          // Call 'super' constructor with many parameters
+          enum Color { Red, Green, Blue }
+          class A {
+              p1: () => number
+              p2: string
+              p3: (p1: int) => [int, boolean, string]
+              p4: FixedArray<byte>
+              p5: [string, string]
+              p6: (p1: string) => string[]
+              p7: undefined|(double[])
+              p8: undefined|(() => void)
+              p9: Record<string, int>
+              p10: Color
+
+              constructor(
+                  p1: () => number,
+                  p2: string,
+                  p3: (p1: int) => [int, boolean, string],
+                  p4: FixedArray<byte>,
+                  p5: [string, string],
+                  p6: (p1: string) => string[],
+                  p7?: double[],
+                  p8?: () => void,
+                  p9: Record<string, int> = { '1': 10 },
+                  p10: Color = Color.Blue
+              ) {
+                  this.p1 = p1
+                  this.p2 = p2
+                  this.p3 = p3
+                  this.p4 = p4
+                  this.p5 = p5
+                  this.p6 = p6
+                  this.p7 = p7
+                  this.p8 = p8
+                  this.p9 = p9
+                  this.p10 = p10
+              }
+          }
+          class B extends A {
+              constructor(
+                  p1: () => number,
+                  p2: string,
+                  p3: (p1: int) => [int, boolean, string],
+                  p4: FixedArray<byte>,
+                  p5: [string, string],
+                  p6: (p1: string) => string[],
+                  p7?: double[],
+                  p8?: () => void,
+                  p9: Record<string, int> = { '1': 10 }
+              ) {
+                  super(p1, p2, p3, p4, p5, p6, p7, p8, p9)
+              }
+          }
+      use: |-
+          let s: string = ''
+          let b = new B(
+              () => 42.0,
+              'abc',
+              (p: int) => [p, p > 0, '' + p],
+              [127 as byte, -128 as byte],
+              ['A', 'B'],
+              (p: string) => [p, p, p],
+              [1.0, 2.0, 3.0],
+              () => { s = 'called' },
+              { '2': 2 }
+          )
+          arktest.assertEQ(b.p1(), 42.0)
+          arktest.assertEQ(b.p2, 'abc')
+          let tuple = b.p3(144)
+          arktest.assertEQ(tuple[0], 144)
+          arktest.assertEQ(tuple[1], true)
+          arktest.assertEQ(tuple[2], '144')
+          arktest.assertEQ(b.p4[0], 127)
+          arktest.assertEQ(b.p4[1], -128)
+          let tuple2 = b.p5
+          arktest.assertEQ(tuple2[0], 'A')
+          arktest.assertEQ(tuple2[1], 'B')
+          let stringArray = b.p6('hello')
+          arktest.assertTrue(stringArray.every((e: string, i: int, a: Array<string>) => e == 'hello'))
+          let doubleArray = b.p7!
+          arktest.assertTrue(doubleArray.every((e: double, i: int, a: Array<double>) => i + 1 == e))
+          b.p8!()
+          arktest.assertEQ(s, 'called')
+          let rec: Record<string, int> = b.p9!
+          arktest.assertEQ(rec['2'], 2)
+          arktest.assertEQ(b.p10!, Color.Blue)
+
+    - decl: |-
+          // All optional parameters
+          class A {
+              p1: Array<() => string>|undefined
+              p2: FixedArray<() => number>
+              p3: [string, number]|undefined
+              p4: Record<string, number>
+              p5: string[]|undefined
+
+              constructor(
+                  p1?: Array<() => string>,
+                  p2: FixedArray<() => number> = [],
+                  p3?: [string, number],
+                  p4: Record<string, number> = { '': 0 },
+                  p5?: string[]
+              ) {
+                  this.p1 = p1
+                  this.p2 = p2
+                  this.p3 = p3
+                  this.p4 = p4
+                  this.p5 = p5
+              }
+          }
+      use: |-
+        let a = new A(
+            [() => 'abc']
+        )
+        arktest.assertEQ(a.p1![0](), 'abc')
+        arktest.assertEQ(a.p2.length, 0)
+        arktest.assertEQ(a.p3, undefined)
+        arktest.assertEQ(a.p4[''], 0)
+        arktest.assertEQ(a.p5, undefined)
+
+        a = new A(
+            [() => 'abc'],
+            [() => 1.0, () => 2.0, () => 3.0],
+            ['abc', 3.5]
+        )
+        arktest.assertEQ(a.p1![0](), 'abc')
+        arktest.assertEQ(a.p2[0](), 1.0)
+        arktest.assertEQ(a.p2[1](), 2.0)
+        arktest.assertEQ(a.p2[2](), 3.0)
+        arktest.assertEQ(a.p3![0], 'abc')
+        arktest.assertEQ(a.p3![1], 3.5)
+        arktest.assertEQ(a.p4[''], 0)
+        arktest.assertEQ(a.p5, undefined)
+
+        a = new A(
+            undefined,
+            [],
+            undefined,
+            { '1': 1, '2': 2 },
+            ['a', 'b', 'c']
+        )
+        arktest.assertEQ(a.p1, undefined)
+        arktest.assertEQ(a.p2.length, 0)
+        arktest.assertEQ(a.p3, undefined)
+        arktest.assertEQ(a.p4['1'], 1)
+        arktest.assertEQ(a.p4['2'], 2)
+        arktest.assertEQ(a.p5!.reduce((acc: string, curr: string) => acc + curr, ''), 'abc')
+
+    - decl: |-
+        // All optional parameters with 'this' constructor
+        class A {
+            p1: Array<() => string>|undefined
+            p2: FixedArray<() => number>
+            p3: [string, number]|undefined
+            p4: Record<string, number>
+            p5: string[]|undefined
+
+            constructor(
+                p1?: Array<() => string>,
+                p2: FixedArray<() => number> = [],
+                p3?: [string, number],
+                p4: Record<string, number> = { '': 0 },
+                p5?: string[]
+            ) {
+                this.p1 = p1
+                this.p2 = p2
+                this.p3 = p3
+                this.p4 = p4
+                this.p5 = p5
+            }
+
+            constructor(...p5: string[]) {
+                this(undefined, undefined, undefined, undefined, p5)
+            }
+        }
+      use: |-
+        let a = new A('a', 'b', 'c', 'd')
+        arktest.assertEQ(a.p1, undefined)
+        arktest.assertEQ(a.p2.length, 0)
+        arktest.assertEQ(a.p3, undefined)
+        arktest.assertEQ(a.p4[''], 0)
+        arktest.assertEQ(a.p5!.reduce((acc: string, curr: string) => acc + curr, ''), 'abcd')
+
+    - decl: |-
+        // All optional parameters with 'super' constructor
+        class A {
+            p1: Array<() => string>|undefined
+            p2: FixedArray<() => number>
+            p3: [string, number]|undefined
+            p4: Record<string, number>
+            p5: string[]|undefined
+
+            constructor(
+                p1?: Array<() => string>,
+                p2: FixedArray<() => number> = [],
+                p3?: [string, number],
+                p4: Record<string, number> = { '': 0 },
+                p5?: string[]
+            ) {
+                this.p1 = p1
+                this.p2 = p2
+                this.p3 = p3
+                this.p4 = p4
+                this.p5 = p5
+            }
+        }
+
+        class B extends A {
+            constructor(...p5: string[]) {
+                super(undefined, undefined, undefined, undefined, p5)
+            }
+        }
+      use: |-
+        let b = new B('a', 'b', 'c', 'd')
+        arktest.assertEQ(b.p1, undefined)
+        arktest.assertEQ(b.p2.length, 0)
+        arktest.assertEQ(b.p3, undefined)
+        arktest.assertEQ(b.p4[''], 0)
+        arktest.assertEQ(b.p5!.reduce((acc: string, curr: string) => acc + curr, ''), 'abcd')
+
+    - decl: |-
+          class A {
+              s: string[]
+              constructor(...s: string[]) {
+                  this.s = s
+              }
+          }
+          class B extends A {
+              constructor(p1: string, ...p2: string[]) {
+                  super(p1 + p1, ...p2)
+              }
+          }
+      use: |-
+          let b = new B('a', 'b', 'c', 'd')
+          arktest.assertEQ(b.s[0], 'aa')
+          arktest.assertEQ(b.s[1], 'b')
+          arktest.assertEQ(b.s[2], 'c')
+          arktest.assertEQ(b.s[3], 'd')
+          arktest.assertEQ(b.s.length, 4)

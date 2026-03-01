@@ -1,0 +1,217 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+overload_function_decls:
+  - desc: |-
+      compile-time error, implementation signature is not accessible
+    decl: |-
+      function foo(): void
+      function foo(x: string): void
+      function foo(...args: Any[]): Any {
+      }
+    calls:
+      - foo(undefined)
+      - foo(null)
+      - foo(123)
+      - foo(true)
+      - foo("ab", "cd")
+      - foo(["ab", "cd"])
+      - foo(["ab", 123, true])
+      - |-
+        let v: string | undefined = "ab"
+        foo(v)
+      - |-
+        let v: string | null = "ab"
+        foo(v)
+      - |-
+        let v: string | boolean = "ab"
+        foo(v)
+
+  - desc: |-
+      compile-time error, implementation signature is not accessible
+    decl: |-
+      function foo(a: int): int
+      function foo(a: int, b: double, c: string): string
+      function foo(...args: Any[]): Any {
+        if (args.length == 1) {
+          return 213
+        }
+        else if (args.length == 3) {
+          return "312"
+        } else {
+          return 0
+        }
+      }
+    calls:
+      - foo(456, 789.0)
+
+  - desc: |-
+      compile-time error, implementation signature is not accessible
+    decl: |-
+      class A {}
+      class B extends A {}
+      class C extends A {}
+      function foo(x: string): void
+      function foo(x: C): void
+      function foo(...args: Any[]): Any {
+      }
+    calls:
+      - foo(new A())
+      - foo(new B())
+
+  - desc: |-
+      compile-time error, implementation signature is not accessible
+    decl: |-
+      class A {}
+      class B extends A {}
+      class C extends A {}
+      type HandlerBInt = (a: B, b: int) => int
+      const handlerBInt: HandlerBInt = (a: B, b: int): int => {
+        return 10
+      }
+      type HandlerB = (a: B) => int
+      const handlerB: HandlerB = (a: B): int => {
+        return 10
+      }
+      type HandlerCIntInt = (a: C, b: int, c: int) => int
+      const handlerCIntInt: HandlerCIntInt = (a: C, b: int, c: int): int => {
+        return 10
+      }
+      function foo(x: string): void
+      function foo(x: A, fb: (a: C, b: int) => int): void
+      function foo(...args: Any[]): Any {
+      }
+    calls:
+      - foo(new A(), handlerBInt)
+      - foo(new A(), handlerB)
+      - foo(new A(), handlerCIntInt)
+
+  - desc: |-
+      compile-time error, implementation signature is not accessible
+    decl: |-
+      class A {}
+      class B extends A {}
+      type HandlerB = (a: B) => A
+      const handlerB: HandlerB = (a: B): A => {
+        return new B()
+      }
+      type HandlerNothing = () => A
+      const handlerNothing: HandlerNothing = (): A => {
+        return new B()
+      }
+      function foo(x: string): void
+      function foo(x: A, fb: (x: B) => B): void
+      function foo(...args: Any[]): Any {
+      }
+    calls:
+      - foo(new A(), handlerB)
+      - foo(new A(), handlerNothing)
+
+  - desc: |-
+      Function with overload signatures declared in a non-ambient context must have an implementation body
+      (it is then called function with a body). Otherwise, a compile-time error occurs.
+    decl: |-
+      function foo(): void
+      function foo(x: string): void
+    calls:
+      - ""
+
+  - desc: |-
+      Implementation body must have a signature as follows:
+      (...args: Any[]): Any
+      Otherwise, a compile-time error occurs.
+    decl: |-
+      function parse(a: string): void {};
+      function parse(a: number): void {};
+    calls:
+      - ""
+
+  - desc: |-
+      Implementation body must have a signature as follows:
+      (...args: Any[]): Any
+      Otherwise, a compile-time error occurs.
+    decl: |-
+      function foo(a: int): int
+      function foo(a: int, b: int, c: int): int
+      function foo(a: int, b?: int, c?: int): int {
+        return 123
+      }
+    calls:
+      - ""
+
+  - desc: |-
+      Implementation body must have a signature as follows:
+      (...args: Any[]): Any
+      Otherwise, a compile-time error occurs.
+    decl: |-
+      function parse(a: string): void
+      function parse(a: number): void
+      function parse(a: string|number) {
+      }
+    calls:
+      - ""
+
+  - desc: |-
+      Implementation body must have a signature as follows:
+      (...args: Any[]): Any
+      Otherwise, a compile-time error occurs.
+    decl: |-
+      function foo(x: string): string
+      function foo(x: number): boolean
+      function foo(x: number | string): string | boolean {
+        return true
+      }
+    calls:
+      - ""
+
+  - desc: |-
+      A compile-time error occurs if not all overload signatures and implementation bodies
+      (if any) are either exported or non-exported.
+    decl: |-
+      function foo(): void
+      export function foo(x: string): void
+      export function foo(...args: Any[]): Any {
+      }
+    calls:
+      - ""
+
+  - desc: |-
+      A compile-time error occurs if not all overload signatures and implementation bodies
+      (if any) are either exported or non-exported.
+    decl: |-
+      export function foo(): void
+      function foo(x: string): void
+      export function foo(...args: Any[]): Any {
+      }
+    calls:
+      - ""
+
+  - desc: |-
+      A compile-time error occurs if not all overload signatures and implementation bodies
+      (if any) are either exported or non-exported.
+    decl: |-
+      export function foo(): void
+      export function foo(x: string): void
+      function foo(...args: Any[]): Any {
+      }
+    calls:
+      - ""

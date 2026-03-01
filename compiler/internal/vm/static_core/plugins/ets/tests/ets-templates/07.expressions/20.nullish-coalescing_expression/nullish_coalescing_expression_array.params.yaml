@@ -1,0 +1,104 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - desc: "Empty array is not nullish"
+    lhs_decl: Array<int_nullish> = []
+    rhs_decl: Array<int> = [0]
+    expected_type: Array<int_nullish>|Array<int>
+
+  - lhs_decl: "Array<int_nullish> = [null, 0, undefined]"
+    lhs_access: [0]
+    rhs_decl: boolean = false
+    expected_type: int|boolean
+
+  - lhs_decl: "FixedArray<int_nullish> = [null, 0, undefined]"
+    lhs_access: [1]
+    rhs_decl: Array<Any> = [false]
+    expected_type: int|Array<Any>
+
+  - lhs_decl: "int_nullish[] = [null, 0, undefined]"
+    lhs_access: [2]
+    rhs_decl: |-
+      Record<string, int_nullish> = {
+          "a": null,
+          "b": 1,
+          "c": undefined,
+        }
+    expected_type: int|Record<string, int_nullish>
+
+  - decl: "enum Enum { A = 1.2, B = 0.0}"
+    lhs_decl: "Array<Enum> = [Enum.A, Enum.B];"
+    lhs_access: [1]
+    rhs_decl: string = "aa";
+    expected_type: "Enum|string"
+
+  - decl: |-
+      let rec: Record<string, int_nullish> =
+              {
+                "a": null,
+                "b": 1,
+                "c": undefined,
+              }
+    lhs_decl: "Array<Record<string, int_nullish>> = [rec];"
+    lhs_access: "[0]"
+    rhs_decl: int_nullish = undefined;
+    expected_type: "Record<string, int_nullish>|undefined"
+
+  - decl: |-
+      let rec: Record<string, int_nullish> =
+              {
+                "a": null,
+                "b": 1,
+                "c": undefined,
+              }
+      enum Enum { A = 1.2, B = 0.0}
+    lhs_decl: "Array<Record<string, int_nullish>> = [rec];"
+    lhs_access: '[0]["a"]'
+    rhs_decl: number = Enum.B;
+    expected_type: "int|number"
+
+  - decl: |-
+      let rec: Record<string, int_nullish> =
+              {
+                "a": null,
+                "b": 1,
+                "c": undefined,
+              }
+      class C {}
+    lhs_decl: "Array<Record<string, int_nullish>> = [rec];"
+    lhs_access: '[0]["b"]'
+    rhs_decl: C = new C();
+    expected_type: "int|C"
+
+  - decl: |-
+      let rec: Record<string, int_nullish> =
+              {
+                "a": null,
+                "b": 1,
+                "c": undefined,
+              }
+      class C {
+        public fld: string = "test"
+      }
+    lhs_decl: "Array<Record<string, int_nullish>> = [rec];"
+    lhs_access: '[0]["c"]'
+    rhs_decl: C = new C();
+    rhs_access: .fld
+    expected_type: "int|string"
+
+  - lhs_decl: "[null, int_nullish, int] = [null, undefined, 0];"
+    lhs_access: '[1]'
+    rhs_decl: '"literal" = "literal"'
+    expected_type: 'int|"literal"'

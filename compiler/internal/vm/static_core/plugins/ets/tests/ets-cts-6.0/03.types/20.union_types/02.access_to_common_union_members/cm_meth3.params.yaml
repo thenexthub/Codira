@@ -1,0 +1,332 @@
+# Copyright (c) 2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # Common methods in interfaces
+    - decl: |-
+          // interfaces, methods of any type
+          interface I {
+              meth(): Object|null|undefined
+          }
+          interface J {
+              meth(): Object|null|undefined
+          }
+          class A implements I {
+              meth(): Object|null|undefined {
+                  return undefined
+              }
+          }
+          class B implements J {
+              meth(): Object|null|undefined {
+                  return null
+              }
+          }
+          let u1: J|I = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertTrue(u1.meth() === undefined)
+          arktest.assertTrue(u2.meth() === null)
+
+    - decl: |-
+          // interfaces, methods of number type
+          interface I {
+              meth(p: string): number
+          }
+          interface J {
+              meth(p: string): number
+          }
+          class A implements I {
+              meth(p: string): number {
+                  return 42.0
+              }
+          }
+          class B implements J {
+              meth(p: string): number {
+                  return 0
+              }
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertEQ(u1.meth(''), 42.0)
+          arktest.assertEQ(u2.meth(''), 0e0)
+
+    - decl: |-
+          // interfaces, methods of bigint type
+          interface I {
+              meth(p: number|string): bigint
+          }
+          interface J {
+              meth(p: number|string): bigint
+          }
+          class A implements I {
+              meth(p: number|string): bigint {
+                  return 42n
+              }
+          }
+          class B implements J {
+              meth(p: number|string): bigint {
+                  return 33n
+              }
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertEQ(u1.meth(0), 42n)
+          arktest.assertEQ(u2.meth(''), 33n)
+
+    - decl: |-
+          // interfaces, methods of Integral type
+          interface I {
+              meth(p: char[]): Integral
+          }
+          interface J extends I {}
+          class A implements I {
+              meth(p: char[]): Integral {
+                  return new Int(42)
+              }
+          }
+          class B implements J {
+              meth(p: char[]): Integral {
+                  return new Short(33 as short)
+              }
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          let arr: char[] = [c'A', c'B']
+          arktest.assertEQ(u1.meth(arr), 42)
+          arktest.assertEQ(u2.meth(arr), 33)
+
+    - decl: |-
+          // interfaces, methods of Error type
+          interface I {
+              meth(p: number|string): Error
+          }
+          interface J {
+              meth(p: number|string): Error
+          }
+          class A implements I {
+              meth(p: number|string): Error {
+                  return new Error('a' + p)
+              }
+          }
+          class B implements J {
+              meth(p: number|string): Error {
+                  return new Error('b' + p)
+              }
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertEQ(u1.meth(42).message, 'a42')
+          arktest.assertEQ(u2.meth('cd').message, 'bcd')
+
+    - decl: |-
+          // interfaces, methods of union literal type
+          interface I {
+              meth(): 'a'|'b'|'c'
+          }
+          interface J {
+              meth(): 'a'|'b'|'c'
+          }
+          class A implements I {
+              meth(): 'a'|'b'|'c' {
+                  return 'a'
+              }
+          }
+          class B implements J {
+              meth(): 'a'|'b'|'c'|'b'|'a' {
+                  return 'b'
+              }
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertEQ(u1.meth(), 'a')
+          arktest.assertEQ(u2.meth(), 'b')
+
+    - decl: |-
+          // interfaces, methods of union type
+          interface I {
+              meth(p: Object): Number|null|String
+          }
+          interface J {
+              meth(p: Object): Number|String|null
+          }
+          class A implements I {
+              meth(p: Object): number|null|string {
+                  return 42.0
+              }
+          }
+          class B implements J {
+              meth(p: Object): 'a'|null|string|number|never {
+                  return null
+              }
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertEQ(u1.meth(new Object()), 42.0)
+          arktest.assertEQ(u2.meth(new Object()), null)
+
+    - decl: |-
+          // interfaces, methods of array type
+          interface I {
+              meth(): string[]
+          }
+          interface J {
+              meth(): string[]
+          }
+          class A implements I {
+              meth(): string[] {
+                  return ['a', 'b']
+              }
+          }
+          class B implements J {
+              meth(): string[] {
+                  return ['c', 'd', 'e']
+              }
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertEQ(u1.meth()[0], 'a')
+          arktest.assertEQ(u2.meth()[2], 'e')
+
+    - decl: |-
+          // interfaces, methods of tuple type
+          interface I {
+              meth(p: number, q: string): [number, string]
+          }
+          interface J {
+              meth(p: number, q: string): [number, string]
+          }
+          class A implements I {
+              meth(p: number, q: string): [number, string] {
+                  return [p + 1, q]
+              }
+          }
+          class B implements J {
+              meth(p: number, q: string): [number, string] {
+                  return [p, q + 'B']
+              }
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertEQ(u1.meth(42, 'a')[0], 43.0)
+          arktest.assertEQ(u2.meth(33, 'b')[1], 'bB')
+
+    - decl: |-
+          // interfaces, methods of Record type
+          interface I {
+              meth(): Record<String, Number>
+          }
+          interface J {
+              meth(): Record<String, Number>
+          }
+          class A implements I {
+              meth(): Record<string, number> {
+                  return { 'a': 11.0 }
+              }
+          }
+          class B implements J {
+              meth(): Record<string, number> {
+                  return { 'b': 22e0 }
+              }
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertEQ(u1.meth()['a'], 11.0)
+          arktest.assertEQ(u2.meth()['b'], 22.0)
+
+    - decl: |-
+          // interfaces, methods of function type
+          type FUNC = (p: string) => number
+          interface I {
+              meth(p: number): FUNC
+          }
+          interface J {
+              meth(p: number): FUNC
+          }
+          class A implements I {
+              meth(x: number): FUNC {
+                  return (p: string): number => p.length + 1 + x
+              }
+          }
+          class B implements J {
+              meth(x: number): FUNC {
+                  return (p: string): number => p.length + 10 + x
+              }
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertEQ(u1.meth(2)('abc'), 6.0)
+          arktest.assertEQ(u2.meth(3)('abc'), 16.0)
+
+    - decl: |-
+          // interfaces, methods of type parameters
+          interface I<T> {
+              meth(): T
+          }
+          interface J {
+              meth(): string
+          }
+          class A<T> implements I<T> {
+              fld: T
+              meth(): T {
+                  return this.fld
+              }
+              constructor(p: T) {
+                  this.fld = p
+              }
+          }
+          class B implements J {
+              meth(): string {
+                  return 'b'
+              }
+          }
+          let u1: I<string>|J = new A<string>('a')
+          let u2: J|I<string> = new B
+      use: |-
+          arktest.assertEQ(u1.meth(), 'a')
+          arktest.assertEQ(u2.meth(), 'b')
+
+    - decl: |-
+          // interfaces, methods of enum type
+          enum Color { Red, Green, Blue }
+          interface I {
+              meth(): Color
+          }
+          interface J {
+              meth(): Color
+          }
+          class A implements I {
+              meth(): Color {
+                  return Color.Green
+              }
+          }
+          class B implements J {
+              meth(): Color {
+                  return Color.Blue
+              }
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertEQ(u1.meth(), Color.Green)
+          arktest.assertEQ(u2.meth(), Color.Blue)

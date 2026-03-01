@@ -1,0 +1,201 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # Primitives
+  - decl: |-
+      type T = byte
+      const a: T = 0x80.toByte();
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), 1);
+      }
+
+  - decl: |-
+      type T = short
+      const a: T = 0x7FFF.toShort();
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), 2);
+      }
+
+  - decl: |-
+      type T = int
+      const a: T = new Int(127);
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), 3);
+      }
+
+  - decl: |-
+      type T = long
+      const a: T = new Long(127);
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), 4);
+      }
+
+  - decl: |-
+      type T = float
+      const a: T = new Float(-0.0);
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), 5);
+      }
+
+  - decl: |-
+      type T = double
+      const a: T = new Double(-0.0);
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), 6); // double is an alias to number
+      }
+
+  - decl: |-
+      type T = number
+      const a: T = -0.0 as number;
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), 6);
+      }
+
+  - decl: |-
+      type T = char
+      const a: T = c'a';
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), 7);
+      }
+
+  #8
+  - decl: |-
+      type T = boolean
+      const a: T = true;
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), -1);
+      }
+
+  # Boxed
+  - decl: |-
+      type T = Byte
+      const a: T = new Byte(0x7F.toByte());
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), 1);
+      }
+
+  - decl: |-
+      type T = Short
+      const a: T = new Short(2);
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), 2);
+      }
+
+  - decl: |-
+      type T = Int
+      const a: T = new Int(3);
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), 3);
+      }
+
+  - decl: |-
+      type T = Long
+      const a: T = new Long(4);
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), 4);
+      }
+
+  - decl: |-
+      type T = Float
+      const a: T = new Float(0.1);
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), 5);
+      }
+
+  - decl: |-
+      type T = Double
+      const a: T = new Double(0.1);
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), 6); // Double is an alias to Number
+      }
+
+  - decl: |-
+      type T = Number
+      const a: T = new Number(0.1 as number);
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), 6);
+      }
+
+  - decl: |-
+      type T = Char
+      const a: T = new Char(c'b');
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), 7);
+      }
+
+  - decl: |-
+      type T = string
+      const a: T = "some string";
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), 8); // string is an alias to String
+      }
+
+  - decl: |-
+      type T = String
+      const a: T = new String("some string");
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), 8);
+      }
+
+  - decl: |-
+      type T = Boolean
+      const a: T = new Boolean(false);
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), -1);
+      }
+
+    # Custom
+  - decl: |-
+      type T = FixedArray<int>
+      const a: T = [1, -2];
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), 21);
+      }
+
+  - decl: |-
+      type T = FixedArray<FixedArray<Int>>
+      const a: T = [[new Int(1)], [new Int(-2)]];
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), 22);
+      }
+
+  - decl: |-
+      const a: TPL = [1.4, "str"];
+    check: |-
+      function main() {
+          arktest.assertEQ(foo(a), 24);
+      }

@@ -1,0 +1,3 @@
+#30195 More timeout is required
+ets-common-tests/intrinsics/array_reverse.ets
+ets-common-tests/intrinsics/array_slice.ets

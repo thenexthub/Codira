@@ -1,0 +1,17 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep @MyAnno1 class class_test_002.ClassA {\n    *;\n    }",
+        "-keep class class_test_002.ClassB {\n    public method0():void;\n    }",
+        "-keep class class_test_002.ClassC {\n    @MyAnno1 public method0():void;\n    }",
+        "-keep class class_test_002.ClassD {\n    @MyAnno1 <methods>;\n    }",
+        "-keep class class_test_002.ClassE {\n    @MyAnno1 protected *;\n    }",
+        "-keep class class_test_002.ClassF {\n    private <methods>;\n    }"
+      ]
+    }
+  }
+}

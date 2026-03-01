@@ -1,0 +1,27 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep class XXX {\n    v1: {Ustd.core.Int, std.core.String};\n    }",
+        "-keep class XXX {\n    v2: {Ustd.core.Byte, std.core.String};\n    }",
+        "-keep class XXX {\n    v3: {Ustd.core.Short, std.core.String};\n    }",
+        "-keep class XXX {\n    v4: {Ustd.core.Double, std.core.String};\n    }",
+        "-keep class XXX {\n    v5: {Ustd.core.Long, std.core.String};\n    }",
+        "-keep class XXX {\n    v6: {Ustd.core.Float, std.core.String};\n    }",
+        "-keep class XXX {\n    v7: {Ustd.core.Double, std.core.String};\n    }",
+        "-keep class XXX {\n    v8: {Ustd.core.Char, std.core.String};\n    }",
+        "-keep class XXX {\n    v9: {Ustd.core.Boolean, std.core.String};\n    }",
+        "-keep class XXX {\n    v10: {Ustd.core.BigInt, std.core.String};\n    }",
+        "-keep class XXX {\n    v11: std.core.String;\n    }",
+        "-keep class XXX {\n    v12: {Ustd.core.Null, std.core.String};\n    }",
+        "-keep class XXX {\n    v13: std.core.String;\n    }",
+        "-keep class XXX {\n    v14: {Ustd.core.Array, std.core.String};\n    }",
+        "-keep class XXX {\n    v15: std.core.Object;\n    }",
+        "-keep class XXX {\n    v16: std.core.Int;\n    }"
+      ]
+    }
+  }
+}

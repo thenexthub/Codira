@@ -1,0 +1,116 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+  - desc: "Class, only get accessor"
+    decl: |
+      class Person {
+        firstName: string
+        lastName: string
+        constructor (first: string, last: string) {
+          this.firstName = first
+          this.lastName = last
+        }
+      }
+      get fullName(this: Person): string {
+        return this.firstName + ' ' + this.lastName
+      }
+    use: |
+      let c = new Person("John", "Doe")
+      arktest.assertEQ(c.fullName, "John Doe")
+  - desc: "Class, only set accessor"
+    decl: |
+      class A {
+        member: int = 0
+      }
+      set m(this: A, param: int) {
+        this.member = param
+      }
+    use: |
+      let a = new A()
+      a.m = 1
+      arktest.assertEQ(a.member, 1)
+  - desc: "Class, set and get accessors"
+    decl: |
+      class A {
+        member: int = 0
+      }
+      get m(this: A): int {
+        return this.member
+      }
+      set m(this: A, param: int) {
+        this.member = param
+      }
+    use: |
+      let a = new A()
+      a.m++
+      arktest.assertEQ(a.m, 1)
+
+  - desc: "Derived class, get and set accessors"
+    decl: |
+      class Base {
+        public member: int = 1
+      }
+      class A extends Base {}
+      get m(this: A): int {
+        return this.member
+      }
+      set m(this: A, param: int) {
+        this.member = param
+      }
+    use: |
+      let a = new A()
+      a.m++
+      arktest.assertEQ(a.m, 2)
+  - desc: "Derived class, mixed accessors"
+    decl: |
+      class Base {
+        public member: int = 1
+        get m(): int {
+          return this.member
+        }
+      }
+      class A extends Base {}
+      
+      set m(this: A, param: int) {
+        this.member = param
+      }
+    use: |
+      let a = new A()
+      a.m++
+      arktest.assertEQ(a.m, 2)
+
+  - desc: "Interface, get and set accessors"
+    decl: |
+      interface I {
+        x: int;
+      }
+      get _x(this: I): long {return this.x}
+      set _x(this: I, param: long) {this.x = param.toInt()}
+    use: |
+      let tstI: I = {x: 1}
+      arktest.assertTrue(tstI.x instanceof int)
+      arktest.assertTrue(tstI._x instanceof long)
+      arktest.assertEQ(tstI._x, 1)
+      tstI._x = new long(0x7FFF_FFFF_1)
+      arktest.assertEQ(tstI._x, -15)

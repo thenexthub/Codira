@@ -1,0 +1,15 @@
+{
+  "description": "Config for TestMainSymbolicBreakpoints",
+  "environment": [
+    {
+      "type": "device",
+      "label": "phone"
+    }
+  ],
+  "driver": {
+    "type": "DeviceTest",
+    "py_file": [
+      "toolchain/debug/TestMainSymbolicBreakpoints.py"
+    ]
+  }
+}

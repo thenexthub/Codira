@@ -1,0 +1,81 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+--- # List of valid method modifiers
+cases:
+  - modifier: "abstract"
+    tags: "compile-only, negative"
+    expected_error: |-
+      /* @@@ label Error TypeError: Invalid method modifier(s): an abstract method can't have private, override, static, final or native modifier. */
+    function: |-
+      /* @@ label */override abstract foo(): int;
+
+  - modifier: "override"
+    tags: "compile-only, negative"
+    expected_error: |-
+      /* @@@ label Error SyntaxError: Duplicated modifier is not allowed. */
+    function: |-
+      override /* @@ label */override foo(): int {
+        return 5;
+      }
+
+  - modifier: "final"
+    function: |-
+      override final foo(): int {
+        return 5;
+      }
+    main: |-
+      function main(): void {
+        let a: A = (() => new B)()
+        arktest.assertEQ(a.foo(), 5)
+      }
+
+  - modifier: "static"
+    tags: "compile-only, negative"
+    expected_error: |-
+      /* @@@ label Error TypeError: Invalid method modifier(s): a static method can't have abstract, final or override modifier. */
+    function: |-
+      /* @@ label */override static foo(): int {
+        return 5;
+      }
+
+  - modifier: "native"
+    function: |-
+      override native foo(): int;
+    main: |-
+      function main(): void {
+        let a: A = (() => new B)()
+        let checkException = (e: Error): boolean => {
+          return (e instanceof LinkerUnresolvedMethodError)
+        }
+        arktest.expectThrow(() => { a.foo() }, checkException)
+      }
+
+  - modifier: "async"
+    tags: "compile-only, negative"
+    expected_error: |-
+      /* @@@ label Error TypeError: foo(): Promise<Int> in B cannot override foo(): Int in A because overriding return type is not compatible with the other return type. */
+      /* @@@ label Error TypeError: Method foo(): Promise<Int> in B not overriding any method */
+    function: |-
+      override async foo/* @@ label */(): Promise<int> {
+        return 5;
+      }

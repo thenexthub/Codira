@@ -1,0 +1,213 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+#! CHECKER      Use TLAB for array and object
+#! RUN          options: "--compiler-hotness-threshold=0 --no-async-jit=false --compiler-enable-jit=true --compiler-enable-tlab-events=true --compiler-check-final=true --compiler-regex=.*tlab.* --young-shared-space-size=0", entry: "_GLOBAL::main"
+#! EVENT        /Compilation,.*tlab_array_u64.*/
+#! EVENT        /Compilation,.*tlab_array_u32.*/
+#! EVENT        /Compilation,.*tlab_array_u16.*/
+#! EVENT        /Compilation,.*tlab_array_u8.*/
+#! EVENT        /Compilation,.*tlab_asm_16.*/
+#! EVENT        /Compilation,.*tlab_asm_24.*/
+#-! EVENT_NEXT   /SlowpathAlloc,.*/
+#-! EVENT_NEXT_NOT /SlowpathAlloc,.*/
+#! TRUE         EVENT_COUNT(/SlowpathAlloc,.*/) <= 2
+#! EVENT_NEXT   /TlabAlloc,.*,NewArray,.*,24/
+#! EVENT_NEXT   /TlabAlloc,.*,NewArray,.*,32/
+#! EVENT_NEXT   /TlabAlloc,.*,NewArray,.*,40/
+#! EVENT_NEXT   /TlabAlloc,.*,NewArray,.*,56/
+
+
+#! CHECKER      Use TLAB for array and object in AOT
+#! RUN_PAOC     options: "--compiler-enable-tlab-events=true --compiler-regex=.*tlab.* --young-shared-space-size=0"
+#! RUN          options: "--compiler-enable-tlab-events=true", entry: "_GLOBAL::main"
+#-! EVENT_NEXT     /SlowpathAlloc,.*/
+#-! EVENT_NEXT_NOT /SlowpathAlloc,.*/
+#! TRUE         EVENT_COUNT(/SlowpathAlloc,.*/) <= 2
+#! EVENT_NEXT   /TlabAlloc,.*,NewArray,.*,24/
+#! EVENT_NEXT   /TlabAlloc,.*,NewArray,.*,32/
+#! EVENT_NEXT   /TlabAlloc,.*,NewArray,.*,40/
+#! EVENT_NEXT   /TlabAlloc,.*,NewArray,.*,56/
+
+#! CHECKER      Don't Use TLAB for array and object for STW
+#! RUN          options: "--compiler-hotness-threshold=0 --no-async-jit=false --compiler-enable-jit=true --compiler-enable-tlab-events=true --compiler-check-final=true --gc-type=stw --compiler-regex=.*tlab.* --young-shared-space-size=0", entry: "_GLOBAL::main"
+#! EVENT        /Compilation,.*tlab_array_u64.*/
+#! EVENT        /Compilation,.*tlab_array_u32.*/
+#! EVENT        /Compilation,.*tlab_array_u16.*/
+#! EVENT        /Compilation,.*tlab_array_u8.*/
+#! EVENT        /Compilation,.*tlab_asm_16.*/
+#! EVENT        /Compilation,.*tlab_asm_24.*/
+#! EVENT        /SlowpathAlloc,.*/
+#! EVENT_NOT    /TlabAlloc,.*/
+
+.record System <external>
+.record panda.String <external>
+
+.function u8 System.compileMethod(panda.String a0) <external>
+
+.record Asm_size16 {
+    i8 asm1
+}
+
+.record Asm_size24 {
+    i8 asm1
+    i64 asm2
+    Asm_size16 asm3
+}
+
+.function Asm_size16 __noinline__call_tlab_asm_16() <static> {
+    newobj v0, Asm_size16
+    lda.obj v0
+    return.obj
+}
+
+.function Asm_size24 __noinline__call_tlab_asm_24() <static> {
+    newobj v0, Asm_size24
+    lda.obj v0
+    return.obj
+}
+
+.function u64[] __noinline__call_tlab_array_u64(i32 a0) <static> {
+    newarr v0, a0, u64[]
+    lda.obj v0
+    return.obj
+}
+
+.function u32[] __noinline__call_tlab_array_u32(i32 a0) <static> {
+    newarr v0, a0, u32[]
+    lda.obj v0
+    return.obj
+}
+
+.function u16[] __noinline__call_tlab_array_u16(i32 a0) <static> {
+    newarr v0, a0, u16[]
+    lda.obj v0
+    return.obj
+}
+
+.function u8[] __noinline__call_tlab_array_u8(i32 a0) <static> {
+    newarr v0, a0, u8[]
+    lda.obj v0
+    return.obj
+}
+
+.function u1 main(){
+    lda.str "_GLOBAL::__noinline__call_tlab_array_u64"
+    sta.obj v0
+    call.short System.compileMethod, v0, v0
+    jnez error_exit
+
+    lda.str "_GLOBAL::__noinline__call_tlab_array_u32"
+    sta.obj v0
+    call.short System.compileMethod, v0, v0
+    jnez error_exit
+
+    lda.str "_GLOBAL::__noinline__call_tlab_array_u16"
+    sta.obj v0
+    call.short System.compileMethod, v0, v0
+    jnez error_exit
+
+    lda.str "_GLOBAL::__noinline__call_tlab_array_u8"
+    sta.obj v0
+    call.short System.compileMethod, v0, v0
+    jnez error_exit
+
+    lda.str "_GLOBAL::__noinline__call_tlab_asm_16"
+    sta.obj v0
+    call.short System.compileMethod, v0, v0
+    jnez error_exit
+
+    lda.str "_GLOBAL::__noinline__call_tlab_asm_24"
+    sta.obj v0
+    call.short System.compileMethod, v0, v0
+    jnez error_exit
+
+    # we need 2 allocations for initialize TLAB
+    movi v1, 1
+    call.short __noinline__call_tlab_array_u8, v1, v1
+    call.short __noinline__call_tlab_array_u8, v1, v1
+
+    movi v0, 0
+    # we need 2 allocations, cause if we unlucky we will get 1 allocation between TLABs - will be a runtime call.
+    ldai 2
+loop_u8:
+    jeq v0, loop_u8_exit
+    inci v0, 1
+    movi v1, 5
+    call.short __noinline__call_tlab_array_u8, v1, v1
+    ldai 2
+    jmp loop_u8
+loop_u8_exit:
+    movi v0, 0
+    ldai 2
+loop_u16:
+    jeq v0, loop_u16_exit
+    inci v0, 1
+    movi v1, 5
+    call.short __noinline__call_tlab_array_u16, v1, v1
+    ldai 2
+    jmp loop_u16
+loop_u16_exit:
+    movi v0, 0
+    ldai 2
+loop_u32:
+    jeq v0, loop_u32_exit
+    inci v0, 1
+    movi v1, 5
+    call.short __noinline__call_tlab_array_u32, v1, v1
+    ldai 2
+    jmp loop_u32
+loop_u32_exit:
+    movi v0, 0
+    ldai 2
+loop_u64:
+    jeq v0, loop_u64_exit
+    inci v0, 1
+    movi v1, 5
+    call.short __noinline__call_tlab_array_u64, v1, v1
+    ldai 2
+    jmp loop_u64
+loop_u64_exit:
+    movi v0, 0
+    ldai 2
+loop_asm_16:
+    jeq v0, loop_asm_16_exit
+    inci v0, 1
+    call.short __noinline__call_tlab_asm_16
+    ldai 2
+    jmp loop_asm_16
+loop_asm_16_exit:
+    movi v0, 0
+    ldai 2
+loop_asm_24:
+    jeq v0, loop_asm_24_exit
+    inci v0, 1
+    call.short __noinline__call_tlab_asm_24
+    ldai 2
+    jmp loop_asm_24
+loop_asm_24_exit:
+    ldai 0
+    return
+
+error_exit:
+    return
+}

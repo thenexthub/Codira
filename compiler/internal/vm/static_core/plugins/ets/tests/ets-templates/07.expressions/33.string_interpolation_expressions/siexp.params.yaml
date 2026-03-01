@@ -1,0 +1,256 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+cases:
+    - use: |-
+          const b1: byte = Byte.MIN_VALUE
+          const b2: byte = (0).toByte()
+          const b3: byte = Byte.MAX_VALUE
+          const s1: short = Short.MIN_VALUE
+          const s2: short = (0).toShort()
+          const s3: short = Short.MAX_VALUE
+          const i1: int = Int.MIN_VALUE
+          const i2: int = (0).toInt()
+          const i3: int = Int.MAX_VALUE
+          const l1: long = Long.MIN_VALUE
+          const l2: long = (0).toInt().toLong()
+          const l3: long = Long.MAX_VALUE
+          const f1: float = Float.MIN_VALUE
+          const f2: float = 0.0f
+          const f3: float = Float.MAX_VALUE
+          const n1: number = Number.MIN_VALUE
+          const n2: number = 0.0
+          const n3: number = Number.MAX_VALUE
+
+          const v = `A ${b1} B ${b2} C ${b3} D ${s1} E ${s2} F ${s3} G ${i1} H ${i2} I ${i3} J ${l1} K ${l2} L ${l3} M ${f1} N ${f2} P ${f3} Q ${n1} R ${n2} S ${n3}`
+          const expected = 'A -128 B 0 C 127 D -32768 E 0 F 32767 G -2147483648 H 0 I 2147483647 J -9223372036854775808 K 0 L 9223372036854775807 M 1e-45 N 0 P 3.4028235e+38 Q 5e-324 R 0 S 1.7976931348623157e+308'
+
+    - use: |-
+          const b1: Byte = Byte.MIN_VALUE
+          const b2: Byte = (0).toByte()
+          const b3: Byte = Byte.MAX_VALUE
+          const s1: Short = Short.MIN_VALUE
+          const s2: Short = (0).toShort()
+          const s3: Short = Short.MAX_VALUE
+          const i1: Int = Int.MIN_VALUE
+          const i2: Int = (0).toInt()
+          const i3: Int = Int.MAX_VALUE
+          const l1: Long = Long.MIN_VALUE
+          const l2: Long = (0).toInt().toLong()
+          const l3: Long = Long.MAX_VALUE
+          const f1: Float = Float.MIN_VALUE
+          const f2: Float = 0.0f
+          const f3: Float = Float.MAX_VALUE
+          const n1: Number = Number.MIN_VALUE
+          const n2: Number = 0.0
+          const n3: Number = Number.MAX_VALUE
+
+          const v = `A ${b1} B ${b2} C ${b3} D ${s1} E ${s2} F ${s3} G ${i1} H ${i2} I ${i3} J ${l1} K ${l2} L ${l3} M ${f1} N ${f2} P ${f3} Q ${n1} R ${n2} S ${n3}`
+          const expected = 'A -128 B 0 C 127 D -32768 E 0 F 32767 G -2147483648 H 0 I 2147483647 J -9223372036854775808 K 0 L 9223372036854775807 M 1e-45 N 0 P 3.4028235e+38 Q 5e-324 R 0 S 1.7976931348623157e+308'
+
+    - use: |-
+          const f1: float = Float.NEGATIVE_INFINITY
+          const f2: float = Float.NaN
+          const f3: float = Float.POSITIVE_INFINITY
+          const n1: number = Number.NEGATIVE_INFINITY
+          const n2: number = Number.NaN
+          const n3: number = Number.POSITIVE_INFINITY
+
+          const v = `...${f1}...${f2}...${f3}...${n1}...${n2}...${n3}...`
+          const expected = '...-Infinity...NaN...Infinity...-Infinity...NaN...Infinity...'
+
+    - use: |-
+          const a: Object|null = null
+          const b: Object|undefined = undefined
+
+          const v = `...${a}...${b}...`
+          const expected = '...null...undefined...'
+
+    - use: |-
+          const v = `___${Color.Red}___${Color.Blue}___`
+          const expected = '___0___2___'
+      defs: |-
+          enum Color { Red, Green, Blue }
+
+    - use: |-
+          const v = `--${'a' + 'b' + 42}--${foo(42) > 0 ? boo('abc') : foo(5)}--${foo(42) < 0 ? boo('abc') : foo(5)}--`
+          const expected = '--ab42--abcabc--10--'
+      defs: |-
+          function foo(p: number): Number {
+              return p + p
+          }
+          function boo(p: string): String {
+              return p + p
+          }
+
+    - use: |-
+          const v = `'value' = ${'\u0000' + '0000'}`
+          const expected = "'value' = \u00000000"
+
+    - use: |-
+          const v = `(escaped expression) \${14/2} = ${14/2}`
+          const expected = '(escaped expression) ${14/2} = 7'
+
+    - use: |-
+          const v = `(slash at curly braces) $\{true || false\}`
+          const expected = '(slash at curly braces) ${true || false}'
+
+    - use: |-
+          const v = `nested ${`backtick = \``}`
+          const expected = 'nested backtick = `'
+
+    - use: |-
+          const c = 'c`${2+2}`'
+          const v = `nested ${"a" + `b${c}d` + "e"}`
+          const expected = 'nested abc`${2+2}`de'
+
+    - use: |-
+          const v = `func${((p: number): number => { return p * p })(3)}`
+          const expected = 'func9'
+
+    - use: |-
+          let a = 'Hello'
+          let b = 'World'
+          const v = `$ { a }, $ { b } !`
+          const expected = '$ { a }, $ { b } !'
+
+    - use: |-
+          let a = 'Hello'
+          let b = 'World'
+          const v = `${a   }, ${  b} !`
+          const expected = 'Hello, World !'
+
+    - use: |-
+        const v = iss
+        const expected = 'Hello, String!'
+      defs: |-
+        let iss: String = `Hello, ${TString}!`
+        let TString = 'String'
+
+    - use: |-
+        let a: AClass = new AClass        
+        const v = `${AClass.hello}, ${a.world}!`
+        const expected = 'Hello, World!'
+      defs: |-
+        class AClass {
+          static hello: string  = 'Hello'
+          private _world: string = 'World'
+          get world() { return this._world }
+        }
+
+    - use: |-
+        let a: IPerson = {name: 'Bob', id: 25}        
+        const v = `Hello ${a.name}, ${a.id}!`
+        const expected = 'Hello Bob, 25!'
+      defs: |-
+        interface IPerson {
+          name: String
+          id: int
+        }
+
+    - use: |-
+        let a: IPerson = {name: 'Bob', id: 25}  
+        let name: string
+        let id: int
+        const v = `Hello ${name = a.name}, ${id = a.id}!`
+        const expected = 'Hello Bob, 25!'
+      defs: |-
+        interface IPerson {
+          name: String
+          id: int
+        }
+      xcheck: |-
+        arktest.assertEQ(name, 'Bob')
+        arktest.assertEQ(id, 25)
+
+    - use: |-
+        let a: IPerson = {id: 25}  
+        let name: string | undefined = 'Bob'
+        let id: int
+        const v = `Hello ${name = a.name}, ${id = a.id}!`
+        const expected = 'Hello undefined, 25!'
+      defs: |-
+        interface IPerson {
+          name?: String
+          id: int
+        }
+      xcheck: |-
+        arktest.assertEQ(name, undefined)
+        arktest.assertEQ(id, 25)
+
+    - use: |-
+        let a: IPerson = {id: 25}  
+        let name: string | undefined = 'Bob'
+        let id: int
+        const v = `Hello ${name = (a.name == undefined ? 'Mary' : a.name)}, ${id = a.id}!`
+        const expected = 'Hello Mary, 25!'
+      defs: |-
+        interface IPerson {
+          name?: String
+          id: int
+        }
+      xcheck: |-
+        arktest.assertEQ(name, 'Mary')
+        arktest.assertEQ(id, 25)
+
+    - use: |-
+        let a: IPerson = {id: 25}  
+        let id: int
+        const v = `Hello ${a.name ?? 'Jane'}, ${id = a.id}!`
+        const expected = 'Hello Jane, 25!'
+      defs: |-
+        interface IPerson {
+          name?: String
+          id: int
+        }
+      xcheck: |-
+        arktest.assertEQ(id, 25)
+        
+
+    - use: |-
+        const v = `___${Flags.Read}___${Flags.Write}___${Flags.Full}`
+        const expected = '___0___1___1'
+      defs: |-
+        enum Flags { Read, Write, Full = Read | Write }
+
+    - use: |-
+        const v = `___${Flags.Read}___${Flags.Write}___${Flags.Full}`
+        const expected = '___Read___Write___Full'
+      defs: |-
+        enum Flags { Read = 'Read', Write = 'Write', Full = 'Full' }
+
+    - use: |-
+        const v = `___${triple[0]}___${triple[1]}___${triple[2]}`
+        const expected = '___1___Test___true'
+      defs: |-
+        const triple: [number, string, boolean] = [1, 'Test', true]
+
+    - use: |-
+        const v = `___${pair['key1']}___${pair['key2']}`
+        const expected = '___1___2'
+      defs: |-
+        const pair: Record<string, number> = {'key1': 1, 'key2': 2}
+
+    - use: |-
+        let values: int[] = [1,2,3,4,5]
+        const v: String = `Hello ${values}`
+        const expected = 'Hello 1,2,3,4,5'
+
+    - use: |-
+        let values: int[] = [1,2,3,4,5]
+        const v: String = `Hello ${[...values]}`
+        const expected = 'Hello 1,2,3,4,5'
+
+    - use: |-
+        const v = `...${null}...${undefined}...`
+        const expected = '...null...undefined...'      

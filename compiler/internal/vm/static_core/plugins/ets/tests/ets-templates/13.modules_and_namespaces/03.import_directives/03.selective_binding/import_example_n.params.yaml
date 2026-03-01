@@ -1,0 +1,34 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+ - doc: Import overloaded method. Original methods are not available.
+   use: |-
+     f1(5)
+
+ - doc: Import overloaded method. Original methods are not available.
+   use: |-
+     f2("str")
+
+ - doc: Import original methods. Overloaded method is not available.
+   use: |-
+     foo(5)
+
+ - doc: Import original methods. Overloaded method is not available.
+   use: |-
+     foo("a string")
+
+ - doc: Import both overloaded and original methods. Not imported original method is still unavailable
+   use: |-
+     f1(5)

@@ -1,0 +1,88 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          interface I1 {
+              overload foo { m1, m2 }
+              m1(p: int) { return 1 }
+              m2(p: string): string;
+          }
+          interface I2 {
+              overload foo { m3, m4 }
+              m3(p: int): int;
+              m4(p: string) { return 'b' }
+          }
+          interface I3 extends I1, I2 {
+              // CTE, No overload for foo is defined in I3
+          }
+      expected_out: |-
+          No new overload for 'foo' is defined in I3
+
+    - decl: |-
+          interface I {
+              m1(p: int) { return '1' }
+              m2(p: string): string;
+          }
+          interface I1 extends I {
+              overload foo { m1, m2 }
+          }
+          interface I2 extends I {
+              overload foo { m2, m1 }
+          }
+          interface I3 extends I1, I2 {
+              // CTE, No overload for foo is defined in I3
+          }
+      expected_out: |-
+          No new overload for 'foo' is defined in I3
+
+    - decl: |-
+          interface I1 {
+              overload foo { m1, m2, m3 }
+              m1(p: int): int;
+              m2(p: int, q: int) { return 2 }
+              m3(p: int, q: int, r: int): string;
+          }
+          interface I2 extends I1 {
+              overload foo { m1, m2 } // CTE, Not all methods included
+          }
+      expected_out: |-
+          Not all methods included in 'I2.foo'
+
+    - decl: |-
+          interface I1 {
+              overload foo { m1, m2 }
+              m1(p: int) { return 1 }
+              m2(p: int, q: int): int;
+          }
+          interface I2 {
+              overload foo { m3, m4 }
+              m3(p: int, q: int, r: int): boolean;
+              m4(p: int, q: int, r: int, s: int) { return 4 }
+          }
+          interface I3 extends I1, I2 {
+              overload foo { m1, m2, m3 } // CTE, Not all methods included
+          }
+      expected_out: |-
+          Not all methods included in 'I3.foo'
+
+    - decl: |-
+          interface I1 {
+              m1(p: int) { return 1 }
+              m2(p: int) { return 2 }
+              m3(p: int) { return 3 }
+              overload m1 { m2, m3 }
+          }
+      expected_out: |-
+          Semantic error ESE0397: Method with the same name as overload declaration 'm1', overloadlist must list this medhod.

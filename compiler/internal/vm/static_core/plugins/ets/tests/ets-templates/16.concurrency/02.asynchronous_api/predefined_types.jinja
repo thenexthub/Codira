@@ -1,0 +1,98 @@
+/**
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+{% set numeric_types_cases = [
+  {'type': 'int', 'alias': 'Int', 'value': '42'},
+  {'type': 'number', 'alias': 'Number', 'value': '42.0'},
+  {'type': 'byte', 'alias': 'Byte', 'value': '127'},
+  {'type': 'short', 'alias': 'Short', 'value': '32767'},
+  {'type': 'long', 'alias': 'Long', 'value': '9223372036854775807'},
+  {'type': 'float', 'alias': 'Float', 'value': '3.14f'},
+  {'type': 'double', 'alias': 'Double', 'value': '3.141592653589793'},
+  {'type': 'bigint', 'alias': 'BigInt', 'value': '123456789012345678901234567890n'}
+] %}
+
+{% set boolean_types_cases = [
+  {'type': 'boolean', 'alias': 'Boolean', 'value': 'true'},
+] %}
+
+{% set symbol_types_cases = [
+  {'type': 'string', 'alias': 'String', 'value': '"Hello, ArkTS!"'},
+  {'type': 'char', 'alias': 'Char', 'value': "c'A'"},  
+] %}
+
+{% set non_return_types_cases = [
+  {'type': 'never', 'value': 'undefined'},
+  {'type': 'void', 'value': 'undefined'}
+] %}
+
+{% set no_value_types_cases = [
+  {'type': 'undefined', 'value': 'undefined'},
+  {'type': 'null', 'value': 'null'}
+] %}
+
+{% set base_types_cases = [
+  {'type': 'Any', 'value': '"Any value"'},
+  {'type': 'Object', 'alias': 'object', 'value': 'new Object()'},
+]%}
+
+{% set resizable_array_types_cases = [
+  {'type': 'int[]', 'value': '[1, 2, 3]'},
+  {'type': 'number[]', 'value': '[1.1, 2.5, 3.7]'},
+  {'type': 'string[]', 'value': '["Hello", "ArkTS", "World"]'},
+  {'type': 'boolean[]', 'value': '[true, false, true]'},
+  {'type': 'byte[]', 'value': '[127, -128, 0]'},
+  {'type': 'short[]', 'value': '[32767, -32768, 0]'},
+  {'type': 'long[]', 'value': '[9223372036854775807, 0]'},
+  {'type': 'float[]', 'value': '[3.14f, -2.71f, 0.0f]'},
+  {'type': 'double[]', 'value': '[3.141592653589793, 0.0]'},
+  {'type': 'bigint[]', 'value': '[123456789012345678901234567890n]'},
+  {'type': 'char[]', 'value': "[c'A', c'B', c'C']"},
+  {'type': 'Any[]', 'value': '["mixed", 42, true]'},
+  {'type': 'Object[]', 'value': '[new Object(), new Object()]'}
+] %}
+
+{% set generic_array_types_cases = [
+  {'type': 'Array<int>', 'value': '[1, 2, 3]'},
+  {'type': 'Array<number>', 'value': '[1.0, 2.5, 3.7]'},
+  {'type': 'Array<string>', 'value': '["Hello", "ArkTS"]'},
+  {'type': 'Array<boolean>', 'value': '[true, false]'},
+  {'type': 'Array<Any>', 'value': '["mixed", 42]'},
+  {'type': 'Array<Object>', 'value': '[new Object(), new Object()]'}
+] %}
+
+{% set fixed_array_types_cases = [
+  {'type': 'FixedArray<int>', 'value': '[1, 2, 3]'},
+  {'type': 'FixedArray<number>', 'value': '[1.0, 2.5, 3.7]'},
+  {'type': 'FixedArray<string>', 'value': '["Hello", "ArkTS"]'},
+  {'type': 'FixedArray<boolean>', 'value': '[true, false]'},
+  {'type': 'FixedArray<byte>', 'value': '[127, -128]'},
+  {'type': 'FixedArray<char>', 'value': "[c'A', c'B']"}
+] %}
+
+{% set multidimensional_array_types_cases = [
+  {'type': 'int[][]', 'value': '[[1, 2], [3, 4]]'},
+  {'type': 'string[][]', 'value': '[["Hello", "World"], ["ArkTS", "Test"]]'},
+  {'type': 'Array<Array<int>>', 'value': '[[1, 2], [3, 4]]'},
+  {'type': 'Array<Array<string>>', 'value': '[["Hello", "World"], ["ArkTS", "Test"]]'},
+  {'type': 'FixedArray<FixedArray<int>>', 'value': '[[1, 2], [3, 4]]'},
+  {'type': 'FixedArray<FixedArray<string>>', 'value': '[["A", "B"], ["C", "D"]]'}
+] %}
+
+{% set empty_array_types_cases = [
+  {'type': 'int[]', 'value': '[]'},
+  {'type': 'Array<string>', 'value': '[]'},
+  {'type': 'FixedArray<number>', 'value': '[]'}
+] %}

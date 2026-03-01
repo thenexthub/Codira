@@ -1,0 +1,102 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # primitives
+    - type: byte
+      vals: '(0x80).toByte(), (0x7f).toByte()'
+      val: '(0x55).toByte()'
+
+    - type: short
+      vals: '(0x8000).toShort(), (0x7fff).toShort()'
+      val: '(0x0505).toShort()'
+
+    - type: int
+      vals: '0x70000000, 0x7fffffff'
+      val: '32768'
+
+    - type: long
+      vals: '0x7000000000000000, 0x7fffffffffffffff'
+      val: '1234567890'
+
+    - type: float
+      vals: '1.0f, 2.0f'
+      val: '42.0f'
+
+    - type: double
+      vals: '1.0, 2.0'
+      val: '42.0'
+
+    - type: char
+      vals: "c'a', c'b'"
+      val: "c' '"
+
+    - type: boolean
+      vals: 'true, true'
+      val: 'false'
+
+    # bigint
+    - type: bigint
+      vals: '1n, 2n'
+      val: '3n'
+
+    # string
+    - type: string
+      vals: "'a', 'b'"
+      val: "'c'"
+
+    # enum
+    - decl: |-
+          enum Color { Red, Green, Blue }
+      type: Color
+      vals: 'Color.Red, Color.Blue'
+      val: Color.Green
+
+    # class
+    - decl: |-
+          class MyErr extends Error {}
+          let my_err = new MyErr
+      type: MyErr
+      vals: 'new MyErr, new MyErr'
+      val: my_err
+
+    # function
+    - decl: |-
+          type MyFunc = () => number
+          let my_func: MyFunc = () => 42.0
+      type: MyFunc
+      vals: '() => 1.0, () => 2.0'
+      val: my_func
+
+    # array
+    - decl: |-
+          let my_arr: Array<Object> = [new Object]
+      type: Array<Object>
+      vals: '[], []'
+      val: my_arr
+
+    # tuples
+    - decl: |-
+          let my_tup: [number, string] = [42.0, 'abc']
+      type: '[number, string]'
+      vals: "[1.0, 'a'], [2.0, 'b']"
+      val: my_tup
+
+    # unions
+    - decl: |-
+          class A {}
+          let my_a: A = new A
+      type: 'A|null|undefined'
+      vals: 'null, undefined'
+      val: my_a

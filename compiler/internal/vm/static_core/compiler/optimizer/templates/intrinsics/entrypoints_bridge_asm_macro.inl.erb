@@ -1,0 +1,61 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+// Generate macro for each intrinsic - bridge name, function name, parameters count:
+//   ENTRYPOINT PowF64Bridge, PowF64, 2
+
+% Compiler::intrinsics.select(&:has_impl?).uniq { |intrn| intrn.impl + ", " + intrn.impl_signature.args.count.to_s + ";;" + intrn.private.to_s}
+% .each do |intrn|
+%     next if intrn.is_stub
+%     if intrn.private
+#ifndef PANDA_PRODUCT_BUILD
+%     end
+% implementation = intrn.impl.rpartition("::").last
+// Default intrinsic implementation with runtime_call which is called by Codegen::CallIntrinsic
+ENTRYPOINT MAKE_ASM_NAME(<%= implementation %>Bridge), MAKE_ASM_NAME(<%= implementation %>), <%= intrn.impl_signature.args.count.to_s %>, <%= intrn.general_return_type %>
+// Default implementation for virtually called intrinsics from compiled frame
+%   if intrn.respond_to?(:irtoc_impl) && intrn.codegen_arch.include?($selected_target)
+// intrinsics having irtoc implementation for the interpreter do not need
+// CompiledAbi wrapper as they handle the MethodPtr arg by themselves
+ENTRYPOINT MAKE_ASM_NAME(<%= implementation %>CompiledAbiBridge), MAKE_ASM_NAME(<%= intrn.irtoc_impl %>), <%= (intrn.impl_signature.args.count + 1).to_s %>, <%= intrn.general_return_type %>
+BRIDGE_SELECTOR MAKE_ASM_NAME(<%= implementation %>BridgeSelectorEntryPoint), MAKE_ASM_NAME(<%= intrn.irtoc_impl %>), MAKE_ASM_NAME(<%= implementation %>CompiledAbiBridge)
+%   else
+ENTRYPOINT MAKE_ASM_NAME(<%= implementation %>CompiledAbiBridge), MAKE_ASM_NAME(<%= implementation %>CompiledAbi), <%= (intrn.impl_signature.args.count + 1).to_s %>, <%= intrn.general_return_type %>
+// Depending on frame kind choose either CompiledAbiBridge (for compiled frame) or CompiledAbi (for interpreted frame) for virtual intrinsic
+BRIDGE_SELECTOR MAKE_ASM_NAME(<%= implementation %>BridgeSelectorEntryPoint), MAKE_ASM_NAME(<%= implementation %>CompiledAbi), MAKE_ASM_NAME(<%= implementation %>CompiledAbiBridge)
+%   end
+#ifndef NDEBUG
+%   implementation = intrn.fast_path if intrn.respond_to?(:fast_path)
+%   if intrn.respond_to?(:fast_path)
+RUNTIME_CALL_CHECKER MAKE_ASM_NAME(<%= intrn.impl.rpartition("::").last %>RuntimeCallChecker), MAKE_ASM_NAME(<%= intrn.impl.rpartition("::").last %>)
+#if !(defined(PANDA_TARGET_AMD64) && !defined(PANDA_COMPILER_TARGET_X86_64))
+%   end
+RUNTIME_CALL_CHECKER MAKE_ASM_NAME(<%= implementation %>RuntimeCallChecker), MAKE_ASM_NAME(<%= implementation %>)
+%   if intrn.respond_to?(:fast_path)
+#endif
+%   end
+#endif
+
+%     if intrn.private
+#endif  // PANDA_PRODUCT_BUILD
+%     end
+% end

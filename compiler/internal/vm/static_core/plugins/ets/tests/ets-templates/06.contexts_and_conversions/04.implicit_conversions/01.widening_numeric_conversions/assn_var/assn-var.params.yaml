@@ -1,0 +1,213 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - from_type: byte
+      to_type: short
+      values:
+          - { expr: 0b0 as byte, val: 0 }
+          - { expr: Byte.MIN_VALUE, val: -128 }
+          - { expr: Byte.MAX_VALUE, val: 127 }
+
+    - from_type: byte
+      to_type: int
+      values:
+          - { expr: 0b0 as byte, val: 0 }
+          - { expr: Byte.MIN_VALUE, val: -128 }
+          - { expr: Byte.MAX_VALUE, val: 127 }
+
+    - from_type: byte
+      to_type: long
+      values:
+          - { expr: 0b0 as byte, val: 0 }
+          - { expr: Byte.MIN_VALUE, val: -128 }
+          - { expr: Byte.MAX_VALUE, val: 127 }
+
+    - from_type: byte
+      to_type: float
+      values:
+          - { expr: 0b0 as byte, val: 0.0f }
+          - { expr: Byte.MIN_VALUE, val: -128.0f }
+          - { expr: Byte.MAX_VALUE, val: 127.0f }
+
+    - from_type: byte
+      to_type: double
+      values:
+          - { expr: 0b0 as byte, val: 0.0 }
+          - { expr: Byte.MIN_VALUE, val: -128.0 }
+          - { expr: Byte.MAX_VALUE, val: 127.0 }
+
+    - from_type: byte
+      to_type: number
+      values:
+          - { expr: 0b0 as byte, val: 0.0 }
+          - { expr: Byte.MIN_VALUE, val: -128.0 }
+          - { expr: Byte.MAX_VALUE, val: 127.0 }
+
+    - from_type: short
+      to_type: int
+      values:
+          - { expr: 0b0, val: 0 }
+          - { expr: Short.MIN_VALUE, val: -32_768 }
+          - { expr: Short.MAX_VALUE, val: 32_767 }
+
+    - from_type: short
+      to_type: long
+      values:
+          - { expr: 0b0, val: 0 }
+          - { expr: Short.MIN_VALUE, val: -32_768 }
+          - { expr: Short.MAX_VALUE, val: 32_767 }
+
+    - from_type: short
+      to_type: float
+      values:
+          - { expr: 0b0, val: 0.0f }
+          - { expr: Short.MIN_VALUE, val: -32_768.0f }
+          - { expr: Short.MAX_VALUE, val: 32_767.0f }
+
+    - from_type: short
+      to_type: double
+      values:
+          - { expr: 0b0, val: 0.0 }
+          - { expr: Short.MIN_VALUE, val: -32_768.0}
+          - { expr: Short.MAX_VALUE, val: 32_767.0 }
+
+    - from_type: short
+      to_type: number
+      values:
+          - { expr: 0b0, val: 0.0 }
+          - { expr: Short.MIN_VALUE, val: -32_768.0 }
+          - { expr: Short.MAX_VALUE, val: 32_767.0 }
+
+    - from_type: int
+      to_type: long
+      values:
+          - { expr: 0, val: 0 }
+          - { expr: Int.MIN_VALUE, val: -2147483648 }
+          - { expr: Int.MAX_VALUE, val: 2147483647 }
+
+    - from_type: int
+      to_type: float
+      values:
+          - { expr: 0, val: 0.0f }
+          - { expr: Int.MIN_VALUE, val: -2147483600.0f } # expected loss of precision
+          - { expr: Int.MAX_VALUE, val: 2147483600.0f } # expected loss of precision
+
+    - from_type: int
+      to_type: double
+      values:
+          - { expr: 0, val: 0.0 }
+          - { expr: Int.MIN_VALUE, val: -2147483648.0 }
+          - { expr: Int.MAX_VALUE, val: 2147483647.0 }
+
+    - from_type: int
+      to_type: number
+      values:
+          - { expr: 0, val: 0.0 }
+          - { expr: Int.MIN_VALUE, val: -2147483648.0 }
+          - { expr: Int.MAX_VALUE, val: 2147483647.0 }
+
+    - from_type: long
+      to_type: float
+      values:
+          - { expr: 0, val: 0.0f }
+          - { expr: Long.MIN_VALUE, val: -9223372000000000000.0f } # expected loss of precision
+          - { expr: Long.MAX_VALUE, val: 9223372000000000000.0f } # expected loss of precision
+
+    - from_type: long
+      to_type: double
+      values:
+          - { expr: 0, val: 0.0 }
+          - { expr: Long.MIN_VALUE, val: -9223372036854775808.0 }
+          - { expr: Long.MAX_VALUE, val: 9223372036854775807.0 }
+
+    - from_type: long
+      to_type: number
+      values:
+          - { expr: 0, val: 0.0 }
+          - { expr: Long.MIN_VALUE, val: -9223372036854775808.0 }
+          - { expr: Long.MAX_VALUE, val: 9223372036854775807.0 }
+
+    - from_type: float
+      to_type: double
+      values:
+          - { expr: +0.0f, val: +0.0 }
+          - { expr: -0.0f, val: -0.0 }
+          - { expr: 3.4028234663852886e38f, val: 3.4028234663852886e38 }
+          - { expr: 1.401298464324817e-45f, val: 1.401298464324817e-45 }
+          - { expr: -3.4028234663852886e38f, val: -3.4028234663852886e38 }
+          - { expr: -1.401298464324817e-45f, val: -1.401298464324817e-45 }
+
+    - from_type: Color
+      to_type: int
+      defs: |-
+          enum Color { Red, Green, Blue }
+      values:
+          - { expr: Color.Red, val: 0 }
+          - { expr: Color.Green, val: 1 }
+          - { expr: Color.Blue, val: 2 }
+
+    - from_type: Color
+      to_type: long
+      defs: |-
+          enum Color { Red=100, Green=200, Blue=300 }
+      values:
+          - { expr: Color.Red, val: 100 }
+          - { expr: Color.Green, val: 200 }
+          - { expr: Color.Blue, val: 300 }
+
+    - from_type: Color
+      to_type: float
+      defs: |-
+          enum Color { Red=10, Green=20, Blue=30 }
+      values:
+          - { expr: Color.Red, val: 10.0f }
+          - { expr: Color.Green, val: 20.0f }
+          - { expr: Color.Blue, val: 30.0f }
+
+    - from_type: Color
+      to_type: double
+      defs: |-
+          enum Color { Red=10001, Green=10002, Blue=10003 }
+      values:
+          - { expr: Color.Red, val: 10001.0 }
+          - { expr: Color.Green, val: 10002.0 }
+          - { expr: Color.Blue, val: 10003.0 }
+
+    - from_type: Color
+      to_type: number
+      defs: |-
+          enum Color { Red=20001, Green=20002, Blue=20003 }
+      values:
+          - { expr: Color.Red, val: 20001.0 }
+          - { expr: Color.Green, val: 20002.0 }
+          - { expr: Color.Blue, val: 20003.0 }
+
+    - from_type: Color
+      to_type: double
+      defs: |-
+          enum Color { Red=3_000_000_001, Green=3_000_000_002, Blue=3_000_000_003 }
+      values:
+          - { expr: Color.Red, val: 3000000001.0 }
+          - { expr: Color.Green, val: 3000000002.0 }
+          - { expr: Color.Blue, val: 3000000003.0 }
+
+    - from_type: Color
+      to_type: number
+      defs: |-
+          enum Color { Red=3_000_000_001, Green=3_000_000_002, Blue=3_000_000_003 }
+      values:
+          - { expr: Color.Red, val: 3000000001.0 }
+          - { expr: Color.Green, val: 3000000002.0 }
+          - { expr: Color.Blue, val: 3000000003.0 }

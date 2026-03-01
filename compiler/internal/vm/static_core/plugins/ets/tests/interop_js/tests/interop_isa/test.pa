@@ -1,0 +1,417 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+# source binary: ./build/test-static.abc
+
+.language eTS
+
+.record std.core.Array <external>
+
+.record std.core.Object <external>
+
+.record std.core.String <external>
+
+.record std.core.Int <external>
+
+.record std.core.%%partial-Int <external>
+
+.record std.core.IntBox <external>
+
+.record std.core.%%partial-IntBox <external>
+
+.record std.core.IntType <external>
+
+.record std.core.%%partial-IntType <external>
+
+.record std.core.IntValue <external>
+
+.record std.core.%%partial-IntValue <external>
+
+.record std.core.Double <external>
+
+.record std.core.%%partial-Double <external>
+
+.record std.core.DoubleBox <external>
+
+.record std.core.%%partial-DoubleBox <external>
+
+.record std.core.DoubleToStringCacheElement <external>
+
+.record std.core.DoubleType <external>
+
+.record std.core.%%partial-DoubleType <external>
+
+.record std.core.DoubleValue <external>
+
+.record std.core.%%partial-DoubleValue <external>
+
+.record std.interop.js.JSValue <external>
+
+.record std.interop.js.JSRuntime <external>
+
+.record std.core.Lambda0 <external>
+
+.record std.core.Function0 <external>
+
+.record test-static.%%lambda-lambda_invoke-0 <final, ets.implements=std.core.Function0, ets.extends=std.core.Lambda0, access.record=public> {
+}
+
+.record test-static.ETSGLOBAL <ets.abstract, ets.extends=std.core.Object, access.record=public> {
+}
+
+.record test-static.Foo <ets.extends=std.core.Object, access.record=public> {
+    f64 bar <access.field=public>
+}
+
+.function std.core.Array std.core.Array.from(std.core.Object[] a0) <external, static, access.function=public>
+
+.function void test-static.Foo._ctor_(test-static.Foo a0) <ctor, access.function=public> {
+    call.short std.core.Object._ctor_:(std.core.Object), a0
+    fldai.64 0x40d56a8000000000
+    stobj.64 a0, test-static.Foo.bar
+    return.void
+}
+
+.function u1 std.interop.js.JSRuntime.__initJSCallClass() <external, static, access.function=public>
+
+.function std.interop.js.JSValue std.interop.js.JSRuntime.getPropertyJSValue(std.interop.js.JSValue a0, std.core.String a1) <external, static, access.function=public>
+
+.function std.interop.js.JSValue std.interop.js.JSRuntime.getUndefined() <external, static, access.function=public>
+
+.function u1 test-static.ETSGLOBAL.testIsInstance(std.core.Object a0, std.core.Object a1) <static, access.function=public> {
+    lda.obj a0
+    any.isinstance a1
+    return
+}
+
+.function std.core.Object test-static.ETSGLOBAL.doTestCallRange(std.core.Object a0, std.core.Object a1, std.core.Object a2) <static, access.function=public> {
+  lda.obj a1
+  sta.obj v1
+  lda.obj a2
+  sta.obj v2
+  any.call.range a0, v1, 0x2
+  return.obj
+}
+
+.function std.core.Object test-static.ETSGLOBAL.doTestCallShort(std.core.Object a0, std.core.Object a1) <static, access.function=public> {
+  lda.obj a1
+  sta.obj v1
+  any.call.short a0, v1
+  return.obj
+}
+
+.function std.core.Object test-static.ETSGLOBAL.doTestCallThisShort(std.core.Object a0, std.core.Object a1) <static, access.function=public> {
+  lda.obj a1
+  sta.obj v1
+  any.call.this.short "bar", a0, v1
+  return.obj
+}
+
+.function std.core.Object test-static.ETSGLOBAL.doTestCall0(std.core.Object a0) <static, access.function=public> {
+  any.call.0 a0
+  return.obj
+}
+
+.function std.core.Object test-static.ETSGLOBAL.doTestNew0(std.core.Object a0) <static, access.function=public> {
+  any.call.new.0 a0
+  return.obj
+}
+
+.function std.core.Object test-static.ETSGLOBAL.doTestNewRange(std.core.Object a0, std.core.Object a1, std.core.Object a2) <static, access.function=public> {
+  lda.obj a1
+  sta.obj v1
+  lda.obj a2
+  sta.obj v2
+  any.call.new.range a0, v1, 0x2
+  return.obj
+}
+
+.function std.core.Object test-static.ETSGLOBAL.doTestNewShort(std.core.Object a0, std.core.Object a1) <static, access.function=public> {
+  lda.obj a1
+  sta.obj v1
+  any.call.new.short a0, v1
+  return.obj
+}
+
+.function std.core.Object test-static.ETSGLOBAL.doTestCallThis0(std.core.Object a0) <static, access.function=public> {
+  any.call.this.0 "baz", a0
+  return.obj
+}
+
+.function std.core.Object test-static.ETSGLOBAL.doTestCallThisRange(std.core.Object a0, std.core.Object a1, std.core.Object a2) <static, access.function=public> {
+  lda.obj a1
+  sta.obj v1
+  lda.obj a2
+  sta.obj v2
+  any.call.this.range "foo", a0, v1, 0x2
+  return.obj
+}
+
+.function std.core.Object test-static.ETSGLOBAL.doTestVal(std.core.Object a0, std.core.Object a1) <static, access.function=public> {
+    any.ldbyval a0, a1
+    return.obj
+}
+
+.function std.core.Object test-static.ETSGLOBAL.doTestValName(std.core.Object a0) <static, access.function=public> {
+    any.ldbyname a0, "a"
+    return.obj
+}
+
+.function std.core.Object test-static.ETSGLOBAL.doTestValNameV(std.core.Object a0) <static, access.function=public> {
+    any.ldbyname.v v1, a0, "a"
+    lda.obj v1
+    return.obj
+}
+
+.function std.core.Object test-static.ETSGLOBAL.doTestValIdx(std.core.Object a0) <static, access.function=public> {
+    fldai.64 0x3ff0000000000000
+    any.ldbyidx a0
+    return.obj
+}
+
+.function void test-static.ETSGLOBAL.doTestStVal(std.core.Object a0, std.core.Object a1, std.core.Object a2) <static, access.function=public> {
+    lda.obj a2
+    any.stbyval a0, a1
+    return.void
+}
+
+.function void test-static.ETSGLOBAL.doTestStValName(std.core.Object a0, std.core.Object a1) <static, access.function=public> {
+    lda.obj a1
+    any.stbyname a0, "a"
+    return.void
+}
+
+.function void test-static.ETSGLOBAL.doTestStValNameV(std.core.Object a0, std.core.Object a1) <static, access.function=public> {
+    any.stbyname.v a1, a0, "a"
+    return.void
+}
+
+.function void test-static.ETSGLOBAL.doTestStValIdx(std.core.Object a0, std.core.Object a1) <static, access.function=public> {
+    fldai.64 0x3ff0000000000000
+    sta.64 v0
+    lda.obj a1
+    any.stbyidx a0, v0
+    return.void
+}
+
+.function u1 test-static.ETSGLOBAL.doTestCompare(std.core.Object a0, std.core.Object a1) <static, access.function=public> {
+    mov.obj v0, a0
+    lda.obj v0
+    sta.obj v0
+    mov.obj v1, v0
+    mov.obj v0, a1
+    lda.obj v0
+    mov.obj v0, v1
+    sta.obj v1
+    ets.equals v0, v1
+    jeqz jump_label_0
+    ldai 0x1
+    jmp jump_label_1
+jump_label_0:
+    ldai 0x0
+jump_label_1:
+    return
+}
+
+.function std.core.Object test-static.ETSGLOBAL.doTestLdbyvalFooStatic() <static, access.function=public> {
+    initobj.short test-static.Foo._ctor_:(test-static.Foo)
+    sta.obj v0
+    lda.str "bar"
+    sta.obj v1
+    any.ldbyval v0, v1
+    return.obj
+}
+
+.function std.core.Object test-static.ETSGLOBAL.doTestLdbyvalArrayStatic() <static, access.function=public> {
+    movi v1, 0x2
+    newarr v0, v1, std.core.Double[]
+    fldai.64 0x40d56a8000000000
+    call.acc.short std.core.Double.valueOf:(f64), v0, 0x0
+    movi v1, 0x0
+    starr.obj v0, v1
+    fldai.64 0x40df000000000000
+    call.acc.short std.core.Double.valueOf:(f64), v0, 0x0
+    movi v1, 0x1
+    starr.obj v0, v1
+    call.short std.core.Array.from:(std.core.Object[]), v0
+    checkcast std.core.Array
+    sta.obj v0
+    newobj v1, std.core.Int
+    movi v2, 0x1
+    call.short std.core.Int._ctor_:(std.core.Int,i32), v1, v2
+    any.ldbyval v0, v1
+    return.obj
+}
+
+.function std.core.Object test-static.ETSGLOBAL.doTestLdByIdxArrayStatic() <static, access.function=public> {
+    movi v1, 0x2
+    newarr v0, v1, std.core.Double[]
+    fldai.64 0x40d56a8000000000
+    call.acc.short std.core.Double.valueOf:(f64), v0, 0x0
+    movi v1, 0x0
+    starr.obj v0, v1
+    fldai.64 0x40df000000000000
+    call.acc.short std.core.Double.valueOf:(f64), v0, 0x0
+    movi v1, 0x1
+    starr.obj v0, v1
+    call.short std.core.Array.from:(std.core.Object[]), v0
+    checkcast std.core.Array
+    sta.obj v0
+    fldai.64 0x3ff0000000000000
+    any.ldbyidx v0
+    return.obj
+}
+
+.function std.core.Object test-static.ETSGLOBAL.doTestStByValArrayStatic() <static, access.function=public> {
+    movi v1, 0x2
+    newarr v0, v1, std.core.Double[]
+    fldai.64 0x40d56a8000000000
+    call.acc.short std.core.Double.valueOf:(f64), v0, 0x0
+    movi v1, 0x0
+    starr.obj v0, v1
+    fldai.64 0x40df000000000000
+    call.acc.short std.core.Double.valueOf:(f64), v0, 0x0
+    movi v1, 0x1
+    starr.obj v0, v1
+    call.short std.core.Array.from:(std.core.Object[]), v0
+    checkcast std.core.Array
+    sta.obj v0
+
+    newobj v1, std.core.Int
+    movi v2, 0x1
+    call.short std.core.Int._ctor_:(std.core.Int,i32), v1, v2
+
+    newobj v2, std.core.Double
+    fldai.64 0x40e95fc000000000
+    call.acc.short std.core.Double._ctor_:(std.core.Double,f64), v2, 0x1
+    lda.obj v2
+    any.stbyval v0, v1
+
+    fldai.64 0x3ff0000000000000
+    any.ldbyidx v0
+
+    return.obj
+}
+
+.function std.core.Object test-static.ETSGLOBAL.doTestStByValFooStatic() <static, access.function=public> {
+    initobj.short test-static.Foo._ctor_:(test-static.Foo)
+    sta.obj v0
+    lda.str "bar"
+    sta.obj v1
+    newobj v2, std.core.Double
+    fldai.64 0x40e95fc000000000
+    call.acc.short std.core.Double._ctor_:(std.core.Double,f64), v2, 0x1
+    lda.obj v2
+    any.stbyval v0, v1
+
+    lda.str "bar"
+    sta.obj v1
+    any.ldbyval v0, v1
+
+    return.obj
+}
+
+.function std.core.Object test-static.ETSGLOBAL.doTestStByIdxArrayStatic() <static, access.function=public> {
+    movi v1, 0x2
+    newarr v0, v1, std.core.Double[]
+    fldai.64 0x40d56a8000000000
+    call.acc.short std.core.Double.valueOf:(f64), v0, 0x0
+    movi v1, 0x0
+    starr.obj v0, v1
+    fldai.64 0x40df000000000000
+    call.acc.short std.core.Double.valueOf:(f64), v0, 0x0
+    movi v1, 0x1
+    starr.obj v0, v1
+    call.short std.core.Array.from:(std.core.Object[]), v0
+    checkcast std.core.Array
+    sta.obj v0
+    fmovi.64 v1, 0x3ff0000000000000
+    newobj v2, std.core.Double
+    fldai.64 0x40e95fc000000000
+    call.acc.short std.core.Double._ctor_:(std.core.Double,f64), v2, 0x1
+    lda.obj v2
+    any.stbyidx v0, v1
+    fldai.64 0x3ff0000000000000
+    any.ldbyidx v0
+    return.obj
+}
+
+.function u1 test-static.ETSGLOBAL.doTestIsTrue(std.core.Object a0) <static, access.function=public> {
+  ets.istrue a0
+  return
+}
+
+.function std.core.Object test-static.ETSGLOBAL.doTestTypeOf(std.core.Object a0) <static, access.function=public> {
+  ets.typeof a0
+  return.obj
+}
+
+.function u1 test-static.ETSGLOBAL.doTestEquals(std.core.Object a0, std.core.Object a1) <static, access.function=public> {
+  ets.equals a0, a1
+  return
+}
+
+.function u1 test-static.ETSGLOBAL.doTestStrictEquals(std.core.Object a0, std.core.Object a1) <static, access.function=public> {
+  ets.strictequals a0, a1
+  return
+}
+
+.function void std.core.Object._ctor_(std.core.Object a0) <ctor, external, access.function=public>
+
+.function void std.core.Int._ctor_(std.core.Int a0, i32 a1) <ctor, external, access.function=public>
+
+.function std.core.Double std.core.Double.valueOf(f64 a0) <external, static, access.function=public>
+
+.function void std.core.Double._ctor_(std.core.Double a0, f64 a1) <ctor, external, access.function=public>
+
+.function std.core.Object std.core.Function0.invoke0(std.core.Function0 a0) <ets.abstract, noimpl, external, access.function=public>
+
+.function void std.core.Lambda0._ctor_(std.core.Lambda0 a0) <ctor, external, access.function=public>
+
+.function i32 test-static.%%lambda-lambda_invoke-0.$_invoke(test-static.%%lambda-lambda_invoke-0 a0) <access.function=public> {
+	call.short test-static.ETSGLOBAL.bar:()
+	return
+}
+
+.function void test-static.%%lambda-lambda_invoke-0._ctor_(test-static.%%lambda-lambda_invoke-0 a0) <ctor, access.function=public> {
+	mov.obj v0, a0
+	call.short std.core.Lambda0._ctor_:(std.core.Lambda0), v0
+	return.void
+}
+
+.function std.core.Object test-static.%%lambda-lambda_invoke-0.invoke0(test-static.%%lambda-lambda_invoke-0 a0) <access.function=public> {
+	call.short test-static.ETSGLOBAL.bar:()
+	sta v0
+	initobj.short std.core.Int._ctor_:(std.core.Int,i32), v0
+	return.obj
+}
+
+.function i32 test-static.ETSGLOBAL.bar() <static, access.function=public> {
+	ldai 0x1
+	return
+}
+
+.function std.core.Object test-static.ETSGLOBAL.doTestCallStatic() <static, access.function=public> {
+    initobj.short test-static.%%lambda-lambda_invoke-0._ctor_:(test-static.%%lambda-lambda_invoke-0)
+    sta.obj v0
+    any.call.0 v0
+    return.obj
+}

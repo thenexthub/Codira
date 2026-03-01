@@ -1,0 +1,75 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    # assignment
+    - decl: |-
+          let sup: FixedArray<A|string|null>|null|string|undefined = supArr
+          let sub: FixedArray<B|string|null>|null|string|undefined = subArr
+      use: |-
+          sup = sub
+          arktest.assertEQ(sup, subArr)
+
+    # class literal
+    - decl: |-
+          class X {
+              f: FixedArray<A|string|null>|null|string|undefined = supArr
+          }
+          let sub: FixedArray<B|string|null>|null|string|undefined = subArr
+      use: |-
+          let x: X = { f: sub }
+          arktest.assertEQ(x.f, subArr)
+
+    # interface literal
+    - decl: |-
+          interface I {
+              f: FixedArray<A|string|null>|null|string|undefined
+          }
+          let sub: FixedArray<B|string|null>|null|string|undefined = subArr
+      use: |-
+          let i: I = { f: sub }
+          arktest.assertEQ(i.f, subArr)
+
+    # array literal
+    - decl: |-
+          let sub: FixedArray<B|string|null>|null|string|undefined = subArr
+      use: |-
+          let arr: Array<FixedArray<A|string|null>|null|string|undefined> = [sub]
+          arktest.assertEQ(arr[0], subArr)
+
+    # tuple literal
+    - decl: |-
+          let sub: FixedArray<B|string|null>|null|string|undefined = subArr
+      use: |-
+          let tup: [FixedArray<A|string|null>|null|string|undefined, FixedArray<A|string|null>|null|string|undefined] = [sub, sub]
+          arktest.assertEQ(tup[0], subArr)
+          arktest.assertEQ(tup[1], subArr)
+
+    # call context
+    - decl: |-
+          let sup: FixedArray<A|string|null>|null|string|undefined = supArr
+          let sub: FixedArray<B|string|null>|null|string|undefined = subArr
+      use: |-
+          ((p: FixedArray<A|string|null>|null|string|undefined) => {
+              arktest.assertEQ(p, subArr)
+          })(sub)

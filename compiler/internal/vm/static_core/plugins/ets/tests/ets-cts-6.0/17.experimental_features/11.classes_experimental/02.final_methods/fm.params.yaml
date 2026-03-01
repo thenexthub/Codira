@@ -1,0 +1,204 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # positive case
+    - decl: |-
+          class A {
+              meth(s: string, n: number): string {
+                  return s + n + "A"
+              }
+          }
+          class F extends A {
+              final meth(s: string, n: number): string {
+                  return s + n + "F"
+              }
+          }
+      use: |-
+          arktest.assertEQ( new A().meth("x", 1), "x1A" )
+          arktest.assertEQ( new F().meth("y", 2), "y2F" )
+
+    # duplicate final keyword
+    - tags: 'compile-only, negative'
+      decl: |-
+          class A {
+              final public final meth(s: string, n: number): string {  // CTE
+                  return s + n + "A"
+              }
+          }
+      use: |-
+          return
+
+    # final method cannot be overridden
+    - tags: 'compile-only, negative'
+      decl: |-
+          class A {
+              final meth(s: string, n: number): string {
+                  return s + n + "A"
+              }
+          }
+          class F extends A {
+              meth(s: string, n: number): string {  // CTE
+                  return s + n + "F"
+              }
+          }
+      use: |-
+          return
+
+    # private final method
+    - decl: |-
+          class A {
+              private final meth(s: string, n: number): string {
+                  return s + n + "A"
+              }
+          }
+          class F extends A {
+              private meth(s: string, n: number): string {  // OK
+                  return s + n + "F"
+              }
+          }
+      use: |-
+          return
+
+    # cannot reduce the visibility
+    - tags: 'compile-only, negative'
+      decl: |-
+          class A {
+              public final meth(s: string, n: number): string {
+                  return s + n + "A"
+              }
+          }
+          class F extends A {
+              private meth(s: string, n: number): string {  // CTE
+                  return s + n + "F"
+              }
+          }
+      use: |-
+          return
+
+    # final method cannot be overridden with another final
+    - tags: 'compile-only, negative'
+      decl: |-
+          class A {
+              final meth(s: string, n: number): string {
+                  return s + n + "A"
+              }
+          }
+          class F extends A {
+              final meth(s: string, n: number): string {  // CTE
+                  return s + n + "F"
+              }
+          }
+      use: |-
+          return
+
+    # final method cannot be overridden in descendants
+    - tags: 'compile-only, negative'
+      decl: |-
+          class A {
+              final meth(s: string, n: number): string {
+                  return s + n + "A"
+              }
+          }
+          class B extends A {}
+          class C extends B {}
+          class F extends C {
+              meth(s: string, n: number): string {  // CTE
+                  return s + n + "F"
+              }
+          }
+      use: |-
+          return
+
+    # final cannot be abstract
+    - tags: 'compile-only, negative'
+      decl: |-
+          abstract class A {
+              abstract final meth(s: string, n: number): string;  // CTE
+          }
+      use: |-
+          return
+
+    # final cannot be abstract
+    - tags: 'compile-only, negative'
+      decl: |-
+          class A {
+              final abstract meth(s: string, n: number): string;  // CTE
+          }
+      use: |-
+          return
+
+    # final cannot be abstract
+    - tags: 'compile-only, negative'
+      decl: |-
+          abstract class A {
+              abstract meth(s: string, n: number): string;
+          }
+          class B extends A {
+              final abstract meth(s: string, n: number): string;  // CTE
+          }
+      use: |-
+          return
+
+    # final cannot be static
+    - tags: 'compile-only, negative'
+      decl: |-
+          class A {
+              static final meth(s: string, n: number): string {  // CTE
+                  return s + n + "A"
+              }
+          }
+      use: |-
+          return
+
+    # final cannot be static
+    - tags: 'compile-only, negative'
+      decl: |-
+          abstract class A {
+              final static meth(s: string, n: number): string {  // CTE
+                  return s + n + "A"
+              }
+          }
+      use: |-
+          return
+
+    # final cannot be static and abstract
+    - tags: 'compile-only, negative'
+      decl: |-
+          abstract class A {
+              abstract final static meth(s: string, n: number): string;  // CTE
+          }
+      use: |-
+          return
+
+    # final method with type parameters cannot be overridden
+    - tags: 'compile-only, negative'
+      decl: |-
+          class Z {
+              m(): string { return "Z"}
+          }
+
+          class Y extends Z {
+              m(): string { return "Y" }
+          }
+
+          class A<T extends Z> {
+              final meth(s: T): string { return s.m() + "A" }
+          }
+
+          class B<T extends Z> extends A<T> {
+              meth(s: T): string { return s.m() + "B" }  // CTE
+          }
+      use: |-
+          return

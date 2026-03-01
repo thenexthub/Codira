@@ -1,0 +1,95 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+--- # List of valid function declarations
+function_decls:
+    # no params, void return type
+    - decl: |-
+        function foo(): void {}
+      call: |-
+        foo();
+
+    - decl: |-
+        function foo() {}
+      call: |-
+        foo();
+
+    # no params, return value type
+    - decl: |-
+        function foo(): int { return 0; }
+      call: |-
+        let i = foo();
+        arktest.assertEQ( i, 0 )
+
+    # no params, return value type array
+    - decl: |-
+        function foo(): int[] { return new int[1]; }
+      call: |-
+        let arr: int[] = foo();
+        arktest.assertTrue( arr instanceof int[] && arr.length == 1 )
+
+    # no params, return function
+    - decl: |-
+        function bar() {}
+        function foo(): () => void {
+            return bar;
+        }
+      call: |-
+        let f: () => void = foo();
+        arktest.assertTrue( f instanceof (() => void) )
+
+    # no params, return reference type
+    - decl: |-
+        function foo(): Long { return new Long(); }
+      call: |-
+        let f: Long = foo();
+        arktest.assertTrue( f instanceof Long )
+
+    - decl: |-
+        function foo(): Object|null { return null; }
+      call: |-
+        let f: Object|null = foo();
+        arktest.assertEQ( f, null )
+
+    # no params, return reference type array
+    - decl: |-
+        function foo(): Long[] { return new Long[0]; }
+      call: |-
+        let f: Long[] = foo();
+        arktest.assertTrue( f instanceof Long[] && f.length == 0 )
+
+    - decl: |-
+        function foo(): (Object|undefined)[] {
+            let arr: (Object|undefined)[] = new (Object|undefined)[0]
+            return arr;
+        }
+      call: |-
+        let f: (Object|undefined)[] = foo();
+        arktest.assertTrue( f instanceof (Object|undefined)[] && f.length == 0)
+
+    # no params, return enum
+    - decl: |-
+        enum Color { Red, Green, Blue }
+        function foo(): Color { return Color.Red; }
+      call: |-
+        let e: Color  = foo();
+        arktest.assertEQ( e, Color.Red )

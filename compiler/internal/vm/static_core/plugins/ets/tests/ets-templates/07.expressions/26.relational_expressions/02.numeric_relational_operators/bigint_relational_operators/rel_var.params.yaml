@@ -1,0 +1,55 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+cases:
+  # Less than (<)
+  - { desc: "bigint < variable (true)", b: '1n', op: '<', operand_val: '2', expected_bool: 'true' }
+  - { desc: "bigint < variable (false)", b: '2n', op: '<', operand_val: '1', expected_bool: 'false' }
+  - { desc: "bigint < variable (boundary)", b: '1n', op: '<', operand_val: '1', expected_bool: 'false' }
+  - { desc: "bigint < variable (negative)", b: '-2n', op: '<', operand_val: '-1', expected_bool: 'true' }
+  - { desc: "bigint < variable (float)", b: '1n', op: '<', operand_val: '2.0', expected_bool: 'true' }
+  - { desc: "bigint < variable (float, fractional > 0)", b: '2n', op: '<', operand_val: '2.5', expected_bool: 'true' }
+  - { desc: "bigint < variable (float, fractional = 0)", b: '2n', op: '<', operand_val: '2.0', expected_bool: 'false' }
+
+  # Greater than (>)
+  - { desc: "bigint > variable (true)", b: '2n', op: '>', operand_val: '1', expected_bool: 'true' }
+  - { desc: "bigint > variable (false)", b: '1n', op: '>', operand_val: '2', expected_bool: 'false' }
+  - { desc: "bigint > variable (boundary)", b: '1n', op: '>', operand_val: '1', expected_bool: 'false' }
+  - { desc: "bigint > variable (negative)", b: '-1n', op: '>', operand_val: '-2', expected_bool: 'true' }
+  - { desc: "bigint > variable (float)", b: '2n', op: '>', operand_val: '1.0', expected_bool: 'true' }
+  - { desc: "bigint > variable (float, fractional > 0)", b: '2n', op: '>', operand_val: '2.5', expected_bool: 'false' }
+  - { desc: "bigint > variable (float, fractional = 0)", b: '2n', op: '>', operand_val: '2.0', expected_bool: 'false' }
+
+  # Less than or equal (<=)
+  - { desc: "bigint <= variable (true, less)", b: '1n', op: '<=', operand_val: '2', expected_bool: 'true' }
+  - { desc: "bigint <= variable (true, equal)", b: '1n', op: '<=', operand_val: '1', expected_bool: 'true' }
+  - { desc: "bigint <= variable (false)", b: '2n', op: '<=', operand_val: '1', expected_bool: 'false' }
+  - { desc: "bigint <= variable (negative)", b: '-1n', op: '<=', operand_val: '-1', expected_bool: 'true' }
+  - { desc: "bigint <= variable (float)", b: '1n', op: '<=', operand_val: '1.0', expected_bool: 'true' }
+  - { desc: "bigint <= variable (float, fractional > 0)", b: '2n', op: '<=', operand_val: '2.5', expected_bool: 'true' }
+  - { desc: "bigint <= variable (float, fractional = 0)", b: '2n', op: '<=', operand_val: '2.0', expected_bool: 'true' }
+
+  # Greater than or equal (>=)
+  - { desc: "bigint >= variable (true, greater)", b: '2n', op: '>=', operand_val: '1', expected_bool: 'true' }
+  - { desc: "bigint >= variable (true, equal)", b: '1n', op: '>=', operand_val: '1', expected_bool: 'true' }
+  - { desc: "bigint >= variable (false)", b: '1n', op: '>=', operand_val: '2', expected_bool: 'false' }
+  - { desc: "bigint >= variable (negative)", b: '-1n', op: '>=', operand_val: '-1', expected_bool: 'true' }
+  - { desc: "bigint >= variable (float)", b: '2n', op: '>=', operand_val: '2.0', expected_bool: 'true' }
+  - { desc: "bigint >= variable (float, fractional > 0)", b: '2n', op: '>=', operand_val: '2.5', expected_bool: 'false' }
+  - { desc: "bigint >= variable (float, fractional = 0)", b: '2n', op: '<=', operand_val: '2.0', expected_bool: 'true' }
+
+  # With BigInt constructor
+  - { desc: "new BigInt < variable (true)", b: 'new BigInt(10)', op: '<', operand_val: '20', expected_bool: 'true' }
+  - { desc: "new BigInt > variable (false)", b: 'new BigInt(10)', op: '>', operand_val: '20', expected_bool: 'false' }
+  - { desc: "new BigInt <= variable (true, equal)", b: 'new BigInt(20)', op: '<=', operand_val: '20', expected_bool: 'true' }
+  - { desc: "new BigInt >= variable (true, equal)", b: 'new BigInt(20)', op: '>=', operand_val: '20', expected_bool: 'true' }

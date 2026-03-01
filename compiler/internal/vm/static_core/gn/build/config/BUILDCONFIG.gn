@@ -1,0 +1,77 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+if (target_os == "") {
+  target_os = host_os
+}
+if (target_cpu == "") {
+  target_cpu = host_cpu
+}
+if (current_cpu == "") {
+  current_cpu = target_cpu
+}
+if (current_os == "") {
+  current_os = target_os
+}
+
+declare_args() {
+  is_debug = true
+  is_asan = false
+  is_standard_system = false
+  is_llvmbackend = true
+  is_ccache = false
+  is_ohos = false
+  if (!defined(ark_hybrid)) {
+    ark_hybrid = false
+  }
+}
+
+if (ark_hybrid) {
+  is_llvmbackend = false
+}
+
+is_linux = current_os == "linux"
+is_mingw = current_os == "mingw"
+is_mac = current_os == "mac"
+is_win = current_os == "win" || current_os == "winuwp"
+
+_shared_binary_target_configs = [ "//build:compiler_defaults" ]
+set_defaults("executable") {
+  configs = _shared_binary_target_configs
+  configs += [ "//build:executable_config" ]
+  configs += [ "//build:ldconfig" ]
+}
+set_defaults("static_library") {
+  configs = _shared_binary_target_configs
+}
+set_defaults("shared_library") {
+  configs = _shared_binary_target_configs
+  configs += [ "//build:ldconfig" ]
+}
+set_defaults("source_set") {
+  configs = _shared_binary_target_configs
+}
+
+host_toolchain = "//build/toolchain:clang-14"
+set_default_toolchain(host_toolchain)
+
+ark_static_standalone_build = true

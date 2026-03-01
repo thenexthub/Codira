@@ -1,0 +1,192 @@
+# Copyright (c) 2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License")
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+function_decls:
+    - decl: |-
+          interface I {
+            foo() {}
+          }
+          class A implements I {}
+      call: |-
+          let a: A = new A()
+          a.foo()
+
+    - decl: |-
+          interface I {
+            i: int
+            foo() { return }
+          }
+          class A implements I {
+            i: int = 1
+          }
+      call: |-
+          let a = new A()
+          a.foo()
+          arktest.assertEQ(a.i, 1)
+
+    - decl: |-
+          interface I {
+            foo() {  
+                return "foo"
+            }
+          }
+          class A implements I {
+          }
+      call: |-
+          let a = new A()
+          let v = a.foo()
+          arktest.assertEQ(new A().foo(), "foo")
+          arktest.assertEQ(v, "foo")
+          arktest.assertTrue(v instanceof string)
+
+    - decl: |-
+          interface I {
+            foo() { return 42 }
+          }
+          class A implements I {
+          }
+      call: |-
+          let a = new A()
+          let v = a.foo()
+          arktest.assertEQ(new A().foo(), 42)
+          arktest.assertEQ(v, 42)
+          arktest.assertTrue(v instanceof int)
+
+    - decl: |-
+          interface I {
+            foo() { return 1.0 }
+          }
+          class A implements I {
+          }
+      call: |-
+          let a = new A()
+          let v = a.foo()
+          arktest.assertEQ(new A().foo(), 1.0)
+          arktest.assertEQ(v, 1.0)
+          arktest.assertTrue(v instanceof number)
+
+    - decl: |-
+          interface I {
+            foo() { return new Error() }
+          }
+          class A implements I {
+          }
+      call: |-
+          let a = new A()
+          let v = a.foo()
+          arktest.assertTrue(new A().foo() instanceof Error)
+          arktest.assertTrue(v instanceof Error)
+
+    - decl: |-
+          interface I {
+            foo() { return [1.0, 2.0, 3.0] }
+          }
+          class A implements I {
+          }
+      call: |-
+          let a = new A()
+          let v = a.foo()
+          arktest.assertTrue(v instanceof number[] && v.length == 3)
+
+    - decl: |-
+          interface I {
+            foo() { return new Boolean[0] }
+          }
+          class A implements I {
+          }
+      call: |-
+          let a = new A()
+          let v = a.foo()
+          arktest.assertTrue(v instanceof Boolean[] && v.length == 0)
+
+    - decl: |-
+          interface I {
+            foo(s: Long[][]) {  
+              if (s != null)
+                  return s
+              else
+                  return new Long[2][2]
+            }
+          }
+          class A implements I {
+          }
+      call: |-
+          let a = new A()
+          let v = a.foo([[1]] as long[][])
+          arktest.assertTrue(v instanceof Long[][])
+
+    - decl: |-
+          interface I {
+            foo(s: long[][]) {
+              if (s != null)
+                  return s
+              else
+                  return new Error[1][1]            
+            }
+          }
+          class A implements I {
+          }
+      call: |-
+          let a = new A()
+          let v = a.foo([[1]] as long[][]) as long[][]
+          v[0][0] = 0
+          arktest.assertEQ(v[0][0], 0)
+
+    - decl: |-
+          interface I {
+            foo(s: Long[][]) {
+              if (s == null)
+                  return s
+              else
+                  return new Error[1]
+            }
+          }
+          class A implements I {
+          }
+      call: |-
+          let a = new A()
+          let v = a.foo([[1]] as long[][]) as Error[]
+          arktest.assertEQ(v.length, 1)
+
+    - decl: |-
+          interface I {
+            foo(s: Long[][]|null) {  
+              if (s != null)
+                  return s
+              else
+                  return new Error()
+            }
+          }
+          class A implements I {
+          }
+      call: |-
+          let a = new A()
+          let b = [[1]] as long[][]
+          let v = a.foo(b)
+          arktest.assertTrue(v instanceof Object)
+
+    - decl: |-
+          interface I {
+            foo(s: Object) {   
+              if (s != null)
+                  return true
+              else
+                  return [true]
+            }
+          }
+          class A implements I {
+          }
+      call: |-
+        let v = new A().foo(new Object())
+        arktest.assertTrue(v instanceof boolean|boolean[])

@@ -1,0 +1,82 @@
+#!/usr/bin/perl
+
+use 5.012;
+use strict;
+use warnings;
+
+use Getopt::Long;
+
+my $rules_dir = '';
+my $rules_map = '';
+GetOptions(
+    "rules-dir=s" => \$rules_dir,
+    "rules-map=s" => \$rules_map,
+) or die 'Error in command line arguments';
+
+sub read_rules
+{
+    my $dname = shift;
+
+    die "Directory '$dname' is not actually a directory" unless -d $dname;
+
+    opendir(my $dir_rules, $dname) || die "Can't opendir $dname: $!";
+    my @rules = grep {
+        /^ETS\d\d\d_[A-Z_]+\.md$/ && -f "$dname/$_"
+    } readdir $dir_rules;
+    closedir $dir_rules;
+
+    return @rules;
+}
+
+sub read_and_validate_rule_map
+{
+    my $fname = shift;
+    my $rules = shift;
+
+    my %mapping;
+    my %unique;
+    open(my $rule_map, $fname) || die "Can't open $fname: $!";
+    while (my $line = <$rule_map>) {
+        chomp $line;
+        next if $line =~ /^\s*$/;
+        next if $line =~ /^\s*#/;
+
+        my ($path, $rule) = split /\s+/, $line;
+
+        die "Path $path: Unexpected path prefix" unless
+            $path =~ m|^openharmony/arkcompiler_ets_frontend/ets2panda/?|
+            || $path =~ m|^openharmony/arkcompiler_runtime_core/static_core/?|
+        ;
+
+        die "Unknown rule '$rule'" unless exists $rules->{$rule};
+
+        if ($path =~ m|^(.+?)/$|) {
+            warn "Path '$path': Recommend to strip trailing '/'";
+            $path = $1;
+        }
+        my $canon_key = "$path $rule";
+        die "Rule '$rule' already enabled for path '$path'"
+            if exists $unique{$canon_key};
+
+        $unique{$canon_key} = 1;
+        $mapping{$rule} //= [];
+        push @{$mapping{$rule}}, $path;
+    }
+    close $rule_map;
+
+    return %mapping;
+}
+
+my @rules = read_rules($rules_dir);
+my %rules = map { $_ => 0 } @rules;
+
+my %mapping = read_and_validate_rule_map($rules_map, \%rules);
+foreach my $rule (keys %mapping) {
+    $rules{$rule}++;
+}
+
+foreach my $rule (sort keys %rules) {
+    warn "Rule '$rule' is not enabled" if $rules{$rule} == 0;
+}
+
+say 'OK';

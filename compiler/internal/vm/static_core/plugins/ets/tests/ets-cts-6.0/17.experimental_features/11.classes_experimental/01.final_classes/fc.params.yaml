@@ -1,0 +1,86 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # positive case
+    - decl: |-
+          interface I {}
+          class A {
+              fld: string = ''
+          }
+          final class F extends A implements I {}
+      use: |-
+          let f: F = new F()
+          arktest.assertTrue( f instanceof F && f instanceof A && f instanceof I && f.fld == '' )
+          f = { fld: 'ABC' }
+          arktest.assertEQ( f.fld, 'ABC' )
+
+    # double final
+    - tags: 'compile-only, negative'
+      decl: |-
+          class A {}
+          final final class F extends A {}  // CTE
+      use: |-
+          return
+
+    # abstract final
+    - tags: 'compile-only, negative'
+      decl: |-
+          class A {}
+          final abstract class F extends A {}  // CTE
+      use: |-
+          return
+
+    # cannot extend final class
+    - tags: 'compile-only, negative'
+      decl: |-
+          class A {}
+          final class B extends A {}
+          class F extends B {}  // CTE
+      use: |-
+          return
+
+    # cannot extend final class
+    - tags: 'compile-only, negative'
+      decl: |-
+          final class A {}
+          abstract class F extends A {}  // CTE
+      use: |-
+          return
+
+    # cannot extend final class
+    - tags: 'compile-only, negative'
+      decl: |-
+          final class A {}
+          final class F extends A {}  // CTE
+      use: |-
+          return
+
+    # positive case with type parameters
+    - decl: |-
+          interface I {}
+          class A<T extends I> {}
+          final class F<T extends I> extends A<T> {}
+      use: |-
+          let f: F<I> = new F<I>()
+          arktest.assertTrue( f instanceof F )
+
+    # cannot extend final class, with type parameters
+    - tags: 'compile-only, negative'
+      decl: |-
+          interface I {}
+          final class A<T extends I> {}
+          class F<T extends I> extends A<T> {}  // CTE
+      use: |-
+          return

@@ -1,0 +1,80 @@
+# plugin string_builder
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+include_relative 'common.irt'
+include_relative '../../../irtoc/scripts/common.irt'
+
+module Constants
+  MUL_32 = "0x5bd1e995U"
+  MUL_64 = "0xc6a4a7935bd1e995ULL"
+  #TO_STRING_CACHE_OFFSET = "cross_values::GetEtsVmDoubleToStringCacheOffset(GetArch())"
+  ELEM_DATA_OFFSET = "8"
+  ELEM_STRING_OFFSET = ELEM_DATA_OFFSET
+  ELEM_FLAG_OFFSET = "12"
+  ELEM_NUMBER_OFFSET = "16"
+end
+
+function(:DoubleToStringDecimal,
+          params: {cache: 'ref', numInt: 'u64', unused: 'u64'},
+          regmap: $full_regmap,
+          regalloc_set: $panda_mask,
+          mode: [:FastPath]) {
+
+  # Arm32 is not supported
+  if Options.arch == :arm32
+    Intrinsic(:UNREACHABLE).void.Terminator
+    next
+  end
+
+  num := Bitcast(numInt).f64
+  mul := Cast(Constants::MUL_64).u64
+  hash := Mul(numInt, mul).u64
+  hash := ShrI(hash).Imm(56).u64
+
+  elem_offset := AddI(ShlI(hash).Imm(EtsConstants::OBJ_PTR_LOG2_SIZE).u64).Imm(Constants::ARRAY_DATA_OFFSET).u64
+  elem := Load(cache, elem_offset).Volatile.ref
+  IfImm(Compare(elem, 0).EQ.b).Imm(0).NE.Unlikely {
+    Goto(:SlowPath)
+  }
+  # Volatile because need acquire ordering
+  cachedData := LoadI(elem).Imm(Constants::ELEM_DATA_OFFSET).Volatile.u64
+  cachedNumber := LoadI(elem).Imm(Constants::ELEM_NUMBER_OFFSET).Volatile.f64
+
+  flag := Cast(ShrI(cachedData).Imm(32).u64).u32
+  If(And(flag, 1).u32, 0).NE.Unlikely {
+    # elem is already being updated
+    Goto(:SlowPathNoCache)
+  }
+  IfImm(Compare(num, cachedNumber).NE.b).Imm(0).NE.Unlikely {
+    Goto(:SlowPathStore)
+  }
+
+  cachedStr := Bitcast(Cast(Cast(cachedData).u32).u64).ptr
+  # Relaxed load because we have acquire above
+  newFlag := LoadI(elem).Imm(Constants::ELEM_FLAG_OFFSET).u32
+  If(flag, newFlag).NE.Unlikely {
+    Goto(:SlowPathNoCache)
+  }
+  Return(cachedStr).ptr
+
+Label(:SlowPathStore)
+  ep_offset = get_entrypoint_offset("DOUBLE_TO_STRING_DECIMAL_STORE_SLOW_PATH")
+  Intrinsic(:SLOW_PATH_ENTRY, elem, numInt, cachedData).AddImm(ep_offset).MethodAsImm("DoubleToStringDecimalStoreOddSavedBridge").Terminator.ptr
+Label(:SlowPath)
+  ep_offset = get_entrypoint_offset("DOUBLE_TO_STRING_DECIMAL_SLOW_PATH")
+  Intrinsic(:SLOW_PATH_ENTRY, cache, numInt).AddImm(ep_offset).MethodAsImm("DoubleToStringDecimal3ArgBridge").Terminator.ptr
+Label(:SlowPathNoCache)
+  ep_offset = get_entrypoint_offset("DOUBLE_TO_STRING_DECIMAL_NO_CACHE_SLOW_PATH")
+  Intrinsic(:SLOW_PATH_ENTRY, numInt).AddImm(ep_offset).MethodAsImm("DoubleToStringDecimalNoCache3ArgBridge").Terminator.ptr
+}

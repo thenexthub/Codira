@@ -1,0 +1,119 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    # assignment
+    - decl: |-
+          let sup: null|string|undefined|SuperFunc = superFoo
+          let sub: null|string|undefined|SubFunc = subFoo
+      use: |-
+          sup = sub
+          arktest.assertEQ(sup, subFoo)
+
+    - decl: |-
+          let sup: null|string|undefined|SuperFunc = superFoo
+          let sub: null|string|undefined|SubFunc = subFoo
+      use: |-
+          sub = sup
+      tags: 'compile-only, negative'
+
+    # class literal
+    - decl: |-
+          class X {
+              f: null|string|undefined|SuperFunc = superFoo
+          }
+          let sub: null|string|undefined|SubFunc = subFoo
+      use: |-
+          let x: X = { f: sub }
+          arktest.assertEQ(x.f, subFoo)
+
+    - decl: |-
+          class X {
+              f: null|string|undefined|SubFunc = subFoo
+          }
+          let sup: null|string|undefined|SuperFunc = superFoo
+      use: |-
+          let x: X = { f: sup }
+      tags: 'compile-only, negative'
+
+    # interface literal
+    - decl: |-
+          interface I {
+              f: null|string|undefined|SuperFunc
+          }
+          let sub: null|string|undefined|SubFunc = subFoo
+      use: |-
+          let i: I = { f: sub }
+          arktest.assertEQ(i.f, subFoo)
+
+    - decl: |-
+          interface I {
+              f: null|string|undefined|SubFunc
+          }
+          let sup: null|string|undefined|SuperFunc = superFoo
+      use: |-
+          let i: I = { f: sup }
+      tags: 'compile-only, negative'
+
+    # array literal
+    - decl: |-
+          let sub: null|string|undefined|SubFunc = subFoo
+      use: |-
+          let arr: Array<null|string|undefined|SuperFunc> = [sub]
+          arktest.assertEQ(arr[0], subFoo)
+
+    - decl: |-
+          let sup: null|string|undefined|SuperFunc = superFoo
+      use: |-
+          let arr: Array<null|string|undefined|SubFunc> = [sup]
+      tags: 'compile-only, negative'
+
+    # tuple literal
+    - decl: |-
+          let sub: null|string|undefined|SubFunc = subFoo
+      use: |-
+          let tup: [null|string|undefined|SuperFunc, null|string|undefined|SuperFunc] = [sub, sub]
+          arktest.assertEQ(tup[0], subFoo)
+          arktest.assertEQ(tup[1], subFoo)
+
+    - decl: |-
+          let sup: null|string|undefined|SuperFunc = superFoo
+      use: |-
+          let tup: [null|string|undefined|SubFunc, null|string|undefined|SubFunc] = [sup, sup]
+      tags: 'compile-only, negative'
+
+    # call context
+    - decl: |-
+          let sup: null|string|undefined|SuperFunc = superFoo
+          let sub: null|string|undefined|SubFunc = subFoo
+      use: |-
+          ((p: null|string|undefined|SuperFunc) => {
+              arktest.assertEQ(p, subFoo)
+          })(sub)
+
+    - decl: |-
+          let sup: null|string|undefined|SuperFunc = superFoo
+          let sub: null|string|undefined|SubFunc = subFoo
+      use: |-
+          ((p: null|string|undefined|SubFunc) => {})(sup)
+      tags: 'compile-only, negative'

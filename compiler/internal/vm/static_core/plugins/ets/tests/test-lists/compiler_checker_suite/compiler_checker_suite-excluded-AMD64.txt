@@ -1,0 +1,12 @@
+# 32909
+ets_tests/escompat_array_fill.ets
+
+#32911
+ets_tests/ets_string_cache_options.ets
+
+#32912
+ets_tests/load_array.ets
+
+#32913
+ets_tests/ets_typeof_compare.ets
+ets_tests/ets_try_catch4.ets

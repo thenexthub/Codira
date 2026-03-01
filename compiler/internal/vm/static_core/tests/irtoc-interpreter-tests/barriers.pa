@@ -1,0 +1,93 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+.record object_array_elem {
+	i32 value
+}
+
+.record object {
+	i32 value
+	object_array_elem[] array
+}
+
+.function void object_array_elem.ctor(object_array_elem a0, i32 a1) <ctor> {
+    lda a1
+    stobj a0, object_array_elem.value
+    return.void
+}
+
+.function void object.ctor(object a0, i32 a1) <ctor> {
+	movi v0, 0x0
+    lda a1
+    stobj a0, object.value
+	addi 0x1
+	sta v1
+	newarr v2, v1, object_array_elem[]
+jump_label_1:
+	lda v0
+	jge v1, jump_label_0
+	add v0, a1
+	sta v4
+	initobj.short object_array_elem.ctor, v4
+	starr.obj v2, v0
+	inci v0, 0x1
+	jmp jump_label_1
+jump_label_0:
+	stobj.v.obj v2, a0, object.array
+	return.void
+}
+
+.function i32 main() {
+	movi v0, 0x0
+	movi v1, 0xf0
+	newarr v2, v1, object[]
+	mov v3, v0
+jump_label_1:
+	lda v3
+	jge v1, jump_label_0
+	initobj.short object.ctor, v3
+	starr.obj v2, v3
+	inci v3, 0x1
+	jmp jump_label_1
+jump_label_0:
+	lda v0
+	jge v1, jump_label_2
+	lda v0
+	ldarr.obj v2
+	sta.obj v3
+	ldobj.v.obj v3, v3, object.array
+	lda v0
+	ldarr.obj v3
+	sta.obj v3
+	ldobj.v v3, v3, object_array_elem.value
+	lda v0
+	shli 0x1
+	jeq v3, jump_label_3
+	ldai 1
+	return
+jump_label_3:
+	inci v0, 0x1
+	jmp jump_label_0
+jump_label_2:
+    ldai 0
+	return
+}

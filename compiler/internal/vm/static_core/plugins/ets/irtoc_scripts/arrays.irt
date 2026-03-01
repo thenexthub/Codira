@@ -1,0 +1,98 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+include_relative '../../../irtoc/scripts/common.irt'
+include_relative 'common.irt'
+
+class SynchronizationType
+  :Sync
+  :Async
+  :Hybrid
+end
+
+def GenerateArrayFastCopyToRef(sync_type)
+  function("ArrayFastCopyToRef#{sync_type}".to_sym,
+          params: {src_obj: 'ref', dst_obj: 'ref', dst_start: 'u32', src_start: 'u32', src_end: 'u32'},
+          regmap: $full_regmap,
+          regalloc_set: $panda_mask,
+          mode: [:FastPath]) {
+
+    if sync_type == :Hybrid && !defines.ARK_HYBRID
+      ReturnVoid().void
+      next
+    end
+
+    if Options.arch == :arm32
+      Intrinsic(:UNREACHABLE).Terminator.void
+      next
+    end
+
+    len := Sub(src_end, src_start).u32
+    # if len <= 0 then do nothing
+    If(len, 0).BE.Unlikely.b {
+      Goto(:Done)
+    }
+
+    src_from_bytes := ShlI(src_start).Imm(EtsConstants::OBJ_PTR_LOG2_SIZE).u32
+    dst_from_bytes := ShlI(dst_start).Imm(EtsConstants::OBJ_PTR_LOG2_SIZE).u32
+
+    src_data := AddI(Cast(src_obj).ptr).Imm(Constants::ARRAY_DATA_OFFSET).ptr
+    src_data := Add(src_data, Cast(src_from_bytes).word).ptr
+
+    dst_data := AddI(Cast(dst_obj).ptr).Imm(Constants::ARRAY_DATA_OFFSET).ptr
+    dst_data := Add(dst_data, Cast(dst_from_bytes).word).ptr
+
+    # if src_data == dst_data then do nothing
+    If(src_data, dst_data).EQ.Unlikely.b {
+      Goto(:Done)
+    }
+
+    # start copying
+    len_bytes := ShlI(len).Imm(EtsConstants::OBJ_PTR_LOG2_SIZE).u32
+
+    src_offset1 := Cast(0).u32
+    dst_offset1 := Cast(0).u32
+  Label(:Loop)
+    src_offset := Phi(src_offset1, src_offset2).u32
+    dst_offset := Phi(dst_offset1, dst_offset2).u32
+    If(src_offset, len_bytes).AE.Unlikely {
+      Goto(:LoopDone)
+    }
+
+    elem := Load(src_data, src_offset).ref
+    Store(dst_data, dst_offset, elem).SetNeedBarrier(sync_type == :Hybrid).ref
+
+    src_offset2 := AddI(src_offset).Imm(EtsConstants::OBJ_PTR_SIZE).u32
+    dst_offset2 := AddI(dst_offset).Imm(EtsConstants::OBJ_PTR_SIZE).u32
+    Goto(:Loop)
+  Label(:LoopDone)
+    if sync_type == :Async
+      post_inter_region_barrier(dst_data, len_bytes)
+    end
+  Label(:Done)
+    ReturnVoid().void
+  }
+end
+
+GenerateArrayFastCopyToRef(:Sync)
+GenerateArrayFastCopyToRef(:Async)
+GenerateArrayFastCopyToRef(:Hybrid)

@@ -1,0 +1,62 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+    - decl: |-
+          enum Enum { first = "a", second, third }   // strings must be set explicitly
+      use: |-
+          arktest.assertEQ(Enum.first.toString(), "a")
+      stdout: |- 
+        "Syntax error ESY0276: All items of non-Integer enumeration should be explicitly initialized."
+
+    - decl: |-
+          enum Enum { first = 11, second = "12", third = 13 }  // cannot combine string and int values
+      use: |-
+          arktest.assertEQ(Enum.second.toString(), "12")
+      stdout: |- 
+        "Semantic error ESE0342: Enumeration members can be initialized only by compile-time expressions and initializers must be of the same type."
+
+    - decl: |-
+          enum Enum { first = "11", second = null, third = "13" }  // cannot use null
+      use: |-
+          arktest.assertEQ(Enum.first.toString(), "11")
+      stdout: |- 
+        "Semantic error ESE0342: Enumeration members can be initialized only by compile-time expressions and initializers must be of the same type."
+
+    - decl: |-
+          enum Enum { first = "11", second = undefined, third = "13" }  // cannot use undefined
+      use: |-
+          arktest.assertEQ(Enum.first.toString(), "11")
+      stdout: |- 
+        "Semantic error ESE0342: Enumeration members can be initialized only by compile-time expressions and initializers must be of the same type."
+
+    - decl: |-
+          let a = "ABC"   // not a constant
+          enum Enum { e1 = a, e2 = "DEF" }
+      use: |-
+          arktest.assertEQ(Enum.e1.toString(), "ABC")
+          arktest.assertEQ(Enum.e2.toString(), "DEF")
+      stdout: |- 
+        "Semantic error ESE0342: Enumeration members can be initialized only by compile-time expressions and initializers must be of the same type."
+
+

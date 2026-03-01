@@ -1,0 +1,266 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # conventional overloading
+    - decl: |-
+          // classes, methods of any type
+          class A {
+              meth(): Object|null|undefined {
+                  return undefined
+              }
+              meth(p: string): Object|null|undefined {
+                  return "A"
+              }
+          }
+          class B {
+              meth(): Object|null|undefined {
+                  return null
+              }
+              meth(p: string): Object|null|undefined {
+                  return "B"
+              }
+          }
+          let u1: A|B = new A
+          let u2: A|B = new B
+      use: |-
+          arktest.assertTrue(u1.meth() === undefined)
+          arktest.assertTrue(u2.meth() === null)
+          arktest.assertEQ(u1.meth("string"), "A", "u1.meth(string)")
+          arktest.assertEQ(u2.meth("string"), "B", "u2.meth(string)")
+
+    - decl: |-
+          // classes, methods of any type - one interface
+          interface I {
+              meth(): Object|null|undefined
+              meth(p: string): Object|null|undefined
+          }
+          class A implements I {
+              meth(): Object|null|undefined {
+                  return undefined
+              }
+              meth(p: string): Object|null|undefined {
+                  return "A"
+              }
+          }
+          class B {
+              meth(): Object|null|undefined {
+                  return null
+              }
+              meth(p: string): Object|null|undefined {
+                  return "B"
+              }
+          }
+          let u1: I|B = new A
+          let u2: I|B = new B
+      use: |-
+          arktest.assertTrue(u1.meth() === undefined)
+          arktest.assertTrue(u2.meth() === null)
+          arktest.assertEQ(u1.meth("string"), "A", "u1.meth(string)")
+          arktest.assertEQ(u2.meth("string"), "B", "u2.meth(string)")
+
+    - decl: |-
+          // classes, methods of any type - both interfaces
+          interface I {
+              meth(): Object|null|undefined
+              meth(p: string): Object|null|undefined
+          }
+          interface J {
+              meth(): Object|null|undefined
+              meth(p: string): Object|null|undefined
+          }
+          class A implements I {
+              meth(): Object|null|undefined {
+                  return undefined
+              }
+              meth(p: string): Object|null|undefined {
+                  return "A"
+              }
+          }
+          class B implements J {
+              meth(): Object|null|undefined {
+                  return null
+              }
+              meth(p: string): Object|null|undefined {
+                  return "B"
+              }
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertTrue(u1.meth() === undefined)
+          arktest.assertTrue(u2.meth() === null)
+          arktest.assertEQ(u1.meth("string"), "A", "u1.meth(string)")
+          arktest.assertEQ(u2.meth("string"), "B", "u2.meth(string)")
+
+    - decl: |-
+          // classes, methods of any type - one extends
+          class A {
+              meth(): Object|null|undefined {
+                  return undefined
+              }
+              meth(p: string): Object|null|undefined {
+                  return "A"
+              }
+          }
+          class B {
+              meth(): Object|null|undefined {
+                  return null
+              }
+              meth(p: string): Object|null|undefined {
+                  return "B"
+              }
+          }
+          class C extends A {}
+          let u1: A|B = new C
+          let u2: A|B = new B
+      use: |-
+          arktest.assertTrue(u1.meth() === undefined)
+          arktest.assertTrue(u2.meth() === null)
+          arktest.assertEQ(u1.meth("string"), "A", "u1.meth(string)")
+          arktest.assertEQ(u2.meth("string"), "B", "u2.meth(string)")
+
+    - decl: |-
+          // classes, methods of any type - both extend
+          class A {
+              meth(): Object|null|undefined {
+                  return undefined
+              }
+              meth(p: string): Object|null|undefined {
+                  return "A"
+              }
+          }
+          class B {
+              meth(): Object|null|undefined {
+                  return null
+              }
+              meth(p: string): Object|null|undefined {
+                  return "B"
+              }
+          }
+          class C extends A {}
+          class D extends B {}
+          let u1: A|B = new C
+          let u2: A|B = new D
+      use: |-
+          arktest.assertTrue(u1.meth() === undefined)
+          arktest.assertTrue(u2.meth() === null)
+          arktest.assertEQ(u1.meth("string"), "A", "u1.meth(string)")
+          arktest.assertEQ(u2.meth("string"), "B", "u2.meth(string)")
+
+    - decl: |-
+          // overload signatures - some match, to verify that at least right class is chosen
+          class A {
+              meth(p: int): number {
+                  return 2 // intentionally made same return value as in overloaded method
+              }
+              meth(p: Object): number {
+                  return 2
+              }
+          }
+          class B {
+              meth(p: Object): number {
+                  return 3
+              }
+          }
+          let u1: A|B = new A
+          let u2: A|B = new B
+      use: |-
+          arktest.assertEQ(u1.meth(1), 2, "u1.meth(1)")
+          arktest.assertEQ(u1.meth(new Object()), 2, "u1.meth(new Object())")
+          arktest.assertEQ(u2.meth(new Object()), 3, "u2.meth(new Object())")
+
+    - decl: |-
+          // overload signatures - verify first match
+          class A {
+              meth(p: int): number {
+                  return 1
+              }
+              meth(p: Object): number {
+                  return 2
+              }
+          }
+          class B {
+              meth(p: Object): number {
+                  return 3
+              }
+          }
+          let u1: A|B = new A
+          let u2: A|B = new B
+      use: |-
+          arktest.assertEQ(u1.meth(1), 1, "u1.meth(1)")
+          arktest.assertEQ(u1.meth(new Object()), 2, "u1.meth(new Object())")
+          arktest.assertEQ(u2.meth(new Object()), 3, "u2.meth(new Object())")
+
+    # overload declaration (alias)
+    - decl: |-
+          // harmless uninvolved overload in one
+          class A {
+              overload foo { foo1, foo2 }
+              foo1(a: number): void {}
+              foo2(a: string): void {}
+              meth(): Object|null|undefined {
+                  return undefined
+              }
+              meth(p: string): Object|null|undefined {
+                  return "A"
+              }
+          }
+          class B {
+              meth(): Object|null|undefined {
+                  return null
+              }
+              meth(p: string): Object|null|undefined {
+                  return "B"
+              }
+          }
+          let u1: A|B = new A
+          let u2: A|B = new B
+      use: |-
+          arktest.assertTrue(u1.meth() === undefined)
+          arktest.assertTrue(u2.meth() === null)
+          arktest.assertEQ(u1.meth("string"), "A", "u1.meth(string)")
+          arktest.assertEQ(u2.meth("string"), "B", "u2.meth(string)")
+
+    - decl: |-
+          // harmless uninvolved overload in both
+          class A {
+              overload foo { foo1, foo2 }
+              foo1(a: number): void {}
+              foo2(a: string): void {}
+              meth(): Object|null|undefined {
+                  return undefined
+              }
+              meth(p: string): Object|null|undefined {
+                  return "A"
+              }
+          }
+          class B {
+              overload foo { foo1, foo2 }
+              foo1(a: number): void {}
+              foo2(a: string): void {}
+              meth(): Object|null|undefined {
+                  return null
+              }
+              meth(p: string): Object|null|undefined {
+                  return "B"
+              }
+          }
+          let u1: A|B = new A
+          let u2: A|B = new B
+      use: |-
+          arktest.assertTrue(u1.meth() === undefined)
+          arktest.assertTrue(u2.meth() === null)
+          arktest.assertEQ(u1.meth("string"), "A", "u1.meth(string)")
+          arktest.assertEQ(u2.meth("string"), "B", "u2.meth(string)")

@@ -1,0 +1,1 @@
+[boost_equal_statements_1.ets:18:21] Warning W0004: Boost Equality Statement. Change sides of binary expression.

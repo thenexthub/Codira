@@ -1,0 +1,225 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - type: int
+      value: "1"
+      expected_type: int|string
+
+    # Same type for union
+    - type: string
+      value: '"abc"'
+      expected_type: string
+
+    - type: int_nullish
+      value: "null"
+      expected_type: int|string
+
+    - type: int_nullish
+      value: "undefined"
+      expected_type: int|string
+
+  # specific types: class, tuple, function, Array, FixedArray, array[], Record
+    - decl: |-
+        class A {
+            constructor(p: int_nullish) {
+                this.fld = p
+            }
+            fld: int_nullish
+        }
+      type: A
+      value: "new A(1)"
+      access: ".fld"
+      expected_type: int|string
+
+    - decl: |-
+        class A {
+            constructor(p: int_nullish) {
+                this.fld = p
+            }
+            fld: int_nullish
+        }
+      type: A
+      value: "new A(null)"
+      access: ".fld"
+      expected_type: int|string
+
+    - decl: |-
+        class A {
+            constructor(p: int_nullish) {
+                this.fld = p
+            }
+            fld: int_nullish
+        }
+      type: A
+      value: "new A(undefined)"
+      access: ".fld"
+      expected_type: int|string
+
+    - decl: |-
+        type TUPLE = [boolean, int_nullish]
+      type: "TUPLE"
+      value: "[true, 1]"
+      access: "[1]"
+      expected_type: int|string
+
+    - decl: |-
+        type TUPLE = [boolean, int_nullish]
+      type: "TUPLE"
+      value: "[true, null]"
+      access: "[1]"
+      expected_type: int|string
+
+    - decl: |-
+        type TUPLE = [boolean, int_nullish]
+      type: "TUPLE"
+      value: "[true, undefined]"
+      access: "[1]"
+      expected_type: int|string
+
+    - decl: |-
+        function foo(): int_nullish { return 1; }
+      type: "() => int_nullish"
+      value: "foo"
+      access: "()"
+      expected_type: int|string
+
+    - decl: |-
+        function foo(): int_nullish { return null; }
+      type: "() => int_nullish"
+      value: "foo"
+      access: "()"
+      expected_type: int|string
+
+    - decl: |-
+        function foo(): int_nullish { return undefined; }
+      type: "() => int_nullish"
+      value: "foo"
+      access: "()"
+      expected_type: int|string
+
+    - type: Array<int_nullish>
+      value: "[1, 0]"
+      expected_type: Array<int_nullish>|string
+
+    - type: Array<int_nullish>
+      value: "new Array<int_nullish>(1, 2)"
+      access: "[0]"
+      expected_type: int|string
+
+    - type: Array<int_nullish>
+      value: "new Array<int_nullish>(null, 2)"
+      access: "[0]"
+      expected_type: int|string
+
+    - type: Array<int_nullish>
+      value: "new Array<int_nullish>(undefined, 2)"
+      access: "[0]"
+      expected_type: int|string
+
+    - type: "FixedArray<int_nullish>"
+      value: "[1, null]"
+      expected_type: FixedArray<int_nullish>|string
+
+    - type: "FixedArray<int_nullish>"
+      value: "[null]"
+      access: "[0]"
+      expected_type: int|string
+
+    - type: "FixedArray<int_nullish>"
+      value: "[null]"
+      access: "[0]"
+      expected_type: int|string
+
+    - type: "FixedArray<int_nullish>"
+      value: "[undefined]"
+      access: "[0]"
+      expected_type: int|string
+
+    - type: int_nullish[]
+      value: "[1]"
+      expected_type: int_nullish[]|string
+
+    - type: int_nullish[]
+      value: "[1]"
+      access: "[0]"
+      expected_type: int|string
+
+    - type: int_nullish[]
+      value: "[null]"
+      access: "[0]"
+      expected_type: int|string
+
+    - type: int_nullish[]
+      value: "[undefined]"
+      access: "[0]"
+      expected_type: int|string
+
+    - type: Record<string, int_nullish>
+      value: |-
+        {
+          "a": null,
+          "b": 1,
+          "c": undefined,
+        }
+      expected_type: Record<string, int_nullish>|string
+
+    - type: Record<string, int_nullish>
+      value: |-
+                {
+                  "a": null,
+                  "b": 1,
+                  "c": undefined,
+                }
+      access: '["a"]'
+      expected_type: int|string
+
+    - type: Record<string, int_nullish>
+      value: |-
+        {
+          "a": null,
+          "b": 1,
+          "c": undefined,
+        }
+      access: '["b"]'
+      expected_type: int|string
+
+    - type: Record<string, int_nullish>
+      value: |-
+        {
+          "a": null,
+          "b": 1,
+          "c": undefined,
+        }
+      access: '["c"]'
+      expected_type: int|string
+
+    - decl: |-
+        enum Enum { A = 1.2, B = 0.0}
+      type: double
+      value: 'Enum.B'
+      expected_type: double|string
+
+    - decl: |-
+        enum Enum { A = 1.2, B = 0.0}
+      type: Array<Enum>
+      value: '[Enum.A, Enum.B]'
+      access: [1]
+      expected_type: Enum|string
+
+    - decl: |-
+        enum Enum { A = 1.2, B = 0.0}
+      type: Array<Enum>
+      value: '[Enum.A, Enum.B]'
+      expected_type: Array<Enum>|string

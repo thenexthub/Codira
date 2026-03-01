@@ -1,0 +1,104 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+  # type argument is class
+  - use: |-
+      let v: J<X> = new A<X>(new X())
+
+  - use: |-
+      let v: J<X> = new A<X>(new X())
+    bound: ' extends X'
+
+  - use: |-
+      let v: J<X> = new A<X>(new X())
+    bound: ' extends X|null'
+
+  - use: |-
+      let v: J<X|null> = new A<X|null>(new X())
+    bound: ' extends X|null'
+
+  - use: |-
+      let v: J<X|null> = new A<X|null>(null)
+    bound: ' extends X|null'
+
+  - use: |-
+      let v: J<X|null> = new A<X|null>(null)
+
+  - use: |-
+      let v: J<J<X>> = new A<J<X>>(new A<X>(new X()))
+
+  # type argument is interface
+  - use: |-
+      let v: J<I> = new A<I>(new X())
+
+  - use: |-
+      let v: J<I|null> = new A<I|null>(new X())
+    bound: ' extends I|null'
+
+  - use: |-
+      let v: J<J<I>> = new A<J<I>>(new A<I>(new X()))
+    bound: ' extends Object'
+
+  # type argument is array of classes, interfaces, enums
+  - use: |-
+      let v: J<X[]> = new A<X[]>(new X[0])
+
+  - use: |-
+      let v: J<X[]|null> = new A<X[]|null>(null)
+
+  # type argument is alias
+  - use: |-
+      let v: J<B> = new A<B>(new X())
+    decl: |-
+      type B = X
+    bound: ' extends X|null'
+
+  - use: |-
+      let v: J<B> = new A<B>(null)
+    decl: |-
+      type B = X|null
+
+  - use: |-
+      let v: J<B> = new A<B>(new A<X>(new X()))
+    decl: |-
+      type B = J<X>
+    bound: ' extends Object'
+
+  - use: |-
+      let v: J<B> = new A<B>(new A<X|null>(null))
+    decl: |-
+      type B = J<X|null>
+
+  - use: |-
+      let v: J<B> = new A<B>(new X[0])
+    decl: |-
+      type B = X[]
+
+  # Boxed to Reference type
+  - use: |-
+      let v: J<int> = new A<int>(1)
+
+  # Enum is reference type
+  - use: |-
+      let v: J<Color> = new A<Color>(Color.Red)

@@ -1,0 +1,176 @@
+//===-- ObjectFileWasm.h ----------------------------------------*- C++ -*-===//
+//
+// Copyright (c) NeXTHub Corporation. All Rights Reserved.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// Author: Tunjay Akbarli
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at:
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+// Middletown, DE 19709, New Castle County, USA.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef LLDB_SOURCE_PLUGINS_OBJECTFILE_WASM_OBJECTFILEWASM_H
+#define LLDB_SOURCE_PLUGINS_OBJECTFILE_WASM_OBJECTFILEWASM_H
+
+#include "lldb/Symbol/ObjectFile.h"
+#include "lldb/Utility/ArchSpec.h"
+#include <optional>
+
+namespace lldb_private {
+namespace wasm {
+
+/// Generic Wasm object file reader.
+///
+/// This class provides a generic wasm32 reader plugin implementing the
+/// ObjectFile protocol.
+class ObjectFileWasm : public ObjectFile {
+public:
+  static void Initialize();
+  static void Terminate();
+
+  static llvm::StringRef GetPluginNameStatic() { return "wasm"; }
+  static const char *GetPluginDescriptionStatic() {
+    return "WebAssembly object file reader.";
+  }
+
+  static ObjectFile *CreateInstance(const lldb::ModuleSP &module_sp,
+                                    lldb::DataExtractorSP extractor_sp,
+                                    lldb::offset_t data_offset,
+                                    const FileSpec *file,
+                                    lldb::offset_t file_offset,
+                                    lldb::offset_t length);
+
+  static ObjectFile *CreateMemoryInstance(const lldb::ModuleSP &module_sp,
+                                          lldb::WritableDataBufferSP data_sp,
+                                          const lldb::ProcessSP &process_sp,
+                                          lldb::addr_t header_addr);
+
+  static size_t GetModuleSpecifications(const FileSpec &file,
+                                        lldb::DataBufferSP &data_sp,
+                                        lldb::offset_t data_offset,
+                                        lldb::offset_t file_offset,
+                                        lldb::offset_t length,
+                                        ModuleSpecList &specs);
+
+  /// PluginInterface protocol.
+  /// \{
+  llvm::StringRef GetPluginName() override { return GetPluginNameStatic(); }
+  /// \}
+
+  /// LLVM RTTI support
+  /// \{
+  static char ID;
+  bool isA(const void *ClassID) const override {
+    return ClassID == &ID || ObjectFile::isA(ClassID);
+  }
+  static bool classof(const ObjectFile *obj) { return obj->isA(&ID); }
+  /// \}
+
+  /// ObjectFile Protocol.
+  /// \{
+  bool ParseHeader() override;
+
+  lldb::ByteOrder GetByteOrder() const override {
+    return m_arch.GetByteOrder();
+  }
+
+  bool IsExecutable() const override { return false; }
+
+  uint32_t GetAddressByteSize() const override {
+    return m_arch.GetAddressByteSize();
+  }
+
+  AddressClass GetAddressClass(lldb::addr_t file_addr) override {
+    return AddressClass::eInvalid;
+  }
+
+  void ParseSymtab(lldb_private::Symtab &symtab) override;
+
+  bool IsStripped() override { return !!GetExternalDebugInfoFileSpec(); }
+
+  void CreateSections(SectionList &unified_section_list) override;
+
+  void Dump(Stream *s) override;
+
+  ArchSpec GetArchitecture() override { return m_arch; }
+
+  UUID GetUUID() override { return m_uuid; }
+
+  uint32_t GetDependentModules(FileSpecList &files) override { return 0; }
+
+  Type CalculateType() override { return eTypeSharedLibrary; }
+
+  Strata CalculateStrata() override { return eStrataUser; }
+
+  bool SetLoadAddress(lldb_private::Target &target, lldb::addr_t value,
+                      bool value_is_offset) override;
+
+  lldb_private::Address GetBaseAddress() override {
+    return IsInMemory() ? Address(m_memory_addr) : Address(0);
+  }
+  /// \}
+
+  /// A Wasm module that has external DWARF debug information should contain a
+  /// custom section named "external_debug_info", whose payload is an UTF-8
+  /// encoded string that points to a Wasm module that contains the debug
+  /// information for this module.
+  std::optional<FileSpec> GetExternalDebugInfoFileSpec();
+
+private:
+  ObjectFileWasm(const lldb::ModuleSP &module_sp,
+                 lldb::DataExtractorSP extractor_sp, lldb::offset_t data_offset,
+                 const FileSpec *file, lldb::offset_t offset,
+                 lldb::offset_t length);
+  ObjectFileWasm(const lldb::ModuleSP &module_sp,
+                 lldb::WritableDataBufferSP header_data_sp,
+                 const lldb::ProcessSP &process_sp, lldb::addr_t header_addr);
+
+  /// Wasm section decoding routines.
+  /// \{
+  bool DecodeNextSection(lldb::offset_t *offset_ptr);
+  bool DecodeSections();
+  /// \}
+
+  /// Read a range of bytes from the Wasm module.
+  DataExtractor ReadImageData(lldb::offset_t offset, uint32_t size);
+
+  struct section_info {
+    lldb::offset_t offset;
+    uint32_t size;
+    uint32_t id;
+    ConstString name;
+    lldb::offset_t GetFileOffset() const { return offset & 0xffffffff; }
+  };
+
+  std::optional<section_info> GetSectionInfo(uint32_t section_id);
+  std::optional<section_info> GetSectionInfo(llvm::StringRef section_name);
+
+  /// Wasm section header dump routines.
+  /// \{
+  void DumpSectionHeader(llvm::raw_ostream &ostream, const section_info &sh);
+  void DumpSectionHeaders(llvm::raw_ostream &ostream);
+  /// \}
+
+  std::vector<section_info> m_sect_infos;
+  uint32_t m_num_imported_functions = 0;
+  std::vector<Symbol> m_symbols;
+  ArchSpec m_arch;
+  UUID m_uuid;
+};
+
+} // namespace wasm
+} // namespace lldb_private
+#endif // LLDB_SOURCE_PLUGINS_OBJECTFILE_WASM_OBJECTFILEWASM_H

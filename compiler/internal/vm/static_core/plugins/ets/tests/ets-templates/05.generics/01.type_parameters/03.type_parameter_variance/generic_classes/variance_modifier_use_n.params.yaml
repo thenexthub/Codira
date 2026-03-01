@@ -1,0 +1,55 @@
+# Copyright (c) 2024-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  #0
+  - case: { param: "",        expression: "constructor<in T>(p: T) {}"                     }
+    stdout: |-
+      "Syntax error ESY0330: Constructor should not have type parameters."
+  #1
+  - case: { param: "",        expression: "constructor(out T) {p: T}"                      }
+    stdout: |-
+      "Syntax error ESY0194: Parameter declaration should have an explicit type annotation."
+  #2
+  - case: { param: "",        expression: "f<in T>(p: T): int { return 10 }"               }
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+  #3
+  - case: { param: "",        expression: "f<out T>(p: int): T { return p as T }"          }
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+  #4
+  - case: { param: "",        expression: "f<in T1, out T2>(p: T1): T2 { return p as T2 }" }
+    stdout: |-
+      "Syntax error ESY0098: Variance modifier is not allowed here."
+  #5
+  - case: { param: "<T>",     expression: "f(p: in T): T { return p }"                     }
+    stdout: |-
+      "Syntax error ESY0138: Invalid Type."
+  #6
+  - case: { param: "<T>",     expression: "f(p: T): out T { return p }"                    }
+    stdout: |-
+      "Semantic error ESE0017: Only abstract or native methods can't have body."
+  #7
+  - case: { param: "<T>",     expression: "f(p: in T): out T { return p }"                 }
+    stdout: |-
+      "Semantic error ESE0017: Only abstract or native methods can't have body."
+  #8
+  - case: { param: "<in T>",  expression: "f(p: in T) {}"                                  }
+    stdout: |-
+      "Syntax error ESY0138: Invalid Type."
+  #9
+  - case: { param: "<out T>", expression: "f(): out T { return 'a' as T }"                 }
+    stdout: |-
+      "Semantic error ESE0017: Only abstract or native methods can't have body."

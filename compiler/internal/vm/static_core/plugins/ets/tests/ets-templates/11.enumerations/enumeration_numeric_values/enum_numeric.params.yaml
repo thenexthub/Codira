@@ -1,0 +1,94 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          enum Enum: double { first = 1.1, second = 1.2, third = 1.3 }
+      use: |-
+          arktest.assertEQ( Enum.first.valueOf(), 1.1 )
+          arktest.assertEQ( Enum.second.valueOf(), 1.2 )
+          arktest.assertEQ( Enum.third.valueOf(), 1.3 )
+
+    - decl: |-
+          enum Enum: double { first = 10e1, second = 1.2, third = 1.1 } 
+      use: |-
+          arktest.assertEQ( Enum.first.valueOf(), 100 )
+
+    - decl: |-
+          enum Enum: double { first =  1.7976931348623155e+308, second = 1.7976931348623157e+308 }
+      use: |-
+          arktest.assertEQ( Enum.first.valueOf(), 1.7976931348623155e+308 )
+          arktest.assertEQ( Enum.second.valueOf(), 1.7976931348623157e+308 )
+
+    - decl: |-
+          const a: double = 1.23
+          const b: double = 1.234
+          enum Enum: double { first = a, second = b, third = b - 1.1 }
+      use: |-
+          arktest.assertEQ( Enum.first.valueOf(), a )
+          arktest.assertEQ( Enum.second.valueOf(), b )
+          arktest.assertEQ( Enum.third.valueOf(), b - 1.1 )
+
+    - decl: |-
+          enum Enum: double { first = -1.1, second = -1.2, third = -42.43 }
+      use: |-
+          arktest.assertEQ( "" + Enum.first, "-1.1" )
+          arktest.assertEQ( "" + Enum.second, "-1.2" )
+          arktest.assertEQ( "" + Enum.third, "-42.43" )
+
+    - decl: |-
+          enum Enum: byte { first = -2, second = -1, third = 0, fourth = 1 }
+      use: |-
+          arktest.assertEQ( "" + Enum.first, "-2" )
+          arktest.assertEQ( "" + Enum.second, "-1" )
+          arktest.assertEQ( "" + Enum.third, "0" )
+          arktest.assertEQ( "" + Enum.fourth, "1" )
+
+    - decl: |-
+          enum Enum: byte { first = -2, second = -1, third = 0, fourth = 1 }
+      use: |-
+          arktest.assertEQ( "" + Enum.first, "-2" )
+          arktest.assertEQ( "" + Enum.second, "-1" )
+          arktest.assertEQ( "" + Enum.third, "0" )
+          arktest.assertEQ( "" + Enum.fourth, "1" )
+    
+    - decl: |-
+          enum Enum: short { first = -300, second = -1, third = 0, fourth = 300 }
+      use: |-
+          arktest.assertEQ( "" + Enum.first, "-300" )
+          arktest.assertEQ( "" + Enum.second, "-1" )
+          arktest.assertEQ( "" + Enum.third, "0" )
+          arktest.assertEQ( "" + Enum.fourth, "300" )
+
+    - decl: |-
+          const a: byte = 0
+          const b: short = 200
+          enum Enum: int { first = a, second = b }
+      use: |-
+          arktest.assertEQ( "" + Enum.first, "0" )
+          arktest.assertEQ( "" + Enum.second, "200" )
+
+    - decl: |-
+          enum Enum: byte { a, b, c = 0x5, d }
+      use: |-
+          arktest.assertEQ( Enum.a, 0x0 )
+          arktest.assertEQ( Enum.b, 0x1 )
+          arktest.assertEQ( Enum.d, 0x6 )
+
+    - decl: |-
+          enum Enum: short { a, b, c = 5, d }
+      use: |-
+          arktest.assertEQ( Enum.a, 0 )
+          arktest.assertEQ( Enum.b, 1 )
+          arktest.assertEQ( Enum.d, 6 )

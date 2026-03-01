@@ -1,0 +1,137 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+attributes:
+- name: access.field
+  type: enum
+  multiple: false
+  values:
+    - value: public
+      flags: [ACC_PUBLIC]
+    - value: protected
+      flags: [ACC_PROTECTED]
+    - value: private
+      flags: [ACC_PRIVATE]
+  applicable_to:
+    - field
+
+- name: access.function
+  type: enum
+  multiple: false
+  values:
+    - value: public
+      flags: [ACC_PUBLIC]
+    - value: protected
+      flags: [ACC_PROTECTED]
+    - value: private
+      flags: [ACC_PRIVATE]
+  applicable_to:
+    - function
+
+- name: access.record
+  type: enum
+  multiple: false
+  values:
+    - value: public
+      flags: [ACC_PUBLIC]
+    - value: protected
+      flags: [ACC_PROTECTED]
+    - value: private
+      flags: [ACC_PRIVATE]
+  applicable_to:
+    - record
+
+- name: extends
+  type: record
+  multiple: false
+  applicable_to:
+    - record
+
+- name: external
+  type: bool
+  applicable_to:
+    - record
+    - field
+    - function
+
+- name: native
+  type: bool
+  flags: [ACC_NATIVE]
+  applicable_to:
+    - function
+
+- name: noimpl
+  type: bool
+  flags: [ACC_ABSTRACT]
+  applicable_to:
+    - function
+
+- name: varargs
+  type: bool
+  flags: [ACC_VARARGS]
+  applicable_to:
+    - function
+
+- name: static
+  type: bool
+  flags: [ACC_STATIC]
+  applicable_to:
+    - field
+    - function
+
+- name: final
+  type: bool
+  flags: [ACC_FINAL]
+  applicable_to:
+    - record
+    - field
+    - function
+
+- name: volatile
+  type: bool
+  flags: [ACC_VOLATILE]
+  multiple: false
+  applicable_to:
+    - field
+
+- name: readonly
+  type: bool
+  flags: [ACC_READONLY]
+  multiple: false
+  applicable_to:
+    - field
+
+- name: ctor
+  type: bool
+  applicable_to:
+    - function
+
+- name: cctor
+  type: bool
+  applicable_to:
+    - function
+
+- name: value
+  type: any
+  multiple: false
+  applicable_to:
+    - field

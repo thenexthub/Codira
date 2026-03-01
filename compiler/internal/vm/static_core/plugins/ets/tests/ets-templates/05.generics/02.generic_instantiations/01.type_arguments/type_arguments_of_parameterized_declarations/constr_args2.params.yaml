@@ -1,0 +1,126 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+  # classes
+  - use: |-
+      let v: A<X,X> = new A<X,X>(new X(), new X())
+
+  - use: |-
+      let v: A<Int,X|null> = new A<Int,X|null>(new Int(), new X())
+
+  - use: |-
+      let v: A<Int|null,X|null> = new A<Int|null,X|null>(null, null)
+
+  - use: |-
+      let v: A<X,X|null> = new A<X,X|null>(new X(), new X())
+    bound: ' extends X|null'
+
+  - use: |-
+      let v: A<Object,X|null> = new A<Object,X|null>(new X(), null)
+    bound: ' extends Object|null'
+
+  # interfaces
+  - use: |-
+      let v: A<I,I> = new A<I,I>(new X(), new X())
+
+  - use: |-
+      let v: A<I|null,I|null> = new A<I|null,I|null>(null, new Y())
+
+  - use: |-
+      let v: A<Y,I|null> = new A<Y,I|null>(new Y(), new Y())
+    bound: ' extends I|null'
+
+  # arrays
+  - use: |-
+      let v: A<int[],X[]> = new A<int[],X[]>(new int[1], new X[0])
+
+  - use: |-
+      let v: A<int[]|null,X[]|null> = new A<int[]|null,X[]|null>(null, new X[0])
+
+# aliases
+  - use: |-
+      let v: A<B,B> = new A<B,B>([Color.Red], [Color.Blue])
+    decl: type B = Color[]
+
+  - use: |-
+      let v: A<B,B> = new A<B,B>(null, new X[1][0])
+    decl: type B = X[][]|null
+
+  - use: |-
+      let v: A<Y,B> = new A<Y,B>(new Y(), new Y[0])
+    decl: type B = Y[]
+
+  # tuples
+  - use: |-
+      let v: A<[X, X], X> = new A<[X, X], X>([new X(), new X()], new X())
+
+  - use: |-
+      let v: A<Int, [X, X] | null> = new A<Int, [X, X] | null>(new Int(), [new X(), new X()])
+
+  - use: |-
+      let v: A<Int | null, [X, X] | null> = new A<Int|null, [X, X] | null>(null, null)
+
+  - use: |-
+      let v: A<[X, X], X | null> = new A<[X, X], X | null>([new X(), new X()], new X())
+
+  - use: |-
+      let v: A<Object, [X, X] | null> = new A<Object, [X, X] | null>(new X(), null)
+
+  # FixedArray
+  - use: |-
+      let v: A<FixedArray<X>, FixedArray<X>> = new A<FixedArray<X>, FixedArray<X>>([new X()], [new X()])
+
+  - use: |-
+      let v: A<Int, FixedArray<X> | null> = new A<Int, FixedArray<X> | null>(new Int(), [new X()])
+
+  - use: |-
+      let v: A<Int|null,X|null> = new A<Int|null,X|null>(null, null)
+
+  - use: |-
+      let v: A<FixedArray<X>, FixedArray<X> | null> = new A<FixedArray<X>, FixedArray<X> | null>([new X()], [new X()])
+
+  - use: |-
+      let v: A<Object, FixedArray<X> | null> = new A<Object, FixedArray<X> | null>([new X()], null)
+
+  # type argument is specific type
+  - use: |-
+      let v: A<Any, Any> = new A<Any, Any>(new X(), new X())
+
+  - use: |-
+      let v: A<undefined, undefined> = new A<undefined, undefined>(undefined, undefined)
+
+  - use: |-
+      let v: A<null, null> = new A<null, null>(null, null)
+
+  - use: |-
+      let v: A<string, string> = new A<string, string>("string", "string")
+
+  - use: |-
+      let v: A<bigint, bigint> = new A<bigint, bigint>(123n, 123n)
+
+  - use: |-
+      let v: A<B<keyof Keys>, B<keyof Keys>> = new A<B<'key'>, B<'key'>>(new B<'key'>, new B<'key'>)
+    decl: |-
+      class Keys { key: number = 0 }
+      class B<T extends keyof Keys> {}

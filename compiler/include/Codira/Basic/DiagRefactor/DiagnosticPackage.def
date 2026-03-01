@@ -1,0 +1,48 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+ERROR(import_package_diag_begin, "")
+ERROR(package_unsupport_save, "unsupported %s '%s' when saving AST")
+ERROR(package_unsupported_load, "unsupported %s when loading AST")
+ERROR(package_invalid_codeo_dependency, "version of package '%s' and its dependent package '%s' are incompatible")
+ERROR(package_decl_not_find_in_package, "'%s' is not accessible in package '%s'")
+ERROR(package_search_error, "can not find package '%s'")
+ERROR(package_import_itself_illegal, "package '%s' should not import itself")
+ERROR(package_missed_codeo_main_pkg_part_for_test_pkg, "package '%s' is being compiled with --test-only option, but no dependency for production part of this package provided")
+ERROR(package_multiple_package_declarations, "found more than one package declaration for the package")
+ERROR(package_name_not_identical_lsp, "package name supposed to be '%s'")
+ERROR(package_name_inconsistent_with_macro, "package name with macro should be consistent in the same package.")
+WARNING(package_shadowed_import, PACKAGE_IMPORT, "imported decl '%s' is shadowed, it will be ignored by compiler")
+WARNING(package_conflict_import, PACKAGE_IMPORT, "imported decl '%s' is conflicted with other import")
+ERROR(package_cannot_export_macro_package, "it is not allowed to re-export a macro package in a package.")
+ERROR(package_import_inconsistent, "The imported codeo file failed verification, the package name is %s which is not '%s'")
+ERROR(package_mocking_support_inconsistency,
+    "dependent package '%s' is compiled with mocking support, the current package must be compiled with mocking support too (pass '%s' compilation option)")
+ERROR(package_accessibility, "package '%s' is '%s' which cannot be imported by %s package '%s'")
+ERROR(package_re_export_package_name, "imported package name '%s' cannot be modified by '%s'")
+ERROR(package_root_package_should_be_public, "root package can only modified by 'public'")
+ERROR(packages_visibility_inconsistent, "package must have one visibility level (%s != %s)")
+ERROR(packages_macro_inconsistent, "package must be either macro or not")
+WARNING(feature_already_seen_name, PACKAGE_IMPORT, "feature is already declared")
+ERROR(feature_null_declaration, "features declaration must be included in every file within the source set where it is used")
+ERROR(feature_different_consistency, "feature names must be consistent across all files within a source set")
+ERROR(import_package_diag_end, "")

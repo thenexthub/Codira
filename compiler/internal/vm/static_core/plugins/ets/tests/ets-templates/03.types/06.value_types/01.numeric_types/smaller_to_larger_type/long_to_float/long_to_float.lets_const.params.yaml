@@ -1,0 +1,50 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+testData:
+  - { initialType: "long", value: "2147483648890", resultType: "float" , result: "2147483648890.0f", desc: "0. Conversion of the positive decimal long value to the float."}
+  - { initialType: "long", value: "-2147483648891", resultType: "float" , result: "-2147483648891.00_000f", desc: "1. Conversion of the negative decimal long value to the float."}
+  - { initialType: "long", value: "0x1F40000037_a", resultType: "Float" , result: "2147483648_890.0", desc: "2. Conversion of the positive hex long value to the float."}
+  - { initialType: "long", value: "-0x1F40000037B", resultType: "Float" , result: "-2147483648891.00_00", desc: "3. Conversion of the negative hex long value to the float."}
+  - { initialType: "Long", value: "0o37200000001572", resultType: "float" , result: "2147483648890.0f", desc: "4. Conversion of the positive octal Long (alias) value to the float."}
+  - { initialType: "Long", value: "-0o3720000000157_3", resultType: "float" , result: "-.2_147_483_648_891e13", desc: "5. Conversion of the negative octal Long (alias) value to the float."}
+  - { initialType: "Long", value: "-0B11111010000000000000000000000001101111010", resultType: "Float" , result: "-21474836.48890E5", desc: "6. Conversion of the negative binary Long (alias) value to the Float (alias)."}
+  - { initialType: "Long", value: "0B00011111_010000000000000_000000000001101111011", resultType: "Float" , result: "2147483648891000e-3", desc: "7. Conversion of the positive binary Long (alias) value to the Float (alias)."}
+  - { initialType: "Long", value: "-2147483648891", resultType: "Float" , result: "-2147483648891f", desc: "8. Conversion of the negative decimal Long (alias) value (min long) to the Float (alias)."}
+  - { initialType: "long", value: "0o777777777777777777777", resultType: "float" , result: "9223372036854775807f", desc: "9. Conversion of the positive octal long value (max long) to the float."}
+  - { initialType: "Long", value: "0X7FFFFff_FFFFFFFFF", resultType: "float" , result: "9223372036854775807.0f", desc: "10. Conversion of the hex max Long (alias) value to the float."}
+  - { initialType: "Long", value: "Long.MAX_VALUE", resultType: "float" , result: "9223372036854775807.00_000f", desc: "11. Conversion of the max Long (alias) value to the float."}
+  - { initialType: "long", value: "Long.MIN_VALUE", resultType: "Float" , result: "-0b1000000000000000000000000000000000000000000000000000000000000000", desc: "12. Conversion of the min long value to the float (alias, as binary)."}
+  - { initialType: "long", value: "Long.MIN_VALUE", resultType: "Float" , result: "-0X8000000000000000", desc: "13. Conversion of the min long value to the float (alias, as hex)."}
+  - { initialType: "Long", value: "new Long(-2147483648890)", resultType: "float" , result: "-0O37200000001572", desc: "14. Conversion of the negative decimal Long (alias, initialized by the constructor) value (min long) to the float."}
+  - { initialType: "long", value: "new Long(0O37200000001573)", resultType: "Float" , result: "2147483648891E0", desc: "15. Conversion of the positive octal long (initialized by the constructor of alias) value (min long) to the Float (alias)."}
+  - { initialType: "long", value: "+0o0", resultType: "float" , result: "0x00", desc: "16. Conversion of the octal long value (zero with plus sign) to the float."}
+  - { initialType: "Long", value: "-0x0", resultType: "Float" , result: "0.0", desc: "17. Conversion of the hex Long (alias) value (zero with minus sign) to the Float (alias)."}
+  - { initialType: "long", value: "new Long(0b000_00)", resultType: "Float" , result: "-0b0", desc: "18. Conversion of the binary long (initialized by the constructor of alias) value (many zero) to the Float (alias)."}
+  - { initialType: "Long", value: "new Long(0)", resultType: "float" , result: "+0o0", desc: "19. Conversion of the decimal Long (alias, initialized by the constructor) value (zero) to the float."}
+  - { initialType: "Long", value: "Long.MAX_VALUE", resultType: "float" , result: "0X7FFFFFF_FFFFFFFFF", desc: "20. Conversion of the max Long (alias) value to the float (as hex)."}
+  - { initialType: "Long", value: "0X7FFFFFFFFFFFFFFF", resultType: "float" , result: "0X7FFFFFFFFFFFFFFF", desc: "21. Conversion of the positive hex Long (alias) value (max long) to the float (as hex)."}
+  - { initialType: "Long", value: "+0o37200000001572", resultType: "float" , result: "0x1F40000037A", desc: "22. Conversion of the positive octal Long (alias, with plus sign) value to the float (as hex)."}
+  - { initialType: "long", value: "-2147483648891", resultType: "float" , result: "-0O37200000_001573f", desc: "23. Conversion of the negative decimal long value to the float (as octal)."}
+  - { initialType: "Long", value: "-0B11111010000000000000000000000001101111010", resultType: "Float" , result: "-0B11111010000000000000000000000001101111010", desc: "24. Conversion of the negative binary Long (alias) value to the Float (alias, as binary)."}
+
+   

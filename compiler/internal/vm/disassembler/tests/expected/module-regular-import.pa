@@ -1,0 +1,55 @@
+# source binary: module-regular-import.abc
+
+.language ECMAScript
+
+# ====================
+# LITERALS
+
+0 0x31e { 3 [ ModuleTag: LOCAL_EXPORT, local_name: a, export_name: a; ModuleTag: LOCAL_EXPORT, local_name: b, export_name: b; ModuleTag: LOCAL_EXPORT, local_name: c, export_name: c; ]}
+1 0x20f { 1 [ ModuleTag: REGULAR_IMPORT, local_name: a, import_name: a, module_request: ./module-export-file.js; ]}
+
+# ====================
+# RECORDS
+
+.record _ESConcurrentModuleRequestsAnnotation {
+}
+
+.record _ESSlotNumberAnnotation {
+}
+
+.record _ESTypeAnnotation <external>
+
+.record module-export-file {
+	u8 pkgName@ = 0x0
+	u8 isCommonjs = 0x0
+	u32 moduleRecordIdx = 0x31e
+}
+
+.record module-regular-import {
+	u8 pkgName@ = 0x0
+	u8 isCommonjs = 0x0
+	u32 moduleRecordIdx = 0x20f
+}
+
+# ====================
+# METHODS
+
+.function any module-export-file.func_main_0(any a0, any a1, any a2) <static> {
+	ldai 0x1
+	stmodulevar 0x0
+	ldai 0x2
+	stmodulevar 0x1
+	ldai 0x3
+	stmodulevar 0x2
+	ldundefined
+	returnundefined
+}
+
+.function any module-regular-import.func_main_0(any a0, any a1, any a2) <static> {
+	ldundefined
+	returnundefined
+}
+
+# ====================
+# STRING
+

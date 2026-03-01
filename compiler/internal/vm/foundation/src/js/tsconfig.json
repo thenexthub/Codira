@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "esModuleInterop": true,
+    // Path remapping
+    "baseUrl": ".",
+    "paths": {
+      "internal/*": ["./internal/*"] //deprecated
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", "./builtins.d.ts", "./private.d.ts"]
+}

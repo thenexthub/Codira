@@ -1,0 +1,56 @@
+/**
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+{% macro generate_async_function(params) -%}
+async function {{params.name}}{{params.type_parameter}}({{params.args | default('')}}){{params.return_type}}{
+    {{ params.body }}
+}
+{%- endmacro -%}
+
+{% macro generate_async_lambda(params) -%}
+const {{params.name}} = async ({{params.args | default('')}}){{params.return_type}} => {
+    {{ params.body }}
+}
+{%- endmacro -%}
+
+{%- macro generate_async_method(params) -%}
+class {{params.class_name}} {
+    async {{params.name}}{{params.type_parameter}}({{params.args | default('')}}){{params.return_type}} {
+        {{ params.body }}
+    }
+}
+{%- endmacro -%}
+
+{% macro generate_async(decl_type, params) -%}
+{%- if decl_type == 'function' -%}
+{{ generate_async_function(params) }}
+{%- elif decl_type == 'lambda' -%}
+{{ generate_async_lambda(params) }}
+{%- elif decl_type == 'method' -%}
+{{ generate_async_method(params) }}
+{%- endif -%}
+{%- endmacro %}
+
+{% macro call_async(decl_type, params) -%}
+{{ call_async_method(params) if decl_type=='method' else call_async_function(params) }}
+{%- endmacro %}
+
+{% macro call_async_function(params) -%}
+{{ params.name + ('' if not params.call_type_parameter else '<' + params.call_type_parameter + '>') + '(' + params.arg_values | d('') + ')' }}
+{%- endmacro %}
+
+{% macro call_async_method(params) -%}
+{{ 'new ' + params.class_name + '().' + call_async_function(params) }}
+{%- endmacro %}

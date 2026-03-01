@@ -1,0 +1,417 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+cases:
+  - desc: |-
+      Checking for changing the value from outside of class.
+    check_variants:
+      - {check_type: "long",
+        base_value: "0", new_value: "5"}
+      - {check_type: "int",
+        base_value: "0", new_value: "5"}
+      - {check_type: "byte",
+        base_value: "0", new_value: "5"}
+      - {check_type: "short",
+        base_value: "0", new_value: "5"}
+      - {check_type: "double",
+        base_value: "0", new_value: "7.3"}
+      - {check_type: "number",
+        base_value: "0", new_value: "5"}
+      - {check_type: "float",
+        base_value: "0.0f", new_value: "7.3f"}
+      - {check_type: "char",
+        base_value: "c'\\u0000'", new_value: "c'a'"}
+      - {check_type: "boolean",
+        base_value: "false", new_value: "true"}
+      - {check_type: "Object | undefined",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Object | undefined | null",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Any",
+        base_value: "undefined", new_value: "5"}
+    decl_variants:
+      - |-
+        class A {
+          static field: [check_type]
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+        A.field = [new_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [new_value])
+        A.field = [base_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+
+  - desc: |-
+      Checking for changing the value from outside of class.
+    check_variants:
+      - {check_type: "long",
+        base_value: "4", new_value: "5"}
+      - {check_type: "int",
+        base_value: "4", new_value: "5"}
+      - {check_type: "byte",
+        base_value: "4", new_value: "5"}
+      - {check_type: "short",
+        base_value: "4", new_value: "5"}
+      - {check_type: "double",
+        base_value: "4", new_value: "7.3"}
+      - {check_type: "number",
+        base_value: "4", new_value: "5"}
+      - {check_type: "float",
+        base_value: "4.5f", new_value: "7.3f"}
+      - {check_type: "bigint",
+        base_value: "4n", new_value: "5n"}
+      - {check_type: "string",
+        base_value: "\"abc\"", new_value: "\"efg\""}
+      - {check_type: "char",
+        base_value: "c'a'", new_value: "c'b'"}
+      - {check_type: "boolean",
+        base_value: "false", new_value: "true"}
+      - {check_type: "Object",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Object | undefined",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Object | undefined | null",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Any",
+        base_value: "4", new_value: "5"}
+    decl_variants:
+      - |-
+        class A {
+          static field: [check_type] = [base_value]
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+        A.field = [new_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [new_value])
+        A.field = [base_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+
+  - desc: |-
+      >-
+        Checking for changing the value from outside of class
+        with subtype usage.
+    check_variants:
+      - {check_type: "long",
+        base_value: "4", new_value: "5"}
+      - {check_type: "int",
+        base_value: "4", new_value: "5"}
+      - {check_type: "byte",
+        base_value: "4", new_value: "5"}
+      - {check_type: "short",
+        base_value: "4", new_value: "5"}
+      - {check_type: "double",
+        base_value: "4", new_value: "7.3"}
+      - {check_type: "number",
+        base_value: "4", new_value: "5"}
+      - {check_type: "float",
+        base_value: "4.5f", new_value: "7.3f"}
+      - {check_type: "bigint",
+        base_value: "4n", new_value: "5n"}
+      - {check_type: "string",
+        base_value: "\"abc\"", new_value: "\"efg\""}
+      - {check_type: "char",
+        base_value: "c'a'", new_value: "c'b'"}
+      - {check_type: "boolean",
+        base_value: "false", new_value: "true"}
+      - {check_type: "Object",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Object | undefined",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Object | undefined | null",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Any",
+        base_value: "4", new_value: "5"}
+    decl_variants:
+      - |-
+        class Base {
+          static field: [check_type] = [base_value]
+        }
+        class A extends Base {
+        }
+      - |-
+        class Base {
+          static field: [check_type] = [base_value]
+        }
+        class B extends Base {
+        }
+        class A extends B {
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+        A.field = [new_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [new_value])
+        A.field = [base_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+
+  - desc: |-
+      Checking for changing the value from class method call.
+    check_variants:
+      - {check_type: "long",
+        base_value: "0", new_value: "5"}
+      - {check_type: "int",
+        base_value: "0", new_value: "5"}
+      - {check_type: "byte",
+        base_value: "0", new_value: "5"}
+      - {check_type: "short",
+        base_value: "0", new_value: "5"}
+      - {check_type: "double",
+        base_value: "0", new_value: "7.3"}
+      - {check_type: "number",
+        base_value: "0", new_value: "5"}
+      - {check_type: "float",
+        base_value: "0.0f", new_value: "7.3f"}
+      - {check_type: "char",
+        base_value: "c'\\u0000'", new_value: "c'a'"}
+      - {check_type: "boolean",
+        base_value: "false", new_value: "true"}
+      - {check_type: "Object | undefined",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Object | undefined | null",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Any",
+        base_value: "undefined", new_value: "5"}
+    decl_variants:
+      - |-
+        class A {
+          static field: [check_type]
+          foo(a: [check_type]): void {
+            A.field = a
+          }
+        }
+      - |-
+        class A {
+          static field: [check_type]
+          foo: (a: [check_type]) => void = (a: [check_type]): void => {
+            A.field = a
+          }
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+        let a: A = new A()
+        a.foo([new_value])
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [new_value])
+        a.foo([base_value])
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+
+  - desc: |-
+      Checking for changing the value from class method call.
+    check_variants:
+      - {check_type: "long",
+        base_value: "4", new_value: "5"}
+      - {check_type: "int",
+        base_value: "4", new_value: "5"}
+      - {check_type: "byte",
+        base_value: "4", new_value: "5"}
+      - {check_type: "short",
+        base_value: "4", new_value: "5"}
+      - {check_type: "double",
+        base_value: "4", new_value: "7.3"}
+      - {check_type: "number",
+        base_value: "4", new_value: "5"}
+      - {check_type: "float",
+        base_value: "4.5f", new_value: "7.3f"}
+      - {check_type: "bigint",
+        base_value: "4n", new_value: "5n"}
+      - {check_type: "string",
+        base_value: "\"abc\"", new_value: "\"efg\""}
+      - {check_type: "char",
+        base_value: "c'a'", new_value: "c'b'"}
+      - {check_type: "boolean",
+        base_value: "false", new_value: "true"}
+      - {check_type: "Object",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Object | undefined",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Object | undefined | null",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Any",
+        base_value: "4", new_value: "5"}
+    decl_variants:
+      - |-
+        class A {
+          static field: [check_type] = [base_value]
+          foo(a: [check_type]): void {
+            A.field = a
+          }
+        }
+      - |-
+        class A {
+          static field: [check_type] = [base_value]
+          foo: (a: [check_type]) => void = (a: [check_type]): void => {
+            A.field = a
+          }
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+        let a: A = new A()
+        a.foo([new_value])
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [new_value])
+        a.foo([base_value])
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+
+  - desc: |-
+      Checking for changing the value from constructor.
+    check_variants:
+      - {check_type: "long",
+        base_value: "4", new_value: "5"}
+      - {check_type: "int",
+        base_value: "4", new_value: "5"}
+      - {check_type: "byte",
+        base_value: "4", new_value: "5"}
+      - {check_type: "short",
+        base_value: "4", new_value: "5"}
+      - {check_type: "double",
+        base_value: "4", new_value: "7.3"}
+      - {check_type: "number",
+        base_value: "4", new_value: "5"}
+      - {check_type: "float",
+        base_value: "4.5f", new_value: "7.3f"}
+      - {check_type: "bigint",
+        base_value: "4n", new_value: "5n"}
+      - {check_type: "string",
+        base_value: "\"abc\"", new_value: "\"efg\""}
+      - {check_type: "char",
+        base_value: "c'a'", new_value: "c'b'"}
+      - {check_type: "boolean",
+        base_value: "false", new_value: "true"}
+      - {check_type: "Object",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Object | undefined",
+        base_value: "undefined", new_value: "5"}
+      - {check_type: "Object | undefined | null",
+        base_value: "4", new_value: "5"}
+      - {check_type: "Any",
+        base_value: "4", new_value: "5"}
+    decl_variants:
+      - |-
+        class A {
+          static field: [check_type] = [base_value]
+          constructor () {
+            A.field = [new_value]
+          }
+        }
+    sub_cases_logic:
+      - |-
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+        let a: A = new A()
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [new_value])
+        A.field = [base_value]
+        arktest.assertTrue(A.field instanceof [check_type])
+        arktest.assertEQ(A.field, [base_value])
+
+  - desc: |-
+      >-
+        Checking for changing the static field 'v' value on each
+        instance of the class is created.
+    check_variants:
+      - {check_type: "long", value_type: "long",
+        init_value: "5", add_value: "1"}
+      - {check_type: "int", value_type: "int",
+        init_value: "5", add_value: "1"}
+      - {check_type: "byte", value_type: "byte",
+        init_value: "5", add_value: "1"}
+      - {check_type: "short", value_type: "short",
+        init_value: "5", add_value: "1"}
+      - {check_type: "double", value_type: "double",
+        init_value: "5", add_value: "1"}
+      - {check_type: "number", value_type: "number",
+        init_value: "5", add_value: "1"}
+      - {check_type: "float", value_type: "float",
+        init_value: "5.0f", add_value: "1.0f"}
+      - {check_type: "bigint", value_type: "bigint",
+        init_value: "5n", add_value: "1n"}
+      - {check_type: "string", value_type: "string",
+        init_value: "\"v\"", add_value: "\"n\""}
+      - {check_type: "Object", value_type: "int",
+        init_value: "5", add_value: "1"}
+      - {check_type: "Object | null", value_type: "int",
+        init_value: "5", add_value: "1"}
+      - {check_type: "Object | undefined", value_type: "int",
+        init_value: "5", add_value: "1"}
+      - {check_type: "Object | undefined | null", value_type: "int",
+        init_value: "5", add_value: "1"}
+      - {check_type: "Any", value_type: "int",
+        init_value: "5", add_value: "1"}
+    decl_variants:
+      - |-
+        function foo(): [value_type] {
+          let res = A.v
+          A.v += [add_value]
+          return res
+        }
+        class A {
+          static v: [value_type] = [init_value]
+          field: [check_type] = foo()
+        }
+      - |-
+        class A {
+          static v: [value_type] = [init_value]
+          field: [check_type]
+          constructor () {
+            this.field = A.v
+            A.v += [add_value]
+          }
+        }
+      - |-
+        class A {
+          static v: [value_type] = [init_value]
+          field: [check_type] = [init_value]
+          constructor () {
+            this.field = A.v
+            A.v += [add_value]
+          }
+        }
+    sub_cases_logic:
+      - |-
+        let val: [value_type] = [init_value]
+        for (let i = 0; i < 5; i++) {
+          arktest.assertTrue(A.v instanceof [value_type])
+          arktest.assertEQ(A.v, val)
+          let a: A = new A()
+          arktest.assertTrue(a.field instanceof [check_type])
+          arktest.assertTrue(a.field instanceof [value_type])
+          arktest.assertEQ(a.field, val)
+          val += [add_value]
+        }
+        A.v = [init_value]

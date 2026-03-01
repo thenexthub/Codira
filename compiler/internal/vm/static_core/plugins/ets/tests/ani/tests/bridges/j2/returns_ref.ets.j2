@@ -1,0 +1,58 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+package EtsAniTests
+
+native function checkReturnNull(): null
+
+@ani.unsafe.Quick
+native function quickCheckReturnNull(): null
+
+native function checkReturnUndefined(): undefined
+
+@ani.unsafe.Quick
+native function quickCheckReturnUndefined(): undefined
+
+function assert(condition: boolean) {
+    if (!condition) {
+        throw new AssertionError();
+    }
+}
+
+function testReturn() {
+    let ref: null | undefined = checkReturnNull()
+    assert(ref == null)
+
+    ref = quickCheckReturnNull()
+    assert(ref == null)
+
+    ref = checkReturnUndefined()
+    assert(ref == undefined)
+
+    ref = quickCheckReturnUndefined()
+    assert(ref == undefined)
+}
+
+function main() {
+    loadLibrary("returns_ref")
+    testReturn()
+}

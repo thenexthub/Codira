@@ -1,0 +1,425 @@
+#!/usr/bin/env ruby
+
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+$panda_regmap = Regmap.new({
+  arm64: {tr: 28},
+  arm32: {tr: 10},
+  x86_64: {tr: 15}
+})
+
+$arch_regmap = Regmap.new({
+  arm64: {fp: 29, sp: 31, lr: 30},
+  arm32: {fp: 11, sp: 13, lr: 14, pc: 15},
+  x86_64: {fp: 9, sp: 10}
+})
+
+$args_regmap = Regmap.new({
+  arm64: {fp: 29, sp: 31, ret: 0, arg0: 0, arg1: 1, arg2: 2, arg3: 3, arg4: 4, arg5: 5, arg6: 6, arg7: 7},
+  arm32: {fp: 11, sp: 13, ret: 0, arg0: 0, arg1: 1, arg2: 2, arg3: 3},
+  x86_64: {fp: 9, sp: 10, ret: 0, arg0: 7, arg1: 6, arg2: 2, arg3: 1, arg4: 8, arg5: 5}
+})
+
+# Regmap for temp registers
+$temps_regmap = Regmap.new(Options.arch_info.temp_regs.each_with_index.map { |x, i| ["tmp#{i}".to_sym, x] }.to_h,
+                         direct: true)
+
+$callees_regmap = Regmap.new({
+   arm64: (19..28).each_with_index.map { |x, i| ["callee#{i}".to_sym, x] }.to_h,
+   arm32: (4..10).each_with_index.map { |x, i| ["callee#{i}".to_sym, x] }.to_h,
+   x86_64: (11..15).each_with_index.map { |x, i| ["callee#{i}".to_sym, x] }.to_h,
+})
+
+$callers_regmap = Regmap.new({
+  arm64: (0..18).each_with_index.map { |x, i| ["caller#{i}".to_sym, x] }.to_h,
+  arm32: (0..3).each_with_index.map { |x, i| ["caller#{i}".to_sym, x] }.to_h,
+  x86_64: (0..8).each_with_index.map { |x, i| ["caller#{i}".to_sym, x] }.to_h,
+})
+
+# Regmap that contains all defined regmap
+$full_regmap = $panda_regmap + $args_regmap + $arch_regmap + $temps_regmap + $callees_regmap + $callers_regmap
+
+# In default mask we use all registers, except temps and special arch registers(e.g. lr)
+$default_mask = ~RegMask.new($full_regmap, *(Options.arch_info.temp_regs)) - $arch_regmap
+
+# Panda mask is the mask intended to be used with Panda ABI. Currently, we just remove thread reg from the default mask.
+$panda_mask = $default_mask - :tr
+
+# Temporary registers mask
+if Options.arch == :arm64
+  $temps_mask = RegMask.new($full_regmap, :tmp0, :tmp1)
+else
+  $temps_mask = RegMask.new($full_regmap, :tmp0, :tmp1, :tmp2)
+end
+# Mask of all callers regsiters, except temp registers
+$panda_callers_mask = RegMask.from_regmap($full_regmap, $callers_regmap) - $temps_mask
+
+# Mask of all callees regsiters, except temp registers
+$panda_callees_mask = RegMask.from_regmap($full_regmap, $callees_regmap) - $temps_mask
+
+# Remove even registers from regmask for ARM32, because compiler conservatively uses two physical registers for one
+# virtual register, e.g. for r0 we should also remove r1.
+if Options.arch == :arm32
+  $default_mask = RegMask.from_value($default_mask. regmap, $default_mask.value & 0x55555555)
+  # Some temps may have even values
+  $temps_mask.each { |x| $default_mask[x + 1] = false }
+end
+
+module Constants
+    TLAB_OFFSET = "cross_values::GetManagedThreadTlabOffset(GetArch())"
+    TLAB_CUR_FREE_POSITION_OFFSET = "cross_values::GetTlabCurFreePositionOffset(GetArch())"
+    TLAB_MEMORY_END_ADDR_OFFSET = "cross_values::GetTlabMemoryEndAddrOffset(GetArch())"
+    OBJECT_CLASS_OFFSET = "cross_values::GetObjectHeaderClassPointerOffset(GetArch())"
+    WRITE_TLAB_STATS_NO_BRIDGE = "cross_values::GetEntrypointOffset(GetArch(), EntrypointId::WRITE_TLAB_STATS_NO_BRIDGE)"
+    ANNOTATE_SANITIZERS_NO_BRIDGE = "cross_values::GetEntrypointOffset(GetArch(), EntrypointId::ANNOTATE_SANITIZERS_NO_BRIDGE)"
+    ANNOTATE_SANITIZERS_POISON_NO_BRIDGE = "cross_values::GetEntrypointOffset(GetArch(), EntrypointId::ANNOTATE_SANITIZERS_POISON_NO_BRIDGE)"
+    GET_CALLEE_METHOD = "cross_values::GetEntrypointOffset(GetArch(), EntrypointId::GET_CALLEE_METHOD_DIRECT)"
+    INITIALIZE_CLASS_BY_ID = "cross_values::GetEntrypointOffset(GetArch(), EntrypointId::INITIALIZE_CLASS_BY_ID_DIRECT)"
+    RESOLVE_CLASS = "cross_values::GetEntrypointOffset(GetArch(), EntrypointId::RESOLVE_CLASS_DIRECT)"
+    GET_VTABLE_INDEX = "cross_values::GetMethodVTableIndexOffset(GetArch())"
+    CLASS_STATE_OFFSET = "cross_values::GetClassStateOffset(GetArch())"
+    ARRAY_LENGTH_OFFSET = "cross_values::GetCoretypesArrayLengthOffset(GetArch())"
+    ARRAY_DATA_OFFSET = "cross_values::GetCoretypesArrayDataOffset(GetArch())"
+    ARRAY_CLASS_SIZE = "sizeof(coretypes::Array)"
+    ARRAY_CLASS_SIZE_WITH_ALIGNMENT = "sizeof(coretypes::Array) + TLAB_ALIGNMENT - 1"
+    VREGISTERS_NUM_OFFSET = "cross_values::GetFrameNumVregsOffset(GetArch())"
+    VREGISTERS_OFFSET = "cross_values::GetFrameVregsOffset(GetArch())"
+    VREGISTER_SIZE = "cross_values::GetFrameVregisterSize(GetArch())"
+    FRAME_SIZE = "cross_values::GetFrameSize(GetArch())"
+    DEFAULT_FRAME_ALIGNMENT_IN_BYTES = "GetAlignmentInBytes(DEFAULT_FRAME_ALIGNMENT)"
+    VREGISTER_VALUE_OFFSET = "cross_values::GetFrameVregisterValueOffset(GetArch())"
+    OBJECT_TAG = "cross_values::GetFrameVregisterObjectTag(GetArch())"
+    PRIMITIVE_TAG = "cross_values::GetFrameVregisterPrimitiveTag(GetArch())"
+    GET_ACC_OFFSET = "cross_values::GetFrameAccOffset(GetArch())"
+    GET_ACC_MIRROR_OFFSET = "cross_values::GetFrameAccMirrorOffset(GetArch())"
+    GET_HOTNESS_COUNTER_OFFSET = "cross_values::GetMethodHotnessCounterOffset(GetArch())"
+    GET_FRAME_KIND_OFFSET = "cross_values::GetManagedThreadFrameKindOffset(GetArch())"
+    GET_CLASS_METHODS_OFFSET = "cross_values::GetClassMethodsOffset(GetArch())"
+    METHOD_NUM_ARGS_OFFSET = "cross_values::GetMethodNumArgsOffset(GetArch())"
+    METHOD_CLASS_OFFSET = "cross_values::GetMethodClassOffset(GetArch())"
+    METHOD_PANDA_FILE_OFFSET = "cross_values::GetMethodPandaFileOffset(GetArch())"
+    METHOD_CODE_ID_OFFSET = "cross_values::GetMethodCodeIdOffset(GetArch())"
+    METHOD_NATIVE_POINTER_OFFSET = "cross_values::GetMethodNativePointerOffset(GetArch())"
+    METHOD_COMPILED_ENTRY_POINT_OFFSET = "cross_values::GetMethodCompiledEntryPointOffset(GetArch())"
+    METHOD_NUM_VREGS_OFFSET = "cross_values::GetMethodNumVregsOffset(GetArch())"
+    METHOD_INSTRUCTIONS_OFFSET = "cross_values::GetMethodInstructionsOffset(GetArch())"
+    METHOD_VREGS_UNKNOWN = "cross_values::GetMethodVregsUnknown(GetArch())"
+    FRAME_NUM_VREGS_OFFSET = "cross_values::GetFrameNumVregsOffset(GetArch())"
+    FRAME_NUM_ACTUAL_ARGS_OFFSET = "cross_values::GetFrameNumActualArgsOffset(GetArch())"
+    FRAME_METHOD_OFFSET = "cross_values::GetFrameMethodOffset(GetArch())"
+    FRAME_PREV_FRAME_OFFSET = "cross_values::GetFramePrevFrameOffset(GetArch())"
+    FRAME_BYTECODE_OFFSET = "cross_values::GetFrameBytecodeOffset(GetArch())"
+    FRAME_FLAGS_OFFSET = "cross_values::GetFrameFlagsOffset(GetArch())"
+    FRAME_NEXT_INSTRUCTION_OFFSET = "cross_values::GetFrameNextInstructionOffset(GetArch())"
+    FRAME_INSTRUCTIONS_OFFSET = "cross_values::GetFrameInstructionsOffset(GetArch())"
+    FRAME_EXT_OFFSET = "cross_values::GetFrameExtOffset(GetArch())"
+    FIELD_ACCESS_FLAGS_OFFSET = "cross_values::GetFieldAccessFlagsOffset(GetArch())"
+    FIELD_OFFSET_OFFSET = "cross_values::GetFieldOffsetOffset(GetArch())"
+    FIELD_CLASS_OFFSET = "cross_values::GetFieldClassOffset(GetArch())"
+    THREAD_STACK_FRAME_ALLOCATOR_OFFSET = "cross_values::GetManagedThreadStackFrameAllocatorOffset(GetArch())"
+    THREAD_FRAME_OFFSET = "cross_values::GetManagedThreadFrameOffset(GetArch())"
+    THREAD_EXCEPTION_OFFSET = "cross_values::GetManagedThreadExceptionOffset(GetArch())"
+    THREAD_INTERPRETER_CACHE_OFFSET = "cross_values::GetManagedThreadInterpreterCacheOffset(GetArch())"
+    THREAD_FLATTENED_STRING_CACHE_OFFSET = "cross_values::GetManagedThreadFlattenedStringCacheOffset(GetArch())"
+    THREAD_FLAG_OFFSET = "cross_values::GetManagedThreadFlagOffset(GetArch())"
+    THREAD_VM_OFFSET = "cross_values::GetThreadVmOffset(GetArch())"
+    MARK_WORD_OFFSET = "cross_values::GetObjectHeaderMarkWordOffset(GetArch())"
+    BASE_CLASS_MANAGED_OBJECT_OFFSET = "cross_values::GetBaseClassManagedObjectOffset(GetArch())"
+    BASE_CLASS_FLAGS_OFFSET = "cross_values::GetBaseClassFlagsOffset(graph->GetArch())"
+    INTERNAL_THREAD_ID_OFFSET = "cross_values::GetManagedThreadInternalIdOffset(GetArch())"
+    LOCAL_OBJECTS_LOCKED_ADDR_OFFSET = "cross_values::GetManagedThreadLocalObjectsLockedAddrOffset(GetArch())"
+    LOCKED_OBJECTS_CAPACITY_OFFSET = "cross_values::GetMtManagedThreadLockedObjectCapacityOffset(GetArch())"
+    LOCKED_OBJECTS_SIZE_OFFSET = "cross_values::GetMtManagedThreadLockedObjectSizeOffset(GetArch())"
+    LOCKED_OBJECTS_DATA_OFFSET = "cross_values::GetMtManagedThreadLockedObjectDataOffset(GetArch())"
+    LOCKED_OBJECT_INFO_MONITOR_OFFSET = "cross_values::GetLockedObjectInfoMonitorOffset(GetArch())"
+    LOCKED_OBJECT_INFO_FRAME_OFFSET = "cross_values::GetLockedObjectInfoStackOffset(GetArch())"
+    LOCKED_OBJECT_INFO_SIZE = "cross_values::GetLockedObjectInfoSize(GetArch())"
+    MARK_WORD_STATUS_MASK = "static_cast<uint64_t>(MarkWord::STATUS_MASK)"
+    MARK_WORD_LWL_THREAD_ID_OFFSET = "static_cast<uint64_t>(MarkWord::LIGHT_LOCK_THREADID_SHIFT)"
+    MARK_WORD_LWL_THREAD_ID_MASK = "static_cast<uint64_t>(MarkWord::LIGHT_LOCK_THREADID_MASK_IN_PLACE)"
+    MARK_WORD_LWL_COUNTER_INC = "static_cast<uint64_t>(1 << MarkWord::LIGHT_LOCK_LOCK_COUNT_SHIFT)"
+    MARK_WORD_LWL_COUNTER_MASK = "static_cast<uint64_t>(MarkWord::LIGHT_LOCK_LOCK_COUNT_MASK_IN_PLACE)"
+    MARK_WORD_LWL_THREAD_ID_AND_COUNTER_MASK = "static_cast<uint64_t>(MarkWord::LIGHT_LOCK_THREADID_MASK_IN_PLACE | MarkWord::LIGHT_LOCK_LOCK_COUNT_MASK_IN_PLACE)"
+    MARK_WORD_STATUS_MASK_AND_LWL_THREAD_ID_MASK = "static_cast<uint64_t>(MarkWord::STATUS_MASK | MarkWord::LIGHT_LOCK_THREADID_MASK_IN_PLACE)"
+    CLASS_BASE_OFFSET = "cross_values::GetClassBaseOffset(GetArch())"
+    CLASS_COMPONENT_OFFSET = "cross_values::GetClassComponentTypeOffset(GetArch())"
+    CLASS_TYPE_OFFSET = "cross_values::GetClassTypeOffset(GetArch())"
+    CLASS_ITABLE_ENTRIES_DATA_OFFSET = "CLASS_ITABLE_OFFSET + CLASS_ITABLE_ENTRIES_DATA_OFFSET"
+    CLASS_ITABLE_ENTRIES_SIZE_OFFSET = "CLASS_ITABLE_OFFSET + CLASS_ITABLE_ENTRIES_SIZE_OFFSET"
+    CLASS_ITABLE_ENTRY_SIZE = "cross_values::GetClassItableEntrySize(GetArch())"
+    CLASS_ITABLE_ENTRY_INTERFACE_OFFSET = "cross_values::GetClassItableEntryInterfaceOffset(GetArch())"
+    METHOD_ACCESS_FLAGS_OFFSET = "cross_values::GetMethodAccessFlagsOffset(GetArch())"
+
+    PROFILING_DATA_BRANCH_PROFILING_ENABLED_OFFSET = "cross_values::GetProfilingDataBranchProfilingEnabledOffset(GetArch())"
+
+    IC_HANDLER_KIND_BIT = "cross_values::GetIcHandlerKindBitStartBit(graph->GetArch())"
+    IC_HANDLER_KIND_MASK = "cross_values::GetIcHandlerKindBitMask(graph->GetArch())"
+    IC_HANDLER_OFFSET_BIT = "cross_values::GetIcHandlerOffsetBitStartBit(graph->GetArch())"
+    IC_HANDLER_OFFSET_MASK = "cross_values::GetIcHandlerOffsetBitMask(graph->GetArch())"
+    IC_HANDLER_INLINE_BIT = "cross_values::GetIcHandlerInlinedPropsBitStartBit(graph->GetArch())"
+    IC_HANDLER_INLINE_MASK = "cross_values::GetIcHandlerInlinedPropsBitMask(graph->GetArch())"
+    IC_HANDLER_KIND_FIELD = "cross_values::GetIcHandlerHandlerKindField(graph->GetArch())"
+
+    REFERENCE_TYPE_SHIFT = "compiler::DataType::ShiftByType(compiler::DataType::REFERENCE, GetArch())"
+    REFERENCE_TYPE_SIZE = "1 << compiler::DataType::ShiftByType(compiler::DataType::REFERENCE, GetArch())"
+    REFERENCE_PAIR_ALIGNMENT_MASK = "(2 << compiler::DataType::ShiftByType(compiler::DataType::REFERENCE, GetArch())) - 1"
+
+    DYN_UNDEFINED = "AnyBaseType::UNDEFINED_TYPE"
+    TLS_CARD_TABLE_MIN_ADDR_OFFSET = "cross_values::GetManagedThreadCardTableMinAddrOffset(GetArch())"
+    TLS_CARD_TABLE_ADDR_OFFSET = "cross_values::GetManagedThreadCardTableAddrOffset(GetArch())"
+
+    REF_UINT = "DataType::GetIntTypeForReference(GetGraph()->GetArch())"
+
+    REGION_SIZE_BIT = "ark::helpers::math::GetIntLog2(mem::ObjectAllocatorG1<>::GetRegionSize())"
+    MANAGED_THREAD_G1_POST_BARRIER_BUFFER_OFFSET = "cross_values::GetManagedThreadG1PostBarrierBufferOffset(GetArch())"
+    G1_LOCK_BUFFER_DATA_OFFSET = "cross_values::GetG1LockBufferDataOffset(GetArch())"
+    G1_LOCK_BUFFER_TAIL_OFFSET = "cross_values::GetG1LockBufferTailOffset(GetArch())"
+    G1_LOCK_BUFFER_HEAD_OFFSET = "cross_values::GetG1LockBufferHeadOffset(GetArch())"
+    G1_LOCK_BUFFER_SIZE_MASK = "mem::GCG1BarrierSet::G1PostBarrierRingBufferType::RING_BUFFER_SIZE_MASK"
+    CARD_TABLE_CARD_BITS = "mem::CardTable::GetCardBits()"
+    CARD_VALUE_OFFSET = "cross_values::GetCardValueOffset(GetArch())"
+    CARD_CLEAR_VALUE = "mem::CardTable::Card::GetClearValue()"
+    CARD_MARKED_VALUE = "mem::CardTable::Card::GetMarkedValue()"
+    CARD_YOUNG_VALUE = "mem::CardTable::Card::GetYoungValue()"
+    CARD_DIRTY_VALUE = "mem::CardTable::GetCardDirtyValue()"
+    CARD_STATUS_MASK = "mem::CardTable::Card::GetStatusMask()"
+    CARD_HOT_FLAG = "mem::CardTable::Card::GetHotFlag()"
+    CARD_ALIGNMENT_MASK = "cross_values::GetCardAlignmentMask(GetArch())"
+    POINTER_LOG_SIZE = "cross_values::GetPointerLogSize(GetArch())"
+
+    COMPILER_REFERENCE = "compiler::DataType::REFERENCE"
+    COMPILER_BOOL = "compiler::DataType::BOOL"
+    COMPILER_UINT8 = "compiler::DataType::UINT8"
+    COMPILER_UINT16 = "compiler::DataType::UINT16"
+    COMPILER_UINT32 = "compiler::DataType::UINT32"
+    COMPILER_UINT64 = "compiler::DataType::UINT64"
+    COMPILER_INT32 = "compiler::DataType::INT32"
+    COMPILER_PTR = "compiler::DataType::POINTER"
+
+    BYTE_ARRAY_CLASS_OFFSET = "cross_values::GetManagedThreadArrayU8ClassPtrOffset(graph->GetArch())"
+    CHAR_ARRAY_CLASS_OFFSET = "cross_values::GetManagedThreadArrayU16ClassPtrOffset(graph->GetArch())"
+    CORE_STRING_CLASS_OFFSET = "cross_values::GetManagedThreadStringClassPtrOffset(graph->GetArch())"
+
+    STRING_CLASS_SIZE = "sizeof(coretypes::String)"
+    STRING_CLASS_SIZE_WITH_ALIGNMENT = "sizeof(coretypes::String) + TLAB_ALIGNMENT - 1"
+    STRING_MUTF8_1B_MAX = "0x7f"
+    STRING_MUTF8_1B_MIN = "0x01"
+    STRING_LENGTH_OFFSET = "common::BaseString::LENGTH_AND_FLAGS_OFFSET"
+    STRING_LENGTH_SHIFT = "common::BaseString::LengthBits::START_BIT"
+    STRING_HASHCODE_OFFSET = "common::BaseString::MIX_HASHCODE_OFFSET"
+    STRING_DATA_OFFSET = "ark::coretypes::STRING_DATA_OFFSET"
+    STRING_TYPE_OFFSET = "cross_values::GetBaseClassStringTypeOffset(GetArch())"
+    STRING_TYPE_LINE = "ark::coretypes::STRING_TYPE_LINE"
+    STRING_TYPE_SLICE = "ark::coretypes::STRING_TYPE_SLICE"
+    STRING_TYPE_TREE = "ark::coretypes::STRING_TYPE_TREE"
+    LINE_STRING_CLASS_OFFSET = "cross_values::GetPlatformTypesCoreLineStringClassOffset(graph->GetArch())"
+    SLICED_STRING_CLASS_OFFSET = "cross_values::GetPlatformTypesCoreSlicedStringClassOffset(graph->GetArch())"
+    SLICED_STRING_PARENT_OFFSET = "cross_values::GetSlicedStringParentOffset(GetArch())"
+    SLICED_STRING_STARTINDEX_AND_FLAGS_OFFSET = "cross_values::GetSlicedStringStartindexAndFlagsOffset(GetArch())"
+    SLICED_STRING_STARTINDEX_SHIFT = "cross_values::GetSlicedStringStartindexShift(GetArch())"
+    SLICED_STRING_MIN_LENGTH = "common::SlicedString::MIN_SLICED_STRING_LENGTH"
+    SLICED_STRING_ALIGNED_OBJ_SIZE = "common::SlicedString::SIZE + TLAB_ALIGNMENT - 1"
+    TREE_STRING_CLASS_OFFSET = "cross_values::GetPlatformTypesCoreTreeStringClassOffset(graph->GetArch())"
+    TREE_STRING_LEFT_OFFSET = "common::TreeString::LEFT_OFFSET"
+    TREE_STRING_RIGHT_OFFSET = "common::TreeString::RIGHT_OFFSET"
+    TREE_STRING_ALIGNED_OBJ_SIZE = "common::TreeString::SIZE + TLAB_ALIGNMENT - 1"
+    TREE_STRING_MIN_LENGTH = "common::TreeString::MIN_TREE_STRING_LENGTH"
+
+    ALIGNMENT_MASK = "~(TLAB_ALIGNMENT - 1)"
+
+    # shift one bit less to keep ACC_INTRINSIC bit
+    INTRINSIC_MASK_SHIFT = "INTRINSIC_SHIFT - VERIFICATION_STATUS_WIDTH - 1"
+    VERIFIED_OK = "static_cast<uint64_t>(Method::VerificationStage::VERIFIED_OK)"
+
+    MANAGED_THREAD_STACK_FRAME_ALLOCATOR_OFFSET = "cross_values::GetManagedThreadStackFrameAllocatorOffset(GetArch())"
+    STACK_FRAME_ALLOCATOR_FREE_POINTER_OFFSET = "cross_values::GetStackFrameAllocatorFreePointerOffset(GetArch())"
+    STACK_FRAME_ALLOCATOR_END_ADDR_OFFSET = "cross_values::GetStackFrameAllocatorEndAddrOffset(GetArch())"
+    STACK_FRAME_ALLOCATOR_RELEASE_PAGES_SHIFT = "ark::mem::StackLikeAllocator<>::RELEASE_PAGES_SHIFT"
+
+    MANAGED_THREAD_UNWINDING_DEPTH_OFFSET = "cross_values::GetManagedThreadUnwindingDepthOffset(GetArch())"
+
+    # StringBuilder
+    SB_BUFFER_OFFSET = "RuntimeInterface::GetSbBufferOffset()"
+    SB_INDEX_OFFSET = "RuntimeInterface::GetSbIndexOffset()"
+    SB_LENGTH_OFFSET = "RuntimeInterface::GetSbLengthOffset()"
+    SB_COMPRESS_OFFSET = "RuntimeInterface::GetSbCompressOffset()"
+  end
+
+macro(:get_entry) { |entry_offset|
+    table := LoadI(%tr).Imm("cross_values::GetManagedThreadEntrypointsTableOffset(GetArch())").ptr
+    LoadI(table).Imm(entry_offset).ptr
+}
+
+macro(:call_runtime) { |entry_offset, *args|
+    entry := get_entry(entry_offset)
+    CallIndirect(entry, *args)
+}
+
+macro(:call_runtime_save_all) { |entry_offset, *args|
+    # Load entry before save registers because stack SpillFill is possible
+    entry := get_entry(entry_offset)
+    Intrinsic(:SAVE_REGISTERS_EP).void
+    ret := CallIndirect(entry, *args)
+    Intrinsic(:RESTORE_REGISTERS_EP).void
+    ret
+}
+
+macro(:i32tou32) do |arg|
+  Cast(arg).SrcType("DataType::INT32").u32
+end
+
+macro(:u32toi32) do |arg|
+  Cast(arg).SrcType("DataType::UINT32").i32
+end
+
+macro(:i32tof64) do |arg|
+  Cast(arg).SrcType("DataType::INT32").f64
+end
+
+macro(:u32tof64) do |arg|
+  Cast(arg).SrcType("DataType::UINT32").f64
+end
+
+macro(:f64tou32) do |arg|
+  Cast(arg).SrcType("DataType::FLOAT64").u32
+end
+
+macro(:f64toi64) do |arg|
+  Cast(arg).SrcType("DataType::FLOAT64").i64
+end
+
+macro(:u64tou32) do |arg|
+  Cast(arg).SrcType("DataType::UINT64").u32
+end
+
+macro(:i32toanychecked) do |arg|
+  If(arg, 0).LT.b {
+    cast_res0 := f64toany(i32tof64(arg))
+  } Else {
+    cast_res1 := i32toany(arg)
+  }
+  Phi(cast_res0, cast_res1).any
+end
+
+macro(:anytoi32) do |arg|
+  CastAnyTypeValue(arg).AnyType("AnyBaseType::ECMASCRIPT_INT_TYPE").i32
+end
+
+macro(:anytof64) do |arg|
+  CastAnyTypeValue(arg).AnyType("AnyBaseType::ECMASCRIPT_DOUBLE_TYPE").f64
+end
+
+macro(:anytou32) do |arg|
+  i32tou32(CastAnyTypeValue(arg).AnyType("AnyBaseType::ECMASCRIPT_INT_TYPE").i32)
+end
+
+macro(:anytoheapobj) do |arg|
+  CastAnyTypeValue(arg)
+    .AnyType("AnyBaseType::ECMASCRIPT_HEAP_OBJECT_TYPE")
+    .SetFlag("ark::compiler::inst_flags::Flags::NO_CSE")
+    .SetFlag("ark::compiler::inst_flags::Flags::NO_HOIST")
+    .ref
+end
+
+macro(:heapobjtoany) do |arg|
+  CastValueToAnyType(arg).AnyType("AnyBaseType::ECMASCRIPT_HEAP_OBJECT_TYPE").any
+end
+
+['8', '16'].each do |from|
+  ['u32', 'u64'].each do |to|
+    macro(:"u#{from}to#{to}") do |arg|
+      Cast(arg).SrcType("DataType::UINT#{from}").send(:"#{to}")
+    end
+  end
+end
+
+['8', '16'].each do |from|
+  macro(:"i#{from}toi32") do |arg|
+    Cast(arg).SrcType("DataType::INT#{from}").i32
+  end
+end
+
+[['u32', 'UINT32'], ['i32', 'INT32']].each do |from, from_type|
+  ['b', 'i8', 'u8', 'i16', 'u16', 'i64', 'u64'].each do |to|
+    macro(:"#{from}to#{to}") do |arg|
+      Cast(arg).SrcType("DataType::#{from_type}").send(:"#{to}")
+    end
+  end
+end
+
+[['u64', 'UINT64'], ['i64', 'INT64']].each do |from, from_type|
+  ['b', 'i8', 'u8', 'i16', 'u16', 'i32', 'u32'].each do |to|
+    macro(:"#{from}to#{to}") do |arg|
+      Cast(arg).SrcType("DataType::#{from_type}").send(:"#{to}")
+    end
+  end
+end
+
+macro(:load_class) do |obj|
+  if defines.ARK_HYBRID && defines.PANDA_TARGET_64
+    klass_with_flags = LoadI(obj).Imm(Constants::OBJECT_CLASS_OFFSET).Volatile.u64
+    # Mask for class pointer
+    Bitcast(And(klass_with_flags, 0x0000ffffffffffff).u64).ref
+  else
+    # Load with memory barrier, see related store in store_class
+    LoadI(obj).Imm(Constants::OBJECT_CLASS_OFFSET).Volatile.ref
+  end
+end
+
+macro(:load_base_class) do |klass|
+  if defines.ARK_HYBRID && defines.PANDA_TARGET_64
+    base_klass = LoadI(klass).Imm(Constants::CLASS_BASE_OFFSET).Volatile.u64
+    Bitcast(And(base_klass, 0x0000ffffffffffff).u64).ref
+  else
+    LoadI(klass).Imm(Constants::CLASS_BASE_OFFSET).Volatile.ref
+  end
+end
+
+macro(:store_class) do |obj, klass|
+  if defines.ARK_HYBRID && defines.PANDA_TARGET_64
+    StoreI(obj, OrI(Bitcast(klass).u64).Imm("0x1000000000000000UL").u64).Imm(Constants::OBJECT_CLASS_OFFSET).Volatile.u64
+  else
+    # Store with memory barrier, because changes should be visible in GC thread
+    StoreI(obj, klass).Imm(Constants::OBJECT_CLASS_OFFSET).Volatile.ref
+  end
+end
+
+macro(:get_class) do |arg|
+  Intrinsic(:DYN_OBJECT_GET_CLASS, arg).ref
+end
+
+macro(:get_bits) do |data, offset, mask|
+  AndI(ShrI(data).Imm(offset).i32).Imm(mask).i32
+end
+
+macro(:set_bits) do |data, offset, mask, bits|
+  Or(data, ShlI(AndI(bits).Imm(mask).i32).Imm(offset).i32).i32
+end
+
+macro(:nullptr) do
+  src_type = Options.arch_64_bits? ? 'DataType::INT64' : 'DataType::INT32'
+  Bitcast(0).SrcType(src_type).ptr
+end
+
+macro(:get_entrypoint_offset) do |entrypoint_id|
+  "cross_values::GetEntrypointOffset(GetArch(), EntrypointId::#{entrypoint_id})"
+end
+
+macro(:reftoptr) do |ref_val|
+  if defines.ARK_HYBRID && defines.PANDA_TARGET_64
+    Bitcast(ref_val).ptr
+  else
+    Cast(ref_val).SrcType("DataType::REFERENCE").ptr
+  end
+end

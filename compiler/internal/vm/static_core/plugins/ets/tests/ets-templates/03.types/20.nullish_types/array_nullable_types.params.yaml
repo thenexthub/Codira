@@ -1,0 +1,64 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # List of declarations
+nullables:
+    - { type: '(Int|null)[]', vals: '[null]', val: 'new Int(1)', assert: 'x[0] == 1' }
+    - { type: '(Int|undefined)[]', vals: '[new Int(1)]', val: 'undefined', assert: 'x[0] == undefined' }
+    - { type: '(Int|null|undefined)[]', vals: '[new Int(1)]', val: 'undefined', assert: 'x[0] == undefined' }
+
+    - { type: '(Int|null)[][]', vals: '[[null], [null]]', val: 'x[1]; x[0][0] = new Int(42)', assert: 'x[0][0] == 42' }
+    - { type: '(Int|undefined)[][]', vals: '[[undefined], [undefined]]', val: 'x[1]; x[0][0] = new Int(42)', assert: 'x[0][0] == 42' }
+    - { type: '(Int|null|undefined)[][]', vals: '[[new Int(42)], [null], [undefined]]', val: 'x[1]; x[0][0] = undefined', assert: 'x[0][0] === undefined' }
+
+    - decl: |-
+        type Z = Int | null
+      type: 'Z[]'
+      vals: '[new Int(1)]'
+      val: 'null'
+      assert: 'x[0] == null'
+
+    - decl: |-
+        type Z = Int | undefined
+      type: 'Z[]'
+      vals: '[new Int(1)]'
+      val: 'undefined'
+      assert: 'x[0] == undefined'
+
+    - decl: |-
+        type Z = Int | null | undefined
+      type: 'Z[]'
+      vals: '[undefined]'
+      val: 'new Int(66)'
+      assert: 'x[0]! == 66'
+
+    - decl: |-
+        type Z = (Int | null)[]
+      type: 'Z'
+      vals: '[new Int(1)]'
+      val: 'null'
+      assert: 'x[0] == null'
+
+    - decl: |-
+        type Z = (Int | undefined)[]
+      type: 'Z'
+      vals: '[new Int(1)]'
+      val: 'undefined'
+      assert: 'x[0] == undefined'
+
+    - decl: |-
+        type Z = (Int | null | undefined)[]
+      type: 'Z'
+      vals: '[undefined]'
+      val: 'new Int(66)'
+      assert: 'x[0]! == 66'

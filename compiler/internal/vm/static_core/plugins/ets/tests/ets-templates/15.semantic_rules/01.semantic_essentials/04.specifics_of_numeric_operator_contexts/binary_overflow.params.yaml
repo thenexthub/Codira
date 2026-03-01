@@ -1,0 +1,90 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+cases:
+  # Byte overflow tests
+  - type1: "byte"
+    type2: "byte" 
+    val1: "127"
+    val2: "1"
+    op: "+"
+    expected: "128"
+    
+  - type1: "byte"
+    type2: "byte"
+    val1: "-128"
+    val2: "1"
+    op: "-"
+    expected: "-129"
+    
+  - type1: "byte"
+    type2: "byte"
+    val1: "100"
+    val2: "100"
+    op: "*"
+    expected: "10000"
+
+  # Short overflow tests  
+  - type1: "short"
+    type2: "short"
+    val1: "32767"
+    val2: "1"
+    op: "+"
+    expected: "32768"
+    
+  - type1: "short"
+    type2: "short"
+    val1: "-32768"
+    val2: "1"
+    op: "-"
+    expected: "-32769"
+
+  # Int overflow tests
+  - type1: "int"
+    type2: "int"
+    val1: "2147483647"
+    val2: "1"
+    op: "+"
+    expected: "-2147483648"
+    
+  - type1: "int"
+    type2: "int"
+    val1: "-2147483648"
+    val2: "1"
+    op: "-"
+    expected: "2147483647"
+
+  # Mixed types with overflow
+  - type1: "byte"
+    type2: "int"
+    val1: "127"
+    val2: "2147483647"
+    op: "+"
+    expected: "-2147483522"
+    
+  - type1: "short"
+    type2: "int"
+    val1: "32767"
+    val2: "2147483647"
+    op: "*"
+    expected: "2147450881"

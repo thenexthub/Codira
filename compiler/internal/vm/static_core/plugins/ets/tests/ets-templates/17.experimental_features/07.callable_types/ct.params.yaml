@@ -1,0 +1,71 @@
+# Copyright (c) 2024-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+    - decl: |-
+          // Only constructor is called in new
+          class C {
+              fld: string = ''
+              constructor() {
+                  this.fld += 'C'
+              }
+              constructor(p: number) {
+                  this.fld += 'N'
+              }
+              static $_invoke(): C {
+                  let x = new C()
+                  x.fld += 'I'
+                  return x
+              }
+              static $_invoke(p: number): C {
+                  let x = new C(p)
+                  x.fld += 'J'
+                  return x
+              }
+          }
+      use: |-
+          arktest.assertEQ(new C().fld, 'C')
+          arktest.assertEQ(new C(42.0).fld, 'N')
+          arktest.assertEQ(C().fld, 'CI')
+          arktest.assertEQ(C(42.0).fld, 'NJ')
+          arktest.assertEQ(C.$_invoke().fld, 'CI')
+          arktest.assertEQ(C.$_invoke(42.0).fld, 'NJ')
+
+    - decl: |-
+          // Only constructor is called in new
+          class C {
+              fld: string = ''
+              constructor() {
+                  this.fld += 'C'
+              }
+              constructor(p: number) {
+                  this.fld += 'N'
+              }
+              static $_instantiate(f: ()=>C): C {
+                  let x = f()
+                  x.fld += 'I'
+                  return x
+              }
+              static $_instantiate(f: ()=>C, p: number): C {
+                  let x = f()
+                  x.fld += 'J'
+                  return x
+              }
+          }
+      use: |-
+          arktest.assertEQ(new C().fld, 'C')
+          arktest.assertEQ(new C(42.0).fld, 'N')
+          arktest.assertEQ(C().fld, 'CI')
+          arktest.assertEQ(C(42.0).fld, 'CODE')
+          arktest.assertEQ(C.$_instantiate(() => new C()).fld, 'CI')
+          arktest.assertEQ(C.$_instantiate(() => new C(), 42.0).fld, 'CODE')

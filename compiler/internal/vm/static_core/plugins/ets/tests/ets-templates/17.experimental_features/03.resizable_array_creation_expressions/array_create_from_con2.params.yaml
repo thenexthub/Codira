@@ -1,0 +1,221 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cases:
+  - desc: Create empty Array
+    logic: |-
+      let a = new string[0]("a")
+      arktest.assertEQ(a.length, 0)
+
+  - desc: Create Array with length < 0
+    decl: |-
+      function f(len: int): void {
+        let a = new string[len]("a")
+      }
+    logic: |-
+      let res: boolean = false
+      let expectedError = (e: Error): boolean => {
+        return true
+      }
+      arktest.expectThrow(() => {f(-1)}, expectedError)
+      arktest.expectThrow(() => {f(-30)}, expectedError)
+
+  - desc: Create Array with different length fractional part
+    decl: |-
+      function f1(len: double): void {
+        let a = new number[len](5)
+      }
+      function f2(len1: double, len2: double): void {
+        let a = new number[len1][len2](5)
+      }
+    logic: |-
+      let expectedError = (e: Error): boolean => {
+        return true
+      }
+      f1(2.0)
+      f1(35.0)
+      arktest.expectThrow(() => {f1(3.141592653589)}, expectedError)
+      f2(5.0, 3.0)
+      arktest.expectThrow(() => {f2(5, 3.7)}, expectedError)
+      arktest.expectThrow(() => {f2(3.7, 5)}, expectedError)
+
+  - desc: Create Array with predefined types
+    check_variants:
+      - {check_type: "Any"}
+      - {check_type: "Object"}
+    logic: |-
+      let a = new [check_type][30](new Object)
+      arktest.assertEQ(a.length, 30)
+      for (let i = 0; i < 30; i++) {
+        arktest.assertTrue(a[i] instanceof Object)
+      }
+
+  - desc: Create 1D Array with predefined types
+    check_variants:
+      - {check_type: "Any", check_value: "undefined"}
+      - {check_type: "Any", check_value: "null"}
+      - {check_type: "Any", check_value: "5"}
+      - {check_type: "Any", check_value: "\"abc\""}
+      - {check_type: "Object", check_value: "5"}
+      - {check_type: "Object", check_value: "\"abc\""}
+      - {check_type: "number", check_value: "3"}
+      - {check_type: "double", check_value: "5.7"}
+      - {check_type: "float", check_value: "1.5f"}
+      - {check_type: "long", check_value: "9223372036854775807"}
+      - {check_type: "int", check_value: "123123"}
+      - {check_type: "short", check_value: "325"}
+      - {check_type: "byte", check_value: "127"}
+      - {check_type: "string", check_value: "\"abc\""}
+      - {check_type: "bigint", check_value: "12345678901234567890n"}
+      - {check_type: "char", check_value: "c'\\u2028'"}
+      - {check_type: "boolean", check_value: "true"}
+      - {check_type: "boolean", check_value: "false"}
+    logic: |-
+      let a = new [check_type][30]([check_value])
+      arktest.assertEQ(a.length, 30)
+      arktest.assertTrue(a[0] instanceof [check_type])
+      for (let i = 0; i < 30; i++) {
+        arktest.assertEQ(a[i], [check_value])
+      }
+
+  - desc: Create 2D Array with predefined types
+    check_variants:
+      - {check_type: "Any", check_value: "undefined"}
+      - {check_type: "Any", check_value: "null"}
+      - {check_type: "Any", check_value: "5"}
+      - {check_type: "Any", check_value: "\"abc\""}
+      - {check_type: "Object", check_value: "5"}
+      - {check_type: "Object", check_value: "\"abc\""}
+      - {check_type: "number", check_value: "3"}
+      - {check_type: "double", check_value: "5.7"}
+      - {check_type: "float", check_value: "1.5f"}
+      - {check_type: "long", check_value: "9223372036854775807"}
+      - {check_type: "int", check_value: "123123"}
+      - {check_type: "short", check_value: "325"}
+      - {check_type: "byte", check_value: "127"}
+      - {check_type: "string", check_value: "\"abc\""}
+      - {check_type: "bigint", check_value: "12345678901234567890n"}
+      - {check_type: "char", check_value: "c'\\u2028'"}
+      - {check_type: "boolean", check_value: "true"}
+      - {check_type: "boolean", check_value: "false"}
+    logic: |-
+      let a = new [check_type][30][10]([check_value])
+      arktest.assertEQ(a.length, 30)
+      arktest.assertTrue(a[0][0] instanceof [check_type])
+      for (let i = 0; i < 30; i++) {
+        arktest.assertEQ(a[i].length, 10)
+        for (let j = 0; j < 10; j++) {
+          arktest.assertEQ(a[i][j], [check_value])
+        }
+      }
+
+  - desc: Create 2D Array with type alias
+    logic: |-
+      type aliasTypeName = number[]
+      let a = new aliasTypeName[5]([3.141592653589, 5.7, 3])
+      arktest.assertEQ(a.length, 5)
+      arktest.assertTrue(a[0][0] instanceof number)
+      for (let i = 0; i < 5; i++) {
+        arktest.assertEQ(a[i].length, 3)
+        arktest.assertEQ(a[i][0], 3.141592653589)
+        arktest.assertEQ(a[i][1], 5.7)
+        arktest.assertEQ(a[i][2], 3)
+      }
+
+  - desc: Create Array with covariant subtypes
+    decl: |-
+      class Animal {
+        name: string = ""
+      }
+      class Dog extends Animal {
+        override name: string = "dog"
+        bark(): string {
+          return this.name
+        }
+      }
+      class Cat extends Animal {
+        override name: string = "cat"
+      }
+    logic: |-
+      let a = new Animal[30](new Animal)
+      arktest.assertEQ(a.length, 30)
+      arktest.assertTrue(a[0] instanceof Animal)
+      for (let i = 0; i < 30; i++) {
+        arktest.assertEQ((a[i] as Animal).name, "")
+      }
+      let b = new Animal[30](new Dog)
+      arktest.assertEQ(b.length, 30)
+      arktest.assertTrue(b[0] instanceof Dog)
+      for (let i = 0; i < 30; i++) {
+        arktest.assertEQ((b[i] as Dog).bark(), "dog")
+      }
+      let c = new Animal[30](new Cat)
+      arktest.assertEQ(c.length, 30)
+      arktest.assertTrue(c[0] instanceof Cat)
+      for (let i = 0; i < 30; i++) {
+        arktest.assertEQ((c[i] as Cat).name, "cat")
+      }
+
+  - desc: Create Array with covariant function subtypes
+    decl: |-
+      class A {
+        v: int
+        constructor(v: int = 0) {
+          this.v = v
+        }
+      }
+      class B extends A {
+        constructor(v: int = 0) {
+          super(-v)
+        }
+        f(): int {
+          return 13
+        }
+      }
+      type HandlerBInt = (a: B, b: int) => A
+      type HandlerAInt = (a: A, b: int) => B
+      const handlerAInt: HandlerAInt = (a: A, b: int): B => {
+        if (a instanceof B){
+          return new B(a.f() + b)
+        } else {
+          return new B(b)
+        }
+      }
+      type HandlerA = (a: A) => A
+      const handlerA: HandlerA = (a: A): A => {
+        if (a instanceof B){
+          return new A(a.f())
+        } else {
+          return new A
+        }
+      }
+      type HandlerNothing = () => B
+      const handlerNothing: HandlerNothing = (): B => {
+        return new B(567)
+      }
+    logic: |-
+      let a = new HandlerBInt[30](handlerAInt)
+      arktest.assertEQ(a.length, 30)
+      for (let i = 0; i < 30; i++) {
+        arktest.assertEQ((a[i](new B, 7).v, -20)
+      }
+      let b = new HandlerBInt[30](handlerA)
+      arktest.assertEQ(b.length, 30)
+      for (let i = 0; i < 30; i++) {
+        arktest.assertEQ((b[i](new B, 7).v, 13)
+      }
+      let c = new HandlerBInt[30](handlerNothing)
+      arktest.assertEQ(c.length, 30)
+      for (let i = 0; i < 30; i++) {
+        arktest.assertEQ((c[i](new B, 7).v, -567)
+      }

@@ -1,0 +1,69 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+import { E } from "std/math/consts";
+
+{%- for number, param in item.param_list.items() %}
+const TEST_DATA_{{.number|upper}} : {{.item.param_init_data_types[number]}} = {{.item.param_list[number]}};
+{%- endfor %}
+const TEST_DATA_EXPECTED : {{.item.expected_data_type}} = {{.item.expected_test_data}};
+
+function main(): int {
+  let exp_idx : int = 0
+{%- if item.max_attempt is defined %}
+  let max_test : int = {{.item.max_attempt}}
+{%- else %}
+{% if item.param_list | length > 0 %}
+   let max_step : int = TEST_DATA_{{.item.param_list.keys()|first|upper}}.length.toInt();
+{% else %}
+  let max_step : int = TEST_DATA_EXPECTED.length.toInt();
+{%- endif %}
+{%- endif %}
+  let max_test : int = TEST_DATA_EXPECTED.length.toInt();
+  let passed_counter : int = 0;
+  for (let i = 0; i < max_step; i++) {
+{%- for number, param in item.param_list.items() %}
+{%- if item.param_nature[number] == "object" %}
+    let {{.number}} : {{.item.param_types[number]}} = new {{.item.param_types[number]}}(TEST_DATA_{{.number|upper}}[i]);
+{% else %}
+    let {{.number}} : {{.item.param_types[number]}} = TEST_DATA_{{.number|upper}}[i];
+{%- endif %}
+{%- endfor %}
+    let actual : {{.item.method_return_type}} = {{.item.object_type}}.{{.item.method_name}}({{.item.param_list.keys()|list|join(', ')}});
+  {%- for number, param in item.param_list.items() %}
+//      console.print("{{.number}} = " + {{.number}} + ";");
+  {%- endfor %}
+//      console.print("ACTUAL:" + actual + ";");
+//      console.print("EXPECTED:" + TEST_DATA_EXPECTED[exp_idx] + ";");
+   if ({{.item.verify_test_result_function}}(actual, TEST_DATA_EXPECTED[exp_idx])) {
+      console.print("PASSED");
+      passed_counter++;
+   } else {
+      console.print("FAILED")
+   }
+  console.println();
+  exp_idx++;
+  }
+  arktest.assertEQ(passed_counter, max_test)
+  return 0;
+
+}

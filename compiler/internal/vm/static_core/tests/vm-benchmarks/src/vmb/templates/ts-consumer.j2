@@ -1,0 +1,73 @@
+{#
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+#}
+
+class Consumer {
+    static x1: number = 0x41c64e6d;
+    static x2: number = 0xd431;
+    static x3: number = 1;
+    static boola: boolean = false;
+    static boolb: boolean = true;
+    static chara: string = 'X';
+    static charb: string = 'Y';
+    static floata: number = 24.0;
+    static floatb: number = 53.0;
+    static localObj: Object = new Object();
+    static localObjs: Object[] = [new Object()];
+    static pseudorand: number = Date.now();
+
+    static consume_boolean(boolc: boolean): void {
+        if (boolc === this.boola && boolc === this.boolb) {
+            throw new Error();
+        }
+    }
+
+    static consume_string(charc: string): void {
+        if (charc === this.chara && charc === this.charb) {
+            throw new Error();
+        }
+    }
+
+    static consume_number(floatc: number): void {
+        if (floatc === this.floata && floatc === this.floatb) {
+            throw new Error();
+        }
+    }
+
+    static consume_Object(obj: Object): void {
+        this.pseudorand = (this.pseudorand * this.x1 + this.x2);
+        if ((this.pseudorand & this.x3) === 0) {
+            this.x3 = (this.x3 << 1) + 0xad;
+            this.localObj = obj;
+        }
+    }
+
+    static consume_Objects(objs: Object[]): void {
+        this.pseudorand = (this.pseudorand * this.x1 + this.x2);
+        if ((this.pseudorand & this.x3) === 0) {
+            this.x3 = (this.x3 << 1) + 0xad;
+            this.localObjs = objs;
+        }
+    }
+}
+

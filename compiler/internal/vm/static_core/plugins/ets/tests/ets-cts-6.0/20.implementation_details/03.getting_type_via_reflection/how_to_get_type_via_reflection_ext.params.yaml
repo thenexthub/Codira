@@ -1,0 +1,174 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+--- # Interfaces with static members and type parameters inside
+cases:
+  - desc: How to get number[] via reflection.
+    logic: |-
+      let type_of_array_number: Type = Type.from<number[]>();
+      arktest.assertEQ(type_of_array_number.toString(), "std.core.Array");
+  - desc: How to get object[] via reflection.
+    logic: |-
+      let type_of_Array_Object: Type = Type.from<object[]>();
+      arktest.assertEQ(type_of_Array_Object.toString(), "std.core.Array");
+  - desc: How to get Promise<number>[] via reflection.
+    logic: |-
+      let type_of_Array_Promise: Type = Type.from<Promise<number>[]>();
+      arktest.assertEQ(type_of_Array_Promise.toString(), "std.core.Array");
+  - desc: How to get bigint via reflection.
+    logic: |-
+      let type_of_bigint: Type = Type.from<bigint>();
+      arktest.assertEQ(type_of_bigint.toString(), "std.core.BigInt");
+  - desc: How to get RegExp[] via reflection.
+    logic: |-
+      let type_of_Array_RegExp: Type = Type.from<RegExp[]>();
+      arktest.assertEQ(type_of_Array_RegExp.toString(), "std.core.Array");
+  - desc: How to get Set[] via reflection.
+    logic: |-
+      let type_of_Array_Set: Type = Type.from<Set<number>[]>();
+      arktest.assertEQ(type_of_Array_Set.toString(), "std.core.Array");
+  - desc: How to get string[] via reflection.
+    logic: |-
+      let type_of_Array_string: Type = Type.from<string[]>();
+      arktest.assertEQ(type_of_Array_string.toString(), "std.core.Array");
+  - desc: How to get Promise<string>[] via reflection.
+    logic: |-
+      let type_of_Array_promise: Type = Type.from<Promise<string>[]>();
+      arktest.assertEQ(type_of_Array_promise.toString(), "std.core.Array");
+  - desc: How to get User[] via reflection.
+    logic: |-
+      let type_of_Array_UserClass: Type = Type.from<User[]>();
+      arktest.assertEQ(type_of_Array_UserClass.toString(), "std.core.Array");
+  - desc: How to get Boolean via reflection.
+    logic: |-
+      let type_of_Bool: Type = Type.from<Boolean>();
+      arktest.assertEQ(type_of_Bool.toString(), "std.core.Boolean");
+  - desc: How to get Date via reflection.
+    logic: |-
+      let type_of_date: Type = Type.from<Date>();
+      arktest.assertEQ(type_of_date.toString(), "std.core.Date");
+  - desc: How to get Set<string> via reflection.
+    logic: |-
+      let type_of_set: Type = Type.from<Set<string>>();
+      arktest.assertEQ(type_of_set.toString(), "std.core.Set");
+  - desc: How to get Map<string, string> via reflection.
+    logic: |-
+      let type_of_map: Type = Type.from<Map<string, string>>();
+      arktest.assertEQ(type_of_map.toString(), "std.core.Map");
+  - desc: How to get Int via reflection.
+    logic: |-
+      let type_of_int: Type = Type.from<int>();
+      arktest.assertEQ(type_of_int.toString(), "std.core.Int");
+  - desc: How to get SomeInterface via reflection.
+    logic: |-
+      let type_of_SomeInterface: Type = Type.from<SomeInterface>();
+      arktest.assertEQ(type_of_SomeInterface.toString(), "how_to_get_type_via_reflection_ext_14.SomeInterface");
+  - desc: How to get Map via reflection.
+    logic: |-
+      let type_of_Map: Type = Type.from<Map<number, string>>();
+      arktest.assertEQ(type_of_Map.toString(), "std.core.Map");
+  - desc: How to get null via reflection.
+    logic: |-
+      let type_of_Null: Type = Type.from<null>();
+      let typeOfNullValue: Type = Type.of(null);
+      arktest.assertEQ(typeOfNullValue.toString(), "null");
+  - desc: How to get number via reflection.
+    logic: |-
+      let type_of_number: Type = Type.from<number>();
+      arktest.assertEQ(type_of_number.toString(), "std.core.Double");
+  - desc: How to get object via reflection.
+    logic: |-
+      let type_of_object: Type = Type.from<object>();
+      arktest.assertEQ(type_of_object.toString(), "std.core.Object");
+  - desc: How to get Promise<number> via reflection.
+    logic: |-
+      let type_of_Promise: Type = Type.from<Promise<number>>();
+      arktest.assertEQ(type_of_Promise.toString(), "std.core.Promise");
+  - desc: How to get RegExp via reflection.
+    logic: |-
+      let type_of_RegExp: Type = Type.from<RegExp>();
+      arktest.assertEQ(type_of_RegExp.toString(), "std.core.RegExp");
+  - desc: How to get Set via reflection.
+    logic: |-
+      let type_of_Set: Type = Type.from<Set<number>>();
+      arktest.assertEQ(type_of_Set.toString(), "std.core.Set");
+  - desc: How to get string via reflection.
+    logic: |-
+      let type_of_string: Type = Type.from<string>();
+      arktest.assertEQ(type_of_string.toString(), "string");
+  - desc: How to get Promise<string> via reflection.
+    logic: |-
+      let type_of_promise: Type = Type.from<Promise<string>>();
+      arktest.assertEQ(type_of_promise.toString(), "std.core.Promise");
+  - desc: How to get undefined via reflection.
+    logic: |-
+      let type_of_Undefined: Type = Type.from<undefined>();
+      arktest.assertEQ(type_of_Undefined.toString(), "undefined");
+  - desc: How to get User via reflection.
+    logic: |-
+      let type_of_UserClass: Type = Type.from<User>();
+      arktest.assertEQ(type_of_UserClass.toString().slice(0,48), "how_to_get_type_via_reflection_ext_25.User");
+      arktest.assertEQ(type_of_UserClass.toString().slice(type_of_UserClass.toString().length-4,type_of_UserClass.toString().length), "User");
+  - desc: How to get void via reflection.
+    logic: |-
+      let type_of_void: Type = Type.from<void>();
+      arktest.assertEQ(type_of_void.toString(), "void");
+  - desc: How to get BigInt[] via reflection.
+    logic: |-
+      let type_of_Array_Bigint: Type = Type.from<BigInt[]>();
+      arktest.assertEQ(type_of_Array_Bigint.toString(), "std.core.Array");
+  - desc: How to get boolean[] via reflection.
+    logic: |-
+      let type_of_Array_bool: Type = Type.from<boolean[]>();
+      arktest.assertEQ(type_of_Array_bool.toString(), "std.core.Array");
+  - desc: How to get Date[] via reflection.
+    logic: |-
+      let type_of_Array_Date: Type = Type.from<Date[]>();
+      arktest.assertEQ(type_of_Array_Date.toString(), "std.core.Array");
+  - desc: How to get Set<Boolean> via reflection.
+    logic: |-
+      let type_of_Array_set: Type = Type.from<Set<Boolean>>();
+      arktest.assertEQ(type_of_Array_set.toString(), "std.core.Set");
+  - desc: How to get int[] via reflection.
+    logic: |-
+      let type_of_Array_int: Type = Type.from<int[]>();
+      arktest.assertEQ(type_of_Array_int.toString(), "std.core.Array");
+  - desc: How to get SomeInterface[] via reflection.
+    logic: |-
+      let type_of_Array_Interface: Type = Type.from<SomeInterface[]>();
+      arktest.assertEQ(type_of_Array_Interface.toString(), "std.core.Array");
+  - desc: How to get Map[] via reflection.
+    logic: |-
+      let type_of_Array_Map: Type = Type.from<Map<number, string>[]>();
+      arktest.assertEQ(type_of_Array_Map.toString(), "std.core.Array");
+  - desc: How to get short via reflection.
+    logic: |-
+      let type_of_short: Type = Type.from<short>();
+      arktest.assertEQ(type_of_short.toString(), "std.core.Short");
+  - desc: How to get byte via reflection.
+    logic: |-
+      let type_of_byte: Type = Type.from<byte>();
+      arktest.assertEQ(type_of_byte.toString(), "std.core.Byte");
+  - desc: How to get enum via reflection.
+    logic: |-
+      let type_of_enum: Type = Type.from<Color>();
+      arktest.assertNE(type_of_enum.toString().search("Color"), -1);

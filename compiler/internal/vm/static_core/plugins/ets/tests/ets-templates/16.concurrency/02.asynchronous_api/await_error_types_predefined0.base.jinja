@@ -1,0 +1,101 @@
+/**
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+{% macro generate_complete_test(cases, declaration_type='standart') %}
+{% for c in cases %}
+{% for type_name in [c.type, c.alias] | select %}
+
+/*---
+desc: Error type must be correct when reject Promise<{{type_name}}>.
+---*/
+
+{% if declaration_type == 'custom' %}
+class CustomError extends Error {
+    customCode: number;
+    
+    constructor(message: string, customCode: number) {
+        super(message);
+        this.customCode = customCode;
+        this.name = 'CustomError';
+    }
+}
+
+const code = 999;
+const errorMessage = 'Custom error';
+{% elif declaration_type == 'business' %}
+class BusinessError<T = void> extends Error {
+    public businessCode: int;
+
+    constructor(code: int, error: Error) {
+        super(error.name, error.message, {cause: error.cause} as ErrorOptions);
+        this.businessCode = code;
+    }
+}
+
+const code = 100;
+const errorMessage = 'Business error occurred';
+{% elif declaration_type == 'object' %}
+const code = 500;
+const errorMessage = 'Custom object error';
+{% elif declaration_type == 'standart' %}
+const code = 400;
+const errorMessage = 'Standard error occurred';
+{% endif %}
+
+async function rejectWithError(): Promise<{{type_name}}> {
+{% if declaration_type == 'custom' %}
+    return Promise.reject(new CustomError(errorMessage, code));
+{% elif declaration_type == 'business' %}
+    return Promise.reject(new BusinessError(code, new Error(errorMessage)));
+{% elif declaration_type == 'object' %}
+    return Promise.reject({ code: code, message: errorMessage });
+{% elif declaration_type == 'standart' %}
+    return Promise.reject(new Error(code, errorMessage));
+{% endif %}
+}
+
+
+async function startTest() {
+    try {
+        await rejectWithError();
+        arktest.assertTrue(false, "Should have thrown");
+    } catch (error) {
+{% if declaration_type == 'custom' %}
+        let err = error as CustomError;
+        arktest.assertTrue(error instanceof CustomError);
+        arktest.assertEQ(err.customCode, code, `Status Code should be ${code}`);
+{% elif declaration_type == 'business' %}
+        let err = error as BusinessError;
+        arktest.assertTrue(error instanceof BusinessError);
+        arktest.assertEQ(err.businessCode, code, `Status Code should be ${code}`);
+{% elif declaration_type == 'object' %}
+        let err = error as Error;
+        arktest.assertTrue(error instanceof Object);
+        arktest.assertEQ(err.code, code, `Status Code should be ${code}`);
+{% elif declaration_type == 'standart' %}
+        let err = error as Error;
+        arktest.assertTrue(error instanceof Error);
+        arktest.assertEQ(err.code, code, `Status Code should be ${code}`);
+{% endif %}
+        arktest.assertEQ(err.message, errorMessage, `Error message should be ${errorMessage}`);
+    }
+}
+
+function main() {
+    waitForCompletion(startTest); 
+}
+{% endfor %}
+{% endfor %}
+{% endmacro %}

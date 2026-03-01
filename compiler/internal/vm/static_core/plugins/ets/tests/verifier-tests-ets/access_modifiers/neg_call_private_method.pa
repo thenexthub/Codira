@@ -1,0 +1,56 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+.language eTS
+
+.record ets.annotation.Module <external>
+.record std.core.Object <external>
+.record std.core.String <external>
+.record std.core.StringBuilder <external>
+
+.function void std.core.Object._ctor_(std.core.Object a0) <ctor, external, access.function=public>
+
+.record A <access.record=public> {
+}
+
+.function void A._ctor_(A a0) <ctor, access.function=public> {
+    call.short std.core.Object._ctor_:(std.core.Object), a0
+    return.void
+}
+
+.function void A.foo(A a0) <access.function=private> {
+    return.void
+}
+
+.record ETSGLOBAL <ets.abstract, ets.extends=std.core.Object, access.record=public, ets.annotation.type=class, ets.annotation.class=ets.annotation.Module, ets.annotation.id=id_457> {
+}
+
+.function void ETSGLOBAL._cctor_() <cctor, static> {
+	return.void
+}
+
+.function void ETSGLOBAL.main() <static, access.function=public> {
+    initobj.short A._ctor_:(A)
+    sta.obj v0
+    call.virt.short A.foo:(A), v0
+    return.void
+}

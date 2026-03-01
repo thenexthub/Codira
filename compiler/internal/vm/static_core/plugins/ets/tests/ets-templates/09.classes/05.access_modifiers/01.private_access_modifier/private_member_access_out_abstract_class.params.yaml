@@ -1,0 +1,283 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+tests:
+  - doc: access private field - override method from abstract class
+    decl: |-
+      abstract class A {
+        private x: int = 7
+        foo(): int {
+          return this.x
+        }
+      }
+      class C extends A { 
+        foo(): int {
+          return this.x
+        }
+      }
+
+  - doc: access private field - implement method from abstract class
+    decl: |-
+      abstract class A {
+        private x: int = 7
+        foo(): int
+      }
+      class C extends A { 
+        foo(): int {
+          return this.x
+        }
+      }
+
+  - doc: access private field - use abstract class field inside child class method
+    decl: |-
+      abstract class A {
+        private x: int = 7
+      }
+      class C extends A { 
+        foo() {
+          this.x = 1
+        }
+      }
+
+  - doc: access private static field - from overridden method
+    decl: |-
+      abstract class A {
+        private static x: int = 7
+        foo(): int {
+          return A.x
+        }
+      }
+      class C extends A { 
+        foo(): int {
+          return A.x
+        }
+      }
+
+  - doc: access private static field
+    decl: |-
+      abstract class A {
+        private static x: int = 7
+      }
+      class C extends A { 
+        foo(): int {
+          return C.x
+        }
+      }
+
+  - doc: access private method - from overridden method
+    decl: |-
+      abstract class A {
+        private getValue(): int {
+          return 1
+        }
+        foo(): int {
+          return this.getValue()
+        }
+      }
+      class C extends A { 
+        foo(): int {
+          return this.getValue()
+        }
+      }
+
+  - doc: access private method
+    decl: |-
+      abstract class A {
+        private getValue(): int {
+          return 1
+        }
+      }
+      class C extends A { 
+        foo(): int {
+          return A.getValue()
+        }
+      }
+
+  - doc: access private static method - from overridden method
+    decl: |-
+      abstract class A {
+        private static getValue(): int {
+          return 1
+        }
+        foo(): int {
+          return A.getValue()
+        }
+      }
+      class C extends A { 
+        foo(): int {
+          return A.getValue()
+        }
+      }
+
+  - doc: access private static method - from overridden method, use class name to access static field
+    decl: |-
+      abstract class A {
+        private static getValue(): int {
+          return 1
+        }
+        foo(): int {
+          return A.getValue()
+        }
+      }
+      class C extends A { 
+        foo(): int {
+          return C.getValue()
+        }
+      }
+
+  - doc: access private static method
+    decl: |-
+      abstract class A {
+        private static getValue(): int {
+          return 1
+        }
+      }
+      class C extends A { 
+        foo(): int {
+          return A.getValue()
+        }
+      }
+
+  - doc: access private getter - from overridden method
+    decl: |-
+      abstract class A {
+        private _val: int = 0
+        private get val(): int {
+          return this._val
+        }
+        foo(i: int): int {
+          this._val = i
+          return this.val
+        }
+      }
+      class C extends A { 
+        foo(): int {
+          return this.val
+        }
+      }
+
+  - doc: access private getter
+    decl: |-
+      abstract class A {
+        private _val: int = 0
+        private get val(): int {
+          return this._val
+        }
+      }
+      class C extends A { 
+        foo(): int {
+          return this.val
+        }
+      }
+
+  - doc: access private static getter - from overridden method
+    decl: |-
+      abstract class A {
+        private static _val: int = 0
+        private static get val(): int {
+          return A._val
+        }
+        foo(): int {
+          return A.val
+        }
+      }
+      class C extends A { 
+        foo(): int {
+          return A.val
+        }
+      }
+
+  - doc: access private static getter
+    decl: |-
+      abstract class A {
+        private static _val: int = 0
+        private static get val(): int {
+          return A._val
+        }
+      }
+      class C extends A { 
+        foo(): int {
+          return A.val
+        }
+      }
+
+  - doc: access private setter - from overridden method
+    decl: |-
+      abstract class A {
+        private _val: int = 0
+        private set val(i: int) {
+          this._val = i
+        }
+        foo(i: int) {
+          this.val = i
+        }
+      }
+      class C extends A { 
+        foo(i: int) {
+          this.val = i
+        }
+      }
+
+  - doc: access private setter
+    decl: |-
+      abstract class A {
+        private _val: int = 0
+        private set val(i: int) {
+          this._val = i
+        }
+      }
+      class C extends A { 
+        foo(i: int) {
+          this.val = i
+        }
+      }
+
+  - doc: access private static setter - from overridden method
+    decl: |-
+      abstract class A {
+        private static _val: int = 0
+        private static set val(i: int) {
+          A._val = i
+        }
+        foo(i: int) {
+          A.val = i
+        }
+      }
+      class C extends A { 
+        foo(i: int): int {
+          A.val = i
+        }
+      }
+
+  - doc: access private static setter
+    decl: |-
+      abstract class A {
+        private static _val: int = 0
+        private static set val(i: int) {
+          A._val = i
+        }
+      }
+      class C extends A {
+          A.val = i
+        }
+      }

@@ -1,0 +1,98 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - type: Boolean
+    init: 'true'
+
+  - type: undefined
+    init: 'undefined'
+
+  - type: 'null'
+    init: 'null'
+
+  - type: int
+    init: '333'
+
+  - type: bigint
+    init: '12345678901234567878901234567890n'
+
+  - type: IName
+    init: "{name: 'Bob'}"
+
+  - type: string
+    init: "'Hello world'"
+
+  - type: Pass
+    init: "new Pass"
+
+  - type: Holder<IName>
+    init: "new Holder<IName>"
+
+  - type: 'Color'
+    init: "Color.Red"
+
+  - type: FC
+    init: 'returnAsAny'
+
+  - type: string[]
+    init: ['One', 'Two', 'Three']
+
+  - type: Array<number>
+    init: [1, 2, 3]
+
+  - type: string | IName
+    init: "'Hello world'"
+
+  - type: string | IName
+    init: "{name: 'Bob'}"
+
+  - type: '[string, number]'
+    init: "['Hello', 42]"
+
+  - type: 'readonly [string, number]'
+    init: "['Hello', 42]"
+
+  - type: '() => [string, number]'
+    init: "() => ['Hello', 42]"
+
+  - type: FixedArray<string>
+    init: '["a", "b", "c"]'
+
+  - type: Readonly<IName>
+    init: "{name: 'Bob'}"
+
+  - type: Partial<IName>
+    init: "{name: 'Bob'}"
+
+  - type: Partial<IName>
+    init: "{}"
+
+  - type: Required<IName>
+    init: "{name: 'Bob'}"
+
+  - type: Record<int, string>
+    init: '{1: "1"}'
+
+  - type: Object
+    init: "new Pass"
+
+  - type: "'string literal'"
+    init: "'string literal'"
+
+  - type: AStringAlias
+    init: "'Hello world'"
+
+  - type: Char
+    init: "c'\x7F'"

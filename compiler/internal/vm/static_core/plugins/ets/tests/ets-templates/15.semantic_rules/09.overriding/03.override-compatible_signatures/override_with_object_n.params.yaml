@@ -1,0 +1,224 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # override-incompatible argument type
+    - base: |-
+          foo(i: [Object, Object]): void {}
+      derived: |-
+          override foo(i: [Object, Base]): void {}
+
+    - base: |-
+          foo(i: [Object, Object]): void {}
+      derived: |-
+          foo(i: [Object, Base]): void {}
+
+    # override-incompatible argument type
+    - base: |-
+          foo(i: [Base, Base]): void {}
+      derived: |-
+          override foo(i: [Object, Base]): void {}
+
+    - base: |-
+          foo(i: [Base, Base]): void {}
+      derived: |-
+          foo(i: [Object, Base]): void {}
+
+    # override-incompatible argument type
+    - base: |-
+          foo(i: [Base, Base]): void {}
+      derived: |-
+          override foo(i: [Object, Object]): void {}
+
+    - base: |-
+          foo(i: [Base, Base]): void {}
+      derived: |-
+          foo(i: [Object, Object]): void {}
+
+    # override-incompatible return type
+    - base: |-
+          foo(): [Object, Object] {
+              return [new Object(), new Object()];
+          }
+      derived: |-
+          override foo(): [Object, Base] {
+              return [new Object(), new Base()];
+          }
+
+    - base: |-
+          foo(): [Object, Object] {
+              return [new Object(), new Object()];
+          }
+      derived: |-
+          foo(): [Object, Base] {
+              return [new Object(), new Base()];
+          }
+
+    # override-incompatible return type
+    - base: |-
+          foo(): [Object, Base] {
+              return [new Object(), new Base()];
+          }
+      derived: |-
+          override foo(): [Object, Object] {
+              return [new Object(), new Object()];
+          }
+
+    - base: |-
+          foo(): [Object, Base] {
+              return [new Object(), new Base()];
+          }
+      derived: |-
+          foo(): [Object, Object] {
+              return [new Object(), new Object()];
+          }
+
+    # override-incompatible return type
+    - base: |-
+          foo(): [Object, Object] {
+              return [new Object(), new Object()];
+          }
+      derived: |-
+          override foo(): [Base, Base] {
+              return [new Base(), new Base()];
+          }
+
+    - base: |-
+          foo(): [Object, Object] {
+              return [new Object(), new Object()];
+          }
+      derived: |-
+          foo(): [Base, Base] {
+              return [new Base(), new Base()];
+          }
+
+    # override-incompatible argument (covariance)
+    - base: |-
+          foo(i: Object): void {}
+      derived: |-
+          override foo(i: Base): void {}
+
+    - base: |-
+          foo(i: Object): void {}
+      derived: |-
+          foo(i: Base): void {}
+
+    # override-incompatible return value (contravariance)
+    - base: |-
+          foo(): Base {
+              return new Base();
+          }
+      derived: |-
+          override foo(): Object {
+              return new Object();
+          }
+
+    - base: |-
+          foo(): Base {
+              return new Base();
+          }
+      derived: |-
+          foo(): Object {
+              return new Object();
+          }
+
+    # override-incompatible argument (contravariance)
+    - base: |-
+          foo(i: (j: Base) => Base): void {
+              i(new Base());
+          }
+      derived: |-
+          override foo(i: (j: Object) => Base): void {
+              i(new Object());
+          }
+
+    - base: |-
+          foo(i: (j: Base) => Base): void {
+              i(new Base());
+          }
+      derived: |-
+          foo(i: (j: Object) => Base): void {
+              i(new Object());
+          }
+
+    # override-incompatible return type (covariance)
+    - base: |-
+          foo(i: (j: Object) => Object): void {
+              i(new Object());
+          }
+      derived: |-
+          override foo(i: (j: Object) => Base): void {
+              i(new Object());
+          }
+
+    - base: |-
+          foo(i: (j: Object) => Object): void {
+              i(new Object());
+          }
+      derived: |-
+          foo(i: (j: Object) => Base): void {
+              i(new Object());
+          }
+
+    # override-incompatible argument (contravariance)
+    - base: |-
+          foo(i: Object[]): void {}
+      derived: |-
+          override foo(i: Base[]): void {}
+
+    - base: |-
+          foo(i: Object[]): void {}
+      derived: |-
+          foo(i: Base[]): void {}
+
+    # override-incompatible argument (contravariance)
+    - base: |-
+          foo(i: Object[]): void {}
+      derived: |-
+          override foo(i: Base[]): void {}
+
+    - base: |-
+          foo(i: Object[]): void {}
+      derived: |-
+          foo(i: Base[]): void {}
+
+    # override-incompatible argument (covariance)
+    - base: |-
+          foo(i: Base[]): void {}
+      derived: |-
+          override foo(i: Object[]): void {}
+
+    - base: |-
+          foo(i: Base[]): void {}
+      derived: |-
+          foo(i: Object[]): void {}
+
+    # override-incompatible return type (contravariance)
+    - base: |-
+          foo(): Base[] {
+              return new Base[2];
+          }
+      derived: |-
+          override foo(): Object[] {
+              return new Object[2];
+          }
+
+    - base: |-
+          foo(): Base[] {
+              return new Base[2];
+          }
+      derived: |-
+          foo(): Object[] {
+              return new Object[2];
+          }

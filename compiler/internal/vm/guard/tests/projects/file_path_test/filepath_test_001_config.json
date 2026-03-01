@@ -1,0 +1,15 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "fileNameObfuscation": {
+      "enable": true,
+      "reservedFileNames": [
+        "entry/A",
+        "entry/foo/A",
+        "entry/main"
+      ]
+    }
+  }
+}

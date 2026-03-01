@@ -1,0 +1,90 @@
+/**
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+{%- macro generate_complete_test(decl_operator, test_data, body_generation = generate_complete_test_body_expression) %}
+{%- for c in test_data %}
+
+ /*---
+ desc: {{c.desc}} ({{body_generation|string}})
+ ---*/
+ 
+function main(){
+{%- set nameResultVar = 'result_' + (loop.index - 1)|string %}
+{{body_generation(c, decl_operator, nameResultVar, loop.index)}}
+{%- if c.resultType %}
+  arktest.assertTrue({{nameResultVar}} instanceof {{c.resultType}}, "The type of the actual result (" + (typeof {{nameResultVar}}) + ") is of a different type than expected ({{c.resultType}})")
+{%- endif %}
+{%- if c.result %}
+  arktest.assertEQ({{nameResultVar}}, {{c.result}});
+{%- endif %}
+}
+{%- endfor %}
+{% endmacro %}
+
+{%- macro generate_decl_init(decl, operator, nameResultVar, indexLoop)%}
+  {%- set resultExp = [] %}
+  {%- for d in decl %}
+    {%- if d.keyword %}
+      {%- set name = 'value' + loop.index|string %}
+      {%- set _ = resultExp.append(name) %}
+  {{d.keyword}} {{name}}: {{d.type}} = {{d.value}}
+    {%- else %}
+       {%- set _ = resultExp.append(('('+ d.value + ')') if loop.index > 1 and ' as ' in d.value else d.value ) %}
+    {%- endif %}
+  {%- endfor%}
+  {{'let' if indexLoop % 2 == 0 else 'const'}} {{nameResultVar}} = {{resultExp|join(' ' + operator + ' ')}}
+{%- endmacro %}
+
+{%- macro generate_complete_test_body_common_keyword(case_data, decl_operator, nameResultVar, indexLoop, common_keyword = 'let') %}
+  {%- set decl_data = decl_data|list + [{ 'keyword': common_keyword, 'type': case_data.type1, 'value': case_data.value1 }, { 'keyword': common_keyword, 'type': case_data.type2, 'value': case_data.value2 }] %}
+  {%- if case_data.type3 %}
+    {%- set decl_data = decl_data|list + [{ 'keyword': common_keyword, 'type': case_data.type3, 'value': case_data.value3 } ] %}
+  {%- endif%}
+  {{generate_decl_init(decl_data, decl_operator, nameResultVar, indexLoop)}}
+{%- endmacro %}
+
+{%- macro generate_complete_test_body_common_keyword_const(case_data, decl_operator, nameResultVar, indexLoop) %}
+  {{generate_complete_test_body_common_keyword(case_data, decl_operator, nameResultVar, indexLoop)}}
+{%- endmacro %}
+
+{%- macro generate_complete_test_body_one_const_keyword(case_data, decl_operator, nameResultVar, indexLoop) %}
+  {%- set decl_data = [{'value': case_data.value1 }, { 'keyword': 'const', 'type': case_data.type2, 'value': case_data.value2 }] %}
+  {%- if case_data.type3 %}
+    {%- set decl_data = decl_data|list + [{ 'keyword': 'let', 'type': case_data.type3, 'value': case_data.value3 } ] %}
+  {%- endif%}
+  {{generate_decl_init(decl_data, decl_operator, nameResultVar, indexLoop)}}
+{%- endmacro %}
+
+{%- macro generate_complete_test_body_one_let_keyword(case_data, decl_operator, nameResultVar, indexLoop) %}
+  {%- set decl_data = decl_data|list + [{ 'keyword': 'let', 'type': case_data.type1, 'value': case_data.value1 }, { 'value': case_data.value2 }] %}
+  {%- if case_data.type3 %}
+    {%- set decl_data = decl_data|list + [{ 'keyword': 'const', 'type': case_data.type3, 'value': case_data.value3 } ] %}
+  {%- endif%}
+  {{generate_decl_init(decl_data, decl_operator, nameResultVar, indexLoop)}}
+{%- endmacro %}
+
+{%- macro generate_complete_test_result_expression(case_data, decl_operator, nameResultVar, indexLoop) %}
+  {%- set decl_data = decl_data|list + [{ 'value': case_data.value1 }, { 'value': case_data.value2 }] %}
+  {%- if case_data.type3 %}
+    {%- set decl_data = decl_data|list + [{ 'value': case_data.value3 } ] %}
+  {%- endif%}
+  {{generate_decl_init(decl_data, decl_operator, nameResultVar, indexLoop)}}
+{%- endmacro %}
+
+
+
+
+
+

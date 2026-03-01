@@ -1,0 +1,109 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+--- # Interfaces with static members and type parameters inside
+cases:
+  - desc: Handle a union type of multiple Promises with await.
+    decl: |-
+      async function multiplePromises(a: number): Promise<Promise<string> | Promise<number>> {
+          let b: number = 20;
+          return a > 5 ? new Promise<string>((resolve: (p: string) => void) => resolve("string")) :
+              new Promise<number>((resolve: (p: number) => void) => resolve(b));
+      }
+    logic: |-
+      let result = multiplePromises(10);
+      let a: string | number = waitForCompletion(async () => await result);
+      let result1 = multiplePromises(2);
+      let b: string | number = waitForCompletion(async () => await result1);
+      arktest.assertEQ(a, "string");
+      arktest.assertEQ(b, 20);
+
+  - desc: Start a coroutine using an normal function.
+    decl: |-
+      function testAwaitBasic(): void {
+        let promise: Promise<number> = new Promise<number>((resolve:  (p: number) => void) => resolve(20));
+        let res = waitForCompletion(async () => await promise);
+        arktest.assertEQ(res, 20);
+      }
+    logic: |-
+      testAwaitBasic();
+
+  - desc: Handling of await union types.
+    decl: |-
+      async function testAwaitUnion(a: number): Promise<string | number> {
+          let b: number = 20;
+          return a > 5 ? "text" : b;
+      }
+    logic: |-
+      let result1: string | number = waitForCompletion(async () => await testAwaitUnion(10));
+      let result2: string | number = waitForCompletion(async () => await testAwaitUnion(1));
+      arktest.assertEQ(result1, "text");
+      arktest.assertEQ(result2, 20);
+
+  - desc: Use await to eliminate the multi-layer nesting of promise types.
+    decl: |-
+      async function asyncOperation1(): Promise<string> {
+        return new Promise<string>((resolve: (p: string) => void) => {
+          setTimeout(() => {
+            resolve("Hello");
+          }, 1000);
+        });
+      }
+
+      async function asyncOperation2(input: string): Promise<string> {
+        return new Promise<string>((resolve: (p: string) => void) => {
+          setTimeout(() => {
+            resolve(input + " World");
+          }, 1000);
+        });
+      }
+
+      async function asyncOperation3(input: string): Promise<string> {
+        return new Promise<string>((resolve: (p: string) => void) => {
+          setTimeout(() => {
+            resolve(input + "!");
+          }, 1000);
+        });
+      }
+
+      async function testNestedPromises(): Promise<void> {
+        try {
+          let result1 = await asyncOperation1();
+          let result2 = await asyncOperation2(result1);
+          let result3 = await asyncOperation3(result2);
+          arktest.assertEQ(result3, "Hello World!");
+        } catch (error) {
+        }
+      }
+    logic: |-
+      waitForCompletion(testNestedPromises);
+
+  - desc: |-
+      Ignore the result of the await operation.
+    decl: |-
+      async function testAwaitBasic(): Promise<void> {
+        let promise: Promise<number> = new Promise<number>((resolve: (p: number) => void) => resolve(20));
+        await promise;
+      }
+    logic: |-
+      waitForCompletion(testAwaitBasic);
+
+  - desc: Start a coroutine using an async function.
+    decl: |-
+      async function testAwaitBasic(): Promise<void> {
+        let promise: Promise<number> = new Promise<number>((resolve:  (p: number) => void) => resolve(20));
+        let res = await promise;
+        arktest.assertEQ(res, 20);
+      }
+    logic: |-
+      waitForCompletion(testAwaitBasic);

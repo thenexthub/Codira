@@ -1,0 +1,566 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+- {
+    method_name: copyTo,
+    method_nature: procedure,
+    result: dst,
+    result_type: "FixedArray<boolean>",
+    method_signature_desc: {first: "ArrayIndexOutOfBoundsError_boolean_array", second: "boolean_array", dstStart: int, srcStart: int, srcEnd: int},
+    method_expected_exception: ArrayIndexOutOfBoundsError,
+    method_signature:
+      {
+        src: "FixedArray<boolean>",
+        dst: "FixedArray<boolean>",
+        dstStart: int,
+        srcStart: int,
+        srcEnd: int,
+      },
+    method_test_index_data:
+      {
+        test1:
+          {
+            src: "[true, true, true, true, true, true, true, true, true]",
+            dst: "[false, false, false, false, false, false, false, false,false, false]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 1,
+          },
+        test2:
+          {
+            src: "[true, true, true, true, true, true, true, true, true]",
+            dst: "[false, false, false, false, false, false, false, false,false, false]",
+            dstStart: 32,
+            srcStart: 2,
+            srcEnd: 1,
+          },
+        test3:
+          {
+            src: "[true, true, true, true, true, true, true, true, true]",
+            dst: "[false, false, false, false, false, false, false, false,false, false]",
+            dstStart: -1,
+            srcStart: -2,
+            srcEnd: -2,
+          },
+        test4:
+          {
+            src: "[]",
+            dst: "[]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 2,
+          },
+        test5:
+          {
+            src: "[]",
+            dst: "[false, false, false, false, false, false, false, false,false, false]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 4,
+          },
+        test6:
+          {
+            src: "[true, true, true, true, true, true, true, true, true]",
+            dst: "[]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 4,
+          },
+
+       },
+  }
+- {
+    method_name: copyTo,
+    method_nature: procedure,
+    result: dst,
+    result_type: "FixedArray<byte>",
+    method_signature_desc: {first: "ArrayIndexOutOfBoundsError_byte_array", second: "byte_array", dstStart: int, srcStart: int, srcEnd: int},
+    method_expected_exception: ArrayIndexOutOfBoundsError,
+    method_signature:
+      {
+        src: "FixedArray<byte>",
+        dst: "FixedArray<byte>",
+        dstStart: int,
+        srcStart: int,
+        srcEnd: int,
+      },
+    method_test_index_data:
+      {
+        test1:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 1,
+          },
+        test2:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: 32,
+            srcStart: 2,
+            srcEnd: 1,
+          },
+        test3:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: -1,
+            srcStart: -2,
+            srcEnd: -2,
+          },
+        test4:
+          {
+            src: "[]",
+            dst: "[]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 2,
+          },
+        test5:
+          {
+            src: "[]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 4,
+          },
+        test6:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 4,
+          },
+
+       },
+  }
+- {
+    method_name: copyTo,
+    method_nature: procedure,
+    result: dst,
+    result_type: "FixedArray<short>",
+    method_signature_desc: {first: "ArrayIndexOutOfBoundsError_short_array", second: "short_array", dstStart: int, srcStart: int, srcEnd: int},
+    method_expected_exception: ArrayIndexOutOfBoundsError,
+    method_signature:
+      {
+        src: "FixedArray<short>",
+        dst: "FixedArray<short>",
+        dstStart: int,
+        srcStart: int,
+        srcEnd: int,
+      },
+    method_test_index_data:
+      {
+        test1:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 1,
+          },
+        test2:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: 32,
+            srcStart: 2,
+            srcEnd: 1,
+          },
+        test3:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: -1,
+            srcStart: -2,
+            srcEnd: -2,
+          },
+        test4:
+          {
+            src: "[]",
+            dst: "[]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 2,
+          },
+        test5:
+          {
+            src: "[]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 4,
+          },
+        test6:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 4,
+          },
+
+       },
+  }
+- {
+    method_name: copyTo,
+    method_nature: procedure,
+    result: dst,
+    result_type: "FixedArray<int>",
+    method_signature_desc: {first: "ArrayIndexOutOfBoundsError_int_array", second: "int_array", dstStart: int, srcStart: int, srcEnd: int},
+    method_expected_exception: ArrayIndexOutOfBoundsError,
+    method_signature:
+      {
+        src: "FixedArray<int>",
+        dst: "FixedArray<int>",
+        dstStart: int,
+        srcStart: int,
+        srcEnd: int,
+      },
+    method_test_index_data:
+      {
+        test1:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 1,
+          },
+        test2:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: 32,
+            srcStart: 2,
+            srcEnd: 1,
+          },
+        test3:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: -1,
+            srcStart: -2,
+            srcEnd: -2,
+          },
+        test4:
+          {
+            src: "[]",
+            dst: "[]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 2,
+          },
+        test5:
+          {
+            src: "[]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 4,
+          },
+        test6:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 4,
+          },
+
+       },
+  }
+- {
+    method_name: copyTo,
+    method_nature: procedure,
+    result: dst,
+    result_type: "FixedArray<long>",
+    method_signature_desc: {first: "ArrayIndexOutOfBoundsError_long_array", second: "long_array", dstStart: int, srcStart: int, srcEnd: int},
+    method_expected_exception: ArrayIndexOutOfBoundsError,
+    method_signature:
+      {
+        src: "FixedArray<long>",
+        dst: "FixedArray<long>",
+        dstStart: int,
+        srcStart: int,
+        srcEnd: int,
+      },
+    method_test_index_data:
+      {
+        test1:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 1,
+          },
+        test2:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: 32,
+            srcStart: 2,
+            srcEnd: 1,
+          },
+        test3:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: -1,
+            srcStart: -2,
+            srcEnd: -2,
+          },
+        test4:
+          {
+            src: "[]",
+            dst: "[]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 2,
+          },
+        test5:
+          {
+            src: "[]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 4,
+          },
+        test6:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 4,
+          },
+
+       },
+  }
+- {
+    method_name: copyTo,
+    method_nature: procedure,
+    result: dst,
+    result_type: "FixedArray<float>",
+    method_signature_desc: {first: "ArrayIndexOutOfBoundsError_float_array", second: "float_array", dstStart: int, srcStart: int, srcEnd: int},
+    method_expected_exception: ArrayIndexOutOfBoundsError,
+    method_signature:
+      {
+        src: "FixedArray<float>",
+        dst: "FixedArray<float>",
+        dstStart: int,
+        srcStart: int,
+        srcEnd: int,
+      },
+    method_test_index_data:
+      {
+        test1:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 1,
+          },
+        test2:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: 32,
+            srcStart: 2,
+            srcEnd: 1,
+          },
+        test3:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: -1,
+            srcStart: -2,
+            srcEnd: -2,
+          },
+        test4:
+          {
+            src: "[]",
+            dst: "[]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 2,
+          },
+        test5:
+          {
+            src: "[]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 4,
+          },
+        test6:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 4,
+          },
+
+       },
+  }
+- {
+    method_name: copyTo,
+    method_nature: procedure,
+    result: dst,
+    result_type: "FixedArray<double>",
+    method_signature_desc: {first: "ArrayIndexOutOfBoundsError_double_array", second: "double_array", dstStart: int, srcStart: int, srcEnd: int},
+    method_expected_exception: ArrayIndexOutOfBoundsError,
+    method_signature:
+      {
+        src: "FixedArray<double>",
+        dst: "FixedArray<double>",
+        dstStart: int,
+        srcStart: int,
+        srcEnd: int,
+      },
+    method_test_index_data:
+      {
+        test1:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 1,
+          },
+        test2:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: 32,
+            srcStart: 2,
+            srcEnd: 1,
+          },
+        test3:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: -1,
+            srcStart: -2,
+            srcEnd: -2,
+          },
+        test4:
+          {
+            src: "[]",
+            dst: "[]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 2,
+          },
+        test5:
+          {
+            src: "[]",
+            dst: "[1, 1, 1, 1, 1, 1, 1, 1, 1]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 4,
+          },
+        test6:
+          {
+            src: "[0, 0, 0, 0, 0, 0, 0, 0, 0]",
+            dst: "[]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 4,
+          },
+
+       },
+  }
+- {
+    method_name: copyTo,
+    method_nature: procedure,
+    result: dst,
+    result_type: "FixedArray<char>",
+    method_signature_desc: {first: "ArrayIndexOutOfBoundsError_char_array", second: "char_array", dstStart: int, srcStart: int, srcEnd: int},
+    method_expected_exception: ArrayIndexOutOfBoundsError,
+    method_signature:
+      {
+        src: "FixedArray<char>",
+        dst: "FixedArray<char>",
+        dstStart: int,
+        srcStart: int,
+        srcEnd: int,
+      },
+    method_test_index_data:
+      {
+        test1:
+          {
+            src: "[c'\\x00', c'\\x00', c'\\x00', c'\\x00', c'\\x00', c'\\x00', c'\\x00', c'\\x00', c'\\x00']",
+            dst: "[c'\\x01', c'\\x01', c'\\x01', c'\\x01', c'\\x01', c'\\x01', c'\\x01', c'\\x01', c'\\x01']",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 1,
+          },
+        test2:
+          {
+            src: "[c'\\x00', c'\\x00', c'\\x00', c'\\x00', c'\\x00', c'\\x00', c'\\x00', c'\\x00', c'\\x00']",
+            dst: "[c'\\x01', c'\\x01', c'\\x01', c'\\x01', c'\\x01', c'\\x01', c'\\x01', c'\\x01', c'\\x01']",
+            dstStart: 32,
+            srcStart: 2,
+            srcEnd: 1,
+          },
+        test3:
+          {
+            src: "[c'\\x00', c'\\x00', c'\\x00', c'\\x00', c'\\x00', c'\\x00', c'\\x00', c'\\x00', c'\\x00']",
+            dst: "[c'\\x01', c'\\x01', c'\\x01', c'\\x01', c'\\x01', c'\\x01', c'\\x01', c'\\x01', c'\\x01']",
+            dstStart: -1,
+            srcStart: -2,
+            srcEnd: -2,
+          },
+        test4:
+          {
+            src: "[]",
+            dst: "[]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 2,
+          },
+        test5:
+          {
+            src: "[]",
+            dst: "[c'\\x01', c'\\x01', c'\\x01', c'\\x01', c'\\x01', c'\\x01', c'\\x01', c'\\x01', c'\\x01']",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 4,
+          },
+        test6:
+          {
+            src: "[c'\\x00', c'\\x00', c'\\x00', c'\\x00', c'\\x00', c'\\x00', c'\\x00', c'\\x00', c'\\x00']",
+            dst: "[]",
+            dstStart: 1,
+            srcStart: 2,
+            srcEnd: 4,
+          },
+
+       },
+  }

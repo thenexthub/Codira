@@ -1,0 +1,4 @@
+# Know failure list for ut - debug - x64 - runtime_core
+
+#21869
+obj/arkcompiler/runtime_core/compiler/tests/GraphInterfaceTest

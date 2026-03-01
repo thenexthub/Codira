@@ -1,0 +1,147 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+---
+tests:
+  test00: |-
+    import {SharedVars} from "./shared_vars_module.ets"
+    let a: int = 1
+    SharedVars.v1 = a
+
+  test01: |-
+    import {SharedVars} from "./shared_vars_module.ets"
+    let a: int = 2
+    SharedVars.v1 = a
+
+  test02: |-
+    import {SharedVars} from "./shared_vars_module.ets"
+    initModule("./init_module_second_[loop.index0].ets")
+    let a: int = 2
+    function foo () {
+      a += 1
+      SharedVars.v1 = a
+    }
+    foo()
+
+  test03: |-
+    initModule("./init_module_second_[loop.index0].ets")
+    export function foo() {}
+    export class C {}
+
+  test04: |-
+    import {SharedVars} from "./shared_vars_module.ets"
+    initModule("./init_module_second_[loop.index0].ets")
+    export function foo() {}
+    export class C {
+      v: int
+      constructor(){
+        this.v = SharedVars.v2
+      }
+    }
+
+  test05: |-
+    import {SharedVars} from "./shared_vars_module.ets"
+    initModule("./init_module_second_[loop.index0].ets")
+    export function foo() {}
+    export class C {
+      v: int
+      constructor(){
+        this.v = SharedVars.v2
+      }
+    }
+
+  test06: |-
+    import {SharedVars} from "./shared_vars_module.ets"
+    initModule("./init_module_second_[loop.index0].ets")
+    class C {
+        static count: int = 3
+        static {
+            if (C.count > 0) {
+                C.count++
+            }
+        }
+    }
+    SharedVars.v1 = C.count
+
+  test07: |-
+    import {SharedVars} from "./shared_vars_module.ets"
+    initModule("./init_module_second_[loop.index0].ets")
+    namespace NameSpace {
+      export function foo(){}
+      export let v = 4
+      static {
+        if (v > 0) {
+          v++
+        }
+      }
+      export function bar(){}
+    }
+    SharedVars.v1 = NameSpace.v
+
+  test08: |-
+    import {SharedVars} from "./shared_vars_module.ets"
+    initModule("./init_module_second_[loop.index0].ets")
+    export namespace NameSpace {
+      export function foo(){}
+      export let v: int = 2
+      static {
+        if (v > 0) {
+          v += SharedVars.v2
+        }
+      }
+      export function bar(){}
+    }
+
+  test09: |-
+    import {SharedVars} from "./shared_vars_module.ets"
+    initModule("./init_module_second_[loop.index0].ets")
+    namespace ExternalSpace {
+      export function foo(){}
+      export let v = 0
+      export function bar(){}
+      export namespace EmbeddedSpace {
+        export let v = 5
+        static {
+          if (v > 0) {
+            v++
+          }
+        }
+      }
+    }
+    SharedVars.v1 = ExternalSpace.EmbeddedSpace.v
+
+  test10: |-
+    import {SharedVars} from "./shared_vars_module.ets"
+    initModule("./init_module_second_[loop.index0].ets")
+    export namespace ExternalSpace {
+      export function foo(){}
+      export let v = 0
+      export function bar(){}
+      export namespace EmbeddedSpace {
+        export let v = 5
+        static {
+          if (v > 0) {
+            v += SharedVars.v2
+          }
+        }
+      }
+    }

@@ -1,0 +1,67 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  # most basic usage
+  - decl: |-
+      type foo1_o = (x?: int) => int
+    use: |-
+      let func1: foo1_o = (x?: int) => { 
+        return 1
+      }
+      const f: Function = func1
+      f.unsafeCall()
+
+  - decl: |-
+      type foo1_o = (x?: int) => int
+    use: |-
+      let func1: foo1_o = (x?: int) => { 
+        return 1
+      }
+      const f: Function = func1
+      f.unsafeCall(0)
+
+  # non-trivial variations
+  - decl: |-
+      type foo2_o = (x1: int, x2?: int) => int
+      type foo2_oo = (x1?: int, x2?: int) => int
+      type foo3_oo = (x1: int, x2?: int, x3?: int) => int
+      type foo3_o = (x1: int, x2: int, x3?: int) => int
+    use: |-
+      let func2: foo2_o = (x1: int, x2?: int) => { 
+        return 1
+      }
+      const f2: Function = func2
+      f2.unsafeCall(1)
+      f2.unsafeCall(1, 0)
+      let func3: foo2_oo = (x1?: int, x2?: int) => { 
+        return 1
+      }
+      const f3: Function = func3
+      f3.unsafeCall()
+      f3.unsafeCall(0)
+      f3.unsafeCall(0, 0)
+      let func4: foo3_oo = (x1: int, x2?: int, x3?: int) => { 
+        return 1
+      }
+      const f4: Function = func4
+      f4.unsafeCall(1)
+      f4.unsafeCall(1, 0)
+      f4.unsafeCall(1, 0, 0)
+      let func5: foo3_o = (x1: int, x2: int, x3?: int) => { 
+        return 1
+      }
+      const f5: Function = func5
+      f5.unsafeCall(1, 2)
+      f5.unsafeCall(1, 2, 0)

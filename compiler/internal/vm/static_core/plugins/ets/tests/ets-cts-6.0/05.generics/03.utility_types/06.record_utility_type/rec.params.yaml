@@ -1,0 +1,372 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    - decl: |-
+          // use it as alias
+          type R1 = Record<string, Error>
+          function foo(p: R1): R1 {
+              p["Null Pointer Error"] = new Error("NPE")
+              return p
+          }
+      use: |-
+          let r: R1 = {}
+          r = foo(r)
+          arktest.assertTrue(r["Null Pointer Error"] instanceof Error)
+          arktest.assertTrue(r["NPE"] == undefined)
+
+    - decl: |-
+          // use it as alias with parameters
+          type R1<T> = Record<T, Error>
+          function foo(p: R1<string>): R1<string> {
+              p["Null Pointer Error"] = new Error("NPE")
+              return p
+          }
+      use: |-
+          let r: R1<string> = {}
+          r = foo(r)
+          arktest.assertTrue(r["Null Pointer Error"] instanceof Error)
+          arktest.assertTrue(r["NPE"] == undefined)
+
+    - decl: |-
+          // builtin array of records
+      use: |-
+          let r: Record<string, number>[] = new Record<string, number>[3]
+          r[0] = { "A": 1 }
+          r[1] = { "B": 2 }
+          r[2] = { "C": 3 }
+          arktest.assertTrue(r[0]["A"] == 1 && r[1]["B"] == 2 && r[2]["C"] == 3)
+          arktest.assertTrue(r[0]["a"] == undefined && r[1]["b"] == undefined && r[2]["c"] == undefined)
+
+    - decl: |-
+          // array of records
+      use: |-
+          let r = new Array<Record<string, number>>()
+          r.push({ "A": 1 })
+          r.push({ "B": 2 })
+          let v = r.pop()
+          arktest.assertTrue(v!["B"] == 2 && v!["A"] == undefined)
+          v = r.pop()
+          arktest.assertTrue(v!["A"] == 1 && v!["B"] == undefined)
+
+    - decl: |-
+          // tuple of records
+      use: |-
+          let r: [Record<number, string>, Record<string, (p: number) => string>] = [
+              { 1: "1", 2: "2", 3: "3" },
+              { "A": (p: number): string => "A" + p, "B": (p: number): string => "B" + p }
+          ]
+          arktest.assertTrue(r[0][1] == "1")
+          arktest.assertTrue(r[0][2] == "2")
+          arktest.assertTrue(r[0][3] == "3")
+          arktest.assertTrue(r[0][4] == undefined)
+          arktest.assertTrue(r[1]["A"]!(42) == "A42")
+          arktest.assertTrue(r[1]["B"]!(33) == "B33")
+          arktest.assertTrue(r[1]["C"] == undefined)
+
+    - decl: |-
+          // fields of Record type
+          class A {
+              f1: Record<String, Boolean> = {}
+              f2: Record<Number, Boolean> = {}
+          }
+      use: |-
+          let a = new A
+          a.f1["1"] = true
+          a.f1["0"] = false
+          a.f2[1] = false
+          a.f2[0] = true
+          arktest.assertTrue(a.f1["1"]! && !(a.f1["0"]!) && !(a.f2[1]!) && a.f2[0]!)
+          arktest.assertTrue(a.f1[""] == undefined && a.f2[42] == undefined)
+
+    - decl: |-
+          let a = 2, b = 1;
+          // generic argument of record type
+          function foo<T>(p: T): T {
+              if (a > b) {
+                  return p
+              }
+              throw new Error()
+          }
+      use: |-
+          let r: Record<"a"|"b"|"c", number> = {
+              "a": 1,
+              "b": 2,
+              "c": 3,
+          }
+          let q = foo<Record<"a"|"b"|"c", number>>(r)
+          arktest.assertTrue(q["a"] == 1 && q["b"] == 2 && q["c"] == 3)
+
+    - decl: |-
+          // generic argument of record type
+          class A<T> {
+              f: T
+              constructor(p: T) {
+                  this.f = p
+              }
+              put(p: T) {
+                  this.f = p
+              }
+          }
+          class B<T> extends A<T> {
+              constructor(p: T) {
+                  super(p)
+              }
+              meth(): T {
+                  return this.f
+              }
+          }
+      use: |-
+          let b: B<Record<Numeric, string>> = new B<Record<Numeric, string>>({
+              12345.0: "1 2 3 4 5",
+              67890.0: "6 7 8 9 0",
+          });
+          arktest.assertTrue(b.meth()[new Short(12345)] == "1 2 3 4 5")
+          arktest.assertTrue(b.meth()[67890] == "6 7 8 9 0")
+          arktest.assertTrue(b.meth()[11111] == undefined)
+          b.put({ 1.0: "A", 2.0: "B" })
+          arktest.assertTrue(b.meth()[1] == "A")
+          arktest.assertTrue(b.meth()[2] == "B")
+
+    - decl: |-
+          let a = 2, b = 1;
+          function to_obj(p: Object): Object {
+              if (a > b) {
+                  return p
+              }
+              return new Error()
+          }
+          function to_rec(p: Object|null): Record<number, number> {
+              return p as Record<number, number>
+          }
+          let r: Record<number, number> = {
+              1: 101,
+              2: 202,
+              3: 303,
+          }
+          let obj: Object|null;
+          let rec: Record<number, number>|null;
+      use: |-
+          // casting record to object and back
+          obj = to_obj(r)
+          let q = to_rec(obj)
+          arktest.assertTrue(q[1] == 101 && q[2] == 202 && q[3] == 303)
+
+    - decl: |-
+          // record with union keys
+      use: |-
+          let r: Record<string|number, bigint> = {
+              "A": 1n,
+              "B": 2n,
+              1: 100n,
+              2: 200n,
+          }
+          arktest.assertTrue(r["A"] == 1n && r["B"] == 2n)
+          arktest.assertTrue(r[1] == 100n && r[2] == 200n)
+          r["C"] = 3n
+          r[3] = 300n
+          arktest.assertTrue(r["C"] == 3n && r[3] == 300n)
+          arktest.assertTrue(r["D"] == undefined && r[4] == undefined)
+
+    - decl: |-
+          // record with union values
+      use: |-
+          let r: Record<string|number, double|char|boolean|string|bigint> = {
+              "1": 42.0
+          }
+          r[6] = 6.01
+          r["7"] = c'\u0007'
+          r[8] = true
+          r[9] = "abc"
+          r[0] = 111111111111111111111111111111111111111111111111111111111111111111111111111111111111n
+          arktest.assertTrue(r[0] == 111111111111111111111111111111111111111111111111111111111111111111111111111111111111n)
+          arktest.assertTrue(r[9] == "abc")
+          arktest.assertTrue(r[8] == true)
+          arktest.assertTrue(r["7"] == c'\u0007')
+          arktest.assertTrue(r[6] == 6.01)
+          arktest.assertTrue(r["1"] == 42.0)
+
+    - decl: |-
+          // use generic arguments in record value
+          class A<T extends Object> {
+              private f: Record<number, T> = {}
+              get(i: number): T|undefined { return this.f[i] }
+              set(i: number, p: T) { this.f[i] = p }
+          }
+      use: |-
+          let a: A<Record<string, number>> = new A<Record<string, number>>;
+          a.set(1, { "A": 100 })
+          a.set(2, { "B": 200 })
+          arktest.assertTrue(a.get(1)!["A"] == 100)
+          arktest.assertTrue(a.get(2)!["B"] == 200)
+          arktest.assertTrue(a.get(3) == undefined)
+
+    - decl: |-
+          // use generic argument in record key
+          class A<T extends Numeric> {
+              private f: Record<T, string> = {}
+              get(i: T): string|undefined { return this.f[i] }
+              set(i: T, p: string) { this.f[i] = p }
+          }
+      use: |-
+          let a: A<Int> = new A<Int>;
+          a.set(42, "42")
+          a.set(33, "33")
+          arktest.assertTrue(a.get(42) == "42")
+          arktest.assertTrue(a.get(33) == "33")
+          arktest.assertTrue(a.get(34) == undefined)
+          a.set(42, "0")
+          arktest.assertTrue(a.get(42) == "0")
+
+    - decl: |-
+        type TT = [number, number, string, boolean, Object]
+      use: |-
+        let ti: TT = [ 6, 7, "abc", true, 42]
+        let r: Record<Int, TT> = {0: ti}
+        arktest.assertEQ(42, r.get(0)?.[4])
+
+    - use: |-
+        let r: Record<Int, FixedArray<String>> = {0: ['a', 'b', 'c']}
+        arktest.assertEQ(3, r.get(0)?.length)
+
+    - use: |-
+        let r: Record<Int, Any> = {0: 'Hello World'}
+        arktest.assertEQ('Hello World', r.get(0))
+
+    - use: |-
+        let r: Record //CTE:  Type 'Record<K,V>' is generic but type argument were not provided
+      tags: 'compile-only, negative'
+
+    - use: |-
+          let r: Record<char, string> = {}  // CTE: wrong key type
+      tags: 'compile-only, negative'
+
+    - use: |-
+          let r: Record<string|boolean|number, string> = {}  // CTE: wrong key type
+      tags: 'compile-only, negative'
+
+    - use: |-
+          let r: Record<'a'|'b'|number, string> = {}  // CTE: wrong key type
+      tags: 'compile-only, negative'
+
+    - use: |-
+          let r: Record<'a'|'b'|1|2, string> = {}  // CTE: wrong key type
+      tags: 'compile-only, negative'
+
+    - use: |-
+          let r: Record<string|null, string> = {}  // CTE: wrong key type
+      tags: 'compile-only, negative'
+
+    - use: |-
+          let r: Record<number|undefined, string> = {}  // CTE: wrong key type
+      tags: 'compile-only, negative'
+
+    - use: |-
+        let r: Record<string, 'string'> = {}
+        r.set('Hello', 'World') // CTE: TypeError: Type '"World"' is not compatible with type '"string"' at index 2
+      tags: 'compile-only, negative'
+
+    - use: |-
+        let r: Record<Object, string> = {}  // CTE: wrong key type
+      tags: 'compile-only, negative'
+
+    - use: |-
+        let r: Record<undefined, string> = {}  // CTE: wrong key type
+      tags: 'compile-only, negative'
+
+    - decl: |-
+        type TL = () => void
+      use: |-
+        let r: Record<TL, string>  // CTE
+      tags: 'compile-only, negative'
+
+    - use: |-
+        let r: Record<Any, string> = {}  // CTE
+      tags: 'compile-only, negative'
+
+    - use: |-
+        let r: Record<Void, string> = {}  // CTE
+      tags: 'compile-only, negative'
+
+    - use: |-
+        let r: Record<void, string> = {}  // CTE
+      tags: 'compile-only, negative'
+
+    - decl: |-
+        type SA = String[]
+      use: |-
+        let r: Record<SA, String>  // CTE
+      tags: 'compile-only, negative'
+
+    - decl: |-
+        type SA = FixedArray<String>
+      use: |-
+        let r: Record<SA, String>  // CTE
+      tags: 'compile-only, negative'
+
+    - decl: |-
+        let r: Record<string, int>|null = {
+            'a': 1,
+            'b': 2,
+        } as Record<string, int>
+      use: |-
+        arktest.assertEQ(r!['a'], 1)
+        arktest.assertEQ(r!['b'], 2)
+
+    - decl: |-
+        let r: Record<string, int>|undefined = {
+            'a': 1,
+            'b': 2,
+        } as Record<string, int>
+      use: |-
+        arktest.assertEQ(r!['a'], 1)
+        arktest.assertEQ(r!['b'], 2)
+
+    - decl: |-
+        let r: Record<string, int|null>|null = {
+            'a': 1,
+            'b': null,
+        } as Record<string, int|null>
+      use: |-
+        arktest.assertEQ(r!['a'], 1)
+        arktest.assertEQ(r!['b'], null)
+
+    - decl: |-
+        let r: Record<string, int|undefined>|undefined = {
+            'a': 1,
+            'b': undefined,
+        } as Record<string, int|undefined>
+      use: |-
+        arktest.assertEQ(r!['a'], 1)
+        arktest.assertEQ(r!['b'], undefined)
+
+    - decl: |-
+        let r: Record<string, Record<string, int|null>|null>|null = {
+            'a': null,
+            'b': { 'bb1': null, 'bb2': 42 } as Record<string, int|null>,
+        } as Record<string, Record<string, int|null>|null>
+      use: |-
+        arktest.assertEQ(r!['a'], null)
+        arktest.assertEQ(r!['b']!['bb1'], null)
+        arktest.assertEQ(r!['b']!['bb2'], 42)
+
+    - decl: |-
+        let r: Record<string, Record<string, int|undefined>|undefined>|undefined = {
+            'a': undefined,
+            'b': { 'bb1': undefined, 'bb2': 42 } as Record<string, int|undefined>,
+        } as Record<string, Record<string, int|undefined>|undefined>
+      use: |-
+        arktest.assertEQ(r!['a'], undefined)
+        arktest.assertEQ(r!['b']!['bb1'], undefined)
+        arktest.assertEQ(r!['b']!['bb2'], 42)

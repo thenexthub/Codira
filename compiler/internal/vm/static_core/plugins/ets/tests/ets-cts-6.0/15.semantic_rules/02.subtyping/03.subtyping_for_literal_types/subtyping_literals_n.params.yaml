@@ -1,0 +1,79 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+cases:
+  # string is not a subtype of string literal
+  - decl: |-
+      let a: 'a' = 'a'
+      let b: string = 'a'
+      a = b
+  # function signature not contravariant
+  - decl: |-
+      class A {
+            a: 'a'|'b' = 'a'
+            foo(v: string): 'a'|'b' {
+              return this.a;
+            }
+          }
+
+          class B extends A {
+            b: 'b' = 'b'
+            override foo(v: 'a'|'b'): 'b' {
+              return this.b
+            }
+          }
+  # function parameter not covariant
+  - decl: |-
+      class A {
+        a: 'a' = 'a'
+        foo(v: 'a'|'b'): 'a' {
+          return this.a;
+        }
+      }
+
+      class B extends A {
+        b: 'a'|'b' = 'b'
+        override foo(v: string): 'a'|'b' {
+          return this.b
+        }
+      }
+  # co- and contravariance relations in lambda violated
+  - decl: |-
+      let foo: (v: string) => 'a'|'b' = (v: string): 'a'|'b' => {return 'a'}
+      let foo2: (v: 'b') => 'a'|'b'|'c' = (v: 'b'): 'a'|'b'|'c' => {return 'b'};
+
+    check: |-
+      foo = foo2
+  # null is a sub and supertype to itself
+  - decl: |-
+      let x: null = null
+      let y: Object = new Object()
+
+    check: |-
+      y = x
+  # undefined is a sub and supertype to itself
+  - decl: |-
+      let x: undefined = undefined
+      let y: Object = new Object()
+
+    check: |-
+      y = x

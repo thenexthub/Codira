@@ -1,0 +1,77 @@
+' Copyright (c) 2025 Huawei Device Co., Ltd.
+' Licensed under the Apache License, Version 2.0 (the "License");
+' you may not use this file except in compliance with the License.
+' You may obtain a copy of the License at
+'
+' http://www.apache.org/licenses/LICENSE-2.0
+'
+' Unless required by applicable law or agreed to in writing, software
+' distributed under the License is distributed on an "AS IS" BASIS,
+' WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+' See the License for the specific language governing permissions and
+' limitations under the License.
+
+@startuml
+skinparam BackgroundColor transparent
+
+class AsyncLock {
+    constructor();
+    {static} AsyncLock request(name: string);
+    {static} query(id?: number|string): AsyncLockState[];  
+    lockAsync<T, U>(callback: Function<T>, mode?: AsyncLockMode, options?: AsyncLockOptions<U>): Promise<T|U>;
+
+    +readonly name: string;
+    +readonly id: number;
+}
+
+note left of AsyncLock::"AsyncLock request(name: string);"
+  Get lock by `name` or create new one
+end note
+
+note left of AsyncLock::"query(id?: number|string): AsyncLockState[];"
+  Return lock by is or name. 
+  If lock does not exist, throws BusinessError
+end note
+
+enum AsyncLockMode {
+    SHARED = 1,
+    EXCLUSIVE = 2
+}
+
+note right of AsyncLockMode::"SHARED"
+  Allows reentrant lock
+end note
+
+note right of AsyncLockMode::"EXCLUSIVE"
+  Do not allow reentrant lock
+end note
+
+class AsyncLockOptions<T> {
+  +isAvailable?: boolean;
+  +signal?: AbortSignal<T>;
+  +timeout?: number;
+} 
+
+note right of AsyncLockOptions::"isAvailable?"
+  Aquire lock only if lock available(not locked)
+end note
+
+note right of AsyncLockOptions::"signal?"
+   If we want to allow user to abort lock, we provide this option (see AbortSignal)
+end note
+
+note right of AsyncLockOptions::"timeout?"
+  If it is specified, lockAsync will reject the resulting promise when timeout exceeds 
+end note
+
+
+class AbortSignal<T> {
+  +aborted: boolean;
+  +reason: T
+}
+
+note right of AbortSignal::"reason"
+  Reason of the abort.
+end note
+
+@enduml

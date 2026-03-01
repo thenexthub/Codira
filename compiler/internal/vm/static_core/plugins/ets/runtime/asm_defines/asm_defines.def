@@ -1,0 +1,94 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+// NOLINTBEGIN(readability-identifier-naming)
+DEFINE_VALUE(ETS_COROUTINE_PROMISE_CLASS_OFFSET, ark::ets::EtsCoroutine::GetTlsPromiseClassPointerOffset())
+DEFINE_VALUE(ETS_COROUTINE_NULL_VALUE_OFFSET, ark::ets::EtsCoroutine::GetTlsNullValueOffset())
+DEFINE_VALUE(ETS_COROUTINE_ANI_ENV_OFFSET, ark::ets::EtsCoroutine::GetTlsNapiEnvOffset())
+DEFINE_VALUE(ETS_COROUTINE_LOCAL_STORAGE_OFFSET, ark::ets::EtsCoroutine::GetLocalStorageOffset())
+
+DEFINE_VALUE(ETS_VM_DOUBLE_TO_STRING_CACHE_OFFSET, ark::ets::PandaEtsVM::GetDoubleToStringCacheOffset())
+
+DEFINE_VALUE(ETS_CLASS_RUNTIME_CLASS_OFFSET, ark::ets::EtsClass::GetRuntimeClassOffset())
+DEFINE_VALUE(ETS_CLASS_FLAGS_OFFSET, ark::ets::EtsClass::GetFlagsOffset())
+
+DEFINE_VALUE(ETS_CLASS_IS_NULLVALUE_FLAG, ark::ets::EtsClass::IS_NULLVALUE)
+DEFINE_VALUE(ETS_CLASS_IS_BOXED_FLAG, ark::ets::EtsClass::IS_BOXED)
+DEFINE_VALUE(ETS_CLASS_IS_VALUE_TYPED_FLAG, ark::ets::EtsClass::IS_VALUE_TYPED)
+DEFINE_VALUE(ETS_CLASS_IS_BIGINT_FLAG, ark::ets::EtsClass::IS_BIGINT)
+DEFINE_VALUE(ETS_CLASS_IS_ENUM_FLAG, ark::ets::EtsClass::IS_ETS_ENUM)
+DEFINE_VALUE(ETS_CLASS_BOXED_TYPE_FIELD_START, ark::ets::EtsClass::BOXED_TYPE_FIELD_START)
+DEFINE_VALUE(ETS_CLASS_BOXED_TYPE_FIELD_SIZE, ark::ets::EtsClass::BOXED_TYPE_FIELD_SIZE)
+DEFINE_VALUE(ETS_CLASS_BOXED_TYPE_CHAR_MASK_VALUE, (unsigned) ark::ets::EtsClass::BoxedType::CHAR)
+DEFINE_VALUE(ETS_CLASS_BOXED_TYPE_SHORT_MASK_VALUE, (unsigned) ark::ets::EtsClass::BoxedType::SHORT)
+DEFINE_VALUE(ETS_CLASS_BOXED_TYPE_INT_MASK_VALUE, (unsigned) ark::ets::EtsClass::BoxedType::INT)
+DEFINE_VALUE(ETS_CLASS_BOXED_TYPE_LONG_MASK_VALUE, (unsigned) ark::ets::EtsClass::BoxedType::LONG)
+DEFINE_VALUE(ETS_CLASS_BOXED_TYPE_FLOAT_MASK_VALUE, (unsigned) ark::ets::EtsClass::BoxedType::FLOAT)
+DEFINE_VALUE(ETS_CLASS_BOXED_TYPE_DOUBLE_MASK_VALUE, (unsigned) ark::ets::EtsClass::BoxedType::DOUBLE)
+DEFINE_VALUE(ETS_CLASS_IS_BIG_INT_FLAG, ark::ets::EtsClass::IS_BIGINT)
+
+DEFINE_VALUE(ESCOMPAT_ARRAY_BUFFER_OFFSET, ark::ets::EtsEscompatArray::GetBufferOffset())
+DEFINE_VALUE(ESCOMPAT_ARRAY_ACTUAL_LENGTH_OFFSET,
+             ark::ets::EtsEscompatArray::GetActualLengthOffset())
+
+DEFINE_VALUE(TYPED_ARRAY_CLASS_SIZE, ark::ets::EtsEscompatTypedArrayBase::GetClassSize())
+DEFINE_VALUE(TYPED_ARRAY_BUFFER_OFFSET, ark::ets::EtsEscompatTypedArrayBase::GetBufferOffset())
+DEFINE_VALUE(TYPED_ARRAY_LENGTH_OFFSET, ark::ets::EtsEscompatTypedArrayBase::GetLengthIntOffset())  // the same as TYPED_ARRAY_LENGTH_INT_OFFSET
+DEFINE_VALUE(TYPED_ARRAY_BYTES_PER_ELEMENT_OFFSET, ark::ets::EtsEscompatTypedArrayBase::GetBytesPerElementOffset())
+DEFINE_VALUE(TYPED_ARRAY_BYTE_OFFSET_OFFSET, ark::ets::EtsEscompatTypedArrayBase::GetByteOffsetOffset())
+DEFINE_VALUE(TYPED_ARRAY_BYTE_LENGTH_OFFSET, ark::ets::EtsEscompatTypedArrayBase::GetByteLengthOffset())
+DEFINE_VALUE(TYPED_ARRAY_LENGTH_INT_OFFSET, ark::ets::EtsEscompatTypedArrayBase::GetLengthIntOffset())
+
+DEFINE_VALUE(TYPED_UNSIGNED_ARRAY_CLASS_SIZE, ark::ets::EtsEscompatTypedUArrayBase::GetClassSize())
+DEFINE_VALUE(TYPED_UNSIGNED_ARRAY_BUFFER_OFFSET, ark::ets::EtsEscompatTypedUArrayBase::GetBufferOffset())
+DEFINE_VALUE(TYPED_UNSIGNED_ARRAY_LENGTH_OFFSET, ark::ets::EtsEscompatTypedUArrayBase::GetLengthIntOffset()) // the same as TYPED_UNSIGNED_ARRAY_LENGTH_INT_OFFSET
+DEFINE_VALUE(TYPED_UNSIGNED_ARRAY_LENGTH_INT_OFFSET, ark::ets::EtsEscompatTypedUArrayBase::GetLengthIntOffset())
+DEFINE_VALUE(TYPED_UNSIGNED_ARRAY_BYTES_PER_ELEMENT_OFFSET, ark::ets::EtsEscompatTypedUArrayBase::GetBytesPerElementOffset())
+DEFINE_VALUE(TYPED_UNSIGNED_ARRAY_BYTE_OFFSET_OFFSET, ark::ets::EtsEscompatTypedUArrayBase::GetByteOffsetOffset())
+DEFINE_VALUE(TYPED_UNSIGNED_ARRAY_BYTE_LENGTH_OFFSET, ark::ets::EtsEscompatTypedUArrayBase::GetByteLengthOffset())
+
+DEFINE_VALUE(ARRAY_BUFFER_CLASS_SIZE, sizeof(ark::ets::EtsEscompatArrayBuffer))
+DEFINE_VALUE(ARRAY_BUFFER_DATA_OFFSET, ark::ets::EtsEscompatArrayBuffer::GetManagedDataOffset())
+DEFINE_VALUE(ARRAY_BUFFER_BYTE_LENGTH_OFFSET, ark::ets::EtsEscompatArrayBuffer::GetByteLengthOffset())
+
+DEFINE_VALUE(PLATFORM_TYPES_ASCII_CHAR_CACHE_SIZE, ark::ets::EtsPlatformTypesIrtocOffsets::GetAsciiCharCacheSize())
+DEFINE_VALUE(PLATFORM_TYPES_ASCII_CHAR_CACHE_OFFSET, ark::ets::EtsPlatformTypesIrtocOffsets::GetAsciiCharCacheOffset())
+DEFINE_VALUE(PLATFORM_TYPES_ESCOMPAT_ARRAY_CLASS_OFFSET, ark::ets::EtsPlatformTypesIrtocOffsets::ESCOMPAT_ARRAY)
+DEFINE_VALUE(PLATFORM_TYPES_CORE_LINE_STRING_CLASS_OFFSET, ark::ets::EtsPlatformTypesIrtocOffsets::CORE_LINE_STRING)
+DEFINE_VALUE(PLATFORM_TYPES_CORE_SLICED_STRING_CLASS_OFFSET, ark::ets::EtsPlatformTypesIrtocOffsets::CORE_SLICED_STRING)
+DEFINE_VALUE(PLATFORM_TYPES_CORE_TREE_STRING_CLASS_OFFSET, ark::ets::EtsPlatformTypesIrtocOffsets::CORE_TREE_STRING)
+
+DEFINE_VALUE(ESCOMPAT_MAP_DATA_OFFSET, ark::ets::EtsEscompatMap::GetDataOffset())
+DEFINE_VALUE(ESCOMPAT_MAP_BUCKETS_OFFSET, ark::ets::EtsEscompatMap::GetBucketsOffset())
+DEFINE_VALUE(ESCOMPAT_MAP_CAP_OFFSET, ark::ets::EtsEscompatMap::GetCapOffset())
+DEFINE_VALUE(ESCOMPAT_MAP_NUM_ENTRIES_OFFSET, ark::ets::EtsEscompatMap::GetNumEntriesOffset())
+DEFINE_VALUE(ESCOMPAT_MAP_SIZE_VAL_OFFSET, ark::ets::EtsEscompatMap::GetSizeValOffset())
+DEFINE_VALUE(ESCOMPAT_MAP_INITIAL_CAPACITY_OFFSET, ark::ets::EtsEscompatMap::GetInitialCapacityOffset())
+
+DEFINE_VALUE(ESCOMPAT_SET_ELEMENTS_OFFSET, ark::ets::EtsEscompatSet::GetElementsOffset())
+
+DEFINE_VALUE(ETS_BOX_PRIMITIVE_VALUE_OFFSET, ark::ets::EtsBoxPrimitive<ark::ets::EtsBoolean>::GetValueOffset())
+DEFINE_VALUE(ETS_BASE_ENUM_VALUE_OFFSET, ark::ets::EtsBaseEnum::GetValueOffset())
+
+DEFINE_VALUE(ETS_BIG_INT_BYTES_OFFSET, ark::ets::EtsBigInt::GetBytesOffset())
+DEFINE_VALUE(ETS_BIG_INT_SIGN_OFFSET, ark::ets::EtsBigInt::GetSignOffset())
+
+// NOLINTEND(readability-identifier-naming)

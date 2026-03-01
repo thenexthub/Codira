@@ -1,0 +1,76 @@
+# Copyright (c) 2021-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - { value: 'new Object()',       result: 'object'     }
+  - { value: 'new Byte(-1)',       result: 'byte'       }
+  - { value: 'new Short(-1)',      result: 'short'      }
+  - { value: 'new Int(-1)',        result: 'int'        }
+  - { value: 'new Long(-1)',       result: 'long'       }
+  - { value: 'new Boolean(false)', result: 'boolean'    }
+  - { value: 'true',               result: 'boolean'    }
+  - { value: 'false',              result: 'boolean'    }
+  - { value: 'new Float(3.14f)',   result: 'float'      }
+  - { value: 'new Double(3.14)',   result: 'double'     }
+  - { value: '-1 as long',         result: 'long'       }
+  - { value: '-1 as int',          result: 'int'        }
+  - { value: '-1',                 result: 'byte'       }
+  - { value: '-1 as short',        result: 'short'      }
+  - { value: '-1 as byte',         result: 'byte'       }
+  - { value: '3.14',               result: 'double'     }
+  - { value: '3.14f',              result: 'float'      }
+  - { value: '"abc"',              result: 'string'     }
+  - { value: 'Color.Red',          result: 'Color'      }
+  - { value: 'Size.L',             result: 'Size'       }
+  - { value: '[3.14, "abc"] as T', result: 'T'          }
+  - { value: '[3.14, false] as R', result: 'R'          }
+  - { value: '["abc"]',            result: 'FA:string'  }
+  - { value: '[(-1).toByte()]',    result: 'FA:byte'    }
+  - { value: '[(-1).toShort()]',   result: 'FA:short'   }
+  - { value: '[(-1).toInt()]',     result: 'FA:int'     }
+  - { value: '[(-1).toLong()]',    result: 'FA:long'    }
+  - { value: '[false]',            result: 'FA:boolean' }
+  - { value: '[3.14f]',            result: 'FA:float'   }
+  - { value: '[3.14]',             result: 'FA:double'  }
+  - { value: '[new Object()]',     result: 'FA:object'  }
+  - { value: '[Color.Red]',        result: 'FA:Color'   }
+  - { value: '[Size.M]',           result: 'FA:Size'    }
+  - { value: 'new FixedArray<A>(1)',           result: 'FA:A'       }
+  - { value: '[3.14, 3.14]',       result: 'FA:double'  }
+  - { value: '["abc", "xyz"]',     result: 'FA:string'  }
+  - { value: '10, 20',             result: 'i+i'        }
+  - { value: '"a?", 1',            result: 's+d'        }
+  - { value: '"a?", 2.1',          result: 's+d'        }
+  - { value: 'false, new X()',     result: 'b+o?'       }
+  - { value: 'true, undefined',    result: 'b+o?'       }
+  - { value: '(): void => { let i: int = 0 }',             result: 'void-void'  }
+  - { value: '(n: number): string => { return "n=" + n }', result: 'FF'         }
+  - { value: '(p: string): int => { return p.length }',    result: 'EE'         }
+  - { value: '5, [new X(), new Y()]',                      result: 'i+o[]'      }
+  - { value: '"abc", new X()',                             result: 's+...o'     }
+  - { value: '"abc", [new X()]',                           result: 's+...o'     }
+  - { value: '"abc", new X(), new Y()',                    result: 's+...o'     }
+  - { value: '"abc", new X(), new Y(), new Z()',           result: 's+...o'     }
+  - { value: '"abc", [new X(), new Y()]',                  result: 's+...o'     }
+  - { value: 'new X(), new Y()',                           result: 'X+Y'        }
+  - { value: 'new X(), new Z()',                           result: 'X+Y'        }
+  - { value: 'new Y(), new X()',                           result: 'objects'    }
+  - { value: 'new Y(), new Z()',                           result: 'Y+Z'        }
+  - { value: 'new Z(), new X()',                           result: 'objects'    }
+  - { value: 'new Z(), new Y()',                           result: 'X+Y'        }
+  - { value: 'new X()',                                    result: 'X'          }
+  - { value: 'new Y()',                                    result: 'X'          }
+  - { value: 'new Z()',                                    result: 'Z'          }
+  - { value: '10, 1.1, "new X()", true',                   result: 'objects'    }
+  - { value: '(v: number): void => { let k: int = 5; }',   result: 'number-void' }

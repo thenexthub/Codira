@@ -1,0 +1,32 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+  - { arg: "", call: "", res: 1}
+  - { arg: "i: Boolean", call: "new Boolean()", res: 18}
+  - { arg: "i: Byte", call: "new Byte()", res: 16}
+  - { arg: "i: Short", call: "new Short()", res: 3}
+  - { arg: "i: Int", call: "new Int()", res: 5}
+  - { arg: "i: Long", call: "new Long()", res: 7}
+  - { arg: "i: Float", call: "new Float()", res: 9}
+  - { arg: "i: Number", call: "new Number()", res: 11}
+  - { arg: "i: Char", call: "new Char()", res: 13}
+  - { arg: "i: string", call: "\"some str\"", res: 14}
+  - { arg: "i: int, j: int", call: "1 as int, 2 as int", res: 19}
+  - { arg: "i: Gen<T>", call: "new Gen<String>", res: 20}
+  - { arg: "i: Gen2<T, S>", call: "new Gen2<String, Number>", res: 21}
+  - { arg: "i: number, j: Number", call: "1, new Number()", res: 23}
+  - { arg: "i: FUN", call: "() => { return true; }", res: 24}
+  - { arg: "i: Char[]", call: "[ new Char(), new Char(), new Char() ]", res: 26}
+  - { arg: "i: Number|undefined|null", call: "undefined", res: 22}

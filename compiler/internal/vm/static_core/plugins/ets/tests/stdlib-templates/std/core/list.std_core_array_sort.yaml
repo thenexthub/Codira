@@ -1,0 +1,536 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+- {
+    method_name: sort,
+    method_nature: procedure,
+    result: arr,
+    result_nature: array,
+    result_type: "FixedArray<boolean>",
+    init_value: "[]",
+    method_signature: { arr: "FixedArray<boolean>", startIndex: "int", endIndex: "int" },
+    method_throws: "true",
+    method_signature_desc: {arr: "boolean_array", startIndex: int, endIndex: int},
+    method_test_index_data:
+      {
+        test1:
+          {
+            arr: "[false, false, false, false, false, true]",
+            startIndex: 0,
+            endIndex: 2,
+          },
+        test2:
+          {
+            arr: "[false, false, false, false, true, false]",
+            startIndex: 0,
+            endIndex: arr.length,
+          },
+        test3:
+          {
+            arr: "[true, false, true, false, false, true]",
+            startIndex: 0,
+            endIndex: 4,
+          },
+        test4:
+          {
+            arr: "[true, false, false, false, false, true, true, false, false, false, false, true, true, false, false, false, false, true]",
+            startIndex: 6,
+            endIndex: 8,
+          },
+      },
+    method_expected_data:
+      {
+        test1: "[false, false, false, false, false, true]",
+        test2: "[false, false, false, false, false, true]",
+        test3: "[false, false, true, true, false, true]",
+        test4: "[true, false, false, false, false, true, false, true, false, false, false, true, true, false, false, false, false, true]",
+      },
+  }
+- {
+    method_name: sort,
+    method_nature: procedure,
+    result: arr,
+    result_nature: array,
+    result_type: "FixedArray<byte>",
+    init_value: "[]",
+    method_signature: { arr: "FixedArray<byte>", startIndex: "int", endIndex: "int" },
+    method_throws: "true",
+    method_signature_desc: {arr: "byte_array", startIndex: int, endIndex: int},
+    method_test_index_data:
+      {
+        test1:
+          {
+            arr: "[-2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+            startIndex: 0,
+            endIndex: 4,
+          },
+        test2:
+          {
+            arr: "[4, 3, 2, -11, 0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+            startIndex: 0,
+            endIndex: 5,
+          },
+        test3:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 9, 8, 7, 6, 10, 11, 12, 13, 14, 15, 16]",
+            startIndex: 6,
+            endIndex: 10,
+          },
+        test4:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 16, 15, 14, 13]",
+            startIndex: 12,
+            endIndex: arr.length,
+          },
+        test5:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 10, 12, 13, 14, 15, 16]",
+            startIndex: 10,
+            endIndex: 12,
+          },
+        test6:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 10, 12, 13, 14, 15, 16]",
+            startIndex: 0,
+            endIndex: 14,
+          },
+          test7:
+          {
+            arr: "[0, 1, 2, 3, 1, 5, 6, 1, 8, 9, 11, 1, 12, 1, 1, 1, 1]",
+            startIndex: 0,
+            endIndex: 14,
+          },
+
+      },
+    method_expected_data:
+      {
+        test1: "[-2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test2: "[-11, 0,  2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test3: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test4: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test5: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test6: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test7: "[0, 1, 1, 1, 1, 1, 2, 3, 5, 6, 8,  9,  11, 12, 1,  1,  1 ]",
+      },
+  }
+- {
+    method_name: sort,
+    method_nature: procedure,
+    result: arr,
+    result_nature: array,
+    result_type: "FixedArray<short>",
+    init_value: "[]",
+    method_signature: { arr: "FixedArray<short>", startIndex: "int", endIndex: "int" },
+    method_throws: "true",
+    method_signature_desc: {arr: "short_array", startIndex: int, endIndex: int},
+    method_test_index_data:
+      {
+        test1:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+            startIndex: 0,
+            endIndex: 4,
+          },
+        test2:
+          {
+            arr: "[4, 3, 2, 1, 0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+            startIndex: 0,
+            endIndex: 5,
+          },
+        test3:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 9, 8, 7, 6, 10, 11, 12, 13, 14, 15, 16]",
+            startIndex: 6,
+            endIndex: 10,
+          },
+        test4:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 16, 15, 14, 13]",
+            startIndex: 12,
+            endIndex: arr.length,
+          },
+        test5:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 10, 12, 13, 14, 15, 16]",
+            startIndex: 10,
+            endIndex: 12,
+          },
+        test6:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 10, 12, -13, 14, 15, 16]",
+            startIndex: 0,
+            endIndex: 14,
+          },
+          test7:
+          {
+            arr: "[0, 1, 2, 3, 1, 5, 6, 1, 8, 9, 11, 1, 12, 1, 1, 1, 1]",
+            startIndex: 0,
+            endIndex: 14,
+          },
+
+      },
+    method_expected_data:
+      {
+        test1: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test2: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test3: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test4: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test5: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test6: "[-13, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16]",
+        test7: "[0, 1, 1, 1, 1, 1, 2, 3, 5, 6, 8,  9,  11, 12, 1,  1,  1 ]",
+      },
+  }
+- {
+    method_name: sort,
+    method_nature: procedure,
+    result: arr,
+    result_nature: array,
+    result_type: "FixedArray<int>",
+    init_value: "[]",
+    method_signature: { arr: "FixedArray<int>", startIndex: "int", endIndex: "int" },
+    method_throws: "true",
+    method_signature_desc: {arr: "int_array", startIndex: int, endIndex: int},
+    method_test_index_data:
+      {
+        test1:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+            startIndex: 0,
+            endIndex: 4,
+          },
+        test2:
+          {
+            arr: "[4, 3, 2, 1, 0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+            startIndex: 0,
+            endIndex: 5,
+          },
+        test3:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 9, 8, 7, 6, 10, 11, 12, 13, 14, 15, 16]",
+            startIndex: 6,
+            endIndex: 10,
+          },
+        test4:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 16, 15, 14, 13]",
+            startIndex: 12,
+            endIndex: arr.length,
+          },
+        test5:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 10, 12, 13, 14, 15, 16]",
+            startIndex: 10,
+            endIndex: 12,
+          },
+        test6:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 10, 12, 13, 14, 15, 16]",
+            startIndex: 0,
+            endIndex: 14,
+          },
+          test7:
+          {
+            arr: "[0, 1, 2, 3, 1, 5, 6, 1, 8, 9, 11, 1, 12, 1, 1, 1, 1]",
+            startIndex: 0,
+            endIndex: 14,
+          },
+
+      },
+    method_expected_data:
+      {
+        test1: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test2: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test3: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test4: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test5: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test6: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test7: "[0, 1, 1, 1, 1, 1, 2, 3, 5, 6, 8,  9,  11, 12, 1,  1,  1 ]",
+      },
+  }
+- {
+    method_name: sort,
+    method_nature: procedure,
+    result: arr,
+    result_nature: array,
+    result_type: "FixedArray<long>",
+    init_value: "[]",
+    method_signature: { arr: "FixedArray<long>", startIndex: "int", endIndex: "int" },
+    method_throws: "true",
+    method_signature_desc: {arr: "long_array", startIndex: int, endIndex: int},
+    method_test_index_data:
+      {
+        test1:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+            startIndex: 0,
+            endIndex: 4,
+          },
+        test2:
+          {
+            arr: "[4, 3, 2, 1, 0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+            startIndex: 0,
+            endIndex: 5,
+          },
+        test3:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 9, 8, 7, 6, 10, 11, 12, 13, 14, 15, 16]",
+            startIndex: 6,
+            endIndex: 10,
+          },
+        test4:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 16, 15, 14, 13]",
+            startIndex: 12,
+            endIndex: arr.length,
+          },
+        test5:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 10, 12, 13, 14, 15, 16]",
+            startIndex: 10,
+            endIndex: 12,
+          },
+        test6:
+          {
+            arr: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 10, 12, 13, 14, 15, 16]",
+            startIndex: 0,
+            endIndex: 14,
+          },
+          test7:
+          {
+            arr: "[0, 1, 2, 3, 1, 5, 6, 1, 8, 9, 11, 1, 12, 1, 1, 1, 1]",
+            startIndex: 0,
+            endIndex: 14,
+          },
+
+      },
+    method_expected_data:
+      {
+        test1: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test2: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test3: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test4: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test5: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test6: "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]",
+        test7: "[0, 1, 1, 1, 1, 1, 2, 3, 5, 6, 8,  9,  11, 12, 1,  1,  1 ]",
+      },
+  }
+- {
+    method_name: sort,
+    method_nature: procedure,
+    result: arr,
+    result_nature: array,
+    result_type: "FixedArray<float>",
+    init_value: "[]",
+    method_signature: { arr: "FixedArray<float>", startIndex: "int", endIndex: "int" },
+    method_throws: "true",
+    method_signature_desc: {arr: "float_array", startIndex: int, endIndex: int},
+    method_test_index_data:
+      {
+        test1:
+          {
+            arr: "[0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f]",
+            startIndex: 0,
+            endIndex: 4,
+          },
+        test2:
+          {
+            arr: "[4.0f, 3.0f, 2.0f, 1.0f, 0.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f]",
+            startIndex: 0,
+            endIndex: 5,
+          },
+        test3:
+          {
+            arr: "[0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 9.0f, 8.0f, 7.0f, 6.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f]",
+            startIndex: 6,
+            endIndex: 10,
+          },
+        test4:
+          {
+            arr: "[0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 16.0f, 15.0f, 14.0f, 13.0f]",
+            startIndex: 12,
+            endIndex: arr.length,
+          },
+        test5:
+          {
+            arr: "[0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 11.0f, 10.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f]",
+            startIndex: 10,
+            endIndex: 12,
+          },
+        test6:
+          {
+            arr: "[0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 11.0f, 10.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f]",
+            startIndex: 0,
+            endIndex: 14,
+          },
+          test7:
+          {
+            arr: "[0, 1, 2, 3, 1, 5, 6, 1, 8, 9, 11, 1, 12, 1, 1, 1, 1]",
+            startIndex: 0,
+            endIndex: 14,
+          },
+
+      },
+    method_expected_data:
+      {
+        test1: "[0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f]",
+        test2: "[0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f]",
+        test3: "[0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f]",
+        test4: "[0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f]",
+        test5: "[0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f]",
+        test6: "[0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f]",
+        test7: "[0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 2.0f, 3.0f, 5.0f, 6.0f, 8.0f,  9.0f,  11.0f, 12.0f, 1.0f,  1.0f,  1.0f ]",
+      },
+  }
+- {
+    method_name: sort,
+    method_nature: procedure,
+    result: arr,
+    result_nature: array,
+    result_type: "FixedArray<double>",
+    init_value: "[]",
+    method_signature: { arr: "FixedArray<double>", startIndex: "int", endIndex: "int" },
+    method_throws: "true",
+    method_signature_desc: {arr: "double_array", startIndex: int, endIndex: int},
+    method_test_index_data:
+      {
+        test1:
+          {
+            arr: "[0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0]",
+            startIndex: 0,
+            endIndex: 4,
+          },
+        test2:
+          {
+            arr: "[4.0, 3.0, 2.0, 1.0, 0.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0]",
+            startIndex: 0,
+            endIndex: 5,
+          },
+        test3:
+          {
+            arr: "[0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 9.0, 8.0, 7.0, 6.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0]",
+            startIndex: 6,
+            endIndex: 10,
+          },
+        test4:
+          {
+            arr: "[0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 16.0, 15.0, 14.0, 13.0]",
+            startIndex: 12,
+            endIndex: arr.length,
+          },
+        test5:
+          {
+            arr: "[0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 11.0, 10.0, 12.0, 13.0, 14.0, 15.0, 16.0]",
+            startIndex: 10,
+            endIndex: 12,
+          },
+        test6:
+          {
+            arr: "[0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 11.0, 10.0, 12.0, 13.0, 14.0, 15.0, 16.0]",
+            startIndex: 0,
+            endIndex: 14,
+          },
+          test7:
+          {
+            arr: "[0, 1, 2, 3, 1, 5, 6, 1, 8, 9, 11, 1, 12, 1, 1, 1, 1]",
+            startIndex: 0,
+            endIndex: 14,
+          },
+
+      },
+    method_expected_data:
+      {
+        test1: "[0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0]",
+        test2: "[0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0]",
+        test3: "[0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0]",
+        test4: "[0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0]",
+        test5: "[0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0]",
+        test6: "[0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0]",
+        test7: "[0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 3.0, 5.0, 6.0, 8.0,  9.0,  11.0, 12.0, 1.0,  1.0,  1.0 ]",
+      },
+  }
+- {
+    method_name: sort,
+    method_nature: procedure,
+    result: arr,
+    result_nature: array,
+    result_type: "FixedArray<char>",
+    init_value: "[]",
+    method_signature: { arr: "FixedArray<char>", startIndex: "int", endIndex: "int" },
+    method_throws: "true",
+    method_signature_desc: {arr: "char_array", startIndex: int, endIndex: int},
+    method_test_index_data:
+      {
+        test1:
+          {
+            arr: "[c'\\x00', c'\\x01', c'\\x02', c'\\x03', c'\\x04', c'\\x05', c'\\x06', c'\\x07', c'\\x08', c'\\x09', c'\\x0A', c'\\x0B', c'\\x0C', c'\\x0D', c'\\x0E', c'\\x0F', c'\\x10']",
+            startIndex: 0,
+            endIndex: 4,
+          },
+        test2:
+          {
+            arr: "[c'\\x04', c'\\x03', c'\\x02', c'\\x01', c'\\x00', c'\\x05', c'\\x06', c'\\x07', c'\\x08', c'\\x09', c'\\x0A', c'\\x0B', c'\\x0C', c'\\x0D', c'\\x0E', c'\\x0F', c'\\x10']",
+            startIndex: 0,
+            endIndex: 5,
+          },
+        test3:
+          {
+            arr: "[c'\\x00', c'\\x01', c'\\x02', c'\\x03', c'\\x04', c'\\x05', c'\\x09', c'\\x08', c'\\x07', c'\\x06', c'\\x0A', c'\\x0B', c'\\x0C', c'\\x0D', c'\\x0E', c'\\x0F', c'\\x10']",
+            startIndex: 6,
+            endIndex: 10,
+          },
+        test4:
+          {
+            arr: "[c'\\x00', c'\\x01', c'\\x02', c'\\x03', c'\\x04', c'\\x05', c'\\x06', c'\\x07', c'\\x08', c'\\x09', c'\\x0A', c'\\x0B', c'\\x0C', c'\\x10', c'\\x0F', c'\\x0E', c'\\x0D']",
+            startIndex: 12,
+            endIndex: arr.length,
+          },
+        test5:
+          {
+            arr: "[c'\\x00', c'\\x01', c'\\x02', c'\\x03', c'\\x04', c'\\x05', c'\\x06', c'\\x07', c'\\x08', c'\\x09', c'\\x0B', c'\\x0A', c'\\x0C', c'\\x0D', c'\\x0E', c'\\x0F', c'\\x10']",
+            startIndex: 10,
+            endIndex: 12,
+          },
+        test6:
+          {
+            arr: "[c'\\x00', c'\\x01', c'\\x02', c'\\x03', c'\\x04', c'\\x05', c'\\x06', c'\\x07', c'\\x08', c'\\x09', c'\\x0B', c'\\x0A', c'\\x0C', c'\\x0D', c'\\x0E', c'\\x0F', c'\\x10']",
+            startIndex: 0,
+            endIndex: 14,
+          },
+          test7:
+          {
+            arr: "[c'\\x00', c'\\x01', c'\\x02', c'\\x03', c'\\x01', c'\\x05', c'\\x06', c'\\x01', c'\\x08', c'\\x09', c'\\x0B', c'\\x01',  c'\\x0C',  c'\\x01',  c'\\x01', c'\\x01',  c'\\x01']",
+            startIndex: 0,
+            endIndex: 14,
+          },
+
+      },
+    method_expected_data:
+      {
+        test1: "[c'\\x00', c'\\x01', c'\\x02', c'\\x03', c'\\x04', c'\\x05', c'\\x06', c'\\x07', c'\\x08', c'\\x09', c'\\x0A', c'\\x0B', c'\\x0C', c'\\x0D', c'\\x0E', c'\\x0F', c'\\x10']",
+        test2: "[c'\\x00', c'\\x01', c'\\x02', c'\\x03', c'\\x04', c'\\x05', c'\\x06', c'\\x07', c'\\x08', c'\\x09', c'\\x0A', c'\\x0B', c'\\x0C', c'\\x0D', c'\\x0E', c'\\x0F', c'\\x10']",
+        test3: "[c'\\x00', c'\\x01', c'\\x02', c'\\x03', c'\\x04', c'\\x05', c'\\x06', c'\\x07', c'\\x08', c'\\x09', c'\\x0A', c'\\x0B', c'\\x0C', c'\\x0D', c'\\x0E', c'\\x0F', c'\\x10']",
+        test4: "[c'\\x00', c'\\x01', c'\\x02', c'\\x03', c'\\x04', c'\\x05', c'\\x06', c'\\x07', c'\\x08', c'\\x09', c'\\x0A', c'\\x0B', c'\\x0C', c'\\x0D', c'\\x0E', c'\\x0F', c'\\x10']",
+        test5: "[c'\\x00', c'\\x01', c'\\x02', c'\\x03', c'\\x04', c'\\x05', c'\\x06', c'\\x07', c'\\x08', c'\\x09', c'\\x0A', c'\\x0B', c'\\x0C', c'\\x0D', c'\\x0E', c'\\x0F', c'\\x10']",
+        test6: "[c'\\x00', c'\\x01', c'\\x02', c'\\x03', c'\\x04', c'\\x05', c'\\x06', c'\\x07', c'\\x08', c'\\x09', c'\\x0A', c'\\x0B', c'\\x0C', c'\\x0D', c'\\x0E', c'\\x0F', c'\\x10']",
+        test7: "[c'\\x00', c'\\x01', c'\\x01', c'\\x01', c'\\x01', c'\\x01', c'\\x02', c'\\x03', c'\\x05', c'\\x06', c'\\x08', c'\\x09', c'\\x0B', c'\\x0C', c'\\x01', c'\\x01', c'\\x01']",
+      },
+  }

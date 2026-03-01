@@ -1,0 +1,283 @@
+# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # Common properties in interfaces
+    - decl: |-
+          // interfaces, properties of any type
+          interface I {
+              fld?: Object|null
+          }
+          interface J {
+              fld: Object|null|undefined
+          }
+          class A implements I {
+              fld: Object|null|undefined
+          }
+          class B implements J {
+              fld: Object|null|undefined = null
+          }
+          let u1: J|I = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertTrue(u1.fld === undefined)
+          arktest.assertTrue(u2.fld === null)
+
+    - decl: |-
+          // interfaces, properties of number type
+          interface I {
+              fld: number
+          }
+          interface J {
+              fld: number
+          }
+          class A implements I {
+              fld: number = 42.0
+          }
+          class B implements J {
+              fld: number
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertEQ(u1.fld, 42.0)
+          arktest.assertEQ(u2.fld, 0e0)
+
+    - decl: |-
+          // interfaces, properties of bigint type
+          interface I {
+              fld: bigint
+          }
+          interface J {
+              fld: bigint
+          }
+          class A implements I {
+              fld: bigint = 42n
+          }
+          class B implements J {
+              fld: bigint = 33n
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertEQ(u1.fld, 42n)
+          arktest.assertEQ(u2.fld, 33n)
+
+    - decl: |-
+          // interfaces, properties of Integral type
+          interface I {
+              fld: Integral
+          }
+          interface J extends I {}
+          class A implements I {
+              fld: Integral = new Int(42)
+          }
+          class B implements J {
+              fld: Integral = new Short(33 as short)
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertEQ(u1.fld, 42)
+          arktest.assertEQ(u2.fld, 33)
+
+    - decl: |-
+          // interfaces, properties of Error type
+          interface I {
+              get fld(): Error
+              set fld(p: Error)
+          }
+          interface J {
+              fld: Error
+          }
+          class A implements I {
+              fld: Error = new Error('a')
+          }
+          class B implements J {
+              fld: Error = new Error('b')
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertEQ(u1.fld.message, 'a')
+          arktest.assertEQ(u2.fld.message, 'b')
+
+    - decl: |-
+          // interfaces, properties of union literal type
+          interface I {
+              fld: 'a'|'b'|'c'
+          }
+          interface J {
+              get fld(): 'a'|'b'|'c'
+              set fld(p: 'a'|'b'|'c')
+          }
+          class A implements I {
+              fld: 'a'|'b'|'c' = 'a'
+          }
+          class B implements J {
+              fld: 'a'|'b'|'c'|'b'|'a' = 'b'
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertEQ(u1.fld, 'a')
+          arktest.assertEQ(u2.fld, 'b')
+
+    - decl: |-
+          // interfaces, properties of union type
+          interface I {
+              fld: string|number|undefined
+          }
+          interface J {
+              fld: string|number|undefined
+          }
+          class A implements I {
+              fld: string|number|undefined = 42.0
+          }
+          class B implements J {
+              fld: 'a'|string|number|undefined
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertEQ(u1.fld, 42.0)
+          arktest.assertEQ(u2.fld, undefined)
+
+    - decl: |-
+          // interfaces, properties of array type
+          interface I {
+              fld: string[]
+          }
+          interface J {
+              fld: string[]
+          }
+          class A implements I {
+              fld: string[] = ['a', 'b']
+          }
+          class B implements J {
+              fld: string[] = ['c', 'd', 'e']
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertEQ(u1.fld[0], 'a')
+          arktest.assertEQ(u2.fld[2], 'e')
+
+    - decl: |-
+          // interfaces, properties of tuple type
+          interface I {
+              fld: [number, string]
+          }
+          interface J {
+              get fld(): [number, string]
+              set fld(p: [number, string])
+          }
+          class A implements I {
+              fld: [number, string] = [42.0, 'a']
+          }
+          class B implements J {
+              fld: [number, string] = [33.0, 'b']
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertEQ(u1.fld[0], 42.0)
+          arktest.assertEQ(u2.fld[1], 'b')
+
+    - decl: |-
+          // interfaces, properties of Record type
+          interface I {
+              fld: Record<string, number>
+          }
+          interface J {
+              fld: Record<string, number>
+          }
+          class A implements I {
+              fld: Record<string, number> = { 'a': 11.0 }
+          }
+          class B implements J {
+              fld: Record<string, number> = { 'b': 22e0 }
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertEQ(u1.fld['a'], 11.0)
+          arktest.assertEQ(u2.fld['b'], 22.0)
+
+    - decl: |-
+          // interfaces, properties of function type
+          type FUNC = (p: string) => number
+          interface I {
+              fld: FUNC
+          }
+          interface J {
+              get fld(): FUNC
+              set fld(p: FUNC)
+          }
+          class A implements I {
+              fld: FUNC = (p: string): number => p.length + 1
+          }
+          class B implements J {
+              fld: FUNC = (p: string): number => p.length + 10
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertEQ(u1.fld('abc'), 4.0)
+          arktest.assertEQ(u2.fld('abc'), 13.0)
+
+    - decl: |-
+          // interfaces, properties of type parameters
+          interface I<T> {
+              fld: T
+          }
+          interface J {
+              fld: string
+          }
+          class A<T> implements I<T> {
+              fld: T
+              constructor(p: T) {
+                  this.fld = p
+              }
+          }
+          class B implements J {
+              fld: string = 'b'
+          }
+          let u1: I<string>|J = new A<string>('a')
+          let u2: J|I<string> = new B
+      use: |-
+          arktest.assertEQ(u1.fld, 'a')
+          arktest.assertEQ(u2.fld, 'b')
+
+    - decl: |-
+          // interfaces, properties of enum type
+          enum Color { Red, Green, Blue }
+          interface I {
+              get fld(): Color
+              set fld(p: Color)
+          }
+          interface J {
+              fld: Color
+          }
+          class A implements I {
+              fld: Color = Color.Green
+          }
+          class B implements J {
+              fld: Color = Color.Blue
+          }
+          let u1: I|J = new A
+          let u2: I|J = new B
+      use: |-
+          arktest.assertEQ(u1.fld, Color.Green)
+          arktest.assertEQ(u2.fld, Color.Blue)

@@ -1,0 +1,134 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+overload_function_decls:
+  - desc: |-
+      implementation signature is not accessible by incorrect return type
+    decl: |-
+      function foo(): void
+      function foo(x: string): void
+      function foo(...args: Any[]): Any {
+        return 1
+      }
+    calls:
+      - foo()
+
+  - desc: |-
+      implementation signature is not accessible by incorrect return type
+    decl: |-
+      function foo(): void
+      function foo(x: string): void
+      function foo(...args: Any[]): Any {
+        return ["ab", "cd"]
+      }
+    calls:
+      - foo("ab")
+
+  - desc: |-
+      implementation signature is not accessible by incorrect return type
+    decl: |-
+      function foo(x: string): int
+      function foo(y: string): string
+      function foo(...args: Any[]): Any {
+        return true
+      }
+    calls:
+      - foo("abc")
+
+  - desc: |-
+      implementation signature is not accessible by incorrect return type
+    decl: |-
+      function foo(x: string): string
+      function foo(x: int): boolean
+      function foo(...args: Any[]): Any {
+        return true
+      }
+    calls:
+      - foo("abcd")
+
+  - desc: |-
+      implementation signature is not accessible by incorrect return type
+    decl: |-
+      function foo(x: string): string
+      function foo(x: int): boolean
+      function foo(...args: Any[]): Any {
+        return "abcd"
+      }
+    calls:
+      - foo(123)
+
+  - desc: |-
+      implementation signature is not accessible by incorrect return type
+    decl: |-
+      function foo(x: string): string
+      function foo(x: int): boolean
+      function foo(...args: Any[]): Any {
+        if (args[0] instanceof string)
+        {
+          return true
+        } else {
+          return "efg"
+        }
+      }
+    calls:
+      - foo("abcd")
+      - foo(123)
+
+  - desc: |-
+      implementation signature is not accessible by incorrect return type
+    decl: |-
+      class A {}
+      class B extends A {}
+      class C extends B {}
+      function foo(x: string): B
+      function foo(x: int): C
+      function foo(...args: Any[]): Any {
+        if (args[0] instanceof string) {
+          return new A()
+        } else {
+          return new B()
+        }
+      }
+    calls:
+      - foo("abc")
+      - foo(10)
+
+  - desc: |-
+      implementation signature is not accessible by incorrect return type
+      by first match
+    decl: |-
+      class A {}
+      class B extends A {}
+      class C extends A {}
+      function foo(x: A): C
+      function foo(x: B): B
+      function foo(...args: Any[]): Any {
+        if (args[0] instanceof A){
+          return new B()
+        }
+        else {
+          return new B()
+        }
+      }
+    calls:
+      - foo(new A())
+      - foo(new B())

@@ -1,0 +1,84 @@
+/**
+ * Copyright (c) 2021-2024 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "runtime/core/core_language_context.h"
+
+% Common::each_plugin_option "lang_context_header_path" do |lang_context_header_path|
+#include "<%= lang_context_header_path %>"
+% end
+
+namespace ark::plugins {
+
+LanguageContextBase* GetLanguageContextBase([[maybe_unused]] ark::panda_file::SourceLang lang)
+{
+% Common::each_plugin_option "lang_context_class" do |lang_context_class, _, plugin_opts|
+if (lang == <%= plugin_opts["lang_enum"] %>)
+    {
+        static <%= lang_context_class %> ctx;
+        return &ctx;
+    }
+% end
+
+   static CoreLanguageContext coreCtx;
+   return &coreCtx;
+}
+
+panda_file::SourceLang RuntimeTypeToLang(const std::string &runtimeType) {
+    if (runtimeType == "core") {
+        return panda_file::SourceLang::PANDA_ASSEMBLY;
+    }
+
+% Common::plugins.each do |plugin_lang, plugin_opts|
+    if (runtimeType == "<%= plugin_lang.downcase %>") {
+        return <%= plugin_opts["lang_enum"] %>;
+    }
+% end
+
+    LOG(FATAL, RUNTIME) << "Incorrect runtime_type: " << runtimeType;
+    UNREACHABLE();
+    return ark::panda_file::SourceLang::PANDA_ASSEMBLY;
+}
+
+std::string_view LangToRuntimeType(panda_file::SourceLang lang) {
+    if (lang == panda_file::SourceLang::PANDA_ASSEMBLY) {
+        return "core";
+    }
+
+% Common::plugins.each do |plugin_lang, plugin_opts|
+    if (lang == <%= plugin_opts["lang_enum"] %>) {
+        return "<%= plugin_lang.downcase %>";
+    }
+% end
+
+    LOG(FATAL, RUNTIME) << "Incorrect lang: " << lang;
+    UNREACHABLE();
+    return "core";
+}
+
+bool HasRuntime(const std::string &runtimeType) {
+    if (runtimeType == "core") {
+        return true; // NOLINT(readability-simplify-boolean-expr)
+    }
+
+% Common::plugins.each_key do |plugin_lang|
+    if (runtimeType == "<%= plugin_lang.downcase %>") {
+        return true; // NOLINT(readability-simplify-boolean-expr)
+    }
+% end
+
+    return false;
+}
+
+}  // namespace ark::plugins

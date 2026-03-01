@@ -1,0 +1,13 @@
+{
+  "abcPath": "xxx",
+  "obfAbcPath": "xxx",
+  "defaultNameCachePath": "xxx",
+  "obfuscationRules": {
+    "keepOptions": {
+      "keeps": [
+        "-keep class class_test_008.ClassA {\n    public field1 = 1;\n    public field2 = 'hello';\n    }",
+        "-keep class class_test_008.ClassB {\n   public field2: {Uclass_test_008.ClassA, std.core.String};\n    }"
+      ]
+    }
+  }
+}

@@ -1,0 +1,8 @@
+#123 testing ignore @@Failure: test failure@@
+test1.ets
+
+#4567 @@Failure: test failed.*?error@@
+test3.ets
+
+#17625 comment
+test4.ets

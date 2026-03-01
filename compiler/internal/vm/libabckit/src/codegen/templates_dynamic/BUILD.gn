@@ -1,0 +1,65 @@
+# Copyright (c) 2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//arkcompiler/runtime_core/ark_config.gni")
+import("//arkcompiler/runtime_core/libabckit/abckit_config.gni")
+
+ark_isa_gen("abckit_isa_gen") {
+  template_files = [
+    "insn_selection_dynamic.h.erb",
+    "insn_selection_dynamic.cpp.erb",
+    "check_width_dynamic.cpp.erb",
+    "check_width_dynamic.h.erb",
+  ]
+  sources = "."
+  destination = "$target_gen_dir/../generated"
+  requires = [
+    "codegen_dynamic_isapi.rb",
+    "$ark_root_dynamic/assembler/asm_isapi.rb",
+  ]
+}
+
+ark_isa_gen("abckit_isa_gen") {
+  template_files = [ "ic_info.h.erb" ]
+  sources = "."
+  destination = "$target_gen_dir/../generated"
+  requires = [
+    "codegen_dynamic_isapi.rb",
+    "$ark_root_dynamic/assembler/asm_isapi.rb",
+  ]
+}
+
+ark_isa_gen("abckit_isa_gen") {
+  template_files = [ "generate_ecma.inl.erb" ]
+  sources = "."
+  requires = [ "$ark_root_dynamic/assembler/asm_isapi.rb" ]
+  destination = "$target_gen_dir/../generated"
+}
+
+ark_gen_file("codegen_visitors_dyn_inc") {
+  extra_dependencies = [ "$ark_root_dynamic:concat_plugins_yamls" ]
+  template_file = "codegen_visitors_dyn.inc.erb"
+  data_file = "$ark_root_dynamic/templates/plugin_options.yaml"
+  requires = [ "$ark_root_dynamic/templates/plugin_options.rb" ]
+  output_file = "$target_gen_dir/../generated/codegen_visitors_dyn.inc"
+}
+
+ark_isa_gen("abckit_isa_gen") {
+  template_files = [ "insn_info.h.erb" ]
+  sources = "."
+  destination = "$target_gen_dir/../generated"
+  requires = [
+    "codegen_dynamic_isapi.rb",
+    "$ark_root_dynamic/assembler/asm_isapi.rb",
+  ]
+}

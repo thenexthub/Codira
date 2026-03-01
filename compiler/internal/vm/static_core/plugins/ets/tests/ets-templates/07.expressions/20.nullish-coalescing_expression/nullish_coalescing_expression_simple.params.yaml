@@ -1,0 +1,61 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+
+  - lhs_decl: null | undefined | Int = null
+    rhs_decl: double = 1.0
+    expected_value: 1.0
+    expected_type: int|double
+
+  - lhs_decl: null | int | undefined | Byte = undefined
+    rhs_decl: double = 1.0
+    expected_value: 1.0
+    expected_type: int|Byte|double
+
+  - lhs_decl: null | undefined | bigint = new bigint(0)
+    rhs_decl: double = 1.0
+    expected_value: new bigint(0)
+    expected_type: bigint|double
+
+  - lhs_decl: null | undefined = undefined
+    rhs_decl: double = 1.0
+    expected_value: 1.0
+    expected_type: double
+
+  - lhs_decl: undefined = undefined
+    rhs_decl: null = null
+    expected_value: "null"
+    expected_type: "null"
+
+  - lhs_decl: boolean = false
+    rhs_decl: undefined | null = undefined
+    expected_value: "false"
+    expected_type: boolean | undefined | null
+
+  - desc: "Same type for union"
+    lhs_decl: string = ""
+    rhs_decl: string = "abc"
+    expected_value: '""'
+    expected_type: string
+
+  - lhs_decl: Any = null
+    rhs_decl: boolean = false
+    expected_value: "false"
+    expected_type: Any|boolean
+
+  - lhs_decl: byte
+    rhs_decl: short
+    expected_value: 0
+    expected_type: byte|short

@@ -1,0 +1,185 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+import("//arkcompiler/runtime_core/static_core/ark_config.gni")
+import("$ark_root/plugins/plugins.gni")
+
+if (ark_standalone_build) {
+  import("$build_root/ark.gni")
+} else {
+  import("//build/ohos.gni")
+}
+
+ark_gen_file("type_to_pandasm_type_cpp") {
+  template_file =
+      "$ark_root/disassembler/templates/type_to_pandasm_type.cpp.erb"
+  data = [ "$ark_root/libarkfile/types.yaml" ]
+  api = [ "$ark_root/libarkfile/types.rb" ]
+  output_file = "$target_gen_dir/type_to_pandasm_type.cpp"
+}
+
+ark_gen_file("disasm_plugins_inc") {
+  extra_dependencies = [ "$ark_root:concat_plugins_yamls" ]
+  template_file = "templates/disasm_plugins.inc.erb"
+  data = [ ark_plugin_options_yaml ]
+  api = [ "$ark_root/templates/plugin_options.rb" ]
+  output_file = "$target_gen_dir/disasm_plugins.inc"
+}
+
+ark_gen_file("get_language_specific_metadata_inc") {
+  extra_dependencies = [ "$ark_root:concat_plugins_yamls" ]
+  template_file = "templates/get_language_specific_metadata.inc.erb"
+  data = [ ark_plugin_options_yaml ]
+  api = [ "$ark_root/templates/plugin_options.rb" ]
+  output_file = "$target_gen_dir/get_language_specific_metadata.inc"
+}
+
+config("arkdisassembler_public_config") {
+  include_dirs = [
+    "$ark_root/assembler",
+    "$ark_root_gen_dir/assembler",
+    "$ark_root_gen_dir/disassembler",
+  ]
+  include_dirs +=
+      get_path_info(get_target_outputs(":disasm_plugins_inc"), "dir")
+}
+
+arkdisassembler_sources = [
+  "$target_gen_dir/bc_ins_to_pandasm_ins.cpp",
+  "$target_gen_dir/opcode_translator.cpp",
+  "$target_gen_dir/type_to_pandasm_type.cpp",
+  "disasm_backed_debug_info_extractor.cpp",
+  "disassembler.cpp",
+]
+arkdisassembler_sources += plugin_arkdisassembler_sources
+
+arkdisassembler_configs = [
+  ":arkdisassembler_public_config",
+  "$ark_root:ark_config",
+  "$ark_root/libarkbase:arkbase_public_config",
+  "$ark_root/assembler:arkassembler_public_config",
+  "$ark_root/libarkfile:arkfile_public_config",
+]
+
+ohos_shared_library("arktsdisassembler") {
+  sources = arkdisassembler_sources
+
+  include_dirs = [
+    "$ark_root/disassembler",
+    "$target_gen_dir",
+  ]
+
+  configs = arkdisassembler_configs
+  public_configs = [ ":arkdisassembler_public_config" ]
+  deps = [
+    ":disasm_plugins_inc",
+    ":get_language_specific_metadata_inc",
+    ":isa_gen_ark_disam_bc_ins_to_pandasm_ins_cpp",
+    ":isa_gen_ark_disam_opcode_translator_cpp",
+    ":type_to_pandasm_type_cpp",
+    "$ark_root/assembler:libarktsassembler",
+    "$ark_root/libarkbase:libarktsbase",
+    "$ark_root/libarkfile:libarktsfile",
+    "$ark_root/runtime:arkruntime_header_deps",
+  ]
+
+  external_deps = [ sdk_libc_secshared_ext_dep ]
+
+  if (is_mingw || is_win) {
+    output_extension = "dll"
+  } else {
+    output_extension = "so"
+  }
+  part_name = ark_part_name
+  subsystem_name = "$ark_subsystem_name"
+}
+
+ohos_static_library("arktsdisassembler_frontend_static") {
+  sources = arkdisassembler_sources
+
+  include_dirs = [
+    "$ark_root/disassembler",
+    "$target_gen_dir",
+  ]
+
+  configs = arkdisassembler_configs
+
+  deps = [
+    ":disasm_plugins_inc",
+    ":get_language_specific_metadata_inc",
+    ":isa_gen_ark_disam_bc_ins_to_pandasm_ins_cpp",
+    ":isa_gen_ark_disam_opcode_translator_cpp",
+    ":type_to_pandasm_type_cpp",
+    "$ark_root/assembler:libarktsassembler_frontend_static",
+    "$ark_root/libarkbase:libarktsbase_frontend_static",
+    "$ark_root/libarkfile:libarktsfile_frontend_static",
+    "$ark_root/runtime:arkruntime_header_deps",
+  ]
+
+  external_deps = [ sdk_libc_secshared_ext_dep ]
+
+  part_name = ark_part_name
+  subsystem_name = ark_subsystem_name
+}
+
+ohos_executable("arkts_disasm") {
+  output_name = "ark_disasm_static"
+  sources = [ "disasm.cpp" ]
+
+  include_dirs = [ "$target_gen_dir" ]
+
+  configs = [
+    "$ark_root:ark_config",
+    "$ark_root/assembler:arkassembler_public_config",
+    "$ark_root/libarkbase:arkbase_public_config",
+    "$ark_root/libarkfile:arkfile_public_config",
+  ]
+
+  deps = [
+    ":arktsdisassembler_frontend_static",
+    "$ark_root/assembler:libarktsassembler_frontend_static",
+    "$ark_root/libarkbase:libarktsbase_frontend_static",
+    "$ark_root/libarkfile:libarktsfile_frontend_static",
+    "$ark_root/runtime:arkruntime_header_deps",
+  ]
+  external_deps = [ sdk_libc_secshared_ext_dep ]
+
+  libs = platform_libs
+  ldflags = platform_ldflags
+
+  install_enable = false
+  part_name = ark_part_name
+  subsystem_name = "$ark_subsystem_name"
+}
+
+ark_isa_gen("isa_gen_ark_disam") {
+  template_files = [
+    "opcode_translator.cpp.erb",
+    "bc_ins_to_pandasm_ins.cpp.erb",
+  ]
+  sources = "templates"
+  destination = "$target_gen_dir"
+  requires = [
+    "$ark_root//assembler/asm_isapi.rb",
+    "$ark_root/libarkfile/pandafile_isapi.rb",
+  ]
+}

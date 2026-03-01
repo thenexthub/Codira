@@ -1,0 +1,143 @@
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+[project]
+version = "1.2.3"
+name = "taihe"
+description = "Language-neutral API tooling"
+requires-python = ">=3.10"
+dependencies = [
+    "antlr4-python3-runtime>=4.11.1",
+    "typing-extensions>=4.13.2",
+]
+
+[dependency-groups]
+dev = [
+    "coverage==7.13.2",
+    "hatchling==1.26.3",
+    "pyright[nodejs]==1.1.400",
+    "pytest==8.3.5",
+    "removestar==1.5.2",
+    "ruff==0.8.4",
+]
+
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/"
+default = true
+
+### Build System ###
+
+[build-system]
+requires = ["hatchling", "hatch-vcs", "antlr4-python3-runtime", "typing-extensions"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+taihec      = "taihe.cli.compiler:main"
+taihe-tryit = "taihe.cli.tryit:main"
+
+[tool.hatch.version.raw-options]
+search_parent_directories = true
+local_scheme = "dirty-tag"
+version_scheme = "python-simplified-semver"
+
+[tool.hatch.build.hooks.custom]
+path = "compiler/hatch_build.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["compiler/taihe"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"./runtime" = "taihe/data/runtime"
+"./stdlib" = "taihe/data/stdlib"
+"./cmake" = "taihe/data/cmake"
+
+### Linting ###
+
+[tool.pyright]
+include = ["compiler"]
+exclude = ["compiler/taihe/parse/antlr"]
+pythonVersion = '3.10'
+
+# strict = ["compiler/taihe"]  # Maybe later: codegen
+strict = [
+  "compiler/taihe/cli",
+  "compiler/taihe/driver",
+  "compiler/taihe/parse",
+  "compiler/taihe/semantics",
+  "compiler/taihe/utils"
+]
+
+[[tool.pyright.executionEnvironments]]
+root = "compiler"
+
+### Linting (Ruff Only) ###
+
+[tool.ruff]
+target-version = 'py310'
+
+[tool.ruff.lint]
+pydocstyle.convention = "google"
+flake8-tidy-imports.ban-relative-imports = "all"
+flake8-type-checking.strict = true
+
+# See all rules at https://beta.ruff.rs/docs/rules/
+select = [
+    "E", # pycodestyle
+    "W", # pycodestyle
+    "F", # Pyflakes
+    "B", # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "D", # pydocstyle
+    "I", # isort
+    "SIM", # flake8-simplify
+    "TCH", # flake8-type-checking
+    "TID", # flake8-tidy-imports
+    "Q", # flake8-quotes
+    "UP", # pyupgrade
+    "PT", # flake8-pytest-style
+    "RUF", # Ruff-specific rules
+]
+
+ignore = [
+    "PT011", # "pytest.raises() should specify expected exception"
+    # -> "would imply to update tests every time you update exception message"
+    "SIM108",
+    "F541", # "f-string without any placeholders"
+    "F841",
+    "E731",
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D106",
+    "D107", # "Missing docstring in public function too restrictive"
+    "SIM117", # allow multiple `with` statements in code generator
+    "TC001",
+    "TC002",
+    "TC003", # "unnecessary to move to a TYPE_CHECKING block"
+    "TC006",
+    "B007",
+    "E501", # TODO fix long lines
+    "UP009",
+]

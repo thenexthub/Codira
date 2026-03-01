@@ -1,0 +1,590 @@
+#!/usr/bin/env bash
+#===----------------------------------------------------------------------===#
+#   Copyright (c) NeXTHub Corporation. All Rights Reserved.
+#   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+#   Author: Tunjay Akbarli
+#
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at:
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+#
+#   Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+#   Middletown, DE 19709, New Castle County, USA.
+#===----------------------------------------------------------------------===#
+
+#
+# Aux functions
+#
+
+LCOV_VERSION="2.3.1"
+LCOV_TAR_GZ_LINK="https://github.com/linux-test-project/lcov/releases/download/v${LCOV_VERSION}/lcov-${LCOV_VERSION}.tar.gz"
+
+function build_and_install_vmb
+{
+    make -C "${SCRIPT_DIR}/../tests/vm-benchmarks/" vmb
+
+}
+
+function enable_llvm_repo
+{
+    set -x
+    local llvm_url=${LLVM_REPO:-'https://apt.llvm.org'}
+    local llvm_version=$1
+    local llvm_gpg_url=${LLVM_GPG_REPO:-'https://apt.llvm.org'}
+
+    local repo_name="deb ${llvm_url}/${UBUNTU_CODENAME}/  llvm-toolchain-${UBUNTU_CODENAME}-${llvm_version}  main"
+    curl --retry 5 --retry-delay 10 -k ${llvm_gpg_url}/llvm-snapshot.gpg.key | apt-key add -
+    echo -e $repo_name > /etc/apt/sources.list.d/llvm-${llvm_version}.list
+    apt-get update
+    set +x
+}
+
+function unpack_clang_rt
+{
+    local llvm_version=$1
+
+    # install requirements
+    apt-get update
+    apt-get install -y --no-install-recommends \
+      binutils \
+      gzip \
+      tar \
+      xz-utils
+    mkdir -p clang_rt && cd clang_rt
+    apt-get download libclang-rt-${llvm_version}-dev
+    ar x libclang-rt-${llvm_version}-dev*.deb
+    tar xJf data.tar.xz
+    cp -r usr /
+    cd ../
+    rm -rf clang_rt
+}
+
+SCRIPT_DIR="$(realpath "${0}")"
+SCRIPT_DIR="$(dirname "${SCRIPT_DIR}")"
+cd "${SCRIPT_DIR}"
+
+if [[ -f "${SCRIPT_DIR}/extras/install-deps-extras.sh" ]]
+then
+    source "${SCRIPT_DIR}/extras/install-deps-extras.sh"
+fi
+
+function print_help
+{
+    HELP_MESSAGE="
+    It is the bootstrap script for Panda on Ubuntu 18.04, 20.04, 22.04 and 24.04.
+
+    This script installs all necessary packages for building and testing Panda
+    in your local environment, given that your environment is supported Ubuntu version
+    (detected with the contents of /etc/os-release).
+
+    The script should run with superuser privileges.
+
+    EXAMPLE
+
+    $ ./scripts/install-deps-ubuntu --help
+    $ ./scripts/install-deps-ubuntu --install=x86 --install=arm-all --install=dev
+
+    or
+
+    $ ./scripts/install-deps-ubuntu -h
+    $ ./scripts/install-deps-ubuntu -i=x86 -i=arm-all -i=dev
+
+    SYNOPSIS
+
+    $0 [OPTIONS]
+
+    OPTIONS
+
+    --help                       | -h                     Show this message and exit
+
+    --install=dev                | -i=dev                 Install tools needed for development
+
+    --install=arm-dev            | -i=arm-dev             Install ARM64-hosted tools needed for development
+
+    --install=arm-all            | -i=arm-all             Install extra packages for cross-compiling for AArch32 and AArch64
+
+    --install=x86                | -i=x86                 Install extra packages for cross-compiling for x86
+
+    --install=windows            | -i=windows             Install extra packages for cross-compiling for Windows
+
+    --install=doc-dev            | -i=doc-dev             Install tools for documentation development
+
+    --install=test               | -i=test                Install python dependencies for tests running
+
+    --install=vmb                | -i=vmb                 Installs VMB framework to run benchmarks from CLI
+    
+    --install=llvm-prebuilts     | -i=llvm-prebuilts      Install deps for use llvm prebuilts.
+
+    --install=ohos-sdk           | -i=ohos-sdk            Install ohos SDK.
+
+    --install=coverage-tools     | -i=coverage-tools      Install utils for covergage (Lcov=${LCOV_VERSION})
+    "
+
+    if [[ -n "${EXTRA_OPTIONS}" ]]
+    then
+        HELP_MESSAGE="${HELP_MESSAGE}${ADDITIONAL_OPTIONS_HELP}"
+    fi
+
+
+    HELP_MESSAGE="${HELP_MESSAGE}
+    CAVEAT
+
+    * Packages for cross-compiling for aarch64 and x86 cannot co-exist, so the
+    script (read: apt) will replace any conflicting packages on each run.
+    * However, packages for cross-compiling for aarch64 and 32-bit ARM can
+    co-exist, so they are in a single 'arm-all' dependency list.
+    "
+
+    echo "$HELP_MESSAGE"
+}
+
+function install_dep
+{
+    local fname=$1
+
+    if [[ ! -f "$fname" ]] ; then
+        echo "FATAL: Dependency list $fname not found."
+        exit 1
+    fi
+
+    echo "Processing $fname"
+    grep --color=never -o '^[^#]*' "$fname" | xargs apt install -y --no-install-recommends -o Dpkg::Options::="--force-overwrite" -o Acquire::Retries=30  -o Acquire::https::Timeout=600 -o Acquire::http::Timeout=600
+}
+
+function install_pip_dep
+{
+    local fname=$1
+
+    if [[ ! -f "$fname" ]] ; then
+        echo "FATAL: Dependency list $fname not found."
+        exit 1
+    fi
+
+    echo "Processing $fname"
+    if [[ $VERSION_ID == "24.04" ]]; then
+        python3 -m pip install --break-system-packages --no-cache-dir --upgrade -r $fname
+    else
+        python3 -m pip install --no-cache-dir --upgrade -r $fname
+    fi
+}
+
+function enable_test_toolchain_repo
+{
+    set -x
+    local repo_url=${PPA_REPO:-'https://ppa.launchpadcontent.net/ubuntu-toolchain-r/test/ubuntu'}
+
+    local repo_name="deb ${repo_url} ${UBUNTU_CODENAME} main"
+    curl --retry 5 --retry-delay 10 -k "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x60C317803A41BA51845E371A1E9377A2BA9EF27F" | apt-key add -
+    echo -e $repo_name > /etc/apt/sources.list.d/ubuntu-toolchain-r-test.list
+
+    cat > /etc/apt/preferences.d/ubuntu-toolchain-r-test << EOF
+Package: *
+Pin: release o=LP-PPA-ubuntu-toolchain-r-test
+Pin-Priority: 1
+EOF
+
+    apt-get update
+    set +x
+}
+
+function install_cross_zlib
+{
+    local zlib_url=${ZLIB_URL:-'https://zlib.net/fossils/zlib-1.2.11.tar.gz'}
+    TEMP=`mktemp -d`
+    pushd .
+    cd $TEMP
+    curl --retry 5 --retry-delay 10 -o zlib.tar.gz "${zlib_url}"
+    tar xf zlib.tar.gz
+    cd zlib-1.2.11
+
+    if [ `which aarch64-linux-gnu-gcc` ]; then
+        CC=aarch64-linux-gnu-gcc ./configure --prefix=/usr/aarch64-linux-gnu
+        make -j install
+        make clean
+    fi
+
+    if [ `which arm-linux-gnueabi-gcc` ]; then
+        CC=arm-linux-gnueabi-gcc ./configure --prefix=/usr/arm-linux-gnueabi
+        make -j install
+        make clean
+    fi
+
+    if [ `which arm-linux-gnueabihf-gcc` ]; then
+        CC=arm-linux-gnueabihf-gcc ./configure --prefix=/usr/arm-linux-gnueabihf
+        make -j install
+        make clean
+    fi
+
+    popd
+    rm -rf $TEMP
+}
+
+function install_cross_libdwarf
+{
+    local lib_url=${LIBDWRF_URL:-'https://codeload.github.com/davea42/libdwarf-code/tar.gz/refs/tags/20201020'}
+    TEMP=`mktemp -d`
+    pushd .
+    cd $TEMP
+    curl --retry 5 --retry-delay 10 -o libdwarf.tar.gz "${lib_url}"
+    tar xf libdwarf.tar.gz
+    cd libdwarf-code-20201020
+    autoreconf
+
+    if [ `which aarch64-linux-gnu-gcc` ]; then
+        CC=aarch64-linux-gnu-gcc ./configure --host=aarch64-linux-gnu --prefix=/usr/aarch64-linux-gnu --includedir=/usr/aarch64-linux-gnu/include/libdwarf --disable-libelf --enable-shared --with-pic
+        make -j install
+        make clean
+    fi
+
+    if [ `which arm-linux-gnueabi-gcc` ]; then
+        CC=arm-linux-gnueabi-gcc ./configure --host=arm-linux-gnueabi --prefix=/usr/arm-linux-gnueabi --includedir=/usr/arm-linux-gnueabi/include/libdwarf --disable-libelf --enable-shared --with-pic
+        make -j install
+        make clean
+    fi
+
+    if [ `which arm-linux-gnueabihf-gcc` ]; then
+        CC=arm-linux-gnueabihf-gcc ./configure --host=arm-linux-gnueabihf --prefix=/usr/arm-linux-gnueabihf --includedir=/usr/arm-linux-gnueabihf/include/libdwarf --disable-libelf --enable-shared --with-pic
+        make -j install
+        make clean
+    fi
+
+    popd
+    rm -rf $TEMP
+}
+
+function install_cross_libs
+{
+    echo "Installing libraries for cross-compilation ..."
+    apt install -y automake
+    install_cross_zlib
+    install_cross_libdwarf
+    echo "Success"
+}
+
+function install_python3_10_ubuntu20_04
+{
+  echo "Installing python 3.10..."
+  apt install software-properties-common -y --no-install-recommends
+
+  local py310_repo=${PY310_REPO:-'ppa:deadsnakes/ppa'}
+  local pip_url=${PIP_REPO:-'https://bootstrap.pypa.io/get-pip.py'}
+
+  if [[ ${PY310_REPO} ]]; then
+    echo "Adding key for python3.10 repository"
+    curl --retry 5 --retry-delay 10 -k "${PY310_REPO_KEY}" | apt-key add -
+  fi
+
+  add-apt-repository "$py310_repo"
+  apt update
+  apt install -y python3.10 python3.10-venv python3.10-dev
+  echo "Installation python 3.10 complete"
+
+  echo "Set python3.10 higher priority"
+  update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
+  update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 2
+  update-alternatives --set python3 /usr/bin/python3.10
+
+  echo "Installing pip for python3.10"
+  curl --retry 5 --retry-delay 10 -sS "$pip_url" | python3.10
+  echo "pip installation complete"
+
+}
+
+function install_python_dependencies
+{
+
+    local REQUIREMENTS_BASE_PYTHON3_NAME=$SCRIPT_DIR/dep-lists/requirements-base-python3
+    local REQUIREMENTS_ALL_PYTHON3_NAME=$SCRIPT_DIR/dep-lists/requirements-python3
+    local REQUIREMENTS_VENV_PYTHON3_NAME=$SCRIPT_DIR/dep-lists/requirements-venv-python3
+
+    echo "Installing pip packages for all"
+    install_pip_dep "${REQUIREMENTS_BASE_PYTHON3_NAME}"
+    install_pip_dep "${REQUIREMENTS_ALL_PYTHON3_NAME}"
+
+    echo "Creating venv and installing pip packages there"
+    local MY_USERNAME=${SUDO_USER}
+    if [[ -z "${VENV_DIR}" && -n "${MY_USERNAME}" ]]; then
+        local MY_HOME=$(grep "^${MY_USERNAME}:" /etc/passwd | cut -d: -f6)
+        if [[ ! -e "${MY_HOME}" ]]; then
+            MY_HOME=/home/${MY_USERNAME}
+        fi
+        VENV_DIR=${MY_HOME}/.venv-panda
+    elif [[ -z "${VENV_DIR}" && -z "${MY_USERNAME}" ]]; then
+        VENV_DIR=/root/.venv-panda
+    fi
+
+    echo "Going to create a virtual environment at ${VENV_DIR}"
+    python3 -m venv "${VENV_DIR}"
+
+    source "${VENV_DIR}/bin/activate"
+    install_pip_dep "${REQUIREMENTS_BASE_PYTHON3_NAME}"
+    install_pip_dep "${REQUIREMENTS_VENV_PYTHON3_NAME}"
+    deactivate
+
+    if [[ -n "${MY_USERNAME}" ]]; then
+      local MY_UID=$(id -u "${MY_USERNAME}")
+      local MY_GID=$(id -g "${MY_USERNAME}")
+      chown -R $MY_UID:$MY_GID $VENV_DIR
+    fi
+}
+
+#
+# Main logic
+#
+
+#
+# Parse command-line arguments
+#
+
+# Set default flag values
+INSTALL_DEV=no
+INSTALL_CROSS_x86=no
+INSTALL_CROSS_WINDOWS=no
+INSTALL_ARM_DEV=no
+INSTALL_CROSS_ARM_ALL=no
+INSTALL_CROSS_LIBS=no
+INSTALL_DOC_DEV=no
+INSTALL_TEST=no
+INSTALL_VMB=no
+ADD_TOOLCHAIN_REPOS=no
+INSTALL_LLVM_PREBUILTS=no
+INSTALL_OHOS_SDK=no
+INSTALL_COVERAGE_TOOLS=no
+SRC_LIST_STR='# This file is generated automatically by Panda install-deps-ubuntu script. DO NOT EDIT!!!\n'
+
+for i in "$@"
+do
+    ERROR_ARG=""
+    case $i in
+    -h|--help)
+        print_help
+        exit 0
+        ;;
+    -i=*|--install=*)
+        FLAG_ARG=${i//[-a-zA-Z0-9]*=/}
+        if [[ $FLAG_ARG == "dev" ]] ; then
+            if [[ $INSTALL_ARM_DEV == "yes" ]] ; then
+                echo "FATAL: Parameter --install=dev excludes --install=arm-dev"
+                exit 1
+            else
+                INSTALL_DEV=yes
+            fi
+        fi
+        if [[ $FLAG_ARG == "x86" ]] ; then
+            INSTALL_CROSS_x86=yes
+        fi
+        if [[ $FLAG_ARG == "arm-all" ]] ; then
+            INSTALL_CROSS_ARM_ALL=yes
+            INSTALL_CROSS_LIBS=yes
+        fi
+        if [[ $FLAG_ARG == "windows" ]] ; then
+            INSTALL_CROSS_WINDOWS=yes
+        fi
+        if [[ $FLAG_ARG == "ohos-sdk" ]] ; then
+            INSTALL_OHOS_SDK=yes
+        fi
+        if [[ $FLAG_ARG == "llvm-prebuilts" ]] ; then
+            INSTALL_LLVM_PREBUILTS=yes
+        fi
+        if [[ $FLAG_ARG == "arm-dev" ]] ; then
+            if [[ $INSTALL_DEV == "yes" ]] ; then
+                echo "FATAL: Parameter --install=arm-dev excludes --install=dev"
+                exit 1
+            else
+                INSTALL_ARM_DEV=yes
+            fi
+        fi
+        if [[ $FLAG_ARG == "doc-dev" ]] ; then
+            INSTALL_DOC_DEV=yes
+        fi
+        if [[ $FLAG_ARG == "test" ]] ; then
+            INSTALL_TEST=yes
+        fi
+        if [[ $FLAG_ARG == "vmb" ]] ; then
+            INSTALL_VMB=yes
+        fi
+        if [[ $FLAG_ARG == "coverage-tools" ]] ; then
+            INSTALL_COVERAGE_TOOLS=yes
+        fi
+      ;;
+    *)
+        ERROR_ARG="YES"
+      ;;
+    esac
+
+    if [[ -n "${EXTRA_OPTIONS}" ]]
+    then
+        extra_parse "${i}"
+    fi
+
+    if [[ -n "${ERROR_ARG}" ]]
+    then
+        echo "Error: Unsupported flag $i" >&2
+        exit 1
+    fi
+
+done
+
+#
+# Check 'sudo' and if script is running on Ubuntu
+#
+
+if [[ $(id -u) -ne 0 ]] ; then
+    print_help
+    echo "!!!"
+    echo "FATAL: Please run as root."
+    echo "!!!"
+    exit 1
+fi
+
+# Install deps for the script itself. Until this line we assume that
+# only shell builtins and commands from required packages are invoked.
+apt-get update
+install_dep "$SCRIPT_DIR/dep-lists/ubuntu-bootstrap"
+
+#
+# Check specific Ubuntu version
+#
+
+UBUNTU_NAME=ubuntu-20-04
+
+if [ ! -f /etc/os-release ]; then
+    echo "FATAL: /etc/os-release not found. Exiting..."
+    exit 1
+else
+    . /etc/os-release
+
+    if [[ $VERSION_ID == "18.04" ]]; then
+        echo "Installing packages for Ubuntu 18.04 LTS."
+        UBUNTU_NAME=ubuntu-18-04
+        ADD_TOOLCHAIN_REPOS=yes
+    elif [[ $VERSION_ID == "20.04" ]]; then
+        echo "Installing packages for Ubuntu 20.04 LTS."
+        UBUNTU_NAME=ubuntu-20-04
+        ADD_TOOLCHAIN_REPOS=yes
+    elif [[ $VERSION_ID == "22.04" ]]; then
+        echo "Installing packages for Ubuntu 22.04 LTS"
+        UBUNTU_NAME=ubuntu-22-04
+    elif [[ $VERSION_ID == "24.04" ]]; then
+        echo "Installing packages for Ubuntu 24.04 LTS"
+        UBUNTU_NAME=ubuntu-24-04
+        INSTALL_CROSS_LIBS=no
+    else
+        echo "Trying to install packages for Ubuntu with unpinned versions."
+    fi
+
+    if [[ $NAME == "Ubuntu" ]]
+    then
+        set -x
+        apt-get update
+        dpkg -l | grep curl  || apt-get -y install curl
+        dpkg -l | grep gnupg || apt-get -y install gnupg
+
+        if [[ -n "${EXTRA_OPTIONS}" ]]
+        then
+            extra_add_repo
+        fi
+
+        set +x
+    else
+        echo "FATAL: Only Ubuntu is supported. This is not. Exiting..."
+        exit 1
+    fi
+fi
+
+set -e
+
+#
+# Install dependencies
+#
+
+if [[ "x$ADD_TOOLCHAIN_REPOS" == "xyes" ]] ; then
+    enable_llvm_repo 14
+    if [[ $VERSION_ID == "18.04" ]]; then
+        enable_test_toolchain_repo
+    fi
+    unpack_clang_rt 14
+fi
+
+install_dep "$SCRIPT_DIR/dep-lists/$UBUNTU_NAME-build"
+
+if [[ $VERSION_ID == "20.04" ]]; then
+         install_python3_10_ubuntu20_04
+fi
+
+if [[ "x$INSTALL_DEV" == "xyes" ]] ; then
+    install_dep "$SCRIPT_DIR/dep-lists/$UBUNTU_NAME-dev"
+fi
+
+if [[ "x$INSTALL_ARM_DEV" == "xyes" ]] ; then
+    install_dep "$SCRIPT_DIR/dep-lists/$UBUNTU_NAME-arm-dev"
+fi
+
+if [[ "x$INSTALL_CROSS_x86" == "xyes" ]] ; then
+    install_dep "$SCRIPT_DIR/dep-lists/$UBUNTU_NAME-cross-x86"
+fi
+
+if [[ "x$INSTALL_CROSS_WINDOWS" == "xyes" ]] ; then
+    install_dep "$SCRIPT_DIR/dep-lists/$UBUNTU_NAME-cross-windows"
+fi
+
+if [[ "x$INSTALL_OHOS_SDK" == "xyes" ]] ; then
+    "${SCRIPT_DIR}/install-ohos-sdk"
+fi
+
+if [[ "x$INSTALL_LLVM_PREBUILTS" == "xyes" ]] ; then
+    "${SCRIPT_DIR}/install-llvm-prebuilts"
+fi
+
+if [[ "x$INSTALL_CROSS_ARM_ALL" == "xyes" ]] ; then
+    if [[ -z "${EXTRA_OPTIONS}" ]]
+    then
+        "${SCRIPT_DIR}/install-deps-qemu"
+    fi
+    install_dep "$SCRIPT_DIR/dep-lists/$UBUNTU_NAME-cross-arm-all"
+fi
+if [[ "$INSTALL_CROSS_LIBS" == "yes" ]]; then
+    install_cross_libs
+fi
+
+if [[ "x$INSTALL_DOC_DEV" == "xyes" ]]; then
+    if [[ -f "$SCRIPT_DIR/dep-lists/$UBUNTU_NAME-doc-dev" ]] ; then 
+        install_dep "$SCRIPT_DIR/dep-lists/$UBUNTU_NAME-doc-dev"
+    else
+        install_dep "$SCRIPT_DIR/dep-lists/ubuntu-doc-dev"
+    fi
+    install_pip_dep "${SCRIPT_DIR}/dep-lists/requirements-doc-dev"
+fi
+
+if [[ -n "${EXTRA_OPTIONS}" ]]
+then
+    extra_install
+fi
+
+if [[ "x$INSTALL_TEST" == "xyes" ]]; then
+    if [[ $VERSION_ID != "24.04" ]]; then
+        install_python_dependencies
+    fi
+fi
+
+
+if [[ "x$INSTALL_VMB" == "xyes" ]]; then
+    install_dep "$SCRIPT_DIR/dep-lists/ubuntu-vmb"
+    install_python_dependencies
+    install_pip_dep "${SCRIPT_DIR}/dep-lists/requirements-vmb"
+    build_and_install_vmb
+fi
+
+if [[ "x$INSTALL_COVERAGE_TOOLS" == "xyes" ]]; then
+    source ${SCRIPT_DIR}/install_lcov
+    install_lcov ${LCOV_TAR_GZ_LINK} ${LCOV_VERSION}
+fi

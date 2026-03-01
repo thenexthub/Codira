@@ -1,0 +1,204 @@
+/*
+ * Copyright (c) NeXTHub Corporation. All Rights Reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * Author: Tunjay Akbarli
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Please contact NeXTHub Corporation, 651 N Broad St, Suite 201,
+ * Middletown, DE 19709, New Castle County, USA.
+ */
+
+
+const success: int = 0;
+const fail: int = 1;
+
+function main(): int {
+  let failures: number = 0;
+  
+  failures += check(testTypedUArrayIterator(),"test {{.item.objectType}} Iterator");
+  failures += check(testTypedUArrayIteratorEmptyArray(), "test {{.item.objectType}} Iterator Empty Array");
+  failures += check(testTypedUArrayIteratorSingleElement(), "test {{.item.objectType}} Iterator Single Element");
+  failures += check(testTypedUArrayIteratorAfterModification(), "test {{.item.objectType}} Iterator After Modification");
+  failures += check(testTypedUArrayIteratorAfterCompletion(), "test {{.item.objectType}} Iterator After Completion");
+
+  if (failures > 0){
+    console.log("failed");
+    return fail;
+  }
+
+  console.log("All passed");
+  return success;
+}
+
+function check(result: number, message: String): number {
+  if (result == 0) {
+    return success;
+  }
+  console.log("\nFAILED: " + message);
+  return fail;
+}
+
+const normalSource: {{.item.primitiveType}}[] = {{.item.data}};
+function testTypedUArrayIterator(): number {
+  let ss = new ArrayBuffer(normalSource.length.toInt * {{.item.primitiveSizeBytes}});
+  let typedUArray: {{.item.objectType}};
+
+  try {
+    typedUArray = new {{.item.objectType}}(ss);
+    typedUArray.set(normalSource);
+  } catch(e) {
+    console.log(e);
+    return fail;
+  }
+
+  let arrayIterator = typedUArray.$_iterator();
+  let next = arrayIterator.next();
+  let counter: int = 0;
+  while (!next.done) {
+    if (next.value == undefined) {
+        return fail;
+    }
+    if (typedUArray[counter] != (next.value!) as BigInt) {
+        return fail;
+    }
+    next = arrayIterator.next()
+    counter++
+  }
+
+  if (counter != typedUArray.length) {
+    return fail;
+  }
+
+  return success;
+}
+
+function testTypedUArrayIteratorEmptyArray(): number {
+  let emptyArray = new {{.item.objectType}}(new ArrayBuffer(0));
+  let emptyIterator = emptyArray.$_iterator();
+  let emptyNext = emptyIterator.next();
+
+  if (!emptyNext.done || emptyNext.value != undefined) {
+    return fail;
+  }
+
+  return success;
+}
+
+function testTypedUArrayIteratorSingleElement(): number {
+  let singleArray = new {{.item.objectType}}(new ArrayBuffer(1 *  {{.item.primitiveSizeBytes}}));
+  
+  try {
+    singleArray[0] = 0n;
+  } catch(e) {
+    console.log(e);
+    return fail;
+  }
+
+  let singleIterator = singleArray.$_iterator();
+  let singleNext = singleIterator.next();
+
+  if (singleNext.done || singleNext.value != 0n) {
+    return fail;
+  }
+
+  singleNext = singleIterator.next();
+  if (!singleNext.done || singleNext.value != undefined) {
+    return fail;
+  }
+
+  return success;
+}
+
+function testTypedUArrayIteratorAfterModification(): number {
+  let ss = new ArrayBuffer(5 * {{.item.primitiveSizeBytes}});
+  let typedUArray: {{.item.objectType}};
+
+  try {
+    typedUArray = new {{.item.objectType}}(ss);
+  } catch(e) {
+    console.log(e);
+    return fail;
+  }
+
+  try {
+    typedUArray[0] = 1;
+    typedUArray[1] = 2;
+    typedUArray[2] = 3;
+    typedUArray[3] = 4;
+    typedUArray[4] = 5;
+  } catch(e) {
+    console.log(e);
+    return fail;
+  }
+
+  // Modify a value
+  typedUArray[2] = 99n;
+
+  // Testing iterator after modification
+  let arrayIterator = typedUArray.$_iterator();
+  let next = arrayIterator.next();
+  let expectedValues = [1, 2, 99n, 4, 5];
+  let counter: number = 0;
+
+  while (!next.done) {
+    if (next.value == undefined) {
+      return fail;
+    }
+    if (typedUArray[counter] != next.value) {  
+      return fail;
+    }
+    next = arrayIterator.next();
+    counter++;
+  }
+
+  if (counter != typedUArray.length) { 
+    return fail;
+  }
+
+  return success;
+}
+
+function testTypedUArrayIteratorAfterCompletion(): number {
+  let ss = new ArrayBuffer(5 * {{.item.primitiveSizeBytes}});
+  let typedUArray: {{.item.objectType}};
+
+  try {
+    typedUArray = new {{.item.objectType}}(ss);
+  } catch(e) {
+    console.log(e);
+    return fail;
+  }
+
+  typedUArray[0] = 1;
+  typedUArray[1] = 2;
+  typedUArray[2] = 3;
+  typedUArray[3] = 4;
+  typedUArray[4] = 5;
+
+  let arrayIterator = typedUArray.$_iterator();
+  let next = arrayIterator.next();
+
+  while (!next.done) {
+    next = arrayIterator.next();
+  }
+
+  // Check iterator after completion
+  next = arrayIterator.next();
+  if (!next.done || next.value != undefined) {
+    return fail;
+  }
+
+  return success;
+}

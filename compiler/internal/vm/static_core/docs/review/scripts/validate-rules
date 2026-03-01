@@ -1,0 +1,148 @@
+#!/usr/bin/perl
+
+use 5.012;
+use strict;
+use warnings;
+
+use Getopt::Long;
+
+my $rules_dir = '';
+GetOptions(
+    "rules-dir=s" => \$rules_dir,
+) or die 'Error in command line arguments';
+
+sub validate_file
+{
+    # Expected file layout:
+    # # Title
+    # ## Severity
+    # <...>
+    # ## Applies To
+    # <...>
+    # ## Detect
+    # <...>
+    # ## Example BAD code
+    # <...>
+    # ## Example GOOD code
+    # <...>
+    # ## Fix suggestion
+    # <...>
+    # ## Message
+    # <...>
+
+    my $fname = shift;
+    my $curr_section = 'init';
+
+    open(my $rule, $fname) || die "Can't open $fname: $!";
+    while (my $line = <$rule>) {
+        chomp $line;
+
+        # Common checks:
+        die "$fname: Line cannot consist of only white spaces"
+            if $line =~ /^\s+$/;
+        die "$fname: Line cannot have trailing white spaces"
+            if $line =~ /\s+$/;
+        die "$fname: Line cannot contain \t, change to four spaces"
+            if $line =~ /\t/;
+        # die 'Line cannot contain FIXME' if $line =~ /\bFIXME\b/i;
+        # die 'Line cannot contain TBD' if $line =~ /\bTBD\b/i;
+
+        if ($line =~ /^\s*(# .+)$/) {
+            my $payload = $1;
+            die "$fname: Garbage found in what looks like a header"
+                unless $line eq $payload;
+            die "$fname: Expected preceding section: init"
+                unless $curr_section eq 'init';
+
+            $curr_section = 'title';
+        } elsif ($line =~ /^\s*(## Severity)$/) {
+            my $payload = $1;
+            die "$fname: Garbage found in what looks like a header"
+                unless $line eq $payload;
+            die "$fname: Expected preceding section: title, got $curr_section"
+                unless $curr_section eq 'title';
+
+            $curr_section = 'severity';
+        } elsif ($line =~ /^\s*(## Applies To)$/) {
+            my $payload = $1;
+            die "$fname: Garbage found in what looks like a header"
+                unless $line eq $payload;
+            die "$fname: Expected preceding section: title"
+                unless $curr_section eq 'severity';
+
+            $curr_section = 'applies_to';
+        } elsif ($line =~ /^\s*(## Detect)$/) {
+            my $payload = $1;
+            die "$fname: Garbage found in what looks like a header"
+                unless $line eq $payload;
+            die "$fname: Expected preceding section: applies_to"
+                unless $curr_section eq 'applies_to';
+
+            $curr_section = 'detect';
+        } elsif ($line =~ /^\s*(## Example BAD code)$/) {
+            my $payload = $1;
+            die "$fname: Garbage found in what looks like a header"
+                unless $line eq $payload;
+            die "$fname: Expected preceding section: detect"
+                unless $curr_section eq 'detect';
+
+            $curr_section = 'example_bad';
+        } elsif ($line =~ /^\s*(## Example GOOD code)$/) {
+            my $payload = $1;
+            die "$fname: Garbage found in what looks like a header"
+                unless $line eq $payload;
+            die "$fname: Expected preceding section: example_bad"
+                unless $curr_section eq 'example_bad';
+
+            $curr_section = 'example_good';
+        } elsif ($line =~ /^\s*(## Fix suggestion)$/) {
+            my $payload = $1;
+            die "$fname: Garbage found in what looks like a header"
+                unless $line eq $payload;
+            die "$fname: Expected preceding section: example_good"
+                unless $curr_section eq 'example_good';
+
+            $curr_section = 'fix_suggestion';
+        }  elsif ($line =~ /^\s*(## Message)$/) {
+            my $payload = $1;
+            die "$fname: Garbage found in what looks like a header"
+                unless $line eq $payload;
+            die "$fname: Expected preceding section: fix_suggestion"
+                unless $curr_section eq 'fix_suggestion';
+
+            $curr_section = 'message';
+        }
+
+    }
+    close $rule;
+}
+
+sub validate_dir
+{
+    my $dname = shift;
+
+    die "Directory '$dname' is not actually a directory" unless -d $dname;
+
+    opendir(my $dir_rules, $dname) || die "Can't opendir $dname: $!";
+    while (readdir $dir_rules) {
+        my $fname = $_;
+
+        next if $fname eq '..';
+        next if $fname eq '.';
+
+        my $rule_file = "$dname/$fname";
+
+        die "$rule_file is -d" if -d $rule_file;
+        die "$rule_file is -x" if -x $rule_file;
+
+        die "$rule_file: Bad file name format"
+            unless $fname =~ /^ETS\d\d\d_[A-Z_]+\.md$/;
+
+        validate_file($rule_file);
+    }
+    closedir $dir_rules;
+}
+
+validate_dir($rules_dir);
+
+say 'OK';

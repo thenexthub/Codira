@@ -1,0 +1,400 @@
+# Copyright (c) 2023 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//arkcompiler/runtime_core/ark_config.gni")
+import("$ark_root/tests/test_helper.gni")
+import("$build_root/config/components/ets_frontend/es2abc_config.gni")
+
+disasm_test_configs = [
+  "$ark_root:ark_config",
+  "$ark_root/libpandabase:arkbase_public_config",
+  "$ark_root/libpandafile:arkfile_public_config",
+]
+
+disasm_test_deps = [
+  "$ark_root/disassembler:arkdisassembler",
+  "$ark_root/libpandabase:libarkbase_static",
+  "$ark_root/libpandafile:libarkfile_static",
+]
+
+disasm_column_test_js_files = [
+  "column-number1",
+  "column-number2",
+  "column-number3",
+  "column-number4",
+  "column-number5",
+  "column-number6",
+  "line-number1",
+  "line-number2",
+  "line-number3",
+  "line-number4",
+  "line-number5",
+]
+
+disasm_line_release_test_ts_files = [ "line_number_release" ]
+
+disasm_ets_implements_test_ts_files = [ "etsImplements" ]
+
+disasm_test_js_files = [
+  "slot-number-annotation",
+  "script-string1",
+  "script-string2",
+]
+
+test_js_path = "//arkcompiler/runtime_core/disassembler/tests/js/"
+
+foreach(file, disasm_column_test_js_files) {
+  es2abc_gen_abc("gen_${file}_abc") {
+    test_js = "${test_js_path}${file}.js"
+    test_abc = "$target_out_dir/${file}.abc"
+    src_js = rebase_path(test_js)
+    dst_file = rebase_path(test_abc)
+    extra_args = [
+      "--debug",
+      "--module",
+    ]
+    in_puts = [ test_js ]
+    out_puts = [ test_abc ]
+  }
+}
+
+test_ts_path = "//arkcompiler/runtime_core/disassembler/tests/ts/"
+
+foreach(file, disasm_line_release_test_ts_files) {
+  es2abc_gen_abc("gen_${file}_abc") {
+    test_ts = "${test_ts_path}${file}.ts"
+    test_abc = "$target_out_dir/${file}.abc"
+    src_js = rebase_path(test_ts)
+    dst_file = rebase_path(test_abc)
+    extra_args = [ "--module" ]
+    in_puts = [ test_ts ]
+    out_puts = [ test_abc ]
+  }
+}
+
+foreach(file, disasm_ets_implements_test_ts_files) {
+  es2abc_gen_abc("gen_${file}_abc") {
+    test_ts = "${test_ts_path}${file}.ts"
+    test_abc = "$target_out_dir/${file}.abc"
+    src_js = rebase_path(test_ts)
+    dst_file = rebase_path(test_abc)
+    extra_args = [
+      "--module",
+      "--enable-ets-implements",
+    ]
+    in_puts = [ test_ts ]
+    out_puts = [ test_abc ]
+  }
+}
+
+disasm_annotation_test_files = [
+  "declaration-3d-array-boolean",
+  "declaration-3d-array-enum-number",
+  "declaration-3d-array-enum-string",
+  "declaration-3d-array-number",
+  "declaration-3d-array-string",
+  "declaration-array-boolean",
+  "declaration-array-enum-number",
+  "declaration-array-enum-string",
+  "declaration-array-number",
+  "declaration-array-string",
+  "declaration-boolean",
+  "declaration-combination",
+  "declaration-empty",
+  "declaration-enum-number",
+  "declaration-enum-string",
+  "declaration-number",
+  "declaration-string",
+  "declaration-usage-3d-array-boolean",
+  "declaration-usage-3d-array-enum-number",
+  "declaration-usage-3d-array-enum-string",
+  "declaration-usage-3d-array-number",
+  "declaration-usage-3d-array-string",
+  "declaration-usage-array-boolean",
+  "declaration-usage-array-enum-number",
+  "declaration-usage-array-enum-string",
+  "declaration-usage-array-number",
+  "declaration-usage-array-string",
+  "declaration-usage-boolean",
+  "declaration-usage-combination",
+  "declaration-usage-empty",
+  "declaration-usage-enum-number",
+  "declaration-usage-enum-string",
+  "declaration-usage-number",
+  "declaration-usage-string",
+  "export",
+  "import-qualified",
+  "import-unqualified",
+  "multiple-annotations",
+]
+
+test_annotation_path =
+    "//arkcompiler/runtime_core/disassembler/tests/annotations/"
+
+foreach(file, disasm_annotation_test_files) {
+  es2abc_gen_abc("gen_${file}_abc") {
+    test_ts = "${test_annotation_path}${file}.ts"
+    test_abc = "$target_out_dir/${file}.abc"
+    src_js = rebase_path(test_ts)
+    dst_file = rebase_path(test_abc)
+    extra_args = [
+      "--enable-annotations",
+      "--module",
+      "--merge-abc",
+    ]
+    in_puts = [ test_ts ]
+    out_puts = [ test_abc ]
+  }
+}
+
+disasm_module_test_js_files = [
+  "module-requests-annotation-import",
+  "module-regular-import",
+  "module-namespace-import",
+  "module-local-export",
+  "module-indirect-export",
+  "module-start-export",
+  "module-regular-import-local-export",
+]
+
+module_test_js_path = "//arkcompiler/runtime_core/disassembler/tests/module/"
+
+foreach(file, disasm_module_test_js_files) {
+  es2abc_gen_abc("gen_${file}_abc") {
+    test_js = "${module_test_js_path}${file}.js"
+    test_abc = "$target_out_dir/${file}.abc"
+    src_js = rebase_path(test_js)
+
+    dst_file = rebase_path(test_abc)
+    extra_args = [
+      "--module",
+      "--merge-abc",
+    ]
+    in_puts = [ test_js ]
+    out_puts = [ test_abc ]
+  }
+}
+
+foreach(file, disasm_test_js_files) {
+  es2abc_gen_abc("gen_${file}_abc") {
+    test_js = "${test_js_path}${file}.js"
+    test_abc = "$target_out_dir/${file}.abc"
+    src_js = rebase_path(test_js)
+
+    dst_file = rebase_path(test_abc)
+    in_puts = [ test_js ]
+    out_puts = [ test_abc ]
+  }
+}
+
+sourceLang_file = "sourceLang"
+action("gen_filesinfo_action") {
+  script = "handle_fileinfo.py"
+
+  inputs = [ "${sourceLang_file}/filesInfo.txt" ]
+  outputs = [ "${target_out_dir}/${sourceLang_file}/filesInfo.txt" ]
+  args = [
+    rebase_path("${sourceLang_file}/filesInfo.txt"),
+    rebase_path("${target_out_dir}/${sourceLang_file}/filesInfo.txt"),
+    rebase_path("./"),
+  ]
+}
+
+es2abc_gen_abc("gen_${sourceLang_file}_abc") {
+  test_abc = "$target_out_dir/${sourceLang_file}.abc"
+  fileinfo_path =
+      rebase_path("${target_out_dir}/${sourceLang_file}/filesInfo.txt")
+  src_js = "@${fileinfo_path}"
+  dst_file = rebase_path(test_abc)
+  extra_args = [
+    "--module",
+    "--merge-abc",
+    "--enable-annotations",
+  ]
+  out_puts = [ test_abc ]
+}
+
+disasm_include_dirs = [
+  "$ark_root/disassembler",
+  "$ark_root/assembler",
+  "$target_gen_dir",
+  "$target_gen_dir/../",
+  "$target_gen_dir/../../assembler",
+]
+
+script_sources = [
+  "disassembler_column_number_test.cpp",
+  "disassembler_etsImplements_literal_test.cpp",
+  "disassembler_get_file_name_test.cpp",
+  "disassembler_line_number_test.cpp",
+  "disassembler_source_lang_test.cpp",
+  "disassembler_string_test.cpp",
+  "disassembler_system_annotations_test.cpp",
+]
+
+module_sources = [
+  "disassembler_module_literal_test.cpp",
+  "disassembler_system_annotations_test.cpp",
+  "utils.cpp",
+]
+
+disasm_module_test_action_files = [
+  "module-requests-annotation-import",
+  "module-regular-import",
+  "module-namespace-import",
+  "module-local-export",
+  "module-indirect-export",
+  "module-start-export",
+  "module-regular-import-local-export",
+  "slot-number-annotation",
+]
+
+host_unittest_action("DisasmModuleTest") {
+  module_out_path = module_output_path
+  sources = module_sources
+  include_dirs = disasm_include_dirs
+  configs = disasm_test_configs
+  external_deps = [ sdk_libc_secshared_dep ]
+  deps = disasm_test_deps
+  test_abc_dir = rebase_path(target_out_dir)
+  defines = [ "GRAPH_TEST_ABC_DIR=\"${test_abc_dir}/\"" ]
+
+  foreach(file, disasm_module_test_action_files) {
+    deps += [ ":gen_${file}_abc" ]
+  }
+}
+
+disasm_debug_script_test_action_files = [
+  "column-number1",
+  "column-number2",
+  "column-number3",
+  "column-number4",
+  "column-number5",
+  "column-number6",
+  "line-number1",
+  "line-number2",
+  "line-number3",
+  "line-number4",
+  "line-number5",
+  "module-requests-annotation-import",
+  "script-string1",
+  "script-string2",
+  "slot-number-annotation",
+]
+
+host_unittest_action("DisasmDebugTest") {
+  module_out_path = module_output_path
+  sources = script_sources
+  include_dirs = disasm_include_dirs
+  configs = disasm_test_configs
+  external_deps = [ sdk_libc_secshared_dep ]
+  deps = disasm_test_deps
+  test_abc_dir = rebase_path(target_out_dir)
+  defines = [ "GRAPH_TEST_ABC_DIR=\"${test_abc_dir}/\"" ]
+
+  foreach(file, disasm_debug_script_test_action_files) {
+    deps += [ ":gen_${file}_abc" ]
+  }
+
+  foreach(file, disasm_ets_implements_test_ts_files) {
+    deps += [ ":gen_${file}_abc" ]
+  }
+}
+
+host_unittest_action("DisasmReleaseTest") {
+  module_out_path = module_output_path
+  sources = [ "disassembler_line_number_release_test.cpp" ]
+  include_dirs = disasm_include_dirs
+  configs = disasm_test_configs
+  external_deps = [ sdk_libc_secshared_dep ]
+  deps = disasm_test_deps
+  test_abc_dir = rebase_path(target_out_dir)
+  defines = [ "GRAPH_TEST_ABC_DIR=\"${test_abc_dir}/\"" ]
+
+  foreach(file, disasm_line_release_test_ts_files) {
+    deps += [ ":gen_${file}_abc" ]
+  }
+}
+
+annotations_sources = [ "disassembler_user_annotations_test.cpp" ]
+
+host_unittest_action("DisasmUserAnnotationsTest") {
+  module_out_path = module_output_path
+  sources = annotations_sources
+  include_dirs = disasm_include_dirs
+  configs = disasm_test_configs
+  external_deps = [ sdk_libc_secshared_dep ]
+  deps = disasm_test_deps
+  test_abc_dir = rebase_path(target_out_dir)
+  defines = [ "GRAPH_TEST_ABC_DIR=\"${test_abc_dir}/\"" ]
+
+  foreach(file, disasm_annotation_test_files) {
+    deps += [ ":gen_${file}_abc" ]
+  }
+}
+
+host_unittest_action("DisasmScriptTest") {
+  module_out_path = module_output_path
+  sources = script_sources
+  include_dirs = disasm_include_dirs
+  configs = disasm_test_configs
+  external_deps = [ sdk_libc_secshared_dep ]
+  deps = disasm_test_deps
+  test_abc_dir = rebase_path(target_out_dir)
+  defines = [ "GRAPH_TEST_ABC_DIR=\"${test_abc_dir}/\"" ]
+
+  foreach(file, disasm_debug_script_test_action_files) {
+    deps += [ ":gen_${file}_abc" ]
+  }
+
+  foreach(file, disasm_ets_implements_test_ts_files) {
+    deps += [ ":gen_${file}_abc" ]
+  }
+}
+
+host_unittest_action("DisasmImmTest") {
+  module_out_path = module_output_path
+  sources = [ "disassembler_imm_tests.cpp" ]
+  include_dirs = disasm_include_dirs
+  configs = disasm_test_configs
+  external_deps = [ sdk_libc_secshared_dep ]
+  deps = disasm_test_deps
+}
+
+host_unittest_action("DisasmSourceLangTest") {
+  module_out_path = module_output_path
+  sources = [ "disassembler_source_lang_test.cpp" ]
+  include_dirs = disasm_include_dirs
+  configs = disasm_test_configs
+  external_deps = [ sdk_libc_secshared_dep ]
+  deps = disasm_test_deps
+  test_abc_dir = rebase_path(target_out_dir)
+  defines = [ "GRAPH_TEST_ABC_DIR=\"${test_abc_dir}/\"" ]
+  deps += [
+    ":gen_${sourceLang_file}_abc",
+    ":gen_filesinfo_action",
+  ]
+}
+
+group("host_unittest") {
+  testonly = true
+  deps = [
+    ":DisasmDebugTestAction",
+    ":DisasmImmTestAction",
+    ":DisasmModuleTestAction",
+    ":DisasmReleaseTestAction",
+    ":DisasmScriptTestAction",
+    ":DisasmSourceLangTestAction",
+    ":DisasmUserAnnotationsTestAction",
+  ]
+}

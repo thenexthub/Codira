@@ -1,0 +1,230 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+cases:
+    # call context
+    - decl:
+          - ['FixedArray<Array<int>>']
+          - ['FixedArray<int[]>']
+          - ['Array<FixedArray<int>>']
+          - ['FixedArray<int>[]']
+      use: |-
+          // call context, array of array of value types
+          foo([[-2147483647, 2, ], [3, ], [2 + 2, 5, 2147483646 + 1, ], [], ])
+      check: |-
+          arktest.assertEQ(a.length, 4)
+          arktest.assertEQ(a[0][0], -2147483647)
+          arktest.assertEQ(a[2][2], 2147483647)
+
+    - decl:
+          - ['FixedArray<Array<number>>']
+          - ['FixedArray<number[]>']
+          - ['Array<FixedArray<number>>']
+          - ['FixedArray<number>[]']
+      use: |-
+          // call context, array of array of value types
+          foo([[1.7976931348623157e+308, 2, ], [3, ], [4, 5, 6, ], [], ])
+      check: |-
+          arktest.assertEQ(a.length, 4)
+          arktest.assertEQ(a[0][0], 1.7976931348623157e+308)
+          arktest.assertEQ(a[2][2], 6.0)
+
+    - decl:
+          - ['FixedArray<Array<string>>']
+          - ['FixedArray<string[]>']
+          - ['Array<FixedArray<String>>']
+          - ['FixedArray<String>[]']
+      defs: |-
+          let s = '1'
+      use: |-
+          // call context, array of array of strings
+          foo([[s, s + s,], ['', '-9223372036854775808',], ])
+      check: |-
+          arktest.assertEQ(a[0][0], '1')
+          arktest.assertEQ(a[0][1], '11')
+          arktest.assertEQ(a[1][0], '')
+          arktest.assertEQ(a[1][1], '-9223372036854775808')
+          arktest.assertEQ(a.length, 2)
+
+    - decl:
+          - ['FixedArray<Array<bigint>>']
+          - ['FixedArray<bigint[]>']
+          - ['Array<FixedArray<bigint>>']
+          - ['FixedArray<bigint>[]']
+      use: |-
+          // call context, array of array of bigint
+          foo([[11111111111111111111111111111111111111111111111n], [2n], [33333333333333333333333333333333333333333333333333n]])
+      check: |-
+          arktest.assertEQ(a[0][0], 11111111111111111111111111111111111111111111111n)
+          arktest.assertEQ(a[2][0], 33333333333333333333333333333333333333333333333333n)
+          arktest.assertEQ(a.length, 3)
+
+    - decl:
+          - ['FixedArray<Array<Any>>']
+          - ['FixedArray<Any[]>']
+          - ['Array<FixedArray<Any>>']
+          - ['FixedArray<Any>[]']
+      use: |-
+          // call context, array of array
+          foo([["a", 1, true, 2n, null, undefined]])
+      check: |-
+          arktest.assertEQ(a[0][0] as string,  "a")
+          arktest.assertEQ(a[0][1] as int,  1)
+          arktest.assertEQ(a[0][2] as boolean,  true)
+          arktest.assertEQ(a[0][3] as bigint,  2n)
+          arktest.assertEQ(a[0][4], null)
+          arktest.assertEQ(a[0][5], undefined)
+          arktest.assertEQ(a.length, 1)
+
+    - defs: |-
+          enum Color { Red, Green, Blue }
+      decl:
+          - ['FixedArray<Array<Color>>']
+          - ['FixedArray<Color[]>']
+          - ['Array<FixedArray<Color>>']
+          - ['FixedArray<Color>[]']
+      use: |-
+          // call context, array of array of enums
+          foo([[Color.Red, Color.Blue]])
+      check: |-
+          arktest.assertEQ(a[0][0], Color.Red)
+          arktest.assertEQ(a[0][1], Color.Blue)
+          arktest.assertEQ(a.length, 1)
+
+    - defs: |-
+          enum Color { Red, Green, Blue }
+          type F = (p: Color) => int
+      decl:
+          - ['FixedArray<Array<F>>']
+          - ['FixedArray<F[]>']
+          - ['Array<FixedArray<F>>']
+          - ['FixedArray<F>[]']
+      use: |-
+          // call context, array of array of functions
+          foo([[(p: Color): int => p.valueOf()], [(p: Color): int => p.valueOf() + 1], [(p: Color): int => p.valueOf() + 2]])
+      check: |-
+          arktest.assertEQ(a[0][0](Color.Red), 0)
+          arktest.assertEQ(a[1][0](Color.Red), 1)
+          arktest.assertEQ(a[2][0](Color.Blue), 4)
+          arktest.assertEQ(a.length, 3)
+
+    - decl:
+          - ['FixedArray<Array<boolean|int|string|null>>']
+          - ['FixedArray<(boolean|int|string|null)[]>']
+          - ['Array<FixedArray<boolean|int|string|null>>']
+          - ['FixedArray<boolean|int|string|null>[]']
+      use: |-
+          // call context, array of array of unions
+          foo([[true, 1, 'a', null]])
+      check: |-
+          arktest.assertEQ(a[0][0], true)
+          arktest.assertEQ(a[0][1], 1)
+          arktest.assertEQ(a[0][2], 'a')
+          arktest.assertEQ(a[0][3], null)
+          arktest.assertEQ(a.length, 1)
+
+    - defs: |-
+          let e = new Error
+      decl:
+          - ['FixedArray<Array<Number|Error|((p: string)=>string)|Boolean>>']
+          - ['FixedArray<(Number|Error|((p: string)=>string)|Boolean)[]>']
+          - ['Array<FixedArray<Number|Error|((p: string)=>string)|Boolean>>']
+          - ['FixedArray<Number|Error|((p: string)=>string)|Boolean>[]']
+      use: |-
+          // call context, array of array of union with value types
+          foo([[e], [false], [(p: string): string => p + p], [42]])
+      check: |-
+          arktest.assertEQ(a[0][0] as Error, e)
+          arktest.assertEQ(a[1][0] as Boolean, false)
+          arktest.assertEQ((a[2][0] as ((p: string) => string))('a'), 'aa')
+          arktest.assertEQ(a[3][0] as Number, 42)
+          arktest.assertEQ(a.length, 4)
+
+    - decl:
+          - ['FixedArray<Number>|FixedArray<String>|Array<Boolean>|null', 'Array<boolean>']
+          - ['FixedArray<Number>|FixedArray<String>|Boolean[]|null', 'boolean[]']
+      use: |-
+          // call context, union of arrays
+          foo([false, true, false])
+      check: |-
+          arktest.assertEQ(x[0], false)
+          arktest.assertEQ(x[1], true)
+          arktest.assertEQ(x[2], false)
+          arktest.assertEQ(x.length, 3)
+
+    - decl:
+          - ['Array<number>|FixedArray<String>|FixedArray<Boolean>|null', 'number[]']
+          - ['number[]|FixedArray<String>|FixedArray<Boolean>|null', 'Array<number>']
+          - ['Array<boolean>|FixedArray<String>|FixedArray<number>|null', 'FixedArray<number>']
+          - ['FixedArray<number>|FixedArray<String>|Array<Boolean>|null', 'FixedArray<number>']
+      use: |-
+          // call context, union of arrays
+          foo([1, 2, 43])
+      check: |-
+          arktest.assertEQ(x[0], 1)
+          arktest.assertEQ(x[1], 2)
+          arktest.assertEQ(x[2], 43)
+          arktest.assertEQ(x.length, 3)
+
+    - decl:
+          - ['FixedArray<Number>|Array<string>|FixedArray<Boolean>|null', 'string[]']
+          - ['FixedArray<Number>|string[]|Array<Boolean>|null', 'Array<String>']
+          - ['FixedArray<string>|FixedArray<Boolean>|null', 'FixedArray<string>']
+          - ['FixedArray<boolean>|string|FixedArray<string>|null', 'FixedArray<string>']
+      defs: |-
+          let s = '4'
+      use: |-
+          // call context, union of arrays
+          foo(['1', '2', s + '3'])
+      check: |-
+          arktest.assertEQ(x[0], '1')
+          arktest.assertEQ(x[1], '2')
+          arktest.assertEQ(x[2], '43')
+          arktest.assertEQ(x.length, 3)
+
+    - decl:
+          - ['Array<string>|Array<int>', 'Array<int>']
+          - ['Array<string>|FixedArray<int>', 'FixedArray<int>']
+          - ['FixedArray<string>|Array<int>', 'int[]']
+          - ['FixedArray<string>|FixedArray<int>', 'FixedArray<int>']
+          - ['Array<int>|Array<string>', 'Array<int>']
+          - ['FixedArray<int>|Array<string>', 'FixedArray<int>']
+          - ['Array<int>|FixedArray<string>', 'int[]']
+          - ['FixedArray<int>|FixedArray<string>', 'FixedArray<int>']
+      use: |-
+          // call context, union of arrays
+          foo([1, 2, 3])
+      check: |-
+          arktest.assertEQ(x[0], 1)
+          arktest.assertEQ(x[1], 2)
+          arktest.assertEQ(x[2], 3)
+          arktest.assertEQ(x.length, 3)
+
+    - decl:
+          - ['Array<string>|Array<int>', 'string[]']
+          - ['Array<string>|FixedArray<int>', 'Array<string>']
+          - ['FixedArray<string>|Array<int>', 'FixedArray<string>']
+          - ['FixedArray<string>|FixedArray<int>', 'FixedArray<string>']
+          - ['Array<int>|Array<string>', 'string[]']
+          - ['FixedArray<int>|Array<string>', 'Array<string>']
+          - ['Array<int>|FixedArray<string>', 'FixedArray<string>']
+          - ['FixedArray<int>|FixedArray<string>', 'FixedArray<string>']
+      use: |-
+          // call context, union of arrays
+          foo(['1', '2', '3'])
+      check: |-
+          arktest.assertEQ(x[0], '1')
+          arktest.assertEQ(x[1], '2')
+          arktest.assertEQ(x[2], '3')
+          arktest.assertEQ(x.length, 3)
