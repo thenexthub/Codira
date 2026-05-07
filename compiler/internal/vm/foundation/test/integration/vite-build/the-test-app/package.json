@@ -57,7 +57,7 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"vite": "^5.4.11",
+		"vite": "^8.0.11",
 		"@ethercorps/sveltekit-og": "^3.0.0",
 		"@internationalized/date": "^3.6.0",
 		"@lucia-auth/adapter-postgresql": "^3.1.2",
