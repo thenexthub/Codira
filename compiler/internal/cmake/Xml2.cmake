@@ -30,7 +30,7 @@ set(CMAKE_SHARED_LINKER_FLAGS "${LINK_FLAGS} ${LINK_FLAGS_BUILD_ID} ${STRIP_FLAG
 set(XML2_SOURCE_DIR ${CMAKE_BINARY_DIR}/third_party/libxml2)
 if(NOT EXISTS ${CODIRA_XML2_SOURCE_DIR})
         if(NOT EXISTS ${XML2_SOURCE_DIR})
-            execute_process(COMMAND git clone --branch OpenHarmony-v6.0-Release --depth=1 https://gitcode.com/openharmony/third_party_libxml2.git ${XML2_SOURCE_DIR})
+            message(STATUS "ERROR CODE 100: Absent libxml2 source.")
     endif()
     message(STATUS "Uncompressing libxml2...")
     execute_process(COMMAND tar -C ${CMAKE_SOURCE_DIR}/third_party -xf ${XML2_SOURCE_DIR}/libxml2-2.14.0.tar.xz)

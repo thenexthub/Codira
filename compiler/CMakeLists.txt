@@ -96,7 +96,7 @@ if(NOT EXISTS "${CODIRA_BOUNDSCHECK_DIR}/CMakeLists.txt")
 endif()
 # Overlay our own integration CMakeLists
 configure_file(
-    "${CMAKE_SOURCE_DIR}/third_party/cmake/BoundsCheck.cmake"
+    "${CMAKE_SOURCE_DIR}/internal/cmake/BoundsCheck.cmake"
     "${CODIRA_BOUNDSCHECK_DIR}/CMakeLists.txt"
     COPYONLY
 )
@@ -496,7 +496,7 @@ if(CODIRA_CODEGEN_CODENATIVE_BACKEND)
         DESTINATION
             lib/${TARGET_TRIPLE_DIRECTORY_PREFIX}_${CODENATIVE_BACKEND}${SANITIZER_SUBPATH})
     if(WIN32 AND CODIRA_BUILD_CODEDB)
-        install(TARGETS boundscheck RUNTIME DESTINATION third_party/llvm/bin)
+        install(TARGETS boundscheck RUNTIME DESTINATION internal/vm/core/bin)
     endif()
     install(FILES include/codira/MetaTransformation/MetaTransform.h
         DESTINATION include/)
@@ -505,7 +505,7 @@ endif()
 # ---------------------------------------------------------------------------
 # Subdirectories
 # ---------------------------------------------------------------------------
-add_subdirectory(third_party)
+add_subdirectory(internal)
 if(CODIRA_CODEGEN_CODENATIVE_BACKEND)
     add_subdirectory(schema)
     add_subdirectory(src)
