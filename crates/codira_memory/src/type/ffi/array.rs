@@ -105,7 +105,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_array_type_pointee() {
+    fn test_codira_array_type_pointee() {
         let ffi_f32 = codira_type_primitive(PrimitiveType::F32);
         let (ffi_f32_ptr, array_info) = unsafe { array_type(ffi_f32) };
 
@@ -118,7 +118,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_array_type_pointee_invalid_null() {
+    fn test_codira_array_type_pointee_invalid_null() {
         let mut pointee_ty = MaybeUninit::uninit();
         assert_error_snapshot!(
             unsafe {

@@ -131,7 +131,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_pointer_type_pointee() {
+    fn test_codira_pointer_type_pointee() {
         let ffi_f32 = codira_type_primitive(PrimitiveType::F32);
         let (ffi_f32_ptr, ptr_info) = unsafe { pointer_type(ffi_f32, true) };
 
@@ -144,7 +144,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_pointer_type_pointee_invalid_null() {
+    fn test_codira_pointer_type_pointee_invalid_null() {
         let mut pointee_ty = MaybeUninit::uninit();
         assert_error_snapshot!(
             unsafe {
@@ -168,7 +168,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_pointer_type_is_mutable() {
+    fn test_codira_pointer_type_is_mutable() {
         let ffi_f32 = codira_type_primitive(PrimitiveType::F32);
         let (ffi_f32_immutable_ptr, immutable_ptr_info) = unsafe { pointer_type(ffi_f32, false) };
         let (ffi_f32_mutable_ptr, mutable_ptr_info) = unsafe { pointer_type(ffi_f32, true) };
@@ -185,7 +185,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_pointer_type_is_mutable_invalid_null() {
+    fn test_codira_pointer_type_is_mutable_invalid_null() {
         let mut is_mutable = MaybeUninit::uninit();
         assert_error_snapshot!(
             unsafe {

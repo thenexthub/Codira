@@ -1,6 +1,6 @@
 ---
 source: crates/codira_codegen/src/test.rs
-expression: "\n    //- /mod.mun\n    pub fn main() -> i32 {\n        foo::get_value()\n    }\n\n    //- /foo.mun\n    pub(super) fn get_value() -> i32 {\n        3\n    }\n    "
+expression: "\n    //- /mod.codira\n    pub fn main() -> i32 {\n        foo::get_value()\n    }\n\n    //- /foo.codira\n    pub(super) fn get_value() -> i32 {\n        3\n    }\n    "
 ---
 ; == FILE IR (mod) =====================================
 ; ModuleID = 'mod'
