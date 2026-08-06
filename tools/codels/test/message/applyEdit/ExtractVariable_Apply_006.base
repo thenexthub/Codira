@@ -1,1 +1,0 @@
-{"jsonrpc":"2.0","method":"workspace/applyEdit","params":{"edit":{"changes":{"file:///d%3A/Test/ExtractedVariable/src/test.code":[{"newText":"var newVariable = aa + 10\n","range":{"end":{"character":4,"line":15},"start":{"character":4,"line":15}}},{"newText":"newVariable","range":{"end":{"character":18,"line":16},"start":{"character":11,"line":16}}}]}}}}

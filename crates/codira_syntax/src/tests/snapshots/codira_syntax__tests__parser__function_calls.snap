@@ -1,0 +1,151 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    func bar(i:number) { }\n    func foo(i:number) {\n      bar(i+1)\n    }\n    func baz(self) { }\n    func qux(self, i:number) { }\n    func foo(self i:number) { } // error: expected comma\n    \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..191
+  FUNCTION_DEF@0..27
+    WHITESPACE@0..5 "\n    "
+    FUNC_KW@5..9 "func"
+    WHITESPACE@9..10 " "
+    NAME@10..13
+      IDENT@10..13 "bar"
+    PARAM_LIST@13..23
+      L_PAREN@13..14 "("
+      PARAM@14..22
+        BIND_PAT@14..15
+          NAME@14..15
+            IDENT@14..15 "i"
+        COLON@15..16 ":"
+        PATH_TYPE@16..22
+          PATH@16..22
+            PATH_SEGMENT@16..22
+              NAME_REF@16..22
+                IDENT@16..22 "number"
+      R_PAREN@22..23 ")"
+    WHITESPACE@23..24 " "
+    BLOCK_EXPR@24..27
+      L_CURLY@24..25 "{"
+      WHITESPACE@25..26 " "
+      R_CURLY@26..27 "}"
+  FUNCTION_DEF@27..73
+    WHITESPACE@27..32 "\n    "
+    FUNC_KW@32..36 "func"
+    WHITESPACE@36..37 " "
+    NAME@37..40
+      IDENT@37..40 "foo"
+    PARAM_LIST@40..50
+      L_PAREN@40..41 "("
+      PARAM@41..49
+        BIND_PAT@41..42
+          NAME@41..42
+            IDENT@41..42 "i"
+        COLON@42..43 ":"
+        PATH_TYPE@43..49
+          PATH@43..49
+            PATH_SEGMENT@43..49
+              NAME_REF@43..49
+                IDENT@43..49 "number"
+      R_PAREN@49..50 ")"
+    WHITESPACE@50..51 " "
+    BLOCK_EXPR@51..73
+      L_CURLY@51..52 "{"
+      WHITESPACE@52..59 "\n      "
+      CALL_EXPR@59..67
+        PATH_EXPR@59..62
+          PATH@59..62
+            PATH_SEGMENT@59..62
+              NAME_REF@59..62
+                IDENT@59..62 "bar"
+        ARG_LIST@62..67
+          L_PAREN@62..63 "("
+          BIN_EXPR@63..66
+            PATH_EXPR@63..64
+              PATH@63..64
+                PATH_SEGMENT@63..64
+                  NAME_REF@63..64
+                    IDENT@63..64 "i"
+            PLUS@64..65 "+"
+            LITERAL@65..66
+              INT_NUMBER@65..66 "1"
+          R_PAREN@66..67 ")"
+      WHITESPACE@67..72 "\n    "
+      R_CURLY@72..73 "}"
+  FUNCTION_DEF@73..96
+    WHITESPACE@73..78 "\n    "
+    FUNC_KW@78..82 "func"
+    WHITESPACE@82..83 " "
+    NAME@83..86
+      IDENT@83..86 "baz"
+    PARAM_LIST@86..92
+      L_PAREN@86..87 "("
+      SELF_PARAM@87..91
+        NAME@87..91
+          SELF_KW@87..91 "self"
+      R_PAREN@91..92 ")"
+    WHITESPACE@92..93 " "
+    BLOCK_EXPR@93..96
+      L_CURLY@93..94 "{"
+      WHITESPACE@94..95 " "
+      R_CURLY@95..96 "}"
+  FUNCTION_DEF@96..129
+    WHITESPACE@96..101 "\n    "
+    FUNC_KW@101..105 "func"
+    WHITESPACE@105..106 " "
+    NAME@106..109
+      IDENT@106..109 "qux"
+    PARAM_LIST@109..125
+      L_PAREN@109..110 "("
+      SELF_PARAM@110..114
+        NAME@110..114
+          SELF_KW@110..114 "self"
+      COMMA@114..115 ","
+      WHITESPACE@115..116 " "
+      PARAM@116..124
+        BIND_PAT@116..117
+          NAME@116..117
+            IDENT@116..117 "i"
+        COLON@117..118 ":"
+        PATH_TYPE@118..124
+          PATH@118..124
+            PATH_SEGMENT@118..124
+              NAME_REF@118..124
+                IDENT@118..124 "number"
+      R_PAREN@124..125 ")"
+    WHITESPACE@125..126 " "
+    BLOCK_EXPR@126..129
+      L_CURLY@126..127 "{"
+      WHITESPACE@127..128 " "
+      R_CURLY@128..129 "}"
+  FUNCTION_DEF@129..161
+    WHITESPACE@129..134 "\n    "
+    FUNC_KW@134..138 "func"
+    WHITESPACE@138..139 " "
+    NAME@139..142
+      IDENT@139..142 "foo"
+    PARAM_LIST@142..157
+      L_PAREN@142..143 "("
+      SELF_PARAM@143..147
+        NAME@143..147
+          SELF_KW@143..147 "self"
+      WHITESPACE@147..148 " "
+      PARAM@148..156
+        BIND_PAT@148..149
+          NAME@148..149
+            IDENT@148..149 "i"
+        COLON@149..150 ":"
+        PATH_TYPE@150..156
+          PATH@150..156
+            PATH_SEGMENT@150..156
+              NAME_REF@150..156
+                IDENT@150..156 "number"
+      R_PAREN@156..157 ")"
+    WHITESPACE@157..158 " "
+    BLOCK_EXPR@158..161
+      L_CURLY@158..159 "{"
+      WHITESPACE@159..160 " "
+      R_CURLY@160..161 "}"
+  WHITESPACE@161..162 " "
+  COMMENT@162..186 "// error: expected comma"
+  WHITESPACE@186..191 "\n    "
+error Offset(147): expected COMMA

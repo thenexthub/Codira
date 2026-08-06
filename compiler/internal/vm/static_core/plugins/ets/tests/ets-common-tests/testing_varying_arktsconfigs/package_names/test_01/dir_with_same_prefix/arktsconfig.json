@@ -1,6 +1,0 @@
-{
-  "compilerOptions": {
-    "package": "@dir_with_same_prefix",
-    "baseUrl": "."
-  }
-}

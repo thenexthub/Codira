@@ -1,1 +1,0 @@
-{"id":"9","jsonrpc":"2.0","result":{"range":{"end":{"character":12,"line":27},"start":{"character":8,"line":27}},"uri":"file:///d%3A/sourceCode/cangjie_language_server/test/testChr/test/202104190K1JZSP1I00/src/goToDefinition.code"}}

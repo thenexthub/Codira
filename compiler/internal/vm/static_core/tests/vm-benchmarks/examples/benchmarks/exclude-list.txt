@@ -1,2 +1,0 @@
-# Doclet error
-BadDoclet_test

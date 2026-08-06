@@ -1,1 +1,0 @@
-{"id":9,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: test_multiLine.code\nPackage info: default\n\n(function) internal func chinese(str: String, variable!: Int64): Unit\n"},"range":{"end":{"character":31,"line":17},"start":{"character":24,"line":17}}}}

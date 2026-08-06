@@ -1,0 +1,745 @@
+//! Copyright (c) 2026 Omnira CJSC
+//! Author: Tunjay Akbarli
+//! Date: August 6, 2026
+//!
+//! Functionality:
+//! - Part of the Codira compiler and runtime toolchain.
+//!
+use codira_runtime::{ArgumentReflection, Marshal, ReturnTypeReflection, StructRef};
+use codira_test::CompileAndRunTestDriver;
+
+#[macro_use]
+mod util;
+
+#[test]
+fn compile_and_run() {
+    let driver = CompileAndRunTestDriver::new(
+        r"
+        public func main() {}
+    ",
+        |builder| builder,
+    )
+    .expect("Failed to build test driver");
+
+    assert_invoke_eq!((), (), driver, "main");
+}
+
+#[test]
+fn return_value() {
+    let driver = CompileAndRunTestDriver::new(
+        r"
+        public func main()->i32 { 3 }
+    ",
+        |builder| builder,
+    )
+    .expect("Failed to build test driver");
+
+    assert_invoke_eq!(i32, 3, driver, "main");
+}
+
+#[test]
+fn arguments() {
+    let driver = CompileAndRunTestDriver::new(
+        r"
+        public func main(a:i32, b:i32)->i32 { a+b }
+    ",
+        |builder| builder,
+    )
+    .expect("Failed to build test driver");
+
+    let a: i32 = 52;
+    let b: i32 = 746;
+    assert_invoke_eq!(i32, a + b, driver, "main", a, b);
+}
+
+#[test]
+fn dispatch_table() {
+    let driver = CompileAndRunTestDriver::new(
+        r"
+        public func add(a:i32, b:i32)->i32 { a+b }
+        public func main(a:i32, b:i32)->i32 { add(a,b) }
+    ",
+        |builder| builder,
+    )
+    .expect("Failed to build test driver");
+
+    let a: i32 = 52;
+    let b: i32 = 746;
+    assert_invoke_eq!(i32, a + b, driver, "main", a, b);
+
+    let a: i32 = 6274;
+    let b: i32 = 72;
+    assert_invoke_eq!(i32, a + b, driver, "add", a, b);
+}
+
+#[test]
+fn booleans() {
+    let driver = CompileAndRunTestDriver::new(
+        r#"
+        public func equal(a:i64, b:i64)->bool                 { a==b }
+        public func equalf(a:f64, b:f64)->bool            { a==b }
+        public func not_equal(a:i64, b:i64)->bool             { a!=b }
+        public func not_equalf(a:f64, b:f64)->bool        { a!=b }
+        public func less(a:i64, b:i64)->bool                  { a<b }
+        public func lessf(a:f64, b:f64)->bool             { a<b }
+        public func greater(a:i64, b:i64)->bool               { a>b }
+        public func greaterf(a:f64, b:f64)->bool          { a>b }
+        public func less_equal(a:i64, b:i64)->bool            { a<=b }
+        public func less_equalf(a:f64, b:f64)->bool       { a<=b }
+        public func greater_equal(a:i64, b:i64)->bool         { a>=b }
+        public func greater_equalf(a:f64, b:f64)->bool    { a>=b }
+    "#,
+        |builder| builder,
+    )
+    .expect("Failed to build test driver");
+
+    assert_invoke_eq!(bool, false, driver, "equal", 52i64, 764i64);
+    assert_invoke_eq!(bool, true, driver, "equal", 64i64, 64i64);
+    assert_invoke_eq!(bool, false, driver, "equalf", 52f64, 764f64);
+    assert_invoke_eq!(bool, true, driver, "equalf", 64f64, 64f64);
+    assert_invoke_eq!(bool, true, driver, "not_equal", 52i64, 764i64);
+    assert_invoke_eq!(bool, false, driver, "not_equal", 64i64, 64i64);
+    assert_invoke_eq!(bool, true, driver, "not_equalf", 52f64, 764f64);
+    assert_invoke_eq!(bool, false, driver, "not_equalf", 64f64, 64f64);
+    assert_invoke_eq!(bool, true, driver, "less", 52i64, 764i64);
+    assert_invoke_eq!(bool, false, driver, "less", 64i64, 64i64);
+    assert_invoke_eq!(bool, true, driver, "lessf", 52f64, 764f64);
+    assert_invoke_eq!(bool, false, driver, "lessf", 64f64, 64f64);
+    assert_invoke_eq!(bool, false, driver, "greater", 52i64, 764i64);
+    assert_invoke_eq!(bool, false, driver, "greater", 64i64, 64i64);
+    assert_invoke_eq!(bool, false, driver, "greaterf", 52f64, 764f64);
+    assert_invoke_eq!(bool, false, driver, "greaterf", 64f64, 64f64);
+    assert_invoke_eq!(bool, true, driver, "less_equal", 52i64, 764i64);
+    assert_invoke_eq!(bool, true, driver, "less_equal", 64i64, 64i64);
+    assert_invoke_eq!(bool, true, driver, "less_equalf", 52f64, 764f64);
+    assert_invoke_eq!(bool, true, driver, "less_equalf", 64f64, 64f64);
+    assert_invoke_eq!(bool, false, driver, "greater_equal", 52i64, 764i64);
+    assert_invoke_eq!(bool, true, driver, "greater_equal", 64i64, 64i64);
+    assert_invoke_eq!(bool, false, driver, "greater_equalf", 52f64, 764f64);
+    assert_invoke_eq!(bool, true, driver, "greater_equalf", 64f64, 64f64);
+}
+
+#[test]
+fn fibonacci() {
+    let driver = CompileAndRunTestDriver::new(
+        r#"
+    public func fibonacci(n:i64)->i64 {
+        if n <= 1 {
+            n
+        } else {
+            fibonacci(n-1) + fibonacci(n-2)
+        }
+    }
+    "#,
+        |builder| builder,
+    )
+    .expect("Failed to build test driver");
+
+    assert_invoke_eq!(i64, 5, driver, "fibonacci", 5i64);
+    assert_invoke_eq!(i64, 89, driver, "fibonacci", 11i64);
+    assert_invoke_eq!(i64, 987, driver, "fibonacci", 16i64);
+}
+
+#[test]
+fn fibonacci_loop() {
+    let driver = CompileAndRunTestDriver::new(
+        r#"
+    public func fibonacci(n:i64)->i64 {
+        let a = 0;
+        let b = 1;
+        let i = 1;
+        loop {
+            if i > n {
+                return a
+            }
+            let sum = a + b;
+            a = b;
+            b = sum;
+            i += 1;
+        }
+    }
+    "#,
+        |builder| builder,
+    )
+    .expect("Failed to build test driver");
+
+    assert_invoke_eq!(i64, 5, driver, "fibonacci", 5i64);
+    assert_invoke_eq!(i64, 89, driver, "fibonacci", 11i64);
+    assert_invoke_eq!(i64, 987, driver, "fibonacci", 16i64);
+    assert_invoke_eq!(i64, 46368, driver, "fibonacci", 24i64);
+}
+
+#[test]
+fn fibonacci_loop_break() {
+    let driver = CompileAndRunTestDriver::new(
+        r#"
+    public func fibonacci(n:i64)->i64 {
+        let a = 0;
+        let b = 1;
+        let i = 1;
+        loop {
+            if i > n {
+                break a;
+            }
+            let sum = a + b;
+            a = b;
+            b = sum;
+            i += 1;
+        }
+    }
+    "#,
+        |builder| builder,
+    )
+    .expect("Failed to build test driver");
+
+    assert_invoke_eq!(i64, 5, driver, "fibonacci", 5i64);
+    assert_invoke_eq!(i64, 89, driver, "fibonacci", 11i64);
+    assert_invoke_eq!(i64, 987, driver, "fibonacci", 16i64);
+    assert_invoke_eq!(i64, 46368, driver, "fibonacci", 24i64);
+}
+
+#[test]
+fn fibonacci_while() {
+    let driver = CompileAndRunTestDriver::new(
+        r#"
+    public func fibonacci(n:i64)->i64 {
+        let a = 0;
+        let b = 1;
+        let i = 1;
+        while i <= n {
+            let sum = a + b;
+            a = b;
+            b = sum;
+            i += 1;
+        }
+        a
+    }
+    "#,
+        |builder| builder,
+    )
+    .expect("Failed to build test driver");
+
+    assert_invoke_eq!(i64, 5, driver, "fibonacci", 5i64);
+    assert_invoke_eq!(i64, 89, driver, "fibonacci", 11i64);
+    assert_invoke_eq!(i64, 987, driver, "fibonacci", 16i64);
+    assert_invoke_eq!(i64, 46368, driver, "fibonacci", 24i64);
+}
+
+#[test]
+fn true_is_true() {
+    let driver = CompileAndRunTestDriver::new(
+        r#"
+    public func test_true()->bool {
+        true
+    }
+
+    public func test_false()->bool {
+        false
+    }
+    "#,
+        |builder| builder,
+    )
+    .expect("Failed to build test driver");
+
+    assert_invoke_eq!(bool, true, driver, "test_true");
+    assert_invoke_eq!(bool, false, driver, "test_false");
+}
+
+// #[test]
+// fn compiler_valid_utf8() {
+//     use std::ffi::CStr;
+//     use std::slice;
+//
+//     let driver = CompileAndRunTestDriver::new(
+//         r#"
+//     public struct Foo {
+//         a: i32,
+//     }
+//
+//     public func foo(n:Foo)->bool { false }
+//     "#,
+//         |builder| builder,
+//     )
+//     .expect("Failed to build test driver");
+//
+//     let foo_func = driver.runtime.get_function_definition("foo").unwrap();
+//     assert_eq!(
+//         unsafe { CStr::from_ptr(foo_func.prototype.name) }
+//             .to_str()
+//             .is_ok(),
+//         true
+//     );
+//
+//     for arg_type in foo_func.prototype.signature.arg_types() {
+//         assert_eq!(
+//             unsafe { CStr::from_ptr(arg_type.name) }.to_str().is_ok(),
+//             true
+//         );
+//
+//         if let Some(s) = arg_type.as_struct() {
+//             let field_names = unsafe { slice::from_raw_parts(s.field_names,
+// s.num_fields()) };
+//
+//             for field_name in field_names {
+//                 assert_eq!(
+//                     unsafe { CStr::from_ptr(*field_name) }.to_str().is_ok(),
+//                     true
+//                 );
+//             }
+//         }
+//     }
+//     assert_eq!(
+//         unsafe {
+//             CStr::from_ptr(
+//                 foo_func
+//                     .prototype
+//                     .signature
+//                     .return_type()
+//                     .expect("Missing return type")
+//                     .name,
+//             )
+//         }
+//         .to_str()
+//         .is_ok(),
+//         true
+//     );
+// }
+
+#[test]
+fn fields() {
+    let driver = CompileAndRunTestDriver::new(
+        r#"
+        class Foo { a:i32, b:i32 };
+        public func main(foo:i32)->bool {
+            let a = Foo { a: foo, b: foo };
+            a.a += a.b;
+            let result = a;
+            result.a += a.b;
+            result.a == a.a
+        }
+    "#,
+        |builder| builder,
+    )
+    .expect("Failed to build test driver");
+
+    assert_invoke_eq!(bool, true, driver, "main", 48i32);
+}
+
+#[test]
+fn field_crash() {
+    let driver = CompileAndRunTestDriver::new(
+        r#"
+    class Foo { a: i32 };
+
+    public func main(c:i32)->i32 {
+        let b = Foo { a: c + 5 }
+        b.a
+    }
+    "#,
+        |builder| builder,
+    )
+    .expect("Failed to build test driver");
+
+    assert_invoke_eq!(i32, 15, driver, "main", 10i32);
+}
+
+#[test]
+fn marshal_struct() {
+    struct TestData<T>(T, T);
+
+    fn test_field<
+        't,
+        T: 't
+            + Copy
+            + std::fmt::Debug
+            + PartialEq
+            + ArgumentReflection
+            + ReturnTypeReflection
+            + Marshal<'t>,
+    >(
+        s: &mut StructRef<'t>,
+        data: &TestData<T>,
+        field_name: &str,
+    ) {
+        assert_eq!(Ok(data.0), s.get::<T>(field_name));
+        s.set(field_name, data.1).unwrap();
+        assert_eq!(Ok(data.1), s.replace(field_name, data.0));
+        assert_eq!(Ok(data.0), s.get::<T>(field_name));
+    }
+
+    fn test_struct<'t>(s: &mut StructRef<'t>, c1: StructRef<'t>, c2: StructRef<'t>) {
+        let field_names: Vec<String> = c1
+            .type_info()
+            .as_struct()
+            .unwrap()
+            .fields()
+            .iter()
+            .map(|field| field.name().to_owned())
+            .collect();
+
+        let int_value = c2.get::<i64>(&field_names[0]);
+        let bool_value = c2.get::<bool>(&field_names[1]);
+        s.set("0", c2).unwrap();
+
+        let c2 = s.get::<StructRef<'_>>("0").unwrap();
+        assert_eq!(c2.get::<i64>(&field_names[0]), int_value);
+        assert_eq!(c2.get::<bool>(&field_names[1]), bool_value);
+
+        let int_value = c1.get::<i64>(&field_names[0]);
+        let bool_value = c1.get::<bool>(&field_names[1]);
+        s.replace("0", c1).unwrap();
+
+        let c1 = s.get::<StructRef<'_>>("0").unwrap();
+        assert_eq!(c1.get::<i64>(&field_names[0]), int_value);
+        assert_eq!(c1.get::<bool>(&field_names[1]), bool_value);
+    }
+
+    fn test_shallow_copy<
+        't,
+        T: 't
+            + Copy
+            + std::fmt::Debug
+            + PartialEq
+            + ArgumentReflection
+            + ReturnTypeReflection
+            + Marshal<'t>,
+    >(
+        s1: &mut StructRef<'t>,
+        s2: &StructRef<'t>,
+        data: &TestData<T>,
+        field_name: &str,
+    ) {
+        assert_eq!(s1.get::<T>(field_name), s2.get::<T>(field_name));
+        s1.set(field_name, data.1).unwrap();
+        assert_ne!(s1.get::<T>(field_name), s2.get::<T>(field_name));
+        s1.replace(field_name, data.0).unwrap();
+        assert_eq!(s1.get::<T>(field_name), s2.get::<T>(field_name));
+    }
+
+    fn test_clone<
+        't,
+        T: 't
+            + Copy
+            + std::fmt::Debug
+            + PartialEq
+            + ArgumentReflection
+            + ReturnTypeReflection
+            + Marshal<'t>,
+    >(
+        s1: &mut StructRef<'t>,
+        s2: &StructRef<'t>,
+        data: &TestData<T>,
+        field_name: &str,
+    ) {
+        assert_eq!(s1.get::<T>(field_name), s2.get::<T>(field_name));
+        s1.set(field_name, data.1).unwrap();
+        assert_eq!(s1.get::<T>(field_name), s2.get::<T>(field_name));
+        s1.replace(field_name, data.0).unwrap();
+        assert_eq!(s1.get::<T>(field_name), s2.get::<T>(field_name));
+    }
+
+    let driver = CompileAndRunTestDriver::new(
+        r#"
+    public struct Foo { a: i32, b: bool };
+    public struct Bar(i32, bool);
+    public struct Baz(Foo);
+    public class Qux(Bar);
+
+    public func foo_new(a: i32, b: bool) -> Foo {
+        Foo { a, b, }
+    }
+    public func bar_new(a: i32, b: bool) -> Bar {
+        Bar(a, b)
+    }
+    public func baz_new(foo: Foo) -> Baz {
+        Baz(foo)
+    }
+    public func qux_new(bar: Bar) -> Qux {
+        Qux(bar)
+    }
+    public func baz_new_transitive(foo_a: i32, foo_b: bool) -> Baz {
+        Baz(foo_new(foo_a, foo_b))
+    }
+    "#,
+        |builder| builder,
+    )
+    .expect("Failed to build test driver");
+
+    let int_data = TestData(3i32, 6i32);
+    let bool_data = TestData(true, false);
+
+    // Verify that struct marshalling works for fundamental types
+    let mut foo_struct: StructRef<'_> = driver
+        .runtime
+        .invoke("foo_new", (int_data.0, bool_data.0))
+        .unwrap();
+    test_field(&mut foo_struct, &int_data, "a");
+    test_field(&mut foo_struct, &bool_data, "b");
+
+    let mut bar: StructRef<'_> = driver
+        .runtime
+        .invoke("bar_new", (int_data.0, bool_data.0))
+        .unwrap();
+    test_field(&mut bar, &int_data, "0");
+    test_field(&mut bar, &bool_data, "1");
+
+    // Verify that struct marshalling works for struct types
+    let mut baz_struct: StructRef<'_> = driver.runtime.invoke("baz_new", (foo_struct,)).unwrap();
+    let c1: StructRef<'_> = driver
+        .runtime
+        .invoke("foo_new", (int_data.0, bool_data.0))
+        .unwrap();
+    let c2: StructRef<'_> = driver
+        .runtime
+        .invoke("foo_new", (int_data.1, bool_data.1))
+        .unwrap();
+    test_struct(&mut baz_struct, c1, c2);
+
+    let mut qux: StructRef<'_> = driver.runtime.invoke("qux_new", (bar,)).unwrap();
+    let c1: StructRef<'_> = driver
+        .runtime
+        .invoke("bar_new", (int_data.0, bool_data.0))
+        .unwrap();
+    let c2: StructRef<'_> = driver
+        .runtime
+        .invoke("bar_new", (int_data.1, bool_data.1))
+        .unwrap();
+    test_struct(&mut qux, c1, c2);
+
+    // Verify the dispatch table works when a marshallable wrapper function exists
+    // alongside the original function.
+    let mut baz2: StructRef<'_> = driver
+        .runtime
+        .invoke("baz_new_transitive", (int_data.0, bool_data.0))
+        .unwrap();
+    // TODO: Find an ergonomic solution for this:
+    // .unwrap_or_else(|e| e.wait(&mut runtime_ref));
+
+    let c1: StructRef<'_> = driver
+        .runtime
+        .invoke("foo_new", (int_data.0, bool_data.0))
+        .unwrap();
+    let c2: StructRef<'_> = driver
+        .runtime
+        .invoke("foo_new", (int_data.1, bool_data.1))
+        .unwrap();
+    test_struct(&mut baz2, c1, c2);
+
+    // Verify that StructRef::get makes a shallow copy of a struct
+    let mut foo_struct = baz_struct.get::<StructRef<'_>>("0").unwrap();
+    let foo_struct2 = baz_struct.get::<StructRef<'_>>("0").unwrap();
+    test_shallow_copy(&mut foo_struct, &foo_struct2, &int_data, "a");
+    test_shallow_copy(&mut foo_struct, &foo_struct2, &bool_data, "b");
+
+    // Verify that StructRef::clone returns a `StructRef` to the same memory
+    let mut foo_struct = baz_struct.get::<StructRef<'_>>("0").unwrap();
+    let foo_struct2 = foo_struct.clone();
+    test_clone(&mut foo_struct, &foo_struct2, &int_data, "a");
+    test_clone(&mut foo_struct, &foo_struct2, &bool_data, "b");
+
+    let mut bar = qux.get::<StructRef<'_>>("0").unwrap();
+
+    // Specify invalid return type
+    let bar_err = bar.get::<f64>("0");
+    assert!(bar_err.is_err());
+
+    // Specify invalid argument type
+    let bar_err = bar.replace("0", 1f64);
+    assert!(bar_err.is_err());
+
+    // Specify invalid argument type
+    let bar_err = bar.set("0", 1f64);
+    assert!(bar_err.is_err());
+
+    // Specify invalid return type
+    let bar_err: Result<i64, _> = driver.runtime.invoke("baz_new", (foo_struct,));
+    assert!(bar_err.is_err());
+
+    // Pass invalid struct type
+    let bar_err: Result<StructRef<'_>, _> = driver.runtime.invoke("baz_new", (bar,));
+    assert!(bar_err.is_err());
+}
+
+#[test]
+fn extern_fn() {
+    extern "C" fn add_int(a: i32, b: i32) -> i32 {
+        dbg!("add_int is called!");
+        a + b + 9
+    }
+
+    let driver = CompileAndRunTestDriver::new(
+        r#"
+    extern func add(a: i32, b: i32) -> i32;
+    public func main() -> i32 {
+        add(3,4)
+    }
+    "#,
+        |builder| builder.insert_fn("add", add_int as extern "C" fn(i32, i32) -> i32),
+    )
+    .expect("Failed to build test driver");
+
+    assert_invoke_eq!(i32, 16, driver, "main");
+}
+
+#[test]
+#[should_panic]
+fn extern_fn_missing() {
+    let driver = CompileAndRunTestDriver::new(
+        r#"
+    extern func add(a: i32, b: i32) -> i32;
+    public func main() -> i32 { add(3,4) }
+    "#,
+        |builder| builder,
+    )
+    .expect("Failed to build test driver");
+
+    assert_invoke_eq!(isize, 16, driver, "main");
+}
+
+#[test]
+fn extern_fn_invalid_signature() {
+    extern "C" fn add_int() -> i32 {
+        0
+    }
+
+    let result = CompileAndRunTestDriver::new(
+        r#"
+    extern func add(a: i32, b: i32) -> i32;
+    public func main() -> i32 { add(3,4) }
+    "#,
+        |builder| builder.insert_fn("add", add_int as extern "C" fn() -> i32),
+    );
+
+    assert!(result.is_err());
+}
+
+#[test]
+#[should_panic]
+fn extern_fn_invalid_sig() {
+    extern "C" fn add_int(_a: i8, _b: isize) -> isize {
+        3
+    }
+
+    let driver = CompileAndRunTestDriver::new(
+        r#"
+    extern func add(a: i32, b: i32) -> i32;
+    public func main() -> i32 { add(3,4) }
+    "#,
+        |builder| builder.insert_fn("add", add_int as extern "C" fn(i8, isize) -> isize),
+    )
+    .expect("Failed to build test driver");
+
+    assert_invoke_eq!(isize, 16, driver, "main");
+}
+
+#[test]
+fn test_primitive_types() {
+    fn test_field<
+        't,
+        T: 't
+            + Copy
+            + std::fmt::Debug
+            + PartialEq
+            + ArgumentReflection
+            + ReturnTypeReflection
+            + Marshal<'t>,
+    >(
+        s: &mut StructRef<'t>,
+        data: (T, T),
+        field_name: &str,
+    ) {
+        assert_eq!(Ok(data.0), s.get::<T>(field_name));
+        s.set(field_name, data.1).unwrap();
+        assert_eq!(Ok(data.1), s.replace(field_name, data.0));
+        assert_eq!(Ok(data.0), s.get::<T>(field_name));
+    }
+
+    let driver = CompileAndRunTestDriver::new(
+        r#"
+    public struct Primitives {
+        a:u8,
+        b:u16,
+        c:u32,
+        d:u64,
+        e:u128,
+
+        f:i8,
+        g:i16,
+        h:i32,
+        i:i64,
+        j:i128,
+
+        k:f32,
+        l:f64,
+    }
+
+    public func new_primitives(a:u8, b:u16, c:u32, d:u64, e:u128, f:i8, g:i16, h:i32, i:i64, j:i128, k:f32, l:f64) -> Primitives {
+        Primitives { a:a, b:b, c:c, d:d, e:e, f:f, g:g, h:h, i:i, j:j, k:k, l:l }
+    }
+    "#,
+    |builder| builder
+    )
+    .expect("Failed to build test driver");
+
+    let mut foo_struct: StructRef<'_> = driver
+        .runtime
+        .invoke(
+            "new_primitives",
+            (
+                1u8, 2u16, 3u32, 4u64, 5u128, 6i8, 7i16, 8i32, 9i64, 10i128, 11.0f32, 12.0f64,
+            ),
+        )
+        .unwrap();
+
+    test_field(&mut foo_struct, (1u8, 100u8), "a");
+    test_field(&mut foo_struct, (2u16, 101u16), "b");
+    test_field(&mut foo_struct, (3u32, 102u32), "c");
+    test_field(&mut foo_struct, (4u64, 103u64), "d");
+    test_field(&mut foo_struct, (5u128, 104u128), "e");
+    test_field(&mut foo_struct, (6i8, 105i8), "f");
+    test_field(&mut foo_struct, (7i16, 106i16), "g");
+    test_field(&mut foo_struct, (8i32, 107i32), "h");
+    test_field(&mut foo_struct, (9i64, 108i64), "i");
+    test_field(&mut foo_struct, (10i128, 109i128), "j");
+    test_field(&mut foo_struct, (11f32, 110f32), "k");
+    test_field(&mut foo_struct, (12f64, 111f64), "l");
+}
+
+#[test]
+fn can_add_external_without_return() {
+    extern "C" fn foo(a: i32) {
+        println!("{a}");
+    }
+
+    let driver = CompileAndRunTestDriver::new(
+        r#"
+    extern func foo(a: i32,);
+    public func main(){ foo(3); }
+    "#,
+        |builder| builder.insert_fn("foo", foo as extern "C" fn(i32) -> ()),
+    )
+    .expect("Failed to build test driver");
+
+    let _: () = driver.runtime.invoke("main", ()).unwrap();
+}
+
+#[test]
+fn signed_and_unsigned_rem() {
+    let driver = CompileAndRunTestDriver::new(
+        r#"
+    public func signed() -> i32 {
+        (0 - 2) % 5
+    }
+
+    public func unsigned() -> i32 {
+        2 % 5
+    }
+    "#,
+        |builder| builder,
+    )
+    .expect("Failed to build test driver");
+
+    assert_invoke_eq!(i32, -2, driver, "signed");
+    assert_invoke_eq!(i32, 2, driver, "unsigned");
+}
+

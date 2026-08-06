@@ -1,0 +1,472 @@
+// =============================================================================
+// std/sys/intrinsics.code — Low-level compiler intrinsics
+// =============================================================================
+//
+// This module exposes LLVM-level intrinsics and low-level hardware
+// operations wrapped in Codira function signatures.  These are the
+// "escape hatches" used by the standard library to emit specific
+// machine instructions that cannot be expressed in normal Codira code.
+//
+// WARNING: Most of these functions are unsafe.  Incorrect usage can cause
+// undefined behavior, crashes, or data corruption.  Prefer the safe
+// abstractions in std.memory and std.builtin whenever possible.
+//
+// Categories:
+//   - Generic LLVM intrinsic call
+//   - Memory prefetching
+//   - Scatter / gather (SIMD memory)
+//   - Compressed / strided loads and stores
+//   - Atomic operations
+//   - Bit manipulation
+//   - Math accelerators
+// =============================================================================
+
+use std.builtin.types;
+use std.builtin.simd;
+use std.memory.pointer;
+
+// =============================================================================
+// llvm_intrinsic — Generic LLVM intrinsic invocation
+// =============================================================================
+
+// Invoke an arbitrary LLVM intrinsic by name.
+//
+// `name` is the full LLVM intrinsic name (e.g. "llvm.sqrt.f64").
+// The type parameters and argument list must match the LLVM signature
+// exactly.  The compiler translates this into the corresponding LLVM
+// intrinsic call.
+//
+//   let result = llvm_intrinsic[f64, "llvm.sqrt.f64"](value);
+public func llvm_intrinsic[ReturnType, name: StringLiteral](args: ...) -> ReturnType {
+    return __intrinsic_llvm_call[ReturnType, name](args);
+}
+
+// Variant with no return value (void intrinsics).
+public func llvm_intrinsic_void[name: StringLiteral](args: ...) -> void {
+    __intrinsic_llvm_call_void[name](args);
+}
+
+// =============================================================================
+// prefetch — Memory prefetch hints
+// =============================================================================
+
+// Prefetch locality levels:
+//   0 — no temporal locality (data used once, then evict)
+//   1 — low temporal locality (L3 cache)
+//   2 — moderate temporal locality (L2 cache)
+//   3 — high temporal locality (L1 cache)
+public type PrefetchLocality = i32;
+
+// Prefetch for reading.
+//
+//   prefetch_read(ptr.address(), 3);  // prefetch to L1 for reading
+public func prefetch_read(addr: usize, locality: PrefetchLocality) -> void {
+    __intrinsic_llvm_call_void["llvm.prefetch"](addr, 0, locality, 1);
+}
+
+// Prefetch for writing.
+//
+//   prefetch_write(ptr.address(), 1);  // prefetch to L3 for writing
+public func prefetch_write(addr: usize, locality: PrefetchLocality) -> void {
+    __intrinsic_llvm_call_void["llvm.prefetch"](addr, 1, locality, 1);
+}
+
+// Prefetch a typed pointer for reading (convenience).
+public func prefetch[T](ptr: Pointer[T], locality: PrefetchLocality) -> void {
+    prefetch_read(ptr.address(), locality);
+}
+
+// Software prefetch hint for a pointer offset by `n` elements.
+public func prefetch_offset[T](ptr: Pointer[T], n: isize, locality: PrefetchLocality) -> void {
+    let target = ptr.offset(n);
+    prefetch_read(target.address(), locality);
+}
+
+// =============================================================================
+// gather — SIMD gather (indexed load)
+// =============================================================================
+
+// Perform a SIMD gather: load N elements from memory at addresses
+// computed as `base + offsets[i] * sizeof(T)`.
+//
+// `mask` controls which lanes participate.  Lanes where mask is false
+// take their value from `passthrough`.
+//
+//   let indices = SIMD[i32, 4].new(0, 3, 7, 1);
+//   let mask    = SIMD[bool, 4].splat(true);
+//   let result  = gather[f32, 4](base_ptr, indices, mask, zero_vec);
+public func gather[T, N: usize](
+    base: Pointer[T],
+    offsets: SIMD[i32, N],
+    mask: SIMD[bool, N],
+    passthrough: SIMD[T, N],
+) -> SIMD[T, N] {
+    return __intrinsic_simd_gather[T, N](base.address(), offsets, mask, passthrough);
+}
+
+// Gather without a mask (all lanes active, passthrough = zero).
+public func gather[T, N: usize](base: Pointer[T], offsets: SIMD[i32, N]) -> SIMD[T, N] {
+    let mask = SIMD[bool, N].splat(true);
+    let passthrough = SIMD[T, N].zero();
+    return gather[T, N](base, offsets, mask, passthrough);
+}
+
+// =============================================================================
+// scatter — SIMD scatter (indexed store)
+// =============================================================================
+
+// Perform a SIMD scatter: store N elements to memory at addresses
+// computed as `base + offsets[i] * sizeof(T)`.
+//
+// `mask` controls which lanes are written.
+//
+//   scatter[f32, 4](base_ptr, indices, values, mask);
+public func scatter[T, N: usize](
+    base: Pointer[T],
+    offsets: SIMD[i32, N],
+    values: SIMD[T, N],
+    mask: SIMD[bool, N],
+) -> void {
+    __intrinsic_simd_scatter[T, N](base.address(), offsets, values, mask);
+}
+
+// Scatter without mask (all lanes active).
+public func scatter[T, N: usize](
+    base: Pointer[T],
+    offsets: SIMD[i32, N],
+    values: SIMD[T, N],
+) -> void {
+    let mask = SIMD[bool, N].splat(true);
+    scatter[T, N](base, offsets, values, mask);
+}
+
+// =============================================================================
+// compressed_store — Masked contiguous store
+// =============================================================================
+
+// Store only the lanes where `mask` is true, compressing them into a
+// contiguous block starting at `dest`.  Returns the number of elements
+// actually written.
+//
+// This maps to AVX-512 VCOMPRESSPS/VCOMPRESSPD or equivalent.
+//
+//   let written = compressed_store[f32, 8](dest_ptr, values, mask);
+public func compressed_store[T, N: usize](
+    dest: Pointer[T],
+    values: SIMD[T, N],
+    mask: SIMD[bool, N],
+) -> usize {
+    return __intrinsic_simd_compressed_store[T, N](dest.address(), values, mask);
+}
+
+// =============================================================================
+// strided_load / strided_store — Non-contiguous access with fixed stride
+// =============================================================================
+
+// Load N elements from memory with a fixed byte stride between elements.
+//
+//   // Load every 3rd float starting at base:
+//   let v = strided_load[f32, 4](base_ptr, 3);
+public func strided_load[T, N: usize](base: Pointer[T], stride: usize) -> SIMD[T, N] {
+    let result: SIMD[T, N];
+    let addr = base.address();
+    let elem_stride = stride * __intrinsic_sizeof[T]();
+    let i: usize = 0;
+    while i < N {
+        let elem_addr = addr + i * elem_stride;
+        result = result.set(i, __intrinsic_load[T](elem_addr));
+        i = i + 1;
+    }
+    return result;
+}
+
+// Store N elements to memory with a fixed stride between elements.
+public func strided_store[T, N: usize](
+    base: Pointer[T],
+    values: SIMD[T, N],
+    stride: usize,
+) -> void {
+    let addr = base.address();
+    let elem_stride = stride * __intrinsic_sizeof[T]();
+    let i: usize = 0;
+    while i < N {
+        let elem_addr = addr + i * elem_stride;
+        __intrinsic_store[T](elem_addr, values.get(i));
+        i = i + 1;
+    }
+}
+
+// =============================================================================
+// Atomic operations
+// =============================================================================
+
+// Atomic load with sequential consistency.
+public func atomic_load[T](addr: usize) -> T {
+    return __intrinsic_atomic_load[T](addr);
+}
+
+// Atomic store with sequential consistency.
+public func atomic_store[T](addr: usize, value: T) -> void {
+    __intrinsic_atomic_store[T](addr, value);
+}
+
+// Atomic compare-and-swap.  If the value at `addr` equals `expected`,
+// replace it with `desired` and return (old_value, true).
+// Otherwise return (old_value, false).
+public func atomic_compare_exchange[T](
+    addr: usize,
+    expected: T,
+    desired: T,
+) -> (T, bool) {
+    return __intrinsic_atomic_cmpxchg[T](addr, expected, desired);
+}
+
+// Atomic fetch-and-add.  Returns the old value.
+public func atomic_fetch_add[T](addr: usize, value: T) -> T {
+    return __intrinsic_atomic_add[T](addr, value);
+}
+
+// Atomic fetch-and-sub.  Returns the old value.
+public func atomic_fetch_sub[T](addr: usize, value: T) -> T {
+    return __intrinsic_atomic_sub[T](addr, value);
+}
+
+// Atomic fetch-and-and.  Returns the old value.
+public func atomic_fetch_and[T](addr: usize, value: T) -> T {
+    return __intrinsic_atomic_and[T](addr, value);
+}
+
+// Atomic fetch-and-or.  Returns the old value.
+public func atomic_fetch_or[T](addr: usize, value: T) -> T {
+    return __intrinsic_atomic_or[T](addr, value);
+}
+
+// Atomic fetch-and-xor.  Returns the old value.
+public func atomic_fetch_xor[T](addr: usize, value: T) -> T {
+    return __intrinsic_atomic_xor[T](addr, value);
+}
+
+// Atomic exchange.  Returns the old value.
+public func atomic_exchange[T](addr: usize, value: T) -> T {
+    return __intrinsic_atomic_xchg[T](addr, value);
+}
+
+// =============================================================================
+// Memory fences
+// =============================================================================
+
+// Full memory fence (sequential consistency).
+public func fence() -> void {
+    __intrinsic_fence_seq_cst();
+}
+
+// Acquire fence.
+public func fence_acquire() -> void {
+    __intrinsic_fence_acquire();
+}
+
+// Release fence.
+public func fence_release() -> void {
+    __intrinsic_fence_release();
+}
+
+// Compiler fence — prevents reordering by the compiler but emits no
+// hardware fence instruction.
+public func compiler_fence() -> void {
+    __intrinsic_compiler_fence();
+}
+
+// =============================================================================
+// Bit manipulation intrinsics
+// =============================================================================
+
+// Count leading zeros.
+public func ctlz[T](value: T) -> T {
+    return __intrinsic_ctlz[T](value);
+}
+
+// Count trailing zeros.
+public func cttz[T](value: T) -> T {
+    return __intrinsic_cttz[T](value);
+}
+
+// Population count (number of set bits).
+public func ctpop[T](value: T) -> T {
+    return __intrinsic_ctpop[T](value);
+}
+
+// Bit reverse.
+public func bitreverse[T](value: T) -> T {
+    return __intrinsic_bitreverse[T](value);
+}
+
+// Byte swap (endianness conversion).
+public func bswap[T](value: T) -> T {
+    return __intrinsic_bswap[T](value);
+}
+
+// Rotate left by `amount` bits.
+public func rotl[T](value: T, amount: T) -> T {
+    return __intrinsic_rotl[T](value, amount);
+}
+
+// Rotate right by `amount` bits.
+public func rotr[T](value: T, amount: T) -> T {
+    return __intrinsic_rotr[T](value, amount);
+}
+
+// =============================================================================
+// Floating-point math intrinsics
+// =============================================================================
+
+// Square root.
+public func sqrt(x: f64) -> f64 {
+    return __intrinsic_llvm_call[f64, "llvm.sqrt.f64"](x);
+}
+
+public func sqrtf(x: f32) -> f32 {
+    return __intrinsic_llvm_call[f32, "llvm.sqrt.f32"](x);
+}
+
+// Fused multiply-add: a * b + c  (single rounding).
+public func fma(a: f64, b: f64, c: f64) -> f64 {
+    return __intrinsic_llvm_call[f64, "llvm.fma.f64"](a, b, c);
+}
+
+public func fmaf(a: f32, b: f32, c: f32) -> f32 {
+    return __intrinsic_llvm_call[f32, "llvm.fma.f32"](a, b, c);
+}
+
+// Absolute value.
+public func fabs(x: f64) -> f64 {
+    return __intrinsic_llvm_call[f64, "llvm.fabs.f64"](x);
+}
+
+// Floor.
+public func floor(x: f64) -> f64 {
+    return __intrinsic_llvm_call[f64, "llvm.floor.f64"](x);
+}
+
+// Ceil.
+public func ceil(x: f64) -> f64 {
+    return __intrinsic_llvm_call[f64, "llvm.ceil.f64"](x);
+}
+
+// Round to nearest, ties to even.
+public func round(x: f64) -> f64 {
+    return __intrinsic_llvm_call[f64, "llvm.round.f64"](x);
+}
+
+// Truncate toward zero.
+public func trunc(x: f64) -> f64 {
+    return __intrinsic_llvm_call[f64, "llvm.trunc.f64"](x);
+}
+
+// Copy sign: |x| with sign of y.
+public func copysign(x: f64, y: f64) -> f64 {
+    return __intrinsic_llvm_call[f64, "llvm.copysign.f64"](x, y);
+}
+
+// Min of two floats (propagates NaN).
+public func fmin(a: f64, b: f64) -> f64 {
+    return __intrinsic_llvm_call[f64, "llvm.minnum.f64"](a, b);
+}
+
+// Max of two floats (propagates NaN).
+public func fmax(a: f64, b: f64) -> f64 {
+    return __intrinsic_llvm_call[f64, "llvm.maxnum.f64"](a, b);
+}
+
+// Power: x^y.
+public func pow(x: f64, y: f64) -> f64 {
+    return __intrinsic_llvm_call[f64, "llvm.pow.f64"](x, y);
+}
+
+// Natural logarithm.
+public func log(x: f64) -> f64 {
+    return __intrinsic_llvm_call[f64, "llvm.log.f64"](x);
+}
+
+// Base-2 logarithm.
+public func log2(x: f64) -> f64 {
+    return __intrinsic_llvm_call[f64, "llvm.log2.f64"](x);
+}
+
+// Base-10 logarithm.
+public func log10(x: f64) -> f64 {
+    return __intrinsic_llvm_call[f64, "llvm.log10.f64"](x);
+}
+
+// Base-e exponential.
+public func exp(x: f64) -> f64 {
+    return __intrinsic_llvm_call[f64, "llvm.exp.f64"](x);
+}
+
+// Base-2 exponential.
+public func exp2(x: f64) -> f64 {
+    return __intrinsic_llvm_call[f64, "llvm.exp2.f64"](x);
+}
+
+// Sine.
+public func sin(x: f64) -> f64 {
+    return __intrinsic_llvm_call[f64, "llvm.sin.f64"](x);
+}
+
+// Cosine.
+public func cos(x: f64) -> f64 {
+    return __intrinsic_llvm_call[f64, "llvm.cos.f64"](x);
+}
+
+// =============================================================================
+// Overflow-checked arithmetic intrinsics
+// =============================================================================
+
+// Signed addition with overflow detection.
+public func add_overflow[T](a: T, b: T) -> (T, bool) {
+    return __intrinsic_llvm_call[(T, bool), "llvm.sadd.with.overflow"](a, b);
+}
+
+// Signed subtraction with overflow detection.
+public func sub_overflow[T](a: T, b: T) -> (T, bool) {
+    return __intrinsic_llvm_call[(T, bool), "llvm.ssub.with.overflow"](a, b);
+}
+
+// Signed multiplication with overflow detection.
+public func mul_overflow[T](a: T, b: T) -> (T, bool) {
+    return __intrinsic_llvm_call[(T, bool), "llvm.smul.with.overflow"](a, b);
+}
+
+// =============================================================================
+// Miscellaneous
+// =============================================================================
+
+// Trap — unconditionally cause an abnormal program termination.
+public func trap() -> ! {
+    __intrinsic_llvm_call_void["llvm.trap"]();
+}
+
+// Debug trap — break into debugger if attached, otherwise continue.
+public func debug_trap() -> void {
+    __intrinsic_llvm_call_void["llvm.debugtrap"]();
+}
+
+// Assume — tell the optimizer that `condition` is always true.
+// UB if it is ever false at runtime.
+public func assume(condition: bool) -> void {
+    __intrinsic_llvm_call_void["llvm.assume"](condition);
+}
+
+// Unreachable — hint that this point in the code is never reached.
+// UB if it IS reached at runtime.
+public func unreachable() -> ! {
+    __intrinsic_unreachable();
+}
+
+// Likely / unlikely branch hints for the optimizer.
+public func likely(condition: bool) -> bool {
+    return __intrinsic_llvm_call[bool, "llvm.expect.i1"](condition, true);
+}
+
+public func unlikely(condition: bool) -> bool {
+    return __intrinsic_llvm_call[bool, "llvm.expect.i1"](condition, false);
+}

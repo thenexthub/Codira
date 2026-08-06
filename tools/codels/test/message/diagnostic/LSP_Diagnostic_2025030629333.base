@@ -1,1 +1,0 @@
-{"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"diagnostics":[],"uri":"file://***//lsp/test/testChr/test/2025030629333/src/test12/test12_b/test12_b.code"}}

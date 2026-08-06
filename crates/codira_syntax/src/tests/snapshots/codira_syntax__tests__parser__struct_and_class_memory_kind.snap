@@ -1,0 +1,40 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    struct Foo {};\n    class Baz {};\n    struct Bar {};\n    \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..61
+  WHITESPACE@0..5 "\n    "
+  STRUCT_DEF@5..19
+    STRUCT_KW@5..11 "struct"
+    WHITESPACE@11..12 " "
+    NAME@12..15
+      IDENT@12..15 "Foo"
+    WHITESPACE@15..16 " "
+    RECORD_FIELD_DEF_LIST@16..19
+      L_CURLY@16..17 "{"
+      R_CURLY@17..18 "}"
+      SEMI@18..19 ";"
+  WHITESPACE@19..24 "\n    "
+  STRUCT_DEF@24..37
+    CLASS_KW@24..29 "class"
+    WHITESPACE@29..30 " "
+    NAME@30..33
+      IDENT@30..33 "Baz"
+    WHITESPACE@33..34 " "
+    RECORD_FIELD_DEF_LIST@34..37
+      L_CURLY@34..35 "{"
+      R_CURLY@35..36 "}"
+      SEMI@36..37 ";"
+  WHITESPACE@37..42 "\n    "
+  STRUCT_DEF@42..56
+    STRUCT_KW@42..48 "struct"
+    WHITESPACE@48..49 " "
+    NAME@49..52
+      IDENT@49..52 "Bar"
+    WHITESPACE@52..53 " "
+    RECORD_FIELD_DEF_LIST@53..56
+      L_CURLY@53..54 "{"
+      R_CURLY@54..55 "}"
+      SEMI@55..56 ";"
+  WHITESPACE@56..61 "\n    "

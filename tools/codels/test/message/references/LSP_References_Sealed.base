@@ -1,1 +1,0 @@
-{"id":4,"jsonrpc":"2.0","result":[{"range":{"end":{"character":22,"line":20},"start":{"character":16,"line":20}},"uri":"file:///d%3A/jenkins/customWorkspace/codenative_x64_windiws_lsp_4969/lsp/test/testChr/normalTest/SealedLsp/src/main.code"}]}

@@ -1,0 +1,34 @@
+[package]
+name = "codira"
+description = "Command-line interface for compiling, monitoring and running Codira code"
+keywords = ["game", "hot-reloading", "language", "codira", "scripting"]
+categories = ["command-line-interface", "game-development"]
+default-run = "codira"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true, features = ["std", "derive"] }
+log = { workspace = true }
+pretty_env_logger = { workspace = true }
+codira_abi = { version = "0.6.0-dev", path = "../codira_abi" }
+codira_compiler = { version = "0.6.0-dev", path = "../codira_compiler" }
+codira_compiler_daemon = { version = "0.6.0-dev", path = "../codira_compiler_daemon" }
+codira_runtime = { version = "0.6.0-dev", path = "../codira_runtime" }
+codira_language_server = { version = "0.6.0-dev", path = "../codira_language_server" }
+codira_project = { version = "0.6.0-dev", path = "../codira_project" }
+
+[dev-dependencies]
+cargo-husky = { workspace = true, features = ["user-hooks"] }
+tempfile = { workspace = true }
+codira_skeptic = { path = "../codira_skeptic", version = "0.6.0-dev" }
+
+[build-dependencies]
+codira_skeptic = { path = "../codira_skeptic", version = "0.6.0-dev" }

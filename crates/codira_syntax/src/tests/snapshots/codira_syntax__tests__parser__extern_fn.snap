@@ -1,0 +1,23 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    public extern func foo();\n    \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..35
+  FUNCTION_DEF@0..30
+    WHITESPACE@0..5 "\n    "
+    VISIBILITY@5..11
+      PUBLIC_KW@5..11 "public"
+    WHITESPACE@11..12 " "
+    EXTERN@12..18
+      EXTERN_KW@12..18 "extern"
+    WHITESPACE@18..19 " "
+    FUNC_KW@19..23 "func"
+    WHITESPACE@23..24 " "
+    NAME@24..27
+      IDENT@24..27 "foo"
+    PARAM_LIST@27..29
+      L_PAREN@27..28 "("
+      R_PAREN@28..29 ")"
+    SEMI@29..30 ";"
+  WHITESPACE@30..35 "\n    "

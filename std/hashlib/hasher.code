@@ -1,0 +1,227 @@
+// std/hashlib/hasher.code
+// Hasher trait and concrete hasher implementations for Codira.
+// Provides AHasher (fast, non-cryptographic) and Fnv1aHasher.
+
+// ---------------------------------------------------------------------------
+// Hasher trait
+// A stateful object that accumulates data and produces a hash digest.
+// ---------------------------------------------------------------------------
+public trait Hasher {
+    // Feed a single byte into the hasher state.
+    func write_byte(mut self, byte: u8);
+
+    // Feed a slice of bytes into the hasher state.
+    func write_bytes(mut self, data: Array<u8>);
+
+    // Feed an unsigned 64-bit integer into the hasher state.
+    func write_u64(mut self, value: u64);
+
+    // Feed a signed 64-bit integer into the hasher state.
+    func write_i64(mut self, value: i64);
+
+    // Feed a string into the hasher state.
+    func write_string(mut self, value: String);
+
+    // Finalize and return the computed hash value.
+    func finish(self) -> u64;
+
+    // Reset the hasher to its initial state so it can be reused.
+    func reset(mut self);
+}
+
+// ===========================================================================
+// AHasher
+// ===========================================================================
+// A fast, non-cryptographic hasher inspired by aHash. Uses a simple
+// multiply-xorshift mixing strategy with two 64-bit state words.
+// Suitable for hash maps, hash sets, and other data structures where
+// speed matters more than cryptographic strength.
+// ---------------------------------------------------------------------------
+public struct AHasher {
+    state0: u64,
+    state1: u64,
+    buffer: u64,
+    pad: u64,
+}
+
+// Default seed constants (arbitrary primes).
+let AHASHER_SEED0: u64 = 0x243F6A8885A308D3;
+let AHASHER_SEED1: u64 = 0x13198A2E03707344;
+let AHASHER_PAD: u64   = 0xA4093822299F31D0;
+
+// Creates a new AHasher with the default seed.
+public func ahasher_new() -> AHasher {
+    return AHasher {
+        state0: AHASHER_SEED0,
+        state1: AHASHER_SEED1,
+        buffer: 0,
+        pad: AHASHER_PAD,
+    };
+}
+
+// Creates a new AHasher with a caller-supplied seed pair.
+public func ahasher_with_seeds(seed0: u64, seed1: u64) -> AHasher {
+    return AHasher {
+        state0: seed0,
+        state1: seed1,
+        buffer: 0,
+        pad: AHASHER_PAD,
+    };
+}
+
+// Internal mixing step for AHasher.
+func ahasher_mix(state: u64, data: u64) -> u64 {
+    let mut s: u64 = state;
+    s = s ^ data;
+    s = s * 0x6C62272E07BB0142;   // large odd constant
+    s = s ^ (s >> 33);
+    return s;
+}
+
+// AHasher: write_byte
+public func ahasher_write_byte(hasher: mut AHasher, byte: u8) {
+    hasher.state0 = ahasher_mix(hasher.state0, byte as u64);
+}
+
+// AHasher: write_bytes
+public func ahasher_write_bytes(hasher: mut AHasher, data: Array<u8>) {
+    let mut i: usize = 0;
+    // Process 8 bytes at a time for speed.
+    while i + 8 <= data.len() {
+        let mut block: u64 = 0;
+        let mut j: u32 = 0;
+        while j < 8 {
+            block = block | ((data[i + j as usize] as u64) << (j * 8));
+            j = j + 1;
+        }
+        hasher.state0 = ahasher_mix(hasher.state0, block);
+        i = i + 8;
+    }
+    // Tail bytes.
+    while i < data.len() {
+        hasher.state0 = ahasher_mix(hasher.state0, data[i] as u64);
+        i = i + 1;
+    }
+    // Mix length into state1 for better distribution.
+    hasher.state1 = ahasher_mix(hasher.state1, data.len() as u64);
+}
+
+// AHasher: write_u64
+public func ahasher_write_u64(hasher: mut AHasher, value: u64) {
+    hasher.state0 = ahasher_mix(hasher.state0, value);
+}
+
+// AHasher: write_i64
+public func ahasher_write_i64(hasher: mut AHasher, value: i64) {
+    ahasher_write_u64(hasher, value as u64);
+}
+
+// AHasher: write_string
+public func ahasher_write_string(hasher: mut AHasher, value: String) {
+    ahasher_write_bytes(hasher, value.as_bytes());
+}
+
+// AHasher: finish – finalize and return the hash.
+public func ahasher_finish(hasher: AHasher) -> u64 {
+    let mut h: u64 = hasher.state0;
+    h = h ^ hasher.state1;
+    h = h ^ hasher.pad;
+    // Final avalanche.
+    h = h ^ (h >> 33);
+    h = h * 0xFF51AFD7ED558CCD;
+    h = h ^ (h >> 33);
+    h = h * 0xC4CEB9FE1A85EC53;
+    h = h ^ (h >> 33);
+    return h;
+}
+
+// AHasher: reset
+public func ahasher_reset(hasher: mut AHasher) {
+    hasher.state0 = AHASHER_SEED0;
+    hasher.state1 = AHASHER_SEED1;
+    hasher.buffer = 0;
+}
+
+// ===========================================================================
+// Fnv1aHasher
+// ===========================================================================
+// Classic FNV-1a (Fowler–Noll–Vo) 64-bit hash.
+// Simple, well-understood, and produces decent distribution for most
+// workloads. Not suitable for adversarial inputs.
+// ---------------------------------------------------------------------------
+public struct Fnv1aHasher {
+    state: u64,
+}
+
+let FNV_OFFSET_BASIS: u64 = 0xCBF29CE484222325;
+let FNV_PRIME: u64         = 0x00000100000001B3;
+
+// Creates a new Fnv1aHasher.
+public func fnv1a_hasher_new() -> Fnv1aHasher {
+    return Fnv1aHasher {
+        state: FNV_OFFSET_BASIS,
+    };
+}
+
+// Creates a new Fnv1aHasher with a custom initial offset basis.
+public func fnv1a_hasher_with_seed(seed: u64) -> Fnv1aHasher {
+    return Fnv1aHasher {
+        state: seed,
+    };
+}
+
+// Fnv1aHasher: write_byte
+public func fnv1a_write_byte(hasher: mut Fnv1aHasher, byte: u8) {
+    hasher.state = hasher.state ^ (byte as u64);
+    hasher.state = hasher.state * FNV_PRIME;
+}
+
+// Fnv1aHasher: write_bytes
+public func fnv1a_write_bytes(hasher: mut Fnv1aHasher, data: Array<u8>) {
+    let mut i: usize = 0;
+    while i < data.len() {
+        hasher.state = hasher.state ^ (data[i] as u64);
+        hasher.state = hasher.state * FNV_PRIME;
+        i = i + 1;
+    }
+}
+
+// Fnv1aHasher: write_u64
+public func fnv1a_write_u64(hasher: mut Fnv1aHasher, value: u64) {
+    let mut i: u32 = 0;
+    while i < 8 {
+        let byte: u64 = (value >> (i * 8)) & 0xFF;
+        hasher.state = hasher.state ^ byte;
+        hasher.state = hasher.state * FNV_PRIME;
+        i = i + 1;
+    }
+}
+
+// Fnv1aHasher: write_i64
+public func fnv1a_write_i64(hasher: mut Fnv1aHasher, value: i64) {
+    fnv1a_write_u64(hasher, value as u64);
+}
+
+// Fnv1aHasher: write_string
+public func fnv1a_write_string(hasher: mut Fnv1aHasher, value: String) {
+    fnv1a_write_bytes(hasher, value.as_bytes());
+}
+
+// Fnv1aHasher: finish
+public func fnv1a_finish(hasher: Fnv1aHasher) -> u64 {
+    return hasher.state;
+}
+
+// Fnv1aHasher: reset
+public func fnv1a_reset(hasher: mut Fnv1aHasher) {
+    hasher.state = FNV_OFFSET_BASIS;
+}
+
+// ===========================================================================
+// Utility: hash_with
+// Hashes an arbitrary Hashable value using the supplied Hasher.
+// ===========================================================================
+public func hash_with(hasher: mut Hasher, value: Hashable) -> u64 {
+    hasher.write_u64(value.hash_value());
+    return hasher.finish();
+}

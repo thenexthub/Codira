@@ -1,1 +1,0 @@
-{"id":"9","jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: Composition.code\nPackage info: default\n\n(function) internal func composition_b(x: Float32): Int32\n"},"range":{"end":{"character":39,"line":9},"start":{"character":26,"line":9}}}}

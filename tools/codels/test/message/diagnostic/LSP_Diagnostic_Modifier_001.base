@@ -1,1 +1,0 @@
-{"jsonrpc":"2.0","method":"textDocument/extendPublishDiagnostics","params":{"diagnostics":[],"uri":"file:///d%3A/develop/B010/Codira-language-server/test/testChr/normalTest/Modifier/src/classPkg/a.code"}}

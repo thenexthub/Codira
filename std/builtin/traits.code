@@ -1,0 +1,208 @@
+// =============================================================================
+// std/builtin/traits.code — Core traits (interfaces / protocols)
+// =============================================================================
+//
+// Traits are Codira's mechanism for bounded polymorphism.  A struct that
+// implements a trait promises to provide every function the trait declares.
+//
+// The traits defined here form the bedrock of the standard library:
+//   - Lifecycle:   Copyable, Movable, Sized, Defaultable, Destructible
+//   - Comparison:  EqualityComparable, Comparable
+//   - Hashing:     Hashable
+//   - Formatting:  Stringable, Representable, Writable, Formattable
+//   - Identity:    Identifiable
+//   - Containers:  Indexable, Iterable, Collection, Lengthable
+// =============================================================================
+
+// ---------------------------------------------------------------------------
+// Lifecycle traits
+// ---------------------------------------------------------------------------
+
+// A type that can be bitwise-copied.
+// Implementing Copyable means the value has no move-only resources and can
+// be duplicated freely.
+public trait Copyable {
+    // Return a bitwise copy of self.
+    func copy(self) -> Self;
+}
+
+// A type that can be moved (ownership transfer).
+// After a move the source is considered consumed and must not be used.
+public trait Movable {
+    // Transfer ownership from `self` into the returned value.
+    func move(self) -> Self;
+}
+
+// A type whose size is known at compile time.
+// All value-semantics structs satisfy Sized automatically.
+public trait Sized {
+    // Returns the size in bytes of this type.
+    func size_of() -> usize;
+}
+
+// A type that can be constructed with no arguments.
+public trait Defaultable {
+    // Produce the default value for this type (e.g. zero, empty).
+    func default() -> Self;
+}
+
+// A type that has deterministic cleanup logic.
+public trait Destructible {
+    // Called when the value goes out of scope.
+    func destroy(self) -> void;
+}
+
+// ---------------------------------------------------------------------------
+// Comparison traits
+// ---------------------------------------------------------------------------
+
+// A type that supports `==` and `!=`.
+public trait EqualityComparable {
+    // Returns true when `self` and `other` are semantically equal.
+    func eq(self, other: Self) -> bool;
+
+    // Returns true when `self` and `other` differ.
+    // Default implementation: negate `eq`.
+    func ne(self, other: Self) -> bool {
+        return !self.eq(other);
+    }
+}
+
+// A type that supports total ordering (`<`, `<=`, `>`, `>=`).
+// Comparable extends EqualityComparable.
+public trait Comparable: EqualityComparable {
+    // Returns true when `self` is strictly less than `other`.
+    func lt(self, other: Self) -> bool;
+
+    // Returns true when `self` is less than or equal to `other`.
+    func le(self, other: Self) -> bool {
+        return self.lt(other) | self.eq(other);
+    }
+
+    // Returns true when `self` is strictly greater than `other`.
+    func gt(self, other: Self) -> bool {
+        return other.lt(self);
+    }
+
+    // Returns true when `self` is greater than or equal to `other`.
+    func ge(self, other: Self) -> bool {
+        return other.le(self);
+    }
+
+    // Three-way comparison: returns -1, 0, or 1.
+    func cmp(self, other: Self) -> i32 {
+        if self.lt(other) {
+            return -1;
+        }
+        if self.eq(other) {
+            return 0;
+        }
+        return 1;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Hashing
+// ---------------------------------------------------------------------------
+
+// A type that can produce a deterministic hash value.
+public trait Hashable {
+    // Compute a hash of `self` and fold it into the given hasher state.
+    func hash(self, hasher: &Hasher) -> void;
+
+    // Convenience: return a standalone u64 hash.
+    func hash_value(self) -> u64 {
+        let h = Hasher.new();
+        self.hash(&h);
+        return h.finish();
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Formatting / Display traits
+// ---------------------------------------------------------------------------
+
+// A type that can be converted to a human-readable String.
+public trait Stringable {
+    // Return a human-readable string representation.
+    func to_string(self) -> String;
+}
+
+// A type that can produce a debug / unambiguous representation.
+// The output should ideally be valid Codira syntax that could recreate
+// the value.
+public trait Representable {
+    // Return a debug string representation.
+    func repr(self) -> String;
+}
+
+// A type that can write its textual form into an output stream.
+public trait Writable {
+    // Write `self` into `writer`.
+    func write_to(self, writer: &Writer) -> void;
+}
+
+// A type that supports format-string interpolation with a format spec.
+public trait Formattable {
+    // Format `self` according to `spec` and write into `formatter`.
+    func format(self, spec: StringSlice, formatter: &Formatter) -> void;
+}
+
+// ---------------------------------------------------------------------------
+// Identity
+// ---------------------------------------------------------------------------
+
+// A type that carries a unique, stable identity.
+public trait Identifiable {
+    // Return this instance's identity token.
+    func id(self) -> u64;
+}
+
+// ---------------------------------------------------------------------------
+// Container / iteration traits
+// ---------------------------------------------------------------------------
+
+// A type that supports subscript access by index.
+public trait Indexable[Index, Element] {
+    // Return the element at the given index.
+    func get(self, index: Index) -> Element;
+
+    // Set the element at the given index.
+    func set(self, index: Index, value: Element) -> void;
+}
+
+// A type that can produce an iterator over its elements.
+public trait Iterable[Element] {
+    // Return an iterator that yields elements of the collection.
+    func iter(self) -> Iterator[Element];
+}
+
+// A type whose length (number of elements) is queryable.
+public trait Lengthable {
+    // Return the number of elements.
+    func len(self) -> usize;
+
+    // Return true when the collection has no elements.
+    func is_empty(self) -> bool {
+        return self.len() == 0;
+    }
+}
+
+// A general-purpose collection trait combining indexing, iteration, and length.
+public trait Collection[Index, Element]: Indexable[Index, Element], Iterable[Element], Lengthable {
+    // Check whether `value` is contained in this collection.
+    func contains(self, value: Element) -> bool;
+}
+
+// ---------------------------------------------------------------------------
+// Arithmetic protocol (optional convenience trait)
+// ---------------------------------------------------------------------------
+
+// A type that supports the four basic arithmetic operators.
+public trait Arithmetic: EqualityComparable {
+    func add(self, other: Self) -> Self;
+    func sub(self, other: Self) -> Self;
+    func mul(self, other: Self) -> Self;
+    func div(self, other: Self) -> Self;
+    func neg(self) -> Self;
+}

@@ -1,3 +1,0 @@
-build-sdk/sdk/ets/etssdk.abc
-build-sdk/sdk/ets/sdk
-build-sdk/sdk/ets/sdk/sdk

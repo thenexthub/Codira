@@ -1,0 +1,153 @@
+// std/hashlib/hash.code
+// Core hashing infrastructure for Codira.
+// Provides the Hashable trait, a default hash function, and hash combiners.
+
+// ---------------------------------------------------------------------------
+// Hashable trait
+// Any type that can be hashed must implement this trait.
+// ---------------------------------------------------------------------------
+public trait Hashable {
+    // Returns the hash value for this instance.
+    func hash_value(self) -> u64;
+}
+
+// ---------------------------------------------------------------------------
+// hash
+// Convenience function that hashes any Hashable value using the default
+// hashing algorithm (FNV-1a 64-bit).
+// ---------------------------------------------------------------------------
+public func hash(value: Hashable) -> u64 {
+    return value.hash_value();
+}
+
+// ---------------------------------------------------------------------------
+// combine_hash
+// Combines two hash values into a single hash using a mixing function
+// inspired by boost::hash_combine. This is useful when hashing composite
+// types (structs with multiple fields, tuples, etc.).
+//
+// The magic constant 0x9E3779B97F4A7C15 is derived from the golden ratio
+// and provides good avalanche properties.
+// ---------------------------------------------------------------------------
+public func combine_hash(seed: u64, value: u64) -> u64 {
+    let golden: u64 = 0x9E3779B97F4A7C15;
+    let mut mixed: u64 = value;
+    mixed = mixed + golden + (seed << 6) + (seed >> 2);
+    return seed ^ mixed;
+}
+
+// ---------------------------------------------------------------------------
+// combine_hash_ordered
+// Combines a sequence of hash values in order. The result depends on the
+// order in which the hashes are fed in.
+// ---------------------------------------------------------------------------
+public func combine_hash_ordered(hashes: Array<u64>) -> u64 {
+    let mut result: u64 = 0;
+    let mut i: usize = 0;
+    while i < hashes.len() {
+        result = combine_hash(result, hashes[i]);
+        i = i + 1;
+    }
+    return result;
+}
+
+// ---------------------------------------------------------------------------
+// combine_hash_unordered
+// Combines a sequence of hash values in an order-independent manner using
+// XOR. Suitable for sets and other unordered collections.
+// ---------------------------------------------------------------------------
+public func combine_hash_unordered(hashes: Array<u64>) -> u64 {
+    let mut result: u64 = 0;
+    let mut i: usize = 0;
+    while i < hashes.len() {
+        result = result ^ hashes[i];
+        i = i + 1;
+    }
+    return result;
+}
+
+// ---------------------------------------------------------------------------
+// hash_bytes
+// Hashes a raw byte slice using FNV-1a.
+// ---------------------------------------------------------------------------
+public func hash_bytes(data: Array<u8>) -> u64 {
+    let fnv_offset: u64 = 0xCBF29CE484222325;
+    let fnv_prime: u64 = 0x00000100000001B3;
+    let mut h: u64 = fnv_offset;
+    let mut i: usize = 0;
+    while i < data.len() {
+        h = h ^ (data[i] as u64);
+        h = h * fnv_prime;
+        i = i + 1;
+    }
+    return h;
+}
+
+// ---------------------------------------------------------------------------
+// hash_i64
+// Hashes a signed 64-bit integer by treating it as unsigned bytes.
+// ---------------------------------------------------------------------------
+public func hash_i64(value: i64) -> u64 {
+    let v: u64 = value as u64;
+    let mut h: u64 = 0xCBF29CE484222325;
+    let prime: u64 = 0x00000100000001B3;
+    let mut i: u32 = 0;
+    while i < 8 {
+        let byte: u64 = (v >> (i * 8)) & 0xFF;
+        h = h ^ byte;
+        h = h * prime;
+        i = i + 1;
+    }
+    return h;
+}
+
+// ---------------------------------------------------------------------------
+// hash_u64
+// Hashes an unsigned 64-bit integer.
+// ---------------------------------------------------------------------------
+public func hash_u64(value: u64) -> u64 {
+    let mut h: u64 = 0xCBF29CE484222325;
+    let prime: u64 = 0x00000100000001B3;
+    let mut i: u32 = 0;
+    while i < 8 {
+        let byte: u64 = (value >> (i * 8)) & 0xFF;
+        h = h ^ byte;
+        h = h * prime;
+        i = i + 1;
+    }
+    return h;
+}
+
+// ---------------------------------------------------------------------------
+// hash_f64
+// Hashes a 64-bit float by reinterpreting its bits as u64.
+// NaN values are normalized so that all NaNs hash the same.
+// ---------------------------------------------------------------------------
+public func hash_f64(value: f64) -> u64 {
+    // Normalize negative zero to positive zero.
+    let mut v: f64 = value;
+    if v == 0.0 {
+        v = 0.0;
+    }
+    let bits: u64 = bitcast<u64>(v);
+    return hash_u64(bits);
+}
+
+// ---------------------------------------------------------------------------
+// hash_bool
+// Hashes a boolean value.
+// ---------------------------------------------------------------------------
+public func hash_bool(value: bool) -> u64 {
+    if value {
+        return hash_u64(1);
+    }
+    return hash_u64(0);
+}
+
+// ---------------------------------------------------------------------------
+// hash_string
+// Hashes a string by hashing its UTF-8 byte representation.
+// ---------------------------------------------------------------------------
+public func hash_string(value: String) -> u64 {
+    return hash_bytes(value.as_bytes());
+}

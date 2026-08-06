@@ -1,1 +1,0 @@
-{"id":9,"jsonrpc":"2.0","result":{"documentChanges":[{"edits":[{"newText":"CC123","range":{"end":{"character":8,"line":7},"start":{"character":6,"line":7}}}],"textDocument":{"uri":"file:///d%3A/Project/test/lsp/test/testChr/test/2021111222229/src/test.code","version":0}}]}}

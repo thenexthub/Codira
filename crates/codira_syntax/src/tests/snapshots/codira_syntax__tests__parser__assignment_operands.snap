@@ -1,0 +1,207 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    func main() {\n        let a = b;\n        a += b;\n        a -= b;\n        a *= b;\n        a /= b;\n        a %= b;\n        a <<= b;\n        a >>= b;\n        a &= b;\n        a |= b;\n        a ^= b;\n    }\n    \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..210
+  FUNCTION_DEF@0..205
+    WHITESPACE@0..5 "\n    "
+    FUNC_KW@5..9 "func"
+    WHITESPACE@9..10 " "
+    NAME@10..14
+      IDENT@10..14 "main"
+    PARAM_LIST@14..16
+      L_PAREN@14..15 "("
+      R_PAREN@15..16 ")"
+    WHITESPACE@16..17 " "
+    BLOCK_EXPR@17..205
+      L_CURLY@17..18 "{"
+      WHITESPACE@18..27 "\n        "
+      LET_STMT@27..37
+        LET_KW@27..30 "let"
+        WHITESPACE@30..31 " "
+        BIND_PAT@31..32
+          NAME@31..32
+            IDENT@31..32 "a"
+        WHITESPACE@32..33 " "
+        EQ@33..34 "="
+        WHITESPACE@34..35 " "
+        PATH_EXPR@35..36
+          PATH@35..36
+            PATH_SEGMENT@35..36
+              NAME_REF@35..36
+                IDENT@35..36 "b"
+        SEMI@36..37 ";"
+      WHITESPACE@37..46 "\n        "
+      EXPR_STMT@46..53
+        BIN_EXPR@46..52
+          PATH_EXPR@46..47
+            PATH@46..47
+              PATH_SEGMENT@46..47
+                NAME_REF@46..47
+                  IDENT@46..47 "a"
+          WHITESPACE@47..48 " "
+          PLUSEQ@48..50 "+="
+          WHITESPACE@50..51 " "
+          PATH_EXPR@51..52
+            PATH@51..52
+              PATH_SEGMENT@51..52
+                NAME_REF@51..52
+                  IDENT@51..52 "b"
+        SEMI@52..53 ";"
+      WHITESPACE@53..62 "\n        "
+      EXPR_STMT@62..69
+        BIN_EXPR@62..68
+          PATH_EXPR@62..63
+            PATH@62..63
+              PATH_SEGMENT@62..63
+                NAME_REF@62..63
+                  IDENT@62..63 "a"
+          WHITESPACE@63..64 " "
+          MINUSEQ@64..66 "-="
+          WHITESPACE@66..67 " "
+          PATH_EXPR@67..68
+            PATH@67..68
+              PATH_SEGMENT@67..68
+                NAME_REF@67..68
+                  IDENT@67..68 "b"
+        SEMI@68..69 ";"
+      WHITESPACE@69..78 "\n        "
+      EXPR_STMT@78..85
+        BIN_EXPR@78..84
+          PATH_EXPR@78..79
+            PATH@78..79
+              PATH_SEGMENT@78..79
+                NAME_REF@78..79
+                  IDENT@78..79 "a"
+          WHITESPACE@79..80 " "
+          STAREQ@80..82 "*="
+          WHITESPACE@82..83 " "
+          PATH_EXPR@83..84
+            PATH@83..84
+              PATH_SEGMENT@83..84
+                NAME_REF@83..84
+                  IDENT@83..84 "b"
+        SEMI@84..85 ";"
+      WHITESPACE@85..94 "\n        "
+      EXPR_STMT@94..101
+        BIN_EXPR@94..100
+          PATH_EXPR@94..95
+            PATH@94..95
+              PATH_SEGMENT@94..95
+                NAME_REF@94..95
+                  IDENT@94..95 "a"
+          WHITESPACE@95..96 " "
+          SLASHEQ@96..98 "/="
+          WHITESPACE@98..99 " "
+          PATH_EXPR@99..100
+            PATH@99..100
+              PATH_SEGMENT@99..100
+                NAME_REF@99..100
+                  IDENT@99..100 "b"
+        SEMI@100..101 ";"
+      WHITESPACE@101..110 "\n        "
+      EXPR_STMT@110..117
+        BIN_EXPR@110..116
+          PATH_EXPR@110..111
+            PATH@110..111
+              PATH_SEGMENT@110..111
+                NAME_REF@110..111
+                  IDENT@110..111 "a"
+          WHITESPACE@111..112 " "
+          PERCENTEQ@112..114 "%="
+          WHITESPACE@114..115 " "
+          PATH_EXPR@115..116
+            PATH@115..116
+              PATH_SEGMENT@115..116
+                NAME_REF@115..116
+                  IDENT@115..116 "b"
+        SEMI@116..117 ";"
+      WHITESPACE@117..126 "\n        "
+      EXPR_STMT@126..134
+        BIN_EXPR@126..133
+          PATH_EXPR@126..127
+            PATH@126..127
+              PATH_SEGMENT@126..127
+                NAME_REF@126..127
+                  IDENT@126..127 "a"
+          WHITESPACE@127..128 " "
+          SHLEQ@128..131 "<<="
+          WHITESPACE@131..132 " "
+          PATH_EXPR@132..133
+            PATH@132..133
+              PATH_SEGMENT@132..133
+                NAME_REF@132..133
+                  IDENT@132..133 "b"
+        SEMI@133..134 ";"
+      WHITESPACE@134..143 "\n        "
+      EXPR_STMT@143..151
+        BIN_EXPR@143..150
+          PATH_EXPR@143..144
+            PATH@143..144
+              PATH_SEGMENT@143..144
+                NAME_REF@143..144
+                  IDENT@143..144 "a"
+          WHITESPACE@144..145 " "
+          SHREQ@145..148 ">>="
+          WHITESPACE@148..149 " "
+          PATH_EXPR@149..150
+            PATH@149..150
+              PATH_SEGMENT@149..150
+                NAME_REF@149..150
+                  IDENT@149..150 "b"
+        SEMI@150..151 ";"
+      WHITESPACE@151..160 "\n        "
+      EXPR_STMT@160..167
+        BIN_EXPR@160..166
+          PATH_EXPR@160..161
+            PATH@160..161
+              PATH_SEGMENT@160..161
+                NAME_REF@160..161
+                  IDENT@160..161 "a"
+          WHITESPACE@161..162 " "
+          AMPEQ@162..164 "&="
+          WHITESPACE@164..165 " "
+          PATH_EXPR@165..166
+            PATH@165..166
+              PATH_SEGMENT@165..166
+                NAME_REF@165..166
+                  IDENT@165..166 "b"
+        SEMI@166..167 ";"
+      WHITESPACE@167..176 "\n        "
+      EXPR_STMT@176..183
+        BIN_EXPR@176..182
+          PATH_EXPR@176..177
+            PATH@176..177
+              PATH_SEGMENT@176..177
+                NAME_REF@176..177
+                  IDENT@176..177 "a"
+          WHITESPACE@177..178 " "
+          PIPEEQ@178..180 "|="
+          WHITESPACE@180..181 " "
+          PATH_EXPR@181..182
+            PATH@181..182
+              PATH_SEGMENT@181..182
+                NAME_REF@181..182
+                  IDENT@181..182 "b"
+        SEMI@182..183 ";"
+      WHITESPACE@183..192 "\n        "
+      EXPR_STMT@192..199
+        BIN_EXPR@192..198
+          PATH_EXPR@192..193
+            PATH@192..193
+              PATH_SEGMENT@192..193
+                NAME_REF@192..193
+                  IDENT@192..193 "a"
+          WHITESPACE@193..194 " "
+          CARETEQ@194..196 "^="
+          WHITESPACE@196..197 " "
+          PATH_EXPR@197..198
+            PATH@197..198
+              PATH_SEGMENT@197..198
+                NAME_REF@197..198
+                  IDENT@197..198 "b"
+        SEMI@198..199 ";"
+      WHITESPACE@199..204 "\n    "
+      R_CURLY@204..205 "}"
+  WHITESPACE@205..210 "\n    "

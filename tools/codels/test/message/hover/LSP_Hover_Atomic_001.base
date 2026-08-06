@@ -1,1 +1,0 @@
-{"id":"104","jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: atomic.code\nPackage info: default\n\n(variable) var obj2r: AtomicReference<A> = AtomicReference(t1)\n"},"range":{"end":{"character":13,"line":31},"start":{"character":8,"line":31}}}}

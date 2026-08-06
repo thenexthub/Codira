@@ -1,0 +1,219 @@
+// std/testing/testing.code
+// Test assertion utilities for Codira.
+// Provides assertion functions for use in unit tests. Each function
+// panics with a descriptive message when the assertion fails.
+
+// ---------------------------------------------------------------------------
+// AssertionError
+// Raised when a test assertion fails.
+// ---------------------------------------------------------------------------
+public struct AssertionError {
+    message: String,
+    file: String,
+    line: u32,
+}
+
+// ---------------------------------------------------------------------------
+// assert_true
+// Asserts that `condition` is true.
+// ---------------------------------------------------------------------------
+public func assert_true(condition: bool, message: String) {
+    if !condition {
+        panic("assert_true failed: " + message);
+    }
+}
+
+// Overload with default message.
+public func assert_true(condition: bool) {
+    assert_true(condition, "expected true, got false");
+}
+
+// ---------------------------------------------------------------------------
+// assert_false
+// Asserts that `condition` is false.
+// ---------------------------------------------------------------------------
+public func assert_false(condition: bool, message: String) {
+    if condition {
+        panic("assert_false failed: " + message);
+    }
+}
+
+// Overload with default message.
+public func assert_false(condition: bool) {
+    assert_false(condition, "expected false, got true");
+}
+
+// ---------------------------------------------------------------------------
+// assert_equal
+// Asserts that `actual` equals `expected`.
+// Works for any type that supports == comparison.
+// ---------------------------------------------------------------------------
+public func assert_equal<T>(actual: T, expected: T, message: String) {
+    if actual != expected {
+        panic("assert_equal failed: " + message
+            + " (expected: " + to_string(expected)
+            + ", actual: " + to_string(actual) + ")");
+    }
+}
+
+public func assert_equal<T>(actual: T, expected: T) {
+    assert_equal(actual, expected, "values are not equal");
+}
+
+// ---------------------------------------------------------------------------
+// assert_not_equal
+// Asserts that `actual` does not equal `unexpected`.
+// ---------------------------------------------------------------------------
+public func assert_not_equal<T>(actual: T, unexpected: T, message: String) {
+    if actual == unexpected {
+        panic("assert_not_equal failed: " + message
+            + " (both values: " + to_string(actual) + ")");
+    }
+}
+
+public func assert_not_equal<T>(actual: T, unexpected: T) {
+    assert_not_equal(actual, unexpected, "values should differ but are equal");
+}
+
+// ---------------------------------------------------------------------------
+// assert_almost_equal
+// Asserts that the absolute difference between `actual` and `expected`
+// is within `tolerance` (default 1e-7).
+// Suitable for floating-point comparisons.
+// ---------------------------------------------------------------------------
+public func assert_almost_equal(actual: f64, expected: f64, tolerance: f64, message: String) {
+    let diff: f64 = actual - expected;
+    let abs_diff: f64 = if diff < 0.0 { -diff } else { diff };
+    if abs_diff > tolerance {
+        panic("assert_almost_equal failed: " + message
+            + " (expected: " + to_string(expected)
+            + ", actual: " + to_string(actual)
+            + ", diff: " + to_string(abs_diff)
+            + ", tolerance: " + to_string(tolerance) + ")");
+    }
+}
+
+public func assert_almost_equal(actual: f64, expected: f64, tolerance: f64) {
+    assert_almost_equal(actual, expected, tolerance, "values not almost equal");
+}
+
+public func assert_almost_equal(actual: f64, expected: f64) {
+    assert_almost_equal(actual, expected, 1e-7, "values not almost equal");
+}
+
+// ---------------------------------------------------------------------------
+// assert_raises
+// Asserts that calling `f` causes a panic / exception.
+// Returns the caught error message if the assertion succeeds.
+// ---------------------------------------------------------------------------
+public func assert_raises(f: func(), message: String) -> String {
+    let result: CatchResult = catch_panic(f);
+    if result.did_panic {
+        return result.panic_message;
+    }
+    panic("assert_raises failed: " + message + " (no exception raised)");
+}
+
+public func assert_raises(f: func()) -> String {
+    return assert_raises(f, "expected function to raise");
+}
+
+// ---------------------------------------------------------------------------
+// assert_is_none
+// Asserts that an Optional value is None.
+// ---------------------------------------------------------------------------
+public func assert_is_none<T>(value: Optional<T>, message: String) {
+    if value.is_some() {
+        panic("assert_is_none failed: " + message + " (value is Some)");
+    }
+}
+
+public func assert_is_none<T>(value: Optional<T>) {
+    assert_is_none(value, "expected None, got Some");
+}
+
+// ---------------------------------------------------------------------------
+// assert_is_some
+// Asserts that an Optional value is Some, and returns the inner value.
+// ---------------------------------------------------------------------------
+public func assert_is_some<T>(value: Optional<T>, message: String) -> T {
+    if value.is_none() {
+        panic("assert_is_some failed: " + message + " (value is None)");
+    }
+    return value.unwrap();
+}
+
+public func assert_is_some<T>(value: Optional<T>) -> T {
+    return assert_is_some(value, "expected Some, got None");
+}
+
+// ---------------------------------------------------------------------------
+// assert_greater
+// Asserts that `actual` > `expected`.
+// ---------------------------------------------------------------------------
+public func assert_greater<T>(actual: T, expected: T, message: String) {
+    if !(actual > expected) {
+        panic("assert_greater failed: " + message
+            + " (" + to_string(actual) + " is not > " + to_string(expected) + ")");
+    }
+}
+
+public func assert_greater<T>(actual: T, expected: T) {
+    assert_greater(actual, expected, "value not greater");
+}
+
+// ---------------------------------------------------------------------------
+// assert_greater_equal
+// Asserts that `actual` >= `expected`.
+// ---------------------------------------------------------------------------
+public func assert_greater_equal<T>(actual: T, expected: T, message: String) {
+    if !(actual >= expected) {
+        panic("assert_greater_equal failed: " + message
+            + " (" + to_string(actual) + " is not >= " + to_string(expected) + ")");
+    }
+}
+
+public func assert_greater_equal<T>(actual: T, expected: T) {
+    assert_greater_equal(actual, expected, "value not greater or equal");
+}
+
+// ---------------------------------------------------------------------------
+// assert_less
+// Asserts that `actual` < `expected`.
+// ---------------------------------------------------------------------------
+public func assert_less<T>(actual: T, expected: T, message: String) {
+    if !(actual < expected) {
+        panic("assert_less failed: " + message
+            + " (" + to_string(actual) + " is not < " + to_string(expected) + ")");
+    }
+}
+
+public func assert_less<T>(actual: T, expected: T) {
+    assert_less(actual, expected, "value not less");
+}
+
+// ---------------------------------------------------------------------------
+// assert_contains
+// Asserts that `haystack` contains `needle`.
+// ---------------------------------------------------------------------------
+public func assert_contains(haystack: String, needle: String, message: String) {
+    if !haystack.contains(needle) {
+        panic("assert_contains failed: " + message
+            + " (\"" + needle + "\" not found in \"" + haystack + "\")");
+    }
+}
+
+public func assert_contains(haystack: String, needle: String) {
+    assert_contains(haystack, needle, "substring not found");
+}
+
+// ---------------------------------------------------------------------------
+// CatchResult – internal struct for assert_raises.
+// ---------------------------------------------------------------------------
+struct CatchResult {
+    did_panic: bool,
+    panic_message: String,
+}
+
+extern func catch_panic(f: func()) -> CatchResult;
+extern func to_string<T>(value: T) -> String;

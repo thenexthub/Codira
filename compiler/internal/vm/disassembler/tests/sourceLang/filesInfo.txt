@@ -1,4 +1,0 @@
-/sourceLang/ts.ts;ts;esm;sourceLang/ts.ts;ts;false;ts
-/sourceLang/ets.ts;ets;esm;sourceLang/ets.ts;ets;false;ets
-/sourceLang/js.js;js;esm;sourceLang/js.js;js;false;js
-/sourceLang/default.ts;default;esm;sourceLang/default.ts;default;false;

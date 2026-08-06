@@ -1,1 +1,0 @@
-{"jsonrpc":"2.0","method":"textDocument/extendPublishDiagnostics","params":{"diagnostics":[],"uri":"file:///home/chenliufei/cangjie/project/manifist/lsp/test/testChr/normalTest/Extend2/src/direct3/pkg2/diagnostic.code"}}

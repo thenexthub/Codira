@@ -1,0 +1,30 @@
+//! Copyright (c) 2026 Omnira CJSC
+//! Author: Tunjay Akbarli
+//! Date: August 6, 2026
+//!
+//! Functionality:
+//! - Part of the Codira compiler and runtime toolchain.
+//!
+use crate::parsing::lexer::cursor::Cursor;
+
+pub(crate) fn scan_string(c: char, cursor: &mut Cursor<'_>) {
+    let quote_type = c;
+    while let Some(c) = cursor.current() {
+        match c {
+            '\\' => {
+                cursor.bump();
+                if cursor.matches('\\') || cursor.matches(quote_type) {
+                    cursor.bump();
+                }
+            }
+            c if c == quote_type => {
+                cursor.bump();
+                return;
+            }
+            _ => {
+                cursor.bump();
+            }
+        }
+    }
+}
+

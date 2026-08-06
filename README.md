@@ -1,190 +1,135 @@
-﻿# Codira Programming Language Compiler
+<!--
+Copyright (c) 2026 Omnira CJSC
+Author: Tunjay Akbarli
+Date: August 6, 2026
 
-## Introduction
+Functionality: Codira Programming Language
+-->
 
-Codira is a omni-purpose programming language designed for all-scenario application development, balancing development efficiency and runtime performance while providing a great programming experience. 
-Codira features concise and efficient syntax, multi-paradigm programming, and type safety.
+# Codira Programming Language 
+### Stable Version: 26.8
+### Build: August 6, 2026.
 
-This repository provides the source code for the Codira compiler, which consists of two main parts: the compiler frontend and modified open-source components. The latter includes the LLVM backend, opt optimizer, llc, ld linker, and debugger.
+_Codira_ is an Ahead of Time (AOT) programming language for high performance systems.
 
-## Architecture
+## Features
 
-**Architecture Description**
+- **Ahead of time compilation** - Codira is compiled ahead of time (AOT), as
+  opposed to being interpreted or compiled just in time (JIT). By detecting
+  errors in the code during AOT compilation, an entire class of runtime errors
+  is eliminated. This allows developers to stay within the comfort of their IDE
+  instead of having to switch between the IDE and target application to debug
+  runtime errors.
 
-- **Compiler Frontend**: Responsible for converting Codira source code from text to intermediate representation, including lexical, syntax, macro, and semantic analysis, ensuring code structure and semantics are correct, and preparing for backend code generation. This module depends on mingw-w64 to support Windows platform capabilities, enabling users to generate executable binaries that can call Windows APIs. It also relies on libboundscheck for safe function library access.
+- **Statically typed** - Codira resolves types at compilation time instead of at
+  runtime, resulting in immediate feedback when writing code and opening the
+  door for powerful refactoring tools.
 
-  - **Lexer** breaks down Codira source code into meaningful tokens.
+- **First class hot-reloading** - Every aspect of Codira is designed with hot
+  reloading in mind. Hot reloading is the process of changing code and resources
+  of a live application, removing the need to start, stop and recompile an
+  application whenever a function or value is changed.
 
-  - **Parser** builds an Abstract Syntax Tree (AST) according to Codira grammar rules to reflect program structure.
+- **Performance** - AOT compilation combined with static typing ensure that Codira
+  is compiled to machine code that can be natively executed on any target
+  platform. LLVM is used for compilation and optimization, guaranteeing the best
+  possible performance. Hot reloading does introduce a slight runtime overhead,
+  but it can be disabled for production builds to ensure the best possible
+  runtime performance.
 
-  - **Semantic** performs type checking, type inference, and scope analysis on the AST to ensure semantic correctness.
+- **Cross compilation** - The Codira compiler is able to compile to all supported
+  target platforms from any supported compiler platform.
 
-  - **Mangler** handles symbol name mangling for Codira, and includes a demangler tool for reverse parsing.
+- **Powerful IDE integration** - The Codira language and compiler framework are
+  designed to support source code queries, allowing for powerful IDE
+  integrations such as code completion and refactoring tools.
 
-  - **Package Management** manages and loads code modules, handles dependencies and namespace isolation, and supports multi-module collaborative development. This module uses the flatbuffer library for serialization and deserialization.
+## Example
 
-  - **Macro** handles macro expansion, processing macro definitions and calls for code generation and reuse.
+<!-- inline HTML is intentionally used to add the id. This allows retrieval of the HTML -->
+<pre language="codira">
+<code id="code-sample">func fibonacci(n: i32) -> i32 {
+    if n <= 1 {
+        n
+    } else {
+        fibonacci(n - 1) + fibonacci(n - 2)
+    }
+}
 
-  - **Condition Compile**: Conditional compilation allows compiling based on predefined or custom conditions; incremental compilation speeds up builds using previous compilation cache files.
+// Comments: functions marked as `public` can be called outside the module
+public func main() {
+    // Native support for bool, f32, f64, i8, u8, u128, i128, usize, isize, etc
+    let is_true = true;
+    let var = 0.5;
 
-  - **CHIR**: CHIR (Codira High Level IR) converts the AST to an intermediate representation and performs optimizations.
+    // Type annotations are not required when a variable's type can be deduced
+    let n = 3;
 
-  - **Codegen**: Translates the intermediate representation (CHIR) to LLVM IR, preparing for target machine code (LLVM BitCode) generation.
+    let result = fibonacci(n);
 
-- **Virtual Machine**: Includes the compiler backend and related toolchain. The backend receives the intermediate representation from the frontend, optimizes it, generates target platform machine code, and links it into executable files.
+    // Adding a suffix to a literal restricts its type
+    let lit = 15u128;
 
-  - **Optimisators**: Performs various optimizations on IR, such as constant folding and loop optimization, to improve code efficiency and quality.
+    let foo = record();
+    let bar = tuple();
+    let baz = on_heap();
+}
 
-  - **Omni Runtime**: Converts optimized IR to target platform machine code, supporting different hardware architectures.
+// Both record structs and tuple structs are supported
+struct Record {
+    n: i32,
+}
 
-  - **Linker**: Links multiple object files and libraries into the final executable, resolving symbol references and generating deployable program artifacts.
+// Struct definitions include whether they are allocated by a garbage collector
+// (`gc`) and passed by reference, or passed by `value`. By default, a struct
+// is garbage collected.
+struct(value) Tuple(f32, f32);
 
-  - **debugger**: Provides debugging capabilities for the Codira language.
+struct(gc) GC(i32);
 
-- **OS**: The Codira compiler and LLVM toolchain currently support Windows x86-64, Linux x86-64/AArch64, and Mac x86/arm64. 
+// The order of function definitions doesn't matter
+func record() -> Record {
+    // Codira allows implicit returns
+    Record { n: 7 }
+}
 
-## Directory Structure
+func tuple() -> Tuple {
+    // Codira allows explicit returns
+    return Tuple(3.14, -6.28);
+}
 
-```text
-compiler/
-├── cmake                       # CMake scripts for build assistance
-├── demangler                   # Symbol demangling
-├── doc                         # Documentation
-├── figures                     # Documentation images
-├── include                     # Header files
-├── integration_build           # Codira SDK integration build scripts
-├── schema                      # FlatBuffers schema files for serialization
-├── src                         # Compiler source code
-│   ├── AST                     # Abstract Syntax Tree
-│   ├── Basic                   # Compiler basic components
-│   ├── CHIR                    # High-level Intermediate representation and optimization
-│   ├── CodeGen                 # Code generation (CHIR to IR)
-│   ├── ConditionalCompilation  # Conditional compilation
-│   ├── Driver                  # Compiler driver (frontend/backend orchestration)
-│   ├── Frontend                # Compiler instance and workflow
-│   ├── FrontendTool            # Compiler instance for external tools
-│   ├── IncrementalCompilation  # Incremental compilation
-│   ├── Lex                     # Lexical analysis
-│   ├── Macro                   # Macro expansion
-│   ├── main.cpp                # Compiler entry point
-│   ├── Mangle                  # Symbol mangling
-│   ├── MetaTransformation      # Metaprogramming plugins
-│   ├── Modules                 # Module management
-│   ├── Option                  # Compiler options
-│   ├── Parse                   # Syntax analysis
-│   ├── Sema                    # Semantic analysis
-│   └── Utils                   # Utilities
-├── third_party                 # Third-party build scripts and patch files
-│   ├── cmake                   # Third-party CMake scripts
-│   ├── llvmPatch.diff          # LLVM backend patch (includes llvm and cjdb sources)
-│   └── flatbufferPatch.diff    # Flatbuffer source patch
-├── unittests                   # Unit tests
-└── utils                       # Auxiliary tools
-```
+func on_heap() -> GC {
+    GC(0)
+}</code>
+</pre>
 
-## Constraints
-
-Currently, building Codira compiler artifacts directly in the Windows environment is not supported. Instead, you need to generate compiler artifacts that can run on Windows through cross-compilation in a Linux environment.
-
-## Platform Support Roadmap
-
-- Build Platform Evolution: Planned support for Windows Native builds of compiler artifacts in 2025 Q4.
-
-- Compiler Runtime Platform Evolution: Planned support for running the compiler on the OHOS(PC) platform in 2026 Q2.
-
-- Codira Application Runtime Platform Evolution: Planned support for OHOS-ARM32 core features on 2025.10.20, reflection and dynamic loading、some compiler Optimization features will support on 2025 Q4.
 
 ## Building from Source
 
-> **Note:**
->
-> This section describes how to build the Codira compiler from source. 
-> If you only want to use the compiler to build Codira code or projects, skip this section and download the release package from the GitHub Releases.
+Make sure you have the following dependencies installed on you machine:
 
-### Preparation
+* Rust
+* LLVM 14
 
-For environment requirements and software dependencies on each platform, see the [Standalone Build Guide](doc/Standalone_Build_Guide.md).
+Clone the source code, including all submodules:
 
-Clone the source code:
-
-```shell
-git clone https://gitcode.com/thenexthub/Codira.git
+```bash
+git clone https://github.com/theomnira/codira.git
+git submodule update --init --recursive
 ```
 
-### Build Steps
+Use `cargo` to build a release version
 
-```shell
-cd compiler
-python3 build.py clean
-python3 build.py build -t release
-python3 build.py install
+```bash
+cargo build --release
 ```
 
-1. The `clean` command removes temporary files from the workspace.
-2. The `build` command starts compilation. The `-t` or `--build-type` option specifies the build type: `release`, `debug`, or `relwithdebinfo`.
-3. The `install` command installs the build artifacts to the `output` directory.
+## Language server
 
-The `output` directory structure:
+Codira contains support for the lsp protocol, start the executable using:
 
-```text
-./output
-├── bin
-│   ├── codec                      # Codira compiler executable
-│   └── codec-frontend -> codec    # Codira compiler frontend executable (symlink)
-├── envsetup.sh                    # Environment setup script
-├── include                        # Public headers for the frontend
-├── lib                            # Compiler libraries (by target platform)
-├── modules                        # Standard library codeo files (by target platform)
-├── runtime                        # Runtime libraries
-├── third_party                    # Third-party binaries and libraries (e.g., flatbuffers)
-└── tools                          # Codira tools
+```bash
+codira language-server
 ```
 
-On Linux, run `source ./output/envsetup.sh` to set up the environment, then use `cjc -v` to check the compiler version and platform info:
-
-```shell
-source ./output/envsetup.sh
-cjc -v
-```
-
-Example output:
-
-```text
-Codira Compiler: x.xx.xx (codenative)
-Target: xxxx-xxxx-xxxx
-```
-
-### Run Unittest
-
-Unit tests are built by default. After a successful build, run:
-
-```shell
-python3 build.py test
-```
-
-### More Build Options
-
-For more build options, please refer to the [build.py build script](./build.py) or use the `--help` option:
-
-```shell
-python3 build.py --help
-```
-
-For more platform-specific build information, see the [Standalone Build Guide](doc/Standalone_Build_Guide.md).
-
-## License
-
-This project is licensed under [Apache-2.0 with Runtime Library Exception](./LICENSE). Feel free to use and contribute!
-
-
-## Open Source Software Statement
-
-| Software Name       | License                              | Usage Description                                                                                                                       | Main Component              | Usage Methods                               |
-|---------------------|--------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|-----------------------------|---------------------------------------------|
-| mingw-w64           | Zope Public License V2.1             | The Codira Windows SDK includes some static libraries from Mingw, linked with Codira-generated objects to produce Windows executables   | Compiler                    | Integrated into the Codira binary release  |                                                                                         | Compiler                    | Integrated into the Codira binary release  |
-| flatbuffers         | Apache License V2.0                  | Used for serialization/deserialization of cjo files and macros                                                                          | Compiler & StdLib(std.ast)  | Integrated into the Codira binary release  |
-| libboundscheck      | Mulan Permissive Software License V2 | Used for safe function implementations in the compiler and related code                                                                 | Compiler, StdLib, Extension | Integrated into the Codira binary release  |
-
-## Contribution
-
-We welcome contributions from developers in any form, including but not limited to code, documentation, issues, and more.
+Alternatively, you can install editor-specific extensions.

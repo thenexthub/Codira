@@ -1,0 +1,213 @@
+// std/ffi/unsafe_union.code
+// C-compatible union type for Codira foreign function interface.
+// UnsafeUnion provides a type-erased storage region that can hold any
+// one of several types at a time, mirroring the semantics of C's `union`.
+//
+// This is inherently unsafe: the caller must track which type is currently
+// stored and only read back the same type that was last written.
+
+// ---------------------------------------------------------------------------
+// UnsafeUnion
+// A fixed-size block of raw memory that can be reinterpreted as different
+// types. The size is the maximum of all constituent type sizes.
+// ---------------------------------------------------------------------------
+public struct(value) UnsafeUnion {
+    _storage: Array<u8>,   // raw bytes (sized to the largest variant)
+    _size: usize,          // total capacity in bytes
+}
+
+// ---------------------------------------------------------------------------
+// unsafe_union_new
+// Creates a new UnsafeUnion with `size` bytes of zero-initialized storage.
+// `size` should be the maximum size of all types the union will hold.
+// ---------------------------------------------------------------------------
+public func unsafe_union_new(size: usize) -> UnsafeUnion {
+    let mut storage: Array<u8> = Array::with_capacity(size);
+    let mut i: usize = 0;
+    while i < size {
+        storage.push(0);
+        i = i + 1;
+    }
+    return UnsafeUnion { _storage: storage, _size: size };
+}
+
+// ---------------------------------------------------------------------------
+// store_u8 / load_u8
+// ---------------------------------------------------------------------------
+public func unsafe_union_store_u8(self: mut UnsafeUnion, value: u8) {
+    if self._size < 1 { panic("UnsafeUnion: storage too small for u8"); }
+    self._storage[0] = value;
+}
+
+public func unsafe_union_load_u8(self: UnsafeUnion) -> u8 {
+    return self._storage[0];
+}
+
+// ---------------------------------------------------------------------------
+// store_u16 / load_u16  (little-endian)
+// ---------------------------------------------------------------------------
+public func unsafe_union_store_u16(self: mut UnsafeUnion, value: u16) {
+    if self._size < 2 { panic("UnsafeUnion: storage too small for u16"); }
+    self._storage[0] = (value & 0xFF) as u8;
+    self._storage[1] = ((value >> 8) & 0xFF) as u8;
+}
+
+public func unsafe_union_load_u16(self: UnsafeUnion) -> u16 {
+    return (self._storage[0] as u16)
+         | ((self._storage[1] as u16) << 8);
+}
+
+// ---------------------------------------------------------------------------
+// store_u32 / load_u32  (little-endian)
+// ---------------------------------------------------------------------------
+public func unsafe_union_store_u32(self: mut UnsafeUnion, value: u32) {
+    if self._size < 4 { panic("UnsafeUnion: storage too small for u32"); }
+    self._storage[0] = (value & 0xFF) as u8;
+    self._storage[1] = ((value >> 8) & 0xFF) as u8;
+    self._storage[2] = ((value >> 16) & 0xFF) as u8;
+    self._storage[3] = ((value >> 24) & 0xFF) as u8;
+}
+
+public func unsafe_union_load_u32(self: UnsafeUnion) -> u32 {
+    return (self._storage[0] as u32)
+         | ((self._storage[1] as u32) << 8)
+         | ((self._storage[2] as u32) << 16)
+         | ((self._storage[3] as u32) << 24);
+}
+
+// ---------------------------------------------------------------------------
+// store_u64 / load_u64  (little-endian)
+// ---------------------------------------------------------------------------
+public func unsafe_union_store_u64(self: mut UnsafeUnion, value: u64) {
+    if self._size < 8 { panic("UnsafeUnion: storage too small for u64"); }
+    let mut i: u32 = 0;
+    while i < 8 {
+        self._storage[i as usize] = ((value >> (i * 8)) & 0xFF) as u8;
+        i = i + 1;
+    }
+}
+
+public func unsafe_union_load_u64(self: UnsafeUnion) -> u64 {
+    let mut result: u64 = 0;
+    let mut i: u32 = 0;
+    while i < 8 {
+        result = result | ((self._storage[i as usize] as u64) << (i * 8));
+        i = i + 1;
+    }
+    return result;
+}
+
+// ---------------------------------------------------------------------------
+// store_i32 / load_i32
+// ---------------------------------------------------------------------------
+public func unsafe_union_store_i32(self: mut UnsafeUnion, value: i32) {
+    unsafe_union_store_u32(self, value as u32);
+}
+
+public func unsafe_union_load_i32(self: UnsafeUnion) -> i32 {
+    return unsafe_union_load_u32(self) as i32;
+}
+
+// ---------------------------------------------------------------------------
+// store_i64 / load_i64
+// ---------------------------------------------------------------------------
+public func unsafe_union_store_i64(self: mut UnsafeUnion, value: i64) {
+    unsafe_union_store_u64(self, value as u64);
+}
+
+public func unsafe_union_load_i64(self: UnsafeUnion) -> i64 {
+    return unsafe_union_load_u64(self) as i64;
+}
+
+// ---------------------------------------------------------------------------
+// store_f32 / load_f32
+// ---------------------------------------------------------------------------
+public func unsafe_union_store_f32(self: mut UnsafeUnion, value: f32) {
+    let bits: u32 = bitcast<u32>(value);
+    unsafe_union_store_u32(self, bits);
+}
+
+public func unsafe_union_load_f32(self: UnsafeUnion) -> f32 {
+    let bits: u32 = unsafe_union_load_u32(self);
+    return bitcast<f32>(bits);
+}
+
+// ---------------------------------------------------------------------------
+// store_f64 / load_f64
+// ---------------------------------------------------------------------------
+public func unsafe_union_store_f64(self: mut UnsafeUnion, value: f64) {
+    let bits: u64 = bitcast<u64>(value);
+    unsafe_union_store_u64(self, bits);
+}
+
+public func unsafe_union_load_f64(self: UnsafeUnion) -> f64 {
+    let bits: u64 = unsafe_union_load_u64(self);
+    return bitcast<f64>(bits);
+}
+
+// ---------------------------------------------------------------------------
+// store_bool / load_bool
+// ---------------------------------------------------------------------------
+public func unsafe_union_store_bool(self: mut UnsafeUnion, value: bool) {
+    if value {
+        self._storage[0] = 1;
+    } else {
+        self._storage[0] = 0;
+    }
+}
+
+public func unsafe_union_load_bool(self: UnsafeUnion) -> bool {
+    return self._storage[0] != 0;
+}
+
+// ---------------------------------------------------------------------------
+// store_bytes / load_bytes
+// Store/load a raw byte array into/from the union storage.
+// ---------------------------------------------------------------------------
+public func unsafe_union_store_bytes(self: mut UnsafeUnion, data: Array<u8>) {
+    let copy_len: usize = if data.len() < self._size { data.len() } else { self._size };
+    let mut i: usize = 0;
+    while i < copy_len {
+        self._storage[i] = data[i];
+        i = i + 1;
+    }
+}
+
+public func unsafe_union_load_bytes(self: UnsafeUnion, count: usize) -> Array<u8> {
+    let read_len: usize = if count < self._size { count } else { self._size };
+    let mut result: Array<u8> = Array::with_capacity(read_len);
+    let mut i: usize = 0;
+    while i < read_len {
+        result.push(self._storage[i]);
+        i = i + 1;
+    }
+    return result;
+}
+
+// ---------------------------------------------------------------------------
+// zero
+// Zeroes out the entire storage.
+// ---------------------------------------------------------------------------
+public func unsafe_union_zero(self: mut UnsafeUnion) {
+    let mut i: usize = 0;
+    while i < self._size {
+        self._storage[i] = 0;
+        i = i + 1;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// size
+// Returns the total capacity of the storage in bytes.
+// ---------------------------------------------------------------------------
+public func unsafe_union_size(self: UnsafeUnion) -> usize {
+    return self._size;
+}
+
+// ---------------------------------------------------------------------------
+// as_ptr
+// Returns a raw pointer to the underlying storage.
+// ---------------------------------------------------------------------------
+public func unsafe_union_as_ptr(self: UnsafeUnion) -> RawPointer<u8> {
+    return self._storage.as_ptr();
+}

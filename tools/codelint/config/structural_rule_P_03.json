@@ -1,6 +1,0 @@
-{
-  "SecurityCheckFunctionInfo": [
-    {"funcName": "securityCheck" , "fullPackageName": "example"},
-    {"funcName": "securityCheck" , "fullPackageName": "example.a"}
-  ]
-}

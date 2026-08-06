@@ -1,0 +1,14 @@
+---
+source: crates/codira_hir/src/ty/tests.rs
+expression: "infer(r#\"\n    struct Foo {\n        a: i32\n    }\n\n    extend Foo {\n        func new() -> Self {\n            Self { a: 3 }\n        }\n    }\n\n    func main() {\n        let a = Foo::new();\n    }\n    \"#)"
+---
+122..125: mismatched struct literal kind. expected `record`, found `unit struct`
+127..130: undefined value
+108..135 '{     ...w(); }': ()
+118..119 'a': Foo
+122..125 'Foo': Foo
+127..130 'new': {unknown}
+127..132 'new()': {unknown}
+63..92 '{     ...     }': Foo
+73..86 'Self { a: 3 }': Foo
+83..84 '3': i32

@@ -1,3 +1,0 @@
-extensions/github-authentication/src/common/experimentationService.ts
-extensions/microsoft-authentication/src/browser/authProvider.ts
-extensions/microsoft-authentication/src/node/authProvider.ts

@@ -1,0 +1,20 @@
+---
+source: crates/codira_hir/src/ty/tests.rs
+expression: "infer(r#\"\n    //- /foo.code\n    public struct Foo(public i32, i32)\n\n    public func make_foo() -> Foo {\n        Foo(1, 2)\n    }\n\n    //- /mod.code\n    import foo.make_foo\n\n    func main() {\n        let foo = make_foo();\n        let a = foo.0;\n        let b = foo.1;\n    }\"#)"
+---
+92..97: access of private type
+33..100 '{     ...o.1; }': ()
+43..46 'foo': Foo
+49..57 'make_foo': function make_foo() -> Foo
+49..59 'make_foo()': Foo
+69..70 'a': i32
+73..76 'foo': Foo
+73..78 'foo.0': i32
+88..89 'b': i32
+92..95 'foo': Foo
+92..97 'foo.1': i32
+66..83 '{     ..., 2) }': Foo
+72..75 'Foo': ctor Foo(i32, i32) -> Foo
+72..81 'Foo(1, 2)': Foo
+76..77 '1': i32
+79..80 '2': i32

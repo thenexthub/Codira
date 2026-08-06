@@ -1,0 +1,5 @@
+name: Install LLVM
+description: Installs all LLVM binaries required to build Codira.
+runs:
+  using: 'node16'
+  main: 'dist/index.js'

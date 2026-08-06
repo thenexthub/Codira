@@ -1,4 +1,0 @@
-# TODO: no 'any' type
-cookbook_tests/arkts-no-private-identifiers.d.ets
-cookbook_tests/arkts-no-duplicate-interfaces-class.d.ets
-cookbook_tests/dets_output/arkts-classes-annotations.d.ets

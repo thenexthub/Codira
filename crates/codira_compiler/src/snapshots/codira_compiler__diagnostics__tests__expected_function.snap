@@ -1,0 +1,11 @@
+---
+source: crates/codira_compiler/src/diagnostics.rs
+expression: "compilation_errors(\"\\n\\nfunc foo() { let a = 3; a(); }\")"
+snapshot_kind: text
+---
+error: expected function, found `{integer}`
+ --> main.code:3:25
+  |
+3 | func foo() { let a = 3; a(); }
+  |                         ^ not a function
+  |

@@ -1,5 +1,0 @@
-/dist/
-/*.egg-info/
-
-# this file is duplicated by the build step
-LICENSE

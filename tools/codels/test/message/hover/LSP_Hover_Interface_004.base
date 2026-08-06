@@ -1,1 +1,0 @@
-{"id":110,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: Interface.code\nPackage info: default\n\n(interface) internal interface I1\n"},"range":{"end":{"character":11,"line":41},"start":{"character":9,"line":41}}}}

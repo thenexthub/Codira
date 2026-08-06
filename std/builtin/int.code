@@ -1,0 +1,399 @@
+// =============================================================================
+// std/builtin/int.code — Machine-width integer type
+// =============================================================================
+//
+// Int is the default integer type in Codira.  Its width matches the target
+// platform's pointer size (64 bits on modern 64-bit systems, 32 bits on
+// 32-bit systems).  It is implemented as a value-type struct wrapping an
+// `isize` primitive.
+//
+// Int supports:
+//   - Arithmetic: add, sub, mul, div, mod, pow, neg, abs
+//   - Comparison: eq, ne, lt, le, gt, ge, cmp
+//   - Bitwise:    band, bor, bxor, bnot, shl, shr
+//   - Conversion: to_f64, to_i32, to_u64, to_string, from_string
+//   - Traits:     Copyable, Movable, Comparable, Hashable, Stringable,
+//                 Representable, Defaultable, Arithmetic
+// =============================================================================
+
+use std.builtin.traits;
+use std.builtin.types;
+
+// Machine-width signed integer.
+public struct(value) Int {
+    _value: isize,
+}
+
+// =============================================================================
+// Construction
+// =============================================================================
+
+// Create an Int from a raw isize literal.
+public func Int.new(v: isize) -> Int {
+    return Int { _value: v };
+}
+
+// Create an Int with value zero.
+public func Int.zero() -> Int {
+    return Int { _value: 0 };
+}
+
+// Create an Int with value one.
+public func Int.one() -> Int {
+    return Int { _value: 1 };
+}
+
+// Create from a 32-bit integer (widening, always safe).
+public func Int.from_i32(v: i32) -> Int {
+    return Int { _value: v as isize };
+}
+
+// Create from a 64-bit integer (may truncate on 32-bit platforms).
+public func Int.from_i64(v: i64) -> Int {
+    return Int { _value: v as isize };
+}
+
+// Create from an unsigned 64-bit integer.
+public func Int.from_u64(v: u64) -> Int {
+    return Int { _value: v as isize };
+}
+
+// =============================================================================
+// Arithmetic
+// =============================================================================
+
+// Addition.
+public func Int.add(self, other: Int) -> Int {
+    return Int { _value: self._value + other._value };
+}
+
+// Subtraction.
+public func Int.sub(self, other: Int) -> Int {
+    return Int { _value: self._value - other._value };
+}
+
+// Multiplication.
+public func Int.mul(self, other: Int) -> Int {
+    return Int { _value: self._value * other._value };
+}
+
+// Integer (truncating) division.
+// Panics if `other` is zero.
+public func Int.div(self, other: Int) -> Int {
+    if other._value == 0 {
+        __panic("Int.div: division by zero");
+    }
+    return Int { _value: self._value / other._value };
+}
+
+// Remainder (modulo).
+// Panics if `other` is zero.
+public func Int.mod(self, other: Int) -> Int {
+    if other._value == 0 {
+        __panic("Int.mod: division by zero");
+    }
+    return Int { _value: self._value % other._value };
+}
+
+// Euclidean modulo — always returns a non-negative result.
+public func Int.rem_euclid(self, other: Int) -> Int {
+    let r = self._value % other._value;
+    if r < 0 {
+        if other._value > 0 {
+            return Int { _value: r + other._value };
+        }
+        return Int { _value: r - other._value };
+    }
+    return Int { _value: r };
+}
+
+// Negate.
+public func Int.neg(self) -> Int {
+    return Int { _value: 0 - self._value };
+}
+
+// Absolute value.
+public func Int.abs(self) -> Int {
+    if self._value < 0 {
+        return Int { _value: 0 - self._value };
+    }
+    return Int { _value: self._value };
+}
+
+// Integer exponentiation (repeated squaring).
+// `exp` must be non-negative.
+public func Int.pow(self, exp: Int) -> Int {
+    if exp._value < 0 {
+        __panic("Int.pow: negative exponent");
+    }
+    let base: isize = self._value;
+    let e: isize = exp._value;
+    let result: isize = 1;
+    let b: isize = base;
+
+    // Fast exponentiation by squaring
+    let remaining: isize = e;
+    // Iterative squaring loop
+    while remaining > 0 {
+        if remaining % 2 == 1 {
+            result = result * b;
+        }
+        b = b * b;
+        remaining = remaining / 2;
+    }
+    return Int { _value: result };
+}
+
+// Checked addition — returns the result and an overflow flag.
+public func Int.add_checked(self, other: Int) -> (Int, bool) {
+    let result = __intrinsic_add_overflow(self._value, other._value);
+    return (Int { _value: result.value }, result.overflow);
+}
+
+// Wrapping addition — silently wraps on overflow.
+public func Int.add_wrapping(self, other: Int) -> Int {
+    return Int { _value: __intrinsic_add_wrap(self._value, other._value) };
+}
+
+// Saturating addition — clamps at min/max on overflow.
+public func Int.add_saturating(self, other: Int) -> Int {
+    return Int { _value: __intrinsic_add_sat(self._value, other._value) };
+}
+
+// =============================================================================
+// Comparison
+// =============================================================================
+
+// Equality.
+public func Int.eq(self, other: Int) -> bool {
+    return self._value == other._value;
+}
+
+// Inequality.
+public func Int.ne(self, other: Int) -> bool {
+    return self._value != other._value;
+}
+
+// Less than.
+public func Int.lt(self, other: Int) -> bool {
+    return self._value < other._value;
+}
+
+// Less than or equal.
+public func Int.le(self, other: Int) -> bool {
+    return self._value <= other._value;
+}
+
+// Greater than.
+public func Int.gt(self, other: Int) -> bool {
+    return self._value > other._value;
+}
+
+// Greater than or equal.
+public func Int.ge(self, other: Int) -> bool {
+    return self._value >= other._value;
+}
+
+// Three-way comparison: -1, 0, or 1.
+public func Int.cmp(self, other: Int) -> i32 {
+    if self._value < other._value {
+        return -1;
+    }
+    if self._value == other._value {
+        return 0;
+    }
+    return 1;
+}
+
+// Return the minimum of self and other.
+public func Int.min(self, other: Int) -> Int {
+    if self._value <= other._value {
+        return self;
+    }
+    return other;
+}
+
+// Return the maximum of self and other.
+public func Int.max(self, other: Int) -> Int {
+    if self._value >= other._value {
+        return self;
+    }
+    return other;
+}
+
+// Clamp self into [low, high].
+public func Int.clamp(self, low: Int, high: Int) -> Int {
+    if self._value < low._value {
+        return low;
+    }
+    if self._value > high._value {
+        return high;
+    }
+    return self;
+}
+
+// =============================================================================
+// Bitwise operations
+// =============================================================================
+
+// Bitwise AND.
+public func Int.band(self, other: Int) -> Int {
+    return Int { _value: self._value & other._value };
+}
+
+// Bitwise OR.
+public func Int.bor(self, other: Int) -> Int {
+    return Int { _value: self._value | other._value };
+}
+
+// Bitwise XOR.
+public func Int.bxor(self, other: Int) -> Int {
+    return Int { _value: self._value ^ other._value };
+}
+
+// Bitwise NOT (one's complement).
+public func Int.bnot(self) -> Int {
+    return Int { _value: ~self._value };
+}
+
+// Left shift by `bits` positions.
+public func Int.shl(self, bits: Int) -> Int {
+    return Int { _value: self._value << bits._value };
+}
+
+// Arithmetic right shift by `bits` positions (sign-extending).
+public func Int.shr(self, bits: Int) -> Int {
+    return Int { _value: self._value >> bits._value };
+}
+
+// Count the number of set bits (population count).
+public func Int.popcount(self) -> Int {
+    return Int { _value: __intrinsic_ctpop(self._value) };
+}
+
+// Count leading zeros.
+public func Int.leading_zeros(self) -> Int {
+    return Int { _value: __intrinsic_ctlz(self._value) };
+}
+
+// Count trailing zeros.
+public func Int.trailing_zeros(self) -> Int {
+    return Int { _value: __intrinsic_cttz(self._value) };
+}
+
+// Reverse all bits.
+public func Int.reverse_bits(self) -> Int {
+    return Int { _value: __intrinsic_bitreverse(self._value) };
+}
+
+// Byte-swap (endianness conversion).
+public func Int.byte_swap(self) -> Int {
+    return Int { _value: __intrinsic_bswap(self._value) };
+}
+
+// =============================================================================
+// Conversion
+// =============================================================================
+
+// Convert to f64.
+public func Int.to_f64(self) -> f64 {
+    return self._value as f64;
+}
+
+// Convert to f32 (may lose precision for large values).
+public func Int.to_f32(self) -> f32 {
+    return self._value as f32;
+}
+
+// Convert to i32 (may truncate on 64-bit platforms).
+public func Int.to_i32(self) -> i32 {
+    return self._value as i32;
+}
+
+// Convert to i64.
+public func Int.to_i64(self) -> i64 {
+    return self._value as i64;
+}
+
+// Convert to u64.
+public func Int.to_u64(self) -> u64 {
+    return self._value as u64;
+}
+
+// Convert to usize.
+public func Int.to_usize(self) -> usize {
+    return self._value as usize;
+}
+
+// Return the raw isize value.
+public func Int.raw(self) -> isize {
+    return self._value;
+}
+
+// =============================================================================
+// Formatting / Traits
+// =============================================================================
+
+// Human-readable decimal string.
+public func Int.to_string(self) -> String {
+    return __intrinsic_isize_to_string(self._value);
+}
+
+// Debug representation.
+public func Int.repr(self) -> String {
+    return "Int(" + __intrinsic_isize_to_string(self._value) + ")";
+}
+
+// Hash into a Hasher.
+public func Int.hash(self, hasher: &Hasher) -> void {
+    hasher.write_isize(self._value);
+}
+
+// Trivial copy.
+public func Int.copy(self) -> Int {
+    return Int { _value: self._value };
+}
+
+// Default value is zero.
+public func Int.default() -> Int {
+    return Int { _value: 0 };
+}
+
+// =============================================================================
+// Parsing
+// =============================================================================
+
+// Parse a decimal string into an Int.
+// Returns the parsed value or an error string.
+public func Int.from_string(s: String) -> Result[Int, String] {
+    let parsed = __intrinsic_parse_isize(s);
+    if parsed.is_ok {
+        return Result.ok(Int { _value: parsed.value });
+    }
+    return Result.err("Int.from_string: invalid integer literal");
+}
+
+// Parse with an explicit radix (2..=36).
+public func Int.from_string_radix(s: String, radix: i32) -> Result[Int, String] {
+    if radix < 2 | radix > 36 {
+        return Result.err("Int.from_string_radix: radix must be 2..36");
+    }
+    let parsed = __intrinsic_parse_isize_radix(s, radix);
+    if parsed.is_ok {
+        return Result.ok(Int { _value: parsed.value });
+    }
+    return Result.err("Int.from_string_radix: invalid integer literal");
+}
+
+// =============================================================================
+// Constants
+// =============================================================================
+
+// The maximum representable Int on this platform.
+public let INT_MAX: Int = Int { _value: __intrinsic_isize_max() };
+
+// The minimum representable Int on this platform.
+public let INT_MIN: Int = Int { _value: __intrinsic_isize_min() };
+
+// Number of bits in an Int on this platform.
+public let INT_BITS: usize = __intrinsic_sizeof[isize]() * 8;

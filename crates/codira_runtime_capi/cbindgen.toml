@@ -1,0 +1,21 @@
+language = "C"
+cpp_compat = true
+
+include_guard = "CODIRA_RUNTIME_BINDINGS_H_"
+include_version = false
+sys_includes = ["stdbool.h", "stdint.h"]
+no_includes = true
+
+line_length = 100
+tab_width = 4
+
+[export]
+prefix = "Codira"
+
+[enum]
+rename_variants = "QualifiedScreamingSnakeCase"
+
+[parse]
+parse_deps = true
+include = ["codira_abi", "codira_memory", "codira_runtime", "codira_capi_utils"]
+extra_bindings = ["codira_memory", "codira_capi_utils"]

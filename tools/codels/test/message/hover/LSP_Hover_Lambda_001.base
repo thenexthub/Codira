@@ -1,1 +1,0 @@
-{"id":9,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: Lambda.code\nPackage info: default\n\n(variable) internal var sum1(Int32, Int32):Int32\n"},"range":{"end":{"character":6,"line":49},"start":{"character":2,"line":49}}}}

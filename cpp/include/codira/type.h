@@ -1,0 +1,233 @@
+#ifndef CODIRA_TYPE_INFO_H
+#define CODIRA_TYPE_INFO_H
+
+#include <optional>
+
+#include "codira/md5.h"
+#include "codira/runtime_capi.h"
+
+namespace codira {
+/**
+ * @brief A wrapper around a Codira type information handle.
+ *
+ * Moving of `Type` leaves the class in an valid but undefined state. Calling any of the accessors
+ * on a moved `Type` will result in an assertion.
+ */
+class Type {
+public:
+    /**
+     * @brief Constructs type information from an instantiated `CodiraType`.
+     *
+     * This function assumes it is granted ownership of `type_handle`.
+     *
+     * \param handle A C-style Codira type type_handle.
+     */
+    constexpr explicit Type(CodiraType handle) noexcept : m_handle(handle) {}
+
+    ~Type() noexcept {
+        if (m_handle._0 != nullptr) {
+            CODIRA_ASSERT(codira_type_release(m_handle));
+            m_handle._0 = nullptr;
+        }
+    }
+
+    Type(const Type& other) noexcept : m_handle(other.m_handle) {
+        CODIRA_ASSERT(codira_type_add_reference(m_handle));
+    }
+
+    constexpr Type(Type&& other) noexcept : m_handle(other.m_handle) {
+        other.m_handle._0 = nullptr;
+    }
+
+    Type& operator=(const Type& other) {
+        if (other.m_handle._0 != nullptr) {
+            CODIRA_ASSERT(codira_type_add_reference(other.m_handle));
+        }
+        if (m_handle._0 != nullptr) {
+            CODIRA_ASSERT(codira_type_release(m_handle));
+        }
+        m_handle = other.m_handle;
+    }
+
+    constexpr Type& operator=(Type&& other) noexcept {
+        m_handle = other.m_handle;
+        other.m_handle._0 = nullptr;
+        return *this;
+    }
+
+    bool operator==(const Type& other) const { return codira_type_equal(m_handle, other.m_handle); }
+
+    /**
+     * Returns true if this TypeInfo represents a struct.
+     */
+    [[nodiscard]] bool is_struct() const noexcept {
+        CodiraTypeKind type_kind;
+        CODIRA_ASSERT(codira_type_kind(m_handle, &type_kind));
+        return type_kind.tag == CODIRA_TYPE_KIND_STRUCT;
+    }
+
+    /**
+     * Returns true if this TypeInfo represents a pointer.
+     */
+    [[nodiscard]] bool is_pointer() const noexcept {
+        CodiraTypeKind type_kind;
+        CODIRA_ASSERT(codira_type_kind(m_handle, &type_kind));
+        return type_kind.tag == CODIRA_TYPE_KIND_POINTER;
+    }
+
+    /**
+     * Returns true if this TypeInfo represents an array.
+     */
+    [[nodiscard]] bool is_array() const noexcept {
+        CodiraTypeKind type_kind;
+        CODIRA_ASSERT(codira_type_kind(m_handle, &type_kind));
+        return type_kind.tag == CODIRA_TYPE_KIND_ARRAY;
+    }
+
+    /**
+     * Returns true if this TypeInfo represents a primitive.
+     */
+    [[nodiscard]] bool is_primitive() const noexcept {
+        CodiraTypeKind type_kind;
+        CODIRA_ASSERT(codira_type_kind(m_handle, &type_kind));
+        return type_kind.tag == CODIRA_TYPE_KIND_PRIMITIVE;
+    }
+
+    /**
+     * @brief Retrieves the type's name.
+     */
+    [[nodiscard]] std::string name() const noexcept {
+        const char* name;
+        CODIRA_ASSERT(codira_type_name(m_handle, &name));
+        std::string str(name);
+        codira_string_destroy(name);
+        return str;
+    }
+
+    /**
+     * @brief Retrieves the type's size in bytes.
+     */
+    [[nodiscard]] size_t size() const noexcept {
+        size_t size;
+        CODIRA_ASSERT(codira_type_size(m_handle, &size));
+        return size;
+    }
+
+    /**
+     * @brief Retrieves the type's alignment in bytes.
+     */
+    [[nodiscard]] size_t alignment() const noexcept {
+        size_t alignment;
+        CODIRA_ASSERT(codira_type_alignment(m_handle, &alignment));
+        return alignment;
+    }
+
+    /**
+     * @brief Returns the wrapped C type handle.
+     *
+     * Ownership of the type_handle remains with this instance, it is not transferred. See
+     * [`Type::release_type_handle`] to transfer ownership of the handle.
+     */
+    [[nodiscard]] inline constexpr const CodiraType& type_handle() const noexcept { return m_handle; }
+
+    /**
+     * @brief Returns the wrapped C type handle, transferring ownership.
+     */
+    [[nodiscard]] inline constexpr CodiraType release_type_handle() && noexcept {
+        auto handle = m_handle;
+        m_handle._0 = nullptr;
+        return handle;
+    }
+
+private:
+    CodiraType m_handle;
+};
+
+/**
+ * @brief A wrapper around a span of Codira types.
+ *
+ * The array is owned by this instance.
+ */
+class TypeArray {
+public:
+    struct Iterator {
+        using iterator_category = std::random_access_iterator_tag;
+        using difference_type = std::ptrdiff_t;
+        using value_type = Type;
+
+        constexpr explicit Iterator(CodiraType const* ptr) : m_ptr(ptr){};
+
+        value_type operator*() const {
+            // CodiraTypes owns the Types inside it, codira::Type assumes it takes ownership of the data,
+            // therefor we increase reference count here.
+            CODIRA_ASSERT(codira_type_add_reference(*m_ptr));
+            return Type(*m_ptr);
+        }
+
+        Iterator& operator++() {
+            m_ptr++;
+            return *this;
+        }
+
+        Iterator operator++(int) {
+            Iterator tmp = *this;
+            ++(*this);
+            return tmp;
+        }
+
+        friend bool operator==(const Iterator& a, const Iterator& b) { return a.m_ptr == b.m_ptr; };
+        friend bool operator!=(const Iterator& a, const Iterator& b) { return a.m_ptr != b.m_ptr; };
+
+    private:
+        CodiraType const* m_ptr;
+    };
+
+    /**
+     * @brief Constructs a type information span from an instantiated `CodiraTypeInfoSpan`.
+     */
+    constexpr explicit TypeArray(CodiraTypes types) noexcept : m_data(types) {}
+
+    ~TypeArray() noexcept {
+        if (m_data.types != nullptr) {
+            codira_types_destroy(m_data);
+            m_data.types = nullptr;
+        }
+    }
+
+    TypeArray(const TypeArray&) = delete;
+    TypeArray& operator=(const TypeArray&) = delete;
+
+    constexpr TypeArray(TypeArray&& other) noexcept : m_data(other.m_data) {
+        other.m_data.types = nullptr;
+    };
+
+    TypeArray& operator=(TypeArray&& other) noexcept {
+        std::swap(m_data, other.m_data);
+        return *this;
+    };
+
+    /**
+     * @brief Returns an iterator to the beginning.
+     */
+    [[nodiscard]] inline constexpr Iterator begin() const noexcept {
+        return Iterator(m_data.types);
+    }
+
+    /**
+     * @brief Returns an iterator to the end.
+     */
+    [[nodiscard]] inline constexpr Iterator end() const noexcept {
+        return Iterator(m_data.types + m_data.count);
+    }
+
+    /**
+     * @brief Returns the number of elements in the array.
+     */
+    [[nodiscard]] inline constexpr size_t size() const noexcept { return m_data.count; }
+
+private:
+    CodiraTypes m_data;
+};
+}  // namespace codira
+
+#endif  // CODIRA_TYPE_INFO_H

@@ -1,1 +1,0 @@
-{"id":3,"jsonrpc":"2.0","result":{"crossMessage":[{"functionName":"VArray1","functionParameters":["int64_t *(*)[][]"],"retType":"void","targetLanguage":"C"}],"range":{"end":{"character":20,"line":8},"start":{"character":13,"line":8}},"uri":"file:///d%3A/code/cangjieTest/crossLanguage/src/varray/a.code"}}

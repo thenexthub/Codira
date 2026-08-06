@@ -1,0 +1,6 @@
+---
+source: crates/codira_hir/src/supervisor_validator.rs
+expression: "diagnostics(r#\"\n        supervisor DatabaseConnection {\n            strategy: 1,\n            strategy: 2,\n        }\n        \"#)"
+snapshot_kind: text
+---
+53..64: the key `strategy` is already set in this block

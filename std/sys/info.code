@@ -1,0 +1,356 @@
+// =============================================================================
+// std/sys/info.code — Platform and hardware information
+// =============================================================================
+//
+// This module exposes compile-time and runtime queries about the target
+// platform, operating system, CPU architecture, and type metrics.
+//
+// Compile-time constants (resolved by the compiler):
+//   os_is_linux, os_is_macos, os_is_windows
+//   is_x86, is_aarch64, is_32bit, is_64bit
+//
+// Type-metric functions (compile-time evaluated):
+//   sizeof[T](), alignof[T](), bitwidthof[T](), simdwidthof[T]()
+//
+// Runtime queries:
+//   num_physical_cores(), num_logical_cores(), page_size(),
+//   cache_line_size(), total_memory()
+// =============================================================================
+
+use std.builtin.types;
+
+// =============================================================================
+// Operating system detection (compile-time constants)
+// =============================================================================
+
+// True when compiling for a Linux target.
+public let os_is_linux: bool = __intrinsic_target_os() == "linux";
+
+// True when compiling for macOS / Darwin.
+public let os_is_macos: bool = __intrinsic_target_os() == "macos";
+
+// True when compiling for Windows.
+public let os_is_windows: bool = __intrinsic_target_os() == "windows";
+
+// True when compiling for FreeBSD.
+public let os_is_freebsd: bool = __intrinsic_target_os() == "freebsd";
+
+// True when compiling for any POSIX-like system (Linux, macOS, *BSD).
+public let os_is_posix: bool = os_is_linux | os_is_macos | os_is_freebsd;
+
+// Return the OS name as a string: "linux", "macos", "windows", etc.
+public func os_name() -> String {
+    return __intrinsic_target_os();
+}
+
+// =============================================================================
+// CPU architecture detection (compile-time constants)
+// =============================================================================
+
+// True when targeting x86-64 (amd64).
+public let is_x86: bool = __intrinsic_target_arch() == "x86_64";
+
+// True when targeting AArch64 (ARM 64-bit).
+public let is_aarch64: bool = __intrinsic_target_arch() == "aarch64";
+
+// True when targeting 32-bit ARM.
+public let is_arm32: bool = __intrinsic_target_arch() == "arm";
+
+// True when targeting RISC-V 64-bit.
+public let is_riscv64: bool = __intrinsic_target_arch() == "riscv64";
+
+// True when targeting WebAssembly.
+public let is_wasm: bool = __intrinsic_target_arch() == "wasm32"
+                         | __intrinsic_target_arch() == "wasm64";
+
+// True on 32-bit platforms (pointer width = 4 bytes).
+public let is_32bit: bool = __intrinsic_sizeof[usize]() == 4;
+
+// True on 64-bit platforms (pointer width = 8 bytes).
+public let is_64bit: bool = __intrinsic_sizeof[usize]() == 8;
+
+// Return the architecture name as a string.
+public func arch_name() -> String {
+    return __intrinsic_target_arch();
+}
+
+// =============================================================================
+// SIMD / hardware feature detection
+// =============================================================================
+
+// True if the target supports SSE2 (x86 baseline for 64-bit).
+public let has_sse2: bool = __intrinsic_has_feature("sse2");
+
+// True if the target supports SSE4.1.
+public let has_sse41: bool = __intrinsic_has_feature("sse4.1");
+
+// True if the target supports SSE4.2.
+public let has_sse42: bool = __intrinsic_has_feature("sse4.2");
+
+// True if the target supports AVX.
+public let has_avx: bool = __intrinsic_has_feature("avx");
+
+// True if the target supports AVX2.
+public let has_avx2: bool = __intrinsic_has_feature("avx2");
+
+// True if the target supports AVX-512 Foundation.
+public let has_avx512f: bool = __intrinsic_has_feature("avx512f");
+
+// True if the target supports ARM NEON.
+public let has_neon: bool = __intrinsic_has_feature("neon");
+
+// True if the target supports ARM SVE.
+public let has_sve: bool = __intrinsic_has_feature("sve");
+
+// =============================================================================
+// Target triple
+// =============================================================================
+
+// Return the full LLVM target triple, e.g. "x86_64-unknown-linux-gnu".
+public func target_triple() -> String {
+    return __intrinsic_target_triple();
+}
+
+// Return the target vendor string, e.g. "unknown", "apple", "pc".
+public func target_vendor() -> String {
+    return __intrinsic_target_vendor();
+}
+
+// =============================================================================
+// Type metric functions (compile-time)
+// =============================================================================
+
+// Return the size of type T in bytes.
+//
+//   sizeof[i32]()    // 4
+//   sizeof[f64]()    // 8
+//   sizeof[usize]()  // 8 (on 64-bit)
+public func sizeof[T]() -> usize {
+    return __intrinsic_sizeof[T]();
+}
+
+// Return the alignment of type T in bytes.
+//
+//   alignof[i32]()   // 4
+//   alignof[f64]()   // 8
+public func alignof[T]() -> usize {
+    return __intrinsic_alignof[T]();
+}
+
+// Return the bit-width of type T.
+//
+//   bitwidthof[i32]()  // 32
+//   bitwidthof[u8]()   // 8
+public func bitwidthof[T]() -> usize {
+    return __intrinsic_sizeof[T]() * 8;
+}
+
+// Return the natural SIMD vector width for element type T on the
+// current target, measured in number of elements.
+//
+// For example, on a machine with 256-bit AVX:
+//   simdwidthof[f32]()  // 8   (256 / 32)
+//   simdwidthof[f64]()  // 4   (256 / 64)
+//   simdwidthof[i8]()   // 32  (256 / 8)
+public func simdwidthof[T]() -> usize {
+    return __intrinsic_simd_width[T]();
+}
+
+// Return the stride (size rounded to alignment) for type T.
+// This is the distance between consecutive elements in an array.
+public func strideof[T]() -> usize {
+    let size = __intrinsic_sizeof[T]();
+    let align = __intrinsic_alignof[T]();
+    return (size + align - 1) & (0 - align);
+}
+
+// =============================================================================
+// Runtime hardware queries
+// =============================================================================
+
+// Return the number of physical CPU cores.
+public func num_physical_cores() -> usize {
+    return __intrinsic_num_physical_cores();
+}
+
+// Return the number of logical CPU cores (includes hyper-threads).
+public func num_logical_cores() -> usize {
+    return __intrinsic_num_logical_cores();
+}
+
+// Return the system page size in bytes (typically 4096).
+public func page_size() -> usize {
+    return __intrinsic_page_size();
+}
+
+// Return the L1 data cache line size in bytes (typically 64).
+public func cache_line_size() -> usize {
+    return __intrinsic_cache_line_size();
+}
+
+// Return the total physical memory in bytes.
+public func total_memory() -> usize {
+    return __intrinsic_total_memory();
+}
+
+// Return the available (free) physical memory in bytes.
+public func available_memory() -> usize {
+    return __intrinsic_available_memory();
+}
+
+// =============================================================================
+// Endianness
+// =============================================================================
+
+// True on little-endian targets.
+public let is_little_endian: bool = __intrinsic_is_little_endian();
+
+// True on big-endian targets.
+public let is_big_endian: bool = !__intrinsic_is_little_endian();
+
+// =============================================================================
+// GPU / accelerator target detection (compile-time)
+// =============================================================================
+
+// Return the accelerator architecture string for the current target
+// accelerator (e.g. "sm_90", "gfx942").  Returns an empty string when there
+// is no accelerator.
+public func _accelerator_arch() -> String {
+    return __intrinsic_accelerator_arch();
+}
+
+// True when targeting the NVIDIA PTX platform (nvptx64-nvidia-cuda).
+public func is_nvidia_gpu() -> bool {
+    return __intrinsic_target_arch() == "nvptx64";
+}
+
+// True when targeting the AMD GCN/ROCm platform (amdgcn-amd-amdhsa).
+public func is_amd_gpu() -> bool {
+    return __intrinsic_target_arch() == "amdgcn";
+}
+
+// True when targeting an Apple GPU (Metal / air64).
+public func is_apple_gpu() -> bool {
+    return __intrinsic_target_arch() == "air64";
+}
+
+// True when targeting any GPU accelerator.
+public func is_gpu() -> bool {
+    return is_nvidia_gpu() | is_amd_gpu() | is_apple_gpu();
+}
+
+// True if the target is an AMD GPU built on the CDNA architecture family.
+public func _is_amd_cdna() -> bool {
+    return _is_amd_mi100_family() | _is_amd_cdna2_family()
+         | _is_amd_cdna3_family() | _is_amd_cdna4_family();
+}
+
+// True if the accelerator arch string starts with the given prefix
+// (e.g. checking "sm_" or "gfx").
+public func _arch_has_prefix(prefix: String) -> bool {
+    let arch = _accelerator_arch();
+    if arch.byte_length() < prefix.byte_length() {
+        return false;
+    }
+    return arch.substring(0, prefix.byte_length()) == prefix;
+}
+
+// True if the accelerator is a CDNA4+ part (gfx95x/variants).
+public func _cdna_4_or_newer() -> bool {
+    return _is_amd_cdna4_family();
+}
+
+// Architecture family predicates for AMD parts.  These classify the
+// accelerator arch string reported by the target.
+
+// True if the accelerator arch names a CDNA1 (MI100) part.
+public func _is_amd_mi100_family() -> bool {
+    return is_amd_gpu() & (_accelerator_arch() == "gfx908");
+}
+
+// True if the accelerator arch names a CDNA2 (MI200) part.
+public func _is_amd_cdna2_family() -> bool {
+    return is_amd_gpu() & (_accelerator_arch() == "gfx90a");
+}
+
+// True if the accelerator arch names a CDNA3 (MI300) part.
+public func _is_amd_cdna3_family() -> bool {
+    return is_amd_gpu() & (_accelerator_arch() == "gfx942");
+}
+
+// True if the accelerator arch names a CDNA4 (MI355) part.
+public func _is_amd_cdna4_family() -> bool {
+    return is_amd_gpu() & _arch_has_prefix("gfx950");
+}
+
+// True if the target is an AMD GPU built on the RDNA architecture family.
+public func _is_amd_rdna1() -> bool {
+    return is_amd_gpu() & (_accelerator_arch() == "gfx1010");
+}
+
+// True if the target is an RDNA2 (gfx103x) AMD GPU.
+public func _is_amd_rdna2() -> bool {
+    return is_amd_gpu() & _arch_has_prefix("gfx103");
+}
+
+// True if the target is an RDNA3 (gfx110x) AMD GPU.
+public func _is_amd_rdna3() -> bool {
+    return is_amd_gpu() & _arch_has_prefix("gfx110");
+}
+
+// True if the target is an RDNA4 (gfx120x) AMD GPU.
+public func _is_amd_rdna4() -> bool {
+    return is_amd_gpu() & _arch_has_prefix("gfx120");
+}
+
+// True if targeting an NVIDIA SM9x (compute capability 9.x, Hopper) or newer.
+public func _is_sm_9x_or_newer() -> bool {
+    return is_nvidia_gpu() & _arch_has_prefix("sm_9");
+}
+
+// True if targeting an NVIDIA SM10x (Blackwell) or newer.
+public func _is_sm_100x_or_newer() -> bool {
+    return is_nvidia_gpu() & _arch_has_prefix("sm_1");
+}
+
+// True if targeting any AMD RDNA-family GPU.
+public func _is_amd_rdna() -> bool {
+    return _is_amd_rdna1() | _is_amd_rdna2()
+         | _is_amd_rdna3() | _is_amd_rdna4();
+}
+
+// True if the compiler is targeting an NVIDIA GPU accelerator.
+public func has_nvidia_gpu_accelerator() -> bool {
+    return is_nvidia_gpu();
+}
+
+// True if the compiler is targeting an AMD GPU accelerator.
+public func has_amd_gpu_accelerator() -> bool {
+    return is_amd_gpu();
+}
+
+// =============================================================================
+// Unsupported target handling
+// =============================================================================
+
+// Raise a compile-time error explaining that the current target does not
+// support the named operation.  This is best-effort: it always fails on
+// systems without a GPU accelerator.
+public func unsupported_target_error(operation: String) -> void {
+    __panic("unsupported target for operation: " + operation);
+}
+
+// =============================================================================
+// Compiler / build info
+// =============================================================================
+
+// Return the compiler version string.
+public func compiler_version() -> String {
+    return __intrinsic_compiler_version();
+}
+
+// True when building in debug mode.
+public let is_debug_build: bool = __intrinsic_is_debug();
+
+// True when building with optimizations.
+public let is_release_build: bool = !__intrinsic_is_debug();

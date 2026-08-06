@@ -1,0 +1,85 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    func foo() {\n        let a = true;\n        let b = false;\n        let c = 1;\n        let d = 1.12;\n        let e = \"Hello, world!\"\n    }\n    \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..146
+  FUNCTION_DEF@0..141
+    WHITESPACE@0..5 "\n    "
+    FUNC_KW@5..9 "func"
+    WHITESPACE@9..10 " "
+    NAME@10..13
+      IDENT@10..13 "foo"
+    PARAM_LIST@13..15
+      L_PAREN@13..14 "("
+      R_PAREN@14..15 ")"
+    WHITESPACE@15..16 " "
+    BLOCK_EXPR@16..141
+      L_CURLY@16..17 "{"
+      WHITESPACE@17..26 "\n        "
+      LET_STMT@26..39
+        LET_KW@26..29 "let"
+        WHITESPACE@29..30 " "
+        BIND_PAT@30..31
+          NAME@30..31
+            IDENT@30..31 "a"
+        WHITESPACE@31..32 " "
+        EQ@32..33 "="
+        WHITESPACE@33..34 " "
+        LITERAL@34..38
+          TRUE_KW@34..38 "true"
+        SEMI@38..39 ";"
+      WHITESPACE@39..48 "\n        "
+      LET_STMT@48..62
+        LET_KW@48..51 "let"
+        WHITESPACE@51..52 " "
+        BIND_PAT@52..53
+          NAME@52..53
+            IDENT@52..53 "b"
+        WHITESPACE@53..54 " "
+        EQ@54..55 "="
+        WHITESPACE@55..56 " "
+        LITERAL@56..61
+          FALSE_KW@56..61 "false"
+        SEMI@61..62 ";"
+      WHITESPACE@62..71 "\n        "
+      LET_STMT@71..81
+        LET_KW@71..74 "let"
+        WHITESPACE@74..75 " "
+        BIND_PAT@75..76
+          NAME@75..76
+            IDENT@75..76 "c"
+        WHITESPACE@76..77 " "
+        EQ@77..78 "="
+        WHITESPACE@78..79 " "
+        LITERAL@79..80
+          INT_NUMBER@79..80 "1"
+        SEMI@80..81 ";"
+      WHITESPACE@81..90 "\n        "
+      LET_STMT@90..103
+        LET_KW@90..93 "let"
+        WHITESPACE@93..94 " "
+        BIND_PAT@94..95
+          NAME@94..95
+            IDENT@94..95 "d"
+        WHITESPACE@95..96 " "
+        EQ@96..97 "="
+        WHITESPACE@97..98 " "
+        LITERAL@98..102
+          FLOAT_NUMBER@98..102 "1.12"
+        SEMI@102..103 ";"
+      WHITESPACE@103..112 "\n        "
+      LET_STMT@112..135
+        LET_KW@112..115 "let"
+        WHITESPACE@115..116 " "
+        BIND_PAT@116..117
+          NAME@116..117
+            IDENT@116..117 "e"
+        WHITESPACE@117..118 " "
+        EQ@118..119 "="
+        WHITESPACE@119..120 " "
+        LITERAL@120..135
+          STRING@120..135 "\"Hello, world!\""
+      WHITESPACE@135..140 "\n    "
+      R_CURLY@140..141 "}"
+  WHITESPACE@141..146 "\n    "

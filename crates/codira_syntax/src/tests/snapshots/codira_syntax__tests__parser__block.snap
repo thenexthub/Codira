@@ -1,0 +1,56 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    func foo() {\n        let a;\n        let b:i32;\n        let c:string;\n    }\"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..79
+  FUNCTION_DEF@0..79
+    WHITESPACE@0..5 "\n    "
+    FUNC_KW@5..9 "func"
+    WHITESPACE@9..10 " "
+    NAME@10..13
+      IDENT@10..13 "foo"
+    PARAM_LIST@13..15
+      L_PAREN@13..14 "("
+      R_PAREN@14..15 ")"
+    WHITESPACE@15..16 " "
+    BLOCK_EXPR@16..79
+      L_CURLY@16..17 "{"
+      WHITESPACE@17..26 "\n        "
+      LET_STMT@26..32
+        LET_KW@26..29 "let"
+        WHITESPACE@29..30 " "
+        BIND_PAT@30..31
+          NAME@30..31
+            IDENT@30..31 "a"
+        SEMI@31..32 ";"
+      WHITESPACE@32..41 "\n        "
+      LET_STMT@41..51
+        LET_KW@41..44 "let"
+        WHITESPACE@44..45 " "
+        BIND_PAT@45..46
+          NAME@45..46
+            IDENT@45..46 "b"
+        COLON@46..47 ":"
+        PATH_TYPE@47..50
+          PATH@47..50
+            PATH_SEGMENT@47..50
+              NAME_REF@47..50
+                IDENT@47..50 "i32"
+        SEMI@50..51 ";"
+      WHITESPACE@51..60 "\n        "
+      LET_STMT@60..73
+        LET_KW@60..63 "let"
+        WHITESPACE@63..64 " "
+        BIND_PAT@64..65
+          NAME@64..65
+            IDENT@64..65 "c"
+        COLON@65..66 ":"
+        PATH_TYPE@66..72
+          PATH@66..72
+            PATH_SEGMENT@66..72
+              NAME_REF@66..72
+                IDENT@66..72 "string"
+        SEMI@72..73 ";"
+      WHITESPACE@73..78 "\n    "
+      R_CURLY@78..79 "}"

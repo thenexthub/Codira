@@ -1,0 +1,34 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    func foo() {\n        return;\n        return 50;\n    }\n    \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..63
+  FUNCTION_DEF@0..58
+    WHITESPACE@0..5 "\n    "
+    FUNC_KW@5..9 "func"
+    WHITESPACE@9..10 " "
+    NAME@10..13
+      IDENT@10..13 "foo"
+    PARAM_LIST@13..15
+      L_PAREN@13..14 "("
+      R_PAREN@14..15 ")"
+    WHITESPACE@15..16 " "
+    BLOCK_EXPR@16..58
+      L_CURLY@16..17 "{"
+      WHITESPACE@17..26 "\n        "
+      EXPR_STMT@26..33
+        RETURN_EXPR@26..32
+          RETURN_KW@26..32 "return"
+        SEMI@32..33 ";"
+      WHITESPACE@33..42 "\n        "
+      EXPR_STMT@42..52
+        RETURN_EXPR@42..51
+          RETURN_KW@42..48 "return"
+          WHITESPACE@48..49 " "
+          LITERAL@49..51
+            INT_NUMBER@49..51 "50"
+        SEMI@51..52 ";"
+      WHITESPACE@52..57 "\n    "
+      R_CURLY@57..58 "}"
+  WHITESPACE@58..63 "\n    "

@@ -1,1 +1,0 @@
-{"id":157,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: 2023110708590.code\nPackage info: default\n\n// In class HoverVarTestClass\n(variable) public const MIN_NUM: Int32 = 1\n"},"range":{"end":{"character":24,"line":12},"start":{"character":17,"line":12}}}}

@@ -1,0 +1,154 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    func foo() {\n        U;\n        S {};\n        S { x, y: 32, };\n        S { x: 32, y: 64 };\n        TupleStruct { 0: 1 };\n        T(1.23);\n        T(1.23, 4,)\n    }\n    \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..173
+  FUNCTION_DEF@0..168
+    WHITESPACE@0..5 "\n    "
+    FUNC_KW@5..9 "func"
+    WHITESPACE@9..10 " "
+    NAME@10..13
+      IDENT@10..13 "foo"
+    PARAM_LIST@13..15
+      L_PAREN@13..14 "("
+      R_PAREN@14..15 ")"
+    WHITESPACE@15..16 " "
+    BLOCK_EXPR@16..168
+      L_CURLY@16..17 "{"
+      WHITESPACE@17..26 "\n        "
+      EXPR_STMT@26..28
+        PATH_EXPR@26..27
+          PATH@26..27
+            PATH_SEGMENT@26..27
+              NAME_REF@26..27
+                IDENT@26..27 "U"
+        SEMI@27..28 ";"
+      WHITESPACE@28..37 "\n        "
+      EXPR_STMT@37..42
+        RECORD_LIT@37..41
+          PATH_TYPE@37..38
+            PATH@37..38
+              PATH_SEGMENT@37..38
+                NAME_REF@37..38
+                  IDENT@37..38 "S"
+          WHITESPACE@38..39 " "
+          RECORD_FIELD_LIST@39..41
+            L_CURLY@39..40 "{"
+            R_CURLY@40..41 "}"
+        SEMI@41..42 ";"
+      WHITESPACE@42..51 "\n        "
+      EXPR_STMT@51..67
+        RECORD_LIT@51..66
+          PATH_TYPE@51..52
+            PATH@51..52
+              PATH_SEGMENT@51..52
+                NAME_REF@51..52
+                  IDENT@51..52 "S"
+          WHITESPACE@52..53 " "
+          RECORD_FIELD_LIST@53..66
+            L_CURLY@53..54 "{"
+            WHITESPACE@54..55 " "
+            RECORD_FIELD@55..56
+              NAME_REF@55..56
+                IDENT@55..56 "x"
+            COMMA@56..57 ","
+            WHITESPACE@57..58 " "
+            RECORD_FIELD@58..63
+              NAME_REF@58..59
+                IDENT@58..59 "y"
+              COLON@59..60 ":"
+              WHITESPACE@60..61 " "
+              LITERAL@61..63
+                INT_NUMBER@61..63 "32"
+            COMMA@63..64 ","
+            WHITESPACE@64..65 " "
+            R_CURLY@65..66 "}"
+        SEMI@66..67 ";"
+      WHITESPACE@67..76 "\n        "
+      EXPR_STMT@76..95
+        RECORD_LIT@76..94
+          PATH_TYPE@76..77
+            PATH@76..77
+              PATH_SEGMENT@76..77
+                NAME_REF@76..77
+                  IDENT@76..77 "S"
+          WHITESPACE@77..78 " "
+          RECORD_FIELD_LIST@78..94
+            L_CURLY@78..79 "{"
+            WHITESPACE@79..80 " "
+            RECORD_FIELD@80..85
+              NAME_REF@80..81
+                IDENT@80..81 "x"
+              COLON@81..82 ":"
+              WHITESPACE@82..83 " "
+              LITERAL@83..85
+                INT_NUMBER@83..85 "32"
+            COMMA@85..86 ","
+            WHITESPACE@86..87 " "
+            RECORD_FIELD@87..92
+              NAME_REF@87..88
+                IDENT@87..88 "y"
+              COLON@88..89 ":"
+              WHITESPACE@89..90 " "
+              LITERAL@90..92
+                INT_NUMBER@90..92 "64"
+            WHITESPACE@92..93 " "
+            R_CURLY@93..94 "}"
+        SEMI@94..95 ";"
+      WHITESPACE@95..104 "\n        "
+      EXPR_STMT@104..125
+        RECORD_LIT@104..124
+          PATH_TYPE@104..115
+            PATH@104..115
+              PATH_SEGMENT@104..115
+                NAME_REF@104..115
+                  IDENT@104..115 "TupleStruct"
+          WHITESPACE@115..116 " "
+          RECORD_FIELD_LIST@116..124
+            L_CURLY@116..117 "{"
+            WHITESPACE@117..118 " "
+            RECORD_FIELD@118..122
+              NAME_REF@118..119
+                INT_NUMBER@118..119 "0"
+              COLON@119..120 ":"
+              WHITESPACE@120..121 " "
+              LITERAL@121..122
+                INT_NUMBER@121..122 "1"
+            WHITESPACE@122..123 " "
+            R_CURLY@123..124 "}"
+        SEMI@124..125 ";"
+      WHITESPACE@125..134 "\n        "
+      EXPR_STMT@134..142
+        CALL_EXPR@134..141
+          PATH_EXPR@134..135
+            PATH@134..135
+              PATH_SEGMENT@134..135
+                NAME_REF@134..135
+                  IDENT@134..135 "T"
+          ARG_LIST@135..141
+            L_PAREN@135..136 "("
+            LITERAL@136..140
+              FLOAT_NUMBER@136..140 "1.23"
+            R_PAREN@140..141 ")"
+        SEMI@141..142 ";"
+      WHITESPACE@142..151 "\n        "
+      CALL_EXPR@151..162
+        PATH_EXPR@151..152
+          PATH@151..152
+            PATH_SEGMENT@151..152
+              NAME_REF@151..152
+                IDENT@151..152 "T"
+        ARG_LIST@152..162
+          L_PAREN@152..153 "("
+          LITERAL@153..157
+            FLOAT_NUMBER@153..157 "1.23"
+          COMMA@157..158 ","
+          WHITESPACE@158..159 " "
+          LITERAL@159..160
+            INT_NUMBER@159..160 "4"
+          COMMA@160..161 ","
+          R_PAREN@161..162 ")"
+      WHITESPACE@162..167 "\n    "
+      R_CURLY@167..168 "}"
+  WHITESPACE@168..173 "\n    "

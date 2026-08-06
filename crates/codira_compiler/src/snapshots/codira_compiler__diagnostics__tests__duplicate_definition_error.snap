@@ -1,0 +1,33 @@
+---
+source: crates/codira_compiler/src/diagnostics.rs
+expression: "compilation_errors(\"\\n\\nfunc foo(){}\\n\\nfunc foo(){}\\n\\nstruct Bar;\\n\\nstruct Bar;\\n\\nfunc BAZ(){}\\n\\nstruct BAZ;\")"
+snapshot_kind: text
+---
+error: a value named `foo` has already been defined in this module
+ --> main.code:5:1
+  |
+3 | func foo(){}
+  | ^^^^^^^^^^ first definition of the value `foo` here
+4 | 
+5 | func foo(){}
+  | ^^^^^^^^^^ `foo` redefined here
+  |
+  = note: `foo` must be defined only once in the value namespace of this moduleerror: a type named `Bar` has already been defined in this module
+ --> main.code:9:1
+  |
+7 | struct Bar;
+  | ^^^^^^^^^^ first definition of the type `Bar` here
+8 | 
+9 | struct Bar;
+  | ^^^^^^^^^^ `Bar` redefined here
+  |
+  = note: `Bar` must be defined only once in the type namespace of this moduleerror: a type named `BAZ` has already been defined in this module
+  --> main.code:13:1
+   |
+11 | func BAZ(){}
+   | ^^^^^^^^^^ first definition of the type `BAZ` here
+12 | 
+13 | struct BAZ;
+   | ^^^^^^^^^^ `BAZ` redefined here
+   |
+   = note: `BAZ` must be defined only once in the type namespace of this module

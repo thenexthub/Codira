@@ -1,0 +1,262 @@
+// =============================================================================
+// std/sys/arg.code — Command-line argument access
+// =============================================================================
+//
+// This module provides functions for accessing command-line arguments
+// passed to the process at launch.
+//
+// The argument list is initialized by the runtime before `main()` is
+// called and remains immutable for the lifetime of the process.
+//
+// Functions:
+//   argc()           — number of arguments (including the program name)
+//   argv(index)      — argument at the given index as a String
+//   argv_all()       — all arguments as an Array[String]
+//   program_name()   — the program name (argv[0])
+//   args()           — arguments excluding the program name
+//   has_flag(name)   — check whether a flag like "--verbose" is present
+//   get_option(name) — get the value of "--key=value" or "--key value"
+// =============================================================================
+
+use std.builtin.types;
+use std.builtin.error;
+use std.builtin.traits;
+
+// =============================================================================
+// Raw access
+// =============================================================================
+
+// Return the number of command-line arguments, including the program name.
+//
+// This is equivalent to C's `argc`.
+//
+//   // Invocation: ./myapp foo bar
+//   argc()  // 3
+public func argc() -> i32 {
+    return __intrinsic_argc();
+}
+
+// Return the command-line argument at `index` as a String.
+//
+// Index 0 is the program name / path.
+// Panics if `index` is out of range.
+//
+//   // Invocation: ./myapp hello world
+//   argv(0)  // "./myapp"
+//   argv(1)  // "hello"
+//   argv(2)  // "world"
+public func argv(index: i32) -> String {
+    let count = __intrinsic_argc();
+    if index < 0 | index >= count {
+        __panic("argv: index "
+            + __intrinsic_to_string(index)
+            + " out of range [0, "
+            + __intrinsic_to_string(count)
+            + ")");
+    }
+    return __intrinsic_argv(index);
+}
+
+// Return the command-line argument at `index`, or an error if out of range.
+public func argv_checked(index: i32) -> Result[String, Error] {
+    let count = __intrinsic_argc();
+    if index < 0 | index >= count {
+        return Result.err(Error.out_of_bounds(index as usize, count as usize));
+    }
+    return Result.ok(__intrinsic_argv(index));
+}
+
+// =============================================================================
+// Bulk access
+// =============================================================================
+
+// Return all command-line arguments as an array of strings.
+//
+//   let all = argv_all();
+//   // all[0] is the program name, all[1..] are user arguments
+public func argv_all() -> Array[String] {
+    let count = __intrinsic_argc();
+    let result = Array[String].with_capacity(count as usize);
+    let i: i32 = 0;
+    while i < count {
+        result.push(__intrinsic_argv(i));
+        i = i + 1;
+    }
+    return result;
+}
+
+// Return the program name / executable path (argv[0]).
+//
+//   program_name()  // e.g. "./myapp" or "/usr/bin/myapp"
+public func program_name() -> String {
+    if __intrinsic_argc() == 0 {
+        return "";
+    }
+    return __intrinsic_argv(0);
+}
+
+// Return all arguments EXCEPT the program name.
+//
+//   // Invocation: ./myapp --verbose input.txt
+//   args()  // ["--verbose", "input.txt"]
+public func args() -> Array[String] {
+    let count = __intrinsic_argc();
+    let n = count - 1;
+    if n < 0 {
+        n = 0;
+    }
+    let result = Array[String].with_capacity(n as usize);
+    let i: i32 = 1;
+    while i < count {
+        result.push(__intrinsic_argv(i));
+        i = i + 1;
+    }
+    return result;
+}
+
+// =============================================================================
+// Flag / option parsing helpers
+// =============================================================================
+
+// Return true if any argument exactly matches `flag_name`.
+//
+// Typically used for boolean flags:
+//   has_flag("--verbose")
+//   has_flag("-v")
+//   has_flag("--help")
+public func has_flag(flag_name: String) -> bool {
+    let count = __intrinsic_argc();
+    let i: i32 = 1;
+    while i < count {
+        if __intrinsic_argv(i) == flag_name {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+// Get the value associated with a named option.
+//
+// Supports two forms:
+//   --key=value   (single argument)
+//   --key value   (two consecutive arguments)
+//
+// Returns the value string on success, or an error if not found.
+//
+//   get_option("--output")
+//   // Invocation: ./app --output=result.txt
+//   // Returns: Ok("result.txt")
+//
+//   get_option("--output")
+//   // Invocation: ./app --output result.txt
+//   // Returns: Ok("result.txt")
+public func get_option(name: String) -> Result[String, Error] {
+    let count = __intrinsic_argc();
+    let prefix = name + "=";
+    let prefix_len = prefix.len();
+
+    let i: i32 = 1;
+    while i < count {
+        let arg = __intrinsic_argv(i);
+
+        // Check --key=value form.
+        if arg.starts_with(prefix) {
+            let value = arg.substring(prefix_len, arg.len());
+            return Result.ok(value);
+        }
+
+        // Check --key value form.
+        if arg == name {
+            let next = i + 1;
+            if next < count {
+                return Result.ok(__intrinsic_argv(next));
+            }
+            return Result.err(Error.new("option '" + name + "' requires a value"));
+        }
+
+        i = i + 1;
+    }
+
+    return Result.err(Error.not_found("option '" + name + "'"));
+}
+
+// Get the value associated with a named option, or return a default.
+public func get_option_or(name: String, default_value: String) -> String {
+    let result = get_option(name);
+    if result.is_ok() {
+        return result.unwrap();
+    }
+    return default_value;
+}
+
+// =============================================================================
+// Positional argument helpers
+// =============================================================================
+
+// Return the Nth positional argument (1-indexed, skipping flags/options).
+//
+// A positional argument is any argument that does not start with '-'.
+//
+//   // Invocation: ./app --verbose input.txt output.txt
+//   positional_arg(1)  // "input.txt"
+//   positional_arg(2)  // "output.txt"
+public func positional_arg(n: i32) -> Result[String, Error] {
+    let count = __intrinsic_argc();
+    let positional_index: i32 = 0;
+    let i: i32 = 1;
+    while i < count {
+        let arg = __intrinsic_argv(i);
+        if !arg.starts_with("-") {
+            positional_index = positional_index + 1;
+            if positional_index == n {
+                return Result.ok(arg);
+            }
+        }
+        i = i + 1;
+    }
+    return Result.err(Error.not_found("positional argument #" + __intrinsic_to_string(n)));
+}
+
+// Count the number of positional arguments (those not starting with '-').
+public func positional_count() -> i32 {
+    let count = __intrinsic_argc();
+    let result: i32 = 0;
+    let i: i32 = 1;
+    while i < count {
+        let arg = __intrinsic_argv(i);
+        if !arg.starts_with("-") {
+            result = result + 1;
+        }
+        i = i + 1;
+    }
+    return result;
+}
+
+// =============================================================================
+// Environment variable access (related convenience)
+// =============================================================================
+
+// Get an environment variable by name.
+// Returns the value or an error if not set.
+public func env_get(name: String) -> Result[String, Error] {
+    let val = __intrinsic_getenv(name);
+    if val.is_null() {
+        return Result.err(Error.not_found("environment variable '" + name + "'"));
+    }
+    return Result.ok(val);
+}
+
+// Get an environment variable or a default.
+public func env_get_or(name: String, default_value: String) -> String {
+    let result = env_get(name);
+    if result.is_ok() {
+        return result.unwrap();
+    }
+    return default_value;
+}
+
+// Check whether an environment variable is set.
+public func env_has(name: String) -> bool {
+    return env_get(name).is_ok();
+}

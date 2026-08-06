@@ -1,0 +1,7 @@
+---
+source: crates/codira_hir/src/ty/tests.rs
+expression: "infer(r#\"\n    struct Foo {\n        a: i32\n    }\n\n    extend Foo {\n        func with_self(self) -> Self {\n            self\n        }\n    }\n    \"#)"
+---
+59..63 'self': Foo
+73..93 '{     ...     }': Foo
+83..87 'self': Foo

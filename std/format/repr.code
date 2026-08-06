@@ -1,0 +1,203 @@
+// std/format/repr.code
+// Repr (representation) utilities for Codira.
+// Provides the Representable trait and repr function to produce
+// unambiguous, debug-friendly string representations of values.
+
+// ---------------------------------------------------------------------------
+// Representable trait
+// Types that implement this trait can produce a debug/developer string
+// representation of themselves, analogous to Python's __repr__.
+// ---------------------------------------------------------------------------
+public trait Representable {
+    // Returns an unambiguous string representation of the value.
+    // The output should ideally be valid Codira syntax that could
+    // reconstruct the value.
+    func repr(self) -> String;
+}
+
+// ---------------------------------------------------------------------------
+// repr
+// Convenience function: returns the repr string for any Representable value.
+// ---------------------------------------------------------------------------
+public func repr(value: Representable) -> String {
+    return value.repr();
+}
+
+// ---------------------------------------------------------------------------
+// Built-in repr implementations for primitive types.
+// ---------------------------------------------------------------------------
+
+// repr for bool
+public func repr_bool(value: bool) -> String {
+    if value {
+        return "true";
+    }
+    return "false";
+}
+
+// repr for i8
+public func repr_i8(value: i8) -> String {
+    return int_to_string(value as i64);
+}
+
+// repr for i16
+public func repr_i16(value: i16) -> String {
+    return int_to_string(value as i64);
+}
+
+// repr for i32
+public func repr_i32(value: i32) -> String {
+    return int_to_string(value as i64);
+}
+
+// repr for i64
+public func repr_i64(value: i64) -> String {
+    return int_to_string(value);
+}
+
+// repr for u8
+public func repr_u8(value: u8) -> String {
+    return uint_to_string(value as u64);
+}
+
+// repr for u16
+public func repr_u16(value: u16) -> String {
+    return uint_to_string(value as u64);
+}
+
+// repr for u32
+public func repr_u32(value: u32) -> String {
+    return uint_to_string(value as u64);
+}
+
+// repr for u64
+public func repr_u64(value: u64) -> String {
+    return uint_to_string(value);
+}
+
+// repr for f32
+public func repr_f32(value: f32) -> String {
+    return float_to_string(value as f64);
+}
+
+// repr for f64
+public func repr_f64(value: f64) -> String {
+    return float_to_string(value);
+}
+
+// repr for String – wraps the value in double quotes and escapes
+// special characters.
+public func repr_string(value: String) -> String {
+    let mut result: String = "\"";
+    let mut i: usize = 0;
+    while i < value.len() {
+        let ch: u8 = value.byte_at(i);
+        if ch == 0x22 {          // double quote
+            result = result + "\\\"";
+        } else if ch == 0x5C {   // backslash
+            result = result + "\\\\";
+        } else if ch == 0x0A {   // newline
+            result = result + "\\n";
+        } else if ch == 0x0D {   // carriage return
+            result = result + "\\r";
+        } else if ch == 0x09 {   // tab
+            result = result + "\\t";
+        } else if ch == 0x00 {   // null
+            result = result + "\\0";
+        } else if ch < 0x20 {    // other control characters
+            result = result + "\\x" + hex_byte(ch);
+        } else {
+            result = result + char_from_byte(ch);
+        }
+        i = i + 1;
+    }
+    result = result + "\"";
+    return result;
+}
+
+// ---------------------------------------------------------------------------
+// repr for Array<T> where T: Representable
+// Produces output like: [1, 2, 3]
+// ---------------------------------------------------------------------------
+public func repr_array(values: Array<Representable>) -> String {
+    let mut result: String = "[";
+    let mut i: usize = 0;
+    while i < values.len() {
+        if i > 0 {
+            result = result + ", ";
+        }
+        result = result + values[i].repr();
+        i = i + 1;
+    }
+    result = result + "]";
+    return result;
+}
+
+// ---------------------------------------------------------------------------
+// repr for Optional<T>
+// Produces "Some(repr)" or "None".
+// ---------------------------------------------------------------------------
+public func repr_optional(value: Optional<Representable>) -> String {
+    if value.is_some() {
+        return "Some(" + value.unwrap().repr() + ")";
+    }
+    return "None";
+}
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+// Converts a signed integer to its decimal string representation.
+func int_to_string(value: i64) -> String {
+    if value == 0 {
+        return "0";
+    }
+    let mut result: String = "";
+    let mut v: i64 = value;
+    let is_negative: bool = v < 0;
+    if is_negative {
+        v = -v;
+    }
+    while v > 0 {
+        let digit: i64 = v % 10;
+        result = char_from_byte((digit + 48) as u8) + result;
+        v = v / 10;
+    }
+    if is_negative {
+        result = "-" + result;
+    }
+    return result;
+}
+
+// Converts an unsigned integer to its decimal string representation.
+func uint_to_string(value: u64) -> String {
+    if value == 0 {
+        return "0";
+    }
+    let mut result: String = "";
+    let mut v: u64 = value;
+    while v > 0 {
+        let digit: u64 = v % 10;
+        result = char_from_byte((digit + 48) as u8) + result;
+        v = v / 10;
+    }
+    return result;
+}
+
+// Converts a float to its string representation (basic implementation).
+func float_to_string(value: f64) -> String {
+    return _platform_float_to_string(value);
+}
+
+// Returns a two-character hex string for a byte.
+func hex_byte(value: u8) -> String {
+    let hex_chars: String = "0123456789abcdef";
+    let hi: u8 = (value >> 4) & 0x0F;
+    let lo: u8 = value & 0x0F;
+    return char_from_byte(hex_chars.byte_at(hi as usize)) + char_from_byte(hex_chars.byte_at(lo as usize));
+}
+
+// Creates a single-character string from a byte value.
+extern func char_from_byte(b: u8) -> String;
+extern func _platform_float_to_string(value: f64) -> String;

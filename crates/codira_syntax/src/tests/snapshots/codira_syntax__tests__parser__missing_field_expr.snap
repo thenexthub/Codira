@@ -1,0 +1,29 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    func foo() {\n        value.\n    }\"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..38
+  FUNCTION_DEF@0..38
+    WHITESPACE@0..5 "\n    "
+    FUNC_KW@5..9 "func"
+    WHITESPACE@9..10 " "
+    NAME@10..13
+      IDENT@10..13 "foo"
+    PARAM_LIST@13..15
+      L_PAREN@13..14 "("
+      R_PAREN@14..15 ")"
+    WHITESPACE@15..16 " "
+    BLOCK_EXPR@16..38
+      L_CURLY@16..17 "{"
+      WHITESPACE@17..26 "\n        "
+      FIELD_EXPR@26..32
+        PATH_EXPR@26..31
+          PATH@26..31
+            PATH_SEGMENT@26..31
+              NAME_REF@26..31
+                IDENT@26..31 "value"
+        DOT@31..32 "."
+      WHITESPACE@32..37 "\n    "
+      R_CURLY@37..38 "}"
+error Offset(32): expected field name or number

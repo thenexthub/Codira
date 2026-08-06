@@ -1,1 +1,0 @@
-{"id":null,"jsonrpc":"2.0","method":"textDocument/extendPublishDiagnostics","params":{"diagnostics":[{"category":72,"code":72,"message":"undeclared identifier 'Mult'","range":{"end":{"character":10,"line":29},"start":{"character":9,"line":29}},"severity":1,"source":"Codira"}],"uri":"file:///d%3A/code/cangjieLSP/kr/test/testChr/normalTest/ConCurrency/src/mutex.code"}}

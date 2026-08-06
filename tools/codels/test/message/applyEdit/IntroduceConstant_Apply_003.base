@@ -1,1 +1,0 @@
-{"jsonrpc":"2.0","method":"workspace/applyEdit","params":{"edit":{"changes":{"file:///d%3A/Test/refactor/src/IntroduceConstant/constraint.code":[{"newText":"const constVar = 100\n","range":{"end":{"character":0,"line":23},"start":{"character":0,"line":23}}},{"newText":"constVar","range":{"end":{"character":20,"line":31},"start":{"character":17,"line":31}}}]}}}}

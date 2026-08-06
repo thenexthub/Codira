@@ -1,1 +1,0 @@
-{"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"diagnostics":[],"uri":"file:///d%3A/DevecoPro/custom/test0512/src/unused_token_4.code"}}

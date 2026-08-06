@@ -1,0 +1,228 @@
+// std/time/time.code
+// Time and duration utilities for Codira.
+// Provides wall-clock time, high-resolution performance counters,
+// sleep, and a Duration struct for time arithmetic.
+
+// ---------------------------------------------------------------------------
+// Duration
+// Represents a span of time with nanosecond precision.
+// Stored internally as total nanoseconds in a u64.
+// ---------------------------------------------------------------------------
+public struct(value) Duration {
+    _nanos: u64,
+}
+
+// ---------------------------------------------------------------------------
+// Duration constructors
+// ---------------------------------------------------------------------------
+
+// Creates a Duration from whole seconds.
+public func duration_from_secs(secs: u64) -> Duration {
+    return Duration { _nanos: secs * 1_000_000_000 };
+}
+
+// Creates a Duration from milliseconds.
+public func duration_from_millis(millis: u64) -> Duration {
+    return Duration { _nanos: millis * 1_000_000 };
+}
+
+// Creates a Duration from microseconds.
+public func duration_from_micros(micros: u64) -> Duration {
+    return Duration { _nanos: micros * 1_000 };
+}
+
+// Creates a Duration from nanoseconds.
+public func duration_from_nanos(nanos: u64) -> Duration {
+    return Duration { _nanos: nanos };
+}
+
+// A zero-length duration.
+public func duration_zero() -> Duration {
+    return Duration { _nanos: 0 };
+}
+
+// ---------------------------------------------------------------------------
+// Duration accessors
+// ---------------------------------------------------------------------------
+
+// Returns the total number of whole seconds in this duration.
+public func duration_as_secs(d: Duration) -> u64 {
+    return d._nanos / 1_000_000_000;
+}
+
+// Returns the total number of whole milliseconds.
+public func duration_as_millis(d: Duration) -> u64 {
+    return d._nanos / 1_000_000;
+}
+
+// Returns the total number of whole microseconds.
+public func duration_as_micros(d: Duration) -> u64 {
+    return d._nanos / 1_000;
+}
+
+// Returns the total number of nanoseconds.
+public func duration_as_nanos(d: Duration) -> u64 {
+    return d._nanos;
+}
+
+// Returns the fractional seconds as a f64.
+public func duration_as_secs_f64(d: Duration) -> f64 {
+    return (d._nanos as f64) / 1_000_000_000.0;
+}
+
+// Returns the sub-second nanosecond component (0..999_999_999).
+public func duration_subsec_nanos(d: Duration) -> u32 {
+    return (d._nanos % 1_000_000_000) as u32;
+}
+
+// ---------------------------------------------------------------------------
+// Duration arithmetic
+// ---------------------------------------------------------------------------
+
+// Adds two durations.
+public func duration_add(a: Duration, b: Duration) -> Duration {
+    return Duration { _nanos: a._nanos + b._nanos };
+}
+
+// Subtracts duration `b` from `a`. Saturates at zero.
+public func duration_sub(a: Duration, b: Duration) -> Duration {
+    if b._nanos > a._nanos {
+        return duration_zero();
+    }
+    return Duration { _nanos: a._nanos - b._nanos };
+}
+
+// Multiplies a duration by a scalar.
+public func duration_mul(d: Duration, factor: u64) -> Duration {
+    return Duration { _nanos: d._nanos * factor };
+}
+
+// Divides a duration by a scalar.
+public func duration_div(d: Duration, divisor: u64) -> Duration {
+    if divisor == 0 {
+        panic("duration_div: division by zero");
+    }
+    return Duration { _nanos: d._nanos / divisor };
+}
+
+// Returns true if duration `a` is less than `b`.
+public func duration_lt(a: Duration, b: Duration) -> bool {
+    return a._nanos < b._nanos;
+}
+
+// Returns true if duration `a` equals `b`.
+public func duration_eq(a: Duration, b: Duration) -> bool {
+    return a._nanos == b._nanos;
+}
+
+// Returns true if this duration is zero.
+public func duration_is_zero(d: Duration) -> bool {
+    return d._nanos == 0;
+}
+
+// ---------------------------------------------------------------------------
+// Instant
+// A monotonic point in time, useful for measuring elapsed time.
+// ---------------------------------------------------------------------------
+public struct(value) Instant {
+    _nanos: u64,
+}
+
+// Returns the current instant from a monotonic clock.
+public func instant_now() -> Instant {
+    return Instant { _nanos: _platform_perf_counter_ns() };
+}
+
+// Returns the duration elapsed since this instant.
+public func instant_elapsed(start: Instant) -> Duration {
+    let now_ns: u64 = _platform_perf_counter_ns();
+    if now_ns >= start._nanos {
+        return Duration { _nanos: now_ns - start._nanos };
+    }
+    return duration_zero();
+}
+
+// Returns the duration between two instants.
+public func instant_duration_since(later: Instant, earlier: Instant) -> Duration {
+    if later._nanos >= earlier._nanos {
+        return Duration { _nanos: later._nanos - earlier._nanos };
+    }
+    return duration_zero();
+}
+
+// ---------------------------------------------------------------------------
+// now
+// Returns the current wall-clock time as seconds since the Unix epoch
+// (1970-01-01 00:00:00 UTC) as a f64.
+// ---------------------------------------------------------------------------
+public func now() -> f64 {
+    return _platform_time_now();
+}
+
+// ---------------------------------------------------------------------------
+// sleep
+// Suspends the current thread for at least `duration`.
+// ---------------------------------------------------------------------------
+public func sleep(duration: Duration) {
+    _platform_sleep_ns(duration._nanos);
+}
+
+// Convenience: sleep for the given number of seconds.
+public func sleep_secs(secs: f64) {
+    let nanos: u64 = (secs * 1_000_000_000.0) as u64;
+    _platform_sleep_ns(nanos);
+}
+
+// Convenience: sleep for the given number of milliseconds.
+public func sleep_ms(ms: u64) {
+    _platform_sleep_ns(ms * 1_000_000);
+}
+
+// ---------------------------------------------------------------------------
+// perf_counter
+// Returns a high-resolution performance counter value in seconds (f64).
+// The absolute value is arbitrary; only differences are meaningful.
+// ---------------------------------------------------------------------------
+public func perf_counter() -> f64 {
+    let ns: u64 = _platform_perf_counter_ns();
+    return (ns as f64) / 1_000_000_000.0;
+}
+
+// ---------------------------------------------------------------------------
+// perf_counter_ns
+// Returns a high-resolution performance counter value in nanoseconds.
+// ---------------------------------------------------------------------------
+public func perf_counter_ns() -> u64 {
+    return _platform_perf_counter_ns();
+}
+
+// ---------------------------------------------------------------------------
+// time_function
+// Measures the wall-clock time taken to execute `f` and returns the
+// elapsed Duration along with the function's return value.
+// ---------------------------------------------------------------------------
+public struct TimedResult<T> {
+    value: T,
+    elapsed: Duration,
+}
+
+public func time_function<T>(f: func() -> T) -> TimedResult<T> {
+    let start: Instant = instant_now();
+    let result: T = f();
+    let elapsed: Duration = instant_elapsed(start);
+    return TimedResult { value: result, elapsed: elapsed };
+}
+
+// Overload for void functions.
+public func time_function_void(f: func()) -> Duration {
+    let start: Instant = instant_now();
+    f();
+    return instant_elapsed(start);
+}
+
+// ---------------------------------------------------------------------------
+// Platform stubs.
+// ---------------------------------------------------------------------------
+extern func _platform_time_now() -> f64;
+extern func _platform_sleep_ns(nanos: u64);
+extern func _platform_perf_counter_ns() -> u64;

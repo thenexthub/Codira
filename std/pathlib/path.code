@@ -1,0 +1,339 @@
+// std/pathlib/path.code
+// Object-oriented path abstraction for Codira.
+// Wraps a filesystem path string and provides rich methods for querying,
+// manipulating, reading, and writing.
+
+// ---------------------------------------------------------------------------
+// Path
+// A heap-allocated path object. Stores the raw path string and provides
+// methods inspired by Python's pathlib.Path and Mojo's pathlib.Path.
+// ---------------------------------------------------------------------------
+public struct(gc) Path {
+    _raw: String,
+}
+
+// ---------------------------------------------------------------------------
+// Constructors
+// ---------------------------------------------------------------------------
+
+// Creates a new Path from a string.
+public func path_new(raw: String) -> Path {
+    return Path { _raw: raw };
+}
+
+// Creates a Path representing the current working directory.
+public func path_cwd() -> Path {
+    return path_new(_platform_getcwd());
+}
+
+// Creates a Path to the user's home directory.
+public func path_home() -> Path {
+    return path_new(_platform_home_dir());
+}
+
+// ---------------------------------------------------------------------------
+// String representation
+// ---------------------------------------------------------------------------
+
+// Returns the raw path string.
+public func path_to_string(self: Path) -> String {
+    return self._raw;
+}
+
+// ---------------------------------------------------------------------------
+// join (operator /)
+// Joins this path with another component, returning a new Path.
+// ---------------------------------------------------------------------------
+public func path_join(self: Path, other: String) -> Path {
+    if other.len() == 0 {
+        return self;
+    }
+    if other.starts_with("/") {
+        return path_new(other);
+    }
+    let base: String = self._raw;
+    if base.ends_with("/") {
+        return path_new(base + other);
+    }
+    return path_new(base + "/" + other);
+}
+
+// Join with another Path.
+public func path_join_path(self: Path, other: Path) -> Path {
+    return path_join(self, other._raw);
+}
+
+// ---------------------------------------------------------------------------
+// name
+// Returns the final component of the path.
+// ---------------------------------------------------------------------------
+public func path_name(self: Path) -> String {
+    let idx: i64 = self._raw.rfind("/");
+    if idx < 0 {
+        return self._raw;
+    }
+    return self._raw.slice((idx + 1) as usize, self._raw.len());
+}
+
+// ---------------------------------------------------------------------------
+// stem
+// Returns the final component without its last suffix (extension).
+// ---------------------------------------------------------------------------
+public func path_stem(self: Path) -> String {
+    let n: String = path_name(self);
+    let idx: i64 = n.rfind(".");
+    if idx <= 0 {
+        return n;
+    }
+    return n.slice(0, idx as usize);
+}
+
+// ---------------------------------------------------------------------------
+// suffix
+// Returns the file extension of the final component, including the dot.
+// Returns an empty string if there is no extension.
+// ---------------------------------------------------------------------------
+public func path_suffix(self: Path) -> String {
+    let n: String = path_name(self);
+    let idx: i64 = n.rfind(".");
+    if idx <= 0 {
+        return "";
+    }
+    return n.slice(idx as usize, n.len());
+}
+
+// ---------------------------------------------------------------------------
+// suffixes
+// Returns all extensions as an array.
+// Example: "archive.tar.gz" -> [".tar", ".gz"]
+// ---------------------------------------------------------------------------
+public func path_suffixes(self: Path) -> Array<String> {
+    let n: String = path_name(self);
+    let parts: Array<String> = n.split(".");
+    let mut result: Array<String> = Array::new();
+    // First part is the stem, skip it.
+    let mut i: usize = 1;
+    while i < parts.len() {
+        result.push("." + parts[i]);
+        i = i + 1;
+    }
+    return result;
+}
+
+// ---------------------------------------------------------------------------
+// parent
+// Returns the logical parent directory of this path.
+// ---------------------------------------------------------------------------
+public func path_parent(self: Path) -> Path {
+    let idx: i64 = self._raw.rfind("/");
+    if idx < 0 {
+        return path_new(".");
+    }
+    let dir: String = self._raw.slice(0, idx as usize);
+    if dir.len() == 0 {
+        return path_new("/");
+    }
+    return path_new(dir);
+}
+
+// ---------------------------------------------------------------------------
+// exists
+// Returns true if this path exists on the filesystem.
+// ---------------------------------------------------------------------------
+public func path_exists(self: Path) -> bool {
+    return _platform_path_exists(self._raw);
+}
+
+// ---------------------------------------------------------------------------
+// is_dir
+// Returns true if this path is an existing directory.
+// ---------------------------------------------------------------------------
+public func path_is_dir(self: Path) -> bool {
+    return _platform_is_dir(self._raw);
+}
+
+// ---------------------------------------------------------------------------
+// is_file
+// Returns true if this path is an existing regular file.
+// ---------------------------------------------------------------------------
+public func path_is_file(self: Path) -> bool {
+    return _platform_is_file(self._raw);
+}
+
+// ---------------------------------------------------------------------------
+// is_symlink
+// Returns true if this path is a symbolic link.
+// ---------------------------------------------------------------------------
+public func path_is_symlink(self: Path) -> bool {
+    return _platform_is_link(self._raw);
+}
+
+// ---------------------------------------------------------------------------
+// absolute
+// Returns the absolute form of this path without resolving symlinks.
+// ---------------------------------------------------------------------------
+public func path_absolute(self: Path) -> Path {
+    if self._raw.starts_with("/") {
+        return self;
+    }
+    let cwd: String = _platform_getcwd();
+    return path_new(cwd + "/" + self._raw);
+}
+
+// ---------------------------------------------------------------------------
+// resolve
+// Returns the canonical absolute path, resolving all symlinks and
+// normalizing "." and ".." components.
+// ---------------------------------------------------------------------------
+public func path_resolve(self: Path) -> Path {
+    return path_new(_platform_realpath(self._raw));
+}
+
+// ---------------------------------------------------------------------------
+// stat
+// Returns metadata about the file/directory this path points to.
+// ---------------------------------------------------------------------------
+public struct FileStat {
+    size: u64,
+    is_dir: bool,
+    is_file: bool,
+    is_symlink: bool,
+    created: u64,
+    modified: u64,
+    accessed: u64,
+    permissions: u32,
+}
+
+public func path_stat(self: Path) -> FileStat {
+    return _platform_stat(self._raw);
+}
+
+// ---------------------------------------------------------------------------
+// read_text
+// Reads the entire file as a UTF-8 string.
+// ---------------------------------------------------------------------------
+public func path_read_text(self: Path) -> String {
+    return _platform_read_text(self._raw);
+}
+
+// ---------------------------------------------------------------------------
+// read_bytes
+// Reads the entire file as a byte array.
+// ---------------------------------------------------------------------------
+public func path_read_bytes(self: Path) -> Array<u8> {
+    return _platform_read_bytes(self._raw);
+}
+
+// ---------------------------------------------------------------------------
+// write_text
+// Writes `content` to the file as UTF-8, creating or overwriting it.
+// ---------------------------------------------------------------------------
+public func path_write_text(self: Path, content: String) -> bool {
+    return _platform_write_text(self._raw, content);
+}
+
+// ---------------------------------------------------------------------------
+// write_bytes
+// Writes raw bytes to the file, creating or overwriting it.
+// ---------------------------------------------------------------------------
+public func path_write_bytes(self: Path, data: Array<u8>) -> bool {
+    return _platform_write_bytes(self._raw, data);
+}
+
+// ---------------------------------------------------------------------------
+// mkdir
+// Creates this directory. If `parents` is true, creates intermediate
+// directories as needed. If `exist_ok` is true, does not error when the
+// directory already exists.
+// ---------------------------------------------------------------------------
+public func path_mkdir(self: Path, parents: bool, exist_ok: bool) -> bool {
+    if parents {
+        return _platform_makedirs(self._raw, exist_ok);
+    }
+    if _platform_path_exists(self._raw) {
+        return exist_ok;
+    }
+    return _platform_mkdir(self._raw);
+}
+
+// ---------------------------------------------------------------------------
+// rmdir
+// Removes this directory (must be empty).
+// ---------------------------------------------------------------------------
+public func path_rmdir(self: Path) -> bool {
+    return _platform_rmdir(self._raw);
+}
+
+// ---------------------------------------------------------------------------
+// unlink
+// Removes this file.
+// ---------------------------------------------------------------------------
+public func path_unlink(self: Path) -> bool {
+    return _platform_remove(self._raw);
+}
+
+// ---------------------------------------------------------------------------
+// rename
+// Renames/moves this path to `target`, returning a new Path for target.
+// ---------------------------------------------------------------------------
+public func path_rename(self: Path, target: String) -> Path {
+    _platform_rename(self._raw, target);
+    return path_new(target);
+}
+
+// ---------------------------------------------------------------------------
+// iterdir
+// Iterates over entries in this directory.
+// Returns an array of Path objects.
+// ---------------------------------------------------------------------------
+public func path_iterdir(self: Path) -> Array<Path> {
+    let names: Array<String> = _platform_listdir_names(self._raw);
+    let mut result: Array<Path> = Array::new();
+    let mut i: usize = 0;
+    while i < names.len() {
+        result.push(path_join(self, names[i]));
+        i = i + 1;
+    }
+    return result;
+}
+
+// ---------------------------------------------------------------------------
+// with_suffix
+// Returns a new Path with the suffix changed.
+// ---------------------------------------------------------------------------
+public func path_with_suffix(self: Path, new_suffix: String) -> Path {
+    let s: String = path_stem(self);
+    let p: Path = path_parent(self);
+    return path_join(p, s + new_suffix);
+}
+
+// ---------------------------------------------------------------------------
+// with_name
+// Returns a new Path with the final component changed.
+// ---------------------------------------------------------------------------
+public func path_with_name(self: Path, new_name: String) -> Path {
+    let p: Path = path_parent(self);
+    return path_join(p, new_name);
+}
+
+// ---------------------------------------------------------------------------
+// Platform stubs.
+// ---------------------------------------------------------------------------
+extern func _platform_getcwd() -> String;
+extern func _platform_home_dir() -> String;
+extern func _platform_path_exists(path: String) -> bool;
+extern func _platform_is_dir(path: String) -> bool;
+extern func _platform_is_file(path: String) -> bool;
+extern func _platform_is_link(path: String) -> bool;
+extern func _platform_realpath(path: String) -> String;
+extern func _platform_stat(path: String) -> FileStat;
+extern func _platform_read_text(path: String) -> String;
+extern func _platform_read_bytes(path: String) -> Array<u8>;
+extern func _platform_write_text(path: String, content: String) -> bool;
+extern func _platform_write_bytes(path: String, data: Array<u8>) -> bool;
+extern func _platform_mkdir(path: String) -> bool;
+extern func _platform_makedirs(path: String, exist_ok: bool) -> bool;
+extern func _platform_rmdir(path: String) -> bool;
+extern func _platform_remove(path: String) -> bool;
+extern func _platform_rename(src: String, dst: String) -> bool;
+extern func _platform_listdir_names(path: String) -> Array<String>;

@@ -1,7 +1,0 @@
-cmin/
-out/
-oldcorpus/
-seedcorpus/
-corpus.tar
-out*/
-fuzz-*.log

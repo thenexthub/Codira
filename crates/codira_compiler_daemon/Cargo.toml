@@ -1,0 +1,27 @@
+[package]
+name = "codira_compiler_daemon"
+description = "Functionality for continuously monitoring Codira source files for changes and triggering recompilation"
+keywords = ["game", "hot-reloading", "language", "codira", "scripting"]
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+ctrlc = { workspace = true }
+log = { workspace = true }
+codira_codegen = { version = "0.6.0-dev", path = "../codira_codegen" }
+codira_compiler = { version = "0.6.0-dev", path = "../codira_compiler" }
+codira_project = { version = "0.6.0-dev", path = "../codira_project" }
+codira_hir = { version = "0.6.0-dev", path = "../codira_hir" }
+notify = { version = "4.0", default-features = false }
+
+# Enable std feature for winapi through feature unification to ensure notify uses the correct `c_void` type
+[target.'cfg(windows)'.dependencies]
+winapi = { workspace = true, features = ["std"] }

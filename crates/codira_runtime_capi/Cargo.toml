@@ -1,0 +1,29 @@
+[package]
+name = "codira_runtime_capi"
+description = "Provides a C API for the Codira runtime"
+keywords = ["game", "hot-reloading", "language", "codira", "scripting"]
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[lib]
+name = "codira_runtime"
+crate-type = ["cdylib"]
+
+[dependencies]
+codira_abi = { version = "0.6.0-dev", path = "../codira_abi" }
+codira_memory = { version = "0.6.0-dev", path = "../codira_memory" }
+codira_runtime = { version = "0.6.0-dev", path = "../codira_runtime" }
+codira_capi_utils = { version = "0.6.0-dev", path = "../codira_capi_utils", features=["insta"]}
+insta = { workspace = true, features = ["ron"] }
+
+[dev-dependencies]
+codira_compiler = { path="../codira_compiler" }
+paste = { workspace = true }
+tempfile = { workspace = true }

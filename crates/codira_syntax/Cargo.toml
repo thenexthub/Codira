@@ -1,0 +1,26 @@
+[package]
+name = "codira_syntax"
+description = "Parsing functionality for the Codira programming language"
+keywords = ["game", "hot-reloading", "language", "codira", "scripting"]
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+codira_abi = { version = "0.6.0-dev", path = "../codira_abi" }
+drop_bomb = { workspace = true }
+itertools = { workspace = true }
+ra_ap_text_edit = { workspace = true }
+rowan = { workspace = true }
+smol_str = { workspace = true, features = ["serde", "std"] }
+text-size = { workspace = true, features = ["serde"] }
+unicode-xid = { workspace = true }
+
+[dev-dependencies]
+insta = { workspace = true }

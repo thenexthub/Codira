@@ -1,1 +1,0 @@
-{"id":"9","jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: array_list.code\nPackage info: std.collection\n\n(class) public class ArrayList<T> <: List<T>\n"},"range":{"end":{"character":27,"line":23},"start":{"character":18,"line":23}}}}

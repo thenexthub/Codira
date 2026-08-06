@@ -1,0 +1,59 @@
+//! Copyright (c) 2026 Omnira CJSC
+//! Author: Tunjay Akbarli
+//! Date: August 6, 2026
+//!
+//! Functionality:
+//! - Part of the Codira compiler and runtime toolchain.
+//!
+use codira_syntax::{AstNode, TextRange};
+
+use super::HirDiagnostic;
+use crate::{Diagnostic, SourceAnnotation};
+
+/// An error that is emitted when trying to use a value that doesnt exist within
+/// the scope.
+///
+/// ```codira
+/// # fn main() {
+/// let a = b; // Cannot find `b` in this scope.
+/// #}
+/// ```
+pub struct UnresolvedValue<'db, 'diag, DB: codira_hir::HirDatabase> {
+    _db: &'db DB,
+    diag: &'diag codira_hir::diagnostics::UnresolvedValue,
+    value_name: String,
+}
+
+impl<DB: codira_hir::HirDatabase> Diagnostic for UnresolvedValue<'_, '_, DB> {
+    fn range(&self) -> TextRange {
+        self.diag.highlight_range()
+    }
+
+    fn title(&self) -> String {
+        format!("cannot find value `{}` in this scope", self.value_name)
+    }
+
+    fn primary_annotation(&self) -> Option<SourceAnnotation> {
+        Some(SourceAnnotation {
+            range: self.diag.highlight_range(),
+            message: "not found in this scope".to_owned(),
+        })
+    }
+}
+
+impl<'db, 'diag, DB: codira_hir::HirDatabase> UnresolvedValue<'db, 'diag, DB> {
+    /// Constructs a new instance of `UnresolvedValue`
+    pub fn new(db: &'db DB, diag: &'diag codira_hir::diagnostics::UnresolvedValue) -> Self {
+        let parse = db.parse(diag.file);
+
+        // Get the text of the value as a string
+        let value_name = diag.expr.to_node(parse.tree().syntax()).text().to_string();
+
+        UnresolvedValue {
+            _db: db,
+            diag,
+            value_name,
+        }
+    }
+}
+

@@ -1,9 +1,0 @@
-# The reason is: these are negative tests that should check for a broken hierarchy.
-# The error message is compared with the expected one.
-# Therefore, using AOT here makes no sense.
-ets-common-tests/devirt_adv_tests/test_2_final_class_0_n.ets
-ets-common-tests/devirt_adv_tests/test_2_final_class_1_n.ets
-
-#31918
-ets-common-tests/atomics/base_operation_store.ets
-ets-common-tests/atomics/base_operation_load.ets

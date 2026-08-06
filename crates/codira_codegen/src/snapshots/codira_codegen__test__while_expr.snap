@@ -1,0 +1,34 @@
+---
+source: crates/codira_codegen/src/test.rs
+assertion_line: 1045
+expression: "\n    pub fn foo(n:i32) {\n        while n<3 {\n            n += 1;\n        };\n\n        // This will be completely optimized out\n        while n<4 {\n            break;\n        };\n    }\n    "
+---
+; == FILE IR (mod) =====================================
+; ModuleID = 'mod'
+source_filename = "mod"
+
+@global_type_lookup_table = external global [1 x i64*]
+
+define void @foo(i32 %0) {
+body:
+  br label %whilecond
+
+whilecond:                                        ; preds = %while, %body
+  %n.0 = phi i32 [ %0, %body ], [ %add, %while ]
+  %less = icmp slt i32 %n.0, 3
+  br i1 %less, label %while, label %whilecond3
+
+while:                                            ; preds = %whilecond
+  %add = add i32 %n.0, 1
+  br label %whilecond
+
+whilecond3:                                       ; preds = %whilecond
+  ret void
+}
+
+; == GROUP IR (mod) ====================================
+; ModuleID = 'group_name'
+source_filename = "group_name"
+
+@global_type_lookup_table = global [1 x i64*] zeroinitializer
+

@@ -1,0 +1,19 @@
+[package]
+name = "codira_target"
+description = "Describes compilation targets for Codira"
+keywords = ["game", "hot-reloading", "language", "codira", "scripting"]
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+log = { workspace = true }
+
+[dev-dependencies]
+insta = { workspace = true }

@@ -1,0 +1,32 @@
+[package]
+name = "codira_compiler"
+description = "Binary compilation functionality for Codira"
+keywords = ["game", "hot-reloading", "language", "codira", "scripting"]
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+codira_codegen = { version = "0.6.0-dev", path = "../codira_codegen" }
+codira_syntax = { version = "0.6.0-dev", path = "../codira_syntax" }
+codira_hir_input = { version = "0.6.0-dev", path = "../codira_hir_input" }
+codira_hir = { version = "0.6.0-dev", path = "../codira_hir" }
+codira_paths = { version = "0.6.0-dev", path = "../codira_paths" }
+codira_target = { version = "0.6.0-dev", path = "../codira_target" }
+codira_project = { version = "0.6.0-dev", path = "../codira_project" }
+codira_diagnostics = { version = "0.6.0-dev", path = "../codira_diagnostics" }
+annotate-snippets = { workspace = true }
+anyhow = { workspace = true }
+lockfile = { workspace = true }
+log = { workspace = true }
+walkdir = { workspace = true }
+yansi-term = { workspace = true }
+
+[dev-dependencies]
+insta = { workspace = true }

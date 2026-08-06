@@ -1,1 +1,0 @@
-{"jsonrpc":"2.0","method":"textDocument/extendPublishDiagnostics","params":{"diagnostics":[],"uri":"file:///d%3A/test/vsproject/cangjie2/cangjie1006/src/diagnostic.code"}}

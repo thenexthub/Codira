@@ -1,0 +1,243 @@
+// std/random/random.code
+// Pseudo-random number generation for Codira.
+// Implements a xoshiro256** generator with a SplitMix64 seeder.
+// Not cryptographically secure; suitable for simulations, games, and general
+// purpose randomness.
+
+// ---------------------------------------------------------------------------
+// RngState
+// Internal state for the xoshiro256** generator (four 64-bit words).
+// ---------------------------------------------------------------------------
+public struct RngState {
+    s0: u64,
+    s1: u64,
+    s2: u64,
+    s3: u64,
+}
+
+// Global RNG state (initialized from system entropy on first use).
+let mut _global_rng: RngState = RngState { s0: 0, s1: 0, s2: 0, s3: 0 };
+let mut _global_rng_initialized: bool = false;
+
+// ---------------------------------------------------------------------------
+// seed
+// Seeds the global RNG with the given 64-bit value using SplitMix64 to
+// expand it into four state words.
+// ---------------------------------------------------------------------------
+public func seed(s: u64) {
+    let mut z: u64 = s;
+
+    z = z + 0x9E3779B97F4A7C15;
+    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9;
+    z = (z ^ (z >> 27)) * 0x94D049BB133111EB;
+    _global_rng.s0 = z ^ (z >> 31);
+
+    z = _global_rng.s0 + 0x9E3779B97F4A7C15;
+    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9;
+    z = (z ^ (z >> 27)) * 0x94D049BB133111EB;
+    _global_rng.s1 = z ^ (z >> 31);
+
+    z = _global_rng.s1 + 0x9E3779B97F4A7C15;
+    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9;
+    z = (z ^ (z >> 27)) * 0x94D049BB133111EB;
+    _global_rng.s2 = z ^ (z >> 31);
+
+    z = _global_rng.s2 + 0x9E3779B97F4A7C15;
+    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9;
+    z = (z ^ (z >> 27)) * 0x94D049BB133111EB;
+    _global_rng.s3 = z ^ (z >> 31);
+
+    _global_rng_initialized = true;
+}
+
+// Ensures the global RNG is initialized.
+func _ensure_seeded() {
+    if !_global_rng_initialized {
+        // Seed from system entropy (platform clock or random device).
+        let entropy: u64 = _platform_random_seed();
+        seed(entropy);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// _next_u64  (xoshiro256** core step)
+// Advances the RNG and returns the next 64-bit pseudo-random value.
+// ---------------------------------------------------------------------------
+func _next_u64() -> u64 {
+    _ensure_seeded();
+
+    let result: u64 = _rotl(_global_rng.s1 * 5, 7) * 9;
+    let t: u64 = _global_rng.s1 << 17;
+
+    _global_rng.s2 = _global_rng.s2 ^ _global_rng.s0;
+    _global_rng.s3 = _global_rng.s3 ^ _global_rng.s1;
+    _global_rng.s1 = _global_rng.s1 ^ _global_rng.s2;
+    _global_rng.s0 = _global_rng.s0 ^ _global_rng.s3;
+
+    _global_rng.s2 = _global_rng.s2 ^ t;
+    _global_rng.s3 = _rotl(_global_rng.s3, 45);
+
+    return result;
+}
+
+// Left-rotate helper.
+func _rotl(x: u64, k: u32) -> u64 {
+    return (x << k) | (x >> (64 - k));
+}
+
+// ---------------------------------------------------------------------------
+// random_ui64
+// Returns a uniformly distributed random unsigned 64-bit integer.
+// ---------------------------------------------------------------------------
+public func random_ui64() -> u64 {
+    return _next_u64();
+}
+
+// ---------------------------------------------------------------------------
+// random_si64
+// Returns a uniformly distributed random signed 64-bit integer.
+// ---------------------------------------------------------------------------
+public func random_si64() -> i64 {
+    return _next_u64() as i64;
+}
+
+// ---------------------------------------------------------------------------
+// random_float64
+// Returns a uniformly distributed random f64 in [0.0, 1.0).
+// Uses the upper 53 bits for full double-precision mantissa coverage.
+// ---------------------------------------------------------------------------
+public func random_float64() -> f64 {
+    let val: u64 = _next_u64() >> 11;    // 53 bits
+    return (val as f64) * (1.0 / 9007199254740992.0);  // 1 / 2^53
+}
+
+// ---------------------------------------------------------------------------
+// randint
+// Returns a uniformly distributed random integer in [low, high] (inclusive).
+// ---------------------------------------------------------------------------
+public func randint(low: i64, high: i64) -> i64 {
+    if low >= high {
+        return low;
+    }
+    let range: u64 = (high - low + 1) as u64;
+    // Unbiased rejection sampling.
+    let limit: u64 = 0xFFFFFFFFFFFFFFFF - (0xFFFFFFFFFFFFFFFF % range);
+    let mut r: u64 = _next_u64();
+    while r >= limit {
+        r = _next_u64();
+    }
+    return low + (r % range) as i64;
+}
+
+// ---------------------------------------------------------------------------
+// random_bool
+// Returns a random boolean with equal probability.
+// ---------------------------------------------------------------------------
+public func random_bool() -> bool {
+    return (_next_u64() & 1) == 1;
+}
+
+// ---------------------------------------------------------------------------
+// random_bool_weighted
+// Returns true with probability `p` (0.0 to 1.0).
+// ---------------------------------------------------------------------------
+public func random_bool_weighted(p: f64) -> bool {
+    return random_float64() < p;
+}
+
+// ---------------------------------------------------------------------------
+// rand
+// Fills the provided byte buffer with random bytes.
+// ---------------------------------------------------------------------------
+public func rand(buffer: mut Array<u8>) {
+    let mut i: usize = 0;
+    while i < buffer.len() {
+        let word: u64 = _next_u64();
+        let mut j: u32 = 0;
+        while j < 8 && i < buffer.len() {
+            buffer[i] = ((word >> (j * 8)) & 0xFF) as u8;
+            i = i + 1;
+            j = j + 1;
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// rand_bytes
+// Returns a new array filled with `count` random bytes.
+// ---------------------------------------------------------------------------
+public func rand_bytes(count: usize) -> Array<u8> {
+    let mut buffer: Array<u8> = Array::with_capacity(count);
+    let mut i: usize = 0;
+    while i < count {
+        buffer.push(0);
+        i = i + 1;
+    }
+    rand(buffer);
+    return buffer;
+}
+
+// ---------------------------------------------------------------------------
+// shuffle
+// Shuffles the elements of `arr` in-place using Fisher-Yates algorithm.
+// ---------------------------------------------------------------------------
+public func shuffle<T>(arr: mut Array<T>) {
+    let n: usize = arr.len();
+    if n <= 1 {
+        return;
+    }
+    let mut i: usize = n - 1;
+    while i > 0 {
+        let j: usize = (random_ui64() % (i + 1) as u64) as usize;
+        // Swap arr[i] and arr[j].
+        let tmp: T = arr[i];
+        arr[i] = arr[j];
+        arr[j] = tmp;
+        i = i - 1;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// random_choice
+// Returns a random element from `arr`. Panics if the array is empty.
+// ---------------------------------------------------------------------------
+public func random_choice<T>(arr: Array<T>) -> T {
+    if arr.len() == 0 {
+        panic("random_choice: empty array");
+    }
+    let idx: usize = (random_ui64() % arr.len() as u64) as usize;
+    return arr[idx];
+}
+
+// ---------------------------------------------------------------------------
+// random_sample
+// Returns `count` distinct random elements from `arr` (sampling without
+// replacement). Panics if count > arr.len().
+// ---------------------------------------------------------------------------
+public func random_sample<T>(arr: Array<T>, count: usize) -> Array<T> {
+    if count > arr.len() {
+        panic("random_sample: count exceeds array length");
+    }
+    // Copy and partial-shuffle.
+    let mut pool: Array<T> = arr.clone();
+    let mut i: usize = 0;
+    while i < count {
+        let j: usize = i + (random_ui64() % (pool.len() - i) as u64) as usize;
+        let tmp: T = pool[i];
+        pool[i] = pool[j];
+        pool[j] = tmp;
+        i = i + 1;
+    }
+    let mut result: Array<T> = Array::with_capacity(count);
+    i = 0;
+    while i < count {
+        result.push(pool[i]);
+        i = i + 1;
+    }
+    return result;
+}
+
+// ---------------------------------------------------------------------------
+// Platform stubs.
+// ---------------------------------------------------------------------------
+extern func _platform_random_seed() -> u64;

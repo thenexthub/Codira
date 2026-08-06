@@ -1,0 +1,15 @@
+[package]
+name = "codira_smt"
+description = "SMT-based feasibility/proof checking for Codira refinement types and healing-strategy preconditions, backed by a real Z3 solver via direct FFI"
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+thiserror = { workspace = true }

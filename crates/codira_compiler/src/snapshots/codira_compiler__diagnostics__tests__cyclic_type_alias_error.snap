@@ -1,0 +1,11 @@
+---
+source: crates/codira_compiler/src/diagnostics.rs
+expression: "compilation_errors(\"\\n\\ntype Foo = Foo;\")"
+snapshot_kind: text
+---
+error: cyclic type
+ --> main.code:3:12
+  |
+3 | type Foo = Foo;
+  |            ^^^ cyclic type
+  |

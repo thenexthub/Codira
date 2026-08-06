@@ -1,0 +1,674 @@
+// std/math/math.code
+// Core mathematical functions for Codira.
+// Provides trigonometric, exponential, logarithmic, rounding, and integer math
+// operations for f32, f64, and integer types.
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Trigonometric functions (f64)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Sine of `x` (radians).
+public func sin(x: f64) -> f64 {
+    return __intrinsic_sin_f64(x);
+}
+
+/// Cosine of `x` (radians).
+public func cos(x: f64) -> f64 {
+    return __intrinsic_cos_f64(x);
+}
+
+/// Tangent of `x` (radians).
+public func tan(x: f64) -> f64 {
+    return sin(x) / cos(x);
+}
+
+/// Arcsine — inverse of sin. Returns value in [-pi/2, pi/2].
+public func asin(x: f64) -> f64 {
+    return __intrinsic_asin_f64(x);
+}
+
+/// Arccosine — inverse of cos. Returns value in [0, pi].
+public func acos(x: f64) -> f64 {
+    return __intrinsic_acos_f64(x);
+}
+
+/// Arctangent — inverse of tan. Returns value in [-pi/2, pi/2].
+public func atan(x: f64) -> f64 {
+    return __intrinsic_atan_f64(x);
+}
+
+/// Two-argument arctangent. Returns the angle in radians between the
+/// positive x-axis and the point (x, y), in [-pi, pi].
+public func atan2(y: f64, x: f64) -> f64 {
+    return __intrinsic_atan2_f64(y, x);
+}
+
+// ── f32 trigonometric overloads ──────────────────────────────────────────────
+
+/// Sine (f32).
+public func sin_f32(x: f32) -> f32 {
+    return __intrinsic_sin_f32(x);
+}
+
+/// Cosine (f32).
+public func cos_f32(x: f32) -> f32 {
+    return __intrinsic_cos_f32(x);
+}
+
+/// Tangent (f32).
+public func tan_f32(x: f32) -> f32 {
+    return sin_f32(x) / cos_f32(x);
+}
+
+/// Arcsine (f32).
+public func asin_f32(x: f32) -> f32 {
+    return __intrinsic_asin_f32(x);
+}
+
+/// Arccosine (f32).
+public func acos_f32(x: f32) -> f32 {
+    return __intrinsic_acos_f32(x);
+}
+
+/// Arctangent (f32).
+public func atan_f32(x: f32) -> f32 {
+    return __intrinsic_atan_f32(x);
+}
+
+/// Two-argument arctangent (f32).
+public func atan2_f32(y: f32, x: f32) -> f32 {
+    return __intrinsic_atan2_f32(y, x);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hyperbolic functions
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Hyperbolic sine.
+public func sinh(x: f64) -> f64 {
+    return (exp(x) - exp(-x)) / 2.0;
+}
+
+/// Hyperbolic cosine.
+public func cosh(x: f64) -> f64 {
+    return (exp(x) + exp(-x)) / 2.0;
+}
+
+/// Hyperbolic tangent.
+public func tanh(x: f64) -> f64 {
+    let ex = exp(2.0 * x);
+    return (ex - 1.0) / (ex + 1.0);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Exponential and logarithmic functions
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// e raised to the power `x`.
+public func exp(x: f64) -> f64 {
+    return __intrinsic_exp_f64(x);
+}
+
+/// 2 raised to the power `x`.
+public func exp2(x: f64) -> f64 {
+    return __intrinsic_exp2_f64(x);
+}
+
+/// Natural logarithm (base e).
+public func log(x: f64) -> f64 {
+    return __intrinsic_log_f64(x);
+}
+
+/// Base-2 logarithm.
+public func log2(x: f64) -> f64 {
+    return __intrinsic_log2_f64(x);
+}
+
+/// Base-10 logarithm.
+public func log10(x: f64) -> f64 {
+    return __intrinsic_log10_f64(x);
+}
+
+/// Logarithm with arbitrary base: log_base(x).
+public func log_base(x: f64, base: f64) -> f64 {
+    return log(x) / log(base);
+}
+
+/// e^x - 1, accurate for small x.
+public func expm1(x: f64) -> f64 {
+    return __intrinsic_expm1_f64(x);
+}
+
+/// ln(1 + x), accurate for small x.
+public func log1p(x: f64) -> f64 {
+    return __intrinsic_log1p_f64(x);
+}
+
+// ── f32 exponential/log overloads ────────────────────────────────────────────
+
+public func exp_f32(x: f32) -> f32 {
+    return __intrinsic_exp_f32(x);
+}
+
+public func exp2_f32(x: f32) -> f32 {
+    return __intrinsic_exp2_f32(x);
+}
+
+public func log_f32(x: f32) -> f32 {
+    return __intrinsic_log_f32(x);
+}
+
+public func log2_f32(x: f32) -> f32 {
+    return __intrinsic_log2_f32(x);
+}
+
+public func log10_f32(x: f32) -> f32 {
+    return __intrinsic_log10_f32(x);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Power and root functions
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// `base` raised to the power `exponent`.
+public func pow(base: f64, exponent: f64) -> f64 {
+    return __intrinsic_pow_f64(base, exponent);
+}
+
+/// Square root.
+public func sqrt(x: f64) -> f64 {
+    return __intrinsic_sqrt_f64(x);
+}
+
+/// Cube root.
+public func cbrt(x: f64) -> f64 {
+    return __intrinsic_cbrt_f64(x);
+}
+
+/// Reciprocal square root: 1 / sqrt(x).
+public func rsqrt(x: f64) -> f64 {
+    return 1.0 / sqrt(x);
+}
+
+/// Hypotenuse: sqrt(x*x + y*y) without intermediate overflow.
+public func hypot(x: f64, y: f64) -> f64 {
+    return __intrinsic_hypot_f64(x, y);
+}
+
+// ── f32 overloads ────────────────────────────────────────────────────────────
+
+public func pow_f32(base: f32, exponent: f32) -> f32 {
+    return __intrinsic_pow_f32(base, exponent);
+}
+
+public func sqrt_f32(x: f32) -> f32 {
+    return __intrinsic_sqrt_f32(x);
+}
+
+public func rsqrt_f32(x: f32) -> f32 {
+    return 1.0 as f32 / sqrt_f32(x);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Absolute value
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Absolute value (f64).
+public func abs(x: f64) -> f64 {
+    if x < 0.0 {
+        return -x;
+    }
+    return x;
+}
+
+/// Absolute value (f32).
+public func abs_f32(x: f32) -> f32 {
+    if x < 0.0 as f32 {
+        return -x;
+    }
+    return x;
+}
+
+/// Absolute value (i32).
+public func abs_i32(x: i32) -> i32 {
+    if x < 0 {
+        return -x;
+    }
+    return x;
+}
+
+/// Absolute value (i64).
+public func abs_i64(x: i64) -> i64 {
+    if x < 0 {
+        return -x;
+    }
+    return x;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Min / Max
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Returns the smaller of `a` and `b`. If either is NaN, returns `b`.
+public func min(a: f64, b: f64) -> f64 {
+    if a < b {
+        return a;
+    }
+    return b;
+}
+
+/// Returns the larger of `a` and `b`. If either is NaN, returns `b`.
+public func max(a: f64, b: f64) -> f64 {
+    if a > b {
+        return a;
+    }
+    return b;
+}
+
+/// Min for f32.
+public func min_f32(a: f32, b: f32) -> f32 {
+    if a < b {
+        return a;
+    }
+    return b;
+}
+
+/// Max for f32.
+public func max_f32(a: f32, b: f32) -> f32 {
+    if a > b {
+        return a;
+    }
+    return b;
+}
+
+/// Min for i64.
+public func min_i64(a: i64, b: i64) -> i64 {
+    if a < b {
+        return a;
+    }
+    return b;
+}
+
+/// Max for i64.
+public func max_i64(a: i64, b: i64) -> i64 {
+    if a > b {
+        return a;
+    }
+    return b;
+}
+
+/// Min for usize.
+public func min_usize(a: usize, b: usize) -> usize {
+    if a < b {
+        return a;
+    }
+    return b;
+}
+
+/// Max for usize.
+public func max_usize(a: usize, b: usize) -> usize {
+    if a > b {
+        return a;
+    }
+    return b;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Rounding
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Rounds toward negative infinity.
+public func floor(x: f64) -> f64 {
+    return __intrinsic_floor_f64(x);
+}
+
+/// Rounds toward positive infinity.
+public func ceil(x: f64) -> f64 {
+    return __intrinsic_ceil_f64(x);
+}
+
+/// Rounds to nearest integer, half away from zero.
+public func round(x: f64) -> f64 {
+    return __intrinsic_round_f64(x);
+}
+
+/// Truncates toward zero (discards fractional part).
+public func trunc(x: f64) -> f64 {
+    return __intrinsic_trunc_f64(x);
+}
+
+/// Fractional part: x - trunc(x).
+public func fract(x: f64) -> f64 {
+    return x - trunc(x);
+}
+
+// ── f32 rounding ─────────────────────────────────────────────────────────────
+
+public func floor_f32(x: f32) -> f32 {
+    return __intrinsic_floor_f32(x);
+}
+
+public func ceil_f32(x: f32) -> f32 {
+    return __intrinsic_ceil_f32(x);
+}
+
+public func round_f32(x: f32) -> f32 {
+    return __intrinsic_round_f32(x);
+}
+
+public func trunc_f32(x: f32) -> f32 {
+    return __intrinsic_trunc_f32(x);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fused multiply-add and related
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Fused multiply-add: (a * b) + c with a single rounding step.
+public func fma(a: f64, b: f64, c: f64) -> f64 {
+    return __intrinsic_fma_f64(a, b, c);
+}
+
+/// Fused multiply-add (f32).
+public func fma_f32(a: f32, b: f32, c: f32) -> f32 {
+    return __intrinsic_fma_f32(a, b, c);
+}
+
+/// Returns a value with the magnitude of `mag` and the sign of `sign`.
+public func copysign(mag: f64, sign: f64) -> f64 {
+    return __intrinsic_copysign_f64(mag, sign);
+}
+
+/// Multiplies `x` by 2^exp.
+public func ldexp(x: f64, exp: i32) -> f64 {
+    return __intrinsic_ldexp_f64(x, exp);
+}
+
+/// Splits `x` into a normalised fraction in [0.5, 1) and an integer exponent.
+/// Returns (fraction, exponent).
+public func frexp(x: f64) -> (f64, i32) {
+    return __intrinsic_frexp_f64(x);
+}
+
+/// IEEE remainder: x - round(x/y) * y.
+public func remainder(x: f64, y: f64) -> f64 {
+    return __intrinsic_remainder_f64(x, y);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Clamping
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Clamps `x` to the range [lo, hi].
+public func clamp(x: f64, lo: f64, hi: f64) -> f64 {
+    if x < lo {
+        return lo;
+    }
+    if x > hi {
+        return hi;
+    }
+    return x;
+}
+
+/// Clamps (f32).
+public func clamp_f32(x: f32, lo: f32, hi: f32) -> f32 {
+    if x < lo {
+        return lo;
+    }
+    if x > hi {
+        return hi;
+    }
+    return x;
+}
+
+/// Clamps (i64).
+public func clamp_i64(x: i64, lo: i64, hi: i64) -> i64 {
+    if x < lo {
+        return lo;
+    }
+    if x > hi {
+        return hi;
+    }
+    return x;
+}
+
+/// Clamps (usize).
+public func clamp_usize(x: usize, lo: usize, hi: usize) -> usize {
+    if x < lo {
+        return lo;
+    }
+    if x > hi {
+        return hi;
+    }
+    return x;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Integer arithmetic
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Greatest common divisor (Euclidean algorithm).
+public func gcd(a: i64, b: i64) -> i64 {
+    let x = abs_i64(a);
+    let y = abs_i64(b);
+    while y != 0 {
+        let t = y;
+        y = x % y;
+        x = t;
+    }
+    return x;
+}
+
+/// Least common multiple.
+public func lcm(a: i64, b: i64) -> i64 {
+    if a == 0 || b == 0 {
+        return 0;
+    }
+    return abs_i64(a / gcd(a, b) * b);
+}
+
+/// Factorial of n (n!). Panics on negative input or overflow.
+public func factorial(n: i64) -> i64 {
+    if n < 0 {
+        panic("factorial: negative input");
+    }
+    let result: i64 = 1;
+    let i: i64 = 2;
+    while i <= n {
+        result = result * i;
+        i = i + 1;
+    }
+    return result;
+}
+
+/// Integer power: base^exp for non-negative exp. Uses fast exponentiation.
+public func ipow(base: i64, exp: u64) -> i64 {
+    let result: i64 = 1;
+    let b = base;
+    let e = exp;
+    while e > 0 {
+        if (e & 1) == 1 {
+            result = result * b;
+        }
+        b = b * b;
+        e = e >> 1;
+    }
+    return result;
+}
+
+/// Unsigned integer log2 (floor). Returns the position of the highest set bit.
+public func ilog2(x: u64) -> u32 {
+    if x == 0 {
+        panic("ilog2: zero");
+    }
+    let n: u32 = 0;
+    let v = x;
+    while v > 1 {
+        v = v >> 1;
+        n = n + 1;
+    }
+    return n;
+}
+
+/// Checks if `x` is a power of two.
+public func is_power_of_two(x: u64) -> bool {
+    return x > 0 && (x & (x - 1)) == 0;
+}
+
+/// Returns the next power of two >= x.
+public func next_power_of_two_u64(x: u64) -> u64 {
+    if x == 0 {
+        return 1;
+    }
+    let v = x - 1;
+    v = v | (v >> 1);
+    v = v | (v >> 2);
+    v = v | (v >> 4);
+    v = v | (v >> 8);
+    v = v | (v >> 16);
+    v = v | (v >> 32);
+    return v + 1;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IEEE-754 classification
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Returns true if `x` is NaN.
+public func isnan(x: f64) -> bool {
+    return x != x;
+}
+
+/// Returns true if `x` is positive or negative infinity.
+public func isinf(x: f64) -> bool {
+    return x == __intrinsic_inf_f64() || x == -__intrinsic_inf_f64();
+}
+
+/// Returns true if `x` is neither NaN nor infinity.
+public func isfinite(x: f64) -> bool {
+    return !isnan(x) && !isinf(x);
+}
+
+/// Returns true if `x` is a normal (not zero, subnormal, infinity, or NaN).
+public func isnormal(x: f64) -> bool {
+    return isfinite(x) && abs(x) >= 2.2250738585072014e-308;
+}
+
+/// Classifiers for f32.
+public func isnan_f32(x: f32) -> bool {
+    return x != x;
+}
+
+public func isinf_f32(x: f32) -> bool {
+    return x == __intrinsic_inf_f32() || x == -__intrinsic_inf_f32();
+}
+
+public func isfinite_f32(x: f32) -> bool {
+    return !isnan_f32(x) && !isinf_f32(x);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sign
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Returns -1.0, 0.0, or 1.0 according to the sign of `x`.
+public func signum(x: f64) -> f64 {
+    if x > 0.0 {
+        return 1.0;
+    }
+    if x < 0.0 {
+        return -1.0;
+    }
+    return 0.0;
+}
+
+/// Sign for i64.
+public func signum_i64(x: i64) -> i64 {
+    if x > 0 {
+        return 1;
+    }
+    if x < 0 {
+        return -1;
+    }
+    return 0;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Linear interpolation
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Linearly interpolates between `a` and `b` by `t` in [0, 1].
+public func lerp(a: f64, b: f64, t: f64) -> f64 {
+    return fma(t, b - a, a);
+}
+
+/// Inverse lerp: returns `t` such that lerp(a, b, t) == value.
+public func inverse_lerp(a: f64, b: f64, value: f64) -> f64 {
+    return (value - a) / (b - a);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Iota — generate a sequence of values
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Returns a List of `count` values starting at `start` with a step of 1.
+public func iota(start: i64, count: usize) -> List[i64] {
+    let out = list_with_capacity[i64](count);
+    let i: usize = 0;
+    while i < count {
+        out = push(out, start + (i as i64));
+        i = i + 1;
+    }
+    return out;
+}
+
+/// Returns a List of f64 values from `start` to `end` with `step`.
+public func arange(start: f64, end: f64, step: f64) -> List[f64] {
+    let out = list_new[f64]();
+    let v = start;
+    if step > 0.0 {
+        while v < end {
+            out = push(out, v);
+            v = v + step;
+        }
+    } else if step < 0.0 {
+        while v > end {
+            out = push(out, v);
+            v = v + step;
+        }
+    }
+    return out;
+}
+
+/// Returns a List of `count` evenly-spaced f64 values from `start` to `end` (inclusive).
+public func linspace(start: f64, end: f64, count: usize) -> List[f64] {
+    let out = list_with_capacity[f64](count);
+    if count == 0 {
+        return out;
+    }
+    if count == 1 {
+        out = push(out, start);
+        return out;
+    }
+    let step = (end - start) / ((count - 1) as f64);
+    let i: usize = 0;
+    while i < count {
+        out = push(out, start + (i as f64) * step);
+        i = i + 1;
+    }
+    return out;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Degrees / Radians conversion
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Converts degrees to radians.
+public func to_radians(degrees: f64) -> f64 {
+    return degrees * 3.141592653589793 / 180.0;
+}
+
+/// Converts radians to degrees.
+public func to_degrees(radians: f64) -> f64 {
+    return radians * 180.0 / 3.141592653589793;
+}

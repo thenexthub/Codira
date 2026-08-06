@@ -1,0 +1,52 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    func foo() {\n        while true {};\n        while { true } {};\n    }\n    \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..78
+  FUNCTION_DEF@0..73
+    WHITESPACE@0..5 "\n    "
+    FUNC_KW@5..9 "func"
+    WHITESPACE@9..10 " "
+    NAME@10..13
+      IDENT@10..13 "foo"
+    PARAM_LIST@13..15
+      L_PAREN@13..14 "("
+      R_PAREN@14..15 ")"
+    WHITESPACE@15..16 " "
+    BLOCK_EXPR@16..73
+      L_CURLY@16..17 "{"
+      WHITESPACE@17..26 "\n        "
+      EXPR_STMT@26..40
+        WHILE_EXPR@26..39
+          WHILE_KW@26..31 "while"
+          WHITESPACE@31..32 " "
+          CONDITION@32..36
+            LITERAL@32..36
+              TRUE_KW@32..36 "true"
+          WHITESPACE@36..37 " "
+          BLOCK_EXPR@37..39
+            L_CURLY@37..38 "{"
+            R_CURLY@38..39 "}"
+        SEMI@39..40 ";"
+      WHITESPACE@40..49 "\n        "
+      EXPR_STMT@49..67
+        WHILE_EXPR@49..66
+          WHILE_KW@49..54 "while"
+          WHITESPACE@54..55 " "
+          CONDITION@55..63
+            BLOCK_EXPR@55..63
+              L_CURLY@55..56 "{"
+              WHITESPACE@56..57 " "
+              LITERAL@57..61
+                TRUE_KW@57..61 "true"
+              WHITESPACE@61..62 " "
+              R_CURLY@62..63 "}"
+          WHITESPACE@63..64 " "
+          BLOCK_EXPR@64..66
+            L_CURLY@64..65 "{"
+            R_CURLY@65..66 "}"
+        SEMI@66..67 ";"
+      WHITESPACE@67..72 "\n    "
+      R_CURLY@72..73 "}"
+  WHITESPACE@73..78 "\n    "

@@ -1,7 +1,0 @@
-{
-  "CheckType" : [
-    {"name": "itselfRepeated" , "regex": "\\([^\\(]*[\\+\\*][^\\(]*\\)[\\+\\*]" },
-    {"name": "subexpressionsOverlap" , "regex": "\\(([^\\(]+)\\|\\1+.*\\)[\\+\\*]" },
-    {"name": "redundantGroup" , "regex": "\\(\\[[^\\[]*\\]\\)" }
-  ]
-}

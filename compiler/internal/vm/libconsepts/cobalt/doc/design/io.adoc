@@ -1,5 +1,0 @@
-[#design:io]
-== IO
-
-The `cobalt::io` namespace provides a wrapper library for boost.asio.
-It is simplified and compiled to speedup development and compilation times.

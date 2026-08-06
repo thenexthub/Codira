@@ -1,1 +1,0 @@
-{"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"diagnostics":[{"category":457,"code":457,"message":"package name supposed to be 'default.pkg1'","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":1,"source":"Codira"}],"uri":"file:///code_tools/cangjie-language-server/test/testChr/test/2022022212539/src/pkg1/empty.code"}}

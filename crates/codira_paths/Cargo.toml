@@ -1,0 +1,16 @@
+[package]
+name = "codira_paths"
+description = "Provides convenience structures for handling relative- and absolute paths"
+keywords = ["game", "hot-reloading", "language", "codira", "scripting"]
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+relative-path = { workspace = true }

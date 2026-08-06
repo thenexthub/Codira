@@ -1,1 +1,0 @@
-{"id":null,"jsonrpc":"2.0","method":"textDocument/extendPublishDiagnostics","params":{"diagnostics":[{"category":349,"code":349,"message":"can not access field 'v'","range":{"end":{"character":9,"line":12},"start":{"character":8,"line":12}},"severity":1,"source":"Codira"}],"uri":"file:///d%3A/develop/B027/kernel/test/testChr/normalTest/MODIFIER/src/classP1/c.code"}}

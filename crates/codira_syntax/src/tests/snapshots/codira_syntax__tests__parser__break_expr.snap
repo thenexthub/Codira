@@ -1,0 +1,64 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    func foo() {\n        break;\n        if break { 3; }\n        if break 4 { 3; }\n    }\n    \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..93
+  FUNCTION_DEF@0..88
+    WHITESPACE@0..5 "\n    "
+    FUNC_KW@5..9 "func"
+    WHITESPACE@9..10 " "
+    NAME@10..13
+      IDENT@10..13 "foo"
+    PARAM_LIST@13..15
+      L_PAREN@13..14 "("
+      R_PAREN@14..15 ")"
+    WHITESPACE@15..16 " "
+    BLOCK_EXPR@16..88
+      L_CURLY@16..17 "{"
+      WHITESPACE@17..26 "\n        "
+      EXPR_STMT@26..32
+        BREAK_EXPR@26..31
+          BREAK_KW@26..31 "break"
+        SEMI@31..32 ";"
+      WHITESPACE@32..41 "\n        "
+      EXPR_STMT@41..56
+        IF_EXPR@41..56
+          IF_KW@41..43 "if"
+          WHITESPACE@43..44 " "
+          CONDITION@44..49
+            BREAK_EXPR@44..49
+              BREAK_KW@44..49 "break"
+          WHITESPACE@49..50 " "
+          BLOCK_EXPR@50..56
+            L_CURLY@50..51 "{"
+            WHITESPACE@51..52 " "
+            EXPR_STMT@52..54
+              LITERAL@52..53
+                INT_NUMBER@52..53 "3"
+              SEMI@53..54 ";"
+            WHITESPACE@54..55 " "
+            R_CURLY@55..56 "}"
+      WHITESPACE@56..65 "\n        "
+      IF_EXPR@65..82
+        IF_KW@65..67 "if"
+        WHITESPACE@67..68 " "
+        CONDITION@68..75
+          BREAK_EXPR@68..75
+            BREAK_KW@68..73 "break"
+            WHITESPACE@73..74 " "
+            LITERAL@74..75
+              INT_NUMBER@74..75 "4"
+        WHITESPACE@75..76 " "
+        BLOCK_EXPR@76..82
+          L_CURLY@76..77 "{"
+          WHITESPACE@77..78 " "
+          EXPR_STMT@78..80
+            LITERAL@78..79
+              INT_NUMBER@78..79 "3"
+            SEMI@79..80 ";"
+          WHITESPACE@80..81 " "
+          R_CURLY@81..82 "}"
+      WHITESPACE@82..87 "\n    "
+      R_CURLY@87..88 "}"
+  WHITESPACE@88..93 "\n    "

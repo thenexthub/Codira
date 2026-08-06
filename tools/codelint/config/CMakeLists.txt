@@ -1,2 +1,0 @@
-file(GLOB CONFIG_FILES "*.json")
-install(FILES ${CONFIG_FILES} DESTINATION config)

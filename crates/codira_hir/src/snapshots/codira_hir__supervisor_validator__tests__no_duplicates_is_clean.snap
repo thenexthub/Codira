@@ -1,0 +1,6 @@
+---
+source: crates/codira_hir/src/supervisor_validator.rs
+expression: "diagnostics(r#\"\n        supervisor DatabaseConnection {\n            strategy: 1,\n            max_restarts: 5,\n\n            child ConnPool {\n                strategy: 2,\n            }\n\n            child CacheLayer {\n                strategy: 2,\n            }\n        }\n        \"#)"
+snapshot_kind: text
+---
+

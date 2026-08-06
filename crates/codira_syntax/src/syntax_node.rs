@@ -1,0 +1,95 @@
+//! Copyright (c) 2026 Omnira CJSC
+//! Author: Tunjay Akbarli
+//! Date: August 6, 2026
+//!
+//! Functionality:
+//! - Original module content restored; copyright header moved to top.
+//!
+//! This module defines Concrete Syntax Tree (CST), used by Codira.
+//!
+//! The CST includes comments and whitespace, provides a single node type,
+//! `SyntaxNode`, and a basic traversal API (parent, children, siblings).
+//!
+//! The *real* implementation is in the (language-agnostic) `rowan` crate, this
+//! modules just wraps its API.
+
+pub(crate) use rowan::GreenNode;
+use rowan::{GreenNodeBuilder, Language};
+
+use crate::{
+    parsing::ParseError,
+    syntax_error::{SyntaxError, SyntaxErrorKind},
+    Parse, SyntaxKind, TextSize,
+};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum CodiraLanguage {}
+impl Language for CodiraLanguage {
+    type Kind = SyntaxKind;
+
+    fn kind_from_raw(raw: rowan::SyntaxKind) -> SyntaxKind {
+        SyntaxKind::from(raw.0)
+    }
+
+    fn kind_to_raw(kind: SyntaxKind) -> rowan::SyntaxKind {
+        rowan::SyntaxKind(kind.into())
+    }
+}
+
+pub type SyntaxNode = rowan::SyntaxNode<CodiraLanguage>;
+pub type SyntaxToken = rowan::SyntaxToken<CodiraLanguage>;
+pub type SyntaxElement = rowan::NodeOrToken<SyntaxNode, SyntaxToken>;
+pub type SyntaxNodeChildren = rowan::SyntaxNodeChildren<CodiraLanguage>;
+pub type SyntaxElementChildren = rowan::SyntaxElementChildren<CodiraLanguage>;
+
+pub use rowan::Direction;
+
+pub struct SyntaxTreeBuilder {
+    errors: Vec<SyntaxError>,
+    inner: GreenNodeBuilder<'static>,
+}
+
+impl Default for SyntaxTreeBuilder {
+    fn default() -> SyntaxTreeBuilder {
+        SyntaxTreeBuilder {
+            errors: Vec::new(),
+            inner: GreenNodeBuilder::new(),
+        }
+    }
+}
+
+impl SyntaxTreeBuilder {
+    pub(crate) fn finish_raw(self) -> (GreenNode, Vec<SyntaxError>) {
+        let green = self.inner.finish();
+        (green, self.errors)
+    }
+
+    pub fn finish(self) -> Parse<SyntaxNode> {
+        let (green, errors) = self.finish_raw();
+        //        if cfg!(debug_assertions) {
+        //            let node = SyntaxNode::new_root(green);
+        //            crate::validation::validate_block_structure(&node);
+        //        }
+        Parse::new(green, errors)
+    }
+
+    pub fn token(&mut self, kind: SyntaxKind, text: &str) {
+        let kind = CodiraLanguage::kind_to_raw(kind);
+        self.inner.token(kind, text);
+    }
+
+    pub fn start_node(&mut self, kind: SyntaxKind) {
+        let kind = CodiraLanguage::kind_to_raw(kind);
+        self.inner.start_node(kind);
+    }
+
+    pub fn finish_node(&mut self) {
+        self.inner.finish_node();
+    }
+
+    pub fn error(&mut self, error: ParseError, text_pos: TextSize) {
+        let error = SyntaxError::new(SyntaxErrorKind::ParseError(error), text_pos);
+        self.errors.push(error);
+    }
+}
+

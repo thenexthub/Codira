@@ -1,0 +1,11 @@
+---
+source: crates/codira_compiler/src/diagnostics.rs
+expression: "compilation_errors(\"\\n\\ntype Foo = UnknownType;\")"
+snapshot_kind: text
+---
+error: cannot find type `UnknownType` in this scope
+ --> main.code:3:12
+  |
+3 | type Foo = UnknownType;
+  |            ^^^^^^^^^^^ not found in this scope
+  |

@@ -1,0 +1,193 @@
+// std/os/os.code
+// Operating system interface for Codira.
+// Provides functions for directory and file manipulation that delegate
+// to the underlying platform via FFI / compiler intrinsics.
+
+// ---------------------------------------------------------------------------
+// OsError
+// Represents an operating-system-level error with an error code and message.
+// ---------------------------------------------------------------------------
+public struct OsError {
+    code: i32,
+    message: String,
+}
+
+// Creates a new OsError.
+public func os_error(code: i32, message: String) -> OsError {
+    return OsError { code: code, message: message };
+}
+
+// ---------------------------------------------------------------------------
+// Result type alias for OS operations.
+// On success contains the value; on failure contains an OsError.
+// ---------------------------------------------------------------------------
+public struct OsResult<T> {
+    value: T,
+    error: OsError,
+    is_ok: bool,
+}
+
+public func os_ok<T>(value: T) -> OsResult<T> {
+    return OsResult { value: value, error: os_error(0, ""), is_ok: true };
+}
+
+public func os_err<T>(err: OsError) -> OsResult<T> {
+    return OsResult { value: default<T>(), error: err, is_ok: false };
+}
+
+// ---------------------------------------------------------------------------
+// DirEntry
+// Represents a single entry in a directory listing.
+// ---------------------------------------------------------------------------
+public struct DirEntry {
+    name: String,
+    is_dir: bool,
+    is_file: bool,
+    is_symlink: bool,
+}
+
+// ---------------------------------------------------------------------------
+// listdir
+// Returns a list of entries in the directory at `path`.
+// Analogous to Python's os.listdir or Mojo's os.listdir.
+// ---------------------------------------------------------------------------
+public func listdir(path: String) -> OsResult<Array<DirEntry>> {
+    // Delegate to platform-specific implementation.
+    let entries: Array<DirEntry> = _platform_listdir(path);
+    if entries.len() == 0 && !_platform_path_exists(path) {
+        return os_err(os_error(-1, "directory not found: " + path));
+    }
+    return os_ok(entries);
+}
+
+// ---------------------------------------------------------------------------
+// mkdir
+// Creates a directory at `path`. Fails if the directory already exists
+// unless `exist_ok` is true.
+// ---------------------------------------------------------------------------
+public func mkdir(path: String, exist_ok: bool) -> OsResult<bool> {
+    if _platform_path_exists(path) {
+        if exist_ok {
+            return os_ok(true);
+        }
+        return os_err(os_error(-1, "directory already exists: " + path));
+    }
+    let success: bool = _platform_mkdir(path);
+    if !success {
+        return os_err(os_error(-1, "failed to create directory: " + path));
+    }
+    return os_ok(true);
+}
+
+// Convenience overload that defaults exist_ok to false.
+public func mkdir(path: String) -> OsResult<bool> {
+    return mkdir(path, false);
+}
+
+// ---------------------------------------------------------------------------
+// makedirs
+// Creates a directory and all intermediate parent directories.
+// ---------------------------------------------------------------------------
+public func makedirs(path: String, exist_ok: bool) -> OsResult<bool> {
+    let parts: Array<String> = _split_path_components(path);
+    let mut current: String = "";
+    let mut i: usize = 0;
+    while i < parts.len() {
+        if current.len() > 0 {
+            current = current + "/" + parts[i];
+        } else {
+            current = parts[i];
+        }
+        if !_platform_path_exists(current) {
+            let ok: bool = _platform_mkdir(current);
+            if !ok {
+                return os_err(os_error(-1, "failed to create directory: " + current));
+            }
+        }
+        i = i + 1;
+    }
+    return os_ok(true);
+}
+
+// ---------------------------------------------------------------------------
+// rmdir
+// Removes an empty directory at `path`.
+// ---------------------------------------------------------------------------
+public func rmdir(path: String) -> OsResult<bool> {
+    if !_platform_path_exists(path) {
+        return os_err(os_error(-1, "directory not found: " + path));
+    }
+    let success: bool = _platform_rmdir(path);
+    if !success {
+        return os_err(os_error(-1, "failed to remove directory: " + path));
+    }
+    return os_ok(true);
+}
+
+// ---------------------------------------------------------------------------
+// remove
+// Removes (deletes) a file at `path`.
+// ---------------------------------------------------------------------------
+public func remove(path: String) -> OsResult<bool> {
+    if !_platform_path_exists(path) {
+        return os_err(os_error(-1, "file not found: " + path));
+    }
+    let success: bool = _platform_remove(path);
+    if !success {
+        return os_err(os_error(-1, "failed to remove file: " + path));
+    }
+    return os_ok(true);
+}
+
+// ---------------------------------------------------------------------------
+// rename
+// Renames / moves a file or directory from `src` to `dst`.
+// ---------------------------------------------------------------------------
+public func rename(src: String, dst: String) -> OsResult<bool> {
+    if !_platform_path_exists(src) {
+        return os_err(os_error(-1, "source not found: " + src));
+    }
+    let success: bool = _platform_rename(src, dst);
+    if !success {
+        return os_err(os_error(-1, "failed to rename: " + src + " -> " + dst));
+    }
+    return os_ok(true);
+}
+
+// ---------------------------------------------------------------------------
+// getcwd
+// Returns the current working directory.
+// ---------------------------------------------------------------------------
+public func getcwd() -> String {
+    return _platform_getcwd();
+}
+
+// ---------------------------------------------------------------------------
+// chdir
+// Changes the current working directory to `path`.
+// ---------------------------------------------------------------------------
+public func chdir(path: String) -> OsResult<bool> {
+    if !_platform_path_exists(path) {
+        return os_err(os_error(-1, "directory not found: " + path));
+    }
+    let success: bool = _platform_chdir(path);
+    if !success {
+        return os_err(os_error(-1, "failed to change directory: " + path));
+    }
+    return os_ok(true);
+}
+
+// ---------------------------------------------------------------------------
+// Platform stubs (implemented by the runtime / compiler backend).
+// ---------------------------------------------------------------------------
+extern func _platform_listdir(path: String) -> Array<DirEntry>;
+extern func _platform_mkdir(path: String) -> bool;
+extern func _platform_rmdir(path: String) -> bool;
+extern func _platform_remove(path: String) -> bool;
+extern func _platform_rename(src: String, dst: String) -> bool;
+extern func _platform_getcwd() -> String;
+extern func _platform_chdir(path: String) -> bool;
+extern func _platform_path_exists(path: String) -> bool;
+func _split_path_components(path: String) -> Array<String> {
+    return path.split("/");
+}

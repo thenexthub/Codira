@@ -1,0 +1,181 @@
+// std/ffi/cstring.code
+// C-compatible string type for Codira foreign function interface.
+// CString wraps a raw pointer to a null-terminated sequence of bytes,
+// enabling interop with C libraries and system calls.
+
+// ---------------------------------------------------------------------------
+// CString
+// Represents an owned, null-terminated C string stored on the heap.
+// The underlying memory is a contiguous array of u8 values terminated by 0x00.
+// ---------------------------------------------------------------------------
+public struct(gc) CString {
+    _data: Array<u8>,   // includes the trailing null byte
+    _len: usize,        // length excluding the null terminator
+}
+
+// ---------------------------------------------------------------------------
+// from_string
+// Creates a CString from a Codira String. The data is copied and a null
+// terminator is appended.
+// ---------------------------------------------------------------------------
+public func cstring_from_string(s: String) -> CString {
+    let bytes: Array<u8> = s.as_bytes();
+    let mut data: Array<u8> = Array::with_capacity(bytes.len() + 1);
+    let mut i: usize = 0;
+    while i < bytes.len() {
+        data.push(bytes[i]);
+        i = i + 1;
+    }
+    data.push(0);  // null terminator
+    return CString { _data: data, _len: bytes.len() };
+}
+
+// ---------------------------------------------------------------------------
+// from_bytes
+// Creates a CString from a raw byte array. A null terminator is appended
+// if one is not already present. Any interior null bytes are preserved
+// but the logical length is measured up to the first null.
+// ---------------------------------------------------------------------------
+public func cstring_from_bytes(bytes: Array<u8>) -> CString {
+    // Find the first null byte to determine logical length.
+    let mut logical_len: usize = bytes.len();
+    let mut i: usize = 0;
+    while i < bytes.len() {
+        if bytes[i] == 0 {
+            logical_len = i;
+            break;
+        }
+        i = i + 1;
+    }
+
+    let mut data: Array<u8> = Array::with_capacity(logical_len + 1);
+    i = 0;
+    while i < logical_len {
+        data.push(bytes[i]);
+        i = i + 1;
+    }
+    data.push(0);
+    return CString { _data: data, _len: logical_len };
+}
+
+// ---------------------------------------------------------------------------
+// from_ptr
+// Creates a CString by copying data from a raw pointer until a null
+// terminator is found. Unsafe: the pointer must be valid and the data
+// must be null-terminated.
+// ---------------------------------------------------------------------------
+public func cstring_from_ptr(ptr: RawPointer<u8>) -> CString {
+    let mut len: usize = 0;
+    while ptr.offset(len).read() != 0 {
+        len = len + 1;
+    }
+    let mut data: Array<u8> = Array::with_capacity(len + 1);
+    let mut i: usize = 0;
+    while i < len {
+        data.push(ptr.offset(i).read());
+        i = i + 1;
+    }
+    data.push(0);
+    return CString { _data: data, _len: len };
+}
+
+// ---------------------------------------------------------------------------
+// to_string
+// Converts the CString to a Codira String (copies the data, excludes
+// the null terminator).
+// ---------------------------------------------------------------------------
+public func cstring_to_string(self: CString) -> String {
+    let mut bytes: Array<u8> = Array::with_capacity(self._len);
+    let mut i: usize = 0;
+    while i < self._len {
+        bytes.push(self._data[i]);
+        i = i + 1;
+    }
+    return String::from_bytes(bytes);
+}
+
+// ---------------------------------------------------------------------------
+// as_ptr
+// Returns a raw pointer to the underlying null-terminated data.
+// The pointer is valid for the lifetime of this CString.
+// ---------------------------------------------------------------------------
+public func cstring_as_ptr(self: CString) -> RawPointer<u8> {
+    return self._data.as_ptr();
+}
+
+// ---------------------------------------------------------------------------
+// len
+// Returns the length of the string in bytes, excluding the null terminator.
+// ---------------------------------------------------------------------------
+public func cstring_len(self: CString) -> usize {
+    return self._len;
+}
+
+// ---------------------------------------------------------------------------
+// is_empty
+// Returns true if the string has zero length (just a null terminator).
+// ---------------------------------------------------------------------------
+public func cstring_is_empty(self: CString) -> bool {
+    return self._len == 0;
+}
+
+// ---------------------------------------------------------------------------
+// byte_at
+// Returns the byte at `index`. Panics if index >= len.
+// ---------------------------------------------------------------------------
+public func cstring_byte_at(self: CString, index: usize) -> u8 {
+    if index >= self._len {
+        panic("CString.byte_at: index out of bounds");
+    }
+    return self._data[index];
+}
+
+// ---------------------------------------------------------------------------
+// equals
+// Returns true if two CStrings have identical content.
+// ---------------------------------------------------------------------------
+public func cstring_equals(a: CString, b: CString) -> bool {
+    if a._len != b._len {
+        return false;
+    }
+    let mut i: usize = 0;
+    while i < a._len {
+        if a._data[i] != b._data[i] {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+// ---------------------------------------------------------------------------
+// concat
+// Concatenates two CStrings into a new CString.
+// ---------------------------------------------------------------------------
+public func cstring_concat(a: CString, b: CString) -> CString {
+    let new_len: usize = a._len + b._len;
+    let mut data: Array<u8> = Array::with_capacity(new_len + 1);
+    let mut i: usize = 0;
+    while i < a._len {
+        data.push(a._data[i]);
+        i = i + 1;
+    }
+    i = 0;
+    while i < b._len {
+        data.push(b._data[i]);
+        i = i + 1;
+    }
+    data.push(0);
+    return CString { _data: data, _len: new_len };
+}
+
+// ---------------------------------------------------------------------------
+// null_cstring
+// Returns an empty CString (just a null terminator). Useful as a
+// sentinel / default value.
+// ---------------------------------------------------------------------------
+public func null_cstring() -> CString {
+    let mut data: Array<u8> = Array::with_capacity(1);
+    data.push(0);
+    return CString { _data: data, _len: 0 };
+}

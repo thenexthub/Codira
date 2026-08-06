@@ -1,0 +1,24 @@
+---
+source: crates/codira_hir/src/ty/tests.rs
+expression: "infer(r#\"\n    //- /foo.code\n    public struct Foo {\n        private: i32\n        public public: i32,\n    }\n\n    public func make_foo() -> Foo {\n        Foo { private: 0, public: 0 }\n    }\n\n    //- /mod.code\n    import foo.make_foo\n\n    func main() {\n        let foo = make_foo();\n        let a = foo.private;\n        let b = foo.public;\n    }\n    \"#)"
+---
+73..84: access of private type
+98..102: attempted to access a non-existent field in a struct.
+126..127: no such field
+126..127: undefined value
+100..129: missing record fields:
+- i32
+33..111 '{     ...lic; }': ()
+43..46 'foo': Foo
+49..57 'make_foo': function make_foo() -> Foo
+49..59 'make_foo()': Foo
+69..70 'a': i32
+73..76 'foo': Foo
+73..84 'foo.private': i32
+94..95 'b': {unknown}
+98..101 'foo': Foo
+98..102 'foo.': {unknown}
+94..131 '{     ... 0 } }': Foo
+100..129 'Foo { ...c: 0 }': Foo
+115..116 '0': i32
+126..127 '0': {unknown}

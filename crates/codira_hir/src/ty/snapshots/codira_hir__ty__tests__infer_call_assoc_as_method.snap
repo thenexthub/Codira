@@ -1,0 +1,11 @@
+---
+source: crates/codira_hir/src/ty/tests.rs
+expression: "infer(r#\"\n    public struct Foo {}\n\n    extend Foo {\n        func assoc() {}\n    }\n\n    func main() {\n        let a = Foo {};\n        a.assoc();\n    }\n    \"#)"
+---
+96..105: method `assoc` does not exist
+70..108 '{     ...c(); }': ()
+80..81 'a': Foo
+84..90 'Foo {}': Foo
+96..97 'a': Foo
+96..105 'a.assoc()': {unknown}
+52..54 '{}': ()

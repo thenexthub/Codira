@@ -1,0 +1,105 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    func bar() {\n        if true {};\n        if true {} else {};\n        if true {} else if false {} else {};\n        if {true} {} else {}\n    }\n    \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..150
+  FUNCTION_DEF@0..145
+    WHITESPACE@0..5 "\n    "
+    FUNC_KW@5..9 "func"
+    WHITESPACE@9..10 " "
+    NAME@10..13
+      IDENT@10..13 "bar"
+    PARAM_LIST@13..15
+      L_PAREN@13..14 "("
+      R_PAREN@14..15 ")"
+    WHITESPACE@15..16 " "
+    BLOCK_EXPR@16..145
+      L_CURLY@16..17 "{"
+      WHITESPACE@17..26 "\n        "
+      EXPR_STMT@26..37
+        IF_EXPR@26..36
+          IF_KW@26..28 "if"
+          WHITESPACE@28..29 " "
+          CONDITION@29..33
+            LITERAL@29..33
+              TRUE_KW@29..33 "true"
+          WHITESPACE@33..34 " "
+          BLOCK_EXPR@34..36
+            L_CURLY@34..35 "{"
+            R_CURLY@35..36 "}"
+        SEMI@36..37 ";"
+      WHITESPACE@37..46 "\n        "
+      EXPR_STMT@46..65
+        IF_EXPR@46..64
+          IF_KW@46..48 "if"
+          WHITESPACE@48..49 " "
+          CONDITION@49..53
+            LITERAL@49..53
+              TRUE_KW@49..53 "true"
+          WHITESPACE@53..54 " "
+          BLOCK_EXPR@54..56
+            L_CURLY@54..55 "{"
+            R_CURLY@55..56 "}"
+          WHITESPACE@56..57 " "
+          ELSE_KW@57..61 "else"
+          WHITESPACE@61..62 " "
+          BLOCK_EXPR@62..64
+            L_CURLY@62..63 "{"
+            R_CURLY@63..64 "}"
+        SEMI@64..65 ";"
+      WHITESPACE@65..74 "\n        "
+      EXPR_STMT@74..110
+        IF_EXPR@74..109
+          IF_KW@74..76 "if"
+          WHITESPACE@76..77 " "
+          CONDITION@77..81
+            LITERAL@77..81
+              TRUE_KW@77..81 "true"
+          WHITESPACE@81..82 " "
+          BLOCK_EXPR@82..84
+            L_CURLY@82..83 "{"
+            R_CURLY@83..84 "}"
+          WHITESPACE@84..85 " "
+          ELSE_KW@85..89 "else"
+          WHITESPACE@89..90 " "
+          IF_EXPR@90..109
+            IF_KW@90..92 "if"
+            WHITESPACE@92..93 " "
+            CONDITION@93..98
+              LITERAL@93..98
+                FALSE_KW@93..98 "false"
+            WHITESPACE@98..99 " "
+            BLOCK_EXPR@99..101
+              L_CURLY@99..100 "{"
+              R_CURLY@100..101 "}"
+            WHITESPACE@101..102 " "
+            ELSE_KW@102..106 "else"
+            WHITESPACE@106..107 " "
+            BLOCK_EXPR@107..109
+              L_CURLY@107..108 "{"
+              R_CURLY@108..109 "}"
+        SEMI@109..110 ";"
+      WHITESPACE@110..119 "\n        "
+      IF_EXPR@119..139
+        IF_KW@119..121 "if"
+        WHITESPACE@121..122 " "
+        CONDITION@122..128
+          BLOCK_EXPR@122..128
+            L_CURLY@122..123 "{"
+            LITERAL@123..127
+              TRUE_KW@123..127 "true"
+            R_CURLY@127..128 "}"
+        WHITESPACE@128..129 " "
+        BLOCK_EXPR@129..131
+          L_CURLY@129..130 "{"
+          R_CURLY@130..131 "}"
+        WHITESPACE@131..132 " "
+        ELSE_KW@132..136 "else"
+        WHITESPACE@136..137 " "
+        BLOCK_EXPR@137..139
+          L_CURLY@137..138 "{"
+          R_CURLY@138..139 "}"
+      WHITESPACE@139..144 "\n    "
+      R_CURLY@144..145 "}"
+  WHITESPACE@145..150 "\n    "

@@ -1,1 +1,0 @@
-{"id":"721","jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: operator.code\nPackage info: default\n\n// In class Point1\n(function) internal func |(right: Point1): Point1\n"},"range":{"end":{"character":18,"line":63},"start":{"character":17,"line":63}}}}

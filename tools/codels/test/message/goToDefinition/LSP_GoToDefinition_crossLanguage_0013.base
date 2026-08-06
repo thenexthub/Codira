@@ -1,1 +1,0 @@
-{"id":3,"jsonrpc":"2.0","result":{"crossMessage":[{"functionName":"float32","functionParameters":["float","float *"],"retType":"float","targetLanguage":"C"}],"range":{"end":{"character":20,"line":23},"start":{"character":13,"line":23}},"uri":"file:///d%3A/code/cangjieLSP/manifest-lsp/lsp/test/testChr/newFeature/crossLanguage/src/currentDirectory/a.code"}}

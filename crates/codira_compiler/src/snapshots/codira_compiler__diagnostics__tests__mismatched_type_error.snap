@@ -1,0 +1,16 @@
+---
+source: crates/codira_compiler/src/diagnostics.rs
+expression: "compilation_errors(\"\\n\\nfunc main() {\\nlet a: f64 = false;\\n\\nlet b: bool = 22;\\n}\")"
+snapshot_kind: text
+---
+error: expected `f64`, found `bool`
+ --> main.code:4:14
+  |
+4 | let a: f64 = false;
+  |              ^^^^^ expected `f64`, found `bool`
+  |error: expected `bool`, found `{integer}`
+ --> main.code:6:15
+  |
+6 | let b: bool = 22;
+  |               ^^ expected `bool`, found `{integer}`
+  |

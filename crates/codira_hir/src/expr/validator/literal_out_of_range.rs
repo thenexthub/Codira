@@ -1,0 +1,52 @@
+//! Copyright (c) 2026 Omnira CJSC
+//! Author: Tunjay Akbarli
+//! Date: August 6, 2026
+//!
+//! Functionality:
+//! - Part of the Codira compiler and runtime toolchain.
+//!
+use super::ExprValidator;
+use crate::{
+    diagnostics::{DiagnosticSink, LiteralOutOfRange},
+    ty::{ResolveBitness, TyKind},
+    Expr, HirDisplay, Literal,
+};
+
+impl ExprValidator<'_> {
+    /// Iterates over all expressions to determine if one of the literals has a
+    /// value that is out of range of its type.
+    pub fn validate_literal_ranges(&self, sink: &mut DiagnosticSink<'_>) {
+        self.body[self.body.body_expr].walk_child_exprs(move |expr_id| {
+            let expr = &self.body[expr_id];
+            if let Expr::Literal(Literal::Int(lit)) = &expr {
+                let ty = &self.infer[expr_id];
+                match ty.interned() {
+                    TyKind::Int(int_ty) => {
+                        if lit.value > int_ty.resolve(&self.db.target_data_layout()).max() {
+                            let literal = self
+                                .body_source_map
+                                .expr_syntax(expr_id)
+                                .expect("could not retrieve expr from source map")
+                                .map(|expr_src| {
+                                    expr_src
+                                        .left()
+                                        .expect("could not retrieve expr from ExprSource")
+                                        .cast()
+                                        .expect("could not cast expression to literal")
+                                });
+                            sink.push(LiteralOutOfRange {
+                                literal,
+                                int_ty: *int_ty,
+                            });
+                        }
+                    }
+                    _ => panic!(
+                        "expected int literal to have int ty while instead it is `{}`",
+                        ty.display(self.db)
+                    ),
+                }
+            }
+        });
+    }
+}
+

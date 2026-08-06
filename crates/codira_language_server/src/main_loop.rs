@@ -1,0 +1,18 @@
+//! Copyright (c) 2026 Omnira CJSC
+//! Author: Tunjay Akbarli
+//! Date: August 6, 2026
+//!
+//! Functionality:
+//! - Part of the Codira compiler and runtime toolchain.
+//!
+use lsp_server::Connection;
+
+use crate::{Config, LanguageServerState};
+
+/// Runs the main loop of the language server. This will receive requests and
+/// handle them.
+pub fn main_loop(connection: Connection, config: Config) -> anyhow::Result<()> {
+    log::info!("initial config: {:#?}", config);
+    LanguageServerState::new(connection.sender, config).run(connection.receiver)
+}
+

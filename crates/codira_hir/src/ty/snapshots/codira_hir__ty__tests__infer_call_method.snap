@@ -1,0 +1,12 @@
+---
+source: crates/codira_hir/src/ty/tests.rs
+expression: "infer(r#\"\n    struct Foo {}\n\n    extend Foo {\n        func with_self(self) -> Self {\n            self\n        }\n    }\n\n    func main() {\n        let a = Foo {};\n        a.with_self();\n    }\n    \"#)"
+---
+97..139 '{     ...f(); }': ()
+107..108 'a': Foo
+111..117 'Foo {}': Foo
+123..124 'a': Foo
+123..136 'a.with_self()': Foo
+47..51 'self': Foo
+61..81 '{     ...     }': Foo
+71..75 'self': Foo

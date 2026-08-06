@@ -1,0 +1,34 @@
+[package]
+name = "codira_runtime"
+description = "A runtime for hot reloading and invoking Codira from Rust"
+keywords = ["game", "hot-reloading", "language", "codira", "scripting"]
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+codira_abi = { version = "0.6.0-dev", path = "../codira_abi" }
+codira_libloader = { version = "0.6.0-dev", path = "../codira_libloader" }
+codira_capi_utils = { version = "0.6.0-dev", path = "../codira_capi_utils" }
+codira_memory = { version = "0.6.0-dev", path = "../codira_memory" }
+codira_project = { version = "0.6.0-dev", path = "../codira_project" }
+itertools = { workspace = true, features = ["use_alloc"] }
+log = { workspace = true }
+notify = { workspace = true }
+once_cell = { workspace = true }
+parking_lot = { workspace = true }
+rustc-hash = { workspace = true }
+seq-macro = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+codira_compiler = { path = "../codira_compiler" }
+codira_test = { path = "../codira_test" }
+tempfile = { workspace = true }
+termcolor = { workspace = true }

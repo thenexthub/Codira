@@ -1,1 +1,0 @@
-{"id":"9","jsonrpc":"2.0","result":[{"range":{"end":{"character":15,"line":9},"start":{"character":11,"line":9}},"uri":"file:///home/zzk/code/test/src/A/a.code"},{"range":{"end":{"character":13,"line":8},"start":{"character":8,"line":8}},"uri":"file:///home/zzk/code/test/src/main.code"}]}

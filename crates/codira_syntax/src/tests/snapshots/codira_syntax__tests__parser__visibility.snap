@@ -1,0 +1,83 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    public struct Foo {};\n    internal class Baz {};\n    internal func foo() {}\n    internal func bar() {}\n    public func baz() {}\n    \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..137
+  WHITESPACE@0..5 "\n    "
+  STRUCT_DEF@5..26
+    VISIBILITY@5..11
+      PUBLIC_KW@5..11 "public"
+    WHITESPACE@11..12 " "
+    STRUCT_KW@12..18 "struct"
+    WHITESPACE@18..19 " "
+    NAME@19..22
+      IDENT@19..22 "Foo"
+    WHITESPACE@22..23 " "
+    RECORD_FIELD_DEF_LIST@23..26
+      L_CURLY@23..24 "{"
+      R_CURLY@24..25 "}"
+      SEMI@25..26 ";"
+  WHITESPACE@26..31 "\n    "
+  STRUCT_DEF@31..53
+    VISIBILITY@31..39
+      INTERNAL_KW@31..39 "internal"
+    WHITESPACE@39..40 " "
+    CLASS_KW@40..45 "class"
+    WHITESPACE@45..46 " "
+    NAME@46..49
+      IDENT@46..49 "Baz"
+    WHITESPACE@49..50 " "
+    RECORD_FIELD_DEF_LIST@50..53
+      L_CURLY@50..51 "{"
+      R_CURLY@51..52 "}"
+      SEMI@52..53 ";"
+  FUNCTION_DEF@53..80
+    WHITESPACE@53..58 "\n    "
+    VISIBILITY@58..66
+      INTERNAL_KW@58..66 "internal"
+    WHITESPACE@66..67 " "
+    FUNC_KW@67..71 "func"
+    WHITESPACE@71..72 " "
+    NAME@72..75
+      IDENT@72..75 "foo"
+    PARAM_LIST@75..77
+      L_PAREN@75..76 "("
+      R_PAREN@76..77 ")"
+    WHITESPACE@77..78 " "
+    BLOCK_EXPR@78..80
+      L_CURLY@78..79 "{"
+      R_CURLY@79..80 "}"
+  FUNCTION_DEF@80..107
+    WHITESPACE@80..85 "\n    "
+    VISIBILITY@85..93
+      INTERNAL_KW@85..93 "internal"
+    WHITESPACE@93..94 " "
+    FUNC_KW@94..98 "func"
+    WHITESPACE@98..99 " "
+    NAME@99..102
+      IDENT@99..102 "bar"
+    PARAM_LIST@102..104
+      L_PAREN@102..103 "("
+      R_PAREN@103..104 ")"
+    WHITESPACE@104..105 " "
+    BLOCK_EXPR@105..107
+      L_CURLY@105..106 "{"
+      R_CURLY@106..107 "}"
+  FUNCTION_DEF@107..132
+    WHITESPACE@107..112 "\n    "
+    VISIBILITY@112..118
+      PUBLIC_KW@112..118 "public"
+    WHITESPACE@118..119 " "
+    FUNC_KW@119..123 "func"
+    WHITESPACE@123..124 " "
+    NAME@124..127
+      IDENT@124..127 "baz"
+    PARAM_LIST@127..129
+      L_PAREN@127..128 "("
+      R_PAREN@128..129 ")"
+    WHITESPACE@129..130 " "
+    BLOCK_EXPR@130..132
+      L_CURLY@130..131 "{"
+      R_CURLY@131..132 "}"
+  WHITESPACE@132..137 "\n    "

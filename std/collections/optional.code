@@ -1,0 +1,181 @@
+// std/collections/optional.code
+// Optional[T] — a type-safe nullable container.
+// Represents either a present value (Some) or absence (None).
+// Eliminates null pointer errors by making absence explicit in the type system.
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Optional[T] — can hold zero or one value of type T.
+// ─────────────────────────────────────────────────────────────────────────────
+
+struct(value) Optional[T] {
+    value:    T,
+    has_value: bool,
+}
+
+// ── Construction ─────────────────────────────────────────────────────────────
+
+/// Creates an Optional containing `value`.
+public func some[T](value: T) -> Optional[T] {
+    return Optional[T] { value: value, has_value: true };
+}
+
+/// Creates an empty Optional (no value present).
+public func none[T]() -> Optional[T] {
+    return Optional[T] { value: zero_value[T](), has_value: false };
+}
+
+// ── Query ────────────────────────────────────────────────────────────────────
+
+/// Returns `true` if a value is present.
+public func is_some[T](self: Optional[T]) -> bool {
+    return self.has_value;
+}
+
+/// Returns `true` if no value is present.
+public func is_none[T](self: Optional[T]) -> bool {
+    return !self.has_value;
+}
+
+// ── Extraction ───────────────────────────────────────────────────────────────
+
+/// Returns the contained value. Panics if `self` is None.
+public func unwrap[T](self: Optional[T]) -> T {
+    if !self.has_value {
+        panic("Optional.unwrap: called on None");
+    }
+    return self.value;
+}
+
+/// Returns the contained value, or `default` if None.
+public func unwrap_or[T](self: Optional[T], default: T) -> T {
+    if self.has_value {
+        return self.value;
+    }
+    return default;
+}
+
+/// Returns the contained value, or computes it from `f` if None.
+public func unwrap_or_else[T](self: Optional[T], f: func() -> T) -> T {
+    if self.has_value {
+        return self.value;
+    }
+    return f();
+}
+
+/// Returns the contained value. Panics with a custom message if None.
+public func expect[T](self: Optional[T], msg: String) -> T {
+    if !self.has_value {
+        panic(msg);
+    }
+    return self.value;
+}
+
+// ── Transformations ──────────────────────────────────────────────────────────
+
+/// Applies `f` to the contained value (if any), returning a new Optional.
+/// If None, returns None without calling `f`.
+public func map[T, U](self: Optional[T], f: func(T) -> U) -> Optional[U] {
+    if self.has_value {
+        return some(f(self.value));
+    }
+    return none[U]();
+}
+
+/// Applies `f` to the contained value (if any). `f` itself returns an Optional.
+/// This avoids double-wrapping: Optional[Optional[U]] -> Optional[U].
+public func and_then[T, U](self: Optional[T], f: func(T) -> Optional[U]) -> Optional[U] {
+    if self.has_value {
+        return f(self.value);
+    }
+    return none[U]();
+}
+
+/// Returns `self` if it contains a value; otherwise evaluates and returns `f()`.
+public func or_else[T](self: Optional[T], f: func() -> Optional[T]) -> Optional[T] {
+    if self.has_value {
+        return self;
+    }
+    return f();
+}
+
+/// Returns `other` if `self` is Some; otherwise returns None.
+public func and_opt[T, U](self: Optional[T], other: Optional[U]) -> Optional[U] {
+    if self.has_value {
+        return other;
+    }
+    return none[U]();
+}
+
+/// Returns `self` if it contains a value; otherwise returns `other`.
+public func or_opt[T](self: Optional[T], other: Optional[T]) -> Optional[T] {
+    if self.has_value {
+        return self;
+    }
+    return other;
+}
+
+/// Returns `self` if exactly one of `self` and `other` is Some; otherwise None.
+public func xor_opt[T](self: Optional[T], other: Optional[T]) -> Optional[T] {
+    if self.has_value && !other.has_value {
+        return self;
+    }
+    if !self.has_value && other.has_value {
+        return other;
+    }
+    return none[T]();
+}
+
+/// Flattens an Optional[Optional[T]] into Optional[T].
+public func flatten[T](self: Optional[Optional[T]]) -> Optional[T] {
+    if self.has_value {
+        return self.value;
+    }
+    return none[T]();
+}
+
+/// Returns None if the contained value does not satisfy `pred`.
+public func filter_opt[T](self: Optional[T], pred: func(T) -> bool) -> Optional[T] {
+    if self.has_value && pred(self.value) {
+        return self;
+    }
+    return none[T]();
+}
+
+/// Applies `f` to the value if present, returning `default` if absent.
+public func map_or[T, U](self: Optional[T], default: U, f: func(T) -> U) -> U {
+    if self.has_value {
+        return f(self.value);
+    }
+    return default;
+}
+
+/// Applies `f` to the value if present, or calls `default_fn` if absent.
+public func map_or_else[T, U](self: Optional[T], default_fn: func() -> U, f: func(T) -> U) -> U {
+    if self.has_value {
+        return f(self.value);
+    }
+    return default_fn();
+}
+
+/// Zips two Optionals into an Optional tuple. Returns Some only if both are Some.
+public func zip[T, U](a: Optional[T], b: Optional[U]) -> Optional[(T, U)] {
+    if a.has_value && b.has_value {
+        return some((a.value, b.value));
+    }
+    return none[(T, U)]();
+}
+
+/// Replaces the value inside the Optional with `new_value`, returning the old Optional.
+public func replace[T](self: Optional[T], new_value: T) -> (Optional[T], Optional[T]) {
+    let old = self;
+    let updated = some(new_value);
+    return (updated, old);
+}
+
+/// Takes the value out, leaving None in its place.
+public func take[T](self: Optional[T]) -> (Optional[T], Optional[T]) {
+    if self.has_value {
+        return (none[T](), self);
+    }
+    return (none[T](), none[T]());
+}

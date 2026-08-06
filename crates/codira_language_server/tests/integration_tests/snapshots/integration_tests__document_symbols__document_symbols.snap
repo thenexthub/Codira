@@ -1,0 +1,14 @@
+---
+source: crates/codira_language_server/tests/integration_tests/document_symbols.rs
+expression: format_document_symbols_response(symbols)
+snapshot_kind: text
+---
+Foo
+'-- a (i32)
+Bar (Foo)
+extend Foo
++-- new (func() -> Self)
+'-- modify (func(self) -> Self)
+extend Foo
+'-- modify2 (func(self) -> Self)
+main (func() -> i32)

@@ -1,0 +1,58 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    func main(_:number) {\n       let a = 0;\n       let _ = a;\n    }\n    \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..73
+  FUNCTION_DEF@0..68
+    WHITESPACE@0..5 "\n    "
+    FUNC_KW@5..9 "func"
+    WHITESPACE@9..10 " "
+    NAME@10..14
+      IDENT@10..14 "main"
+    PARAM_LIST@14..24
+      L_PAREN@14..15 "("
+      PARAM@15..23
+        PLACEHOLDER_PAT@15..16
+          UNDERSCORE@15..16 "_"
+        COLON@16..17 ":"
+        PATH_TYPE@17..23
+          PATH@17..23
+            PATH_SEGMENT@17..23
+              NAME_REF@17..23
+                IDENT@17..23 "number"
+      R_PAREN@23..24 ")"
+    WHITESPACE@24..25 " "
+    BLOCK_EXPR@25..68
+      L_CURLY@25..26 "{"
+      WHITESPACE@26..34 "\n       "
+      LET_STMT@34..44
+        LET_KW@34..37 "let"
+        WHITESPACE@37..38 " "
+        BIND_PAT@38..39
+          NAME@38..39
+            IDENT@38..39 "a"
+        WHITESPACE@39..40 " "
+        EQ@40..41 "="
+        WHITESPACE@41..42 " "
+        LITERAL@42..43
+          INT_NUMBER@42..43 "0"
+        SEMI@43..44 ";"
+      WHITESPACE@44..52 "\n       "
+      LET_STMT@52..62
+        LET_KW@52..55 "let"
+        WHITESPACE@55..56 " "
+        PLACEHOLDER_PAT@56..57
+          UNDERSCORE@56..57 "_"
+        WHITESPACE@57..58 " "
+        EQ@58..59 "="
+        WHITESPACE@59..60 " "
+        PATH_EXPR@60..61
+          PATH@60..61
+            PATH_SEGMENT@60..61
+              NAME_REF@60..61
+                IDENT@60..61 "a"
+        SEMI@61..62 ";"
+      WHITESPACE@62..67 "\n    "
+      R_CURLY@67..68 "}"
+  WHITESPACE@68..73 "\n    "

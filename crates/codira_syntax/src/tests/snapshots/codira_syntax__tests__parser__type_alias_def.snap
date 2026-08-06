@@ -1,0 +1,37 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    type Foo = i32;\n    type Bar = Foo;\n    \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..45
+  WHITESPACE@0..5 "\n    "
+  TYPE_ALIAS_DEF@5..20
+    TYPE_KW@5..9 "type"
+    WHITESPACE@9..10 " "
+    NAME@10..13
+      IDENT@10..13 "Foo"
+    WHITESPACE@13..14 " "
+    EQ@14..15 "="
+    WHITESPACE@15..16 " "
+    PATH_TYPE@16..19
+      PATH@16..19
+        PATH_SEGMENT@16..19
+          NAME_REF@16..19
+            IDENT@16..19 "i32"
+    SEMI@19..20 ";"
+  WHITESPACE@20..25 "\n    "
+  TYPE_ALIAS_DEF@25..40
+    TYPE_KW@25..29 "type"
+    WHITESPACE@29..30 " "
+    NAME@30..33
+      IDENT@30..33 "Bar"
+    WHITESPACE@33..34 " "
+    EQ@34..35 "="
+    WHITESPACE@35..36 " "
+    PATH_TYPE@36..39
+      PATH@36..39
+        PATH_SEGMENT@36..39
+          NAME_REF@36..39
+            IDENT@36..39 "Foo"
+    SEMI@39..40 ";"
+  WHITESPACE@40..45 "\n    "

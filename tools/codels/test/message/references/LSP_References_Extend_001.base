@@ -1,1 +1,0 @@
-{"id":7,"jsonrpc":"2.0","result":[{"range":{"end":{"character":16,"line":12},"start":{"character":7,"line":12}},"uri":"file://***//lsp/test/testChr/normalTest/Extend/src/testExtend.code"}]}

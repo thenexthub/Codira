@@ -1,0 +1,188 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n        struct GPUBuffer: ~Copyable {\n            len: i32,\n        }\n\n        func consume_it(consuming buf: GPUBuffer) -> i32 {\n            buf.len\n        }\n\n        func borrow_it(borrowing buf: GPUBuffer) -> i32 {\n            buf.len\n        }\n\n        @target(gpu)\n        func compute() -> i32 {\n            spawn compute();\n            42\n        }\n        \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..366
+  WHITESPACE@0..9 "\n        "
+  STRUCT_DEF@9..70
+    STRUCT_KW@9..15 "struct"
+    WHITESPACE@15..16 " "
+    NAME@16..25
+      IDENT@16..25 "GPUBuffer"
+    INHERITANCE_LIST@25..36
+      COLON@25..26 ":"
+      WHITESPACE@26..27 " "
+      TILDE@27..28 "~"
+      PATH_TYPE@28..36
+        PATH@28..36
+          PATH_SEGMENT@28..36
+            NAME_REF@28..36
+              IDENT@28..36 "Copyable"
+    WHITESPACE@36..37 " "
+    RECORD_FIELD_DEF_LIST@37..70
+      L_CURLY@37..38 "{"
+      WHITESPACE@38..51 "\n            "
+      RECORD_FIELD_DEF@51..59
+        NAME@51..54
+          IDENT@51..54 "len"
+        COLON@54..55 ":"
+        WHITESPACE@55..56 " "
+        PATH_TYPE@56..59
+          PATH@56..59
+            PATH_SEGMENT@56..59
+              NAME_REF@56..59
+                IDENT@56..59 "i32"
+      COMMA@59..60 ","
+      WHITESPACE@60..69 "\n        "
+      R_CURLY@69..70 "}"
+  WHITESPACE@70..80 "\n\n        "
+  FUNCTION_DEF@80..160
+    FUNC_KW@80..84 "func"
+    WHITESPACE@84..85 " "
+    NAME@85..95
+      IDENT@85..95 "consume_it"
+    PARAM_LIST@95..121
+      L_PAREN@95..96 "("
+      PARAM@96..120
+        CONSUMING_KW@96..105 "consuming"
+        WHITESPACE@105..106 " "
+        BIND_PAT@106..109
+          NAME@106..109
+            IDENT@106..109 "buf"
+        COLON@109..110 ":"
+        WHITESPACE@110..111 " "
+        PATH_TYPE@111..120
+          PATH@111..120
+            PATH_SEGMENT@111..120
+              NAME_REF@111..120
+                IDENT@111..120 "GPUBuffer"
+      R_PAREN@120..121 ")"
+    WHITESPACE@121..122 " "
+    RET_TYPE@122..128
+      THIN_ARROW@122..124 "->"
+      WHITESPACE@124..125 " "
+      PATH_TYPE@125..128
+        PATH@125..128
+          PATH_SEGMENT@125..128
+            NAME_REF@125..128
+              IDENT@125..128 "i32"
+    WHITESPACE@128..129 " "
+    BLOCK_EXPR@129..160
+      L_CURLY@129..130 "{"
+      WHITESPACE@130..143 "\n            "
+      FIELD_EXPR@143..150
+        PATH_EXPR@143..146
+          PATH@143..146
+            PATH_SEGMENT@143..146
+              NAME_REF@143..146
+                IDENT@143..146 "buf"
+        DOT@146..147 "."
+        NAME_REF@147..150
+          IDENT@147..150 "len"
+      WHITESPACE@150..159 "\n        "
+      R_CURLY@159..160 "}"
+  WHITESPACE@160..170 "\n\n        "
+  FUNCTION_DEF@170..249
+    FUNC_KW@170..174 "func"
+    WHITESPACE@174..175 " "
+    NAME@175..184
+      IDENT@175..184 "borrow_it"
+    PARAM_LIST@184..210
+      L_PAREN@184..185 "("
+      PARAM@185..209
+        BORROWING_KW@185..194 "borrowing"
+        WHITESPACE@194..195 " "
+        BIND_PAT@195..198
+          NAME@195..198
+            IDENT@195..198 "buf"
+        COLON@198..199 ":"
+        WHITESPACE@199..200 " "
+        PATH_TYPE@200..209
+          PATH@200..209
+            PATH_SEGMENT@200..209
+              NAME_REF@200..209
+                IDENT@200..209 "GPUBuffer"
+      R_PAREN@209..210 ")"
+    WHITESPACE@210..211 " "
+    RET_TYPE@211..217
+      THIN_ARROW@211..213 "->"
+      WHITESPACE@213..214 " "
+      PATH_TYPE@214..217
+        PATH@214..217
+          PATH_SEGMENT@214..217
+            NAME_REF@214..217
+              IDENT@214..217 "i32"
+    WHITESPACE@217..218 " "
+    BLOCK_EXPR@218..249
+      L_CURLY@218..219 "{"
+      WHITESPACE@219..232 "\n            "
+      FIELD_EXPR@232..239
+        PATH_EXPR@232..235
+          PATH@232..235
+            PATH_SEGMENT@232..235
+              NAME_REF@232..235
+                IDENT@232..235 "buf"
+        DOT@235..236 "."
+        NAME_REF@236..239
+          IDENT@236..239 "len"
+      WHITESPACE@239..248 "\n        "
+      R_CURLY@248..249 "}"
+  WHITESPACE@249..259 "\n\n        "
+  FUNCTION_DEF@259..357
+    ATTRIBUTE_LIST@259..271
+      ATTRIBUTE@259..271
+        AT@259..260 "@"
+        PATH@260..266
+          PATH_SEGMENT@260..266
+            NAME_REF@260..266
+              IDENT@260..266 "target"
+        ARG_LIST@266..271
+          L_PAREN@266..267 "("
+          PATH_EXPR@267..270
+            PATH@267..270
+              PATH_SEGMENT@267..270
+                NAME_REF@267..270
+                  IDENT@267..270 "gpu"
+          R_PAREN@270..271 ")"
+    WHITESPACE@271..280 "\n        "
+    FUNC_KW@280..284 "func"
+    WHITESPACE@284..285 " "
+    NAME@285..292
+      IDENT@285..292 "compute"
+    PARAM_LIST@292..294
+      L_PAREN@292..293 "("
+      R_PAREN@293..294 ")"
+    WHITESPACE@294..295 " "
+    RET_TYPE@295..301
+      THIN_ARROW@295..297 "->"
+      WHITESPACE@297..298 " "
+      PATH_TYPE@298..301
+        PATH@298..301
+          PATH_SEGMENT@298..301
+            NAME_REF@298..301
+              IDENT@298..301 "i32"
+    WHITESPACE@301..302 " "
+    BLOCK_EXPR@302..357
+      L_CURLY@302..303 "{"
+      WHITESPACE@303..316 "\n            "
+      EXPR_STMT@316..332
+        SPAWN_EXPR@316..331
+          SPAWN_KW@316..321 "spawn"
+          WHITESPACE@321..322 " "
+          CALL_EXPR@322..331
+            PATH_EXPR@322..329
+              PATH@322..329
+                PATH_SEGMENT@322..329
+                  NAME_REF@322..329
+                    IDENT@322..329 "compute"
+            ARG_LIST@329..331
+              L_PAREN@329..330 "("
+              R_PAREN@330..331 ")"
+        SEMI@331..332 ";"
+      WHITESPACE@332..345 "\n            "
+      LITERAL@345..347
+        INT_NUMBER@345..347 "42"
+      WHITESPACE@347..356 "\n        "
+      R_CURLY@356..357 "}"
+  WHITESPACE@357..366 "\n        "

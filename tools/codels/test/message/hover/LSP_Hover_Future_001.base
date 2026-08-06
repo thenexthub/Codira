@@ -1,1 +1,0 @@
-{"id":"9","jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: Future.code\nPackage info: default\n\n(variable) internal let future_a: Future<String> = spawn {\n    bar()\n}\nThe return type of foo() is String.\n"},"range":{"end":{"character":27,"line":34},"start":{"character":19,"line":34}}}}

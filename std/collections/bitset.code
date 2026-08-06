@@ -1,0 +1,287 @@
+// std/collections/bitset.code
+// BitSet — a compact set of non-negative integers stored as a bit vector.
+// Each bit in the backing storage represents whether a number is in the set.
+// Extremely memory-efficient: stores 64 elements per u64 word.
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BitSet
+// ─────────────────────────────────────────────────────────────────────────────
+
+let BITS_PER_WORD: usize = 64;
+
+struct(gc) BitSet {
+    words:     Pointer[u64],
+    num_words: usize,
+    capacity:  usize,  // max bit index + 1
+}
+
+// ── Construction ─────────────────────────────────────────────────────────────
+
+/// Creates a BitSet that can represent integers in [0, capacity).
+public func bitset_new(capacity: usize) -> BitSet {
+    let nw = (capacity + BITS_PER_WORD - 1) / BITS_PER_WORD;
+    let words = heap_alloc[u64](nw);
+    // Zero all words
+    let i: usize = 0;
+    while i < nw {
+        raw_store(words, i, 0 as u64);
+        i = i + 1;
+    }
+    return BitSet { words: words, num_words: nw, capacity: capacity };
+}
+
+/// Creates a BitSet with all bits in [0, capacity) set to 1.
+public func bitset_full(capacity: usize) -> BitSet {
+    let bs = bitset_new(capacity);
+    let i: usize = 0;
+    while i < bs.num_words {
+        raw_store(bs.words, i, 0xFFFFFFFFFFFFFFFF as u64);
+        i = i + 1;
+    }
+    // Mask off trailing bits in the last word
+    let trailing = capacity % BITS_PER_WORD;
+    if trailing > 0 && bs.num_words > 0 {
+        let mask = (1 as u64 << (trailing as u64)) - 1;
+        raw_store(bs.words, bs.num_words - 1, mask);
+    }
+    return bs;
+}
+
+// ── Internal ─────────────────────────────────────────────────────────────────
+
+func word_index(bit: usize) -> usize {
+    return bit / BITS_PER_WORD;
+}
+
+func bit_mask(bit: usize) -> u64 {
+    return 1 as u64 << ((bit % BITS_PER_WORD) as u64);
+}
+
+// ── Core API ─────────────────────────────────────────────────────────────────
+
+/// Returns the maximum number of bits (capacity) of the bitset.
+public func capacity(self: BitSet) -> usize {
+    return self.capacity;
+}
+
+/// Sets bit `index` to 1. Panics if out of range.
+public func set(self: BitSet, index: usize) -> BitSet {
+    if index >= self.capacity {
+        panic("BitSet.set: index out of range");
+    }
+    let wi = word_index(index);
+    let w = raw_load(self.words, wi);
+    raw_store(self.words, wi, w | bit_mask(index));
+    return self;
+}
+
+/// Clears bit `index` to 0. Panics if out of range.
+public func clear_bit(self: BitSet, index: usize) -> BitSet {
+    if index >= self.capacity {
+        panic("BitSet.clear_bit: index out of range");
+    }
+    let wi = word_index(index);
+    let w = raw_load(self.words, wi);
+    raw_store(self.words, wi, w & ~bit_mask(index));
+    return self;
+}
+
+/// Returns the value of bit `index` (true = set, false = clear).
+public func get(self: BitSet, index: usize) -> bool {
+    if index >= self.capacity {
+        panic("BitSet.get: index out of range");
+    }
+    let wi = word_index(index);
+    let w = raw_load(self.words, wi);
+    return (w & bit_mask(index)) != 0;
+}
+
+/// Toggles bit `index`.
+public func toggle(self: BitSet, index: usize) -> BitSet {
+    if index >= self.capacity {
+        panic("BitSet.toggle: index out of range");
+    }
+    let wi = word_index(index);
+    let w = raw_load(self.words, wi);
+    raw_store(self.words, wi, w ^ bit_mask(index));
+    return self;
+}
+
+/// Sets all bits to 0.
+public func clear(self: BitSet) -> BitSet {
+    let i: usize = 0;
+    while i < self.num_words {
+        raw_store(self.words, i, 0 as u64);
+        i = i + 1;
+    }
+    return self;
+}
+
+// ── Counting ─────────────────────────────────────────────────────────────────
+
+/// Returns the number of bits that are set (popcount).
+public func count(self: BitSet) -> usize {
+    let total: usize = 0;
+    let i: usize = 0;
+    while i < self.num_words {
+        total = total + popcount64(raw_load(self.words, i));
+        i = i + 1;
+    }
+    return total;
+}
+
+/// Hardware-assisted population count for a 64-bit word.
+func popcount64(x: u64) -> usize {
+    // Kernighan's bit-counting algorithm
+    let v = x;
+    let c: usize = 0;
+    while v != 0 {
+        v = v & (v - 1);
+        c = c + 1;
+    }
+    return c;
+}
+
+/// Returns true if at least one bit is set.
+public func any(self: BitSet) -> bool {
+    let i: usize = 0;
+    while i < self.num_words {
+        if raw_load(self.words, i) != 0 {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+/// Returns true if every bit in [0, capacity) is set.
+public func all(self: BitSet) -> bool {
+    return count(self) == self.capacity;
+}
+
+/// Returns true if no bits are set.
+public func none_set(self: BitSet) -> bool {
+    return !any(self);
+}
+
+// ── Bitwise set operations ───────────────────────────────────────────────────
+// Both operands must have the same capacity.
+
+/// Bitwise OR — union of two bitsets.
+public func bitset_union(a: BitSet, b: BitSet) -> BitSet {
+    if a.capacity != b.capacity {
+        panic("BitSet.union: capacity mismatch");
+    }
+    let out = bitset_new(a.capacity);
+    let i: usize = 0;
+    while i < a.num_words {
+        raw_store(out.words, i, raw_load(a.words, i) | raw_load(b.words, i));
+        i = i + 1;
+    }
+    return out;
+}
+
+/// Bitwise AND — intersection of two bitsets.
+public func bitset_intersection(a: BitSet, b: BitSet) -> BitSet {
+    if a.capacity != b.capacity {
+        panic("BitSet.intersection: capacity mismatch");
+    }
+    let out = bitset_new(a.capacity);
+    let i: usize = 0;
+    while i < a.num_words {
+        raw_store(out.words, i, raw_load(a.words, i) & raw_load(b.words, i));
+        i = i + 1;
+    }
+    return out;
+}
+
+/// Bitwise AND-NOT — difference (a \ b).
+public func bitset_difference(a: BitSet, b: BitSet) -> BitSet {
+    if a.capacity != b.capacity {
+        panic("BitSet.difference: capacity mismatch");
+    }
+    let out = bitset_new(a.capacity);
+    let i: usize = 0;
+    while i < a.num_words {
+        raw_store(out.words, i, raw_load(a.words, i) & ~raw_load(b.words, i));
+        i = i + 1;
+    }
+    return out;
+}
+
+/// Bitwise XOR — symmetric difference.
+public func bitset_symmetric_difference(a: BitSet, b: BitSet) -> BitSet {
+    if a.capacity != b.capacity {
+        panic("BitSet.symmetric_difference: capacity mismatch");
+    }
+    let out = bitset_new(a.capacity);
+    let i: usize = 0;
+    while i < a.num_words {
+        raw_store(out.words, i, raw_load(a.words, i) ^ raw_load(b.words, i));
+        i = i + 1;
+    }
+    return out;
+}
+
+/// Bitwise NOT — complement of the bitset.
+public func bitset_complement(self: BitSet) -> BitSet {
+    let out = bitset_new(self.capacity);
+    let i: usize = 0;
+    while i < self.num_words {
+        raw_store(out.words, i, ~raw_load(self.words, i));
+        i = i + 1;
+    }
+    // Mask off trailing bits
+    let trailing = self.capacity % BITS_PER_WORD;
+    if trailing > 0 && out.num_words > 0 {
+        let mask = (1 as u64 << (trailing as u64)) - 1;
+        let last = raw_load(out.words, out.num_words - 1);
+        raw_store(out.words, out.num_words - 1, last & mask);
+    }
+    return out;
+}
+
+/// Returns true if `a` is a subset of `b`.
+public func bitset_is_subset(a: BitSet, b: BitSet) -> bool {
+    if a.capacity != b.capacity {
+        panic("BitSet.is_subset: capacity mismatch");
+    }
+    let i: usize = 0;
+    while i < a.num_words {
+        let wa = raw_load(a.words, i);
+        let wb = raw_load(b.words, i);
+        if (wa & wb) != wa {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+/// Returns true if `a` is a superset of `b`.
+public func bitset_is_superset(a: BitSet, b: BitSet) -> bool {
+    return bitset_is_subset(b, a);
+}
+
+// ── Iteration ────────────────────────────────────────────────────────────────
+
+/// Returns a List of all set bit indices.
+public func to_indices(self: BitSet) -> List[usize] {
+    let out = list_new[usize]();
+    let i: usize = 0;
+    while i < self.capacity {
+        if get(self, i) {
+            out = push(out, i);
+        }
+        i = i + 1;
+    }
+    return out;
+}
+
+// ── Cleanup ──────────────────────────────────────────────────────────────────
+
+public func drop(self: BitSet) {
+    if self.num_words > 0 {
+        heap_free(self.words);
+    }
+}

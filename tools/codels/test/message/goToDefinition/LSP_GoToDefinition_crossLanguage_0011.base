@@ -1,1 +1,0 @@
-{"id":3,"jsonrpc":"2.0","result":{"crossMessage":[{"functionName":"int","functionParameters":["ssize_t","ssize_t *"],"retType":"ssize_t","targetLanguage":"C"}],"range":{"end":{"character":16,"line":21},"start":{"character":13,"line":21}},"uri":"file:///d%3A/code/cangjieLSP/manifest-lsp/lsp/test/testChr/newFeature/crossLanguage/src/currentDirectory/a.code"}}

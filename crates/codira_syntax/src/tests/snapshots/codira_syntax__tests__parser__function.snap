@@ -1,0 +1,112 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    // Source file comment\n\n    // Comment that belongs to the function\n    func a() {}\n    func b(value:number) {}\n    public func d() {}\n    public func c()->never {}\n    func b(value:number)->number {}\"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..205
+  WHITESPACE@0..5 "\n    "
+  COMMENT@5..27 "// Source file comment"
+  WHITESPACE@27..33 "\n\n    "
+  FUNCTION_DEF@33..88
+    COMMENT@33..72 "// Comment that belon ..."
+    WHITESPACE@72..77 "\n    "
+    FUNC_KW@77..81 "func"
+    WHITESPACE@81..82 " "
+    NAME@82..83
+      IDENT@82..83 "a"
+    PARAM_LIST@83..85
+      L_PAREN@83..84 "("
+      R_PAREN@84..85 ")"
+    WHITESPACE@85..86 " "
+    BLOCK_EXPR@86..88
+      L_CURLY@86..87 "{"
+      R_CURLY@87..88 "}"
+  FUNCTION_DEF@88..116
+    WHITESPACE@88..93 "\n    "
+    FUNC_KW@93..97 "func"
+    WHITESPACE@97..98 " "
+    NAME@98..99
+      IDENT@98..99 "b"
+    PARAM_LIST@99..113
+      L_PAREN@99..100 "("
+      PARAM@100..112
+        BIND_PAT@100..105
+          NAME@100..105
+            IDENT@100..105 "value"
+        COLON@105..106 ":"
+        PATH_TYPE@106..112
+          PATH@106..112
+            PATH_SEGMENT@106..112
+              NAME_REF@106..112
+                IDENT@106..112 "number"
+      R_PAREN@112..113 ")"
+    WHITESPACE@113..114 " "
+    BLOCK_EXPR@114..116
+      L_CURLY@114..115 "{"
+      R_CURLY@115..116 "}"
+  FUNCTION_DEF@116..139
+    WHITESPACE@116..121 "\n    "
+    VISIBILITY@121..127
+      PUBLIC_KW@121..127 "public"
+    WHITESPACE@127..128 " "
+    FUNC_KW@128..132 "func"
+    WHITESPACE@132..133 " "
+    NAME@133..134
+      IDENT@133..134 "d"
+    PARAM_LIST@134..136
+      L_PAREN@134..135 "("
+      R_PAREN@135..136 ")"
+    WHITESPACE@136..137 " "
+    BLOCK_EXPR@137..139
+      L_CURLY@137..138 "{"
+      R_CURLY@138..139 "}"
+  FUNCTION_DEF@139..169
+    WHITESPACE@139..144 "\n    "
+    VISIBILITY@144..150
+      PUBLIC_KW@144..150 "public"
+    WHITESPACE@150..151 " "
+    FUNC_KW@151..155 "func"
+    WHITESPACE@155..156 " "
+    NAME@156..157
+      IDENT@156..157 "c"
+    PARAM_LIST@157..159
+      L_PAREN@157..158 "("
+      R_PAREN@158..159 ")"
+    RET_TYPE@159..166
+      THIN_ARROW@159..161 "->"
+      NEVER_TYPE@161..166
+        NEVER_KW@161..166 "never"
+    WHITESPACE@166..167 " "
+    BLOCK_EXPR@167..169
+      L_CURLY@167..168 "{"
+      R_CURLY@168..169 "}"
+  FUNCTION_DEF@169..205
+    WHITESPACE@169..174 "\n    "
+    FUNC_KW@174..178 "func"
+    WHITESPACE@178..179 " "
+    NAME@179..180
+      IDENT@179..180 "b"
+    PARAM_LIST@180..194
+      L_PAREN@180..181 "("
+      PARAM@181..193
+        BIND_PAT@181..186
+          NAME@181..186
+            IDENT@181..186 "value"
+        COLON@186..187 ":"
+        PATH_TYPE@187..193
+          PATH@187..193
+            PATH_SEGMENT@187..193
+              NAME_REF@187..193
+                IDENT@187..193 "number"
+      R_PAREN@193..194 ")"
+    RET_TYPE@194..202
+      THIN_ARROW@194..196 "->"
+      PATH_TYPE@196..202
+        PATH@196..202
+          PATH_SEGMENT@196..202
+            NAME_REF@196..202
+              IDENT@196..202 "number"
+    WHITESPACE@202..203 " "
+    BLOCK_EXPR@203..205
+      L_CURLY@203..204 "{"
+      R_CURLY@204..205 "}"

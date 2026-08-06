@@ -1,0 +1,65 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    func foo() {\n        let a = 3+4*5\n        let b = 3*4+10/2\n    }\n    \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..75
+  FUNCTION_DEF@0..70
+    WHITESPACE@0..5 "\n    "
+    FUNC_KW@5..9 "func"
+    WHITESPACE@9..10 " "
+    NAME@10..13
+      IDENT@10..13 "foo"
+    PARAM_LIST@13..15
+      L_PAREN@13..14 "("
+      R_PAREN@14..15 ")"
+    WHITESPACE@15..16 " "
+    BLOCK_EXPR@16..70
+      L_CURLY@16..17 "{"
+      WHITESPACE@17..26 "\n        "
+      LET_STMT@26..39
+        LET_KW@26..29 "let"
+        WHITESPACE@29..30 " "
+        BIND_PAT@30..31
+          NAME@30..31
+            IDENT@30..31 "a"
+        WHITESPACE@31..32 " "
+        EQ@32..33 "="
+        WHITESPACE@33..34 " "
+        BIN_EXPR@34..39
+          LITERAL@34..35
+            INT_NUMBER@34..35 "3"
+          PLUS@35..36 "+"
+          BIN_EXPR@36..39
+            LITERAL@36..37
+              INT_NUMBER@36..37 "4"
+            STAR@37..38 "*"
+            LITERAL@38..39
+              INT_NUMBER@38..39 "5"
+      WHITESPACE@39..48 "\n        "
+      LET_STMT@48..64
+        LET_KW@48..51 "let"
+        WHITESPACE@51..52 " "
+        BIND_PAT@52..53
+          NAME@52..53
+            IDENT@52..53 "b"
+        WHITESPACE@53..54 " "
+        EQ@54..55 "="
+        WHITESPACE@55..56 " "
+        BIN_EXPR@56..64
+          BIN_EXPR@56..59
+            LITERAL@56..57
+              INT_NUMBER@56..57 "3"
+            STAR@57..58 "*"
+            LITERAL@58..59
+              INT_NUMBER@58..59 "4"
+          PLUS@59..60 "+"
+          BIN_EXPR@60..64
+            LITERAL@60..62
+              INT_NUMBER@60..62 "10"
+            SLASH@62..63 "/"
+            LITERAL@63..64
+              INT_NUMBER@63..64 "2"
+      WHITESPACE@64..69 "\n    "
+      R_CURLY@69..70 "}"
+  WHITESPACE@70..75 "\n    "

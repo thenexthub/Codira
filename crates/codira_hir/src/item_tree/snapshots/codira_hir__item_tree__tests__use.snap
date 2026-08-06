@@ -1,0 +1,9 @@
+---
+source: crates/codira_hir/src/item_tree/tests.rs
+expression: "print_item_tree(r#\"\n    public import foo\n    import super.bar\n    import super.*\n    import foo.{bar as _, baz.hello as world}\n        \"#).unwrap()"
+---
+pub use foo;
+use super::bar;
+use super::*;
+use foo::bar as _;
+use foo::baz::hello as world;

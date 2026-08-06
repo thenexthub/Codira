@@ -1,0 +1,31 @@
+---
+source: crates/codira_codegen/src/test.rs
+expression: "\n    pub fn foo(a:i32) -> i32 {\n        let a = a+1;\n        {\n            let a = a+2;\n        }\n        a+3\n    }\n\n    pub fn bar(a:i32) -> i32 {\n        let a = a+1;\n        let a = {\n            let a = a+2;\n            a\n        }\n        a+3\n    }\n    "
+---
+; == FILE IR (mod) =====================================
+; ModuleID = 'mod'
+source_filename = "mod"
+
+@global_type_lookup_table = external global [1 x i64*]
+
+define i32 @foo(i32 %0) {
+body:
+  %add = add i32 %0, 1
+  %add7 = add i32 %add, 3
+  ret i32 %add7
+}
+
+define i32 @bar(i32 %0) {
+body:
+  %add = add i32 %0, 1
+  %add4 = add i32 %add, 2
+  %add9 = add i32 %add4, 3
+  ret i32 %add9
+}
+
+; == GROUP IR (mod) ====================================
+; ModuleID = 'group_name'
+source_filename = "group_name"
+
+@global_type_lookup_table = global [1 x i64*] zeroinitializer
+

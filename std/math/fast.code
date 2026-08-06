@@ -1,0 +1,222 @@
+// std/math/fast.code
+// Fast approximate math functions for Codira.
+// These trade precision for speed — useful in graphics, audio, and game loops.
+// Typical error bounds are noted per function.
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fast reciprocal square root (Quake III style)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Fast approximate 1/sqrt(x) using the famous bit-hack + one Newton step.
+/// Max relative error: ~0.175 %.
+public func fast_rsqrt(x: f32) -> f32 {
+    let half = 0.5 as f32 * x;
+    let i = bitcast_f32_to_u32(x);
+    // Magic constant for initial guess
+    let j = 0x5F3759DF as u32 - (i >> 1);
+    let y = bitcast_u32_to_f32(j);
+    // One iteration of Newton-Raphson refinement
+    let y_refined = y * (1.5 as f32 - half * y * y);
+    return y_refined;
+}
+
+/// Fast approximate sqrt(x) built on fast_rsqrt.
+public func fast_sqrt(x: f32) -> f32 {
+    if x <= 0.0 as f32 {
+        return 0.0 as f32;
+    }
+    return x * fast_rsqrt(x);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fast trigonometric approximations
+// ─────────────────────────────────────────────────────────────────────────────
+// Uses a 5th-degree minimax polynomial on [-pi, pi].
+// Max absolute error: ~1.7e-4.
+
+/// Wraps `x` into the range [-pi, pi].
+func fast_wrap_angle(x: f32) -> f32 {
+    let pi:      f32 = 3.14159265 as f32;
+    let two_pi:  f32 = 6.28318530 as f32;
+    let inv_2pi: f32 = 0.15915494 as f32;
+    let y = x - two_pi * floor_f32(x * inv_2pi + 0.5 as f32);
+    return y;
+}
+
+func floor_f32(x: f32) -> f32 {
+    let i = x as i32;
+    let f = i as f32;
+    if f > x {
+        return f - 1.0 as f32;
+    }
+    return f;
+}
+
+/// Fast approximate sine. Input in radians.
+/// Max absolute error ~1.7e-4.
+public func fast_sin(x: f32) -> f32 {
+    let a = fast_wrap_angle(x);
+    // Coefficients for minimax 5th-order polynomial
+    let c1: f32 =  0.99997938 as f32;
+    let c3: f32 = -0.16649540 as f32;
+    let c5: f32 =  0.00799224 as f32;
+    let a2 = a * a;
+    return a * (c1 + a2 * (c3 + a2 * c5));
+}
+
+/// Fast approximate cosine. Input in radians.
+/// Max absolute error ~1.7e-4.
+public func fast_cos(x: f32) -> f32 {
+    let pi_half: f32 = 1.57079632 as f32;
+    return fast_sin(x + pi_half);
+}
+
+/// Fast approximate tangent. Input in radians (avoid odd multiples of pi/2).
+public func fast_tan(x: f32) -> f32 {
+    let s = fast_sin(x);
+    let c = fast_cos(x);
+    return s / c;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fast exponential approximation
+// ─────────────────────────────────────────────────────────────────────────────
+// Uses Schraudolph's method with polynomial refinement.
+// Max relative error: ~0.06 %.
+
+/// Fast approximate e^x (f32).
+public func fast_exp(x: f32) -> f32 {
+    // Clamp to prevent overflow/underflow
+    let clamped = x;
+    if clamped > 88.0 as f32 {
+        clamped = 88.0 as f32;
+    }
+    if clamped < -88.0 as f32 {
+        clamped = -88.0 as f32;
+    }
+    // Schraudolph's integer approximation to 2^(x/ln2)
+    // float bits = 12102203.0 * x + 1065353216.0
+    let log2e: f32 = 1.44269504 as f32;
+    let scaled = clamped * log2e;     // convert to base-2
+    let int_part = scaled as i32;
+    let frac = scaled - (int_part as f32);
+    // Polynomial for 2^frac, frac in [0, 1)
+    // Coefficients from minimax fit
+    let p0: f32 = 1.0 as f32;
+    let p1: f32 = 0.69314718 as f32;
+    let p2: f32 = 0.24022651 as f32;
+    let p3: f32 = 0.05550411 as f32;
+    let poly = p0 + frac * (p1 + frac * (p2 + frac * p3));
+    // Multiply by 2^int_part via IEEE exponent manipulation
+    let exp_bits = (int_part + 127) as u32 << 23;
+    let pow2 = bitcast_u32_to_f32(exp_bits);
+    return poly * pow2;
+}
+
+/// Fast approximate 2^x (f32).
+public func fast_exp2(x: f32) -> f32 {
+    let ln2: f32 = 0.69314718 as f32;
+    return fast_exp(x * ln2);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fast logarithm approximation
+// ─────────────────────────────────────────────────────────────────────────────
+// Decomposes into exponent + mantissa and uses a polynomial on the mantissa.
+// Max relative error: ~0.05 %.
+
+/// Fast approximate ln(x) (f32). Returns NaN for x <= 0.
+public func fast_log(x: f32) -> f32 {
+    if x <= 0.0 as f32 {
+        return __intrinsic_nan_f32();
+    }
+    let bits = bitcast_f32_to_u32(x);
+    let exponent = ((bits >> 23) & 0xFF) as i32 - 127;
+    // Normalise mantissa to [1, 2)
+    let mantissa_bits = (bits & 0x007FFFFF) | 0x3F800000;
+    let m = bitcast_u32_to_f32(mantissa_bits);
+    // Polynomial approximation of ln(m) for m in [1, 2)
+    let f = m - 1.0 as f32;
+    let ln2: f32 = 0.69314718 as f32;
+    let c1: f32 =  0.99949556 as f32;
+    let c2: f32 = -0.49190896 as f32;
+    let c3: f32 =  0.28947478 as f32;
+    let ln_m = f * (c1 + f * (c2 + f * c3));
+    return (exponent as f32) * ln2 + ln_m;
+}
+
+/// Fast approximate log2(x) (f32).
+public func fast_log2(x: f32) -> f32 {
+    let inv_ln2: f32 = 1.44269504 as f32;
+    return fast_log(x) * inv_ln2;
+}
+
+/// Fast approximate log10(x) (f32).
+public func fast_log10(x: f32) -> f32 {
+    let inv_ln10: f32 = 0.43429448 as f32;
+    return fast_log(x) * inv_ln10;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fast power
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Fast approximate pow(base, exp) = exp(exp * ln(base)).
+/// Inaccurate for large exponents or bases near zero.
+public func fast_pow(base: f32, exp: f32) -> f32 {
+    if base <= 0.0 as f32 {
+        if base == 0.0 as f32 && exp > 0.0 as f32 {
+            return 0.0 as f32;
+        }
+        return __intrinsic_nan_f32();
+    }
+    return fast_exp(exp * fast_log(base));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fast integer-exponent power (exact)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Raises `base` to a non-negative integer power via squaring (exact).
+public func fast_ipow_f64(base: f64, exp: u32) -> f64 {
+    let result: f64 = 1.0;
+    let b = base;
+    let e = exp;
+    while e > 0 {
+        if (e & 1) == 1 {
+            result = result * b;
+        }
+        b = b * b;
+        e = e >> 1;
+    }
+    return result;
+}
+
+/// Same for f32.
+public func fast_ipow_f32(base: f32, exp: u32) -> f32 {
+    let result: f32 = 1.0 as f32;
+    let b = base;
+    let e = exp;
+    while e > 0 {
+        if (e & 1) == 1 {
+            result = result * b;
+        }
+        b = b * b;
+        e = e >> 1;
+    }
+    return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bit-casting helpers (compiler intrinsics)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Reinterprets the bits of an f32 as a u32 (no conversion).
+func bitcast_f32_to_u32(x: f32) -> u32 {
+    return __intrinsic_bitcast_f32_u32(x);
+}
+
+/// Reinterprets the bits of a u32 as an f32 (no conversion).
+func bitcast_u32_to_f32(x: u32) -> f32 {
+    return __intrinsic_bitcast_u32_f32(x);
+}

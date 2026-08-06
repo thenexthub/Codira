@@ -1,0 +1,16 @@
+---
+source: crates/codira_compiler/src/diagnostics.rs
+expression: "compilation_errors(\"\\n\\nfunc main() {\\nlet a = Foo();\\n\\nlet b = Bar();\\n}\")"
+snapshot_kind: text
+---
+error: cannot find value `Foo` in this scope
+ --> main.code:4:9
+  |
+4 | let a = Foo();
+  |         ^^^ not found in this scope
+  |error: cannot find value `Bar` in this scope
+ --> main.code:6:9
+  |
+6 | let b = Bar();
+  |         ^^^ not found in this scope
+  |

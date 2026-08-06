@@ -1,1 +1,0 @@
-{"id":5,"jsonrpc":"2.0","result":[{"data":{"isChildOrSuper":false,"isKernel":false},"kind":23,"name":"work","range":{"end":{"character":1,"line":17},"start":{"character":8,"line":14}},"selectionRange":{"end":{"character":26,"line":14},"start":{"character":22,"line":14}},"uri":"file:///d%3A/code/TypeHierarchy/test/chuanjiang/src/a/a.code"}]}

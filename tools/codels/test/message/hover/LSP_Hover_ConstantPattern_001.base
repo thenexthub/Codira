@@ -1,1 +1,0 @@
-{"id":"7","jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: constantPattern.code\nPackage info: constantPattern\n\n(variable) let Dwzz: Int64\n"},"range":{"end":{"character":13,"line":14},"start":{"character":9,"line":14}}}}

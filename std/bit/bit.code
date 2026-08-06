@@ -1,0 +1,279 @@
+// std/bit/bit.code
+// Bit manipulation utilities for Codira.
+// Provides low-level bitwise operations on unsigned and signed integer types.
+
+// ---------------------------------------------------------------------------
+// count_leading_zeros
+// Returns the number of leading zero bits in `value`.
+// For a 64-bit integer, if value == 0 the result is 64.
+// ---------------------------------------------------------------------------
+public func count_leading_zeros(value: u64) -> u32 {
+    if value == 0 {
+        return 64;
+    }
+    let mut n: u32 = 0;
+    let mut v: u64 = value;
+    if (v & 0xFFFFFFFF00000000) == 0 { n = n + 32; v = v << 32; }
+    if (v & 0xFFFF000000000000) == 0 { n = n + 16; v = v << 16; }
+    if (v & 0xFF00000000000000) == 0 { n = n + 8;  v = v << 8;  }
+    if (v & 0xF000000000000000) == 0 { n = n + 4;  v = v << 4;  }
+    if (v & 0xC000000000000000) == 0 { n = n + 2;  v = v << 2;  }
+    if (v & 0x8000000000000000) == 0 { n = n + 1; }
+    return n;
+}
+
+// Overload for u32
+public func count_leading_zeros_u32(value: u32) -> u32 {
+    if value == 0 {
+        return 32;
+    }
+    let mut n: u32 = 0;
+    let mut v: u32 = value;
+    if (v & 0xFFFF0000) == 0 { n = n + 16; v = v << 16; }
+    if (v & 0xFF000000) == 0 { n = n + 8;  v = v << 8;  }
+    if (v & 0xF0000000) == 0 { n = n + 4;  v = v << 4;  }
+    if (v & 0xC0000000) == 0 { n = n + 2;  v = v << 2;  }
+    if (v & 0x80000000) == 0 { n = n + 1; }
+    return n;
+}
+
+// ---------------------------------------------------------------------------
+// count_trailing_zeros
+// Returns the number of trailing zero bits in `value`.
+// If value == 0 the result is 64.
+// ---------------------------------------------------------------------------
+public func count_trailing_zeros(value: u64) -> u32 {
+    if value == 0 {
+        return 64;
+    }
+    let mut n: u32 = 0;
+    let mut v: u64 = value;
+    if (v & 0x00000000FFFFFFFF) == 0 { n = n + 32; v = v >> 32; }
+    if (v & 0x000000000000FFFF) == 0 { n = n + 16; v = v >> 16; }
+    if (v & 0x00000000000000FF) == 0 { n = n + 8;  v = v >> 8;  }
+    if (v & 0x000000000000000F) == 0 { n = n + 4;  v = v >> 4;  }
+    if (v & 0x0000000000000003) == 0 { n = n + 2;  v = v >> 2;  }
+    if (v & 0x0000000000000001) == 0 { n = n + 1; }
+    return n;
+}
+
+// Overload for u32
+public func count_trailing_zeros_u32(value: u32) -> u32 {
+    if value == 0 {
+        return 32;
+    }
+    let mut n: u32 = 0;
+    let mut v: u32 = value;
+    if (v & 0x0000FFFF) == 0 { n = n + 16; v = v >> 16; }
+    if (v & 0x000000FF) == 0 { n = n + 8;  v = v >> 8;  }
+    if (v & 0x0000000F) == 0 { n = n + 4;  v = v >> 4;  }
+    if (v & 0x00000003) == 0 { n = n + 2;  v = v >> 2;  }
+    if (v & 0x00000001) == 0 { n = n + 1; }
+    return n;
+}
+
+// ---------------------------------------------------------------------------
+// bit_reverse
+// Reverses all bits in a 64-bit unsigned integer.
+// ---------------------------------------------------------------------------
+public func bit_reverse(value: u64) -> u64 {
+    let mut v: u64 = value;
+    // Swap odd and even bits
+    v = ((v >> 1) & 0x5555555555555555) | ((v & 0x5555555555555555) << 1);
+    // Swap consecutive pairs
+    v = ((v >> 2) & 0x3333333333333333) | ((v & 0x3333333333333333) << 2);
+    // Swap nibbles
+    v = ((v >> 4) & 0x0F0F0F0F0F0F0F0F) | ((v & 0x0F0F0F0F0F0F0F0F) << 4);
+    // Swap bytes
+    v = ((v >> 8) & 0x00FF00FF00FF00FF) | ((v & 0x00FF00FF00FF00FF) << 8);
+    // Swap 2-byte pairs
+    v = ((v >> 16) & 0x0000FFFF0000FFFF) | ((v & 0x0000FFFF0000FFFF) << 16);
+    // Swap 4-byte halves
+    v = (v >> 32) | (v << 32);
+    return v;
+}
+
+// Reverses all bits in a 32-bit unsigned integer.
+public func bit_reverse_u32(value: u32) -> u32 {
+    let mut v: u32 = value;
+    v = ((v >> 1) & 0x55555555) | ((v & 0x55555555) << 1);
+    v = ((v >> 2) & 0x33333333) | ((v & 0x33333333) << 2);
+    v = ((v >> 4) & 0x0F0F0F0F) | ((v & 0x0F0F0F0F) << 4);
+    v = ((v >> 8) & 0x00FF00FF) | ((v & 0x00FF00FF) << 8);
+    v = (v >> 16) | (v << 16);
+    return v;
+}
+
+// ---------------------------------------------------------------------------
+// byte_swap
+// Reverses the byte order (endianness swap) of a 64-bit value.
+// ---------------------------------------------------------------------------
+public func byte_swap(value: u64) -> u64 {
+    let mut v: u64 = value;
+    v = ((v & 0x00000000000000FF) << 56)
+      | ((v & 0x000000000000FF00) << 40)
+      | ((v & 0x0000000000FF0000) << 24)
+      | ((v & 0x00000000FF000000) << 8)
+      | ((v & 0x000000FF00000000) >> 8)
+      | ((v & 0x0000FF0000000000) >> 24)
+      | ((v & 0x00FF000000000000) >> 40)
+      | ((v & 0xFF00000000000000) >> 56);
+    return v;
+}
+
+// Byte-swap for u32.
+public func byte_swap_u32(value: u32) -> u32 {
+    let mut v: u32 = value;
+    v = ((v & 0x000000FF) << 24)
+      | ((v & 0x0000FF00) << 8)
+      | ((v & 0x00FF0000) >> 8)
+      | ((v & 0xFF000000) >> 24);
+    return v;
+}
+
+// Byte-swap for u16.
+public func byte_swap_u16(value: u16) -> u16 {
+    return ((value & 0x00FF) << 8) | ((value & 0xFF00) >> 8);
+}
+
+// ---------------------------------------------------------------------------
+// pop_count
+// Returns the number of set (1) bits in `value` (population count / Hamming weight).
+// ---------------------------------------------------------------------------
+public func pop_count(value: u64) -> u32 {
+    let mut v: u64 = value;
+    v = v - ((v >> 1) & 0x5555555555555555);
+    v = (v & 0x3333333333333333) + ((v >> 2) & 0x3333333333333333);
+    v = (v + (v >> 4)) & 0x0F0F0F0F0F0F0F0F;
+    v = v * 0x0101010101010101;
+    return (v >> 56) as u32;
+}
+
+// pop_count for u32.
+public func pop_count_u32(value: u32) -> u32 {
+    let mut v: u32 = value;
+    v = v - ((v >> 1) & 0x55555555);
+    v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
+    v = (v + (v >> 4)) & 0x0F0F0F0F;
+    v = v * 0x01010101;
+    return v >> 24;
+}
+
+// ---------------------------------------------------------------------------
+// bit_width
+// Returns the minimum number of bits needed to represent `value`.
+// bit_width(0) == 0, bit_width(1) == 1, bit_width(255) == 8.
+// ---------------------------------------------------------------------------
+public func bit_width(value: u64) -> u32 {
+    if value == 0 {
+        return 0;
+    }
+    return 64 - count_leading_zeros(value);
+}
+
+// bit_width for u32.
+public func bit_width_u32(value: u32) -> u32 {
+    if value == 0 {
+        return 0;
+    }
+    return 32 - count_leading_zeros_u32(value);
+}
+
+// ---------------------------------------------------------------------------
+// bit_ceil
+// Returns the smallest power of two >= `value`.
+// bit_ceil(0) returns 1.  bit_ceil(1) returns 1.  bit_ceil(5) returns 8.
+// ---------------------------------------------------------------------------
+public func bit_ceil(value: u64) -> u64 {
+    if value <= 1 {
+        return 1;
+    }
+    let width: u32 = bit_width(value - 1);
+    return 1 as u64 << width;
+}
+
+// bit_ceil for u32.
+public func bit_ceil_u32(value: u32) -> u32 {
+    if value <= 1 {
+        return 1;
+    }
+    let width: u32 = bit_width_u32(value - 1);
+    return 1 as u32 << width;
+}
+
+// ---------------------------------------------------------------------------
+// bit_floor
+// Returns the largest power of two <= `value`.
+// bit_floor(0) returns 0.  bit_floor(7) returns 4.
+// ---------------------------------------------------------------------------
+public func bit_floor(value: u64) -> u64 {
+    if value == 0 {
+        return 0;
+    }
+    let width: u32 = bit_width(value);
+    return 1 as u64 << (width - 1);
+}
+
+// bit_floor for u32.
+public func bit_floor_u32(value: u32) -> u32 {
+    if value == 0 {
+        return 0;
+    }
+    let width: u32 = bit_width_u32(value);
+    return 1 as u32 << (width - 1);
+}
+
+// ---------------------------------------------------------------------------
+// rotate_bits_left
+// Rotates `value` left by `amount` bit positions within a 64-bit field.
+// ---------------------------------------------------------------------------
+public func rotate_bits_left(value: u64, amount: u32) -> u64 {
+    let s: u32 = amount % 64;
+    if s == 0 {
+        return value;
+    }
+    return (value << s) | (value >> (64 - s));
+}
+
+// Rotate left for u32.
+public func rotate_bits_left_u32(value: u32, amount: u32) -> u32 {
+    let s: u32 = amount % 32;
+    if s == 0 {
+        return value;
+    }
+    return (value << s) | (value >> (32 - s));
+}
+
+// ---------------------------------------------------------------------------
+// rotate_bits_right
+// Rotates `value` right by `amount` bit positions within a 64-bit field.
+// ---------------------------------------------------------------------------
+public func rotate_bits_right(value: u64, amount: u32) -> u64 {
+    let s: u32 = amount % 64;
+    if s == 0 {
+        return value;
+    }
+    return (value >> s) | (value << (64 - s));
+}
+
+// Rotate right for u32.
+public func rotate_bits_right_u32(value: u32, amount: u32) -> u32 {
+    let s: u32 = amount % 32;
+    if s == 0 {
+        return value;
+    }
+    return (value >> s) | (value << (32 - s));
+}
+
+// ---------------------------------------------------------------------------
+// is_power_of_two
+// Returns true if `value` is a non-zero power of two.
+// ---------------------------------------------------------------------------
+public func is_power_of_two(value: u64) -> bool {
+    return value != 0 && (value & (value - 1)) == 0;
+}
+
+// is_power_of_two for u32.
+public func is_power_of_two_u32(value: u32) -> bool {
+    return value != 0 && (value & (value - 1)) == 0;
+}

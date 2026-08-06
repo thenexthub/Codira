@@ -1,0 +1,41 @@
+---
+source: crates/codira_codegen/src/test.rs
+expression: "\n    pub fn foo(n:i32) -> i32 {\n        loop {\n            if n > 5 {\n                break n;\n            }\n            if n > 10 {\n                break 10;\n            }\n            n += 1;\n        }\n    }\n    "
+---
+; == FILE IR (mod) =====================================
+; ModuleID = 'mod'
+source_filename = "mod"
+
+@global_type_lookup_table = external global [1 x i64*]
+
+define i32 @foo(i32 %0) {
+body:
+  br label %loop
+
+loop:                                             ; preds = %if_merge6, %body
+  %n.0 = phi i32 [ %0, %body ], [ %add, %if_merge6 ]
+  %greater = icmp sgt i32 %n.0, 5
+  br i1 %greater, label %then, label %if_merge
+
+exit:                                             ; preds = %if_merge, %then
+  %exit8 = phi i32 [ %n.0, %then ], [ 10, %if_merge ]
+  ret i32 %exit8
+
+then:                                             ; preds = %loop
+  br label %exit
+
+if_merge:                                         ; preds = %loop
+  %greater4 = icmp sgt i32 %n.0, 10
+  br i1 %greater4, label %exit, label %if_merge6
+
+if_merge6:                                        ; preds = %if_merge
+  %add = add i32 %n.0, 1
+  br label %loop
+}
+
+; == GROUP IR (mod) ====================================
+; ModuleID = 'group_name'
+source_filename = "group_name"
+
+@global_type_lookup_table = global [1 x i64*] zeroinitializer
+

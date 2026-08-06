@@ -1,0 +1,8 @@
+[package]
+name = "bevy-simple"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+codira_runtime = { path = "../../crates/codira_runtime" }
+bevy = { version = "0.8", default-features = false }

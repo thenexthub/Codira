@@ -1,0 +1,90 @@
+// std/os/process.code
+// Process management for Codira.
+// Provides functions for process control and information retrieval.
+
+// ---------------------------------------------------------------------------
+// exit
+// Terminates the current process with the given exit code.
+// An exit code of 0 conventionally indicates success.
+// This function never returns.
+// ---------------------------------------------------------------------------
+public func exit(code: i32) -> ! {
+    _platform_exit(code);
+}
+
+// ---------------------------------------------------------------------------
+// getpid
+// Returns the process identifier (PID) of the calling process.
+// ---------------------------------------------------------------------------
+public func getpid() -> i64 {
+    return _platform_getpid();
+}
+
+// ---------------------------------------------------------------------------
+// getppid
+// Returns the parent process identifier (PPID) of the calling process.
+// On Windows, this may return 0 if the information is unavailable.
+// ---------------------------------------------------------------------------
+public func getppid() -> i64 {
+    return _platform_getppid();
+}
+
+// ---------------------------------------------------------------------------
+// abort
+// Immediately terminates the process with an abnormal exit signal.
+// Unlike exit(), this does not perform cleanup.
+// ---------------------------------------------------------------------------
+public func abort() -> ! {
+    _platform_abort();
+}
+
+// ---------------------------------------------------------------------------
+// ProcessInfo
+// Snapshot of information about the current process.
+// ---------------------------------------------------------------------------
+public struct ProcessInfo {
+    pid: i64,
+    ppid: i64,
+    executable: String,
+    args: Array<String>,
+}
+
+// ---------------------------------------------------------------------------
+// current_process
+// Returns a ProcessInfo struct describing the current process.
+// ---------------------------------------------------------------------------
+public func current_process() -> ProcessInfo {
+    return ProcessInfo {
+        pid: getpid(),
+        ppid: getppid(),
+        executable: _platform_executable_path(),
+        args: _platform_args(),
+    };
+}
+
+// ---------------------------------------------------------------------------
+// args
+// Returns the command-line arguments passed to the process.
+// The first element is typically the executable name/path.
+// ---------------------------------------------------------------------------
+public func args() -> Array<String> {
+    return _platform_args();
+}
+
+// ---------------------------------------------------------------------------
+// executable_path
+// Returns the path to the current executable binary.
+// ---------------------------------------------------------------------------
+public func executable_path() -> String {
+    return _platform_executable_path();
+}
+
+// ---------------------------------------------------------------------------
+// Platform stubs (implemented by the runtime / compiler backend).
+// ---------------------------------------------------------------------------
+extern func _platform_exit(code: i32) -> !;
+extern func _platform_getpid() -> i64;
+extern func _platform_getppid() -> i64;
+extern func _platform_abort() -> !;
+extern func _platform_args() -> Array<String>;
+extern func _platform_executable_path() -> String;

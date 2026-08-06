@@ -1,0 +1,95 @@
+// =============================================================================
+// std/gpu/profiler.code — GPU profiling functionality
+// =============================================================================
+//
+// Copyright (c) 2026, Omnira CJSC. All rights reserved.
+// Author: Tunjay Akbarli
+// Date: August 6, 2026.
+//
+// Provides GPU profiling functionality:
+//
+//   - ProfileBlock: A struct for timing code blocks
+//   - Nanosecond-precision timing using perf_counter_ns()
+//   - Formatted timing output to stderr
+//
+// The profile APIs intentionally mirror `std.time` so that profiling adds no
+// allocation beyond the formatted message.
+// =============================================================================
+
+use std.time;
+
+// =============================================================================
+// ProfileBlock
+// =============================================================================
+
+// A struct for profiling code blocks.
+//
+// Records the start time on construction and the end time when `finish` is
+// called, then prints the elapsed nanoseconds to stderr.  A block may also be
+// constructed directly from an existing start timestamp, which is convenient
+// for code that must timestamp before entering the block.
+public struct(value) ProfileBlock {
+    _name: String,
+    _start_time: u64,
+}
+
+// Initialize a new ProfileBlock with the given name, recording the current
+// performance counter as the start time.
+public func ProfileBlock.new(name: String) -> ProfileBlock {
+    return ProfileBlock { _name: name, _start_time: time.perf_counter_ns() };
+}
+
+// Initialize a ProfileBlock from an explicit start timestamp (nanoseconds
+// from `std.time.perf_counter_ns`).
+public func ProfileBlock.from_start(name: String, start_time: u64) -> ProfileBlock {
+    return ProfileBlock { _name: name, _start_time: start_time };
+}
+
+// Returns the name of this profiling block.
+public func ProfileBlock.name(self) -> String {
+    return self._name;
+}
+
+// Returns the start timestamp of this profiling block in nanoseconds.
+public func ProfileBlock.start_time(self) -> u64 {
+    return self._start_time;
+}
+
+// Returns the elapsed time since the block was started, in nanoseconds.
+public func ProfileBlock.elapsed_ns(self) -> u64 {
+    let now = time.perf_counter_ns();
+    if now >= self._start_time {
+        return now - self._start_time;
+    }
+    return 0;
+}
+
+// Records the end time and prints a formatted timing line to stderr:
+//
+//   @ <name> <elapsed> ns
+public func ProfileBlock.finish(self) -> void {
+    let elapsed = self.elapsed_ns();
+    let msg = "@ " + self._name + " " + (elapsed as i64).to_string() + " ns\n";
+    __intrinsic_write_stderr(msg);
+}
+
+// Convenience: print the elapsed time of `self` without consuming it.
+public func ProfileBlock.report(self) -> void {
+    self.finish();
+}
+
+// =============================================================================
+// Free-function helpers
+// =============================================================================
+
+// Times the callable `body` and returns the elapsed nanoseconds.  The result
+// is discarded; use `time_function` for a value-returning callable.
+public func time_block(body: func()) -> u64 {
+    let start = time.perf_counter_ns();
+    body();
+    let end = time.perf_counter_ns();
+    if end >= start {
+        return end - start;
+    }
+    return 0;
+}

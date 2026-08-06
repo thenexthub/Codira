@@ -1,0 +1,29 @@
+---
+source: crates/codira_codegen/src/test.rs
+expression: "\n    extern fn add(a:i32, b:i32) -> i32;\n    pub fn main() {\n        add(3,4);\n    }\n    "
+---
+; == FILE IR (mod) =====================================
+; ModuleID = 'mod'
+source_filename = "mod"
+
+%DispatchTable = type { i32 (i32, i32)* }
+
+@dispatchTable = external global %DispatchTable
+@global_type_lookup_table = external global [1 x i64*]
+
+define void @main() {
+body:
+  %add_ptr = load i32 (i32, i32)*, i32 (i32, i32)** getelementptr inbounds (%DispatchTable, %DispatchTable* @dispatchTable, i32 0, i32 0), align 8
+  %add = call i32 %add_ptr(i32 3, i32 4)
+  ret void
+}
+
+; == GROUP IR (mod) ====================================
+; ModuleID = 'group_name'
+source_filename = "group_name"
+
+%DispatchTable = type { i32 (i32, i32)* }
+
+@dispatchTable = global %DispatchTable zeroinitializer
+@global_type_lookup_table = global [1 x i64*] zeroinitializer
+

@@ -1,0 +1,13 @@
+---
+source: crates/codira_hir/src/ty/tests.rs
+expression: "infer(r#\"\n    //- /foo.code\n    public struct Foo {}\n\n    extend Foo {\n        func with_self(self) -> Self {\n            self\n        }\n    }\n\n    //- /mod.code\n    import foo.Foo\n\n    func main() {\n        let a = Foo {};\n        a.with_self();\n    }\n    \"#)"
+---
+54..67: method not in scope for type
+28..70 '{     ...f(); }': ()
+38..39 'a': Foo
+42..48 'Foo {}': Foo
+54..55 'a': Foo
+54..67 'a.with_self()': Foo
+54..58 'self': Foo
+68..88 '{     ...     }': Foo
+78..82 'self': Foo

@@ -1,0 +1,196 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n        comptime func fibonacci(n: i32) -> i32 {\n            n\n        }\n\n        struct Box[T] {\n            value: T\n        }\n\n        func max[T](a: T, b: T) -> T where T: Comparable {\n            a\n        }\n\n        func use_it() -> i32 {\n            comptime {\n                fibonacci(10)\n            }\n        }\n        \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..331
+  FUNCTION_DEF@0..73
+    WHITESPACE@0..9 "\n        "
+    COMPTIME_KW@9..17 "comptime"
+    WHITESPACE@17..18 " "
+    FUNC_KW@18..22 "func"
+    WHITESPACE@22..23 " "
+    NAME@23..32
+      IDENT@23..32 "fibonacci"
+    PARAM_LIST@32..40
+      L_PAREN@32..33 "("
+      PARAM@33..39
+        BIND_PAT@33..34
+          NAME@33..34
+            IDENT@33..34 "n"
+        COLON@34..35 ":"
+        WHITESPACE@35..36 " "
+        PATH_TYPE@36..39
+          PATH@36..39
+            PATH_SEGMENT@36..39
+              NAME_REF@36..39
+                IDENT@36..39 "i32"
+      R_PAREN@39..40 ")"
+    WHITESPACE@40..41 " "
+    RET_TYPE@41..47
+      THIN_ARROW@41..43 "->"
+      WHITESPACE@43..44 " "
+      PATH_TYPE@44..47
+        PATH@44..47
+          PATH_SEGMENT@44..47
+            NAME_REF@44..47
+              IDENT@44..47 "i32"
+    WHITESPACE@47..48 " "
+    BLOCK_EXPR@48..73
+      L_CURLY@48..49 "{"
+      WHITESPACE@49..62 "\n            "
+      PATH_EXPR@62..63
+        PATH@62..63
+          PATH_SEGMENT@62..63
+            NAME_REF@62..63
+              IDENT@62..63 "n"
+      WHITESPACE@63..72 "\n        "
+      R_CURLY@72..73 "}"
+  WHITESPACE@73..83 "\n\n        "
+  STRUCT_DEF@83..129
+    STRUCT_KW@83..89 "struct"
+    WHITESPACE@89..90 " "
+    NAME@90..93
+      IDENT@90..93 "Box"
+    GENERIC_PARAM_LIST@93..96
+      L_BRACKET@93..94 "["
+      GENERIC_PARAM@94..95
+        NAME@94..95
+          IDENT@94..95 "T"
+      R_BRACKET@95..96 "]"
+    WHITESPACE@96..97 " "
+    RECORD_FIELD_DEF_LIST@97..129
+      L_CURLY@97..98 "{"
+      WHITESPACE@98..111 "\n            "
+      RECORD_FIELD_DEF@111..119
+        NAME@111..116
+          IDENT@111..116 "value"
+        COLON@116..117 ":"
+        WHITESPACE@117..118 " "
+        PATH_TYPE@118..119
+          PATH@118..119
+            PATH_SEGMENT@118..119
+              NAME_REF@118..119
+                IDENT@118..119 "T"
+      WHITESPACE@119..128 "\n        "
+      R_CURLY@128..129 "}"
+  WHITESPACE@129..139 "\n\n        "
+  FUNCTION_DEF@139..213
+    FUNC_KW@139..143 "func"
+    WHITESPACE@143..144 " "
+    NAME@144..147
+      IDENT@144..147 "max"
+    GENERIC_PARAM_LIST@147..150
+      L_BRACKET@147..148 "["
+      GENERIC_PARAM@148..149
+        NAME@148..149
+          IDENT@148..149 "T"
+      R_BRACKET@149..150 "]"
+    PARAM_LIST@150..162
+      L_PAREN@150..151 "("
+      PARAM@151..155
+        BIND_PAT@151..152
+          NAME@151..152
+            IDENT@151..152 "a"
+        COLON@152..153 ":"
+        WHITESPACE@153..154 " "
+        PATH_TYPE@154..155
+          PATH@154..155
+            PATH_SEGMENT@154..155
+              NAME_REF@154..155
+                IDENT@154..155 "T"
+      COMMA@155..156 ","
+      WHITESPACE@156..157 " "
+      PARAM@157..161
+        BIND_PAT@157..158
+          NAME@157..158
+            IDENT@157..158 "b"
+        COLON@158..159 ":"
+        WHITESPACE@159..160 " "
+        PATH_TYPE@160..161
+          PATH@160..161
+            PATH_SEGMENT@160..161
+              NAME_REF@160..161
+                IDENT@160..161 "T"
+      R_PAREN@161..162 ")"
+    WHITESPACE@162..163 " "
+    RET_TYPE@163..167
+      THIN_ARROW@163..165 "->"
+      WHITESPACE@165..166 " "
+      PATH_TYPE@166..167
+        PATH@166..167
+          PATH_SEGMENT@166..167
+            NAME_REF@166..167
+              IDENT@166..167 "T"
+    WHITESPACE@167..168 " "
+    WHERE_CLAUSE@168..187
+      WHERE_KW@168..173 "where"
+      WHITESPACE@173..174 " "
+      WHERE_PRED@174..187
+        PATH_TYPE@174..175
+          PATH@174..175
+            PATH_SEGMENT@174..175
+              NAME_REF@174..175
+                IDENT@174..175 "T"
+        COLON@175..176 ":"
+        WHITESPACE@176..177 " "
+        PATH_TYPE@177..187
+          PATH@177..187
+            PATH_SEGMENT@177..187
+              NAME_REF@177..187
+                IDENT@177..187 "Comparable"
+    WHITESPACE@187..188 " "
+    BLOCK_EXPR@188..213
+      L_CURLY@188..189 "{"
+      WHITESPACE@189..202 "\n            "
+      PATH_EXPR@202..203
+        PATH@202..203
+          PATH_SEGMENT@202..203
+            NAME_REF@202..203
+              IDENT@202..203 "a"
+      WHITESPACE@203..212 "\n        "
+      R_CURLY@212..213 "}"
+  WHITESPACE@213..223 "\n\n        "
+  FUNCTION_DEF@223..322
+    FUNC_KW@223..227 "func"
+    WHITESPACE@227..228 " "
+    NAME@228..234
+      IDENT@228..234 "use_it"
+    PARAM_LIST@234..236
+      L_PAREN@234..235 "("
+      R_PAREN@235..236 ")"
+    WHITESPACE@236..237 " "
+    RET_TYPE@237..243
+      THIN_ARROW@237..239 "->"
+      WHITESPACE@239..240 " "
+      PATH_TYPE@240..243
+        PATH@240..243
+          PATH_SEGMENT@240..243
+            NAME_REF@240..243
+              IDENT@240..243 "i32"
+    WHITESPACE@243..244 " "
+    BLOCK_EXPR@244..322
+      L_CURLY@244..245 "{"
+      WHITESPACE@245..258 "\n            "
+      COMPTIME_EXPR@258..312
+        COMPTIME_KW@258..266 "comptime"
+        WHITESPACE@266..267 " "
+        BLOCK_EXPR@267..312
+          L_CURLY@267..268 "{"
+          WHITESPACE@268..285 "\n                "
+          CALL_EXPR@285..298
+            PATH_EXPR@285..294
+              PATH@285..294
+                PATH_SEGMENT@285..294
+                  NAME_REF@285..294
+                    IDENT@285..294 "fibonacci"
+            ARG_LIST@294..298
+              L_PAREN@294..295 "("
+              LITERAL@295..297
+                INT_NUMBER@295..297 "10"
+              R_PAREN@297..298 ")"
+          WHITESPACE@298..311 "\n            "
+          R_CURLY@311..312 "}"
+      WHITESPACE@312..321 "\n        "
+      R_CURLY@321..322 "}"
+  WHITESPACE@322..331 "\n        "

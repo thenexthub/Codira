@@ -1,2 +1,0 @@
-get_unknown_class_field
-call_unknown_class_method

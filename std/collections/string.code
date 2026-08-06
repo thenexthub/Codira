@@ -1,0 +1,579 @@
+// std/collections/string.code
+// String — a growable, UTF-8 encoded string type.
+// Built on top of a byte buffer (List[u8]) with string-specific operations.
+
+// ─────────────────────────────────────────────────────────────────────────────
+// String — heap-allocated, growable UTF-8 string.
+// ─────────────────────────────────────────────────────────────────────────────
+
+struct(gc) String {
+    data: Pointer[u8],
+    len:  usize,        // byte length (not code-point count)
+    cap:  usize,
+}
+
+// ── Construction ─────────────────────────────────────────────────────────────
+
+/// Creates a new, empty string.
+public func string_new() -> String {
+    return String { data: null_ptr[u8](), len: 0, cap: 0 };
+}
+
+/// Creates a string with pre-allocated capacity for `cap` bytes.
+public func string_with_capacity(cap: usize) -> String {
+    let ptr = heap_alloc[u8](cap);
+    return String { data: ptr, len: 0, cap: cap };
+}
+
+/// Creates a string from a raw byte span (must be valid UTF-8).
+public func string_from_bytes(bytes: Span[u8]) -> String {
+    let s = string_with_capacity(bytes.len);
+    let i: usize = 0;
+    while i < bytes.len {
+        raw_store(s.data, i, span_get(bytes, i));
+        i = i + 1;
+    }
+    s.len = bytes.len;
+    return s;
+}
+
+/// Creates a string from a string literal (compiler intrinsic).
+public func string_from_literal(lit: StringLiteral) -> String {
+    return string_from_bytes(literal_bytes(lit));
+}
+
+// ── Internal helpers ─────────────────────────────────────────────────────────
+
+func string_grow(self: String, min_cap: usize) -> String {
+    let new_cap = self.cap;
+    if new_cap == 0 {
+        new_cap = 8;
+    }
+    while new_cap < min_cap {
+        new_cap = new_cap * 2;
+    }
+    let new_data = heap_alloc[u8](new_cap);
+    let i: usize = 0;
+    while i < self.len {
+        raw_store(new_data, i, raw_load(self.data, i));
+        i = i + 1;
+    }
+    if self.cap > 0 {
+        heap_free(self.data);
+    }
+    return String { data: new_data, len: self.len, cap: new_cap };
+}
+
+// ── Core API ─────────────────────────────────────────────────────────────────
+
+/// Returns the byte length of the string.
+public func len(self: String) -> usize {
+    return self.len;
+}
+
+/// Returns true if the string contains zero bytes.
+public func is_empty(self: String) -> bool {
+    return self.len == 0;
+}
+
+/// Returns the byte at `index`. Panics if out of bounds.
+public func byte_at(self: String, index: usize) -> u8 {
+    if index >= self.len {
+        panic("String.byte_at: index out of bounds");
+    }
+    return raw_load(self.data, index);
+}
+
+// ── Mutation ─────────────────────────────────────────────────────────────────
+
+/// Appends the contents of `other` to the end of `self`.
+public func append(self: String, other: String) -> String {
+    let out = self;
+    if out.len + other.len > out.cap {
+        out = string_grow(out, out.len + other.len);
+    }
+    let i: usize = 0;
+    while i < other.len {
+        raw_store(out.data, out.len + i, raw_load(other.data, i));
+        i = i + 1;
+    }
+    out.len = out.len + other.len;
+    return out;
+}
+
+/// Appends a single byte (ASCII character) to the string.
+public func push_byte(self: String, b: u8) -> String {
+    let out = self;
+    if out.len + 1 > out.cap {
+        out = string_grow(out, out.len + 1);
+    }
+    raw_store(out.data, out.len, b);
+    out.len = out.len + 1;
+    return out;
+}
+
+/// Inserts the string `other` at byte position `index`.
+public func insert(self: String, index: usize, other: String) -> String {
+    if index > self.len {
+        panic("String.insert: index out of bounds");
+    }
+    let new_len = self.len + other.len;
+    let out = self;
+    if new_len > out.cap {
+        out = string_grow(out, new_len);
+    }
+    // Shift existing bytes right
+    let i = out.len;
+    while i > index {
+        raw_store(out.data, i + other.len - 1, raw_load(out.data, i - 1));
+        i = i - 1;
+    }
+    // Copy `other` into the gap
+    i = 0;
+    while i < other.len {
+        raw_store(out.data, index + i, raw_load(other.data, i));
+        i = i + 1;
+    }
+    out.len = new_len;
+    return out;
+}
+
+/// Removes `count` bytes starting at `index`.
+public func remove(self: String, index: usize, count: usize) -> String {
+    if index + count > self.len {
+        panic("String.remove: range out of bounds");
+    }
+    let i = index;
+    while i + count < self.len {
+        raw_store(self.data, i, raw_load(self.data, i + count));
+        i = i + 1;
+    }
+    let out = self;
+    out.len = out.len - count;
+    return out;
+}
+
+// ── Search ───────────────────────────────────────────────────────────────────
+
+/// Returns the byte index of the first occurrence of `needle`, or -1 if not found.
+public func find(self: String, needle: String) -> isize {
+    if needle.len == 0 {
+        return 0;
+    }
+    if needle.len > self.len {
+        return -1;
+    }
+    let i: usize = 0;
+    while i <= self.len - needle.len {
+        let found = true;
+        let j: usize = 0;
+        while j < needle.len {
+            if raw_load(self.data, i + j) != raw_load(needle.data, j) {
+                found = false;
+                break;
+            }
+            j = j + 1;
+        }
+        if found {
+            return i as isize;
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
+/// Returns the byte index of the last occurrence of `needle`, or -1.
+public func rfind(self: String, needle: String) -> isize {
+    if needle.len == 0 {
+        return self.len as isize;
+    }
+    if needle.len > self.len {
+        return -1;
+    }
+    let i: isize = (self.len - needle.len) as isize;
+    while i >= 0 {
+        let found = true;
+        let j: usize = 0;
+        while j < needle.len {
+            if raw_load(self.data, (i as usize) + j) != raw_load(needle.data, j) {
+                found = false;
+                break;
+            }
+            j = j + 1;
+        }
+        if found {
+            return i;
+        }
+        i = i - 1;
+    }
+    return -1;
+}
+
+/// Returns true if `self` contains `needle`.
+public func contains(self: String, needle: String) -> bool {
+    return find(self, needle) >= 0;
+}
+
+/// Returns true if `self` starts with `prefix`.
+public func starts_with(self: String, prefix: String) -> bool {
+    if prefix.len > self.len {
+        return false;
+    }
+    let i: usize = 0;
+    while i < prefix.len {
+        if raw_load(self.data, i) != raw_load(prefix.data, i) {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+/// Returns true if `self` ends with `suffix`.
+public func ends_with(self: String, suffix: String) -> bool {
+    if suffix.len > self.len {
+        return false;
+    }
+    let offset = self.len - suffix.len;
+    let i: usize = 0;
+    while i < suffix.len {
+        if raw_load(self.data, offset + i) != raw_load(suffix.data, i) {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+// ── Replacement ──────────────────────────────────────────────────────────────
+
+/// Replaces all occurrences of `old` with `new_str`.
+public func replace(self: String, old: String, new_str: String) -> String {
+    if old.len == 0 {
+        return self;
+    }
+    let result = string_new();
+    let i: usize = 0;
+    while i < self.len {
+        // Check for match at position i
+        if i + old.len <= self.len {
+            let found = true;
+            let j: usize = 0;
+            while j < old.len {
+                if raw_load(self.data, i + j) != raw_load(old.data, j) {
+                    found = false;
+                    break;
+                }
+                j = j + 1;
+            }
+            if found {
+                result = append(result, new_str);
+                i = i + old.len;
+                continue;
+            }
+        }
+        result = push_byte(result, raw_load(self.data, i));
+        i = i + 1;
+    }
+    return result;
+}
+
+// ── Splitting and joining ────────────────────────────────────────────────────
+
+/// Splits the string by `delimiter`, returning a List of substrings.
+public func split(self: String, delimiter: String) -> List[String] {
+    let parts = list_new[String]();
+    if delimiter.len == 0 {
+        // Split into individual bytes
+        let i: usize = 0;
+        while i < self.len {
+            parts = push(parts, substring(self, i, i + 1));
+            i = i + 1;
+        }
+        return parts;
+    }
+    let start: usize = 0;
+    let i: usize = 0;
+    while i <= self.len - delimiter.len {
+        let found = true;
+        let j: usize = 0;
+        while j < delimiter.len {
+            if raw_load(self.data, i + j) != raw_load(delimiter.data, j) {
+                found = false;
+                break;
+            }
+            j = j + 1;
+        }
+        if found {
+            parts = push(parts, substring(self, start, i));
+            start = i + delimiter.len;
+            i = start;
+        } else {
+            i = i + 1;
+        }
+    }
+    // Remainder
+    parts = push(parts, substring(self, start, self.len));
+    return parts;
+}
+
+/// Joins a list of strings with `separator` between them.
+public func join(separator: String, parts: List[String]) -> String {
+    if parts.len == 0 {
+        return string_new();
+    }
+    // Estimate total length
+    let total: usize = 0;
+    let i: usize = 0;
+    while i < parts.len {
+        total = total + get(parts, i).len;
+        i = i + 1;
+    }
+    total = total + separator.len * (parts.len - 1);
+
+    let result = string_with_capacity(total);
+    i = 0;
+    while i < parts.len {
+        if i > 0 {
+            result = append(result, separator);
+        }
+        result = append(result, get(parts, i));
+        i = i + 1;
+    }
+    return result;
+}
+
+// ── Trimming ─────────────────────────────────────────────────────────────────
+
+/// Returns true if `b` is ASCII whitespace.
+func is_whitespace(b: u8) -> bool {
+    return b == 32 || b == 9 || b == 10 || b == 13; // space, tab, LF, CR
+}
+
+/// Removes leading and trailing whitespace.
+public func trim(self: String) -> String {
+    let start: usize = 0;
+    while start < self.len && is_whitespace(raw_load(self.data, start)) {
+        start = start + 1;
+    }
+    let end = self.len;
+    while end > start && is_whitespace(raw_load(self.data, end - 1)) {
+        end = end - 1;
+    }
+    return substring(self, start, end);
+}
+
+/// Removes leading whitespace.
+public func trim_start(self: String) -> String {
+    let start: usize = 0;
+    while start < self.len && is_whitespace(raw_load(self.data, start)) {
+        start = start + 1;
+    }
+    return substring(self, start, self.len);
+}
+
+/// Removes trailing whitespace.
+public func trim_end(self: String) -> String {
+    let end = self.len;
+    while end > 0 && is_whitespace(raw_load(self.data, end - 1)) {
+        end = end - 1;
+    }
+    return substring(self, 0, end);
+}
+
+// ── Case conversion ──────────────────────────────────────────────────────────
+
+/// Converts ASCII characters to uppercase.
+public func to_upper(self: String) -> String {
+    let out = string_with_capacity(self.len);
+    let i: usize = 0;
+    while i < self.len {
+        let b = raw_load(self.data, i);
+        // 'a' = 97, 'z' = 122
+        if b >= 97 && b <= 122 {
+            raw_store(out.data, i, b - 32);
+        } else {
+            raw_store(out.data, i, b);
+        }
+        i = i + 1;
+    }
+    out.len = self.len;
+    return out;
+}
+
+/// Converts ASCII characters to lowercase.
+public func to_lower(self: String) -> String {
+    let out = string_with_capacity(self.len);
+    let i: usize = 0;
+    while i < self.len {
+        let b = raw_load(self.data, i);
+        // 'A' = 65, 'Z' = 90
+        if b >= 65 && b <= 90 {
+            raw_store(out.data, i, b + 32);
+        } else {
+            raw_store(out.data, i, b);
+        }
+        i = i + 1;
+    }
+    out.len = self.len;
+    return out;
+}
+
+// ── Substrings ───────────────────────────────────────────────────────────────
+
+/// Returns a new string containing bytes from `start` (inclusive) to `end` (exclusive).
+public func substring(self: String, start: usize, end: usize) -> String {
+    if start > end || end > self.len {
+        panic("String.substring: invalid range");
+    }
+    let new_len = end - start;
+    let out = string_with_capacity(new_len);
+    let i: usize = 0;
+    while i < new_len {
+        raw_store(out.data, i, raw_load(self.data, start + i));
+        i = i + 1;
+    }
+    out.len = new_len;
+    return out;
+}
+
+// ── Byte / char views ────────────────────────────────────────────────────────
+
+/// Returns the raw bytes of the string as a List[u8].
+public func bytes(self: String) -> List[u8] {
+    let out = list_with_capacity[u8](self.len);
+    let i: usize = 0;
+    while i < self.len {
+        out = push(out, raw_load(self.data, i));
+        i = i + 1;
+    }
+    return out;
+}
+
+/// Returns a list of individual character strings (ASCII; one byte each for non-multibyte).
+public func chars(self: String) -> List[String] {
+    let out = list_new[String]();
+    let i: usize = 0;
+    while i < self.len {
+        let b = raw_load(self.data, i);
+        // Determine UTF-8 code-point length
+        let cp_len: usize = 1;
+        if b >= 0xF0 {
+            cp_len = 4;
+        } else if b >= 0xE0 {
+            cp_len = 3;
+        } else if b >= 0xC0 {
+            cp_len = 2;
+        }
+        if i + cp_len > self.len {
+            cp_len = 1; // safety fallback
+        }
+        out = push(out, substring(self, i, i + cp_len));
+        i = i + cp_len;
+    }
+    return out;
+}
+
+// ── Repetition ───────────────────────────────────────────────────────────────
+
+/// Returns a new string that repeats `self` `n` times.
+public func repeat(self: String, n: usize) -> String {
+    let total = self.len * n;
+    let out = string_with_capacity(total);
+    let i: usize = 0;
+    while i < n {
+        let j: usize = 0;
+        while j < self.len {
+            raw_store(out.data, out.len, raw_load(self.data, j));
+            out.len = out.len + 1;
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    return out;
+}
+
+/// Reverses the string byte-by-byte (correct only for ASCII).
+public func reverse(self: String) -> String {
+    let out = string_with_capacity(self.len);
+    let i: usize = 0;
+    while i < self.len {
+        raw_store(out.data, i, raw_load(self.data, self.len - 1 - i));
+        i = i + 1;
+    }
+    out.len = self.len;
+    return out;
+}
+
+// ── Formatting ───────────────────────────────────────────────────────────────
+
+/// Simple positional formatting. Replaces `{0}`, `{1}`, ... with corresponding args.
+public func format(template: String, args: List[String]) -> String {
+    let result = template;
+    let i: usize = 0;
+    while i < args.len {
+        let placeholder = string_from_literal("{");
+        placeholder = append(placeholder, int_to_string(i));
+        placeholder = append(placeholder, string_from_literal("}"));
+        result = replace(result, placeholder, get(args, i));
+        i = i + 1;
+    }
+    return result;
+}
+
+/// Converts a usize integer to its decimal string representation.
+func int_to_string(n: usize) -> String {
+    if n == 0 {
+        return string_from_literal("0");
+    }
+    let buf = string_with_capacity(20);
+    let v = n;
+    while v > 0 {
+        let digit = (v % 10) as u8 + 48; // '0' = 48
+        buf = push_byte(buf, digit);
+        v = v / 10;
+    }
+    return reverse(buf);
+}
+
+// ── Comparison ───────────────────────────────────────────────────────────────
+
+/// Lexicographic comparison. Returns -1, 0, or 1.
+public func compare(a: String, b: String) -> i32 {
+    let min_len = a.len;
+    if b.len < min_len {
+        min_len = b.len;
+    }
+    let i: usize = 0;
+    while i < min_len {
+        let ab = raw_load(a.data, i);
+        let bb = raw_load(b.data, i);
+        if ab < bb {
+            return -1;
+        }
+        if ab > bb {
+            return 1;
+        }
+        i = i + 1;
+    }
+    if a.len < b.len {
+        return -1;
+    }
+    if a.len > b.len {
+        return 1;
+    }
+    return 0;
+}
+
+/// Returns true if two strings have identical content.
+public func equals(a: String, b: String) -> bool {
+    return compare(a, b) == 0;
+}
+
+// ── Cleanup ──────────────────────────────────────────────────────────────────
+
+public func drop(self: String) {
+    if self.cap > 0 {
+        heap_free(self.data);
+    }
+}

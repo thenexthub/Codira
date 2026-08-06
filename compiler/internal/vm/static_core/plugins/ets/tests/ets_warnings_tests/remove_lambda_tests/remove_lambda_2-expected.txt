@@ -1,3 +1,0 @@
-[remove_lambda_2.ets:18:11] Warning W0006: Replace the lambda function with a regular function.
-[remove_lambda_2.ets:20:11] Warning W0006: Replace the lambda function with a regular function.
-[remove_lambda_2.ets:22:11] Warning W0006: Replace the lambda function with a regular function.

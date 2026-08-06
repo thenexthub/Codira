@@ -1,0 +1,271 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n        trait Shape {\n            func area(self) -> f64;\n            func perimeter(self) -> f64 { 0.0 }\n        }\n\n        class Animal {\n            var name: i32\n        }\n\n        class Dog: Animal, Shape {\n            var breed: i32\n        }\n\n        extend Dog {\n            override func area(self) -> f64 { 0.0 }\n        }\n\n        extend Animal {\n            func speak(self) -> i32 { 0 }\n        }\n\n        extend Animal: Shape {\n            func perimeter(self) -> f64 { 1.0 }\n        }\n        \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..509
+  WHITESPACE@0..9 "\n        "
+  TRAIT_DEF@9..116
+    TRAIT_KW@9..14 "trait"
+    WHITESPACE@14..15 " "
+    NAME@15..20
+      IDENT@15..20 "Shape"
+    WHITESPACE@20..21 " "
+    EXTEND_ITEM_LIST@21..116
+      L_CURLY@21..22 "{"
+      FUNCTION_DEF@22..58
+        WHITESPACE@22..35 "\n            "
+        FUNC_KW@35..39 "func"
+        WHITESPACE@39..40 " "
+        NAME@40..44
+          IDENT@40..44 "area"
+        PARAM_LIST@44..50
+          L_PAREN@44..45 "("
+          SELF_PARAM@45..49
+            NAME@45..49
+              SELF_KW@45..49 "self"
+          R_PAREN@49..50 ")"
+        WHITESPACE@50..51 " "
+        RET_TYPE@51..57
+          THIN_ARROW@51..53 "->"
+          WHITESPACE@53..54 " "
+          PATH_TYPE@54..57
+            PATH@54..57
+              PATH_SEGMENT@54..57
+                NAME_REF@54..57
+                  IDENT@54..57 "f64"
+        SEMI@57..58 ";"
+      FUNCTION_DEF@58..106
+        WHITESPACE@58..71 "\n            "
+        FUNC_KW@71..75 "func"
+        WHITESPACE@75..76 " "
+        NAME@76..85
+          IDENT@76..85 "perimeter"
+        PARAM_LIST@85..91
+          L_PAREN@85..86 "("
+          SELF_PARAM@86..90
+            NAME@86..90
+              SELF_KW@86..90 "self"
+          R_PAREN@90..91 ")"
+        WHITESPACE@91..92 " "
+        RET_TYPE@92..98
+          THIN_ARROW@92..94 "->"
+          WHITESPACE@94..95 " "
+          PATH_TYPE@95..98
+            PATH@95..98
+              PATH_SEGMENT@95..98
+                NAME_REF@95..98
+                  IDENT@95..98 "f64"
+        WHITESPACE@98..99 " "
+        BLOCK_EXPR@99..106
+          L_CURLY@99..100 "{"
+          WHITESPACE@100..101 " "
+          LITERAL@101..104
+            FLOAT_NUMBER@101..104 "0.0"
+          WHITESPACE@104..105 " "
+          R_CURLY@105..106 "}"
+      WHITESPACE@106..115 "\n        "
+      R_CURLY@115..116 "}"
+  WHITESPACE@116..126 "\n\n        "
+  STRUCT_DEF@126..176
+    CLASS_KW@126..131 "class"
+    WHITESPACE@131..132 " "
+    NAME@132..138
+      IDENT@132..138 "Animal"
+    WHITESPACE@138..139 " "
+    RECORD_FIELD_DEF_LIST@139..176
+      L_CURLY@139..140 "{"
+      WHITESPACE@140..153 "\n            "
+      RECORD_FIELD_DEF@153..166
+        VAR_KW@153..156 "var"
+        WHITESPACE@156..157 " "
+        NAME@157..161
+          IDENT@157..161 "name"
+        COLON@161..162 ":"
+        WHITESPACE@162..163 " "
+        PATH_TYPE@163..166
+          PATH@163..166
+            PATH_SEGMENT@163..166
+              NAME_REF@163..166
+                IDENT@163..166 "i32"
+      WHITESPACE@166..175 "\n        "
+      R_CURLY@175..176 "}"
+  WHITESPACE@176..186 "\n\n        "
+  STRUCT_DEF@186..249
+    CLASS_KW@186..191 "class"
+    WHITESPACE@191..192 " "
+    NAME@192..195
+      IDENT@192..195 "Dog"
+    INHERITANCE_LIST@195..210
+      COLON@195..196 ":"
+      WHITESPACE@196..197 " "
+      PATH_TYPE@197..203
+        PATH@197..203
+          PATH_SEGMENT@197..203
+            NAME_REF@197..203
+              IDENT@197..203 "Animal"
+      COMMA@203..204 ","
+      WHITESPACE@204..205 " "
+      PATH_TYPE@205..210
+        PATH@205..210
+          PATH_SEGMENT@205..210
+            NAME_REF@205..210
+              IDENT@205..210 "Shape"
+    WHITESPACE@210..211 " "
+    RECORD_FIELD_DEF_LIST@211..249
+      L_CURLY@211..212 "{"
+      WHITESPACE@212..225 "\n            "
+      RECORD_FIELD_DEF@225..239
+        VAR_KW@225..228 "var"
+        WHITESPACE@228..229 " "
+        NAME@229..234
+          IDENT@229..234 "breed"
+        COLON@234..235 ":"
+        WHITESPACE@235..236 " "
+        PATH_TYPE@236..239
+          PATH@236..239
+            PATH_SEGMENT@236..239
+              NAME_REF@236..239
+                IDENT@236..239 "i32"
+      WHITESPACE@239..248 "\n        "
+      R_CURLY@248..249 "}"
+  WHITESPACE@249..259 "\n\n        "
+  EXTEND@259..333
+    EXTEND_KW@259..265 "extend"
+    WHITESPACE@265..266 " "
+    PATH_TYPE@266..269
+      PATH@266..269
+        PATH_SEGMENT@266..269
+          NAME_REF@266..269
+            IDENT@266..269 "Dog"
+    WHITESPACE@269..270 " "
+    EXTEND_ITEM_LIST@270..333
+      L_CURLY@270..271 "{"
+      FUNCTION_DEF@271..323
+        WHITESPACE@271..284 "\n            "
+        OVERRIDE_KW@284..292 "override"
+        WHITESPACE@292..293 " "
+        FUNC_KW@293..297 "func"
+        WHITESPACE@297..298 " "
+        NAME@298..302
+          IDENT@298..302 "area"
+        PARAM_LIST@302..308
+          L_PAREN@302..303 "("
+          SELF_PARAM@303..307
+            NAME@303..307
+              SELF_KW@303..307 "self"
+          R_PAREN@307..308 ")"
+        WHITESPACE@308..309 " "
+        RET_TYPE@309..315
+          THIN_ARROW@309..311 "->"
+          WHITESPACE@311..312 " "
+          PATH_TYPE@312..315
+            PATH@312..315
+              PATH_SEGMENT@312..315
+                NAME_REF@312..315
+                  IDENT@312..315 "f64"
+        WHITESPACE@315..316 " "
+        BLOCK_EXPR@316..323
+          L_CURLY@316..317 "{"
+          WHITESPACE@317..318 " "
+          LITERAL@318..321
+            FLOAT_NUMBER@318..321 "0.0"
+          WHITESPACE@321..322 " "
+          R_CURLY@322..323 "}"
+      WHITESPACE@323..332 "\n        "
+      R_CURLY@332..333 "}"
+  WHITESPACE@333..343 "\n\n        "
+  EXTEND@343..410
+    EXTEND_KW@343..349 "extend"
+    WHITESPACE@349..350 " "
+    PATH_TYPE@350..356
+      PATH@350..356
+        PATH_SEGMENT@350..356
+          NAME_REF@350..356
+            IDENT@350..356 "Animal"
+    WHITESPACE@356..357 " "
+    EXTEND_ITEM_LIST@357..410
+      L_CURLY@357..358 "{"
+      FUNCTION_DEF@358..400
+        WHITESPACE@358..371 "\n            "
+        FUNC_KW@371..375 "func"
+        WHITESPACE@375..376 " "
+        NAME@376..381
+          IDENT@376..381 "speak"
+        PARAM_LIST@381..387
+          L_PAREN@381..382 "("
+          SELF_PARAM@382..386
+            NAME@382..386
+              SELF_KW@382..386 "self"
+          R_PAREN@386..387 ")"
+        WHITESPACE@387..388 " "
+        RET_TYPE@388..394
+          THIN_ARROW@388..390 "->"
+          WHITESPACE@390..391 " "
+          PATH_TYPE@391..394
+            PATH@391..394
+              PATH_SEGMENT@391..394
+                NAME_REF@391..394
+                  IDENT@391..394 "i32"
+        WHITESPACE@394..395 " "
+        BLOCK_EXPR@395..400
+          L_CURLY@395..396 "{"
+          WHITESPACE@396..397 " "
+          LITERAL@397..398
+            INT_NUMBER@397..398 "0"
+          WHITESPACE@398..399 " "
+          R_CURLY@399..400 "}"
+      WHITESPACE@400..409 "\n        "
+      R_CURLY@409..410 "}"
+  WHITESPACE@410..420 "\n\n        "
+  EXTEND@420..500
+    EXTEND_KW@420..426 "extend"
+    WHITESPACE@426..427 " "
+    PATH_TYPE@427..433
+      PATH@427..433
+        PATH_SEGMENT@427..433
+          NAME_REF@427..433
+            IDENT@427..433 "Animal"
+    INHERITANCE_LIST@433..440
+      COLON@433..434 ":"
+      WHITESPACE@434..435 " "
+      PATH_TYPE@435..440
+        PATH@435..440
+          PATH_SEGMENT@435..440
+            NAME_REF@435..440
+              IDENT@435..440 "Shape"
+    WHITESPACE@440..441 " "
+    EXTEND_ITEM_LIST@441..500
+      L_CURLY@441..442 "{"
+      FUNCTION_DEF@442..490
+        WHITESPACE@442..455 "\n            "
+        FUNC_KW@455..459 "func"
+        WHITESPACE@459..460 " "
+        NAME@460..469
+          IDENT@460..469 "perimeter"
+        PARAM_LIST@469..475
+          L_PAREN@469..470 "("
+          SELF_PARAM@470..474
+            NAME@470..474
+              SELF_KW@470..474 "self"
+          R_PAREN@474..475 ")"
+        WHITESPACE@475..476 " "
+        RET_TYPE@476..482
+          THIN_ARROW@476..478 "->"
+          WHITESPACE@478..479 " "
+          PATH_TYPE@479..482
+            PATH@479..482
+              PATH_SEGMENT@479..482
+                NAME_REF@479..482
+                  IDENT@479..482 "f64"
+        WHITESPACE@482..483 " "
+        BLOCK_EXPR@483..490
+          L_CURLY@483..484 "{"
+          WHITESPACE@484..485 " "
+          LITERAL@485..488
+            FLOAT_NUMBER@485..488 "1.0"
+          WHITESPACE@488..489 " "
+          R_CURLY@489..490 "}"
+      WHITESPACE@490..499 "\n        "
+      R_CURLY@499..500 "}"
+  WHITESPACE@500..509 "\n        "

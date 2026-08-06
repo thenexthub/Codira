@@ -1,0 +1,27 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    func foo() {\n        loop {}\n    }\"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..39
+  FUNCTION_DEF@0..39
+    WHITESPACE@0..5 "\n    "
+    FUNC_KW@5..9 "func"
+    WHITESPACE@9..10 " "
+    NAME@10..13
+      IDENT@10..13 "foo"
+    PARAM_LIST@13..15
+      L_PAREN@13..14 "("
+      R_PAREN@14..15 ")"
+    WHITESPACE@15..16 " "
+    BLOCK_EXPR@16..39
+      L_CURLY@16..17 "{"
+      WHITESPACE@17..26 "\n        "
+      LOOP_EXPR@26..33
+        LOOP_KW@26..30 "loop"
+        WHITESPACE@30..31 " "
+        BLOCK_EXPR@31..33
+          L_CURLY@31..32 "{"
+          R_CURLY@32..33 "}"
+      WHITESPACE@33..38 "\n    "
+      R_CURLY@38..39 "}"

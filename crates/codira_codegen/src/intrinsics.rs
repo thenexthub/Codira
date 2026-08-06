@@ -1,0 +1,37 @@
+//! Copyright (c) 2026 Omnira CJSC
+//! Author: Tunjay Akbarli
+//! Date: August 6, 2026
+//!
+//! Functionality:
+//! - Part of the Codira compiler and runtime toolchain.
+//!
+use std::ffi;
+
+use inkwell::{context::Context, targets::TargetData, types::FunctionType};
+
+use crate::ir::dispatch_table::FunctionPrototype;
+
+#[macro_use]
+mod macros;
+
+/// Defines the properties of an intrinsic function that can be called from Codira.
+/// These functions are mostly used internally.
+pub trait Intrinsic: Sync {
+    /// Returns the prototype of the intrinsic
+    fn prototype(&self) -> FunctionPrototype;
+
+    /// Returns the IR type for the function
+    fn ir_type<'ink>(&self, context: &'ink Context, target: &TargetData) -> FunctionType<'ink>;
+}
+
+intrinsics! {
+    /// Allocates memory for the specified `type` in the allocator referred to by `alloc_handle`.
+    pub fn new(type_handle: *const ffi::c_void, alloc_handle: *mut ffi::c_void) -> *const *mut ffi::c_void;
+
+    /// Allocates memory for an array of the specified `type` in the allocator referred to by
+    /// `alloc_handle` with at least enough capacity to hold `length` elements.
+    ///
+    /// Note that the elements in the array are left uninitialized.
+    pub fn new_array(type_handle: *const ffi::c_void, length: usize, alloc_handle: *mut ffi::c_void) -> *const *mut ffi::c_void;
+}
+

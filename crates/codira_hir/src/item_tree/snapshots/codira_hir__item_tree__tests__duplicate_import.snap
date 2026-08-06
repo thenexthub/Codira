@@ -1,0 +1,11 @@
+---
+source: crates/codira_hir/src/item_tree/tests.rs
+expression: "print_item_tree(r#\"\n    import foo.Bar\n    import baz.Bar\n\n    struct Bar {}\n    \"#).unwrap()"
+---
+use foo::Bar;
+use baz::Bar;
+struct Bar {
+}
+
+22..29: the name `Bar` is defined multiple times
+31..44: the name `Bar` is defined multiple times

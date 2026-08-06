@@ -1,0 +1,31 @@
+[package]
+name = "codira_healing"
+description = "Adaptive self-healing runtime for Codira: hardware-fault interception, Thompson-sampling strategy ranking, SMT-checked feasibility, and dispatch-table-based healing dispatch"
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+codira_smt = { version = "0.6.0-dev", path = "../codira_smt" }
+codira_runtime = { version = "0.6.0-dev", path = "../codira_runtime" }
+parking_lot = { workspace = true }
+rand = "0.8.5"
+rand_distr = "0.4.3"
+log = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.45.0", features = [
+    "Win32_Foundation",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_ErrorReporting",
+    "Win32_System_Kernel",
+] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2.167"

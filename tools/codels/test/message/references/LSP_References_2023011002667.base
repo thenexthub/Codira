@@ -1,1 +1,0 @@
-{"id":15,"jsonrpc":"2.0","result":[{"range":{"end":{"character":37,"line":11},"start":{"character":36,"line":11}},"uri":"file://***//lsp/test/testChr/test/2023011002667/src/bb.code"},{"range":{"end":{"character":24,"line":17},"start":{"character":23,"line":17}},"uri":"file://***//lsp/test/testChr/test/2023011002667/src/bb.code"}]}

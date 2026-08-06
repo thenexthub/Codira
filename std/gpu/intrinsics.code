@@ -1,0 +1,465 @@
+// =============================================================================
+// std/gpu/intrinsics.code — Low-level GPU intrinsic operations
+// =============================================================================
+//
+// Copyright (c) 2026, Omnira CJSC. All rights reserved.
+// Author: Tunjay Akbarli
+// Date: August 6, 2026.
+//
+// Provides low-level GPU intrinsic operations and memory-access primitives.
+// Implements hardware-specific intrinsics that map directly to GPU assembly
+// instructions, focusing on NVIDIA and AMD GPU architectures.  Includes:
+//
+//   - Global memory load/store operations with cache control
+//   - Warp-level primitives and synchronization
+//   - Memory fence and barrier operations
+//   - Wide and high multiplications (mulhi / mulwide)
+//   - AMD buffer descriptor loads/stores (LDS transposes)
+//
+// These low-level primitives should be used carefully: they correspond
+// directly to hardware instructions and require understanding of the
+// underlying GPU architecture.
+// =============================================================================
+
+use std.builtin.types;
+use std.builtin.simd;
+use std.sys.info;
+use std.sys.intrinsics;
+use std.gpu.warp;
+
+// =============================================================================
+// CacheOperation
+// =============================================================================
+
+// Represents different GPU cache operation policies.
+//
+// This struct defines various caching behaviors for GPU memory operations,
+// controlling how data is cached and evicted at different cache levels.
+// The policies affect performance and memory coherency.
+public struct(value) CacheOperation {
+    _value: i32,
+}
+
+// Cache at all levels.  This will be accessed again.
+public let CACHE_ALWAYS: i32 = 0;
+
+// Cache at global level (bypasses L1).
+public let CACHE_GLOBAL: i32 = 1;
+
+// Streaming; this is likely to be accessed once.
+public let CACHE_STREAMING: i32 = 2;
+
+// Indicates the cache line will not be used again.
+public let CACHE_LAST_USE: i32 = 4;
+
+// Don't cache, and fetch again.
+public let CACHE_VOLATILE: i32 = 8;
+
+// Write back at all coherent levels.
+public let CACHE_WRITE_BACK: i32 = 16;
+
+// Write through to system memory.
+public let CACHE_WRITE_THROUGH: i32 = 32;
+
+// Workgroup level coherency.
+public let CACHE_WORKGROUP: i32 = 64;
+
+// Returns the PTX mnemonic string for this cache operation.
+public func CacheOperation.mnemonic(self) -> StringLiteral {
+    if self._value == CACHE_ALWAYS {
+        return "ca";
+    }
+    if self._value == CACHE_GLOBAL {
+        return "cg";
+    }
+    if self._value == CACHE_STREAMING {
+        return "cs";
+    }
+    if self._value == CACHE_LAST_USE {
+        return "lu";
+    }
+    if self._value == CACHE_VOLATILE {
+        return "cv";
+    }
+    if self._value == CACHE_WRITE_BACK {
+        return "wb";
+    }
+    if self._value == CACHE_WRITE_THROUGH {
+        return "wt";
+    }
+    if self._value == CACHE_WORKGROUP {
+        return "wg";
+    }
+    return "unknown cache operation";
+}
+
+// =============================================================================
+// ldg
+// =============================================================================
+
+// Load data from global memory through the non-coherent cache.
+//
+// Provides a hardware-accelerated global memory load operation that uses the
+// GPU's non-coherent cache (equivalent to CUDA's `__ldg` instruction).  It
+// optimizes for read-only data access patterns.
+//
+// Args:
+//   x: Pointer to global memory location to load from.
+public func ldg[T](x: usize) -> T {
+    return __intrinsic_load[T](x);
+}
+
+// =============================================================================
+// warpgroup register management (SM90+)
+// =============================================================================
+
+// Allocates additional registers for the executing warp group.
+//
+// Hints to the system to increase per-thread registers owned by the
+// executing warp.
+public func warpgroup_reg_alloc(count: i32) -> void {
+    if count % 8 != 0 {
+        __panic("count argument to warpgroup_reg_alloc must be a multiple of 8");
+    }
+    if count < 24 {
+        __panic("count argument must be at least 24");
+    }
+    if count > 256 {
+        __panic("count argument must be at most 256");
+    }
+    if info._is_sm_9x_or_newer() {
+        warp.inlined_assembly("setmaxnreg.inc.sync.aligned.u32 $0;", count);
+    }
+}
+
+// Deallocates additional registers for the executing warp group.
+public func warpgroup_reg_dealloc(count: i32) -> void {
+    if count % 8 != 0 {
+        __panic("count argument to warpgroup_reg_dealloc must be a multiple of 8");
+    }
+    if count < 24 {
+        __panic("count argument must be at least 24");
+    }
+    if count > 256 {
+        __panic("count argument must be at most 256");
+    }
+    if info._is_sm_9x_or_newer() {
+        warp.inlined_assembly("setmaxnreg.dec.sync.aligned.u32 $0;", count);
+    }
+}
+
+// =============================================================================
+// lop / byte_permute
+// =============================================================================
+
+// Performs an arbitrary logical operation on 3 inputs using a lookup table.
+//
+// Implements a 3-input lookup-table (LUT) operation.  The result is
+// determined by bits in the lookup table value for each input combination.
+// Maps to the LOP3.B32 PTX instruction on NVIDIA GPUs.
+public func lop(lut: i32, a: i32, b: i32, c: i32) -> i32 {
+    if info.is_nvidia_gpu() {
+        return warp.inlined_assembly("lop3.b32 $0, $1, $2, $3, $4;", a, b, c, lut);
+    }
+    info.unsupported_target_error("lop");
+}
+
+// Permutes bytes from two 32-bit integers based on a control mask.
+//
+// Selects and rearranges bytes from two source integers based on a control
+// mask to create a new 32-bit value.
+public func byte_permute(a: u32, b: u32, c: u32) -> u32 {
+    let name = _byte_permute_inst();
+    return intrinsics.llvm_intrinsic[name][u32](a, b, c);
+}
+
+// Internal: the byte-permute intrinsic name for the active target.
+public func _byte_permute_inst() -> StringLiteral {
+    if info.is_nvidia_gpu() {
+        return "llvm.nvvm.prmt";
+    }
+    if info.is_amd_gpu() {
+        return "llvm.amdgcn.perm";
+    }
+    info.unsupported_target_error("byte_permute");
+}
+
+// =============================================================================
+// mulhi
+// =============================================================================
+
+// Calculates the most significant 32 bits of the product of two 16-bit
+// unsigned integers.
+public func mulhi_u16(a: u16, b: u16) -> u32 {
+    if info.is_nvidia_gpu() {
+        return intrinsics.llvm_intrinsic["llvm.nvvm.mulhi.us"][u32](a, b);
+    }
+    let au32 = a as u32;
+    let bu32 = b as u32;
+    return au32 * bu32;
+}
+
+// Most significant 32 bits of the product of two 16-bit signed integers.
+public func mulhi_i16(a: i16, b: i16) -> i32 {
+    if info.is_nvidia_gpu() {
+        return intrinsics.llvm_intrinsic["llvm.nvvm.mulhi.s"][i32](a, b);
+    }
+    let ai32 = a as i32;
+    let bi32 = b as i32;
+    return ai32 * bi32;
+}
+
+// Most significant 32 bits of the product of two 32-bit unsigned integers.
+public func mulhi_u32(a: u32, b: u32) -> u32 {
+    if info.is_nvidia_gpu() {
+        return intrinsics.llvm_intrinsic["llvm.nvvm.mulhi.ui"][u32](a, b);
+    }
+    let au64 = a as u64;
+    let bu64 = b as u64;
+    return ((au64 * bu64) >> 32) as u32;
+}
+
+// Most significant 32 bits of the product of two 32-bit signed integers.
+public func mulhi_i32(a: i32, b: i32) -> i32 {
+    if info.is_nvidia_gpu() {
+        return intrinsics.llvm_intrinsic["llvm.nvvm.mulhi.i"][i32](a, b);
+    }
+    let ai64 = a as i64;
+    let bi64 = b as i64;
+    return ((ai64 * bi64) >> 32) as i32;
+}
+
+// Most significant 64 bits of the product of two 64-bit unsigned integers.
+public func mulhi_u64(a: u64, b: u64) -> u64 {
+    if info.is_nvidia_gpu() {
+        return intrinsics.llvm_intrinsic["llvm.nvvm.mulhi.ull"][u64](a, b);
+    }
+    // Fallback: use 128-bit arithmetic.
+    let au128 = a as u128;
+    let bu128 = b as u128;
+    return ((au128 * bu128) >> 64) as u64;
+}
+
+// Most significant 64 bits of the product of two 64-bit signed integers.
+public func mulhi_i64(a: i64, b: i64) -> i64 {
+    if info.is_nvidia_gpu() {
+        return intrinsics.llvm_intrinsic["llvm.nvvm.mulhi.ll"][i64](a, b);
+    }
+    let ai128 = a as i128;
+    let bi128 = b as i128;
+    return ((ai128 * bi128) >> 64) as i64;
+}
+
+// =============================================================================
+// mulwide
+// =============================================================================
+
+// Performs a wide multiplication of two 32-bit unsigned integers (full
+// 64-bit result).  Maps to MUL.WIDE.U32 PTX on NVIDIA GPUs.
+public func mulwide_u32(a: u32, b: u32) -> u64 {
+    if info.is_nvidia_gpu() {
+        return warp.inlined_assembly("mul.wide.u32 $0, $1, $2;", a, b);
+    }
+    return (a as u64) * (b as u64);
+}
+
+// Wide signed multiplication (full 64-bit result).
+public func mulwide_i32(a: i32, b: i32) -> i64 {
+    if info.is_nvidia_gpu() {
+        return warp.inlined_assembly("mul.wide.s32 $0, $1, $2;", a, b);
+    }
+    return (a as i64) * (b as i64);
+}
+
+// =============================================================================
+// Scope and threadfence
+// =============================================================================
+
+// Represents memory synchronization scope levels for GPU memory operations.
+public struct(value) Scope {
+    _value: i32,
+}
+
+public let SCOPE_NONE: i32 = 0;
+public let SCOPE_THREAD: i32 = 1;
+public let SCOPE_WARP: i32 = 2;
+public let SCOPE_BLOCK: i32 = 3;
+public let SCOPE_CLUSTER: i32 = 4;
+public let SCOPE_GPU: i32 = 5;
+public let SCOPE_SYSTEM: i32 = 6;
+
+// Returns the mnemonic string representation of the memory scope.
+public func Scope.mnemonic(self) -> StringLiteral {
+    if self._value <= SCOPE_WARP {
+        return "";
+    }
+    if self._value == SCOPE_BLOCK {
+        return "cta";
+    }
+    if self._value == SCOPE_CLUSTER {
+        return "cluster";
+    }
+    if self._value == SCOPE_GPU {
+        return "gpu";
+    }
+    if self._value == SCOPE_SYSTEM {
+        return "sys";
+    }
+    return "<<invalid scope>>";
+}
+
+// Enforces ordering of memory operations across threads.
+//
+// Acts as a memory fence/barrier that ensures all memory operations issued
+// before the fence are visible to other threads within the specified scope.
+public func threadfence(scope: i32) -> void {
+    if scope != SCOPE_GPU {
+        if scope != SCOPE_BLOCK {
+            if scope != SCOPE_SYSTEM {
+                __panic("invalid threadfence scope");
+            }
+        }
+    }
+    if !info.is_nvidia_gpu() {
+        __panic("threadfence is only implemented on NVIDIA GPUs");
+    }
+    let suffix: StringLiteral = "gl";
+    if scope == SCOPE_BLOCK {
+        suffix = "cta";
+    }
+    if scope == SCOPE_SYSTEM {
+        suffix = "sys";
+    }
+    let name = "llvm.nvvm.membar." + suffix;
+    intrinsics.llvm_intrinsic_void[name]();
+}
+
+// =============================================================================
+// AMD buffer descriptor
+// =============================================================================
+
+// 128-bit descriptor for a buffer resource on AMD GPUs.  Used for
+// buffer_load / buffer_store instructions.
+public struct(value) AMDBufferResource {
+    desc: SIMD[u32, 4],
+}
+
+// Construct an AMD buffer resource descriptor from a base address and the
+// number of records.  Stride is assumed to be zero.
+public func AMDBufferResource.new(address: u64, num_records: u32, elem_size: u32) -> AMDBufferResource {
+    if !info.is_amd_gpu() {
+        __panic("AMDBufferResource is only applicable on AMDGPU hardware.");
+    }
+    let r: AMDBufferResource;
+    r.desc = SIMD[u32, 4].zero();
+    r.desc[0] = (address & 0xFFFF_FFFF) as u32;
+    r.desc[1] = (address >> 32) as u32;
+    r.desc[2] = elem_size * num_records;
+    if info._is_amd_rdna3() | info._is_amd_rdna4() {
+        r.desc[3] = 0x31004000;
+    } else {
+        if info._is_amd_rdna1() | info._is_amd_rdna2() {
+            r.desc[3] = 0x31014000;
+        } else {
+            // CDNA / GCN.
+            r.desc[3] = 0x00020000;
+        }
+    }
+    return r;
+}
+
+// Gets the base pointer address from the buffer resource descriptor.
+public func AMDBufferResource.get_base_ptr(self) -> u64 {
+    let lo = self.desc[0];
+    let hi = self.desc[1];
+    return ((hi as u64) << 32) | (lo as u64);
+}
+
+// Loads data from the buffer using the AMD buffer load intrinsic.
+public func AMDBufferResource.load[T](
+    self,
+    vector_offset: i32,
+    scalar_offset: i32,
+) -> T {
+    if !info.is_amd_gpu() {
+        __panic("buffer_load is only applicable on AMDGPU hardware.");
+    }
+    let vec_bytes = vector_offset * (__intrinsic_sizeof[T]() as i32);
+    let scalar_bytes = scalar_offset * (__intrinsic_sizeof[T]() as i32);
+    return intrinsics.llvm_intrinsic["llvm.amdgcn.raw.buffer.load"][T](
+        self.desc, vec_bytes, scalar_bytes, 0
+    );
+}
+
+// Stores a register value to global memory with cache-operation control.
+public func AMDBufferResource.store[T](
+    self,
+    vector_offset: i32,
+    scalar_offset: i32,
+    val: T,
+) -> void {
+    if !info.is_amd_gpu() {
+        __panic("buffer_store is only applicable on AMDGPU hardware.");
+    }
+    let vec_bytes = vector_offset * (__intrinsic_sizeof[T]() as i32);
+    let scalar_bytes = scalar_offset * (__intrinsic_sizeof[T]() as i32);
+    intrinsics.llvm_intrinsic_void["llvm.amdgcn.raw.buffer.store"](
+        val, self.desc, vec_bytes, scalar_bytes, 0
+    );
+}
+
+// =============================================================================
+// AMD LDS transpose reads
+// =============================================================================
+
+// Reads a 64-bit LDS transpose block using the TR16 layout.
+public func ds_read_tr16_b64[T](shared_ptr: usize) -> SIMD[T, 4] {
+    if !info.is_amd_gpu() {
+        __panic("ds_read_tr16_b64 is only applicable on AMDGPU hardware.");
+    }
+    if !info._cdna_4_or_newer() {
+        __panic("ds_read_tr16_b64 is only supported on CDNA4+");
+    }
+    let raw = intrinsics.llvm_intrinsic["llvm.amdgcn.ds.read.tr16.b64"][SIMD[u32, 4]](shared_ptr);
+    return raw.bitcast[T]();
+}
+
+// Reads a 64-bit LDS transpose block using the TR8 layout.
+public func ds_read_tr8_b64[T](shared_ptr: usize) -> SIMD[T, 8] {
+    if !info.is_amd_gpu() {
+        __panic("ds_read_tr8_b64 is only applicable on AMDGPU hardware.");
+    }
+    if !info._cdna_4_or_newer() {
+        __panic("ds_read_tr8_b64 is only supported on CDNA4+");
+    }
+    // Read the raw 64-bit lanes as u32 pairs; the caller reinterprets via
+    // SIMD.bitcast to obtain the target element type.
+    let raw = intrinsics.llvm_intrinsic["llvm.amdgcn.ds.read.tr8.b64"][SIMD[u32, 8]](shared_ptr);
+    return raw.bitcast[T]();
+}
+
+// =============================================================================
+// AMD permlane shuffle
+// =============================================================================
+
+// Swaps values between lanes using the AMD permlane swap instruction.
+public func permlane_swap(val1: u32, val2: u32, stride: i32) -> SIMD[u32, 2] {
+    if !info.is_amd_gpu() {
+        __panic("permlane_swap is only applicable on AMDGPU hardware.");
+    }
+    if !info._cdna_4_or_newer() {
+        __panic("permlane_swap is only supported on CDNA4+");
+    }
+    let name: String;
+    if stride == 16 {
+        name = "llvm.amdgcn.permlane16.swap";
+    } else {
+        if stride == 32 {
+            name = "llvm.amdgcn.permlane32.swap";
+        } else {
+            __panic("Unsupported stride");
+        }
+    }
+    let result = intrinsics.llvm_intrinsic[name][(i32, i32)](val1 as i32, val2 as i32, false, false);
+    return SIMD[u32, 2].new(result.0 as u32, result.1 as u32);
+}

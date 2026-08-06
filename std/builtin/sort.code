@@ -1,0 +1,384 @@
+// =============================================================================
+// std/builtin/sort.code — Sorting algorithms
+// =============================================================================
+//
+// Provides generic, in-place sorting functions for mutable slices.
+//
+//   sort          — Introsort (unstable, O(n log n) worst-case)
+//   stable_sort   — Merge sort (stable, O(n log n), allocates temp buffer)
+//   partial_sort  — Heapselect+heapsort for top-k
+//   insertion_sort— Simple O(n^2) sort, fast for small/nearly-sorted inputs
+//   is_sorted     — Predicate: true when the slice is in non-descending order
+//
+// All functions accept a comparator `cmp: func(T, T) -> i32` where
+// cmp(a,b) < 0  means a < b, == 0  means a == b, > 0  means a > b.
+// Convenience overloads that use the natural `Comparable` ordering are
+// provided for types that implement Comparable.
+// =============================================================================
+
+use std.builtin.traits;
+use std.builtin.slice;
+use std.builtin.swap;
+
+// =============================================================================
+// sort — Unstable introsort
+// =============================================================================
+
+// Sort a mutable slice in-place using an unstable O(n log n) introsort.
+// `cmp` is the comparator function.
+//
+//   let data = Array[i32].from(5, 3, 1, 4, 2);
+//   sort(data.as_mut_slice(), func(a: i32, b: i32) -> i32 { return a - b; });
+//   // data is now [1, 2, 3, 4, 5]
+public func sort[T](data: Slice[T], cmp: func(T, T) -> i32) -> void {
+    let n = data.len();
+    if n <= 1 {
+        return;
+    }
+    let max_depth = 2 * __intrinsic_ilog2(n as u64);
+    _introsort_impl[T](data, cmp, max_depth);
+}
+
+// Sort using the natural Comparable ordering.
+public func sort[T: Comparable](data: Slice[T]) -> void {
+    sort[T](data, func(a: T, b: T) -> i32 { return a.cmp(b); });
+}
+
+// Internal introsort: quicksort with fallback to heapsort at depth limit,
+// and insertion sort for small partitions.
+func _introsort_impl[T](data: Slice[T], cmp: func(T, T) -> i32, depth: usize) -> void {
+    let n = data.len();
+
+    // Small partitions: fall back to insertion sort.
+    if n <= 16 {
+        _insertion_sort_impl[T](data, cmp);
+        return;
+    }
+
+    // Depth limit reached: fall back to heapsort to guarantee O(n log n).
+    if depth == 0 {
+        _heapsort_impl[T](data, cmp);
+        return;
+    }
+
+    // Partition around a median-of-three pivot.
+    let pivot_idx = _partition[T](data, cmp);
+
+    // Recurse on both halves.
+    let left = data.subslice(0, pivot_idx);
+    let right = data.subslice(pivot_idx + 1, n);
+    _introsort_impl[T](left, cmp, depth - 1);
+    _introsort_impl[T](right, cmp, depth - 1);
+}
+
+// Lomuto partition scheme with median-of-three pivot selection.
+func _partition[T](data: Slice[T], cmp: func(T, T) -> i32) -> usize {
+    let n = data.len();
+    let mid = n / 2;
+    let last = n - 1;
+
+    // Sort three candidates to find the median.
+    if cmp(data.get(0), data.get(mid)) > 0 {
+        _slice_swap[T](data, 0, mid);
+    }
+    if cmp(data.get(0), data.get(last)) > 0 {
+        _slice_swap[T](data, 0, last);
+    }
+    if cmp(data.get(mid), data.get(last)) > 0 {
+        _slice_swap[T](data, mid, last);
+    }
+    // Place pivot at position last-1.
+    _slice_swap[T](data, mid, last - 1);
+    let pivot = data.get(last - 1);
+
+    let i: usize = 0;
+    let j: usize = last - 1;
+    while true {
+        i = i + 1;
+        while cmp(data.get(i), pivot) < 0 {
+            i = i + 1;
+        }
+        j = j - 1;
+        while cmp(data.get(j), pivot) > 0 {
+            j = j - 1;
+        }
+        if i >= j {
+            break;
+        }
+        _slice_swap[T](data, i, j);
+    }
+    // Restore pivot.
+    _slice_swap[T](data, i, last - 1);
+    return i;
+}
+
+// Swap two elements in a slice by index.
+func _slice_swap[T](data: Slice[T], i: usize, j: usize) -> void {
+    let tmp = data.get(i);
+    let ptr = data.data();
+    ptr.offset(i as isize).write(data.get(j));
+    ptr.offset(j as isize).write(tmp);
+}
+
+// =============================================================================
+// stable_sort — Stable merge sort
+// =============================================================================
+
+// Sort a mutable slice in-place using a stable O(n log n) merge sort.
+// Allocates a temporary buffer of size n.
+//
+//   stable_sort(data.as_mut_slice(), cmp_fn);
+public func stable_sort[T](data: Slice[T], cmp: func(T, T) -> i32) -> void {
+    let n = data.len();
+    if n <= 1 {
+        return;
+    }
+
+    // Allocate temporary buffer.
+    let buf = Array[T].with_capacity(n);
+    let i: usize = 0;
+    while i < n {
+        buf.push(data.get(i));
+        i = i + 1;
+    }
+
+    _merge_sort_impl[T](data, buf.as_mut_slice(), cmp, 0, n);
+}
+
+// Stable sort using natural Comparable ordering.
+public func stable_sort[T: Comparable](data: Slice[T]) -> void {
+    stable_sort[T](data, func(a: T, b: T) -> i32 { return a.cmp(b); });
+}
+
+// Top-down merge sort.
+func _merge_sort_impl[T](
+    data: Slice[T],
+    buf: Slice[T],
+    cmp: func(T, T) -> i32,
+    lo: usize,
+    hi: usize,
+) -> void {
+    if hi - lo <= 1 {
+        return;
+    }
+
+    // Small runs: insertion sort.
+    if hi - lo <= 16 {
+        _insertion_sort_impl[T](data.subslice(lo, hi), cmp);
+        return;
+    }
+
+    let mid = lo + (hi - lo) / 2;
+    _merge_sort_impl[T](data, buf, cmp, lo, mid);
+    _merge_sort_impl[T](data, buf, cmp, mid, hi);
+
+    // If already sorted across the boundary, skip merge.
+    if cmp(data.get(mid - 1), data.get(mid)) <= 0 {
+        return;
+    }
+
+    _merge[T](data, buf, cmp, lo, mid, hi);
+}
+
+// Merge two sorted runs [lo..mid) and [mid..hi) using `buf` as scratch.
+func _merge[T](
+    data: Slice[T],
+    buf: Slice[T],
+    cmp: func(T, T) -> i32,
+    lo: usize,
+    mid: usize,
+    hi: usize,
+) -> void {
+    // Copy both runs into buf.
+    let k: usize = lo;
+    while k < hi {
+        let ptr = buf.data();
+        ptr.offset(k as isize).write(data.get(k));
+        k = k + 1;
+    }
+
+    let i: usize = lo;
+    let j: usize = mid;
+    let dest: usize = lo;
+    let data_ptr = data.data();
+
+    while i < mid & j < hi {
+        if cmp(buf.get(i), buf.get(j)) <= 0 {
+            data_ptr.offset(dest as isize).write(buf.get(i));
+            i = i + 1;
+        } else {
+            data_ptr.offset(dest as isize).write(buf.get(j));
+            j = j + 1;
+        }
+        dest = dest + 1;
+    }
+    while i < mid {
+        data_ptr.offset(dest as isize).write(buf.get(i));
+        i = i + 1;
+        dest = dest + 1;
+    }
+    while j < hi {
+        data_ptr.offset(dest as isize).write(buf.get(j));
+        j = j + 1;
+        dest = dest + 1;
+    }
+}
+
+// =============================================================================
+// partial_sort — Sort only the first k elements
+// =============================================================================
+
+// Rearrange `data` so that the first `k` elements are the k smallest in
+// sorted order.  The remaining elements are in unspecified order.
+// Time: O(n + k log n) via heapselect.
+public func partial_sort[T](data: Slice[T], k: usize, cmp: func(T, T) -> i32) -> void {
+    let n = data.len();
+    if k == 0 | n <= 1 {
+        return;
+    }
+    let count = k;
+    if count > n {
+        count = n;
+    }
+
+    // Build a max-heap of the first `count` elements.
+    _build_max_heap[T](data.subslice(0, count), cmp);
+
+    // For each remaining element, if it's smaller than the heap root, swap
+    // and sift down.
+    let i: usize = count;
+    while i < n {
+        if cmp(data.get(i), data.get(0)) < 0 {
+            _slice_swap[T](data, 0, i);
+            _sift_down[T](data.subslice(0, count), cmp, 0);
+        }
+        i = i + 1;
+    }
+
+    // Sort the heap to produce sorted output in [0, count).
+    _heapsort_impl[T](data.subslice(0, count), cmp);
+}
+
+// =============================================================================
+// insertion_sort — Simple O(n^2) sort (public)
+// =============================================================================
+
+// Sort a mutable slice using insertion sort.  Stable.
+// Efficient for small or nearly-sorted data.
+public func insertion_sort[T](data: Slice[T], cmp: func(T, T) -> i32) -> void {
+    _insertion_sort_impl[T](data, cmp);
+}
+
+// Internal insertion sort implementation.
+func _insertion_sort_impl[T](data: Slice[T], cmp: func(T, T) -> i32) -> void {
+    let n = data.len();
+    if n <= 1 {
+        return;
+    }
+    let ptr = data.data();
+    let i: usize = 1;
+    while i < n {
+        let key = data.get(i);
+        let j: isize = (i as isize) - 1;
+        while j >= 0 & cmp(data.get(j as usize), key) > 0 {
+            ptr.offset((j + 1) as isize).write(data.get(j as usize));
+            j = j - 1;
+        }
+        ptr.offset((j + 1) as isize).write(key);
+        i = i + 1;
+    }
+}
+
+// =============================================================================
+// Heapsort internals
+// =============================================================================
+
+func _heapsort_impl[T](data: Slice[T], cmp: func(T, T) -> i32) -> void {
+    let n = data.len();
+    if n <= 1 {
+        return;
+    }
+    _build_max_heap[T](data, cmp);
+    let end: usize = n - 1;
+    while end > 0 {
+        _slice_swap[T](data, 0, end);
+        _sift_down[T](data.subslice(0, end), cmp, 0);
+        end = end - 1;
+    }
+}
+
+func _build_max_heap[T](data: Slice[T], cmp: func(T, T) -> i32) -> void {
+    let n = data.len();
+    let i: isize = ((n / 2) as isize) - 1;
+    while i >= 0 {
+        _sift_down[T](data, cmp, i as usize);
+        i = i - 1;
+    }
+}
+
+func _sift_down[T](data: Slice[T], cmp: func(T, T) -> i32, start: usize) -> void {
+    let n = data.len();
+    let root: usize = start;
+    while root * 2 + 1 < n {
+        let child: usize = root * 2 + 1;
+        if child + 1 < n & cmp(data.get(child), data.get(child + 1)) < 0 {
+            child = child + 1;
+        }
+        if cmp(data.get(root), data.get(child)) < 0 {
+            _slice_swap[T](data, root, child);
+            root = child;
+        } else {
+            return;
+        }
+    }
+}
+
+// =============================================================================
+// Predicates
+// =============================================================================
+
+// Return true when the slice is sorted in non-descending order.
+public func is_sorted[T](data: Slice[T], cmp: func(T, T) -> i32) -> bool {
+    let n = data.len();
+    if n <= 1 {
+        return true;
+    }
+    let i: usize = 1;
+    while i < n {
+        if cmp(data.get(i - 1), data.get(i)) > 0 {
+            return false;
+        }
+        i = i + 1;
+    }
+    return true;
+}
+
+// Return true when sorted using natural ordering.
+public func is_sorted[T: Comparable](data: Slice[T]) -> bool {
+    return is_sorted[T](data, func(a: T, b: T) -> i32 { return a.cmp(b); });
+}
+
+// =============================================================================
+// nth_element — partial ordering (quickselect)
+// =============================================================================
+
+// Rearrange `data` so that the element at `k` is the element that would
+// be there if the slice were fully sorted.  Elements before `k` are <=,
+// elements after are >=.  Average O(n).
+public func nth_element[T](data: Slice[T], k: usize, cmp: func(T, T) -> i32) -> void {
+    let lo: usize = 0;
+    let hi: usize = data.len();
+    while lo < hi {
+        let sub = data.subslice(lo, hi);
+        let pivot = _partition[T](sub, cmp);
+        let abs_pivot = lo + pivot;
+        if abs_pivot == k {
+            return;
+        }
+        if abs_pivot < k {
+            lo = abs_pivot + 1;
+        } else {
+            hi = abs_pivot;
+        }
+    }
+}

@@ -1,2 +1,0 @@
-# 30140 - verifier flaky
-std/core/DeepCopyTest.ets

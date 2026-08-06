@@ -1,0 +1,13 @@
+---
+source: crates/codira_hir/src/ty/tests.rs
+expression: "infer(r#\"\n    //- /foo.code\n    public struct Foo {\n        a: i32\n    }\n\n    extend Foo {\n        func new(){}\n    }\n\n    //- /mod.code\n    func main() {\n        foo::Foo::new();\n    }\n    \"#)"
+---
+18..21: undefined value
+23..26: undefined value
+28..31: undefined value
+12..36 '{     ...w(); }': ()
+18..21 'foo': {unknown}
+23..26 'Foo': {unknown}
+28..31 'new': {unknown}
+28..33 'new()': {unknown}
+61..63 '{}': ()

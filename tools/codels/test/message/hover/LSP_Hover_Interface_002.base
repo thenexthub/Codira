@@ -1,1 +1,0 @@
-{"id":110,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: Interface.code\nPackage info: default\n\n// In interface MyInterface2\n(function) public abstract func f1(a!: Int64): Unit\nOK"},"range":{"end":{"character":8,"line":28},"start":{"character":6,"line":28}}}}

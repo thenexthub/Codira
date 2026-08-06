@@ -1,0 +1,103 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n        macro derive_show(target: i32) -> i32 {\n            target\n        }\n\n        func counter() -> i32 {\n            var count = 0;\n            count += 1;\n            count\n        }\n        \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..198
+  WHITESPACE@0..9 "\n        "
+  MACRO_DEF@9..77
+    MACRO_KW@9..14 "macro"
+    WHITESPACE@14..15 " "
+    NAME@15..26
+      IDENT@15..26 "derive_show"
+    PARAM_LIST@26..39
+      L_PAREN@26..27 "("
+      PARAM@27..38
+        BIND_PAT@27..33
+          NAME@27..33
+            IDENT@27..33 "target"
+        COLON@33..34 ":"
+        WHITESPACE@34..35 " "
+        PATH_TYPE@35..38
+          PATH@35..38
+            PATH_SEGMENT@35..38
+              NAME_REF@35..38
+                IDENT@35..38 "i32"
+      R_PAREN@38..39 ")"
+    WHITESPACE@39..40 " "
+    RET_TYPE@40..46
+      THIN_ARROW@40..42 "->"
+      WHITESPACE@42..43 " "
+      PATH_TYPE@43..46
+        PATH@43..46
+          PATH_SEGMENT@43..46
+            NAME_REF@43..46
+              IDENT@43..46 "i32"
+    WHITESPACE@46..47 " "
+    BLOCK_EXPR@47..77
+      L_CURLY@47..48 "{"
+      WHITESPACE@48..61 "\n            "
+      PATH_EXPR@61..67
+        PATH@61..67
+          PATH_SEGMENT@61..67
+            NAME_REF@61..67
+              IDENT@61..67 "target"
+      WHITESPACE@67..76 "\n        "
+      R_CURLY@76..77 "}"
+  WHITESPACE@77..87 "\n\n        "
+  FUNCTION_DEF@87..189
+    FUNC_KW@87..91 "func"
+    WHITESPACE@91..92 " "
+    NAME@92..99
+      IDENT@92..99 "counter"
+    PARAM_LIST@99..101
+      L_PAREN@99..100 "("
+      R_PAREN@100..101 ")"
+    WHITESPACE@101..102 " "
+    RET_TYPE@102..108
+      THIN_ARROW@102..104 "->"
+      WHITESPACE@104..105 " "
+      PATH_TYPE@105..108
+        PATH@105..108
+          PATH_SEGMENT@105..108
+            NAME_REF@105..108
+              IDENT@105..108 "i32"
+    WHITESPACE@108..109 " "
+    BLOCK_EXPR@109..189
+      L_CURLY@109..110 "{"
+      WHITESPACE@110..123 "\n            "
+      LET_STMT@123..137
+        VAR_KW@123..126 "var"
+        WHITESPACE@126..127 " "
+        BIND_PAT@127..132
+          NAME@127..132
+            IDENT@127..132 "count"
+        WHITESPACE@132..133 " "
+        EQ@133..134 "="
+        WHITESPACE@134..135 " "
+        LITERAL@135..136
+          INT_NUMBER@135..136 "0"
+        SEMI@136..137 ";"
+      WHITESPACE@137..150 "\n            "
+      EXPR_STMT@150..161
+        BIN_EXPR@150..160
+          PATH_EXPR@150..155
+            PATH@150..155
+              PATH_SEGMENT@150..155
+                NAME_REF@150..155
+                  IDENT@150..155 "count"
+          WHITESPACE@155..156 " "
+          PLUSEQ@156..158 "+="
+          WHITESPACE@158..159 " "
+          LITERAL@159..160
+            INT_NUMBER@159..160 "1"
+        SEMI@160..161 ";"
+      WHITESPACE@161..174 "\n            "
+      PATH_EXPR@174..179
+        PATH@174..179
+          PATH_SEGMENT@174..179
+            NAME_REF@174..179
+              IDENT@174..179 "count"
+      WHITESPACE@179..188 "\n        "
+      R_CURLY@188..189 "}"
+  WHITESPACE@189..198 "\n        "

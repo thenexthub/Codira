@@ -1,6 +1,0 @@
-{
-    "compilerOptions": {
-      "package": "HarB",
-      "baseUrl": "."
-    }
-}

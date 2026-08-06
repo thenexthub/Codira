@@ -1,1 +1,0 @@
-[remove_lambda_1.ets:18:11] Warning W0006: Replace the lambda function with a regular function.

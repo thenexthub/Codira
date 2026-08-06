@@ -1,0 +1,116 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    func main() {\n        let a = [1,2,3,]\n        let a = []\n        let a = [call(123)]\n        let a = [Struct { }, Struct { }]\n    }\"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..137
+  FUNCTION_DEF@0..137
+    WHITESPACE@0..5 "\n    "
+    FUNC_KW@5..9 "func"
+    WHITESPACE@9..10 " "
+    NAME@10..14
+      IDENT@10..14 "main"
+    PARAM_LIST@14..16
+      L_PAREN@14..15 "("
+      R_PAREN@15..16 ")"
+    WHITESPACE@16..17 " "
+    BLOCK_EXPR@17..137
+      L_CURLY@17..18 "{"
+      WHITESPACE@18..27 "\n        "
+      LET_STMT@27..43
+        LET_KW@27..30 "let"
+        WHITESPACE@30..31 " "
+        BIND_PAT@31..32
+          NAME@31..32
+            IDENT@31..32 "a"
+        WHITESPACE@32..33 " "
+        EQ@33..34 "="
+        WHITESPACE@34..35 " "
+        ARRAY_EXPR@35..43
+          L_BRACKET@35..36 "["
+          LITERAL@36..37
+            INT_NUMBER@36..37 "1"
+          COMMA@37..38 ","
+          LITERAL@38..39
+            INT_NUMBER@38..39 "2"
+          COMMA@39..40 ","
+          LITERAL@40..41
+            INT_NUMBER@40..41 "3"
+          COMMA@41..42 ","
+          R_BRACKET@42..43 "]"
+      WHITESPACE@43..52 "\n        "
+      LET_STMT@52..62
+        LET_KW@52..55 "let"
+        WHITESPACE@55..56 " "
+        BIND_PAT@56..57
+          NAME@56..57
+            IDENT@56..57 "a"
+        WHITESPACE@57..58 " "
+        EQ@58..59 "="
+        WHITESPACE@59..60 " "
+        ARRAY_EXPR@60..62
+          L_BRACKET@60..61 "["
+          R_BRACKET@61..62 "]"
+      WHITESPACE@62..71 "\n        "
+      LET_STMT@71..90
+        LET_KW@71..74 "let"
+        WHITESPACE@74..75 " "
+        BIND_PAT@75..76
+          NAME@75..76
+            IDENT@75..76 "a"
+        WHITESPACE@76..77 " "
+        EQ@77..78 "="
+        WHITESPACE@78..79 " "
+        ARRAY_EXPR@79..90
+          L_BRACKET@79..80 "["
+          CALL_EXPR@80..89
+            PATH_EXPR@80..84
+              PATH@80..84
+                PATH_SEGMENT@80..84
+                  NAME_REF@80..84
+                    IDENT@80..84 "call"
+            ARG_LIST@84..89
+              L_PAREN@84..85 "("
+              LITERAL@85..88
+                INT_NUMBER@85..88 "123"
+              R_PAREN@88..89 ")"
+          R_BRACKET@89..90 "]"
+      WHITESPACE@90..99 "\n        "
+      LET_STMT@99..131
+        LET_KW@99..102 "let"
+        WHITESPACE@102..103 " "
+        BIND_PAT@103..104
+          NAME@103..104
+            IDENT@103..104 "a"
+        WHITESPACE@104..105 " "
+        EQ@105..106 "="
+        WHITESPACE@106..107 " "
+        ARRAY_EXPR@107..131
+          L_BRACKET@107..108 "["
+          RECORD_LIT@108..118
+            PATH_TYPE@108..114
+              PATH@108..114
+                PATH_SEGMENT@108..114
+                  NAME_REF@108..114
+                    IDENT@108..114 "Struct"
+            WHITESPACE@114..115 " "
+            RECORD_FIELD_LIST@115..118
+              L_CURLY@115..116 "{"
+              WHITESPACE@116..117 " "
+              R_CURLY@117..118 "}"
+          COMMA@118..119 ","
+          WHITESPACE@119..120 " "
+          RECORD_LIT@120..130
+            PATH_TYPE@120..126
+              PATH@120..126
+                PATH_SEGMENT@120..126
+                  NAME_REF@120..126
+                    IDENT@120..126 "Struct"
+            WHITESPACE@126..127 " "
+            RECORD_FIELD_LIST@127..130
+              L_CURLY@127..128 "{"
+              WHITESPACE@128..129 " "
+              R_CURLY@129..130 "}"
+          R_BRACKET@130..131 "]"
+      WHITESPACE@131..136 "\n    "
+      R_CURLY@136..137 "}"

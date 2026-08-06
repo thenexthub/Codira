@@ -1,1 +1,0 @@
-{"id":9,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: hover.code\nPackage info: default\n\n(variable) internal let d: Array<Array<Array<Array<Int64>>>> = [c]\n"},"range":{"end":{"character":5,"line":13},"start":{"character":4,"line":13}}}}

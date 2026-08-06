@@ -1,2 +1,0 @@
-data/ets/sys/noexist_1.ets.abc
-data/ets/sys/noexist_2.ets.abc

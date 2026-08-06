@@ -1,0 +1,27 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    func bar() {\n        {3}\n    }\n    \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..40
+  FUNCTION_DEF@0..35
+    WHITESPACE@0..5 "\n    "
+    FUNC_KW@5..9 "func"
+    WHITESPACE@9..10 " "
+    NAME@10..13
+      IDENT@10..13 "bar"
+    PARAM_LIST@13..15
+      L_PAREN@13..14 "("
+      R_PAREN@14..15 ")"
+    WHITESPACE@15..16 " "
+    BLOCK_EXPR@16..35
+      L_CURLY@16..17 "{"
+      WHITESPACE@17..26 "\n        "
+      BLOCK_EXPR@26..29
+        L_CURLY@26..27 "{"
+        LITERAL@27..28
+          INT_NUMBER@27..28 "3"
+        R_CURLY@28..29 "}"
+      WHITESPACE@29..34 "\n    "
+      R_CURLY@34..35 "}"
+  WHITESPACE@35..40 "\n    "

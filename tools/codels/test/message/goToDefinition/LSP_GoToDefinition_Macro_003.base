@@ -1,1 +1,0 @@
-{"id":11,"jsonrpc":"2.0","result":{"range":{"end":{"character":22,"line":7},"start":{"character":18,"line":7}},"uri":"file:///home/code_project/code/lsp/test/testChr/Macro/macroDef/src/B/b.code.macrocall"}}

@@ -1,2 +1,0 @@
-#31793
-07.expressions/31.assignment/01.simple_assignment_operator/array_assignment_6.ets

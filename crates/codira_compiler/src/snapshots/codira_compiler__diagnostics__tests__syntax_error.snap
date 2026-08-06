@@ -1,0 +1,26 @@
+---
+source: crates/codira_compiler/src/diagnostics.rs
+expression: "compilation_errors(\"\\n\\nfunc main(\\n struct Foo\\n\")"
+snapshot_kind: text
+---
+error: syntax error
+ --> main.code:3:11
+  |
+3 | func main(
+  |           ^ expected value parameter
+  |error: syntax error
+ --> main.code:3:11
+  |
+3 | func main(
+  |           ^ expected R_PAREN
+  |error: syntax error
+ --> main.code:3:11
+  |
+3 | func main(
+  |           ^ expected a block
+  |error: syntax error
+ --> main.code:4:12
+  |
+4 |  struct Foo
+  |            ^ expected a ';', '{', or '('
+  |

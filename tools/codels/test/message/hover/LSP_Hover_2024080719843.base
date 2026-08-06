@@ -1,1 +1,0 @@
-{"id":6,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: test.code\nPackage info: demo\n\ninternal type RD<T> = RecordData<T>\n"},"range":{"end":{"character":7,"line":15},"start":{"character":5,"line":15}}}}

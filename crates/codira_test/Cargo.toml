@@ -1,0 +1,23 @@
+[package]
+name = "codira_test"
+description = "Functionality for testing Codira code"
+keywords = ["game", "hot-reloading", "language", "codira", "scripting"]
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+codira_hir_input = { version = "0.6.0-dev", path = "../codira_hir_input" }
+codira_compiler = { version = "0.6.0-dev", path = "../codira_compiler" }
+codira_runtime = { version = "0.6.0-dev", path = "../codira_runtime" }
+codira_hir = { version = "0.6.0-dev", path = "../codira_hir" }
+codira_paths = { version = "0.6.0-dev", path = "../codira_paths" }
+anyhow = { workspace = true }
+itertools = { workspace = true }
+tempfile = { workspace = true }

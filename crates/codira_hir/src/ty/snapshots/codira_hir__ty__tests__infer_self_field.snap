@@ -1,0 +1,13 @@
+---
+source: crates/codira_hir/src/ty/tests.rs
+expression: "infer(r#\"\n    struct Foo {\n        a: i32\n    }\n\n    extend Foo {\n        func self_a(self) -> i32 {\n            self.a\n        }\n\n        func self_b(self) -> i32 {\n            self.b  // error: attempted to access a non-existent field in a struct.\n        }\n    }\n    \"#)"
+---
+132..138: attempted to access a non-existent field in a struct.
+56..60 'self': Foo
+69..91 '{     ...     }': i32
+79..83 'self': Foo
+79..85 'self.a': i32
+109..113 'self': Foo
+122..209 '{     ...     }': i32
+132..136 'self': Foo
+132..138 'self.b': {unknown}

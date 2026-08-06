@@ -1,0 +1,22 @@
+[package]
+name = "codira_skeptic"
+description = "Provides the ability to test Codira code snippets in an mdbook"
+keywords = ["game", "hot-reloading", "language", "codira", "mdbook"]
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+bytecount = { workspace = true }
+itertools = { workspace = true }
+mdbook = { workspace = true }
+pulldown-cmark = { workspace = true }
+codira_compiler = { version = "0.6.0-dev", path = "../codira_compiler" }
+codira_runtime = { version = "0.6.0-dev", path = "../codira_runtime" }
+tempdir = { workspace = true }

@@ -1,0 +1,222 @@
+// std/bit/mask.code
+// Bit mask utilities for Codira.
+// Provides functions for creating, applying, and manipulating bit masks
+// over unsigned integer values.
+
+// ---------------------------------------------------------------------------
+// create_mask
+// Creates a bitmask with `width` consecutive 1-bits starting at bit `offset`.
+// Example: create_mask(4, 8) -> 0x0000000000000FF0 (bits 4..11 set)
+// ---------------------------------------------------------------------------
+public func create_mask(offset: u32, width: u32) -> u64 {
+    if width == 0 {
+        return 0;
+    }
+    if width >= 64 {
+        return 0xFFFFFFFFFFFFFFFF;
+    }
+    let ones: u64 = (1 as u64 << width) - 1;
+    return ones << offset;
+}
+
+// create_mask for u32.
+public func create_mask_u32(offset: u32, width: u32) -> u32 {
+    if width == 0 {
+        return 0;
+    }
+    if width >= 32 {
+        return 0xFFFFFFFF;
+    }
+    let ones: u32 = (1 as u32 << width) - 1;
+    return ones << offset;
+}
+
+// ---------------------------------------------------------------------------
+// apply_mask
+// Applies `mask` to `value` using bitwise AND.
+// Only the bits that are set in `mask` are preserved in the result.
+// ---------------------------------------------------------------------------
+public func apply_mask(value: u64, mask: u64) -> u64 {
+    return value & mask;
+}
+
+// apply_mask for u32.
+public func apply_mask_u32(value: u32, mask: u32) -> u32 {
+    return value & mask;
+}
+
+// ---------------------------------------------------------------------------
+// apply_mask_or
+// Applies `mask` to `value` using bitwise OR.
+// Sets each bit in `value` that is set in `mask`.
+// ---------------------------------------------------------------------------
+public func apply_mask_or(value: u64, mask: u64) -> u64 {
+    return value | mask;
+}
+
+// ---------------------------------------------------------------------------
+// apply_mask_xor
+// Toggles each bit in `value` that is set in `mask`.
+// ---------------------------------------------------------------------------
+public func apply_mask_xor(value: u64, mask: u64) -> u64 {
+    return value ^ mask;
+}
+
+// ---------------------------------------------------------------------------
+// clear_mask
+// Clears each bit in `value` that is set in `mask`.
+// Equivalent to value & (~mask).
+// ---------------------------------------------------------------------------
+public func clear_mask(value: u64, mask: u64) -> u64 {
+    return value & (~mask);
+}
+
+// ---------------------------------------------------------------------------
+// extract_bits
+// Extracts `width` bits from `value` starting at bit position `offset`,
+// shifting the result down so that the extracted field occupies the
+// least-significant bits.
+//
+// Example: extract_bits(0xABCD, 8, 4) extracts bits [8..11] -> 0xB
+// ---------------------------------------------------------------------------
+public func extract_bits(value: u64, offset: u32, width: u32) -> u64 {
+    if width == 0 {
+        return 0;
+    }
+    let mask: u64 = create_mask(0, width);
+    return (value >> offset) & mask;
+}
+
+// extract_bits for u32.
+public func extract_bits_u32(value: u32, offset: u32, width: u32) -> u32 {
+    if width == 0 {
+        return 0;
+    }
+    let mask: u32 = create_mask_u32(0, width);
+    return (value >> offset) & mask;
+}
+
+// ---------------------------------------------------------------------------
+// insert_bits
+// Inserts the low `width` bits of `field` into `value` at bit position
+// `offset`, replacing whatever was there before. All other bits in `value`
+// are preserved.
+//
+// Example: insert_bits(0xFF00, 0xA, 4, 4) -> 0xFFA0
+// ---------------------------------------------------------------------------
+public func insert_bits(value: u64, field: u64, offset: u32, width: u32) -> u64 {
+    if width == 0 {
+        return value;
+    }
+    let mask: u64 = create_mask(offset, width);
+    let field_shifted: u64 = (field << offset) & mask;
+    return (value & (~mask)) | field_shifted;
+}
+
+// insert_bits for u32.
+public func insert_bits_u32(value: u32, field: u32, offset: u32, width: u32) -> u32 {
+    if width == 0 {
+        return value;
+    }
+    let mask: u32 = create_mask_u32(offset, width);
+    let field_shifted: u32 = (field << offset) & mask;
+    return (value & (~mask)) | field_shifted;
+}
+
+// ---------------------------------------------------------------------------
+// bit_select
+// For each bit position, selects from `on_true` when the corresponding
+// bit in `selector` is 1, and from `on_false` when it is 0.
+//
+// Equivalent to: (on_true & selector) | (on_false & ~selector)
+// This is a bitwise multiplexer / conditional select.
+// ---------------------------------------------------------------------------
+public func bit_select(selector: u64, on_true: u64, on_false: u64) -> u64 {
+    return (on_true & selector) | (on_false & (~selector));
+}
+
+// bit_select for u32.
+public func bit_select_u32(selector: u32, on_true: u32, on_false: u32) -> u32 {
+    return (on_true & selector) | (on_false & (~selector));
+}
+
+// ---------------------------------------------------------------------------
+// set_bit
+// Returns `value` with bit at `position` set to 1.
+// ---------------------------------------------------------------------------
+public func set_bit(value: u64, position: u32) -> u64 {
+    return value | (1 as u64 << position);
+}
+
+// ---------------------------------------------------------------------------
+// clear_bit
+// Returns `value` with bit at `position` cleared to 0.
+// ---------------------------------------------------------------------------
+public func clear_bit(value: u64, position: u32) -> u64 {
+    return value & (~(1 as u64 << position));
+}
+
+// ---------------------------------------------------------------------------
+// toggle_bit
+// Returns `value` with bit at `position` toggled (flipped).
+// ---------------------------------------------------------------------------
+public func toggle_bit(value: u64, position: u32) -> u64 {
+    return value ^ (1 as u64 << position);
+}
+
+// ---------------------------------------------------------------------------
+// test_bit
+// Returns true if the bit at `position` in `value` is set (1).
+// ---------------------------------------------------------------------------
+public func test_bit(value: u64, position: u32) -> bool {
+    return (value & (1 as u64 << position)) != 0;
+}
+
+// ---------------------------------------------------------------------------
+// lowest_set_bit
+// Isolates the lowest set bit of `value`.
+// Returns 0 if value == 0.
+// Example: lowest_set_bit(0b10110100) -> 0b00000100
+// ---------------------------------------------------------------------------
+public func lowest_set_bit(value: u64) -> u64 {
+    return value & ((~value) + 1);
+}
+
+// ---------------------------------------------------------------------------
+// highest_set_bit
+// Isolates the highest set bit of `value`.
+// Returns 0 if value == 0.
+// ---------------------------------------------------------------------------
+public func highest_set_bit(value: u64) -> u64 {
+    if value == 0 {
+        return 0;
+    }
+    let mut v: u64 = value;
+    v = v | (v >> 1);
+    v = v | (v >> 2);
+    v = v | (v >> 4);
+    v = v | (v >> 8);
+    v = v | (v >> 16);
+    v = v | (v >> 32);
+    return v - (v >> 1);
+}
+
+// ---------------------------------------------------------------------------
+// clear_lowest_set_bit
+// Clears the lowest set bit of `value`.
+// Example: clear_lowest_set_bit(0b10110100) -> 0b10110000
+// ---------------------------------------------------------------------------
+public func clear_lowest_set_bit(value: u64) -> u64 {
+    return value & (value - 1);
+}
+
+// ---------------------------------------------------------------------------
+// mask_up_to_bit
+// Creates a mask with all bits from 0 to `position` (inclusive) set to 1.
+// ---------------------------------------------------------------------------
+public func mask_up_to_bit(position: u32) -> u64 {
+    if position >= 63 {
+        return 0xFFFFFFFFFFFFFFFF;
+    }
+    return (1 as u64 << (position + 1)) - 1;
+}

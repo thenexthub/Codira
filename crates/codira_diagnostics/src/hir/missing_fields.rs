@@ -1,0 +1,76 @@
+//! Copyright (c) 2026 Omnira CJSC
+//! Author: Tunjay Akbarli
+//! Date: August 6, 2026
+//!
+//! Functionality:
+//! - Part of the Codira compiler and runtime toolchain.
+//!
+use codira_hir::HirDisplay;
+use codira_syntax::{ast, AstNode, TextRange};
+
+use super::HirDiagnostic;
+use crate::{Diagnostic, SourceAnnotation};
+
+/// An error that is emitted when a field is missing from a struct initializer.
+///
+/// ```codira
+/// struct Foo {
+///     a: i32,
+/// }
+///
+/// # fn main() {
+///     let a = Foo {}; // missing field `a`
+/// # }
+/// ```
+pub struct MissingFields<'db, 'diag, DB: codira_hir::HirDatabase> {
+    db: &'db DB,
+    diag: &'diag codira_hir::diagnostics::MissingFields,
+    location: TextRange,
+    missing_fields: String,
+}
+
+impl<DB: codira_hir::HirDatabase> Diagnostic for MissingFields<'_, '_, DB> {
+    fn range(&self) -> TextRange {
+        self.location
+    }
+
+    fn title(&self) -> String {
+        format!(
+            "missing fields {} in initializer of `{}`",
+            self.missing_fields,
+            self.diag.struct_ty.display(self.db)
+        )
+    }
+
+    fn primary_annotation(&self) -> Option<SourceAnnotation> {
+        Some(SourceAnnotation {
+            range: self.location,
+            message: format!("missing {}", self.missing_fields.clone()),
+        })
+    }
+}
+
+impl<'db, 'diag, DB: codira_hir::HirDatabase> MissingFields<'db, 'diag, DB> {
+    /// Constructs a new instance of `MissingFields`
+    pub fn new(db: &'db DB, diag: &'diag codira_hir::diagnostics::MissingFields) -> Self {
+        let parse = db.parse(diag.file);
+        let missing_fields = diag
+            .field_names
+            .iter()
+            .map(|n| format!("`{n}`"))
+            .collect::<Vec<String>>()
+            .join(", ");
+
+        let location = ast::RecordLit::cast(diag.fields.to_node(&parse.syntax_node()))
+            .and_then(|f| f.type_ref())
+            .map_or_else(|| diag.highlight_range(), |t| t.syntax().text_range());
+
+        MissingFields {
+            db,
+            diag,
+            location,
+            missing_fields,
+        }
+    }
+}
+

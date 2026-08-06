@@ -1,1 +1,0 @@
-add_subdirectory(interface_method_returns_value)

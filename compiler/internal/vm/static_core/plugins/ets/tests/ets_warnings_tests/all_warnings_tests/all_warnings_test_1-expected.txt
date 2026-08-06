@@ -1,1 +1,0 @@
-[all_warnings_test_1.ets:20:1] Warning W0005: Replace asynchronous function with coroutine.

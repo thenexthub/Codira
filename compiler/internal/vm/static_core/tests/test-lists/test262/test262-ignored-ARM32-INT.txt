@@ -1,5 +1,0 @@
-# ES2PANDA_FAIL panda#9447 Literals of denormalized floats
-built-ins/DataView/prototype/getFloat64/return-values.js
-built-ins/DataView/prototype/setFloat64/set-values-little-endian-order.js
-built-ins/DataView/prototype/setFloat64/to-boolean-littleendian.js
-language/types/number/8.5.1.js

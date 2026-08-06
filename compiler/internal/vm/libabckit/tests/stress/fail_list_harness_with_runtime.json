@@ -1,6 +1,0 @@
-{
-  "/tmp/abckit_test262/implementation-contributed/v8/mjsunit/es6/destructuring.js": 1,
-  "/tmp/abckit_test262/implementation-contributed/v8/mjsunit/regress/regress-5454.js": 1,
-  "/tmp/abckit_test262/implementation-contributed/v8/mjsunit/regress/wasm/regress-810973b.js": 137,
-  "/tmp/abckit_test262/test/staging/ArrayBuffer/resizable/object-freeze.js": "JS Test result changed. Was 255, now -11"
-}

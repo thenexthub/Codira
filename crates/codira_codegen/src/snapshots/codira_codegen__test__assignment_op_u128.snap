@@ -1,0 +1,51 @@
+---
+source: crates/codira_codegen/src/test.rs
+expression: "\n    pub fn assign(a: u128, b: u128) -> u128 {\n        a = b;\n        a\n    }\n    pub fn assign_add(a: u128, b: u128) -> u128 {\n        a += b;\n        a\n    }\n    pub fn assign_subtract(a: u128, b: u128) -> u128 {\n        a -= b;\n        a\n    }\n    pub fn assign_multiply(a: u128, b: u128) -> u128 {\n        a *= b;\n        a\n    }\n    pub fn assign_divide(a: u128, b: u128) -> u128 {\n        a /= b;\n        a\n    }\n    pub fn assign_remainder(a: u128, b: u128) -> u128 {\n        a %= b;\n        a\n    }\n                        "
+---
+; == FILE IR (mod) =====================================
+; ModuleID = 'mod'
+source_filename = "mod"
+
+@global_type_lookup_table = external global [1 x i64*]
+
+define i128 @assign(i128 %0, i128 %1) {
+body:
+  ret i128 %1
+}
+
+define i128 @assign_add(i128 %0, i128 %1) {
+body:
+  %add = add i128 %0, %1
+  ret i128 %add
+}
+
+define i128 @assign_subtract(i128 %0, i128 %1) {
+body:
+  %sub = sub i128 %0, %1
+  ret i128 %sub
+}
+
+define i128 @assign_multiply(i128 %0, i128 %1) {
+body:
+  %mul = mul i128 %0, %1
+  ret i128 %mul
+}
+
+define i128 @assign_divide(i128 %0, i128 %1) {
+body:
+  %div = udiv i128 %0, %1
+  ret i128 %div
+}
+
+define i128 @assign_remainder(i128 %0, i128 %1) {
+body:
+  %rem = urem i128 %0, %1
+  ret i128 %rem
+}
+
+; == GROUP IR (mod) ====================================
+; ModuleID = 'group_name'
+source_filename = "group_name"
+
+@global_type_lookup_table = global [1 x i64*] zeroinitializer
+

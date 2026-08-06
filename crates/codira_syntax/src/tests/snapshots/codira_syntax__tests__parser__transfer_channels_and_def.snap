@@ -1,0 +1,231 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n        def greet(name, count = 3) -> nil {\n            nil\n        }\n\n        func swap(inout a: i32, inout b: i32) {\n            let tmp = a^;\n            a = b^;\n            b = tmp;\n        }\n\n        func pipeline(ch: Channel[i32]) -> i32 {\n            let got = <-ch;\n            ch <- got + 1;\n            got\n        }\n        \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..336
+  FUNCTION_DEF@0..70
+    WHITESPACE@0..9 "\n        "
+    DEF_KW@9..12 "def"
+    WHITESPACE@12..13 " "
+    NAME@13..18
+      IDENT@13..18 "greet"
+    PARAM_LIST@18..35
+      L_PAREN@18..19 "("
+      PARAM@19..23
+        BIND_PAT@19..23
+          NAME@19..23
+            IDENT@19..23 "name"
+      COMMA@23..24 ","
+      WHITESPACE@24..25 " "
+      PARAM@25..34
+        BIND_PAT@25..30
+          NAME@25..30
+            IDENT@25..30 "count"
+        WHITESPACE@30..31 " "
+        EQ@31..32 "="
+        WHITESPACE@32..33 " "
+        LITERAL@33..34
+          INT_NUMBER@33..34 "3"
+      R_PAREN@34..35 ")"
+    WHITESPACE@35..36 " "
+    RET_TYPE@36..42
+      THIN_ARROW@36..38 "->"
+      WHITESPACE@38..39 " "
+      ERROR@39..42
+        NIL_KW@39..42 "nil"
+    WHITESPACE@42..43 " "
+    BLOCK_EXPR@43..70
+      L_CURLY@43..44 "{"
+      WHITESPACE@44..57 "\n            "
+      LITERAL@57..60
+        NIL_KW@57..60 "nil"
+      WHITESPACE@60..69 "\n        "
+      R_CURLY@69..70 "}"
+  WHITESPACE@70..80 "\n\n        "
+  FUNCTION_DEF@80..196
+    FUNC_KW@80..84 "func"
+    WHITESPACE@84..85 " "
+    NAME@85..89
+      IDENT@85..89 "swap"
+    PARAM_LIST@89..117
+      L_PAREN@89..90 "("
+      PARAM@90..102
+        INOUT_KW@90..95 "inout"
+        WHITESPACE@95..96 " "
+        BIND_PAT@96..97
+          NAME@96..97
+            IDENT@96..97 "a"
+        COLON@97..98 ":"
+        WHITESPACE@98..99 " "
+        PATH_TYPE@99..102
+          PATH@99..102
+            PATH_SEGMENT@99..102
+              NAME_REF@99..102
+                IDENT@99..102 "i32"
+      COMMA@102..103 ","
+      WHITESPACE@103..104 " "
+      PARAM@104..116
+        INOUT_KW@104..109 "inout"
+        WHITESPACE@109..110 " "
+        BIND_PAT@110..111
+          NAME@110..111
+            IDENT@110..111 "b"
+        COLON@111..112 ":"
+        WHITESPACE@112..113 " "
+        PATH_TYPE@113..116
+          PATH@113..116
+            PATH_SEGMENT@113..116
+              NAME_REF@113..116
+                IDENT@113..116 "i32"
+      R_PAREN@116..117 ")"
+    WHITESPACE@117..118 " "
+    BLOCK_EXPR@118..196
+      L_CURLY@118..119 "{"
+      WHITESPACE@119..132 "\n            "
+      LET_STMT@132..145
+        LET_KW@132..135 "let"
+        WHITESPACE@135..136 " "
+        BIND_PAT@136..139
+          NAME@136..139
+            IDENT@136..139 "tmp"
+        WHITESPACE@139..140 " "
+        EQ@140..141 "="
+        WHITESPACE@141..142 " "
+        TRANSFER_EXPR@142..144
+          PATH_EXPR@142..143
+            PATH@142..143
+              PATH_SEGMENT@142..143
+                NAME_REF@142..143
+                  IDENT@142..143 "a"
+          CARET@143..144 "^"
+        SEMI@144..145 ";"
+      WHITESPACE@145..158 "\n            "
+      EXPR_STMT@158..165
+        BIN_EXPR@158..164
+          PATH_EXPR@158..159
+            PATH@158..159
+              PATH_SEGMENT@158..159
+                NAME_REF@158..159
+                  IDENT@158..159 "a"
+          WHITESPACE@159..160 " "
+          EQ@160..161 "="
+          WHITESPACE@161..162 " "
+          TRANSFER_EXPR@162..164
+            PATH_EXPR@162..163
+              PATH@162..163
+                PATH_SEGMENT@162..163
+                  NAME_REF@162..163
+                    IDENT@162..163 "b"
+            CARET@163..164 "^"
+        SEMI@164..165 ";"
+      WHITESPACE@165..178 "\n            "
+      EXPR_STMT@178..186
+        BIN_EXPR@178..185
+          PATH_EXPR@178..179
+            PATH@178..179
+              PATH_SEGMENT@178..179
+                NAME_REF@178..179
+                  IDENT@178..179 "b"
+          WHITESPACE@179..180 " "
+          EQ@180..181 "="
+          WHITESPACE@181..182 " "
+          PATH_EXPR@182..185
+            PATH@182..185
+              PATH_SEGMENT@182..185
+                NAME_REF@182..185
+                  IDENT@182..185 "tmp"
+        SEMI@185..186 ";"
+      WHITESPACE@186..195 "\n        "
+      R_CURLY@195..196 "}"
+  WHITESPACE@196..206 "\n\n        "
+  FUNCTION_DEF@206..327
+    FUNC_KW@206..210 "func"
+    WHITESPACE@210..211 " "
+    NAME@211..219
+      IDENT@211..219 "pipeline"
+    PARAM_LIST@219..237
+      L_PAREN@219..220 "("
+      PARAM@220..236
+        BIND_PAT@220..222
+          NAME@220..222
+            IDENT@220..222 "ch"
+        COLON@222..223 ":"
+        WHITESPACE@223..224 " "
+        PATH_TYPE@224..236
+          PATH@224..231
+            PATH_SEGMENT@224..231
+              NAME_REF@224..231
+                IDENT@224..231 "Channel"
+          GENERIC_ARG_LIST@231..236
+            L_BRACKET@231..232 "["
+            PATH_TYPE@232..235
+              PATH@232..235
+                PATH_SEGMENT@232..235
+                  NAME_REF@232..235
+                    IDENT@232..235 "i32"
+            R_BRACKET@235..236 "]"
+      R_PAREN@236..237 ")"
+    WHITESPACE@237..238 " "
+    RET_TYPE@238..244
+      THIN_ARROW@238..240 "->"
+      WHITESPACE@240..241 " "
+      PATH_TYPE@241..244
+        PATH@241..244
+          PATH_SEGMENT@241..244
+            NAME_REF@241..244
+              IDENT@241..244 "i32"
+    WHITESPACE@244..245 " "
+    BLOCK_EXPR@245..327
+      L_CURLY@245..246 "{"
+      WHITESPACE@246..259 "\n            "
+      LET_STMT@259..274
+        LET_KW@259..262 "let"
+        WHITESPACE@262..263 " "
+        BIND_PAT@263..266
+          NAME@263..266
+            IDENT@263..266 "got"
+        WHITESPACE@266..267 " "
+        EQ@267..268 "="
+        WHITESPACE@268..269 " "
+        CHANNEL_RECV_EXPR@269..273
+          LARROW@269..271 "<-"
+          PATH_EXPR@271..273
+            PATH@271..273
+              PATH_SEGMENT@271..273
+                NAME_REF@271..273
+                  IDENT@271..273 "ch"
+        SEMI@273..274 ";"
+      WHITESPACE@274..287 "\n            "
+      EXPR_STMT@287..301
+        CHANNEL_SEND_EXPR@287..300
+          PATH_EXPR@287..289
+            PATH@287..289
+              PATH_SEGMENT@287..289
+                NAME_REF@287..289
+                  IDENT@287..289 "ch"
+          WHITESPACE@289..290 " "
+          LARROW@290..292 "<-"
+          WHITESPACE@292..293 " "
+          BIN_EXPR@293..300
+            PATH_EXPR@293..296
+              PATH@293..296
+                PATH_SEGMENT@293..296
+                  NAME_REF@293..296
+                    IDENT@293..296 "got"
+            WHITESPACE@296..297 " "
+            PLUS@297..298 "+"
+            WHITESPACE@298..299 " "
+            LITERAL@299..300
+              INT_NUMBER@299..300 "1"
+        SEMI@300..301 ";"
+      WHITESPACE@301..314 "\n            "
+      PATH_EXPR@314..317
+        PATH@314..317
+          PATH_SEGMENT@314..317
+            NAME_REF@314..317
+              IDENT@314..317 "got"
+      WHITESPACE@317..326 "\n        "
+      R_CURLY@326..327 "}"
+  WHITESPACE@327..336 "\n        "
+error Offset(39): expected type

@@ -1,0 +1,99 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n        func find(x: i32) -> i32? {\n            nil\n        }\n\n        func run() -> i32 {\n            let forced = find(1)!;\n            forced\n        }\n        \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..164
+  FUNCTION_DEF@0..62
+    WHITESPACE@0..9 "\n        "
+    FUNC_KW@9..13 "func"
+    WHITESPACE@13..14 " "
+    NAME@14..18
+      IDENT@14..18 "find"
+    PARAM_LIST@18..26
+      L_PAREN@18..19 "("
+      PARAM@19..25
+        BIND_PAT@19..20
+          NAME@19..20
+            IDENT@19..20 "x"
+        COLON@20..21 ":"
+        WHITESPACE@21..22 " "
+        PATH_TYPE@22..25
+          PATH@22..25
+            PATH_SEGMENT@22..25
+              NAME_REF@22..25
+                IDENT@22..25 "i32"
+      R_PAREN@25..26 ")"
+    WHITESPACE@26..27 " "
+    RET_TYPE@27..34
+      THIN_ARROW@27..29 "->"
+      WHITESPACE@29..30 " "
+      OPTIONAL_TYPE@30..34
+        PATH_TYPE@30..33
+          PATH@30..33
+            PATH_SEGMENT@30..33
+              NAME_REF@30..33
+                IDENT@30..33 "i32"
+        QUESTION@33..34 "?"
+    WHITESPACE@34..35 " "
+    BLOCK_EXPR@35..62
+      L_CURLY@35..36 "{"
+      WHITESPACE@36..49 "\n            "
+      LITERAL@49..52
+        NIL_KW@49..52 "nil"
+      WHITESPACE@52..61 "\n        "
+      R_CURLY@61..62 "}"
+  WHITESPACE@62..72 "\n\n        "
+  FUNCTION_DEF@72..155
+    FUNC_KW@72..76 "func"
+    WHITESPACE@76..77 " "
+    NAME@77..80
+      IDENT@77..80 "run"
+    PARAM_LIST@80..82
+      L_PAREN@80..81 "("
+      R_PAREN@81..82 ")"
+    WHITESPACE@82..83 " "
+    RET_TYPE@83..89
+      THIN_ARROW@83..85 "->"
+      WHITESPACE@85..86 " "
+      PATH_TYPE@86..89
+        PATH@86..89
+          PATH_SEGMENT@86..89
+            NAME_REF@86..89
+              IDENT@86..89 "i32"
+    WHITESPACE@89..90 " "
+    BLOCK_EXPR@90..155
+      L_CURLY@90..91 "{"
+      WHITESPACE@91..104 "\n            "
+      LET_STMT@104..126
+        LET_KW@104..107 "let"
+        WHITESPACE@107..108 " "
+        BIND_PAT@108..114
+          NAME@108..114
+            IDENT@108..114 "forced"
+        WHITESPACE@114..115 " "
+        EQ@115..116 "="
+        WHITESPACE@116..117 " "
+        TRY_EXPR@117..125
+          CALL_EXPR@117..124
+            PATH_EXPR@117..121
+              PATH@117..121
+                PATH_SEGMENT@117..121
+                  NAME_REF@117..121
+                    IDENT@117..121 "find"
+            ARG_LIST@121..124
+              L_PAREN@121..122 "("
+              LITERAL@122..123
+                INT_NUMBER@122..123 "1"
+              R_PAREN@123..124 ")"
+          EXCLAMATION@124..125 "!"
+        SEMI@125..126 ";"
+      WHITESPACE@126..139 "\n            "
+      PATH_EXPR@139..145
+        PATH@139..145
+          PATH_SEGMENT@139..145
+            NAME_REF@139..145
+              IDENT@139..145 "forced"
+      WHITESPACE@145..154 "\n        "
+      R_CURLY@154..155 "}"
+  WHITESPACE@155..164 "\n        "

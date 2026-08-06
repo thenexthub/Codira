@@ -1,0 +1,208 @@
+// std/testing/suite.code
+// Test suite runner for Codira.
+// Provides a TestSuite struct that collects test cases, runs them,
+// and reports results.
+
+// ---------------------------------------------------------------------------
+// TestResult
+// The outcome of a single test case.
+// ---------------------------------------------------------------------------
+public struct TestResult {
+    name: String,
+    passed: bool,
+    error_message: String,
+    elapsed_ns: u64,
+}
+
+// ---------------------------------------------------------------------------
+// TestCase
+// A named test function.
+// ---------------------------------------------------------------------------
+public struct TestCase {
+    name: String,
+    func_ptr: func(),
+}
+
+// ---------------------------------------------------------------------------
+// SuiteResults
+// Aggregated results from running an entire suite.
+// ---------------------------------------------------------------------------
+public struct SuiteResults {
+    suite_name: String,
+    results: Array<TestResult>,
+    total: usize,
+    passed: usize,
+    failed: usize,
+    elapsed_ns: u64,
+}
+
+// Returns true if every test in the suite passed.
+public func suite_results_all_passed(r: SuiteResults) -> bool {
+    return r.failed == 0;
+}
+
+// Returns the names of tests that failed.
+public func suite_results_failures(r: SuiteResults) -> Array<String> {
+    let mut names: Array<String> = Array::new();
+    let mut i: usize = 0;
+    while i < r.results.len() {
+        if !r.results[i].passed {
+            names.push(r.results[i].name);
+        }
+        i = i + 1;
+    }
+    return names;
+}
+
+// Formats the results as a human-readable report string.
+public func suite_results_report(r: SuiteResults) -> String {
+    let mut report: String = "=== Test Suite: " + r.suite_name + " ===\n";
+    let mut i: usize = 0;
+    while i < r.results.len() {
+        let tr: TestResult = r.results[i];
+        if tr.passed {
+            report = report + "  PASS  " + tr.name;
+        } else {
+            report = report + "  FAIL  " + tr.name + " -- " + tr.error_message;
+        }
+        report = report + " (" + uint_to_string(tr.elapsed_ns / 1_000) + " us)\n";
+        i = i + 1;
+    }
+    report = report + "---\n";
+    report = report + "Total: " + uint_to_string(r.total as u64)
+                    + "  Passed: " + uint_to_string(r.passed as u64)
+                    + "  Failed: " + uint_to_string(r.failed as u64)
+                    + "  Time: " + uint_to_string(r.elapsed_ns / 1_000_000) + " ms\n";
+    return report;
+}
+
+// ---------------------------------------------------------------------------
+// TestSuite
+// Collects test cases and runs them.
+// ---------------------------------------------------------------------------
+public struct(gc) TestSuite {
+    name: String,
+    tests: Array<TestCase>,
+}
+
+// ---------------------------------------------------------------------------
+// test_suite_new
+// Creates a new, empty test suite with the given name.
+// ---------------------------------------------------------------------------
+public func test_suite_new(name: String) -> TestSuite {
+    return TestSuite {
+        name: name,
+        tests: Array::new(),
+    };
+}
+
+// ---------------------------------------------------------------------------
+// add_test
+// Registers a test case with the suite.
+// ---------------------------------------------------------------------------
+public func test_suite_add_test(suite: mut TestSuite, name: String, f: func()) {
+    suite.tests.push(TestCase { name: name, func_ptr: f });
+}
+
+// ---------------------------------------------------------------------------
+// run
+// Executes all registered test cases and returns aggregated results.
+// Each test is run in isolation; a panic in one test does not prevent
+// subsequent tests from running.
+// ---------------------------------------------------------------------------
+public func test_suite_run(suite: TestSuite) -> SuiteResults {
+    let mut results: Array<TestResult> = Array::new();
+    let mut passed: usize = 0;
+    let mut failed: usize = 0;
+    let suite_start: u64 = _platform_perf_counter_ns();
+
+    let mut i: usize = 0;
+    while i < suite.tests.len() {
+        let tc: TestCase = suite.tests[i];
+        let start_ns: u64 = _platform_perf_counter_ns();
+        let catch_result: CatchResult = catch_panic(tc.func_ptr);
+        let end_ns: u64 = _platform_perf_counter_ns();
+        let elapsed: u64 = end_ns - start_ns;
+
+        if catch_result.did_panic {
+            results.push(TestResult {
+                name: tc.name,
+                passed: false,
+                error_message: catch_result.panic_message,
+                elapsed_ns: elapsed,
+            });
+            failed = failed + 1;
+        } else {
+            results.push(TestResult {
+                name: tc.name,
+                passed: true,
+                error_message: "",
+                elapsed_ns: elapsed,
+            });
+            passed = passed + 1;
+        }
+        i = i + 1;
+    }
+
+    let suite_end: u64 = _platform_perf_counter_ns();
+    return SuiteResults {
+        suite_name: suite.name,
+        results: results,
+        total: suite.tests.len(),
+        passed: passed,
+        failed: failed,
+        elapsed_ns: suite_end - suite_start,
+    };
+}
+
+// ---------------------------------------------------------------------------
+// run_and_print
+// Runs the suite and prints the report to stdout. Returns true if all
+// tests passed.
+// ---------------------------------------------------------------------------
+public func test_suite_run_and_print(suite: TestSuite) -> bool {
+    let results: SuiteResults = test_suite_run(suite);
+    let report: String = suite_results_report(results);
+    print(report);
+    return suite_results_all_passed(results);
+}
+
+// ---------------------------------------------------------------------------
+// run_and_exit
+// Runs the suite, prints the report, and exits the process with code 0
+// on success or 1 on failure.
+// ---------------------------------------------------------------------------
+public func test_suite_run_and_exit(suite: TestSuite) {
+    let all_passed: bool = test_suite_run_and_print(suite);
+    if all_passed {
+        _platform_exit(0);
+    } else {
+        _platform_exit(1);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Internal helpers / stubs.
+// ---------------------------------------------------------------------------
+func uint_to_string(value: u64) -> String {
+    if value == 0 { return "0"; }
+    let mut result: String = "";
+    let mut v: u64 = value;
+    while v > 0 {
+        let digit: u64 = v % 10;
+        result = char_from_byte((digit + 48) as u8) + result;
+        v = v / 10;
+    }
+    return result;
+}
+
+struct CatchResult {
+    did_panic: bool,
+    panic_message: String,
+}
+
+extern func catch_panic(f: func()) -> CatchResult;
+extern func print(s: String);
+extern func char_from_byte(b: u8) -> String;
+extern func _platform_perf_counter_ns() -> u64;
+extern func _platform_exit(code: i32);

@@ -1,0 +1,144 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    func main() {\n        let a = [1,2,3,4]\n        let b = a[0];\n        let c = a[b];\n        a[0] = c;\n        let a = { [3,4,5] }[1];\n    }\"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..144
+  FUNCTION_DEF@0..144
+    WHITESPACE@0..5 "\n    "
+    FUNC_KW@5..9 "func"
+    WHITESPACE@9..10 " "
+    NAME@10..14
+      IDENT@10..14 "main"
+    PARAM_LIST@14..16
+      L_PAREN@14..15 "("
+      R_PAREN@15..16 ")"
+    WHITESPACE@16..17 " "
+    BLOCK_EXPR@17..144
+      L_CURLY@17..18 "{"
+      WHITESPACE@18..27 "\n        "
+      LET_STMT@27..44
+        LET_KW@27..30 "let"
+        WHITESPACE@30..31 " "
+        BIND_PAT@31..32
+          NAME@31..32
+            IDENT@31..32 "a"
+        WHITESPACE@32..33 " "
+        EQ@33..34 "="
+        WHITESPACE@34..35 " "
+        ARRAY_EXPR@35..44
+          L_BRACKET@35..36 "["
+          LITERAL@36..37
+            INT_NUMBER@36..37 "1"
+          COMMA@37..38 ","
+          LITERAL@38..39
+            INT_NUMBER@38..39 "2"
+          COMMA@39..40 ","
+          LITERAL@40..41
+            INT_NUMBER@40..41 "3"
+          COMMA@41..42 ","
+          LITERAL@42..43
+            INT_NUMBER@42..43 "4"
+          R_BRACKET@43..44 "]"
+      WHITESPACE@44..53 "\n        "
+      LET_STMT@53..66
+        LET_KW@53..56 "let"
+        WHITESPACE@56..57 " "
+        BIND_PAT@57..58
+          NAME@57..58
+            IDENT@57..58 "b"
+        WHITESPACE@58..59 " "
+        EQ@59..60 "="
+        WHITESPACE@60..61 " "
+        INDEX_EXPR@61..65
+          PATH_EXPR@61..62
+            PATH@61..62
+              PATH_SEGMENT@61..62
+                NAME_REF@61..62
+                  IDENT@61..62 "a"
+          L_BRACKET@62..63 "["
+          LITERAL@63..64
+            INT_NUMBER@63..64 "0"
+          R_BRACKET@64..65 "]"
+        SEMI@65..66 ";"
+      WHITESPACE@66..75 "\n        "
+      LET_STMT@75..88
+        LET_KW@75..78 "let"
+        WHITESPACE@78..79 " "
+        BIND_PAT@79..80
+          NAME@79..80
+            IDENT@79..80 "c"
+        WHITESPACE@80..81 " "
+        EQ@81..82 "="
+        WHITESPACE@82..83 " "
+        INDEX_EXPR@83..87
+          PATH_EXPR@83..84
+            PATH@83..84
+              PATH_SEGMENT@83..84
+                NAME_REF@83..84
+                  IDENT@83..84 "a"
+          L_BRACKET@84..85 "["
+          PATH_EXPR@85..86
+            PATH@85..86
+              PATH_SEGMENT@85..86
+                NAME_REF@85..86
+                  IDENT@85..86 "b"
+          R_BRACKET@86..87 "]"
+        SEMI@87..88 ";"
+      WHITESPACE@88..97 "\n        "
+      EXPR_STMT@97..106
+        BIN_EXPR@97..105
+          INDEX_EXPR@97..101
+            PATH_EXPR@97..98
+              PATH@97..98
+                PATH_SEGMENT@97..98
+                  NAME_REF@97..98
+                    IDENT@97..98 "a"
+            L_BRACKET@98..99 "["
+            LITERAL@99..100
+              INT_NUMBER@99..100 "0"
+            R_BRACKET@100..101 "]"
+          WHITESPACE@101..102 " "
+          EQ@102..103 "="
+          WHITESPACE@103..104 " "
+          PATH_EXPR@104..105
+            PATH@104..105
+              PATH_SEGMENT@104..105
+                NAME_REF@104..105
+                  IDENT@104..105 "c"
+        SEMI@105..106 ";"
+      WHITESPACE@106..115 "\n        "
+      LET_STMT@115..134
+        LET_KW@115..118 "let"
+        WHITESPACE@118..119 " "
+        BIND_PAT@119..120
+          NAME@119..120
+            IDENT@119..120 "a"
+        WHITESPACE@120..121 " "
+        EQ@121..122 "="
+        WHITESPACE@122..123 " "
+        BLOCK_EXPR@123..134
+          L_CURLY@123..124 "{"
+          WHITESPACE@124..125 " "
+          ARRAY_EXPR@125..132
+            L_BRACKET@125..126 "["
+            LITERAL@126..127
+              INT_NUMBER@126..127 "3"
+            COMMA@127..128 ","
+            LITERAL@128..129
+              INT_NUMBER@128..129 "4"
+            COMMA@129..130 ","
+            LITERAL@130..131
+              INT_NUMBER@130..131 "5"
+            R_BRACKET@131..132 "]"
+          WHITESPACE@132..133 " "
+          R_CURLY@133..134 "}"
+      EXPR_STMT@134..138
+        ARRAY_EXPR@134..137
+          L_BRACKET@134..135 "["
+          LITERAL@135..136
+            INT_NUMBER@135..136 "1"
+          R_BRACKET@136..137 "]"
+        SEMI@137..138 ";"
+      WHITESPACE@138..143 "\n    "
+      R_CURLY@143..144 "}"

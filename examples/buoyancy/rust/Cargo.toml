@@ -1,0 +1,7 @@
+[package]
+name = "buoyancy"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+codira_runtime = { path = "../../../crates/codira_runtime" }

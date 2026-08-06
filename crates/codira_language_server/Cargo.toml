@@ -1,0 +1,44 @@
+[package]
+name = "codira_language_server"
+description = "Provides a language server protocol server for the Codira language"
+keywords = ["game", "hot-reloading", "language", "codira", "scripting"]
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+codira_hir_input = { version = "0.6.0-dev", path="../codira_hir_input" }
+codira_hir = { version = "0.6.0-dev", path="../codira_hir" }
+codira_vfs = { version = "0.6.0-dev", path = "../codira_vfs" }
+codira_project = { version = "0.6.0-dev", path = "../codira_project" }
+codira_target = { version = "0.6.0-dev", path = "../codira_target" }
+codira_syntax = { version = "0.6.0-dev", path = "../codira_syntax" }
+codira_diagnostics = { version = "0.6.0-dev", path = "../codira_diagnostics" }
+codira_paths = { version = "0.6.0-dev", path="../codira_paths" }
+anyhow = { workspace = true, features = ["std"] }
+crossbeam-channel = { workspace = true }
+log = { workspace = true }
+lsp-types = { workspace = true }
+lsp-server = { workspace = true }
+parking_lot = { workspace = true }
+ra_ap_text_edit = { workspace = true }
+rustc-hash = { workspace = true }
+salsa = { workspace = true }
+serde = { workspace = true }
+serde_derive = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+threadpool = { workspace = true }
+
+[dev-dependencies]
+codira_test = { path = "../codira_test"}
+insta = { workspace = true }
+itertools = { workspace = true }
+tempdir = { workspace = true }
+text_trees = { workspace = true }

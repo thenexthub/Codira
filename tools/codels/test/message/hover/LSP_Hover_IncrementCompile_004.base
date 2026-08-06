@@ -1,1 +1,0 @@
-{"id":5,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: a.code\nPackage info: pkgB.pkg1\n\npublic type AAA = A\n"},"range":{"end":{"character":25,"line":9},"start":{"character":17,"line":9}}}}

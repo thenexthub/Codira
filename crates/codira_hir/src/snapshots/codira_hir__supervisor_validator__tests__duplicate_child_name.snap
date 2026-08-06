@@ -1,0 +1,6 @@
+---
+source: crates/codira_hir/src/supervisor_validator.rs
+expression: "diagnostics(r#\"\n        supervisor DatabaseConnection {\n            strategy: 1,\n\n            child ConnPool {\n                strategy: 2,\n            }\n\n            child ConnPool {\n                strategy: 3,\n            }\n        }\n        \"#)"
+snapshot_kind: text
+---
+103..146: a child named `ConnPool` is already declared in this supervisor

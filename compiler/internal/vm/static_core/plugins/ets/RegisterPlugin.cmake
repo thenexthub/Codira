@@ -1,1 +1,0 @@
-set(PLUGIN_IN_PRODUCT_BUILD true)

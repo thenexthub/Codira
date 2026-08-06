@@ -1,0 +1,214 @@
+// =============================================================================
+// std/sys/terminate.code — Process termination
+// =============================================================================
+//
+// Provides functions to terminate the current process, either gracefully
+// (exit) or abnormally (abort).
+//
+// These are low-level primitives.  Prefer returning Result/Error from
+// main() when possible — use these only for truly unrecoverable situations.
+// =============================================================================
+
+use std.builtin.types;
+
+// =============================================================================
+// exit — Graceful termination
+// =============================================================================
+
+// Terminate the process with the given exit code.
+//
+// This function performs orderly shutdown:
+//   1. Runs registered atexit handlers (if any).
+//   2. Flushes and closes all open file descriptors.
+//   3. Returns `code` to the operating system.
+//
+// Convention:
+//   code == 0  → success
+//   code != 0  → failure (the specific non-zero value is application-defined)
+//
+// This function never returns.
+//
+//   exit(0);    // success
+//   exit(1);    // generic failure
+public func exit(code: i32) -> ! {
+    __intrinsic_exit(code);
+}
+
+// Exit with code 0 (success).
+public func exit_success() -> ! {
+    __intrinsic_exit(0);
+}
+
+// Exit with code 1 (generic failure).
+public func exit_failure() -> ! {
+    __intrinsic_exit(1);
+}
+
+// =============================================================================
+// abort — Abnormal termination
+// =============================================================================
+
+// Immediately terminate the process abnormally.
+//
+// This function:
+//   - Does NOT run atexit handlers.
+//   - Does NOT flush output streams.
+//   - May produce a core dump (if OS is configured for it).
+//   - Sends SIGABRT on POSIX systems.
+//
+// Use for truly unrecoverable internal errors (invariant violations,
+// corrupted state, etc.).
+//
+// This function never returns.
+//
+//   abort();
+public func abort() -> ! {
+    __intrinsic_abort();
+}
+
+// Abort with a diagnostic message printed to stderr before termination.
+//
+//   abort_with_message("invariant violated: count must be positive");
+public func abort_with_message(message: String) -> ! {
+    __intrinsic_write_stderr("ABORT: ");
+    __intrinsic_write_stderr(message);
+    __intrinsic_write_stderr("\n");
+    __intrinsic_abort();
+}
+
+// =============================================================================
+// panic — Unrecoverable error with formatted message
+// =============================================================================
+
+// Terminate with a panic message and source location information.
+// The runtime prints the message, file, line, and column to stderr,
+// then aborts.
+//
+//   panic("unexpected None value");
+public func panic(message: String) -> ! {
+    __panic(message);
+}
+
+// Panic with a formatted message.
+// `context` typically carries function/module name for easier debugging.
+//
+//   panic_with_context("HashMap.get", "key not found");
+public func panic_with_context(context: String, message: String) -> ! {
+    __panic(context + ": " + message);
+}
+
+// =============================================================================
+// Assertion helpers
+// =============================================================================
+
+// Assert that a condition is true.  If false, panic with a message.
+//
+//   assert(index < len, "index out of bounds");
+public func assert(condition: bool, message: String) -> void {
+    if !condition {
+        __panic("assertion failed: " + message);
+    }
+}
+
+// Assert that a condition is true with no custom message.
+public func assert(condition: bool) -> void {
+    if !condition {
+        __panic("assertion failed");
+    }
+}
+
+// Debug-only assertion: compiled out in release builds.
+public func debug_assert(condition: bool, message: String) -> void {
+    if __intrinsic_is_debug() {
+        if !condition {
+            __panic("debug assertion failed: " + message);
+        }
+    }
+}
+
+// Debug-only assertion with no custom message.
+public func debug_assert(condition: bool) -> void {
+    if __intrinsic_is_debug() {
+        if !condition {
+            __panic("debug assertion failed");
+        }
+    }
+}
+
+// Assert that two values are equal.
+public func assert_eq[T: EqualityComparable + Stringable](a: T, b: T) -> void {
+    if !(a == b) {
+        __panic("assertion failed: expected "
+            + a.to_string()
+            + " == "
+            + b.to_string());
+    }
+}
+
+// Assert that two values are not equal.
+public func assert_ne[T: EqualityComparable + Stringable](a: T, b: T) -> void {
+    if a == b {
+        __panic("assertion failed: expected "
+            + a.to_string()
+            + " != "
+            + b.to_string());
+    }
+}
+
+// Assert that `a < b`.
+public func assert_lt[T: Comparable + Stringable](a: T, b: T) -> void {
+    if !(a < b) {
+        __panic("assertion failed: expected "
+            + a.to_string()
+            + " < "
+            + b.to_string());
+    }
+}
+
+// Assert that `a <= b`.
+public func assert_le[T: Comparable + Stringable](a: T, b: T) -> void {
+    if !(a <= b) {
+        __panic("assertion failed: expected "
+            + a.to_string()
+            + " <= "
+            + b.to_string());
+    }
+}
+
+// =============================================================================
+// Unreachable
+// =============================================================================
+
+// Mark a code path as unreachable.  If reached at runtime, panics.
+//
+//   match value {
+//       0 => ...,
+//       1 => ...,
+//       _ => unreachable("value must be 0 or 1"),
+//   }
+public func unreachable(message: String) -> ! {
+    __panic("unreachable: " + message);
+}
+
+// Mark as unreachable with no message.
+public func unreachable() -> ! {
+    __panic("entered unreachable code");
+}
+
+// =============================================================================
+// todo — Placeholder for unfinished code
+// =============================================================================
+
+// Mark code as not yet implemented.  Panics at runtime if reached.
+//
+//   func frobnicate() -> i32 {
+//       todo("implement frobnication algorithm");
+//   }
+public func todo(message: String) -> ! {
+    __panic("not yet implemented: " + message);
+}
+
+// Placeholder with no message.
+public func todo() -> ! {
+    __panic("not yet implemented");
+}

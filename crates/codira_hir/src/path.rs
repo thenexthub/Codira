@@ -1,0 +1,275 @@
+//! Copyright (c) 2026 Omnira CJSC
+//! Author: Tunjay Akbarli
+//! Date: August 6, 2026
+//!
+//! Functionality:
+//! - Part of the Codira compiler and runtime toolchain.
+//!
+use std::{fmt, fmt::Formatter};
+
+use codira_syntax::{
+    ast,
+    ast::{NameOwner, PathSegmentKind},
+};
+
+use crate::{AsName, Name};
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Path {
+    pub kind: PathKind,
+    pub segments: Vec<Name>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum PathKind {
+    Plain,
+    // `self` is Super(0)
+    Super(u8),
+    Package,
+}
+
+/// A possible import alias e.g. `Foo as Bar` or `Foo as _`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ImportAlias {
+    /// Unnamed alias, as in `use Foo as _;`
+    Underscore,
+    /// Named alias
+    Alias(Name),
+}
+
+impl ImportAlias {
+    pub fn as_name(&self) -> Option<&Name> {
+        match self {
+            ImportAlias::Underscore => None,
+            ImportAlias::Alias(name) => Some(name),
+        }
+    }
+}
+
+impl Path {
+    /// Converts an `ast::Path` to `Path`.
+    pub fn from_ast(mut path: ast::Path) -> Option<Path> {
+        let mut kind = PathKind::Plain;
+        let mut segments = Vec::new();
+        loop {
+            let segment = path.segment()?;
+
+            match segment.kind()? {
+                ast::PathSegmentKind::Name(name) => {
+                    segments.push(name.as_name());
+                }
+                ast::PathSegmentKind::SelfKw => {
+                    kind = PathKind::Super(0);
+                    break;
+                }
+                ast::PathSegmentKind::SuperKw => {
+                    kind = PathKind::Super(1);
+                    break;
+                }
+                ast::PathSegmentKind::RootKw => {
+                    kind = PathKind::Package;
+                    break;
+                }
+            }
+
+            path = match path.qualifier() {
+                Some(p) => p,
+                None => break,
+            }
+        }
+        segments.reverse();
+        Some(Path { kind, segments })
+    }
+
+    /// Converts an `ast::NameRef` into a single-identifier `Path`.
+    pub fn from_name_ref(name_ref: &ast::NameRef) -> Path {
+        name_ref.as_name().into()
+    }
+
+    /// `true` if this path is a single identifier, like `bar`
+    pub fn is_ident(&self) -> bool {
+        self.kind == PathKind::Plain && self.segments.len() == 1
+    }
+
+    /// Whether the path is `self`.
+    pub fn is_self(&self) -> bool {
+        self.kind == PathKind::Super(0) && self.segments.is_empty()
+    }
+
+    /// If this path represents a single identifier, like `foo`, return its
+    /// name.
+    pub fn as_ident(&self) -> Option<&Name> {
+        if self.is_ident() {
+            return self.segments.first();
+        }
+        None
+    }
+
+    /// Constructs a path from its segments.
+    pub fn from_segments(kind: PathKind, segments: impl IntoIterator<Item = Name>) -> Path {
+        let segments = segments.into_iter().collect::<Vec<_>>();
+        Path { kind, segments }
+    }
+
+    /// Calls `cb` with all paths, represented by this use item. For the use
+    /// statement:
+    /// ```codira
+    /// use foo::{self, Bar};
+    /// ```
+    /// the function will call the callback twice. Once for `foo` and once for
+    /// `foo::Bar`.
+    pub(crate) fn expand_use_item(
+        item_src: &ast::Use,
+        mut cb: impl FnMut(Path, &ast::UseTree, /* is_glob */ bool, Option<ImportAlias>),
+    ) {
+        if let Some(tree) = item_src.use_tree() {
+            lower_use_tree(None, &tree, &mut cb);
+        }
+    }
+
+    /// Returns the first segment of the path, if any.
+    pub fn first_segment(&self) -> Option<&Name> {
+        self.segments.first()
+    }
+
+    /// Returns the last segment of the path, if any.
+    pub fn last_segment(&self) -> Option<&Name> {
+        self.segments.last()
+    }
+}
+
+impl fmt::Display for Path {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut first_segment = true;
+        let mut add_segment = |s| -> fmt::Result {
+            if !first_segment {
+                write!(f, "::")?;
+            }
+            first_segment = false;
+            write!(f, "{s}")
+        };
+
+        match self.kind {
+            PathKind::Plain => {}
+            PathKind::Super(0) => add_segment("self")?,
+            PathKind::Super(lvl) => {
+                for _ in 0..lvl {
+                    add_segment("super")?;
+                }
+            }
+            PathKind::Package => add_segment("package")?,
+        }
+
+        for segment in &self.segments {
+            if !first_segment {
+                write!(f, "::")?;
+            }
+            first_segment = false;
+            write!(f, "{segment}")?;
+        }
+        Ok(())
+    }
+}
+
+/// Given an `ast::UseTree` and an optional prefix, call a callback function for
+/// every item that is contained in the import tree.
+///
+/// For the use statement:
+/// ```codira
+/// use foo::{self, Bar};
+/// ```
+/// the function will call the callback twice. Once for `foo` and once for
+/// `foo::Bar`.
+fn lower_use_tree(
+    prefix: Option<Path>,
+    tree: &ast::UseTree,
+    cb: &mut impl FnMut(Path, &ast::UseTree, bool, Option<ImportAlias>),
+) {
+    if let Some(use_tree_list) = tree.use_tree_list() {
+        let prefix = match tree.path() {
+            None => prefix,
+            Some(path) => convert_path(prefix, &path),
+        };
+        for child_tree in use_tree_list.use_trees() {
+            lower_use_tree(prefix.clone(), &child_tree, cb);
+        }
+    } else {
+        let alias = tree.rename().map(|a| {
+            a.name()
+                .map(|it| it.as_name())
+                .map_or(ImportAlias::Underscore, ImportAlias::Alias)
+        });
+
+        let is_glob = tree.has_star_token();
+        if let Some(ast_path) = tree.path() {
+            // Handle self in a path.
+            if ast_path.qualifier().is_none() {
+                if let Some(segment) = ast_path.segment() {
+                    if segment.kind() == Some(ast::PathSegmentKind::SelfKw) {
+                        if let Some(prefix) = prefix {
+                            cb(prefix, tree, false, alias);
+                            return;
+                        }
+                    }
+                }
+            }
+            if let Some(path) = convert_path(prefix, &ast_path) {
+                cb(path, tree, is_glob, alias);
+            }
+        } else if is_glob {
+            if let Some(prefix) = prefix {
+                cb(prefix, tree, is_glob, None);
+            }
+        }
+    }
+}
+
+/// Constructs a `codira_hir::Path` from an `ast::Path` and an optional prefix.
+fn convert_path(prefix: Option<Path>, path: &ast::Path) -> Option<Path> {
+    let prefix = if let Some(qualifier) = path.qualifier() {
+        Some(convert_path(prefix, &qualifier)?)
+    } else {
+        prefix
+    };
+
+    let segment = path.segment()?;
+    let res = match segment.kind()? {
+        ast::PathSegmentKind::Name(name_ref) => {
+            let mut res = prefix.unwrap_or_else(|| Path {
+                kind: PathKind::Plain,
+                segments: Vec::with_capacity(1),
+            });
+            res.segments.push(name_ref.as_name());
+            res
+        }
+        ast::PathSegmentKind::RootKw => {
+            if prefix.is_some() {
+                return None;
+            }
+            Path::from_segments(PathKind::Package, std::iter::empty())
+        }
+        PathSegmentKind::SelfKw => {
+            if prefix.is_some() {
+                return None;
+            }
+            Path::from_segments(PathKind::Super(0), std::iter::empty())
+        }
+        PathSegmentKind::SuperKw => {
+            if prefix.is_some() {
+                return None;
+            }
+            Path::from_segments(PathKind::Super(1), std::iter::empty())
+        }
+    };
+    Some(res)
+}
+
+impl From<Name> for Path {
+    fn from(name: Name) -> Path {
+        Path {
+            kind: PathKind::Plain,
+            segments: vec![name],
+        }
+    }
+}
+

@@ -1,1 +1,0 @@
-{"jsonrpc":"2.0","method":"textDocument/extendPublishDiagnostics","params":{"diagnostics":[],"uri":"file:///d%3A/Work/repo/Char/NewVersion/cangjie_language_server/test/testChr/normalTest/PatternMatch/src/wildcardPattern/wildcardPattern.code"}}

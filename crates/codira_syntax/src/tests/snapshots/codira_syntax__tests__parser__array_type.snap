@@ -1,0 +1,54 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    func main(a: [int]) {\n        let a:[[bool]];\n    }\"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..56
+  FUNCTION_DEF@0..56
+    WHITESPACE@0..5 "\n    "
+    FUNC_KW@5..9 "func"
+    WHITESPACE@9..10 " "
+    NAME@10..14
+      IDENT@10..14 "main"
+    PARAM_LIST@14..24
+      L_PAREN@14..15 "("
+      PARAM@15..23
+        BIND_PAT@15..16
+          NAME@15..16
+            IDENT@15..16 "a"
+        COLON@16..17 ":"
+        WHITESPACE@17..18 " "
+        ARRAY_TYPE@18..23
+          L_BRACKET@18..19 "["
+          PATH_TYPE@19..22
+            PATH@19..22
+              PATH_SEGMENT@19..22
+                NAME_REF@19..22
+                  IDENT@19..22 "int"
+          R_BRACKET@22..23 "]"
+      R_PAREN@23..24 ")"
+    WHITESPACE@24..25 " "
+    BLOCK_EXPR@25..56
+      L_CURLY@25..26 "{"
+      WHITESPACE@26..35 "\n        "
+      LET_STMT@35..50
+        LET_KW@35..38 "let"
+        WHITESPACE@38..39 " "
+        BIND_PAT@39..40
+          NAME@39..40
+            IDENT@39..40 "a"
+        COLON@40..41 ":"
+        ARRAY_TYPE@41..49
+          L_BRACKET@41..42 "["
+          ARRAY_TYPE@42..48
+            L_BRACKET@42..43 "["
+            PATH_TYPE@43..47
+              PATH@43..47
+                PATH_SEGMENT@43..47
+                  NAME_REF@43..47
+                    IDENT@43..47 "bool"
+            R_BRACKET@47..48 "]"
+          R_BRACKET@48..49 "]"
+        SEMI@49..50 ";"
+      WHITESPACE@50..55 "\n    "
+      R_CURLY@55..56 "}"

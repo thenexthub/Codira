@@ -1,0 +1,52 @@
+---
+source: crates/codira_codegen/src/test.rs
+expression: "\n    pub fn equals(a: f64, b: f64) -> bool { a == b }\n    pub fn not_equal(a: f64, b: f64) -> bool { a != b}\n    pub fn less(a: f64, b: f64) -> bool { a < b }\n    pub fn less_equal(a: f64, b: f64) -> bool { a <= b }\n    pub fn greater(a: f64, b: f64) -> bool { a > b }\n    pub fn greater_equal(a: f64, b: f64) -> bool { a >= b }\n                        "
+---
+; == FILE IR (mod) =====================================
+; ModuleID = 'mod'
+source_filename = "mod"
+
+@global_type_lookup_table = external global [2 x i64*]
+
+define i1 @equals(double %0, double %1) {
+body:
+  %eq = fcmp oeq double %0, %1
+  ret i1 %eq
+}
+
+define i1 @not_equal(double %0, double %1) {
+body:
+  %neq = fcmp one double %0, %1
+  ret i1 %neq
+}
+
+define i1 @less(double %0, double %1) {
+body:
+  %less = fcmp olt double %0, %1
+  ret i1 %less
+}
+
+define i1 @less_equal(double %0, double %1) {
+body:
+  %lesseq = fcmp ole double %0, %1
+  ret i1 %lesseq
+}
+
+define i1 @greater(double %0, double %1) {
+body:
+  %greater = fcmp ogt double %0, %1
+  ret i1 %greater
+}
+
+define i1 @greater_equal(double %0, double %1) {
+body:
+  %greatereq = fcmp oge double %0, %1
+  ret i1 %greatereq
+}
+
+; == GROUP IR (mod) ====================================
+; ModuleID = 'group_name'
+source_filename = "group_name"
+
+@global_type_lookup_table = global [2 x i64*] zeroinitializer
+

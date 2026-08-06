@@ -1,1 +1,0 @@
-{"id":"9","jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: Result.code\nPackage info: default\n\n(variable) let rInt32_21: Invalid = Result<Int32>.Failure(Exception())\n"},"range":{"end":{"character":38,"line":40},"start":{"character":29,"line":40}}}}

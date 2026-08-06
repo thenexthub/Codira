@@ -1,0 +1,188 @@
+// =============================================================================
+// std/builtin/bool.code — Boolean type and operations
+// =============================================================================
+//
+// The Bool type wraps a single bit of logical state.  It is a value-type
+// struct that implements the standard comparison, hashing, and formatting
+// traits.
+//
+// Logical operations follow short-circuit semantics when used with the
+// language-level `&&` and `||` operators; the method forms (`and`, `or`)
+// always evaluate both operands.
+// =============================================================================
+
+use std.builtin.traits;
+
+// A single boolean value — either `true` or `false`.
+//
+// Bool is a value type stored inline (1 byte, alignment 1).  The compiler
+// may pack multiple Bools into a single byte when used inside bit-fields.
+public struct(value) Bool {
+    // Internal storage: 0 = false, non-zero = true.
+    _value: u8,
+}
+
+// --- Construction ------------------------------------------------------------
+
+// Construct a Bool from a raw u8 value.
+// Any non-zero byte maps to `true`.
+public func Bool.from_u8(v: u8) -> Bool {
+    if v == 0 {
+        return Bool { _value: 0 };
+    }
+    return Bool { _value: 1 };
+}
+
+// Construct the canonical `true` value.
+public func Bool.true_value() -> Bool {
+    return Bool { _value: 1 };
+}
+
+// Construct the canonical `false` value.
+public func Bool.false_value() -> Bool {
+    return Bool { _value: 0 };
+}
+
+// --- Logical operations ------------------------------------------------------
+
+// Logical AND.  Returns true only when both self and other are true.
+//
+// Note: unlike `&&`, this method always evaluates `other`.
+//
+//   let a = Bool.true_value();
+//   let b = Bool.false_value();
+//   a.and(b)   // false
+public func Bool.and(self, other: Bool) -> Bool {
+    return Bool { _value: self._value & other._value };
+}
+
+// Logical OR.  Returns true when at least one operand is true.
+//
+// Note: unlike `||`, this method always evaluates `other`.
+//
+//   Bool.false_value().or(Bool.true_value())  // true
+public func Bool.or(self, other: Bool) -> Bool {
+    if self._value != 0 {
+        return Bool { _value: 1 };
+    }
+    if other._value != 0 {
+        return Bool { _value: 1 };
+    }
+    return Bool { _value: 0 };
+}
+
+// Logical NOT.  Inverts the boolean value.
+//
+//   Bool.true_value().not()   // false
+//   Bool.false_value().not()  // true
+public func Bool.not(self) -> Bool {
+    if self._value == 0 {
+        return Bool { _value: 1 };
+    }
+    return Bool { _value: 0 };
+}
+
+// Logical XOR (exclusive-or).  Returns true when exactly one operand is true.
+//
+//   Bool.true_value().xor(Bool.false_value())   // true
+//   Bool.true_value().xor(Bool.true_value())    // false
+public func Bool.xor(self, other: Bool) -> Bool {
+    return Bool { _value: self._value ^ other._value };
+}
+
+// --- Equality ----------------------------------------------------------------
+
+// Returns true when self and other represent the same logical value.
+public func Bool.eq(self, other: Bool) -> bool {
+    return self._value == other._value;
+}
+
+// Returns true when self and other represent different logical values.
+public func Bool.ne(self, other: Bool) -> bool {
+    return self._value != other._value;
+}
+
+// --- Conversion --------------------------------------------------------------
+
+// Convert to the native `bool` primitive.
+public func Bool.to_bool(self) -> bool {
+    return self._value != 0;
+}
+
+// Convert to an integer: 1 for true, 0 for false.
+public func Bool.to_int(self) -> i64 {
+    if self._value != 0 {
+        return 1;
+    }
+    return 0;
+}
+
+// Convert to u8 (0 or 1).
+public func Bool.to_u8(self) -> u8 {
+    return self._value;
+}
+
+// --- Trait implementations ---------------------------------------------------
+
+// Stringable — human-readable representation.
+public func Bool.to_string(self) -> String {
+    if self._value != 0 {
+        return "true";
+    }
+    return "false";
+}
+
+// Representable — debug representation.
+public func Bool.repr(self) -> String {
+    if self._value != 0 {
+        return "Bool(true)";
+    }
+    return "Bool(false)";
+}
+
+// Hashable — fold into a hasher.
+public func Bool.hash(self, hasher: &Hasher) -> void {
+    hasher.write_u8(self._value);
+}
+
+// Copyable — Bools are trivially copyable.
+public func Bool.copy(self) -> Bool {
+    return Bool { _value: self._value };
+}
+
+// Defaultable — default Bool is false.
+public func Bool.default() -> Bool {
+    return Bool { _value: 0 };
+}
+
+// --- Static helpers ----------------------------------------------------------
+
+// Select one of two values based on a condition.
+//
+//   Bool.select(condition, if_true, if_false)
+public func Bool.select[T](cond: Bool, if_true: T, if_false: T) -> T {
+    if cond._value != 0 {
+        return if_true;
+    }
+    return if_false;
+}
+
+// NAND gate — returns !(self & other).
+public func Bool.nand(self, other: Bool) -> Bool {
+    return self.and(other).not();
+}
+
+// NOR gate — returns !(self | other).
+public func Bool.nor(self, other: Bool) -> Bool {
+    return self.or(other).not();
+}
+
+// XNOR gate — returns !(self ^ other) — true when operands match.
+public func Bool.xnor(self, other: Bool) -> Bool {
+    return self.xor(other).not();
+}
+
+// Implication: self → other.  False only when self=true and other=false.
+public func Bool.implies(self, other: Bool) -> Bool {
+    return self.not().or(other);
+}

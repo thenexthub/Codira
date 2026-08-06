@@ -1,4 +1,0 @@
-#31588
-13.modules_and_namespaces/05.export_directives/04.re-export_directive/reexported_default.ets
-13.modules_and_namespaces/05.export_directives/04.re-export_directive/reexported_default_2.ets
-13.modules_and_namespaces/05.export_directives/04.re-export_directive/reexported_default_3.ets

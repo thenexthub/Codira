@@ -1,0 +1,165 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n        effect Logger {\n            func log(message: i32)\n        }\n\n        func risky() uses Logger -> i32 {\n            perform Logger.log(1)\n            42\n        }\n\n        func run() -> i32 {\n            handle risky() {\n                Logger.log(message) -> {\n                    resume()\n                }\n            }\n        }\n        \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..350
+  WHITESPACE@0..9 "\n        "
+  EFFECT_DEF@9..69
+    EFFECT_KW@9..15 "effect"
+    WHITESPACE@15..16 " "
+    NAME@16..22
+      IDENT@16..22 "Logger"
+    WHITESPACE@22..23 " "
+    EFFECT_OP_LIST@23..69
+      L_CURLY@23..24 "{"
+      WHITESPACE@24..37 "\n            "
+      EFFECT_OP@37..59
+        FUNC_KW@37..41 "func"
+        WHITESPACE@41..42 " "
+        NAME@42..45
+          IDENT@42..45 "log"
+        PARAM_LIST@45..59
+          L_PAREN@45..46 "("
+          PARAM@46..58
+            NAME@46..53
+              IDENT@46..53 "message"
+            COLON@53..54 ":"
+            WHITESPACE@54..55 " "
+            PATH_TYPE@55..58
+              PATH@55..58
+                PATH_SEGMENT@55..58
+                  NAME_REF@55..58
+                    IDENT@55..58 "i32"
+          R_PAREN@58..59 ")"
+      WHITESPACE@59..68 "\n        "
+      R_CURLY@68..69 "}"
+  WHITESPACE@69..79 "\n\n        "
+  FUNCTION_DEF@79..171
+    FUNC_KW@79..83 "func"
+    WHITESPACE@83..84 " "
+    NAME@84..89
+      IDENT@84..89 "risky"
+    PARAM_LIST@89..91
+      L_PAREN@89..90 "("
+      R_PAREN@90..91 ")"
+    WHITESPACE@91..92 " "
+    USES_CLAUSE@92..103
+      USES_KW@92..96 "uses"
+      WHITESPACE@96..97 " "
+      PATH@97..103
+        PATH_SEGMENT@97..103
+          NAME_REF@97..103
+            IDENT@97..103 "Logger"
+    WHITESPACE@103..104 " "
+    RET_TYPE@104..110
+      THIN_ARROW@104..106 "->"
+      WHITESPACE@106..107 " "
+      PATH_TYPE@107..110
+        PATH@107..110
+          PATH_SEGMENT@107..110
+            NAME_REF@107..110
+              IDENT@107..110 "i32"
+    WHITESPACE@110..111 " "
+    BLOCK_EXPR@111..171
+      L_CURLY@111..112 "{"
+      WHITESPACE@112..125 "\n            "
+      EXPR_STMT@125..146
+        PERFORM_EXPR@125..146
+          PERFORM_KW@125..132 "perform"
+          WHITESPACE@132..133 " "
+          PATH@133..143
+            PATH@133..139
+              PATH_SEGMENT@133..139
+                NAME_REF@133..139
+                  IDENT@133..139 "Logger"
+            DOT@139..140 "."
+            PATH_SEGMENT@140..143
+              NAME_REF@140..143
+                IDENT@140..143 "log"
+          ARG_LIST@143..146
+            L_PAREN@143..144 "("
+            LITERAL@144..145
+              INT_NUMBER@144..145 "1"
+            R_PAREN@145..146 ")"
+      WHITESPACE@146..159 "\n            "
+      LITERAL@159..161
+        INT_NUMBER@159..161 "42"
+      WHITESPACE@161..170 "\n        "
+      R_CURLY@170..171 "}"
+  WHITESPACE@171..181 "\n\n        "
+  FUNCTION_DEF@181..341
+    FUNC_KW@181..185 "func"
+    WHITESPACE@185..186 " "
+    NAME@186..189
+      IDENT@186..189 "run"
+    PARAM_LIST@189..191
+      L_PAREN@189..190 "("
+      R_PAREN@190..191 ")"
+    WHITESPACE@191..192 " "
+    RET_TYPE@192..198
+      THIN_ARROW@192..194 "->"
+      WHITESPACE@194..195 " "
+      PATH_TYPE@195..198
+        PATH@195..198
+          PATH_SEGMENT@195..198
+            NAME_REF@195..198
+              IDENT@195..198 "i32"
+    WHITESPACE@198..199 " "
+    BLOCK_EXPR@199..341
+      L_CURLY@199..200 "{"
+      WHITESPACE@200..213 "\n            "
+      HANDLE_EXPR@213..331
+        HANDLE_KW@213..219 "handle"
+        WHITESPACE@219..220 " "
+        CALL_EXPR@220..227
+          PATH_EXPR@220..225
+            PATH@220..225
+              PATH_SEGMENT@220..225
+                NAME_REF@220..225
+                  IDENT@220..225 "risky"
+          ARG_LIST@225..227
+            L_PAREN@225..226 "("
+            R_PAREN@226..227 ")"
+        WHITESPACE@227..228 " "
+        HANDLER_ARM_LIST@228..331
+          L_CURLY@228..229 "{"
+          WHITESPACE@229..246 "\n                "
+          HANDLER_ARM@246..317
+            PATH@246..256
+              PATH@246..252
+                PATH_SEGMENT@246..252
+                  NAME_REF@246..252
+                    IDENT@246..252 "Logger"
+              DOT@252..253 "."
+              PATH_SEGMENT@253..256
+                NAME_REF@253..256
+                  IDENT@253..256 "log"
+            PARAM_LIST@256..265
+              L_PAREN@256..257 "("
+              PARAM@257..264
+                BIND_PAT@257..264
+                  NAME@257..264
+                    IDENT@257..264 "message"
+              R_PAREN@264..265 ")"
+            WHITESPACE@265..266 " "
+            THIN_ARROW@266..268 "->"
+            WHITESPACE@268..269 " "
+            BLOCK_EXPR@269..317
+              L_CURLY@269..270 "{"
+              WHITESPACE@270..291 "\n                    "
+              CALL_EXPR@291..299
+                PATH_EXPR@291..297
+                  PATH@291..297
+                    PATH_SEGMENT@291..297
+                      RESUME_KW@291..297 "resume"
+                ARG_LIST@297..299
+                  L_PAREN@297..298 "("
+                  R_PAREN@298..299 ")"
+              WHITESPACE@299..316 "\n                "
+              R_CURLY@316..317 "}"
+          WHITESPACE@317..330 "\n            "
+          R_CURLY@330..331 "}"
+      WHITESPACE@331..340 "\n        "
+      R_CURLY@340..341 "}"
+  WHITESPACE@341..350 "\n        "

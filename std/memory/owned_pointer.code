@@ -1,0 +1,215 @@
+// =============================================================================
+// std/memory/owned_pointer.code — Unique-ownership heap pointer
+// =============================================================================
+//
+// OwnedPointer[T] provides single-owner, heap-allocated storage for a
+// value of type T.  When the OwnedPointer goes out of scope, the pointee
+// is destroyed and the memory is freed automatically.
+//
+// Semantics:
+//   - NOT copyable — ownership is unique.
+//   - Movable — ownership transfers on move.
+//   - Automatically deallocates on drop.
+//
+// This is analogous to C++ `std::unique_ptr`, Rust `Box<T>`, or Swift's
+// class-based heap allocation.
+//
+// Example:
+//   let p = OwnedPointer[i32].new(42);
+//   let val = p.read();   // 42
+//   // p is freed at end of scope
+// =============================================================================
+
+use std.builtin.traits;
+use std.builtin.types;
+use std.memory.unsafe_pointer;
+
+// A uniquely-owned, heap-allocated value of type T.
+//
+// OwnedPointer is itself a value-type struct (stored inline on the stack)
+// that holds the address of the heap allocation.
+public struct(value) OwnedPointer[T] {
+    _inner: UnsafePointer[T],
+}
+
+// =============================================================================
+// Construction
+// =============================================================================
+
+// Allocate a new OwnedPointer on the heap, initialized with `value`.
+public func OwnedPointer[T].new(value: T) -> OwnedPointer[T] {
+    let ptr = UnsafePointer[T].alloc(1);
+    ptr.init_pointee_move(value);
+    return OwnedPointer[T] { _inner: ptr };
+}
+
+// Allocate with default value (requires T: Defaultable).
+public func OwnedPointer[T: Defaultable].default_value() -> OwnedPointer[T] {
+    return OwnedPointer[T].new(T.default());
+}
+
+// Allocate zeroed memory (the pointee bytes are all zero).
+// Useful for POD types.
+public func OwnedPointer[T].zeroed() -> OwnedPointer[T] {
+    let ptr = UnsafePointer[T].alloc_zeroed(1);
+    return OwnedPointer[T] { _inner: ptr };
+}
+
+// =============================================================================
+// Access
+// =============================================================================
+
+// Read the pointee value.
+public func OwnedPointer[T].read(self) -> T {
+    return self._inner.load();
+}
+
+// Write a new value into the pointee, destroying the old one.
+public func OwnedPointer[T].write(self, value: T) -> void {
+    self._inner.destroy_pointee();
+    self._inner.init_pointee_move(value);
+}
+
+// Borrow the pointee as an immutable reference.
+public func OwnedPointer[T].borrow(self) -> &T {
+    return __intrinsic_addr_to_ref[T](self._inner.address());
+}
+
+// Borrow the pointee as a mutable reference.
+public func OwnedPointer[T].borrow_mut(self) -> &T {
+    return __intrinsic_addr_to_ref[T](self._inner.address());
+}
+
+// Get the underlying raw pointer (does not transfer ownership).
+public func OwnedPointer[T].as_ptr(self) -> Pointer[T] {
+    return self._inner.to_safe();
+}
+
+// Get the underlying unsafe pointer.
+public func OwnedPointer[T].as_unsafe_ptr(self) -> UnsafePointer[T] {
+    return self._inner;
+}
+
+// =============================================================================
+// Ownership transfer
+// =============================================================================
+
+// Move the pointee out of the OwnedPointer and free the allocation.
+// After this call, the OwnedPointer is consumed and must not be used.
+public func OwnedPointer[T].into_inner(self) -> T {
+    let val = self._inner.take_pointee();
+    self._inner.free_one();
+    // Mark self as consumed (compiler enforces no further use).
+    self._inner = UnsafePointer[T].null();
+    return val;
+}
+
+// Replace the pointee with `new_value`, returning the old value.
+public func OwnedPointer[T].replace(self, new_value: T) -> T {
+    let old = self._inner.load();
+    self._inner.store(new_value);
+    return old;
+}
+
+// Swap the contents of two OwnedPointers without reallocating.
+public func OwnedPointer[T].swap_with(self, other: &OwnedPointer[T]) -> void {
+    let tmp = self._inner;
+    self._inner = other._inner;
+    other._inner = tmp;
+}
+
+// =============================================================================
+// Mapping / Transformation
+// =============================================================================
+
+// Apply a function to the pointee in-place.
+public func OwnedPointer[T].map_in_place(self, f: func(T) -> T) -> void {
+    let old = self._inner.load();
+    let new_val = f(old);
+    self._inner.store(new_val);
+}
+
+// Map the pointee to a new type U, consuming the OwnedPointer[T] and
+// returning an OwnedPointer[U].
+public func OwnedPointer[T].map[U](self, f: func(T) -> U) -> OwnedPointer[U] {
+    let val = self.into_inner();
+    return OwnedPointer[U].new(f(val));
+}
+
+// =============================================================================
+// Queries
+// =============================================================================
+
+// Return the raw address of the heap allocation.
+public func OwnedPointer[T].address(self) -> usize {
+    return self._inner.address();
+}
+
+// Return true if the internal pointer is non-null (should always be true
+// for a live OwnedPointer).
+public func OwnedPointer[T].is_valid(self) -> bool {
+    return !self._inner.is_null();
+}
+
+// =============================================================================
+// Destructor
+// =============================================================================
+
+// Destroy the pointee and free the heap allocation.
+// Called automatically when the OwnedPointer goes out of scope.
+public func OwnedPointer[T].destroy(self) -> void {
+    if !self._inner.is_null() {
+        self._inner.destroy_pointee();
+        self._inner.free_one();
+        self._inner = UnsafePointer[T].null();
+    }
+}
+
+// =============================================================================
+// Trait implementations
+// =============================================================================
+
+// OwnedPointer is Movable but NOT Copyable.
+public func OwnedPointer[T].move(self) -> OwnedPointer[T] {
+    let moved = OwnedPointer[T] { _inner: self._inner };
+    // Null out source to prevent double-free.
+    self._inner = UnsafePointer[T].null();
+    return moved;
+}
+
+// Stringable — delegates to the pointee's to_string.
+public func OwnedPointer[T: Stringable].to_string(self) -> String {
+    return "OwnedPointer(" + self._inner.load().to_string() + ")";
+}
+
+// Representable
+public func OwnedPointer[T].repr(self) -> String {
+    return "OwnedPointer[" + __intrinsic_type_name[T]() + "](0x"
+        + __intrinsic_to_hex(self._inner.address()) + ")";
+}
+
+// EqualityComparable — compares pointee values, not addresses.
+public func OwnedPointer[T: EqualityComparable].eq(self, other: OwnedPointer[T]) -> bool {
+    return self._inner.load() == other._inner.load();
+}
+
+public func OwnedPointer[T: EqualityComparable].ne(self, other: OwnedPointer[T]) -> bool {
+    return !(self.eq(other));
+}
+
+// Hashable — hashes the pointee, not the address.
+public func OwnedPointer[T: Hashable].hash(self, hasher: &Hasher) -> void {
+    self._inner.load().hash(hasher);
+}
+
+// =============================================================================
+// Leak — intentionally leak the allocation
+// =============================================================================
+
+// Consume the OwnedPointer without freeing.  Returns a raw Pointer[T].
+// The caller is responsible for eventually freeing the memory.
+public func OwnedPointer[T].leak(self) -> Pointer[T] {
+    let ptr = self._inner.to_safe();
+    self._inner = UnsafePointer[T].null();
+    return ptr;
+}

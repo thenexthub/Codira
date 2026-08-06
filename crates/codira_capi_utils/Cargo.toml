@@ -1,0 +1,16 @@
+[package]
+name = "codira_capi_utils"
+description = "Common functionality between C api crates."
+keywords = ["game", "hot-reloading", "language", "codira", "scripting"]
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+insta = { workspace = true, features = ["ron"], optional = true }

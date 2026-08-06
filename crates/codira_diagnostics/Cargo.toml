@@ -1,0 +1,17 @@
+[package]
+name = "codira_diagnostics"
+description = "Provides in-depth diagnostic information for compiler errors"
+keywords = ["game", "hot-reloading", "language", "codira", "diagnostics"]
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+codira_hir = { version = "0.6.0-dev", path = "../codira_hir" }
+codira_syntax = { version = "0.6.0-dev", path = "../codira_syntax" }

@@ -1,3 +1,0 @@
-long-proto-chain.js
-# #9753
-arguments-proxy.js

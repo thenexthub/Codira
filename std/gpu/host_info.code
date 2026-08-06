@@ -1,0 +1,424 @@
+// =============================================================================
+// std/gpu/host_info.code — GPU architecture information
+// =============================================================================
+//
+// Copyright (c) 2026, Omnira CJSC. All rights reserved.
+// Author: Tunjay Akbarli
+// Date: August 6, 2026.
+//
+// Contains information about GPU architectures and their capabilities.  This
+// module provides detailed specifications for various GPU models including
+// NVIDIA, AMD, and Apple GPUs.  It includes information about compute
+// capabilities, memory specifications, thread organization, and performance
+// characteristics.
+// =============================================================================
+
+use std.builtin.types;
+use std.math;
+
+// Common multiplier constants.
+public let KB: usize = 1024;
+
+// =============================================================================
+// AcceleratorArchitectureFamily
+// =============================================================================
+
+// Defines common defaults for a GPU architecture family.
+//
+// This struct captures the shared characteristics across GPUs in the same
+// architecture family, reducing redundancy when defining new GPU models.
+public struct(value) AcceleratorArchitectureFamily {
+    warp_size: usize,
+    threads_per_multiprocessor: usize,
+    shared_memory_per_multiprocessor: usize,
+    max_registers_per_block: usize,
+    max_thread_block_size: usize,
+}
+
+// =============================================================================
+// GPUInfo
+// =============================================================================
+
+// Detailed specification of a concrete GPU model.
+public struct(value) GPUInfo {
+    name: String,
+    api: String,
+    arch_name: String,
+    compute: f64,
+    version: String,
+    sm_count: usize,
+    warp_size: usize,
+    threads_per_multiprocessor: usize,
+    shared_memory_per_multiprocessor: usize,
+    max_registers_per_block: usize,
+    max_thread_block_size: usize,
+}
+
+// Construct a GPUInfo from an architecture family plus overrides.
+public func GPUInfo.from_family(
+    family: AcceleratorArchitectureFamily,
+    name: String,
+    api: String,
+    arch_name: String,
+    compute: f64,
+    version: String,
+    sm_count: usize,
+) -> GPUInfo {
+    let info: GPUInfo;
+    info.name = name;
+    info.api = api;
+    info.arch_name = arch_name;
+    info.compute = compute;
+    info.version = version;
+    info.sm_count = sm_count;
+    info.warp_size = family.warp_size;
+    info.threads_per_multiprocessor = family.threads_per_multiprocessor;
+    info.shared_memory_per_multiprocessor = family.shared_memory_per_multiprocessor;
+    info.max_registers_per_block = family.max_registers_per_block;
+    info.max_thread_block_size = family.max_thread_block_size;
+    return info;
+}
+
+// Look up GPU information by architecture name (e.g. "sm_80", "gfx942").
+public func GPUInfo.from_name(name: String) -> GPUInfo {
+    if name == "sm_80" {
+        return A100;
+    }
+    if name == "sm_86" {
+        return A10;
+    }
+    if name == "sm_87" {
+        return OrinNano;
+    }
+    if name == "sm_89" {
+        return L4;
+    }
+    if name == "sm_90a" {
+        return H100;
+    }
+    if name == "sm_100a" {
+        return B100;
+    }
+    if name == "sm_103a" {
+        return B300;
+    }
+    if name == "sm_120a" {
+        return RTX5090;
+    }
+    if name == "sm_110" {
+        return JetsonThor;
+    }
+    if name == "sm_61" {
+        return GTX1080Ti;
+    }
+    if name == "sm_75" {
+        return RTX2060;
+    }
+    if name == "gfx90a" {
+        return MI250X;
+    }
+    if name == "gfx942" {
+        return MI300X;
+    }
+    if name == "gfx950" {
+        return MI355X;
+    }
+    if name == "apple-m1" {
+        return MetalM1;
+    }
+    if name == "apple-m2" {
+        return MetalM2;
+    }
+    if name == "apple-m3" {
+        return MetalM3;
+    }
+    if name == "apple-m4" {
+        return MetalM4;
+    }
+    if name == "apple-m5" {
+        return MetalM5;
+    }
+    return NoGPU;
+}
+
+// =============================================================================
+// Architecture families
+// =============================================================================
+
+// NVIDIA Maxwell family (sm_50-sm_53).
+public let NvidiaMaxwellFamily: AcceleratorArchitectureFamily = AcceleratorArchitectureFamily {
+    warp_size: 32,
+    threads_per_multiprocessor: 64 * 32,
+    shared_memory_per_multiprocessor: 96 * KB,
+    max_registers_per_block: 64 * KB,
+    max_thread_block_size: KB,
+};
+
+// NVIDIA Pascal family (sm_60-sm_62).
+public let NvidiaPascalFamily: AcceleratorArchitectureFamily = AcceleratorArchitectureFamily {
+    warp_size: 32,
+    threads_per_multiprocessor: 64 * 32,
+    shared_memory_per_multiprocessor: 64 * KB,
+    max_registers_per_block: 64 * KB,
+    max_thread_block_size: KB,
+};
+
+// NVIDIA Turing family (sm_75).
+public let NvidiaTuringFamily: AcceleratorArchitectureFamily = AcceleratorArchitectureFamily {
+    warp_size: 32,
+    threads_per_multiprocessor: 64 * 32,
+    shared_memory_per_multiprocessor: 64 * KB,
+    max_registers_per_block: 32 * KB,
+    max_thread_block_size: KB,
+};
+
+// NVIDIA Ampere datacenter family (sm_80).
+public let NvidiaAmpereDatacenterFamily: AcceleratorArchitectureFamily = AcceleratorArchitectureFamily {
+    warp_size: 32,
+    threads_per_multiprocessor: 64 * 32,
+    shared_memory_per_multiprocessor: 164 * KB,
+    max_registers_per_block: 64 * KB,
+    max_thread_block_size: KB,
+};
+
+// NVIDIA Ampere workstation family (sm_86).
+public let NvidiaAmpereWorkstationFamily: AcceleratorArchitectureFamily = AcceleratorArchitectureFamily {
+    warp_size: 32,
+    threads_per_multiprocessor: 48 * 32,
+    shared_memory_per_multiprocessor: 100 * KB,
+    max_registers_per_block: 64 * KB,
+    max_thread_block_size: KB,
+};
+
+// NVIDIA Ampere embedded family (sm_87).
+public let NvidiaAmpereEmbeddedFamily: AcceleratorArchitectureFamily = AcceleratorArchitectureFamily {
+    warp_size: 32,
+    threads_per_multiprocessor: 64 * 32,
+    shared_memory_per_multiprocessor: 100 * KB,
+    max_registers_per_block: 64 * KB,
+    max_thread_block_size: KB,
+};
+
+// NVIDIA Blackwell consumer family (sm_120).
+public let NvidiaBlackwellConsumerFamily: AcceleratorArchitectureFamily = AcceleratorArchitectureFamily {
+    warp_size: 32,
+    threads_per_multiprocessor: 64 * 32,
+    shared_memory_per_multiprocessor: 100 * KB,
+    max_registers_per_block: 64 * KB,
+    max_thread_block_size: KB,
+};
+
+// NVIDIA Hopper family (sm_90).
+public let NvidiaAdaFamily: AcceleratorArchitectureFamily = AcceleratorArchitectureFamily {
+    warp_size: 32,
+    threads_per_multiprocessor: 48 * 32,
+    shared_memory_per_multiprocessor: 100 * KB,
+    max_registers_per_block: 64 * KB,
+    max_thread_block_size: KB,
+};
+
+// NVIDIA Hopper family (sm_90).
+public let NvidiaHopperFamily: AcceleratorArchitectureFamily = AcceleratorArchitectureFamily {
+    warp_size: 32,
+    threads_per_multiprocessor: 64 * 32,
+    shared_memory_per_multiprocessor: 228 * KB,
+    max_registers_per_block: 64 * KB,
+    max_thread_block_size: KB,
+};
+
+// NVIDIA Blackwell datacenter family (sm_100).
+public let NvidiaBlackwellFamily: AcceleratorArchitectureFamily = AcceleratorArchitectureFamily {
+    warp_size: 32,
+    threads_per_multiprocessor: 64 * 32,
+    shared_memory_per_multiprocessor: 228 * KB,
+    max_registers_per_block: 64 * KB,
+    max_thread_block_size: KB,
+};
+
+// AMD CDNA2 family (gfx90a).
+public let AMDCDNA2Family: AcceleratorArchitectureFamily = AcceleratorArchitectureFamily {
+    warp_size: 64,
+    threads_per_multiprocessor: 64 * 32,
+    shared_memory_per_multiprocessor: 64 * KB,
+    max_registers_per_block: 64 * KB,
+    max_thread_block_size: KB,
+};
+
+// AMD CDNA3 family (gfx94x).
+public let AMDCDNA3Family: AcceleratorArchitectureFamily = AcceleratorArchitectureFamily {
+    warp_size: 64,
+    threads_per_multiprocessor: 64 * 32,
+    shared_memory_per_multiprocessor: 64 * KB,
+    max_registers_per_block: 64 * KB,
+    max_thread_block_size: KB,
+};
+
+// AMD CDNA4 family (gfx95x).
+public let AMDCDNA4Family: AcceleratorArchitectureFamily = AcceleratorArchitectureFamily {
+    warp_size: 64,
+    threads_per_multiprocessor: 64 * 32,
+    shared_memory_per_multiprocessor: 160 * KB,
+    max_registers_per_block: 64 * KB,
+    max_thread_block_size: KB,
+};
+
+// AMD RDNA family.
+public let AMDRDNAFamily: AcceleratorArchitectureFamily = AcceleratorArchitectureFamily {
+    warp_size: 32,
+    threads_per_multiprocessor: 32 * 32,
+    shared_memory_per_multiprocessor: 32 * KB,
+    max_registers_per_block: 32 * KB,
+    max_thread_block_size: KB,
+};
+
+// Apple Metal family.
+public let AppleMetalFamily: AcceleratorArchitectureFamily = AcceleratorArchitectureFamily {
+    warp_size: 32,
+    threads_per_multiprocessor: 32 * 32,
+    shared_memory_per_multiprocessor: 32 * KB,
+    max_registers_per_block: 64 * KB,
+    max_thread_block_size: KB,
+};
+
+// =============================================================================
+// Concrete GPU configurations
+// =============================================================================
+
+// Placeholder for when no GPU is available.
+public let NoGPU: GPUInfo = GPUInfo {
+    name: "NoGPU",
+    api: "none",
+    arch_name: "no_gpu",
+    compute: 0.0,
+    version: "",
+    sm_count: 0,
+    warp_size: 0,
+    threads_per_multiprocessor: 0,
+    shared_memory_per_multiprocessor: 0,
+    max_registers_per_block: 0,
+    max_thread_block_size: 0,
+};
+
+// Apple M1 GPU configuration.
+public let MetalM1: GPUInfo = GPUInfo.from_family(
+    AppleMetalFamily, "M1", "metal", "apple-m1", 3.0, "metal_3", 8
+);
+
+// Apple M2 GPU configuration.
+public let MetalM2: GPUInfo = GPUInfo.from_family(
+    AppleMetalFamily, "M2", "metal", "apple-m2", 3.0, "metal_3", 10
+);
+
+// Apple M3 GPU configuration.
+public let MetalM3: GPUInfo = GPUInfo.from_family(
+    AppleMetalFamily, "M3", "metal", "apple-m3", 3.0, "metal_3", 10
+);
+
+// Apple M4 GPU configuration.
+public let MetalM4: GPUInfo = GPUInfo.from_family(
+    AppleMetalFamily, "M4", "metal", "apple-m4", 3.0, "metal_3", 10
+);
+
+// Apple M5 GPU configuration.
+public let MetalM5: GPUInfo = GPUInfo.from_family(
+    AppleMetalFamily, "M5", "metal", "apple-m5", 3.0, "metal_3", 10
+);
+
+// NVIDIA A100 GPU configuration.
+public let A100: GPUInfo = GPUInfo.from_family(
+    NvidiaAmpereDatacenterFamily, "A100", "cuda", "ampere", 8.0, "sm_80", 108
+);
+
+// NVIDIA A10 GPU configuration.
+public let A10: GPUInfo = GPUInfo.from_family(
+    NvidiaAmpereWorkstationFamily, "A10", "cuda", "ampere", 8.6, "sm_86", 72
+);
+
+// NVIDIA Jetson Orin Nano GPU configuration.
+public let OrinNano: GPUInfo = GPUInfo.from_family(
+    NvidiaAmpereEmbeddedFamily, "Orin Nano", "cuda", "ampere", 8.7, "sm_87", 8
+);
+
+// NVIDIA Jetson Thor GPU configuration.
+public let JetsonThor: GPUInfo = GPUInfo.from_family(
+    NvidiaBlackwellFamily, "Jetson Thor", "cuda", "blackwell", 11.0, "sm_110", 20
+);
+
+// NVIDIA L4 GPU configuration.
+public let L4: GPUInfo = GPUInfo.from_family(
+    NvidiaAdaFamily, "L4", "cuda", "ada", 8.9, "sm_89", 58
+);
+
+// NVIDIA RTX 4090 GPU configuration.
+public let RTX4090: GPUInfo = GPUInfo.from_family(
+    NvidiaAdaFamily, "RTX4090", "cuda", "ada lovelace", 8.9, "sm_89", 128
+);
+
+// NVIDIA H100 GPU configuration.
+public let H100: GPUInfo = GPUInfo.from_family(
+    NvidiaHopperFamily, "H100", "cuda", "hopper", 9.0, "sm_90a", 132
+);
+
+// NVIDIA B100 GPU configuration.
+public let B100: GPUInfo = GPUInfo.from_family(
+    NvidiaBlackwellFamily, "B100", "cuda", "blackwell", 10.0, "sm_100a", 132
+);
+
+// NVIDIA B200 GPU configuration.
+public let B200: GPUInfo = GPUInfo.from_family(
+    NvidiaBlackwellFamily, "B200", "cuda", "blackwell", 10.0, "sm_100a", 148
+);
+
+// NVIDIA B300 GPU configuration.
+public let B300: GPUInfo = GPUInfo.from_family(
+    NvidiaBlackwellFamily, "B300", "cuda", "blackwell", 10.3, "sm_103a", 160
+);
+
+// NVIDIA RTX 5090 GPU configuration.
+public let RTX5090: GPUInfo = GPUInfo.from_family(
+    NvidiaBlackwellConsumerFamily, "RTX5090", "cuda", "blackwell", 12.0, "sm_120a", 170
+);
+
+// NVIDIA GeForce RTX 3090 GPU configuration.
+public let RTX3090: GPUInfo = GPUInfo.from_family(
+    NvidiaAmpereWorkstationFamily, "NVIDIA GeForce RTX 3090", "cuda", "ampere", 8.6, "sm_86", 82
+);
+
+// NVIDIA GeForce GTX 1080 Ti GPU configuration.
+public let GTX1080Ti: GPUInfo = GPUInfo.from_family(
+    NvidiaPascalFamily, "NVIDIA GeForce GTX 1080 Ti", "cuda", "pascal", 6.1, "sm_61", 28
+);
+
+// NVIDIA RTX 2060 GPU configuration.
+public let RTX2060: GPUInfo = GPUInfo.from_family(
+    NvidiaTuringFamily, "RTX2060", "cuda", "turing", 7.5, "sm_75", 30
+);
+
+// AMD MI250X GPU configuration.
+public let MI250X: GPUInfo = GPUInfo.from_family(
+    AMDCDNA2Family, "MI250X", "hip", "gfx90a", 9.0, "CDNA2", 220
+);
+
+// AMD MI300X GPU configuration.
+public let MI300X: GPUInfo = GPUInfo.from_family(
+    AMDCDNA3Family, "MI300X", "hip", "gfx942", 9.4, "CDNA3", 304
+);
+
+// AMD MI355X GPU configuration.
+public let MI355X: GPUInfo = GPUInfo.from_family(
+    AMDCDNA4Family, "MI355X", "hip", "gfx950", 9.5, "CDNA4", 256
+);
+
+// =============================================================================
+// GPU classification helpers
+// =============================================================================
+
+// True for any Blackwell datacenter GPU (B100, B200, B300).
+public func _is_sm10x_gpu(info: GPUInfo) -> bool {
+    return info.arch_name == "blackwell" && info.compute >= 10.0 && info.compute < 11.0;
+}
+
+// True for any Blackwell consumer GPU (sm_120 / sm_121).
+public func _is_sm12x_gpu(info: GPUInfo) -> bool {
+    return info.compute >= 12.0 && info.compute < 13.0;
+}

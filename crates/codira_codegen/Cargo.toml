@@ -1,0 +1,56 @@
+[package]
+name = "codira_codegen"
+description = "LLVM IR code generation for Codira"
+keywords = ["game", "hot-reloading", "language", "codira", "scripting"]
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[features]
+default = ["target-x86", "target-aarch64"]
+# Each `target-*` feature forwards to the matching inkwell/LLVM target
+# backend and gates that target's `Target::initialize_*` call in `db.rs`.
+# Compiling standalone LLVM target-backend static libraries (e.g. an
+# AArch64-only distribution) is common, so a consumer can build against a
+# narrower LLVM distribution by disabling the targets it doesn't have
+# (`--no-default-features --features target-x86`, for instance) instead of
+# `target_machine()` unconditionally requiring every target's static libs to
+# link, regardless of which target is actually being compiled for.
+target-x86 = ["inkwell/target-x86"]
+target-aarch64 = ["inkwell/target-aarch64"]
+
+[dependencies]
+codira_abi = { version = "0.6.0-dev", path = "../codira_abi" }
+anyhow = { workspace = true, features = ["std"] }
+apple-codesign = { workspace = true }
+array-init = { workspace = true }
+by_address = { workspace = true }
+bytemuck = { workspace = true }
+codira_hir = { version = "0.6.0-dev", path = "../codira_hir" }
+codira_hir_input = { version = "0.6.0-dev", path = "../codira_hir_input" }
+inkwell = { workspace = true, features = ["llvm14-0"], default-features = false }
+itertools = { workspace = true }
+codira_codegen_macros = { version = "0.6.0-dev", path = "../codira_codegen_macros" }
+codira_target = { version = "0.6.0-dev", path = "../codira_target" }
+once_cell = { workspace = true }
+parking_lot = { workspace = true }
+paste = { workspace = true }
+codira_paths = { version = "0.6.0-dev", path = "../codira_paths" }
+rustc-hash = { workspace = true }
+salsa = { workspace = true }
+smallvec = { workspace = true, features = ["union"] }
+tempfile = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+codira_abi = { path = "../codira_abi", features = ["serde"] }
+insta = { workspace = true, features = ["ron"] }
+codira_libloader = { path = "../codira_libloader" }
+codira_test = { path = "../codira_test" }
+codira_runtime = { path = "../codira_runtime" }

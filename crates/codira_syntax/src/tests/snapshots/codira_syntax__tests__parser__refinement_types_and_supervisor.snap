@@ -1,0 +1,155 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n        type RecordId = i32 { x | x > 0 };\n\n        func fetch_record(id: i32 { x | x > 0 }) -> RecordId {\n            id\n        }\n\n        supervisor DatabaseConnection {\n            strategy: 1,\n            max_restarts: 5,\n\n            child ConnPool {\n                strategy: 2,\n            }\n        }\n        \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..319
+  WHITESPACE@0..9 "\n        "
+  TYPE_ALIAS_DEF@9..43
+    TYPE_KW@9..13 "type"
+    WHITESPACE@13..14 " "
+    NAME@14..22
+      IDENT@14..22 "RecordId"
+    WHITESPACE@22..23 " "
+    EQ@23..24 "="
+    WHITESPACE@24..25 " "
+    REFINEMENT_TYPE@25..42
+      PATH_TYPE@25..28
+        PATH@25..28
+          PATH_SEGMENT@25..28
+            NAME_REF@25..28
+              IDENT@25..28 "i32"
+      WHITESPACE@28..29 " "
+      L_CURLY@29..30 "{"
+      WHITESPACE@30..31 " "
+      NAME_REF@31..32
+        IDENT@31..32 "x"
+      WHITESPACE@32..33 " "
+      PIPE@33..34 "|"
+      WHITESPACE@34..35 " "
+      BIN_EXPR@35..40
+        PATH_EXPR@35..36
+          PATH@35..36
+            PATH_SEGMENT@35..36
+              NAME_REF@35..36
+                IDENT@35..36 "x"
+        WHITESPACE@36..37 " "
+        GT@37..38 ">"
+        WHITESPACE@38..39 " "
+        LITERAL@39..40
+          INT_NUMBER@39..40 "0"
+      WHITESPACE@40..41 " "
+      R_CURLY@41..42 "}"
+    SEMI@42..43 ";"
+  WHITESPACE@43..53 "\n\n        "
+  FUNCTION_DEF@53..132
+    FUNC_KW@53..57 "func"
+    WHITESPACE@57..58 " "
+    NAME@58..70
+      IDENT@58..70 "fetch_record"
+    PARAM_LIST@70..93
+      L_PAREN@70..71 "("
+      PARAM@71..92
+        BIND_PAT@71..73
+          NAME@71..73
+            IDENT@71..73 "id"
+        COLON@73..74 ":"
+        WHITESPACE@74..75 " "
+        REFINEMENT_TYPE@75..92
+          PATH_TYPE@75..78
+            PATH@75..78
+              PATH_SEGMENT@75..78
+                NAME_REF@75..78
+                  IDENT@75..78 "i32"
+          WHITESPACE@78..79 " "
+          L_CURLY@79..80 "{"
+          WHITESPACE@80..81 " "
+          NAME_REF@81..82
+            IDENT@81..82 "x"
+          WHITESPACE@82..83 " "
+          PIPE@83..84 "|"
+          WHITESPACE@84..85 " "
+          BIN_EXPR@85..90
+            PATH_EXPR@85..86
+              PATH@85..86
+                PATH_SEGMENT@85..86
+                  NAME_REF@85..86
+                    IDENT@85..86 "x"
+            WHITESPACE@86..87 " "
+            GT@87..88 ">"
+            WHITESPACE@88..89 " "
+            LITERAL@89..90
+              INT_NUMBER@89..90 "0"
+          WHITESPACE@90..91 " "
+          R_CURLY@91..92 "}"
+      R_PAREN@92..93 ")"
+    WHITESPACE@93..94 " "
+    RET_TYPE@94..105
+      THIN_ARROW@94..96 "->"
+      WHITESPACE@96..97 " "
+      PATH_TYPE@97..105
+        PATH@97..105
+          PATH_SEGMENT@97..105
+            NAME_REF@97..105
+              IDENT@97..105 "RecordId"
+    WHITESPACE@105..106 " "
+    BLOCK_EXPR@106..132
+      L_CURLY@106..107 "{"
+      WHITESPACE@107..120 "\n            "
+      PATH_EXPR@120..122
+        PATH@120..122
+          PATH_SEGMENT@120..122
+            NAME_REF@120..122
+              IDENT@120..122 "id"
+      WHITESPACE@122..131 "\n        "
+      R_CURLY@131..132 "}"
+  WHITESPACE@132..142 "\n\n        "
+  SUPERVISOR_DEF@142..310
+    SUPERVISOR_KW@142..152 "supervisor"
+    WHITESPACE@152..153 " "
+    NAME@153..171
+      IDENT@153..171 "DatabaseConnection"
+    WHITESPACE@171..172 " "
+    SUPERVISOR_ITEM_LIST@172..310
+      L_CURLY@172..173 "{"
+      WHITESPACE@173..186 "\n            "
+      SUPERVISOR_ENTRY@186..197
+        NAME@186..194
+          IDENT@186..194 "strategy"
+        COLON@194..195 ":"
+        WHITESPACE@195..196 " "
+        LITERAL@196..197
+          INT_NUMBER@196..197 "1"
+      COMMA@197..198 ","
+      WHITESPACE@198..211 "\n            "
+      SUPERVISOR_ENTRY@211..226
+        NAME@211..223
+          IDENT@211..223 "max_restarts"
+        COLON@223..224 ":"
+        WHITESPACE@224..225 " "
+        LITERAL@225..226
+          INT_NUMBER@225..226 "5"
+      COMMA@226..227 ","
+      WHITESPACE@227..241 "\n\n            "
+      CHILD_DEF@241..300
+        CHILD_KW@241..246 "child"
+        WHITESPACE@246..247 " "
+        NAME@247..255
+          IDENT@247..255 "ConnPool"
+        WHITESPACE@255..256 " "
+        SUPERVISOR_ITEM_LIST@256..300
+          L_CURLY@256..257 "{"
+          WHITESPACE@257..274 "\n                "
+          SUPERVISOR_ENTRY@274..285
+            NAME@274..282
+              IDENT@274..282 "strategy"
+            COLON@282..283 ":"
+            WHITESPACE@283..284 " "
+            LITERAL@284..285
+              INT_NUMBER@284..285 "2"
+          COMMA@285..286 ","
+          WHITESPACE@286..299 "\n            "
+          R_CURLY@299..300 "}"
+      WHITESPACE@300..309 "\n        "
+      R_CURLY@309..310 "}"
+  WHITESPACE@310..319 "\n        "

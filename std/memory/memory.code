@@ -1,0 +1,199 @@
+// =============================================================================
+// std/memory/memory.code — Low-level memory operations
+// =============================================================================
+//
+// Provides the fundamental memory manipulation functions analogous to the
+// C standard library's <string.h>: memcpy, memmove, memset, memcmp.
+//
+// These operate on raw byte buffers identified by addresses and byte
+// counts.  They are the building blocks on which higher-level abstractions
+// (Slice, Array, String, etc.) are implemented.
+//
+// All functions accept `usize` addresses and `usize` byte counts.
+// =============================================================================
+
+use std.builtin.types;
+
+// =============================================================================
+// memcpy — non-overlapping copy
+// =============================================================================
+
+// Copy `count` bytes from `src` to `dest`.
+//
+// The source and destination regions MUST NOT overlap.  If they might
+// overlap, use `memmove` instead.
+//
+// This maps directly to the LLVM `llvm.memcpy` intrinsic for maximum
+// performance (enables vectorized copy on supported targets).
+//
+//   memcpy(dest_addr, src_addr, 1024);
+public func memcpy(dest: usize, src: usize, count: usize) -> void {
+    __intrinsic_memcpy(dest, src, count);
+}
+
+// Typed version: copy `count` elements of type T.
+public func memcpy_typed[T](dest: Pointer[T], src: Pointer[T], count: usize) -> void {
+    let bytes = count * __intrinsic_sizeof[T]();
+    __intrinsic_memcpy(dest.address(), src.address(), bytes);
+}
+
+// =============================================================================
+// memmove — potentially overlapping copy
+// =============================================================================
+
+// Copy `count` bytes from `src` to `dest`.
+//
+// Unlike memcpy, memmove correctly handles overlapping regions by
+// detecting the direction of overlap and copying accordingly.
+//
+//   memmove(dest_addr, src_addr, 512);
+public func memmove(dest: usize, src: usize, count: usize) -> void {
+    __intrinsic_memmove(dest, src, count);
+}
+
+// Typed version.
+public func memmove_typed[T](dest: Pointer[T], src: Pointer[T], count: usize) -> void {
+    let bytes = count * __intrinsic_sizeof[T]();
+    __intrinsic_memmove(dest.address(), src.address(), bytes);
+}
+
+// =============================================================================
+// memset — fill memory with a byte value
+// =============================================================================
+
+// Set `count` bytes starting at `dest` to the byte `value`.
+//
+//   memset(buffer_addr, 0, 4096);    // zero out 4 KiB
+//   memset(buffer_addr, 0xFF, 256);  // fill with 0xFF
+public func memset(dest: usize, value: u8, count: usize) -> void {
+    __intrinsic_memset(dest, value, count);
+}
+
+// Zero-fill `count` bytes at `dest`.  Convenience wrapper.
+public func memzero(dest: usize, count: usize) -> void {
+    __intrinsic_memset(dest, 0, count);
+}
+
+// Typed zero: zero `count` objects of type T.
+public func memzero_typed[T](dest: Pointer[T], count: usize) -> void {
+    let bytes = count * __intrinsic_sizeof[T]();
+    __intrinsic_memset(dest.address(), 0, bytes);
+}
+
+// Set count elements of type T to a byte pattern.
+public func memset_typed[T](dest: Pointer[T], value: u8, count: usize) -> void {
+    let bytes = count * __intrinsic_sizeof[T]();
+    __intrinsic_memset(dest.address(), value, bytes);
+}
+
+// =============================================================================
+// memcmp — byte-wise comparison
+// =============================================================================
+
+// Compare `count` bytes of memory at `a` and `b`.
+//
+// Returns:
+//   < 0  if the first differing byte in `a` is less than in `b`
+//   == 0 if all bytes are equal
+//   > 0  if the first differing byte in `a` is greater than in `b`
+//
+//   let result = memcmp(buf1, buf2, 64);
+public func memcmp(a: usize, b: usize, count: usize) -> i32 {
+    return __intrinsic_memcmp(a, b, count);
+}
+
+// Typed comparison: compare `count` elements of type T byte-by-byte.
+public func memcmp_typed[T](a: Pointer[T], b: Pointer[T], count: usize) -> i32 {
+    let bytes = count * __intrinsic_sizeof[T]();
+    return __intrinsic_memcmp(a.address(), b.address(), bytes);
+}
+
+// Return true if two memory regions of `count` bytes are identical.
+public func memeq(a: usize, b: usize, count: usize) -> bool {
+    return __intrinsic_memcmp(a, b, count) == 0;
+}
+
+// =============================================================================
+// memchr — find a byte in memory
+// =============================================================================
+
+// Search for the first occurrence of byte `value` in `count` bytes
+// starting at `src`.  Returns the byte offset, or -1 if not found.
+public func memchr(src: usize, value: u8, count: usize) -> isize {
+    let i: usize = 0;
+    while i < count {
+        let byte_val = __intrinsic_load[u8](src + i);
+        if byte_val == value {
+            return i as isize;
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
+// Search backward for the last occurrence of `value`.
+public func memrchr(src: usize, value: u8, count: usize) -> isize {
+    if count == 0 {
+        return -1;
+    }
+    let i: usize = count;
+    while i > 0 {
+        i = i - 1;
+        let byte_val = __intrinsic_load[u8](src + i);
+        if byte_val == value {
+            return i as isize;
+        }
+    }
+    return -1;
+}
+
+// =============================================================================
+// Secure operations
+// =============================================================================
+
+// Secure zero: zero `count` bytes and guarantee the compiler will not
+// optimize the write away (for clearing sensitive data like keys).
+public func secure_zero(dest: usize, count: usize) -> void {
+    __intrinsic_volatile_memset(dest, 0, count);
+    __intrinsic_compiler_fence();
+}
+
+// Constant-time comparison: compare `count` bytes without early exit.
+// Returns true if all bytes are equal.  Timing does not depend on the
+// data, preventing timing side-channel attacks.
+public func constant_time_eq(a: usize, b: usize, count: usize) -> bool {
+    let diff: u8 = 0;
+    let i: usize = 0;
+    while i < count {
+        let byte_a = __intrinsic_load[u8](a + i);
+        let byte_b = __intrinsic_load[u8](b + i);
+        diff = diff | (byte_a ^ byte_b);
+        i = i + 1;
+    }
+    return diff == 0;
+}
+
+// =============================================================================
+// Alignment helpers
+// =============================================================================
+
+// Round `addr` up to the nearest multiple of `align`.
+// `align` must be a power of two.
+public func align_up(addr: usize, align: usize) -> usize {
+    return (addr + align - 1) & (0 - align);
+}
+
+// Round `addr` down to the nearest multiple of `align`.
+public func align_down(addr: usize, align: usize) -> usize {
+    return addr & (0 - align);
+}
+
+// Return true if `addr` is aligned to `align` (a power of two).
+public func is_aligned(addr: usize, align: usize) -> bool {
+    return (addr & (align - 1)) == 0;
+}
+
+// Return the padding needed to align `addr` to `align`.
+public func align_padding(addr: usize, align: usize) -> usize {
+    return (align - (addr & (align - 1))) & (align - 1);
+}

@@ -1,0 +1,75 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n        extend Foo {}\n        extend Bar {\n            func bar() {}\n            struct Baz {}\n        }\n        public extend FooBar {}\n        \"#).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..146
+  WHITESPACE@0..9 "\n        "
+  EXTEND@9..22
+    EXTEND_KW@9..15 "extend"
+    WHITESPACE@15..16 " "
+    PATH_TYPE@16..19
+      PATH@16..19
+        PATH_SEGMENT@16..19
+          NAME_REF@16..19
+            IDENT@16..19 "Foo"
+    WHITESPACE@19..20 " "
+    EXTEND_ITEM_LIST@20..22
+      L_CURLY@20..21 "{"
+      R_CURLY@21..22 "}"
+  WHITESPACE@22..31 "\n        "
+  EXTEND@31..105
+    EXTEND_KW@31..37 "extend"
+    WHITESPACE@37..38 " "
+    PATH_TYPE@38..41
+      PATH@38..41
+        PATH_SEGMENT@38..41
+          NAME_REF@38..41
+            IDENT@38..41 "Bar"
+    WHITESPACE@41..42 " "
+    EXTEND_ITEM_LIST@42..105
+      L_CURLY@42..43 "{"
+      FUNCTION_DEF@43..69
+        WHITESPACE@43..56 "\n            "
+        FUNC_KW@56..60 "func"
+        WHITESPACE@60..61 " "
+        NAME@61..64
+          IDENT@61..64 "bar"
+        PARAM_LIST@64..66
+          L_PAREN@64..65 "("
+          R_PAREN@65..66 ")"
+        WHITESPACE@66..67 " "
+        BLOCK_EXPR@67..69
+          L_CURLY@67..68 "{"
+          R_CURLY@68..69 "}"
+      WHITESPACE@69..82 "\n            "
+      STRUCT_DEF@82..95
+        STRUCT_KW@82..88 "struct"
+        WHITESPACE@88..89 " "
+        NAME@89..92
+          IDENT@89..92 "Baz"
+        WHITESPACE@92..93 " "
+        RECORD_FIELD_DEF_LIST@93..95
+          L_CURLY@93..94 "{"
+          R_CURLY@94..95 "}"
+      WHITESPACE@95..104 "\n        "
+      R_CURLY@104..105 "}"
+  WHITESPACE@105..114 "\n        "
+  EXTEND@114..137
+    VISIBILITY@114..120
+      PUBLIC_KW@114..120 "public"
+    WHITESPACE@120..121 " "
+    EXTEND_KW@121..127 "extend"
+    WHITESPACE@127..128 " "
+    PATH_TYPE@128..134
+      PATH@128..134
+        PATH_SEGMENT@128..134
+          NAME_REF@128..134
+            IDENT@128..134 "FooBar"
+    WHITESPACE@134..135 " "
+    EXTEND_ITEM_LIST@135..137
+      L_CURLY@135..136 "{"
+      R_CURLY@136..137 "}"
+  WHITESPACE@137..146 "\n        "
+error Range(82..95): only functions are allowed in extend blocks
+error Range(114..120): visibility is not allowed on extend blocks

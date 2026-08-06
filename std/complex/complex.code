@@ -1,0 +1,268 @@
+// std/complex/complex.code
+// Complex number type for Codira.
+// Provides a Complex struct and a full set of arithmetic and transcendental
+// operations for complex numbers over f64.
+
+// ---------------------------------------------------------------------------
+// Complex
+// A complex number z = real + imag*i, stored as two f64 components.
+// ---------------------------------------------------------------------------
+public struct(value) Complex {
+    real: f64,
+    imag: f64,
+}
+
+// ---------------------------------------------------------------------------
+// Constructors
+// ---------------------------------------------------------------------------
+
+// Creates a Complex from real and imaginary parts.
+public func complex_new(real: f64, imag: f64) -> Complex {
+    return Complex { real: real, imag: imag };
+}
+
+// Creates a purely real complex number.
+public func complex_from_real(real: f64) -> Complex {
+    return Complex { real: real, imag: 0.0 };
+}
+
+// Creates a purely imaginary complex number.
+public func complex_from_imag(imag: f64) -> Complex {
+    return Complex { real: 0.0, imag: imag };
+}
+
+// Creates a complex number from polar form (r, theta).
+// z = r * (cos(theta) + i * sin(theta))
+public func complex_from_polar(r: f64, theta: f64) -> Complex {
+    return Complex {
+        real: r * cos(theta),
+        imag: r * sin(theta),
+    };
+}
+
+// Zero complex number.
+public func complex_zero() -> Complex {
+    return Complex { real: 0.0, imag: 0.0 };
+}
+
+// The imaginary unit i = (0, 1).
+public func complex_i() -> Complex {
+    return Complex { real: 0.0, imag: 1.0 };
+}
+
+// One = (1, 0).
+public func complex_one() -> Complex {
+    return Complex { real: 1.0, imag: 0.0 };
+}
+
+// ---------------------------------------------------------------------------
+// Arithmetic
+// ---------------------------------------------------------------------------
+
+// Addition: (a + bi) + (c + di) = (a+c) + (b+d)i
+public func complex_add(a: Complex, b: Complex) -> Complex {
+    return Complex {
+        real: a.real + b.real,
+        imag: a.imag + b.imag,
+    };
+}
+
+// Subtraction: (a + bi) - (c + di) = (a-c) + (b-d)i
+public func complex_sub(a: Complex, b: Complex) -> Complex {
+    return Complex {
+        real: a.real - b.real,
+        imag: a.imag - b.imag,
+    };
+}
+
+// Multiplication: (a + bi)(c + di) = (ac - bd) + (ad + bc)i
+public func complex_mul(a: Complex, b: Complex) -> Complex {
+    return Complex {
+        real: a.real * b.real - a.imag * b.imag,
+        imag: a.real * b.imag + a.imag * b.real,
+    };
+}
+
+// Scalar multiplication: s * (a + bi) = sa + sbi
+public func complex_scale(z: Complex, s: f64) -> Complex {
+    return Complex {
+        real: z.real * s,
+        imag: z.imag * s,
+    };
+}
+
+// Division: (a + bi) / (c + di)
+// Uses the Smith formula for numerical stability.
+public func complex_div(a: Complex, b: Complex) -> Complex {
+    let c: f64 = b.real;
+    let d: f64 = b.imag;
+    let abs_c: f64 = if c < 0.0 { -c } else { c };
+    let abs_d: f64 = if d < 0.0 { -d } else { d };
+
+    if abs_c >= abs_d {
+        let r: f64 = d / c;
+        let denom: f64 = c + d * r;
+        return Complex {
+            real: (a.real + a.imag * r) / denom,
+            imag: (a.imag - a.real * r) / denom,
+        };
+    } else {
+        let r: f64 = c / d;
+        let denom: f64 = d + c * r;
+        return Complex {
+            real: (a.real * r + a.imag) / denom,
+            imag: (a.imag * r - a.real) / denom,
+        };
+    }
+}
+
+// Negation: -(a + bi) = -a - bi
+public func complex_neg(z: Complex) -> Complex {
+    return Complex { real: -z.real, imag: -z.imag };
+}
+
+// ---------------------------------------------------------------------------
+// Norm / Magnitude
+// ---------------------------------------------------------------------------
+
+// Squared norm (squared absolute value): |z|^2 = a^2 + b^2
+// Avoids the sqrt computation when only the squared magnitude is needed.
+public func complex_squared_norm(z: Complex) -> f64 {
+    return z.real * z.real + z.imag * z.imag;
+}
+
+// Norm (absolute value / magnitude): |z| = sqrt(a^2 + b^2)
+public func complex_norm(z: Complex) -> f64 {
+    return sqrt(z.real * z.real + z.imag * z.imag);
+}
+
+// Alias for norm.
+public func complex_abs(z: Complex) -> f64 {
+    return complex_norm(z);
+}
+
+// ---------------------------------------------------------------------------
+// Argument (phase angle)
+// ---------------------------------------------------------------------------
+
+// Returns the argument (phase angle) of z in radians, in (-pi, pi].
+public func complex_arg(z: Complex) -> f64 {
+    return atan2(z.imag, z.real);
+}
+
+// ---------------------------------------------------------------------------
+// Conjugate
+// ---------------------------------------------------------------------------
+
+// Returns the complex conjugate: conj(a + bi) = a - bi
+public func complex_conj(z: Complex) -> Complex {
+    return Complex { real: z.real, imag: -z.imag };
+}
+
+// ---------------------------------------------------------------------------
+// Polar conversion
+// ---------------------------------------------------------------------------
+
+// Converts to polar form (r, theta).
+public struct PolarForm {
+    r: f64,
+    theta: f64,
+}
+
+public func complex_to_polar(z: Complex) -> PolarForm {
+    return PolarForm {
+        r: complex_norm(z),
+        theta: complex_arg(z),
+    };
+}
+
+// ---------------------------------------------------------------------------
+// Inverse
+// ---------------------------------------------------------------------------
+
+// Multiplicative inverse: 1/z = conj(z) / |z|^2
+public func complex_inv(z: Complex) -> Complex {
+    let sq: f64 = complex_squared_norm(z);
+    if sq == 0.0 {
+        panic("complex_inv: division by zero (zero complex number)");
+    }
+    return Complex {
+        real: z.real / sq,
+        imag: -z.imag / sq,
+    };
+}
+
+// ---------------------------------------------------------------------------
+// Equality (exact)
+// ---------------------------------------------------------------------------
+public func complex_eq(a: Complex, b: Complex) -> bool {
+    return a.real == b.real && a.imag == b.imag;
+}
+
+// Approximate equality within tolerance.
+public func complex_almost_eq(a: Complex, b: Complex, tol: f64) -> bool {
+    let dr: f64 = a.real - b.real;
+    let di: f64 = a.imag - b.imag;
+    let abs_dr: f64 = if dr < 0.0 { -dr } else { dr };
+    let abs_di: f64 = if di < 0.0 { -di } else { di };
+    return abs_dr <= tol && abs_di <= tol;
+}
+
+// ---------------------------------------------------------------------------
+// String representation
+// ---------------------------------------------------------------------------
+public func complex_to_string(z: Complex) -> String {
+    if z.imag >= 0.0 {
+        return float_to_string(z.real) + "+" + float_to_string(z.imag) + "i";
+    }
+    return float_to_string(z.real) + float_to_string(z.imag) + "i";
+}
+
+// ---------------------------------------------------------------------------
+// Power
+// z^n using repeated squaring for integer exponents.
+// ---------------------------------------------------------------------------
+public func complex_powi(z: Complex, n: i64) -> Complex {
+    if n == 0 {
+        return complex_one();
+    }
+    let mut base: Complex = z;
+    let mut exp: i64 = n;
+    if exp < 0 {
+        base = complex_inv(base);
+        exp = -exp;
+    }
+    let mut result: Complex = complex_one();
+    while exp > 0 {
+        if (exp & 1) == 1 {
+            result = complex_mul(result, base);
+        }
+        base = complex_mul(base, base);
+        exp = exp >> 1;
+    }
+    return result;
+}
+
+// ---------------------------------------------------------------------------
+// Square root
+// ---------------------------------------------------------------------------
+public func complex_sqrt(z: Complex) -> Complex {
+    if z.real == 0.0 && z.imag == 0.0 {
+        return complex_zero();
+    }
+    let r: f64 = complex_norm(z);
+    let sign_imag: f64 = if z.imag >= 0.0 { 1.0 } else { -1.0 };
+    return Complex {
+        real: sqrt((r + z.real) / 2.0),
+        imag: sign_imag * sqrt((r - z.real) / 2.0),
+    };
+}
+
+// ---------------------------------------------------------------------------
+// Math externs.
+// ---------------------------------------------------------------------------
+extern func sqrt(x: f64) -> f64;
+extern func cos(x: f64) -> f64;
+extern func sin(x: f64) -> f64;
+extern func atan2(y: f64, x: f64) -> f64;
+extern func float_to_string(x: f64) -> String;

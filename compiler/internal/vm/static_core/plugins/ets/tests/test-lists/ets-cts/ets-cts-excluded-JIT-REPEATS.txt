@@ -1,2 +1,0 @@
-# 17964 Segmentation fault due to limitation of the number of coroutines with too many repeated calls
-16.concurrency/02.asynchronous_api/01.async_functions/async_functions13.ets

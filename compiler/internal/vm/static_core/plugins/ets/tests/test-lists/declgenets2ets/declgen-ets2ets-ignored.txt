@@ -1,3 +1,0 @@
-#25417
-function.ets
-interface.ets

@@ -1,0 +1,90 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n        func main() {\n            a.foo();\n            a.0.foo();\n            a.0.0.foo();\n            a.0 .f32();\n        }\n        \"#).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..134
+  FUNCTION_DEF@0..125
+    WHITESPACE@0..9 "\n        "
+    FUNC_KW@9..13 "func"
+    WHITESPACE@13..14 " "
+    NAME@14..18
+      IDENT@14..18 "main"
+    PARAM_LIST@18..20
+      L_PAREN@18..19 "("
+      R_PAREN@19..20 ")"
+    WHITESPACE@20..21 " "
+    BLOCK_EXPR@21..125
+      L_CURLY@21..22 "{"
+      WHITESPACE@22..35 "\n            "
+      EXPR_STMT@35..43
+        METHOD_CALL_EXPR@35..42
+          PATH_EXPR@35..36
+            PATH@35..36
+              PATH_SEGMENT@35..36
+                NAME_REF@35..36
+                  IDENT@35..36 "a"
+          DOT@36..37 "."
+          NAME_REF@37..40
+            IDENT@37..40 "foo"
+          ARG_LIST@40..42
+            L_PAREN@40..41 "("
+            R_PAREN@41..42 ")"
+        SEMI@42..43 ";"
+      WHITESPACE@43..56 "\n            "
+      EXPR_STMT@56..66
+        METHOD_CALL_EXPR@56..65
+          FIELD_EXPR@56..59
+            PATH_EXPR@56..57
+              PATH@56..57
+                PATH_SEGMENT@56..57
+                  NAME_REF@56..57
+                    IDENT@56..57 "a"
+            INDEX@57..59 ".0"
+          DOT@59..60 "."
+          NAME_REF@60..63
+            IDENT@60..63 "foo"
+          ARG_LIST@63..65
+            L_PAREN@63..64 "("
+            R_PAREN@64..65 ")"
+        SEMI@65..66 ";"
+      WHITESPACE@66..79 "\n            "
+      EXPR_STMT@79..91
+        METHOD_CALL_EXPR@79..90
+          FIELD_EXPR@79..84
+            FIELD_EXPR@79..82
+              PATH_EXPR@79..80
+                PATH@79..80
+                  PATH_SEGMENT@79..80
+                    NAME_REF@79..80
+                      IDENT@79..80 "a"
+              INDEX@80..82 ".0"
+            INDEX@82..84 ".0"
+          DOT@84..85 "."
+          NAME_REF@85..88
+            IDENT@85..88 "foo"
+          ARG_LIST@88..90
+            L_PAREN@88..89 "("
+            R_PAREN@89..90 ")"
+        SEMI@90..91 ";"
+      WHITESPACE@91..104 "\n            "
+      EXPR_STMT@104..115
+        METHOD_CALL_EXPR@104..114
+          FIELD_EXPR@104..107
+            PATH_EXPR@104..105
+              PATH@104..105
+                PATH_SEGMENT@104..105
+                  NAME_REF@104..105
+                    IDENT@104..105 "a"
+            INDEX@105..107 ".0"
+          WHITESPACE@107..108 " "
+          DOT@108..109 "."
+          NAME_REF@109..112
+            IDENT@109..112 "f32"
+          ARG_LIST@112..114
+            L_PAREN@112..113 "("
+            R_PAREN@113..114 ")"
+        SEMI@114..115 ";"
+      WHITESPACE@115..124 "\n        "
+      R_CURLY@124..125 "}"
+  WHITESPACE@125..134 "\n        "

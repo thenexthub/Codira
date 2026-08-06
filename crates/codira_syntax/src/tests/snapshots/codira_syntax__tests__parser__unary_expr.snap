@@ -1,0 +1,55 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    func foo() {\n        let a = --3;\n        let b = !!true;\n    }\n    \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..73
+  FUNCTION_DEF@0..68
+    WHITESPACE@0..5 "\n    "
+    FUNC_KW@5..9 "func"
+    WHITESPACE@9..10 " "
+    NAME@10..13
+      IDENT@10..13 "foo"
+    PARAM_LIST@13..15
+      L_PAREN@13..14 "("
+      R_PAREN@14..15 ")"
+    WHITESPACE@15..16 " "
+    BLOCK_EXPR@16..68
+      L_CURLY@16..17 "{"
+      WHITESPACE@17..26 "\n        "
+      LET_STMT@26..38
+        LET_KW@26..29 "let"
+        WHITESPACE@29..30 " "
+        BIND_PAT@30..31
+          NAME@30..31
+            IDENT@30..31 "a"
+        WHITESPACE@31..32 " "
+        EQ@32..33 "="
+        WHITESPACE@33..34 " "
+        PREFIX_EXPR@34..37
+          MINUS@34..35 "-"
+          PREFIX_EXPR@35..37
+            MINUS@35..36 "-"
+            LITERAL@36..37
+              INT_NUMBER@36..37 "3"
+        SEMI@37..38 ";"
+      WHITESPACE@38..47 "\n        "
+      LET_STMT@47..62
+        LET_KW@47..50 "let"
+        WHITESPACE@50..51 " "
+        BIND_PAT@51..52
+          NAME@51..52
+            IDENT@51..52 "b"
+        WHITESPACE@52..53 " "
+        EQ@53..54 "="
+        WHITESPACE@54..55 " "
+        PREFIX_EXPR@55..61
+          EXCLAMATION@55..56 "!"
+          PREFIX_EXPR@56..61
+            EXCLAMATION@56..57 "!"
+            LITERAL@57..61
+              TRUE_KW@57..61 "true"
+        SEMI@61..62 ";"
+      WHITESPACE@62..67 "\n    "
+      R_CURLY@67..68 "}"
+  WHITESPACE@68..73 "\n    "

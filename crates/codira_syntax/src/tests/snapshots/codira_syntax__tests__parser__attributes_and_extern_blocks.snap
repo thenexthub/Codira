@@ -1,0 +1,176 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n        @derive(Show)\n        @heal(on: 1, strategies: 2)\n        struct Point {\n            x: f64\n        }\n\n        extern \"C\" {\n            func sqrt(x: f64) -> f64;\n        }\n\n        @export(\"C\")\n        public func codira_add(a: i32, b: i32) -> i32 { a }\n        \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..271
+  WHITESPACE@0..9 "\n        "
+  STRUCT_DEF@9..110
+    ATTRIBUTE_LIST@9..58
+      ATTRIBUTE@9..22
+        AT@9..10 "@"
+        PATH@10..16
+          PATH_SEGMENT@10..16
+            NAME_REF@10..16
+              IDENT@10..16 "derive"
+        ARG_LIST@16..22
+          L_PAREN@16..17 "("
+          PATH_EXPR@17..21
+            PATH@17..21
+              PATH_SEGMENT@17..21
+                NAME_REF@17..21
+                  IDENT@17..21 "Show"
+          R_PAREN@21..22 ")"
+      WHITESPACE@22..31 "\n        "
+      ATTRIBUTE@31..58
+        AT@31..32 "@"
+        PATH@32..36
+          PATH_SEGMENT@32..36
+            NAME_REF@32..36
+              IDENT@32..36 "heal"
+        ARG_LIST@36..58
+          L_PAREN@36..37 "("
+          IDENT@37..39 "on"
+          COLON@39..40 ":"
+          WHITESPACE@40..41 " "
+          LITERAL@41..42
+            INT_NUMBER@41..42 "1"
+          COMMA@42..43 ","
+          WHITESPACE@43..44 " "
+          IDENT@44..54 "strategies"
+          COLON@54..55 ":"
+          WHITESPACE@55..56 " "
+          LITERAL@56..57
+            INT_NUMBER@56..57 "2"
+          R_PAREN@57..58 ")"
+    WHITESPACE@58..67 "\n        "
+    STRUCT_KW@67..73 "struct"
+    WHITESPACE@73..74 " "
+    NAME@74..79
+      IDENT@74..79 "Point"
+    WHITESPACE@79..80 " "
+    RECORD_FIELD_DEF_LIST@80..110
+      L_CURLY@80..81 "{"
+      WHITESPACE@81..94 "\n            "
+      RECORD_FIELD_DEF@94..100
+        NAME@94..95
+          IDENT@94..95 "x"
+        COLON@95..96 ":"
+        WHITESPACE@96..97 " "
+        PATH_TYPE@97..100
+          PATH@97..100
+            PATH_SEGMENT@97..100
+              NAME_REF@97..100
+                IDENT@97..100 "f64"
+      WHITESPACE@100..109 "\n        "
+      R_CURLY@109..110 "}"
+  WHITESPACE@110..120 "\n\n        "
+  EXTERN_BLOCK@120..180
+    EXTERN_KW@120..126 "extern"
+    WHITESPACE@126..127 " "
+    STRING@127..130 "\"C\""
+    WHITESPACE@130..131 " "
+    EXTERN_ITEM_LIST@131..180
+      L_CURLY@131..132 "{"
+      FUNCTION_DEF@132..170
+        WHITESPACE@132..145 "\n            "
+        FUNC_KW@145..149 "func"
+        WHITESPACE@149..150 " "
+        NAME@150..154
+          IDENT@150..154 "sqrt"
+        PARAM_LIST@154..162
+          L_PAREN@154..155 "("
+          PARAM@155..161
+            BIND_PAT@155..156
+              NAME@155..156
+                IDENT@155..156 "x"
+            COLON@156..157 ":"
+            WHITESPACE@157..158 " "
+            PATH_TYPE@158..161
+              PATH@158..161
+                PATH_SEGMENT@158..161
+                  NAME_REF@158..161
+                    IDENT@158..161 "f64"
+          R_PAREN@161..162 ")"
+        WHITESPACE@162..163 " "
+        RET_TYPE@163..169
+          THIN_ARROW@163..165 "->"
+          WHITESPACE@165..166 " "
+          PATH_TYPE@166..169
+            PATH@166..169
+              PATH_SEGMENT@166..169
+                NAME_REF@166..169
+                  IDENT@166..169 "f64"
+        SEMI@169..170 ";"
+      WHITESPACE@170..179 "\n        "
+      R_CURLY@179..180 "}"
+  WHITESPACE@180..190 "\n\n        "
+  FUNCTION_DEF@190..262
+    ATTRIBUTE_LIST@190..202
+      ATTRIBUTE@190..202
+        AT@190..191 "@"
+        PATH@191..197
+          PATH_SEGMENT@191..197
+            NAME_REF@191..197
+              IDENT@191..197 "export"
+        ARG_LIST@197..202
+          L_PAREN@197..198 "("
+          LITERAL@198..201
+            STRING@198..201 "\"C\""
+          R_PAREN@201..202 ")"
+    WHITESPACE@202..211 "\n        "
+    VISIBILITY@211..217
+      PUBLIC_KW@211..217 "public"
+    WHITESPACE@217..218 " "
+    FUNC_KW@218..222 "func"
+    WHITESPACE@222..223 " "
+    NAME@223..233
+      IDENT@223..233 "codira_add"
+    PARAM_LIST@233..249
+      L_PAREN@233..234 "("
+      PARAM@234..240
+        BIND_PAT@234..235
+          NAME@234..235
+            IDENT@234..235 "a"
+        COLON@235..236 ":"
+        WHITESPACE@236..237 " "
+        PATH_TYPE@237..240
+          PATH@237..240
+            PATH_SEGMENT@237..240
+              NAME_REF@237..240
+                IDENT@237..240 "i32"
+      COMMA@240..241 ","
+      WHITESPACE@241..242 " "
+      PARAM@242..248
+        BIND_PAT@242..243
+          NAME@242..243
+            IDENT@242..243 "b"
+        COLON@243..244 ":"
+        WHITESPACE@244..245 " "
+        PATH_TYPE@245..248
+          PATH@245..248
+            PATH_SEGMENT@245..248
+              NAME_REF@245..248
+                IDENT@245..248 "i32"
+      R_PAREN@248..249 ")"
+    WHITESPACE@249..250 " "
+    RET_TYPE@250..256
+      THIN_ARROW@250..252 "->"
+      WHITESPACE@252..253 " "
+      PATH_TYPE@253..256
+        PATH@253..256
+          PATH_SEGMENT@253..256
+            NAME_REF@253..256
+              IDENT@253..256 "i32"
+    WHITESPACE@256..257 " "
+    BLOCK_EXPR@257..262
+      L_CURLY@257..258 "{"
+      WHITESPACE@258..259 " "
+      PATH_EXPR@259..260
+        PATH@259..260
+          PATH_SEGMENT@259..260
+            NAME_REF@259..260
+              IDENT@259..260 "a"
+      WHITESPACE@260..261 " "
+      R_CURLY@261..262 "}"
+  WHITESPACE@262..271 "\n        "

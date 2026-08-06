@@ -1,0 +1,396 @@
+// =============================================================================
+// std/builtin/simd.code — SIMD (Single Instruction Multiple Data) vector type
+// =============================================================================
+//
+// SIMD[T, N] is a fixed-width vector of N elements of scalar type T.
+// It maps directly to hardware SIMD registers (SSE, AVX, NEON, SVE, …)
+// and enables data-level parallelism without explicit intrinsics.
+//
+// Supported element types (T):
+//   i8, i16, i32, i64, u8, u16, u32, u64, f16, f32, f64, bf16, bool
+//
+// N must be a power of two: 1, 2, 4, 8, 16, 32, 64, …
+//
+// Example:
+//   let a = SIMD[f32, 4].new(1.0, 2.0, 3.0, 4.0);
+//   let b = SIMD[f32, 4].splat(2.0);
+//   let c = a.mul(b);   // [2.0, 4.0, 6.0, 8.0]
+// =============================================================================
+
+use std.builtin.types;
+use std.builtin.traits;
+
+// A fixed-width SIMD vector of `N` elements of type `T`.
+//
+// The struct is a value type and should be register-allocated by the
+// compiler whenever the target has wide-enough vector registers.
+public struct(value) SIMD[T, N: usize] {
+    _data: __simd_storage[T, N],
+}
+
+// =============================================================================
+// Construction
+// =============================================================================
+
+// Broadcast a single scalar to every lane.
+//
+//   SIMD[f32, 4].splat(1.0)  =>  [1.0, 1.0, 1.0, 1.0]
+public func SIMD[T, N].splat(value: T) -> SIMD[T, N] {
+    let result: SIMD[T, N];
+    let i: usize = 0;
+    while i < N {
+        result._data[i] = value;
+        i = i + 1;
+    }
+    return result;
+}
+
+// Construct from a pointer to N contiguous elements (aligned load).
+public func SIMD[T, N].load(ptr: Pointer[T]) -> SIMD[T, N] {
+    return __intrinsic_simd_load[T, N](ptr);
+}
+
+// Construct from a pointer with a potentially unaligned load.
+public func SIMD[T, N].load_unaligned(ptr: Pointer[T]) -> SIMD[T, N] {
+    return __intrinsic_simd_load_unaligned[T, N](ptr);
+}
+
+// Construct a vector of all zeros.
+public func SIMD[T, N].zero() -> SIMD[T, N] {
+    return SIMD[T, N].splat(0 as T);
+}
+
+// Construct an index vector: [0, 1, 2, …, N-1] cast to T.
+public func SIMD[T, N].iota() -> SIMD[T, N] {
+    let result: SIMD[T, N];
+    let i: usize = 0;
+    while i < N {
+        result._data[i] = i as T;
+        i = i + 1;
+    }
+    return result;
+}
+
+// =============================================================================
+// Element access
+// =============================================================================
+
+// Read lane `index`.  Panics if index >= N.
+public func SIMD[T, N].get(self, index: usize) -> T {
+    if index >= N {
+        __panic("SIMD.get: index out of bounds");
+    }
+    return self._data[index];
+}
+
+// Write lane `index`.  Panics if index >= N.
+public func SIMD[T, N].set(self, index: usize, value: T) -> SIMD[T, N] {
+    if index >= N {
+        __panic("SIMD.set: index out of bounds");
+    }
+    let result = self;
+    result._data[index] = value;
+    return result;
+}
+
+// =============================================================================
+// Arithmetic (lane-wise)
+// =============================================================================
+
+// Lane-wise addition.
+public func SIMD[T, N].add(self, other: SIMD[T, N]) -> SIMD[T, N] {
+    return __intrinsic_simd_add[T, N](self, other);
+}
+
+// Lane-wise subtraction.
+public func SIMD[T, N].sub(self, other: SIMD[T, N]) -> SIMD[T, N] {
+    return __intrinsic_simd_sub[T, N](self, other);
+}
+
+// Lane-wise multiplication.
+public func SIMD[T, N].mul(self, other: SIMD[T, N]) -> SIMD[T, N] {
+    return __intrinsic_simd_mul[T, N](self, other);
+}
+
+// Lane-wise division.
+public func SIMD[T, N].div(self, other: SIMD[T, N]) -> SIMD[T, N] {
+    return __intrinsic_simd_div[T, N](self, other);
+}
+
+// Lane-wise remainder (integers) or fmod (floats).
+public func SIMD[T, N].mod(self, other: SIMD[T, N]) -> SIMD[T, N] {
+    return __intrinsic_simd_rem[T, N](self, other);
+}
+
+// Lane-wise negation.
+public func SIMD[T, N].neg(self) -> SIMD[T, N] {
+    return SIMD[T, N].zero().sub(self);
+}
+
+// Lane-wise absolute value.
+public func SIMD[T, N].abs(self) -> SIMD[T, N] {
+    return __intrinsic_simd_abs[T, N](self);
+}
+
+// Fused multiply-add: self * a + b  (single rounding step for floats).
+public func SIMD[T, N].fma(self, a: SIMD[T, N], b: SIMD[T, N]) -> SIMD[T, N] {
+    return __intrinsic_simd_fma[T, N](self, a, b);
+}
+
+// =============================================================================
+// Comparison (returns mask vector of bools)
+// =============================================================================
+
+// Lane-wise equality.
+public func SIMD[T, N].eq(self, other: SIMD[T, N]) -> SIMD[bool, N] {
+    return __intrinsic_simd_eq[T, N](self, other);
+}
+
+// Lane-wise inequality.
+public func SIMD[T, N].ne(self, other: SIMD[T, N]) -> SIMD[bool, N] {
+    return __intrinsic_simd_ne[T, N](self, other);
+}
+
+// Lane-wise less-than.
+public func SIMD[T, N].lt(self, other: SIMD[T, N]) -> SIMD[bool, N] {
+    return __intrinsic_simd_lt[T, N](self, other);
+}
+
+// Lane-wise less-than-or-equal.
+public func SIMD[T, N].le(self, other: SIMD[T, N]) -> SIMD[bool, N] {
+    return __intrinsic_simd_le[T, N](self, other);
+}
+
+// Lane-wise greater-than.
+public func SIMD[T, N].gt(self, other: SIMD[T, N]) -> SIMD[bool, N] {
+    return __intrinsic_simd_gt[T, N](self, other);
+}
+
+// Lane-wise greater-than-or-equal.
+public func SIMD[T, N].ge(self, other: SIMD[T, N]) -> SIMD[bool, N] {
+    return __intrinsic_simd_ge[T, N](self, other);
+}
+
+// =============================================================================
+// Bitwise (lane-wise)
+// =============================================================================
+
+// Lane-wise bitwise AND.
+public func SIMD[T, N].band(self, other: SIMD[T, N]) -> SIMD[T, N] {
+    return __intrinsic_simd_and[T, N](self, other);
+}
+
+// Lane-wise bitwise OR.
+public func SIMD[T, N].bor(self, other: SIMD[T, N]) -> SIMD[T, N] {
+    return __intrinsic_simd_or[T, N](self, other);
+}
+
+// Lane-wise bitwise XOR.
+public func SIMD[T, N].bxor(self, other: SIMD[T, N]) -> SIMD[T, N] {
+    return __intrinsic_simd_xor[T, N](self, other);
+}
+
+// Lane-wise bitwise NOT.
+public func SIMD[T, N].bnot(self) -> SIMD[T, N] {
+    return __intrinsic_simd_not[T, N](self);
+}
+
+// Lane-wise left shift by scalar amount.
+public func SIMD[T, N].shl(self, bits: i32) -> SIMD[T, N] {
+    return __intrinsic_simd_shl[T, N](self, bits);
+}
+
+// Lane-wise arithmetic right shift by scalar amount.
+public func SIMD[T, N].shr(self, bits: i32) -> SIMD[T, N] {
+    return __intrinsic_simd_shr[T, N](self, bits);
+}
+
+// =============================================================================
+// Reductions
+// =============================================================================
+
+// Sum of all lanes.
+public func SIMD[T, N].reduce_add(self) -> T {
+    return __intrinsic_simd_reduce_add[T, N](self);
+}
+
+// Product of all lanes.
+public func SIMD[T, N].reduce_mul(self) -> T {
+    return __intrinsic_simd_reduce_mul[T, N](self);
+}
+
+// Minimum lane value.
+public func SIMD[T, N].reduce_min(self) -> T {
+    return __intrinsic_simd_reduce_min[T, N](self);
+}
+
+// Maximum lane value.
+public func SIMD[T, N].reduce_max(self) -> T {
+    return __intrinsic_simd_reduce_max[T, N](self);
+}
+
+// Bitwise AND reduction.
+public func SIMD[T, N].reduce_and(self) -> T {
+    return __intrinsic_simd_reduce_and[T, N](self);
+}
+
+// Bitwise OR reduction.
+public func SIMD[T, N].reduce_or(self) -> T {
+    return __intrinsic_simd_reduce_or[T, N](self);
+}
+
+// =============================================================================
+// Shuffles / permutations
+// =============================================================================
+
+// Shuffle lanes according to an index vector.
+// Each element of `indices` selects a lane from `self`.
+public func SIMD[T, N].shuffle(self, indices: SIMD[i32, N]) -> SIMD[T, N] {
+    return __intrinsic_simd_shuffle[T, N](self, indices);
+}
+
+// Interleave even lanes from self and other: [a0, b0, a2, b2, …].
+public func SIMD[T, N].interleave_low(self, other: SIMD[T, N]) -> SIMD[T, N] {
+    return __intrinsic_simd_interleave_low[T, N](self, other);
+}
+
+// Interleave odd lanes from self and other: [a1, b1, a3, b3, …].
+public func SIMD[T, N].interleave_high(self, other: SIMD[T, N]) -> SIMD[T, N] {
+    return __intrinsic_simd_interleave_high[T, N](self, other);
+}
+
+// Reverse the lane order.
+public func SIMD[T, N].reverse(self) -> SIMD[T, N] {
+    let result: SIMD[T, N];
+    let i: usize = 0;
+    while i < N {
+        result._data[i] = self._data[N - 1 - i];
+        i = i + 1;
+    }
+    return result;
+}
+
+// Rotate lanes left by `amount`.
+public func SIMD[T, N].rotate_left(self, amount: usize) -> SIMD[T, N] {
+    let result: SIMD[T, N];
+    let i: usize = 0;
+    while i < N {
+        result._data[i] = self._data[(i + amount) % N];
+        i = i + 1;
+    }
+    return result;
+}
+
+// =============================================================================
+// Select / blend
+// =============================================================================
+
+// Per-lane select: pick from `true_vec` where mask is true, else `false_vec`.
+public func SIMD[T, N].select(
+    mask: SIMD[bool, N],
+    true_vec: SIMD[T, N],
+    false_vec: SIMD[T, N],
+) -> SIMD[T, N] {
+    return __intrinsic_simd_select[T, N](mask, true_vec, false_vec);
+}
+
+// Lane-wise min.
+public func SIMD[T, N].min(self, other: SIMD[T, N]) -> SIMD[T, N] {
+    return __intrinsic_simd_min[T, N](self, other);
+}
+
+// Lane-wise max.
+public func SIMD[T, N].max(self, other: SIMD[T, N]) -> SIMD[T, N] {
+    return __intrinsic_simd_max[T, N](self, other);
+}
+
+// Clamp each lane to [low, high].
+public func SIMD[T, N].clamp(self, low: SIMD[T, N], high: SIMD[T, N]) -> SIMD[T, N] {
+    return self.max(low).min(high);
+}
+
+// =============================================================================
+// Store
+// =============================================================================
+
+// Store all N lanes to contiguous, aligned memory.
+public func SIMD[T, N].store(self, ptr: Pointer[T]) -> void {
+    __intrinsic_simd_store[T, N](self, ptr);
+}
+
+// Store to potentially unaligned memory.
+public func SIMD[T, N].store_unaligned(self, ptr: Pointer[T]) -> void {
+    __intrinsic_simd_store_unaligned[T, N](self, ptr);
+}
+
+// =============================================================================
+// Casting
+// =============================================================================
+
+// Reinterpret (bitcast) the lanes to a different element type.
+public func SIMD[T, N].bitcast[U]() -> SIMD[U, N] {
+    return __intrinsic_simd_bitcast[T, U, N](self);
+}
+
+// Element-wise cast (e.g. i32 → f32).
+public func SIMD[T, N].cast[U]() -> SIMD[U, N] {
+    return __intrinsic_simd_cast[T, U, N](self);
+}
+
+// =============================================================================
+// Traits
+// =============================================================================
+
+// Copyable — SIMD vectors are trivially copyable value types.
+public func SIMD[T, N].copy(self) -> SIMD[T, N] {
+    return self;
+}
+
+// Defaultable — default is the zero vector.
+public func SIMD[T, N].default() -> SIMD[T, N] {
+    return SIMD[T, N].zero();
+}
+
+// Stringable — pretty-print all lanes.
+public func SIMD[T, N].to_string(self) -> String {
+    let s = "[";
+    let i: usize = 0;
+    while i < N {
+        if i > 0 {
+            s = s + ", ";
+        }
+        s = s + __intrinsic_to_string(self._data[i]);
+        i = i + 1;
+    }
+    s = s + "]";
+    return s;
+}
+
+// =============================================================================
+// Convenience type aliases
+// =============================================================================
+
+// Common SIMD type aliases following Mojo conventions.
+public type Float32x4  = SIMD[f32, 4];
+public type Float32x8  = SIMD[f32, 8];
+public type Float32x16 = SIMD[f32, 16];
+public type Float64x2  = SIMD[f64, 2];
+public type Float64x4  = SIMD[f64, 4];
+public type Float64x8  = SIMD[f64, 8];
+public type Int8x16    = SIMD[i8, 16];
+public type Int8x32    = SIMD[i8, 32];
+public type Int8x64    = SIMD[i8, 64];
+public type Int16x8    = SIMD[i16, 8];
+public type Int16x16   = SIMD[i16, 16];
+public type Int32x4    = SIMD[i32, 4];
+public type Int32x8    = SIMD[i32, 8];
+public type Int32x16   = SIMD[i32, 16];
+public type Int64x2    = SIMD[i64, 2];
+public type Int64x4    = SIMD[i64, 4];
+public type Int64x8    = SIMD[i64, 8];
+public type UInt8x16   = SIMD[u8, 16];
+public type UInt8x32   = SIMD[u8, 32];
+public type UInt32x4   = SIMD[u32, 4];
+public type UInt32x8   = SIMD[u32, 8];
+public type UInt64x2   = SIMD[u64, 2];
+public type UInt64x4   = SIMD[u64, 4];

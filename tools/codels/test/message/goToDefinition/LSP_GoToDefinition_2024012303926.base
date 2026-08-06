@@ -1,1 +1,0 @@
-{"id":"9","jsonrpc":"2.0","result":{"range":{"end":{"character":15,"line":17},"start":{"character":11,"line":17}},"uri":"file:///d%3A/jenkins/customWorkspace/manifest_lsp_1546/lsp/test/testChr/test/2024012303926/src/a.code"}}

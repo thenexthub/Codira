@@ -1,0 +1,336 @@
+// std/collections/linked_list.code
+// LinkedList[T] — doubly-linked list with O(1) push/pop at both ends.
+// Each node is individually heap-allocated via GC.
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Node[T] — a single node in the doubly-linked list.
+// ─────────────────────────────────────────────────────────────────────────────
+
+struct(gc) Node[T] {
+    value: T,
+    prev:  Optional[Pointer[Node[T]]],
+    next:  Optional[Pointer[Node[T]]],
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LinkedList[T]
+// ─────────────────────────────────────────────────────────────────────────────
+
+struct(gc) LinkedList[T] {
+    head: Optional[Pointer[Node[T]]],
+    tail: Optional[Pointer[Node[T]]],
+    len:  usize,
+}
+
+// ── Construction ─────────────────────────────────────────────────────────────
+
+/// Creates a new, empty linked list.
+public func linked_list_new[T]() -> LinkedList[T] {
+    return LinkedList[T] {
+        head: none[Pointer[Node[T]]](),
+        tail: none[Pointer[Node[T]]](),
+        len:  0,
+    };
+}
+
+// ── Internal helpers ─────────────────────────────────────────────────────────
+
+/// Allocates a new node on the heap.
+func make_node[T](value: T) -> Pointer[Node[T]] {
+    let node = Node[T] {
+        value: value,
+        prev:  none[Pointer[Node[T]]](),
+        next:  none[Pointer[Node[T]]](),
+    };
+    return heap_alloc_init(node);
+}
+
+// ── Core API ─────────────────────────────────────────────────────────────────
+
+/// Returns the number of elements.
+public func len[T](self: LinkedList[T]) -> usize {
+    return self.len;
+}
+
+/// Returns true if the list is empty.
+public func is_empty[T](self: LinkedList[T]) -> bool {
+    return self.len == 0;
+}
+
+// ── Push ─────────────────────────────────────────────────────────────────────
+
+/// Adds an element to the front of the list.
+public func push_front[T](self: LinkedList[T], value: T) -> LinkedList[T] {
+    let node_ptr = make_node(value);
+    let out = self;
+    if is_some(out.head) {
+        let old_head = unwrap(out.head);
+        // Link new node -> old head
+        ptr_deref(node_ptr).next = some(old_head);
+        ptr_deref(old_head).prev = some(node_ptr);
+    } else {
+        // List was empty; new node is also the tail
+        out.tail = some(node_ptr);
+    }
+    out.head = some(node_ptr);
+    out.len = out.len + 1;
+    return out;
+}
+
+/// Adds an element to the back of the list.
+public func push_back[T](self: LinkedList[T], value: T) -> LinkedList[T] {
+    let node_ptr = make_node(value);
+    let out = self;
+    if is_some(out.tail) {
+        let old_tail = unwrap(out.tail);
+        ptr_deref(old_tail).next = some(node_ptr);
+        ptr_deref(node_ptr).prev = some(old_tail);
+    } else {
+        out.head = some(node_ptr);
+    }
+    out.tail = some(node_ptr);
+    out.len = out.len + 1;
+    return out;
+}
+
+// ── Pop ──────────────────────────────────────────────────────────────────────
+
+/// Removes and returns the front element. Panics if empty.
+public func pop_front[T](self: LinkedList[T]) -> (LinkedList[T], T) {
+    if self.len == 0 {
+        panic("LinkedList.pop_front: list is empty");
+    }
+    let out = self;
+    let head_ptr = unwrap(out.head);
+    let head_node = ptr_deref(head_ptr);
+    let val = head_node.value;
+
+    if is_some(head_node.next) {
+        let new_head = unwrap(head_node.next);
+        ptr_deref(new_head).prev = none[Pointer[Node[T]]]();
+        out.head = some(new_head);
+    } else {
+        // Was the only element
+        out.head = none[Pointer[Node[T]]]();
+        out.tail = none[Pointer[Node[T]]]();
+    }
+    out.len = out.len - 1;
+    heap_free_node(head_ptr);
+    return (out, val);
+}
+
+/// Removes and returns the back element. Panics if empty.
+public func pop_back[T](self: LinkedList[T]) -> (LinkedList[T], T) {
+    if self.len == 0 {
+        panic("LinkedList.pop_back: list is empty");
+    }
+    let out = self;
+    let tail_ptr = unwrap(out.tail);
+    let tail_node = ptr_deref(tail_ptr);
+    let val = tail_node.value;
+
+    if is_some(tail_node.prev) {
+        let new_tail = unwrap(tail_node.prev);
+        ptr_deref(new_tail).next = none[Pointer[Node[T]]]();
+        out.tail = some(new_tail);
+    } else {
+        out.head = none[Pointer[Node[T]]]();
+        out.tail = none[Pointer[Node[T]]]();
+    }
+    out.len = out.len - 1;
+    heap_free_node(tail_ptr);
+    return (out, val);
+}
+
+// ── Peek ─────────────────────────────────────────────────────────────────────
+
+/// Returns the front element without removing it. Panics if empty.
+public func front[T](self: LinkedList[T]) -> T {
+    if self.len == 0 {
+        panic("LinkedList.front: list is empty");
+    }
+    return ptr_deref(unwrap(self.head)).value;
+}
+
+/// Returns the back element without removing it. Panics if empty.
+public func back[T](self: LinkedList[T]) -> T {
+    if self.len == 0 {
+        panic("LinkedList.back: list is empty");
+    }
+    return ptr_deref(unwrap(self.tail)).value;
+}
+
+// ── Indexed access (O(n)) ────────────────────────────────────────────────────
+
+/// Returns the element at `index` (0-based from the front). O(n).
+public func get_at[T](self: LinkedList[T], index: usize) -> T {
+    if index >= self.len {
+        panic("LinkedList.get_at: index out of bounds");
+    }
+    let cur = unwrap(self.head);
+    let i: usize = 0;
+    while i < index {
+        cur = unwrap(ptr_deref(cur).next);
+        i = i + 1;
+    }
+    return ptr_deref(cur).value;
+}
+
+/// Inserts `value` at position `index`, shifting subsequent elements.
+public func insert[T](self: LinkedList[T], index: usize, value: T) -> LinkedList[T] {
+    if index > self.len {
+        panic("LinkedList.insert: index out of bounds");
+    }
+    if index == 0 {
+        return push_front(self, value);
+    }
+    if index == self.len {
+        return push_back(self, value);
+    }
+    // Walk to the node currently at `index`
+    let cur = unwrap(self.head);
+    let i: usize = 0;
+    while i < index {
+        cur = unwrap(ptr_deref(cur).next);
+        i = i + 1;
+    }
+    let prev_ptr = unwrap(ptr_deref(cur).prev);
+    let node_ptr = make_node(value);
+    // prev <-> new_node <-> cur
+    ptr_deref(prev_ptr).next = some(node_ptr);
+    ptr_deref(node_ptr).prev = some(prev_ptr);
+    ptr_deref(node_ptr).next = some(cur);
+    ptr_deref(cur).prev      = some(node_ptr);
+
+    let out = self;
+    out.len = out.len + 1;
+    return out;
+}
+
+/// Removes the element at position `index`. O(n).
+public func remove_at[T](self: LinkedList[T], index: usize) -> (LinkedList[T], T) {
+    if index >= self.len {
+        panic("LinkedList.remove_at: index out of bounds");
+    }
+    if index == 0 {
+        return pop_front(self);
+    }
+    if index == self.len - 1 {
+        return pop_back(self);
+    }
+    // Walk to the node at `index`
+    let cur = unwrap(self.head);
+    let i: usize = 0;
+    while i < index {
+        cur = unwrap(ptr_deref(cur).next);
+        i = i + 1;
+    }
+    let val = ptr_deref(cur).value;
+    let prev_ptr = unwrap(ptr_deref(cur).prev);
+    let next_ptr = unwrap(ptr_deref(cur).next);
+    ptr_deref(prev_ptr).next = some(next_ptr);
+    ptr_deref(next_ptr).prev = some(prev_ptr);
+    heap_free_node(cur);
+
+    let out = self;
+    out.len = out.len - 1;
+    return (out, val);
+}
+
+// ── Search ───────────────────────────────────────────────────────────────────
+
+/// Returns true if the list contains `value`.
+public func contains[T](self: LinkedList[T], value: T) -> bool {
+    if self.len == 0 {
+        return false;
+    }
+    let cur = unwrap(self.head);
+    let i: usize = 0;
+    while i < self.len {
+        if ptr_deref(cur).value == value {
+            return true;
+        }
+        if is_some(ptr_deref(cur).next) {
+            cur = unwrap(ptr_deref(cur).next);
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+// ── Bulk ─────────────────────────────────────────────────────────────────────
+
+/// Removes all elements from the list.
+public func clear[T](self: LinkedList[T]) -> LinkedList[T] {
+    // GC will reclaim the nodes
+    return linked_list_new[T]();
+}
+
+/// Reverses the list by swapping prev/next pointers on every node.
+public func reverse[T](self: LinkedList[T]) -> LinkedList[T] {
+    if self.len <= 1 {
+        return self;
+    }
+    let cur_opt = self.head;
+    while is_some(cur_opt) {
+        let cur = unwrap(cur_opt);
+        let node = ptr_deref(cur);
+        // Swap prev and next
+        let tmp = node.prev;
+        ptr_deref(cur).prev = node.next;
+        ptr_deref(cur).next = tmp;
+        cur_opt = ptr_deref(cur).prev; // was next before swap
+    }
+    // Swap head and tail
+    let out = self;
+    let tmp_head = out.head;
+    out.head = out.tail;
+    out.tail = tmp_head;
+    return out;
+}
+
+// ── Conversion ───────────────────────────────────────────────────────────────
+
+/// Converts to a List[T] (front-to-back).
+public func to_list[T](self: LinkedList[T]) -> List[T] {
+    let out = list_with_capacity[T](self.len);
+    if self.len == 0 {
+        return out;
+    }
+    let cur = unwrap(self.head);
+    let i: usize = 0;
+    while i < self.len {
+        out = push(out, ptr_deref(cur).value);
+        if is_some(ptr_deref(cur).next) {
+            cur = unwrap(ptr_deref(cur).next);
+        }
+        i = i + 1;
+    }
+    return out;
+}
+
+// ── Iteration ────────────────────────────────────────────────────────────────
+
+struct(value) LinkedListIter[T] {
+    current: Optional[Pointer[Node[T]]],
+    remaining: usize,
+}
+
+/// Returns a forward iterator.
+public func iter[T](self: LinkedList[T]) -> LinkedListIter[T] {
+    return LinkedListIter[T] { current: self.head, remaining: self.len };
+}
+
+/// Advances the iterator.
+public func iter_next[T](it: LinkedListIter[T]) -> (LinkedListIter[T], Optional[T]) {
+    if it.remaining == 0 || is_none(it.current) {
+        return (it, none[T]());
+    }
+    let cur = unwrap(it.current);
+    let val = ptr_deref(cur).value;
+    let next_it = LinkedListIter[T] {
+        current:   ptr_deref(cur).next,
+        remaining: it.remaining - 1,
+    };
+    return (next_it, some(val));
+}

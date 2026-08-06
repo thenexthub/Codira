@@ -1,3 +1,0 @@
-### Issue 20857 begin
-std/core/PromiseReject.ets  
-### Issue 20857 end

@@ -1,1 +1,0 @@
-{"id":5,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: a.code\nPackage info: A\n\n(struct) struct Sa4\n"},"range":{"end":{"character":15,"line":9},"start":{"character":12,"line":9}}}}

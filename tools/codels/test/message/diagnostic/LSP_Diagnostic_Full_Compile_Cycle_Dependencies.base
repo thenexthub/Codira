@@ -1,1 +1,0 @@
-{"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"diagnostics":[{"category":491,"code":491,"message":"packages test2025042420877 are in circular dependencies.","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":1,"source":"Codira"}],"uri":"file:///d%3A/Project/lsp_main/lsp/test/testChr/test/2025042420877/src/main.code"}}

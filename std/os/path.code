@@ -1,0 +1,205 @@
+// std/os/path.code
+// Path inspection and manipulation for Codira.
+// Provides functions for querying and transforming filesystem paths.
+// These are string-level operations; see std/pathlib for the Path object.
+
+// ---------------------------------------------------------------------------
+// Path separator constants.
+// ---------------------------------------------------------------------------
+let PATH_SEP: String = "/";
+let EXT_SEP: String  = ".";
+
+// ---------------------------------------------------------------------------
+// isdir
+// Returns true if `path` refers to an existing directory.
+// ---------------------------------------------------------------------------
+public func isdir(path: String) -> bool {
+    return _platform_is_dir(path);
+}
+
+// ---------------------------------------------------------------------------
+// isfile
+// Returns true if `path` refers to an existing regular file.
+// ---------------------------------------------------------------------------
+public func isfile(path: String) -> bool {
+    return _platform_is_file(path);
+}
+
+// ---------------------------------------------------------------------------
+// islink
+// Returns true if `path` refers to a symbolic link.
+// ---------------------------------------------------------------------------
+public func islink(path: String) -> bool {
+    return _platform_is_link(path);
+}
+
+// ---------------------------------------------------------------------------
+// exists
+// Returns true if `path` exists on the filesystem (file, directory, etc.).
+// ---------------------------------------------------------------------------
+public func exists(path: String) -> bool {
+    return _platform_path_exists(path);
+}
+
+// ---------------------------------------------------------------------------
+// join
+// Joins two path components with the platform path separator.
+// If `right` is absolute, it replaces `left` entirely.
+// ---------------------------------------------------------------------------
+public func join(left: String, right: String) -> String {
+    if right.len() == 0 {
+        return left;
+    }
+    if left.len() == 0 {
+        return right;
+    }
+    // If right starts with "/" it is absolute.
+    if right.starts_with("/") {
+        return right;
+    }
+    // Ensure exactly one separator between parts.
+    if left.ends_with("/") {
+        return left + right;
+    }
+    return left + "/" + right;
+}
+
+// Variadic-style join for three components.
+public func join3(a: String, b: String, c: String) -> String {
+    return join(join(a, b), c);
+}
+
+// ---------------------------------------------------------------------------
+// split
+// Splits `path` into (directory, filename).
+// ---------------------------------------------------------------------------
+public struct PathPair {
+    dir: String,
+    base: String,
+}
+
+public func split(path: String) -> PathPair {
+    let idx: i64 = path.rfind("/");
+    if idx < 0 {
+        return PathPair { dir: "", base: path };
+    }
+    let dir: String = path.slice(0, idx as usize);
+    let base: String = path.slice((idx + 1) as usize, path.len());
+    if dir.len() == 0 {
+        return PathPair { dir: "/", base: base };
+    }
+    return PathPair { dir: dir, base: base };
+}
+
+// ---------------------------------------------------------------------------
+// splitext
+// Splits `path` into (root, extension).
+// The extension includes the leading ".".
+// ---------------------------------------------------------------------------
+public struct ExtPair {
+    root: String,
+    ext: String,
+}
+
+public func splitext(path: String) -> ExtPair {
+    let pair: PathPair = split(path);
+    let name: String = pair.base;
+    let idx: i64 = name.rfind(".");
+    // No dot, or dot is the first character (hidden file on Unix).
+    if idx <= 0 {
+        return ExtPair { root: path, ext: "" };
+    }
+    let root_base: String = name.slice(0, idx as usize);
+    let ext: String = name.slice(idx as usize, name.len());
+    if pair.dir.len() > 0 {
+        return ExtPair { root: join(pair.dir, root_base), ext: ext };
+    }
+    return ExtPair { root: root_base, ext: ext };
+}
+
+// ---------------------------------------------------------------------------
+// basename
+// Returns the final component of `path`.
+// ---------------------------------------------------------------------------
+public func basename(path: String) -> String {
+    let pair: PathPair = split(path);
+    return pair.base;
+}
+
+// ---------------------------------------------------------------------------
+// dirname
+// Returns the directory portion of `path`.
+// ---------------------------------------------------------------------------
+public func dirname(path: String) -> String {
+    let pair: PathPair = split(path);
+    return pair.dir;
+}
+
+// ---------------------------------------------------------------------------
+// abspath
+// Returns the absolute version of `path`. If `path` is already absolute,
+// it is returned as-is; otherwise it is joined with the current working
+// directory.
+// ---------------------------------------------------------------------------
+public func abspath(path: String) -> String {
+    if path.starts_with("/") {
+        return normpath(path);
+    }
+    let cwd: String = _platform_getcwd();
+    return normpath(join(cwd, path));
+}
+
+// ---------------------------------------------------------------------------
+// normpath
+// Normalizes a path by collapsing redundant separators and resolving
+// "." and ".." components.
+// ---------------------------------------------------------------------------
+public func normpath(path: String) -> String {
+    if path.len() == 0 {
+        return ".";
+    }
+    let is_absolute: bool = path.starts_with("/");
+    let parts: Array<String> = path.split("/");
+    let mut stack: Array<String> = Array::new();
+    let mut i: usize = 0;
+    while i < parts.len() {
+        let part: String = parts[i];
+        if part == "." || part == "" {
+            // Skip empty segments and current-dir markers.
+        } else if part == ".." {
+            if stack.len() > 0 && stack[stack.len() - 1] != ".." {
+                stack.pop();
+            } else if !is_absolute {
+                stack.push("..");
+            }
+        } else {
+            stack.push(part);
+        }
+        i = i + 1;
+    }
+    let mut result: String = "";
+    if is_absolute {
+        result = "/";
+    }
+    let mut j: usize = 0;
+    while j < stack.len() {
+        if j > 0 {
+            result = result + "/";
+        }
+        result = result + stack[j];
+        j = j + 1;
+    }
+    if result.len() == 0 {
+        return ".";
+    }
+    return result;
+}
+
+// ---------------------------------------------------------------------------
+// Platform stubs.
+// ---------------------------------------------------------------------------
+extern func _platform_is_dir(path: String) -> bool;
+extern func _platform_is_file(path: String) -> bool;
+extern func _platform_is_link(path: String) -> bool;
+extern func _platform_path_exists(path: String) -> bool;
+extern func _platform_getcwd() -> String;

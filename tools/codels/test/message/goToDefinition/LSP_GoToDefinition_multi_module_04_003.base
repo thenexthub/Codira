@@ -1,1 +1,0 @@
-{"id":64,"jsonrpc":"2.0","result":{"range":{"end":{"character":12,"line":1},"start":{"character":11,"line":1}},"uri":"file:///home/zzk/project/lsp-package/test/testChr/multiModule/multiple_module_04/pro2/src/cc.code"}} 

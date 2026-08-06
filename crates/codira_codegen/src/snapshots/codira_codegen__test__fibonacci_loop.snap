@@ -1,0 +1,36 @@
+---
+source: crates/codira_codegen/src/test.rs
+expression: "\n    pub fn fibonacci(n:i32) -> i32 {\n        let a = 0;\n        let b = 1;\n        let i = 1;\n        loop {\n            if i > n {\n                return a\n            }\n            let sum = a + b;\n            a = b;\n            b = sum;\n            i += 1;\n        }\n    }\n    "
+---
+; == FILE IR (mod) =====================================
+; ModuleID = 'mod'
+source_filename = "mod"
+
+@global_type_lookup_table = external global [1 x i64*]
+
+define i32 @fibonacci(i32 %0) {
+body:
+  br label %loop
+
+loop:                                             ; preds = %if_merge, %body
+  %b.0 = phi i32 [ 1, %body ], [ %add, %if_merge ]
+  %a.0 = phi i32 [ 0, %body ], [ %b.0, %if_merge ]
+  %i.0 = phi i32 [ 1, %body ], [ %add11, %if_merge ]
+  %greater = icmp sgt i32 %i.0, %0
+  br i1 %greater, label %then, label %if_merge
+
+then:                                             ; preds = %loop
+  ret i32 %a.0
+
+if_merge:                                         ; preds = %loop
+  %add = add i32 %a.0, %b.0
+  %add11 = add i32 %i.0, 1
+  br label %loop
+}
+
+; == GROUP IR (mod) ====================================
+; ModuleID = 'group_name'
+source_filename = "group_name"
+
+@global_type_lookup_table = global [1 x i64*] zeroinitializer
+

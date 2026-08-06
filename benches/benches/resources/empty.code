@@ -1,0 +1,3 @@
+pub fn empty(n: i64) -> i64 {
+    n
+}

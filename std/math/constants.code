@@ -1,0 +1,141 @@
+// std/math/constants.code
+// Mathematical constants for Codira.
+// All values are f64 (double precision IEEE 754).
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fundamental constants
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Pi — ratio of a circle's circumference to its diameter.
+public let PI: f64 = 3.14159265358979323846;
+
+/// Tau — 2 * pi (full turn in radians).
+public let TAU: f64 = 6.28318530717958647692;
+
+/// Euler's number — base of the natural logarithm.
+public let E: f64 = 2.71828182845904523536;
+
+/// Golden ratio phi = (1 + sqrt(5)) / 2.
+public let PHI: f64 = 1.61803398874989484820;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pi-derived fractions
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Pi / 2 — quarter turn.
+public let FRAC_PI_2: f64 = 1.57079632679489661923;
+
+/// Pi / 3.
+public let FRAC_PI_3: f64 = 1.04719755119659774615;
+
+/// Pi / 4.
+public let FRAC_PI_4: f64 = 0.78539816339744830962;
+
+/// Pi / 6.
+public let FRAC_PI_6: f64 = 0.52359877559829887308;
+
+/// Pi / 8.
+public let FRAC_PI_8: f64 = 0.39269908169872415481;
+
+/// 1 / Pi.
+public let FRAC_1_PI: f64 = 0.31830988618379067154;
+
+/// 2 / Pi.
+public let FRAC_2_PI: f64 = 0.63661977236758134308;
+
+/// 2 / sqrt(Pi).
+public let FRAC_2_SQRT_PI: f64 = 1.12837916709551257390;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Square roots
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Square root of 2.
+public let SQRT_2: f64 = 1.41421356237309504880;
+
+/// 1 / sqrt(2)  =  sqrt(2) / 2.
+public let FRAC_1_SQRT_2: f64 = 0.70710678118654752440;
+
+/// Square root of 3.
+public let SQRT_3: f64 = 1.73205080756887729353;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Logarithmic constants
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Natural logarithm of 2.
+public let LN_2: f64 = 0.69314718055994530942;
+
+/// Natural logarithm of 10.
+public let LN_10: f64 = 2.30258509299404568402;
+
+/// Base-2 logarithm of e.
+public let LOG2_E: f64 = 1.44269504088896340736;
+
+/// Base-10 logarithm of e.
+public let LOG10_E: f64 = 0.43429448190325182765;
+
+/// Base-2 logarithm of 10.
+public let LOG2_10: f64 = 3.32192809488736234787;
+
+/// Base-10 logarithm of 2.
+public let LOG10_2: f64 = 0.30102999566398119521;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Special IEEE-754 values
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Positive infinity (f64).
+public let INF: f64 = __intrinsic_inf_f64();
+
+/// Negative infinity (f64).
+public let NEG_INF: f64 = -__intrinsic_inf_f64();
+
+/// Not-a-Number (quiet NaN, f64).
+public let NAN: f64 = __intrinsic_nan_f64();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Machine epsilon and limits
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Smallest positive f64 such that  1.0 + EPSILON != 1.0.
+public let F64_EPSILON: f64 = 2.2204460492503131e-16;
+
+/// Smallest positive normal f64.
+public let F64_MIN_POSITIVE: f64 = 2.2250738585072014e-308;
+
+/// Largest finite f64.
+public let F64_MAX: f64 = 1.7976931348623157e+308;
+
+/// Smallest positive f32 such that 1.0 + EPSILON != 1.0.
+public let F32_EPSILON: f32 = 1.1920929e-7;
+
+/// Smallest positive normal f32.
+public let F32_MIN_POSITIVE: f32 = 1.17549435e-38;
+
+/// Largest finite f32.
+public let F32_MAX: f32 = 3.40282347e+38;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Integer limits
+// ─────────────────────────────────────────────────────────────────────────────
+
+public let I8_MIN:   i8   = -128;
+public let I8_MAX:   i8   = 127;
+public let U8_MAX:   u8   = 255;
+
+public let I16_MIN:  i16  = -32768;
+public let I16_MAX:  i16  = 32767;
+public let U16_MAX:  u16  = 65535;
+
+public let I32_MIN:  i32  = -2147483648;
+public let I32_MAX:  i32  = 2147483647;
+public let U32_MAX:  u32  = 4294967295;
+
+public let I64_MIN:  i64  = -9223372036854775808;
+public let I64_MAX:  i64  = 9223372036854775807;
+public let U64_MAX:  u64  = 18446744073709551615;
+
+public let I128_MIN: i128 = -170141183460469231731687303715884105728;
+public let I128_MAX: i128 = 170141183460469231731687303715884105727;
+public let U128_MAX: u128 = 340282366920938463463374607431768211455;

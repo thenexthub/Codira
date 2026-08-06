@@ -1,0 +1,209 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n        enum Shape {\n            Circle(radius: f64)\n            Rectangle(width: f64, height: f64)\n            Point\n        }\n\n        func area(shape: Shape) -> f64 {\n            match shape {\n                Shape.Circle(radius) -> radius,\n                Shape.Rectangle(width, height) -> width,\n                Shape.Point -> 0.0,\n                42 -> 1.0,\n                _ -> 0.0,\n            }\n        }\n        \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..423
+  WHITESPACE@0..9 "\n        "
+  ENUM_DEF@9..128
+    ENUM_KW@9..13 "enum"
+    WHITESPACE@13..14 " "
+    NAME@14..19
+      IDENT@14..19 "Shape"
+    WHITESPACE@19..20 " "
+    ENUM_VARIANT_LIST@20..128
+      L_CURLY@20..21 "{"
+      WHITESPACE@21..34 "\n            "
+      ENUM_VARIANT@34..53
+        NAME@34..40
+          IDENT@34..40 "Circle"
+        TUPLE_FIELD_DEF_LIST@40..53
+          L_PAREN@40..41 "("
+          TUPLE_FIELD_DEF@41..52
+            IDENT@41..47 "radius"
+            COLON@47..48 ":"
+            WHITESPACE@48..49 " "
+            PATH_TYPE@49..52
+              PATH@49..52
+                PATH_SEGMENT@49..52
+                  NAME_REF@49..52
+                    IDENT@49..52 "f64"
+          R_PAREN@52..53 ")"
+      WHITESPACE@53..66 "\n            "
+      ENUM_VARIANT@66..100
+        NAME@66..75
+          IDENT@66..75 "Rectangle"
+        TUPLE_FIELD_DEF_LIST@75..100
+          L_PAREN@75..76 "("
+          TUPLE_FIELD_DEF@76..86
+            IDENT@76..81 "width"
+            COLON@81..82 ":"
+            WHITESPACE@82..83 " "
+            PATH_TYPE@83..86
+              PATH@83..86
+                PATH_SEGMENT@83..86
+                  NAME_REF@83..86
+                    IDENT@83..86 "f64"
+          COMMA@86..87 ","
+          WHITESPACE@87..88 " "
+          TUPLE_FIELD_DEF@88..99
+            IDENT@88..94 "height"
+            COLON@94..95 ":"
+            WHITESPACE@95..96 " "
+            PATH_TYPE@96..99
+              PATH@96..99
+                PATH_SEGMENT@96..99
+                  NAME_REF@96..99
+                    IDENT@96..99 "f64"
+          R_PAREN@99..100 ")"
+      WHITESPACE@100..113 "\n            "
+      ENUM_VARIANT@113..118
+        NAME@113..118
+          IDENT@113..118 "Point"
+      WHITESPACE@118..127 "\n        "
+      R_CURLY@127..128 "}"
+  WHITESPACE@128..138 "\n\n        "
+  FUNCTION_DEF@138..414
+    FUNC_KW@138..142 "func"
+    WHITESPACE@142..143 " "
+    NAME@143..147
+      IDENT@143..147 "area"
+    PARAM_LIST@147..161
+      L_PAREN@147..148 "("
+      PARAM@148..160
+        BIND_PAT@148..153
+          NAME@148..153
+            IDENT@148..153 "shape"
+        COLON@153..154 ":"
+        WHITESPACE@154..155 " "
+        PATH_TYPE@155..160
+          PATH@155..160
+            PATH_SEGMENT@155..160
+              NAME_REF@155..160
+                IDENT@155..160 "Shape"
+      R_PAREN@160..161 ")"
+    WHITESPACE@161..162 " "
+    RET_TYPE@162..168
+      THIN_ARROW@162..164 "->"
+      WHITESPACE@164..165 " "
+      PATH_TYPE@165..168
+        PATH@165..168
+          PATH_SEGMENT@165..168
+            NAME_REF@165..168
+              IDENT@165..168 "f64"
+    WHITESPACE@168..169 " "
+    BLOCK_EXPR@169..414
+      L_CURLY@169..170 "{"
+      WHITESPACE@170..183 "\n            "
+      MATCH_EXPR@183..404
+        MATCH_KW@183..188 "match"
+        WHITESPACE@188..189 " "
+        PATH_EXPR@189..194
+          PATH@189..194
+            PATH_SEGMENT@189..194
+              NAME_REF@189..194
+                IDENT@189..194 "shape"
+        WHITESPACE@194..195 " "
+        MATCH_ARM_LIST@195..404
+          L_CURLY@195..196 "{"
+          WHITESPACE@196..213 "\n                "
+          MATCH_ARM@213..244
+            TUPLE_STRUCT_PAT@213..233
+              PATH@213..225
+                PATH@213..218
+                  PATH_SEGMENT@213..218
+                    NAME_REF@213..218
+                      IDENT@213..218 "Shape"
+                DOT@218..219 "."
+                PATH_SEGMENT@219..225
+                  NAME_REF@219..225
+                    IDENT@219..225 "Circle"
+              L_PAREN@225..226 "("
+              BIND_PAT@226..232
+                NAME@226..232
+                  IDENT@226..232 "radius"
+              R_PAREN@232..233 ")"
+            WHITESPACE@233..234 " "
+            THIN_ARROW@234..236 "->"
+            WHITESPACE@236..237 " "
+            PATH_EXPR@237..243
+              PATH@237..243
+                PATH_SEGMENT@237..243
+                  NAME_REF@237..243
+                    IDENT@237..243 "radius"
+            COMMA@243..244 ","
+          WHITESPACE@244..261 "\n                "
+          MATCH_ARM@261..301
+            TUPLE_STRUCT_PAT@261..291
+              PATH@261..276
+                PATH@261..266
+                  PATH_SEGMENT@261..266
+                    NAME_REF@261..266
+                      IDENT@261..266 "Shape"
+                DOT@266..267 "."
+                PATH_SEGMENT@267..276
+                  NAME_REF@267..276
+                    IDENT@267..276 "Rectangle"
+              L_PAREN@276..277 "("
+              BIND_PAT@277..282
+                NAME@277..282
+                  IDENT@277..282 "width"
+              COMMA@282..283 ","
+              WHITESPACE@283..284 " "
+              BIND_PAT@284..290
+                NAME@284..290
+                  IDENT@284..290 "height"
+              R_PAREN@290..291 ")"
+            WHITESPACE@291..292 " "
+            THIN_ARROW@292..294 "->"
+            WHITESPACE@294..295 " "
+            PATH_EXPR@295..300
+              PATH@295..300
+                PATH_SEGMENT@295..300
+                  NAME_REF@295..300
+                    IDENT@295..300 "width"
+            COMMA@300..301 ","
+          WHITESPACE@301..318 "\n                "
+          MATCH_ARM@318..337
+            PATH_PAT@318..329
+              PATH@318..329
+                PATH@318..323
+                  PATH_SEGMENT@318..323
+                    NAME_REF@318..323
+                      IDENT@318..323 "Shape"
+                DOT@323..324 "."
+                PATH_SEGMENT@324..329
+                  NAME_REF@324..329
+                    IDENT@324..329 "Point"
+            WHITESPACE@329..330 " "
+            THIN_ARROW@330..332 "->"
+            WHITESPACE@332..333 " "
+            LITERAL@333..336
+              FLOAT_NUMBER@333..336 "0.0"
+            COMMA@336..337 ","
+          WHITESPACE@337..354 "\n                "
+          MATCH_ARM@354..364
+            LITERAL_PAT@354..356
+              LITERAL@354..356
+                INT_NUMBER@354..356 "42"
+            WHITESPACE@356..357 " "
+            THIN_ARROW@357..359 "->"
+            WHITESPACE@359..360 " "
+            LITERAL@360..363
+              FLOAT_NUMBER@360..363 "1.0"
+            COMMA@363..364 ","
+          WHITESPACE@364..381 "\n                "
+          MATCH_ARM@381..390
+            PLACEHOLDER_PAT@381..382
+              UNDERSCORE@381..382 "_"
+            WHITESPACE@382..383 " "
+            THIN_ARROW@383..385 "->"
+            WHITESPACE@385..386 " "
+            LITERAL@386..389
+              FLOAT_NUMBER@386..389 "0.0"
+            COMMA@389..390 ","
+          WHITESPACE@390..403 "\n            "
+          R_CURLY@403..404 "}"
+      WHITESPACE@404..413 "\n        "
+      R_CURLY@413..414 "}"
+  WHITESPACE@414..423 "\n        "

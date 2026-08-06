@@ -1,2 +1,0 @@
-#24285
-test/test/libjsdebugtest.so

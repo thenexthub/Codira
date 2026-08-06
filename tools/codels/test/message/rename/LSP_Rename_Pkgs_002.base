@@ -1,1 +1,0 @@
-{"id":"8","jsonrpc":"2.0","result":{"documentChanges":[{"edits":[{"newText":"arr12","range":{"end":{"character":15,"line":16},"start":{"character":12,"line":16}}}],"textDocument":{"uri":"file:///d%3A/Project/Codira-language-server/test/testChr/normalTest/Pkgs/src/Arrary/array006.code","version":0}}]}}

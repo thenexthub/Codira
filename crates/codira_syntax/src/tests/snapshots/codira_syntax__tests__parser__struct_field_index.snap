@@ -1,0 +1,117 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n    func main() {\n        foo.a\n        foo.a.b\n        foo.0\n        foo.0.1\n        foo.10\n        foo.01  // index: .0\n        foo.0 1 // index: .0 \n        foo.a.0\n    }\n    \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..179
+  FUNCTION_DEF@0..174
+    WHITESPACE@0..5 "\n    "
+    FUNC_KW@5..9 "func"
+    WHITESPACE@9..10 " "
+    NAME@10..14
+      IDENT@10..14 "main"
+    PARAM_LIST@14..16
+      L_PAREN@14..15 "("
+      R_PAREN@15..16 ")"
+    WHITESPACE@16..17 " "
+    BLOCK_EXPR@17..174
+      L_CURLY@17..18 "{"
+      WHITESPACE@18..27 "\n        "
+      EXPR_STMT@27..32
+        FIELD_EXPR@27..32
+          PATH_EXPR@27..30
+            PATH@27..30
+              PATH_SEGMENT@27..30
+                NAME_REF@27..30
+                  IDENT@27..30 "foo"
+          DOT@30..31 "."
+          NAME_REF@31..32
+            IDENT@31..32 "a"
+      WHITESPACE@32..41 "\n        "
+      EXPR_STMT@41..48
+        FIELD_EXPR@41..48
+          FIELD_EXPR@41..46
+            PATH_EXPR@41..44
+              PATH@41..44
+                PATH_SEGMENT@41..44
+                  NAME_REF@41..44
+                    IDENT@41..44 "foo"
+            DOT@44..45 "."
+            NAME_REF@45..46
+              IDENT@45..46 "a"
+          DOT@46..47 "."
+          NAME_REF@47..48
+            IDENT@47..48 "b"
+      WHITESPACE@48..57 "\n        "
+      EXPR_STMT@57..62
+        FIELD_EXPR@57..62
+          PATH_EXPR@57..60
+            PATH@57..60
+              PATH_SEGMENT@57..60
+                NAME_REF@57..60
+                  IDENT@57..60 "foo"
+          INDEX@60..62 ".0"
+      WHITESPACE@62..71 "\n        "
+      EXPR_STMT@71..78
+        FIELD_EXPR@71..78
+          FIELD_EXPR@71..76
+            PATH_EXPR@71..74
+              PATH@71..74
+                PATH_SEGMENT@71..74
+                  NAME_REF@71..74
+                    IDENT@71..74 "foo"
+            INDEX@74..76 ".0"
+          INDEX@76..78 ".1"
+      WHITESPACE@78..87 "\n        "
+      EXPR_STMT@87..93
+        FIELD_EXPR@87..93
+          PATH_EXPR@87..90
+            PATH@87..90
+              PATH_SEGMENT@87..90
+                NAME_REF@87..90
+                  IDENT@87..90 "foo"
+          INDEX@90..93 ".10"
+      WHITESPACE@93..102 "\n        "
+      EXPR_STMT@102..107
+        FIELD_EXPR@102..107
+          PATH_EXPR@102..105
+            PATH@102..105
+              PATH_SEGMENT@102..105
+                NAME_REF@102..105
+                  IDENT@102..105 "foo"
+          INDEX@105..107 ".0"
+      EXPR_STMT@107..108
+        LITERAL@107..108
+          INT_NUMBER@107..108 "1"
+      WHITESPACE@108..110 "  "
+      COMMENT@110..122 "// index: .0"
+      WHITESPACE@122..131 "\n        "
+      EXPR_STMT@131..136
+        FIELD_EXPR@131..136
+          PATH_EXPR@131..134
+            PATH@131..134
+              PATH_SEGMENT@131..134
+                NAME_REF@131..134
+                  IDENT@131..134 "foo"
+          INDEX@134..136 ".0"
+      WHITESPACE@136..137 " "
+      EXPR_STMT@137..138
+        LITERAL@137..138
+          INT_NUMBER@137..138 "1"
+      WHITESPACE@138..139 " "
+      COMMENT@139..152 "// index: .0 "
+      WHITESPACE@152..161 "\n        "
+      FIELD_EXPR@161..168
+        FIELD_EXPR@161..166
+          PATH_EXPR@161..164
+            PATH@161..164
+              PATH_SEGMENT@161..164
+                NAME_REF@161..164
+                  IDENT@161..164 "foo"
+          DOT@164..165 "."
+          NAME_REF@165..166
+            IDENT@165..166 "a"
+        INDEX@166..168 ".0"
+      WHITESPACE@168..173 "\n    "
+      R_CURLY@173..174 "}"
+  WHITESPACE@174..179 "\n    "

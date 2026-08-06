@@ -1,0 +1,664 @@
+// Stores definitions which must be used in multiple places
+// See `cargo gen-syntax` (defined in crates/tools/src/main.rs)
+Grammar(
+    single_char_tokens: [
+        ["&", "AMP"],
+        ["|", "PIPE"],
+        ["+", "PLUS"],
+        ["-", "MINUS"],
+        ["*", "STAR"],
+        ["/", "SLASH"],
+        ["%", "PERCENT"],
+        ["^", "CARET"],
+        ["#", "HASH"],
+        [".", "DOT"],
+        ["<", "LT"],
+        [">", "GT"],
+        ["=", "EQ"],
+        ["(", "L_PAREN"],
+        [")", "R_PAREN"],
+        ["{", "L_CURLY"],
+        ["}", "R_CURLY"],
+        ["[", "L_BRACKET"],
+        ["]", "R_BRACKET"],
+        [";", "SEMI"],
+        [":", "COLON"],
+        [",", "COMMA"],
+        ["!", "EXCLAMATION"],
+        ["?", "QUESTION"],
+        ["@", "AT"],
+        ["~", "TILDE"],
+
+        // Extended symbols
+        ["_", "UNDERSCORE"],
+    ],
+    // Tokens for which the longest match must be chosen (e.g. `..` is a DOTDOT, but `.` is a DOT)
+    multi_char_tokens: [
+        // Original Lua symbols
+        ["==", "EQEQ"],
+        // Not equals differs from Lua in that != is used.
+        ["!=", "NEQ"], //["~= ", ""]
+        ["<=", "LTEQ"],
+        [">=", "GTEQ"],
+        ["..", "DOTDOT"],
+        ["...", "DOTDOTDOT"],
+
+        // Extended symbols
+        ["+=", "PLUSEQ"],
+        ["-=", "MINUSEQ"],
+        ["*=", "STAREQ"],
+        ["/=", "SLASHEQ"],
+        ["%=", "PERCENTEQ"],
+        ["<<=", "SHLEQ"],
+        [">>=", "SHREQ"],
+        ["&=", "AMPEQ"],
+        ["|=", "PIPEEQ"],
+        ["^=", "CARETEQ"],
+        ["..=", "DOTDOTEQ"],
+        ["->", "THIN_ARROW"],
+        ["<-", "LARROW"],
+
+        ["&&", "AMPAMP"],
+        ["||", "PIPEPIPE"],
+        ["<<", "SHL"],
+        [">>", "SHR"],
+    ],
+    keywords: [
+        "break",
+        "do",
+        "else",
+        "false",
+        "for",
+        "func",
+        "if",
+        "in",
+        "as",
+        "import",
+        "nil",
+        "return",
+        "true",
+        "while",
+        "loop",
+
+        // Bindings & members
+        "let",
+        "var",
+        "static",
+        "init",
+        "override",
+
+        // Types & OOP
+        "class",
+        "struct",
+        "trait",
+        "extend",
+        "enum",
+        "never",
+        "type",
+        "where",
+
+        // Visibility & modules
+        "public",
+        "internal",
+        "root",
+        "super",
+        "self",
+
+        // Control flow additions
+        "match",
+
+        // Compile-time & metaprogramming
+        "comptime",
+        "macro",
+
+        // Effects
+        "effect",
+        "uses",
+        "perform",
+        "handle",
+        "resume",
+
+        // Interop
+        "extern",
+
+        // Fault-tolerance / self-healing (see spec/self_healing_programming_language.md)
+        "supervisor",
+        "child",
+
+        // Go-style lightweight concurrency (see spec/LANGUAGE_SPEC.md
+        // section 14) -- parse-level scaffolding only, not yet backed by a
+        // scheduler.
+        "spawn",
+    ],
+    // Keywords that are only treated as keywords in specific positions. The
+    // lexer emits an ordinary `IDENT` for these (so names like `out`, `read`
+    // and `mut` remain usable in paths and bindings), and the parser promotes
+    // them to keyword tokens with `Parser::bump_remap` where their meaning
+    // applies. See spec/LANGUAGE_SPEC.md section 14.
+    //
+    //   - Parameter ownership conventions (mutually exclusive): `consuming`,
+    //     `borrowing`, `inout`, `read`, `out`, `mut`.
+    //   - Mojo-style dynamic (duck-typed) `def` function declarations, Python
+    //     `def` style, alongside the statically-typed `func`.
+    //
+    // Parse-level scaffolding only -- none of these are enforced yet.
+    contextual_keywords: [
+        "consuming",
+        "borrowing",
+        "inout",
+        "read",
+        "out",
+        "mut",
+        "def",
+    ],
+    literals: [
+        "INT_NUMBER",
+        "FLOAT_NUMBER",
+        "STRING",
+    ],
+    tokens: [
+        "ERROR",
+        "IDENT",
+        "INDEX",
+        "WHITESPACE",
+        "COMMENT",
+    ],
+    nodes: [
+        "SOURCE_FILE",
+
+        "ATTRIBUTE_LIST",
+        "ATTRIBUTE",
+
+        "FUNCTION_DEF",
+        "EXTERN",
+        "RET_TYPE",
+        "VISIBILITY",
+        "USES_CLAUSE",
+
+        "PARAM_LIST",
+        "PARAM",
+        "SELF_PARAM",
+
+        "GENERIC_PARAM_LIST",
+        "GENERIC_PARAM",
+        "GENERIC_ARG_LIST",
+        "WHERE_CLAUSE",
+        "WHERE_PRED",
+        "INHERITANCE_LIST",
+
+        "STRUCT_DEF",
+        "TYPE_ALIAS_DEF",
+        "RECORD_FIELD_DEF_LIST",
+        "RECORD_FIELD_DEF",
+        "TUPLE_FIELD_DEF_LIST",
+        "TUPLE_FIELD_DEF",
+
+        "TRAIT_DEF",
+
+        "ENUM_DEF",
+        "ENUM_VARIANT_LIST",
+        "ENUM_VARIANT",
+
+        "EFFECT_DEF",
+        "EFFECT_OP_LIST",
+        "EFFECT_OP",
+
+        "MACRO_DEF",
+
+        "PATH_TYPE",
+        "ARRAY_TYPE",
+        "NEVER_TYPE",
+        "OPTIONAL_TYPE",
+        "REFINEMENT_TYPE",
+
+        "SUPERVISOR_DEF",
+        "SUPERVISOR_ITEM_LIST",
+        "SUPERVISOR_ENTRY",
+        "CHILD_DEF",
+
+        "LET_STMT",
+        "EXPR_STMT",
+
+        "PATH_EXPR",
+        "PREFIX_EXPR",
+        "LITERAL",
+        "BIN_EXPR",
+        "PAREN_EXPR",
+        "CALL_EXPR",
+        "METHOD_CALL_EXPR",
+        "FIELD_EXPR",
+        "IF_EXPR",
+        "INDEX_EXPR",
+        "BLOCK_EXPR",
+        "RETURN_EXPR",
+        "WHILE_EXPR",
+        "LOOP_EXPR",
+        "BREAK_EXPR",
+        "ARRAY_EXPR",
+        "CONDITION",
+        "COMPTIME_EXPR",
+        "MATCH_EXPR",
+        "MATCH_ARM_LIST",
+        "MATCH_ARM",
+        "PERFORM_EXPR",
+        "SPAWN_EXPR",
+        "HANDLE_EXPR",
+        "HANDLER_ARM_LIST",
+        "HANDLER_ARM",
+        "TRY_EXPR",
+
+        "TRANSFER_EXPR",
+        "CHANNEL_RECV_EXPR",
+        "CHANNEL_SEND_EXPR",
+
+        "BIND_PAT",
+        "PLACEHOLDER_PAT",
+        "LITERAL_PAT",
+        "PATH_PAT",
+        "TUPLE_STRUCT_PAT",
+
+        "ARG_LIST",
+
+        "NAME",
+        "NAME_REF",
+
+        "PATH",
+        "PATH_SEGMENT",
+
+        "RECORD_LIT",
+        "RECORD_FIELD_LIST",
+        "RECORD_FIELD",
+
+        "USE",
+        "USE_TREE",
+        "USE_TREE_LIST",
+        "RENAME",
+
+        "EXTEND",
+        "EXTEND_ITEM_LIST",
+        "EXTEND_ITEM",
+
+        "EXTERN_BLOCK",
+        "EXTERN_ITEM_LIST",
+        "EXTERN_ITEM",
+    ],
+    ast: {
+        "SourceFile": (
+            traits: [ "ModuleItemOwner", "FunctionDefOwner" ],
+        ),
+        "ModuleItem": (
+            enum: ["Use", "FunctionDef", "StructDef", "TypeAliasDef", "TraitDef", "EnumDef", "EffectDef", "MacroDef", "Extend", "ExternBlock", "SupervisorDef"]
+        ),
+        "Visibility": (),
+        "AttributeList": (collections: [("attributes", "Attribute")]),
+        "Attribute": (options: ["Path", "ArgList"]),
+        "UsesClause": (collections: [("effects", "Path")]),
+        "FunctionDef": (
+            traits: [
+                "NameOwner",
+                "VisibilityOwner",
+                "DocCommentsOwner",
+                "ExternOwner",
+                "AttributeOwner",
+                "GenericParamsOwner",
+            ],
+            options: [ "ParamList", ["body", "BlockExpr"], "RetType", "UsesClause" ],
+        ),
+        "RetType": (options: ["TypeRef"]),
+        "GenericParamList": (collections: [("generic_params", "GenericParam")]),
+        "GenericParam": (
+            traits: ["NameOwner"],
+            options: [["bound", "TypeRef"]],
+        ),
+        "GenericArgList": (collections: [("generic_args", "TypeRef")]),
+        "WhereClause": (collections: [("predicates", "WherePred")]),
+        "WherePred": (options: [["type_ref", "TypeRef"], ["bound", "TypeRef"]]),
+        "InheritanceList": (collections: [("bounds", "TypeRef")]),
+        "ParamList": (
+            options: [ "SelfParam" ],
+            collections: [
+                ["params", "Param"]
+            ]
+        ),
+        "Param": (
+            options: [ "Pat" ],
+            traits: [
+                "TypeAscriptionOwner"
+            ],
+        ),
+        "SelfParam": (
+            traits: [
+                "TypeAscriptionOwner",
+            ]
+        ),
+        "StructDef": (
+            traits: [
+                "NameOwner",
+                "VisibilityOwner",
+                "DocCommentsOwner",
+                "AttributeOwner",
+                "GenericParamsOwner",
+            ],
+            options: ["InheritanceList", "WhereClause"],
+        ),
+        "TraitDef": (
+            traits: [
+                "NameOwner",
+                "VisibilityOwner",
+                "DocCommentsOwner",
+                "AttributeOwner",
+                "GenericParamsOwner",
+            ],
+            options: ["InheritanceList", "ExtendItemList"],
+        ),
+        "EnumDef": (
+            traits: [
+                "NameOwner",
+                "VisibilityOwner",
+                "DocCommentsOwner",
+                "AttributeOwner",
+                "GenericParamsOwner",
+            ],
+            options: ["EnumVariantList"],
+        ),
+        "EnumVariantList": (collections: [("variants", "EnumVariant")]),
+        "EnumVariant": (
+            traits: ["NameOwner", "DocCommentsOwner"],
+            options: ["RecordFieldDefList", "TupleFieldDefList"],
+        ),
+        "EffectDef": (
+            traits: [
+                "NameOwner",
+                "VisibilityOwner",
+                "DocCommentsOwner",
+                "AttributeOwner",
+            ],
+            options: ["EffectOpList"],
+        ),
+        "EffectOpList": (collections: [("ops", "EffectOp")]),
+        "EffectOp": (
+            traits: ["NameOwner"],
+            options: ["ParamList", "RetType"],
+        ),
+        "MacroDef": (
+            traits: [
+                "NameOwner",
+                "VisibilityOwner",
+                "DocCommentsOwner",
+                "AttributeOwner",
+            ],
+            options: [ "ParamList", ["body", "BlockExpr"], "RetType" ],
+        ),
+        "TypeAliasDef": (
+            options: ["TypeRef"],
+            traits: [
+                "NameOwner",
+                "VisibilityOwner",
+                "DocCommentsOwner",
+                "AttributeOwner",
+            ]
+        ),
+        "RecordFieldDefList": (collections: [("fields", "RecordFieldDef")]),
+        "RecordFieldDef": (
+            traits: [
+                "NameOwner",
+                "VisibilityOwner",
+                "DocCommentsOwner",
+                "TypeAscriptionOwner"
+            ]
+        ),
+        "TupleFieldDefList": (collections: [("fields", "TupleFieldDef")]),
+        "TupleFieldDef": (
+            options: [
+                "TypeRef",
+            ],
+            traits: [
+                "VisibilityOwner",
+            ]
+        ),
+        "LetStmt": (
+            options: [
+                ["pat", "Pat"],
+                ["initializer", "Expr"],
+            ],
+            traits: [
+                "TypeAscriptionOwner",
+            ]
+        ),
+        "Condition": (
+            options: [ "Pat", "Expr" ]
+        ),
+
+        "ExprStmt": (
+            options: [ ["expr", "Expr"] ]
+        ),
+        "Stmt": (
+            enum: ["LetStmt", "ExprStmt"]
+        ),
+
+        "LoopExpr": (
+            traits: ["LoopBodyOwner"]
+        ),
+
+        "WhileExpr": (
+            traits: ["LoopBodyOwner"],
+            options: [ "Condition" ]
+        ),
+
+        "PathExpr": (options: ["Path"]),
+        "PrefixExpr": (options: ["Expr"]),
+        "BinExpr": (),
+        "Literal": (),
+        "ParenExpr": (options: ["Expr"]),
+        "CallExpr": (
+            traits: ["ArgListOwner"],
+            options: [ "Expr" ],
+        ),
+        "MethodCallExpr": (
+            traits: ["ArgListOwner"],
+            options: [ "Expr", "NameRef" ],
+        ),
+        "IndexExpr": (
+        ),
+        "FieldExpr": (
+            options: ["Expr", "NameRef"]
+        ),
+        "IfExpr": (
+            options: [ "Condition" ]
+        ),
+        "BreakExpr": (options: ["Expr"]),
+        "ArrayExpr": (
+            collections: [
+                [ "exprs", "Expr" ]
+            ]
+        ),
+        "ArgList": (
+            collections: [
+                ["args", "Expr"]
+            ]
+        ),
+        "ComptimeExpr": (options: [["body", "BlockExpr"]]),
+        "MatchExpr": (
+            options: [ ["expr", "Expr"], "MatchArmList" ]
+        ),
+        "MatchArmList": (collections: [("arms", "MatchArm")]),
+        "MatchArm": (
+            options: [ "Pat", ["expr", "Expr"] ]
+        ),
+        "PerformExpr": (
+            traits: ["ArgListOwner"],
+            options: [ "Path" ],
+        ),
+        "SpawnExpr": (
+            options: [ ["expr", "Expr"] ]
+        ),
+        "TransferExpr": (
+            options: [ ["expr", "Expr"] ]
+        ),
+        "ChannelRecvExpr": (
+            options: [ ["expr", "Expr"] ]
+        ),
+        "ChannelSendExpr": (),
+        "HandleExpr": (
+            options: [ ["expr", "Expr"], "HandlerArmList" ]
+        ),
+        "HandlerArmList": (collections: [("arms", "HandlerArm")]),
+        "HandlerArm": (
+            options: [ "Path", "ParamList", ["body", "Expr"] ]
+        ),
+        "TryExpr": (options: ["Expr"]),
+
+        "Expr": (
+            enum: [
+                "Literal",
+                "PrefixExpr",
+                "PathExpr",
+                "BinExpr",
+                "ParenExpr",
+                "CallExpr",
+                "MethodCallExpr",
+                "FieldExpr",
+                "IfExpr",
+                "LoopExpr",
+                "WhileExpr",
+                "ReturnExpr",
+                "BreakExpr",
+                "BlockExpr",
+                "ArrayExpr",
+                "IndexExpr",
+                "RecordLit",
+                "ComptimeExpr",
+                "MatchExpr",
+                "PerformExpr",
+                "SpawnExpr",
+                "HandleExpr",
+                "TryExpr",
+                "TransferExpr",
+                "ChannelRecvExpr",
+                "ChannelSendExpr",
+            ]
+        ),
+
+        "Name": (),
+        "NameRef": (),
+        "PathType": (options: ["Path", "GenericArgList"]),
+        "ArrayType": (options: ["TypeRef"]),
+        "NeverType": (),
+        "OptionalType": (options: ["TypeRef"]),
+        "RefinementType": (options: [["base", "TypeRef"], ["binder", "NameRef"], ["predicate", "Expr"]]),
+        "TypeRef": (
+            enum: [
+                "PathType",
+                "ArrayType",
+                "NeverType",
+                "OptionalType",
+                "RefinementType",
+            ]
+        ),
+
+        "SupervisorDef": (
+            traits: ["NameOwner", "VisibilityOwner", "DocCommentsOwner", "AttributeOwner"],
+            options: ["SupervisorItemList"],
+        ),
+        "SupervisorItemList": (
+            collections: [ ("items", "SupervisorItem") ],
+        ),
+        "SupervisorItem": (
+            enum: ["SupervisorEntry", "ChildDef"]
+        ),
+        "SupervisorEntry": (
+            traits: ["NameOwner"],
+            options: [["value", "Expr"]],
+        ),
+        "ChildDef": (
+            traits: ["NameOwner"],
+            options: ["SupervisorItemList"],
+        ),
+        "ReturnExpr": (options: ["Expr"]),
+        "BlockExpr": (
+            options: [ "Expr" ],
+            collections: [
+                ["statements", "Stmt"],
+            ],
+        ),
+        "Path": (
+            options: [
+                ["segment", "PathSegment"],
+                ["qualifier", "Path"],
+            ]
+        ),
+        "PathSegment": (
+            options: [ "NameRef" ]
+        ),
+
+        "BindPat": (
+            options: [ "Pat" ],
+            traits: ["NameOwner"]
+        ),
+        "PlaceholderPat": (),
+        "LiteralPat": (options: ["Literal"]),
+        "PathPat": (options: ["Path"]),
+        "TupleStructPat": (
+            options: ["Path"],
+            collections: [("args", "Pat")],
+        ),
+        "Pat": (
+            enum: [
+                "BindPat",
+                "PlaceholderPat",
+                "LiteralPat",
+                "PathPat",
+                "TupleStructPat",
+            ],
+        ),
+
+        "RecordLit": (options: ["TypeRef", "RecordFieldList"]),
+        "RecordFieldList": (
+            collections: [ ("fields", "RecordField") ],
+            options: [["spread", "Expr"]]
+        ),
+        "RecordField": (options: ["NameRef", "Expr"]),
+
+        "Use": (
+            options: [["use_tree", "UseTree"]],
+            traits: ("VisibilityOwner")
+        ),
+
+        "UseTree": (
+            options: [
+                ["use_tree_list", "UseTreeList"],
+                ["path", "Path"],
+                ["rename", "Rename"]
+            ]
+        ),
+        "UseTreeList": (
+            collections: [ ("use_trees", "UseTree") ]
+        ),
+
+        "Rename": (
+            traits: ("NameOwner")
+        ),
+
+        "Extend": (
+            options: ["ExtendItemList", ["type_ref", "TypeRef"], "InheritanceList"],
+            traits: ["VisibilityOwner", "DocCommentsOwner", "AttributeOwner"]
+        ),
+        "ExtendItemList": (
+            collections: [ ("extend_items", "ExtendItem") ]
+        ),
+        "ExtendItem": (
+            enum: ["FunctionDef"]
+        ),
+
+        "ExternBlock": (
+            options: [ "ExternItemList" ],
+            traits: ["AttributeOwner"],
+        ),
+        "ExternItemList": (
+            collections: [ ("extern_items", "ExternItem") ]
+        ),
+        "ExternItem": (
+            enum: ["FunctionDef"]
+        ),
+    }
+)

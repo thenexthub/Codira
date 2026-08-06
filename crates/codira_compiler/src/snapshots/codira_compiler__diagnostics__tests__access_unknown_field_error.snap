@@ -1,0 +1,11 @@
+---
+source: crates/codira_compiler/src/diagnostics.rs
+expression: "compilation_errors(\"\\n\\nstruct Foo {\\ni: bool\\n}\\n\\nfunc main() {\\nlet a = Foo { i: false };\\nlet b = a.t;\\n}\")"
+snapshot_kind: text
+---
+error: no field `t` on type `Foo`
+ --> main.code:9:11
+  |
+9 | let b = a.t;
+  |           ^ unknown field
+  |

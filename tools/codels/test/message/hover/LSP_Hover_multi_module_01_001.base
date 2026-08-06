@@ -1,1 +1,0 @@
-{"id":9,"jsonrpc":"2.0","result":{"contents":{"language":"Codira","value":"Declared in: zoo.code\nPackage info: pro2.zoo\n\n(variable) public let z: Int32\n"},"range":{"end":{"character":32,"line":9},"start":{"character":31,"line":9}}}}

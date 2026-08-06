@@ -1,0 +1,116 @@
+---
+source: crates/codira_syntax/src/tests/parser.rs
+expression: "SourceFile::parse(r#\"\n        func main() -> self.Foo {}\n        func main1() -> super.Foo {}\n        func main2() -> root.Foo {}\n        func main3() -> root.foo.Foo {}\n    \"#,).debug_dump()"
+snapshot_kind: text
+---
+SOURCE_FILE@0..153
+  FUNCTION_DEF@0..35
+    WHITESPACE@0..9 "\n        "
+    FUNC_KW@9..13 "func"
+    WHITESPACE@13..14 " "
+    NAME@14..18
+      IDENT@14..18 "main"
+    PARAM_LIST@18..20
+      L_PAREN@18..19 "("
+      R_PAREN@19..20 ")"
+    WHITESPACE@20..21 " "
+    RET_TYPE@21..32
+      THIN_ARROW@21..23 "->"
+      WHITESPACE@23..24 " "
+      PATH_TYPE@24..32
+        PATH@24..32
+          PATH@24..28
+            PATH_SEGMENT@24..28
+              SELF_KW@24..28 "self"
+          DOT@28..29 "."
+          PATH_SEGMENT@29..32
+            NAME_REF@29..32
+              IDENT@29..32 "Foo"
+    WHITESPACE@32..33 " "
+    BLOCK_EXPR@33..35
+      L_CURLY@33..34 "{"
+      R_CURLY@34..35 "}"
+  FUNCTION_DEF@35..72
+    WHITESPACE@35..44 "\n        "
+    FUNC_KW@44..48 "func"
+    WHITESPACE@48..49 " "
+    NAME@49..54
+      IDENT@49..54 "main1"
+    PARAM_LIST@54..56
+      L_PAREN@54..55 "("
+      R_PAREN@55..56 ")"
+    WHITESPACE@56..57 " "
+    RET_TYPE@57..69
+      THIN_ARROW@57..59 "->"
+      WHITESPACE@59..60 " "
+      PATH_TYPE@60..69
+        PATH@60..69
+          PATH@60..65
+            PATH_SEGMENT@60..65
+              SUPER_KW@60..65 "super"
+          DOT@65..66 "."
+          PATH_SEGMENT@66..69
+            NAME_REF@66..69
+              IDENT@66..69 "Foo"
+    WHITESPACE@69..70 " "
+    BLOCK_EXPR@70..72
+      L_CURLY@70..71 "{"
+      R_CURLY@71..72 "}"
+  FUNCTION_DEF@72..108
+    WHITESPACE@72..81 "\n        "
+    FUNC_KW@81..85 "func"
+    WHITESPACE@85..86 " "
+    NAME@86..91
+      IDENT@86..91 "main2"
+    PARAM_LIST@91..93
+      L_PAREN@91..92 "("
+      R_PAREN@92..93 ")"
+    WHITESPACE@93..94 " "
+    RET_TYPE@94..105
+      THIN_ARROW@94..96 "->"
+      WHITESPACE@96..97 " "
+      PATH_TYPE@97..105
+        PATH@97..105
+          PATH@97..101
+            PATH_SEGMENT@97..101
+              ROOT_KW@97..101 "root"
+          DOT@101..102 "."
+          PATH_SEGMENT@102..105
+            NAME_REF@102..105
+              IDENT@102..105 "Foo"
+    WHITESPACE@105..106 " "
+    BLOCK_EXPR@106..108
+      L_CURLY@106..107 "{"
+      R_CURLY@107..108 "}"
+  FUNCTION_DEF@108..148
+    WHITESPACE@108..117 "\n        "
+    FUNC_KW@117..121 "func"
+    WHITESPACE@121..122 " "
+    NAME@122..127
+      IDENT@122..127 "main3"
+    PARAM_LIST@127..129
+      L_PAREN@127..128 "("
+      R_PAREN@128..129 ")"
+    WHITESPACE@129..130 " "
+    RET_TYPE@130..145
+      THIN_ARROW@130..132 "->"
+      WHITESPACE@132..133 " "
+      PATH_TYPE@133..145
+        PATH@133..145
+          PATH@133..141
+            PATH@133..137
+              PATH_SEGMENT@133..137
+                ROOT_KW@133..137 "root"
+            DOT@137..138 "."
+            PATH_SEGMENT@138..141
+              NAME_REF@138..141
+                IDENT@138..141 "foo"
+          DOT@141..142 "."
+          PATH_SEGMENT@142..145
+            NAME_REF@142..145
+              IDENT@142..145 "Foo"
+    WHITESPACE@145..146 " "
+    BLOCK_EXPR@146..148
+      L_CURLY@146..147 "{"
+      R_CURLY@147..148 "}"
+  WHITESPACE@148..153 "\n    "

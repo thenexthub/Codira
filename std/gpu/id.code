@@ -1,0 +1,411 @@
+// =============================================================================
+// std/gpu/id.code — GPU thread and block indexing primitives
+// =============================================================================
+//
+// Copyright (c) 2026, Omnira CJSC. All rights reserved.
+// Author: Tunjay Akbarli
+// Date: August 6, 2026.
+//
+// This module provides GPU thread and block indexing functionality.  It
+// defines aliases and functions for accessing GPU grid, block, thread and
+// cluster dimensions and indices.  These are essential primitives for GPU
+// programming that allow code to determine its position and dimensions
+// within the GPU execution hierarchy.
+//
+// Most functionality is architecture-agnostic, with some NVIDIA-specific
+// features clearly marked.  The module is designed to work seamlessly
+// across different GPU architectures while providing optimal performance
+// through hardware-specific optimizations where applicable.
+// =============================================================================
+
+use std.builtin.types;
+use std.sys.info;
+use std.sys.intrinsics;
+use std.gpu.globals;
+use std.gpu.warp;
+
+// =============================================================================
+// Helper functions
+// =============================================================================
+
+// Check that the dimension is either x, y, or z.
+public func _verify_xyz(dim: StringLiteral) -> void {
+    if dim != "x" {
+        if dim != "y" {
+            if dim != "z" {
+                __panic("the dimension must be x, y, or z");
+            }
+        }
+    }
+}
+
+// Read a compile-time fixed offset from the GCN implicit argument pointer
+// (AMD GPU block/grid dimensions are encoded there).
+public func _get_gcn_idx[T](offset: usize) -> usize {
+    let addr = intrinsics.llvm_intrinsic["llvm.amdgcn.implicitarg.ptr"]();
+    let byte_offset = offset * __intrinsic_sizeof[T]();
+    return __intrinsic_load[T](addr + byte_offset) as usize;
+}
+
+// =============================================================================
+// lane_id
+// =============================================================================
+
+// Returns the lane ID of the current thread within its warp.
+//
+// The lane ID is a unique identifier for each thread within a warp, ranging
+// from 0 to WARP_SIZE-1.  This ID is commonly used for warp-level
+// programming and thread synchronization within a warp.
+public func lane_id() -> usize {
+    if info.is_nvidia_gpu() {
+        let i = intrinsics.llvm_intrinsic["llvm.nvvm.read.ptx.sreg.laneid"]();
+        return i as usize;
+    }
+    if info.is_amd_gpu() {
+        let none = 0xFFFFFFFF as u32;
+        let zero = 0 as u32;
+        let t = intrinsics.llvm_intrinsic["llvm.amdgcn.mbcnt.lo"](none, zero);
+        let i = intrinsics.llvm_intrinsic["llvm.amdgcn.mbcnt.hi"](none, t);
+        return i as usize;
+    }
+    if info.is_apple_gpu() {
+        let i = intrinsics.llvm_intrinsic["llvm.air.thread_index_in_simdgroup"]();
+        return i as usize;
+    }
+    info.unsupported_target_error("lane_id");
+}
+
+// =============================================================================
+// warp_id
+// =============================================================================
+
+// Returns the warp ID of the current thread within its block.
+//
+// The warp ID is a unique identifier for each warp within a block, ranging
+// from 0 to BLOCK_SIZE/WARP_SIZE-1.  This ID is commonly used for warp-level
+// programming and synchronization within a block.
+//
+// Parameters:
+//   broadcast: If true, broadcasts the warp ID to all threads in the warp,
+//              ensuring that all threads in the same warp have the same
+//              value.  This can be useful for certain warp-level algorithms.
+public func warp_id(broadcast: bool = false) -> usize {
+    let res = thread_idx_x() / globals.WARP_SIZE;
+    if broadcast {
+        return warp.broadcast_usize(res);
+    }
+    return res;
+}
+
+// =============================================================================
+// sm_id
+// =============================================================================
+
+// Returns the Streaming Multiprocessor (SM) ID of the current thread.
+//
+// The SM ID uniquely identifies which physical streaming multiprocessor the
+// thread is executing on.  This is useful for SM-level optimizations and
+// understanding hardware utilization.
+//
+// If called on non-NVIDIA GPUs, this function aborts as this functionality
+// is only supported on NVIDIA hardware.
+public func sm_id() -> usize {
+    if info.is_nvidia_gpu() {
+        return warp.broadcast_usize(
+            intrinsics.llvm_intrinsic["llvm.nvvm.read.ptx.sreg.smid"]() as usize
+        );
+    }
+    info.unsupported_target_error("sm_id");
+}
+
+// =============================================================================
+// thread_idx
+// =============================================================================
+
+// Returns the x-coordinate of the current thread within its block.
+public func thread_idx_x() -> usize {
+    return _thread_idx("x");
+}
+
+// Returns the y-coordinate of the current thread within its block.
+public func thread_idx_y() -> usize {
+    return _thread_idx("y");
+}
+
+// Returns the z-coordinate of the current thread within its block.
+public func thread_idx_z() -> usize {
+    return _thread_idx("z");
+}
+
+// Internal: resolve the thread-index intrinsic name for the active target.
+public func _get_thread_intrinsic_name(dim: StringLiteral) -> StringLiteral {
+    if info.is_nvidia_gpu() {
+        return "llvm.nvvm.read.ptx.sreg.tid." + dim;
+    }
+    if info.is_amd_gpu() {
+        return "llvm.amdgcn.workitem.id." + dim;
+    }
+    if info.is_apple_gpu() {
+        return "llvm.air.thread_position_in_threadgroup." + dim;
+    }
+    info.unsupported_target_error("_get_thread_intrinsic_name");
+}
+
+// Internal: read the thread index for dimension `dim` ("x", "y", "z").
+public func _thread_idx(dim: StringLiteral) -> usize {
+    _verify_xyz(dim);
+    let name = _get_thread_intrinsic_name(dim);
+    let i = intrinsics.llvm_intrinsic[name]();
+    return i as usize;
+}
+
+// =============================================================================
+// block_idx
+// =============================================================================
+
+// Returns the x-coordinate of the current block within the grid.
+public func block_idx_x() -> usize {
+    return _block_idx("x");
+}
+
+// Returns the y-coordinate of the current block within the grid.
+public func block_idx_y() -> usize {
+    return _block_idx("y");
+}
+
+// Returns the z-coordinate of the current block within the grid.
+public func block_idx_z() -> usize {
+    return _block_idx("z");
+}
+
+// Internal: resolve the block-index intrinsic name for the active target.
+public func _get_block_intrinsic_name(dim: StringLiteral) -> StringLiteral {
+    if info.is_nvidia_gpu() {
+        return "llvm.nvvm.read.ptx.sreg.ctaid." + dim;
+    }
+    if info.is_amd_gpu() {
+        return "llvm.amdgcn.workgroup.id." + dim;
+    }
+    if info.is_apple_gpu() {
+        return "llvm.air.threadgroup_position_in_grid." + dim;
+    }
+    info.unsupported_target_error("_get_block_intrinsic_name");
+}
+
+// Internal: read the block index for dimension `dim` ("x", "y", "z").
+public func _block_idx(dim: StringLiteral) -> usize {
+    _verify_xyz(dim);
+    let name = _get_block_intrinsic_name(dim);
+    let i = intrinsics.llvm_intrinsic[name]();
+    return i as usize;
+}
+
+// =============================================================================
+// block_dim
+// =============================================================================
+
+// Returns the x-dimension of the block.
+public func block_dim_x() -> usize {
+    return _block_dim("x");
+}
+
+// Returns the y-dimension of the block.
+public func block_dim_y() -> usize {
+    return _block_dim("y");
+}
+
+// Returns the z-dimension of the block.
+public func block_dim_z() -> usize {
+    return _block_dim("z");
+}
+
+// Internal: read the block dimension for `dim` ("x", "y", "z").
+public func _block_dim(dim: StringLiteral) -> usize {
+    _verify_xyz(dim);
+
+    if info.is_nvidia_gpu() {
+        let name = "llvm.nvvm.read.ptx.sreg.ntid." + dim;
+        let i = intrinsics.llvm_intrinsic[name]();
+        return i as usize;
+    }
+    if info.is_apple_gpu() {
+        let name = "llvm.air.threads_per_threadgroup." + dim;
+        let i = intrinsics.llvm_intrinsic[name]();
+        return i as usize;
+    }
+    if info.is_amd_gpu() {
+        // Block dimensions are stored as uint16 in the GCN implicit args.
+        if dim == "y" {
+            return _get_gcn_idx[u16](7);
+        }
+        if dim == "z" {
+            return _get_gcn_idx[u16](8);
+        }
+        return _get_gcn_idx[u16](6);
+    }
+    info.unsupported_target_error("block_dim");
+}
+
+// =============================================================================
+// grid_dim
+// =============================================================================
+
+// Returns the x-dimension of the grid.
+public func grid_dim_x() -> usize {
+    return _grid_dim("x");
+}
+
+// Returns the y-dimension of the grid.
+public func grid_dim_y() -> usize {
+    return _grid_dim("y");
+}
+
+// Returns the z-dimension of the grid.
+public func grid_dim_z() -> usize {
+    return _grid_dim("z");
+}
+
+// Internal: read the grid dimension for `dim` ("x", "y", "z").
+public func _grid_dim(dim: StringLiteral) -> usize {
+    _verify_xyz(dim);
+
+    if info.is_nvidia_gpu() {
+        let name = "llvm.nvvm.read.ptx.sreg.nctaid." + dim;
+        let i = intrinsics.llvm_intrinsic[name]();
+        return i as usize;
+    }
+    if info.is_amd_gpu() {
+        // Grid dimensions are stored as uint32 in the GCN implicit args.
+        if dim == "y" {
+            return _get_gcn_idx[u32](1);
+        }
+        if dim == "z" {
+            return _get_gcn_idx[u32](2);
+        }
+        return _get_gcn_idx[u32](0);
+    }
+    if info.is_apple_gpu() {
+        // Metal passes grid dimension as gridDim.dim * blockDim.dim.  To
+        // make things compatible with NVidia and AMDGPU, divide result by
+        // block_dim.dim.
+        let name = "llvm.air.threads_per_grid." + dim;
+        let grid_dim = intrinsics.llvm_intrinsic[name]() as usize;
+        return grid_dim / _block_dim(dim);
+    }
+    info.unsupported_target_error("grid_dim");
+}
+
+// =============================================================================
+// global_idx
+// =============================================================================
+
+// Returns the x-coordinate of the global index of the current thread.
+public func global_idx_x() -> usize {
+    return _global_idx("x");
+}
+
+// Returns the y-coordinate of the global index of the current thread.
+public func global_idx_y() -> usize {
+    return _global_idx("y");
+}
+
+// Returns the z-coordinate of the global index of the current thread.
+public func global_idx_z() -> usize {
+    return _global_idx("z");
+}
+
+// Internal: compute the global index for dimension `dim`.
+public func _global_idx(dim: StringLiteral) -> usize {
+    _verify_xyz(dim);
+    let t_idx = _thread_idx(dim);
+    let b_idx = _block_idx(dim);
+    let b_dim = _block_dim(dim);
+    return b_idx * b_dim + t_idx;
+}
+
+// =============================================================================
+// cluster_dim
+// =============================================================================
+
+// Returns the x-dimension of the cluster.  NVIDIA SM90+ only.
+public func cluster_dim_x() -> usize {
+    return _cluster_dim("x");
+}
+
+// Returns the y-dimension of the cluster.  NVIDIA SM90+ only.
+public func cluster_dim_y() -> usize {
+    return _cluster_dim("y");
+}
+
+// Returns the z-dimension of the cluster.  NVIDIA SM90+ only.
+public func cluster_dim_z() -> usize {
+    return _cluster_dim("z");
+}
+
+// Internal: read the cluster dimension for `dim`.  SM90+ only.
+public func _cluster_dim(dim: StringLiteral) -> usize {
+    if !info._is_sm_9x_or_newer() {
+        __panic("cluster_dim is only supported on NVIDIA SM90+ GPUs");
+    }
+    _verify_xyz(dim);
+    let name = "llvm.nvvm.read.ptx.sreg.cluster.nctaid." + dim;
+    return intrinsics.llvm_intrinsic[name]() as usize;
+}
+
+// =============================================================================
+// cluster_idx
+// =============================================================================
+
+// Returns the x-coordinate of the cluster within the grid.  SM90+ only.
+public func cluster_idx_x() -> usize {
+    return _cluster_idx("x");
+}
+
+// Returns the y-coordinate of the cluster within the grid.  SM90+ only.
+public func cluster_idx_y() -> usize {
+    return _cluster_idx("y");
+}
+
+// Returns the z-coordinate of the cluster within the grid.  SM90+ only.
+public func cluster_idx_z() -> usize {
+    return _cluster_idx("z");
+}
+
+// Internal: read the cluster index for `dim`.  SM90+ only.
+public func _cluster_idx(dim: StringLiteral) -> usize {
+    if !info._is_sm_9x_or_newer() {
+        __panic("cluster_idx is only supported on NVIDIA SM90+ GPUs");
+    }
+    _verify_xyz(dim);
+    let name = "llvm.nvvm.read.ptx.sreg.clusterid." + dim;
+    return intrinsics.llvm_intrinsic[name]() as usize;
+}
+
+// =============================================================================
+// block_id_in_cluster
+// =============================================================================
+
+// Returns the x-coordinate of the threadblock within its cluster.  SM90+.
+public func block_id_in_cluster_x() -> usize {
+    return _block_id_in_cluster("x");
+}
+
+// Returns the y-coordinate of the threadblock within its cluster.  SM90+.
+public func block_id_in_cluster_y() -> usize {
+    return _block_id_in_cluster("y");
+}
+
+// Returns the z-coordinate of the threadblock within its cluster.  SM90+.
+public func block_id_in_cluster_z() -> usize {
+    return _block_id_in_cluster("z");
+}
+
+// Internal: read the threadblock-within-cluster index for `dim`.  SM90+.
+public func _block_id_in_cluster(dim: StringLiteral) -> usize {
+    if !info._is_sm_9x_or_newer() {
+        __panic("block_id_in_cluster is only supported on NVIDIA SM90+ GPUs");
+    }
+    _verify_xyz(dim);
+    let name = "llvm.nvvm.read.ptx.sreg.cluster.ctaid." + dim;
+    return intrinsics.llvm_intrinsic[name]() as usize;
+}

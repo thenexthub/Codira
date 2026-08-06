@@ -1,3 +1,0 @@
-07.expressions/04.named_reference/qualified_name_0.ets
-07.expressions/04.named_reference/qualified_name_1.ets
-07.expressions/27.equality_expressions/eq_19.ets
