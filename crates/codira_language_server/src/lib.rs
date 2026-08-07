@@ -82,7 +82,7 @@ pub fn run_server() -> anyhow::Result<()> {
     let initialize_result = lsp_types::InitializeResult {
         capabilities: server_capabilities,
         server_info: Some(lsp_types::ServerInfo {
-            name: String::from("mun-language-server"),
+            name: String::from("codira-language-server"),
             version: Some(String::from(env!("CARGO_PKG_VERSION"))),
         }),
     };

@@ -368,19 +368,19 @@ mod test {
     const FFI_TYPE_NULL: Type = Type(ptr::null(), ptr::null());
 
     #[test]
-    fn test_mun_type_release_null_type() {
+    fn test_codira_type_release_null_type() {
         assert_error!(unsafe { codira_type_release(FFI_TYPE_NULL_INNER) });
         assert_error!(unsafe { codira_type_release(FFI_TYPE_NULL_STORE) });
     }
 
     #[test]
-    fn test_mun_type_add_reference_null_type() {
+    fn test_codira_type_add_reference_null_type() {
         assert_error!(unsafe { codira_type_add_reference(FFI_TYPE_NULL_INNER) });
         assert_error!(unsafe { codira_type_add_reference(FFI_TYPE_NULL_STORE) });
     }
 
     #[test]
-    fn test_mun_type_equal() {
+    fn test_codira_type_equal() {
         let ffi_f32 = codira_type_primitive(PrimitiveType::F32);
         let ffi_i32 = codira_type_primitive(PrimitiveType::I32);
 
@@ -397,7 +397,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_type_name() {
+    fn test_codira_type_name() {
         let ffi_f32 = codira_type_primitive(PrimitiveType::F32);
         let ffi_empty = codira_type_primitive(PrimitiveType::Empty);
 
@@ -420,7 +420,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_type_name_invalid_type() {
+    fn test_codira_type_name_invalid_type() {
         let mut name = MaybeUninit::uninit();
         assert_error_snapshot!(
             unsafe { codira_type_name(FFI_TYPE_NULL, name.as_mut_ptr()) },
@@ -437,7 +437,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_type_size() {
+    fn test_codira_type_size() {
         fn assert_size(ty: Type, expected_size: usize) {
             let mut size = MaybeUninit::uninit();
             assert!(unsafe { codira_type_size(ty, size.as_mut_ptr()) }.is_ok());
@@ -461,7 +461,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_type_size_invalid_null() {
+    fn test_codira_type_size_invalid_null() {
         let mut size = MaybeUninit::uninit();
         assert_error!(unsafe { codira_type_size(FFI_TYPE_NULL, size.as_mut_ptr()) });
 
@@ -471,7 +471,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_type_alignment() {
+    fn test_codira_type_alignment() {
         fn assert_alignment(ty: Type, expected_alignment: usize) {
             let mut align = MaybeUninit::uninit();
             assert!(unsafe { codira_type_alignment(ty, align.as_mut_ptr()) }.is_ok());
@@ -495,7 +495,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_type_alignment_invalid_null() {
+    fn test_codira_type_alignment_invalid_null() {
         let mut size = MaybeUninit::uninit();
         assert_error_snapshot!(
             unsafe { codira_type_alignment(FFI_TYPE_NULL, size.as_mut_ptr()) },
@@ -512,7 +512,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_type_pointer_type() {
+    fn test_codira_type_pointer_type() {
         let ffi_u64 = codira_type_primitive(PrimitiveType::U64);
 
         assert_getter2!(codira_type_pointer_type(ffi_u64, true, ffi_u64_pointer));
@@ -527,7 +527,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_type_pointer_type_invalid_null() {
+    fn test_codira_type_pointer_type_invalid_null() {
         let mut ffi_u64_pointer = MaybeUninit::uninit();
         assert_error_snapshot!(
             unsafe { codira_type_pointer_type(FFI_TYPE_NULL, true, ffi_u64_pointer.as_mut_ptr()) },
@@ -543,7 +543,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_type_array_type() {
+    fn test_codira_type_array_type() {
         let ffi_u64 = codira_type_primitive(PrimitiveType::U64);
 
         assert_getter1!(codira_type_array_type(ffi_u64, ffi_u64_array));
@@ -555,7 +555,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_type_array_type_invalid_null() {
+    fn test_codira_type_array_type_invalid_null() {
         let mut ffi_u64_array = MaybeUninit::uninit();
         assert_error_snapshot!(
             unsafe { codira_type_array_type(FFI_TYPE_NULL, ffi_u64_array.as_mut_ptr()) },
@@ -571,7 +571,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_types_destroy() {
+    fn test_codira_types_destroy() {
         let types: Types = [i32::type_info().clone(), f32::type_info().clone()]
             .iter()
             .map(|ty| ty.clone().into())
@@ -581,7 +581,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_types_destroy_invalid_ptr() {
+    fn test_codira_types_destroy_invalid_ptr() {
         let types = Types {
             types: ptr::null(),
             count: 1,
@@ -590,7 +590,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_types_destroy_empty() {
+    fn test_codira_types_destroy_empty() {
         let types = Types {
             types: ptr::null(),
             count: 0,

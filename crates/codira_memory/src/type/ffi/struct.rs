@@ -320,7 +320,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_struct_type_guid() {
+    fn test_codira_struct_type_guid() {
         let rust_ty = StructTypeBuilder::new("Foo")
             .add_field("foo", i32::type_info().clone())
             .finish();
@@ -335,7 +335,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_struct_type_guid_invalid_null() {
+    fn test_codira_struct_type_guid_invalid_null() {
         let mut guid = MaybeUninit::uninit();
         assert_error_snapshot!(
             unsafe {
@@ -358,7 +358,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_struct_type_memory_kind() {
+    fn test_codira_struct_type_memory_kind() {
         let rust_ty = StructTypeBuilder::new("Foo")
             .add_field("foo", i32::type_info().clone())
             .set_memory_kind(abi::StructMemoryKind::Value)
@@ -373,7 +373,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_struct_type_memory_kind_invalid_null() {
+    fn test_codira_struct_type_memory_kind_invalid_null() {
         let mut memory_kind = MaybeUninit::uninit();
         assert_error_snapshot!(unsafe {
             codira_struct_type_memory_kind(
@@ -395,7 +395,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_struct_type_fields() {
+    fn test_codira_struct_type_fields() {
         let i32_type = i32::type_info();
         let (struct_with_fields, struct_with_fields_struct) = unsafe {
             struct_type(
@@ -427,7 +427,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_struct_type_fields_empty() {
+    fn test_codira_struct_type_fields_empty() {
         let (empty_struct, empty_struct_struct) =
             unsafe { struct_type(StructTypeBuilder::new("EmptyStruct").finish().into()) };
 
@@ -440,7 +440,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_fields_find_by_name() {
+    fn test_codira_fields_find_by_name() {
         let (_foo_type, foo_struct) = unsafe {
             struct_type(
                 StructTypeBuilder::new("Foo")
@@ -487,7 +487,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_fields_find_by_name_invalid() {
+    fn test_codira_fields_find_by_name_invalid() {
         let (_empty_struct, empty_struct_struct) =
             unsafe { struct_type(StructTypeBuilder::new("EmptyStruct").finish().into()) };
 
@@ -509,7 +509,7 @@ mod test {
     }
 
     #[test]
-    fn test_mun_type_name_offset_type_invalid_null() {
+    fn test_codira_type_name_offset_type_invalid_null() {
         let mut name = MaybeUninit::uninit();
         let mut offset = MaybeUninit::uninit();
         let mut field_type = MaybeUninit::uninit();

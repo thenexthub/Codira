@@ -82,7 +82,7 @@ macro_rules! test_invalid_runtime {
                 fn [<test_ $name _invalid_runtime>]() {
                     let runtime = Runtime(ptr::null_mut());
                     let handle =
-                        unsafe { [<mun_ $name>](runtime $(, $arg)*) };
+                        unsafe { [<codira_ $name>](runtime $(, $arg)*) };
 
                     let message = unsafe { std::ffi::CStr::from_ptr(handle.0) };
                     assert_eq!(

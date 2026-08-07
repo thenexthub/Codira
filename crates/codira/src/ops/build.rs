@@ -78,7 +78,7 @@ pub fn build(args: Args) -> Result<ExitStatus, anyhow::Error> {
             UseColor::Auto => DisplayColor::Auto,
         })
         .or_else(|| {
-            env::var("MUN_TERMINAL_COLOR")
+            env::var("CODIRA_TERMINAL_COLOR")
                 .map(|value| match value.as_str() {
                     "disable" => DisplayColor::Disable,
                     "enable" => DisplayColor::Enable,

@@ -1,0 +1,18 @@
+[package]
+name = "codira_lld"
+version = "220.0.0"
+authors = ["Omnira"]
+edition = "2021"
+description = "Bindings for LLVM's LLD in Rust"
+repository = "https://github.com/theomnira/codira"
+license = "MIT OR Apache-2.0"
+categories = ["linkers", "compilers"]
+
+[dependencies]
+libc = "0.2.138"
+llvm-sys = "220.0.0"
+
+[build-dependencies]
+cc = "1.0.116"
+lazy_static = "1.4.0"
+semver = "1.0.18"

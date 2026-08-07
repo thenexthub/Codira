@@ -3,8 +3,8 @@ name = "empty-wasm"
 version = "0.1.0"
 authors = ["Omnira"]
 edition = "2021"
-homepage = "https://mun-lang.org"
-repository = "https://github.com/mun-lang/mun"
+homepage = "https://theomnira.github.io/codira"
+repository = "https://github.com/theomnira/codira"
 license = "MIT OR Apache-2.0"
 
 [lib]

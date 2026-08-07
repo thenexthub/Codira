@@ -134,7 +134,7 @@ fn extract_tests_from_string(markdown: &str, file_stem: &str) -> Vec<Test> {
             }
             Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(ref info))) => {
                 let code_block_info = parse_code_block_info(info);
-                if code_block_info.is_mun {
+                if code_block_info.is_codira {
                     block = Block::Code(Vec::new());
                 }
             }
@@ -192,7 +192,7 @@ fn sanitize_test_name(name: &str) -> String {
 
 /// Describes information extracted from code-blocks.
 struct CodeBlockInfo {
-    is_mun: bool,
+    is_codira: bool,
     ignore: bool,
     no_run: bool,
     compile_fail: bool,
@@ -203,11 +203,11 @@ struct CodeBlockInfo {
 fn parse_code_block_info(info: &str) -> CodeBlockInfo {
     let tokens = info.split(|c: char| !(c == '_' || c == '-' || c.is_alphanumeric()));
 
-    let mut seen_mun_tags = false;
+    let mut seen_codira_tags = false;
     let mut seen_other_tags = false;
 
     let mut info = CodeBlockInfo {
-        is_mun: false,
+        is_codira: false,
         ignore: false,
         no_run: false,
         compile_fail: false,
@@ -217,26 +217,26 @@ fn parse_code_block_info(info: &str) -> CodeBlockInfo {
         match token {
             "" => {}
             "codira" => {
-                info.is_mun = true;
-                seen_mun_tags = true;
+                info.is_codira = true;
+                seen_codira_tags = true;
             }
             "ignore" => {
                 info.ignore = true;
-                seen_mun_tags = true;
+                seen_codira_tags = true;
             }
             "no_run" => {
                 info.no_run = true;
-                seen_mun_tags = true;
+                seen_codira_tags = true;
             }
             "compile_fail" => {
                 info.compile_fail = true;
-                seen_mun_tags = true;
+                seen_codira_tags = true;
             }
             _ => seen_other_tags = true,
         }
     }
 
-    info.is_mun &= !seen_other_tags || seen_mun_tags;
+    info.is_codira &= !seen_other_tags || seen_codira_tags;
     info
 }
 
