@@ -5,6 +5,7 @@
 //! Functionality:
 //! - Part of the Codira compiler and runtime toolchain.
 //!
+
 use crate::{
     parsing::{lexer::Token, Token as PToken, TokenSource},
     SyntaxKind::EOF,
@@ -13,6 +14,7 @@ use crate::{
 
 /// An implementation of `TokenSource` for text.
 pub(crate) struct TextTokenSource<'t> {
+    #[allow(dead_code)]
     text: &'t str,
     /// start position of each token(expect whitespace and comment)
     /// ```non-rust
@@ -96,4 +98,3 @@ impl<'t> TextTokenSource<'t> {
         }
     }
 }
-

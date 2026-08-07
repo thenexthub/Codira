@@ -115,6 +115,7 @@ impl<'t> Parser<'t> {
     }
 
     /// Checks if the current token is contextual keyword with text `t`.
+    #[allow(dead_code)]
     pub(crate) fn at_contextual_kw(&self, kw: &str) -> bool {
         self.token_source.is_keyword(kw)
     }
@@ -148,6 +149,7 @@ impl<'t> Parser<'t> {
     /// *identifier* token, but the parser remaps it to the
     /// `union` keyword, and keyword is what ends up in the
     /// final tree.
+    #[allow(dead_code)]
     pub(crate) fn bump_remap(&mut self, kind: SyntaxKind) {
         if self.nth(0) == EOF {
             // FIXME: panic!?

@@ -31,6 +31,7 @@ trait TokenSource {
     fn bump(&mut self);
 
     /// Is the current token a specified keyword?
+    #[allow(dead_code)]
     fn is_keyword(&self, kw: &str) -> bool;
 }
 
