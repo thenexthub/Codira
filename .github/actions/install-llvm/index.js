@@ -7,7 +7,7 @@ const isWindows = process.platform == "win32"
 const isMacOS = process.platform == "darwin"
 const isLinux = process.platform == "linux"
 
-export async function execute(cmd) {
+async function execute(cmd) {
     let myOutput = '';
     let myError = '';
     await exec.exec(cmd, [], {
@@ -31,7 +31,8 @@ export async function execute(cmd) {
     try {
         if (isLinux) {
             const installScript = path.join(__dirname, "../../../../scripts/install-llvm.sh");
-            await exec.exec(`sudo ${installScript}`);
+            // run via sudo bash so the script doesn't need the executable bit set
+            await exec.exec('sudo', ['bash', installScript]);
         } else if (isMacOS) {
             await exec.exec("brew install llvm@14")
             let llvmPath = await execute("brew --prefix llvm@14");
