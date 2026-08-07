@@ -13,6 +13,7 @@ use crate::{
 
 /// An implementation of `TokenSource` for text.
 pub(crate) struct TextTokenSource<'t> {
+    #[allow(dead_code)]
     text: &'t str,
     /// start position of each token(expect whitespace and comment)
     /// ```non-rust
@@ -96,4 +97,3 @@ impl<'t> TextTokenSource<'t> {
         }
     }
 }
-
