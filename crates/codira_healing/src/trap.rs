@@ -156,15 +156,15 @@ fn classify(code: i32) -> Option<FaultKind> {
 /// that's the documented, forward-compatible way to call it and because
 /// the exception dispatch mechanism that later reads a *restored* context
 /// does consult `ContextFlags` to decide which groups to actually apply.
-#[repr(transparent)]
+#[repr(C, align(16))]
 struct Checkpoint(CONTEXT);
 
 thread_local! {
     // The active checkpoint for `protected` on this thread, if any is
     // currently in scope, plus a slot the exception handler fills in with
     // the fault details before restoring it.
-    static CHECKPOINT: Cell<*mut Checkpoint> = Cell::new(std::ptr::null_mut());
-    static LAST_FAULT: Cell<Option<FaultInfo>> = Cell::new(None);
+    static CHECKPOINT: Cell<*mut Checkpoint> = const { Cell::new(std::ptr::null_mut()) };
+    static LAST_FAULT: Cell<Option<FaultInfo>> = const { Cell::new(None) };
 }
 
 static HANDLER_INSTALLED: AtomicBool = AtomicBool::new(false);
@@ -175,7 +175,7 @@ unsafe extern "system" fn vectored_handler(info: *mut EXCEPTION_POINTERS) -> i32
         return EXCEPTION_CONTINUE_SEARCH;
     };
 
-    let checkpoint = CHECKPOINT.with(|c| c.get());
+    let checkpoint = CHECKPOINT.with(std::cell::Cell::get);
     if checkpoint.is_null() {
         // No `protected` call is active on this thread right now -- this
         // fault is nobody's to catch, so let it propagate normally (which
@@ -184,7 +184,7 @@ unsafe extern "system" fn vectored_handler(info: *mut EXCEPTION_POINTERS) -> i32
     }
 
     let faulting_address = if kind == FaultKind::AccessViolation && record.NumberParameters >= 2 {
-        Some(record.ExceptionInformation[1] as usize)
+        Some(record.ExceptionInformation[1])
     } else {
         None
     };
@@ -247,28 +247,25 @@ pub fn install() {
 /// really attempted and really failed. What this recovers is *control
 /// flow*: instead of the process terminating, execution resumes right
 /// after the `protected` call, in a known-good CPU/stack state (restored
-/// via `longjmp`), with the fault's details available in the returned
-/// `Err`. Anything `f` was in the middle of doing is abandoned, not
-/// completed or undone.
+/// by overwriting the exception's `CONTEXT` record with a checkpoint
+/// captured via `RtlCaptureContext`), with the fault's details available
+/// in the returned `Err`. Anything `f` was in the middle of doing is
+/// abandoned, not completed or undone.
 pub fn protected<T>(f: impl FnOnce() -> T) -> Result<T, FaultInfo> {
     let mut checkpoint = Checkpoint(unsafe { std::mem::zeroed() });
     checkpoint.0.ContextFlags = CONTEXT_FULL;
-    eprintln!("capturing context");
     // Safety: `checkpoint` is a local that stays alive for the whole call,
     // and `RtlCaptureContext` only writes to it.
     unsafe { RtlCaptureContext(&mut checkpoint.0) };
-    eprintln!("context captured");
 
-    if LAST_FAULT.with(|f| f.get()).is_some() {
+    if LAST_FAULT.with(std::cell::Cell::get).is_some() {
         return Err(LAST_FAULT
-            .with(|f| f.take())
+            .with(std::cell::Cell::take)
             .expect("the handler always records a fault before restoring"));
     }
 
     CHECKPOINT.with(|c| c.set(&mut checkpoint));
-    eprintln!("checkpoint armed, running f");
     let result = f();
-    eprintln!("f returned");
 
     CHECKPOINT.with(|c| c.set(std::ptr::null_mut()));
     Ok(result)
@@ -284,15 +281,8 @@ mod tests {
 
     #[test]
     fn normal_execution_returns_ok() {
-        eprintln!("before install");
         ensure_installed();
-        eprintln!("installed");
-        let mut c: CONTEXT = unsafe { std::mem::zeroed() };
-        c.ContextFlags = CONTEXT_FULL;
-        unsafe { RtlCaptureContext(&mut c) };
-        eprintln!("RtlCaptureContext ok");
         let result = protected(|| 2 + 2);
-        eprintln!("protected returned: {:?}", result);
         assert_eq!(result, Ok(4));
     }
 
@@ -305,10 +295,19 @@ mod tests {
     fn catches_real_integer_divide_by_zero() {
         ensure_installed();
 
-        let divisor = std::hint::black_box(0i32);
-        let result = protected(|| {
-            let numerator = std::hint::black_box(10i32);
-            numerator / divisor
+        let result = protected(|| unsafe {
+            let mut res: i32;
+            core::arch::asm!(
+                "mov eax, 10",
+                "cdq",
+                "idiv {den:e}",
+                "mov {res:e}, eax",
+                den = in(reg) 0i32,
+                res = out(reg) res,
+                out("eax") _,
+                out("edx") _,
+            );
+            res
         });
 
         match result {
@@ -359,8 +358,20 @@ mod tests {
     fn runtime_remains_usable_after_a_caught_fault() {
         ensure_installed();
 
-        let divisor = std::hint::black_box(0i32);
-        let _ = protected(|| std::hint::black_box(1i32) / divisor);
+        let _ = protected(|| unsafe {
+            let mut res: i32;
+            core::arch::asm!(
+                "mov eax, 1",
+                "cdq",
+                "idiv {den:e}",
+                "mov {res:e}, eax",
+                den = in(reg) 0i32,
+                res = out(reg) res,
+                out("eax") _,
+                out("edx") _,
+            );
+            res
+        });
 
         // The thread-local checkpoint/fault slots must have been cleaned
         // up correctly, and ordinary execution must proceed normally.
@@ -371,8 +382,20 @@ mod tests {
 
         // And another real fault right after that must still be caught
         // correctly too -- proves this isn't a "works once" mechanism.
-        let divisor2 = std::hint::black_box(0i32);
-        let result = protected(|| std::hint::black_box(99i32) / divisor2);
+        let result = protected(|| unsafe {
+            let mut res: i32;
+            core::arch::asm!(
+                "mov eax, 99",
+                "cdq",
+                "idiv {den:e}",
+                "mov {res:e}, eax",
+                den = in(reg) 0i32,
+                res = out(reg) res,
+                out("eax") _,
+                out("edx") _,
+            );
+            res
+        });
         assert!(matches!(
             result,
             Err(FaultInfo {

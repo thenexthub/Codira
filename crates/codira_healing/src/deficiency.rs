@@ -8,8 +8,8 @@
 //! Functionality (per Section 6.1 of the HERACLES spec):
 //! - `HealingDeficiencyReport`: a structured report describing a site whose
 //!   healing is under-performing, mirroring the JSON shape in the spec
-//!   (site_id, module, fault_class, dominant_strategy_success_rate,
-//!   window_size, suggested_action).
+//!   (`site_id`, module, `fault_class`, `dominant_strategy_success_rate`,
+//!   `window_size`, `suggested_action`).
 //! - `DeficiencyDetector`: watches fingerprint observations over a sliding
 //!   window and emits an HDR when the dominant strategy's success rate
 //!   falls below a configurable threshold `θ` (default 0.10) over a window
@@ -129,11 +129,11 @@ impl DeficiencyDetector {
             .max_by(|a, b| a.1 .0.cmp(&b.1 .0))
             .map(|(k, v)| (*k, *v))?;
 
-        let rate = successes as f64 / attempts as f64;
+        let rate = f64::from(successes) / f64::from(attempts);
         if rate < self.threshold && !self.reported.contains(&site_id) {
             self.reported.push(site_id);
             return Some(HealingDeficiencyReport {
-                site_id: format!("0x{:08X}", site_id),
+                site_id: format!("0x{site_id:08X}"),
                 module: "unknown".to_owned(),
                 fault_class: "unspecified".to_owned(),
                 dominant_strategy_success_rate: (rate * 100.0) as u64,

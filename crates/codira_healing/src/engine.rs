@@ -1,4 +1,4 @@
-//! The HealingEngine: ties [`crate::trap`], [`crate::ranker`],
+//! The `HealingEngine`: ties [`crate::trap`], [`crate::ranker`],
 //! [`crate::fingerprint`], [`crate::contract`], [`crate::recovery_graph`],
 //! [`crate::supervisor`], [`crate::deficiency`], and `codira_smt` together
 //! into a working adaptive-healing engine.
@@ -158,12 +158,9 @@ impl HealingEngine {
     /// throw, per the contract's `PropagateToParent` semantics).
     pub fn handle_fault(&self, site_id: u64, fault: FaultClass) -> HealingResult {
         let mut sites = self.sites.lock();
-        let site = match sites.get_mut(&site_id) {
-            Some(site) => site.get_mut(),
-            None => {
-                warn!("no healing contract registered for site {site_id:#x}; escalating");
-                return HealingResult::Escalated(fault);
-            }
+        let site = if let Some(site) = sites.get_mut(&site_id) { site.get_mut() } else {
+            warn!("no healing contract registered for site {site_id:#x}; escalating");
+            return HealingResult::Escalated(fault);
         };
 
         site.fingerprint.record_fault(fault_tag(&fault));
@@ -192,19 +189,19 @@ impl HealingEngine {
 
         let mut outcome = None;
         for strategy in order {
-            if !self.is_strategy_feasible(&site, &strategy) {
+            if !self.is_strategy_feasible(site, &strategy) {
                 debug!("strategy {strategy} not feasible at site {site_id:#x}; skipping");
                 continue;
             }
 
-            match self.try_strategy(&site, &strategy) {
+            match self.try_strategy(site, &strategy) {
                 (Some(value), latency) => {
                     // Postcondition check (Section 4.2.3 / A.1 step 3).
                     let passes = site
                         .contract
                         .postcondition
                         .as_ref()
-                        .map_or(true, |pred| pred(&value));
+                        .is_none_or(|pred| pred(&value));
                     if passes {
                         let outcome_strategy = strategy.to_string();
                         site.fingerprint.record_recovery(&outcome_strategy, true, latency);
@@ -231,7 +228,7 @@ impl HealingEngine {
         }
 
         let _ = started;
-        outcome.unwrap_or_else(|| HealingResult::Escalated(fault))
+        outcome.unwrap_or(HealingResult::Escalated(fault))
     }
 
     /// Tries one strategy, returning `(Some(value), latency)` on success or
@@ -277,7 +274,7 @@ impl HealingEngine {
     }
 
     /// Feasibility checking per Section 4.2.2. Uses SMT when the strategy
-    /// requires a proof (SubstituteAlternate); the rest are checked against
+    /// requires a proof (`SubstituteAlternate`); the rest are checked against
     /// the contract's declared capabilities.
     fn is_strategy_feasible(&self, site: &SiteState, strategy: &HealingStrategy) -> bool {
         match strategy {

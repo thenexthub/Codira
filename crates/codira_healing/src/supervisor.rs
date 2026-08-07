@@ -14,13 +14,20 @@
 //! - Child restart types: `Permanent` (always restart), `Transient`
 //!   (restart only on abnormal exit), `Temporary` (never restart).
 //! - `SupervisorTree`: a registry of supervisors and their child links, used
-//!   by the engine for module-tier healing (DegradeGracefully /
-//!   IsolateAndRestart / PropagateToParent).
+//!   by the engine for module-tier healing (`DegradeGracefully` /
+//!   `IsolateAndRestart` / `PropagateToParent`).
 
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 use parking_lot::Mutex;
+
+/// The numeric fault-class tag used when a TTL probe expires: a module
+/// missed its heartbeat, which is a `Timeout` by the engine's taxonomy
+/// (engine.rs `fault_tag` maps `FaultClass::Timeout` to 2).
+pub fn timeout_fault_tag() -> u32 {
+    2
+}
 
 /// The restart strategy of a supervisor (Section 3.5 of the spec).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -53,9 +60,9 @@ pub struct ChildSpec {
     pub module: String,
     /// How the child is restarted.
     pub child_type: ChildType,
-    /// Whether the child's healing is memoizable (ReturnCached feasible).
+    /// Whether the child's healing is memoizable (`ReturnCached` feasible).
     pub healing_memoizable: bool,
-    /// Whether the child is idempotent up to N calls (RetryWithBackoff
+    /// Whether the child is idempotent up to N calls (`RetryWithBackoff`
     /// feasible).
     pub idempotent_up_to: u32,
 }

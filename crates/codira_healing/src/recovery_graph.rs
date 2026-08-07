@@ -104,6 +104,7 @@ impl RecoveryEdge {
 
 /// A semantically-safe recovery graph: a DAG of [`RecoveryNode`]s connected
 /// by [`RecoveryEdge`]s.
+#[derive(Default)]
 pub struct RecoveryGraph {
     nodes: Vec<RecoveryNode>,
     edges: Vec<RecoveryEdge>,
@@ -188,15 +189,6 @@ impl RecoveryGraph {
     }
 }
 
-impl Default for RecoveryGraph {
-    fn default() -> Self {
-        RecoveryGraph {
-            nodes: Vec::new(),
-            edges: Vec::new(),
-            adjacency: HashMap::new(),
-        }
-    }
-}
 
 #[cfg(test)]
 mod tests {

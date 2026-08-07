@@ -28,7 +28,7 @@ yarn.lock
 .idea/**/libraries
 
 # Build artifacts
-*.munlib
+*.codiralib
 **/target/*
 
 # Visual Studio
@@ -37,7 +37,7 @@ out/
 CMakeSettings.json
 
 # Build artifacts
-*.munlib
+*.codiralib
 **/target/*
 build/
 
@@ -51,3 +51,4 @@ cmake-build-*/
 /.claude
 /tools
 /modular
+*.snap
