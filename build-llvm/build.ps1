@@ -72,6 +72,11 @@ if (-not $Skip) {
         Write-Log "Extracting llvm-project ..."
         New-Item -ItemType Directory -Force -Path "$Workspace\src" | Out-Null
         tar -xf $archive -C "$Workspace\src"
+        $extracted = Get-ChildItem "$Workspace\src" -Directory -Filter "llvm-project-*" | Select-Object -First 1
+        if (-not $extracted) { throw "no llvm-project-* directory after extraction" }
+        if (-not (Test-Path "$srcDir")) {
+            Rename-Item -Path $extracted.FullName -NewName "llvm-$Ref"
+        }
         if (-not (Test-Path "$srcDir\llvm\CMakeLists.txt")) {
             throw "expected llvm-project checkout at $srcDir (extraction layout changed?)"
         }
