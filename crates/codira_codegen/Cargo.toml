@@ -34,7 +34,7 @@ by_address = { workspace = true }
 bytemuck = { workspace = true }
 codira_hir = { version = "0.6.0-dev", path = "../codira_hir" }
 codira_hir_input = { version = "0.6.0-dev", path = "../codira_hir_input" }
-inkwell = { workspace = true, features = ["llvm14-0"], default-features = false }
+inkwell = { workspace = true, features = ["llvm22-1"], default-features = false }
 itertools = { workspace = true }
 codira_codegen_macros = { version = "0.6.0-dev", path = "../codira_codegen_macros" }
 codira_target = { version = "0.6.0-dev", path = "../codira_target" }
