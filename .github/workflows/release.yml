@@ -39,7 +39,18 @@ jobs:
           profile: minimal
           override: true
 
-      - name: Install LLVM
+      - name: Install LLVM (Linux)
+        if: runner.os == 'Linux'
+        run: sudo bash scripts/install-llvm.sh
+
+      - name: Install LLVM (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install llvm@14
+          echo "$(brew --prefix llvm@14)/bin" >> $GITHUB_PATH
+
+      - name: Install LLVM (Windows)
+        if: runner.os == 'Windows'
         uses: ./.github/actions/install-llvm
 
       - name: Cargo build
