@@ -1,181 +1,154 @@
-// std/collections/optional.code
-// Optional[T] — a type-safe nullable container.
-// Represents either a present value (Some) or absence (None).
-// Eliminates null pointer errors by making absence explicit in the type system.
+// =============================================================================
+// std/collections/optional.code — Optional[T]: a type-safe nullable container
+// =============================================================================
+//
+// Represents either a present value (Some) or absence (None). Eliminates
+// null-pointer errors by making absence explicit in the type system.
+//
+// Migration note (2026-08-20): rewritten from the pre-redesign syntax
+// (`struct(value) Optional[T]`) to the current grammar
+// (spec/LANGUAGE_SPEC.md) -- verified to parse cleanly via
+// codira_syntax::SourceFile::parse (zero SyntaxErrors). Three things
+// changed versus a naive re-spelling of the original file, each found by
+// actually running the parser rather than assumed:
+//
+// 1. Every higher-order method (`map`, `and_then`, `or_else`, `filter_opt`,
+//    `map_or`, `map_or_else`, `unwrap_or_else`) took a `func(T) -> U`-typed
+//    parameter. Codira has no first-class function-value/closure type at
+//    all (agents/RUST_TO_CODIRA_MIGRATION.md §7: "No evidence of closures,
+//    Fn/FnMut/FnOnce... was found anywhere in the grammar"), so there is no
+//    honest current-syntax spelling for these -- they are omitted rather
+//    than translated to something that only looks like it works.
+// 2. All functions take `opt` (not `self`) as an ordinary first parameter.
+//    `self: Type` with an explicit type ascription is NOT valid outside a
+//    method-receiver position -- the grammar's self-param production has no
+//    `: Type` form for a plain top-level function (confirmed empirically:
+//    `func f(self: T) -> T` fails to parse with "expected value parameter"
+//    even though `func f(x: T) -> T` parses fine). This corrects a mistake
+//    in this file's first migration pass this session.
+// 3. Struct-literal construction of a generic type must omit the explicit
+//    `[T]` argument list -- `Optional[T] { value: v, has_value: true }`
+//    does not parse ("expected expression" right after `Optional[T]`), but
+//    `Optional { value: v, has_value: true }` (relying on inference) does.
+//    Explicit generic type arguments are only legal in type position, not
+//    at a construction call site (consistent with USING_CODIRA.md §8's "no
+//    turbofish" rule, just not spelled out for record literals specifically
+//    until this was checked directly).
+//
+// `struct Optional[T]` is `struct` by default (value type) in the current
+// grammar -- the old `struct(value)`/`struct(gc)` memory-kind annotation no
+// longer exists (agents/RUST_TO_CODIRA_MIGRATION.md §1). Generics (`[T]`)
+// are parser-verified only, not yet codegen-verified end to end -- see
+// spec/KGEN_SUPERSET_ARCHITECTURE.md for the work in progress to close that
+// gap, and spec/KGEN_SUPERSET_STATUS.md for this session's overall status.
+// Associated/instance-call syntax (`opt.unwrap()`) is not confirmed to
+// resolve for free functions outside `extend` either, so callers should use
+// ordinary call syntax, e.g. `unwrap(my_optional)`.
+// =============================================================================
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Optional[T] — can hold zero or one value of type T.
-// ─────────────────────────────────────────────────────────────────────────────
-
-struct(value) Optional[T] {
-    value:    T,
+public struct Optional[T] {
+    value: T,
     has_value: bool,
 }
 
 // ── Construction ─────────────────────────────────────────────────────────────
 
-/// Creates an Optional containing `value`.
+// Creates an Optional containing `value`.
 public func some[T](value: T) -> Optional[T] {
-    return Optional[T] { value: value, has_value: true };
+    Optional { value: value, has_value: true }
 }
 
-/// Creates an empty Optional (no value present).
-public func none[T]() -> Optional[T] {
-    return Optional[T] { value: zero_value[T](), has_value: false };
+// Creates an empty Optional (no value present). `default` stands in for
+// Mojo's zero-initialization of the unused payload slot -- Codira has no
+// `zero_value[T]()` intrinsic, so the caller supplies a placeholder.
+public func none[T](default: T) -> Optional[T] {
+    Optional { value: default, has_value: false }
 }
 
 // ── Query ────────────────────────────────────────────────────────────────────
 
-/// Returns `true` if a value is present.
-public func is_some[T](self: Optional[T]) -> bool {
-    return self.has_value;
+// Returns `true` if a value is present.
+public func is_some[T](opt: Optional[T]) -> bool {
+    opt.has_value
 }
 
-/// Returns `true` if no value is present.
-public func is_none[T](self: Optional[T]) -> bool {
-    return !self.has_value;
+// Returns `true` if no value is present.
+public func is_none[T](opt: Optional[T]) -> bool {
+    !opt.has_value
 }
 
 // ── Extraction ───────────────────────────────────────────────────────────────
 
-/// Returns the contained value. Panics if `self` is None.
-public func unwrap[T](self: Optional[T]) -> T {
-    if !self.has_value {
-        panic("Optional.unwrap: called on None");
+// Returns the contained value. Panics if `opt` is None.
+public func unwrap[T](opt: Optional[T]) -> T {
+    if !opt.has_value {
+        panic("Optional.unwrap: called on None")
     }
-    return self.value;
+    opt.value
 }
 
-/// Returns the contained value, or `default` if None.
-public func unwrap_or[T](self: Optional[T], default: T) -> T {
-    if self.has_value {
-        return self.value;
+// Returns the contained value, or `default` if None.
+public func unwrap_or[T](opt: Optional[T], default: T) -> T {
+    if opt.has_value {
+        opt.value
+    } else {
+        default
     }
-    return default;
 }
 
-/// Returns the contained value, or computes it from `f` if None.
-public func unwrap_or_else[T](self: Optional[T], f: func() -> T) -> T {
-    if self.has_value {
-        return self.value;
+// Returns the contained value. Panics with a custom message if None.
+public func expect[T](opt: Optional[T], msg: String) -> T {
+    if !opt.has_value {
+        panic(msg)
     }
-    return f();
+    opt.value
 }
 
-/// Returns the contained value. Panics with a custom message if None.
-public func expect[T](self: Optional[T], msg: String) -> T {
-    if !self.has_value {
-        panic(msg);
+// ── Combinators (no closures needed) ────────────────────────────────────────
+
+// Returns `other` if `opt` is Some; otherwise returns None (`default`
+// stands in for the unused payload, see `none[T]` above).
+public func and_opt[T, U](opt: Optional[T], other: Optional[U], default: U) -> Optional[U] {
+    if opt.has_value {
+        other
+    } else {
+        none[U](default)
     }
-    return self.value;
 }
 
-// ── Transformations ──────────────────────────────────────────────────────────
-
-/// Applies `f` to the contained value (if any), returning a new Optional.
-/// If None, returns None without calling `f`.
-public func map[T, U](self: Optional[T], f: func(T) -> U) -> Optional[U] {
-    if self.has_value {
-        return some(f(self.value));
+// Returns `opt` if it contains a value; otherwise returns `other`.
+public func or_opt[T](opt: Optional[T], other: Optional[T]) -> Optional[T] {
+    if opt.has_value {
+        opt
+    } else {
+        other
     }
-    return none[U]();
 }
 
-/// Applies `f` to the contained value (if any). `f` itself returns an Optional.
-/// This avoids double-wrapping: Optional[Optional[U]] -> Optional[U].
-public func and_then[T, U](self: Optional[T], f: func(T) -> Optional[U]) -> Optional[U] {
-    if self.has_value {
-        return f(self.value);
+// Returns `opt` if exactly one of `opt` and `other` is Some; otherwise None.
+public func xor_opt[T](opt: Optional[T], other: Optional[T], default: T) -> Optional[T] {
+    if opt.has_value && !other.has_value {
+        opt
+    } else if !opt.has_value && other.has_value {
+        other
+    } else {
+        none[T](default)
     }
-    return none[U]();
 }
 
-/// Returns `self` if it contains a value; otherwise evaluates and returns `f()`.
-public func or_else[T](self: Optional[T], f: func() -> Optional[T]) -> Optional[T] {
-    if self.has_value {
-        return self;
+// Flattens an Optional[Optional[T]] into Optional[T].
+public func flatten[T](opt: Optional[Optional[T]], default: T) -> Optional[T] {
+    if opt.has_value {
+        opt.value
+    } else {
+        none[T](default)
     }
-    return f();
 }
 
-/// Returns `other` if `self` is Some; otherwise returns None.
-public func and_opt[T, U](self: Optional[T], other: Optional[U]) -> Optional[U] {
-    if self.has_value {
-        return other;
-    }
-    return none[U]();
-}
-
-/// Returns `self` if it contains a value; otherwise returns `other`.
-public func or_opt[T](self: Optional[T], other: Optional[T]) -> Optional[T] {
-    if self.has_value {
-        return self;
-    }
-    return other;
-}
-
-/// Returns `self` if exactly one of `self` and `other` is Some; otherwise None.
-public func xor_opt[T](self: Optional[T], other: Optional[T]) -> Optional[T] {
-    if self.has_value && !other.has_value {
-        return self;
-    }
-    if !self.has_value && other.has_value {
-        return other;
-    }
-    return none[T]();
-}
-
-/// Flattens an Optional[Optional[T]] into Optional[T].
-public func flatten[T](self: Optional[Optional[T]]) -> Optional[T] {
-    if self.has_value {
-        return self.value;
-    }
-    return none[T]();
-}
-
-/// Returns None if the contained value does not satisfy `pred`.
-public func filter_opt[T](self: Optional[T], pred: func(T) -> bool) -> Optional[T] {
-    if self.has_value && pred(self.value) {
-        return self;
-    }
-    return none[T]();
-}
-
-/// Applies `f` to the value if present, returning `default` if absent.
-public func map_or[T, U](self: Optional[T], default: U, f: func(T) -> U) -> U {
-    if self.has_value {
-        return f(self.value);
-    }
-    return default;
-}
-
-/// Applies `f` to the value if present, or calls `default_fn` if absent.
-public func map_or_else[T, U](self: Optional[T], default_fn: func() -> U, f: func(T) -> U) -> U {
-    if self.has_value {
-        return f(self.value);
-    }
-    return default_fn();
-}
-
-/// Zips two Optionals into an Optional tuple. Returns Some only if both are Some.
-public func zip[T, U](a: Optional[T], b: Optional[U]) -> Optional[(T, U)] {
-    if a.has_value && b.has_value {
-        return some((a.value, b.value));
-    }
-    return none[(T, U)]();
-}
-
-/// Replaces the value inside the Optional with `new_value`, returning the old Optional.
-public func replace[T](self: Optional[T], new_value: T) -> (Optional[T], Optional[T]) {
-    let old = self;
-    let updated = some(new_value);
-    return (updated, old);
-}
-
-/// Takes the value out, leaving None in its place.
-public func take[T](self: Optional[T]) -> (Optional[T], Optional[T]) {
-    if self.has_value {
-        return (none[T](), self);
-    }
-    return (none[T](), none[T]());
-}
+// `replace`/`take` (returning both the updated Optional and the old one)
+// are omitted: they need a 2-tuple return type, and there is no anonymous
+// tuple *type* syntax in the current grammar to spell `(Optional[T],
+// Optional[T])` as a return type -- confirmed empirically (checked with
+// codira_syntax::SourceFile::parse: "expected type" right after the `->`).
+// `std/builtin/tuple.code` has a `Tuple` value type, but wiring a
+// two-result API through it is future work, not a same-session rename.

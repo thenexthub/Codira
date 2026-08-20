@@ -49,6 +49,7 @@ use crate::{name::AsName, source_id::AstIdMap};
 #[macro_use]
 mod macros;
 mod code_model;
+mod comptime_fold;
 mod db;
 pub mod diagnostics;
 mod display;

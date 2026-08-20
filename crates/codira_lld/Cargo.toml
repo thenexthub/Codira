@@ -10,7 +10,7 @@ categories = ["linkers", "compilers"]
 
 [dependencies]
 libc = "0.2.138"
-llvm-sys = "220.0.0"
+llvm-sys = "221.0.0"
 
 [build-dependencies]
 cc = "1.0.116"

@@ -89,6 +89,22 @@ fn test_impls() {
 }
 
 #[test]
+fn test_generic_params() {
+    insta::assert_snapshot!(print_item_tree(
+        r#"
+    struct Box[T] {
+        value: T,
+    }
+    struct SIMD[T, N: usize] {
+        data: T,
+    }
+    func first[T](items: T) -> T {}
+    "#
+    )
+    .unwrap());
+}
+
+#[test]
 fn test_duplicate_import() {
     insta::assert_snapshot!(print_item_tree(
         r#"
