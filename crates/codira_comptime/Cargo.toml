@@ -1,0 +1,19 @@
+[package]
+name = "codira_comptime"
+description = "Parametric compile-time evaluator and elaborator (monomorphizer) for codira_mir -- see spec/KGEN_SUPERSET_ARCHITECTURE.md"
+keywords = ["game", "hot-reloading", "language", "codira", "compiler"]
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+codira_mir = { version = "0.6.0-dev", path = "../codira_mir" }
+rustc-hash = { workspace = true, features = ["std"] }
+smol_str = { workspace = true }
+thiserror = { workspace = true }

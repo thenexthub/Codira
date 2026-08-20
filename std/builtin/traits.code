@@ -13,6 +13,19 @@
 //   - Identity:    Identifiable
 //   - Containers:  Indexable, Iterable, Collection, Lengthable
 // =============================================================================
+//
+// Migration note (2026-08-20): verified to parse cleanly under the current
+// grammar (spec/LANGUAGE_SPEC.md; checked via codira_syntax::SourceFile::
+// parse -- zero SyntaxErrors). The only fix needed was dropping the `&`
+// reference sigil from `Hasher`/`Writer`/`Formatter` parameter types --
+// Codira's grammar has no `&`/`&mut` at all (see
+// agents/RUST_TO_CODIRA_MIGRATION.md §3); those types are meant to be
+// `class` (GC reference) types, which need no sigil to pass by reference.
+// `trait` itself is still a Tier-2 construct (parses, not yet resolved into
+// name-resolvable HIR items -- see spec's §12 implementation status), so
+// this is "parses correctly," not "compiles and runs" -- see
+// spec/KGEN_SUPERSET_STATUS.md for the session-wide status.
+// =============================================================================
 
 // ---------------------------------------------------------------------------
 // Lifecycle traits
@@ -108,12 +121,12 @@ public trait Comparable: EqualityComparable {
 // A type that can produce a deterministic hash value.
 public trait Hashable {
     // Compute a hash of `self` and fold it into the given hasher state.
-    func hash(self, hasher: &Hasher) -> void;
+    func hash(self, hasher: Hasher) -> void;
 
     // Convenience: return a standalone u64 hash.
     func hash_value(self) -> u64 {
         let h = Hasher.new();
-        self.hash(&h);
+        self.hash(h);
         return h.finish();
     }
 }
@@ -139,13 +152,13 @@ public trait Representable {
 // A type that can write its textual form into an output stream.
 public trait Writable {
     // Write `self` into `writer`.
-    func write_to(self, writer: &Writer) -> void;
+    func write_to(self, writer: Writer) -> void;
 }
 
 // A type that supports format-string interpolation with a format spec.
 public trait Formattable {
     // Format `self` according to `spec` and write into `formatter`.
-    func format(self, spec: StringSlice, formatter: &Formatter) -> void;
+    func format(self, spec: StringSlice, formatter: Formatter) -> void;
 }
 
 // ---------------------------------------------------------------------------

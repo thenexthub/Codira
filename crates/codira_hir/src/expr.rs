@@ -934,11 +934,27 @@ impl<'a> ExprCollector<'a> {
                 let index = self.collect_expr_opt(e.index());
                 self.alloc_expr(Expr::Index { base, index }, syntax_ptr)
             }
-            // `comptime { .. }` is transparently lowered to its inner block: the
-            // block's contents are fully type-checked like any other block, but the
-            // "must fully evaluate at compile time" restriction described in the
-            // language spec is not yet enforced here.
-            ast::ExprKind::ComptimeExpr(e) => self.collect_block_opt(e.body()),
+            // `comptime { .. }` lowers its inner block exactly as before (so
+            // anything inside still fully type-checks like an ordinary
+            // block), then attempts to fold it to a concrete literal via
+            // `codira_comptime` for the restricted subset described in
+            // `comptime_fold`'s module doc (literals, arithmetic/
+            // comparison/logical ops, unary neg/not, if/else, no
+            // statements/name references/calls). Blocks outside that
+            // subset fall back to the block itself, unevaluated -- the
+            // "must fully evaluate at compile time" restriction described
+            // in the language spec is not yet enforced for those.
+            ast::ExprKind::ComptimeExpr(e) => {
+                let block = self.collect_block_opt(e.body());
+                match crate::comptime_fold::try_eval(&self.exprs, block) {
+                    Some(value) => match crate::comptime_fold::value_to_expr(&mut self.exprs, value)
+                    {
+                        Some(folded) => self.alloc_expr(folded, syntax_ptr),
+                        None => block,
+                    },
+                    None => block,
+                }
+            }
             // `match`, `perform`, `handle`, and postfix `!` (force-unwrap) are fully
             // parsed (see `codira_syntax`), but HIR-level lowering -- pattern
             // exhaustiveness checking, effect obligation checking, and optional

@@ -9,8 +9,8 @@ use std::{fmt, fmt::Write};
 
 use crate::{
     item_tree::{
-        Fields, Function, Impl, Import, ItemTree, LocalItemTreeId, ModItem, Param, RawVisibilityId,
-        Struct, TypeAlias,
+        Fields, Function, GenericParamData, Impl, Import, ItemTree, LocalItemTreeId, ModItem,
+        Param, RawVisibilityId, Struct, TypeAlias,
     },
     path::ImportAlias,
     pretty::{print_path, print_type_ref},
@@ -128,11 +128,13 @@ impl Printer<'_> {
             visibility,
             name,
             types,
+            generic_params,
             fields,
             ast_id: _,
         } = &self.tree[it];
         self.print_visibility(*visibility)?;
         write!(self, "struct {name}")?;
+        self.print_generic_params(generic_params, types)?;
         match fields {
             Fields::Record(fields) => {
                 self.whitespace()?;
@@ -175,6 +177,7 @@ impl Printer<'_> {
             name,
             visibility,
             types,
+            generic_params,
             params,
             ret_type,
             ast_id: _,
@@ -185,6 +188,7 @@ impl Printer<'_> {
             write!(self, "extern ")?;
         }
         write!(self, "fn {name}")?;
+        self.print_generic_params(generic_params, types)?;
         write!(self, "(")?;
         if !params.is_empty() {
             self.indented(|this| {
@@ -210,6 +214,29 @@ impl Printer<'_> {
         write!(self, ") -> ")?;
         self.print_type_ref(*ret_type, types)?;
         writeln!(self, ";")
+    }
+
+    /// Prints a `[T, N: usize]`-style generic parameter list, if non-empty.
+    fn print_generic_params(
+        &mut self,
+        generic_params: &[GenericParamData],
+        types: &TypeRefMap,
+    ) -> fmt::Result {
+        if generic_params.is_empty() {
+            return Ok(());
+        }
+        write!(self, "[")?;
+        for (i, param) in generic_params.iter().enumerate() {
+            if i > 0 {
+                write!(self, ", ")?;
+            }
+            write!(self, "{}", param.name)?;
+            if let Some(bound) = param.bound {
+                write!(self, ": ")?;
+                self.print_type_ref(bound, types)?;
+            }
+        }
+        write!(self, "]")
     }
 
     /// Prints a [`RawVisibilityId`] to the buffer.

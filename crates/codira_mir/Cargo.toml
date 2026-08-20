@@ -1,0 +1,18 @@
+[package]
+name = "codira_mir"
+description = "Parametric mid-level IR (generators, structured control flow, SIMD/param ops) sitting between codira_hir and codira_codegen -- see spec/KGEN_SUPERSET_ARCHITECTURE.md"
+keywords = ["game", "hot-reloading", "language", "codira", "compiler"]
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+la-arena = { workspace = true }
+smallvec = { workspace = true }
+smol_str = { workspace = true }

@@ -18,6 +18,8 @@ codira_syntax = { version = "0.6.0-dev", path = "../codira_syntax" }
 codira_target = { version = "0.6.0-dev", path = "../codira_target" }
 codira_paths = { version = "0.6.0-dev", path="../codira_paths" }
 codira_hir_input = { version = "0.6.0-dev", path="../codira_hir_input" }
+codira_mir = { version = "0.6.0-dev", path = "../codira_mir" }
+codira_comptime = { version = "0.6.0-dev", path = "../codira_comptime" }
 drop_bomb = { workspace = true }
 either = { workspace = true }
 ena = { workspace = true }

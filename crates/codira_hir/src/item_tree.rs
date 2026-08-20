@@ -310,10 +310,30 @@ pub struct Function {
     pub name: Name,
     pub visibility: RawVisibilityId,
     pub types: TypeRefMap,
+    pub generic_params: Box<[GenericParamData]>,
     pub params: IdRange<Param>,
     pub ret_type: LocalTypeRefId,
     pub ast_id: FileAstId<ast::FunctionDef>,
     pub(crate) flags: FunctionFlags,
+}
+
+/// A single entry of a `[T, N: usize]`-style generic parameter list, as
+/// captured by the item tree.
+///
+/// `bound` is resolved against the *same* [`TypeRefMap`] as the rest of the
+/// owning item (`Function::types` / `Struct::types`) — it is not its own
+/// map. This mirrors how `Param::type_ref` and `Field::type_ref` work.
+///
+/// The grammar does not distinguish a trait-bounded type parameter
+/// (`T: Comparable`) from a value/const parameter (`N: usize`) — both parse
+/// as `name (":" type)?`. Telling them apart is a name-resolution concern
+/// (does `bound` resolve to a trait or to a concrete non-trait type?), left
+/// to the consumer of this data (see `codira_comptime`'s specialization
+/// logic), not something the item tree itself decides.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct GenericParamData {
+    pub name: Name,
+    pub bound: Option<LocalTypeRefId>,
 }
 
 bitflags::bitflags! {
@@ -360,6 +380,7 @@ pub struct Struct {
     pub name: Name,
     pub visibility: RawVisibilityId,
     pub types: TypeRefMap,
+    pub generic_params: Box<[GenericParamData]>,
     pub fields: Fields,
     pub ast_id: FileAstId<ast::StructDef>,
 }

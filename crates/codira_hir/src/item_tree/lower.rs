@@ -12,14 +12,15 @@ use std::{collections::HashMap, convert::TryInto, marker::PhantomData, sync::Arc
 use la_arena::{Idx, RawIdx};
 use codira_hir_input::FileId;
 use codira_syntax::ast::{
-    self, ExternOwner, ModuleItemOwner, NameOwner, StructKind, TypeAscriptionOwner,
+    self, ExternOwner, GenericParamsOwner, ModuleItemOwner, NameOwner, StructKind,
+    TypeAscriptionOwner,
 };
 use smallvec::SmallVec;
 
 use super::{
-    diagnostics, AssociatedItem, Field, Fields, Function, FunctionFlags, IdRange, Impl, ItemTree,
-    ItemTreeData, ItemTreeNode, ItemVisibilities, LocalItemTreeId, ModItem, Param, ParamAstId,
-    RawVisibilityId, Struct, TypeAlias,
+    diagnostics, AssociatedItem, Field, Fields, Function, FunctionFlags, GenericParamData,
+    IdRange, Impl, ItemTree, ItemTreeData, ItemTreeNode, ItemVisibilities, LocalItemTreeId,
+    ModItem, Param, ParamAstId, RawVisibilityId, Struct, TypeAlias,
 };
 use crate::{
     item_tree::Import,
@@ -170,10 +171,33 @@ impl Context {
     }
 
     /// Lowers a function
+    /// Lowers a `[T, U: Bound]`-style generic parameter list, if present.
+    ///
+    /// Bounds are allocated into `types` so callers can resolve them the
+    /// same way they resolve param/field/return types (see
+    /// [`GenericParamData`]).
+    fn lower_generic_params(
+        &mut self,
+        owner: &impl GenericParamsOwner,
+        types: &mut TypeRefMapBuilder,
+    ) -> Box<[GenericParamData]> {
+        let Some(list) = owner.generic_param_list() else {
+            return Box::new([]);
+        };
+        list.generic_params()
+            .filter_map(|param| {
+                let name = param.name()?.as_name();
+                let bound = param.bound().map(|bound| types.alloc_from_node(&bound));
+                Some(GenericParamData { name, bound })
+            })
+            .collect()
+    }
+
     fn lower_function(&mut self, func: &ast::FunctionDef) -> Option<LocalItemTreeId<Function>> {
         let name = func.name()?.as_name();
         let visibility = lower_visibility(func);
         let mut types = TypeRefMap::builder();
+        let generic_params = self.lower_generic_params(func, &mut types);
 
         // Lower all the params
         let start_param_idx = self.next_param_idx();
@@ -228,6 +252,7 @@ impl Context {
             name,
             visibility,
             types,
+            generic_params,
             params,
             ret_type,
             ast_id,
@@ -242,6 +267,7 @@ impl Context {
         let name = strukt.name()?.as_name();
         let visibility = lower_visibility(strukt);
         let mut types = TypeRefMap::builder();
+        let generic_params = self.lower_generic_params(strukt, &mut types);
         let fields = self.lower_fields(&strukt.kind(), &mut types);
         let ast_id = self.source_ast_id_map.ast_id(strukt);
 
@@ -250,6 +276,7 @@ impl Context {
             name,
             visibility,
             types,
+            generic_params,
             fields,
             ast_id,
         };
