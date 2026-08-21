@@ -130,9 +130,13 @@ impl Printer<'_> {
             types,
             generic_params,
             fields,
+            is_data,
             ast_id: _,
         } = &self.tree[it];
         self.print_visibility(*visibility)?;
+        if *is_data {
+            write!(self, "data ")?;
+        }
         write!(self, "struct {name}")?;
         self.print_generic_params(generic_params, types)?;
         match fields {
@@ -180,6 +184,7 @@ impl Printer<'_> {
             generic_params,
             params,
             ret_type,
+            effects,
             ast_id: _,
             flags,
         } = &self.tree[it];
@@ -198,6 +203,13 @@ impl Printer<'_> {
                     params.next();
 
                     write!(this, "self")?;
+                    // A trailing comma after `self`, matching this printer's
+                    // convention everywhere else (record fields, other
+                    // params below) -- without this, `self` ran directly
+                    // into the next param's printed type with no separator
+                    // at all (e.g. `self, other: Point` printed as
+                    // `selfPoint`).
+                    writeln!(this, ",")?;
                 }
 
                 for param in params {
@@ -211,7 +223,18 @@ impl Printer<'_> {
                 Ok(())
             })?;
         }
-        write!(self, ") -> ")?;
+        write!(self, ") ")?;
+        if !effects.is_empty() {
+            write!(self, "uses ")?;
+            for (i, effect) in effects.iter().enumerate() {
+                if i > 0 {
+                    write!(self, ", ")?;
+                }
+                write!(self, "{effect}")?;
+            }
+            write!(self, " ")?;
+        }
+        write!(self, "-> ")?;
         self.print_type_ref(*ret_type, types)?;
         writeln!(self, ";")
     }

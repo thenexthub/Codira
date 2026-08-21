@@ -22,7 +22,9 @@ use crate::{
     Visibility,
 };
 
+mod effect_obligation;
 mod literal_out_of_range;
+mod move_check;
 mod uninitialized_access;
 
 #[cfg(test)]
@@ -53,6 +55,9 @@ impl<'a> ExprValidator<'a> {
         self.validate_uninitialized_access(sink);
         self.validate_extern(sink);
         self.validate_privacy(sink);
+        self.validate_effect_obligations(sink);
+        self.validate_healing_contract(sink);
+        self.validate_move_checking(sink);
     }
 
     pub fn validate_privacy(&self, sink: &mut DiagnosticSink<'_>) {
@@ -88,6 +93,20 @@ impl<'a> ExprValidator<'a> {
                         .unwrap(),
                 });
             });
+    }
+
+    /// Checks a `@heal(..., postcondition: <expr>)` healing contract's
+    /// postcondition for satisfiability -- see `crate::heal_check`.
+    pub fn validate_healing_contract(&self, sink: &mut DiagnosticSink<'_>) {
+        let src = self.func.source(self.db);
+        if crate::heal_check::check_heal_postcondition(&src.value)
+            == Some(crate::refinement_check::RefinementCheckResult::Unsatisfiable)
+        {
+            sink.push(crate::diagnostics::UnsatisfiableHealingPostcondition {
+                file: src.file_id,
+                func: SyntaxNodePtr::new(src.value.syntax()),
+            });
+        }
     }
 
     pub fn validate_extern(&self, sink: &mut DiagnosticSink<'_>) {
@@ -185,6 +204,36 @@ impl<'a> TypeAliasValidator<'a> {
                 type_alias_def: src.map(|t| SyntaxNodePtr::new(t.syntax())),
                 kind: kind.to_string(),
                 name: name.to_string(),
+            });
+        }
+    }
+
+    /// Validates that, if this `TypeAlias`'s target is a refinement type
+    /// (`Type { binder | predicate }`), the predicate is satisfiable --
+    /// see `crate::refinement_check`. Only the top-level target type is
+    /// checked (`type Foo = i32 { x | .. }`, not a refinement nested
+    /// inside e.g. an array element type), matching the language spec's
+    /// own primary documented use case (a refinement type must be named
+    /// via a `type` alias to be spelled unambiguously at all -- see
+    /// `spec/LANGUAGE_SPEC.md` §12's refinement-type limitation note).
+    pub fn validate_refinement_satisfiability(&self, sink: &mut DiagnosticSink<'_>) {
+        let src = self.type_alias.source(self.db);
+        let Some(type_ref) = src.value.type_ref() else {
+            return;
+        };
+        let codira_syntax::ast::TypeRefKind::RefinementType(rt) = type_ref.kind() else {
+            return;
+        };
+        let (Some(binder), Some(predicate)) = (rt.binder(), rt.predicate()) else {
+            return;
+        };
+
+        use crate::refinement_check::{check_satisfiable, RefinementCheckResult};
+        if check_satisfiable(&binder.text(), &predicate) == RefinementCheckResult::Unsatisfiable {
+            sink.push(crate::diagnostics::UnsatisfiableRefinement {
+                file: src.file_id,
+                type_ref: SyntaxNodePtr::new(type_ref.syntax()),
+                predicate_text: predicate.syntax().text().to_string(),
             });
         }
     }

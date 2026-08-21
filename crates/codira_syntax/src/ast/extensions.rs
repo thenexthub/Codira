@@ -164,6 +164,16 @@ impl ast::StructDef {
             .any(|it| it.kind() == T![class])
     }
 
+    /// Whether this declaration carries the `data` modifier (Kotlin-style
+    /// `data class`/`data struct`; see spec/LANGUAGE_SPEC.md section 15).
+    /// `data` derives structural equality, hashing, and a description
+    /// (Debug/toString-analog) from the struct's fields.
+    pub fn is_data(&self) -> bool {
+        self.syntax()
+            .children_with_tokens()
+            .any(|it| it.kind() == T![data])
+    }
+
     /// Returns the signature range.
     ///
     /// ```rust, ignore
@@ -189,6 +199,20 @@ impl ast::StructDef {
             .unwrap_or_else(|| self.syntax().text_range().end());
 
         TextRange::new(start, end)
+    }
+}
+
+impl ast::Param {
+    /// Whether this parameter carries the `consuming` ownership-convention
+    /// keyword (see `spec/LANGUAGE_SPEC.md` section 14 and
+    /// `parsing/grammar/params.rs`'s `eat_contextual_kw`) -- the callee
+    /// takes ownership; the caller's binding is no longer valid after the
+    /// call. Consumed by `codira_hir`'s `@strict` move-checker (see
+    /// `spec/LANGUAGE_SPEC.md` section 17).
+    pub fn is_consuming(&self) -> bool {
+        self.syntax()
+            .children_with_tokens()
+            .any(|it| it.kind() == T![consuming])
     }
 }
 

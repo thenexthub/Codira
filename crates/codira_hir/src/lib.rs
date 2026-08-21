@@ -50,6 +50,7 @@ use crate::{name::AsName, source_id::AstIdMap};
 mod macros;
 mod code_model;
 mod comptime_fold;
+mod data_derive;
 mod db;
 pub mod diagnostics;
 mod display;
@@ -57,10 +58,12 @@ mod expr;
 mod ids;
 mod in_file;
 mod item_tree;
+mod mir_lower;
 mod name;
 mod name_resolution;
 mod path;
 mod primitive_type;
+mod refinement_check;
 mod resolve;
 mod source_id;
 mod supervisor_validator;
@@ -69,6 +72,7 @@ mod type_ref;
 mod utils;
 
 mod has_module;
+mod heal_check;
 mod item_scope;
 pub mod method_resolution;
 #[cfg(test)]

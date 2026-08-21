@@ -115,7 +115,11 @@ impl<'db, 'ink, 'ctx, 't> AssemblyBuilder<'db, 'ink, 'ctx, 't> {
         );
 
         // Optimize the assembly module
-        optimize_module(&self.assembly_module, self.code_gen.optimization_level);
+        optimize_module(
+            &self.assembly_module,
+            &self.code_gen.target_machine,
+            self.code_gen.optimization_level,
+        );
 
         // Debug print the IR
         //println!("{}", assembly_module.print_to_string().to_string());

@@ -8,7 +8,7 @@ use smol_str::SmolStr;
 /// Distinct from `codira_mir::Attr`: an `Attr` may still contain an
 /// unresolved `ParamRef`; a `Value` is always fully concrete. Elaboration
 /// (see `Env`) is exactly the process of turning `Attr`s into `Value`s.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Value {
     Int(i64),
     Bool(bool),
@@ -93,4 +93,6 @@ pub enum EvalError {
     MalformedIf,
     #[error("{0} is not yet interpreted -- see spec/KGEN_SUPERSET_STATUS.md")]
     UnsupportedOp(&'static str),
+    #[error("argument #{0} is a genuine runtime value, not a compile-time constant")]
+    RuntimeArgument(u32),
 }

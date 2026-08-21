@@ -617,6 +617,174 @@ fn infer_call_method() {
     ));
 }
 
+/// The `data struct` derive (`crate::data_derive`, see
+/// `spec/LANGUAGE_SPEC.md` §16) synthesizes an `eq` method purely from
+/// source text spliced in before parsing -- this test is the actual proof
+/// that the synthesized body type-checks (not just parses): a call site
+/// resolves `eq` to `bool`, and no diagnostics are produced for either the
+/// synthesized method body or the call.
+#[test]
+fn data_struct_eq_type_checks() {
+    insta::assert_snapshot!(infer(
+        r#"
+    data struct Point {
+        x: f64,
+        y: f64,
+    }
+
+    func main() {
+        let a = Point { x: 1.0, y: 2.0 };
+        let b = Point { x: 1.0, y: 2.0 };
+        a.eq(b);
+    }
+    "#
+    ));
+}
+
+/// `expr::validator::effect_obligation` proof, negative case: a caller
+/// invoking an effectful function without declaring the effect itself gets
+/// a real diagnostic (not just "designed" per
+/// `spec/LANGUAGE_SPEC.md` §6's previous "designed above but not
+/// implemented" status).
+#[test]
+fn undeclared_effect_is_a_real_diagnostic() {
+    insta::assert_snapshot!(infer(
+        r#"
+    effect Logger {
+        func log(message: String)
+    }
+
+    func risky() uses Logger -> i32 {
+        42
+    }
+
+    func caller() -> i32 {
+        risky()
+    }
+    "#
+    ));
+}
+
+/// Same shape as `undeclared_effect_is_a_real_diagnostic`, but the caller
+/// *does* declare `uses Logger` -- proves the check isn't just always-fire,
+/// it actually looks at the caller's own declared effects.
+#[test]
+fn declared_effect_produces_no_diagnostic() {
+    insta::assert_snapshot!(infer(
+        r#"
+    effect Logger {
+        func log(message: String)
+    }
+
+    func risky() uses Logger -> i32 {
+        42
+    }
+
+    func caller() uses Logger -> i32 {
+        risky()
+    }
+    "#
+    ));
+}
+
+/// `crate::refinement_check` proof, end to end through the real diagnostic
+/// pipeline (not just the module's own unit tests): a `type` alias to an
+/// unsatisfiable refinement predicate gets a real diagnostic, backed by an
+/// actual Z3 UNSAT proof -- the first real (not just designed) use of
+/// `codira_smt` from the compiler pipeline itself.
+#[test]
+fn unsatisfiable_refinement_type_is_a_real_diagnostic() {
+    insta::assert_snapshot!(infer(
+        r#"
+    type Impossible = i32 { x | x > 0 && x < 0 };
+    "#
+    ));
+}
+
+/// Same shape, but the predicate is satisfiable -- proves this isn't a
+/// blanket "refinement types are always flagged" false positive.
+#[test]
+fn satisfiable_refinement_type_produces_no_diagnostic() {
+    insta::assert_snapshot!(infer(
+        r#"
+    type Positive = i32 { x | x > 0 };
+    "#
+    ));
+}
+
+/// `crate::heal_check` proof, end to end through the real diagnostic
+/// pipeline: a `@heal(..., postcondition: ...)` healing contract whose
+/// postcondition can never be satisfied gets a real, SMT-backed
+/// diagnostic.
+#[test]
+fn unsatisfiable_healing_postcondition_is_a_real_diagnostic() {
+    insta::assert_snapshot!(infer(
+        r#"
+    @heal(on: [Timeout], postcondition: result > 0 && result < 0)
+    func risky() -> i32 {
+        1
+    }
+    "#
+    ));
+}
+
+/// Same shape, satisfiable postcondition -- proves this isn't a blanket
+/// "any @heal is flagged" false positive.
+#[test]
+fn satisfiable_healing_postcondition_produces_no_diagnostic() {
+    insta::assert_snapshot!(infer(
+        r#"
+    @heal(on: [Timeout], postcondition: result >= 0)
+    func risky() -> i32 {
+        1
+    }
+    "#
+    ));
+}
+
+/// `expr::validator::move_check` proof, negative case: a `consuming`
+/// parameter used twice in an `@strict` function is a real diagnostic.
+#[test]
+fn use_after_consume_is_a_real_diagnostic() {
+    insta::assert_snapshot!(infer(
+        r#"
+    @strict
+    func take(consuming buf: i32) -> i32 {
+        buf + buf
+    }
+    "#
+    ));
+}
+
+/// Same shape, but the function is *not* `@strict` -- proves the check is
+/// genuinely opt-in, not a blanket rule that just happens to have a name
+/// suggesting it's scoped.
+#[test]
+fn double_use_without_strict_produces_no_diagnostic() {
+    insta::assert_snapshot!(infer(
+        r#"
+    func take(consuming buf: i32) -> i32 {
+        buf + buf
+    }
+    "#
+    ));
+}
+
+/// A single use of a `consuming` parameter in an `@strict` function is
+/// exactly the intended, unflagged case -- proves this isn't "any mention
+/// of a consuming param is an error."
+#[test]
+fn single_use_in_strict_function_produces_no_diagnostic() {
+    insta::assert_snapshot!(infer(
+        r#"
+    @strict
+    func take(consuming buf: i32) -> i32 {
+        buf
+    }
+    "#
+    ));
+}
+
 #[test]
 fn infer_call_method_not_in_scope() {
     insta::assert_snapshot!(infer(

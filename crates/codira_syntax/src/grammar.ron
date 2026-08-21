@@ -140,6 +140,11 @@ Grammar(
     //     `borrowing`, `inout`, `read`, `out`, `mut`.
     //   - Mojo-style dynamic (duck-typed) `def` function declarations, Python
     //     `def` style, alongside the statically-typed `func`.
+    //   - `data`, a Kotlin-style modifier on `struct`/`class` that derives
+    //     structural equality/hash/description (see spec/LANGUAGE_SPEC.md
+    //     section 15). Only promoted to a keyword when immediately followed
+    //     by `struct`/`class`, so `data` remains usable as an ordinary
+    //     identifier (a field or binding named `data`) everywhere else.
     //
     // Parse-level scaffolding only -- none of these are enforced yet.
     contextual_keywords: [
@@ -150,6 +155,7 @@ Grammar(
         "out",
         "mut",
         "def",
+        "data",
     ],
     literals: [
         "INT_NUMBER",

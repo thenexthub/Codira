@@ -74,6 +74,8 @@ fn eval_op(body: &Body, id: OpId, env: &Env) -> Result<Value, EvalError> {
 
         OpKind::ParamRef(name) => env.lookup(name),
 
+        OpKind::Arg(index) => Err(EvalError::RuntimeArgument(*index)),
+
         OpKind::If => {
             let [cond_id] = op.operands.as_slice() else {
                 return Err(EvalError::MalformedIf);

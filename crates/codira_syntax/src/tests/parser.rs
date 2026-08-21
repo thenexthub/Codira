@@ -673,6 +673,36 @@ fn struct_and_class_memory_kind() {
 }
 
 #[test]
+fn data_struct_and_class() {
+    // `data` (see spec/LANGUAGE_SPEC.md section 16) is a contextual keyword,
+    // only promoted when immediately followed by `struct`/`class` -- it must
+    // stay usable as an ordinary identifier everywhere else (a field name,
+    // a binding, a plain function call).
+    insta::assert_snapshot!(SourceFile::parse(
+        r#"
+    data struct Point {
+        x: f64,
+        y: f64,
+    }
+    data class Actor {
+        var health: i32,
+    }
+    public data struct Pair[T] {
+        first: T,
+        second: T,
+    }
+    func use_data_as_ident() {
+        let data = 5;
+        data
+    }
+    struct HasDataField {
+        data: i32,
+    }
+    "#,
+    ).debug_dump());
+}
+
+#[test]
 fn visibility() {
     insta::assert_snapshot!(SourceFile::parse(
         r#"

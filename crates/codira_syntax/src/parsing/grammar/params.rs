@@ -65,15 +65,32 @@ const VALUE_PARAMETER_FIRST: TokenSet = patterns::PATTERN_FIRST.union(TokenSet::
 ///   unmarked default, spelled out for clarity.
 /// - `inout` / `mut`: in-place mutable borrowing without copying.
 /// - `out`: the callee initializes the caller's uninitialized memory.
+/// Ownership-convention keywords are contextual: the lexer emits a plain
+/// `IDENT` for `consuming`/`borrowing`/`inout`/`read`/`out`/`mut` (so those
+/// words stay usable as ordinary binding/path names elsewhere), and the
+/// parser promotes one to its keyword `SyntaxKind` here via `bump_remap` --
+/// `p.eat(T![consuming])` does not work for a contextual keyword, since
+/// `Parser::at` compares the *already-lexed* token kind (`IDENT`) against
+/// the target kind and always fails. See grammar.ron's `contextual_keywords`
+/// doc comment.
+fn eat_contextual_kw(p: &mut Parser<'_>, kw: &str, kind: crate::SyntaxKind) -> bool {
+    if p.at_contextual_kw(kw) {
+        p.bump_remap(kind);
+        true
+    } else {
+        false
+    }
+}
+
 fn param(p: &mut Parser<'_>, optional_types: bool) {
     let m = p.start();
     if !p.eat(T![var]) {
-        p.eat(T![consuming]);
-        p.eat(T![borrowing]);
-        p.eat(T![inout]);
-        p.eat(T![read]);
-        p.eat(T![out]);
-        p.eat(T![mut]);
+        let _ = eat_contextual_kw(p, "consuming", T![consuming])
+            || eat_contextual_kw(p, "borrowing", T![borrowing])
+            || eat_contextual_kw(p, "inout", T![inout])
+            || eat_contextual_kw(p, "read", T![read])
+            || eat_contextual_kw(p, "out", T![out])
+            || eat_contextual_kw(p, "mut", T![mut]);
     }
     patterns::pattern(p);
     if optional_types {

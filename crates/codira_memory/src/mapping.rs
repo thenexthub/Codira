@@ -7,7 +7,6 @@
 //!
 use std::collections::{HashMap, HashSet};
 
-use itertools::Itertools;
 use codira_abi::Guid;
 
 use crate::{
@@ -190,11 +189,11 @@ impl Mapping {
 /// Expects the `diff` to be based on `old_ty` and `new_ty`. If not, it causes
 /// undefined behavior.
 pub unsafe fn field_mapping(old_ty: &Type, new_ty: &Type, diff: &[FieldDiff]) -> StructMapping {
-    let old_fields = old_ty
+    let old_fields: Vec<_> = old_ty
         .as_struct()
         .into_iter()
         .flat_map(|s| s.fields().iter())
-        .collect_vec();
+        .collect();
 
     let deletions: HashSet<usize> = diff
         .iter()
@@ -298,11 +297,11 @@ pub unsafe fn field_mapping(old_ty: &Type, new_ty: &Type, diff: &[FieldDiff]) ->
         }
     }
 
-    let new_fields = new_ty
+    let new_fields: Vec<_> = new_ty
         .as_struct()
         .into_iter()
         .flat_map(|s| s.fields().iter())
-        .collect_vec();
+        .collect();
     StructMapping {
         field_mapping: mapping
             .into_iter()
