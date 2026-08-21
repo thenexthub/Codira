@@ -126,6 +126,7 @@ pub enum SyntaxKind {
     OUT_KW,
     MUT_KW,
     DEF_KW,
+    DATA_KW,
     INT_NUMBER,
     FLOAT_NUMBER,
     STRING,
@@ -543,6 +544,9 @@ macro_rules! T {
     (def) => {
         $crate::SyntaxKind::DEF_KW
     };
+    (data) => {
+        $crate::SyntaxKind::DATA_KW
+    };
 }
 
 impl From<u16> for SyntaxKind {
@@ -614,6 +618,7 @@ impl SyntaxKind {
         | OUT_KW
         | MUT_KW
         | DEF_KW
+        | DATA_KW
         )
     }
 
@@ -787,6 +792,7 @@ impl SyntaxKind {
             OUT_KW => &SyntaxInfo { name: "OUT_KW" },
             MUT_KW => &SyntaxInfo { name: "MUT_KW" },
             DEF_KW => &SyntaxInfo { name: "DEF_KW" },
+            DATA_KW => &SyntaxInfo { name: "DATA_KW" },
             INT_NUMBER => &SyntaxInfo { name: "INT_NUMBER" },
             FLOAT_NUMBER => &SyntaxInfo { name: "FLOAT_NUMBER" },
             STRING => &SyntaxInfo { name: "STRING" },

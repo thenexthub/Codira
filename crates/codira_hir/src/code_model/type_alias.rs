@@ -90,6 +90,7 @@ impl TypeAlias {
         validator.validate_target_type_existence(sink);
         validator.validate_target_type_privacy(sink);
         validator.validate_acyclic(sink);
+        validator.validate_refinement_satisfiability(sink);
     }
 }
 

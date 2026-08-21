@@ -19,7 +19,7 @@ use smol_str::SmolStr;
 /// data a generator acts on at elaboration time, as opposed to [`OpId`]
 /// operands, which are ordinary SSA values computed at (kernel) runtime.
 /// Both distinctions are preserved here.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Attr {
     Int(i64),
     Bool(bool),
@@ -32,7 +32,7 @@ pub enum Attr {
 
 /// One IR operation. Grouped into "dialects" by variant name prefix in the
 /// doc comment below, matching the table in the architecture doc §2.1.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum OpKind {
     // ---- core.* (KGEN analog: concrete `kgen.*` ops) ----------------------
     /// `core.const` -- materializes a literal [`Attr`] as a value.
@@ -54,8 +54,18 @@ pub enum OpKind {
     Not,
 
     // ---- param.* (KGEN analog: `kgen.param.*`) -----------------------------
-    /// `param.ref` -- reference to a not-yet-resolved generator parameter.
+    /// `param.ref` -- reference to a not-yet-resolved generator parameter
+    /// (compile-time; substituted away by elaboration, see
+    /// `codira_comptime`'s `elaborate` module and architecture doc §4).
     ParamRef(SmolStr),
+    /// `core.arg` -- reference to the generator's Nth *runtime* argument
+    /// (KGEN's distinction, `DesignOverview.md` "Generator/Function
+    /// Arguments" vs. "Generator Parameter Arguments": arguments are SSA
+    /// values computed at call time, parameters are compile-time-known).
+    /// Elaboration passes these through unchanged -- specializing a
+    /// generator's parameters must not, and cannot, eliminate genuine
+    /// runtime inputs.
+    Arg(u32),
 
     // ---- cf.* (KGEN analog: `hlcf.*`) --------------------------------------
     /// `cf.if` -- one operand (the condition), two regions (`then`, `else`).
@@ -77,7 +87,7 @@ pub enum OpKind {
 
 /// One operation: a kind, its SSA operands (other ops in the same [`Body`]),
 /// and any nested [`Region`]s (e.g. `cf.if`'s `then`/`else` bodies).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Op {
     pub kind: OpKind,
     pub operands: SmallVec<[OpId; 2]>,
@@ -91,7 +101,7 @@ pub type OpId = Idx<Op>;
 /// full multi-block CFG since nothing in this IR yet needs back-edges within
 /// a single region -- `cf.for`/`cf.while` bodies are themselves `Body`s, not
 /// arbitrary block graphs) is the value of its last op, if any.
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct Body {
     ops: Arena<Op>,
 }
@@ -145,7 +155,7 @@ impl Body {
 /// architecture doc's "Region" terminology has a stable, addressable Rust
 /// name to grow block-arguments/multi-block support into later without
 /// another rename.
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct Region {
     pub body: Body,
 }

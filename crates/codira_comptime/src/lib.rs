@@ -10,9 +10,11 @@
 //! a salsa query for incremental reuse per §4.1) is designed but not yet
 //! implemented -- see `spec/KGEN_SUPERSET_STATUS.md`.
 
+mod elaborate;
 mod interp;
 mod value;
 
+pub use elaborate::elaborate;
 pub use interp::eval_body;
 pub use value::{EvalError, Env, Value};
 

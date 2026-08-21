@@ -19,7 +19,7 @@ use crate::op::Body;
 /// distinguish the two either (see `codira_hir::item_tree::GenericParamData`'s
 /// doc comment, added alongside this crate). It's a property of how the
 /// parameter is *used* in the body, resolved during elaboration.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct GeneratorParam {
     pub name: SmolStr,
 }
@@ -30,7 +30,7 @@ pub struct GeneratorParam {
 /// concrete [`Body`] (KGEN analog: `kgen.func`) -- elaboration doesn't
 /// change the `Body` type, it just means every `param.ref` op in the body
 /// has been folded away by the interpreter (see `codira_comptime`).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Generator {
     pub name: SmolStr,
     pub params: Vec<GeneratorParam>,
@@ -46,7 +46,7 @@ pub struct Generator {
 /// `GeneratorId`/`GeneratorStore` have a real second case to be generic
 /// over, matching KGEN's `GeneratorOpInterface` covering both function and
 /// struct generators uniformly.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructGenerator {
     pub name: SmolStr,
     pub params: Vec<GeneratorParam>,

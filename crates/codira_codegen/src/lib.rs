@@ -33,6 +33,7 @@ pub mod value;
 mod apple;
 pub(crate) mod intrinsics;
 mod linker;
+pub mod mir_codegen;
 mod module_group;
 mod module_partition;
 pub(crate) mod type_info;

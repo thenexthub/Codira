@@ -313,6 +313,14 @@ pub struct Function {
     pub generic_params: Box<[GenericParamData]>,
     pub params: IdRange<Param>,
     pub ret_type: LocalTypeRefId,
+    /// This function's declared `uses Effect, ...` clause (see
+    /// `spec/LANGUAGE_SPEC.md` section 6), in source order. Simple
+    /// single-segment effect names only for now -- a qualified
+    /// `uses some.module.Effect` is not yet resolved to just `Effect`
+    /// here, matching this field's only consumer
+    /// (`expr::validator::effect_obligation`) not yet needing cross-module
+    /// effect resolution.
+    pub effects: Box<[Name]>,
     pub ast_id: FileAstId<ast::FunctionDef>,
     pub(crate) flags: FunctionFlags,
 }
@@ -382,6 +390,11 @@ pub struct Struct {
     pub types: TypeRefMap,
     pub generic_params: Box<[GenericParamData]>,
     pub fields: Fields,
+    /// Whether this struct carries the Kotlin-style `data` modifier (see
+    /// spec/LANGUAGE_SPEC.md section 16). Downstream consumers use this to
+    /// derive structural equality/hashing/description from `fields` --
+    /// nothing else in the item tree changes shape based on it.
+    pub is_data: bool,
     pub ast_id: FileAstId<ast::StructDef>,
 }
 

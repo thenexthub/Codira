@@ -34,6 +34,7 @@ by_address = { workspace = true }
 bytemuck = { workspace = true }
 codira_hir = { version = "0.6.0-dev", path = "../codira_hir" }
 codira_hir_input = { version = "0.6.0-dev", path = "../codira_hir_input" }
+codira_mir = { version = "0.6.0-dev", path = "../codira_mir" }
 inkwell = { workspace = true, features = ["llvm22-1"], default-features = false }
 itertools = { workspace = true }
 codira_codegen_macros = { version = "0.6.0-dev", path = "../codira_codegen_macros" }
@@ -51,6 +52,7 @@ thiserror = { workspace = true }
 [dev-dependencies]
 codira_abi = { path = "../codira_abi", features = ["serde"] }
 insta = { workspace = true, features = ["ron"] }
+codira_comptime = { path = "../codira_comptime" }
 codira_libloader = { path = "../codira_libloader" }
 codira_test = { path = "../codira_test" }
 codira_runtime = { path = "../codira_runtime" }

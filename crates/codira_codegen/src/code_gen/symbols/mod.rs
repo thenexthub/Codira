@@ -74,7 +74,7 @@ fn gen_prototype_from_function<'ink>(
 /// function.
 fn gen_prototype_from_dispatch_entry<'ink>(
     context: &IrValueContext<'ink, '_, '_>,
-    function: &DispatchableFunction,
+    function: &DispatchableFunction<'ink>,
     ir_type_builder: &TypeIdBuilder<'ink, '_, '_, '_>,
 ) -> ir::FunctionPrototype<'ink> {
     // Internalize the name of the function prototype
@@ -467,6 +467,8 @@ fn gen_get_info_fn<'ink>(
     let body_ir = context.context.append_basic_block(get_symbols_fn, "body");
     builder.position_at_end(body_ir);
 
+    let result_ty = Value::<ir::AssemblyInfo<'ink>>::get_ir_type(context.type_context);
+
     // Get a pointer to the IR value that will hold the return value. Again this
     // differs depending on the C ABI.
     let result_ptr = if target.options.is_like_windows {
@@ -475,27 +477,26 @@ fn gen_get_info_fn<'ink>(
             .unwrap()
             .into_pointer_value()
     } else {
-        builder.build_alloca(
-            Value::<ir::AssemblyInfo<'ink>>::get_ir_type(context.type_context),
-            "",
-        )
+        builder
+            .build_alloca(result_ty, "")
+            .expect("failed to build alloca for result struct")
     };
 
     // Get access to the structs internals
     let symbols_addr = builder
-        .build_struct_gep(result_ptr, 1, "symbols")
+        .build_struct_gep(result_ty, result_ptr, 1, "symbols")
         .expect("could not retrieve `symbols` from result struct");
     let dispatch_table_addr = builder
-        .build_struct_gep(result_ptr, 3, "dispatch_table")
+        .build_struct_gep(result_ty, result_ptr, 3, "dispatch_table")
         .expect("could not retrieve `dispatch_table` from result struct");
     let type_lut_addr = builder
-        .build_struct_gep(result_ptr, 5, "type_lut")
+        .build_struct_gep(result_ty, result_ptr, 5, "type_lut")
         .expect("could not retrieve `type_lut` from result struct");
     let dependencies_addr = builder
-        .build_struct_gep(result_ptr, 7, "dependencies")
+        .build_struct_gep(result_ty, result_ptr, 7, "dependencies")
         .expect("could not retrieve `dependencies` from result struct");
     let num_dependencies_addr = builder
-        .build_struct_gep(result_ptr, 9, "num_dependencies")
+        .build_struct_gep(result_ty, result_ptr, 9, "num_dependencies")
         .expect("could not retrieve `num_dependencies` from result struct");
 
     // Assign the struct values one by one.
@@ -528,13 +529,22 @@ fn gen_get_info_fn<'ink>(
 
     // Construct the return statement of the function.
     if target.options.is_like_windows {
-        builder.build_return(None);
+        builder.build_return(None).expect("failed to build return");
     } else {
-        builder.build_return(Some(&builder.build_load(result_ptr, "")));
+        let result_value = builder
+            .build_load(result_ty, result_ptr, "")
+            .expect("failed to build load of result struct");
+        builder
+            .build_return(Some(&result_value))
+            .expect("failed to build return");
     }
 
-    // Run the function optimizer on the generate function
-    function::create_pass_manager(context.module, optimization_level).run_on(&get_symbols_fn);
+    // Note: no per-function optimization pass here (the old legacy
+    // `PassManager`/`create_pass_manager` this used to call is gone on
+    // LLVM 22 -- see `crate::code_gen::optimize_module`'s doc comment).
+    // `get_symbols_fn` lives in `context.module`, which the caller
+    // (`AssemblyBuilder::build`) already runs a module-wide optimization
+    // pass over right after calling this, so nothing is lost.
 }
 
 /// Generates a method `void set_allocator_handle(void*)` that stores the

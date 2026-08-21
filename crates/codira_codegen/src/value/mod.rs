@@ -254,6 +254,7 @@ impl_value_type_value!(
     inkwell::types::FloatType<'ink> => inkwell::values::FloatValue<'ink>,
     inkwell::types::ArrayType<'ink> => inkwell::values::ArrayValue<'ink>,
     inkwell::types::VectorType<'ink> => inkwell::values::VectorValue<'ink>,
+    inkwell::types::ScalableVectorType<'ink> => inkwell::values::ScalableVectorValue<'ink>,
     inkwell::types::StructType<'ink> => inkwell::values::StructValue<'ink>,
     inkwell::types::PointerType<'ink> => inkwell::values::PointerValue<'ink>,
     inkwell::types::FunctionType<'ink> => inkwell::values::FunctionValue<'ink>
@@ -276,6 +277,7 @@ impl_addressable_type_values!(
     inkwell::types::FloatType<'ink>,
     inkwell::types::ArrayType<'ink>,
     inkwell::types::VectorType<'ink>,
+    inkwell::types::ScalableVectorType<'ink>,
     inkwell::types::StructType<'ink>,
     inkwell::types::PointerType<'ink>,
     inkwell::types::FunctionType<'ink>
@@ -290,6 +292,11 @@ impl<'ink> AddressableTypeValue<'ink> for inkwell::types::BasicTypeEnum<'ink> {
             BasicTypeEnum::PointerType(ty) => ty.ptr_type(address_space),
             BasicTypeEnum::StructType(ty) => ty.ptr_type(address_space),
             BasicTypeEnum::VectorType(ty) => ty.ptr_type(address_space),
+            // LLVM 22 added scalable vector types (SVE/RVV); opaque
+            // pointers mean every case here already produces the same
+            // untyped `ptr` regardless of pointee, so this is just
+            // completeness, not a new pointer representation.
+            BasicTypeEnum::ScalableVectorType(ty) => ty.ptr_type(address_space),
         }
     }
 }

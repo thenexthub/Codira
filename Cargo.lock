@@ -701,9 +701,11 @@ dependencies = [
  "bytemuck",
  "codira_abi",
  "codira_codegen_macros",
+ "codira_comptime",
  "codira_hir",
  "codira_hir_input",
  "codira_libloader",
+ "codira_mir",
  "codira_paths",
  "codira_runtime",
  "codira_target",
@@ -807,6 +809,7 @@ dependencies = [
  "codira_hir_input",
  "codira_mir",
  "codira_paths",
+ "codira_smt",
  "codira_syntax",
  "codira_target",
  "codira_test",
@@ -821,6 +824,7 @@ dependencies = [
  "rustc-hash 1.1.0",
  "salsa",
  "smallvec",
+ "smol_str",
  "text_trees",
 ]
 
