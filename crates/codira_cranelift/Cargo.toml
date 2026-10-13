@@ -1,0 +1,26 @@
+[package]
+name = "codira_cranelift"
+description = "A Cranelift backend that JIT-compiles Codira functions for fast development builds"
+keywords = ["codira", "cranelift", "jit", "compiler"]
+categories.workspace = true
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+documentation.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+codira_hir = { version = "0.6.0-dev", path = "../codira_hir" }
+codira_target = { version = "0.6.0-dev", path = "../codira_target" }
+cranelift-codegen = "0.136"
+cranelift-frontend = "0.136"
+cranelift-jit = "0.136"
+cranelift-module = "0.136"
+cranelift-native = "0.136"
+rustc-hash = { workspace = true, features = ["std"] }
+
+[dev-dependencies]
+codira_compiler = { path = "../codira_compiler" }

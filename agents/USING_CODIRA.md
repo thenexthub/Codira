@@ -452,6 +452,18 @@ instead.
 Hot reload: Codira is designed so a running application can swap function
 bodies without a manual stop/restart cycle.
 
+### Fast development runs: `codira run --jit`
+
+`codira run --jit` compiles the program with the Cranelift backend and runs it
+in the compiler's own process: no LLVM optimization pipeline, no linker. It
+covers the scalar core of the language (integers up to 64 bits, floats,
+`bool`; `let`/`var` and assignment; operators and casts; `if`, `loop`,
+`while`, `break`, `return`; calls; `print`/`println` of scalars and string
+literals). A program that uses anything else runs on the LLVM backend instead,
+with a note naming what Cranelift does not compile yet. Measured: a
+three-function program compiles in about 2.2 ms (minimum of 25, in a debug
+build of the compiler). `CODIRA_JIT_TIMINGS=1` prints the compile time.
+
 ### Standalone executables: `codira build --exe`
 
 ```bash

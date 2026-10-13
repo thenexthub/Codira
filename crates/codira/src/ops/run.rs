@@ -42,6 +42,13 @@ pub struct Args {
     /// The function to invoke
     #[clap(default_value_t = String::from("main"))]
     entry: String,
+
+    /// Compile with the Cranelift backend and run in this process: no LLVM
+    /// optimization pipeline, no linker. Falls back to the LLVM backend,
+    /// saying why, when the program uses something Cranelift does not
+    /// compile yet.
+    #[clap(long, conflicts_with = "heal")]
+    jit: bool,
 }
 
 /// Builds the package `args` names and invokes its entry point.
@@ -62,6 +69,12 @@ pub fn run(args: Args) -> anyhow::Result<ExitStatus> {
         mode: codira_compiler::BuildMode::default(),
     };
 
+    if args.jit {
+        if let Some(status) = run_jit(&manifest_path, &config, colors, &args.entry)? {
+            return Ok(status);
+        }
+    }
+
     let package = Package::from_file(&manifest_path)?;
     let library = codira_compiler::ensure_package_output_dir(&package, &config)?
         .join("mod")
@@ -72,4 +85,44 @@ pub fn run(args: Args) -> anyhow::Result<ExitStatus> {
     }
 
     start_library(library, args.entry, args.heal)
+}
+
+/// Runs the package on the Cranelift backend, or returns `None` if it uses
+/// something that backend does not compile, in which case the caller runs it
+/// on the LLVM backend instead.
+fn run_jit(
+    manifest_path: &std::path::Path,
+    config: &Config,
+    colors: codira_compiler::DisplayColor,
+    entry: &str,
+) -> anyhow::Result<Option<ExitStatus>> {
+    let (_package, driver) =
+        codira_compiler::Driver::with_package_path(manifest_path, config.clone())?;
+    if let Some(errors) = driver.emit_diagnostics_to_string(colors)? {
+        eprint!("{errors}");
+        return Ok(Some(ExitStatus::Error));
+    }
+    let start = std::time::Instant::now();
+    let program = match codira_cranelift::compile(driver.db(), entry) {
+        Ok(program) => program,
+        Err(unsupported) => {
+            eprintln!(
+                "note: running on the LLVM backend: the Cranelift backend does not compile                  {unsupported} yet"
+            );
+            return Ok(None);
+        }
+    };
+    if std::env::var_os("CODIRA_JIT_TIMINGS").is_some() {
+        eprintln!(
+            "cranelift: compiled in {:.3} ms",
+            start.elapsed().as_secs_f64() * 1000.0
+        );
+    }
+    match program.run() {
+        codira_cranelift::Returned::Unit => {}
+        codira_cranelift::Returned::Bool(value) => println!("{value}"),
+        codira_cranelift::Returned::Int(value) => println!("{value}"),
+        codira_cranelift::Returned::Float(value) => println!("{value}"),
+    }
+    Ok(Some(ExitStatus::Success))
 }
