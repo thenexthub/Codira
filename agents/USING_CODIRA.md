@@ -423,6 +423,51 @@ From Python, `bindings/python/codira_quantum` converts kernels to and from
 Qiskit circuits and produces QIR bitcode; see `crates/codira_quantum/README.md`
 for the full surface, the profile limits, and what is verified.
 
+### C, C++ and assembly in a package: `[native]`
+
+```toml
+[native]
+sources = ["c/kernels.c", "c/table.cpp", "c/crc.S"]
+include = ["c/include"]
+defines = ["SCALE=3"]
+flags = ["-O3"]
+libs = []
+```
+
+```codira
+extern "C" {
+    func c_mul_add(a: i64, b: i64) -> i64;
+}
+public func mul_add(a: i64, b: i64) -> i64 { c_mul_add(a, b) }
+```
+
+`codira build` compiles C (`.c`) and C++ (`.cc/.cpp/.cxx`) with Clang to LLVM
+bitcode and links it into each module that calls it **before** that module
+is optimized, so LLVM inlines C into its Codira callers (tested: at `-O2` a C
+helper leaves no call behind). Assembly (`.s`, or `.S`/`.asm` through the
+preprocessor) is assembled to objects and linked. An `extern "C"` function the
+native code defines is called directly, not through the runtime's dispatch
+table. On Windows such an assembly links the DLL C runtime and gets a real
+entry point, so C++ static constructors run.
+
+Clang is `CODIRA_CLANG`, else the one in the LLVM installation the compiler was
+built against, else `clang` on `PATH`. Outputs are cached in
+`target/native/` and rebuilt when the source, a header it includes, or the
+flags change. Limits: each module is its own library, so two modules that use
+one C file each get their own copy of its globals; watch mode and the daemon
+compile native sources only when the package is loaded; C++ exceptions must
+not escape into Codira code.
+
+### Bun
+
+`bindings/bun` is a Bun plugin: with `preload = ["codira-bun/register"]` in
+`bunfig.toml`, `import { add } from "./native/src/mod.code"` builds the
+package, binds that module's `@export("C")` functions through `bun:ffi` and
+returns them as named exports. Each build is loaded from a private copy named
+after its hash, so `bun --hot` sees rebuilds. Underneath it uses
+`codira bindgen --runtime bun --module <file> --named-exports`, and
+`--print-library` to find the built library.
+
 ---
 
 ## 5. End-to-end status today

@@ -1,0 +1,13 @@
+{
+  "name": "codira-bun",
+  "version": "0.1.0",
+  "description": "Import Codira modules directly from Bun: compiled on import, bound through bun:ffi.",
+  "type": "module",
+  "main": "./plugin.ts",
+  "exports": {
+    ".": "./plugin.ts",
+    "./register": "./register.ts"
+  },
+  "files": ["plugin.ts", "register.ts", "README.md"],
+  "license": "SEE LICENSE IN ../../LICENSE"
+}

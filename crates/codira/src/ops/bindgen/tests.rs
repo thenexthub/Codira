@@ -182,6 +182,24 @@ fn bun_library_path_is_a_valid_string_literal() {
 }
 
 #[test]
+fn bun_named_exports_skip_what_javascript_cannot_bind() {
+    let exports = Exports {
+        functions: vec![
+            export("add", &[Scalar::I32, Scalar::I32], Some(Scalar::I32)),
+            export("delete", &[], None),
+        ],
+        skipped: Vec::new(),
+    };
+    let named = render_bun_named_exports(&exports);
+    assert!(named.contains("export const add = symbols.add;"), "{named}");
+    assert!(!named.contains("export const delete"), "{named}");
+    assert!(
+        named.contains("`delete` is not a JavaScript binding name"),
+        "{named}"
+    );
+}
+
+#[test]
 fn bun_output_is_unchanged_without_skips() {
     let exports = Exports {
         functions: vec![export("no_params", &[], Some(Scalar::I32))],

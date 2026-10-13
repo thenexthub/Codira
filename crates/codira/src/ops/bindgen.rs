@@ -63,6 +63,22 @@ pub struct Args {
     /// `--runtime bun` loads the library itself, so only it accepts this.
     #[clap(long)]
     library: Option<String>,
+
+    /// Bind only the module defined by this source file, and load that
+    /// module's library. Every module is its own library, so without this
+    /// the bindings load the first module's.
+    #[clap(long)]
+    module: Option<PathBuf>,
+
+    /// Print the path of the library the bindings would load, and nothing
+    /// else. `codira-bun` uses it to find the file to copy before loading.
+    #[clap(long)]
+    print_library: bool,
+
+    /// With `--runtime bun`, also export every function under its own name,
+    /// so `import { add } from "./mod.code"` works.
+    #[clap(long)]
+    named_exports: bool,
 }
 
 /// A type that crosses the C ABI as a single scalar.
@@ -201,14 +217,42 @@ pub fn bindgen(args: Args) -> Result<ExitStatus, anyhow::Error> {
         emit_ir: false,
     };
 
-    let (_package, driver) = Driver::with_package_path(&manifest_path, config)?;
+    if args.named_exports && args.runtime != Runtime::Bun {
+        return Err(anyhow!(
+            "`--named-exports` only applies to `--runtime bun`, the one output that is a              JavaScript module"
+        ));
+    }
+
+    let (project, driver) = Driver::with_package_path(&manifest_path, config)?;
     let db = driver.db();
 
+    let selected = match &args.module {
+        None => None,
+        Some(path) => Some(module_for_source(&driver, &project, path)?),
+    };
+
     let mut exports = Exports::default();
-    let mut library_path = None;
+    let mut library_path = selected.map(|module| driver.assembly_output_path(module));
+
+    if args.print_library {
+        let library = match library_path {
+            Some(path) => path,
+            None => Package::all(db)
+                .into_iter()
+                .flat_map(|package| package.modules(db))
+                .next()
+                .map(|module| driver.assembly_output_path(module))
+                .ok_or_else(|| anyhow!("the project has no modules"))?,
+        };
+        println!("{}", library.display());
+        return Ok(ExitStatus::Success);
+    }
 
     for package in Package::all(db) {
         for module in package.modules(db) {
+            if selected.is_some_and(|selected| selected != module) {
+                continue;
+            }
             if library_path.is_none() {
                 library_path = Some(driver.assembly_output_path(module));
             }
@@ -294,7 +338,11 @@ pub fn bindgen(args: Args) -> Result<ExitStatus, anyhow::Error> {
                 || "library.codiralib".to_owned(),
                 |path| path.display().to_string(),
             );
-            render_bun(&exports, &args.library.unwrap_or(default_library))
+            let mut rendered = render_bun(&exports, &args.library.unwrap_or(default_library));
+            if args.named_exports {
+                rendered.push_str(&render_bun_named_exports(&exports));
+            }
+            rendered
         }
         Runtime::C => render_c(&exports),
         Runtime::Rust => render_rust(&exports),
@@ -434,6 +482,121 @@ fn fnv1a64(bytes: &[u8]) -> u64 {
         hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
     }
     hash
+}
+
+/// The module whose source file is `path`, which must be inside the
+/// project's source directory.
+fn module_for_source(
+    driver: &Driver,
+    project: &codira_project::Package,
+    path: &Path,
+) -> Result<codira_hir::Module, anyhow::Error> {
+    let file = std::fs::canonicalize(path)
+        .map_err(|e| anyhow!("could not find module source '{}': {e}", path.display()))?;
+    let source_dir = std::fs::canonicalize(project.source_directory()).map_err(|e| {
+        anyhow!(
+            "could not find the source directory '{}': {e}",
+            project.source_directory().display()
+        )
+    })?;
+    let relative = file.strip_prefix(&source_dir).map_err(|_error| {
+        anyhow!(
+            "'{}' is not inside the project's source directory '{}'",
+            file.display(),
+            source_dir.display()
+        )
+    })?;
+    let relative = codira_compiler::RelativePathBuf::from_path(relative)
+        .map_err(|_error| anyhow!("'{}' is not a relative path", relative.display()))?;
+    let file_id = driver
+        .get_file_id_for_path(&relative)
+        .ok_or_else(|| anyhow!("'{}' is not a source file of the project", file.display()))?;
+    let db = driver.db();
+    Package::all(db)
+        .into_iter()
+        .flat_map(|package| package.modules(db))
+        .find(|module| module.file_id(db) == Some(file_id))
+        .ok_or_else(|| anyhow!("'{}' does not define a module", file.display()))
+}
+
+/// JavaScript's reserved words, which cannot name an exported binding.
+const JS_RESERVED: &[&str] = &[
+    "arguments",
+    "await",
+    "break",
+    "case",
+    "catch",
+    "class",
+    "const",
+    "continue",
+    "debugger",
+    "default",
+    "delete",
+    "do",
+    "else",
+    "enum",
+    "eval",
+    "export",
+    "extends",
+    "false",
+    "finally",
+    "for",
+    "function",
+    "if",
+    "implements",
+    "import",
+    "in",
+    "instanceof",
+    "interface",
+    "let",
+    "new",
+    "null",
+    "package",
+    "private",
+    "protected",
+    "public",
+    "return",
+    "static",
+    "super",
+    "switch",
+    "this",
+    "throw",
+    "true",
+    "try",
+    "typeof",
+    "var",
+    "void",
+    "while",
+    "with",
+    "yield",
+];
+
+/// Re-exports every bound function under its own name, after
+/// [`render_bun`]'s output, for `--named-exports`.
+///
+/// A name JavaScript cannot bind -- a reserved word, or anything but an ASCII
+/// identifier -- stays reachable through `symbols` and is listed in a
+/// comment instead.
+fn render_bun_named_exports(exports: &Exports) -> String {
+    let (bound, _) = partition(exports, Runtime::Bun);
+    let mut out = String::from(
+        "
+// Each function under its own name.
+",
+    );
+    for export in bound {
+        let name = &export.name;
+        if is_ascii_identifier(name) && !JS_RESERVED.contains(&name.as_str()) {
+            let _ = writeln!(out, "export const {name} = symbols.{name};");
+        } else {
+            let _ = writeln!(
+                out,
+                "// `{}` is not a JavaScript binding name; use `symbols[...]`.",
+                comment_text(name)
+            );
+        }
+    }
+    out
 }
 
 /// Escapes `text` for the inside of a double-quoted TypeScript string literal.
