@@ -5,12 +5,14 @@
 //! Functionality:
 //! - Part of the Codira compiler and runtime toolchain.
 mod array;
+mod heap;
 mod mark_sweep;
 mod ptr;
 mod root_ptr;
 
 use std::{marker::PhantomData, ptr::NonNull};
 
+pub use heap::AllocError;
 pub use mark_sweep::MarkSweep;
 pub use ptr::{GcPtr, HasIndirectionPtr, RawGcPtr};
 pub use root_ptr::GcRootPtr;

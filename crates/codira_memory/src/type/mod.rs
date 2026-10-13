@@ -232,6 +232,7 @@ impl TypeDataStore {
             mutable_pointer_type: RwLock::default(),
             array_type: RwLock::default(),
             mark: Mark::Initializing,
+            ref_offsets: OnceLock::new(),
         }));
 
         // Safety: get a TypeInner with a 'static lifetime. This is safe because of the
@@ -394,6 +395,124 @@ pub struct TypeData {
 
     /// The state of instance with regards to its usage.
     mark: Mark,
+
+    /// Byte offsets of every garbage-collected reference stored inline in a
+    /// value of this type, computed the first time the garbage collector
+    /// traces a value of this type. Type data never changes after it has been
+    /// initialized, so the map stays valid for the lifetime of the type.
+    ref_offsets: OnceLock<Box<[u32]>>,
+}
+
+/// Raw, reference-count free access used by the garbage collector. Object
+/// headers store a `NonNull<TypeData>` whose lifetime is guaranteed by the
+/// heap's type registry, so none of these touch `external_references`.
+impl TypeData {
+    /// Returns the memory layout of a value of this type.
+    pub(crate) fn layout(&self) -> Layout {
+        self.layout
+    }
+
+    /// Returns true if values of this type are stored as references to GC
+    /// objects (arrays and GC structs).
+    pub(crate) fn is_reference(&self) -> bool {
+        match &self.data {
+            TypeDataKind::Array(_) => true,
+            TypeDataKind::Struct(s) => s.memory_kind == abi::StructMemoryKind::Gc,
+            _ => false,
+        }
+    }
+
+    /// Returns the layout this type occupies when stored inside another value.
+    pub(crate) fn reference_layout(&self) -> Layout {
+        if self.is_reference() {
+            Layout::new::<*const c_void>()
+        } else {
+            self.layout
+        }
+    }
+
+    /// Returns the element type data if this is an array type.
+    pub(crate) fn array_element(&self) -> Option<&TypeData> {
+        match &self.data {
+            // Safety: type data references other type data that is kept alive by
+            // the type store for as long as `self` is alive.
+            TypeDataKind::Array(a) => Some(unsafe { a.element_ty.as_ref() }),
+            _ => None,
+        }
+    }
+
+    /// Returns true if this is an array type.
+    pub(crate) fn is_array(&self) -> bool {
+        matches!(self.data, TypeDataKind::Array(_))
+    }
+
+    /// Returns the byte offsets, relative to the start of a value of this
+    /// type, of every GC reference stored inline in the value. References
+    /// inside inline value structs are flattened in. Reference types
+    /// themselves (arrays, GC structs) describe the layout of their *object
+    /// payload*: a GC struct's fields, and nothing for arrays (array elements
+    /// are traced separately).
+    pub(crate) fn ref_offsets(&self) -> &[u32] {
+        self.ref_offsets.get_or_init(|| {
+            let mut offsets = Vec::new();
+            if let TypeDataKind::Struct(s) = &self.data {
+                for field in &s.fields {
+                    // Safety: field types are kept alive by the type store.
+                    let field_ty = unsafe { field.type_info.as_ref() };
+                    let base = u32::from(field.offset);
+                    if field_ty.is_reference() {
+                        offsets.push(base);
+                    } else if matches!(field_ty.data, TypeDataKind::Struct(_)) {
+                        offsets.extend(field_ty.ref_offsets().iter().map(|o| base + o));
+                    }
+                }
+            }
+            offsets.into_boxed_slice()
+        })
+    }
+}
+
+/// A borrowed [`Type`] constructed from a raw [`TypeData`] pointer without
+/// touching any reference count. Cloning it produces a normal, owned `Type`.
+pub(crate) struct TypeView(std::mem::ManuallyDrop<Type>);
+
+impl Deref for TypeView {
+    type Target = Type;
+
+    fn deref(&self) -> &Type {
+        &self.0
+    }
+}
+
+impl Type {
+    /// Returns the raw pointer to this type's data. The pointer stays valid
+    /// for as long as any `Type` referencing the same data is alive.
+    pub(crate) fn data_ptr(&self) -> NonNull<TypeData> {
+        self.inner
+    }
+
+    /// Returns true if this type's data lives in the global type store, which
+    /// is the precondition of [`Type::view`].
+    pub(crate) fn is_in_global_store(&self) -> bool {
+        Arc::ptr_eq(&self.store, &GLOBAL_TYPE_STORE)
+    }
+
+    /// Returns a borrowed view of the type stored at `data`.
+    ///
+    /// # Safety
+    ///
+    /// `data` must point to type data in the global type store that stays
+    /// alive for as long as the returned view is used.
+    pub(crate) unsafe fn view(data: NonNull<TypeData>) -> TypeView {
+        // Safety: the bitwise copy of the global store's `Arc` is never dropped
+        // (it lives in a `ManuallyDrop`), so the strong count stays balanced.
+        // Cloning the view goes through `Type::clone`, which increments both
+        // reference counts for the new owner.
+        TypeView(std::mem::ManuallyDrop::new(Type {
+            inner: data,
+            store: std::ptr::read(&*GLOBAL_TYPE_STORE),
+        }))
+    }
 }
 
 impl TypeData {
@@ -1139,11 +1258,8 @@ impl StructTypeBuilder {
 
     /// Adds a field to the struct
     pub fn add_field(mut self, name: impl Into<String>, ty: Type) -> Self {
-        let field_layout = if ty.is_value_type() {
-            ty.value_layout()
-        } else {
-            Layout::new::<std::ffi::c_void>()
-        };
+        // Reference fields store a handle (a pointer) to the GC object.
+        let field_layout = ty.reference_layout();
 
         let (new_layout, offset) = self
             .layout
