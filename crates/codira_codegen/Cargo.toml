@@ -25,12 +25,18 @@ default = ["target-x86", "target-aarch64", "in-process-lld"]
 target-x86 = ["inkwell/target-x86"]
 target-aarch64 = ["inkwell/target-aarch64"]
 # Links LLD into the compiler so the final link is a function call instead of
-# a spawned `lld-link`/`ld.lld`/`ld64.lld` -- see `linker::run_lld` for what
-# that is worth. This needs LLD's headers and
-# static libraries next to the LLVM build, which a from-source LLVM built
-# with `-DLLVM_ENABLE_PROJECTS=lld` has and most prebuilt distributions do
-# not. Disable it to build against one of those; every link then spawns the
-# linker, exactly as before.
+# a spawned `lld-link` -- see `linker::run_lld` for what that is worth. This
+# needs LLD's headers and static libraries next to the LLVM build, which a
+# from-source LLVM built with `-DLLVM_ENABLE_PROJECTS=lld` has and most
+# prebuilt distributions do not. Disable it to build against one of those;
+# every link then spawns the linker, exactly as before.
+#
+# Only Windows hosts link LLD in, whatever this feature says: `codira_lld` is
+# a Windows-only dependency below. That is where it has been built, run and
+# measured. On ELF and Mach-O hosts LLD's static libraries have to be ordered
+# against LLVM's on the link line, which nobody has verified, and a feature
+# that is on by default must not be able to break a build it was never tried
+# on. Those hosts keep spawning the linker until someone has.
 in-process-lld = ["dep:codira_lld"]
 
 [dependencies]
@@ -48,7 +54,6 @@ codira_comptime = { version = "0.6.0-dev", path = "../codira_comptime" }
 inkwell = { workspace = true, features = ["llvm22-1"], default-features = false }
 itertools = { workspace = true }
 codira_codegen_macros = { version = "0.6.0-dev", path = "../codira_codegen_macros" }
-codira_lld = { version = "220.0.0", path = "../codira_lld", optional = true }
 codira_target = { version = "0.6.0-dev", path = "../codira_target" }
 once_cell = { workspace = true }
 parking_lot = { workspace = true }
@@ -60,6 +65,9 @@ smallvec = { workspace = true, features = ["union"] }
 smol_str = { workspace = true }
 tempfile = { workspace = true }
 thiserror = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+codira_lld = { version = "220.0.0", path = "../codira_lld", optional = true }
 
 [dev-dependencies]
 codira_abi = { path = "../codira_abi", features = ["serde"] }

@@ -4,7 +4,7 @@
 //!
 //! Functionality:
 //! - Part of the Codira compiler and runtime toolchain.
-#[cfg(feature = "in-process-lld")]
+#[cfg(all(feature = "in-process-lld", windows))]
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::{
     borrow::Cow,
@@ -34,12 +34,15 @@ pub const LINK_MODE_ENV: &str = "CODIRA_LINK_MODE";
 
 /// Set once LLD reports that it cannot be run in this process again. Every
 /// later link spawns the linker instead -- see `link_in_process`.
-#[cfg(feature = "in-process-lld")]
+#[cfg(all(feature = "in-process-lld", windows))]
 static IN_PROCESS_LLD_POISONED: AtomicBool = AtomicBool::new(false);
 
 /// Whether this compiler was built with LLD linked in.
+///
+/// That takes the `in-process-lld` feature *and* a Windows host; see the
+/// feature's comment in `Cargo.toml` for why other hosts are left out.
 pub const fn in_process_lld_available() -> bool {
-    cfg!(feature = "in-process-lld")
+    cfg!(all(feature = "in-process-lld", windows))
 }
 
 /// Parses a `CODIRA_LINK_MODE` value. Unrecognized values are `None` so a
@@ -146,6 +149,8 @@ impl LldDriver {
 ///   in needs its headers and static libraries next to the LLVM build, which
 ///   only a from-source LLVM built with `-DLLVM_ENABLE_PROJECTS=lld` has; most
 ///   prebuilt distributions ship just the executables.
+/// * The compiler runs on anything but Windows, the one host in-process linking
+///   has been verified on.
 /// * `CODIRA_LLD_<FLAVOR>` (`CODIRA_LLD_COFF`, `CODIRA_LLD_ELF`,
 ///   `CODIRA_LLD_MACHO`) is set. That names a specific linker executable, and
 ///   someone who asked for a specific linker should get it rather than the one
@@ -155,7 +160,7 @@ impl LldDriver {
 fn run_lld(driver: LldDriver, args: &[String]) -> Result<(), String> {
     let program_override = env::var(format!("CODIRA_LLD_{}", driver.env_suffix())).ok();
 
-    #[cfg(feature = "in-process-lld")]
+    #[cfg(all(feature = "in-process-lld", windows))]
     if program_override.is_none()
         && link_mode() == LinkMode::InProcess
         && !IN_PROCESS_LLD_POISONED.load(Ordering::SeqCst)
@@ -171,7 +176,7 @@ fn run_lld(driver: LldDriver, args: &[String]) -> Result<(), String> {
 /// A failed link is reported as a failure and is *not* retried by spawning
 /// the linker: the same inputs produce the same error, and retrying would
 /// only double the time it takes to report it.
-#[cfg(feature = "in-process-lld")]
+#[cfg(all(feature = "in-process-lld", windows))]
 fn link_in_process(driver: LldDriver, args: &[String]) -> Result<(), String> {
     let flavor = match driver {
         LldDriver::Coff => codira_lld::LldFlavor::Coff,
