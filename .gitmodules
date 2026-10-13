@@ -1,4 +1,0 @@
-[submodule "book/vendor/highlight.js"]
-	path = book/vendor/highlight.js
-	url = https://github.com/theomnira/highlight.js.git
-	branch = add-codira
