@@ -9,7 +9,7 @@ mod ops;
 use std::ffi::OsString;
 
 use clap::{Parser, Subcommand};
-use ops::{bindgen, build, check, daemon, init, language_server, new, run, start};
+use ops::{bindgen, build, check, daemon, init, language_server, new, quantum, run, start};
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -48,6 +48,9 @@ enum Command {
 
     /// Build the package, then invoke its entry point (`main` by default)
     Run(run::Args),
+
+    /// Quantum kernels: build to QIR/OpenQASM, simulate, import circuits
+    Quantum(quantum::Args),
 }
 
 #[derive(Copy, Debug, Clone, PartialEq, Eq)]
@@ -82,5 +85,6 @@ where
         Command::Init(args) => init::init(args),
         Command::Start(args) => start::start(args),
         Command::Run(args) => run::run(args),
+        Command::Quantum(args) => quantum::quantum(args),
     }
 }

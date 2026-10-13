@@ -443,6 +443,25 @@ impl Function {
         db.body_with_source_map(self.id.into()).1
     }
 
+    /// The source range of expression `expr` in this function's body, if it
+    /// came from source.
+    ///
+    /// For consumers outside this crate that report their own diagnostics
+    /// against HIR expressions -- `codira_quantum`'s compile-time elaborator
+    /// points at the line where a kernel branches on a measurement -- and so
+    /// need a location without access to the crate-private source map.
+    pub fn expr_text_range(
+        self,
+        db: &dyn HirDatabase,
+        expr: crate::ExprId,
+    ) -> Option<codira_syntax::TextRange> {
+        let source = self.body_source_map(db).expr_syntax(expr)?;
+        Some(match source.value {
+            either::Either::Left(ptr) => ptr.syntax_node_ptr().range(),
+            either::Either::Right(ptr) => ptr.syntax_node_ptr().range(),
+        })
+    }
+
     pub fn diagnostics(self, db: &dyn HirDatabase, sink: &mut DiagnosticSink<'_>) {
         let body = self.body(db);
         body.add_diagnostics(db, self.into(), sink);

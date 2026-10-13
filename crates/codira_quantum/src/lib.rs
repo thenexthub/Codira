@@ -14,12 +14,15 @@
 //!   `qasm2.dumps` / `qasm3.dumps` produce.
 //! - [`qir`]: QIR Base Profile emission as LLVM IR text and bitcode (LLVM 22,
 //!   opaque pointers), verified by LLVM, and import of base-profile QIR.
+//! - [`elaborate`]: compile-time elaboration of `@target(qpu)` Codira functions
+//!   (read from `codira_hir`) into circuits.
 
 // `doc_markdown` reads the language name "OpenQASM" as an unquoted code
 // identifier; this crate's docs name it on almost every page.
 #![allow(clippy::doc_markdown)]
 
 pub mod circuit;
+pub mod elaborate;
 pub mod qasm;
 pub mod qir;
 pub mod sim;

@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "codira-quantum"
+version = "0.1.0"
+description = "Move quantum circuits between Codira @target(qpu) kernels, Qiskit, and QIR for the QDK / Azure Quantum"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Omnira CJSC" }]
+dependencies = []
+
+[project.optional-dependencies]
+# Circuits as Qiskit objects (to_qiskit / from_qiskit).
+qiskit = ["qiskit>=1.0"]
+# OpenQASM 3 into Qiskit needs the separate importer package.
+qasm3 = ["qiskit>=1.0", "qiskit-qasm3-import"]
+# The cross-checks in tests/ use all of these.
+test = ["qiskit>=1.0", "qsharp", "pyqir", "qirrunner"]
+
+[tool.setuptools]
+packages = ["codira_quantum"]

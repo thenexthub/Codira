@@ -363,6 +363,66 @@ addresses as `usize`:
 `<t>` is `u8`/`i8` through `u64`/`i64` (`f32`/`f64` for non-temporal and atomic
 loads and stores). As with `load_*`/`store_*`, nothing checks the address.
 
+### Quantum kernels (`codira quantum`)
+
+A function marked `@target(qpu)` is a quantum kernel: the compiler runs its
+body at compile time and turns it into a circuit. Gates come from an
+`extern "codira-quantum"` block -- print the full block with
+`codira quantum prelude` and paste it into the file.
+
+```codira
+extern "codira-quantum" {
+    func h(q: i64);
+    func cx(control: i64, target: i64);
+    func measure(q: i64, c: i64) -> bool;
+}
+
+@target(qpu)
+func ghz(n: i64) {
+    h(0);
+    let mut i = 1;
+    while i < n {
+        cx(i - 1, i);
+        i += 1;
+    }
+    let mut j = 0;
+    while j < n {
+        measure(j, j);
+        j += 1;
+    }
+}
+```
+
+```bash
+codira quantum run ghz.code --param n=5 --shots 1000 --seed 7     # built-in simulator
+codira quantum run ghz.code --param n=5 --exact                    # exact probabilities
+codira quantum build ghz.code --param n=5 --emit qir -o ghz.ll     # QIR base profile (text)
+codira quantum build ghz.code --param n=5 --emit qir-bc -o ghz.bc  # QIR bitcode (QDK / Azure)
+codira quantum build ghz.code --param n=5 --emit qasm3             # OpenQASM 3 (also qasm2)
+codira quantum import circuit.qasm                                 # Qiskit export -> .code kernel
+codira quantum run circuit.qasm --shots 100                        # run a .qasm/.ll/.bc directly
+```
+
+Rules that matter when writing kernels:
+
+- Parameters must be known at compile time: pass `--param name=value`.
+- Loops need compile-time bounds (they are unrolled; a fuel limit stops
+  runaway loops with an error).
+- You may ignore or return a `measure` result, but never branch on it or
+  compute with it: the QIR base profile has no measurement feedback, and the
+  compiler rejects it with the source line.
+- Kernels may call other kernels and ordinary helper functions; ordinary
+  functions may not call gates.
+- Kernels use integers, floats, bools, `let`/`let mut`, `if`, `loop`/`while`
+  and calls. Arrays, tuples, structs and methods are not supported inside
+  kernels yet.
+- Don't name a variable after a gate (`x`, `t`, `s`, ...): it shadows the
+  gate function.
+
+From Python, `bindings/python/codira_quantum` converts kernels to and from
+Qiskit circuits and produces QIR bitcode; see `crates/codira_quantum/README.md`
+for the full surface, the profile limits, and what is verified.
+
 ---
 
 ## 5. End-to-end status today
