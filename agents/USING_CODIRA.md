@@ -248,6 +248,65 @@ Useful `build` options: `-O 0..3` (default `2`), `--emit-ir`, `--watch`,
 Hot reload: Codira is designed so a running application can swap function
 bodies without a manual stop/restart cycle.
 
+### Targets
+
+`--target` accepts: `x86_64-pc-windows-msvc`, `aarch64-pc-windows-msvc`,
+`x86_64-unknown-linux-gnu`, `x86_64-unknown-linux-musl`,
+`aarch64-unknown-linux-gnu`, `aarch64-unknown-linux-musl`,
+`riscv64gc-unknown-linux-gnu` (lp64d), `x86_64-unknown-freebsd`,
+`aarch64-unknown-freebsd`, `x86_64-apple-darwin`, `aarch64-apple-darwin`,
+`x86_64-apple-ios`, `aarch64-apple-ios`, `aarch64-apple-ios-sim`. Every one is
+tested to produce an object of its own format and architecture, and every
+non-Apple target is tested to link into a library from a Windows host; Apple
+targets need the platform SDK to link. Running the output is tested on the
+host only.
+
+### Inline assembly: `@asm`
+
+Declare a body-less `extern func` with one `@asm` variant per architecture.
+Calls are replaced by the assembly itself, so a call costs exactly the
+instructions written:
+
+```codira
+@asm(arch: "x86_64", "lea ($1,$2), $0", constraints: "=r,r,r", pure: true)
+@asm(arch: "aarch64", "add $0, $1, $2", constraints: "=r,r,r", pure: true)
+extern func add(a: i64, b: i64) -> i64;
+
+@asm(arch: "x86_64", "rdtsc; shl $$32, %rdx; or %rdx, %rax", constraints: "={rax},~{rdx}")
+@asm(arch: "aarch64", "mrs $0, cntvct_el0", constraints: "=r")
+extern func cycle_counter() -> u64;
+```
+
+The template and constraints use LLVM's inline-assembly syntax: `$0`, `$1`...
+name operands (outputs first), `$$` is a literal `$`, `=r` is an output, `r`
+an input, `{reg}` pins a register, `~{reg}` declares a clobber, and a digit
+ties an input to an output (`"=r,0"`). `dialect: "intel"` switches x86
+templates to Intel syntax. `pure: true` lets the optimizer merge or drop calls
+whose results are unused; without it every call is kept, in order. A variant
+without `arch:` applies to every architecture. Operands are integers and
+floats. The compiler rejects mismatched operand counts, unsupported operand
+types and a missing variant for the target before LLVM sees the assembly.
+
+### Machine-level memory intrinsics
+
+Declared in an `extern "codira-intrinsic"` block and emitted in place, with
+addresses as `usize`:
+
+- `stack_alloc(size, align) -> usize`: memory in the calling function's
+  frame, freed when it returns. Constant sizes get one slot in the entry block.
+- `load_nt_<t>`/`store_nt_<t>`: non-temporal accesses that bypass the cache.
+- `prefetch_read`, `prefetch_write`, `prefetch_read_once`.
+- `fence_acquire`, `fence_release`, `fence_acq_rel`, `fence_seq_cst`,
+  `compiler_fence`.
+- `atomic_load_<t>`, `atomic_store_<t>`, `atomic_cas_<t>(addr, expected, new)`,
+  and `atomic_<op>_<t>(addr, value)` returning the old value, for `add sub and
+  or xor swap max min` (signedness from the type: `atomic_max_i64` compares
+  signed). All sequentially consistent.
+- `cache_line_size() -> usize`, `frame_address() -> usize`.
+
+`<t>` is `u8`/`i8` through `u64`/`i64` (`f32`/`f64` for non-temporal and atomic
+loads and stores). As with `load_*`/`store_*`, nothing checks the address.
+
 ---
 
 ## 5. End-to-end status today

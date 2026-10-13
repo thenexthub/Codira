@@ -12,6 +12,8 @@ use inkwell::{
     AddressSpace,
 };
 
+mod low_level;
+
 /// The width and interpretation of one memory access.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Scalar {
@@ -39,6 +41,10 @@ impl Scalar {
             "f64" => Scalar::F64,
             _ => return None,
         })
+    }
+
+    fn is_float(self) -> bool {
+        matches!(self, Scalar::F32 | Scalar::F64)
     }
 
     fn alignment(self) -> u32 {
@@ -195,6 +201,14 @@ pub fn gen_intrinsic<'ink>(
     // public `sqrt_f32` wrapper, and without a way to spell the two apart
     // the declaration and its wrapper would collide.
     let name = name.strip_prefix("__intrinsic_").unwrap_or(name);
+
+    // Checked before `load_*`/`store_*` below, whose prefixes `load_nt_*`,
+    // `store_nt_*` and the atomics would otherwise be mistaken for.
+    match low_level::gen_low_level_op(name, args, context, module, builder, target_data)? {
+        Some(low_level::Emitted::Value(value)) => return Ok(Some(value)),
+        Some(low_level::Emitted::Unit) => return Ok(None),
+        None => {}
+    }
 
     if let Some(result) = gen_pointer_layout_query(name, args, context, target_data)? {
         return Ok(Some(result));
