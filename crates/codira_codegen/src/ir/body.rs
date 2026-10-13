@@ -51,6 +51,9 @@ struct LoopInfo<'ink> {
 #[derive(Clone)]
 pub(crate) struct ExternalGlobals<'ink> {
     pub alloc_handle: Option<GlobalValue<'ink>>,
+    /// The `fuelCounter` global (a pointer to the runtime's `i64` counter),
+    /// present when the module is fuel-instrumented.
+    pub fuel_counter: Option<GlobalValue<'ink>>,
     pub dispatch_table: Option<GlobalValue<'ink>>,
     pub type_table: Option<Global<'ink, [*const std::ffi::c_void]>>,
 }
@@ -234,6 +237,9 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         if runtime_checks {
             self.gen_precondition_checks();
         }
+
+        // Every call costs one unit of fuel (when instrumented)
+        self.gen_fuel_check();
 
         // Generate code for the body of the function
         let ret_value = self.gen_expr(self.body.body_expr());
@@ -2292,6 +2298,8 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         self.builder.position_at_end(loop_block);
         let (exit_block, _, value) = self.gen_loop_block_expr(body_expr, exit_block);
         if value.is_some() {
+            // Every iteration costs one unit of fuel (when instrumented)
+            self.gen_fuel_check();
             self.builder
                 .build_unconditional_branch(cond_block)
                 .expect("failed to build unconditional_branch");
@@ -2317,6 +2325,8 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
         self.builder.position_at_end(loop_block);
         let (exit_block, break_values, value) = self.gen_loop_block_expr(body_expr, exit_block);
         if value.is_some() {
+            // Every iteration costs one unit of fuel (when instrumented)
+            self.gen_fuel_check();
             self.builder
                 .build_unconditional_branch(loop_block)
                 .expect("failed to build unconditional_branch");
@@ -2664,6 +2674,90 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                 )
                 .expect("failed to build GEP for array index")
         })
+    }
+
+    /// Charges one unit of fuel: decrements the counter `fuelCounter` points
+    /// at and, when it drops below zero, calls the runtime's
+    /// `codira.fuel_exhausted`. Does nothing in a module that is not
+    /// fuel-instrumented.
+    ///
+    /// The counter is read and written with monotonic (relaxed) atomics so
+    /// that instrumented code running on several threads shares one budget
+    /// without a data race; on x86-64 and `AArch64` these are plain loads and
+    /// stores. Decrements from different threads can overlap, so with
+    /// several threads the budget is approximate; with one it is exact.
+    fn gen_fuel_check(&mut self) {
+        use inkwell::values::BasicValue;
+
+        let Some(counter_global) = self.external_globals.fuel_counter else {
+            return;
+        };
+        let context = self.context;
+        let i64_type = context.i64_type();
+        let ptr_type = context.ptr_type(AddressSpace::default());
+
+        let counter = self
+            .builder
+            .build_load(ptr_type, counter_global.as_pointer_value(), "fuel.counter")
+            .expect("failed to load the fuel counter pointer")
+            .into_pointer_value();
+        let fuel = self
+            .builder
+            .build_load(i64_type, counter, "fuel")
+            .expect("failed to load the fuel counter");
+        let load = fuel
+            .as_instruction_value()
+            .expect("a load is an instruction");
+        load.set_alignment(8).expect("8 is a valid alignment");
+        load.set_atomic_ordering(inkwell::AtomicOrdering::Monotonic)
+            .expect("a load can be atomic");
+
+        let remaining = self
+            .builder
+            .build_int_sub(
+                fuel.into_int_value(),
+                i64_type.const_int(1, false),
+                "fuel.next",
+            )
+            .expect("failed to decrement the fuel counter");
+        let store = self
+            .builder
+            .build_store(counter, remaining)
+            .expect("failed to store the fuel counter");
+        store.set_alignment(8).expect("8 is a valid alignment");
+        store
+            .set_atomic_ordering(inkwell::AtomicOrdering::Monotonic)
+            .expect("a store can be atomic");
+
+        let exhausted = self
+            .builder
+            .build_int_compare(
+                IntPredicate::SLT,
+                remaining,
+                i64_type.const_zero(),
+                "fuel.exhausted",
+            )
+            .expect("failed to compare the fuel counter");
+        let exhausted_block = context.append_basic_block(self.fn_value, "fuel.exhausted");
+        let continue_block = context.append_basic_block(self.fn_value, "fuel.ok");
+        self.builder
+            .build_conditional_branch(exhausted, exhausted_block, continue_block)
+            .expect("failed to branch on the fuel counter");
+
+        self.builder.position_at_end(exhausted_block);
+        let (fn_type, fn_ptr) = self.dispatch_table.gen_intrinsic_lookup(
+            self.external_globals.dispatch_table,
+            &self.builder,
+            &intrinsics::fuel_exhausted,
+        );
+        self.builder
+            .build_indirect_call(fn_type, fn_ptr, &[], "")
+            .expect("failed to call `codira.fuel_exhausted`");
+        self.builder
+            .build_unconditional_branch(continue_block)
+            .expect("failed to branch after `codira.fuel_exhausted`");
+
+        self.builder.position_at_end(continue_block);
     }
 
     /// Returns a pointer to the allocator handle

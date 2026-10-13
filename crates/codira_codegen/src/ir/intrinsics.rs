@@ -120,6 +120,15 @@ pub fn collect_fn_body<'ink>(
     );
 }
 
+/// Collects the runtime functions fuel-instrumented code calls.
+pub fn collect_fuel<'ink>(
+    context: &'ink Context,
+    target: TargetData,
+    intrinsics: &mut IntrinsicsMap<'ink>,
+) {
+    collect_intrinsic(context, &target, &intrinsics::fuel_exhausted, intrinsics);
+}
+
 /// Collects all intrinsics from a function wrapper body.
 pub fn collect_wrapper_body<'ink>(
     context: &'ink Context,

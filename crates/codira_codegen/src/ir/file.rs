@@ -103,8 +103,12 @@ pub(crate) fn gen_file_ir<'ink>(
         } else {
             Some(llvm_module.add_global(group_ir.type_table.ty(), None, TypeTable::NAME))
         };
+        let fuel_counter = group_ir
+            .fuel_counter_type
+            .map(|ty| llvm_module.add_global(ty, None, "fuelCounter"));
         ExternalGlobals {
             alloc_handle,
+            fuel_counter,
             dispatch_table,
             type_table: type_table.map(|g| unsafe { Global::from_raw(g) }),
         }

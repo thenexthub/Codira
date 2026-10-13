@@ -29,3 +29,6 @@ windows-sys = { version = "0.45.0", features = [
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.167"
+
+[dev-dependencies]
+codira_test = { path = "../codira_test" }

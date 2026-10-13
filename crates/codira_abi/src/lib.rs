@@ -48,6 +48,13 @@ pub const GET_INFO_FN_NAME: &str = "get_info";
 pub const GET_VERSION_FN_NAME: &str = "get_version";
 /// Defines the name for the `set_allocator_handle` function
 pub const SET_ALLOCATOR_HANDLE_FN_NAME: &str = "set_allocator_handle";
+/// Defines the name for the `set_fuel_counter` function. Only libraries built
+/// with fuel instrumentation export it; it receives a pointer to the `i64`
+/// counter that every function entry and loop back-edge decrements.
+pub const SET_FUEL_COUNTER_FN_NAME: &str = "set_fuel_counter";
+/// The name under which the runtime provides the function instrumented code
+/// calls when the fuel counter drops below zero.
+pub const FUEL_EXHAUSTED_FN_NAME: &str = "codira.fuel_exhausted";
 
 /// Represents a globally unique identifier (GUID).
 #[repr(C)]

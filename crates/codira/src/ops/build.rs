@@ -77,6 +77,13 @@ pub struct Args {
     #[clap(long, conflicts_with = "watch")]
     daemon: bool,
 
+    /// Instrument the generated code with fuel: every function entry and
+    /// loop iteration decrements a counter the runtime owns, so a host can
+    /// bound how long a call runs (`codira start --fuel <n>`). Costs a few
+    /// percent of speed; see `codira_runtime/benches/fuel.rs`.
+    #[clap(long, conflicts_with_all = ["watch", "daemon"])]
+    fuel: bool,
+
     /// Target for machine code
     #[clap(long, value_parser=parse_target_triple)]
     target: Option<TargetArg>,
@@ -189,7 +196,12 @@ pub fn build(args: Args) -> Result<ExitStatus, anyhow::Error> {
 
     let package = codira_project::Package::from_file(&manifest_path)?;
     let output_dir = codira_compiler::ensure_package_output_dir(&package, &compiler_options)?;
-    if !codira_compiler::compile_manifest(&manifest_path, compiler_options, display_colors)? {
+    if !codira_compiler::compile_manifest_with(
+        &manifest_path,
+        compiler_options,
+        display_colors,
+        |driver| driver.set_fuel_instrumentation(args.fuel),
+    )? {
         return Ok(ExitStatus::Error);
     }
 

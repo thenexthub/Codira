@@ -847,6 +847,7 @@ version = "0.6.0-dev"
 dependencies = [
  "codira_runtime",
  "codira_smt",
+ "codira_test",
  "libc",
  "log",
  "parking_lot 0.12.3",

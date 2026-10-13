@@ -35,6 +35,8 @@ pub struct CodeGenContext<'db, 'ink> {
     pub eidos: Option<codira_egraph::EGraphOptimizer>,
     /// The package's native code (see `crate::native`)
     pub native: std::sync::Arc<crate::NativeInputs>,
+    /// Whether generated code is fuel-instrumented (`--fuel`).
+    pub fuel: bool,
 }
 
 impl<'db, 'ink> CodeGenContext<'db, 'ink> {
@@ -50,6 +52,7 @@ impl<'db, 'ink> CodeGenContext<'db, 'ink> {
             target_machine,
             eidos: db.eidos_options().optimizer(&db.target()),
             native: db.native_inputs(),
+            fuel: db.fuel_instrumentation(),
             db,
         }
     }

@@ -28,6 +28,12 @@ pub struct Args {
     /// terminate the process. See `spec/HERACLES_Codira_Implementation.md`.
     #[clap(long)]
     heal: bool,
+
+    /// Give fuel-instrumented code (`codira build --fuel`) this many units:
+    /// one per function entry and loop iteration. Running out ends the call
+    /// with a message (a `FuelExhausted` fault under `--heal`).
+    #[clap(long)]
+    fuel: Option<u64>,
 }
 
 /// Maps a hardware fault to the healing engine's fault taxonomy.
@@ -53,12 +59,14 @@ fn classify_fault(
         | FaultKind::FloatDivideByZero
         | FaultKind::FloatInvalidOperation => FaultClass::ArithmeticFault,
         FaultKind::IllegalInstruction => return None,
+        // A budget ran out: the closest contract class is a deadline.
+        FaultKind::FuelExhausted => FaultClass::Timeout,
     })
 }
 
 /// Starts the runtime with the specified library and invokes function `entry`.
 pub fn start(args: Args) -> anyhow::Result<ExitStatus> {
-    start_library(args.library, args.entry, args.heal)
+    start_library(args.library, args.entry, args.heal, args.fuel)
 }
 
 /// Loads `library` into a fresh runtime and invokes `entry`, printing its
@@ -68,11 +76,13 @@ pub(crate) fn start_library(
     library: PathBuf,
     entry: String,
     heal: bool,
+    fuel: Option<u64>,
 ) -> anyhow::Result<ExitStatus> {
     let args = Args {
         library,
         entry,
         heal,
+        fuel,
     };
 
     // Arm fault interception *before* the runtime loads anything, so a
@@ -84,7 +94,10 @@ pub(crate) fn start_library(
         log::info!("HERACLES self-healing supervisor armed");
     }
 
-    let builder = Runtime::builder(args.library);
+    let mut builder = Runtime::builder(args.library);
+    if let Some(fuel) = args.fuel {
+        builder = builder.fuel(fuel);
+    }
 
     // Safety: we assume that the passed in library is safe
     let runtime = unsafe { builder.finish() }?;

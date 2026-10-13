@@ -61,6 +61,11 @@ runtime_functions! {
     /// ABI only defines the low byte of a `bool` argument, and LLVM makes no
     /// promise about the rest of the register for an `i1`.
     pub fn print_bool(value: u8) -> () = "codira.print_bool";
+
+    /// Called by fuel-instrumented code when the fuel counter drops below
+    /// zero. The runtime ends the call (see `codira_runtime`); if a host's
+    /// handler returns, execution continues with the counter still negative.
+    pub fn fuel_exhausted() -> () = "codira.fuel_exhausted";
 }
 
 /// Every runtime function a `print`/`println` call may need, collected

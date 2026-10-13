@@ -40,6 +40,12 @@ pub trait CodeGenDatabase: codira_hir::HirDatabase {
     /// [`crate::EidosOptions`]).
     #[salsa::input]
     fn eidos_options(&self) -> crate::EidosOptions;
+
+    /// Whether generated code decrements a fuel counter at every function
+    /// entry and loop back-edge (`--fuel`), so a runtime can bound how long
+    /// a call may run.
+    #[salsa::input]
+    fn fuel_instrumentation(&self) -> bool;
     /// The package's native code (C, C++, assembly), linked into every module
     /// group that calls it. See `crate::native`.
     #[salsa::input]

@@ -18,6 +18,7 @@ mod adt;
 mod array;
 mod builtins;
 mod dispatch_table;
+mod fuel;
 mod function_info;
 mod marshal;
 pub mod native_memory;
@@ -58,6 +59,7 @@ pub use crate::{
     array::{ArrayRef, RawArray, RootedArray},
     assembly::{Assembly, LinkError, LinkFunctionsError},
     builtins::capture_output,
+    fuel::FUEL_EXHAUSTED_EXCEPTION_CODE,
     function_info::{
         FunctionDefinition, FunctionPrototype, FunctionSignature, IntoFunctionDefinition,
     },
@@ -76,6 +78,9 @@ pub struct RuntimeOptions {
     /// The most bytes the garbage-collected heap may hold from the system, or
     /// `None` for no limit. See [`RuntimeBuilder::heap_limit`].
     pub heap_limit: Option<usize>,
+    /// The fuel budget of fuel-instrumented code, or `None` for no limit. See
+    /// [`RuntimeBuilder::fuel`].
+    pub fuel: Option<u64>,
 }
 
 /// Retrieve the allocator using the provided handle.
@@ -171,8 +176,20 @@ impl RuntimeBuilder {
                 type_table: TypeTable::default(),
                 user_functions: Vec::default(),
                 heap_limit: None,
+                fuel: None,
             },
         }
+    }
+
+    /// Bounds how much fuel-instrumented code (`codira build --fuel`) may
+    /// run: every function entry and every loop iteration costs one unit.
+    /// When the budget is used up the runtime reports it and ends the call
+    /// (see [`Runtime::fuel_remaining`] and the `fuel` module docs for how a
+    /// HERACLES guard observes it). Code built without instrumentation is
+    /// not metered.
+    pub fn fuel(mut self, units: u64) -> Self {
+        self.options.fuel = Some(units);
+        self
     }
 
     /// Caps the bytes the garbage-collected heap may hold from the system.
@@ -255,6 +272,7 @@ pub struct Runtime {
     watcher_rx: Receiver<notify::Result<Event>>,
     renamed_files: HashMap<usize, PathBuf>,
     gc: Arc<GarbageCollector>,
+    fuel: fuel::FuelCounter,
 }
 
 impl Runtime {
@@ -310,6 +328,12 @@ impl Runtime {
         // Raw memory services for `std/memory/{region,page}.code`
         options.user_functions.extend(native_memory::functions());
 
+        // What fuel-instrumented code calls when its budget runs out
+        options.user_functions.push(IntoFunctionDefinition::into(
+            fuel::fuel_exhausted as extern "C" fn(),
+            abi::FUEL_EXHAUSTED_FN_NAME,
+        ));
+
         options.user_functions.into_iter().for_each(|fn_def| {
             dispatch_table.insert_fn(fn_def.prototype.name.clone(), Arc::new(fn_def));
         });
@@ -334,6 +358,7 @@ impl Runtime {
             watcher_rx: rx,
             renamed_files: HashMap::new(),
             gc: Arc::new(self::garbage_collector::GarbageCollector::default()),
+            fuel: fuel::FuelCounter::new(options.fuel),
         };
         runtime.gc.set_heap_limit(options.heap_limit);
 
@@ -378,7 +403,7 @@ impl Runtime {
                 continue;
             }
 
-            let assembly = Assembly::load(&library_path, self.gc.clone())?;
+            let assembly = Assembly::load(&library_path, self.gc.clone(), self.fuel.as_ptr())?;
 
             let parent = library_path.parent().expect("Invalid library path");
             let extension = library_path.extension();
@@ -501,7 +526,8 @@ impl Runtime {
                     continue;
                 }
 
-                let assembly = Assembly::load(&new_path, runtime.gc.clone())?;
+                let assembly =
+                    Assembly::load(&new_path, runtime.gc.clone(), runtime.fuel.as_ptr())?;
 
                 let parent = new_path.parent().expect("Invalid library path");
                 let extension = new_path.extension();
@@ -573,6 +599,25 @@ impl Runtime {
     /// behavior will likely change in the future.
     pub fn gc_collect(&self) -> bool {
         self.gc.collect()
+    }
+
+    /// Returns the fuel left for fuel-instrumented code, or `None` if it is
+    /// unlimited. Each function entry and loop iteration of instrumented code
+    /// costs one unit; with several threads running instrumented code the
+    /// count is approximate.
+    pub fn fuel_remaining(&self) -> Option<u64> {
+        self.fuel.remaining()
+    }
+
+    /// Returns true if any loaded assembly was built with fuel
+    /// instrumentation, i.e. if [`Runtime::fuel_remaining`] meters anything.
+    pub fn is_fuel_instrumented(&self) -> bool {
+        self.assemblies.values().any(Assembly::is_fuel_instrumented)
+    }
+
+    /// Sets the fuel left for fuel-instrumented code (`None`: unlimited).
+    pub fn set_fuel(&self, fuel: Option<u64>) {
+        self.fuel.set(fuel);
     }
 
     /// Returns statistics about the garbage collector.

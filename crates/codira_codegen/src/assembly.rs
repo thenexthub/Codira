@@ -163,12 +163,17 @@ pub(crate) fn build_target_assembly(
     // Every `@export("C")` function in this group must survive into the
     // assembly's export table; see `linker::Linker::build_shared_object`.
     let module_partition = db.module_partition();
-    let exported_symbols: Vec<String> = module_partition[module_group]
+    let mut exported_symbols: Vec<String> = module_partition[module_group]
         .iter()
         .flat_map(|module| module.all_functions(db))
         .filter(|f| f.export_abi(db).as_deref() == Some("C"))
         .map(|f| f.name(db).to_string())
         .collect();
+    // A fuel-instrumented assembly also exports the hook the runtime uses to
+    // point it at its fuel counter.
+    if db.fuel_instrumentation() {
+        exported_symbols.push(codira_abi::SET_FUEL_COUNTER_FN_NAME.to_owned());
+    }
 
     // Translate the object file into a shared object
     obj_file

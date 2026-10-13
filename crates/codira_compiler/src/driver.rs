@@ -375,6 +375,15 @@ impl Driver {
         }
     }
 
+    /// Turns fuel instrumentation on or off for the code this driver
+    /// generates (`codira build --fuel`): a counter decrement at every
+    /// function entry and loop back-edge, checked against zero.
+    pub fn set_fuel_instrumentation(&mut self, enabled: bool) {
+        if self.db.fuel_instrumentation() != enabled {
+            self.db.set_fuel_instrumentation(enabled);
+        }
+    }
+
     /// The build mode and e-graph bounds this driver compiles with.
     pub fn eidos_options(&self) -> EidosOptions {
         self.db.eidos_options()

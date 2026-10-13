@@ -712,6 +712,12 @@ Runtime (hosts embedding `codira_runtime`):
   (`codira_region_*`), OS pages with W^X protection, huge pages and icache
   flushing (`codira_page_*`, `codira_icache_flush`), and aligned allocation.
   Addresses are `usize`; failures return 0/false. Region memory is untraced.
+- Fuel: `codira build --fuel` instruments every function entry and loop
+  iteration to decrement a counter; `codira start --fuel <n>` /
+  `codira run --fuel <n>` (or `RuntimeBuilder::fuel(n)`) sets the budget.
+  Running out prints a message and ends the call (a `FuelExhausted` fault a
+  HERACLES guard catches, with `--heal`). Measured cost: about 2-12% in loops.
+  Uninstrumented code is not metered.
 
 Algebraic effects (`effect`, `uses`, `perform`, `handle`, `resume`) with
 one-shot, tail-resumptive or aborting handlers, nested handlers, and aborts

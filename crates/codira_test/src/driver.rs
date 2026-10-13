@@ -71,6 +71,13 @@ impl CompileTestDriver {
 
     /// Constructs a new `CompileTestDriver` from a single Codira source.
     pub fn from_file(text: &str) -> Self {
+        Self::from_file_with(text, |_| {})
+    }
+
+    /// Constructs a new `CompileTestDriver` from a single Codira source,
+    /// letting `configure` adjust the compiler driver before it generates
+    /// code.
+    pub fn from_file_with(text: &str, configure: impl FnOnce(&mut Driver)) -> Self {
         let temp_dir = tempfile::TempDir::new().unwrap();
         let config = Config {
             out_dir: Some(temp_dir.path().to_path_buf()),
@@ -81,6 +88,7 @@ impl CompileTestDriver {
             contents: text.to_owned(),
         };
         let (mut driver, file_id) = Driver::with_file(config, input).unwrap();
+        configure(&mut driver);
         if let Some(compiler_errors) = driver
             .emit_diagnostics_to_string(DisplayColor::Disable)
             .expect("could not generate compiler diagnostics")
@@ -173,6 +181,23 @@ impl CompileAndRunTestDriver {
         config_fn: impl FnOnce(RuntimeBuilder) -> RuntimeBuilder,
     ) -> Result<Self, InitError> {
         let driver = CompileTestDriver::from_file(text);
+        let builder = Runtime::builder(driver.lib_path());
+
+        // Safety: We compiled the library ourselves, therefor loading the codiralib is
+        // safe.
+        let build = config_fn(builder);
+        let runtime = unsafe { build.finish() }?;
+
+        Ok(Self { driver, runtime })
+    }
+
+    /// Like [`CompileAndRunTestDriver::new`], but compiles with fuel
+    /// instrumentation (`codira build --fuel`).
+    pub fn with_fuel_instrumentation(
+        text: &str,
+        config_fn: impl FnOnce(RuntimeBuilder) -> RuntimeBuilder,
+    ) -> Result<Self, InitError> {
+        let driver = CompileTestDriver::from_file_with(text, |d| d.set_fuel_instrumentation(true));
         let builder = Runtime::builder(driver.lib_path());
 
         // Safety: We compiled the library ourselves, therefor loading the codiralib is

@@ -432,6 +432,7 @@ pub(super) fn gen_reflection_ir<'db, 'ink>(
         dependencies,
     );
     gen_set_allocator_handle_fn(context);
+    gen_set_fuel_counter_fn(context);
     gen_get_version_fn(context);
 }
 
@@ -597,6 +598,33 @@ fn gen_set_allocator_handle_fn(context: &IrValueContext<'_, '_, '_>) {
             .expect("failed to build store");
     }
 
+    builder.build_return(None).expect("failed to build return");
+}
+
+/// Generates `void set_fuel_counter(int64_t*)`, which points the module's
+/// `fuelCounter` global at the runtime's counter. Only fuel-instrumented
+/// modules have that global, and only they export the function.
+fn gen_set_fuel_counter_fn(context: &IrValueContext<'_, '_, '_>) {
+    let Some(fuel_counter_global) = context.module.get_global("fuelCounter") else {
+        return;
+    };
+    let set_fuel_counter_fn = context.module.add_function(
+        abi::SET_FUEL_COUNTER_FN_NAME,
+        Value::<fn(*const u8)>::get_ir_type(context.type_context),
+        Some(Linkage::DLLExport),
+    );
+
+    let builder = context.context.create_builder();
+    let body_ir = context
+        .context
+        .append_basic_block(set_fuel_counter_fn, "body");
+    builder.position_at_end(body_ir);
+    builder
+        .build_store(
+            fuel_counter_global.as_pointer_value(),
+            set_fuel_counter_fn.get_nth_param(0).unwrap(),
+        )
+        .expect("failed to build store");
     builder.build_return(None).expect("failed to build return");
 }
 

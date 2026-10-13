@@ -1827,3 +1827,56 @@ fn print_builtin() {
     }"#,
     );
 }
+
+#[test]
+fn fuel_instrumentation_charges_function_entries_and_loop_back_edges() {
+    let text = r#"
+    public func spin(n: i64) -> i64 {
+        let i = 0;
+        while i < n {
+            i += 1;
+        }
+        i
+    }"#;
+    let ir_with_fuel = |fuel: bool| {
+        let mut db = MockDatabase::with_files(text);
+        db.set_optimization_level(OptimizationLevel::None);
+        db.set_fuel_instrumentation(fuel);
+        db.set_target(Target::host_target().unwrap());
+
+        let llvm_context = Context::create();
+        let code_gen = CodeGenContext::new(&llvm_context, &db);
+        let module_partition = db.module_partition();
+        module_partition
+            .iter()
+            .map(|(_, module_group)| {
+                let group_ir = gen_file_group_ir(&code_gen, module_group);
+                let file = gen_file_ir(&code_gen, &group_ir, module_group);
+                format!(
+                    "{}{}",
+                    group_ir.llvm_module.print_to_string().to_string(),
+                    file.llvm_module.print_to_string().to_string()
+                )
+            })
+            .collect::<String>()
+    };
+
+    let instrumented = ir_with_fuel(true);
+    // One check at entry, one on the loop's back-edge
+    assert_eq!(
+        instrumented.matches("load atomic i64").count(),
+        2,
+        "{instrumented}"
+    );
+    assert_eq!(
+        instrumented.matches("call void %").count(),
+        2,
+        "{instrumented}"
+    );
+    assert!(instrumented.contains("@fuelCounter"), "{instrumented}");
+    assert!(instrumented.contains("load atomic i64"), "{instrumented}");
+    assert!(instrumented.contains("store atomic i64"), "{instrumented}");
+
+    let plain = ir_with_fuel(false);
+    assert!(!plain.contains("fuel"), "{plain}");
+}

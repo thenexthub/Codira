@@ -39,6 +39,13 @@ pub struct Args {
     #[clap(long)]
     heal: bool,
 
+    /// Build with fuel instrumentation and give the entry point this many
+    /// units (one per function entry and loop iteration). Running out ends
+    /// the program with a message, or is reported to HERACLES with `--heal`.
+    /// Not available with `--jit`, whose backend does not instrument code.
+    #[clap(long, conflicts_with = "jit")]
+    fuel: Option<u64>,
+
     /// The function to invoke
     #[clap(default_value_t = String::from("main"))]
     entry: String,
@@ -80,11 +87,14 @@ pub fn run(args: Args) -> anyhow::Result<ExitStatus> {
         .join("mod")
         .with_extension("codiralib");
 
-    if !codira_compiler::compile_manifest(&manifest_path, config, colors)? {
+    let fuel = args.fuel;
+    if !codira_compiler::compile_manifest_with(&manifest_path, config, colors, |driver| {
+        driver.set_fuel_instrumentation(fuel.is_some());
+    })? {
         return Ok(ExitStatus::Error);
     }
 
-    start_library(library, args.entry, args.heal)
+    start_library(library, args.entry, args.heal, args.fuel)
 }
 
 /// Runs the package on the Cranelift backend, or returns `None` if it uses

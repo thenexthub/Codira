@@ -97,6 +97,7 @@ pub struct Assembly {
     library: TempLibrary,
     info: abi::AssemblyInfo<'static>,
     allocator: Arc<GarbageCollector>,
+    fuel_instrumented: bool,
 }
 
 impl Assembly {
@@ -117,7 +118,11 @@ impl Assembly {
     /// unloaded.
     ///
     /// See [`libloading::Library::new`] for more information.
-    pub unsafe fn load(library_path: &Path, gc: Arc<GarbageCollector>) -> Result<Self, LoadError> {
+    pub unsafe fn load(
+        library_path: &Path,
+        gc: Arc<GarbageCollector>,
+        fuel_counter: *mut i64,
+    ) -> Result<Self, LoadError> {
         let mut library = CodiraLibrary::new(library_path)?;
 
         let version = library.get_abi_version();
@@ -130,12 +135,14 @@ impl Assembly {
 
         let allocator_ptr = Arc::into_raw(gc.clone()) as *mut std::ffi::c_void;
         library.set_allocator_handle(allocator_ptr);
+        let fuel_instrumented = library.set_fuel_counter(fuel_counter);
 
         let assembly = Assembly {
             info: library.get_info(),
             library_path: library_path.to_path_buf(),
             library: library.into_inner(),
             allocator: gc,
+            fuel_instrumented,
         };
 
         Ok(assembly)
@@ -165,6 +172,12 @@ impl Assembly {
         } else {
             Err(failed_to_link)
         }
+    }
+
+    /// Returns true if the library was built with fuel instrumentation and
+    /// is metered by the runtime's fuel counter.
+    pub fn is_fuel_instrumented(&self) -> bool {
+        self.fuel_instrumented
     }
 
     /// Private implementation of runtime linking

@@ -107,7 +107,19 @@ pub fn compile_manifest(
     config: Config,
     emit_colors: DisplayColor,
 ) -> Result<bool, anyhow::Error> {
+    compile_manifest_with(manifest_path, config, emit_colors, |_| {})
+}
+
+/// Like [`compile_manifest`], but lets `configure` adjust the driver (for
+/// instance [`Driver::set_fuel_instrumentation`]) before it generates code.
+pub fn compile_manifest_with(
+    manifest_path: &Path,
+    config: Config,
+    emit_colors: DisplayColor,
+    configure: impl FnOnce(&mut Driver),
+) -> Result<bool, anyhow::Error> {
     let (_package, mut driver) = Driver::with_package_path(manifest_path, config)?;
+    configure(&mut driver);
 
     // Emit diagnostics. If one of the snippets is an error, abort gracefully.
     if driver.emit_diagnostics(&mut stderr(), emit_colors)? {
