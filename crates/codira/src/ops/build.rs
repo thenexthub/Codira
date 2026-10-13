@@ -106,52 +106,10 @@ fn parse_target_triple(target_triple: &str) -> Result<TargetArg, String> {
 pub fn build(args: Args) -> Result<ExitStatus, anyhow::Error> {
     log::trace!("starting build");
 
-    let optimization_lvl = match args.opt_level {
-        0 => codira_compiler::OptimizationLevel::None,
-        1 => codira_compiler::OptimizationLevel::Less,
-        2 => codira_compiler::OptimizationLevel::Default,
-        3 => codira_compiler::OptimizationLevel::Aggressive,
-        _ => return Err(anyhow!("Only optimization levels 0-3 are supported")),
-    };
+    let optimization_lvl = optimization_level(args.opt_level)?;
 
-    let display_colors = args
-        .color
-        .map(|clr| match clr {
-            UseColor::Disable => DisplayColor::Disable,
-            UseColor::Enable => DisplayColor::Enable,
-            UseColor::Auto => DisplayColor::Auto,
-        })
-        .or_else(|| {
-            env::var("CODIRA_TERMINAL_COLOR")
-                .map(|value| match value.as_str() {
-                    "disable" => DisplayColor::Disable,
-                    "enable" => DisplayColor::Enable,
-                    _ => DisplayColor::Auto,
-                })
-                .ok()
-        })
-        .unwrap_or(DisplayColor::Auto);
-
-    // Locate the manifest
-    let manifest_path = match &args.manifest_path {
-        None => {
-            let current_dir =
-                std::env::current_dir().expect("could not determine current working directory");
-            find_manifest(&current_dir).ok_or_else(|| {
-                anyhow::anyhow!(
-                    "could not find {} in '{}' or a parent directory",
-                    MANIFEST_FILENAME,
-                    current_dir.display()
-                )
-            })?
-        }
-        Some(path) => std::fs::canonicalize(Path::new(&path)).map_err(|_error| {
-            anyhow::anyhow!(
-                "'{}' does not refer to a valid manifest path",
-                path.display()
-            )
-        })?,
-    };
+    let display_colors = display_colors(args.color);
+    let manifest_path = locate_manifest(args.manifest_path.as_deref())?;
 
     log::info!("located build manifest at: {}", manifest_path.display());
 
@@ -201,6 +159,62 @@ pub fn build(args: Args) -> Result<ExitStatus, anyhow::Error> {
         codira_compiler::compile_manifest(&manifest_path, compiler_options, display_colors)
     }
     .map(Into::into)
+}
+
+/// Decides whether diagnostics are colored: the `--color` flag if given,
+/// otherwise `CODIRA_TERMINAL_COLOR`, otherwise auto-detection.
+pub(crate) fn display_colors(color: Option<UseColor>) -> DisplayColor {
+    color
+        .map(|clr| match clr {
+            UseColor::Disable => DisplayColor::Disable,
+            UseColor::Enable => DisplayColor::Enable,
+            UseColor::Auto => DisplayColor::Auto,
+        })
+        .or_else(|| {
+            env::var("CODIRA_TERMINAL_COLOR")
+                .map(|value| match value.as_str() {
+                    "disable" => DisplayColor::Disable,
+                    "enable" => DisplayColor::Enable,
+                    _ => DisplayColor::Auto,
+                })
+                .ok()
+        })
+        .unwrap_or(DisplayColor::Auto)
+}
+
+/// The manifest to build: `manifest_path` if given, otherwise the nearest
+/// `codira.toml` in the current directory or one of its parents.
+pub(crate) fn locate_manifest(manifest_path: Option<&Path>) -> anyhow::Result<PathBuf> {
+    match manifest_path {
+        None => {
+            let current_dir =
+                std::env::current_dir().expect("could not determine current working directory");
+            find_manifest(&current_dir).ok_or_else(|| {
+                anyhow::anyhow!(
+                    "could not find {} in '{}' or a parent directory",
+                    MANIFEST_FILENAME,
+                    current_dir.display()
+                )
+            })
+        }
+        Some(path) => std::fs::canonicalize(path).map_err(|_error| {
+            anyhow::anyhow!(
+                "'{}' does not refer to a valid manifest path",
+                path.display()
+            )
+        }),
+    }
+}
+
+/// Maps `-O<n>` to an optimization level.
+pub(crate) fn optimization_level(level: u8) -> anyhow::Result<codira_compiler::OptimizationLevel> {
+    Ok(match level {
+        0 => codira_compiler::OptimizationLevel::None,
+        1 => codira_compiler::OptimizationLevel::Less,
+        2 => codira_compiler::OptimizationLevel::Default,
+        3 => codira_compiler::OptimizationLevel::Aggressive,
+        _ => return Err(anyhow!("Only optimization levels 0-3 are supported")),
+    })
 }
 
 /// Find a Codira manifest file in the specified directory or one of its

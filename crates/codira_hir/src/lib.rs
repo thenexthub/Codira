@@ -21,6 +21,7 @@ pub use self::code_model::{
     StructMemoryKind, TypeAlias,
 };
 pub use crate::{
+    builtin::BuiltinFn,
     db::{
         AstDatabase, AstDatabaseStorage, DefDatabase, DefDatabaseStorage, HirDatabase,
         HirDatabaseStorage, InternDatabase, InternDatabaseStorage,
@@ -50,6 +51,7 @@ use crate::{name::AsName, source_id::AstIdMap};
 
 #[macro_use]
 mod macros;
+mod builtin;
 mod code_model;
 mod comptime_fold;
 mod data_derive;

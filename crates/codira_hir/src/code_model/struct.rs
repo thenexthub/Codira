@@ -171,7 +171,7 @@ impl Struct {
                 "a generic struct (`{}` is not instantiated)",
                 ty.display(db)
             ),
-            because: "monomorphisation is not implemented yet, so the struct has no concrete                       layout to generate"
+            because: "monomorphisation is not implemented yet, so the struct has no concrete layout to generate"
                 .to_string(),
         });
     }

@@ -9,7 +9,7 @@ mod ops;
 use std::ffi::OsString;
 
 use clap::{Parser, Subcommand};
-use ops::{bindgen, build, check, daemon, init, language_server, new, start};
+use ops::{bindgen, build, check, daemon, init, language_server, new, run, start};
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -45,6 +45,9 @@ enum Command {
 
     /// Invoke a function from a codiralib
     Start(start::Args),
+
+    /// Build the package, then invoke its entry point (`main` by default)
+    Run(run::Args),
 }
 
 #[derive(Copy, Debug, Clone, PartialEq, Eq)]
@@ -78,5 +81,6 @@ where
         Command::New(args) => new::new(args),
         Command::Init(args) => init::init(args),
         Command::Start(args) => start::start(args),
+        Command::Run(args) => run::run(args),
     }
 }

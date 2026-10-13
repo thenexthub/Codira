@@ -123,7 +123,7 @@ fn multiple_match_exists_function() {
     assert_eq!(
         err.to_string(),
         format!(
-            "failed to obtain function '{EXPECTED_FN_NAME}', no such function exists. There is a function with a similar name: foobar_b"
+            "failed to obtain function '{EXPECTED_FN_NAME}', no such function exists. There is a function with a similar name: foobar_a"
         )
     );
 }

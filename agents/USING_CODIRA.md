@@ -216,12 +216,31 @@ super.helper()                 // parent module
 ## 4. Building and running
 
 ```bash
+codira run                                       # build, then run `main`
+codira run other_entry                           # build, then run `other_entry`
 codira build                                     # compile -> target/mod.codiralib
-codira start target/mod.codiralib main          # run entry function `main`
+codira start target/mod.codiralib main          # run an already-built library
 ```
 
-`codira start` prints the entry point's return value when its type is `bool`,
-`f64`, `i64`, or `()`.
+`codira run` takes the same `--manifest-path`, `-O 0..3` and `--color`
+options as `build`. If the build reports an error, nothing is run. After the
+entry point returns, `run`/`start` print its value if it is a primitive
+(`bool`, any integer or float type); a `()` entry point prints nothing.
+
+Printing is built in -- no import, no `extern` declaration:
+
+```codira
+public func main() {
+    let x = 5
+    println("x = ", x)           // x = 5
+    print("no newline ", 1.5)    // arguments are written back to back
+    println()                    // just a newline
+}
+```
+
+`print`/`println` accept any number of integers (any width), floats, `bool`s
+and `str`s; anything else is a compile error. A program that defines its own
+function named `print` calls its own. See `examples/hello`.
 
 Useful `build` options: `-O 0..3` (default `2`), `--emit-ir`, `--watch`,
 `--target <triple>` (cross-compile), `--manifest-path <path>`.
@@ -235,15 +254,20 @@ bodies without a manual stop/restart cycle.
 
 Verified through the full pipeline (parser → HIR → LLVM → link → run):
 
-- `struct`, `class`, `func`, `let`/`var`
-- field access, arithmetic, comparisons
-- `if`/`else`, `for`/`while` loops, function calls
+- `struct`, `class`, `func`, `let`/`var`, tuples and tuple patterns
+- field access, arithmetic, comparisons, `as` casts
+- `if`/`else`, `while`, `loop`/`break`, function calls, methods via `extend`,
+  `Type.assoc_fn()` static calls
+- arrays: literals, indexing, element assignment
+- `str` literals, and `print`/`println` (`codira run` shows the output)
 - imports and visibility (`public`/`internal`/`private`)
 
-Parsed to a real syntax tree but **not yet lowered** to runnable code
-(HIR `Missing` placeholder): `enum`, `trait`, `effect`/`handle`, `match`,
-`comptime`, `supervisor`, multiple dispatch, and `Type.method()` associated
-call syntax.
+Parsed but **not yet lowered** -- the compiler stops with "... is not
+supported by the code generator yet" naming the construct: `match`, closures,
+postfix `!`, `perform`/`handle`/`spawn`, channel operators. Not available at
+all yet: `for` loops, `enum`, `trait`, `T?`/`nil` at runtime, generic
+instantiation (generic code type-checks but does not build), `String`, and
+using the standard library from a program.
 
 ---
 

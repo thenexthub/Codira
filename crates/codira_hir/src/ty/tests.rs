@@ -2371,3 +2371,50 @@ fn generic_instantiation_binds_parameters_to_arguments() {
     }",
     ));
 }
+
+/// `print`/`println` are compiler builtins: each argument is inferred on its
+/// own, the call is `()`, and a value the runtime cannot format is an error
+/// pointing at that argument. A user definition of the same name wins.
+#[test]
+fn infer_builtin_print() {
+    insta::assert_snapshot!(infer(
+        r#"
+    struct Point { x: i32 }
+
+    func f() {
+        println("x = ", 1, " ", 2.5, " ", true)
+        print()
+        println(Point { x: 1 }, [1, 2])
+    }
+
+    func g() {
+        let print = 3;
+        print(1)
+    }
+    "#),
+    @r#"
+    104..118: `println` cannot print a value of type `Point`: only integers, floats, `bool` and `str` are printable
+    120..126: `println` cannot print a value of type `[{integer}]`: only integers, floats, `bool` and `str` are printable
+    165..170: expected function type
+    34..129 '{     ... 2]) }': ()
+    40..79 'printl... true)': ()
+    48..54 '"x = "': str
+    56..57 '1': i32
+    59..62 '" "': str
+    64..67 '2.5': f64
+    69..72 '" "': str
+    74..78 'true': bool
+    84..91 'print()': ()
+    96..127 'printl...1, 2])': ()
+    104..118 'Point { x: 1 }': Point
+    115..116 '1': i32
+    120..126 '[1, 2]': [i32]
+    121..122 '1': i32
+    124..125 '2': i32
+    140..175 '{     ...t(1) }': ()
+    150..155 'print': i32
+    158..159 '3': i32
+    165..170 'print': i32
+    165..173 'print(1)': {unknown}
+    "#);
+}

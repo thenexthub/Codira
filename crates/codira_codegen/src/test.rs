@@ -1812,3 +1812,18 @@ fn unlowered_match_is_a_diagnostic() {
     }"#,
     );
 }
+
+/// `println` lowers to one runtime call per argument through dispatch table
+/// slots reserved for the `codira.print_*` functions: integers are widened
+/// to 64 bits by signedness, a `bool` is passed as a byte, and the trailing
+/// newline is a `str` like any other.
+#[test]
+fn print_builtin() {
+    test_snapshot_unoptimized(
+        "print_builtin",
+        r#"
+    public func main(a: i8, b: u32, c: f32, d: bool) {
+        println("values: ", a, b, c, d)
+    }"#,
+    );
+}

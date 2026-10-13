@@ -108,6 +108,29 @@ impl<'ink> IsIrType<'ink> for isize {
     }
 }
 
+/// Fixed-width scalars, for the runtime functions `print` lowers to.
+macro_rules! impl_scalar_ir_type {
+    ($($ty:ty => $kind:ident :: $method:ident),+ $(,)?) => {
+        $(
+            impl<'ink> IsIrType<'ink> for $ty {
+                type Type = inkwell::types::$kind<'ink>;
+
+                fn ir_type(context: &'ink Context, _target: &TargetData) -> Self::Type {
+                    context.$method()
+                }
+            }
+        )+
+    };
+}
+
+impl_scalar_ir_type! {
+    u8 => IntType::i8_type,
+    i64 => IntType::i64_type,
+    u64 => IntType::i64_type,
+    f32 => FloatType::f32_type,
+    f64 => FloatType::f64_type,
+}
+
 pub trait IsPointerType<'ink> {
     fn ir_type(context: &'ink Context, target: &TargetData) -> PointerType<'ink>;
 }

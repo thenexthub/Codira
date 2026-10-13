@@ -11,9 +11,9 @@ use std::{
 
 use codira_abi as abi;
 use codira_hir::{
-    ArithOp, BinaryOp, Body, CmpOp, Expr, ExprId, HirDatabase, HirDisplay, InferenceResult,
-    Literal, LogicOp, Name, Ordering, Pat, PatId, Path, ResolveBitness, Resolver, Statement, Ty,
-    TyKind, UnaryOp, ValueNs,
+    ArithOp, BinaryOp, Body, BuiltinFn, CmpOp, Expr, ExprId, HirDatabase, HirDisplay,
+    InferenceResult, Literal, LogicOp, Name, Ordering, Pat, PatId, Path, ResolveBitness, Resolver,
+    Statement, Ty, TyKind, UnaryOp, ValueNs,
 };
 use inkwell::{
     basic_block::BasicBlock,
@@ -320,6 +320,11 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                 ref callee,
                 ref args,
             } => {
+                // `print`/`println`: no callee definition, lowered here.
+                if let Some(builtin) = self.infer.builtin_call(expr) {
+                    return self.gen_builtin_call(builtin, args);
+                }
+
                 // Get the callable definition from the map
                 match self.infer[*callee].as_callable_def() {
                     Some(codira_hir::CallableDef::Function(def)) => {
@@ -377,9 +382,137 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
             // syntax error comes with a parse error; either way the build
             // stops before code generation is entered.
             Expr::Missing => unreachable!(
-                "`Expr::Missing` reached code generation; `validate_codegen_support` should have                  reported it"
+                "`Expr::Missing` reached code generation; `validate_codegen_support` should have reported it"
             ),
         }
+    }
+
+    /// Generates IR for a call to a compiler builtin. See
+    /// [`codira_hir::BuiltinFn`].
+    ///
+    /// Every argument is evaluated before anything is printed, left to
+    /// right, the way an ordinary call evaluates its arguments before the
+    /// callee runs: a diverging argument then means nothing of the call
+    /// happens, rather than half a line appearing.
+    fn gen_builtin_call(
+        &mut self,
+        builtin: BuiltinFn,
+        args: &[ExprId],
+    ) -> Option<BasicValueEnum<'ink>> {
+        match builtin {
+            BuiltinFn::Print | BuiltinFn::Println => {
+                let mut values = Vec::with_capacity(args.len());
+                for &arg in args {
+                    values.push((arg, self.gen_expr(arg)?));
+                }
+                for (arg, value) in values {
+                    self.gen_print_value(arg, value);
+                }
+                if builtin == BuiltinFn::Println {
+                    let newline = self.gen_string_literal(
+                        "
+",
+                    );
+                    self.gen_print_str(newline.into_struct_value());
+                }
+                Some(self.gen_empty())
+            }
+        }
+    }
+
+    /// Emits the runtime call that prints one already-evaluated value,
+    /// chosen by its type. Inference admits only the types handled here.
+    fn gen_print_value(&mut self, arg: ExprId, value: BasicValueEnum<'ink>) {
+        let ty = self.infer[arg].clone();
+        match ty.interned() {
+            TyKind::Str => self.gen_print_str(value.into_struct_value()),
+            TyKind::Int(int_ty) => {
+                let int_value = value.into_int_value();
+                let signed = int_ty.signedness == codira_hir::Signedness::Signed;
+                let i64_type = self.context.i64_type();
+                if int_value.get_type().get_bit_width() > 64 {
+                    // 128-bit: passed as two halves, see `intrinsics::print_i128`.
+                    let low = self
+                        .builder
+                        .build_int_truncate(int_value, i64_type, "low")
+                        .expect("failed to truncate to the low half");
+                    let shift = int_value.get_type().const_int(64, false);
+                    let high = self
+                        .builder
+                        .build_right_shift(int_value, shift, false, "high_bits")
+                        .and_then(|high| self.builder.build_int_truncate(high, i64_type, "high"))
+                        .expect("failed to extract the high half");
+                    let args = [low.into(), high.into()];
+                    if signed {
+                        self.gen_runtime_call(&intrinsics::print_i128, &args);
+                    } else {
+                        self.gen_runtime_call(&intrinsics::print_u128, &args);
+                    }
+                } else if signed {
+                    let widened = self
+                        .builder
+                        .build_int_s_extend_or_bit_cast(int_value, i64_type, "widen")
+                        .expect("failed to widen integer for printing");
+                    self.gen_runtime_call(&intrinsics::print_i64, &[widened.into()]);
+                } else {
+                    let widened = self
+                        .builder
+                        .build_int_z_extend_or_bit_cast(int_value, i64_type, "widen")
+                        .expect("failed to widen integer for printing");
+                    self.gen_runtime_call(&intrinsics::print_u64, &[widened.into()]);
+                }
+            }
+            TyKind::Float(_) => {
+                let float_value = value.into_float_value();
+                if float_value.get_type() == self.context.f32_type() {
+                    self.gen_runtime_call(&intrinsics::print_f32, &[float_value.into()]);
+                } else {
+                    self.gen_runtime_call(&intrinsics::print_f64, &[float_value.into()]);
+                }
+            }
+            TyKind::Bool => {
+                let byte = self
+                    .builder
+                    .build_int_z_extend(value.into_int_value(), self.context.i8_type(), "byte")
+                    .expect("failed to widen bool for printing");
+                self.gen_runtime_call(&intrinsics::print_bool, &[byte.into()]);
+            }
+            _ => unreachable!(
+                "inference admits only printable types as `print` arguments, found `{}`",
+                ty.display(self.db)
+            ),
+        }
+    }
+
+    /// Prints a `str` value: its `{ ptr, len }` halves go to
+    /// `codira.print_str`.
+    fn gen_print_str(&mut self, value: StructValue<'ink>) {
+        let data = self
+            .builder
+            .build_extract_value(value, 0, "str.data")
+            .expect("a str has a data pointer");
+        let len = self
+            .builder
+            .build_extract_value(value, 1, "str.len")
+            .expect("a str has a length");
+        self.gen_runtime_call(&intrinsics::print_str, &[data.into(), len.into()]);
+    }
+
+    /// Calls a function the runtime provides, through the dispatch table
+    /// slot `ir::intrinsics` reserved for it.
+    fn gen_runtime_call(
+        &mut self,
+        function: &impl intrinsics::Intrinsic,
+        args: &[BasicMetadataValueEnum<'ink>],
+    ) {
+        let (fn_ty, fn_ptr) = self.dispatch_table.gen_intrinsic_lookup(
+            self.external_globals.dispatch_table,
+            &self.builder,
+            function,
+        );
+        self.builder
+            .build_indirect_call(fn_ty, fn_ptr, args, "")
+            .expect("failed to build call to a runtime function");
     }
 
     /// Generates IR for an `as` cast.
@@ -1656,7 +1789,7 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                 _ => Some(self.context.const_struct(&[], false).into()),
             },
             Err(intrinsic_ops::IntrinsicError::Unknown) => panic!(
-                "`{name}` is not a known compiler intrinsic. Functions declared in an                  `extern \"codira-intrinsic\"` block must name an operation the compiler                  can emit; see `codira_codegen::ir::intrinsic_ops` for the list."
+                "`{name}` is not a known compiler intrinsic. Functions declared in an `extern \"codira-intrinsic\"` block must name an operation the compiler can emit; see `codira_codegen::ir::intrinsic_ops` for the list."
             ),
             Err(intrinsic_ops::IntrinsicError::Arity { expected, found }) => panic!(
                 "intrinsic `{name}` takes {expected} argument(s) but was declared with {found}"

@@ -7,7 +7,7 @@
 use std::{ffi::OsString, path::Path};
 
 use codira::run_with_args;
-use codira_runtime::Runtime;
+use codira_runtime::{capture_output, Runtime};
 
 const PROJECT_DIR: &str = "codira_projects";
 const PROJECT_NAME: &str = "codira_example_project";
@@ -73,7 +73,6 @@ fn build(project: &Path, args: &[&str]) {
 }
 
 /// Builds and runs an newly generated codira project
-#[allow(clippy::approx_constant)]
 fn build_and_run(project: &Path) {
     build(project, &[]);
 
@@ -84,6 +83,10 @@ fn build_and_run(project: &Path) {
     // safe
     let builder = Runtime::builder(&library_path);
     let runtime = unsafe { builder.finish() }.unwrap();
-    let result: f64 = runtime.invoke("main", ()).unwrap();
-    assert_eq!(result, 3.14159);
+    let ((), output) = capture_output(|| runtime.invoke("main", ()).unwrap());
+    assert_eq!(
+        output,
+        "Hello, world!
+"
+    );
 }

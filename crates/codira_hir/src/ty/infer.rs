@@ -23,7 +23,7 @@ use crate::{
         op, Substitution, Ty, TyKind, TypableDef, TypeWalk,
     },
     type_ref::LocalTypeRefId,
-    BinaryOp, CallableDef, Function, HirDatabase, Name, Path,
+    BinaryOp, BuiltinFn, CallableDef, Function, HirDatabase, HirDisplay, Name, Path,
 };
 
 mod place_expr;
@@ -66,6 +66,11 @@ pub struct InferenceResult {
     /// For each method call expression, records the function it resolves to.
     pub(crate) method_resolutions: FxHashMap<ExprId, FunctionId>,
 
+    /// For each call expression whose callee is a compiler builtin
+    /// (`print`, `println`), records which one. Such a call has no
+    /// `CallableDef`; its callee expression stays untyped.
+    pub(crate) builtin_calls: FxHashMap<ExprId, BuiltinFn>,
+
     /// Interned Unknown to return references to.
     standard_types: InternedStandardTypes,
 }
@@ -93,6 +98,12 @@ impl InferenceResult {
     /// the expression is not a method call.
     pub fn method_resolution(&self, expr: ExprId) -> Option<FunctionId> {
         self.method_resolutions.get(&expr).cloned()
+    }
+
+    /// Returns the builtin a call expression invokes, or `None` when `expr`
+    /// is not a call to a builtin. See [`BuiltinFn`].
+    pub fn builtin_call(&self, expr: ExprId) -> Option<BuiltinFn> {
+        self.builtin_calls.get(&expr).copied()
     }
 
     /// Adds all the `InferenceDiagnostic`s of the result to the
@@ -184,6 +195,9 @@ struct InferenceResultBuilder<'a> {
 
     /// Stores the resolution of method calls
     method_resolution: FxHashMap<ExprId, FunctionId>,
+
+    /// Stores which call expressions invoke a compiler builtin
+    builtin_calls: FxHashMap<ExprId, BuiltinFn>,
 }
 
 impl<'a> InferenceResultBuilder<'a> {
@@ -201,6 +215,7 @@ impl<'a> InferenceResultBuilder<'a> {
             resolver,
             return_ty: TyKind::Unknown.intern(), // set in collect_fn_signature
             method_resolution: FxHashMap::default(),
+            builtin_calls: FxHashMap::default(),
         }
     }
 
@@ -1051,6 +1066,10 @@ impl InferenceResultBuilder<'_> {
         args: &[ExprId],
         _expected: &Expectation,
     ) -> Ty {
+        if let Some(builtin) = self.resolve_builtin_callee(callee) {
+            return self.infer_builtin_call(tgt_expr, builtin, args);
+        }
+
         let callee_ty = self.infer_expr_inner(
             callee,
             &Expectation::none(),
@@ -1107,6 +1126,47 @@ impl InferenceResultBuilder<'_> {
                         found: callee_ty,
                     });
                 error_type()
+            }
+        }
+    }
+
+    /// Returns the builtin `callee` names, if it is a bare identifier that
+    /// names one *and* nothing in scope defines that identifier.
+    ///
+    /// The scope check is what keeps builtins from breaking existing code: a
+    /// program that declares its own `print` keeps calling it.
+    fn resolve_builtin_callee(&mut self, callee: ExprId) -> Option<BuiltinFn> {
+        let Expr::Path(path) = &self.body[callee] else {
+            return None;
+        };
+        let builtin = BuiltinFn::from_name(path.as_ident()?)?;
+        let resolver = resolver_for_expr(self.db, self.body.owner(), callee);
+        if resolver.resolve_path_as_value(self.db, path).is_some() {
+            return None;
+        }
+        Some(builtin)
+    }
+
+    /// Infers a call to a compiler builtin. See [`BuiltinFn`].
+    fn infer_builtin_call(&mut self, tgt_expr: ExprId, builtin: BuiltinFn, args: &[ExprId]) -> Ty {
+        self.builtin_calls.insert(tgt_expr, builtin);
+        match builtin {
+            BuiltinFn::Print | BuiltinFn::Println => {
+                for &arg in args {
+                    let ty = self.infer_expr(arg, &Expectation::none());
+                    let ty = self.normalize(&ty);
+                    if !is_printable(&ty) {
+                        self.diagnostics.push(InferenceDiagnostic::ExprError {
+                            id: arg.into(),
+                            message: format!(
+                                "`{}` cannot print a value of type `{}`: only integers, floats, `bool` and `str` are printable",
+                                builtin.name(),
+                                ty.display(self.db)
+                            ),
+                        });
+                    }
+                }
+                Ty::unit()
             }
         }
     }
@@ -1366,6 +1426,7 @@ impl InferenceResultBuilder<'_> {
             diagnostics: self.diagnostics,
             standard_types: InternedStandardTypes::default(),
             method_resolutions: self.method_resolution,
+            builtin_calls: self.builtin_calls,
         }
     }
 
@@ -1528,6 +1589,25 @@ impl InferenceResultBuilder<'_> {
     }
 }
 
+/// Whether a value of type `ty` can be passed to `print`/`println`.
+///
+/// Every scalar the runtime can format: integers of any width and
+/// signedness, both float widths, `bool` and `str`. An integer or float
+/// literal whose type is not pinned down yet is printable too -- it defaults
+/// to `i32`/`f64` -- and an unknown type is accepted so that an error already
+/// reported elsewhere is not reported a second time.
+fn is_printable(ty: &Ty) -> bool {
+    matches!(
+        ty.interned(),
+        TyKind::Int(_)
+            | TyKind::Float(_)
+            | TyKind::Bool
+            | TyKind::Str
+            | TyKind::Unknown
+            | TyKind::InferenceVar(InferTy::Int(_) | InferTy::Float(_))
+    )
+}
+
 /// Returns a type used for errors
 fn error_type() -> Ty {
     TyKind::Unknown.intern()
@@ -1611,12 +1691,12 @@ mod diagnostics {
         code_model::{src::HasSource, StructKind},
         diagnostics::{
             AccessUnknownField, BreakOutsideLoop, BreakWithValueOutsideLoop, CannotApplyBinaryOp,
-            CannotApplyUnaryOp, CyclicType, DiagnosticSink, ExpectedFunction, FieldCountMismatch,
-            IncompatibleBranch, InvalidCast, InvalidLhs, InvalidTupleDestructure,
-            LiteralOutOfRange, MethodNotFound, MethodNotInScope, MismatchedStructLit,
-            MismatchedType, MissingElseBranch, MissingFields, NoFields, NoSuchField,
-            ParameterCountMismatch, PrivateAccess, ReturnMissingExpression, TypeAnnotationNeeded,
-            UnresolvedType, UnresolvedValue,
+            CannotApplyUnaryOp, CyclicType, DiagnosticSink, ExpectedFunction, ExprError,
+            FieldCountMismatch, IncompatibleBranch, InvalidCast, InvalidLhs,
+            InvalidTupleDestructure, LiteralOutOfRange, MethodNotFound, MethodNotInScope,
+            MismatchedStructLit, MismatchedType, MissingElseBranch, MissingFields, NoFields,
+            NoSuchField, ParameterCountMismatch, PrivateAccess, ReturnMissingExpression,
+            TypeAnnotationNeeded, UnresolvedType, UnresolvedValue,
         },
         ids::FunctionId,
         ty::{cast::InvalidCastReason, infer::ExprOrPatId},
@@ -1748,6 +1828,12 @@ mod diagnostics {
             receiver_ty: Ty,
             field_with_same_name: Option<Ty>,
             associated_function_with_same_name: Option<FunctionId>,
+        },
+        /// A free-form error attached to an expression or pattern; see
+        /// `crate::diagnostics::ExprError`.
+        ExprError {
+            id: ExprOrPatId,
+            message: String,
         },
     }
 
@@ -2162,6 +2248,27 @@ mod diagnostics {
                         .value
                         .either(|it| it.syntax_node_ptr(), |it| it.syntax_node_ptr());
                     sink.push(PrivateAccess { file, expr });
+                }
+                InferenceDiagnostic::ExprError { id, message } => {
+                    // A compiler-generated node has no syntax to blame; skip
+                    // it rather than unwrap, as `TypeAnnotationNeeded` does.
+                    let node = match id {
+                        ExprOrPatId::ExprId(id) => body.expr_syntax(*id).map(|ptr| {
+                            ptr.value
+                                .either(|it| it.syntax_node_ptr(), |it| it.syntax_node_ptr())
+                        }),
+                        ExprOrPatId::PatId(id) => body.pat_syntax(*id).map(|ptr| {
+                            ptr.value
+                                .either(|it| it.syntax_node_ptr(), |it| it.syntax_node_ptr())
+                        }),
+                    };
+                    if let Some(node) = node {
+                        sink.push(ExprError {
+                            file,
+                            node,
+                            message: message.clone(),
+                        });
+                    }
                 }
             }
         }

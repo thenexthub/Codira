@@ -11,4 +11,5 @@ pub mod daemon;
 pub mod init;
 pub mod language_server;
 pub mod new;
+pub mod run;
 pub mod start;

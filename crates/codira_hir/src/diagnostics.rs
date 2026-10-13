@@ -1413,3 +1413,31 @@ impl Diagnostic for ComptimeBudgetExhausted {
         self
     }
 }
+
+/// A type or usage error whose explanation is carried as text.
+///
+/// Most diagnostics here are one struct per failure, which suits an IDE that
+/// wants to offer a fix per kind. The language features added since --
+/// builtins, ranges, `for` loops, `match` -- each have several narrow ways to
+/// be misused whose only consumer is a person reading the message, so they
+/// share this one carrier rather than growing a struct apiece.
+#[derive(Debug)]
+pub struct ExprError {
+    pub file: FileId,
+    pub node: SyntaxNodePtr,
+    pub message: String,
+}
+
+impl Diagnostic for ExprError {
+    fn message(&self) -> String {
+        self.message.clone()
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.node.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}

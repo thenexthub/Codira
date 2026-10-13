@@ -279,8 +279,11 @@ impl<'db, 'ink, 't> DispatchTableBuilder<'db, 'ink, 't> {
     fn collect_expr(&mut self, expr_id: ExprId, body: &Arc<Body>, infer: &InferenceResult) {
         let expr = &body[expr_id];
 
-        // If this expression is a call, store it in the dispatch table
-        if let Expr::Call { callee, .. } = expr {
+        // If this expression is a call, store it in the dispatch table. A
+        // builtin call has no callee definition: its runtime functions are
+        // intrinsics, collected by `ir::intrinsics`.
+        if infer.builtin_call(expr_id).is_some() {
+        } else if let Expr::Call { callee, .. } = expr {
             match infer[*callee].as_callable_def() {
                 Some(codira_hir::CallableDef::Function(def)) => {
                     // An `extern "codira-intrinsic"` callee is emitted inline

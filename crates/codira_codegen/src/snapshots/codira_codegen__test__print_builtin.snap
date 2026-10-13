@@ -1,0 +1,55 @@
+---
+source: crates/codira_codegen/src/test.rs
+expression: "\n    public func main(a: i8, b: u32, c: f32, d: bool) {\n        println(\"values: \", a, b, c, d)\n    }"
+---
+; == FILE IR (mod) =====================================
+; ModuleID = 'mod'
+source_filename = "mod"
+
+%DispatchTable = type { ptr, ptr, ptr, ptr, ptr, ptr, ptr, ptr }
+
+@dispatchTable = external global %DispatchTable
+@global_type_lookup_table = external global [4 x ptr]
+@codira.str = private unnamed_addr constant [9 x i8] c"values: \00"
+@codira.str.1 = private unnamed_addr constant [2 x i8] c"\0A\00"
+
+define void @main(i8 %0, i32 %1, float %2, i1 %3) {
+body:
+  %d = alloca i1, align 1
+  store i1 %3, ptr %d, align 1
+  %c = alloca float, align 4
+  store float %2, ptr %c, align 4
+  %b = alloca i32, align 4
+  store i32 %1, ptr %b, align 4
+  %a = alloca i8, align 1
+  store i8 %0, ptr %a, align 1
+  %a1 = load i8, ptr %a, align 1
+  %b2 = load i32, ptr %b, align 4
+  %c3 = load float, ptr %c, align 4
+  %d4 = load i1, ptr %d, align 1
+  %codira.print_str_ptr = load ptr, ptr getelementptr inbounds nuw (%DispatchTable, ptr @dispatchTable, i32 0, i32 5), align 8
+  call void %codira.print_str_ptr(ptr @codira.str, i64 8)
+  %widen = sext i8 %a1 to i64
+  %codira.print_i64_ptr = load ptr, ptr getelementptr inbounds nuw (%DispatchTable, ptr @dispatchTable, i32 0, i32 4), align 8
+  call void %codira.print_i64_ptr(i64 %widen)
+  %widen5 = zext i32 %b2 to i64
+  %codira.print_u64_ptr = load ptr, ptr getelementptr inbounds nuw (%DispatchTable, ptr @dispatchTable, i32 0, i32 7), align 8
+  call void %codira.print_u64_ptr(i64 %widen5)
+  %codira.print_f32_ptr = load ptr, ptr getelementptr inbounds nuw (%DispatchTable, ptr @dispatchTable, i32 0, i32 1), align 8
+  call void %codira.print_f32_ptr(float %c3)
+  %byte = zext i1 %d4 to i8
+  %codira.print_bool_ptr = load ptr, ptr @dispatchTable, align 8
+  call void %codira.print_bool_ptr(i8 %byte)
+  %codira.print_str_ptr6 = load ptr, ptr getelementptr inbounds nuw (%DispatchTable, ptr @dispatchTable, i32 0, i32 5), align 8
+  call void %codira.print_str_ptr6(ptr @codira.str.1, i64 1)
+  ret void
+}
+
+; == GROUP IR (mod) ====================================
+; ModuleID = 'group_name'
+source_filename = "group_name"
+
+%DispatchTable = type { ptr, ptr, ptr, ptr, ptr, ptr, ptr, ptr }
+
+@dispatchTable = global %DispatchTable zeroinitializer
+@global_type_lookup_table = global [4 x ptr] zeroinitializer

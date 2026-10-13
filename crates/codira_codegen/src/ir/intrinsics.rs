@@ -21,7 +21,7 @@ pub type IntrinsicsMap<'ink> = BTreeMap<FunctionPrototype, FunctionType<'ink>>;
 fn collect_intrinsic<'ink>(
     context: &'ink Context,
     target: &TargetData,
-    intrinsic: &impl Intrinsic,
+    intrinsic: &(impl Intrinsic + ?Sized),
     entries: &mut IntrinsicsMap<'ink>,
 ) {
     let prototype = intrinsic.prototype();
@@ -45,8 +45,13 @@ fn collect_expr<'ink>(
 ) {
     let expr = &body[expr_id];
 
-    // If this expression is a call, store it in the dispatch table
-    if let Expr::Call { callee, .. } = expr {
+    // A builtin call (`print`/`println`) lowers to calls into the runtime's
+    // printing functions, which therefore need dispatch table slots.
+    if infer.builtin_call(expr_id).is_some() {
+        for intrinsic in intrinsics::print_functions() {
+            collect_intrinsic(context, target, intrinsic, intrinsics);
+        }
+    } else if let Expr::Call { callee, .. } = expr {
         match infer[*callee].as_callable_def() {
             Some(codira_hir::CallableDef::Struct(_)) => {
                 collect_intrinsic(context, target, &intrinsics::new, intrinsics);

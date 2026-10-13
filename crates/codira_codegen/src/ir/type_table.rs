@@ -165,8 +165,10 @@ impl<'db, 'ink, 't> TypeTableBuilder<'db, 'ink, 't> {
     fn collect_expr(&mut self, expr_id: ExprId, body: &Arc<Body>, infer: &InferenceResult) {
         let expr = &body[expr_id];
 
-        // If this expression is a call, store it in the dispatch table
-        if let codira_hir::Expr::Call { callee, .. } = expr {
+        // If this expression is a call, store it in the dispatch table. A
+        // builtin call (`print`/`println`) has no callee signature to collect.
+        if infer.builtin_call(expr_id).is_some() {
+        } else if let codira_hir::Expr::Call { callee, .. } = expr {
             match infer[*callee].as_callable_def() {
                 Some(codira_hir::CallableDef::Function(hir_fn)) => {
                     self.maybe_collect_fn_signature(hir_fn);

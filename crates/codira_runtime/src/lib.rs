@@ -16,6 +16,7 @@ mod assembly;
 mod garbage_collector;
 mod adt;
 mod array;
+mod builtins;
 mod dispatch_table;
 mod function_info;
 mod marshal;
@@ -55,6 +56,7 @@ pub use crate::{
     adt::{RootedStruct, StructRef},
     array::{ArrayRef, RawArray, RootedArray},
     assembly::{Assembly, LinkError, LinkFunctionsError},
+    builtins::capture_output,
     function_info::{
         FunctionDefinition, FunctionPrototype, FunctionSignature, IntoFunctionDefinition,
     },
@@ -263,6 +265,9 @@ impl Runtime {
             "new_array",
         ));
 
+        // The functions compiled `print`/`println` calls lower to.
+        options.user_functions.extend(builtins::definitions());
+
         options.user_functions.into_iter().for_each(|fn_def| {
             dispatch_table.insert_fn(fn_def.prototype.name.clone(), Arc::new(fn_def));
         });
@@ -393,7 +398,11 @@ impl Runtime {
                     None
                 }
             })
-            .min_by(|(_, dist1), (_, dist2)| dist1.cmp(dist2));
+            // Ties are broken by name: the dispatch table is a hash map, so
+            // without this the suggestion depended on its iteration order.
+            .min_by(|(name1, dist1), (name2, dist2)| {
+                dist1.cmp(dist2).then_with(|| name1.cmp(name2))
+            });
         found_match.map(|(closest_name, _)| closest_name)
     }
 
@@ -889,7 +898,12 @@ impl Runtime {
         }) {
             Ok(function_info) => function_info,
             Err(msg) => {
-                let available_names = self.dispatch_table.get_fn_names();
+                // Runtime-provided functions (`codira.print_str`, ...) are
+                // not something a caller could have meant to invoke.
+                let available_names = self
+                    .dispatch_table
+                    .get_fn_names()
+                    .filter(|name| !name.contains('.'));
                 let suggested_name =
                     Self::find_best_match_for_fn_name(function_name, available_names, None);
 

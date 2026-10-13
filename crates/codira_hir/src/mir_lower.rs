@@ -367,6 +367,11 @@ impl Lowerer<'_> {
                 // never lowers (or doesn't exist) surfaces as
                 // `UnknownCallee` at interpretation time, never as a
                 // wrong answer.
+                // A builtin (`print`, `println`) is a side effect with no
+                // generator behind it; it must never take part in folding.
+                if self.infer.builtin_call(id).is_some() {
+                    return None;
+                }
                 let Expr::Path(path) = &self.hir_body[*callee] else {
                     return None;
                 };

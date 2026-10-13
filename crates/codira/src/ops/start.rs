@@ -58,6 +58,23 @@ fn classify_fault(
 
 /// Starts the runtime with the specified library and invokes function `entry`.
 pub fn start(args: Args) -> anyhow::Result<ExitStatus> {
+    start_library(args.library, args.entry, args.heal)
+}
+
+/// Loads `library` into a fresh runtime and invokes `entry`, printing its
+/// result if it returns a primitive. Shared by `codira start` and
+/// `codira run`, which differ only in where the library comes from.
+pub(crate) fn start_library(
+    library: PathBuf,
+    entry: String,
+    heal: bool,
+) -> anyhow::Result<ExitStatus> {
+    let args = Args {
+        library,
+        entry,
+        heal,
+    };
+
     // Arm fault interception *before* the runtime loads anything, so a
     // fault during library initialization is caught too. Installing the
     // handler without `--heal` would change process-wide fault behaviour
