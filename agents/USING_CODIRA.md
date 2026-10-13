@@ -512,6 +512,20 @@ one C file each get their own copy of its globals; watch mode and the daemon
 compile native sources only when the package is loaded; C++ exceptions must
 not escape into Codira code.
 
+### Importing a C header: `codira import-c`
+
+```bash
+codira import-c c/include/kernels.h -I c/include -o src/kernels.code
+```
+
+Clang reads the header exactly as a C compiler would (macros, typedefs,
+includes) and `import-c` writes an `extern "C"` block for every function the
+header itself declares whose types Codira can carry: integers, floats,
+`_Bool`, and pointers, which become `usize` addresses. Structs and unions by
+value, variadic functions, `static`/`inline` functions and `long double` are
+listed in a comment with the reason instead. `--target` reads the header for
+another target (`long` is 32 bits on Windows); `--cxx` reads it as C++.
+
 ### Bun
 
 `bindings/bun` is a Bun plugin: with `preload = ["codira-bun/register"]` in

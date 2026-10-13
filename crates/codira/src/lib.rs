@@ -10,7 +10,8 @@ use std::ffi::OsString;
 
 use clap::{Parser, Subcommand};
 use ops::{
-    bindgen, build, check, daemon, init, language_server, new, quantum, query, run, start, test,
+    bindgen, build, check, daemon, import_c, init, language_server, new, quantum, query, run,
+    start, test,
 };
 
 #[derive(Parser)]
@@ -61,6 +62,10 @@ enum Command {
     /// Find the functions that can satisfy a predicate over `result` and
     /// their parameters (e.g. "result < 0"), with a witness input for each
     Query(query::Args),
+
+    /// Read a C header with Clang and write Codira `extern "C"` declarations
+    /// for its functions
+    ImportC(import_c::Args),
 }
 
 #[derive(Copy, Debug, Clone, PartialEq, Eq)]
@@ -98,5 +103,6 @@ where
         Command::Quantum(args) => quantum::quantum(args),
         Command::Test(args) => test::test(args),
         Command::Query(args) => query::query(args),
+        Command::ImportC(args) => import_c::import_c(args),
     }
 }

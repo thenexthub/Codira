@@ -36,6 +36,7 @@ pub use crate::{
         CheckDiagnostic, Config, DiagnosticCounts, DiagnosticKind, DisplayColor, Driver,
         FileDiagnostics, SyncSummary,
     },
+    native_build::find_clang,
 };
 
 #[derive(Debug, Clone)]
