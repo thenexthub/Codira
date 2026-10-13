@@ -362,6 +362,21 @@ impl Assembly {
         // Clone the dispatch table, such that we can roll back if linking fails
         let mut dispatch_table = dispatch_table.clone();
 
+        // The heap migrations this relink asks for, in the order the assemblies
+        // were linked. They are only *collected* while linking and applied once
+        // every assembly has linked.
+        //
+        // The two tables above are clones, so an error leaves the caller's
+        // originals untouched, and the new assemblies are simply dropped. The
+        // heap has no such copy: `map_memory` rewrites live objects in place.
+        // It used to run here, per assembly, before that assembly's functions
+        // were linked. An unresolved function then returned an error with the
+        // old code and the old tables still installed, but with every live
+        // object already rewritten to a layout that code was never compiled
+        // against. Nothing below needs the migrated heap -- linking only reads
+        // the tables -- so the migration can wait until nothing can fail.
+        let mut memory_mappings: Vec<(Arc<GarbageCollector>, Mapping)> = Vec::new();
+
         while let Some(mut entry) = assemblies_to_link.pop_front() {
             let (ref old_assembly, ref mut new_assembly) = entry;
 
@@ -410,12 +425,12 @@ impl Assembly {
             Assembly::link_all_types(&type_table, types_to_link)
                 .map_err(LinkError::MissingTypes)?;
 
-            // Memory map allocated object
+            // Work out how allocated objects have to be memory mapped. This only
+            // compares the old types to the new ones; the objects themselves are
+            // not touched until all assemblies have linked.
             if let Some((old_assembly, old_types)) = old_types {
                 let mapping = Mapping::new(&old_types, &new_types);
-                let _deleted_objects = old_assembly.allocator.map_memory(mapping);
-                // DISCUSSION: Do we need to maintain an assembly for the type
-                // LUT of allocated objects with deleted types?
+                memory_mappings.push((old_assembly.allocator.clone(), mapping));
             }
 
             // Remove the old assembly's functions from the dispatch table
@@ -452,6 +467,14 @@ impl Assembly {
 
             // Remove assemblies that no longer have dependencies
             dependencies.retain(|_, dependencies| !dependencies.is_empty());
+        }
+
+        // Every assembly linked, so from here on the relink cannot be refused:
+        // memory map allocated objects.
+        for (allocator, mapping) in memory_mappings {
+            let _deleted_objects = allocator.map_memory(mapping);
+            // DISCUSSION: Do we need to maintain an assembly for the type
+            // LUT of allocated objects with deleted types?
         }
 
         let mut newly_linked = HashMap::new();
