@@ -1197,7 +1197,7 @@ fn strip_underscores(s: &str) -> Cow<'_, str> {
 /// Errors are collected rather than aborting, and the offending escape is
 /// dropped from the result. A malformed escape is a diagnostic, not a reason
 /// to lose the rest of the string -- the remainder is still worth checking.
-fn string_lit(text: &str) -> (String, Vec<LiteralError>) {
+pub(crate) fn string_lit(text: &str) -> (String, Vec<LiteralError>) {
     // The lexer may hand back an unterminated literal when the source is
     // malformed, so the closing quote is stripped only if it is there.
     let inner = text

@@ -82,6 +82,10 @@ pub struct FunctionData {
     /// exists in the object file but is not exported from the assembly, so
     /// no external caller can find it.
     export_abi: Option<String>,
+    /// The well-formed `@asm(...)` variants on this function, in source order.
+    /// Malformed ones are left out here and reported by
+    /// `ExprValidator::validate_inline_asm`, which reads the attributes again.
+    asm_variants: Box<[crate::inline_asm::AsmVariant]>,
     /// The receiver's type, for a method declared with a `self` parameter.
     ///
     /// Deliberately kept *out* of `params`, which stays the list of ordinary
@@ -148,6 +152,8 @@ impl FunctionData {
             })
         });
 
+        let asm_variants = crate::inline_asm::asm_variants(&src).0.into_boxed_slice();
+
         let is_strict = src.attribute_list().is_some_and(|attrs| {
             attrs.attributes().any(|attr| {
                 attr.path()
@@ -186,6 +192,7 @@ impl FunctionData {
             consuming_params,
             is_strict,
             export_abi,
+            asm_variants,
             self_param,
         })
     }
@@ -291,6 +298,11 @@ impl FunctionData {
     pub fn export_abi(&self) -> Option<&str> {
         self.export_abi.as_deref()
     }
+
+    /// The well-formed `@asm(...)` variants on this function.
+    pub fn asm_variants(&self) -> &[crate::inline_asm::AsmVariant] {
+        &self.asm_variants
+    }
 }
 
 impl Function {
@@ -389,6 +401,19 @@ impl Function {
     /// inline at the call site instead of calling as a symbol.
     pub fn is_intrinsic(self, db: &dyn HirDatabase) -> bool {
         db.fn_data(self.id).flags.is_intrinsic()
+    }
+
+    /// Whether this function is declared with `@asm(...)`: its calls are
+    /// replaced by its inline assembly, so it never becomes a symbol either.
+    pub fn is_inline_asm(self, db: &dyn HirDatabase) -> bool {
+        !db.fn_data(self.id).asm_variants().is_empty()
+    }
+
+    /// The `@asm(...)` variant that applies on the target being compiled
+    /// for, if the function has one for it.
+    pub fn inline_asm(self, db: &dyn HirDatabase) -> Option<crate::inline_asm::AsmVariant> {
+        let target = db.target();
+        crate::inline_asm::select_variant(db.fn_data(self.id).asm_variants(), &target.arch).cloned()
     }
 
     pub(crate) fn body_source_map(self, db: &dyn HirDatabase) -> Arc<BodySourceMap> {

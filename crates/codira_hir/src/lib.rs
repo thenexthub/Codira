@@ -78,6 +78,7 @@ mod utils;
 mod has_module;
 mod heal_check;
 pub mod heal_contract;
+pub mod inline_asm;
 mod item_scope;
 pub mod method_resolution;
 #[cfg(test)]

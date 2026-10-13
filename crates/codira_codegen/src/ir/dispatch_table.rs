@@ -294,7 +294,9 @@ impl<'db, 'ink, 't> DispatchTableBuilder<'db, 'ink, 't> {
                     // and loading the assembly would then fail with
                     // "Missing dependencies for functions: [load_u32, ..]"
                     // for symbols that are not supposed to exist.
-                    if def.is_intrinsic(self.db) {
+                    // An `@asm` function is the same: its assembly is emitted at
+                    // the call site.
+                    if def.is_intrinsic(self.db) || def.is_inline_asm(self.db) {
                         // Still walk the arguments -- they are ordinary
                         // expressions and may contain real calls.
                         expr.walk_child_exprs(|expr_id| self.collect_expr(expr_id, body, infer));

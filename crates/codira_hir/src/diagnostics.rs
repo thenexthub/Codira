@@ -1441,3 +1441,32 @@ impl Diagnostic for ExprError {
         self
     }
 }
+
+/// An `@asm(...)` declaration that cannot be emitted: a malformed attribute,
+/// operands that do not line up with the constraint string, a type inline
+/// assembly cannot carry, or no variant for the target being compiled for.
+///
+/// These are checked here rather than left to LLVM, whose inline-assembly
+/// verifier only runs in builds with assertions: a release LLVM accepts a
+/// mismatched constraint string and fails much later, inside instruction
+/// selection, with nothing that points back at the source.
+#[derive(Debug)]
+pub struct InvalidInlineAsm {
+    pub file: FileId,
+    pub func: SyntaxNodePtr,
+    pub message: String,
+}
+
+impl Diagnostic for InvalidInlineAsm {
+    fn message(&self) -> String {
+        format!("invalid `@asm`: {}", self.message)
+    }
+
+    fn source(&self) -> InFile<SyntaxNodePtr> {
+        InFile::new(self.file, self.func.clone())
+    }
+
+    fn as_any(&self) -> &(dyn Any + Send + 'static) {
+        self
+    }
+}

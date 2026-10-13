@@ -19,11 +19,12 @@ use inkwell::{
     basic_block::BasicBlock,
     builder::Builder,
     context::Context,
+    types::{BasicMetadataTypeEnum, BasicType},
     values::{
         AggregateValueEnum, BasicMetadataValueEnum, BasicValueEnum, FloatValue, FunctionValue,
         GlobalValue, IntValue, PointerValue, StructValue,
     },
-    AddressSpace, FloatPredicate, IntPredicate,
+    AddressSpace, FloatPredicate, InlineAsmDialect, IntPredicate,
 };
 
 use crate::{
@@ -339,6 +340,10 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
                         // here, in place. See `intrinsic_ops::gen_intrinsic`.
                         if def.is_intrinsic(self.db) {
                             return self.gen_intrinsic_call(expr, def, &args);
+                        }
+                        // An `@asm` function likewise: its assembly goes here.
+                        if def.is_inline_asm(self.db) {
+                            return self.gen_inline_asm_call(expr, def, &args);
                         }
 
                         self.gen_call(def, &args)
@@ -1765,6 +1770,86 @@ impl<'db, 'ink, 't> BodyIrGenerator<'db, 'ink, 't> {
     /// that codegen knows how to emit it. A name codegen does not recognise
     /// is a hard error rather than a silent no-op: the alternative is a
     /// program that compiles, returns garbage, and gives no indication why.
+    /// Emits the `@asm` variant of `function` for this target in place of a
+    /// call to it. See `codira_hir::inline_asm` for the attribute; the HIR
+    /// validator has already checked that a variant exists for the target,
+    /// that every operand is an integer or a float, and that the constraint
+    /// string names one output per returned value and one input per
+    /// parameter.
+    fn gen_inline_asm_call(
+        &mut self,
+        expr: ExprId,
+        function: codira_hir::Function,
+        args: &[BasicMetadataValueEnum<'ink>],
+    ) -> Option<BasicValueEnum<'ink>> {
+        let variant = function
+            .inline_asm(self.db)
+            .expect("the validator rejects an `@asm` function with no variant for the target");
+        let sig = function.ty(self.db).callable_sig(self.db).unwrap();
+
+        let param_types: Vec<BasicMetadataTypeEnum<'ink>> = sig
+            .params()
+            .iter()
+            .map(|ty| {
+                self.hir_types
+                    .get_basic_type(ty)
+                    .expect("an `@asm` operand is an integer or a float")
+                    .into()
+            })
+            .collect();
+        let ret = sig.ret();
+        let fn_type = if ret.is_empty() || ret.is_never() {
+            self.context.void_type().fn_type(&param_types, false)
+        } else {
+            self.hir_types
+                .get_basic_type(ret)
+                .expect("an `@asm` result is an integer or a float")
+                .fn_type(&param_types, false)
+        };
+
+        let mut constraints = variant.constraints.clone();
+        // GCC-style inline assembly on x86 may change the direction flag,
+        // the x87 status word and the condition flags without saying so, and
+        // Clang tells LLVM as much on every `asm` statement. A template that
+        // compares or adds would otherwise leave LLVM believing flags it set
+        // before the assembly still hold after it.
+        if matches!(&*self.db.target().arch, "x86_64" | "x86") {
+            for clobber in ["~{dirflag}", "~{fpsr}", "~{flags}"] {
+                if !constraints.split(',').any(|c| c.trim() == clobber) {
+                    if !constraints.trim().is_empty() {
+                        constraints.push(',');
+                    }
+                    constraints.push_str(clobber);
+                }
+            }
+        }
+
+        let dialect = match variant.dialect {
+            codira_hir::inline_asm::AsmDialect::Att => InlineAsmDialect::ATT,
+            codira_hir::inline_asm::AsmDialect::Intel => InlineAsmDialect::Intel,
+        };
+        let asm = self.context.create_inline_asm(
+            fn_type,
+            variant.template,
+            constraints,
+            !variant.pure,
+            false,
+            Some(dialect),
+            false,
+        );
+        let call = self
+            .builder
+            .build_indirect_call(fn_type, asm, args, &function.name(self.db).to_string())
+            .expect("failed to build inline assembly call");
+
+        call.try_as_basic_value()
+            .basic()
+            .or_else(|| match self.infer[expr].interned() {
+                TyKind::Never => None,
+                _ => Some(self.context.const_struct(&[], false).into()),
+            })
+    }
+
     fn gen_intrinsic_call(
         &mut self,
         expr: ExprId,
